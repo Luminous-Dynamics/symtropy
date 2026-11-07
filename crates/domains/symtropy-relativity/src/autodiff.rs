@@ -11,13 +11,13 @@
 use core::fmt;
 
 use super::{
+    DimensionlessSpin, KerrBlackHole, PhysicsDomainError, SchwarzschildBlackHole,
     connection::{ConnectionError, MetricDerivatives4},
     curvature::{CurvatureError, MetricSecondDerivatives4, RiemannTensor4},
     metric::{
         MetricComponents4, MetricError, kerr_exterior_metric, kerr_ingoing_metric,
         schwarzschild_exterior_metric, schwarzschild_ingoing_ef_metric,
     },
-    DimensionlessSpin, KerrBlackHole, PhysicsDomainError, SchwarzschildBlackHole,
 };
 
 /// Scalar second-order jet over four spacetime coordinates.
@@ -90,11 +90,9 @@ impl Jet2 {
     pub fn mul(self, other: Self) -> Self {
         let mut result = Self::constant(self.value * other.value);
         for i in 0..4 {
-            result.first[i] =
-                self.first[i] * other.value + self.value * other.first[i];
+            result.first[i] = self.first[i] * other.value + self.value * other.first[i];
             for j in 0..4 {
-                result.second[i][j] =
-                    self.second[i][j] * other.value
+                result.second[i][j] = self.second[i][j] * other.value
                     + self.first[i] * other.first[j]
                     + self.first[j] * other.first[i]
                     + self.value * other.second[i][j];
@@ -117,8 +115,7 @@ impl Jet2 {
         for i in 0..4 {
             result.first[i] = -self.first[i] * inverse_squared;
             for j in 0..4 {
-                result.second[i][j] =
-                    2.0 * self.first[i] * self.first[j] * inverse_cubed
+                result.second[i][j] = 2.0 * self.first[i] * self.first[j] * inverse_cubed
                     - self.second[i][j] * inverse_squared;
             }
         }
@@ -127,8 +124,7 @@ impl Jet2 {
     }
 
     pub fn div(self, other: Self) -> Result<Self, JetError> {
-        self.mul(other.reciprocal()?)
-            .ensure_finite("division")
+        self.mul(other.reciprocal()?).ensure_finite("division")
     }
 
     pub fn sin(self) -> Self {
@@ -139,8 +135,7 @@ impl Jet2 {
             result.first[i] = cos_value * self.first[i];
             for j in 0..4 {
                 result.second[i][j] =
-                    cos_value * self.second[i][j]
-                    - sin_value * self.first[i] * self.first[j];
+                    cos_value * self.second[i][j] - sin_value * self.first[i] * self.first[j];
             }
         }
         result
@@ -154,8 +149,7 @@ impl Jet2 {
             result.first[i] = -sin_value * self.first[i];
             for j in 0..4 {
                 result.second[i][j] =
-                    -sin_value * self.second[i][j]
-                    - cos_value * self.first[i] * self.first[j];
+                    -sin_value * self.second[i][j] - cos_value * self.first[i] * self.first[j];
             }
         }
         result
@@ -175,8 +169,7 @@ impl Jet2 {
         for i in 0..4 {
             result.first[i] = first_factor * self.first[i];
             for j in 0..4 {
-                result.second[i][j] =
-                    first_factor * self.second[i][j]
+                result.second[i][j] = first_factor * self.second[i][j]
                     + second_factor * self.first[i] * self.first[j];
             }
         }
@@ -230,10 +223,30 @@ impl DifferentiatedMetric4 {
         let g_phi_phi = r_squared.mul(sin_squared);
 
         Self::from_jets([
-            [g_tt, Jet2::constant(0.0), Jet2::constant(0.0), Jet2::constant(0.0)],
-            [Jet2::constant(0.0), g_rr, Jet2::constant(0.0), Jet2::constant(0.0)],
-            [Jet2::constant(0.0), Jet2::constant(0.0), g_theta_theta, Jet2::constant(0.0)],
-            [Jet2::constant(0.0), Jet2::constant(0.0), Jet2::constant(0.0), g_phi_phi],
+            [
+                g_tt,
+                Jet2::constant(0.0),
+                Jet2::constant(0.0),
+                Jet2::constant(0.0),
+            ],
+            [
+                Jet2::constant(0.0),
+                g_rr,
+                Jet2::constant(0.0),
+                Jet2::constant(0.0),
+            ],
+            [
+                Jet2::constant(0.0),
+                Jet2::constant(0.0),
+                g_theta_theta,
+                Jet2::constant(0.0),
+            ],
+            [
+                Jet2::constant(0.0),
+                Jet2::constant(0.0),
+                Jet2::constant(0.0),
+                g_phi_phi,
+            ],
         ])
     }
 
@@ -296,39 +309,39 @@ impl DifferentiatedMetric4 {
         let r_squared = r.mul(r);
 
         let sigma = r_squared.add(a_squared.mul(cos_squared));
-        let delta = r_squared
-            .sub(two.mul(rg).mul(r))
-            .add(a_squared);
+        let delta = r_squared.sub(two.mul(rg).mul(r)).add(a_squared);
 
         let two_m_r_over_sigma = two.mul(rg).mul(r).div(sigma)?;
         let g_tt = one.sub(two_m_r_over_sigma).neg();
 
-        let g_t_phi = two
-            .mul(rg)
-            .mul(a)
-            .mul(r)
-            .mul(sin_squared)
-            .div(sigma)?
-            .neg();
+        let g_t_phi = two.mul(rg).mul(a).mul(r).mul(sin_squared).div(sigma)?.neg();
 
         let g_rr = sigma.div(delta)?;
         let g_theta_theta = sigma;
 
-        let azimuthal_bracket = r_squared
-            .add(a_squared)
-            .add(
-                two.mul(rg)
-                    .mul(a_squared)
-                    .mul(r)
-                    .mul(sin_squared)
-                    .div(sigma)?,
-            );
+        let azimuthal_bracket = r_squared.add(a_squared).add(
+            two.mul(rg)
+                .mul(a_squared)
+                .mul(r)
+                .mul(sin_squared)
+                .div(sigma)?,
+        );
         let g_phi_phi = sin_squared.mul(azimuthal_bracket);
 
         Self::from_jets([
             [g_tt, Jet2::constant(0.0), Jet2::constant(0.0), g_t_phi],
-            [Jet2::constant(0.0), g_rr, Jet2::constant(0.0), Jet2::constant(0.0)],
-            [Jet2::constant(0.0), Jet2::constant(0.0), g_theta_theta, Jet2::constant(0.0)],
+            [
+                Jet2::constant(0.0),
+                g_rr,
+                Jet2::constant(0.0),
+                Jet2::constant(0.0),
+            ],
+            [
+                Jet2::constant(0.0),
+                Jet2::constant(0.0),
+                g_theta_theta,
+                Jet2::constant(0.0),
+            ],
             [g_t_phi, Jet2::constant(0.0), Jet2::constant(0.0), g_phi_phi],
         ])
     }
@@ -359,25 +372,17 @@ impl DifferentiatedMetric4 {
             .sub(two.mul(rg).mul(r).div(sigma)?)
             .neg();
         let g_vr = Jet2::constant(1.0);
-        let g_v_phi = two
-            .mul(rg)
-            .mul(a)
-            .mul(r)
-            .mul(sin_squared)
-            .div(sigma)?
-            .neg();
+        let g_v_phi = two.mul(rg).mul(a).mul(r).mul(sin_squared).div(sigma)?.neg();
         let g_r_phi = a.mul(sin_squared).neg();
         let g_theta_theta = sigma;
         let g_phi_phi = sin_squared.mul(
-            r_squared
-                .add(a_squared)
-                .add(
-                    two.mul(rg)
-                        .mul(a_squared)
-                        .mul(r)
-                        .mul(sin_squared)
-                        .div(sigma)?,
-                ),
+            r_squared.add(a_squared).add(
+                two.mul(rg)
+                    .mul(a_squared)
+                    .mul(r)
+                    .mul(sin_squared)
+                    .div(sigma)?,
+            ),
         );
 
         let zero = Jet2::constant(0.0);
@@ -440,31 +445,46 @@ pub enum JetError {
 }
 
 impl From<MetricError> for JetError {
-    fn from(value: MetricError) -> Self { Self::Metric(value) }
+    fn from(value: MetricError) -> Self {
+        Self::Metric(value)
+    }
 }
 impl From<ConnectionError> for JetError {
-    fn from(value: ConnectionError) -> Self { Self::Connection(value) }
+    fn from(value: ConnectionError) -> Self {
+        Self::Connection(value)
+    }
 }
 impl From<CurvatureError> for JetError {
-    fn from(value: CurvatureError) -> Self { Self::Curvature(value) }
+    fn from(value: CurvatureError) -> Self {
+        Self::Curvature(value)
+    }
 }
 impl From<PhysicsDomainError> for JetError {
-    fn from(value: PhysicsDomainError) -> Self { Self::PhysicsDomain(value) }
+    fn from(value: PhysicsDomainError) -> Self {
+        Self::PhysicsDomain(value)
+    }
 }
 
 impl fmt::Display for JetError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::NonFiniteInput => write!(f, "automatic-differentiation input is non-finite"),
-            Self::CoordinateIndexOutOfRange(index) =>
-                write!(f, "coordinate index {index} is outside [0, 3]"),
+            Self::CoordinateIndexOutOfRange(index) => {
+                write!(f, "coordinate index {index} is outside [0, 3]")
+            }
             Self::DivisionByZero => write!(f, "automatic-differentiation division by zero"),
-            Self::NonPositiveSquareRoot(value) =>
-                write!(f, "automatic-differentiation square root requires positive input, got {value}"),
-            Self::NonFiniteIntermediate =>
-                write!(f, "automatic-differentiation encountered a non-finite intermediate"),
-            Self::NonFiniteOperation(operation) =>
-                write!(f, "automatic-differentiation {operation} produced non-finite derivatives"),
+            Self::NonPositiveSquareRoot(value) => write!(
+                f,
+                "automatic-differentiation square root requires positive input, got {value}"
+            ),
+            Self::NonFiniteIntermediate => write!(
+                f,
+                "automatic-differentiation encountered a non-finite intermediate"
+            ),
+            Self::NonFiniteOperation(operation) => write!(
+                f,
+                "automatic-differentiation {operation} produced non-finite derivatives"
+            ),
             Self::Metric(error) => write!(f, "{error}"),
             Self::Connection(error) => write!(f, "{error}"),
             Self::Curvature(error) => write!(f, "{error}"),
@@ -485,7 +505,10 @@ mod tests {
     }
     fn close(a: f64, b: f64, tol: f64) {
         let allowed = if b == 0.0 { tol } else { tol * b.abs() };
-        assert!((a-b).abs() <= allowed, "actual={a:e}, expected={b:e}, allowed={allowed:e}");
+        assert!(
+            (a - b).abs() <= allowed,
+            "actual={a:e}, expected={b:e}, allowed={allowed:e}"
+        );
     }
 
     #[test]
@@ -518,64 +541,100 @@ mod tests {
         let h = SchwarzschildBlackHole::new(mass());
         let r = 7.0 * h.gravitational_radius_m();
         let theta = 1.1;
-        let ad = DifferentiatedMetric4::schwarzschild_exterior(h,r,theta).unwrap();
-        let analytic_first = MetricDerivatives4::schwarzschild_exterior(h,r,theta).unwrap();
-        let analytic_second = MetricSecondDerivatives4::schwarzschild_exterior(h,r,theta).unwrap();
-        for a in 0..4 { for mu in 0..4 { for nu in 0..4 {
-            close(ad.first.components()[a][mu][nu],analytic_first.components()[a][mu][nu],2e-13);
-            for b in 0..4 {
-                close(ad.second.components()[a][b][mu][nu],analytic_second.components()[a][b][mu][nu],2e-13);
+        let ad = DifferentiatedMetric4::schwarzschild_exterior(h, r, theta).unwrap();
+        let analytic_first = MetricDerivatives4::schwarzschild_exterior(h, r, theta).unwrap();
+        let analytic_second =
+            MetricSecondDerivatives4::schwarzschild_exterior(h, r, theta).unwrap();
+        for a in 0..4 {
+            for mu in 0..4 {
+                for nu in 0..4 {
+                    close(
+                        ad.first.components()[a][mu][nu],
+                        analytic_first.components()[a][mu][nu],
+                        2e-13,
+                    );
+                    for b in 0..4 {
+                        close(
+                            ad.second.components()[a][b][mu][nu],
+                            analytic_second.components()[a][b][mu][nu],
+                            2e-13,
+                        );
+                    }
+                }
             }
-        }}}
+        }
     }
 
     #[test]
     fn zero_spin_kerr_automatic_derivatives_match_schwarzschild() {
         let m = mass();
         let schwarzschild = SchwarzschildBlackHole::new(m);
-        let kerr = KerrBlackHole::new(m,DimensionlessSpin::new(0.0).unwrap());
+        let kerr = KerrBlackHole::new(m, DimensionlessSpin::new(0.0).unwrap());
         let r = 8.0 * schwarzschild.gravitational_radius_m();
         let theta = 0.9;
-        let s = DifferentiatedMetric4::schwarzschild_exterior(schwarzschild,r,theta).unwrap();
-        let k = DifferentiatedMetric4::kerr_exterior(kerr,r,theta).unwrap();
-        for mu in 0..4 { for nu in 0..4 {
-            close(s.metric.covariant()[mu][nu],k.metric.covariant()[mu][nu],2e-13);
-            for a in 0..4 {
-                close(s.first.components()[a][mu][nu],k.first.components()[a][mu][nu],3e-12);
-                for b in 0..4 {
-                    close(s.second.components()[a][b][mu][nu],k.second.components()[a][b][mu][nu],3e-11);
+        let s = DifferentiatedMetric4::schwarzschild_exterior(schwarzschild, r, theta).unwrap();
+        let k = DifferentiatedMetric4::kerr_exterior(kerr, r, theta).unwrap();
+        for mu in 0..4 {
+            for nu in 0..4 {
+                close(
+                    s.metric.covariant()[mu][nu],
+                    k.metric.covariant()[mu][nu],
+                    2e-13,
+                );
+                for a in 0..4 {
+                    close(
+                        s.first.components()[a][mu][nu],
+                        k.first.components()[a][mu][nu],
+                        3e-12,
+                    );
+                    for b in 0..4 {
+                        close(
+                            s.second.components()[a][b][mu][nu],
+                            k.second.components()[a][b][mu][nu],
+                            3e-11,
+                        );
+                    }
                 }
             }
-        }}
+        }
     }
 
     #[test]
     fn kerr_autodiff_curvature_is_vacuum_and_matches_analytic_kretschmann() {
-        let h = KerrBlackHole::new(mass(),DimensionlessSpin::new(0.8).unwrap());
+        let h = KerrBlackHole::new(mass(), DimensionlessSpin::new(0.8).unwrap());
         let r = 7.0 * h.gravitational_radius_m();
         let theta: f64 = 0.8;
-        let differentiated = DifferentiatedMetric4::kerr_exterior(h,r,theta).unwrap();
+        let differentiated = DifferentiatedMetric4::kerr_exterior(h, r, theta).unwrap();
         let curvature = differentiated.curvature().unwrap();
         let inverse = differentiated.metric.inverse().unwrap();
         let ricci = curvature.ricci_tensor();
-        let mut mixed = [[0.0;4];4];
-        for mu in 0..4 { for nu in 0..4 { for alpha in 0..4 {
-            mixed[mu][nu] += inverse[mu][alpha]*ricci[alpha][nu];
-        }}}
+        let mut mixed = [[0.0; 4]; 4];
+        for mu in 0..4 {
+            for nu in 0..4 {
+                for alpha in 0..4 {
+                    mixed[mu][nu] += inverse[mu][alpha] * ricci[alpha][nu];
+                }
+            }
+        }
         let rg = h.gravitational_radius_m();
-        let max_ricci = mixed.iter().flatten().fold(0.0_f64,|m,x|m.max(x.abs()));
-        assert!(max_ricci*rg*rg < 2e-9,"normalized Ricci residual={:e}",max_ricci*rg*rg);
+        let max_ricci = mixed.iter().flatten().fold(0.0_f64, |m, x| m.max(x.abs()));
+        assert!(
+            max_ricci * rg * rg < 2e-9,
+            "normalized Ricci residual={:e}",
+            max_ricci * rg * rg
+        );
 
         let a = h.kerr_parameter_m();
         let cos = theta.cos();
-        let sigma = r*r+a*a*cos*cos;
-        let numerator = r.powi(6)
-            - 15.0*a*a*r.powi(4)*cos.powi(2)
-            + 15.0*a.powi(4)*r*r*cos.powi(4)
-            - a.powi(6)*cos.powi(6);
-        let expected = 48.0*rg*rg*numerator/sigma.powi(6);
-        let actual = curvature.kretschmann_scalar(&differentiated.metric).unwrap();
-        close(actual,expected,2e-8);
+        let sigma = r * r + a * a * cos * cos;
+        let numerator = r.powi(6) - 15.0 * a * a * r.powi(4) * cos.powi(2)
+            + 15.0 * a.powi(4) * r * r * cos.powi(4)
+            - a.powi(6) * cos.powi(6);
+        let expected = 48.0 * rg * rg * numerator / sigma.powi(6);
+        let actual = curvature
+            .kretschmann_scalar(&differentiated.metric)
+            .unwrap();
+        close(actual, expected, 2e-8);
     }
 
     #[test]
@@ -583,103 +642,130 @@ mod tests {
         let h = SchwarzschildBlackHole::new(mass());
         let r = h.horizon_radius_m();
         let theta = 0.9;
-        let differentiated =
-            DifferentiatedMetric4::schwarzschild_ingoing_ef(h,r,theta).unwrap();
-        assert_eq!(differentiated.metric.covariant()[0][0],0.0);
-        assert_eq!(differentiated.metric.covariant()[0][1],1.0);
+        let differentiated = DifferentiatedMetric4::schwarzschild_ingoing_ef(h, r, theta).unwrap();
+        assert_eq!(differentiated.metric.covariant()[0][0], 0.0);
+        assert_eq!(differentiated.metric.covariant()[0][1], 1.0);
         assert!(differentiated.metric.determinant().unwrap().is_finite());
         assert!(differentiated.metric.inverse_identity_residual().unwrap() < 1e-13);
 
         let curvature = differentiated.curvature().unwrap();
-        let expected = 48.0*h.gravitational_radius_m().powi(2)/r.powi(6);
-        let actual = curvature.kretschmann_scalar(&differentiated.metric).unwrap();
-        close(actual,expected,2e-11);
+        let expected = 48.0 * h.gravitational_radius_m().powi(2) / r.powi(6);
+        let actual = curvature
+            .kretschmann_scalar(&differentiated.metric)
+            .unwrap();
+        close(actual, expected, 2e-11);
     }
 
     #[test]
     fn schwarzschild_curvature_scalar_agrees_across_exterior_charts() {
         let h = SchwarzschildBlackHole::new(mass());
-        let r = 8.0*h.gravitational_radius_m();
+        let r = 8.0 * h.gravitational_radius_m();
         let theta = 0.9;
-        let schwarzschild =
-            DifferentiatedMetric4::schwarzschild_exterior(h,r,theta).unwrap();
-        let ingoing =
-            DifferentiatedMetric4::schwarzschild_ingoing_ef(h,r,theta).unwrap();
-        let k_s = schwarzschild.curvature().unwrap()
-            .kretschmann_scalar(&schwarzschild.metric).unwrap();
-        let k_ef = ingoing.curvature().unwrap()
-            .kretschmann_scalar(&ingoing.metric).unwrap();
-        close(k_s,k_ef,2e-11);
+        let schwarzschild = DifferentiatedMetric4::schwarzschild_exterior(h, r, theta).unwrap();
+        let ingoing = DifferentiatedMetric4::schwarzschild_ingoing_ef(h, r, theta).unwrap();
+        let k_s = schwarzschild
+            .curvature()
+            .unwrap()
+            .kretschmann_scalar(&schwarzschild.metric)
+            .unwrap();
+        let k_ef = ingoing
+            .curvature()
+            .unwrap()
+            .kretschmann_scalar(&ingoing.metric)
+            .unwrap();
+        close(k_s, k_ef, 2e-11);
     }
 
     #[test]
     fn ingoing_ef_chart_curvature_is_regular_inside_horizon() {
         let h = SchwarzschildBlackHole::new(mass());
-        let r = 1.5*h.gravitational_radius_m();
+        let r = 1.5 * h.gravitational_radius_m();
         let theta = 1.0;
-        let differentiated =
-            DifferentiatedMetric4::schwarzschild_ingoing_ef(h,r,theta).unwrap();
+        let differentiated = DifferentiatedMetric4::schwarzschild_ingoing_ef(h, r, theta).unwrap();
         let curvature = differentiated.curvature().unwrap();
-        let expected = 48.0*h.gravitational_radius_m().powi(2)/r.powi(6);
-        let actual = curvature.kretschmann_scalar(&differentiated.metric).unwrap();
-        close(actual,expected,2e-10);
+        let expected = 48.0 * h.gravitational_radius_m().powi(2) / r.powi(6);
+        let actual = curvature
+            .kretschmann_scalar(&differentiated.metric)
+            .unwrap();
+        close(actual, expected, 2e-10);
     }
 
     #[test]
     fn ingoing_kerr_chart_is_regular_at_outer_horizon() {
-        let h = KerrBlackHole::new(mass(),DimensionlessSpin::new(0.8).unwrap());
+        let h = KerrBlackHole::new(mass(), DimensionlessSpin::new(0.8).unwrap());
         let r = h.outer_horizon_radius_m();
         let theta = 0.8;
-        let differentiated = DifferentiatedMetric4::kerr_ingoing(h,r,theta).unwrap();
+        let differentiated = DifferentiatedMetric4::kerr_ingoing(h, r, theta).unwrap();
         let determinant = differentiated.metric.determinant().unwrap();
-        let sigma = r*r+h.kerr_parameter_m().powi(2)*theta.cos().powi(2);
-        close(determinant,-sigma.powi(2)*theta.sin().powi(2),2e-12);
-        assert!(differentiated.metric.inverse_identity_residual().unwrap()<2e-12);
+        let sigma = r * r + h.kerr_parameter_m().powi(2) * theta.cos().powi(2);
+        close(determinant, -sigma.powi(2) * theta.sin().powi(2), 2e-12);
+        assert!(differentiated.metric.inverse_identity_residual().unwrap() < 2e-12);
         let curvature = differentiated.curvature().unwrap();
         let numerator = r.powi(6)
-            -15.0*h.kerr_parameter_m().powi(2)*r.powi(4)*theta.cos().powi(2)
-            +15.0*h.kerr_parameter_m().powi(4)*r.powi(2)*theta.cos().powi(4)
-            -h.kerr_parameter_m().powi(6)*theta.cos().powi(6);
-        let expected = 48.0*h.gravitational_radius_m().powi(2)*numerator/sigma.powi(6);
-        close(curvature.kretschmann_scalar(&differentiated.metric).unwrap(),expected,3e-8);
+            - 15.0 * h.kerr_parameter_m().powi(2) * r.powi(4) * theta.cos().powi(2)
+            + 15.0 * h.kerr_parameter_m().powi(4) * r.powi(2) * theta.cos().powi(4)
+            - h.kerr_parameter_m().powi(6) * theta.cos().powi(6);
+        let expected = 48.0 * h.gravitational_radius_m().powi(2) * numerator / sigma.powi(6);
+        close(
+            curvature
+                .kretschmann_scalar(&differentiated.metric)
+                .unwrap(),
+            expected,
+            3e-8,
+        );
     }
 
     #[test]
     fn kerr_curvature_scalar_agrees_across_boyer_lindquist_and_ingoing_charts() {
-        let h = KerrBlackHole::new(mass(),DimensionlessSpin::new(0.7).unwrap());
-        let r = 7.0*h.gravitational_radius_m();
+        let h = KerrBlackHole::new(mass(), DimensionlessSpin::new(0.7).unwrap());
+        let r = 7.0 * h.gravitational_radius_m();
         let theta = 1.0;
-        let bl = DifferentiatedMetric4::kerr_exterior(h,r,theta).unwrap();
-        let ingoing = DifferentiatedMetric4::kerr_ingoing(h,r,theta).unwrap();
-        let k_bl = bl.curvature().unwrap().kretschmann_scalar(&bl.metric).unwrap();
-        let k_in = ingoing.curvature().unwrap().kretschmann_scalar(&ingoing.metric).unwrap();
-        close(k_bl,k_in,3e-8);
+        let bl = DifferentiatedMetric4::kerr_exterior(h, r, theta).unwrap();
+        let ingoing = DifferentiatedMetric4::kerr_ingoing(h, r, theta).unwrap();
+        let k_bl = bl
+            .curvature()
+            .unwrap()
+            .kretschmann_scalar(&bl.metric)
+            .unwrap();
+        let k_in = ingoing
+            .curvature()
+            .unwrap()
+            .kretschmann_scalar(&ingoing.metric)
+            .unwrap();
+        close(k_bl, k_in, 3e-8);
     }
 
     #[test]
     fn ingoing_kerr_chart_curvature_is_finite_inside_outer_horizon() {
-        let h = KerrBlackHole::new(mass(),DimensionlessSpin::new(0.8).unwrap());
-        let r = 0.8*h.outer_horizon_radius_m();
+        let h = KerrBlackHole::new(mass(), DimensionlessSpin::new(0.8).unwrap());
+        let r = 0.8 * h.outer_horizon_radius_m();
         let theta = 0.8;
-        let differentiated = DifferentiatedMetric4::kerr_ingoing(h,r,theta).unwrap();
+        let differentiated = DifferentiatedMetric4::kerr_ingoing(h, r, theta).unwrap();
         let curvature = differentiated.curvature().unwrap();
-        let sigma = r*r+h.kerr_parameter_m().powi(2)*theta.cos().powi(2);
+        let sigma = r * r + h.kerr_parameter_m().powi(2) * theta.cos().powi(2);
         let a = h.kerr_parameter_m();
         let rg = h.gravitational_radius_m();
         let cos = theta.cos();
-        let numerator = r.powi(6)-15.0*a*a*r.powi(4)*cos.powi(2)
-            +15.0*a.powi(4)*r*r*cos.powi(4)-a.powi(6)*cos.powi(6);
-        let expected = 48.0*rg*rg*numerator/sigma.powi(6);
-        close(curvature.kretschmann_scalar(&differentiated.metric).unwrap(),expected,4e-8);
+        let numerator = r.powi(6) - 15.0 * a * a * r.powi(4) * cos.powi(2)
+            + 15.0 * a.powi(4) * r * r * cos.powi(4)
+            - a.powi(6) * cos.powi(6);
+        let expected = 48.0 * rg * rg * numerator / sigma.powi(6);
+        close(
+            curvature
+                .kretschmann_scalar(&differentiated.metric)
+                .unwrap(),
+            expected,
+            4e-8,
+        );
     }
 
     #[test]
     fn differentiated_metric_rejects_exterior_chart_boundaries() {
-        let h = KerrBlackHole::new(mass(),DimensionlessSpin::new(0.5).unwrap());
+        let h = KerrBlackHole::new(mass(), DimensionlessSpin::new(0.5).unwrap());
         assert!(matches!(
-            DifferentiatedMetric4::kerr_exterior(h,h.outer_horizon_radius_m(),1.0),
+            DifferentiatedMetric4::kerr_exterior(h, h.outer_horizon_radius_m(), 1.0),
             Err(JetError::Metric(MetricError::PhysicsDomain(
-                PhysicsDomainError::RadiusAtOrInsideHorizon{..}
+                PhysicsDomainError::RadiusAtOrInsideHorizon { .. }
             )))
         ));
     }

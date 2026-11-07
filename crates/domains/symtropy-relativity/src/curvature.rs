@@ -22,11 +22,9 @@
 use core::fmt;
 
 use super::{
-    connection::{
-        ConnectionError, LeviCivitaConnection4, MetricDerivatives4,
-    },
-    metric::{MetricComponents4, MetricError, schwarzschild_exterior_metric},
     PhysicsDomainError, SchwarzschildBlackHole,
+    connection::{ConnectionError, LeviCivitaConnection4, MetricDerivatives4},
+    metric::{MetricComponents4, MetricError, schwarzschild_exterior_metric},
 };
 
 /// Second coordinate derivatives of the covariant metric.
@@ -39,9 +37,7 @@ pub struct MetricSecondDerivatives4 {
 }
 
 impl MetricSecondDerivatives4 {
-    pub fn new(
-        mut components: [[[[f64; 4]; 4]; 4]; 4],
-    ) -> Result<Self, CurvatureError> {
+    pub fn new(mut components: [[[[f64; 4]; 4]; 4]; 4]) -> Result<Self, CurvatureError> {
         for alpha in 0..4 {
             for beta in 0..4 {
                 for mu in 0..4 {
@@ -150,8 +146,7 @@ impl MetricSecondDerivatives4 {
         d2[2][1][3][3] = mixed_r_theta;
 
         // d_theta d_theta g_phi_phi.
-        d2[2][2][3][3] =
-            2.0 * radius_m.powi(2) * (cos_theta * cos_theta - sin_squared);
+        d2[2][2][3][3] = 2.0 * radius_m.powi(2) * (cos_theta * cos_theta - sin_squared);
 
         Self::new(d2)
     }
@@ -174,8 +169,7 @@ impl RiemannTensor4 {
         let inverse = metric.inverse()?;
         let d1 = first.components();
         let d2 = second.components();
-        let connection =
-            LeviCivitaConnection4::from_metric_and_derivatives(metric, first)?;
+        let connection = LeviCivitaConnection4::from_metric_and_derivatives(metric, first)?;
         let gamma = connection.symbols();
 
         // dgamma[alpha][rho][mu][nu] = partial_alpha Gamma^rho_(mu nu).
@@ -192,20 +186,15 @@ impl RiemannTensor4 {
                             let mut d_inverse = 0.0;
                             for a in 0..4 {
                                 for b in 0..4 {
-                                    d_inverse -= inverse[rho][a]
-                                        * d1[alpha][a][b]
-                                        * inverse[b][sigma];
+                                    d_inverse -=
+                                        inverse[rho][a] * d1[alpha][a][b] * inverse[b][sigma];
                                 }
                             }
 
                             let connection_kernel =
-                                d1[mu][sigma][nu]
-                                + d1[nu][sigma][mu]
-                                - d1[sigma][mu][nu];
+                                d1[mu][sigma][nu] + d1[nu][sigma][mu] - d1[sigma][mu][nu];
 
-                            let second_kernel =
-                                d2[alpha][mu][sigma][nu]
-                                + d2[alpha][nu][sigma][mu]
+                            let second_kernel = d2[alpha][mu][sigma][nu] + d2[alpha][nu][sigma][mu]
                                 - d2[alpha][sigma][mu][nu];
 
                             value += 0.5
@@ -235,8 +224,7 @@ impl RiemannTensor4 {
                     for nu in 0..4 {
                         // R^rho_(sigma mu nu) follows the convention in this
                         // module's documentation, including the overall sign.
-                        let mut value = dgamma[mu][rho][nu][sigma]
-                            - dgamma[nu][rho][mu][sigma];
+                        let mut value = dgamma[mu][rho][nu][sigma] - dgamma[nu][rho][mu][sigma];
 
                         for lambda in 0..4 {
                             value += gamma[rho][mu][lambda] * gamma[lambda][nu][sigma]
@@ -362,10 +350,7 @@ impl RiemannTensor4 {
     ///
     /// The contraction is performed with four inverse metrics in the declared
     /// coordinate basis; this is a scalar, unlike the metric determinant.
-    pub fn kretschmann_scalar(
-        &self,
-        metric: &MetricComponents4,
-    ) -> Result<f64, CurvatureError> {
+    pub fn kretschmann_scalar(&self, metric: &MetricComponents4) -> Result<f64, CurvatureError> {
         let covariant = self.fully_covariant(metric)?;
         let inverse = metric.inverse()?;
         let mut scalar = 0.0;
@@ -418,15 +403,18 @@ impl RiemannTensor4 {
             for b in 0..4 {
                 for c in 0..4 {
                     for d in 0..4 {
-                        residuals.first_pair_antisymmetry =
-                            residuals.first_pair_antisymmetry.max((r[a][b][c][d] + r[b][a][c][d]).abs());
-                        residuals.second_pair_antisymmetry =
-                            residuals.second_pair_antisymmetry.max((r[a][b][c][d] + r[a][b][d][c]).abs());
-                        residuals.pair_exchange =
-                            residuals.pair_exchange.max((r[a][b][c][d] - r[c][d][a][b]).abs());
-                        residuals.first_bianchi = residuals.first_bianchi.max(
-                            (r[a][b][c][d] + r[a][c][d][b] + r[a][d][b][c]).abs()
-                        );
+                        residuals.first_pair_antisymmetry = residuals
+                            .first_pair_antisymmetry
+                            .max((r[a][b][c][d] + r[b][a][c][d]).abs());
+                        residuals.second_pair_antisymmetry = residuals
+                            .second_pair_antisymmetry
+                            .max((r[a][b][c][d] + r[a][b][d][c]).abs());
+                        residuals.pair_exchange = residuals
+                            .pair_exchange
+                            .max((r[a][b][c][d] - r[c][d][a][b]).abs());
+                        residuals.first_bianchi = residuals
+                            .first_bianchi
+                            .max((r[a][b][c][d] + r[a][c][d][b] + r[a][d][b][c]).abs());
                     }
                 }
             }
@@ -489,13 +477,19 @@ pub enum CurvatureError {
 }
 
 impl From<MetricError> for CurvatureError {
-    fn from(value: MetricError) -> Self { Self::Metric(value) }
+    fn from(value: MetricError) -> Self {
+        Self::Metric(value)
+    }
 }
 impl From<ConnectionError> for CurvatureError {
-    fn from(value: ConnectionError) -> Self { Self::Connection(value) }
+    fn from(value: ConnectionError) -> Self {
+        Self::Connection(value)
+    }
 }
 impl From<PhysicsDomainError> for CurvatureError {
-    fn from(value: PhysicsDomainError) -> Self { Self::PhysicsDomain(value) }
+    fn from(value: PhysicsDomainError) -> Self {
+        Self::PhysicsDomain(value)
+    }
 }
 
 impl fmt::Display for CurvatureError {
@@ -504,18 +498,58 @@ impl fmt::Display for CurvatureError {
             Self::Metric(e) => write!(f, "{e}"),
             Self::Connection(e) => write!(f, "{e}"),
             Self::PhysicsDomain(e) => write!(f, "{e}"),
-            Self::NonFiniteSecondMetricDerivative { first_derivative, second_derivative, row, column } =>
-                write!(f, "second metric derivative d2[{first_derivative}][{second_derivative}][{row}][{column}] is non-finite"),
-            Self::AsymmetricSecondDerivativeIndices { first_derivative, second_derivative } =>
-                write!(f, "mixed second derivatives are asymmetric at ({first_derivative}, {second_derivative})"),
-            Self::AsymmetricSecondMetricIndices { first_derivative, second_derivative, row, column } =>
-                write!(f, "second metric derivative has asymmetric metric indices at ({first_derivative}, {second_derivative}, {row}, {column})"),
-            Self::NonFiniteConnectionDerivative { derivative_index, upper, lower_first, lower_second } =>
-                write!(f, "connection derivative d[{derivative_index}] Gamma^{upper}_{{{lower_first}{lower_second}}} is non-finite"),
-            Self::NonFiniteRiemannComponent { upper, lower, first_derivative, second_derivative } =>
-                write!(f, "Riemann component R^{upper}_{{{lower}{first_derivative}{second_derivative}}} is non-finite"),
-            Self::NonFiniteLoweredRiemann { alpha, beta, mu, nu } =>
-                write!(f, "lowered Riemann component R_{{{alpha}{beta}{mu}{nu}}} is non-finite"),
+            Self::NonFiniteSecondMetricDerivative {
+                first_derivative,
+                second_derivative,
+                row,
+                column,
+            } => write!(
+                f,
+                "second metric derivative d2[{first_derivative}][{second_derivative}][{row}][{column}] is non-finite"
+            ),
+            Self::AsymmetricSecondDerivativeIndices {
+                first_derivative,
+                second_derivative,
+            } => write!(
+                f,
+                "mixed second derivatives are asymmetric at ({first_derivative}, {second_derivative})"
+            ),
+            Self::AsymmetricSecondMetricIndices {
+                first_derivative,
+                second_derivative,
+                row,
+                column,
+            } => write!(
+                f,
+                "second metric derivative has asymmetric metric indices at ({first_derivative}, {second_derivative}, {row}, {column})"
+            ),
+            Self::NonFiniteConnectionDerivative {
+                derivative_index,
+                upper,
+                lower_first,
+                lower_second,
+            } => write!(
+                f,
+                "connection derivative d[{derivative_index}] Gamma^{upper}_{{{lower_first}{lower_second}}} is non-finite"
+            ),
+            Self::NonFiniteRiemannComponent {
+                upper,
+                lower,
+                first_derivative,
+                second_derivative,
+            } => write!(
+                f,
+                "Riemann component R^{upper}_{{{lower}{first_derivative}{second_derivative}}} is non-finite"
+            ),
+            Self::NonFiniteLoweredRiemann {
+                alpha,
+                beta,
+                mu,
+                nu,
+            } => write!(
+                f,
+                "lowered Riemann component R_{{{alpha}{beta}{mu}{nu}}} is non-finite"
+            ),
             Self::ComputationNonFinite(name) => write!(f, "{name} produced a non-finite result"),
         }
     }
@@ -529,8 +563,8 @@ fn approximately_symmetric(a: f64, b: f64) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::{MassKg, SchwarzschildBlackHole};
+    use super::*;
 
     const SOLAR_MASS_KG: f64 = 1.988_47e30;
 
@@ -543,7 +577,11 @@ mod tests {
     }
 
     fn close(actual: f64, expected: f64, tolerance: f64) {
-        let allowed = if expected == 0.0 { tolerance } else { tolerance * expected.abs() };
+        let allowed = if expected == 0.0 {
+            tolerance
+        } else {
+            tolerance * expected.abs()
+        };
         assert!(
             (actual - expected).abs() <= allowed,
             "actual={actual:.16e}, expected={expected:.16e}, allowed={allowed:.3e}"
@@ -557,8 +595,7 @@ mod tests {
         let metric = schwarzschild_exterior_metric(h, r, theta).unwrap();
         let first = MetricDerivatives4::schwarzschild_exterior(h, r, theta).unwrap();
         let second = MetricSecondDerivatives4::schwarzschild_exterior(h, r, theta).unwrap();
-        let curvature =
-            RiemannTensor4::from_metric_derivatives(&metric, &first, &second).unwrap();
+        let curvature = RiemannTensor4::from_metric_derivatives(&metric, &first, &second).unwrap();
         (metric, curvature)
     }
 
@@ -569,10 +606,14 @@ mod tests {
             [0.0, 1.0, 0.0, 0.0],
             [0.0, 0.0, 1.0, 0.0],
             [0.0, 0.0, 0.0, 1.0],
-        ]).unwrap();
+        ])
+        .unwrap();
         let curvature = RiemannTensor4::from_metric_derivatives(
-            &metric, &MetricDerivatives4::zero(), &MetricSecondDerivatives4::zero()
-        ).unwrap();
+            &metric,
+            &MetricDerivatives4::zero(),
+            &MetricSecondDerivatives4::zero(),
+        )
+        .unwrap();
         assert_eq!(curvature.ricci_scalar(&metric).unwrap(), 0.0);
         assert_eq!(curvature.kretschmann_scalar(&metric).unwrap(), 0.0);
         assert_eq!(max_abs(curvature.einstein_tensor(&metric).unwrap()), 0.0);
@@ -597,17 +638,31 @@ mod tests {
         let rg = hole().gravitational_radius_m();
         let normalized_ricci = max_abs(ricci_mixed) * rg * rg;
         let normalized_einstein = max_abs(einstein_mixed) * rg * rg;
-        assert!(normalized_ricci < 1e-10, "normalized Ricci={normalized_ricci:e}");
-        assert!(normalized_einstein < 1e-10, "normalized Einstein={normalized_einstein:e}");
+        assert!(
+            normalized_ricci < 1e-10,
+            "normalized Ricci={normalized_ricci:e}"
+        );
+        assert!(
+            normalized_einstein < 1e-10,
+            "normalized Einstein={normalized_einstein:e}"
+        );
 
         let lowered = curvature.fully_covariant(&metric).unwrap();
-        let riemann_scale = lowered.iter().flatten().flatten().flatten()
+        let riemann_scale = lowered
+            .iter()
+            .flatten()
+            .flatten()
+            .flatten()
             .fold(0.0_f64, |m, x| m.max(x.abs()));
         assert!(riemann_scale > 0.0);
         assert!(curvature.ricci_symmetry_residual() / riemann_scale < 1e-12);
 
         let scalar = curvature.ricci_scalar(&metric).unwrap();
-        assert!(scalar.abs() * rg * rg < 1e-10, "normalized scalar curvature={:e}", scalar*rg*rg);
+        assert!(
+            scalar.abs() * rg * rg < 1e-10,
+            "normalized scalar curvature={:e}",
+            scalar * rg * rg
+        );
     }
 
     #[test]
@@ -626,15 +681,25 @@ mod tests {
         let (metric, curvature) = schwarzschild_curvature();
         let residuals = curvature.algebraic_symmetry_residuals(&metric).unwrap();
         let lowered = curvature.fully_covariant(&metric).unwrap();
-        let scale = lowered.iter().flatten().flatten().flatten()
+        let scale = lowered
+            .iter()
+            .flatten()
+            .flatten()
+            .flatten()
             .fold(0.0_f64, |m, x| m.max(x.abs()));
         let normalized = [
             residuals.first_pair_antisymmetry,
             residuals.second_pair_antisymmetry,
             residuals.pair_exchange,
             residuals.first_bianchi,
-        ].into_iter().fold(0.0_f64, f64::max) / scale;
-        assert!(normalized < 1e-11, "normalized symmetry residual={normalized:e}");
+        ]
+        .into_iter()
+        .fold(0.0_f64, f64::max)
+            / scale;
+        assert!(
+            normalized < 1e-11,
+            "normalized symmetry residual={normalized:e}"
+        );
     }
 
     #[test]
@@ -648,9 +713,13 @@ mod tests {
         ));
         assert!(matches!(
             MetricSecondDerivatives4::schwarzschild_exterior(
-                h, 4.0*h.gravitational_radius_m(), 0.0
+                h,
+                4.0 * h.gravitational_radius_m(),
+                0.0
             ),
-            Err(CurvatureError::Metric(MetricError::PolarAxisCoordinateSingularity))
+            Err(CurvatureError::Metric(
+                MetricError::PolarAxisCoordinateSingularity
+            ))
         ));
     }
 

@@ -24,10 +24,10 @@
 
 use core::fmt;
 
-/// Levi-Civita connection coefficients from explicit metric derivatives.
-pub mod connection;
 /// Fixed-size second-order automatic differentiation for metric derivatives.
 pub mod autodiff;
+/// Levi-Civita connection coefficients from explicit metric derivatives.
+pub mod connection;
 /// Convention-explicit Riemann, Ricci, and Einstein curvature tensors.
 pub mod curvature;
 /// Validated stationary black-hole metric components in a declared chart.
@@ -54,8 +54,7 @@ impl MassKg {
         }
         // Keep the derived Kerr/Schwarzschild length scale representable.
         // The factor 5 bounds r_+^2 + a^2 for every |chi| <= 1.
-        let rg = GRAVITATIONAL_CONSTANT_M3_KG_S2 * value
-            / SPEED_OF_LIGHT_M_S.powi(2);
+        let rg = GRAVITATIONAL_CONSTANT_M3_KG_S2 * value / SPEED_OF_LIGHT_M_S.powi(2);
         let rg_squared = rg * rg;
         if !rg.is_finite()
             || rg <= 0.0
@@ -305,8 +304,7 @@ impl KerrBlackHole {
         let rg = self.gravitational_radius_m();
         let a = self.kerr_parameter_m();
         let r_plus = self.outer_horizon_radius_m();
-        SPEED_OF_LIGHT_M_S * (rg * rg - a * a).max(0.0).sqrt()
-            / (2.0 * rg * r_plus)
+        SPEED_OF_LIGHT_M_S * (rg * rg - a * a).max(0.0).sqrt() / (2.0 * rg * r_plus)
     }
 
     /// Positive reference frequency in Hz for a proposed direct-wave
@@ -328,10 +326,7 @@ impl KerrBlackHole {
     /// Outer stationary-limit surface (ergosurface) at polar angle theta.
     ///
     /// theta is measured from the positive spin axis and must lie in [0, pi].
-    pub fn ergosurface_radius_m(
-        self,
-        theta_rad: f64,
-    ) -> Result<f64, PhysicsDomainError> {
+    pub fn ergosurface_radius_m(self, theta_rad: f64) -> Result<f64, PhysicsDomainError> {
         if !theta_rad.is_finite() {
             return Err(PhysicsDomainError::NonFinite("theta_rad"));
         }
@@ -409,12 +404,14 @@ mod tests {
         let hole = SchwarzschildBlackHole::new(mass);
         let radius = 1.0e78;
         let value = hole.kretschmann_scalar_m4(radius).unwrap();
-        let expected_log = 48.0_f64.ln()
-            + 2.0 * hole.gravitational_radius_m().ln()
-            - 6.0 * radius.ln();
+        let expected_log =
+            48.0_f64.ln() + 2.0 * hole.gravitational_radius_m().ln() - 6.0 * radius.ln();
         assert!(value.is_finite() && value > 0.0);
         let relative_error = (value.ln() - expected_log).abs();
-        assert!(relative_error < 1e-12, "log-relative error={relative_error:e}");
+        assert!(
+            relative_error < 1e-12,
+            "log-relative error={relative_error:e}"
+        );
     }
 
     #[test]
@@ -451,15 +448,12 @@ mod tests {
         close(hole.outer_horizon_radius_m(), 2.0 * rg, 1e-14);
         close(hole.inner_horizon_radius_m(), 0.0, 1e-14);
         close(
-            hole.ergosurface_radius_m(core::f64::consts::FRAC_PI_2).unwrap(),
+            hole.ergosurface_radius_m(core::f64::consts::FRAC_PI_2)
+                .unwrap(),
             2.0 * rg,
             1e-14,
         );
-        close(
-            hole.ergosurface_radius_m(0.0).unwrap(),
-            2.0 * rg,
-            1e-14,
-        );
+        close(hole.ergosurface_radius_m(0.0).unwrap(), 2.0 * rg, 1e-14);
     }
 
     #[test]
@@ -472,8 +466,7 @@ mod tests {
 
     #[test]
     fn kerr_horizon_thermodynamic_rates_have_correct_limits() {
-        let nonrotating =
-            KerrBlackHole::new(solar_mass(), DimensionlessSpin::new(0.0).unwrap());
+        let nonrotating = KerrBlackHole::new(solar_mass(), DimensionlessSpin::new(0.0).unwrap());
         let rg = nonrotating.gravitational_radius_m();
         close(nonrotating.horizon_angular_velocity_rad_s(), 0.0, 1e-14);
         close(
@@ -483,8 +476,7 @@ mod tests {
         );
         close(nonrotating.direct_wave_reference_frequency_hz(), 0.0, 1e-14);
 
-        let extremal =
-            KerrBlackHole::new(solar_mass(), DimensionlessSpin::new(1.0).unwrap());
+        let extremal = KerrBlackHole::new(solar_mass(), DimensionlessSpin::new(1.0).unwrap());
         close(
             extremal.horizon_angular_velocity_rad_s(),
             SPEED_OF_LIGHT_M_S / (2.0 * rg),
@@ -496,10 +488,8 @@ mod tests {
 
     #[test]
     fn signed_spin_is_preserved_but_horizon_radii_are_even() {
-        let positive =
-            KerrBlackHole::new(solar_mass(), DimensionlessSpin::new(0.8).unwrap());
-        let negative =
-            KerrBlackHole::new(solar_mass(), DimensionlessSpin::new(-0.8).unwrap());
+        let positive = KerrBlackHole::new(solar_mass(), DimensionlessSpin::new(0.8).unwrap());
+        let negative = KerrBlackHole::new(solar_mass(), DimensionlessSpin::new(-0.8).unwrap());
         close(
             positive.kerr_parameter_m(),
             -negative.kerr_parameter_m(),
@@ -526,7 +516,8 @@ mod tests {
             1e-14,
         );
         assert!(
-            hole.ergosurface_radius_m(core::f64::consts::FRAC_PI_2).unwrap()
+            hole.ergosurface_radius_m(core::f64::consts::FRAC_PI_2)
+                .unwrap()
                 > hole.outer_horizon_radius_m()
         );
     }
@@ -576,10 +567,11 @@ mod tests {
     #[test]
     fn schwarzschild_curvature_is_finite_at_the_horizon_but_not_at_singularity() {
         let hole = SchwarzschildBlackHole::new(solar_mass());
-        assert!(hole
-            .kretschmann_scalar_m4(hole.horizon_radius_m())
-            .unwrap()
-            .is_finite());
+        assert!(
+            hole.kretschmann_scalar_m4(hole.horizon_radius_m())
+                .unwrap()
+                .is_finite()
+        );
         assert!(matches!(
             hole.kretschmann_scalar_m4(0.0),
             Err(PhysicsDomainError::NonPositive("radius_m"))

@@ -18,8 +18,8 @@
 use core::fmt;
 
 use super::{
-    metric::{MetricComponents4, MetricError, schwarzschild_exterior_metric},
     PhysicsDomainError, SchwarzschildBlackHole,
+    metric::{MetricComponents4, MetricError, schwarzschild_exterior_metric},
 };
 
 /// First coordinate derivatives of a covariant 4x4 metric.
@@ -32,9 +32,7 @@ pub struct MetricDerivatives4 {
 
 impl MetricDerivatives4 {
     /// Validate a derivative tensor for finite values and metric-index symmetry.
-    pub fn new(
-        mut components: [[[f64; 4]; 4]; 4],
-    ) -> Result<Self, ConnectionError> {
+    pub fn new(mut components: [[[f64; 4]; 4]; 4]) -> Result<Self, ConnectionError> {
         for alpha in 0..4 {
             for mu in 0..4 {
                 for nu in 0..4 {
@@ -184,9 +182,8 @@ impl LeviCivitaConnection4 {
         for rho in 0..4 {
             for mu in 0..4 {
                 for nu in 0..4 {
-                    maximum = maximum.max(
-                        (self.symbols[rho][mu][nu] - self.symbols[rho][nu][mu]).abs(),
-                    );
+                    maximum =
+                        maximum.max((self.symbols[rho][mu][nu] - self.symbols[rho][nu][mu]).abs());
                 }
             }
         }
@@ -263,8 +260,8 @@ impl std::error::Error for ConnectionError {}
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::{MassKg, SchwarzschildBlackHole};
+    use super::*;
 
     const SOLAR_MASS_KG: f64 = 1.988_47e30;
 
@@ -314,16 +311,27 @@ mod tests {
         let radius = 5.0 * hole.gravitational_radius_m();
         let theta = 0.8;
         let metric = schwarzschild_exterior_metric(hole, radius, theta).unwrap();
-        let derivatives =
-            MetricDerivatives4::schwarzschild_exterior(hole, radius, theta).unwrap();
+        let derivatives = MetricDerivatives4::schwarzschild_exterior(hole, radius, theta).unwrap();
         let connection =
             LeviCivitaConnection4::from_metric_and_derivatives(&metric, &derivatives).unwrap();
 
         let rg = hole.gravitational_radius_m();
         let f = 1.0 - hole.horizon_radius_m() / radius;
-        close(connection.coefficient(1, 0, 0), f * rg / radius.powi(2), 2e-13);
-        close(connection.coefficient(0, 0, 1), rg / (f * radius.powi(2)), 2e-13);
-        close(connection.coefficient(1, 1, 1), -rg / (f * radius.powi(2)), 2e-13);
+        close(
+            connection.coefficient(1, 0, 0),
+            f * rg / radius.powi(2),
+            2e-13,
+        );
+        close(
+            connection.coefficient(0, 0, 1),
+            rg / (f * radius.powi(2)),
+            2e-13,
+        );
+        close(
+            connection.coefficient(1, 1, 1),
+            -rg / (f * radius.powi(2)),
+            2e-13,
+        );
         close(connection.coefficient(1, 2, 2), -f * radius, 2e-13);
         close(connection.coefficient(2, 1, 2), 1.0 / radius, 2e-13);
         close(
@@ -344,8 +352,7 @@ mod tests {
         let radius = 4.0 * hole.gravitational_radius_m();
         let theta = 1.0;
         let metric = schwarzschild_exterior_metric(hole, radius, theta).unwrap();
-        let derivatives =
-            MetricDerivatives4::schwarzschild_exterior(hole, radius, theta).unwrap();
+        let derivatives = MetricDerivatives4::schwarzschild_exterior(hole, radius, theta).unwrap();
         let connection =
             LeviCivitaConnection4::from_metric_and_derivatives(&metric, &derivatives).unwrap();
 
@@ -384,11 +391,7 @@ mod tests {
     fn schwarzschild_derivative_fixture_rejects_horizon_and_polar_axis() {
         let hole = SchwarzschildBlackHole::new(solar_mass());
         assert!(matches!(
-            MetricDerivatives4::schwarzschild_exterior(
-                hole,
-                hole.horizon_radius_m(),
-                1.0
-            ),
+            MetricDerivatives4::schwarzschild_exterior(hole, hole.horizon_radius_m(), 1.0),
             Err(ConnectionError::Metric(MetricError::PhysicsDomain(
                 PhysicsDomainError::RadiusAtOrInsideHorizon { .. }
             )))

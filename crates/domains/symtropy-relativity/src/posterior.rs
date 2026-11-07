@@ -101,7 +101,10 @@ impl fmt::Display for PosteriorTransformError {
         match self {
             Self::PhysicsDomain(error) => write!(f, "{error}"),
             Self::NonFiniteDerivedValues { sample_id } => {
-                write!(f, "Kerr horizon transform produced non-finite values for sample {sample_id}")
+                write!(
+                    f,
+                    "Kerr horizon transform produced non-finite values for sample {sample_id}"
+                )
             }
         }
     }

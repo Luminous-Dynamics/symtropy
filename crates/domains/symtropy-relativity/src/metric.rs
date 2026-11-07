@@ -7,8 +7,8 @@
 //! Schwarzschild and Boyer-Lindquist charts exclude the horizon and polar axis.
 //! This is not an evolved spacetime, a connection, or a numerical-relativity solver.
 
-use core::fmt;
 use super::{KerrBlackHole, PhysicsDomainError, SchwarzschildBlackHole};
+use core::fmt;
 
 /// Finite symmetric 4x4 covariant metric components in one coordinate basis.
 /// Generic construction checks finiteness/symmetry, not Lorentzian signature.
@@ -80,7 +80,9 @@ impl MetricComponents4 {
             }
         }
         let result = sign * det;
-        if result.is_finite() { Ok(result) } else {
+        if result.is_finite() {
+            Ok(result)
+        } else {
             Err(MetricError::ComputationNonFinite("metric determinant"))
         }
     }
@@ -89,7 +91,9 @@ impl MetricComponents4 {
     pub fn inverse(&self) -> Result<[[f64; 4]; 4], MetricError> {
         let mut a = self.covariant;
         let mut inv = [[0.0; 4]; 4];
-        for i in 0..4 { inv[i][i] = 1.0; }
+        for i in 0..4 {
+            inv[i][i] = 1.0;
+        }
         for col in 0..4 {
             let p = (col..4)
                 .max_by(|&i, &j| a[i][col].abs().total_cmp(&a[j][col].abs()))
@@ -110,7 +114,9 @@ impl MetricComponents4 {
                 }
             }
             for row in 0..4 {
-                if row == col { continue; }
+                if row == col {
+                    continue;
+                }
                 let factor = a[row][col];
                 for k in 0..4 {
                     a[row][k] -= factor * a[col][k];
@@ -131,13 +137,19 @@ impl MetricComponents4 {
         for i in 0..4 {
             for j in 0..4 {
                 let mut sum = 0.0;
-                for k in 0..4 { sum += self.covariant[i][k] * inv[k][j]; }
+                for k in 0..4 {
+                    sum += self.covariant[i][k] * inv[k][j];
+                }
                 let expected = if i == j { 1.0 } else { 0.0 };
                 max = max.max((sum - expected).abs());
             }
         }
-        if max.is_finite() { Ok(max) } else {
-            Err(MetricError::ComputationNonFinite("inverse identity residual"))
+        if max.is_finite() {
+            Ok(max)
+        } else {
+            Err(MetricError::ComputationNonFinite(
+                "inverse identity residual",
+            ))
         }
     }
 }
@@ -153,7 +165,9 @@ pub enum MetricError {
 }
 
 impl From<PhysicsDomainError> for MetricError {
-    fn from(value: PhysicsDomainError) -> Self { Self::PhysicsDomain(value) }
+    fn from(value: PhysicsDomainError) -> Self {
+        Self::PhysicsDomain(value)
+    }
 }
 
 impl fmt::Display for MetricError {
@@ -161,10 +175,12 @@ impl fmt::Display for MetricError {
         match self {
             Self::PhysicsDomain(e) => write!(f, "{e}"),
             Self::PolarAxisCoordinateSingularity => write!(f, "chart excludes theta = 0 and pi"),
-            Self::NonFiniteComponent { row, column } =>
-                write!(f, "metric component g[{row}][{column}] is not finite"),
-            Self::AsymmetricComponents { row, column } =>
-                write!(f, "metric is not symmetric at ({row}, {column})"),
+            Self::NonFiniteComponent { row, column } => {
+                write!(f, "metric component g[{row}][{column}] is not finite")
+            }
+            Self::AsymmetricComponents { row, column } => {
+                write!(f, "metric is not symmetric at ({row}, {column})")
+            }
             Self::SingularMatrix => write!(f, "metric component matrix is singular"),
             Self::ComputationNonFinite(op) => write!(f, "{op} produced a non-finite result"),
         }
@@ -194,12 +210,16 @@ pub fn schwarzschild_exterior_metric(
     let rs = hole.horizon_radius_m();
     if radius_m <= rs {
         return Err(PhysicsDomainError::RadiusAtOrInsideHorizon {
-            radius_m, horizon_m: rs,
-        }.into());
+            radius_m,
+            horizon_m: rs,
+        }
+        .into());
     }
     let f = 1.0 - rs / radius_m;
     if !f.is_finite() || f <= 0.0 {
-        return Err(MetricError::ComputationNonFinite("Schwarzschild metric coefficient"));
+        return Err(MetricError::ComputationNonFinite(
+            "Schwarzschild metric coefficient",
+        ));
     }
     let r2 = radius_m * radius_m;
     let s2 = theta_rad.sin().powi(2);
@@ -273,9 +293,7 @@ pub fn kerr_ingoing_metric(
     let g_r_phi = -a * sin_squared;
     let g_theta_theta = sigma;
     let g_phi_phi = sin_squared
-        * (radius_m * radius_m
-            + a * a
-            + 2.0 * rg * a * a * radius_m * sin_squared / sigma);
+        * (radius_m * radius_m + a * a + 2.0 * rg * a * a * radius_m * sin_squared / sigma);
 
     MetricComponents4::new([
         [g_vv, g_v_r, 0.0, g_v_phi],
@@ -299,8 +317,10 @@ pub fn kerr_exterior_metric(
     let rp = hole.outer_horizon_radius_m();
     if radius_m <= rp {
         return Err(PhysicsDomainError::RadiusAtOrInsideHorizon {
-            radius_m, horizon_m: rp,
-        }.into());
+            radius_m,
+            horizon_m: rp,
+        }
+        .into());
     }
     let s = theta_rad.sin();
     let c = theta_rad.cos();
@@ -314,10 +334,8 @@ pub fn kerr_exterior_metric(
     let g_t_phi = -2.0 * rg * a * radius_m * s2 / sigma;
     let g_rr = sigma / delta;
     let g_theta_theta = sigma;
-    let g_phi_phi = s2 * (
-        radius_m.powi(2) + a.powi(2)
-        + 2.0 * rg * a.powi(2) * radius_m * s2 / sigma
-    );
+    let g_phi_phi =
+        s2 * (radius_m.powi(2) + a.powi(2) + 2.0 * rg * a.powi(2) * radius_m * s2 / sigma);
     MetricComponents4::new([
         [g_tt, 0.0, 0.0, g_t_phi],
         [0.0, g_rr, 0.0, 0.0],
@@ -328,51 +346,61 @@ pub fn kerr_exterior_metric(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::{DimensionlessSpin, MassKg};
+    use super::*;
 
     const SOLAR_MASS: f64 = 1.988_47e30;
-    fn mass() -> MassKg { MassKg::new(SOLAR_MASS).unwrap() }
+    fn mass() -> MassKg {
+        MassKg::new(SOLAR_MASS).unwrap()
+    }
     fn close(a: f64, b: f64, tol: f64) {
         let allowed = if b == 0.0 { tol } else { tol * b.abs() };
-        assert!((a-b).abs() <= allowed, "actual={a:e}, expected={b:e}");
+        assert!((a - b).abs() <= allowed, "actual={a:e}, expected={b:e}");
     }
     fn residual(g: [[f64; 4]; 4], gi: [[f64; 4]; 4]) -> f64 {
         let mut max: f64 = 0.0;
-        for i in 0..4 { for j in 0..4 {
-            let mut v = 0.0;
-            for k in 0..4 { v += g[i][k]*gi[k][j]; }
-            max = max.max((v-if i==j {1.0} else {0.0}).abs());
-        }}
+        for i in 0..4 {
+            for j in 0..4 {
+                let mut v = 0.0;
+                for k in 0..4 {
+                    v += g[i][k] * gi[k][j];
+                }
+                max = max.max((v - if i == j { 1.0 } else { 0.0 }).abs());
+            }
+        }
         max
     }
 
     #[test]
     fn schwarzschild_components_match_analytic_values() {
         let h = SchwarzschildBlackHole::new(mass());
-        let r = 4.0*h.gravitational_radius_m();
+        let r = 4.0 * h.gravitational_radius_m();
         let t = core::f64::consts::FRAC_PI_3;
-        let g = schwarzschild_exterior_metric(h,r,t).unwrap();
-        close(g.covariant()[0][0],-0.5,1e-14);
-        close(g.covariant()[1][1],2.0,1e-14);
-        close(g.covariant()[2][2],r*r,1e-14);
-        close(g.covariant()[3][3],r*r*0.75,1e-14);
+        let g = schwarzschild_exterior_metric(h, r, t).unwrap();
+        close(g.covariant()[0][0], -0.5, 1e-14);
+        close(g.covariant()[1][1], 2.0, 1e-14);
+        close(g.covariant()[2][2], r * r, 1e-14);
+        close(g.covariant()[3][3], r * r * 0.75, 1e-14);
     }
 
     #[test]
     fn schwarzschild_determinant_matches_chart_formula() {
         let h = SchwarzschildBlackHole::new(mass());
-        let r = 5.0*h.gravitational_radius_m();
+        let r = 5.0 * h.gravitational_radius_m();
         let t: f64 = 0.7;
-        let g = schwarzschild_exterior_metric(h,r,t).unwrap();
-        close(g.determinant().unwrap(),-r.powi(4)*t.sin().powi(2),2e-13);
+        let g = schwarzschild_exterior_metric(h, r, t).unwrap();
+        close(
+            g.determinant().unwrap(),
+            -r.powi(4) * t.sin().powi(2),
+            2e-13,
+        );
     }
 
     #[test]
     fn schwarzschild_inverse_reconstructs_identity() {
         let h = SchwarzschildBlackHole::new(mass());
-        let g = schwarzschild_exterior_metric(h,7.0*h.gravitational_radius_m(),1.1).unwrap();
-        assert!(residual(*g.covariant(),g.inverse().unwrap()) < 1e-13);
+        let g = schwarzschild_exterior_metric(h, 7.0 * h.gravitational_radius_m(), 1.1).unwrap();
+        assert!(residual(*g.covariant(), g.inverse().unwrap()) < 1e-13);
         assert!(g.inverse_identity_residual().unwrap() < 1e-13);
     }
 
@@ -380,40 +408,48 @@ mod tests {
     fn zero_spin_kerr_reduces_to_schwarzschild() {
         let m = mass();
         let s = SchwarzschildBlackHole::new(m);
-        let k = KerrBlackHole::new(m,DimensionlessSpin::new(0.0).unwrap());
-        let r = 8.0*s.gravitational_radius_m();
+        let k = KerrBlackHole::new(m, DimensionlessSpin::new(0.0).unwrap());
+        let r = 8.0 * s.gravitational_radius_m();
         let t = 0.9;
-        let a = schwarzschild_exterior_metric(s,r,t).unwrap();
-        let b = kerr_exterior_metric(k,r,t).unwrap();
-        for i in 0..4 { for j in 0..4 { close(a.covariant()[i][j],b.covariant()[i][j],2e-14); }}
+        let a = schwarzschild_exterior_metric(s, r, t).unwrap();
+        let b = kerr_exterior_metric(k, r, t).unwrap();
+        for i in 0..4 {
+            for j in 0..4 {
+                close(a.covariant()[i][j], b.covariant()[i][j], 2e-14);
+            }
+        }
     }
 
     #[test]
     fn kerr_determinant_matches_minus_sigma_squared_sine_squared() {
-        let h = KerrBlackHole::new(mass(),DimensionlessSpin::new(0.8).unwrap());
-        let r = 6.0*h.gravitational_radius_m();
+        let h = KerrBlackHole::new(mass(), DimensionlessSpin::new(0.8).unwrap());
+        let r = 6.0 * h.gravitational_radius_m();
         let t: f64 = 1.0;
         let a = h.kerr_parameter_m();
-        let sigma = r.powi(2)+a.powi(2)*t.cos().powi(2);
-        let g = kerr_exterior_metric(h,r,t).unwrap();
-        close(g.determinant().unwrap(),-sigma.powi(2)*t.sin().powi(2),3e-13);
+        let sigma = r.powi(2) + a.powi(2) * t.cos().powi(2);
+        let g = kerr_exterior_metric(h, r, t).unwrap();
+        close(
+            g.determinant().unwrap(),
+            -sigma.powi(2) * t.sin().powi(2),
+            3e-13,
+        );
     }
 
     #[test]
     fn kerr_inverse_handles_time_azimuth_coupling() {
-        let h = KerrBlackHole::new(mass(),DimensionlessSpin::new(0.9).unwrap());
-        let g = kerr_exterior_metric(h,5.0*h.gravitational_radius_m(),0.8).unwrap();
-        assert_ne!(g.covariant()[0][3],0.0);
-        assert!(residual(*g.covariant(),g.inverse().unwrap()) < 2e-13);
+        let h = KerrBlackHole::new(mass(), DimensionlessSpin::new(0.9).unwrap());
+        let g = kerr_exterior_metric(h, 5.0 * h.gravitational_radius_m(), 0.8).unwrap();
+        assert_ne!(g.covariant()[0][3], 0.0);
+        assert!(residual(*g.covariant(), g.inverse().unwrap()) < 2e-13);
     }
 
     #[test]
     fn kerr_metric_is_invertible_at_equatorial_ergosurface() {
-        let h = KerrBlackHole::new(mass(),DimensionlessSpin::new(0.9).unwrap());
+        let h = KerrBlackHole::new(mass(), DimensionlessSpin::new(0.9).unwrap());
         let t = core::f64::consts::FRAC_PI_2;
         let r = h.ergosurface_radius_m(t).unwrap();
-        let g = kerr_exterior_metric(h,r,t).unwrap();
-        close(g.covariant()[0][0],0.0,1e-12);
+        let g = kerr_exterior_metric(h, r, t).unwrap();
+        close(g.covariant()[0][0], 0.0, 1e-12);
         assert!(g.determinant().unwrap().is_finite());
         assert!(g.inverse_identity_residual().unwrap() < 1e-12);
     }
@@ -422,34 +458,48 @@ mod tests {
     fn metric_constructors_reject_horizon_and_axis_domains() {
         let s = SchwarzschildBlackHole::new(mass());
         assert!(matches!(
-            schwarzschild_exterior_metric(s,s.horizon_radius_m(),1.0),
-            Err(MetricError::PhysicsDomain(PhysicsDomainError::RadiusAtOrInsideHorizon{..}))
+            schwarzschild_exterior_metric(s, s.horizon_radius_m(), 1.0),
+            Err(MetricError::PhysicsDomain(
+                PhysicsDomainError::RadiusAtOrInsideHorizon { .. }
+            ))
         ));
         assert!(matches!(
-            schwarzschild_exterior_metric(s,4.0*s.gravitational_radius_m(),0.0),
+            schwarzschild_exterior_metric(s, 4.0 * s.gravitational_radius_m(), 0.0),
             Err(MetricError::PolarAxisCoordinateSingularity)
         ));
-        let k = KerrBlackHole::new(mass(),DimensionlessSpin::new(0.5).unwrap());
+        let k = KerrBlackHole::new(mass(), DimensionlessSpin::new(0.5).unwrap());
         assert!(matches!(
-            kerr_exterior_metric(k,k.outer_horizon_radius_m(),1.0),
-            Err(MetricError::PhysicsDomain(PhysicsDomainError::RadiusAtOrInsideHorizon{..}))
+            kerr_exterior_metric(k, k.outer_horizon_radius_m(), 1.0),
+            Err(MetricError::PhysicsDomain(
+                PhysicsDomainError::RadiusAtOrInsideHorizon { .. }
+            ))
         ));
     }
 
     #[test]
     fn generic_constructor_rejects_asymmetric_and_nonfinite_matrices() {
-        let mut a = [[0.0;4];4];
-        a[0][0] = -1.0; a[1][1] = 1.0; a[2][2] = 1.0; a[3][3] = 1.0;
+        let mut a = [[0.0; 4]; 4];
+        a[0][0] = -1.0;
+        a[1][1] = 1.0;
+        a[2][2] = 1.0;
+        a[3][3] = 1.0;
         a[0][1] = 0.1;
-        assert!(matches!(MetricComponents4::new(a),Err(MetricError::AsymmetricComponents{..})));
-        a[0][1] = 0.0; a[0][0] = f64::NAN;
-        assert!(matches!(MetricComponents4::new(a),Err(MetricError::NonFiniteComponent{..})));
+        assert!(matches!(
+            MetricComponents4::new(a),
+            Err(MetricError::AsymmetricComponents { .. })
+        ));
+        a[0][1] = 0.0;
+        a[0][0] = f64::NAN;
+        assert!(matches!(
+            MetricComponents4::new(a),
+            Err(MetricError::NonFiniteComponent { .. })
+        ));
     }
 
     #[test]
     fn matrix_operations_detect_singularity() {
-        let m = MetricComponents4::new([[0.0;4];4]).unwrap();
-        assert!(matches!(m.inverse(),Err(MetricError::SingularMatrix)));
-        assert!(matches!(m.determinant(),Err(MetricError::SingularMatrix)));
+        let m = MetricComponents4::new([[0.0; 4]; 4]).unwrap();
+        assert!(matches!(m.inverse(), Err(MetricError::SingularMatrix)));
+        assert!(matches!(m.determinant(), Err(MetricError::SingularMatrix)));
     }
 }
