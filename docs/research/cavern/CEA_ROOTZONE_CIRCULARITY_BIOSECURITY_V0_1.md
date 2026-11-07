@@ -1,7 +1,7 @@
 # CEA root-zone circularity and biosecurity benchmark v0.1
 
 **Parent:** [CEA-ROOTZONE-001 #4099](https://github.com/Luminous-Dynamics/symtropy/issues/4099)  
-**Composes:** [HYDROPONICS-ACCOUNTING-002 #2277](https://github.com/Luminous-Dynamics/symtropy/issues/2277), #3952, #3957, #4002, #4041/#4057, #4060, #4065 and #4074.
+**Composes:** [HYDROPONICS-ACCOUNTING-002 #2277](https://github.com/Luminous-Dynamics/symtropy/issues/2277) for element balances; [WATER-PROC-CLOSURE-001 #2152](https://github.com/Luminous-Dynamics/symtropy/issues/2152) for treatment/residual closure; [MYC-FOOD-001 #5001](https://github.com/Luminous-Dynamics/mycelix/issues/5001) for product lots, handling evidence and recalls; plus #3952, #3957, #4002, #4041/#4057, #4060, #4065 and #4074.
 
 **Status:** source-derived evidence register and benchmark protocol. It is not a crop recipe, nutrient-dosing engine, microbial assay, pathogen-handling method, food-safety certification or water-treatment operating procedure.
 
@@ -60,6 +60,15 @@ Instead it preserves organism/indicator identity, assay method, viability status
 Zero discharge is a resource-management hypothesis, not an absolute rule. Cleaning residues, contaminated solution, filter solids, assay samples, nutrient imbalance and product holds may require removal or treatment. A safety purge can be preferable to a nominally circular but unsafe loop.
 
 Report water/nutrient make-up, plant uptake and harvest removal, element-specific stock and residual concentration, recovered mass and product purity, filter/precipitate/sludge residues, purge/discharge/leak/spill/sample exports, treatment energy and chemicals, contamination isolation and affected-batch disposition.
+
+## 2A. Treatment and product-lot interfaces
+
+The root-zone benchmark composes two existing owners instead of creating duplicate subsystems:
+
+- **#2152 WATER-PROC-CLOSURE-001** owns treatment-train water/material/utility/residual closure. A treatment result supplied to this benchmark must include feed, recovered product, purge, backwash, concentrate, sludge/filter residues, cleaning waste and utility streams. #4099 separately judges whether a recovered product is admissible for the declared crop-water loop, based on source chemistry, treatment quality, microbial evidence and intended-use authority.
+- **Mycelix #5001 MYC-FOOD-001** owns ProductProfile, Lot, HandlingEvidence, Fulfillment and recall lineage. Symtropy supplies bounded root-zone / crop-cycle / environmental-sample / isolation event references; Mycelix links those to harvested lots and fulfilled orders while preserving privacy. Do not create a second lot/recall graph here.
+
+A sample result should be scoped to a facility zone, water path, crop cycle, lot/time interval and assay coverage. A positive result may cause a bounded hold/review set based on the evidenced path; it must not globally mark every lot unsafe without a supported exposure path. A negative result cannot clear lots outside its matrix, detection limit and sampling coverage. Symtropy does not adjudicate regulatory food release.
 
 ## 3. Canonical root-zone loop contract
 
