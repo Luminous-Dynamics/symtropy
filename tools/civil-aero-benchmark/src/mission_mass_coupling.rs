@@ -53,11 +53,10 @@ pub fn evaluate_case_with_mass_ledger(
         "expected_configuration_sha256",
     )?;
     let mass_properties = mass_ledger.evaluate_for_configuration(expected_configuration_sha256)?;
-    validate_mass_properties_report(&mass_properties)?;
-
     if mass_properties.status != MassPropertiesStatus::Complete {
         return Err("mass properties are not complete; mission evaluation withheld".to_owned());
     }
+    validate_mass_properties_report(&mass_properties)?;
     if !mass_properties.unknown_mass_item_ids.is_empty()
         || !mass_properties.unknown_geometry_item_ids.is_empty()
     {
@@ -317,12 +316,12 @@ mod tests {
         let other = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
         let error = evaluate_case_with_mass_ledger(&mission_case(), &complete_ledger(), other)
             .expect_err("stale configuration");
-        assert!(error.contains("stale mass properties"));
+        assert!(error.contains("stale mass ledger"));
     }
 
     #[test]
     fn mass_ledger_missing_payload_category_is_rejected() {
-        let mut ledger = MassLedger {
+        let ledger = MassLedger {
             configuration_sha256: CONFIG.to_owned(),
             items: complete_report_items()
                 .into_iter()
