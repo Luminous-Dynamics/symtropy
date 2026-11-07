@@ -118,6 +118,22 @@
       "evidence_origin": "SimulatorGenerated",
       "evidence_purpose": "EmpiricalDecision",
       "expected": "reject-evidence-ineligible"
+    },
+    {
+      "id": "support-manifest-bytes-mismatch",
+      "expected": "reject-support-manifest-artifact-mismatch"
+    },
+    {
+      "id": "query-bytes-mismatch",
+      "expected": "reject-query-artifact-mismatch"
+    },
+    {
+      "id": "assessment-bytes-do-not-match-disposition",
+      "expected": "reject-assessment-artifact-mismatch"
+    },
+    {
+      "id": "cross-repository-golden-vectors",
+      "expected": "SAM-and-Symtropy-canonical-bytes-match"
     }
   ],
   "claim_ceiling": [

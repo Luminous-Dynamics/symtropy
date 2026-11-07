@@ -40,7 +40,8 @@ pub struct SamTrajectoryAssessmentBinding {
     pub hypothesis_id: StableId,
     pub action_id: StableId,
     pub sam_build_digest: [u8; 32],
-    pub evidence_manifest_digest: [u8; 32],
+    /// The SAM SupportManifest evidence-manifest identifier, retained verbatim.
+    pub evidence_manifest_id: String,
     pub support_manifest_digest: [u8; 32],
     pub query_digest: [u8; 32],
     pub target_policy_digest: String,
@@ -50,11 +51,67 @@ pub struct SamTrajectoryAssessmentBinding {
     pub decision_points: u64,
     pub matched_finite_path: bool,
     pub disposition: SamTrajectoryDisposition,
+    /// BLAKE3 digest of SAM Assessment::canonical_bytes().
+    pub assessment_digest: [u8; 32],
     /// Unkeyed digest over every preceding field; not a signature.
     pub assessment_receipt_digest: [u8; 32],
 }
 
 impl SamTrajectoryAssessmentBinding {
+    /// Seal after checking the exact canonical manifest, query and assessment
+    /// bytes exported by SAM #10514. The caller still supplies the external
+    /// build commitment; this method does not authenticate that build.
+    pub fn seal_from_sam_artifacts(
+        mut self,
+        support_manifest_bytes: &[u8],
+        query_bytes: &[u8],
+        assessment_bytes: &[u8],
+    ) -> Result<Self, TrajectoryEvidenceError> {
+        if *blake3::hash(support_manifest_bytes).as_bytes() != self.support_manifest_digest {
+            return Err(TrajectoryEvidenceError::SupportManifestArtifactMismatch);
+        }
+        if *blake3::hash(query_bytes).as_bytes() != self.query_digest {
+            return Err(TrajectoryEvidenceError::QueryArtifactMismatch);
+        }
+        if self.canonical_assessment_bytes() != assessment_bytes {
+            return Err(TrajectoryEvidenceError::AssessmentArtifactMismatch);
+        }
+        self.assessment_digest = *blake3::hash(assessment_bytes).as_bytes();
+        self.seal()
+    }
+
+    /// Verify the retained envelope against the exact canonical SAM source
+    /// artifacts, rather than trusting the digest fields alone.
+    pub fn verify_against_sam_artifacts(
+        &self,
+        support_manifest_bytes: &[u8],
+        query_bytes: &[u8],
+        assessment_bytes: &[u8],
+    ) -> Result<(), TrajectoryEvidenceError> {
+        self.verify_receipt()?;
+        if *blake3::hash(support_manifest_bytes).as_bytes() != self.support_manifest_digest {
+            return Err(TrajectoryEvidenceError::SupportManifestArtifactMismatch);
+        }
+        if *blake3::hash(query_bytes).as_bytes() != self.query_digest {
+            return Err(TrajectoryEvidenceError::QueryArtifactMismatch);
+        }
+        if self.canonical_assessment_bytes() != assessment_bytes
+            || *blake3::hash(assessment_bytes).as_bytes() != self.assessment_digest
+        {
+            return Err(TrajectoryEvidenceError::AssessmentArtifactMismatch);
+        }
+        Ok(())
+    }
+
+    fn canonical_assessment_bytes(&self) -> Vec<u8> {
+        let mut out = Vec::new();
+        out.extend_from_slice(b"sam.policy-trajectory-support.assessment.v0.1\0");
+        out.push(self.disposition as u8);
+        out.extend_from_slice(&self.decision_points.to_le_bytes());
+        out.push(u8::from(self.matched_finite_path));
+        out
+    }
+
     /// Seal a typed SAM assessment after validating disposition invariants.
     pub fn seal(mut self) -> Result<Self, TrajectoryEvidenceError> {
         self.validate_fields()?;
@@ -75,9 +132,10 @@ impl SamTrajectoryAssessmentBinding {
             return Err(TrajectoryEvidenceError::WrongSamAssessmentSchema);
         }
         require_digest(&self.sam_build_digest, "sam_build_digest")?;
-        require_digest(&self.evidence_manifest_digest, "evidence_manifest_digest")?;
+        require_identity(&self.evidence_manifest_id, "evidence_manifest_id")?;
         require_digest(&self.support_manifest_digest, "support_manifest_digest")?;
         require_digest(&self.query_digest, "query_digest")?;
+        require_digest(&self.assessment_digest, "assessment_digest")?;
         require_identity(&self.target_policy_digest, "target_policy_digest")?;
         require_identity(&self.context_digest, "context_digest")?;
 
@@ -126,7 +184,7 @@ impl SamTrajectoryAssessmentBinding {
         push_id(&mut out, &self.hypothesis_id);
         push_id(&mut out, &self.action_id);
         out.extend_from_slice(&self.sam_build_digest);
-        out.extend_from_slice(&self.evidence_manifest_digest);
+        push_string(&mut out, &self.evidence_manifest_id);
         out.extend_from_slice(&self.support_manifest_digest);
         out.extend_from_slice(&self.query_digest);
         push_string(&mut out, &self.target_policy_digest);
@@ -136,6 +194,7 @@ impl SamTrajectoryAssessmentBinding {
         out.extend_from_slice(&self.decision_points.to_le_bytes());
         out.push(u8::from(self.matched_finite_path));
         out.push(self.disposition as u8);
+        out.extend_from_slice(&self.assessment_digest);
         out
     }
 }
@@ -154,9 +213,10 @@ pub struct TrajectorySupportReference {
     pub action_id: StableId,
     pub disposition: SamTrajectoryDisposition,
     pub sam_build_digest: [u8; 32],
-    pub evidence_manifest_digest: [u8; 32],
+    pub evidence_manifest_id: String,
     pub support_manifest_digest: [u8; 32],
     pub query_digest: [u8; 32],
+    pub assessment_digest: [u8; 32],
     pub assessment_receipt_digest: [u8; 32],
 }
 
@@ -181,6 +241,9 @@ pub enum TrajectoryEvidenceError {
     MissingSupportBinding,
     OrphanSupportBinding,
     AssessmentReceiptMismatch,
+    SupportManifestArtifactMismatch,
+    QueryArtifactMismatch,
+    AssessmentArtifactMismatch,
     SupportOutcomeMismatch,
     ArithmeticOverflow,
     CertificateMismatch,
@@ -351,9 +414,10 @@ fn support_reference(binding: &SamTrajectoryAssessmentBinding) -> TrajectorySupp
         action_id: binding.action_id.clone(),
         disposition: binding.disposition,
         sam_build_digest: binding.sam_build_digest,
-        evidence_manifest_digest: binding.evidence_manifest_digest,
+        evidence_manifest_id: binding.evidence_manifest_id,
         support_manifest_digest: binding.support_manifest_digest,
         query_digest: binding.query_digest,
+        assessment_digest: binding.assessment_digest,
         assessment_receipt_digest: binding.assessment_receipt_digest,
     }
 }
@@ -374,9 +438,10 @@ fn certificate_bytes(certificate: &TrajectoryEvidenceBoundDecisionCertificate) -
         push_id(&mut out, &reference.action_id);
         out.push(reference.disposition as u8);
         out.extend_from_slice(&reference.sam_build_digest);
-        out.extend_from_slice(&reference.evidence_manifest_digest);
+        push_string(&mut out, &reference.evidence_manifest_id);
         out.extend_from_slice(&reference.support_manifest_digest);
         out.extend_from_slice(&reference.query_digest);
+        out.extend_from_slice(&reference.assessment_digest);
         out.extend_from_slice(&reference.assessment_receipt_digest);
     }
     out
@@ -435,6 +500,20 @@ mod tests {
 
     fn id(value: &str) -> StableId {
         StableId::new(value).unwrap()
+    }
+
+    fn canonical_vector(name: &str) -> Vec<u8> {
+        let hex = include_str!("../fixtures/sam-canonical-artifact-vectors.v0.1.txt")
+            .lines()
+            .find_map(|line| line.strip_prefix(&format!("{name}=")))
+            .expect("shared SAM golden vector is present");
+        hex.as_bytes()
+            .chunks_exact(2)
+            .map(|pair| {
+                let text = std::str::from_utf8(pair).expect("hex is UTF-8");
+                u8::from_str_radix(text, 16).expect("golden vector is hexadecimal")
+            })
+            .collect()
     }
 
     fn subject() -> SubjectLineage {
@@ -527,14 +606,15 @@ mod tests {
                 SamTrajectoryDisposition::Incomplete => (false, false, 1, false),
                 SamTrajectoryDisposition::OutOfScope => (true, true, 2, false),
             };
-        SamTrajectoryAssessmentBinding {
+        let mut binding = SamTrajectoryAssessmentBinding {
             schema_id: ROAD_SAM_ASSESSMENT_ENVELOPE_SCHEMA_V0_1.to_owned(),
             hypothesis_id: id("traffic-model-h1"),
             action_id: id("action-a"),
             sam_build_digest: [1; 32],
-            evidence_manifest_digest: [2; 32],
+            evidence_manifest_id: "evidence-v1".to_owned(),
             support_manifest_digest: [3; 32],
             query_digest: [4; 32],
+            assessment_digest: [0; 32],
             target_policy_digest: "policy-digest".to_owned(),
             context_digest: "context-digest".to_owned(),
             path_universe_exhaustive,
@@ -543,9 +623,10 @@ mod tests {
             matched_finite_path,
             disposition,
             assessment_receipt_digest: [0; 32],
-        }
-        .seal()
-        .unwrap()
+        };
+        binding.assessment_digest =
+            *blake3::hash(&binding.canonical_assessment_bytes()).as_bytes();
+        binding.seal().unwrap()
     }
 
     fn bundle(
@@ -765,6 +846,56 @@ mod tests {
         assert_eq!(
             orphan.validate(),
             Err(TrajectoryEvidenceError::OrphanSupportBinding)
+        );
+    }
+
+    #[test]
+    fn exact_sam_canonical_artifacts_are_verified_before_envelope_acceptance() {
+        let support_bytes = canonical_vector("manifest");
+        let query_bytes = canonical_vector("query");
+        let assessment_bytes = canonical_vector("assessment");
+        let mut binding = sam_binding(SamTrajectoryDisposition::SupportUnknown);
+        binding.decision_points = 1;
+        binding.support_manifest_digest = *blake3::hash(&support_bytes).as_bytes();
+        binding.query_digest = *blake3::hash(&query_bytes).as_bytes();
+        assert_eq!(binding.canonical_assessment_bytes(), assessment_bytes);
+
+        let sealed = binding
+            .seal_from_sam_artifacts(&support_bytes, &query_bytes, &assessment_bytes)
+            .unwrap();
+        assert_eq!(
+            sealed.verify_against_sam_artifacts(
+                &support_bytes,
+                &query_bytes,
+                &assessment_bytes
+            ),
+            Ok(())
+        );
+        assert_eq!(
+            sealed.verify_against_sam_artifacts(
+                b"mutated-support-manifest",
+                &query_bytes,
+                &assessment_bytes
+            ),
+            Err(TrajectoryEvidenceError::SupportManifestArtifactMismatch)
+        );
+        assert_eq!(
+            sealed.verify_against_sam_artifacts(
+                &support_bytes,
+                b"mutated-query",
+                &assessment_bytes
+            ),
+            Err(TrajectoryEvidenceError::QueryArtifactMismatch)
+        );
+        let mut mutated_assessment = assessment_bytes.clone();
+        mutated_assessment.push(0);
+        assert_eq!(
+            sealed.verify_against_sam_artifacts(
+                &support_bytes,
+                &query_bytes,
+                &mutated_assessment
+            ),
+            Err(TrajectoryEvidenceError::AssessmentArtifactMismatch)
         );
     }
 
