@@ -347,3 +347,16 @@ Important comparability caveats: the A100 configuration used five refinement lev
 
 GRACE is GPL-3.0; our Apache/MIT analytic crate must not copy or vendor GRACE implementation code. Interoperability and independent validation are the appropriate first relationship.
 
+
+
+## Implementation update — 2026-11-07
+
+The Symtropy branch now contains a further bounded implementation increment:
+
+- `metric.rs` provides Schwarzschild-coordinate and Kerr Boyer-Lindquist exterior covariant metric components, with explicit chart-domain checks.
+- `MetricComponents4` provides finite/symmetric component validation, pivoted determinant and inverse operations, and an inverse-identity residual diagnostic. The generic matrix constructor does not certify Lorentzian signature.
+- `KerrBlackHole` now exposes signed horizon angular velocity, the surface-gravity decay rate in s^-1, and a **nonnegative** Hz reference frequency for the angular-frequency magnitude (2|\Omega_H|). Retrograde spin keeps signed (\Omega_H) but does not produce a negative physical frequency.
+- `posterior.rs` maps paired mass/spin posterior samples into horizon radius, signed (\Omega_H), (\kappa_t), and direct-wave reference frequency while preserving sample IDs, order, and mass-spin pairing. It performs no sampling, marginalization, or inference.
+- Total authored Rust tests: 25 (11 scalar/root, 10 metric, 4 posterior). They remain unexecuted because this editing environment has neither `rustc` nor `cargo`.
+
+The new posterior mapping is deliberately a deterministic transformation of already inferred remnant samples. It must not be described as a GW250114 analysis or a direct-wave detection. The next required validation is a local build/test on the exact PR head, followed by independent formula review and comparison against published Kerr/ringdown references.
