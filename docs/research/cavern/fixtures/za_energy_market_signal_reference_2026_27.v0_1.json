@@ -317,6 +317,22 @@
       "unit": "kgCO2e/kWh",
       "interpretation": "DFFE 2024 NGGEF is 0.081 kgCO2e/kWh above the Ren et al. study's 0.879 factor assumption; this is a cross-source vintage/boundary comparison only, not a reason to rewrite the study's simulation result.",
       "status": "ARITHMETIC_CHECK"
+    },
+    {
+      "check_id": "synthetic-winter-100kwh-peak-to-offpeak-energy-charge-saving",
+      "formula": "100 kWh × (766.24 - 200.44) c/kWh ÷ 100 c/R",
+      "result": 565.8,
+      "unit": "ZAR_before_surcharges_VAT_and_demand",
+      "interpretation": "A synthetic 100 kWh shift from winter peak to off-peak saves R565.80 in the energy-charge component only, before account surcharges and VAT. It is not a whole-bill or energy-use saving.",
+      "status": "CONDITIONAL_INTERPRETATION"
+    },
+    {
+      "check_id": "synthetic-demand-ratchet-floor-binds-after-load-shift",
+      "formula": "before=max(95,70,0.8×125)=100 kVA; after=max(80,70,0.8×125)=100 kVA",
+      "result": 0,
+      "unit": "kVA_billed_demand_reduction",
+      "interpretation": "In this synthetic case, measured maximum demand falls from 95 to 80 kVA, but the rolling ratchet floor remains 100 kVA. The billed demand is unchanged, so the demand-charge component does not fall. Actual account history and the applicable tariff contract must determine the real bill.",
+      "status": "CONDITIONAL_INTERPRETATION"
     }
   ],
   "interpretation_rules": [
