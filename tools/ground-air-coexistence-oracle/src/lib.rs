@@ -283,7 +283,12 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
     }
     let site_source_power_numerator = source_energy_wh_per_quantum_slot
         .checked_mul(3_600_000)
-        .ok_or_else(|| fail("$.site.source_energy_wh_per_quantum_slot", "power conversion overflow"))?;
+        .ok_or_else(|| {
+            fail(
+                "$.site.source_energy_wh_per_quantum_slot",
+                "power conversion overflow",
+            )
+        })?;
     if site_source_power_numerator % slot_duration_ms != 0 {
         return Err(fail(
             "$.site.source_energy_wh_per_quantum_slot",
@@ -975,7 +980,12 @@ mod tests {
         assert_eq!(report["minimum_service_met_count"], 2);
         assert!(report["minimum_service_all_met"].as_bool().unwrap());
         assert!(report["simultaneous_delivery_slot_count"].as_u64().unwrap() > 0);
-        assert!(report["maximum_site_source_energy_quanta_used"].as_u64().unwrap() <= 3);
+        assert!(
+            report["maximum_site_source_energy_quanta_used"]
+                .as_u64()
+                .unwrap()
+                <= 3
+        );
     }
 
     #[test]
@@ -1107,7 +1117,10 @@ mod tests {
             .find(|channel| channel["domain"] == "AIR")
             .unwrap();
         assert_eq!(ground["modality"], "GROUND_DYNAMIC_INDUCTIVE");
-        assert_eq!(ground["channel_input_boundary_id"], "GROUND_ROAD_INVERTER_DC_INPUT");
+        assert_eq!(
+            ground["channel_input_boundary_id"],
+            "GROUND_ROAD_INVERTER_DC_INPUT"
+        );
         assert_eq!(air["modality"], "AIR_DOCK_INDUCTIVE");
         assert_eq!(air["channel_input_boundary_id"], "AIR_DOCK_INVERTER_DC_INPUT");
         assert_eq!(report["simultaneous_delivery_slot_count"], 4);
