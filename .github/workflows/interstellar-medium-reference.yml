@@ -1,0 +1,46 @@
+name: interstellar-medium-reference
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/interstellar-medium-reference.yml"
+      - "tools/interstellar-medium-reference/**"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/interstellar-medium-reference.yml"
+      - "tools/interstellar-medium-reference/**"
+
+permissions:
+  contents: read
+
+jobs:
+  reference:
+    name: relativistic dust exposure reference
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact commit
+        uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/interstellar-medium-reference/Cargo.toml -- --check
+
+      - name: Run unit tests
+        run: cargo test --manifest-path tools/interstellar-medium-reference/Cargo.toml
+
+      - name: Run Clippy
+        run: cargo clippy --manifest-path tools/interstellar-medium-reference/Cargo.toml --all-targets -- -D warnings
+
+      - name: Execute frozen exposure case
+        run: |
+          cargo run --manifest-path tools/interstellar-medium-reference/Cargo.toml --release -- \
+            --input tools/interstellar-medium-reference/fixtures/synthetic-4p24ly-10nm-dust-v0-1.input \
+            | tee interstellar-medium-reference.json
+          grep -q '"evidence_class": "synthetic"' interstellar-medium-reference.json
