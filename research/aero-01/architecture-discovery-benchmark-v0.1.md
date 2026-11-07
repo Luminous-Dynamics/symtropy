@@ -32,6 +32,16 @@ A fair experiment compares four axes separately rather than calling everything a
 
 Do not confound a better optimizer with a larger budget, better source data, extra expert intervention or more high-fidelity CFD.
 
+## 2A. External benchmark evidence and limits
+
+The 2026 literature supports testing architecture discovery as a distinct problem, but does not establish that any new workflow already wins on real aircraft:
+
+- **Dynamic MDAO:** Bruggeman, la Rocca and Hoogreef, *Dynamic multidisciplinary design analysis and optimization workflows: Concept and implementation*, Aerospace Science and Technology 175 (2026), 111748. Runtime changes to variables, tools, constraints and subworkflows are formalized; the reported evaluation is a mathematical VSDS Goldstein case, not an aircraft validation. DOI: https://doi.org/10.1016/j.ast.2026.111748
+- **ShapeBench:** 103 aerodynamic optimization tasks across eight shape categories; reported mean pairwise optimizer-ranking Spearman rho about 0.013. This shows task-level ranking does not generalize reliably; ShapeBench remains a shape optimizer benchmark, not a whole-aircraft architecture test. https://arxiv.org/abs/2605.20763
+- **BOCoDe:** 307 optimization problems, including 159 engineering tasks, with 31 evaluated algorithms. It highlights engineering-domain ranking variation and weak transfer from common synthetic/HPO problems. https://arxiv.org/abs/2608.15073
+
+Machine-readable participant, task, cost, metric, anti-leakage, negative-control and target contract: [architecture-discovery-benchmark-v0.1.json](./architecture-discovery-benchmark-v0.1.json).
+
 ## 3. Architecture grammar
 
 Every candidate must be represented as a typed, versioned configuration graph. The minimum candidate grammar is:
