@@ -1,0 +1,9 @@
+[package]
+name = "cea-facility-bench"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "Exact-boundary controlled-environment agriculture facility energy and food-service audit"
+
+[workspace]
+members = []
