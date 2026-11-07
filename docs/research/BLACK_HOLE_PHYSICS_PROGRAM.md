@@ -712,3 +712,11 @@ Do not treat a discretized frequency-domain potential evolved in time as automat
 
 Related Symthaea work: [BH-TEUKOLSKY-001 #10874](https://github.com/Luminous-Dynamics/symthaea/issues/10874), with eikonal-prior/identifiability work in #10909. The external time-domain studies are reference systems; no Teukolsky evolution solver is implemented by this PR.
 
+
+
+### New staged implementation issue — hyperboloidal time-domain perturbations
+
+The external-method reproduction and solver-validation work is now tracked in [Symtropy BH-TEUKOLSKY-TD-001 #4052](https://github.com/Luminous-Dynamics/symtropy/issues/4052). It is staged as coordinate-contract validation, scalar-field vacuum/source tests, the declared s=-2 test problem, and only then modified-potential / beyond-Teukolsky evolution. Its acceptance gates include long-time growing-mode suppression, boundary and source-jump validation, frequency-domain cross-checks, mode-mixing diagnostics and late-time tail behavior.
+
+The reference paper states that implementation code is included, but no source repository has been independently pinned in this programme yet. Do not invent a GitHub code URL or treat the paper's abstract as a reproducible software artifact.
+
