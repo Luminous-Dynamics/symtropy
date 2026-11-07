@@ -14,7 +14,15 @@ struct Corpus {
     corpus_id: String,
     schema_version: String,
     claim_ceiling: String,
+    split_guard: SplitGuard,
     cases: Vec<Case>,
+}
+
+#[derive(Debug, Deserialize)]
+struct SplitGuard {
+    training_group_ids: Vec<String>,
+    evaluation_group_ids: Vec<String>,
+    candidate_input_fields: Vec<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -274,6 +282,45 @@ fn evaluate_corpus(bytes: &[u8]) -> Result<CorpusResult, Box<dyn Error>> {
     if corpus.cases.is_empty() {
         return Err("corpus must contain at least one case".into());
     }
+    if corpus.split_guard.training_group_ids.is_empty()
+        || corpus.split_guard.evaluation_group_ids.is_empty()
+        || corpus.split_guard.candidate_input_fields.is_empty()
+    {
+        return Err("split guard must declare train groups, evaluation groups and candidate inputs".into());
+    }
+    let training_groups: BTreeSet<&str> = corpus
+        .split_guard
+        .training_group_ids
+        .iter()
+        .map(String::as_str)
+        .collect();
+    let evaluation_groups: BTreeSet<&str> = corpus
+        .split_guard
+        .evaluation_group_ids
+        .iter()
+        .map(String::as_str)
+        .collect();
+    if training_groups.len() != corpus.split_guard.training_group_ids.len()
+        || evaluation_groups.len() != corpus.split_guard.evaluation_group_ids.len()
+        || !training_groups.is_disjoint(&evaluation_groups)
+    {
+        return Err("training and evaluation group identities must be unique and disjoint".into());
+    }
+    let forbidden_input_markers = [
+        "ground_truth",
+        "sealed_truth",
+        "evaluator_geometry",
+        "reference_bbox",
+        "reference_bounding_box",
+    ];
+    if corpus.split_guard.candidate_input_fields.iter().any(|field| {
+        let normalized = field.to_ascii_lowercase();
+        forbidden_input_markers
+            .iter()
+            .any(|marker| normalized.contains(marker))
+    }) {
+        return Err("candidate input allowlist exposes evaluator truth or reference bounds".into());
+    }
 
     let mut ids = BTreeSet::new();
     let mut results = Vec::with_capacity(corpus.cases.len());
@@ -426,6 +473,23 @@ mod tests {
         let first = corpus["cases"][0].clone();
         corpus["cases"].as_array_mut().unwrap().push(first);
         assert!(evaluate_corpus(serde_json::to_vec(&corpus).unwrap().as_slice()).is_err());
+    }
+
+    #[test]
+    fn held_out_groups_and_hidden_bounds_are_guarded() {
+        let mut corpus: Value = serde_json::from_str(FIXTURE).expect("fixture parses");
+        corpus["split_guard"]["candidate_input_fields"]
+            .as_array_mut()
+            .unwrap()
+            .push(Value::String("reference_bounding_box".to_owned()));
+        let bytes = serde_json::to_vec(&corpus).expect("fixture serializes");
+        assert!(evaluate_corpus(&bytes).is_err());
+
+        let mut corpus: Value = serde_json::from_str(FIXTURE).expect("fixture parses");
+        corpus["split_guard"]["evaluation_group_ids"] =
+            serde_json::json!(["synthetic-building-train-A"]);
+        let bytes = serde_json::to_vec(&corpus).expect("fixture serializes");
+        assert!(evaluate_corpus(&bytes).is_err());
     }
 
     #[test]
