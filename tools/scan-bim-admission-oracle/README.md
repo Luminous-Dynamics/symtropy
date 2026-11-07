@@ -21,4 +21,4 @@ Expected labels are used only to compare the oracle output after candidate evalu
 
 ## Claim ceiling
 
-A passing suite proves only agreement with 23 hand-authored synthetic fixtures and their explicit rules. It does not establish real scan accuracy, sensor performance, generalization, building safety, structural adequacy, code compliance, legal survey status, or operational productivity.
+A passing suite proves only agreement with 25 hand-authored synthetic fixtures and their explicit rules. It does not establish real scan accuracy, sensor performance, generalization, building safety, structural adequacy, code compliance, legal survey status, or operational productivity.
