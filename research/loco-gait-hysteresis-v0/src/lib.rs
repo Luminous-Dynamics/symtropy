@@ -30,9 +30,7 @@ impl TransitionRule {
             Self::SingleThreshold {
                 threshold_metres_per_second,
             } => {
-                if !threshold_metres_per_second.is_finite()
-                    || threshold_metres_per_second < 0.0
-                {
+                if !threshold_metres_per_second.is_finite() || threshold_metres_per_second < 0.0 {
                     return Err(TransitionError::InvalidThreshold);
                 }
             }
@@ -43,8 +41,7 @@ impl TransitionRule {
                 if !wave_to_tripod_metres_per_second.is_finite()
                     || !tripod_to_wave_metres_per_second.is_finite()
                     || tripod_to_wave_metres_per_second < 0.0
-                    || wave_to_tripod_metres_per_second
-                        <= tripod_to_wave_metres_per_second
+                    || wave_to_tripod_metres_per_second <= tripod_to_wave_metres_per_second
                 {
                     return Err(TransitionError::InvalidHysteresisBand);
                 }
@@ -195,12 +192,8 @@ pub fn replay_speed_sweep(
             None
         } else {
             let direction = match (regime, next_regime) {
-                (GaitRegime::Wave, GaitRegime::Tripod) => {
-                    TransitionDirection::WaveToTripod
-                }
-                (GaitRegime::Tripod, GaitRegime::Wave) => {
-                    TransitionDirection::TripodToWave
-                }
+                (GaitRegime::Wave, GaitRegime::Tripod) => TransitionDirection::WaveToTripod,
+                (GaitRegime::Tripod, GaitRegime::Wave) => TransitionDirection::TripodToWave,
                 _ => return Err(TransitionError::InvalidSweepOrder),
             };
             Some(TransitionEvent {
@@ -255,8 +248,7 @@ pub fn measure_hysteresis(
         .copied()
         .ok_or(TransitionError::NoCompleteWaveTripodWaveSweep)?;
 
-    let width =
-        up.measured_speed_metres_per_second - down.measured_speed_metres_per_second;
+    let width = up.measured_speed_metres_per_second - down.measured_speed_metres_per_second;
     if !width.is_finite() || width < 0.0 {
         return Err(TransitionError::InvalidSweepOrder);
     }
@@ -276,8 +268,8 @@ mod tests {
 
     fn triangular_sweep() -> Vec<SpeedSample> {
         let speeds = [
-            0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 0.9, 0.8, 0.7, 0.6,
-            0.5, 0.4, 0.3, 0.2, 0.1, 0.0,
+            0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4,
+            0.3, 0.2, 0.1, 0.0,
         ];
         speeds
             .iter()
@@ -323,19 +315,32 @@ mod tests {
             wave_to_tripod_metres_per_second: 0.7,
             tripod_to_wave_metres_per_second: 0.4,
         };
-        let speed = [SpeedSample {
-            timestamp_seconds: 0.0,
-            speed_metres_per_second: 0.55,
-        }, SpeedSample {
-            timestamp_seconds: 1.0,
-            speed_metres_per_second: 0.55,
-        }];
+        let speed = [
+            SpeedSample {
+                timestamp_seconds: 0.0,
+                speed_metres_per_second: 0.55,
+            },
+            SpeedSample {
+                timestamp_seconds: 1.0,
+                speed_metres_per_second: 0.55,
+            },
+        ];
 
         let from_wave = replay_speed_sweep(rule, GaitRegime::Wave, &speed).unwrap();
         let from_tripod = replay_speed_sweep(rule, GaitRegime::Tripod, &speed).unwrap();
 
-        assert!(from_wave.samples.iter().all(|sample| sample.regime == GaitRegime::Wave));
-        assert!(from_tripod.samples.iter().all(|sample| sample.regime == GaitRegime::Tripod));
+        assert!(
+            from_wave
+                .samples
+                .iter()
+                .all(|sample| sample.regime == GaitRegime::Wave)
+        );
+        assert!(
+            from_tripod
+                .samples
+                .iter()
+                .all(|sample| sample.regime == GaitRegime::Tripod)
+        );
     }
 
     #[test]
@@ -344,10 +349,22 @@ mod tests {
             threshold_metres_per_second: 0.6,
         };
         let speeds = [
-            SpeedSample { timestamp_seconds: 0.0, speed_metres_per_second: 0.6 },
-            SpeedSample { timestamp_seconds: 1.0, speed_metres_per_second: 0.6 },
-            SpeedSample { timestamp_seconds: 2.0, speed_metres_per_second: 0.6 },
-            SpeedSample { timestamp_seconds: 3.0, speed_metres_per_second: 0.6 },
+            SpeedSample {
+                timestamp_seconds: 0.0,
+                speed_metres_per_second: 0.6,
+            },
+            SpeedSample {
+                timestamp_seconds: 1.0,
+                speed_metres_per_second: 0.6,
+            },
+            SpeedSample {
+                timestamp_seconds: 2.0,
+                speed_metres_per_second: 0.6,
+            },
+            SpeedSample {
+                timestamp_seconds: 3.0,
+                speed_metres_per_second: 0.6,
+            },
         ];
         let trace = replay_speed_sweep(rule, GaitRegime::Wave, &speeds).unwrap();
         assert_eq!(trace.events.len(), 4);
@@ -360,10 +377,22 @@ mod tests {
             tripod_to_wave_metres_per_second: 0.4,
         };
         let speeds = [
-            SpeedSample { timestamp_seconds: 0.0, speed_metres_per_second: 0.7 },
-            SpeedSample { timestamp_seconds: 1.0, speed_metres_per_second: 0.55 },
-            SpeedSample { timestamp_seconds: 2.0, speed_metres_per_second: 0.55 },
-            SpeedSample { timestamp_seconds: 3.0, speed_metres_per_second: 0.4 },
+            SpeedSample {
+                timestamp_seconds: 0.0,
+                speed_metres_per_second: 0.7,
+            },
+            SpeedSample {
+                timestamp_seconds: 1.0,
+                speed_metres_per_second: 0.55,
+            },
+            SpeedSample {
+                timestamp_seconds: 2.0,
+                speed_metres_per_second: 0.55,
+            },
+            SpeedSample {
+                timestamp_seconds: 3.0,
+                speed_metres_per_second: 0.4,
+            },
         ];
         let trace = replay_speed_sweep(rule, GaitRegime::Wave, &speeds).unwrap();
         assert_eq!(trace.events.len(), 2);
@@ -395,12 +424,20 @@ mod tests {
     #[test]
     fn sweep_rejects_nonmonotonic_time_and_nonfinite_speed() {
         let nonmonotonic = [
-            SpeedSample { timestamp_seconds: 1.0, speed_metres_per_second: 0.0 },
-            SpeedSample { timestamp_seconds: 1.0, speed_metres_per_second: 1.0 },
+            SpeedSample {
+                timestamp_seconds: 1.0,
+                speed_metres_per_second: 0.0,
+            },
+            SpeedSample {
+                timestamp_seconds: 1.0,
+                speed_metres_per_second: 1.0,
+            },
         ];
         assert_eq!(
             replay_speed_sweep(
-                TransitionRule::SingleThreshold { threshold_metres_per_second: 0.5 },
+                TransitionRule::SingleThreshold {
+                    threshold_metres_per_second: 0.5
+                },
                 GaitRegime::Wave,
                 &nonmonotonic,
             ),
@@ -408,12 +445,20 @@ mod tests {
         );
 
         let nonfinite = [
-            SpeedSample { timestamp_seconds: 0.0, speed_metres_per_second: 0.0 },
-            SpeedSample { timestamp_seconds: 1.0, speed_metres_per_second: f64::NAN },
+            SpeedSample {
+                timestamp_seconds: 0.0,
+                speed_metres_per_second: 0.0,
+            },
+            SpeedSample {
+                timestamp_seconds: 1.0,
+                speed_metres_per_second: f64::NAN,
+            },
         ];
         assert_eq!(
             replay_speed_sweep(
-                TransitionRule::SingleThreshold { threshold_metres_per_second: 0.5 },
+                TransitionRule::SingleThreshold {
+                    threshold_metres_per_second: 0.5
+                },
                 GaitRegime::Wave,
                 &nonfinite,
             ),
@@ -424,12 +469,20 @@ mod tests {
     #[test]
     fn negative_speed_is_rejected() {
         let samples = [
-            SpeedSample { timestamp_seconds: 0.0, speed_metres_per_second: 0.0 },
-            SpeedSample { timestamp_seconds: 1.0, speed_metres_per_second: -0.1 },
+            SpeedSample {
+                timestamp_seconds: 0.0,
+                speed_metres_per_second: 0.0,
+            },
+            SpeedSample {
+                timestamp_seconds: 1.0,
+                speed_metres_per_second: -0.1,
+            },
         ];
         assert_eq!(
             replay_speed_sweep(
-                TransitionRule::SingleThreshold { threshold_metres_per_second: 0.5 },
+                TransitionRule::SingleThreshold {
+                    threshold_metres_per_second: 0.5
+                },
                 GaitRegime::Wave,
                 &samples,
             ),
@@ -440,8 +493,14 @@ mod tests {
     #[test]
     fn incomplete_sweep_does_not_manufacture_a_hysteresis_measurement() {
         let samples = [
-            SpeedSample { timestamp_seconds: 0.0, speed_metres_per_second: 0.0 },
-            SpeedSample { timestamp_seconds: 1.0, speed_metres_per_second: 1.0 },
+            SpeedSample {
+                timestamp_seconds: 0.0,
+                speed_metres_per_second: 0.0,
+            },
+            SpeedSample {
+                timestamp_seconds: 1.0,
+                speed_metres_per_second: 1.0,
+            },
         ];
         let trace = replay_speed_sweep(
             TransitionRule::Hysteretic {
