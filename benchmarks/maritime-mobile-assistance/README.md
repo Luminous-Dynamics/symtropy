@@ -7,7 +7,7 @@ This crate **does not schedule vessels or choose assignments**. It verifies whet
 - exact pilot qualification identifiers;
 - resource availability and operation-window feasibility;
 - non-overlapping use of each tug and pilot;
-- resource-specific waypoint-to-waypoint reposition timing against exact resource identity and route-revision-bound evidence legs;
+- resource-specific waypoint-to-waypoint reposition timing against exact resource identity and route-revision-bound evidence legs; every leg has a globally unique opaque `leg_id`, must reference a known tug/pilot resource, and its evidence subject uses a versioned, length-prefixed canonical encoding of leg ID, resource, direction, route revision, duration and time basis;
 - current, time-valid capability, position, qualification and reposition evidence. Evidence validity endpoints are inclusive while operation/travel windows are half-open; a receipt must cover through the final occupied tick (end minus one), not the exclusive end boundary.
 
 ## Compose; do not duplicate
@@ -40,13 +40,13 @@ cargo clippy --locked --manifest-path benchmarks/maritime-mobile-assistance/Carg
 
 ## Tests
 
-The unit fixtures cover:
+The unit fixtures currently contain **32 tests** and cover:
 - feasible two-task tug/pilot continuity;
 - tug double-booking, wrong-class rejection and half-open handoff;
 - insufficient reposition time;
 - insufficient tug count and bollard pull;
 - pilot qualification mismatch or omission;
-- missing reposition evidence, resource-specific tug/pilot durations, rejection of tug-to-pilot evidence reuse, stale capability evidence, revoked position evidence, wrong route revision and cross-resource evidence substitution;
+- missing reposition evidence, resource-specific tug/pilot durations, rejection of tug-to-pilot evidence reuse, stale capability evidence, revoked position evidence, wrong route revision, duration-tampering rejection, orphan/duplicate leg rejection and delimiter-collision negative controls;
 - availability limits, duplicate assignments and deterministic permutation replay.
 
 A separate test-only reference path recomputes one-tug/two-task feasibility directly over **512 frozen timing combinations**. It does not call the production reposition or sequence helpers. This is a synthetic algorithmic cross-check only; it is not experimental validation of tug movement or capability.
