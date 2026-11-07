@@ -30,6 +30,8 @@ pub mod manifold_gen;
 pub mod raycast;
 pub mod replay;
 pub mod support_map;
+/// Three-level Richardson refinement and discretization-error diagnostics.
+pub mod verification;
 pub mod world;
 
 pub use articulation::{ArticulatedChain, ChainBuilder, LinkSpec};
