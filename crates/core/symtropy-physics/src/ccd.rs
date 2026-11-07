@@ -408,18 +408,18 @@ mod tests {
         let pos = SVector::zeros();
         let velocity = SVector::zeros();
 
-        assert_eq!(
+        assert!(matches!(
             try_sphere_sphere(&pos, &velocity, -0.5, &pos, &velocity, 0.5, 1.0),
             Err(CcdInputError::NegativeRadius)
-        );
-        assert_eq!(
+        ));
+        assert!(matches!(
             try_sphere_sphere(&pos, &velocity, 0.5, &pos, &velocity, 0.5, f64::NAN),
             Err(CcdInputError::NonFiniteInput)
-        );
-        assert_eq!(
+        ));
+        assert!(matches!(
             try_sphere_sphere(&pos, &velocity, 0.5, &pos, &velocity, 0.5, -1.0),
             Err(CcdInputError::NegativeTimeStep)
-        );
+        ));
         assert!(sphere_sphere(&pos, &velocity, -0.5, &pos, &velocity, 0.5, 1.0).is_none());
     }
 
@@ -444,18 +444,11 @@ mod tests {
         let pos = SVector::from([0.0, 10.0, 0.0]);
         let vel = SVector::from([0.0, -10.0, 0.0]);
 
-        assert_eq!(
-            try_sphere_halfspace(
-                &pos,
-                &vel,
-                0.5,
-                &SVector::zeros(),
-                0.0,
-                1.0
-            ),
+        assert!(matches!(
+            try_sphere_halfspace(&pos, &vel, 0.5, &SVector::zeros(), 0.0, 1.0),
             Err(CcdInputError::ZeroPlaneNormal)
-        );
-        assert_eq!(
+        ));
+        assert!(matches!(
             try_sphere_halfspace(
                 &pos,
                 &vel,
@@ -465,7 +458,7 @@ mod tests {
                 1.0
             ),
             Err(CcdInputError::NonFiniteInput)
-        );
+        ));
     }
 
     #[test]
