@@ -554,9 +554,22 @@ impl MassEvidenceLedger {
 
     pub fn state_sha256(&self, state: &AircraftLoadingState) -> Result<String, String> {
         self.validate_identity()?;
-        if state.configuration_sha256 != self.configuration_sha256 {
-            return Err("state digest configuration does not match evidence ledger".to_owned());
+        validate_nonempty(&state.state_id, "state.state_id")?;
+        validate_nonempty(&state.aircraft_family, "state.aircraft_family")?;
+        validate_nonempty(&state.aircraft_model, "state.aircraft_model")?;
+        validate_nonempty(&state.serial_number, "state.serial_number")?;
+        validate_sha256(&state.configuration_sha256, "state.configuration_sha256")?;
+        if state.schema_version != LOADING_STATE_SCHEMA_VERSION {
+            return Err("unsupported aircraft loading-state schema version".to_owned());
         }
+        if state.configuration_sha256 != self.configuration_sha256
+            || state.aircraft_family != self.aircraft_family
+            || state.aircraft_model != self.aircraft_model
+            || state.serial_number != self.serial_number
+        {
+            return Err("state digest aircraft identity does not match evidence ledger".to_owned());
+        }
+        validate_state_order_and_completeness(&self.records, &state.items)?;
         let expected_generation = self.source_generation_sha256()?;
         if state.source_generation_sha256 != expected_generation {
             return Err("state digest source generation does not match evidence ledger".to_owned());
@@ -1003,6 +1016,45 @@ fn encode_position(bytes: &mut Vec<u8>, value: SourcePosition) {
     });
 }
 
+fn encode_inertia(bytes: &mut Vec<u8>, value: SourceInertiaTensor) {
+    for component in value.values {
+        push_f64(bytes, component);
+    }
+    bytes.push(match value.unit {
+        InertiaUnit::KilogramSquareMetre => 0,
+        InertiaUnit::GramSquareCentimetre => 1,
+        InertiaUnit::PoundSquareFoot => 2,
+    });
+}
+
+fn encode_evidence_class(bytes: &mut Vec<u8>, value: MassEvidenceClass) {
+    bytes.push(match value {
+        MassEvidenceClass::DirectlyMeasured => 0,
+        MassEvidenceClass::ManufacturerReported => 1,
+        MassEvidenceClass::ApprovedManualOrTypeData => 2,
+        MassEvidenceClass::DerivedFromMeasuredComponents => 3,
+        MassEvidenceClass::EngineeringEstimate => 4,
+        MassEvidenceClass::SyntheticFixture => 5,
+        MassEvidenceClass::Unknown => 6,
+    });
+}
+
+fn encode_admission(bytes: &mut Vec<u8>, value: EvidenceAdmission) {
+    bytes.push(match value {
+        EvidenceAdmission::AdmittedForScreening => 0,
+        EvidenceAdmission::PendingReview => 1,
+        EvidenceAdmission::Rejected => 2,
+    });
+}
+
+fn encode_uncertainty_relationship(bytes: &mut Vec<u8>, value: UncertaintyRelationship) {
+    bytes.push(match value {
+        UncertaintyRelationship::IndependentByDeclaredModel => 0,
+        UncertaintyRelationship::CorrelatedOrUnknown => 1,
+        UncertaintyRelationship::NotAssessed => 2,
+    });
+}
+
 fn encode_evidence_record(bytes: &mut Vec<u8>, record: &MassItemEvidence) {
     push_str(bytes, &record.item.id);
     encode_category(bytes, record.item.category);
@@ -1025,8 +1077,8 @@ fn encode_evidence_record(bytes: &mut Vec<u8>, record: &MassItemEvidence) {
     for child in children {
         push_str(bytes, &child);
     }
-    bytes.push(record.evidence_class as u8);
-    bytes.push(record.admission as u8);
+    encode_evidence_class(bytes, record.evidence_class);
+    encode_admission(bytes, record.admission);
     encode_source_record(bytes, &record.source);
     push_str(bytes, &record.effectivity.aircraft_family);
     push_str(bytes, &record.effectivity.aircraft_model);
@@ -1065,7 +1117,7 @@ fn encode_evidence_record(bytes: &mut Vec<u8>, record: &MassItemEvidence) {
         None => bytes.push(0),
     }
     push_option_f64(bytes, record.standard_uncertainty_kg);
-    bytes.push(record.uncertainty_relationship as u8);
+    encode_uncertainty_relationship(bytes, record.uncertainty_relationship);
 }
 
 fn encode_state_kind(bytes: &mut Vec<u8>, kind: LoadingStateKind) {
@@ -1101,6 +1153,13 @@ fn encode_loading_item(bytes: &mut Vec<u8>, item: &LoadingItemState) {
         Some(value) => {
             bytes.push(1);
             encode_position(bytes, value);
+        }
+        None => bytes.push(0),
+    }
+    match item.source_inertia {
+        Some(value) => {
+            bytes.push(1);
+            encode_inertia(bytes, value);
         }
         None => bytes.push(0),
     }
@@ -1175,6 +1234,7 @@ mod tests {
             effectivity: effectivity(config),
             source_mass,
             source_position,
+            source_inertia: None,
             standard_uncertainty_kg: Some(0.1),
             uncertainty_relationship: UncertaintyRelationship::IndependentByDeclaredModel,
         }
@@ -1229,6 +1289,7 @@ mod tests {
         geometry: MassGeometry,
         source_mass: Option<SourceMassValue>,
         source_position: Option<SourcePosition>,
+        source_inertia: Option<SourceInertiaTensor>,
         value_source: Option<SourceRecord>,
     ) -> LoadingItemState {
         LoadingItemState {
@@ -1238,6 +1299,7 @@ mod tests {
             source_mass,
             geometry,
             source_position,
+            source_inertia,
             value_source,
         }
     }
@@ -1250,6 +1312,7 @@ mod tests {
             record.item.geometry.clone(),
             record.source_mass,
             record.source_position,
+            record.source_inertia,
             Some(record.source.clone()),
         )
     }
@@ -1260,6 +1323,7 @@ mod tests {
             InstallationState::Removed,
             None,
             MassGeometry::Unknown,
+            None,
             None,
             None,
             None,
