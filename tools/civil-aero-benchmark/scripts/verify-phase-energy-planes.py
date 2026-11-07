@@ -96,6 +96,7 @@ def evaluate(balance: dict[str, Any], fixture: dict[str, Any]) -> dict[str, Any]
     fuels = balance["fuel_states"]
     engines = balance["prime_movers"]
     generators = balance["generators"]
+    fuel_cells = balance["fuel_cells"]
     stores = balance["stores"]
     motors = balance["motor_drives"]
     propulsors = balance["propulsors"]
@@ -103,6 +104,7 @@ def evaluate(balance: dict[str, Any], fixture: dict[str, Any]) -> dict[str, Any]
         (fuels, "fuel_source_id", "fuel source"),
         (engines, "prime_mover_id", "prime mover"),
         (generators, "generator_id", "generator"),
+        (fuel_cells, "fuel_cell_id", "fuel cell"),
         (stores, "store_id", "energy store"),
         (motors, "motor_id", "motor"),
         (propulsors, "propulsor_id", "propulsor"),
@@ -163,6 +165,28 @@ def evaluate(balance: dict[str, Any], fixture: dict[str, Any]) -> dict[str, Any]
         ):
             if not close(residual, 0.0, name, tolerance):
                 errors.append(name)
+
+    fuel_cell_bus_total = 0.0
+    for cell in fuel_cells:
+        digest(cell["model_evidence_sha256"], "fuel-cell model evidence")
+        fuel_id = cell["fuel_source_id"]
+        require(fuel_id in fuel_by_id, f"fuel cell {cell['fuel_cell_id']}: missing fuel source")
+        fuel_input = finite_nonnegative(cell["fuel_energy_input_j"], "fuel-cell fuel input")
+        electrical = finite_nonnegative(cell["electrical_output_to_bus_j"], "fuel-cell electrical output")
+        thermal_loss = finite_nonnegative(cell["thermal_loss_j"], "fuel-cell thermal loss")
+        average_limit = positive(cell["average_electrical_output_power_limit_w"], "fuel-cell average output limit")
+        peak_output = finite_nonnegative(cell["peak_electrical_output_power_w"], "fuel-cell peak output")
+        peak_limit = positive(cell["peak_electrical_output_power_limit_w"], "fuel-cell peak output limit")
+        average_output = electrical / duration
+        residual = fuel_input - electrical - thermal_loss
+        prime_mover_fuel_input_by_source[fuel_id] = (
+            prime_mover_fuel_input_by_source.get(fuel_id, 0.0) + fuel_input
+        )
+        if not close(residual, 0.0, f"fuel_cell:{cell['fuel_cell_id']}", tolerance):
+            errors.append(f"fuel_cell:{cell['fuel_cell_id']}")
+        if average_output > average_limit or peak_output + tolerance_w < average_output or peak_output > peak_limit + tolerance_w:
+            errors.append(f"fuel_cell_power:{cell['fuel_cell_id']}")
+        fuel_cell_bus_total += electrical
 
     for fuel in fuels:
         aggregate_input = prime_mover_fuel_input_by_source.get(fuel["fuel_source_id"], 0.0)
@@ -284,7 +308,7 @@ def evaluate(balance: dict[str, Any], fixture: dict[str, Any]) -> dict[str, Any]
     if not close(actual_propulsor_shaft_total, expected_propulsor_shaft_total, "shaft combiner", tolerance):
         errors.append("shaft_combiner")
 
-    total_supply = generator_bus_total + store_discharge_total
+    total_supply = generator_bus_total + fuel_cell_bus_total + store_discharge_total
     total_demand = motor_bus_total + aux + thermal + store_charge_total + distribution
     bus_residual = total_supply - total_demand
     if not close(bus_residual, 0.0, "electrical bus", tolerance):
@@ -300,7 +324,7 @@ def evaluate(balance: dict[str, Any], fixture: dict[str, Any]) -> dict[str, Any]
     if continuous > continuous_limit + tolerance_w:
         errors.append("continuous_bus_supply_power")
 
-    require(bool(engines) or bool(stores), "phase must declare a generator/prime mover or energy store")
+    require(bool(engines) or bool(fuel_cells) or bool(stores), "phase must declare a prime mover, fuel cell or electrical store")
     status = "infeasible" if errors else "conserved_within_declared_model"
     return {
         "status":status,
@@ -330,6 +354,9 @@ def validate_fixture(fixture: dict[str, Any]) -> None:
         "parallel-hybrid-direct-shaft-assist",
         "generator-charging-battery",
         "generator-battery-supercapacitor",
+        "conventional-direct-drive",
+        "fuel-cell-only",
+        "fuel-cell-battery-buffer",
     }
     require(seen == expected, "v0.2 fixture topology coverage changed")
 
