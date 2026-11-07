@@ -52,6 +52,8 @@ const EVIDENCE_KEYS: &[&str] = &[
     "clock_id",
     "clock_uncertainty_ms",
     "local_protection_receipt_sha256",
+    "local_protection_valid_from_ms",
+    "local_protection_valid_until_ms",
 ];
 
 const ENERGY_KEYS: &[&str] = &[
@@ -238,7 +240,7 @@ fn expected_field_regime(bearer: &str) -> &'static str {
     }
 }
 
-fn validate_opportunity(value: &Value) -> Result<(), String> {
+fn validate_opportunity(value: &Value) -> Result<(u64, u64), String> {
     let path = "$.opportunity";
     exact_keys(
         value,
@@ -249,6 +251,8 @@ fn validate_opportunity(value: &Value) -> Result<(), String> {
             "channel_id",
             "envelope_sha256",
             "envelope_state",
+            "envelope_valid_from_ms",
+            "envelope_valid_until_ms",
         ],
         path,
     )?;
@@ -303,7 +307,12 @@ fn validate_opportunity(value: &Value) -> Result<(), String> {
         ],
         path,
     )?;
-    Ok(())
+    let valid_from = unsigned(value, "envelope_valid_from_ms", path)?;
+    let valid_until = unsigned(value, "envelope_valid_until_ms", path)?;
+    if valid_from >= valid_until {
+        return Err(fail(path, "envelope validity interval must have positive duration"));
+    }
+    Ok((valid_from, valid_until))
 }
 
 fn validate_allocation(value: &Value) -> Result<(u64, u64), String> {
@@ -433,6 +442,11 @@ fn validate_evidence(value: &Value, path: &str) -> Result<(), String> {
         string(value, "local_protection_receipt_sha256", path)?,
         &format!("{path}.local_protection_receipt_sha256"),
     )?;
+    let local_valid_from = unsigned(value, "local_protection_valid_from_ms", path)?;
+    let local_valid_until = unsigned(value, "local_protection_valid_until_ms", path)?;
+    if local_valid_from >= local_valid_until {
+        return Err(fail(path, "local protection validity interval must have positive duration"));
+    }
     Ok(())
 }
 
@@ -448,6 +462,28 @@ fn require_admission(value: &Value, path: &str) -> Result<(), String> {
         if string(value, key, path)? != expected {
             return Err(fail(path, &format!("admission requires {key}={expected}")));
         }
+    }
+    Ok(())
+}
+
+fn validity_covers_event(
+    at_ms: u64,
+    uncertainty_ms: u64,
+    valid_from_ms: u64,
+    valid_until_ms: u64,
+    path: &str,
+) -> Result<(), String> {
+    let earliest = at_ms
+        .checked_sub(uncertainty_ms)
+        .ok_or_else(|| fail(path, "clock uncertainty extends before the validity interval"))?;
+    let latest = at_ms
+        .checked_add(uncertainty_ms)
+        .ok_or_else(|| fail(path, "clock uncertainty overflows the event time"))?;
+    if earliest < valid_from_ms || latest >= valid_until_ms {
+        return Err(fail(
+            path,
+            "evidence validity interval does not cover the full event-time uncertainty interval",
+        ));
     }
     Ok(())
 }
@@ -584,7 +620,7 @@ pub fn validate_episode(value: &Value) -> Result<ValidationReport, String> {
         ));
     }
     validate_receiver(receiver)?;
-    validate_opportunity(opportunity)?;
+    let (envelope_valid_from, envelope_valid_until) = validate_opportunity(opportunity)?;
     let (valid_from, valid_until) = validate_allocation(allocation)?;
     if string(opportunity, "envelope_state", "$.opportunity")? != "ADMITTED_SYNTHETIC" {
         return Err(fail(
@@ -693,12 +729,15 @@ pub fn validate_episode(value: &Value) -> Result<ValidationReport, String> {
             if string(opportunity, "envelope_state", "$.opportunity")? != "ADMITTED_SYNTHETIC" {
                 return Err(fail(&path, "opportunity envelope is not admitted"));
             }
-            if at_ms < valid_from || at_ms >= valid_until {
-                return Err(fail(
-                    &path,
-                    "site allocation receipt is not valid at admission time",
-                ));
-            }
+            let clock_uncertainty = unsigned(evidence, "clock_uncertainty_ms", &evidence_path)?;
+            validity_covers_event(at_ms, clock_uncertainty, valid_from, valid_until, &evidence_path)?;
+            validity_covers_event(
+                at_ms,
+                clock_uncertainty,
+                envelope_valid_from,
+                envelope_valid_until,
+                &evidence_path,
+            )?;
             admission_ready = true;
             tracking_ready = false;
         }
@@ -744,24 +783,42 @@ pub fn validate_episode(value: &Value) -> Result<ValidationReport, String> {
                     "POWER_ACTIVE requires local_protection_state=PERMIT_SYNTHETIC_ONLY; this is not a hardware permit",
                 ));
             }
-            if at_ms < valid_from || at_ms >= valid_until {
-                return Err(fail(
-                    &path,
-                    "site allocation receipt expired before energization",
-                ));
-            }
+            let clock_uncertainty = unsigned(evidence, "clock_uncertainty_ms", &evidence_path)?;
+            validity_covers_event(at_ms, clock_uncertainty, valid_from, valid_until, &evidence_path)?;
+            validity_covers_event(
+                at_ms,
+                clock_uncertainty,
+                envelope_valid_from,
+                envelope_valid_until,
+                &evidence_path,
+            )?;
+            validity_covers_event(
+                at_ms,
+                clock_uncertainty,
+                unsigned(evidence, "local_protection_valid_from_ms", &evidence_path)?,
+                unsigned(evidence, "local_protection_valid_until_ms", &evidence_path)?,
+                &evidence_path,
+            )?;
             power_active_intervals += 1;
             tracking_ready = false;
         }
 
         if from_state == "POWER_ACTIVE"
             && matches!(to_state, "DEPARTURE_PENDING" | "RECOVERY_REQUIRED")
-            && string(evidence, "local_protection_state", &evidence_path)? != "INHIBIT"
         {
-            return Err(fail(
-                &path,
-                "leaving POWER_ACTIVE requires local protection INHIBIT",
-            ));
+            if string(evidence, "local_protection_state", &evidence_path)? != "INHIBIT" {
+                return Err(fail(
+                    &path,
+                    "leaving POWER_ACTIVE requires local protection INHIBIT",
+                ));
+            }
+            validity_covers_event(
+                at_ms,
+                unsigned(evidence, "clock_uncertainty_ms", &evidence_path)?,
+                unsigned(evidence, "local_protection_valid_from_ms", &evidence_path)?,
+                unsigned(evidence, "local_protection_valid_until_ms", &evidence_path)?,
+                &evidence_path,
+            )?;
         }
         if to_state == "SAFE_OFF" {
             if !matches!(from_state, "DEPARTURE_PENDING" | "RECOVERY_REQUIRED") {
@@ -776,6 +833,13 @@ pub fn validate_episode(value: &Value) -> Result<ValidationReport, String> {
             if string(evidence, "local_protection_state", &evidence_path)? != "INHIBIT" {
                 return Err(fail(&path, "SAFE_OFF requires local protection INHIBIT"));
             }
+            validity_covers_event(
+                at_ms,
+                unsigned(evidence, "clock_uncertainty_ms", &evidence_path)?,
+                unsigned(evidence, "local_protection_valid_from_ms", &evidence_path)?,
+                unsigned(evidence, "local_protection_valid_until_ms", &evidence_path)?,
+                &evidence_path,
+            )?;
             admission_ready = false;
             tracking_ready = false;
         }
@@ -1000,6 +1064,22 @@ mod tests {
         value["opportunity"]["envelope_state"] = json!("STALE");
         let error = validate_episode(&value).expect_err("stale envelope must fail");
         assert!(error.contains("admitted synthetic envelope"));
+    }
+
+    #[test]
+    fn envelope_expiry_is_checked_against_clock_uncertainty() {
+        let mut value = positive_value();
+        value["opportunity"]["envelope_valid_until_ms"] = json!(200);
+        let error = validate_episode(&value).expect_err("expired envelope must fail");
+        assert!(error.contains("full event-time uncertainty interval"));
+    }
+
+    #[test]
+    fn local_protection_expiry_is_checked_against_clock_uncertainty() {
+        let mut value = positive_value();
+        value["events"][4]["evidence"]["local_protection_valid_until_ms"] = json!(401);
+        let error = validate_episode(&value).expect_err("permit expires inside uncertainty window");
+        assert!(error.contains("full event-time uncertainty interval"));
     }
 
     #[test]
