@@ -1004,7 +1004,7 @@ mod tests {
     #[test]
     fn non_integral_average_power_quantum_is_rejected_instead_of_rounded() {
         let mut scenario = fixture();
-        scenario["time_grid"]["slot_duration_ms"] = Value::from(50000);
+        scenario["time_grid"]["slot_duration_ms"] = Value::from(55000);
         assert!(
             evaluate_scenario(&scenario)
                 .unwrap_err()
@@ -1051,6 +1051,7 @@ mod tests {
             "minimum_useful_energy_wh": 6,
             "maximum_input_quanta_per_slot": 1,
             "useful_energy_wh_per_input_quantum_slot": 3,
+            "useful_energy_boundary_id": "AIRCRAFT_BATTERY_TERMINAL_INPUT",
             "authorization_state": "SYNTHETIC_FIXTURE_ONLY"
         }));
         let report = evaluate_scenario(&scenario).unwrap();
@@ -1204,6 +1205,8 @@ mod tests {
         let mut scenario = fixture();
         scenario["sessions"][0]["domain"] = Value::String("GROUND".into());
         scenario["sessions"][0]["receiver_class"] = Value::String("ROAD_CAR".into());
+        scenario["sessions"][0]["useful_energy_boundary_id"] =
+            Value::String("GROUND_VEHICLE_BATTERY_TERMINAL_INPUT".into());
         assert!(
             evaluate_scenario(&scenario)
                 .unwrap_err()
