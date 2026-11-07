@@ -575,6 +575,18 @@ mod tests {
                 .unwrap_err()
                 .contains("illumination_hours_per_day")
         );
+
+        let zero_led_uniformity = FIXTURE.replace(
+            "led_canopy_uniformity_floor=1.0",
+            "led_canopy_uniformity_floor=0.0",
+        );
+        let input =
+            parse_input(&zero_led_uniformity).expect("syntactically valid fixture");
+        assert!(
+            validate(&input)
+                .unwrap_err()
+                .contains("led_canopy_uniformity_floor")
+        );
     }
 
     #[test]
