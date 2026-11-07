@@ -453,9 +453,12 @@ mod tests {
     #[test]
     fn non_authorized_record_level_export_fails_closed() {
         let mut receipt = valid_run();
-        receipt.studies[0]
-            .artifacts
-            .push(artifact("restricted_raw_data_reference", true, true, false));
+        receipt.studies[0].artifacts.push(artifact(
+            "restricted_raw_data_reference",
+            true,
+            true,
+            false,
+        ));
         assert!(validate_run(&receipt).is_err());
     }
 
