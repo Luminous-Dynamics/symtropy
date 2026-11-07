@@ -692,8 +692,14 @@ fn canonical_reposition_subject_handles_delimiter_bearing_opaque_ids() {
     let left = leg("resource|part", "node", "target", 3);
     let right = leg("resource", "part|node", "target", 3);
     assert_eq!(
-        format!("{}|{}->{}", left.resource_id, left.from_node_id, left.to_node_id),
-        format!("{}|{}->{}", right.resource_id, right.from_node_id, right.to_node_id)
+        format!(
+            "{}|{}->{}",
+            left.resource_id, left.from_node_id, left.to_node_id
+        ),
+        format!(
+            "{}|{}->{}",
+            right.resource_id, right.from_node_id, right.to_node_id
+        )
     );
     assert_ne!(
         canonical_reposition_subject(&left, "synthetic-ticks-v1"),
