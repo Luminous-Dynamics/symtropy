@@ -266,12 +266,12 @@ pub fn validate_case(case: &Value) -> Vec<Violation> {
                 if text(episode, "cause_id").is_none_or(|cause| !cause_ids.contains(cause)) {
                     push(&mut errors, "UNKNOWN_FAILURE_CAUSE", &format!("{path}.cause_id"), "failure event requires a declared cause");
                 }
-                if !matches!(episode.get("censoring_reason"), Some(Value::Null)) {
+                if !episode.get("censoring_reason").is_some_and(Value::is_null) {
                     push(&mut errors, "FAILURE_HAS_CENSOR_REASON", &format!("{path}.censoring_reason"), "failure event cannot have censoring reason");
                 }
             }
             Some("RIGHT_CENSORED") => {
-                if !matches!(episode.get("cause_id"), Some(Value::Null)) {
+                if !episode.get("cause_id").is_some_and(Value::is_null) {
                     push(&mut errors, "CENSORED_EPISODE_HAS_CAUSE", &format!("{path}.cause_id"), "right-censored episode must have null cause");
                 }
                 if text(episode, "censoring_reason").is_none_or(|reason| !independent.contains(reason) && !informative.contains(reason)) {
