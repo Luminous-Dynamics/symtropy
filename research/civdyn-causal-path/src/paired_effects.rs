@@ -46,10 +46,14 @@ impl EffectStatus {
         match self {
             Self::StructurallyDisconnected => "structurally_disconnected",
             Self::MovementWithoutDeclaredPath => "movement_without_declared_path",
-            Self::DirectionallyConsistentWithDeclaredPath => "directionally_consistent_with_declared_path",
+            Self::DirectionallyConsistentWithDeclaredPath => {
+                "directionally_consistent_with_declared_path"
+            }
             Self::DirectionContradicted => "direction_contradicted",
             Self::EquivalentWithinMargin => "equivalent_within_margin",
-            Self::MaterialEffectAgainstEquivalenceContract => "material_effect_against_equivalence_contract",
+            Self::MaterialEffectAgainstEquivalenceContract => {
+                "material_effect_against_equivalence_contract"
+            }
             Self::DetectableMovement => "detectable_movement",
             Self::NoDetectedEffect => "no_detected_effect",
             Self::Indeterminate => "indeterminate",
@@ -103,23 +107,62 @@ pub struct PairedEffectResult {
 pub enum ContrastError {
     EmptyOutcomeId,
     InvalidEquivalenceMargin(f64),
-    TooFewPairs { actual: usize, minimum: usize },
-    DuplicateSeed { arm: &'static str, seed: u64 },
-    SeedSetMismatch { seed: u64, arm: &'static str },
-    MissingOutcome { arm: &'static str, seed: u64, variable_id: String },
-    NonFiniteValue { arm: &'static str, seed: u64, variable_id: String, value: f64 },
+    TooFewPairs {
+        actual: usize,
+        minimum: usize,
+    },
+    DuplicateSeed {
+        arm: &'static str,
+        seed: u64,
+    },
+    SeedSetMismatch {
+        seed: u64,
+        arm: &'static str,
+    },
+    MissingOutcome {
+        arm: &'static str,
+        seed: u64,
+        variable_id: String,
+    },
+    NonFiniteValue {
+        arm: &'static str,
+        seed: u64,
+        variable_id: String,
+        value: f64,
+    },
 }
 
 impl fmt::Display for ContrastError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::EmptyOutcomeId => write!(f, "outcome variable ID must not be empty"),
-            Self::InvalidEquivalenceMargin(value) => write!(f, "equivalence margin must be finite and non-negative, got {value}"),
-            Self::TooFewPairs { actual, minimum } => write!(f, "paired run count {actual} is below minimum {minimum}"),
-            Self::DuplicateSeed { arm, seed } => write!(f, "{arm} arm contains duplicate seed {seed}"),
-            Self::SeedSetMismatch { seed, arm } => write!(f, "seed {seed} is missing from {arm} arm"),
-            Self::MissingOutcome { arm, seed, variable_id } => write!(f, "{arm} seed {seed} is missing outcome {variable_id}"),
-            Self::NonFiniteValue { arm, seed, variable_id, value } => write!(f, "{arm} seed {seed} outcome {variable_id} is non-finite: {value}"),
+            Self::InvalidEquivalenceMargin(value) => write!(
+                f,
+                "equivalence margin must be finite and non-negative, got {value}"
+            ),
+            Self::TooFewPairs { actual, minimum } => {
+                write!(f, "paired run count {actual} is below minimum {minimum}")
+            }
+            Self::DuplicateSeed { arm, seed } => {
+                write!(f, "{arm} arm contains duplicate seed {seed}")
+            }
+            Self::SeedSetMismatch { seed, arm } => {
+                write!(f, "seed {seed} is missing from {arm} arm")
+            }
+            Self::MissingOutcome {
+                arm,
+                seed,
+                variable_id,
+            } => write!(f, "{arm} seed {seed} is missing outcome {variable_id}"),
+            Self::NonFiniteValue {
+                arm,
+                seed,
+                variable_id,
+                value,
+            } => write!(
+                f,
+                "{arm} seed {seed} outcome {variable_id} is non-finite: {value}"
+            ),
         }
     }
 }
@@ -135,11 +178,17 @@ pub fn evaluate_paired_contrast(
         return Err(ContrastError::EmptyOutcomeId);
     }
     if !contract.equivalence_margin.is_finite() || contract.equivalence_margin < 0.0 {
-        return Err(ContrastError::InvalidEquivalenceMargin(contract.equivalence_margin));
+        return Err(ContrastError::InvalidEquivalenceMargin(
+            contract.equivalence_margin,
+        ));
     }
 
     let control = index_arm("control", &dataset.control, &contract.outcome_variable_id)?;
-    let treatment = index_arm("treatment", &dataset.treatment, &contract.outcome_variable_id)?;
+    let treatment = index_arm(
+        "treatment",
+        &dataset.treatment,
+        &contract.outcome_variable_id,
+    )?;
     if control.len() < MIN_PAIRED_RUNS {
         return Err(ContrastError::TooFewPairs {
             actual: control.len(),
@@ -148,12 +197,18 @@ pub fn evaluate_paired_contrast(
     }
     for seed in control.keys() {
         if !treatment.contains_key(seed) {
-            return Err(ContrastError::SeedSetMismatch { seed: *seed, arm: "treatment" });
+            return Err(ContrastError::SeedSetMismatch {
+                seed: *seed,
+                arm: "treatment",
+            });
         }
     }
     for seed in treatment.keys() {
         if !control.contains_key(seed) {
-            return Err(ContrastError::SeedSetMismatch { seed: *seed, arm: "control" });
+            return Err(ContrastError::SeedSetMismatch {
+                seed: *seed,
+                arm: "control",
+            });
         }
     }
 
@@ -172,7 +227,8 @@ pub fn evaluate_paired_contrast(
     let mean_treatment = mean(&treatment_values);
     let mean_paired_difference = mean(&differences);
     let paired_difference_sd = sample_sd(&differences, mean_paired_difference);
-    let half_width = t_critical_95(pair_count - 1) * paired_difference_sd / (pair_count as f64).sqrt();
+    let half_width =
+        t_critical_95(pair_count - 1) * paired_difference_sd / (pair_count as f64).sqrt();
     let ci95_lower = mean_paired_difference - half_width;
     let ci95_upper = mean_paired_difference + half_width;
 
@@ -231,11 +287,15 @@ fn index_arm(
 ) -> Result<BTreeMap<u64, f64>, ContrastError> {
     let mut indexed = BTreeMap::new();
     for observation in observations {
-        let value = observation.values.get(outcome_id).ok_or_else(|| ContrastError::MissingOutcome {
-            arm,
-            seed: observation.seed,
-            variable_id: outcome_id.into(),
-        })?;
+        let value =
+            observation
+                .values
+                .get(outcome_id)
+                .ok_or_else(|| ContrastError::MissingOutcome {
+                    arm,
+                    seed: observation.seed,
+                    variable_id: outcome_id.into(),
+                })?;
         if !value.is_finite() {
             return Err(ContrastError::NonFiniteValue {
                 arm,
@@ -245,7 +305,10 @@ fn index_arm(
             });
         }
         if indexed.insert(observation.seed, *value).is_some() {
-            return Err(ContrastError::DuplicateSeed { arm, seed: observation.seed });
+            return Err(ContrastError::DuplicateSeed {
+                arm,
+                seed: observation.seed,
+            });
         }
     }
     Ok(indexed)
@@ -309,7 +372,10 @@ fn sample_sd(values: &[f64], average: f64) -> f64 {
     if values.len() < 2 {
         return 0.0;
     }
-    (values.iter().map(|value| (value - average).powi(2)).sum::<f64>()
+    (values
+        .iter()
+        .map(|value| (value - average).powi(2))
+        .sum::<f64>()
         / (values.len() - 1) as f64)
         .sqrt()
 }
@@ -344,7 +410,11 @@ mod tests {
                 values: BTreeMap::from([("service".into(), base + delta)]),
             });
         }
-        ContrastDataset { design, control, treatment }
+        ContrastDataset {
+            design,
+            control,
+            treatment,
+        }
     }
 
     fn contract(expected_response: ExpectedResponse, margin: f64) -> ContrastContract {
@@ -357,17 +427,30 @@ mod tests {
 
     #[test]
     fn positive_control_requires_interval_excluding_zero() {
-        let input = dataset(|index| 1.0 + (index % 3) as f64 * 0.01, PairingDesign::CommonRandomNumbers);
-        let result = evaluate_paired_contrast(&input, &contract(ExpectedResponse::Positive, 0.05), true).unwrap();
-        assert_eq!(result.status, EffectStatus::DirectionallyConsistentWithDeclaredPath);
+        let input = dataset(
+            |index| 1.0 + (index % 3) as f64 * 0.01,
+            PairingDesign::CommonRandomNumbers,
+        );
+        let result =
+            evaluate_paired_contrast(&input, &contract(ExpectedResponse::Positive, 0.05), true)
+                .unwrap();
+        assert_eq!(
+            result.status,
+            EffectStatus::DirectionallyConsistentWithDeclaredPath
+        );
         assert!(result.control_gate_passed);
         assert_eq!(result.pair_count, 30);
     }
 
     #[test]
     fn negative_control_requires_entire_interval_inside_equivalence_margin() {
-        let input = dataset(|index| if index % 2 == 0 { 0.002 } else { -0.002 }, PairingDesign::CommonRandomNumbers);
-        let result = evaluate_paired_contrast(&input, &contract(ExpectedResponse::Equivalent, 0.01), true).unwrap();
+        let input = dataset(
+            |index| if index % 2 == 0 { 0.002 } else { -0.002 },
+            PairingDesign::CommonRandomNumbers,
+        );
+        let result =
+            evaluate_paired_contrast(&input, &contract(ExpectedResponse::Equivalent, 0.01), true)
+                .unwrap();
         assert_eq!(result.status, EffectStatus::EquivalentWithinMargin);
         assert!(result.control_gate_passed);
         assert!(result.ci95_lower >= -0.01);
@@ -376,8 +459,13 @@ mod tests {
 
     #[test]
     fn failing_to_reject_zero_is_not_an_equivalence_pass() {
-        let input = dataset(|index| if index % 2 == 0 { 0.4 } else { -0.4 }, PairingDesign::CommonRandomNumbers);
-        let result = evaluate_paired_contrast(&input, &contract(ExpectedResponse::Equivalent, 0.01), true).unwrap();
+        let input = dataset(
+            |index| if index % 2 == 0 { 0.4 } else { -0.4 },
+            PairingDesign::CommonRandomNumbers,
+        );
+        let result =
+            evaluate_paired_contrast(&input, &contract(ExpectedResponse::Equivalent, 0.01), true)
+                .unwrap();
         assert_eq!(result.status, EffectStatus::Indeterminate);
         assert!(!result.control_gate_passed);
     }
@@ -385,7 +473,9 @@ mod tests {
     #[test]
     fn disconnected_effect_is_not_credited_to_the_declared_path() {
         let input = dataset(|_| 0.8, PairingDesign::CommonRandomNumbers);
-        let result = evaluate_paired_contrast(&input, &contract(ExpectedResponse::Positive, 0.05), false).unwrap();
+        let result =
+            evaluate_paired_contrast(&input, &contract(ExpectedResponse::Positive, 0.05), false)
+                .unwrap();
         assert_eq!(result.status, EffectStatus::MovementWithoutDeclaredPath);
         assert!(!result.control_gate_passed);
     }
@@ -393,7 +483,9 @@ mod tests {
     #[test]
     fn common_random_numbers_are_required_for_confirmatory_gate() {
         let input = dataset(|_| 1.0, PairingDesign::MatchedObservational);
-        let result = evaluate_paired_contrast(&input, &contract(ExpectedResponse::Positive, 0.05), true).unwrap();
+        let result =
+            evaluate_paired_contrast(&input, &contract(ExpectedResponse::Positive, 0.05), true)
+                .unwrap();
         assert_eq!(result.status, EffectStatus::DescriptiveOnly);
         assert!(!result.confirmatory_eligible);
         assert!(!result.control_gate_passed);
@@ -402,7 +494,9 @@ mod tests {
     #[test]
     fn wrong_direction_fails_the_positive_control() {
         let input = dataset(|_| -1.0, PairingDesign::CommonRandomNumbers);
-        let result = evaluate_paired_contrast(&input, &contract(ExpectedResponse::Positive, 0.05), true).unwrap();
+        let result =
+            evaluate_paired_contrast(&input, &contract(ExpectedResponse::Positive, 0.05), true)
+                .unwrap();
         assert_eq!(result.status, EffectStatus::DirectionContradicted);
         assert!(!result.control_gate_passed);
     }
@@ -419,7 +513,11 @@ mod tests {
         let mut duplicate = dataset(|_| 1.0, PairingDesign::CommonRandomNumbers);
         duplicate.treatment.push(duplicate.treatment[0].clone());
         assert!(matches!(
-            evaluate_paired_contrast(&duplicate, &contract(ExpectedResponse::Positive, 0.05), true),
+            evaluate_paired_contrast(
+                &duplicate,
+                &contract(ExpectedResponse::Positive, 0.05),
+                true
+            ),
             Err(ContrastError::DuplicateSeed { .. })
         ));
     }
