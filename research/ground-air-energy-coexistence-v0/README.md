@@ -427,3 +427,25 @@ The airborne service layer must consume, not fork, the current aircraft-energy w
 - [#3885](https://github.com/Luminous-Dynamics/symtropy/issues/3885) remains the owner of full mission-matched aircraft energy architecture; [#3902](https://github.com/Luminous-Dynamics/symtropy/issues/3902) owns the aircraft dock comparison.
 
 A site-level useful aircraft Wh request is therefore a service contract, not a substitute for the aircraft's phase-resolved mission reserve, battery discharge limits, thermal derating or hybrid-source balance.
+
+
+## 15. Pinned empirical-source adapter for M1
+
+The M1 dual-wireless scenario now has a separate [channel-evidence-adapter schema](./channel-evidence-adapter.schema.json) and a source-pinned [NOT_ADMITTED adapter](./channel-evidence-adapter.NOT_ADMITTED.json).
+
+It binds:
+- Ground dynamic IPT to `WPT-IPT-PURDUE-DWPT-ROADWAY-2026`, its source record and `PURDUE-DWPT-ROADWAY-POWER-RANGE` measurement.
+- Air dock IPT to `WPT-IPT-LI-RECONFIGURABLE-MULTITX-UAV-2026-350W`, its two peak-efficiency measurement IDs.
+- A second dual-drone IPT family, `WPT-IPT-SUKVANACHAIKUL-DUAL-DRONE-2025-500W`, only as a multi-receiver comparator.
+
+The adapter pins the exact empirical-catalogue commit `69d1aa2bc7cdc3bedc0456dd0e7758ffbca9ba34` and references the catalogue's source/system/measurement identifiers, not a copied set of inferred values.
+
+All source references are deliberately **not admitted to a qualified operating envelope**:
+- Purdue's abstract does not establish a complete source/output meter boundary, operating frequency, transfer gap or per-speed power/efficiency curve.
+- The UAV multi-transmitter abstract does not provide exact DC meter nodes, output watts at the peak-efficiency points, full measured position response or the receiver's dock/hover posture.
+- The dual-drone paper reports 5 A per receiver but does not provide abstract-level receiver voltage, exact energy meter points or efficiency.
+- No cited paper tests these ground and air channels concurrently at one site.
+
+An independent fetch-back check resolved all 3 channel evidence references and all 4 measurement IDs against the pinned 66-source/35-realization catalogue. The adapter explicitly retains `shared_site_physical_coexistence_evidence = NOT_AVAILABLE`, `measured_simultaneous_ground_air_prototype = NOT_DEMONSTRATED` and `electrical_source_orchestration_evidence = SYNTHETIC_ONLY`.
+
+The allocator may use the synthetic coefficients for bounded scheduling tests, but it must not consume these literature claims as a validated numeric M1 channel envelope. Admission requires full-text source review, exact measurement boundaries, operating/geometry support, uncertainty and a same-site coexistence test.
