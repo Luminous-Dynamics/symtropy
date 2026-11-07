@@ -91,6 +91,7 @@ fn validate_identity(identity: StateIdentity) -> Result<(), String> {
     }
 }
 
+#[cfg(test)]
 fn require_same_identity(left: StateIdentity, right: StateIdentity) -> Result<(), String> {
     validate_identity(left)?;
     validate_identity(right)?;
