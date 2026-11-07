@@ -1,0 +1,19 @@
+[workspace]
+
+[package]
+name = "civdyn-robust-policy"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Metric-specific policy robustness and finite-design regret under CivDyn parameter uncertainty"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "robust-policy-sweep"
+path = "src/bin/robust_policy_sweep.rs"
+
+[dependencies]
+civdyn-resilience-uq = { path = "../civdyn-resilience-uq" }
