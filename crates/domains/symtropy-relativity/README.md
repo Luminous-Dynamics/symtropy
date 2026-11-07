@@ -13,8 +13,9 @@ A bounded Rust research crate for analytic Lorentzian-spacetime reference calcul
 - Symmetric finite 4x4 metric component representation, pivoted determinant and inverse, and inverse-identity residual diagnostic.
 - Explicit first metric derivatives and Levi-Civita connection coefficients, with an analytic Schwarzschild derivative fixture.
 - Explicit second metric derivatives, mixed-index Riemann tensor, Ricci tensor/scalar, Einstein tensor, Kretschmann contraction, and algebraic Riemann-symmetry residuals.
-- Fixed-size second-order forward-mode automatic differentiation for Schwarzschild and Kerr metric values, gradients, and Hessians; AD-generated Kerr curvature is checked against vacuum and analytic Kretschmann fixtures.
-- 44 authored analytic, limiting-case, invalid-domain, matrix, connection, curvature, automatic-differentiation, and posterior-transform tests.
+- Fixed-size second-order forward-mode automatic differentiation for Schwarzschild, Kerr, and ingoing Eddington-Finkelstein metric values, gradients, and Hessians; AD-generated Kerr curvature is checked against vacuum and analytic Kretschmann fixtures.
+- Horizon-regular ingoing Eddington-Finkelstein Schwarzschild chart, with curvature tests at and inside the event horizon and scalar-invariant comparison against Schwarzschild coordinates.
+- 47 authored analytic, limiting-case, invalid-domain, matrix, connection, curvature, automatic-differentiation, chart, and posterior-transform tests.
 
 ## Conventions
 
@@ -43,7 +44,7 @@ The posterior transform preserves each input sample ID, order, and paired mass/s
 
 ## Deliberate limits
 
-The explicit hand-derived second-derivative fixture covers Schwarzschild in the exterior Schwarzschild chart. A separate second-order forward-mode AD path now generates first/second derivatives and curvature for both Schwarzschild and Kerr exterior charts, with Kerr vacuum-Ricci and analytic Kretschmann tests authored. Horizon-regular cross-chart checks are not yet implemented. There is no geodesic integrator, GRHD/GRMHD solver, waveform generator, or numerical-relativity evolution code.
+The explicit hand-derived second-derivative fixture covers Schwarzschild in the exterior Schwarzschild chart. A separate second-order forward-mode AD path generates first/second derivatives and curvature for Schwarzschild and Kerr exterior charts. It also supports ingoing Eddington-Finkelstein Schwarzschild coordinates, with tests at/inside the horizon and scalar-invariant comparison outside it. Kerr vacuum-Ricci and analytic Kretschmann tests are authored. There is no geodesic integrator, GRHD/GRMHD solver, waveform generator, or numerical-relativity evolution code.
 
 The generic metric-component constructor does not certify Lorentzian signature. Curvature output is not yet accompanied by automatic conditioning estimates; tolerances must be interpreted for the declared fixture and coordinate chart. No observational-validation or state-of-the-art performance claim is made.
 
