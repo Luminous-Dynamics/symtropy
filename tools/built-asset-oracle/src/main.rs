@@ -282,10 +282,17 @@ fn evaluate_case(case: &Value, reference: &Value) -> CaseResult {
             offsets.iter().copied().reduce(f64::min),
             offsets.iter().copied().reduce(f64::max),
         ) {
-            let threshold = reference
+            let Some(threshold) = reference
                 .get("reference_conflict_threshold_mm")
                 .and_then(Value::as_f64)
-                .ok_or("reference conflict threshold missing")?;
+            else {
+                return result(
+                    case_id,
+                    "INVALID_INPUT",
+                    &["REFERENCE_CONFLICT_THRESHOLD_MISSING_OR_INVALID"],
+                    expected,
+                );
+            };
             if maximum - minimum > threshold {
                 return result(
                     case_id,
@@ -671,22 +678,33 @@ mod tests {
     }
 
     #[test]
-    fn unit_consistent_scaled_measurement_preserves_defect_classification() {
+    fn malformed_independent_measurement_is_rejected() {
         let corpus: Value = serde_json::from_str(CORPUS).expect("corpus parses");
         let reference = corpus.get("reference_subject").expect("reference exists");
         let case = corpus["cases"]
             .as_array()
             .expect("cases exist")
             .iter()
-            .find(|case| case["case_id"] == "BA-002")
-            .expect("displacement case exists");
-        let mut scaled = case.clone();
-        scaled["candidate_input"]["unit"] = Value::String("m".to_owned());
-        scaled["candidate_input"]["finding"]["value"]["unit"] = Value::String("m".to_owned());
-        scaled["candidate_input"]["finding"]["value"]["offset_mm"] = Value::from(0.006);
-        scaled["candidate_input"]["finding"]["value"]["tolerance_mm"] = Value::from(0.002);
-        let evaluated = evaluate_case(&scaled, reference);
-        assert_eq!(evaluated.disposition, "DEFECT_OBSERVED");
+            .find(|case| case["case_id"] == "BA-001")
+            .expect("nominal case exists");
+        let mut mutated = case.clone();
+        mutated["candidate_input"]["independent_measurements"] =
+            serde_json::json!([{"offset_mm": "not-a-number"}]);
+        let evaluated = evaluate_case(&mutated, reference);
+        assert_eq!(evaluated.disposition, "INVALID_INPUT");
+        assert_eq!(
+            evaluated.reason_codes,
+            vec!["INDEPENDENT_MEASUREMENT_OFFSET_MISSING_OR_INVALID"]
+        );
+    }
+
+    #[test]
+    fn duplicate_case_identity_is_rejected() {
+        let mut corpus: Value = serde_json::from_str(CORPUS).expect("corpus parses");
+        let cases = corpus["cases"].as_array_mut().expect("cases exist");
+        cases[1]["case_id"] = cases[0]["case_id"].clone();
+        let bytes = serde_json::to_vec(&corpus).expect("corpus serializes");
+        assert!(evaluate_corpus(&bytes).is_err());
     }
 
     #[test]
