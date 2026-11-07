@@ -199,8 +199,12 @@ fn emit_judge_slices(report: &EvaluatorAuditReport) {
         row[16] = fmt(metrics.mean_plurality_match_rate);
         row[17] = fmt(metrics.mean_panel_support_for_selected);
         row[18] = metrics.confidence_case_count.to_string();
-        row[19] = metrics.mean_reported_confidence.map_or_else(String::new, fmt);
-        row[20] = metrics.mean_absolute_confidence_support_error.map_or_else(String::new, fmt);
+        row[19] = metrics
+            .mean_reported_confidence
+            .map_or_else(String::new, fmt);
+        row[20] = metrics
+            .mean_absolute_confidence_support_error
+            .map_or_else(String::new, fmt);
         row[21] = metrics.confidence_ece.map_or_else(String::new, fmt);
         emit(row);
     }
