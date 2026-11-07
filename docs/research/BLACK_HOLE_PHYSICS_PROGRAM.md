@@ -522,3 +522,69 @@ In addition to GWOSC strain and SXS numerical-relativity waveforms, pin:
 - [Nature direct-wave analysis Zenodo package, 10.5281/zenodo.20017347](https://doi.org/10.5281/zenodo.20017347).
 
 These datasets support exact reproduction of multiple independent pipelines. Their hashes and software revisions should be included in Mycelix evidence packages.
+
+
+### Additional precision-GR direction — beyond-Teukolsky inference (2026-11-07)
+
+Völkel & Franchini, *Constraining deviations from the Teukolsky equation with GW250114*, was accepted by Physical Review D on 2026-09-10 (DOI 10.1103/zzzw-vpgx). It maps theory-agnostic effective-potential deviations in the Teukolsky perturbation equation to QNM-spectrum shifts, using LVK remnant mass/spin information and public agnostic damped-sinusoid posterior data. The paper reports present bounds consistent with the Teukolsky equation under its declared deformation family and likelihood approximation.
+
+Reference: [APS accepted paper](https://journals.aps.org/prd/accepted/10.1103/zzzw-vpgx).
+
+This adds a third distinct GW250114 analysis axis:
+1. mode-based QNM inference (ordinary / orthonormalized basis);
+2. direct-wave residual interpretation (contested by the SXS spin-sweep counteranalysis);
+3. deviations in the underlying perturbation equation / effective potential (beyond-Teukolsky).
+
+These must not be conflated. A bound consistent with zero deviation constrains only the declared effective-potential deformation family and assumptions; it does not prove all of GR or exclude arbitrary modified gravity.
+
+Execution issue: [Symthaea BH-TEUKOLSKY-001 #10874](https://github.com/Luminous-Dynamics/symthaea/issues/10874). Mycelix and Sol Atlas source/evidence requirements are recorded in #5903 and #586.
+
+### Current mathematical implementation — 2026-11-07
+
+The clean successor branch now carries the following Rust scope in `symtropy-relativity`:
+
+- **Parameters and observables:** SI mass/spin validation, Schwarzschild/Kerr horizons, photon sphere, ISCO, ergosurface, redshift, Schwarzschild Kretschmann, Kerr (\Omega_H) and surface-gravity rate.
+- **Metric charts:** Schwarzschild and Kerr exterior coordinate metrics, ingoing Eddington-Finkelstein Schwarzschild coordinates, and ingoing Kerr coordinates.
+- **Linear algebra:** finite/symmetry checks, pivoted metric determinant/inverse, inverse-identity residual diagnostic.
+- **Connection:** Levi-Civita connection from explicit metric derivatives; no hidden finite-difference step.
+- **Curvature:** mixed Riemann, Ricci, scalar curvature, Einstein tensor, Kretschmann contraction, and algebraic Riemann symmetry / first-Bianchi residuals from explicit first/second derivatives.
+- **Automatic differentiation:** fixed-size second-order forward-mode Jet2 values/gradients/Hessians for Schwarzschild, Kerr, ingoing Schwarzschild, and ingoing Kerr.
+- **Posterior propagation:** deterministic paired mass/spin sample transformation into Kerr horizon observables preserving sample ID and sample pairing.
+
+The current branch contains **50 authored Rust tests**: 13 scalar/root, 10 metric, 5 connection, 6 curvature, 12 automatic-differentiation/chart, and 4 posterior. They are not executed in this tool environment because rustc/cargo are unavailable.
+
+Independent numerical calculations (separate from the Rust code) reproduce:
+- Schwarzschild (K=48r_g^2/r^6) at a solar-mass-scale exterior point to floating-point precision;
+- Kerr vacuum Ricci residual at approximately (7\times10^{-18}) in normalized mixed components for (chi=0.8), (r=7r_g), (	heta=0.8);
+- Kerr analytic Kretschmann at the same fixture to floating-point precision;
+- ingoing Kerr chart determinant (-\Sigma^2\sin^2\theta), vacuum Ricci, and analytic Kretschmann at, outside, and inside the outer horizon.
+
+These independent numerical calculations are formula checks, not compilation or test passes. No solver performance or observational reproduction is claimed.
+
+### Horizon-regular Kerr coordinate milestone
+
+The ingoing Kerr chart avoids the Boyer-Lindquist horizon coordinate singularity. Its metric includes the expected (dv,dr), (dr,d\phi), and (dv,d\phi) couplings; its determinant is (-\Sigma^2\sin^2\theta). AD-generated curvature tests check the vacuum and Kretschmann identities at the horizon and inside it, and compare the scalar invariant against Boyer-Lindquist coordinates outside the horizon.
+
+This is a significant coordinate-invariance check, but it is not yet a general coordinate-transform engine or a full regularity proof for every component / tetrad at all limiting points.
+
+
+### Latest implementation state — 2026-11-07
+
+The clean successor branch carries a Rust `symtropy-relativity` crate with:
+
+- validated SI mass and dimensionless Kerr spin;
+- Schwarzschild/Kerr analytic observables and exterior metric components;
+- horizon-regular ingoing Eddington-Finkelstein Schwarzschild and ingoing Kerr metrics;
+- pivoted 4x4 metric determinant/inverse diagnostics;
+- explicit Levi-Civita connection from caller-supplied metric derivatives;
+- derivative-fed Riemann, Ricci, Einstein, and Kretschmann calculations;
+- fixed-size second-order forward-mode automatic differentiation for Schwarzschild, Kerr, and both ingoing charts;
+- posterior-preserving Kerr remnant mass/spin sample transforms.
+
+The curvature fixtures include Schwarzschild and Kerr vacuum checks, analytic Kretschmann comparisons, Riemann algebraic symmetries / first Bianchi identity, Schwarzschild/Kerr horizon-regular chart tests, and scalar-invariant comparisons across charts.
+
+The source currently contains **50 authored Rust tests**: 13 scalar/root, 10 metric, 5 connection, 6 curvature, 12 AD/chart, and 4 posterior. Tests have not been executed because the environment has no `rustc` or `cargo`.
+
+Independent numerical calculations agree with the analytic Schwarzschild and Kerr Kretschmann expressions to floating-point precision and show normalized Kerr mixed-Ricci residual around (7\times10^{-18}) for the declared sample point. These are external formula checks, not Rust build/test results.
+
+Next mathematical gates: Kerr cross-chart invariant stress grids, conditioning/error estimates, differential Bianchi checks, then geodesic integration. No numerical-relativity solver or observational replication is claimed.
