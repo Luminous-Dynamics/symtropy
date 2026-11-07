@@ -86,7 +86,10 @@
       "led_cost_eur_m2": {
         "mean": 18.2,
         "se": 1.53
-      }
+      },
+      "derived_dli_mol_m2_day": 14.4,
+      "derived_led_eue_from_yield_energy": 9.8527,
+      "derived_eue_relative_error_percent": 0.538
     },
     {
       "id": "photoperiod-12-12",
@@ -121,7 +124,10 @@
       "led_cost_eur_m2": {
         "mean": 19.8,
         "se": 2.44
-      }
+      },
+      "derived_dli_mol_m2_day": 14.688,
+      "derived_led_eue_from_yield_energy": 8.9643,
+      "derived_eue_relative_error_percent": -0.397
     },
     {
       "id": "photoperiod-24-0",
@@ -156,7 +162,10 @@
       "led_cost_eur_m2": {
         "mean": 16.3,
         "se": 1.79
-      }
+      },
+      "derived_dli_mol_m2_day": 14.688,
+      "derived_led_eue_from_yield_energy": 11.3934,
+      "derived_eue_relative_error_percent": -0.058
     }
   ],
   "source_statistics": {
@@ -187,28 +196,47 @@
   },
   "derived_checks": [
     {
-      "id": "continuous-eue-ratio-vs-16-8",
-      "formula": "11.4 / 9.8",
-      "result": 1.1632653,
-      "unit": "ratio",
-      "status": "DERIVED_FROM_REPORTED_MEANS",
-      "interpretation": "Approximately 16.3% higher LED-only EUE than 16:8 based on reported means; not total-facility energy reduction."
+      "id": "dli-recompute",
+      "formula": "PPFD_umol_m2_s * light_hours * 3600 / 1e6",
+      "results": [
+        {
+          "treatment_id": "photoperiod-16-8",
+          "dli_mol_m2_day": 14.4
+        },
+        {
+          "treatment_id": "photoperiod-12-12",
+          "dli_mol_m2_day": 14.688
+        },
+        {
+          "treatment_id": "photoperiod-24-0",
+          "dli_mol_m2_day": 14.688
+        }
+      ],
+      "interpretation": "The three calculated DLI values (14.4, 14.688, 14.688 mol m^-2 day^-1) all lie within the source-reported target 14.4 ±0.4.",
+      "status": "ARITHMETIC_CHECK"
     },
     {
-      "id": "continuous-eue-ratio-vs-12-12",
-      "formula": "11.4 / 9.0",
-      "result": 1.2666667,
-      "unit": "ratio",
-      "status": "DERIVED_FROM_REPORTED_MEANS",
-      "interpretation": "Approximately 26.7% higher LED-only EUE than 12:12 based on reported means; not total-facility energy reduction."
-    },
-    {
-      "id": "continuous-led-cost-vs-mean-of-other-schedules",
-      "formula": "16.3 / ((18.2 + 19.8) / 2)",
-      "result": 0.8578947,
-      "unit": "ratio",
-      "status": "DERIVED_FROM_REPORTED_MEANS",
-      "interpretation": "Approximately 14.2% lower tariff-weighted LED cost than the arithmetic mean of the two alternatives; not an electricity-consumption reduction and not independent of tariff structure."
+      "id": "eue-recompute-conditional",
+      "formula": "reported_yield_g_m2 / reported_LED_energy_value",
+      "results": [
+        {
+          "treatment_id": "photoperiod-16-8",
+          "eue_g_per_kwh": 9.8527,
+          "relative_error_percent": 0.538
+        },
+        {
+          "treatment_id": "photoperiod-12-12",
+          "eue_g_per_kwh": 8.9643,
+          "relative_error_percent": -0.397
+        },
+        {
+          "treatment_id": "photoperiod-24-0",
+          "eue_g_per_kwh": 11.3934,
+          "relative_error_percent": -0.058
+        }
+      ],
+      "interpretation": "The EUE values approximately reproduce from the reported yield and LED energy numbers if the method text's kWh m^-2 interpretation is used. This does not resolve the table's printed kW m^-2 unit label, and is not a full-facility energy result.",
+      "status": "CONDITIONAL_ON_METHOD_TEXT_UNIT"
     }
   ],
   "claim_ceiling": "Published one-chamber controlled-environment experiment and arithmetic checks only. No independent facility replication, statistically significant treatment yield advantage, reduction in LED kWh, whole-facility kWh/kg advantage or universal continuous-light recommendation."
