@@ -315,6 +315,12 @@ impl PhaseEnergyBalance {
             "generator",
         )?;
         require_unique(
+            self.fuel_cells
+                .iter()
+                .map(|item| item.fuel_cell_id.as_str()),
+            "fuel cell",
+        )?;
+        require_unique(
             self.stores.iter().map(|item| item.store_id.as_str()),
             "energy store",
         )?;
@@ -455,16 +461,6 @@ impl PhaseEnergyBalance {
             });
         }
 
-        for fuel in &self.fuel_states {
-            let prime_mover_fuel_input = prime_mover_fuel_input_by_source
-                .get(fuel.fuel_source_id.as_str())
-                .copied()
-                .unwrap_or(0.0);
-            if (fuel.chemical_energy_consumed_j - prime_mover_fuel_input).abs() > self.tolerance_j {
-                infeasible = true;
-            }
-        }
-
         for generator in &self.generators {
             validate_digest(&generator.model_evidence_sha256, "generator model SHA-256")?;
             if generator.average_electrical_output_power_limit_w <= 0.0
@@ -557,6 +553,16 @@ impl PhaseEnergyBalance {
                 component_id: cell.fuel_cell_id.clone(),
                 residual_j: residual,
             });
+        }
+
+        for fuel in &self.fuel_states {
+            let prime_mover_fuel_input = prime_mover_fuel_input_by_source
+                .get(fuel.fuel_source_id.as_str())
+                .copied()
+                .unwrap_or(0.0);
+            if (fuel.chemical_energy_consumed_j - prime_mover_fuel_input).abs() > self.tolerance_j {
+                infeasible = true;
+            }
         }
 
         let generator_residuals = self
