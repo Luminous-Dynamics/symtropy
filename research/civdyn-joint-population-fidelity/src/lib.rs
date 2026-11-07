@@ -239,20 +239,22 @@ mod tests {
         v.extend(vec![("high", "high"); 50]);
         v
     }
-    fn permuted() -> Vec<(&'static str, &'static str)> {
-        let mut v = vec![("low", "high"); 50];
-        v.extend(vec![("high", "low"); 50]);
+    fn independent_pairs() -> Vec<(&'static str, &'static str)> {
+        let mut v = vec![("low", "low"); 25];
+        v.extend([("low", "high"); 25]);
+        v.extend([("high", "low"); 25]);
+        v.extend([("high", "high"); 25]);
         v
     }
 
     #[test]
     fn detects_joint_mismatch_when_both_marginals_match() {
         let o = rows("o", &correlated(), "all");
-        let s = rows("s", &permuted(), "all");
+        let s = rows("s", &independent_pairs(), "all");
         let r = compare_pair(&o, &s).expect("fixture valid");
         assert_eq!(r.left_marginal_tv, 0.0);
         assert_eq!(r.right_marginal_tv, 0.0);
-        assert!((r.joint_tv - 1.0).abs() < 1e-12);
+        assert!((r.joint_tv - 0.5).abs() < 1e-12);
         assert!((r.observed_mutual_information_nats - std::f64::consts::LN_2).abs() < 1e-12);
         assert!(r.simulated_mutual_information_nats.abs() < 1e-12);
     }
@@ -272,10 +274,10 @@ mod tests {
     fn stratum_reports_do_not_hide_local_association_failure() {
         let mut o = rows("oa", &correlated(), "a");
         o.extend(rows("ob", &correlated(), "b"));
-        let mut s = rows("sa", &permuted(), "a");
+        let mut s = rows("sa", &independent_pairs(), "a");
         s.extend(rows("sb", &correlated(), "b"));
         let r = compare_by_stratum(&o, &s).expect("strata supported");
-        assert!((r["a"].joint_tv - 1.0).abs() < 1e-12);
+        assert!((r["a"].joint_tv - 0.5).abs() < 1e-12);
         assert_eq!(r["b"].joint_tv, 0.0);
     }
 
