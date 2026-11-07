@@ -1015,8 +1015,8 @@ mod tests {
                 let operations = (0..node_count)
                     .map(|index| Operation {
                         id: format!("OP-{index}"),
-                        scheduled_start_minute: i64::try_from(index * 2).unwrap(),
-                        duration_minutes: i64::try_from((index * 3) % 4 + 1).unwrap(),
+                        scheduled_start_minute: i64::from(index * 2),
+                        duration_minutes: i64::from((index * 3) % 4 + 1),
                         resource_ids: Vec::new(),
                         deadline_minute: None,
                     })
@@ -1028,7 +1028,7 @@ mod tests {
                     .map(|(_, (from, to))| Dependency {
                         predecessor_id: format!("OP-{from}"),
                         successor_id: format!("OP-{to}"),
-                        lag_minutes: i64::try_from((from + to) % 2).unwrap(),
+                        lag_minutes: i64::from((from + to) % 2),
                     })
                     .collect::<Vec<_>>();
 
