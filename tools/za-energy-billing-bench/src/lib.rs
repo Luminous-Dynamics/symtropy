@@ -1256,7 +1256,7 @@ mod tests {
     #[test]
     fn nonconsecutive_demand_history_is_rejected() {
         let mut input = fixture();
-        input.preceding_12_month_demand_history[5].billing_month = "2025-12".to_owned();
+        input.preceding_12_month_demand_history[5].billing_month = "2026-01".to_owned();
         assert_eq!(
             calculate_bill(&input).unwrap_err(),
             CalcError::DemandHistoryMonthMismatch
