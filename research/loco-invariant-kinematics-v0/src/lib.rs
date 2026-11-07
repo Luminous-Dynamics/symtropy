@@ -338,7 +338,6 @@ pub fn estimate_distal_proximal_gradient(
     })
 }
 
-
 /// One animal/person/robot-level gradient summary.
 ///
 /// This is the replication unit for cross-species aggregation. Repeated frames,
@@ -403,10 +402,7 @@ impl SplitMix64 {
 }
 
 fn percentile(sorted_values: &[f64], probability: f64) -> Result<f64, KinematicError> {
-    if sorted_values.is_empty()
-        || !probability.is_finite()
-        || !(0.0..=1.0).contains(&probability)
-    {
+    if sorted_values.is_empty() || !probability.is_finite() || !(0.0..=1.0).contains(&probability) {
         return Err(KinematicError::NumericalFailure);
     }
     let position = probability * (sorted_values.len() - 1) as f64;
@@ -459,7 +455,10 @@ pub fn bootstrap_species_gradient(
             return Err(KinematicError::NumericalFailure);
         }
         if summary.quantity == quantity {
-            if selected.iter().any(|prior| prior.individual_id == summary.individual_id) {
+            if selected
+                .iter()
+                .any(|prior| prior.individual_id == summary.individual_id)
+            {
                 return Err(KinematicError::DuplicateIndividualSummary);
             }
             selected.push(summary);
@@ -472,8 +471,7 @@ pub fn bootstrap_species_gradient(
 
     selected.sort_by(|left, right| left.individual_id.cmp(&right.individual_id));
     let individual_count = selected.len();
-    let mean_slope = selected.iter().map(|item| item.slope).sum::<f64>()
-        / individual_count as f64;
+    let mean_slope = selected.iter().map(|item| item.slope).sum::<f64>() / individual_count as f64;
     let squared_deviations = selected
         .iter()
         .map(|item| {
@@ -481,8 +479,7 @@ pub fn bootstrap_species_gradient(
             difference * difference
         })
         .sum::<f64>();
-    let sample_standard_deviation =
-        (squared_deviations / (individual_count - 1) as f64).sqrt();
+    let sample_standard_deviation = (squared_deviations / (individual_count - 1) as f64).sqrt();
 
     let mut rng = SplitMix64::new(seed);
     let mut bootstrap_means = Vec::with_capacity(bootstrap_resamples);
@@ -1013,8 +1010,7 @@ mod tests {
 
     #[test]
     fn species_bootstrap_rejects_mixed_species_records() {
-        let mut other_species =
-            individual_summary("animal-2", Quantity::JointAngleRadians, 2.0);
+        let mut other_species = individual_summary("animal-2", Quantity::JointAngleRadians, 2.0);
         other_species.species_id = "species-b".to_owned();
         let summaries = vec![
             individual_summary("animal-1", Quantity::JointAngleRadians, 1.0),
@@ -1041,13 +1037,7 @@ mod tests {
             1.0,
         )];
         assert_eq!(
-            bootstrap_species_gradient(
-                &one,
-                "species-a",
-                Quantity::JointAngleRadians,
-                200,
-                1,
-            ),
+            bootstrap_species_gradient(&one, "species-a", Quantity::JointAngleRadians, 200, 1,),
             Err(KinematicError::InsufficientIndividuals)
         );
 
@@ -1056,13 +1046,7 @@ mod tests {
             individual_summary("animal-2", Quantity::JointAngleRadians, 2.0),
         ];
         assert_eq!(
-            bootstrap_species_gradient(
-                &two,
-                "species-a",
-                Quantity::JointAngleRadians,
-                99,
-                1,
-            ),
+            bootstrap_species_gradient(&two, "species-a", Quantity::JointAngleRadians, 99, 1,),
             Err(KinematicError::InvalidBootstrapResamples)
         );
     }
@@ -1083,6 +1067,4 @@ mod tests {
             ),
             Err(KinematicError::NumericalFailure)
         );
-    }
-
-}
+    }}
