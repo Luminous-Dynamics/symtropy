@@ -714,6 +714,10 @@ fn equivalent_input_permutations_produce_identical_reports() {
     let mut permuted = original;
     permuted.resources.reverse();
     permuted.occupancies.reverse();
+    permuted.coverage.entries.reverse();
+    for entry in &mut permuted.coverage.entries {
+        entry.required_uses.reverse();
+    }
     let actual =
         evaluate_traffic_plan(&plan(vec![second, first]), &permuted).expect("permuted workload");
     assert_eq!(actual, expected);
@@ -899,6 +903,35 @@ fn coverage_manifest_stale_and_revoked_states_never_yield_ready() {
     let report = evaluate_traffic_plan(&plan(vec![op]), &revoked)
         .expect("revoked coverage is a disposition");
     assert_eq!(report.disposition, TrafficDisposition::Unsupported);
+}
+
+#[test]
+fn coverage_mapping_must_pin_the_exact_traffic_resource_revision() {
+    let op = operation("demand-a", "participant-a", 10, 12);
+    let item = occupancy(OccupancySpec {
+        id: "use-a",
+        resource_id: "crossing-zone-1",
+        route_revision: "route-a",
+        operation: op.clone(),
+        direction_id: None,
+        early_entry_ticks: 0,
+        late_clearance_ticks: 0,
+        time_basis_id: "synthetic-ticks-v1",
+    });
+    let mut input = workload(
+        std::slice::from_ref(&op),
+        vec![conflict_resource(0, 0)],
+        vec![item],
+    );
+    input.coverage.entries[0].required_uses[0].resource_revision = "old-zone-r0".to_owned();
+    input.coverage.evidence.subject_id =
+        canonical_traffic_coverage_subject_id(&input.coverage);
+    assert_eq!(
+        evaluate_traffic_plan(&plan(vec![op]), &input),
+        Err(TrafficError::CoverageResourceRevisionMismatch(
+            "crossing-zone-1".to_owned()
+        ))
+    );
 }
 
 #[test]
