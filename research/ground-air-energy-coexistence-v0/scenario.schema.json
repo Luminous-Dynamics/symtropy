@@ -74,6 +74,7 @@
       "required": [
         "site_id",
         "grid_source_id",
+        "source_power_boundary_id",
         "pcc_max_input_quanta_per_slot",
         "total_source_energy_budget_wh",
         "source_energy_wh_per_quantum_slot"
@@ -99,6 +100,9 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 1000000
+        },
+        "source_power_boundary_id": {
+          "const": "SITE_PCC_GRID_AC_INPUT"
         }
       }
     },
@@ -128,6 +132,7 @@
         "channel_id",
         "domain",
         "modality",
+        "channel_input_boundary_id",
         "maximum_input_quanta_per_slot",
         "envelope_sha256",
         "support_state",
@@ -173,6 +178,17 @@
         },
         "safety_state": {
           "const": "NOT_EVALUATED_SYNTHETIC_ONLY"
+        },
+        "channel_input_boundary_id": {
+          "enum": [
+            "GROUND_ROAD_INVERTER_DC_INPUT",
+            "GROUND_STATIC_INVERTER_DC_INPUT",
+            "AIR_DOCK_CHARGER_AC_INPUT",
+            "AIR_DOCK_INVERTER_DC_INPUT",
+            "AIR_HOVER_INVERTER_DC_INPUT",
+            "AIR_RF_TRANSMITTER_AC_INPUT",
+            "AIR_OPTICAL_LASER_DRIVER_AC_INPUT"
+          ]
         }
       }
     },
@@ -184,6 +200,7 @@
         "domain",
         "receiver_class",
         "channel_id",
+        "useful_energy_boundary_id",
         "start_slot",
         "end_slot",
         "requested_useful_energy_wh",
@@ -249,6 +266,12 @@
         },
         "authorization_state": {
           "const": "SYNTHETIC_FIXTURE_ONLY"
+        },
+        "useful_energy_boundary_id": {
+          "enum": [
+            "GROUND_VEHICLE_BATTERY_TERMINAL_INPUT",
+            "AIRCRAFT_BATTERY_TERMINAL_INPUT"
+          ]
         }
       }
     },
