@@ -202,7 +202,7 @@ fn classify_minute(day_type: DayType, minute: u16) -> Result<TariffPeriod, Strin
             // the missing digit for billing-grade calculations.
             if (1080..1200).contains(&minute) {
                 return Err(
-                    "SOURCE_AMBIGUITY: Saturday/public-holiday standard interval is printed as                      '18h00-20h0'; confirm the endpoint with City Power or an actual invoice"
+                    "SOURCE_AMBIGUITY: Saturday/public-holiday standard interval is printed as '18h00-20h0'; confirm the endpoint with City Power or an actual invoice"
                         .to_owned(),
                 );
             }
