@@ -30,6 +30,8 @@ pub mod autodiff;
 pub mod connection;
 /// Convention-explicit Riemann, Ricci, and Einstein curvature tensors.
 pub mod curvature;
+/// Fixed-step Schwarzschild/Kerr timelike and null geodesic integration.
+pub mod geodesic;
 /// Validated stationary black-hole metric components in a declared chart.
 pub mod metric;
 /// Posterior-preserving transforms for Kerr remnant horizon observables.
