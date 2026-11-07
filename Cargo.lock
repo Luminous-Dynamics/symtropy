@@ -11782,9 +11782,3 @@ dependencies = [
  "zune-core",
 ]
 
-[[package]]
-name = "airborne-energy-session-oracle"
-version = "0.1.0"
-dependencies = [
- "serde_json",
-]
