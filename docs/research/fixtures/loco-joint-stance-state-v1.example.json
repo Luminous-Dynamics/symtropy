@@ -1,0 +1,992 @@
+{
+  "schema_version": 1,
+  "metric_id": "SIX_LEG_JOINT_STANCE_V1",
+  "tick_timebase_hz": 1000,
+  "leg_order": [
+    "LEFT_FORE",
+    "LEFT_MIDDLE",
+    "LEFT_HIND",
+    "RIGHT_FORE",
+    "RIGHT_MIDDLE",
+    "RIGHT_HIND"
+  ],
+  "parity_worlds": [
+    {
+      "world_id": "EVEN_PARITY",
+      "intervals": [
+        {
+          "start_tick": 0,
+          "end_tick": 1,
+          "legs": [
+            "SWING",
+            "SWING",
+            "SWING",
+            "SWING",
+            "SWING",
+            "SWING"
+          ]
+        },
+        {
+          "start_tick": 1,
+          "end_tick": 2,
+          "legs": [
+            "STANCE",
+            "STANCE",
+            "SWING",
+            "SWING",
+            "SWING",
+            "SWING"
+          ]
+        },
+        {
+          "start_tick": 2,
+          "end_tick": 3,
+          "legs": [
+            "STANCE",
+            "SWING",
+            "STANCE",
+            "SWING",
+            "SWING",
+            "SWING"
+          ]
+        },
+        {
+          "start_tick": 3,
+          "end_tick": 4,
+          "legs": [
+            "SWING",
+            "STANCE",
+            "STANCE",
+            "SWING",
+            "SWING",
+            "SWING"
+          ]
+        },
+        {
+          "start_tick": 4,
+          "end_tick": 5,
+          "legs": [
+            "STANCE",
+            "SWING",
+            "SWING",
+            "STANCE",
+            "SWING",
+            "SWING"
+          ]
+        },
+        {
+          "start_tick": 5,
+          "end_tick": 6,
+          "legs": [
+            "SWING",
+            "STANCE",
+            "SWING",
+            "STANCE",
+            "SWING",
+            "SWING"
+          ]
+        },
+        {
+          "start_tick": 6,
+          "end_tick": 7,
+          "legs": [
+            "SWING",
+            "SWING",
+            "STANCE",
+            "STANCE",
+            "SWING",
+            "SWING"
+          ]
+        },
+        {
+          "start_tick": 7,
+          "end_tick": 8,
+          "legs": [
+            "STANCE",
+            "STANCE",
+            "STANCE",
+            "STANCE",
+            "SWING",
+            "SWING"
+          ]
+        },
+        {
+          "start_tick": 8,
+          "end_tick": 9,
+          "legs": [
+            "STANCE",
+            "SWING",
+            "SWING",
+            "SWING",
+            "STANCE",
+            "SWING"
+          ]
+        },
+        {
+          "start_tick": 9,
+          "end_tick": 10,
+          "legs": [
+            "SWING",
+            "STANCE",
+            "SWING",
+            "SWING",
+            "STANCE",
+            "SWING"
+          ]
+        },
+        {
+          "start_tick": 10,
+          "end_tick": 11,
+          "legs": [
+            "SWING",
+            "SWING",
+            "STANCE",
+            "SWING",
+            "STANCE",
+            "SWING"
+          ]
+        },
+        {
+          "start_tick": 11,
+          "end_tick": 12,
+          "legs": [
+            "STANCE",
+            "STANCE",
+            "STANCE",
+            "SWING",
+            "STANCE",
+            "SWING"
+          ]
+        },
+        {
+          "start_tick": 12,
+          "end_tick": 13,
+          "legs": [
+            "SWING",
+            "SWING",
+            "SWING",
+            "STANCE",
+            "STANCE",
+            "SWING"
+          ]
+        },
+        {
+          "start_tick": 13,
+          "end_tick": 14,
+          "legs": [
+            "STANCE",
+            "STANCE",
+            "SWING",
+            "STANCE",
+            "STANCE",
+            "SWING"
+          ]
+        },
+        {
+          "start_tick": 14,
+          "end_tick": 15,
+          "legs": [
+            "STANCE",
+            "SWING",
+            "STANCE",
+            "STANCE",
+            "STANCE",
+            "SWING"
+          ]
+        },
+        {
+          "start_tick": 15,
+          "end_tick": 16,
+          "legs": [
+            "SWING",
+            "STANCE",
+            "STANCE",
+            "STANCE",
+            "STANCE",
+            "SWING"
+          ]
+        },
+        {
+          "start_tick": 16,
+          "end_tick": 17,
+          "legs": [
+            "STANCE",
+            "SWING",
+            "SWING",
+            "SWING",
+            "SWING",
+            "STANCE"
+          ]
+        },
+        {
+          "start_tick": 17,
+          "end_tick": 18,
+          "legs": [
+            "SWING",
+            "STANCE",
+            "SWING",
+            "SWING",
+            "SWING",
+            "STANCE"
+          ]
+        },
+        {
+          "start_tick": 18,
+          "end_tick": 19,
+          "legs": [
+            "SWING",
+            "SWING",
+            "STANCE",
+            "SWING",
+            "SWING",
+            "STANCE"
+          ]
+        },
+        {
+          "start_tick": 19,
+          "end_tick": 20,
+          "legs": [
+            "STANCE",
+            "STANCE",
+            "STANCE",
+            "SWING",
+            "SWING",
+            "STANCE"
+          ]
+        },
+        {
+          "start_tick": 20,
+          "end_tick": 21,
+          "legs": [
+            "SWING",
+            "SWING",
+            "SWING",
+            "STANCE",
+            "SWING",
+            "STANCE"
+          ]
+        },
+        {
+          "start_tick": 21,
+          "end_tick": 22,
+          "legs": [
+            "STANCE",
+            "STANCE",
+            "SWING",
+            "STANCE",
+            "SWING",
+            "STANCE"
+          ]
+        },
+        {
+          "start_tick": 22,
+          "end_tick": 23,
+          "legs": [
+            "STANCE",
+            "SWING",
+            "STANCE",
+            "STANCE",
+            "SWING",
+            "STANCE"
+          ]
+        },
+        {
+          "start_tick": 23,
+          "end_tick": 24,
+          "legs": [
+            "SWING",
+            "STANCE",
+            "STANCE",
+            "STANCE",
+            "SWING",
+            "STANCE"
+          ]
+        },
+        {
+          "start_tick": 24,
+          "end_tick": 25,
+          "legs": [
+            "SWING",
+            "SWING",
+            "SWING",
+            "SWING",
+            "STANCE",
+            "STANCE"
+          ]
+        },
+        {
+          "start_tick": 25,
+          "end_tick": 26,
+          "legs": [
+            "STANCE",
+            "STANCE",
+            "SWING",
+            "SWING",
+            "STANCE",
+            "STANCE"
+          ]
+        },
+        {
+          "start_tick": 26,
+          "end_tick": 27,
+          "legs": [
+            "STANCE",
+            "SWING",
+            "STANCE",
+            "SWING",
+            "STANCE",
+            "STANCE"
+          ]
+        },
+        {
+          "start_tick": 27,
+          "end_tick": 28,
+          "legs": [
+            "SWING",
+            "STANCE",
+            "STANCE",
+            "SWING",
+            "STANCE",
+            "STANCE"
+          ]
+        },
+        {
+          "start_tick": 28,
+          "end_tick": 29,
+          "legs": [
+            "STANCE",
+            "SWING",
+            "SWING",
+            "STANCE",
+            "STANCE",
+            "STANCE"
+          ]
+        },
+        {
+          "start_tick": 29,
+          "end_tick": 30,
+          "legs": [
+            "SWING",
+            "STANCE",
+            "SWING",
+            "STANCE",
+            "STANCE",
+            "STANCE"
+          ]
+        },
+        {
+          "start_tick": 30,
+          "end_tick": 31,
+          "legs": [
+            "SWING",
+            "SWING",
+            "STANCE",
+            "STANCE",
+            "STANCE",
+            "STANCE"
+          ]
+        },
+        {
+          "start_tick": 31,
+          "end_tick": 32,
+          "legs": [
+            "STANCE",
+            "STANCE",
+            "STANCE",
+            "STANCE",
+            "STANCE",
+            "STANCE"
+          ]
+        }
+      ]
+    },
+    {
+      "world_id": "ODD_PARITY",
+      "intervals": [
+        {
+          "start_tick": 0,
+          "end_tick": 1,
+          "legs": [
+            "STANCE",
+            "SWING",
+            "SWING",
+            "SWING",
+            "SWING",
+            "SWING"
+          ]
+        },
+        {
+          "start_tick": 1,
+          "end_tick": 2,
+          "legs": [
+            "SWING",
+            "STANCE",
+            "SWING",
+            "SWING",
+            "SWING",
+            "SWING"
+          ]
+        },
+        {
+          "start_tick": 2,
+          "end_tick": 3,
+          "legs": [
+            "SWING",
+            "SWING",
+            "STANCE",
+            "SWING",
+            "SWING",
+            "SWING"
+          ]
+        },
+        {
+          "start_tick": 3,
+          "end_tick": 4,
+          "legs": [
+            "STANCE",
+            "STANCE",
+            "STANCE",
+            "SWING",
+            "SWING",
+            "SWING"
+          ]
+        },
+        {
+          "start_tick": 4,
+          "end_tick": 5,
+          "legs": [
+            "SWING",
+            "SWING",
+            "SWING",
+            "STANCE",
+            "SWING",
+            "SWING"
+          ]
+        },
+        {
+          "start_tick": 5,
+          "end_tick": 6,
+          "legs": [
+            "STANCE",
+            "STANCE",
+            "SWING",
+            "STANCE",
+            "SWING",
+            "SWING"
+          ]
+        },
+        {
+          "start_tick": 6,
+          "end_tick": 7,
+          "legs": [
+            "STANCE",
+            "SWING",
+            "STANCE",
+            "STANCE",
+            "SWING",
+            "SWING"
+          ]
+        },
+        {
+          "start_tick": 7,
+          "end_tick": 8,
+          "legs": [
+            "SWING",
+            "STANCE",
+            "STANCE",
+            "STANCE",
+            "SWING",
+            "SWING"
+          ]
+        },
+        {
+          "start_tick": 8,
+          "end_tick": 9,
+          "legs": [
+            "SWING",
+            "SWING",
+            "SWING",
+            "SWING",
+            "STANCE",
+            "SWING"
+          ]
+        },
+        {
+          "start_tick": 9,
+          "end_tick": 10,
+          "legs": [
+            "STANCE",
+            "STANCE",
+            "SWING",
+            "SWING",
+            "STANCE",
+            "SWING"
+          ]
+        },
+        {
+          "start_tick": 10,
+          "end_tick": 11,
+          "legs": [
+            "STANCE",
+            "SWING",
+            "STANCE",
+            "SWING",
+            "STANCE",
+            "SWING"
+          ]
+        },
+        {
+          "start_tick": 11,
+          "end_tick": 12,
+          "legs": [
+            "SWING",
+            "STANCE",
+            "STANCE",
+            "SWING",
+            "STANCE",
+            "SWING"
+          ]
+        },
+        {
+          "start_tick": 12,
+          "end_tick": 13,
+          "legs": [
+            "STANCE",
+            "SWING",
+            "SWING",
+            "STANCE",
+            "STANCE",
+            "SWING"
+          ]
+        },
+        {
+          "start_tick": 13,
+          "end_tick": 14,
+          "legs": [
+            "SWING",
+            "STANCE",
+            "SWING",
+            "STANCE",
+            "STANCE",
+            "SWING"
+          ]
+        },
+        {
+          "start_tick": 14,
+          "end_tick": 15,
+          "legs": [
+            "SWING",
+            "SWING",
+            "STANCE",
+            "STANCE",
+            "STANCE",
+            "SWING"
+          ]
+        },
+        {
+          "start_tick": 15,
+          "end_tick": 16,
+          "legs": [
+            "STANCE",
+            "STANCE",
+            "STANCE",
+            "STANCE",
+            "STANCE",
+            "SWING"
+          ]
+        },
+        {
+          "start_tick": 16,
+          "end_tick": 17,
+          "legs": [
+            "SWING",
+            "SWING",
+            "SWING",
+            "SWING",
+            "SWING",
+            "STANCE"
+          ]
+        },
+        {
+          "start_tick": 17,
+          "end_tick": 18,
+          "legs": [
+            "STANCE",
+            "STANCE",
+            "SWING",
+            "SWING",
+            "SWING",
+            "STANCE"
+          ]
+        },
+        {
+          "start_tick": 18,
+          "end_tick": 19,
+          "legs": [
+            "STANCE",
+            "SWING",
+            "STANCE",
+            "SWING",
+            "SWING",
+            "STANCE"
+          ]
+        },
+        {
+          "start_tick": 19,
+          "end_tick": 20,
+          "legs": [
+            "SWING",
+            "STANCE",
+            "STANCE",
+            "SWING",
+            "SWING",
+            "STANCE"
+          ]
+        },
+        {
+          "start_tick": 20,
+          "end_tick": 21,
+          "legs": [
+            "STANCE",
+            "SWING",
+            "SWING",
+            "STANCE",
+            "SWING",
+            "STANCE"
+          ]
+        },
+        {
+          "start_tick": 21,
+          "end_tick": 22,
+          "legs": [
+            "SWING",
+            "STANCE",
+            "SWING",
+            "STANCE",
+            "SWING",
+            "STANCE"
+          ]
+        },
+        {
+          "start_tick": 22,
+          "end_tick": 23,
+          "legs": [
+            "SWING",
+            "SWING",
+            "STANCE",
+            "STANCE",
+            "SWING",
+            "STANCE"
+          ]
+        },
+        {
+          "start_tick": 23,
+          "end_tick": 24,
+          "legs": [
+            "STANCE",
+            "STANCE",
+            "STANCE",
+            "STANCE",
+            "SWING",
+            "STANCE"
+          ]
+        },
+        {
+          "start_tick": 24,
+          "end_tick": 25,
+          "legs": [
+            "STANCE",
+            "SWING",
+            "SWING",
+            "SWING",
+            "STANCE",
+            "STANCE"
+          ]
+        },
+        {
+          "start_tick": 25,
+          "end_tick": 26,
+          "legs": [
+            "SWING",
+            "STANCE",
+            "SWING",
+            "SWING",
+            "STANCE",
+            "STANCE"
+          ]
+        },
+        {
+          "start_tick": 26,
+          "end_tick": 27,
+          "legs": [
+            "SWING",
+            "SWING",
+            "STANCE",
+            "SWING",
+            "STANCE",
+            "STANCE"
+          ]
+        },
+        {
+          "start_tick": 27,
+          "end_tick": 28,
+          "legs": [
+            "STANCE",
+            "STANCE",
+            "STANCE",
+            "SWING",
+            "STANCE",
+            "STANCE"
+          ]
+        },
+        {
+          "start_tick": 28,
+          "end_tick": 29,
+          "legs": [
+            "SWING",
+            "SWING",
+            "SWING",
+            "STANCE",
+            "STANCE",
+            "STANCE"
+          ]
+        },
+        {
+          "start_tick": 29,
+          "end_tick": 30,
+          "legs": [
+            "STANCE",
+            "STANCE",
+            "SWING",
+            "STANCE",
+            "STANCE",
+            "STANCE"
+          ]
+        },
+        {
+          "start_tick": 30,
+          "end_tick": 31,
+          "legs": [
+            "STANCE",
+            "SWING",
+            "STANCE",
+            "STANCE",
+            "STANCE",
+            "STANCE"
+          ]
+        },
+        {
+          "start_tick": 31,
+          "end_tick": 32,
+          "legs": [
+            "SWING",
+            "STANCE",
+            "STANCE",
+            "STANCE",
+            "STANCE",
+            "STANCE"
+          ]
+        }
+      ]
+    }
+  ],
+  "transition_traces": [
+    {
+      "trace_id": "FORWARD",
+      "intervals": [
+        {
+          "start_tick": 0,
+          "end_tick": 1,
+          "legs": [
+            "SWING",
+            "SWING",
+            "SWING",
+            "SWING",
+            "SWING",
+            "SWING"
+          ]
+        },
+        {
+          "start_tick": 1,
+          "end_tick": 2,
+          "legs": [
+            "STANCE",
+            "SWING",
+            "SWING",
+            "SWING",
+            "SWING",
+            "SWING"
+          ]
+        },
+        {
+          "start_tick": 2,
+          "end_tick": 3,
+          "legs": [
+            "SWING",
+            "STANCE",
+            "SWING",
+            "SWING",
+            "SWING",
+            "SWING"
+          ]
+        },
+        {
+          "start_tick": 3,
+          "end_tick": 4,
+          "legs": [
+            "SWING",
+            "SWING",
+            "SWING",
+            "SWING",
+            "SWING",
+            "SWING"
+          ]
+        }
+      ]
+    },
+    {
+      "trace_id": "REVERSE",
+      "intervals": [
+        {
+          "start_tick": 0,
+          "end_tick": 1,
+          "legs": [
+            "SWING",
+            "SWING",
+            "SWING",
+            "SWING",
+            "SWING",
+            "SWING"
+          ]
+        },
+        {
+          "start_tick": 1,
+          "end_tick": 2,
+          "legs": [
+            "SWING",
+            "STANCE",
+            "SWING",
+            "SWING",
+            "SWING",
+            "SWING"
+          ]
+        },
+        {
+          "start_tick": 2,
+          "end_tick": 3,
+          "legs": [
+            "STANCE",
+            "SWING",
+            "SWING",
+            "SWING",
+            "SWING",
+            "SWING"
+          ]
+        },
+        {
+          "start_tick": 3,
+          "end_tick": 4,
+          "legs": [
+            "SWING",
+            "SWING",
+            "SWING",
+            "SWING",
+            "SWING",
+            "SWING"
+          ]
+        }
+      ]
+    }
+  ],
+  "incomplete_control": [
+    {
+      "start_tick": 0,
+      "end_tick": 5,
+      "legs": [
+        "STANCE",
+        "SWING",
+        "MISSING_TRACK",
+        "OUT_OF_SUPPORT",
+        "FAILED_ASSAY",
+        "NOT_ASSESSED"
+      ]
+    }
+  ],
+  "oracle_expectations": {
+    "state_count": 64,
+    "even_world_total_ticks": 32,
+    "odd_world_total_ticks": 32,
+    "per_leg_stance_ticks": [
+      16,
+      16,
+      16,
+      16,
+      16,
+      16
+    ],
+    "pairwise_diagonal_ticks": 16,
+    "pairwise_off_diagonal_ticks": 8,
+    "tripod_stance_overlap_ticks": [
+      4,
+      4
+    ],
+    "tripod_swing_overlap_ticks": [
+      4,
+      4
+    ],
+    "even_count_by_stance_legs_ticks": [
+      1,
+      0,
+      15,
+      0,
+      15,
+      0,
+      1
+    ],
+    "odd_count_by_stance_legs_ticks": [
+      0,
+      6,
+      0,
+      20,
+      0,
+      6,
+      0
+    ],
+    "lower_order_subset_marginals_equal_through_order": 5,
+    "forward_transition_edges": [
+      [
+        0,
+        1
+      ],
+      [
+        1,
+        2
+      ],
+      [
+        2,
+        0
+      ]
+    ],
+    "reverse_transition_edges": [
+      [
+        0,
+        2
+      ],
+      [
+        2,
+        1
+      ],
+      [
+        1,
+        0
+      ]
+    ],
+    "transition_trace_occupancy_ticks": [
+      2,
+      1,
+      1
+    ],
+    "incomplete_total_ticks": 5,
+    "incomplete_observed_mask": 3
+  }
+}
