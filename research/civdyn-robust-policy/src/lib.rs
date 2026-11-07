@@ -191,16 +191,30 @@ impl fmt::Display for DecisionError {
             }
             Self::InvalidDesignId => write!(f, "design point ID must not be empty"),
             Self::InvalidDesignPoint { design_id } => {
-                write!(f, "design point {design_id} has invalid parameter coordinates")
+                write!(
+                    f,
+                    "design point {design_id} has invalid parameter coordinates"
+                )
             }
             Self::InconsistentDesignPoint { design_id } => {
-                write!(f, "design ID {design_id} maps to inconsistent parameter coordinates")
+                write!(
+                    f,
+                    "design ID {design_id} maps to inconsistent parameter coordinates"
+                )
             }
-            Self::DuplicatePolicyRun { design_id, shock, policy } => write!(
+            Self::DuplicatePolicyRun {
+                design_id,
+                shock,
+                policy,
+            } => write!(
                 f,
                 "duplicate policy run for design {design_id}, shock {shock}, policy {policy}"
             ),
-            Self::MissingPolicyRun { design_id, shock, policy } => write!(
+            Self::MissingPolicyRun {
+                design_id,
+                shock,
+                policy,
+            } => write!(
                 f,
                 "missing policy run for design {design_id}, shock {shock}, policy {policy}"
             ),
@@ -236,9 +250,8 @@ pub fn execute_policy_design(
 ) -> Result<(Vec<PolicyRun>, RobustPolicyReport), DecisionError> {
     constraints.validate()?;
     let design = latin_hypercube_design(seed, lhs_point_count)?;
-    let mut runs = Vec::with_capacity(
-        design.len() * ShockKind::ALL.len() * InterventionPolicy::ALL.len(),
-    );
+    let mut runs =
+        Vec::with_capacity(design.len() * ShockKind::ALL.len() * InterventionPolicy::ALL.len());
 
     for design_point in design {
         for shock_kind in ShockKind::ALL {
@@ -361,9 +374,8 @@ pub fn analyze_policy_runs(
         }
     }
 
-    let mut constraint_summaries = Vec::with_capacity(
-        ShockKind::ALL.len() * InterventionPolicy::ALL.len(),
-    );
+    let mut constraint_summaries =
+        Vec::with_capacity(ShockKind::ALL.len() * InterventionPolicy::ALL.len());
     for shock in ShockKind::ALL {
         for policy in InterventionPolicy::ALL {
             constraint_summaries.push(summarize_constraints(
@@ -384,21 +396,18 @@ pub fn analyze_policy_runs(
 
     for shock in ShockKind::ALL {
         for metric in OutcomeMetric::ALL {
-            let mut regret_values: BTreeMap<&'static str, Vec<f64>> =
-                InterventionPolicy::ALL
-                    .iter()
-                    .map(|policy| (policy.name(), Vec::with_capacity(design_ids.len())))
-                    .collect();
-            let mut unknown_counts: BTreeMap<&'static str, usize> =
-                InterventionPolicy::ALL
-                    .iter()
-                    .map(|policy| (policy.name(), 0))
-                    .collect();
-            let mut best_counts: BTreeMap<&'static str, usize> =
-                InterventionPolicy::ALL
-                    .iter()
-                    .map(|policy| (policy.name(), 0))
-                    .collect();
+            let mut regret_values: BTreeMap<&'static str, Vec<f64>> = InterventionPolicy::ALL
+                .iter()
+                .map(|policy| (policy.name(), Vec::with_capacity(design_ids.len())))
+                .collect();
+            let mut unknown_counts: BTreeMap<&'static str, usize> = InterventionPolicy::ALL
+                .iter()
+                .map(|policy| (policy.name(), 0))
+                .collect();
+            let mut best_counts: BTreeMap<&'static str, usize> = InterventionPolicy::ALL
+                .iter()
+                .map(|policy| (policy.name(), 0))
+                .collect();
             let mut distinct_best = BTreeSet::new();
             let mut unique_winner_points = 0usize;
             let mut tied_winner_points = 0usize;
@@ -417,12 +426,17 @@ pub fn analyze_policy_runs(
                 if values.iter().any(Option::is_none) {
                     unknown_comparison_points += 1;
                     for policy in InterventionPolicy::ALL {
-                        *unknown_counts.get_mut(policy.name()).expect("policy exists") += 1;
+                        *unknown_counts
+                            .get_mut(policy.name())
+                            .expect("policy exists") += 1;
                     }
                     continue;
                 }
 
-                let numeric = values.iter().map(|value| value.unwrap()).collect::<Vec<_>>();
+                let numeric = values
+                    .iter()
+                    .map(|value| value.unwrap())
+                    .collect::<Vec<_>>();
                 let best = best_value(metric, &numeric);
                 let winners = InterventionPolicy::ALL
                     .iter()
@@ -630,7 +644,12 @@ mod tests {
         }
     }
 
-    fn metrics(water_unmet: f64, energy_unmet: f64, water_coverage: f64, energy_coverage: f64) -> RunMetrics {
+    fn metrics(
+        water_unmet: f64,
+        energy_unmet: f64,
+        water_coverage: f64,
+        energy_coverage: f64,
+    ) -> RunMetrics {
         RunMetrics {
             total_unmet_water_m3: water_unmet,
             total_unmet_energy_kwh: energy_unmet,
@@ -640,7 +659,11 @@ mod tests {
             minimum_energy_coverage: energy_coverage,
             water_floor_breach_fraction: 1.0 - water_coverage,
             energy_floor_breach_fraction: 1.0 - energy_coverage,
-            recovery_success: if water_coverage >= 0.95 && energy_coverage >= 0.95 { 1.0 } else { 0.0 },
+            recovery_success: if water_coverage >= 0.95 && energy_coverage >= 0.95 {
+                1.0
+            } else {
+                0.0
+            },
         }
     }
 
@@ -685,42 +708,71 @@ mod tests {
             run.metrics = Some(metrics(1.0, 2.0, 0.97, 0.96));
         }
         let report = analyze_policy_runs(7, ServiceConstraints::default(), &runs).unwrap();
-        assert!(report.metric_regrets.iter().all(|entry| entry.worst_regret == Some(0.0)));
-        assert!(report.metric_regrets.iter().all(|entry| entry.best_count == 2));
+        assert!(
+            report
+                .metric_regrets
+                .iter()
+                .all(|entry| entry.worst_regret == Some(0.0))
+        );
+        assert!(
+            report
+                .metric_regrets
+                .iter()
+                .all(|entry| entry.best_count == 2)
+        );
     }
 
     #[test]
     fn metric_regret_is_directional_and_keeps_native_resource_units() {
-        let report = analyze_policy_runs(7, ServiceConstraints::default(), &complete_fixture()).unwrap();
-        let no_transfer_water = report.metric_regrets.iter()
-            .find(|entry| entry.shock_kind == ShockKind::WaterSupply
-                && entry.policy == InterventionPolicy::NoTransfer
-                && entry.metric == OutcomeMetric::TotalUnmetWaterM3)
+        let report =
+            analyze_policy_runs(7, ServiceConstraints::default(), &complete_fixture()).unwrap();
+        let no_transfer_water = report
+            .metric_regrets
+            .iter()
+            .find(|entry| {
+                entry.shock_kind == ShockKind::WaterSupply
+                    && entry.policy == InterventionPolicy::NoTransfer
+                    && entry.metric == OutcomeMetric::TotalUnmetWaterM3
+            })
             .unwrap();
-        let no_transfer_energy = report.metric_regrets.iter()
-            .find(|entry| entry.shock_kind == ShockKind::WaterSupply
-                && entry.policy == InterventionPolicy::NoTransfer
-                && entry.metric == OutcomeMetric::TotalUnmetEnergyKwh)
+        let no_transfer_energy = report
+            .metric_regrets
+            .iter()
+            .find(|entry| {
+                entry.shock_kind == ShockKind::WaterSupply
+                    && entry.policy == InterventionPolicy::NoTransfer
+                    && entry.metric == OutcomeMetric::TotalUnmetEnergyKwh
+            })
             .unwrap();
         assert!(no_transfer_water.worst_regret.unwrap() > 0.0);
         assert!(no_transfer_energy.worst_regret.unwrap() > 0.0);
-        assert_ne!(no_transfer_water.worst_regret, no_transfer_energy.worst_regret);
+        assert_ne!(
+            no_transfer_water.worst_regret,
+            no_transfer_energy.worst_regret
+        );
     }
 
     #[test]
     fn one_service_floor_failure_withholds_finite_design_robust_pass() {
         let mut runs = complete_fixture();
-        let target = runs.iter_mut().find(|run| {
-            run.design_point.design_id == "lhs_01"
-                && run.shock_kind == ShockKind::CompoundWaterAndEnergy
-                && run.policy == InterventionPolicy::ReserveProtected
-        }).unwrap();
+        let target = runs
+            .iter_mut()
+            .find(|run| {
+                run.design_point.design_id == "lhs_01"
+                    && run.shock_kind == ShockKind::CompoundWaterAndEnergy
+                    && run.policy == InterventionPolicy::ReserveProtected
+            })
+            .unwrap();
         target.metrics = Some(metrics(10.0, 10.0, 0.80, 0.90));
         let report = analyze_policy_runs(8, ServiceConstraints::default(), &runs).unwrap();
-        let summary = report.constraint_summaries.iter().find(|entry| {
-            entry.shock_kind == ShockKind::CompoundWaterAndEnergy
-                && entry.policy == InterventionPolicy::ReserveProtected
-        }).unwrap();
+        let summary = report
+            .constraint_summaries
+            .iter()
+            .find(|entry| {
+                entry.shock_kind == ShockKind::CompoundWaterAndEnergy
+                    && entry.policy == InterventionPolicy::ReserveProtected
+            })
+            .unwrap();
         assert_eq!(summary.finite_design_robust_feasible, Some(false));
         assert_eq!(summary.fail_count, 1);
         assert_eq!(summary.pass_count, 1);
@@ -729,23 +781,34 @@ mod tests {
     #[test]
     fn missing_outcomes_remain_unknown_not_zero_or_pass() {
         let mut runs = complete_fixture();
-        let target = runs.iter_mut().find(|run| {
-            run.design_point.design_id == "lhs_01"
-                && run.shock_kind == ShockKind::WaterSupply
-                && run.policy == InterventionPolicy::NoTransfer
-        }).unwrap();
+        let target = runs
+            .iter_mut()
+            .find(|run| {
+                run.design_point.design_id == "lhs_01"
+                    && run.shock_kind == ShockKind::WaterSupply
+                    && run.policy == InterventionPolicy::NoTransfer
+            })
+            .unwrap();
         target.metrics = None;
         let report = analyze_policy_runs(9, ServiceConstraints::default(), &runs).unwrap();
-        let constraints = report.constraint_summaries.iter().find(|entry| {
-            entry.shock_kind == ShockKind::WaterSupply
-                && entry.policy == InterventionPolicy::NoTransfer
-        }).unwrap();
+        let constraints = report
+            .constraint_summaries
+            .iter()
+            .find(|entry| {
+                entry.shock_kind == ShockKind::WaterSupply
+                    && entry.policy == InterventionPolicy::NoTransfer
+            })
+            .unwrap();
         assert_eq!(constraints.unknown_count, 1);
         assert_eq!(constraints.finite_design_robust_feasible, None);
-        let regrets = report.metric_regrets.iter().filter(|entry| {
-            entry.shock_kind == ShockKind::WaterSupply
-                && entry.policy == InterventionPolicy::NoTransfer
-        }).collect::<Vec<_>>();
+        let regrets = report
+            .metric_regrets
+            .iter()
+            .filter(|entry| {
+                entry.shock_kind == ShockKind::WaterSupply
+                    && entry.policy == InterventionPolicy::NoTransfer
+            })
+            .collect::<Vec<_>>();
         assert!(regrets.iter().all(|entry| entry.unknown_point_count == 1));
     }
 
