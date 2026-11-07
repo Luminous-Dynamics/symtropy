@@ -361,9 +361,110 @@ mod tests {
         // Spheres start 5 apart (center-center), need to close 4.0 (5-2*0.5),
         // closing at 20 units/s → t = 4.0/20 = 0.2
         assert!(
-            (hit.toi - 0.2).abs() < 0.01,
+            (hit.toi - 0.2).abs() < 1e-12,
             "TOI = {}, expected ~0.2",
             hit.toi
+        );
+    }
+
+    #[test]
+    fn sphere_sphere_large_travel_small_radius_is_numerically_stable() {
+        let pos_a = SVector::from([0.0, 0.0, 0.0]);
+        let vel_a = SVector::zeros();
+        let pos_b = SVector::from([1.0e12, 0.0, 0.0]);
+        let vel_b = SVector::from([-1.0, 0.0, 0.0]);
+
+        let hit = try_sphere_sphere(&pos_a, &vel_a, 8.0, &pos_b, &vel_b, 0.0, 1.0e12)
+            .unwrap()
+            .unwrap();
+
+        let expected = 1.0e12 - 8.0;
+        assert!(
+            (hit.toi - expected).abs() <= 2.0e-4,
+            "stable TOI {}, expected {expected}",
+            hit.toi
+        );
+        assert!((hit.normal.norm() - 1.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn sphere_sphere_grazing_contact_has_finite_toi() {
+        let pos_a = SVector::zeros();
+        let vel_a = SVector::from([10.0, 0.0, 0.0]);
+        let pos_b = SVector::from([5.0, 1.0, 0.0]);
+        let vel_b = SVector::zeros();
+
+        let hit = try_sphere_sphere(&pos_a, &vel_a, 0.5, &pos_b, &vel_b, 0.5, 1.0)
+            .unwrap()
+            .unwrap();
+
+        assert!((hit.toi - 0.5).abs() < 1e-12);
+        assert!(hit.point.iter().all(|component| component.is_finite()));
+        assert!(hit.normal.iter().all(|component| component.is_finite()));
+    }
+
+    #[test]
+    fn sphere_sphere_rejects_invalid_dimensions_and_parameters() {
+        let pos = SVector::zeros();
+        let velocity = SVector::zeros();
+
+        assert_eq!(
+            try_sphere_sphere(&pos, &velocity, -0.5, &pos, &velocity, 0.5, 1.0),
+            Err(CcdInputError::NegativeRadius)
+        );
+        assert_eq!(
+            try_sphere_sphere(&pos, &velocity, 0.5, &pos, &velocity, 0.5, f64::NAN),
+            Err(CcdInputError::NonFiniteInput)
+        );
+        assert_eq!(
+            try_sphere_sphere(&pos, &velocity, 0.5, &pos, &velocity, 0.5, -1.0),
+            Err(CcdInputError::NegativeTimeStep)
+        );
+        assert!(sphere_sphere(&pos, &velocity, -0.5, &pos, &velocity, 0.5, 1.0).is_none());
+    }
+
+    #[test]
+    fn sphere_halfspace_normalizes_non_unit_plane_normal() {
+        let pos = SVector::from([0.0, 10.0, 0.0]);
+        let vel = SVector::from([0.0, -100.0, 0.0]);
+        let normal = SVector::from([0.0, 3.0, 0.0]);
+
+        let hit = try_sphere_halfspace(&pos, &vel, 0.5, &normal, 0.0, 1.0)
+            .unwrap()
+            .unwrap();
+
+        assert!((hit.toi - 0.095).abs() < 1e-12);
+        assert!((hit.normal.norm() - 1.0).abs() < 1e-12);
+        assert!((hit.normal[1] - 1.0).abs() < 1e-12);
+        assert!(hit.point.iter().all(|component| component.is_finite()));
+    }
+
+    #[test]
+    fn sphere_halfspace_rejects_degenerate_plane_and_non_finite_inputs() {
+        let pos = SVector::from([0.0, 10.0, 0.0]);
+        let vel = SVector::from([0.0, -10.0, 0.0]);
+
+        assert_eq!(
+            try_sphere_halfspace(
+                &pos,
+                &vel,
+                0.5,
+                &SVector::zeros(),
+                0.0,
+                1.0
+            ),
+            Err(CcdInputError::ZeroPlaneNormal)
+        );
+        assert_eq!(
+            try_sphere_halfspace(
+                &pos,
+                &vel,
+                0.5,
+                &SVector::from([0.0, 1.0, 0.0]),
+                f64::INFINITY,
+                1.0
+            ),
+            Err(CcdInputError::NonFiniteInput)
         );
     }
 
