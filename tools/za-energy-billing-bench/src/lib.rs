@@ -447,7 +447,16 @@ fn parse_date(date: &str) -> Result<(i32, u8, u8), CalcError> {
     let year: i32 = year.parse().map_err(|_| CalcError::InvalidDate)?;
     let month: u8 = month.parse().map_err(|_| CalcError::InvalidDate)?;
     let day: u8 = day.parse().map_err(|_| CalcError::InvalidDate)?;
-    if !(1..=12).contains(&month) || day == 0 || day > 31 {
+    if !(1..=12).contains(&month) || day == 0 {
+        return Err(CalcError::InvalidDate);
+    }
+    let maximum_day = match month {
+        2 if year % 400 == 0 || (year % 4 == 0 && year % 100 != 0) => 29,
+        2 => 28,
+        4 | 6 | 9 | 11 => 30,
+        _ => 31,
+    };
+    if day > maximum_day {
         return Err(CalcError::InvalidDate);
     }
     Ok((year, month, day))
@@ -1459,6 +1468,28 @@ mod tests {
             calculate_bill(&input).unwrap_err(),
             CalcError::DateOutsideBillingMonth
         );
+    }
+
+
+    #[test]
+    fn impossible_gregorian_date_is_rejected() {
+        let mut input = fixture();
+        input.intervals[0].local_date = "2026-02-31".to_owned();
+        input.billing_month = "2026-02".to_owned();
+        assert_eq!(calculate_bill(&input).unwrap_err(), CalcError::InvalidDate);
+    }
+
+    #[test]
+    fn nonleap_year_february_29_is_rejected() {
+        let mut input = fixture();
+        input.intervals[0].local_date = "2026-02-29".to_owned();
+        input.billing_month = "2026-02".to_owned();
+        assert_eq!(calculate_bill(&input).unwrap_err(), CalcError::InvalidDate);
+    }
+
+    #[test]
+    fn leap_year_february_29_is_valid_date() {
+        assert_eq!(parse_date("2028-02-29").unwrap(), (2028, 2, 29));
     }
 
     #[test]
