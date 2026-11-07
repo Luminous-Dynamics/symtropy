@@ -887,6 +887,7 @@ mod tests {
         );
 
         let sealed = binding
+            .clone()
             .seal_from_sam_artifacts(&support_bytes, &query_bytes, &assessment_receipt_bytes)
             .unwrap();
         assert_eq!(
