@@ -117,8 +117,14 @@ pub enum TransitionError {
         trace_id: String,
         sample_index: usize,
     },
-    NonIncreasingTimestamp { trace_id: String, sample_index: usize },
-    NonMonotonicMeasuredSpeed { trace_id: String, sample_index: usize },
+    NonIncreasingTimestamp {
+        trace_id: String,
+        sample_index: usize,
+    },
+    NonMonotonicMeasuredSpeed {
+        trace_id: String,
+        sample_index: usize,
+    },
     WrongInitialRegime(String),
     WrongFinalRegime(String),
     MissingTransition(String),
