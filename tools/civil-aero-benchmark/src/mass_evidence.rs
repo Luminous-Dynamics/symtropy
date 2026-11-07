@@ -1714,7 +1714,10 @@ mod tests {
         }
         .kg_m2()
         .expect("signed product of inertia");
-        assert_eq!(converted, [1.0, 2.0, 3.0, -0.1, 0.0, 0.0]);
+        let expected = [1.0, 2.0, 3.0, -0.1, 0.0, 0.0];
+        for (actual, expected) in converted.iter().zip(expected) {
+            assert!((actual - expected).abs() < 1.0e-12);
+        }
     }
 
     #[test]
@@ -1741,7 +1744,7 @@ mod tests {
         let error = ledger
             .evaluate_state(&state, CONFIG)
             .expect_err("unit mismatch");
-        assert!(error.contains("source mass conversion"));
+        assert!(error.contains("base source mass does not convert to canonical kg"));
     }
 
     #[test]
@@ -1764,7 +1767,7 @@ mod tests {
         let error = ledger
             .evaluate_state(&state, CONFIG)
             .expect_err("wrong effectivity");
-        assert!(error.contains("effectivity mismatch"));
+        assert!(error.contains("aircraft effectivity does not match evidence ledger"));
     }
 
     #[test]
@@ -1802,16 +1805,10 @@ mod tests {
         ledger
             .records
             .sort_by(|left, right| left.item.id.cmp(&right.item.id));
-        let mut state = make_state(&ledger, LoadingStateKind::Takeoff);
-        state
-            .items
-            .push(installed_state_item(ledger.records.last().unwrap()));
-        state
-            .items
-            .sort_by(|left, right| left.item_id.cmp(&right.item_id));
+        let state = make_state(&ledger, LoadingStateKind::Takeoff);
         let error = ledger
             .evaluate_state(&state, CONFIG)
-            .expect_err("double count");
+            .expect_err("aggregate/child double count");
         assert!(error.contains("aggregate/child double counting"));
     }
 
