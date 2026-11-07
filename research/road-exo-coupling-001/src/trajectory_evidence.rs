@@ -153,10 +153,13 @@ impl SamTrajectoryAssessmentBinding {
     }
 
     pub fn verify_receipt(&self) -> Result<(), TrajectoryEvidenceError> {
-        self.validate_fields()?;
+        // Check integrity before semantic invariants so any post-seal mutation
+        // is reported as a receipt mismatch, even when it also makes a field
+        // combination invalid. Seal validates semantics before issuing a digest.
         if self.assessment_receipt_digest != *blake3::hash(&self.receipt_bytes()).as_bytes() {
             return Err(TrajectoryEvidenceError::AssessmentReceiptMismatch);
         }
+        self.validate_fields()?;
         Ok(())
     }
 
