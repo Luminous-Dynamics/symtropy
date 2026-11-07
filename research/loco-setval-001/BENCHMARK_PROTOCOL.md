@@ -15,14 +15,22 @@ SPINDER is a highly relevant reproducible six-leg comparator:
 - tripod, ripple and wave gaits with online transitions settling in about two gait cycles;
 - specific 2 m structured uneven-foam course with up to 18 mm height variation, reported at 100% completion and mean body-pitch deviation below 5 degrees.
 
-Those figures describe the authors' reported platform and test protocol, not a universal reliability bound and not a Symtropy result.
+Those figures describe the authors' reported platform and test protocol, not a universal reliability bound and not a Symtropy result. The reported 100% course completion is not a zero-risk guarantee; the denominator for that specific course result should not be inferred from the separate flat-floor trial counts.
 
-The paper's steady-state flat-terrain operating points are also useful for matching a baseline: tripod 0.14 ± 0.01 m/s at 1.7 ± 0.1 Hz with duty factor 0.52 ± 0.02; ripple 0.10 ± 0.01 m/s at 1.3 ± 0.1 Hz with duty factor 0.62 ± 0.03; wave 0.06 ± 0.01 m/s at 0.9 ± 0.1 Hz with duty factor 0.78 ± 0.02. Reproduce or explicitly normalize these conditions before comparing transition speed or energy across different morphologies.
+The paper's steady-state flat-terrain operating points are useful matched baselines (ten 2 m trials per gait): tripod 0.14 ± 0.01 m/s at 1.7 ± 0.1 Hz with duty factor 0.52 ± 0.02 and static margin 8.3 ± 1.2 mm; ripple 0.10 ± 0.01 m/s at 1.3 ± 0.1 Hz with duty factor 0.62 ± 0.03 and margin 14.6 ± 1.8 mm; wave 0.06 ± 0.01 m/s at 0.9 ± 0.1 Hz with duty factor 0.78 ± 0.02 and margin 22.1 ± 2.3 mm. Reproduce or explicitly normalize these conditions before comparing transition speed or energy across different morphologies.
+
+**Important assurance distinction:** the paper reports a mean tripod support-polygon margin of 20.8 mm across a gait cycle, but also brief negative static margins near tripod exchange. The authors interpret these brief intervals as dynamically stabilized rather than sustained loss of balance. This is an unusually useful demonstration that static support-polygon inclusion is not a complete dynamic locomotion certificate. Our benchmark must report static margin and phase-conditioned dynamic recoverability separately; it must not declare every negative instantaneous static margin a physical fall, nor use a positive margin as proof of future viability.
+
+For timing comparisons, SPINDER reports a 50 Hz CPG+IK control loop, 200 Hz master-to-servo position updates, and an approximately 3.6 ms full 18-servo request/response bus cycle at 1 Mbps (about 250 Hz practical upper update rate in the reported arrangement). These are platform-specific measured constraints. Use them as a reference timing envelope, not as universal legged-robot deadlines.
 
 The paper also supplies valuable falsification cases:
 - foot switches were reliable on hard/semi-rigid terrain but could report false negatives on soft/compliant surfaces;
-- servo backlash and compliant 3D-printed links caused stance-exchange mismatch between model and hardware;
-- sustained gait produced thermal loading and torque derating after approximately 15–20 minutes in their setup;
+- the ToF depth stream is logged/synchronized but was not yet integrated into online foothold planning or gait adaptation;
+- MuJoCo ground friction was tuned to μ = 0.8 for the lab vinyl floor; default μ = 1.0 caused noticeable real-floor slip because the model assumed too much traction;
+- real servos exhibit approximately ±0.5° position deadband versus the idealized PD actuator model, and the authors increased swing height by 2 mm to compensate;
+- compliant printed links deflected approximately 0.3–0.5 mm at the femur tip, with 1–2 mm resulting foot-position mismatch; higher infill reduced deflection;
+- servo backlash and compliant links caused stance-exchange mismatch between model and hardware;
+- sustained gait produced thermal loading and torque derating after approximately 15–20 minutes in their setup (hip-yaw servos around 55°C);
 - closing the ToF-camera loop into terrain-aware foot placement and contact-loss/fault-tolerant gait reorganization were identified as future work.
 
 These are unusually direct opportunities for testing belief health, abstraction soundness, fault recovery and viability preservation.
