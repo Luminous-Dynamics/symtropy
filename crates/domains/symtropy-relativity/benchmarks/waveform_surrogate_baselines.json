@@ -10,13 +10,19 @@
       "url": "https://arxiv.org/abs/2607.24960",
       "reference_model": "NRSur7dq4",
       "parameter_domain": {
-        "mass_ratio_q": [1, 4],
+        "mass_ratio_q": [
+          1,
+          4
+        ],
         "spin_magnitudes": "abs(chi_1), abs(chi_2) <= 0.8",
         "validation_waveforms": 10000
       },
       "reported_accuracy": {
-        "median_sky_averaged_frequency_domain_mismatch": [8.0e-5, 1.7e-4],
-        "95th_percentile_mismatch_upper_bound": 1.0e-3
+        "median_sky_averaged_frequency_domain_mismatch": [
+          0.00008,
+          0.00017
+        ],
+        "95th_percentile_mismatch_upper_bound": 0.001
       },
       "reported_performance": {
         "hardware": "NVIDIA L40S",
@@ -43,7 +49,10 @@
         "gwsurrogate precessing-surrogate package optimized by about fourfold"
       ],
       "reported_accuracy": {
-        "remnant_mass_spin_estimation_gain_vs_nrsur7dq4": [3, 10]
+        "remnant_mass_spin_estimation_gain_vs_nrsur7dq4": [
+          3,
+          10
+        ]
       },
       "reported_performance": {
         "gwsurrogate_runtime_change": "about 4x speedup; slightly faster than LALSimulation counterparts"
@@ -73,7 +82,7 @@
       "doi": "10.1103/qqln-f8vy",
       "url": "https://journals.aps.org/prd/abstract/10.1103/qqln-f8vy",
       "reported_accuracy": {
-        "mismatch_order": 1.0e-4
+        "mismatch_order": 0.0001
       },
       "reported_performance": {
         "template_bank_generation": "millions of waveforms in under one second on modest computational resources"
@@ -89,27 +98,20 @@
       "parameter_domain": {
         "mass_ratio_q": "up to about 4",
         "spin": "nonspinning",
-        "waveform_mode": [2, 2],
+        "waveform_mode": [
+          2,
+          2
+        ],
         "orbital_family": "eccentric"
       },
       "reported_accuracy": {
-        "median_mismatch": 4.0e-5,
-        "maximum_mismatch": 6.0e-4
+        "median_mismatch": 0.00004,
+        "maximum_mismatch": 0.0006
       },
       "method": "Radial-phase inspiral decomposition plus a separate time-domain merger-ringdown surrogate",
       "benchmark_caveat": "Narrow nonspinning eccentric domain; not comparable to generic precessing models without matching the parameter slice."
     }
   ],
-  "sp ec_accuracy_reference": {
-    "title": "How accurate is Spectral Einstein Code (SpEC)? And what limits its accuracy?",
-    "arxiv": "2610.24283",
-    "url": "https://arxiv.org/abs/2610.24283",
-    "reported_findings": [
-      "targeted changes to resolution and parameter choices in distinct computational subdomains can reduce constraint violations and waveform differences",
-      "at sufficiently high resolution, floating-point limitations and disparate scales of fundamental variables become significant"
-    ],
-    "benchmark_implication": "Record precision, nondimensionalization, variable scaling, resolution, and error-vs-cost curves; do not assume increasing resolution always improves accuracy."
-  },
   "recommended_luminous_differentiator": {
     "name": "physics-qualified surrogate with an explicit applicability and uncertainty certificate",
     "required_properties": [
@@ -122,5 +124,15 @@
       "stable versioning and evidence provenance through Mycelix"
     ],
     "success_metric": "Lower time-to-posterior-accuracy and lower calibration error at equal or better coverage, on held-out simulations and injection sets; not raw waveform throughput alone."
+  },
+  "spec_accuracy_reference": {
+    "title": "How accurate is Spectral Einstein Code (SpEC)? And what limits its accuracy?",
+    "arxiv": "2610.24283",
+    "url": "https://arxiv.org/abs/2610.24283",
+    "reported_findings": [
+      "targeted changes to resolution and parameter choices in distinct computational subdomains can reduce constraint violations and waveform differences",
+      "at sufficiently high resolution, floating-point limitations and disparate scales of fundamental variables become significant"
+    ],
+    "benchmark_implication": "Record precision, nondimensionalization, variable scaling, resolution, and error-vs-cost curves; do not assume increasing resolution always improves accuracy."
   }
 }
