@@ -66,6 +66,7 @@ jobs:
               "calibration_holdout_leakage",
               "unoperationalized_construct",
               "mechanism_without_falsifier",
+              "non_discriminating_alternative",
               "model_inference_as_external_validation",
           }
           assert summaries["reference"]["error_count"] == "0"
@@ -80,6 +81,7 @@ jobs:
           assert "calibration_external_partition_leakage" in findings["calibration_holdout_leakage"]
           assert "construct_not_operationalized" in findings["unoperationalized_construct"]
           assert "mechanism_explanation_incomplete" in findings["mechanism_without_falsifier"]
+          assert "alternative_not_discriminating" in findings["non_discriminating_alternative"]
           assert "non_empirical_external_validation" in findings["model_inference_as_external_validation"]
 
           assert all(
@@ -88,6 +90,7 @@ jobs:
                   "calibration_holdout_leakage",
                   "unoperationalized_construct",
                   "mechanism_without_falsifier",
+                  "non_discriminating_alternative",
                   "model_inference_as_external_validation",
               )
           )
