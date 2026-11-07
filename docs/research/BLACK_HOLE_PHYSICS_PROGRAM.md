@@ -1,7 +1,7 @@
 # Extreme Spacetime Physics: Black-Hole Research Program
 
 **Status:** research charter; implementation work is tracked in the four linked repository issues.  
-**Last researched:** 2026-11-06.  
+**Last researched:** 2026-11-07.  
 **Scope:** black-hole physics as a cross-system proving ground for scientific reasoning, validated computation, evidence provenance, and astronomical observation.
 
 ## North-star objective
@@ -276,6 +276,51 @@ Public replication inputs are unusually good:
 The Nature paper reports robustness checks across segment length, sampling frequency, detector peak times, sky location/timing, and remnant mass/spin marginalization. Its data availability and code availability make it a high-value replication target.
 
 **Claim ceiling:** this is an important published interpretation based on one exceptionally loud event. Our systems must call it a reported direct-wave component / hypothesis under test, not an independently established generic black-hole emission law, a direct photograph of the horizon, or proof that every merger carries an observable component at the same significance.
+
+### A substantive counteranalysis: direct-wave / horizon association is disputed
+
+Kankani & McWilliams, arXiv:2607.02380 (2026-07-02), *The Direct Wave is Not a Meaningful Test of Horizon Properties*, directly challenges the proposed horizon interpretation using numerical-relativity strain from a selection of SXS comparable-mass, quasicircular, non-precessing simulations.
+
+Their reported findings:
+- The instantaneous direct-wave frequency does not track twice the Kerr horizon angular velocity over their remnant-spin sweep. They identify an incidental crossing near chi_f ≈ 0.7, close to GW250114's remnant spin (~0.68).
+- The direct-wave damping evolves substantially over short intervals and does not track surface gravity kappa; a fixed-damping single sinusoid is not generally an adequate model.
+- A time-evolving waveform model constrained by horizon frequency/surface gravity does not describe their high-spin SXS:BBH:0178 case (chi_f ≈ 0.95); a freely fitted constant-frequency model also differs from the horizon frequency by about 25% there.
+- Mapping the fitted direct-wave frequency/damping to horizon parameters can produce apparent Hawking-area-law violations even when the true NR remnant horizon area obeys the area law.
+- The authors limit their conclusion to comparable-mass cases and note that the extreme-mass-ratio regime may behave differently.
+
+Primary reference: [Kankani & McWilliams, arXiv:2607.02380](https://arxiv.org/abs/2607.02380). This is a counteranalysis preprint, not a final adjudication of the subject. It is nevertheless a serious falsification result and must be treated as a primary competing scientific interpretation.
+
+**Research consequence:** direct-wave extraction from GW250114 may be reproducible while the *interpretation* of that component as a measurement of horizon frequency/surface gravity remains unsupported. We must distinguish:
+1. a non-QNM residual/component exists under a specified filter;
+2. its instantaneous frequency/damping can be measured under a chosen model;
+3. that frequency/damping are physically caused by / encode Kerr horizon observables;
+4. it is suitable for testing Hawking's area law.
+
+These are four different claims, each requiring separate evidence.
+
+#### Mandatory direct-wave discrimination campaign
+
+Use the actual SXS:BBH cases tabulated by Kankani & McWilliams (remnant spins 0.4942, 0.5478, 0.6215, 0.6864, 0.6921, 0.7447, 0.8029, 0.8574, 0.9075, 0.9499) and add other available SXS cases / NR codes. Prioritize dense coverage on both sides of chi_f≈0.7 and near-extremal spins.
+
+Competing models must include:
+- phenomenological direct-wave residual with freely evolving complex frequency;
+- fixed-frequency/fixed-damping direct-wave sinusoid;
+- horizon-tied frequency and surface-gravity damping;
+- orbit/plunge-driven or other physically motivated time-varying frequency and damping;
+- ordinary QNM/overtones and mode-mixing residual;
+- detector-noise/transient alternatives.
+
+Required measurements:
+- correlation and calibration of Re(omega_DW) against 2*Omega_H across spin, mass ratio, precession, eccentricity, and fitting window;
+- evolution of Im(omega_DW) and tau(t), compared with kappa and alternative dynamical timescales;
+- frequency/damping bias and posterior coverage at low, intermediate, high, and near-extremal spin;
+- sensitivity to rational-filter basis, removed QNM set, spherical-spheroidal mode mixing, numerical resolution, extraction radius/extrapolation, and start/end time;
+- recovery of true horizon area from NR remnant mass/spin versus area inferred by mapping a direct-wave fit into Omega_H/kappa;
+- out-of-sample generalization to events and NR simulations not used to tune the model.
+
+Use blinded injections and negative controls, preregister all spin windows and fitting intervals, and compare model evidence under matched priors/likelihoods. Do not interpret a crossing near chi_f≈0.7 as a universal physical relation without a predicted mechanism and held-out evidence.
+
+**Revised claim ceiling:** the direct-wave interpretation is a contested hypothesis. No system may state that the direct wave measures horizon frequency, surface gravity, or area unless the broad-parameter-space falsification campaign survives independent reproduction and calibrated null controls.
 
 ### A second, complementary ringdown development: orthonormalized QNMs
 
