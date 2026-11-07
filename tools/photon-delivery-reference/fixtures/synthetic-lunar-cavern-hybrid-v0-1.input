@@ -1,0 +1,19 @@
+# Synthetic arithmetic fixture only; not a lunar site, crop recommendation or farm design.
+schema_version=0.1
+scenario_id=synthetic-lunar-cavern-hybrid
+evidence_class=synthetic
+target_dli_mol_m2_day=20.0
+canopy_area_m2=1000.0
+solar_ppfd_umol_m2_s=1000.0
+collector_area_m2=2000.0
+illumination_hours_per_day=6.0
+collector_efficiency=0.8
+relay_transmission=0.5
+canopy_uniformity_floor=0.8
+optical_availability=0.9
+led_efficacy_umol_j=2.5
+led_hours_per_day=16.0
+optical_auxiliary_electricity_wh_day=20000.0
+optical_auxiliary_peak_kw=0.8
+available_lighting_power_kw=40.0
+available_lighting_energy_kwh_day=960.0
