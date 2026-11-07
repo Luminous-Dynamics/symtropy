@@ -351,6 +351,17 @@ pub fn validate_case(case: &Value, parent: &Value) -> Vec<Violation> {
         if channel.get("domain").is_none() {
             push(&mut errors, "MISSING_CHANNEL_DOMAIN", &format!("{path}.domain"), "material/path/geometry/environment domain is required");
         }
+        match text(channel, "role") {
+            Some("PRIMARY_REFERENCE")
+                if !matches!(text(channel, "technique"), Some("GRAVIMETRIC_CATCH_AND_WEIGH" | "STATIC_BALANCE" | "LOAD_CELL_HOPPER")) =>
+            {
+                push(&mut errors, "PRIMARY_REFERENCE_TECHNIQUE_NOT_GRAVIMETRIC", &format!("{path}.technique"), "primary mass-flow reference must use an independently weighed gravimetric technique; online estimators cannot self-designate as reference truth");
+            }
+            Some("TIMEBASE") if text(channel, "technique") != Some("DAQ_TIMEBASE") => {
+                push(&mut errors, "TIMEBASE_TECHNIQUE_MISMATCH", &format!("{path}.technique"), "TIMEBASE role requires a DAQ_TIMEBASE technique");
+            }
+            _ => {}
+        }
     }
 
     let timebase_id = text(timebase, "timebase_channel_id");
@@ -566,11 +577,21 @@ pub fn validate_case(case: &Value, parent: &Value) -> Vec<Violation> {
             push(&mut errors, "COMPARISON_ESTIMATOR_NOT_SECONDARY", &path, "estimator side must be a registered SECONDARY_ESTIMATOR channel");
         }
         for key in ["material_cohort_ref", "path_configuration_ref", "geometry_profile_ref"] {
-            if text(comparison, key).is_none()
-                || text(reference["domain"].as_object().map(|_| &reference["domain"]).unwrap_or(&Value::Null), key) != text(estimator["domain"].as_object().map(|_| &estimator["domain"]).unwrap_or(&Value::Null), key)
+            let declared = text(comparison, key);
+            let reference_value = text(&reference["domain"], key);
+            let estimator_value = text(&estimator["domain"], key);
+            if declared.is_none()
+                || declared != reference_value
+                || declared != estimator_value
             {
-                push(&mut errors, "REFERENCE_COMPARISON_DOMAIN_MISMATCH", &format!("{path}.{key}"), "reference and estimator must be paired on the same declared material/path/geometry domain");
+                push(&mut errors, "REFERENCE_COMPARISON_DOMAIN_MISMATCH", &format!("{path}.{key}"), "declared comparison material/path/geometry must match both reference and estimator records exactly");
             }
+        }
+        if text(reference, "unit") != text(estimator, "unit")
+            || text(reference_channel.unwrap_or(&Value::Null), "measurand")
+                != text(estimator_channel.unwrap_or(&Value::Null), "measurand")
+        {
+            push(&mut errors, "REFERENCE_COMPARISON_MEASURAND_MISMATCH", &path, "reference and estimator must report the same measurand and unit");
         }
         if text(comparison, "measurement_window_ref") != text(reference, "measurement_window_ref")
             || text(comparison, "measurement_window_ref") != text(estimator, "measurement_window_ref")
