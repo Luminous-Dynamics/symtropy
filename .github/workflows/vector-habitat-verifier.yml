@@ -1,0 +1,28 @@
+name: Vector habitat fixture verifier
+
+on:
+  pull_request:
+    paths:
+      - "docs/research/vector-habitat/**"
+      - "tools/vector-habitat-verifier/**"
+      - ".github/workflows/vector-habitat-verifier.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vector-habitat-verifier-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  strict-fixture-verification:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Test independent verifier
+        run: cargo test --manifest-path tools/vector-habitat-verifier/Cargo.toml
+      - name: Verify committed corpus
+        run: cargo run --manifest-path tools/vector-habitat-verifier/Cargo.toml -- docs/research/vector-habitat/VECTOR_HABITAT_CASES_V0_1.json
