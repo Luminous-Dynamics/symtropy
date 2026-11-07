@@ -13,7 +13,8 @@
     "aircraft_family",
     "aircraft_model",
     "serial_number",
-    "items"
+    "items",
+    "reference_frame_id"
   ],
   "properties": {
     "schema_version": {
@@ -60,6 +61,10 @@
       "items": {
         "$ref": "#/$defs/item"
       }
+    },
+    "reference_frame_id": {
+      "type": "string",
+      "minLength": 1
     }
   },
   "$defs": {
@@ -102,7 +107,8 @@
         "geometry",
         "source_position",
         "source_inertia",
-        "value_source"
+        "value_source",
+        "installation_source"
       ],
       "properties": {
         "item_id": {
@@ -236,11 +242,16 @@
                 "ft",
                 "in"
               ]
+            },
+            "coordinate_frame_id": {
+              "type": "string",
+              "minLength": 1
             }
           },
           "required": [
             "values",
-            "unit"
+            "unit",
+            "coordinate_frame_id"
           ],
           "additionalProperties": false
         },
@@ -274,6 +285,16 @@
           "additionalProperties": false
         },
         "value_source": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/source"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "installation_source": {
           "oneOf": [
             {
               "$ref": "#/$defs/source"
