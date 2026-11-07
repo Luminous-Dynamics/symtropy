@@ -174,7 +174,11 @@ impl MassLedger {
             for (weighted, coordinate) in weighted_position.iter_mut().zip(position_m) {
                 *weighted += mass_kg * coordinate;
             }
-            known.push(ResolvedMassItem { mass_kg, position_m, local_inertia_kg_m2: local_inertia });
+            known.push(ResolvedMassItem {
+                mass_kg,
+                position_m,
+                local_inertia_kg_m2: local_inertia,
+            });
         }
 
         unknown_mass_item_ids.sort();
@@ -253,7 +257,10 @@ impl MassLedger {
         &self,
         expected_configuration_sha256: &str,
     ) -> Result<MassPropertiesReport, String> {
-        validate_sha256(expected_configuration_sha256, "expected_configuration_sha256")?;
+        validate_sha256(
+            expected_configuration_sha256,
+            "expected_configuration_sha256",
+        )?;
         if self.configuration_sha256 != expected_configuration_sha256 {
             return Err(
                 "stale mass ledger: configuration SHA-256 does not match requested aircraft"
@@ -301,10 +308,7 @@ fn validate_inertia_tensor(value: &[f64; 6], item_id: &str) -> Result<(), String
     let minor_xy = xx * yy - xy * xy;
     let minor_xz = xx * zz - xz * xz;
     let minor_yz = yy * zz - yz * yz;
-    let determinant = xx * yy * zz + 2.0 * xy * xz * yz
-        - xx * yz * yz
-        - yy * xz * xz
-        - zz * xy * xy;
+    let determinant = xx * yy * zz + 2.0 * xy * xz * yz - xx * yz * yz - yy * xz * xz - zz * xy * xy;
 
     if xx < -1.0e-12 * scale
         || yy < -1.0e-12 * scale
@@ -327,7 +331,14 @@ mod tests {
 
     const CONFIG: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
-    fn point(id: &str, category: MassItemCategory, mass_kg: f64, x: f64, y: f64, z: f64) -> MassItem {
+    fn point(
+        id: &str,
+        category: MassItemCategory,
+        mass_kg: f64,
+        x: f64,
+        y: f64,
+        z: f64,
+    ) -> MassItem {
         MassItem {
             id: id.to_owned(),
             category,
@@ -342,15 +353,78 @@ mod tests {
         MassLedger {
             configuration_sha256: CONFIG.to_owned(),
             items: vec![
-                point("left_wing_lump", MassItemCategory::PrimaryStructure, 50.0, 1.30, -1.80, 0.40),
-                point("right_wing_lump", MassItemCategory::PrimaryStructure, 50.0, 1.30, 1.80, 0.40),
-                point("fuselage_structure_lump", MassItemCategory::PrimaryStructure, 260.0, 1.60, 0.0, 0.35),
-                point("propulsion_lump", MassItemCategory::Propulsion, 120.0, 2.20, 0.0, 0.60),
-                point("fuel_lump", MassItemCategory::FuelAndFluids, 85.0, 2.10, 0.0, 0.25),
-                point("systems_lump", MassItemCategory::Avionics, 95.0, 1.20, 0.0, 0.45),
-                point("pilot_point_mass", MassItemCategory::Payload, 80.0, 2.70, -0.35, 0.55),
-                point("passenger_point_mass", MassItemCategory::Payload, 80.0, 2.70, 0.35, 0.55),
-                point("baggage_point_mass", MassItemCategory::Payload, 25.0, 3.10, 0.0, 0.35),
+                point(
+                    "left_wing_lump",
+                    MassItemCategory::PrimaryStructure,
+                    50.0,
+                    1.30,
+                    -1.80,
+                    0.40,
+                ),
+                point(
+                    "right_wing_lump",
+                    MassItemCategory::PrimaryStructure,
+                    50.0,
+                    1.30,
+                    1.80,
+                    0.40,
+                ),
+                point(
+                    "fuselage_structure_lump",
+                    MassItemCategory::PrimaryStructure,
+                    260.0,
+                    1.60,
+                    0.0,
+                    0.35,
+                ),
+                point(
+                    "propulsion_lump",
+                    MassItemCategory::Propulsion,
+                    120.0,
+                    2.20,
+                    0.0,
+                    0.60,
+                ),
+                point(
+                    "fuel_lump",
+                    MassItemCategory::FuelAndFluids,
+                    85.0,
+                    2.10,
+                    0.0,
+                    0.25,
+                ),
+                point(
+                    "systems_lump",
+                    MassItemCategory::Avionics,
+                    95.0,
+                    1.20,
+                    0.0,
+                    0.45,
+                ),
+                point(
+                    "pilot_point_mass",
+                    MassItemCategory::Payload,
+                    80.0,
+                    2.70,
+                    -0.35,
+                    0.55,
+                ),
+                point(
+                    "passenger_point_mass",
+                    MassItemCategory::Payload,
+                    80.0,
+                    2.70,
+                    0.35,
+                    0.55,
+                ),
+                point(
+                    "baggage_point_mass",
+                    MassItemCategory::Payload,
+                    25.0,
+                    3.10,
+                    0.0,
+                    0.35,
+                ),
             ],
         }
     }
