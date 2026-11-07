@@ -55,12 +55,13 @@
         "basis",
         "descriptor_definition_ref",
         "certified_value",
-        "certified_standard_uncertainty",
+        "certified_expanded_uncertainty",
         "feature_dimension_mm",
         "maximum_abs_error",
         "replicates",
         "calibration_ref",
-        "certificate_ref"
+        "certificate_ref",
+        "coverage_factor"
       ],
       "properties": {
         "reference_id": {
@@ -90,10 +91,6 @@
         "certified_value": {
           "type": "number"
         },
-        "certified_standard_uncertainty": {
-          "type": "number",
-          "minimum": 0
-        },
         "feature_dimension_mm": {
           "type": "number",
           "exclusiveMinimum": 0
@@ -114,6 +111,14 @@
         },
         "certificate_ref": {
           "$ref": "#/$defs/ref"
+        },
+        "certified_expanded_uncertainty": {
+          "type": "number",
+          "minimum": 0
+        },
+        "coverage_factor": {
+          "type": "number",
+          "minimum": 1
         }
       }
     },
