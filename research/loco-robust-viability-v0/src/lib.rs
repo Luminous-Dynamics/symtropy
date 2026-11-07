@@ -174,16 +174,13 @@ pub fn compute_maximal_robust_invariant_set(
 ) -> Result<ViabilityResult, ViabilityError> {
     let validated = validate_system(system, limits)?;
     let mut current = safe_state_ids(&validated);
-    let mut final_assessments = Vec::new();
-
-    loop {
+    let final_assessments = loop {
         let (next, assessments) = robust_predecessor(&validated, &current);
-        final_assessments = assessments;
         if next == current {
-            break;
+            break assessments;
         }
         current = next;
-    }
+    };
 
     let admissible_actions = admissible_action_map(&final_assessments);
     Ok(ViabilityResult {
@@ -224,6 +221,12 @@ pub fn compute_robust_recovery(
             .collect::<BTreeSet<_>>();
         if newly_recoverable.is_empty() {
             break;
+        }
+        if horizon >= limits.maximum_horizon {
+            return Err(ViabilityError::HorizonLimitExceeded {
+                requested: horizon + 1,
+                maximum: limits.maximum_horizon,
+            });
         }
         horizon += 1;
         let actions = admissible_action_map(&assessments);
@@ -368,8 +371,7 @@ fn robust_predecessor(
         let actions = system
             .actions_by_state
             .get(&state.id)
-            .map(Vec::as_slice)
-            .unwrap_or_default();
+            .map_or(&[], Vec::as_slice);
 
         for action in actions {
             let violating_successors = action
@@ -390,9 +392,7 @@ fn robust_predecessor(
             });
         }
     }
-    assessments.sort_by(|left, right| {
-        (&left.state_id, &left.action_id).cmp(&(&right.state_id, &right.action_id))
-    });
+    assessments.sort_by_key(|item| (&item.state_id, &item.action_id));
     (predecessor, assessments)
 }
 
@@ -844,7 +844,7 @@ mod tests {
             let candidate = safe
                 .iter()
                 .enumerate()
-                .filter(|(index, _)| (mask & (1_u64 << index)) != 0)
+                .filter(|(index, _)| (mask & (1_u64 << *index)) != 0)
                 .map(|(_, id)| id.clone())
                 .collect::<BTreeSet<_>>();
             let is_invariant = candidate.iter().all(|state_id| {
