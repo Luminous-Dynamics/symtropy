@@ -323,7 +323,7 @@ fn render_json(report: &PhotonReport) -> String {
         report.scenario_id,
         report.target_dli_mol_m2_day,
         report.solar_mean_dli_mol_m2_day,
-        report.solar_floor_dli_m2_day,
+        report.solar_floor_dli_mol_m2_day,
         report.led_supplement_dli_mol_m2_day,
         report.led_only_electricity_kwh_day,
         report.led_supplement_electricity_kwh_day,
