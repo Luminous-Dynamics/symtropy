@@ -1,6 +1,7 @@
 use maritime_queue_ledger::{
     CargoInventoryLedger, CargoMovementKind, CargoMovementObservation, CargoUnit,
-    EventClass, EventHeader, LedgerError, RightsStatus, SourceEvidence, TickWindow,
+    EventClass, EventHeader, LedgerError, OpeningCargoInventory, OpeningVesselQueue,
+    RightsStatus, SourceEvidence, TickWindow,
     VesselEventKind, VesselEventObservation, VesselQueueLedger, audit_cargo_inventory,
     audit_vessel_queue,
 };
@@ -71,7 +72,13 @@ fn vessel_ledger(
             start_tick: 0,
             end_tick: 10,
         },
-        opening_queue,
+        opening: OpeningVesselQueue {
+            terminal_id: "dgt".to_owned(),
+            queue_count: opening_queue,
+            measured_tick: 0,
+            observed_tick: 0,
+            source: source("opening-vessel-stock", RightsStatus::ReviewedAllowed),
+        },
         observations,
     }
 }
@@ -118,7 +125,15 @@ fn cargo_ledger(
             end_tick: 10,
         },
         unit,
-        opening_inventory,
+        opening: OpeningCargoInventory {
+            terminal_id: "dgt".to_owned(),
+            inventory_scope_id: "import-laden-v1".to_owned(),
+            unit,
+            quantity: opening_inventory,
+            measured_tick: 0,
+            observed_tick: 0,
+            source: source("opening-cargo-stock", RightsStatus::ReviewedAllowed),
+        },
         observations,
     }
 }
@@ -528,6 +543,69 @@ fn future_unobserved_bad_record_cannot_invalidate_an_earlier_snapshot() {
     assert_eq!(
         audit_vessel_queue(&ledger, 10),
         Err(LedgerError::TerminalMismatch("future-event".to_owned()))
+    );
+}
+
+#[test]
+fn opening_vessel_queue_requires_matching_scope_and_window_start_measurement() {
+    let mut wrong_terminal = vessel_ledger(2, Vec::new());
+    wrong_terminal.opening.terminal_id = "pier-1".to_owned();
+    assert_eq!(
+        audit_vessel_queue(&wrong_terminal, 5),
+        Err(LedgerError::OpeningStockScopeMismatch(
+            "dgt-vessel-queue".to_owned()
+        ))
+    );
+
+    let mut wrong_time = vessel_ledger(2, Vec::new());
+    wrong_time.opening.measured_tick = 1;
+    assert_eq!(
+        audit_vessel_queue(&wrong_time, 5),
+        Err(LedgerError::OpeningStockTimeMismatch(
+            "dgt-vessel-queue".to_owned()
+        ))
+    );
+}
+
+#[test]
+fn opening_cargo_stock_requires_matching_inventory_scope_and_unit() {
+    let mut wrong_scope = cargo_ledger(10, CargoUnit::Teu, Vec::new());
+    wrong_scope.opening.inventory_scope_id = "export-empty-v1".to_owned();
+    assert_eq!(
+        audit_cargo_inventory(&wrong_scope, 5),
+        Err(LedgerError::OpeningStockScopeMismatch(
+            "import-laden-v1".to_owned()
+        ))
+    );
+
+    let mut wrong_unit = cargo_ledger(10, CargoUnit::Teu, Vec::new());
+    wrong_unit.opening.unit = CargoUnit::PhysicalContainers;
+    assert_eq!(
+        audit_cargo_inventory(&wrong_unit, 5),
+        Err(LedgerError::OpeningStockScopeMismatch(
+            "import-laden-v1".to_owned()
+        ))
+    );
+}
+
+#[test]
+fn opening_stock_source_must_be_rights_reviewed_and_known_at_the_cutoff() {
+    let mut unknown_rights = vessel_ledger(1, Vec::new());
+    unknown_rights.opening.source.rights_status = RightsStatus::Unknown;
+    assert_eq!(
+        audit_vessel_queue(&unknown_rights, 5),
+        Err(LedgerError::RightsUnknown(
+            "opening-vessel-stock".to_owned()
+        ))
+    );
+
+    let mut late_observation = cargo_ledger(10, CargoUnit::Teu, Vec::new());
+    late_observation.opening.observed_tick = 6;
+    assert_eq!(
+        audit_cargo_inventory(&late_observation, 5),
+        Err(LedgerError::OpeningStockNotObservedAtCutoff(
+            "import-laden-v1".to_owned()
+        ))
     );
 }
 
