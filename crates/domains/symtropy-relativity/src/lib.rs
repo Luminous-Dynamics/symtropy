@@ -260,11 +260,12 @@ impl KerrBlackHole {
             / (2.0 * rg * r_plus)
     }
 
-    /// Reference frequency in Hz for a proposed direct-wave component whose
-    /// angular frequency is 2 Omega_H. This is a theory-derived reference,
-    /// not a waveform prediction or a measured frequency.
+    /// Positive reference frequency in Hz for a proposed direct-wave
+    /// component whose angular-frequency magnitude is 2*|Omega_H|.
+    /// The signed horizon angular velocity remains available separately.
+    /// This is a theory-derived reference, not a waveform or measurement.
     pub fn direct_wave_reference_frequency_hz(self) -> f64 {
-        self.horizon_angular_velocity_rad_s() / core::f64::consts::PI
+        self.horizon_angular_velocity_rad_s().abs() / core::f64::consts::PI
     }
 
     /// Inner Boyer-Lindquist horizon radius in metres.
