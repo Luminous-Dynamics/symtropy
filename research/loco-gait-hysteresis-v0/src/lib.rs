@@ -743,4 +743,5 @@ mod tests {
             measure_latency_induced_hysteresis(&samples, f64::NAN),
             Err(TransitionError::InvalidSpeedThreshold)
         );
-    }}
+    }
+}
