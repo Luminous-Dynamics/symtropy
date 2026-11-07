@@ -175,7 +175,7 @@ fn evaluate(case: &Case) -> (String, Vec<String>) {
     }
 
     for (element_id, requirement) in &requirements {
-        let Some(observation) = observations.get(element_id) else {
+        let Some(observation) = observations.get(*element_id) else {
             return decision("PARTIAL_WITH_UNKNOWN", "REQUIRED_ELEMENT_NOT_OBSERVED");
         };
         if observation.class != requirement.class {
@@ -204,17 +204,26 @@ fn evaluate(case: &Case) -> (String, Vec<String>) {
                 "UNCERTAINTY_INTERVAL_CROSSES_DECISION_TOLERANCE",
             );
         }
-        if lower > requirement.tolerance_mm
-            && candidate.delta.operation != "modify"
-        {
-            return decision("REAL_CHANGE_CANDIDATE", "GEOMETRY_OUTSIDE_TOLERANCE");
+        if lower > requirement.tolerance_mm {
+            if candidate.delta.operation != "modify" {
+                return decision("REAL_CHANGE_CANDIDATE", "GEOMETRY_OUTSIDE_TOLERANCE");
+            }
+            if !candidate.delta.target_ids.iter().any(|target| target == element_id) {
+                return decision(
+                    "REAL_CHANGE_CANDIDATE",
+                    "CHANGE_NOT_INCLUDED_IN_PROPOSED_DELTA",
+                );
+            }
         }
     }
 
-    let required_edges: BTreeSet<&TopologyEdge> =
-        reference.required_topology.iter().collect();
-    let candidate_edges: BTreeSet<&TopologyEdge> =
-        candidate.topology.iter().collect();
+    let required_edges: BTreeSet<TopologyEdge> =
+        reference.required_topology.iter().cloned().collect();
+    let candidate_edges: BTreeSet<TopologyEdge> =
+        candidate.topology.iter().cloned().collect();
+    if candidate_edges.len() != candidate.topology.len() {
+        return decision("REJECTED_TOPOLOGY", "DUPLICATE_TOPOLOGY_EDGE");
+    }
     if required_edges.iter().any(|edge| !candidate_edges.contains(edge)) {
         return decision("REJECTED_TOPOLOGY", "REQUIRED_TOPOLOGY_EDGE_MISSING");
     }
