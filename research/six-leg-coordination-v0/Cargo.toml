@@ -1,0 +1,9 @@
+[package]
+name = "six-leg-coordination"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Synthetic six-leg coordination under rhythm and sensorimotor perturbation"
+
+[workspace]
