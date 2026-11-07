@@ -265,9 +265,19 @@ def validate_energy_balance(balance: dict[str, Any]) -> None:
     margin = float(store["usable_energy_end_j"]) - float(store["reserve_required_j"])
     close(margin, float(store["reserve_margin_j"]), f"{balance['phase_id']}.reserve_margin")
     require(margin >= 0.0, f"{balance['phase_id']}: reserve requirement not met")
+    close(
+        float(balance["continuous_source_power_w"]),
+        float(bus["source_energy_j"]) / float(balance["duration_s"]),
+        f"{balance['phase_id']}.continuous_source_power_w",
+    )
     require(
-        float(balance["peak_source_power_w"]) <= float(balance["continuous_source_power_limit_w"]),
-        f"{balance['phase_id']}: peak source power exceeds declared continuous limit",
+        float(balance["peak_source_power_w"]) <= float(balance["peak_source_power_limit_w"]),
+        f"{balance['phase_id']}: peak source power exceeds declared peak limit",
+    )
+    require(
+        float(balance["continuous_source_power_w"])
+        <= float(balance["continuous_source_power_limit_w"]),
+        f"{balance['phase_id']}: continuous source power exceeds declared continuous limit",
     )
 
 
@@ -323,7 +333,11 @@ def main() -> int:
         )
         expect_rejected(
             "over_limit_peak_power",
-            lambda d: d["phase_energy_balances"][0].update(peak_source_power_w=110_000),
+            lambda d: d["phase_energy_balances"][0].update(peak_source_power_w=120_000),
+        )
+        expect_rejected(
+            "over_limit_continuous_power",
+            lambda d: d["phase_energy_balances"][0].update(continuous_source_power_limit_w=20_000),
         )
         def mutate_fuel_gain(d: dict[str, Any]) -> None:
             cruise_state = d["phase_states"][2]
