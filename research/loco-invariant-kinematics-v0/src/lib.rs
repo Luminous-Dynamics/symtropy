@@ -109,8 +109,7 @@ fn validate_trial(trial: &KinematicTrial) -> Result<(), KinematicError> {
         if spec.id.trim().is_empty() {
             return Err(KinematicError::EmptyIdentifier);
         }
-        if !spec.proximal_coordinate.is_finite()
-            || !(0.0..=1.0).contains(&spec.proximal_coordinate)
+        if !spec.proximal_coordinate.is_finite() || !(0.0..=1.0).contains(&spec.proximal_coordinate)
         {
             return Err(KinematicError::InvalidProximalCoordinate);
         }
@@ -435,14 +434,35 @@ mod tests {
             body_length_metres: 1.0,
             cycle_duration_seconds: 2.0,
             channel_specs: vec![
-                ChannelSpec { id: "d".to_owned(), quantity: Quantity::SegmentDisplacementMetres, proximal_coordinate: 0.0 },
-                ChannelSpec { id: "m".to_owned(), quantity: Quantity::SegmentDisplacementMetres, proximal_coordinate: 0.5 },
-                ChannelSpec { id: "p".to_owned(), quantity: Quantity::SegmentDisplacementMetres, proximal_coordinate: 1.0 },
+                ChannelSpec {
+                    id: "d".to_owned(),
+                    quantity: Quantity::SegmentDisplacementMetres,
+                    proximal_coordinate: 0.0,
+                },
+                ChannelSpec {
+                    id: "m".to_owned(),
+                    quantity: Quantity::SegmentDisplacementMetres,
+                    proximal_coordinate: 0.5,
+                },
+                ChannelSpec {
+                    id: "p".to_owned(),
+                    quantity: Quantity::SegmentDisplacementMetres,
+                    proximal_coordinate: 1.0,
+                },
             ],
             observations: vec![
-                ChannelObservation { channel_id: "d".to_owned(), samples: samples(2.0, 2.0) },
-                ChannelObservation { channel_id: "m".to_owned(), samples: samples(2.0, 4.0) },
-                ChannelObservation { channel_id: "p".to_owned(), samples: samples(2.0, 6.0) },
+                ChannelObservation {
+                    channel_id: "d".to_owned(),
+                    samples: samples(2.0, 2.0),
+                },
+                ChannelObservation {
+                    channel_id: "m".to_owned(),
+                    samples: samples(2.0, 4.0),
+                },
+                ChannelObservation {
+                    channel_id: "p".to_owned(),
+                    samples: samples(2.0, 6.0),
+                },
             ],
         };
         let mut scaled = base.clone();
@@ -472,13 +492,28 @@ mod tests {
                 ChannelObservation {
                     channel_id: "distal".to_owned(),
                     samples: Some(vec![
-                        TimeSample { timestamp_seconds: 0.0, value: 0.0 },
-                        TimeSample { timestamp_seconds: 0.25, value: 0.5 },
-                        TimeSample { timestamp_seconds: 2.0, value: 4.0 },
+                        TimeSample {
+                            timestamp_seconds: 0.0,
+                            value: 0.0,
+                        },
+                        TimeSample {
+                            timestamp_seconds: 0.25,
+                            value: 0.5,
+                        },
+                        TimeSample {
+                            timestamp_seconds: 2.0,
+                            value: 4.0,
+                        },
                     ]),
                 },
-                ChannelObservation { channel_id: "middle".to_owned(), samples: samples(2.0, 4.0) },
-                ChannelObservation { channel_id: "proximal".to_owned(), samples: samples(2.0, 6.0) },
+                ChannelObservation {
+                    channel_id: "middle".to_owned(),
+                    samples: samples(2.0, 4.0),
+                },
+                ChannelObservation {
+                    channel_id: "proximal".to_owned(),
+                    samples: samples(2.0, 6.0),
+                },
             ],
         );
         let profile = normalized_velocity_profile(&trial).unwrap();
@@ -490,13 +525,23 @@ mod tests {
         let mut trial = angular_trial(
             1.0,
             vec![
-                ChannelObservation { channel_id: "distal".to_owned(), samples: samples(1.0, 1.0) },
-                ChannelObservation { channel_id: "middle".to_owned(), samples: samples(1.0, 2.0) },
-                ChannelObservation { channel_id: "proximal".to_owned(), samples: samples(1.0, 3.0) },
+                ChannelObservation {
+                    channel_id: "distal".to_owned(),
+                    samples: samples(1.0, 1.0),
+                },
+                ChannelObservation {
+                    channel_id: "middle".to_owned(),
+                    samples: samples(1.0, 2.0),
+                },
+                ChannelObservation {
+                    channel_id: "proximal".to_owned(),
+                    samples: samples(1.0, 3.0),
+                },
             ],
         );
         let profile = normalized_velocity_profile(&trial).unwrap();
-        let estimate = estimate_distal_proximal_gradient(&profile, Quantity::JointAngleRadians).unwrap();
+        let estimate =
+            estimate_distal_proximal_gradient(&profile, Quantity::JointAngleRadians).unwrap();
         assert!((estimate.slope - 2.0).abs() < 1.0e-12);
         assert!((estimate.intercept - 1.0).abs() < 1.0e-12);
         assert!((estimate.r_squared - 1.0).abs() < 1.0e-12);
@@ -515,12 +560,33 @@ mod tests {
     #[test]
     fn quantity_families_are_scored_separately() {
         let profile = vec![
-            NormalizedVelocity { channel_id: "a".to_owned(), quantity: Quantity::JointAngleRadians, proximal_coordinate: 0.0, value: Some(1.0) },
-            NormalizedVelocity { channel_id: "b".to_owned(), quantity: Quantity::SegmentDisplacementMetres, proximal_coordinate: 0.5, value: Some(50.0) },
-            NormalizedVelocity { channel_id: "c".to_owned(), quantity: Quantity::JointAngleRadians, proximal_coordinate: 0.5, value: Some(2.0) },
-            NormalizedVelocity { channel_id: "d".to_owned(), quantity: Quantity::JointAngleRadians, proximal_coordinate: 1.0, value: Some(3.0) },
+            NormalizedVelocity {
+                channel_id: "a".to_owned(),
+                quantity: Quantity::JointAngleRadians,
+                proximal_coordinate: 0.0,
+                value: Some(1.0),
+            },
+            NormalizedVelocity {
+                channel_id: "b".to_owned(),
+                quantity: Quantity::SegmentDisplacementMetres,
+                proximal_coordinate: 0.5,
+                value: Some(50.0),
+            },
+            NormalizedVelocity {
+                channel_id: "c".to_owned(),
+                quantity: Quantity::JointAngleRadians,
+                proximal_coordinate: 0.5,
+                value: Some(2.0),
+            },
+            NormalizedVelocity {
+                channel_id: "d".to_owned(),
+                quantity: Quantity::JointAngleRadians,
+                proximal_coordinate: 1.0,
+                value: Some(3.0),
+            },
         ];
-        let estimate = estimate_distal_proximal_gradient(&profile, Quantity::JointAngleRadians).unwrap();
+        let estimate =
+            estimate_distal_proximal_gradient(&profile, Quantity::JointAngleRadians).unwrap();
         assert_eq!(estimate.channels_used, 3);
         assert!((estimate.slope - 2.0).abs() < 1.0e-12);
     }
@@ -530,9 +596,18 @@ mod tests {
         let trial = angular_trial(
             1.0,
             vec![
-                ChannelObservation { channel_id: "distal".to_owned(), samples: samples(1.0, 1.0) },
-                ChannelObservation { channel_id: "middle".to_owned(), samples: None },
-                ChannelObservation { channel_id: "proximal".to_owned(), samples: samples(1.0, 3.0) },
+                ChannelObservation {
+                    channel_id: "distal".to_owned(),
+                    samples: samples(1.0, 1.0),
+                },
+                ChannelObservation {
+                    channel_id: "middle".to_owned(),
+                    samples: None,
+                },
+                ChannelObservation {
+                    channel_id: "proximal".to_owned(),
+                    samples: samples(1.0, 3.0),
+                },
             ],
         );
         let profile = normalized_velocity_profile(&trial).unwrap();
@@ -548,15 +623,30 @@ mod tests {
                 ChannelObservation {
                     channel_id: "distal".to_owned(),
                     samples: Some(vec![
-                        TimeSample { timestamp_seconds: 0.0, value: 0.0 },
-                        TimeSample { timestamp_seconds: 0.0, value: 1.0 },
+                        TimeSample {
+                            timestamp_seconds: 0.0,
+                            value: 0.0,
+                        },
+                        TimeSample {
+                            timestamp_seconds: 0.0,
+                            value: 1.0,
+                        },
                     ]),
                 },
-                ChannelObservation { channel_id: "middle".to_owned(), samples: samples(1.0, 1.0) },
-                ChannelObservation { channel_id: "proximal".to_owned(), samples: samples(1.0, 1.0) },
+                ChannelObservation {
+                    channel_id: "middle".to_owned(),
+                    samples: samples(1.0, 1.0),
+                },
+                ChannelObservation {
+                    channel_id: "proximal".to_owned(),
+                    samples: samples(1.0, 1.0),
+                },
             ],
         );
-        assert_eq!(normalized_velocity_profile(&trial), Err(KinematicError::NonMonotonicTimestamp));
+        assert_eq!(
+            normalized_velocity_profile(&trial),
+            Err(KinematicError::NonMonotonicTimestamp)
+        );
     }
 
     #[test]
@@ -564,13 +654,25 @@ mod tests {
         let mut trial = angular_trial(
             1.0,
             vec![
-                ChannelObservation { channel_id: "distal".to_owned(), samples: samples(1.0, 1.0) },
-                ChannelObservation { channel_id: "middle".to_owned(), samples: samples(1.0, 2.0) },
-                ChannelObservation { channel_id: "proximal".to_owned(), samples: samples(1.0, 3.0) },
+                ChannelObservation {
+                    channel_id: "distal".to_owned(),
+                    samples: samples(1.0, 1.0),
+                },
+                ChannelObservation {
+                    channel_id: "middle".to_owned(),
+                    samples: samples(1.0, 2.0),
+                },
+                ChannelObservation {
+                    channel_id: "proximal".to_owned(),
+                    samples: samples(1.0, 3.0),
+                },
             ],
         );
         trial.channel_specs[1].id = "distal".to_owned();
-        assert_eq!(normalized_velocity_profile(&trial), Err(KinematicError::DuplicateChannelId));
+        assert_eq!(
+            normalized_velocity_profile(&trial),
+            Err(KinematicError::DuplicateChannelId)
+        );
     }
 
     #[test]
@@ -578,12 +680,24 @@ mod tests {
         let mut trial = angular_trial(
             1.0,
             vec![
-                ChannelObservation { channel_id: "distal".to_owned(), samples: samples(1.0, 1.0) },
-                ChannelObservation { channel_id: "middle".to_owned(), samples: samples(1.0, 2.0) },
-                ChannelObservation { channel_id: "proximal".to_owned(), samples: samples(1.0, 3.0) },
+                ChannelObservation {
+                    channel_id: "distal".to_owned(),
+                    samples: samples(1.0, 1.0),
+                },
+                ChannelObservation {
+                    channel_id: "middle".to_owned(),
+                    samples: samples(1.0, 2.0),
+                },
+                ChannelObservation {
+                    channel_id: "proximal".to_owned(),
+                    samples: samples(1.0, 3.0),
+                },
             ],
         );
         trial.observations.pop();
-        assert_eq!(normalized_velocity_profile(&trial), Err(KinematicError::MissingObservationRecord));
+        assert_eq!(
+            normalized_velocity_profile(&trial),
+            Err(KinematicError::MissingObservationRecord)
+        );
     }
 }
