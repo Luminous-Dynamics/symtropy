@@ -130,7 +130,7 @@ impl MassLedger {
 
             let Some(mass_kg) = item.mass_kg else {
                 unknown_mass_item_ids.push(item.id.clone());
-                if matches!(item.geometry, MassGeometry::Unknown) {
+                if matches!(&item.geometry, MassGeometry::Unknown) {
                     unknown_geometry_item_ids.push(item.id.clone());
                 }
                 continue;
@@ -164,8 +164,8 @@ impl MassLedger {
                 }
             };
 
-            for axis in 0..3 {
-                weighted_position[axis] += mass_kg * position_m[axis];
+            for (weighted, coordinate) in weighted_position.iter_mut().zip(position_m) {
+                *weighted += mass_kg * coordinate;
             }
             known.push((item, mass_kg, position_m, local_inertia));
         }
