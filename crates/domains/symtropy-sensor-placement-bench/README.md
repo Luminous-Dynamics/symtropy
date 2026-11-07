@@ -36,3 +36,14 @@ No weighted sum or single winner. The output is a deterministic Pareto set.
 The supplied placement costs are synthetic cost points, not currency, vendor quotes or mine economics. Channel signatures are inherited from the #4005 fixture and are synthetic response intervals. Feasibility therefore demonstrates algorithmic behaviour only, not an actual recommended sensor layout.
 
 Real use requires calibration-domain qualification from #3991, actual lifecycle cost sources, common-mode failure analysis and independently measured fault response envelopes.
+
+
+## Synthetic replay result
+
+The current seven-candidate fixture enumerates all 127 non-empty subsets, finds four feasible layouts and returns two nondominated layouts. Both preserve all 7 declared critical pairs in the nominal matrix and five single-principle outage scenarios; the non-critical OOD pair remains insufficient.
+
+The two synthetic Pareto layouts trade lifecycle cost against service burden:
+- `airflow + blower-current + dp-line + gravimetric-flow + sensor-self-check`: 6,950 synthetic cost points, 12.2 maintenance hours/year, 3.8 planned unavailable hours/year.
+- `airflow + blower-current + ecc-flow + gravimetric-flow + sensor-self-check`: 8,050 synthetic cost points, 11.5 maintenance hours/year, 3.6 planned unavailable hours/year.
+
+Neither dominates the other. This is not a real sensor recommendation: all costs and response envelopes are fabricated, the ECC-like sensor remains a secondary estimator candidate, and the required fault-pair set is synthetic.
