@@ -20,6 +20,20 @@ pub const PAPER_12_PROTOCOL_ID: &str = "HSB-PAPER-12-CF05D330";
 pub const PAPER_12_SOURCE_REPOSITORY: &str = "AISmithLab/HumanStudy-Bench";
 pub const PAPER_12_SOURCE_COMMIT: &str = "cf05d330fc315168c8c8e23b4acd882f91bb7408";
 pub const PAPER_12_SOURCE_ROOT_TREE: &str = "9b56c62406fb6b77d87d5032c3c6906583aca24e";
+pub const PAPER_12_METRIC_CONTRACT_ID: &str = "HSB-PAPER-METRICS-SOURCECODE-CF05D330";
+pub const COMMUNITY_16_METRIC_CONTRACT_ID: &str = "HSB-COMMUNITY-NATIVE-EVALUATOR-B34D214B";
+
+const PAPER_REQUIRED_ARTIFACT_ROLES: &[&str] = &[
+    "paper_full_benchmark",
+    "paper_detailed_stats",
+    "paper_evaluation_results",
+];
+const COMMUNITY_REQUIRED_ARTIFACT_ROLES: &[&str] = &[
+    "community_run_manifest",
+    "community_responses",
+    "community_evaluation",
+    "community_analysis",
+];
 
 /// Exact data/studies/study_NNN Git tree identities at the original paper repository commit.
 pub const PAPER_12_STUDY_PINS: [StudyPin; 12] = [
@@ -79,6 +93,9 @@ struct PinnedProtocol {
     source_commit: &'static str,
     source_root_tree: &'static str,
     study_pins: &'static [StudyPin],
+    metric_contract_id: &'static str,
+    require_official_metrics: bool,
+    required_artifact_roles: &'static [&'static str],
 }
 
 fn pinned_protocol(protocol_id: &str) -> Option<PinnedProtocol> {
@@ -88,12 +105,18 @@ fn pinned_protocol(protocol_id: &str) -> Option<PinnedProtocol> {
             source_commit: SOURCE_COMMIT,
             source_root_tree: SOURCE_ROOT_TREE,
             study_pins: &STUDY_PINS,
+            metric_contract_id: COMMUNITY_16_METRIC_CONTRACT_ID,
+            require_official_metrics: false,
+            required_artifact_roles: COMMUNITY_REQUIRED_ARTIFACT_ROLES,
         }),
         PAPER_12_PROTOCOL_ID => Some(PinnedProtocol {
             source_repository: PAPER_12_SOURCE_REPOSITORY,
             source_commit: PAPER_12_SOURCE_COMMIT,
             source_root_tree: PAPER_12_SOURCE_ROOT_TREE,
             study_pins: &PAPER_12_STUDY_PINS,
+            metric_contract_id: PAPER_12_METRIC_CONTRACT_ID,
+            require_official_metrics: true,
+            required_artifact_roles: PAPER_REQUIRED_ARTIFACT_ROLES,
         }),
         _ => None,
     }
@@ -197,6 +220,8 @@ pub struct EffectEstimate {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ArtifactReceipt {
     pub role: String,
+    /// Path relative to the native run directory; traversal and absolute paths are rejected.
+    pub path: String,
     /// SHA-256 of exact artifact bytes, not a digest of a reconstructed object.
     pub sha256: String,
     pub record_count: u64,
@@ -219,9 +244,9 @@ pub struct StudyReceipt {
     pub prompt_template_sha256: String,
     pub analysis_protocol_preserved: bool,
     /// Official upstream PAS. This crate validates its scale; it does not recalculate it.
-    pub official_pas: f64,
-    /// Official upstream ECS. This crate validates its scale; it does not recalculate it.
-    pub official_ecs: f64,
+    pub official_pas: Option<f64>,
+    /// Official upstream ECS. Community-native runs may not provide this paper metric.
+    pub official_ecs: Option<f64>,
     pub effects: Vec<EffectEstimate>,
     pub artifacts: Vec<ArtifactReceipt>,
 }
@@ -232,9 +257,19 @@ pub struct BenchmarkRunReceipt {
     pub source_repository: String,
     pub source_commit: String,
     pub source_root_tree: String,
+    pub metric_contract_id: String,
     pub run_id: String,
     pub model_id: String,
     pub studies: Vec<StudyReceipt>,
+}
+
+fn is_safe_relative_path(value: &str) -> bool {
+    !value.is_empty()
+        && !value.starts_with('/')
+        && !value.contains('\\')
+        && !value.contains(':')
+        && !value.contains('\0')
+        && value.split('/').all(|part| !part.is_empty() && part != "." && part != "..")
 }
 
 fn is_lower_hex(value: &str, expected_len: usize) -> bool {
@@ -252,7 +287,12 @@ fn check_ci(label: &str, ci: Option<[f64; 2]>, errors: &mut Vec<String>) {
     }
 }
 
-fn validate_study(study: &StudyReceipt, errors: &mut Vec<String>) {
+fn validate_study(
+    study: &StudyReceipt,
+    require_official_metrics: bool,
+    required_roles: &[&str],
+    errors: &mut Vec<String>,
+) {
     if study.participant_count == 0 || study.trial_count == 0 {
         errors.push(format!(
             "{}: participant and trial counts must be positive",
@@ -283,31 +323,41 @@ fn validate_study(study: &StudyReceipt, errors: &mut Vec<String>) {
             study.study_id
         ));
     }
-    if !study.official_pas.is_finite() || !(0.0..=1.0).contains(&study.official_pas) {
-        errors.push(format!(
-            "{}: PAS must be finite and in [0, 1]",
-            study.study_id
-        ));
+
+    match (require_official_metrics, study.official_pas) {
+        (true, None) => errors.push(format!("{}: paper protocol requires official PAS", study.study_id)),
+        (_, Some(value)) if !value.is_finite() || !(0.0..=1.0).contains(&value) => {
+            errors.push(format!("{}: PAS must be finite and in [0, 1]", study.study_id));
+        }
+        _ => {}
     }
-    if !study.official_ecs.is_finite() || !(-1.0..=1.0).contains(&study.official_ecs) {
-        errors.push(format!(
-            "{}: ECS must be finite and in [-1, 1]",
-            study.study_id
-        ));
+    match (require_official_metrics, study.official_ecs) {
+        (true, None) => errors.push(format!("{}: paper protocol requires official ECS", study.study_id)),
+        (_, Some(value)) if !value.is_finite() || !(-1.0..=1.0).contains(&value) => {
+            errors.push(format!("{}: ECS must be finite and in [-1, 1]", study.study_id));
+        }
+        _ => {}
     }
 
-    let required_roles = [
-        "human_reference_aggregate",
-        "simulated_responses",
-        "official_analysis_output",
-        "official_score_output",
-    ];
     let mut roles = BTreeSet::new();
+    let mut paths = BTreeSet::new();
     for artifact in &study.artifacts {
         if artifact.role.trim().is_empty() || !roles.insert(artifact.role.as_str()) {
             errors.push(format!(
                 "{}: artifact roles must be non-empty and unique",
                 study.study_id
+            ));
+        }
+        if !is_safe_relative_path(&artifact.path) {
+            errors.push(format!(
+                "{}: artifact {} has an unsafe or non-relative path",
+                study.study_id, artifact.role
+            ));
+        }
+        if !paths.insert(artifact.path.as_str()) {
+            errors.push(format!(
+                "{}: duplicate artifact path {}",
+                study.study_id, artifact.path
             ));
         }
         if !is_lower_hex(&artifact.sha256, 64) {
@@ -328,13 +378,6 @@ fn validate_study(study: &StudyReceipt, errors: &mut Vec<String>) {
         {
             errors.push(format!(
                 "{}: restricted record-level human data cannot be published",
-                study.study_id
-            ));
-        }
-        if artifact.role == "human_reference_aggregate" && artifact.contains_record_level_human_data
-        {
-            errors.push(format!(
-                "{}: human_reference_aggregate must not contain record-level human data",
                 study.study_id
             ));
         }
@@ -396,6 +439,9 @@ pub fn validate_run(receipt: &BenchmarkRunReceipt) -> Result<(), Vec<String>> {
     if receipt.source_root_tree != profile.source_root_tree {
         errors.push("source_root_tree does not match the selected pinned protocol".to_string());
     }
+    if receipt.metric_contract_id != profile.metric_contract_id {
+        errors.push("metric_contract_id does not match the selected pinned protocol".to_string());
+    }
     if receipt.run_id.trim().is_empty() || receipt.model_id.trim().is_empty() {
         errors.push("run_id and model_id must be non-empty".to_string());
     }
@@ -428,7 +474,12 @@ pub fn validate_run(receipt: &BenchmarkRunReceipt) -> Result<(), Vec<String>> {
                 profile.study_pins.len()
             )),
         }
-        validate_study(study, &mut errors);
+        validate_study(
+            study,
+            profile.require_official_metrics,
+            profile.required_artifact_roles,
+            &mut errors,
+        );
     }
     for pin in profile.study_pins {
         if !seen.contains(pin.study_id) {
@@ -454,6 +505,7 @@ mod tests {
     ) -> ArtifactReceipt {
         ArtifactReceipt {
             role: role.to_string(),
+            path: format!("artifacts/{role}.json"),
             sha256: "a".repeat(64),
             record_count: 120,
             contains_record_level_human_data: record_level,
@@ -474,8 +526,8 @@ mod tests {
             agent_config_sha256: "c".repeat(64),
             prompt_template_sha256: "d".repeat(64),
             analysis_protocol_preserved: true,
-            official_pas: 0.5,
-            official_ecs: 0.0,
+            official_pas: Some(0.5),
+            official_ecs: Some(0.0),
             effects: vec![EffectEstimate {
                 finding_id: "finding_1".to_string(),
                 test_id: "test_1".to_string(),
@@ -487,10 +539,10 @@ mod tests {
                 simulated_ci95: Some([0.08, 0.68]),
             }],
             artifacts: vec![
-                artifact("human_reference_aggregate", false, true, true),
-                artifact("simulated_responses", false, true, true),
-                artifact("official_analysis_output", false, true, true),
-                artifact("official_score_output", false, true, true),
+                artifact("community_run_manifest", false, true, true),
+                artifact("community_responses", false, true, true),
+                artifact("community_evaluation", false, true, true),
+                artifact("community_analysis", false, true, true),
             ],
         }
     }
@@ -501,6 +553,7 @@ mod tests {
             source_repository: SOURCE_REPOSITORY.to_string(),
             source_commit: SOURCE_COMMIT.to_string(),
             source_root_tree: SOURCE_ROOT_TREE.to_string(),
+            metric_contract_id: COMMUNITY_16_METRIC_CONTRACT_ID.to_string(),
             run_id: "synthetic-conformance-only".to_string(),
             model_id: "synthetic-reference-not-a-model".to_string(),
             studies: STUDY_PINS.iter().copied().map(study).collect(),
@@ -528,6 +581,7 @@ mod tests {
             source_repository: PAPER_12_SOURCE_REPOSITORY.to_string(),
             source_commit: PAPER_12_SOURCE_COMMIT.to_string(),
             source_root_tree: PAPER_12_SOURCE_ROOT_TREE.to_string(),
+            metric_contract_id: PAPER_12_METRIC_CONTRACT_ID.to_string(),
             run_id: "synthetic-paper-12-conformance".to_string(),
             model_id: "synthetic-reference-not-a-model".to_string(),
             studies: PAPER_12_STUDY_PINS.iter().copied().map(study).collect(),
@@ -539,6 +593,56 @@ mod tests {
     fn community_sixteen_profile_rejects_paper_only_receipt() {
         let mut receipt = valid_run();
         receipt.studies = PAPER_12_STUDY_PINS.iter().copied().map(study).collect();
+        assert!(validate_run(&receipt).is_err());
+    }
+
+    fn paper_valid_run() -> BenchmarkRunReceipt {
+        BenchmarkRunReceipt {
+            protocol_id: PAPER_12_PROTOCOL_ID.to_string(),
+            source_repository: PAPER_12_SOURCE_REPOSITORY.to_string(),
+            source_commit: PAPER_12_SOURCE_COMMIT.to_string(),
+            source_root_tree: PAPER_12_SOURCE_ROOT_TREE.to_string(),
+            metric_contract_id: PAPER_12_METRIC_CONTRACT_ID.to_string(),
+            run_id: "synthetic-paper-12-conformance".to_string(),
+            model_id: "synthetic-reference-not-a-model".to_string(),
+            studies: PAPER_12_STUDY_PINS
+                .iter()
+                .copied()
+                .map(|pin| {
+                    let mut study = study(pin);
+                    study.artifacts = vec![
+                        artifact("paper_full_benchmark", false, true, true),
+                        artifact("paper_detailed_stats", false, true, true),
+                        artifact("paper_evaluation_results", false, true, true),
+                    ];
+                    study
+                })
+                .collect(),
+        }
+    }
+
+    #[test]
+    fn community_protocol_allows_missing_paper_pas_and_ecs() {
+        let mut receipt = valid_run();
+        receipt.studies[0].official_pas = None;
+        receipt.studies[0].official_ecs = None;
+        assert!(validate_run(&receipt).is_ok());
+    }
+
+    #[test]
+    fn paper_protocol_rejects_missing_official_pas_or_ecs() {
+        let mut receipt = paper_valid_run();
+        receipt.studies[0].official_pas = None;
+        assert!(validate_run(&receipt).is_err());
+        let mut receipt = paper_valid_run();
+        receipt.studies[0].official_ecs = None;
+        assert!(validate_run(&receipt).is_err());
+    }
+
+    #[test]
+    fn artifact_path_traversal_fails_closed() {
+        let mut receipt = valid_run();
+        receipt.studies[0].artifacts[0].path = "../private.json".to_string();
         assert!(validate_run(&receipt).is_err());
     }
 
@@ -564,7 +668,7 @@ mod tests {
     #[test]
     fn score_outside_upstream_scale_fails_closed() {
         let mut receipt = valid_run();
-        receipt.studies[0].official_pas = 1.01;
+        receipt.studies[0].official_pas = Some(1.01);
         assert!(validate_run(&receipt).is_err());
     }
 
