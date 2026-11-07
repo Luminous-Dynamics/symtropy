@@ -30,7 +30,8 @@ impl MetricComponents4 {
             for j in (i + 1)..4 {
                 let a = covariant[i][j];
                 let b = covariant[j][i];
-                let tol = 64.0 * f64::EPSILON * a.abs().max(b.abs()).max(1.0);
+                let scale = a.abs().max(b.abs()).max(f64::MIN_POSITIVE);
+                let tol = 64.0 * f64::EPSILON * scale;
                 if (a - b).abs() > tol {
                     return Err(MetricError::AsymmetricComponents { row: i, column: j });
                 }
