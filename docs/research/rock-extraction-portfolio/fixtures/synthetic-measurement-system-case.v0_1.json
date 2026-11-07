@@ -1,0 +1,705 @@
+{
+  "schema_version": 1,
+  "case_id": "SYNTHETIC-MEASUREMENT-SYSTEM-001",
+  "evidence_class": "SYNTHETIC_CONFORMANCE_FIXTURE",
+  "parent_context": {
+    "parent_case_id": "SYNTHETIC-FRAGMENT-TRANSPORT-001",
+    "parent_interval_id": "WINDOW-001",
+    "trial_id": "TRIAL-001",
+    "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+    "machine_configuration_ref": "machine:synthetic-undercutter-r2",
+    "transport_configuration_ref": "transport:installed-205m-hose-r3",
+    "clock_sync_protocol_ref": "clock:ptp-sync-v1"
+  },
+  "timebase": {
+    "timebase_channel_id": "daq-timebase",
+    "clock_sync_ref": "clock:pilot-001",
+    "sync_protocol_ref": "clock-protocol:ptp-test-v1",
+    "latency_validation_ref": "artifact:channel-latency-validation",
+    "time_uncertainty_ms": 2
+  },
+  "channels": [
+    {
+      "channel_id": "gravimetric-discharge",
+      "role": "PRIMARY_REFERENCE",
+      "measurand": "DRY_SOLID_MASS_FLOW",
+      "technique": "GRAVIMETRIC_CATCH_AND_WEIGH",
+      "station_id": "station:accepted-discharge",
+      "unit": "kg/s",
+      "instrument_ref": "instrument:reference-scale-01",
+      "manufacturer_ref": "manufacturer:synthetic",
+      "model_ref": "model:scale-01",
+      "serial_ref": "serial:scale-01",
+      "source_artifact_ref": "artifact:scale-raw-001",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-pipe-205m-bends-v1",
+        "environment_profile_ref": "environment:synthetic-lab-ambient-v1"
+      }
+    },
+    {
+      "channel_id": "ecc-flow-estimator",
+      "role": "SECONDARY_ESTIMATOR",
+      "measurand": "DRY_SOLID_MASS_FLOW",
+      "technique": "ELECTROSTATIC_COUPLED_CAPACITANCE",
+      "station_id": "station:conveyance-outlet",
+      "unit": "kg/s",
+      "instrument_ref": "instrument:ecc-01",
+      "manufacturer_ref": "manufacturer:synthetic",
+      "model_ref": "model:ecc-01",
+      "serial_ref": "serial:ecc-01",
+      "source_artifact_ref": "artifact:ecc-raw-001",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-pipe-205m-bends-v1",
+        "environment_profile_ref": "environment:synthetic-lab-ambient-v1"
+      }
+    },
+    {
+      "channel_id": "line-dp",
+      "role": "DIAGNOSTIC_SENSOR",
+      "measurand": "DIFFERENTIAL_PRESSURE",
+      "technique": "PRESSURE_TRANSDUCER",
+      "station_id": "station:conveyance-outlet",
+      "unit": "kPa",
+      "instrument_ref": "instrument:dp-01",
+      "manufacturer_ref": "manufacturer:synthetic",
+      "model_ref": "model:dp-01",
+      "serial_ref": "serial:dp-01",
+      "source_artifact_ref": "artifact:dp-raw-001",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-pipe-205m-bends-v1",
+        "environment_profile_ref": "environment:synthetic-lab-ambient-v1"
+      }
+    },
+    {
+      "channel_id": "blower-current",
+      "role": "DIAGNOSTIC_SENSOR",
+      "measurand": "CURRENT",
+      "technique": "CURRENT_TRANSDUCER",
+      "station_id": "station:blower-vfd",
+      "unit": "A",
+      "instrument_ref": "instrument:current-01",
+      "manufacturer_ref": "manufacturer:synthetic",
+      "model_ref": "model:current-01",
+      "serial_ref": "serial:current-01",
+      "source_artifact_ref": "artifact:current-raw-001",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-pipe-205m-bends-v1",
+        "environment_profile_ref": "environment:synthetic-lab-ambient-v1"
+      }
+    },
+    {
+      "channel_id": "dynamic-psd",
+      "role": "PARTICLE_CHARACTERIZATION",
+      "measurand": "PARTICLE_SIZE_DISTRIBUTION",
+      "technique": "DYNAMIC_IMAGE_ANALYSIS",
+      "station_id": "station:accepted-discharge",
+      "unit": "mm",
+      "instrument_ref": "instrument:dia-01",
+      "manufacturer_ref": "manufacturer:synthetic",
+      "model_ref": "model:dia-01",
+      "serial_ref": "serial:dia-01",
+      "source_artifact_ref": "artifact:dia-images-001",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-pipe-205m-bends-v1",
+        "environment_profile_ref": "environment:synthetic-lab-ambient-v1"
+      }
+    },
+    {
+      "channel_id": "daq-timebase",
+      "role": "TIMEBASE",
+      "measurand": "TIME",
+      "technique": "DAQ_TIMEBASE",
+      "station_id": "station:daq-cabinet",
+      "unit": "ms",
+      "instrument_ref": "instrument:daq-clock-01",
+      "manufacturer_ref": "manufacturer:synthetic",
+      "model_ref": "model:daq-clock-01",
+      "serial_ref": "serial:daq-clock-01",
+      "source_artifact_ref": "artifact:clock-log-001",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-pipe-205m-bends-v1",
+        "environment_profile_ref": "environment:synthetic-lab-ambient-v1"
+      }
+    }
+  ],
+  "calibrations": [
+    {
+      "calibration_id": "cal-gravimetric-discharge-v1",
+      "channel_id": "gravimetric-discharge",
+      "status": "VALID",
+      "certificate_ref": "certificate:gravimetric-discharge-synthetic-v1",
+      "issuing_laboratory_ref": "lab:synthetic-test-lab",
+      "accreditation_scope_ref": "scope:synthetic-method-only",
+      "method_ref": "method:GRAVIMETRIC_CATCH_AND_WEIGH-cal-v1",
+      "traceability_chain_ref": "traceability:synthetic-si-chain",
+      "valid_from": "2026-10-01",
+      "valid_until": "2027-10-01",
+      "as_found_status": "PASS",
+      "as_left_status": "PASS",
+      "range_lower": 0,
+      "range_upper": 10,
+      "unit": "kg/s",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-pipe-205m-bends-v1",
+        "environment_profile_ref": "environment:synthetic-lab-ambient-v1"
+      },
+      "source_artifact_ref": "artifact:gravimetric-discharge-cal-certificate"
+    },
+    {
+      "calibration_id": "cal-ecc-flow-estimator-v1",
+      "channel_id": "ecc-flow-estimator",
+      "status": "VALID",
+      "certificate_ref": "certificate:ecc-flow-estimator-synthetic-v1",
+      "issuing_laboratory_ref": "lab:synthetic-test-lab",
+      "accreditation_scope_ref": "scope:synthetic-method-only",
+      "method_ref": "method:ELECTROSTATIC_COUPLED_CAPACITANCE-cal-v1",
+      "traceability_chain_ref": "traceability:synthetic-si-chain",
+      "valid_from": "2026-10-01",
+      "valid_until": "2027-10-01",
+      "as_found_status": "PASS",
+      "as_left_status": "PASS",
+      "range_lower": 0,
+      "range_upper": 100,
+      "unit": "kg/s",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-pipe-205m-bends-v1",
+        "environment_profile_ref": "environment:synthetic-lab-ambient-v1"
+      },
+      "source_artifact_ref": "artifact:ecc-flow-estimator-cal-certificate"
+    },
+    {
+      "calibration_id": "cal-line-dp-v1",
+      "channel_id": "line-dp",
+      "status": "VALID",
+      "certificate_ref": "certificate:line-dp-synthetic-v1",
+      "issuing_laboratory_ref": "lab:synthetic-test-lab",
+      "accreditation_scope_ref": "scope:synthetic-method-only",
+      "method_ref": "method:PRESSURE_TRANSDUCER-cal-v1",
+      "traceability_chain_ref": "traceability:synthetic-si-chain",
+      "valid_from": "2026-10-01",
+      "valid_until": "2027-10-01",
+      "as_found_status": "PASS",
+      "as_left_status": "PASS",
+      "range_lower": 0,
+      "range_upper": 100,
+      "unit": "kPa",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-pipe-205m-bends-v1",
+        "environment_profile_ref": "environment:synthetic-lab-ambient-v1"
+      },
+      "source_artifact_ref": "artifact:line-dp-cal-certificate"
+    },
+    {
+      "calibration_id": "cal-blower-current-v1",
+      "channel_id": "blower-current",
+      "status": "VALID",
+      "certificate_ref": "certificate:blower-current-synthetic-v1",
+      "issuing_laboratory_ref": "lab:synthetic-test-lab",
+      "accreditation_scope_ref": "scope:synthetic-method-only",
+      "method_ref": "method:CURRENT_TRANSDUCER-cal-v1",
+      "traceability_chain_ref": "traceability:synthetic-si-chain",
+      "valid_from": "2026-10-01",
+      "valid_until": "2027-10-01",
+      "as_found_status": "PASS",
+      "as_left_status": "PASS",
+      "range_lower": 0,
+      "range_upper": 100,
+      "unit": "A",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-pipe-205m-bends-v1",
+        "environment_profile_ref": "environment:synthetic-lab-ambient-v1"
+      },
+      "source_artifact_ref": "artifact:blower-current-cal-certificate"
+    },
+    {
+      "calibration_id": "cal-dynamic-psd-v1",
+      "channel_id": "dynamic-psd",
+      "status": "VALID",
+      "certificate_ref": "certificate:dynamic-psd-synthetic-v1",
+      "issuing_laboratory_ref": "lab:synthetic-test-lab",
+      "accreditation_scope_ref": "scope:synthetic-method-only",
+      "method_ref": "method:DYNAMIC_IMAGE_ANALYSIS-cal-v1",
+      "traceability_chain_ref": "traceability:synthetic-si-chain",
+      "valid_from": "2026-10-01",
+      "valid_until": "2027-10-01",
+      "as_found_status": "PASS",
+      "as_left_status": "PASS",
+      "range_lower": 0,
+      "range_upper": 100,
+      "unit": "mm",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-pipe-205m-bends-v1",
+        "environment_profile_ref": "environment:synthetic-lab-ambient-v1"
+      },
+      "source_artifact_ref": "artifact:dynamic-psd-cal-certificate"
+    },
+    {
+      "calibration_id": "cal-daq-timebase-v1",
+      "channel_id": "daq-timebase",
+      "status": "VALID",
+      "certificate_ref": "certificate:daq-timebase-synthetic-v1",
+      "issuing_laboratory_ref": "lab:synthetic-test-lab",
+      "accreditation_scope_ref": "scope:synthetic-method-only",
+      "method_ref": "method:DAQ_TIMEBASE-cal-v1",
+      "traceability_chain_ref": "traceability:synthetic-si-chain",
+      "valid_from": "2026-10-01",
+      "valid_until": "2027-10-01",
+      "as_found_status": "PASS",
+      "as_left_status": "PASS",
+      "range_lower": 0,
+      "range_upper": 100,
+      "unit": "ms",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-pipe-205m-bends-v1",
+        "environment_profile_ref": "environment:synthetic-lab-ambient-v1"
+      },
+      "source_artifact_ref": "artifact:daq-timebase-cal-certificate"
+    }
+  ],
+  "measurement_records": [
+    {
+      "measurement_id": "measurement-gravimetric-discharge-001",
+      "channel_id": "gravimetric-discharge",
+      "station_id": "station:accepted-discharge",
+      "calibration_id": "cal-gravimetric-discharge-v1",
+      "measurement_date": "2026-11-06",
+      "measurement_window_ref": "window:pilot-001",
+      "window_start_ms": 1000000,
+      "window_end_ms": 1060000,
+      "timebase_channel_id": "daq-timebase",
+      "clock_sync_ref": "clock:pilot-001",
+      "latency_ms": 2,
+      "time_uncertainty_ms": 2,
+      "value": 1.19,
+      "unit": "kg/s",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-pipe-205m-bends-v1",
+        "environment_profile_ref": "environment:synthetic-lab-ambient-v1"
+      },
+      "evidence_role": "PRIMARY_REFERENCE",
+      "sample_protocol_ref": null,
+      "sample_lineage_ref": null,
+      "source_artifact_ref": "artifact:gravimetric-discharge-measurement-001",
+      "measurement_model": {
+        "mapping_kind": "DIRECT",
+        "linearity": "LINEAR",
+        "equation_ref": "equation:GRAVIMETRIC_CATCH_AND_WEIGH-direct-v1",
+        "model_digest_ref": "digest:gravimetric-discharge-measurement-model-v1",
+        "calibration_domain_ref": "domain:gravimetric-discharge-declared-domain"
+      },
+      "uncertainty": {
+        "method": "LINEARIZED_GUM",
+        "model_linearity": "LINEAR",
+        "component_set_ref": "component-set:gravimetric-discharge-v1",
+        "components": [
+          {
+            "component_id": "gravimetric-discharge-repeatability",
+            "uncertainty_type": "TYPE_A_REPEATABILITY",
+            "standard_uncertainty": 0.01,
+            "sensitivity_coefficient": 1,
+            "unit": "kg/s",
+            "distribution": "NORMAL",
+            "correlation_group_ref": null,
+            "source_ref": "source:gravimetric-discharge-repeat-study"
+          },
+          {
+            "component_id": "gravimetric-discharge-calibration",
+            "uncertainty_type": "TYPE_B_CALIBRATION",
+            "standard_uncertainty": 0.015,
+            "sensitivity_coefficient": 1,
+            "unit": "kg/s",
+            "distribution": "RECTANGULAR",
+            "correlation_group_ref": null,
+            "source_ref": "source:gravimetric-discharge-certificate"
+          }
+        ],
+        "correlation_evidence_ref": null,
+        "covariance_model_ref": null,
+        "monte_carlo_result_ref": null,
+        "monte_carlo_sample_count": null,
+        "between_group_independence_ref": "assumption:gravimetric-discharge-independent-groups"
+      }
+    },
+    {
+      "measurement_id": "measurement-ecc-flow-estimator-001",
+      "channel_id": "ecc-flow-estimator",
+      "station_id": "station:conveyance-outlet",
+      "calibration_id": "cal-ecc-flow-estimator-v1",
+      "measurement_date": "2026-11-06",
+      "measurement_window_ref": "window:pilot-001",
+      "window_start_ms": 1000000,
+      "window_end_ms": 1060000,
+      "timebase_channel_id": "daq-timebase",
+      "clock_sync_ref": "clock:pilot-001",
+      "latency_ms": 2,
+      "time_uncertainty_ms": 2,
+      "value": 1.18,
+      "unit": "kg/s",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-pipe-205m-bends-v1",
+        "environment_profile_ref": "environment:synthetic-lab-ambient-v1"
+      },
+      "evidence_role": "SECONDARY_ESTIMATOR",
+      "sample_protocol_ref": null,
+      "sample_lineage_ref": null,
+      "source_artifact_ref": "artifact:ecc-flow-estimator-measurement-001",
+      "measurement_model": {
+        "mapping_kind": "DERIVED",
+        "linearity": "NONLINEAR",
+        "equation_ref": "equation:area-times-velocity-times-concentration-v1",
+        "model_digest_ref": "digest:ecc-flow-estimator-measurement-model-v1",
+        "calibration_domain_ref": "domain:ecc-flow-estimator-declared-domain"
+      },
+      "uncertainty": {
+        "method": "MONTE_CARLO",
+        "model_linearity": "NONLINEAR",
+        "component_set_ref": "component-set:ecc-flow-estimator-v1",
+        "components": [
+          {
+            "component_id": "ecc-flow-estimator-repeatability",
+            "uncertainty_type": "TYPE_A_REPEATABILITY",
+            "standard_uncertainty": 0.01,
+            "unit": "kg/s",
+            "distribution": "NORMAL",
+            "correlation_group_ref": null,
+            "source_ref": "source:ecc-flow-estimator-repeat-study"
+          },
+          {
+            "component_id": "ecc-flow-estimator-calibration",
+            "uncertainty_type": "TYPE_B_CALIBRATION",
+            "standard_uncertainty": 0.015,
+            "unit": "kg/s",
+            "distribution": "RECTANGULAR",
+            "correlation_group_ref": null,
+            "source_ref": "source:ecc-flow-estimator-certificate"
+          }
+        ],
+        "correlation_evidence_ref": null,
+        "covariance_model_ref": null,
+        "monte_carlo_result_ref": "artifact:ecc-flow-estimator-mc-propagation",
+        "monte_carlo_sample_count": 100000,
+        "between_group_independence_ref": "assumption:ecc-flow-estimator-independent-groups"
+      }
+    },
+    {
+      "measurement_id": "measurement-line-dp-001",
+      "channel_id": "line-dp",
+      "station_id": "station:conveyance-outlet",
+      "calibration_id": "cal-line-dp-v1",
+      "measurement_date": "2026-11-06",
+      "measurement_window_ref": "window:pilot-001",
+      "window_start_ms": 1000000,
+      "window_end_ms": 1060000,
+      "timebase_channel_id": "daq-timebase",
+      "clock_sync_ref": "clock:pilot-001",
+      "latency_ms": 2,
+      "time_uncertainty_ms": 2,
+      "value": 32.5,
+      "unit": "kPa",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-pipe-205m-bends-v1",
+        "environment_profile_ref": "environment:synthetic-lab-ambient-v1"
+      },
+      "evidence_role": "DIAGNOSTIC_OBSERVATION",
+      "sample_protocol_ref": null,
+      "sample_lineage_ref": null,
+      "source_artifact_ref": "artifact:line-dp-measurement-001",
+      "measurement_model": {
+        "mapping_kind": "DIRECT",
+        "linearity": "LINEAR",
+        "equation_ref": "equation:PRESSURE_TRANSDUCER-direct-v1",
+        "model_digest_ref": "digest:line-dp-measurement-model-v1",
+        "calibration_domain_ref": "domain:line-dp-declared-domain"
+      },
+      "uncertainty": {
+        "method": "LINEARIZED_GUM",
+        "model_linearity": "LINEAR",
+        "component_set_ref": "component-set:line-dp-v1",
+        "components": [
+          {
+            "component_id": "line-dp-repeatability",
+            "uncertainty_type": "TYPE_A_REPEATABILITY",
+            "standard_uncertainty": 0.01,
+            "sensitivity_coefficient": 1,
+            "unit": "kPa",
+            "distribution": "NORMAL",
+            "correlation_group_ref": null,
+            "source_ref": "source:line-dp-repeat-study"
+          },
+          {
+            "component_id": "line-dp-calibration",
+            "uncertainty_type": "TYPE_B_CALIBRATION",
+            "standard_uncertainty": 0.015,
+            "sensitivity_coefficient": 1,
+            "unit": "kPa",
+            "distribution": "RECTANGULAR",
+            "correlation_group_ref": null,
+            "source_ref": "source:line-dp-certificate"
+          }
+        ],
+        "correlation_evidence_ref": null,
+        "covariance_model_ref": null,
+        "monte_carlo_result_ref": null,
+        "monte_carlo_sample_count": null,
+        "between_group_independence_ref": "assumption:line-dp-independent-groups"
+      }
+    },
+    {
+      "measurement_id": "measurement-blower-current-001",
+      "channel_id": "blower-current",
+      "station_id": "station:blower-vfd",
+      "calibration_id": "cal-blower-current-v1",
+      "measurement_date": "2026-11-06",
+      "measurement_window_ref": "window:pilot-001",
+      "window_start_ms": 1000000,
+      "window_end_ms": 1060000,
+      "timebase_channel_id": "daq-timebase",
+      "clock_sync_ref": "clock:pilot-001",
+      "latency_ms": 2,
+      "time_uncertainty_ms": 2,
+      "value": 18.2,
+      "unit": "A",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-pipe-205m-bends-v1",
+        "environment_profile_ref": "environment:synthetic-lab-ambient-v1"
+      },
+      "evidence_role": "DIAGNOSTIC_OBSERVATION",
+      "sample_protocol_ref": null,
+      "sample_lineage_ref": null,
+      "source_artifact_ref": "artifact:blower-current-measurement-001",
+      "measurement_model": {
+        "mapping_kind": "DIRECT",
+        "linearity": "LINEAR",
+        "equation_ref": "equation:CURRENT_TRANSDUCER-direct-v1",
+        "model_digest_ref": "digest:blower-current-measurement-model-v1",
+        "calibration_domain_ref": "domain:blower-current-declared-domain"
+      },
+      "uncertainty": {
+        "method": "LINEARIZED_GUM",
+        "model_linearity": "LINEAR",
+        "component_set_ref": "component-set:blower-current-v1",
+        "components": [
+          {
+            "component_id": "blower-current-repeatability",
+            "uncertainty_type": "TYPE_A_REPEATABILITY",
+            "standard_uncertainty": 0.01,
+            "sensitivity_coefficient": 1,
+            "unit": "A",
+            "distribution": "NORMAL",
+            "correlation_group_ref": null,
+            "source_ref": "source:blower-current-repeat-study"
+          },
+          {
+            "component_id": "blower-current-calibration",
+            "uncertainty_type": "TYPE_B_CALIBRATION",
+            "standard_uncertainty": 0.015,
+            "sensitivity_coefficient": 1,
+            "unit": "A",
+            "distribution": "RECTANGULAR",
+            "correlation_group_ref": null,
+            "source_ref": "source:blower-current-certificate"
+          }
+        ],
+        "correlation_evidence_ref": null,
+        "covariance_model_ref": null,
+        "monte_carlo_result_ref": null,
+        "monte_carlo_sample_count": null,
+        "between_group_independence_ref": "assumption:blower-current-independent-groups"
+      }
+    },
+    {
+      "measurement_id": "measurement-dynamic-psd-001",
+      "channel_id": "dynamic-psd",
+      "station_id": "station:accepted-discharge",
+      "calibration_id": "cal-dynamic-psd-v1",
+      "measurement_date": "2026-11-06",
+      "measurement_window_ref": "window:pilot-001",
+      "window_start_ms": 1000000,
+      "window_end_ms": 1060000,
+      "timebase_channel_id": "daq-timebase",
+      "clock_sync_ref": "clock:pilot-001",
+      "latency_ms": 2,
+      "time_uncertainty_ms": 2,
+      "value": 8.4,
+      "unit": "mm",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-pipe-205m-bends-v1",
+        "environment_profile_ref": "environment:synthetic-lab-ambient-v1"
+      },
+      "evidence_role": "PARTICLE_SAMPLE_RESULT",
+      "sample_protocol_ref": "sampling:iso14488-protocol-v0-1",
+      "sample_lineage_ref": "sample-lineage:accepted-discharge-001",
+      "source_artifact_ref": "artifact:dynamic-psd-measurement-001",
+      "measurement_model": {
+        "mapping_kind": "DERIVED",
+        "linearity": "NONLINEAR",
+        "equation_ref": "equation:DYNAMIC_IMAGE_ANALYSIS-direct-v1",
+        "model_digest_ref": "digest:dynamic-psd-measurement-model-v1",
+        "calibration_domain_ref": "domain:dynamic-psd-declared-domain"
+      },
+      "uncertainty": {
+        "method": "MONTE_CARLO",
+        "model_linearity": "NONLINEAR",
+        "component_set_ref": "component-set:dynamic-psd-v1",
+        "components": [
+          {
+            "component_id": "dynamic-psd-repeatability",
+            "uncertainty_type": "TYPE_A_REPEATABILITY",
+            "standard_uncertainty": 0.01,
+            "unit": "mm",
+            "distribution": "NORMAL",
+            "correlation_group_ref": null,
+            "source_ref": "source:dynamic-psd-repeat-study"
+          },
+          {
+            "component_id": "dynamic-psd-calibration",
+            "uncertainty_type": "TYPE_B_CALIBRATION",
+            "standard_uncertainty": 0.015,
+            "unit": "mm",
+            "distribution": "RECTANGULAR",
+            "correlation_group_ref": null,
+            "source_ref": "source:dynamic-psd-certificate"
+          }
+        ],
+        "correlation_evidence_ref": null,
+        "covariance_model_ref": null,
+        "monte_carlo_result_ref": "artifact:dynamic-psd-mc-propagation",
+        "monte_carlo_sample_count": 100000,
+        "between_group_independence_ref": "assumption:dynamic-psd-independent-groups"
+      }
+    },
+    {
+      "measurement_id": "measurement-daq-timebase-001",
+      "channel_id": "daq-timebase",
+      "station_id": "station:daq-cabinet",
+      "calibration_id": "cal-daq-timebase-v1",
+      "measurement_date": "2026-11-06",
+      "measurement_window_ref": "window:pilot-001",
+      "window_start_ms": 1000000,
+      "window_end_ms": 1060000,
+      "timebase_channel_id": "daq-timebase",
+      "clock_sync_ref": "clock:pilot-001",
+      "latency_ms": 2,
+      "time_uncertainty_ms": 2,
+      "value": 1060000,
+      "unit": "ms",
+      "domain": {
+        "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+        "path_configuration_ref": "transport:installed-205m-hose-r3",
+        "geometry_profile_ref": "geometry:synthetic-pipe-205m-bends-v1",
+        "environment_profile_ref": "environment:synthetic-lab-ambient-v1"
+      },
+      "evidence_role": "TIMEBASE_OBSERVATION",
+      "sample_protocol_ref": null,
+      "sample_lineage_ref": null,
+      "source_artifact_ref": "artifact:daq-timebase-measurement-001",
+      "measurement_model": {
+        "mapping_kind": "DIRECT",
+        "linearity": "LINEAR",
+        "equation_ref": "equation:DAQ_TIMEBASE-direct-v1",
+        "model_digest_ref": "digest:daq-timebase-measurement-model-v1",
+        "calibration_domain_ref": "domain:daq-timebase-declared-domain"
+      },
+      "uncertainty": {
+        "method": "LINEARIZED_GUM",
+        "model_linearity": "LINEAR",
+        "component_set_ref": "component-set:daq-timebase-v1",
+        "components": [
+          {
+            "component_id": "daq-timebase-repeatability",
+            "uncertainty_type": "TYPE_A_REPEATABILITY",
+            "standard_uncertainty": 0.01,
+            "sensitivity_coefficient": 1,
+            "unit": "ms",
+            "distribution": "NORMAL",
+            "correlation_group_ref": null,
+            "source_ref": "source:daq-timebase-repeat-study"
+          },
+          {
+            "component_id": "daq-timebase-calibration",
+            "uncertainty_type": "TYPE_B_CALIBRATION",
+            "standard_uncertainty": 0.015,
+            "sensitivity_coefficient": 1,
+            "unit": "ms",
+            "distribution": "RECTANGULAR",
+            "correlation_group_ref": null,
+            "source_ref": "source:daq-timebase-certificate"
+          }
+        ],
+        "correlation_evidence_ref": null,
+        "covariance_model_ref": null,
+        "monte_carlo_result_ref": null,
+        "monte_carlo_sample_count": null,
+        "between_group_independence_ref": "assumption:daq-timebase-independent-groups"
+      }
+    }
+  ],
+  "reference_comparisons": [
+    {
+      "comparison_id": "ecc-calibration-pair-001",
+      "reference_measurement_id": "measurement-gravimetric-discharge-001",
+      "estimator_measurement_id": "measurement-ecc-flow-estimator-001",
+      "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+      "path_configuration_ref": "transport:installed-205m-hose-r3",
+      "geometry_profile_ref": "geometry:synthetic-pipe-205m-bends-v1",
+      "measurement_window_ref": "window:pilot-001",
+      "dataset_partition": "CALIBRATION",
+      "independent_of_model_training": false,
+      "paired_sample_count": 20,
+      "bias": -0.01,
+      "max_absolute_relative_error": 0.05,
+      "residual_artifact_ref": "artifact:ecc-calibration-residuals",
+      "adjudication_ref": "adjudication:synthetic-calibration"
+    },
+    {
+      "comparison_id": "ecc-validation-pair-001",
+      "reference_measurement_id": "measurement-gravimetric-discharge-001",
+      "estimator_measurement_id": "measurement-ecc-flow-estimator-001",
+      "material_cohort_ref": "cohort:anorthosite-synthetic-v1",
+      "path_configuration_ref": "transport:installed-205m-hose-r3",
+      "geometry_profile_ref": "geometry:synthetic-pipe-205m-bends-v1",
+      "measurement_window_ref": "window:pilot-validation-001",
+      "dataset_partition": "VALIDATION",
+      "independent_of_model_training": true,
+      "paired_sample_count": 30,
+      "bias": 0.005,
+      "max_absolute_relative_error": 0.055,
+      "residual_artifact_ref": "artifact:ecc-validation-residuals",
+      "adjudication_ref": "adjudication:synthetic-validation"
+    }
+  ]
+}
