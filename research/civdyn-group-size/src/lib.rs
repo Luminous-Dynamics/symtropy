@@ -281,6 +281,16 @@ impl PolicyTable {
         &self.probabilities_option0
     }
 
+    /// Returns the shared action probability when every policy-table state
+    /// has exactly the same value. Otherwise the policy is memory-dependent.
+    pub fn memory_independent_probability_option0(&self) -> Option<f64> {
+        let first = *self.probabilities_option0.first()?;
+        self.probabilities_option0
+            .iter()
+            .all(|probability| *probability == first)
+            .then_some(first)
+    }
+
     pub fn memory_independent(
         policy_id: impl Into<String>,
         memory_capacity: usize,
@@ -426,6 +436,46 @@ impl RunOutcome {
     pub fn rounds_run(&self) -> usize {
         self.rounds.len()
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct MemoryIndependentOracle {
+    pub expected_option0_action_share: f64,
+    pub expected_pairwise_agreement_rate: f64,
+    /// Per-round population sampling standard deviation of the option-0 share.
+    pub option0_action_share_standard_deviation: f64,
+    /// Per-round standard deviation of the N pairwise match indicators.
+    pub pairwise_agreement_standard_deviation: f64,
+}
+
+/// Exact one-population-round expectation for a homogeneous policy whose
+/// action probability is independent of memory. The per-action draws and
+/// pairwise matches are independent under this restricted policy family.
+pub fn memory_independent_oracle(
+    probability_option0: f64,
+    population_size: usize,
+) -> Result<MemoryIndependentOracle, GroupSizeError> {
+    if population_size < 2 {
+        return Err(GroupSizeError::PopulationTooSmall(population_size));
+    }
+    if !probability_option0.is_finite() || !(0.0..=1.0).contains(&probability_option0) {
+        return Err(GroupSizeError::InvalidPolicyProbability {
+            state_id: 0,
+            value: probability_option0,
+        });
+    }
+    let probability_option1 = 1.0 - probability_option0;
+    let agreement = probability_option0.powi(2) + probability_option1.powi(2);
+    let action_share_variance =
+        probability_option0 * probability_option1 / (2.0 * population_size as f64);
+    let agreement_variance = agreement * (1.0 - agreement) / population_size as f64;
+
+    Ok(MemoryIndependentOracle {
+        expected_option0_action_share: probability_option0,
+        expected_pairwise_agreement_rate: agreement,
+        option0_action_share_standard_deviation: action_share_variance.sqrt(),
+        pairwise_agreement_standard_deviation: agreement_variance.sqrt(),
+    })
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -719,13 +769,6 @@ fn memory_distribution_metrics(
     Ok((unique, entropy))
 }
 
-fn memory_independent_analytic(probability_option0: f64) -> (f64, f64) {
-    let option1 = 1.0 - probability_option0;
-    let option0_share = probability_option0;
-    let agreement = probability_option0.powi(2) + option1.powi(2);
-    (option0_share, agreement)
-}
-
 #[derive(Debug, Clone)]
 struct SplitMix64 {
     state: u64,
@@ -847,10 +890,26 @@ mod tests {
     }
 
     #[test]
-    fn memory_independent_mean_field_baseline_is_analytic() {
-        let (share, agreement) = memory_independent_analytic(0.7);
-        assert!((share - 0.7).abs() < 1e-12);
-        assert!((agreement - 0.58).abs() < 1e-12);
+    fn memory_independent_mean_field_oracle_includes_finite_population_variance() {
+        let oracle = memory_independent_oracle(0.7, 100).unwrap();
+        assert!((oracle.expected_option0_action_share - 0.7).abs() < 1e-12);
+        assert!((oracle.expected_pairwise_agreement_rate - 0.58).abs() < 1e-12);
+        assert!((oracle.option0_action_share_standard_deviation
+            - (0.7_f64 * 0.3 / 200.0).sqrt())
+            .abs() < 1e-12);
+        assert!((oracle.pairwise_agreement_standard_deviation
+            - (0.58_f64 * 0.42 / 100.0).sqrt())
+            .abs() < 1e-12);
+    }
+
+    #[test]
+    fn policy_table_identifies_memory_independent_and_contextual_policies() {
+        let constant = PolicyTable::memory_independent("constant", 5, order(), 0.55).unwrap();
+        assert_eq!(constant.memory_independent_probability_option0(), Some(0.55));
+
+        let copy =
+            PolicyTable::copy_partner_majority("copy", 5, order(), 0.5, 0.5, false).unwrap();
+        assert_eq!(copy.memory_independent_probability_option0(), None);
     }
 
     #[test]
