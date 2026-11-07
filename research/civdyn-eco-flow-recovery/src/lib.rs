@@ -23,11 +23,9 @@ pub const WETLAND_FLOW_OBLIGATION: usize = 3;
 pub const INITIAL_RESERVE_M3: f64 = 200.0;
 pub const HOUSEHOLD_DEMAND_PER_TICK_M3: f64 = 12.5;
 pub const HOUSEHOLD_COUNT: usize = 2;
-pub const TOTAL_HOUSEHOLD_DEMAND_M3: f64 =
-    HOUSEHOLD_DEMAND_PER_TICK_M3 * HOUSEHOLD_COUNT as f64;
+pub const TOTAL_HOUSEHOLD_DEMAND_M3: f64 = HOUSEHOLD_DEMAND_PER_TICK_M3 * HOUSEHOLD_COUNT as f64;
 pub const ENVIRONMENTAL_FLOW_DEMAND_M3: f64 = 10.0;
-pub const TOTAL_SYSTEM_DEMAND_M3: f64 =
-    TOTAL_HOUSEHOLD_DEMAND_M3 + ENVIRONMENTAL_FLOW_DEMAND_M3;
+pub const TOTAL_SYSTEM_DEMAND_M3: f64 = TOTAL_HOUSEHOLD_DEMAND_M3 + ENVIRONMENTAL_FLOW_DEMAND_M3;
 
 pub const PRE_SHOCK_TICKS: usize = 2;
 pub const FIRST_SHOCK_TICKS: usize = 4;
@@ -192,11 +190,23 @@ pub struct RecoveryOutcome {
 #[derive(Debug, Clone, PartialEq)]
 pub enum EcoFlowError {
     Ledger(WorldError),
-    WrongRegionCount { expected: usize, actual: usize },
-    InvalidTrajectory { expected: usize, actual: usize },
+    WrongRegionCount {
+        expected: usize,
+        actual: usize,
+    },
+    InvalidTrajectory {
+        expected: usize,
+        actual: usize,
+    },
     MissingReserveSnapshot,
-    InvalidAllocation { available_m3: f64, allocated_m3: f64 },
-    ConservationViolation { region: String, residual_m3: f64 },
+    InvalidAllocation {
+        available_m3: f64,
+        allocated_m3: f64,
+    },
+    ConservationViolation {
+        region: String,
+        residual_m3: f64,
+    },
 }
 
 impl fmt::Display for EcoFlowError {
@@ -204,17 +214,28 @@ impl fmt::Display for EcoFlowError {
         match self {
             Self::Ledger(error) => write!(formatter, "resource ledger error: {error}"),
             Self::WrongRegionCount { expected, actual } => {
-                write!(formatter, "expected {expected} resource nodes, got {actual}")
+                write!(
+                    formatter,
+                    "expected {expected} resource nodes, got {actual}"
+                )
             }
             Self::InvalidTrajectory { expected, actual } => {
                 write!(formatter, "expected {expected} ticks, got {actual}")
             }
-            Self::MissingReserveSnapshot => write!(formatter, "required reserve snapshot is missing"),
-            Self::InvalidAllocation { available_m3, allocated_m3 } => write!(
+            Self::MissingReserveSnapshot => {
+                write!(formatter, "required reserve snapshot is missing")
+            }
+            Self::InvalidAllocation {
+                available_m3,
+                allocated_m3,
+            } => write!(
                 formatter,
                 "allocation {allocated_m3} m³ exceeds available stock {available_m3} m³"
             ),
-            Self::ConservationViolation { region, residual_m3 } => write!(
+            Self::ConservationViolation {
+                region,
+                residual_m3,
+            } => write!(
                 formatter,
                 "water conservation violation at {region}: {residual_m3} m³"
             ),
@@ -307,10 +328,7 @@ fn recharge_for(phase: Phase, path: RecoveryPath) -> f64 {
     }
 }
 
-fn recovery_latency(
-    ticks: &[RecoveryTick],
-    environmental_flow: bool,
-) -> Option<usize> {
+fn recovery_latency(ticks: &[RecoveryTick], environmental_flow: bool) -> Option<usize> {
     let first_recovery_index = PRE_SHOCK_TICKS + FIRST_SHOCK_TICKS;
     let mut streak = 0usize;
 
@@ -520,8 +538,11 @@ mod tests {
 
     #[test]
     fn service_recovery_does_not_prove_reserve_recovery() {
-        let service = run_reference(RecoveryPath::ServiceOnly, AllocationPriority::HouseholdPriority)
-            .expect("valid service-only fixture");
+        let service = run_reference(
+            RecoveryPath::ServiceOnly,
+            AllocationPriority::HouseholdPriority,
+        )
+        .expect("valid service-only fixture");
         let rebuilding = run_reference(
             RecoveryPath::CapitalRebuilding,
             AllocationPriority::HouseholdPriority,
@@ -555,9 +576,15 @@ mod tests {
         .expect("valid ecology-first fixture");
 
         assert_eq!(household_first.repeat_shock_household_unmet_m3, 75.0);
-        assert_eq!(household_first.repeat_shock_environmental_flow_unmet_m3, 35.0);
+        assert_eq!(
+            household_first.repeat_shock_environmental_flow_unmet_m3,
+            35.0
+        );
         assert_eq!(ecological_first.repeat_shock_household_unmet_m3, 80.0);
-        assert_eq!(ecological_first.repeat_shock_environmental_flow_unmet_m3, 30.0);
+        assert_eq!(
+            ecological_first.repeat_shock_environmental_flow_unmet_m3,
+            30.0
+        );
         assert_eq!(
             household_first.repeat_shock_household_unmet_m3
                 + household_first.repeat_shock_environmental_flow_unmet_m3,
@@ -595,8 +622,13 @@ mod tests {
         )
         .expect("valid rebuilding path");
 
-        assert!(service.repeat_shock_household_unmet_m3 > rebuilding.repeat_shock_household_unmet_m3);
-        assert!(service.repeat_shock_environmental_flow_unmet_m3 > rebuilding.repeat_shock_environmental_flow_unmet_m3);
+        assert!(
+            service.repeat_shock_household_unmet_m3 > rebuilding.repeat_shock_household_unmet_m3
+        );
+        assert!(
+            service.repeat_shock_environmental_flow_unmet_m3
+                > rebuilding.repeat_shock_environmental_flow_unmet_m3
+        );
     }
 
     #[test]
@@ -614,7 +646,10 @@ mod tests {
         let first = run_portfolio().expect("portfolio valid");
         let second = run_portfolio().expect("portfolio valid");
         assert_eq!(first, second);
-        assert_eq!(first.len(), RecoveryPath::ALL.len() * AllocationPriority::ALL.len());
+        assert_eq!(
+            first.len(),
+            RecoveryPath::ALL.len() * AllocationPriority::ALL.len()
+        );
         assert!(first.iter().all(|run| run.ticks.len() == TOTAL_TICKS));
     }
 }
