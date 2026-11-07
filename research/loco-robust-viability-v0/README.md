@@ -41,7 +41,7 @@ The recovery horizon is the smallest h for which a state enters Reach_h. A recov
 - Rejected-action counterexample successor witnesses.
 - Separate classification for instantaneously unsafe, robustly viable and safe-but-not-viable states.
 - Deterministic BTreeMap/BTreeSet outputs independent of input row order.
-- Fifteen deterministic known-answer / adversarial tests, including exhaustive enumeration of all three-state one-action transition graphs (2,744 graphs)., including brute-force subset enumeration on small graphs.
+- Sixteen deterministic known-answer / adversarial tests, including exhaustive enumeration of all three-state one-action transition graphs (2,744 graphs) and a synthetic tripod/contact-loss recovery fixture., including brute-force subset enumeration on small graphs.
 
 ## Interpretation boundary
 
