@@ -6,10 +6,10 @@ This is the first executable cross-domain slice for Symtropy #4022. It is delibe
 
 The crate depends on the public APIs of:
 
-- \`civdyn-collective-risk\` at \`../civdyn-collective-risk\`;
-- \`civdyn-resource-ledger\` at \`../civdyn-resource-ledger\`.
+- `civdyn-collective-risk` at `../civdyn-collective-risk`;
+- `civdyn-resource-ledger` at `../civdyn-resource-ledger`.
 
-The adapter branch is stacked on \`research/civdyn-collective-risk-2026-11\`, which already contains both parent crates and their dedicated workflows. This deliberately preserves the existing dependency chain: resource ledger → collective-risk reference → bridge. Do not rebase this PR directly onto \`main\` until the parent PRs have been reconciled.
+The adapter branch is stacked on `research/civdyn-collective-risk-2026-11` at parent commit `8971e23b4439c8ab2ace44277d587ef816f1db1a`, which already contains both parent crates and their dedicated workflows. This deliberately preserves the existing dependency chain: resource ledger → collective-risk reference → bridge. The manifest pins the exact parent commit and both dependency source blob hashes. Do not rebase this PR directly onto `main` until the parent PRs have been reconciled.
 
 ## Frozen synthetic mapping
 
@@ -45,10 +45,10 @@ The result does not validate human causal effects, the 1-unit/1-kWh mapping outs
 
 ## Run
 
-\`\`\`sh
+```sh
 cargo fmt --manifest-path research/civdyn-crg-resource-adapter/Cargo.toml --all -- --check
 cargo clippy --locked --manifest-path research/civdyn-crg-resource-adapter/Cargo.toml --all-targets -- -D warnings
 cargo check --locked --manifest-path research/civdyn-crg-resource-adapter/Cargo.toml --all-targets
 cargo test --locked --manifest-path research/civdyn-crg-resource-adapter/Cargo.toml --all-targets
 cargo run --locked --manifest-path research/civdyn-crg-resource-adapter/Cargo.toml --bin crg-resource-bridge
-\`\`\`
+```
