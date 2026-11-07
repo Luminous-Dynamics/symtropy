@@ -205,6 +205,21 @@ The [DGT 4 November operations notice](https://cdnweb-dgt.ictsi.com/users/user13
 
 The landing page also lists daily export-stack and import-storage snapshots. These are yard-state data and must not be joined to vessel events without their own unit, sampling boundary, storage rule and linkage semantics.
 
+### Snapshot metadata and independent congestion statistics must not be conflated
+
+A current inspection reveals a source-integrity negative control. On **7 November 2026**, the DGT Terminal Updates page displayed the vessel document as **DGT VESSEL UPDATE @17H00**, while the linked PDF's own embedded header says **07/11/2026 - 05H00**. The landing-page label and document-internal as-of time therefore disagree in the currently retrieved pair:
+- Landing page: https://dgt.ictsi.com/terminalupdates
+- Linked document: https://cdnweb-dgt.ictsi.com/users/user20/DGT%20VESSELS%20UPDATE%20SPREADSHEET%20%2823%29.pdf
+
+Do not promote the landing-page label to the document's event/snapshot time. Preserve both, capture the retrieval time and exact bytes/digest, flag the mismatch, and hold the record at NeedsEvidence pending confirmation or a new exact document revision. The current 05H00 embedded timestamp is the only time asserted inside that PDF; the 17H00 text is only the page's current display label.
+
+There is also a measurement-definition warning in secondary congestion dashboards:
+- Portcast's public Durban page reports **4.27 days median vessel waiting** for 25–31 Oct 2026, last updated 1 Nov. It defines waiting as time at anchorage or drifting before securing a berth and describes P90 as the slowest 10% tail, but its public page does not disclose the detailed vessel inclusion/exclusion cohort for this sample: https://www.portcast.io/port-congestion/durban.
+- Kuehne+Nagel reports **7.54 days 7-day average** for 27 Oct–3 Nov 2026. Its published method says the rolling mean is limited to mainline container vessels and excludes feeder vessels, idle ships without an announced next port, slow steamers not yet actively waiting at the designated anchorage, and vessels passing through without a port call: https://mykn.kuehne-nagel.com/news/article/port-operational-updates-from-03-11-2026 and its method description https://mykn.kuehne-nagel.com/news/article/port-operational-updates-from-12-08-2026.
+- Kuehne+Nagel's later 2 Nov snapshot reports 7.46 days average waiting at anchorage, 6.02 days average arrival delay and 5.59 days average departure delay for container vessels over different windows: https://mykn.kuehne-nagel.com/news/article/durban-congestion-remains-severe-as-vessel.
+
+These values are **not directly comparable**: median vs mean, different reporting windows, cohorts and possibly different anchorage/drifting definitions. The difference is not evidence that either source is wrong. The benchmark should store provider, cohort, port/terminal geography, time window, statistic, censoring, inclusion/exclusion rules, update time and units alongside every metric. The only fair cross-provider comparison is on a matched vessel/call cohort with aligned event definitions and observation cutoffs.
+
 ### Field mapping discipline
 
 Reuse [PCO evidence #1930 / PR #1940](https://github.com/Luminous-Dynamics/symtropy/pull/1940), [DCSA JIT #1955 / PR #1965](https://github.com/Luminous-Dynamics/symtropy/pull/1965) and the provider-specific intake task [MARITIME-DGT-OBS-001 #4003](https://github.com/Luminous-Dynamics/symtropy/issues/4003). Do not add a competing global port-call vocabulary.
