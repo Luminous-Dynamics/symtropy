@@ -157,6 +157,7 @@ fn occupancy(spec: OccupancySpec<'_>) -> TrafficOccupancy {
 
 fn coverage_manifest(
     operations: &[OperationPlacement],
+    resources: &[TrafficResource],
     occupancies: &[TrafficOccupancy],
 ) -> TrafficCoverageManifest {
     let entries = operations
@@ -176,6 +177,12 @@ fn coverage_manifest(
                 .map(|item| RequiredTrafficUse {
                     occupancy_id: item.occupancy_id.clone(),
                     resource_id: item.resource_id.clone(),
+                    resource_revision: resources
+                        .iter()
+                        .find(|resource| resource.resource_id == item.resource_id)
+                        .map_or_else(|| "missing-resource-revision".to_owned(), |resource| {
+                            resource.revision.clone()
+                        }),
                     direction_id: item.direction_id.clone(),
                 })
                 .collect();
@@ -213,11 +220,12 @@ fn workload(
     resources: Vec<TrafficResource>,
     occupancies: Vec<TrafficOccupancy>,
 ) -> TrafficWorkload {
+    let coverage = coverage_manifest(operations, &resources, &occupancies);
     TrafficWorkload {
         corridor_id: "synthetic-corridor".to_owned(),
         time_basis_id: "synthetic-ticks-v1".to_owned(),
         decision_tick: 0,
-        coverage: coverage_manifest(operations, &occupancies),
+        coverage,
         resources,
         occupancies,
     }
