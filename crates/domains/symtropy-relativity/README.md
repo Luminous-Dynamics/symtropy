@@ -13,8 +13,8 @@ A bounded Rust research crate for analytic Lorentzian-spacetime reference calcul
 - Symmetric finite 4x4 metric component representation, pivoted determinant and inverse, and inverse-identity residual diagnostic.
 - Levi-Civita connection coefficients from an explicit first-derivative tensor, with an analytic Schwarzschild derivative fixture and metric-compatibility residual diagnostic. No finite-difference step size is hidden in the API.
 - Riemann, Ricci and Einstein tensors from explicit connection derivatives; fully lowered Riemann tensor; algebraic symmetry / first-Bianchi residual; scalar curvature and Kretschmann contraction. An analytic Schwarzschild second-derivative fixture is included.
-- Schwarzschild timelike and null geodesics using RK4 and step-doubling adaptive control, with component-wise dimensioned tolerances, normalization, conserved Killing energy/angular momentum diagnostics, and chart-boundary rejection.
-- 48 authored analytic, limiting-case, invalid-domain, matrix, connection, curvature, geodesic, and posterior-transform tests.
+- Schwarzschild timelike and null geodesics in two formulations: second-order Christoffel RK4 and first-order canonical Hamiltonian RK4. The coordinate-velocity integrator also provides step-doubling adaptive control with component-wise dimensioned tolerances, normalization, conserved Killing energy/angular momentum diagnostics, and chart-boundary rejection.
+- 51 authored analytic, limiting-case, invalid-domain, matrix, connection, curvature, cross-formulation geodesic, and posterior-transform tests.
 
 ## Conventions
 
@@ -45,7 +45,7 @@ Next gates are Kerr curvature and coordinate-invariant cross-chart checks, gener
 
 `cargo test -p symtropy-relativity`
 
-**Validation status:** 48 tests are authored but were not executed in the editing environment because `rustc` and `cargo` are unavailable there. Independent array-based numerical checks match Schwarzschild vacuum Ricci, Kretschmann and Riemann algebraic identities to floating-point roundoff; these are not Rust test or build results.
+**Validation status:** 51 tests are authored but were not executed in the editing environment because `rustc` and `cargo` are unavailable there. Independent array-based numerical checks match Schwarzschild vacuum Ricci, Kretschmann and Riemann algebraic identities to floating-point roundoff; these are not Rust test or build results.
 
 
 ## Versioned benchmark manifests
