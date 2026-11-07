@@ -266,7 +266,9 @@ fn fleet_plan_binding_rejects_unselected_alternative() {
     plan.selections[0].alternative_id = "different-alternative".to_owned();
     assert_eq!(
         evaluate_mobile_assistance_for_plan(&input, &plan),
-        Err(MobileError::FleetSelectionMismatch("demand-task-a".to_owned()))
+        Err(MobileError::FleetSelectionMismatch(
+            "demand-task-a".to_owned()
+        ))
     );
 }
 
@@ -274,7 +276,8 @@ fn fleet_plan_binding_rejects_unselected_alternative() {
 fn fleet_plan_binding_rejects_missing_demand_selection() {
     let input = workload();
     let mut plan = fleet_plan(&input);
-    plan.selections.retain(|selection| selection.demand_id != "demand-task-a");
+    plan.selections
+        .retain(|selection| selection.demand_id != "demand-task-a");
     assert_eq!(
         evaluate_mobile_assistance_for_plan(&input, &plan),
         Err(MobileError::FleetSelectionMismatch("demand-task-a".to_owned()))
