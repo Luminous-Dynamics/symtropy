@@ -54,8 +54,16 @@ impl EvidenceReceipt {
         Ok(())
     }
 
+    /// Validity endpoints are inclusive; operation windows are half-open.
+    /// An evidence receipt therefore needs to cover the last occupied tick,
+    /// which is end_tick - 1, not the exclusive end boundary itself.
     fn covers(&self, window: TickWindow) -> bool {
-        self.valid_from_tick <= window.start_tick && self.valid_through_tick >= window.end_tick
+        let Some(last_active_tick) = window.end_tick.checked_sub(1) else {
+            return false;
+        };
+        window.is_valid()
+            && self.valid_from_tick <= window.start_tick
+            && self.valid_through_tick >= last_active_tick
     }
 
     fn covers_tick(&self, tick: u64) -> bool {
