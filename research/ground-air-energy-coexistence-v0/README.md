@@ -465,7 +465,7 @@ Its evaluation is simulation-only: a two-day discrete-event environment (5–6 J
 
 Selected reported Table 7 values:
 - CCN_1 average wait: SAFE-DDPG 0.067 min, DH-CSP 0.234 min, SH-CSP 0.467 min.
-- Simulated battery consumption: 3.4726 / 3.8321 / 4.2105 kWh for SAFE-DDPG / DH-CSP / SH-CSP.
+- Table 7 Battery Consumption metric: 3.4726 / 3.8321 / 4.2105 kWh for SAFE-DDPG / DH-CSP / SH-CSP.
 - Simulated travel time: 30.33 / 33.78 / 37.41 min for SAFE-DDPG / DH-CSP / SH-CSP.
 - The paper reports over 70% wait-time reduction against DH-CSP and over 85% against SH-CSP at selected high-demand nodes, 9–18% battery-consumption reduction and 10–19% travel-time reduction across its compared cases.
 
