@@ -419,3 +419,23 @@ The crate now also contains `connection.rs`:
 Total authored Rust tests are now **32**: 13 scalar/root, 10 metric, 5 connection, and 4 posterior. They are still unexecuted because this environment has no `rustc` or `cargo`.
 
 This advances the code from an analytic metric store to a first connection calculation. Riemann curvature, coordinate-invariant curvature checks, and geodesic integration remain future gates; no complete GR tensor solver or numerical-relativity claim is made.
+
+
+### Fourth implementation slice — second-order automatic differentiation and horizon-regular coordinates (2026-11-07)
+
+The branch now includes `autodiff.rs`:
+- A fixed-dimension `Jet2` carries scalar value, four first derivatives, and a 4x4 Hessian.
+- Product, reciprocal/division, sine, cosine, and square-root chain rules are implemented.
+- `DifferentiatedMetric4` constructs metric values, first derivatives, and second derivatives for Schwarzschild, Kerr, and ingoing Eddington-Finkelstein Schwarzschild coordinates.
+- Kerr curvature can now be evaluated through the AD-generated derivative bundle; the authored test checks vacuum Ricci residuals and the analytic Kerr Kretschmann expression.
+- AD Schwarzschild derivatives are compared against the independently hand-derived first/second derivative fixtures.
+
+A horizon-regular ingoing Eddington-Finkelstein metric is also implemented. The AD curvature tests evaluate the Kretschmann scalar at the Schwarzschild horizon and inside it, and compare the scalar outside the horizon against the Schwarzschild-coordinate computation. This makes the coordinate-singularity-vs-physical-singularity distinction executable rather than merely documented.
+
+Independent formula calculations (not Rust test runs) give:
+- Schwarzschild at r=8 r_g: numerical Kretschmann / analytic value = approximately 0.9999999999999993 in SI-scaled evaluation.
+- Kerr at chi=0.8, r=7 r_g, theta=0.8: normalized mixed Ricci residual approximately 6.8e-18, and numerical / analytic Kretschmann ratio approximately 0.9999999999999997.
+
+Total authored Rust tests are now **47**: 13 scalar/root, 10 metric, 5 connection, 6 curvature, 9 automatic differentiation/chart, and 4 posterior. They remain unexecuted because the editing environment has no Rust toolchain. These independent numerical checks do not constitute a Rust compile or passing test suite.
+
+**Current mathematical scope:** analytic metric constructors for Schwarzschild/Kerr; explicit first/second derivatives for Schwarzschild; AD-generated derivatives and curvature for Kerr; horizon-regular Schwarzschild chart; derivative-fed Riemann/Ricci/Einstein/Kretschmann. Cross-chart Kerr curvature, Kerr horizon-regular coordinates, geodesics, and numerical-relativity evolution remain open.
