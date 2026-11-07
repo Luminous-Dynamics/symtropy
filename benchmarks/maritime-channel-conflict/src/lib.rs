@@ -46,14 +46,15 @@ impl EvidenceReceipt {
             || self.claim_ceiling.trim().is_empty()
             || self.valid_from_tick > self.valid_through_tick
         {
-            return Err(TrafficError::InvalidEvidenceReceipt(self.evidence_id.clone()));
+            return Err(TrafficError::InvalidEvidenceReceipt(
+                self.evidence_id.clone(),
+            ));
         }
         Ok(())
     }
 
     fn covers(&self, window: TickWindow) -> bool {
-        self.valid_from_tick <= window.start_tick
-            && self.valid_through_tick >= window.end_tick
+        self.valid_from_tick <= window.start_tick && self.valid_through_tick >= window.end_tick
     }
 }
 
@@ -96,9 +97,7 @@ pub enum InteractionRelation {
     /// The reviewed topology declares no traffic conflict between the pair.
     Independent,
     /// The pair shares a conflict area and needs this minimum empty interval.
-    Conflict {
-        minimum_separation_ticks: u64,
-    },
+    Conflict { minimum_separation_ticks: u64 },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -311,20 +310,14 @@ fn movement_direction(
 ) -> Option<TravelDirection> {
     if movement.from_node_id == rule.from_node_id && movement.to_node_id == rule.to_node_id {
         Some(TravelDirection::Forward)
-    } else if movement.from_node_id == rule.to_node_id
-        && movement.to_node_id == rule.from_node_id
-    {
+    } else if movement.from_node_id == rule.to_node_id && movement.to_node_id == rule.from_node_id {
         Some(TravelDirection::Reverse)
     } else {
         None
     }
 }
 
-fn separated(
-    first: TickWindow,
-    second: TickWindow,
-    minimum_separation_ticks: u64,
-) -> bool {
+fn separated(first: TickWindow, second: TickWindow, minimum_separation_ticks: u64) -> bool {
     (first.end_tick <= second.start_tick
         && second.start_tick - first.end_tick >= minimum_separation_ticks)
         || (second.end_tick <= first.start_tick
@@ -401,7 +394,10 @@ pub fn evaluate_channel_workload(
                 ));
             }
         }
-        if segment_by_id.insert(segment.segment_id.as_str(), segment).is_some() {
+        if segment_by_id
+            .insert(segment.segment_id.as_str(), segment)
+            .is_some()
+        {
             return Err(TrafficError::DuplicateSegment(segment.segment_id.clone()));
         }
     }
@@ -459,7 +455,9 @@ pub fn evaluate_channel_workload(
             .insert(movement.movement_id.as_str(), movement)
             .is_some()
         {
-            return Err(TrafficError::DuplicateMovement(movement.movement_id.clone()));
+            return Err(TrafficError::DuplicateMovement(
+                movement.movement_id.clone(),
+            ));
         }
 
         if movement.route_revision != workload.route_revision
