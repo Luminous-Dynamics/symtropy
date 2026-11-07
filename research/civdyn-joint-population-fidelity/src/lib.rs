@@ -42,6 +42,14 @@ pub enum FidelityError {
         stratum: String,
         population: &'static str,
     },
+    InvalidBootstrapReplicates {
+        requested: usize,
+    },
+    InvalidConfidenceLevel,
+    InsufficientIndependentUnits {
+        population: &'static str,
+        count: usize,
+    },
 }
 
 impl fmt::Display for FidelityError {
@@ -57,6 +65,24 @@ impl fmt::Display for FidelityError {
                 write!(
                     f,
                     "stratum {stratum} is missing from {population} population"
+                )
+            }
+            Self::InvalidBootstrapReplicates { requested } => {
+                write!(
+                    f,
+                    "cluster bootstrap requires at least 100 replicates, got {requested}"
+                )
+            }
+            Self::InvalidConfidenceLevel => {
+                write!(
+                    f,
+                    "confidence level must be finite and strictly between 0 and 1"
+                )
+            }
+            Self::InsufficientIndependentUnits { population, count } => {
+                write!(
+                    f,
+                    "{population} population has only {count} independent units; at least 2 are required"
                 )
             }
         }
@@ -217,6 +243,188 @@ pub fn compare_by_stratum(
     Ok(result)
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct BootstrapInterval {
+    pub lower: f64,
+    pub upper: f64,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct PairMetricIntervals {
+    pub left_marginal_tv: BootstrapInterval,
+    pub right_marginal_tv: BootstrapInterval,
+    pub joint_tv: BootstrapInterval,
+    pub mutual_information_abs_gap_nats: BootstrapInterval,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct PairBootstrapReport {
+    pub point_estimate: PairFidelityReport,
+    pub confidence_level: f64,
+    pub replicates: usize,
+    pub observed_cluster_count: usize,
+    pub simulated_cluster_count: usize,
+    pub intervals: PairMetricIntervals,
+}
+
+#[derive(Clone, Copy)]
+struct SplitMix64 {
+    state: u64,
+}
+
+impl SplitMix64 {
+    fn new(seed: u64) -> Self {
+        Self { state: seed }
+    }
+
+    fn next_u64(&mut self) -> u64 {
+        self.state = self.state.wrapping_add(0x9E3779B97F4A7C15);
+        let mut z = self.state;
+        z = (z ^ (z >> 30)).wrapping_mul(0xBF58476D1CE4E5B9);
+        z = (z ^ (z >> 27)).wrapping_mul(0x94D049BB133111EB);
+        z ^ (z >> 31)
+    }
+
+    fn index(&mut self, upper_exclusive: usize) -> usize {
+        let bound = upper_exclusive as u64;
+        let threshold = bound.wrapping_neg() % bound;
+        loop {
+            let value = self.next_u64();
+            if value >= threshold {
+                return (value % bound) as usize;
+            }
+        }
+    }
+}
+
+fn independent_unit_count(rows: &[PairObservation]) -> usize {
+    rows.iter()
+        .map(|row| row.independent_unit_id.as_str())
+        .collect::<BTreeSet<_>>()
+        .len()
+}
+
+fn resample_clusters(
+    rows: &[PairObservation],
+    rng: &mut SplitMix64,
+    replicate_index: usize,
+) -> Vec<PairObservation> {
+    let mut clusters: BTreeMap<&str, Vec<&PairObservation>> = BTreeMap::new();
+    for row in rows {
+        clusters
+            .entry(row.independent_unit_id.as_str())
+            .or_default()
+            .push(row);
+    }
+    let cluster_rows: Vec<_> = clusters.values().collect();
+    let mut sampled = Vec::new();
+
+    for draw_index in 0..cluster_rows.len() {
+        let selected = cluster_rows[rng.index(cluster_rows.len())];
+        for (row_index, row) in selected.iter().enumerate() {
+            let mut copy = (*row).clone();
+            copy.observation_id = format!("bootstrap-{replicate_index}-{draw_index}-{row_index}");
+            copy.independent_unit_id = format!("bootstrap-{replicate_index}-cluster-{draw_index}");
+            sampled.push(copy);
+        }
+    }
+    sampled
+}
+
+fn percentile(values: &mut [f64], probability: f64) -> f64 {
+    values.sort_by(f64::total_cmp);
+    let position = probability * (values.len() - 1) as f64;
+    let lower_index = position.floor() as usize;
+    let upper_index = position.ceil() as usize;
+    let fraction = position - lower_index as f64;
+    values[lower_index] * (1.0 - fraction) + values[upper_index] * fraction
+}
+
+fn interval(values: &mut [f64], confidence_level: f64) -> BootstrapInterval {
+    let tail = (1.0 - confidence_level) / 2.0;
+    BootstrapInterval {
+        lower: percentile(values, tail),
+        upper: percentile(values, 1.0 - tail),
+    }
+}
+
+/// Cluster bootstrap for bivariate population diagnostics.
+///
+/// Whole independent units are sampled with replacement within each population.
+/// Repeated observations sharing one independent_unit_id always travel together.
+/// Intervals are conditional on the observed clusters; they do not represent model,
+/// study-selection, measurement or specification uncertainty.
+pub fn compare_pair_cluster_bootstrap(
+    observed: &[PairObservation],
+    simulated: &[PairObservation],
+    replicates: usize,
+    confidence_level: f64,
+    seed: u64,
+) -> Result<PairBootstrapReport, FidelityError> {
+    validate(observed)?;
+    validate(simulated)?;
+
+    if replicates < 100 {
+        return Err(FidelityError::InvalidBootstrapReplicates {
+            requested: replicates,
+        });
+    }
+    if !confidence_level.is_finite() || confidence_level <= 0.0 || confidence_level >= 1.0 {
+        return Err(FidelityError::InvalidConfidenceLevel);
+    }
+
+    let observed_clusters = independent_unit_count(observed);
+    let simulated_clusters = independent_unit_count(simulated);
+    if observed_clusters < 2 {
+        return Err(FidelityError::InsufficientIndependentUnits {
+            population: "observed",
+            count: observed_clusters,
+        });
+    }
+    if simulated_clusters < 2 {
+        return Err(FidelityError::InsufficientIndependentUnits {
+            population: "simulated",
+            count: simulated_clusters,
+        });
+    }
+
+    let point_estimate = compare_pair(observed, simulated)?;
+    let mut observed_rng = SplitMix64::new(seed ^ 0xA0761D6478BD642F);
+    let mut simulated_rng = SplitMix64::new(seed ^ 0xE7037ED1A0B428DB);
+
+    let mut left_tv = Vec::with_capacity(replicates);
+    let mut right_tv = Vec::with_capacity(replicates);
+    let mut joint_tv = Vec::with_capacity(replicates);
+    let mut mi_gap = Vec::with_capacity(replicates);
+
+    for replicate_index in 0..replicates {
+        let observed_sample = resample_clusters(observed, &mut observed_rng, replicate_index);
+        let simulated_sample = resample_clusters(simulated, &mut simulated_rng, replicate_index);
+        let sample = make_report(
+            &count_rows(&observed_sample),
+            &count_rows(&simulated_sample),
+        );
+        left_tv.push(sample.left_marginal_tv);
+        right_tv.push(sample.right_marginal_tv);
+        joint_tv.push(sample.joint_tv);
+        mi_gap.push(sample.mutual_information_abs_gap_nats);
+    }
+
+    Ok(PairBootstrapReport {
+        point_estimate,
+        confidence_level,
+        replicates,
+        observed_cluster_count: observed_clusters,
+        simulated_cluster_count: simulated_clusters,
+        intervals: PairMetricIntervals {
+            left_marginal_tv: interval(&mut left_tv, confidence_level),
+            right_marginal_tv: interval(&mut right_tv, confidence_level),
+            joint_tv: interval(&mut joint_tv, confidence_level),
+            mutual_information_abs_gap_nats: interval(&mut mi_gap, confidence_level),
+        },
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -313,5 +521,122 @@ mod tests {
                 field: "right_category"
             })
         ));
+    }
+    fn clustered_rows(
+        prefix: &str,
+        clusters: &[Vec<(&str, &str)>],
+        stratum: &str,
+    ) -> Vec<PairObservation> {
+        let mut rows = Vec::new();
+        for (cluster_index, cluster) in clusters.iter().enumerate() {
+            for (row_index, (left, right)) in cluster.iter().enumerate() {
+                rows.push(PairObservation {
+                    observation_id: format!("{prefix}-c{cluster_index}-r{row_index}"),
+                    independent_unit_id: format!("{prefix}-cluster-{cluster_index}"),
+                    stratum: stratum.to_string(),
+                    left_category: (*left).to_string(),
+                    right_category: (*right).to_string(),
+                });
+            }
+        }
+        rows
+    }
+
+    #[test]
+    fn bootstrap_resamples_whole_clusters_and_is_seed_reproducible() {
+        let observed = clustered_rows(
+            "observed",
+            &[
+                vec![("low", "low"), ("low", "low")],
+                vec![("low", "low"), ("high", "high")],
+                vec![("high", "high"), ("high", "high")],
+                vec![("high", "high"), ("low", "low")],
+            ],
+            "all",
+        );
+        let simulated = clustered_rows(
+            "simulated",
+            &[
+                vec![("low", "low"), ("low", "high")],
+                vec![("low", "high"), ("high", "high")],
+                vec![("high", "low"), ("high", "high")],
+                vec![("high", "low"), ("low", "low")],
+            ],
+            "all",
+        );
+
+        let a = compare_pair_cluster_bootstrap(&observed, &simulated, 200, 0.95, 42)
+            .expect("bootstrap succeeds");
+        let b = compare_pair_cluster_bootstrap(&observed, &simulated, 200, 0.95, 42)
+            .expect("same seed repeats");
+        assert_eq!(a, b);
+        assert_eq!(a.observed_cluster_count, 4);
+        assert_eq!(a.simulated_cluster_count, 4);
+        assert!(a.intervals.joint_tv.lower <= a.intervals.joint_tv.upper);
+        assert!(a.intervals.joint_tv.lower >= 0.0);
+        assert!(a.intervals.joint_tv.upper <= 1.0);
+    }
+
+    #[test]
+    fn bootstrap_replicate_keeps_every_row_in_a_selected_cluster() {
+        let data = clustered_rows(
+            "observed",
+            &[
+                vec![("low", "low"), ("low", "high"), ("high", "low")],
+                vec![("high", "high"), ("low", "low"), ("high", "low")],
+            ],
+            "all",
+        );
+        let mut rng = SplitMix64::new(12);
+        let sample = resample_clusters(&data, &mut rng, 0);
+        assert_eq!(sample.len(), 6);
+        let mut sizes = BTreeMap::new();
+        for row in sample {
+            *sizes.entry(row.independent_unit_id).or_insert(0usize) += 1;
+        }
+        assert_eq!(sizes.len(), 2);
+        assert!(sizes.values().all(|size| *size == 3));
+    }
+
+    #[test]
+    fn bootstrap_rejects_too_few_replicates() {
+        let data = rows("data", &correlated(), "all");
+        let error = compare_pair_cluster_bootstrap(&data, &data, 99, 0.95, 1)
+            .expect_err("replicate count must fail closed");
+        assert!(matches!(
+            error,
+            FidelityError::InvalidBootstrapReplicates { requested: 99 }
+        ));
+    }
+
+    #[test]
+    fn bootstrap_rejects_single_independent_unit() {
+        let make_single_cluster = |prefix: &str| {
+            let mut data = rows(prefix, &correlated(), "all");
+            for row in &mut data {
+                row.independent_unit_id = format!("{prefix}-one-cluster");
+            }
+            data
+        };
+        let observed = make_single_cluster("observed");
+        let simulated = make_single_cluster("simulated");
+        let error = compare_pair_cluster_bootstrap(&observed, &simulated, 100, 0.95, 7)
+            .expect_err("one cluster cannot estimate between-cluster uncertainty");
+        assert!(matches!(
+            error,
+            FidelityError::InsufficientIndependentUnits { .. }
+        ));
+    }
+
+    #[test]
+    fn bootstrap_rejects_confidence_levels_outside_open_unit_interval() {
+        let observed = rows("observed", &correlated(), "all");
+        let simulated = rows("simulated", &correlated(), "all");
+        for confidence_level in [0.0, 1.0, f64::NAN, f64::INFINITY] {
+            assert!(matches!(
+                compare_pair_cluster_bootstrap(&observed, &simulated, 100, confidence_level, 9),
+                Err(FidelityError::InvalidConfidenceLevel)
+            ));
+        }
     }
 }
