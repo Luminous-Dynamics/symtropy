@@ -28,6 +28,32 @@ Research snapshot: 7 November 2026. This is a benchmark-design note, not a claim
 
 - IHO's Standards in Force page (last updated 29 October 2026) lists operational S-100 products including S-102 bathymetry, S-104 water levels, S-111 currents, S-122 protected areas, S-127 marine traffic management and S-131 harbour infrastructure. Consume their edition, update, provenance, coverage, datum, validity, uncertainty and terms explicitly. A specification being in force does not establish that a local dataset exists, is current, licensed or qualified for navigation. https://iho.int/fr/standards-in-force-0.
 
+### 3. Additional 2026 research and deployed product baselines
+
+- Sun et al., *Vessel scheduling and multi-task assignment of tugboats in seaports: A joint optimization approach using ADP-MLNS*, *Ocean Engineering* (2026), DOI 10.1016/j.oceaneng.2026.127433. This is a particularly relevant mobile-resource comparator because it includes pilot transfer as a tug task alongside escort and berthing/unberthing, minimizing vessel time in port and tug fuel. Its real-port case reports 22.73% lower vessel time in port and 12.82% lower tug fuel against that port's traditional rules. These are site-specific reported effects, not a general benchmark threshold. A fair reproduction needs its task continuity, vessel/tug qualifications, pilot transfer locations, operating data and fuel calculation. https://www.sciencedirect.com/science/article/pii/S0029801826032671.
+
+- *Joint Optimization of Multi-Port Berth Allocation and Ship Lock Scheduling in River–Sea Direct Transport*, *Journal of Marine Science and Engineering* (published 9 October 2026; DOI 10.3390/jmse14201871). Its HICOA framework iterates between port berth and lock decisions, with vessel placement in lock chambers. The authors report up to 55.69% lower total port time than independent scheduling in their Pinglu Canal-related case, and small-instance optimum recovery under their model. This adds a direct comparator for **multi-port–lock coordination**, not just one fleet queue. Keep its result scoped to its case/model, and reproduce the independent-scheduling comparator before any comparison. https://www.mdpi.com/2077-1312/14/20/1871.
+
+- KONGSBERG Foresight PMIS is a direct port-authority product comparator: its public product description includes shared situational awareness, berth/tug/pilot utilization KPIs, JIT arrivals, traffic display integration, port visits, resource services and incident management. https://www.kongsberg.com/what-we-do/ocean-space/surveillance-monitoring/foresight/pmis/.
+
+- PortXchange Synchronizer is a direct commercial JIT/berth-alignment comparator: the vendor describes real-time terminal berth-plan updates and ETA-Berth-based speed guidance to reach the Pilot Boarding Place at the right time; its public feature set includes berth visit details, JIT reports, planning-deviation alerts, APIs and data authorization. https://port-xchange.com/synchronizer/.
+
+- Awake.AI Port Vision is another commercial comparator for port-call planning, JIT, maps/geofences, weather alerts, event handling, berth/resource scheduling and situational awareness. Its public claims (port coverage and voyage-prediction volume) are vendor-reported scale indicators, not independently measured accuracy or operational impact. https://www.awake.ai/.
+
+These product descriptions establish existing feature coverage, not head-to-head performance. They make the scope boundary clear: do not present a berth dashboard, ETA prediction, JIT speed recommendation, berth/tug/pilot KPI or event-sharing layer as novel on its own. The research opportunity is to make upstream physical/model limits and evidence quality explicit, bind assignments to the exact selected schedule, independently verify resource capability and movement feasibility, and measure ex-post delivered corridor service and recovery.
+
+## 2026 Durban operational snapshot — contextual data, not a reproduced trial
+
+The following dated observations can anchor an intake plan, but they are not a rights-reviewed event-level dataset or a continuous panel:
+
+- Kuehne+Nagel's myKN operational update for **27 October–3 November 2026** reports a **7-day average Durban vessel waiting time of 7.54 days** and describes congestion, vessel bunching, high yard use, peak imports, road congestion and equipment failures. Its listed data sources are seaexplorer, Maersk, Hapag-Lloyd, CMA CGM, MSC and SACO. Preserve this as a logistics-provider weekly estimate with its exact issue/reporting window and population definition. https://mykn.kuehne-nagel.com/news/article/port-operational-updates-from-03-11-2026.
+
+- Transnet's 12 May 2026 media statement reports **8,630 vessel arrivals across TNPA's eight commercial ports in FY2025/26**, up from 7,912, and roughly **304 million tonnes** of cargo throughput, up 4.2%. It separately reports container volumes +7.1%, with Durban automotive volumes exceeding their throughput targets. These are annual network/segment indicators, not Durban container-ship waiting-time observations. https://www.transnet.net/getFile.ashx?id=15673.
+
+- World Bank/S&P Global CPPI 2025 remains the globally recognized container-port time-in-port comparison, combining waiting and berth time. Its 10 June 2026 methodological note should be pinned when reproducing the index. It is not a corridor-wide door-to-door metric. https://www.worldbank.org/en/topic/transport/publication/cppi and https://thedocs.worldbank.org/en/doc/855fe5e7123d85b05d4e84c95b8fd1e2-0400012026/cppi-methodological-note.
+
+Do not compare the 7-day waiting estimate, a port-wide vessel count, annual all-port arrivals, terminal weekly TEUs, or a terminal anchorage-hours statistic as if they measured the same cohort. Each observation needs source class, issue time, observation window, port/terminal boundary, vessel class, numerator/denominator, wait definition, censoring policy, revision and rights.
+
 ## Matched benchmark matrix
 
 | Baseline | What it tests | Status in our programme |
