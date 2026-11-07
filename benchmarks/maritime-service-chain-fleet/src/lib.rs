@@ -2096,12 +2096,12 @@ mod tests {
                 .iter_mut()
                 .find(|resource| resource.resource_id == "rail-01")
                 .unwrap()
-                .availability = vec![window(28, 60, 15)];
+                .availability = vec![window(28, 33, 15)];
             case.evidence
                 .iter_mut()
                 .find(|item| item.evidence_id == "rail-calendar")
                 .unwrap()
-                .covered_capacity_windows = Some(vec![window(28, 60, 15)]);
+                .covered_capacity_windows = Some(vec![window(28, 33, 15)]);
         }
         let result = exact_fleet_oracle(&fleet_workload(vec![first, second]), 50_000)
             .expect("each demand is individually below the shared inland shift throughput");
