@@ -250,7 +250,16 @@
               "position_state",
               "tracking_state",
               "local_protection_state",
-              "deenergized_state"
+              "deenergized_state",
+              "receiver_id",
+              "trajectory_sha256",
+              "opportunity_id",
+              "envelope_sha256",
+              "allocation_id",
+              "allocation_sha256",
+              "clock_id",
+              "clock_uncertainty_ms",
+              "local_protection_receipt_sha256"
             ],
             "properties": {
               "motion_state": {
@@ -327,6 +336,42 @@
                   "NOT_REQUIRED",
                   "UNKNOWN"
                 ]
+              },
+              "receiver_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "trajectory_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "opportunity_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "envelope_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "allocation_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "allocation_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "clock_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "clock_uncertainty_ms": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "local_protection_receipt_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
               }
             }
           }
