@@ -23,7 +23,7 @@ Each observation preserves:
 
 Only actual observations change the stock. Planned/requested/estimated events are counted as excluded observations, not silently promoted to actual arrivals or cargo movements.
 
-An actual event must not be dated after it was observed. A late event (event_tick < observed_tick) is admitted only to snapshots whose information cut-off includes the observation. A correction changes a later snapshot only after the correction itself was observed. Future corrections do not rewrite historical decision snapshots.
+An actual event must not be dated after it was observed. Validation is scoped to records visible at the snapshot cut-off; future malformed records cannot invalidate a prior snapshot. A late event (event_tick < observed_tick) is admitted only to snapshots whose information cut-off includes the observation. A correction changes a later snapshot only after the correction itself was observed. Future corrections do not rewrite historical decision snapshots.
 
 Conflicting active observations of the same entity, event meaning and event class reject. The resolver never chooses whichever source arrived last. A correction must explicitly supersede an earlier event for the same entity, same event meaning and same classifier. Multiple visible corrections forked from one prior event are rejected.
 
@@ -56,7 +56,7 @@ Unknown or restricted rights block the snapshot. Source rights and authenticity 
 
 ## Synthetic tests and independent reference
 
-The unit test corpus contains **13 adversarial/known-answer controls**, including:
+The unit test corpus contains **15 adversarial/known-answer controls**, including:
 - queue and cargo stock conservation;
 - peak stock and area-under-curve arithmetic;
 - plan/request/estimate exclusion;
@@ -64,6 +64,8 @@ The unit test corpus contains **13 adversarial/known-answer controls**, includin
 - conflicting duplicate event semantics;
 - negative queue/inventory and duplicate exits;
 - call chronology, half-open window boundary and correction-fork behavior;
+- future bad observations cannot invalidate an earlier as-of snapshot;
+- one cargo movement ID cannot encode two actual movement kinds;
 - unit mismatch and rights blocking.
 
 A separate test-only oracle recomputes queue stock one integer tick at a time over **768 frozen scenarios**. It does not call the production resolver, event bucketing or area functions.
