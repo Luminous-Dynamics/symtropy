@@ -87,6 +87,7 @@ def evaluate(balance: dict[str, Any], fixture: dict[str, Any]) -> dict[str, Any]
         == digest(fixture["expected_end_state_sha256"], "expected end state"),
         "end-state identity mismatch",
     )
+    digest(balance["peak_bus_power_trace_sha256"], "peak bus power trace evidence")
 
     duration = positive(balance["duration_s"], "duration_s")
     tolerance = finite_nonnegative(balance["tolerance_j"], "tolerance_j")
@@ -137,7 +138,6 @@ def evaluate(balance: dict[str, Any], fixture: dict[str, Any]) -> dict[str, Any]
         average_mechanical_limit = positive(engine["average_mechanical_output_power_limit_w"], "engine average mechanical output limit")
         peak_mechanical = finite_nonnegative(engine["peak_mechanical_output_power_w"], "engine peak mechanical output")
         peak_mechanical_limit = positive(engine["peak_mechanical_output_power_limit_w"], "engine peak mechanical output limit")
-        average_mechanical = mechanical / duration
         direct_shaft = finite_nonnegative(engine["direct_propulsor_shaft_j"], "engine direct shaft")
         accessory = finite_nonnegative(engine["accessory_mechanical_load_j"], "engine accessory load")
         mechanical_loss = finite_nonnegative(engine["mechanical_distribution_loss_j"], "engine mechanical loss")
@@ -338,9 +338,9 @@ def validate_fixture(fixture: dict[str, Any]) -> None:
     require(seen == expected, "v0.2 fixture topology coverage changed")
 
 
-def expect_bad(label: str, mutator) -> None:
+def expect_bad(label: str, mutator, case_index: int = 0) -> None:
     fixture = json.loads(FIXTURE.read_text(encoding="utf-8"))
-    case = fixture["cases"][0]["balance"]
+    case = fixture["cases"][case_index]["balance"]
     mutator(case)
     report = evaluate(case, fixture)
     require(report["status"] == "infeasible", f"{label}: hostile case unexpectedly conserved")
@@ -354,7 +354,9 @@ def main() -> int:
         fixture = json.loads(FIXTURE.read_text(encoding="utf-8"))
         validate_fixture(fixture)
         expect_bad("storage_internal_energy_residual", lambda b: b["stores"][0].update(usable_energy_end_j=90_000_000))
-        expect_bad("bus_generator_double_count", lambda b: b["generators"].append(copy.deepcopy(b["generators"][0])) if b["generators"] else b["stores"][0].update(discharge_to_bus_j=110_000_000))
+        expect_bad("bus_generator_double_count", lambda b: b["generators"][0].update(electrical_output_to_bus_j=b["generators"][0]["electrical_output_to_bus_j"] + 5_000_000), case_index=1)
+        expect_bad("prime_mover_power_limit", lambda b: b["prime_movers"][0].update(peak_mechanical_output_power_limit_w=1_000), case_index=1)
+        expect_bad("generator_power_limit", lambda b: b["generators"][0].update(peak_electrical_output_power_limit_w=1_000), case_index=1)
         expect_bad("reserve_floor_violation", lambda b: b["stores"][0].update(reserve_floor_j=120_000_000))
         expect_bad("store_temperature_outside_envelope", lambda b: b["stores"][0].update(temperature_c=95.0))
         expect_bad("peak_store_power_violation", lambda b: b["stores"][0].update(peak_discharge_power_w=99_000))
