@@ -461,7 +461,6 @@ fn dispatch(scenario: &Scenario, policy: Policy) -> Result<DispatchReport, Strin
                     );
                 }
                 soc -= required_internal;
-                discharge_remaining -= required_internal;
                 battery_internal_total = battery_internal_total
                     .checked_add(required_internal)
                     .ok_or_else(|| "battery internal withdrawal overflow".to_owned())?;
@@ -797,7 +796,7 @@ fn verify_report(scenario: &Scenario, report: &DispatchReport) -> Result<(), Str
             let required = if numerator == 0 {
                 0
             } else {
-                (numerator + denominator - 1) / denominator
+                numerator.div_ceil(denominator)
             };
             independent_reserve = independent_reserve
                 .checked_add(required)
