@@ -1,0 +1,10 @@
+[package]
+name = "airborne-energy-session-validator"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Fail-closed lifecycle and energy-ledger verifier for aerial energy-session evidence"
+
+[dependencies]
+serde_json = "1.0"
