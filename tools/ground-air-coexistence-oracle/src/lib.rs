@@ -97,7 +97,8 @@ fn parse_domain(value: &str, path: &str) -> Result<Domain, String> {
 fn modality_domain(value: &str, path: &str) -> Result<Domain, String> {
     match value {
         "GROUND_DYNAMIC_INDUCTIVE" | "GROUND_STATIC_INDUCTIVE" => Ok(Domain::Ground),
-        "AIR_DOCK_INDUCTIVE"
+        "AIR_DOCK_CONDUCTIVE"
+        | "AIR_DOCK_INDUCTIVE"
         | "AIR_DOCK_CAPACITIVE"
         | "AIR_HOVER_INDUCTIVE"
         | "AIR_HOVER_CAPACITIVE"
@@ -923,6 +924,21 @@ mod tests {
             assert!(air_quanta <= 2);
             assert!(slot["total_input_power_quanta"].as_u64().unwrap() <= 3);
         }
+    }
+
+    #[test]
+    fn m0_conductive_air_dock_can_share_a_site_with_dynamic_ground_ipt() {
+        let scenario = fixture();
+        let air_channel = scenario["channels"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|channel| channel["domain"] == "AIR")
+            .unwrap();
+        assert_eq!(air_channel["modality"], "AIR_DOCK_CONDUCTIVE");
+        let report = evaluate_scenario(&scenario).unwrap();
+        assert_eq!(report["disposition"], "PASS_SYNTHETIC_OPTIMAL");
+        assert!(report["simultaneous_delivery_slot_count"].as_u64().unwrap() > 0);
     }
 
     #[test]
