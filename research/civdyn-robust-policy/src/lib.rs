@@ -9,9 +9,10 @@
 //! not create a physical simulator, assign probabilities to LHS rows, or
 //! combine native-unit outcomes into one universal policy score.
 
+use civdyn_cross_scale_resilience::{InterventionPolicy, ShockKind};
 use civdyn_resilience_uq::{
-    DesignPoint, InterventionPolicy, OutcomeMetric, ParameterSet, RunMetrics, ShockKind, UqError,
-    latin_hypercube_design, run_parameterized_scenario,
+    DesignPoint, OutcomeMetric, ParameterSet, RunMetrics, UqError, latin_hypercube_design,
+    run_parameterized_scenario,
 };
 use core::fmt;
 use std::collections::{BTreeMap, BTreeSet};
