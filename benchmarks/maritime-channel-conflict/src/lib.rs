@@ -501,10 +501,16 @@ pub fn evaluate_channel_conflicts(
                 };
                 let (overlaps, actual_gap_ticks) = interval_gap(first_window, second_window);
                 if overlaps || actual_gap_ticks < rule.minimum_headway_ticks {
+                    let (first_movement_id, second_movement_id) =
+                        if first.movement_id <= second.movement_id {
+                            (first.movement_id.clone(), second.movement_id.clone())
+                        } else {
+                            (second.movement_id.clone(), first.movement_id.clone())
+                        };
                     violations.insert(ChannelViolation::ConflictHeadwayViolation {
                         rule_id: rule.rule_id.clone(),
-                        first_movement_id: first.movement_id.clone(),
-                        second_movement_id: second.movement_id.clone(),
+                        first_movement_id,
+                        second_movement_id,
                         overlaps,
                         actual_gap_ticks,
                         required_gap_ticks: rule.minimum_headway_ticks,
