@@ -45,7 +45,7 @@ Each certified reference check binds:
 
 v0.1 requires at least three replicates spanning at least two sessions, operators and orientations. It computes a deliberately conservative error envelope:
 
-`absolute(mean measured - certified value) + certified standard uncertainty + maximum replicate deviation + half descriptor-resolution quantum`
+`absolute(mean measured - certified value) + certified expanded uncertainty (with declared coverage factor) + maximum replicate deviation + half descriptor-resolution quantum`
 
 The envelope must not exceed the experiment owner's predeclared maximum absolute error.
 
@@ -93,7 +93,7 @@ The bundled fixture contains:
 - 48 fabricated particle observations in one parent PSD bin;
 - p05, p50 and p95 targets at 90% confidence.
 
-Independent arithmetic replay of the fixture yields a conservative reference error envelope of 0.0125 against a declared 0.04 tolerance. The three quantile intervals meet their deliberately broad synthetic precision limits. The result remains `SYNTHETIC_ONLY_NOT_PHYSICAL_QUALIFICATION`.
+Independent arithmetic replay of the fixture yields a conservative reference error envelope of 0.0175 against a declared 0.04 tolerance. The three quantile intervals meet their deliberately broad synthetic precision limits. The result remains `SYNTHETIC_ONLY_NOT_PHYSICAL_QUALIFICATION`.
 
 Tightening the p05 interval-width limit to 0.01 causes a sample-adequacy failure at the same sample count. That is the intended behaviour: adequacy depends on the desired precision and observed spread, not a universal fixed N.
 
