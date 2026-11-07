@@ -1,0 +1,9 @@
+[package]
+name = "symtropy-large-load-disturbance"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+description = "Trace-based conformance checks for large-load voltage/frequency ride-through and recovery."
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
