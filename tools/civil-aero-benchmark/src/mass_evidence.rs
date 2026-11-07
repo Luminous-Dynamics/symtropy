@@ -1130,16 +1130,14 @@ fn validate_utc_timestamp(value: &str, field: &str) -> Result<(), String> {
         && bytes[16] == b':'
         && bytes[19] == b'Z';
     if !separators_valid
-        || bytes
-            .iter()
-            .enumerate()
-            .any(|(index, byte)| !matches!(index, 4 | 7 | 10 | 13 | 16 | 19) && !byte.is_ascii_digit())
+        || bytes.iter().enumerate().any(|(index, byte)| {
+            !matches!(index, 4 | 7 | 10 | 13 | 16 | 19) && !byte.is_ascii_digit()
+        })
     {
         return Err(format!("{field} must use YYYY-MM-DDTHH:MM:SSZ"));
     }
-    let parse = |start: usize, end: usize| -> u32 {
-        value[start..end].parse::<u32>().unwrap_or_default()
-    };
+    let parse =
+        |start: usize, end: usize| -> u32 { value[start..end].parse::<u32>().unwrap_or_default() };
     let year = parse(0, 4);
     let month = parse(5, 7);
     let day = parse(8, 10);
@@ -1154,13 +1152,7 @@ fn validate_utc_timestamp(value: &str, field: &str) -> Result<(), String> {
         2 => 28,
         _ => 0,
     };
-    if year < 1970
-        || day == 0
-        || day > days_in_month
-        || hour > 23
-        || minute > 59
-        || second > 59
-    {
+    if year < 1970 || day == 0 || day > days_in_month || hour > 23 || minute > 59 || second > 59 {
         return Err(format!("{field} contains an invalid UTC date or time"));
     }
     Ok(())
@@ -1963,7 +1955,9 @@ mod tests {
         let error = ledger
             .evaluate_state(&state, CONFIG)
             .expect_err("direct measurements require metrology provenance");
-        assert!(error.contains("directly measured item requires measurement and calibration metadata"));
+        assert!(
+            error.contains("directly measured item requires measurement and calibration metadata")
+        );
 
         ledger
             .records
