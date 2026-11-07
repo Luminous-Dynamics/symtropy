@@ -11,8 +11,10 @@
 //! The goal is to make it easy to build a replay harness that asserts
 //! **bitwise-equal state per tick** across record/replay passes.
 
+use blake3::Hasher;
 use nalgebra::SVector;
-use symtropy_math::Bivector;
+use serde::{Deserialize, Serialize};
+use symtropy_math::{Bivector, Transform};
 
 use crate::body::{BodyHandle, BodyType, RigidBody};
 use crate::integrator;
@@ -40,6 +42,16 @@ pub enum WorldCommand<const D: usize> {
     Wake {
         body: BodyHandle,
     },
+    /// Set a complete pose and velocity on a kinematic body at a tick boundary.
+    ///
+    /// This is a replayable command, not an impulse or dynamic-body teleport.
+    /// The transform rotation must be a proper orthogonal matrix.
+    SetKinematicPose {
+        body: BodyHandle,
+        transform: Box<Transform<D>>,
+        linear_velocity: Box<SVector<f64, D>>,
+        angular_velocity: Box<Bivector<D>>,
+    },
 }
 
 /// A single replay frame: `dt` + ordered list of commands to apply before stepping.
@@ -64,6 +76,8 @@ impl<const D: usize> ReplayTape<D> {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ApplyCommandError {
     MissingBody(BodyHandle),
+    NonKinematicBody(BodyHandle),
+    InvalidKinematicPose(BodyHandle),
 }
 
 /// Apply a list of commands to a world.
@@ -102,6 +116,31 @@ pub fn apply_commands<const D: usize>(
                     return Err(ApplyCommandError::MissingBody(*body));
                 };
                 b.wake();
+            }
+            WorldCommand::SetKinematicPose {
+                body,
+                transform,
+                linear_velocity,
+                angular_velocity,
+            } => {
+                let Some(existing) = world.body(*body) else {
+                    return Err(ApplyCommandError::MissingBody(*body));
+                };
+                if existing.body_type != BodyType::Kinematic {
+                    return Err(ApplyCommandError::NonKinematicBody(*body));
+                }
+                if !kinematic_pose_values_are_finite(transform, linear_velocity, angular_velocity)
+                    || !transform.rotation.is_proper_rotation(1e-9)
+                {
+                    return Err(ApplyCommandError::InvalidKinematicPose(*body));
+                }
+                let Some(target) = world.body_mut(*body) else {
+                    return Err(ApplyCommandError::MissingBody(*body));
+                };
+                target.transform = (**transform).clone();
+                target.linear_velocity = **linear_velocity;
+                target.angular_velocity = **angular_velocity;
+                target.wake();
             }
         }
     }
@@ -193,4 +232,424 @@ impl<const D: usize> WorldSnapshot<D> {
             collision_events,
         }
     }
+}
+
+/// Maximum number of simulation frames accepted by one evidence receipt.
+pub const MAX_REPLAY_EVIDENCE_FRAMES: usize = 1_000_000;
+/// Schema identifier for scenario-bound replay evidence.
+pub const REPLAY_EVIDENCE_SCHEMA: &str = "symtropy.physics.replay-evidence.v0.2";
+
+/// Caller-supplied immutable context that names the scenario and execution
+/// profile under which a tape is being replayed.
+///
+/// Digests are structural bindings only. The caller must provide authentic
+/// artifact identities and verify that the engine actually used these inputs.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ReplayEvidenceContext {
+    pub scenario_id: String,
+    pub scenario_artifact_digest: String,
+    pub engine_artifact_digest: String,
+    pub initial_world_profile_digest: String,
+    pub environment_profile_digest: String,
+    pub execution_protocol_digest: String,
+}
+
+impl ReplayEvidenceContext {
+    pub fn identity_is_valid(&self) -> bool {
+        !self.scenario_id.trim().is_empty()
+            && digest_is_valid(&self.scenario_artifact_digest)
+            && digest_is_valid(&self.engine_artifact_digest)
+            && digest_is_valid(&self.initial_world_profile_digest)
+            && digest_is_valid(&self.environment_profile_digest)
+            && digest_is_valid(&self.execution_protocol_digest)
+    }
+}
+
+/// Integrity receipt for one complete execution of a replay tape.
+///
+/// Tick hashes are bitwise world snapshots from the existing physics replay
+/// implementation. BLAKE3 fingerprints are not signatures or engine attestation.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ReplayEvidenceReceipt {
+    pub schema_version: String,
+    pub context: ReplayEvidenceContext,
+    pub dimension: u32,
+    pub frame_count: u64,
+    pub input_tape_digest: String,
+    pub initial_snapshot_digest: String,
+    pub tick_snapshot_digests: Vec<String>,
+    pub final_snapshot_digest: String,
+    /// BLAKE3 over the preceding fields with this field empty; not a signature.
+    pub receipt_digest: String,
+}
+
+impl ReplayEvidenceReceipt {
+    pub fn identity_is_valid(&self) -> bool {
+        if self.schema_version != REPLAY_EVIDENCE_SCHEMA
+            || !self.context.identity_is_valid()
+            || !(2..=4).contains(&self.dimension)
+            || self.frame_count == 0
+            || self.frame_count > MAX_REPLAY_EVIDENCE_FRAMES as u64
+            || self.tick_snapshot_digests.len() as u64 != self.frame_count
+            || !digest_is_valid(&self.input_tape_digest)
+            || !digest_is_valid(&self.initial_snapshot_digest)
+            || !digest_is_valid(&self.final_snapshot_digest)
+            || !self
+                .tick_snapshot_digests
+                .iter()
+                .all(|digest| digest_is_valid(digest))
+            || self.tick_snapshot_digests.last() != Some(&self.final_snapshot_digest)
+            || !digest_is_valid(&self.receipt_digest)
+        {
+            return false;
+        }
+
+        let mut receipt = self.clone();
+        let expected = receipt.receipt_digest.clone();
+        receipt.receipt_digest.clear();
+        serde_json::to_vec(&receipt)
+            .ok()
+            .map(|bytes| blake3::hash(&bytes).to_hex().to_string() == expected)
+            .unwrap_or(false)
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum ReplayEvidenceError {
+    InvalidContext,
+    EmptyTape,
+    FrameBudgetExceeded,
+    InvalidTimeStep,
+    InvalidCommandValue,
+    MissingBody(BodyHandle),
+    NonKinematicBody(BodyHandle),
+    InvalidRotation(BodyHandle),
+    NonFiniteWorldState,
+    SerializationFailure,
+}
+
+/// Execute a deterministic replay tape and return a scenario-bound receipt.
+///
+/// The tape is preflight-validated in full before the world is mutated. Each
+/// frame applies ordered commands, advances the physics world once, then
+/// captures a bitwise snapshot. The output receipt binds caller-supplied
+/// scenario/engine/environment/profile identities, the exact command tape,
+/// initial snapshot, every tick snapshot and the final snapshot.
+pub fn execute_with_evidence<const D: usize>(
+    world: &mut PhysicsWorld<D>,
+    tape: &ReplayTape<D>,
+    context: &ReplayEvidenceContext,
+) -> Result<ReplayEvidenceReceipt, ReplayEvidenceError> {
+    if !context.identity_is_valid() {
+        return Err(ReplayEvidenceError::InvalidContext);
+    }
+    validate_replay_tape(world, tape)?;
+
+    let input_tape_digest = digest_replay_tape(tape);
+    let initial_snapshot = WorldSnapshot::capture(world);
+    if !world_snapshot_is_finite(&initial_snapshot) {
+        return Err(ReplayEvidenceError::NonFiniteWorldState);
+    }
+    let initial_snapshot_digest = digest_world_snapshot(&initial_snapshot);
+    let mut tick_snapshot_digests = Vec::with_capacity(tape.frames.len());
+
+    for frame in &tape.frames {
+        apply_commands(world, &frame.commands).map_err(|error| match error {
+            ApplyCommandError::MissingBody(handle) => ReplayEvidenceError::MissingBody(handle),
+            ApplyCommandError::NonKinematicBody(handle) => {
+                ReplayEvidenceError::NonKinematicBody(handle)
+            }
+            ApplyCommandError::InvalidKinematicPose(handle) => {
+                ReplayEvidenceError::InvalidRotation(handle)
+            }
+        })?;
+        world.step(frame.dt);
+        let snapshot = WorldSnapshot::capture(world);
+        if !world_snapshot_is_finite(&snapshot) {
+            return Err(ReplayEvidenceError::NonFiniteWorldState);
+        }
+        tick_snapshot_digests.push(digest_world_snapshot(&snapshot));
+    }
+
+    let final_snapshot_digest = tick_snapshot_digests
+        .last()
+        .cloned()
+        .ok_or(ReplayEvidenceError::EmptyTape)?;
+
+    let mut receipt = ReplayEvidenceReceipt {
+        schema_version: REPLAY_EVIDENCE_SCHEMA.into(),
+        context: context.clone(),
+        dimension: D as u32,
+        frame_count: tape.frames.len() as u64,
+        input_tape_digest,
+        initial_snapshot_digest,
+        tick_snapshot_digests,
+        final_snapshot_digest,
+        receipt_digest: String::new(),
+    };
+    let bytes =
+        serde_json::to_vec(&receipt).map_err(|_| ReplayEvidenceError::SerializationFailure)?;
+    receipt.receipt_digest = blake3::hash(&bytes).to_hex().to_string();
+    Ok(receipt)
+}
+
+/// Execute the supplied tape against a separately constructed initial world
+/// and compare its complete receipt with the expected record.
+///
+/// A true result means bitwise snapshots matched at every tick under the same
+/// caller-supplied context. It does not prove cross-platform determinism unless
+/// the engine/hardware/profile constraints are separately established.
+pub fn verify_replay_evidence<const D: usize>(
+    world: &mut PhysicsWorld<D>,
+    tape: &ReplayTape<D>,
+    context: &ReplayEvidenceContext,
+    expected: &ReplayEvidenceReceipt,
+) -> Result<bool, ReplayEvidenceError> {
+    if !expected.identity_is_valid() || expected.context != *context {
+        return Ok(false);
+    }
+    let actual = execute_with_evidence(world, tape, context)?;
+    Ok(actual == *expected)
+}
+
+fn validate_replay_tape<const D: usize>(
+    world: &PhysicsWorld<D>,
+    tape: &ReplayTape<D>,
+) -> Result<(), ReplayEvidenceError> {
+    if tape.frames.is_empty() {
+        return Err(ReplayEvidenceError::EmptyTape);
+    }
+    if tape.frames.len() > MAX_REPLAY_EVIDENCE_FRAMES {
+        return Err(ReplayEvidenceError::FrameBudgetExceeded);
+    }
+
+    for frame in &tape.frames {
+        if !frame.dt.is_finite() || frame.dt <= 0.0 {
+            return Err(ReplayEvidenceError::InvalidTimeStep);
+        }
+        for command in &frame.commands {
+            let (handle, valid_values, kinematic_pose) = match command {
+                WorldCommand::ApplyForce { body, force } => {
+                    (*body, force.iter().all(|value| value.is_finite()), None)
+                }
+                WorldCommand::ApplyImpulse { body, impulse } => {
+                    (*body, impulse.iter().all(|value| value.is_finite()), None)
+                }
+                WorldCommand::SetLinearVelocity { body, velocity } => {
+                    (*body, velocity.iter().all(|value| value.is_finite()), None)
+                }
+                WorldCommand::SetAngularVelocity { body, velocity } => {
+                    let matrix = velocity.to_matrix();
+                    (*body, matrix.iter().all(|value| value.is_finite()), None)
+                }
+                WorldCommand::Wake { body } => (*body, true, None),
+                WorldCommand::SetKinematicPose {
+                    body,
+                    transform,
+                    linear_velocity,
+                    angular_velocity,
+                } => {
+                    let matrix = angular_velocity.to_matrix();
+                    (
+                        *body,
+                        kinematic_pose_values_are_finite(
+                            transform,
+                            linear_velocity,
+                            angular_velocity,
+                        ) && matrix.iter().all(|value| value.is_finite()),
+                        Some(transform.rotation.is_proper_rotation(1e-9)),
+                    )
+                }
+            };
+            if !valid_values {
+                return Err(ReplayEvidenceError::InvalidCommandValue);
+            }
+            let existing = world
+                .body(handle)
+                .ok_or(ReplayEvidenceError::MissingBody(handle))?;
+            if kinematic_pose.is_some() && existing.body_type != BodyType::Kinematic {
+                return Err(ReplayEvidenceError::NonKinematicBody(handle));
+            }
+            if kinematic_pose == Some(false) {
+                return Err(ReplayEvidenceError::InvalidRotation(handle));
+            }
+        }
+    }
+    Ok(())
+}
+
+fn world_snapshot_is_finite<const D: usize>(snapshot: &WorldSnapshot<D>) -> bool {
+    let bits_are_finite = |bits: &u64| f64::from_bits(*bits).is_finite();
+    snapshot.bodies.iter().all(|body| {
+        body.translation.iter().all(bits_are_finite)
+            && body
+                .rotation
+                .iter()
+                .flat_map(|row| row.iter())
+                .all(bits_are_finite)
+            && body.linear_velocity.iter().all(bits_are_finite)
+            && body
+                .angular_velocity
+                .iter()
+                .flat_map(|row| row.iter())
+                .all(bits_are_finite)
+    }) && snapshot.collision_events.iter().all(|event| {
+        bits_are_finite(&event.impulse)
+            && event.normal.iter().all(bits_are_finite)
+            && bits_are_finite(&event.depth)
+    })
+}
+
+fn kinematic_pose_values_are_finite<const D: usize>(
+    transform: &Transform<D>,
+    linear_velocity: &SVector<f64, D>,
+    angular_velocity: &Bivector<D>,
+) -> bool {
+    transform
+        .translation
+        .0
+        .iter()
+        .all(|value| value.is_finite())
+        && transform
+            .rotation
+            .to_matrix()
+            .iter()
+            .all(|value| value.is_finite())
+        && linear_velocity.iter().all(|value| value.is_finite())
+        && angular_velocity
+            .to_matrix()
+            .iter()
+            .all(|value| value.is_finite())
+}
+
+fn digest_replay_tape<const D: usize>(tape: &ReplayTape<D>) -> String {
+    let mut hasher = Hasher::new();
+    hasher.update(b"symtropy.physics.replay-tape.v2");
+    hasher.update(&(D as u64).to_le_bytes());
+    hasher.update(&(tape.frames.len() as u64).to_le_bytes());
+
+    for frame in &tape.frames {
+        hasher.update(&frame.dt.to_bits().to_le_bytes());
+        hasher.update(&(frame.commands.len() as u64).to_le_bytes());
+        for command in &frame.commands {
+            match command {
+                WorldCommand::ApplyForce { body, force } => {
+                    hasher.update(&[0]);
+                    hash_body_handle(&mut hasher, *body);
+                    hash_vector(&mut hasher, force.as_ref());
+                }
+                WorldCommand::ApplyImpulse { body, impulse } => {
+                    hasher.update(&[1]);
+                    hash_body_handle(&mut hasher, *body);
+                    hash_vector(&mut hasher, impulse.as_ref());
+                }
+                WorldCommand::SetLinearVelocity { body, velocity } => {
+                    hasher.update(&[2]);
+                    hash_body_handle(&mut hasher, *body);
+                    hash_vector(&mut hasher, velocity.as_ref());
+                }
+                WorldCommand::SetAngularVelocity { body, velocity } => {
+                    hasher.update(&[3]);
+                    hash_body_handle(&mut hasher, *body);
+                    let matrix = velocity.to_matrix();
+                    for row in 0..D {
+                        for column in 0..D {
+                            hasher.update(&matrix[(row, column)].to_bits().to_le_bytes());
+                        }
+                    }
+                }
+                WorldCommand::Wake { body } => {
+                    hasher.update(&[4]);
+                    hash_body_handle(&mut hasher, *body);
+                }
+                WorldCommand::SetKinematicPose {
+                    body,
+                    transform,
+                    linear_velocity,
+                    angular_velocity,
+                } => {
+                    hasher.update(&[5]);
+                    hash_body_handle(&mut hasher, *body);
+                    hash_vector(&mut hasher, &transform.translation.0);
+                    for row in 0..D {
+                        for column in 0..D {
+                            hasher.update(
+                                &transform.rotation.to_matrix()[(row, column)]
+                                    .to_bits()
+                                    .to_le_bytes(),
+                            );
+                        }
+                    }
+                    hash_vector(&mut hasher, linear_velocity.as_ref());
+                    let matrix = angular_velocity.to_matrix();
+                    for row in 0..D {
+                        for column in 0..D {
+                            hasher.update(&matrix[(row, column)].to_bits().to_le_bytes());
+                        }
+                    }
+                }
+            }
+        }
+    }
+    hasher.finalize().to_hex().to_string()
+}
+
+fn digest_world_snapshot<const D: usize>(snapshot: &WorldSnapshot<D>) -> String {
+    let mut hasher = Hasher::new();
+    hasher.update(b"symtropy.physics.world-snapshot.v1");
+    hasher.update(&(D as u64).to_le_bytes());
+    hasher.update(&(snapshot.bodies.len() as u64).to_le_bytes());
+
+    for body in &snapshot.bodies {
+        hash_body_handle(&mut hasher, body.handle);
+        hasher.update(&[match body.body_type {
+            BodyType::Static => 0,
+            BodyType::Kinematic => 1,
+            BodyType::Dynamic => 2,
+        }]);
+        for value in body.translation {
+            hasher.update(&value.to_le_bytes());
+        }
+        for row in body.rotation {
+            for value in row {
+                hasher.update(&value.to_le_bytes());
+            }
+        }
+        for value in body.linear_velocity {
+            hasher.update(&value.to_le_bytes());
+        }
+        for row in body.angular_velocity {
+            for value in row {
+                hasher.update(&value.to_le_bytes());
+            }
+        }
+        hasher.update(&[u8::from(body.sleeping)]);
+        hasher.update(&body.sleep_counter.to_le_bytes());
+    }
+
+    hasher.update(&(snapshot.collision_events.len() as u64).to_le_bytes());
+    for event in &snapshot.collision_events {
+        hash_body_handle(&mut hasher, event.body_a);
+        hash_body_handle(&mut hasher, event.body_b);
+        hasher.update(&event.impulse.to_le_bytes());
+        for value in event.normal {
+            hasher.update(&value.to_le_bytes());
+        }
+        hasher.update(&event.depth.to_le_bytes());
+    }
+    hasher.finalize().to_hex().to_string()
+}
+
+fn hash_vector<const D: usize>(hasher: &mut Hasher, vector: &SVector<f64, D>) {
+    for value in vector.iter() {
+        hasher.update(&value.to_bits().to_le_bytes());
+    }
+}
+
+fn hash_body_handle(hasher: &mut Hasher, handle: BodyHandle) {
+    hasher.update(&(handle.0 as u64).to_le_bytes());
+}
+
+fn digest_is_valid(value: &str) -> bool {
+    value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
