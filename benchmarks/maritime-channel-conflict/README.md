@@ -15,6 +15,14 @@ This is **not a scheduler or vessel dynamics model**. The shared-resource fleet 
 - Conflict rules enforce no overlap and a minimum separation/headway over half-open operation intervals.
 - Report ordering is deterministic under input permutations. Identical conflict reports are produced independent of movement ordering.
 
+## V0 interval scope and next increment
+
+V0 compares the **full FleetPlan operation interval** for each declared edge/direction pair. The conflict-zone ID labels the rule; it does not yet identify a local subsegment of the traversal or a zone-specific passage time. This is a deliberately conservative abstract interval model: it may reject two long-edge operations whose actual local crossing passages would not overlap.
+
+V0 also does not prove that every physical conflict pair in a real channel has been enumerated. An empty or incomplete caller-supplied conflict-rule set must not be marketed as proof that a route is conflict-free. The Reviewed state is a declared intake review disposition only.
+
+The follow-on [MARITIME-CHANNEL-ZONE-001 #4009](https://github.com/Luminous-Dynamics/symtropy/issues/4009) specifies zone-local passage intervals and explicit conflict-coverage attestations, so the next version can reduce false-conservative rejections without relaxing hard conflict gates. It allows separate zones for the same pair of edges and requires missing passage evidence / incomplete coverage to abstain as NeedsEvidence.
+
 ## Evidence and claim boundary
 
 `TopologyReviewState::Reviewed` is a caller-supplied intake/review disposition. It is not source authentication, a proof that the graph is physically complete, or validation of local navigation rules. The graph has an exact route revision and time basis; external intake must bind producer/source, edition/revision, jurisdiction, coverage, CRS/datum, update validity, uncertainty, terms and raw data digests before a real-world comparison.
@@ -61,7 +69,7 @@ A separate direct tick-by-tick reference oracle sweeps **3,136** frozen tiny two
 
 1. Bind graph nodes/edges to source-qualified chart/port data and stable route revisions, with rights and update lineage.
 2. Add vessel-specific operation geometry and direction/tide/under-keel envelopes from qualified upstream owners; do not infer them from this graph.
-3. Add conflict-zone completeness review and held-out route/port topology cases.
+3. Implement zone-specific passage intervals and conflict-coverage attestations under #4009, then add held-out route/port topology cases.
 4. Reproduce published dual one-way channel, multi-basin berth allocation and lock/port coupling benchmarks on matched problem instances.
 5. Evaluate port-level and corridor-level tail service metrics against the strongest reproducible baselines.
 
