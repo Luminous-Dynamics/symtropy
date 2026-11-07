@@ -1,0 +1,104 @@
+name: CivDyn collective-risk resource adapter
+
+on:
+  pull_request:
+    paths:
+      - "research/civdyn-crg-resource-adapter/**"
+      - "research/civdyn-collective-risk/**"
+      - "research/civdyn-resource-ledger/**"
+      - ".github/workflows/civdyn-crg-resource-adapter.yml"
+  push:
+    paths:
+      - "research/civdyn-crg-resource-adapter/**"
+      - "research/civdyn-collective-risk/**"
+      - "research/civdyn-resource-ledger/**"
+      - ".github/workflows/civdyn-crg-resource-adapter.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Format, lint, check, test and replay CRG actions through resource ledger
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact source
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy,rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/civdyn-crg-resource-adapter/Cargo.toml --all -- --check
+
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path research/civdyn-crg-resource-adapter/Cargo.toml --all-targets -- -D warnings
+
+      - name: Check all targets with locked dependencies
+        run: cargo check --locked --manifest-path research/civdyn-crg-resource-adapter/Cargo.toml --all-targets
+
+      - name: Run all tests with locked dependencies
+        run: cargo test --locked --manifest-path research/civdyn-crg-resource-adapter/Cargo.toml --all-targets
+
+      - name: Execute the coupled bridge twice
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p target/civdyn-crg-resource-adapter
+          cargo run --locked --manifest-path research/civdyn-crg-resource-adapter/Cargo.toml --bin crg-resource-bridge \
+            > target/civdyn-crg-resource-adapter/bridge-a.csv
+          cargo run --locked --manifest-path research/civdyn-crg-resource-adapter/Cargo.toml --bin crg-resource-bridge \
+            > target/civdyn-crg-resource-adapter/bridge-b.csv
+          cmp target/civdyn-crg-resource-adapter/bridge-a.csv target/civdyn-crg-resource-adapter/bridge-b.csv
+          mv target/civdyn-crg-resource-adapter/bridge-a.csv target/civdyn-crg-resource-adapter/civdyn-crg-resource-bridge.csv
+          rm target/civdyn-crg-resource-adapter/bridge-b.csv
+
+      - name: Verify artifact contract and negative controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          output=target/civdyn-crg-resource-adapter/civdyn-crg-resource-bridge.csv
+          awk -F, '
+            NR == 1 { if (NF != 25) exit 1; next }
+            NF != 25 { exit 1 }
+            $1 == "shared_tick" && $2 == "risk-0.1-all_zero" {
+              if ($15 != "12.000000000" || $16 != "0.000000000" || $17 != "12.000000000") exit 1
+              zero_control++
+            }
+            $1 == "shared_tick" && $2 == "risk-0.5-all_fixed_fair_share" {
+              if ($15 != "12.000000000" || $16 != "12.000000000" || $17 != "0.000000000") exit 1
+              fair_share_control++
+            }
+            END {
+              if (NR != 1066 || zero_control != 10 || fair_share_control != 10) exit 1
+            }
+          ' "$output"
+          grep -q '^episode_summary,risk-0.1-all_zero,0.100000000,all_zero' "$output"
+          grep -q '^episode_summary,risk-0.5-all_risk_pivot,0.500000000,all_risk_pivot' "$output"
+          grep -q '^episode_summary,risk-0.9-all_fixed_maximum,0.900000000,all_fixed_maximum' "$output"
+          echo "CSV data rows: $(($(wc -l < "$output") - 1))" >> "$GITHUB_STEP_SUMMARY"
+          echo "CSV SHA-256: $(sha256sum "$output" | cut -d' ' -f1)" >> "$GITHUB_STEP_SUMMARY"
+          echo "Scenario manifest SHA-256: $(sha256sum research/civdyn-crg-resource-adapter/data/CIVDYN_CRG_RESOURCE_BRIDGE_MANIFEST_V0_1.json | cut -d' ' -f1)" >> "$GITHUB_STEP_SUMMARY"
+          echo "Adapter source SHA-256: $(sha256sum research/civdyn-crg-resource-adapter/src/lib.rs | cut -d' ' -f1)" >> "$GITHUB_STEP_SUMMARY"
+          test "$(git hash-object research/civdyn-collective-risk/src/lib.rs)" = "ad1d28939f6514d4fe763ab97673f1803c29572a"
+          test "$(git hash-object research/civdyn-collective-risk/Cargo.toml)" = "04318907c33251258e899ecec778dbf90508fa22"
+          test "$(git hash-object research/civdyn-resource-ledger/src/lib.rs)" = "d04e25084e46eb0529ea135305668eb70ed6ec3f"
+          test "$(git hash-object research/civdyn-resource-ledger/Cargo.toml)" = "03c2dc7bdb638d685fa8674ecc4d2396a8cca059"
+          echo "CRG source SHA-256: $(sha256sum research/civdyn-collective-risk/src/lib.rs | cut -d' ' -f1)" >> "$GITHUB_STEP_SUMMARY"
+          echo "Resource-ledger source SHA-256: $(sha256sum research/civdyn-resource-ledger/src/lib.rs | cut -d' ' -f1)" >> "$GITHUB_STEP_SUMMARY"
+          echo "CRG source Git blob: $(git hash-object research/civdyn-collective-risk/src/lib.rs)" >> "$GITHUB_STEP_SUMMARY"
+          echo "Resource-ledger source Git blob: $(git hash-object research/civdyn-resource-ledger/src/lib.rs)" >> "$GITHUB_STEP_SUMMARY"
+          echo "Adapter commit: $(git rev-parse HEAD)" >> "$GITHUB_STEP_SUMMARY"
+          echo "Pinned dependency parent commit: 8971e23b4439c8ab2ace44277d587ef816f1db1a" >> "$GITHUB_STEP_SUMMARY"
+          echo "Repeated execution: byte-identical" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload bridge evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: civdyn-crg-resource-bridge
+          path: target/civdyn-crg-resource-adapter/civdyn-crg-resource-bridge.csv
+          if-no-files-found: error
+          retention-days: 30
