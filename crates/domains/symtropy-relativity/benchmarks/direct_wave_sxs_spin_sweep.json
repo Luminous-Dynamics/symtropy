@@ -5,7 +5,10 @@
   "status": "pre-registered benchmark specification; no results claimed",
   "primary_counteranalysis": {
     "title": "The Direct Wave is Not a Meaningful Test of Horizon Properties",
-    "authors": ["Anuj Kankani", "Sean T. McWilliams"],
+    "authors": [
+      "Anuj Kankani",
+      "Sean T. McWilliams"
+    ],
     "arxiv": "2607.02380",
     "url": "https://arxiv.org/abs/2607.02380",
     "scope": "equal-mass, quasicircular, non-precessing SXS systems with remnant |chi_f| >= about 0.5",
@@ -14,25 +17,74 @@
       "direct-wave damping does not generally track surface gravity kappa and evolves over short fitting intervals",
       "the apparent frequency coincidence near chi_f about 0.69 is not a universal horizon relation",
       "mapping direct-wave fit parameters to horizon observables can yield spurious apparent area-law violations"
-    ]
+    ],
+    "independent_comparator": {
+      "title": "Direct waves in black-hole binary mergers: Insights from the backward one-body model",
+      "authors": [
+        "Anuj Kankani",
+        "Sean T. McWilliams"
+      ],
+      "journal": "Physical Review D 114, 084025 (2026)",
+      "doi": "10.1103/kjjd-nk8f",
+      "url": "https://journals.aps.org/prd/abstract/10.1103/kjjd-nk8f",
+      "result": "direct-wave frequency has a different spin dependence from horizon frequency and tracks the gravitational-wave news frequency at peak news amplitude"
+    }
   },
   "published_sxs_cases": [
-    {"sxs_id": "SXS:BBH:2089", "final_spin": 0.4942},
-    {"sxs_id": "SXS:BBH:2088", "final_spin": 0.5478},
-    {"sxs_id": "SXS:BBH:3919", "final_spin": 0.6215},
-    {"sxs_id": "SXS:BBH:4434", "final_spin": 0.6864},
-    {"sxs_id": "SXS:BBH:0305", "final_spin": 0.6921},
-    {"sxs_id": "SXS:BBH:2095", "final_spin": 0.7447},
-    {"sxs_id": "SXS:BBH:3927", "final_spin": 0.8029},
-    {"sxs_id": "SXS:BBH:2099", "final_spin": 0.8574},
-    {"sxs_id": "SXS:BBH:3897", "final_spin": 0.9075},
-    {"sxs_id": "SXS:BBH:0178", "final_spin": 0.9499}
+    {
+      "sxs_id": "SXS:BBH:2089",
+      "final_spin": 0.4942
+    },
+    {
+      "sxs_id": "SXS:BBH:2088",
+      "final_spin": 0.5478
+    },
+    {
+      "sxs_id": "SXS:BBH:3919",
+      "final_spin": 0.6215
+    },
+    {
+      "sxs_id": "SXS:BBH:4434",
+      "final_spin": 0.6864
+    },
+    {
+      "sxs_id": "SXS:BBH:0305",
+      "final_spin": 0.6921
+    },
+    {
+      "sxs_id": "SXS:BBH:2095",
+      "final_spin": 0.7447
+    },
+    {
+      "sxs_id": "SXS:BBH:3927",
+      "final_spin": 0.8029
+    },
+    {
+      "sxs_id": "SXS:BBH:2099",
+      "final_spin": 0.8574
+    },
+    {
+      "sxs_id": "SXS:BBH:3897",
+      "final_spin": 0.9075
+    },
+    {
+      "sxs_id": "SXS:BBH:0178",
+      "final_spin": 0.9499
+    }
   ],
   "published_filter_configuration": {
-    "waveform_mode": [2, 2],
+    "waveform_mode": [
+      2,
+      2
+    ],
     "prograde_qnms": 7,
     "retrograde_qnms": 2,
-    "additional_spherical_spheroidal_mixing_mode": {"l": 3, "m": 2, "n": 0, "direction": "prograde"},
+    "additional_spherical_spheroidal_mixing_mode": {
+      "l": 3,
+      "m": 2,
+      "n": 0,
+      "direction": "prograde"
+    },
     "reason": "remove spherical-spheroidal mode mixing in SXS data"
   },
   "models_to_compare": [
@@ -41,7 +93,10 @@
     "horizon_tied_frequency_and_surface_gravity_model",
     "plunge_orbit_driven_time_evolving_model",
     "ordinary_qnm_overtone_and_mode_mixing_residual",
-    "noise_and_transient_alternatives"
+    "noise_and_transient_alternatives",
+    "backwards_one_body_news_frequency_model",
+    "peak_news_frequency_predictor",
+    "horizon_frequency_model"
   ],
   "analysis_dimensions": [
     "four predeclared fitting intervals around merger; exact bounds must be transcribed from the paper supplement before execution",
@@ -58,7 +113,8 @@
     "frequency and damping evolution over fitting interval",
     "NR remnant horizon area from final mass and spin",
     "horizon area inferred from direct-wave-derived Omega_H and kappa",
-    "waveform residuals and cross-resolution discrepancies"
+    "waveform residuals and cross-resolution discrepancies",
+    "peak_news_amplitude_time and instantaneous news frequency at that time"
   ],
   "negative_controls": [
     "off-source/noise-only segments",
@@ -74,13 +130,17 @@
     "distinguish extraction reproducibility from horizon interpretation",
     "report calibration, false-positive rate, and held-out predictive performance",
     "preserve contradictory and inconclusive results",
-    "independent implementation reproduces the same quantitative conclusions"
+    "independent implementation reproduces the same quantitative conclusions",
+    "compare direct-wave frequency against peak-news frequency, horizon frequency, and a backwards-one-body prediction using held-out SXS cases"
   ],
   "claim_ceiling": "A filtered component may be reproducible without being a measurement of horizon frequency or surface gravity. A direct-wave-derived area estimate is not a Hawking-area-law test unless the mapping to horizon observables is independently validated over parameter space.",
   "sources": [
     "https://arxiv.org/abs/2607.02380",
     "https://www.nature.com/articles/s41586-026-10696-0",
     "https://github.com/Sizheng-Ma/qnm_filter",
-    "https://data.black-holes.org/waveforms/"
+    "https://data.black-holes.org/waveforms/",
+    "https://doi.org/10.1103/kjjd-nk8f",
+    "https://doi.org/10.1103/xftt-2n6t",
+    "https://arxiv.org/abs/2603.15474"
   ]
 }
