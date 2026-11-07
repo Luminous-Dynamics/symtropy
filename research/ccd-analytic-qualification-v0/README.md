@@ -32,10 +32,14 @@ Sphere-sphere TOI solves
 a t² + b t + c = 0
 ```
 
-The implementation uses the q-form of the quadratic roots to reduce
-cancellation when the roots have very different magnitudes. It uses fused
-multiply-add for the discriminant expression where supported by Rust's float
-semantics, and rejects non-finite intermediate results.
+The implementation parameterizes the step by normalized interval
+coordinate `u = t/dt` and uses relative displacement over the complete
+interval. This removes the previous dimensionful `|Δv|² < 1e-20` cutoff,
+which incorrectly discarded very slow motion over long timesteps. The
+quadratic uses the q-form roots to reduce cancellation when the roots have
+very different magnitudes, fused multiply-add for the discriminant, and
+rejects non-finite intermediate results. A scale-resistant vector norm avoids
+unnecessary overflow/underflow in normalization and contact-normal recovery.
 
 Sphere-halfspace TOI solves the normalized plane-distance equation:
 
@@ -52,8 +56,13 @@ t_hit = (s(0) - radius) / (-n̂ · v)
 - Exact grazing/tangent sphere-sphere contact (zero discriminant).
 - TOI exactly at `t = dt` included; the same event just beyond `dt` excluded.
 - Sphere-halfspace closed-form TOI and world-space contact point.
-- Positive scaling invariance of the plane normal representation.
-- Returned plane normal is unit length.
+- Positive scaling invariance of the plane normal and offset together,
+  including nonzero offsets and scale factors 1e-20, 1e-6, 1, 1e6 and 1e20.
+- A relative speed of 1e-10 over a 1e10-second step still reports the exact
+  endpoint collision; no arbitrary speed-squared cutoff is applied.
+- Returned plane/contact normals are unit length.
+- A zero-dimensional vector-space query returns a typed error/None and never
+  indexes a nonexistent normal component.
 - Contact-point surface residuals meet analytic tolerances.
 - Galilean invariance under a common velocity boost.
 - TOI and contact point obey time reparameterization.
