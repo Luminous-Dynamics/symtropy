@@ -8,19 +8,35 @@ use serde_json::Value;
 use std::collections::BTreeSet;
 
 const TOP_KEYS: &[&str] = &[
-    "schema_version", "case_id", "record_state", "evidence_class", "field",
-    "receiver", "observation_contract", "pose_samples", "expected_disposition",
+    "schema_version",
+    "case_id",
+    "record_state",
+    "evidence_class",
+    "field",
+    "receiver",
+    "observation_contract",
+    "pose_samples",
+    "expected_disposition",
     "claim_ceiling",
 ];
 const FIELD_KEYS: &[&str] = &["modality", "field_id", "field_sha256", "field_revision"];
-const RECEIVER_KEYS: &[&str] = &["receiver_id", "receiver_sha256", "sensor_kind", "calibration_sha256"];
+const RECEIVER_KEYS: &[&str] = &[
+    "receiver_id",
+    "receiver_sha256",
+    "sensor_kind",
+    "calibration_sha256",
+];
 const CONTRACT_KEYS: &[&str] = &[
     "minimum_translation_separation_mm",
     "minimum_attitude_separation_mdeg",
     "measurement_noise_tolerance",
 ];
 const SAMPLE_REQUIRED_KEYS: &[&str] = &[
-    "pose_id", "position_mm", "attitude_mdeg", "observation_signature", "support_state",
+    "pose_id",
+    "position_mm",
+    "attitude_mdeg",
+    "observation_signature",
+    "support_state",
 ];
 const SAMPLE_OPTIONAL_KEYS: &[&str] = &["received_power_microwatt"];
 
@@ -57,26 +73,36 @@ fn fail(path: &str, reason: &str) -> String {
 }
 
 fn object(value: &Value, path: &str) -> Result<(), String> {
-    if value.is_object() { Ok(()) } else { Err(fail(path, "must be an object")) }
+    if value.is_object() {
+        Ok(())
+    } else {
+        Err(fail(path, "must be an object"))
+    }
 }
 
 fn array(value: &Value, path: &str) -> Result<&Vec<Value>, String> {
-    value.as_array().ok_or_else(|| fail(path, "must be an array"))
+    value
+        .as_array()
+        .ok_or_else(|| fail(path, "must be an array"))
 }
 
 fn field<'a>(value: &'a Value, key: &str, path: &str) -> Result<&'a Value, String> {
-    value.as_object().and_then(|map| map.get(key))
+    value
+        .as_object()
+        .and_then(|map| map.get(key))
         .ok_or_else(|| fail(path, &format!("missing property {key}")))
 }
 
 fn string<'a>(value: &'a Value, key: &str, path: &str) -> Result<&'a str, String> {
-    field(value, key, path)?.as_str()
+    field(value, key, path)?
+        .as_str()
         .filter(|value| !value.trim().is_empty())
         .ok_or_else(|| fail(path, &format!("{key} must be a non-empty string")))
 }
 
 fn unsigned(value: &Value, key: &str, path: &str) -> Result<u64, String> {
-    field(value, key, path)?.as_u64()
+    field(value, key, path)?
+        .as_u64()
         .ok_or_else(|| fail(path, &format!("{key} must be a non-negative integer")))
 }
 
@@ -107,16 +133,21 @@ fn exact_keys_with_optional(
             return Err(fail(path, &format!("missing property {key}")));
         }
     }
-    if let Some(key) = map.keys().find(|key| {
-        !required.contains(&key.as_str()) && !optional.contains(&key.as_str())
-    }) {
+    if let Some(key) = map
+        .keys()
+        .find(|key| !required.contains(&key.as_str()) && !optional.contains(&key.as_str()))
+    {
         return Err(fail(path, &format!("unknown property {key}")));
     }
     Ok(())
 }
 
 fn validate_sha256(value: &str, path: &str) -> Result<(), String> {
-    if value.len() != 64 || !value.bytes().all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase()) {
+    if value.len() != 64
+        || !value
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+    {
         return Err(fail(path, "must be lowercase hexadecimal SHA-256"));
     }
     Ok(())
@@ -129,7 +160,9 @@ fn vector3_i64(value: &Value, path: &str) -> Result<[i64; 3], String> {
     }
     let mut result = [0_i64; 3];
     for (index, item) in values.iter().enumerate() {
-        result[index] = item.as_i64().ok_or_else(|| fail(path, "components must be signed integers"))?;
+        result[index] = item
+            .as_i64()
+            .ok_or_else(|| fail(path, "components must be signed integers"))?;
     }
     Ok(result)
 }
@@ -139,9 +172,13 @@ fn vector_i64(value: &Value, path: &str) -> Result<Vec<i64>, String> {
     if values.is_empty() || values.len() > 32 {
         return Err(fail(path, "must contain 1..=32 integer features"));
     }
-    values.iter().map(|item| {
-        item.as_i64().ok_or_else(|| fail(path, "features must be signed integers"))
-    }).collect()
+    values
+        .iter()
+        .map(|item| {
+            item.as_i64()
+                .ok_or_else(|| fail(path, "features must be signed integers"))
+        })
+        .collect()
 }
 
 #[derive(Debug, Clone)]
@@ -154,7 +191,8 @@ struct PoseSample {
 }
 
 fn squared_translation(left: [i64; 3], right: [i64; 3]) -> i128 {
-    left.iter().zip(right.iter())
+    left.iter()
+        .zip(right.iter())
         .map(|(a, b)| {
             let delta = *a as i128 - *b as i128;
             delta * delta
@@ -207,10 +245,16 @@ fn signatures_are_indistinguishable(
 
 fn validate_not_run(value: &Value, case_id: &str) -> Result<ObservabilityReport, String> {
     if case_id != "NOT_RUN" {
-        return Err(fail("$.case_id", "NOT_RUN template case_id must be NOT_RUN"));
+        return Err(fail(
+            "$.case_id",
+            "NOT_RUN template case_id must be NOT_RUN",
+        ));
     }
     if string(value, "evidence_class", "$")? != "NOT_RUN" {
-        return Err(fail("$.evidence_class", "NOT_RUN record requires NOT_RUN evidence class"));
+        return Err(fail(
+            "$.evidence_class",
+            "NOT_RUN record requires NOT_RUN evidence class",
+        ));
     }
     for key in ["field", "receiver", "observation_contract"] {
         if !field(value, key, "$")?.is_null() {
@@ -218,10 +262,16 @@ fn validate_not_run(value: &Value, case_id: &str) -> Result<ObservabilityReport,
         }
     }
     if !array(field(value, "pose_samples", "$")?, "$.pose_samples")?.is_empty() {
-        return Err(fail("$.pose_samples", "NOT_RUN requires an empty pose sample array"));
+        return Err(fail(
+            "$.pose_samples",
+            "NOT_RUN requires an empty pose sample array",
+        ));
     }
     if string(value, "expected_disposition", "$")? != "NOT_RUN" {
-        return Err(fail("$.expected_disposition", "NOT_RUN template requires NOT_RUN disposition"));
+        return Err(fail(
+            "$.expected_disposition",
+            "NOT_RUN template requires NOT_RUN disposition",
+        ));
     }
     Ok(ObservabilityReport {
         case_id: "NOT_RUN".to_string(),
@@ -237,49 +287,103 @@ fn validate_not_run(value: &Value, case_id: &str) -> Result<ObservabilityReport,
 
 fn validate_fixture(value: &Value, case_id: &str) -> Result<ObservabilityReport, String> {
     let evidence_class = string(value, "evidence_class", "$")?;
-    if !matches!(evidence_class, "SYNTHETIC_KNOWN_TRUTH" | "SYNTHETIC_ADVERSARIAL") {
-        return Err(fail("$.evidence_class", "FIXTURE requires synthetic known-truth or adversarial evidence"));
+    if !matches!(
+        evidence_class,
+        "SYNTHETIC_KNOWN_TRUTH" | "SYNTHETIC_ADVERSARIAL"
+    ) {
+        return Err(fail(
+            "$.evidence_class",
+            "FIXTURE requires synthetic known-truth or adversarial evidence",
+        ));
     }
 
     let field_value = field(value, "field", "$")?;
     exact_keys(field_value, FIELD_KEYS, "$.field")?;
     let modality = string(field_value, "modality", "$.field")?;
     if !matches!(modality, "RF_MICROWAVE" | "OPTICAL") {
-        return Err(fail("$.field.modality", "v0 supports RF_MICROWAVE and OPTICAL only"));
+        return Err(fail(
+            "$.field.modality",
+            "v0 supports RF_MICROWAVE and OPTICAL only",
+        ));
     }
     string(field_value, "field_id", "$.field")?;
-    validate_sha256(string(field_value, "field_sha256", "$.field")?, "$.field.field_sha256")?;
+    validate_sha256(
+        string(field_value, "field_sha256", "$.field")?,
+        "$.field.field_sha256",
+    )?;
     string(field_value, "field_revision", "$.field")?;
 
     let receiver_value = field(value, "receiver", "$")?;
     exact_keys(receiver_value, RECEIVER_KEYS, "$.receiver")?;
     string(receiver_value, "receiver_id", "$.receiver")?;
-    validate_sha256(string(receiver_value, "receiver_sha256", "$.receiver")?, "$.receiver.receiver_sha256")?;
+    validate_sha256(
+        string(receiver_value, "receiver_sha256", "$.receiver")?,
+        "$.receiver.receiver_sha256",
+    )?;
     let sensor_kind = string(receiver_value, "sensor_kind", "$.receiver")?;
-    if !matches!(sensor_kind, "SEGMENTED_RF_POWER" | "PHOTODIODE_SPOT" | "SYNTHETIC_OTHER") {
+    if !matches!(
+        sensor_kind,
+        "SEGMENTED_RF_POWER" | "PHOTODIODE_SPOT" | "SYNTHETIC_OTHER"
+    ) {
         return Err(fail("$.receiver.sensor_kind", "unsupported v0 sensor kind"));
     }
-    validate_sha256(string(receiver_value, "calibration_sha256", "$.receiver")?, "$.receiver.calibration_sha256")?;
+    validate_sha256(
+        string(receiver_value, "calibration_sha256", "$.receiver")?,
+        "$.receiver.calibration_sha256",
+    )?;
 
     let contract = field(value, "observation_contract", "$")?;
     exact_keys(contract, CONTRACT_KEYS, "$.observation_contract")?;
-    let min_translation = unsigned(contract, "minimum_translation_separation_mm", "$.observation_contract")?;
-    let min_attitude = unsigned(contract, "minimum_attitude_separation_mdeg", "$.observation_contract")?;
-    if min_translation == 0 || min_translation > 1_000_000_000 || min_attitude == 0 || min_attitude > 360_000 {
-        return Err(fail("$.observation_contract", "pose separation thresholds are outside the supported positive bounds"));
+    let min_translation = unsigned(
+        contract,
+        "minimum_translation_separation_mm",
+        "$.observation_contract",
+    )?;
+    let min_attitude = unsigned(
+        contract,
+        "minimum_attitude_separation_mdeg",
+        "$.observation_contract",
+    )?;
+    if min_translation == 0
+        || min_translation > 1_000_000_000
+        || min_attitude == 0
+        || min_attitude > 360_000
+    {
+        return Err(fail(
+            "$.observation_contract",
+            "pose separation thresholds are outside the supported positive bounds",
+        ));
     }
-    let tolerance_values = array(field(contract, "measurement_noise_tolerance", "$.observation_contract")?, "$.observation_contract.measurement_noise_tolerance")?;
+    let tolerance_values = array(
+        field(
+            contract,
+            "measurement_noise_tolerance",
+            "$.observation_contract",
+        )?,
+        "$.observation_contract.measurement_noise_tolerance",
+    )?;
     if tolerance_values.is_empty() || tolerance_values.len() > 32 {
-        return Err(fail("$.observation_contract.measurement_noise_tolerance", "must contain 1..=32 tolerances"));
+        return Err(fail(
+            "$.observation_contract.measurement_noise_tolerance",
+            "must contain 1..=32 tolerances",
+        ));
     }
     let mut noise_tolerance = Vec::with_capacity(tolerance_values.len());
     for tolerance in tolerance_values {
-        noise_tolerance.push(tolerance.as_u64().ok_or_else(|| fail("$.observation_contract.measurement_noise_tolerance", "tolerances must be non-negative integers"))?);
+        noise_tolerance.push(tolerance.as_u64().ok_or_else(|| {
+            fail(
+                "$.observation_contract.measurement_noise_tolerance",
+                "tolerances must be non-negative integers",
+            )
+        })?);
     }
 
     let sample_values = array(field(value, "pose_samples", "$")?, "$.pose_samples")?;
     if !(2..=10_000).contains(&sample_values.len()) {
-        return Err(fail("$.pose_samples", "must contain 2..=10000 pose samples"));
+        return Err(fail(
+            "$.pose_samples",
+            "must contain 2..=10000 pose samples",
+        ));
     }
     let mut ids = BTreeSet::new();
     let mut samples = Vec::with_capacity(sample_values.len());
@@ -290,36 +394,74 @@ fn validate_fixture(value: &Value, case_id: &str) -> Result<ObservabilityReport,
         if !ids.insert(id.clone()) {
             return Err(fail(&path, "duplicate pose_id"));
         }
-        let position = vector3_i64(field(sample, "position_mm", &path)?, &format!("{path}.position_mm"))?;
+        let position = vector3_i64(
+            field(sample, "position_mm", &path)?,
+            &format!("{path}.position_mm"),
+        )?;
         if position.iter().any(|value| value.abs() > 1_000_000_000) {
-            return Err(fail(&path, "position components must be within +/-1000000000 mm"));
+            return Err(fail(
+                &path,
+                "position components must be within +/-1000000000 mm",
+            ));
         }
-        let attitude = vector3_i64(field(sample, "attitude_mdeg", &path)?, &format!("{path}.attitude_mdeg"))?;
-        if attitude.iter().any(|value| !(-180_000..=180_000).contains(value)) {
-            return Err(fail(&path, "attitude components must be within -180000..=180000 millidegrees"));
+        let attitude = vector3_i64(
+            field(sample, "attitude_mdeg", &path)?,
+            &format!("{path}.attitude_mdeg"),
+        )?;
+        if attitude
+            .iter()
+            .any(|value| !(-180_000..=180_000).contains(value))
+        {
+            return Err(fail(
+                &path,
+                "attitude components must be within -180000..=180000 millidegrees",
+            ));
         }
-        let signature = vector_i64(field(sample, "observation_signature", &path)?, &format!("{path}.observation_signature"))?;
+        let signature = vector_i64(
+            field(sample, "observation_signature", &path)?,
+            &format!("{path}.observation_signature"),
+        )?;
         if signature.len() != noise_tolerance.len() {
-            return Err(fail(&path, "observation_signature length differs from measurement_noise_tolerance"));
+            return Err(fail(
+                &path,
+                "observation_signature length differs from measurement_noise_tolerance",
+            ));
         }
         if let Some(power) = sample.get("received_power_microwatt") {
             if power.as_u64().is_none() {
-                return Err(fail(&path, "received_power_microwatt must be a non-negative integer"));
+                return Err(fail(
+                    &path,
+                    "received_power_microwatt must be a non-negative integer",
+                ));
             }
         }
         let support_state = string(sample, "support_state", &path)?;
         let in_domain = match support_state {
             "IN_DOMAIN" => true,
             "OUT_OF_DOMAIN" => false,
-            _ => return Err(fail(&path, "support_state must be IN_DOMAIN or OUT_OF_DOMAIN")),
+            _ => {
+                return Err(fail(
+                    &path,
+                    "support_state must be IN_DOMAIN or OUT_OF_DOMAIN",
+                ));
+            }
         };
-        samples.push(PoseSample { id, position, attitude, signature, in_domain });
+        samples.push(PoseSample {
+            id,
+            position,
+            attitude,
+            signature,
+            in_domain,
+        });
     }
 
     let in_domain: Vec<&PoseSample> = samples.iter().filter(|sample| sample.in_domain).collect();
     let out_of_domain_count = samples.len() - in_domain.len();
     if in_domain.len() < 2 {
-        return Err(fail("$.pose_samples", "at least two in-domain pose samples are required"));
+        return Err(fail(
+            "$.pose_samples",
+            "at least two in-domain pose samples are required",
+        ));
     }
 
     let mut alias_pairs = Vec::new();
@@ -329,23 +471,34 @@ fn validate_fixture(value: &Value, case_id: &str) -> Result<ObservabilityReport,
             let left = in_domain[left_index];
             let right = in_domain[right_index];
             if poses_are_distinct(left, right, min_translation, min_attitude)
-                && signatures_are_indistinguishable(&left.signature, &right.signature, &noise_tolerance)?
+                && signatures_are_indistinguishable(
+                    &left.signature,
+                    &right.signature,
+                    &noise_tolerance,
+                )?
             {
                 let (first, second) = if left.id <= right.id {
                     (left.id.clone(), right.id.clone())
                 } else {
                     (right.id.clone(), left.id.clone())
                 };
-                alias_pairs.push(AliasPair { first_pose_id: first.clone(), second_pose_id: second.clone() });
+                alias_pairs.push(AliasPair {
+                    first_pose_id: first.clone(),
+                    second_pose_id: second.clone(),
+                });
                 ambiguous_ids.insert(first);
                 ambiguous_ids.insert(second);
             }
         }
     }
     alias_pairs.sort_by(|left, right| {
-        (&left.first_pose_id, &left.second_pose_id).cmp(&(&right.first_pose_id, &right.second_pose_id))
+        (&left.first_pose_id, &left.second_pose_id)
+            .cmp(&(&right.first_pose_id, &right.second_pose_id))
     });
-    let unique_count = in_domain.iter().filter(|sample| !ambiguous_ids.contains(&sample.id)).count();
+    let unique_count = in_domain
+        .iter()
+        .filter(|sample| !ambiguous_ids.contains(&sample.id))
+        .count();
     let disposition = if alias_pairs.is_empty() {
         "UNIQUE_WITHIN_DECLARED_SAMPLE_SET"
     } else {
@@ -383,14 +536,17 @@ pub fn validate_case(value: &Value) -> Result<ObservabilityReport, String> {
     match string(value, "record_state", "$")? {
         "NOT_RUN" => validate_not_run(value, &case_id),
         "FIXTURE" => validate_fixture(value, &case_id),
-        other => Err(fail("$.record_state", &format!("unsupported state {other}"))),
+        other => Err(fail(
+            "$.record_state",
+            &format!("unsupported state {other}"),
+        )),
     }
 }
 
 /// Parse and validate an observability case encoded as JSON.
 pub fn validate_json(input: &str) -> Result<ObservabilityReport, String> {
-    let value: Value = serde_json::from_str(input)
-        .map_err(|error| format!("invalid JSON: {error}"))?;
+    let value: Value =
+        serde_json::from_str(input).map_err(|error| format!("invalid JSON: {error}"))?;
     validate_case(&value)
 }
 
@@ -448,28 +604,44 @@ mod tests {
     fn duplicate_pose_ids_fail_closed() {
         let mut value = positive_value();
         value["pose_samples"][1]["pose_id"] = json!("pose-left");
-        assert!(validate_case(&value).unwrap_err().contains("duplicate pose_id"));
+        assert!(
+            validate_case(&value)
+                .unwrap_err()
+                .contains("duplicate pose_id")
+        );
     }
 
     #[test]
     fn signature_width_must_match_noise_contract() {
         let mut value = positive_value();
         value["pose_samples"][1]["observation_signature"] = json!([10, 20]);
-        assert!(validate_case(&value).unwrap_err().contains("length differs"));
+        assert!(
+            validate_case(&value)
+                .unwrap_err()
+                .contains("length differs")
+        );
     }
 
     #[test]
     fn expected_disposition_cannot_override_computed_ambiguity() {
         let mut value: Value = serde_json::from_str(AMBIGUOUS).unwrap();
         value["expected_disposition"] = json!("UNIQUE_WITHIN_DECLARED_SAMPLE_SET");
-        assert!(validate_case(&value).unwrap_err().contains("independently computed AMBIGUOUS"));
+        assert!(
+            validate_case(&value)
+                .unwrap_err()
+                .contains("independently computed AMBIGUOUS")
+        );
     }
 
     #[test]
     fn changed_field_digest_is_rejected_when_missing_or_malformed() {
         let mut value = positive_value();
         value["field"]["field_sha256"] = json!("not-a-digest");
-        assert!(validate_case(&value).unwrap_err().contains("lowercase hexadecimal SHA-256"));
+        assert!(
+            validate_case(&value)
+                .unwrap_err()
+                .contains("lowercase hexadecimal SHA-256")
+        );
     }
 
     #[test]
@@ -480,7 +652,10 @@ mod tests {
         let replayed = validate_case(&reversed).unwrap();
         assert_eq!(original.alias_pairs, replayed.alias_pairs);
         assert_eq!(original.disposition, replayed.disposition);
-        assert_eq!(original.ambiguous_pose_samples, replayed.ambiguous_pose_samples);
+        assert_eq!(
+            original.ambiguous_pose_samples,
+            replayed.ambiguous_pose_samples
+        );
     }
 
     #[test]
