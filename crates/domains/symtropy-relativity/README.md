@@ -43,4 +43,4 @@ Next gates are Riemann curvature from connection derivatives, coordinate-invaria
 
 `cargo test -p symtropy-relativity`
 
-**Validation status:** tests are authored but were not executed in the editing environment because `rustc` and `cargo` are unavailable there.
+**Validation status:** 36 tests are authored but were not executed in the editing environment because `rustc` and `cargo` are unavailable there.
