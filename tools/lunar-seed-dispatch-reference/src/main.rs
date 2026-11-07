@@ -457,7 +457,7 @@ fn dispatch(scenario: &Scenario, policy: Policy) -> Result<DispatchReport, Strin
                     bus_output_for_internal(required_internal, scenario.discharge_efficiency_bps)?;
                 if bus_output < battery_deficit {
                     return Err(
-                        "internal battery calculation failed to cover batch deficit".to_owned(),
+                        "internal battery calculation failed to cover batch deficit".to_owned()
                     );
                 }
                 soc -= required_internal;
