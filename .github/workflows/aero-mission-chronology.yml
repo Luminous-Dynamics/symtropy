@@ -14,6 +14,7 @@ on:
       - "tools/civil-aero-benchmark/scripts/verify-mission-chronology.py"
       - "tools/civil-aero-benchmark/scripts/verify-phase-energy-planes.py"
       - "tools/civil-aero-benchmark/scripts/verify-phase-energy-planes-v0.3.py"
+      - "tools/civil-aero-benchmark/PHASE_ENERGY_PLANES_V0_3.md"
       - ".github/workflows/aero-mission-chronology.yml"
   push:
     paths:
@@ -28,6 +29,7 @@ on:
       - "tools/civil-aero-benchmark/scripts/verify-mission-chronology.py"
       - "tools/civil-aero-benchmark/scripts/verify-phase-energy-planes.py"
       - "tools/civil-aero-benchmark/scripts/verify-phase-energy-planes-v0.3.py"
+      - "tools/civil-aero-benchmark/PHASE_ENERGY_PLANES_V0_3.md"
       - ".github/workflows/aero-mission-chronology.yml"
   workflow_dispatch:
 
@@ -55,6 +57,7 @@ jobs:
           python3 -m json.tool tools/civil-aero-benchmark/schemas/phase-energy-balance-v0.3.schema.json >/dev/null
           python3 -m json.tool tools/civil-aero-benchmark/data/mission/phase_energy_planes_fixtures_v0_2.json >/dev/null
           python3 -m json.tool tools/civil-aero-benchmark/data/mission/phase_energy_planes_fixtures_v0_3.json >/dev/null
+          test -s tools/civil-aero-benchmark/PHASE_ENERGY_PLANES_V0_3.md
 
       - name: Independent phase, mass-state, energy and hostile-control oracle
         run: python3 tools/civil-aero-benchmark/scripts/verify-mission-chronology.py
