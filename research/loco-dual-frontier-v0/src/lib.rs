@@ -73,13 +73,25 @@ pub struct LearningMetrics {
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum LearningFinding {
     EpisodeFractionMissing,
-    EpisodeFractionBelowThreshold { observed_ppm: u32, required_ppm: u32 },
+    EpisodeFractionBelowThreshold {
+        observed_ppm: u32,
+        required_ppm: u32,
+    },
     TrackingErrorMissing,
-    TrackingErrorAboveThreshold { observed_milli: u32, maximum_milli: u32 },
+    TrackingErrorAboveThreshold {
+        observed_milli: u32,
+        maximum_milli: u32,
+    },
     CheckpointTrackingRatioMissing,
-    CheckpointTrackingRatioAboveThreshold { observed_ppm: u32, maximum_ppm: u32 },
+    CheckpointTrackingRatioAboveThreshold {
+        observed_ppm: u32,
+        maximum_ppm: u32,
+    },
     CheckpointRewardRatioMissing,
-    CheckpointRewardRatioBelowThreshold { observed_ppm: u32, minimum_ppm: u32 },
+    CheckpointRewardRatioBelowThreshold {
+        observed_ppm: u32,
+        minimum_ppm: u32,
+    },
     InvalidThresholds,
 }
 
@@ -96,10 +108,7 @@ pub struct LearningAssessment {
     pub findings: Vec<LearningFinding>,
 }
 
-fn assess_learning(
-    metrics: LearningMetrics,
-    thresholds: LearningThresholds,
-) -> LearningAssessment {
+fn assess_learning(metrics: LearningMetrics, thresholds: LearningThresholds) -> LearningAssessment {
     let mut findings = Vec::new();
 
     if thresholds.minimum_episode_fraction_ppm > 1_000_000 {
@@ -333,13 +342,9 @@ mod tests {
 
     #[test]
     fn all_three_hardware_gates_must_pass_to_commit() {
-        let report =
-            evaluate_domain_proposal(&proposal(ExecutionTarget::Hardware), thresholds());
+        let report = evaluate_domain_proposal(&proposal(ExecutionTarget::Hardware), thresholds());
         assert_eq!(report.learning.status, LearningGateStatus::Pass);
-        assert_eq!(
-            report.decision,
-            CurriculumDecision::CommitHardwareFrontier
-        );
+        assert_eq!(report.decision, CurriculumDecision::CommitHardwareFrontier);
     }
 
     #[test]
@@ -349,10 +354,7 @@ mod tests {
         candidate.physical_certificate_ref = None;
         let report = evaluate_domain_proposal(&candidate, thresholds());
         assert_eq!(report.learning.status, LearningGateStatus::Pass);
-        assert_eq!(
-            report.decision,
-            CurriculumDecision::DeferPhysicalUnknown
-        );
+        assert_eq!(report.decision, CurriculumDecision::DeferPhysicalUnknown);
     }
 
     #[test]
@@ -371,10 +373,7 @@ mod tests {
         let mut candidate = proposal(ExecutionTarget::Hardware);
         candidate.assurance = AssuranceEvidenceStatus::Invalid;
         let report = evaluate_domain_proposal(&candidate, thresholds());
-        assert_eq!(
-            report.decision,
-            CurriculumDecision::RejectAssuranceInvalid
-        );
+        assert_eq!(report.decision, CurriculumDecision::RejectAssuranceInvalid);
     }
 
     #[test]
@@ -382,10 +381,7 @@ mod tests {
         let mut candidate = proposal(ExecutionTarget::Hardware);
         candidate.assurance = AssuranceEvidenceStatus::Unknown;
         let report = evaluate_domain_proposal(&candidate, thresholds());
-        assert_eq!(
-            report.decision,
-            CurriculumDecision::DeferAssuranceUnknown
-        );
+        assert_eq!(report.decision, CurriculumDecision::DeferAssuranceUnknown);
     }
 
     #[test]
@@ -419,10 +415,7 @@ mod tests {
         candidate.assurance_receipt_ref = None;
 
         let report = evaluate_domain_proposal(&candidate, thresholds());
-        assert_eq!(
-            report.decision,
-            CurriculumDecision::CommitSimulationOnly
-        );
+        assert_eq!(report.decision, CurriculumDecision::CommitSimulationOnly);
         assert_eq!(
             report.physical_frontier,
             PhysicalFrontierStatus::OutOfEnvelope
@@ -437,14 +430,8 @@ mod tests {
         candidate.physical_certificate_ref = None;
 
         let report = evaluate_domain_proposal(&candidate, thresholds());
-        assert_eq!(
-            report.decision,
-            CurriculumDecision::CommitSimulationOnly
-        );
-        assert_eq!(
-            report.physical_frontier,
-            PhysicalFrontierStatus::Unknown
-        );
+        assert_eq!(report.decision, CurriculumDecision::CommitSimulationOnly);
+        assert_eq!(report.physical_frontier, PhysicalFrontierStatus::Unknown);
     }
 
     #[test]
@@ -518,10 +505,14 @@ mod tests {
             minimum_episode_fraction_ppm: 1_000_001,
             ..thresholds()
         };
-        let report =
-            evaluate_domain_proposal(&proposal(ExecutionTarget::Simulation), invalid);
+        let report = evaluate_domain_proposal(&proposal(ExecutionTarget::Simulation), invalid);
         assert_eq!(report.learning.status, LearningGateStatus::Fail);
-        assert!(report.learning.findings.contains(&LearningFinding::InvalidThresholds));
+        assert!(
+            report
+                .learning
+                .findings
+                .contains(&LearningFinding::InvalidThresholds)
+        );
         assert_eq!(report.decision, CurriculumDecision::RejectLearningGate);
     }
 
