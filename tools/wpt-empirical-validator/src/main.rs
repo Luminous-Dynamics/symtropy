@@ -593,6 +593,7 @@ fn validate_realizations(
                     "DISCREPANCY",
                     "AMBIGUOUS_BOUNDARY",
                     "UNRESOLVED",
+                    "SUPPORTED_WITH_LIMITS",
                 ],
                 &claim_label,
             )?;
@@ -627,6 +628,7 @@ fn validate_realizations(
                         "SIMULATED",
                         "SECONDARY_REPORTED",
                         "UNKNOWN",
+                        "ASSUMED",
                     ],
                     &metric_label,
                 )?;
@@ -697,6 +699,49 @@ mod tests {
     fn checked_in_dataset_passes_the_full_integrity_audit() {
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
         validate(&root).expect("checked-in WPT empirical dataset should validate");
+    }
+
+    #[test]
+    fn engineering_metric_can_explicitly_mark_a_scenario_input_as_assumed() {
+        let value = serde_json::json!({ "evidence_kind": "ASSUMED" });
+        assert_eq!(
+            enum_value(
+                &value,
+                "evidence_kind",
+                &[
+                    "MEASURED",
+                    "AUTHOR_CALCULATED",
+                    "SIMULATED",
+                    "SECONDARY_REPORTED",
+                    "UNKNOWN",
+                    "ASSUMED",
+                ],
+                "engineering metric"
+            )
+            .unwrap(),
+            "ASSUMED"
+        );
+    }
+
+    #[test]
+    fn claim_audit_can_mark_a_source_supported_with_limits() {
+        let value = serde_json::json!({ "status": "SUPPORTED_WITH_LIMITS" });
+        assert_eq!(
+            enum_value(
+                &value,
+                "status",
+                &[
+                    "RECONCILED",
+                    "DISCREPANCY",
+                    "AMBIGUOUS_BOUNDARY",
+                    "UNRESOLVED",
+                    "SUPPORTED_WITH_LIMITS",
+                ],
+                "claim audit"
+            )
+            .unwrap(),
+            "SUPPORTED_WITH_LIMITS"
+        );
     }
 
     #[test]
