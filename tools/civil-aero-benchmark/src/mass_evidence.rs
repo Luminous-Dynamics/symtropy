@@ -1539,6 +1539,12 @@ mod tests {
         );
         aggregate.accounting_role = AccountingRole::Aggregate;
         aggregate.included_child_ids = vec!["removable_module".to_owned()];
+        ledger
+            .records
+            .iter_mut()
+            .find(|record| record.item.id == "removable_module")
+            .expect("aggregate child")
+            .parent_id = Some("propulsion_assembly".to_owned());
         ledger.records.push(aggregate);
         ledger.records.sort_by(|left, right| left.item.id.cmp(&right.item.id));
         let mut state = make_state(&ledger, LoadingStateKind::Takeoff);
@@ -1566,6 +1572,52 @@ mod tests {
         assert!((report.total_mass_standard_uncertainty_kg.unwrap() - expected).abs() < 1.0e-12);
         assert_eq!(report.cg_uncertainty_m, None);
         assert_eq!(report.inertia_uncertainty_kg_m2, None);
+    }
+
+    #[test]
+    fn rigid_body_source_inertia_unit_conversion_is_checked() {
+        let mut engine = evidence_record(
+            "engine",
+            MassItemCategory::Propulsion,
+            Some(2.0),
+            Some([0.0, 0.0, 0.0]),
+            CONFIG,
+        );
+        engine.item.geometry = MassGeometry::RigidBody {
+            center_of_mass_m: [0.0, 0.0, 0.0],
+            inertia_tensor_about_center_kg_m2: [1.0, 2.0, 3.0, 0.0, 0.0, 0.0],
+        };
+        engine.source_inertia = Some(SourceInertiaTensor {
+            values: [10_000_000.0, 20_000_000.0, 30_000_000.0, 0.0, 0.0, 0.0],
+            unit: InertiaUnit::GramSquareCentimetre,
+        });
+        let ledger = MassEvidenceLedger {
+            schema_version: MASS_EVIDENCE_SCHEMA_VERSION,
+            configuration_sha256: CONFIG.to_owned(),
+            aircraft_family: "Wren 2".to_owned(),
+            aircraft_model: "Wren 2 research fixture".to_owned(),
+            serial_number: "SYNTH-001".to_owned(),
+            records: vec![engine],
+        };
+        let state = make_state(&ledger, LoadingStateKind::Takeoff);
+        let report = ledger.evaluate_state(&state, CONFIG).expect("rigid-body source inertia");
+        assert_eq!(
+            report.mass_properties.inertia_tensor_about_cg_kg_m2,
+            Some([1.0, 2.0, 3.0, 0.0, 0.0, 0.0])
+        );
+
+        let mut mismatched = ledger.clone();
+        mismatched.records[0].source_inertia = Some(SourceInertiaTensor {
+            values: [1.0, 2.0, 3.0, 0.0, 0.0, 0.0],
+            unit: InertiaUnit::GramSquareCentimetre,
+        });
+        let mut mismatched_state = make_state(&mismatched, LoadingStateKind::Takeoff);
+        mismatched_state.source_generation_sha256 =
+            mismatched.source_generation_sha256().expect("new generation");
+        let error = mismatched
+            .evaluate_state(&mismatched_state, CONFIG)
+            .expect_err("incorrect inertia unit conversion");
+        assert!(error.contains("source inertia unit conversion"));
     }
 
     #[test]
