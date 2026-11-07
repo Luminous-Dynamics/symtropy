@@ -104,3 +104,52 @@ The next experiment should:
 ## 8. Claim ceiling
 
 This reference reproduces arithmetic from a published controlled-environment study and sets a more complete benchmark contract. It does not reproduce the article's raw data, validate its crop physiology, establish a general 27 h recommendation, predict annual farm output, or prove an energy advantage for an underground facility.
+
+
+## 9. Orthogonal 24-hour photoperiod / PPFD comparator: continuous low-intensity lighting
+
+Palmitessa et al., *Continuous lighting at low PPFD improves energy efficiency while preserving growth and quality of lettuce in vertical farming systems*, Frontiers in Plant Science (4 March 2026), DOI 10.3389/fpls.2026.1783548:
+- Full text: https://www.frontiersin.org/journals/plant-science/articles/10.3389/fpls.2026.1783548/full
+- DOI: https://doi.org/10.3389/fpls.2026.1783548
+
+This is a distinct 24-hour schedule comparison and must not be merged with the 27-hour circadian treatment study above. The three treatments all had the same target DLI (14.4 ±0.4 mol m^-2 day^-1):
+- 16:8 at 250 ±10 µmol m^-2 s^-1;
+- 12:12 at 340 ±12 µmol m^-2 s^-1;
+- 24:0 at 170 ±8 µmol m^-2 s^-1.
+
+The trial used one walk-in growth chamber, three racks and a split-plot layout. The schematic shows three blocks with all three lighting treatments; each shelf hosted 16 plants (eight per cultivar) at 33.3 plants m^-2. Lighting treatments were the main plots; cultivars (Falstaff and Copacabana) were subplots. Four plants per experimental unit were destructively measured at 26 days after transplant. Two trials were conducted, but the paper reports the second controlled-chamber trial only. It is not multi-facility validation.
+
+### Reported outcomes (second trial)
+
+| Metric | 16:8 | 12:12 | 24:0 |
+|---|---:|---:|---:|
+| Fresh weight (g/plant) | 38.5 ±1.8 | 38.0 ±1.8 | 42.0 ±2.2 |
+| Yield (g/m²) | 1,271 ±44.2 | 1,255 ±43.9 | 1,390 ±54.9 |
+| Dry matter (%) | 7.1 ±0.31 | 6.9 ±0.34 | 7.1 ±0.38 |
+| LED EUE (g fresh mass / LED kWh) | 9.8 ±1.07 | 9.0 ±0.98 | 11.4 ±1.38 |
+| Light-use efficiency (g/mol photons) | 3.4 ±0.21 | 3.4 ±0.22 | 3.8 ±0.22 |
+| LED energy per m² (source table values) | 129 ±10.02 | 140 ±17.29 | 122 ±12.25 |
+| Tariff-weighted LED cost (€/m²) | 18.2 ±1.53 | 19.8 ±2.44 | 16.3 ±1.79 |
+
+The Results text states that the photoperiod treatments did not significantly influence yield (p = 0.08), morphology or dry matter. It reports significantly higher LED-only EUE under 24:0 (11.4 vs 9.8 / 9.0 g/kWh) and higher LUE (3.8 vs 3.4 g/mol). LED consumption itself was not significantly different among schedules (P marked ns). The authors attribute the tariff-weighted lighting-cost difference to the Italian hourly electricity tariff applied to the schedules.
+
+### Source-boundary cautions
+
+- EUE is explicitly based on plant fresh weight divided by LED electricity; it is not whole-facility kWh/kg. The methods state that HVAC, pumps and fertigation were monitored, but the headline EUE / Table 4 does not report a complete whole-facility energy comparison.
+- The Table 4 energy unit is printed as kW m^-2, while the methods describe energy consumption in kWh and the results prose states approximately 130 kWh m^-2 over the growth cycle. This is an internal source-label inconsistency. The fixture preserves the values and records the conflict; it does not silently relabel them as power or energy.
+- Tariff-weighted euro cost is location- and time-of-use-specific; do not transfer Italian tariffs or savings to another electricity market.
+- A reported EUE improvement does not imply significant yield gain or lower total facility energy. Peak kW, LED kWh, HVAC/dehumidification kWh, pumping, fixed loads and tariff exposure are separate axes.
+- The study is lettuce / two cultivars / one walk-in chamber. Continuous light is not a universal recommendation for all species or cultivars.
+
+### Integration rule
+
+Treat lighting optimization as a product space with orthogonal dimensions:
+- endogenous cultivar clock and external zeitgeber cycle length;
+- photoperiod and PPFD waveform within that cycle;
+- spectral composition over time;
+- DLI per biological cycle and per elapsed civil day;
+- LED electrical load, peak demand, tariff and carbon-intensity timing;
+- climate / latent loads and full-facility energy;
+- accepted fresh mass, dry biomass, marketable fraction and nutritional quality.
+
+Do not combine continuous 24:0, dynamic spectrum and 27 h circadian alignment into one treatment label. Pre-register which dimension is changed and hold the others fixed in a confirmatory contrast.
