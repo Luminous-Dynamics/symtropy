@@ -473,7 +473,7 @@ Selected reported Table 7 values:
 
 A second adjacent comparator is Wei et al., *Joint Trajectory Design and Energy Scheduling for UAVs With Hybrid Wireless Charging Strategy*, IEEE Wireless Communications Letters 15 (2026), pp.3214–3218, DOI [10.1109/LWC.2026.3693755](https://doi.org/10.1109/LWC.2026.3693755). It uses an Energy-Aware RRT (EA-RRT) to jointly plan UAV trajectories and wireless-charging/SWIPT opportunities under motion, communications and charging constraints. It is UAV-only and simulation-based; it supplies a trajectory-energy baseline, not ground–air site orchestration.
 
-Both studies are registered as simulation-only records in the pinned WPT catalogue. [Open the source catalogue PR #3451](https://github.com/Luminous-Dynamics/symtropy/pull/3451).
+Both studies are registered as simulation-only records in WPT catalogue PR [#3451](https://github.com/Luminous-Dynamics/symtropy/pull/3451), pinned for this comparator set to commit `a3bd8c87f1f33cec6ad1b287858a13b5ce5586c3`. The M1 physical-channel evidence adapter separately remains pinned to its earlier valid source-record commit `69d1aa2bc7cdc3bedc0456dd0e7758ffbca9ba34`.
 
 ### Updated novelty and competition statement
 
