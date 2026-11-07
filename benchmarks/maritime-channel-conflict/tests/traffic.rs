@@ -108,10 +108,7 @@ fn one_segment(movements: Vec<ChannelMovement>) -> ChannelWorkload {
     }
 }
 
-fn two_segments(
-    relation: InteractionRelation,
-    movements: Vec<ChannelMovement>,
-) -> ChannelWorkload {
+fn two_segments(relation: InteractionRelation, movements: Vec<ChannelMovement>) -> ChannelWorkload {
     ChannelWorkload {
         corridor_id: "synthetic-corridor".to_owned(),
         time_basis_id: "synthetic-ticks-v1".to_owned(),
@@ -191,9 +188,7 @@ fn an_explicitly_closed_channel_window_rejects_movement() {
     assert!(
         report
             .violations
-            .contains(&TrafficViolation::MovementOnClosedSegment(
-                "m-1".to_owned()
-            ))
+            .contains(&TrafficViolation::MovementOnClosedSegment("m-1".to_owned()))
     );
 }
 
@@ -321,10 +316,12 @@ fn overlapping_movements_on_one_segment_conflict() {
     input.segments[0].same_segment_min_separation_ticks = 0;
     let report = evaluate_channel_workload(&input).expect("valid pair");
     assert_eq!(report.disposition, TrafficDisposition::Infeasible);
-    assert!(report.violations.iter().any(|item| matches!(
-        item,
-        TrafficViolation::SameSegmentHeadwayConflict { .. }
-    )));
+    assert!(
+        report
+            .violations
+            .iter()
+            .any(|item| matches!(item, TrafficViolation::SameSegmentHeadwayConflict { .. }))
+    );
 }
 
 #[test]
@@ -372,10 +369,12 @@ fn cross_segment_overlap_is_rejected_when_the_pair_shares_a_conflict_zone() {
     );
     let report = evaluate_channel_workload(&input).expect("valid conflict graph");
     assert_eq!(report.disposition, TrafficDisposition::Infeasible);
-    assert!(report.violations.iter().any(|item| matches!(
-        item,
-        TrafficViolation::CrossSegmentConflict { .. }
-    )));
+    assert!(
+        report
+            .violations
+            .iter()
+            .any(|item| matches!(item, TrafficViolation::CrossSegmentConflict { .. }))
+    );
 }
 
 #[test]
