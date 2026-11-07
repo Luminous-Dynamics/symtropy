@@ -359,12 +359,12 @@ fn validate_measurement(measurement: &Value, schema: &Value, label: &str) -> Val
         )?;
     }
     for key in ["power_in_w", "transfer_gap_m", "frequency_hz"] {
-        if let Some(number) = optional_number(measurement, key, label)? {
-            if number < 0.0 || (key == "frequency_hz" && number == 0.0) {
-                return invalid(format!(
-                    "{label}: {key} must be positive or zero only where meaningful"
-                ));
-            }
+        if let Some(number) = optional_number(measurement, key, label)?
+            && (number < 0.0 || (key == "frequency_hz" && number == 0.0))
+        {
+            return invalid(format!(
+                "{label}: {key} must be positive or zero only where meaningful"
+            ));
         }
     }
     for boundary_key in ["input_boundary", "output_boundary"] {
@@ -493,12 +493,12 @@ fn validate_realizations(
             "gap_min_m",
             "gap_max_m",
         ] {
-            if let Some(number) = optional_number(prototype, key, &label)? {
-                if number < 0.0 || (key == "frequency_hz" && number == 0.0) {
-                    return invalid(format!(
-                        "{label}: prototype {key} must be positive or zero only where meaningful"
-                    ));
-                }
+            if let Some(number) = optional_number(prototype, key, &label)?
+                && (number < 0.0 || (key == "frequency_hz" && number == 0.0))
+            {
+                return invalid(format!(
+                    "{label}: prototype {key} must be positive or zero only where meaningful"
+                ));
             }
         }
         let gap_min = optional_number(prototype, "gap_min_m", &label)?;
@@ -597,10 +597,10 @@ fn validate_realizations(
                 ],
                 &claim_label,
             )?;
-            if let Some(value) = optional_number(claim, "value_percent", &claim_label)? {
-                if !(0.0..=100.0).contains(&value) {
-                    return invalid(format!("{claim_label}: value_percent must be in 0..=100"));
-                }
+            if let Some(value) = optional_number(claim, "value_percent", &claim_label)?
+                && !(0.0..=100.0).contains(&value)
+            {
+                return invalid(format!("{claim_label}: value_percent must be in 0..=100"));
             }
         }
 
