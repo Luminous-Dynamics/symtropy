@@ -33,3 +33,28 @@ The Brier score is the IPCW weighted squared-error sum divided by the number of 
 ## Limits and non-claims
 
 The synthetic fixture uses abstract cutting-hour episodes and fabricated forecasts. It does not demonstrate a physical RUL model or maintenance improvement. A real use requires validated failure adjudication, censoring mechanism review, exposure definitions, episode-level leakage controls, calibrated predictions and prospective asset-cohort validation.
+
+
+## Scoring and censoring assumptions
+
+For each declared prediction horizon h:
+- observed failure by h: use the known all-cause or cause-specific outcome, weighted by 1/G(T-);
+- observed event-free through h (including failure after h or censoring at/after h): survival target=1 / cause incidence=0, weighted by 1/G(h-);
+- independent administrative/loss-to-follow-up censoring before h: its label is unknown, so it contributes zero numerator but remains in the IPCW denominator;
+- preventive replacement, repair, transfer or unknown early censoring: excluded from the primary score denominator and counted separately.
+
+The censoring Kaplan–Meier estimator uses only CALIBRATION episodes. Its delayed-entry risk set includes episodes with entry exposure <= t <= exit exposure. Only declared independent censoring reasons reduce G(t); failure events and informative interventions leave the risk set without being treated as independent censor events. Event observations use the left-limit G(T-), so censoring at the same exposure time does not retrospectively down-weight that event.
+
+A horizon with G(h-) = 0, or an event time with G(T-) = 0, is a support violation. The evaluator errors rather than clipping weights or extrapolating.
+
+## Synthetic replay (fabricated values)
+
+- 14 episodes: 8 calibration and 6 validation.
+- 3 competing failure causes.
+- 48 forecasts at 5 and 8 cutting-hour horizons (all-cause survival plus cause-specific cumulative incidence).
+- Calibration censoring curve: G(7)=0.8; G(9)=0.5333; G(11)=0.
+- All-cause survival Brier: 0.0656 at 5 hours and 0.07696 at 8 hours.
+- Two-horizon trapezoidal integrated Brier: 0.07128.
+- At the 8-hour horizon, one ordinary administrative censor before horizon remains in the IPCW denominator with zero numerator contribution; one early repair censor is excluded as potentially informative.
+
+These values verify the scoring arithmetic only. They are not model skill, an industrial baseline or field RUL performance.
