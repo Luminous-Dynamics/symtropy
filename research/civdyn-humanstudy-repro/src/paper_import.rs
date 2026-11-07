@@ -16,7 +16,7 @@ use super::{
 };
 use serde_json::{Map, Value, json};
 use sha2::{Digest, Sha256};
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 use std::error::Error;
 use std::fmt;
 use std::fs;
@@ -229,7 +229,7 @@ fn count_native_trials(full_benchmark: &Value) -> Result<(u64, usize), PaperImpo
             .ok_or_else(|| PaperImportError::new(format!(
                 "full_benchmark.json all_runs_raw_results[{run_index}] is missing individual_data"
             )))?;
-        for (record_index, record) in individual.iter().enumerate() {
+        for record in individual {
             if let Some(responses) = record.get("responses").and_then(Value::as_array) {
                 trial_count = trial_count
                     .checked_add(responses.len() as u64)
@@ -240,7 +240,6 @@ fn count_native_trials(full_benchmark: &Value) -> Result<(u64, usize), PaperImpo
                     .checked_add(1)
                     .ok_or_else(|| PaperImportError::new("trial count overflow"))?;
             }
-            let _ = record_index;
         }
     }
     if trial_count == 0 {
@@ -641,12 +640,6 @@ pub fn assemble_paper_run_receipt(
     Ok(receipt)
 }
 
-fn sha256_valid(value: &str) -> bool {
-    value.len() == 64
-        && value
-            .bytes()
-            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
-}
 
 #[cfg(test)]
 mod tests {
