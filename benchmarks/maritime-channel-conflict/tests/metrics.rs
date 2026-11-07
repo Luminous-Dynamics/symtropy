@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
 
 use maritime_channel_conflict_contract::{
-    ChannelConflictReport, ChannelConflictWorkload, ChannelDisposition, ChannelEdge, ChannelError,
-    ChannelDirection, ChannelMovement, ChannelViolation, ConflictGraph, ConflictMember,
+    ChannelConflictReport, ChannelConflictWorkload, ChannelDirection, ChannelDisposition,
+    ChannelEdge, ChannelError, ChannelMovement, ChannelViolation, ConflictGraph, ConflictMember,
     ConflictRule, DirectionWindow, TopologyReviewState, evaluate_channel_conflicts,
 };
 use maritime_service_chain_contract::{ServiceUnit, TickWindow};
@@ -507,13 +507,7 @@ fn direction_mapping_must_match_one_of_the_edge_endpoint_orientations() {
         TopologyReviewState::Reviewed,
     );
     let movements = vec![movement(
-        "movement",
-        "demand-a",
-        "segment",
-        "edge",
-        "inbound",
-        1,
-        3,
+        "movement", "demand-a", "segment", "edge", "inbound", 1, 3,
     )];
     assert_eq!(
         evaluate(movements, graph),
@@ -536,13 +530,7 @@ fn direction_window_cannot_reference_an_undeclared_direction_mapping() {
         TopologyReviewState::Reviewed,
     );
     let movements = vec![movement(
-        "movement",
-        "demand-a",
-        "segment",
-        "edge",
-        "inbound",
-        1,
-        3,
+        "movement", "demand-a", "segment", "edge", "inbound", 1, 3,
     )];
     assert_eq!(
         evaluate(movements, graph),
