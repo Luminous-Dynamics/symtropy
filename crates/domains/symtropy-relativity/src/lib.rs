@@ -176,13 +176,31 @@ impl SchwarzschildBlackHole {
         // Algebraically equivalent to 48 r_g^2 / r^6, but avoids
         // overflowing r^6 for large, weak-curvature exterior radii.
         let ratio = rg / radius_m;
-        let value = 48.0 * ratio * ratio / radius_m.powi(4);
-        if !value.is_finite() {
+        let direct = 48.0 * ratio * ratio / radius_m.powi(4);
+        if direct.is_finite() && direct > 0.0 {
+            return Ok(direct);
+        }
+
+        // Log-domain fallback covers cases where intermediate powers overflow
+        // or underflow even though the final invariant is representable.
+        let log_value = 48.0_f64.ln() + 2.0 * rg.ln() - 6.0 * radius_m.ln();
+        let min_positive = f64::from_bits(1);
+        if log_value < min_positive.ln() {
+            return Ok(0.0);
+        }
+        if log_value > f64::MAX.ln() {
             return Err(PhysicsDomainError::ComputationNonFinite(
                 "kretschmann_scalar_m4",
             ));
         }
-        Ok(value)
+        let value = log_value.exp();
+        if value.is_finite() {
+            Ok(value)
+        } else {
+            Err(PhysicsDomainError::ComputationNonFinite(
+                "kretschmann_scalar_m4",
+            ))
+        }
     }
 
     /// Schwarzschild lapse sqrt(1 - r_s/r) for a static observer outside
@@ -377,6 +395,20 @@ mod tests {
         let k2 = hole.kretschmann_scalar_m4(2.0 * r).expect("2r > 0");
         close(k2 / k1, 1.0 / 64.0, 1e-14);
         assert!(k1.is_finite() && k1 > 0.0);
+    }
+
+    #[test]
+    fn kretschmann_log_fallback_preserves_representable_extreme_scale() {
+        let mass = MassKg::new(1.0e170).unwrap();
+        let hole = SchwarzschildBlackHole::new(mass);
+        let radius = 1.0e150;
+        let value = hole.kretschmann_scalar_m4(radius).unwrap();
+        let expected_log = 48.0_f64.ln()
+            + 2.0 * hole.gravitational_radius_m().ln()
+            - 6.0 * radius.ln();
+        assert!(value.is_finite() && value > 0.0);
+        let relative_error = (value.ln() - expected_log).abs();
+        assert!(relative_error < 1e-12, "log-relative error={relative_error:e}");
     }
 
     #[test]
