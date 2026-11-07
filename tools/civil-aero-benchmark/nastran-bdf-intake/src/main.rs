@@ -549,7 +549,13 @@ fn build_inventory(deck: &Deck) -> ParseResult<Inventory> {
                 if mass < 0.0 {
                     return fail(format!("CONM2 {eid}: mass cannot be negative"));
                 }
-                validate_numeric_if_present(card, &[4, 5, 6, 7, 8, 9, 10, 11, 12])?;
+                for index in 4..=12 {
+                    if let Some(value) = card.fields.get(index) {
+                        if !value.trim().is_empty() {
+                            parse_nastran_float(value, &format!("CONM2 field {}", index + 1))?;
+                        }
+                    }
+                }
                 beam_grid_refs.insert(grid);
             }
             "RBE2" => {
@@ -577,10 +583,16 @@ fn build_inventory(deck: &Deck) -> ParseResult<Inventory> {
             "SPC" => {
                 let sid = parse_u32(required_text(card, 0, "SPC SID")?, "SPC SID")?;
                 inventory.spc_set_ids.insert(sid);
-                if card.fields.len() < 4 || (card.fields.len() - 1) % 3 != 0 {
+                let end = card
+                    .fields
+                    .iter()
+                    .rposition(|value| !value.is_empty())
+                    .map(|index| index + 1)
+                    .unwrap_or(1);
+                if end < 4 || (end - 1) % 3 != 0 {
                     return fail(format!("SPC {sid}: expected GRID/component/value triplets"));
                 }
-                for index in (1..card.fields.len()).step_by(3) {
+                for index in (1..end).step_by(3) {
                     let grid = parse_u32(field(card, index, "SPC GRID")?, "SPC GRID")?;
                     let components = required_text(card, index + 1, "SPC component")?;
                     if !components.bytes().all(|byte| byte.is_ascii_digit() && byte <= b'6') {
