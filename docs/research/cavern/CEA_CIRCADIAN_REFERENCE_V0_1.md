@@ -31,24 +31,24 @@ The following long-clock mean comparisons are reported after 30 treatment cycles
 
 These are published study means, not Symtropy measurements. The 27 h treatment is 12.5% longer in wall-clock time.
 
-## 3. Calendar-time normalization
+## 3. Calendar-time normalization: two different results must not be conflated
 
-Per-cycle biomass alone overstates the service gain when treatment cycles have different durations.
+The paper itself includes a **separate time- and area-corrected annual-yield analysis** in Supplementary Fig. S4. It reports 12.2 versus 10.8 crop rotations per year for 24 h versus 27 h cycles, and concludes that projected annual yield per m² was equivalent or greater for long-clock accessions grown under 27 h cycles than for the same accessions under 24 h cycles. It reports no such compensation for normal-clock accessions.
 
-For a treatment mean mass m (g), number of complete treatment cycles n, and cycle duration T (h):
+That is the paper's source-reported annualization result. It must be preserved in our benchmark and must not be replaced by a simplified ratio based on one table of 30-cycle group means.
 
-`calendar_throughput = m / (n × T / 24)`
+The machine-readable fixture also includes a **limited arithmetic sanity check** using the published 30-cycle group means:
 
-For a matched 27 h / 24 h pair, the ratio of calendar-time throughput is:
+`single_harvest_mean_ratio × (24 / 27)`
 
-`throughput_ratio = (m_27 / m_24) × (24 / 27)`
+- Standard 16 h photoperiod: (68 / 61) × (24 / 27) = **0.9908925**.
+- Extended 20 h matched-photon photoperiod: (72 / 56) × (24 / 27) = **1.1428571**.
 
-Derived from reported mean values:
+These are ratios for the reported mean fresh mass at the 30-cycle harvest, simply divided by elapsed crop-cycle duration. They are **not** the authors' full time- and area-corrected annual-yield calculation, are not derived from the underlying plant-level supplement, and cannot overturn or reproduce Supplementary Fig. S4 by themselves. In particular, do not summarize the paper as showing that the standard 16:11 resonant treatment reduces annual productivity: the authors' separate analysis reports equivalent or greater projected annual yield per area for long-clock accessions under 27 h cycles.
 
-- Standard 16 h photoperiod: (68 / 61) × (24 / 27) = **0.9908925** (about 0.91% lower per elapsed calendar day).
-- Extended 20 h matched-photon photoperiod: (72 / 56) × (24 / 27) = **1.1428571** (about 14.29% higher per elapsed calendar day).
+The source also notes that a 27 h cycle is 12.5% longer than a 24 h cycle, increasing climate-control time and associated cost, while lighting is estimated in the paper to represent 60–80% of vertical-farm operating expenses. This is the authors' argument about likely cost impact, not a measured whole-facility energy audit. We must measure all energy streams rather than assume the climate-control penalty is negligible.
 
-This normalization is arithmetic only. It does not establish annual facility yield, crop turnover, energy intensity, statistical significance of calendar-normalized contrasts, or a whole-facility advantage.
+For a true reproduction, ingest the article's raw supplementary observations and exact Supplementary Fig. S4 calculation method, preserve plant density changes and harvest-time basis, then independently recompute time-corrected and area-corrected annual yield. The present v0.1 fixture records the source's reported annualization and the simple 30-cycle arithmetic separately; it does not claim to reproduce the full annual analysis.
 
 ## 4. Why equal photon dose is not equal elapsed-time service
 
