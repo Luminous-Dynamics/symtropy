@@ -79,6 +79,18 @@
       "url": "https://journals.aps.org/prd/accepted/10.1103/l1mc-6hsz",
       "key_result": "For the modeled plunging point-particle source, the maximum wave amplitude sourced within the prograde light ring is estimated at <=10% of the full trajectory contribution; for GW250114 the post-peak SNR from within-light-ring sourced waves is estimated <=1 under the paper's setup.",
       "caveat": "Model-dependent source-region estimate, not a direct measurement of the horizon or a universal bound for all mergers."
+    },
+    {
+      "kind": "eikonal_local_geometry_inference",
+      "title": "Constraining the geometry of rotating black holes with eikonal QNMs",
+      "arxiv": "2609.24824",
+      "url": "https://arxiv.org/abs/2609.24824"
+    },
+    {
+      "kind": "optimal_probe_frequency",
+      "title": "Optimal frequency scales for probing black-hole geometries",
+      "arxiv": "2608.01061",
+      "url": "https://arxiv.org/abs/2608.01061"
     }
   ],
   "data_selection": {
@@ -219,6 +231,13 @@
       "predictor": "BOB / Pöschl-Teller QNM-pole amplitude evolution and light-ring/null-geodesic dynamics",
       "observable": "merger-ringdown amplitude and filtered residual frequency evolution",
       "status": "published_competing_model"
+    },
+    {
+      "id": "eikonal_light_ring",
+      "predictor": "Kerr equatorial photon-orbit coordinate frequency Omega_ph and radial coordinate-time Lyapunov exponent lambda_ph",
+      "observable": "local light-ring orbital frequency, radial instability exponent, and metric-derived null/circularity residuals",
+      "status": "geometric_reference_model_not_a_finite_l_QNM_prediction",
+      "caveat": "Eikonal correspondence applies asymptotically at large angular mode number; do not substitute the light-ring frequency directly for an exact finite-l QNM."
     }
   ],
   "required_metrics": [
@@ -237,7 +256,11 @@
     "recovery and robustness of the 9-system Bayesian free-frequency subset (t0=0M, duration=15M, 200000 steps, 48 walkers)",
     "source-region contribution comparison: inside-prograde-light-ring vs full plunge trajectory, including amplitude and SNR with the exact paper assumptions",
     "test whether a residual can be detected while the within-light-ring contribution remains below the predicted observational sensitivity",
-    "frequency deviation from Omega_H across ringdown start times, as a separate statistic from residual extraction significance"
+    "frequency deviation from Omega_H across ringdown start times, as a separate statistic from residual extraction significance",
+    "light-ring radius, signed orbital frequency, impact parameter and coordinate-time Lyapunov exponent versus remnant mass/spin",
+    "null-geodesic and radial circularity residuals for each Kerr light-ring fixture",
+    "eikonal light-ring prediction residual against finite-l QNM frequencies by ell,m,spin and overtone",
+    "uncertainty / prior pushforward from global metric parameters to local light-ring values and derivatives"
   ],
   "null_controls": [
     "noise-only and off-source segments",
@@ -260,7 +283,7 @@
     "remnant mass/spin source and posterior identifier",
     "metric/connection/curvature code commit and benchmark fixture version"
   ],
-  "execution_state": "specification_only_no_waveforms_downloaded_no_direct_wave_analysis_or_source_region_ablation_run",
+  "execution_state": "specification_only_no_waveforms_downloaded_no_direct_wave_analysis_or_source_region_ablation_run; Kerr equatorial light-ring reference module authored on research/black-hole-physics-program-clean; no Rust execution or SXS waveform comparison yet",
   "broad_validation_dataset": {
     "source": "Richardvnd/direct_waves_LR",
     "code_repository": "https://github.com/Richardvnd/direct_waves_LR",
