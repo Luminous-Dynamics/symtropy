@@ -314,7 +314,13 @@ impl DifferentiatedMetric4 {
         let two_m_r_over_sigma = two.times(rg).times(r).over(sigma)?;
         let g_tt = one.minus(two_m_r_over_sigma).negative();
 
-        let g_t_phi = two.times(rg).times(a).times(r).times(sin_squared).over(sigma)?.negative();
+        let g_t_phi = two
+            .times(rg)
+            .times(a)
+            .times(r)
+            .times(sin_squared)
+            .over(sigma)?
+            .negative();
 
         let g_rr = sigma.over(delta)?;
         let g_theta_theta = sigma;
@@ -372,7 +378,13 @@ impl DifferentiatedMetric4 {
             .minus(two.times(rg).times(r).over(sigma)?)
             .negative();
         let g_vr = Jet2::constant(1.0);
-        let g_v_phi = two.times(rg).times(a).times(r).times(sin_squared).over(sigma)?.negative();
+        let g_v_phi = two
+            .times(rg)
+            .times(a)
+            .times(r)
+            .times(sin_squared)
+            .over(sigma)?
+            .negative();
         let g_r_phi = a.times(sin_squared).negative();
         let g_theta_theta = sigma;
         let g_phi_phi = sin_squared.times(
