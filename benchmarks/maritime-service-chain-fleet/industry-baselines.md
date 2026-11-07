@@ -189,6 +189,56 @@ All values below are proposed promotion targets, not achieved results or univers
 4. Add a matched solver-backed MILP/CP-SAT reference for larger cases and a switching max-plus/MILP subset when multi-chamber packing enters scope.
 5. Only then use source-permitted port-call, lockage, terminal and water/energy records for a held-out operational replay. Preserve DCSA/IAPH/IHMA and IHO semantics; no synthetic-to-real extrapolation.
 
+## Durban Gateway Terminal: direct operational snapshot intake (7 November 2026)
+
+The official Durban Gateway Terminal (DGT) [Terminal Updates page](https://dgt.ictsi.com/terminalupdates) publishes several distinct source families. This is a stronger intake lead than a secondary weekly congestion summary, but **the records have not been admitted as a reusable dataset**: the page's privacy policy is not a data licence, and source reuse/redistribution terms and field definitions remain to be reviewed.
+
+### Two direct source snapshots
+
+| Source | Observed snapshot/report time | Contents | Correct benchmark role | Critical limit |
+|---|---|---|---|---|
+| [DGT Vessel Update @05H00](https://cdnweb-dgt.ictsi.com/users/user20/DGT%20VESSELS%20UPDATE%20SPREADSHEET%20%2823%29.pdf) | 7 Nov 2026, 05:00 (source-local timezone not explicitly verified) | Vessel name, vessel visit no., berth, ETA date, start-work date/time, status, discharge/load balances, completion date/time, notes | Source-native terminal operation snapshot / milestone status | Visit number is not IMO; ETA is not known to be PCO PTA-PBP; start-work is not berth arrival; completion is not departure; balance units and denominator require confirmation |
+| [DGT Firm 21-day Berth Plan](https://cdnweb-dgt.ictsi.com/users/user13/DGT%20Firm%2021%20day%20berth%20plan%2006.11.2026.pdf) | 6 Nov 2026, 13:12:09, labelled Live Update:All | Vessel/visit references, berth placement, ETA/ETD fields, LOA, side-to / berth presentation and graphical berth/time occupancy | Versioned planning snapshot for forecast and plan-churn analysis | ETA/ETD are schedule fields until their precise semantics are confirmed; the graphical block is not observed berth occupancy, a swept path or physical clearance |
+| [DGT Firm 14-day Berth Plan](https://cdnweb-dgt.ictsi.com/users/user36/14%20DAY%20DGT%20BERTH%20PLAN%2001-11-2026.pdf) | 1 Nov 2026, 12:53:16, labelled Live Update:All | Same broad planning family | Earlier immutable snapshot for plan revision comparison | Different horizon/revision; match visits only through reviewed stable keys |
+
+The [DGT 4 November operations notice](https://cdnweb-dgt.ictsi.com/users/user13/2026.11.03%20DGT%204th%20November%20Operations.pdf) is a separate *planned disturbance* source: it described possible reduced staffing/landside appointments for the 4 November voting holiday and a planned 06:00–08:00 software suspension, while prioritising waterside continuity. It is useful for a planned-disturbance scenario, not proof that the expected capacity loss occurred.
+
+The landing page also lists daily export-stack and import-storage snapshots. These are yard-state data and must not be joined to vessel events without their own unit, sampling boundary, storage rule and linkage semantics.
+
+### Field mapping discipline
+
+Reuse [PCO evidence #1930 / PR #1940](https://github.com/Luminous-Dynamics/symtropy/pull/1940), [DCSA JIT #1955 / PR #1965](https://github.com/Luminous-Dynamics/symtropy/pull/1965) and the provider-specific intake task [MARITIME-DGT-OBS-001 #4003](https://github.com/Luminous-Dynamics/symtropy/issues/4003). Do not add a competing global port-call vocabulary.
+
+| DGT source field | Initial treatment | Forbidden silent mapping |
+|---|---|---|
+| Vessel Visit No. | Source-local visit reference; exact raw lexeme | Not IMO and not a globally unique port-call ID without a reviewed identity map |
+| Vessel Name | Display/source attribute | Not a stable vessel identity |
+| Berth | Raw terminal berth code/name; explicit versioned registry mapping required | Not a global berth ID by itself |
+| Vessel E.T.A Date | Preserve labelled ETA and raw date | Not automatically ETA-Berth, PTA-PBP, actual arrival or anchorage arrival |
+| Date/Time Started Working | Provider-specific terminal-work milestone | Not PBP arrival, berth arrival, pilot boarding or vessel departure |
+| Status (NYI/INW/OWI/WORKING/COMPLETED/SAILED etc.) | Exact raw status plus source dictionary/version | No guessed DCSA classifier or lifecycle transition from string similarity |
+| Balance to Discharge / Balance to Load | Preserve ordered raw values and lexemes | No guessed unit, remaining/total orientation, TEU conversion or productivity numerator |
+| Date/Time Complete | Terminal completion milestone | Not actual departure from berth; SAILED is a separate source assertion |
+| Firm-plan ETA/ETD | Snapshot-scoped plan assertions | Not actual arrival/departure timestamps |
+| Firm-plan berth/time block | Versioned schedule placement | Not a navigability envelope, conflict-free route or actual occupancy observation |
+
+### Minimum frozen source receipt
+
+Before ingesting even a limited retrospective sample, freeze: publisher/terminal, exact URL/filename, retrieval time, reported as-of or plan publication time, file bytes/length/SHA-256, page count, source revision, source field dictionary version, clock/timezone/precision, rights/permission receipt, coverage window, extraction code/version and known omissions. Keep event/valid time, schedule time, source publication/snapshot time, ingestion time and decision cutoff separate.
+
+A changed daily snapshot is a new immutable assertion. Compare snapshots only after stable call/visit identity and source revision are reconciled. Late corrections and conflicting sources remain visible; never use last-ingested as truth.
+
+### Evaluation opportunity (not yet measured)
+
+Once rights and definitions are cleared, the same vessel-call cohort can support:
+- terminal work-start → terminal work-completion duration (not port time-in-port);
+- ETA/berth-plan revision error, schedule churn and missed planned windows;
+- terminal queue and service distributions only when independent arrival/anchorage and departure observations define the true interval;
+- linkage from vessel calls to yard/gate/rail evacuation only when explicit cargo/visit keys exist;
+- matched comparison of FCFS/operator rules, published berth/port optimizers and the joint fleet + tug/pilot + channel-conflict + service-chain policy.
+
+Report p50/p90/p95/max, censoring, vessel class, call population, plan snapshot vintage and terminal-vs-port boundary. Do not compare DGT terminal work duration to CPPI port time-in-port or to a logistics provider's average anchorage wait as if they were the same measure.
+
 ## Primary sources
 
 - Liao et al., 2026 lock fairness/efficiency paper: https://doi.org/10.1016/j.oceaneng.2026.125004
