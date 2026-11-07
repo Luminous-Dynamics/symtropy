@@ -1,0 +1,838 @@
+{
+  "protocol_id": "HSB-FOUNDATIONAL-12-FFB1F72A",
+  "source_repository": "HumanStudy-Hub/HumanStudy-Bench",
+  "source_commit": "ffb1f72a8bab327d7f4a6b7e43e7be4d3af10f61",
+  "source_root_tree": "75af151f4a8e256fa5c6c0375b9ea84fb741b107",
+  "run_id": "synthetic-foundational-12-conformance-only",
+  "model_id": "synthetic-reference-not-a-model",
+  "studies": [
+    {
+      "study_id": "study_001",
+      "study_tree_sha": "df60d3a30bb5d6ce523dcad55abb144cde90b933",
+      "participant_count": 100,
+      "trial_count": 120,
+      "independent_unit": "participant",
+      "analysis_pipeline_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "agent_config_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "prompt_template_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "analysis_protocol_preserved": true,
+      "official_pas": 0.5,
+      "official_ecs": 0,
+      "effects": [
+        {
+          "finding_id": "finding_1",
+          "test_id": "test_1",
+          "measure": "standardized_mean_difference",
+          "unit": "standard_deviations",
+          "human_estimate": 0.4,
+          "simulated_estimate": 0.38,
+          "human_ci95": [
+            0.1,
+            0.7
+          ],
+          "simulated_ci95": [
+            0.08,
+            0.68
+          ]
+        }
+      ],
+      "artifacts": [
+        {
+          "role": "human_reference_aggregate",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 120,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "simulated_responses",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 120,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "official_analysis_output",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 120,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "official_score_output",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 120,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        }
+      ]
+    },
+    {
+      "study_id": "study_002",
+      "study_tree_sha": "c9d1fbf3c0b67a811dc43a45013f4cfde7016954",
+      "participant_count": 100,
+      "trial_count": 120,
+      "independent_unit": "participant",
+      "analysis_pipeline_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "agent_config_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "prompt_template_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "analysis_protocol_preserved": true,
+      "official_pas": 0.5,
+      "official_ecs": 0,
+      "effects": [
+        {
+          "finding_id": "finding_1",
+          "test_id": "test_1",
+          "measure": "standardized_mean_difference",
+          "unit": "standard_deviations",
+          "human_estimate": 0.4,
+          "simulated_estimate": 0.38,
+          "human_ci95": [
+            0.1,
+            0.7
+          ],
+          "simulated_ci95": [
+            0.08,
+            0.68
+          ]
+        }
+      ],
+      "artifacts": [
+        {
+          "role": "human_reference_aggregate",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 120,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "simulated_responses",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 120,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "official_analysis_output",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 120,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "official_score_output",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 120,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        }
+      ]
+    },
+    {
+      "study_id": "study_003",
+      "study_tree_sha": "98a1665c1b32eeb42ecfe752230940ea266f496c",
+      "participant_count": 100,
+      "trial_count": 120,
+      "independent_unit": "participant",
+      "analysis_pipeline_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "agent_config_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "prompt_template_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "analysis_protocol_preserved": true,
+      "official_pas": 0.5,
+      "official_ecs": 0,
+      "effects": [
+        {
+          "finding_id": "finding_1",
+          "test_id": "test_1",
+          "measure": "standardized_mean_difference",
+          "unit": "standard_deviations",
+          "human_estimate": 0.4,
+          "simulated_estimate": 0.38,
+          "human_ci95": [
+            0.1,
+            0.7
+          ],
+          "simulated_ci95": [
+            0.08,
+            0.68
+          ]
+        }
+      ],
+      "artifacts": [
+        {
+          "role": "human_reference_aggregate",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 120,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "simulated_responses",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 120,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "official_analysis_output",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 120,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "official_score_output",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 120,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        }
+      ]
+    },
+    {
+      "study_id": "study_004",
+      "study_tree_sha": "e2f38a701e22a0898b814cad806e3e59237db4f2",
+      "participant_count": 100,
+      "trial_count": 120,
+      "independent_unit": "participant",
+      "analysis_pipeline_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "agent_config_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "prompt_template_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "analysis_protocol_preserved": true,
+      "official_pas": 0.5,
+      "official_ecs": 0,
+      "effects": [
+        {
+          "finding_id": "finding_1",
+          "test_id": "test_1",
+          "measure": "standardized_mean_difference",
+          "unit": "standard_deviations",
+          "human_estimate": 0.4,
+          "simulated_estimate": 0.38,
+          "human_ci95": [
+            0.1,
+            0.7
+          ],
+          "simulated_ci95": [
+            0.08,
+            0.68
+          ]
+        }
+      ],
+      "artifacts": [
+        {
+          "role": "human_reference_aggregate",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 120,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "simulated_responses",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 120,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "official_analysis_output",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 120,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "official_score_output",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 120,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        }
+      ]
+    },
+    {
+      "study_id": "study_005",
+      "study_tree_sha": "56406098163f0a3c5465614c16a0c053c84ab919",
+      "participant_count": 100,
+      "trial_count": 120,
+      "independent_unit": "participant",
+      "analysis_pipeline_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "agent_config_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "prompt_template_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "analysis_protocol_preserved": true,
+      "official_pas": 0.5,
+      "official_ecs": 0,
+      "effects": [
+        {
+          "finding_id": "finding_1",
+          "test_id": "test_1",
+          "measure": "standardized_mean_difference",
+          "unit": "standard_deviations",
+          "human_estimate": 0.4,
+          "simulated_estimate": 0.38,
+          "human_ci95": [
+            0.1,
+            0.7
+          ],
+          "simulated_ci95": [
+            0.08,
+            0.68
+          ]
+        }
+      ],
+      "artifacts": [
+        {
+          "role": "human_reference_aggregate",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 120,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "simulated_responses",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 120,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "official_analysis_output",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 120,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "official_score_output",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 120,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        }
+      ]
+    },
+    {
+      "study_id": "study_006",
+      "study_tree_sha": "409e601fbca62c19a9f6d06aafd9d7ac37cd0786",
+      "participant_count": 100,
+      "trial_count": 120,
+      "independent_unit": "participant",
+      "analysis_pipeline_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "agent_config_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "prompt_template_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "analysis_protocol_preserved": true,
+      "official_pas": 0.5,
+      "official_ecs": 0,
+      "effects": [
+        {
+          "finding_id": "finding_1",
+          "test_id": "test_1",
+          "measure": "standardized_mean_difference",
+          "unit": "standard_deviations",
+          "human_estimate": 0.4,
+          "simulated_estimate": 0.38,
+          "human_ci95": [
+            0.1,
+            0.7
+          ],
+          "simulated_ci95": [
+            0.08,
+            0.68
+          ]
+        }
+      ],
+      "artifacts": [
+        {
+          "role": "human_reference_aggregate",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 120,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "simulated_responses",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 120,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "official_analysis_output",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 120,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "official_score_output",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 120,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        }
+      ]
+    },
+    {
+      "study_id": "study_007",
+      "study_tree_sha": "52310c97898413ec2e2069520a8466f8d562107b",
+      "participant_count": 100,
+      "trial_count": 120,
+      "independent_unit": "participant",
+      "analysis_pipeline_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "agent_config_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "prompt_template_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "analysis_protocol_preserved": true,
+      "official_pas": 0.5,
+      "official_ecs": 0,
+      "effects": [
+        {
+          "finding_id": "finding_1",
+          "test_id": "test_1",
+          "measure": "standardized_mean_difference",
+          "unit": "standard_deviations",
+          "human_estimate": 0.4,
+          "simulated_estimate": 0.38,
+          "human_ci95": [
+            0.1,
+            0.7
+          ],
+          "simulated_ci95": [
+            0.08,
+            0.68
+          ]
+        }
+      ],
+      "artifacts": [
+        {
+          "role": "human_reference_aggregate",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 120,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "simulated_responses",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 120,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "official_analysis_output",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 120,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "official_score_output",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 120,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        }
+      ]
+    },
+    {
+      "study_id": "study_008",
+      "study_tree_sha": "9d46f8e4c354d789f69cf5bee153a29e8075dab1",
+      "participant_count": 100,
+      "trial_count": 120,
+      "independent_unit": "participant",
+      "analysis_pipeline_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "agent_config_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "prompt_template_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "analysis_protocol_preserved": true,
+      "official_pas": 0.5,
+      "official_ecs": 0,
+      "effects": [
+        {
+          "finding_id": "finding_1",
+          "test_id": "test_1",
+          "measure": "standardized_mean_difference",
+          "unit": "standard_deviations",
+          "human_estimate": 0.4,
+          "simulated_estimate": 0.38,
+          "human_ci95": [
+            0.1,
+            0.7
+          ],
+          "simulated_ci95": [
+            0.08,
+            0.68
+          ]
+        }
+      ],
+      "artifacts": [
+        {
+          "role": "human_reference_aggregate",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 120,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "simulated_responses",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 120,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "official_analysis_output",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 120,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "official_score_output",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 120,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        }
+      ]
+    },
+    {
+      "study_id": "study_009",
+      "study_tree_sha": "2b4d9aadce637f0bec5187dca85fcfb6ffea0fce",
+      "participant_count": 100,
+      "trial_count": 120,
+      "independent_unit": "participant",
+      "analysis_pipeline_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "agent_config_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "prompt_template_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "analysis_protocol_preserved": true,
+      "official_pas": 0.5,
+      "official_ecs": 0,
+      "effects": [
+        {
+          "finding_id": "finding_1",
+          "test_id": "test_1",
+          "measure": "standardized_mean_difference",
+          "unit": "standard_deviations",
+          "human_estimate": 0.4,
+          "simulated_estimate": 0.38,
+          "human_ci95": [
+            0.1,
+            0.7
+          ],
+          "simulated_ci95": [
+            0.08,
+            0.68
+          ]
+        }
+      ],
+      "artifacts": [
+        {
+          "role": "human_reference_aggregate",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 120,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "simulated_responses",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 120,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "official_analysis_output",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 120,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "official_score_output",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 120,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        }
+      ]
+    },
+    {
+      "study_id": "study_010",
+      "study_tree_sha": "fbbc34f423a4a9e0ad2fd7dbe06826589fa4c0fb",
+      "participant_count": 100,
+      "trial_count": 120,
+      "independent_unit": "participant",
+      "analysis_pipeline_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "agent_config_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "prompt_template_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "analysis_protocol_preserved": true,
+      "official_pas": 0.5,
+      "official_ecs": 0,
+      "effects": [
+        {
+          "finding_id": "finding_1",
+          "test_id": "test_1",
+          "measure": "standardized_mean_difference",
+          "unit": "standard_deviations",
+          "human_estimate": 0.4,
+          "simulated_estimate": 0.38,
+          "human_ci95": [
+            0.1,
+            0.7
+          ],
+          "simulated_ci95": [
+            0.08,
+            0.68
+          ]
+        }
+      ],
+      "artifacts": [
+        {
+          "role": "human_reference_aggregate",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 120,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "simulated_responses",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 120,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "official_analysis_output",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 120,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "official_score_output",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 120,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        }
+      ]
+    },
+    {
+      "study_id": "study_011",
+      "study_tree_sha": "6007118b2a17e02f09204bc1632ade82e8482c89",
+      "participant_count": 100,
+      "trial_count": 120,
+      "independent_unit": "participant",
+      "analysis_pipeline_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "agent_config_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "prompt_template_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "analysis_protocol_preserved": true,
+      "official_pas": 0.5,
+      "official_ecs": 0,
+      "effects": [
+        {
+          "finding_id": "finding_1",
+          "test_id": "test_1",
+          "measure": "standardized_mean_difference",
+          "unit": "standard_deviations",
+          "human_estimate": 0.4,
+          "simulated_estimate": 0.38,
+          "human_ci95": [
+            0.1,
+            0.7
+          ],
+          "simulated_ci95": [
+            0.08,
+            0.68
+          ]
+        }
+      ],
+      "artifacts": [
+        {
+          "role": "human_reference_aggregate",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 120,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "simulated_responses",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 120,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "official_analysis_output",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 120,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "official_score_output",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 120,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        }
+      ]
+    },
+    {
+      "study_id": "study_012",
+      "study_tree_sha": "8297eacb9d31c5b819803626218b96d68eeb50fe",
+      "participant_count": 100,
+      "trial_count": 120,
+      "independent_unit": "participant",
+      "analysis_pipeline_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "agent_config_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "prompt_template_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "analysis_protocol_preserved": true,
+      "official_pas": 0.5,
+      "official_ecs": 0,
+      "effects": [
+        {
+          "finding_id": "finding_1",
+          "test_id": "test_1",
+          "measure": "standardized_mean_difference",
+          "unit": "standard_deviations",
+          "human_estimate": 0.4,
+          "simulated_estimate": 0.38,
+          "human_ci95": [
+            0.1,
+            0.7
+          ],
+          "simulated_ci95": [
+            0.08,
+            0.68
+          ]
+        }
+      ],
+      "artifacts": [
+        {
+          "role": "human_reference_aggregate",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 120,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "simulated_responses",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 120,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "official_analysis_output",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 120,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        },
+        {
+          "role": "official_score_output",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "record_count": 120,
+          "contains_record_level_human_data": false,
+          "published_in_repository": true,
+          "redistribution_authorized": true,
+          "rights_basis": "synthetic conformance fixture"
+        }
+      ]
+    }
+  ]
+}
