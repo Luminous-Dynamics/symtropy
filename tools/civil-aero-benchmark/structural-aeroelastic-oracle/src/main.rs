@@ -8,14 +8,12 @@ use std::fmt::Write as _;
 
 const CONFIGURATION_SHA256: &str =
     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-const GEOMETRY_SHA256: &str =
-    "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+const GEOMETRY_SHA256: &str = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
 const LOADING_STATE_SHA256: &str =
     "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
 const MISSION_PHASE_SHA256: &str =
     "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd";
-const ENVIRONMENT_SHA256: &str =
-    "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
+const ENVIRONMENT_SHA256: &str = "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 struct Vec3([f64; 3]);
@@ -32,11 +30,7 @@ impl Vec3 {
     }
 
     fn scale(self, factor: f64) -> Self {
-        Self([
-            self.0[0] * factor,
-            self.0[1] * factor,
-            self.0[2] * factor,
-        ])
+        Self([self.0[0] * factor, self.0[1] * factor, self.0[2] * factor])
     }
 
     fn cross(self, other: Self) -> Self {
@@ -151,14 +145,13 @@ fn cantilever_beam(input: BeamInput) -> Result<BeamResult, String> {
 
     let length = input.span_m;
     let ei = input.youngs_modulus_pa * input.second_moment_m4;
-    let root_moment = input.tip_force_n * length
-        + input.uniform_load_n_per_m * length.powi(2) / 2.0;
+    let root_moment =
+        input.tip_force_n * length + input.uniform_load_n_per_m * length.powi(2) / 2.0;
     let tip_deflection = input.tip_force_n * length.powi(3) / (3.0 * ei)
         + input.uniform_load_n_per_m * length.powi(4) / (8.0 * ei);
     let tip_slope = input.tip_force_n * length.powi(2) / (2.0 * ei)
         + input.uniform_load_n_per_m * length.powi(3) / (6.0 * ei);
-    let root_stress =
-        root_moment * input.extreme_fibre_distance_m / input.second_moment_m4;
+    let root_stress = root_moment * input.extreme_fibre_distance_m / input.second_moment_m4;
 
     for (field, value) in [
         ("root_moment_nm", root_moment),
@@ -218,21 +211,18 @@ fn idealized_wing_box(input: WingBoxInput) -> Result<WingBoxResult, String> {
     require_finite(input.applied_torque_nm, "applied_torque_nm")?;
 
     // Two-cap idealization for bending: skin/stringer contributions are omitted.
-    let second_moment =
-        2.0 * input.cap_area_m2 * (input.cap_separation_m / 2.0).powi(2);
+    let second_moment = 2.0 * input.cap_area_m2 * (input.cap_separation_m / 2.0).powi(2);
     // Single-cell, uniform-thickness, thin-wall Bredt-Batho approximation.
     let enclosed_area = input.median_width_m * input.median_height_m;
-    let wall_integral = 2.0
-        * (input.median_width_m + input.median_height_m)
-        / input.wall_thickness_m;
+    let wall_integral =
+        2.0 * (input.median_width_m + input.median_height_m) / input.wall_thickness_m;
     let torsion_constant = 4.0 * enclosed_area.powi(2) / wall_integral;
     let shear_flow = input.applied_torque_nm / (2.0 * enclosed_area);
     let wall_shear_stress = shear_flow / input.wall_thickness_m;
-    let bending_stress = input.root_bending_moment_nm
-        * (input.cap_separation_m / 2.0)
-        / second_moment;
-    let tip_twist = input.applied_torque_nm * input.span_m
-        / (input.shear_modulus_pa * torsion_constant);
+    let bending_stress =
+        input.root_bending_moment_nm * (input.cap_separation_m / 2.0) / second_moment;
+    let tip_twist =
+        input.applied_torque_nm * input.span_m / (input.shear_modulus_pa * torsion_constant);
 
     let outputs = [
         ("bending_second_moment_m4", second_moment),
@@ -334,9 +324,9 @@ fn transfer_spanwise_loads(
             return Err("source load lies outside the target span".to_owned());
         }
 
-        let exact = stations_m.iter().position(|station| {
-            (*station - load.x_m).abs() <= 1.0e-12
-        });
+        let exact = stations_m
+            .iter()
+            .position(|station| (*station - load.x_m).abs() <= 1.0e-12);
         let contributions: Vec<(usize, f64)> = if let Some(index) = exact {
             vec![(index, 1.0)]
         } else {
@@ -352,10 +342,8 @@ fn transfer_spanwise_loads(
         };
 
         for (index, weight) in contributions {
-            target[index].force_n =
-                target[index].force_n.add(load.force_n.scale(weight));
-            target[index].couple_nm =
-                target[index].couple_nm.add(load.couple_nm.scale(weight));
+            target[index].force_n = target[index].force_n.add(load.force_n.scale(weight));
+            target[index].couple_nm = target[index].couple_nm.add(load.couple_nm.scale(weight));
         }
     }
 
@@ -365,9 +353,7 @@ fn transfer_spanwise_loads(
     let moment_residual = source_moment.max_abs_difference(target_moment);
     let force_scale = source_force.0.iter().map(|v| v.abs()).fold(1.0, f64::max);
     let moment_scale = source_moment.0.iter().map(|v| v.abs()).fold(1.0, f64::max);
-    if force_residual > 1.0e-10 * force_scale
-        || moment_residual > 1.0e-10 * moment_scale
-    {
+    if force_residual > 1.0e-10 * force_scale || moment_residual > 1.0e-10 * moment_scale {
         return Err("load transfer failed force/moment conservation".to_owned());
     }
 
@@ -408,8 +394,7 @@ fn solve_static_aeroelastic(
     let gain = compliance_m_per_n * lift_feedback_n_per_m;
     let mut deflection = 0.0;
     for iteration in 1..=max_iterations {
-        let next = compliance_m_per_n
-            * (baseline_lift_n + lift_feedback_n_per_m * deflection);
+        let next = compliance_m_per_n * (baseline_lift_n + lift_feedback_n_per_m * deflection);
         if !next.is_finite() {
             return Ok(CouplingResult {
                 status: CouplingStatus::NonConverged,
@@ -422,8 +407,7 @@ fn solve_static_aeroelastic(
         }
         deflection = next;
         let equation_residual = (deflection
-            - compliance_m_per_n
-                * (baseline_lift_n + lift_feedback_n_per_m * deflection))
+            - compliance_m_per_n * (baseline_lift_n + lift_feedback_n_per_m * deflection))
             .abs();
         if equation_residual <= tolerance_m {
             return Ok(CouplingResult {
@@ -438,8 +422,7 @@ fn solve_static_aeroelastic(
     }
 
     let equation_residual = (deflection
-        - compliance_m_per_n
-            * (baseline_lift_n + lift_feedback_n_per_m * deflection))
+        - compliance_m_per_n * (baseline_lift_n + lift_feedback_n_per_m * deflection))
         .abs();
     Ok(CouplingResult {
         status: CouplingStatus::NonConverged,
@@ -536,14 +519,8 @@ fn json_vec(value: Vec3) -> String {
 fn result_json() -> String {
     let beam = beam_case();
     let wing = wing_box_case();
-    let (
-        source_force,
-        source_moment,
-        target_force,
-        target_moment,
-        force_residual,
-        moment_residual,
-    ) = load_transfer_case();
+    let (source_force, source_moment, target_force, target_moment, force_residual, moment_residual) =
+        load_transfer_case();
     let coupled = coupled_case();
     let divergent = divergent_control();
 
@@ -685,7 +662,11 @@ mod tests {
         close(result.bending_second_moment_m4, 4.6875e-5, 1.0e-12);
         close(result.bending_stress_pa, 32.0e6, 1.0e-12);
         close(result.torsion_constant_m4, 7.941176470588236e-5, 1.0e-12);
-        close(result.torsional_shear_flow_n_per_m, 833.3333333333334, 1.0e-12);
+        close(
+            result.torsional_shear_flow_n_per_m,
+            833.3333333333334,
+            1.0e-12,
+        );
         close(result.wall_shear_stress_pa, 555_555.5555555556, 1.0e-12);
         close(result.tip_twist_rad, 0.0004663923182441701, 1.0e-12);
     }
@@ -722,8 +703,7 @@ mod tests {
     #[test]
     fn stale_configuration_or_geometry_identity_is_rejected() {
         let mut stale = IDENTITY;
-        stale.geometry_sha256 =
-            "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+        stale.geometry_sha256 = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
         assert!(require_same_identity(IDENTITY, stale).is_err());
     }
 
