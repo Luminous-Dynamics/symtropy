@@ -2562,7 +2562,6 @@ mod transformed_halfspace_tests {
     }
 }
 
-
 #[cfg(test)]
 mod ccd_world_integration_tests {
     use super::*;
@@ -2594,13 +2593,8 @@ mod ccd_world_integration_tests {
             );
             world.add_body(ground);
 
-            let handle = world.add_sphere(
-                Point::new([0.0, start_y, 0.0]),
-                radius,
-                1.0,
-            );
-            world.body_mut(handle).unwrap().linear_velocity =
-                SVector::from([0.0, -speed, 0.0]);
+            let handle = world.add_sphere(Point::new([0.0, start_y, 0.0]), radius, 1.0);
+            world.body_mut(handle).unwrap().linear_velocity = SVector::from([0.0, -speed, 0.0]);
 
             world.step(dt);
 
