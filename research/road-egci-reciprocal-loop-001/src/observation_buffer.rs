@@ -206,7 +206,11 @@ impl<T> ObservationDeliveryBuffer<T> {
     }
 
     pub fn enqueue(&mut self, entry: BufferedObservation<T>) -> Result<(), BufferError> {
-        if self.entries.iter().any(|current| current.cue_id == entry.cue_id) {
+        if self
+            .entries
+            .iter()
+            .any(|current| current.cue_id == entry.cue_id)
+        {
             return Err(BufferError::DuplicateCueId);
         }
         if self.entries.len() >= self.config.capacity {
@@ -226,11 +230,7 @@ impl<T> ObservationDeliveryBuffer<T> {
     /// Append a delivery/drop event to an already queued observation. Delivery
     /// event order and tick order are monotonic within this recipient buffer.
     /// The observation's source time and generation event never change.
-    pub fn deliver(
-        &mut self,
-        cue_id: &str,
-        stamp: DeliveryStamp,
-    ) -> Result<(), BufferError> {
+    pub fn deliver(&mut self, cue_id: &str, stamp: DeliveryStamp) -> Result<(), BufferError> {
         let entry = self
             .entries
             .iter_mut()
@@ -300,9 +300,7 @@ impl<T> ObservationDeliveryBuffer<T> {
             }
             any_mature = true;
 
-            if entry.availability != ObservationAvailability::Observed
-                || entry.payload.is_none()
-            {
+            if entry.availability != ObservationAvailability::Observed || entry.payload.is_none() {
                 continue;
             }
             any_mature_observed = true;
@@ -483,8 +481,7 @@ mod tests {
 
     #[test]
     fn observation_age_and_delivery_age_have_independent_expiry_limits() {
-        let mut buffer =
-            ObservationDeliveryBuffer::new(config(4, 0, Some(2), Some(5))).unwrap();
+        let mut buffer = ObservationDeliveryBuffer::new(config(4, 0, Some(2), Some(5))).unwrap();
         buffer.enqueue(observed("old-source", 0, 3, 1, 7)).unwrap();
         buffer
             .deliver(
@@ -529,8 +526,7 @@ mod tests {
             ObservationAvailability::Unsupported,
             ObservationAvailability::Dropped,
         ] {
-            let mut buffer =
-                ObservationDeliveryBuffer::new(config(2, 0, None, None)).unwrap();
+            let mut buffer = ObservationDeliveryBuffer::new(config(2, 0, None, None)).unwrap();
             buffer
                 .enqueue(unavailable("cue-unavailable", 0, 1, availability))
                 .unwrap();
