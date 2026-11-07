@@ -396,3 +396,34 @@ For matched mission families, compare:
 - supplier-UAV mid-air battery exchange.
 
 Report mission completion, useful work, time-to-ready/mission interruption, fleet and site source Wh, receiver/supplier mass penalty, battery inventory, charging and exchange availability, rendezvous/docking success, failure recovery, maintenance and lifecycle cost. Keep the direct-transfer efficiency metric restricted to declared electrical meter boundaries. Carrier logistics gets its own energy-accounting path and should never receive an invented "wireless efficiency."
+
+
+### M1 dual-wireless synthetic scenario
+
+A second executable scenario is now frozen at [scenario.m1-dual-wireless.synthetic-example.json](./scenario.m1-dual-wireless.synthetic-example.json), with a separate expected report at [report.expected.m1-dual-wireless.synthetic.json](./report.expected.m1-dual-wireless.synthetic.json).
+
+It keeps the synthetic time grid, feeder budget, service requests and arithmetic unchanged, but changes the air modality from `AIR_DOCK_CONDUCTIVE` to `AIR_DOCK_INDUCTIVE` and changes the aircraft channel input-boundary ID from `AIR_DOCK_CHARGER_AC_INPUT` to `AIR_DOCK_INVERTER_DC_INPUT`. The ground lane remains `GROUND_DYNAMIC_INDUCTIVE`.
+
+The Rust oracle loads and evaluates this M1 fixture and checks exact expected output, all four simultaneous slots and distinct channel boundary identities. This proves only that the allocator can represent and schedule a typed dual-wireless **synthetic scenario**. It does not model mutual coupling between the roadway and dock coils, field exposure, EMI/EMC, inverter harmonics or measured end-to-end transfer. Those are explicit M1 physical qualification work, not implied by the source-allocation result.
+
+### Three-receiver shared-channel control
+
+The additional synthetic control adds a second docked UAV to the M0 site while the heavy truck remains active. An independent exhaustive replay yields:
+- 49,468 search nodes;
+- 10 site-source energy quanta across four slots (100 Wh at the PCC);
+- 34 Wh total synthetic battery-terminal endpoint service;
+- all three minimum service floors satisfied;
+- positive ground + air delivery in all four slots;
+- per-slot site source allocations `[3, 3, 2, 2]`, below the declared 3-quantum PCC cap;
+- the two UAVs share the declared air-channel cap, with no per-session or aggregate air-channel oversubscription.
+
+The corresponding Rust test asserts the 10-quantum/100-Wh/34-Wh totals and independently sums the per-slot allocation rows. These are synthetic bounded arithmetic checks, not a measured fleet result.
+
+### Existing aircraft-energy contracts
+
+The airborne service layer must consume, not fork, the current aircraft-energy work:
+- [#4036 AERO-PHASE-ENERGY-PLANES-001](https://github.com/Luminous-Dynamics/symtropy/issues/4036) owns typed fuel, generator, bus, per-store, motor/shaft and propulsor energy planes.
+- [#4040 carrier-aware phase energy planes v0.2](https://github.com/Luminous-Dynamics/symtropy/pull/4040) is the current contract/oracle increment, including a separate standard-library oracle and six synthetic source/store cases.
+- [#3885](https://github.com/Luminous-Dynamics/symtropy/issues/3885) remains the owner of full mission-matched aircraft energy architecture; [#3902](https://github.com/Luminous-Dynamics/symtropy/issues/3902) owns the aircraft dock comparison.
+
+A site-level useful aircraft Wh request is therefore a service contract, not a substitute for the aircraft's phase-resolved mission reserve, battery discharge limits, thermal derating or hybrid-source balance.
