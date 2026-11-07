@@ -63,7 +63,12 @@ fn string_array_at<'a>(value: &'a Value, path: &[&str]) -> Option<Vec<&'a str>> 
     values.iter().map(Value::as_str).collect()
 }
 
-fn result(case_id: &str, disposition: &str, reasons: &[&str], expected: Option<&str>) -> CaseResult {
+fn result(
+    case_id: &str,
+    disposition: &str,
+    reasons: &[&str],
+    expected: Option<&str>,
+) -> CaseResult {
     CaseResult {
         case_id: case_id.to_owned(),
         disposition: disposition.to_owned(),
@@ -88,7 +93,12 @@ fn evaluate_case(case: &Value, reference: &Value) -> CaseResult {
         .unwrap_or("MISSING_CASE_ID");
     let expected = string_at(case, &["expected_oracle", "disposition"]);
     let Some(input) = case.get("candidate_input") else {
-        return result(case_id, "INVALID_INPUT", &["CANDIDATE_INPUT_MISSING"], expected);
+        return result(
+            case_id,
+            "INVALID_INPUT",
+            &["CANDIDATE_INPUT_MISSING"],
+            expected,
+        );
     };
 
     let Some(asset_id) = string_at(input, &["asset_id"]) else {
@@ -99,7 +109,14 @@ fn evaluate_case(case: &Value, reference: &Value) -> CaseResult {
         reference.get("assembly_id").and_then(Value::as_str),
     ) {
         (Some(building), Some(assembly)) => format!("{building}/{assembly}"),
-        _ => return result(case_id, "INVALID_INPUT", &["REFERENCE_ASSET_ID_MISSING"], expected),
+        _ => {
+            return result(
+                case_id,
+                "INVALID_INPUT",
+                &["REFERENCE_ASSET_ID_MISSING"],
+                expected,
+            );
+        }
     };
     if asset_id != expected_asset {
         return result(case_id, "INVALID_INPUT", &["ASSET_ID_MISMATCH"], expected);
@@ -145,9 +162,16 @@ fn evaluate_case(case: &Value, reference: &Value) -> CaseResult {
     }
 
     let Some(calibration_id) = string_at(input, &["calibration_id"]) else {
-        return result(case_id, "INVALID_INPUT", &["CALIBRATION_ID_MISSING"], expected);
+        return result(
+            case_id,
+            "INVALID_INPUT",
+            &["CALIBRATION_ID_MISSING"],
+            expected,
+        );
     };
-    let expected_calibration = reference.get("expected_calibration_id").and_then(Value::as_str);
+    let expected_calibration = reference
+        .get("expected_calibration_id")
+        .and_then(Value::as_str);
     let calibration_state = string_at(input, &["calibration_state"]);
     if calibration_state != Some("valid_for_fixture")
         || expected_calibration.is_some_and(|known| calibration_id != known)
@@ -164,7 +188,12 @@ fn evaluate_case(case: &Value, reference: &Value) -> CaseResult {
     }
 
     let Some(design_revision) = string_at(input, &["design_revision"]) else {
-        return result(case_id, "INVALID_INPUT", &["DESIGN_REVISION_MISSING"], expected);
+        return result(
+            case_id,
+            "INVALID_INPUT",
+            &["DESIGN_REVISION_MISSING"],
+            expected,
+        );
     };
     if Some(design_revision) != reference.get("design_revision").and_then(Value::as_str) {
         return result(
@@ -176,13 +205,26 @@ fn evaluate_case(case: &Value, reference: &Value) -> CaseResult {
     }
 
     let Some(observed_regions) = string_array_at(input, &["observed_regions"]) else {
-        return result(case_id, "INVALID_INPUT", &["OBSERVED_REGIONS_MISSING_OR_INVALID"], expected);
+        return result(
+            case_id,
+            "INVALID_INPUT",
+            &["OBSERVED_REGIONS_MISSING_OR_INVALID"],
+            expected,
+        );
     };
     let Some(required_regions) = string_array_at(reference, &["required_regions"]) else {
-        return result(case_id, "INVALID_INPUT", &["REFERENCE_REQUIRED_REGIONS_INVALID"], expected);
+        return result(
+            case_id,
+            "INVALID_INPUT",
+            &["REFERENCE_REQUIRED_REGIONS_INVALID"],
+            expected,
+        );
     };
     let observed: BTreeSet<&str> = observed_regions.into_iter().collect();
-    if required_regions.iter().any(|region| !observed.contains(region)) {
+    if required_regions
+        .iter()
+        .any(|region| !observed.contains(region))
+    {
         return result(
             case_id,
             "UNKNOWN_REQUIRED_COVERAGE",
@@ -195,7 +237,12 @@ fn evaluate_case(case: &Value, reference: &Value) -> CaseResult {
     }
 
     let Some(lineages) = string_array_at(input, &["sensor_lineages"]) else {
-        return result(case_id, "INVALID_INPUT", &["SENSOR_LINEAGE_MISSING_OR_INVALID"], expected);
+        return result(
+            case_id,
+            "INVALID_INPUT",
+            &["SENSOR_LINEAGE_MISSING_OR_INVALID"],
+            expected,
+        );
     };
     let unique_lineages: BTreeSet<&str> = lineages.iter().copied().collect();
     if unique_lineages.len() != lineages.len() {
@@ -210,7 +257,10 @@ fn evaluate_case(case: &Value, reference: &Value) -> CaseResult {
         );
     }
 
-    if let Some(measurements) = input.get("independent_measurements").and_then(Value::as_array) {
+    if let Some(measurements) = input
+        .get("independent_measurements")
+        .and_then(Value::as_array)
+    {
         let offsets: Option<Vec<f64>> = measurements
             .iter()
             .map(|measurement| measurement.get("offset_mm").and_then(Value::as_f64))
@@ -240,8 +290,8 @@ fn evaluate_case(case: &Value, reference: &Value) -> CaseResult {
     }
 
     if let Some(material_class) = input.get("material_class").and_then(Value::as_str) {
-        let supported = string_array_at(reference, &["supported_material_classes"])
-            .unwrap_or_default();
+        let supported =
+            string_array_at(reference, &["supported_material_classes"]).unwrap_or_default();
         if !supported.contains(&material_class) {
             return result(
                 case_id,
@@ -268,10 +318,7 @@ fn evaluate_case(case: &Value, reference: &Value) -> CaseResult {
                 expected,
             );
         }
-        let functional_result = string_at(
-            repair,
-            &["independent_functional_test", "result"],
-        );
+        let functional_result = string_at(repair, &["independent_functional_test", "result"]);
         match functional_result {
             Some("fail") => {
                 return result(
@@ -349,10 +396,7 @@ fn evaluate_case(case: &Value, reference: &Value) -> CaseResult {
         Some("none") => result(
             case_id,
             "ACCEPTED_FOR_DECLARED_SYNTHETIC_CHECK",
-            &[
-                "REQUIRED_COVERAGE_COMPLETE",
-                "EVIDENCE_CONTEXT_CURRENT",
-            ],
+            &["REQUIRED_COVERAGE_COMPLETE", "EVIDENCE_CONTEXT_CURRENT"],
             expected,
         ),
         _ => result(
@@ -409,10 +453,7 @@ fn evaluate_corpus(bytes: &[u8]) -> Result<CorpusResult, Box<dyn Error>> {
         evaluated.matches_expected &= evaluated.reason_codes == expected_codes;
         evaluated.expected_reason_codes = expected_codes;
     }
-    let matched_expected_cases = results
-        .iter()
-        .filter(|case| case.matches_expected)
-        .count();
+    let matched_expected_cases = results.iter().filter(|case| case.matches_expected).count();
     let mismatched_cases = results.len() - matched_expected_cases;
 
     Ok(CorpusResult {
@@ -430,9 +471,7 @@ fn evaluate_corpus(bytes: &[u8]) -> Result<CorpusResult, Box<dyn Error>> {
 
 fn parse_args() -> Result<(PathBuf, Option<PathBuf>), Box<dyn Error>> {
     let mut args = env::args().skip(1);
-    let mut corpus = PathBuf::from(
-        "docs/research/built-asset/fixtures/v0.1/corpus.json",
-    );
+    let mut corpus = PathBuf::from("docs/research/built-asset/fixtures/v0.1/corpus.json");
     let mut output = None;
     while let Some(argument) = args.next() {
         match argument.as_str() {
@@ -496,7 +535,11 @@ mod tests {
         assert_eq!(report.mismatched_cases, 0);
         assert!(report.passed);
         for case in &report.cases {
-            assert_eq!(case.reason_codes, case.expected_reason_codes, "{}", case.case_id);
+            assert_eq!(
+                case.reason_codes, case.expected_reason_codes,
+                "{}",
+                case.case_id
+            );
         }
     }
 
@@ -552,8 +595,7 @@ mod tests {
             .find(|case| case["case_id"] == "BA-002")
             .expect("defect case exists");
         let mut mutated = case.clone();
-        mutated["candidate_input"]["calibration_state"] =
-            Value::String("expired".to_owned());
+        mutated["candidate_input"]["calibration_state"] = Value::String("expired".to_owned());
         let evaluated = evaluate_case(&mutated, reference);
         assert_eq!(evaluated.disposition, "STALE_EVIDENCE");
     }
