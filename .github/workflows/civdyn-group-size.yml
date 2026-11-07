@@ -1,0 +1,168 @@
+name: CivDyn finite-memory group-size reference
+
+on:
+  pull_request:
+    paths:
+      - "research/civdyn-group-size/**"
+      - ".github/workflows/civdyn-group-size.yml"
+  push:
+    paths:
+      - "research/civdyn-group-size/**"
+      - ".github/workflows/civdyn-group-size.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Format, lint, check, test and execute group-size benchmark
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy,rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/civdyn-group-size/Cargo.toml --all -- --check
+
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path research/civdyn-group-size/Cargo.toml --all-targets -- -D warnings
+
+      - name: Check all targets with locked dependencies
+        run: cargo check --locked --manifest-path research/civdyn-group-size/Cargo.toml --all-targets
+
+      - name: Run all tests with locked dependencies
+        run: cargo test --locked --manifest-path research/civdyn-group-size/Cargo.toml --all-targets
+
+      - name: Execute deterministic finite-memory group-size sweep twice
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p target/civdyn-group-size-evidence
+          cargo run --locked --manifest-path research/civdyn-group-size/Cargo.toml --bin group-size-sweep \
+            > target/civdyn-group-size-evidence/group-size-a.csv
+          cargo run --locked --manifest-path research/civdyn-group-size/Cargo.toml --bin group-size-sweep \
+            > target/civdyn-group-size-evidence/group-size-b.csv
+          cmp target/civdyn-group-size-evidence/group-size-a.csv target/civdyn-group-size-evidence/group-size-b.csv
+          cp target/civdyn-group-size-evidence/group-size-a.csv target/civdyn-group-size-evidence/group-size-sweep.csv
+
+      - name: Verify sample counts, memory coverage, convergence and exact replay
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import csv
+          from pathlib import Path
+
+          path = Path("target/civdyn-group-size-evidence/group-size-sweep.csv")
+          with path.open(newline="", encoding="utf-8") as handle:
+              rows = list(csv.DictReader(handle))
+
+          assert len(rows) == 1260, f"expected 1,260 complete run records, got {len(rows)}"
+          assert all(len(row) == 26 for row in rows)
+          assert {row["population_size"] for row in rows} == {"2","3","4","6","10","24","100"}
+          assert {row["memory_capacity"] for row in rows} == {"5"}
+          assert {row["memory_state_count"] for row in rows} == {"1365"}
+          assert {row["policy_source_kind"] for row in rows} == {"synthetic_policy_table"}
+
+          policy_ids = {
+              "always_option_0",
+              "always_option_1",
+              "neutral_memory_independent",
+              "weak_option_0_bias",
+              "copy_partner_majority",
+              "anti_copy_partner_majority",
+          }
+          assert {row["policy_id"] for row in rows} == policy_ids
+          for policy in policy_ids:
+              for population_size in {"2","3","4","6","10","24","100"}:
+                  subset = [
+                      row for row in rows
+                      if row["policy_id"] == policy and row["population_size"] == population_size
+                  ]
+                  assert len(subset) == 30, (policy, population_size, len(subset))
+                  assert {row["replicate_id"] for row in subset} == {str(i) for i in range(30)}
+                  for row in subset:
+                      assert int(row["total_pairwise_interactions"]) == (
+                          int(row["population_size"]) * int(row["rounds_run"])
+                      )
+
+          for row in rows:
+              if row["policy_id"] in {"always_option_0","always_option_1"}:
+                  assert row["agreement_converged"] == "true"
+                  assert row["agreement_convergence_round"] == "3"
+                  assert row["true_action_unanimity_round"] == "3"
+              assert 0 <= float(row["final_option0_action_share"]) <= 1
+              assert 0 <= float(row["final_agreement_rate"]) <= 1
+              assert 1 <= int(row["final_unique_memory_states"]) <= 100
+              assert float(row["final_memory_state_entropy_bits"]) >= 0
+
+          neutral = [row for row in rows if row["policy_id"] == "neutral_memory_independent"]
+          weak_bias = [row for row in rows if row["policy_id"] == "weak_option_0_bias"]
+          assert all(abs(float(row["initial_individual_bias"])) < 1e-12 for row in neutral)
+          assert all(abs(float(row["initial_individual_bias"]) - 0.05) < 1e-9 for row in weak_bias)
+
+          memory_independent = {
+              "always_option_0": 1.0,
+              "always_option_1": 0.0,
+              "neutral_memory_independent": 0.5,
+              "weak_option_0_bias": 0.55,
+          }
+          for policy, probability in memory_independent.items():
+              expected_agreement = probability**2 + (1.0 - probability)**2
+              for population_size in {"2","3","4","6","10","24","100"}:
+                  subset = [
+                      row for row in rows
+                      if row["policy_id"] == policy and row["population_size"] == population_size
+                  ]
+                  assert all(row["oracle_expected_option0_action_share"] != "" for row in subset)
+                  assert all(row["oracle_expected_pairwise_agreement_rate"] != "" for row in subset)
+                  assert all(row["oracle_option0_share_standard_deviation"] != "" for row in subset)
+                  assert all(row["oracle_pairwise_agreement_standard_deviation"] != "" for row in subset)
+                  n = int(population_size)
+                  expected_share_sd = (probability * (1.0 - probability) / (2.0 * n)) ** 0.5
+                  expected_agreement_sd = (expected_agreement * (1.0 - expected_agreement) / n) ** 0.5
+                  assert all(abs(float(row["oracle_expected_option0_action_share"]) - probability) < 1e-9 for row in subset)
+                  assert all(abs(float(row["oracle_expected_pairwise_agreement_rate"]) - expected_agreement) < 1e-9 for row in subset)
+                  assert all(abs(float(row["oracle_option0_share_standard_deviation"]) - expected_share_sd) < 1e-8 for row in subset)
+                  assert all(abs(float(row["oracle_pairwise_agreement_standard_deviation"]) - expected_agreement_sd) < 1e-8 for row in subset)
+                  mean_share = sum(float(row["final_option0_action_share"]) for row in subset) / len(subset)
+                  mean_agreement = sum(float(row["final_agreement_rate"]) for row in subset) / len(subset)
+                  share_se = expected_share_sd / (len(subset) ** 0.5)
+                  agreement_se = expected_agreement_sd / (len(subset) ** 0.5)
+                  assert abs(mean_share - probability) <= 5.0 * share_se + 1e-9
+                  assert abs(mean_agreement - expected_agreement) <= 5.0 * agreement_se + 1e-9
+
+          memory_dependent = {
+              "copy_partner_majority",
+              "anti_copy_partner_majority",
+          }
+          assert all(
+              row["oracle_expected_option0_action_share"] == ""
+              and row["oracle_expected_pairwise_agreement_rate"] == ""
+              for row in rows if row["policy_id"] in memory_dependent
+          )
+
+          print("CIVDYN-GROUPSIZE-001 memory-state domain, group-size grid, analytical oracle, finite-N sampling and deterministic replay verified.")
+          PY
+
+          {
+            echo "## CIVDYN-GROUPSIZE-001 execution"
+            echo "- Source commit: $(git rev-parse HEAD)"
+            echo "- Output SHA-256: $(sha256sum target/civdyn-group-size-evidence/group-size-sweep.csv | cut -d' ' -f1)"
+            echo "- Records: 1260 complete synthetic runs"
+            echo "- Claim ceiling: injected synthetic policy tables; no paper reproduction claim"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload group-size evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: civdyn-group-size-sweep
+          path: target/civdyn-group-size-evidence/group-size-sweep.csv
+          if-no-files-found: error
+          retention-days: 30
