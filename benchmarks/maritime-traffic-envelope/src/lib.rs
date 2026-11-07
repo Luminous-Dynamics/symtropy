@@ -845,11 +845,8 @@ pub fn evaluate_traffic_plan(
     if workload.time_basis_id.trim().is_empty() {
         return Err(TrafficError::EmptyTimeBasis);
     }
-    if workload.resources.is_empty() {
-        return Err(TrafficError::EmptyResources);
-    }
-    if workload.occupancies.is_empty() {
-        return Err(TrafficError::EmptyOccupancies);
+    if plan.operations.is_empty() {
+        return Err(TrafficError::EmptyPlanOperations);
     }
 
     let mut resources = BTreeMap::<&str, &TrafficResource>::new();
@@ -883,10 +880,10 @@ pub fn evaluate_traffic_plan(
         }
     }
 
+    let mut violations = validate_coverage_manifest(plan, workload, &resources)?;
     let mut occupancy_ids = BTreeSet::new();
     let mut effective_by_resource =
         BTreeMap::<&str, Vec<(&TrafficOccupancy, EffectiveOccupancy)>>::new();
-    let mut violations = BTreeSet::new();
 
     for occupancy in &workload.occupancies {
         if occupancy.corridor_id != workload.corridor_id {
