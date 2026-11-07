@@ -562,6 +562,55 @@ mod tests {
     }
 
     #[test]
+    fn one_animal_random_effect_posterior_matches_a_gaussian_known_answer() {
+        let data = vec![
+            SessionEstimate {
+                animal_id: "animal-1".into(),
+                session_id: "session-1".into(),
+                value: 1.0,
+                measurement_variance: 1.0,
+            },
+            SessionEstimate {
+                animal_id: "animal-1".into(),
+                session_id: "session-2".into(),
+                value: 3.0,
+                measurement_variance: 1.0,
+            },
+        ];
+        let mut cfg = config(vec![candidate(1.0, 1.0)]);
+        cfg.population_prior_mean = 0.0;
+        cfg.population_prior_variance = 4.0;
+        cfg.session_effect_variance = 0.0;
+        let fit = fit_hierarchical_parameter(&data, &cfg).unwrap();
+        let component = &fit.components[0];
+
+        assert!((component.population.mean - 16.0 / 11.0).abs() < 1.0e-12);
+        assert!((component.population.variance - 12.0 / 11.0).abs() < 1.0e-12);
+        assert!((component.log_marginal_likelihood - (-4.400_514_276_5)).abs() < 1.0e-9);
+
+        let animal = fit.animal_posterior("animal-1").unwrap();
+        assert!((animal.mean - 20.0 / 11.0).abs() < 1.0e-12);
+        assert!((animal.variance - 5.0 / 11.0).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn population_and_individual_effect_probabilities_are_not_confused() {
+        let data = rows(
+            &[("a", &[0.0, 0.0]), ("b", &[1.0, 1.0]), ("c", &[-1.0, -1.0])],
+            0.001,
+        );
+        let fit = fit_hierarchical_parameter(
+            &data,
+            &config(vec![candidate(0.0, 1.0), candidate(1.0, 1.0)]),
+        )
+        .unwrap();
+        let probability = fit.probability_of_individual_dynamics();
+        assert!(probability > 0.99);
+        assert!((fit.components.iter().map(|item| item.posterior_probability).sum::<f64>() - 1.0).abs() < 1.0e-12);
+        assert!(fit.animal_posterior("a").unwrap().mean < fit.population_posterior().mean);
+    }
+
+    #[test]
     fn identical_animal_dynamics_support_the_pooled_null() {
         let data = rows(
             &[
