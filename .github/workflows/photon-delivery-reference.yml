@@ -44,6 +44,9 @@ jobs:
             --input tools/photon-delivery-reference/fixtures/synthetic-lunar-cavern-hybrid-v0-1.input \
             | tee photon-delivery-reference.json
           grep -q '"evidence_class": "synthetic"' photon-delivery-reference.json
+          grep -q '"resource_constrained_solar_dli_mol_m2_day": 12.441600' photon-delivery-reference.json
+          grep -q '"optical_service_fraction": 1.000000' photon-delivery-reference.json
+          grep -q '"resource_constrained_optical_auxiliary_electricity_kwh_day": 20.000000' photon-delivery-reference.json
           grep -q '"resource_constrained_dli_mol_m2_day": 18.086400' photon-delivery-reference.json
           grep -q '"resource_constrained_dli_shortfall_mol_m2_day": 1.913600' photon-delivery-reference.json
           grep -q '"dli_met": false' photon-delivery-reference.json
