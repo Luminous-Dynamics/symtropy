@@ -365,7 +365,6 @@ impl MassEvidenceLedger {
             || state.aircraft_model != self.aircraft_model
             || state.serial_number != self.serial_number
             || state.reference_frame_id != self.reference_frame_id
-            || state.reference_frame_id != self.reference_frame_id
         {
             return Err("loading state aircraft identity/effectivity mismatch".to_owned());
         }
@@ -1158,7 +1157,7 @@ fn encode_evidence_record(bytes: &mut Vec<u8>, record: &MassItemEvidence) {
         }
         None => bytes.push(0),
     }
-    match record.source_position {
+    match &record.source_position {
         Some(value) => {
             bytes.push(1);
             encode_position(bytes, value);
@@ -1205,7 +1204,7 @@ fn encode_loading_item(bytes: &mut Vec<u8>, item: &LoadingItemState) {
         None => bytes.push(0),
     }
     encode_geometry(bytes, &item.geometry);
-    match item.source_position {
+    match &item.source_position {
         Some(value) => {
             bytes.push(1);
             encode_position(bytes, value);
@@ -1280,6 +1279,7 @@ mod tests {
         let source_position = position_m.map(|values| SourcePosition {
             values,
             unit: LengthUnit::Metre,
+            coordinate_frame_id: "synthetic-aircraft-datum-v1".to_owned(),
         });
         MassItemEvidence {
             item: MassItem {
@@ -1341,6 +1341,7 @@ mod tests {
             aircraft_family: "Wren 2".to_owned(),
             aircraft_model: "Wren 2 research fixture".to_owned(),
             serial_number: "SYNTH-001".to_owned(),
+            reference_frame_id: "synthetic-aircraft-datum-v1".to_owned(),
             records,
         }
     }
@@ -1376,7 +1377,7 @@ mod tests {
             record.item.mass_kg,
             record.item.geometry.clone(),
             record.source_mass,
-            record.source_position,
+            record.source_position.clone(),
             record.source_inertia,
             Some(record.source.clone()),
             None,
@@ -1408,6 +1409,7 @@ mod tests {
             aircraft_family: ledger.aircraft_family.clone(),
             aircraft_model: ledger.aircraft_model.clone(),
             serial_number: ledger.serial_number.clone(),
+            reference_frame_id: ledger.reference_frame_id.clone(),
             items: ledger.records.iter().map(installed_state_item).collect(),
         }
     }
@@ -1461,6 +1463,7 @@ mod tests {
         state_b.items[index].source_position = Some(SourcePosition {
             values: [3.0, 0.0, 0.5],
             unit: LengthUnit::Metre,
+            coordinate_frame_id: "synthetic-aircraft-datum-v1".to_owned(),
         });
         state_b.items[index].value_source = Some(source("fixture:relocated-seat", SOURCE_B));
         let a = ledger.evaluate_state(&state_a, CONFIG).expect("state A");
@@ -1664,6 +1667,7 @@ mod tests {
             aircraft_family: "Wren 2".to_owned(),
             aircraft_model: "Wren 2 research fixture".to_owned(),
             serial_number: "SYNTH-001".to_owned(),
+            reference_frame_id: "synthetic-aircraft-datum-v1".to_owned(),
             records: vec![engine],
         };
         let state = make_state(&ledger, LoadingStateKind::Takeoff);
