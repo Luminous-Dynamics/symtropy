@@ -286,6 +286,9 @@ fn evaluate(case: &Case) -> (String, Vec<String>) {
         return decision("REJECTED_TOPOLOGY", "REQUIRED_TOPOLOGY_EDGE_MISSING");
     }
     for edge in &candidate.topology {
+        if edge.relation != "hosts_opening" {
+            return decision("REJECTED_TOPOLOGY", "TOPOLOGY_RELATION_UNSUPPORTED");
+        }
         if edge.from == edge.to
             || !requirements.contains_key(edge.from.as_str())
             || !requirements.contains_key(edge.to.as_str())
@@ -295,10 +298,15 @@ fn evaluate(case: &Case) -> (String, Vec<String>) {
     }
 
     match candidate.delta.operation.as_str() {
-        "none" => decision(
-            "NO_CHANGE_SUPPORTED",
-            "ALL_REQUIRED_ELEMENTS_WITHIN_DECLARED_BOUNDS",
-        ),
+        "none" => {
+            if !candidate.delta.target_ids.is_empty() {
+                return decision("INVALID_INPUT", "NO_CHANGE_DELTA_HAS_TARGETS");
+            }
+            decision(
+                "NO_CHANGE_SUPPORTED",
+                "ALL_REQUIRED_ELEMENTS_WITHIN_DECLARED_BOUNDS",
+            )
+        },
         "modify" => {
             let unique_targets: BTreeSet<&str> = candidate
                 .delta
@@ -504,8 +512,8 @@ mod tests {
     #[test]
     fn frozen_corpus_matches_dispositions_and_reason_codes() {
         let report = evaluate_corpus(FIXTURE.as_bytes()).expect("fixture parses");
-        assert_eq!(report.case_count, 23);
-        assert_eq!(report.matched_expected_cases, 23);
+        assert_eq!(report.case_count, 25);
+        assert_eq!(report.matched_expected_cases, 25);
         assert_eq!(report.mismatched_cases, 0);
         assert!(report.passed);
     }
