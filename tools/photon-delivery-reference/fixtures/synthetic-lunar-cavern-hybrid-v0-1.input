@@ -17,3 +17,4 @@ optical_auxiliary_electricity_wh_day=20000.0
 optical_auxiliary_peak_kw=0.8
 available_lighting_power_kw=40.0
 available_lighting_energy_kwh_day=960.0
+led_canopy_uniformity_floor=1.0
