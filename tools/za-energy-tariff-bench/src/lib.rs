@@ -297,6 +297,9 @@ pub fn evaluate(case: &BillingCase) -> Result<Evaluation, String> {
     )?;
     valid_non_negative(case.power_factor, "power_factor")?;
     valid_non_negative(case.reactive_energy_kvarh, "reactive_energy_kvarh")?;
+    for (index, demand) in case.previous_twelve_month_top_three_kva.iter().enumerate() {
+        valid_non_negative(*demand, &format!("previous_twelve_month_top_three_kva[{index}]"))?;
+    }
     if case.power_factor > 1.0 {
         return Err("power_factor must be <= 1.0".to_owned());
     }
