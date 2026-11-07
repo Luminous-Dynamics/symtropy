@@ -756,6 +756,171 @@ fn traffic_windows_must_be_sorted_non_overlapping_and_typed() {
 }
 
 #[test]
+fn omitted_required_occupancy_is_rejected_by_complete_coverage_manifest() {
+    let op = operation("demand-a", "participant-a", 10, 12);
+    let item = occupancy(OccupancySpec {
+        id: "required-use",
+        resource_id: "crossing-zone-1",
+        route_revision: "route-a",
+        operation: op.clone(),
+        direction_id: None,
+        early_entry_ticks: 0,
+        late_clearance_ticks: 0,
+        time_basis_id: "synthetic-ticks-v1",
+    });
+    let mut input = workload(
+        std::slice::from_ref(&op),
+        vec![conflict_resource(0, 0)],
+        vec![item],
+    );
+    input.occupancies.clear();
+    assert_eq!(
+        evaluate_traffic_plan(&plan(vec![op]), &input),
+        Err(TrafficError::MissingRequiredOccupancy(
+            "required-use".to_owned()
+        ))
+    );
+}
+
+#[test]
+fn every_selected_operation_must_have_a_coverage_entry() {
+    let first = operation("demand-a", "participant-a", 10, 12);
+    let second = operation("demand-b", "participant-b", 20, 22);
+    let first_use = occupancy(OccupancySpec {
+        id: "use-a",
+        resource_id: "crossing-zone-1",
+        route_revision: "route-a",
+        operation: first.clone(),
+        direction_id: None,
+        early_entry_ticks: 0,
+        late_clearance_ticks: 0,
+        time_basis_id: "synthetic-ticks-v1",
+    });
+    let second_use = occupancy(OccupancySpec {
+        id: "use-b",
+        resource_id: "crossing-zone-1",
+        route_revision: "route-b",
+        operation: second.clone(),
+        direction_id: None,
+        early_entry_ticks: 0,
+        late_clearance_ticks: 0,
+        time_basis_id: "synthetic-ticks-v1",
+    });
+    let mut input = workload(
+        &[first.clone(), second.clone()],
+        vec![conflict_resource(0, 0)],
+        vec![first_use, second_use],
+    );
+    input.coverage.entries.pop();
+    input.coverage.evidence.subject_id =
+        canonical_traffic_coverage_subject_id(&input.coverage);
+    assert_eq!(
+        evaluate_traffic_plan(&plan(vec![first, second]), &input),
+        Err(TrafficError::MissingCoverageOperation(
+            "segment-demand-b".to_owned()
+        ))
+    );
+}
+
+#[test]
+fn an_extra_occupancy_not_declared_by_the_manifest_is_rejected() {
+    let op = operation("demand-a", "participant-a", 10, 12);
+    let mut input = workload(
+        std::slice::from_ref(&op),
+        vec![conflict_resource(0, 0)],
+        Vec::new(),
+    );
+    input.occupancies.push(occupancy(OccupancySpec {
+        id: "undeclared-use",
+        resource_id: "crossing-zone-1",
+        route_revision: "route-a",
+        operation: op.clone(),
+        direction_id: None,
+        early_entry_ticks: 0,
+        late_clearance_ticks: 0,
+        time_basis_id: "synthetic-ticks-v1",
+    }));
+    assert_eq!(
+        evaluate_traffic_plan(&plan(vec![op]), &input),
+        Err(TrafficError::UnmappedOccupancy(
+            "undeclared-use".to_owned()
+        ))
+    );
+}
+
+#[test]
+fn explicit_reviewed_no_resource_entry_is_required_for_empty_mapping() {
+    let op = operation("demand-a", "participant-a", 10, 12);
+    let input = workload(std::slice::from_ref(&op), Vec::new(), Vec::new());
+    let report = evaluate_traffic_plan(&plan(vec![op.clone()]), &input)
+        .expect("reviewed no-resource coverage");
+    assert_eq!(report.disposition, TrafficDisposition::ReadyForComparison);
+    assert_eq!(report.resources_checked, 0);
+    assert_eq!(report.occupancies_checked, 0);
+
+    let mut incomplete = input;
+    incomplete.coverage.entries[0].no_resource_basis = None;
+    incomplete.coverage.evidence.subject_id =
+        canonical_traffic_coverage_subject_id(&incomplete.coverage);
+    assert_eq!(
+        evaluate_traffic_plan(&plan(vec![op]), &incomplete),
+        Err(TrafficError::InvalidCoverageEntry(
+            "segment-demand-a".to_owned()
+        ))
+    );
+}
+
+#[test]
+fn coverage_manifest_stale_and_revoked_states_never_yield_ready() {
+    let op = operation("demand-a", "participant-a", 10, 12);
+    let mut stale = workload(std::slice::from_ref(&op), Vec::new(), Vec::new());
+    stale.coverage.evidence.state = EvidenceState::Stale;
+    let report = evaluate_traffic_plan(&plan(vec![op.clone()]), &stale)
+        .expect("stale coverage is a disposition");
+    assert_eq!(report.disposition, TrafficDisposition::NeedsEvidence);
+    assert!(report.violations.iter().any(|violation| matches!(
+        violation,
+        TrafficViolation::CoverageEvidenceNotCurrent {
+            state: EvidenceState::Stale,
+            ..
+        }
+    )));
+
+    let mut revoked = stale;
+    revoked.coverage.evidence.state = EvidenceState::Revoked;
+    let report = evaluate_traffic_plan(&plan(vec![op]), &revoked)
+        .expect("revoked coverage is a disposition");
+    assert_eq!(report.disposition, TrafficDisposition::Unsupported);
+}
+
+#[test]
+fn changing_the_operation_resource_map_invalidates_the_manifest_identity() {
+    let op = operation("demand-a", "participant-a", 10, 12);
+    let item = occupancy(OccupancySpec {
+        id: "use-a",
+        resource_id: "crossing-zone-1",
+        route_revision: "route-a",
+        operation: op.clone(),
+        direction_id: None,
+        early_entry_ticks: 0,
+        late_clearance_ticks: 0,
+        time_basis_id: "synthetic-ticks-v1",
+    });
+    let mut input = workload(
+        std::slice::from_ref(&op),
+        vec![conflict_resource(0, 0)],
+        vec![item],
+    );
+    input.coverage.entries[0].required_uses.clear();
+    input.coverage.entries[0].no_resource_basis =
+        Some("unreviewed changed mapping".to_owned());
+    assert_eq!(
+        evaluate_traffic_plan(&plan(vec![op]), &input),
+        Err(TrafficError::CoverageManifestSubjectMismatch)
+    );
+}
+
+#[test]
 fn effective_occupancy_cannot_extend_before_decision_cutoff() {
     let op = operation("demand-a", "participant-a", 5, 7);
     let item = occupancy(OccupancySpec {
