@@ -566,3 +566,55 @@ These independent numerical calculations are formula checks, not compilation or 
 The ingoing Kerr chart avoids the Boyer-Lindquist horizon coordinate singularity. Its metric includes the expected (dv,dr), (dr,d\phi), and (dv,d\phi) couplings; its determinant is (-\Sigma^2\sin^2\theta). AD-generated curvature tests check the vacuum and Kretschmann identities at the horizon and inside it, and compare the scalar invariant against Boyer-Lindquist coordinates outside the horizon.
 
 This is a significant coordinate-invariance check, but it is not yet a general coordinate-transform engine or a full regularity proof for every component / tetrad at all limiting points.
+
+
+## Consolidated implementation update — 2026-11-07
+
+The clean successor PR now combines the Schwarzschild/Kerr analytic geometry, AD curvature work, reproducible manifests, and the stronger Schwarzschild geodesic follow-on.
+
+### Current source scope in `symtropy-relativity`
+
+- **Analytic stationary geometry:** validated SI mass/spin, Schwarzschild radii/redshift/Kretschmann, Kerr horizons, ergosurface, horizon angular velocity, surface gravity, and sample-preserving Kerr posterior mapping.
+- **Metric charts:** Schwarzschild and Kerr exterior charts; ingoing Eddington-Finkelstein Schwarzschild and ingoing Kerr charts.
+- **Differential geometry:** explicit Levi-Civita connection and a normalized metric-compatibility diagnostic.
+- **Curvature:** mixed Riemann, Ricci, scalar curvature, Einstein tensor, Kretschmann contraction, algebraic Riemann symmetries and first-Bianchi residuals; explicit second-derivative and second-order AD paths.
+- **Automatic differentiation:** fixed-size second-order forward-mode Jet2 metric values, gradients and Hessians for Schwarzschild/Kerr and ingoing charts.
+- **Geodesics (Schwarzschild exterior only):** second-order Christoffel RK4 and first-order canonical Hamiltonian RK4; step-doubling adaptive control for the coordinate formulation; component-wise dimensional tolerances; normalization, Killing energy, axial angular momentum, and Hamiltonian diagnostics.
+- **Numerical hardening:** rationalized Kerr inner horizon for small spin; dimensionless surface-gravity expression near extremality; factored Kerr `Delta=(r-r_+)(r-r_-)` near the exterior horizon.
+
+The integrated source currently has **63 authored Rust tests**:
+- 15 scalar/parameter/horizon physics;
+- 11 metric and matrix tests;
+- 6 connection and metric-compatibility tests;
+- 6 curvature tests;
+- 12 AD/chart tests;
+- 9 Schwarzschild geodesic tests;
+- 4 posterior mapping tests.
+
+These tests are **not executed** in the editing environment because `rustc` and `cargo` are unavailable. No build, test, CI, performance, waveform, or observational reproduction pass is claimed.
+
+### Machine-readable benchmark manifests
+
+The clean PR now carries five JSON manifests:
+1. `analytic_reference_cases.json` — SI-valued Schwarzschild/Kerr parameter and horizon-observable reference grid.
+2. `direct_wave_sxs_spin_sweep.json` — 10 high-spin SXS cases plus the 168-system / 13 CCE broader catalog manifest, competing horizon/News/BOB/light-ring/QNM/noise predictors and filter-artifact controls.
+3. `geodesic_reference_cases.json` — Schwarzschild circular timelike and radial null fixtures, parameterization, conserved quantities, and reference endpoints.
+4. `waveform_surrogate_baselines.json` — current NR surrogate, EOB, BOB, eccentric and SpEC accuracy literature comparators.
+5. `waveform_surrogate_certification_v1.json` — leakage-resistant validation splits, calibrated waveform error, posterior coverage, OOD abstention and active NR-selection protocol.
+
+All registries are specifications or source-pinned literature records. They are not execution results.
+
+### Geodesic limitations and next gates
+
+The new geodesic engine deliberately remains Schwarzschild-only and exterior-chart-only. It does not yet support Kerr geodesics, Carter-constant conservation, horizon crossing in ingoing charts, a symplectic integrator, or an adaptive Hamiltonian path. Its adaptive step-doubling controller estimates local error; it is not a rigorous global error bound.
+
+Next:
+- run the exact PR-head build/tests when a Rust toolchain is available;
+- independently review the geodesic equations, Hamiltonian sign, units, and chart-domain handling;
+- compare fixed-step vs adaptive convergence and invariant drift on held-out circular, radial, and near-critical trajectories;
+- then implement Kerr equatorial geodesics and the Carter constant, followed by inclined Kerr orbits;
+- maintain external NR / waveform comparisons as separate workstreams—this crate is not a numerical-relativity solver.
+
+### PR consolidation
+
+The older v3 draft supplied the adaptive / Hamiltonian Schwarzschild geodesic implementation and its reference manifest. Those are now carried into the clean successor PR, together with its analytic-reference and surrogate-certification manifests. The clean PR is the single continuation target; parallel earlier drafts are retained only as historical records and should not be merged independently.
