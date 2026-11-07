@@ -92,7 +92,10 @@ pub enum HierarchicalError {
     NoObservations,
     EmptyAnimalId,
     EmptySessionId,
-    DuplicateAnimalSession { animal_id: String, session_id: String },
+    DuplicateAnimalSession {
+        animal_id: String,
+        session_id: String,
+    },
     NonFiniteValue,
     InvalidMeasurementVariance,
     InvalidPopulationPrior,
@@ -224,23 +227,18 @@ impl HierarchicalFit {
 
     /// Model-averaged population parameter posterior.
     pub fn population_posterior(&self) -> NormalSummary {
-        mixture_summary(
-            self.components.iter().map(|component| {
-                (
-                    component.posterior_probability,
-                    component.population.mean,
-                    component.population.variance,
-                )
-            }),
-        )
+        mixture_summary(self.components.iter().map(|component| {
+            (
+                component.posterior_probability,
+                component.population.mean,
+                component.population.variance,
+            )
+        }))
     }
 
     /// Model-averaged animal parameter posterior, including uncertainty in the
     /// population mean and the between-animal variance model.
-    pub fn animal_posterior(
-        &self,
-        animal_id: &str,
-    ) -> Result<NormalSummary, HierarchicalError> {
+    pub fn animal_posterior(&self, animal_id: &str) -> Result<NormalSummary, HierarchicalError> {
         if !self
             .components
             .iter()
@@ -248,15 +246,17 @@ impl HierarchicalFit {
         {
             return Err(HierarchicalError::UnknownAnimal(animal_id.to_owned()));
         }
-        Ok(mixture_summary(self.components.iter().filter_map(|component| {
-            component.animals.get(animal_id).map(|posterior| {
-                (
-                    component.posterior_probability,
-                    posterior.mean,
-                    posterior.variance,
-                )
-            })
-        })))
+        Ok(mixture_summary(self.components.iter().filter_map(
+            |component| {
+                component.animals.get(animal_id).map(|posterior| {
+                    (
+                        component.posterior_probability,
+                        posterior.mean,
+                        posterior.variance,
+                    )
+                })
+            },
+        )))
     }
 
     /// Predict a new session for an animal observed in the training data.
@@ -279,9 +279,7 @@ impl HierarchicalFit {
                 (
                     component.posterior_probability,
                     posterior.mean,
-                    posterior.variance
-                        + self.session_effect_variance
-                        + measurement_variance,
+                    posterior.variance + self.session_effect_variance + measurement_variance,
                 )
             })
         }));
@@ -338,8 +336,7 @@ fn build_groups(
         if !observation.value.is_finite() {
             return Err(HierarchicalError::NonFiniteValue);
         }
-        if !observation.measurement_variance.is_finite()
-            || observation.measurement_variance <= 0.0
+        if !observation.measurement_variance.is_finite() || observation.measurement_variance <= 0.0
         {
             return Err(HierarchicalError::InvalidMeasurementVariance);
         }
@@ -414,8 +411,7 @@ fn fit_component(
         let group_information = group.sum_precision_value / denominator;
         let group_quadratic = group.sum_precision_value_squared
             - animal_effect_variance * group.sum_precision_value.powi(2) / denominator;
-        let group_log_determinant =
-            group.sum_log_measurement_variance + denominator.ln();
+        let group_log_determinant = group.sum_log_measurement_variance + denominator.ln();
 
         population_precision += group_weight;
         population_precision_mean += group_information;
@@ -462,14 +458,12 @@ fn fit_component(
                 variance: population_variance,
             }
         } else {
-            let conditional_precision =
-                1.0 / animal_effect_variance + group.sum_precision;
+            let conditional_precision = 1.0 / animal_effect_variance + group.sum_precision;
             let conditional_variance = 1.0 / conditional_precision;
             let population_gain = conditional_variance / animal_effect_variance;
             let conditional_data_term = conditional_variance * group.sum_precision_value;
             let mean = population_gain * population_mean + conditional_data_term;
-            let variance = conditional_variance
-                + population_gain.powi(2) * population_variance;
+            let variance = conditional_variance + population_gain.powi(2) * population_variance;
             if !mean.is_finite() || !variance.is_finite() || variance <= 0.0 {
                 return Err(HierarchicalError::NumericalFailure);
             }
@@ -490,12 +484,8 @@ fn fit_component(
     })
 }
 
-fn mixture_summary(
-    components: impl Iterator<Item = (f64, f64, f64)>,
-) -> NormalSummary {
-    let values: Vec<_> = components
-        .filter(|(weight, _, _)| *weight > 0.0)
-        .collect();
+fn mixture_summary(components: impl Iterator<Item = (f64, f64, f64)>) -> NormalSummary {
+    let values: Vec<_> = components.filter(|(weight, _, _)| *weight > 0.0).collect();
     let total_weight: f64 = values.iter().map(|(weight, _, _)| *weight).sum();
     let mean = values
         .iter()
@@ -518,7 +508,10 @@ fn log_sum_exp(values: &[f64]) -> Result<f64, HierarchicalError> {
     if !maximum.is_finite() {
         return Err(HierarchicalError::NumericalFailure);
     }
-    let sum = values.iter().map(|value| (value - maximum).exp()).sum::<f64>();
+    let sum = values
+        .iter()
+        .map(|value| (value - maximum).exp())
+        .sum::<f64>();
     let result = maximum + sum.ln();
     if !result.is_finite() {
         return Err(HierarchicalError::NumericalFailure);
@@ -606,7 +599,15 @@ mod tests {
         .unwrap();
         let probability = fit.probability_of_individual_dynamics();
         assert!(probability > 0.99);
-        assert!((fit.components.iter().map(|item| item.posterior_probability).sum::<f64>() - 1.0).abs() < 1.0e-12);
+        assert!(
+            (fit.components
+                .iter()
+                .map(|item| item.posterior_probability)
+                .sum::<f64>()
+                - 1.0)
+                .abs()
+                < 1.0e-12
+        );
         assert!(fit.animal_posterior("a").unwrap().mean < fit.population_posterior().mean);
     }
 
@@ -648,7 +649,11 @@ mod tests {
         );
         let fit = fit_hierarchical_parameter(
             &data,
-            &config(vec![candidate(0.0, 1.0), candidate(0.5, 2.0), candidate(2.0, 1.0)]),
+            &config(vec![
+                candidate(0.0, 1.0),
+                candidate(0.5, 2.0),
+                candidate(2.0, 1.0),
+            ]),
         )
         .unwrap();
         assert!(fit.probability_of_individual_dynamics() > 0.95);
@@ -683,9 +688,7 @@ mod tests {
             &config(vec![candidate(0.0, 1.0), candidate(0.5, 1.0)]),
         )
         .unwrap();
-        let known = fit
-            .predict_existing_animal_session("a", 0.01)
-            .unwrap();
+        let known = fit.predict_existing_animal_session("a", 0.01).unwrap();
         let unseen = fit.predict_unseen_animal_session(0.01).unwrap();
         assert!(unseen.variance > known.variance);
     }
