@@ -234,8 +234,7 @@ fn evaluate(input: &PhotonInput) -> Result<PhotonReport, String> {
 
     // DLI is per canopy area. The uniformity floor converts the mean delivery
     // into a conservative minimum-delivery estimate for the weakest canopy zone.
-    let solar_mean_dli =
-        at_canopy_umol / input.canopy_area_m2 / 1_000_000.0;
+    let solar_mean_dli = at_canopy_umol / input.canopy_area_m2 / 1_000_000.0;
     let solar_floor_dli = solar_mean_dli * input.canopy_uniformity_floor;
     let led_supplement_dli =
         (input.target_dli_mol_m2_day - solar_floor_dli).max(0.0);
@@ -430,30 +429,54 @@ mod tests {
     #[test]
     fn missing_optical_efficiency_is_not_assumed_to_be_perfect() {
         let missing = FIXTURE.replace("relay_transmission=0.5\n", "");
-        assert!(parse_input(&missing).unwrap_err().contains("missing required key relay_transmission"));
+        assert!(
+            parse_input(&missing)
+                .unwrap_err()
+                .contains("missing required key relay_transmission")
+        );
     }
 
     #[test]
     fn rejects_invalid_efficiencies_and_time_windows() {
-        let bad_efficiency = FIXTURE.replace("collector_efficiency=0.8", "collector_efficiency=1.2");
+        let bad_efficiency =
+            FIXTURE.replace("collector_efficiency=0.8", "collector_efficiency=1.2");
         let input = parse_input(&bad_efficiency).expect("syntactically valid fixture");
-        assert!(validate(&input).unwrap_err().contains("collector_efficiency"));
+        assert!(
+            validate(&input)
+                .unwrap_err()
+                .contains("collector_efficiency")
+        );
 
-        let bad_window = FIXTURE.replace("illumination_hours_per_day=6.0", "illumination_hours_per_day=25.0");
+        let bad_window = FIXTURE.replace(
+            "illumination_hours_per_day=6.0",
+            "illumination_hours_per_day=25.0",
+        );
         let input = parse_input(&bad_window).expect("syntactically valid fixture");
-        assert!(validate(&input).unwrap_err().contains("illumination_hours_per_day"));
+        assert!(
+            validate(&input)
+                .unwrap_err()
+                .contains("illumination_hours_per_day")
+        );
     }
 
     #[test]
     fn rejects_duplicate_unknown_and_measured_claim_keys() {
         let duplicate = format!("{FIXTURE}target_dli_mol_m2_day=20.0\n");
-        assert!(parse_input(&duplicate).unwrap_err().contains("duplicate key"));
+        assert!(
+            parse_input(&duplicate)
+                .unwrap_err()
+                .contains("duplicate key")
+        );
 
         let unknown = format!("{FIXTURE}magic_optical_gain=4\n");
         assert!(parse_input(&unknown).unwrap_err().contains("unknown key"));
 
         let measured = FIXTURE.replace("evidence_class=synthetic", "evidence_class=measured");
-        assert!(parse_input(&measured).unwrap_err().contains("synthetic fixtures only"));
+        assert!(
+            parse_input(&measured)
+                .unwrap_err()
+                .contains("synthetic fixtures only")
+        );
     }
 
     #[test]
@@ -461,8 +484,13 @@ mod tests {
         let non_finite = FIXTURE.replace("target_dli_mol_m2_day=20.0", "target_dli_mol_m2_day=NaN");
         assert!(parse_input(&non_finite).unwrap_err().contains("finite"));
 
-        let zero_efficacy = FIXTURE.replace("led_efficacy_umol_j=2.5", "led_efficacy_umol_j=0");
+        let zero_efficacy =
+            FIXTURE.replace("led_efficacy_umol_j=2.5", "led_efficacy_umol_j=0");
         let input = parse_input(&zero_efficacy).expect("syntactically valid fixture");
-        assert!(validate(&input).unwrap_err().contains("led_efficacy_umol_j"));
+        assert!(
+            validate(&input)
+                .unwrap_err()
+                .contains("led_efficacy_umol_j")
+        );
     }
 }
