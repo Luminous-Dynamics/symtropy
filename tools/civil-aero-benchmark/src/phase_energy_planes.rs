@@ -182,6 +182,7 @@ pub struct PhaseEnergyReport {
     pub end_state_sha256: String,
     pub status: PhaseEnergyStatus,
     pub bus_residual_j: f64,
+    pub shaft_combiner_residual_j: f64,
     pub fuel_residuals: Vec<FuelEnergyResidual>,
     pub prime_mover_fuel_residuals: Vec<ComponentEnergyResidual>,
     pub prime_mover_shaft_residuals: Vec<ComponentEnergyResidual>,
@@ -189,7 +190,7 @@ pub struct PhaseEnergyReport {
     pub store_results: Vec<StoreEnergyResult>,
     pub motor_residuals: Vec<ComponentEnergyResidual>,
     pub propulsor_residuals: Vec<ComponentEnergyResidual>,
-    pub continuous_source_power_w: f64,
+    pub continuous_bus_supply_power_w: f64,
     pub peak_source_power_margin_w: f64,
     pub continuous_source_power_margin_w: f64,
 }
@@ -310,6 +311,7 @@ impl PhaseEnergyBalance {
 
         let mut prime_mover_fuel_residuals = Vec::new();
         let mut prime_mover_shaft_residuals = Vec::new();
+        let mut prime_mover_fuel_input_by_source = HashMap::<&str, f64>::new();
         for engine in &self.prime_movers {
             validate_digest(&engine.model_evidence_sha256, "prime mover model SHA-256")?;
             for (name, value) in [
@@ -322,17 +324,18 @@ impl PhaseEnergyBalance {
             ] {
                 validate_nonnegative(value, name)?;
             }
-            let fuel = fuel_by_id.get(engine.fuel_source_id.as_str()).ok_or_else(|| {
-                format!(
+            if !fuel_by_id.contains_key(engine.fuel_source_id.as_str()) {
+                return Err(format!(
                     "prime mover {} references missing fuel source {}",
                     engine.prime_mover_id, engine.fuel_source_id
-                )
-            })?;
+                ));
+            }
+            *prime_mover_fuel_input_by_source
+                .entry(engine.fuel_source_id.as_str())
+                .or_insert(0.0) += engine.fuel_energy_input_j;
             let fuel_residual = engine.fuel_energy_input_j
                 - engine.mechanical_output_j
                 - engine.thermal_and_exhaust_loss_j;
-            let fuel_input_match =
-                engine.fuel_energy_input_j - fuel.chemical_energy_consumed_j;
             let generator_mechanical_input = self
                 .generators
                 .iter()
@@ -345,7 +348,6 @@ impl PhaseEnergyBalance {
                 - engine.accessory_mechanical_load_j
                 - engine.mechanical_distribution_loss_j;
             if fuel_residual.abs() > self.tolerance_j
-                || fuel_input_match.abs() > self.tolerance_j
                 || shaft_residual.abs() > self.tolerance_j
             {
                 infeasible = true;
@@ -358,6 +360,18 @@ impl PhaseEnergyBalance {
                 component_id: engine.prime_mover_id.clone(),
                 residual_j: shaft_residual,
             });
+        }
+
+        for fuel in &self.fuel_states {
+            let prime_mover_fuel_input = prime_mover_fuel_input_by_source
+                .get(fuel.fuel_source_id.as_str())
+                .copied()
+                .unwrap_or(0.0);
+            if (fuel.chemical_energy_consumed_j - prime_mover_fuel_input).abs()
+                > self.tolerance_j
+            {
+                infeasible = true;
+            }
         }
 
         for generator in &self.generators {
@@ -539,9 +553,10 @@ impl PhaseEnergyBalance {
             + total_store_charge_from_bus_j
             + self.bus_loads.distribution_loss_j;
         let bus_residual_j = total_bus_supply_j - bus_demand_j;
+        let shaft_combiner_residual_j =
+            total_propulsor_shaft_input_j - total_propulsor_shaft_declared_j;
         if bus_residual_j.abs() > self.tolerance_j
-            || (total_propulsor_shaft_input_j - total_propulsor_shaft_declared_j).abs()
-                > self.tolerance_j
+            || shaft_combiner_residual_j.abs() > self.tolerance_j
         {
             infeasible = true;
         }
@@ -567,11 +582,14 @@ impl PhaseEnergyBalance {
             });
         }
 
-        let continuous_source_power_w = total_bus_supply_j / self.duration_s;
+        let continuous_bus_supply_power_w = total_bus_supply_j / self.duration_s;
         let peak_source_power_margin_w = self.peak_source_power_limit_w - self.peak_source_power_w;
         let continuous_source_power_margin_w =
-            self.continuous_source_power_limit_w - continuous_source_power_w;
-        if peak_source_power_margin_w < 0.0 || continuous_source_power_margin_w < 0.0 {
+            self.continuous_source_power_limit_w - continuous_bus_supply_power_w;
+        if peak_source_power_margin_w < 0.0
+            || continuous_source_power_margin_w < 0.0
+            || self.peak_source_power_w + self.tolerance_j < continuous_bus_supply_power_w
+        {
             infeasible = true;
         }
         if self.prime_movers.is_empty()
@@ -598,6 +616,7 @@ impl PhaseEnergyBalance {
                 PhaseEnergyStatus::ConservedWithinDeclaredModel
             },
             bus_residual_j,
+            shaft_combiner_residual_j,
             fuel_residuals,
             prime_mover_fuel_residuals,
             prime_mover_shaft_residuals,
@@ -605,7 +624,7 @@ impl PhaseEnergyBalance {
             store_results,
             motor_residuals,
             propulsor_residuals,
-            continuous_source_power_w,
+            continuous_bus_supply_power_w,
             peak_source_power_margin_w,
             continuous_source_power_margin_w,
         })
