@@ -1,0 +1,172 @@
+{
+  "schema_version": "wpt-dual-frequency-run-v0",
+  "run_id": "synthetic-dual-frequency-001",
+  "evidence_kind": "SYNTHETIC_KNOWN_TRUTH",
+  "analysis_model_class": "HSS",
+  "cross_frequency_transfer_claim": true,
+  "grid_frequency_hz": 50,
+  "resonant_carrier_hz": 85000,
+  "minimum_sideband_separation_hz": 50,
+  "effective_frequency_resolution_hz": 10,
+  "acquisition": {
+    "sample_rate_hz": 1000000,
+    "sample_count": 100000,
+    "clock_id": "synthetic-clock-01",
+    "synchronization_group_id": "synthetic-capture-01",
+    "started_at_utc": "2026-01-01T00:00:00Z",
+    "window_function": "HANN",
+    "raw_waveform_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "calibration_receipt_id": "synthetic-calibration-01"
+  },
+  "channels": [
+    {
+      "channel_id": "grid-current-01",
+      "channel_kind": "GRID_CURRENT",
+      "measurement_plane_id": "grid-pcc-current",
+      "phase_reference_id": "grid-phase-a",
+      "quantity_kind": "RMS_CURRENT_SPECTRUM",
+      "unit": "A",
+      "nominal_frequency_hz": 50,
+      "frequency_tolerance_hz": 0.1,
+      "lines": [
+        {
+          "frequency_hz": 50,
+          "rms_amplitude": 10,
+          "phase_deg": 0,
+          "harmonic_order": 1,
+          "sideband_offset_hz": null,
+          "expanded_uncertainty": 0.02
+        },
+        {
+          "frequency_hz": 100,
+          "rms_amplitude": 0,
+          "phase_deg": 0,
+          "harmonic_order": 2,
+          "sideband_offset_hz": null,
+          "expanded_uncertainty": 0.01
+        },
+        {
+          "frequency_hz": 150,
+          "rms_amplitude": 0,
+          "phase_deg": 0,
+          "harmonic_order": 3,
+          "sideband_offset_hz": null,
+          "expanded_uncertainty": 0.01
+        },
+        {
+          "frequency_hz": 175,
+          "rms_amplitude": 0.1,
+          "phase_deg": 12,
+          "harmonic_order": null,
+          "sideband_offset_hz": null,
+          "expanded_uncertainty": 0.01
+        },
+        {
+          "frequency_hz": 200,
+          "rms_amplitude": 0,
+          "phase_deg": 0,
+          "harmonic_order": 4,
+          "sideband_offset_hz": null,
+          "expanded_uncertainty": 0.01
+        },
+        {
+          "frequency_hz": 250,
+          "rms_amplitude": 0.5,
+          "phase_deg": -15,
+          "harmonic_order": 5,
+          "sideband_offset_hz": null,
+          "expanded_uncertainty": 0.01
+        },
+        {
+          "frequency_hz": 300,
+          "rms_amplitude": 0,
+          "phase_deg": 0,
+          "harmonic_order": 6,
+          "sideband_offset_hz": null,
+          "expanded_uncertainty": 0.01
+        },
+        {
+          "frequency_hz": 350,
+          "rms_amplitude": 0.3,
+          "phase_deg": 30,
+          "harmonic_order": 7,
+          "sideband_offset_hz": null,
+          "expanded_uncertainty": 0.01
+        },
+        {
+          "frequency_hz": 400,
+          "rms_amplitude": 0,
+          "phase_deg": 0,
+          "harmonic_order": 8,
+          "sideband_offset_hz": null,
+          "expanded_uncertainty": 0.01
+        },
+        {
+          "frequency_hz": 450,
+          "rms_amplitude": 0,
+          "phase_deg": 0,
+          "harmonic_order": 9,
+          "sideband_offset_hz": null,
+          "expanded_uncertainty": 0.01
+        },
+        {
+          "frequency_hz": 500,
+          "rms_amplitude": 0,
+          "phase_deg": 0,
+          "harmonic_order": 10,
+          "sideband_offset_hz": null,
+          "expanded_uncertainty": 0.01
+        },
+        {
+          "frequency_hz": 550,
+          "rms_amplitude": 0.2,
+          "phase_deg": -45,
+          "harmonic_order": 11,
+          "sideband_offset_hz": null,
+          "expanded_uncertainty": 0.01
+        }
+      ],
+      "maximum_harmonic_order": 11
+    },
+    {
+      "channel_id": "resonant-current-01",
+      "channel_kind": "RESONANT_CURRENT",
+      "measurement_plane_id": "primary-resonant-branch",
+      "phase_reference_id": "resonant-drive-clock",
+      "quantity_kind": "RMS_CURRENT_SPECTRUM",
+      "unit": "A",
+      "nominal_frequency_hz": 85000,
+      "frequency_tolerance_hz": 1,
+      "lines": [
+        {
+          "frequency_hz": 84950,
+          "rms_amplitude": 0.4,
+          "phase_deg": -20,
+          "harmonic_order": null,
+          "sideband_offset_hz": -50,
+          "expanded_uncertainty": 0.01
+        },
+        {
+          "frequency_hz": 85000,
+          "rms_amplitude": 20,
+          "phase_deg": 0,
+          "harmonic_order": null,
+          "sideband_offset_hz": null,
+          "expanded_uncertainty": 0.05
+        },
+        {
+          "frequency_hz": 85050,
+          "rms_amplitude": 0.5,
+          "phase_deg": 25,
+          "harmonic_order": null,
+          "sideband_offset_hz": 50,
+          "expanded_uncertainty": 0.01
+        }
+      ],
+      "maximum_harmonic_order": null
+    }
+  ],
+  "quality_flags": [
+    "SYNTHETIC_ONLY"
+  ]
+}
