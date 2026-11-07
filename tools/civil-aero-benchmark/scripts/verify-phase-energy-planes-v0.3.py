@@ -337,7 +337,7 @@ def evaluate(balance: dict[str, Any], fixture: dict[str, Any]) -> dict[str, Any]
 
 def validate_fixture(fixture: dict[str, Any]) -> None:
     require(fixture["schema_version"] == "phase-energy-planes-fixtures/0.3.0", "unsupported fixture schema")
-    require(fixture["expected_mission_id"] == "SYNTH-PHASE-ENERGY-PLANES-001", "wrong fixture mission")
+    require(fixture["expected_mission_id"] == "SYNTH-PHASE-ENERGY-PLANES-002", "wrong fixture mission")
     digest(fixture["expected_configuration_sha256"], "fixture config")
     digest(fixture["expected_start_state_sha256"], "fixture start")
     digest(fixture["expected_end_state_sha256"], "fixture end")
