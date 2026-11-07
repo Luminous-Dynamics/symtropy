@@ -604,7 +604,8 @@
               "AUTHOR_CALCULATED",
               "SIMULATED",
               "SECONDARY_REPORTED",
-              "UNKNOWN"
+              "UNKNOWN",
+              "ASSUMED"
             ]
           },
           "source_locator": {
