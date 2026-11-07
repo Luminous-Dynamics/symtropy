@@ -169,6 +169,56 @@ pub fn richardson_three_level(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::world::PhysicsWorld;
+    use nalgebra::SVector;
+    use symtropy_math::Point;
+
+    fn oscillator_position_error(dt: f64) -> f64 {
+        const FINAL_TIME: f64 = 1.0;
+        let steps = (FINAL_TIME / dt).round() as usize;
+        assert!((steps as f64 * dt - FINAL_TIME).abs() < 1e-12);
+
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        let handle = world.add_sphere(Point::new([1.0, 0.0, 0.0]), 0.1, 1.0);
+        for _ in 0..steps {
+            let x = world.body(handle).unwrap().position()[0];
+            world
+                .body_mut(handle)
+                .unwrap()
+                .apply_force(SVector::from([-x, 0.0, 0.0]));
+            world.step(dt);
+        }
+
+        (world.body(handle).unwrap().position()[0] - FINAL_TIME.cos()).abs()
+    }
+
+    #[test]
+    fn estimates_order_from_production_world_oscillator_refinement() {
+        let coarse = RefinementSample {
+            resolution: 0.1,
+            quantity: oscillator_position_error(0.1),
+        };
+        let medium = RefinementSample {
+            resolution: 0.05,
+            quantity: oscillator_position_error(0.05),
+        };
+        let fine = RefinementSample {
+            resolution: 0.025,
+            quantity: oscillator_position_error(0.025),
+        };
+
+        let estimate = richardson_three_level(coarse, medium, fine).unwrap();
+        assert!(
+            (0.9..1.1).contains(&estimate.observed_order),
+            "observed order={} should be near one for semi-implicit Euler",
+            estimate.observed_order
+        );
+        assert!(
+            estimate.fine_level_absolute_error >= fine.quantity,
+            "safety-scaled fine error should not undercut the observed fine error"
+        );
+        assert!(estimate.extrapolated_value.abs() < 1e-3);
+    }
 
     #[test]
     fn recovers_first_order_limit_and_observed_order() {
