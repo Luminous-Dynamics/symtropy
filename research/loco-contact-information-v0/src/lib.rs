@@ -27,6 +27,8 @@ pub struct MeasurementModel {
     pub model_id: String,
     /// The commanded action for which this observation model was calibrated.
     pub action_id: String,
+    /// Digest of the actuator mapping used to produce the measured action.
+    pub actuation_model_digest: String,
     pub sensor_id: String,
     pub channel: SensorChannel,
     pub observation_row: [f64; CONTACT_STATE_DIM],
@@ -47,6 +49,8 @@ pub struct ContactObservation {
     /// Receipt that binds the command, delivered action and measured actuation.
     pub action_execution_receipt_id: String,
     pub clock_id: String,
+    /// Receipt for mapping source timestamps onto the declared clock basis.
+    pub clock_mapping_receipt_id: String,
     pub sample_time_ns: u64,
     pub arrival_time_ns: u64,
     pub timebase_verified: bool,
@@ -60,6 +64,8 @@ pub struct ActionExecutionReceipt {
     pub delivered_action_id: String,
     /// Digest of measured actuator output, not the requested command.
     pub measured_actuation_digest: String,
+    /// Digest of the actuator transfer/mapping model used by the observation model.
+    pub actuation_model_digest: String,
     /// Set only by an upstream verifier that checked command/delivery evidence.
     pub delivery_verified: bool,
 }
@@ -119,6 +125,7 @@ pub enum ContactInformationError {
     ActionDeliveryNotVerified,
     ActionReceiptMismatch,
     ActionModelMismatch,
+    ActionActuationModelMismatch,
     DuplicateModelId,
     DuplicateEvidenceId,
     DuplicateMeasurementModel,
@@ -150,6 +157,7 @@ impl MeasurementModel {
     pub fn validate(&self) -> Result<(), ContactInformationError> {
         if self.model_id.trim().is_empty()
             || self.action_id.trim().is_empty()
+            || self.actuation_model_digest.trim().is_empty()
             || self.sensor_id.trim().is_empty()
             || self.noise_independence_certificate_id.trim().is_empty()
         {
@@ -171,6 +179,7 @@ impl ActionExecutionReceipt {
             || self.command_action_id.trim().is_empty()
             || self.delivered_action_id.trim().is_empty()
             || self.measured_actuation_digest.trim().is_empty()
+            || self.actuation_model_digest.trim().is_empty()
         {
             return Err(ContactInformationError::EmptyIdentifier);
         }
@@ -255,6 +264,12 @@ pub fn update_with_observations(
     {
         return Err(ContactInformationError::ActionModelMismatch);
     }
+    if ordered_models
+        .iter()
+        .any(|model| model.actuation_model_digest != action_receipt.actuation_model_digest)
+    {
+        return Err(ContactInformationError::ActionActuationModelMismatch);
+    }
     let mut model_by_id = std::collections::BTreeMap::new();
     for model in ordered_models {
         model_by_id.insert(model.model_id.as_str(), model);
@@ -279,6 +294,7 @@ pub fn update_with_observations(
             || observation.measurement_model_id.trim().is_empty()
             || observation.action_execution_receipt_id.trim().is_empty()
             || observation.clock_id.trim().is_empty()
+            || observation.clock_mapping_receipt_id.trim().is_empty()
         {
             return Err(ContactInformationError::EmptyIdentifier);
         }
@@ -669,6 +685,7 @@ mod tests {
         MeasurementModel {
             model_id: model_id.to_owned(),
             action_id: "action-default".to_owned(),
+            actuation_model_digest: "sha256:actuation-model".to_owned(),
             sensor_id: sensor_id.to_owned(),
             channel,
             observation_row,
@@ -695,6 +712,7 @@ mod tests {
             measurement_model_id: measurement_model_id.to_owned(),
             action_execution_receipt_id: "execution-default".to_owned(),
             clock_id: "physics-clock".to_owned(),
+            clock_mapping_receipt_id: "clock-map-default".to_owned(),
             sample_time_ns,
             arrival_time_ns,
             timebase_verified: true,
@@ -708,6 +726,7 @@ mod tests {
             command_action_id: "action-default".to_owned(),
             delivered_action_id: "delivered-action-default".to_owned(),
             measured_actuation_digest: "sha256:measured-actuation".to_owned(),
+            actuation_model_digest: "sha256:actuation-model".to_owned(),
             delivery_verified: true,
         }
     }
