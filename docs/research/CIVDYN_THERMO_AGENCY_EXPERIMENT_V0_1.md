@@ -20,7 +20,10 @@ These are valid executable reference tasks and simulations. The scripted policie
 
 ### B. Embodied interacting entities in the consciousness-physics simulation
 
-The existing `symtropy-consciousness-physics` module contains a `ConsciousnessField` with a `BTreeMap<BodyHandle, EntityConsciousness>`, per-agent `AgentMemory`, partner histories, a shared harmony field and a collective-Φ summary. Partner resonance can affect energy regeneration, and a collapsed entity can require another agent's help to recover. The README reports multi-entity operation benchmarks, including 16-agent full-step timing.
+The existing `symtropy-consciousness-physics` module contains a `ConsciousnessField` with a `BTreeMap<BodyHandle, EntityConsciousness>`, per-entity energy budgets, a shared harmony field, optional Φ-gravity, collision-feedback coupling, emotional-contagion updates and a collective-Φ summary. The README reports multi-entity operation benchmarks, including 16-agent full-step timing.
+
+**Source-level qualification:** `AgentMemory` declares partner-history storage and a `record_partner` method, but the inspected `coupling.rs` has no call site for that method. The `harmony_resonance_regen_rate` parameter is declared, but no partner-to-partner energy-transfer implementation was established by this audit. The `resource_regeneration_multiplier()` method exposes a value based on aggregate Φ; that alone does not prove the simulation applies per-agent partner transfers. Do not claim partner-history learning or resonance-funded mutual aid as implemented until the concrete call path and tests are inspected.
+
 
 This is a second multi-agent substrate: embodied entities interact through motion, collisions, harmony/resonance and configured energy rules. It is not the same experiment as the six-seat collective-risk task.
 
