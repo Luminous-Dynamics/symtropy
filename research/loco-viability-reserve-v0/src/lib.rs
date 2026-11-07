@@ -56,7 +56,9 @@ pub enum MonotonicityStatus {
     Monotone,
     /// Indices identify samples where a previously false outcome became true
     /// at a higher uncertainty level.
-    Violated { rebound_sample_indices: Vec<usize> },
+    Violated {
+        rebound_sample_indices: Vec<usize>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -176,9 +178,7 @@ fn make_bracket(values: &[bool], levels: &[u64], nested: bool) -> ReserveBracket
 ///
 /// If the family is not declared nested, or a monotonicity violation occurs,
 /// all input samples are preserved but no qualified threshold shape is emitted.
-pub fn analyze_axis_ladder(
-    ladder: &AxisLadder,
-) -> Result<ViabilityReserveReport, LadderError> {
+pub fn analyze_axis_ladder(ladder: &AxisLadder) -> Result<ViabilityReserveReport, LadderError> {
     if !nonblank(&ladder.axis_id) {
         return Err(LadderError::EmptyAxisId);
     }
@@ -365,13 +365,7 @@ mod tests {
 
     #[test]
     fn multiple_rebounds_are_all_reported() {
-        let input = ladder(&[
-            (10, true),
-            (20, false),
-            (30, true),
-            (40, false),
-            (50, true),
-        ]);
+        let input = ladder(&[(10, true), (20, false), (30, true), (40, false), (50, true)]);
         let report = analyze_axis_ladder(&input).unwrap();
         assert_eq!(
             report.invariant_viability.monotonicity,
@@ -419,14 +413,20 @@ mod tests {
     fn empty_samples_are_rejected() {
         let mut input = ladder(&[(10, true)]);
         input.samples.clear();
-        assert_eq!(analyze_axis_ladder(&input), Err(LadderError::EmptySampleSet));
+        assert_eq!(
+            analyze_axis_ladder(&input),
+            Err(LadderError::EmptySampleSet)
+        );
     }
 
     #[test]
     fn identity_fields_are_required() {
         let mut input = ladder(&[(10, true)]);
         input.model_digest.clear();
-        assert_eq!(analyze_axis_ladder(&input), Err(LadderError::EmptyModelDigest));
+        assert_eq!(
+            analyze_axis_ladder(&input),
+            Err(LadderError::EmptyModelDigest)
+        );
 
         let mut input = ladder(&[(10, true)]);
         input.axis_id = "  ".to_owned();
@@ -437,10 +437,11 @@ mod tests {
     fn recovery_bracket_is_separate_from_invariant_viability() {
         let mut input = ladder(&[(10, true), (20, true), (30, false), (40, false)]);
         input.recovery_target_digest = Some("recovery-target-01".to_owned());
-        for (sample, recovery) in input
-            .samples
-            .iter_mut()
-            .zip([Some(true), Some(false), Some(false), Some(false)])
+        for (sample, recovery) in
+            input
+                .samples
+                .iter_mut()
+                .zip([Some(true), Some(false), Some(false), Some(false)])
         {
             sample.recovery_viable = recovery;
         }
@@ -464,7 +465,10 @@ mod tests {
                 smallest_nonviable_sample_index: 1,
             })
         );
-        assert_eq!(report.recovery_target_digest.as_deref(), Some("recovery-target-01"));
+        assert_eq!(
+            report.recovery_target_digest.as_deref(),
+            Some("recovery-target-01")
+        );
     }
 
     #[test]
@@ -517,7 +521,11 @@ mod tests {
         let second = analyze_axis_ladder(&input).unwrap();
         assert_eq!(first, second);
         assert_eq!(
-            first.samples.iter().map(|sample| sample.level).collect::<Vec<_>>(),
+            first
+                .samples
+                .iter()
+                .map(|sample| sample.level)
+                .collect::<Vec<_>>(),
             vec![100, 200, 300]
         );
     }
