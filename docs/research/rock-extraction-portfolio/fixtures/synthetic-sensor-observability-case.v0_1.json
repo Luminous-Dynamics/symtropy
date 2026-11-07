@@ -133,35 +133,47 @@
   "states": [
     {
       "state_id": "NORMAL_STABLE",
-      "state_class": "PROCESS_STATE"
+      "state_class": "PROCESS_STATE",
+      "faulted_channel_ids": []
     },
     {
       "state_id": "DEVELOPING_BLOCKAGE",
-      "state_class": "PROCESS_STATE"
+      "state_class": "PROCESS_STATE",
+      "faulted_channel_ids": []
     },
     {
       "state_id": "FILTER_CYCLONE_LOADING",
-      "state_class": "PROCESS_STATE"
+      "state_class": "PROCESS_STATE",
+      "faulted_channel_ids": []
     },
     {
       "state_id": "BLOWER_VFD_FAULT",
-      "state_class": "PROCESS_STATE"
+      "state_class": "PROCESS_STATE",
+      "faulted_channel_ids": []
     },
     {
       "state_id": "PRESSURE_SENSOR_FAULT",
-      "state_class": "SENSOR_FAULT"
+      "state_class": "SENSOR_FAULT",
+      "faulted_channel_ids": [
+        "dp-line"
+      ]
     },
     {
       "state_id": "AIRFLOW_SENSOR_FAULT",
-      "state_class": "SENSOR_FAULT"
+      "state_class": "SENSOR_FAULT",
+      "faulted_channel_ids": [
+        "airflow"
+      ]
     },
     {
       "state_id": "HIGH_SOLIDS_LOADING",
-      "state_class": "PROCESS_STATE"
+      "state_class": "PROCESS_STATE",
+      "faulted_channel_ids": []
     },
     {
       "state_id": "UNKNOWN_OUT_OF_DOMAIN",
-      "state_class": "OUT_OF_DOMAIN"
+      "state_class": "OUT_OF_DOMAIN",
+      "faulted_channel_ids": []
     }
   ],
   "required_state_pairs": [
