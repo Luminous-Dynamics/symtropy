@@ -674,6 +674,81 @@ pub fn import_paper_study_run(run_directory: &Path) -> Result<PaperStudyImport, 
 /// Assemble exactly one source-pinned 12-study paper run from imported
 /// per-study directories. The original upstream Python scorer remains the
 /// authority for every PAS/ECS value; this function only joins receipts.
+/// Serialize a fully validated paper-12 receipt into the versioned common
+/// JSON schema. The function is intentionally a serializer only: it does not
+/// calculate or aggregate PAS/ECS.
+pub fn paper_receipt_to_json(receipt: &BenchmarkRunReceipt) -> Value {
+    let studies: Vec<Value> = receipt
+        .studies
+        .iter()
+        .map(|study| {
+            let independent_unit = match study.independent_unit {
+                IndependentUnit::Participant => "participant",
+                IndependentUnit::Group => "group",
+                IndependentUnit::Session => "session",
+                IndependentUnit::Cluster => "cluster",
+            };
+            let effects: Vec<Value> = study
+                .effects
+                .iter()
+                .map(|effect| {
+                    json!({
+                        "finding_id": effect.finding_id,
+                        "test_id": effect.test_id,
+                        "measure": effect.measure,
+                        "unit": effect.unit,
+                        "human_estimate": effect.human_estimate,
+                        "simulated_estimate": effect.simulated_estimate,
+                        "human_ci95": effect.human_ci95,
+                        "simulated_ci95": effect.simulated_ci95
+                    })
+                })
+                .collect();
+            let artifacts: Vec<Value> = study
+                .artifacts
+                .iter()
+                .map(|artifact| {
+                    json!({
+                        "role": artifact.role,
+                        "path": artifact.path,
+                        "sha256": artifact.sha256,
+                        "record_count": artifact.record_count,
+                        "contains_record_level_human_data": artifact.contains_record_level_human_data,
+                        "published_in_repository": artifact.published_in_repository,
+                        "redistribution_authorized": artifact.redistribution_authorized,
+                        "rights_basis": artifact.rights_basis
+                    })
+                })
+                .collect();
+            json!({
+                "study_id": study.study_id,
+                "study_tree_sha": study.study_tree_sha,
+                "participant_count": study.participant_count,
+                "trial_count": study.trial_count,
+                "independent_unit": independent_unit,
+                "analysis_pipeline_sha256": study.analysis_pipeline_sha256,
+                "agent_config_sha256": study.agent_config_sha256,
+                "prompt_template_sha256": study.prompt_template_sha256,
+                "analysis_protocol_preserved": study.analysis_protocol_preserved,
+                "official_pas": study.official_pas,
+                "official_ecs": study.official_ecs,
+                "effects": effects,
+                "artifacts": artifacts
+            })
+        })
+        .collect();
+    json!({
+        "protocol_id": receipt.protocol_id,
+        "source_repository": receipt.source_repository,
+        "source_commit": receipt.source_commit,
+        "source_root_tree": receipt.source_root_tree,
+        "metric_contract_id": receipt.metric_contract_id,
+        "run_id": receipt.run_id,
+        "model_id": receipt.model_id,
+        "studies": studies
+    })
+}
+
 pub fn assemble_paper_run_receipt(
     imports: Vec<PaperStudyImport>,
 ) -> Result<BenchmarkRunReceipt, PaperImportError> {
@@ -940,6 +1015,30 @@ only,one,row
         .unwrap();
         assert!(import_paper_study_run(&path).is_err());
         fs::remove_dir_all(path).expect("remove temp directory");
+    }
+
+
+    #[test]
+    fn assembles_and_serializes_complete_paper_twelve_run() {
+        let root = temp_run_dir();
+        let mut imports = Vec::new();
+        for pin in PAPER_12_STUDY_PINS {
+            let path = root.join(pin.study_id);
+            fs::create_dir_all(&path).expect("create study fixture directory");
+            write_fixture(&path, pin.study_id, true);
+            imports.push(import_paper_study_run(&path).expect("paper study fixture imports"));
+        }
+        let receipt = assemble_paper_run_receipt(imports).expect("complete paper-12 receipt assembles");
+        let json = paper_receipt_to_json(&receipt);
+        assert_eq!(json["protocol_id"], PAPER_12_PROTOCOL_ID);
+        assert_eq!(json["studies"].as_array().map(Vec::len), Some(12));
+        assert_eq!(
+            json["studies"][0]["artifacts"]
+                .as_array()
+                .map(Vec::len),
+            Some(4)
+        );
+        fs::remove_dir_all(root).expect("remove temp directory");
     }
 
     #[test]
