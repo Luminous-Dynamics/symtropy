@@ -1,0 +1,302 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ground-air-coexistence-scenario-v0.schema.json",
+  "title": "Ground-air shared-source bounded allocation scenario v0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "episode_id",
+    "evidence_class",
+    "quality_flags",
+    "site",
+    "time_grid",
+    "channels",
+    "sessions",
+    "policy"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "ground-air-coexistence-scenario-v0"
+    },
+    "episode_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "evidence_class": {
+      "const": "SYNTHETIC_KNOWN_TRUTH"
+    },
+    "quality_flags": {
+      "const": [
+        "SYNTHETIC_ONLY"
+      ]
+    },
+    "site": {
+      "$ref": "#/$defs/site"
+    },
+    "time_grid": {
+      "$ref": "#/$defs/time_grid"
+    },
+    "channels": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 8,
+      "items": {
+        "$ref": "#/$defs/channel"
+      }
+    },
+    "sessions": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 8,
+      "items": {
+        "$ref": "#/$defs/session"
+      }
+    },
+    "policy": {
+      "$ref": "#/$defs/policy"
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "site": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "site_id",
+        "grid_source_id",
+        "source_power_boundary_id",
+        "pcc_max_input_quanta_per_slot",
+        "total_source_energy_budget_wh",
+        "source_energy_wh_per_quantum_slot"
+      ],
+      "properties": {
+        "site_id": {
+          "$ref": "#/$defs/id"
+        },
+        "grid_source_id": {
+          "$ref": "#/$defs/id"
+        },
+        "pcc_max_input_quanta_per_slot": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8,
+          "description": "Maximum count of site-source energy quanta allocated in one slot. This is not a watt value."
+        },
+        "total_source_energy_budget_wh": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "source_energy_wh_per_quantum_slot": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000,
+          "description": "Site-source real energy at the PCC represented by one allocation quantum for one complete slot, in Wh."
+        },
+        "source_power_boundary_id": {
+          "const": "SITE_PCC_GRID_AC_INPUT"
+        }
+      }
+    },
+    "time_grid": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "slot_duration_ms",
+        "slot_count"
+      ],
+      "properties": {
+        "slot_duration_ms": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Fixed duration of every discrete allocation slot, in milliseconds. Source-energy quanta are Wh-per-slot units, not instantaneous watts."
+        },
+        "slot_count": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 8
+        }
+      }
+    },
+    "channel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "channel_id",
+        "domain",
+        "modality",
+        "channel_input_boundary_id",
+        "maximum_input_quanta_per_slot",
+        "envelope_sha256",
+        "support_state",
+        "coexistence_state",
+        "safety_state"
+      ],
+      "properties": {
+        "channel_id": {
+          "$ref": "#/$defs/id"
+        },
+        "domain": {
+          "enum": [
+            "GROUND",
+            "AIR"
+          ]
+        },
+        "modality": {
+          "enum": [
+            "GROUND_DYNAMIC_INDUCTIVE",
+            "GROUND_STATIC_INDUCTIVE",
+            "AIR_DOCK_INDUCTIVE",
+            "AIR_DOCK_CAPACITIVE",
+            "AIR_HOVER_INDUCTIVE",
+            "AIR_HOVER_CAPACITIVE",
+            "AIR_RF_POWER_BEAMING",
+            "AIR_OPTICAL_POWER_BEAMING",
+            "AIR_DOCK_CONDUCTIVE"
+          ]
+        },
+        "maximum_input_quanta_per_slot": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8,
+          "description": "Maximum site-source energy quanta allocated to this channel in one slot; not the channel-input meter energy or instantaneous watts."
+        },
+        "envelope_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "support_state": {
+          "const": "DECLARED_SYNTHETIC_SUPPORT"
+        },
+        "coexistence_state": {
+          "const": "NOT_EVALUATED_SYNTHETIC_ONLY"
+        },
+        "safety_state": {
+          "const": "NOT_EVALUATED_SYNTHETIC_ONLY"
+        },
+        "channel_input_boundary_id": {
+          "enum": [
+            "GROUND_ROAD_INVERTER_DC_INPUT",
+            "GROUND_STATIC_INVERTER_DC_INPUT",
+            "AIR_DOCK_CHARGER_AC_INPUT",
+            "AIR_DOCK_INVERTER_DC_INPUT",
+            "AIR_HOVER_INVERTER_DC_INPUT",
+            "AIR_RF_TRANSMITTER_AC_INPUT",
+            "AIR_OPTICAL_LASER_DRIVER_AC_INPUT"
+          ]
+        }
+      }
+    },
+    "session": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "session_id",
+        "domain",
+        "receiver_class",
+        "channel_id",
+        "useful_energy_boundary_id",
+        "start_slot",
+        "end_slot",
+        "requested_useful_energy_wh",
+        "minimum_useful_energy_wh",
+        "maximum_input_quanta_per_slot",
+        "useful_energy_wh_per_input_quantum_slot",
+        "authorization_state"
+      ],
+      "properties": {
+        "session_id": {
+          "$ref": "#/$defs/id"
+        },
+        "domain": {
+          "enum": [
+            "GROUND",
+            "AIR"
+          ]
+        },
+        "receiver_class": {
+          "enum": [
+            "ROAD_CAR",
+            "ROAD_BUS",
+            "ROAD_HEAVY_TRUCK",
+            "UAV_DOCKED",
+            "UAV_HOVERING",
+            "UAV_FIXED_WING",
+            "EVTOL_DOCKED",
+            "EVTOL_AIRBORNE"
+          ]
+        },
+        "channel_id": {
+          "$ref": "#/$defs/id"
+        },
+        "start_slot": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 7
+        },
+        "end_slot": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
+        },
+        "requested_useful_energy_wh": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "minimum_useful_energy_wh": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "maximum_input_quanta_per_slot": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8,
+          "description": "Maximum site-source energy quanta allocated to this session in one slot; not instantaneous watts."
+        },
+        "useful_energy_wh_per_input_quantum_slot": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "authorization_state": {
+          "const": "SYNTHETIC_FIXTURE_ONLY"
+        },
+        "useful_energy_boundary_id": {
+          "enum": [
+            "GROUND_VEHICLE_BATTERY_TERMINAL_INPUT",
+            "AIRCRAFT_BATTERY_TERMINAL_INPUT"
+          ]
+        }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "maximum_search_nodes",
+        "require_concurrent_delivery"
+      ],
+      "properties": {
+        "maximum_search_nodes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "require_concurrent_delivery": {
+          "const": true
+        }
+      }
+    }
+  }
+}

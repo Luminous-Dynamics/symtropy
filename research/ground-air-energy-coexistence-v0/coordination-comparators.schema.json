@@ -1,0 +1,200 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ground-air-coordination-comparators-v0.schema.json",
+  "title": "Ground-air charging coordination comparator set v0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "comparator_set_id",
+    "catalog",
+    "comparators",
+    "luminous_positioning"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "ground-air-coordination-comparators-v0"
+    },
+    "comparator_set_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "catalog": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repository",
+        "pull_request",
+        "branch",
+        "commit_sha",
+        "realizations_path"
+      ],
+      "properties": {
+        "repository": {
+          "const": "Luminous-Dynamics/symtropy"
+        },
+        "pull_request": {
+          "const": 3451
+        },
+        "branch": {
+          "const": "research/wpt-empirical-envelope-v0.1-20261103"
+        },
+        "commit_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "realizations_path": {
+          "const": "benchmarks/wpt-empirical/v0/realizations.jsonl"
+        }
+      }
+    },
+    "comparators": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "comparator_id",
+          "source_id",
+          "system_id",
+          "evidence_class",
+          "scope",
+          "methods",
+          "reported_results",
+          "baseline_gaps_to_test",
+          "fair_reproduction_inputs",
+          "additions_for_luminous_benchmark",
+          "claim_ceiling"
+        ],
+        "properties": {
+          "comparator_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "system_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidence_class": {
+            "enum": [
+              "SIMULATED",
+              "MEASURED",
+              "SECONDARY_REPORTED",
+              "UNKNOWN"
+            ]
+          },
+          "scope": {
+            "type": "string",
+            "minLength": 1
+          },
+          "methods": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "scenario": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "reported_results": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "metric",
+                "value",
+                "qualifier",
+                "unit",
+                "notes"
+              ],
+              "properties": {
+                "metric": {
+                  "type": "string"
+                },
+                "value": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "qualifier": {
+                  "type": "string"
+                },
+                "unit": {
+                  "type": "string"
+                },
+                "notes": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "baseline_gaps_to_test": {
+            "type": "object"
+          },
+          "fair_reproduction_inputs": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "additions_for_luminous_benchmark": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "claim_ceiling": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "luminous_positioning": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "coordination_itself_is_novel",
+        "direct_simulated_ground_air_coordination_baseline_exists",
+        "first_physical_same_site_ground_air_wpt_demonstration_in_reviewed_catalogue",
+        "intended_differentiation",
+        "required_disclaimer"
+      ],
+      "properties": {
+        "coordination_itself_is_novel": {
+          "const": false
+        },
+        "direct_simulated_ground_air_coordination_baseline_exists": {
+          "const": true
+        },
+        "first_physical_same_site_ground_air_wpt_demonstration_in_reviewed_catalogue": {
+          "const": "NOT_FOUND_IN_REVIEWED_SOURCES"
+        },
+        "intended_differentiation": {
+          "type": "array",
+          "minItems": 3,
+          "items": {
+            "type": "string"
+          }
+        },
+        "required_disclaimer": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

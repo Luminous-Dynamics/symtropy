@@ -1,0 +1,252 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ground-air-channel-evidence-adapter-v0.schema.json",
+  "title": "Ground-air channel evidence adapter v0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "adapter_id",
+    "intended_scenario_id",
+    "intended_mode",
+    "evidence_class",
+    "catalog",
+    "channels",
+    "composition",
+    "admission_policy"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "ground-air-channel-evidence-adapter-v0"
+    },
+    "adapter_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "intended_scenario_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "intended_mode": {
+      "const": "M1_DUAL_WIRELESS_RESEARCH"
+    },
+    "evidence_class": {
+      "const": "SOURCE_REPORTED_DEVELOPMENT_ONLY"
+    },
+    "catalog": {
+      "$ref": "#/$defs/catalog"
+    },
+    "channels": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "$ref": "#/$defs/channel"
+      }
+    },
+    "composition": {
+      "$ref": "#/$defs/composition"
+    },
+    "admission_policy": {
+      "$ref": "#/$defs/admission"
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "catalog": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repository",
+        "pull_request",
+        "branch",
+        "commit_sha",
+        "sources_path",
+        "realizations_path"
+      ],
+      "properties": {
+        "repository": {
+          "$ref": "#/$defs/id"
+        },
+        "pull_request": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "branch": {
+          "$ref": "#/$defs/id"
+        },
+        "commit_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "sources_path": {
+          "$ref": "#/$defs/id"
+        },
+        "realizations_path": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    },
+    "channel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "channel_id",
+        "domain",
+        "intended_modality",
+        "evidence_refs"
+      ],
+      "properties": {
+        "channel_id": {
+          "$ref": "#/$defs/id"
+        },
+        "domain": {
+          "enum": [
+            "GROUND",
+            "AIR"
+          ]
+        },
+        "intended_modality": {
+          "enum": [
+            "GROUND_DYNAMIC_INDUCTIVE",
+            "AIR_DOCK_INDUCTIVE"
+          ]
+        },
+        "evidence_refs": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/evidence"
+          }
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_id",
+        "system_id",
+        "measurement_ids",
+        "evidence_kind",
+        "admission_state",
+        "available_claims",
+        "unresolved_requirements",
+        "reason"
+      ],
+      "properties": {
+        "source_id": {
+          "$ref": "#/$defs/id"
+        },
+        "system_id": {
+          "$ref": "#/$defs/id"
+        },
+        "measurement_ids": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "evidence_kind": {
+          "enum": [
+            "MEASURED",
+            "SIMULATED",
+            "SECONDARY_REPORTED",
+            "UNKNOWN"
+          ]
+        },
+        "admission_state": {
+          "enum": [
+            "NOT_ADMITTED_TO_OPERATING_ENVELOPE",
+            "COMPARATOR_ONLY",
+            "QUALIFIED_WITHIN_DECLARED_ENVELOPE"
+          ]
+        },
+        "available_claims": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "unresolved_requirements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "reason": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    },
+    "composition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "shared_site_physical_coexistence_evidence",
+        "measured_simultaneous_ground_air_prototype",
+        "electrical_source_orchestration_evidence",
+        "independent_channel_safety_reviews",
+        "permitted_claim"
+      ],
+      "properties": {
+        "shared_site_physical_coexistence_evidence": {
+          "const": "NOT_AVAILABLE"
+        },
+        "measured_simultaneous_ground_air_prototype": {
+          "const": "NOT_DEMONSTRATED"
+        },
+        "electrical_source_orchestration_evidence": {
+          "const": "SYNTHETIC_ONLY"
+        },
+        "independent_channel_safety_reviews": {
+          "const": "NOT_AVAILABLE"
+        },
+        "permitted_claim": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    },
+    "admission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "require_exact_source_and_system_identity",
+        "require_declared_meter_boundaries",
+        "require_power_and_energy_operating_envelope",
+        "require_geometry_and_position_support",
+        "require_uncertainty_and_evidence_class",
+        "require_same_site_coexistence_test_for_m1",
+        "missing_or_ambiguous_evidence_disposition"
+      ],
+      "properties": {
+        "require_exact_source_and_system_identity": {
+          "const": true
+        },
+        "require_declared_meter_boundaries": {
+          "const": true
+        },
+        "require_power_and_energy_operating_envelope": {
+          "const": true
+        },
+        "require_geometry_and_position_support": {
+          "const": true
+        },
+        "require_uncertainty_and_evidence_class": {
+          "const": true
+        },
+        "require_same_site_coexistence_test_for_m1": {
+          "const": true
+        },
+        "missing_or_ambiguous_evidence_disposition": {
+          "const": "NOT_ADMITTED"
+        }
+      }
+    }
+  }
+}

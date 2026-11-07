@@ -1,0 +1,118 @@
+{
+  "schema_version": "ground-air-channel-evidence-adapter-v0",
+  "adapter_id": "ground-air-m1-source-evidence-2026-11-07",
+  "intended_scenario_id": "shared-site-ground-air-known-truth-01",
+  "intended_mode": "M1_DUAL_WIRELESS_RESEARCH",
+  "evidence_class": "SOURCE_REPORTED_DEVELOPMENT_ONLY",
+  "catalog": {
+    "repository": "Luminous-Dynamics/symtropy",
+    "pull_request": 3451,
+    "branch": "research/wpt-empirical-envelope-v0.1-20261103",
+    "commit_sha": "69d1aa2bc7cdc3bedc0456dd0e7758ffbca9ba34",
+    "sources_path": "benchmarks/wpt-empirical/v0/sources.jsonl",
+    "realizations_path": "benchmarks/wpt-empirical/v0/realizations.jsonl"
+  },
+  "channels": [
+    {
+      "channel_id": "ground-road-channel-01",
+      "domain": "GROUND",
+      "intended_modality": "GROUND_DYNAMIC_INDUCTIVE",
+      "evidence_refs": [
+        {
+          "source_id": "purdue-dwpt-roadway-2026",
+          "system_id": "WPT-IPT-PURDUE-DWPT-ROADWAY-2026",
+          "measurement_ids": [
+            "PURDUE-DWPT-ROADWAY-POWER-RANGE"
+          ],
+          "evidence_kind": "MEASURED",
+          "admission_state": "NOT_ADMITTED_TO_OPERATING_ENVELOPE",
+          "available_claims": [
+            "50–190 kW reported power range",
+            "up to 65 mph reported vehicle speed",
+            "approximately 85% efficiency statement"
+          ],
+          "unresolved_requirements": [
+            "explicit source/input and receiver/output meter planes",
+            "frequency and transfer gap",
+            "per-speed power and efficiency curve",
+            "uncertainty and continuous/duty-cycle limits",
+            "trajectory-linked measured pose/time coverage"
+          ],
+          "reason": "Abstract-level field evidence supports the technology class, but does not supply a complete operating envelope at a declared common meter boundary."
+        }
+      ]
+    },
+    {
+      "channel_id": "air-dock-channel-01",
+      "domain": "AIR",
+      "intended_modality": "AIR_DOCK_INDUCTIVE",
+      "evidence_refs": [
+        {
+          "source_id": "li-position-tolerant-uav-multitx-ipt-2026",
+          "system_id": "WPT-IPT-LI-RECONFIGURABLE-MULTITX-UAV-2026-350W",
+          "measurement_ids": [
+            "UAV-MULTITX-2TX-PEAK-DC-DC",
+            "UAV-MULTITX-4TX-PEAK-DC-DC"
+          ],
+          "evidence_kind": "MEASURED",
+          "admission_state": "NOT_ADMITTED_TO_OPERATING_ENVELOPE",
+          "available_claims": [
+            "350 W prototype description",
+            "85 kHz",
+            "50 mm gap",
+            "88.6% peak DC-to-DC in two-transmitter mode",
+            "87.9% peak DC-to-DC in four-transmitter mode",
+            "position sweeps exceeding 100 mm"
+          ],
+          "unresolved_requirements": [
+            "exact DC input/output meter nodes",
+            "output power at each peak-efficiency point",
+            "receiver mechanical posture and installation geometry",
+            "full measured power/efficiency versus position map",
+            "field uniformity and off-target leakage data with uncertainty",
+            "continuous thermal operating limits"
+          ],
+          "reason": "Abstract-level prototype evidence does not yet define a complete receiver-side envelope or establish the physical posture and installation required for an M1 dock."
+        },
+        {
+          "source_id": "sukvanachaikul-dual-drone-ipt-2025",
+          "system_id": "WPT-IPT-SUKVANACHAIKUL-DUAL-DRONE-2025-500W",
+          "measurement_ids": [
+            "DUAL-DRONE-5A-EACH"
+          ],
+          "evidence_kind": "MEASURED",
+          "admission_state": "COMPARATOR_ONLY",
+          "available_claims": [
+            "two simultaneous drone receivers",
+            "5 A per drone reported",
+            "150–175 mm operational air-gap range",
+            "500 W prototype description"
+          ],
+          "unresolved_requirements": [
+            "receiver voltage and per-drone watts",
+            "exact meter boundary and energy",
+            "frequency and full coupler geometry",
+            "measured misalignment and thermal envelope"
+          ],
+          "reason": "Useful multi-receiver IPT comparator but not evidence for the position-adaptive docked-UAV envelope used by the M1 synthetic scenario."
+        }
+      ]
+    }
+  ],
+  "composition": {
+    "shared_site_physical_coexistence_evidence": "NOT_AVAILABLE",
+    "measured_simultaneous_ground_air_prototype": "NOT_DEMONSTRATED",
+    "electrical_source_orchestration_evidence": "SYNTHETIC_ONLY",
+    "independent_channel_safety_reviews": "NOT_AVAILABLE",
+    "permitted_claim": "The source catalogue contains separate ground dynamic IPT and airborne UAV IPT demonstrations. It does not demonstrate or qualify their simultaneous physical operation at one site."
+  },
+  "admission_policy": {
+    "require_exact_source_and_system_identity": true,
+    "require_declared_meter_boundaries": true,
+    "require_power_and_energy_operating_envelope": true,
+    "require_geometry_and_position_support": true,
+    "require_uncertainty_and_evidence_class": true,
+    "require_same_site_coexistence_test_for_m1": true,
+    "missing_or_ambiguous_evidence_disposition": "NOT_ADMITTED"
+  }
+}
