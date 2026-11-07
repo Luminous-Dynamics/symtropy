@@ -720,3 +720,9 @@ The external-method reproduction and solver-validation work is now tracked in [S
 
 The reference paper states that implementation code is included, but no source repository has been independently pinned in this programme yet. Do not invent a GitHub code URL or treat the paper's abstract as a reproducible software artifact.
 
+
+
+### Light-ring validation hardening — normalized radial-potential residuals
+
+The Kerr light-ring module now reports normalized residuals for both (R=0) and (R'=0) from the equatorial null radial potential, in addition to metric null and radial circularity residuals. The normalization uses the magnitudes of the corresponding analytic terms, so near-extremal cancellation is visible and can be given a separate, explicit tolerance. This is an internal analytic consistency check, not an independent QNM validation.
+
