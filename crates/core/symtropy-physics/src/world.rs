@@ -2561,3 +2561,47 @@ mod transformed_halfspace_tests {
         assert!(world.static_tree_dirty);
     }
 }
+
+
+/// End-to-end regression for the world-integrated sphere/half-space CCD path.
+#[cfg(test)]
+mod ccd_world_validation_tests {
+    use super::*;
+    use crate::body::{BodyHandle, RigidBody};
+    use nalgebra::SVector;
+
+    #[test]
+    fn fast_sphere_does_not_tunnel_through_a_static_halfspace() {
+        let radius = 0.05;
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        let ground = RigidBody::<3>::static_body(
+            BodyHandle(0),
+            Point::origin(),
+            Box::new(HalfSpace::<3>::new(SVector::from([0.0, 1.0, 0.0]), 0.0)),
+        );
+        world.add_body(ground);
+
+        let projectile = world.add_sphere(Point::new([0.0, 5.0, 0.0]), radius, 1.0);
+        {
+            let body = world.body_mut(projectile).expect("projectile inserted");
+            body.linear_velocity = SVector::from([0.0, -500.0, 0.0]);
+            body.restitution = 0.0;
+        }
+
+        // A discrete 16 ms step would move the sphere down by 8 m, fully
+        // through the plane. The CCD pass should clamp it at the analytical TOI.
+        world.step(0.016);
+
+        let body = world.body_mut(projectile).expect("projectile remains present");
+        let y = body.position()[1];
+        assert!(
+            y >= radius - 1e-6,
+            "projectile tunneled below plane: center_y={y}, radius={radius}"
+        );
+        assert!(y.is_finite());
+
+        let invariants = world.invariant_snapshot();
+        assert_eq!(invariants.non_finite_body_count, 0);
+        assert!(invariants.is_numerically_healthy(1e-9));
+    }
+}
