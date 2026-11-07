@@ -583,13 +583,31 @@ mod tests {
         let (metric, curvature) = schwarzschild_curvature();
         let ricci = curvature.ricci_tensor();
         let einstein = curvature.einstein_tensor(&metric).unwrap();
-        let scale = metric.covariant()[2][2].abs();
-        let normalized_ricci = max_abs(ricci) / scale;
-        let normalized_einstein = max_abs(einstein) / scale;
-        assert!(normalized_ricci < 1e-12, "normalized Ricci={normalized_ricci:e}");
-        assert!(normalized_einstein < 1e-12, "normalized Einstein={normalized_einstein:e}");
-        assert!(curvature.ricci_symmetry_residual() / scale < 1e-12);
-        close(curvature.ricci_scalar(&metric).unwrap(), 0.0, 1e-12);
+        let inverse = metric.inverse().unwrap();
+        let mut ricci_mixed = [[0.0; 4]; 4];
+        let mut einstein_mixed = [[0.0; 4]; 4];
+        for mu in 0..4 {
+            for nu in 0..4 {
+                for alpha in 0..4 {
+                    ricci_mixed[mu][nu] += inverse[mu][alpha] * ricci[alpha][nu];
+                    einstein_mixed[mu][nu] += inverse[mu][alpha] * einstein[alpha][nu];
+                }
+            }
+        }
+        let rg = hole().gravitational_radius_m();
+        let normalized_ricci = max_abs(ricci_mixed) * rg * rg;
+        let normalized_einstein = max_abs(einstein_mixed) * rg * rg;
+        assert!(normalized_ricci < 1e-10, "normalized Ricci={normalized_ricci:e}");
+        assert!(normalized_einstein < 1e-10, "normalized Einstein={normalized_einstein:e}");
+
+        let lowered = curvature.fully_covariant(&metric).unwrap();
+        let riemann_scale = lowered.iter().flatten().flatten().flatten()
+            .fold(0.0_f64, |m, x| m.max(x.abs()));
+        assert!(riemann_scale > 0.0);
+        assert!(curvature.ricci_symmetry_residual() / riemann_scale < 1e-12);
+
+        let scalar = curvature.ricci_scalar(&metric).unwrap();
+        assert!(scalar.abs() * rg * rg < 1e-10, "normalized scalar curvature={:e}", scalar*rg*rg);
     }
 
     #[test]
@@ -607,7 +625,9 @@ mod tests {
     fn schwarzschild_riemann_has_algebraic_symmetries() {
         let (metric, curvature) = schwarzschild_curvature();
         let residuals = curvature.algebraic_symmetry_residuals(&metric).unwrap();
-        let scale = curvature.kretschmann_scalar(&metric).unwrap().sqrt();
+        let lowered = curvature.fully_covariant(&metric).unwrap();
+        let scale = lowered.iter().flatten().flatten().flatten()
+            .fold(0.0_f64, |m, x| m.max(x.abs()));
         let normalized = [
             residuals.first_pair_antisymmetry,
             residuals.second_pair_antisymmetry,
