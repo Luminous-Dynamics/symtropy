@@ -24,6 +24,12 @@ jobs:
           components: clippy,rustfmt
       - name: Check formatting
         run: cargo fmt --manifest-path research/civdyn-humanstudy-repro/Cargo.toml --all -- --check
+      - name: Resolve exact importer dependency lock for audit
+        run: |
+          cargo metadata --manifest-path research/civdyn-humanstudy-repro/Cargo.toml --format-version 1 > /dev/null
+          echo "BEGIN_GENERATED_HUMANSTUDY_LOCK"
+          cat research/civdyn-humanstudy-repro/Cargo.lock
+          echo "END_GENERATED_HUMANSTUDY_LOCK"
       - name: Run strict Clippy
         run: cargo clippy --locked --manifest-path research/civdyn-humanstudy-repro/Cargo.toml --all-targets -- -D warnings
       - name: Test receipt validator
