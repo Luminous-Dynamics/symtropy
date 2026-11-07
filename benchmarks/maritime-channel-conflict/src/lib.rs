@@ -199,9 +199,7 @@ fn relation_key(
     }
 }
 
-fn validate_graph(
-    graph: &ConflictGraph,
-) -> Result<BTreeMap<&str, &ChannelEdge>, ChannelError> {
+fn validate_graph(graph: &ConflictGraph) -> Result<BTreeMap<&str, &ChannelEdge>, ChannelError> {
     if graph.graph_id.trim().is_empty() {
         return Err(ChannelError::EmptyGraphId);
     }
