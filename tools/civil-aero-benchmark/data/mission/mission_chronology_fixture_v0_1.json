@@ -1,0 +1,422 @@
+{
+  "schema_version": "mission-chronology-fixture/0.1.0",
+  "fixture_id": "SYNTH-STATE-TRANSITION-001",
+  "status": "synthetic_known_answer",
+  "mission_timeline": {
+    "schema_version": "mission-timeline/0.1.0",
+    "mission_id": "SYNTH-STATE-TRANSITION-001",
+    "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "source_generation_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "status": "synthetic_fixture",
+    "primary_metric": {
+      "name": "synthetic_cruise_bus_energy",
+      "unit": "J",
+      "direction": "minimize"
+    },
+    "reserve_policy": {
+      "policy_id": "SYNTH-RESERVE-50MJ",
+      "required_remaining_energy_j": 50000000,
+      "source_ref": "fixture:synthetic-reserve-rule"
+    },
+    "phases": [
+      {
+        "phase_id": "taxi",
+        "sequence": 0,
+        "kind": "taxi",
+        "start_state_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "end_state_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "duration_s": 300,
+        "assessment_status": "not_assessed",
+        "notes": "State fixture only; taxi performance not modelled."
+      },
+      {
+        "phase_id": "takeoff",
+        "sequence": 1,
+        "kind": "takeoff",
+        "start_state_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "end_state_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "duration_s": 10,
+        "assessment_status": "not_assessed",
+        "notes": "Takeoff performance not modelled."
+      },
+      {
+        "phase_id": "climb",
+        "sequence": 2,
+        "kind": "climb",
+        "start_state_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "end_state_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "duration_s": 600,
+        "assessment_status": "not_assessed",
+        "notes": "Climb performance not modelled."
+      },
+      {
+        "phase_id": "cruise-1",
+        "sequence": 3,
+        "kind": "cruise",
+        "start_state_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "end_state_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "duration_s": 3600,
+        "assessment_status": "assessed_screening",
+        "energy_balance_ref": "cruise-1"
+      },
+      {
+        "phase_id": "descent",
+        "sequence": 4,
+        "kind": "descent",
+        "start_state_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "end_state_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "duration_s": 300,
+        "assessment_status": "not_assessed",
+        "notes": "Descent performance is not represented by this fixture."
+      },
+      {
+        "phase_id": "landing",
+        "sequence": 5,
+        "kind": "landing",
+        "start_state_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "end_state_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "duration_s": 120,
+        "assessment_status": "not_assessed",
+        "notes": "Landing performance is not modelled."
+      }
+    ],
+    "claim_ceiling": "Mission as a whole remains INDETERMINATE because non-cruise phases are not assessed."
+  },
+  "phase_states": [
+    {
+      "schema_version": "aircraft-phase-state/0.1.0",
+      "state_id": "dispatch",
+      "mission_id": "SYNTH-STATE-TRANSITION-001",
+      "phase_id": "dispatch",
+      "state_kind": "dispatch",
+      "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "source_generation_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "previous_state_sha256": null,
+      "state_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "reference_frame_id": "synthetic-aircraft-datum-v1",
+      "mass_items": [
+        {
+          "item_id": "airframe",
+          "category": "primary_structure",
+          "mass_kg": 500,
+          "position_m": [
+            1,
+            0,
+            0.4
+          ]
+        },
+        {
+          "item_id": "fuel",
+          "category": "fuel_and_fluids",
+          "mass_kg": 100,
+          "position_m": [
+            4,
+            0,
+            0.5
+          ]
+        },
+        {
+          "item_id": "module",
+          "category": "propulsion",
+          "mass_kg": 40,
+          "position_m": [
+            0.5,
+            0,
+            0.3
+          ]
+        },
+        {
+          "item_id": "occupant",
+          "category": "payload",
+          "mass_kg": 80,
+          "position_m": [
+            2,
+            0.4,
+            0.7
+          ]
+        }
+      ],
+      "expected_mass_properties": {
+        "total_mass_kg": 720,
+        "center_of_gravity_m": [
+          1.5,
+          0.044444444444444446,
+          0.44166666666666665
+        ],
+        "inertia_tensor_about_cg_kg_m2": [
+          18.727777777777774,
+          817.35,
+          821.3777777777777,
+          -16,
+          -41,
+          -8.266666666666666
+        ]
+      },
+      "fuel_consumption_since_previous_kg": 0,
+      "claim_ceiling": "synthetic_arithmetic_fixture_only"
+    },
+    {
+      "schema_version": "aircraft-phase-state/0.1.0",
+      "state_id": "takeoff",
+      "mission_id": "SYNTH-STATE-TRANSITION-001",
+      "phase_id": "takeoff",
+      "state_kind": "takeoff",
+      "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "source_generation_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "previous_state_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "state_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "reference_frame_id": "synthetic-aircraft-datum-v1",
+      "mass_items": [
+        {
+          "item_id": "airframe",
+          "category": "primary_structure",
+          "mass_kg": 500,
+          "position_m": [
+            1,
+            0,
+            0.4
+          ]
+        },
+        {
+          "item_id": "fuel",
+          "category": "fuel_and_fluids",
+          "mass_kg": 100,
+          "position_m": [
+            4,
+            0,
+            0.5
+          ]
+        },
+        {
+          "item_id": "module",
+          "category": "propulsion",
+          "mass_kg": 40,
+          "position_m": [
+            0.5,
+            0,
+            0.3
+          ]
+        },
+        {
+          "item_id": "occupant",
+          "category": "payload",
+          "mass_kg": 80,
+          "position_m": [
+            2,
+            0.4,
+            0.7
+          ]
+        }
+      ],
+      "expected_mass_properties": {
+        "total_mass_kg": 720,
+        "center_of_gravity_m": [
+          1.5,
+          0.044444444444444446,
+          0.44166666666666665
+        ],
+        "inertia_tensor_about_cg_kg_m2": [
+          18.727777777777774,
+          817.35,
+          821.3777777777777,
+          -16,
+          -41,
+          -8.266666666666666
+        ]
+      },
+      "fuel_consumption_since_previous_kg": 0,
+      "claim_ceiling": "synthetic_arithmetic_fixture_only"
+    },
+    {
+      "schema_version": "aircraft-phase-state/0.1.0",
+      "state_id": "cruise-end",
+      "mission_id": "SYNTH-STATE-TRANSITION-001",
+      "phase_id": "cruise-1",
+      "state_kind": "intermediate",
+      "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "source_generation_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "previous_state_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "state_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "reference_frame_id": "synthetic-aircraft-datum-v1",
+      "mass_items": [
+        {
+          "item_id": "airframe",
+          "category": "primary_structure",
+          "mass_kg": 500,
+          "position_m": [
+            1,
+            0,
+            0.4
+          ]
+        },
+        {
+          "item_id": "fuel",
+          "category": "fuel_and_fluids",
+          "mass_kg": 75,
+          "position_m": [
+            4,
+            0,
+            0.5
+          ]
+        },
+        {
+          "item_id": "module",
+          "category": "propulsion",
+          "mass_kg": 40,
+          "position_m": [
+            0.5,
+            0,
+            0.3
+          ]
+        },
+        {
+          "item_id": "occupant",
+          "category": "payload",
+          "mass_kg": 80,
+          "position_m": [
+            2,
+            0.4,
+            0.7
+          ]
+        }
+      ],
+      "expected_mass_properties": {
+        "total_mass_kg": 695,
+        "center_of_gravity_m": [
+          1.410071942446043,
+          0.0460431654676259,
+          0.439568345323741
+        ],
+        "inertia_tensor_about_cg_kg_m2": [
+          18.588489208633092,
+          655.3913669064747,
+          659.4561151079137,
+          -18.877697841726622,
+          -37.22302158273381,
+          -8.333812949640286
+        ]
+      },
+      "fuel_consumption_since_previous_kg": 25,
+      "claim_ceiling": "synthetic_arithmetic_fixture_only"
+    },
+    {
+      "schema_version": "aircraft-phase-state/0.1.0",
+      "state_id": "landing",
+      "mission_id": "SYNTH-STATE-TRANSITION-001",
+      "phase_id": "landing",
+      "state_kind": "landing",
+      "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "source_generation_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "previous_state_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "state_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "reference_frame_id": "synthetic-aircraft-datum-v1",
+      "mass_items": [
+        {
+          "item_id": "airframe",
+          "category": "primary_structure",
+          "mass_kg": 500,
+          "position_m": [
+            1,
+            0,
+            0.4
+          ]
+        },
+        {
+          "item_id": "fuel",
+          "category": "fuel_and_fluids",
+          "mass_kg": 70,
+          "position_m": [
+            4,
+            0,
+            0.5
+          ]
+        },
+        {
+          "item_id": "module",
+          "category": "propulsion",
+          "mass_kg": 40,
+          "position_m": [
+            0.5,
+            0,
+            0.3
+          ]
+        },
+        {
+          "item_id": "occupant",
+          "category": "payload",
+          "mass_kg": 80,
+          "position_m": [
+            2,
+            0.4,
+            0.7
+          ]
+        }
+      ],
+      "expected_mass_properties": {
+        "total_mass_kg": 690,
+        "center_of_gravity_m": [
+          1.391304347826087,
+          0.0463768115942029,
+          0.4391304347826087
+        ],
+        "inertia_tensor_about_cg_kg_m2": [
+          18.559420289855073,
+          621.591304347826,
+          625.663768115942,
+          -19.478260869565222,
+          -36.43478260869564,
+          -8.347826086956518
+        ]
+      },
+      "fuel_consumption_since_previous_kg": 5,
+      "claim_ceiling": "synthetic_arithmetic_fixture_only"
+    }
+  ],
+  "phase_energy_balances": [
+    {
+      "schema_version": "phase-energy-balance/0.1.0",
+      "phase_id": "cruise-1",
+      "bus": {
+        "source_energy_j": 100000000,
+        "motor_bus_input_j": 80000000,
+        "auxiliary_bus_load_j": 5000000,
+        "thermal_bus_load_j": 5000000,
+        "other_conversion_loss_j": 10000000,
+        "residual_j": 0
+      },
+      "motor": {
+        "bus_input_j": 80000000,
+        "shaft_output_j": 72000000,
+        "conversion_loss_j": 8000000,
+        "residual_j": 0
+      },
+      "shaft": {
+        "shaft_output_j": 72000000,
+        "propulsive_useful_energy_j": 60000000,
+        "propulsor_loss_j": 12000000,
+        "residual_j": 0
+      },
+      "energy_store": {
+        "usable_energy_start_j": 250000000,
+        "bus_source_energy_j": 100000000,
+        "usable_energy_end_j": 150000000,
+        "reserve_required_j": 50000000,
+        "reserve_margin_j": 100000000
+      },
+      "peak_source_power_w": 90000,
+      "continuous_source_power_limit_w": 100000,
+      "claim_ceiling": "synthetic_energy_balance_arithmetic_only"
+    }
+  ],
+  "expected_mission_status": "INDETERMINATE",
+  "expected_checks": {
+    "takeoff_to_cruise_fuel_burn_kg": 25,
+    "cruise_to_landing_fuel_burn_kg": 5,
+    "takeoff_total_mass_kg": 720,
+    "landing_total_mass_kg": 690,
+    "cruise_bus_residual_j": 0,
+    "cruise_motor_residual_j": 0,
+    "cruise_shaft_residual_j": 0,
+    "cruise_reserve_margin_j": 100000000
+  }
+}
