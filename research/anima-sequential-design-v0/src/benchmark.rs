@@ -4,14 +4,14 @@
 //! the same synthetic ground-truth scenarios. It reports software benchmark
 //! quantities only; it is not a biological simulator or a SOTA claim.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 
 use super::scenario_tree::{
     ScenarioTreeConfig, ScenarioTreeError, TransitionConstraints, plan_first_action,
 };
 use super::{
     AbstainReason, Decision, DecisionConfig, DecisionState, EngineError, EvidenceTier,
-    ExperimentRecord, Feasibility, InterventionCandidate, ModelAdequacy, Posterior,
+    ExperimentRecord, InterventionCandidate, ModelAdequacy, Posterior,
     PosteriorUpdate, SelectionPolicy, StopReason, condition_on_outcome, entropy,
     expected_information_gain, reject_candidate, splitmix64, validate_candidate,
     validate_posterior,
@@ -52,7 +52,7 @@ pub struct SyntheticScenario {
     pub confident_model_probability_threshold: f64,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum EpisodeTermination {
     HorizonComplete,
     BudgetExhausted,
