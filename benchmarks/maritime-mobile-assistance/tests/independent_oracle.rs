@@ -67,13 +67,24 @@ fn task(task_id: &str, segment: &str, start: u64, location: &str) -> AssistanceT
     }
 }
 
-fn reposition(from: &str, to: &str, duration: u64, id: &str) -> RepositionLeg {
+fn reposition(
+    resource_id: &str,
+    from: &str,
+    to: &str,
+    duration: u64,
+    id: &str,
+) -> RepositionLeg {
     RepositionLeg {
+        resource_id: resource_id.to_owned(),
         from_node_id: from.to_owned(),
         to_node_id: to.to_owned(),
         duration_ticks: duration,
         route_revision: "route-r1".to_owned(),
-        evidence: evidence(id, &format!("{from}->{to}"), "route-r1"),
+        evidence: evidence(
+            id,
+            &format!("{resource_id}|{from}->{to}"),
+            "route-r1",
+        ),
     }
 }
 
@@ -91,8 +102,8 @@ fn workload(first_start: u64, gap_after_first: u64, reposition_ticks: u64) -> Mo
         tugs: vec![tug()],
         pilots: Vec::new(),
         reposition_legs: vec![
-            reposition("origin", "node-a", 1, "leg-origin-a"),
-            reposition("node-a", "node-b", reposition_ticks, "leg-a-b"),
+            reposition("tug-1", "origin", "node-a", 1, "leg-origin-a"),
+            reposition("tug-1", "node-a", "node-b", reposition_ticks, "leg-a-b"),
         ],
         assignments: vec![
             AssistanceAssignment {
@@ -157,7 +168,7 @@ fn reference_one_tug_two_task_feasible(input: &MobileWorkload) -> bool {
         }
 
         if node != task.location_node_id {
-            let expected_subject = format!("{}->{}", node, task.location_node_id);
+            let expected_subject = format!("{}|{}->{}", tug.tug_id, node, task.location_node_id);
             let Some(leg) = input.reposition_legs.iter().find(|leg| {
                 leg.from_node_id == node
                     && leg.to_node_id == task.location_node_id
