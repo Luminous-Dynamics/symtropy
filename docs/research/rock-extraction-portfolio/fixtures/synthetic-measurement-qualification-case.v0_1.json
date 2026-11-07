@@ -13,7 +13,7 @@
   },
   "protocol": {
     "parent_morphology_case_id": "SYNTHETIC-FRAGMENT-MORPHOLOGY-001",
-    "parent_interval_id": "synthetic-interval-001",
+    "parent_interval_id": "WINDOW-001",
     "sampling_frame_ref": "sampling-frame:synthetic-size-stratum-00-05mm",
     "sampling_protocol_ref": "sampling:randomized-single-particle-acquisition-v1",
     "quantile_method_ref": "method:exact-binomial-order-statistic-ci-v1",
@@ -81,7 +81,7 @@
     {
       "sample_set_id": "sample-set:bin-00-05-circularity",
       "parent_morphology_case_id": "SYNTHETIC-FRAGMENT-MORPHOLOGY-001",
-      "parent_interval_id": "synthetic-interval-001",
+      "parent_interval_id": "WINDOW-001",
       "parent_bin_index": 0,
       "descriptor_type": "CIRCULARITY_2D",
       "basis": "PROJECTION_2D",
