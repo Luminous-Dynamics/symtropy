@@ -399,9 +399,9 @@ mod tests {
 
     #[test]
     fn kretschmann_log_fallback_preserves_representable_extreme_scale() {
-        let mass = MassKg::new(1.0e170).unwrap();
+        let mass = MassKg::new(5.0e104).unwrap();
         let hole = SchwarzschildBlackHole::new(mass);
-        let radius = 1.0e150;
+        let radius = 1.0e78;
         let value = hole.kretschmann_scalar_m4(radius).unwrap();
         let expected_log = 48.0_f64.ln()
             + 2.0 * hole.gravitational_radius_m().ln()
