@@ -308,7 +308,8 @@ fn validate_inertia_tensor(value: &[f64; 6], item_id: &str) -> Result<(), String
     let minor_xy = xx * yy - xy * xy;
     let minor_xz = xx * zz - xz * xz;
     let minor_yz = yy * zz - yz * yz;
-    let determinant = xx * yy * zz + 2.0 * xy * xz * yz - xx * yz * yz - yy * xz * xz - zz * xy * xy;
+    let determinant =
+        xx * yy * zz + 2.0 * xy * xz * yz - xx * yz * yz - yy * xz * xz - zz * xy * xy;
 
     if xx < -1.0e-12 * scale
         || yy < -1.0e-12 * scale
