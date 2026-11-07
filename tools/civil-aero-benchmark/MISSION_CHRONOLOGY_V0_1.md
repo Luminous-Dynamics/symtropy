@@ -51,7 +51,7 @@ The synthetic cruise phase also provides distinct energy planes:
 - Remaining energy after the assessed cruise segment: 150 MJ.
 - Declared reserve requirement: 50 MJ.
 
-Bus, motor, shaft and storage arithmetic are independently replayed. These values are not mapped to a real engine, propeller, motor, battery or aircraft.
+Bus, motor, shaft and storage arithmetic are independently replayed. Peak source power is checked against a separate peak limit; time-averaged continuous source demand is computed from energy divided by phase duration and checked against a separate continuous limit. A short-duration peak is not incorrectly forced below the continuous rating. These values are not mapped to a real engine, propeller, motor, battery or aircraft.
 
 ## 4. Independent oracle
 
