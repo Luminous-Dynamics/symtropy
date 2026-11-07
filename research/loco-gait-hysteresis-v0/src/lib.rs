@@ -278,7 +278,9 @@ pub struct LaggedSpeedSample {
 
 /// Exact first-order response to a piecewise-linear achieved-speed trajectory:
 ///
-///     tau * dy/dt = v(t) - y(t)
+/// ```text
+/// tau * dy/dt = v(t) - y(t)
+/// ```
 ///
 /// The input is linearly interpolated between samples. This is a synthetic
 /// latency/low-pass confound model, not a fitted sensor or actuator model.
