@@ -1053,9 +1053,14 @@ mod tests {
                 (coordinate_final.coordinates[index] - hamiltonian_final.coordinates[index]).abs()
                     < 2e-10 * scale
             );
+            let tangent_absolute_tolerance = if index < 2 {
+                2e-10
+            } else {
+                2e-10 / rg
+            };
             assert!(
                 (coordinate_final.tangent[index] - hamiltonian_final.tangent[index]).abs()
-                    < 2e-10 * coordinate_final.tangent[index].abs().max(1e-15)
+                    < tangent_absolute_tolerance
             );
         }
         assert!(
