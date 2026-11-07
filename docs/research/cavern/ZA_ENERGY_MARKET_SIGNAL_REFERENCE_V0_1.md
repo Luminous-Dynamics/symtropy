@@ -81,6 +81,9 @@ DFFE says NGGEF includes imported electricity and excludes transmission/distribu
 
 The report states its annual publication has an inherent data availability lag of approximately two years. The September 2026 report uses 2024 calendar-year data. The resulting NGGEF is numerically 0.960 kgCO2e/kWh, but **is not a live, hourly or marginal carbon signal**. It supports annual location-based emissions accounting, not real-time dispatch decisions.
 
+**Source-admission qualification (7 November 2026):** the official DFFE notice page and its attachment are verified, but the 2024 PDF endpoint returned HTTP 502 during this audit. The four numeric values above are cross-checked against a secondary report transcribing the gazetted release; the primary 2024 table has not yet been independently ingested by this repository. Keep the fixture status as OFFICIAL_NOTICE_AND_SECONDARY_TRANSCRIPTION_PRIMARY_PDF_UNREAD until that is done. The prior-year DFFE 2023 report records NGGEF 0.906 tCO2e/MWh; the 2024 value 0.960 is approximately 5.96% higher as an annual location-based comparison, not an intraday trend or marginal-emissions measurement.
+
+
 ## 3. South African greenhouse-control literature comparator
 
 Ren et al. (September 2026), DOI 10.1016/j.seta.2026.105320:
