@@ -38,6 +38,9 @@ pub struct PrimeMoverConversion {
     pub fuel_energy_input_j: f64,
     pub mechanical_output_j: f64,
     pub thermal_and_exhaust_loss_j: f64,
+    pub average_mechanical_output_power_limit_w: f64,
+    pub peak_mechanical_output_power_w: f64,
+    pub peak_mechanical_output_power_limit_w: f64,
     /// Mechanical energy delivered directly to the propulsor shaft. This is
     /// non-zero for a parallel-hybrid/direct-drive path and zero for a pure
     /// series-hybrid generator path.
@@ -54,6 +57,9 @@ pub struct GeneratorConversion {
     pub mechanical_input_j: f64,
     pub electrical_output_to_bus_j: f64,
     pub conversion_loss_j: f64,
+    pub average_electrical_output_power_limit_w: f64,
+    pub peak_electrical_output_power_w: f64,
+    pub peak_electrical_output_power_limit_w: f64,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -128,6 +134,7 @@ pub struct PhaseEnergyBalance {
     pub end_state_sha256: String,
     pub duration_s: f64,
     pub tolerance_j: f64,
+    pub tolerance_w: f64,
     pub fuel_states: Vec<FuelStateTransition>,
     pub prime_movers: Vec<PrimeMoverConversion>,
     pub generators: Vec<GeneratorConversion>,
@@ -136,9 +143,9 @@ pub struct PhaseEnergyBalance {
     pub motor_drives: Vec<MotorDriveConversion>,
     pub propulsors: Vec<PropulsorShaftBalance>,
     /// Aggregate peak demand at the declared upstream source boundary.
-    pub peak_source_power_w: f64,
-    pub peak_source_power_limit_w: f64,
-    pub continuous_source_power_limit_w: f64,
+    pub peak_bus_supply_power_w: f64,
+    pub peak_bus_supply_power_limit_w: f64,
+    pub continuous_bus_supply_power_limit_w: f64,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -191,8 +198,8 @@ pub struct PhaseEnergyReport {
     pub motor_residuals: Vec<ComponentEnergyResidual>,
     pub propulsor_residuals: Vec<ComponentEnergyResidual>,
     pub continuous_bus_supply_power_w: f64,
-    pub peak_source_power_margin_w: f64,
-    pub continuous_source_power_margin_w: f64,
+    pub peak_bus_supply_power_margin_w: f64,
+    pub continuous_bus_supply_power_margin_w: f64,
 }
 
 impl PhaseEnergyBalance {
@@ -234,20 +241,23 @@ impl PhaseEnergyBalance {
         if !self.tolerance_j.is_finite() || self.tolerance_j < 0.0 {
             return Err("tolerance_j must be finite and >= 0".to_owned());
         }
+        if !self.tolerance_w.is_finite() || self.tolerance_w < 0.0 {
+            return Err("tolerance_w must be finite and >= 0".to_owned());
+        }
         for (name, value) in [
-            ("peak_source_power_w", self.peak_source_power_w),
-            ("peak_source_power_limit_w", self.peak_source_power_limit_w),
-            ("continuous_source_power_limit_w", self.continuous_source_power_limit_w),
+            ("peak_bus_supply_power_w", self.peak_bus_supply_power_w),
+            ("peak_bus_supply_power_limit_w", self.peak_bus_supply_power_limit_w),
+            ("continuous_bus_supply_power_limit_w", self.continuous_bus_supply_power_limit_w),
             ("auxiliary_load_j", self.bus_loads.auxiliary_load_j),
             ("thermal_electrical_load_j", self.bus_loads.thermal_electrical_load_j),
             ("distribution_loss_j", self.bus_loads.distribution_loss_j),
         ] {
             validate_nonnegative(value, name)?;
         }
-        if self.peak_source_power_limit_w <= 0.0
-            || self.continuous_source_power_limit_w <= 0.0
+        if self.peak_bus_supply_power_limit_w <= 0.0
+            || self.continuous_bus_supply_power_limit_w <= 0.0
         {
-            return Err("source power limits must be finite and > 0".to_owned());
+            return Err("bus supply power limits must be finite and > 0".to_owned());
         }
 
         require_unique(
@@ -318,6 +328,9 @@ impl PhaseEnergyBalance {
                 ("fuel_energy_input_j", engine.fuel_energy_input_j),
                 ("mechanical_output_j", engine.mechanical_output_j),
                 ("thermal_and_exhaust_loss_j", engine.thermal_and_exhaust_loss_j),
+                ("average_mechanical_output_power_limit_w", engine.average_mechanical_output_power_limit_w),
+                ("peak_mechanical_output_power_w", engine.peak_mechanical_output_power_w),
+                ("peak_mechanical_output_power_limit_w", engine.peak_mechanical_output_power_limit_w),
                 ("direct_propulsor_shaft_j", engine.direct_propulsor_shaft_j),
                 ("accessory_mechanical_load_j", engine.accessory_mechanical_load_j),
                 ("mechanical_distribution_loss_j", engine.mechanical_distribution_loss_j),
@@ -333,6 +346,7 @@ impl PhaseEnergyBalance {
             *prime_mover_fuel_input_by_source
                 .entry(engine.fuel_source_id.as_str())
                 .or_insert(0.0) += engine.fuel_energy_input_j;
+            let average_mechanical_output_power_w = engine.mechanical_output_j / self.duration_s;
             let fuel_residual = engine.fuel_energy_input_j
                 - engine.mechanical_output_j
                 - engine.thermal_and_exhaust_loss_j;
@@ -349,6 +363,13 @@ impl PhaseEnergyBalance {
                 - engine.mechanical_distribution_loss_j;
             if fuel_residual.abs() > self.tolerance_j
                 || shaft_residual.abs() > self.tolerance_j
+                || average_mechanical_output_power_w
+                    > engine.average_mechanical_output_power_limit_w + self.tolerance_w
+                || engine.peak_mechanical_output_power_w
+                    + self.tolerance_w
+                    < average_mechanical_output_power_w
+                || engine.peak_mechanical_output_power_w
+                    > engine.peak_mechanical_output_power_limit_w + self.tolerance_w
             {
                 infeasible = true;
             }
@@ -386,6 +407,9 @@ impl PhaseEnergyBalance {
                 ("mechanical_input_j", generator.mechanical_input_j),
                 ("electrical_output_to_bus_j", generator.electrical_output_to_bus_j),
                 ("conversion_loss_j", generator.conversion_loss_j),
+                ("average_electrical_output_power_limit_w", generator.average_electrical_output_power_limit_w),
+                ("peak_electrical_output_power_w", generator.peak_electrical_output_power_w),
+                ("peak_electrical_output_power_limit_w", generator.peak_electrical_output_power_limit_w),
             ] {
                 validate_nonnegative(value, name)?;
             }
@@ -398,7 +422,16 @@ impl PhaseEnergyBalance {
                 let residual = generator.mechanical_input_j
                     - generator.electrical_output_to_bus_j
                     - generator.conversion_loss_j;
-                if residual.abs() > self.tolerance_j {
+                let average_electrical_output_power_w =
+                    generator.electrical_output_to_bus_j / self.duration_s;
+                if residual.abs() > self.tolerance_j
+                    || average_electrical_output_power_w
+                        > generator.average_electrical_output_power_limit_w + self.tolerance_w
+                    || generator.peak_electrical_output_power_w + self.tolerance_w
+                        < average_electrical_output_power_w
+                    || generator.peak_electrical_output_power_w
+                        > generator.peak_electrical_output_power_limit_w + self.tolerance_w
+                {
                     infeasible = true;
                 }
                 ComponentEnergyResidual {
@@ -583,12 +616,14 @@ impl PhaseEnergyBalance {
         }
 
         let continuous_bus_supply_power_w = total_bus_supply_j / self.duration_s;
-        let peak_source_power_margin_w = self.peak_source_power_limit_w - self.peak_source_power_w;
-        let continuous_source_power_margin_w =
-            self.continuous_source_power_limit_w - continuous_bus_supply_power_w;
-        if peak_source_power_margin_w < 0.0
-            || continuous_source_power_margin_w < 0.0
-            || self.peak_source_power_w + self.tolerance_j < continuous_bus_supply_power_w
+        let peak_bus_supply_power_margin_w =
+            self.peak_bus_supply_power_limit_w - self.peak_bus_supply_power_w;
+        let continuous_bus_supply_power_margin_w =
+            self.continuous_bus_supply_power_limit_w - continuous_bus_supply_power_w;
+        if peak_bus_supply_power_margin_w < -self.tolerance_w
+            || continuous_bus_supply_power_margin_w < -self.tolerance_w
+            || self.peak_bus_supply_power_w + self.tolerance_w
+                < continuous_bus_supply_power_w
         {
             infeasible = true;
         }
@@ -625,8 +660,8 @@ impl PhaseEnergyBalance {
             motor_residuals,
             propulsor_residuals,
             continuous_bus_supply_power_w,
-            peak_source_power_margin_w,
-            continuous_source_power_margin_w,
+            peak_bus_supply_power_margin_w,
+            continuous_bus_supply_power_margin_w,
         })
     }
 }
@@ -742,6 +777,7 @@ mod tests {
             end_state_sha256: END.to_owned(),
             duration_s: 3600.0,
             tolerance_j: 1.0,
+            tolerance_w: 1.0e-6,
             fuel_states: vec![],
             prime_movers: vec![],
             generators: vec![],
@@ -762,9 +798,9 @@ mod tests {
                 60_000_000.0,
                 12_000_000.0,
             )],
-            peak_source_power_w: 40_000.0,
-            peak_source_power_limit_w: 50_000.0,
-            continuous_source_power_limit_w: 35_000.0,
+            peak_bus_supply_power_w: 40_000.0,
+            peak_bus_supply_power_limit_w: 50_000.0,
+            continuous_bus_supply_power_limit_w: 35_000.0,
         }
     }
 
@@ -787,6 +823,9 @@ mod tests {
             fuel_energy_input_j: 120_000_000.0,
             mechanical_output_j: 40_000_000.0,
             thermal_and_exhaust_loss_j: 80_000_000.0,
+            average_mechanical_output_power_limit_w: 20_000.0,
+            peak_mechanical_output_power_w: 15_000.0,
+            peak_mechanical_output_power_limit_w: 20_000.0,
             direct_propulsor_shaft_j: 0.0,
             accessory_mechanical_load_j: 0.0,
             mechanical_distribution_loss_j: 0.0,
@@ -798,6 +837,9 @@ mod tests {
             mechanical_input_j: 40_000_000.0,
             electrical_output_to_bus_j: 34_000_000.0,
             conversion_loss_j: 6_000_000.0,
+            average_electrical_output_power_limit_w: 10_000.0,
+            peak_electrical_output_power_w: 10_000.0,
+            peak_electrical_output_power_limit_w: 15_000.0,
         }];
         value.bus_loads = BusLoads {
             auxiliary_load_j: 4_000_000.0,
@@ -806,9 +848,9 @@ mod tests {
         };
         value.motor_drives = vec![motor(25_000_000.0, 1_000_000.0, 2_000_000.0, 22_000_000.0)];
         value.propulsors = vec![propulsor(22_000_000.0, 18_000_000.0, 4_000_000.0)];
-        value.peak_source_power_w = 20_000.0;
-        value.peak_source_power_limit_w = 30_000.0;
-        value.continuous_source_power_limit_w = 15_000.0;
+        value.peak_bus_supply_power_w = 20_000.0;
+        value.peak_bus_supply_power_limit_w = 30_000.0;
+        value.continuous_bus_supply_power_limit_w = 15_000.0;
         value
     }
 
@@ -852,9 +894,9 @@ mod tests {
         };
         value.motor_drives = vec![motor(80_000_000.0, 4_000_000.0, 4_000_000.0, 72_000_000.0)];
         value.propulsors = vec![propulsor(72_000_000.0, 60_000_000.0, 12_000_000.0)];
-        value.peak_source_power_w = 45_000.0;
-        value.peak_source_power_limit_w = 55_000.0;
-        value.continuous_source_power_limit_w = 40_000.0;
+        value.peak_bus_supply_power_w = 45_000.0;
+        value.peak_bus_supply_power_limit_w = 55_000.0;
+        value.continuous_bus_supply_power_limit_w = 40_000.0;
         let report = value.evaluate(CONFIG, MISSION, START, END).expect("balanced series hybrid");
         assert_eq!(report.status, PhaseEnergyStatus::ConservedWithinDeclaredModel);
         assert!(report.bus_residual_j.abs() < 1.0);
@@ -888,9 +930,9 @@ mod tests {
         };
         value.motor_drives = vec![motor(30_000_000.0, 2_000_000.0, 1_000_000.0, 27_000_000.0)];
         value.propulsors = vec![propulsor(107_000_000.0, 90_000_000.0, 17_000_000.0)];
-        value.peak_source_power_w = 50_000.0;
-        value.peak_source_power_limit_w = 55_000.0;
-        value.continuous_source_power_limit_w = 20_000.0;
+        value.peak_bus_supply_power_w = 50_000.0;
+        value.peak_bus_supply_power_limit_w = 55_000.0;
+        value.continuous_bus_supply_power_limit_w = 20_000.0;
         let report = value.evaluate(CONFIG, MISSION, START, END).expect("balanced parallel hybrid");
         assert_eq!(report.status, PhaseEnergyStatus::ConservedWithinDeclaredModel);
         assert!(report.bus_residual_j.abs() < 1.0);
