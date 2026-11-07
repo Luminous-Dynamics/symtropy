@@ -12,8 +12,11 @@
     "shaft",
     "energy_store",
     "peak_source_power_w",
-    "continuous_source_power_limit_w",
-    "claim_ceiling"
+    "claim_ceiling",
+    "duration_s",
+    "peak_source_power_limit_w",
+    "continuous_source_power_w",
+    "continuous_source_power_limit_w"
   ],
   "properties": {
     "schema_version": {
@@ -157,6 +160,18 @@
     "claim_ceiling": {
       "type": "string",
       "minLength": 1
+    },
+    "peak_source_power_limit_w": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "continuous_source_power_w": {
+      "type": "number",
+      "minimum": 0
+    },
+    "duration_s": {
+      "type": "number",
+      "exclusiveMinimum": 0
     }
   }
 }
