@@ -867,6 +867,11 @@ mod tests {
     #[test]
     fn known_truth_finds_exact_concurrent_plan_and_meets_both_service_floors() {
         let report = evaluate_scenario(&fixture()).unwrap();
+        let expected: Value = serde_json::from_str(include_str!(
+            "../../../research/ground-air-energy-coexistence-v0/report.expected.synthetic.json"
+        ))
+        .unwrap();
+        assert_eq!(report, expected);
         assert_eq!(report["disposition"], "PASS_SYNTHETIC_OPTIMAL");
         assert_eq!(report["exact_bounded_optimum"], true);
         assert_eq!(report["total_useful_energy_wh"], 28);
