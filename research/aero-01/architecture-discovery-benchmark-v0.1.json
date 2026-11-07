@@ -290,5 +290,428 @@
       "reported_scope": "307 optimization problems including 159 engineering tasks; 31 algorithms; engineering rankings vary by task/domain."
     }
   ],
-  "claim_ceiling": "A method win applies only to the frozen tasks, data, budgets, fidelity gates and evidence scope. It does not establish aircraft safety, flightworthiness, certification, manufacturability, physical superiority or commercial readiness."
+  "claim_ceiling": "A method win applies only to the frozen tasks, data, budgets, fidelity gates and evidence scope. It does not establish aircraft safety, flightworthiness, certification, manufacturability, physical superiority or commercial readiness.",
+  "discipline_graph": {
+    "node_catalog": [
+      {
+        "id": "GEO",
+        "name": "parametric_geometry",
+        "outputs": [
+          "geometry_digest",
+          "reference_frames",
+          "reference_dimensions"
+        ]
+      },
+      {
+        "id": "MASS",
+        "name": "installed_mass_cg_inertia",
+        "outputs": [
+          "mass_ledger_digest",
+          "loading_state_digest",
+          "mass_cg_inertia"
+        ]
+      },
+      {
+        "id": "AERO0",
+        "name": "low_order_aerodynamics",
+        "outputs": [
+          "screening_polars",
+          "drag_lift_moments",
+          "applicability_state"
+        ]
+      },
+      {
+        "id": "AERO_PROP",
+        "name": "propeller_wing_flap_interaction",
+        "outputs": [
+          "powered_lift_increment",
+          "propulsive_drag",
+          "asymmetry_cases"
+        ]
+      },
+      {
+        "id": "STR",
+        "name": "structural_sizing",
+        "outputs": [
+          "structural_mass",
+          "stiffness",
+          "strength_margins"
+        ]
+      },
+      {
+        "id": "AEL",
+        "name": "aeroelastic_gust_flutter",
+        "outputs": [
+          "deformation",
+          "flutter_margins",
+          "gust_load_response"
+        ]
+      },
+      {
+        "id": "PROP",
+        "name": "installed_propulsion_sizing",
+        "outputs": [
+          "shaft_power",
+          "installed_mass",
+          "propeller_map"
+        ]
+      },
+      {
+        "id": "ELEC",
+        "name": "electrical_distribution",
+        "outputs": [
+          "bus_power_balance",
+          "wire_protection_mass",
+          "fault_zones"
+        ]
+      },
+      {
+        "id": "STORE",
+        "name": "installed_energy_storage",
+        "outputs": [
+          "usable_energy",
+          "power_limits",
+          "end_of_life_state"
+        ]
+      },
+      {
+        "id": "THERM",
+        "name": "thermal_rejection",
+        "outputs": [
+          "heat_balance",
+          "cooling_mass",
+          "thermal_derating"
+        ]
+      },
+      {
+        "id": "MISSION",
+        "name": "mission_trajectory_reserve",
+        "outputs": [
+          "phase_energy",
+          "payload_range_reserve",
+          "mission_feasibility"
+        ]
+      },
+      {
+        "id": "FAIL",
+        "name": "failure_degraded_operation",
+        "outputs": [
+          "failure_case_feasibility",
+          "recourse_margins"
+        ]
+      },
+      {
+        "id": "LIFE",
+        "name": "serviceability_lifecycle_cost",
+        "outputs": [
+          "maintenance_hours",
+          "turnaround",
+          "lifecycle_cost"
+        ]
+      },
+      {
+        "id": "MFG",
+        "name": "manufacturing_tolerance_inspection",
+        "outputs": [
+          "process_capability",
+          "inspection_cost",
+          "coupon_plan"
+        ]
+      }
+    ],
+    "common_required_before_architecture_admission": [
+      "GEO",
+      "MASS",
+      "AERO0",
+      "MISSION",
+      "LIFE"
+    ],
+    "topology_gates": {
+      "C0": {
+        "required_before_mission_claim": [
+          "GEO",
+          "MASS",
+          "AERO0",
+          "PROP",
+          "MISSION",
+          "LIFE"
+        ],
+        "must_resolve_before_qualified_comparison": [
+          "STR",
+          "THERM",
+          "FAIL"
+        ]
+      },
+      "C1": {
+        "required_before_mission_claim": [
+          "GEO",
+          "MASS",
+          "AERO0",
+          "STR",
+          "MISSION"
+        ],
+        "must_resolve_before_qualified_comparison": [
+          "AEL",
+          "THERM",
+          "FAIL",
+          "LIFE",
+          "MFG"
+        ]
+      },
+      "C2": {
+        "required_before_mission_claim": [
+          "GEO",
+          "MASS",
+          "AERO0",
+          "AERO_PROP",
+          "PROP",
+          "ELEC",
+          "THERM",
+          "MISSION"
+        ],
+        "must_resolve_before_qualified_comparison": [
+          "STR",
+          "AEL",
+          "FAIL",
+          "LIFE",
+          "MFG"
+        ]
+      },
+      "C3": {
+        "required_before_mission_claim": [
+          "GEO",
+          "MASS",
+          "AERO0",
+          "AERO_PROP",
+          "PROP",
+          "ELEC",
+          "THERM",
+          "MISSION"
+        ],
+        "must_resolve_before_qualified_comparison": [
+          "STR",
+          "AEL",
+          "FAIL",
+          "LIFE",
+          "MFG"
+        ]
+      },
+      "C4": {
+        "required_before_mission_claim": [
+          "GEO",
+          "MASS",
+          "AERO0",
+          "ELEC",
+          "STORE",
+          "THERM",
+          "MISSION"
+        ],
+        "must_resolve_before_qualified_comparison": [
+          "STR",
+          "FAIL",
+          "LIFE",
+          "MFG"
+        ]
+      },
+      "C5P": {
+        "required_before_mission_claim": [
+          "GEO",
+          "MASS",
+          "AERO0",
+          "PROP",
+          "ELEC",
+          "STORE",
+          "THERM",
+          "MISSION"
+        ],
+        "must_resolve_before_qualified_comparison": [
+          "STR",
+          "FAIL",
+          "LIFE",
+          "MFG"
+        ]
+      },
+      "C5S": {
+        "required_before_mission_claim": [
+          "GEO",
+          "MASS",
+          "AERO0",
+          "PROP",
+          "ELEC",
+          "STORE",
+          "THERM",
+          "MISSION"
+        ],
+        "must_resolve_before_qualified_comparison": [
+          "STR",
+          "FAIL",
+          "LIFE",
+          "MFG"
+        ]
+      },
+      "C6": {
+        "required_before_mission_claim": [
+          "GEO",
+          "MASS",
+          "AERO0",
+          "MISSION"
+        ],
+        "must_resolve_before_qualified_comparison": [
+          "STR",
+          "AEL",
+          "PROP",
+          "THERM",
+          "FAIL",
+          "LIFE",
+          "MFG"
+        ]
+      },
+      "C7_PLUS": {
+        "required_before_mission_claim": [
+          "GEO",
+          "MASS",
+          "AERO0",
+          "PROP",
+          "ELEC",
+          "STORE",
+          "THERM",
+          "MISSION",
+          "FAIL"
+        ],
+        "must_resolve_before_qualified_comparison": [
+          "STR",
+          "AEL",
+          "LIFE",
+          "MFG"
+        ]
+      }
+    },
+    "edge_contracts": [
+      {
+        "from": "GEO",
+        "to": "MASS",
+        "identity": "geometry_digest_and_reference_frame"
+      },
+      {
+        "from": "GEO",
+        "to": "AERO0",
+        "identity": "geometry_digest_and_mesh_generation"
+      },
+      {
+        "from": "AERO0",
+        "to": "STR",
+        "identity": "pressure_loads_and_operating_point_digest"
+      },
+      {
+        "from": "AERO_PROP",
+        "to": "PROP",
+        "identity": "propulsor_geometry_and_operating_map"
+      },
+      {
+        "from": "STR",
+        "to": "MASS",
+        "identity": "structural_mass_generation_digest"
+      },
+      {
+        "from": "PROP",
+        "to": "MASS",
+        "identity": "installed_propulsion_bom_digest"
+      },
+      {
+        "from": "ELEC",
+        "to": "MASS",
+        "identity": "installed_electrical_bom_digest"
+      },
+      {
+        "from": "STORE",
+        "to": "MASS",
+        "identity": "installed_storage_bom_digest"
+      },
+      {
+        "from": "THERM",
+        "to": "MASS",
+        "identity": "cooling_and_containment_bom_digest"
+      },
+      {
+        "from": "MASS",
+        "to": "MISSION",
+        "identity": "exact_loading_state_digest"
+      },
+      {
+        "from": "PROP",
+        "to": "MISSION",
+        "identity": "phase_resolved_propulsive_power"
+      },
+      {
+        "from": "ELEC",
+        "to": "MISSION",
+        "identity": "phase_resolved_bus_power"
+      },
+      {
+        "from": "STORE",
+        "to": "MISSION",
+        "identity": "state_of_charge_and_power_limits"
+      },
+      {
+        "from": "THERM",
+        "to": "MISSION",
+        "identity": "temperature_derating_and_parasitics"
+      },
+      {
+        "from": "FAIL",
+        "to": "MISSION",
+        "identity": "declared_failure_and_recourse_matrix"
+      },
+      {
+        "from": "MISSION",
+        "to": "LIFE",
+        "identity": "completed_mission_and_turnaround_definition"
+      }
+    ],
+    "activation_rule": "A discipline may be skipped only when a conservative, independently checked lower-fidelity bound proves its outcome cannot change the preregistered decision. Otherwise report not_assessed and withhold any claim that depends on it. Every activation, skip, failure and promotion carries a candidate/mission/source/solver identity and cost receipt."
+  },
+  "fidelity_ladder": [
+    {
+      "id": "F0",
+      "name": "analytical_and_hand_calculable",
+      "promotion": "exact_independent_oracle"
+    },
+    {
+      "id": "F1",
+      "name": "low_order_mission_and_geometry",
+      "promotion": "declared_scope_sensitivity_and_conservative_discrepancy"
+    },
+    {
+      "id": "F2",
+      "name": "conceptual_geometry_and_aero",
+      "promotion": "no_potential_flow_mislabeled_as_viscous_RANS"
+    },
+    {
+      "id": "F3",
+      "name": "pinned_RANS_or_adjoint",
+      "promotion": "protocol_convergence_mesh_grid_and_applicability_qualification"
+    },
+    {
+      "id": "F4",
+      "name": "coupled_structure_thermal_propulsion",
+      "promotion": "independent_solver_references_and_coupling_residuals"
+    },
+    {
+      "id": "F5",
+      "name": "calibrated_component_coupon_or_tunnel",
+      "promotion": "independent_metrology_and_held_out_data"
+    },
+    {
+      "id": "F6",
+      "name": "aircraft_level_physical_validation",
+      "promotion": "separate_engineering_safety_and_authority_controlled_program"
+    }
+  ],
+  "preregistration": [
+    "Freeze mission, primary metric, hard constraints, reserve policy and design space before optimization.",
+    "Freeze baseline variant, source/effectivity evidence class and exact solver/task versions.",
+    "Freeze development/calibration/confirmatory split and paired seeds.",
+    "Freeze total-cost ledger and stop rules before revealing confirmatory outcomes.",
+    "Record every failure, timeout, non-convergence, abstention and skipped discipline."
+  ]
 }
