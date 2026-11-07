@@ -575,7 +575,11 @@ mod tests {
         cfg.population_prior_variance = 4.0;
         cfg.session_effect_variance = 0.0;
         let fit = fit_hierarchical_parameter(&data, &cfg).unwrap();
-        let component = &fit.components[0];
+        let component = fit
+            .components
+            .iter()
+            .find(|item| item.animal_effect_variance == 1.0)
+            .unwrap();
 
         assert!((component.population.mean - 16.0 / 11.0).abs() < 1.0e-12);
         assert!((component.population.variance - 12.0 / 11.0).abs() < 1.0e-12);
