@@ -11430,6 +11430,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1ffae5123b2d3fc086436f8834ae3ab053a283cfac8fe0a0b8eaae044768a4c4"
 
 [[package]]
+name = "wpt-trajectory-artifact-verifier"
+version = "0.1.0"
+dependencies = [
+ "base64",
+ "serde_json",
+ "sha2",
+]
+
+[[package]]
 name = "wtransport"
 version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
