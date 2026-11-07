@@ -295,11 +295,12 @@ fn production_coverage_validator_matches_direct_roster_oracle_for_all_two_operat
                 TrafficDisposition::ReadyForComparison
             );
         } else {
+            let missing_id = if mask & 1 == 0 { "use-a" } else { "use-b" };
             assert_eq!(
                 actual,
                 Err(
                     maritime_traffic_envelope_contract::TrafficError::MissingRequiredOccupancy(
-                        if mask & 1 == 0 { "use-a" } else { "use-b" }.to_owned()
+                        missing_id.to_owned()
                     )
                 )
             );
