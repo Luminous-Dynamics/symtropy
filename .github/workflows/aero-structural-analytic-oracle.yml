@@ -27,6 +27,11 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Record Rust toolchain identity
+        run: |
+          rustc --version --verbose
+          cargo --version
+
       - name: Check Rust formatting
         run: cargo fmt --manifest-path tools/civil-aero-benchmark/structural-aeroelastic-oracle/Cargo.toml -- --check
 
@@ -38,3 +43,16 @@ jobs:
 
       - name: Independently recompute and verify Rust output in Python
         run: python3 tools/civil-aero-benchmark/structural-aeroelastic-oracle/verify_independent.py --rust-output structural-oracle-result.json
+
+      - name: Create output digest receipt
+        run: sha256sum structural-oracle-result.json > structural-oracle-result.sha256
+
+      - name: Retain exact analytical result and digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: aero-structural-analytic-oracle-${{ github.sha }}
+          path: |
+            structural-oracle-result.json
+            structural-oracle-result.sha256
+          if-no-files-found: error
+          retention-days: 90
