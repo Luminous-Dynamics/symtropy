@@ -1,0 +1,85 @@
+{
+  "schema": "luminous.vector_habitat_cases.v0.1",
+  "status": "synthetic_only",
+  "claim_ceiling": "semantic_and_model_interface_conformance_only",
+  "units_policy": "Every physical value in a future executable fixture must carry an explicit unit and source class.",
+  "cases": [
+    {
+      "id": "VH-001",
+      "name": "intact_screened_openings",
+      "class": "synthetic_control",
+      "expected_state": "candidate_for_comparison",
+      "assertions": ["opening_inventory_complete", "screen_integrity_known", "species_context_declared"]
+    },
+    {
+      "id": "VH-002",
+      "name": "damaged_screen",
+      "class": "negative_control",
+      "expected_state": "protection_not_established",
+      "assertions": ["damage_not_silently_ignored", "maintenance_state_preserved"]
+    },
+    {
+      "id": "VH-003",
+      "name": "screen_reduces_required_ventilation",
+      "class": "hard_constraint_control",
+      "expected_state": "infeasible_or_requires_review",
+      "assertions": ["ventilation_floor_not_traded_away", "no_aggregate_score_compensation"]
+    },
+    {
+      "id": "VH-004",
+      "name": "screen_plus_passive_cooling",
+      "class": "paired_scenario",
+      "expected_state": "comparable_only_under_matched_boundary_conditions",
+      "assertions": ["same_weather_trace", "same_occupancy_profile", "same_model_revision"]
+    },
+    {
+      "id": "VH-005",
+      "name": "blocked_drainage",
+      "class": "environmental_maintenance",
+      "expected_state": "risk_observation_requires_local_review",
+      "assertions": ["water_observation_source_bound", "no_unqualified_disease_prediction"]
+    },
+    {
+      "id": "VH-006",
+      "name": "stale_vector_surveillance",
+      "class": "freshness_negative_control",
+      "expected_state": "unknown",
+      "assertions": ["stale_is_not_zero", "observation_window_preserved"]
+    },
+    {
+      "id": "VH-007",
+      "name": "species_transfer_attempt",
+      "class": "domain_negative_control",
+      "expected_state": "out_of_domain",
+      "assertions": ["species_identity_preserved", "no_effect_size_transfer"]
+    },
+    {
+      "id": "VH-008",
+      "name": "ward_observation_presented_as_household_truth",
+      "class": "spatial_scale_negative_control",
+      "expected_state": "rejected",
+      "assertions": ["spatial_resolution_preserved", "no_false_household_precision"]
+    },
+    {
+      "id": "VH-009",
+      "name": "wrong_coordinate_reference",
+      "class": "geospatial_negative_control",
+      "expected_state": "rejected_or_quarantined",
+      "assertions": ["crs_validated", "transformation_lineage_retained"]
+    },
+    {
+      "id": "VH-010",
+      "name": "vector_count_improves_without_clinical_measurement",
+      "class": "claim_ceiling_negative_control",
+      "expected_state": "vector_endpoint_only",
+      "assertions": ["no_clinical_efficacy_claim", "measurement_tier_preserved"]
+    },
+    {
+      "id": "VH-011",
+      "name": "egress_or_accessibility_obstructed",
+      "class": "life_safety_negative_control",
+      "expected_state": "blocked_pending_professional_review",
+      "assertions": ["egress_is_hard_floor", "accessibility_is_hard_floor"]
+    }
+  ]
+}
