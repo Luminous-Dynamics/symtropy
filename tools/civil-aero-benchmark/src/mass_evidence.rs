@@ -1934,6 +1934,23 @@ mod tests {
     }
 
     #[test]
+    fn invalid_source_capture_date_is_rejected() {
+        let mut ledger = fixture_ledger(CONFIG);
+        ledger
+            .records
+            .iter_mut()
+            .find(|record| record.item.id == "fuel_tank")
+            .expect("fuel record")
+            .source
+            .captured_at_utc = "2026-02-30T12:00:00Z".to_owned();
+        let state = make_state(&ledger, LoadingStateKind::Takeoff);
+        let error = ledger
+            .evaluate_state(&state, CONFIG)
+            .expect_err("invalid calendar date");
+        assert!(error.contains("invalid UTC date or time"));
+    }
+
+    #[test]
     fn direct_measurement_requires_article_instrument_and_calibration_provenance() {
         let mut ledger = fixture_ledger(CONFIG);
         ledger
