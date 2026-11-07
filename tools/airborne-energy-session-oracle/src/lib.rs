@@ -884,4 +884,21 @@ mod tests {
                 .contains("outside the site allocation validity window")
         );
     }
+
+    #[test]
+    fn unknown_evidence_enum_is_rejected_even_on_noncritical_events() {
+        let mut value = fixture_value();
+        value["events"][0]["evidence"]["authorization_state"] =
+            Value::String("UNDECLARED_STATE".into());
+        let error = evaluate_json(&value.to_string()).expect_err("unknown enum must reject");
+        assert!(error.to_string().contains("unsupported enum value"));
+    }
+
+    #[test]
+    fn not_run_requires_a_nonempty_claim_ceiling() {
+        let mut value: Value = serde_json::from_str(NOT_RUN_FIXTURE).expect("NOT_RUN parses");
+        value["claim_ceiling"] = Value::String(String::new());
+        let error = evaluate_json(&value.to_string()).expect_err("empty claim ceiling rejects");
+        assert!(error.to_string().contains("claim_ceiling"));
+    }
 }
