@@ -268,7 +268,10 @@ impl TrajectoryEvidenceBoundDecisionManifest {
         for binding in &self.trajectory_support {
             binding.verify_receipt()?;
             if support_map
-                .insert((binding.hypothesis_id.clone(), binding.action_id.clone()), binding)
+                .insert(
+                    (binding.hypothesis_id.clone(), binding.action_id.clone()),
+                    binding,
+                )
                 .is_some()
             {
                 return Err(TrajectoryEvidenceError::DuplicateSupportBinding);
@@ -311,14 +314,11 @@ impl TrajectoryEvidenceBoundDecisionManifest {
         Ok(())
     }
 
-    pub fn trajectory_support_bundle_digest(
-        &self,
-    ) -> Result<[u8; 32], TrajectoryEvidenceError> {
+    pub fn trajectory_support_bundle_digest(&self) -> Result<[u8; 32], TrajectoryEvidenceError> {
         self.validate()?;
         let mut bindings = self.trajectory_support.iter().collect::<Vec<_>>();
         bindings.sort_by(|left, right| {
-            (&left.hypothesis_id, &left.action_id)
-                .cmp(&(&right.hypothesis_id, &right.action_id))
+            (&left.hypothesis_id, &left.action_id).cmp(&(&right.hypothesis_id, &right.action_id))
         });
         let mut hasher = blake3::Hasher::new();
         hasher.update(BUNDLE_DOMAIN);
@@ -351,8 +351,7 @@ impl TrajectoryEvidenceBoundDecisionManifest {
             .map(support_reference)
             .collect::<Vec<_>>();
         trajectory_support.sort_by(|left, right| {
-            (&left.hypothesis_id, &left.action_id)
-                .cmp(&(&right.hypothesis_id, &right.action_id))
+            (&left.hypothesis_id, &left.action_id).cmp(&(&right.hypothesis_id, &right.action_id))
         });
 
         let mut certificate = TrajectoryEvidenceBoundDecisionCertificate {
@@ -362,8 +361,7 @@ impl TrajectoryEvidenceBoundDecisionManifest {
             trajectory_support,
             receipt_digest: [0; 32],
         };
-        certificate.receipt_digest =
-            *blake3::hash(&certificate_bytes(&certificate)).as_bytes();
+        certificate.receipt_digest = *blake3::hash(&certificate_bytes(&certificate)).as_bytes();
         Ok(certificate)
     }
 }
@@ -426,11 +424,7 @@ fn certificate_bytes(certificate: &TrajectoryEvidenceBoundDecisionCertificate) -
     let mut out = Vec::new();
     out.extend_from_slice(b"symtropy.road-trajectory-evidence-bound-decision.v0.1\0");
     push_string(&mut out, certificate.schema_id);
-    out.extend_from_slice(
-        &certificate
-            .evidence_bound_decision
-            .receipt_digest,
-    );
+    out.extend_from_slice(&certificate.evidence_bound_decision.receipt_digest);
     out.extend_from_slice(&certificate.trajectory_support_bundle_digest);
     push_len(&mut out, certificate.trajectory_support.len());
     for reference in &certificate.trajectory_support {
@@ -486,12 +480,8 @@ fn push_len_hasher(hasher: &mut blake3::Hasher, length: usize) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::decision_closure::{
-        DecisionHypothesis, ExactRational, HypothesisActionOutcome,
-    };
-    use crate::decision_evidence::{
-        DecisionEvidenceBinding, DecisionEvidencePurpose,
-    };
+    use crate::decision_closure::{DecisionHypothesis, ExactRational, HypothesisActionOutcome};
+    use crate::decision_evidence::{DecisionEvidenceBinding, DecisionEvidencePurpose};
     use crate::evidence_provenance::{
         ActionRealization, EvidenceClaim, EvidenceLineage, EvidenceOrigin, EvidencePacket,
         EvidenceUse, QualificationTarget, SubjectLineage,
@@ -624,8 +614,7 @@ mod tests {
             disposition,
             assessment_receipt_digest: [0; 32],
         };
-        binding.assessment_digest =
-            *blake3::hash(&binding.canonical_assessment_bytes()).as_bytes();
+        binding.assessment_digest = *blake3::hash(&binding.canonical_assessment_bytes()).as_bytes();
         binding.seal().unwrap()
     }
 
@@ -673,7 +662,10 @@ mod tests {
             true,
         );
         let certificate = valid.evaluate().unwrap();
-        assert_eq!(certificate.decision_status(), DecisionStatus::DecisionStable);
+        assert_eq!(
+            certificate.decision_status(),
+            DecisionStatus::DecisionStable
+        );
         assert!(certificate.integrity_check());
         assert_eq!(certificate.verify_against(&valid), Ok(()));
     }
@@ -823,10 +815,7 @@ mod tests {
             evidence_bound_decision: evidence_bound_decision.clone(),
             trajectory_support: support.clone(),
         };
-        assert_eq!(
-            complete.validate(),
-            Ok(())
-        );
+        assert_eq!(complete.validate(), Ok(()));
         let mut missing = complete.clone();
         missing.trajectory_support.pop();
         assert_eq!(
@@ -864,11 +853,7 @@ mod tests {
             .seal_from_sam_artifacts(&support_bytes, &query_bytes, &assessment_bytes)
             .unwrap();
         assert_eq!(
-            sealed.verify_against_sam_artifacts(
-                &support_bytes,
-                &query_bytes,
-                &assessment_bytes
-            ),
+            sealed.verify_against_sam_artifacts(&support_bytes, &query_bytes, &assessment_bytes),
             Ok(())
         );
         assert_eq!(
@@ -890,11 +875,7 @@ mod tests {
         let mut mutated_assessment = assessment_bytes.clone();
         mutated_assessment.push(0);
         assert_eq!(
-            sealed.verify_against_sam_artifacts(
-                &support_bytes,
-                &query_bytes,
-                &mutated_assessment
-            ),
+            sealed.verify_against_sam_artifacts(&support_bytes, &query_bytes, &mutated_assessment),
             Err(TrajectoryEvidenceError::AssessmentArtifactMismatch)
         );
     }
@@ -932,7 +913,10 @@ mod tests {
             tampered.validate(),
             Err(TrajectoryEvidenceError::AssessmentReceiptMismatch)
         );
-        assert_eq!(certificate.verify_against(&tampered), Err(TrajectoryEvidenceError::AssessmentReceiptMismatch));
+        assert_eq!(
+            certificate.verify_against(&tampered),
+            Err(TrajectoryEvidenceError::AssessmentReceiptMismatch)
+        );
 
         let mut reordered = base.clone();
         reordered.trajectory_support.reverse();
