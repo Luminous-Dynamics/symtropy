@@ -38,16 +38,23 @@ jobs:
 
           root = Path("research/civdyn-humanstudy-repro")
           schema = json.loads((root / "receipt.schema.json").read_text(encoding="utf-8"))
-          fixture = json.loads((root / "fixtures/synthetic_receipt.json").read_text(encoding="utf-8"))
           Draft202012Validator.check_schema(schema)
-          errors = sorted(
-              Draft202012Validator(schema).iter_errors(fixture),
-              key=lambda error: list(error.absolute_path),
-          )
-          if errors:
-              for error in errors:
-                  print(f"{list(error.absolute_path)}: {error.message}")
-              raise SystemExit(1)
-          assert len(fixture["studies"]) == 16
-          print("schema valid; synthetic receipt conforms; no empirical result asserted")
+          fixtures = [
+              root / "fixtures/synthetic_foundational_12_receipt.json",
+              root / "fixtures/synthetic_receipt.json",
+          ]
+          for fixture_path in fixtures:
+              fixture = json.loads(fixture_path.read_text(encoding="utf-8"))
+              errors = sorted(
+                  Draft202012Validator(schema).iter_errors(fixture),
+                  key=lambda error: list(error.absolute_path),
+              )
+              if errors:
+                  for error in errors:
+                      print(f"{fixture_path.name} {list(error.absolute_path)}: {error.message}")
+                  raise SystemExit(1)
+              expected = 12 if "foundational_12" in fixture_path.name else 16
+              assert len(fixture["studies"]) == expected
+              print(f"{fixture_path.name}: {expected}-study receipt conforms")
+          print("schema valid; both synthetic protocol fixtures conform; no empirical result asserted")
           PY
