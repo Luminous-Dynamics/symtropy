@@ -610,6 +610,107 @@ mod tests {
     }
 
     #[test]
+    fn sphere_sphere_grazing_hit_and_near_miss_are_distinguished() {
+        let pos_a = SVector::from([0.0, 0.0]);
+        let vel_a = SVector::from([1.0, 0.0]);
+        let pos_b = SVector::from([5.0, 1.0]);
+        let vel_b = SVector::zeros();
+
+        let tangent = sphere_sphere_checked(&pos_a, &vel_a, 0.5, &pos_b, &vel_b, 0.5, 5.0)
+            .unwrap()
+            .unwrap();
+        assert!((tangent.toi - 5.0).abs() < 1e-12);
+
+        let near_miss = SVector::from([5.0, 1.0 + 1e-8]);
+        assert_eq!(
+            sphere_sphere_checked(&pos_a, &vel_a, 0.5, &near_miss, &vel_b, 0.5, 5.0),
+            Ok(None)
+        );
+    }
+
+    #[test]
+    fn sphere_halfspace_accepts_exact_step_endpoint_and_rejects_just_outside() {
+        let pos = SVector::from([0.0, 1.5, 0.0]);
+        let vel = SVector::from([0.0, -1.0, 0.0]);
+        let normal = SVector::from([0.0, 1.0, 0.0]);
+
+        let endpoint =
+            sphere_halfspace_checked(&pos, &vel, 0.5, &normal, 0.0, 1.0).unwrap().unwrap();
+        assert!((endpoint.toi - 1.0).abs() < 1e-12);
+
+        assert_eq!(
+            sphere_halfspace_checked(&pos, &vel, 0.5, &normal, 0.0, 1.0 - 1e-9),
+            Ok(None)
+        );
+    }
+
+    #[test]
+    fn sphere_sphere_toi_is_invariant_to_common_translation_and_velocity() {
+        let pos_a = SVector::from([1.0, -2.0]);
+        let vel_a = SVector::from([4.0, 0.0]);
+        let pos_b = SVector::from([7.0, 0.0]);
+        let vel_b = SVector::zeros();
+
+        let baseline =
+            sphere_sphere_checked(&pos_a, &vel_a, 1.0, &pos_b, &vel_b, 1.0, 2.0)
+                .unwrap()
+                .unwrap();
+
+        let translation = SVector::from([100.0, -50.0]);
+        let drift = SVector::from([7.0, -3.0]);
+        let translated_and_drifted = sphere_sphere_checked(
+            &(pos_a + translation),
+            &(vel_a + drift),
+            1.0,
+            &(pos_b + translation),
+            &(vel_b + drift),
+            1.0,
+            2.0,
+        )
+        .unwrap()
+        .unwrap();
+
+        assert!((baseline.toi - 1.5).abs() < 1e-12);
+        assert!((translated_and_drifted.toi - baseline.toi).abs() < 1e-12);
+    }
+
+    #[test]
+    fn sphere_sweep_matches_independent_head_on_reference_over_fixed_grid() {
+        // Frozen deterministic parameter sweep; the reference solution is
+        // distance-to-contact divided by relative closing speed.
+        for sample in 0..1_000 {
+            let speed = 1.0 + sample as f64 * 0.01;
+            let separation = 2.0 + sample as f64 * 0.03;
+            let radius_a = 0.2;
+            let radius_b = 0.3;
+            let expected_toi = (separation - radius_a - radius_b) / speed;
+            let dt = expected_toi * 1.01;
+
+            let pos_a = SVector::zeros();
+            let vel_a = SVector::from([speed, 0.0]);
+            let pos_b = SVector::from([separation, 0.0]);
+            let vel_b = SVector::zeros();
+            let hit = sphere_sphere_checked(
+                &pos_a,
+                &vel_a,
+                radius_a,
+                &pos_b,
+                &vel_b,
+                radius_b,
+                dt,
+            )
+            .unwrap()
+            .unwrap();
+
+            assert!(
+                (hit.toi - expected_toi).abs() <= 1e-11 * expected_toi.max(1.0),
+                "sample={sample}: got {}, expected {expected_toi}",
+                hit.toi
+            );
+        }
+    }
+
+    #[test]
     fn ccd_prevents_tunneling_scenario() {
         // Scenario: sphere at y=5, moving at -500 units/s toward y=0 plane
         // In a single 16ms step: displacement = 8 units → would skip right through
