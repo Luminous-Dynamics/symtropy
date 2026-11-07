@@ -1,0 +1,69 @@
+name: aero-mass-properties
+
+on:
+  pull_request:
+    paths:
+      - "tools/civil-aero-benchmark/**"
+      - ".github/workflows/aero-mass-properties.yml"
+  push:
+    paths:
+      - "tools/civil-aero-benchmark/**"
+      - ".github/workflows/aero-mass-properties.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aero-mass-properties-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Format
+        run: cargo fmt --manifest-path tools/civil-aero-benchmark/Cargo.toml --check
+
+      - name: Unit and negative-control tests
+        run: cargo test --locked --manifest-path tools/civil-aero-benchmark/Cargo.toml
+
+      - name: Strict Clippy
+        run: cargo clippy --locked --manifest-path tools/civil-aero-benchmark/Cargo.toml --all-targets -- -D warnings
+
+      - name: Deterministic mass-properties audit and independent oracle
+        shell: bash
+        run: |
+          set -euo pipefail
+          manifest=tools/civil-aero-benchmark/Cargo.toml
+          bin=mass_properties_audit
+          input_dir=tools/civil-aero-benchmark/data/mass_properties
+          oracle=tools/civil-aero-benchmark/scripts/verify-mass-properties-independent.py
+
+          for fixture in point_mass_fixture unknown_mass_fixture rigid_body_fixture; do
+            cargo run --quiet --locked --manifest-path "$manifest" --bin "$bin" -- "$input_dir/$fixture.csv" > "/tmp/$fixture-a.csv"
+            cargo run --quiet --locked --manifest-path "$manifest" --bin "$bin" -- "$input_dir/$fixture.csv" > "/tmp/$fixture-b.csv"
+            cmp "/tmp/$fixture-a.csv" "/tmp/$fixture-b.csv"
+            python3 "$oracle" "$input_dir/$fixture.csv" "/tmp/$fixture-a.csv"
+          done
+
+          grep -q '^aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,indeterminate,screening_only,,845.000000000000' /tmp/unknown_mass_fixture-a.csv
+          grep -q '^bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb,complete,screening_only,4.000000000000,4.000000000000,1.000000000000,0.000000000000,0.000000000000,1.000000000000,6.000000000000,7.000000000000' /tmp/rigid_body_fixture-a.csv
+
+      - name: Reject mixed configuration identities
+        shell: bash
+        run: |
+          set -euo pipefail
+          source=tools/civil-aero-benchmark/data/mass_properties/point_mass_fixture.csv
+          sed '3s/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/' "$source" > /tmp/mixed-config.csv
+          if cargo run --quiet --locked --manifest-path tools/civil-aero-benchmark/Cargo.toml --bin mass_properties_audit -- /tmp/mixed-config.csv > /tmp/mixed-config.out 2> /tmp/mixed-config.err; then
+            echo "mixed configuration identities unexpectedly passed" >&2
+            exit 1
+          fi
+          grep -q "mixed configuration identities" /tmp/mixed-config.err
