@@ -1,0 +1,482 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/airborne-energy-session-v0/session.schema.json",
+  "title": "Aerial energy session and reacquisition evidence contract v0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "episode_id",
+    "record_state",
+    "evidence_class",
+    "receiver",
+    "opportunity",
+    "site_allocation_receipt",
+    "events",
+    "energy_accounting",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "airborne-energy-session-v0"
+    },
+    "episode_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "record_state": {
+      "enum": [
+        "NOT_RUN",
+        "FIXTURE"
+      ]
+    },
+    "evidence_class": {
+      "enum": [
+        "NOT_RUN",
+        "SYNTHETIC_KNOWN_TRUTH"
+      ]
+    },
+    "receiver": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "receiver_id",
+            "receiver_class",
+            "trajectory_sha256"
+          ],
+          "properties": {
+            "receiver_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "receiver_class": {
+              "enum": [
+                "UAV_DOCKED",
+                "UAV_HOVERING",
+                "UAV_MOVING",
+                "UAV_FIXED_WING",
+                "EVTOL_DOCKED",
+                "EVTOL_AIRBORNE"
+              ]
+            },
+            "trajectory_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          }
+        }
+      ]
+    },
+    "opportunity": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "opportunity_id",
+            "bearer",
+            "field_regime",
+            "channel_id",
+            "envelope_sha256",
+            "envelope_state"
+          ],
+          "properties": {
+            "opportunity_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "bearer": {
+              "enum": [
+                "CONDUCTIVE_CONTACT",
+                "ROBOTIC_DOCK",
+                "IPT",
+                "CPT",
+                "RF_MICROWAVE",
+                "OPTICAL_LASER",
+                "TETHERED",
+                "BATTERY_EXCHANGE"
+              ]
+            },
+            "field_regime": {
+              "enum": [
+                "CONTACT",
+                "NEAR_FIELD",
+                "FAR_FIELD",
+                "GUIDED",
+                "ENERGY_CARRIER"
+              ]
+            },
+            "channel_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "envelope_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "envelope_state": {
+              "enum": [
+                "ADMITTED_SYNTHETIC",
+                "NOT_ADMITTED",
+                "UNKNOWN",
+                "STALE",
+                "OUT_OF_DOMAIN"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "site_allocation_receipt": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "site_id",
+            "allocation_id",
+            "allocation_sha256",
+            "valid_from_ms",
+            "valid_until_ms"
+          ],
+          "properties": {
+            "site_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "allocation_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "allocation_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "valid_from_ms": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "valid_until_ms": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        }
+      ]
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "event_id",
+          "sequence",
+          "at_ms",
+          "from_state",
+          "to_state",
+          "transition_reason",
+          "evidence"
+        ],
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sequence": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "at_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "from_state": {
+            "enum": [
+              "UNAVAILABLE",
+              "DISCOVERED",
+              "ADMISSION_PENDING",
+              "ACQUISITION_PENDING",
+              "TRACKED_NO_POWER",
+              "POWER_ACTIVE",
+              "DEPARTURE_PENDING",
+              "SAFE_OFF",
+              "REACQUISITION_PENDING",
+              "COMPLETE",
+              "ABORTED",
+              "RECOVERY_REQUIRED"
+            ]
+          },
+          "to_state": {
+            "enum": [
+              "UNAVAILABLE",
+              "DISCOVERED",
+              "ADMISSION_PENDING",
+              "ACQUISITION_PENDING",
+              "TRACKED_NO_POWER",
+              "POWER_ACTIVE",
+              "DEPARTURE_PENDING",
+              "SAFE_OFF",
+              "REACQUISITION_PENDING",
+              "COMPLETE",
+              "ABORTED",
+              "RECOVERY_REQUIRED"
+            ]
+          },
+          "transition_reason": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidence": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "motion_state",
+              "receiver_identity_state",
+              "authorization_state",
+              "allocation_state",
+              "envelope_state",
+              "position_state",
+              "tracking_state",
+              "local_protection_state",
+              "deenergized_state"
+            ],
+            "properties": {
+              "motion_state": {
+                "enum": [
+                  "PARKED_LANDED_DOCKED",
+                  "QUASI_STATIC_HOVER",
+                  "MOVING_HOVER",
+                  "TRANSLATION",
+                  "CLIMB",
+                  "DESCENT",
+                  "DYNAMIC_FLIGHT",
+                  "DIVERSION"
+                ]
+              },
+              "receiver_identity_state": {
+                "enum": [
+                  "MATCHED_SYNTHETIC",
+                  "CONFLICT",
+                  "UNKNOWN"
+                ]
+              },
+              "authorization_state": {
+                "enum": [
+                  "VALID_SYNTHETIC",
+                  "REVOKED",
+                  "UNKNOWN"
+                ]
+              },
+              "allocation_state": {
+                "enum": [
+                  "VALID_SYNTHETIC",
+                  "REVOKED",
+                  "UNKNOWN",
+                  "EXPIRED"
+                ]
+              },
+              "envelope_state": {
+                "enum": [
+                  "ADMITTED_SYNTHETIC",
+                  "NOT_ADMITTED",
+                  "UNKNOWN",
+                  "STALE",
+                  "OUT_OF_DOMAIN"
+                ]
+              },
+              "position_state": {
+                "enum": [
+                  "IN_DOMAIN_SYNTHETIC",
+                  "OUT_OF_DOMAIN",
+                  "STALE",
+                  "UNKNOWN"
+                ]
+              },
+              "tracking_state": {
+                "enum": [
+                  "TRACKED_SYNTHETIC",
+                  "LOST",
+                  "NOT_REQUIRED",
+                  "UNKNOWN"
+                ]
+              },
+              "local_protection_state": {
+                "enum": [
+                  "PERMIT_SYNTHETIC_ONLY",
+                  "INHIBIT",
+                  "TRIPPED",
+                  "UNKNOWN"
+                ]
+              },
+              "deenergized_state": {
+                "enum": [
+                  "CONFIRMED_SYNTHETIC",
+                  "UNCONFIRMED",
+                  "NOT_REQUIRED",
+                  "UNKNOWN"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "energy_accounting": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source_boundary_id",
+            "channel_input_boundary_id",
+            "receiver_dc_boundary_id",
+            "useful_energy_boundary_id",
+            "source_energy_wh",
+            "channel_input_energy_wh",
+            "receiver_dc_energy_wh",
+            "battery_terminal_useful_energy_wh",
+            "source_to_channel_loss_wh",
+            "channel_to_receiver_loss_wh",
+            "receiver_to_battery_loss_wh",
+            "residual_wh",
+            "accounting_evidence"
+          ],
+          "properties": {
+            "source_boundary_id": {
+              "const": "SITE_PCC_GRID_AC_INPUT"
+            },
+            "channel_input_boundary_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "receiver_dc_boundary_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "useful_energy_boundary_id": {
+              "const": "AIRCRAFT_BATTERY_TERMINAL_INPUT"
+            },
+            "source_energy_wh": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "channel_input_energy_wh": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "receiver_dc_energy_wh": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "battery_terminal_useful_energy_wh": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "source_to_channel_loss_wh": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "channel_to_receiver_loss_wh": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "receiver_to_battery_loss_wh": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "residual_wh": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "accounting_evidence": {
+              "const": "SYNTHETIC_ARITHMETIC_ONLY"
+            }
+          }
+        }
+      ]
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "record_state": {
+            "const": "FIXTURE"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "evidence_class": {
+            "const": "SYNTHETIC_KNOWN_TRUTH"
+          },
+          "receiver": {
+            "type": "object"
+          },
+          "opportunity": {
+            "type": "object"
+          },
+          "site_allocation_receipt": {
+            "type": "object"
+          },
+          "events": {
+            "minItems": 1
+          },
+          "energy_accounting": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "record_state": {
+            "const": "NOT_RUN"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "evidence_class": {
+            "const": "NOT_RUN"
+          },
+          "receiver": {
+            "type": "null"
+          },
+          "opportunity": {
+            "type": "null"
+          },
+          "site_allocation_receipt": {
+            "type": "null"
+          },
+          "events": {
+            "maxItems": 0
+          },
+          "energy_accounting": {
+            "type": "null"
+          }
+        }
+      }
+    }
+  ]
+}
