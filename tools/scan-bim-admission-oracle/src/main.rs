@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 use std::env;
@@ -208,7 +207,7 @@ fn evaluate(case: &Case) -> (String, Vec<String>) {
             if candidate.delta.operation != "modify" {
                 return decision("REAL_CHANGE_CANDIDATE", "GEOMETRY_OUTSIDE_TOLERANCE");
             }
-            if !candidate.delta.target_ids.iter().any(|target| target == element_id) {
+            if !candidate.delta.target_ids.iter().any(|target| target.as_str() == *element_id) {
                 return decision(
                     "REAL_CHANGE_CANDIDATE",
                     "CHANGE_NOT_INCLUDED_IN_PROPOSED_DELTA",
@@ -350,6 +349,7 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::Value;
 
     const FIXTURE: &str =
         include_str!("../../../docs/research/built-asset/scan-bim/v0.1/corpus.json");
