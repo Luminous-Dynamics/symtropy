@@ -83,10 +83,16 @@ jobs:
           echo "CSV SHA-256: $(sha256sum "$output" | cut -d' ' -f1)" >> "$GITHUB_STEP_SUMMARY"
           echo "Scenario manifest SHA-256: $(sha256sum research/civdyn-crg-resource-adapter/data/CIVDYN_CRG_RESOURCE_BRIDGE_MANIFEST_V0_1.json | cut -d' ' -f1)" >> "$GITHUB_STEP_SUMMARY"
           echo "Adapter source SHA-256: $(sha256sum research/civdyn-crg-resource-adapter/src/lib.rs | cut -d' ' -f1)" >> "$GITHUB_STEP_SUMMARY"
+          test "$(git hash-object research/civdyn-collective-risk/src/lib.rs)" = "ad1d28939f6514d4fe763ab97673f1803c29572a"
+          test "$(git hash-object research/civdyn-collective-risk/Cargo.toml)" = "04318907c33251258e899ecec778dbf90508fa22"
+          test "$(git hash-object research/civdyn-resource-ledger/src/lib.rs)" = "d04e25084e46eb0529ea135305668eb70ed6ec3f"
+          test "$(git hash-object research/civdyn-resource-ledger/Cargo.toml)" = "03c2dc7bdb638d685fa8674ecc4d2396a8cca059"
           echo "CRG source SHA-256: $(sha256sum research/civdyn-collective-risk/src/lib.rs | cut -d' ' -f1)" >> "$GITHUB_STEP_SUMMARY"
           echo "Resource-ledger source SHA-256: $(sha256sum research/civdyn-resource-ledger/src/lib.rs | cut -d' ' -f1)" >> "$GITHUB_STEP_SUMMARY"
+          echo "CRG source Git blob: $(git hash-object research/civdyn-collective-risk/src/lib.rs)" >> "$GITHUB_STEP_SUMMARY"
+          echo "Resource-ledger source Git blob: $(git hash-object research/civdyn-resource-ledger/src/lib.rs)" >> "$GITHUB_STEP_SUMMARY"
           echo "Adapter commit: $(git rev-parse HEAD)" >> "$GITHUB_STEP_SUMMARY"
-          echo "Pinned dependency parent commit: $(git rev-parse HEAD^)" >> "$GITHUB_STEP_SUMMARY"
+          echo "Pinned dependency parent commit: 8971e23b4439c8ab2ace44277d587ef816f1db1a" >> "$GITHUB_STEP_SUMMARY"
           echo "Repeated execution: byte-identical" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload bridge evidence
