@@ -215,10 +215,10 @@ fn validate(input: &PhotonInput) -> Result<(), String> {
 }
 
 fn checked_finite(value: f64, field: &str) -> Result<f64, String> {
-    if value.is_finite() && value >= 0.0 {
+    if value.is_finite() {
         Ok(value)
     } else {
-        Err(format!("computed {field} is non-finite or negative"))
+        Err(format!("computed {field} is non-finite"))
     }
 }
 
