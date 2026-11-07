@@ -369,6 +369,7 @@ pub fn evaluate_channel_workload(
         return Err(TrafficError::EmptyRouteRevision);
     }
 
+    let mut violations = BTreeSet::new();
     let mut segment_by_id = BTreeMap::new();
     for segment in &workload.segments {
         if segment.segment_id.trim().is_empty()
@@ -385,6 +386,11 @@ pub fn evaluate_channel_workload(
         {
             return Err(TrafficError::InvalidEvidenceReceipt(
                 segment.headway_evidence.evidence_id.clone(),
+            ));
+        }
+        if segment.route_revision != workload.route_revision {
+            violations.insert(TrafficViolation::SegmentRouteRevisionMismatch(
+                segment.segment_id.clone(),
             ));
         }
         validate_direction_windows(&segment.segment_id, &segment.direction_windows)?;
@@ -433,7 +439,6 @@ pub fn evaluate_channel_workload(
 
     let mut movement_by_id = BTreeMap::new();
     let mut movements_by_segment = BTreeMap::<&str, Vec<&ChannelMovement>>::new();
-    let mut violations = BTreeSet::new();
 
     for movement in &workload.movements {
         if movement.movement_id.trim().is_empty()
