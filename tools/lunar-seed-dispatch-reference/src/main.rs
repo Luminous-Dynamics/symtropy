@@ -628,18 +628,33 @@ fn verify_report(scenario: &Scenario, report: &DispatchReport) -> Result<(), Str
             ));
         }
         if actual.battery_internal_withdrawn_wh > scenario.discharge_power_limit_wh_per_interval {
-            return Err(format!("interval {} exceeds battery discharge limit", input.id));
+            return Err(format!(
+                "interval {} exceeds battery discharge limit",
+                input.id
+            ));
         }
         if actual.battery_charge_input_wh > scenario.charge_power_limit_wh_per_interval {
-            return Err(format!("interval {} exceeds battery charge limit", input.id));
+            return Err(format!(
+                "interval {} exceeds battery charge limit",
+                input.id
+            ));
         }
         if actual.battery_internal_withdrawn_wh > actual.battery_start_soc_wh {
-            return Err(format!("interval {} withdraws more energy than the starting SOC", input.id));
+            return Err(format!(
+                "interval {} withdraws more energy than the starting SOC",
+                input.id
+            ));
         }
         if actual.battery_energy_stored_wh
-            != bus_output_for_internal(actual.battery_charge_input_wh, scenario.charge_efficiency_bps)?
+            != bus_output_for_internal(
+                actual.battery_charge_input_wh,
+                scenario.charge_efficiency_bps,
+            )?
         {
-            return Err(format!("interval {} battery charge efficiency receipt mismatch", input.id));
+            return Err(format!(
+                "interval {} battery charge efficiency receipt mismatch",
+                input.id
+            ));
         }
 
         let battery_bus_upper_bound = bus_output_for_internal(
