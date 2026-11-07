@@ -1,0 +1,9 @@
+[package]
+name = "loco-terrain-profile-receipts"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Fail-closed terrain-profile and matched-run receipt validation for locomotion benchmarks"
+
+[workspace]
