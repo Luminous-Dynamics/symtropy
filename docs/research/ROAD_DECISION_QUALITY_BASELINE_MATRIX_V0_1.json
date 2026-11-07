@@ -212,20 +212,6 @@
       "claim": "paper-reported interaction-stratified result"
     },
     {
-      "track": "bench2drive",
-      "metric": "Driving Score",
-      "secondary_metric": "Success Rate",
-      "secondary_score": 90.45,
-      "secondary_unit": "percent",
-      "benchmark_version": "Bench2Drive 0.0.3 self-reported leaderboard (non-privileged section; README updated 2026-11-06)",
-      "method": "TFv6+ScaleDrive",
-      "score": 96.65,
-      "unit": "points",
-      "protocol": "official leaderboard README; row is copied from its cited publication; methods differ in datasets, experts, pre-training, training and inference compute",
-      "source": "https://github.com/autonomousvision/Bench2Drive-Leaderboard",
-      "claim": "self-reported public reference; whole-system result, not a matched architecture comparison"
-    },
-    {
       "track": "navsim_v1",
       "metric": "PDMS",
       "benchmark_version": "NAVSIM-v1 navtest",
@@ -377,6 +363,89 @@
       "protocol": "16-token budget; planning-only baseline effective rank 2.080 and similarity 0.953; lower similarity and higher effective rank indicate less redundancy",
       "source": "https://arxiv.org/abs/2605.31116",
       "claim": "paper-reported representation diagnostic; not a driving benchmark score"
+    },
+    {
+      "track": "navsim_v1",
+      "metric": "PDMS",
+      "benchmark_version": "NAVSIM-v1 navtest (ScaleDrive paper Table 1)",
+      "method": "ScaleDrive representation + downstream planner",
+      "score": 89.1,
+      "unit": "points",
+      "protocol": "one-camera input; frozen ScaleDrive video encoder pretrained on large-scale action-free open-world driving video",
+      "source": "https://arxiv.org/abs/2611.02853",
+      "claim": "paper-reported; representation transfer baseline, reproduce checkpoint and downstream planner"
+    },
+    {
+      "track": "navsim_v2",
+      "metric": "EPDMS",
+      "benchmark_version": "NAVSIM-v2 navtest (ScaleDrive paper Table 2)",
+      "method": "ScaleDrive representation + downstream planner",
+      "score": 90.5,
+      "unit": "points",
+      "protocol": "paper-reported navtest; frozen action-free video-pretrained encoder; distinct from NAVSIM-v1 PDMS",
+      "source": "https://arxiv.org/abs/2611.02853",
+      "claim": "paper-reported; reproduce exact checkpoint and metric cache"
+    },
+    {
+      "track": "navsim_v1",
+      "metric": "PDMS",
+      "benchmark_version": "NAVSIM-v1 navtest",
+      "method": "SparseWAM (64-sample multimodal)",
+      "score": 92.6,
+      "unit": "points",
+      "protocol": "one front camera; 16 world-action registers per frame; 64 sampled trajectories; 57.9M test parameters; multimodal inference 164ms on one NVIDIA H20 batch 1",
+      "source": "https://autolab-sai-sjtu.github.io/SparseWAM/",
+      "claim": "paper/project-page result; latency is H20-specific and needs exact local reproduction"
+    },
+    {
+      "track": "navsim_v2",
+      "metric": "EPDMS",
+      "benchmark_version": "NAVSIM-v2 navtest",
+      "method": "SparseWAM",
+      "score": 90.1,
+      "unit": "points",
+      "protocol": "paper-reported NAVSIM-v2 navtest; one front camera; 16 register representation",
+      "source": "https://autolab-sai-sjtu.github.io/SparseWAM/",
+      "claim": "paper-reported; keep separate from NAVSIM-v1 PDMS and NAVSIM-v2 NavHard"
+    },
+    {
+      "track": "navsim_v2_navhard",
+      "metric": "EPDMS",
+      "benchmark_version": "NAVSIM-v2 NavHard",
+      "method": "SparseWAM",
+      "score": 39.6,
+      "unit": "points",
+      "protocol": "paper-reported NavHard; not NAVSIM-v2 navtest",
+      "source": "https://autolab-sai-sjtu.github.io/SparseWAM/",
+      "claim": "paper-reported; distinct ODD/split"
+    },
+    {
+      "track": "bench2drive_paper",
+      "metric": "Driving Score",
+      "secondary_metric": "Success Rate",
+      "secondary_score": 90.45,
+      "secondary_unit": "percent",
+      "benchmark_version": "Bench2Drive paper Table 5",
+      "method": "TFv6 + ScaleDrive",
+      "score": 96.65,
+      "unit": "points",
+      "protocol": "ScaleDrive preprint (2026-11-02), matched in-paper comparison against TFv6 BEV 95.20 / 86.80 and TFv6+V-JEPA2 95.00 / 85.91; not an entry in the official Sep-2026 leaderboard README",
+      "source": "https://arxiv.org/abs/2611.02853",
+      "claim": "paper-reported in-paper result; whole-system comparison, not an official leaderboard row"
+    },
+    {
+      "track": "hugsim",
+      "metric": "HD-Score",
+      "secondary_metric": "Route Completion",
+      "secondary_score": 44.8,
+      "secondary_unit": "percent",
+      "benchmark_version": "HUGSIM cross-benchmark transfer (ScaleDrive paper Table 4)",
+      "method": "LTF + ScaleDrive",
+      "score": 31.5,
+      "unit": "points",
+      "protocol": "LTF downstream planner with frozen ScaleDrive representation; HUGSIM average in paper Table 4",
+      "source": "https://arxiv.org/abs/2611.02853",
+      "claim": "paper-reported representation-transfer result; protocol separate from PlanWAM and DriveZero"
     }
   ],
   "interpretation_rules": [
@@ -394,6 +463,10 @@
     "DriveZero-Scale's NAVSIM-v1 row uses camera inputs, while its paper's human-driver reference uses ground-truth symbolic inputs; do not call that a matched human comparison.",
     "DriveZero-Scale's HUGSIM 46.6 HD-Score is true closed-loop and zero-shot; it is strongest on Easy/Medium/Hard but not Extreme. Retain the tier breakdown and route completion.",
     "NTR's 94.1 PDMS and 90.9 EPDMS are navtest rows; its 8.0461 Waymo E2E RFS and token effective-rank diagnostics are separate metrics/tracks.",
-    "FPD-Drive teacher future observations are training-only; deployed student uses current four-camera views, ego history and nav command without teacher inference."
+    "FPD-Drive teacher future observations are training-only; deployed student uses current four-camera views, ego history and nav command without teacher inference.",
+    "The official Bench2Drive leaderboard README was last updated 24 Sep 2026. TFv6+ScaleDrive 96.65 / 90.45 is from the ScaleDrive paper Table 5 dated 2 Nov 2026, not the official leaderboard README; keep a separate bench2drive_paper track.",
+    "ScaleDrive is action-free representation pretraining, not an interactive policy or evidence-qualified counterfactual method. Compare it on exact planner, data, sensor and compute protocol.",
+    "SparseWAM reports 92.6 PDMS / 90.1 EPDMS using a 16-register representation and 64 sampled trajectories; its 164ms latency is measured on an NVIDIA H20 at batch 1 and cannot be transferred to another device.",
+    "NAVSIM-v1 PDMS, NAVSIM-v2 navtest EPDMS and NAVSIM-v2 NavHard EPDMS are different tracks; values must never be ordered across tracks."
   ]
 }
