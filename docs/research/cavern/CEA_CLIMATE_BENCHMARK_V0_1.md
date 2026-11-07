@@ -279,3 +279,60 @@ New benchmark owner: [CEA-HARVEST-CONTROL-001 #4074](https://github.com/Luminous
 
 The measured biomass feedback signal must carry uncertainty and calibration. The internal crop-model state cannot certify itself. A physically observed harvest miss is a failed harvest constraint even when the optimizer reports positive expected utility.
 
+
+
+## 12. Complementary 2026 SOTA comparators: spatial robust MPC and coupled VF crop/climate model
+
+### 12.1 Spatially distributed robust greenhouse MPC
+
+Mignoni et al., *A robust data-driven MPC for greenhouse temperature control*, Control Engineering Practice 173 (August 2026), article 106983, DOI 10.1016/j.conengprac.2026.106983:
+- Publisher: https://doi.org/10.1016/j.conengprac.2026.106983
+- Institutional record: https://iris.poliba.it/handle/11589/299780
+
+The paper proposes:
+- a spatially distributed finite-difference greenhouse temperature model over a convex polyhedral sloped-roof geometry;
+- volumetric solar heat sources and inverter-based HVAC action represented by a linear-in-input kernel with directional weighting;
+- ghost-point Robin boundary heat exchange;
+- scenario-based robust MPC designed to preserve convexity, solved by a structured forward-backward scheme;
+- validation on a smart greenhouse in Genova, Italy, with out-of-sample tests reporting robustness to solar irradiance and ambient-temperature uncertainty.
+
+The admitted publisher abstract does not state numeric RMSE, energy savings or harvest outcomes. The registry records the out-of-sample result qualitatively and does not invent a performance percentage.
+
+**What we should take from this comparator:** represent spatial climate gradients explicitly when the geometry warrants them, propagate exogenous uncertainty through the control decision, and use blind/out-of-sample disturbance periods. The robust-control architecture is a direct climate-controller comparator; it is not a validated crop-growth / marketable-harvest controller and is not an underground facility model.
+
+### 12.2 Dynamic vertical-farm crop/climate model
+
+Sooderjani, van Henten & Boersma, *A dynamic control-oriented model of climate and crop growth in vertical farms*, Biosystems Engineering 270 (October 2026), article 104532, DOI 10.1016/j.biosystemseng.2026.104532:
+- Publisher: https://doi.org/10.1016/j.biosystemseng.2026.104532
+
+The paper combines temperature, humidity, CO2, airspeed, lighting intensity / photoperiod / spectrum, crop dry weight, photosynthesis, respiration, transpiration, LED energy and AC energy in a mechanistic control-oriented ODE model. It reports evaluation against seven independent experimental datasets with climate rRMSE below 10%; RMSE 0.4 °C temperature, 4.5 percentage points relative humidity and 45 ppm CO2; biomass RMSE 0.008 kg m^-2 dry mass and 0.25 kg m^-2 fresh mass. Its scenario analysis reports 5.05–17.62 kWh per kg fresh weight depending on treatment and assumptions, with LED 72–85% and AC 15–28% of modeled energy.
+
+Two limitations create especially useful challenge cases:
+- The facility is represented as a **perfectly mixed tank**. It predicts average conditions rather than rack/layer-specific climate and cannot independently establish spatial canopy uniformity.
+- A **constant AC COP** is assumed. The authors note that AC energy and lighting-to-AC ratios depend on this assumption and that within-photoperiod sensible/latent load variability is not captured.
+
+This is a strong coupled crop/climate baseline, but it is not a spatial climate twin, a measured full-facility energy guarantee or a harvest-constrained controller. Preserve the seven-dataset validation evidence separately from the model's scenario energy projections.
+
+### 12.3 New matched benchmark decomposition
+
+Do not force these models into one winner-takes-all leaderboard. Compare their different strengths using the same instrumented physical boundary:
+1. **Spatial climate baseline:** multi-zone finite-difference / robust MPC, calibrated on one set of locations and blind-tested at held-out rack/layer positions and unseen outside disturbances.
+2. **Coupled biology baseline:** dynamic crop/climate ODE with measured cultivar, canopy biomass, transpiration, photon and HVAC inputs.
+3. **Hybrid candidate:** coupled crop/biomass state with spatial climate estimation and robust multi-timescale control. The hybrid must expose which subsystem supplies each prediction and which independent observation adjudicates it.
+4. **Simple transparent baseline:** well-mixed constant-COP model, retained as a negative control rather than discarded; it quantifies the cost of omitting spatial / equipment dynamics.
+5. **Independent specialist solver:** CFD / EnergyPlus / validated HVAC performance-map comparison, where the physical question is within that tool's domain.
+
+New adversarial cases:
+- mean room temperature in range while one canopy layer violates temperature / RH / dewpoint limits;
+- held-out rack gradients under changing fan flow or crop canopy density;
+- COP varying with outdoor/source/sink temperatures and part-load ratio;
+- lighting-on / lighting-off latent and sensible load pulses;
+- dehumidifier disabled, saturated, cycling or delayed;
+- crop transpiration changes while the climate controller meets average RH;
+- cultivar transfer without re-tuning;
+- measured dry biomass calibration drift despite an apparently good fresh-mass RMSE;
+- predicted fresh harvest mass meets target while dry matter / marketability is outside specification.
+
+Report spatial residual maps, uncertainty coverage, per-zone time-in-envelope, condensation duration, crop dry/fresh biomass separately, full-facility kWh/kg accepted edible crop, HVAC COP error, forecast/actuator failure and harvest-date service. Do not compare unlike RMSE denominators or collapse error, energy and crop service into a scalar score.
+
+The machine-readable registry records both comparators as separate evidence classes. The detailed source-derived metrics and limitations are retained there; neither comparator is treated as field validation of the cavern analogue.
