@@ -1,0 +1,10 @@
+[package]
+name = "wpt-corridor-design-oracle"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Exact small-instance corridor siting and N-1 segment service oracle"
+
+[dependencies]
+serde_json = "1.0"
