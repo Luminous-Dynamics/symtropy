@@ -39,7 +39,7 @@ def close(actual: float, expected: float, field: str, tolerance: float = TOL) ->
         and math.isfinite(float(actual))
         and math.isfinite(float(expected))
         and abs(float(actual) - float(expected))
-        <= tolerance * max(1.0, abs(float(expected))),
+        <= 1.0e-12 + tolerance * abs(float(expected)),
         f"{field}: expected {expected:.16g}, got {actual!r}",
     )
 
