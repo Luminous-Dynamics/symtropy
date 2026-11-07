@@ -398,7 +398,10 @@ fn validate_fixture(value: &Value, case_id: &str) -> Result<ObservabilityReport,
             field(sample, "position_mm", &path)?,
             &format!("{path}.position_mm"),
         )?;
-        if position.iter().any(|value| value.abs() > 1_000_000_000) {
+        if position
+            .iter()
+            .any(|value| value.unsigned_abs() > 1_000_000_000_u64)
+        {
             return Err(fail(
                 &path,
                 "position components must be within +/-1000000000 mm",
