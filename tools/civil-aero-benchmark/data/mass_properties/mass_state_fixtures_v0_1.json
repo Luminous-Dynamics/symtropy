@@ -485,6 +485,17 @@
         "reason": "aggregate_child_double_count"
       },
       "reference_frame_id": "synthetic-aircraft-datum-v1"
+    },
+    {
+      "id": "wrong_reference_frame",
+      "kind": "takeoff",
+      "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "reference_frame_id": "another-datum",
+      "items": [],
+      "expected": {
+        "status": "reject",
+        "reason": "wrong_reference_frame"
+      }
     }
   ]
 }
