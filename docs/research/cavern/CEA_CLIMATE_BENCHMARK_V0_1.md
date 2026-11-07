@@ -229,3 +229,53 @@ These are proposed development targets, not demonstrated performance. If the mea
 ## 11. Claim ceiling
 
 A passing reference, simulator or controller test qualifies only its declared analytical / synthetic / measured boundary. It does not certify equipment, establish that a cavern is a heat sink, guarantee crop yield, prove condensation safety, approve human occupancy or qualify a lunar/Martian habitat.
+
+
+## 11. New direct 2026 benchmark: harvest-constrained joint lighting / climate optimization
+
+Sathyanarayanan, Raecke & Streif, *Beyond Light Scheduling: Harvest-Constrained Co-Optimization of Lighting and Climate in Vertical Farms under Volatile Electricity Prices*, Smart Agricultural Technology 15 (2026), article 102636, DOI 10.1016/j.atech.2026.102636:
+- DOI / publisher: https://doi.org/10.1016/j.atech.2026.102636
+- TU Chemnitz publication record: https://archiv.tu-chemnitz.de/uni_biblio/frontdoor.php?source_opus=43023
+- Detailed technical summary (secondary source): https://scienmag.com/simulated-vertical-farm-controller-cuts-costs-by-co-optimizing-light-and-climate/
+
+The primary publisher abstract reports a three-level hierarchical simulation framework with a fixed 250 ±1.5 g/head harvest target and 36 simulated country × season × production-intensity scenarios. It reports:
+- 13.7% average electricity-cost reduction (range 7.3–19.7%) against its static baseline;
+- 8.4% lower electricity use;
+- approximately 97% of modeled savings attributed to climate control;
+- lighting-only optimization about 10% more expensive than joint lighting / climate optimization.
+
+The architecture is strategically important:
+1. full crop-cycle strategic plan / harvest trajectory;
+2. day-ahead price-responsive rescheduling;
+3. 15-minute shrinking-horizon MPC updating from crop/climate state, prices and weather.
+
+The paper's own data and simulation code are available on request; these are simulation results, not field-measured performance for a commercial or underground facility. Do not use 13.7% as a guaranteed saving or as an automatic acceptance target.
+
+A secondary technical summary reports the model as a four-level, 48 m² container farm growing Batavia Othilie lettuce, with a 14–25 day harvest horizon; it describes 50 stochastic price/weather scenarios, a 4-day calibration horizon and a 15% threshold before changing the lighting window. It also reports that the sensitivity of harvest marketability to crop-model error was severe and that daily biomass feedback restored much of the simulated marketability. The summary further notes omitted sensor noise/latency, equipment cycling/defrost, peak-power charges and equipment wear. These details are valuable challenge hypotheses but must be checked against the primary full paper / supplement before being treated as primary facts.
+
+### Benchmark implication
+
+The comparator validates the direction of our paradigm shift: **co-optimize harvest service and the complete climate/lighting energy boundary**. A schedule that buys cheap electricity for LEDs can increase HVAC or dehumidification cost; lighting-only optimization is not a fair substitute for joint optimization.
+
+New benchmark owner: [CEA-HARVEST-CONTROL-001 #4074](https://github.com/Luminous-Dynamics/symtropy/issues/4074). It composes:
+- #4060 crop clock, photoperiod, DLI and calendar-time service;
+- #3985 photon / spectral delivery and measured LED load;
+- #4065 climate, latent load and HVAC model;
+- #3957 whole-facility ledger;
+- #4041 / #4057 calibrated or robust measurement selection.
+
+### Adversarial challenges to add
+
+- Crop-growth model bias and out-of-domain cultivar transfer.
+- Independent biomass measurement noise, missingness, bias, calibration and latency.
+- Marketable-grade / fresh-vs-dry-mass uncertainty.
+- HVAC COP-map error, minimum on/off times, cycling, defrost and actuator wear.
+- Peak-power and demand-charge constraints.
+- Stale / adversarial electricity-price and weather forecasts.
+- Carbon-intensity signal missingness / wrong geography.
+- Climate-control savings that silently violate VPD, condensation, CO2 or crop-quality limits.
+- A high reported LED EUE with worse total-facility cost.
+- A model-predicted harvest target that is missed by actual crop measurement.
+
+The measured biomass feedback signal must carry uncertainty and calibration. The internal crop-model state cannot certify itself. A physically observed harvest miss is a failed harvest constraint even when the optimizer reports positive expected utility.
+
