@@ -639,7 +639,7 @@ fn wrong_participant_or_alternative_is_rejected_even_when_operation_is_present()
     assert_eq!(
         evaluate_traffic_plan(
             &fleet_plan,
-            &workload(vec![conflict_resource(0, 0)], vec![item])
+            &workload(&fleet_plan.operations, vec![conflict_resource(0, 0)], vec![item])
         ),
         Err(TrafficError::PlanSelectionMismatch("use-a".to_owned()))
     );
@@ -695,7 +695,11 @@ fn equivalent_input_permutations_produce_identical_reports() {
             time_basis_id: "synthetic-ticks-v1",
         }),
     ];
-    let original = workload(vec![conflict_resource(0, 0)], occupancies);
+    let original = workload(
+        &[first.clone(), second.clone()],
+        vec![conflict_resource(0, 0)],
+        occupancies,
+    );
     let expected = evaluate_traffic_plan(&plan(vec![first.clone(), second.clone()]), &original)
         .expect("valid workload");
 
@@ -764,7 +768,11 @@ fn effective_occupancy_cannot_extend_before_decision_cutoff() {
         late_clearance_ticks: 0,
         time_basis_id: "synthetic-ticks-v1",
     });
-    let mut input = workload(vec![conflict_resource(0, 0)], vec![item]);
+    let mut input = workload(
+        std::slice::from_ref(&op),
+        vec![conflict_resource(0, 0)],
+        vec![item],
+    );
     input.decision_tick = 2;
     assert_eq!(
         evaluate_traffic_plan(&plan(vec![op]), &input),
