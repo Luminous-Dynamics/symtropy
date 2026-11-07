@@ -646,9 +646,11 @@ mod tests {
         let pos_b = SVector::from([5.0, 1.000_001, 0.0]);
         let vel_b = SVector::zeros();
 
-        assert!(sphere_sphere_checked(&pos_a, &vel_a, 0.5, &pos_b, &vel_b, 0.5, 1.0)
-            .unwrap()
-            .is_none());
+        assert!(
+            sphere_sphere_checked(&pos_a, &vel_a, 0.5, &pos_b, &vel_b, 0.5, 1.0)
+                .unwrap()
+                .is_none()
+        );
     }
 
     #[test]
