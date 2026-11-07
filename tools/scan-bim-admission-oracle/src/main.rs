@@ -306,7 +306,7 @@ fn evaluate(case: &Case) -> (String, Vec<String>) {
                 "NO_CHANGE_SUPPORTED",
                 "ALL_REQUIRED_ELEMENTS_WITHIN_DECLARED_BOUNDS",
             )
-        },
+        }
         "modify" => {
             let unique_targets: BTreeSet<&str> = candidate
                 .delta
