@@ -86,7 +86,9 @@
             "field_regime",
             "channel_id",
             "envelope_sha256",
-            "envelope_state"
+            "envelope_state",
+            "envelope_valid_from_ms",
+            "envelope_valid_until_ms"
           ],
           "properties": {
             "opportunity_id": {
@@ -130,6 +132,14 @@
                 "STALE",
                 "OUT_OF_DOMAIN"
               ]
+            },
+            "envelope_valid_from_ms": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "envelope_valid_until_ms": {
+              "type": "integer",
+              "minimum": 1
             }
           }
         }
@@ -259,7 +269,9 @@
               "allocation_sha256",
               "clock_id",
               "clock_uncertainty_ms",
-              "local_protection_receipt_sha256"
+              "local_protection_receipt_sha256",
+              "local_protection_valid_from_ms",
+              "local_protection_valid_until_ms"
             ],
             "properties": {
               "motion_state": {
@@ -372,6 +384,14 @@
               "local_protection_receipt_sha256": {
                 "type": "string",
                 "pattern": "^[a-f0-9]{64}$"
+              },
+              "local_protection_valid_from_ms": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "local_protection_valid_until_ms": {
+                "type": "integer",
+                "minimum": 1
               }
             }
           }
