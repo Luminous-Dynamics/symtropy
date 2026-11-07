@@ -91,7 +91,10 @@ pub enum CalcError {
     NoIntervals,
     IncompleteIntervalSeries,
     InvalidMeasurement(&'static str),
-    ActiveEnergyMismatch { interval_kwh: f64, declared_kwh: f64 },
+    ActiveEnergyMismatch {
+        interval_kwh: f64,
+        declared_kwh: f64,
+    },
     IncompleteDemandHistory,
     DemandHistoryMonthMismatch,
     InvalidPowerFactor,
@@ -103,32 +106,84 @@ impl fmt::Display for CalcError {
         match self {
             Self::WrongProfileId => write!(f, "wrong or unsupported source profile ID"),
             Self::WrongProfileVersion => write!(f, "wrong or unsupported source profile version"),
-            Self::OutsideProfilePeriod => write!(f, "billing month is outside the admitted profile period"),
+            Self::OutsideProfilePeriod => {
+                write!(f, "billing month is outside the admitted profile period")
+            }
             Self::InvalidBillingMonth => write!(f, "billing month must be YYYY-MM"),
-            Self::WrongUtility => write!(f, "City Power Industrial TOU cannot be applied to another utility"),
+            Self::WrongUtility => write!(
+                f,
+                "City Power Industrial TOU cannot be applied to another utility"
+            ),
             Self::InvalidSupplyCapacity => write!(f, "supply capacity must be finite and positive"),
-            Self::SupplyCapacityNotAbove100Kva => write!(f, "Industrial TOU requires supply capacity strictly greater than 100 kVA"),
+            Self::SupplyCapacityNotAbove100Kva => write!(
+                f,
+                "Industrial TOU requires supply capacity strictly greater than 100 kVA"
+            ),
             Self::ApprovalMissing => write!(f, "affirmative Industrial TOU approval is required"),
-            Self::ApprovalReferenceMissing => write!(f, "approval reference is required when approval is asserted"),
-            Self::LegacyAccountRequiresManualReview => write!(f, "legacy pre-1-July-1999 demand-tariff account requires manual review"),
+            Self::ApprovalReferenceMissing => write!(
+                f,
+                "approval reference is required when approval is asserted"
+            ),
+            Self::LegacyAccountRequiresManualReview => write!(
+                f,
+                "legacy pre-1-July-1999 demand-tariff account requires manual review"
+            ),
             Self::MissingEvidence(name) => write!(f, "missing required evidence reference: {name}"),
             Self::InvalidDate => write!(f, "invalid local date; expected YYYY-MM-DD"),
-            Self::DateOutsideBillingMonth => write!(f, "interval date does not match the declared billing month"),
-            Self::InvalidInterval => write!(f, "interval must have positive duration and a start within the local day"),
-            Self::IntervalCrossesMidnight => write!(f, "interval crosses midnight; split it before tariff classification"),
-            Self::IntervalCrossesPriceBoundary => write!(f, "interval crosses a tariff price boundary; split it before evaluation"),
-            Self::AmbiguousSaturdayEndpoint => write!(f, "Saturday 18:00-20:00 tariff interval needs explicit confirmation"),
-            Self::SaturdayConfirmationReferenceMissing => write!(f, "Saturday 18:00-20:00 confirmation reference is required"),
-            Self::IntervalOrderOrOverlap => write!(f, "intervals must be chronological and non-overlapping"),
-            Self::SeasonDoesNotMatchBillingMonth => write!(f, "season does not match the billing-month calendar"),
+            Self::DateOutsideBillingMonth => {
+                write!(f, "interval date does not match the declared billing month")
+            }
+            Self::InvalidInterval => write!(
+                f,
+                "interval must have positive duration and a start within the local day"
+            ),
+            Self::IntervalCrossesMidnight => write!(
+                f,
+                "interval crosses midnight; split it before tariff classification"
+            ),
+            Self::IntervalCrossesPriceBoundary => write!(
+                f,
+                "interval crosses a tariff price boundary; split it before evaluation"
+            ),
+            Self::AmbiguousSaturdayEndpoint => write!(
+                f,
+                "Saturday 18:00-20:00 tariff interval needs explicit confirmation"
+            ),
+            Self::SaturdayConfirmationReferenceMissing => {
+                write!(f, "Saturday 18:00-20:00 confirmation reference is required")
+            }
+            Self::IntervalOrderOrOverlap => {
+                write!(f, "intervals must be chronological and non-overlapping")
+            }
+            Self::SeasonDoesNotMatchBillingMonth => {
+                write!(f, "season does not match the billing-month calendar")
+            }
             Self::NoIntervals => write!(f, "at least one metered interval is required"),
-            Self::IncompleteIntervalSeries => write!(f, "billing-period interval series must be declared complete and carry a coverage evidence reference"),
+            Self::IncompleteIntervalSeries => write!(
+                f,
+                "billing-period interval series must be declared complete and carry a coverage evidence reference"
+            ),
             Self::InvalidMeasurement(name) => write!(f, "invalid measurement: {name}"),
-            Self::ActiveEnergyMismatch { interval_kwh, declared_kwh } => write!(f, "interval energy sum {interval_kwh} kWh differs from declared active energy {declared_kwh} kWh"),
-            Self::IncompleteDemandHistory => write!(f, "exactly 12 qualified preceding monthly demand peaks are required"),
-            Self::DemandHistoryMonthMismatch => write!(f, "demand history must contain the 12 consecutive months immediately before the billing month"),
+            Self::ActiveEnergyMismatch {
+                interval_kwh,
+                declared_kwh,
+            } => write!(
+                f,
+                "interval energy sum {interval_kwh} kWh differs from declared active energy {declared_kwh} kWh"
+            ),
+            Self::IncompleteDemandHistory => write!(
+                f,
+                "exactly 12 qualified preceding monthly demand peaks are required"
+            ),
+            Self::DemandHistoryMonthMismatch => write!(
+                f,
+                "demand history must contain the 12 consecutive months immediately before the billing month"
+            ),
             Self::InvalidPowerFactor => write!(f, "power factor must be finite and in (0, 1]"),
-            Self::InvalidAssessedLine(name) => write!(f, "assessed invoice line has invalid amount or missing evidence: {name}"),
+            Self::InvalidAssessedLine(name) => write!(
+                f,
+                "assessed invoice line has invalid amount or missing evidence: {name}"
+            ),
         }
     }
 }
@@ -304,10 +359,7 @@ pub fn classify_interval(
         return Err(CalcError::IntervalCrossesMidnight);
     }
 
-    if day == DayClass::SaturdayOrPublicHoliday
-        && start_minute < 1_200
-        && end > 1_080
-    {
+    if day == DayClass::SaturdayOrPublicHoliday && start_minute < 1_200 && end > 1_080 {
         if !saturday_evening_confirmed {
             return Err(CalcError::AmbiguousSaturdayEndpoint);
         }
@@ -375,7 +427,9 @@ fn parse_month(month: &str) -> Result<(i32, u8), CalcError> {
         return Err(CalcError::InvalidBillingMonth);
     }
     let year: i32 = year.parse().map_err(|_| CalcError::InvalidBillingMonth)?;
-    let month: u8 = month_part.parse().map_err(|_| CalcError::InvalidBillingMonth)?;
+    let month: u8 = month_part
+        .parse()
+        .map_err(|_| CalcError::InvalidBillingMonth)?;
     if !(1..=12).contains(&month) {
         return Err(CalcError::InvalidBillingMonth);
     }
@@ -424,7 +478,11 @@ fn fingerprint(input: &TariffInput) -> String {
         input.account.supply_capacity_kva,
         input.account.voltage_class as u8,
         input.account.industrial_tou_approved,
-        input.account.approval_reference.as_deref().unwrap_or("UNKNOWN"),
+        input
+            .account
+            .approval_reference
+            .as_deref()
+            .unwrap_or("UNKNOWN"),
         input.account.legacy_pre_1999_demand_tariff,
         input.declared_active_energy_kwh,
         input.measured_monthly_peak_demand_kva,
@@ -434,9 +492,20 @@ fn fingerprint(input: &TariffInput) -> String {
     let _ = write!(
         canonical,
         "|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}",
-        input.network_surcharge_applies.map(|x| x.to_string()).unwrap_or_else(|| "UNKNOWN".into()),
-        input.business_lpu_surcharge.as_ref().map(|x| format!("{}:{}", x.amount_zar, x.evidence_reference)).unwrap_or_else(|| "UNKNOWN".into()),
-        input.vat.as_ref().map(|x| format!("{}:{}", x.amount_zar, x.evidence_reference)).unwrap_or_else(|| "UNKNOWN".into()),
+        input
+            .network_surcharge_applies
+            .map(|x| x.to_string())
+            .unwrap_or_else(|| "UNKNOWN".into()),
+        input
+            .business_lpu_surcharge
+            .as_ref()
+            .map(|x| format!("{}:{}", x.amount_zar, x.evidence_reference))
+            .unwrap_or_else(|| "UNKNOWN".into()),
+        input
+            .vat
+            .as_ref()
+            .map(|x| format!("{}:{}", x.amount_zar, x.evidence_reference))
+            .unwrap_or_else(|| "UNKNOWN".into()),
         input.calendar_mapping_reference,
         input.timebase_reference,
         input.meter_boundary_reference,
@@ -444,12 +513,23 @@ fn fingerprint(input: &TariffInput) -> String {
         input.input_manifest_reference,
         input.interval_series_complete,
         input.interval_coverage_evidence_reference,
-        input.network_surcharge_evidence_reference.as_deref().unwrap_or("UNKNOWN"),
-        input.account.service_connection_classification_reference.as_deref().unwrap_or("UNKNOWN"),
+        input
+            .network_surcharge_evidence_reference
+            .as_deref()
+            .unwrap_or("UNKNOWN"),
+        input
+            .account
+            .service_connection_classification_reference
+            .as_deref()
+            .unwrap_or("UNKNOWN"),
         input.preceding_12_month_demand_history.len()
     );
     for point in &input.preceding_12_month_demand_history {
-        let _ = write!(canonical, "|{}:{}", point.billing_month, point.measured_peak_kva);
+        let _ = write!(
+            canonical,
+            "|{}:{}",
+            point.billing_month, point.measured_peak_kva
+        );
     }
     for interval in &input.intervals {
         let _ = write!(
@@ -461,8 +541,13 @@ fn fingerprint(input: &TariffInput) -> String {
             interval.duration_minutes,
             interval.energy_kwh,
             interval.saturday_evening_confirmed,
-            interval.saturday_confirmation_reference.as_deref().unwrap_or("UNKNOWN"),
-            season_for_date(&interval.local_date).map(|s| format!("{s:?}")).unwrap_or_else(|_| "INVALID".into())
+            interval
+                .saturday_confirmation_reference
+                .as_deref()
+                .unwrap_or("UNKNOWN"),
+            season_for_date(&interval.local_date)
+                .map(|s| format!("{s:?}"))
+                .unwrap_or_else(|_| "INVALID".into())
         );
     }
     // Non-cryptographic fingerprint for reproducible input binding. It is not
@@ -562,10 +647,16 @@ pub fn calculate_bill(input: &TariffInput) -> Result<BillReceipt, CalcError> {
     }
     validate_account(&input.account)?;
     for (name, reference) in [
-        ("calendar mapping", input.calendar_mapping_reference.as_str()),
+        (
+            "calendar mapping",
+            input.calendar_mapping_reference.as_str(),
+        ),
         ("timebase", input.timebase_reference.as_str()),
         ("meter boundary", input.meter_boundary_reference.as_str()),
-        ("meter calibration", input.meter_calibration_reference.as_str()),
+        (
+            "meter calibration",
+            input.meter_calibration_reference.as_str(),
+        ),
         ("input manifest", input.input_manifest_reference.as_str()),
     ] {
         if !nonblank(reference) {
@@ -579,9 +670,14 @@ pub fn calculate_bill(input: &TariffInput) -> Result<BillReceipt, CalcError> {
         return Err(CalcError::IncompleteIntervalSeries);
     }
     if input.network_surcharge_applies.is_some()
-        && !input.network_surcharge_evidence_reference.as_deref().is_some_and(nonblank)
+        && !input
+            .network_surcharge_evidence_reference
+            .as_deref()
+            .is_some_and(nonblank)
     {
-        return Err(CalcError::MissingEvidence("network surcharge account treatment"));
+        return Err(CalcError::MissingEvidence(
+            "network surcharge account treatment",
+        ));
     }
     if !input.declared_active_energy_kwh.is_finite() || input.declared_active_energy_kwh < 0.0 {
         return Err(CalcError::InvalidMeasurement("declared active energy"));
@@ -589,7 +685,9 @@ pub fn calculate_bill(input: &TariffInput) -> Result<BillReceipt, CalcError> {
     if !input.measured_monthly_peak_demand_kva.is_finite()
         || input.measured_monthly_peak_demand_kva < 0.0
     {
-        return Err(CalcError::InvalidMeasurement("monthly measured peak demand"));
+        return Err(CalcError::InvalidMeasurement(
+            "monthly measured peak demand",
+        ));
     }
     if !input.power_factor.is_finite() || input.power_factor <= 0.0 || input.power_factor > 1.0 {
         return Err(CalcError::InvalidPowerFactor);
@@ -647,8 +745,10 @@ pub fn calculate_bill(input: &TariffInput) -> Result<BillReceipt, CalcError> {
         });
     }
 
-    let top_three_average =
-        validate_demand_history(&input.billing_month, &input.preceding_12_month_demand_history)?;
+    let top_three_average = validate_demand_history(
+        &input.billing_month,
+        &input.preceding_12_month_demand_history,
+    )?;
     let ratchet_floor = DEMAND_RATCHET_FRACTION * top_three_average;
     let billed_demand_kva = input
         .measured_monthly_peak_demand_kva
@@ -684,11 +784,8 @@ pub fn calculate_bill(input: &TariffInput) -> Result<BillReceipt, CalcError> {
         .map(|line| round_money(line.amount_zar));
     let vat_amount = input.vat.as_ref().map(|line| round_money(line.amount_zar));
 
-    let mut subtotal = energy_charge
-        + service_charge
-        + monthly_network_charge
-        + demand_charge
-        + reactive_charge;
+    let mut subtotal =
+        energy_charge + service_charge + monthly_network_charge + demand_charge + reactive_charge;
     if let Some(amount) = per_kwh_network_surcharge {
         subtotal += amount;
     }
@@ -700,9 +797,8 @@ pub fn calculate_bill(input: &TariffInput) -> Result<BillReceipt, CalcError> {
     }
     subtotal = round_money(subtotal);
 
-    let complete = per_kwh_network_surcharge.is_some()
-        && surcharge_amount.is_some()
-        && vat_amount.is_some();
+    let complete =
+        per_kwh_network_surcharge.is_some() && surcharge_amount.is_some() && vat_amount.is_some();
     let status = if complete {
         InvoiceStatus::Complete
     } else {
@@ -744,14 +840,20 @@ pub fn calculate_bill(input: &TariffInput) -> Result<BillReceipt, CalcError> {
 impl BillReceipt {
     pub fn to_json(&self) -> String {
         let optional_json = |value: Option<f64>| {
-            value.map(|v| format!("{v:.2}")).unwrap_or_else(|| "null".to_owned())
+            value
+                .map(|v| format!("{v:.2}"))
+                .unwrap_or_else(|| "null".to_owned())
         };
         let voltage = match self.voltage_class {
             VoltageClass::Low => "LOW",
             VoltageClass::Medium => "MEDIUM",
             VoltageClass::High => "HIGH",
         };
-        let result = if self.status == InvoiceStatus::Complete { "pass" } else { "incomplete" };
+        let result = if self.status == InvoiceStatus::Complete {
+            "pass"
+        } else {
+            "incomplete"
+        };
         format!(
             concat!(
                 "{{",
@@ -765,25 +867,25 @@ impl BillReceipt {
                 "\"voltage_class\":\"{}\",",
                 "\"status\":\"{}\",",
                 "\"breakdown\":{{",
-                    "\"active_energy_kwh\":{:.2},",
-                    "\"energy_charge_zar\":{:.2},",
-                    "\"service_charge_zar\":{:.2},",
-                    "\"monthly_network_charge_zar\":{:.2},",
-                    "\"billed_demand_kva\":{:.2},",
-                    "\"demand_charge_zar\":{:.2},",
-                    "\"reactive_energy_charge_zar\":{:.2},",
-                    "\"per_kwh_network_surcharge_zar\":{},",
-                    "\"business_lpu_surcharge_zar\":{},",
-                    "\"vat_zar\":{},",
-                    "\"known_component_subtotal_zar\":{:.2},",
-                    "\"invoice_total_zar\":{}",
+                "\"active_energy_kwh\":{:.2},",
+                "\"energy_charge_zar\":{:.2},",
+                "\"service_charge_zar\":{:.2},",
+                "\"monthly_network_charge_zar\":{:.2},",
+                "\"billed_demand_kva\":{:.2},",
+                "\"demand_charge_zar\":{:.2},",
+                "\"reactive_energy_charge_zar\":{:.2},",
+                "\"per_kwh_network_surcharge_zar\":{},",
+                "\"business_lpu_surcharge_zar\":{},",
+                "\"vat_zar\":{},",
+                "\"known_component_subtotal_zar\":{:.2},",
+                "\"invoice_total_zar\":{}",
                 "}},",
                 "\"evidence\":{{",
-                    "\"calendar_mapping_reference\":\"{}\",",
-                    "\"timebase_reference\":\"{}\",",
-                    "\"meter_boundary_reference\":\"{}\",",
-                    "\"meter_calibration_reference\":\"{}\",",
-                    "\"input_manifest_reference\":\"{}\"",
+                "\"calendar_mapping_reference\":\"{}\",",
+                "\"timebase_reference\":\"{}\",",
+                "\"meter_boundary_reference\":\"{}\",",
+                "\"meter_calibration_reference\":\"{}\",",
+                "\"input_manifest_reference\":\"{}\"",
                 "}},",
                 "\"claim_ceiling\":\"{}\"",
                 "}}"
@@ -864,7 +966,9 @@ mod tests {
                 industrial_tou_approved: true,
                 approval_reference: Some("SYNTHETIC-APPROVAL-REF".to_owned()),
                 legacy_pre_1999_demand_tariff: false,
-                service_connection_classification_reference: Some("SYNTHETIC-LV-LPU-SERVICE-CLASS".to_owned()),
+                service_connection_classification_reference: Some(
+                    "SYNTHETIC-LV-LPU-SERVICE-CLASS".to_owned(),
+                ),
             },
             intervals: vec![MeteredInterval {
                 local_date: "2026-07-01".to_owned(),
@@ -883,7 +987,9 @@ mod tests {
             power_factor: 0.95,
             measured_reactive_energy_kvarh: 5.0,
             network_surcharge_applies: Some(true),
-            network_surcharge_evidence_reference: Some("SYNTHETIC-ACCOUNT-NETWORK-SURCHARGE-STATUS".to_owned()),
+            network_surcharge_evidence_reference: Some(
+                "SYNTHETIC-ACCOUNT-NETWORK-SURCHARGE-STATUS".to_owned(),
+            ),
             business_lpu_surcharge: Some(AssessedInvoiceLine {
                 amount_zar: 12.34,
                 evidence_reference: "SYNTHETIC-ASSESSED-BUSINESS-LPU-LINE".to_owned(),
@@ -901,7 +1007,10 @@ mod tests {
     }
 
     fn close(actual: f64, expected: f64) {
-        assert!((actual - expected).abs() < 1e-8, "actual={actual}, expected={expected}");
+        assert!(
+            (actual - expected).abs() < 1e-8,
+            "actual={actual}, expected={expected}"
+        );
     }
 
     #[test]
@@ -913,14 +1022,20 @@ mod tests {
     fn exactly_100_kva_is_not_eligible() {
         let mut input = fixture();
         input.account.supply_capacity_kva = 100.0;
-        assert_eq!(calculate_bill(&input).unwrap_err(), CalcError::SupplyCapacityNotAbove100Kva);
+        assert_eq!(
+            calculate_bill(&input).unwrap_err(),
+            CalcError::SupplyCapacityNotAbove100Kva
+        );
     }
 
     #[test]
     fn service_connection_70_kva_boundary_does_not_imply_tou_eligibility() {
         let mut input = fixture();
         input.account.supply_capacity_kva = 70.0;
-        assert_eq!(calculate_bill(&input).unwrap_err(), CalcError::SupplyCapacityNotAbove100Kva);
+        assert_eq!(
+            calculate_bill(&input).unwrap_err(),
+            CalcError::SupplyCapacityNotAbove100Kva
+        );
     }
 
     #[test]
@@ -934,14 +1049,20 @@ mod tests {
     fn account_without_approval_is_rejected() {
         let mut input = fixture();
         input.account.industrial_tou_approved = false;
-        assert_eq!(calculate_bill(&input).unwrap_err(), CalcError::ApprovalMissing);
+        assert_eq!(
+            calculate_bill(&input).unwrap_err(),
+            CalcError::ApprovalMissing
+        );
     }
 
     #[test]
     fn approval_without_evidence_reference_is_rejected() {
         let mut input = fixture();
         input.account.approval_reference = None;
-        assert_eq!(calculate_bill(&input).unwrap_err(), CalcError::ApprovalReferenceMissing);
+        assert_eq!(
+            calculate_bill(&input).unwrap_err(),
+            CalcError::ApprovalReferenceMissing
+        );
     }
 
     #[test]
@@ -949,26 +1070,50 @@ mod tests {
         let mut input = fixture();
         input.account.supply_capacity_kva = 90.0;
         input.account.legacy_pre_1999_demand_tariff = true;
-        assert_eq!(calculate_bill(&input).unwrap_err(), CalcError::LegacyAccountRequiresManualReview);
+        assert_eq!(
+            calculate_bill(&input).unwrap_err(),
+            CalcError::LegacyAccountRequiresManualReview
+        );
     }
 
     #[test]
     fn summer_rate_schedule_is_separate_from_winter() {
-        close(energy_rate_cents_per_kwh(Season::Summer, EnergyBand::Peak), 322.0);
-        close(energy_rate_cents_per_kwh(Season::Summer, EnergyBand::OffPeak), 186.35);
+        close(
+            energy_rate_cents_per_kwh(Season::Summer, EnergyBand::Peak),
+            322.0,
+        );
+        close(
+            energy_rate_cents_per_kwh(Season::Summer, EnergyBand::OffPeak),
+            186.35,
+        );
     }
 
     #[test]
     fn winter_rate_schedule_is_separate_from_summer() {
-        close(energy_rate_cents_per_kwh(Season::Winter, EnergyBand::Peak), 766.24);
-        close(energy_rate_cents_per_kwh(Season::Winter, EnergyBand::OffPeak), 200.44);
+        close(
+            energy_rate_cents_per_kwh(Season::Winter, EnergyBand::Peak),
+            766.24,
+        );
+        close(
+            energy_rate_cents_per_kwh(Season::Winter, EnergyBand::OffPeak),
+            200.44,
+        );
     }
 
     #[test]
     fn weekday_peak_standard_and_offpeak_boundaries_are_correct() {
-        assert_eq!(classify_interval(DayClass::Weekday, 420, 15, false, None).unwrap(), EnergyBand::Peak);
-        assert_eq!(classify_interval(DayClass::Weekday, 360, 15, false, None).unwrap(), EnergyBand::Standard);
-        assert_eq!(classify_interval(DayClass::Weekday, 1_320, 15, false, None).unwrap(), EnergyBand::OffPeak);
+        assert_eq!(
+            classify_interval(DayClass::Weekday, 420, 15, false, None).unwrap(),
+            EnergyBand::Peak
+        );
+        assert_eq!(
+            classify_interval(DayClass::Weekday, 360, 15, false, None).unwrap(),
+            EnergyBand::Standard
+        );
+        assert_eq!(
+            classify_interval(DayClass::Weekday, 1_320, 15, false, None).unwrap(),
+            EnergyBand::OffPeak
+        );
     }
 
     #[test]
@@ -981,14 +1126,21 @@ mod tests {
 
     #[test]
     fn sunday_standard_and_offpeak_are_correct() {
-        assert_eq!(classify_interval(DayClass::Sunday, 1_020, 15, false, None).unwrap(), EnergyBand::Standard);
-        assert_eq!(classify_interval(DayClass::Sunday, 1_140, 15, false, None).unwrap(), EnergyBand::OffPeak);
+        assert_eq!(
+            classify_interval(DayClass::Sunday, 1_020, 15, false, None).unwrap(),
+            EnergyBand::Standard
+        );
+        assert_eq!(
+            classify_interval(DayClass::Sunday, 1_140, 15, false, None).unwrap(),
+            EnergyBand::OffPeak
+        );
     }
 
     #[test]
     fn saturday_18_to_20_is_blocked_without_confirmation() {
         assert_eq!(
-            classify_interval(DayClass::SaturdayOrPublicHoliday, 1_080, 15, false, None).unwrap_err(),
+            classify_interval(DayClass::SaturdayOrPublicHoliday, 1_080, 15, false, None)
+                .unwrap_err(),
             CalcError::AmbiguousSaturdayEndpoint
         );
     }
@@ -996,7 +1148,14 @@ mod tests {
     #[test]
     fn saturday_18_to_20_is_admitted_with_confirmation_reference() {
         assert_eq!(
-            classify_interval(DayClass::SaturdayOrPublicHoliday, 1_080, 15, true, Some("APPROVED-TARIFF-STATEMENT")).unwrap(),
+            classify_interval(
+                DayClass::SaturdayOrPublicHoliday,
+                1_080,
+                15,
+                true,
+                Some("APPROVED-TARIFF-STATEMENT")
+            )
+            .unwrap(),
             EnergyBand::Standard
         );
     }
@@ -1012,7 +1171,8 @@ mod tests {
     #[test]
     fn saturday_confirmation_without_reference_is_rejected() {
         assert_eq!(
-            classify_interval(DayClass::SaturdayOrPublicHoliday, 1_080, 15, true, None).unwrap_err(),
+            classify_interval(DayClass::SaturdayOrPublicHoliday, 1_080, 15, true, None)
+                .unwrap_err(),
             CalcError::SaturdayConfirmationReferenceMissing
         );
     }
@@ -1055,7 +1215,10 @@ mod tests {
         input.account.voltage_class = VoltageClass::Low;
         input.measured_monthly_peak_demand_kva = 55.0;
         input.preceding_12_month_demand_history = history_for("2026-07", 50.0);
-        close(calculate_bill(&input).unwrap().breakdown.billed_demand_kva, 70.0);
+        close(
+            calculate_bill(&input).unwrap().breakdown.billed_demand_kva,
+            70.0,
+        );
     }
 
     #[test]
@@ -1063,7 +1226,10 @@ mod tests {
         let mut input = fixture();
         input.measured_monthly_peak_demand_kva = 80.0;
         input.preceding_12_month_demand_history = history_for("2026-07", 125.0);
-        close(calculate_bill(&input).unwrap().breakdown.billed_demand_kva, 100.0);
+        close(
+            calculate_bill(&input).unwrap().breakdown.billed_demand_kva,
+            100.0,
+        );
     }
 
     #[test]
@@ -1071,21 +1237,30 @@ mod tests {
         let mut input = fixture();
         input.measured_monthly_peak_demand_kva = 145.0;
         input.preceding_12_month_demand_history = history_for("2026-07", 125.0);
-        close(calculate_bill(&input).unwrap().breakdown.billed_demand_kva, 145.0);
+        close(
+            calculate_bill(&input).unwrap().breakdown.billed_demand_kva,
+            145.0,
+        );
     }
 
     #[test]
     fn missing_prior_demand_month_is_rejected() {
         let mut input = fixture();
         input.preceding_12_month_demand_history.pop();
-        assert_eq!(calculate_bill(&input).unwrap_err(), CalcError::IncompleteDemandHistory);
+        assert_eq!(
+            calculate_bill(&input).unwrap_err(),
+            CalcError::IncompleteDemandHistory
+        );
     }
 
     #[test]
     fn nonconsecutive_demand_history_is_rejected() {
         let mut input = fixture();
         input.preceding_12_month_demand_history[5].billing_month = "2025-12".to_owned();
-        assert_eq!(calculate_bill(&input).unwrap_err(), CalcError::DemandHistoryMonthMismatch);
+        assert_eq!(
+            calculate_bill(&input).unwrap_err(),
+            CalcError::DemandHistoryMonthMismatch
+        );
     }
 
     #[test]
@@ -1095,7 +1270,13 @@ mod tests {
         input.intervals[0].energy_kwh = 100.0;
         input.power_factor = 0.95;
         input.measured_reactive_energy_kvarh = 40.0;
-        close(calculate_bill(&input).unwrap().breakdown.reactive_energy_charge_zar, 4.63);
+        close(
+            calculate_bill(&input)
+                .unwrap()
+                .breakdown
+                .reactive_energy_charge_zar,
+            4.63,
+        );
     }
 
     #[test]
@@ -1103,7 +1284,13 @@ mod tests {
         let mut input = fixture();
         input.power_factor = 0.96;
         input.measured_reactive_energy_kvarh = 100.0;
-        close(calculate_bill(&input).unwrap().breakdown.reactive_energy_charge_zar, 0.0);
+        close(
+            calculate_bill(&input)
+                .unwrap()
+                .breakdown
+                .reactive_energy_charge_zar,
+            0.0,
+        );
     }
 
     #[test]
@@ -1111,7 +1298,13 @@ mod tests {
         let mut input = fixture();
         input.power_factor = 0.95;
         input.measured_reactive_energy_kvarh = 2.0;
-        close(calculate_bill(&input).unwrap().breakdown.reactive_energy_charge_zar, 0.0);
+        close(
+            calculate_bill(&input)
+                .unwrap()
+                .breakdown
+                .reactive_energy_charge_zar,
+            0.0,
+        );
     }
 
     #[test]
@@ -1120,21 +1313,38 @@ mod tests {
         input.declared_active_energy_kwh = 100.0;
         input.intervals[0].energy_kwh = 100.0;
         input.network_surcharge_applies = Some(true);
-        close(calculate_bill(&input).unwrap().breakdown.per_kwh_network_surcharge_zar.unwrap(), 6.0);
+        close(
+            calculate_bill(&input)
+                .unwrap()
+                .breakdown
+                .per_kwh_network_surcharge_zar
+                .unwrap(),
+            6.0,
+        );
     }
 
     #[test]
     fn monthly_network_charge_is_separate_from_per_kwh_surcharge() {
         let receipt = calculate_bill(&fixture()).unwrap();
         close(receipt.breakdown.monthly_network_charge_zar, 2_185.32);
-        close(receipt.breakdown.per_kwh_network_surcharge_zar.unwrap(), 0.60);
+        close(
+            receipt.breakdown.per_kwh_network_surcharge_zar.unwrap(),
+            0.60,
+        );
     }
 
     #[test]
     fn account_level_surcharge_exemption_is_respected() {
         let mut input = fixture();
         input.network_surcharge_applies = Some(false);
-        close(calculate_bill(&input).unwrap().breakdown.per_kwh_network_surcharge_zar.unwrap(), 0.0);
+        close(
+            calculate_bill(&input)
+                .unwrap()
+                .breakdown
+                .per_kwh_network_surcharge_zar
+                .unwrap(),
+            0.0,
+        );
     }
 
 
@@ -1142,21 +1352,30 @@ mod tests {
     fn wrong_profile_version_is_rejected() {
         let mut input = fixture();
         input.profile_version = "0.2".to_owned();
-        assert_eq!(calculate_bill(&input).unwrap_err(), CalcError::WrongProfileVersion);
+        assert_eq!(
+            calculate_bill(&input).unwrap_err(),
+            CalcError::WrongProfileVersion
+        );
     }
 
     #[test]
     fn incomplete_interval_coverage_is_rejected() {
         let mut input = fixture();
         input.interval_series_complete = false;
-        assert_eq!(calculate_bill(&input).unwrap_err(), CalcError::IncompleteIntervalSeries);
+        assert_eq!(
+            calculate_bill(&input).unwrap_err(),
+            CalcError::IncompleteIntervalSeries
+        );
     }
 
     #[test]
     fn network_surcharge_decision_requires_account_evidence() {
         let mut input = fixture();
         input.network_surcharge_evidence_reference = None;
-        assert_eq!(calculate_bill(&input).unwrap_err(), CalcError::MissingEvidence("network surcharge account treatment"));
+        assert_eq!(
+            calculate_bill(&input).unwrap_err(),
+            CalcError::MissingEvidence("network surcharge account treatment")
+        );
     }
 
     #[test]
@@ -1164,7 +1383,10 @@ mod tests {
         let mut input = fixture();
         input.network_surcharge_applies = None;
         let receipt = calculate_bill(&input).unwrap();
-        assert_eq!(receipt.status, InvoiceStatus::IncompleteInvoiceReconciliation);
+        assert_eq!(
+            receipt.status,
+            InvoiceStatus::IncompleteInvoiceReconciliation
+        );
         assert_eq!(receipt.breakdown.invoice_total_zar, None);
     }
 
@@ -1173,7 +1395,10 @@ mod tests {
         let mut input = fixture();
         input.business_lpu_surcharge = None;
         let receipt = calculate_bill(&input).unwrap();
-        assert_eq!(receipt.status, InvoiceStatus::IncompleteInvoiceReconciliation);
+        assert_eq!(
+            receipt.status,
+            InvoiceStatus::IncompleteInvoiceReconciliation
+        );
         assert_eq!(receipt.breakdown.invoice_total_zar, None);
     }
 
@@ -1182,7 +1407,10 @@ mod tests {
         let mut input = fixture();
         input.vat = None;
         let receipt = calculate_bill(&input).unwrap();
-        assert_eq!(receipt.status, InvoiceStatus::IncompleteInvoiceReconciliation);
+        assert_eq!(
+            receipt.status,
+            InvoiceStatus::IncompleteInvoiceReconciliation
+        );
         assert_eq!(receipt.breakdown.invoice_total_zar, None);
     }
 
@@ -1208,28 +1436,40 @@ mod tests {
     fn source_profile_mismatch_is_rejected() {
         let mut input = fixture();
         input.source_profile_id = "OLD-TARIFF".to_owned();
-        assert_eq!(calculate_bill(&input).unwrap_err(), CalcError::WrongProfileId);
+        assert_eq!(
+            calculate_bill(&input).unwrap_err(),
+            CalcError::WrongProfileId
+        );
     }
 
     #[test]
     fn out_of_period_tariff_month_is_rejected() {
         let mut input = fixture();
         input.billing_month = "2027-07".to_owned();
-        assert_eq!(calculate_bill(&input).unwrap_err(), CalcError::OutsideProfilePeriod);
+        assert_eq!(
+            calculate_bill(&input).unwrap_err(),
+            CalcError::OutsideProfilePeriod
+        );
     }
 
     #[test]
     fn interval_date_must_match_billing_month() {
         let mut input = fixture();
         input.intervals[0].local_date = "2026-10-01".to_owned();
-        assert_eq!(calculate_bill(&input).unwrap_err(), CalcError::DateOutsideBillingMonth);
+        assert_eq!(
+            calculate_bill(&input).unwrap_err(),
+            CalcError::DateOutsideBillingMonth
+        );
     }
 
     #[test]
     fn interval_energy_must_reconcile_to_declared_meter_total() {
         let mut input = fixture();
         input.declared_active_energy_kwh = 99.0;
-        assert!(matches!(calculate_bill(&input), Err(CalcError::ActiveEnergyMismatch { .. })));
+        assert!(matches!(
+            calculate_bill(&input),
+            Err(CalcError::ActiveEnergyMismatch { .. })
+        ));
     }
 
     #[test]
@@ -1245,14 +1485,20 @@ mod tests {
             saturday_confirmation_reference: None,
         });
         input.declared_active_energy_kwh += 1.0;
-        assert_eq!(calculate_bill(&input).unwrap_err(), CalcError::IntervalOrderOrOverlap);
+        assert_eq!(
+            calculate_bill(&input).unwrap_err(),
+            CalcError::IntervalOrderOrOverlap
+        );
     }
 
     #[test]
     fn missing_meter_calibration_evidence_is_rejected() {
         let mut input = fixture();
         input.meter_calibration_reference.clear();
-        assert_eq!(calculate_bill(&input).unwrap_err(), CalcError::MissingEvidence("meter calibration"));
+        assert_eq!(
+            calculate_bill(&input).unwrap_err(),
+            CalcError::MissingEvidence("meter calibration")
+        );
     }
 
     #[test]
