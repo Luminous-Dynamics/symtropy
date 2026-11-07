@@ -51,6 +51,8 @@ def convert_inertia(value: float, unit: str) -> float:
 
 def validate_source_units(fixture: dict[str, Any]) -> None:
     for item in fixture["base_items"]:
+        if item.get("coordinate_frame_id") != fixture["aircraft"]["reference_frame_id"]:
+            raise ValueError(f"base item {item['id']}: source coordinate frame mismatch")
         source = item["unit_source_mass"]
         converted = convert_mass(source["value"], source["unit"])
         if not close(converted, item["mass_kg"]):
@@ -68,6 +70,8 @@ def reject_reason(fixture: dict[str, Any], state: dict[str, Any]) -> str | None:
     aircraft = fixture["aircraft"]
     if state.get("source_generation_sha256", aircraft["source_generation_sha256"]) != aircraft["source_generation_sha256"]:
         return "stale_source_generation"
+    if state.get("reference_frame_id", aircraft["reference_frame_id"]) != aircraft["reference_frame_id"]:
+        return "wrong_reference_frame"
     if state.get("serial_effectivity") is not None and aircraft["serial"] not in state["serial_effectivity"]:
         return "wrong_serial_effectivity"
     if "source_mass_override" in state:
