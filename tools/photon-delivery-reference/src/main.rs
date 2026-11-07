@@ -59,13 +59,15 @@ struct PhotonReport {
     resource_constrained_dli_shortfall_mol_m2_day: f64,
     led_only_electricity_kwh_day: f64,
     led_supplement_electricity_kwh_day: f64,
+    led_delivered_electricity_kwh_day: f64,
+    resource_constrained_hybrid_electricity_kwh_day: f64,
     optical_auxiliary_electricity_kwh_day: f64,
     hybrid_lighting_electricity_kwh_day: f64,
     led_peak_power_kw: f64,
     hybrid_peak_power_kw: f64,
     available_lighting_power_kw: f64,
     available_lighting_energy_kwh_day: f64,
-    energy_saving_vs_led_only_percent: f64,
+    requested_energy_saving_vs_led_only_percent: f64,
     dli_met: bool,
     peak_power_feasible: bool,
     daily_energy_feasible: bool,
@@ -286,6 +288,7 @@ fn evaluate(input: &PhotonInput) -> Result<PhotonReport, String> {
         / 1_000_000.0
         / input.canopy_area_m2;
     let led_delivered_floor_dli = led_delivered_mean_dli * input.led_canopy_uniformity_floor;
+    let resource_constrained_hybrid_electricity_kwh = led_energy_delivered_kwh + optical_aux_kwh;
     let resource_constrained_dli = solar_floor_dli + led_delivered_floor_dli;
     let resource_constrained_dli_shortfall =
         (input.target_dli_mol_m2_day - resource_constrained_dli).max(0.0);
@@ -306,6 +309,7 @@ fn evaluate(input: &PhotonInput) -> Result<PhotonReport, String> {
         ("resource_constrained_dli", resource_constrained_dli),
         ("resource_constrained_dli_shortfall", resource_constrained_dli_shortfall),
         ("led_energy_delivered_kwh", led_energy_delivered_kwh),
+        ("resource_constrained_hybrid_electricity_kwh", resource_constrained_hybrid_electricity_kwh),
         ("led_only_kwh", led_only_kwh),
         ("led_supplement_kwh", led_supplement_kwh),
         ("optical_aux_kwh", optical_aux_kwh),
@@ -330,13 +334,15 @@ fn evaluate(input: &PhotonInput) -> Result<PhotonReport, String> {
         resource_constrained_dli_shortfall_mol_m2_day: resource_constrained_dli_shortfall,
         led_only_electricity_kwh_day: led_only_kwh,
         led_supplement_electricity_kwh_day: led_supplement_kwh,
+        led_delivered_electricity_kwh_day: led_energy_delivered_kwh,
+        resource_constrained_hybrid_electricity_kwh_day: resource_constrained_hybrid_electricity_kwh,
         optical_auxiliary_electricity_kwh_day: optical_aux_kwh,
         hybrid_lighting_electricity_kwh_day: hybrid_electricity_kwh,
         led_peak_power_kw: led_peak_kw,
         hybrid_peak_power_kw: hybrid_peak_kw,
         available_lighting_power_kw: input.available_lighting_power_kw,
         available_lighting_energy_kwh_day: input.available_lighting_energy_kwh_day,
-        energy_saving_vs_led_only_percent: energy_saving_percent,
+        requested_energy_saving_vs_led_only_percent: energy_saving_percent,
         dli_met: resource_constrained_dli + 1e-9 >= input.target_dli_mol_m2_day,
         peak_power_feasible: hybrid_peak_kw <= input.available_lighting_power_kw,
         daily_energy_feasible: hybrid_electricity_kwh <= input.available_lighting_energy_kwh_day,
@@ -360,13 +366,15 @@ fn render_json(report: &PhotonReport) -> String {
             "  \"resource_constrained_dli_shortfall_mol_m2_day\": {:.6},\n",
             "  \"led_only_electricity_kwh_day\": {:.6},\n",
             "  \"led_supplement_electricity_kwh_day\": {:.6},\n",
+            "  \"led_delivered_electricity_kwh_day\": {:.6},\n",
+            "  \"resource_constrained_hybrid_electricity_kwh_day\": {:.6},\n",
             "  \"optical_auxiliary_electricity_kwh_day\": {:.6},\n",
             "  \"hybrid_lighting_electricity_kwh_day\": {:.6},\n",
             "  \"led_peak_power_kw\": {:.6},\n",
             "  \"hybrid_peak_power_kw\": {:.6},\n",
             "  \"available_lighting_power_kw\": {:.6},\n",
             "  \"available_lighting_energy_kwh_day\": {:.6},\n",
-            "  \"energy_saving_vs_led_only_percent\": {:.6},\n",
+            "  \"requested_energy_saving_vs_led_only_percent\": {:.6},\n",
             "  \"dli_met\": {},\n",
             "  \"peak_power_feasible\": {},\n",
             "  \"daily_energy_feasible\": {},\n",
@@ -384,13 +392,15 @@ fn render_json(report: &PhotonReport) -> String {
         report.resource_constrained_dli_shortfall_mol_m2_day,
         report.led_only_electricity_kwh_day,
         report.led_supplement_electricity_kwh_day,
+        report.led_delivered_electricity_kwh_day,
+        report.resource_constrained_hybrid_electricity_kwh_day,
         report.optical_auxiliary_electricity_kwh_day,
         report.hybrid_lighting_electricity_kwh_day,
         report.led_peak_power_kw,
         report.hybrid_peak_power_kw,
         report.available_lighting_power_kw,
         report.available_lighting_energy_kwh_day,
-        report.energy_saving_vs_led_only_percent,
+        report.requested_energy_saving_vs_led_only_percent,
         report.dli_met,
         report.peak_power_feasible,
         report.daily_energy_feasible,
@@ -443,6 +453,10 @@ mod tests {
         close(report.solar_mean_dli_mol_m2_day, 15.552, 1e-12);
         close(report.solar_floor_dli_mol_m2_day, 12.4416, 1e-12);
         close(report.led_supplement_dli_mol_m2_day, 7.5584, 1e-12);
+        close(report.led_delivered_floor_dli_mol_m2_day, 5.6448, 1e-12);
+        close(report.resource_constrained_dli_mol_m2_day, 18.0864, 1e-12);
+        close(report.resource_constrained_dli_shortfall_mol_m2_day, 1.9136, 1e-12);
+        assert!(!report.dli_met);
     }
 
     #[test]
@@ -461,7 +475,9 @@ mod tests {
             859.8222222222222,
             1e-9,
         );
-        assert!(report.energy_saving_vs_led_only_percent > 61.0);
+        assert!(report.requested_energy_saving_vs_led_only_percent > 61.0);
+        close(report.led_delivered_electricity_kwh_day, 627.2, 1e-9);
+        close(report.resource_constrained_hybrid_electricity_kwh_day, 647.2, 1e-9);
     }
 
     #[test]
@@ -471,6 +487,8 @@ mod tests {
         close(report.hybrid_peak_power_kw, 53.28888888888889, 1e-9);
         assert!(!report.peak_power_feasible);
         assert!(report.daily_energy_feasible);
+        assert!(!report.dli_met);
+        close(report.resource_constrained_dli_shortfall_mol_m2_day, 1.9136, 1e-12);
     }
 
     #[test]
@@ -484,6 +502,46 @@ mod tests {
             report.led_only_electricity_kwh_day,
             1e-9,
         );
+    }
+
+    #[test]
+    fn led_uniformity_loss_increases_required_power_and_reduces_delivered_minimum_dli() {
+        let uneven_led = FIXTURE.replace(
+            "led_canopy_uniformity_floor=1.0",
+            "led_canopy_uniformity_floor=0.5",
+        );
+        let input = parse_input(&uneven_led).expect("syntactically valid fixture");
+        let report = evaluate(&input).expect("valid uneven LED case");
+        close(
+            report.led_supplement_electricity_kwh_day,
+            1679.6444444444444,
+            1e-9,
+        );
+        close(report.led_delivered_floor_dli_mol_m2_day, 2.8224, 1e-12);
+        close(report.resource_constrained_dli_mol_m2_day, 15.264, 1e-12);
+        close(
+            report.resource_constrained_dli_shortfall_mol_m2_day,
+            4.736,
+            1e-12,
+        );
+        assert!(!report.dli_met);
+    }
+
+    #[test]
+    fn sufficient_peak_and_daily_resource_limits_allow_target_dli() {
+        let high_capacity = FIXTURE
+            .replace("available_lighting_power_kw=40.0", "available_lighting_power_kw=100.0")
+            .replace(
+                "available_lighting_energy_kwh_day=960.0",
+                "available_lighting_energy_kwh_day=3000.0",
+            );
+        let input = parse_input(&high_capacity).expect("syntactically valid fixture");
+        let report = evaluate(&input).expect("valid high-capacity case");
+        assert!(report.peak_power_feasible);
+        assert!(report.daily_energy_feasible);
+        assert!(report.dli_met);
+        close(report.resource_constrained_dli_mol_m2_day, 20.0, 1e-9);
+        close(report.resource_constrained_dli_shortfall_mol_m2_day, 0.0, 0.0);
     }
 
     #[test]
