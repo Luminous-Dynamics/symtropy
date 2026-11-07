@@ -1,0 +1,51 @@
+name: ZA Energy Billing Reference
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "tools/za-energy-billing-bench/**"
+      - ".github/workflows/za-energy-billing-bench.yml"
+  push:
+    branches: ["research/za-energy-billing-bench-v0-1"]
+    paths:
+      - "tools/za-energy-billing-bench/**"
+      - ".github/workflows/za-energy-billing-bench.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: za-energy-billing-bench-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-reference:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/za-energy-billing-bench/Cargo.toml -- --check
+
+      - name: Run unit and negative-control tests
+        run: cargo test --locked --manifest-path tools/za-energy-billing-bench/Cargo.toml
+
+      - name: Execute frozen synthetic reference
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --locked --manifest-path tools/za-energy-billing-bench/Cargo.toml
