@@ -657,7 +657,12 @@ pub fn evaluate_json(input: &str) -> Result<Report, EvalError> {
         require_enum_field(
             evidence,
             "deenergized_state",
-            &["CONFIRMED_SYNTHETIC", "UNCONFIRMED", "NOT_REQUIRED", "UNKNOWN"],
+            &[
+                "CONFIRMED_SYNTHETIC",
+                "UNCONFIRMED",
+                "NOT_REQUIRED",
+                "UNKNOWN",
+            ],
             &evidence_path,
         )?;
 
