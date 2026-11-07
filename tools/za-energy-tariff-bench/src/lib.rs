@@ -573,9 +573,9 @@ mod tests {
 
         let before_eval = evaluate(&before).expect("before evaluates");
         let after_eval = evaluate(&after).expect("after evaluates");
-        assert_eq!(before_eval.billed_demand_kva, 100.0);
-        assert_eq!(after_eval.billed_demand_kva, 100.0);
-        assert_eq!(before_eval.demand_charge_zar, after_eval.demand_charge_zar);
+        assert!((before_eval.billed_demand_kva - 100.0).abs() < 0.001);
+        assert!((after_eval.billed_demand_kva - 100.0).abs() < 0.001);
+        assert!((before_eval.demand_charge_zar - after_eval.demand_charge_zar).abs() < 0.001);
     }
 
     #[test]
@@ -602,8 +602,8 @@ mod tests {
         case.intervals[0].day_type = DayType::Sunday;
         case.intervals[0].start_minute = 8 * 60;
         let result = evaluate(&case).expect("Sunday off-peak evaluates");
-        assert_eq!(result.peak_energy_kwh, 0.0);
-        assert_eq!(result.off_peak_energy_kwh, 100.0);
+        assert!(result.peak_energy_kwh.abs() < 0.001);
+        assert!((result.off_peak_energy_kwh - 100.0).abs() < 0.001);
     }
 
     #[test]
@@ -617,7 +617,7 @@ mod tests {
 
         case.power_factor = 0.96;
         let result_at_threshold = evaluate(&case).expect("threshold evaluates");
-        assert_eq!(result_at_threshold.reactive_energy_charge_zar, 0.0);
+        assert!(result_at_threshold.reactive_energy_charge_zar.abs() < 0.001);
     }
 
     #[test]
@@ -705,6 +705,6 @@ mod tests {
         let result = evaluate(&base_case()).expect("case evaluates");
         assert!((result.network_surcharge_zar - 6.0).abs() < 0.001);
         assert!((result.fixed_network_charge_zar - 2185.32).abs() < 0.001);
-        assert_ne!(result.network_surcharge_zar, result.fixed_network_charge_zar);
+        assert!((result.network_surcharge_zar - result.fixed_network_charge_zar).abs() > 1.0);
     }
 }
