@@ -15,7 +15,7 @@ A bounded Rust research crate for analytic Lorentzian-spacetime reference calcul
 - Explicit second metric derivatives, mixed-index Riemann tensor, Ricci tensor/scalar, Einstein tensor, Kretschmann contraction, and algebraic Riemann-symmetry residuals.
 - Fixed-size second-order forward-mode automatic differentiation for Schwarzschild, Kerr, ingoing Eddington-Finkelstein, and ingoing Kerr metric values, gradients, and Hessians; AD-generated Kerr curvature is checked against vacuum and analytic Kretschmann fixtures.
 - Horizon-regular ingoing charts for Schwarzschild and Kerr, with curvature tests at/inside their horizons and scalar-invariant comparisons against exterior coordinates.
-- 50 authored analytic, limiting-case, invalid-domain, matrix, connection, curvature, automatic-differentiation, chart, and posterior-transform tests.
+- **63 authored Rust tests** across scalar physics, Kerr limits, metric matrices, connection compatibility, curvature, second-order automatic differentiation, horizon-regular charts, posterior transforms, and geodesic integration.
 
 ## Conventions
 
@@ -44,7 +44,7 @@ The posterior transform preserves each input sample ID, order, and paired mass/s
 
 ## Deliberate limits
 
-The explicit hand-derived second-derivative fixture covers Schwarzschild in the exterior Schwarzschild chart. A separate second-order forward-mode AD path generates first/second derivatives and curvature for Schwarzschild and Kerr exterior charts. It also supports ingoing Eddington-Finkelstein Schwarzschild and ingoing Kerr coordinates, with tests at/inside the horizons and scalar-invariant comparisons across charts. Kerr vacuum-Ricci and analytic Kretschmann tests are authored. The current geodesic integrator is fixed-step RK4 and has only initial Schwarzschild/Kerr fixtures; adaptive stepping, symplectic/Hamiltonian cross-validation, Carter-constant handling, and extensive inclined Kerr orbit tests remain future work. There is no GRHD/GRMHD solver, waveform generator, or numerical-relativity evolution code.
+The explicit hand-derived second-derivative fixture covers Schwarzschild in the exterior Schwarzschild chart. A separate second-order forward-mode AD path generates first/second derivatives and curvature for Schwarzschild and Kerr exterior charts. It also supports ingoing Eddington-Finkelstein Schwarzschild and ingoing Kerr coordinates, with tests at/inside the horizons and scalar-invariant comparisons across charts. Kerr vacuum-Ricci and analytic Kretschmann tests are authored. The current geodesic engine is Schwarzschild-only. It includes second-order Christoffel RK4, first-order canonical Hamiltonian RK4, and a step-doubling adaptive controller with separate coordinate/tangent tolerances. It is not yet symplectic, and Kerr geodesics/Carter-constant handling remain future work. There is no GRHD/GRMHD solver, waveform generator, or numerical-relativity evolution code.
 
 The generic metric-component constructor does not certify Lorentzian signature. Curvature output is not yet accompanied by automatic conditioning estimates; tolerances must be interpreted for the declared fixture and coordinate chart. No observational-validation or state-of-the-art performance claim is made.
 
@@ -53,7 +53,7 @@ The generic metric-component constructor does not certify Lorentzian signature. 
 - Kerr further independent curvature-invariant fixtures and full tensor conditioning/error estimates.
 - Differential Bianchi identity and higher-derivative consistency checks.
 - More exhaustive horizon-regular coordinate and cross-chart scalar-invariant comparisons.
-- Timelike/null geodesics with normalization and Killing-constant drift.
+- Extend the Schwarzschild geodesics to horizon-regular coordinate charts, then add Kerr equatorial/inclined geodesics, Carter-constant diagnostics, and an independent formulation with its own convergence suite.
 - QNM / waveform and public detector-data replication.
 
 ## Versioned benchmark registries
@@ -69,4 +69,18 @@ These files are literature / experiment specifications. They are not benchmark e
 
 `cargo test -p symtropy-relativity`
 
-**Validation status:** tests are authored but were not executed in the editing environment because `rustc` and `cargo` are unavailable there.
+**Validation status:** 63 tests are authored but were not executed in the editing environment because `rustc` and `cargo` are unavailable there. No build/test pass or geodesic accuracy claim is made.
+
+
+## Schwarzschild geodesic scope
+
+The current geodesic module is deliberately limited to the Schwarzschild exterior chart. It offers two independent formulations:
+
+1. The second-order geodesic equation using the Levi-Civita connection.
+2. First-order canonical Hamilton equations using (H=\frac12 g^{\mu\nu}p_\mu p_\nu).
+
+The coordinate formulation also supports step-doubling adaptive integration. Its absolute tolerances are split by coordinate and tangent dimensions; the adaptive error estimate is a local controller, not a rigorous global error bound.
+
+Timelike trajectories use `lambda = c*tau` and target (g(u,u)=-1). Null trajectories use an affine parameter and target (g(u,u)=0). Both formulations expose normalization, Killing energy, axial angular momentum, and Hamiltonian diagnostics. They reject the Schwarzschild horizon and polar-axis chart boundaries rather than crossing a coordinate singularity.
+
+The machine-readable fixtures are in `benchmarks/geodesic_reference_cases.json`. Kerr geodesics, Carter constant, horizon-crossing geodesics in ingoing charts, symplectic integration, and adaptive canonical-Hamiltonian stepping are not implemented yet.
