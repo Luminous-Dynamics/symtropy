@@ -1,0 +1,545 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/symtropy/measurement-uncertainty-case-v0.1.json",
+  "title": "Symtropy Measurement Uncertainty Case v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "evidence_class",
+    "dependence_model",
+    "inputs",
+    "correlation_matrix",
+    "outputs",
+    "simulation"
+  ],
+  "$defs": {
+    "ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "dimension": {
+      "type": "array",
+      "minItems": 7,
+      "maxItems": 7,
+      "items": {
+        "type": "integer",
+        "minimum": -12,
+        "maximum": 12
+      }
+    },
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "input_id",
+        "unit",
+        "dimension",
+        "scale_to_si",
+        "distribution",
+        "method_ref",
+        "source_ref",
+        "parameter_validation_ref"
+      ],
+      "properties": {
+        "input_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "unit": {
+          "$ref": "#/$defs/ref"
+        },
+        "dimension": {
+          "$ref": "#/$defs/dimension"
+        },
+        "scale_to_si": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "distribution": {
+          "type": "object"
+        },
+        "method_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "source_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "parameter_validation_ref": {
+          "$ref": "#/$defs/ref"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "distribution": {
+                "properties": {
+                  "type": {
+                    "const": "NORMAL"
+                  }
+                },
+                "required": [
+                  "type"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "distribution": {
+                "required": [
+                  "type",
+                  "mean",
+                  "standard_deviation"
+                ],
+                "properties": {
+                  "type": {
+                    "const": "NORMAL"
+                  },
+                  "mean": {
+                    "type": "number"
+                  },
+                  "standard_deviation": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "distribution": {
+                "properties": {
+                  "type": {
+                    "const": "LOGNORMAL"
+                  }
+                },
+                "required": [
+                  "type"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "distribution": {
+                "required": [
+                  "type",
+                  "log_mean",
+                  "log_standard_deviation"
+                ],
+                "properties": {
+                  "type": {
+                    "const": "LOGNORMAL"
+                  },
+                  "log_mean": {
+                    "type": "number"
+                  },
+                  "log_standard_deviation": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "distribution": {
+                "properties": {
+                  "type": {
+                    "const": "UNIFORM"
+                  }
+                },
+                "required": [
+                  "type"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "distribution": {
+                "required": [
+                  "type",
+                  "lower",
+                  "upper"
+                ],
+                "properties": {
+                  "type": {
+                    "const": "UNIFORM"
+                  },
+                  "lower": {
+                    "type": "number"
+                  },
+                  "upper": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "distribution": {
+                "properties": {
+                  "type": {
+                    "const": "TRIANGULAR"
+                  }
+                },
+                "required": [
+                  "type"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "distribution": {
+                "required": [
+                  "type",
+                  "lower",
+                  "mode",
+                  "upper"
+                ],
+                "properties": {
+                  "type": {
+                    "const": "TRIANGULAR"
+                  },
+                  "lower": {
+                    "type": "number"
+                  },
+                  "mode": {
+                    "type": "number"
+                  },
+                  "upper": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "instruction": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "input_id"
+          ],
+          "properties": {
+            "op": {
+              "const": "INPUT"
+            },
+            "input_id": {
+              "$ref": "#/$defs/ref"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "value",
+            "dimension",
+            "scale_to_si"
+          ],
+          "properties": {
+            "op": {
+              "const": "CONSTANT"
+            },
+            "value": {
+              "type": "number"
+            },
+            "dimension": {
+              "$ref": "#/$defs/dimension"
+            },
+            "scale_to_si": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op"
+          ],
+          "properties": {
+            "op": {
+              "enum": [
+                "ADD",
+                "SUBTRACT",
+                "MULTIPLY",
+                "DIVIDE",
+                "SQRT",
+                "LOG",
+                "EXP",
+                "ABS"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "quantile_target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "probability",
+        "maximum_mc_interval_width"
+      ],
+      "properties": {
+        "probability": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "exclusiveMaximum": 1
+        },
+        "maximum_mc_interval_width": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "output_id",
+        "unit",
+        "dimension",
+        "scale_from_si",
+        "equation_ref",
+        "source_ref",
+        "instructions",
+        "quantile_targets",
+        "coverage_interval"
+      ],
+      "properties": {
+        "output_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "unit": {
+          "$ref": "#/$defs/ref"
+        },
+        "dimension": {
+          "$ref": "#/$defs/dimension"
+        },
+        "scale_from_si": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "equation_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "source_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "instructions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/instruction"
+          }
+        },
+        "quantile_targets": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/quantile_target"
+          }
+        },
+        "coverage_interval": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "lower_probability",
+            "upper_probability"
+          ],
+          "properties": {
+            "lower_probability": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "exclusiveMaximum": 1
+            },
+            "upper_probability": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "exclusiveMaximum": 1
+            }
+          }
+        }
+      }
+    },
+    "convergence_output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "output_id",
+        "maximum_mean_drift",
+        "maximum_standard_deviation_drift",
+        "maximum_quantile_drift"
+      ],
+      "properties": {
+        "output_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "maximum_mean_drift": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "maximum_standard_deviation_drift": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "maximum_quantile_drift": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    }
+  },
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "case_id": {
+      "$ref": "#/$defs/ref"
+    },
+    "evidence_class": {
+      "enum": [
+        "SYNTHETIC_CONFORMANCE_FIXTURE",
+        "MEASURED"
+      ]
+    },
+    "dependence_model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "method_ref",
+        "source_ref",
+        "assumption_ref"
+      ],
+      "properties": {
+        "type": {
+          "const": "GAUSSIAN_COPULA"
+        },
+        "method_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "source_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "assumption_ref": {
+          "$ref": "#/$defs/ref"
+        }
+      }
+    },
+    "inputs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/input"
+      }
+    },
+    "correlation_matrix": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "array",
+        "minItems": 1,
+        "items": {
+          "type": "number"
+        }
+      }
+    },
+    "outputs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/output"
+      }
+    },
+    "simulation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "prng",
+        "seed",
+        "sample_count",
+        "batch_size",
+        "maximum_invalid_fraction",
+        "quantile_estimation_confidence",
+        "convergence"
+      ],
+      "properties": {
+        "prng": {
+          "const": "SPLITMIX64_BOX_MULLER_V1"
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sample_count": {
+          "type": "integer",
+          "minimum": 1024
+        },
+        "batch_size": {
+          "type": "integer",
+          "minimum": 128
+        },
+        "maximum_invalid_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "quantile_estimation_confidence": {
+          "type": "number",
+          "exclusiveMinimum": 0.5,
+          "exclusiveMaximum": 1
+        },
+        "convergence": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "minimum_batch_count",
+            "stable_tail_batch_count",
+            "outputs"
+          ],
+          "properties": {
+            "minimum_batch_count": {
+              "type": "integer",
+              "minimum": 2
+            },
+            "stable_tail_batch_count": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "outputs": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/convergence_output"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
