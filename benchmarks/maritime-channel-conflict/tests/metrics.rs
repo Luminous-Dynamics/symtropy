@@ -515,7 +515,9 @@ fn channel_movement_must_be_exact_member_of_selected_fleet_plan() {
     )]);
     assert_eq!(
         evaluate_channel_conflicts(&plan, &ChannelConflictWorkload { graph, movements },),
-        Err(ChannelError::FleetOperationNotFound("main-segment".to_owned()))
+        Err(ChannelError::FleetOperationNotFound(
+            "main-segment".to_owned()
+        ))
     );
 }
 
