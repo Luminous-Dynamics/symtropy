@@ -206,7 +206,7 @@ fn run_branch(speed_limit_mps: f64, branch_id: &str) -> Result<BranchRun, String
     let mut recorded_snapshots = Vec::with_capacity(TICK_COUNT as usize);
     let mut observations = Vec::new();
     let mut decisions = Vec::new();
-remove action vectors    let mut ego_visible = Vec::<String>::new();
+let mut ego_visible = Vec::<String>::new();
     let mut actor_visible = Vec::<String>::new();
     let mut cue_index = BTreeMap::<String, ObservationDelivery>::new();
     let mut ego_prior_receipts = Vec::<String>::new();
