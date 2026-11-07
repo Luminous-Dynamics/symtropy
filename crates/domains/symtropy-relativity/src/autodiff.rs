@@ -11,7 +11,7 @@
 use core::fmt;
 
 use super::{
-    DimensionlessSpin, KerrBlackHole, PhysicsDomainError, SchwarzschildBlackHole,
+    KerrBlackHole, PhysicsDomainError, SchwarzschildBlackHole,
     connection::{ConnectionError, MetricDerivatives4},
     curvature::{CurvatureError, MetricSecondDerivatives4, RiemannTensor4},
     metric::{
