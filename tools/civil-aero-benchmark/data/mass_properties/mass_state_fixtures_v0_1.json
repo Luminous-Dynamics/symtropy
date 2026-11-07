@@ -1,0 +1,468 @@
+{
+  "schema": "luminous.aero.mass-state-fixtures",
+  "schema_version": "0.1.0",
+  "evidence_ceiling": "All values and provenance identifiers are synthetic. This fixture validates arithmetic, state identity and fail-closed classifications only.",
+  "aircraft": {
+    "family": "Wren 2",
+    "model": "Wren 2 research fixture",
+    "serial": "SYNTH-001",
+    "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "alternate_configuration_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "source_generation_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  },
+  "base_items": [
+    {
+      "id": "airframe",
+      "category": "primary_structure",
+      "mass_kg": 500,
+      "position_m": [
+        1,
+        0,
+        0
+      ],
+      "evidence_class": "synthetic_fixture",
+      "admission": "admitted_for_screening",
+      "source_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "source_revision": "rev-1",
+      "unit_source_mass": {
+        "value": 500,
+        "unit": "kg"
+      },
+      "uncertainty_kg": 0.1,
+      "uncertainty_relationship": "independent_by_declared_model"
+    },
+    {
+      "id": "fuel_tank",
+      "category": "fuel_and_fluids",
+      "mass_kg": 100,
+      "position_m": [
+        4,
+        0,
+        0
+      ],
+      "evidence_class": "synthetic_fixture",
+      "admission": "admitted_for_screening",
+      "source_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "source_revision": "rev-1",
+      "unit_source_mass": {
+        "value": 100,
+        "unit": "kg"
+      },
+      "uncertainty_kg": 0.1,
+      "uncertainty_relationship": "independent_by_declared_model"
+    },
+    {
+      "id": "occupant",
+      "category": "payload",
+      "mass_kg": 80,
+      "position_m": [
+        2,
+        0,
+        0.5
+      ],
+      "evidence_class": "synthetic_fixture",
+      "admission": "admitted_for_screening",
+      "source_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "source_revision": "rev-1",
+      "unit_source_mass": {
+        "value": 80,
+        "unit": "kg"
+      },
+      "uncertainty_kg": 0.1,
+      "uncertainty_relationship": "independent_by_declared_model"
+    },
+    {
+      "id": "removable_module",
+      "category": "propulsion",
+      "mass_kg": 40,
+      "position_m": [
+        0.5,
+        0,
+        0
+      ],
+      "evidence_class": "synthetic_fixture",
+      "admission": "admitted_for_screening",
+      "source_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "source_revision": "rev-1",
+      "unit_source_mass": {
+        "value": 40,
+        "unit": "kg"
+      },
+      "uncertainty_kg": 0.1,
+      "uncertainty_relationship": "independent_by_declared_model"
+    }
+  ],
+  "states": [
+    {
+      "id": "takeoff",
+      "kind": "takeoff",
+      "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "items": [
+        {
+          "id": "airframe",
+          "installation": "installed"
+        },
+        {
+          "id": "fuel_tank",
+          "installation": "installed"
+        },
+        {
+          "id": "occupant",
+          "installation": "installed"
+        },
+        {
+          "id": "removable_module",
+          "installation": "installed"
+        }
+      ],
+      "expected": {
+        "status": "complete_for_screening",
+        "total_mass_kg": 720,
+        "cg_m": [
+          1.5,
+          0,
+          0.05555555555555555
+        ],
+        "inertia_kg_m2": [
+          17.777777777777775,
+          827.7777777777777,
+          810,
+          0,
+          -20,
+          0
+        ]
+      }
+    },
+    {
+      "id": "landing_fuel_burn",
+      "kind": "landing",
+      "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "items": [
+        {
+          "id": "airframe",
+          "installation": "installed"
+        },
+        {
+          "id": "fuel_tank",
+          "installation": "installed",
+          "mass_kg": 50
+        },
+        {
+          "id": "occupant",
+          "installation": "installed"
+        },
+        {
+          "id": "removable_module",
+          "installation": "installed"
+        }
+      ],
+      "expected": {
+        "status": "complete_for_screening",
+        "total_mass_kg": 670,
+        "cg_m": [
+          1.3134328358208955,
+          0,
+          0.05970149253731343
+        ],
+        "inertia_kg_m2": [
+          17.61194029850746,
+          491.7910447761193,
+          474.1791044776119,
+          0,
+          -27.46268656716418,
+          0
+        ]
+      }
+    },
+    {
+      "id": "occupant_relocated",
+      "kind": "takeoff",
+      "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "items": [
+        {
+          "id": "airframe",
+          "installation": "installed"
+        },
+        {
+          "id": "fuel_tank",
+          "installation": "installed"
+        },
+        {
+          "id": "occupant",
+          "installation": "installed",
+          "position_m": [
+            3,
+            0,
+            0.5
+          ]
+        },
+        {
+          "id": "removable_module",
+          "installation": "installed"
+        }
+      ],
+      "expected": {
+        "status": "complete_for_screening",
+        "total_mass_kg": 720,
+        "cg_m": [
+          1.6111111111111112,
+          0,
+          0.05555555555555555
+        ],
+        "inertia_kg_m2": [
+          17.777777777777775,
+          978.8888888888887,
+          961.1111111111111,
+          0,
+          -55.55555555555555,
+          0
+        ]
+      }
+    },
+    {
+      "id": "module_removed",
+      "kind": "maintenance",
+      "configuration_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "items": [
+        {
+          "id": "airframe",
+          "installation": "installed"
+        },
+        {
+          "id": "fuel_tank",
+          "installation": "installed"
+        },
+        {
+          "id": "occupant",
+          "installation": "installed"
+        },
+        {
+          "id": "removable_module",
+          "installation": "removed"
+        }
+      ],
+      "expected": {
+        "status": "complete_for_screening",
+        "total_mass_kg": 680,
+        "cg_m": [
+          1.5588235294117647,
+          0,
+          0.058823529411764705
+        ],
+        "inertia_kg_m2": [
+          17.647058823529413,
+          785.2941176470589,
+          767.6470588235295,
+          0,
+          -17.647058823529413,
+          0
+        ]
+      }
+    },
+    {
+      "id": "unknown_mass",
+      "kind": "takeoff",
+      "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "items": [
+        {
+          "id": "airframe",
+          "installation": "installed"
+        },
+        {
+          "id": "fuel_tank",
+          "installation": "installed",
+          "mass_kg": null
+        },
+        {
+          "id": "occupant",
+          "installation": "installed"
+        },
+        {
+          "id": "removable_module",
+          "installation": "installed"
+        }
+      ],
+      "expected": {
+        "status": "indeterminate",
+        "total_mass_kg": null,
+        "cg_m": null,
+        "inertia_kg_m2": null
+      }
+    },
+    {
+      "id": "unknown_location",
+      "kind": "takeoff",
+      "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "items": [
+        {
+          "id": "airframe",
+          "installation": "installed"
+        },
+        {
+          "id": "fuel_tank",
+          "installation": "installed",
+          "position_m": null
+        },
+        {
+          "id": "occupant",
+          "installation": "installed"
+        },
+        {
+          "id": "removable_module",
+          "installation": "installed"
+        }
+      ],
+      "expected": {
+        "status": "indeterminate",
+        "total_mass_kg": 720,
+        "cg_m": null,
+        "inertia_kg_m2": null
+      }
+    },
+    {
+      "id": "pending_review",
+      "kind": "takeoff",
+      "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "item_evidence_overrides": {
+        "occupant": {
+          "admission": "pending_review"
+        }
+      },
+      "items": [
+        {
+          "id": "airframe",
+          "installation": "installed"
+        },
+        {
+          "id": "fuel_tank",
+          "installation": "installed"
+        },
+        {
+          "id": "occupant",
+          "installation": "installed"
+        },
+        {
+          "id": "removable_module",
+          "installation": "installed"
+        }
+      ],
+      "expected": {
+        "status": "indeterminate",
+        "total_mass_kg": 720,
+        "cg_m": [
+          1.5,
+          0,
+          0.05555555555555555
+        ],
+        "inertia_kg_m2": [
+          17.777777777777775,
+          827.7777777777777,
+          810,
+          0,
+          -20,
+          0
+        ]
+      }
+    },
+    {
+      "id": "stale_source_generation",
+      "kind": "takeoff",
+      "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "source_generation_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "items": [],
+      "expected": {
+        "status": "reject",
+        "reason": "stale_source_generation"
+      }
+    },
+    {
+      "id": "wrong_serial_effectivity",
+      "kind": "takeoff",
+      "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "serial_effectivity": [
+        "SYNTH-002"
+      ],
+      "items": [],
+      "expected": {
+        "status": "reject",
+        "reason": "wrong_serial_effectivity"
+      }
+    },
+    {
+      "id": "source_unit_mismatch",
+      "kind": "takeoff",
+      "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "source_mass_override": {
+        "fuel_tank": {
+          "value": 50,
+          "unit": "kg"
+        }
+      },
+      "items": [
+        {
+          "id": "airframe",
+          "installation": "installed"
+        },
+        {
+          "id": "fuel_tank",
+          "installation": "installed"
+        },
+        {
+          "id": "occupant",
+          "installation": "installed"
+        },
+        {
+          "id": "removable_module",
+          "installation": "installed"
+        }
+      ],
+      "expected": {
+        "status": "reject",
+        "reason": "source_unit_mismatch"
+      }
+    },
+    {
+      "id": "aggregate_child_overlap",
+      "kind": "takeoff",
+      "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "aggregate_record": {
+        "id": "propulsion_assembly",
+        "mass_kg": 60,
+        "position_m": [
+          0.5,
+          0,
+          0
+        ],
+        "includes": [
+          "removable_module"
+        ]
+      },
+      "items": [
+        {
+          "id": "airframe",
+          "installation": "installed"
+        },
+        {
+          "id": "fuel_tank",
+          "installation": "installed"
+        },
+        {
+          "id": "occupant",
+          "installation": "installed"
+        },
+        {
+          "id": "removable_module",
+          "installation": "installed"
+        },
+        {
+          "id": "propulsion_assembly",
+          "installation": "installed"
+        }
+      ],
+      "expected": {
+        "status": "reject",
+        "reason": "aggregate_child_double_count"
+      }
+    }
+  ]
+}
