@@ -544,3 +544,55 @@ The crate has **36 authored tests** (15 scalar/root, 11 metric, 6 connection, 4 
 The competitive research direction is not another uncalibrated fast waveform network. It is a **physics-qualified surrogate** with held-out error calibration, explicit applicability domain, out-of-domain abstention, posterior-coverage checks, cross-model disagreement, and active selection of the next expensive NR simulation. See [BH-SURROGATE-CERT-001 #3998](https://github.com/Luminous-Dynamics/symtropy/issues/3998).
 
 The next mathematical gates remain curvature tensors and coordinate-invariant checks ([#3981](https://github.com/Luminous-Dynamics/symtropy/issues/3981)), followed by geodesic integration ([#3982](https://github.com/Luminous-Dynamics/symtropy/issues/3982)). No complete GR solver, waveform generator, observational reproduction, or SOTA performance result is claimed.
+
+
+## Further implementation update — curvature and geodesics (2026-11-07)
+
+The current draft branch now extends beyond the metric and connection foundation:
+
+### Curvature tensors
+
+`curvature.rs` implements:
+- explicit first derivatives of the Levi-Civita connection, `d[mu][rho][nu][sigma]`;
+- mixed-index Riemann tensor under a documented sign convention;
+- fully lowered Riemann tensor;
+- Ricci tensor, scalar curvature and Einstein tensor;
+- Kretschmann contraction;
+- residuals for pair antisymmetry, pair exchange and the algebraic first Bianchi identity;
+- analytic Schwarzschild second-derivative fixture.
+
+Six tests cover flat Cartesian Minkowski curvature, Schwarzschild vacuum Ricci/Einstein, the closed-form Kretschmann invariant, Riemann algebraic symmetries/Bianchi, and invalid chart/derivative data.
+
+### Schwarzschild geodesics
+
+`geodesic.rs` implements:
+- timelike integration with the length parameter (lambda=c\tau), giving (g_{\mu\nu}u^\mu u^\nu=-1);
+- null integration with an explicitly affine parameter and zero normalization;
+- classical RK4 and step-doubling adaptive integration;
+- component-wise absolute tolerances (metres/radians for coordinates; dimensionless/inverse-metres for tangent components), plus relative tolerance;
+- normalization, Killing energy and axial angular-momentum diagnostics;
+- typed rejection at the Schwarzschild horizon and polar-axis chart boundaries.
+
+Six tests cover a circular timelike orbit, radial null propagation, invariant conservation, adaptive step-doubling against an analytic circular orbit, proper-length versus coordinate-time distinction, and invalid-domain/tolerance rejection.
+
+### Updated test inventory and validation
+
+The branch now has **48 authored Rust tests**:
+- 15 scalar / analytic;
+- 11 metric;
+- 6 connection;
+- 6 curvature;
+- 6 geodesic;
+- 4 posterior.
+
+They remain unexecuted because this editing environment has no `rustc` or `cargo`. A separate array-based numerical calculation checked the Schwarzschild vacuum Ricci residual, Kretschmann invariant and Riemann algebraic identities at several exterior radii; these agree with the analytic fixtures to floating-point roundoff. This is a formula-level sanity check, not a Rust compilation or test pass.
+
+### Remaining mathematical gaps
+
+- Kerr connection derivatives, curvature tensors and geodesics;
+- horizon-regular coordinate charts;
+- independent Hamiltonian geodesic formulation;
+- contracted Bianchi / covariant-derivative checks;
+- numerical-relativity evolution, waveforms and observational reproduction.
+
+The next step should be Kerr curvature with a second independent coordinate/chart check, then Hamiltonian-vs-second-order geodesic cross-validation. No production numerical-relativity or SOTA performance claim is made.
