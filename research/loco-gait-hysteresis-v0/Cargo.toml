@@ -1,0 +1,9 @@
+[package]
+name = "loco-gait-hysteresis"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Deterministic reference models and metrics for history-dependent gait-regime transitions"
+
+[workspace]
