@@ -4,6 +4,8 @@ Status: research architecture specification; no hardware safety certificate is c
 
 Parent: https://github.com/Luminous-Dynamics/symtropy/issues/4083
 
+Certificate lifecycle implementation: [LOCO-ASSURANCE-001 / #4117](https://github.com/Luminous-Dynamics/symtropy/issues/4117), implemented as a separate evidence gate in [PR #4119](https://github.com/Luminous-Dynamics/symtropy/pull/4119).
+
 ## 1. Paradigm shift: the robot's evidence substrate is part of the operational state
 
 A conventional locomotion state may contain body pose, joint position/velocity and contact mode. That is not enough to determine whether a safety argument remains valid.
