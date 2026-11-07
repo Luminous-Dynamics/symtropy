@@ -209,10 +209,7 @@ fn evaluate(case: &Case) -> (String, Vec<String>) {
                 .insert(observation.element_id.as_str(), observation)
                 .is_some()
         {
-            return decision(
-                "INVALID_INPUT",
-                "UNCERTAINTY_OR_GEOMETRY_VALUE_INVALID",
-            );
+            return decision("INVALID_INPUT", "UNCERTAINTY_OR_GEOMETRY_VALUE_INVALID");
         }
         if !requirements.contains_key(observation.element_id.as_str()) {
             return decision(
@@ -298,8 +295,12 @@ fn evaluate(case: &Case) -> (String, Vec<String>) {
             "ALL_REQUIRED_ELEMENTS_WITHIN_DECLARED_BOUNDS",
         ),
         "modify" => {
-            let unique_targets: BTreeSet<&str> =
-                candidate.delta.target_ids.iter().map(String::as_str).collect();
+            let unique_targets: BTreeSet<&str> = candidate
+                .delta
+                .target_ids
+                .iter()
+                .map(String::as_str)
+                .collect();
             if unique_targets.len() != candidate.delta.target_ids.len() {
                 return decision("INVALID_INPUT", "MODIFY_DELTA_HAS_DUPLICATE_TARGETS");
             }
