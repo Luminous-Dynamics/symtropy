@@ -1084,14 +1084,7 @@ mod tests {
         );
         o.clock_mapping_receipt_id.clear();
         assert_eq!(
-            update_with_observations(
-                &prior(),
-                &[m],
-                &[o],
-                &execution_receipt(),
-                20,
-                20
-            ),
+            update_with_observations(&prior(), &[m], &[o], &execution_receipt(), 20, 20),
             Err(ContactInformationError::EmptyIdentifier)
         );
     }
