@@ -114,7 +114,16 @@ No raw participant data or study instruments are copied into this repository. Th
 
 ## Run
 
+```
+
+Assemble one matched paper-era 12-study run from the 12 native study directories:
+
 ```sh
+cargo run --locked --manifest-path research/civdyn-humanstudy-repro/Cargo.toml --bin paper-import-run -- receipt.json ./study_001_run ./study_002_run ./study_003_run ./study_004_run ./study_005_run ./study_006_run ./study_007_run ./study_008_run ./study_009_run ./study_010_run ./study_011_run ./study_012_run
+```
+
+Use `-` instead of `receipt.json` to write the normalized receipt to stdout. Every directory must contain the three pinned upstream outputs plus the CIVDYN run-attestation sidecar. All 12 imports must share the same run/model/prompt/config identity; the command fails closed otherwise.
+sh
 cargo fmt --manifest-path research/civdyn-humanstudy-repro/Cargo.toml --all -- --check
 cargo clippy --locked --manifest-path research/civdyn-humanstudy-repro/Cargo.toml --all-targets -- -D warnings
 cargo test --locked --manifest-path research/civdyn-humanstudy-repro/Cargo.toml --all-targets
