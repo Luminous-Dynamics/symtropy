@@ -1,0 +1,106 @@
+{
+  "suite_id": "CAREFRAME_STATIC_PROXY_COLLISION_PROBE",
+  "suite_version": "0.1.0",
+  "evidence_class": "synthetic_engine_integration",
+  "claim_ceiling": "Static collision proxy regression only; no articulated dynamics or physical safety claim.",
+  "morphology_path": "docs/medical-robotics/careframe-wheeled-upper-body-morphology-v0.json",
+  "joint_state_path": "docs/medical-robotics/careframe-nominal-joint-state-v0.json",
+  "base_position_m": [
+    0,
+    0,
+    0
+  ],
+  "gravity_m_s2": [
+    0,
+    0,
+    0
+  ],
+  "timestep_s": 0.002,
+  "probe": {
+    "shape": "sphere",
+    "radius_m": 0.05,
+    "mass_kg": 1
+  },
+  "cases": [
+    {
+      "case_id": "front_chassis_face",
+      "position_m": [
+        0.34,
+        0,
+        0
+      ],
+      "expected_contact": true,
+      "rationale": "Sphere overlaps the positive-X chassis face by 0.02 m."
+    },
+    {
+      "case_id": "rear_chassis_face",
+      "position_m": [
+        -0.34,
+        0,
+        0
+      ],
+      "expected_contact": true,
+      "rationale": "Mirrored sphere overlaps the negative-X chassis face by 0.02 m."
+    },
+    {
+      "case_id": "drive_wheel_outer_face",
+      "position_m": [
+        0,
+        0.45,
+        0
+      ],
+      "expected_contact": true,
+      "rationale": "Sphere overlaps the declared outer Y edge of the right drive-wheel box."
+    },
+    {
+      "case_id": "head_shell_top",
+      "position_m": [
+        0,
+        0,
+        0.97
+      ],
+      "expected_contact": true,
+      "rationale": "Sphere overlaps the synthetic head-shell top by 0.02 m."
+    },
+    {
+      "case_id": "one_centimetre_chassis_near_miss",
+      "position_m": [
+        0.37,
+        0,
+        0
+      ],
+      "expected_contact": false,
+      "rationale": "Sphere has a 0.01 m gap from the chassis positive-X face and remains clear of other boxes at this height."
+    },
+    {
+      "case_id": "far_positive_x",
+      "position_m": [
+        2,
+        0,
+        0
+      ],
+      "expected_contact": false,
+      "rationale": "Probe is outside the declared morphology envelope along positive X."
+    },
+    {
+      "case_id": "far_negative_y",
+      "position_m": [
+        0,
+        -2,
+        0
+      ],
+      "expected_contact": false,
+      "rationale": "Probe is outside the declared morphology envelope along negative Y."
+    },
+    {
+      "case_id": "far_corner",
+      "position_m": [
+        2,
+        2,
+        2
+      ],
+      "expected_contact": false,
+      "rationale": "Probe is outside the declared morphology envelope in all three axes."
+    }
+  ]
+}
