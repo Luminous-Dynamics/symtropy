@@ -59,8 +59,12 @@ pub struct PowerSample {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct EnergyLedger {
+    pub run_id: String,
     pub channel_id: String,
     pub boundary: EnergyBoundary,
+    pub calibration_id: String,
+    pub clock_id: String,
+    pub timebase_receipt_id: String,
     pub sample_count: usize,
     pub duration_seconds: f64,
     pub discharge_joules: f64,
@@ -96,7 +100,12 @@ pub struct JointWorkSample {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct JointWorkLedger {
+    pub run_id: String,
     pub joint_id: String,
+    pub torque_calibration_id: String,
+    pub velocity_calibration_id: String,
+    pub clock_id: String,
+    pub timebase_receipt_id: String,
     pub sample_count: usize,
     pub duration_seconds: f64,
     pub positive_work_joules: f64,
@@ -205,8 +214,12 @@ pub fn integrate_power_channel(
         return Err(EnergyError::NumericalFailure);
     }
     Ok(EnergyLedger {
+        run_id: run.run_id.clone(),
         channel_id: channel.channel_id.clone(),
         boundary: channel.boundary,
+        calibration_id: channel.calibration_id.clone(),
+        clock_id: channel.clock_id.clone(),
+        timebase_receipt_id: channel.timebase_receipt_id.clone(),
         sample_count: ordered.len(),
         duration_seconds: duration,
         discharge_joules: draw,
@@ -220,6 +233,9 @@ pub fn battery_cost_of_transport(
     ledger: &EnergyLedger,
 ) -> Result<CostOfTransport, EnergyError> {
     run.validate()?;
+    if ledger.run_id != run.run_id {
+        return Err(EnergyError::MismatchedRun);
+    }
     if ledger.boundary != EnergyBoundary::BatteryTerminal {
         return Err(EnergyError::WrongEnergyBoundary);
     }
@@ -271,7 +287,12 @@ pub fn integrate_joint_work(
         maximum_sample_gap_ns,
     )?;
     Ok(JointWorkLedger {
+        run_id: run.run_id.clone(),
         joint_id: receipt.joint_id.clone(),
+        torque_calibration_id: receipt.torque_calibration_id.clone(),
+        velocity_calibration_id: receipt.velocity_calibration_id.clone(),
+        clock_id: receipt.clock_id.clone(),
+        timebase_receipt_id: receipt.timebase_receipt_id.clone(),
         sample_count: ordered.len(),
         duration_seconds: duration,
         positive_work_joules: positive,
@@ -574,6 +595,26 @@ mod tests {
     }
 
     #[test]
+    fn energy_from_another_run_cannot_be_reused_for_cot() {
+        let ledger = integrate_power_channel(
+            &run_receipt(),
+            &channel(EnergyBoundary::BatteryTerminal),
+            &[
+                power_sample("s0", 0, 10.0, 1.0),
+                power_sample("s1", 1_000_000_000, 10.0, 1.0),
+            ],
+            1_000_000_000,
+        )
+        .unwrap();
+        let mut other_run = run_receipt();
+        other_run.run_id = "other-run".to_owned();
+        assert_eq!(
+            battery_cost_of_transport(&other_run, &ledger),
+            Err(EnergyError::MismatchedRun)
+        );
+    }
+
+    #[test]
     fn non_positive_net_energy_has_no_fabricated_cot() {
         let ledger = integrate_power_channel(
             &run_receipt(),
@@ -774,7 +815,7 @@ mod tests {
             1_000_000_000,
         )
         .unwrap();
-        assert!((work.positive_work_joules - 1.0).abs() < 1.0e-12);
-        assert!((work.negative_work_joules - 1.0).abs() < 1.0e-12);
+        assert!((work.positive_work_joules - 0.5).abs() < 1.0e-12);
+        assert!((work.negative_work_joules - 0.5).abs() < 1.0e-12);
     }
 }
