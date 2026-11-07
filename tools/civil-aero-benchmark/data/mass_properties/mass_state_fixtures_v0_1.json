@@ -31,7 +31,8 @@
       },
       "uncertainty_kg": 0.1,
       "uncertainty_relationship": "independent_by_declared_model",
-      "coordinate_frame_id": "synthetic-aircraft-datum-v1"
+      "coordinate_frame_id": "synthetic-aircraft-datum-v1",
+      "source_captured_at_utc": "2026-11-07T00:00:00Z"
     },
     {
       "id": "fuel_tank",
@@ -52,7 +53,8 @@
       },
       "uncertainty_kg": 0.1,
       "uncertainty_relationship": "independent_by_declared_model",
-      "coordinate_frame_id": "synthetic-aircraft-datum-v1"
+      "coordinate_frame_id": "synthetic-aircraft-datum-v1",
+      "source_captured_at_utc": "2026-11-07T00:00:00Z"
     },
     {
       "id": "occupant",
@@ -73,7 +75,8 @@
       },
       "uncertainty_kg": 0.1,
       "uncertainty_relationship": "independent_by_declared_model",
-      "coordinate_frame_id": "synthetic-aircraft-datum-v1"
+      "coordinate_frame_id": "synthetic-aircraft-datum-v1",
+      "source_captured_at_utc": "2026-11-07T00:00:00Z"
     },
     {
       "id": "removable_module",
@@ -94,7 +97,8 @@
       },
       "uncertainty_kg": 0.1,
       "uncertainty_relationship": "independent_by_declared_model",
-      "coordinate_frame_id": "synthetic-aircraft-datum-v1"
+      "coordinate_frame_id": "synthetic-aircraft-datum-v1",
+      "source_captured_at_utc": "2026-11-07T00:00:00Z"
     }
   ],
   "states": [
