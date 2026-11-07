@@ -69,6 +69,15 @@ Initial down-selection should compare:
 
 Keep full-span blowing, battery-electric, other geometries and VTOL as conditional candidates. Wren 2 and Wayfarer 4 are separate product families and require separate mission, payload, structural and operating constraints.
 
+## 3A. Current external software pins
+
+The [external benchmark reference manifest](./external-benchmark-reference-manifest-v0.1.json) records the current comparison targets:
+
+- **OpenMDAO 3.45.2** stable release (27 October 2026); development documentation refreshed on 6 November is tracked separately. The stable package is an Apache-2.0 MDO reference. Pin exact package/source, Python environment and adapter. Sources: https://openmdao.org/docs/ and https://pypi.org/project/openmdao/
+- **SU2 8.6.0** release (30 October 2026), with GPU linear-solver updates, a pressure-based incompressible solver, multi-zone adjoint support in turbomachinery and experimental FSI/CHT work. For discrete-adjoint comparison, use a pinned source build: the official download page notes that binary executables do not include adjoint functionality. Keep the historical SU2 8.0.1 replication lane separate from the current 8.6.0 lane. Sources: https://github.com/su2code/SU2/releases and https://su2code.github.io/download.html
+
+These are method/tool comparators, not aircraft performance baselines. Exact commit/tag, build flags, dependencies, configuration, input mesh/geometry, hardware and full cost receipts are required. The JSON manifest is a reference list, not proof either solver has been executed in AER-01.
+
 ## 4. Required benchmark participants
 
 | Participant | Architecture policy | Optimizer / analysis policy |
