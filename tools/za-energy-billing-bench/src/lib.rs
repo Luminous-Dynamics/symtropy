@@ -1347,7 +1347,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn wrong_profile_version_is_rejected() {
         let mut input = fixture();
