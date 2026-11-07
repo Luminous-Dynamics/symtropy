@@ -25,12 +25,15 @@ pub struct ContactGaussian {
 #[derive(Debug, Clone, PartialEq)]
 pub struct MeasurementModel {
     pub model_id: String,
+    /// The commanded action for which this observation model was calibrated.
+    pub action_id: String,
     pub sensor_id: String,
     pub channel: SensorChannel,
     pub observation_row: [f64; CONTACT_STATE_DIM],
     pub noise_variance: f64,
-    /// True only when the conditional independence assumption is qualified.
-    pub independent_noise_verified: bool,
+    /// One source-qualified certificate covering the selected model set's joint
+    /// conditional-noise independence; not a per-channel Boolean assertion.
+    pub noise_independence_certificate_id: String,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -41,11 +44,24 @@ pub struct ContactObservation {
     pub sensor_id: String,
     pub channel: SensorChannel,
     pub measurement_model_id: String,
+    /// Receipt that binds the command, delivered action and measured actuation.
+    pub action_execution_receipt_id: String,
     pub clock_id: String,
     pub sample_time_ns: u64,
     pub arrival_time_ns: u64,
     pub timebase_verified: bool,
     pub value: f64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ActionExecutionReceipt {
+    pub receipt_id: String,
+    pub command_action_id: String,
+    pub delivered_action_id: String,
+    /// Digest of measured actuator output, not the requested command.
+    pub measured_actuation_digest: String,
+    /// Set only by an upstream verifier that checked command/delivery evidence.
+    pub delivery_verified: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -100,6 +116,10 @@ pub enum ContactInformationError {
     NonFiniteValue,
     InvalidNoiseVariance,
     NoiseIndependenceNotVerified,
+    NoiseIndependenceCertificateMismatch,
+    ActionDeliveryNotVerified,
+    ActionReceiptMismatch,
+    ActionModelMismatch,
     DuplicateModelId,
     DuplicateEvidenceId,
     DuplicateMeasurementModel,
@@ -129,7 +149,11 @@ impl ContactGaussian {
 
 impl MeasurementModel {
     pub fn validate(&self) -> Result<(), ContactInformationError> {
-        if self.model_id.trim().is_empty() || self.sensor_id.trim().is_empty() {
+        if self.model_id.trim().is_empty()
+            || self.action_id.trim().is_empty()
+            || self.sensor_id.trim().is_empty()
+            || self.noise_independence_certificate_id.trim().is_empty()
+        {
             return Err(ContactInformationError::EmptyIdentifier);
         }
         if self.observation_row.iter().any(|value| !value.is_finite()) {
@@ -138,8 +162,21 @@ impl MeasurementModel {
         if !self.noise_variance.is_finite() || self.noise_variance <= 0.0 {
             return Err(ContactInformationError::InvalidNoiseVariance);
         }
-        if !self.independent_noise_verified {
-            return Err(ContactInformationError::NoiseIndependenceNotVerified);
+        Ok(())
+    }
+}
+
+impl ActionExecutionReceipt {
+    pub fn validate(&self) -> Result<(), ContactInformationError> {
+        if self.receipt_id.trim().is_empty()
+            || self.command_action_id.trim().is_empty()
+            || self.delivered_action_id.trim().is_empty()
+            || self.measured_actuation_digest.trim().is_empty()
+        {
+            return Err(ContactInformationError::EmptyIdentifier);
+        }
+        if !self.delivery_verified {
+            return Err(ContactInformationError::ActionDeliveryNotVerified);
         }
         Ok(())
     }
@@ -202,15 +239,23 @@ pub fn update_with_observations(
     prior: &ContactGaussian,
     models: &[MeasurementModel],
     observations: &[ContactObservation],
+    action_receipt: &ActionExecutionReceipt,
     now_ns: u64,
     maximum_sample_age_ns: u64,
 ) -> Result<ContactGaussian, ContactInformationError> {
     prior.validate()?;
+    action_receipt.validate()?;
     if observations.is_empty() {
         return Err(ContactInformationError::NoMeasurements);
     }
 
     let ordered_models = validated_sorted_models(models)?;
+    if ordered_models
+        .iter()
+        .any(|model| model.action_id != action_receipt.command_action_id)
+    {
+        return Err(ContactInformationError::ActionModelMismatch);
+    }
     let mut model_by_id = std::collections::BTreeMap::new();
     for model in ordered_models {
         model_by_id.insert(model.model_id.as_str(), model);
@@ -233,6 +278,7 @@ pub fn update_with_observations(
             || observation.foot_id.trim().is_empty()
             || observation.sensor_id.trim().is_empty()
             || observation.measurement_model_id.trim().is_empty()
+            || observation.action_execution_receipt_id.trim().is_empty()
             || observation.clock_id.trim().is_empty()
         {
             return Err(ContactInformationError::EmptyIdentifier);
@@ -251,6 +297,9 @@ pub fn update_with_observations(
         }
         if now_ns.saturating_sub(observation.sample_time_ns) > maximum_sample_age_ns {
             return Err(ContactInformationError::StaleObservation);
+        }
+        if observation.action_execution_receipt_id != action_receipt.receipt_id {
+            return Err(ContactInformationError::ActionReceiptMismatch);
         }
         if observation.contact_event_id != first.contact_event_id {
             return Err(ContactInformationError::ContactEventMismatch);
@@ -317,6 +366,13 @@ pub fn assess_actions(
             return Err(ContactInformationError::DuplicateActionId);
         }
         validate_action_envelope(candidate.envelope)?;
+        if candidate
+            .measurement_models
+            .iter()
+            .any(|model| model.action_id != candidate.action_id)
+        {
+            return Err(ContactInformationError::ActionModelMismatch);
+        }
         let eig = expected_information_gain(prior, &candidate.measurement_models)?;
         let energy = candidate.envelope.energy_upper_bound_joules;
         let information_per_joule = eig / energy;
@@ -439,6 +495,13 @@ fn validated_sorted_models(
         if pair[0].model_id == pair[1].model_id {
             return Err(ContactInformationError::DuplicateModelId);
         }
+    }
+    let certificate_id = &ordered[0].noise_independence_certificate_id;
+    if ordered
+        .iter()
+        .any(|model| &model.noise_independence_certificate_id != certificate_id)
+    {
+        return Err(ContactInformationError::NoiseIndependenceCertificateMismatch);
     }
     Ok(ordered)
 }
@@ -606,11 +669,12 @@ mod tests {
     ) -> MeasurementModel {
         MeasurementModel {
             model_id: model_id.to_owned(),
+            action_id: "action-default".to_owned(),
             sensor_id: sensor_id.to_owned(),
             channel,
             observation_row,
             noise_variance,
-            independent_noise_verified: true,
+            noise_independence_certificate_id: "independence-set-default".to_owned(),
         }
     }
 
@@ -630,12 +694,36 @@ mod tests {
             sensor_id: sensor_id.to_owned(),
             channel,
             measurement_model_id: measurement_model_id.to_owned(),
+            action_execution_receipt_id: "execution-default".to_owned(),
             clock_id: "physics-clock".to_owned(),
             sample_time_ns,
             arrival_time_ns,
             timebase_verified: true,
             value,
         }
+    }
+
+    fn execution_receipt() -> ActionExecutionReceipt {
+        ActionExecutionReceipt {
+            receipt_id: "execution-default".to_owned(),
+            command_action_id: "action-default".to_owned(),
+            delivered_action_id: "delivered-action-default".to_owned(),
+            measured_actuation_digest: "sha256:measured-actuation".to_owned(),
+            delivery_verified: true,
+        }
+    }
+
+    fn model_for_action(
+        action_id: &str,
+        model_id: &str,
+        sensor_id: &str,
+        channel: SensorChannel,
+        observation_row: [f64; CONTACT_STATE_DIM],
+        noise_variance: f64,
+    ) -> MeasurementModel {
+        let mut result = model(model_id, sensor_id, channel, observation_row, noise_variance);
+        result.action_id = action_id.to_owned();
+        result
     }
 
     fn limits() -> SafetyLimits {
@@ -687,7 +775,7 @@ mod tests {
             101,
         );
         let posterior =
-            update_with_observations(&prior(), &[measurement_model], &[measured], 110, 20).unwrap();
+            update_with_observations(&prior(), &[measurement_model], &[measured], &execution_receipt(), 110, 20).unwrap();
         assert!((posterior.mean[0] - 1.0).abs() < 1.0e-12);
         assert!((posterior.covariance[0][0] - 0.5).abs() < 1.0e-12);
         assert!((posterior.covariance[1][1] - 1.0).abs() < 1.0e-12);
@@ -748,7 +836,7 @@ mod tests {
         let mut b = a.clone();
         b.value = 2.0;
         assert_eq!(
-            update_with_observations(&prior(), &[m], &[a, b], 110, 20),
+            update_with_observations(&prior(), &[m], &[a, b], &execution_receipt(), 110, 20),
             Err(ContactInformationError::DuplicateEvidenceId)
         );
     }
@@ -772,7 +860,7 @@ mod tests {
             11,
         );
         assert_eq!(
-            update_with_observations(&prior(), &[m], &[o], 100, 20),
+            update_with_observations(&prior(), &[m], &[o], &execution_receipt(), 100, 20),
             Err(ContactInformationError::StaleObservation)
         );
     }
@@ -797,7 +885,7 @@ mod tests {
         );
         o.timebase_verified = false;
         assert_eq!(
-            update_with_observations(&prior(), &[m], &[o], 20, 20),
+            update_with_observations(&prior(), &[m], &[o], &execution_receipt(), 20, 20),
             Err(ContactInformationError::TimebaseNotVerified)
         );
     }
@@ -840,7 +928,7 @@ mod tests {
         let mut ob = ob;
         ob.clock_id = "clock-b".to_owned();
         assert_eq!(
-            update_with_observations(&prior(), &[a, b], &[oa, ob], 20, 20),
+            update_with_observations(&prior(), &[a, b], &[oa, ob], &execution_receipt(), 20, 20),
             Err(ContactInformationError::ClockMismatch)
         );
     }
@@ -854,10 +942,10 @@ mod tests {
             [1.0, 0.0, 0.0],
             1.0,
         );
-        m.independent_noise_verified = false;
+        m.noise_independence_certificate_id.clear();
         assert_eq!(
             expected_information_gain(&prior(), &[m]),
-            Err(ContactInformationError::NoiseIndependenceNotVerified)
+            Err(ContactInformationError::EmptyIdentifier)
         );
     }
 
@@ -866,7 +954,8 @@ mod tests {
         let unsafe_action = ActionCandidate {
             action_id: "unsafe-high-eig".to_owned(),
             envelope: envelope(1.0, 0.01, 10.0, 0.5, 0.5),
-            measurement_models: vec![model(
+            measurement_models: vec![model_for_action(
+                "unsafe-high-eig",
                 "model-high",
                 "sensor-high",
                 SensorChannel::D1Interface,
@@ -877,7 +966,8 @@ mod tests {
         let safe_action = ActionCandidate {
             action_id: "safe-lower-eig".to_owned(),
             envelope: envelope(1.0, 0.4, 8.0, 0.2, 0.4),
-            measurement_models: vec![model(
+            measurement_models: vec![model_for_action(
+                "safe-lower-eig",
                 "model-low",
                 "sensor-low",
                 SensorChannel::D3Proprioceptive,
@@ -936,7 +1026,7 @@ mod tests {
         );
         b.clock_id = a.clock_id.clone();
         assert_eq!(
-            update_with_observations(&prior(), &[m], &[a, b], 20, 20),
+            update_with_observations(&prior(), &[m], &[a, b], &execution_receipt(), 20, 20),
             Err(ContactInformationError::DuplicateMeasurementModel)
         );
     }
