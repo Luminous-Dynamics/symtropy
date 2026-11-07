@@ -4,7 +4,7 @@
 //! It does not call the production event resolver, grouping, or area helpers.
 
 use maritime_queue_ledger::{
-    EventClass, EventHeader, RightsStatus, SourceEvidence, TickWindow,
+    EventClass, EventHeader, OpeningVesselQueue, RightsStatus, SourceEvidence, TickWindow,
     VesselEventKind, VesselEventObservation, VesselQueueLedger, audit_vessel_queue,
 };
 
@@ -56,7 +56,13 @@ fn workload(
             start_tick: 0,
             end_tick: 12,
         },
-        opening_queue: opening,
+        opening: OpeningVesselQueue {
+            terminal_id: "terminal".to_owned(),
+            queue_count: opening,
+            measured_tick: 0,
+            observed_tick: 0,
+            source: evidence("opening-stock"),
+        },
         observations: vec![
             observation(
                 "arrival-a",
