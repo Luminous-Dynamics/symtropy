@@ -98,7 +98,7 @@
       ],
       "result": {
         "quantity_id": "computed_advective_heat_capacity_rate",
-        "value": 0.0916556,
+        "value": 0.0917278,
         "unit": "kW/K",
         "basis": "Independent unit conversion using nominal liquid-water density and heat capacity",
         "status": "DERIVED_ARITHMETIC_CHECK",
@@ -106,7 +106,7 @@
           "This is a dimensional/physical consistency check, not an independent reconstruction of the study's fitted advective heat-loss coefficient."
         ]
       },
-      "interpretation": "The computed 0.09166 kW/K is within approximately 0.38% of the reported 0.092 kW/K; rounding of flow and water properties can explain the small difference.",
+      "interpretation": "The computed 0.0917278 kW/K is within approximately 0.30% of the reported 0.092 kW/K; rounding of flow and water properties can explain the small difference.",
       "status": "CONSISTENT_WITH_REPORTED_SUMMARY"
     },
     {
