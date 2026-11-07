@@ -55,6 +55,9 @@ struct PhotonReport {
     led_supplement_dli_mol_m2_day: f64,
     led_requested_mean_dli_mol_m2_day: f64,
     led_delivered_floor_dli_mol_m2_day: f64,
+    resource_constrained_solar_dli_mol_m2_day: f64,
+    optical_service_fraction: f64,
+    resource_constrained_optical_auxiliary_electricity_kwh_day: f64,
     resource_constrained_dli_mol_m2_day: f64,
     resource_constrained_dli_shortfall_mol_m2_day: f64,
     led_only_electricity_kwh_day: f64,
@@ -271,23 +274,56 @@ fn evaluate(input: &PhotonInput) -> Result<PhotonReport, String> {
     let hybrid_peak_kw = led_peak_kw + input.optical_auxiliary_peak_kw;
     let energy_saving_percent = (led_only_kwh - hybrid_electricity_kwh) / led_only_kwh * 100.0;
 
-    // Calculate what can actually be delivered after reserving power and energy
-    // for optical auxiliaries. A requested DLI is not achieved if the lighting
-    // plant cannot supply the required LED energy or peak power.
+    // Allocate declared lighting resources to the optical path first. If its
+    // tracking/relay auxiliaries cannot be powered, its photon contribution is
+    // reduced proportionally rather than being counted as free illumination.
+    let optical_power_service_fraction = if input.optical_auxiliary_peak_kw > 0.0 {
+        (input.available_lighting_power_kw / input.optical_auxiliary_peak_kw).clamp(0.0, 1.0)
+    } else {
+        1.0
+    };
+    let optical_energy_service_fraction = if optical_aux_kwh > 0.0 {
+        (input.available_lighting_energy_kwh_day / optical_aux_kwh).clamp(0.0, 1.0)
+    } else {
+        1.0
+    };
+    let optical_service_fraction =
+        optical_power_service_fraction.min(optical_energy_service_fraction);
+    let resource_constrained_optical_auxiliary_electricity_kwh =
+        optical_aux_kwh * optical_service_fraction;
+    let resource_constrained_optical_auxiliary_peak_kw =
+        input.optical_auxiliary_peak_kw * optical_service_fraction;
+    let resource_constrained_solar_dli = solar_floor_dli * optical_service_fraction;
+
+    // Remaining resources are available to the LED supplement. Recompute its
+    // requested energy because an underpowered optical path creates a larger gap.
+    let resource_led_supplement_dli =
+        (input.target_dli_mol_m2_day - resource_constrained_solar_dli).max(0.0);
+    let resource_led_requested_mean_dli =
+        resource_led_supplement_dli / input.led_canopy_uniformity_floor;
+    let resource_led_required_photons_umol =
+        resource_led_requested_mean_dli * 1_000_000.0 * input.canopy_area_m2;
+    let resource_led_required_energy_kwh =
+        resource_led_required_photons_umol / input.led_efficacy_umol_j / 3_600_000.0;
     let led_power_available_kw =
-        (input.available_lighting_power_kw - input.optical_auxiliary_peak_kw).max(0.0);
+        (input.available_lighting_power_kw - resource_constrained_optical_auxiliary_peak_kw)
+            .max(0.0);
     let led_energy_available_kwh =
-        (input.available_lighting_energy_kwh_day - optical_aux_kwh).max(0.0);
+        (input.available_lighting_energy_kwh_day
+            - resource_constrained_optical_auxiliary_electricity_kwh)
+            .max(0.0);
     let led_energy_by_power_limit_kwh = led_power_available_kw * input.led_hours_per_day;
-    let led_energy_delivered_kwh = led_supplement_kwh
+    let led_energy_delivered_kwh = resource_led_required_energy_kwh
         .min(led_energy_available_kwh)
         .min(led_energy_by_power_limit_kwh);
     let led_delivered_mean_dli = led_energy_delivered_kwh * 3_600_000.0 * input.led_efficacy_umol_j
         / 1_000_000.0
         / input.canopy_area_m2;
     let led_delivered_floor_dli = led_delivered_mean_dli * input.led_canopy_uniformity_floor;
-    let resource_constrained_hybrid_electricity_kwh = led_energy_delivered_kwh + optical_aux_kwh;
-    let resource_constrained_dli = solar_floor_dli + led_delivered_floor_dli;
+    let resource_constrained_hybrid_electricity_kwh =
+        led_energy_delivered_kwh + resource_constrained_optical_auxiliary_electricity_kwh;
+    let resource_constrained_dli =
+        resource_constrained_solar_dli + led_delivered_floor_dli;
     let resource_constrained_dli_shortfall =
         (input.target_dli_mol_m2_day - resource_constrained_dli).max(0.0);
 
@@ -304,6 +340,9 @@ fn evaluate(input: &PhotonInput) -> Result<PhotonReport, String> {
         ("led_requested_mean_dli", led_requested_mean_dli),
         ("led_delivered_mean_dli", led_delivered_mean_dli),
         ("led_delivered_floor_dli", led_delivered_floor_dli),
+        ("optical_service_fraction", optical_service_fraction),
+        ("resource_constrained_optical_auxiliary_electricity_kwh", resource_constrained_optical_auxiliary_electricity_kwh),
+        ("resource_constrained_solar_dli", resource_constrained_solar_dli),
         ("resource_constrained_dli", resource_constrained_dli),
         (
             "resource_constrained_dli_shortfall",
@@ -334,6 +373,10 @@ fn evaluate(input: &PhotonInput) -> Result<PhotonReport, String> {
         led_supplement_dli_mol_m2_day: led_supplement_dli,
         led_requested_mean_dli_mol_m2_day: led_requested_mean_dli,
         led_delivered_floor_dli_mol_m2_day: led_delivered_floor_dli,
+        resource_constrained_solar_dli_mol_m2_day: resource_constrained_solar_dli,
+        optical_service_fraction,
+        resource_constrained_optical_auxiliary_electricity_kwh_day:
+            resource_constrained_optical_auxiliary_electricity_kwh,
         resource_constrained_dli_mol_m2_day: resource_constrained_dli,
         resource_constrained_dli_shortfall_mol_m2_day: resource_constrained_dli_shortfall,
         led_only_electricity_kwh_day: led_only_kwh,
@@ -367,6 +410,9 @@ fn render_json(report: &PhotonReport) -> String {
             "  \"led_supplement_dli_mol_m2_day\": {:.6},\n",
             "  \"led_requested_mean_dli_mol_m2_day\": {:.6},\n",
             "  \"led_delivered_floor_dli_mol_m2_day\": {:.6},\n",
+            "  \"resource_constrained_solar_dli_mol_m2_day\": {:.6},\n",
+            "  \"optical_service_fraction\": {:.6},\n",
+            "  \"resource_constrained_optical_auxiliary_electricity_kwh_day\": {:.6},\n",
             "  \"resource_constrained_dli_mol_m2_day\": {:.6},\n",
             "  \"resource_constrained_dli_shortfall_mol_m2_day\": {:.6},\n",
             "  \"led_only_electricity_kwh_day\": {:.6},\n",
@@ -393,6 +439,9 @@ fn render_json(report: &PhotonReport) -> String {
         report.led_supplement_dli_mol_m2_day,
         report.led_requested_mean_dli_mol_m2_day,
         report.led_delivered_floor_dli_mol_m2_day,
+        report.resource_constrained_solar_dli_mol_m2_day,
+        report.optical_service_fraction,
+        report.resource_constrained_optical_auxiliary_electricity_kwh_day,
         report.resource_constrained_dli_mol_m2_day,
         report.resource_constrained_dli_shortfall_mol_m2_day,
         report.led_only_electricity_kwh_day,
@@ -542,6 +591,32 @@ mod tests {
             1e-12,
         );
         assert!(!report.dli_met);
+    }
+
+    #[test]
+    fn unavailable_optical_auxiliary_power_reduces_the_solar_photon_contribution() {
+        let underpowered_optics = FIXTURE
+            .replace(
+                "available_lighting_power_kw=40.0",
+                "available_lighting_power_kw=0.4",
+            );
+        let input = parse_input(&underpowered_optics).expect("syntactically valid fixture");
+        let report = evaluate(&input).expect("valid underpowered optical case");
+        close(report.optical_service_fraction, 0.5, 1e-12);
+        close(
+            report.resource_constrained_optical_auxiliary_electricity_kwh_day,
+            10.0,
+            1e-12,
+        );
+        close(
+            report.resource_constrained_solar_dli_mol_m2_day,
+            6.2208,
+            1e-12,
+        );
+        close(report.resource_constrained_dli_mol_m2_day, 6.2208, 1e-12);
+        assert!(!report.dli_met);
+        assert!(!report.peak_power_feasible);
+        assert!(report.daily_energy_feasible);
     }
 
     #[test]
