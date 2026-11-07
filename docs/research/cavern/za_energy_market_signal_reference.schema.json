@@ -305,8 +305,8 @@
           "additionalProperties": false,
           "required": [
             "network_surcharge_c_per_kwh",
-            "business_lpu_account_surcharge_percent",
-            "vat_status"
+            "vat_status",
+            "business_large_power_user_surcharge_percent"
           ],
           "properties": {
             "network_surcharge_c_per_kwh": {
@@ -319,7 +319,8 @@
               "enum": [
                 "APPLICABLE_AT_CURRENT_RATE",
                 "NOT_APPLICABLE",
-                "UNKNOWN"
+                "UNKNOWN",
+                "EXCLUDED_FROM_ANNEXURE_B_APPLY_CURRENT_LEGAL_RATE"
               ]
             },
             "note": {
@@ -333,6 +334,10 @@
             },
             "notes": {
               "type": "string"
+            },
+            "business_large_power_user_surcharge_percent": {
+              "type": "number",
+              "minimum": 0
             }
           }
         },
@@ -566,7 +571,8 @@
             "PRIMARY_TABLE_READ",
             "OFFICIAL_NOTICE_PLUS_SECONDARY_TRANSCRIPTION",
             "SECONDARY_ONLY",
-            "NOT_ADMITTED"
+            "NOT_ADMITTED",
+            "OFFICIAL_NOTICE_AND_SECONDARY_TRANSCRIPTION_PRIMARY_PDF_UNREAD"
           ]
         },
         "primary_pdf_audit": {
