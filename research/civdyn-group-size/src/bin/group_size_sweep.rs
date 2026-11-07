@@ -6,13 +6,13 @@
 use civdyn_group_size::{
     DEFAULT_CONVERGENCE_THRESHOLD, DEFAULT_CONVERGENCE_WINDOW, DEFAULT_MATCH_PAYOFF,
     DEFAULT_MAX_POPULATION_ROUNDS, DEFAULT_MEMORY_CAPACITY, DEFAULT_MISMATCH_PAYOFF, GameConfig,
-    PolicyTable, memory_state_count, simulate_population,
+    PolicyTable, memory_independent_oracle, memory_state_count, simulate_population,
 };
 
 const POPULATION_SIZES: [usize; 7] = [2, 3, 4, 6, 10, 24, 100];
 const REPLICATES: usize = 30;
 const MASTER_SEED: u64 = 0x4353_5347_5250_3031;
-const CSV_COLUMNS: usize = 22;
+const CSV_COLUMNS: usize = 26;
 
 fn labels() -> [String; 2] {
     ["convention_0".into(), "convention_1".into()]
@@ -86,7 +86,13 @@ fn replicate_row(
     seed: u64,
     result: &civdyn_group_size::RunOutcome,
 ) {
-    let mut row = vec![
+    let oracle = policy
+        .memory_independent_probability_option0()
+        .map(|probability| {
+            memory_independent_oracle(probability, population_size)
+                .expect("policy and population size are valid for the analytical oracle")
+        });
+    let row = vec![
         "replicate".into(),
         policy.policy_id.clone(),
         population_size.to_string(),
@@ -117,13 +123,17 @@ fn replicate_row(
         result.final_unique_memory_states.to_string(),
         fmt(result.final_memory_state_entropy_bits),
         "synthetic_policy_table".into(),
+        oracle.map_or_else(String::new, |value| fmt(value.expected_option0_action_share)),
+        oracle.map_or_else(String::new, |value| fmt(value.expected_pairwise_agreement_rate)),
+        oracle.map_or_else(String::new, |value| fmt(value.option0_action_share_standard_deviation)),
+        oracle.map_or_else(String::new, |value| fmt(value.pairwise_agreement_standard_deviation)),
     ];
-    emit(std::mem::take(&mut row));
+    emit(row);
 }
 
 fn main() {
     println!(
-        "record_type,policy_id,population_size,replicate_id,seed,memory_capacity,memory_state_count,initial_individual_bias,rounds_run,total_pairwise_interactions,agreement_converged,agreement_convergence_round,convergence_window_convention,true_action_unanimity_round,final_option0_action_share,final_agreement_rate,final_mean_cumulative_payoff,final_minimum_cumulative_payoff,final_maximum_cumulative_payoff,final_unique_memory_states,final_memory_state_entropy_bits,policy_source_kind"
+        "record_type,policy_id,population_size,replicate_id,seed,memory_capacity,memory_state_count,initial_individual_bias,rounds_run,total_pairwise_interactions,agreement_converged,agreement_convergence_round,convergence_window_convention,true_action_unanimity_round,final_option0_action_share,final_agreement_rate,final_mean_cumulative_payoff,final_minimum_cumulative_payoff,final_maximum_cumulative_payoff,final_unique_memory_states,final_memory_state_entropy_bits,policy_source_kind,oracle_expected_option0_action_share,oracle_expected_pairwise_agreement_rate,oracle_option0_share_standard_deviation,oracle_pairwise_agreement_standard_deviation"
     );
 
     let policy_tables = policies();
