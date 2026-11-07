@@ -240,7 +240,14 @@ mod tests {
                 ),
                 point("systems", MassItemCategory::Avionics, 95.0, 1.2, 0.0, 0.45),
                 point("pilot", MassItemCategory::Payload, 80.0, 2.7, -0.35, 0.55),
-                point("passenger", MassItemCategory::Payload, 80.0, 2.7, 0.35, 0.55),
+                point(
+                    "passenger",
+                    MassItemCategory::Payload,
+                    80.0,
+                    2.7,
+                    0.35,
+                    0.55,
+                ),
                 point("baggage", MassItemCategory::Payload, 25.0, 3.1, 0.0, 0.35),
             ],
         }
@@ -380,7 +387,14 @@ mod tests {
             ),
             point("systems", MassItemCategory::Avionics, 95.0, 1.2, 0.0, 0.45),
             point("pilot", MassItemCategory::Payload, 80.0, 2.7, -0.35, 0.55),
-            point("passenger", MassItemCategory::Payload, 80.0, 2.7, 0.35, 0.55),
+            point(
+                    "passenger",
+                    MassItemCategory::Payload,
+                    80.0,
+                    2.7,
+                    0.35,
+                    0.55,
+                ),
             point("baggage", MassItemCategory::Payload, 25.0, 3.1, 0.0, 0.35),
         ]
     }
