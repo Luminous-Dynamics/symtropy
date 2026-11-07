@@ -20,7 +20,7 @@
     {
       "channel_id": "air-dock-channel-01",
       "domain": "AIR",
-      "modality": "AIR_DOCK_INDUCTIVE",
+      "modality": "AIR_DOCK_CONDUCTIVE",
       "maximum_input_quanta_per_slot": 2,
       "envelope_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
       "support_state": "DECLARED_SYNTHETIC_SUPPORT",
