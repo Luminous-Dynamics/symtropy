@@ -103,11 +103,7 @@ fn array<'a>(value: &'a Value, path: &str) -> Result<&'a Vec<Value>, String> {
         .ok_or_else(|| fail(path, "must be an array"))
 }
 
-fn exact_keys(
-    value: &Value,
-    expected: &[&str],
-    path: &str,
-) -> Result<(), String> {
+fn exact_keys(value: &Value, expected: &[&str], path: &str) -> Result<(), String> {
     let map = object(value, path)?;
     let expected_set: BTreeSet<&str> = expected.iter().copied().collect();
     for key in expected {
@@ -188,7 +184,11 @@ fn allowed_transition(from: &str, to: &str) -> bool {
 
 fn validate_receiver(value: &Value) -> Result<(), String> {
     let path = "$.receiver";
-    exact_keys(value, &["receiver_id", "receiver_class", "trajectory_sha256"], path)?;
+    exact_keys(
+        value,
+        &["receiver_id", "receiver_class", "trajectory_sha256"],
+        path,
+    )?;
     string(value, "receiver_id", path)?;
     enum_string(
         value,
@@ -262,7 +262,13 @@ fn validate_opportunity(value: &Value) -> Result<(), String> {
     let regime = enum_string(
         value,
         "field_regime",
-        &["CONTACT", "NEAR_FIELD", "FAR_FIELD", "GUIDED", "ENERGY_CARRIER"],
+        &[
+            "CONTACT",
+            "NEAR_FIELD",
+            "FAR_FIELD",
+            "GUIDED",
+            "ENERGY_CARRIER",
+        ],
         path,
     )?;
     if regime != expected_field_regime(bearer) {
@@ -313,7 +319,10 @@ fn validate_allocation(value: &Value) -> Result<(u64, u64), String> {
     let valid_from = unsigned(value, "valid_from_ms", path)?;
     let valid_until = unsigned(value, "valid_until_ms", path)?;
     if valid_from >= valid_until {
-        return Err(fail(path, "valid_from_ms must be earlier than valid_until_ms"));
+        return Err(fail(
+            path,
+            "valid_from_ms must be earlier than valid_until_ms",
+        ));
     }
     Ok((valid_from, valid_until))
 }
@@ -386,7 +395,12 @@ fn validate_evidence(value: &Value, path: &str) -> Result<(), String> {
     enum_string(
         value,
         "deenergized_state",
-        &["CONFIRMED_SYNTHETIC", "UNCONFIRMED", "NOT_REQUIRED", "UNKNOWN"],
+        &[
+            "CONFIRMED_SYNTHETIC",
+            "UNCONFIRMED",
+            "NOT_REQUIRED",
+            "UNKNOWN",
+        ],
         path,
     )?;
     Ok(())
@@ -402,10 +416,7 @@ fn require_admission(value: &Value, path: &str) -> Result<(), String> {
     ];
     for (key, expected) in required {
         if string(value, key, path)? != expected {
-            return Err(fail(
-                path,
-                &format!("admission requires {key}={expected}"),
-            ));
+            return Err(fail(path, &format!("admission requires {key}={expected}")));
         }
     }
     Ok(())
@@ -480,7 +491,12 @@ fn validate_not_run(value: &Value) -> Result<ValidationReport, String> {
     if string(value, "episode_id", "$")? != "NOT_RUN" {
         return Err(fail("$", "NOT_RUN template episode_id must be NOT_RUN"));
     }
-    for key in ["receiver", "opportunity", "site_allocation_receipt", "energy_accounting"] {
+    for key in [
+        "receiver",
+        "opportunity",
+        "site_allocation_receipt",
+        "energy_accounting",
+    ] {
         if !field(value, key, "$")?.is_null() {
             return Err(fail("$", &format!("NOT_RUN requires {key}=null")));
         }
@@ -609,10 +625,16 @@ pub fn validate_episode(value: &Value) -> Result<ValidationReport, String> {
         }
         if to_state == "TRACKED_NO_POWER" {
             if !admission_ready {
-                return Err(fail(&path, "tracking cannot be admitted without fresh session admission"));
+                return Err(fail(
+                    &path,
+                    "tracking cannot be admitted without fresh session admission",
+                ));
             }
             if string(evidence, "tracking_state", &evidence_path)? != "TRACKED_SYNTHETIC" {
-                return Err(fail(&path, "TRACKED_NO_POWER requires TRACKED_SYNTHETIC evidence"));
+                return Err(fail(
+                    &path,
+                    "TRACKED_NO_POWER requires TRACKED_SYNTHETIC evidence",
+                ));
             }
             tracking_ready = true;
         }
@@ -637,7 +659,10 @@ pub fn validate_episode(value: &Value) -> Result<ValidationReport, String> {
                 ));
             }
             if at_ms < valid_from || at_ms >= valid_until {
-                return Err(fail(&path, "site allocation receipt expired before energization"));
+                return Err(fail(
+                    &path,
+                    "site allocation receipt expired before energization",
+                ));
             }
             power_active_intervals += 1;
             tracking_ready = false;
@@ -656,9 +681,7 @@ pub fn validate_episode(value: &Value) -> Result<ValidationReport, String> {
             if !matches!(from_state, "DEPARTURE_PENDING" | "RECOVERY_REQUIRED") {
                 return Err(fail(&path, "SAFE_OFF requires departure or recovery state"));
             }
-            if string(evidence, "deenergized_state", &evidence_path)?
-                != "CONFIRMED_SYNTHETIC"
-            {
+            if string(evidence, "deenergized_state", &evidence_path)? != "CONFIRMED_SYNTHETIC" {
                 return Err(fail(
                     &path,
                     "SAFE_OFF requires independent CONFIRMED_SYNTHETIC de-energization evidence",
@@ -673,7 +696,10 @@ pub fn validate_episode(value: &Value) -> Result<ValidationReport, String> {
 
         if to_state == "REACQUISITION_PENDING" {
             if !matches!(from_state, "SAFE_OFF") {
-                return Err(fail(&path, "reacquisition requires a verified SAFE_OFF state"));
+                return Err(fail(
+                    &path,
+                    "reacquisition requires a verified SAFE_OFF state",
+                ));
             }
             admission_ready = false;
             tracking_ready = false;
@@ -717,10 +743,12 @@ mod tests {
     use super::*;
     use serde_json::json;
 
-    const POSITIVE: &str =
-        include_str!("../../../research/airborne-energy-session-v0/session.synthetic-reacquire.example.json");
-    const HOSTILE: &str =
-        include_str!("../../../research/airborne-energy-session-v0/session.adversarial-revoked-authorization.example.json");
+    const POSITIVE: &str = include_str!(
+        "../../../research/airborne-energy-session-v0/session.synthetic-reacquire.example.json"
+    );
+    const HOSTILE: &str = include_str!(
+        "../../../research/airborne-energy-session-v0/session.adversarial-revoked-authorization.example.json"
+    );
     const NOT_RUN: &str =
         include_str!("../../../research/airborne-energy-session-v0/session.NOT_RUN.template.json");
 
@@ -845,7 +873,10 @@ mod tests {
     #[test]
     fn a_session_cannot_end_while_power_is_active() {
         let mut value = positive_value();
-        value["events"].as_array_mut().expect("events array").truncate(5);
+        value["events"]
+            .as_array_mut()
+            .expect("events array")
+            .truncate(5);
         let error = validate_episode(&value).expect_err("active session is incomplete");
         assert!(error.contains("session trace is incomplete"));
     }
