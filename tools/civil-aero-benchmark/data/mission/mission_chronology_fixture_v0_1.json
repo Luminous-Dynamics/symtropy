@@ -23,8 +23,8 @@
         "phase_id": "taxi",
         "sequence": 0,
         "kind": "taxi",
-        "start_state_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
-        "end_state_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "start_state_sha256": "6d802828f29fd742b26b10de3fc31cc7a2cd7f79ab2b90bfc5fa2f5592a7ff58",
+        "end_state_sha256": "86a25d3cdbaca89b19bd9d4ea3842de0b4ded960c5c0c46f75a9018f3d2238a6",
         "duration_s": 300,
         "assessment_status": "not_assessed",
         "notes": "State fixture only; taxi performance not modelled."
@@ -33,8 +33,8 @@
         "phase_id": "takeoff",
         "sequence": 1,
         "kind": "takeoff",
-        "start_state_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
-        "end_state_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "start_state_sha256": "86a25d3cdbaca89b19bd9d4ea3842de0b4ded960c5c0c46f75a9018f3d2238a6",
+        "end_state_sha256": "86a25d3cdbaca89b19bd9d4ea3842de0b4ded960c5c0c46f75a9018f3d2238a6",
         "duration_s": 10,
         "assessment_status": "not_assessed",
         "notes": "Takeoff performance not modelled."
@@ -43,8 +43,8 @@
         "phase_id": "climb",
         "sequence": 2,
         "kind": "climb",
-        "start_state_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
-        "end_state_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "start_state_sha256": "86a25d3cdbaca89b19bd9d4ea3842de0b4ded960c5c0c46f75a9018f3d2238a6",
+        "end_state_sha256": "86a25d3cdbaca89b19bd9d4ea3842de0b4ded960c5c0c46f75a9018f3d2238a6",
         "duration_s": 600,
         "assessment_status": "not_assessed",
         "notes": "Climb performance not modelled."
@@ -53,8 +53,8 @@
         "phase_id": "cruise-1",
         "sequence": 3,
         "kind": "cruise",
-        "start_state_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
-        "end_state_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "start_state_sha256": "86a25d3cdbaca89b19bd9d4ea3842de0b4ded960c5c0c46f75a9018f3d2238a6",
+        "end_state_sha256": "f4e036e7911e0ffa5df6620d76de2dc9fc4e049b1b89816e957e80cc556776f6",
         "duration_s": 3600,
         "assessment_status": "assessed_screening",
         "energy_balance_ref": "cruise-1"
@@ -63,8 +63,8 @@
         "phase_id": "descent",
         "sequence": 4,
         "kind": "descent",
-        "start_state_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
-        "end_state_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "start_state_sha256": "f4e036e7911e0ffa5df6620d76de2dc9fc4e049b1b89816e957e80cc556776f6",
+        "end_state_sha256": "111ce20947e212fd922012ee37cbaa7431b77a4594a1317fb083d585c49250f7",
         "duration_s": 300,
         "assessment_status": "not_assessed",
         "notes": "Descent performance is not represented by this fixture."
@@ -73,8 +73,8 @@
         "phase_id": "landing",
         "sequence": 5,
         "kind": "landing",
-        "start_state_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
-        "end_state_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "start_state_sha256": "111ce20947e212fd922012ee37cbaa7431b77a4594a1317fb083d585c49250f7",
+        "end_state_sha256": "111ce20947e212fd922012ee37cbaa7431b77a4594a1317fb083d585c49250f7",
         "duration_s": 120,
         "assessment_status": "not_assessed",
         "notes": "Landing performance is not modelled."
@@ -92,7 +92,7 @@
       "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       "source_generation_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
       "previous_state_sha256": null,
-      "state_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "state_sha256": "6d802828f29fd742b26b10de3fc31cc7a2cd7f79ab2b90bfc5fa2f5592a7ff58",
       "reference_frame_id": "synthetic-aircraft-datum-v1",
       "mass_items": [
         {
@@ -163,8 +163,8 @@
       "state_kind": "takeoff",
       "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       "source_generation_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-      "previous_state_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
-      "state_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "previous_state_sha256": "6d802828f29fd742b26b10de3fc31cc7a2cd7f79ab2b90bfc5fa2f5592a7ff58",
+      "state_sha256": "86a25d3cdbaca89b19bd9d4ea3842de0b4ded960c5c0c46f75a9018f3d2238a6",
       "reference_frame_id": "synthetic-aircraft-datum-v1",
       "mass_items": [
         {
@@ -235,8 +235,8 @@
       "state_kind": "intermediate",
       "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       "source_generation_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-      "previous_state_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
-      "state_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "previous_state_sha256": "86a25d3cdbaca89b19bd9d4ea3842de0b4ded960c5c0c46f75a9018f3d2238a6",
+      "state_sha256": "f4e036e7911e0ffa5df6620d76de2dc9fc4e049b1b89816e957e80cc556776f6",
       "reference_frame_id": "synthetic-aircraft-datum-v1",
       "mass_items": [
         {
@@ -307,8 +307,8 @@
       "state_kind": "landing",
       "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       "source_generation_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-      "previous_state_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
-      "state_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "previous_state_sha256": "f4e036e7911e0ffa5df6620d76de2dc9fc4e049b1b89816e957e80cc556776f6",
+      "state_sha256": "111ce20947e212fd922012ee37cbaa7431b77a4594a1317fb083d585c49250f7",
       "reference_frame_id": "synthetic-aircraft-datum-v1",
       "mass_items": [
         {
