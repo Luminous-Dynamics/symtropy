@@ -143,7 +143,7 @@ fn reference_one_tug_two_task_feasible(input: &MobileWorkload) -> bool {
             || task.required_bollard_pull_kn > tug.bollard_pull_kn
             || tug.capability_evidence.state != EvidenceState::Current
             || tug.capability_evidence.valid_from_tick > task.operation.start_tick
-            || tug.capability_evidence.valid_through_tick < task.operation.end_tick
+            || tug.capability_evidence.valid_through_tick < task.operation.end_tick.saturating_sub(1)
         {
             return false;
         }
@@ -178,7 +178,7 @@ fn reference_one_tug_two_task_feasible(input: &MobileWorkload) -> bool {
             if arrival > task.operation.start_tick
                 || leg.evidence.state != EvidenceState::Current
                 || leg.evidence.valid_from_tick > departure
-                || leg.evidence.valid_through_tick < arrival
+                || leg.evidence.valid_through_tick < arrival.saturating_sub(1)
                 || !tug
                     .availability
                     .iter()
