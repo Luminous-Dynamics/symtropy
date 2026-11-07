@@ -162,10 +162,10 @@ fn is_lower_hex(value: &str, expected_len: usize) -> bool {
 }
 
 fn check_ci(label: &str, ci: Option<[f64; 2]>, errors: &mut Vec<String>) {
-    if let Some([lower, upper]) = ci {
-        if !lower.is_finite() || !upper.is_finite() || lower > upper {
-            errors.push(format!("{label}: invalid confidence interval"));
-        }
+    if let Some([lower, upper]) = ci
+        && (!lower.is_finite() || !upper.is_finite() || lower > upper)
+    {
+        errors.push(format!("{label}: invalid confidence interval"));
     }
 }
 
@@ -455,7 +455,7 @@ mod tests {
         let mut receipt = valid_run();
         receipt.studies[0]
             .artifacts
-            .push(artifact("private_raw_responses", true, true, false));
+            .push(artifact("restricted_raw_data_reference", true, true, false));
         assert!(validate_run(&receipt).is_err());
     }
 
