@@ -255,7 +255,8 @@ fn evaluate(input: &PhotonInput) -> Result<PhotonReport, String> {
 
     // LED photon efficacy is defined at the declared electrical input boundary.
     // The LED uniformity floor converts mean LED DLI into the minimum-zone contribution.
-    let led_only_photons_umol = input.target_dli_mol_m2_day * 1_000_000.0 * input.canopy_area_m2;
+    let led_only_mean_dli = input.target_dli_mol_m2_day / input.led_canopy_uniformity_floor;
+    let led_only_photons_umol = led_only_mean_dli * 1_000_000.0 * input.canopy_area_m2;
     let led_supplement_photons_umol =
         led_requested_mean_dli * 1_000_000.0 * input.canopy_area_m2;
     let led_only_j = led_only_photons_umol / input.led_efficacy_umol_j;
@@ -298,6 +299,7 @@ fn evaluate(input: &PhotonInput) -> Result<PhotonReport, String> {
         ("solar_mean_dli", solar_mean_dli),
         ("solar_floor_dli", solar_floor_dli),
         ("led_supplement_dli", led_supplement_dli),
+        ("led_only_mean_dli", led_only_mean_dli),
         ("led_requested_mean_dli", led_requested_mean_dli),
         ("led_delivered_mean_dli", led_delivered_mean_dli),
         ("led_delivered_floor_dli", led_delivered_floor_dli),
@@ -352,6 +354,10 @@ fn render_json(report: &PhotonReport) -> String {
             "  \"solar_mean_dli_mol_m2_day\": {:.6},\n",
             "  \"solar_floor_dli_mol_m2_day\": {:.6},\n",
             "  \"led_supplement_dli_mol_m2_day\": {:.6},\n",
+            "  \"led_requested_mean_dli_mol_m2_day\": {:.6},\n",
+            "  \"led_delivered_floor_dli_mol_m2_day\": {:.6},\n",
+            "  \"resource_constrained_dli_mol_m2_day\": {:.6},\n",
+            "  \"resource_constrained_dli_shortfall_mol_m2_day\": {:.6},\n",
             "  \"led_only_electricity_kwh_day\": {:.6},\n",
             "  \"led_supplement_electricity_kwh_day\": {:.6},\n",
             "  \"optical_auxiliary_electricity_kwh_day\": {:.6},\n",
