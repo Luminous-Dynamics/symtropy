@@ -203,7 +203,10 @@ fn validate(input: &PhotonInput) -> Result<(), String> {
         "optical_auxiliary_electricity_wh_day",
     )?;
     non_negative(input.optical_auxiliary_peak_kw, "optical_auxiliary_peak_kw")?;
-    non_negative(input.available_lighting_power_kw, "available_lighting_power_kw")?;
+    non_negative(
+        input.available_lighting_power_kw,
+        "available_lighting_power_kw",
+    )?;
     non_negative(
         input.available_lighting_energy_kwh_day,
         "available_lighting_energy_kwh_day",
