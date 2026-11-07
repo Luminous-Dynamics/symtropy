@@ -1,0 +1,18 @@
+{
+  "schema_version": "ground-air-energy-coexistence-v0",
+  "episode_id": "ground-air-coexistence-template-not-run",
+  "disposition": "NOT_RUN",
+  "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+  "site": null,
+  "sources": [],
+  "channels": [],
+  "sessions": [],
+  "allocations": [],
+  "policy": {
+    "maximum_sessions": 16,
+    "maximum_channels": 8,
+    "maximum_episode_duration_ns": 60000000000,
+    "implicit_coupling_forbidden": true,
+    "unknown_safety_state_rejects": true
+  }
+}
