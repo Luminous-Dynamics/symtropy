@@ -652,3 +652,16 @@ The two formulations are tested against each other on a circular timelike orbit 
 The crate now has **51 authored Rust tests**: 15 scalar/root, 11 metric, 6 connection, 6 curvature, 9 geodesic and 4 posterior. They are still unexecuted (no Rust compiler / Cargo in this environment). Separate array-based numerical checks reproduce the Schwarzschild analytic invariants and compare both geodesic formulations to floating-point precision; these are equation-level checks, not Rust build/test results.
 
 Remaining geodesic work: Kerr equations including Carter-constant conservation, horizon-regular coordinate charts, and a broader convergence/error-versus-cost sweep.
+
+
+### Hamiltonian cross-check and geodesic fixtures — 2026-11-07
+
+The Schwarzschild geodesic implementation now includes a second, canonical formulation (H=\tfrac12 g^{\mu\nu}p_\mu p_\nu), alongside second-order Christoffel integration. Tests compare both on:
+- the circular timelike orbit at (r=6r_g);
+- an outgoing radial null ray at (r=8r_g).
+
+The Hamiltonian path checks canonical momentum conservation in the stationary/axisymmetric background and preserves the Hamiltonian normalization (−1/2 timelike, 0 null). This is an independent formulation cross-check, although both methods share the same analytic metric and derivative fixtures.
+
+A fourth machine-readable manifest, `benchmarks/geodesic_reference_cases.json`, pins those Schwarzschild initial conditions, unit/parameter conventions, conserved quantities, fixed-step endpoints and negative controls.
+
+The branch now contains **51 authored Rust tests** and four parsed JSON benchmark manifests. The Rust tests remain unexecuted until a Rust toolchain is available.
