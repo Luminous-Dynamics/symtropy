@@ -93,12 +93,7 @@ fn resource() -> TrafficResource {
     resource
 }
 
-fn occupancy(
-    id: &str,
-    op: OperationPlacement,
-    early: u64,
-    late: u64,
-) -> TrafficOccupancy {
+fn occupancy(id: &str, op: OperationPlacement, early: u64, late: u64) -> TrafficOccupancy {
     let mut item = TrafficOccupancy {
         occupancy_id: id.to_owned(),
         resource_id: "conflict-zone".to_owned(),
@@ -109,8 +104,7 @@ fn occupancy(
         late_clearance_ticks: late,
         evidence: receipt(&format!("evidence-{id}"), "", "route-r1"),
     };
-    item.evidence.subject_id =
-        canonical_occupancy_subject_id(&item, "oracle-time-basis-v1");
+    item.evidence.subject_id = canonical_occupancy_subject_id(&item, "oracle-time-basis-v1");
     item
 }
 
@@ -132,14 +126,8 @@ fn direct_reference_has_no_conflict(
     early: u64,
     late: u64,
 ) -> bool {
-    let first = (
-        first_start - early - 1,
-        first_start + 2 + late + 1,
-    );
-    let second = (
-        second_start - early - 1,
-        second_start + 2 + late + 1,
-    );
+    let first = (first_start - early - 1, first_start + 2 + late + 1);
+    let second = (second_start - early - 1, second_start + 2 + late + 1);
     first.0 >= second.1 || second.0 >= first.1
 }
 
