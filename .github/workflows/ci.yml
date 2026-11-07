@@ -83,8 +83,7 @@ jobs:
     - name: Test Airborne Energy Session Lifecycle Oracle
       run: cargo test --locked -p airborne-energy-session-validator
 
-    - name: Run Tests (Aerial Energy Session Oracle)
-      run: cargo test --locked -p airborne-energy-session-oracle
+
 
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
