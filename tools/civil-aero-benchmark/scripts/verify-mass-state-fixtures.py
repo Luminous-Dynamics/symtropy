@@ -112,6 +112,8 @@ def compute_state(fixture: dict[str, Any], state: dict[str, Any]) -> dict[str, A
         aircraft["alternate_configuration_sha256"],
     ):
         raise ValueError(f"{state['id']}: unrecognized configuration identity")
+    if state.get("reference_frame_id", aircraft["reference_frame_id"]) != aircraft["reference_frame_id"]:
+        raise ValueError(f"{state['id']}: reference frame mismatch")
 
     pending = False
     unknown_mass = False
