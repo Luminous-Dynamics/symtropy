@@ -5,7 +5,7 @@
     "repository": "Luminous-Dynamics/symtropy",
     "pull_request": 3451,
     "branch": "research/wpt-empirical-envelope-v0.1-20261103",
-    "commit_sha": "a30be1bb3a6df69fc54f2f9ff930cf617be40446",
+    "commit_sha": "a3bd8c87f1f33cec6ad1b287858a13b5ce5586c3",
     "realizations_path": "benchmarks/wpt-empirical/v0/realizations.jsonl"
   },
   "comparators": [
