@@ -233,7 +233,7 @@ impl KerrEquatorialPhotonOrbit {
             4.0 * radius * p - 2.0 * (radius - gravitational_radius) * q * q;
         let radial_potential_second_derivative =
             8.0 * radius * radius + 4.0 * p - 2.0 * q * q;
-        let radial_potential_scale = p * p.abs() + (delta * q * q).abs();
+        let radial_potential_scale = (p * p).abs() + (delta * q * q).abs();
         let radial_potential_derivative_scale =
             (4.0 * radius * p).abs() + (2.0 * (radius - gravitational_radius) * q * q).abs();
         if radial_potential_scale <= 0.0 || radial_potential_derivative_scale <= 0.0 {
