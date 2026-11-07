@@ -190,6 +190,7 @@ pub fn compare_frequency_domain(
     band: WaveformComparisonBand,
 ) -> Result<WaveformComparison, WaveformMetricError> {
     let frequencies = reference.frequencies_hz;
+    let candidate_frequencies = candidate.frequencies_hz;
     let reference_samples = reference.samples;
     let candidate_samples = candidate.samples;
     let psd_frequencies = psd.frequencies_hz;
@@ -199,7 +200,10 @@ pub fn compare_frequency_domain(
     if len < 2 {
         return Err(WaveformMetricError::TooFewFrequencyBins);
     }
-    if reference_samples.len() != len || candidate_samples.len() != len {
+    if reference_samples.len() != len
+        || candidate_samples.len() != len
+        || candidate_frequencies.len() != len
+    {
         return Err(WaveformMetricError::StrainLengthMismatch);
     }
     if psd_frequencies.len() != len || psd_values.len() != len {
@@ -220,10 +224,15 @@ pub fn compare_frequency_domain(
 
     for index in 0..len {
         let frequency = frequencies[index];
-        if !frequency.is_finite() || !psd_frequencies[index].is_finite() {
+        if !frequency.is_finite()
+            || !candidate_frequencies[index].is_finite()
+            || !psd_frequencies[index].is_finite()
+        {
             return Err(WaveformMetricError::NonFiniteFrequency { index });
         }
-        if !close_grid_value(frequency, psd_frequencies[index]) {
+        if !close_grid_value(frequency, candidate_frequencies[index])
+            || !close_grid_value(frequency, psd_frequencies[index])
+        {
             return Err(WaveformMetricError::FrequencyGridMismatch { index });
         }
         if index > 0 && frequency <= frequencies[index - 1] {
