@@ -566,25 +566,3 @@ These independent numerical calculations are formula checks, not compilation or 
 The ingoing Kerr chart avoids the Boyer-Lindquist horizon coordinate singularity. Its metric includes the expected (dv,dr), (dr,d\phi), and (dv,d\phi) couplings; its determinant is (-\Sigma^2\sin^2\theta). AD-generated curvature tests check the vacuum and Kretschmann identities at the horizon and inside it, and compare the scalar invariant against Boyer-Lindquist coordinates outside the horizon.
 
 This is a significant coordinate-invariance check, but it is not yet a general coordinate-transform engine or a full regularity proof for every component / tetrad at all limiting points.
-
-
-### Latest implementation state — 2026-11-07
-
-The clean successor branch carries a Rust `symtropy-relativity` crate with:
-
-- validated SI mass and dimensionless Kerr spin;
-- Schwarzschild/Kerr analytic observables and exterior metric components;
-- horizon-regular ingoing Eddington-Finkelstein Schwarzschild and ingoing Kerr metrics;
-- pivoted 4x4 metric determinant/inverse diagnostics;
-- explicit Levi-Civita connection from caller-supplied metric derivatives;
-- derivative-fed Riemann, Ricci, Einstein, and Kretschmann calculations;
-- fixed-size second-order forward-mode automatic differentiation for Schwarzschild, Kerr, and both ingoing charts;
-- posterior-preserving Kerr remnant mass/spin sample transforms.
-
-The curvature fixtures include Schwarzschild and Kerr vacuum checks, analytic Kretschmann comparisons, Riemann algebraic symmetries / first Bianchi identity, Schwarzschild/Kerr horizon-regular chart tests, and scalar-invariant comparisons across charts.
-
-The source currently contains **50 authored Rust tests**: 13 scalar/root, 10 metric, 5 connection, 6 curvature, 12 AD/chart, and 4 posterior. Tests have not been executed because the environment has no `rustc` or `cargo`.
-
-Independent numerical calculations agree with the analytic Schwarzschild and Kerr Kretschmann expressions to floating-point precision and show normalized Kerr mixed-Ricci residual around (7\times10^{-18}) for the declared sample point. These are external formula checks, not Rust build/test results.
-
-Next mathematical gates: Kerr cross-chart invariant stress grids, conditioning/error estimates, differential Bianchi checks, then geodesic integration. No numerical-relativity solver or observational replication is claimed.
