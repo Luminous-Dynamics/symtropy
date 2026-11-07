@@ -441,6 +441,36 @@
       ],
       "transferability": "Most direct 2026 comparator for harvest-constrained joint lighting/climate scheduling. Reproduce the source baseline, then challenge with measured biomass feedback, model bias, sensor latency/noise, HVAC cycling/defrost, demand charges, equipment wear, site-specific tariffs and blind crop/facility transfer.",
       "source_scope_warning": "Primary abstract and metadata at DOI / Elsevier. Detailed limitations concerning measurement noise, actuation delays, cycling/defrost, peak charges and wear are reported by a secondary technical summary and must be checked against the full paper / supplement before being treated as primary facts. Secondary summary: https://scienmag.com/simulated-vertical-farm-controller-cuts-costs-by-co-optimizing-light-and-climate/"
+    },
+    {
+      "comparator_id": "ROBUST-SPATIAL-GREENHOUSE-MPC-2026",
+      "title": "A robust data-driven MPC for greenhouse temperature control",
+      "authors": "N. Mignoni, E. Zero, P. Scarabaggio, R. Carli, R. Sacile and M. Dotoli",
+      "publication_date": "2026-08",
+      "venue": "Control Engineering Practice, Volume 173, article 106983",
+      "doi": "10.1016/j.conengprac.2026.106983",
+      "source_url": "https://doi.org/10.1016/j.conengprac.2026.106983",
+      "evidence_class": "MODEL_VALIDATED_AGAINST_EXPERIMENTS",
+      "system_domain": "Smart greenhouse temperature control; Genova, Italy",
+      "method_summary": "Spatially distributed finite-difference model over convex polyhedral sloped-roof geometry; volumetric solar heat sources and inverter-based HVAC represented by a linear-in-input kernel with directional weighting; ghost-point Robin boundary heat exchange; scenario-based robust MPC preserving convexity and solved with a forward-backward scheme.",
+      "reported_metrics": [
+        {
+          "metric_id": "out_of_sample_validation",
+          "reported_value": "Out-of-sample tests confirm robustness to solar irradiance and ambient-temperature uncertainty",
+          "unit": "qualitative validation finding",
+          "basis": "Publisher abstract and institutional repository description; no numerical error or improvement value is stated in the admitted abstract",
+          "status": "MODEL_VALIDATION",
+          "notes": "No quantitative RMSE, energy-saving or crop-harvest guarantee is inferred from the abstract."
+        }
+      ],
+      "limitations": [
+        "The admitted abstract describes greenhouse temperature control, not vertical-farm or subsurface CEA validation.",
+        "The abstract does not report quantitative prediction-error or energy-saving values.",
+        "The stated robust MPC addresses solar irradiance and ambient-temperature uncertainty; crop-biomass uncertainty and harvest marketability are not established by the abstract.",
+        "The model/optimizer requires matched evaluation against our crop-service, humidity/latent-load, CO2 and whole-facility constraints before transfer."
+      ],
+      "transferability": "Strong control-architecture comparator for spatial climate representation and uncertainty-aware MPC. Compose with crop/biomass models and independent humidity/dehumidification/HVAC measurements; do not equate out-of-sample temperature robustness with crop-harvest service or underground-cavern validation.",
+      "source_scope_warning": "Source record: Elsevier publisher abstract and Politecnico di Bari institutional repository. Qualitative result only; no numeric performance target admitted."
     }
   ],
   "interpretation_rules": [
