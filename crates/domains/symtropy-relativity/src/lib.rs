@@ -320,9 +320,13 @@ mod tests {
     }
 
     fn close(actual: f64, expected: f64, relative_tolerance: f64) {
-        let scale = expected.abs().max(f64::MIN_POSITIVE);
+        let allowed = if expected == 0.0 {
+            relative_tolerance
+        } else {
+            relative_tolerance * expected.abs()
+        };
         assert!(
-            (actual - expected).abs() <= relative_tolerance * scale,
+            (actual - expected).abs() <= allowed,
             "actual={actual:.16e}, expected={expected:.16e}, rel_tol={relative_tolerance:.3e}"
         );
     }
