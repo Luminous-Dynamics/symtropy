@@ -39,9 +39,27 @@
     },
     {
       "id": "sphere-halfspace-scaled-normal",
-      "observable": "toi_and_contact_point",
+      "observable": "toi_contact_point_and_normal",
+      "scales": [1e-20, 1e-6, 1.0, 1e6, 1e20],
+      "plane_offset": "scaled_by_the_same_positive_factor_as_normal",
       "reference_relation": "invariant_under_positive_scaling_of_plane_normal_and_offset",
       "tolerance": 1e-12
+    },
+    {
+      "id": "sphere-sphere-tiny-relative-speed-long-step",
+      "observable": "toi_seconds_and_contact_residual",
+      "relative_speed_m_per_s": 1e-10,
+      "timestep_seconds": 1e10,
+      "analytic_reference_seconds": 1e10,
+      "tolerance_seconds": 1e-3,
+      "regression_guard": "must_not_use_dimensionful_relative_speed_squared_cutoff"
+    },
+    {
+      "id": "zero-dimensional-query",
+      "observable": "checked_error_and_legacy_none",
+      "expected_checked_error": "ZeroDimension",
+      "expected_legacy_result": "None",
+      "must_not_panic": true
     },
     {
       "id": "sphere-sphere-galilean-boost",
