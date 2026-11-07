@@ -16,3 +16,7 @@ name = "human-fidelity-sweep"
 path = "src/bin/human_fidelity_sweep.rs"
 
 [dependencies]
+
+[[bin]]
+name = "human-fidelity-bootstrap"
+path = "src/bin/human_fidelity_bootstrap.rs"
