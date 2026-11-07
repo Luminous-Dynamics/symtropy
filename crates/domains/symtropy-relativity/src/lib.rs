@@ -236,6 +236,35 @@ impl KerrBlackHole {
         rg * (1.0 + (1.0 - self.spin.get().powi(2)).sqrt())
     }
 
+    /// Horizon angular velocity Omega_H in radians per second.
+    ///
+    /// Uses Omega_H = a c / (r_+^2 + a^2), with a and r_+ in metres.
+    pub fn horizon_angular_velocity_rad_s(self) -> f64 {
+        let a = self.kerr_parameter_m();
+        let r_plus = self.outer_horizon_radius_m();
+        a * SPEED_OF_LIGHT_M_S / (r_plus * r_plus + a * a)
+    }
+
+    /// Kerr surface-gravity decay rate in inverse seconds.
+    ///
+    /// This is the geometrized surface-gravity frequency converted by c:
+    /// kappa_t = c sqrt(r_g^2 - a^2) / (2 r_g r_+).
+    /// It vanishes in the extremal-spin limit.
+    pub fn surface_gravity_rate_s_inv(self) -> f64 {
+        let rg = self.gravitational_radius_m();
+        let a = self.kerr_parameter_m();
+        let r_plus = self.outer_horizon_radius_m();
+        SPEED_OF_LIGHT_M_S * (rg * rg - a * a).max(0.0).sqrt()
+            / (2.0 * rg * r_plus)
+    }
+
+    /// Reference frequency in Hz for a proposed direct-wave component whose
+    /// angular frequency is 2 Omega_H. This is a theory-derived reference,
+    /// not a waveform prediction or a measured frequency.
+    pub fn direct_wave_reference_frequency_hz(self) -> f64 {
+        self.horizon_angular_velocity_rad_s() / core::f64::consts::PI
+    }
+
     /// Inner Boyer-Lindquist horizon radius in metres.
     ///
     /// For the extremal case |chi| = 1, the two horizons coincide.
@@ -369,6 +398,30 @@ mod tests {
         let rg = hole.gravitational_radius_m();
         close(hole.outer_horizon_radius_m(), rg, 1e-14);
         close(hole.inner_horizon_radius_m(), rg, 1e-14);
+    }
+
+    #[test]
+    fn kerr_horizon_thermodynamic_rates_have_correct_limits() {
+        let nonrotating =
+            KerrBlackHole::new(solar_mass(), DimensionlessSpin::new(0.0).unwrap());
+        let rg = nonrotating.gravitational_radius_m();
+        close(nonrotating.horizon_angular_velocity_rad_s(), 0.0, 1e-14);
+        close(
+            nonrotating.surface_gravity_rate_s_inv(),
+            SPEED_OF_LIGHT_M_S / (4.0 * rg),
+            1e-14,
+        );
+        close(nonrotating.direct_wave_reference_frequency_hz(), 0.0, 1e-14);
+
+        let extremal =
+            KerrBlackHole::new(solar_mass(), DimensionlessSpin::new(1.0).unwrap());
+        close(
+            extremal.horizon_angular_velocity_rad_s(),
+            SPEED_OF_LIGHT_M_S / (2.0 * rg),
+            1e-14,
+        );
+        close(extremal.surface_gravity_rate_s_inv(), 0.0, 1e-14);
+        assert!(extremal.direct_wave_reference_frequency_hz() > 0.0);
     }
 
     #[test]
