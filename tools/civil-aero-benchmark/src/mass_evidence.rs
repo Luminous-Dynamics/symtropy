@@ -126,6 +126,46 @@ impl SourceMassValue {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum InertiaUnit {
+    KilogramSquareMetre,
+    GramSquareCentimetre,
+    PoundSquareFoot,
+}
+
+impl InertiaUnit {
+    pub fn to_kg_m2(self, value: f64) -> Result<f64, String> {
+        if !value.is_finite() || value < 0.0 {
+            return Err("source inertia entry must be finite and >= 0".to_owned());
+        }
+        let converted = match self {
+            Self::KilogramSquareMetre => value,
+            Self::GramSquareCentimetre => value * 1.0e-7,
+            Self::PoundSquareFoot => value * 0.453_592_37 * 0.3048_f64.powi(2),
+        };
+        if !converted.is_finite() {
+            return Err("source inertia conversion produced a non-finite kg m^2 value".to_owned());
+        }
+        Ok(converted)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct SourceInertiaTensor {
+    pub values: [f64; 6],
+    pub unit: InertiaUnit,
+}
+
+impl SourceInertiaTensor {
+    pub fn kg_m2(self) -> Result<[f64; 6], String> {
+        let mut converted = [0.0; 6];
+        for (index, value) in self.values.into_iter().enumerate() {
+            converted[index] = self.unit.to_kg_m2(value)?;
+        }
+        Ok(converted)
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct SourcePosition {
     pub values: [f64; 3],
@@ -180,6 +220,7 @@ pub struct MassItemEvidence {
     pub source_mass: Option<SourceMassValue>,
     /// Original source position and unit for point/rigid-body CG location.
     pub source_position: Option<SourcePosition>,
+    pub source_inertia: Option<SourceInertiaTensor>,
     pub standard_uncertainty_kg: Option<f64>,
     pub uncertainty_relationship: UncertaintyRelationship,
 }
@@ -224,6 +265,7 @@ pub struct LoadingItemState {
     pub source_mass: Option<SourceMassValue>,
     pub geometry: MassGeometry,
     pub source_position: Option<SourcePosition>,
+    pub source_inertia: Option<SourceInertiaTensor>,
     /// Evidence backing the values in this particular state, e.g. fuel quantity,
     /// occupant loading, or a configuration-specific equipment record.
     pub value_source: Option<SourceRecord>,
@@ -360,6 +402,7 @@ impl MassEvidenceLedger {
                         || state_item.source_mass.is_some()
                         || !matches!(state_item.geometry, MassGeometry::Unknown)
                         || state_item.source_position.is_some()
+                        || state_item.source_inertia.is_some()
                         || state_item.value_source.is_some()
                     {
                         return Err(format!(
@@ -374,6 +417,7 @@ impl MassEvidenceLedger {
                         || state_item.source_mass.is_some()
                         || !matches!(state_item.geometry, MassGeometry::Unknown)
                         || state_item.source_position.is_some()
+                        || state_item.source_inertia.is_some()
                         || state_item.value_source.is_some()
                     {
                         return Err(format!(
@@ -440,6 +484,7 @@ impl MassEvidenceLedger {
                     }
 
                     validate_state_geometry(state_item)?;
+                    validate_state_inertia(state_item)?;
                     mass_items.push(MassItem {
                         id: state_item.item_id.clone(),
                         category: evidence.item.category,
@@ -544,7 +589,20 @@ impl MassEvidenceLedger {
             return Err("mass evidence ledger must contain at least one record".to_owned());
         }
         let mut previous: Option<&str> = None;
+        let record_ids: HashSet<&str> = self.records.iter().map(|record| record.item.id.as_str()).collect();
         for record in &self.records {
+            if let Some(parent) = &record.parent_id {
+                if !record_ids.contains(parent.as_str()) {
+                    return Err(format!("mass item {} references missing parent {}", record.item.id, parent));
+                }
+            }
+            for child in &record.included_child_ids {
+                let child_record = self.records.iter().find(|candidate| candidate.item.id == *child)
+                    .ok_or_else(|| format!("mass item {} references missing included child {}", record.item.id, child))?;
+                if child_record.parent_id.as_deref() != Some(record.item.id.as_str()) {
+                    return Err(format!("mass item {} child {} has inconsistent parent link", record.item.id, child));
+                }
+            }
             if let Some(prev) = previous {
                 if prev >= record.item.id.as_str() {
                     return Err("mass evidence records must be strictly sorted by item ID".to_owned());
@@ -660,13 +718,25 @@ fn validate_evidence_record(
             validate_position_match(*center_of_mass_m, source, &evidence.item.id)?;
         }
         MassGeometry::Unknown => {
-            if evidence.source_position.is_some() {
+            if evidence.source_position.is_some() || evidence.source_inertia.is_some() {
                 return Err(format!(
-                    "mass item {}: unknown base geometry must not claim a source position",
+                    "mass item {}: unknown base geometry must not claim source position or inertia",
                     evidence.item.id
                 ));
             }
         }
+    }
+    match (&evidence.item.geometry, evidence.source_inertia) {
+        (MassGeometry::RigidBody { inertia_tensor_about_center_kg_m2, .. }, Some(source)) => {
+            validate_inertia_match(*inertia_tensor_about_center_kg_m2, source, &evidence.item.id)?;
+        }
+        (MassGeometry::RigidBody { .. }, None) => {
+            return Err(format!("mass item {}: rigid-body geometry requires source inertia values", evidence.item.id));
+        }
+        (_, Some(_)) => {
+            return Err(format!("mass item {}: source inertia is only valid for rigid-body geometry", evidence.item.id));
+        }
+        (_, None) => {}
     }
     Ok(())
 }
@@ -711,12 +781,45 @@ fn validate_state_geometry(item: &LoadingItemState) -> Result<(), String> {
             validate_position_match(*center_of_mass_m, source, &item.item_id)?;
         }
         MassGeometry::Unknown => {
-            if item.source_position.is_some() {
+            if item.source_position.is_some() || item.source_inertia.is_some() {
                 return Err(format!(
-                    "loading item {}: unknown geometry must not have source position",
+                    "loading item {}: unknown geometry must not have source position or inertia",
                     item.item_id
                 ));
             }
+        }
+    }
+    Ok(())
+}
+
+fn validate_state_inertia(item: &LoadingItemState) -> Result<(), String> {
+    match (&item.geometry, item.source_inertia) {
+        (MassGeometry::RigidBody { inertia_tensor_about_center_kg_m2, .. }, Some(source)) => {
+            validate_inertia_match(*inertia_tensor_about_center_kg_m2, source, &item.item_id)
+        }
+        (MassGeometry::RigidBody { .. }, None) => Err(format!(
+            "loading item {}: rigid-body geometry requires source inertia values",
+            item.item_id
+        )),
+        (_, Some(_)) => Err(format!(
+            "loading item {}: source inertia is only valid for rigid-body geometry",
+            item.item_id
+        )),
+        (_, None) => Ok(()),
+    }
+}
+
+fn validate_inertia_match(
+    canonical: [f64; 6],
+    source: SourceInertiaTensor,
+    item_id: &str,
+) -> Result<(), String> {
+    let converted = source.kg_m2()?;
+    for axis in 0..6 {
+        if !close_enough(canonical[axis], converted[axis], MASS_MATCH_RELATIVE_TOLERANCE) {
+            return Err(format!(
+                "mass item {item_id}: source inertia unit conversion does not match canonical kg m^2"
+            ));
         }
     }
     Ok(())
@@ -951,6 +1054,13 @@ fn encode_evidence_record(bytes: &mut Vec<u8>, record: &MassItemEvidence) {
         Some(value) => {
             bytes.push(1);
             encode_position(bytes, value);
+        }
+        None => bytes.push(0),
+    }
+    match record.source_inertia {
+        Some(value) => {
+            bytes.push(1);
+            encode_inertia(bytes, value);
         }
         None => bytes.push(0),
     }
