@@ -670,9 +670,7 @@ pub fn evaluate_mobile_assistance(workload: &MobileWorkload) -> Result<MobileRep
             leg.route_revision.as_str(),
         );
         if !leg_keys.insert(key) {
-            return Err(MobileError::DuplicateRepositionLeg(
-                leg.evidence.evidence_id.clone(),
-            ));
+            return Err(MobileError::DuplicateRepositionLeg(leg.leg_id.clone()));
         }
     }
 
