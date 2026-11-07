@@ -130,6 +130,29 @@ pub struct AdaptiveGeodesicResult {
     pub final_step_m: f64,
 }
 
+/// Canonical Hamiltonian state (x^mu, p_mu) for an independent
+/// first-order formulation of the same Schwarzschild geodesic problem.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct HamiltonianGeodesicState {
+    pub coordinates: [f64; 4],
+    pub canonical_momenta: [f64; 4],
+}
+
+impl HamiltonianGeodesicState {
+    pub const fn new(coordinates: [f64; 4], canonical_momenta: [f64; 4]) -> Self {
+        Self {
+            coordinates,
+            canonical_momenta,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+struct HamiltonianDerivative {
+    coordinates: [f64; 4],
+    momenta: [f64; 4],
+}
+
 #[derive(Debug, Clone, Copy)]
 struct StateDerivative {
     coordinates: [f64; 4],
@@ -432,6 +455,227 @@ impl SchwarzschildGeodesicIntegrator {
         maximum
     }
 
+    /// Convert a coordinate-velocity state (x^mu, u^mu) into canonical
+    /// variables p_mu = g_mu_nu u^nu.
+    pub fn to_hamiltonian_state(
+        &self,
+        state: GeodesicState,
+    ) -> Result<HamiltonianGeodesicState, GeodesicError> {
+        let metric = self.metric_at(&state)?;
+        let g = metric.covariant();
+        let mut momenta = [0.0; 4];
+
+        for mu in 0..4 {
+            for nu in 0..4 {
+                momenta[mu] += g[mu][nu] * state.tangent[nu];
+            }
+            if !momenta[mu].is_finite() {
+                return Err(GeodesicError::NonFiniteCanonicalMomentum { index: mu });
+            }
+        }
+
+        Ok(HamiltonianGeodesicState::new(state.coordinates, momenta))
+    }
+
+    /// Convert canonical variables back to coordinate velocity using
+    /// u^mu = g^mu nu p_nu.
+    pub fn from_hamiltonian_state(
+        &self,
+        state: HamiltonianGeodesicState,
+    ) -> Result<GeodesicState, GeodesicError> {
+        self.validate_hamiltonian_state(&state)?;
+        let metric = schwarzschild_exterior_metric(
+            self.black_hole,
+            state.coordinates[1],
+            state.coordinates[2],
+        )?;
+        let inverse = metric.inverse()?;
+        let mut tangent = [0.0; 4];
+
+        for mu in 0..4 {
+            for nu in 0..4 {
+                tangent[mu] += inverse[mu][nu] * state.canonical_momenta[nu];
+            }
+            if !tangent[mu].is_finite() {
+                return Err(GeodesicError::NonFiniteTangent { index: mu });
+            }
+        }
+
+        Ok(GeodesicState::new(state.coordinates, tangent))
+    }
+
+    fn validate_hamiltonian_state(
+        &self,
+        state: &HamiltonianGeodesicState,
+    ) -> Result<(), GeodesicError> {
+        self.validate_state(&GeodesicState::new(state.coordinates, [0.0; 4]))?;
+        for (index, value) in state.canonical_momenta.iter().enumerate() {
+            if !value.is_finite() {
+                return Err(GeodesicError::NonFiniteCanonicalMomentum { index });
+            }
+        }
+        Ok(())
+    }
+
+    fn hamiltonian_derivative(
+        &self,
+        state: &HamiltonianGeodesicState,
+    ) -> Result<HamiltonianDerivative, GeodesicError> {
+        self.validate_hamiltonian_state(state)?;
+        let radius = state.coordinates[1];
+        let theta = state.coordinates[2];
+        let metric = schwarzschild_exterior_metric(self.black_hole, radius, theta)?;
+        let inverse = metric.inverse()?;
+        let derivatives = MetricDerivatives4::schwarzschild_exterior(
+            self.black_hole,
+            radius,
+            theta,
+        )?;
+        let d = derivatives.components();
+
+        let mut velocity = [0.0; 4];
+        for mu in 0..4 {
+            for nu in 0..4 {
+                velocity[mu] += inverse[mu][nu] * state.canonical_momenta[nu];
+            }
+        }
+
+        // Hamilton's equations:
+        // dx^mu/dlambda = g^mu nu p_nu,
+        // dp_mu/dlambda = +1/2 (partial_mu g_alpha beta) u^alpha u^beta.
+        let mut momentum_rate = [0.0; 4];
+        for mu in 0..4 {
+            for alpha in 0..4 {
+                for beta in 0..4 {
+                    momentum_rate[mu] +=
+                        0.5 * d[mu][alpha][beta] * velocity[alpha] * velocity[beta];
+                }
+            }
+            if !velocity[mu].is_finite() || !momentum_rate[mu].is_finite() {
+                return Err(GeodesicError::NonFiniteHamiltonianDerivative { index: mu });
+            }
+        }
+
+        Ok(HamiltonianDerivative {
+            coordinates: velocity,
+            momenta: momentum_rate,
+        })
+    }
+
+    fn shifted_hamiltonian_state(
+        state: HamiltonianGeodesicState,
+        derivative: HamiltonianDerivative,
+        scale: f64,
+    ) -> HamiltonianGeodesicState {
+        let mut coordinates = state.coordinates;
+        let mut momenta = state.canonical_momenta;
+        for index in 0..4 {
+            coordinates[index] += scale * derivative.coordinates[index];
+            momenta[index] += scale * derivative.momenta[index];
+        }
+        HamiltonianGeodesicState::new(coordinates, momenta)
+    }
+
+    fn hamiltonian_rk4_step(
+        &self,
+        state: HamiltonianGeodesicState,
+        step_m: f64,
+    ) -> Result<HamiltonianGeodesicState, GeodesicError> {
+        if !step_m.is_finite() || step_m == 0.0 {
+            return Err(GeodesicError::InvalidStep(step_m));
+        }
+        let k1 = self.hamiltonian_derivative(&state)?;
+        let k2 = self.hamiltonian_derivative(&Self::shifted_hamiltonian_state(
+            state, k1, 0.5 * step_m,
+        ))?;
+        let k3 = self.hamiltonian_derivative(&Self::shifted_hamiltonian_state(
+            state, k2, 0.5 * step_m,
+        ))?;
+        let k4 = self.hamiltonian_derivative(&Self::shifted_hamiltonian_state(
+            state, k3, step_m,
+        ))?;
+
+        let mut coordinates = state.coordinates;
+        let mut momenta = state.canonical_momenta;
+        for index in 0..4 {
+            coordinates[index] += (step_m / 6.0)
+                * (k1.coordinates[index]
+                    + 2.0 * k2.coordinates[index]
+                    + 2.0 * k3.coordinates[index]
+                    + k4.coordinates[index]);
+            momenta[index] += (step_m / 6.0)
+                * (k1.momenta[index]
+                    + 2.0 * k2.momenta[index]
+                    + 2.0 * k3.momenta[index]
+                    + k4.momenta[index]);
+        }
+
+        let result = HamiltonianGeodesicState::new(coordinates, momenta);
+        self.validate_hamiltonian_state(&result)?;
+        Ok(result)
+    }
+
+    /// Take one classical RK4 step using Hamilton's first-order canonical
+    /// equations. This is an independent formulation of the second-order
+    /// Christoffel geodesic equation above.
+    pub fn step_hamiltonian_rk4(
+        &self,
+        state: HamiltonianGeodesicState,
+        step_m: f64,
+    ) -> Result<HamiltonianGeodesicState, GeodesicError> {
+        self.hamiltonian_rk4_step(state, step_m)
+    }
+
+    /// Integrate canonical Hamiltonian variables with equal RK4 steps.
+    pub fn integrate_hamiltonian_fixed(
+        &self,
+        initial: HamiltonianGeodesicState,
+        step_m: f64,
+        steps: usize,
+    ) -> Result<Vec<HamiltonianGeodesicState>, GeodesicError> {
+        if !step_m.is_finite() || step_m == 0.0 {
+            return Err(GeodesicError::InvalidStep(step_m));
+        }
+        self.validate_hamiltonian_state(&initial)?;
+        let mut states = Vec::with_capacity(steps.saturating_add(1));
+        let mut current = initial;
+        states.push(current);
+        for _ in 0..steps {
+            current = self.hamiltonian_rk4_step(current, step_m)?;
+            states.push(current);
+        }
+        Ok(states)
+    }
+
+    /// Evaluate H = 1/2 g^mu nu p_mu p_nu. Timelike proper-length
+    /// parameterization has H=-1/2; null affine trajectories have H=0.
+    pub fn hamiltonian_value(
+        &self,
+        state: HamiltonianGeodesicState,
+    ) -> Result<f64, GeodesicError> {
+        self.validate_hamiltonian_state(&state)?;
+        let metric = schwarzschild_exterior_metric(
+            self.black_hole,
+            state.coordinates[1],
+            state.coordinates[2],
+        )?;
+        let inverse = metric.inverse()?;
+        let mut value = 0.0;
+        for mu in 0..4 {
+            for nu in 0..4 {
+                value += 0.5
+                    * inverse[mu][nu]
+                    * state.canonical_momenta[mu]
+                    * state.canonical_momenta[nu];
+            }
+        }
+        if value.is_finite() {
+            Ok(value)
+        } else {
+            Err(GeodesicError::NonFiniteHamiltonian)
+        }
+    }
+
     /// Compute g_mu_nu u^mu u^nu for a state in the Schwarzschild exterior.
     pub fn normalization(
         &self,
@@ -513,6 +757,13 @@ pub enum GeodesicError {
     NonFiniteTangent {
         index: usize,
     },
+    NonFiniteCanonicalMomentum {
+        index: usize,
+    },
+    NonFiniteHamiltonianDerivative {
+        index: usize,
+    },
+    NonFiniteHamiltonian,
     OutsideExteriorChart {
         radius_m: f64,
         horizon_m: f64,
@@ -573,6 +824,13 @@ impl fmt::Display for GeodesicError {
             Self::NonFiniteTangent { index } => {
                 write!(f, "geodesic tangent u[{index}] is non-finite")
             }
+            Self::NonFiniteCanonicalMomentum { index } => {
+                write!(f, "canonical momentum p[{index}] is non-finite")
+            }
+            Self::NonFiniteHamiltonianDerivative { index } => {
+                write!(f, "Hamiltonian derivative component {index} is non-finite")
+            }
+            Self::NonFiniteHamiltonian => write!(f, "Hamiltonian value is non-finite"),
             Self::OutsideExteriorChart { radius_m, horizon_m } => write!(
                 f,
                 "Schwarzschild chart requires r > r_s; received r={radius_m} m, r_s={horizon_m} m"
@@ -757,6 +1015,101 @@ mod tests {
             integrator.step_rk4(valid, 0.0),
             Err(GeodesicError::InvalidStep(0.0))
         ));
+    }
+
+    #[test]
+    fn canonical_conversion_preserves_timelike_state_and_hamiltonian() {
+        let integrator = integrator();
+        let initial = circular_timelike_state(integrator, 6.0);
+        let canonical = integrator.to_hamiltonian_state(initial).unwrap();
+        let round_trip = integrator.from_hamiltonian_state(canonical).unwrap();
+
+        for index in 0..4 {
+            assert!((round_trip.coordinates[index] - initial.coordinates[index]).abs() < 1e-12);
+            assert!((round_trip.tangent[index] - initial.tangent[index]).abs() < 2e-14);
+        }
+        assert!((integrator.hamiltonian_value(canonical).unwrap() + 0.5).abs() < 2e-14);
+    }
+
+    #[test]
+    fn hamiltonian_and_christoffel_formulations_agree_for_circular_orbit() {
+        let integrator = integrator();
+        let rg = integrator.black_hole().gravitational_radius_m();
+        let initial = circular_timelike_state(integrator, 6.0);
+        let h0 = integrator.to_hamiltonian_state(initial).unwrap();
+
+        let coordinate_states = integrator.integrate_fixed(initial, 0.05 * rg, 200).unwrap();
+        let hamiltonian_states = integrator
+            .integrate_hamiltonian_fixed(h0, 0.05 * rg, 200)
+            .unwrap();
+        let coordinate_final = *coordinate_states.last().unwrap();
+        let hamiltonian_final = integrator
+            .from_hamiltonian_state(*hamiltonian_states.last().unwrap())
+            .unwrap();
+
+        for index in 0..4 {
+            let scale = if index < 2 { rg } else { 1.0 };
+            assert!(
+                (coordinate_final.coordinates[index] - hamiltonian_final.coordinates[index]).abs()
+                    < 2e-10 * scale
+            );
+            assert!(
+                (coordinate_final.tangent[index] - hamiltonian_final.tangent[index]).abs()
+                    < 2e-10 * coordinate_final.tangent[index].abs().max(1e-15)
+            );
+        }
+        assert!(
+            (integrator
+                .hamiltonian_value(*hamiltonian_states.last().unwrap())
+                .unwrap()
+                + 0.5)
+                .abs()
+                < 2e-10
+        );
+    }
+
+    #[test]
+    fn hamiltonian_and_christoffel_formulations_agree_for_radial_null_ray() {
+        let integrator = integrator();
+        let rg = integrator.black_hole().gravitational_radius_m();
+        let radius = 8.0 * rg;
+        let f = 1.0 - 2.0 * rg / radius;
+        let initial = GeodesicState::new(
+            [0.0, radius, core::f64::consts::FRAC_PI_2, 0.0],
+            [1.0 / f, 1.0, 0.0, 0.0],
+        );
+        let canonical = integrator.to_hamiltonian_state(initial).unwrap();
+        let coordinate_final = *integrator
+            .integrate_fixed(initial, 0.02 * rg, 100)
+            .unwrap()
+            .last()
+            .unwrap();
+        let hamiltonian_final = integrator
+            .from_hamiltonian_state(
+                *integrator
+                    .integrate_hamiltonian_fixed(canonical, 0.02 * rg, 100)
+                    .unwrap()
+                    .last()
+                    .unwrap(),
+            )
+            .unwrap();
+
+        for index in 0..4 {
+            let scale = if index < 2 { rg } else { 1.0 };
+            assert!(
+                (coordinate_final.coordinates[index] - hamiltonian_final.coordinates[index]).abs()
+                    < 2e-10 * scale
+            );
+        }
+        assert!(
+            integrator
+                .hamiltonian_value(
+                    integrator.to_hamiltonian_state(hamiltonian_final).unwrap()
+                )
+                .unwrap()
+                .abs()
+                < 2e-10
+        );
     }
 
     #[test]
