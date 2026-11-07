@@ -9,6 +9,7 @@ arithmetic from the raw JSON fixture. All supplied values are synthetic.
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 import math
 import sys
@@ -41,6 +42,40 @@ def close(actual: float, expected: float, field: str) -> None:
         and abs(actual - expected) <= TOL * max(1.0, abs(expected)),
         f"{field}: expected {expected:.15g}, got {actual:.15g}",
     )
+
+
+def canonical_state_sha256(state: dict[str, Any]) -> str:
+    """Canonical SHA-256: sorted-key compact UTF-8 JSON, excluding only state_sha256."""
+    payload = {key: value for key, value in state.items() if key != "state_sha256"}
+    encoded = json.dumps(
+        payload,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def rebuild_state_hashes(fixture: dict[str, Any]) -> None:
+    """Rebuild predecessor and state identities after an intentional hostile mutation."""
+    states = fixture["phase_states"]
+    digest_by_id: dict[str, str] = {}
+    for index, state in enumerate(states):
+        state["previous_state_sha256"] = None if index == 0 else states[index - 1]["state_sha256"]
+        state["state_sha256"] = canonical_state_sha256(state)
+        digest_by_id[state["state_id"]] = state["state_sha256"]
+    phase_state_ids = {
+        "taxi": ("dispatch", "takeoff"),
+        "takeoff": ("takeoff", "takeoff"),
+        "climb": ("takeoff", "takeoff"),
+        "cruise-1": ("takeoff", "cruise-end"),
+        "descent": ("cruise-end", "landing"),
+        "landing": ("landing", "landing"),
+    }
+    for phase in fixture["mission_timeline"]["phases"]:
+        start_id, end_id = phase_state_ids[phase["phase_id"]]
+        phase["start_state_sha256"] = digest_by_id[start_id]
+        phase["end_state_sha256"] = digest_by_id[end_id]
 
 
 def mass_properties(items: list[dict[str, Any]]) -> tuple[float, list[float], list[float]]:
@@ -84,11 +119,21 @@ def mass_properties(items: list[dict[str, Any]]) -> tuple[float, list[float], li
     return total, cg, inertia
 
 
-def validate_state(state: dict[str, Any], config: str, source_generation: str) -> None:
+def validate_state(
+    state: dict[str, Any],
+    config: str,
+    source_generation: str,
+    mission_id: str,
+) -> None:
+    require(state["mission_id"] == mission_id, "state mission identity mismatch")
     require(state["configuration_sha256"] == config, "state configuration identity mismatch")
     require(
         state["source_generation_sha256"] == source_generation,
         "state source-generation identity mismatch",
+    )
+    require(
+        canonical_state_sha256(state) == state["state_sha256"],
+        f"{state['state_id']}: canonical state SHA-256 content mismatch",
     )
     total, cg, inertia = mass_properties(state["mass_items"])
     expected = state["expected_mass_properties"]
@@ -128,7 +173,7 @@ def validate_state_chain(fixture: dict[str, Any]) -> None:
                 state["previous_state_sha256"] == previous["state_sha256"],
                 f"{state['state_id']}: stale or disconnected previous-state digest",
             )
-        validate_state(state, config, source_generation)
+        validate_state(state, config, source_generation, timeline["mission_id"])
         if index > 0:
             previous = states[index - 1]
             previous_items = {item["item_id"]: item for item in previous["mass_items"]}
@@ -212,6 +257,11 @@ def validate_energy_balance(balance: dict[str, Any]) -> None:
         - float(store["usable_energy_end_j"])
     )
     close(store_residual, 0.0, f"{balance['phase_id']}.energy_store.conservation")
+    close(
+        float(store["bus_source_energy_j"]),
+        float(bus["source_energy_j"]),
+        f"{balance['phase_id']}.energy_store/bus coupling",
+    )
     margin = float(store["usable_energy_end_j"]) - float(store["reserve_required_j"])
     close(margin, float(store["reserve_margin_j"]), f"{balance['phase_id']}.reserve_margin")
     require(margin >= 0.0, f"{balance['phase_id']}: reserve requirement not met")
@@ -264,6 +314,10 @@ def main() -> int:
             lambda d: d["phase_states"][2].update(previous_state_sha256="f" * 64),
         )
         expect_rejected(
+            "state_content_digest_mismatch",
+            lambda d: d["phase_states"][0]["mass_items"][0].update(mass_kg=501.0),
+        )
+        expect_rejected(
             "bus_energy_imbalance",
             lambda d: d["phase_energy_balances"][0]["bus"].update(auxiliary_bus_load_j=6_000_000),
         )
@@ -271,9 +325,27 @@ def main() -> int:
             "over_limit_peak_power",
             lambda d: d["phase_energy_balances"][0].update(peak_source_power_w=110_000),
         )
+        def mutate_fuel_gain(d: dict[str, Any]) -> None:
+            cruise_state = d["phase_states"][2]
+            cruise_state["mass_items"][1]["mass_kg"] = 105.0
+            total, cg, inertia = mass_properties(cruise_state["mass_items"])
+            cruise_state["expected_mass_properties"] = {
+                "total_mass_kg": total,
+                "center_of_gravity_m": cg,
+                "inertia_tensor_about_cg_kg_m2": inertia,
+            }
+            cruise_state["fuel_consumption_since_previous_kg"] = -5.0
+            rebuild_state_hashes(d)
+
+        expect_rejected("fuel_mass_gain", mutate_fuel_gain)
         expect_rejected(
-            "fuel_mass_gain",
-            lambda d: d["phase_states"][2]["mass_items"][1].update(mass_kg=105.0),
+            "reserve_shortfall",
+            lambda d: d["phase_energy_balances"][0]["energy_store"].update(
+                usable_energy_start_j=140_000_000,
+                usable_energy_end_j=40_000_000,
+                reserve_required_j=50_000_000,
+                reserve_margin_j=-10_000_000,
+            ),
         )
         expect_rejected(
             "false_feasible_unassessed_phases",
