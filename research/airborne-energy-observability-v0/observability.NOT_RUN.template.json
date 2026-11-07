@@ -1,0 +1,12 @@
+{
+  "schema_version": "airborne-energy-observability-v0",
+  "case_id": "NOT_RUN",
+  "record_state": "NOT_RUN",
+  "evidence_class": "NOT_RUN",
+  "field": null,
+  "receiver": null,
+  "observation_contract": null,
+  "pose_samples": [],
+  "expected_disposition": "NOT_RUN",
+  "claim_ceiling": "Template only. No field, receiver, calibration, pose samples or observability measurement is supplied. NOT_RUN is not a pass."
+}
