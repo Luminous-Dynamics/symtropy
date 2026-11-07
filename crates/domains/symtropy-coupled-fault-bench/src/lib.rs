@@ -287,6 +287,11 @@ pub fn validate_case(case: &Value, observability: &Value) -> Vec<Violation> {
         if !matches!(text(combination, "combination_type"), Some("CO_OCCURRENCE" | "CAUSAL_CHAIN" | "COMMON_CAUSE")) {
             push(&mut errors, "INVALID_COMBINATION_TYPE", &format!("{path}.combination_type"), "combination type must distinguish co-occurrence, causal chain and common cause");
         }
+        if text(combination, "combination_type") == Some("CAUSAL_CHAIN")
+            && onset_relation != "KNOWN_ORDER"
+        {
+            push(&mut errors, "CAUSAL_CHAIN_REQUIRES_KNOWN_ORDER", &path, "causal chains require an explicit known fault onset order");
+        }
         if !matches!(onset_relation, "SIMULTANEOUS" | "KNOWN_ORDER" | "UNKNOWN_ORDER") {
             push(&mut errors, "INVALID_ONSET_RELATION", &format!("{path}.onset_relation"), "onset relation must be explicit");
         }
@@ -476,15 +481,15 @@ pub fn evaluate_case(case: &Value, observability: &Value) -> Result<EvaluationRe
         let active_fault_ids: Vec<&str> = combination["active_fault_ids"].as_array().unwrap()
             .iter().map(|id| id.as_str().unwrap()).collect();
         for (channel_id, channel) in &channel_map {
-            let combined = combined_responses[&(combination_id, channel_id)];
+            let combined = combined_responses[&(combination_id, *channel_id)];
             let combined_interval = response_interval(combined);
             let mut baseline_and_singletons = Vec::new();
-            let baseline = singleton_responses[&(baseline_state_id, channel_id)];
+            let baseline = singleton_responses[&(baseline_state_id, *channel_id)];
             baseline_and_singletons.push(baseline);
             for fault_id in &active_fault_ids {
-                let fault = fault_map[fault_id];
+                let fault = fault_map[*fault_id];
                 let singleton_state_id = text(fault, "singleton_state_id").unwrap();
-                baseline_and_singletons.push(singleton_responses[&(singleton_state_id, channel_id)]);
+                baseline_and_singletons.push(singleton_responses[&(singleton_state_id, *channel_id)]);
             }
 
             let mut null_lower = 0.0;
@@ -493,7 +498,7 @@ pub fn evaluate_case(case: &Value, observability: &Value) -> Result<EvaluationRe
             let mut singleton_intervals = Vec::new();
             for response in &baseline_and_singletons {
                 if text(response, "unit") != text(channel, "unit")
-                    || !same_domain(response.get("domain").unwrap_or(&Value::Null), channel["domain"].as_ref().unwrap_or(&Value::Null))
+                    || !same_domain(response.get("domain").unwrap_or(&Value::Null), channel.get("domain").unwrap_or(&Value::Null))
                     || !response_role_admissible(response, text(observability, "evidence_class").unwrap_or(""))
                 {
                     null_available = false;
@@ -554,8 +559,8 @@ pub fn evaluate_case(case: &Value, observability: &Value) -> Result<EvaluationRe
         let mut discriminating_channels = Vec::new();
         let mut unresolved = false;
         for (channel_id, channel) in &channel_map {
-            let a = combined_responses[&(combination_a_id, channel_id)];
-            let b = combined_responses[&(combination_b_id, channel_id)];
+            let a = combined_responses[&(combination_a_id, *channel_id)];
+            let b = combined_responses[&(combination_b_id, *channel_id)];
             if !response_role_admissible(a, evidence_class) || !response_role_admissible(b, evidence_class)
                 || text(a, "availability") == Some("UNKNOWN")
                 || text(b, "availability") == Some("UNKNOWN")
@@ -726,6 +731,16 @@ mod tests {
         case["fault_catalog"][0]["mutually_exclusive_group_ref"] = serde_json::json!("exclusive:pair-x");
         case["fault_catalog"][1]["mutually_exclusive_group_ref"] = serde_json::json!("exclusive:pair-x");
         assert!(has(&validate_case(&case, &observability()), "CONTRADICTORY_ACTIVE_FAULTS"));
+    }
+
+    #[test]
+    fn causal_chain_requires_known_onset_order() {
+        let mut case = fixture();
+        case["combined_states"][0]["combination_type"] = serde_json::json!("CAUSAL_CHAIN");
+        assert!(has(
+            &validate_case(&case, &observability()),
+            "CAUSAL_CHAIN_REQUIRES_KNOWN_ORDER"
+        ));
     }
 
     #[test]
