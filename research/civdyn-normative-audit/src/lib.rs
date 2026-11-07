@@ -148,9 +148,7 @@ impl OutcomeSnapshot {
                     receipt.unit
                 )));
             }
-            if !receipt.conservation_residual.is_finite()
-                || receipt.conservation_residual < 0.0
-            {
+            if !receipt.conservation_residual.is_finite() || receipt.conservation_residual < 0.0 {
                 return Err(AuditError(format!(
                     "{} conservation residual must be finite and non-negative",
                     receipt.resource.name()
@@ -164,10 +162,7 @@ impl OutcomeSnapshot {
         for group in &self.groups {
             require_id("group_id", &group.group_id)?;
             if !group_ids.insert(group.group_id.as_str()) {
-                return Err(AuditError(format!(
-                    "duplicate group ID {}",
-                    group.group_id
-                )));
+                return Err(AuditError(format!("duplicate group ID {}", group.group_id)));
             }
             for (name, value) in [
                 ("water_coverage", group.water_coverage),
@@ -390,7 +385,9 @@ pub fn evaluate_profiles(
 ) -> Result<AuditReport, AuditError> {
     snapshot.validate()?;
     if profiles.is_empty() {
-        return Err(AuditError("at least one premise profile is required".into()));
+        return Err(AuditError(
+            "at least one premise profile is required".into(),
+        ));
     }
 
     let mut profile_ids = BTreeSet::new();
@@ -491,8 +488,7 @@ fn evaluate_premise(snapshot: &OutcomeSnapshot, premise: &Premise) -> PremiseFin
                     ),
                 );
             }
-            let mean = values.iter().map(|value| value.unwrap()).sum::<f64>()
-                / values.len() as f64;
+            let mean = values.iter().map(|value| value.unwrap()).sum::<f64>() / values.len() as f64;
             let status = compare_lower(mean, *minimum);
             finding(
                 premise,
@@ -570,8 +566,14 @@ fn evaluate_premise(snapshot: &OutcomeSnapshot, premise: &Premise) -> PremiseFin
                     ),
                 );
             }
-            let min = values.iter().map(|value| value.unwrap()).fold(1.0, f64::min);
-            let max = values.iter().map(|value| value.unwrap()).fold(0.0, f64::max);
+            let min = values
+                .iter()
+                .map(|value| value.unwrap())
+                .fold(1.0, f64::min);
+            let max = values
+                .iter()
+                .map(|value| value.unwrap())
+                .fold(0.0, f64::max);
             let gap = max - min;
             finding(
                 premise,
@@ -1034,18 +1036,9 @@ mod tests {
             .iter()
             .map(|profile| (profile.profile_id.as_str(), profile.status))
             .collect::<std::collections::BTreeMap<_, _>>();
-        assert_eq!(
-            status["aggregate_consequence"],
-            FindingStatus::Supported
-        );
-        assert_eq!(
-            status["equal_consideration"],
-            FindingStatus::Contradicted
-        );
-        assert_eq!(
-            status["rights_constrained"],
-            FindingStatus::Contradicted
-        );
+        assert_eq!(status["aggregate_consequence"], FindingStatus::Supported);
+        assert_eq!(status["equal_consideration"], FindingStatus::Contradicted);
+        assert_eq!(status["rights_constrained"], FindingStatus::Contradicted);
         assert_eq!(
             status["intergenerational_stewardship"],
             FindingStatus::Contradicted
