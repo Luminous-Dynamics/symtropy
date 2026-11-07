@@ -484,7 +484,7 @@ mod tests {
         let receipt = BenchmarkRunReceipt {
             protocol_id: PAPER_12_PROTOCOL_ID.to_string(),
             source_repository: PAPER_12_SOURCE_REPOSITORY.to_string(),
-            source_commit: PAPER_12_SOURCE_COMMIT.to_string()
+            source_commit: PAPER_12_SOURCE_COMMIT.to_string(),
             source_root_tree: PAPER_12_SOURCE_ROOT_TREE.to_string(),
             run_id: "synthetic-paper-12-conformance".to_string(),
             model_id: "synthetic-reference-not-a-model".to_string(),
