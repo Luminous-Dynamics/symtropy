@@ -427,6 +427,29 @@ mod tests {
         assert_eq!(even.per_leg_stance_ticks, [16; JOINT_LEG_COUNT]);
         assert_eq!(odd.per_leg_stance_ticks, [16; JOINT_LEG_COUNT]);
         assert_eq!(even.pairwise_stance_ticks, odd.pairwise_stance_ticks);
+        // Every marginal over any strict subset of the six legs is identical.
+        // Only the complete six-way joint distribution distinguishes parity.
+        for subset_mask in 1_u8..=COMPLETE_LEG_MASK {
+            if subset_mask.count_ones() == JOINT_LEG_COUNT as u32 {
+                continue;
+            }
+            let mut even_projection = [0_u64; JOINT_STATE_COUNT];
+            let mut odd_projection = [0_u64; JOINT_STATE_COUNT];
+            for state in 0..JOINT_STATE_COUNT {
+                let projected = state as u8 & subset_mask;
+                checked_add(
+                    &mut even_projection[projected as usize],
+                    even.joint_state_ticks[state],
+                )
+                .unwrap();
+                checked_add(
+                    &mut odd_projection[projected as usize],
+                    odd.joint_state_ticks[state],
+                )
+                .unwrap();
+            }
+            assert_eq!(even_projection, odd_projection);
+        }
         assert_eq!(even.tripod_stance_overlap_ticks, [4; 2]);
         assert_eq!(odd.tripod_stance_overlap_ticks, [4; 2]);
         assert_eq!(even.tripod_swing_overlap_ticks, [4; 2]);
