@@ -781,6 +781,23 @@ mod tests {
         }
     }
 
+    fn unknown(
+        admission: &StepAdmissionReceipt,
+        suffix: &str,
+        recorded_at_ns: u64,
+    ) -> StepUnknownReceipt {
+        StepUnknownReceipt {
+            receipt_id: format!("unknown-{suffix}"),
+            episode_id: admission.episode_id.clone(),
+            risk_plan_id: admission.risk_plan_id.clone(),
+            step_index: admission.step_index,
+            admission_receipt_id: admission.receipt_id.clone(),
+            reason: "delivery acknowledgement missing".to_owned(),
+            evidence_digest: format!("unknown-evidence-{suffix}"),
+            recorded_at_ns,
+        }
+    }
+
     #[test]
     fn one_step_horizon_matches_one_step_five_constraint_budget() {
         let risk_plan = plan(1, 50_000_000);
@@ -1034,6 +1051,101 @@ mod tests {
         assert_eq!(
             ledger.skip_step(later_skip),
             Err(LedgerError::NonMonotonicEventTime)
+        );
+    }
+
+    #[test]
+    fn unknown_execution_locks_alpha_and_blocks_horizon_progress() {
+        let risk_plan = plan(2, 50_000_000);
+        let mut ledger = HorizonRiskLedger::new(risk_plan.clone());
+        let admitted = admission(&risk_plan, 0, "zero", 1_000);
+        ledger.commit_step(admitted.clone()).unwrap();
+        ledger.mark_unknown(unknown(&admitted, "zero", 1_050)).unwrap();
+
+        assert!(matches!(ledger.status(0).unwrap(), StepStatus::Unknown { .. }));
+        let summary = ledger.summary().unwrap();
+        assert_eq!(summary.unknown_locked_alpha_ppb, 25_000_000);
+        assert_eq!(summary.committed_reserved_alpha_ppb, 0);
+        assert_eq!(summary.consumed_alpha_ppb, 0);
+        assert_eq!(summary.unexposed_preallocated_alpha_ppb().unwrap(), 25_000_000);
+        assert_eq!(summary.reserved_or_consumed_alpha_ppb().unwrap(), 25_000_000);
+        assert_eq!(ledger.commit_step(admission(&risk_plan, 1, "one", 1_100)),
+            Err(LedgerError::StepOutOfOrder));
+    }
+
+    #[test]
+    fn unknown_step_can_only_reconcile_to_consumed_with_matching_execution_receipt() {
+        let risk_plan = plan(2, 50_000_000);
+        let mut ledger = HorizonRiskLedger::new(risk_plan.clone());
+        let admitted = admission(&risk_plan, 0, "zero", 1_000);
+        ledger.commit_step(admitted.clone()).unwrap();
+        ledger.mark_unknown(unknown(&admitted, "zero", 1_050)).unwrap();
+
+        let mut mismatched = execution(&admitted, "zero", 1_100);
+        mismatched.actuator_model_digest = "other-actuator-model".to_owned();
+        assert_eq!(ledger.consume_step(mismatched), Err(LedgerError::ExecutionIdentityMismatch));
+        assert_eq!(ledger.summary().unwrap().unknown_locked_alpha_ppb, 25_000_000);
+
+        ledger.consume_step(execution(&admitted, "zero", 1_100)).unwrap();
+        let summary = ledger.summary().unwrap();
+        assert_eq!(summary.unknown_locked_alpha_ppb, 0);
+        assert_eq!(summary.consumed_alpha_ppb, 25_000_000);
+        assert_eq!(summary.resolved_step_count, 1);
+        assert_eq!(summary.next_step_index, 1);
+    }
+
+    #[test]
+    fn unknown_step_can_only_reconcile_to_skipped_with_matching_no_delivery_receipt() {
+        let risk_plan = plan(2, 50_000_000);
+        let mut ledger = HorizonRiskLedger::new(risk_plan.clone());
+        let admitted = admission(&risk_plan, 0, "zero", 1_000);
+        ledger.commit_step(admitted.clone()).unwrap();
+        ledger.mark_unknown(unknown(&admitted, "zero", 1_050)).unwrap();
+
+        let mut no_delivery = skip(&risk_plan, 0, "zero", 1_100);
+        no_delivery.admission_receipt_id = Some(admitted.receipt_id.clone());
+        ledger.skip_step(no_delivery).unwrap();
+        let summary = ledger.summary().unwrap();
+        assert_eq!(summary.unknown_locked_alpha_ppb, 0);
+        assert_eq!(summary.skipped_unused_alpha_ppb, 25_000_000);
+        assert_eq!(summary.pending_preallocated_alpha_ppb, 25_000_000);
+        assert_eq!(summary.resolved_step_count, 1);
+    }
+
+    #[test]
+    fn unknown_receipt_must_match_episode_and_admission() {
+        let risk_plan = plan(1, 50_000_000);
+        let mut ledger = HorizonRiskLedger::new(risk_plan.clone());
+        let admitted = admission(&risk_plan, 0, "zero", 1_000);
+        ledger.commit_step(admitted.clone()).unwrap();
+
+        let mut wrong_episode = unknown(&admitted, "wrong-episode", 1_050);
+        wrong_episode.episode_id = "other-episode".to_owned();
+        assert_eq!(ledger.mark_unknown(wrong_episode), Err(LedgerError::UnknownIdentityMismatch));
+
+        let mut wrong_admission = unknown(&admitted, "wrong-admission", 1_050);
+        wrong_admission.admission_receipt_id = "other-admission".to_owned();
+        assert_eq!(ledger.mark_unknown(wrong_admission), Err(LedgerError::UnknownIdentityMismatch));
+    }
+
+    #[test]
+    fn unknown_steps_are_not_counted_as_unused_or_resolved() {
+        let risk_plan = plan(1, 50_000_000);
+        let mut ledger = HorizonRiskLedger::new(risk_plan.clone());
+        let admitted = admission(&risk_plan, 0, "zero", 1_000);
+        ledger.commit_step(admitted.clone()).unwrap();
+        ledger.mark_unknown(unknown(&admitted, "zero", 1_050)).unwrap();
+        let summary = ledger.summary().unwrap();
+        assert_eq!(summary.unknown_step_count, 1);
+        assert_eq!(summary.skipped_unused_alpha_ppb, 0);
+        assert_eq!(summary.resolved_step_count, 0);
+        assert_eq!(
+            summary.pending_preallocated_alpha_ppb
+                + summary.committed_reserved_alpha_ppb
+                + summary.consumed_alpha_ppb
+                + summary.unknown_locked_alpha_ppb
+                + summary.skipped_unused_alpha_ppb,
+            summary.familywise_alpha_ppb
         );
     }
 
