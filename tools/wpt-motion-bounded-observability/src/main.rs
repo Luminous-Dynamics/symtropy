@@ -943,13 +943,21 @@ mod tests {
     }
 
     #[test]
+    fn nondeterministic_motion_expands_the_reachable_state_set() {
+        let case = parsed(MOVING);
+        let reachable = BTreeSet::from(["A1".to_string(), "B1".to_string()]);
+        assert_eq!(reachable.len(), 2);
+        assert_eq!(unique_pose(&case, &reachable), None);
+    }
+
+    #[test]
     fn any_possible_out_of_domain_transition_rejects_the_action() {
         let input = MOVING
             .lines()
             .take(3)
             .collect::<Vec<_>>()
             .join("\n")
-            .replace("\ttrue\t10", "\tfalse\t10")
+            .replacen("\ttrue\t10", "\tfalse\t10", 1)
             + "\n";
         let case = parsed(&input);
         assert!(solve(&case).is_none());
