@@ -703,13 +703,13 @@ mod tests {
             report.outcome_continuations.iter()
                 .find(|item| item.outcome_id == "grip-confirmed").unwrap()
                 .robust_admissible_action_ids,
-            vec!["advance", "retreat"]
+            vec!["advance".to_owned(), "retreat".to_owned()]
         );
         assert_eq!(
             report.outcome_continuations.iter()
                 .find(|item| item.outcome_id == "grip-degraded").unwrap()
                 .robust_admissible_action_ids,
-            vec!["retreat"]
+            vec!["retreat".to_owned()]
         );
     }
 
@@ -754,11 +754,11 @@ mod tests {
         assert!(report.admitted);
         assert_eq!(
             report.outcome_continuations[0].possible_terminal_state_ids,
-            vec!["grip-degraded", "grip-good"]
+            vec!["grip-degraded".to_owned(), "grip-good".to_owned()]
         );
         assert_eq!(
             report.outcome_continuations[0].robust_admissible_action_ids,
-            vec!["retreat"]
+            vec!["retreat".to_owned()]
         );
     }
 
@@ -810,7 +810,7 @@ mod tests {
             .find(|item| item.outcome_id == "unknown").unwrap();
         assert!(unknown.is_unknown);
         assert_eq!(unknown.probability_ppb, 0);
-        assert_eq!(unknown.robust_admissible_action_ids, vec!["retreat"]);
+        assert_eq!(unknown.robust_admissible_action_ids, vec!["retreat".to_owned()]);
 
         let mut no_fallback = problem;
         no_fallback.continuation_actions.retain(|action| !action.fallback_only);
@@ -868,8 +868,8 @@ mod tests {
             .find(|item| item.outcome_id == "grip-confirmed").unwrap();
         let after_good = after.outcome_continuations.iter()
             .find(|item| item.outcome_id == "grip-confirmed").unwrap();
-        assert_eq!(before_good.robust_admissible_action_ids, vec!["advance", "retreat"]);
-        assert_eq!(after_good.robust_admissible_action_ids, vec!["retreat"]);
+        assert_eq!(before_good.robust_admissible_action_ids, vec!["advance".to_owned(), "retreat".to_owned()]);
+        assert_eq!(after_good.robust_admissible_action_ids, vec!["retreat".to_owned()]);
     }
 
     #[test]
@@ -899,7 +899,7 @@ mod tests {
             report.outcome_continuations.iter()
                 .find(|item| item.outcome_id == "grip-degraded").unwrap()
                 .robust_admissible_action_ids,
-            vec!["retreat"]
+            vec!["retreat".to_owned()]
         );
     }
 }
