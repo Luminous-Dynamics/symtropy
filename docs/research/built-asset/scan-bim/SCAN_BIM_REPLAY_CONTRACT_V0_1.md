@@ -1,12 +1,12 @@
 # Scan-to-BIM Replay Contract v0.1
 
-**Status:** executable P0 metadata and visibility-accounting prototype; not an external dataset replay. The focused workflow is defined in the base branch for this stacked pull request.  
+**Status:** P0.3 schema/receipt contract; still not an external dataset replay. The current manifest schema is v0.2 and records candidate execution identity, per-scene frame/units, tolerance/sampling/metric profiles, candidate outputs and local byte verification.  
 **Issue:** #4116 — SCAN-BIM-REPLAY-001.  
 **Package:** `tools/scan-bim-replay-contract/`.
 
 ## What this tranche does
 
-The Rust CLI validates a replay manifest before any evaluator is run. It checks:
+The Rust CLI validates a replay manifest and verifies its declared local artifacts before any evaluator is run. Schema v0.2 checks:
 
 - dataset use class and explicit prohibition on committing source data or embedding source bytes in CI artifacts;
 - separate typed candidate-input and evaluator-artifact namespaces;
@@ -50,15 +50,21 @@ Candidate inputs have a closed role vocabulary: point-cloud observation, sensor 
 
 Evaluator artifacts have a separate closed vocabulary: reference geometry, ground-truth labels, holdout assignment, official score table and independent checkpoints.
 
-The CLI rejects shared artifact IDs and content digests. Each artifact carries a root-relative path; the verifier canonicalizes distinct, non-overlapping candidate/evaluator roots, rejects absolute paths, dot/parent components and observed symlink components, confirms regular files remain beneath the selected root, and recomputes SHA-256 over the actual bytes. The manifest contains relative paths and hashes, not data bytes or absolute local paths. The committed fixture files are synthetic text bytes only.
+The CLI rejects shared artifact IDs and candidate/evaluator content digests. Runtime, input and output artefacts are verified under the candidate root; reference/ground-truth artefacts are verified under the evaluator root. Each file carries a root-relative path; the verifier canonicalizes distinct, non-overlapping roots, rejects absolute paths, dot/parent components and observed symlink components, confirms regular files remain beneath the selected root, and recomputes SHA-256 over actual bytes. The manifest contains relative paths and hashes, not data bytes or absolute local paths. The committed fixtures are synthetic text placeholders only; the IFC-placeholder bytes are not valid IFC models.
 
 This is **local integrity verification**, not process isolation. Candidate and evaluator roots are both readable by this one verifier process. Standard-library path checks are not race-free against a concurrently malicious process; OS-level descriptor-relative no-follow opens/mounts, separate processes/identities and independent custody remain separate gates. Rights flags are still manifest assertions; this CLI does not inspect Git history or arbitrary CI artifact archives.
+
+## Schema v0.2 execution receipt
+
+The v0.2 manifest requires a candidate pipeline/source commit, toolchain and command; runtime artefact IDs for executable/configuration/optional model weights; candidate outputs bound to declared scene IDs (including at least one IFC-role output per scene); coordinate-frame metadata per scene; and SI-metre tolerance/sampling/metric profiles. The official ISPRS wall metric profile is fail-closed to wall-only scope and reference-to-candidate accuracy. This binds an experiment declaration to bytes, not to a validated physical CRS transform or actual candidate process execution.
+
+See [SCAN_BIM_EXECUTION_RECEIPT_AND_BENCHMARK_TARGETS_V0_1.md](SCAN_BIM_EXECUTION_RECEIPT_AND_BENCHMARK_TARGETS_V0_1.md) for competitive targets and research comparators.
 
 ## Deliberate non-goals
 
 - No point-cloud parsing, registration, reconstruction, meshing, IFC authoring or ray-cast visibility derivation.
 - No implementation of official ISPRS completeness/correctness/accuracy.
-- No choice of the disputed canonical ISPRS accuracy direction. The two directed distance distributions should remain diagnostics until the canonical evaluator implementation is resolved.
+- No official ISPRS geometric scorer yet. The official results page defines accuracy as reference-surface samples to the closest submitted source-model surface; the v0.2 metric profile binds that direction, but source scorer sampling/tessellation/area details and historical reproduction remain P1 work.
 - No reproduction of Ersöz–Bosché coverage/distribution/distance indices.
 - No statistical generalization claim from the small ISPRS building count.
 - No safety, code-compliance, certification or surveyor-approval claim.
