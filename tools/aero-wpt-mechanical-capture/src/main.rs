@@ -360,6 +360,11 @@ fn evaluate(case: &Case) -> Evaluation {
         let all_captured = transitions
             .iter()
             .all(|transition| transition.in_domain && transition.outcome == "CAPTURED");
+        for transition in transitions {
+            if transition.in_domain && transition.outcome == "CAPTURED" {
+                residual_captured_pose_ids.insert(transition.post_pose_id.clone());
+            }
+        }
 
         let disposition = if has_out_of_domain {
             any_out_of_domain = true;
@@ -369,9 +374,6 @@ fn evaluate(case: &Case) -> Evaluation {
             "UNKNOWN_POSSIBILITY"
         } else if all_captured {
             capture_only_approach_count += 1;
-            for transition in transitions {
-                residual_captured_pose_ids.insert(transition.post_pose_id.clone());
-            }
             "CAPTURED_ONLY"
         } else {
             let outcomes: BTreeSet<String> = transitions
@@ -529,6 +531,7 @@ mod tests {
         let result = evaluate(&parsed(MIXED));
         assert_eq!(result.disposition, "MIXED_CAPTURE_ENVELOPE");
         assert_eq!(result.capture_only_approach_count, 1);
+        assert_eq!(result.residual_captured_pose_ids, BTreeSet::from(["POSE_A".to_string()]));
         assert_eq!(result.approaches[0].disposition, "CAPTURED_ONLY");
         assert_eq!(result.approaches[1].disposition, "NOT_CAPTURED_ONLY");
     }
