@@ -46,6 +46,10 @@ These values and output supports are entirely synthetic. Synthetic µJ/µs value
 
 The recursive solver is exact for the supplied finite hypothesis/action set and the stated two-pass minimax objective. It is robust to the declared set-valued support relation: every possible quantized observation must lead to a strictly smaller hypothesis set before terminal resolution. It is bounded to 16 hypotheses and 16 candidate actions. It does not establish global continuous observability, physical outcome probabilities, waveform realizability, switching stress, thermal behavior or measurement calibration.
 
+## Validation
+
+The Rust test suite includes 15 adversarial/known-answer tests. In addition to targeted cases, the independent exhaustive tree enumerator constructs the feasible energy/latency Pareto set for small cases and verifies that the production DP returns the globally minimum-energy, then minimum-latency pair.
+
 ## Run
 
     cargo test --locked --manifest-path tools/wpt-active-probe-policy/Cargo.toml
