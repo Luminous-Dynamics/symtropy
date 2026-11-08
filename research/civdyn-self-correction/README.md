@@ -83,7 +83,7 @@ Four regimes test different failure modes:
 - `gradual_sign_reversal`: the effect moves from +2 to +1 to -1 to -2 across eight ticks while the confounder keeps the observational association positive; the controller must detect the transition at tick 6.
 - `confounded_null`: true effect is zero while observational association remains +5; the controller must reject the spurious benefit.
 
-The portfolio compares frozen, outcome-reactive and mechanism-aware controllers across all four regimes. It reports false causal attribution, matched probe estimates, active ticks after the effect becomes non-positive, action and probe costs, native net utility, oracle utility and regret. The oracle is a ground-truth upper bound, not a deployable baseline.
+The portfolio compares frozen, outcome-reactive and mechanism-aware controllers across all four regimes. It reports proxy-driven action under a non-positive causal effect, matched probe estimates, active ticks after the effect becomes non-positive, action and probe costs, native net utility, oracle utility and regret. The oracle is a ground-truth upper bound, not a deployable baseline.
 
 Known-answer controls: the outcome-reactive controller continues all eight ticks in the sign-reversal and confounded-null cases; the mechanism-aware controller detects sign reversal at tick 4 and null effect at tick 2, and detects the gradual reversal at tick 6, all with one-tick action latency; it does not disable the stable-positive mechanism.
 
