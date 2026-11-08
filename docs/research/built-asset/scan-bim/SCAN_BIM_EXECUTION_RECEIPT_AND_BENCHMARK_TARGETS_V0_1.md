@@ -28,7 +28,7 @@ The Rust contract extends the previous v0.1 metadata/visibility manifest with:
 - Local candidate runtime artifacts with safe relative paths and SHA-256 recomputed from actual bytes.
 - Exact per-scene candidate output artifacts (at least one IFC output per scene), bound to scene IDs and byte-verified under the candidate root.
 
-The executable/configuration/model artifact IDs must resolve to artifacts with the corresponding typed roles. Candidate output hashes are not merely strings: the verifier opens the referenced files beneath the candidate root and recomputes SHA-256.
+The executable/configuration/model artifact IDs must resolve to artifacts with the corresponding typed roles. Candidate output hashes are not merely strings: the verifier opens the referenced files beneath the candidate root and recomputes SHA-256. The JSON receipt emits runtime artifact identities, output artifact IDs, scene bindings, roles, relative paths and digests—not just output counts. Candidate/evaluator relative paths must be unique within their respective roots.
 
 ### Coordinate frame and units
 
@@ -38,9 +38,10 @@ Every scene declares:
 - axis ordering;
 - handedness;
 - coordinate linear unit;
-- vertical datum identity.
+- vertical datum identity;
+- an artifact ID for the scene's registration transform, which must resolve to a typed candidate `registration_metadata` artifact whose exact bytes are verified under the candidate root.
 
-The tolerance and sampling profiles use canonical metres. This avoids silently comparing a 50 mm tolerance with a coordinate frame expressed in feet or millimetres. The verifier records units; it does not transform coordinates or prove that the submitted CRS definition is physically correct. Coordinate transformation artifacts and survey control belong to #1607.
+The tolerance and sampling profiles use canonical metres. This avoids silently comparing a 50 mm tolerance with a coordinate frame expressed in feet or millimetres. The verifier records units and emits an explicit unit-to-metre conversion factor (1.0, 0.001 or 0.3048 for the supported units); it does not transform coordinates or prove that the submitted CRS/transform is physically correct. Transform metadata is byte-bound, not independently surveyed. Coordinate transformation artifacts and survey control belong to #1607. Coordinate transformation artifacts and survey control belong to #1607.
 
 ### Tolerance profile
 
