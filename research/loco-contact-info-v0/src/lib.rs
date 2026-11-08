@@ -305,7 +305,7 @@ impl ActionConditionedObservation {
         if action_id.trim().is_empty() {
             return Err(GaussianError::EmptyActionId);
         }
-        if observation_matrix.columns != noise_covariance.rows
+        if observation_matrix.rows != noise_covariance.rows
             || noise_covariance.rows != noise_covariance.columns
         {
             return Err(GaussianError::MatrixLengthMismatch);
