@@ -207,6 +207,8 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
     let mut scene_ids = BTreeSet::new();
     let mut candidate_ids = BTreeSet::new();
     let mut evaluator_ids = BTreeSet::new();
+    let mut candidate_digests = BTreeSet::new();
+    let mut evaluator_digests = BTreeSet::new();
     let mut building_splits: BTreeMap<&str, &str> = BTreeMap::new();
     let mut capture_splits: BTreeMap<&str, &str> = BTreeMap::new();
     let mut tub1: Option<(&str, &str, &str)> = None;
@@ -284,6 +286,7 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
                     artifact.artifact_id
                 ));
             }
+            candidate_digests.insert(artifact.sha256.as_str());
         }
         for artifact in &scene.evaluator_artifacts {
             let _role = artifact.role;
@@ -299,6 +302,7 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
                     artifact.artifact_id
                 ));
             }
+            evaluator_digests.insert(artifact.sha256.as_str());
         }
         if scene.surface_strata.is_empty() {
             return Err(format!("scene {} has no surface visibility strata", scene.scene_id));
@@ -359,6 +363,12 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
 
     if candidate_ids.iter().any(|id| evaluator_ids.contains(*id)) {
         return Err("candidate and evaluator artifact identifiers must be disjoint".to_owned());
+    }
+    if candidate_digests
+        .iter()
+        .any(|digest| evaluator_digests.contains(*digest))
+    {
+        return Err("candidate and evaluator artifact SHA-256 digests must be disjoint".to_owned());
     }
 
     if manifest.dataset.dataset_id == "ISPRS-INDOOR-MODELLING" {
@@ -519,6 +529,15 @@ mod tests {
         value["scenes"][0]["evaluator_artifacts"][0]["artifact_id"] = candidate_id;
         let error = audit(&value).expect_err("artifact namespaces must be disjoint");
         assert!(error.contains("identifiers must be disjoint"));
+    }
+
+    #[test]
+    fn rejects_candidate_evaluator_digest_collision() {
+        let mut value = fixture_value();
+        let candidate_digest = value["scenes"][0]["candidate_inputs"][0]["sha256"].clone();
+        value["scenes"][0]["evaluator_artifacts"][0]["sha256"] = candidate_digest;
+        let error = audit(&value).expect_err("artifact bytes must not be shared");
+        assert!(error.contains("SHA-256 digests must be disjoint"));
     }
 
     #[test]
