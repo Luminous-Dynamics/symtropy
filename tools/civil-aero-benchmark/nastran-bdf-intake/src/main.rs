@@ -241,11 +241,14 @@ fn parse_deck(bytes: &[u8], expected_sha256: &str) -> ParseResult<Deck> {
         }
 
         if trimmed.eq_ignore_ascii_case("ENDDATA") {
-            if pending.is_some() {
-                return fail(format!(
-                    "line {}: ENDDATA encountered while a continuation is unresolved",
-                    line.line_number
-                ));
+            if let Some(current) = pending.take() {
+                if let Some(expected) = current.next_continuation {
+                    return fail(format!(
+                        "line {}: ENDDATA encountered while continuation {expected} is unresolved",
+                        line.line_number
+                    ));
+                }
+                cards.push(take_card(current));
             }
             saw_enddata = true;
             break;
@@ -255,13 +258,27 @@ fn parse_deck(bytes: &[u8], expected_sha256: &str) -> ParseResult<Deck> {
         let first = fields[0].trim().to_owned();
 
         if first.is_empty() {
-            if trimmed.is_empty() {
+            let Some(mut current) = pending.take() else {
+                return fail(format!(
+                    "line {}: orphan implicit continuation row",
+                    line.line_number
+                ));
+            };
+            if let Some(expected) = current.next_continuation.take() {
+                return fail(format!(
+                    "line {}: card {} requires explicit continuation {expected}",
+                    line.line_number, current.name
+                ));
+            }
+            if fields[1..9].iter().all(|value| value.is_empty()) {
+                pending = Some(current);
                 continue;
             }
-            return fail(format!(
-                "line {}: blank first field with other content is ambiguous; implicit continuation is rejected",
-                line.line_number
-            ));
+            current.fields.extend(fields[1..9].iter().cloned());
+            current.raw_lines.push(line.clone());
+            current.next_continuation = continuation_label(&fields[9], line.line_number)?;
+            pending = Some(current);
+            continue;
         }
 
         if first.starts_with('*') {
@@ -302,12 +319,13 @@ fn parse_deck(bytes: &[u8], expected_sha256: &str) -> ParseResult<Deck> {
         }
 
         if let Some(current) = pending.take() {
-            return fail(format!(
-                "line {}: card {} began before continuation {} was supplied",
-                line.line_number,
-                first,
-                current.next_continuation.unwrap_or_default()
-            ));
+            if let Some(expected) = current.next_continuation {
+                return fail(format!(
+                    "line {}: card {} began before required continuation {expected}",
+                    line.line_number, current.name
+                ));
+            }
+            cards.push(take_card(current));
         }
 
         if first.ends_with('*') {
@@ -324,19 +342,17 @@ fn parse_deck(bytes: &[u8], expected_sha256: &str) -> ParseResult<Deck> {
             raw_lines: vec![line.clone()],
             next_continuation: continuation,
         };
-        if new_card.next_continuation.is_some() {
-            pending = Some(new_card);
-        } else {
-            cards.push(take_card(new_card));
-        }
+        pending = Some(new_card);
     }
 
     if let Some(current) = pending {
-        return fail(format!(
-            "end of source: unresolved continuation {} for card {}",
-            current.next_continuation.unwrap_or_default(),
-            current.name
-        ));
+        if let Some(expected) = current.next_continuation {
+            return fail(format!(
+                "end of source: unresolved continuation {expected} for card {}",
+                current.name
+            ));
+        }
+        cards.push(take_card(current));
     }
     if !in_bulk {
         return fail("BEGIN BULK marker was not found");
@@ -707,7 +723,10 @@ fn build_inventory(deck: &Deck) -> ParseResult<Inventory> {
                     let grid = parse_id(field(card, index, "SPC GRID")?, "SPC GRID")?;
                     let components = required_text(card, index + 1, "SPC component")?;
                     validate_component_digits(components, &format!("SPC {sid} components"))?;
-                    parse_nastran_float(field(card, index + 2, "SPC value")?, "SPC value")?;
+                    let enforced_value = field(card, index + 2, "SPC value")?;
+                    if !enforced_value.trim().is_empty() {
+                        parse_nastran_float(enforced_value, "SPC value")?;
+                    }
                     spc_grid_refs.insert(grid);
                 }
             }
