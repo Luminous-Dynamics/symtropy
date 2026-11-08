@@ -641,9 +641,7 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
             );
         }
     }
-    if manifest.sampling_profile.surface_sampling_algorithm
-        != sampling::SAMPLING_ALGORITHM_ID
-    {
+    if manifest.sampling_profile.surface_sampling_algorithm != sampling::SAMPLING_ALGORITHM_ID {
         return Err(format!(
             "unsupported surface_sampling_algorithm; expected {}",
             sampling::SAMPLING_ALGORITHM_ID
@@ -652,9 +650,7 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
     if manifest.sampling_profile.surface_sampling_max_samples == 0
         || manifest.sampling_profile.surface_sampling_max_samples > 10_000_000
     {
-        return Err(
-            "surface_sampling_max_samples must be between 1 and 10000000".to_owned(),
-        );
+        return Err("surface_sampling_max_samples must be between 1 and 10000000".to_owned());
     }
     if !valid_identifier(&manifest.metric_profile.suite_id)
         || !valid_identifier(&manifest.metric_profile.version)
@@ -1487,13 +1483,9 @@ pub fn audit_manifest_bytes(bytes: &[u8]) -> Result<ReplayAuditReport, String> {
         tolerance_profile_id: manifest.tolerance_profile.profile_id,
         requirement_revision: manifest.tolerance_profile.requirement_revision,
         sampling_profile_id: manifest.sampling_profile.profile_id,
-        surface_sampling_algorithm: manifest
-            .sampling_profile
-            .surface_sampling_algorithm,
+        surface_sampling_algorithm: manifest.sampling_profile.surface_sampling_algorithm,
         surface_sampling_seed: manifest.sampling_profile.surface_sampling_seed,
-        surface_sampling_max_samples: manifest
-            .sampling_profile
-            .surface_sampling_max_samples,
+        surface_sampling_max_samples: manifest.sampling_profile.surface_sampling_max_samples,
         metric_suite_id: manifest.metric_profile.suite_id,
         metric_suite_version: manifest.metric_profile.version,
         toolchain: manifest.candidate_run.toolchain,
@@ -1665,8 +1657,7 @@ mod tests {
         value["sampling_profile"]["surface_sampling_max_samples"] = serde_json::json!(0);
         let zero = audit(&value).expect_err("zero sample budget is invalid");
         assert!(zero.contains("surface_sampling_max_samples"));
-        value["sampling_profile"]["surface_sampling_max_samples"] =
-            serde_json::json!(10_000_001);
+        value["sampling_profile"]["surface_sampling_max_samples"] = serde_json::json!(10_000_001);
         let excessive = audit(&value).expect_err("sample budget must be bounded");
         assert!(excessive.contains("surface_sampling_max_samples"));
     }
