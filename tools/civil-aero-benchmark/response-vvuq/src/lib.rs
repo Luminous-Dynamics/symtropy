@@ -234,12 +234,24 @@ fn canonical_channels(request: &ResponseVectorRequest) -> Result<Vec<ResponseCha
         if !seen.insert(channel.id.clone()) {
             return error(format!("duplicate response channel ID {}", channel.id));
         }
-        finite(channel.normalization_scale, &format!("{} normalization scale", channel.id))?;
+        finite(
+            channel.normalization_scale,
+            &format!("{} normalization scale", channel.id),
+        )?;
         if channel.normalization_scale <= 0.0 {
-            return error(format!("{} normalization scale must be positive", channel.id));
+            return error(format!(
+                "{} normalization scale must be positive",
+                channel.id
+            ));
         }
-        finite(channel.reference_value, &format!("{} reference value", channel.id))?;
-        finite(channel.simulation_value, &format!("{} simulation value", channel.id))?;
+        finite(
+            channel.reference_value,
+            &format!("{} reference value", channel.id),
+        )?;
+        finite(
+            channel.simulation_value,
+            &format!("{} simulation value", channel.id),
+        )?;
     }
     Ok(channels)
 }
@@ -300,7 +312,9 @@ fn reorder_covariance(
     let n = canonical_ids.len();
     validate_matrix_shape(&block.matrix, n, label)?;
     if block.channel_ids.len() != n {
-        return error(format!("{label}: channel ID count does not match matrix dimension"));
+        return error(format!(
+            "{label}: channel ID count does not match matrix dimension"
+        ));
     }
     let mut positions = BTreeMap::new();
     for (index, channel_id) in block.channel_ids.iter().enumerate() {
@@ -309,7 +323,9 @@ fn reorder_covariance(
         }
     }
     if positions.len() != n || canonical_ids.iter().any(|id| !positions.contains_key(id)) {
-        return error(format!("{label}: matrix channel set does not match response channel set"));
+        return error(format!(
+            "{label}: matrix channel set does not match response channel set"
+        ));
     }
 
     let indices = canonical_ids
@@ -318,7 +334,12 @@ fn reorder_covariance(
         .collect::<Vec<_>>();
     let reordered = indices
         .iter()
-        .map(|row| indices.iter().map(|column| block.matrix[*row][*column]).collect())
+        .map(|row| {
+            indices
+                .iter()
+                .map(|column| block.matrix[*row][*column])
+                .collect()
+        })
         .collect::<Matrix>();
     validate_symmetric(&reordered, label)?;
     Ok(reordered)
@@ -338,13 +359,17 @@ fn psd_check(matrix: &Matrix, label: &str) -> Result<()> {
             }
             if i == j {
                 if residual < -tolerance {
-                    return error(format!("{label}: covariance component is not positive semidefinite"));
+                    return error(format!(
+                        "{label}: covariance component is not positive semidefinite"
+                    ));
                 }
                 lower[i][j] = residual.max(0.0).sqrt();
             } else if lower[j][j] > tolerance.sqrt() {
                 lower[i][j] = residual / lower[j][j];
             } else if residual.abs() > tolerance {
-                return error(format!("{label}: covariance component has an inconsistent zero pivot"));
+                return error(format!(
+                    "{label}: covariance component has an inconsistent zero pivot"
+                ));
             }
         }
     }
@@ -371,21 +396,31 @@ fn validate_covariance_provenance(
         require_sha256(value, &format!("{label} {suffix} digest"))?;
     }
     if block.calibration_dataset_sha256 == validation_sha256 {
-        return error(format!("{label}: calibration and held-out validation dataset digests overlap"));
+        return error(format!(
+            "{label}: calibration and held-out validation dataset digests overlap"
+        ));
     }
     if block.state_identity_sha256 != identity_sha256 {
-        return error(format!("{label}: covariance source is bound to a different aircraft state"));
+        return error(format!(
+            "{label}: covariance source is bound to a different aircraft state"
+        ));
     }
     if block.normalization_basis_sha256 != normalization_sha256 {
-        return error(format!("{label}: covariance source uses a different normalization basis"));
+        return error(format!(
+            "{label}: covariance source uses a different normalization basis"
+        ));
     }
 
     if require_envelope {
         let Some(bounds) = &block.max_diagonal_variance else {
-            return error(format!("{label}: calibration diagonal-variance envelope is required"));
+            return error(format!(
+                "{label}: calibration diagonal-variance envelope is required"
+            ));
         };
         if bounds.len() != block.channel_ids.len() {
-            return error(format!("{label}: calibration envelope dimension mismatch"));
+            return error(format!(
+                "{label}: calibration envelope dimension mismatch"
+            ));
         }
         for (index, value) in bounds.iter().enumerate() {
             finite(*value, &format!("{label} variance envelope[{index}]"))?;
@@ -394,7 +429,9 @@ fn validate_covariance_provenance(
             }
         }
     } else if block.max_diagonal_variance.is_some() {
-        return error(format!("{label}: cross-source covariance must not use a marginal variance envelope"));
+        return error(format!(
+            "{label}: cross-source covariance must not use a marginal variance envelope"
+        ));
     }
     Ok(())
 }
@@ -418,7 +455,10 @@ fn validate_component_block(
     let matrix = reorder_covariance(block, canonical_ids, label)?;
     psd_check(&matrix, label)?;
 
-    let bounds = block.max_diagonal_variance.as_ref().expect("validated above");
+    let bounds = block
+        .max_diagonal_variance
+        .as_ref()
+        .expect("validated above");
     let positions = block
         .channel_ids
         .iter()
@@ -454,9 +494,7 @@ fn add_matrices(left: &Matrix, right: &Matrix) -> Matrix {
 fn cholesky(matrix: &Matrix) -> Result<(Matrix, f64, f64)> {
     let n = matrix.len();
     validate_symmetric(matrix, "combined covariance")?;
-    let max_diagonal = (0..n)
-        .map(|index| matrix[index][index])
-        .fold(0.0, f64::max);
+    let max_diagonal = (0..n).map(|index| matrix[index][index]).fold(0.0, f64::max);
     if max_diagonal <= 0.0 {
         return error("combined covariance has no positive variance");
     }
@@ -566,7 +604,10 @@ pub fn evaluate(request: &ResponseVectorRequest) -> Result<ResponseVectorResult>
 
     let identity_hash = validate_identity(&request.identity)?;
     let channels = canonical_channels(request)?;
-    let canonical_ids = channels.iter().map(|channel| channel.id.clone()).collect::<Vec<_>>();
+    let canonical_ids = channels
+        .iter()
+        .map(|channel| channel.id.clone())
+        .collect::<Vec<_>>();
     let normalization_hash = normalization_basis_hash(&channels)?;
 
     let component_sources = [
@@ -577,7 +618,9 @@ pub fn evaluate(request: &ResponseVectorRequest) -> Result<ResponseVectorResult>
     let mut source_ids = BTreeSet::new();
     for block in component_sources {
         if !source_ids.insert(block.source_id.clone()) {
-            return error("experimental, numerical and input covariance source IDs must be distinct");
+            return error(
+                "experimental, numerical and input covariance source IDs must be distinct",
+            );
         }
     }
 
@@ -606,13 +649,20 @@ pub fn evaluate(request: &ResponseVectorRequest) -> Result<ResponseVectorResult>
         "input covariance",
     )?;
 
-    let cross_source = match (&request.uncertainty.independent_components, &request.uncertainty.cross_source) {
+    let cross_source = match (
+        &request.uncertainty.independent_components,
+        &request.uncertainty.cross_source,
+    ) {
         (true, None) => None,
         (true, Some(_)) => {
-            return error("cross-source covariance supplied while components are declared independent");
+            return error(
+                "cross-source covariance supplied while components are declared independent",
+            );
         }
         (false, None) => {
-            return error("cross-source covariance is required when uncertainty components are not independent");
+            return error(
+                "cross-source covariance is required when uncertainty components are not independent",
+            );
         }
         (false, Some(block)) => {
             if !source_ids.insert(block.source_id.clone()) {
@@ -626,7 +676,11 @@ pub fn evaluate(request: &ResponseVectorRequest) -> Result<ResponseVectorResult>
                 "cross-source covariance",
                 false,
             )?;
-            Some(reorder_covariance(block, &canonical_ids, "cross-source covariance")?)
+            Some(reorder_covariance(
+                block,
+                &canonical_ids,
+                "cross-source covariance",
+            )?)
         }
     };
 
@@ -641,7 +695,9 @@ pub fn evaluate(request: &ResponseVectorRequest) -> Result<ResponseVectorResult>
 
     let residuals = channels
         .iter()
-        .map(|channel| (channel.simulation_value - channel.reference_value) / channel.normalization_scale)
+        .map(|channel| {
+            (channel.simulation_value - channel.reference_value) / channel.normalization_scale
+        })
         .collect::<Vec<_>>();
     let whitened = forward_solve(&lower, &residuals);
     let d2 = whitened.iter().map(|value| value * value).sum::<f64>();
@@ -654,7 +710,10 @@ pub fn evaluate(request: &ResponseVectorRequest) -> Result<ResponseVectorResult>
     for (index, channel) in channels.iter().enumerate() {
         let variance = total[index][index];
         if !variance.is_finite() || variance <= 0.0 {
-            return error(format!("combined variance for {} is not positive", channel.id));
+            return error(format!(
+                "combined variance for {} is not positive",
+                channel.id
+            ));
         }
         let standard_deviation = variance.sqrt();
         let marginal_z = residuals[index] / standard_deviation;
@@ -678,14 +737,19 @@ pub fn evaluate(request: &ResponseVectorRequest) -> Result<ResponseVectorResult>
         None => ("DIAGNOSTIC_ONLY".to_owned(), None, None, None),
         Some(limit) => {
             finite(limit.max_d2, "maximum D2 decision limit")?;
-            finite(limit.max_abs_marginal_z, "maximum marginal z decision limit")?;
+            finite(
+                limit.max_abs_marginal_z,
+                "maximum marginal z decision limit",
+            )?;
             if limit.max_d2 < 0.0 || limit.max_abs_marginal_z < 0.0 {
                 return error("decision limits must be non-negative");
             }
             require_sha256(&limit.protocol_sha256, "decision protocol digest")?;
             require_sha256(&limit.claim_scope_sha256, "decision claim-scope digest")?;
             if limit.claim_scope_sha256 != request.identity.claim_scope_sha256 {
-                return error("decision limit claim scope does not match response-vector claim scope");
+                return error(
+                    "decision limit claim scope does not match response-vector claim scope",
+                );
             }
             let status = if d2 > limit.max_d2 || maximum_abs_z > limit.max_abs_marginal_z {
                 "EXCEEDS_DECLARED_LIMIT"
@@ -729,7 +793,11 @@ pub fn evaluate(request: &ResponseVectorRequest) -> Result<ResponseVectorResult>
         maximum_cholesky_pivot: maximum_pivot,
         maximum_absolute_marginal_z: maximum_abs_z,
         uncertainty_sources,
-        cross_source_covariance_source_id: request.uncertainty.cross_source.as_ref().map(|block| block.source_id.clone()),
+        cross_source_covariance_source_id: request
+            .uncertainty
+            .cross_source
+            .as_ref()
+            .map(|block| block.source_id.clone()),
         decision_status,
         decision_limit_d2: limit_d2,
         decision_limit_max_abs_marginal_z: limit_z,
@@ -754,7 +822,10 @@ mod tests {
         let result = evaluate(&request()).expect("known-answer response should evaluate");
         assert!((result.covariance_weighted_d2 - 18.493035490698507).abs() < 1.0e-10);
         assert_eq!(result.decision_status, "WITHIN_DECLARED_LIMIT");
-        assert_eq!(result.claim_ceiling, "multivariate_response_discrepancy_only");
+        assert_eq!(
+            result.claim_ceiling,
+            "multivariate_response_discrepancy_only"
+        );
         assert_eq!(result.channel_diagnostics.len(), 3);
     }
 
@@ -764,10 +835,20 @@ mod tests {
         let original = evaluate(&input).unwrap();
         input.channels.reverse();
         let reordered = evaluate(&input).unwrap();
-        assert!((original.covariance_weighted_d2 - reordered.covariance_weighted_d2).abs() < 1.0e-12);
+        assert!(
+            (original.covariance_weighted_d2 - reordered.covariance_weighted_d2).abs() < 1.0e-12
+        );
         assert_eq!(
-            original.channel_diagnostics.iter().map(|channel| &channel.id).collect::<Vec<_>>(),
-            reordered.channel_diagnostics.iter().map(|channel| &channel.id).collect::<Vec<_>>()
+            original
+                .channel_diagnostics
+                .iter()
+                .map(|channel| &channel.id)
+                .collect::<Vec<_>>(),
+            reordered
+                .channel_diagnostics
+                .iter()
+                .map(|channel| &channel.id)
+                .collect::<Vec<_>>()
         );
     }
 
