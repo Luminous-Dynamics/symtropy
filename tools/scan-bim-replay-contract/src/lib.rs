@@ -4,6 +4,9 @@
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
+use std::fs::{self, File};
+use std::io::Read;
+use std::path::{Component, Path, PathBuf};
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -58,6 +61,7 @@ struct SceneRecord {
 struct CandidateArtifact {
     artifact_id: String,
     role: CandidateInputRole,
+    relative_path: String,
     sha256: String,
 }
 
@@ -66,6 +70,7 @@ struct CandidateArtifact {
 struct EvaluatorArtifact {
     artifact_id: String,
     role: EvaluatorArtifactRole,
+    relative_path: String,
     sha256: String,
 }
 
@@ -115,6 +120,12 @@ enum ObservationStatus {
     NotCaptured,
     Unknown,
     Contradictory,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ArtifactVerificationSummary {
+    pub candidate_verified: usize,
+    pub evaluator_verified: usize,
 }
 
 #[derive(Debug, Serialize)]
@@ -484,6 +495,162 @@ fn summarize_scene(scene: &SceneRecord) -> SceneVisibilityAudit {
     }
 }
 
+fn canonical_directory(path: &Path, label: &str) -> Result<PathBuf, String> {
+    let canonical = fs::canonicalize(path)
+        .map_err(|error| format!("{label} root cannot be canonicalized: {error}"))?;
+    if !canonical.is_dir() {
+        return Err(format!("{label} root is not a directory"));
+    }
+    Ok(canonical)
+}
+
+fn resolve_file_beneath_root(
+    root: &Path,
+    relative_path: &str,
+    label: &str,
+    artifact_id: &str,
+) -> Result<PathBuf, String> {
+    let relative = Path::new(relative_path);
+    if relative.as_os_str().is_empty()
+        || relative.is_absolute()
+        || relative
+            .components()
+            .any(|component| !matches!(component, Component::Normal(_)))
+    {
+        return Err(format!(
+            "{label} artifact {artifact_id} has an unsafe relative_path"
+        ));
+    }
+
+    let components: Vec<_> = relative.components().collect();
+    let mut current = root.to_path_buf();
+    for (index, component) in components.iter().enumerate() {
+        let Component::Normal(name) = component else {
+            return Err(format!(
+                "{label} artifact {artifact_id} has an unsafe path component"
+            ));
+        };
+        current.push(name);
+        let metadata = fs::symlink_metadata(&current).map_err(|error| {
+            format!(
+                "{label} artifact {artifact_id} path component is unavailable: {error}"
+            )
+        })?;
+        if metadata.file_type().is_symlink() {
+            return Err(format!(
+                "{label} artifact {artifact_id} path contains a symlink"
+            ));
+        }
+        if index + 1 < components.len() && !metadata.is_dir() {
+            return Err(format!(
+                "{label} artifact {artifact_id} has a non-directory path component"
+            ));
+        }
+    }
+
+    let canonical = fs::canonicalize(&current).map_err(|error| {
+        format!("{label} artifact {artifact_id} cannot be canonicalized: {error}")
+    })?;
+    if !canonical.starts_with(root) {
+        return Err(format!(
+            "{label} artifact {artifact_id} resolves outside its declared root"
+        ));
+    }
+    let metadata = fs::metadata(&canonical)
+        .map_err(|error| format!("{label} artifact {artifact_id} metadata failed: {error}"))?;
+    if !metadata.is_file() {
+        return Err(format!(
+            "{label} artifact {artifact_id} is not a regular file"
+        ));
+    }
+    Ok(canonical)
+}
+
+fn sha256_file(path: &Path, label: &str, artifact_id: &str) -> Result<String, String> {
+    let mut file = File::open(path)
+        .map_err(|error| format!("{label} artifact {artifact_id} cannot be opened: {error}"))?;
+    let mut hasher = Sha256::new();
+    let mut buffer = [0_u8; 64 * 1024];
+    loop {
+        let bytes_read = file
+            .read(&mut buffer)
+            .map_err(|error| format!("{label} artifact {artifact_id} read failed: {error}"))?;
+        if bytes_read == 0 {
+            break;
+        }
+        hasher.update(&buffer[..bytes_read]);
+    }
+    let digest = hasher.finalize();
+    Ok(digest.iter().map(|byte| format!("{byte:02x}")).collect())
+}
+
+/// Recomputes declared artifact digests from local files beneath separate roots.
+///
+/// This is integrity verification only. It does not sandbox a candidate process or
+/// prove independent evaluator custody. Standard-library path checks reject observed
+/// symlinks and path traversal, but this is not a race-free OS-level openat/O_NOFOLLOW
+/// sandbox against a concurrently malicious process.
+pub fn verify_manifest_artifact_files(
+    bytes: &[u8],
+    candidate_root: &Path,
+    evaluator_root: &Path,
+) -> Result<ArtifactVerificationSummary, String> {
+    let manifest: ReplayManifest =
+        serde_json::from_slice(bytes).map_err(|error| format!("invalid manifest JSON: {error}"))?;
+    validate_manifest(&manifest)?;
+
+    let candidate_root = canonical_directory(candidate_root, "candidate")?;
+    let evaluator_root = canonical_directory(evaluator_root, "evaluator")?;
+    if candidate_root == evaluator_root
+        || candidate_root.starts_with(&evaluator_root)
+        || evaluator_root.starts_with(&candidate_root)
+    {
+        return Err("candidate and evaluator roots must be distinct and non-overlapping".to_owned());
+    }
+
+    let mut candidate_verified = 0;
+    let mut evaluator_verified = 0;
+    for scene in &manifest.scenes {
+        for artifact in &scene.candidate_inputs {
+            let path = resolve_file_beneath_root(
+                &candidate_root,
+                &artifact.relative_path,
+                "candidate",
+                &artifact.artifact_id,
+            )?;
+            let actual = sha256_file(&path, "candidate", &artifact.artifact_id)?;
+            if actual != artifact.sha256 {
+                return Err(format!(
+                    "candidate artifact {} SHA-256 mismatch: declared {}, actual {}",
+                    artifact.artifact_id, artifact.sha256, actual
+                ));
+            }
+            candidate_verified += 1;
+        }
+        for artifact in &scene.evaluator_artifacts {
+            let path = resolve_file_beneath_root(
+                &evaluator_root,
+                &artifact.relative_path,
+                "evaluator",
+                &artifact.artifact_id,
+            )?;
+            let actual = sha256_file(&path, "evaluator", &artifact.artifact_id)?;
+            if actual != artifact.sha256 {
+                return Err(format!(
+                    "evaluator artifact {} SHA-256 mismatch: declared {}, actual {}",
+                    artifact.artifact_id, artifact.sha256, actual
+                ));
+            }
+            evaluator_verified += 1;
+        }
+    }
+
+    Ok(ArtifactVerificationSummary {
+        candidate_verified,
+        evaluator_verified,
+    })
+}
+
 pub fn audit_manifest_bytes(bytes: &[u8]) -> Result<ReplayAuditReport, String> {
     let manifest: ReplayManifest =
         serde_json::from_slice(bytes).map_err(|error| format!("invalid manifest JSON: {error}"))?;
@@ -529,6 +696,107 @@ mod tests {
 
     fn audit(value: &Value) -> Result<ReplayAuditReport, String> {
         audit_manifest_bytes(value.to_string().as_bytes())
+    }
+
+    fn synthetic_data_roots() -> (std::path::PathBuf, std::path::PathBuf) {
+        let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("fixtures")
+            .join("data");
+        (root.join("candidate"), root.join("evaluator"))
+    }
+
+    #[test]
+    fn verifies_exact_candidate_and_evaluator_file_bytes() {
+        let (candidate, evaluator) = synthetic_data_roots();
+        let summary = super::verify_manifest_artifact_files(
+            FIXTURE.as_bytes(),
+            &candidate,
+            &evaluator,
+        )
+        .expect("synthetic artifact bytes should match the declared hashes");
+        assert_eq!(summary.candidate_verified, 2);
+        assert_eq!(summary.evaluator_verified, 2);
+    }
+
+    #[test]
+    fn rejects_artifact_path_traversal() {
+        let mut value = fixture_value();
+        value["scenes"][0]["candidate_inputs"][0]["relative_path"] =
+            serde_json::json!("../evaluator/room-a-reference.bin");
+        let (candidate, evaluator) = synthetic_data_roots();
+        let error = super::verify_manifest_artifact_files(
+            value.to_string().as_bytes(),
+            &candidate,
+            &evaluator,
+        )
+        .expect_err("parent traversal must be rejected");
+        assert!(error.contains("unsafe relative_path"));
+    }
+
+    #[test]
+    fn rejects_artifact_digest_mismatch_against_file_bytes() {
+        let mut value = fixture_value();
+        value["scenes"][0]["candidate_inputs"][0]["sha256"] =
+            serde_json::json!("0000000000000000000000000000000000000000000000000000000000000000");
+        let (candidate, evaluator) = synthetic_data_roots();
+        let error = super::verify_manifest_artifact_files(
+            value.to_string().as_bytes(),
+            &candidate,
+            &evaluator,
+        )
+        .expect_err("a syntactically valid but false digest must be rejected");
+        assert!(error.contains("SHA-256 mismatch"));
+    }
+
+    #[test]
+    fn rejects_candidate_and_evaluator_roots_that_overlap() {
+        let (candidate, _) = synthetic_data_roots();
+        let error = super::verify_manifest_artifact_files(
+            FIXTURE.as_bytes(),
+            &candidate,
+            &candidate,
+        )
+        .expect_err("candidate and evaluator roots must not alias");
+        assert!(error.contains("distinct and non-overlapping"));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn rejects_symlinked_candidate_artifact_path() {
+        use std::os::unix::fs::symlink;
+        use std::sync::atomic::{AtomicU64, Ordering};
+
+        static NEXT: AtomicU64 = AtomicU64::new(0);
+        let temp = std::env::temp_dir().join(format!(
+            "scan-bim-replay-symlink-{}-{}",
+            std::process::id(),
+            NEXT.fetch_add(1, Ordering::Relaxed)
+        ));
+        let candidate = temp.join("candidate");
+        let evaluator = temp.join("evaluator");
+        std::fs::create_dir_all(&candidate).expect("candidate root");
+        std::fs::create_dir_all(&evaluator).expect("evaluator root");
+        std::fs::copy(
+            synthetic_data_roots().0.join("room-a-scan.bin"),
+            candidate.join("room-a-scan.bin"),
+        )
+        .expect("copy candidate artifact");
+        let evaluator_source = synthetic_data_roots().1.join("room-a-reference.bin");
+        std::fs::copy(&evaluator_source, evaluator.join("room-a-reference.bin"))
+            .expect("copy evaluator artifact");
+        symlink(&evaluator_source, candidate.join("escape.bin")).expect("create escape symlink");
+
+        let mut value = fixture_value();
+        value["scenes"][0]["candidate_inputs"][0]["relative_path"] =
+            serde_json::json!("escape.bin");
+        let error = super::verify_manifest_artifact_files(
+            value.to_string().as_bytes(),
+            &candidate,
+            &evaluator,
+        )
+        .expect_err("symlinked candidate artifacts must be rejected");
+        assert!(error.contains("path contains a symlink"));
+        let _ = std::fs::remove_dir_all(&temp);
     }
 
     #[test]
