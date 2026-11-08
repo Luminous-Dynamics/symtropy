@@ -13,8 +13,7 @@ use core::fmt;
 use crate::{
     causal_drift::{CAUSAL_DRIFT_TICKS, CausalRegime},
     noisy_causal_drift::{
-        MATCHED_PAIRS_PER_LOOK, NOISY_BASE_SEED, NOISY_SEEDS,
-        OUTCOME_NOISE_STANDARD_DEVIATION,
+        MATCHED_PAIRS_PER_LOOK, NOISY_BASE_SEED, NOISY_SEEDS, OUTCOME_NOISE_STANDARD_DEVIATION,
     },
 };
 
@@ -99,7 +98,10 @@ impl fmt::Display for SequentialError {
                 write!(f, "paired observation at index {index} is not finite")
             }
             Self::InvalidInterval => {
-                write!(f, "Wilson interval requires 0 <= events <= trials and trials > 0")
+                write!(
+                    f,
+                    "Wilson interval requires 0 <= events <= trials and trials > 0"
+                )
             }
         }
     }
@@ -208,10 +210,7 @@ fn generate_paired_stream(regime: CausalRegime, seed_index: usize) -> (u64, Vec<
 
     for pair_index in 0..MAX_PAIRS {
         let confounder = CONFONDER_VALUES[pair_index % CONFONDER_VALUES.len()];
-        let treatment = 10.0
-            + confounder
-            + effect
-            + rng.normal(OUTCOME_NOISE_STANDARD_DEVIATION);
+        let treatment = 10.0 + confounder + effect + rng.normal(OUTCOME_NOISE_STANDARD_DEVIATION);
         let control = 10.0 + confounder + rng.normal(OUTCOME_NOISE_STANDARD_DEVIATION);
         differences.push(treatment - control);
     }
@@ -236,8 +235,7 @@ fn log_gaussian_mixture_e(sum_centered: f64, n: usize) -> f64 {
     let n = n as f64;
     let log_weight = -4.0_f64.ln();
     let terms = MIXTURE_LAMBDAS.map(|lambda| {
-        log_weight + lambda * sum_centered
-            - 0.5 * lambda * lambda * PAIRED_DIFFERENCE_VARIANCE * n
+        log_weight + lambda * sum_centered - 0.5 * lambda * lambda * PAIRED_DIFFERENCE_VARIANCE * n
     });
     log_sum_exp(terms)
 }
@@ -293,8 +291,7 @@ pub fn evaluate_stream(
             sum += value;
             let n = index + 1;
             last_harm = log_gaussian_mixture_e(-sum, n);
-            last_benefit =
-                log_gaussian_mixture_e(sum - ACTION_BENEFIT_THRESHOLD * n as f64, n);
+            last_benefit = log_gaussian_mixture_e(sum - ACTION_BENEFIT_THRESHOLD * n as f64, n);
 
             // Each directional null receives alpha=0.025; Ville's inequality
             // plus a union bound controls either declaration at 0.05 per episode.
@@ -382,9 +379,8 @@ pub fn evaluate_stream(
 }
 
 pub fn run_sequential_method_portfolio() -> Vec<SequentialEpisodeResult> {
-    let mut results = Vec::with_capacity(
-        CausalRegime::ALL.len() * NOISY_SEEDS * SequentialMethod::ALL.len(),
-    );
+    let mut results =
+        Vec::with_capacity(CausalRegime::ALL.len() * NOISY_SEEDS * SequentialMethod::ALL.len());
 
     for regime in CausalRegime::ALL {
         let true_effect = regime.causal_effect(CAUSAL_DRIFT_TICKS);
@@ -426,8 +422,7 @@ pub fn wilson_95(events: usize, trials: usize) -> Result<WilsonInterval, Sequent
     let z_squared = z * z;
     let denominator = 1.0 + z_squared / n;
     let center = (p + z_squared / (2.0 * n)) / denominator;
-    let radius =
-        z * (p * (1.0 - p) / n + z_squared / (4.0 * n * n)).sqrt() / denominator;
+    let radius = z * (p * (1.0 - p) / n + z_squared / (4.0 * n * n)).sqrt() / denominator;
 
     Ok(WilsonInterval {
         lower: (center - radius).max(0.0),
@@ -441,10 +436,8 @@ mod tests {
 
     #[test]
     fn stream_is_replayable_and_all_methods_receive_same_digest() {
-        let (seed_a, stream_a, hash_a) =
-            generate_paired_stream(CausalRegime::SignReversal, 17);
-        let (seed_b, stream_b, hash_b) =
-            generate_paired_stream(CausalRegime::SignReversal, 17);
+        let (seed_a, stream_a, hash_a) = generate_paired_stream(CausalRegime::SignReversal, 17);
+        let (seed_b, stream_b, hash_b) = generate_paired_stream(CausalRegime::SignReversal, 17);
 
         assert_eq!(seed_a, seed_b);
         assert_eq!(stream_a, stream_b);
@@ -468,8 +461,7 @@ mod tests {
         );
 
         let (_, harmful, _) = generate_paired_stream(CausalRegime::SignReversal, 9);
-        let harm =
-            evaluate_stream(SequentialMethod::GaussianMixtureEProcess, &harmful).unwrap();
+        let harm = evaluate_stream(SequentialMethod::GaussianMixtureEProcess, &harmful).unwrap();
         assert_eq!(harm.decision, SequentialDecision::HarmfulEffectEstablished);
         assert!(harm.pairs_used < 100);
 
@@ -480,8 +472,7 @@ mod tests {
         assert!(benefit.pairs_used < 200);
 
         let (_, null, _) = generate_paired_stream(CausalRegime::ConfoundedNull, 9);
-        let neither =
-            evaluate_stream(SequentialMethod::GaussianMixtureEProcess, &null).unwrap();
+        let neither = evaluate_stream(SequentialMethod::GaussianMixtureEProcess, &null).unwrap();
         assert_eq!(neither.decision, SequentialDecision::Inconclusive);
     }
 
