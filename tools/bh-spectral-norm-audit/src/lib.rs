@@ -360,21 +360,26 @@ mod tests {
         ]);
         let gram = DMatrix::<Complex64>::identity(2, 2);
         let epsilons = [1.0e-2_f64, 1.0e-4, 1.0e-6, 1.0e-8];
-        let mut measured = Vec::new();
+        let mut radii = Vec::new();
+        let mut singular_values = Vec::new();
 
         for epsilon in epsilons {
+            let radius = epsilon.sqrt();
             let report = gram_weighted_log10_resolvent(
                 &jordan,
-                Complex64::new(epsilon.sqrt(), 0.0),
+                Complex64::new(radius, 0.0),
                 &gram,
                 NormPlacement::Gram,
             )
             .unwrap();
-            measured.push(report.sigma_min_shifted);
+            radii.push(radius);
+            singular_values.push(report.sigma_min_shifted);
             assert!((report.sigma_min_shifted / epsilon - 1.0).abs() < 0.02);
         }
 
-        let slope = (measured[3].ln() - measured[0].ln()) / (epsilons[3].ln() - epsilons[0].ln());
+        let log_radius_span = radii[3].ln() - radii[0].ln();
+        let log_singular_span = singular_values[3].ln() - singular_values[0].ln();
+        let slope = log_radius_span / log_singular_span;
         assert!((slope - 0.5).abs() < 0.005);
     }
 
