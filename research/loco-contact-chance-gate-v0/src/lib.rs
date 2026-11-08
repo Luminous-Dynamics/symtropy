@@ -989,7 +989,10 @@ mod tests {
                 .unwrap()
                 .abstention_reason
         };
-        assert_eq!(reason_for("wrong-unit"), Some(AbstentionReason::UnitMismatch));
+        assert_eq!(
+            reason_for("wrong-unit"),
+            Some(AbstentionReason::UnitMismatch)
+        );
         assert_eq!(
             reason_for("wrong-action"),
             Some(AbstentionReason::PredictionIdentityMismatch)
