@@ -652,7 +652,7 @@ fn validate_account(account: &Account) -> Result<(), CalcError> {
     if !account.supply_capacity_kva.is_finite() || account.supply_capacity_kva <= 0.0 {
         return Err(CalcError::InvalidSupplyCapacity);
     }
-    if account.legacy_pre_1999_demand_tariff && account.supply_capacity_kva < 100.0 {
+    if account.legacy_pre_1999_demand_tariff {
         return Err(CalcError::LegacyAccountRequiresManualReview);
     }
     if account.supply_capacity_kva <= TOU_ELIGIBILITY_THRESHOLD_KVA {
@@ -1163,6 +1163,17 @@ mod tests {
     }
 
     #[test]
+    fn legacy_pre_1999_account_above_100_kva_still_requires_manual_review() {
+        let mut input = fixture();
+        input.account.supply_capacity_kva = 150.0;
+        input.account.legacy_pre_1999_demand_tariff = true;
+        assert_eq!(
+            calculate_bill(&input).unwrap_err(),
+            CalcError::LegacyAccountRequiresManualReview
+        );
+    }
+
+    #[test]
     fn summer_rate_schedule_is_separate_from_winter() {
         close(
             energy_rate_cents_per_kwh(Season::Summer, EnergyBand::Peak),
@@ -1568,8 +1579,17 @@ mod tests {
         );
 
         input.intervals[0].public_holiday_evidence_reference =
-            Some("SYNTHETIC-DATE-SPECIFIC-PUBLIC-HOLIDAY".to_owned());
-        assert!(calculate_bill(&input).is_ok());
+            Some("SYNTHETIC-DATE-SPECIFIC-PUBLIC-HOLIDAY-A".to_owned());
+        let holiday_receipt_a = calculate_bill(&input).unwrap();
+
+        input.intervals[0].public_holiday_evidence_reference =
+            Some("SYNTHETIC-DATE-SPECIFIC-PUBLIC-HOLIDAY-B".to_owned());
+        let holiday_receipt_b = calculate_bill(&input).unwrap();
+        assert_ne!(
+            holiday_receipt_a.input_fingerprint_fnv1a64,
+            holiday_receipt_b.input_fingerprint_fnv1a64,
+            "the date-specific public-holiday evidence must be bound into the input fingerprint"
+        );
 
         input.intervals[0].public_holiday_evidence_reference = None;
         input.intervals[0].day_class = DayClass::Sunday;
@@ -1577,6 +1597,9 @@ mod tests {
             calculate_bill(&input).unwrap_err(),
             CalcError::DayClassDoesNotMatchDate
         );
+
+        input.intervals[0].local_date = "2026-07-05".to_owned();
+        assert!(calculate_bill(&input).is_ok(), "2026-07-05 is a Sunday");
     }
 
     #[test]
