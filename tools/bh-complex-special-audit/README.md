@@ -30,6 +30,33 @@ The series result reports its method, term count and an a-posteriori geometric
 tail estimate. That estimate is a diagnostic, not a rigorous global error
 bound for arbitrary complex parameters.
 
+### Ferrers associated-Legendre function
+
+The crate now evaluates P_l^mu(z) and its first two z-derivatives for real
+z strictly inside (-1,1), using the formula
+
+    P_l^mu(z) = exp(mu atanh(z)) / Gamma(1-mu)
+                * 2F1(-l, l+1; 1-mu; (1-z)/2).
+
+Complex degree l and order mu are supported. The implementation uses
+contiguous ₂F₁ derivative identities, so the associated-Legendre ODE residual
+can be tested independently from the differential-equation identity.
+
+For the Pöschl–Teller tortoise coordinate x, set
+
+    z = tanh(x/b)
+    l = -1/2 + sqrt(1/4 - lambda)
+    mu = i b omega
+
+Then P_l^mu(z) has the right-outgoing asymptotic factor e^(i omega x) up to
+its known 1/Gamma(1-mu) normalization. P_l^mu(-z) supplies the corresponding
+left-outgoing basis. The current helper computes Ferrers values and derivatives;
+it does not yet construct the unit-normalized Jost pair or a Green function.
+
+The endpoint values z=±1 and complex z arguments are rejected. Resonant
+denominator cases remain unsupported until the logarithmic continuation is
+implemented.
+
 ## Independent fixtures
 
 Four complex fixtures were generated with mpmath 1.3.0 at 80 decimal digits
