@@ -1,37 +1,59 @@
-# CIVDYN Joint Population Fidelity v0.1
+# CIVDYN Joint Population Fidelity v0.2
 
-A dependency-free Rust reference for detecting a failure mode that marginal-only population metrics miss.
+A dependency-free Rust reference for testing whether simulated populations reproduce joint statistical structure, including uncertainty at the independent-unit level.
 
-## Motivation
+## v0.1 descriptive reference
 
-Two generated populations can have exactly the same marginal distribution for income and health while having a completely different relationship between them. A system that checks only each variable independently can incorrectly pass the simulation.
+The base evaluator reports marginal total-variation distances separately from joint total-variation distance and mutual-information differences. It detects cases where marginals match exactly while the association is destroyed. It also provides declared-stratum comparisons and preserves observation identity and independent-unit identity.
 
-SSDataBench motivates extending population validation beyond univariate distributions to bivariate associations, multivariate outcomes, event sequences and sequence/covariate relationships. This crate implements only the first narrow slice: bivariate categorical dependence and declared-stratum comparisons.
+## v0.2 independent-unit cluster bootstrap
 
-## Metric contract
+The `cluster_bootstrap` module adds percentile bootstrap intervals for:
 
-For a declared pair of categorical variables, the evaluator reports separately:
+- Left marginal total-variation distance.
+- Right marginal total-variation distance.
+- Joint-distribution total-variation distance.
+- Observed mutual information (nats).
+- Simulated mutual information (nats).
+- Absolute mutual-information gap (nats).
 
-- Total variation distance for the left marginal.
-- Total variation distance for the right marginal.
-- Total variation distance for the full joint distribution.
-- Mutual information for observed and simulated pairs, measured in nats.
-- Absolute mutual-information gap.
-- Row counts and distinct independent-unit counts for support visibility.
+### Resampling contract
 
-The evaluator never collapses these values into one score. Stratum comparisons fail closed when a stratum is absent from either population. Missing values are not treated as an extra zero category.
+1. Validate the original observation identities and categories.
+2. Group rows by the declared `independent_unit_id`.
+3. Require at least two independent units in each population.
+4. For each replicate, sample the observed clusters with replacement, drawing the same number of clusters as originally observed.
+5. Independently resample simulated clusters with replacement, drawing the same number as originally observed.
+6. Retain every row belonging to each selected cluster. Repeated selections receive new bootstrap unit and observation IDs, so a sampled cluster is represented as a new draw rather than being rejected as a duplicate.
+7. Recompute every descriptive metric and report the 2.5th and 97.5th percentile as a 95% percentile interval.
 
-The `independent_unit_id` is retained so the next uncertainty layer can resample at the correct level. v0.1 reports descriptive discrepancies only: it does not produce p-values, confidence intervals, or population-inference claims. Repeated rows from one person must not be counted as independent evidence.
+The bootstrap uses a deterministic SplitMix64 seed stream with rejection sampling for unbiased cluster-index selection. The default is 2,000 replicates; the API fails closed below 200 replicates. The seed and replicate count are inputs and should be frozen in the experiment manifest.
+
+### Interpretation and limits
+
+These intervals quantify sampling variability under the declared independent-cluster resampling design. They do not correct selection bias, establish population representativeness, handle survey weights, or create causal identification. The current implementation treats clusters as exchangeable and resamples the two populations independently. Paired agent/seed designs, stratified cluster sampling, informative cluster sizes, few-cluster corrections, and longitudinal missingness need separate protocols.
+
+Unequal cluster sizes are retained in full. Therefore the target is the row-weighted pattern distribution under the observed cluster-size process; the implementation does not silently normalize every unit to equal row weight. For repeated-measures populations, this estimand must be considered before interpreting the interval.
+
+The percentile interval is a transparent baseline, not a claim that coverage is guaranteed under every dependence structure. Empirical coverage needs to be tested on known-answer generators with varying cluster counts, imbalance, heavy tails, missingness and subgroup structure.
 
 ## Synthetic negative control
 
-The tests compare:
-- Observed: 50% low-income/low-health and 50% high-income/high-health.
-- Simulated: 25% each of low-income/low-health, low-income/high-health, high-income/low-health and high-income/high-health.
+Observed pairs:
+- 50% (low, low)
+- 50% (high, high)
 
-Both marginal distributions match exactly (TV = 0), but the joint distributions differ (joint TV = 0.5); observed mutual information is ln(2) nats while simulated mutual information is 0.
+Simulated independent pairs:
+- 25% each of (low, low), (low, high), (high, low), (high, high)
 
-This is a software-control fixture, not a human-data result or SSDataBench reproduction.
+Expected point estimates:
+- Left marginal TV = 0.
+- Right marginal TV = 0.
+- Joint TV = 0.5.
+- Observed mutual information = ln(2) nats.
+- Simulated mutual information = 0.
+
+This is a software-control fixture, not a human-data result or a reproduction of SSDataBench.
 
 ## Run
 
@@ -43,8 +65,9 @@ cargo test --locked --manifest-path research/civdyn-joint-population-fidelity/Ca
 
 ## Next increments
 
-1. Cluster-aware resampling using the declared independent unit.
-2. Conditional and multivariate outcome fidelity (not just two-variable categorical dependence).
-3. Sequence/covariate association and life-course trajectory pattern fidelity.
-4. Long-tail support, subgroup coverage and missingness diagnostics.
-5. External validation on rights-cleared datasets under source-pinned protocols.
+1. Stratified cluster bootstrap and design-based weights.
+2. BCa or studentized intervals with cluster-count diagnostics and coverage studies.
+3. Conditional and multivariate fidelity beyond two categorical variables.
+4. Sequence/covariate dependence and life-course trajectory distributions.
+5. Long-tail support, subgroup coverage, missingness and attrition diagnostics.
+6. Source-pinned external validation on rights-cleared datasets.
