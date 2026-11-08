@@ -26,6 +26,12 @@ V0 divides alpha_total_ppb equally across all 5H events using checked integer ar
 
 Skipped risk is not transferred forward. The plan is immutable after construction; there is no method for refilling, recycling or increasing a later step's allocation.
 
+## Allocation profiles
+
+The default constructor creates a uniform per-event profile with deterministic quotient/remainder placement. A second constructor, `HorizonRiskPlan::from_preallocated_allocations`, accepts an immutable vector of five-element per-step allocations. This supports predeclared phase- or constraint-weighted profiles (for example, higher allocations at touchdown/support exchange) while preserving one exact total family-wise budget.
+
+The nonuniform profile must be selected before the horizon begins, must allocate a positive representable amount to every (step, constraint) event, and must sum exactly to the declared total. The ledger exposes no post-outcome profile edit or risk transfer. Compare uniform and nonuniform profiles at the same total alpha; any adaptive profile must be predictable from prior history and fixed before the current event, not selected after its outcome.
+
 ## Execution lifecycle
 
 Each step is tracked as one of:
@@ -51,7 +57,7 @@ Their exact sum must equal the original family-wise alpha. Unknown alpha is neve
 
 ## Synthetic tests
 
-Twenty-five deterministic Rust tests cover:
+Twenty-seven deterministic Rust tests cover:
 - horizons 1, 2, 3, 10, 127 and 1,000;
 - quotient/remainder allocation and exact ppb conservation;
 - positive allocation resolution and invalid horizon/budget limits;
