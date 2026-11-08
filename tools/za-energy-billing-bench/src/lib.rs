@@ -1526,15 +1526,11 @@ mod tests {
             peak_loaded.breakdown.billed_demand_kva,
             offpeak_shifted.breakdown.billed_demand_kva,
         );
-        close(
-            peak_loaded.breakdown.billed_demand_kva,
-            100.0,
-        );
+        close(peak_loaded.breakdown.billed_demand_kva, 100.0);
 
         // 23 weekdays × 10 kWh moved from peak to off-peak × R5.658/kWh.
         close(
-            peak_loaded.breakdown.energy_charge_zar
-                - offpeak_shifted.breakdown.energy_charge_zar,
+            peak_loaded.breakdown.energy_charge_zar - offpeak_shifted.breakdown.energy_charge_zar,
             1_301.34,
         );
         close(
