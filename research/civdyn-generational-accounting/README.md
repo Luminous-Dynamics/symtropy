@@ -16,10 +16,10 @@ A financial discount rate changes only the reported present value of financial l
 
 ## Synthetic matched experiment
 
-Both policies start with 100 m³ in a basin. Two current cohorts each receive 10 m³ of household water. Both policies therefore have identical current household water service: 20 m³ served and zero unmet.
+Both policies start with 100 m³ in a basin. Two current cohorts each receive 10 m³ of household water. Both policies therefore have identical current household water service: 20 m³ served and zero unmet. All 40 kWh of maintenance energy in the maintain-now case is accounted for as a transfer to and served demand at the maintenance region.
 
-- `maintain_now`: exports no additional water, so the future cohort inherits 80 m³. Pump condition index is 0.95. No deferred maintenance or financial liability is assigned to the future cohort.
-- `defer_maintenance_and_export_water`: exports 30 m³ to industry while preserving the same current household service. The future cohort inherits 50 m³, a pump-condition index of 0.60, a 40 kWh maintenance-energy obligation, and an illustrative ZAR 1,000,000 financial liability due in 2050.
+- `maintain_now`: exports no additional water and consumes 40 kWh for maintenance in the current period through the shared resource ledger, so the future cohort inherits 80 m³ water and 60 kWh energy. Pump condition index is 0.95. No deferred maintenance or financial liability is assigned to the future cohort.
+- `defer_maintenance_and_export_water`: exports 30 m³ to industry while preserving the same current household service; no maintenance energy is spent now. The future cohort inherits 50 m³ water and 100 kWh energy, a pump-condition index of 0.60, a 40 kWh maintenance-energy obligation, and an illustrative ZAR 1,000,000 financial liability due in 2050.
 
 The 40 kWh physical obligation and ZAR debt are separate. Neither can offset the other. The inherited financial obligation list references the existing debt record; it does not add its amount a second time.
 
