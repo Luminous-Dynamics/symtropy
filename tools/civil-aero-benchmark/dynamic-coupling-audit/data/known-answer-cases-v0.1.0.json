@@ -35,14 +35,14 @@
       "fluid_added_mass_kg": 4.0,
       "applied_force_n": 10.0,
       "initial_acceleration_m_per_s2": 0.0,
-      "relaxation": 0.2,
+      "relaxation": 0.1,
       "absolute_residual_tolerance_n": 1e-10,
       "relative_residual_tolerance": 0.0,
-      "max_iterations": 20,
+      "max_iterations": 100,
       "expected_status": "CONVERGED",
       "expected_exact_acceleration_m_per_s2": 2.0,
       "expected_acceleration_m_per_s2": 2.0,
-      "expected_amplification_factor": 0.0
+      "expected_amplification_factor": 0.5
     }
   },
   "good_window": {
