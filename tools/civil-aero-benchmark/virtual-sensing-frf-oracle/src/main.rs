@@ -402,7 +402,11 @@ fn validate_sensor(sensor: &Sensor, case_id: &str) -> Result<()> {
     Ok(())
 }
 
-fn validate_case(case: &Case, tolerance: &Tolerance, corpus_sha256: &str) -> Result<ComputedCase> {
+fn validate_case_with_digest(
+    case: &Case,
+    tolerance: &Tolerance,
+    corpus_sha256: &str,
+) -> Result<ComputedCase> {
     require(!case.case_id.trim().is_empty(), "case ID is empty")?;
     require(
         matches!(case.state.as_str(), "HH" | "HF" | "DH" | "DF"),
@@ -529,6 +533,10 @@ fn validate_case(case: &Case, tolerance: &Tolerance, corpus_sha256: &str) -> Res
     })
 }
 
+fn validate_case(case: &Case, tolerance: &Tolerance) -> Result<ComputedCase> {
+    validate_case_with_digest(case, tolerance, "synthetic-unit-test")
+}
+
 fn evaluate(corpus_bytes: &[u8]) -> Result<OracleResult> {
     let corpus: Corpus = serde_json::from_slice(corpus_bytes)
         .map_err(|error| OracleError(format!("corpus JSON error: {error}")))?;
@@ -587,7 +595,7 @@ fn evaluate(corpus_bytes: &[u8]) -> Result<OracleResult> {
     let mut frequency_count = None;
     for case in &corpus.cases {
         require(ids.insert(case.case_id.as_str()), "duplicate case ID")?;
-        let computed = validate_case(case, &corpus.tolerance, &corpus_sha256)?;
+        let computed = validate_case_with_digest(case, &corpus.tolerance, &corpus_sha256)?;
         if let Some(expected_count) = frequency_count {
             require(
                 computed.frequencies.len() == expected_count,
