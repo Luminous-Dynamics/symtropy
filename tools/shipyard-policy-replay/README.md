@@ -31,4 +31,21 @@ This crate does not check geometry, swept movement paths, resource feasibility, 
 
 Twelve unit-test functions cover a valid adaptive two-branch policy, clairvoyant divergence before observation, hidden evaluator-only outcomes, event visibility at the exact decision tick, differing observation times, different visible payloads under the same event ID, an exhaustive 4×4×4 (64-case) reveal/divergence matrix, missing actions, duplicate event IDs, source/candidate inventory omissions and extras, empty inputs, and deterministic report order. These fixtures are conformance tests, not industrial measurements or proof that the policy is optimal.
 
+## Capability-limited policy input
+
+The new `observation_boundary` module moves one step earlier than output-only replay:
+
+- `ObservationTape` distinguishes event effective time from observed/admitted time.
+- `snapshot_at(t)` emits an immutable `ObservedSnapshot` containing only policy-visible records admitted by t.
+- Evaluator-only records are excluded even if their metadata is present in the evaluator's source tape.
+- `RecoveryPolicy::propose` receives only the snapshot and declared action bounds; the function signature has no scenario ID or evaluator-truth parameter.
+- `CandidateAction` contains a proposal only. Independent feasibility, safety and authorization remain separate.
+- The receipt binds the decision tick, canonical snapshot key, policy revision and action key.
+
+The snapshot key is deterministic, sorted and length-prefixed, but is **not a cryptographic digest**. Source payload digests are format-checked, not authenticated by this crate. Use an approved digest implementation for cryptographic receipts.
+
+This is a Rust API/type boundary, not an OS/process sandbox. It cannot prevent a malicious in-process policy from using unsafe code, ambient global state, side channels or separately acquired hidden data. For untrusted policies, run them in an isolated process with a narrow authenticated IPC observation channel. Retain #2730 replay auditing as a separate second line of defence.
+
+The observation-boundary module adds ten unit tests for future-event prefix invariance, late-arriving observations, evaluator-only exclusion, admission-time changes, ordering, source-qualified identity, receipt binding, action bounds and malformed inputs.
+
 The exact-head workflow runs Rust 1.96 formatting, locked/offline tests, and Clippy with warnings denied. No validation status should be inferred from a queued workflow.
