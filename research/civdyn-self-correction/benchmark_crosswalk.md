@@ -16,6 +16,17 @@ This document is a research comparison plan. It does not claim CIVDYN already ou
 | Physical / socio-ecological viability | CIVDYN resource ledger, resilience and eco-flow references | Unit-specific conservation, service coverage, reserve, maintenance and environmental-flow delivery | Treat the shared resource ledger as the sole stock/flow authority | Calibrated hydrology, ecology, infrastructure networks and independent external datasets |
 | Self-correction | This proposal | Evidence-backed transition from discrepancy to diagnosis to verified, constraint-respecting policy revision | Compose the above without creating a new simulator or a composite score | Human/expert policy references, real episodes, long-horizon prospective validation |
 
+### Sequential experimental design and evidence-cost frontier
+
+Online experimentation literature compares fixed-horizon tests, group-sequential alpha-spending, mixture-SPRT and anytime-valid confidence sequences because uncorrected repeated peeking inflates false-positive rates. Spotify's engineering comparison is a useful industry reference; a 2026 JPE paper studies optimal tests following costly sequential experiments, and 2026 JRSSB work develops anytime-valid tests from sequential data.
+
+CIVDYN's first sequential extension is intentionally narrower: it implements three Gaussian e-processes over the same paired sample stream, with an explicitly allocated per-episode alpha budget. Its claims are conditional on independent Gaussian paired differences with known variance. The next comparator work should add O'Brien-Fleming/Pocock spending boundaries and a verified mixture-SPRT/confidence-sequence baseline, then test heteroskedasticity and partial observations.
+
+References:
+- [Spotify: Choosing a Sequential Testing Framework](https://engineering.atspotify.com/2023/3/choosing-sequential-testing-framework-comparisons-and-discussions)
+- [Optimal Tests Following Sequential Experiments, JPE (2026)](https://doi.org/10.1086/742418)
+- [Anytime validity is free: inducing sequential tests, JRSSB (2026)](https://academic.oup.com/jrsssb/article/88/4/1366/8493290)
+
 ### Drift-detection standard and CIVDYN extension
 
 The KDD 2026 benchmark by Cerqueira et al. compares 14 established drift detectors on seven real-world data streams, covering four distributional drift types (class-prior, label-swap, feature-permutation and feature-filtering) under both abrupt and gradual changes. It emphasizes timing-aware detection metrics and leave-one-dataset-out hyperparameter selection. This is an appropriate baseline protocol for statistical drift detection, but it does not by itself test whether a detected shift changed the causal effect of an intervention. [KDD 2026 / ACM DOI](https://doi.org/10.1145/3770855.3819070) · [arXiv](https://arxiv.org/abs/2606.07789)
