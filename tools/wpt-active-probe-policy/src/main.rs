@@ -400,7 +400,7 @@ fn build_min_latency_policy(
             continue;
         }
         let groups = outcome_groups(mask, action, case.pose_ids.len());
-        if groups.len() < 2 { continue; }
+        if groups.len() < 2 || groups.values().any(|child_mask| *child_mask == mask) { continue; }
         let remaining_energy = energy_left - action.energy_uj;
         let remaining_latency = latency_left - action.duration_us;
 
@@ -683,6 +683,17 @@ mod tests {
         input.push_str(row);
         input.push('\n');
         assert!(parse_case(&input).unwrap_err().iter().any(|e| e.contains("duplicate action_id")));
+    }
+
+    #[test]
+    fn outcome_support_sets_parse_and_duplicate_bins_fail_closed() {
+        let supported = FIXTURE.replacen("root_split\\t8\\t3\\t300\\t400\\t250\\t0,0,1,1", "root_split\\t8\\t3\\t300\\t400\\t250\\t0|1,0,1,1", 1);
+        let parsed = parse_case(&supported).unwrap();
+        let root = parsed.actions.iter().find(|a| a.id == "root_split").unwrap();
+        assert!(root.outcomes[0].contains(&0));
+        assert!(root.outcomes[0].contains(&1));
+        let duplicate = supported.replacen("0|1,0,1,1", "0|0,0,1,1", 1);
+        assert!(parse_case(&duplicate).is_err());
     }
 
     #[test]
