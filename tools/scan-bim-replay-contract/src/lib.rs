@@ -1651,6 +1651,27 @@ mod tests {
         let _ = std::fs::remove_dir_all(&temp);
     }
     #[test]
+    fn rejects_unknown_surface_sampling_algorithm() {
+        let mut value = fixture_value();
+        value["sampling_profile"]["surface_sampling_algorithm"] =
+            serde_json::json!("unversioned_random_points");
+        let error = audit(&value).expect_err("sampler identity must be versioned and closed");
+        assert!(error.contains("unsupported surface_sampling_algorithm"));
+    }
+
+    #[test]
+    fn rejects_zero_or_unbounded_surface_sampling_budget() {
+        let mut value = fixture_value();
+        value["sampling_profile"]["surface_sampling_max_samples"] = serde_json::json!(0);
+        let zero = audit(&value).expect_err("zero sample budget is invalid");
+        assert!(zero.contains("surface_sampling_max_samples"));
+        value["sampling_profile"]["surface_sampling_max_samples"] =
+            serde_json::json!(10_000_001);
+        let excessive = audit(&value).expect_err("sample budget must be bounded");
+        assert!(excessive.contains("surface_sampling_max_samples"));
+    }
+
+    #[test]
     fn rejects_reference_derived_normalization_bounds() {
         let mut value = fixture_value();
         value["sampling_profile"]["normalization"] =
@@ -1969,6 +1990,9 @@ mod tests {
         assert_eq!(report.evaluator_artifact_count, 2);
         assert_eq!(report.pipeline_id, "synthetic-scan-bim-candidate-v0.2");
         assert_eq!(report.metric_suite_version, "0.3");
+        assert_eq!(report.surface_sampling_algorithm, "uniform_area_halton_v1");
+        assert_eq!(report.surface_sampling_seed, 42);
+        assert_eq!(report.surface_sampling_max_samples, 100_000);
         assert_eq!(report.metric_accuracy_direction, "reference_to_candidate");
         assert_eq!(report.metric_definition_authority, "project_defined");
         assert_eq!(
