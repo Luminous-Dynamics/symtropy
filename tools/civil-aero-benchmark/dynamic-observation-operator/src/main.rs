@@ -423,6 +423,24 @@ fn case3_audit(catalog: &Value) -> Result<Value, String> {
     if kulite.is_none() || upsp.is_none() || c_b.is_none() || balance.is_none() {
         return Err("Test Case 3 is missing a required measurement channel family".to_owned());
     }
+    let kulite_limits = kulite
+        .and_then(|channel| channel.get("limitations"))
+        .and_then(Value::as_array)
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(Value::as_str)
+                .collect::<Vec<_>>()
+                .join(" ")
+                .to_ascii_lowercase()
+        })
+        .unwrap_or_default();
+    if !kulite_limits.contains("9 khz") || !kulite_limits.contains("wind-tunnel noise") {
+        return Err(
+            "JAXA Kulite approximately 9 kHz wind-tunnel-noise confounder must remain source-attributed"
+                .to_owned(),
+        );
+    }
 
     let case_optional = case.get("required").and_then(Value::as_bool) == Some(false);
     if !case_optional {
@@ -708,6 +726,23 @@ mod tests {
             classify_buffet_indicator("C_B"),
             "BUFFET_ONSET_INDICATOR_ONLY"
         );
+    }
+
+    #[test]
+    fn case3_catalog_audit_rejects_kulite_noise_promotion() {
+        let mut catalog: Value = serde_json::from_str(DPW8_CATALOG).unwrap();
+        let cases = catalog["benchmark_cases"].as_array_mut().unwrap();
+        let case = cases
+            .iter_mut()
+            .find(|item| item["case_id"] == "DPW8-CRM-DYNAMIC-FSI-3")
+            .unwrap();
+        let channels = case["measurement_channels"].as_array_mut().unwrap();
+        let kulite = channels
+            .iter_mut()
+            .find(|item| item["channel_family"] == "unsteady_point_pressure")
+            .unwrap();
+        kulite["limitations"] = json!(["9 kHz is the primary structural mode"]);
+        assert!(case3_audit(&catalog).is_err());
     }
 
     #[test]
