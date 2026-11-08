@@ -117,10 +117,21 @@ pub struct CorrectionEvent {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SelfCorrectionError {
     Ledger(String),
-    InvalidTraceLength { expected: usize, actual: usize },
-    InvalidTraceStage { index: usize },
-    NonMonotonicTrace { previous_tick: usize, next_tick: usize },
-    InvalidScenarioTrajectory { expected: usize, actual: usize },
+    InvalidTraceLength {
+        expected: usize,
+        actual: usize,
+    },
+    InvalidTraceStage {
+        index: usize,
+    },
+    NonMonotonicTrace {
+        previous_tick: usize,
+        next_tick: usize,
+    },
+    InvalidScenarioTrajectory {
+        expected: usize,
+        actual: usize,
+    },
 }
 
 impl fmt::Display for SelfCorrectionError {
@@ -128,10 +139,16 @@ impl fmt::Display for SelfCorrectionError {
         match self {
             Self::Ledger(message) => write!(formatter, "resource ledger error: {message}"),
             Self::InvalidTraceLength { expected, actual } => {
-                write!(formatter, "expected {expected} correction events, got {actual}")
+                write!(
+                    formatter,
+                    "expected {expected} correction events, got {actual}"
+                )
             }
             Self::InvalidTraceStage { index } => {
-                write!(formatter, "correction trace has an invalid stage at index {index}")
+                write!(
+                    formatter,
+                    "correction trace has an invalid stage at index {index}"
+                )
             }
             Self::NonMonotonicTrace {
                 previous_tick,
@@ -141,7 +158,10 @@ impl fmt::Display for SelfCorrectionError {
                 "correction trace tick moved backwards from {previous_tick} to {next_tick}"
             ),
             Self::InvalidScenarioTrajectory { expected, actual } => {
-                write!(formatter, "expected {expected} trajectory ticks, got {actual}")
+                write!(
+                    formatter,
+                    "expected {expected} trajectory ticks, got {actual}"
+                )
             }
         }
     }
@@ -155,7 +175,9 @@ impl From<WorldError> for SelfCorrectionError {
     }
 }
 
-pub fn validate_full_correction_trace(events: &[CorrectionEvent]) -> Result<(), SelfCorrectionError> {
+pub fn validate_full_correction_trace(
+    events: &[CorrectionEvent],
+) -> Result<(), SelfCorrectionError> {
     if events.len() != CorrectionStage::ORDERED.len() {
         return Err(SelfCorrectionError::InvalidTraceLength {
             expected: CorrectionStage::ORDERED.len(),
@@ -176,11 +198,7 @@ pub fn validate_full_correction_trace(events: &[CorrectionEvent]) -> Result<(), 
     Ok(())
 }
 
-fn event(
-    stage: CorrectionStage,
-    tick: usize,
-    evidence_code: &'static str,
-) -> CorrectionEvent {
+fn event(stage: CorrectionStage, tick: usize, evidence_code: &'static str) -> CorrectionEvent {
     CorrectionEvent {
         stage,
         tick,
@@ -280,20 +298,43 @@ pub fn run_sensor_drift_sham(
             ControllerKind::FrozenPolicy => {}
             ControllerKind::OutcomeReactive => {
                 if primary < SENSOR_EMERGENCY_THRESHOLD {
-                    extra_dispatch_m3 =
-                        (SENSOR_HOUSEHOLD_DEMAND_M3 * (1.0 - primary)).max(0.0);
+                    extra_dispatch_m3 = (SENSOR_HOUSEHOLD_DEMAND_M3 * (1.0 - primary)).max(0.0);
                 }
             }
             ControllerKind::MechanismAware => {
                 if !calibrated && (raw_primary - true_meter).abs() > 0.15 {
                     trace = vec![
                         event(CorrectionStage::Observed, tick, "primary_meter_disagrees"),
-                        event(CorrectionStage::Detected, tick, "cross_meter_residual_exceeds_floor"),
-                        event(CorrectionStage::Diagnosed, tick, "primary_sensor_scale_drift"),
-                        event(CorrectionStage::Discriminated, tick, "independent_meter_probe"),
-                        event(CorrectionStage::BeliefUpdated, tick, "sensor_not_physical_service"),
-                        event(CorrectionStage::Intervened, tick, "calibrate_primary_sensor"),
-                        event(CorrectionStage::Audited, tick, "ledger_and_secondary_meter_agree"),
+                        event(
+                            CorrectionStage::Detected,
+                            tick,
+                            "cross_meter_residual_exceeds_floor",
+                        ),
+                        event(
+                            CorrectionStage::Diagnosed,
+                            tick,
+                            "primary_sensor_scale_drift",
+                        ),
+                        event(
+                            CorrectionStage::Discriminated,
+                            tick,
+                            "independent_meter_probe",
+                        ),
+                        event(
+                            CorrectionStage::BeliefUpdated,
+                            tick,
+                            "sensor_not_physical_service",
+                        ),
+                        event(
+                            CorrectionStage::Intervened,
+                            tick,
+                            "calibrate_primary_sensor",
+                        ),
+                        event(
+                            CorrectionStage::Audited,
+                            tick,
+                            "ledger_and_secondary_meter_agree",
+                        ),
                     ];
                     validate_full_correction_trace(&trace)?;
                     calibrated = true;
@@ -347,8 +388,7 @@ pub fn run_sensor_drift_sham(
             actual: reports.len(),
         });
     }
-    let (maximum_water_residual_m3, maximum_energy_residual_kwh) =
-        max_ledger_residuals(&reports);
+    let (maximum_water_residual_m3, maximum_energy_residual_kwh) = max_ledger_residuals(&reports);
 
     Ok(SensorDriftOutcome {
         controller,
@@ -367,8 +407,7 @@ pub fn run_sensor_drift_sham(
     })
 }
 
-pub fn run_sensor_drift_portfolio(
-) -> Result<Vec<SensorDriftOutcome>, SelfCorrectionError> {
+pub fn run_sensor_drift_portfolio() -> Result<Vec<SensorDriftOutcome>, SelfCorrectionError> {
     ControllerKind::ALL
         .into_iter()
         .map(run_sensor_drift_sham)
@@ -380,11 +419,7 @@ fn delayed_world() -> Result<World, SelfCorrectionError> {
         region(
             "source_basin",
             0.0,
-            ResourceVector::new(
-                DELAYED_OPENING_WATER_M3,
-                DELAYED_OPENING_ENERGY_KWH,
-                0.0,
-            ),
+            ResourceVector::new(DELAYED_OPENING_WATER_M3, DELAYED_OPENING_ENERGY_KWH, 0.0),
             ResourceVector::default(),
         ),
         region(
@@ -495,8 +530,7 @@ fn simulate_repeated_shock(
         industry_unmet_m3 += report.regions[INDUSTRY].unmet.water_m3;
         reports.push(report);
     }
-    let (maximum_water_residual_m3, maximum_energy_residual_kwh) =
-        max_ledger_residuals(&reports);
+    let (maximum_water_residual_m3, maximum_energy_residual_kwh) = max_ledger_residuals(&reports);
     Ok(ShockCounterfactual {
         household_unmet_m3,
         industry_unmet_m3,
@@ -516,12 +550,7 @@ fn sum_unmet_water(reports: &[StepReport], region_index: usize) -> f64 {
 fn minimum_coverage(reports: &[StepReport], region_index: usize) -> f64 {
     reports
         .iter()
-        .map(|report| {
-            report.regions[region_index]
-                .coverage
-                .water
-                .unwrap_or(0.0)
-        })
+        .map(|report| report.regions[region_index].coverage.water.unwrap_or(0.0))
         .fold(1.0_f64, f64::min)
 }
 
@@ -600,11 +629,12 @@ pub fn run_delayed_externality(
     // synthetic production relation; it is not a hydrological forecast.
     let mut no_maintenance_world = growth_snapshot.clone();
     let mut no_maintenance_reports = Vec::new();
-    run_recovery_interval(&mut no_maintenance_world, false, &mut no_maintenance_reports)?;
-    let counterfactual_without_maintenance = simulate_repeated_shock(
-        no_maintenance_world,
+    run_recovery_interval(
+        &mut no_maintenance_world,
         false,
+        &mut no_maintenance_reports,
     )?;
+    let counterfactual_without_maintenance = simulate_repeated_shock(no_maintenance_world, false)?;
 
     let maintenance_enabled = controller == ControllerKind::MechanismAware;
     run_recovery_interval(&mut world, maintenance_enabled, &mut reports)?;
@@ -621,19 +651,48 @@ pub fn run_delayed_externality(
     let mechanism_identified = controller == ControllerKind::MechanismAware
         && counterfactual_industry_attributable_household_unmet_m3 > 0.0
         && counterfactual_without_maintenance.household_unmet_m3 > 0.0;
-    let proactive_curtailment = controller == ControllerKind::MechanismAware && mechanism_identified;
+    let proactive_curtailment =
+        controller == ControllerKind::MechanismAware && mechanism_identified;
 
     let mut trace = Vec::new();
     let mut correction_latency_ticks = None;
     if proactive_curtailment {
         trace = vec![
-            event(CorrectionStage::Observed, GROWTH_TICKS, "reserve_trend_below_declared_buffer"),
-            event(CorrectionStage::Detected, GROWTH_TICKS, "forecasted_household_floor_breach"),
-            event(CorrectionStage::Diagnosed, GROWTH_TICKS, "maintenance_and_competing_demand_mechanisms"),
-            event(CorrectionStage::Discriminated, GROWTH_TICKS, "matched_maintenance_and_industry_ablations"),
-            event(CorrectionStage::BeliefUpdated, GROWTH_TICKS, "industrial_withdrawal_consumes_essential_buffer"),
-            event(CorrectionStage::Intervened, GROWTH_TICKS + 1, "invest_in_pumping_then_curtail_industry_during_shock"),
-            event(CorrectionStage::Audited, DELAYED_TOTAL_TICKS, "household_floor_and_resource_ledger_replayed"),
+            event(
+                CorrectionStage::Observed,
+                GROWTH_TICKS,
+                "reserve_trend_below_declared_buffer",
+            ),
+            event(
+                CorrectionStage::Detected,
+                GROWTH_TICKS,
+                "forecasted_household_floor_breach",
+            ),
+            event(
+                CorrectionStage::Diagnosed,
+                GROWTH_TICKS,
+                "maintenance_and_competing_demand_mechanisms",
+            ),
+            event(
+                CorrectionStage::Discriminated,
+                GROWTH_TICKS,
+                "matched_maintenance_and_industry_ablations",
+            ),
+            event(
+                CorrectionStage::BeliefUpdated,
+                GROWTH_TICKS,
+                "industrial_withdrawal_consumes_essential_buffer",
+            ),
+            event(
+                CorrectionStage::Intervened,
+                GROWTH_TICKS + 1,
+                "invest_in_pumping_then_curtail_industry_during_shock",
+            ),
+            event(
+                CorrectionStage::Audited,
+                DELAYED_TOTAL_TICKS,
+                "household_floor_and_resource_ledger_replayed",
+            ),
         ];
         validate_full_correction_trace(&trace)?;
         correction_latency_ticks = Some(1);
@@ -649,10 +708,26 @@ pub fn run_delayed_externality(
                 let enabled = last_household_coverage >= ESSENTIAL_COVERAGE_FLOOR;
                 if !enabled && !reactive_intervention_recorded {
                     trace = vec![
-                        event(CorrectionStage::Observed, tick - 1, "household_service_floor_breached"),
-                        event(CorrectionStage::Detected, tick - 1, "reactive_service_threshold"),
-                        event(CorrectionStage::Intervened, tick, "curtail_industry_after_breach"),
-                        event(CorrectionStage::Audited, DELAYED_TOTAL_TICKS, "late_curtailment_replayed"),
+                        event(
+                            CorrectionStage::Observed,
+                            tick - 1,
+                            "household_service_floor_breached",
+                        ),
+                        event(
+                            CorrectionStage::Detected,
+                            tick - 1,
+                            "reactive_service_threshold",
+                        ),
+                        event(
+                            CorrectionStage::Intervened,
+                            tick,
+                            "curtail_industry_after_breach",
+                        ),
+                        event(
+                            CorrectionStage::Audited,
+                            DELAYED_TOTAL_TICKS,
+                            "late_curtailment_replayed",
+                        ),
                     ];
                     correction_latency_ticks = Some(1);
                     reactive_intervention_recorded = true;
@@ -662,10 +737,7 @@ pub fn run_delayed_externality(
             ControllerKind::MechanismAware => !proactive_curtailment,
         };
         let report = delayed_step(&mut world, 0.0, industry_enabled, false)?;
-        last_household_coverage = report.regions[HOUSEHOLD]
-            .coverage
-            .water
-            .unwrap_or(0.0);
+        last_household_coverage = report.regions[HOUSEHOLD].coverage.water.unwrap_or(0.0);
         reports.push(report);
     }
 
@@ -675,8 +747,7 @@ pub fn run_delayed_externality(
             actual: reports.len(),
         });
     }
-    let (maximum_water_residual_m3, maximum_energy_residual_kwh) =
-        max_ledger_residuals(&reports);
+    let (maximum_water_residual_m3, maximum_energy_residual_kwh) = max_ledger_residuals(&reports);
 
     Ok(DelayedExternalityOutcome {
         controller,
@@ -692,8 +763,8 @@ pub fn run_delayed_externality(
         counterfactual_household_unmet_industry_on_m3: industry_on.household_unmet_m3,
         counterfactual_household_unmet_industry_off_m3: industry_off.household_unmet_m3,
         counterfactual_industry_attributable_household_unmet_m3,
-        counterfactual_without_maintenance_household_unmet_m3:
-            counterfactual_without_maintenance.household_unmet_m3,
+        counterfactual_without_maintenance_household_unmet_m3: counterfactual_without_maintenance
+            .household_unmet_m3,
         mechanism_identified,
         correction_latency_ticks,
         trace_valid: !trace.is_empty() && validate_full_correction_trace(&trace).is_ok(),
@@ -703,8 +774,8 @@ pub fn run_delayed_externality(
     })
 }
 
-pub fn run_delayed_externality_portfolio(
-) -> Result<Vec<DelayedExternalityOutcome>, SelfCorrectionError> {
+pub fn run_delayed_externality_portfolio()
+-> Result<Vec<DelayedExternalityOutcome>, SelfCorrectionError> {
     ControllerKind::ALL
         .into_iter()
         .map(run_delayed_externality)
