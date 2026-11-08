@@ -1,0 +1,526 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/ground-air-bench-v0/ground_air_episode.schema.json",
+  "title": "GroundAirBench episode manifest v0",
+  "description": "Composition manifest only. Upstream receipt schemas and physical authority remain with their owning workstreams.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "case_state",
+    "evidence_class",
+    "scenario",
+    "frozen_inputs",
+    "opportunities",
+    "receivers",
+    "candidate_policies",
+    "metric_lanes",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "ground-air-episode-v0"
+    },
+    "case_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[a-z0-9][a-z0-9._-]*$"
+    },
+    "case_state": {
+      "enum": [
+        "FIXTURE",
+        "NOT_RUN"
+      ]
+    },
+    "evidence_class": {
+      "enum": [
+        "SYNTHETIC_ONLY",
+        "SIMULATED",
+        "BENCH_MEASURED",
+        "FIELD_MEASURED",
+        "INDEPENDENTLY_REVIEWED"
+      ]
+    },
+    "scenario": {
+      "$ref": "#/$defs/scenario"
+    },
+    "frozen_inputs": {
+      "$ref": "#/$defs/frozen_inputs"
+    },
+    "opportunities": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "items": {
+        "$ref": "#/$defs/opportunity"
+      }
+    },
+    "receivers": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 128,
+      "items": {
+        "$ref": "#/$defs/receiver"
+      }
+    },
+    "candidate_policies": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "items": {
+        "$ref": "#/$defs/policy"
+      }
+    },
+    "metric_lanes": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "PHYSICAL_ENERGY_METROLOGY",
+          "POSE_OBSERVABILITY",
+          "SESSION_LIFECYCLE",
+          "MISSION_SERVICE",
+          "FAIRNESS_AND_ASSET_HEALTH",
+          "SAFETY_AND_EVIDENCE",
+          "COMPUTATION"
+        ]
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4000
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "interval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "start_ms",
+        "end_ms"
+      ],
+      "properties": {
+        "start_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "end_ms": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "family",
+        "site_id",
+        "seed",
+        "slot_duration_ms",
+        "slot_count",
+        "environment_strata",
+        "held_out_partition"
+      ],
+      "properties": {
+        "family": {
+          "enum": [
+            "DOCKED_RECHARGE",
+            "HOVER_ACQUISITION",
+            "DYNAMIC_TRANSFER",
+            "DEPART_REACQUIRE",
+            "SHARED_SITE_COEXISTENCE",
+            "OUTAGE_RECOVERY"
+          ]
+        },
+        "site_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "slot_duration_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "slot_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        "environment_strata": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "held_out_partition": {
+          "enum": [
+            "TRAIN",
+            "VALIDATION",
+            "TEST",
+            "KNOWN_TRUTH_ORACLE"
+          ]
+        }
+      }
+    },
+    "frozen_inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scenario_sha256",
+        "source_catalogue_sha256",
+        "upstream_receipts"
+      ],
+      "properties": {
+        "scenario_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "source_catalogue_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "upstream_receipts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/receipt"
+          },
+          "maxItems": 512
+        }
+      }
+    },
+    "receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "receipt_id",
+        "owner_issue",
+        "role",
+        "artifact_path",
+        "sha256",
+        "configuration_sha256",
+        "evidence_class",
+        "disposition",
+        "validity"
+      ],
+      "properties": {
+        "receipt_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "owner_issue": {
+          "type": "string",
+          "pattern": "^#[0-9]+$"
+        },
+        "role": {
+          "enum": [
+            "PHYSICAL_ENVELOPE",
+            "OBSERVABILITY",
+            "SESSION_ADMISSION",
+            "AUTHORIZATION",
+            "LOCAL_PROTECTION",
+            "SITE_ALLOCATION",
+            "SOURCE_TO_LOAD_METROLOGY",
+            "STANDARDS_APPLICABILITY",
+            "ASSET_HEALTH",
+            "MISSION_ENERGY"
+          ]
+        },
+        "artifact_path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "configuration_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "evidence_class": {
+          "enum": [
+            "SYNTHETIC_ONLY",
+            "SIMULATED",
+            "BENCH_MEASURED",
+            "FIELD_MEASURED",
+            "INDEPENDENTLY_REVIEWED"
+          ]
+        },
+        "disposition": {
+          "enum": [
+            "QUALIFIED_FOR_DECLARED_SCOPE",
+            "SYNTHETIC_ONLY",
+            "NOT_ADMITTED",
+            "NOT_EVALUATED",
+            "AMBIGUOUS",
+            "STALE",
+            "OUT_OF_DOMAIN",
+            "UNKNOWN",
+            "REVOKED"
+          ]
+        },
+        "validity": {
+          "$ref": "#/$defs/interval"
+        }
+      }
+    },
+    "opportunity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "opportunity_id",
+        "site_id",
+        "source_id",
+        "bearer",
+        "field_regime",
+        "supported_motion_states",
+        "environment_stratum",
+        "field_sha256",
+        "receiver_geometry_sha256",
+        "capacity_mwh",
+        "available_slots",
+        "required_receipt_roles",
+        "receipt_ids"
+      ],
+      "properties": {
+        "opportunity_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "site_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "source_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "bearer": {
+          "enum": [
+            "CONDUCTIVE",
+            "IPT",
+            "CPT",
+            "RF_MICROWAVE",
+            "OPTICAL",
+            "TETHER",
+            "BATTERY_EXCHANGE"
+          ]
+        },
+        "field_regime": {
+          "enum": [
+            "NOT_APPLICABLE",
+            "NEAR_FIELD",
+            "FAR_FIELD",
+            "CONTACT",
+            "ENERGY_CARRIER"
+          ]
+        },
+        "supported_motion_states": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "PARKED",
+              "DOCKED",
+              "HOVER",
+              "TRANSLATING",
+              "CLIMB_DESCENT",
+              "DYNAMIC_FLIGHT",
+              "DEPARTURE",
+              "REACQUISITION"
+            ]
+          }
+        },
+        "environment_stratum": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "field_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "receiver_geometry_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "capacity_mwh": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "available_slots": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required_receipt_roles": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/receipt_role"
+          }
+        },
+        "receipt_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          }
+        }
+      }
+    },
+    "receipt_role": {
+      "enum": [
+        "PHYSICAL_ENVELOPE",
+        "OBSERVABILITY",
+        "SESSION_ADMISSION",
+        "AUTHORIZATION",
+        "LOCAL_PROTECTION",
+        "SITE_ALLOCATION",
+        "SOURCE_TO_LOAD_METROLOGY",
+        "STANDARDS_APPLICABILITY",
+        "ASSET_HEALTH",
+        "MISSION_ENERGY"
+      ]
+    },
+    "receiver": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "receiver_id",
+        "receiver_sha256",
+        "requested_energy_mwh",
+        "minimum_service_mwh",
+        "battery_acceptance_mwh",
+        "initial_battery_energy_mwh",
+        "reserve_energy_mwh",
+        "deadline_slot",
+        "eligible_opportunity_ids"
+      ],
+      "properties": {
+        "receiver_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "receiver_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "requested_energy_mwh": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "minimum_service_mwh": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "battery_acceptance_mwh": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "initial_battery_energy_mwh": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "reserve_energy_mwh": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "deadline_slot": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "eligible_opportunity_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "policy_id",
+        "baseline_family",
+        "artifact_sha256",
+        "compute_budget_ms",
+        "tuning_partition"
+      ],
+      "properties": {
+        "policy_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "baseline_family": {
+          "enum": [
+            "BATTERY_ONLY",
+            "FIXED_DOCK",
+            "NEAREST_QUALIFIED",
+            "STRONGEST_SIGNAL_NEGATIVE_CONTROL",
+            "FIXED_EQUAL_SPLIT",
+            "ROUND_ROBIN",
+            "GREEDY_EFFICIENCY",
+            "SH_CSP",
+            "DH_CSP",
+            "VANILLA_DDPG",
+            "SAFE_DDPG",
+            "ROBUST_MPC",
+            "MISSION_AWARE_MPC",
+            "EXACT_FEASIBILITY_ORACLE",
+            "EXACT_PARETO_ORACLE",
+            "FIXED_MEASUREMENT",
+            "ONE_STEP_EVSI",
+            "SEQUENTIAL_EVSI"
+          ]
+        },
+        "artifact_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "compute_budget_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "tuning_partition": {
+          "enum": [
+            "TRAIN",
+            "VALIDATION",
+            "PREDECLARED_FIXED"
+          ]
+        }
+      }
+    }
+  }
+}
