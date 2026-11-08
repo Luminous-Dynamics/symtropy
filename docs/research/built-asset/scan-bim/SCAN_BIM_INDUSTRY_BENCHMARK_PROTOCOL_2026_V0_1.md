@@ -107,7 +107,7 @@ A 2026 review of the move from measured geometry to editable BIM highlights a re
 
 Symtropy response: every transition should preserve or explicitly supersede the source evidence, uncertainty, identity and model revision. IFC/IDS validation remains separate from geometric and topological verification; IDS is not a geometric accuracy evaluator.
 
-Source: [From Measured Geometry to Editable BIM (2026 review)](https://www.mdpi.com/).
+Source: [From Measured Geometry to Editable BIM (2026 review)](https://www.mdpi.com/2075-5309/16/20/4095).
 
 ## Fair comparison protocol
 
