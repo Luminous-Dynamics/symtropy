@@ -452,7 +452,7 @@ pub fn evaluate_decision_value(
     }
 
     let (prior_risk_numerator, prior_optimal_decision_ids) = minimum_cost(
-        &admitted_decisions.iter().copied().collect::<Vec<_>>(),
+        &admitted_decisions,
         &problem.hypotheses,
         &hypothesis_order,
         None,
@@ -480,7 +480,7 @@ pub fn evaluate_decision_value(
         let (risk_numerator, optimal_decision_ids, is_unknown) = match &outcome.kind {
             OutcomeKind::Known => {
                 let (risk, minimisers) = minimum_cost(
-                    &admitted_decisions.iter().copied().collect::<Vec<_>>(),
+                    &admitted_decisions,
                     &problem.hypotheses,
                     &hypothesis_order,
                     Some(outcome_index),
