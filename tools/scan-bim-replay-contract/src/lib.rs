@@ -1681,8 +1681,9 @@ mod tests {
         value["metric_profile"]["sample_strategy"] = serde_json::json!("source_surface_vertices");
         value["metric_profile"]["correspondence_policy"] =
             serde_json::json!("orthogonal_projection_inside_triangle");
-        let report =
-            audit(&value).expect("2018 framework's source vertices and projection rule must be separately recorded");
+        let report = audit(&value).expect(
+            "2018 framework's source vertices and projection rule must be separately recorded",
+        );
         assert_eq!(
             report.metric_accuracy_sample_strategy,
             "source_surface_vertices"
@@ -1741,13 +1742,12 @@ mod tests {
         value["metric_profile"]["scope"] = serde_json::json!("wall_only");
         value["metric_profile"]["definition_authority"] =
             serde_json::json!("official_results_page");
-        value["metric_profile"]["accuracy_direction"] =
-            serde_json::json!("reference_to_candidate");
-        value["metric_profile"]["sample_strategy"] =
-            serde_json::json!("reference_surface_samples");
+        value["metric_profile"]["accuracy_direction"] = serde_json::json!("reference_to_candidate");
+        value["metric_profile"]["sample_strategy"] = serde_json::json!("reference_surface_samples");
         value["metric_profile"]["correspondence_policy"] =
             serde_json::json!("orthogonal_projection_inside_triangle");
-        let error = audit(&value).expect_err("official closest-surface scoring must not use plane-only correspondence");
+        let error = audit(&value)
+            .expect_err("official closest-surface scoring must not use plane-only correspondence");
         assert!(error.contains("correspondence policy"));
     }
 
