@@ -490,12 +490,13 @@ pub fn evaluate_probe_continuation(
     validate_problem(problem)?;
 
     let mut violations = Vec::new();
-    if !contains_viable_state(
+    if !contains_viable_or_recovery_state(
         &problem.viable_states_by_remaining_horizon,
+        &problem.recovery_states_by_remaining_horizon,
         problem.horizon_steps,
         &problem.current_state_id,
     )? {
-        violations.push(ProbeViolation::CurrentStateOutsideViableSet {
+        violations.push(ProbeViolation::CurrentStateOutsideViableOrRecoverySet {
             state_id: problem.current_state_id.clone(),
             remaining_steps: problem.horizon_steps,
         });
@@ -506,24 +507,26 @@ pub fn evaluate_probe_continuation(
     for branch in &problem.branches {
         for state in &branch.intermediate_states {
             let remaining = problem.horizon_steps - state.elapsed_steps;
-            if !contains_viable_state(
+            if !contains_viable_or_recovery_state(
                 &problem.viable_states_by_remaining_horizon,
+                &problem.recovery_states_by_remaining_horizon,
                 remaining,
                 &state.state_id,
             )? {
-                violations.push(ProbeViolation::IntermediateStateOutsideViableSet {
+                violations.push(ProbeViolation::IntermediateStateOutsideViableOrRecoverySet {
                     branch_id: branch.id.clone(),
                     state_id: state.state_id.clone(),
                     remaining_steps: remaining,
                 });
             }
         }
-        if !contains_viable_state(
+        if !contains_viable_or_recovery_state(
             &problem.viable_states_by_remaining_horizon,
+            &problem.recovery_states_by_remaining_horizon,
             terminal_remaining,
             &branch.terminal_state_id,
         )? {
-            violations.push(ProbeViolation::TerminalStateOutsideViableSet {
+            violations.push(ProbeViolation::TerminalStateOutsideViableOrRecoverySet {
                 branch_id: branch.id.clone(),
                 state_id: branch.terminal_state_id.clone(),
                 remaining_steps: terminal_remaining,
@@ -572,8 +575,9 @@ pub fn evaluate_probe_continuation(
                 };
                 let mut all_successors_viable = true;
                 for successor in &row.successor_state_ids {
-                    if !contains_viable_state(
+                    if !contains_viable_or_recovery_state(
                         &problem.viable_states_by_remaining_horizon,
+                        &problem.recovery_states_by_remaining_horizon,
                         action_remaining,
                         successor,
                     )? {
