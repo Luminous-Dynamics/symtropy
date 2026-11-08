@@ -99,6 +99,17 @@
         "No claim is made that this model is a validated aircraft structural model",
         "No material allowables or certification basis are inferred from the deck",
         "The browser text preview does not replace exact-byte acquisition and digest verification"
+      ],
+      "retrieval_attempts": [
+        {
+          "attempted_on": "2026-11-08",
+          "method": "direct HTTPS file download from the canonical NASA DPW-8 file URL",
+          "requested_url": "https://dpw.larc.nasa.gov/DPW8/Static_Deformation/Test_Case_2/FEM_Models/NASA_CRM_HALFSPAN_FEM.REV00/equivalent_beam_january_2025.bdf",
+          "outcome": "failed_no_bytes_returned",
+          "exact_bytes_received": false,
+          "sha256": null,
+          "note": "The retrieval operation failed before bytes were returned. This is an access/tooling failure record, not evidence that the NASA resource is missing or corrupt."
+        }
       ]
     },
     {
