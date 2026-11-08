@@ -21,6 +21,7 @@ pub enum AdmissionStatus {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AdmissionReceipt {
     pub receipt_id: String,
+    pub subject_action_id: String,
     pub state_digest: String,
     pub domain_digest: String,
     pub model_digest: String,
@@ -149,6 +150,7 @@ fn validate_receipt(
     now_ns: u64,
 ) -> Result<(), DecisionValueError> {
     if !is_nonempty(&receipt.receipt_id)
+        || !is_nonempty(&receipt.subject_action_id)
         || !is_nonempty(&receipt.state_digest)
         || !is_nonempty(&receipt.domain_digest)
         || !is_nonempty(&receipt.model_digest)
@@ -312,6 +314,9 @@ pub fn evaluate_decision_value(
 
     let probe_receipt = &problem.probe.admission;
     validate_receipt(probe_receipt, probe_receipt, problem.now_ns)?;
+    if probe_receipt.subject_action_id != problem.probe.id {
+        return Err(DecisionValueError::AdmissionContextMismatch);
+    }
     if probe_receipt.status != AdmissionStatus::Admitted {
         return Err(DecisionValueError::ProbeNotAdmitted);
     }
@@ -385,6 +390,9 @@ pub fn evaluate_decision_value(
             return Err(DecisionValueError::InvalidLoss);
         }
         validate_receipt(&decision.admission, probe_receipt, problem.now_ns)?;
+        if decision.admission.subject_action_id != decision.id {
+            return Err(DecisionValueError::AdmissionContextMismatch);
+        }
     }
 
     let mut hypothesis_order: Vec<usize> = (0..problem.hypotheses.len()).collect();
@@ -565,9 +573,10 @@ pub fn evaluate_decision_value(
 mod tests {
     use super::*;
 
-    fn receipt(id: &str, status: AdmissionStatus) -> AdmissionReceipt {
+    fn receipt(id: &str, subject_action_id: &str, status: AdmissionStatus) -> AdmissionReceipt {
         AdmissionReceipt {
             receipt_id: id.to_owned(),
+            subject_action_id: subject_action_id.to_owned(),
             state_digest: "state-001".to_owned(),
             domain_digest: "terrain-domain-001".to_owned(),
             model_digest: "model-001".to_owned(),
@@ -586,14 +595,14 @@ mod tests {
             id: id.to_owned(),
             loss_ppb_by_hypothesis: losses.to_vec(),
             fallback_only,
-            admission: receipt(&format!("receipt-{id}"), AdmissionStatus::Admitted),
+            admission: receipt(&format!("receipt-{id}"), id, AdmissionStatus::Admitted),
         }
     }
 
     fn probe() -> Probe {
         Probe {
             id: "probe-001".to_owned(),
-            admission: receipt("receipt-probe", AdmissionStatus::Admitted),
+            admission: receipt("receipt-probe", "probe-001", AdmissionStatus::Admitted),
         }
     }
 
