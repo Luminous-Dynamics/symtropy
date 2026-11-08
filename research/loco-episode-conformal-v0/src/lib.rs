@@ -31,6 +31,7 @@ pub enum ConformalError {
     MixedDomainDigest(String),
     MixedScoreDefinitionDigest(String),
     MixedCalibrationSplitDigest(String),
+    ArithmeticOverflow,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -137,13 +138,25 @@ fn validate_identity(value: &str) -> Result<(), ConformalError> {
     }
 }
 
-fn ceil_div(numerator: u128, denominator: u128) -> u128 {
+fn ceil_div(numerator: u128, denominator: u128) -> Result<u128, ConformalError> {
     let quotient = numerator / denominator;
     if numerator % denominator == 0 {
-        quotient
+        Ok(quotient)
     } else {
-        quotient + 1
+        quotient.checked_add(1).ok_or(ConformalError::ArithmeticOverflow)
     }
+}
+
+fn conformal_rank(n: u128, alpha_ppm: u32) -> Result<u128, ConformalError> {
+    if alpha_ppm == 0 || alpha_ppm >= SCALE_PPM {
+        return Err(ConformalError::InvalidAlpha);
+    }
+    let n_plus_one = n.checked_add(1).ok_or(ConformalError::ArithmeticOverflow)?;
+    let retained_mass = u128::from(SCALE_PPM - alpha_ppm);
+    let numerator = n_plus_one
+        .checked_mul(retained_mass)
+        .ok_or(ConformalError::ArithmeticOverflow)?;
+    ceil_div(numerator, u128::from(SCALE_PPM))
 }
 
 /// Exact split-conformal order statistic:
@@ -237,14 +250,15 @@ pub fn calibrate(dataset: &CalibrationDataset) -> Result<CalibrationReceipt, Con
                     episode.episode_id.clone(),
                 ));
             }
-            episode_count += 1;
+            episode_count = episode_count
+                .checked_add(1)
+                .ok_or(ConformalError::ArithmeticOverflow)?;
         }
         scores.push(block.maximum_nonconformity_score);
     }
 
-    let n = scores.len() as u128;
-    let rank_numerator = (n + 1) * u128::from(SCALE_PPM - dataset.alpha_ppm);
-    let rank = ceil_div(rank_numerator, u128::from(SCALE_PPM));
+    let n = u128::try_from(scores.len()).map_err(|_| ConformalError::ArithmeticOverflow)?;
+    let rank = conformal_rank(n, dataset.alpha_ppm)?;
 
     let threshold = if rank > n {
         ConformalThreshold::Unbounded
@@ -544,6 +558,14 @@ mod tests {
         let second = calibrate(&dataset(vec![c, b, a], 500_000)).unwrap();
         assert_eq!(first, second);
         assert_eq!(first.threshold, ConformalThreshold::Finite(7));
+    }
+
+    #[test]
+    fn arithmetic_overflow_is_reported_explicitly() {
+        assert_eq!(
+            conformal_rank(u128::MAX, 50_000),
+            Err(ConformalError::ArithmeticOverflow)
+        );
     }
 
     #[test]
