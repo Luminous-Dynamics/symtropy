@@ -188,3 +188,53 @@ Keep:
 ## 11. Claim ceiling
 
 A faithful parser or result reproduction validates only the admitted source abstraction and declared protocol. The dataset is anonymized/adjusted research data, not a complete live-yard execution record. Track C extensions are synthetic unless separately calibrated against admitted real observations. None of these results alone proves yard-wide productivity, safe crane lifts, welding acceptance, physical construction feasibility, vessel compliance or industrial superiority.
+
+
+## 12. Current research landscape and matched comparison tracks (8 November 2026)
+
+The source-faithful dataset is an entry point, not a complete representation of shipyard planning. Recent literature covers materially different decision problems. These works are comparators for the *relevant track*, not interchangeable leaderboard rows.
+
+### Relevant research comparators
+
+- **Irregular block placement under disruption.** Wang, Yin and Khan, *Spatial-Scheduling Strategy for Irregularly Shaped Blocks Under Disruption in Shipbuilding*, IET Collaborative Intelligent Manufacturing (first published 11 July 2026; DOI 10.1049/cim2.70066). The paper describes a mixed-integer model for planar storage-yard utilization and vehicle scheduling, irregular polygon geometry, workstation/vehicle disruptions, and a two-stage ABC + ALNS recovery method. The study reports shipyard-case experiments and sensitivity analysis. This is a strong Track C comparator, not a source-faithful Track A baseline.
+- **Transporter dispatch.** *Crystal graph convolutional neural network-based reinforcement learning for adaptive shipyard block transportation scheduling*, Engineering Applications of Artificial Intelligence 177 (1 August 2026), DOI 10.1016/j.engappai.2026.114959. Its stated objectives include block transport tardiness and empty travel. Compare it only on a shared transporter assignment/dispatch definition, not the source dataset's berth-only abstraction.
+- **Painting bottleneck.** *Scheduling the block painting process in shipbuilding with group completion constraints*, International Journal of Naval Architecture and Ocean Engineering 18 (2026), DOI 10.1016/j.ijnaoe.2026.100777. It considers parallel-machine painting, detour-path and group completion-time constraints, using simulated annealing guided by truncated branch-and-bound and comparing with a MILP model. It is a painting-process comparator, not a generic block-berth benchmark.
+- **Assembly-line scheduling.** *Scheduling optimization of hull block assembly line using constraint programming and discrete-event simulation*, IJNAOE 17 (2025), DOI 10.1016/j.ijnaoe.2025.100675, supports a CP + DES comparison for a flow-shop/assembly-line track.
+- **Adaptive stockyard scheduling.** Zhong et al., *Integrated dynamic scheduling of shipyard blocks considering adaptive adjustment in stockyard layout*, Engineering Optimization 58 (2026 issue 2), DOI 10.1080/0305215X.2025.2466829, reports 50 sets of actual block data, four road types and four stockyard types, and a paper-reported 56% reduction in interference-block moves. The article's data availability statement says raw/processed data cannot currently be shared. Treat the reported 56% as a result in that study's own problem and protocol—not as a direct target or comparable score for this public corpus.
+
+The 2026 review by Bordbar et al. (JMSE 14(4), 396; DOI 10.3390/jmse14040396) reinforces the methodological point: hybrid simulation + optimization is credible in bounded industrial settings, while longitudinal yard-wide execution validation and public datasets remain limited. Therefore, our differentiation should be evidence-linked performance under real constraints—not an “AI” label or a single makespan number.
+
+### Three matched benchmark tracks
+
+**Track A — source-faithful reproduction**
+- Inputs: only the exact public input workbooks and source-defined initial state.
+- Constraints: preserve minimum-bounding-rectangle representation, unary berth, sufficient labour, one-position-per-block and empty initial positions.
+- Comparators: published EDDQN/DDQN and five published heuristics, plus transparent deterministic rules and CP/MILP exact or bounded oracle for tiny instances.
+- Outcomes: source objective(s), makespan, cost and position switches only after the formulas, units and denominators are reconstructed from source files.
+- Purpose: establish whether we can reproduce the published result, not whether the model solves a real yard.
+
+**Track B — dynamic capacity and workforce**
+- Add one constraint family per version: trade/crew calendars, absenteeism, crane/rigging availability, transporter capacity, aisle/corridor reservations, material readiness, inspection holds, rework and shift boundaries.
+- Inject timestamped disturbances: berth closure, crane fault, delayed material, rejected inspection, unplanned absence and urgent priority work.
+- Compare frozen-plan execution, rolling-horizon CP/MILP, dispatch heuristics, ALNS, and learned policies under the same observation horizon and compute budget.
+- Score feasible completion, weighted tardiness, recovery time, schedule nervousness, disruption propagation, resource utilization, unserved work and objective regret against clairvoyant/exact small-instance references. A policy must not see future disturbances before they occur.
+
+**Track C — geometric and logistics realism**
+- Replace rectangles only in this explicitly new variant: polygonal footprints, permitted orientations, swept transport paths, crane reach/lift envelopes, access corridors, turning radii and blocking/interference dependencies.
+- Use exact feasibility oracles on small cases and independently validated geometric predicates. Heuristic/learned results must be replayed through the same independent checker.
+- Report usable area, interference moves, empty travel, total travel, lift/transfer operations, blocked access, safety-envelope violations and recovery from spatial disruptions.
+- Compare against the ABC/ALNS and graph-based/RL research above only where the geometry, transporter and disturbance definitions can be matched. Do not average incomparable papers into one leaderboard.
+
+### Performance and evidence gates
+
+Proposed targets (not measured results):
+1. **Hard feasibility:** zero accepted overlapping/over-capacity/incompatible assignments and zero unpermitted access/lift-envelope violations.
+2. **Tiny-instance optimality:** exact agreement with the independent oracle on all supported tiny instances; report proven optimality gaps and timeouts separately.
+3. **Fair improvement:** paired per-instance improvement over the strongest feasible classical baseline under the same wall-clock, hardware, memory and information budget. Report median, p95, worst case, confidence intervals and all failed runs—not only the best seed.
+4. **Disturbance robustness:** lower time-to-feasible-recovery and disruption regret without increasing hard violations or schedule churn; measure performance by disturbance type and severity.
+5. **Generalization:** hold out complete instance families, yard layouts, disturbance sequences and scale ranges—not random rows from the same scenario.
+6. **Operational fidelity:** replay against event traces with event-time/as-of semantics; planned, simulated, forecast and measured execution remain separate.
+7. **Reproducibility:** immutable input manifests, hashes, parser/method/toolchain versions, deterministic seeds and independent result verification.
+
+No arbitrary target such as “10% faster” is meaningful until Track A has been faithfully reproduced and a strong matched baseline exists. A credible SOTA claim requires superiority on the same inputs, constraints, objective, compute budget and information available at decision time. A solver that is faster but infeasible, sees future data, or omits transport/inspection work is not better.
+
