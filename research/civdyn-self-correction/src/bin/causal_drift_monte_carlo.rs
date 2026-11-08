@@ -24,10 +24,6 @@ fn optional_number(value: Option<f64>) -> String {
     value.map(|number| format!("{number:.8}")).unwrap_or_default()
 }
 
-fn diagnosis(value: Option<impl AsRef<str>>) -> String {
-    value.map(|name| name.as_ref().to_string()).unwrap_or_default()
-}
-
 fn episode_fields(episode: &MonteCarloEpisode) -> Vec<String> {
     vec![
         episode.seed.to_string(),
@@ -92,7 +88,11 @@ fn csv_row(fields: Vec<String>, expected: usize) -> Result<String, String> {
             fields.len()
         ));
     }
-    if fields.iter().any(|field| field.contains([',', '\n', '\r', '"'])) {
+    if fields.iter().any(|field| {
+        field
+            .chars()
+            .any(|character| matches!(character, ',' | '\n' | '\r' | '"'))
+    }) {
         return Err("CSV field contains an unescaped delimiter".to_string());
     }
     Ok(fields.join(","))
@@ -176,7 +176,7 @@ mod tests {
             CausalRegime::ALL.len() * CausalDriftController::ALL.len()
         );
         for episode in report.episodes {
-            assert_eq!(episode.seed >= MonteCarloConfig::default().base_seed, true);
+            assert!(episode.seed >= MonteCarloConfig::default().base_seed);
         }
     }
 
