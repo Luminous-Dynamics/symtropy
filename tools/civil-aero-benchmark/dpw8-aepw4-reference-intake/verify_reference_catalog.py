@@ -273,17 +273,16 @@ def validate_catalog(data: dict[str, Any]) -> None:
     require(static_polar["grid_family"].get("levels") == [3],
             "CRM static FSI 2b(E) grid level mismatch")
 
+    rigid_grid = next((case for case in cases if case["case_id"] == "DPW8-CRM-RIGID-2A"), None)
+    rigid_polar = next((case for case in cases if case["case_id"] == "DPW8-CRM-RIGID-2B"), None)
+    require(rigid_grid is not None and rigid_polar is not None,
+            "rigid CRM Configuration B cases must remain separate from FSI")
     require(rigid_grid["conditions"].get("angle_of_attack_deg") == 2.5,
             "Rigid Configuration B 2a must remain alpha=2.50 deg")
     require(static_fsi["case_sheet_source_ids"] == ["aiaa-static-fsi-2ae-2be-case-sheet"],
             "Elastic 2a(E) must bind its dedicated AIAA case sheet")
     require(static_polar["case_sheet_source_ids"] == ["aiaa-static-fsi-2ae-2be-case-sheet"],
             "Elastic 2b(E) must bind its dedicated AIAA case sheet")
-
-    rigid_grid = next((case for case in cases if case["case_id"] == "DPW8-CRM-RIGID-2A"), None)
-    rigid_polar = next((case for case in cases if case["case_id"] == "DPW8-CRM-RIGID-2B"), None)
-    require(rigid_grid is not None and rigid_polar is not None,
-            "rigid CRM Configuration B cases must remain separate from FSI")
     for case in (rigid_grid, rigid_polar):
         require(case["conditions"].get("static_temperature_f") == 100.0,
                 f"{case['case_id']}: rigid Configuration B temperature mismatch")
