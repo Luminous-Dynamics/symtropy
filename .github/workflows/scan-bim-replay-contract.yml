@@ -2,7 +2,7 @@ name: Scan-to-BIM Replay Contract
 
 on:
   pull_request:
-    branches: ["main", "research/scan-bim-admission-v0-1", "research/scan-bim-replay-p0-v0-2", "research/scan-bim-execution-receipt-v0-2", "research/scan-bim-directed-accuracy-v0-6", "research/scan-bim-surface-sampling-v0-1", "research/scan-bim-residual-uncertainty-v0-1"]
+    branches: ["main", "research/scan-bim-admission-v0-1", "research/scan-bim-replay-p0-v0-2", "research/scan-bim-execution-receipt-v0-2", "research/scan-bim-directed-accuracy-v0-6", "research/scan-bim-surface-sampling-v0-1", "research/scan-bim-residual-uncertainty-v0-1", "research/scan-bim-area-overlap-v0-1"]
     paths:
       - "tools/scan-bim-replay-contract/**"
       - "docs/research/built-asset/scan-bim/SCAN_BIM_REPLAY_CONTRACT_V0_2.md"
@@ -18,7 +18,7 @@ on:
       - "docs/research/built-asset/scan-bim/SCAN_BIM_RESIDUAL_UNCERTAINTY_ADAPTER_V0_1.md"
       - "docs/research/built-asset/scan-bim/SCAN_BIM_INDUSTRY_BENCHMARK_PROTOCOL_2026_V0_1.md"
   push:
-    branches: ["main", "research/scan-bim-admission-v0-1", "research/scan-bim-replay-p0-v0-2", "research/scan-bim-execution-receipt-v0-2", "research/scan-bim-directed-accuracy-v0-6", "research/scan-bim-surface-sampling-v0-1", "research/scan-bim-residual-uncertainty-v0-1"]
+    branches: ["main", "research/scan-bim-admission-v0-1", "research/scan-bim-replay-p0-v0-2", "research/scan-bim-execution-receipt-v0-2", "research/scan-bim-directed-accuracy-v0-6", "research/scan-bim-surface-sampling-v0-1", "research/scan-bim-residual-uncertainty-v0-1", "research/scan-bim-area-overlap-v0-1"]
     paths:
       - "tools/scan-bim-replay-contract/**"
       - "docs/research/built-asset/scan-bim/SCAN_BIM_REPLAY_CONTRACT_V0_2.md"
@@ -87,6 +87,11 @@ jobs:
             (.metadata_audit.surface_sampling_max_samples == 100000) and
             (.metadata_audit.metric_correspondence_policy == "euclidean_closest_point_on_triangle") and
             (.metadata_audit.scenes[0].coordinate_frame_id == "BUILDING-A-LOCAL") and
+            (.metadata_audit.scenes[0].area_overlap_profile.profile_id == "synthetic-area-overlap-v0.1") and
+            (.metadata_audit.scenes[0].area_overlap_profile.metric_authority == "project_defined") and
+            (.metadata_audit.scenes[0].area_overlap_profile.aggregation_policy == "union_per_reference_2021") and
+            (.metadata_audit.scenes[0].area_overlap_profile.common_frame_id == "BUILDING-A-LOCAL") and
+            (.metadata_audit.scenes[0].area_overlap_profile.buffer_distance_m == 0.1) and
             (.metadata_audit.scenes[0].transform_artifact_id == "ROOM-A-TRANSFORM") and
             (.metadata_audit.scenes[0].linear_unit_to_metre_factor == 1.0) and
             (.metadata_audit.candidate_outputs[0].artifact_id == "ROOM-A-IFC") and
