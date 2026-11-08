@@ -31,15 +31,21 @@ where P = L L^T. The value is returned in nats. Unlike realized posterior change
 - Linear-Gaussian posterior mean/covariance update.
 - Expected information gain for one action-conditioned observation model.
 - Deterministic comparison of candidate observation maps, ranked by expected information gain.
+- A separate action-admission receipt contract binds the exact action, state, model, verifier/evidence identity and expiry.
+- Missing, expired, rejected or unknown admission cannot enter information-based action selection.
+- Three-objective Pareto reporting over expected information gain, energy upper bound and a declared normalized risk upper score; no weighted scalar.
+- Receipt identity and risk-metric version mismatches fail closed; the package does not authenticate receipt signatures or replace the independent verifier.
 - Correlated observation-noise covariance is supported; no diagonal/independent-channel assumption is imposed by the math.
 - Rank-deficient observation maps are allowed; unobservable state directions remain unupdated.
-- Fourteen known-answer/adversarial tests for scalar posterior, partial observability, action-dependent information, measurement-independent EIG, zero-information null, correlated noise, invalid covariance and dimension/identity failures.
+- Twenty-one known-answer/adversarial tests for scalar posterior, partial observability, action-dependent information, measurement-independent EIG, zero-information null, correlated noise, invalid covariance and dimension/identity failures.
 
 ## Important boundary
 
 This crate does **not** decide whether an action is physically safe, certify a support/traction envelope, infer the true observation model, train an estimator, or execute an action. It reports the information content of caller-supplied models only.
 
-The next layer must consume a separate, independently valid physical-feasibility/viability receipt, reject inadmissible probes before ranking them, and compare information gain against energy and risk without collapsing all objectives into one unexplained scalar.
+The constrained selector accepts a separate, independently produced physical-admissibility receipt. It checks that the receipt matches the exact action, state and model and has not expired. It then computes the Pareto frontier over information gain, conservative energy upper bound and a versioned normalized risk upper score.
+
+The package does **not** cryptographically authenticate the receipt or prove that its issuing verifier is correct. Production use must authenticate/replay the receipt using the independent verifier's evidence mechanism. This code prevents stale/mismatched receipt reuse; it is not the physical proof authority.
 
 ## Research comparison
 
