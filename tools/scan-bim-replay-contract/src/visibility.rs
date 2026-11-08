@@ -424,7 +424,11 @@ fn observe_from_view(
     Ok(ViewObservation {
         view_id: view.view_id.clone(),
         status,
-        blocker_kind: kinds.iter().next().copied(),
+        blocker_kind: if status == ViewVisibilityStatus::Contradictory {
+            None
+        } else {
+            kinds.iter().next().copied()
+        },
         blocker_triangle_ids,
         blocker_distance_m: nearest_distance,
     })
@@ -503,8 +507,10 @@ fn receipt_digest(
     probes: &[VisibilityProbeResult],
     views: &[VisibilityView],
     occluders: &[OccluderTriangle],
+    profile: VisibilityProfile,
 ) -> String {
     let mut hasher = Sha256::new();
+    hasher.update(profile.max_ray_tests.to_le_bytes());
     update_string(&mut hasher, "scan_bim_evaluator_visibility_ray_v1");
     update_string(&mut hasher, scene_id);
     update_string(&mut hasher, frame_id);
@@ -562,6 +568,15 @@ fn receipt_digest(
             if let Some(distance) = view.blocker_distance_m {
                 update_f64(&mut hasher, distance);
             }
+            update_string(
+                &mut hasher,
+                match view.blocker_kind {
+                    Some(OccluderKind::SameBuilding) => "same_building",
+                    Some(OccluderKind::External) => "external",
+                    Some(OccluderKind::Unknown) => "unknown",
+                    None => "none_or_conflicting",
+                },
+            );
             for blocker in &view.blocker_triangle_ids {
                 update_string(&mut hasher, blocker);
             }
@@ -642,7 +657,7 @@ pub fn derive_surface_visibility(
         )?;
     }
     let ordered_occluders: Vec<OccluderTriangle> =
-        ordered_occluders.into_iter().map(|value| value.clone()).collect();
+        ordered_occluders.into_iter().map(|value| (*value).clone()).collect();
 
     let mut ordered_probes: Vec<&VisibilityProbe> = probes.iter().collect();
     ordered_probes.sort_by(|left, right| left.probe_id.cmp(&right.probe_id));
@@ -724,7 +739,7 @@ pub fn derive_surface_visibility(
     }
 
     let owned_views: Vec<VisibilityView> =
-        ordered_views.into_iter().map(|value| value.clone()).collect();
+        ordered_views.into_iter().map(|value| (*value).clone()).collect();
     let visibility_sha256 = receipt_digest(
         scene_id,
         frame_id,
@@ -733,6 +748,7 @@ pub fn derive_surface_visibility(
         &results,
         &owned_views,
         &ordered_occluders,
+        profile,
     );
 
     Ok(VisibilityReceipt {
@@ -951,18 +967,34 @@ mod tests {
 
     #[test]
     fn input_permutation_preserves_visibility_receipt() {
+        let mut second_probe = probe([5.0, 1.0, 0.0]);
+        second_probe.probe_id = "P-2".to_owned();
+        second_probe.triangle_id = "TARGET-TRI-2".to_owned();
+        let mut second_blocker = blocker(OccluderKind::SameBuilding);
+        second_blocker.surface_id = "BLOCKER-2".to_owned();
+        second_blocker.triangle_id = "BLOCKER-TRI-2".to_owned();
+
         let left = evaluate(
-            &[probe([5.0, 0.0, 0.0])],
-            &[view("VIEW-1", [0.0, 0.0, 0.0])],
-            &[blocker(OccluderKind::SameBuilding)],
+            &[probe([5.0, 0.0, 0.0]), second_probe.clone()],
+            &[
+                view("VIEW-1", [0.0, 0.0, 0.0]),
+                view("VIEW-2", [0.0, 0.0, 0.0]),
+            ],
+            &[
+                blocker(OccluderKind::SameBuilding),
+                second_blocker.clone(),
+            ],
         )
-        .expect("left ordering");
+        .expect("canonical ordering");
         let right = evaluate(
-            &[probe([5.0, 0.0, 0.0])],
-            &[view("VIEW-1", [0.0, 0.0, 0.0])],
-            &[blocker(OccluderKind::SameBuilding)],
+            &[second_probe, probe([5.0, 0.0, 0.0])],
+            &[
+                view("VIEW-2", [0.0, 0.0, 0.0]),
+                view("VIEW-1", [0.0, 0.0, 0.0]),
+            ],
+            &[second_blocker, blocker(OccluderKind::SameBuilding)],
         )
-        .expect("right ordering");
+        .expect("permuted ordering");
         assert_eq!(left.visibility_sha256, right.visibility_sha256);
     }
 
