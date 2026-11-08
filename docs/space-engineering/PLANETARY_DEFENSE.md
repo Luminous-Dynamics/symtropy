@@ -153,6 +153,7 @@ The following active issues already own important shared primitives. Planetary d
 - **Symtropy PR #4219:** adds a frozen DART/Dimorphos reference record and standalone Rust data-contract verifier. Seven Rust tests are authored but not yet reported as run; this is not an orbit or impact-physics simulation.
 - **Symtropy #4264 — HERA-DATA-CLOSURE-001:** independently validate DART response models against Hera observations as calibrated products are released. Keep observations, derived estimates, model outputs and held-out validation separate; do not infer final mass, internal structure or crater physics from first-light/thermal imagery.
 - **Symtropy #4221 / PR #4224:** adds a historical 2008 TC3 terminal-event reconstruction summary. It is explicitly summary-only until original time-sliced astrometry and pre-impact forecast snapshots are frozen.
+- **MPC acquisition route for #4221:** use the official Observations API to preserve ADES XML/ADES_DF plus legacy OBS80, and use WAMO to resolve tracklet/station or observation identifiers to submission status and timestamp-bearing submission-block IDs where available. This is a documented acquisition path, not evidence that raw 2008 TC3 records have been ingested. A current MPC response is not a historical as-of snapshot; missing submission availability must stay unknown and blocks time-sliced replay.
 - **Symthaea #11112 / Mycelix #5952 / Sol-Atlas #640:** supply decision-value observation planning, astrometric provenance and source-bound uncertainty visualization.
 
 These interfaces are dependencies and integration targets, not evidence that the planetary-defence system is already implemented.
@@ -353,6 +354,10 @@ A queued test is not a pass. A model result without source and configuration is 
 - JPL Horizons: https://ssd.jpl.nasa.gov/horizons/
 - JPL small-body orbits and ephemerides: https://ssd.jpl.nasa.gov/orbits.html
 - MPC astrometry reporting and ADES guidance: https://docs.minorplanetcenter.net/mpc-ops-docs/astrometry/reporting-observations/
+- MPC Observations API (ADES XML/ADES_DF/OBS80; ADES 2017/2022): https://docs.minorplanetcenter.net/mpc-ops-docs/apis/get-obs/
+- MPC WAMO API (submission identifiers, status and block lineage): https://docs.minorplanetcenter.net/mpc-ops-docs/apis/wamo/
+- MPC Observations API tutorial: https://docs.minorplanetcenter.net/tutorials/notebooks/mpc_tutorial_api_observations/
+- MPC WAMO API tutorial: https://docs.minorplanetcenter.net/tutorials/notebooks/mpc_tutorial_api_wamo/
 - Rubin Observatory first scientific alerts (2026-02-25): https://rubinobs.org/news/first-alerts
 - NASA/JPL NEO Surveyor (launch no earlier than September 2027): https://www.jpl.nasa.gov/missions/near-earth-object-surveyor/
 
