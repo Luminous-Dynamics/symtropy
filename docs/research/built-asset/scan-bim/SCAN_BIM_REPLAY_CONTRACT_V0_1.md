@@ -1,6 +1,6 @@
 # Scan-to-BIM Replay Contract v0.1
 
-**Status:** executable P0 metadata and visibility-accounting prototype; not an external dataset replay.  
+**Status:** executable P0 metadata and visibility-accounting prototype; not an external dataset replay. The focused workflow is defined in the base branch for this stacked pull request.  
 **Issue:** #4116 — SCAN-BIM-REPLAY-001.  
 **Package:** `tools/scan-bim-replay-contract/`.
 
