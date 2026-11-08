@@ -567,6 +567,52 @@ mod tests {
     }
 
     #[test]
+    fn rejects_capture_lineage_crossing_split_groups() {
+        let mut value = fixture_value();
+        let capture_id = value["scenes"][0]["capture_group_id"].clone();
+        value["scenes"][1]["capture_group_id"] = capture_id;
+        let error = audit(&value).expect_err("capture lineage cannot cross splits");
+        assert!(error.contains("capture lineage"));
+    }
+
+    fn isprs_pair_fixture() -> Value {
+        let mut value = fixture_value();
+        value["dataset"]["dataset_id"] = serde_json::json!("ISPRS-INDOOR-MODELLING");
+        value["dataset"]["use_class"] =
+            serde_json::json!("research_only_non_redistributable");
+        value["split"]["evaluation_group_ids"] = serde_json::json!(["TUB-BUILDING"]);
+        for (index, scene_id, capture_id) in [
+            (0, "TUB1", "TUB1-CAPTURE"),
+            (1, "TUB2", "TUB2-CAPTURE"),
+        ] {
+            value["scenes"][index]["scene_id"] = serde_json::json!(scene_id);
+            value["scenes"][index]["building_group_id"] =
+                serde_json::json!("TUB-BUILDING");
+            value["scenes"][index]["split_group_id"] = serde_json::json!("TUB-BUILDING");
+            value["scenes"][index]["capture_group_id"] = serde_json::json!(capture_id);
+        }
+        value
+    }
+
+    #[test]
+    fn accepts_tub1_tub2_as_distinct_captures_of_one_building() {
+        let value = isprs_pair_fixture();
+        let report = audit(&value).expect("TUB1 and TUB2 should share one building group");
+        assert_eq!(report.scene_count, 2);
+    }
+
+    #[test]
+    fn rejects_tub1_tub2_as_different_building_groups() {
+        let mut value = isprs_pair_fixture();
+        value["scenes"][1]["building_group_id"] = serde_json::json!("OTHER-BUILDING");
+        value["scenes"][1]["split_group_id"] = serde_json::json!("OTHER-BUILDING");
+        value["split"]["evaluation_group_ids"] =
+            serde_json::json!(["TUB-BUILDING", "OTHER-BUILDING"]);
+        let error = audit(&value).expect_err("TUB scenes are one physical building");
+        assert!(error.contains("TUB1 and TUB2 must share"));
+    }
+
+    #[test]
     fn rejects_isprs_without_research_only_rights() {
         let mut value = fixture_value();
         value["dataset"]["dataset_id"] = serde_json::json!("ISPRS-INDOOR-MODELLING");
