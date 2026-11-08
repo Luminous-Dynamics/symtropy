@@ -8,8 +8,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 
-const FIXTURE_TEXT: &str =
-    include_str!("../data/nonmatching-planar-patch-v0.1.json");
+const FIXTURE_TEXT: &str = include_str!("../data/nonmatching-planar-patch-v0.1.json");
 
 type Vec3 = [f64; 3];
 
@@ -185,22 +184,33 @@ fn validate_surface(surface: &Surface, label: &str, require_traction: bool) -> R
         return fail(format!("{label}: no triangular faces"));
     }
     if surface.expected_face_normals.len() != surface.triangles.len() {
-        return fail(format!("{label}: expected face-normal count does not match triangle count"));
+        return fail(format!(
+            "{label}: expected face-normal count does not match triangle count"
+        ));
     }
     if require_traction && surface.nodal_traction_pa.len() != surface.nodes_xyz_m.len() {
-        return fail(format!("{label}: nodal traction count does not match node count"));
+        return fail(format!(
+            "{label}: nodal traction count does not match node count"
+        ));
     }
     if surface.nodes_xyz_m.iter().any(|node| !finite_vec(*node)) {
         return fail(format!("{label}: non-finite node coordinate"));
     }
-    if require_traction && surface.nodal_traction_pa.iter().any(|value| !finite_vec(*value)) {
+    if require_traction
+        && surface
+            .nodal_traction_pa
+            .iter()
+            .any(|value| !finite_vec(*value))
+    {
         return fail(format!("{label}: non-finite nodal traction"));
     }
 
     let mut unique_faces = BTreeSet::new();
     for (face_index, face) in surface.triangles.iter().enumerate() {
         if face.iter().any(|index| *index >= surface.nodes_xyz_m.len()) {
-            return fail(format!("{label}: face {face_index} has an out-of-range node index"));
+            return fail(format!(
+                "{label}: face {face_index} has an out-of-range node index"
+            ));
         }
         if face[0] == face[1] || face[1] == face[2] || face[2] == face[0] {
             return fail(format!("{label}: face {face_index} repeats a node index"));
@@ -208,7 +218,9 @@ fn validate_surface(surface: &Surface, label: &str, require_traction: bool) -> R
         let mut key = *face;
         key.sort_unstable();
         if !unique_faces.insert(key) {
-            return fail(format!("{label}: duplicate triangle connectivity at face {face_index}"));
+            return fail(format!(
+                "{label}: duplicate triangle connectivity at face {face_index}"
+            ));
         }
 
         let a = surface.nodes_xyz_m[face[0]];
@@ -325,7 +337,10 @@ fn barycentric_projection(
     let w0 = 1.0 - w1 - w2;
     let mut weights = [w0, w1, w2];
     let bary_tol = (tolerance_m * 1.0e3).max(1.0e-10);
-    if weights.iter().any(|weight| *weight < -bary_tol || *weight > 1.0 + bary_tol) {
+    if weights
+        .iter()
+        .any(|weight| *weight < -bary_tol || *weight > 1.0 + bary_tol)
+    {
         return None;
     }
     if signed_distance.abs() > tolerance_m {
@@ -369,7 +384,9 @@ fn locate_on_target(point: Vec3, target: &Surface, tolerance_m: f64) -> Result<T
         }
     }
     best.ok_or_else(|| {
-        TransferError("source quadrature point is outside target support or geometry tolerance".to_owned())
+        TransferError(
+            "source quadrature point is outside target support or geometry tolerance".to_owned(),
+        )
     })
 }
 
@@ -385,11 +402,7 @@ fn resultant_moment(loads: &[QuadratureLoad], origin: Vec3) -> Vec3 {
     })
 }
 
-fn nodal_force_resultants(
-    nodes: &[Vec3],
-    forces: &[Vec3],
-    origin: Vec3,
-) -> (Vec3, Vec3) {
+fn nodal_force_resultants(nodes: &[Vec3], forces: &[Vec3], origin: Vec3) -> (Vec3, Vec3) {
     let force = forces
         .iter()
         .fold([0.0; 3], |total, value| add(total, *value));
@@ -456,8 +469,7 @@ fn work_conjugate_transfer(
         )?;
         mapped_quadrature_points += 1;
         face_usage[shape.face_index] += 1;
-        maximum_projection_distance =
-            maximum_projection_distance.max(shape.plane_distance_m);
+        maximum_projection_distance = maximum_projection_distance.max(shape.plane_distance_m);
 
         let mut interpolated_displacement = [0.0; 3];
         for local in 0..3 {
@@ -466,7 +478,10 @@ fn work_conjugate_transfer(
             target_forces[node] = add(target_forces[node], contribution);
             interpolated_displacement = add(
                 interpolated_displacement,
-                scale(fixture.target_nodal_displacements_m[node], shape.weights[local]),
+                scale(
+                    fixture.target_nodal_displacements_m[node],
+                    shape.weights[local],
+                ),
             );
         }
         source_work += dot(load.force_n, interpolated_displacement);
@@ -502,11 +517,8 @@ fn work_conjugate_transfer(
     let origin = fixture.moment_reference_origin_m;
     let source_force = resultant_force(&source_loads);
     let source_moment = resultant_moment(&source_loads, origin);
-    let (target_force, target_moment) = nodal_force_resultants(
-        &fixture.target_surface.nodes_xyz_m,
-        &target_forces,
-        origin,
-    );
+    let (target_force, target_moment) =
+        nodal_force_resultants(&fixture.target_surface.nodes_xyz_m, &target_forces, origin);
     let (nearest_force, nearest_moment) = nodal_force_resultants(
         &fixture.target_surface.nodes_xyz_m,
         &target_nearest_forces,
@@ -571,10 +583,7 @@ fn characteristic_length(surface: &Surface) -> f64 {
     let mut maximum = 0.0_f64;
     for a in 0..surface.nodes_xyz_m.len() {
         for b in (a + 1)..surface.nodes_xyz_m.len() {
-            maximum = maximum.max(norm(sub(
-                surface.nodes_xyz_m[a],
-                surface.nodes_xyz_m[b],
-            )));
+            maximum = maximum.max(norm(sub(surface.nodes_xyz_m[a], surface.nodes_xyz_m[b])));
         }
     }
     maximum
@@ -772,8 +781,8 @@ mod tests {
         let transformed_fixture = transform_fixture(&fixture);
         let source = hash_surface(&transformed_fixture.source_surface, false);
         let target = hash_surface(&transformed_fixture.target_surface, false);
-        let transformed =
-            work_conjugate_transfer(&transformed_fixture, &source, &target).expect("rigid transform maps");
+        let transformed = work_conjugate_transfer(&transformed_fixture, &source, &target)
+            .expect("rigid transform maps");
 
         let expected_force = rotate_z(original.source_resultant_force_n);
         let expected_moment = rotate_z(original.source_resultant_moment_nm);
@@ -787,7 +796,10 @@ mod tests {
     #[test]
     fn target_surface_duplicate_connectivity_is_rejected() {
         let mut fixture = parse_fixture();
-        fixture.target_surface.triangles.push(fixture.target_surface.triangles[0]);
+        fixture
+            .target_surface
+            .triangles
+            .push(fixture.target_surface.triangles[0]);
         fixture
             .target_surface
             .expected_face_normals
