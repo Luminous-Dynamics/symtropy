@@ -589,7 +589,7 @@ fn fingerprint(input: &TariffInput) -> String {
     );
     let _ = write!(
         canonical,
-        "|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}",
+        "|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}",
         input
             .network_surcharge_applies
             .map(|x| x.to_string())
