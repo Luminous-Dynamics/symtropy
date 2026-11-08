@@ -1,0 +1,53 @@
+name: CIVDYN generational accounting reference
+
+on:
+  pull_request:
+    paths:
+      - "research/civdyn-generational-accounting/**"
+      - "research/civdyn-resource-ledger/**"
+      - ".github/workflows/civdyn-generational-accounting.yml"
+  push:
+    paths:
+      - "research/civdyn-generational-accounting/**"
+      - "research/civdyn-resource-ledger/**"
+      - ".github/workflows/civdyn-generational-accounting.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy,rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/civdyn-generational-accounting/Cargo.toml --all -- --check
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path research/civdyn-generational-accounting/Cargo.toml --all-targets -- -D warnings
+      - name: Compile
+        run: cargo check --locked --manifest-path research/civdyn-generational-accounting/Cargo.toml --all-targets
+      - name: Test cohort reconciliation and intergenerational invariants
+        run: cargo test --locked --manifest-path research/civdyn-generational-accounting/Cargo.toml --all-targets
+      - name: Verify matched-policy cohort inheritance known answers
+        run: |
+          cargo run --quiet --locked --manifest-path research/civdyn-generational-accounting/Cargo.toml --bin cohort-inheritance-sweep > /tmp/civdyn-generational.csv
+          awk -F, '
+            NR == 1 { if (NF != 11) exit 60; next }
+            NF != 11 { exit 61 }
+            $1 == "maintain_now" {
+              maintained++
+              if ($2 != "true" || $3 != "20.000000" || $4 != "0.000000" || $5 != "80.000000" || $6 != "0.000000" || $7 != "0.000000" || $8 != "0.950000" || $9 != "0" || $10 != "0" || $11 != "true") exit 62
+            }
+            $1 == "defer_maintenance_and_export_water" {
+              deferred++
+              if ($2 != "true" || $3 != "20.000000" || $4 != "0.000000" || $5 != "50.000000" || $6 != "40.000000" || $7 != "1000000.000000" || $8 != "0.600000" || $9 != "2" || $10 != "0" || $11 != "true") exit 63
+            }
+            END {
+              if (NR != 3 || maintained != 1 || deferred != 1) exit 64
+              print "Cohort inheritance valid: identical current service; future water, maintenance, debt and asset condition remain separate"
+            }
+          ' /tmp/civdyn-generational.csv
