@@ -646,7 +646,7 @@ fn evaluate_policy(
     actions: &BTreeMap<String, MeasurementAction>,
 ) -> Value {
     let revision = case["state_revision"].as_str().unwrap_or("");
-    let mut walker = PolicyWalker::new(revision, universe, candidates, actions, policy);
+    let walker = PolicyWalker::new(revision, universe, candidates, actions, policy);
     let root = policy["root_node_id"].as_str().unwrap_or("");
     let blockers = strings(&case["unresolved_critical_unknown_ids"]).unwrap_or_default();
     walker.finish(root, blockers)
