@@ -714,15 +714,12 @@ fn build_inventory(deck: &Deck) -> ParseResult<Inventory> {
                 let mut index = 1usize;
                 while index < card.fields.len() {
                     let grid_field = field(card, index, "SPC GRID")?;
-                    let component_field = field(card, index + 1, "SPC component")?;
-                    let value_field = field(card, index + 2, "SPC value")?;
-                    if grid_field.trim().is_empty()
-                        && component_field.trim().is_empty()
-                        && value_field.trim().is_empty()
-                    {
+                    if grid_field.trim().is_empty() {
                         break;
                     }
-                    if grid_field.trim().is_empty() || component_field.trim().is_empty() {
+                    let component_field = field(card, index + 1, "SPC component")?;
+                    let value_field = field(card, index + 2, "SPC value")?;
+                    if component_field.trim().is_empty() {
                         return fail(format!("SPC {sid}: incomplete GRID/component pair"));
                     }
                     let grid = parse_id(grid_field, "SPC GRID")?;
@@ -1202,6 +1199,19 @@ mod tests {
         let changed = text.replace("BEGIN BULK", &format!("BEGIN BULK\n{insertion}"));
         bytes = changed.into_bytes();
         assert!(parse_bytes(&bytes).is_err());
+    }
+
+    #[test]
+    fn spc_multiple_groups_allow_blank_final_enforced_value() {
+        let mut cards = minimal_valid_cards();
+        cards[9] = fixed_line(&["SPC", "1", "1", "123", "0.", "2", "456", ""]);
+        let bytes = deck_text(cards);
+        let (deck, inventory) = parse_bytes(&bytes).expect("two SPC groups must parse");
+        assert_eq!(inventory.spc_set_ids, BTreeSet::from([1]));
+        let spc = deck.cards.iter().find(|card| card.name == "SPC").unwrap();
+        assert_eq!(spc.fields[4], "2");
+        assert_eq!(spc.fields[5], "456");
+        assert_eq!(spc.fields[6], "");
     }
 
     #[test]
