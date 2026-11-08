@@ -319,6 +319,7 @@ fn parse_case(input: &str) -> Result<Case, Vec<String>> {
 
         if action_numbers[1] == 0
             || (kind == "ACTIVE_EXCITATION" && action_numbers[0] == 0)
+            || action_numbers[2] > 1_000_000
             || action_numbers[3] > 1_000
             || action_numbers[4] > 1_000_000
         {
@@ -910,13 +911,27 @@ mod tests {
             Some("second_probe")
         );
         assert_all_leaves_unique(&plan);
+        let oracle_scores = oracle(&case, &case.initial_states, 0, case.max_actions);
+        let oracle_best = oracle_scores.into_iter().min().expect("moving oracle has a policy");
+        assert_eq!(
+            oracle_best,
+            (
+                plan.worst_case_energy_uj,
+                plan.worst_case_latency_us,
+                plan.worst_case_actions
+            )
+        );
+        assert_eq!(
+            plan.branches.get("0").and_then(|branch| branch.action_id.as_deref()),
+            Some("second_probe")
+        );
     }
 
     #[test]
     fn any_possible_out_of_domain_transition_rejects_the_action() {
         let input = MOVING
             .lines()
-            .take(2)
+            .take(3)
             .collect::<Vec<_>>()
             .join("\n")
             .replace("\ttrue\t10", "\tfalse\t10")
