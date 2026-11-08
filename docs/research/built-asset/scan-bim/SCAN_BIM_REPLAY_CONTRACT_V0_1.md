@@ -10,14 +10,14 @@ The Rust CLI validates a replay manifest before any evaluator is run. It checks:
 
 - dataset use class and explicit prohibition on committing source data or embedding source bytes in CI artifacts;
 - separate typed candidate-input and evaluator-artifact namespaces;
-- SHA-256-shaped artifact identities (format validation only; this CLI does not open or hash dataset files);
+- SHA-256-shaped artifact identities, recomputed against local bytes under separate candidate/evaluator roots;
 - disjoint development/evaluation group IDs;
 - building- and capture-lineage split consistency;
 - the ISPRS TUB1/TUB2 same-building and distinct-capture grouping rule;
 - explicit surface visibility and observation-status classifications;
 - finite positive surface areas and fail-closed unknown JSON fields.
 
-It emits deterministic JSON for the exact input manifest bytes, including a manifest SHA-256 and per-scene surface-area accounting.
+It emits deterministic JSON for the exact input manifest bytes, including a manifest SHA-256, per-scene surface-area accounting and counts of candidate/evaluator files whose bytes were actually verified.
 
 ## Observability contract
 
@@ -50,11 +50,13 @@ Candidate inputs have a closed role vocabulary: point-cloud observation, sensor 
 
 Evaluator artifacts have a separate closed vocabulary: reference geometry, ground-truth labels, holdout assignment, official score table and independent checkpoints.
 
-The CLI rejects shared artifact IDs. It does not provide filesystem sandboxing, process isolation, access-control enforcement, organizational independence or cryptographic authentication of the artifact producer. Those are separate gates. The manifest contains identifiers and hashes, not data bytes or local paths.
+The CLI rejects shared artifact IDs and content digests. Each artifact carries a root-relative path; the verifier canonicalizes distinct, non-overlapping candidate/evaluator roots, rejects absolute paths, dot/parent components and observed symlink components, confirms regular files remain beneath the selected root, and recomputes SHA-256 over the actual bytes. The manifest contains relative paths and hashes, not data bytes or absolute local paths. The committed fixture files are synthetic text bytes only.
+
+This is **local integrity verification**, not process isolation. Candidate and evaluator roots are both readable by this one verifier process. Standard-library path checks are not race-free against a concurrently malicious process; OS-level descriptor-relative no-follow opens/mounts, separate processes/identities and independent custody remain separate gates. Rights flags are still manifest assertions; this CLI does not inspect Git history or arbitrary CI artifact archives.
 
 ## Deliberate non-goals
 
-- No point-cloud loading, registration, reconstruction, meshing or IFC authoring.
+- No point-cloud parsing, registration, reconstruction, meshing, IFC authoring or ray-cast visibility derivation.
 - No implementation of official ISPRS completeness/correctness/accuracy.
 - No choice of the disputed canonical ISPRS accuracy direction. The two directed distance distributions should remain diagnostics until the canonical evaluator implementation is resolved.
 - No reproduction of Ersöz–Bosché coverage/distribution/distance indices.
@@ -68,7 +70,9 @@ cargo fmt --manifest-path tools/scan-bim-replay-contract/Cargo.toml -- --check
 cargo test --locked --manifest-path tools/scan-bim-replay-contract/Cargo.toml
 cargo clippy --locked --manifest-path tools/scan-bim-replay-contract/Cargo.toml --all-targets -- -D warnings
 cargo run --locked --manifest-path tools/scan-bim-replay-contract/Cargo.toml -- \
-  --manifest tools/scan-bim-replay-contract/fixtures/synthetic-observability.json
+  --manifest tools/scan-bim-replay-contract/fixtures/synthetic-observability.json \
+  --candidate-root tools/scan-bim-replay-contract/fixtures/data/candidate \
+  --evaluator-root tools/scan-bim-replay-contract/fixtures/data/evaluator
 ```
 
 The fixture is synthetic and contains no ISPRS/BIMNet source data.
