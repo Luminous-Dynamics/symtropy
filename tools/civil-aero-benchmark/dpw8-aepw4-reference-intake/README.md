@@ -24,11 +24,12 @@ The current DPW-8 Test Cases page defines **rigid Configuration B** at Mach 0.85
 
 The separate AIAA Static Deformation Working Group PDF defines the **elastic FSI** cases at 120°F (322.04 K), not 100°F:
 
-- **2a(E), Wing/Body Cruise:** Mach 0.85, Reynolds number 5 million, dynamic pressure 1,384 psf, alpha=2.50 degrees, 120°F, grid levels 1–6. The PDF describes committee-supplied NASA CRM geometry including a deformed-wing matching condition. The current DPW-8 test page separately says initialise CFD/FEM from jig “as-built” geometry/grid. Preserve this source-detail discrepancy and reconcile the exact geometry artifact/revision before admission.
-- **2b(E), Wing/Body Polar:** Mach 0.85, Reynolds number 5 million, dynamic pressure 1,384 psf, alpha=[-1.50, 2.50, 3.00, 3.50, 4.00, 4.50] degrees, 120°F, grid level 3. The PDF describes NASA CRM geometry in jig/unloaded condition; the current DPW-8 page says jig “as-built” geometry/grid. Reconcile exact geometry revision before admission.
+- **2a(E), Wing/Body Deformation (cruise):** Mach 0.85, Reynolds number 5 million, dynamic pressure 1,384 psf, CL=0.5000 ± 0.0001 (approximate alpha 2.75°), 120°F, jig/unloaded geometry, grid levels 1–6.
+- **2b(E), Wing/Body Deformation (polar):** Mach 0.85, Reynolds number 5 million, dynamic pressure 1,384 psf, alpha=[-1.50, 0.00, 1.50, 2.50, 3.00, 3.50, 4.00, 4.50] degrees, 120°F, jig/unloaded geometry, grid level 3.
 
-The static-FSI PDF lists comparison data from NTF197, NTF215, NTF229, ETW ESWIRP and Ames216, and comparison metrics including forces/moments, sectional Cp and separate flow/structural residuals. Do not import the rigid-CFD nine-point alpha schedule into the elastic 2b(E) polar.
+The rigid and elastic cases have separate AIAA case-sheet PDFs and must remain separate records. The apparent geometry wording discrepancy from earlier notes came from conflating the rigid 2a case sheet (which uses deformed-wing matching geometry) with elastic 2a(E) (which specifies jig/unloaded geometry). The current test-case page and the dedicated elastic PDF agree that the elastic FSI cases start from jig/as-built or unloaded geometry; record the exact geometry artifact and revision in each run manifest.
 
+The static-FSI PDF lists comparison data from NTF197, NTF215, NTF229, ETW ESWIRP and Ames216, and comparison metrics including forces/moments, sectional Cp, sectional twist/deformation and separate flow/structural residuals. Do not import the rigid-CFD nine-point alpha schedule into the elastic 2b(E) polar.
 The workshop data-submission page defines Tecplot-readable ASCII templates, includes bending/twist deformation output, notes that template version 3 normalizes deflection by reference semi-span, and specifies -999 for optional data not submitted. The actual template must be fetched and parsed before an importer is implemented; do not infer columns from this summary.
 
 ### 3. A small reference FEM model exists
