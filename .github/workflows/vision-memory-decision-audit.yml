@@ -1,0 +1,75 @@
+name: VIS-MEM-012 Counterfactual Decision Audit
+
+on:
+  push:
+    branches: ["research/vis-mem-decision-audit-v0-1"]
+    paths:
+      - "tools/vision-memory-decision-audit.rs"
+      - ".github/workflows/vision-memory-decision-audit.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches: ["main"]
+    paths:
+      - "tools/vision-memory-decision-audit.rs"
+      - ".github/workflows/vision-memory-decision-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vis-mem-012-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify-decision-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+
+      - name: Verify exact source head
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          rustc --version | grep -F "1.96.0"
+
+      - name: Compile and test decision audit
+        run: |
+          set -euo pipefail
+          rustc --edition=2024 --test tools/vision-memory-decision-audit.rs -o /tmp/vis-mem-decision-tests
+          /tmp/vis-mem-decision-tests
+
+      - name: Build and validate exact deterministic report
+        run: |
+          set -euo pipefail
+          rustc --edition=2024 -O tools/vision-memory-decision-audit.rs -o /tmp/vis-mem-decision-audit
+          /tmp/vis-mem-decision-audit > vis-mem-decision-audit.tsv
+          /tmp/vis-mem-decision-audit > vis-mem-decision-audit-repeat.tsv
+          cmp vis-mem-decision-audit.tsv vis-mem-decision-audit-repeat.tsv
+          grep -Fq $'META\tformat\tVIS-MEM-012-v0.1' vis-mem-decision-audit.tsv
+          grep -Fq $'PAIR\tclean_relevant\tauthority_weighted' vis-mem-decision-audit.tsv
+          grep -Fq $'PAIR\tirreducible_conflict\tauthority_weighted' vis-mem-decision-audit.tsv
+          grep -Fq $'SUMMARY\tcautious_authority' vis-mem-decision-audit.tsv
+          awk -F '\t' '$1 == "PAIR_HEADER" { if (NF != 16) exit 1; ph++ } $1 == "PAIR" { if (NF != 16) exit 1; p++ } $1 == "SUMMARY_HEADER" { if (NF != 15) exit 1; sh++ } $1 == "SUMMARY" { if (NF != 15) exit 1; s++ } END { if (ph != 1 || p != 48 || sh != 1 || s != 8) exit 1 }' vis-mem-decision-audit.tsv
+          sha256sum vis-mem-decision-audit.tsv > vis-mem-decision-audit.sha256
+          sha256sum -c vis-mem-decision-audit.sha256
+
+      - name: Upload exact-head decision audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: vis-mem-012-decision-audit
+          path: |
+            vis-mem-decision-audit.tsv
+            vis-mem-decision-audit.sha256
+          if-no-files-found: error
