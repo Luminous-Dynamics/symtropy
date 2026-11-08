@@ -101,7 +101,7 @@
         "sign_reversal_outcome_reactive": {
           "diagnosis": null,
           "active_after_nonpositive_effect_ticks": 5,
-          "false_causal_attribution": true
+          "proxy_driven_action_under_nonpositive_effect": true
         },
         "sign_reversal_mechanism_aware": {
           "diagnosis": "causal_sign_reversal",
@@ -130,6 +130,17 @@
           "diagnosis_tick": 6,
           "matched_probe_estimate": 2,
           "missed_beneficial_action_ticks": 0
+        },
+        "confounder_shift_outcome_reactive": {
+          "signal_detection_tick": 5,
+          "mechanism_identified": false,
+          "missed_beneficial_action_ticks": 3,
+          "active_ticks": 5
+        },
+        "stable_positive_cusum_signal_only": {
+          "signal_change_detected": false,
+          "missed_beneficial_action_ticks": 0,
+          "active_ticks": 8
         }
       },
       "claim_ceiling": [
