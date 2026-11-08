@@ -306,16 +306,17 @@ mod tests {
         let alternate_source =
             DMatrix::from_column_slice(2, 1, &[z(1.0, 0.0), z(0.25, 0.0)]);
 
-        let baseline = evaluate(s, &source, &observation, &direct);
-        let changed = evaluate(s, &alternate_source, &observation, &direct);
+        // Pass the identical operator pencil to both evaluations. Only B changes.
+        let pencil = two_mode_pencil(s);
+        let baseline =
+            transfer_response(&pencil, &source, &observation, &direct).unwrap();
+        let changed =
+            transfer_response(&pencil, &alternate_source, &observation, &direct).unwrap();
         let expected_changed = z(1.0, 0.0) / (s + z(1.0, 0.0))
             + z(0.25, 0.0) / (s + z(2.0, 0.0));
 
         assert!((changed.response[(0, 0)] - expected_changed).norm() < 1.0e-12);
         assert!((changed.response[(0, 0)] - baseline.response[(0, 0)]).norm() > 1.0e-3);
-        // The same L(s) is supplied to both evaluations: this intervention
-        // changes the excitation map, not the operator pole set.
-        assert_eq!(two_mode_pencil(s), two_mode_pencil(s));
     }
 
     #[test]
