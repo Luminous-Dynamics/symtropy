@@ -402,10 +402,13 @@ mod tests {
             assert!(negative.trace_valid);
 
             let gradual = run_anytime_causal_episode(CausalRegime::GradualSignReversal, seed);
-            assert_eq!(
+            assert!(matches!(
                 gradual.diagnosis,
-                Some(SequentialDiagnosis::NegativeCausalEffect)
-            );
+                Some(
+                    SequentialDiagnosis::NegativeCausalEffect
+                        | SequentialDiagnosis::EffectNotAboveActionThreshold
+                )
+            ));
             assert!(gradual.policy_stopped);
 
             let null = run_anytime_causal_episode(CausalRegime::ConfoundedNull, seed);
@@ -418,6 +421,20 @@ mod tests {
             ));
             assert!(null.policy_stopped);
         }
+    }
+
+    #[test]
+    fn gradual_reversal_is_always_flagged_nonbeneficial_without_forcing_a_negative_claim() {
+        let mut negative = 0;
+        let mut below_threshold = 0;
+        for seed in 0..NOISY_SEEDS {
+            match run_anytime_causal_episode(CausalRegime::GradualSignReversal, seed).diagnosis {
+                Some(SequentialDiagnosis::NegativeCausalEffect) => negative += 1,
+                Some(SequentialDiagnosis::EffectNotAboveActionThreshold) => below_threshold += 1,
+                other => panic!("gradual reversal must stop as nonbeneficial, got {other:?}"),
+            }
+        }
+        assert_eq!(negative + below_threshold, NOISY_SEEDS);
     }
 
     #[test]
