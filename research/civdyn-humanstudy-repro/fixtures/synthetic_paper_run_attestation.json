@@ -1,0 +1,19 @@
+{
+  "protocol_id": "HSB-PAPER-12-CF05D330",
+  "source_repository": "AISmithLab/HumanStudy-Bench",
+  "source_commit": "cf05d330fc315168c8c8e23b4acd882f91bb7408",
+  "study_id": "study_001",
+  "study_config_blob_sha": "63fe04388eccca7088ba8e76834014511797e2bd",
+  "evaluator_blob_sha": "612428dac96758f7d3e68fe8882133af13be5242",
+  "baseline_runner_blob_sha": "4572ad360135d591e6a9d3d1f2c91a4bba3d099c",
+  "generation_runner_blob_sha": "5604a469aea0e1b5f5b9ebd94f55587f1d50cf18",
+  "generation_pipeline_blob_sha": "76ef97ae5939c493f6de66925ae76756b3a5b9d3",
+  "evaluator_runner_blob_sha": "0b67c4c31d491932655258e84a2ca1609ad74b46",
+  "stats_lib_blob_sha": "24bc535b0d21cef24dd5b7139209478134c57d64",
+  "analysis_protocol_preserved": true,
+  "run_id": "synthetic-paper-run-001",
+  "model_id": "synthetic-model-not-a-real-run",
+  "prompt_preset": "v3_human_plus_demo",
+  "prompt_template_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "independent_unit": "participant"
+}
