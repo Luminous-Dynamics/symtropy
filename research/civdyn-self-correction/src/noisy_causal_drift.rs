@@ -157,19 +157,11 @@ fn summarize_matched_differences(differences: &[f64]) -> MatchedProbeEstimate {
     }
 }
 
-fn matched_probe(
-    regime: CausalRegime,
-    tick: usize,
-    seed_index: usize,
-) -> MatchedProbeEstimate {
-    let differences: Vec<f64> = paired_difference_stream(
-        regime,
-        tick,
-        seed_index,
-        MATCHED_PAIRS_PER_LOOK,
-    )
-    .expect("the frozen matched-pair sample size is greater than one")
-    .collect();
+fn matched_probe(regime: CausalRegime, tick: usize, seed_index: usize) -> MatchedProbeEstimate {
+    let differences: Vec<f64> =
+        paired_difference_stream(regime, tick, seed_index, MATCHED_PAIRS_PER_LOOK)
+            .expect("the frozen matched-pair sample size is greater than one")
+            .collect();
     summarize_matched_differences(&differences)
 }
 
