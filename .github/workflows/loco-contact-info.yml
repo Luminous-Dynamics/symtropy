@@ -1,0 +1,31 @@
+name: LOCO Contact Information Verification
+
+on:
+  pull_request:
+    paths:
+      - "research/loco-contact-info-v0/**"
+      - ".github/workflows/loco-contact-info.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "research/loco-contact-info-v0/**"
+      - ".github/workflows/loco-contact-info.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/loco-contact-info-v0/Cargo.toml -- --check
+      - name: Run Gaussian posterior and action-information fixtures
+        run: cargo test --manifest-path research/loco-contact-info-v0/Cargo.toml --locked
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path research/loco-contact-info-v0/Cargo.toml --locked --all-targets -- -D warnings
