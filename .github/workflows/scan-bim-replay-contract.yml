@@ -61,12 +61,12 @@ jobs:
             (.metadata_audit.scene_count == 2) and
             (.metadata_audit.pipeline_id == "synthetic-scan-bim-candidate-v0.2") and
             (.metadata_audit.source_commit_sha == "1111111111111111111111111111111111111111") and
-            (.metadata_audit.candidate_artifact_count == 11) and
+            (.metadata_audit.candidate_artifact_count == 13) and
             (.metadata_audit.evaluator_artifact_count == 2) and
-            (.artifact_verification.candidate_verified == 11) and
+            (.artifact_verification.candidate_verified == 13) and
             (.artifact_verification.candidate_runtime_verified == 3) and
             (.artifact_verification.candidate_input_verified == 4) and
-            (.artifact_verification.candidate_output_verified == 4) and
+            (.artifact_verification.candidate_output_verified == 6) and
             (.artifact_verification.evaluator_verified == 2) and
             (.metadata_audit.metric_suite_id == "luminous_synthetic_contract_metrics") and
             (.metadata_audit.metric_definition_authority == "project_defined") and
