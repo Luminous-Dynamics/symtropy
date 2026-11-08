@@ -683,10 +683,7 @@ mod tests {
     fn inverse_overflow_fails_closed_for_extreme_but_positive_variance() {
         let tiny_positive = f64::from_bits(1);
         let covariance = matrix(1, 1, &[tiny_positive]);
-        assert_eq!(
-            covariance.inverse_spd(),
-            Err(GaussianError::NonFiniteValue)
-        );
+        assert_eq!(covariance.inverse_spd(), Err(GaussianError::NonFiniteValue));
     }
 
     #[test]
@@ -695,6 +692,9 @@ mod tests {
         let inverse = covariance.inverse_spd().unwrap();
         assert!((inverse.get(0, 0) - 0.25).abs() < 1.0e-12);
         assert!((inverse.get(1, 1) - (1.0 / 9.0)).abs() < 1.0e-12);
-        assert!((covariance.log_determinant_spd().unwrap() - 4.0_f64.ln() - 9.0_f64.ln()).abs() < 1.0e-12);
+        assert!(
+            (covariance.log_determinant_spd().unwrap() - 4.0_f64.ln() - 9.0_f64.ln()).abs()
+                < 1.0e-12
+        );
     }
 }
