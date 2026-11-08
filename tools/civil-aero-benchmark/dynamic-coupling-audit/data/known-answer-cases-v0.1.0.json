@@ -1,0 +1,119 @@
+{
+  "schema_version": "aero-dynamic-coupling-audit-fixture/0.1.0",
+  "claim_ceiling": "reduced_order_coupling_and_transaction_contract_only",
+  "added_mass_cases": {
+    "low_ratio": {
+      "structural_mass_kg": 2.0,
+      "fluid_added_mass_kg": 1.0,
+      "applied_force_n": 12.0,
+      "initial_acceleration_m_per_s2": 0.0,
+      "relaxation": 1.0,
+      "absolute_residual_tolerance_n": 1e-10,
+      "relative_residual_tolerance": 0.0,
+      "max_iterations": 100,
+      "expected_status": "CONVERGED",
+      "expected_acceleration_m_per_s2": 4.0,
+      "expected_amplification_factor": -0.5
+    },
+    "high_ratio_unrelaxed": {
+      "structural_mass_kg": 1.0,
+      "fluid_added_mass_kg": 4.0,
+      "applied_force_n": 10.0,
+      "initial_acceleration_m_per_s2": 0.0,
+      "relaxation": 1.0,
+      "absolute_residual_tolerance_n": 1e-10,
+      "relative_residual_tolerance": 0.0,
+      "max_iterations": 20,
+      "expected_status": "NON_CONVERGED",
+      "expected_acceleration_m_per_s2": null,
+      "expected_amplification_factor": -4.0
+    },
+    "high_ratio_relaxed": {
+      "structural_mass_kg": 1.0,
+      "fluid_added_mass_kg": 4.0,
+      "applied_force_n": 10.0,
+      "initial_acceleration_m_per_s2": 0.0,
+      "relaxation": 0.2,
+      "absolute_residual_tolerance_n": 1e-10,
+      "relative_residual_tolerance": 0.0,
+      "max_iterations": 20,
+      "expected_status": "CONVERGED",
+      "expected_acceleration_m_per_s2": 2.0,
+      "expected_amplification_factor": 0.0
+    }
+  },
+  "good_window": {
+    "window_id": "aero-window-0001",
+    "start_tick": 0,
+    "end_tick": 100,
+    "timebase_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+    "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "geometry_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "loading_state_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "mission_phase_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "environment_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "fluid_model_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "structure_model_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "interface_map_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+    "temporal_operator_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+    "input_state_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+    "proposed_output_state_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+    "fluid_grid": {"start_tick": 0, "end_tick": 100, "step_ticks": 25},
+    "structure_grid": {"start_tick": 0, "end_tick": 100, "step_ticks": 100},
+    "temporal_interpolation": "linear",
+    "extrapolation_allowed": false,
+    "coupling_converged": true,
+    "coupling_iterations": 4,
+    "max_coupling_iterations": 10,
+    "coupling_residual": 1e-8,
+    "coupling_tolerance": 1e-6,
+    "fluid_inner_residual": 1e-10,
+    "structure_inner_residual": 2e-10,
+    "inner_tolerance": 1e-8,
+    "minimum_inner_tightening_factor": 100.0,
+    "energy": {
+      "initial_fluid_energy_j": 120.0,
+      "initial_structure_energy_j": 80.0,
+      "final_fluid_energy_j": 130.0,
+      "final_structure_energy_j": 75.0,
+      "external_work_j": 8.0,
+      "declared_dissipation_j": 3.0
+    },
+    "exchange": {
+      "exchange_id": "7777777777777777777777777777777777777777777777777777777777777777",
+      "window_id": "aero-window-0001",
+      "timebase_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "input_state_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+      "interface_map_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "start_tick": 0,
+      "end_tick": 100,
+      "fluid_impulse_ns": [0.0, -10.0, 0.0],
+      "structure_impulse_ns": [0.0, 10.0, 0.0],
+      "fluid_interface_work_j": 5.0,
+      "structure_interface_work_j": -5.0
+    },
+    "tolerance": {
+      "impulse_abs_ns": 1e-12,
+      "work_abs_j": 1e-12,
+      "energy_abs_j": 1e-12,
+      "relative": 1e-12
+    },
+    "expected": {
+      "status": "COMMITTED",
+      "commit_allowed": true,
+      "fluid_substeps": 4,
+      "structure_substeps": 1,
+      "impulse_residual_ns": 0.0,
+      "interface_work_residual_j": 0.0,
+      "energy_residual_j": 0.0,
+      "committed_state_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
+    }
+  },
+  "claim_constraints": {
+    "fluid_interface_work_plus_structure_interface_work": "zero_within_declared_tolerance",
+    "whole_system_energy_change": "external_work_minus_declared_dissipation",
+    "non_converged_window": "must_not_commit",
+    "unknown_work_or_missing_substeps": "not_zero_and_not_pass",
+    "aircraft_feasibility": "NOT_ASSESSED"
+  }
+}
