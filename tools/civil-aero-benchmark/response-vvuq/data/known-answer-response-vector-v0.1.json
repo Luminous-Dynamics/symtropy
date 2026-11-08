@@ -1,0 +1,166 @@
+{
+  "schema_version": "aero-response-vvuq/0.1.0",
+  "response_family_id": "crm-static-fsi-synthetic-response",
+  "identity": {
+    "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "geometry_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "mesh_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "loading_state_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "environment_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "solver_build_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "claim_scope_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+    "mission_phase_id": "cruise-2aE-synthetic"
+  },
+  "held_out_validation_dataset_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+  "channels": [
+    {
+      "id": "twist:eta_0.5546",
+      "quantity": "sectional_twist",
+      "units": "deg",
+      "coordinate_frame": "wing_section",
+      "sample_id": "eta=0.5546",
+      "normalization_scale": 1,
+      "reference_value": 0.5,
+      "simulation_value": 0.7
+    },
+    {
+      "id": "moment:pitch",
+      "quantity": "integrated_pitch_moment",
+      "units": "N*m",
+      "coordinate_frame": "body",
+      "sample_id": "integrated",
+      "normalization_scale": 10,
+      "reference_value": 100,
+      "simulation_value": 115
+    },
+    {
+      "id": "force:lift",
+      "quantity": "integrated_lift_force",
+      "units": "N",
+      "coordinate_frame": "body",
+      "sample_id": "integrated",
+      "normalization_scale": 100,
+      "reference_value": 1000,
+      "simulation_value": 1010
+    }
+  ],
+  "uncertainty": {
+    "independent_components": true,
+    "experimental": {
+      "channel_ids": [
+        "force:lift",
+        "moment:pitch",
+        "twist:eta_0.5546"
+      ],
+      "matrix": [
+        [
+          0.04,
+          0.01,
+          0
+        ],
+        [
+          0.01,
+          0.09,
+          0.015
+        ],
+        [
+          0,
+          0.015,
+          0.04
+        ]
+      ],
+      "source_id": "experimental-measurement",
+      "artifact_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "estimator_build_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "calibration_dataset_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+      "calibration_envelope_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+      "state_identity_sha256": "a79507446e3089934c2d5562e258abd2215e3727962b5f55b0ef9f710980c9f4",
+      "normalization_basis_sha256": "d9cab3f64136e35529af48e62b0caafb823eb6f791f972afd152cd59e7fe5676",
+      "max_diagonal_variance": [
+        0.05,
+        0.1,
+        0.05
+      ]
+    },
+    "numerical": {
+      "channel_ids": [
+        "force:lift",
+        "moment:pitch",
+        "twist:eta_0.5546"
+      ],
+      "matrix": [
+        [
+          0.01,
+          0,
+          0
+        ],
+        [
+          0,
+          0.0225,
+          0.005
+        ],
+        [
+          0,
+          0.005,
+          0.01
+        ]
+      ],
+      "source_id": "numerical-discretization",
+      "artifact_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+      "estimator_build_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+      "calibration_dataset_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+      "calibration_envelope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "state_identity_sha256": "a79507446e3089934c2d5562e258abd2215e3727962b5f55b0ef9f710980c9f4",
+      "normalization_basis_sha256": "d9cab3f64136e35529af48e62b0caafb823eb6f791f972afd152cd59e7fe5676",
+      "max_diagonal_variance": [
+        0.02,
+        0.03,
+        0.02
+      ]
+    },
+    "input": {
+      "channel_ids": [
+        "force:lift",
+        "moment:pitch",
+        "twist:eta_0.5546"
+      ],
+      "matrix": [
+        [
+          0.01,
+          0.002,
+          0.001
+        ],
+        [
+          0.002,
+          0.01,
+          0.002
+        ],
+        [
+          0.001,
+          0.002,
+          0.01
+        ]
+      ],
+      "source_id": "input-parameter-propagation",
+      "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "estimator_build_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "calibration_dataset_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "calibration_envelope_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "state_identity_sha256": "a79507446e3089934c2d5562e258abd2215e3727962b5f55b0ef9f710980c9f4",
+      "normalization_basis_sha256": "d9cab3f64136e35529af48e62b0caafb823eb6f791f972afd152cd59e7fe5676",
+      "max_diagonal_variance": [
+        0.02,
+        0.02,
+        0.02
+      ]
+    },
+    "cross_source": null
+  },
+  "decision_limit": {
+    "max_d2": 20,
+    "max_abs_marginal_z": 5,
+    "protocol_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+    "claim_scope_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+  },
+  "model_discrepancy_evidence_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+}
