@@ -323,11 +323,76 @@ def run_hostile_controls(data: dict[str, Any]) -> int:
     return count
 
 
-def verify_rust_output(actual: dict[str, Any], expected: dict[str, Any]) -> None:
+def compare_complex_json(actual: dict[str, Any], expected: dict[str, Any],
+                          tolerance: dict[str, float], label: str) -> None:
+    a = complex(float(actual["re"]), float(actual["im"]))
+    e = complex(float(expected["re"]), float(expected["im"]))
+    error = abs(a - e)
+    bound = float(tolerance["absolute"]) + float(tolerance["relative"]) * abs(e)
+    require(error <= bound, f"{label}: complex error {error:e} > {bound:e}")
+    phase_error = angular_error(a, e)
+    require(
+        phase_error <= float(tolerance["phase_rad"]),
+        f"{label}: phase error {phase_error:e} rad > {tolerance['phase_rad']:e}",
+    )
+
+
+def close_scalar(actual: float, expected: float, tolerance: dict[str, float], label: str) -> None:
+    error = abs(float(actual) - float(expected))
+    bound = float(tolerance["absolute"]) + float(tolerance["relative"]) * abs(float(expected))
+    require(error <= bound, f"{label}: scalar error {error:e} > {bound:e}")
+
+
+def verify_rust_output(actual: dict[str, Any], expected: dict[str, Any],
+                       tolerance: dict[str, float]) -> None:
     for key in ("schema_version", "corpus_id", "corpus_sha256", "case_count",
-                "frequency_count_per_case", "computed_cases", "physical_pod",
-                "aircraft_validation", "structural_clearance", "claim_ceiling"):
+                "frequency_count_per_case", "physical_pod", "aircraft_validation",
+                "structural_clearance", "claim_ceiling"):
         require(actual.get(key) == expected.get(key), f"Rust/Python result mismatch: {key}")
+
+    actual_cases = actual.get("computed_cases")
+    expected_cases = expected.get("computed_cases")
+    require(isinstance(actual_cases, list) and isinstance(expected_cases, list),
+            "Rust/Python computed_cases must be arrays")
+    require(len(actual_cases) == len(expected_cases), "Rust/Python scenario count mismatch")
+
+    for case_index, (a_case, e_case) in enumerate(zip(actual_cases, expected_cases)):
+        label = f"scenario[{case_index}]"
+        for key in ("case_id", "state", "scenario_sha256", "expected_disposition", "observation_rank"):
+            require(a_case.get(key) == e_case.get(key), f"{label}: Rust/Python metadata mismatch: {key}")
+        a_freqs = a_case.get("frequencies")
+        e_freqs = e_case.get("frequencies")
+        require(isinstance(a_freqs, list) and isinstance(e_freqs, list),
+                f"{label}: frequency results must be arrays")
+        require(len(a_freqs) == len(e_freqs), f"{label}: frequency count mismatch")
+
+        for frequency_index, (a_freq, e_freq) in enumerate(zip(a_freqs, e_freqs)):
+            f_label = f"{label}.frequency[{frequency_index}]"
+            close_scalar(a_freq["frequency_hz"], e_freq["frequency_hz"], tolerance,
+                         f"{f_label}.frequency_hz")
+            close_scalar(a_freq["omega_rad_s"], e_freq["omega_rad_s"], tolerance,
+                         f"{f_label}.omega_rad_s")
+            for key in ("nominal_response_m_per_n", "physical_response_m_per_n",
+                        "nominal_vs_physical_complex_residual_m_per_n"):
+                a_values = a_freq[key]
+                e_values = e_freq[key]
+                require(len(a_values) == len(e_values), f"{f_label}: {key} length mismatch")
+                for dof, (a_value, e_value) in enumerate(zip(a_values, e_values)):
+                    compare_complex_json(a_value, e_value, tolerance,
+                                         f"{f_label}.{key}.dof[{dof}]")
+
+            a_channels = a_freq["observed_channels"]
+            e_channels = e_freq["observed_channels"]
+            require(len(a_channels) == len(e_channels), f"{f_label}: observed channel count mismatch")
+            for channel_index, (a_channel, e_channel) in enumerate(zip(a_channels, e_channels)):
+                c_label = f"{f_label}.channel[{channel_index}]"
+                require(a_channel["sensor_id"] == e_channel["sensor_id"],
+                        f"{c_label}: sensor ID mismatch")
+                require((a_channel["value"] is None) == (e_channel["value"] is None),
+                        f"{c_label}: missing-channel representation mismatch")
+                if e_channel["value"] is not None:
+                    compare_complex_json(a_channel["value"], e_channel["value"], tolerance,
+                                         f"{c_label}.value")
 
 
 def main() -> int:
@@ -344,7 +409,7 @@ def main() -> int:
         if args.rust_output is not None:
             rust_bytes = args.rust_output.read_bytes()
             actual = json.loads(rust_bytes.decode("utf-8"))
-            verify_rust_output(actual, expected)
+            verify_rust_output(actual, expected, data['tolerance'])
             rust_boundary = "pass"
             rust_output_sha256 = hashlib.sha256(rust_bytes).hexdigest()
 
