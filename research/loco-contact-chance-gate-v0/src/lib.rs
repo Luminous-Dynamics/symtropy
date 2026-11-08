@@ -128,7 +128,12 @@ pub struct GaussianCalibrationReceipt {
     /// Upstream evidence claim that Gaussian marginal tails were checked for
     /// the declared operating stratum. This crate does not authenticate it.
     pub gaussian_tail_validation_passed: bool,
-    pub independent_validation_unit_count: u64,
+    /// Independent session/episode counts per constraint. These must refer to
+    /// the held-out operating stratum, not repeated ticks from one rollout.
+    pub independent_validation_units_by_constraint: [u64; CONSTRAINT_COUNT],
+    /// Number of observed violations beyond each declared one-sided Gaussian
+    /// quantile in those independent validation units. V0 only admits zero.
+    pub upper_tail_exceedances_by_constraint: [u64; CONSTRAINT_COUNT],
     pub valid_from_ns: u64,
     pub valid_until_ns: u64,
     pub verified: bool,
@@ -196,6 +201,8 @@ pub enum AbstentionReason {
     UnsupportedDistributionFamily,
     GaussianTailCalibrationNotEstablished,
     NoIndependentValidationUnits,
+    InsufficientIndependentValidationUnits,
+    ObservedCalibrationTailExceedance,
     PredictionSetIncomplete,
     DuplicateConstraintPrediction,
     PredictionIdentityMismatch,
@@ -375,6 +382,7 @@ fn calibration_abstention_reason(
     candidate: &ActionCandidate,
     predictions: &[&ConstraintPrediction; CONSTRAINT_COUNT],
     expected_domain_digest: &str,
+    allocation: &[u64; CONSTRAINT_COUNT],
     now_ns: u64,
 ) -> Result<String, AbstentionReason> {
     let receipt = candidate
@@ -409,8 +417,22 @@ fn calibration_abstention_reason(
     if !receipt.gaussian_tail_validation_passed {
         return Err(AbstentionReason::GaussianTailCalibrationNotEstablished);
     }
-    if receipt.independent_validation_unit_count == 0 {
-        return Err(AbstentionReason::NoIndependentValidationUnits);
+    for index in 0..CONSTRAINT_COUNT {
+        let units = receipt.independent_validation_units_by_constraint[index];
+        let exceedances = receipt.upper_tail_exceedances_by_constraint[index];
+        if units == 0 {
+            return Err(AbstentionReason::NoIndependentValidationUnits);
+        }
+        if exceedances > 0 {
+            return Err(AbstentionReason::ObservedCalibrationTailExceedance);
+        }
+        // Exact one-sided 95% Clopper-Pearson upper bound for zero observed
+        // Bernoulli tail events: 1 - 0.05^(1/n). exp_m1 avoids cancellation.
+        let upper = -((0.05_f64.ln()) / units as f64).exp_m1();
+        let allowed = allocation[index] as f64 / RISK_SCALE_PPB as f64;
+        if !upper.is_finite() || upper > allowed {
+            return Err(AbstentionReason::InsufficientIndependentValidationUnits);
+        }
     }
     if receipt.operating_domain_digest != expected_domain_digest {
         return Err(AbstentionReason::OperatingDomainMismatch);
@@ -522,6 +544,7 @@ fn assess_candidate(
         candidate,
         &ordered,
         expected_domain_digest,
+        allocation,
         now_ns,
     ) {
         Ok(receipt_id) => receipt_id,
@@ -682,7 +705,8 @@ mod tests {
             calibration_digest: "calibration-v1".to_owned(),
             distribution_family: DistributionFamily::GaussianMarginal,
             gaussian_tail_validation_passed: true,
-            independent_validation_unit_count: 500,
+            independent_validation_units_by_constraint: [500; CONSTRAINT_COUNT],
+            upper_tail_exceedances_by_constraint: [0; CONSTRAINT_COUNT],
             valid_from_ns: 500,
             valid_until_ns: 10_000,
             verified: true,
@@ -695,7 +719,7 @@ mod tests {
             expected_information_gain_nats: eig,
             predictions: vec![
                 prediction(action_id, ConstraintKind::Energy, 5.0, 1.0),
-                prediction(action_id, ConstraintKind::SupportMargin, 1.0, 0.25),
+                prediction(action_id, ConstraintKind::SupportMargin, 2.0, 0.25),
                 prediction(action_id, ConstraintKind::PeakNormalForce, 50.0, 25.0),
                 prediction(action_id, ConstraintKind::ImpactImpulse, 2.0, 0.25),
                 prediction(action_id, ConstraintKind::ActuatorLoadFraction, 0.5, 0.01),
