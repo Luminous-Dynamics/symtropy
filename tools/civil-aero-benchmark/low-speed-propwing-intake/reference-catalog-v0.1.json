@@ -1,0 +1,306 @@
+{
+  "schema_version": "aero-low-speed-propwing-reference-catalog/0.1.0",
+  "catalog_id": "AER-01-LOW-SPEED-PROPWING-2026-11",
+  "retrieved_on": "2026-11-08",
+  "claim_ceiling": "public_source_discovery_and_partial_paper_inspection_only",
+  "source_admission_policy": {
+    "exact_bytes_and_sha256_required_before_admission": true,
+    "terms_and_redistribution_review_required": true,
+    "component_data_not_installed_interaction_validation": true,
+    "measurement_uncertainty_is_channel_specific": true,
+    "unknown_is_not_zero_or_pass": true,
+    "no_extrapolation_outside_source_domain": true
+  },
+  "sources": [
+    {
+      "source_id": "uiuc-propeller-database-root",
+      "publisher": "University of Illinois Urbana-Champaign, Applied Aerodynamics Group",
+      "canonical_url": "https://m-selig.web.engr.illinois.edu/props/propDB.html",
+      "source_kind": "public_database_index",
+      "artifact_role": "isolated_propeller_component_reference_index",
+      "acquisition_state": "page_inspected",
+      "exact_bytes_acquired": false,
+      "sha256": null,
+      "observed_facts": [
+        "The database describes wind-tunnel measurements for small-UAV and model-aircraft propellers",
+        "The landing page identifies four volumes",
+        "The landing page states that its static-performance Reynolds number uses the 75-percent blade station chord and rotational speed",
+        "The landing page cites separate UIUC and Ohio State load-cell measurement approaches"
+      ],
+      "terms_status": "not_reviewed",
+      "redistribution_status": "not_decided",
+      "unknowns": [
+        "Exact data-file bytes and per-file SHA-256",
+        "Current reuse and redistribution terms for each volume and geometry file",
+        "Test-by-test measurement uncertainty and calibration metadata",
+        "Coverage applicability to Wren 2 or Wayfarer 4 installed configurations"
+      ]
+    },
+    {
+      "source_id": "uiuc-propeller-volume-1",
+      "publisher": "University of Illinois Urbana-Champaign, Applied Aerodynamics Group",
+      "canonical_url": "https://m-selig.web.engr.illinois.edu/props/volume-1/propDB-volume-1.html",
+      "source_kind": "wind_tunnel_component_database",
+      "artifact_role": "isolated_propeller_thrust_torque_power_and_geometry",
+      "acquisition_state": "page_and_tables_index_inspected",
+      "exact_bytes_acquired": false,
+      "sha256": null,
+      "source_version": "Version 3; page dated 2015-02-03",
+      "observed_facts": [
+        "The page lists nearly 140 propellers used in small UAV/model-aircraft applications",
+        "Measurements include thrust and torque coefficients over advance ratio at specified RPMs",
+        "Static performance is provided over RPM sweeps",
+        "Approximate digitized propeller geometry is linked for some propellers",
+        "The page notes that current online records include an updated wind-tunnel fixture-drag correction and should be preferred over older thesis figures/tables",
+        "The four-digit run labels in the data index identify RPM values"
+      ],
+      "terms_status": "review_required",
+      "redistribution_status": "not_decided",
+      "unknowns": [
+        "Exact selected geometry and data files",
+        "File schema, delimiters, units and precision for each chosen run",
+        "Per-channel uncertainty, tare/correction lineage and calibration record",
+        "Applicability to an installed propeller/wing interaction"
+      ],
+      "claim_ceiling": "isolated_propeller_component_map_only"
+    },
+    {
+      "source_id": "uiuc-propeller-volume-2",
+      "publisher": "University of Illinois Urbana-Champaign, Applied Aerodynamics Group",
+      "canonical_url": "https://m-selig.web.engr.illinois.edu/props/volume-2/propDB-volume-2.html",
+      "source_kind": "wind_tunnel_component_database",
+      "artifact_role": "isolated_propeller_thrust_torque_power_and_geometry",
+      "acquisition_state": "page_and_tables_index_inspected",
+      "exact_bytes_acquired": false,
+      "sha256": null,
+      "source_version": "Version 1; page dated 2015-05-27",
+      "observed_facts": [
+        "The page lists nearly 70 small-scale propellers",
+        "Thirty-five were purchased off-the-shelf and balanced; remaining entries include variants of four 3-D-printed propeller families",
+        "Measurements include thrust and torque coefficients over advance ratio at specified RPMs and static RPM sweeps",
+        "The page states coefficients are based on true measured propeller diameter, which may differ from the nominal listed size",
+        "Power coefficient is derived from measured torque and rotational speed"
+      ],
+      "terms_status": "review_required",
+      "redistribution_status": "not_decided",
+      "unknowns": [
+        "Exact selected geometry and data-file bytes",
+        "Per-run calibration and uncertainty",
+        "Applicability to installed propeller/wing interference"
+      ],
+      "claim_ceiling": "isolated_propeller_component_map_only"
+    },
+    {
+      "source_id": "mav-propeller-induced-wing-flow-2014",
+      "publisher": "International Journal of Micro Air Vehicles / SAGE",
+      "canonical_url": "https://doi.org/10.1260/1756-8293.6.1.63",
+      "source_kind": "peer_reviewed_article",
+      "artifact_role": "low_reynolds_installed_propeller_wing_experiment",
+      "acquisition_state": "abstract_and_metadata_inspected",
+      "exact_bytes_acquired": false,
+      "sha256": null,
+      "publication_date": "2014-03-01",
+      "observed_facts": [
+        "Publisher abstract reports a low-speed wind-tunnel MAV experiment",
+        "Freestream velocity was 9 m/s",
+        "Reynolds number was 135000 based on root chord",
+        "Propeller speed was varied from 8000 to 10000 rpm",
+        "The study compared attached motor/propeller installation with a decoupled arrangement intended to separate propeller thrust from aircraft-model forces",
+        "Publisher abstract reports increased lift coefficient at higher angle of attack and increased drag coefficient under propeller-induced flow, with stronger effects at higher RPM"
+      ],
+      "terms_status": "review_required",
+      "redistribution_status": "not_decided",
+      "unknowns": [
+        "Full article file and exact byte digest",
+        "Exact wing and propeller geometry and installation dimensions",
+        "Full operating-point matrix and angle-of-attack values",
+        "Raw/processed lift, drag and propeller thrust data availability",
+        "Force-balance calibration, fixture correction, repeatability and uncertainty",
+        "Whether underlying datasets are publicly reusable"
+      ],
+      "claim_ceiling": "article_abstract_discovery_only"
+    },
+    {
+      "source_id": "nasa-x57-high-lift-propeller-test-2021",
+      "publisher": "NASA Langley Research Center; NASA Technical Reports Server",
+      "canonical_url": "https://ntrs.nasa.gov/citations/20210016834",
+      "full_text_url": "https://ntrs.nasa.gov/api/citations/20210016834/downloads/LSAWT_HLP_Test_Aviation2021_Final0628.pdf",
+      "source_kind": "technical_conference_paper",
+      "artifact_role": "full_scale_high_lift_propeller_component_stand_test",
+      "acquisition_state": "pdf_text_and_selected_page_images_inspected_exact_bytes_not_acquired",
+      "exact_bytes_acquired": false,
+      "sha256": null,
+      "publication_year": 2021,
+      "observed_facts": [
+        "Paper describes a full-scale X-57 high-lift propeller component test in NASA Langley Low Speed Aeroacoustic Wind Tunnel",
+        "X-57 high-lift configuration uses 12 fixed-pitch propellers upstream of the wing leading edge",
+        "Freestream test matrix includes 0, 35, 58, 75 and 90 KEAS",
+        "The test includes multiple RPM and power/torque operating points",
+        "The report describes 439 time-averaged data points over more than 15 hours of powered operation",
+        "The report says thrust-direction force measurements experienced cross-loading and thermal drift",
+        "The report states shaft torque measurements were substantially more reliable than thrust during these tests",
+        "The report describes high-speed imagery, propeller deployment/stowing and windmilling observations"
+      ],
+      "measurement_quality": {
+        "thrust_channel": "source_reports_cross_loading_and_thermal_drift; trend_information_only_under_declared_conditions; uncertainty_significant",
+        "torque_channel": "source_reports_reliable_for_the_reported_test_campaign",
+        "acoustic_channel": "reported; exact calibration_and_reuse_status_not_admitted",
+        "high_speed_imagery": "reported; exact frame/timebase metadata_not_admitted"
+      },
+      "terms_status": "review_required",
+      "redistribution_status": "not_decided",
+      "unknowns": [
+        "Exact PDF bytes and SHA-256",
+        "Raw test-data file availability and terms",
+        "Calibration and cross-axis correction matrices for the ATI load cell",
+        "Full per-run thrust uncertainty values and time-series records",
+        "Exact propeller geometry, handedness-specific material/production batch and installation fixture files",
+        "No integrated wing/propeller lift distribution is established by this component-stand paper alone"
+      ],
+      "claim_ceiling": "full_scale_propeller_component_stand_test_only"
+    },
+    {
+      "source_id": "nasa-x57-installation-geometry-2018",
+      "publisher": "NASA; technical paper listed in X-57 technical papers index",
+      "canonical_url": "https://www.nasa.gov/directorates/armd/x-57-technical-papers/",
+      "source_kind": "technical_paper_index_entry",
+      "artifact_role": "installed_high_lift_propeller_wing_geometry_sensitivity",
+      "acquisition_state": "index_abstract_inspected",
+      "exact_bytes_acquired": false,
+      "sha256": null,
+      "paper_title": "Exploring the Effects of Installation Geometry in High-Lift Propeller Systems",
+      "authors": [
+        "Xiaofan Fei",
+        "Michael D. Patterson",
+        "Brian J. German"
+      ],
+      "publication_date": "2018-01-08",
+      "observed_facts": [
+        "NASA index describes a wind-tunnel experiment varying high-lift propeller height, offset and inclination",
+        "NASA index reports propeller height as the most critical variable in the study",
+        "The index says height for maximum lift depends on angle of attack and flap deflection",
+        "The index describes a relationship between optimal propeller height and unblown wing lift coefficient"
+      ],
+      "terms_status": "review_required",
+      "redistribution_status": "not_decided",
+      "unknowns": [
+        "Canonical full-paper URL and exact bytes",
+        "Exact geometry, operating conditions and numerical test matrix",
+        "Measured force/moment/pressure data and uncertainty",
+        "Propeller geometry, sensor placement and test-facility corrections"
+      ],
+      "claim_ceiling": "paper_index_abstract_discovery_only"
+    }
+  ],
+  "benchmark_tracks": [
+    {
+      "track_id": "UIUC-COMPONENT-MAPS",
+      "role": "isolated_propeller_component_reference",
+      "source_ids": [
+        "uiuc-propeller-database-root",
+        "uiuc-propeller-volume-1",
+        "uiuc-propeller-volume-2"
+      ],
+      "required_observables": [
+        "thrust",
+        "torque",
+        "shaft_power",
+        "advance_ratio",
+        "rpm",
+        "true_diameter",
+        "density",
+        "temperature"
+      ],
+      "claim_ceiling": "component_map_only",
+      "must_not_claim": [
+        "installed_wing_lift_augmentation",
+        "distributed_propeller_interaction",
+        "aircraft_takeoff_performance"
+      ]
+    },
+    {
+      "track_id": "LOW-RE-MAV-INSTALLED-FLOW",
+      "role": "installed_propeller_wing_interaction",
+      "source_ids": [
+        "mav-propeller-induced-wing-flow-2014"
+      ],
+      "conditions": {
+        "freestream_velocity_m_per_s": 9,
+        "reynolds_root_chord": 135000,
+        "propeller_rpm": [
+          8000,
+          10000
+        ],
+        "arrangements": [
+          "attached_motor_propeller",
+          "decoupled_motor_propeller"
+        ]
+      },
+      "required_observables": [
+        "wing_lift",
+        "wing_drag",
+        "angle_of_attack",
+        "propeller_rpm",
+        "thrust_isolation_method"
+      ],
+      "claim_ceiling": "article_specific_low_re_installed_flow_method_only"
+    },
+    {
+      "track_id": "NASA-X57-HLP-COMPONENT-STAND",
+      "role": "full_scale_high_lift_propeller_component_test",
+      "source_ids": [
+        "nasa-x57-high-lift-propeller-test-2021"
+      ],
+      "conditions": {
+        "propeller_count_in_aircraft_architecture": 12,
+        "freestream_KEAS": [
+          0,
+          35,
+          58,
+          75,
+          90
+        ],
+        "full_scale_tunnel": true
+      },
+      "required_observables": [
+        "rpm",
+        "torque",
+        "power",
+        "thrust_with_channel_specific_uncertainty",
+        "acoustics",
+        "deployment_state"
+      ],
+      "claim_ceiling": "X57_component_propeller_stand_test_only"
+    },
+    {
+      "track_id": "NASA-X57-HLP-INSTALLATION-GEOMETRY",
+      "role": "installed_propeller_wing_geometry_sensitivity",
+      "source_ids": [
+        "nasa-x57-installation-geometry-2018"
+      ],
+      "variables_reported_by_index": [
+        "height",
+        "offset",
+        "inclination",
+        "angle_of_attack",
+        "flap_deflection"
+      ],
+      "required_observables": [
+        "wing_lift",
+        "angle_of_attack",
+        "flap_deflection",
+        "installation_geometry"
+      ],
+      "claim_ceiling": "paper_abstract_discovery_only"
+    }
+  ],
+  "global_claim_constraints": [
+    "UIUC maps are isolated component evidence, not installed wing interaction validation",
+    "X57 component stand data do not establish X57 installed wing force distribution",
+    "Thrust and torque uncertainty must remain channel-specific",
+    "Unacquired bytes and unreviewed terms cannot be admitted as reference truth",
+    "No CRM transonic or X57 reference result directly validates Wren 2 or Wayfarer 4",
+    "Candidate-specific performance requires source-bound geometry, mass/loading state, atmosphere, installed propulsion and relevant physical validation",
+    "X-57 component stand results are not direct validation of installed wing force distribution"
+  ]
+}
