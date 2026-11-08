@@ -159,7 +159,8 @@ def compare_complex(actual: complex, expected: complex, tolerance: dict[str, flo
             f"{label}: phase error {phase_error:e} rad > {tolerance['phase_rad']:e}")
 
 
-def compute_case(case: dict[str, Any], tolerance: dict[str, float]) -> dict[str, Any]:
+def compute_case(case: dict[str, Any], tolerance: dict[str, float],
+                 corpus_sha256: str) -> dict[str, Any]:
     validate_system(case["nominal_model"], f"{case['case_id']} nominal")
     validate_system(case["physical_model"], f"{case['case_id']} physical")
     frequencies = case["frequencies_hz"]
@@ -237,18 +238,18 @@ def compute_case(case: dict[str, Any], tolerance: dict[str, float]) -> dict[str,
             ],
         })
 
-    scenario_bytes = json.dumps(case, sort_keys=True, separators=(",", ":")).encode()
+    scenario_identity = f"{corpus_sha256}:{case['case_id']}".encode()
     return {
         "case_id": case["case_id"],
         "state": case["state"],
-        "scenario_sha256": hashlib.sha256(scenario_bytes).hexdigest(),
+        "scenario_sha256": hashlib.sha256(scenario_identity).hexdigest(),
         "expected_disposition": case["expected_disposition"],
         "observation_rank": rank,
         "frequencies": computed,
     }
 
 
-def validate_corpus(data: dict[str, Any]) -> dict[str, Any]:
+def validate_corpus(data: dict[str, Any], raw_bytes: bytes | None = None) -> dict[str, Any]:
     require(data.get("schema_version") == "aero-virtual-sensing-frf-corpus/0.1.0",
             "unsupported corpus schema")
     require(data.get("evidence_class") == "synthetic_analytical_known_answer",
@@ -264,11 +265,16 @@ def validate_corpus(data: dict[str, Any]) -> dict[str, Any]:
             "x = inverse(K - omega^2*M + i*omega*C) * F; e^(+i*omega*t) phasor",
             "phasor convention changed")
     require(len(data.get("cases", [])) == 9, "frozen scenario count changed")
-    computed_cases = [compute_case(case, data["tolerance"]) for case in data["cases"]]
+    if raw_bytes is None:
+        raw_bytes = json.dumps(data, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    corpus_sha256 = hashlib.sha256(raw_bytes).hexdigest()
+    computed_cases = [
+        compute_case(case, data["tolerance"], corpus_sha256) for case in data["cases"]
+    ]
     return {
         "schema_version": "aero-virtual-sensing-frf-result/0.1.0",
         "corpus_id": data["corpus_id"],
-        "corpus_sha256": hashlib.sha256(CORPUS.read_bytes()).hexdigest(),
+        "corpus_sha256": corpus_sha256,
         "case_count": len(computed_cases),
         "frequency_count_per_case": len(data["cases"][0]["frequencies_hz"]),
         "computed_cases": computed_cases,
@@ -402,7 +408,7 @@ def main() -> int:
     try:
         raw = CORPUS.read_bytes()
         data = json.loads(raw.decode("utf-8"))
-        expected = validate_corpus(data)
+        expected = validate_corpus(data, raw)
         hostile_count = run_hostile_controls(data)
         rust_boundary = "not_run"
         rust_output_sha256 = None
