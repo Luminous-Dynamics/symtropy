@@ -23,4 +23,4 @@ cargo test --manifest-path tools/za-energy-billing-bench/Cargo.toml
 cargo run --manifest-path tools/za-energy-billing-bench/Cargo.toml
 ~~~
 
-The CLI emits a machine-readable synthetic receipt. Its FNV-1a-64 value is a reproducible non-cryptographic input fingerprint, not an authenticity signature. The reference is not a production customer billing system and makes no real-facility saving claim.
+The CLI emits a machine-readable receipt from a synthetic, complete 31-day July 2026 trace containing 2,976 fifteen-minute intervals. Its FNV-1a-64 value is a reproducible non-cryptographic input fingerprint, not an authenticity signature. The reference is not a production customer billing system and makes no real-facility saving claim.
