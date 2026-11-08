@@ -352,7 +352,7 @@ mod tests {
 
     #[test]
     fn gaussian_e_process_is_a_supermartingale_on_each_composite_null_side() {
-        for true_mean in [0.0, 0.5, 1.0, 2.0] {
+        for true_mean in [0.0_f64, 0.5, 1.0, 2.0] {
             assert!(
                 expected_e_increment(NEGATIVE_EFFECT_BETTING_PARAMETER, true_mean.max(0.0), 0.0)
                     <= 1.0
