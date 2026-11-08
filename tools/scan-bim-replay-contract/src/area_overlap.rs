@@ -19,7 +19,6 @@ use crate::metrics::Point3;
 use std::collections::BTreeSet;
 
 const GEOMETRY_EPSILON: f64 = 1.0e-10;
-const PLANARITY_EPSILON_M: f64 = 1.0e-6;
 const MAX_SURFACES: usize = 100_000;
 const MAX_VERTICES_PER_SURFACE: usize = 20_000;
 const MAX_PAIRS: usize = 10_000_000;
@@ -112,7 +111,7 @@ impl ReferenceAreaSurface {
 #[derive(Debug, Clone, PartialEq)]
 pub struct AreaOverlapProfile {
     pub profile_id: String,
-    pub metric_authority: String,
+    pub metric_authority: AreaMetricAuthority,
     pub aggregation_policy: AreaAggregationPolicy,
     pub common_frame_id: String,
     /// Supplied from the benchmark implementation/profile; no default is inferred.
@@ -122,6 +121,7 @@ pub struct AreaOverlapProfile {
     /// Names and versions the external buffer constructor that produced each
     /// ReferenceAreaSurface.buffered_boundary_2d.
     pub buffer_policy_id: String,
+    pub planarity_tolerance_m: f64,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -141,7 +141,7 @@ pub struct ReferenceAreaLedger {
 #[derive(Debug, Clone, PartialEq)]
 pub struct AreaOverlapResult {
     pub profile_id: String,
-    pub metric_authority: String,
+    pub metric_authority: AreaMetricAuthority,
     pub aggregation_policy: AreaAggregationPolicy,
     pub max_parallel_angle_rad: f64,
     pub buffer_distance_m: f64,
@@ -333,7 +333,11 @@ fn polygon_area(polygon: &[Point2]) -> f64 {
     polygon_signed_area(polygon).abs()
 }
 
-fn plane_frame(vertices: &[Point3], label: &str) -> Result<(PlaneFrame, Vec<Point2>, f64), String> {
+fn plane_frame(
+    vertices: &[Point3],
+    label: &str,
+    planarity_tolerance_m: f64,
+) -> Result<(PlaneFrame, Vec<Point2>, f64), String> {
     if vertices.len() < 3 || vertices.len() > MAX_VERTICES_PER_SURFACE {
         return Err(format!(
             "{label} must have between 3 and {MAX_VERTICES_PER_SURFACE} vertices"
@@ -372,9 +376,9 @@ fn plane_frame(vertices: &[Point3], label: &str) -> Result<(PlaneFrame, Vec<Poin
 
     for (index, point) in points.iter().enumerate() {
         let distance = point.sub(origin).dot(normal).abs();
-        if !distance.is_finite() || distance > PLANARITY_EPSILON_M {
+        if !distance.is_finite() || distance > planarity_tolerance_m {
             return Err(format!(
-                "{label} is not planar within {PLANARITY_EPSILON_M} metres at vertex {index}"
+                "{label} is not planar within {planarity_tolerance_m} metres at vertex {index}"
             ));
         }
     }
@@ -662,7 +666,11 @@ fn prepare_source(
             source.surface_id
         ));
     }
-    let (frame, _, area_m2) = plane_frame(&source.vertices, "source surface")?;
+    let (frame, _, area_m2) = plane_frame(
+        &source.vertices,
+        "source surface",
+        profile.planarity_tolerance_m,
+    )?;
     Ok(PreparedSource {
         surface_id: source.surface_id.clone(),
         area_m2,
@@ -684,8 +692,11 @@ fn prepare_reference(
             reference.surface_id
         ));
     }
-    let (frame, original_2d, area_m2) =
-        plane_frame(&reference.vertices, "reference surface")?;
+    let (frame, original_2d, area_m2) = plane_frame(
+        &reference.vertices,
+        "reference surface",
+        profile.planarity_tolerance_m,
+    )?;
     let buffered_2d = validate_convex_polygon(
         &reference.buffered_boundary_2d,
         "buffered reference boundary",
@@ -766,6 +777,19 @@ pub fn evaluate_area_overlap(
         || profile.max_parallel_angle_rad > std::f64::consts::FRAC_PI_2
     {
         return Err("max_parallel_angle_rad must be finite and in [0, pi/2]".to_owned());
+    }
+    if !profile.planarity_tolerance_m.is_finite() || profile.planarity_tolerance_m <= 0.0 {
+        return Err("planarity_tolerance_m must be finite and positive metres".to_owned());
+    }
+    match (profile.metric_authority, profile.aggregation_policy) {
+        (AreaMetricAuthority::EvaluationFramework2018, AreaAggregationPolicy::PairwiseSum2018)
+        | (AreaMetricAuthority::FinalResultsPaper2021, AreaAggregationPolicy::UnionPerReference2021)
+        | (AreaMetricAuthority::ProjectDefined, _) => {}
+        _ => {
+            return Err(
+                "published area aggregation policy must match its named metric authority".to_owned(),
+            );
+        }
     }
     if !profile.buffer_distance_m.is_finite() || profile.buffer_distance_m < 0.0 {
         return Err("buffer_distance_m must be finite and non-negative metres".to_owned());
@@ -896,7 +920,7 @@ pub fn evaluate_area_overlap(
 
     Ok(AreaOverlapResult {
         profile_id: profile.profile_id.clone(),
-        metric_authority: profile.metric_authority.clone(),
+        metric_authority: profile.metric_authority,
         aggregation_policy: profile.aggregation_policy,
         max_parallel_angle_rad: profile.max_parallel_angle_rad,
         buffer_distance_m: profile.buffer_distance_m,
@@ -982,14 +1006,15 @@ mod tests {
         AreaOverlapProfile {
             profile_id: "analytic-v0.1".to_owned(),
             metric_authority: match policy {
-                AreaAggregationPolicy::PairwiseSum2018 => "evaluation_framework2018".to_owned(),
-                AreaAggregationPolicy::UnionPerReference2021 => "final_results_paper_2021".to_owned(),
+                AreaAggregationPolicy::PairwiseSum2018 => AreaMetricAuthority::EvaluationFramework2018,
+                AreaAggregationPolicy::UnionPerReference2021 => AreaMetricAuthority::FinalResultsPaper2021,
             },
             aggregation_policy: policy,
             common_frame_id: "LOCAL-A".to_owned(),
             max_parallel_angle_rad: 0.01,
             buffer_distance_m: 0.0,
             buffer_policy_id: "synthetic-precomputed-buffer-v1".to_owned(),
+            planarity_tolerance_m: 1.0e-6,
         }
     }
 
