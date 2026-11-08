@@ -564,7 +564,7 @@ mod tests {
 
     #[test]
     fn no_uniform_capture_is_not_confused_with_capture() {
-        let slip = MIXED.replace("CAPTURED", "SLIP").replace("NOT_CAPTURED", "SLIP");
+        let slip = MIXED.replace("NOT_CAPTURED", "SLIP").replace("CAPTURED", "SLIP");
         let result = evaluate(&parsed(&slip));
         assert_eq!(result.disposition, "NO_UNIFORM_CAPTURE");
         assert_eq!(result.capture_only_approach_count, 0);
