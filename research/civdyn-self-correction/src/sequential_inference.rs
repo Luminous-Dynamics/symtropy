@@ -427,12 +427,29 @@ mod tests {
             assert!(gradual.policy_stopped);
 
             let null = run_anytime_causal_episode(CausalRegime::ConfoundedNull, seed);
-            assert_eq!(
+            assert!(matches!(
                 null.diagnosis,
-                Some(SequentialDiagnosis::EffectNotAboveActionThreshold)
-            );
+                Some(
+                    SequentialDiagnosis::EffectNotAboveActionThreshold
+                        | SequentialDiagnosis::NegativeCausalEffect
+                )
+            ));
             assert!(null.policy_stopped);
         }
+    }
+
+    #[test]
+    fn false_negative_sign_diagnoses_under_the_null_respect_the_evalue_budget() {
+        let false_sign = (0..NOISY_SEEDS)
+            .filter(|seed| {
+                run_anytime_causal_episode(CausalRegime::ConfoundedNull, *seed).diagnosis
+                    == Some(SequentialDiagnosis::NegativeCausalEffect)
+            })
+            .count();
+        assert!(
+            false_sign <= 5,
+            "false negative-effect diagnoses under null: {false_sign} / {NOISY_SEEDS}"
+        );
     }
 
     #[test]
