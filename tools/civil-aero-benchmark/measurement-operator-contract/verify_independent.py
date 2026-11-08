@@ -227,6 +227,8 @@ def make_result(data: dict[str, Any], source_bytes: bytes) -> dict[str, Any]:
         else:
             if left["identity"] != right["identity"]:
                 reasons.append("STATE_IDENTITY_MISMATCH")
+            if left["instrument_family"] != right["instrument_family"]:
+                reasons.append("INSTRUMENT_FAMILY_MISMATCH")
             if left["quantity"] != right["quantity"]:
                 reasons.append("QUANTITY_MISMATCH")
             if left["units"] != right["units"]:
@@ -245,6 +247,8 @@ def make_result(data: dict[str, Any], source_bytes: bytes) -> dict[str, Any]:
                 reasons.append("STATISTIC_MISMATCH")
             if left["sampling"]["time_window_id"] != right["sampling"]["time_window_id"]:
                 reasons.append("TIME_WINDOW_MISMATCH")
+            if left["sampling"]["sample_rate_hz"] != right["sampling"]["sample_rate_hz"]:
+                reasons.append("SAMPLE_RATE_MISMATCH")
             if left["measurement_run_id"] != right["measurement_run_id"]:
                 reasons.append("MEASUREMENT_RUN_MISMATCH")
             filt_left, filt_right = left["filter"], right["filter"]
@@ -347,6 +351,13 @@ def hostile_controls(fixture: dict[str, Any]) -> None:
     result = make_result(bad, json.dumps(bad, sort_keys=True).encode("utf-8"))
     comp = next(x for x in result["comparisons"] if x["id"] == "healthy_same_point_mean")
     require(comp["status"] == "ABSTAIN", "unknown calibration must abstain")
+
+    bad = copy.deepcopy(fixture)
+    channel = next(x for x in bad["channels"] if x["id"] == "healthy_point_mean_b")
+    channel["instrument_family"] = "esp"
+    result = make_result(bad, json.dumps(bad, sort_keys=True).encode("utf-8"))
+    comp = next(x for x in result["comparisons"] if x["id"] == "healthy_same_point_mean")
+    require(comp["status"] == "INCOMPATIBLE", "different instrument families must not compare directly")
 
     bad = copy.deepcopy(fixture)
     channel = next(x for x in bad["channels"] if x["id"] == "healthy_point_mean_b")
