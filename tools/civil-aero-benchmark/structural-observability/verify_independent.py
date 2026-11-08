@@ -67,6 +67,10 @@ def validate_fixture(fixture: dict[str, Any]) -> None:
         0 <= constraints.get("sensor_dropout_budget", -1) < constraints.get("robust_e_opt_sensor_count", 0),
         "dropout budget is invalid",
     )
+    require(
+        constraints.get("sensor_dropout_budget") == 1,
+        "v0.1 supports exactly one sensor dropout per robustness scenario",
+    )
     budget = constraints.get("maximum_total_cost_units")
     require(isinstance(budget, (int, float)) and math.isfinite(budget) and budget > 0, "cost budget invalid")
 
