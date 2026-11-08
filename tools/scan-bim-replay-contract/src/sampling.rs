@@ -168,7 +168,7 @@ fn requested_count(area_m2: f64, spacing_squared: f64) -> Result<usize, String> 
         return Ok(0);
     }
     let count = (area_m2 / spacing_squared).ceil().max(1.0);
-    if !count.is_finite() || count > usize::MAX as f64 {
+    if !count.is_finite() || count >= usize::MAX as f64 {
         return Err("surface sample count exceeds the platform usize range".to_owned());
     }
     Ok(count as usize)
