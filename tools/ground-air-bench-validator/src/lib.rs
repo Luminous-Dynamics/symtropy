@@ -755,9 +755,11 @@ mod tests {
     fn checked_in_not_run_template_cannot_be_promoted_to_pass() {
         let value: Value = serde_json::from_str(NOT_RUN_TEMPLATE).unwrap();
         assert_eq!(value["case_state"], json!("NOT_RUN"));
-        assert!(evaluate_case(&value)
-            .unwrap_err()
-            .contains("NOT_RUN is not a pass"));
+        assert!(
+            evaluate_case(&value)
+                .unwrap_err()
+                .contains("NOT_RUN is not a pass")
+        );
     }
 
     #[test]
