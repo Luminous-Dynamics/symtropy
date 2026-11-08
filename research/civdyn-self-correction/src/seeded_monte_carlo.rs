@@ -458,38 +458,38 @@ fn decide_actions(
                     && diagnosis.is_none()
                     && let Some(probe) = observable.matched_probes[index]
                 {
-                        diagnostic_probe_count += 1;
-                        let probe_class = classify_probe(probe);
-                        match probe_class {
-                            ProbeClass::Harmful => {
-                                diagnosis = Some(CausalDiagnosis::CausalSignReversal);
-                                diagnosis_tick = Some(tick);
-                                policy_enabled = false;
-                            }
-                            ProbeClass::NullEquivalent => {
-                                diagnosis = Some(CausalDiagnosis::NullEffectWithConfounding);
-                                diagnosis_tick = Some(tick);
-                                policy_enabled = false;
-                            }
-                            ProbeClass::Beneficial => {
-                                if previous_probe_class == Some(ProbeClass::Beneficial)
-                                    && signal_detection_tick
-                                        .is_some_and(|detected| detected <= tick)
-                                    && observed_covariate_shift_tick
-                                        .is_some_and(|shifted| shifted <= tick)
-                                {
-                                    diagnosis = Some(
-                                        CausalDiagnosis::ConfounderShiftWithoutCausalEffectChange,
-                                    );
-                                    diagnosis_tick = Some(tick);
-                                    // Preserve the intervention: measured
-                                    // evidence says the treatment effect remains
-                                    // beneficial despite the signal shift.
-                                }
-                            }
-                            ProbeClass::Uncertain => {}
+                    diagnostic_probe_count += 1;
+                    let probe_class = classify_probe(probe);
+                    match probe_class {
+                        ProbeClass::Harmful => {
+                            diagnosis = Some(CausalDiagnosis::CausalSignReversal);
+                            diagnosis_tick = Some(tick);
+                            policy_enabled = false;
                         }
-                        previous_probe_class = Some(probe_class);
+                        ProbeClass::NullEquivalent => {
+                            diagnosis = Some(CausalDiagnosis::NullEffectWithConfounding);
+                            diagnosis_tick = Some(tick);
+                            policy_enabled = false;
+                        }
+                        ProbeClass::Beneficial => {
+                            if previous_probe_class == Some(ProbeClass::Beneficial)
+                                && signal_detection_tick
+                                    .is_some_and(|detected| detected <= tick)
+                                && observed_covariate_shift_tick
+                                    .is_some_and(|shifted| shifted <= tick)
+                            {
+                                diagnosis = Some(
+                                    CausalDiagnosis::ConfounderShiftWithoutCausalEffectChange,
+                                );
+                                diagnosis_tick = Some(tick);
+                                // Preserve the intervention: measured
+                                // evidence says the treatment effect remains
+                                // beneficial despite the signal shift.
+                            }
+                        }
+                        ProbeClass::Uncertain => {}
+                    }
+                    previous_probe_class = Some(probe_class);
                 }
             }
         }
