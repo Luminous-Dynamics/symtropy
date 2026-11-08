@@ -362,17 +362,10 @@ pub fn evaluate_stream(
         };
 
         let is_final_look = next_look == LOOKS.len() - 1;
-        if let Some(decision) = decision {
-            if method != SequentialMethod::FixedHorizon || is_final_look {
-                return Ok(make_receipt(
-                    method,
-                    decision,
-                    n,
-                    sum,
-                    None,
-                    None,
-                ));
-            }
+        if let Some(decision) = decision
+            && (method != SequentialMethod::FixedHorizon || is_final_look)
+        {
+            return Ok(make_receipt(method, decision, n, sum, None, None));
         }
 
         next_look += 1;
@@ -524,6 +517,22 @@ mod tests {
                 NOISY_SEEDS
             );
         }
+    }
+
+    #[test]
+    fn evaluator_fails_closed_on_wrong_length_and_non_finite_observations() {
+        let short = vec![0.0; MAX_PAIRS - 1];
+        assert!(matches!(
+            evaluate_stream(SequentialMethod::FixedHorizon, &short),
+            Err(SequentialError::InvalidStreamLength { .. })
+        ));
+
+        let mut invalid = vec![0.0; MAX_PAIRS];
+        invalid[17] = f64::NAN;
+        assert!(matches!(
+            evaluate_stream(SequentialMethod::FixedHorizon, &invalid),
+            Err(SequentialError::NonFiniteObservation { index: 17 })
+        ));
     }
 
     #[test]
