@@ -84,8 +84,11 @@ fn digest_valid(value: &str) -> bool {
 
 fn valid_identifier(value: &str) -> bool {
     !value.is_empty()
+        && value.len() <= 128
         && value.trim() == value
-        && !value.chars().any(char::is_control)
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || b"._:-".contains(&byte))
 }
 
 fn parse_set(value: &str, name: &str) -> Result<BTreeSet<String>, String> {
@@ -559,6 +562,30 @@ mod tests {
         assert_eq!(
             evaluate(&parsed(&rebound)).approaches[1].disposition,
             "REBOUND_ONLY"
+        );
+    }
+
+    #[test]
+    fn mixed_capture_and_rebound_preserves_both_possibilities() {
+        let extra = COMPLETE
+            .lines()
+            .nth(1)
+            .expect("first captured transition")
+            .replace("POST_LEFT_A", "POST_LEFT_REBOUND")
+            .replace("POSE_LEFT_A", "POSE_LEFT_REBOUND")
+            .replace("\tCAPTURED\ttrue\t30", "\tREBOUND\ttrue\t30");
+        let input = format!("{COMPLETE}{extra}\n");
+        let result = evaluate(&parsed(&input));
+        assert_eq!(result.disposition, "MIXED_CAPTURE_ENVELOPE");
+        assert_eq!(result.capture_only_approach_count, 1);
+        assert_eq!(result.approaches[0].disposition, "MIXED_OUTCOMES");
+        assert_eq!(
+            result.residual_captured_pose_ids,
+            BTreeSet::from([
+                "POSE_LEFT_A".to_string(),
+                "POSE_LEFT_B".to_string(),
+                "POSE_RIGHT".to_string()
+            ])
         );
     }
 
