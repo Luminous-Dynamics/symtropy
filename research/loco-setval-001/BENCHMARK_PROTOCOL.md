@@ -35,6 +35,10 @@ The paper also supplies valuable falsification cases:
 
 These are unusually direct opportunities for testing belief health, abstraction soundness, fault recovery and viability preservation.
 
+## 2. Standards and comparator ladder
+
+Industry performance reporting now has a current standard baseline: **ISO 18646-5:2026** (July 2026). Its public preview identifies rated speed, stopping distance, maximum climbing height, stair climbing, maximum slope, dragging force, crossing capacity, minimum pass-through height and minimum travel width as performance classes. The standard explicitly does not validate safety requirements; use it for matched locomotion-performance measurement, then publish Symtropy's viability and runtime-assurance evidence separately. The detailed crosswalk and conditions are in [`ISO18646-5-2026-CROSSWALK.md`](ISO18646-5-2026-CROSSWALK.md). Do not claim conformance from this summary alone.
+
 ## 2. Comparator ladder
 
 Run every controller on the same six-leg plant, actuator model, sensor availability, terrain realization and disturbance seed.
