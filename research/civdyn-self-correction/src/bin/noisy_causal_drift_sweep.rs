@@ -5,8 +5,8 @@
 
 use civdyn_self_correction::causal_drift::CausalDiagnosis;
 use civdyn_self_correction::noisy_causal_drift::{
-    FAMILYWISE_CRITICAL_VALUE, MATCHED_PAIRS_PER_LOOK, NOISY_SEEDS,
-    NoisyCausalDriftOutcome, run_noisy_causal_drift_portfolio,
+    FAMILYWISE_CRITICAL_VALUE, MATCHED_PAIRS_PER_LOOK, NOISY_SEEDS, NoisyCausalDriftOutcome,
+    run_noisy_causal_drift_portfolio,
 };
 
 const CSV_COLUMNS: usize = 25;
@@ -141,8 +141,7 @@ fn main() {
     let outcomes = run_noisy_causal_drift_portfolio();
     assert_eq!(
         outcomes.len(),
-        NOISY_SEEDS
-            * civdyn_self_correction::causal_drift::CausalRegime::ALL.len()
+        NOISY_SEEDS * civdyn_self_correction::causal_drift::CausalRegime::ALL.len()
     );
     assert_eq!(MATCHED_PAIRS_PER_LOOK, 2048);
 
