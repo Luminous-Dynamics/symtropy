@@ -6,7 +6,7 @@
 use crate::sha256_hex;
 use jsonschema::validator_for;
 use serde::Serialize;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 
 pub const EMBEDDED_ADAPTIVE_POLICY_CORPUS: &str = include_str!(
@@ -207,10 +207,22 @@ fn vector_for(candidate: &Candidate, states: &[String]) -> Option<ObjectiveVecto
         .map(|state| candidate.states.get(state))
         .collect::<Option<Vec<_>>>()?;
     Some(ObjectiveVector {
-        service_hours: values.iter().map(|value| value.objectives.service_hours).min()?,
-        energy_units: values.iter().map(|value| value.objectives.energy_units).max()?,
-        repair_ticks: values.iter().map(|value| value.objectives.repair_ticks).max()?,
-        cost_units: values.iter().map(|value| value.objectives.cost_units).max()?,
+        service_hours: values
+            .iter()
+            .map(|value| value.objectives.service_hours)
+            .min()?,
+        energy_units: values
+            .iter()
+            .map(|value| value.objectives.energy_units)
+            .max()?,
+        repair_ticks: values
+            .iter()
+            .map(|value| value.objectives.repair_ticks)
+            .max()?,
+        cost_units: values
+            .iter()
+            .map(|value| value.objectives.cost_units)
+            .max()?,
     })
 }
 
@@ -226,11 +238,7 @@ fn dominates(left: ObjectiveVector, right: ObjectiveVector) -> bool {
     no_worse && strictly_better
 }
 
-fn decision_set(
-    candidates: &[Candidate],
-    states: &[String],
-    blockers: &[String],
-) -> DecisionSet {
+fn decision_set(candidates: &[Candidate], states: &[String], blockers: &[String]) -> DecisionSet {
     let blockers = sorted(blockers.to_vec());
     if !blockers.is_empty() {
         return DecisionSet {
@@ -317,12 +325,18 @@ fn action_rejection_codes(
             if !within_outcome.insert(state.clone()) {
                 codes.insert("POLICY_ACTION_STATE_DUPLICATE_WITHIN_OUTCOME".to_owned());
             }
-            if memberships.insert(state.clone(), outcome.id.clone()).is_some() {
+            if memberships
+                .insert(state.clone(), outcome.id.clone())
+                .is_some()
+            {
                 codes.insert("POLICY_ACTION_PARTITION_OVERLAP".to_owned());
             }
         }
     }
-    if universe.iter().any(|state| !memberships.contains_key(state)) {
+    if universe
+        .iter()
+        .any(|state| !memberships.contains_key(state))
+    {
         codes.insert("POLICY_ACTION_PARTITION_INCOMPLETE".to_owned());
     }
     codes
@@ -481,12 +495,8 @@ impl<'a> PolicyWalker<'a> {
                     self.active.remove(node_id);
                     return;
                 };
-                let action_codes = action_rejection_codes(
-                    &action,
-                    self.revision,
-                    self.universe,
-                    &blockers,
-                );
+                let action_codes =
+                    action_rejection_codes(&action, self.revision, self.universe, &blockers);
                 self.errors.extend(action_codes);
                 if !self.errors.is_empty() {
                     self.active.remove(node_id);
@@ -561,8 +571,7 @@ impl<'a> PolicyWalker<'a> {
                         .insert("POLICY_DEPTH_BUDGET_EXCEEDED".to_owned());
                 }
                 if next_cost > self.max_cost_units {
-                    self.errors
-                        .insert("POLICY_COST_BUDGET_EXCEEDED".to_owned());
+                    self.errors.insert("POLICY_COST_BUDGET_EXCEEDED".to_owned());
                 }
                 if next_duration > self.max_duration_ticks {
                     self.errors
@@ -595,20 +604,9 @@ impl<'a> PolicyWalker<'a> {
         self.active.remove(node_id);
     }
 
-    fn finish(
-        mut self,
-        root_node_id: &str,
-        initial_blockers: Vec<String>,
-    ) -> Value {
+    fn finish(mut self, root_node_id: &str, initial_blockers: Vec<String>) -> Value {
         let initial_states = self.universe.to_vec();
-        self.visit(
-            root_node_id,
-            initial_states,
-            initial_blockers,
-            0,
-            0,
-            0,
-        );
+        self.visit(root_node_id, initial_states, initial_blockers, 0, 0, 0);
         if self.visited.len() != self.nodes.len() {
             self.errors.insert("POLICY_UNREACHABLE_NODE".to_owned());
         }
@@ -700,7 +698,10 @@ pub fn validate_adaptive_policy_bytes(
         .get("benchmark_id")
         .and_then(Value::as_str)
         .map(ToOwned::to_owned);
-    summary.version = root.get("version").and_then(Value::as_str).map(ToOwned::to_owned);
+    summary.version = root
+        .get("version")
+        .and_then(Value::as_str)
+        .map(ToOwned::to_owned);
     if summary.benchmark_id.as_deref() != Some("SPATIAL-RESILIENCE-ADAPTIVE-POLICIES")
         || summary.version.as_deref() != Some("0.1.0")
     {
@@ -808,7 +809,9 @@ pub fn validate_adaptive_policy_bytes(
             continue;
         }
 
-        let policy_values = case["policies"].as_array().expect("schema-validated policy array");
+        let policy_values = case["policies"]
+            .as_array()
+            .expect("schema-validated policy array");
         let mut policy_ids = BTreeSet::new();
         let before_case_failures = summary.failures.len();
         for (policy_index, policy) in policy_values.iter().enumerate() {
@@ -870,17 +873,11 @@ mod tests {
         )
     }
 
-    fn policy<'a>(
-        summary: &'a AdaptivePolicySummary,
-        case_id: &str,
-        policy_id: &str,
-    ) -> &'a Value {
+    fn policy<'a>(summary: &'a AdaptivePolicySummary, case_id: &str, policy_id: &str) -> &'a Value {
         summary
             .results
             .iter()
-            .find(|item| {
-                item["case_id"] == case_id && item["policy"]["policy_id"] == policy_id
-            })
+            .find(|item| item["case_id"] == case_id && item["policy"]["policy_id"] == policy_id)
             .map(|item| &item["policy"])
             .expect("policy result exists")
     }
@@ -920,13 +917,18 @@ mod tests {
         let unsafe_policy = policy(&summary, "SPA-002", "unsafe-stop-before-fire-review");
         let escalation = policy(&summary, "SPA-002", "escalate-fire-review");
         assert_eq!(unsafe_policy["status"], "rejected");
-        assert!(unsafe_policy["rejection_codes"]
-            .as_array()
-            .expect("rejection code list")
-            .iter()
-            .any(|code| code == "POLICY_STOP_WITH_CRITICAL_BLOCKER"));
+        assert!(
+            unsafe_policy["rejection_codes"]
+                .as_array()
+                .expect("rejection code list")
+                .iter()
+                .any(|code| code == "POLICY_STOP_WITH_CRITICAL_BLOCKER")
+        );
         assert_eq!(escalation["status"], "accepted");
-        assert_eq!(escalation["leaves"][0]["terminal_action"], "escalate_blocker");
+        assert_eq!(
+            escalation["leaves"][0]["terminal_action"],
+            "escalate_blocker"
+        );
         assert_eq!(
             escalation["leaves"][0]["remaining_critical_unknown_ids"][0],
             "fire-separation-review"
@@ -938,11 +940,13 @@ mod tests {
         let summary = run_embedded();
         let invalid = policy(&summary, "SPA-003", "unreachable-child-outcome");
         assert_eq!(invalid["status"], "rejected");
-        assert!(invalid["rejection_codes"]
-            .as_array()
-            .expect("rejection code list")
-            .iter()
-            .any(|code| code == "POLICY_BRANCH_UNREACHABLE_OUTCOME"));
+        assert!(
+            invalid["rejection_codes"]
+                .as_array()
+                .expect("rejection code list")
+                .iter()
+                .any(|code| code == "POLICY_BRANCH_UNREACHABLE_OUTCOME")
+        );
     }
 
     #[test]
@@ -954,16 +958,22 @@ mod tests {
         let summary =
             validate_adaptive_policy_bytes(&bytes, EMBEDDED_ADAPTIVE_POLICY_SCHEMA.as_bytes());
         assert!(!summary.passed);
-        assert!(summary
-            .failures
-            .iter()
-            .any(|failure| failure.code == "ADAPTIVE_SCHEMA_VALIDATION_FAILED"));
+        assert!(
+            summary
+                .failures
+                .iter()
+                .any(|failure| failure.code == "ADAPTIVE_SCHEMA_VALIDATION_FAILED")
+        );
     }
 
     #[test]
     fn action_order_and_node_order_do_not_change_policy_results() {
         let original = run_embedded();
-        assert!(original.passed, "original failures: {:?}", original.failures);
+        assert!(
+            original.passed,
+            "original failures: {:?}",
+            original.failures
+        );
         let mut corpus: Value =
             serde_json::from_str(EMBEDDED_ADAPTIVE_POLICY_CORPUS).expect("valid corpus");
         let case = &mut corpus["cases"][0];
@@ -1004,11 +1014,13 @@ mod tests {
             validate_adaptive_policy_bytes(&bytes, EMBEDDED_ADAPTIVE_POLICY_SCHEMA.as_bytes());
         let adaptive = policy(&summary, "SPA-001", "adaptive-clearance-first");
         assert_eq!(adaptive["status"], "rejected");
-        assert!(adaptive["rejection_codes"]
-            .as_array()
-            .expect("rejection code list")
-            .iter()
-            .any(|code| code == "POLICY_COST_BUDGET_EXCEEDED"));
+        assert!(
+            adaptive["rejection_codes"]
+                .as_array()
+                .expect("rejection code list")
+                .iter()
+                .any(|code| code == "POLICY_COST_BUDGET_EXCEEDED")
+        );
     }
 
     #[test]
@@ -1022,11 +1034,13 @@ mod tests {
             validate_adaptive_policy_bytes(&bytes, EMBEDDED_ADAPTIVE_POLICY_SCHEMA.as_bytes());
         let adaptive = policy(&summary, "SPA-001", "adaptive-clearance-first");
         assert_eq!(adaptive["status"], "rejected");
-        assert!(adaptive["rejection_codes"]
-            .as_array()
-            .expect("rejection code list")
-            .iter()
-            .any(|code| code == "POLICY_ACTION_REVISION_MISMATCH"));
+        assert!(
+            adaptive["rejection_codes"]
+                .as_array()
+                .expect("rejection code list")
+                .iter()
+                .any(|code| code == "POLICY_ACTION_REVISION_MISMATCH")
+        );
     }
 
     #[test]
@@ -1042,11 +1056,13 @@ mod tests {
             validate_adaptive_policy_bytes(&bytes, EMBEDDED_ADAPTIVE_POLICY_SCHEMA.as_bytes());
         let adaptive = policy(&summary, "SPA-001", "adaptive-clearance-first");
         assert_eq!(adaptive["status"], "rejected");
-        assert!(adaptive["rejection_codes"]
-            .as_array()
-            .expect("rejection code list")
-            .iter()
-            .any(|code| code == "POLICY_ACTION_PARTITION_INCOMPLETE"));
+        assert!(
+            adaptive["rejection_codes"]
+                .as_array()
+                .expect("rejection code list")
+                .iter()
+                .any(|code| code == "POLICY_ACTION_PARTITION_INCOMPLETE")
+        );
     }
 
     #[test]
@@ -1060,11 +1076,13 @@ mod tests {
             validate_adaptive_policy_bytes(&bytes, EMBEDDED_ADAPTIVE_POLICY_SCHEMA.as_bytes());
         let adaptive = policy(&summary, "SPA-001", "adaptive-clearance-first");
         assert_eq!(adaptive["status"], "rejected");
-        assert!(adaptive["rejection_codes"]
-            .as_array()
-            .expect("rejection code list")
-            .iter()
-            .any(|code| code == "POLICY_CYCLE"));
+        assert!(
+            adaptive["rejection_codes"]
+                .as_array()
+                .expect("rejection code list")
+                .iter()
+                .any(|code| code == "POLICY_CYCLE")
+        );
     }
 
     #[test]
@@ -1077,11 +1095,13 @@ mod tests {
             validate_adaptive_policy_bytes(&bytes, EMBEDDED_ADAPTIVE_POLICY_SCHEMA.as_bytes());
         let adaptive = policy(&summary, "SPA-001", "adaptive-clearance-first");
         assert_eq!(adaptive["status"], "rejected");
-        assert!(adaptive["rejection_codes"]
-            .as_array()
-            .expect("rejection code list")
-            .iter()
-            .any(|code| code == "POLICY_DEPTH_BUDGET_EXCEEDED"));
+        assert!(
+            adaptive["rejection_codes"]
+                .as_array()
+                .expect("rejection code list")
+                .iter()
+                .any(|code| code == "POLICY_DEPTH_BUDGET_EXCEEDED")
+        );
     }
 
     #[test]
@@ -1097,11 +1117,13 @@ mod tests {
             validate_adaptive_policy_bytes(&bytes, EMBEDDED_ADAPTIVE_POLICY_SCHEMA.as_bytes());
         let adaptive = policy(&summary, "SPA-001", "adaptive-clearance-first");
         assert_eq!(adaptive["status"], "rejected");
-        assert!(adaptive["rejection_codes"]
-            .as_array()
-            .expect("rejection code list")
-            .iter()
-            .any(|code| code == "POLICY_STOP_DECISION_NOT_STABLE"));
+        assert!(
+            adaptive["rejection_codes"]
+                .as_array()
+                .expect("rejection code list")
+                .iter()
+                .any(|code| code == "POLICY_STOP_DECISION_NOT_STABLE")
+        );
     }
 
     #[test]
@@ -1117,11 +1139,12 @@ mod tests {
             validate_adaptive_policy_bytes(&bytes, EMBEDDED_ADAPTIVE_POLICY_SCHEMA.as_bytes());
         let adaptive = policy(&summary, "SPA-001", "adaptive-clearance-first");
         assert_eq!(adaptive["status"], "rejected");
-        assert!(adaptive["rejection_codes"]
-            .as_array()
-            .expect("rejection code list")
-            .iter()
-            .any(|code| code == "POLICY_BRANCH_MISSING"));
+        assert!(
+            adaptive["rejection_codes"]
+                .as_array()
+                .expect("rejection code list")
+                .iter()
+                .any(|code| code == "POLICY_BRANCH_MISSING")
+        );
     }
-
 }
