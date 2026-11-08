@@ -168,7 +168,6 @@ pub enum ProbeContinuationError {
     UnknownObservationId,
     EmptyPhysicalObservationSet,
     InvalidIntermediateStateTime,
-    DuplicateIntermediateState,
     DuplicateActionId,
     DuplicateActionSourceState,
     EmptyActionSuccessors,
@@ -194,7 +193,7 @@ fn contains_viable_state(
         .iter()
         .find(|set| set.remaining_steps == remaining_steps)
         .ok_or(ProbeContinuationError::MissingViabilityHorizon)?;
-    Ok(set.state_ids.iter().any(|candidate| candidate == state_id))
+    Ok(set.state_ids.iter().any(|candidate| candidate.as_str() == state_id))
 }
 
 fn has_viability_horizon(
@@ -338,20 +337,18 @@ fn validate_problem(problem: &ProbeProblem) -> Result<(), ProbeContinuationError
         }
         joint_probability_total = add_u64(joint_probability_total, branch_joint_total)?;
 
-        let mut last_elapsed = 0_u32;
-        let mut intermediate_ids = BTreeSet::new();
-        for state in &branch.intermediate_states {
-            if !nonempty(&state.state_id)
-                || state.elapsed_steps == 0
-                || state.elapsed_steps >= problem.probe_duration_steps
-                || state.elapsed_steps <= last_elapsed
-            {
+        let expected_intermediate_count =
+            usize::try_from(problem.probe_duration_steps - 1)
+                .map_err(|_| ProbeContinuationError::InvalidIntermediateStateTime)?;
+        if branch.intermediate_states.len() != expected_intermediate_count {
+            return Err(ProbeContinuationError::InvalidIntermediateStateTime);
+        }
+        for (index, state) in branch.intermediate_states.iter().enumerate() {
+            let expected_elapsed = u32::try_from(index + 1)
+                .map_err(|_| ProbeContinuationError::InvalidIntermediateStateTime)?;
+            if !nonempty(&state.state_id) || state.elapsed_steps != expected_elapsed {
                 return Err(ProbeContinuationError::InvalidIntermediateStateTime);
             }
-            if !intermediate_ids.insert(state.state_id.as_str()) {
-                return Err(ProbeContinuationError::DuplicateIntermediateState);
-            }
-            last_elapsed = state.elapsed_steps;
         }
     }
 
@@ -369,7 +366,7 @@ fn validate_problem(problem: &ProbeProblem) -> Result<(), ProbeContinuationError
             branch
                 .physically_possible_observation_ids
                 .iter()
-                .any(|id| id == &outcome.id)
+                .any(|id| id.as_str() == outcome.id.as_str())
         }) {
             return Err(ProbeContinuationError::UnknownOutcomeNotPhysicallyRepresented);
         }
@@ -503,7 +500,7 @@ pub fn evaluate_probe_continuation(
 
         let mut robust_admissible_action_ids = Vec::new();
         for action in &problem.continuation_actions {
-            if matches!(outcome.kind, ObservationKind::Unknown) && !action.fallback_only {
+            if matches!(&outcome.kind, ObservationKind::Unknown) && !action.fallback_only {
                 excluded_action_ids.insert(action.id.clone());
                 continue;
             }
@@ -513,19 +510,23 @@ pub fn evaluate_probe_continuation(
                 let row = action
                     .successors_by_state
                     .iter()
-                    .find(|row| row.source_state_id == *state_id);
+                    .find(|row| row.source_state_id.as_str() == state_id.as_str());
                 let Some(row) = row else {
                     action_admissible = false;
                     break;
                 };
-                if row.successor_state_ids.iter().any(|successor| {
-                    !contains_viable_state(
+                let mut all_successors_viable = true;
+                for successor in &row.successor_state_ids {
+                    if !contains_viable_state(
                         &problem.viable_states_by_remaining_horizon,
                         action_remaining,
                         successor,
-                    )
-                    .unwrap_or(false)
-                }) {
+                    )? {
+                        all_successors_viable = false;
+                        break;
+                    }
+                }
+                if !all_successors_viable {
                     action_admissible = false;
                     break;
                 }
