@@ -14,18 +14,46 @@ fn day_class_for_july_2026(day: u8) -> DayClass {
     }
 }
 
-fn demo_input() -> TariffInput {
-    let preceding_12_month_demand_history = (0..12)
-        .map(|offset| {
-            let absolute = 2026_i32 * 12 + 6 - 12 + offset;
-            let year = absolute.div_euclid(12);
-            let month = absolute.rem_euclid(12) + 1;
-            DemandHistoryPoint {
-                billing_month: format!("{year:04}-{month:02}"),
-                measured_peak_kva: 125.0,
+fn days_in_month(year: i32, month: u8) -> u8 {
+    match month {
+        2 if year % 400 == 0 || (year % 4 == 0 && year % 100 != 0) => 29,
+        2 => 28,
+        4 | 6 | 9 | 11 => 30,
+        _ => 31,
+    }
+}
+
+fn month_index(year: i32, month: u8) -> i32 {
+    year * 12 + i32::from(month) - 1
+}
+
+fn demand_history_for(billing_month: &str, demand_kva: f64) -> Vec<DemandHistoryPoint> {
+    let (year_text, month_text) = billing_month.split_once('-').expect("YYYY-MM");
+    let year: i32 = year_text.parse().expect("valid year");
+    let month: u8 = month_text.parse().expect("valid month");
+    let current = month_index(year, month);
+    let mut history = Vec::new();
+
+    for month_offset in 0..12 {
+        let absolute = current - 12 + month_offset;
+        let history_year = absolute.div_euclid(12);
+        let history_month = (absolute.rem_euclid(12) + 1) as u8;
+        for day in 1..=days_in_month(history_year, history_month) {
+            let local_date = format!("{history_year:04}-{history_month:02}-{day:02}");
+            for local_start_minute in (0..1_440_u16).step_by(30) {
+                history.push(DemandHistoryPoint {
+                    local_date: local_date.clone(),
+                    local_start_minute,
+                    measured_demand_kva: demand_kva,
+                });
             }
-        })
-        .collect();
+        }
+    }
+    history
+}
+
+fn demo_input() -> TariffInput {
+    let preceding_12_month_demand_history = demand_history_for("2026-07", 125.0);
 
     // Synthetic 31-day, 15-minute complete month. The weekday lighting load
     // is placed at the winter peak periods; this is a reference fixture, not
@@ -90,6 +118,9 @@ fn demo_input() -> TariffInput {
         declared_active_energy_kwh,
         measured_monthly_peak_demand_kva: 95.0,
         preceding_12_month_demand_history,
+        demand_history_interval_minutes: 30,
+        demand_history_interval_evidence_reference: "SYNTHETIC-30-MINUTE-DEMAND-METER-INTERVAL".to_owned(),
+        demand_history_coverage_evidence_reference: "SYNTHETIC-COMPLETE-PRECEDING-12-MONTH-DEMAND-TRACE".to_owned(),
         power_factor: 0.95,
         measured_reactive_energy_kvarh: 10.0,
         network_surcharge_applies: Some(true),
