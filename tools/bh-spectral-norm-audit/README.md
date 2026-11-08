@@ -49,7 +49,10 @@ The unit suite covers:
 - state similarity with the Gram matrix transformed consistently;
 - rejection of the same state similarity with the old Gram matrix retained;
 - rejection of non-Hermitian and indefinite Gram matrices;
-- empty and dimension-mismatched inputs.
+- empty and dimension-mismatched inputs;
+- square-root pseudospectral scaling for a size-two Jordan / EP normal form;
+- linear pseudospectral scaling for a simple non-EP control;
+- square-root eigenvalue branch exchange after one parameter-loop winding and return after two.
 
 The fixed 2x2 reference uses
 
