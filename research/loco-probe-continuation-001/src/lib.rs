@@ -109,13 +109,13 @@ pub struct ProbeProblem {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ProbeViolation {
-    CurrentStateOutsideViableSet { state_id: String, remaining_steps: u32 },
-    IntermediateStateOutsideViableSet {
+    CurrentStateOutsideViableOrRecoverySet { state_id: String, remaining_steps: u32 },
+    IntermediateStateOutsideViableOrRecoverySet {
         branch_id: String,
         state_id: String,
         remaining_steps: u32,
     },
-    TerminalStateOutsideViableSet {
+    TerminalStateOutsideViableOrRecoverySet {
         branch_id: String,
         state_id: String,
         remaining_steps: u32,
@@ -133,6 +133,8 @@ pub struct OutcomeContinuation {
     /// Includes every physically possible branch, even at zero probability.
     pub possible_branch_ids: Vec<String>,
     pub possible_terminal_state_ids: Vec<String>,
+    pub possible_terminal_viable_state_ids: Vec<String>,
+    pub possible_terminal_recovery_state_ids: Vec<String>,
     /// Safe from every state and all declared successors.
     pub robust_admissible_action_ids: Vec<String>,
 }
@@ -159,6 +161,8 @@ pub enum ProbeContinuationError {
     NoViabilitySets,
     DuplicateHorizonSet,
     DuplicateViableState,
+    DuplicateRecoveryState,
+    StateInBothViableAndRecoverySet,
     MissingViabilityHorizon,
     NoOutcomes,
     DuplicateOutcomeId,
