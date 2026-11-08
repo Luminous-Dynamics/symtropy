@@ -3,7 +3,7 @@
 
 //! Emit per-episode, per-method receipts for the common-stream benchmark.
 
-use civdyn_self_correction::causal_drift::CausalRegime;
+use civdyn_self_correction::sequential_methods::SequentialRegime;
 use civdyn_self_correction::sequential_methods::{
     MAX_PAIRS, SequentialDecision, SequentialEpisodeResult, SequentialMethod,
     run_sequential_method_portfolio, wilson_95,
@@ -48,7 +48,7 @@ fn print_summary(outcomes: &[SequentialEpisodeResult]) {
         let mut alternative_costs: Vec<usize> = outcomes
             .iter()
             .filter(|item| {
-                item.receipt.method == method && item.regime != CausalRegime::ConfoundedNull
+                item.receipt.method == method\n                    && item.regime != SequentialRegime::ConfoundedNull\n                    && item.regime != SequentialRegime::BenefitBoundary
             })
             .map(|item| item.receipt.pairs_used)
             .collect();
@@ -56,27 +56,41 @@ fn print_summary(outcomes: &[SequentialEpisodeResult]) {
 
         let count = alternative_costs.len();
         let mean = alternative_costs.iter().sum::<usize>() as f64 / count as f64;
-        let false_actions = outcomes
+        let false_actions_zero = outcomes
             .iter()
             .filter(|item| {
                 item.receipt.method == method
-                    && item.regime == CausalRegime::ConfoundedNull
+                    && item.regime == SequentialRegime::ConfoundedNull
                     && item.receipt.decision != SequentialDecision::Inconclusive
             })
             .count();
-        let interval = wilson_95(false_actions, 256).expect("256 null episodes are present");
+        let false_actions_boundary = outcomes
+            .iter()
+            .filter(|item| {
+                item.receipt.method == method
+                    && item.regime == SequentialRegime::BenefitBoundary
+                    && item.receipt.decision != SequentialDecision::Inconclusive
+            })
+            .count();
+        let zero_interval =
+            wilson_95(false_actions_zero, 256).expect("256 zero-effect episodes are present");
+        let boundary_interval = wilson_95(false_actions_boundary, 256)
+            .expect("256 minimum-benefit boundary episodes are present");
 
         eprintln!(
-            "method={} alternative_n={} mean_pairs={:.2} p50_pairs={} p95_pairs={} savings_vs_2048={:.2}% null_false_actions={}/256 wilson95=[{:.4},{:.4}]",
+            "method={} alternative_n={} mean_pairs={:.2} p50_pairs={} p95_pairs={} savings_vs_2048={:.2}% zero_effect_false_actions={}/256 wilson95=[{:.4},{:.4}] benefit_boundary_false_actions={}/256 wilson95=[{:.4},{:.4}]",
             method.name(),
             count,
             mean,
             percentile(&alternative_costs, 0.50),
             percentile(&alternative_costs, 0.95),
             100.0 * (1.0 - mean / MAX_PAIRS as f64),
-            false_actions,
-            interval.lower,
-            interval.upper,
+            false_actions_zero,
+            zero_interval.lower,
+            zero_interval.upper,
+            false_actions_boundary,
+            boundary_interval.lower,
+            boundary_interval.upper,
         );
     }
 }
@@ -89,7 +103,7 @@ fn main() {
     let outcomes = run_sequential_method_portfolio();
     assert_eq!(
         outcomes.len(),
-        CausalRegime::ALL.len() * 256 * SequentialMethod::ALL.len()
+        SequentialRegime::ALL.len() * 256 * SequentialMethod::ALL.len()
     );
     assert!(
         outcomes
