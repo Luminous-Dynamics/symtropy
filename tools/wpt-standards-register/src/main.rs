@@ -33,7 +33,7 @@ pub fn validate_register(input: &str) -> Result<Vec<Record>, Vec<String>> {
     let mut errors = Vec::new();
     let mut lines = input.split_terminator('\n');
     let Some(header) = lines.next() else { return Err(vec!["register is empty".into()]); };
-    if header.split('\t').collect::<Vec<_>>().as_slice() != HEADER {
+    if header.split('\t').collect::<Vec<_>>().as_slice() != HEADER.as_slice() {
         return Err(vec![format!("header mismatch: expected exact {}-column v0 header", HEADER.len())]);
     }
     let (mut record_ids, mut document_ids) = (BTreeSet::new(), BTreeSet::new());
