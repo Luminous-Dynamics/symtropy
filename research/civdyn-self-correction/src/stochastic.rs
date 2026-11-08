@@ -20,7 +20,7 @@ pub const MATCHED_PROBE_PAIRS: usize = 512;
 pub const OUTCOME_NOISE_SD: f64 = 2.0;
 pub const PROBE_CI_Z: f64 = 1.96;
 pub const MONTE_CARLO_CUSUM_ALLOWANCE: f64 = 0.25;
-pub const MONTE_CARLO_CUSUM_THRESHOLD: f64 = 3.0;
+pub const MONTE_CARLO_CUSUM_THRESHOLD: f64 = 5.0;
 pub const MONTE_CARLO_PROBE_COST: f64 = 0.25;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -77,6 +77,13 @@ impl MonteCarloConfig {
         }
         if !self.diagnostic_probe_cost.is_finite() || self.diagnostic_probe_cost < 0.0 {
             return Err("diagnostic_probe_cost must be finite and non-negative");
+        }
+        if self
+            .base_seed
+            .checked_add(self.replicates_per_regime.saturating_sub(1) as u64)
+            .is_none()
+        {
+            return Err("base_seed plus replicate count overflows u64");
         }
         Ok(())
     }
@@ -182,7 +189,7 @@ fn expected_diagnosis(regime: CausalRegime) -> Option<CausalDiagnosis> {
 fn drift_onset(regime: CausalRegime) -> Option<usize> {
     match regime {
         CausalRegime::SignReversal => Some(4),
-        CausalRegime::GradualSignReversal => Some(5),
+        CausalRegime::GradualSignReversal => Some(3),
         CausalRegime::ConfounderShift => Some(5),
         CausalRegime::StablePositive | CausalRegime::ConfoundedNull => None,
     }
@@ -399,12 +406,10 @@ fn run_episode(
                     }
                     last_probe = Some(probe);
 
-                    let identified = if probe.upper_95 <= ACTION_COST {
-                        if probe.estimate < 0.0 {
-                            Some(CausalDiagnosis::CausalSignReversal)
-                        } else {
-                            Some(CausalDiagnosis::NullEffectWithConfounding)
-                        }
+                    let identified = if probe.upper_95 < 0.0 {
+                        Some(CausalDiagnosis::CausalSignReversal)
+                    } else if probe.lower_95 <= 0.0 && probe.upper_95 <= ACTION_COST {
+                        Some(CausalDiagnosis::NullEffectWithConfounding)
                     } else if detector.alarm_tick.is_some()
                         && previous_probe_lower.is_some_and(|lower| lower > ACTION_COST)
                         && probe.lower_95 > ACTION_COST
@@ -704,7 +709,17 @@ mod tests {
                 .expect("summary exists");
             assert!(summary.premature_alarm_rate <= 0.05);
             assert!(summary.false_diagnosis_rate <= 0.05);
+            if controller == CausalDriftController::MechanismAware {
+                assert!(
+                    summary.mean_probe_ci_coverage.unwrap_or_default() >= 0.90
+                );
+            }
         }
+    }
+
+    #[test]
+    fn gradual_shift_onset_is_the_first_mechanism_change_not_first_negative_effect() {
+        assert_eq!(drift_onset(CausalRegime::GradualSignReversal), Some(3));
     }
 
     #[test]
