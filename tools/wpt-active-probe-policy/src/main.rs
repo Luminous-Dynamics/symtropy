@@ -561,7 +561,11 @@ mod tests {
 
     #[test]
     fn case_metadata_must_be_identical_across_action_rows() {
-        let bad = FIXTURE.replacen("root_split\t8\t3", "root_split\t9\t3", 1);
+        let mut rows: Vec<String> = FIXTURE.lines().map(str::to_string).collect();
+        let mut fields: Vec<String> = rows[2].split('\t').map(str::to_string).collect();
+        fields[5] = "26".to_string();
+        rows[2] = fields.join("\t");
+        let bad = rows.join("\n");
         assert!(parse_case(&bad).is_err());
     }
 
