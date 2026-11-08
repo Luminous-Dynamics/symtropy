@@ -41,3 +41,24 @@ Source access date: 2026-11-08. Recheck lifecycle and scope before reuse.
 ## Claim ceiling
 
 A passing validator proves only metadata consistency. It does not interpret purchased standards text, decide aircraft applicability, provide legal advice, establish safety, authorize energization or flight, or demonstrate compliance. Clause-level interpretation requires authorized full-text access and independent specialist review in the relevant jurisdiction.
+
+
+## South African authority records (added 2026-11-08)
+
+Five additional records separate standards from the national authorization context:
+
+- **National Radio Frequency Plan 2026** — ICASA announced publication on 24 July 2026 (Minister approval 2 July 2026; Government Gazette 55048, Notice 4044). The 2026 plan, not the 2021 edition, is the current allocation reference to evaluate band-by-band.
+- **Equipment Authorisation Regulations, 2022** — published in Government Gazette 46146, Notice 1949. Product-specific scope and any exemption remain unassessed.
+- **ICASA Spectrum Licensing** — the authority page describes Electronic Communications Act section 31 spectrum-licensing requirements. Actual frequency assignment, radio classification and exemptions remain configuration-specific.
+- **ICASA Type Approval** — the authority page describes Electronic Communications Act section 35(1) equipment approval requirements, subject to the Act. This is not itself a product approval or exemption.
+- **SACAA UAS information page** — the authority overview lists autonomous unmanned aircraft among the exclusions from Part 101, but the page does not identify the alternative regulatory/approval regime for autonomous aircraft. The register therefore marks overall applicability UNKNOWN, not OUT_OF_SCOPE or permitted.
+
+Official sources:
+
+- https://www.icasa.org.za/legislation-and-regulations/national-radio-frequency-plan-2026
+- https://www.icasa.org.za/uploads/files/Equipment-Authorisation-Regulations-2022.pdf
+- https://www.icasa.org.za/pages/spectrum-licensing
+- https://www.icasa.org.za/pages/type-approval
+- https://www.caa.co.za/industry-information/uas/
+
+These records are jurisdictional research anchors. They do not replace the authoritative Gazette/Act text, a band-specific review, product-specific classification, direct SACAA/ICASA interpretation or specialist legal review.
