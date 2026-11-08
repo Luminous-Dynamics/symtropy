@@ -39,6 +39,8 @@ For sample point covariance `Σp`, target/surface point covariance `Σs`, target
 \sigma_d^2 = n^T(\Sigma_p + \Sigma_s - C_{ps} - C_{ps}^T)n
 \]
 
+The implementation reports a **conditional** normal-residual covariance: the supplied target normal is treated as fixed. Target-normal estimation uncertainty is not propagated in v0.1.
+
 The implementation:
 - validates both input 3×3 covariance matrices as finite, symmetric and positive-semidefinite;
 - converts covariance and cross-covariance from each declared native linear unit to m²;
@@ -46,7 +48,7 @@ The implementation:
 - preserves full off-diagonal terms;
 - validates the 6×6 joint sample/target covariance block when cross-correlation or independence is declared;
 - checks that the projected variance is finite and non-negative within a scale-relative numerical tolerance;
-- returns variance in m² and standard uncertainty in metres only when qualification conditions are met.
+- returns variance in m² and one-sigma standard uncertainty in metres only when qualification conditions are met. The output is conditional on the target normal being fixed; it is not a full surface/registration uncertainty budget.
 
 A declared independence attestation is content-addressed and distinct from a missing cross-covariance. The code does not infer independence from the absence of data. If correlation is unknown, the output carries `UnknownSampleTargetCorrelation` and omits the numeric sigma.
 
@@ -56,7 +58,7 @@ The result is one of two top-level dispositions:
 
 | Disposition | Meaning | Numeric standard uncertainty |
 |---|---|---|
-| `QualifiedCovariance` | Same frame, compatible units, valid PSD covariance, cross-covariance or explicit independence evidence, and transform uncertainty accounted for | Present |
+| `QualifiedConditionalCovariance` | Same frame, compatible units, valid PSD covariance, cross-covariance or explicit independence evidence, and transform uncertainty accounted for | Present |
 | `Unqualified` | One or more required evidence relationships are missing or only scalar accuracy is supplied | Absent |
 
 Unqualification reasons are retained:
@@ -108,7 +110,7 @@ This v0.1 primitive does not:
 - calibrate the uncertainty method against independent checkpoints;
 - decide whether a BIM element is accepted or a model mutation is authorized.
 
-An upcoming adapter can consume the versioned #1607 envelope and link transform/covariance artifacts, but it must preserve the current fail-closed semantics. A full stochastic-registration reproduction should remain its own benchmark track.
+An upcoming adapter can consume the versioned #1607 envelope and link transform/covariance artifacts, but it must preserve the current fail-closed semantics and carry the fixed-normal conditionality into any downstream report. A full stochastic-registration reproduction should remain its own benchmark track.
 
 ## Next gates
 
@@ -116,7 +118,7 @@ An upcoming adapter can consume the versioned #1607 envelope and link transform/
 2. Obtain a typed transform-pose covariance artifact or keep the result unqualified when only scalar transform accuracy is present.
 3. Validate transform Jacobian propagation against finite differences and independent analytic rigid-pose cases.
 4. Add local surface-normal uncertainty and spatially correlated point-cloud covariance.
-5. Calibrate predicted/propgated uncertainty on spatially and building-disjoint held-out checkpoints.
+5. Calibrate predicted/propagated uncertainty on spatially and building-disjoint held-out checkpoints.
 6. Report risk–coverage and interval coverage by sensor, distance, incidence angle, range, surface class and occlusion state.
 
 ## Claim ceiling
