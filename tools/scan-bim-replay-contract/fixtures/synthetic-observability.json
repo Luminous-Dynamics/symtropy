@@ -22,14 +22,16 @@
         {
           "artifact_id": "ROOM-A-PARTIAL-SCAN",
           "role": "point_cloud_observation",
-          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          "relative_path": "room-a-scan.bin",
+          "sha256": "dbffe0270d1b912c13ae51e52fababd1c678827298eb5eea0632892d649b11b0"
         }
       ],
       "evaluator_artifacts": [
         {
           "artifact_id": "ROOM-A-REFERENCE",
           "role": "reference_geometry",
-          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          "relative_path": "room-a-reference.bin",
+          "sha256": "54b41e62cafb19117e258ef6c297ccdbbdc5f8841e6762dc09986a3fcc942ddb"
         }
       ],
       "surface_strata": [
@@ -74,14 +76,16 @@
         {
           "artifact_id": "ROOM-B-PARTIAL-SCAN",
           "role": "point_cloud_observation",
-          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          "relative_path": "room-b-scan.bin",
+          "sha256": "dbffe0270d1b912c13ae51e52fababd1c678827298eb5eea0632892d649b11b0"
         }
       ],
       "evaluator_artifacts": [
         {
           "artifact_id": "ROOM-B-REFERENCE",
           "role": "reference_geometry",
-          "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          "relative_path": "room-b-reference.bin",
+          "sha256": "54b41e62cafb19117e258ef6c297ccdbbdc5f8841e6762dc09986a3fcc942ddb"
         }
       ],
       "surface_strata": [
