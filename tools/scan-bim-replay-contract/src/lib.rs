@@ -165,9 +165,10 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
         return Err("replay_id must be non-empty".to_owned());
     }
     if !valid_identifier(&manifest.dataset.dataset_id)
-        || !valid_identifier(&manifest.dataset.source_uri)
+        || (!manifest.dataset.source_uri.starts_with("https://")
+            && !manifest.dataset.source_uri.starts_with("urn:"))
     {
-        return Err("dataset_id and source_uri must be non-empty".to_owned());
+        return Err("dataset_id must be non-empty and source_uri must use https:// or urn:".to_owned());
     }
     if manifest.dataset.source_data_committed {
         return Err("source dataset bytes must not be committed".to_owned());
@@ -244,7 +245,7 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
             scene.building_group_id.as_str(),
             scene.split_group_id.as_str(),
         ) {
-            if previous != scene.split_group_id {
+            if previous != scene.split_group_id.as_str() {
                 return Err(format!(
                     "building {} crosses split groups",
                     scene.building_group_id
@@ -255,7 +256,7 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
             scene.capture_group_id.as_str(),
             scene.split_group_id.as_str(),
         ) {
-            if previous != scene.split_group_id {
+            if previous != scene.split_group_id.as_str() {
                 return Err(format!(
                     "capture lineage {} crosses split groups",
                     scene.capture_group_id
@@ -270,6 +271,7 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
             return Err(format!("scene {} has no evaluator artifacts", scene.scene_id));
         }
         for artifact in &scene.candidate_inputs {
+            let _role = artifact.role;
             if !valid_identifier(&artifact.artifact_id) || !digest_is_sha256(&artifact.sha256) {
                 return Err(format!(
                     "candidate artifact in scene {} has invalid ID or SHA-256",
@@ -284,6 +286,7 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
             }
         }
         for artifact in &scene.evaluator_artifacts {
+            let _role = artifact.role;
             if !valid_identifier(&artifact.artifact_id) || !digest_is_sha256(&artifact.sha256) {
                 return Err(format!(
                     "evaluator artifact in scene {} has invalid ID or SHA-256",
@@ -354,7 +357,7 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
         }
     }
 
-    if candidate_ids.iter().any(|id| evaluator_ids.contains(id)) {
+    if candidate_ids.iter().any(|id| evaluator_ids.contains(*id)) {
         return Err("candidate and evaluator artifact identifiers must be disjoint".to_owned());
     }
 
@@ -499,14 +502,21 @@ mod tests {
         assert!((first.self_occluded_area_m2 - 4.0).abs() < 1e-9);
         assert!((first.externally_occluded_area_m2 - 3.0).abs() < 1e-9);
         assert!((first.visibility_unknown_area_m2 - 1.0).abs() < 1e-9);
-        assert!((first.captured_fraction_of_theoretically_visible_area.unwrap() - 0.8).abs() < 1e-9);
+        assert!(
+            (first
+                .captured_fraction_of_theoretically_visible_area
+                .expect("visible area is non-zero")
+                - 0.8)
+                .abs()
+                < 1e-9
+        );
     }
 
     #[test]
     fn rejects_candidate_evaluator_artifact_id_collision() {
         let mut value = fixture_value();
-        value["scenes"][0]["evaluator_artifacts"][0]["artifact_id"] =
-            value["scenes"][0]["candidate_inputs"][0]["artifact_id"].clone();
+        let candidate_id = value["scenes"][0]["candidate_inputs"][0]["artifact_id"].clone();
+        value["scenes"][0]["evaluator_artifacts"][0]["artifact_id"] = candidate_id;
         let error = audit(&value).expect_err("artifact namespaces must be disjoint");
         assert!(error.contains("identifiers must be disjoint"));
     }
@@ -523,7 +533,7 @@ mod tests {
     #[test]
     fn rejects_unknown_visibility_mislabeled_as_captured() {
         let mut value = fixture_value();
-        value["scenes"][0]["surface_strata"][3]["observation"] =
+        value["scenes"][0]["surface_strata"][4]["observation"] =
             serde_json::json!("captured");
         let error = audit(&value).expect_err("unknown visibility cannot be reported captured");
         assert!(error.contains("unknown visibility"));
@@ -542,12 +552,6 @@ mod tests {
         let mut value = fixture_value();
         value["dataset"]["dataset_id"] = serde_json::json!("ISPRS-INDOOR-MODELLING");
         value["dataset"]["use_class"] = serde_json::json!("open_redistributable");
-        value["scenes"].as_array_mut().expect("scenes array").push({
-            let mut second = value["scenes"][1].clone();
-            second["scene_id"] = serde_json::json!("TUB2");
-            second["capture_group_id"] = serde_json::json!("TUB2-CAPTURE");
-            second
-        });
         let error = audit(&value).expect_err("ISPRS rights and grouping must be checked");
         assert!(error.contains("research_only_non_redistributable"));
     }
