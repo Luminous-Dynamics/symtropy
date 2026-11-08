@@ -171,7 +171,7 @@ jobs:
               for (m in methods) {
                 method_count++
                 if (methods[m] != 1280) exit 65
-                if (null_rows[m] != 256 || false_action[m] > 13) exit 66
+                if (null_rows[m] != 256 || false_action[m] > 12) exit 66
                 if (alt_rows[m, "stable_positive"] != 256 || correct[m, "stable_positive"] < 250) exit 67
                 if (alt_rows[m, "sign_reversal"] != 256 || correct[m, "sign_reversal"] < 250) exit 68
                 if (alt_rows[m, "gradual_sign_reversal"] != 256 || correct[m, "gradual_sign_reversal"] < 250) exit 69
