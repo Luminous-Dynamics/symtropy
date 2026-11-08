@@ -53,4 +53,4 @@ The recursive solver is exact for the supplied finite hypothesis/action set and 
 
 ## Claim ceiling
 
-A passing result proves only that the deterministic synthetic decision tree resolves the declared finite hypotheses within the fixture constraints. It does not validate upstream pose or estimator artifacts, establish a safe excitation sequence, authorize energization or flight, or demonstrate advantage over a physical state-of-the-art WPT system.
+A passing result proves only that the synthetic set-valued decision tree resolves the declared finite hypotheses within the fixture constraints. Digest references are syntax-checked, not externally content-verified. It does not validate upstream pose or estimator artifacts, establish a safe excitation sequence, authorize energization or flight, or demonstrate advantage over a physical state-of-the-art WPT system.
