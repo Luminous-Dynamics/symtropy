@@ -278,6 +278,21 @@ pub struct ReplayAuditReport {
     pub sampling_profile_id: String,
     pub metric_suite_id: String,
     pub metric_suite_version: String,
+    pub toolchain: String,
+    pub command: Vec<String>,
+    pub executable_sha256: String,
+    pub configuration_sha256: String,
+    pub model_sha256: Option<String>,
+    pub tolerance_distance_limit_m: f64,
+    pub tolerance_decision_policy: String,
+    pub reference_surface_spacing_m: f64,
+    pub scan_voxel_size_m: f64,
+    pub distance_cutoff_m: f64,
+    pub normalization_mode: String,
+    pub metric_scope: String,
+    pub metric_accuracy_direction: String,
+    pub surface_buffer_m: f64,
+    pub accuracy_cutoff_m: f64,
     pub manifest_sha256: String,
     pub scene_count: usize,
     pub candidate_artifact_count: usize,
@@ -289,6 +304,12 @@ pub struct ReplayAuditReport {
 #[derive(Debug, Serialize)]
 pub struct SceneVisibilityAudit {
     pub scene_id: String,
+    pub coordinate_frame_id: String,
+    pub crs_id: String,
+    pub axis_order: String,
+    pub handedness: String,
+    pub linear_unit: String,
+    pub vertical_datum_id: String,
     pub building_group_id: String,
     pub capture_group_id: String,
     pub split_group_id: String,
@@ -310,6 +331,60 @@ fn digest_is_sha256(value: &str) -> bool {
         && value
             .bytes()
             .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+}
+
+fn axis_order_label(value: AxisOrder) -> &'static str {
+    match value {
+        AxisOrder::Xyz => "xyz",
+        AxisOrder::EastNorthUp => "east_north_up",
+    }
+}
+
+fn handedness_label(value: Handedness) -> &'static str {
+    match value {
+        Handedness::Right => "right",
+        Handedness::Left => "left",
+    }
+}
+
+fn linear_unit_label(value: LinearUnit) -> &'static str {
+    match value {
+        LinearUnit::Metre => "metre",
+        LinearUnit::Millimetre => "millimetre",
+        LinearUnit::FootInternational => "foot_international",
+    }
+}
+
+fn decision_policy_label(value: DecisionPolicy) -> &'static str {
+    match value {
+        DecisionPolicy::ReportOnly => "report_only",
+        DecisionPolicy::HardLimit => "hard_limit",
+        DecisionPolicy::StatisticalInterval => "statistical_interval",
+    }
+}
+
+fn normalization_mode_label(value: NormalizationMode) -> &'static str {
+    match value {
+        NormalizationMode::PartialInputOnly => "partial_input_only",
+        NormalizationMode::CandidateBoundsOnly => "candidate_bounds_only",
+        NormalizationMode::ReferenceDerivedFullBounds => "reference_derived_full_bounds",
+    }
+}
+
+fn metric_scope_label(value: MetricScope) -> &'static str {
+    match value {
+        MetricScope::WallOnly => "wall_only",
+        MetricScope::AllElements => "all_elements",
+        MetricScope::StructuralElements => "structural_elements",
+    }
+}
+
+fn accuracy_direction_label(value: AccuracyDirection) -> &'static str {
+    match value {
+        AccuracyDirection::ReferenceToCandidate => "reference_to_candidate",
+        AccuracyDirection::CandidateToReference => "candidate_to_reference",
+        AccuracyDirection::BidirectionalDiagnostic => "bidirectional_diagnostic",
+    }
 }
 
 fn valid_identifier(value: &str) -> bool {
@@ -386,8 +461,11 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
     {
         return Err("sampling profile values must be finite and positive in metres".to_owned());
     }
-    if manifest.sampling_profile.normalization == NormalizationMode::ReferenceDerivedFullBounds {
-        return Err("reference-derived full-object bounds are forbidden in candidate normalization".to_owned());
+    match manifest.sampling_profile.normalization {
+        NormalizationMode::PartialInputOnly | NormalizationMode::CandidateBoundsOnly => {}
+        NormalizationMode::ReferenceDerivedFullBounds => {
+            return Err("reference-derived full-object bounds are forbidden in candidate normalization".to_owned());
+        }
     }
     if !valid_identifier(&manifest.metric_profile.suite_id)
         || !valid_identifier(&manifest.metric_profile.version)
@@ -518,6 +596,11 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
         {
             return Err("scene and group identifiers must be non-empty".to_owned());
         }
+        let _frame_labels = (
+            axis_order_label(scene.coordinate_frame.axis_order),
+            handedness_label(scene.coordinate_frame.handedness),
+            linear_unit_label(scene.coordinate_frame.linear_unit),
+        );
         if !valid_identifier(&scene.coordinate_frame.frame_id)
             || !valid_identifier(&scene.coordinate_frame.crs_id)
             || !valid_identifier(&scene.coordinate_frame.vertical_datum_id)
@@ -803,6 +886,12 @@ fn summarize_scene(scene: &SceneRecord) -> SceneVisibilityAudit {
 
     SceneVisibilityAudit {
         scene_id: scene.scene_id.clone(),
+        coordinate_frame_id: scene.coordinate_frame.frame_id.clone(),
+        crs_id: scene.coordinate_frame.crs_id.clone(),
+        axis_order: axis_order_label(scene.coordinate_frame.axis_order).to_owned(),
+        handedness: handedness_label(scene.coordinate_frame.handedness).to_owned(),
+        linear_unit: linear_unit_label(scene.coordinate_frame.linear_unit).to_owned(),
+        vertical_datum_id: scene.coordinate_frame.vertical_datum_id.clone(),
         building_group_id: scene.building_group_id.clone(),
         capture_group_id: scene.capture_group_id.clone(),
         split_group_id: scene.split_group_id.clone(),
@@ -1038,6 +1127,30 @@ pub fn audit_manifest_bytes(bytes: &[u8]) -> Result<ReplayAuditReport, String> {
     let digest = Sha256::digest(bytes);
     let manifest_sha256 = digest.iter().map(|byte| format!("{byte:02x}")).collect();
 
+    let executable_sha256 = manifest
+        .candidate_runtime_artifacts
+        .iter()
+        .find(|artifact| artifact.artifact_id == manifest.candidate_run.executable_artifact_id)
+        .map(|artifact| artifact.sha256.clone())
+        .ok_or("validated executable artifact disappeared")?;
+    let configuration_sha256 = manifest
+        .candidate_runtime_artifacts
+        .iter()
+        .find(|artifact| artifact.artifact_id == manifest.candidate_run.configuration_artifact_id)
+        .map(|artifact| artifact.sha256.clone())
+        .ok_or("validated configuration artifact disappeared")?;
+    let model_sha256 = manifest
+        .candidate_run
+        .model_artifact_id
+        .as_ref()
+        .and_then(|model_id| {
+            manifest
+                .candidate_runtime_artifacts
+                .iter()
+                .find(|artifact| artifact.artifact_id == *model_id)
+        })
+        .map(|artifact| artifact.sha256.clone());
+
     Ok(ReplayAuditReport {
         schema_version: manifest.schema_version,
         replay_id: manifest.replay_id,
@@ -1048,6 +1161,21 @@ pub fn audit_manifest_bytes(bytes: &[u8]) -> Result<ReplayAuditReport, String> {
         sampling_profile_id: manifest.sampling_profile.profile_id,
         metric_suite_id: manifest.metric_profile.suite_id,
         metric_suite_version: manifest.metric_profile.version,
+        toolchain: manifest.candidate_run.toolchain,
+        command: manifest.candidate_run.command,
+        executable_sha256,
+        configuration_sha256,
+        model_sha256,
+        tolerance_distance_limit_m: manifest.tolerance_profile.surface_distance_limit_m,
+        tolerance_decision_policy: decision_policy_label(manifest.tolerance_profile.decision_policy).to_owned(),
+        reference_surface_spacing_m: manifest.sampling_profile.reference_surface_spacing_m,
+        scan_voxel_size_m: manifest.sampling_profile.scan_voxel_size_m,
+        distance_cutoff_m: manifest.sampling_profile.distance_cutoff_m,
+        normalization_mode: normalization_mode_label(manifest.sampling_profile.normalization).to_owned(),
+        metric_scope: metric_scope_label(manifest.metric_profile.scope).to_owned(),
+        metric_accuracy_direction: accuracy_direction_label(manifest.metric_profile.accuracy_direction).to_owned(),
+        surface_buffer_m: manifest.metric_profile.surface_buffer_m,
+        accuracy_cutoff_m: manifest.metric_profile.accuracy_cutoff_m,
         manifest_sha256,
         scene_count: manifest.scenes.len(),
         candidate_artifact_count: candidate_artifact_count
@@ -1280,6 +1408,14 @@ mod tests {
         assert_eq!(report.evaluator_artifact_count, 2);
         assert_eq!(report.pipeline_id, "synthetic-scan-bim-candidate-v0.2");
         assert_eq!(report.metric_suite_version, "0.2");
+        assert_eq!(
+            report.metric_accuracy_direction,
+            "reference_to_candidate"
+        );
+        assert_eq!(report.tolerance_distance_limit_m, 0.05);
+        assert_eq!(report.scenes[0].linear_unit, "metre");
+        assert_eq!(report.command[0], "scan-bim-candidate");
+        assert_eq!(report.executable_sha256.len(), 64);
     }
 
     #[test]
