@@ -58,17 +58,23 @@ Each candidate binds:
 - units (J, m, N, N*s and dimensionless ratio);
 - model, operating-domain and calibration digests;
 - prediction timestamp and validity deadline;
-- a calibration receipt with evidence digest, verified flag, independent validation-unit count, distribution-family declaration, Gaussian-tail-validation flag and validity interval.
+- a calibration receipt with evidence digest, verified flag, per-constraint independent validation-unit counts, per-constraint one-sided tail-exceedance counts, distribution-family declaration, Gaussian-tail-validation flag and validity interval.
 
 Missing, stale, future, unverified, wrong-domain, wrong-model, wrong-calibration or unsupported-distribution evidence results in **Abstained**, not a numeric safety pass. Heavy-tailed or unvalidated Gaussian tails withdraw the Gaussian chance claim.
 
 Total predictive variance is the quantity used in the bounds. Optional sensor-, process- and model-variance attribution is retained as audit provenance, including a covariance adjustment; the gate does not blindly sum components or discard correlation corrections. The upstream predictor owns the correct total variance calculation.
 
-The calibration receipt flags/digests are caller-supplied trust inputs. This crate checks consistency and freshness but does not cryptographically authenticate the source artifact.
+For each of the five constraints, V0 also requires direct held-out validation of the predicted one-sided bound using independent session/episode units. It computes the exact one-sided 95% Clopper–Pearson upper bound for zero observed tail events:
+
+    p_upper = 1 - 0.05^(1/n)
+
+The upper bound must be no greater than that constraint's Bonferroni allocation. At a 5% family-wise budget (1% per constraint), 299 independent zero-exceedance units are required; 298 are insufficient. V0 deliberately abstains if any tail event is observed or the independent sample is underpowered. Repeated ticks from the same rollout are not independent validation units.
+
+This direct exceedance check is distribution-free under the declared independent/exchangeable validation-unit assumption for the exact stratum and event definition. It validates the supplied quantile bound empirically; it does not prove performance under unobserved distribution shift or establish an operational safety case. Calibration receipt flags/digests remain caller-supplied trust inputs; this crate checks consistency and freshness but does not cryptographically authenticate the source artifact.
 
 ## Implemented tests
 
-Eighteen deterministic fixtures cover:
+Twenty deterministic fixtures cover:
 - standard-normal upper quantiles at multiple tail levels, including 1e-8;
 - exact integer Bonferroni allocation;
 - safe action admission with all five bounds;
@@ -86,6 +92,8 @@ Eighteen deterministic fixtures cover:
 - invalid risk budgets/physical limits;
 - duplicate action rejection;
 - empty prediction set abstention without panic;
+- exact 95% zero-event validation sample threshold (298 underpowered, 299 admitted at 1% allocated risk);
+- abstention on any observed calibration tail event;
 - public quantile invalid-tail input rejection.
 
 Synthetic fixtures validate the declared arithmetic and metadata gate only.
