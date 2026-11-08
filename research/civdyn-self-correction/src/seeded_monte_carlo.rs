@@ -8,9 +8,7 @@
 //! reports Wilson intervals for rates, and freezes CUSUM tuning on disjoint
 //! development seeds before any confirmatory seed is evaluated.
 
-use crate::causal_drift::{
-    CausalDiagnosis, CausalDriftController, CausalRegime, ACTION_COST,
-};
+use crate::causal_drift::{ACTION_COST, CausalDiagnosis, CausalDriftController, CausalRegime};
 
 pub const DEVELOPMENT_SEED_START: u64 = 1;
 pub const DEVELOPMENT_SEED_COUNT: usize = 512;
@@ -231,26 +229,20 @@ fn measured_covariate_stream(regime: CausalRegime, seed: u64) -> [f64; 8] {
     let mut random = XorShift64::new(derive_seed(seed, 0xC0A4_12A7));
     let mut values = [0.0; 8];
     for (index, value) in values.iter_mut().enumerate() {
-        *value = observational_imbalance(regime, index + 1)
-            + random.uniform(COVARIATE_NOISE_AMPLITUDE);
+        *value =
+            observational_imbalance(regime, index + 1) + random.uniform(COVARIATE_NOISE_AMPLITUDE);
     }
     values
 }
 
 fn matched_probe(regime: CausalRegime, tick: usize, seed: u64) -> ProbeEstimate {
     let causal_effect = regime.causal_effect(tick);
-    let mut random = XorShift64::new(derive_seed(
-        seed,
-        0xB70B_E000_u64.wrapping_add(tick as u64),
-    ));
+    let mut random = XorShift64::new(derive_seed(seed, 0xB70B_E000_u64.wrapping_add(tick as u64)));
     let mut differences = Vec::with_capacity(PROBE_PAIRS);
 
     for pair in 0..PROBE_PAIRS {
         let common_cause = ((pair % 17) as f64 - 8.0) * 0.25;
-        let treated = 10.0
-            + common_cause
-            + causal_effect
-            + random.uniform(PROBE_NOISE_AMPLITUDE);
+        let treated = 10.0 + common_cause + causal_effect + random.uniform(PROBE_NOISE_AMPLITUDE);
         let control = 10.0 + common_cause + random.uniform(PROBE_NOISE_AMPLITUDE);
         differences.push(treated - control);
     }
@@ -355,22 +347,16 @@ fn tune_cusum() -> CusumTuningReceipt {
             }
         }
 
-        let candidate = (
-            config,
-            stable_false_alarms,
-            detections,
-            changed_episodes,
-        );
+        let candidate = (config, stable_false_alarms, detections, changed_episodes);
         let better = |left: &(CusumConfig, usize, usize, usize),
                       right: &(CusumConfig, usize, usize, usize)| {
             left.2 * right.3 > right.2 * left.3
                 || (left.2 * right.3 == right.2 * left.3 && left.1 < right.1)
         };
 
-        if best_fallback
-            .as_ref()
-            .is_none_or(|current| candidate.1 < current.1 || (candidate.1 == current.1 && better(&candidate, current)))
-        {
+        if best_fallback.as_ref().is_none_or(|current| {
+            candidate.1 < current.1 || (candidate.1 == current.1 && better(&candidate, current))
+        }) {
             best_fallback = Some(candidate);
         }
 
@@ -383,7 +369,9 @@ fn tune_cusum() -> CusumTuningReceipt {
         }
     }
 
-    let selected = best_eligible.or(best_fallback).expect("CUSUM candidate grid is non-empty");
+    let selected = best_eligible
+        .or(best_fallback)
+        .expect("CUSUM candidate grid is non-empty");
     CusumTuningReceipt {
         config: selected.0,
         development_false_alarms: selected.1,
@@ -610,9 +598,7 @@ fn wilson_interval(successes: usize, total: usize) -> RateInterval {
     let z_squared = z * z;
     let denominator = 1.0 + z_squared / n;
     let center = (p + z_squared / (2.0 * n)) / denominator;
-    let margin = z
-        * ((p * (1.0 - p) / n + z_squared / (4.0 * n * n)).sqrt())
-        / denominator;
+    let margin = z * ((p * (1.0 - p) / n + z_squared / (4.0 * n * n)).sqrt()) / denominator;
 
     RateInterval {
         numerator: successes,
@@ -688,8 +674,7 @@ fn aggregate(
         mean_values(|outcome| outcome.nonpositive_effect_action_ticks as f64);
     let (mean_missed_beneficial_action_ticks, _, _) =
         mean_values(|outcome| outcome.missed_beneficial_action_ticks as f64);
-    let (mean_probe_count, _, _) =
-        mean_values(|outcome| outcome.diagnostic_probe_count as f64);
+    let (mean_probe_count, _, _) = mean_values(|outcome| outcome.diagnostic_probe_count as f64);
     let (mean_net_utility, net_utility_ci_lower_95, net_utility_ci_upper_95) =
         mean_values(|outcome| outcome.net_utility);
     let (mean_oracle_regret, _, _) = mean_values(|outcome| outcome.regret_to_oracle);
@@ -707,9 +692,7 @@ fn aggregate(
         mean_signal_detection_tick: mean_optional(
             outcomes.iter().map(|outcome| outcome.signal_detection_tick),
         ),
-        mean_diagnosis_tick: mean_optional(
-            outcomes.iter().map(|outcome| outcome.diagnosis_tick),
-        ),
+        mean_diagnosis_tick: mean_optional(outcomes.iter().map(|outcome| outcome.diagnosis_tick)),
         mean_active_ticks,
         mean_nonpositive_effect_action_ticks,
         mean_missed_beneficial_action_ticks,
@@ -725,9 +708,7 @@ pub fn run_seeded_confirmatory_benchmark() -> SeededBenchmarkReport {
     let tuning = tune_cusum();
     let mut rows = Vec::with_capacity(CausalRegime::ALL.len() * CausalDriftController::ALL.len());
     let mut replicates = Vec::with_capacity(
-        CausalRegime::ALL.len()
-            * CausalDriftController::ALL.len()
-            * CONFIRMATORY_SEED_COUNT,
+        CausalRegime::ALL.len() * CausalDriftController::ALL.len() * CONFIRMATORY_SEED_COUNT,
     );
 
     for regime in CausalRegime::ALL {
@@ -736,8 +717,8 @@ pub fn run_seeded_confirmatory_benchmark() -> SeededBenchmarkReport {
             .map(|_| Vec::with_capacity(CONFIRMATORY_SEED_COUNT))
             .collect();
 
-        for seed in CONFIRMATORY_SEED_START
-            ..CONFIRMATORY_SEED_START + CONFIRMATORY_SEED_COUNT as u64
+        for seed in
+            CONFIRMATORY_SEED_START..CONFIRMATORY_SEED_START + CONFIRMATORY_SEED_COUNT as u64
         {
             let (observable, truth) = build_evidence(regime, seed);
             for (index, controller) in CausalDriftController::ALL.iter().copied().enumerate() {
@@ -837,10 +818,14 @@ mod tests {
     #[test]
     fn mechanism_aware_controller_has_low_noise_false_diagnosis_and_high_detection() {
         let report = report();
-        let stable = report.rows.iter().find(|row| {
-            row.regime == CausalRegime::StablePositive
-                && row.controller == CausalDriftController::MechanismAware
-        }).expect("stable mechanism-aware aggregate");
+        let stable = report
+            .rows
+            .iter()
+            .find(|row| {
+                row.regime == CausalRegime::StablePositive
+                    && row.controller == CausalDriftController::MechanismAware
+            })
+            .expect("stable mechanism-aware aggregate");
         assert_eq!(stable.false_diagnoses, 0);
         assert_eq!(stable.missed_diagnoses, 0);
 
@@ -850,10 +835,13 @@ mod tests {
             CausalRegime::ConfoundedNull,
             CausalRegime::ConfounderShift,
         ] {
-            let row = report.rows.iter().find(|row| {
-                row.regime == regime
-                    && row.controller == CausalDriftController::MechanismAware
-            }).expect("mechanism-aware aggregate");
+            let row = report
+                .rows
+                .iter()
+                .find(|row| {
+                    row.regime == regime && row.controller == CausalDriftController::MechanismAware
+                })
+                .expect("mechanism-aware aggregate");
             assert!(
                 row.correct_diagnoses.rate >= 0.95,
                 "{} diagnosis rate was {:.4}",
@@ -862,24 +850,36 @@ mod tests {
             );
         }
 
-        let stable_cusum = report.rows.iter().find(|row| {
-            row.regime == CausalRegime::StablePositive
-                && row.controller == CausalDriftController::CusumSignalOnly
-        }).expect("stable CUSUM aggregate");
+        let stable_cusum = report
+            .rows
+            .iter()
+            .find(|row| {
+                row.regime == CausalRegime::StablePositive
+                    && row.controller == CausalDriftController::CusumSignalOnly
+            })
+            .expect("stable CUSUM aggregate");
         assert!(stable_cusum.signal_alarm.upper_95 <= 0.01);
     }
 
     #[test]
     fn mechanism_aware_controller_preserves_beneficial_action_after_confounder_shift() {
         let report = report();
-        let mechanism_aware = report.rows.iter().find(|row| {
-            row.regime == CausalRegime::ConfounderShift
-                && row.controller == CausalDriftController::MechanismAware
-        }).expect("mechanism-aware confounder-shift aggregate");
-        let signal_only = report.rows.iter().find(|row| {
-            row.regime == CausalRegime::ConfounderShift
-                && row.controller == CausalDriftController::CusumSignalOnly
-        }).expect("signal-only confounder-shift aggregate");
+        let mechanism_aware = report
+            .rows
+            .iter()
+            .find(|row| {
+                row.regime == CausalRegime::ConfounderShift
+                    && row.controller == CausalDriftController::MechanismAware
+            })
+            .expect("mechanism-aware confounder-shift aggregate");
+        let signal_only = report
+            .rows
+            .iter()
+            .find(|row| {
+                row.regime == CausalRegime::ConfounderShift
+                    && row.controller == CausalDriftController::CusumSignalOnly
+            })
+            .expect("signal-only confounder-shift aggregate");
         assert_eq!(mechanism_aware.missed_diagnoses, 0);
         assert!(
             mechanism_aware.mean_missed_beneficial_action_ticks
