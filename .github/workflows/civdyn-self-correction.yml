@@ -151,6 +151,7 @@ jobs:
               if ($3 == "stable_positive" || $3 == "confounder_shift") {
                 alt_rows[$7, $3]++
                 if ($8 == "benefit_established") correct[$7, $3]++
+                if ($8 == "harmful_effect_established") false_stop[$7, $3]++
               }
               if ($3 == "sign_reversal" || $3 == "gradual_sign_reversal") {
                 alt_rows[$7, $3]++
@@ -172,6 +173,7 @@ jobs:
                 method_count++
                 if (methods[m] != 1280) exit 65
                 if (null_rows[m] != 256 || false_action[m] > 12) exit 66
+                if (false_stop[m, "stable_positive"] > 0 || false_stop[m, "confounder_shift"] > 0) exit 72
                 if (alt_rows[m, "stable_positive"] != 256 || correct[m, "stable_positive"] < 250) exit 67
                 if (alt_rows[m, "sign_reversal"] != 256 || correct[m, "sign_reversal"] < 250) exit 68
                 if (alt_rows[m, "gradual_sign_reversal"] != 256 || correct[m, "gradual_sign_reversal"] < 250) exit 69
@@ -180,6 +182,6 @@ jobs:
                 if (mean_cost <= 0.70 * 2048) efficient++
               }
               if (method_count != 5 || efficient < 1) exit 71
-              print "Sequential portfolio valid: 6,400 receipts; identical stream digests; 256 seeds per regime; false null actions <=13/256; at least one method saves >=30% samples on alternatives"
+              print "Sequential portfolio valid: 6,400 receipts; identical stream digests; 256 seeds per regime; false null actions <=12/256; no false harmful stop on positive/confounder-shift regimes; at least one method saves >=30% samples on alternatives"
             }
           ' /tmp/civdyn-sequential-methods.csv
