@@ -12,6 +12,7 @@
 
 pub mod causal_drift;
 pub mod noisy_causal_drift;
+pub mod sequential_inference;
 
 use civdyn_resource_ledger::{
     Production, Region, ResourceVector, StepInput, StepReport, TransferPolicy, TransferRequest,

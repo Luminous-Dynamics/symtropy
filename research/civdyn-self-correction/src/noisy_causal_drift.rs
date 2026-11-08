@@ -82,27 +82,68 @@ pub struct MatchedProbeEstimate {
     pub sample_pairs: usize,
 }
 
-fn matched_probe(regime: CausalRegime, tick: usize, rng: &mut SplitMix64) -> MatchedProbeEstimate {
-    // The same confounder value is used for both members of every randomized
-    // pair. Treatment assignment is balanced within pair; independent outcome
-    // noise remains. This is the synthetic randomized-probe design.
-    const CONFOUNDER_VALUES: [f64; 8] = [-3.0, -2.0, -1.0, 0.0, 0.0, 1.0, 2.0, 3.0];
-    let mut sum = 0.0;
-    let mut sum_squares = 0.0;
+/// A deterministic, prefix-readable stream of matched treatment/control
+/// differences. An anytime-valid test can stop consuming observations without
+/// materializing the unused tail of the stream.
+pub struct PairedDifferenceStream {
+    regime: CausalRegime,
+    tick: usize,
+    rng: SplitMix64,
+    index: usize,
+    pair_count: usize,
+}
 
-    for pair_index in 0..MATCHED_PAIRS_PER_LOOK {
-        let confounder = CONFOUNDER_VALUES[pair_index % CONFOUNDER_VALUES.len()];
-        let treatment_noise = rng.normal(OUTCOME_NOISE_STANDARD_DEVIATION);
-        let control_noise = rng.normal(OUTCOME_NOISE_STANDARD_DEVIATION);
-        let treatment_outcome = 10.0 + confounder + regime.causal_effect(tick) + treatment_noise;
+impl Iterator for PairedDifferenceStream {
+    type Item = f64;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.index >= self.pair_count {
+            return None;
+        }
+        const CONFOUNDER_VALUES: [f64; 8] = [-3.0, -2.0, -1.0, 0.0, 0.0, 1.0, 2.0, 3.0];
+        let confounder = CONFOUNDER_VALUES[self.index % CONFOUNDER_VALUES.len()];
+        self.index += 1;
+        let treatment_noise = self.rng.normal(OUTCOME_NOISE_STANDARD_DEVIATION);
+        let control_noise = self.rng.normal(OUTCOME_NOISE_STANDARD_DEVIATION);
+        let treatment_outcome =
+            10.0 + confounder + self.regime.causal_effect(self.tick) + treatment_noise;
         let control_outcome = 10.0 + confounder + control_noise;
-        let difference = treatment_outcome - control_outcome;
-        sum += difference;
-        sum_squares += difference * difference;
+        Some(treatment_outcome - control_outcome)
     }
 
-    let n = MATCHED_PAIRS_PER_LOOK as f64;
-    let mean = sum / n;
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let remaining = self.pair_count.saturating_sub(self.index);
+        (remaining, Some(remaining))
+    }
+}
+
+/// Generate a replayable matched-pair stream. Every method using the same
+/// (regime, tick, seed_index) receives identical nested prefixes.
+pub fn paired_difference_stream(
+    regime: CausalRegime,
+    tick: usize,
+    seed_index: usize,
+    pair_count: usize,
+) -> Option<PairedDifferenceStream> {
+    if pair_count < 2 {
+        return None;
+    }
+    const LOOK_SEED_MIX: u64 = 0xd6e8_feb8_6659_fd93;
+    let look_seed =
+        noisy_episode_seed(regime, seed_index) ^ (tick as u64).wrapping_mul(LOOK_SEED_MIX);
+    Some(PairedDifferenceStream {
+        regime,
+        tick,
+        rng: SplitMix64::new(look_seed),
+        index: 0,
+        pair_count,
+    })
+}
+
+fn summarize_matched_differences(differences: &[f64]) -> MatchedProbeEstimate {
+    let n = differences.len() as f64;
+    let mean = differences.iter().sum::<f64>() / n;
+    let sum_squares = differences.iter().map(|value| value * value).sum::<f64>();
     let sample_variance = ((sum_squares - n * mean * mean) / (n - 1.0)).max(0.0);
     let standard_error = (sample_variance / n).sqrt();
     let margin = FAMILYWISE_CRITICAL_VALUE * standard_error;
@@ -112,8 +153,16 @@ fn matched_probe(regime: CausalRegime, tick: usize, rng: &mut SplitMix64) -> Mat
         standard_error,
         lower_bound: mean - margin,
         upper_bound: mean + margin,
-        sample_pairs: MATCHED_PAIRS_PER_LOOK,
+        sample_pairs: differences.len(),
     }
+}
+
+fn matched_probe(regime: CausalRegime, tick: usize, seed_index: usize) -> MatchedProbeEstimate {
+    let differences: Vec<f64> =
+        paired_difference_stream(regime, tick, seed_index, MATCHED_PAIRS_PER_LOOK)
+            .expect("the frozen matched-pair sample size is greater than one")
+            .collect();
+    summarize_matched_differences(&differences)
 }
 
 #[derive(Debug, Clone, Copy, Default)]
@@ -224,7 +273,7 @@ fn correction_trace(
     ]
 }
 
-fn scenario_seed(regime: CausalRegime, seed_index: usize) -> u64 {
+pub fn noisy_episode_seed(regime: CausalRegime, seed_index: usize) -> u64 {
     let regime_index = CausalRegime::ALL
         .iter()
         .position(|candidate| *candidate == regime)
@@ -235,8 +284,7 @@ fn scenario_seed(regime: CausalRegime, seed_index: usize) -> u64 {
 }
 
 pub fn run_noisy_causal_drift(regime: CausalRegime, seed_index: usize) -> NoisyCausalDriftOutcome {
-    let seed = scenario_seed(regime, seed_index);
-    let mut rng = SplitMix64::new(seed);
+    let seed = noisy_episode_seed(regime, seed_index);
     let mut cusum = NoisyCusum::default();
     let mut policy_enabled = true;
     let mut active_ticks = 0;
@@ -273,7 +321,7 @@ pub fn run_noisy_causal_drift(regime: CausalRegime, seed_index: usize) -> NoisyC
             && tick % (CAUSAL_DRIFT_TICKS / MAX_PREDECLARED_LOOKS) == 0
         {
             probe_looks += 1;
-            let estimate = matched_probe(regime, tick, &mut rng);
+            let estimate = matched_probe(regime, tick, seed_index);
             final_probe = Some(estimate);
 
             let identified = if estimate.upper_bound <= 0.0 {
