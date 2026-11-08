@@ -1651,8 +1651,10 @@ mod tests {
             serde_json::json!("final_results_paper2021");
         value["metric_profile"]["accuracy_direction"] = serde_json::json!("candidate_to_reference");
         value["metric_profile"]["sample_strategy"] = serde_json::json!("source_surface_samples");
+        value["metric_profile"]["correspondence_policy"] =
+            serde_json::json!("unresolved_until_reference_method_reproduction");
         let report =
-            audit(&value).expect("paper-specific profile should be explicit and reproducible");
+            audit(&value).expect("paper-specific profile remains explicitly method-unresolved");
         assert_eq!(report.metric_accuracy_direction, "candidate_to_reference");
         assert_eq!(
             report.metric_definition_authority,
@@ -1661,6 +1663,10 @@ mod tests {
         assert_eq!(
             report.metric_accuracy_sample_strategy,
             "source_surface_samples"
+        );
+        assert_eq!(
+            report.metric_correspondence_policy,
+            "unresolved_until_reference_method_reproduction"
         );
     }
 
@@ -1673,11 +1679,17 @@ mod tests {
             serde_json::json!("evaluation_framework2018");
         value["metric_profile"]["accuracy_direction"] = serde_json::json!("candidate_to_reference");
         value["metric_profile"]["sample_strategy"] = serde_json::json!("source_surface_vertices");
+        value["metric_profile"]["correspondence_policy"] =
+            serde_json::json!("orthogonal_projection_inside_triangle");
         let report =
-            audit(&value).expect("2018 framework's source vertices must be separately recorded");
+            audit(&value).expect("2018 framework's source vertices and projection rule must be separately recorded");
         assert_eq!(
             report.metric_accuracy_sample_strategy,
             "source_surface_vertices"
+        );
+        assert_eq!(
+            report.metric_correspondence_policy,
+            "orthogonal_projection_inside_triangle"
         );
     }
 
@@ -1692,11 +1704,17 @@ mod tests {
             serde_json::json!("bidirectional_diagnostic");
         value["metric_profile"]["sample_strategy"] =
             serde_json::json!("both_directions_diagnostic");
+        value["metric_profile"]["correspondence_policy"] =
+            serde_json::json!("bidirectional_diagnostic");
         let report = audit(&value).expect("both directed distances may be retained as diagnostics");
         assert_eq!(report.metric_accuracy_direction, "bidirectional_diagnostic");
         assert_eq!(
             report.metric_accuracy_sample_strategy,
             "both_directions_diagnostic"
+        );
+        assert_eq!(
+            report.metric_correspondence_policy,
+            "bidirectional_diagnostic"
         );
     }
 
@@ -1710,6 +1728,27 @@ mod tests {
         value["metric_profile"]["accuracy_direction"] = serde_json::json!("reference_to_candidate");
         let report = audit(&value).expect("official profile direction and wall scope are valid");
         assert_eq!(report.metric_suite_id, "isprs_indoor_modelling_wall");
+        assert_eq!(
+            report.metric_correspondence_policy,
+            "euclidean_closest_point_on_triangle"
+        );
+    }
+
+    #[test]
+    fn rejects_official_results_page_when_plane_projection_policy_is_used() {
+        let mut value = isprs_pair_fixture();
+        value["metric_profile"]["suite_id"] = serde_json::json!("isprs_indoor_modelling_wall");
+        value["metric_profile"]["scope"] = serde_json::json!("wall_only");
+        value["metric_profile"]["definition_authority"] =
+            serde_json::json!("official_results_page");
+        value["metric_profile"]["accuracy_direction"] =
+            serde_json::json!("reference_to_candidate");
+        value["metric_profile"]["sample_strategy"] =
+            serde_json::json!("reference_surface_samples");
+        value["metric_profile"]["correspondence_policy"] =
+            serde_json::json!("orthogonal_projection_inside_triangle");
+        let error = audit(&value).expect_err("official closest-surface scoring must not use plane-only correspondence");
+        assert!(error.contains("correspondence policy"));
     }
 
     #[test]
