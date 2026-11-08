@@ -12,6 +12,7 @@ Standalone, dependency-free Rust evaluator for deterministic City Power 2026/27 
 - Requires exactly 12 contiguous prior monthly peak-demand records for the rolling demand ratchet.
 - Accepts the Business/LPU account surcharge and VAT only as externally assessed invoice lines with evidence references. It does not guess their bases or hardcode VAT.
 - Returns INCOMPLETE_INVOICE_RECONCILIATION and a known-component subtotal whenever a bill line is unknown.
+- Includes a full synthetic July 2026 counterexample: moving 230 kWh of weekday load from winter peak to off-peak lowers the energy-charge component by R1,301.34 while total kWh and billed kVA remain unchanged; unknown Business/LPU and VAT lines keep the invoice total absent.
 
 The 70 kVA minimum demand floor and the 70–1,000 kVA LV LPU service-connection range are not TOU eligibility rules. The Industrial TOU tariff clause 5.4.3 uses a strict >100 kVA supply-capacity gate plus application/approval.
 
