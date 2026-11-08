@@ -27,6 +27,8 @@ Different engine classes serve different regimes. A launch-stage chemical engine
 
 ESA reported on 2026-11-06 that Prometheus completed several hot-fire tests at DLR's P5 test bench on 2026-10-29. The engine uses liquid oxygen and methane; the tested campaign included a combustion chamber manufactured with cold-gas-spray additive processing. ESA reported repeated restarts without a high-pressure starter system, using engine inlet pressures. Prometheus is in development, not a flight-proven reusable operational engine; its next campaign is planned for the improved Mark 2 version.
 
+DLR's 2026-11-06 report adds an important test-sequence detail: the modernised P5 stand ran several methane/oxygen ignitions within one test day at stable operating points, with up to five ignitions in a day. Between hot runs, the stand and supply system must be shut down, drained, purged and restored to required pressure/temperature conditions. Therefore, report engine start/restart performance separately from facility turnaround, purge/reset reliability and test-sequence automation. This is ground-test evidence, not a count of successful in-flight restarts or reusable flights.
+
 This is a strong reference for:
 - LOX/methane system integration;
 - repeat-start and ignition-system simplification;
@@ -42,7 +44,7 @@ Sources:
 
 ### 2.2 Additive manufacturing and integrated thrust chambers
 
-NASA's RAMPT programme reports more than 16,000 seconds of hot-fire testing and nearly 500 starts across its integrated chamber/nozzle hardware, at multiple thrust levels. It reports composite-overwrapped chamber work and a 35% mass-saving result for a particular demonstrated approach. These are programme-level results across various hardware; they must not be attributed to one engine configuration or interpreted as a universal production/flight qualification.
+NASA's RAMPT programme reports more than 16,000 seconds of hot-fire testing and nearly 500 starts across its integrated chamber/nozzle hardware, at multiple thrust levels. It reports composite-overwrapped chamber work and a 35% mass-saving result for a particular demonstrated approach. These are programme-level results across various hardware; they must not be attributed to one engine configuration or interpreted as a universal production/flight qualification. NASA's current RAMPT page separately describes up to 40% weight savings for a specific carbon-fibre composite wrap versus a metal jacket, and lists a 35% mass-savings milestone under the programme achievements. Preserve both as configuration-specific claims with different stated baselines; do not average them or promote either to a universal thrust-chamber result.
 
 Reference: NASA, Rapid Analysis and Manufacturing Propulsion Technology (RAMPT): https://www.nasa.gov/rapid-analysis-and-manufacturing-propulsion-technology/
 
@@ -55,6 +57,10 @@ Reference: NASA Technology Transfer, “A One-piece Liquid Rocket Thrust Chamber
 NASA's 2026 State-of-the-Art of Small Spacecraft Technology report organizes procurable and emerging propulsion into chemical, electric and propellantless categories. The report explicitly warns that public device specifications may be incomplete, inconsistent or unverified, and that a device's maturity depends on the mission environment, duty cycle, propellant throughput, burn duration, number of cycles, radiation and interfaces.
 
 Its propulsion chapter is an important comparison corpus, but manufacturer-published or NASA-tabulated values are not automatically independent test results.
+
+A useful new frontier appeared in 2026: Muon Space announced that its Starlight zinc-propellant Hall-effect thruster fired in orbit on 2026-07-01 aboard its SERT-III test spacecraft, with the announcement published 2026-09-10. The company says orbital tracking confirmed a measurable thrust-induced orbit change. Treat this as a **vendor-announced on-orbit demonstration**, not as independently verified performance or life qualification until the telemetry, orbit-determination method, calibration and full burn data are independently reviewed. The published announcement is useful for a system-architecture comparison: solid metal propellant may reduce high-pressure storage burden and rare-gas supply dependence, but feed mechanism, thermal control, erosion, plume effects, total impulse, lifetime and mission fit need quantitative evidence.
+
+Reference (vendor announcement, not independent validation): https://www.muonspace.com/muon-space-achieves-world-first-zinc-propellant-hall-effect-thruster-successfully-fires-in-space/
 
 References:
 - NASA 2026 State of the Art: https://www.nasa.gov/smallsat-institute/sst-soa/
@@ -122,7 +128,15 @@ Co-design the component, process, inspection and service-life evidence:
 
 A printed coupon does not qualify a chamber. A successful chamber hot-fire does not automatically qualify a full engine. An engine hot-fire does not qualify a reusable stage or fleet.
 
-### 3.4 Treat a test campaign as a sequential information problem
+### 3.4 Qualify the test system and reset state, not just the engine
+
+A repeated ignition is a coupled engine + facility event. Every campaign record should capture the engine hardware identity and the stand configuration, instrumentation/calibration, propellant conditioning, supply pressure/temperature, purge/drain procedure, reset duration, operator/automation sequence, facility alarms and aborts. Count successful starts per hardware unit separately from campaign-wide starts across multiple articles. Measure restart probability conditional on thermal state, prior cycle, turnaround interval and reset sequence. Include negative controls for incomplete purge, incorrect inlet conditioning, sensor drift and mismatched hardware revisions. Never infer flight reuse or fleet reliability from a one-day stand demonstration.
+
+### 3.5 Make propellant logistics a first-class design variable
+
+Compare total system burden rather than propellant price or Isp alone: stored propellant mass, tank/containment mass, pressurization, thermal conditioning, feed hardware, loading and ground handling, toxicology/safety controls, supply-chain concentration, residuals and end-of-life disposal. Solid-metal electric-propulsion concepts deserve a fair system-level comparison against xenon/krypton, but a lower storage burden does not establish lower total mission mass, better lifetime or lower cost until quantitative feed, thermal, erosion and flight data exist.
+
+### 3.6
 
 Use Symthaea's existing HAZARD-VOI-001 (#8192) and active-learning/value-of-information foundations to select the next test that most improves a consequential engineering decision. Examples include a thermal-cycle test, CT scan, flow test, hot-fire run, restart sequence, vibration test or material characterization.
 
@@ -359,6 +373,8 @@ This is civil, scientific and commercial space engineering. It is not a military
 - NASA one-piece liquid rocket thrust chamber assembly: https://technology.nasa.gov/advancing-commercial-space/transportation_systems
 - NASA 2026 Small Spacecraft State of the Art: https://www.nasa.gov/smallsat-institute/sst-soa/
 - NASA 2026 in-space propulsion: https://www.nasa.gov/smallsat-institute/sst-soa/in-space_propulsion/
+- DLR Prometheus multi-ignition test-sequence report (2026-11-06): https://www.dlr.de/en/latest/news/2026/prometheus-test-marks-significant-milestone-for-reusable-rocket-engines
+- Muon Space Starlight zinc Hall-effect thruster on-orbit announcement (2026-09-10; vendor report): https://www.muonspace.com/muon-space-achieves-world-first-zinc-propellant-hall-effect-thruster-successfully-fires-in-space/
 - NASA-STD-5012C: https://standards.nasa.gov/standard/NASA/NASA-STD-5012
 - NASA OIG propulsion test programme report: https://oig.nasa.gov/wp-content/uploads/2024/09/ig-24-018.pdf
 
