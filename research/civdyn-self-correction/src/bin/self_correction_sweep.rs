@@ -22,8 +22,8 @@ fn optional_ticks(value: Option<usize>) -> String {
     value.map(|ticks| ticks.to_string()).unwrap_or_default()
 }
 
-fn common(
-    scenario: &str,
+struct CsvRecord {
+    scenario: &'static str,
     controller: ControllerKind,
     minimum_household_coverage: f64,
     household_unmet_m3: f64,
@@ -44,82 +44,94 @@ fn common(
     trace_event_count: usize,
     maximum_water_residual_m3: f64,
     maximum_energy_residual_kwh: f64,
-) -> Vec<String> {
-    vec![
-        scenario.to_string(),
-        controller.name().to_string(),
-        number(minimum_household_coverage),
-        number(household_unmet_m3),
-        optional_number(industry_unmet_m3),
-        number(unnecessary_dispatch_m3),
-        number(reserve_before_m3),
-        optional_number(reserve_after_growth_m3),
-        optional_number(reserve_after_recovery_m3),
-        number(reserve_after_scenario_m3),
-        number(maintenance_energy_kwh),
-        number(maintenance_energy_unmet_kwh),
-        optional_number(counterfactual_industry_on_m3),
-        optional_number(counterfactual_industry_off_m3),
-        optional_number(counterfactual_no_maintenance_m3),
-        mechanism_identified.to_string(),
-        optional_ticks(correction_latency_ticks),
-        trace_valid.to_string(),
-        trace_event_count.to_string(),
-        number(maximum_water_residual_m3),
-        number(maximum_energy_residual_kwh),
-    ]
+}
+
+impl CsvRecord {
+    fn into_fields(self) -> Vec<String> {
+        vec![
+            self.scenario.to_string(),
+            self.controller.name().to_string(),
+            number(self.minimum_household_coverage),
+            number(self.household_unmet_m3),
+            optional_number(self.industry_unmet_m3),
+            number(self.unnecessary_dispatch_m3),
+            number(self.reserve_before_m3),
+            optional_number(self.reserve_after_growth_m3),
+            optional_number(self.reserve_after_recovery_m3),
+            number(self.reserve_after_scenario_m3),
+            number(self.maintenance_energy_kwh),
+            number(self.maintenance_energy_unmet_kwh),
+            optional_number(self.counterfactual_industry_on_m3),
+            optional_number(self.counterfactual_industry_off_m3),
+            optional_number(self.counterfactual_no_maintenance_m3),
+            self.mechanism_identified.to_string(),
+            optional_ticks(self.correction_latency_ticks),
+            self.trace_valid.to_string(),
+            self.trace_event_count.to_string(),
+            number(self.maximum_water_residual_m3),
+            number(self.maximum_energy_residual_kwh),
+        ]
+    }
 }
 
 fn sensor_row(outcome: &SensorDriftOutcome) -> Vec<String> {
-    common(
-        "sensor_drift_sham",
-        outcome.controller,
-        outcome.minimum_true_household_coverage,
-        outcome.household_unmet_m3,
-        None,
-        outcome.unnecessary_dispatch_m3,
-        outcome.reserve_before_m3,
-        None,
-        None,
-        outcome.reserve_after_m3,
-        0.0,
-        0.0,
-        None,
-        None,
-        None,
-        outcome.mechanism_identified,
-        outcome.correction_latency_ticks,
-        outcome.trace_valid,
-        outcome.trace.len(),
-        outcome.maximum_water_residual_m3,
-        outcome.maximum_energy_residual_kwh,
-    )
+    CsvRecord {
+        scenario: "sensor_drift_sham",
+        controller: outcome.controller,
+        minimum_household_coverage: outcome.minimum_true_household_coverage,
+        household_unmet_m3: outcome.household_unmet_m3,
+        industry_unmet_m3: None,
+        unnecessary_dispatch_m3: outcome.unnecessary_dispatch_m3,
+        reserve_before_m3: outcome.reserve_before_m3,
+        reserve_after_growth_m3: None,
+        reserve_after_recovery_m3: None,
+        reserve_after_scenario_m3: outcome.reserve_after_m3,
+        maintenance_energy_kwh: 0.0,
+        maintenance_energy_unmet_kwh: 0.0,
+        counterfactual_industry_on_m3: None,
+        counterfactual_industry_off_m3: None,
+        counterfactual_no_maintenance_m3: None,
+        mechanism_identified: outcome.mechanism_identified,
+        correction_latency_ticks: outcome.correction_latency_ticks,
+        trace_valid: outcome.trace_valid,
+        trace_event_count: outcome.trace.len(),
+        maximum_water_residual_m3: outcome.maximum_water_residual_m3,
+        maximum_energy_residual_kwh: outcome.maximum_energy_residual_kwh,
+    }
+    .into_fields()
 }
 
 fn delayed_row(outcome: &DelayedExternalityOutcome) -> Vec<String> {
-    common(
-        "delayed_externality",
-        outcome.controller,
-        outcome.minimum_household_coverage,
-        outcome.household_unmet_m3,
-        Some(outcome.industry_unmet_m3),
-        0.0,
-        outcome.reserve_before_m3,
-        Some(outcome.reserve_after_growth_m3),
-        Some(outcome.reserve_after_recovery_m3),
-        outcome.reserve_after_repeated_shock_m3,
-        outcome.maintenance_energy_kwh,
-        outcome.maintenance_energy_unmet_kwh,
-        Some(outcome.counterfactual_household_unmet_industry_on_m3),
-        Some(outcome.counterfactual_household_unmet_industry_off_m3),
-        Some(outcome.counterfactual_without_maintenance_household_unmet_m3),
-        outcome.mechanism_identified,
-        outcome.correction_latency_ticks,
-        outcome.trace_valid,
-        outcome.trace.len(),
-        outcome.maximum_water_residual_m3,
-        outcome.maximum_energy_residual_kwh,
-    )
+    CsvRecord {
+        scenario: "delayed_externality",
+        controller: outcome.controller,
+        minimum_household_coverage: outcome.minimum_household_coverage,
+        household_unmet_m3: outcome.household_unmet_m3,
+        industry_unmet_m3: Some(outcome.industry_unmet_m3),
+        unnecessary_dispatch_m3: 0.0,
+        reserve_before_m3: outcome.reserve_before_m3,
+        reserve_after_growth_m3: Some(outcome.reserve_after_growth_m3),
+        reserve_after_recovery_m3: Some(outcome.reserve_after_recovery_m3),
+        reserve_after_scenario_m3: outcome.reserve_after_repeated_shock_m3,
+        maintenance_energy_kwh: outcome.maintenance_energy_kwh,
+        maintenance_energy_unmet_kwh: outcome.maintenance_energy_unmet_kwh,
+        counterfactual_industry_on_m3: Some(
+            outcome.counterfactual_household_unmet_industry_on_m3,
+        ),
+        counterfactual_industry_off_m3: Some(
+            outcome.counterfactual_household_unmet_industry_off_m3,
+        ),
+        counterfactual_no_maintenance_m3: Some(
+            outcome.counterfactual_without_maintenance_household_unmet_m3,
+        ),
+        mechanism_identified: outcome.mechanism_identified,
+        correction_latency_ticks: outcome.correction_latency_ticks,
+        trace_valid: outcome.trace_valid,
+        trace_event_count: outcome.trace.len(),
+        maximum_water_residual_m3: outcome.maximum_water_residual_m3,
+        maximum_energy_residual_kwh: outcome.maximum_energy_residual_kwh,
+    }
+    .into_fields()
 }
 
 fn emit(fields: Vec<String>) {
