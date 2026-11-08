@@ -145,11 +145,12 @@ mod tests {
 
     #[test] fn fixture_is_valid_and_aircraft_scope_is_unassessed() {
         let r = validate_register(FIXTURE).unwrap();
-        assert_eq!(r.len(), 10);
+        assert_eq!(r.len(), 11);
         assert!(r.iter().all(|x| matches!(x.airborne_applicability.as_str(), "UNASSESSED"|"UNKNOWN")));
         assert_eq!(r.iter().filter(|x| x.lifecycle_status == "ACTIVE_PAR").count(), 1);
         assert!(r.iter().any(|x| x.document_id == "South Africa National Radio Frequency Plan 2026 (GG 55048; Notice 4044)"));
         assert!(r.iter().any(|x| x.document_id == "GG 48643 Notice 1822 (23 May 2023) Annex B amendment" && x.airborne_applicability == "UNKNOWN"));
+        assert!(r.iter().any(|x| x.document_id == "South Africa National Radio Frequency Plan 2026 — 84–86 kHz allocation (GG 55048; Notice 4044)" && x.airborne_applicability == "UNKNOWN"));
     }
     #[test] fn published_standard_cannot_be_relabelled_active_par() {
         let bad = FIXTURE.replace("\tSTANDARD\tACTIVE_STANDARD\t", "\tACTIVE_PAR\tACTIVE_PAR\t");
