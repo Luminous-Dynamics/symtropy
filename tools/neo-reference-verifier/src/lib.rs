@@ -42,12 +42,14 @@ pub fn validate_case(case: &Value) -> Result<(), String> {
     }
 
     let target = required(case, "target")?;
+    string(target, "designation")?;
     if string(target, "name")? != "Dimorphos" ||
        string(target, "primary")? != "65803 Didymos" {
         return Err("unexpected target identity".into());
     }
 
     let event = required(case, "event")?;
+    string(event, "epoch_utc")?;
     if string(event, "event_type")? != "kinetic_impact" ||
        string(event, "mission")? != "NASA Double Asteroid Redirection Test (DART)" {
         return Err("unexpected event identity".into());
@@ -69,7 +71,7 @@ pub fn validate_case(case: &Value) -> Result<(), String> {
         }
     }
     if source_ids.len() < 2 {
-        return Err("at least two independent source records are required".into());
+        return Err("at least two separately identified source records are required".into());
     }
 
     let observables = required(case, "reference_observables")?
@@ -136,6 +138,10 @@ pub fn validate_case(case: &Value) -> Result<(), String> {
        string(beta, "unit")? != "dimensionless" ||
        !approx(number(beta, "value")?, 3.61, 1e-9) {
         return Err("conditional beta reference anchor changed".into());
+    }
+    let beta_source_id = string(beta, "source_id")?;
+    if !source_ids.contains(beta_source_id) {
+        return Err("beta inference source_id is not present in sources".into());
     }
     let asym = required(beta, "asymmetric_uncertainty")?;
     if !approx(number(asym, "lower")?, 0.25, 1e-9) ||
@@ -216,6 +222,13 @@ mod tests {
     fn rejects_missing_source_record() {
         let mut case = fixture();
         case["reference_observables"][0]["source_id"] = json!("not-in-source-table");
+        assert!(validate_case(&case).is_err());
+    }
+
+    #[test]
+    fn rejects_beta_without_source_record() {
+        let mut case = fixture();
+        case["derived_inferences"][0]["source_id"] = json!("missing-beta-source");
         assert!(validate_case(&case).is_err());
     }
 
