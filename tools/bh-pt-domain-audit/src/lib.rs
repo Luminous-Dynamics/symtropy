@@ -134,11 +134,15 @@ impl PoschlTellerModel {
         }
     }
 
-    /// Dimensional QNM frequency: omega_n^± = [-i(n+1/2) ± i nu] / b.
+    /// Dimensional QNM frequency:
+    /// omega_n^± = [-i(n+1/2) ± sqrt(lambda-1/4)] / b.
+    ///
+    /// The principal square root fixes the plus branch to positive real
+    /// frequency above threshold and to the less-damped branch below it.
     /// A branch coincidence at lambda=1/4 is not by itself an EP diagnosis.
     pub fn qnm_frequency(self, n: u32, branch: QnmBranch) -> Complex64 {
         let base = Complex64::new(0.0, -(f64::from(n) + 0.5));
-        let split = Complex64::new(0.0, 1.0) * self.nu;
+        let split = Complex64::new(self.lambda - 0.25, 0.0).sqrt();
         let signed_split = match branch {
             QnmBranch::Plus => split,
             QnmBranch::Minus => -split,
@@ -223,7 +227,18 @@ mod tests {
         assert!((plus.re + minus.re).abs() < 1e-14);
         assert!((plus.im + 0.5).abs() < 1e-14);
         assert!((minus.im + 0.5).abs() < 1e-14);
-        assert!((plus.re.abs() - 0.5_f64.sqrt()).abs() < 1e-14);
+        assert!((plus.re - 0.5_f64.sqrt()).abs() < 1e-14);
+        assert!((minus.re + 0.5_f64.sqrt()).abs() < 1e-14);
+    }
+
+    #[test]
+    fn subthreshold_plus_branch_is_the_less_damped_branch() {
+        let m = model(1.0, 0.125);
+        let plus = m.qnm_frequency(0, QnmBranch::Plus);
+        let minus = m.qnm_frequency(0, QnmBranch::Minus);
+        assert!(plus.im < 0.0);
+        assert!(minus.im < 0.0);
+        assert!(plus.im > minus.im);
     }
 
     #[test]
