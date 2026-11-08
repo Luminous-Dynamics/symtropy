@@ -825,23 +825,26 @@ mod tests {
         assert_eq!(passive.energy_uj, 0);
         assert!(passive.duration_us > 0);
 
+        let tab = char::from(9);
+        let newline = char::from(10);
         let mut rows: Vec<String> = FIXTURE.lines().map(str::to_string).collect();
-        let mut fields: Vec<String> = rows.last().unwrap().split('	').map(str::to_string).collect();
+        let mut fields: Vec<String> = rows.last().unwrap().split(tab).map(str::to_string).collect();
         fields[14] = "0".to_string();
-        rows[rows.len()-1] = fields.join("	");
-        let bad = rows.join("
-");
+        let last = rows.len() - 1;
+        rows[last] = fields.join(&tab.to_string());
+        let bad = rows.join(&newline.to_string());
         assert!(parse_case(&bad).is_err());
     }
 
     #[test]
     fn unknown_action_kind_fails_closed() {
+        let tab = char::from(9);
+        let newline = char::from(10);
         let mut rows: Vec<String> = FIXTURE.lines().map(str::to_string).collect();
-        let mut fields: Vec<String> = rows[1].split('	').map(str::to_string).collect();
+        let mut fields: Vec<String> = rows[1].split(tab).map(str::to_string).collect();
         fields[12] = "MAGIC_PROBE".to_string();
-        rows[1] = fields.join("	");
-        assert!(parse_case(&rows.join("
-")).is_err());
+        rows[1] = fields.join(&tab.to_string());
+        assert!(parse_case(&rows.join(&newline.to_string())).is_err());
     }
 
     #[test]
