@@ -144,6 +144,9 @@ pub struct SeededBenchmarkReport {
     pub confirmatory_seed_start: u64,
     pub confirmatory_seed_count: usize,
     pub rows: Vec<SeededAggregateRow>,
+    /// Every confirmatory replicate, retained even when a controller fails
+    /// to diagnose or produces an invalid policy response.
+    pub replicates: Vec<SeededEpisodeOutcome>,
 }
 
 #[derive(Clone, Copy)]
@@ -343,7 +346,11 @@ fn tune_cusum() -> CusumTuningReceipt {
         for regime in changed_regimes {
             for seed in &development_seeds {
                 let observations = observation_stream(regime, *seed);
-                detections += usize::from(cusum_detection_tick(&observations, config).is_some());
+                detections += if cusum_detection_tick(&observations, config).is_some() {
+                    1
+                } else {
+                    0
+                };
                 changed_episodes += 1;
             }
         }
@@ -672,6 +679,11 @@ fn aggregate(
 pub fn run_seeded_confirmatory_benchmark() -> SeededBenchmarkReport {
     let tuning = tune_cusum();
     let mut rows = Vec::with_capacity(CausalRegime::ALL.len() * CausalDriftController::ALL.len());
+    let mut replicates = Vec::with_capacity(
+        CausalRegime::ALL.len()
+            * CausalDriftController::ALL.len()
+            * CONFIRMATORY_SEED_COUNT,
+    );
 
     for regime in CausalRegime::ALL {
         let mut per_controller: Vec<Vec<SeededEpisodeOutcome>> = CausalDriftController::ALL
@@ -697,6 +709,7 @@ pub fn run_seeded_confirmatory_benchmark() -> SeededBenchmarkReport {
 
         for (index, controller) in CausalDriftController::ALL.iter().copied().enumerate() {
             rows.push(aggregate(regime, controller, &per_controller[index]));
+            replicates.extend(per_controller[index].iter().cloned());
         }
     }
 
@@ -705,6 +718,7 @@ pub fn run_seeded_confirmatory_benchmark() -> SeededBenchmarkReport {
         confirmatory_seed_start: CONFIRMATORY_SEED_START,
         confirmatory_seed_count: CONFIRMATORY_SEED_COUNT,
         rows,
+        replicates,
     }
 }
 
