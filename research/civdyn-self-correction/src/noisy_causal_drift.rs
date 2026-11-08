@@ -19,7 +19,7 @@ use crate::{
 
 pub const NOISY_SEEDS: usize = 256;
 pub const MATCHED_PAIRS_PER_LOOK: usize = 2048;
-pub const OUTCOME_NOISE_STANDARD_DEVIATION: f64 = 3.0;
+pub const OUTCOME_NOISE_STANDARD_DEVIATION: f64 = 2.0;
 pub const MAX_PREDECLARED_LOOKS: usize = 4;
 /// Conservative one-sided critical value. At each of four planned looks,
 /// z=2.5 is more conservative than Bonferroni alpha=0.05/4 under a normal
