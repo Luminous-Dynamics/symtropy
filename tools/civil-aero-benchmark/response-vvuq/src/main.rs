@@ -1,7 +1,6 @@
-use aero_response_vvuq::{evaluate, ResponseVectorRequest};
+use aero_response_vvuq::{ResponseVectorRequest, evaluate};
 
-const FIXTURE: &str =
-    include_str!("../data/known-answer-response-vector-v0.1.json");
+const FIXTURE: &str = include_str!("../data/known-answer-response-vector-v0.1.json");
 
 fn main() {
     let request: ResponseVectorRequest = match serde_json::from_str(FIXTURE) {
