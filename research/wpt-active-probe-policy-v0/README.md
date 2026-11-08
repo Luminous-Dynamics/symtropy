@@ -22,19 +22,21 @@ No Bayesian prior is required. Each action maps every finite pose hypothesis to 
 
 ## Hard constraints
 
-Each action is excluded before planning if it exceeds maximum ripple, falls below minimum ZVS margin, or exceeds maximum service disturbance. The complete policy must fit the declared worst-case energy, latency and action-count budgets. If no such decision tree exists, the evaluator abstains.
+Each action is typed PASSIVE_OBSERVE or ACTIVE_EXCITATION. An active excitation must have positive incremental energy cost; passive observation may have zero incremental excitation-energy cost but always has positive duration. Each action is excluded before planning if it exceeds maximum ripple, falls below minimum ZVS margin, or exceeds maximum service disturbance. The complete policy must fit the declared worst-case energy, latency and action-count budgets. If no such decision tree exists, the evaluator abstains.
 
 ## Synthetic fixture
 
 The parser represents each action row's outcome field as one comma-separated support set per pose; use `0|1,1|2,3` to mean pose 0 can yield bins 0 or 1, pose 1 can yield 1 or 2, and pose 2 can yield only 3. Singleton values remain ordinary integers. Duplicate bins and empty supports are rejected.
 
-The fixture contains four pose hypotheses and seven invented actions, each with singleton (deterministic) support sets. The admissible adaptive policy is:
+The fixture contains four pose hypotheses and eight invented actions, including one `PASSIVE_OBSERVE` action and seven `ACTIVE_EXCITATION` actions. A passive action may have zero incremental excitation-energy cost, but still consumes acquisition time; active excitation is required to carry positive energy cost. The test's passive telemetry sample is a synthetic zero-incremental-energy example, not a claim that physical sensing is free.
 
-- Apply `root_split` (8 synthetic µJ).
-- On outcome 0, apply `left_discriminator` (12 synthetic µJ).
-- On outcome 1, apply `right_discriminator` (15 synthetic µJ).
+The admissible adaptive policy is:
 
-Worst-case energy is 23 synthetic µJ and latency is 8 synthetic µs. The best admissible fixed sequence under the same three-action ceiling is the single `global_probe` action at 30 synthetic µJ, which exceeds the case's 25 synthetic µJ budget. The adaptive plan is therefore feasible where the best fixed plan is not.
+- First apply `passive_telemetry_split` (0 synthetic incremental µJ, 2 synthetic µs).
+- On outcome 0, apply `left_discriminator` (12 synthetic µJ, 4 synthetic µs).
+- On outcome 1, apply `right_discriminator` (15 synthetic µJ, 5 synthetic µs).
+
+Worst-case adaptive energy is 15 synthetic µJ and latency is 7 synthetic µs. The minimum-energy fixed sequence under the same three-action ceiling needs the passive sample plus both discriminators (27 synthetic µJ, 11 synthetic µs), exceeding both the case's 25 µJ and 10 µs budgets. The adaptive policy uses only the relevant active discriminator on each branch.
 
 Three unique-pose actions are deliberately unsafe and must be excluded: ripple violation, insufficient ZVS margin and excessive service disturbance.
 
@@ -48,7 +50,7 @@ The recursive solver is exact for the supplied finite hypothesis/action set and 
 
 ## Validation
 
-The Rust test suite includes 15 adversarial/known-answer tests. In addition to targeted cases, the independent exhaustive tree enumerator constructs the feasible energy/latency Pareto set for small cases and verifies that the production DP returns the globally minimum-energy, then minimum-latency pair.
+The Rust test suite includes 17 adversarial/known-answer tests. In addition to targeted cases, the independent exhaustive tree enumerator constructs the feasible energy/latency Pareto set for small cases and verifies that the production DP returns the globally minimum-energy, then minimum-latency pair.
 
 ## Run
 
