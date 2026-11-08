@@ -188,10 +188,10 @@
       "additionalProperties": false,
       "required": [
         "treatment_assignment_unit",
-        "independent_reservoir_replicates_reported",
         "plants_are_subsamples",
         "cycles_are_repeated_measures",
-        "source_author_pseudoreplication_note"
+        "source_author_pseudoreplication_note",
+        "independent_replicate_reservoirs_per_arm"
       ],
       "properties": {
         "treatment_assignment_unit": {
