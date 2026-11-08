@@ -157,22 +157,23 @@ jobs:
                 alt_rows[$7, $3]++
                 if ($8 == "harmful_effect_established") correct[$7, $3]++
               }
-              if ($3 == "confounded_null") {
-                null_rows[$7]++
-                if ($8 != "inconclusive") false_action[$7]++
+              if ($3 == "confounded_null" || $3 == "benefit_boundary") {
+                null_rows[$7, $3]++
+                if ($8 != "inconclusive") false_action[$7, $3]++
               }
-              if ($3 != "confounded_null") {
+              if ($3 != "confounded_null" && $3 != "benefit_boundary") {
                 alt_n[$7]++
                 alt_cost[$7] += $9
               }
             }
             END {
-              if (rows != 6400) exit 64
+              if (rows != 7680) exit 64
               method_count = 0
               for (m in methods) {
                 method_count++
-                if (methods[m] != 1280) exit 65
-                if (null_rows[m] != 256 || false_action[m] > 12) exit 66
+                if (methods[m] != 1536) exit 65
+                if (null_rows[m, "confounded_null"] != 256 || false_action[m, "confounded_null"] > 12) exit 66
+                if (null_rows[m, "benefit_boundary"] != 256 || false_action[m, "benefit_boundary"] > 12) exit 73
                 if (false_stop[m, "stable_positive"] > 0 || false_stop[m, "confounder_shift"] > 0) exit 72
                 if (alt_rows[m, "stable_positive"] != 256 || correct[m, "stable_positive"] < 250) exit 67
                 if (alt_rows[m, "sign_reversal"] != 256 || correct[m, "sign_reversal"] < 250) exit 68
@@ -182,6 +183,6 @@ jobs:
                 if (mean_cost <= 0.70 * 2048) efficient++
               }
               if (method_count != 5 || efficient < 1) exit 71
-              print "Sequential portfolio valid: 6,400 receipts; identical stream digests; 256 seeds per regime; false null actions <=12/256; no false harmful stop on positive/confounder-shift regimes; at least one method saves >=30% samples on alternatives"
+              print "Sequential portfolio valid: 7,680 receipts; identical stream digests; 256 seeds per regime; false directional actions <=12/256 at both zero-effect and minimum-benefit boundaries; no false harmful stop on positive/confounder-shift regimes; at least one method saves >=30% samples on alternatives"
             }
           ' /tmp/civdyn-sequential-methods.csv
