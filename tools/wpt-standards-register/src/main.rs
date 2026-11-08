@@ -172,10 +172,11 @@ mod tests {
         assert!(validate_register(&bad).unwrap_err().iter().any(|e| e.contains("clause locator and named reviewer")));
     }
     #[test] fn unknown_applicability_requires_unreviewed_placeholders() {
-        let bad = FIXTURE.replacen("\tUNKNOWN\t", "\tUNKNOWN\t", 1);
-        assert!(validate_register(&bad).is_ok());
-        let bad_review = FIXTURE.replacen("\tUNKNOWN\t", "\tUNKNOWN\t", 1)
-            .replace("NOT_REVIEWED\tNOT_REVIEWED\tNONE", "SOME_CLAUSE\tNOT_REVIEWED\tNONE");
+        assert!(validate_register(FIXTURE).is_ok());
+        let bad_review = FIXTURE.replace(
+            "NOT_REVIEWED\tNOT_REVIEWED\tNONE\tAuthority overview metadata only.",
+            "SOME_CLAUSE\tNOT_REVIEWED\tNONE\tAuthority overview metadata only.",
+        );
         assert!(validate_register(&bad_review).is_err());
     }
     #[test] fn malformed_dates_are_rejected() {
