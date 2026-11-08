@@ -651,7 +651,9 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
                     .to_owned(),
             );
         }
-    } else if manifest.metric_profile.definition_authority != MetricDefinitionAuthority::ProjectDefined {
+    } else if manifest.metric_profile.definition_authority
+        != MetricDefinitionAuthority::ProjectDefined
+    {
         return Err(
             "non-ISPRS metric suites must use project_defined authority; published benchmark authorities are reserved for their named suites"
                 .to_owned(),
@@ -1316,10 +1318,9 @@ pub fn verify_manifest_artifact_files(
             candidate_input_verified += 1;
         }
         for artifact in &scene.evaluator_artifacts {
-            if let Some(previous_digest) = evaluator_paths.insert(
-                artifact.relative_path.as_str(),
-                artifact.sha256.as_str(),
-            ) && previous_digest != artifact.sha256.as_str()
+            if let Some(previous_digest) =
+                evaluator_paths.insert(artifact.relative_path.as_str(), artifact.sha256.as_str())
+                && previous_digest != artifact.sha256.as_str()
             {
                 return Err(format!(
                     "evaluator path {} is declared with conflicting SHA-256 digests",
@@ -1746,8 +1747,7 @@ mod tests {
     #[test]
     fn rejects_statistical_interval_without_uncertainty_model_and_coverage() {
         let mut value = fixture_value();
-        value["tolerance_profile"]["decision_policy"] =
-            serde_json::json!("statistical_interval");
+        value["tolerance_profile"]["decision_policy"] = serde_json::json!("statistical_interval");
         let error = audit(&value).expect_err("statistical decisions require explicit assumptions");
         assert!(error.contains("requires uncertainty_model_id"));
     }
@@ -1761,7 +1761,8 @@ mod tests {
             serde_json::json!("synthetic-gaussian-normal-error-v1");
         value["tolerance_profile"]["coverage_probability"] = serde_json::json!(0.95);
         value["tolerance_profile"]["coverage_factor"] = serde_json::json!(1.96);
-        let report = audit(&value).expect("statistical profile has explicit uncertainty assumptions");
+        let report =
+            audit(&value).expect("statistical profile has explicit uncertainty assumptions");
         assert_eq!(
             report.tolerance_uncertainty_model_id.as_deref(),
             Some("synthetic-gaussian-normal-error-v1")
