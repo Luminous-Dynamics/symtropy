@@ -18,13 +18,13 @@ permissions:
   contents: read
 
 concurrency:
-  group: bh-pt-domain-audit-\${{ github.event.pull_request.number || github.ref }}
+  group: bh-pt-domain-audit-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
   test:
-    name: Poschl Teller controls (\${{ matrix.os }})
-    runs-on: \${{ matrix.os }}
+    name: Poschl Teller controls (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
