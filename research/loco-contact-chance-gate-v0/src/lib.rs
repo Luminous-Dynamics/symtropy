@@ -917,6 +917,37 @@ mod tests {
     }
 
     #[test]
+    fn empty_prediction_set_abstains_without_panicking() {
+        let mut incomplete = candidate("incomplete", 0.1);
+        incomplete.predictions.clear();
+        let report = evaluate_actions(
+            &[incomplete],
+            &limits(),
+            50_000_000,
+            "rough-terrain-v1",
+            2_000,
+        )
+        .unwrap();
+        assert_eq!(report.assessments[0].disposition, CandidateDisposition::Abstained);
+        assert_eq!(
+            report.assessments[0].abstention_reason,
+            Some(AbstentionReason::PredictionSetIncomplete)
+        );
+    }
+
+    #[test]
+    fn public_quantile_function_rejects_invalid_tail_probabilities() {
+        assert_eq!(
+            upper_normal_quantile(0),
+            Err(AbstentionReason::InvalidRiskAllocation)
+        );
+        assert_eq!(
+            upper_normal_quantile(RISK_SCALE_PPB / 2),
+            Err(AbstentionReason::InvalidRiskAllocation)
+        );
+    }
+
+    #[test]
     fn candidate_duplicates_are_rejected() {
         assert_eq!(
             evaluate_actions(
