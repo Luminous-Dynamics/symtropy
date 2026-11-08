@@ -330,21 +330,16 @@ impl ActuatorPowerMap {
         ];
         let mut cells = [0_usize; 4];
         let mut fractions = [0_u32; 4];
+        let mut fraction_remainders = [false; 4];
 
-        for index in 0..4 {
-            let (cell, fraction) = locate_cell(self.axes.axis(axes[index]), query[index], axes[index])?;
+        for (index, axis) in axes.iter().enumerate() {
+            let (cell, fraction, has_remainder) =
+                locate_cell(self.axes.axis(*axis), query[index], *axis)?;
             cells[index] = cell;
             fractions[index] = fraction;
+            fraction_remainders[index] = has_remainder;
         }
 
-        let lower_pw = interpolate_component(
-            &self.electrical_input_power,
-            &self.axes,
-            cells,
-            fractions,
-            PowerComponent::Lower,
-            Rounding::Floor,
-        )?;
         let nominal_pw = interpolate_component(
             &self.electrical_input_power,
             &self.axes,
@@ -353,13 +348,12 @@ impl ActuatorPowerMap {
             PowerComponent::Nominal,
             Rounding::NearestTiesEven,
         )?;
-        let upper_pw = interpolate_component(
+        let (lower_pw, upper_pw) = interpolate_quantization_bounds(
             &self.electrical_input_power,
             &self.axes,
             cells,
             fractions,
-            PowerComponent::Upper,
-            Rounding::Ceil,
+            fraction_remainders,
         )?;
         let electrical_input_power_pw =
             PowerInterval::new(lower_pw, nominal_pw, upper_pw)?;
@@ -406,7 +400,11 @@ enum Rounding {
     NearestTiesEven,
 }
 
-fn locate_cell(axis_values: &[i32], query: i32, axis: MapAxis) -> Result<(usize, u32), MapError> {
+fn locate_cell(
+    axis_values: &[i32],
+    query: i32,
+    axis: MapAxis,
+) -> Result<(usize, u32, bool), MapError> {
     let minimum = axis_values[0];
     let maximum = axis_values[axis_values.len() - 1];
     if query < minimum || query > maximum {
@@ -431,8 +429,9 @@ fn locate_cell(axis_values: &[i32], query: i32, axis: MapAxis) -> Result<(usize,
         .ok_or(MapError::ArithmeticOverflow)?;
     let denominator = upper - lower;
     let fraction = numerator / denominator;
+    let has_remainder = numerator % denominator != 0;
     let fraction = u32::try_from(fraction).map_err(|_| MapError::ArithmeticOverflow)?;
-    Ok((lower_index, fraction))
+    Ok((lower_index, fraction, has_remainder))
 }
 
 fn flat_index(dimensions: [usize; 4], coordinates: [usize; 4]) -> Result<usize, MapError> {
@@ -493,6 +492,50 @@ fn interpolate_component(
         return Err(MapError::ArithmeticOverflow);
     }
     round_divide(weighted_sum, TOTAL_WEIGHT_I128, rounding)
+}
+
+fn interpolate_quantization_bounds(
+    values: &[PowerInterval],
+    axes: &ActuatorAxes,
+    cells: [usize; 4],
+    base_fractions: [u32; 4],
+    uncertain_fractions: [bool; 4],
+) -> Result<(i64, i64), MapError> {
+    let mut lower = i64::MAX;
+    let mut upper = i64::MIN;
+
+    // A multi-linear interpolant is affine in each coordinate separately.
+    // Therefore its extrema over the Q16 quantization box occur at the 16
+    // corners. Evaluating all corners bounds coordinate quantization error.
+    for mask in 0_u32..16 {
+        let mut fractions = base_fractions;
+        for axis_index in 0..4 {
+            if uncertain_fractions[axis_index] && (mask & (1 << axis_index)) != 0 {
+                fractions[axis_index] = fractions[axis_index]
+                    .checked_add(1)
+                    .ok_or(MapError::ArithmeticOverflow)?;
+            }
+        }
+        let lower_candidate = interpolate_component(
+            values,
+            axes,
+            cells,
+            fractions,
+            PowerComponent::Lower,
+            Rounding::Floor,
+        )?;
+        let upper_candidate = interpolate_component(
+            values,
+            axes,
+            cells,
+            fractions,
+            PowerComponent::Upper,
+            Rounding::Ceil,
+        )?;
+        lower = lower.min(lower_candidate);
+        upper = upper.max(upper_candidate);
+    }
+    Ok((lower, upper))
 }
 
 fn weight_sum(fractions: [u32; 4]) -> Result<u128, MapError> {
@@ -698,7 +741,7 @@ mod tests {
             .unwrap();
         assert_eq!(prediction.interpolation_cell, [0, 0, 0, 0]);
         assert_eq!(prediction.interpolation_fraction_q16, [65_536; 4]);
-        assert_eq!(prediction.electrical_input_power_pw, interval(15, 16, 17));
+        assert_eq!(prediction.electrical_input_power_pw, interval(29, 30, 31));
     }
 
     #[test]
