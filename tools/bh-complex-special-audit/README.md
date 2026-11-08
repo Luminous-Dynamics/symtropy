@@ -50,8 +50,23 @@ For the Pöschl–Teller tortoise coordinate x, set
 
 Then P_l^mu(z) has the right-outgoing asymptotic factor e^(i omega x) up to
 its known 1/Gamma(1-mu) normalization. P_l^mu(-z) supplies the corresponding
-left-outgoing basis. The current helper computes Ferrers values and derivatives;
-it does not yet construct the unit-normalized Jost pair or a Green function.
+left-outgoing basis. The crate also constructs the unit-normalized homogeneous Jost solutions
+for the Pöschl–Teller equation
+
+    u'' + [omega² - lambda/b² sech²(x/b)] u = 0.
+
+With mu=i b omega:
+
+    f_right(x) = Gamma(1-mu) P_l^mu(tanh(x/b))
+    f_left(x)  = Gamma(1-mu) P_l^mu(-tanh(x/b)).
+
+It returns the field and first/second tortoise derivatives, and evaluates the
+Wronskian W[f_left,f_right] at a requested coordinate. Tests include the
+free-potential plane-wave limit, the homogeneous ODE residual for both sides,
+and position-independence of the barrier Wronskian. These are local analytic
+Jost controls; the scattering matrix, transmission/reflection amplitudes,
+frequency-plane pole search and Green-function contour are still not
+implemented.
 
 The endpoint values z=±1 and complex z arguments are rejected. Resonant
 denominator cases remain unsupported until the logarithmic continuation is
