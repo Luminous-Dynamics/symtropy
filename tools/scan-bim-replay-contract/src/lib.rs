@@ -975,7 +975,8 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
     }
 
     let mut output_ids = BTreeSet::new();
-    let mut output_scenes = BTreeSet::new();
+    let mut ifc_output_scenes = BTreeSet::new();
+    let mut graph_output_scenes = BTreeSet::new();
     for output in &manifest.candidate_outputs {
         if !valid_identifier(&output.artifact_id)
             || !valid_identifier(&output.scene_id)
@@ -993,20 +994,26 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
                 output.artifact_id, output.scene_id
             ));
         }
-        let is_ifc_model = match output.role {
-            CandidateOutputRole::IfcModel => true,
-            CandidateOutputRole::GeometryModel
-            | CandidateOutputRole::ElementGraph
-            | CandidateOutputRole::CandidateMetrics => false,
-        };
-        if is_ifc_model {
-            output_scenes.insert(output.scene_id.as_str());
+        match output.role {
+            CandidateOutputRole::IfcModel => {
+                ifc_output_scenes.insert(output.scene_id.as_str());
+            }
+            CandidateOutputRole::ElementGraph => {
+                graph_output_scenes.insert(output.scene_id.as_str());
+            }
+            CandidateOutputRole::GeometryModel | CandidateOutputRole::CandidateMetrics => {}
         }
     }
     for scene in &manifest.scenes {
-        if !output_scenes.contains(scene.scene_id.as_str()) {
+        if !ifc_output_scenes.contains(scene.scene_id.as_str()) {
             return Err(format!(
                 "scene {} requires at least one ifc_model candidate output",
+                scene.scene_id
+            ));
+        }
+        if !graph_output_scenes.contains(scene.scene_id.as_str()) {
+            return Err(format!(
+                "scene {} requires at least one element_graph candidate output",
                 scene.scene_id
             ));
         }
@@ -1819,6 +1826,17 @@ mod tests {
     }
 
     #[test]
+    fn requires_element_graph_output_for_every_scene() {
+        let mut value = fixture_value();
+        value["candidate_outputs"]
+            .as_array_mut()
+            .expect("output array")
+            .retain(|output| output["scene_id"] != "ROOM-B" || output["role"] != "element_graph");
+        let error = audit(&value).expect_err("every scene needs a candidate element graph");
+        assert!(error.contains("requires at least one element_graph"));
+    }
+
+    #[test]
     fn rejects_candidate_output_bytes_that_do_not_match_digest() {
         let mut value = fixture_value();
         value["candidate_outputs"][0]["sha256"] =
@@ -1837,7 +1855,7 @@ mod tests {
     fn accepts_synthetic_visibility_manifest() {
         let report = audit_manifest_bytes(FIXTURE.as_bytes()).expect("manifest should pass");
         assert_eq!(report.scene_count, 2);
-        assert_eq!(report.candidate_artifact_count, 11);
+        assert_eq!(report.candidate_artifact_count, 13);
         assert_eq!(report.evaluator_artifact_count, 2);
         assert_eq!(report.pipeline_id, "synthetic-scan-bim-candidate-v0.2");
         assert_eq!(report.metric_suite_version, "0.3");
@@ -1852,7 +1870,7 @@ mod tests {
         assert_eq!(report.scenes[0].linear_unit_to_metre_factor, 1.0);
         assert_eq!(report.scenes[0].transform_artifact_id, "ROOM-A-TRANSFORM");
         assert_eq!(report.candidate_runtime_artifacts.len(), 3);
-        assert_eq!(report.candidate_outputs.len(), 4);
+        assert_eq!(report.candidate_outputs.len(), 6);
         assert_eq!(
             report.candidate_outputs[0].sha256,
             "1388812a1750215452fc4dea388e113d754231c3bd9e9ff4932917da6cef3698"
