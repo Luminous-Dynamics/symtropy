@@ -33,7 +33,10 @@ impl ReliabilityInterval {
         if lower_ppm > upper_ppm || upper_ppm > SCALE_PPM {
             return Err(EvidenceError::InvalidInterval);
         }
-        Ok(Self { lower_ppm, upper_ppm })
+        Ok(Self {
+            lower_ppm,
+            upper_ppm,
+        })
     }
 }
 
@@ -150,20 +153,31 @@ pub struct ContactEvidenceReport {
     pub timestamp_skew_ns: Option<u64>,
 }
 
-fn nonblank(s: &str) -> bool { !s.trim().is_empty() }
+fn nonblank(s: &str) -> bool {
+    !s.trim().is_empty()
+}
 
 fn validate_policy(p: &EvidencePolicy) -> Result<(), EvidenceError> {
-    if !nonblank(&p.foot_id) || !nonblank(&p.event_id)
-        || !nonblank(&p.constraint_digest) || !nonblank(&p.domain_digest) {
+    if !nonblank(&p.foot_id)
+        || !nonblank(&p.event_id)
+        || !nonblank(&p.constraint_digest)
+        || !nonblank(&p.domain_digest)
+    {
         return Err(EvidenceError::EmptyIdentity);
     }
-    if p.required_sources.is_empty() { return Err(EvidenceError::NoRequiredSources); }
+    if p.required_sources.is_empty() {
+        return Err(EvidenceError::NoRequiredSources);
+    }
     if p.minimum_sources == 0 || p.minimum_sources > p.required_sources.len() {
         return Err(EvidenceError::InvalidMinimumSources);
     }
     for (id, req) in &p.required_sources {
-        if !nonblank(id) { return Err(EvidenceError::EmptySourceId); }
-        if !nonblank(&req.calibration_digest) { return Err(EvidenceError::EmptyCalibrationDigest); }
+        if !nonblank(id) {
+            return Err(EvidenceError::EmptySourceId);
+        }
+        if !nonblank(&req.calibration_digest) {
+            return Err(EvidenceError::EmptyCalibrationDigest);
+        }
     }
     Ok(())
 }
@@ -172,15 +186,29 @@ fn assess(p: &EvidencePolicy, e: &SourceEvidence) -> SourceDisposition {
     let Some(req) = p.required_sources.get(&e.source_id) else {
         return SourceDisposition::UnknownSource;
     };
-    if e.channel != req.channel { return SourceDisposition::ChannelMismatch; }
-    if e.calibration_digest != req.calibration_digest { return SourceDisposition::CalibrationMismatch; }
-    if e.foot_id != p.foot_id || e.event_id != p.event_id || e.target != p.target
-        || e.constraint_digest != p.constraint_digest || e.domain_digest != p.domain_digest {
+    if e.channel != req.channel {
+        return SourceDisposition::ChannelMismatch;
+    }
+    if e.calibration_digest != req.calibration_digest {
+        return SourceDisposition::CalibrationMismatch;
+    }
+    if e.foot_id != p.foot_id
+        || e.event_id != p.event_id
+        || e.target != p.target
+        || e.constraint_digest != p.constraint_digest
+        || e.domain_digest != p.domain_digest
+    {
         return SourceDisposition::ContextMismatch;
     }
-    if !e.healthy { return SourceDisposition::Unhealthy; }
-    if e.out_of_distribution { return SourceDisposition::OutOfDistribution; }
-    if p.clock_uncertain { return SourceDisposition::ClockUncertain; }
+    if !e.healthy {
+        return SourceDisposition::Unhealthy;
+    }
+    if e.out_of_distribution {
+        return SourceDisposition::OutOfDistribution;
+    }
+    if p.clock_uncertain {
+        return SourceDisposition::ClockUncertain;
+    }
     match e.observed_at_ns {
         None => SourceDisposition::TimestampMissing,
         Some(t) if t > p.now_ns => SourceDisposition::TimestampFuture,
@@ -189,7 +217,11 @@ fn assess(p: &EvidencePolicy, e: &SourceEvidence) -> SourceDisposition {
     }
 }
 
-fn unknown_report(p: &EvidencePolicy, sources: Vec<SourceAssessment>, skew: Option<u64>) -> ContactEvidenceReport {
+fn unknown_report(
+    p: &EvidencePolicy,
+    sources: Vec<SourceAssessment>,
+    skew: Option<u64>,
+) -> ContactEvidenceReport {
     let qualified_source_ids = sources
         .iter()
         .filter(|source| source.disposition == SourceDisposition::Qualified)
@@ -212,53 +244,107 @@ fn unknown_report(p: &EvidencePolicy, sources: Vec<SourceAssessment>, skew: Opti
 /// Combine eligible evidence by convex hull, never by intersection or
 /// likelihood multiplication. If time is uncertain, evidence is stale, or
 /// source timestamps are too far apart, the aggregate is Unknown.
-pub fn aggregate(p: &EvidencePolicy, input: &[SourceEvidence]) -> Result<ContactEvidenceReport, EvidenceError> {
+pub fn aggregate(
+    p: &EvidencePolicy,
+    input: &[SourceEvidence],
+) -> Result<ContactEvidenceReport, EvidenceError> {
     validate_policy(p)?;
     let mut seen = BTreeMap::<String, ()>::new();
     for e in input {
-        if !nonblank(&e.source_id) { return Err(EvidenceError::EmptySourceId); }
+        if !nonblank(&e.source_id) {
+            return Err(EvidenceError::EmptySourceId);
+        }
         ReliabilityInterval::new(e.reliability.lower_ppm, e.reliability.upper_ppm)?;
         if seen.insert(e.source_id.clone(), ()).is_some() {
             return Err(EvidenceError::DuplicateSource(e.source_id.clone()));
         }
     }
 
-    let mut sources = input.iter().map(|e| SourceAssessment {
-        source_id: e.source_id.clone(),
-        channel: e.channel,
-        disposition: assess(p, e),
-        reliability: e.reliability,
-        observed_at_ns: e.observed_at_ns,
-    }).collect::<Vec<_>>();
-    sources.sort_by(|a,b| a.source_id.cmp(&b.source_id));
+    let mut sources = input
+        .iter()
+        .map(|e| SourceAssessment {
+            source_id: e.source_id.clone(),
+            channel: e.channel,
+            disposition: assess(p, e),
+            reliability: e.reliability,
+            observed_at_ns: e.observed_at_ns,
+        })
+        .collect::<Vec<_>>();
+    sources.sort_by(|a, b| a.source_id.cmp(&b.source_id));
 
-    if p.clock_uncertain { return Ok(unknown_report(p, sources, None)); }
+    if p.clock_uncertain {
+        return Ok(unknown_report(p, sources, None));
+    }
 
-    let mut qualified = sources.iter().filter(|s| s.disposition == SourceDisposition::Qualified)
-        .cloned().collect::<Vec<_>>();
-    if qualified.is_empty() { return Ok(unknown_report(p, sources, None)); }
+    let mut qualified = sources
+        .iter()
+        .filter(|s| s.disposition == SourceDisposition::Qualified)
+        .cloned()
+        .collect::<Vec<_>>();
+    if qualified.is_empty() {
+        return Ok(unknown_report(p, sources, None));
+    }
 
-    let min_t = qualified.iter().filter_map(|s| s.observed_at_ns).min().expect("qualified source has time");
-    let max_t = qualified.iter().filter_map(|s| s.observed_at_ns).max().expect("qualified source has time");
+    let min_t = qualified
+        .iter()
+        .filter_map(|s| s.observed_at_ns)
+        .min()
+        .expect("qualified source has time");
+    let max_t = qualified
+        .iter()
+        .filter_map(|s| s.observed_at_ns)
+        .max()
+        .expect("qualified source has time");
     let skew = max_t - min_t;
     if skew > p.maximum_skew_ns {
         for s in &mut sources {
-            if s.disposition == SourceDisposition::Qualified { s.disposition = SourceDisposition::CrossSourceSkew; }
+            if s.disposition == SourceDisposition::Qualified {
+                s.disposition = SourceDisposition::CrossSourceSkew;
+            }
         }
         return Ok(unknown_report(p, sources, Some(skew)));
     }
-    if qualified.len() < p.minimum_sources { return Ok(unknown_report(p, sources, Some(skew))); }
+    if qualified.len() < p.minimum_sources {
+        return Ok(unknown_report(p, sources, Some(skew)));
+    }
 
-    qualified.sort_by(|a,b| a.source_id.cmp(&b.source_id));
-    let lo = qualified.iter().map(|s| s.reliability.lower_ppm).min().expect("non-empty");
-    let hi = qualified.iter().map(|s| s.reliability.upper_ppm).max().expect("non-empty");
-    let common_lo = qualified.iter().map(|s| s.reliability.lower_ppm).max().expect("non-empty");
-    let common_hi = qualified.iter().map(|s| s.reliability.upper_ppm).min().expect("non-empty");
-    let common = (common_lo <= common_hi).then_some(ReliabilityInterval { lower_ppm: common_lo, upper_ppm: common_hi });
-    let agreement = if common.is_some() { Agreement::CommonIntersection } else { Agreement::NoCommonIntersection };
-    let status = if common.is_none() { EnvelopeStatus::Disagreement }
-        else if qualified.len() == 1 { EnvelopeStatus::SingleSource }
-        else { EnvelopeStatus::MultiSource };
+    qualified.sort_by(|a, b| a.source_id.cmp(&b.source_id));
+    let lo = qualified
+        .iter()
+        .map(|s| s.reliability.lower_ppm)
+        .min()
+        .expect("non-empty");
+    let hi = qualified
+        .iter()
+        .map(|s| s.reliability.upper_ppm)
+        .max()
+        .expect("non-empty");
+    let common_lo = qualified
+        .iter()
+        .map(|s| s.reliability.lower_ppm)
+        .max()
+        .expect("non-empty");
+    let common_hi = qualified
+        .iter()
+        .map(|s| s.reliability.upper_ppm)
+        .min()
+        .expect("non-empty");
+    let common = (common_lo <= common_hi).then_some(ReliabilityInterval {
+        lower_ppm: common_lo,
+        upper_ppm: common_hi,
+    });
+    let agreement = if common.is_some() {
+        Agreement::CommonIntersection
+    } else {
+        Agreement::NoCommonIntersection
+    };
+    let status = if common.is_none() {
+        EnvelopeStatus::Disagreement
+    } else if qualified.len() == 1 {
+        EnvelopeStatus::SingleSource
+    } else {
+        EnvelopeStatus::MultiSource
+    };
     let ids = qualified.iter().map(|s| s.source_id.clone()).collect();
     Ok(ContactEvidenceReport {
         status,
@@ -269,7 +355,13 @@ pub fn aggregate(p: &EvidencePolicy, input: &[SourceEvidence]) -> Result<Contact
         domain_digest: p.domain_digest.clone(),
         sources,
         qualified_source_ids: ids,
-        envelope: Some(ReliabilityEnvelope { lower_ppm: lo, upper_ppm: hi, source_count: qualified.len(), common_intersection: common, agreement }),
+        envelope: Some(ReliabilityEnvelope {
+            lower_ppm: lo,
+            upper_ppm: hi,
+            source_count: qualified.len(),
+            common_intersection: common,
+            agreement,
+        }),
         timestamp_skew_ns: Some(skew),
     })
 }
@@ -279,34 +371,75 @@ mod tests {
     use super::*;
 
     fn req(channel: ContactChannel, digest: &str) -> SourceRequirement {
-        SourceRequirement { channel, calibration_digest: digest.to_owned() }
+        SourceRequirement {
+            channel,
+            calibration_digest: digest.to_owned(),
+        }
     }
     fn policy() -> EvidencePolicy {
         EvidencePolicy {
-            foot_id: "front-left".into(), event_id: "step-42".into(),
+            foot_id: "front-left".into(),
+            event_id: "step-42".into(),
             target: EvidenceTarget::NoSlipKinematicConstraintValidity,
-            constraint_digest: "constraint-v3".into(), domain_digest: "terrain-hard-v1".into(),
-            now_ns: 1_000, clock_uncertain: false, maximum_age_ns: 100,
-            maximum_skew_ns: 20, minimum_sources: 1,
+            constraint_digest: "constraint-v3".into(),
+            domain_digest: "terrain-hard-v1".into(),
+            now_ns: 1_000,
+            clock_uncertain: false,
+            maximum_age_ns: 100,
+            maximum_skew_ns: 20,
+            minimum_sources: 1,
             required_sources: BTreeMap::from([
-                ("d1".into(), req(ContactChannel::InterfaceFields,"cal-d1")),
-                ("d2".into(), req(ContactChannel::NearFootWrenchVibroAcoustic,"cal-d2")),
-                ("d3".into(), req(ContactChannel::ProprioceptiveResidual,"cal-d3")),
+                ("d1".into(), req(ContactChannel::InterfaceFields, "cal-d1")),
+                (
+                    "d2".into(),
+                    req(ContactChannel::NearFootWrenchVibroAcoustic, "cal-d2"),
+                ),
+                (
+                    "d3".into(),
+                    req(ContactChannel::ProprioceptiveResidual, "cal-d3"),
+                ),
             ]),
         }
     }
-    fn src(id: &str, channel: ContactChannel, cal: &str, lo: u32, hi: u32, t: Option<u64>) -> SourceEvidence {
+    fn src(
+        id: &str,
+        channel: ContactChannel,
+        cal: &str,
+        lo: u32,
+        hi: u32,
+        t: Option<u64>,
+    ) -> SourceEvidence {
         SourceEvidence {
-            source_id:id.into(), channel, foot_id:"front-left".into(), event_id:"step-42".into(),
-            target:EvidenceTarget::NoSlipKinematicConstraintValidity,
-            constraint_digest:"constraint-v3".into(), domain_digest:"terrain-hard-v1".into(),
-            calibration_digest:cal.into(), observed_at_ns:t,
-            reliability:ReliabilityInterval::new(lo,hi).unwrap(), healthy:true, out_of_distribution:false,
+            source_id: id.into(),
+            channel,
+            foot_id: "front-left".into(),
+            event_id: "step-42".into(),
+            target: EvidenceTarget::NoSlipKinematicConstraintValidity,
+            constraint_digest: "constraint-v3".into(),
+            domain_digest: "terrain-hard-v1".into(),
+            calibration_digest: cal.into(),
+            observed_at_ns: t,
+            reliability: ReliabilityInterval::new(lo, hi).unwrap(),
+            healthy: true,
+            out_of_distribution: false,
         }
     }
-    fn d1(lo:u32,hi:u32,t:Option<u64>)->SourceEvidence { src("d1",ContactChannel::InterfaceFields,"cal-d1",lo,hi,t) }
-    fn d2(lo:u32,hi:u32,t:Option<u64>)->SourceEvidence { src("d2",ContactChannel::NearFootWrenchVibroAcoustic,"cal-d2",lo,hi,t) }
-    fn d3(lo:u32,hi:u32,t:Option<u64>)->SourceEvidence { src("d3",ContactChannel::ProprioceptiveResidual,"cal-d3",lo,hi,t) }
+    fn d1(lo: u32, hi: u32, t: Option<u64>) -> SourceEvidence {
+        src("d1", ContactChannel::InterfaceFields, "cal-d1", lo, hi, t)
+    }
+    fn d2(lo: u32, hi: u32, t: Option<u64>) -> SourceEvidence {
+        src(
+            "d2",
+            ContactChannel::NearFootWrenchVibroAcoustic,
+            "cal-d2",
+            lo,
+            hi,
+            t,
+        )
+    }
+    fn d3(lo: u32, hi: u32, t: Option<u64>) -> SourceEvidence {
+        src("d3", ContactChannel::ProprioceptiveResidual, "cal-d3", lo, hi, t)
+    }
 
     #[test] fn one_source_is_explicitly_single_source() {
         let r=aggregate(&policy(),&[d1(800_000,900_000,Some(995))]).unwrap();
