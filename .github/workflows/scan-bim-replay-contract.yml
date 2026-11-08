@@ -12,6 +12,7 @@ on:
       - "docs/research/built-asset/scan-bim/SCAN_BIM_PARADIGM_SHIFT_AND_BENCHMARK_TARGETS_V0_1.md"
       - "docs/research/built-asset/scan-bim/SCAN_BIM_CANDIDATE_EVALUATOR_ISOLATION_THREAT_MODEL_V0_1.md"
       - "docs/research/built-asset/scan-bim/SCAN_BIM_EXECUTION_RECEIPT_AND_BENCHMARK_TARGETS_V0_1.md"
+      - "docs/research/built-asset/scan-bim/SCAN_BIM_BUILD_ATTESTATION_AND_EXECUTION_RECEIPT_V0_1.md"
   push:
     branches: ["main", "research/scan-bim-admission-v0-1", "research/scan-bim-replay-p0-v0-2", "research/scan-bim-execution-receipt-v0-2"]
     paths:
@@ -23,6 +24,7 @@ on:
       - "docs/research/built-asset/scan-bim/SCAN_BIM_PARADIGM_SHIFT_AND_BENCHMARK_TARGETS_V0_1.md"
       - "docs/research/built-asset/scan-bim/SCAN_BIM_CANDIDATE_EVALUATOR_ISOLATION_THREAT_MODEL_V0_1.md"
       - "docs/research/built-asset/scan-bim/SCAN_BIM_EXECUTION_RECEIPT_AND_BENCHMARK_TARGETS_V0_1.md"
+      - "docs/research/built-asset/scan-bim/SCAN_BIM_BUILD_ATTESTATION_AND_EXECUTION_RECEIPT_V0_1.md"
 
 permissions:
   contents: read
