@@ -79,6 +79,40 @@ jobs:
               print "Causal-drift CSV valid: 20 regime/controller cases, 24 columns; causal and confounder controls passed"
             }
           ' /tmp/civdyn-causal-drift.csv
+      - name: Verify seeded noisy causal-drift operating characteristics
+        run: |
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin noisy-causal-drift-sweep > /tmp/civdyn-noisy-causal-drift.csv
+          awk -F, '
+            NR == 1 { if (NF != 25) exit 40; next }
+            NF != 25 { exit 41 }
+            $2 == "stable_positive" {
+              stable++
+              if ($6 != "" || $20 != "false" || $9 != "8") exit 42
+            }
+            $2 == "sign_reversal" {
+              reversal++
+              if ($6 == "causal_sign_reversal" && $7 == "4" && $20 == "true" && $10 == "1") reversal_good++
+            }
+            $2 == "gradual_sign_reversal" {
+              gradual++
+              if ($6 == "causal_sign_reversal" && $7 == "6" && $20 == "true" && $10 == "2") gradual_good++
+            }
+            $2 == "confounded_null" {
+              nulls++
+              if ($6 == "null_effect_with_confounding" && $7 == "2" && $20 == "true") null_good++
+              if ($25 == "true") null_false_sign++
+            }
+            $2 == "confounder_shift" {
+              confounder++
+              if ($6 == "confounder_shift_without_causal_effect_change" && $7 == "6" && $20 == "false" && $11 == "0" && $9 == "8") confounder_good++
+            }
+            END {
+              if (NR != 1281 || stable != 256 || reversal != 256 || gradual != 256 || nulls != 256 || confounder != 256) exit 43
+              if (reversal_good < 250 || gradual_good < 250 || null_good < 250 || confounder_good < 250) exit 44
+              if (null_false_sign > 5) exit 45
+              print "Noisy causal-drift Monte Carlo passed: 1,280 retained episodes; stable false-stops=0; reversal=" reversal_good "/256; gradual=" gradual_good "/256; null=" null_good "/256; confounder-shift=" confounder_good "/256; false sign diagnoses on null=" null_false_sign
+            }
+          ' /tmp/civdyn-noisy-causal-drift.csv
       - name: Verify deterministic CSV contract and known-answer outputs
         run: |
           cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin self-correction-sweep > /tmp/civdyn-self-correction.csv

@@ -182,6 +182,61 @@
         "comparison": "two-sided cumulative observational-association deviation from the first tick",
         "claim_ceiling": "CUSUM detects a statistical shift in the observed association; it does not identify a causal mechanism."
       }
+    },
+    "noisy_causal_drift": {
+      "status": "seeded_synthetic_monte_carlo",
+      "seeds_per_regime": 256,
+      "regime_count": 5,
+      "total_episode_rows": 1280,
+      "prng": "SplitMix64 with Box-Muller normal variates",
+      "base_seed_hex": "0x43495644594e3236",
+      "matched_pairs_per_look": 2048,
+      "independent_outcome_noise_standard_deviation": 2,
+      "predeclared_look_ticks": [
+        2,
+        4,
+        6,
+        8
+      ],
+      "maximum_looks": 4,
+      "action_benefit_threshold": 0.5,
+      "one_sided_confidence_critical_value": 2.8,
+      "sequential_error_control": "Conservative one-sided normal critical value 2.8 across four predeclared looks; under the stated normal approximation, union-bound family-wise false-stop probability is below 1.1%.",
+      "expected_controls": {
+        "stable_positive": {
+          "false_stops": 0,
+          "diagnoses": null,
+          "active_ticks": 8
+        },
+        "sign_reversal": {
+          "minimum_correct_diagnoses": 250,
+          "diagnosis_tick": 4,
+          "active_after_nonpositive_effect_ticks": 1
+        },
+        "gradual_sign_reversal": {
+          "minimum_correct_diagnoses": 250,
+          "diagnosis_tick": 6,
+          "active_after_nonpositive_effect_ticks": 2
+        },
+        "confounded_null": {
+          "minimum_nonbeneficial_diagnoses": 250,
+          "maximum_false_sign_diagnoses": 5,
+          "diagnosis_tick": 2
+        },
+        "confounder_shift": {
+          "minimum_correct_diagnoses": 250,
+          "diagnosis": "confounder_shift_without_causal_effect_change",
+          "diagnosis_tick": 6,
+          "policy_stopped": false,
+          "missed_beneficial_action_ticks": 0
+        }
+      },
+      "claim_ceiling": [
+        "All outcomes are generated from frozen synthetic structural equations with Gaussian sampling noise; no real human, institutional, ecological or hydrological data are used.",
+        "The sequential confidence bound uses an approximate normal critical value and estimated standard error; its error-control interpretation depends on the stated paired-outcome noise model and planned look schedule.",
+        "The seed sweep estimates finite-sample operating characteristics only for this synthetic generator; it does not establish external validity or real-world causal identification.",
+        "The 256 seed runs are fixed benchmark replications and are not an empirical sample of civilizations or interventions."
+      ]
     }
   },
   "correction_event_order": [
@@ -229,7 +284,17 @@
     "missed_beneficial_action_ticks",
     "signal_change_detected",
     "signal_detection_tick",
-    "diagnosis_tick"
+    "diagnosis_tick",
+    "seed",
+    "probe_looks",
+    "final_probe_mean",
+    "final_probe_standard_error",
+    "final_probe_lower_bound",
+    "final_probe_upper_bound",
+    "false_sign_diagnosis",
+    "policy_stopped",
+    "deterministic_diagnosis_tick",
+    "deterministic_active_ticks"
   ],
   "claim_ceiling": [
     "The scenarios and all quantities are synthetic and not calibrated to a real catchment or society.",

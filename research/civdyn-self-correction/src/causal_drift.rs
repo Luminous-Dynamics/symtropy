@@ -61,7 +61,7 @@ impl CausalRegime {
         }
     }
 
-    const fn observational_confounder_imbalance(self, one_based_tick: usize) -> f64 {
+    pub const fn observational_confounder_imbalance(self, one_based_tick: usize) -> f64 {
         match self {
             Self::ConfounderShift if one_based_tick >= CONFOUNDER_SHIFT_TICK => {
                 CONFOUNDER_SHIFT_IMBALANCE

@@ -88,6 +88,31 @@ The portfolio compares frozen, outcome-reactive, CUSUM signal-only and mechanism
 
 Known-answer controls: CUSUM detects abrupt observational change at tick 4, gradual change at tick 5, and confounder shift at tick 5. The mechanism-aware controller diagnoses abrupt reversal at tick 4, gradual reversal at tick 6, confounded null at tick 2, and confounder-only shift at tick 6. It does not disable the stable-positive mechanism or the still-beneficial intervention under confounder shift.
 
+## Scenario D: noisy sequential causal diagnosis
+
+Scenario C is a deterministic known-answer protocol control. Scenario D tests whether its conclusions survive finite samples, random outcome noise and repeated looks.
+
+The seeded Monte Carlo runner uses:
+- 256 fixed seeds per regime (1,280 complete episode rows);
+- SplitMix64 with Box-Muller normal variates, using a frozen base seed and deterministic regime/seed mapping;
+- independent treatment/control outcome noise with standard deviation 2.0;
+- 2,048 matched treatment/control pairs per look, sharing the same confounder value within each pair;
+- four predeclared looks at ticks 2, 4, 6 and 8;
+- an estimated standard error and a conservative one-sided critical value of 2.8 for the upper confidence bound against the declared action-benefit threshold of 0.5.
+
+The repeated-look rule is conservative relative to a one-sided Bonferroni allocation across four planned looks under the stated approximately Gaussian paired-difference model; the normal-approximation union bound is about 1.1% family-wise, more conservative than a 5% budget. It uses a normal critical value with estimated variance, not an exact finite-sample randomization test. Its statistical interpretation depends on the generator and assumptions being correctly specified. A future version should add exact/permutation inference, heteroskedastic noise, missing outcomes and blinded randomization checks.
+
+Every seed/regime row is exported. The receipt includes signal-detection tick, diagnosis and tick, policy action counts, probe look count, final paired estimate, standard error, lower/upper bound, sample size, confidence critical value, false sign diagnosis flag, and the paired deterministic comparator.
+
+The confirmatory software gate requires:
+- no false policy stops on the 256 stable-positive episodes;
+- at least 250/256 correct sign-reversal diagnoses;
+- at least 250/256 correct gradual-reversal diagnoses;
+- at least 250/256 non-beneficial diagnoses for the confounded-null regime, with at most five false sign labels;
+- at least 250/256 correct confounder-shift diagnoses while retaining the beneficial action.
+
+These are predeclared synthetic-generator operating-characteristic gates, not estimates of real-world performance or guarantees for other distributions. Failed seeds remain in the CSV and cannot be discarded.
+
 ## Run
 
 ```sh
@@ -97,6 +122,7 @@ cargo check --locked --manifest-path research/civdyn-self-correction/Cargo.toml 
 cargo test --locked --manifest-path research/civdyn-self-correction/Cargo.toml --all-targets
 cargo run --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin self-correction-sweep
 cargo run --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin causal-drift-sweep
+cargo run --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin noisy-causal-drift-sweep
 ```
 
 ## Claim ceiling
