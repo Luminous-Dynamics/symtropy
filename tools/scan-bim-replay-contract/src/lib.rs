@@ -158,6 +158,7 @@ struct MetricProfile {
     definition_authority: MetricDefinitionAuthority,
     accuracy_direction: AccuracyDirection,
     sample_strategy: AccuracySampleStrategy,
+    correspondence_policy: MetricCorrespondencePolicy,
     surface_buffer_m: f64,
     accuracy_cutoff_m: f64,
 }
@@ -195,6 +196,15 @@ enum AccuracySampleStrategy {
     SourceSurfaceVertices,
     SourceSurfaceSamples,
     BothDirectionsDiagnostic,
+}
+
+#[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum MetricCorrespondencePolicy {
+    EuclideanClosestPointOnTriangle,
+    OrthogonalProjectionInsideTriangle,
+    UnresolvedUntilReferenceMethodReproduction,
+    BidirectionalDiagnostic,
 }
 
 #[derive(Debug, Deserialize)]
@@ -343,6 +353,7 @@ pub struct ReplayAuditReport {
     pub metric_definition_authority: String,
     pub metric_accuracy_direction: String,
     pub metric_accuracy_sample_strategy: String,
+    pub metric_correspondence_policy: String,
     pub surface_buffer_m: f64,
     pub accuracy_cutoff_m: f64,
     pub manifest_sha256: String,
@@ -469,6 +480,21 @@ fn accuracy_sample_strategy_label(value: AccuracySampleStrategy) -> &'static str
         AccuracySampleStrategy::SourceSurfaceVertices => "source_surface_vertices",
         AccuracySampleStrategy::SourceSurfaceSamples => "source_surface_samples",
         AccuracySampleStrategy::BothDirectionsDiagnostic => "both_directions_diagnostic",
+    }
+}
+
+fn metric_correspondence_policy_label(value: MetricCorrespondencePolicy) -> &'static str {
+    match value {
+        MetricCorrespondencePolicy::EuclideanClosestPointOnTriangle => {
+            "euclidean_closest_point_on_triangle"
+        }
+        MetricCorrespondencePolicy::OrthogonalProjectionInsideTriangle => {
+            "orthogonal_projection_inside_triangle"
+        }
+        MetricCorrespondencePolicy::UnresolvedUntilReferenceMethodReproduction => {
+            "unresolved_until_reference_method_reproduction"
+        }
+        MetricCorrespondencePolicy::BidirectionalDiagnostic => "bidirectional_diagnostic",
     }
 }
 
@@ -626,30 +652,38 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
                     == AccuracyDirection::ReferenceToCandidate
                     && manifest.metric_profile.sample_strategy
                         == AccuracySampleStrategy::ReferenceSurfaceSamples
+                    && manifest.metric_profile.correspondence_policy
+                        == MetricCorrespondencePolicy::EuclideanClosestPointOnTriangle
             }
             MetricDefinitionAuthority::EvaluationFramework2018 => {
                 manifest.metric_profile.accuracy_direction
                     == AccuracyDirection::CandidateToReference
                     && manifest.metric_profile.sample_strategy
                         == AccuracySampleStrategy::SourceSurfaceVertices
+                    && manifest.metric_profile.correspondence_policy
+                        == MetricCorrespondencePolicy::OrthogonalProjectionInsideTriangle
             }
             MetricDefinitionAuthority::FinalResultsPaper2021 => {
                 manifest.metric_profile.accuracy_direction
                     == AccuracyDirection::CandidateToReference
                     && manifest.metric_profile.sample_strategy
                         == AccuracySampleStrategy::SourceSurfaceSamples
+                    && manifest.metric_profile.correspondence_policy
+                        == MetricCorrespondencePolicy::UnresolvedUntilReferenceMethodReproduction
             }
             MetricDefinitionAuthority::BidirectionalDiagnostic => {
                 manifest.metric_profile.accuracy_direction
                     == AccuracyDirection::BidirectionalDiagnostic
                     && manifest.metric_profile.sample_strategy
                         == AccuracySampleStrategy::BothDirectionsDiagnostic
+                    && manifest.metric_profile.correspondence_policy
+                        == MetricCorrespondencePolicy::BidirectionalDiagnostic
             }
             MetricDefinitionAuthority::ProjectDefined => false,
         };
         if manifest.metric_profile.scope != MetricScope::WallOnly || !authority_matches_definition {
             return Err(
-                "ISPRS wall metric profile must pair wall_only scope, accuracy direction and sample strategy with definition_authority"
+                "ISPRS wall metric profile must pair wall_only scope, accuracy direction, sample strategy and correspondence policy with definition_authority"
                     .to_owned(),
             );
         }
@@ -1464,6 +1498,10 @@ pub fn audit_manifest_bytes(bytes: &[u8]) -> Result<ReplayAuditReport, String> {
         .to_owned(),
         metric_accuracy_sample_strategy: accuracy_sample_strategy_label(
             manifest.metric_profile.sample_strategy,
+        )
+        .to_owned(),
+        metric_correspondence_policy: metric_correspondence_policy_label(
+            manifest.metric_profile.correspondence_policy,
         )
         .to_owned(),
         surface_buffer_m: manifest.metric_profile.surface_buffer_m,
