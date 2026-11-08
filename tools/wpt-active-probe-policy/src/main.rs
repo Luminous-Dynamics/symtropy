@@ -69,6 +69,7 @@ pub struct PolicyReport {
     pub status: String,
     pub adaptive_plan: Option<PolicyPlan>,
     pub best_fixed_plan: Option<FixedPlan>,
+    pub best_feasible_fixed_plan: Option<FixedPlan>,
     pub excluded_actions: Vec<(String, String)>,
 }
 
@@ -499,6 +500,7 @@ fn fixed_search(
     start: usize,
     chosen: &mut Vec<usize>,
     case: &ProbeCase,
+    require_budget_fit: bool,
     best: &mut Option<FixedPlan>,
 ) {
     if !chosen.is_empty() && jointly_unique(chosen, case) {
@@ -513,6 +515,9 @@ fn fixed_search(
             within_energy_budget: energy <= case.energy_budget_uj,
             within_latency_budget: latency <= case.latency_budget_us,
         };
+        if require_budget_fit && (!plan.within_energy_budget || !plan.within_latency_budget) {
+            return;
+        }
         let key = (plan.total_energy_uj, plan.total_latency_us, plan.action_ids.clone());
         let replace = best.as_ref().map(|b| {
             key < (b.total_energy_uj, b.total_latency_us, b.action_ids.clone())
@@ -524,14 +529,20 @@ fn fixed_search(
     for i in start..case.actions.len() {
         if exclusion_reason(&case.actions[i], case).is_some() { continue; }
         chosen.push(i);
-        fixed_search(i + 1, chosen, case, best);
+        fixed_search(i + 1, chosen, case, require_budget_fit, best);
         chosen.pop();
     }
 }
 
 pub fn best_fixed_plan(case: &ProbeCase) -> Option<FixedPlan> {
     let mut best = None;
-    fixed_search(0, &mut Vec::<usize>::new(), case, &mut best);
+    fixed_search(0, &mut Vec::<usize>::new(), case, false, &mut best);
+    best
+}
+
+pub fn best_feasible_fixed_plan(case: &ProbeCase) -> Option<FixedPlan> {
+    let mut best = None;
+    fixed_search(0, &mut Vec::<usize>::new(), case, true, &mut best);
     best
 }
 
@@ -546,6 +557,7 @@ pub fn evaluate(case: &ProbeCase) -> PolicyReport {
         status: if plan.is_some() { "POLICY_FOUND".into() } else { "ABSTAIN_NO_FEASIBLE_POLICY".into() },
         adaptive_plan: plan,
         best_fixed_plan: fixed,
+        best_feasible_fixed_plan: best_feasible_fixed_plan(case),
         excluded_actions,
     }
 }
@@ -595,14 +607,21 @@ fn run(path: &Path) -> Result<(), String> {
     }
     match &report.best_fixed_plan {
         Some(fixed) => println!(
-            "BEST FIXED SEQUENCE: [{}] energy={} synthetic µJ latency={} synthetic µs fits_energy={} fits_latency={}",
+            "BEST UNCONSTRAINED FIXED SEQUENCE: [{}] energy={} synthetic µJ latency={} synthetic µs fits_energy={} fits_latency={}",
             fixed.action_ids.join(", "),
             fixed.total_energy_uj,
             fixed.total_latency_us,
             fixed.within_energy_budget,
             fixed.within_latency_budget
         ),
-        None => println!("BEST FIXED SEQUENCE: none"),
+        None => println!("BEST UNCONSTRAINED FIXED SEQUENCE: none"),
+    }
+    match &report.best_feasible_fixed_plan {
+        Some(fixed) => println!(
+            "BEST BUDGET-FEASIBLE FIXED SEQUENCE: [{}] energy={} synthetic µJ latency={} synthetic µs",
+            fixed.action_ids.join(", "), fixed.total_energy_uj, fixed.total_latency_us
+        ),
+        None => println!("BEST BUDGET-FEASIBLE FIXED SEQUENCE: none"),
     }
     if let (Some(adaptive), Some(fixed)) = (&report.adaptive_plan, &report.best_fixed_plan) {
         if fixed.total_energy_uj > 0 && adaptive.worst_case_energy_uj < fixed.total_energy_uj {
