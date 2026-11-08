@@ -745,9 +745,9 @@ mod tests {
     fn adaptive_policy_uses_branch_specific_probes_and_resolves_all_hypotheses() {
         let c = case();
         let p = adaptive_plan(&c).unwrap();
-        assert_eq!(p.action_id.as_deref(), Some("root_split"));
-        assert_eq!(p.worst_case_energy_uj, 23);
-        assert_eq!(p.worst_case_latency_us, 8);
+        assert_eq!(p.action_id.as_deref(), Some("passive_telemetry_split"));
+        assert_eq!(p.worst_case_energy_uj, 15);
+        assert_eq!(p.worst_case_latency_us, 7);
         assert_eq!(p.worst_case_actions, 2);
         assert_eq!(p.branches.len(), 2);
         assert_eq!(p.branches[0].1.action_id.as_deref(), Some("left_discriminator"));
@@ -760,10 +760,11 @@ mod tests {
         let r = evaluate(&c);
         let a = r.adaptive_plan.unwrap();
         let f = r.best_fixed_plan.unwrap();
-        assert_eq!(a.worst_case_energy_uj, 23);
-        assert_eq!(f.total_energy_uj, 30);
-        assert_eq!(f.action_ids, vec!["global_probe".to_string()]);
+        assert_eq!(a.worst_case_energy_uj, 15);
+        assert_eq!(f.total_energy_uj, 27);
+        assert_eq!(f.action_ids, vec!["left_discriminator".to_string(), "passive_telemetry_split".to_string(), "right_discriminator".to_string()]);
         assert!(!f.within_energy_budget);
+        assert!(!f.within_latency_budget);
         assert!(a.worst_case_energy_uj <= c.energy_budget_uj);
         assert!(a.worst_case_latency_us <= c.latency_budget_us);
     }
@@ -786,7 +787,7 @@ mod tests {
     #[test]
     fn insufficient_energy_budget_fails_closed() {
         let mut c = case();
-        c.energy_budget_uj = 22;
+        c.energy_budget_uj = 14;
         assert!(adaptive_plan(&c).is_none());
         assert_eq!(evaluate(&c).status, "ABSTAIN_NO_FEASIBLE_POLICY");
     }
@@ -794,7 +795,7 @@ mod tests {
     #[test]
     fn insufficient_latency_budget_fails_closed() {
         let mut c = case();
-        c.latency_budget_us = 7;
+        c.latency_budget_us = 6;
         assert!(adaptive_plan(&c).is_none());
     }
 
@@ -817,6 +818,33 @@ mod tests {
     }
 
     #[test]
+    fn passive_observation_allows_zero_incremental_energy_but_requires_positive_latency() {
+        let parsed = case();
+        let passive = parsed.actions.iter().find(|a| a.id == "passive_telemetry_split").unwrap();
+        assert_eq!(passive.kind, "PASSIVE_OBSERVE");
+        assert_eq!(passive.energy_uj, 0);
+        assert!(passive.duration_us > 0);
+
+        let mut rows: Vec<String> = FIXTURE.lines().map(str::to_string).collect();
+        let mut fields: Vec<String> = rows.last().unwrap().split('	').map(str::to_string).collect();
+        fields[14] = "0".to_string();
+        rows[rows.len()-1] = fields.join("	");
+        let bad = rows.join("
+");
+        assert!(parse_case(&bad).is_err());
+    }
+
+    #[test]
+    fn unknown_action_kind_fails_closed() {
+        let mut rows: Vec<String> = FIXTURE.lines().map(str::to_string).collect();
+        let mut fields: Vec<String> = rows[1].split('	').map(str::to_string).collect();
+        fields[12] = "MAGIC_PROBE".to_string();
+        rows[1] = fields.join("	");
+        assert!(parse_case(&rows.join("
+")).is_err());
+    }
+
+    #[test]
     fn outcome_support_sets_parse_and_duplicate_bins_fail_closed() {
         let mut rows: Vec<String> = FIXTURE.lines().map(str::to_string).collect();
         let mut fields: Vec<String> = rows[1].split('\t').map(str::to_string).collect();
@@ -833,7 +861,11 @@ mod tests {
 
     #[test]
     fn outcome_vector_length_must_match_pose_hypotheses() {
-        let bad = FIXTURE.replacen("root_split\t8\t3\t300\t400\t250\t0,0,1,1", "root_split\t8\t3\t300\t400\t250\t0,0,1", 1);
+        let mut rows: Vec<String> = FIXTURE.lines().map(str::to_string).collect();
+        let mut fields: Vec<String> = rows[1].split('\t').map(str::to_string).collect();
+        fields[18] = "0,0,1".to_string();
+        rows[1] = fields.join("\t");
+        let bad = rows.join("\n");
         assert!(parse_case(&bad).is_err());
     }
 
