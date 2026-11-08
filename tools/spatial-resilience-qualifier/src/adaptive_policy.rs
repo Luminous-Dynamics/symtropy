@@ -854,15 +854,21 @@ pub fn validate_adaptive_policy_bytes(
     });
     summary.results.sort_by(|left, right| {
         let left_key = (
-            left.get("case_id").and_then(Value::as_str).unwrap_or_default(),
+            left.get("case_id")
+                .and_then(Value::as_str)
+                .unwrap_or_default(),
             left.get("policy")
                 .and_then(|policy| policy.get("policy_id"))
                 .and_then(Value::as_str)
                 .unwrap_or_default(),
         );
         let right_key = (
-            right.get("case_id").and_then(Value::as_str).unwrap_or_default(),
-            right.get("policy")
+            right
+                .get("case_id")
+                .and_then(Value::as_str)
+                .unwrap_or_default(),
+            right
+                .get("policy")
                 .and_then(|policy| policy.get("policy_id"))
                 .and_then(Value::as_str)
                 .unwrap_or_default(),
