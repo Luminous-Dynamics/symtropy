@@ -10,12 +10,13 @@
 //! observations with the declared known variance. This is not distribution-free.
 
 use crate::{
-    CorrectionEvent, CorrectionStage, validate_full_correction_trace,
+    CorrectionEvent, CorrectionStage,
     causal_drift::{ACTION_COST, CAUSAL_DRIFT_TICKS, CausalRegime},
     noisy_causal_drift::{
-        MATCHED_PAIRS_PER_LOOK, NOISY_SEEDS, OUTCOME_NOISE_STANDARD_DEVIATION,
-        paired_difference_stream, noisy_episode_seed,
+        MATCHED_PAIRS_PER_LOOK, NOISY_SEEDS, OUTCOME_NOISE_STANDARD_DEVIATION, noisy_episode_seed,
+        paired_difference_stream,
     },
+    validate_full_correction_trace,
 };
 
 pub const PREDECLARED_LOOK_TICKS: [usize; 4] = [2, 4, 6, 8];
@@ -26,12 +27,9 @@ pub const ALPHA_PER_HYPOTHESIS: f64 =
 pub const E_VALUE_CROSSING_THRESHOLD: f64 = 240.0;
 pub const PAIRED_DIFFERENCE_KNOWN_VARIANCE: f64 =
     2.0 * OUTCOME_NOISE_STANDARD_DEVIATION * OUTCOME_NOISE_STANDARD_DEVIATION;
-pub const NEGATIVE_EFFECT_BETTING_PARAMETER: f64 =
-    -1.0 / PAIRED_DIFFERENCE_KNOWN_VARIANCE;
-pub const BELOW_THRESHOLD_BETTING_PARAMETER: f64 =
-    -0.2 / PAIRED_DIFFERENCE_KNOWN_VARIANCE;
-pub const BENEFICIAL_EFFECT_BETTING_PARAMETER: f64 =
-    0.5 / PAIRED_DIFFERENCE_KNOWN_VARIANCE;
+pub const NEGATIVE_EFFECT_BETTING_PARAMETER: f64 = -1.0 / PAIRED_DIFFERENCE_KNOWN_VARIANCE;
+pub const BELOW_THRESHOLD_BETTING_PARAMETER: f64 = -0.2 / PAIRED_DIFFERENCE_KNOWN_VARIANCE;
+pub const BENEFICIAL_EFFECT_BETTING_PARAMETER: f64 = 0.5 / PAIRED_DIFFERENCE_KNOWN_VARIANCE;
 pub const MAX_PAIRS_PER_LOOK: usize = MATCHED_PAIRS_PER_LOOK;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -46,9 +44,7 @@ impl SequentialDiagnosis {
         match self {
             Self::NegativeCausalEffect => "negative_causal_effect",
             Self::EffectNotAboveActionThreshold => "effect_not_above_action_threshold",
-            Self::ConfounderShiftWithBeneficialEffect => {
-                "confounder_shift_with_beneficial_effect"
-            }
+            Self::ConfounderShiftWithBeneficialEffect => "confounder_shift_with_beneficial_effect",
         }
     }
 }
@@ -94,11 +90,7 @@ impl EProcess {
 
 /// Exact expectation of one e-process multiplicative increment under the
 /// declared Gaussian model. Used by analytic null-side unit tests.
-pub fn expected_e_increment(
-    betting_parameter: f64,
-    true_mean: f64,
-    null_boundary: f64,
-) -> f64 {
+pub fn expected_e_increment(betting_parameter: f64, true_mean: f64, null_boundary: f64) -> f64 {
     (betting_parameter * (true_mean - null_boundary)).exp()
 }
 
@@ -157,8 +149,16 @@ fn correction_trace(
         ),
     };
     vec![
-        event(CorrectionStage::Observed, observed_tick, "observational_signal_or_paired_outcomes"),
-        event(CorrectionStage::Detected, observed_tick, "anytime_valid_e_process_boundary"),
+        event(
+            CorrectionStage::Observed,
+            observed_tick,
+            "observational_signal_or_paired_outcomes",
+        ),
+        event(
+            CorrectionStage::Detected,
+            observed_tick,
+            "anytime_valid_e_process_boundary",
+        ),
         event(CorrectionStage::Diagnosed, diagnosis_tick, diagnosis_code),
         event(
             CorrectionStage::Discriminated,
@@ -201,10 +201,7 @@ impl SignalCusum {
     }
 }
 
-pub fn run_anytime_causal_episode(
-    regime: CausalRegime,
-    seed_index: usize,
-) -> AnytimeCausalOutcome {
+pub fn run_anytime_causal_episode(regime: CausalRegime, seed_index: usize) -> AnytimeCausalOutcome {
     let seed = noisy_episode_seed(regime, seed_index);
     let mut signal_detector = SignalCusum::default();
     let mut policy_enabled = true;
@@ -225,8 +222,7 @@ pub fn run_anytime_causal_episode(
 
     for tick in 1..=CAUSAL_DRIFT_TICKS {
         let true_effect = regime.causal_effect(tick);
-        let observed_association =
-            true_effect + regime.observational_confounder_imbalance(tick);
+        let observed_association = true_effect + regime.observational_confounder_imbalance(tick);
         signal_detector.observe(observed_association, tick);
 
         if policy_enabled {
@@ -243,19 +239,12 @@ pub fn run_anytime_causal_episode(
         }
 
         let mut negative_effect = EProcess::new(NEGATIVE_EFFECT_BETTING_PARAMETER, 0.0);
-        let mut below_threshold =
-            EProcess::new(BELOW_THRESHOLD_BETTING_PARAMETER, ACTION_COST);
-        let mut beneficial_effect =
-            EProcess::new(BENEFICIAL_EFFECT_BETTING_PARAMETER, ACTION_COST);
+        let mut below_threshold = EProcess::new(BELOW_THRESHOLD_BETTING_PARAMETER, ACTION_COST);
+        let mut beneficial_effect = EProcess::new(BENEFICIAL_EFFECT_BETTING_PARAMETER, ACTION_COST);
         let mut look_confirmed_benefit = false;
 
-        let stream = paired_difference_stream(
-            regime,
-            tick,
-            seed_index,
-            MAX_PAIRS_PER_LOOK,
-        )
-        .expect("maximum paired sample count must be at least two");
+        let stream = paired_difference_stream(regime, tick, seed_index, MAX_PAIRS_PER_LOOK)
+            .expect("maximum paired sample count must be at least two");
 
         for paired_difference in stream {
             negative_effect.observe(paired_difference);
@@ -365,11 +354,8 @@ mod tests {
     fn gaussian_e_process_is_a_supermartingale_on_each_composite_null_side() {
         for true_mean in [0.0, 0.5, 1.0, 2.0] {
             assert!(
-                expected_e_increment(
-                    NEGATIVE_EFFECT_BETTING_PARAMETER,
-                    true_mean.max(0.0),
-                    0.0
-                ) <= 1.0
+                expected_e_increment(NEGATIVE_EFFECT_BETTING_PARAMETER, true_mean.max(0.0), 0.0)
+                    <= 1.0
             );
             assert!(
                 expected_e_increment(
@@ -386,10 +372,7 @@ mod tests {
                 ) <= 1.0
             );
         }
-        assert_eq!(
-            E_VALUE_CROSSING_THRESHOLD,
-            1.0 / ALPHA_PER_HYPOTHESIS
-        );
+        assert_eq!(E_VALUE_CROSSING_THRESHOLD, 1.0 / ALPHA_PER_HYPOTHESIS);
         assert_eq!(
             PREDECLARED_LOOK_TICKS.len() * SEQUENTIAL_HYPOTHESES_PER_LOOK,
             12
@@ -418,8 +401,7 @@ mod tests {
             assert!(negative.policy_stopped);
             assert!(negative.trace_valid);
 
-            let gradual =
-                run_anytime_causal_episode(CausalRegime::GradualSignReversal, seed);
+            let gradual = run_anytime_causal_episode(CausalRegime::GradualSignReversal, seed);
             assert_eq!(
                 gradual.diagnosis,
                 Some(SequentialDiagnosis::NegativeCausalEffect)
