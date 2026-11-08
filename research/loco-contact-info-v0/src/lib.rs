@@ -475,6 +475,361 @@ pub fn compare_action_information(
     Ok(results)
 }
 
+/// Physical admissibility is supplied by an independent verifier. This
+/// package only checks that its receipt matches the exact action/state/model
+/// identity and has not expired; it does not authenticate the verifier.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AdmissionDecision {
+    Admissible,
+    Rejected,
+    Unknown,
+}
+
+/// A scoped receipt from an independent physical viability/safety verifier.
+/// The caller remains responsible for authenticating this receipt (e.g.
+/// signed evidence or verifier-owned attestation replay).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ActionAdmissionReceipt {
+    action_id: String,
+    action_digest: String,
+    state_digest: String,
+    model_digest: String,
+    verifier_id: String,
+    evidence_digest: String,
+    valid_until_ns: u64,
+    decision: AdmissionDecision,
+}
+
+impl ActionAdmissionReceipt {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        action_id: String,
+        action_digest: String,
+        state_digest: String,
+        model_digest: String,
+        verifier_id: String,
+        evidence_digest: String,
+        valid_until_ns: u64,
+        decision: AdmissionDecision,
+    ) -> Result<Self, GaussianError> {
+        if [
+            action_id.as_str(),
+            action_digest.as_str(),
+            state_digest.as_str(),
+            model_digest.as_str(),
+            verifier_id.as_str(),
+            evidence_digest.as_str(),
+        ]
+        .iter()
+        .any(|value| value.trim().is_empty())
+        {
+            return Err(GaussianError::EmptyActionId);
+        }
+        Ok(Self {
+            action_id,
+            action_digest,
+            state_digest,
+            model_digest,
+            verifier_id,
+            evidence_digest,
+            valid_until_ns,
+            decision,
+        })
+    }
+}
+
+/// A candidate action with conservative resource upper bounds. The normalized
+/// risk score is a caller-defined, versioned metric—not automatically a
+/// probability. All candidates in one Pareto comparison must share its digest.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ConstrainedActionCandidate {
+    observation_model: ActionConditionedObservation,
+    action_digest: String,
+    state_digest: String,
+    model_digest: String,
+    energy_upper_bound_microjoules: u64,
+    normalized_risk_upper_score_ppm: u32,
+    risk_metric_digest: String,
+}
+
+impl ConstrainedActionCandidate {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        observation_model: ActionConditionedObservation,
+        action_digest: String,
+        state_digest: String,
+        model_digest: String,
+        energy_upper_bound_microjoules: u64,
+        normalized_risk_upper_score_ppm: u32,
+        risk_metric_digest: String,
+    ) -> Result<Self, GaussianError> {
+        if [
+            action_digest.as_str(),
+            state_digest.as_str(),
+            model_digest.as_str(),
+            risk_metric_digest.as_str(),
+        ]
+        .iter()
+        .any(|value| value.trim().is_empty())
+        {
+            return Err(GaussianError::EmptyActionId);
+        }
+        if normalized_risk_upper_score_ppm > SCALE_PPM {
+            return Err(GaussianError::RiskScoreOutOfRange);
+        }
+        Ok(Self {
+            observation_model,
+            action_digest,
+            state_digest,
+            model_digest,
+            energy_upper_bound_microjoules,
+            normalized_risk_upper_score_ppm,
+            risk_metric_digest,
+        })
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CandidateDisposition {
+    AdmittedPareto,
+    AdmittedDominated,
+    RejectedByPhysicalVerifier,
+    UnknownPhysicalAdmissibility,
+    MissingAdmissionReceipt,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ConstrainedActionAssessment {
+    pub action_id: String,
+    pub disposition: CandidateDisposition,
+    pub expected_information_gain_nats: Option<f64>,
+    pub energy_upper_bound_microjoules: u64,
+    pub normalized_risk_upper_score_ppm: u32,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ConstrainedParetoReport {
+    pub state_digest: String,
+    pub model_digest: String,
+    pub risk_metric_digest: String,
+    pub evaluated_at_ns: u64,
+    /// Stable order: EIG descending, energy upper bound ascending, risk score
+    /// ascending, then action ID. No hidden weighted sum is computed.
+    pub pareto_action_ids: Vec<String>,
+    pub assessments: Vec<ConstrainedActionAssessment>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ConstrainedSelectionError {
+    EmptyIdentity,
+    NoCandidates,
+    DuplicateCandidateId(String),
+    DuplicateReceipt(String),
+    UnexpectedReceipt(String),
+    ReceiptIdentityMismatch(String),
+    CandidateMetricIdentityMismatch(String),
+    RiskScoreOutOfRange(String),
+}
+
+/// Compare action-conditioned information only after filtering candidates
+/// through an independently produced, identity-matched physical-admissibility
+/// receipt. A missing, unknown or expired receipt cannot promote an action.
+///
+/// Among admitted candidates, return the Pareto set for:
+/// - maximize expected information gain (nats);
+/// - minimize the conservative energy upper bound (microjoules);
+/// - minimize the declared normalized risk upper score.
+///
+/// This is a selection/reporting utility, not the physical verifier. It does
+/// not cryptographically authenticate receipt provenance or execute actions.
+pub fn select_admissible_pareto(
+    prior: &GaussianBelief,
+    candidates: &[ConstrainedActionCandidate],
+    receipts: &[ActionAdmissionReceipt],
+    expected_state_digest: &str,
+    expected_model_digest: &str,
+    expected_risk_metric_digest: &str,
+    now_ns: u64,
+) -> Result<ConstrainedParetoReport, ConstrainedSelectionError> {
+    if [
+        expected_state_digest,
+        expected_model_digest,
+        expected_risk_metric_digest,
+    ]
+    .iter()
+    .any(|value| value.trim().is_empty())
+    {
+        return Err(ConstrainedSelectionError::EmptyIdentity);
+    }
+    if candidates.is_empty() {
+        return Err(ConstrainedSelectionError::NoCandidates);
+    }
+
+    let mut candidate_ids = BTreeMap::<String, ()>::new();
+    for candidate in candidates {
+        let action_id = &candidate.observation_model.action_id;
+        if candidate_ids.insert(action_id.clone(), ()).is_some() {
+            return Err(ConstrainedSelectionError::DuplicateCandidateId(
+                action_id.clone(),
+            ));
+        }
+        if candidate.state_digest != expected_state_digest
+            || candidate.model_digest != expected_model_digest
+            || candidate.risk_metric_digest != expected_risk_metric_digest
+        {
+            return Err(ConstrainedSelectionError::CandidateMetricIdentityMismatch(
+                action_id.clone(),
+            ));
+        }
+        if candidate.normalized_risk_upper_score_ppm > SCALE_PPM {
+            return Err(ConstrainedSelectionError::RiskScoreOutOfRange(
+                action_id.clone(),
+            ));
+        }
+    }
+
+    let mut receipt_by_id = BTreeMap::<String, &ActionAdmissionReceipt>::new();
+    for receipt in receipts {
+        if receipt_by_id
+            .insert(receipt.action_id.clone(), receipt)
+            .is_some()
+        {
+            return Err(ConstrainedSelectionError::DuplicateReceipt(
+                receipt.action_id.clone(),
+            ));
+        }
+        if !candidate_ids.contains_key(&receipt.action_id) {
+            return Err(ConstrainedSelectionError::UnexpectedReceipt(
+                receipt.action_id.clone(),
+            ));
+        }
+    }
+
+    let mut assessments = Vec::with_capacity(candidates.len());
+    let mut admitted: Vec<(usize, f64)> = Vec::new();
+
+    for (index, candidate) in candidates.iter().enumerate() {
+        let action_id = &candidate.observation_model.action_id;
+        let Some(receipt) = receipt_by_id.get(action_id) else {
+            assessments.push(ConstrainedActionAssessment {
+                action_id: action_id.clone(),
+                disposition: CandidateDisposition::MissingAdmissionReceipt,
+                expected_information_gain_nats: None,
+                energy_upper_bound_microjoules: candidate.energy_upper_bound_microjoules,
+                normalized_risk_upper_score_ppm: candidate.normalized_risk_upper_score_ppm,
+            });
+            continue;
+        };
+
+        if receipt.action_digest != candidate.action_digest
+            || receipt.state_digest != expected_state_digest
+            || receipt.model_digest != expected_model_digest
+            || receipt.verifier_id.trim().is_empty()
+            || receipt.evidence_digest.trim().is_empty()
+        {
+            return Err(ConstrainedSelectionError::ReceiptIdentityMismatch(
+                action_id.clone(),
+            ));
+        }
+
+        let disposition = if receipt.valid_until_ns < now_ns {
+            CandidateDisposition::UnknownPhysicalAdmissibility
+        } else {
+            match receipt.decision {
+                AdmissionDecision::Admissible => {
+                    let eig = expected_information_gain(prior, &candidate.observation_model)
+                        .map_err(|_| {
+                            ConstrainedSelectionError::CandidateMetricIdentityMismatch(
+                                action_id.clone(),
+                            )
+                        })?;
+                    admitted.push((index, eig));
+                    assessments.push(ConstrainedActionAssessment {
+                        action_id: action_id.clone(),
+                        disposition: CandidateDisposition::AdmittedPareto,
+                        expected_information_gain_nats: Some(eig),
+                        energy_upper_bound_microjoules: candidate.energy_upper_bound_microjoules,
+                        normalized_risk_upper_score_ppm: candidate.normalized_risk_upper_score_ppm,
+                    });
+                    continue;
+                }
+                AdmissionDecision::Rejected => {
+                    CandidateDisposition::RejectedByPhysicalVerifier
+                }
+                AdmissionDecision::Unknown => {
+                    CandidateDisposition::UnknownPhysicalAdmissibility
+                }
+            }
+        };
+
+        assessments.push(ConstrainedActionAssessment {
+            action_id: action_id.clone(),
+            disposition,
+            expected_information_gain_nats: None,
+            energy_upper_bound_microjoules: candidate.energy_upper_bound_microjoules,
+            normalized_risk_upper_score_ppm: candidate.normalized_risk_upper_score_ppm,
+        });
+    }
+
+    let dominates = |left: &(usize, f64), right: &(usize, f64)| {
+        let a = &candidates[left.0];
+        let b = &candidates[right.0];
+        let no_worse = left.1 >= right.1
+            && a.energy_upper_bound_microjoules <= b.energy_upper_bound_microjoules
+            && a.normalized_risk_upper_score_ppm <= b.normalized_risk_upper_score_ppm;
+        let strictly_better = left.1 > right.1
+            || a.energy_upper_bound_microjoules < b.energy_upper_bound_microjoules
+            || a.normalized_risk_upper_score_ppm < b.normalized_risk_upper_score_ppm;
+        no_worse && strictly_better
+    };
+
+    let mut front = Vec::new();
+    for candidate in &admitted {
+        let is_dominated = admitted
+            .iter()
+            .any(|other| other.0 != candidate.0 && dominates(other, candidate));
+        if is_dominated {
+            assessments[candidate.0].disposition = CandidateDisposition::AdmittedDominated;
+        } else {
+            front.push(candidate.clone());
+        }
+    }
+
+    front.sort_by(|left, right| {
+        right
+            .1
+            .total_cmp(&left.1)
+            .then_with(|| {
+                candidates[left.0]
+                    .energy_upper_bound_microjoules
+                    .cmp(&candidates[right.0].energy_upper_bound_microjoules)
+            })
+            .then_with(|| {
+                candidates[left.0]
+                    .normalized_risk_upper_score_ppm
+                    .cmp(&candidates[right.0].normalized_risk_upper_score_ppm)
+            })
+            .then_with(|| {
+                candidates[left.0]
+                    .observation_model
+                    .action_id
+                    .cmp(&candidates[right.0].observation_model.action_id)
+            })
+    });
+
+    Ok(ConstrainedParetoReport {
+        state_digest: expected_state_digest.to_owned(),
+        model_digest: expected_model_digest.to_owned(),
+        risk_metric_digest: expected_risk_metric_digest.to_owned(),
+        evaluated_at_ns: now_ns,
+        pareto_action_ids: front
+            .iter()
+            .map(|(index, _)| candidates[*index].observation_model.action_id.clone())
+            .collect(),
+        assessments,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
