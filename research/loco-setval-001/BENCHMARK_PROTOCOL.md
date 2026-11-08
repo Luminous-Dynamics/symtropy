@@ -51,6 +51,8 @@ Run every controller on the same six-leg plant, actuator model, sensor availabil
 
 **STEP-CBF+.** Djeffal et al. (Scientific Reports, September 2026) combine predicted support, friction/torque feasibility and discrete barrier screening. Their reduced-order randomized simulation reports a 4.0% mean fall rate, 77.3% stable-step fraction and approximately 13.6 ms candidate selection across six scenarios. The paper explicitly does not establish a whole-body nonlinear invariance proof or hardware validation. Reproduce under matched reduced-order assumptions, and preserve this evidence boundary. https://www.nature.com/articles/s41598-026-72507-w
 
+**Contact-reliability-aware state estimation.** Zhao et al. (Sensors 26(19), 6041; published 23 September 2026) provide a direct modern baseline beyond binary foot switches. Their framework retains a physics-based Kalman recursion, estimates gait-phase-constrained continuous contact reliability, uses it to regulate contact-related covariance, and separately adds dynamic and observation residual corrections. Their paper reports 61.0% / 56.2% base-position RMSE reductions, 32.2% / 31.2% base-velocity reductions and 59.1% / 54.7% average foot-position reductions versus Binary Contact KF on its flat / mildly uneven simulation cases. Its reported mean full-pipeline latency is 26.46 ms, maximum 36.24 ms, with approximately 50 ms update period; physical results cover indoor walking and turning, not complex terrain. These are paper-specific results, not general performance guarantees. Compare binary KF, continuous-contact KF, the full neural residual KF and D1/D2/D3 ablations under matched data and update periods. Add calibration, out-of-domain, inter-source dependence and deadline tests; do not equate lower RMSE with contact-safety assurance. https://doi.org/10.3390/s26196041
+
 The benchmark must therefore distinguish at least four constructs: static support margin, dynamic geometric margin, robust future physical viability, and empirical learning recoverability. None is a synonym for another.
 
 1. **B0: SPINDER-style CPG/IK baseline** — coupled oscillators, local trajectory generation, analytic IK, fixed or velocity-conditioned gait schedule.
@@ -60,8 +62,12 @@ The benchmark must therefore distinguish at least four constructs: static suppor
 5. **S0: Symtropy finite-oracle-only** — consume a supplied finite transition graph; explicitly synthetic/abstract evidence only.
 6. **S1: Symtropy hybrid assurance** — sound interval/set-valued abstraction feeding the finite robust viability oracle.
 7. **S2: Symtropy dual-channel** — S1 plus belief/provenance and active contact information, with probing restricted to robustly admitted actions.
-8. **C1: HORIZON-style learning curriculum** — reproduce its episode-length, tracking and checkpoint-preservation gate without formal physical viability certification.
-9. **S3: Symtropy dual-frontier curriculum** — empirical learning gate plus independently sourced physical viability and certificate-validity gates; hardware progression requires all gates, while out-of-envelope exploration remains simulation-only.
+8. **E0: Binary Contact KF** — binary contact validity baseline.
+9. **E1: Continuous Contact KF** — continuous reliability/covariance-regulation ablation.
+10. **E2: Contact-reliability-aware neural residual KF** — Zhao et al. full baseline, including separate dynamic and observation residuals.
+11. **S2: Symtropy graded contact evidence** — source-provenance and dependence-safe interval envelope across D1/D2/D3, used only as a qualified evidence product.
+12. **C1: HORIZON-style learning curriculum** — reproduce its episode-length, tracking and checkpoint-preservation gate without formal physical viability certification.
+13. **S3: Symtropy dual-frontier curriculum** — empirical learning gate plus independently sourced physical viability and certificate-validity gates; hardware progression requires all gates, while out-of-envelope exploration remains simulation-only.
 
 Do not compare a simulated S1/S2 result directly against hardware B0/B1 as if they shared evidence maturity. Publish simulator and hardware scorecards separately.
 
@@ -121,6 +127,8 @@ Keep the quantities separate:
 
 ### Sensing and model quality
 - contact event precision/recall and mode confusion matrix;
+- continuous contact-reliability calibration: Brier score, log loss, reliability diagrams and coverage-versus-risk;
+- per-channel and cross-channel disagreement, timestamp skew and abstention;
 - detection latency for stale, missing, stuck and saturated signals;
 - prediction calibration by surface and individual;
 - event-order branch coverage;
