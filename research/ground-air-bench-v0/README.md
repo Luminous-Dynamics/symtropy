@@ -74,3 +74,19 @@ Evidence class and disposition are distinct. `SYNTHETIC_ONLY`, `AMBIGUOUS`, `STA
 ## Claim ceiling
 
 This v0 is a composition schema and fixture only. It does not establish physical transfer, safety, standards compliance, flight authorization, continuous observability, robust control, energy efficiency or SOTA superiority. A schema-valid fixture is not a passing benchmark run.
+
+## November 2026 replenishment and capture integration
+
+The v0.1 vocabulary now distinguishes the newer composition owners without importing their implementations:
+
+- `MECHANICAL_CAPTURE` receipt role: a docked/contact opportunity may require the finite post-contact state-set evidence from #4266 / PR #4270. It is not applicable to airborne beam opportunities unless a separate physical capture process is declared.
+- `CAPTURE_OBSERVABILITY_COMPOSITION` receipt role: references the guide-conditioned robust pose result from #4284 / PR #4285. This composes (but does not replace) #4115 pose semantics and #4261 robust model/fault support.
+- `REPLENISHMENT_STRATEGY` receipt role: references the exact mission-path Pareto result from #4286 / PR #4288. It is a bounded architecture comparison, not a live scheduler or controller.
+- The baseline vocabulary now includes robotic conductive docking, battery exchange, static IPT/CPT, RF/optical beaming, power-line energy corridors, adaptive replenishment and an exact mission replenishment Pareto oracle.
+- Scenario families include multimodal replenishment and power-line energy corridors. Landing approach and battery-swap states are explicit motion/service labels.
+
+These roles are required only where the declared bearer and mission phase make them applicable. A mechanical-capture receipt must not be made a universal prerequisite for a free-space RF/optical opportunity. Conversely, a docked guide-based IPT opportunity must not claim a unique pose merely because a mechanical capture receipt exists.
+
+A battery-exchange opportunity must account for the replacement pack's energy at the same declared source-side real-energy boundary used by other replenishment modes. A swap cannot be represented as free energy simply because it bypasses an onboard charger.
+
+The schema remains a composition vocabulary. It does not evaluate continuous physics, validate referenced artifact bytes, produce a site schedule, or issue a power/flight permit.
