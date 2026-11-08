@@ -298,10 +298,176 @@ fn valid_identifier(value: &str) -> bool {
     !value.trim().is_empty()
 }
 
-fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
-    if manifest.schema_version != "0.1" {
-        return Err("unsupported schema_version; expected 0.1".to_owned());
+fn commit_is_sha1(value: &str) -> bool {
+    value.len() == 40
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+}
+
+fn safe_relative_path(value: &str) -> bool {
+    let path = Path::new(value);
+    !value.trim().is_empty()
+        && !path.is_absolute()
+        && path
+            .components()
+            .all(|component| matches!(component, Component::Normal(_)))
+}
+
+fn register_artifact(
+    artifact_id: &str,
+    relative_path: &str,
+    sha256: &str,
+    label: &str,
+    ids: &mut BTreeSet<String>,
+    paths: &mut BTreeSet<String>,
+    digests: &mut BTreeSet<String>,
+) -> Result<(), String> {
+    if !valid_identifier(artifact_id) || !digest_is_sha256(sha256) {
+        return Err(format!("{label} artifact has invalid ID or lowercase SHA-256"));
     }
+    if !safe_relative_path(relative_path) {
+        return Err(format!("{label} artifact {artifact_id} has an unsafe relative_path"));
+    }
+    if !ids.insert(artifact_id.to_owned()) {
+        return Err(format!("duplicate {label} artifact_id: {artifact_id}"));
+    }
+    if !paths.insert(relative_path.to_owned()) {
+        return Err(format!("duplicate {label} artifact path: {relative_path}"));
+    }
+    digests.insert(sha256.to_owned());
+    Ok(())
+}
+
+fn expected_metres_per_unit(unit: LinearUnit) -> f64 {
+    match unit {
+        LinearUnit::Metre => 1.0,
+        LinearUnit::Millimetre => 0.001,
+        LinearUnit::InternationalFoot => 0.3048,
+        LinearUnit::UsSurveyFoot => 1200.0 / 3937.0,
+    }
+}
+
+fn validate_curve(values: &[f64], label: &str) -> Result<(), String> {
+    if values.len() < 2
+        || values.iter().any(|value| !value.is_finite() || *value < 0.0)
+        || values.windows(2).any(|pair| pair[0] >= pair[1])
+    {
+        return Err(format!(
+            "{label} must contain at least two finite, non-negative, strictly increasing values"
+        ));
+    }
+    if values[0] != 0.0 {
+        return Err(format!("{label} must start at zero for an auditable cutoff curve"));
+    }
+    Ok(())
+}
+
+fn validate_candidate_pipeline(pipeline: &CandidatePipelineRecord) -> Result<(), String> {
+    if !valid_identifier(&pipeline.run_id) {
+        return Err("candidate_pipeline.run_id must be non-empty".to_owned());
+    }
+    if !commit_is_sha1(&pipeline.source_commit) {
+        return Err("candidate_pipeline.source_commit must be a 40-character lowercase Git SHA-1".to_owned());
+    }
+    if !valid_identifier(&pipeline.toolchain_id) {
+        return Err("candidate_pipeline.toolchain_id must be non-empty".to_owned());
+    }
+    if pipeline.command_argv.is_empty()
+        || pipeline.command_argv.iter().any(|argument| !valid_identifier(argument))
+    {
+        return Err("candidate_pipeline.command_argv must contain non-empty arguments".to_owned());
+    }
+
+    for (label, artifact) in [
+        ("candidate build", &pipeline.build_artifact),
+        ("candidate model", &pipeline.model_artifact),
+        ("candidate configuration", &pipeline.configuration_artifact),
+    ] {
+        if !valid_identifier(&artifact.artifact_id)
+            || !safe_relative_path(&artifact.relative_path)
+            || !digest_is_sha256(&artifact.sha256)
+        {
+            return Err(format!(
+                "{label} artifact requires a non-empty ID, safe relative path and lowercase SHA-256"
+            ));
+        }
+    }
+    let pipeline_ids = [
+        pipeline.build_artifact.artifact_id.as_str(),
+        pipeline.model_artifact.artifact_id.as_str(),
+        pipeline.configuration_artifact.artifact_id.as_str(),
+    ];
+    if pipeline_ids[0] == pipeline_ids[1]
+        || pipeline_ids[0] == pipeline_ids[2]
+        || pipeline_ids[1] == pipeline_ids[2]
+    {
+        return Err("candidate pipeline artifact identifiers must be unique".to_owned());
+    }
+    let pipeline_paths = [
+        pipeline.build_artifact.relative_path.as_str(),
+        pipeline.model_artifact.relative_path.as_str(),
+        pipeline.configuration_artifact.relative_path.as_str(),
+    ];
+    if pipeline_paths[0] == pipeline_paths[1]
+        || pipeline_paths[0] == pipeline_paths[2]
+        || pipeline_paths[1] == pipeline_paths[2]
+    {
+        return Err("candidate pipeline artifact paths must be unique".to_owned());
+    }
+    Ok(())
+}
+
+fn validate_evaluation_profile(profile: &EvaluationProfile) -> Result<(), String> {
+    let coordinate = &profile.coordinate_reference;
+    if !valid_identifier(&coordinate.frame_id) || !valid_identifier(&coordinate.crs_id) {
+        return Err("coordinate frame_id and crs_id must be non-empty".to_owned());
+    }
+    let expected_scale = expected_metres_per_unit(coordinate.linear_unit);
+    let scale_error = (coordinate.metres_per_unit - expected_scale).abs();
+    if !coordinate.metres_per_unit.is_finite() || scale_error > expected_scale * 1e-12 {
+        return Err("coordinate metres_per_unit does not match the declared linear_unit".to_owned());
+    }
+
+    let tolerances = &profile.tolerances;
+    if !valid_identifier(&tolerances.profile_id)
+        || !tolerances.surface_distance_cutoff_m.is_finite()
+        || tolerances.surface_distance_cutoff_m <= 0.0
+        || !tolerances.surface_intersection_buffer_m.is_finite()
+        || tolerances.surface_intersection_buffer_m <= 0.0
+    {
+        return Err("tolerance profile requires a non-empty ID and finite positive metre thresholds".to_owned());
+    }
+
+    let sampling = &profile.sampling;
+    if !sampling.reference_surface_spacing_m.is_finite()
+        || sampling.reference_surface_spacing_m <= 0.0
+        || !sampling.candidate_surface_spacing_m.is_finite()
+        || sampling.candidate_surface_spacing_m <= 0.0
+        || !sampling.point_cloud_voxel_size_m.is_finite()
+        || sampling.point_cloud_voxel_size_m <= 0.0
+    {
+        return Err("sampling spacings and voxel size must be finite positive metre values".to_owned());
+    }
+
+    let metric = &profile.metric_definition;
+    if !valid_identifier(&metric.suite_id) || !valid_identifier(&metric.version) {
+        return Err("metric suite_id and version must be non-empty".to_owned());
+    }
+    validate_curve(&metric.buffer_distances_m, "metric buffer_distances_m")?;
+    validate_curve(
+        &metric.distance_cutoff_distances_m,
+        "metric distance_cutoff_distances_m",
+    )?;
+    Ok(())
+}
+
+fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
+    if manifest.schema_version != "0.2" {
+        return Err("unsupported schema_version; expected 0.2".to_owned());
+    }
+    validate_candidate_pipeline(&manifest.candidate_pipeline)?;
+    validate_evaluation_profile(&manifest.evaluation_profile)?;
     if !valid_identifier(&manifest.replay_id) {
         return Err("replay_id must be non-empty".to_owned());
     }
