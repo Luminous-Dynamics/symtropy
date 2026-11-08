@@ -4,6 +4,8 @@ A small, deterministic, ledger-backed reference benchmark for the ability of a s
 
 It composes `civdyn-resource-ledger`; it does not create a second stock-flow engine or a general-purpose civilization simulator.
 
+See [benchmark_crosswalk.md](benchmark_crosswalk.md) for the external benchmark landscape, staged comparison gates and proposed targets. Those targets are protocol proposals, not current performance claims.
+
 ## Paradigm
 
 Evaluate the correction process, not just the final target KPI:
