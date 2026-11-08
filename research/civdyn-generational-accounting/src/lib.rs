@@ -75,8 +75,15 @@ impl SimulationHorizon {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CohortServiceKind {
+    HouseholdService,
+    AssetMaintenance,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct CohortServiceRecord {
+    pub service_kind: CohortServiceKind,
     pub cohort_id: CohortId,
     pub region_id: String,
     pub year: i32,
@@ -669,10 +676,12 @@ impl SyntheticPolicy {
 #[derive(Debug, Clone, PartialEq)]
 pub struct CohortScenarioOutcome {
     pub policy: SyntheticPolicy,
-    pub region_ledger_conserved: bool,
+    pub region_ledgers_conserved: bool,
     pub current_household_water_served_m3: f64,
     pub current_household_water_unmet_m3: f64,
+    pub current_maintenance_energy_served_kwh: f64,
     pub future_inherited_water_m3: f64,
+    pub future_inherited_energy_kwh: f64,
     pub future_maintenance_energy_liability_kwh: f64,
     pub future_financial_liability_zar: f64,
     pub future_pump_condition_index: f64,
@@ -713,11 +722,16 @@ pub fn run_synthetic_cohort_policy(
         },
     ];
 
-    // Two current cohorts share one region ledger. A 30 m³ industrial export
-    // changes inherited water stock without changing current household service.
+    // Maintenance performed now is an explicit energy transfer and served
+    // demand in the shared physical ledger; deferred maintenance stays as a
+    // future obligation rather than being treated as free current work.
     let export_water_m3 = match policy {
         SyntheticPolicy::MaintainNow => 0.0,
         SyntheticPolicy::DeferMaintenanceAndExportWater => 30.0,
+    };
+    let maintenance_energy_now_kwh = match policy {
+        SyntheticPolicy::MaintainNow => 40.0,
+        SyntheticPolicy::DeferMaintenanceAndExportWater => 0.0,
     };
     let mut world = World::new(vec![
         Region {
@@ -732,20 +746,38 @@ pub fn run_synthetic_cohort_policy(
             opening_stock: ResourceVector::default(),
             essential_demand_per_capita: ResourceVector::default(),
         },
+        Region {
+            id: "pump_maintenance".to_string(),
+            population: 1.0,
+            opening_stock: ResourceVector::default(),
+            essential_demand_per_capita: ResourceVector::new(
+                0.0,
+                maintenance_energy_now_kwh,
+                0.0,
+            ),
+        },
     ])
     .map_err(|_| CohortAccountingError::InvalidQuantity {
         field: "resource_world",
     })?;
 
+    let mut transfers = vec![TransferRequest {
+        from_region: 0,
+        to_region: 1,
+        amount: ResourceVector::new(export_water_m3, 0.0, 0.0),
+    }];
+    if maintenance_energy_now_kwh > 0.0 {
+        transfers.push(TransferRequest {
+            from_region: 0,
+            to_region: 2,
+            amount: ResourceVector::new(0.0, maintenance_energy_now_kwh, 0.0),
+        });
+    }
     let report = world
         .step(
             &StepInput {
-                production: vec![Production::default(); 2],
-                transfers: vec![TransferRequest {
-                    from_region: 0,
-                    to_region: 1,
-                    amount: ResourceVector::new(export_water_m3, 0.0, 0.0),
-                }],
+                production: vec![Production::default(); 3],
+                transfers,
             },
             TransferPolicy::Unrestricted,
         )
@@ -757,6 +789,12 @@ pub fn run_synthetic_cohort_policy(
         .first()
         .ok_or(CohortAccountingError::InvalidQuantity {
             field: "resource_region_report",
+        })?;
+    let maintenance_region = report
+        .regions
+        .get(2)
+        .ok_or(CohortAccountingError::InvalidQuantity {
+            field: "maintenance_region_report",
         })?;
 
     let physical_liabilities = match policy {
@@ -818,6 +856,7 @@ pub fn run_synthetic_cohort_policy(
         cohorts,
         services: vec![
             CohortServiceRecord {
+                service_kind: CohortServiceKind::HouseholdService,
                 cohort_id: older_id,
                 region_id: "basin_households".to_string(),
                 year: 2026,
@@ -826,10 +865,20 @@ pub fn run_synthetic_cohort_policy(
                 people_exposed: 1.0,
             },
             CohortServiceRecord {
-                cohort_id: current_id,
+                service_kind: CohortServiceKind::HouseholdService,
+                cohort_id: current_id.clone(),
                 region_id: "basin_households".to_string(),
                 year: 2026,
                 served: ResourceVector::new(10.0, 0.0, 0.0),
+                unmet: ResourceVector::default(),
+                people_exposed: 1.0,
+            },
+            CohortServiceRecord {
+                service_kind: CohortServiceKind::AssetMaintenance,
+                cohort_id: current_id,
+                region_id: "pump_maintenance".to_string(),
+                year: 2026,
+                served: ResourceVector::new(0.0, maintenance_energy_now_kwh, 0.0),
                 unmet: ResourceVector::default(),
                 people_exposed: 1.0,
             },
@@ -841,6 +890,12 @@ pub fn run_synthetic_cohort_policy(
 
     ledger.validate()?;
     ledger.reconcile_region_service(basin, 2026)?;
+    ledger.reconcile_region_service(maintenance_region, 2026)?;
+    let cohort_service_reconciled = true;
+    let region_ledgers_conserved = report
+        .regions
+        .iter()
+        .all(|region| region.ledger.is_conserved());
 
     let future = ledger
         .inheritances
@@ -858,10 +913,12 @@ pub fn run_synthetic_cohort_policy(
 
     Ok(CohortScenarioOutcome {
         policy,
-        region_ledger_conserved: basin.ledger.is_conserved(),
+        region_ledgers_conserved,
         current_household_water_served_m3: basin.served.water_m3,
         current_household_water_unmet_m3: basin.unmet.water_m3,
+        current_maintenance_energy_served_kwh: maintenance_region.served.energy_kwh,
         future_inherited_water_m3: future.inherited_resource_stocks.water_m3,
+        future_inherited_energy_kwh: future.inherited_resource_stocks.energy_kwh,
         future_maintenance_energy_liability_kwh: ledger.total_physical_liabilities().energy_kwh,
         future_financial_liability_zar: ledger
             .financial_liabilities
@@ -893,7 +950,7 @@ pub fn run_synthetic_cohort_policy(
                 .iter()
                 .filter(|liability| matches!(liability.assignment, LiabilityAssignment::Unassigned { .. }))
                 .count(),
-        cohort_service_reconciled: true,
+        cohort_service_reconciled,
     })
 }
 
@@ -994,14 +1051,18 @@ mod tests {
         let deferred = outcome(SyntheticPolicy::DeferMaintenanceAndExportWater);
         assert_eq!(maintained.future_inherited_water_m3, 80.0);
         assert_eq!(deferred.future_inherited_water_m3, 50.0);
+        assert_eq!(maintained.current_maintenance_energy_served_kwh, 40.0);
+        assert_eq!(deferred.current_maintenance_energy_served_kwh, 0.0);
+        assert_eq!(maintained.future_inherited_energy_kwh, 60.0);
+        assert_eq!(deferred.future_inherited_energy_kwh, 100.0);
         assert_eq!(maintained.future_maintenance_energy_liability_kwh, 0.0);
         assert_eq!(deferred.future_maintenance_energy_liability_kwh, 40.0);
         assert_eq!(maintained.future_financial_liability_zar, 0.0);
         assert_eq!(deferred.future_financial_liability_zar, 1_000_000.0);
         assert_eq!(maintained.future_pump_condition_index, 0.95);
         assert_eq!(deferred.future_pump_condition_index, 0.60);
-        assert!(maintained.region_ledger_conserved);
-        assert!(deferred.region_ledger_conserved);
+        assert!(maintained.region_ledgers_conserved);
+        assert!(deferred.region_ledgers_conserved);
     }
 
     #[test]
