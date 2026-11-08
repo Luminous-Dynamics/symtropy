@@ -1045,6 +1045,30 @@ mod tests {
     }
 
     #[test]
+    fn admission_receipt_cannot_be_reused_for_another_action() {
+        let mut action = decision("action-A", &[0], false);
+        action.admission.subject_action_id = "different-action".to_owned();
+        let problem = DecisionProblem {
+            now_ns: 500,
+            probe: probe(),
+            hypotheses: vec![Hypothesis {
+                id: "h1".to_owned(),
+                prior_ppb: PROBABILITY_SCALE_PPB,
+                likelihood_ppb_by_outcome: vec![PROBABILITY_SCALE_PPB],
+            }],
+            outcomes: vec![Outcome {
+                id: "only".to_owned(),
+                kind: OutcomeKind::Known,
+            }],
+            decisions: vec![action],
+        };
+        assert_eq!(
+            evaluate_decision_value(&problem),
+            Err(DecisionValueError::AdmissionContextMismatch)
+        );
+    }
+
+    #[test]
     fn ties_are_preserved_and_switch_probability_is_undefined() {
         let report = evaluate(
             vec![
