@@ -206,8 +206,8 @@ pub struct HypergeometricEvaluation {
     pub value: Complex64,
     pub method: EvaluationMethod,
     pub terms: usize,
-    /// Conservative geometric-tail estimate from the final series terms.
-    /// This is an a-posteriori estimate, not a rigorous global bound.
+    /// Geometric majorant for the series truncation tail when available.
+    /// This does not include floating-point roundoff and is not an interval-certified total error.
     pub estimated_absolute_error: f64,
 }
 
@@ -232,9 +232,9 @@ fn validate_hypergeometric_denominator(c: Complex64) -> Result<(), SpecialError>
 ///
 /// Uses the recurrence
 /// term_n = term_(n-1) * (a+n-1)(b+n-1) z / ((c+n-1)n).
-/// Convergence is accepted only after an estimated geometric tail falls below
-/// the configured tolerance. The returned estimate is diagnostic and not a
-/// proof of a rigorous tail bound for arbitrary complex parameters.
+/// Convergence is accepted only after a global geometric ratio majorant for
+/// the remaining series terms falls below the configured tolerance. The
+/// resulting tail bound excludes floating-point roundoff.
 pub fn hyp2f1_series(
     a: Complex64,
     b: Complex64,
@@ -292,18 +292,20 @@ pub fn hyp2f1_series(
             });
         }
 
-        let n_complex = Complex64::new(n as f64, 0.0);
-        let next_denominator = c + n_complex;
-        if next_denominator == Complex64::new(0.0, 0.0) {
-            return Err(SpecialError::HypergeometricDenominatorPole);
-        }
-        let next_ratio =
-            ((a + n_complex) * (b + n_complex) * z / (next_denominator * (n as f64 + 1.0))).norm();
-
-        // The ratio tends to |z|. Using the larger of the local ratio and |z|
-        // avoids an optimistic estimate when the asymptotic ratio is approached
-        // from below. A 1% cushion is retained for the diagnostic tail estimate.
-        let ratio_bound = (next_ratio.max(z.norm()) * 1.01).min(0.999_999_999_999);
+        // For every future k >= n, triangle inequalities give
+        // |a+k| <= k+|a|, |b+k| <= k+|b|, and |c+k| >= k-|c|.
+        // Thus, once n>|c|, every subsequent term ratio is bounded by this
+        // uniform majorant. Unlike a local-ratio extrapolation, this controls
+        // the whole remaining tail in exact arithmetic.
+        let n_radius = n as f64;
+        let c_radius = c.norm();
+        let ratio_bound = if n_radius > c_radius {
+            z.norm() * (1.0 + a.norm() / n_radius) * (1.0 + b.norm() / n_radius)
+                / (1.0 - c_radius / n_radius)
+                * (1.0 + 64.0 * f64::EPSILON)
+        } else {
+            f64::INFINITY
+        };
         let estimated_tail = if ratio_bound < 1.0 {
             term.norm() * ratio_bound / (1.0 - ratio_bound)
         } else {
@@ -411,11 +413,13 @@ fn pfaff_continuation(
 /// Supported regions:
 /// - direct series / terminating polynomial when |z| < 1;
 /// - connection formula when |1-z| < 0.5 and c-a-b is non-resonant;
+/// - direct-series fallback for resonant near-one points that remain inside
+///   the unit disk, using a global geometric ratio majorant for the tail;
 /// - Pfaff transform when |z/(z-1)| < 1 and the transformed series converges.
 ///
-/// The principal branch cut [1, infinity) is rejected. Resonant near-one
-/// continuation (c-a-b integer) is explicitly unsupported; a logarithmic
-/// continuation is required there and is not silently approximated.
+/// The principal branch cut [1, infinity) is rejected. If the resonant
+/// fallback cannot meet its tail criterion within max_terms, it returns
+/// NoConvergence rather than silently accepting an unqualified value.
 pub fn hyp2f1(
     a: Complex64,
     b: Complex64,
@@ -440,7 +444,12 @@ pub fn hyp2f1(
     }
 
     if (Complex64::new(1.0, 0.0) - z).norm() < 0.5 {
-        return connection_near_one(a, b, c, z, config);
+        return match connection_near_one(a, b, c, z, config) {
+            Err(SpecialError::ResonantContinuationUnsupported) if z.norm() < 1.0 => {
+                hyp2f1_series(a, b, c, z, config)
+            }
+            result => result,
+        };
     }
 
     let transformed_z = z / (z - Complex64::new(1.0, 0.0));
@@ -763,7 +772,7 @@ mod tests {
     }
 
     #[test]
-    fn branch_cut_and_resonant_continuation_are_rejected() {
+    fn branch_cut_is_rejected_and_resonance_uses_direct_series_fallback() {
         assert_eq!(
             hyp2f1(
                 z(0.5, 0.0),
@@ -774,16 +783,18 @@ mod tests {
             ),
             Err(SpecialError::BranchCutUnsupported)
         );
-        assert_eq!(
-            hyp2f1(
-                z(0.6, 0.0),
-                z(0.8, 0.0),
-                z(2.4, 0.0),
-                z(0.95, 0.0),
-                SeriesConfig::default()
-            ),
-            Err(SpecialError::ResonantContinuationUnsupported)
-        );
+
+        let result = hyp2f1(
+            z(0.6, 0.0),
+            z(0.8, 0.0),
+            z(2.4, 0.0),
+            z(0.95, 0.0),
+            SeriesConfig::default(),
+        )
+        .unwrap();
+        assert_eq!(result.method, EvaluationMethod::DirectSeries);
+        close(result.value, z(1.397_999_809_791_163_2, 0.0), 2.0e-13);
+        assert!(result.estimated_absolute_error < 1.0e-12);
     }
 
     #[test]
@@ -991,28 +1002,20 @@ mod tests {
         );
     }
     #[test]
-    fn jost_domain_map_identifies_matsubara_resonant_continuation() {
+    fn jost_matsubara_resonance_uses_bounded_direct_series_fallback() {
         let config = SeriesConfig::default();
         for n in [0_u32, 1, 2] {
             let omega = z(0.0, f64::from(n));
-            assert!(
-                poschl_teller_jost(1.0, 0.75, omega, 0.0, JostSide::Left, config).is_ok(),
-                "center-point left Jost evaluation should use the direct series at n={n}"
-            );
-            assert!(
-                poschl_teller_jost(1.0, 0.75, omega, 0.0, JostSide::Right, config).is_ok(),
-                "center-point right Jost evaluation should use the direct series at n={n}"
-            );
-            assert_eq!(
-                poschl_teller_jost(1.0, 0.75, omega, 1.0, JostSide::Left, config),
-                Err(SpecialError::ResonantContinuationUnsupported),
-                "left Jost continuation should identify the resonant outer region at n={n}"
-            );
-            assert_eq!(
-                poschl_teller_jost(1.0, 0.75, omega, -1.0, JostSide::Right, config),
-                Err(SpecialError::ResonantContinuationUnsupported),
-                "right Jost continuation should identify the resonant outer region at n={n}"
-            );
+            for x in [1.0, 2.0, 3.0] {
+                assert!(
+                    poschl_teller_jost(1.0, 0.75, omega, x, JostSide::Left, config).is_ok(),
+                    "left Jost Matsubara evaluation should converge at x={x}, n={n}"
+                );
+                assert!(
+                    poschl_teller_jost(1.0, 0.75, omega, -x, JostSide::Right, config).is_ok(),
+                    "right Jost Matsubara evaluation should converge at x={x}, n={n}"
+                );
+            }
         }
     }
 
