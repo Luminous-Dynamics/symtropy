@@ -610,6 +610,127 @@ mod tests {
     const FIXTURE: &str = include_str!("../../../research/wpt-active-probe-policy-v0/synthetic-actions.tsv");
     fn case() -> ProbeCase { parse_case(FIXTURE).unwrap() }
 
+    type Cost = (u64, u64);
+
+    fn prune_costs(mut costs: Vec<Cost>) -> Vec<Cost> {
+        costs.sort_unstable();
+        costs.dedup();
+        let all = costs.clone();
+        costs.retain(|(energy, latency)| {
+            !all.iter().any(|(other_energy, other_latency)| {
+                other_energy <= energy
+                    && other_latency <= latency
+                    && (other_energy < energy || other_latency < latency)
+            })
+        });
+        costs.sort_unstable();
+        costs
+    }
+
+    fn combine_branch_frontiers(frontiers: &[Vec<Cost>]) -> Vec<Cost> {
+        let mut combined = vec![(0, 0)];
+        for frontier in frontiers {
+            let mut next = Vec::new();
+            for (energy, latency) in &combined {
+                for (child_energy, child_latency) in frontier {
+                    next.push(((*energy).max(*child_energy), (*latency).max(*child_latency)));
+                }
+            }
+            combined = prune_costs(next);
+        }
+        combined
+    }
+
+    // Intentionally un-memoized exhaustive oracle, structurally separate from the
+    // production two-pass DP. It enumerates every admissible adaptive decision tree.
+    fn brute_force_cost_frontier(
+        mask: u16,
+        energy_left: u64,
+        latency_left: u64,
+        actions_left: usize,
+        case: &ProbeCase,
+    ) -> Vec<Cost> {
+        if singleton_index(mask).is_some() { return vec![(0, 0)]; }
+        if actions_left == 0 { return Vec::new(); }
+
+        let mut costs = Vec::new();
+        for action in &case.actions {
+            if exclusion_reason(action, case).is_some()
+                || action.energy_uj > energy_left
+                || action.duration_us > latency_left {
+                continue;
+            }
+            let groups = outcome_groups(mask, action, case.pose_ids.len());
+            if groups.len() < 2 || groups.values().any(|child| *child == mask) {
+                continue;
+            }
+
+            let mut child_frontiers = Vec::new();
+            let mut feasible = true;
+            for child_mask in groups.values() {
+                let frontier = brute_force_cost_frontier(
+                    *child_mask,
+                    energy_left - action.energy_uj,
+                    latency_left - action.duration_us,
+                    actions_left - 1,
+                    case,
+                );
+                if frontier.is_empty() {
+                    feasible = false;
+                    break;
+                }
+                child_frontiers.push(frontier);
+            }
+            if !feasible { continue; }
+
+            for (child_energy, child_latency) in combine_branch_frontiers(&child_frontiers) {
+                let total_energy = action.energy_uj + child_energy;
+                let total_latency = action.duration_us + child_latency;
+                if total_energy <= energy_left && total_latency <= latency_left {
+                    costs.push((total_energy, total_latency));
+                }
+            }
+        }
+        prune_costs(costs)
+    }
+
+    fn assert_dp_matches_exhaustive_oracle(case: &ProbeCase) {
+        let mask = (1_u16 << case.pose_ids.len()) - 1;
+        let frontier = brute_force_cost_frontier(
+            mask, case.energy_budget_uj, case.latency_budget_us, case.max_actions, case,
+        );
+        let expected = frontier.into_iter().min().expect("oracle must find a feasible policy");
+        let actual = adaptive_plan(case).expect("DP must find a feasible policy");
+        assert_eq!((actual.worst_case_energy_uj, actual.worst_case_latency_us), expected);
+    }
+
+    #[test]
+    fn two_pass_dp_matches_independent_exhaustive_tree_oracle() {
+        assert_dp_matches_exhaustive_oracle(&case());
+
+        let set = |values: &[u32]| values.iter().copied().collect::<BTreeSet<_>>();
+        let noisy = ProbeCase {
+            case_id: "exhaustive-noisy-support".into(),
+            evidence_class: "SYNTHETIC_KNOWN_TRUTH".into(),
+            pose_case_sha256: "a".repeat(64),
+            action_library_sha256: "b".repeat(64),
+            pose_ids: vec!["P0".into(), "P1".into(), "P2".into()],
+            energy_budget_uj: 20,
+            latency_budget_us: 10,
+            max_actions: 2,
+            max_ripple_ppm: 1_000,
+            min_zvs_margin_permille: 0,
+            max_service_drop_ppm: 1_000,
+            actions: vec![
+                ProbeAction { id: "0_root".into(), energy_uj: 5, duration_us: 1, ripple_ppm: 0, zvs_margin_permille: 1_000, service_drop_ppm: 0,
+                    outcomes: vec![set(&[0, 1]), set(&[1, 2]), set(&[3])] },
+                ProbeAction { id: "1_refine".into(), energy_uj: 4, duration_us: 2, ripple_ppm: 0, zvs_margin_permille: 1_000, service_drop_ppm: 0,
+                    outcomes: vec![set(&[0]), set(&[1]), set(&[0])] },
+            ],
+        };
+        assert_dp_matches_exhaustive_oracle(&noisy);
+    }
+
     #[test]
     fn adaptive_policy_uses_branch_specific_probes_and_resolves_all_hypotheses() {
         let c = case();
