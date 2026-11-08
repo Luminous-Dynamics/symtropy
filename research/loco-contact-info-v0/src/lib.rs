@@ -629,6 +629,7 @@ pub enum ConstrainedSelectionError {
     ReceiptIdentityMismatch(String),
     CandidateMetricIdentityMismatch(String),
     RiskScoreOutOfRange(String),
+    InvalidObservationModel(String),
 }
 
 /// Compare action-conditioned information only after filtering candidates
@@ -738,10 +739,10 @@ pub fn select_admissible_pareto(
             match receipt.decision {
                 AdmissionDecision::Admissible => {
                     let eig = expected_information_gain(prior, &candidate.observation_model)
-                        .map_err(|_| {
-                            ConstrainedSelectionError::CandidateMetricIdentityMismatch(
-                                action_id.clone(),
-                            )
+                        .map_err(|error| {
+                            ConstrainedSelectionError::InvalidObservationModel(format!(
+                                "{error:?}"
+                            ))
                         })?;
                     admitted.push((index, eig));
                     assessments.push(ConstrainedActionAssessment {
@@ -1039,6 +1040,303 @@ mod tests {
         let tiny_positive = f64::from_bits(1);
         let covariance = matrix(1, 1, &[tiny_positive]);
         assert_eq!(covariance.inverse_spd(), Err(GaussianError::NonFiniteValue));
+    }
+
+    fn constrained_candidate(
+        id: &str,
+        h: f64,
+        energy_uj: u64,
+        risk_ppm: u32,
+    ) -> ConstrainedActionCandidate {
+        ConstrainedActionCandidate::new(
+            action_1d(id, &[h], &[1.0]),
+            format!("action-digest-{id}"),
+            "state-v1".to_owned(),
+            "model-v1".to_owned(),
+            energy_uj,
+            risk_ppm,
+            "risk-metric-v1".to_owned(),
+        )
+        .unwrap()
+    }
+
+    fn admission(
+        id: &str,
+        decision: AdmissionDecision,
+        valid_until_ns: u64,
+    ) -> ActionAdmissionReceipt {
+        ActionAdmissionReceipt::new(
+            id.to_owned(),
+            format!("action-digest-{id}"),
+            "state-v1".to_owned(),
+            "model-v1".to_owned(),
+            "robust-viability-verifier-v2".to_owned(),
+            format!("evidence-{id}"),
+            valid_until_ns,
+            decision,
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn only_admitted_actions_enter_the_pareto_frontier() {
+        let candidates = vec![
+            constrained_candidate("safe-low-info", 1.0, 100, 100),
+            constrained_candidate("safe-high-info", 2.0, 200, 200),
+            constrained_candidate("dominated", 1.0, 200, 200),
+            constrained_candidate("physically-rejected", 4.0, 10, 1),
+            constrained_candidate("unknown", 3.0, 20, 2),
+            constrained_candidate("no-receipt", 2.5, 30, 3),
+        ];
+        let receipts = vec![
+            admission("safe-low-info", AdmissionDecision::Admissible, 2_000),
+            admission("safe-high-info", AdmissionDecision::Admissible, 2_000),
+            admission("dominated", AdmissionDecision::Admissible, 2_000),
+            admission("physically-rejected", AdmissionDecision::Rejected, 2_000),
+            admission("unknown", AdmissionDecision::Unknown, 2_000),
+        ];
+
+        let report = select_admissible_pareto(
+            &prior_1d(),
+            &candidates,
+            &receipts,
+            "state-v1",
+            "model-v1",
+            "risk-metric-v1",
+            1_000,
+        )
+        .unwrap();
+
+        assert_eq!(
+            report.pareto_action_ids,
+            vec!["safe-high-info".to_owned(), "safe-low-info".to_owned()]
+        );
+        let disposition = |id: &str| {
+            report
+                .assessments
+                .iter()
+                .find(|assessment| assessment.action_id == id)
+                .unwrap()
+                .disposition
+        };
+        assert_eq!(
+            disposition("safe-low-info"),
+            CandidateDisposition::AdmittedPareto
+        );
+        assert_eq!(
+            disposition("safe-high-info"),
+            CandidateDisposition::AdmittedPareto
+        );
+        assert_eq!(
+            disposition("dominated"),
+            CandidateDisposition::AdmittedDominated
+        );
+        assert_eq!(
+            disposition("physically-rejected"),
+            CandidateDisposition::RejectedByPhysicalVerifier
+        );
+        assert_eq!(
+            disposition("unknown"),
+            CandidateDisposition::UnknownPhysicalAdmissibility
+        );
+        assert_eq!(
+            disposition("no-receipt"),
+            CandidateDisposition::MissingAdmissionReceipt
+        );
+    }
+
+    #[test]
+    fn expired_receipt_becomes_unknown_and_never_admitted() {
+        let candidates = vec![constrained_candidate("expired", 4.0, 1, 1)];
+        let receipts = vec![admission("expired", AdmissionDecision::Admissible, 999)];
+        let report = select_admissible_pareto(
+            &prior_1d(),
+            &candidates,
+            &receipts,
+            "state-v1",
+            "model-v1",
+            "risk-metric-v1",
+            1_000,
+        )
+        .unwrap();
+        assert!(report.pareto_action_ids.is_empty());
+        assert_eq!(
+            report.assessments[0].disposition,
+            CandidateDisposition::UnknownPhysicalAdmissibility
+        );
+        assert_eq!(report.assessments[0].expected_information_gain_nats, None);
+    }
+
+    #[test]
+    fn mismatched_action_receipt_is_rejected_fail_closed() {
+        let candidate = constrained_candidate("candidate", 1.0, 10, 10);
+        let receipt = ActionAdmissionReceipt::new(
+            "candidate".to_owned(),
+            "digest-for-another-action".to_owned(),
+            "state-v1".to_owned(),
+            "model-v1".to_owned(),
+            "verifier-v2".to_owned(),
+            "evidence-v1".to_owned(),
+            2_000,
+            AdmissionDecision::Admissible,
+        )
+        .unwrap();
+        assert_eq!(
+            select_admissible_pareto(
+                &prior_1d(),
+                &[candidate],
+                &[receipt],
+                "state-v1",
+                "model-v1",
+                "risk-metric-v1",
+                1_000,
+            ),
+            Err(ConstrainedSelectionError::ReceiptIdentityMismatch(
+                "candidate".to_owned()
+            ))
+        );
+    }
+
+    #[test]
+    fn mismatched_state_or_model_receipt_cannot_be_reused() {
+        let candidate = constrained_candidate("candidate", 1.0, 10, 10);
+        let receipt = ActionAdmissionReceipt::new(
+            "candidate".to_owned(),
+            "action-digest-candidate".to_owned(),
+            "other-state".to_owned(),
+            "model-v1".to_owned(),
+            "verifier-v2".to_owned(),
+            "evidence-v1".to_owned(),
+            2_000,
+            AdmissionDecision::Admissible,
+        )
+        .unwrap();
+        assert_eq!(
+            select_admissible_pareto(
+                &prior_1d(),
+                &[candidate],
+                &[receipt],
+                "state-v1",
+                "model-v1",
+                "risk-metric-v1",
+                1_000,
+            ),
+            Err(ConstrainedSelectionError::ReceiptIdentityMismatch(
+                "candidate".to_owned()
+            ))
+        );
+    }
+
+    #[test]
+    fn candidates_with_different_risk_metric_identity_cannot_be_compared() {
+        let candidate = ConstrainedActionCandidate::new(
+            action_1d("candidate", &[1.0], &[1.0]),
+            "action-digest-candidate".to_owned(),
+            "state-v1".to_owned(),
+            "model-v1".to_owned(),
+            10,
+            10,
+            "risk-metric-other-version".to_owned(),
+        )
+        .unwrap();
+        assert_eq!(
+            select_admissible_pareto(
+                &prior_1d(),
+                &[candidate],
+                &[],
+                "state-v1",
+                "model-v1",
+                "risk-metric-v1",
+                1_000,
+            ),
+            Err(ConstrainedSelectionError::CandidateMetricIdentityMismatch(
+                "candidate".to_owned()
+            ))
+        );
+    }
+
+    #[test]
+    fn duplicate_candidates_and_receipts_are_rejected() {
+        let a = constrained_candidate("same", 1.0, 10, 10);
+        let b = constrained_candidate("same", 2.0, 20, 20);
+        assert_eq!(
+            select_admissible_pareto(
+                &prior_1d(),
+                &[a.clone(), b],
+                &[],
+                "state-v1",
+                "model-v1",
+                "risk-metric-v1",
+                1_000,
+            ),
+            Err(ConstrainedSelectionError::DuplicateCandidateId(
+                "same".to_owned()
+            ))
+        );
+
+        assert_eq!(
+            select_admissible_pareto(
+                &prior_1d(),
+                &[a],
+                &[
+                    admission("same", AdmissionDecision::Admissible, 2_000),
+                    admission("same", AdmissionDecision::Admissible, 2_000),
+                ],
+                "state-v1",
+                "model-v1",
+                "risk-metric-v1",
+                1_000,
+            ),
+            Err(ConstrainedSelectionError::DuplicateReceipt(
+                "same".to_owned()
+            ))
+        );
+    }
+
+    #[test]
+    fn pareto_front_is_independent_of_candidate_and_receipt_input_order() {
+        let first = vec![
+            constrained_candidate("a", 1.0, 100, 100),
+            constrained_candidate("b", 2.0, 200, 50),
+            constrained_candidate("c", 0.5, 300, 300),
+        ];
+        let first_receipts = vec![
+            admission("a", AdmissionDecision::Admissible, 2_000),
+            admission("b", AdmissionDecision::Admissible, 2_000),
+            admission("c", AdmissionDecision::Admissible, 2_000),
+        ];
+        let second = vec![first[2].clone(), first[1].clone(), first[0].clone()];
+        let second_receipts = vec![
+            first_receipts[2].clone(),
+            first_receipts[0].clone(),
+            first_receipts[1].clone(),
+        ];
+        let one = select_admissible_pareto(
+            &prior_1d(),
+            &first,
+            &first_receipts,
+            "state-v1",
+            "model-v1",
+            "risk-metric-v1",
+            1_000,
+        )
+        .unwrap();
+        let two = select_admissible_pareto(
+            &prior_1d(),
+            &second,
+            &second_receipts,
+            "state-v1",
+            "model-v1",
+            "risk-metric-v1",
+            1_000,
+        )
+        .unwrap();
+
+        assert_eq!(one.pareto_action_ids, two.pareto_action_ids);
+        assert_eq!(
+            one.pareto_action_ids,
+            vec!["b".to_owned(), "a".to_owned()]
+        );
     }
 
     #[test]
