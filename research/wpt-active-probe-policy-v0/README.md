@@ -1,0 +1,52 @@
+# WPT adaptive probe-policy v0
+
+**Status:** exact robust decision-tree selection over a frozen synthetic action library. This is not a waveform generator, estimator, inverter controller, EM solver or safety interlock.
+
+## Ownership
+
+- #3512 provides qualified coupling/load estimator methods and their excitation characterization.
+- #3640 owns primary-side self-sensing and the separation of coupling evidence from identity/authorization.
+- #4115 provides finite pose hypotheses and upstream outcome/alias semantics.
+- #4197 owns spatial field/configuration co-design.
+- This crate chooses an adaptive order of prequalified probe actions; it does not produce their physical outcome maps or estimate pose from raw waveforms.
+
+## Paradigm
+
+Fixed multi-sine or sequential probing spends the same excitation budget independent of the remaining ambiguity. This policy chooses the next action based on the current outcome branch and stops as soon as one pose hypothesis remains. Its objective is exact and robust:
+
+1. Minimize worst-case cumulative probe energy.
+2. Break ties by worst-case latency.
+3. Break remaining ties by action count and stable action ID.
+
+No Bayesian prior is required. Each action maps every finite pose hypothesis to a quantized outcome class produced upstream. A decision tree is admissible only when every possible outcome branch ends in one pose within the hard cumulative budgets.
+
+## Hard constraints
+
+Each action is excluded before planning if it exceeds maximum ripple, falls below minimum ZVS margin, or exceeds maximum service disturbance. The complete policy must fit the declared worst-case energy, latency and action-count budgets. If no such decision tree exists, the evaluator abstains.
+
+## Synthetic fixture
+
+The fixture contains four pose hypotheses and seven invented actions. The admissible adaptive policy is:
+
+- Apply `root_split` (8 synthetic µJ).
+- On outcome 0, apply `left_discriminator` (12 synthetic µJ).
+- On outcome 1, apply `right_discriminator` (15 synthetic µJ).
+
+Worst-case energy is 23 synthetic µJ and latency is 8 synthetic µs. The best admissible fixed sequence under the same three-action ceiling is the single `global_probe` action at 30 synthetic µJ, which exceeds the case's 25 synthetic µJ budget. The adaptive plan is therefore feasible where the best fixed plan is not.
+
+Three unique-pose actions are deliberately unsafe and must be excluded: ripple violation, insufficient ZVS margin and excessive service disturbance.
+
+These values and output classes are entirely synthetic. Synthetic µJ/µs values are not measured physical quantities and do not imply a realizable excitation waveform.
+
+## Exactness boundary
+
+The recursive solver is exact for the supplied finite set and the stated minimax/lexicographic objective. It is bounded to 16 hypotheses and 16 candidate actions. It does not establish global continuous observability, physical outcome probabilities, waveform realizability, switching stress, thermal behavior or measurement calibration.
+
+## Run
+
+    cargo test --locked --manifest-path tools/wpt-active-probe-policy/Cargo.toml
+    cargo run --locked --manifest-path tools/wpt-active-probe-policy/Cargo.toml -- research/wpt-active-probe-policy-v0/synthetic-actions.tsv
+
+## Claim ceiling
+
+A passing result proves only that the deterministic synthetic decision tree resolves the declared finite hypotheses within the fixture constraints. It does not validate upstream pose or estimator artifacts, establish a safe excitation sequence, authorize energization or flight, or demonstrate advantage over a physical state-of-the-art WPT system.
