@@ -723,10 +723,7 @@ fn build_inventory(deck: &Deck) -> ParseResult<Inventory> {
                         return fail(format!("SPC {sid}: incomplete GRID/component pair"));
                     }
                     let grid = parse_id(grid_field, "SPC GRID")?;
-                    validate_component_digits(
-                        component_field,
-                        &format!("SPC {sid} components"),
-                    )?;
+                    validate_component_digits(component_field, &format!("SPC {sid} components"))?;
                     if !value_field.trim().is_empty() {
                         parse_nastran_float(value_field, "SPC value")?;
                     }
