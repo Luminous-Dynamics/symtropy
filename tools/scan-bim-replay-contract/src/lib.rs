@@ -1511,7 +1511,9 @@ mod tests {
         )
         .expect("copy candidate artifact");
         std::fs::copy(
-            synthetic_data_roots().0.join("survey/room-a-transform.json"),
+            synthetic_data_roots()
+                .0
+                .join("survey/room-a-transform.json"),
             candidate.join("room-a-transform.json"),
         )
         .expect("copy candidate transform artifact");
