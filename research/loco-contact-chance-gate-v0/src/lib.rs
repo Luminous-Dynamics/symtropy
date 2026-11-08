@@ -95,8 +95,7 @@ impl VarianceAttribution {
         {
             return false;
         }
-        self.covariance_adjustment
-            .is_none_or(f64::is_finite)
+        self.covariance_adjustment.is_none_or(f64::is_finite)
     }
 }
 
@@ -289,9 +288,7 @@ pub enum ChanceError {
 fn allocate_bonferroni_alpha(
     familywise_alpha_ppb: u64,
 ) -> Result<[u64; CONSTRAINT_COUNT], ChanceError> {
-    if !(MIN_FAMILYWISE_ALPHA_PPB..=MAX_FAMILYWISE_ALPHA_PPB)
-        .contains(&familywise_alpha_ppb)
-    {
+    if !(MIN_FAMILYWISE_ALPHA_PPB..=MAX_FAMILYWISE_ALPHA_PPB).contains(&familywise_alpha_ppb) {
         return Err(ChanceError::InvalidFamilywiseAlpha);
     }
     let base = familywise_alpha_ppb / CONSTRAINT_COUNT as u64;
@@ -351,18 +348,14 @@ fn inverse_standard_normal_lower_tail(alpha_ppb: u64) -> Result<f64, AbstentionR
     // logarithmic tail approximation below that split point.
     let value = if p < 0.024_25 {
         let q = (-2.0 * p.ln()).sqrt();
-        let numerator = (((((C[0] * q + C[1]) * q + C[2]) * q + C[3]) * q + C[4]) * q)
-            + C[5];
+        let numerator = (((((C[0] * q + C[1]) * q + C[2]) * q + C[3]) * q + C[4]) * q) + C[5];
         let denominator = ((((D[0] * q + D[1]) * q + D[2]) * q + D[3]) * q) + 1.0;
         numerator / denominator
     } else {
         let q = p - 0.5;
         let r = q * q;
-        let numerator = (((((A[0] * r + A[1]) * r + A[2]) * r + A[3]) * r + A[4]) * r
-            + A[5])
-            * q;
-        let denominator = ((((B[0] * r + B[1]) * r + B[2]) * r + B[3]) * r + B[4]) * r
-            + 1.0;
+        let numerator = (((((A[0] * r + A[1]) * r + A[2]) * r + A[3]) * r + A[4]) * r + A[5]) * q;
+        let denominator = ((((B[0] * r + B[1]) * r + B[2]) * r + B[3]) * r + B[4]) * r + 1.0;
         numerator / denominator
     };
     if value.is_finite() && value < 0.0 {
@@ -459,7 +452,9 @@ fn calibration_abstention_reason(
         if prediction.predicted_at_ns > now_ns {
             return Err(AbstentionReason::PredictionNotYetAvailable);
         }
-        if prediction.valid_until_ns < now_ns || prediction.predicted_at_ns > prediction.valid_until_ns {
+        if prediction.valid_until_ns < now_ns
+            || prediction.predicted_at_ns > prediction.valid_until_ns
+        {
             return Err(AbstentionReason::StalePrediction);
         }
         if !prediction.mean.is_finite() || !prediction.total_variance.is_finite() {
@@ -546,19 +541,15 @@ fn assess_candidate(
         }
     };
 
-    let receipt_id = match calibration_abstention_reason(
-        candidate,
-        &ordered,
-        expected_domain_digest,
-        now_ns,
-    ) {
-        Ok(receipt_id) => receipt_id,
-        Err(reason) => {
-            let mut assessment = base();
-            assessment.abstention_reason = Some(reason);
-            return assessment;
-        }
-    };
+    let receipt_id =
+        match calibration_abstention_reason(candidate, &ordered, expected_domain_digest, now_ns) {
+            Ok(receipt_id) => receipt_id,
+            Err(reason) => {
+                let mut assessment = base();
+                assessment.abstention_reason = Some(reason);
+                return assessment;
+            }
+        };
 
     let mut assessment = base();
     assessment.calibration_receipt_id = Some(receipt_id);
@@ -679,7 +670,12 @@ mod tests {
         }
     }
 
-    fn prediction(action_id: &str, kind: ConstraintKind, mean: f64, variance: f64) -> ConstraintPrediction {
+    fn prediction(
+        action_id: &str,
+        kind: ConstraintKind,
+        mean: f64,
+        variance: f64,
+    ) -> ConstraintPrediction {
         ConstraintPrediction {
             action_id: action_id.to_owned(),
             kind,
@@ -734,8 +730,12 @@ mod tests {
 
     #[test]
     fn acklam_upper_quantiles_match_known_standard_normal_values() {
-        assert!((upper_normal_quantile(10_000_000).unwrap() - 2.326_347_874_040_840_8).abs() < 1.0e-8);
-        assert!((upper_normal_quantile(50_000_000).unwrap() - 1.644_853_626_951_472_2).abs() < 1.0e-8);
+        assert!(
+            (upper_normal_quantile(10_000_000).unwrap() - 2.326_347_874_040_840_8).abs() < 1.0e-8
+        );
+        assert!(
+            (upper_normal_quantile(50_000_000).unwrap() - 1.644_853_626_951_472_2).abs() < 1.0e-8
+        );
         assert!((upper_normal_quantile(1_000_000).unwrap() - 3.090_232_306_167_813).abs() < 1.0e-8);
         assert!((upper_normal_quantile(10).unwrap() - 5.612_001_244_174_789).abs() < 1.0e-7);
     }
@@ -743,18 +743,36 @@ mod tests {
     #[test]
     fn bonferroni_allocation_sums_exactly_to_familywise_alpha() {
         let allocation = allocate_bonferroni_alpha(50_000_003).unwrap();
-        assert_eq!(allocation, [10_000_001, 10_000_001, 10_000_001, 10_000_000, 10_000_000]);
+        assert_eq!(
+            allocation,
+            [10_000_001, 10_000_001, 10_000_001, 10_000_000, 10_000_000]
+        );
         assert_eq!(allocation.iter().sum::<u64>(), 50_000_003);
     }
 
     #[test]
     fn calibrated_safe_action_is_admitted_with_all_five_bounds() {
-        let report = evaluate_actions(&[candidate("safe", 0.1)], &limits(), 50_000_000, "rough-terrain-v1", 2_000).unwrap();
+        let report = evaluate_actions(
+            &[candidate("safe", 0.1)],
+            &limits(),
+            50_000_000,
+            "rough-terrain-v1",
+            2_000,
+        )
+        .unwrap();
         assert_eq!(report.allocated_alpha_sum_ppb, 50_000_000);
         assert_eq!(report.eligible_action_ids_by_information, vec!["safe"]);
-        assert_eq!(report.assessments[0].disposition, CandidateDisposition::Admitted);
+        assert_eq!(
+            report.assessments[0].disposition,
+            CandidateDisposition::Admitted
+        );
         assert_eq!(report.assessments[0].bounds.len(), CONSTRAINT_COUNT);
-        assert!(report.assessments[0].bounds.iter().all(|bound| bound.passed));
+        assert!(
+            report.assessments[0]
+                .bounds
+                .iter()
+                .all(|bound| bound.passed)
+        );
     }
 
     #[test]
@@ -768,13 +786,24 @@ mod tests {
         ];
         for (kind, mean, variance) in mutations {
             let mut c = candidate("candidate", 1.0);
-            let item = c.predictions.iter_mut().find(|item| item.kind == kind).unwrap();
+            let item = c
+                .predictions
+                .iter_mut()
+                .find(|item| item.kind == kind)
+                .unwrap();
             item.mean = mean;
             item.total_variance = variance;
             // Variance attribution is metadata, not a replacement total.
-            let report = evaluate_actions(&[c], &limits(), 50_000_000, "rough-terrain-v1", 2_000).unwrap();
-            assert_eq!(report.assessments[0].disposition, CandidateDisposition::Rejected);
-            assert_eq!(report.assessments[0].violations, vec![ConstraintViolation::from_kind(kind)]);
+            let report =
+                evaluate_actions(&[c], &limits(), 50_000_000, "rough-terrain-v1", 2_000).unwrap();
+            assert_eq!(
+                report.assessments[0].disposition,
+                CandidateDisposition::Rejected
+            );
+            assert_eq!(
+                report.assessments[0].violations,
+                vec![ConstraintViolation::from_kind(kind)]
+            );
             assert!(report.eligible_action_ids_by_information.is_empty());
         }
     }
@@ -801,8 +830,15 @@ mod tests {
             report.eligible_action_ids_by_information,
             vec!["safe-low-eig".to_owned()]
         );
-        let unsafe_assessment = report.assessments.iter().find(|a| a.action_id == "unsafe-high-eig").unwrap();
-        assert_eq!(unsafe_assessment.disposition, CandidateDisposition::Rejected);
+        let unsafe_assessment = report
+            .assessments
+            .iter()
+            .find(|a| a.action_id == "unsafe-high-eig")
+            .unwrap();
+        assert_eq!(
+            unsafe_assessment.disposition,
+            CandidateDisposition::Rejected
+        );
         assert_eq!(
             unsafe_assessment.violations,
             vec![ConstraintViolation::PeakNormalForceUpperExceeded]
@@ -811,7 +847,14 @@ mod tests {
 
     #[test]
     fn no_independence_assumption_is_required_between_physical_constraints() {
-        let report = evaluate_actions(&[candidate("safe", 0.0)], &limits(), 50_000_000, "rough-terrain-v1", 2_000).unwrap();
+        let report = evaluate_actions(
+            &[candidate("safe", 0.0)],
+            &limits(),
+            50_000_000,
+            "rough-terrain-v1",
+            2_000,
+        )
+        .unwrap();
         // Alpha is split across five marginal events; their joint dependence is
         // unrestricted by the union bound.
         assert_eq!(report.allocated_alpha_ppb, [10_000_000; 5]);
@@ -824,9 +867,18 @@ mod tests {
         for item in &mut c.predictions {
             item.total_variance = 0.0;
         }
-        let report = evaluate_actions(&[c], &limits(), 50_000_000, "rough-terrain-v1", 2_000).unwrap();
-        assert_eq!(report.assessments[0].disposition, CandidateDisposition::Admitted);
-        assert!(report.assessments[0].bounds.iter().all(|bound| bound.standard_deviation == 0.0));
+        let report =
+            evaluate_actions(&[c], &limits(), 50_000_000, "rough-terrain-v1", 2_000).unwrap();
+        assert_eq!(
+            report.assessments[0].disposition,
+            CandidateDisposition::Admitted
+        );
+        assert!(
+            report.assessments[0]
+                .bounds
+                .iter()
+                .all(|bound| bound.standard_deviation == 0.0)
+        );
     }
 
     #[test]
@@ -835,7 +887,14 @@ mod tests {
         missing.calibration_receipt = None;
         let mut unverified = candidate("unverified", 1.0);
         unverified.calibration_receipt.as_mut().unwrap().verified = false;
-        let report = evaluate_actions(&[missing, unverified], &limits(), 50_000_000, "rough-terrain-v1", 2_000).unwrap();
+        let report = evaluate_actions(
+            &[missing, unverified],
+            &limits(),
+            50_000_000,
+            "rough-terrain-v1",
+            2_000,
+        )
+        .unwrap();
         for assessment in report.assessments {
             assert_eq!(assessment.disposition, CandidateDisposition::Abstained);
             assert!(assessment.bounds.is_empty());
@@ -846,12 +905,33 @@ mod tests {
     #[test]
     fn unsupported_heavy_tailed_or_unvalidated_gaussian_forecast_abstains() {
         let mut heavy = candidate("heavy", 1.0);
-        heavy.calibration_receipt.as_mut().unwrap().distribution_family = DistributionFamily::HeavyTailed;
+        heavy
+            .calibration_receipt
+            .as_mut()
+            .unwrap()
+            .distribution_family = DistributionFamily::HeavyTailed;
         let mut unvalidated = candidate("unvalidated", 1.0);
-        unvalidated.calibration_receipt.as_mut().unwrap().gaussian_tail_validation_passed = false;
-        let report = evaluate_actions(&[heavy, unvalidated], &limits(), 50_000_000, "rough-terrain-v1", 2_000).unwrap();
-        assert_eq!(report.assessments[0].abstention_reason, Some(AbstentionReason::UnsupportedDistributionFamily));
-        assert_eq!(report.assessments[1].abstention_reason, Some(AbstentionReason::GaussianTailCalibrationNotEstablished));
+        unvalidated
+            .calibration_receipt
+            .as_mut()
+            .unwrap()
+            .gaussian_tail_validation_passed = false;
+        let report = evaluate_actions(
+            &[heavy, unvalidated],
+            &limits(),
+            50_000_000,
+            "rough-terrain-v1",
+            2_000,
+        )
+        .unwrap();
+        assert_eq!(
+            report.assessments[0].abstention_reason,
+            Some(AbstentionReason::UnsupportedDistributionFamily)
+        );
+        assert_eq!(
+            report.assessments[1].abstention_reason,
+            Some(AbstentionReason::GaussianTailCalibrationNotEstablished)
+        );
         assert!(report.eligible_action_ids_by_information.is_empty());
     }
 
@@ -861,12 +941,28 @@ mod tests {
         stale.calibration_receipt.as_mut().unwrap().valid_until_ns = 1_999;
         let wrong_domain = {
             let mut c = candidate("wrong-domain", 1.0);
-            c.calibration_receipt.as_mut().unwrap().operating_domain_digest = "flat-floor-v1".to_owned();
+            c.calibration_receipt
+                .as_mut()
+                .unwrap()
+                .operating_domain_digest = "flat-floor-v1".to_owned();
             c
         };
-        let report = evaluate_actions(&[stale, wrong_domain], &limits(), 50_000_000, "rough-terrain-v1", 2_000).unwrap();
-        assert_eq!(report.assessments[0].abstention_reason, Some(AbstentionReason::ExpiredCalibrationReceipt));
-        assert_eq!(report.assessments[1].abstention_reason, Some(AbstentionReason::OperatingDomainMismatch));
+        let report = evaluate_actions(
+            &[stale, wrong_domain],
+            &limits(),
+            50_000_000,
+            "rough-terrain-v1",
+            2_000,
+        )
+        .unwrap();
+        assert_eq!(
+            report.assessments[0].abstention_reason,
+            Some(AbstentionReason::ExpiredCalibrationReceipt)
+        );
+        assert_eq!(
+            report.assessments[1].abstention_reason,
+            Some(AbstentionReason::OperatingDomainMismatch)
+        );
     }
 
     #[test]
@@ -885,20 +981,61 @@ mod tests {
             2_000,
         )
         .unwrap();
-        assert_eq!(report.assessments[0].abstention_reason, Some(AbstentionReason::UnitMismatch));
-        assert_eq!(report.assessments[1].abstention_reason, Some(AbstentionReason::PredictionIdentityMismatch));
-        assert_eq!(report.assessments[2].abstention_reason, Some(AbstentionReason::NegativePredictiveVariance));
+        assert_eq!(
+            report.assessments[0].abstention_reason,
+            Some(AbstentionReason::UnitMismatch)
+        );
+        assert_eq!(
+            report.assessments[1].abstention_reason,
+            Some(AbstentionReason::PredictionIdentityMismatch)
+        );
+        assert_eq!(
+            report.assessments[2].abstention_reason,
+            Some(AbstentionReason::NegativePredictiveVariance)
+        );
     }
 
     #[test]
     fn strict_alpha_cannot_admit_an_action_rejected_at_looser_alpha() {
         let mut marginal = candidate("marginal", 1.0);
-        marginal.predictions.iter_mut().find(|p| p.kind == ConstraintKind::Energy).unwrap().mean = 7.4;
-        marginal.predictions.iter_mut().find(|p| p.kind == ConstraintKind::Energy).unwrap().total_variance = 1.0;
-        let loose = evaluate_actions(&[marginal.clone()], &limits(), 100_000_000, "rough-terrain-v1", 2_000).unwrap();
-        let strict = evaluate_actions(&[marginal], &limits(), 10_000_000, "rough-terrain-v1", 2_000).unwrap();
-        assert!(loose.eligible_action_ids_by_information.contains(&"marginal".to_owned()));
-        assert!(!strict.eligible_action_ids_by_information.contains(&"marginal".to_owned()));
+        marginal
+            .predictions
+            .iter_mut()
+            .find(|p| p.kind == ConstraintKind::Energy)
+            .unwrap()
+            .mean = 7.4;
+        marginal
+            .predictions
+            .iter_mut()
+            .find(|p| p.kind == ConstraintKind::Energy)
+            .unwrap()
+            .total_variance = 1.0;
+        let loose = evaluate_actions(
+            &[marginal.clone()],
+            &limits(),
+            100_000_000,
+            "rough-terrain-v1",
+            2_000,
+        )
+        .unwrap();
+        let strict = evaluate_actions(
+            &[marginal],
+            &limits(),
+            10_000_000,
+            "rough-terrain-v1",
+            2_000,
+        )
+        .unwrap();
+        assert!(
+            loose
+                .eligible_action_ids_by_information
+                .contains(&"marginal".to_owned())
+        );
+        assert!(
+            !strict
+                .eligible_action_ids_by_information
+                .contains(&"marginal".to_owned())
+        );
     }
 
     #[test]
@@ -908,38 +1045,66 @@ mod tests {
         for c in &mut second {
             c.predictions.reverse();
         }
-        let one = evaluate_actions(&first, &limits(), 50_000_000, "rough-terrain-v1", 2_000).unwrap();
-        let two = evaluate_actions(&second, &limits(), 50_000_000, "rough-terrain-v1", 2_000).unwrap();
+        let one =
+            evaluate_actions(&first, &limits(), 50_000_000, "rough-terrain-v1", 2_000).unwrap();
+        let two =
+            evaluate_actions(&second, &limits(), 50_000_000, "rough-terrain-v1", 2_000).unwrap();
         assert_eq!(one, two);
     }
 
     #[test]
     fn variance_components_are_preserved_but_not_blindly_reaggregated() {
         let mut c = candidate("variance-source", 0.1);
-        let energy = c.predictions.iter_mut().find(|p| p.kind == ConstraintKind::Energy).unwrap();
+        let energy = c
+            .predictions
+            .iter_mut()
+            .find(|p| p.kind == ConstraintKind::Energy)
+            .unwrap();
         energy.variance_attribution.sensor_variance = Some(0.2);
         energy.variance_attribution.process_variance = Some(0.2);
         energy.variance_attribution.model_variance = Some(0.2);
         energy.variance_attribution.covariance_adjustment = Some(0.4);
-        let report = evaluate_actions(&[c], &limits(), 50_000_000, "rough-terrain-v1", 2_000).unwrap();
-        assert_eq!(report.assessments[0].disposition, CandidateDisposition::Admitted);
+        let report =
+            evaluate_actions(&[c], &limits(), 50_000_000, "rough-terrain-v1", 2_000).unwrap();
+        assert_eq!(
+            report.assessments[0].disposition,
+            CandidateDisposition::Admitted
+        );
         assert_eq!(report.assessments[0].bounds[0].standard_deviation, 1.0);
     }
 
     #[test]
     fn global_risk_budget_and_physical_limits_fail_closed() {
         assert_eq!(
-            evaluate_actions(&[candidate("a", 0.1)], &limits(), 0, "rough-terrain-v1", 2_000),
+            evaluate_actions(
+                &[candidate("a", 0.1)],
+                &limits(),
+                0,
+                "rough-terrain-v1",
+                2_000
+            ),
             Err(ChanceError::InvalidFamilywiseAlpha)
         );
         assert_eq!(
-            evaluate_actions(&[candidate("a", 0.1)], &limits(), 500_000_001, "rough-terrain-v1", 2_000),
+            evaluate_actions(
+                &[candidate("a", 0.1)],
+                &limits(),
+                500_000_001,
+                "rough-terrain-v1",
+                2_000
+            ),
             Err(ChanceError::InvalidFamilywiseAlpha)
         );
         let mut invalid_limits = limits();
         invalid_limits.actuator_load_fraction_upper = 1.5;
         assert_eq!(
-            evaluate_actions(&[candidate("a", 0.1)], &invalid_limits, 50_000_000, "rough-terrain-v1", 2_000),
+            evaluate_actions(
+                &[candidate("a", 0.1)],
+                &invalid_limits,
+                50_000_000,
+                "rough-terrain-v1",
+                2_000
+            ),
             Err(ChanceError::InvalidLimit)
         );
     }
@@ -956,7 +1121,10 @@ mod tests {
             2_000,
         )
         .unwrap();
-        assert_eq!(report.assessments[0].disposition, CandidateDisposition::Abstained);
+        assert_eq!(
+            report.assessments[0].disposition,
+            CandidateDisposition::Abstained
+        );
         assert_eq!(
             report.assessments[0].abstention_reason,
             Some(AbstentionReason::PredictionSetIncomplete)
