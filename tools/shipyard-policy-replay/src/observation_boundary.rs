@@ -91,7 +91,7 @@ impl ObservationTape {
             if record.event_id.trim().is_empty() {
                 return Err(ObservationError::EmptyEventId);
             }
-            if !ids.insert(record.event_id.as_str()) {
+            if !ids.insert((record.source_id.as_str(), record.event_id.as_str())) {
                 return Err(ObservationError::DuplicateEventId(record.event_id.clone()));
             }
             if !is_lowercase_sha256(&record.payload_sha256) {
@@ -152,7 +152,10 @@ fn canonical_snapshot_key(
     decision_tick: Tick,
     observations: &[SnapshotObservation],
 ) -> String {
-    let mut key = format!("observed-snapshot-v1|tick={decision_tick}|count={}|", observations.len());
+    let mut key = format!(
+        "observed-snapshot-v1|tick={decision_tick}|count={}|",
+        observations.len()
+    );
     for observation in observations {
         let effective = observation.effective_at_tick.to_string();
         let observed = observation.observed_at_tick.to_string();
@@ -339,12 +342,12 @@ mod tests {
     fn evaluator_only_future_truth_never_enters_policy_snapshot() {
         let left = ObservationTape::new(vec![
             record("shared", 0, 0, DIGEST_A, Visibility::PolicyVisible),
-            record("hidden-a", 15, 15, DIGEST_B, Visibility::EvaluatorOnly),
+            record("hidden-a", 15, 5, DIGEST_B, Visibility::EvaluatorOnly),
         ])
         .unwrap();
         let right = ObservationTape::new(vec![
             record("shared", 0, 0, DIGEST_A, Visibility::PolicyVisible),
-            record("hidden-b", 15, 15, DIGEST_A, Visibility::EvaluatorOnly),
+            record("hidden-b", 15, 5, DIGEST_A, Visibility::EvaluatorOnly),
         ])
         .unwrap();
         assert_eq!(
@@ -391,6 +394,16 @@ mod tests {
             first.snapshot_at(5).canonical_key(),
             second.snapshot_at(5).canonical_key()
         );
+    }
+
+    #[test]
+    fn event_identity_is_qualified_by_source() {
+        let mut first = record("shared-id", 1, 1, DIGEST_A, Visibility::PolicyVisible);
+        let mut second = record("shared-id", 2, 2, DIGEST_B, Visibility::PolicyVisible);
+        second.source_id = "crane-feed".into();
+        first.source_id = "yard-feed".into();
+        let tape = ObservationTape::new(vec![first, second]).unwrap();
+        assert_eq!(tape.snapshot_at(3).observations().len(), 2);
     }
 
     #[test]
