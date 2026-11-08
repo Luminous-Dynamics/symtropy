@@ -18,7 +18,7 @@ Fixed multi-sine or sequential probing spends the same excitation budget indepen
 2. Then minimize worst-case cumulative latency subject to that globally minimal energy bound.
 3. The action-count limit is a hard feasibility constraint; stable action ID resolves remaining ties.
 
-No Bayesian prior is required. Each action maps every finite pose hypothesis to a quantized outcome class produced upstream. A decision tree is admissible only when every possible outcome branch ends in one pose within the hard cumulative budgets.
+No Bayesian prior is required. Each action maps every finite pose hypothesis to a **set** of possible quantized outcome classes produced upstream. For an observed class, the next hypothesis set is the union of every pose whose support contains that class. This handles bounded measurement ambiguity without assuming that a classifier returns one correct label. Every possible outcome branch must strictly reduce the current hypothesis set and ultimately terminate in one pose within the hard cumulative budgets. A branch that can leave all current hypotheses alive makes the action unusable at that node.
 
 ## Hard constraints
 
@@ -26,7 +26,9 @@ Each action is excluded before planning if it exceeds maximum ripple, falls belo
 
 ## Synthetic fixture
 
-The fixture contains four pose hypotheses and seven invented actions. The admissible adaptive policy is:
+The parser represents each action row's outcome field as one comma-separated support set per pose; use `0|1,1|2,3` to mean pose 0 can yield bins 0 or 1, pose 1 can yield 1 or 2, and pose 2 can yield only 3. Singleton values remain ordinary integers. Duplicate bins and empty supports are rejected.
+
+The fixture contains four pose hypotheses and seven invented actions, each with singleton (deterministic) support sets. The admissible adaptive policy is:
 
 - Apply `root_split` (8 synthetic µJ).
 - On outcome 0, apply `left_discriminator` (12 synthetic µJ).
@@ -36,11 +38,13 @@ Worst-case energy is 23 synthetic µJ and latency is 8 synthetic µs. The best a
 
 Three unique-pose actions are deliberately unsafe and must be excluded: ripple violation, insufficient ZVS margin and excessive service disturbance.
 
-These values and output classes are entirely synthetic. Synthetic µJ/µs values are not measured physical quantities and do not imply a realizable excitation waveform.
+The test corpus also includes a set-valued noisy case where the first probe leaves an overlapping pair of pose hypotheses for one observation bin; a second probe resolves them. This demonstrates robust hypothesis-set propagation, not a probabilistic noise model.
+
+These values and output supports are entirely synthetic. Synthetic µJ/µs values are not measured physical quantities and do not imply a realizable excitation waveform.
 
 ## Exactness boundary
 
-The recursive solver is exact for the supplied finite set and the stated minimax/lexicographic objective. It is bounded to 16 hypotheses and 16 candidate actions. It does not establish global continuous observability, physical outcome probabilities, waveform realizability, switching stress, thermal behavior or measurement calibration.
+The recursive solver is exact for the supplied finite hypothesis/action set and the stated two-pass minimax objective. It is robust to the declared set-valued support relation: every possible quantized observation must lead to a strictly smaller hypothesis set before terminal resolution. It is bounded to 16 hypotheses and 16 candidate actions. It does not establish global continuous observability, physical outcome probabilities, waveform realizability, switching stress, thermal behavior or measurement calibration.
 
 ## Run
 
