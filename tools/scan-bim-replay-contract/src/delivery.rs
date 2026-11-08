@@ -220,8 +220,8 @@ pub struct DeliveryAuditReport {
 /// independent gate. This function verifies only the receipt's declared
 /// identities, structure and fail-closed decision semantics.
 pub fn audit_delivery_receipt_bytes(bytes: &[u8]) -> Result<DeliveryAuditReport, String> {
-    let receipt: DeliveryReceipt =
-        serde_json::from_slice(bytes).map_err(|error| format!("invalid delivery receipt: {error}"))?;
+    let receipt: DeliveryReceipt = serde_json::from_slice(bytes)
+        .map_err(|error| format!("invalid delivery receipt: {error}"))?;
     audit_delivery_receipt(receipt)
 }
 
@@ -241,8 +241,14 @@ pub fn audit_delivery_receipt(
         ("scene.source_model_revision", receipt.scene.source_model_revision.as_str()),
         ("exchange_profile.ifc_schema", receipt.exchange_profile.ifc_schema.as_str()),
         ("exchange_profile.exchange_view", receipt.exchange_profile.exchange_view.as_str()),
-        ("exchange_profile.coordinate_frame_id", receipt.exchange_profile.coordinate_frame_id.as_str()),
-        ("exchange_profile.placement_convention", receipt.exchange_profile.placement_convention.as_str()),
+        (
+            "exchange_profile.coordinate_frame_id",
+            receipt.exchange_profile.coordinate_frame_id.as_str(),
+        ),
+        (
+            "exchange_profile.placement_convention",
+            receipt.exchange_profile.placement_convention.as_str(),
+        ),
         ("claim_ceiling", receipt.claim_ceiling.as_str()),
     ] {
         if value.trim().is_empty() {
@@ -264,10 +270,14 @@ pub fn audit_delivery_receipt(
     }
 
     if receipt.required_gate_ids.as_slice() != &REQUIRED_GATE_IDS[..] {
-        return Err("required_gate_ids must equal the nine canonical gate identities in order".to_owned());
+        return Err(
+            "required_gate_ids must equal the nine canonical gate identities in order".to_owned(),
+        );
     }
     if receipt.gates.len() != REQUIRED_GATE_IDS.len() {
-        return Err("gates must contain exactly one row for each of the nine required gates".to_owned());
+        return Err(
+            "gates must contain exactly one row for each of the nine required gates".to_owned(),
+        );
     }
 
     let mut gate_by_id = BTreeMap::new();
@@ -295,7 +305,10 @@ pub fn audit_delivery_receipt(
     let has_failure = receipt.gates.iter().any(|gate| gate.status == GateStatus::Fail);
     let all_pass = receipt.gates.iter().all(|gate| gate.status == GateStatus::Pass);
     let crosswalk_complete = !receipt.crosswalk.is_empty()
-        && receipt.crosswalk.iter().all(|entry| entry.correspondence == CorrespondenceStatus::Supported);
+        && receipt
+            .crosswalk
+            .iter()
+            .all(|entry| entry.correspondence == CorrespondenceStatus::Supported);
     let ids_present = receipt.ids_requirements.is_some();
 
     let derived_decision = if has_failure {
@@ -314,7 +327,9 @@ pub fn audit_delivery_receipt(
             ) && gate.status == GateStatus::Pass
         })
     {
-        return Err("IDS validation gates cannot PASS without an IDS requirements artifact".to_owned());
+        return Err(
+            "IDS validation gates cannot PASS without an IDS requirements artifact".to_owned(),
+        );
     }
 
     if receipt.decision.status != derived_decision {
@@ -425,7 +440,10 @@ fn validate_gate_subjects(gate: &Gate, receipt: &DeliveryReceipt) -> Result<(), 
     let mut roles = BTreeSet::new();
     for subject in &gate.subject_artifacts {
         if subject.artifact_id.trim().is_empty() || !ids.insert(subject.artifact_id.as_str()) {
-            return Err(format!("gate {:?} has empty or duplicate subject artifact IDs", gate.gate_id));
+            return Err(format!(
+                "gate {:?} has empty or duplicate subject artifact IDs",
+                gate.gate_id
+            ));
         }
         if !roles.insert(subject.role) {
             return Err(format!("gate {:?} has duplicate subject artifact roles", gate.gate_id));
@@ -433,10 +451,16 @@ fn validate_gate_subjects(gate: &Gate, receipt: &DeliveryReceipt) -> Result<(), 
         validate_sha256("gate.subject_artifacts.sha256", &subject.sha256)?;
         match subject.role {
             SubjectRole::IfcOutput if subject.sha256 != receipt.ifc.sha256 => {
-                return Err(format!("gate {:?} IFC subject digest does not match receipt IFC", gate.gate_id));
+                return Err(format!(
+                    "gate {:?} IFC subject digest does not match receipt IFC",
+                    gate.gate_id
+                ));
             }
             SubjectRole::ElementGraph if subject.sha256 != receipt.element_graph.sha256 => {
-                return Err(format!("gate {:?} element-graph subject digest does not match receipt graph", gate.gate_id));
+                return Err(format!(
+                    "gate {:?} element-graph subject digest does not match receipt graph",
+                    gate.gate_id
+                ));
             }
             SubjectRole::IdsRequirements => {
                 let expected = receipt
@@ -444,7 +468,10 @@ fn validate_gate_subjects(gate: &Gate, receipt: &DeliveryReceipt) -> Result<(), 
                     .as_ref()
                     .ok_or("gate references IDS requirements absent from the receipt")?;
                 if subject.sha256 != expected.sha256 {
-                    return Err(format!("gate {:?} IDS subject digest does not match receipt requirements", gate.gate_id));
+                    return Err(format!(
+                        "gate {:?} IDS subject digest does not match receipt requirements",
+                        gate.gate_id
+                    ));
                 }
             }
             _ => {}
@@ -469,7 +496,10 @@ fn validate_gate_subjects(gate: &Gate, receipt: &DeliveryReceipt) -> Result<(), 
     };
     for required in required_roles {
         if !roles.contains(required) {
-            return Err(format!("gate {:?} is missing required subject role {required:?}", gate.gate_id));
+            return Err(format!(
+                "gate {:?} is missing required subject role {required:?}",
+                gate.gate_id
+            ));
         }
     }
     Ok(())
@@ -482,7 +512,10 @@ fn validate_gate_execution_shape(gate: &Gate) -> Result<(), String> {
                 || !gate.evidence.is_empty()
                 || !gate.subject_artifacts.is_empty()
             {
-                return Err(format!("NOT_RUN gate {:?} must not claim producer, subjects or evidence", gate.gate_id));
+                return Err(format!(
+                    "NOT_RUN gate {:?} must not claim producer, subjects or evidence",
+                    gate.gate_id
+                ));
             }
         }
         GateStatus::Pass | GateStatus::Fail => {
@@ -494,20 +527,35 @@ fn validate_gate_execution_shape(gate: &Gate) -> Result<(), String> {
             }
             validate_sha256("gate.producer.configuration_sha256", &producer.configuration_sha256)?;
             if gate.evidence.is_empty() || gate.subject_artifacts.is_empty() {
-                return Err(format!("evaluated gate {:?} requires subject artifacts and evidence", gate.gate_id));
+                return Err(format!(
+                    "evaluated gate {:?} requires subject artifacts and evidence",
+                    gate.gate_id
+                ));
             }
         }
         GateStatus::Unresolved => {
             if let Some(producer) = &gate.producer {
                 if producer.tool.trim().is_empty() || producer.version.trim().is_empty() {
-                    return Err(format!("gate {:?} producer identity must not be empty", gate.gate_id));
+                    return Err(format!(
+                        "gate {:?} producer identity must not be empty",
+                        gate.gate_id
+                    ));
                 }
-                validate_sha256("gate.producer.configuration_sha256", &producer.configuration_sha256)?;
+                validate_sha256(
+                    "gate.producer.configuration_sha256",
+                    &producer.configuration_sha256,
+                )?;
                 if gate.evidence.is_empty() || gate.subject_artifacts.is_empty() {
-                    return Err(format!("UNRESOLVED gate {:?} with a producer requires subjects and evidence", gate.gate_id));
+                    return Err(format!(
+                        "UNRESOLVED gate {:?} with a producer requires subjects and evidence",
+                        gate.gate_id
+                    ));
                 }
             } else if !gate.evidence.is_empty() || !gate.subject_artifacts.is_empty() {
-                return Err(format!("UNRESOLVED gate {:?} without a producer cannot carry execution evidence", gate.gate_id));
+                return Err(format!(
+                    "UNRESOLVED gate {:?} without a producer cannot carry execution evidence",
+                    gate.gate_id
+                ));
             }
         }
     }
@@ -542,7 +590,7 @@ fn validate_ifc_global_id(global_id: &str) -> Result<(), String> {
             .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_' || byte == 36)
     {
         return Err(
-            "IFC GlobalId must use the 22-character compressed IFC GUID alphabet and leading range 0..=3"
+            "IFC GlobalId must use the compressed 22-character GUID alphabet and leading range 0..=3"
                 .to_owned(),
         );
     }
@@ -574,7 +622,9 @@ fn validate_crosswalk(entries: &[CrosswalkEntry]) -> Result<(usize, usize), Stri
                     return Err("supported crosswalk contains a duplicate IFC GlobalId".to_owned());
                 }
                 if !supported_graph_ids.insert(entry.element_graph_id.as_str()) {
-                    return Err("supported crosswalk contains a duplicate element-graph ID".to_owned());
+                    return Err(
+                        "supported crosswalk contains a duplicate element-graph ID".to_owned(),
+                    );
                 }
                 if entry.evidence_sha256.is_none() {
                     return Err("supported crosswalk entry requires evidence_sha256".to_owned());
@@ -697,7 +747,10 @@ mod tests {
         });
 
         let ifc_digest = value["ifc"]["sha256"].as_str().expect("IFC digest").to_owned();
-        let graph_digest = value["element_graph"]["sha256"].as_str().expect("graph digest").to_owned();
+        let graph_digest = value["element_graph"]["sha256"]
+            .as_str()
+            .expect("graph digest")
+            .to_owned();
         let gate_ids = [
             ("artifact_integrity", vec!["ifc_output", "element_graph"]),
             ("step_parse", vec!["ifc_output"]),
