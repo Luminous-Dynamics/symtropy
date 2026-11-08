@@ -16,6 +16,8 @@ The four group-sequential looks are at 512, 1,024, 1,536 and 2,048 pairs. The O'
 
 ## Common stream design
 
+The reference is stacked on the exact noisy-probe baseline commit `e854d6768443aaa6029aa8532317cd1988663707` (PR #4185). It reuses the baseline regime definitions, SplitMix64/Box-Muller generator and seed schedule. The base seed is `0x43495644594e3236`; each episode seed is the base seed XOR the seed-index multiplier `0x9e3779b97f4a7c15` XOR the regime-index multiplier `0xbf58476d1ce4e5b9`, with 64-bit wrapping arithmetic. The exported stream digest is FNV-1a over the IEEE-754 bit patterns of the paired differences.
+
 Each of the five frozen causal regimes has 256 deterministic seed episodes. Each episode generates exactly 2,048 paired treatment/control differences. Both members of a pair share the same confounder value; their outcome noise is independent Gaussian with standard deviation 2.0. The known variance of a paired difference is therefore 8.0 in this synthetic reference.
 
 All five methods receive the exact same observation stream, verified using a common 64-bit FNV-1a digest. Group-sequential analyses use nested prefixes of that stream, not independently sampled batches. This makes sample-use comparisons fair.
