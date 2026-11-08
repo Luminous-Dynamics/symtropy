@@ -400,7 +400,13 @@ pub fn run_causal_drift_scenario(
     let signal_detection_tick = signal_detector.detection_tick;
     let correction_latency_ticks = diagnosis_tick.map(|diagnosed| {
         signal_detection_tick
-            .map(|detected| diagnosed + 1 - detected)
+            .map(|detected| {
+                if diagnosis == Some(CausalDiagnosis::ConfounderShiftWithoutCausalEffectChange) {
+                    diagnosed - detected
+                } else {
+                    diagnosed + 1 - detected
+                }
+            })
             .unwrap_or(1)
     });
 
@@ -565,6 +571,7 @@ mod tests {
         );
         assert_eq!(outcome.signal_detection_tick, Some(5));
         assert_eq!(outcome.diagnosis_tick, Some(6));
+        assert_eq!(outcome.correction_latency_ticks, Some(1));
         assert_eq!(outcome.last_matched_probe_estimate, Some(2.0));
         assert_eq!(outcome.active_ticks, CAUSAL_DRIFT_TICKS);
         assert_eq!(outcome.missed_beneficial_action_ticks, 0);
