@@ -222,6 +222,54 @@
         "Mesh cell/point counts and exact grid levels",
         "Whether all six levels are required for a selected benchmark result"
       ]
+    },
+    {
+      "source_id": "aiaa-static-fsi-2ae-2be-case-sheet",
+      "publisher": "AIAA DPW8 Static Deformation Working Group",
+      "canonical_url": "https://www.aiaa-dpw.org/WorkingGroups/Group2/TestCases/staticdeformation-case2aE-2bE-v1.pdf",
+      "evidence_url": "https://www.aiaa-dpw.org/WorkingGroups/Group2/group2.html",
+      "source_kind": "pdf_case_definition",
+      "artifact_role": "elastic_static_fsi_case_definition",
+      "acquisition_state": "page_inspected",
+      "exact_bytes_acquired": false,
+      "sha256": null,
+      "listed_size": null,
+      "last_modified": null,
+      "observed_facts": [
+        "Page 1 defines Test Case 2a(E): CRM wing/body static FSI, Mach 0.85, chord Reynolds 5 million, Qinf 1384 psf, CL 0.5000 +/- 0.0001, approximate alpha 2.75 degrees, 120 F (322.04 K), wind-off jig/unloaded start, grids 1-6, six measured span stations",
+        "Page 2 defines Test Case 2b(E): Mach 0.85, chord Reynolds 5 million, Qinf 1384 psf, alpha [-1.50, 0.00, 1.50, 2.50, 3.00, 3.50, 4.00, 4.50] degrees, 120 F (322.04 K), wind-off jig/unloaded start, grid level 3",
+        "Both elastic cases list force/moment, sectional twist/deformation, sectional Cp and flow/structural solver residual comparisons"
+      ],
+      "terms_status": "review_required",
+      "redistribution_status": "not_decided",
+      "unknowns": [
+        "Exact PDF bytes and SHA-256",
+        "Raw comparison-data files and their own units/uncertainties/calibration",
+        "The PDF gives a required workshop case definition but is not itself an experimental measurement dataset"
+      ]
+    },
+    {
+      "source_id": "aiaa-static-rigid-2a-2b-case-sheet",
+      "publisher": "AIAA DPW8 Static Deformation Working Group",
+      "canonical_url": "https://www.aiaa-dpw.org/WorkingGroups/Group2/TestCases/staticdeformation-case2a-2b-v1.pdf",
+      "evidence_url": "https://www.aiaa-dpw.org/WorkingGroups/Group2/group2.html",
+      "source_kind": "pdf_case_definition",
+      "artifact_role": "rigid_steady_cfd_case_definition",
+      "acquisition_state": "page_inspected",
+      "exact_bytes_acquired": false,
+      "sha256": null,
+      "listed_size": null,
+      "last_modified": null,
+      "observed_facts": [
+        "Page 1 defines rigid Test Case 2a: Mach 0.85, chord Reynolds 5 million, Qinf 1384 psf, alpha 2.50 degrees, 120 F (322.04 K), NASA CRM geometry including deformed-wing matching condition, grid levels 1-6",
+        "Page 2 defines rigid Test Case 2b: Mach 0.85, chord Reynolds 5 million, Qinf 1384 psf, alpha [-1.50, 2.50, 3.00, 3.50, 4.00, 4.50] degrees, 120 F (322.04 K), wind-off geometry, grid level 3"
+      ],
+      "terms_status": "review_required",
+      "redistribution_status": "not_decided",
+      "unknowns": [
+        "Exact PDF bytes and SHA-256",
+        "Underlying experimental data, measurement uncertainty and full operating point lineage"
+      ]
     }
   ],
   "benchmark_cases": [
@@ -282,10 +330,8 @@
         "static_temperature_k": 322.04,
         "initial_geometry": "jig_unloaded_wind_off",
         "wing_trip_location": "10 percent chord upper and lower surfaces",
-        "angle_of_attack_deg": 2.5,
         "static_temperature_f": 120,
-        "geometry_policy": "Dedicated static-deformation PDF: committee-supplied NASA CRM geometry including deformed-wing matching condition. Current DPW8 Test Cases page separately says initialize from jig as-built geometry/grid. Resolve the exact geometry artifact/revision before admission; do not silently choose one statement.",
-        "geometry_policy_status": "source_detail_requires_reconciliation"
+        "angle_of_attack_status": "approximate value associated with CL target; CL target is controlling"
       },
       "grid_family": {
         "levels": [
@@ -325,7 +371,10 @@
         "crm-halfspan-fem-bdf",
         "crm-fullspan-fem-bdf-archive"
       ],
-      "claim_ceiling": "CRM workshop static-FSI reproduction for the admitted geometry, model and conditions only"
+      "claim_ceiling": "CRM workshop static-FSI reproduction for the admitted geometry, model and conditions only",
+      "case_sheet_source_ids": [
+        "aiaa-static-fsi-2ae-2be-case-sheet"
+      ]
     },
     {
       "case_id": "DPW8-CRM-STATIC-FSI-2B-E",
@@ -340,6 +389,8 @@
         "dynamic_pressure_psf": 1384,
         "angles_of_attack_deg": [
           -1.5,
+          0,
+          1.5,
           2.5,
           3,
           3.5,
@@ -348,9 +399,7 @@
         ],
         "static_temperature_k": 322.04,
         "initial_geometry": "jig_unloaded_wind_off",
-        "static_temperature_f": 120,
-        "geometry_policy": "Dedicated static-deformation PDF: NASA CRM jig/unloaded geometry. Current DPW8 Test Cases page says CFD/FEM starts from jig as-built geometry/grid. Resolve exact artifact/revision before admission.",
-        "geometry_policy_status": "source_detail_requires_reconciliation"
+        "static_temperature_f": 120
       },
       "grid_family": {
         "levels": [
@@ -373,7 +422,10 @@
         "flow_solver_residuals",
         "structural_solver_residuals"
       ],
-      "claim_ceiling": "CRM workshop static-FSI polar reproduction for admitted conditions only"
+      "claim_ceiling": "CRM workshop static-FSI polar reproduction for admitted conditions only",
+      "case_sheet_source_ids": [
+        "aiaa-static-fsi-2ae-2be-case-sheet"
+      ]
     },
     {
       "case_id": "DPW8-CRM-RIGID-2A",
@@ -410,7 +462,10 @@
         "sectional_pressure_coefficient_distribution",
         "solver_residuals"
       ],
-      "claim_ceiling": "rigid_transonic_CRM_configuration_B_CFD_case_only"
+      "claim_ceiling": "rigid_transonic_CRM_configuration_B_CFD_case_only",
+      "case_sheet_source_ids": [
+        "aiaa-static-rigid-2a-2b-case-sheet"
+      ]
     },
     {
       "case_id": "DPW8-CRM-RIGID-2B",
@@ -450,17 +505,20 @@
         "sectional_pressure_coefficient_distribution",
         "solver_residuals"
       ],
-      "claim_ceiling": "rigid_transonic_CRM_configuration_B_alpha_sweep_only"
+      "claim_ceiling": "rigid_transonic_CRM_configuration_B_alpha_sweep_only",
+      "case_sheet_source_ids": [
+        "aiaa-static-rigid-2a-2b-case-sheet"
+      ]
     },
     {
-      "case_id": "DPW8-CRM-FEM-V1B",
-      "title": "NASA CRM finite-element-model validation",
+      "case_id": "DPW8-CRM-FEM-VERIFICATION-4",
+      "title": "NASA CRM finite-element-model validation (Static Deformation Working Group Test Case 1b)",
       "authority_url": "https://www.aiaa-dpw.org/TestCases/testcases.html",
       "working_group_url": "https://www.aiaa-dpw.org/WorkingGroups/Group2/group2.html",
       "required": true,
       "physics_track": "structural_model_verification_validation",
       "conditions": {
-        "test_case": "Verification 4 / static deformation working group Test Case 1b",
+        "test_case": "DPW8 Verification 4 / Static Deformation WG Test Case 1b",
         "detailed_conditions_status": "not_supplied_on_public_test_matrix_page"
       },
       "structural_reference_source_ids": [
@@ -468,7 +526,10 @@
         "crm-halfspan-fem-bdf",
         "crm-fullspan-fem-bdf-archive"
       ],
-      "claim_ceiling": "CRM FEM case-specific model verification/validation; not low-speed aircraft validation"
+      "claim_ceiling": "CRM FEM case-specific model verification/validation; not low-speed aircraft validation",
+      "case_sheet_source_ids": [
+        "dpw8-root-index"
+      ]
     }
   ],
   "data_format_observations": {
