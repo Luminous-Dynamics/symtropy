@@ -29,7 +29,7 @@ struct SensorCandidate {
     power_mw: f64,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 struct ModelAssumptions {
     parameter_names: Vec<String>,
     observation_model: String,
