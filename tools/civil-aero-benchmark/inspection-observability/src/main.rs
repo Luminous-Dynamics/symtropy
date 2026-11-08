@@ -13,8 +13,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::PathBuf;
 
-const CORPUS: &[u8] =
-    include_bytes!("inspection-observability-corpus-v0.1.json");
+const CORPUS: &[u8] = include_bytes!("inspection-observability-corpus-v0.1.json");
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -107,9 +106,7 @@ impl Disposition {
     fn as_str(self) -> &'static str {
         match self {
             Self::NoAnomalyInSyntheticFixture => "NO_ANOMALY_IN_SYNTHETIC_FIXTURE",
-            Self::UnresolvedIncompleteCriticalCoverage => {
-                "UNRESOLVED_INCOMPLETE_CRITICAL_COVERAGE"
-            }
+            Self::UnresolvedIncompleteCriticalCoverage => "UNRESOLVED_INCOMPLETE_CRITICAL_COVERAGE",
             Self::RejectIdentityMismatch => "REJECT_IDENTITY_MISMATCH",
             Self::RejectInvalidInspectionState => "REJECT_INVALID_INSPECTION_STATE",
             Self::UnresolvedMethodOutOfDomain => "UNRESOLVED_METHOD_OUT_OF_DOMAIN",
@@ -156,11 +153,7 @@ fn fail<T>(message: impl Into<String>) -> Result<T> {
 }
 
 fn require(condition: bool, message: impl Into<String>) -> Result<()> {
-    if condition {
-        Ok(())
-    } else {
-        fail(message)
-    }
+    if condition { Ok(()) } else { fail(message) }
 }
 
 fn sha256_hex(bytes: &[u8]) -> String {
@@ -191,14 +184,8 @@ fn decide(case: &Case) -> Disposition {
         return Disposition::UnresolvedMethodOutOfDomain;
     }
 
-    let required = inspection
-        .required_regions
-        .iter()
-        .collect::<BTreeSet<_>>();
-    let observed = inspection
-        .observed_regions
-        .iter()
-        .collect::<BTreeSet<_>>();
+    let required = inspection.required_regions.iter().collect::<BTreeSet<_>>();
+    let observed = inspection.observed_regions.iter().collect::<BTreeSet<_>>();
     if !inspection.critical_regions_observed || !required.is_subset(&observed) {
         return Disposition::UnresolvedIncompleteCriticalCoverage;
     }
@@ -376,14 +363,15 @@ fn evaluate(corpus_bytes: &[u8]) -> Result<OracleResult> {
 }
 
 fn main() {
-    let corpus_path = std::env::args()
-        .nth(1)
-        .map(PathBuf::from);
+    let corpus_path = std::env::args().nth(1).map(PathBuf::from);
     let bytes = match corpus_path {
         Some(path) => match fs::read(&path) {
             Ok(bytes) => bytes,
             Err(error) => {
-                eprintln!("inspection_observability_read_error={}: {error}", path.display());
+                eprintln!(
+                    "inspection_observability_read_error={}: {error}",
+                    path.display()
+                );
                 std::process::exit(2);
             }
         },
@@ -457,7 +445,9 @@ mod tests {
         let mut corpus = load_corpus();
         let case = case_mut("SYN-IO-001", &mut corpus);
         case.inspection.surface_coverage_fraction = 0.99;
-        case.inspection.observed_regions.retain(|region| region != "R-ROOT");
+        case.inspection
+            .observed_regions
+            .retain(|region| region != "R-ROOT");
         case.inspection.critical_regions_observed = false;
         assert_eq!(
             decide(case),
@@ -528,9 +518,6 @@ mod tests {
         assert_eq!(result.inspection_acceptance, "NOT_A_REAL_INSPECTION");
         assert_eq!(result.maintenance_release, "NOT_AUTHORIZED");
         assert_eq!(result.aircraft_status, "NOT_ASSESSED");
-        assert_eq!(
-            result.claim_ceiling,
-            "synthetic_contract_conformance_only"
-        );
+        assert_eq!(result.claim_ceiling, "synthetic_contract_conformance_only");
     }
 }
