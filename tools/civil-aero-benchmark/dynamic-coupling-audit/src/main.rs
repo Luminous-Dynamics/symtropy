@@ -647,10 +647,10 @@ fn result_json() -> AuditResult<String> {
         fluid_added_mass_kg: 4.0,
         applied_force_n: 10.0,
         initial_acceleration_m_per_s2: 0.0,
-        relaxation: 0.2,
+        relaxation: 0.1,
         absolute_residual_tolerance_n: 1.0e-10,
         relative_residual_tolerance: 0.0,
-        max_iterations: 20,
+        max_iterations: 100,
     })?;
 
     let window = good_window();
@@ -812,7 +812,7 @@ mod tests {
         }
     }
 
-    fn high_case(relaxation: f64) -> AddedMassInput {
+    fn high_case(relaxation: f64, max_iterations: usize) -> AddedMassInput {
         AddedMassInput {
             structural_mass_kg: 1.0,
             fluid_added_mass_kg: 4.0,
@@ -821,7 +821,7 @@ mod tests {
             relaxation,
             absolute_residual_tolerance_n: 1.0e-10,
             relative_residual_tolerance: 0.0,
-            max_iterations: 20,
+            max_iterations,
         }
     }
 
@@ -837,7 +837,7 @@ mod tests {
 
     #[test]
     fn high_added_mass_unrelaxed_iteration_abstains() {
-        let result = solve_added_mass_fixed_point(high_case(1.0)).unwrap();
+        let result = solve_added_mass_fixed_point(high_case(1.0, 20)).unwrap();
         assert_eq!(result.status, FixedPointStatus::NonConverged);
         assert!(result.acceleration_m_per_s2.is_none());
         assert!((result.exact_acceleration_m_per_s2 - 2.0).abs() < 1.0e-14);
@@ -848,11 +848,12 @@ mod tests {
 
     #[test]
     fn high_added_mass_relaxed_iteration_converges_to_same_solution() {
-        let result = solve_added_mass_fixed_point(high_case(0.2)).unwrap();
+        let result = solve_added_mass_fixed_point(high_case(0.1, 100)).unwrap();
         assert_eq!(result.status, FixedPointStatus::Converged);
         assert!((result.acceleration_m_per_s2.unwrap() - 2.0).abs() < 1.0e-14);
-        assert!((result.amplification_factor).abs() < 1.0e-14);
-        assert_eq!(result.iterations, 1);
+        assert!((result.amplification_factor - 0.5).abs() < 1.0e-14);
+        assert!(result.iterations > 1 && result.iterations <= 100);
+        assert!(result.residual_n <= 1.0e-10);
     }
 
     #[test]
