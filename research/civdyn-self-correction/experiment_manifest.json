@@ -1,0 +1,89 @@
+{
+  "manifest_id": "CIVDYN-SELF-CORRECTION-001",
+  "version": "0.1.0",
+  "status": "synthetic_reference",
+  "resource_ledger_authority": "../civdyn-resource-ledger",
+  "controllers": [
+    "frozen_policy",
+    "outcome_reactive",
+    "mechanism_aware"
+  ],
+  "scenarios": {
+    "sensor_drift_sham": {
+      "ticks": 5,
+      "drift_starts_on_one_based_tick": 3,
+      "true_household_coverage": 1,
+      "primary_sensor_coverage_after_drift": 0.6,
+      "independent_meter_coverage": 1,
+      "household_demand_m3_per_tick": 10,
+      "base_delivery_m3_per_tick": 10,
+      "opening_basin_reserve_m3": 100,
+      "reactive_emergency_threshold": 0.95,
+      "expected_outcome": {
+        "true_household_unmet_m3": 0,
+        "outcome_reactive_unnecessary_dispatch_m3": 12,
+        "mechanism_aware_unnecessary_dispatch_m3": 0
+      }
+    },
+    "delayed_externality": {
+      "opening_basin_water_m3": 80,
+      "opening_basin_energy_kwh": 100,
+      "growth_ticks": 4,
+      "recovery_ticks": 2,
+      "repeated_shock_ticks": 6,
+      "household_demand_m3_per_tick": 10,
+      "industrial_demand_m3_per_tick": 5,
+      "baseline_recharge_m3_per_tick": 10,
+      "maintenance_energy_kwh_per_tick": 5,
+      "maintenance_pumping_yield_m3_per_kwh": 2,
+      "essential_household_coverage_floor": 0.95,
+      "declared_policy_priority": "protect household essential-service floor; report industrial displacement separately",
+      "expected_outcomes": {
+        "frozen_policy_household_unmet_m3": 25,
+        "frozen_policy_industry_unmet_m3": 15,
+        "mechanism_aware_household_unmet_m3": 0,
+        "mechanism_aware_industry_unmet_m3": 30,
+        "mechanism_aware_maintenance_energy_kwh": 10,
+        "frozen_policy_maintenance_energy_unmet_kwh": 60,
+        "mechanism_aware_maintenance_energy_unmet_kwh": 50
+      }
+    }
+  },
+  "correction_event_order": [
+    "observed",
+    "detected",
+    "diagnosed",
+    "discriminated",
+    "belief_updated",
+    "intervened",
+    "audited"
+  ],
+  "output_metrics": [
+    "minimum_household_coverage",
+    "household_unmet_m3",
+    "industry_unmet_m3",
+    "unnecessary_dispatch_m3",
+    "reserve_before_m3",
+    "reserve_after_growth_m3",
+    "reserve_after_recovery_m3",
+    "reserve_after_shock_m3",
+    "maintenance_energy_kwh",
+    "counterfactual_industry_on_household_unmet_m3",
+    "counterfactual_industry_off_household_unmet_m3",
+    "counterfactual_without_maintenance_household_unmet_m3",
+    "mechanism_identified",
+    "correction_latency_ticks",
+    "trace_valid",
+    "maximum_water_residual_m3",
+    "maximum_energy_residual_kwh",
+    "maintenance_energy_unmet_kwh"
+  ],
+  "claim_ceiling": [
+    "The scenarios and all quantities are synthetic and not calibrated to a real catchment or society.",
+    "The maintenance pump relation is a declared synthetic input/output rule, not a hydrological or engineering model.",
+    "The mechanism-aware controller applies a predeclared household essential-service priority and displaces industrial water use; it is not a universal welfare optimum.",
+    "A paired deterministic counterfactual is a software control, not empirical causal identification.",
+    "The benchmark does not model biodiversity, environmental flows, distributional justice beyond named service groups, institutional legitimacy or ecological health.",
+    "No SOTA or real-world policy effectiveness claim is made."
+  ]
+}

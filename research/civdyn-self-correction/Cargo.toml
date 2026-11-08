@@ -1,0 +1,19 @@
+[workspace]
+
+[package]
+name = "civdyn-self-correction"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Ledger-backed reference benchmark for socio-ecological self-correction"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "self-correction-sweep"
+path = "src/bin/self_correction_sweep.rs"
+
+[dependencies]
+civdyn-resource-ledger = { path = "../civdyn-resource-ledger" }
