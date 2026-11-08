@@ -37,7 +37,7 @@ Failed and aborted episodes remain in the input and count toward the block. The 
 
 ## Implemented tests
 
-Fourteen deterministic tests cover:
+Fifteen deterministic tests cover:
 - n=19 / alpha=5% finite rank;
 - n=18 / alpha=5% unbounded threshold;
 - multiple episodes per one independent session block;
