@@ -719,7 +719,7 @@ mod tests {
             expected_information_gain_nats: eig,
             predictions: vec![
                 prediction(action_id, ConstraintKind::Energy, 5.0, 1.0),
-                prediction(action_id, ConstraintKind::SupportMargin, 1.0, 0.25),
+                prediction(action_id, ConstraintKind::SupportMargin, 2.0, 0.25),
                 prediction(action_id, ConstraintKind::PeakNormalForce, 50.0, 25.0),
                 prediction(action_id, ConstraintKind::ImpactImpulse, 2.0, 0.25),
                 prediction(action_id, ConstraintKind::ActuatorLoadFraction, 0.5, 0.01),
@@ -981,16 +981,21 @@ mod tests {
             2_000,
         )
         .unwrap();
+        let reason_for = |action_id: &str| {
+            report
+                .assessments
+                .iter()
+                .find(|assessment| assessment.action_id == action_id)
+                .unwrap()
+                .abstention_reason
+        };
+        assert_eq!(reason_for("wrong-unit"), Some(AbstentionReason::UnitMismatch));
         assert_eq!(
-            report.assessments[0].abstention_reason,
-            Some(AbstentionReason::UnitMismatch)
-        );
-        assert_eq!(
-            report.assessments[1].abstention_reason,
+            reason_for("wrong-action"),
             Some(AbstentionReason::PredictionIdentityMismatch)
         );
         assert_eq!(
-            report.assessments[2].abstention_reason,
+            reason_for("negative"),
             Some(AbstentionReason::NegativePredictiveVariance)
         );
     }
