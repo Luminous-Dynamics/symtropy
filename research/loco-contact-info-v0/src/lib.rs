@@ -171,11 +171,7 @@ impl Matrix {
             }
         }
 
-        let mut lower = Self::new(
-            dimension,
-            dimension,
-            vec![0.0; dimension * dimension],
-        )?;
+        let mut lower = Self::new(dimension, dimension, vec![0.0; dimension * dimension])?;
         for row in 0..dimension {
             for column in 0..=row {
                 let mut value = self.get(row, column);
@@ -203,11 +199,7 @@ impl Matrix {
     pub fn inverse_spd(&self) -> Result<Self, GaussianError> {
         let lower = self.cholesky_lower()?;
         let dimension = self.rows;
-        let mut inverse = Self::new(
-            dimension,
-            dimension,
-            vec![0.0; dimension * dimension],
-        )?;
+        let mut inverse = Self::new(dimension, dimension, vec![0.0; dimension * dimension])?;
 
         for column in 0..dimension {
             let mut forward = vec![0.0; dimension];
@@ -362,16 +354,12 @@ fn information_terms(
     let identity = Matrix::identity(state_dimension)?;
     let determinant_argument = identity.add(&scaled_information)?;
     // The information matrix can be rank deficient; I + (...) remains SPD.
-    let expected_information_gain_nats =
-        0.5 * determinant_argument.log_determinant_spd()?;
+    let expected_information_gain_nats = 0.5 * determinant_argument.log_determinant_spd()?;
 
     if expected_information_gain_nats < -1.0e-10 {
         return Err(GaussianError::InformationGainNumericallyNegative);
     }
-    Ok((
-        information,
-        expected_information_gain_nats.max(0.0),
-    ))
+    Ok((information, expected_information_gain_nats.max(0.0)))
 }
 
 /// Compute expected information gain for one declared action-conditioned
@@ -413,8 +401,7 @@ pub fn update_belief(
 
     let prior_information_vector = prior_precision.multiply_vector(&prior.mean)?;
     let weighted_measurement = noise_precision.multiply_vector(measurement)?;
-    let observation_information_vector =
-        h_transpose.multiply_vector(&weighted_measurement)?;
+    let observation_information_vector = h_transpose.multiply_vector(&weighted_measurement)?;
     let information_vector = prior_information_vector
         .iter()
         .zip(observation_information_vector)
@@ -475,12 +462,7 @@ mod tests {
     }
 
     fn action_1d(id: &str, h: &[f64], r: &[f64]) -> ActionConditionedObservation {
-        ActionConditionedObservation::new(
-            id.to_owned(),
-            matrix(1, 1, h),
-            matrix(1, 1, r),
-        )
-        .unwrap()
+        ActionConditionedObservation::new(id.to_owned(), matrix(1, 1, h), matrix(1, 1, r)).unwrap()
     }
 
     #[test]
@@ -496,11 +478,8 @@ mod tests {
 
     #[test]
     fn rank_deficient_observation_only_updates_observable_contact_direction() {
-        let prior = GaussianBelief::new(
-            vec![0.0, 0.0],
-            matrix(2, 2, &[1.0, 0.0, 0.0, 1.0]),
-        )
-        .unwrap();
+        let prior =
+            GaussianBelief::new(vec![0.0, 0.0], matrix(2, 2, &[1.0, 0.0, 0.0, 1.0])).unwrap();
         let action = ActionConditionedObservation::new(
             "normal-only".to_owned(),
             matrix(1, 2, &[1.0, 0.0]),
@@ -518,11 +497,8 @@ mod tests {
 
     #[test]
     fn action_conditioned_observation_maps_change_expected_information() {
-        let prior = GaussianBelief::new(
-            vec![0.0, 0.0],
-            matrix(2, 2, &[1.0, 0.0, 0.0, 1.0]),
-        )
-        .unwrap();
+        let prior =
+            GaussianBelief::new(vec![0.0, 0.0], matrix(2, 2, &[1.0, 0.0, 0.0, 1.0])).unwrap();
         let normal_only = ActionConditionedObservation::new(
             "normal-only".to_owned(),
             matrix(1, 2, &[1.0, 0.0]),
@@ -560,11 +536,8 @@ mod tests {
 
     #[test]
     fn zero_observation_matrix_has_zero_information_and_unchanged_belief() {
-        let prior = GaussianBelief::new(
-            vec![0.2, -0.1],
-            matrix(2, 2, &[1.0, 0.2, 0.2, 2.0]),
-        )
-        .unwrap();
+        let prior =
+            GaussianBelief::new(vec![0.2, -0.1], matrix(2, 2, &[1.0, 0.2, 0.2, 2.0])).unwrap();
         let model = ActionConditionedObservation::new(
             "no-information".to_owned(),
             matrix(1, 2, &[0.0, 0.0]),
@@ -576,18 +549,21 @@ mod tests {
         assert!(result.expected_information_gain_nats.abs() < 1.0e-12);
         assert!((result.posterior.mean[0] - prior.mean[0]).abs() < 1.0e-12);
         assert!((result.posterior.mean[1] - prior.mean[1]).abs() < 1.0e-12);
-        for (left, right) in result.posterior.covariance.values().iter().zip(prior.covariance.values()) {
+        for (left, right) in result
+            .posterior
+            .covariance
+            .values()
+            .iter()
+            .zip(prior.covariance.values())
+        {
             assert!((left - right).abs() < 1.0e-12);
         }
     }
 
     #[test]
     fn correlated_observation_noise_is_supported_without_independence_assumption() {
-        let prior = GaussianBelief::new(
-            vec![0.0, 0.0],
-            matrix(2, 2, &[1.0, 0.0, 0.0, 1.0]),
-        )
-        .unwrap();
+        let prior =
+            GaussianBelief::new(vec![0.0, 0.0], matrix(2, 2, &[1.0, 0.0, 0.0, 1.0])).unwrap();
         let model = ActionConditionedObservation::new(
             "correlated-sensors".to_owned(),
             matrix(2, 2, &[1.0, 0.0, 0.0, 1.0]),
