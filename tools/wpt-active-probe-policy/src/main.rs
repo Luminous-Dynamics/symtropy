@@ -239,13 +239,114 @@ fn singleton_index(mask: u16) -> Option<usize> {
 
 type MemoKey = (u16, u64, u64, usize);
 
-fn solve_mask(
+fn outcome_groups(mask: u16, action: &ProbeAction, pose_count: usize) -> BTreeMap<u32, u16> {
+    let mut groups: BTreeMap<u32, u16> = BTreeMap::new();
+    for pose_index in 0..pose_count {
+        if (mask & (1_u16 << pose_index)) != 0 {
+            let outcome = action.outcomes[pose_index];
+            *groups.entry(outcome).or_insert(0) |= 1_u16 << pose_index;
+        }
+    }
+    groups
+}
+
+fn minimum_worst_case_energy(
     mask: u16,
     energy_left: u64,
     latency_left: u64,
     actions_left: usize,
     case: &ProbeCase,
-    memo: &mut HashMap<MemoKey, Option<PolicyPlan>>,
+    memo: &mut HashMap<MemoKey, Option<u64>>,
+) -> Option<u64> {
+    if singleton_index(mask).is_some() { return Some(0); }
+    let key = (mask, energy_left, latency_left, actions_left);
+    if let Some(cached) = memo.get(&key) { return *cached; }
+    if actions_left == 0 { memo.insert(key, None); return None; }
+
+    let mut best: Option<u64> = None;
+    for action in &case.actions {
+        if exclusion_reason(action, case).is_some()
+            || action.energy_uj > energy_left
+            || action.duration_us > latency_left {
+            continue;
+        }
+        let groups = outcome_groups(mask, action, case.pose_ids.len());
+        if groups.len() < 2 { continue; }
+        let mut worst_child = 0_u64;
+        let mut feasible = true;
+        for child_mask in groups.values() {
+            match minimum_worst_case_energy(
+                *child_mask,
+                energy_left - action.energy_uj,
+                latency_left - action.duration_us,
+                actions_left - 1,
+                case,
+                memo,
+            ) {
+                Some(value) => worst_child = worst_child.max(value),
+                None => { feasible = false; break; }
+            }
+        }
+        if !feasible { continue; }
+        let candidate = action.energy_uj + worst_child;
+        best = Some(best.map(|current| current.min(candidate)).unwrap_or(candidate));
+    }
+    memo.insert(key, best);
+    best
+}
+
+fn minimum_worst_case_latency(
+    mask: u16,
+    energy_left: u64,
+    latency_left: u64,
+    actions_left: usize,
+    case: &ProbeCase,
+    memo: &mut HashMap<MemoKey, Option<u64>>,
+) -> Option<u64> {
+    if singleton_index(mask).is_some() { return Some(0); }
+    let key = (mask, energy_left, latency_left, actions_left);
+    if let Some(cached) = memo.get(&key) { return *cached; }
+    if actions_left == 0 { memo.insert(key, None); return None; }
+
+    let mut best: Option<u64> = None;
+    for action in &case.actions {
+        if exclusion_reason(action, case).is_some()
+            || action.energy_uj > energy_left
+            || action.duration_us > latency_left {
+            continue;
+        }
+        let groups = outcome_groups(mask, action, case.pose_ids.len());
+        if groups.len() < 2 { continue; }
+        let mut worst_child = 0_u64;
+        let mut feasible = true;
+        for child_mask in groups.values() {
+            match minimum_worst_case_latency(
+                *child_mask,
+                energy_left - action.energy_uj,
+                latency_left - action.duration_us,
+                actions_left - 1,
+                case,
+                memo,
+            ) {
+                Some(value) => worst_child = worst_child.max(value),
+                None => { feasible = false; break; }
+            }
+        }
+        if !feasible { continue; }
+        let candidate = action.duration_us + worst_child;
+        best = Some(best.map(|current| current.min(candidate)).unwrap_or(candidate));
+    }
+    memo.insert(key, best);
+    best
+}
+
+fn build_min_latency_policy(
+    mask: u16,
+    energy_left: u64,
+    latency_left: u64,
+    actions_left: usize,
+    case: &ProbeCase,
+    latency_memo: &mut HashMap<MemoKey, Option<u64>>,
 ) -> Option<PolicyPlan> {
     if let Some(index) = singleton_index(mask) {
         return Some(PolicyPlan {
@@ -257,12 +358,10 @@ fn solve_mask(
             worst_case_actions: 0,
         });
     }
-    let key = (mask, energy_left, latency_left, actions_left);
-    if let Some(cached) = memo.get(&key) { return cached.clone(); }
-    if actions_left == 0 {
-        memo.insert(key, None);
-        return None;
-    }
+    if actions_left == 0 { return None; }
+    let target_latency = minimum_worst_case_latency(
+        mask, energy_left, latency_left, actions_left, case, latency_memo,
+    )?;
 
     let mut best: Option<PolicyPlan> = None;
     for action in &case.actions {
@@ -271,77 +370,76 @@ fn solve_mask(
             || action.duration_us > latency_left {
             continue;
         }
+        let groups = outcome_groups(mask, action, case.pose_ids.len());
+        if groups.len() < 2 { continue; }
+        let remaining_energy = energy_left - action.energy_uj;
+        let remaining_latency = latency_left - action.duration_us;
 
-        let mut groups: BTreeMap<u32, u16> = BTreeMap::new();
-        for pose_index in 0..case.pose_ids.len() {
-            if (mask & (1_u16 << pose_index)) != 0 {
-                let outcome = action.outcomes[pose_index];
-                *groups.entry(outcome).or_insert(0) |= 1_u16 << pose_index;
+        let mut expected_latency = 0_u64;
+        let mut feasible = true;
+        for child_mask in groups.values() {
+            match minimum_worst_case_latency(
+                *child_mask, remaining_energy, remaining_latency,
+                actions_left - 1, case, latency_memo,
+            ) {
+                Some(value) => expected_latency = expected_latency.max(value),
+                None => { feasible = false; break; }
             }
         }
-        if groups.len() < 2 { continue; }
+        if !feasible || action.duration_us + expected_latency != target_latency {
+            continue;
+        }
 
         let mut branches = Vec::with_capacity(groups.len());
-        let mut child_energy = 0_u64;
-        let mut child_latency = 0_u64;
-        let mut child_actions = 0_usize;
-        let mut feasible = true;
+        let mut worst_child_energy = 0_u64;
+        let mut worst_child_latency = 0_u64;
+        let mut worst_child_actions = 0_usize;
         for (outcome, child_mask) in groups {
-            let child = solve_mask(
-                child_mask,
-                energy_left - action.energy_uj,
-                latency_left - action.duration_us,
-                actions_left - 1,
-                case,
-                memo,
-            );
-            let Some(child_plan) = child else { feasible = false; break; };
-            child_energy = child_energy.max(child_plan.worst_case_energy_uj);
-            child_latency = child_latency.max(child_plan.worst_case_latency_us);
-            child_actions = child_actions.max(child_plan.worst_case_actions);
-            branches.push((outcome, Box::new(child_plan)));
+            let child = build_min_latency_policy(
+                child_mask, remaining_energy, remaining_latency,
+                actions_left - 1, case, latency_memo,
+            )?;
+            worst_child_energy = worst_child_energy.max(child.worst_case_energy_uj);
+            worst_child_latency = worst_child_latency.max(child.worst_case_latency_us);
+            worst_child_actions = worst_child_actions.max(child.worst_case_actions);
+            branches.push((outcome, Box::new(child)));
         }
-        if !feasible { continue; }
-
         let candidate = PolicyPlan {
             terminal_pose: None,
             action_id: Some(action.id.clone()),
             branches,
-            worst_case_energy_uj: action.energy_uj + child_energy,
-            worst_case_latency_us: action.duration_us + child_latency,
-            worst_case_actions: 1 + child_actions,
+            worst_case_energy_uj: action.energy_uj + worst_child_energy,
+            worst_case_latency_us: action.duration_us + worst_child_latency,
+            worst_case_actions: 1 + worst_child_actions,
         };
-        let candidate_key = (
-            candidate.worst_case_energy_uj,
-            candidate.worst_case_latency_us,
-            candidate.worst_case_actions,
-            candidate.action_id.as_deref().unwrap_or(""),
-        );
         let replace = best.as_ref().map(|current| {
-            candidate_key < (
-                current.worst_case_energy_uj,
-                current.worst_case_latency_us,
-                current.worst_case_actions,
-                current.action_id.as_deref().unwrap_or(""),
-            )
+            candidate.action_id.as_deref().unwrap_or("")
+                < current.action_id.as_deref().unwrap_or("")
         }).unwrap_or(true);
         if replace { best = Some(candidate); }
     }
-    memo.insert(key, best.clone());
     best
 }
 
 pub fn adaptive_plan(case: &ProbeCase) -> Option<PolicyPlan> {
     if case.pose_ids.len() > MAX_POSES || case.actions.len() > MAX_ACTIONS { return None; }
     let initial_mask = (1_u16 << case.pose_ids.len()) - 1;
-    solve_mask(
-        initial_mask,
-        case.energy_budget_uj,
-        case.latency_budget_us,
-        case.max_actions,
-        case,
-        &mut HashMap::new(),
-    )
+    let mut energy_memo = HashMap::new();
+    let optimal_energy = minimum_worst_case_energy(
+        initial_mask, case.energy_budget_uj, case.latency_budget_us,
+        case.max_actions, case, &mut energy_memo,
+    )?;
+    let mut latency_memo = HashMap::new();
+    let plan = build_min_latency_policy(
+        initial_mask, optimal_energy, case.latency_budget_us,
+        case.max_actions, case, &mut latency_memo,
+    )?;
+    if plan.worst_case_energy_uj <= optimal_energy
+        && plan.worst_case_latency_us <= case.latency_budget_us {
+        Some(plan)
+    } else {
+        None
+    }
 }
 
 fn jointly_unique(chosen: &[usize], case: &ProbeCase) -> bool {
