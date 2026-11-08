@@ -870,7 +870,9 @@ mod tests {
             block.max_diagonal_variance.as_mut().unwrap().reverse();
         }
         let reordered = evaluate(&input).unwrap();
-        assert!((original.covariance_weighted_d2 - reordered.covariance_weighted_d2).abs() < 1.0e-12);
+        assert!(
+            (original.covariance_weighted_d2 - reordered.covariance_weighted_d2).abs() < 1.0e-12
+        );
     }
 
     #[test]
