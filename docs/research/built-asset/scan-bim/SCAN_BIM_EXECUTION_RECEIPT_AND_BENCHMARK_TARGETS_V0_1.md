@@ -26,11 +26,18 @@ The Rust contract extends the previous v0.1 metadata/visibility manifest with:
 - Explicit command argument vector.
 - Executable, configuration and optional model-weight artifact IDs.
 - Local candidate runtime artifacts with safe relative paths and SHA-256 recomputed from actual bytes.
-- Exact per-scene candidate output artifacts (at least one IFC output per scene), bound to scene IDs and byte-verified under the candidate root.
+- Exact per-scene candidate output artifacts including both an IFC model and element graph per scene, bound to scene IDs and byte-verified under the candidate root. Geometry model and candidate metric receipts may be added separately.
 
-The executable/configuration/model artifact IDs must resolve to artifacts with the corresponding typed roles. Candidate output hashes are not merely strings: the verifier opens the referenced files beneath the candidate root and recomputes SHA-256. The JSON receipt emits runtime artifact identities, output artifact IDs, scene bindings, roles, relative paths and digests—not just output counts. Candidate/evaluator relative paths must be unique within their respective roots.
+The executable/configuration/model artifact IDs must resolve to artifacts with the corresponding typed roles. Candidate output hashes are not merely strings: the verifier opens the referenced files beneath the candidate root and recomputes SHA-256. The JSON receipt emits runtime artifact identities, output artifact IDs, scene bindings, roles, relative paths and digests—not just output counts. Candidate runtime/input/output paths must remain unique. An evaluator reference path may be reused for multiple acquisitions of the same building only when every declaration carries the same digest; conflicting digests for one path fail closed.
 
-### Coordinate frame and units
+#
+### Receipt contract refinements from integration review
+
+The synthetic non-ISPRS metric suite must identify its authority as `project_defined`; published ISPRS authority labels are reserved for the named historical metric suite and its scope/direction/sample-strategy tuple. A statistical-interval tolerance declaration must also bind a non-empty uncertainty-model ID, a coverage probability strictly in (0,1), and a finite positive coverage factor. Those values describe assumptions; they do not mean the model has been independently calibrated or that this manifest performs a statistical acceptance decision.
+
+The candidate output contract requires both IFC and element-graph outputs for every scene. This is intentional: syntax/semantic interoperability and geometric/topological reconstruction are separate validation gates. The committed graph and IFC placeholders are synthetic byte fixtures only and their semantics are not scored by P0.3.
+
+## Coordinate frame and units
 
 Every scene declares:
 - frame ID;
