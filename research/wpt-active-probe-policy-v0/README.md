@@ -50,7 +50,7 @@ The recursive solver is exact for the supplied finite hypothesis/action set and 
 
 ## Validation
 
-The Rust test suite includes 18 adversarial/known-answer tests. In addition to targeted cases, the independent exhaustive tree enumerator constructs the feasible energy/latency Pareto set for small cases and verifies that the production DP returns the globally minimum-energy, then minimum-latency pair.
+The Rust test suite includes 19 adversarial/known-answer tests. In addition to targeted cases, the independent exhaustive tree enumerator constructs the feasible energy/latency Pareto set for small cases and verifies that the production DP returns the globally minimum-energy, then minimum-latency pair.
 
 ## Run
 
