@@ -30,7 +30,7 @@ The parser represents each action row's outcome field as one comma-separated sup
 
 The fixture contains four pose hypotheses and eight invented actions, including one `PASSIVE_OBSERVE` action and seven `ACTIVE_EXCITATION` actions. A passive action may have zero incremental excitation-energy cost, but still consumes acquisition time; active excitation is required to carry positive energy cost. The test's passive telemetry sample is a synthetic zero-incremental-energy example, not a claim that physical sensing is free.
 
-The admissible adaptive policy is:
+The CLI now prints the typed action library (PASSIVE_OBSERVE vs ACTIVE_EXCITATION), including incremental energy, duration, ripple, ZVS margin and service disturbance for every candidate. The admissible adaptive policy is:
 
 - First apply `passive_telemetry_split` (0 synthetic incremental µJ, 2 synthetic µs).
 - On outcome 0, apply `left_discriminator` (12 synthetic µJ, 4 synthetic µs).
