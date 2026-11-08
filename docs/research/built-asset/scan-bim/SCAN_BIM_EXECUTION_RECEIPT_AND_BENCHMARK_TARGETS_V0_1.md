@@ -65,7 +65,7 @@ Bind reference surface spacing, scan voxel spacing and metric distance cutoff in
 
 ### Metric profile and direction
 
-A metric suite is identified by ID/version, scope, accuracy direction, definition authority, sample strategy, surface buffer and accuracy cutoff. The v0.3 contract prevents three published descriptions from being collapsed into one unlabeled “official” score:
+A metric suite is identified by ID/version, scope, accuracy direction, definition authority, sample strategy, correspondence policy, surface buffer and accuracy cutoff. The v0.3 contract prevents three published descriptions from being collapsed into one unlabeled “official” score:
 
 | Definition authority | Direction | Sample strategy / correspondence |
 |---|---|---|
@@ -74,9 +74,9 @@ A metric suite is identified by ID/version, scope, accuracy direction, definitio
 | `final_results_paper_2021` | candidate → reference | Source-surface sample points to closest reference surface plane |
 | `bidirectional_diagnostic` | both directions | Retain two directed distributions separately; not an official score |
 
-The 2018 framework is especially specific: it excludes interpreted reference surfaces, chooses the closest observable reference plane, requires the orthogonal projection to fall inside the surface boundary, and applies a distance cut-off before taking the median. The 2021 final-results paper uses source-surface sample points to closest reference surface planes. The current results page, however, defines accuracy in the reverse direction, using reference-surface samples to the submitted source model. All three describe the historic wall-only metric family, but the reference page's direction conflicts with both methodological papers, and even the papers differ in sample population.
+The 2018 framework is especially specific: it excludes interpreted reference surfaces, chooses the closest observable reference plane, requires the orthogonal projection to fall inside the surface boundary, and applies a distance cut-off before taking the median. The 2021 final-results paper uses source-surface sample points (correspondence policy unresolved until source-level reproduction)s. The current results page, however, defines accuracy in the reverse direction, using reference-surface samples to the submitted source model. All three describe the historic wall-only metric family, but the reference page's direction conflicts with both methodological papers, and even the papers differ in sample population.
 
-The v0.3 schema binds `definition_authority`, `accuracy_direction` and `sample_strategy` as one validated tuple. It does not claim that the current leaderboard page alone proves which implementation generated the historical tables. P1 must reproduce the 2018 and 2021 named methodology profiles, compare the current results-page profile, and seek the canonical scorer or maintainer clarification. Until then, keep both directed distances and their sample strategies explicit. Do not average directions or silently relabel one as the other.
+The v0.3 schema binds `definition_authority`, `accuracy_direction`, `sample_strategy` and `correspondence_policy` as one validated tuple. It does not claim that the current leaderboard page alone proves which implementation generated the historical tables. P1 must reproduce the 2018 and 2021 named methodology profiles, compare the current results-page profile, and seek the canonical scorer or maintainer clarification. Until then, keep both directed distances and their sample strategies explicit. Do not average directions or silently relabel one as the other.
 
 Completeness and correctness are area-based:
 - completeness = buffered source/reference surface intersection area / total observable reference surface area;
@@ -130,6 +130,8 @@ Jayasinghe & Brilakis, article 107052, DOI: https://doi.org/10.1016/j.autcon.202
 ### BIMNet — geometric and topological reconstruction benchmark
 
 Liu et al., Automation in Construction 173 (2025), article 106096, DOI: https://doi.org/10.1016/j.autcon.2025.106096. BIMNet is an IFC-based large-scale real-world point-cloud-to-BIM dataset with geometric and topological metrics. The associated website says data access depends on Matterport3D approval and a separate request; the whole package is not automatically redistributable. Keep this disabled until access and per-subset rights are recorded: https://thucbims.github.io/bimnet/
+
+The new P1.0 directed-accuracy core implements two non-interchangeable methods: `euclidean_closest_point_on_triangle` for the current results-page definition and `orthogonal_projection_inside_triangle` for the 2018 framework. The 2021 sample-population profile remains explicit but cannot yet be scored numerically until its exact source method is reproduced. The code rejects non-finite distances and distinguishes no correspondence from distances rejected by a cutoff. These primitives are not a full scorer.
 
 ## Industry comparison: capabilities, not vendor-result claims
 
