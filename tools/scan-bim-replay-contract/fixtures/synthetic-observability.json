@@ -80,7 +80,7 @@
       "evaluator_artifacts": [
         {
           "artifact_id": "ROOM-B-REFERENCE",
-          "role": "ground_truth_labels",
+          "role": "reference_geometry",
           "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
         }
       ],
