@@ -46,12 +46,10 @@ fn demo_input() -> TariffInput {
                 energy_kwh += 5.0;
             }
 
+            // The ambiguous source-printed interval is explicitly confirmed
+            // only for this synthetic account fixture.
             let saturday_evening = day_class == DayClass::SaturdayOrPublicHoliday
                 && (1_080..1_200).contains(&local_start_minute);
-            if saturday_evening {
-                // The ambiguous source-printed interval is explicitly confirmed
-                // only for this synthetic account fixture.
-            }
 
             declared_active_energy_kwh += energy_kwh;
             intervals.push(MeteredInterval {
