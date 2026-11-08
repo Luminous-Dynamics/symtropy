@@ -292,7 +292,7 @@ pub fn noisy_episode_seed(regime: CausalRegime, seed_index: usize) -> u64 {
 }
 
 pub fn run_noisy_causal_drift(regime: CausalRegime, seed_index: usize) -> NoisyCausalDriftOutcome {
-    let seed = scenario_seed(regime, seed_index);
+    let seed = noisy_episode_seed(regime, seed_index);
     let mut cusum = NoisyCusum::default();
     let mut policy_enabled = true;
     let mut active_ticks = 0;
