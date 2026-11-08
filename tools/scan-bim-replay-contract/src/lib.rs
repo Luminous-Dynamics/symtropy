@@ -63,6 +63,7 @@ struct SceneRecord {
     capture_group_id: String,
     split_group_id: String,
     coordinate_frame: CoordinateFrame,
+    area_overlap_profile: area_overlap::AreaOverlapProfile,
     candidate_inputs: Vec<CandidateArtifact>,
     evaluator_artifacts: Vec<EvaluatorArtifact>,
     surface_strata: Vec<SurfaceStratum>,
@@ -398,6 +399,7 @@ pub struct SceneVisibilityAudit {
     pub visibility_unknown_area_m2: f64,
     pub contradictory_area_m2: f64,
     pub captured_fraction_of_theoretically_visible_area: Option<f64>,
+    pub area_overlap_profile: area_overlap::AreaOverlapProfile,
 }
 
 fn digest_is_sha256(value: &str) -> bool {
@@ -852,6 +854,14 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
                 scene.scene_id
             ));
         }
+        area_overlap::validate_area_overlap_profile(&scene.area_overlap_profile)
+            .map_err(|error| format!("scene {} area overlap profile: {error}", scene.scene_id))?;
+        if scene.area_overlap_profile.common_frame_id != scene.coordinate_frame.frame_id {
+            return Err(format!(
+                "scene {} area overlap profile frame_id does not match its coordinate frame",
+                scene.scene_id
+            ));
+        }
         if !valid_identifier(&scene.coordinate_frame.transform_artifact_id) {
             return Err(format!(
                 "scene {} coordinate frame requires transform_artifact_id",
@@ -1181,6 +1191,7 @@ fn summarize_scene(scene: &SceneRecord) -> SceneVisibilityAudit {
         contradictory_area_m2: contradictory,
         captured_fraction_of_theoretically_visible_area: (visible > 0.0)
             .then_some(captured / visible),
+        area_overlap_profile: scene.area_overlap_profile.clone(),
     }
 }
 
@@ -1536,7 +1547,7 @@ pub fn audit_manifest_bytes(bytes: &[u8]) -> Result<ReplayAuditReport, String> {
             + manifest.candidate_outputs.len(),
         evaluator_artifact_count,
         scenes,
-        claim_ceiling: "METADATA_LOCAL_ARTIFACT_INTEGRITY_AND_VISIBILITY_ACCOUNTING_ONLY; no candidate execution, geometry reconstruction, official ISPRS scoring, OS sandboxing, or proof of organizational evaluator independence",
+        claim_ceiling: "METADATA_LOCAL_ARTIFACT_INTEGRITY_VISIBILITY_AND_AREA_PROFILE_BINDING_ONLY; no candidate execution, polygon area scoring, historical ISPRS scorer reproduction, OS sandboxing, or proof of organizational evaluator independence",
     })
 }
 
