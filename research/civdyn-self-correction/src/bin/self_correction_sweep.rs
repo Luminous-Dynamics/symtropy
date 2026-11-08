@@ -8,7 +8,7 @@ use civdyn_self_correction::{
     run_delayed_externality_portfolio, run_sensor_drift_portfolio,
 };
 
-const CSV_COLUMNS: usize = 20;
+const CSV_COLUMNS: usize = 21;
 
 fn number(value: f64) -> String {
     format!("{value:.6}")
@@ -34,6 +34,7 @@ fn common(
     reserve_after_recovery_m3: Option<f64>,
     reserve_after_scenario_m3: f64,
     maintenance_energy_kwh: f64,
+    maintenance_energy_unmet_kwh: f64,
     counterfactual_industry_on_m3: Option<f64>,
     counterfactual_industry_off_m3: Option<f64>,
     counterfactual_no_maintenance_m3: Option<f64>,
@@ -56,6 +57,7 @@ fn common(
         optional_number(reserve_after_recovery_m3),
         number(reserve_after_scenario_m3),
         number(maintenance_energy_kwh),
+        number(maintenance_energy_unmet_kwh),
         optional_number(counterfactual_industry_on_m3),
         optional_number(counterfactual_industry_off_m3),
         optional_number(counterfactual_no_maintenance_m3),
@@ -80,6 +82,7 @@ fn sensor_row(outcome: &SensorDriftOutcome) -> Vec<String> {
         None,
         None,
         outcome.reserve_after_m3,
+        0.0,
         0.0,
         None,
         None,
@@ -106,6 +109,7 @@ fn delayed_row(outcome: &DelayedExternalityOutcome) -> Vec<String> {
         Some(outcome.reserve_after_recovery_m3),
         outcome.reserve_after_repeated_shock_m3,
         outcome.maintenance_energy_kwh,
+        outcome.maintenance_energy_unmet_kwh,
         Some(outcome.counterfactual_household_unmet_industry_on_m3),
         Some(outcome.counterfactual_household_unmet_industry_off_m3),
         Some(outcome.counterfactual_without_maintenance_household_unmet_m3),
@@ -125,7 +129,7 @@ fn emit(fields: Vec<String>) {
 
 fn main() {
     println!(
-        "scenario,controller,minimum_household_coverage,household_unmet_m3,industry_unmet_m3,unnecessary_dispatch_m3,reserve_before_m3,reserve_after_growth_m3,reserve_after_recovery_m3,reserve_after_scenario_m3,maintenance_energy_kwh,counterfactual_industry_on_household_unmet_m3,counterfactual_industry_off_household_unmet_m3,counterfactual_without_maintenance_household_unmet_m3,mechanism_identified,correction_latency_ticks,full_trace_valid,trace_event_count,maximum_water_residual_m3,maximum_energy_residual_kwh"
+        "scenario,controller,minimum_household_coverage,household_unmet_m3,industry_unmet_m3,unnecessary_dispatch_m3,reserve_before_m3,reserve_after_growth_m3,reserve_after_recovery_m3,reserve_after_scenario_m3,maintenance_energy_kwh,maintenance_energy_unmet_kwh,counterfactual_industry_on_household_unmet_m3,counterfactual_industry_off_household_unmet_m3,counterfactual_without_maintenance_household_unmet_m3,mechanism_identified,correction_latency_ticks,full_trace_valid,trace_event_count,maximum_water_residual_m3,maximum_energy_residual_kwh"
     );
 
     for outcome in run_sensor_drift_portfolio()
