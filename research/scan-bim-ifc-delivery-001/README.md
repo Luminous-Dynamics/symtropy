@@ -62,6 +62,113 @@ Primary references:
 - buildingSMART BCF: https://info.buildingsmart.org/standards/bsi-standards/bim-collaboration-format/
 - BUILT-INTEROP validation ladder: https://github.com/Luminous-Dynamics/symtropy/issues/2056
 
+## 4A. 2026 research and industry baseline refresh (2026-11-08)
+
+This is a benchmark-planning snapshot, not a claim that the Luminous system has reproduced or surpassed these methods.
+
+### Research comparators
+
+- **Ersöz & Bosché (Automation in Construction 181, January 2026, 106636; DOI 10.1016/j.autcon.2025.106636):** coverage, distance and surface-normal distribution indices with inter-element/self-occlusion handling; evaluation across 46 point-cloud/BIM pairs and more than 4,000 elements. The independent reproduction is tracked in #4246 / PR #4247.
+- **Active3D (AAAI 2026):** hierarchical implicit/explicit uncertainty and expected-hybrid-information-gain next-best-view selection. Compare as an uncertainty-led active reconstruction baseline; do not imply it solves IFC lifecycle identity or information-preserving model mutation.
+- **Zhu, Sellán & Terenin (SIGGRAPH 2026):** Bayesian task-specific next-best-view selection for uncertain geometry. It is the closest probabilistic task-utility comparator. Keep its calibrated probabilistic objective separate from #1892/#1922 finite-state worst-case decision impact; do not compare raw EIG to deterministic risk/cost.
+- **Trinh, Hou & Wu (Automation in Construction 191, November 2026, 107161; DOI 10.1016/j.autcon.2026.107161):** incomplete-scan structural-element reconstruction using boundary correction, slicing and Greedy Snake Slice Completion. The paper reports >97% area, 98% perimeter and 92% moment-of-inertia accuracy, LOA30 and some elements approaching LOA40 for its evaluated workflow. Treat those as task- and dataset-specific results; compare only on matched structural-element truth, tolerances and acquisition conditions.
+- **Ersöz & Bosché (ISARC 2026, DOI 10.22260/ISARC2026/0286):** mobile-device LiDAR / RoomPlan versus TLS. The study reports 0.1 min/m² versus 3.5 min/m² total scan-to-BIM time and room-layout 3D-IoU up to 0.93, alongside wall-thickness and positional-drift limitations. This is an acquisition-fidelity/cost comparator, not a universal speed or precision guarantee.
+- **Wang et al. (Buildings 16(20), 4095, 16 October 2026; DOI 10.3390/buildings16204095):** representation-centred review highlighting information discontinuities between measurements, fitted surfaces, semantic/topological representations and editable BIM state. This supports an interface-continuity benchmark rather than another isolated geometry score.
+
+### Standards and accuracy requirements
+
+- **IFC:** the current official release is IFC 4.3.2.0 / IFC4X3_ADD2, published as ISO 16739-1:2024. Preserve the actual source schema for legacy benchmark compatibility; do not silently up-convert a file and report it as the original profile.
+- **IDS:** IDS 1.0 is an official buildingSMART standard for machine-readable information requirements. It checks declared information requirements, not geometric accuracy, physical truth or structural safety.
+- **IfcGloballyUniqueId:** the IFC 4.3.2.0 representation uses a fixed 22-character compressed GUID alphabet `0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_# SCAN-BIM-IFC-DELIVERY-001 — OpenBIM delivery qualification v0.1
+
+**Status:** protocol/schema starter; implementation and independent tool execution not yet claimed  
+**Parent:** [SCAN-BIM-ADMISSION-001 #4086](https://github.com/Luminous-Dynamics/symtropy/issues/4086)  
+**Tracking:** [#4271](https://github.com/Luminous-Dynamics/symtropy/issues/4271)
+
+## 1. Research question
+
+Does a Scan-to-BIM candidate produce an editable and interoperable building model whose required geometry, topology, identities, placements, units and information survive independent validation and a controlled import/edit/export round trip?
+
+A file that exists, has a matching SHA-256, parses, or renders plausibly is not thereby an interoperable building model. Those are distinct claims with different evidence.
+
+This workstream composes existing owners. It is not a new IFC parser, IDS checker, geometry kernel, semantic diff engine, survey engine, identity registry or lifecycle event ledger.
+
+## 2. Claim ladder
+
+The delivery report must keep the following claims separate:
+
+1. **Artifact identity:** exact IFC and graph bytes match the Scan-to-BIM replay receipt.
+2. **Syntax:** the selected STEP/IFC representation can be parsed completely by the named parser profile.
+3. **Schema:** the named IFC schema validator's declared rule coverage and results are available.
+4. **Information requirements:** IDS bytes are valid; the supported IDS semantics are known; IFC-versus-IDS checking is independently evidenced.
+5. **Identity and graph crosswalk:** IFC entities map to Scan-to-BIM graph elements without collisions, omissions or ambiguous physical identity.
+6. **Semantic preservation:** source-to-target and round-trip transformations preserve declared information, identifiers, units and relations.
+7. **Geometry/topology preservation:** geometric representations, placements, openings and graph relationships survive within a predeclared exchange-profile tolerance.
+8. **Editability:** a controlled edit is possible in a named independent implementation and survives re-export/re-import with the intended change and no unintended losses.
+
+A required gate that is FAIL blocks qualification. A required gate that is UNRESOLVED or NOT_RUN leaves the delivery UNQUALIFIED. Unsupported validator features must not be converted to PASS.
+
+The aggregate decision is mechanically derived from the gate set. The producer does not author an unconstrained success Boolean.
+
+## 3. Existing owners to compose
+
+| Concern | Existing owner | Adapter responsibility |
+|---|---|---|
+| Candidate/runtime/output identity | Scan-BIM #4188 / #4116 | Bind exact replay, scene and artifact digests |
+| Geometry, matching, sampling | #4205, #4225, #4229, #4246 | Bind outputs; do not recompute |
+| Survey frame/covariance | #1607 / #4228 | Require matching frame and uncertainty receipts |
+| Building reconstruction/admission | #4086 | Consume its element graph and proposed model delta |
+| IFC/IDS gate semantics | BUILT-INTEROP #2056 | Preserve gate identity, scope and status |
+| IFC/IDS ingestion | #2010 / #2013 | Consume only the implementation's declared supported subset |
+| IFC schema validation | #2059 / #2060 | Consume coverage-aware validator result |
+| IDS XSD validation | #2079 | Consume offline, pinned XSD result |
+| IDS corpus inventory | #2020 / #2036 | Respect rights and do not copy restricted fixtures |
+| Source/target semantic comparison | #2007 / #2073 / #2117 / #2143 | Bind the exact source/target pair and result |
+| Typed gate composition | #2061 | Reuse the existing evidence-report contract |
+| Physical component identity | #3331 | Do not equate IFC GlobalId with proof of physical identity |
+
+Before integrating a producer, inspect its current exact-head state, supported profile, license and test evidence. An open issue, draft PR or historical green run does not prove that a tool is currently available or that its full feature set is implemented.
+
+## 4. Standards and exchange profiles
+
+The official buildingSMART IFC release is IFC 4.3.2.0 (IFC4.3 ADD2), published as ISO 16739-1:2024. It is an appropriate modern target profile where the producing application and downstream consumers support it. Historical datasets and existing project exchanges may use earlier IFC schemas; the receipt must name the actual schema and exchange view rather than silently upgrading or mislabelling the file.
+
+IDS 1.0 can express machine-checkable information requirements for entities, classifications, properties and values. IDS does not validate geometry. Geometry, topology, coordinate placement and physical accuracy therefore remain separate gates.
+
+BCF may carry review issues and viewpoints, but a BCF topic is not a substitute for the IFC artifact, a semantic-preservation result or an independently validated model delta.
+
+Primary references:
+- buildingSMART IFC: https://www.buildingsmart.org/standards/bsi-standards/industry-foundation-classes/
+- buildingSMART IDS: https://www.buildingsmart.org/standards/bsi-standards/information-delivery-specification-ids/
+- buildingSMART BCF: https://info.buildingsmart.org/standards/bsi-standards/bim-collaboration-format/
+- BUILT-INTEROP validation ladder: https://github.com/Luminous-Dynamics/symtropy/issues/2056
+
+; the first character must be `0`, `1`, `2` or `3`. The Rust adapter and JSON Schema enforce this lexical form. Passing this lexical check does not prove uniqueness, persistence or physical component identity.
+- **USIBD LOA:** LOA Specification v3.1 (2025) adds guidance on standard-deviation-based tolerance specification and selecting LOA from required tolerances. Record the exact LOA profile / revision where used; do not treat an LOA label alone as independent validation or as a substitute for uncertainty calibration.
+
+### Commercial baselines as of 2026-11-08
+
+- **Leica Cyclone 3DR 2026.1.x:** BIM alignment, tolerance checking, deviation, progress and clash workflows already exist. The 2026.1 release adds Scan-to-Steel: structural-steel level definition, point-cloud-driven extraction, profile selection, editing/alignment and IFC/IFCZIP export. Version 2026.1.6 release notes also report a Scan-to-Pipe IFC export improvement that retains building/storey spatial structure. Luminous must not claim point-cloud-to-IFC structural modeling, steel extraction, profile-based fitting, or basic tolerance analysis as novel.
+- **Autodesk ReCap Pro 2026+:** Scan-to-Mesh supports classification layers and exports IFC4, Revit/RCMR, Navisworks and other mesh formats. ReCap Mesh Revit Integration supports conversion of classified mesh objects into Revit families. The meaningful comparison is not “can export IFC”; it is whether independent round trips preserve stable object identity, required properties, geometry, topology, coordinate semantics and uncertainty evidence.
+- **Trimble RealWorks:** supports target/targetless scan registration, cloud/design comparisons, clash/deviation analysis, as-built modeling, geo-referencing and export to downstream applications. Pin the exact version, modules and export/import path in any product comparison.
+
+Primary source links:
+- Ersöz & Bosché: https://doi.org/10.1016/j.autcon.2025.106636
+- Active3D: https://doi.org/10.1609/aaai.v40i8.37585
+- Task-specific NBV: https://arxiv.org/abs/2605.05095
+- Structural incomplete-scan reconstruction: https://doi.org/10.1016/j.autcon.2026.107161
+- Mobile LiDAR vs TLS: https://doi.org/10.22260/ISARC2026/0286
+- Representation-centred review: https://doi.org/10.3390/buildings16204095
+- IFC 4.3.2.0 GlobalId: https://standards.buildingsmart.org/IFC/RELEASE/IFC4_3/HTML/lexical/IfcGloballyUniqueId.htm
+- IFC latest release: https://www.buildingsmart.org/standards/bsi-standards/industry-foundation-classes/
+- IDS 1.0: https://www.buildingsmart.org/standards/bsi-standards/information-delivery-specification-ids/
+- USIBD LOA 3.1: https://usibd.org/level-of-accuracy/
+- Leica 2026.1 release notes: https://rcdocs.leica-geosystems.com/docs/cyclone-3dr-2026-1-0-cyclone-3dr-release-notes
+- Leica 2026.1.6 updates: https://rcdocs.leica-geosystems.com/v1/docs/cyclone-3dr-release-notes-cyclone-3dr
+- Autodesk ReCap mesh export: https://help.autodesk.com/cloudhelp/ENU/Reality-Capture/files/Scan_to_Mesh_Options/Scan_to_Mesh_Local/scan_to_mesh_export_model.html
+- Autodesk IFC mapping: https://help.autodesk.com/cloudhelp/ENU/Reality-Capture/files/Scan_to_Mesh_Options/Scan_to_Mesh_Local/Revit_Scan_Mesh/Ifc_Export_Mapping.html
+- Trimble RealWorks: https://www.trimble.com/en/products/building-construction-field-systems/trimble-realworks
+
 ## 5. Receipt contents
 
 The JSON Schema in schema/delivery-receipt.schema.json defines the initial wire shape. It binds:
