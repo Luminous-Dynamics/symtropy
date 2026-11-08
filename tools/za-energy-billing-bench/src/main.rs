@@ -5,6 +5,15 @@ use za_energy_billing_bench::{
     MeteredInterval, SOURCE_PROFILE_ID, TariffInput, VoltageClass, calculate_bill,
 };
 
+fn day_class_for_july_2026(day: u8) -> DayClass {
+    // 1 July 2026 is Wednesday. Monday=0, Saturday=5, Sunday=6.
+    match (day + 1) % 7 {
+        5 => DayClass::SaturdayOrPublicHoliday,
+        6 => DayClass::Sunday,
+        _ => DayClass::Weekday,
+    }
+}
+
 fn demo_input() -> TariffInput {
     let preceding_12_month_demand_history = (0..12)
         .map(|offset| {
@@ -17,6 +26,47 @@ fn demo_input() -> TariffInput {
             }
         })
         .collect();
+
+    // Synthetic 31-day, 15-minute complete month. The weekday lighting load
+    // is placed at the winter peak periods; this is a reference fixture, not
+    // a crop schedule or a measured facility profile.
+    let mut intervals = Vec::with_capacity(31 * 96);
+    let mut declared_active_energy_kwh = 0.0;
+
+    for day in 1..=31_u8 {
+        let local_date = format!("2026-07-{day:02}");
+        let day_class = day_class_for_july_2026(day);
+
+        for slot in 0..96_u16 {
+            let local_start_minute = slot * 15;
+            let mut energy_kwh = 1.0;
+            if day_class == DayClass::Weekday
+                && (local_start_minute == 420 || local_start_minute == 1_080)
+            {
+                energy_kwh += 5.0;
+            }
+
+            let saturday_evening = day_class == DayClass::SaturdayOrPublicHoliday
+                && (1_080..1_200).contains(&local_start_minute);
+            if saturday_evening {
+                // The ambiguous source-printed interval is explicitly confirmed
+                // only for this synthetic account fixture.
+            }
+
+            declared_active_energy_kwh += energy_kwh;
+            intervals.push(MeteredInterval {
+                local_date: local_date.clone(),
+                day_class,
+                local_start_minute,
+                duration_minutes: 15,
+                energy_kwh,
+                saturday_evening_confirmed: saturday_evening,
+                saturday_confirmation_reference: saturday_evening
+                    .then(|| "SYNTHETIC-SATURDAY-TOU-CONFIRMATION".to_owned()),
+                public_holiday_evidence_reference: None,
+            });
+        }
+    }
 
     TariffInput {
         source_profile_id: SOURCE_PROFILE_ID.to_owned(),
@@ -35,32 +85,11 @@ fn demo_input() -> TariffInput {
                 "SYNTHETIC-LV-LPU-SERVICE-CLASS".to_owned(),
             ),
         },
-        intervals: vec![
-            MeteredInterval {
-                local_date: "2026-07-01".to_owned(),
-                day_class: DayClass::Weekday,
-                local_start_minute: 420,
-                duration_minutes: 15,
-                energy_kwh: 10.0,
-                saturday_evening_confirmed: false,
-                saturday_confirmation_reference: None,
-                public_holiday_evidence_reference: None,
-            },
-            MeteredInterval {
-                local_date: "2026-07-01".to_owned(),
-                day_class: DayClass::Weekday,
-                local_start_minute: 1320,
-                duration_minutes: 15,
-                energy_kwh: 15.0,
-                saturday_evening_confirmed: false,
-                saturday_confirmation_reference: None,
-                public_holiday_evidence_reference: None,
-            },
-        ],
+        intervals,
         interval_series_complete: true,
-        interval_coverage_evidence_reference: "SYNTHETIC-COMPLETE-MONTHLY-INTERVAL-COVERAGE"
-            .to_owned(),
-        declared_active_energy_kwh: 25.0,
+        interval_coverage_evidence_reference:
+            "SYNTHETIC-COMPLETE-2026-07-31-DAY-15MIN-INTERVAL-SERIES".to_owned(),
+        declared_active_energy_kwh,
         measured_monthly_peak_demand_kva: 95.0,
         preceding_12_month_demand_history,
         power_factor: 0.95,
@@ -77,7 +106,7 @@ fn demo_input() -> TariffInput {
             amount_zar: 56.78,
             evidence_reference: "SYNTHETIC-ASSESSED-VAT-LINE".to_owned(),
         }),
-        calendar_mapping_reference: "SYNTHETIC-CALENDAR-MAPPING".to_owned(),
+        calendar_mapping_reference: "SYNTHETIC-JOHANNESBURG-JULY-2026-CALENDAR".to_owned(),
         timebase_reference: "AFRICA-JOHANNESBURG-SAST".to_owned(),
         meter_boundary_reference: "SYNTHETIC-PCC-METER-BOUNDARY".to_owned(),
         meter_calibration_reference: "SYNTHETIC-METER-CALIBRATION".to_owned(),
