@@ -381,7 +381,11 @@ fn validate_sensor(sensor: &Sensor, case_id: &str) -> Result<()> {
     Ok(())
 }
 
-fn validate_case(case: &Case, tolerance: &Tolerance) -> Result<ComputedCase> {
+fn validate_case(
+    case: &Case,
+    tolerance: &Tolerance,
+    corpus_sha256: &str,
+) -> Result<ComputedCase> {
     require(!case.case_id.trim().is_empty(), "case ID is empty")?;
     require(
         matches!(case.state.as_str(), "HH" | "HF" | "DH" | "DF"),
@@ -483,14 +487,11 @@ fn validate_case(case: &Case, tolerance: &Tolerance) -> Result<ComputedCase> {
         });
     }
 
-    let scenario_value = serde_json::to_value(case)
-        .map_err(|error| OracleError(format!("scenario canonicalization failed: {error}")))?;
-    let scenario_bytes = serde_json::to_vec(&scenario_value)
-        .map_err(|error| OracleError(format!("scenario serialization failed: {error}")))?;
+    let scenario_identity = format!("{corpus_sha256}:{}", case.case_id);
     Ok(ComputedCase {
         case_id: case.case_id.clone(),
         state: case.state.clone(),
-        scenario_sha256: sha256_hex(&scenario_bytes),
+        scenario_sha256: sha256_hex(scenario_identity.as_bytes()),
         expected_disposition: case.expected_disposition.clone(),
         observation_rank: case.expected_observation_rank,
         frequencies: computed_frequencies,
@@ -535,12 +536,13 @@ fn evaluate(corpus_bytes: &[u8]) -> Result<OracleResult> {
     )?;
     require(!corpus.cases.is_empty(), "corpus contains no cases")?;
 
+    let corpus_sha256 = sha256_hex(corpus_bytes);
     let mut ids = BTreeSet::new();
     let mut computed_cases = Vec::with_capacity(corpus.cases.len());
     let mut frequency_count = None;
     for case in &corpus.cases {
         require(ids.insert(case.case_id.as_str()), "duplicate case ID")?;
-        let computed = validate_case(case, &corpus.tolerance)?;
+        let computed = validate_case(case, &corpus.tolerance, &corpus_sha256)?;
         if let Some(expected_count) = frequency_count {
             require(
                 computed.frequencies.len() == expected_count,
@@ -555,7 +557,7 @@ fn evaluate(corpus_bytes: &[u8]) -> Result<OracleResult> {
     Ok(OracleResult {
         schema_version: "aero-virtual-sensing-frf-result/0.1.0",
         corpus_id: corpus.corpus_id,
-        corpus_sha256: sha256_hex(corpus_bytes),
+        corpus_sha256,
         case_count: computed_cases.len(),
         frequency_count_per_case: frequency_count.unwrap_or(0),
         computed_cases,
