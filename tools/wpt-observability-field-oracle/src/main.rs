@@ -87,7 +87,11 @@ pub fn pareto_front(scores:&[Score])->Vec<String>{
  f.iter().filter(|x|!f.iter().any(|y|y.id!=x.id&&dominates(y,x))).map(|x|x.id.clone()).collect()
 }
 pub fn evaluate(input:&str)->Result<(Vec<Score>,Vec<String>),Vec<String>>{
- let d=parse_designs(input)?;let s:Vec<_>=d.iter().map(score).collect();let p=pareto_front(&s);Ok((s,p))
+ let mut d=parse_designs(input)?;
+ d.sort_by(|a,b|a.id.cmp(&b.id));
+ let s:Vec<_>=d.iter().map(score).collect();
+ let p=pareto_front(&s);
+ Ok((s,p))
 }
 fn run(path:&Path)->Result<(),String>{
  let text=fs::read_to_string(path).map_err(|e|format!("cannot read {}: {e}",path.display()))?;
