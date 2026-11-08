@@ -436,6 +436,35 @@ def hostile_controls(data: bytes) -> None:
     missing_material[index] = fixed(["PBEAM", "20", "999", ".001", ".00001", ".00001", "0.", ".00001", "0."])
     expect_rejected("dangling_pbeam_material", lambda: inventory(("\n".join(missing_material) + "\n").encode("ascii")))
 
+    missing_pbeam = lines.copy()
+    index = next(i for i, line in enumerate(missing_pbeam) if line.startswith("CBEAM"))
+    missing_pbeam[index] = fixed(["CBEAM", "101", "99", "1", "2", "0.", "1.", "0."])
+    expect_rejected("cbeam_missing_property", lambda: inventory(("\n".join(missing_pbeam) + "\n").encode("ascii")))
+
+    cyclic_load = lines.copy()
+    index = next(i for i, line in enumerate(cyclic_load) if line.startswith("LOAD"))
+    cyclic_load[index] = fixed(["LOAD", "2", "1.", "1.", "4"])
+    cyclic_load.insert(cyclic_load.index("ENDDATA"), fixed(["LOAD", "4", "1.", "1.", "2"]))
+    expect_rejected("cyclic_load_dependency", lambda: inventory(("\n".join(cyclic_load) + "\n").encode("ascii")))
+
+    missing_control_load = [line for line in lines if not line.startswith("LOAD")]
+    expect_rejected("case_control_load_missing", lambda: inventory(("\n".join(missing_control_load) + "\n").encode("ascii")))
+
+    nonbasic_grid_frame = lines.copy()
+    index = next(i for i, line in enumerate(nonbasic_grid_frame) if line.startswith("GRID"))
+    nonbasic_grid_frame[index] = fixed(["GRID", "1", "9", "0.", "0.", "0."])
+    expect_rejected("unsupported_grid_coordinate_frame", lambda: inventory(("\n".join(nonbasic_grid_frame) + "\n").encode("ascii")))
+
+    nonbasic_force_frame = lines.copy()
+    index = next(i for i, line in enumerate(nonbasic_force_frame) if line.startswith("FORCE"))
+    nonbasic_force_frame[index] = fixed(["FORCE", "3", "3", "1", "1000.", "0.", "1.", "0."])
+    expect_rejected("unsupported_force_coordinate_frame", lambda: inventory(("\n".join(nonbasic_force_frame) + "\n").encode("ascii")))
+
+    invalid_spc_components = lines.copy()
+    index = next(i for i, line in enumerate(invalid_spc_components) if line.startswith("SPC"))
+    invalid_spc_components[index] = fixed(["SPC", "1", "1", "0", "0."])
+    expect_rejected("invalid_spc_components", lambda: inventory(("\n".join(invalid_spc_components) + "\n").encode("ascii")))
+
     wrong_continuation = lines.copy()
     index = next(i for i, line in enumerate(wrong_continuation) if line.startswith("+A"))
     wrong_continuation[index] = fixed(["+B", "3"])
