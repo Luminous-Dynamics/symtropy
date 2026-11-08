@@ -1755,8 +1755,7 @@ mod tests {
     #[test]
     fn accepts_statistical_interval_with_explicit_model_and_coverage() {
         let mut value = fixture_value();
-        value["tolerance_profile"]["decision_policy"] =
-            serde_json::json!("statistical_interval");
+        value["tolerance_profile"]["decision_policy"] = serde_json::json!("statistical_interval");
         value["tolerance_profile"]["uncertainty_model_id"] =
             serde_json::json!("synthetic-gaussian-normal-error-v1");
         value["tolerance_profile"]["coverage_probability"] = serde_json::json!(0.95);
