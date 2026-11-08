@@ -57,6 +57,8 @@ pub enum AreaAggregationPolicy {
 #[derive(Debug, Clone, PartialEq)]
 pub struct SourceAreaSurface {
     pub surface_id: String,
+    pub geometry_artifact_id: String,
+    pub geometry_artifact_sha256: String,
     pub frame_id: String,
     /// Convex, planar, ordered polygon boundary in the common frame, metres.
     pub vertices: Vec<Point3>,
@@ -65,11 +67,15 @@ pub struct SourceAreaSurface {
 impl SourceAreaSurface {
     pub fn new(
         surface_id: impl Into<String>,
+        geometry_artifact_id: impl Into<String>,
+        geometry_artifact_sha256: impl Into<String>,
         frame_id: impl Into<String>,
         vertices: Vec<Point3>,
     ) -> Self {
         Self {
             surface_id: surface_id.into(),
+            geometry_artifact_id: geometry_artifact_id.into(),
+            geometry_artifact_sha256: geometry_artifact_sha256.into(),
             frame_id: frame_id.into(),
             vertices,
         }
@@ -79,6 +85,8 @@ impl SourceAreaSurface {
 #[derive(Debug, Clone, PartialEq)]
 pub struct ReferenceAreaSurface {
     pub surface_id: String,
+    pub geometry_artifact_id: String,
+    pub geometry_artifact_sha256: String,
     pub frame_id: String,
     pub visibility: ReferenceVisibility,
     /// Convex, planar, ordered polygon boundary in the common frame, metres.
@@ -87,24 +95,31 @@ pub struct ReferenceAreaSurface {
     /// buffer operation, expressed in this reference surface's local (u,v) plane.
     pub buffered_boundary_2d: Vec<Point2>,
     /// Exact artifact digest for the precomputed buffer geometry.
+    pub buffer_artifact_id: Option<String>,
     pub buffer_artifact_sha256: Option<String>,
 }
 
 impl ReferenceAreaSurface {
     pub fn new(
         surface_id: impl Into<String>,
+        geometry_artifact_id: impl Into<String>,
+        geometry_artifact_sha256: impl Into<String>,
         frame_id: impl Into<String>,
         visibility: ReferenceVisibility,
         vertices: Vec<Point3>,
         buffered_boundary_2d: Vec<Point2>,
+        buffer_artifact_id: Option<String>,
         buffer_artifact_sha256: Option<String>,
     ) -> Self {
         Self {
             surface_id: surface_id.into(),
+            geometry_artifact_id: geometry_artifact_id.into(),
+            geometry_artifact_sha256: geometry_artifact_sha256.into(),
             frame_id: frame_id.into(),
             visibility,
             vertices,
             buffered_boundary_2d,
+            buffer_artifact_id,
             buffer_artifact_sha256,
         }
     }
@@ -115,6 +130,7 @@ impl ReferenceAreaSurface {
 pub struct AreaOverlapProfile {
     pub profile_id: String,
     pub metric_authority: AreaMetricAuthority,
+    pub coordinate_unit: AreaCoordinateUnit,
     pub aggregation_policy: AreaAggregationPolicy,
     pub common_frame_id: String,
     /// Supplied from the benchmark implementation/profile; no default is inferred.
