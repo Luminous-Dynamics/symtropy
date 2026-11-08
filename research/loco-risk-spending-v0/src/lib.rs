@@ -1279,7 +1279,6 @@ mod tests {
     }
 
     #[test]
-    #[test]
     fn preallocated_nonuniform_profile_preserves_exact_step_and_constraint_values() {
         let profile = vec![
             [6_000_000, 5_000_000, 4_000_000, 3_000_000, 2_000_000],
@@ -1311,6 +1310,7 @@ mod tests {
         );
     }
 
+    #[test]
     fn plan_allocation_is_deterministic_for_same_identity_and_budget() {
         let left = plan(127, 123_456_789);
         let right = plan(127, 123_456_789);
