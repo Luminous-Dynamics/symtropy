@@ -1,0 +1,69 @@
+name: Panel Disassembly Synthetic Oracle
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "tools/panel-disassembly-bench/**"
+      - "docs/research/panel-disassembly/**"
+      - ".github/workflows/panel-disassembly-oracle.yml"
+  push:
+    branches: ["main", "research/panel-disassembly-protocol-v0.1"]
+    paths:
+      - "tools/panel-disassembly-bench/**"
+      - "docs/research/panel-disassembly/**"
+      - ".github/workflows/panel-disassembly-oracle.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: panel-disassembly-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  disassembly-oracle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/panel-disassembly-bench/Cargo.toml --all -- --check
+      - name: Run disassembly and hostile-control tests
+        run: cargo test --locked --manifest-path tools/panel-disassembly-bench/Cargo.toml
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path tools/panel-disassembly-bench/Cargo.toml --all-targets -- -D warnings
+      - name: Emit exact-head disassembly receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --locked --quiet --manifest-path tools/panel-disassembly-bench/Cargo.toml -- \
+            docs/research/panel-disassembly/PANEL_DISASSEMBLY_CORPUS_V0_1.json \
+            --source-commit "$source_commit" > panel-disassembly-receipt.json
+          jq -e '
+            .result == "pass"
+            and .corpus_id == "PANEL-DISASSEMBLY-CORPUS-V0.1"
+            and .corpus_classification == "synthetic_fixture_only"
+            and .scenario_count == 24 and .failure_count == 0
+            and (.corpus_sha256 | test("^[0-9a-f]{64}$"))
+            and (.source_commit | test("^[0-9a-f]{40}$"))
+            and (.scenarios | length == 24)
+            and (.scenarios | all(.status == "pass"))
+          ' panel-disassembly-receipt.json
+      - name: Upload exact-head disassembly receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: panel-disassembly-reference-receipt
+          path: panel-disassembly-receipt.json
+          if-no-files-found: error
+          retention-days: 90
