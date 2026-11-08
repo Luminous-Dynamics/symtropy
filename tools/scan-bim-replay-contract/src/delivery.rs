@@ -533,12 +533,234 @@ fn validate_gate_execution_shape(gate: &Gate) -> Result<(), String> {
     Ok(())
 }
 
+fn validate_ifc_global_id(global_id: &str) -> Result<(), String> {
+    const IFC_GUID_LENGTH: usize = 22;
+    if global_id.len() != IFC_GUID_LENGTH
+        || !global_id
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'
+
+#[cfg(test)]
+mod tests {
+    use super::{DeliveryAuditReport, DeliveryDecisionStatus, audit_delivery_receipt_bytes};
+    use serde_json::{Value, json};
+
+    fn fixture_cases() -> Value {
+        serde_json::from_str(include_str!(
+            "../../../research/scan-bim-ifc-delivery-001/fixtures/known_answers_v0_1.json"
+        ))
+        .expect("known-answer fixture JSON")
+    }
+
+    fn case_report(case_id: &str) -> Value {
+        fixture_cases()["cases"]
+            .as_array()
+            .expect("fixture cases")
+            .iter()
+            .find(|case| case["case_id"] == case_id)
+            .unwrap_or_else(|| panic!("missing fixture case {case_id}"))["report"]
+            .clone()
+    }
+
+    #[test]
+    fn accepts_all_gates_not_run_as_unqualified() {
+        let report = audit_delivery_receipt_bytes(
+            serde_json::to_string(&case_report("all_gates_not_run"))
+                .expect("serialize fixture")
+                .as_bytes(),
+        )
+        .expect("NOT_RUN receipt is valid but unqualified");
+        assert_eq!(report.derived_decision, DeliveryDecisionStatus::Unqualified);
+        assert_eq!(report.gate_count, 9);
+        assert_eq!(report.crosswalk_supported_count, 1);
+    }
+
+    #[test]
+    fn rejects_forged_qualified_decision() {
+        let value = case_report("forged_qualified_with_not_run");
+        let error = audit_delivery_receipt_bytes(
+            serde_json::to_string(&value).expect("serialize fixture").as_bytes(),
+        )
+        .expect_err("NOT_RUN gates cannot yield QUALIFIED");
+        assert!(error.contains("does not match derived decision"));
+    }
+
+    #[test]
+    fn rejects_gate_subject_digest_mismatch() {
+        let value = case_report("gate_subject_digest_mismatch");
+        let error = audit_delivery_receipt_bytes(
+            serde_json::to_string(&value).expect("serialize fixture").as_bytes(),
+        )
+        .expect_err("gate subject must match exact IFC bytes");
+        assert!(error.contains("IFC subject digest does not match"));
+    }
+
+    #[test]
+    fn rejects_supported_crosswalk_collision() {
+        let value = case_report("duplicate_ifc_global_id");
+        let error = audit_delivery_receipt_bytes(
+            serde_json::to_string(&value).expect("serialize fixture").as_bytes(),
+        )
+        .expect_err("duplicate supported GlobalId must fail closed");
+        assert!(error.contains("duplicate IFC GlobalId"));
+    }
+
+    #[test]
+    fn rejects_missing_required_gate() {
+        let value = case_report("missing_required_gate");
+        let error = audit_delivery_receipt_bytes(
+            serde_json::to_string(&value).expect("serialize fixture").as_bytes(),
+        )
+        .expect_err("missing gates must fail closed");
+        assert!(error.contains("exactly one row"));
+    }
+
+    fn all_pass_receipt() -> Value {
+        let mut value = case_report("all_gates_not_run");
+        let ids_digest = "a".repeat(64);
+        value["ids_requirements"] = json!({
+            "sha256": ids_digest.clone(),
+            "standard_version": "1.0",
+            "requirement_revision": "synthetic-ids-v0.1"
+        });
+
+        let ifc_digest = value["ifc"]["sha256"].as_str().expect("IFC digest").to_owned();
+        let graph_digest = value["element_graph"]["sha256"].as_str().expect("graph digest").to_owned();
+        let gate_ids = [
+            ("artifact_integrity", vec!["ifc_output", "element_graph"]),
+            ("step_parse", vec!["ifc_output"]),
+            ("ifc_schema", vec!["ifc_output"]),
+            ("ids_xsd_validity", vec!["ids_requirements"]),
+            ("ids_semantic_support", vec!["ids_requirements"]),
+            ("ifc_ids_conformance", vec!["ifc_output", "ids_requirements"]),
+            ("semantic_preservation", vec!["ifc_output", "element_graph"]),
+            ("geometry_topology", vec!["ifc_output", "element_graph"]),
+            ("edit_round_trip", vec!["ifc_output", "round_trip_output"]),
+        ];
+        for (index, (gate_id, roles)) in gate_ids.into_iter().enumerate() {
+            let gate = &mut value["gates"][index];
+            gate["gate_id"] = json!(gate_id);
+            gate["status"] = json!("PASS");
+            gate["producer"] = json!({
+                "tool": "Synthetic known-answer validator",
+                "version": "0.1",
+                "configuration_sha256": "b".repeat(64)
+            });
+            gate["evidence"] = json!([{
+                "artifact_id": format!("evidence-{gate_id}"),
+                "sha256": "c".repeat(64),
+                "media_type": "application/json"
+            }]);
+            let mut subjects = Vec::new();
+            for (subject_index, role) in roles.into_iter().enumerate() {
+                let digest = match role {
+                    "ifc_output" => ifc_digest.clone(),
+                    "element_graph" => graph_digest.clone(),
+                    "ids_requirements" => ids_digest.clone(),
+                    "round_trip_output" => "d".repeat(64),
+                    _ => unreachable!("known fixture role"),
+                };
+                subjects.push(json!({
+                    "artifact_id": format!("{gate_id}-subject-{subject_index}"),
+                    "role": role,
+                    "sha256": digest
+                }));
+            }
+            gate["subject_artifacts"] = json!(subjects);
+        }
+        value["decision"] = json!({"status": "QUALIFIED", "reason_codes": []});
+        value
+    }
+
+    #[test]
+    fn qualifies_only_when_all_nine_gates_and_crosswalk_are_supported() {
+        let value = all_pass_receipt();
+        let report = audit_delivery_receipt_bytes(
+            serde_json::to_string(&value).expect("serialize").as_bytes(),
+        )
+        .expect("fully evidenced synthetic receipt qualifies at the contract layer");
+        assert_eq!(report.derived_decision, DeliveryDecisionStatus::Qualified);
+        assert_eq!(report.gate_status_counts.get("PASS"), Some(&9));
+    }
+
+    #[test]
+    fn unresolved_crosswalk_prevents_qualification() {
+        let mut value = all_pass_receipt();
+        value["crosswalk"][0]["correspondence"] = json!("ambiguous");
+        value["decision"] = json!({
+            "status": "UNQUALIFIED",
+            "reason_codes": ["CROSSWALK_AMBIGUOUS"]
+        });
+        let report = audit_delivery_receipt_bytes(
+            serde_json::to_string(&value).expect("serialize").as_bytes(),
+        )
+        .expect("ambiguous identity must not qualify");
+        assert_eq!(report.derived_decision, DeliveryDecisionStatus::Unqualified);
+        assert_eq!(report.crosswalk_unresolved_count, 1);
+    }
+
+    #[test]
+    fn rejects_ids_pass_without_an_ids_requirements_artifact() {
+        let mut value = all_pass_receipt();
+        value["ids_requirements"] = Value::Null;
+        let error = audit_delivery_receipt_bytes(
+            serde_json::to_string(&value).expect("serialize").as_bytes(),
+        )
+        .expect_err("IDS results cannot be grounded without IDS input");
+        assert!(error.contains("gate references IDS requirements absent"));
+    }
+
+    #[test]
+    fn rejects_path_traversal() {
+        let mut value = case_report("all_gates_not_run");
+        value["ifc"]["path"] = json!("candidate/../outside.ifc");
+        let error = audit_delivery_receipt_bytes(
+            serde_json::to_string(&value).expect("serialize").as_bytes(),
+        )
+        .expect_err("relative traversal must fail");
+        assert!(error.contains("normalized relative path"));
+    }
+
+    #[test]
+    fn rejects_unknown_fields() {
+        let mut value = case_report("all_gates_not_run");
+        value["oracle_only_reference_geometry"] = json!("must never be candidate-visible");
+        let error = audit_delivery_receipt_bytes(
+            serde_json::to_string(&value).expect("serialize").as_bytes(),
+        )
+        .expect_err("unknown fields fail closed");
+        assert!(error.contains("unknown field"));
+    }
+
+    // Keep the report type referenced by this test module so serialization
+    // remains compile-checked independently of the CLI.
+    #[test]
+    fn audit_report_is_serializable() {
+        let value = all_pass_receipt();
+        let report: DeliveryAuditReport = audit_delivery_receipt_bytes(
+            serde_json::to_string(&value).expect("serialize").as_bytes(),
+        )
+        .expect("valid synthetic receipt");
+        assert!(serde_json::to_string(&report).is_ok());
+    }
+}
+))
+    {
+        return Err(
+            "IFC GlobalId must use the 22-character compressed IFC GUID alphabet".to_owned(),
+        );
+    }
+    Ok(())
+}
+
 fn validate_crosswalk(entries: &[CrosswalkEntry]) -> Result<(usize, usize), String> {
     if entries.is_empty() {
         return Ok((0, 0));
     }
     let mut supported_ifc_ids = BTreeSet::new();
     let mut supported_graph_ids = BTreeSet::new();
+    let mut unresolved_ifc_ids = BTreeSet::new();
+    let mut unresolved_graph_ids = BTreeSet::new();
     let mut supported_count = 0usize;
     let mut unresolved_count = 0usize;
 
@@ -546,6 +768,7 @@ fn validate_crosswalk(entries: &[CrosswalkEntry]) -> Result<(usize, usize), Stri
         if entry.ifc_global_id.trim().is_empty() || entry.element_graph_id.trim().is_empty() {
             return Err("crosswalk IDs must not be empty".to_owned());
         }
+        validate_ifc_global_id(&entry.ifc_global_id)?;
         if let Some(digest) = &entry.evidence_sha256 {
             validate_sha256("crosswalk.evidence_sha256", digest)?;
         }
@@ -565,8 +788,27 @@ fn validate_crosswalk(entries: &[CrosswalkEntry]) -> Result<(usize, usize), Stri
             CorrespondenceStatus::Ambiguous
             | CorrespondenceStatus::Unresolved
             | CorrespondenceStatus::UnmatchedIfc
-            | CorrespondenceStatus::UnmatchedGraph => unresolved_count += 1,
+            | CorrespondenceStatus::UnmatchedGraph => {
+                unresolved_ifc_ids.insert(entry.ifc_global_id.as_str());
+                unresolved_graph_ids.insert(entry.element_graph_id.as_str());
+                unresolved_count += 1;
+            }
         }
+    }
+
+    if supported_ifc_ids.iter().any(|id| unresolved_ifc_ids.contains(id)) {
+        return Err(
+            "supported crosswalk conflicts with an ambiguous or unresolved IFC GlobalId".to_owned(),
+        );
+    }
+    if supported_graph_ids
+        .iter()
+        .any(|id| unresolved_graph_ids.contains(id))
+    {
+        return Err(
+            "supported crosswalk conflicts with an ambiguous or unresolved element-graph ID"
+                .to_owned(),
+        );
     }
     Ok((supported_count, unresolved_count))
 }
@@ -739,6 +981,51 @@ mod tests {
         )
         .expect_err("IDS results cannot be grounded without IDS input");
         assert!(error.contains("gate references IDS requirements absent"));
+    }
+
+    #[test]
+    fn rejects_malformed_ifc_global_id() {
+        let mut value = case_report("all_gates_not_run");
+        value["crosswalk"][0]["ifc_global_id"] = json!("not-a-valid-ifc-guid");
+        let error = audit_delivery_receipt_bytes(
+            serde_json::to_string(&value).expect("serialize").as_bytes(),
+        )
+        .expect_err("IFC GlobalId must use the compressed 22-character alphabet");
+        assert!(error.contains("22-character compressed IFC GUID alphabet"));
+    }
+
+    #[test]
+    fn rejects_supported_mapping_that_conflicts_with_ambiguous_identity() {
+        let mut value = all_pass_receipt();
+        let ambiguous = json!({
+            "ifc_global_id": "0123456789ABCDEFGHIJKL",
+            "element_graph_id": "wall-ambiguous-alternative",
+            "correspondence": "ambiguous",
+            "evidence_sha256": "e".repeat(64)
+        });
+        value["crosswalk"].as_array_mut().expect("crosswalk array").push(ambiguous);
+        let error = audit_delivery_receipt_bytes(
+            serde_json::to_string(&value).expect("serialize").as_bytes(),
+        )
+        .expect_err("one IFC GlobalId cannot be both supported and ambiguous");
+        assert!(error.contains("conflicts with an ambiguous or unresolved IFC GlobalId"));
+    }
+
+    #[test]
+    fn rejects_supported_mapping_that_conflicts_with_unresolved_graph_identity() {
+        let mut value = all_pass_receipt();
+        let unresolved = json!({
+            "ifc_global_id": "ABCDEFGHIJKLMNOPQRSTUV",
+            "element_graph_id": "wall-01",
+            "correspondence": "unresolved",
+            "evidence_sha256": "f".repeat(64)
+        });
+        value["crosswalk"].as_array_mut().expect("crosswalk array").push(unresolved);
+        let error = audit_delivery_receipt_bytes(
+            serde_json::to_string(&value).expect("serialize").as_bytes(),
+        )
+        .expect_err("one graph element cannot be both supported and unresolved");
+        assert!(error.contains("conflicts with an ambiguous or unresolved element-graph ID"));
     }
 
     #[test]
