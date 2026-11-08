@@ -102,7 +102,7 @@ pub enum CalcError {
         declared_kwh: f64,
     },
     IncompleteDemandHistory,
-    DemandHistoryMonthMismatch,
+    DemandHistoryObservationMismatch,
     UnsupportedDemandHistoryInterval,
     InvalidPowerFactor,
     InvalidAssessedLine(&'static str),
@@ -202,7 +202,7 @@ impl fmt::Display for CalcError {
                 f,
                 "complete contiguous demand-interval observations for the preceding twelve calendar months are required"
             ),
-            Self::DemandHistoryMonthMismatch => write!(
+            Self::DemandHistoryObservationMismatch => write!(
                 f,
                 "demand history timestamps must exactly cover the preceding twelve months at the admitted interval without gaps or duplicates"
             ),
@@ -561,12 +561,6 @@ fn month_index(year: i32, month: u8) -> i32 {
     year * 12 + month as i32 - 1
 }
 
-fn month_from_index(index: i32) -> String {
-    let year = index.div_euclid(12);
-    let month = index.rem_euclid(12) + 1;
-    format!("{year:04}-{month:02}")
-}
-
 fn fingerprint(input: &TariffInput) -> String {
     let mut canonical = String::new();
     use fmt::Write as _;
@@ -742,7 +736,7 @@ fn validate_demand_history(
                     || !point.measured_demand_kva.is_finite()
                     || point.measured_demand_kva < 0.0
                 {
-                    return Err(CalcError::DemandHistoryMonthMismatch);
+                    return Err(CalcError::DemandHistoryObservationMismatch);
                 }
                 expected_count += 1;
             }
@@ -1515,7 +1509,7 @@ mod tests {
         input.preceding_12_month_demand_history[5].local_start_minute = 45;
         assert_eq!(
             calculate_bill(&input).unwrap_err(),
-            CalcError::DemandHistoryMonthMismatch
+            CalcError::DemandHistoryObservationMismatch
         );
     }
 
