@@ -1048,7 +1048,6 @@ pub use decision_impact::{
     validate_decision_impact_bytes,
 };
 
-
 pub mod adaptive_policy;
 pub use adaptive_policy::{
     AdaptivePolicyFailure, AdaptivePolicySummary, EMBEDDED_ADAPTIVE_POLICY_CORPUS,
