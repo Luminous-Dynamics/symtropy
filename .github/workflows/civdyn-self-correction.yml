@@ -32,6 +32,33 @@ jobs:
         run: cargo check --locked --manifest-path research/civdyn-self-correction/Cargo.toml --all-targets
       - name: Test correction chain, negative controls and ledger conservation
         run: cargo test --locked --manifest-path research/civdyn-self-correction/Cargo.toml --all-targets
+      - name: Verify causal-drift discrimination and negative controls
+        run: |
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin causal-drift-sweep > /tmp/civdyn-causal-drift.csv
+          awk -F, '
+            NR == 1 { if (NF != 21) exit 20; next }
+            NF != 21 { exit 21 }
+            $1 == "sign_reversal" && $2 == "outcome_reactive" {
+              reversal_reactive++
+              if ($4 != "2.000000" || $15 != "true" || $16 != "false" || $6 != "8") exit 22
+            }
+            $1 == "sign_reversal" && $2 == "mechanism_aware" {
+              reversal_aware++
+              if ($17 != "causal_sign_reversal" || $18 != "4" || $7 != "1" || $20 != "true") exit 23
+            }
+            $1 == "confounded_null" && $2 == "mechanism_aware" {
+              null_aware++
+              if ($4 != "5.000000" || $5 != "0.000000" || $17 != "null_effect_with_confounding" || $18 != "2") exit 24
+            }
+            $1 == "stable_positive" && $2 == "mechanism_aware" {
+              stable_aware++
+              if ($16 != "false" || $6 != "8" || $5 != "2.000000") exit 25
+            }
+            END {
+              if (NR != 10 || reversal_reactive != 1 || reversal_aware != 1 || null_aware != 1 || stable_aware != 1) exit 26
+              print "Causal-drift CSV valid: 9 regime/controller cases, 21 columns; sham and confounding controls passed"
+            }
+          ' /tmp/civdyn-causal-drift.csv
       - name: Verify deterministic CSV contract and known-answer outputs
         run: |
           cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin self-correction-sweep > /tmp/civdyn-self-correction.csv
