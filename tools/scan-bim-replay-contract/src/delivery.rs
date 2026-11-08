@@ -536,9 +536,78 @@ fn validate_gate_execution_shape(gate: &Gate) -> Result<(), String> {
 fn validate_ifc_global_id(global_id: &str) -> Result<(), String> {
     const IFC_GUID_LENGTH: usize = 22;
     if global_id.len() != IFC_GUID_LENGTH
+        || !matches!(global_id.as_bytes().first(), Some(b'0'..=b'3'))
         || !global_id
             .bytes()
-            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'
+            .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_' || byte == 36)
+    {
+        return Err(
+            "IFC GlobalId must use the 22-character compressed IFC GUID alphabet and leading range 0..=3"
+                .to_owned(),
+        );
+    }
+    Ok(())
+}
+
+fn validate_crosswalk(entries: &[CrosswalkEntry]) -> Result<(usize, usize), String> {
+    if entries.is_empty() {
+        return Ok((0, 0));
+    }
+    let mut supported_ifc_ids = BTreeSet::new();
+    let mut supported_graph_ids = BTreeSet::new();
+    let mut unresolved_ifc_ids = BTreeSet::new();
+    let mut unresolved_graph_ids = BTreeSet::new();
+    let mut supported_count = 0usize;
+    let mut unresolved_count = 0usize;
+
+    for entry in entries {
+        if entry.ifc_global_id.trim().is_empty() || entry.element_graph_id.trim().is_empty() {
+            return Err("crosswalk IDs must not be empty".to_owned());
+        }
+        validate_ifc_global_id(&entry.ifc_global_id)?;
+        if let Some(digest) = &entry.evidence_sha256 {
+            validate_sha256("crosswalk.evidence_sha256", digest)?;
+        }
+        match entry.correspondence {
+            CorrespondenceStatus::Supported => {
+                if !supported_ifc_ids.insert(entry.ifc_global_id.as_str()) {
+                    return Err("supported crosswalk contains a duplicate IFC GlobalId".to_owned());
+                }
+                if !supported_graph_ids.insert(entry.element_graph_id.as_str()) {
+                    return Err("supported crosswalk contains a duplicate element-graph ID".to_owned());
+                }
+                if entry.evidence_sha256.is_none() {
+                    return Err("supported crosswalk entry requires evidence_sha256".to_owned());
+                }
+                supported_count += 1;
+            }
+            CorrespondenceStatus::Ambiguous
+            | CorrespondenceStatus::Unresolved
+            | CorrespondenceStatus::UnmatchedIfc
+            | CorrespondenceStatus::UnmatchedGraph => {
+                unresolved_ifc_ids.insert(entry.ifc_global_id.as_str());
+                unresolved_graph_ids.insert(entry.element_graph_id.as_str());
+                unresolved_count += 1;
+            }
+        }
+    }
+
+    if supported_ifc_ids.iter().any(|id| unresolved_ifc_ids.contains(id)) {
+        return Err(
+            "supported crosswalk conflicts with an ambiguous or unresolved IFC GlobalId".to_owned(),
+        );
+    }
+    if supported_graph_ids
+        .iter()
+        .any(|id| unresolved_graph_ids.contains(id))
+    {
+        return Err(
+            "supported crosswalk conflicts with an ambiguous or unresolved element-graph ID"
+                .to_owned(),
+        );
+    }
+    Ok((supported_count, unresolved_count))
+}
 
 #[cfg(test)]
 mod tests {
@@ -995,6 +1064,17 @@ mod tests {
     }
 
     #[test]
+    fn rejects_ifc_global_id_with_invalid_leading_character() {
+        let mut value = case_report("all_gates_not_run");
+        value["crosswalk"][0]["ifc_global_id"] = json!("A123456789ABCDEFGHIJKL");
+        let error = audit_delivery_receipt_bytes(
+            serde_json::to_string(&value).expect("serialize").as_bytes(),
+        )
+        .expect_err("the first compressed IFC GUID character must be in 0..=3");
+        assert!(error.contains("leading range 0..=3"));
+    }
+
+    #[test]
     fn rejects_supported_mapping_that_conflicts_with_ambiguous_identity() {
         let mut value = all_pass_receipt();
         let ambiguous = json!({
@@ -1015,7 +1095,7 @@ mod tests {
     fn rejects_supported_mapping_that_conflicts_with_unresolved_graph_identity() {
         let mut value = all_pass_receipt();
         let unresolved = json!({
-            "ifc_global_id": "ABCDEFGHIJKLMNOPQRSTUV",
+            "ifc_global_id": "1BCDEFGHIJKLMNOPQRSTUV",
             "element_graph_id": "wall-01",
             "correspondence": "unresolved",
             "evidence_sha256": "f".repeat(64)
