@@ -21,14 +21,17 @@ The API accepts complex a, b, c and z. Three numerical regions are explicit:
    two convergent series in 1-z.
 
 The principal cut [1, infinity) is rejected. The near-one connection formula
-is rejected when c-a-b is an integer (the logarithmic/resonant case), rather
-than returning a potentially incorrect result. Inputs outside these regions
-return ContinuationRegionUnsupported. These limits are intentional and should
-be extended only with separately validated formulas.
+is rejected when c-a-b is an integer (the logarithmic/resonant case). For
+resonant points that remain inside |z|<1, the evaluator falls back to the
+defining series; if the configured term budget cannot establish convergence,
+it returns NoConvergence. Resonant points outside the direct-series disk still
+require a separately validated logarithmic continuation or another transform.
 
-The series result reports its method, term count and an a-posteriori geometric
-tail estimate. That estimate is a diagnostic, not a rigorous global error
-bound for arbitrary complex parameters.
+The series result reports its method, term count and a global geometric
+majorant for the analytic truncation tail. The majorant follows from bounds on
+all future recurrence ratios once N>|c|. It is not an interval-arithmetic
+certificate for the computed floating-point result and does not include
+accumulated roundoff.
 
 ### Ferrers associated-Legendre function
 
@@ -68,9 +71,12 @@ Jost controls; the scattering matrix, transmission/reflection amplitudes,
 frequency-plane pole search and Green-function contour are still not
 implemented.
 
-The endpoint values z=±1 and complex z arguments are rejected. Resonant
-denominator cases remain unsupported until the logarithmic continuation is
-implemented.
+The endpoint values z=±1 and complex z arguments are rejected.
+The unit-disk resonant fallback covers the pinned Pöschl–Teller Matsubara
+fixtures n=0,1,2 at finite test positions x=±1,±2,±3. This is a bounded
+parameter-domain result, not a universal continuation theorem; larger
+arguments, branch-cut crossings and other resonant domains remain explicit
+abstention cases until separately qualified.
 
 ## Independent fixtures
 
@@ -84,7 +90,8 @@ and then rounded into the test corpus:
 
 Additional tests exercise Gamma recurrence, reflection and conjugation;
 hypergeometric a/b symmetry, polynomial termination, derivative identity,
-branch-cut rejection and resonant abstention.
+branch-cut rejection, a 100-digit resonant ₂F₁ fixture and the Pöschl–Teller
+Matsubara Jost cases for n=0,1,2.
 
 ## Scientific claim boundary
 
@@ -93,11 +100,13 @@ associated-Legendre Jost solutions, a Wronskian, a Green function, scattering
 coefficients, QNM residues or any physical Kerr/Schwarzschild response.
 
 Before integration into #4109, the next requirements are:
-- compare with a second independent arbitrary-precision implementation;
+- validate the f64 truncation majorant against an independent interval or
+  ball-arithmetic implementation, including accumulated floating-point error;
 - test the full actual Jost parameter envelope (including high overtones and
   near-threshold/near-pole conditions);
-- verify the associated-Legendre ODE residual and Wronskian;
-- add logarithmic continuation for resonant c-a-b values;
+- extend the independent high-precision fixture corpus over all evaluation
+  regions and branch conventions;
+- add logarithmic continuation for resonant c-a-b values outside |z|<1;
 - add stable scaled/logarithmic coefficient paths for large complex arguments.
 
 ## Run
