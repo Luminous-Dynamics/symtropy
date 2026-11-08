@@ -1982,7 +1982,7 @@
         20,
         30
       ],
-      "expected_observation_rank": 2,
+      "expected_observation_rank": 1,
       "expected_reference": [
         {
           "frequency_hz": 2,
