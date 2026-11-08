@@ -90,8 +90,9 @@ and then rounded into the test corpus:
 
 Additional tests exercise Gamma recurrence, reflection and conjugation;
 hypergeometric a/b symmetry, polynomial termination, derivative identity,
-branch-cut rejection, a 100-digit resonant ₂F₁ fixture and the Pöschl–Teller
-Matsubara Jost cases for n=0,1,2.
+branch-cut rejection, real- and complex-parameter 100-digit resonant ₂F₁
+fixtures, insufficient-term-budget abstention, and the Pöschl–Teller Matsubara
+Jost cases for n=0,1,2.
 
 ## Scientific claim boundary
 
