@@ -562,8 +562,7 @@ mod tests {
     #[test]
     fn rejects_uppercase_sha256_encoding() {
         let mut value = fixture_value();
-        value["scenes"][0]["candidate_inputs"][0]["sha256"] =
-            serde_json::json!("A".repeat(64));
+        value["scenes"][0]["candidate_inputs"][0]["sha256"] = serde_json::json!("A".repeat(64));
         let error = audit(&value).expect_err("SHA-256 must use canonical lowercase hex");
         assert!(error.contains("invalid ID or SHA-256"));
     }
@@ -571,8 +570,7 @@ mod tests {
     #[test]
     fn requires_candidate_point_cloud_observation() {
         let mut value = fixture_value();
-        value["scenes"][0]["candidate_inputs"][0]["role"] =
-            serde_json::json!("sensor_metadata");
+        value["scenes"][0]["candidate_inputs"][0]["role"] = serde_json::json!("sensor_metadata");
         let error = audit(&value).expect_err("candidate scene needs a point-cloud observation");
         assert!(error.contains("point_cloud_observation"));
     }
@@ -589,10 +587,8 @@ mod tests {
     #[test]
     fn rejects_overflowing_surface_area_total() {
         let mut value = fixture_value();
-        value["scenes"][0]["surface_strata"][0]["area_m2"] =
-            serde_json::json!(f64::MAX);
-        value["scenes"][0]["surface_strata"][1]["area_m2"] =
-            serde_json::json!(f64::MAX);
+        value["scenes"][0]["surface_strata"][0]["area_m2"] = serde_json::json!(f64::MAX);
+        value["scenes"][0]["surface_strata"][1]["area_m2"] = serde_json::json!(f64::MAX);
         let error = audit(&value).expect_err("finite individual areas can still overflow in sum");
         assert!(error.contains("overflows f64"));
     }
