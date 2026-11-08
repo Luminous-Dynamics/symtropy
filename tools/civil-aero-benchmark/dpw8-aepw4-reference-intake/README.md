@@ -36,7 +36,9 @@ The workshop data-submission page defines Tecplot-readable ASCII templates, incl
 
 The NASA directory lists an 8 KB `equivalent_beam_january_2025.bdf` under the CRM half-span FEM material. Its browser text preview shows SOL 101 and GRID/CBEAM/PBEAM/MAT1/CONM2/RBE2/SPC/FORCE cards, with 16 CBEAM elements and a 17-grid beam chain.
 
-This is an attractive first parser/interop target because it is small. However, only its text preview has been inspected; exact bytes have not been acquired. The material/unit interpretation is unresolved, including the observed MAT1 E/G values and WTMASS field. No analysis result or model-validity claim is made.
+This is an attractive first parser/interop target because it is small. Its text preview has been inspected, but exact bytes have not been acquired. A direct HTTPS retrieval attempt on 8 November 2026 returned no bytes; the failed attempt is recorded in the machine-readable catalog, with no fabricated digest and no claim that the NASA resource is unavailable or corrupt. The NASA-hosted URL is also not accessible through the web text-opening interface, and a filename search found only the official directory listing.
+
+The material/unit interpretation is unresolved, including the observed MAT1 E/G values and WTMASS field. No analysis result or model-validity claim is made. The parser PR #4142 uses only a synthetic fixture. It must not be applied to the NASA model as if its card dialect were already verified.
 
 ## Files
 
