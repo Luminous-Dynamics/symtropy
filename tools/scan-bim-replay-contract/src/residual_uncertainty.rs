@@ -180,7 +180,7 @@ fn covariance_is_symmetric_psd<const N: usize>(matrix: &[[f64; N]; N]) -> bool {
             continue;
         }
 
-        let angle = 0.5 * (2.0 * apq).atan2(aqq - app);
+        let angle = 0.5 * (-2.0 * apq).atan2(aqq - app);
         let cosine = angle.cos();
         let sine = angle.sin();
 
@@ -501,10 +501,7 @@ mod tests {
             ResidualUncertaintyDisposition::QualifiedCovariance
         );
         let variance = result.variance_m2.expect("variance");
-        let expected = (
-            0.04 + 0.01 + 0.02
-                + 2.0 * (0.01 + 0.002 + 0.005 + 0.006)
-        ) / 3.0;
+        let expected = (0.05 + 0.06 + 0.05 + 2.0 * (0.012 + 0.0 + 0.011)) / 3.0;
         assert!((variance - expected).abs() < 1.0e-10);
     }
 
