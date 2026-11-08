@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/bh-response-manifest-0.1.0.schema.json",
+  "title": "Black-hole causal response evidence manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version","study","qualification","oracle_reference","provenance","numerical","methods","error_budget","response_windows","convergence","negative_controls"],
+  "properties": {
+    "schema_version": {"const":"0.1.0"},
+    "study": {
+      "type":"object","additionalProperties":false,
+      "required":["study_id","model_id","equation_id","convention_id","coordinate_system","source_id","observer_id"],
+      "properties":{
+        "study_id":{"type":"string","minLength":1},
+        "model_id":{"type":"string","minLength":1},
+        "equation_id":{"type":"string","minLength":1},
+        "convention_id":{"type":"string","minLength":1},
+        "coordinate_system":{"type":"string","minLength":1},
+        "source_id":{"type":"string","minLength":1},
+        "observer_id":{"type":"string","minLength":1}
+      }
+    },
+    "qualification":{"enum":["unresolved","analytic_oracle","numerically_reproduced","independently_cross_checked","converged"]},
+    "oracle_reference":{
+      "type":["object","null"],"additionalProperties":false,
+      "required":["reference_id","version","locator","artifact_sha256"],
+      "properties":{
+        "reference_id":{"type":"string","minLength":1},
+        "version":{"type":"string","minLength":1},
+        "locator":{"type":"string","minLength":1},
+        "artifact_sha256":{"type":["string","null"],"pattern":"^[a-fA-F0-9]{64}$"}
+      }
+    },
+    "provenance":{
+      "type":"object","additionalProperties":false,
+      "required":["git_commit","dependency_lock_sha256","input_digests","reproduction_command","environment"],
+      "properties":{
+        "git_commit":{"type":"string","pattern":"^([a-fA-F0-9]{40}|[a-fA-F0-9]{64})$"},
+        "dependency_lock_sha256":{"type":"string","pattern":"^[a-fA-F0-9]{64}$"},
+        "input_digests":{"type":"array","items":{
+          "type":"object","additionalProperties":false,"required":["name","sha256"],
+          "properties":{"name":{"type":"string","minLength":1},"sha256":{"type":"string","pattern":"^[a-fA-F0-9]{64}$"}}
+        }},
+        "reproduction_command":{"type":"string","minLength":1},
+        "environment":{"type":"string","minLength":1}
+      }
+    },
+    "numerical":{
+      "type":"object","additionalProperties":false,
+      "required":["solver_id","arithmetic","precision_bits","parameters"],
+      "properties":{
+        "solver_id":{"type":"string","minLength":1},
+        "arithmetic":{"type":"string","minLength":1},
+        "precision_bits":{"type":"integer","minimum":1},
+        "parameters":{"type":"object","additionalProperties":{"type":"number"}}
+      }
+    },
+    "methods":{"type":"array","items":{
+      "type":"object","additionalProperties":false,
+      "required":["method_id","implementation_id","implementation_sha256","response_sha256"],
+      "properties":{
+        "method_id":{"type":"string","minLength":1},
+        "implementation_id":{"type":"string","minLength":1},
+        "implementation_sha256":{"type":"string","pattern":"^[a-fA-F0-9]{64}$"},
+        "response_sha256":{"type":"string","pattern":"^[a-fA-F0-9]{64}$"}
+      }
+    }},
+    "error_budget":{"type":"array","items":{
+      "type":"object","additionalProperties":false,
+      "required":["component_id","disposition","bound","units","rationale"],
+      "properties":{
+        "component_id":{"type":"string","minLength":1},
+        "disposition":{"enum":["measured","bounded","unknown","not_applicable"]},
+        "bound":{"type":["number","null"],"minimum":0},
+        "units":{"type":"string","minLength":1},
+        "rationale":{"type":["string","null"]}
+      }
+    }},
+    "response_windows":{"type":"array","items":{
+      "type":"object","additionalProperties":false,
+      "required":["window_id","causal_region","norm_id","observed_error","acceptance_limit"],
+      "properties":{
+        "window_id":{"type":"string","minLength":1},
+        "causal_region":{"type":"string","minLength":1},
+        "norm_id":{"type":"string","minLength":1},
+        "observed_error":{"type":"number","minimum":0},
+        "acceptance_limit":{"type":"number","minimum":0}
+      }
+    }},
+    "convergence":{"type":"array","items":{
+      "type":"object","additionalProperties":false,
+      "required":["quantity_id","norm_id","acceptance_limit","refinements"],
+      "properties":{
+        "quantity_id":{"type":"string","minLength":1},
+        "norm_id":{"type":"string","minLength":1},
+        "acceptance_limit":{"type":"number","minimum":0},
+        "refinements":{"type":"array","items":{
+          "type":"object","additionalProperties":false,"required":["resolution","error_bound"],
+          "properties":{"resolution":{"type":"integer","minimum":1},"error_bound":{"type":"number","minimum":0}}
+        }}
+      }
+    }},
+    "negative_controls":{"type":"array","items":{
+      "type":"object","additionalProperties":false,
+      "required":["control_id","expected_failure_category","observed_failure_category","passed"],
+      "properties":{
+        "control_id":{"type":"string","minLength":1},
+        "expected_failure_category":{"type":"string","minLength":1},
+        "observed_failure_category":{"type":"string","minLength":1},
+        "passed":{"type":"boolean"}
+      }
+    }}
+  }
+}
