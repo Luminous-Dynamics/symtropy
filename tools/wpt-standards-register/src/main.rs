@@ -184,9 +184,10 @@ mod tests {
         assert!(validate_register(&bad).is_err());
     }
     #[test] fn windows_crlf_fixture_is_normalized_but_bare_cr_is_rejected() {
-        let crlf = FIXTURE.replace('\n', "\r\n");
+        let normalized = FIXTURE.replace("\r\n", "\n");
+        let crlf = normalized.replace('\n', "\r\n");
         assert!(validate_register(&crlf).is_ok());
-        let bare_cr = FIXTURE.replace('\n', "\r");
+        let bare_cr = normalized.replace('\n', "\r");
         assert!(validate_register(&bare_cr).is_err());
     }
     #[test] fn row_width_and_header_are_exact() {
