@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/civdyn-humanstudy-repro/paper_run_attestation.schema.json",
+  "title": "CIVDYN HumanStudy paper-run source attestation",
+  "description": "Operator-authored sidecar; source hashes are validated against the pinned paper profile, but the sidecar is not cryptographic proof of external process execution.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "protocol_id",
+    "source_repository",
+    "source_commit",
+    "study_id",
+    "study_config_blob_sha",
+    "evaluator_blob_sha",
+    "baseline_runner_blob_sha",
+    "generation_runner_blob_sha",
+    "generation_pipeline_blob_sha",
+    "evaluator_runner_blob_sha",
+    "stats_lib_blob_sha",
+    "analysis_protocol_preserved",
+    "run_id",
+    "model_id",
+    "prompt_preset",
+    "prompt_template_sha256",
+    "independent_unit"
+  ],
+  "properties": {
+    "protocol_id": {
+      "const": "HSB-PAPER-12-CF05D330"
+    },
+    "source_repository": {
+      "const": "AISmithLab/HumanStudy-Bench"
+    },
+    "source_commit": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "study_id": {
+      "enum": [
+        "study_001",
+        "study_002",
+        "study_003",
+        "study_004",
+        "study_005",
+        "study_006",
+        "study_007",
+        "study_008",
+        "study_009",
+        "study_010",
+        "study_011",
+        "study_012"
+      ]
+    },
+    "study_config_blob_sha": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "evaluator_blob_sha": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "baseline_runner_blob_sha": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "generation_runner_blob_sha": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "generation_pipeline_blob_sha": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "evaluator_runner_blob_sha": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "stats_lib_blob_sha": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "analysis_protocol_preserved": {
+      "const": true
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "model_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "prompt_preset": {
+      "type": "string",
+      "minLength": 1
+    },
+    "prompt_template_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "independent_unit": {
+      "enum": [
+        "participant",
+        "group",
+        "session",
+        "cluster"
+      ]
+    }
+  }
+}
