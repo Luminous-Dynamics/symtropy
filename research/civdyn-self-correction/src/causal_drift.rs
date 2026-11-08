@@ -20,6 +20,7 @@ pub const DIAGNOSTIC_PROBE_COST: f64 = 0.25;
 pub enum CausalRegime {
     StablePositive,
     SignReversal,
+    GradualSignReversal,
     ConfoundedNull,
 }
 
@@ -27,6 +28,7 @@ impl CausalRegime {
     pub const ALL: [Self; 3] = [
         Self::StablePositive,
         Self::SignReversal,
+        Self::GradualSignReversal,
         Self::ConfoundedNull,
     ];
 
@@ -34,6 +36,7 @@ impl CausalRegime {
         match self {
             Self::StablePositive => "stable_positive",
             Self::SignReversal => "sign_reversal",
+            Self::GradualSignReversal => "gradual_sign_reversal",
             Self::ConfoundedNull => "confounded_null",
         }
     }
@@ -43,6 +46,10 @@ impl CausalRegime {
             Self::StablePositive => 2.0,
             Self::SignReversal if one_based_tick < CAUSAL_SIGN_REVERSAL_TICK => 2.0,
             Self::SignReversal => -3.0,
+            Self::GradualSignReversal if one_based_tick <= 2 => 2.0,
+            Self::GradualSignReversal if one_based_tick <= 4 => 1.0,
+            Self::GradualSignReversal if one_based_tick <= 6 => -1.0,
+            Self::GradualSignReversal => -2.0,
             Self::ConfoundedNull => 0.0,
         }
     }
@@ -367,6 +374,24 @@ mod tests {
                 )
                 .net_utility
         );
+    }
+
+    #[test]
+    fn gradual_sign_reversal_is_detected_when_paired_probe_crosses_threshold() {
+        let outcome = run(
+            CausalRegime::GradualSignReversal,
+            ControllerKind::MechanismAware,
+        );
+        assert_eq!(outcome.final_true_causal_effect, -2.0);
+        assert_eq!(outcome.final_observational_association, 3.0);
+        assert_eq!(
+            outcome.diagnosis,
+            Some(CausalDiagnosis::CausalSignReversal)
+        );
+        assert_eq!(outcome.detection_tick, Some(6));
+        assert_eq!(outcome.active_after_nonpositive_effect_ticks, 2);
+        assert_eq!(outcome.active_ticks, 6);
+        assert!(outcome.trace_valid);
     }
 
     #[test]
