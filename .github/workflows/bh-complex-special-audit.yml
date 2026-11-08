@@ -18,13 +18,13 @@ permissions:
   contents: read
 
 concurrency:
-  group: bh-complex-special-audit-\${{ github.event.pull_request.number || github.ref }}
+  group: bh-complex-special-audit-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
   test:
-    name: Complex special functions (\${{ matrix.os }})
-    runs-on: \${{ matrix.os }}
+    name: Complex special functions (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
