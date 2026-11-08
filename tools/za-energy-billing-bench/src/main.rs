@@ -44,6 +44,7 @@ fn demo_input() -> TariffInput {
                 energy_kwh: 10.0,
                 saturday_evening_confirmed: false,
                 saturday_confirmation_reference: None,
+                public_holiday_evidence_reference: None,
             },
             MeteredInterval {
                 local_date: "2026-07-01".to_owned(),
@@ -53,6 +54,7 @@ fn demo_input() -> TariffInput {
                 energy_kwh: 15.0,
                 saturday_evening_confirmed: false,
                 saturday_confirmation_reference: None,
+                public_holiday_evidence_reference: None,
             },
         ],
         interval_series_complete: true,
