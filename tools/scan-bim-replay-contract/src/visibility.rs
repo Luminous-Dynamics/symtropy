@@ -1,0 +1,990 @@
+// Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
+//! Evaluator-only visibility derivation for Scan-to-BIM reference surfaces.
+//!
+//! This is a bounded triangle ray-query adapter, not a general ray-tracing
+//! engine. Probe positions and represented areas are caller-supplied and must
+//! come from a separately declared deterministic sampling profile. The
+//! evaluator must keep reference geometry, occluders and these results outside
+//! candidate-visible inputs.
+
+use crate::metrics::Point3;
+use crate::sampling::SurfaceVisibility;
+use sha2::{Digest, Sha256};
+use std::collections::{BTreeMap, BTreeSet};
+use std::f64::consts::{PI, TAU};
+
+const VECTOR_EPSILON: f64 = 1.0e-12;
+const INTERSECTION_EPSILON_M: f64 = 1.0e-8;
+const BASIS_TOLERANCE: f64 = 1.0e-8;
+const DEGENERATE_TWICE_AREA_EPSILON: f64 = 1.0e-15;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum OccluderKind {
+    SameBuilding,
+    External,
+    Unknown,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ViewVisibilityStatus {
+    Observable,
+    OutsideSensorCoverage,
+    SelfOccluded,
+    ExternallyOccluded,
+    Unknown,
+    Contradictory,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct VisibilityProbe {
+    pub probe_id: String,
+    pub surface_id: String,
+    pub triangle_id: String,
+    pub point: Point3,
+    /// Area represented by this probe, in square metres. Probe generation
+    /// and area conservation are caller-owned and must be receipt-bound.
+    pub represented_area_m2: f64,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct VisibilityView {
+    pub view_id: String,
+    pub frame_id: String,
+    pub origin: Point3,
+    /// Orthonormal, right-handed camera/sensor basis in the shared frame.
+    pub forward: Point3,
+    pub right: Point3,
+    pub up: Point3,
+    pub horizontal_fov_rad: f64,
+    pub vertical_fov_rad: f64,
+    pub max_range_m: f64,
+    pub pose_evidence_sha256: String,
+    pub configuration_sha256: String,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct OccluderTriangle {
+    pub surface_id: String,
+    pub triangle_id: String,
+    pub a: Point3,
+    pub b: Point3,
+    pub c: Point3,
+    pub kind: OccluderKind,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct VisibilityProfile {
+    /// Maximum number of probe × view × occluder ray/triangle tests. Exceeding
+    /// this budget is an error; the evaluator never silently truncates.
+    pub max_ray_tests: usize,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ViewObservation {
+    pub view_id: String,
+    pub status: ViewVisibilityStatus,
+    pub blocker_kind: Option<OccluderKind>,
+    pub blocker_triangle_ids: Vec<String>,
+    pub blocker_distance_m: Option<f64>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct VisibilityProbeResult {
+    pub probe_id: String,
+    pub surface_id: String,
+    pub triangle_id: String,
+    pub point: Point3,
+    pub represented_area_m2: f64,
+    pub visibility: SurfaceVisibility,
+    pub views: Vec<ViewObservation>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct VisibilitySurfaceArea {
+    pub surface_id: String,
+    pub observable_area_m2: f64,
+    pub self_occluded_area_m2: f64,
+    pub externally_occluded_area_m2: f64,
+    pub outside_sensor_coverage_area_m2: f64,
+    pub unknown_area_m2: f64,
+    pub contradictory_area_m2: f64,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct VisibilityReceipt {
+    pub algorithm_id: String,
+    pub scene_id: String,
+    pub frame_id: String,
+    pub reference_model_sha256: String,
+    pub occluder_manifest_sha256: String,
+    pub probe_count: usize,
+    pub view_count: usize,
+    pub ray_test_count: usize,
+    pub observable_area_m2: f64,
+    pub self_occluded_area_m2: f64,
+    pub externally_occluded_area_m2: f64,
+    pub outside_sensor_coverage_area_m2: f64,
+    pub unknown_area_m2: f64,
+    pub contradictory_area_m2: f64,
+    pub surfaces: Vec<VisibilitySurfaceArea>,
+    pub probes: Vec<VisibilityProbeResult>,
+    pub visibility_sha256: String,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct Vec3 {
+    x: f64,
+    y: f64,
+    z: f64,
+}
+
+impl Vec3 {
+    fn from_point(point: Point3) -> Self {
+        Self {
+            x: point.x,
+            y: point.y,
+            z: point.z,
+        }
+    }
+
+    fn sub(self, other: Self) -> Self {
+        Self {
+            x: self.x - other.x,
+            y: self.y - other.y,
+            z: self.z - other.z,
+        }
+    }
+
+    fn dot(self, other: Self) -> f64 {
+        self.x * other.x + self.y * other.y + self.z * other.z
+    }
+
+    fn cross(self, other: Self) -> Self {
+        Self {
+            x: self.y * other.z - self.z * other.y,
+            y: self.z * other.x - self.x * other.z,
+            z: self.x * other.y - self.y * other.x,
+        }
+    }
+
+    fn norm(self) -> f64 {
+        self.x.hypot(self.y).hypot(self.z)
+    }
+
+    fn scale(self, factor: f64) -> Self {
+        Self {
+            x: self.x * factor,
+            y: self.y * factor,
+            z: self.z * factor,
+        }
+    }
+
+    fn to_point(self) -> Point3 {
+        Point3::new(self.x, self.y, self.z)
+    }
+}
+
+fn finite_point(point: Point3) -> bool {
+    point.x.is_finite() && point.y.is_finite() && point.z.is_finite()
+}
+
+fn validate_sha256(field: &str, digest: &str) -> Result<(), String> {
+    if digest.len() != 64
+        || !digest
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    {
+        return Err(format!(
+            "{field} must be 64 lowercase hexadecimal characters"
+        ));
+    }
+    Ok(())
+}
+
+fn validate_triangle(
+    label: &str,
+    a: Point3,
+    b: Point3,
+    c: Point3,
+) -> Result<(), String> {
+    if !finite_point(a) || !finite_point(b) || !finite_point(c) {
+        return Err(format!("{label} contains a non-finite coordinate"));
+    }
+    let edge_a = Vec3::from_point(b).sub(Vec3::from_point(a));
+    let edge_b = Vec3::from_point(c).sub(Vec3::from_point(a));
+    let twice_area = edge_a.cross(edge_b).norm();
+    if !twice_area.is_finite() || twice_area <= DEGENERATE_TWICE_AREA_EPSILON {
+        return Err(format!("{label} is degenerate"));
+    }
+    Ok(())
+}
+
+fn validate_view(view: &VisibilityView, frame_id: &str) -> Result<(), String> {
+    if view.view_id.trim().is_empty() {
+        return Err("view_id must not be empty".to_owned());
+    }
+    if view.frame_id != frame_id {
+        return Err(format!(
+            "view {} frame {} does not match scene frame {}",
+            view.view_id, view.frame_id, frame_id
+        ));
+    }
+    if !finite_point(view.origin) {
+        return Err(format!("view {} origin is non-finite", view.view_id));
+    }
+    let forward = Vec3::from_point(view.forward);
+    let right = Vec3::from_point(view.right);
+    let up = Vec3::from_point(view.up);
+    let vectors = [forward, right, up];
+    if vectors.iter().any(|vector| {
+        !vector.x.is_finite() || !vector.y.is_finite() || !vector.z.is_finite()
+    }) {
+        return Err(format!("view {} basis contains non-finite values", view.view_id));
+    }
+    if vectors
+        .iter()
+        .any(|vector| (vector.norm() - 1.0).abs() > BASIS_TOLERANCE)
+        || forward.dot(right).abs() > BASIS_TOLERANCE
+        || forward.dot(up).abs() > BASIS_TOLERANCE
+        || right.dot(up).abs() > BASIS_TOLERANCE
+        || right.cross(up).dot(forward) < 1.0 - BASIS_TOLERANCE
+    {
+        return Err(format!(
+            "view {} basis must be orthonormal and right-handed",
+            view.view_id
+        ));
+    }
+    if !view.horizontal_fov_rad.is_finite()
+        || view.horizontal_fov_rad <= 0.0
+        || view.horizontal_fov_rad > TAU
+        || !view.vertical_fov_rad.is_finite()
+        || view.vertical_fov_rad <= 0.0
+        || view.vertical_fov_rad > PI
+        || !view.max_range_m.is_finite()
+        || view.max_range_m <= 0.0
+    {
+        return Err(format!("view {} has invalid FOV or range", view.view_id));
+    }
+    validate_sha256("view.pose_evidence_sha256", &view.pose_evidence_sha256)?;
+    validate_sha256(
+        "view.configuration_sha256",
+        &view.configuration_sha256,
+    )?;
+    Ok(())
+}
+
+fn view_covers_probe(view: &VisibilityView, point: Point3) -> Result<Option<(Vec3, f64)>, String> {
+    let origin = Vec3::from_point(view.origin);
+    let delta = Vec3::from_point(point).sub(origin);
+    let distance = delta.norm();
+    if !distance.is_finite() {
+        return Err("probe-to-view distance became non-finite".to_owned());
+    }
+    if distance <= INTERSECTION_EPSILON_M || distance > view.max_range_m {
+        return Ok(None);
+    }
+
+    let forward = Vec3::from_point(view.forward);
+    let right = Vec3::from_point(view.right);
+    let up = Vec3::from_point(view.up);
+    let forward_component = delta.dot(forward);
+    if forward_component <= 0.0 {
+        return Ok(None);
+    }
+    let right_component = delta.dot(right);
+    let up_component = delta.dot(up);
+    let horizontal_angle = right_component.atan2(forward_component).abs();
+    let vertical_denominator = forward_component.hypot(right_component);
+    let vertical_angle = up_component.atan2(vertical_denominator).abs();
+    if horizontal_angle > view.horizontal_fov_rad * 0.5
+        || vertical_angle > view.vertical_fov_rad * 0.5
+    {
+        return Ok(None);
+    }
+    Ok(Some((delta.scale(1.0 / distance), distance)))
+}
+
+/// Return the positive ray distance to the first interior/edge hit on a
+/// triangle, if it lies strictly between the sensor and the target probe.
+fn ray_triangle_distance(
+    origin: Vec3,
+    direction: Vec3,
+    max_distance: f64,
+    triangle: &OccluderTriangle,
+) -> Option<f64> {
+    let a = Vec3::from_point(triangle.a);
+    let edge_a = Vec3::from_point(triangle.b).sub(a);
+    let edge_b = Vec3::from_point(triangle.c).sub(a);
+    let p_vector = direction.cross(edge_b);
+    let determinant = edge_a.dot(p_vector);
+    if determinant.abs() <= VECTOR_EPSILON {
+        return None;
+    }
+    let inverse_determinant = 1.0 / determinant;
+    let origin_offset = origin.sub(a);
+    let u = origin_offset.dot(p_vector) * inverse_determinant;
+    if !(-VECTOR_EPSILON..=1.0 + VECTOR_EPSILON).contains(&u) {
+        return None;
+    }
+    let q_vector = origin_offset.cross(edge_a);
+    let v = direction.dot(q_vector) * inverse_determinant;
+    if v < -VECTOR_EPSILON || u + v > 1.0 + VECTOR_EPSILON {
+        return None;
+    }
+    let distance = edge_b.dot(q_vector) * inverse_determinant;
+    if !distance.is_finite()
+        || distance <= INTERSECTION_EPSILON_M
+        || distance >= max_distance - INTERSECTION_EPSILON_M
+    {
+        return None;
+    }
+    Some(distance)
+}
+
+fn observe_from_view(
+    view: &VisibilityView,
+    probe: &VisibilityProbe,
+    occluders: &[OccluderTriangle],
+) -> Result<ViewObservation, String> {
+    let Some((direction, target_distance)) = view_covers_probe(view, probe.point)? else {
+        return Ok(ViewObservation {
+            view_id: view.view_id.clone(),
+            status: ViewVisibilityStatus::OutsideSensorCoverage,
+            blocker_kind: None,
+            blocker_triangle_ids: Vec::new(),
+            blocker_distance_m: None,
+        });
+    };
+
+    let origin = Vec3::from_point(view.origin);
+    let mut nearest_distance: Option<f64> = None;
+    let mut nearest: Vec<(&OccluderTriangle, f64)> = Vec::new();
+    for occluder in occluders {
+        if occluder.surface_id == probe.surface_id && occluder.triangle_id == probe.triangle_id {
+            continue;
+        }
+        if let Some(distance) =
+            ray_triangle_distance(origin, direction, target_distance, occluder)
+        {
+            match nearest_distance {
+                None => {
+                    nearest_distance = Some(distance);
+                    nearest.push((occluder, distance));
+                }
+                Some(best) if distance < best - INTERSECTION_EPSILON_M => {
+                    nearest_distance = Some(distance);
+                    nearest.clear();
+                    nearest.push((occluder, distance));
+                }
+                Some(best) if (distance - best).abs() <= INTERSECTION_EPSILON_M => {
+                    nearest.push((occluder, distance));
+                }
+                Some(_) => {}
+            }
+        }
+    }
+
+    if nearest.is_empty() {
+        return Ok(ViewObservation {
+            view_id: view.view_id.clone(),
+            status: ViewVisibilityStatus::Observable,
+            blocker_kind: None,
+            blocker_triangle_ids: Vec::new(),
+            blocker_distance_m: None,
+        });
+    }
+
+    nearest.sort_by(|left, right| {
+        left.0
+            .surface_id
+            .cmp(&right.0.surface_id)
+            .then_with(|| left.0.triangle_id.cmp(&right.0.triangle_id))
+    });
+    let mut kinds = BTreeSet::new();
+    let mut blocker_triangle_ids = Vec::with_capacity(nearest.len());
+    for (occluder, _) in &nearest {
+        kinds.insert(occluder.kind);
+        blocker_triangle_ids.push(format!(
+            "{}/{}",
+            occluder.surface_id, occluder.triangle_id
+        ));
+    }
+    let status = if kinds.len() > 1 {
+        ViewVisibilityStatus::Contradictory
+    } else {
+        match kinds.iter().next().copied() {
+            Some(OccluderKind::SameBuilding) => ViewVisibilityStatus::SelfOccluded,
+            Some(OccluderKind::External) => ViewVisibilityStatus::ExternallyOccluded,
+            Some(OccluderKind::Unknown) => ViewVisibilityStatus::Unknown,
+            None => return Err("ray query produced a blocker without a class".to_owned()),
+        }
+    };
+    Ok(ViewObservation {
+        view_id: view.view_id.clone(),
+        status,
+        blocker_kind: kinds.iter().next().copied(),
+        blocker_triangle_ids,
+        blocker_distance_m: nearest_distance,
+    })
+}
+
+fn aggregate_probe_visibility(views: &[ViewObservation]) -> SurfaceVisibility {
+    if views
+        .iter()
+        .any(|view| view.status == ViewVisibilityStatus::Observable)
+    {
+        return SurfaceVisibility::Observable;
+    }
+    if views
+        .iter()
+        .all(|view| view.status == ViewVisibilityStatus::OutsideSensorCoverage)
+    {
+        return SurfaceVisibility::OutsideSensorCoverage;
+    }
+    if views
+        .iter()
+        .any(|view| view.status == ViewVisibilityStatus::Contradictory)
+    {
+        return SurfaceVisibility::Contradictory;
+    }
+    if views
+        .iter()
+        .any(|view| view.status == ViewVisibilityStatus::Unknown)
+    {
+        return SurfaceVisibility::Unknown;
+    }
+    let has_self = views
+        .iter()
+        .any(|view| view.status == ViewVisibilityStatus::SelfOccluded);
+    let has_external = views
+        .iter()
+        .any(|view| view.status == ViewVisibilityStatus::ExternallyOccluded);
+    match (has_self, has_external) {
+        (true, false) => SurfaceVisibility::SelfOccluded,
+        (false, true) => SurfaceVisibility::ExternallyOccluded,
+        (true, true) => SurfaceVisibility::Contradictory,
+        (false, false) => SurfaceVisibility::Unknown,
+    }
+}
+
+fn visibility_label(value: SurfaceVisibility) -> &'static str {
+    match value {
+        SurfaceVisibility::Observable => "observable",
+        SurfaceVisibility::SelfOccluded => "self_occluded",
+        SurfaceVisibility::ExternallyOccluded => "externally_occluded",
+        SurfaceVisibility::OutsideSensorCoverage => "outside_sensor_coverage",
+        SurfaceVisibility::Unknown => "unknown",
+        SurfaceVisibility::Contradictory => "contradictory",
+    }
+}
+
+fn update_string(hasher: &mut Sha256, value: &str) {
+    hasher.update((value.len() as u64).to_le_bytes());
+    hasher.update(value.as_bytes());
+}
+
+fn update_f64(hasher: &mut Sha256, value: f64) {
+    hasher.update(value.to_bits().to_le_bytes());
+}
+
+fn update_point(hasher: &mut Sha256, point: Point3) {
+    update_f64(hasher, point.x);
+    update_f64(hasher, point.y);
+    update_f64(hasher, point.z);
+}
+
+fn receipt_digest(
+    scene_id: &str,
+    frame_id: &str,
+    reference_model_sha256: &str,
+    occluder_manifest_sha256: &str,
+    probes: &[VisibilityProbeResult],
+    views: &[VisibilityView],
+    occluders: &[OccluderTriangle],
+) -> String {
+    let mut hasher = Sha256::new();
+    update_string(&mut hasher, "scan_bim_evaluator_visibility_ray_v1");
+    update_string(&mut hasher, scene_id);
+    update_string(&mut hasher, frame_id);
+    update_string(&mut hasher, reference_model_sha256);
+    update_string(&mut hasher, occluder_manifest_sha256);
+
+    for view in views {
+        update_string(&mut hasher, &view.view_id);
+        update_string(&mut hasher, &view.frame_id);
+        update_point(&mut hasher, view.origin);
+        update_point(&mut hasher, view.forward);
+        update_point(&mut hasher, view.right);
+        update_point(&mut hasher, view.up);
+        update_f64(&mut hasher, view.horizontal_fov_rad);
+        update_f64(&mut hasher, view.vertical_fov_rad);
+        update_f64(&mut hasher, view.max_range_m);
+        update_string(&mut hasher, &view.pose_evidence_sha256);
+        update_string(&mut hasher, &view.configuration_sha256);
+    }
+    for occluder in occluders {
+        update_string(&mut hasher, &occluder.surface_id);
+        update_string(&mut hasher, &occluder.triangle_id);
+        update_point(&mut hasher, occluder.a);
+        update_point(&mut hasher, occluder.b);
+        update_point(&mut hasher, occluder.c);
+        update_string(
+            &mut hasher,
+            match occluder.kind {
+                OccluderKind::SameBuilding => "same_building",
+                OccluderKind::External => "external",
+                OccluderKind::Unknown => "unknown",
+            },
+        );
+    }
+    for probe in probes {
+        update_string(&mut hasher, &probe.probe_id);
+        update_string(&mut hasher, &probe.surface_id);
+        update_string(&mut hasher, &probe.triangle_id);
+        update_point(&mut hasher, probe.point);
+        update_f64(&mut hasher, probe.represented_area_m2);
+        update_string(&mut hasher, visibility_label(probe.visibility));
+        for view in &probe.views {
+            update_string(&mut hasher, &view.view_id);
+            update_string(
+                &mut hasher,
+                match view.status {
+                    ViewVisibilityStatus::Observable => "observable",
+                    ViewVisibilityStatus::OutsideSensorCoverage => "outside_sensor_coverage",
+                    ViewVisibilityStatus::SelfOccluded => "self_occluded",
+                    ViewVisibilityStatus::ExternallyOccluded => "externally_occluded",
+                    ViewVisibilityStatus::Unknown => "unknown",
+                    ViewVisibilityStatus::Contradictory => "contradictory",
+                },
+            );
+            if let Some(distance) = view.blocker_distance_m {
+                update_f64(&mut hasher, distance);
+            }
+            for blocker in &view.blocker_triangle_ids {
+                update_string(&mut hasher, blocker);
+            }
+        }
+    }
+    format!("{:x}", hasher.finalize())
+}
+
+/// Derive evaluator-only visibility labels for area-weighted probes.
+///
+/// Coordinates are metres in one declared frame. A probe is observable when
+/// at least one in-range, in-FOV qualified view has an unobstructed segment to
+/// it. Unknown/incomplete blockers and conflicting nearest blockers remain
+/// explicit. Reference geometry and this receipt must remain evaluator-only.
+pub fn derive_surface_visibility(
+    scene_id: &str,
+    frame_id: &str,
+    reference_model_sha256: &str,
+    occluder_manifest_sha256: &str,
+    probes: &[VisibilityProbe],
+    views: &[VisibilityView],
+    occluders: &[OccluderTriangle],
+    profile: VisibilityProfile,
+) -> Result<VisibilityReceipt, String> {
+    if scene_id.trim().is_empty() || frame_id.trim().is_empty() {
+        return Err("scene_id and frame_id must not be empty".to_owned());
+    }
+    validate_sha256("reference_model_sha256", reference_model_sha256)?;
+    validate_sha256("occluder_manifest_sha256", occluder_manifest_sha256)?;
+    if probes.is_empty() || views.is_empty() {
+        return Err("visibility requires at least one probe and one view".to_owned());
+    }
+    if profile.max_ray_tests == 0 {
+        return Err("max_ray_tests must be positive".to_owned());
+    }
+
+    let ray_test_count = probes
+        .len()
+        .checked_mul(views.len())
+        .and_then(|value| value.checked_mul(occluders.len()))
+        .ok_or("visibility ray-test count overflowed")?;
+    if ray_test_count > profile.max_ray_tests {
+        return Err(format!(
+            "visibility ray-test budget exceeded: {ray_test_count} > {}",
+            profile.max_ray_tests
+        ));
+    }
+
+    let mut ordered_views: Vec<&VisibilityView> = views.iter().collect();
+    ordered_views.sort_by(|left, right| left.view_id.cmp(&right.view_id));
+    let mut view_ids = BTreeSet::new();
+    for view in &ordered_views {
+        validate_view(view, frame_id)?;
+        if !view_ids.insert(view.view_id.as_str()) {
+            return Err("duplicate visibility view_id".to_owned());
+        }
+    }
+
+    let mut ordered_occluders: Vec<&OccluderTriangle> = occluders.iter().collect();
+    ordered_occluders.sort_by(|left, right| {
+        left.surface_id
+            .cmp(&right.surface_id)
+            .then_with(|| left.triangle_id.cmp(&right.triangle_id))
+    });
+    let mut occluder_ids = BTreeSet::new();
+    for occluder in &ordered_occluders {
+        if occluder.surface_id.trim().is_empty() || occluder.triangle_id.trim().is_empty() {
+            return Err("occluder surface and triangle IDs must not be empty".to_owned());
+        }
+        if !occluder_ids.insert((occluder.surface_id.as_str(), occluder.triangle_id.as_str())) {
+            return Err("duplicate occluder triangle identity".to_owned());
+        }
+        validate_triangle(
+            "occluder triangle",
+            occluder.a,
+            occluder.b,
+            occluder.c,
+        )?;
+    }
+    let ordered_occluders: Vec<OccluderTriangle> =
+        ordered_occluders.into_iter().map(|value| value.clone()).collect();
+
+    let mut ordered_probes: Vec<&VisibilityProbe> = probes.iter().collect();
+    ordered_probes.sort_by(|left, right| left.probe_id.cmp(&right.probe_id));
+    let mut probe_ids = BTreeSet::new();
+    for probe in &ordered_probes {
+        if probe.probe_id.trim().is_empty()
+            || probe.surface_id.trim().is_empty()
+            || probe.triangle_id.trim().is_empty()
+        {
+            return Err("probe, surface and triangle IDs must not be empty".to_owned());
+        }
+        if !probe_ids.insert(probe.probe_id.as_str()) {
+            return Err("duplicate visibility probe_id".to_owned());
+        }
+        if !finite_point(probe.point)
+            || !probe.represented_area_m2.is_finite()
+            || probe.represented_area_m2 <= 0.0
+        {
+            return Err("probe coordinate and represented area must be finite and positive".to_owned());
+        }
+    }
+
+    let mut results = Vec::with_capacity(probes.len());
+    let mut surface_totals: BTreeMap<String, [f64; 6]> = BTreeMap::new();
+    for probe in ordered_probes {
+        let mut per_view = Vec::with_capacity(ordered_views.len());
+        for view in &ordered_views {
+            per_view.push(observe_from_view(view, probe, &ordered_occluders)?);
+        }
+        let visibility = aggregate_probe_visibility(&per_view);
+        let totals = surface_totals.entry(probe.surface_id.clone()).or_insert([0.0; 6]);
+        let index = match visibility {
+            SurfaceVisibility::Observable => 0,
+            SurfaceVisibility::SelfOccluded => 1,
+            SurfaceVisibility::ExternallyOccluded => 2,
+            SurfaceVisibility::OutsideSensorCoverage => 3,
+            SurfaceVisibility::Unknown => 4,
+            SurfaceVisibility::Contradictory => 5,
+        };
+        totals[index] += probe.represented_area_m2;
+        if !totals[index].is_finite() {
+            return Err("visibility area accumulation overflowed".to_owned());
+        }
+        results.push(VisibilityProbeResult {
+            probe_id: probe.probe_id.clone(),
+            surface_id: probe.surface_id.clone(),
+            triangle_id: probe.triangle_id.clone(),
+            point: probe.point,
+            represented_area_m2: probe.represented_area_m2,
+            visibility,
+            views: per_view,
+        });
+    }
+
+    let mut surfaces = Vec::with_capacity(surface_totals.len());
+    for (surface_id, areas) in surface_totals {
+        surfaces.push(VisibilitySurfaceArea {
+            surface_id,
+            observable_area_m2: areas[0],
+            self_occluded_area_m2: areas[1],
+            externally_occluded_area_m2: areas[2],
+            outside_sensor_coverage_area_m2: areas[3],
+            unknown_area_m2: areas[4],
+            contradictory_area_m2: areas[5],
+        });
+    }
+
+    let totals = surfaces.iter().fold([0.0f64; 6], |mut acc, surface| {
+        acc[0] += surface.observable_area_m2;
+        acc[1] += surface.self_occluded_area_m2;
+        acc[2] += surface.externally_occluded_area_m2;
+        acc[3] += surface.outside_sensor_coverage_area_m2;
+        acc[4] += surface.unknown_area_m2;
+        acc[5] += surface.contradictory_area_m2;
+        acc
+    });
+    if totals.iter().any(|value| !value.is_finite()) {
+        return Err("visibility total area overflowed".to_owned());
+    }
+
+    let owned_views: Vec<VisibilityView> =
+        ordered_views.into_iter().map(|value| value.clone()).collect();
+    let visibility_sha256 = receipt_digest(
+        scene_id,
+        frame_id,
+        reference_model_sha256,
+        occluder_manifest_sha256,
+        &results,
+        &owned_views,
+        &ordered_occluders,
+    );
+
+    Ok(VisibilityReceipt {
+        algorithm_id: "evaluator_bim_visibility_ray_v1".to_owned(),
+        scene_id: scene_id.to_owned(),
+        frame_id: frame_id.to_owned(),
+        reference_model_sha256: reference_model_sha256.to_owned(),
+        occluder_manifest_sha256: occluder_manifest_sha256.to_owned(),
+        probe_count: results.len(),
+        view_count: owned_views.len(),
+        ray_test_count,
+        observable_area_m2: totals[0],
+        self_occluded_area_m2: totals[1],
+        externally_occluded_area_m2: totals[2],
+        outside_sensor_coverage_area_m2: totals[3],
+        unknown_area_m2: totals[4],
+        contradictory_area_m2: totals[5],
+        surfaces,
+        probes: results,
+        visibility_sha256,
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        OccluderKind, OccluderTriangle, VisibilityProbe, VisibilityProfile, VisibilityView,
+        ViewVisibilityStatus, derive_surface_visibility,
+    };
+    use crate::metrics::Point3;
+    use crate::sampling::SurfaceVisibility;
+
+    fn view(id: &str, origin: [f64; 3]) -> VisibilityView {
+        VisibilityView {
+            view_id: id.to_owned(),
+            frame_id: "BUILDING-LOCAL".to_owned(),
+            origin: Point3::new(origin[0], origin[1], origin[2]),
+            forward: Point3::new(1.0, 0.0, 0.0),
+            right: Point3::new(0.0, 1.0, 0.0),
+            up: Point3::new(0.0, 0.0, 1.0),
+            horizontal_fov_rad: 1.2,
+            vertical_fov_rad: 1.2,
+            max_range_m: 20.0,
+            pose_evidence_sha256: "a".repeat(64),
+            configuration_sha256: "b".repeat(64),
+        }
+    }
+
+    fn probe(point: [f64; 3]) -> VisibilityProbe {
+        VisibilityProbe {
+            probe_id: "P-1".to_owned(),
+            surface_id: "TARGET".to_owned(),
+            triangle_id: "TARGET-TRI-1".to_owned(),
+            point: Point3::new(point[0], point[1], point[2]),
+            represented_area_m2: 2.0,
+        }
+    }
+
+    fn blocker(kind: OccluderKind) -> OccluderTriangle {
+        OccluderTriangle {
+            surface_id: "BLOCKER".to_owned(),
+            triangle_id: "BLOCKER-TRI-1".to_owned(),
+            a: Point3::new(2.0, -1.0, -1.0),
+            b: Point3::new(2.0, 1.0, -1.0),
+            c: Point3::new(2.0, 0.0, 1.0),
+            kind,
+        }
+    }
+
+    fn evaluate(
+        probes: &[VisibilityProbe],
+        views: &[VisibilityView],
+        occluders: &[OccluderTriangle],
+    ) -> Result<super::VisibilityReceipt, String> {
+        derive_surface_visibility(
+            "SCENE-1",
+            "BUILDING-LOCAL",
+            &"1".repeat(64),
+            &"2".repeat(64),
+            probes,
+            views,
+            occluders,
+            VisibilityProfile {
+                max_ray_tests: 10_000,
+            },
+        )
+    }
+
+    #[test]
+    fn unobstructed_probe_is_observable() {
+        let receipt = evaluate(&[probe([5.0, 0.0, 0.0])], &[view("VIEW-1", [0.0, 0.0, 0.0])], &[])
+            .expect("unobstructed view");
+        assert_eq!(receipt.probes[0].visibility, SurfaceVisibility::Observable);
+        assert_eq!(receipt.observable_area_m2, 2.0);
+    }
+
+    #[test]
+    fn same_building_occluder_is_self_occluded() {
+        let receipt = evaluate(
+            &[probe([5.0, 0.0, 0.0])],
+            &[view("VIEW-1", [0.0, 0.0, 0.0])],
+            &[blocker(OccluderKind::SameBuilding)],
+        )
+        .expect("self occlusion");
+        assert_eq!(receipt.probes[0].visibility, SurfaceVisibility::SelfOccluded);
+        assert_eq!(receipt.self_occluded_area_m2, 2.0);
+    }
+
+    #[test]
+    fn external_occluder_is_not_conflated_with_self_occlusion() {
+        let receipt = evaluate(
+            &[probe([5.0, 0.0, 0.0])],
+            &[view("VIEW-1", [0.0, 0.0, 0.0])],
+            &[blocker(OccluderKind::External)],
+        )
+        .expect("external occlusion");
+        assert_eq!(
+            receipt.probes[0].visibility,
+            SurfaceVisibility::ExternallyOccluded
+        );
+        assert_eq!(receipt.externally_occluded_area_m2, 2.0);
+    }
+
+    #[test]
+    fn unknown_occluder_never_becomes_observable() {
+        let receipt = evaluate(
+            &[probe([5.0, 0.0, 0.0])],
+            &[view("VIEW-1", [0.0, 0.0, 0.0])],
+            &[blocker(OccluderKind::Unknown)],
+        )
+        .expect("unknown occlusion");
+        assert_eq!(receipt.probes[0].visibility, SurfaceVisibility::Unknown);
+        assert_eq!(receipt.unknown_area_m2, 2.0);
+    }
+
+    #[test]
+    fn target_outside_field_of_view_is_outside_coverage() {
+        let receipt = evaluate(
+            &[probe([5.0, 10.0, 0.0])],
+            &[view("VIEW-1", [0.0, 0.0, 0.0])],
+            &[],
+        )
+        .expect("outside FOV");
+        assert_eq!(
+            receipt.probes[0].visibility,
+            SurfaceVisibility::OutsideSensorCoverage
+        );
+    }
+
+    #[test]
+    fn any_unobstructed_qualified_view_makes_probe_observable() {
+        let second_view = VisibilityView {
+            view_id: "VIEW-2".to_owned(),
+            frame_id: "BUILDING-LOCAL".to_owned(),
+            origin: Point3::new(0.0, 10.0, 0.0),
+            forward: Point3::new(5.0 / 125.0_f64.sqrt(), -10.0 / 125.0_f64.sqrt(), 0.0),
+            right: Point3::new(10.0 / 125.0_f64.sqrt(), 5.0 / 125.0_f64.sqrt(), 0.0),
+            up: Point3::new(0.0, 0.0, 1.0),
+            horizontal_fov_rad: 1.2,
+            vertical_fov_rad: 1.2,
+            max_range_m: 20.0,
+            pose_evidence_sha256: "c".repeat(64),
+            configuration_sha256: "d".repeat(64),
+        };
+        let receipt = evaluate(
+            &[probe([5.0, 0.0, 0.0])],
+            &[view("VIEW-1", [0.0, 0.0, 0.0]), second_view],
+            &[blocker(OccluderKind::SameBuilding)],
+        )
+        .expect("multi-view union");
+        assert_eq!(receipt.probes[0].visibility, SurfaceVisibility::Observable);
+        assert_eq!(receipt.observable_area_m2, 2.0);
+    }
+
+    #[test]
+    fn conflicting_nearest_blockers_are_contradictory() {
+        let mut external = blocker(OccluderKind::External);
+        external.surface_id = "BLOCKER-EXTERNAL".to_owned();
+        let receipt = evaluate(
+            &[probe([5.0, 0.0, 0.0])],
+            &[view("VIEW-1", [0.0, 0.0, 0.0])],
+            &[blocker(OccluderKind::SameBuilding), external],
+        )
+        .expect("contradictory blockers");
+        assert_eq!(
+            receipt.probes[0].visibility,
+            SurfaceVisibility::Contradictory
+        );
+        assert_eq!(receipt.contradictory_area_m2, 2.0);
+    }
+
+    #[test]
+    fn frame_mismatch_fails_closed() {
+        let mut stale = view("VIEW-1", [0.0, 0.0, 0.0]);
+        stale.frame_id = "STALE-FRAME".to_owned();
+        let error = evaluate(&[probe([5.0, 0.0, 0.0])], &[stale], &[])
+            .expect_err("stale frame must fail");
+        assert!(error.contains("does not match scene frame"));
+    }
+
+    #[test]
+    fn insufficient_ray_budget_fails_closed() {
+        let error = derive_surface_visibility(
+            "SCENE-1",
+            "BUILDING-LOCAL",
+            &"1".repeat(64),
+            &"2".repeat(64),
+            &[probe([5.0, 0.0, 0.0])],
+            &[view("VIEW-1", [0.0, 0.0, 0.0])],
+            &[blocker(OccluderKind::SameBuilding)],
+            VisibilityProfile { max_ray_tests: 0 },
+        )
+        .expect_err("zero budget must fail");
+        assert!(error.contains("max_ray_tests"));
+    }
+
+    #[test]
+    fn input_permutation_preserves_visibility_receipt() {
+        let left = evaluate(
+            &[probe([5.0, 0.0, 0.0])],
+            &[view("VIEW-1", [0.0, 0.0, 0.0])],
+            &[blocker(OccluderKind::SameBuilding)],
+        )
+        .expect("left ordering");
+        let right = evaluate(
+            &[probe([5.0, 0.0, 0.0])],
+            &[view("VIEW-1", [0.0, 0.0, 0.0])],
+            &[blocker(OccluderKind::SameBuilding)],
+        )
+        .expect("right ordering");
+        assert_eq!(left.visibility_sha256, right.visibility_sha256);
+    }
+
+    #[test]
+    fn receipt_binds_reference_and_occluder_manifests() {
+        let left = evaluate(
+            &[probe([5.0, 0.0, 0.0])],
+            &[view("VIEW-1", [0.0, 0.0, 0.0])],
+            &[],
+        )
+        .expect("initial receipt");
+        let changed = derive_surface_visibility(
+            "SCENE-1",
+            "BUILDING-LOCAL",
+            &"3".repeat(64),
+            &"2".repeat(64),
+            &[probe([5.0, 0.0, 0.0])],
+            &[view("VIEW-1", [0.0, 0.0, 0.0])],
+            &[],
+            VisibilityProfile { max_ray_tests: 100 },
+        )
+        .expect("changed reference");
+        assert_ne!(left.visibility_sha256, changed.visibility_sha256);
+    }
+}
