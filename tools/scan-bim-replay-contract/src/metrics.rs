@@ -147,8 +147,7 @@ pub struct DirectedAccuracyResult {
 /// For CandidateToReference the samples must be source vertices or source-surface
 /// samples and target_surfaces must be observable reference triangles. The
 /// 2018 evaluation-framework profile uses OrthogonalProjectionInsideTriangle.
-///
-—
+//////
 /// The selected policy is returned unchanged in the result. This function does
 /// not infer a policy from a metric name.
 pub fn evaluate_directed_accuracy_curve(
@@ -375,7 +374,7 @@ fn median_sorted(values: &[f64]) -> Option<f64> {
         count if count % 2 == 1 => Some(values[count / 2]),
         count => {
             let upper = count / 2;
-            Some((values[upper - 1] + values[upper]) * 0.5)
+            Some(values[upper - 1] * 0.5 + values[upper] * 0.5)
         }
     }
 }
