@@ -46,7 +46,23 @@
       "legacy_exception": "Customers with demand-tariff supply agreements originally concluded before 1 July 1999 and demand below 100 kVA may, until further notice, continue on this tariff.",
       "service_connection_context": "Annexure E provides a Low Voltage Large Power User service-connection range from 70 kVA to 1,000 kVA at 400 V AC. This is a service-connection classification, not a substitute for Industrial TOU tariff clause 5.4.3 eligibility.",
       "tariff_specific_threshold_source_ref": "City of Johannesburg 2026/27 Medium-Term Budget, clause 5.4.3, printed page 97: business supply capacity must exceed 100 kVA and application/approval is required.",
-      "service_connection_source_ref": "City of Johannesburg 2026/27 Medium-Term Budget, Annexure E, printed page 101: LV LPU service connection from 70 kVA to 1,000 kVA at 400 V AC."
+      "service_connection_source_ref": "City of Johannesburg 2026/27 Medium-Term Budget, Annexure E, printed page 101: LV LPU service connection from 70 kVA to 1,000 kVA at 400 V AC.",
+      "source_conflict_status": "BUDGET_CLAUSE_5_4_3_VS_SECONDARY_APPROVED_SCHEDULE_REQUIRES_ACCOUNT_CONFIRMATION",
+      "source_conflict_note": "City budget printed p.97 says new Business TOU supply capacity >100 kVA; Focal Energy's 31 Aug 2026 secondary schedule says LV LPU TOU uses 70–1,000 kVA (same LPU qualification as demand tariff), with separate MV criteria. Do not automatically admit or reject 70–100 kVA from the general profile; require the customer's approved tariff/account evidence. Current calculator uses the stricter budget gate.",
+      "source_conflict_sources": [
+        {
+          "source_id": "CITY-OF-JOHANNESBURG-2026-27-BUDGET",
+          "source_type": "OFFICIAL_BUDGET_CLAUSE",
+          "locator": "Printed p.97, clause 5.4.3",
+          "url": "https://joburg.org.za/documents_/Documents/2026-27-Final-Medium-Budget-Reports/2026-27-FINAL-BUDGET-BOOK.pdf"
+        },
+        {
+          "source_id": "FOCAL-ENERGY-CITY-POWER-2026-27",
+          "source_type": "SECONDARY_ENGINEERING_PROVIDER_SCHEDULE",
+          "locator": "Updated 31 August 2026; section 3 LPU TOU qualification",
+          "url": "https://www.focalenergy.co.za/knowledge/city-power-tariffs-johannesburg"
+        }
+      ]
     },
     "source_rate_basis": {
       "energy_charge_unit": "c/kWh",
@@ -235,7 +251,8 @@
       "Annexure B (printed pages 78–81) explicitly excludes the 6 c/kWh Network Surcharge, 2% Business/LPU surcharge and VAT from the proposed FY2026/27 tariff rates.",
       "The 6 c/kWh per-kWh network surcharge is separate from the monthly network charge shown in the Industrial Three-Part TOU table.",
       "The budget describes the 6 c/kWh network surcharge as applicable to all customer categories, with residential customers exempt for the first 500 kWh/month; confirm the account treatment for an actual non-residential site.",
-      "The budget states the electricity tariff change takes effect 1 July 2026; Annexure B still describes the rate schedule as proposed. The gazetted July 2026 tariff schedule / approved account invoice takes precedence."
+      "The budget states the electricity tariff change takes effect 1 July 2026; Annexure B still describes the rate schedule as proposed. The gazetted July 2026 tariff schedule / approved account invoice takes precedence.",
+      "Eligibility conflict: City budget clause 5.4.3 states new Business TOU supply capacity >100 kVA; Focal Energy's 31 Aug 2026 secondary approved-schedule summary says LPU TOU uses the LV LPU qualification band 70–1,000 kVA, with separate MV criteria. Preserve strict >100 kVA as current automated budget-based gate; 70–100 kVA requires approved account tariff / City Power confirmation, not a default eligible/ineligible conclusion."
     ]
   },
   "dffe_grid_emission_factors": {
