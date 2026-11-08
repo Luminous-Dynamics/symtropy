@@ -143,7 +143,9 @@ fn ceil_div(numerator: u128, denominator: u128) -> Result<u128, ConformalError> 
     if numerator % denominator == 0 {
         Ok(quotient)
     } else {
-        quotient.checked_add(1).ok_or(ConformalError::ArithmeticOverflow)
+        quotient
+            .checked_add(1)
+            .ok_or(ConformalError::ArithmeticOverflow)
     }
 }
 
