@@ -9,7 +9,8 @@ Standalone, dependency-free Rust evaluator for deterministic City Power 2026/27 
 - Scans every minute inside each interval, rejecting any interval that crosses a tariff-band boundary even when its first and last minutes happen to share the same band.
 - Preserves the Saturday 18:00–20:00 source-text ambiguity until an approved account/tariff confirmation reference is supplied.
 - Calculates energy, service, monthly network, billed demand, reactive-energy and optional per-kWh network surcharge components.
-- Requires exactly 12 contiguous prior monthly peak-demand records for the rolling demand ratchet.
+- Requires the complete, contiguous preceding-12-month demand-observation stream at the admitted 30-minute comparator interval; the three highest observations are selected from the stream, and need not be in three different months.
+- Requires source/account evidence for the historical demand averaging interval and the coverage window. The City budget publishes the 12-month / top-three formula but does not specify its interval in the tariff clause; a 25 September 2026 engineering-provider explanation says City Power counts every half-hour slot. The approved account meter/tariff statement remains authoritative; unsupported interval bases are rejected.
 - Requires full-month contiguous interval coverage: day 1 starts at 00:00, each interval begins at the prior interval's end, every date is present, and the last interval ends at 24:00 on the billing month's last day. Zero-kWh intervals are valid and must still be represented.
 - Requires one day-class and one date-specific public-holiday evidence reference across every interval on the same local date. It does not infer South African public-holiday status or convert timezones.
 - Accepts the Business/LPU account surcharge and VAT only as externally assessed invoice lines with evidence references. It does not guess their bases or hardcode VAT.
