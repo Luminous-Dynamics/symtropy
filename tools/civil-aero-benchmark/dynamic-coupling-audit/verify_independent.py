@@ -387,7 +387,7 @@ def main() -> int:
         for name, case in fixture["added_mass_cases"].items():
             result = added_mass_oracle(case)
             require(result["status"] == case["expected_status"], f"{name}: frozen status mismatch")
-            close(result["exact_acceleration_m_per_s2"], case["expected_acceleration_m_per_s2"] or result["exact_acceleration_m_per_s2"], name + ".exact")
+            close(result["exact_acceleration_m_per_s2"], case["expected_exact_acceleration_m_per_s2"], name + ".exact")
             close(result["amplification_factor"], case["expected_amplification_factor"], name + ".amplification")
             if case["expected_acceleration_m_per_s2"] is None:
                 require(result["acceleration_m_per_s2"] is None, f"{name}: non-converged result promoted")
