@@ -858,8 +858,7 @@ pub fn calculate_bill(input: &TariffInput) -> Result<BillReceipt, CalcError> {
         prior_date = interval.local_date.clone();
         prior_end = interval.local_start_minute + interval.duration_minutes;
         prior_day_class = Some(interval.day_class);
-        prior_public_holiday_evidence =
-            interval.public_holiday_evidence_reference.clone();
+        prior_public_holiday_evidence = interval.public_holiday_evidence_reference.clone();
     }
 
     let (_, _, last_covered_day) = parse_date(&prior_date)?;
@@ -1742,7 +1741,11 @@ mod tests {
     fn date_and_day_class_must_agree() {
         let mut input = fixture();
         // 1 July 2026 is a Wednesday, so it cannot use Saturday/Public Holiday bands.
-        for interval in input.intervals.iter_mut().filter(|i| i.local_date == "2026-07-01") {
+        for interval in input
+            .intervals
+            .iter_mut()
+            .filter(|i| i.local_date == "2026-07-01")
+        {
             interval.day_class = DayClass::SaturdayOrPublicHoliday;
         }
         assert_eq!(
@@ -1750,13 +1753,21 @@ mod tests {
             CalcError::PublicHolidayEvidenceMissing
         );
 
-        for interval in input.intervals.iter_mut().filter(|i| i.local_date == "2026-07-01") {
+        for interval in input
+            .intervals
+            .iter_mut()
+            .filter(|i| i.local_date == "2026-07-01")
+        {
             interval.public_holiday_evidence_reference =
                 Some("SYNTHETIC-DATE-SPECIFIC-PUBLIC-HOLIDAY-A".to_owned());
         }
         let holiday_receipt_a = calculate_bill(&input).unwrap();
 
-        for interval in input.intervals.iter_mut().filter(|i| i.local_date == "2026-07-01") {
+        for interval in input
+            .intervals
+            .iter_mut()
+            .filter(|i| i.local_date == "2026-07-01")
+        {
             interval.public_holiday_evidence_reference =
                 Some("SYNTHETIC-DATE-SPECIFIC-PUBLIC-HOLIDAY-B".to_owned());
         }
@@ -1767,7 +1778,11 @@ mod tests {
             "the date-specific public-holiday evidence must be bound into the input fingerprint"
         );
 
-        for interval in input.intervals.iter_mut().filter(|i| i.local_date == "2026-07-01") {
+        for interval in input
+            .intervals
+            .iter_mut()
+            .filter(|i| i.local_date == "2026-07-01")
+        {
             interval.public_holiday_evidence_reference = None;
             interval.day_class = DayClass::Sunday;
         }
@@ -1776,7 +1791,11 @@ mod tests {
             CalcError::DayClassDoesNotMatchDate
         );
 
-        for interval in input.intervals.iter_mut().filter(|i| i.local_date == "2026-07-05") {
+        for interval in input
+            .intervals
+            .iter_mut()
+            .filter(|i| i.local_date == "2026-07-05")
+        {
             interval.day_class = DayClass::Sunday;
         }
         assert!(calculate_bill(&input).is_ok(), "2026-07-05 is a Sunday");
@@ -1916,7 +1935,11 @@ mod tests {
     #[test]
     fn public_holiday_evidence_must_be_constant_across_all_intervals_on_a_date() {
         let mut input = fixture();
-        for interval in input.intervals.iter_mut().filter(|i| i.local_date == "2026-07-01") {
+        for interval in input
+            .intervals
+            .iter_mut()
+            .filter(|i| i.local_date == "2026-07-01")
+        {
             interval.day_class = DayClass::SaturdayOrPublicHoliday;
             interval.public_holiday_evidence_reference =
                 Some("SYNTHETIC-DATE-SPECIFIC-PUBLIC-HOLIDAY-A".to_owned());
