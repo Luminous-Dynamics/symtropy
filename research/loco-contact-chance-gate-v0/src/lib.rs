@@ -622,10 +622,35 @@ fn assess_candidate(
 /// if each marginal tail bound is valid, the union bound controls their union.
 /// Only candidates that pass all five bounds are ranked by expected
 /// information gain. Rejected/abstained candidates remain in the report.
+/// Convenience API for a one-step family-wise budget. Allocates that budget
+/// equally across the five constraints using deterministic integer ppb.
 pub fn evaluate_actions(
     candidates: &[ActionCandidate],
     limits: &PhysicalLimits,
     familywise_alpha_ppb: u64,
+    expected_domain_digest: &str,
+    now_ns: u64,
+) -> Result<ChanceGateReport, ChanceError> {
+    let allocation = allocate_bonferroni_alpha(familywise_alpha_ppb)?;
+    evaluate_actions_with_allocation(
+        candidates,
+        limits,
+        allocation,
+        expected_domain_digest,
+        now_ns,
+    )
+}
+
+/// Evaluate actions with an exact preallocated alpha for each constraint.
+///
+/// This is the composition API for the finite-horizon ledger in #4245:
+/// callers pass the exact [step][constraint] allocation returned by the
+/// immutable horizon risk plan. The function does not re-split, round or
+/// redistribute those five values.
+pub fn evaluate_actions_with_allocation(
+    candidates: &[ActionCandidate],
+    limits: &PhysicalLimits,
+    allocation: [u64; CONSTRAINT_COUNT],
     expected_domain_digest: &str,
     now_ns: u64,
 ) -> Result<ChanceGateReport, ChanceError> {
@@ -636,7 +661,16 @@ pub fn evaluate_actions(
         return Err(ChanceError::EmptyDomainIdentity);
     }
     limits.validate()?;
-    let allocation = allocate_bonferroni_alpha(familywise_alpha_ppb)?;
+    if allocation.contains(&0) {
+        return Err(ChanceError::InvalidFamilywiseAlpha);
+    }
+    let familywise_alpha_ppb = allocation
+        .iter()
+        .try_fold(0_u64, |sum, value| sum.checked_add(*value))
+        .ok_or(ChanceError::InvalidFamilywiseAlpha)?;
+    if !(MIN_FAMILYWISE_ALPHA_PPB..=MAX_FAMILYWISE_ALPHA_PPB).contains(&familywise_alpha_ppb) {
+        return Err(ChanceError::InvalidFamilywiseAlpha);
+    }
 
     let mut ids = std::collections::BTreeSet::new();
     for candidate in candidates {
@@ -1239,6 +1273,61 @@ mod tests {
             Some(AbstentionReason::ObservedCalibrationTailExceedance)
         );
         assert!(report.eligible_action_ids_by_information.is_empty());
+    }
+
+    #[test]
+    fn exact_horizon_allocation_is_consumed_without_redistribution() {
+        let mut c = candidate("horizon-step", 0.5);
+        c.calibration_receipt.as_mut().unwrap()
+            .independent_validation_units_by_constraint = [1_000; CONSTRAINT_COUNT];
+        let allocation = [3_333_334, 3_333_334, 3_333_333, 3_333_333, 3_333_333];
+        let report = evaluate_actions_with_allocation(
+            &[c],
+            &limits(),
+            allocation,
+            "rough-terrain-v1",
+            2_000,
+        )
+        .unwrap();
+
+        assert_eq!(report.allocated_alpha_ppb, allocation);
+        assert_eq!(report.allocated_alpha_sum_ppb, allocation.iter().sum());
+        assert_eq!(report.familywise_alpha_ppb, 16_666_667);
+        assert_eq!(
+            report.assessments[0]
+                .bounds
+                .iter()
+                .map(|bound| bound.allocated_alpha_ppb)
+                .collect::<Vec<_>>(),
+            allocation
+        );
+    }
+
+    #[test]
+    fn explicit_horizon_allocation_rejects_zero_or_out_of_range_budget() {
+        let zero_event = [10, 10, 10, 10, 0];
+        assert_eq!(
+            evaluate_actions_with_allocation(
+                &[candidate("zero-event", 0.1)],
+                &limits(),
+                zero_event,
+                "rough-terrain-v1",
+                2_000,
+            ),
+            Err(ChanceError::InvalidFamilywiseAlpha)
+        );
+
+        let too_small = [9, 9, 9, 9, 9];
+        assert_eq!(
+            evaluate_actions_with_allocation(
+                &[candidate("too-small", 0.1)],
+                &limits(),
+                too_small,
+                "rough-terrain-v1",
+                2_000,
+            ),
+            Err(ChanceError::InvalidFamilywiseAlpha)
+        );
     }
 
     #[test]
