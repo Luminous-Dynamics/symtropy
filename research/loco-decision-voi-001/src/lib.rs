@@ -134,7 +134,6 @@ pub enum DecisionValueError {
     UnknownFallbackMissing,
     UnknownFallbackNotMarked,
     UnknownFallbackNotAdmitted,
-    NoKnownFallback,
     ArithmeticOverflow,
     ValueOutOfSignedRange,
     OutcomeMassNotNormalized,
@@ -613,14 +612,6 @@ mod tests {
         .expect("known-answer decision-value fixture should evaluate")
     }
 
-    fn ppb(value: f64) -> u128 {
-        (value * SCALE_SQUARED as f64).round() as u128
-    }
-
-    fn voi_ppb3(value: f64) -> i128 {
-        (value * SCALE_CUBED as f64).round() as i128
-    }
-
     #[test]
     fn perfect_information_can_have_zero_decision_value() {
         let report = evaluate(
@@ -697,11 +688,11 @@ mod tests {
             report.expected_posterior_risk_numerator_ppb_cubed,
             400_000_000_000_000_000_000_000_000
         );
-        assert_eq!(report.voi_numerator_ppb_cubed, voi_ppb3(0.09));
+        assert_eq!(report.voi_numerator_ppb_cubed, 90_000_000_000_000_000_000_000_000_i128);
         assert_eq!(report.prior_optimal_decision_ids, vec!["action-A"]);
         assert_eq!(
             report.action_switch_probability_numerator_ppb_squared,
-            Some(ppb(0.498))
+            Some(498_000_000_000_000_000)
         );
         assert!((report.information_gain_nats - 0.020127513529355406).abs() < 1e-12);
         assert_eq!(
@@ -796,7 +787,7 @@ mod tests {
             report.expected_posterior_risk_numerator_ppb_cubed,
             438_400_000_000_000_000_000_000_000
         );
-        assert_eq!(report.voi_numerator_ppb_cubed, voi_ppb3(0.0516));
+        assert_eq!(report.voi_numerator_ppb_cubed, 51_600_000_000_000_000_000_000_000_i128);
         assert_eq!(
             report.action_switch_probability_numerator_ppb_squared,
             Some(ppb(0.498))
@@ -838,7 +829,7 @@ mod tests {
 
     #[test]
     fn unknown_outcome_cannot_silently_drop_fallback() {
-        let mut problem = DecisionProblem {
+        let problem = DecisionProblem {
             now_ns: 500,
             probe: probe(),
             hypotheses: vec![Hypothesis {
@@ -865,8 +856,6 @@ mod tests {
             Err(DecisionValueError::UnknownFallbackMissing)
         );
 
-        // Keep the compiler honest about a mutable fixture in this test.
-        problem.now_ns = 500;
     }
 
     #[test]
