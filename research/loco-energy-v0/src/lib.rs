@@ -115,10 +115,7 @@ impl ExactRational {
         if divisor == 0 {
             return Err(EnergyError::InvalidRatioDenominator);
         }
-        Self::new(
-            self.numerator,
-            checked_mul(self.denominator, divisor)?,
-        )
+        Self::new(self.numerator, checked_mul(self.denominator, divisor)?)
     }
 }
 
@@ -130,7 +127,10 @@ pub struct SignedRational {
 }
 
 impl SignedRational {
-    fn positive_minus(positive: ExactRational, negative: ExactRational) -> Result<Self, EnergyError> {
+    fn positive_minus(
+        positive: ExactRational,
+        negative: ExactRational,
+    ) -> Result<Self, EnergyError> {
         match positive.checked_cmp(negative)? {
             std::cmp::Ordering::Greater => Ok(Self {
                 negative: false,
@@ -173,11 +173,13 @@ fn gcd(mut left: u128, mut right: u128) -> u128 {
 }
 
 fn checked_add(left: u128, right: u128) -> Result<u128, EnergyError> {
-    left.checked_add(right).ok_or(EnergyError::ArithmeticOverflow)
+    left.checked_add(right)
+        .ok_or(EnergyError::ArithmeticOverflow)
 }
 
 fn checked_mul(left: u128, right: u128) -> Result<u128, EnergyError> {
-    left.checked_mul(right).ok_or(EnergyError::ArithmeticOverflow)
+    left.checked_mul(right)
+        .ok_or(EnergyError::ArithmeticOverflow)
 }
 
 fn nonblank(value: &str) -> bool {
@@ -386,10 +388,10 @@ impl BoundaryEnergyLedger {
         negative: ExactRational,
         sample_count: u128,
     ) -> Result<(), EnergyError> {
-        self.positive_energy_zeptojoule =
-            self.positive_energy_zeptojoule.checked_add(positive)?;
-        self.negative_energy_magnitude_zeptojoule =
-            self.negative_energy_magnitude_zeptojoule.checked_add(negative)?;
+        self.positive_energy_zeptojoule = self.positive_energy_zeptojoule.checked_add(positive)?;
+        self.negative_energy_magnitude_zeptojoule = self
+            .negative_energy_magnitude_zeptojoule
+            .checked_add(negative)?;
         self.net_energy_zeptojoule = SignedRational::positive_minus(
             self.positive_energy_zeptojoule,
             self.negative_energy_magnitude_zeptojoule,
@@ -562,10 +564,7 @@ impl EnergyRun {
         // normalizing denominator in zJ, because 1 mg*um*um/s^2 = 1e-18 J.
         let denominator_zeptojoule = checked_mul(
             checked_mul(
-                checked_mul(
-                    u128::from(self.mass_mg),
-                    u128::from(self.gravity_um_s2),
-                )?,
+                checked_mul(u128::from(self.mass_mg), u128::from(self.gravity_um_s2))?,
                 u128::from(self.measured_path_distance_um),
             )?,
             1_000,
@@ -619,9 +618,7 @@ impl EnergyRunReport {
 /// Integrate a piecewise-linear signed-power signal by exact trapezoids.
 /// Positive and negative lobes are split analytically when a segment crosses
 /// zero; no negative samples are silently clipped.
-fn integrate_stream(
-    stream: &PowerStream,
-) -> Result<(ExactRational, ExactRational), EnergyError> {
+fn integrate_stream(stream: &PowerStream) -> Result<(ExactRational, ExactRational), EnergyError> {
     let mut positive = ExactRational::zero();
     let mut negative = ExactRational::zero();
 
@@ -633,9 +630,7 @@ fn integrate_stream(
             .checked_sub(left.timestamp_ns)
             .ok_or_else(|| EnergyError::NonMonotonicTimestamp(stream.stream_id.clone()))?;
         if duration_ns == 0 {
-            return Err(EnergyError::NonMonotonicTimestamp(
-                stream.stream_id.clone(),
-            ));
+            return Err(EnergyError::NonMonotonicTimestamp(stream.stream_id.clone()));
         }
         if duration_ns > stream.maximum_sample_gap_ns {
             return Err(EnergyError::GapExceedsPolicy {
@@ -669,19 +664,13 @@ fn integrate_segment(
     if left_positive && right_positive {
         let sum = checked_add(left_magnitude, right_magnitude)?;
         let numerator = checked_mul(sum, duration_ns)?;
-        return Ok((
-            ExactRational::new(numerator, 2)?,
-            ExactRational::zero(),
-        ));
+        return Ok((ExactRational::new(numerator, 2)?, ExactRational::zero()));
     }
 
     if !left_positive && !right_positive {
         let sum = checked_add(left_magnitude, right_magnitude)?;
         let numerator = checked_mul(sum, duration_ns)?;
-        return Ok((
-            ExactRational::zero(),
-            ExactRational::new(numerator, 2)?,
-        ));
+        return Ok((ExactRational::zero(), ExactRational::new(numerator, 2)?));
     }
 
     // A strict sign change produces one positive and one negative triangle.
@@ -693,14 +682,10 @@ fn integrate_segment(
     };
     let sum = checked_add(positive_power, negative_power)?;
     let denominator = checked_mul(2, sum)?;
-    let positive_numerator = checked_mul(
-        checked_mul(positive_power, positive_power)?,
-        duration_ns,
-    )?;
-    let negative_numerator = checked_mul(
-        checked_mul(negative_power, negative_power)?,
-        duration_ns,
-    )?;
+    let positive_numerator =
+        checked_mul(checked_mul(positive_power, positive_power)?, duration_ns)?;
+    let negative_numerator =
+        checked_mul(checked_mul(negative_power, negative_power)?, duration_ns)?;
 
     Ok((
         ExactRational::new(positive_numerator, denominator)?,
@@ -754,7 +739,10 @@ mod tests {
         let input = stream(
             "battery",
             EnergyBoundary::BatteryTerminal,
-            vec![sample("a", 0, 1_000_000), sample("b", 1_000_000_000, 1_000_000)],
+            vec![
+                sample("a", 0, 1_000_000),
+                sample("b", 1_000_000_000, 1_000_000),
+            ],
             1_000_000_000,
         );
         let report = run(1_000_000).evaluate(&[input]).unwrap();
@@ -767,7 +755,10 @@ mod tests {
             ledger.negative_energy_magnitude_zeptojoule,
             ExactRational::zero()
         );
-        assert_eq!(ledger.net_energy_zeptojoule.magnitude, ledger.positive_energy_zeptojoule);
+        assert_eq!(
+            ledger.net_energy_zeptojoule.magnitude,
+            ledger.positive_energy_zeptojoule
+        );
     }
 
     #[test]
@@ -839,12 +830,11 @@ mod tests {
 
     #[test]
     fn battery_voltage_current_units_convert_to_picowatts_exactly() {
-        let sample = PowerSample::from_battery_vi("draw".to_owned(), 0, 24_000_000, 2_000_000)
-            .unwrap();
+        let sample =
+            PowerSample::from_battery_vi("draw".to_owned(), 0, 24_000_000, 2_000_000).unwrap();
         assert_eq!(sample.signed_power_pw, 48_000_000_000_000);
         let returned =
-            PowerSample::from_battery_vi("return".to_owned(), 1, 24_000_000, -100_000)
-                .unwrap();
+            PowerSample::from_battery_vi("return".to_owned(), 1, 24_000_000, -100_000).unwrap();
         assert_eq!(returned.signed_power_pw, -2_400_000_000_000);
     }
 
@@ -934,10 +924,7 @@ mod tests {
         let cot = report.transport_metrics.cost_of_transport.unwrap();
         assert_eq!(cot.discharge, ExactRational::new(1, 1).unwrap());
         assert_eq!(cot.returned, ExactRational::zero());
-        assert_eq!(
-            cot.net.magnitude,
-            ExactRational::new(1, 1).unwrap()
-        );
+        assert_eq!(cot.net.magnitude, ExactRational::new(1, 1).unwrap());
     }
 
     #[test]
@@ -1117,12 +1104,18 @@ mod tests {
 
     #[test]
     fn arithmetic_overflow_is_rejected() {
-        assert_eq!(checked_add(u128::MAX, 1), Err(EnergyError::ArithmeticOverflow));
-        assert_eq!(checked_mul(u128::MAX, 2), Err(EnergyError::ArithmeticOverflow));
         assert_eq!(
-            ExactRational::new(u128::MAX, 1).unwrap().checked_add(
-                ExactRational::new(1, 1).unwrap()
-            ),
+            checked_add(u128::MAX, 1),
+            Err(EnergyError::ArithmeticOverflow)
+        );
+        assert_eq!(
+            checked_mul(u128::MAX, 2),
+            Err(EnergyError::ArithmeticOverflow)
+        );
+        assert_eq!(
+            ExactRational::new(u128::MAX, 1)
+                .unwrap()
+                .checked_add(ExactRational::new(1, 1).unwrap()),
             Err(EnergyError::ArithmeticOverflow)
         );
     }
@@ -1151,9 +1144,6 @@ mod tests {
         let first = run(1_000_000).evaluate(&[a.clone(), b.clone()]).unwrap();
         let second = run(1_000_000).evaluate(&[b, a]).unwrap();
         assert_eq!(first.boundary_ledgers, second.boundary_ledgers);
-        assert_eq!(
-            first.transport_metrics,
-            second.transport_metrics
-        );
+        assert_eq!(first.transport_metrics, second.transport_metrics);
     }
 }
