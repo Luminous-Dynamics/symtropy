@@ -323,6 +323,7 @@ def evaluate(request: dict[str, Any]) -> dict[str, Any]:
             "units": channel["units"],
             "coordinate_frame": channel["coordinate_frame"],
             "sample_id": channel["sample_id"],
+            "normalization_scale": float(channel["normalization_scale"]),
             "reference_value": float(channel["reference_value"]),
             "simulation_value": float(channel["simulation_value"]),
             "physical_residual": float(channel["simulation_value"]) - float(channel["reference_value"]),
@@ -346,14 +347,9 @@ def evaluate(request: dict[str, Any]) -> dict[str, Any]:
         protocol = limit["protocol_sha256"]
         status = "EXCEEDS_DECLARED_LIMIT" if d2 > max_d2 or maximum_z > max_z else "WITHIN_DECLARED_LIMIT"
 
-    diag_values = [total[i][i] for i in range(len(ids))]
-    min_pivot = max_pivot = 0.0
-    # Use the same Cholesky diagonal pivot definitions as the Rust result.
-    for i in range(len(ids)):
-        # Recover the positive pivot as the variance remaining after earlier columns.
-        residual = total[i][i] - sum(lower[i][k] ** 2 for k in range(i))
-        min_pivot = residual if i == 0 else min(min_pivot, residual)
-        max_pivot = max(max_pivot, residual)
+    pivots = [lower[index][index] for index in range(len(ids))]
+    min_pivot = min(pivots)
+    max_pivot = max(pivots)
 
     return {
         "schema_version": "aero-response-vvuq-result/0.1.0",
@@ -369,6 +365,13 @@ def evaluate(request: dict[str, Any]) -> dict[str, Any]:
         "maximum_absolute_marginal_z": maximum_z,
         "uncertainty_sources": receipts,
         "cross_source_covariance_source_id": cross.get("source_id") if cross is not None else None,
+        "cross_source_uncertainty": ({
+            "source_id": cross["source_id"],
+            "artifact_sha256": cross["artifact_sha256"],
+            "estimator_build_sha256": cross["estimator_build_sha256"],
+            "calibration_dataset_sha256": cross["calibration_dataset_sha256"],
+            "calibration_envelope_sha256": cross["calibration_envelope_sha256"],
+        } if cross is not None else None),
         "decision_status": status,
         "decision_limit_d2": max_d2,
         "decision_limit_max_abs_marginal_z": max_z,
@@ -410,10 +413,26 @@ def compare_rust(actual: dict[str, Any], expected: dict[str, Any]) -> None:
     ):
         require(math.isclose(float(actual[key]), float(expected[key]), rel_tol=1e-10, abs_tol=1e-12),
                 f"Rust/Python numeric mismatch for {key}")
-    require(actual.get("channel_diagnostics") == expected.get("channel_diagnostics"),
-            "Rust/Python channel diagnostic mismatch")
+    actual_channels = actual.get("channel_diagnostics")
+    expected_channels = expected.get("channel_diagnostics")
+    require(isinstance(actual_channels, list) and len(actual_channels) == len(expected_channels),
+            "Rust/Python channel diagnostic count mismatch")
+    for index, (actual_channel, expected_channel) in enumerate(zip(actual_channels, expected_channels)):
+        for key in ("id", "quantity", "units", "coordinate_frame", "sample_id"):
+            require(actual_channel.get(key) == expected_channel.get(key),
+                    f"Rust/Python channel {index} metadata mismatch for {key}")
+        for key in (
+            "normalization_scale", "reference_value", "simulation_value",
+            "physical_residual", "normalized_residual", "combined_standard_deviation",
+            "marginal_standardized_residual",
+        ):
+            require(math.isclose(float(actual_channel[key]), float(expected_channel[key]),
+                                 rel_tol=1e-10, abs_tol=1e-12),
+                    f"Rust/Python channel {index} numeric mismatch for {key}")
     require(actual.get("uncertainty_sources") == expected.get("uncertainty_sources"),
             "Rust/Python uncertainty source receipt mismatch")
+    require(actual.get("cross_source_uncertainty") == expected.get("cross_source_uncertainty"),
+            "Rust/Python cross-source receipt mismatch")
 
 
 def hostile_controls(request: dict[str, Any]) -> None:
