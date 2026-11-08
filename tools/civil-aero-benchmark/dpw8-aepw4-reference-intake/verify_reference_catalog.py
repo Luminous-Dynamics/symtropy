@@ -174,6 +174,11 @@ def validate_case(case: dict[str, Any], source_ids: set[str]) -> None:
     for source_id in refs:
         require(source_id in source_ids, f"{case_id}: dangling structural source reference {source_id}")
 
+    case_sheet_refs = case.get("case_sheet_source_ids", [])
+    require(isinstance(case_sheet_refs, list), f"{case_id}.case_sheet_source_ids must be a list")
+    for source_id in case_sheet_refs:
+        require(source_id in source_ids, f"{case_id}: dangling case-sheet source reference {source_id}")
+
     ceiling = case.get("claim_ceiling")
     require(isinstance(ceiling, str) and ceiling.strip(), f"{case_id}: explicit claim ceiling required")
 
@@ -239,21 +244,41 @@ def validate_catalog(data: dict[str, Any]) -> None:
     require(static_fsi["measured_span_stations_eta"] == [0.0, 0.4286, 0.5546, 0.6773, 0.7954, 0.9150],
             "CRM measured span station schedule changed")
 
-    require(static_fsi["conditions"].get("angle_of_attack_deg") == 2.5,
-            "CRM FSI 2a(E) angle-of-attack reference mismatch")
+    require(static_fsi["conditions"].get("lift_coefficient_target") == 0.5,
+            "CRM FSI 2a(E) lift coefficient target mismatch")
+    require(static_fsi["conditions"].get("lift_coefficient_tolerance") == 0.0001,
+            "CRM FSI 2a(E) lift coefficient tolerance mismatch")
+    require(static_fsi["conditions"].get("angle_of_attack_approx_deg") == 2.75,
+            "CRM FSI 2a(E) approximate trim angle mismatch")
+    require("angle_of_attack_deg" not in static_fsi["conditions"],
+            "CRM FSI 2a(E) must not substitute rigid 2a's exact 2.50 degree angle")
     require(static_fsi["conditions"].get("static_temperature_f") == 120.0,
             "CRM FSI 2a(E) temperature in degrees F mismatch")
     require(static_fsi["conditions"].get("static_temperature_k") == 322.04,
             "CRM FSI 2a(E) temperature in kelvin mismatch")
+    require(static_fsi["conditions"].get("initial_geometry") == "jig_unloaded_wind_off",
+            "CRM FSI 2a(E) initial geometry mismatch")
 
     static_polar = next((case for case in cases if case["case_id"] == "DPW8-CRM-STATIC-FSI-2B-E"), None)
     require(static_polar is not None, "CRM static FSI 2b(E) case missing")
-    require(static_polar["conditions"].get("angles_of_attack_deg") == [-1.5, 2.5, 3.0, 3.5, 4.0, 4.5],
+    require(static_polar["conditions"].get("angles_of_attack_deg") ==
+            [-1.5, 0.0, 1.5, 2.5, 3.0, 3.5, 4.0, 4.5],
             "CRM static FSI 2b(E) angle schedule mismatch")
     require(static_polar["conditions"].get("static_temperature_f") == 120.0,
             "CRM static FSI 2b(E) temperature mismatch")
+    require(static_polar["conditions"].get("static_temperature_k") == 322.04,
+            "CRM static FSI 2b(E) kelvin mismatch")
+    require(static_polar["conditions"].get("initial_geometry") == "jig_unloaded_wind_off",
+            "CRM static FSI 2b(E) initial geometry mismatch")
     require(static_polar["grid_family"].get("levels") == [3],
             "CRM static FSI 2b(E) grid level mismatch")
+
+    require(rigid_grid["conditions"].get("angle_of_attack_deg") == 2.5,
+            "Rigid Configuration B 2a must remain alpha=2.50 deg")
+    require(static_fsi["case_sheet_source_ids"] == ["aiaa-static-fsi-2ae-2be-case-sheet"],
+            "Elastic 2a(E) must bind its dedicated AIAA case sheet")
+    require(static_polar["case_sheet_source_ids"] == ["aiaa-static-fsi-2ae-2be-case-sheet"],
+            "Elastic 2b(E) must bind its dedicated AIAA case sheet")
 
     rigid_grid = next((case for case in cases if case["case_id"] == "DPW8-CRM-RIGID-2A"), None)
     rigid_polar = next((case for case in cases if case["case_id"] == "DPW8-CRM-RIGID-2B"), None)
