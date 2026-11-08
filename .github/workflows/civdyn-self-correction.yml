@@ -79,6 +79,66 @@ jobs:
               print "Causal-drift CSV valid: 20 regime/controller cases, 24 columns; causal and confounder controls passed"
             }
           ' /tmp/civdyn-causal-drift.csv
+      - name: Verify noisy seeded confirmatory rates and confidence intervals
+        run: |
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin seeded-drift-sweep > /tmp/civdyn-seeded-summary.csv
+          awk -F, '
+            NR == 1 { if (NF != 34) exit 40; next }
+            NF != 34 { exit 41 }
+            {
+              rows++
+              if ($7 != "true" || ($3 + 0) > 1 || $4 != "512" || $6 != "1536") exit 42
+              if ($12 != "1000") exit 43
+              if (($16 + 0) > ($15 + 0) || ($15 + 0) > ($17 + 0)) exit 44
+              if (($21 + 0) > ($20 + 0) || ($20 + 0) > ($22 + 0)) exit 45
+            }
+            $10 == "stable_positive" && $11 == "mechanism_aware" {
+              stable_aware++
+              if ($23 != "0" || ($20 + 0) < 0.990) exit 46
+            }
+            $10 == "stable_positive" && $11 == "cusum_signal_only" {
+              stable_cusum++
+              if (($18 + 0) > 10 || ($17 + 0) > 0.010) exit 47
+            }
+            $10 == "sign_reversal" && $11 == "mechanism_aware" {
+              abrupt_aware++
+              if (($20 + 0) < 0.950 || ($24 + 0) > 50) exit 48
+            }
+            $10 == "gradual_sign_reversal" && $11 == "mechanism_aware" {
+              gradual_aware++
+              if (($20 + 0) < 0.950 || ($24 + 0) > 50) exit 49
+            }
+            $10 == "confounded_null" && $11 == "mechanism_aware" {
+              null_aware++
+              if (($20 + 0) < 0.950 || ($24 + 0) > 50) exit 50
+            }
+            $10 == "confounder_shift" && $11 == "cusum_signal_only" {
+              conf_signal++
+              if (($29 + 0) < 2.500) exit 51
+            }
+            $10 == "confounder_shift" && $11 == "mechanism_aware" {
+              conf_aware++
+              if (($20 + 0) < 0.950 || ($29 + 0) > 0.100 || ($24 + 0) > 50) exit 52
+            }
+            END {
+              if (rows != 20 || stable_aware != 1 || stable_cusum != 1 || abrupt_aware != 1 || gradual_aware != 1 || null_aware != 1 || conf_signal != 1 || conf_aware != 1) exit 53
+              print "Seeded report valid: 5 regimes × 4 controllers, 1000 disjoint confirmatory seeds, Wilson intervals and all mechanism gates passed"
+            }
+          ' /tmp/civdyn-seeded-summary.csv
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin seeded-drift-replicates > /tmp/civdyn-seeded-replicates.csv
+          awk -F, '
+            NR == 1 { if (NF != 17) exit 54; next }
+            NF != 17 { exit 55 }
+            {
+              key = $1 FS $2 FS $3
+              if (seen[key]++) exit 56
+              rows++
+            }
+            END {
+              if (rows != 20000) exit 57
+              print "Replicate receipt valid: 20,000 unique regime/controller/seed records retained"
+            }
+          ' /tmp/civdyn-seeded-replicates.csv
       - name: Verify deterministic CSV contract and known-answer outputs
         run: |
           cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin self-correction-sweep > /tmp/civdyn-self-correction.csv
