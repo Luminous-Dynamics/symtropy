@@ -446,8 +446,8 @@ mod tests {
     #[test]
     fn one_model_id_cannot_alias_different_model_digests() {
         let conflicting = NOMINAL.replace(
+            "POSE_B\tNOMINAL\tdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
             "POSE_B\tNOMINAL\teeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-            "POSE_B\tNOMINAL\tffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
         );
         assert!(parse_case(&conflicting).is_err());
     }
