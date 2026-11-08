@@ -24,7 +24,7 @@ pub const MAX_PREDECLARED_LOOKS: usize = 4;
 /// Conservative one-sided critical value. At each of four planned looks,
 /// z=2.5 is more conservative than Bonferroni alpha=0.05/4 under a normal
 /// approximation. The sample has 1024 matched pairs per look.
-pub const FAMILYWISE_CRITICAL_VALUE: f64 = 2.5;
+pub const FAMILYWISE_CRITICAL_VALUE: f64 = 2.8;
 pub const NOISY_PROBE_COST: f64 = 0.25;
 pub const NOISY_BASE_SEED: u64 = 0x4349_5644_594e_3236;
 
@@ -437,7 +437,7 @@ mod tests {
     fn sample_size_and_repeated_look_contract_are_explicit() {
         assert_eq!(MATCHED_PAIRS_PER_LOOK, 2048);
         assert_eq!(MAX_PREDECLARED_LOOKS, 4);
-        assert_eq!(FAMILYWISE_CRITICAL_VALUE, 2.5);
+        assert_eq!(FAMILYWISE_CRITICAL_VALUE, 2.8);
         assert_eq!(NOISY_SEEDS, 256);
     }
 }
