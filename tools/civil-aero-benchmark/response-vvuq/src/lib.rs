@@ -418,9 +418,7 @@ fn validate_covariance_provenance(
             ));
         };
         if bounds.len() != block.channel_ids.len() {
-            return error(format!(
-                "{label}: calibration envelope dimension mismatch"
-            ));
+            return error(format!("{label}: calibration envelope dimension mismatch"));
         }
         for (index, value) in bounds.iter().enumerate() {
             finite(*value, &format!("{label} variance envelope[{index}]"))?;
