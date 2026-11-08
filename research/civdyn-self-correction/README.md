@@ -113,6 +113,27 @@ The confirmatory software gate requires:
 
 These are predeclared synthetic-generator operating-characteristic gates, not estimates of real-world performance or guarantees for other distributions. Failed seeds remain in the CSV and cannot be discarded.
 
+## Scenario E: fixed-look versus anytime-valid causal probes
+
+The fixed-look benchmark in Scenario D uses the full sample maximum at each scheduled look. This extension consumes the exact same deterministic nested paired-difference streams but stops reading each stream as soon as an anytime-valid boundary is crossed.
+
+Three Gaussian e-processes are evaluated:
+- **Negative-effect test:** null mean effect is at least 0; negative-effect evidence requires the e-value to cross its boundary.
+- **Below-threshold test:** null mean effect is at least 0.5; crossing supports stopping the action, but does not imply the effect is negative.
+- **Positive-benefit test:** null mean effect is at most 0.5; crossing supports retention of a beneficial intervention.
+
+The paired-difference variance is known from the synthetic generator: each treatment/control outcome has independent Gaussian noise with standard deviation 2.0, so the paired difference variance is 8. The e-process increment is:
+
+`log E_n = log E_(n-1) + λ (D_n - c) - λ² σ² / 2`
+
+where `D_n` is the paired treatment-control difference, `c` is the tested boundary, `σ²=8`, and the betting parameter `λ` is chosen on the null side. For a Gaussian null on the appropriate side of `c`, the expected multiplicative increment is `exp(λ(μ-c)) ≤ 1`; this is the nonnegative test-supermartingale property used by Ville's inequality.
+
+There are three one-sided processes at four predeclared looks, so each receives alpha `0.05 / 12` and crosses at e-value 240. The implementation is conditional on independent Gaussian paired differences and known variance. It is not distribution-free. Heteroskedasticity, dependence, missingness and variance misspecification require separate methods and invalidation controls.
+
+The comparison runner executes the fixed-look method and the anytime method with the same episode seed and same per-look sample streams. It retains both decisions, policy consequences, fixed and anytime sample counts, per-look sample consumption and log e-values. It reports sample reduction rather than using a single blended quality score.
+
+The CI operating gates require at least 250/256 correct episodes in each non-beneficial/corrective regime, no policy shutdown on stable-positive episodes, retention of the beneficial action after confounder-only shift, no more than five false negative-effect labels under the null, and at least 30% fewer matched pairs overall versus the fixed-look baseline. These are synthetic-generator acceptance gates; failed seed rows are retained.
+
 ## Run
 
 ```sh
@@ -123,6 +144,7 @@ cargo test --locked --manifest-path research/civdyn-self-correction/Cargo.toml -
 cargo run --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin self-correction-sweep
 cargo run --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin causal-drift-sweep
 cargo run --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin noisy-causal-drift-sweep
+cargo run --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin sequential-probe-comparison
 ```
 
 ## Claim ceiling
