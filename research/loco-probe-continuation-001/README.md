@@ -19,6 +19,9 @@ This workstream is the composition layer between the physical consequence of a p
 | Contact evidence and action-conditioned likelihoods | #4004 / #4008 | Sensor evidence, action and likelihood identity |
 | Joint correlated contact fusion | #4017 / #4230 | Calibrated joint update; no independence shortcut |
 | Belief-space semantics | #4100 | Epistemic, aleatoric and sensor-health separation |
+| Whole-system energy boundary | #4044 | Battery/source, DC bus, actuator electrical and mechanical work ledgers |
+| Actuator loss maps and sim-to-real transfer | #4179 | Calibrated actuator electrical/mechanical loss model; PACE comparator |
+| Command-to-motion actuator dynamics | #4206 | Delivered motion, delay, saturation, stiction and transient friction |
 | Finite robust viability/recovery | #4058 / #4061 | Upstream viable/recoverable state sets |
 | Sound hybrid transition abstraction | #4083 | Conservative finite physical branch set |
 | Certificate lifecycle | #4117 / #4119 | Model, actuator, clock and deadline validity |
@@ -193,6 +196,23 @@ Source: https://doi.org/10.3390/s26196041
 Standardized whole-machine locomotion-performance methods; explicitly not intended for safety verification/validation.
 
 Source: https://committee.iso.org/cms/live/live/en/sites/isoorg/contents/data/standard/08/68/86850.html
+
+### PACE — Bjelonic, Tischhauser & Hutter, IJRR, 31 July 2026
+
+PACE combines bottom-up actuator identification with a physics-grounded permanent-magnet synchronous motor energy model and sim-to-real RL. The paper reports 32% reduction in full Cost of Transport for ANYmal (reported value 1.27) and transfer to ten additional robots. Its published dataset and code enable a reproducible energy/model-transfer comparator. These results are platform and energy-boundary specific; they are not directly comparable with RAIBO2 or Symtropy's FlyGym/SPINDER tasks.
+
+Sources:
+- https://doi.org/10.1177/02783649261459628
+- https://doi.org/10.3929/ethz-c-000803792
+- https://github.com/leggedrobotics/pace-sim2real
+
+### RAIBO2 — Lee et al., Nature, 23 September 2026
+
+RAIBO2 completed a 42.195 km marathon in 4 h 19 min 52 s on one battery charge. The study reports total Cost of Transport 0.25 and more than three times the travel range of existing quadrupeds, attributing the result to a system-level combination of lightweight force-transparent mechanics, low-loss motor driving and locomotion policy. The Nature Portfolio event summary reports 1,280 Wh consumed and 2.64 m/s average speed. This is an essential hardware/software co-design reference, not a controller-only baseline or directly comparable FlyGym/biological result.
+
+Sources:
+- https://doi.org/10.1038/s41586-026-11102-5
+- https://www.natureasia.com/en/info/press-releases/detail/9447
 
 ### Impact-aware robust convex MPC
 
