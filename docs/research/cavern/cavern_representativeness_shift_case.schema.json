@@ -1,0 +1,300 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/cavern/cavern_representativeness_shift_case.schema.json",
+  "title": "Cavern Representative Measurement Shift Counterexample",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "case_id",
+    "evidence_class",
+    "decision_loss",
+    "strata",
+    "sampling_profiles",
+    "measurements",
+    "no_measurement_baseline",
+    "expected_rankings",
+    "claim_limitations"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "benchmark_id": {
+      "const": "CAVERN-REPRESENTATIVENESS-SHIFT-001"
+    },
+    "case_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence_class": {
+      "const": "SYNTHETIC_ONLY"
+    },
+    "decision_loss": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "false_accept_cost",
+        "false_reject_cost",
+        "accept_if_posterior_at_or_below"
+      ],
+      "properties": {
+        "false_accept_cost": {
+          "const": 3
+        },
+        "false_reject_cost": {
+          "const": 1
+        },
+        "accept_if_posterior_at_or_below": {
+          "const": 0.25
+        }
+      }
+    },
+    "strata": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "defect_prior"
+        ],
+        "properties": {
+          "id": {
+            "enum": [
+              "routine",
+              "thermal_stress"
+            ]
+          },
+          "defect_prior": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "exclusiveMaximum": 1
+          }
+        }
+      }
+    },
+    "sampling_profiles": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "training",
+        "deployment_shift"
+      ],
+      "properties": {
+        "training": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "routine_weight",
+            "thermal_stress_weight",
+            "interpretation"
+          ],
+          "properties": {
+            "routine_weight": {
+              "const": 0.95
+            },
+            "thermal_stress_weight": {
+              "const": 0.05
+            },
+            "interpretation": {
+              "const": "synthetic sampling distribution used to compare acquisition policies"
+            }
+          }
+        },
+        "deployment_shift": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "routine_weight",
+            "thermal_stress_weight",
+            "interpretation"
+          ],
+          "properties": {
+            "routine_weight": {
+              "const": 0.5
+            },
+            "thermal_stress_weight": {
+              "const": 0.5
+            },
+            "interpretation": {
+              "const": "sealed synthetic evaluation distribution; not known to the acquisition policy"
+            }
+          }
+        }
+      }
+    },
+    "measurements": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "description",
+          "operating_characteristics",
+          "per_stratum_expected_information_bits",
+          "per_stratum_expected_decision_loss",
+          "expected_information_bits_training",
+          "expected_decision_loss_training",
+          "expected_decision_loss_deployment_shift"
+        ],
+        "properties": {
+          "id": {
+            "enum": [
+              "M1",
+              "M2"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "operating_characteristics": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "stratum",
+                "sensitivity",
+                "specificity"
+              ],
+              "properties": {
+                "stratum": {
+                  "enum": [
+                    "routine",
+                    "thermal_stress"
+                  ]
+                },
+                "sensitivity": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "specificity": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                }
+              }
+            }
+          },
+          "per_stratum_expected_information_bits": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "stratum",
+                "bits"
+              ],
+              "properties": {
+                "stratum": {
+                  "enum": [
+                    "routine",
+                    "thermal_stress"
+                  ]
+                },
+                "bits": {
+                  "type": "number",
+                  "minimum": 0
+                }
+              }
+            }
+          },
+          "per_stratum_expected_decision_loss": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "stratum",
+                "loss"
+              ],
+              "properties": {
+                "stratum": {
+                  "enum": [
+                    "routine",
+                    "thermal_stress"
+                  ]
+                },
+                "loss": {
+                  "type": "number",
+                  "minimum": 0
+                }
+              }
+            }
+          },
+          "expected_information_bits_training": {
+            "type": "number",
+            "minimum": 0
+          },
+          "expected_decision_loss_training": {
+            "type": "number",
+            "minimum": 0
+          },
+          "expected_decision_loss_deployment_shift": {
+            "type": "number",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "no_measurement_baseline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_decision_loss_training",
+        "expected_decision_loss_deployment_shift"
+      ],
+      "properties": {
+        "expected_decision_loss_training": {
+          "const": 0.0895
+        },
+        "expected_decision_loss_deployment_shift": {
+          "const": 0.355
+        }
+      }
+    },
+    "expected_rankings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "training_maximum_mutual_information",
+        "training_minimum_decision_loss",
+        "deployment_shift_minimum_decision_loss"
+      ],
+      "properties": {
+        "training_maximum_mutual_information": {
+          "const": "M1"
+        },
+        "training_minimum_decision_loss": {
+          "const": "M1"
+        },
+        "deployment_shift_minimum_decision_loss": {
+          "const": "M2"
+        }
+      }
+    },
+    "claim_limitations": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  }
+}
