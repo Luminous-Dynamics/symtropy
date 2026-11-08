@@ -205,11 +205,7 @@ pub fn parse_case(input: &str) -> Result<ProbeCase, Vec<String>> {
             if bins.is_empty() {
                 return Err(format!("{path}: at least one possible outcome is required"));
             }
-            let unique: BTreeSet<_> = bins.iter().copied().collect();
-            if unique.len() != bins.len() {
-                return Err(format!("{path}: duplicate outcome class"));
-            }
-            Ok(unique)
+            Ok(bins)
         }) {
             Ok(v) => v,
             Err(e) => { errors.push(e); continue; }
@@ -349,7 +345,7 @@ fn minimum_worst_case_latency(
             continue;
         }
         let groups = outcome_groups(mask, action, case.pose_ids.len());
-        if groups.len() < 2 { continue; }
+        if groups.len() < 2 || groups.values().any(|child_mask| *child_mask == mask) { continue; }
         let mut worst_child = 0_u64;
         let mut feasible = true;
         for child_mask in groups.values() {
