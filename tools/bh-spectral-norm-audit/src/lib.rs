@@ -377,4 +377,76 @@ mod tests {
             Err(NormError::DimensionMismatch)
         );
     }
+
+    #[test]
+    fn order_two_jordan_pseudospectrum_has_square_root_scaling() {
+        // Canonical EP control J = [[0, 1], [0, 0]]. This is an analytic
+        // finite-matrix fixture, not a Regge-Wheeler exceptional-point result.
+        let jordan = matrix([
+            Complex64::new(0.0, 0.0),
+            Complex64::new(1.0, 0.0),
+            Complex64::new(0.0, 0.0),
+            Complex64::new(0.0, 0.0),
+        ]);
+        let gram = DMatrix::<Complex64>::identity(2, 2);
+        let epsilons = [1.0e-2_f64, 1.0e-4, 1.0e-6, 1.0e-8];
+        let mut measured = Vec::new();
+
+        for epsilon in epsilons {
+            let report = gram_weighted_log10_resolvent(
+                &jordan,
+                Complex64::new(epsilon.sqrt(), 0.0),
+                &gram,
+                NormPlacement::Gram,
+            )
+            .unwrap();
+            measured.push(report.sigma_min_shifted);
+            assert!((report.sigma_min_shifted / epsilon - 1.0).abs() < 0.02);
+        }
+
+        let slope = (measured[3].ln() - measured[0].ln())
+            / (epsilons[3].ln() - epsilons[0].ln());
+        assert!((slope - 0.5).abs() < 0.005);
+    }
+
+    #[test]
+    fn simple_non_ep_control_has_linear_pseudospectral_scaling() {
+        let diagonal_operator = diagonal(0.0, 2.0);
+        let gram = DMatrix::<Complex64>::identity(2, 2);
+        let epsilons = [1.0e-2_f64, 1.0e-4, 1.0e-6, 1.0e-8];
+        let mut measured = Vec::new();
+
+        for epsilon in epsilons {
+            let report = gram_weighted_log10_resolvent(
+                &diagonal_operator,
+                Complex64::new(epsilon, 0.0),
+                &gram,
+                NormPlacement::Gram,
+            )
+            .unwrap();
+            measured.push(report.sigma_min_shifted);
+            assert!((report.sigma_min_shifted / epsilon - 1.0).abs() < 1.0e-10);
+        }
+
+        let slope = (measured[3].ln() - measured[0].ln())
+            / (epsilons[3].ln() - epsilons[0].ln());
+        assert!((slope - 1.0).abs() < 1.0e-10);
+    }
+
+    #[test]
+    fn square_root_branch_exchanges_after_one_ep_encircling() {
+        // Analytic normal-form control A(delta) = [[0, 1], [delta, 0]],
+        // with eigenvalues +/-sqrt(delta). Unwrapped parameter continuation
+        // exchanges the two branches after one circuit and returns after two.
+        // Berry-phase evaluation requires a separately declared biorthogonal
+        // eigenvector gauge and is intentionally not inferred here.
+        let radius = 0.01_f64;
+        let initial = Complex64::new(radius.sqrt(), 0.0);
+        let after_one_loop = Complex64::from_polar(radius.sqrt(), std::f64::consts::PI);
+        let after_two_loops = Complex64::from_polar(radius.sqrt(), std::f64::consts::TAU);
+
+        assert!((after_one_loop + initial).norm() < 1.0e-14);
+        assert!((after_two_loops - initial).norm() < 1.0e-14);
+    }
+
 }
