@@ -31,6 +31,35 @@ This programme should build on established public systems and flight evidence ra
 - DART did not establish a universal momentum-transfer coefficient. The response depends on target mass, density, porosity, cohesion, shape, spin, impact geometry and ejecta physics; uncertainty in target mass materially affects inferred parameters.
 - ESA's Hera spacecraft is in its target-approach phase in November 2026. ESA reported separate resolution of Didymos and Dimorphos in late October, with the first detailed post-impact images announced for 2026-11-25. The mission's purpose is to characterize the DART impact outcome and improve the physical understanding of kinetic impact deflection. Do not claim Hera's full post-impact characterization results before those data are released and analyzed.
 
+### Impact-monitoring algorithm baseline
+
+CNEOS Sentry is not merely a forward Monte Carlo propagator. Its public method samples the orbital uncertainty region with virtual asteroids, screens close approaches over the monitoring horizon, and applies an impact-conditioned orbit-determination / importance-sampling step to find rare virtual impactors. This means a Symtropy implementation must be benchmarked against rare-event search completeness and probability calibration, not only nominal trajectory propagation.
+
+Sentry-II research improves the treatment of non-Gaussian uncertainty and nongravitational effects. It is an important published research baseline, but this charter does not claim that every Sentry-II research method is deployed in the operational Sentry service. Preserve the distinction between operational Sentry, the Sentry-II paper and a Symtropy implementation.
+
+Primary references:
+- CNEOS Sentry methodology: https://cneos.jpl.nasa.gov/sentry/intro.html
+- Sentry-II impact-monitoring method: https://cneos.jpl.nasa.gov/doc/roa_impact_paper.html
+
+### Rust astrodynamics interoperability baseline
+
+We should reuse specialist infrastructure where it demonstrably covers our requirements rather than reflexively write a new orbit engine:
+
+- **ANISE 0.10.6 + hifitime 4.3.1:** candidate frame, ephemeris and time-scale infrastructure. ANISE is SPICE-compatible and documents lunar flight heritage; its package license is MPL-2.0. hifitime 4.3.1 is also MPL-2.0. Kernel identity, coverage, source, time conversion and frame transform behavior must be pinned and verified.
+- **Nyx 2.6.x:** candidate high-fidelity propagation, estimation and mission-design backend. It is AGPL-3.0-or-later; review the exact feature/dependency/license profile before integration.
+- **Brahe 1.8.x:** MIT-licensed Rust astrodynamics candidate with force models, numerical integrators and variational equations; project maturity and NEO-specific validity must be assessed rather than inferred from satellite feature coverage.
+- **JPL Horizons / SBDB / CNEOS:** external reference products and operational comparison points, not libraries. Compare only after matching origin, axes, frame realization, epoch, time scale, observer, aberration, force model and ephemeris versions.
+
+The active comparison and integration task is Symtropy [ASTRODYNAMICS-INTEROP-001 #4217](https://github.com/Luminous-Dynamics/symtropy/issues/4217). The decision gate is a backend-neutral canonical contract and blind NEO-specific comparison before choosing a default backend.
+
+References:
+- ANISE: https://docs.rs/anise/latest/anise/ and https://github.com/nyx-space/anise
+- hifitime: https://docs.rs/hifitime/latest/hifitime/
+- Nyx: https://github.com/nyx-space/nyx
+- Brahe: https://docs.brahe.space/latest/ and https://arxiv.org/abs/2601.06452
+- Horizons: https://ssd.jpl.nasa.gov/horizons/manual.html
+- SBDB API: https://ssd-api.jpl.nasa.gov/doc/sbdb.html
+
 ### What this baseline means
 
 We can build an interoperable, reproducible research system now. We cannot honestly claim to outperform authoritative orbit determination or impact-monitoring systems before blind, held-out comparison against their products and independent truth data.
@@ -112,6 +141,10 @@ The following active issues already own important shared primitives. Planetary d
 - **Sol-Atlas #76 — ephemeris-backed hierarchical solar-system catalogue:** use the renderer-neutral object catalogue, JPL Horizons adapter, explicit epoch/frame/time metadata and bounded body selection. Planetary-defence layers should add uncertainty and risk semantics, not a second catalogue/ephemeris cache.
 - **Sol-Atlas #640 — NEO-RISK-VIS-001:** consume qualified trajectories and posterior products to render encounter geometry, multi-modal uncertainty and source/evidence metadata; do not calculate official impact probabilities in the renderer.
 - **Symtropy #1972 / #1737:** retain the historical mission capability ledger and independent verifier as the parent evidence and test infrastructure.
+- **Symtropy #4217 — ASTRODYNAMICS-INTEROP-001:** compare ANISE/hifitime, Nyx and Brahe against frozen SPICE/Horizons/CNEOS references before selecting or implementing a NEO dynamics backend.
+- **Symtropy PR #4219:** adds a frozen DART/Dimorphos reference record and standalone Rust data-contract verifier. Seven Rust tests are authored but not yet reported as run; this is not an orbit or impact-physics simulation.
+- **Symtropy #4221 / PR #4224:** adds a historical 2008 TC3 terminal-event reconstruction summary. It is explicitly summary-only until original time-sliced astrometry and pre-impact forecast snapshots are frozen.
+- **Symthaea #11112 / Mycelix #5952 / Sol-Atlas #640:** supply decision-value observation planning, astrometric provenance and source-bound uncertainty visualization.
 
 These interfaces are dependencies and integration targets, not evidence that the planetary-defence system is already implemented.
 
