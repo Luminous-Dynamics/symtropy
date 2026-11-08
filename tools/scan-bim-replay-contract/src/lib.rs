@@ -15,7 +15,98 @@ pub struct ReplayManifest {
     replay_id: String,
     dataset: DatasetPolicy,
     split: SplitPolicy,
+    candidate_pipeline: CandidatePipelineRecord,
+    evaluation_profile: EvaluationProfile,
     scenes: Vec<SceneRecord>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct CandidatePipelineRecord {
+    run_id: String,
+    source_commit: String,
+    toolchain_id: String,
+    command_argv: Vec<String>,
+    build_artifact: LocalFileArtifact,
+    model_artifact: LocalFileArtifact,
+    configuration_artifact: LocalFileArtifact,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct LocalFileArtifact {
+    artifact_id: String,
+    relative_path: String,
+    sha256: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct EvaluationProfile {
+    coordinate_reference: CoordinateReference,
+    tolerances: ToleranceProfile,
+    sampling: SamplingProfile,
+    metric_definition: MetricDefinition,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct CoordinateReference {
+    frame_id: String,
+    crs_id: String,
+    axis_order: AxisOrder,
+    linear_unit: LinearUnit,
+    metres_per_unit: f64,
+}
+
+#[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum AxisOrder {
+    EastNorthUp,
+    NorthEastUp,
+    Xyz,
+}
+
+#[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum LinearUnit {
+    Metre,
+    Millimetre,
+    InternationalFoot,
+    UsSurveyFoot,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ToleranceProfile {
+    profile_id: String,
+    surface_distance_cutoff_m: f64,
+    surface_intersection_buffer_m: f64,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SamplingProfile {
+    reference_surface_spacing_m: f64,
+    candidate_surface_spacing_m: f64,
+    point_cloud_voxel_size_m: f64,
+    random_seed: u64,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct MetricDefinition {
+    suite_id: String,
+    version: String,
+    isprs_accuracy_direction: AccuracyDirection,
+    buffer_distances_m: Vec<f64>,
+    distance_cutoff_distances_m: Vec<f64>,
+}
+
+#[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum AccuracyDirection {
+    ReferenceToCandidate,
 }
 
 #[derive(Debug, Deserialize)]
@@ -52,6 +143,7 @@ struct SceneRecord {
     capture_group_id: String,
     split_group_id: String,
     candidate_inputs: Vec<CandidateArtifact>,
+    candidate_outputs: Vec<CandidateOutputArtifact>,
     evaluator_artifacts: Vec<EvaluatorArtifact>,
     surface_strata: Vec<SurfaceStratum>,
 }
@@ -82,6 +174,24 @@ enum CandidateInputRole {
     PriorAssetModel,
     RegistrationMetadata,
     CalibrationArtifact,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct CandidateOutputArtifact {
+    artifact_id: String,
+    role: CandidateOutputRole,
+    relative_path: String,
+    sha256: String,
+}
+
+#[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum CandidateOutputRole {
+    IfcModel,
+    ElementGraph,
+    GeometryMesh,
+    MetricsTable,
 }
 
 #[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]
@@ -125,6 +235,9 @@ enum ObservationStatus {
 #[derive(Debug, Serialize)]
 pub struct ArtifactVerificationSummary {
     pub candidate_verified: usize,
+    pub candidate_input_verified: usize,
+    pub candidate_pipeline_verified: usize,
+    pub candidate_output_verified: usize,
     pub evaluator_verified: usize,
 }
 
@@ -134,8 +247,22 @@ pub struct ReplayAuditReport {
     pub replay_id: String,
     pub dataset_id: String,
     pub manifest_sha256: String,
+    pub candidate_run_id: String,
+    pub candidate_source_commit: String,
+    pub candidate_toolchain_id: String,
+    pub candidate_command_sha256: String,
+    pub coordinate_frame_id: String,
+    pub coordinate_crs_id: String,
+    pub coordinate_linear_unit: String,
+    pub metres_per_unit: f64,
+    pub tolerance_profile_id: String,
+    pub metric_suite_id: String,
+    pub metric_suite_version: String,
+    pub metric_accuracy_direction: String,
     pub scene_count: usize,
     pub candidate_artifact_count: usize,
+    pub candidate_pipeline_artifact_count: usize,
+    pub candidate_output_count: usize,
     pub evaluator_artifact_count: usize,
     pub scenes: Vec<SceneVisibilityAudit>,
     pub claim_ceiling: &'static str,
