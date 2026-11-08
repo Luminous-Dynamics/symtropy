@@ -29,6 +29,12 @@
           "role": "point_cloud_observation",
           "relative_path": "room-a-scan.bin",
           "sha256": "dbffe0270d1b912c13ae51e52fababd1c678827298eb5eea0632892d649b11b0"
+        },
+        {
+          "artifact_id": "ROOM-A-TRANSFORM",
+          "role": "registration_metadata",
+          "relative_path": "survey/room-a-transform.json",
+          "sha256": "ad0224605a82e6b31a8b51a5c2b9ce2124607e65f67a2bdaf9cc5dd723d1c64a"
         }
       ],
       "evaluator_artifacts": [
@@ -77,7 +83,8 @@
         "axis_order": "xyz",
         "handedness": "right",
         "linear_unit": "metre",
-        "vertical_datum_id": "LOCAL:0.000"
+        "vertical_datum_id": "LOCAL:0.000",
+        "transform_artifact_id": "ROOM-A-TRANSFORM"
       }
     },
     {
@@ -91,6 +98,12 @@
           "role": "point_cloud_observation",
           "relative_path": "room-b-scan.bin",
           "sha256": "dbffe0270d1b912c13ae51e52fababd1c678827298eb5eea0632892d649b11b0"
+        },
+        {
+          "artifact_id": "ROOM-B-TRANSFORM",
+          "role": "registration_metadata",
+          "relative_path": "survey/room-b-transform.json",
+          "sha256": "ff32883c8a420433e7668d365f8730943441680e88734d4e47b4d12fb3ff1657"
         }
       ],
       "evaluator_artifacts": [
@@ -127,7 +140,8 @@
         "axis_order": "xyz",
         "handedness": "right",
         "linear_unit": "metre",
-        "vertical_datum_id": "LOCAL:0.000"
+        "vertical_datum_id": "LOCAL:0.000",
+        "transform_artifact_id": "ROOM-B-TRANSFORM"
       }
     }
   ],
