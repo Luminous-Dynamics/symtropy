@@ -1278,7 +1278,9 @@ mod tests {
     #[test]
     fn exact_horizon_allocation_is_consumed_without_redistribution() {
         let mut c = candidate("horizon-step", 0.5);
-        c.calibration_receipt.as_mut().unwrap()
+        c.calibration_receipt
+            .as_mut()
+            .unwrap()
             .independent_validation_units_by_constraint = [1_000; CONSTRAINT_COUNT];
         let allocation = [3_333_334, 3_333_334, 3_333_333, 3_333_333, 3_333_333];
         let report = evaluate_actions_with_allocation(
