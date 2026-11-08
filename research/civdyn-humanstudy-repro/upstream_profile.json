@@ -1,0 +1,106 @@
+{
+  "profile_id": "HSB-COMMUNITY-16-2026-11-07",
+  "protocol_id": "HSB-COMMUNITY-16-2026-11-07",
+  "source": {
+    "repository": "HumanStudy-Hub/HumanStudy-Bench",
+    "commit": "b34d214b980be13ec5944a4d570a38bc4047b0f9",
+    "root_tree": "26851c1d6564c78b25600afc7de8ec435e4aa3b8",
+    "license": "MIT",
+    "paper": "https://arxiv.org/abs/2602.00685",
+    "retrieved_on": "2026-11-07"
+  },
+  "scope": {
+    "study_count": 16,
+    "study_ids": [
+      "study_001",
+      "study_002",
+      "study_003",
+      "study_004",
+      "study_005",
+      "study_006",
+      "study_007",
+      "study_008",
+      "study_009",
+      "study_010",
+      "study_011",
+      "study_012",
+      "study_013",
+      "study_014",
+      "study_015",
+      "study_016"
+    ],
+    "distinction": "The paper describes an initial 12-study suite. This pinned current community repository revision contains 16 study directories. This profile is not a reproduction of the paper-era 12-study snapshot."
+  },
+  "paper_snapshot": {
+    "paper_suite_study_count": 12,
+    "historical_repository_commit": "unresolved",
+    "status": "not-yet-source-pinned",
+    "rule": "Do not report a current-community-16 run as a reproduction of the paper-12 result."
+  },
+  "studies": [
+    {
+      "study_id": "study_001",
+      "tree_sha": "41965042b7fbf13a98e35756348e54c83cf9af9d"
+    },
+    {
+      "study_id": "study_002",
+      "tree_sha": "cac39c3746fcf03a861a9b6f115e807d68f0e434"
+    },
+    {
+      "study_id": "study_003",
+      "tree_sha": "fd8fa2a6dcc41e8aaf598f8b4924c1d32f76cbe6"
+    },
+    {
+      "study_id": "study_004",
+      "tree_sha": "42e8f65c7117f6ee6682266a5952a8d81412ea42"
+    },
+    {
+      "study_id": "study_005",
+      "tree_sha": "8558bae1cb9408af82db5b5538cf984a202e6ab1"
+    },
+    {
+      "study_id": "study_006",
+      "tree_sha": "ec96290930f8b4855e39139cfe97ed60b474b463"
+    },
+    {
+      "study_id": "study_007",
+      "tree_sha": "a09ef7a25fa17bd5cf49a0ec026e55630167db8f"
+    },
+    {
+      "study_id": "study_008",
+      "tree_sha": "db042e02734d4726ee86446298f53fa967422963"
+    },
+    {
+      "study_id": "study_009",
+      "tree_sha": "ef9d0c2b41887ec65ef8316187a4df7aceada579"
+    },
+    {
+      "study_id": "study_010",
+      "tree_sha": "e5014dc6039572a0bda6e00f4047456f4f83da1f"
+    },
+    {
+      "study_id": "study_011",
+      "tree_sha": "6b0946acb826a0660f158a157a79824bf531b3b2"
+    },
+    {
+      "study_id": "study_012",
+      "tree_sha": "a50ddb86d2a5727168b2b55636415ecc3fa1e21c"
+    },
+    {
+      "study_id": "study_013",
+      "tree_sha": "693b00924e2f67ad034c9a66136b21871148465d"
+    },
+    {
+      "study_id": "study_014",
+      "tree_sha": "b3abae7b4df6b4631f4280b773394c72c6254bb4"
+    },
+    {
+      "study_id": "study_015",
+      "tree_sha": "65056a93e9f7fd6fd5789097b289468ac781047d"
+    },
+    {
+      "study_id": "study_016",
+      "tree_sha": "823c0ae46633a04919fae3cd74809ad45c6cb9c2"
+    }
+  ]
+}

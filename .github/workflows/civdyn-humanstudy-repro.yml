@@ -1,0 +1,72 @@
+name: CIVDYN HumanStudy receipt conformance
+
+on:
+  pull_request:
+    paths:
+      - "research/civdyn-humanstudy-repro/**"
+      - ".github/workflows/civdyn-humanstudy-repro.yml"
+  push:
+    paths:
+      - "research/civdyn-humanstudy-repro/**"
+      - ".github/workflows/civdyn-humanstudy-repro.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy,rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/civdyn-humanstudy-repro/Cargo.toml --all -- --check
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path research/civdyn-humanstudy-repro/Cargo.toml --all-targets -- -D warnings
+      - name: Test receipt validator
+        run: cargo test --locked --manifest-path research/civdyn-humanstudy-repro/Cargo.toml --all-targets
+      - name: Validate receipt and paper-attestation JSON Schemas and fixtures
+        run: |
+          python3 -m pip install --disable-pip-version-check jsonschema==4.26.0
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          root = Path("research/civdyn-humanstudy-repro")
+          receipt_schema = json.loads((root / "receipt.schema.json").read_text(encoding="utf-8"))
+          attestation_schema = json.loads((root / "paper_run_attestation.schema.json").read_text(encoding="utf-8"))
+          Draft202012Validator.check_schema(receipt_schema)
+          Draft202012Validator.check_schema(attestation_schema)
+
+          receipt_fixtures = [
+              root / "fixtures/synthetic_foundational_12_receipt.json",
+              root / "fixtures/synthetic_receipt.json",
+          ]
+          for fixture_path in receipt_fixtures:
+              fixture = json.loads(fixture_path.read_text(encoding="utf-8"))
+              errors = sorted(
+                  Draft202012Validator(receipt_schema).iter_errors(fixture),
+                  key=lambda error: list(error.absolute_path),
+              )
+              if errors:
+                  for error in errors:
+                      print(f"{fixture_path.name} {list(error.absolute_path)}: {error.message}")
+                  raise SystemExit(1)
+              expected = 12 if "foundational_12" in fixture_path.name else 16
+              assert len(fixture["studies"]) == expected
+              print(f"{fixture_path.name}: {expected}-study receipt conforms")
+
+          attestation_path = root / "fixtures/synthetic_paper_run_attestation.json"
+          attestation = json.loads(attestation_path.read_text(encoding="utf-8"))
+          errors = list(Draft202012Validator(attestation_schema).iter_errors(attestation))
+          if errors:
+              for error in errors:
+                  print(f"{attestation_path.name} {list(error.absolute_path)}: {error.message}")
+              raise SystemExit(1)
+          print("synthetic_paper_run_attestation.json: source-attestation sidecar conforms")
+          print("schemas valid; all synthetic conformance fixtures conform; no empirical result asserted")
+          PY

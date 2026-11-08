@@ -1,0 +1,422 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.luminousdynamics.org/civdyn/humanstudy-run-receipt/0.4",
+  "title": "CIVDYN HumanStudy run receipt (paper and community protocols)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "protocol_id",
+    "source_repository",
+    "source_commit",
+    "source_root_tree",
+    "run_id",
+    "model_id",
+    "studies",
+    "metric_contract_id"
+  ],
+  "properties": {
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "model_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "metric_contract_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "protocol_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_repository": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_commit": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "source_root_tree": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "studies": {
+      "type": "array",
+      "minItems": 1
+    }
+  },
+  "oneOf": [
+    {
+      "properties": {
+        "protocol_id": {
+          "const": "HSB-PAPER-12-CF05D330"
+        },
+        "source_repository": {
+          "const": "AISmithLab/HumanStudy-Bench"
+        },
+        "source_commit": {
+          "const": "cf05d330fc315168c8c8e23b4acd882f91bb7408"
+        },
+        "source_root_tree": {
+          "const": "9b56c62406fb6b77d87d5032c3c6906583aca24e"
+        },
+        "studies": {
+          "type": "array",
+          "minItems": 12,
+          "maxItems": 12,
+          "items": {
+            "$ref": "#/$defs/studyPaper12"
+          }
+        },
+        "metric_contract_id": {
+          "const": "HSB-PAPER-METRICS-SOURCECODE-CF05D330"
+        }
+      }
+    },
+    {
+      "properties": {
+        "protocol_id": {
+          "const": "HSB-COMMUNITY-16-2026-11-07"
+        },
+        "source_repository": {
+          "const": "HumanStudy-Hub/HumanStudy-Bench"
+        },
+        "source_commit": {
+          "const": "b34d214b980be13ec5944a4d570a38bc4047b0f9"
+        },
+        "source_root_tree": {
+          "const": "26851c1d6564c78b25600afc7de8ec435e4aa3b8"
+        },
+        "studies": {
+          "type": "array",
+          "minItems": 16,
+          "maxItems": 16,
+          "items": {
+            "$ref": "#/$defs/studyCommunity16"
+          }
+        },
+        "metric_contract_id": {
+          "const": "HSB-COMMUNITY-NATIVE-EVALUATOR-B34D214B"
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "gitTree": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "ci": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        }
+      ],
+      "items": false,
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "effect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "finding_id",
+        "test_id",
+        "measure",
+        "unit",
+        "human_estimate",
+        "simulated_estimate"
+      ],
+      "properties": {
+        "finding_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "test_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "measure": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "human_estimate": {
+          "type": "number"
+        },
+        "simulated_estimate": {
+          "type": "number"
+        },
+        "human_ci95": {
+          "$ref": "#/$defs/ci"
+        },
+        "simulated_ci95": {
+          "$ref": "#/$defs/ci"
+        }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "role",
+        "sha256",
+        "record_count",
+        "contains_record_level_human_data",
+        "published_in_repository",
+        "redistribution_authorized",
+        "rights_basis",
+        "path"
+      ],
+      "properties": {
+        "role": {
+          "enum": [
+            "paper_full_benchmark",
+            "paper_detailed_stats",
+            "paper_evaluation_results",
+            "paper_run_attestation",
+            "paper_raw_responses",
+            "community_run_manifest",
+            "community_responses",
+            "community_evaluation",
+            "community_analysis",
+            "community_profiles",
+            "community_transcript_sample",
+            "community_charts_non_authoritative"
+          ]
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "record_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "contains_record_level_human_data": {
+          "type": "boolean"
+        },
+        "published_in_repository": {
+          "type": "boolean"
+        },
+        "redistribution_authorized": {
+          "type": "boolean"
+        },
+        "rights_basis": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "contains_record_level_human_data",
+              "published_in_repository"
+            ],
+            "properties": {
+              "contains_record_level_human_data": {
+                "const": true
+              },
+              "published_in_repository": {
+                "const": true
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "redistribution_authorized": {
+                "const": true
+              }
+            }
+          }
+        }
+      ]
+    },
+    "studyCommon": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "study_id",
+        "study_tree_sha",
+        "participant_count",
+        "trial_count",
+        "independent_unit",
+        "analysis_pipeline_sha256",
+        "agent_config_sha256",
+        "prompt_template_sha256",
+        "analysis_protocol_preserved",
+        "official_pas",
+        "official_ecs",
+        "effects",
+        "artifacts"
+      ],
+      "properties": {
+        "study_tree_sha": {
+          "$ref": "#/$defs/gitTree"
+        },
+        "participant_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "trial_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "independent_unit": {
+          "enum": [
+            "participant",
+            "group",
+            "session",
+            "cluster"
+          ]
+        },
+        "analysis_pipeline_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "agent_config_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "prompt_template_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "analysis_protocol_preserved": {
+          "const": true
+        },
+        "official_pas": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "official_ecs": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "effects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/effect"
+          }
+        },
+        "artifacts": {
+          "type": "array",
+          "minItems": 3,
+          "items": {
+            "$ref": "#/$defs/artifact"
+          }
+        },
+        "study_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "studyPaper12": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/studyCommon"
+        },
+        {
+          "properties": {
+            "study_id": {
+              "enum": [
+                "study_001",
+                "study_002",
+                "study_003",
+                "study_004",
+                "study_005",
+                "study_006",
+                "study_007",
+                "study_008",
+                "study_009",
+                "study_010",
+                "study_011",
+                "study_012"
+              ]
+            },
+            "study_tree_sha": {
+              "$ref": "#/$defs/gitTree"
+            }
+          }
+        },
+        {
+          "properties": {
+            "artifacts": {
+              "minItems": 4,
+              "contains": {
+                "type": "object",
+                "properties": {
+                  "role": {
+                    "const": "paper_run_attestation"
+                  }
+                },
+                "required": [
+                  "role"
+                ]
+              },
+              "minContains": 1
+            }
+          }
+        }
+      ]
+    },
+    "studyCommunity16": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/studyCommon"
+        },
+        {
+          "properties": {
+            "study_id": {
+              "enum": [
+                "study_001",
+                "study_002",
+                "study_003",
+                "study_004",
+                "study_005",
+                "study_006",
+                "study_007",
+                "study_008",
+                "study_009",
+                "study_010",
+                "study_011",
+                "study_012",
+                "study_013",
+                "study_014",
+                "study_015",
+                "study_016"
+              ]
+            }
+          }
+        },
+        {
+          "properties": {
+            "artifacts": {
+              "minItems": 4
+            }
+          }
+        }
+      ]
+    }
+  }
+}
