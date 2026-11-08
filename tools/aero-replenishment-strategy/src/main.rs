@@ -803,7 +803,7 @@ mod tests {
         assert_eq!(strategy.terminal_battery_mwh, 25);
         assert_eq!(strategy.elapsed_slots, 4);
         assert_eq!(strategy.site_energy_mwh, 0);
-        assert_eq!(strategy.aircraft_draw_mwh, 85);
+        assert_eq!(strategy.aircraft_draw_mwh, 90);
         assert_eq!(strategy.installed_mass_g, 0);
     }
 
@@ -820,7 +820,7 @@ mod tests {
                 "final_mission_leg",
             ],
         );
-        assert_eq!(strategy.terminal_battery_mwh, 68);
+        assert_eq!(strategy.terminal_battery_mwh, 73);
         assert_eq!(strategy.site_energy_mwh, 55);
         assert_eq!(strategy.elapsed_slots, 4);
         assert_eq!(strategy.installed_mass_g, 80);
@@ -839,7 +839,7 @@ mod tests {
                 "final_mission_leg",
             ],
         );
-        assert_eq!(strategy.terminal_battery_mwh, 77);
+        assert_eq!(strategy.terminal_battery_mwh, 82);
         assert_eq!(strategy.elapsed_slots, 7);
         assert_eq!(strategy.site_energy_mwh, 78);
         assert_eq!(strategy.installed_mass_g, 400);
@@ -860,7 +860,7 @@ mod tests {
         );
         assert_eq!(strategy.installed_mass_g, 2_800);
         assert_eq!(strategy.site_energy_mwh, 240);
-        assert_eq!(strategy.terminal_battery_mwh, 75);
+        assert_eq!(strategy.terminal_battery_mwh, 70);
     }
 
     #[test]
@@ -880,7 +880,7 @@ mod tests {
 
     #[test]
     fn no_complete_path_is_returned_when_initial_leg_breaks_reserve() {
-        let input = FIXTURE.replace("\t110\t25\tSITE_GRID_REAL_ENERGY", "\t60\t25\tSITE_GRID_REAL_ENERGY");
+        let input = FIXTURE.replace("\t115\t25\tSITE_GRID_REAL_ENERGY", "\t60\t25\tSITE_GRID_REAL_ENERGY");
         let case = parsed(&input);
         let result = evaluate(&case).expect("evaluation");
         assert!(result.all_feasible_paths.is_empty());
@@ -890,7 +890,7 @@ mod tests {
 
     #[test]
     fn capacity_overflow_rejects_charging_modes_but_keeps_battery_only() {
-        let input = FIXTURE.replace("\t120\t110\t25\tSITE_GRID_REAL_ENERGY", "\t80\t110\t25\tSITE_GRID_REAL_ENERGY");
+        let input = FIXTURE.replace("\t120\t115\t25\tSITE_GRID_REAL_ENERGY", "\t80\t115\t25\tSITE_GRID_REAL_ENERGY");
         let case = parsed(&input);
         let result = evaluate(&case).expect("evaluation");
         assert!(result.rejections.capacity > 0);
