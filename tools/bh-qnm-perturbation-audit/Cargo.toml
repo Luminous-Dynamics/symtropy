@@ -1,0 +1,12 @@
+[package]
+name = "bh-qnm-perturbation-audit"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+publish = false
+description = "Exact Pöschl-Teller QNM frequency perturbation controls"
+
+[dependencies]
+num-complex = "0.4"
+
+[workspace]
