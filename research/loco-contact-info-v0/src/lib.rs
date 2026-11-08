@@ -8,7 +8,7 @@
 use std::collections::BTreeMap;
 
 pub const MAX_DIMENSION: usize = 8;
-pub const RISK_SCORE_RISK_SCORE_SCALE_PPM: u32 = 1_000_000;
+pub const RISK_SCORE_SCALE_PPM: u32 = 1_000_000;
 const SYMMETRY_TOLERANCE: f64 = 1.0e-10;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
