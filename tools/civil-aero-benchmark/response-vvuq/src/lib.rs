@@ -95,6 +95,7 @@ pub struct ChannelDiagnostic {
     pub units: String,
     pub coordinate_frame: String,
     pub sample_id: String,
+    pub normalization_scale: f64,
     pub reference_value: f64,
     pub simulation_value: f64,
     pub physical_residual: f64,
@@ -127,6 +128,7 @@ pub struct ResponseVectorResult {
     pub maximum_absolute_marginal_z: f64,
     pub uncertainty_sources: Vec<UncertaintySourceReceipt>,
     pub cross_source_covariance_source_id: Option<String>,
+    pub cross_source_uncertainty: Option<UncertaintySourceReceipt>,
     pub decision_status: String,
     pub decision_limit_d2: Option<f64>,
     pub decision_limit_max_abs_marginal_z: Option<f64>,
@@ -514,8 +516,8 @@ fn cholesky(matrix: &Matrix) -> Result<(Matrix, f64, f64)> {
                 }
                 let pivot = residual.sqrt();
                 lower[i][j] = pivot;
-                minimum_pivot = minimum_pivot.min(residual);
-                maximum_pivot = maximum_pivot.max(residual);
+                minimum_pivot = minimum_pivot.min(pivot);
+                maximum_pivot = maximum_pivot.max(pivot);
             } else {
                 lower[i][j] = residual / lower[j][j];
             }
@@ -722,6 +724,7 @@ pub fn evaluate(request: &ResponseVectorRequest) -> Result<ResponseVectorResult>
             units: channel.units.clone(),
             coordinate_frame: channel.coordinate_frame.clone(),
             sample_id: channel.sample_id.clone(),
+            normalization_scale: channel.normalization_scale,
             reference_value: channel.reference_value,
             simulation_value: channel.simulation_value,
             physical_residual: channel.simulation_value - channel.reference_value,
@@ -948,7 +951,7 @@ mod tests {
         limit.max_abs_marginal_z = 2.0;
         let result = evaluate(&input).unwrap();
         assert_eq!(result.decision_status, "EXCEEDS_DECLARED_LIMIT");
-        assert!(result.maximum_abs_marginal_z > 2.0);
+        assert!(result.maximum_absolute_marginal_z > 2.0);
     }
 
     #[test]
