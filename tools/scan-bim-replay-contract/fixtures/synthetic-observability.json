@@ -85,6 +85,16 @@
         "linear_unit": "metre",
         "vertical_datum_id": "LOCAL:0.000",
         "transform_artifact_id": "ROOM-A-TRANSFORM"
+      },
+      "area_overlap_profile": {
+        "profile_id": "synthetic-area-overlap-v0.1",
+        "metric_authority": "project_defined",
+        "aggregation_policy": "union_per_reference_2021",
+        "common_frame_id": "BUILDING-A-LOCAL",
+        "max_parallel_angle_rad": 0.03490658503988659,
+        "buffer_distance_m": 0.1,
+        "buffer_policy_id": "synthetic_precomputed_boundary_buffer_v1",
+        "planarity_tolerance_m": 0.000001
       }
     },
     {
@@ -142,6 +152,16 @@
         "linear_unit": "metre",
         "vertical_datum_id": "LOCAL:0.000",
         "transform_artifact_id": "ROOM-B-TRANSFORM"
+      },
+      "area_overlap_profile": {
+        "profile_id": "synthetic-area-overlap-v0.1",
+        "metric_authority": "project_defined",
+        "aggregation_policy": "union_per_reference_2021",
+        "common_frame_id": "BUILDING-B-LOCAL",
+        "max_parallel_angle_rad": 0.03490658503988659,
+        "buffer_distance_m": 0.1,
+        "buffer_policy_id": "synthetic_precomputed_boundary_buffer_v1",
+        "planarity_tolerance_m": 0.000001
       }
     }
   ],
