@@ -548,8 +548,13 @@ pub struct DelayedExternalityOutcome {
     pub industry_unmet_m3: f64,
     pub minimum_household_coverage: f64,
     pub maintenance_energy_kwh: f64,
-    /// Difference between household unmet demand in matched shock branches:
-    /// industry-on minus industry-off, from the same post-recovery snapshot.
+    /// Household unmet demand in the industry-on shock branch from the exact
+    /// post-recovery snapshot.
+    pub counterfactual_household_unmet_industry_on_m3: f64,
+    /// Household unmet demand in the industry-off shock branch from that same
+    /// post-recovery snapshot.
+    pub counterfactual_household_unmet_industry_off_m3: f64,
+    /// Difference between the matched industry-on and industry-off branches.
     pub counterfactual_industry_attributable_household_unmet_m3: f64,
     pub counterfactual_without_maintenance_household_unmet_m3: f64,
     pub mechanism_identified: bool,
@@ -625,10 +630,25 @@ pub fn run_delayed_externality(
     }
 
     let mut last_household_coverage = 1.0_f64;
-    for _ in 0..REPEATED_SHOCK_TICKS {
+    let mut reactive_intervention_recorded = false;
+    for shock_tick in 0..REPEATED_SHOCK_TICKS {
+        let tick = GROWTH_TICKS + RECOVERY_TICKS + shock_tick + 1;
         let industry_enabled = match controller {
             ControllerKind::FrozenPolicy => true,
-            ControllerKind::OutcomeReactive => last_household_coverage >= ESSENTIAL_COVERAGE_FLOOR,
+            ControllerKind::OutcomeReactive => {
+                let enabled = last_household_coverage >= ESSENTIAL_COVERAGE_FLOOR;
+                if !enabled && !reactive_intervention_recorded {
+                    trace = vec![
+                        event(CorrectionStage::Observed, tick - 1, "household_service_floor_breached"),
+                        event(CorrectionStage::Detected, tick - 1, "reactive_service_threshold"),
+                        event(CorrectionStage::Intervened, tick, "curtail_industry_after_breach"),
+                        event(CorrectionStage::Audited, DELAYED_TOTAL_TICKS, "late_curtailment_replayed"),
+                    ];
+                    correction_latency_ticks = Some(1);
+                    reactive_intervention_recorded = true;
+                }
+                enabled
+            }
             ControllerKind::MechanismAware => !proactive_curtailment,
         };
         let report = delayed_step(&mut world, 0.0, industry_enabled, false)?;
@@ -658,6 +678,8 @@ pub fn run_delayed_externality(
         industry_unmet_m3: sum_unmet_water(&reports, INDUSTRY),
         minimum_household_coverage: minimum_coverage(&reports, HOUSEHOLD),
         maintenance_energy_kwh: sum_maintenance_energy(&reports),
+        counterfactual_household_unmet_industry_on_m3: industry_on.household_unmet_m3,
+        counterfactual_household_unmet_industry_off_m3: industry_off.household_unmet_m3,
         counterfactual_industry_attributable_household_unmet_m3,
         counterfactual_without_maintenance_household_unmet_m3:
             counterfactual_without_maintenance.household_unmet_m3,
