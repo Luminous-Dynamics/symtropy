@@ -8,6 +8,7 @@
 use std::collections::BTreeMap;
 
 pub const MAX_DIMENSION: usize = 8;
+pub const RISK_SCORE_RISK_SCORE_SCALE_PPM: u32 = 1_000_000;
 const SYMMETRY_TOLERANCE: f64 = 1.0e-10;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -575,7 +576,7 @@ impl ConstrainedActionCandidate {
         {
             return Err(GaussianError::EmptyActionId);
         }
-        if normalized_risk_upper_score_ppm > SCALE_PPM {
+        if normalized_risk_upper_score_ppm > RISK_SCORE_SCALE_PPM {
             return Err(GaussianError::RiskScoreOutOfRange);
         }
         Ok(Self {
@@ -683,7 +684,7 @@ pub fn select_admissible_pareto(
                 action_id.clone(),
             ));
         }
-        if candidate.normalized_risk_upper_score_ppm > SCALE_PPM {
+        if candidate.normalized_risk_upper_score_ppm > RISK_SCORE_SCALE_PPM {
             return Err(ConstrainedSelectionError::RiskScoreOutOfRange(
                 action_id.clone(),
             ));
