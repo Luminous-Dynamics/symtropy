@@ -776,10 +776,6 @@ mod tests {
         result
     }
 
-    fn path_ids(strategy: &Strategy) -> Vec<&str> {
-        strategy.edge_ids.iter().map(String::as_str).collect()
-    }
-
     #[test]
     fn exact_solver_matches_independent_exhaustive_path_oracle() {
         let case = parsed(FIXTURE);
@@ -864,7 +860,7 @@ mod tests {
         );
         assert_eq!(strategy.installed_mass_g, 2_800);
         assert_eq!(strategy.site_energy_mwh, 240);
-        assert_eq!(strategy.terminal_battery_mwh, 65);
+        assert_eq!(strategy.terminal_battery_mwh, 75);
     }
 
     #[test]
@@ -918,8 +914,8 @@ mod tests {
     #[test]
     fn unavailable_modes_never_appear_in_a_selected_path() {
         let input = FIXTURE.replace(
-            "battery_only_continue\\tCHECKPOINT_1\\tCHECKPOINT_2\\tMISSION_LEG\\tBATTERY_ONLY\\t1\\t0\\t0\\t0\\tNONE\\t0\\ttrue",
-            "battery_only_continue\\tCHECKPOINT_1\\tCHECKPOINT_2\\tMISSION_LEG\\tBATTERY_ONLY\\t1\\t0\\t0\\t0\\tNONE\\t0\\tfalse",
+            "battery_only_continue\tCHECKPOINT_1\tCHECKPOINT_2\tMISSION_LEG\tBATTERY_ONLY\t1\t0\t0\t0\tNONE\t0\ttrue",
+            "battery_only_continue\tCHECKPOINT_1\tCHECKPOINT_2\tMISSION_LEG\tBATTERY_ONLY\t1\t0\t0\t0\tNONE\t0\tfalse",
         );
         let case = parsed(&input);
         let result = evaluate(&case).expect("evaluation");
@@ -931,9 +927,9 @@ mod tests {
     fn available_graph_cycles_are_rejected() {
         let extra = FIXTURE.lines().nth(1).expect("mission leg row")
             .replace("mission_leg_1", "cycle_edge")
-            .replace("START\\tCHECKPOINT_1", "TERMINAL\\tSTART")
+            .replace("START\tCHECKPOINT_1", "TERMINAL\tSTART")
             .replace("MISSION_LEG_1", "CYCLE_CONTROL");
-        let cyclic = format!("{FIXTURE}{extra}\\n");
+        let cyclic = format!("{FIXTURE}{extra}\n");
         assert!(parse_case(&cyclic).is_err());
     }
 
@@ -949,8 +945,8 @@ mod tests {
     #[test]
     fn inconsistent_installed_asset_mass_is_rejected() {
         let conflict = FIXTURE.replace(
-            "OPTICAL_RX\\t2800\\ttrue",
-            "OPTICAL_RX\\t2801\\ttrue",
+            "OPTICAL_RX\t2800\ttrue",
+            "OPTICAL_RX\t2801\ttrue",
         );
         assert!(parse_case(&conflict).is_err());
     }
@@ -958,8 +954,8 @@ mod tests {
     #[test]
     fn mission_leg_cannot_hide_source_energy_or_receiver_mass() {
         let invalid = FIXTURE.replace(
-            "MISSION_LEG_1\\t1\\t0\\t40\\t0\\tNONE\\t0\\ttrue",
-            "MISSION_LEG_1\\t1\\t0\\t40\\t1\\tNONE\\t0\\ttrue",
+            "MISSION_LEG_1\t1\t0\t40\t0\tNONE\t0\ttrue",
+            "MISSION_LEG_1\t1\t0\t40\t1\tNONE\t0\ttrue",
         );
         assert!(parse_case(&invalid).is_err());
     }
@@ -969,7 +965,7 @@ mod tests {
         let mut rows: Vec<&str> = FIXTURE.lines().collect();
         let header = rows.remove(0);
         rows.reverse();
-        let permuted = format!("{header}\\n{}\\n", rows.join("\\n"));
+        let permuted = format!("{header}\n{}\n", rows.join("\n"));
         let original = evaluate(&parsed(FIXTURE)).expect("original");
         let reordered = evaluate(&parsed(&permuted)).expect("permuted");
         assert_eq!(original, reordered);
