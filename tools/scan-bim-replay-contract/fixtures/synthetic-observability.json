@@ -1,5 +1,5 @@
 {
-  "schema_version": "0.2",
+  "schema_version": "0.3",
   "replay_id": "SYNTHETIC-OBSERVABILITY-001",
   "dataset": {
     "dataset_id": "SYNTHETIC-OBSERVABILITY-001",
@@ -194,12 +194,13 @@
   },
   "metric_profile": {
     "suite_id": "luminous_synthetic_contract_metrics",
-    "version": "0.2",
+    "version": "0.3",
     "scope": "all_elements",
     "accuracy_direction": "reference_to_candidate",
     "surface_buffer_m": 0.1,
     "accuracy_cutoff_m": 0.1,
-    "definition_authority": "official_results_page"
+    "definition_authority": "official_results_page",
+    "sample_strategy": "reference_surface_samples"
   },
   "candidate_outputs": [
     {
