@@ -32,6 +32,14 @@ The next extension should add gradual/noisy shifts, delayed/partial outcomes, mu
 
 The published SimBench headline of 40.80/100 is a result on its own task suite and scoring protocol. It is not an attainable target for the CIVDYN self-correction benchmark. Similarly, SSDataBench's statistical-realism metrics, LiveCultureBench's norm/evaluator measures, and APB's plan grades are not interchangeable. Any direct comparison must reproduce the same dataset, split, prompt/configuration, unit of analysis, scorer, and compute budget.
 
+### KDD 2026 timing-aware event metric contract
+
+The KDD 2026 framework classifies alarms using an inclusive acceptable window `[d_s - δ_pre, d_e + δ_max]`: an alarm inside the window is a true positive; an event with no matched alarm is a false negative; alarms outside the window are false positives. It derives precision, recall and F1 plus Normalized Detection Time, defined as `(d_alarm - d_s)/δ_max`. [Paper](https://arxiv.org/abs/2606.07789) · [Metric exposition](https://www.alphaxiv.org/ro/abs/2606.07789)
+
+The new Rust `detection_eval` module in the #4234 branch implements this contract with one-to-one matching, rejects overlapping windows and unsorted input, preserves negative NDT for accepted early alarms, and reports false alarms per stream tick and missed-drift rate separately. This is only metric-level conformance; the 14-detector/7-dataset reproduction is tracked independently in [#4235](https://github.com/Luminous-Dynamics/symtropy/issues/4235).
+
+The USP Data Stream Repository explicitly declares [CC BY 4.0](https://sites.google.com/view/uspdsrepository). CIVDYN's future importer must preserve repository attribution and each dataset's schema/source metadata. The KDD benchmark is itself not the full civilizational benchmark: it focuses on classification-stream drift under immediate feedback. The external-reproduction programme will explicitly extend to delayed labels, preserved temporal dependencies/seasonality, and endogenous policy-feedback drift rather than treating these as already solved.
+
 ### Adaptive-threshold selection: AAAI 2026 DTD
 
 Lu et al., *Autonomous Concept Drift Threshold Determination* (AAAI 2026, [DOI](https://doi.org/10.1609/aaai.v40i29.39586)), introduce DTD as an adaptive response-selection wrapper. After a drift event it compares three candidate paths—Early Drift Model (EDM), Reactive Drift Model (RDM), and Previous Model (PM)—over a future comparison window, then adjusts detector parameters based on the best candidate's predictive performance. Its public reference implementation supports DDM, EDDM, HDDM-A/W, KSWIN, Page-Hinkley and PUDD; the inspected repository main commit is `034307f54d8db7cc39d9d617fb669b38abf9faab`. [Official source](https://github.com/AAII-DeSI/concept-drift-RocStone)
