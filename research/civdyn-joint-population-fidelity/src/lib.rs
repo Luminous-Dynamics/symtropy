@@ -5,6 +5,8 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
+pub mod cluster_bootstrap;
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PairObservation {
     pub observation_id: String,
@@ -42,6 +44,14 @@ pub enum FidelityError {
         stratum: String,
         population: &'static str,
     },
+    InsufficientIndependentUnits {
+        population: &'static str,
+        units: usize,
+    },
+    InsufficientBootstrapReplicates {
+        minimum: usize,
+        actual: usize,
+    },
 }
 
 impl fmt::Display for FidelityError {
@@ -57,6 +67,18 @@ impl fmt::Display for FidelityError {
                 write!(
                     f,
                     "stratum {stratum} is missing from {population} population"
+                )
+            }
+            Self::InsufficientIndependentUnits { population, units } => {
+                write!(
+                    f,
+                    "{population} population requires at least two independent units, found {units}"
+                )
+            }
+            Self::InsufficientBootstrapReplicates { minimum, actual } => {
+                write!(
+                    f,
+                    "bootstrap requires at least {minimum} replicates, received {actual}"
                 )
             }
         }
