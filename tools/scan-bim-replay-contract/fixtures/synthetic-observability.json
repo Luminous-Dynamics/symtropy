@@ -94,7 +94,8 @@
         "max_parallel_angle_rad": 0.03490658503988659,
         "buffer_distance_m": 0.1,
         "buffer_policy_id": "synthetic_precomputed_boundary_buffer_v1",
-        "planarity_tolerance_m": 0.000001
+        "planarity_tolerance_m": 0.000001,
+        "coordinate_unit": "metre"
       }
     },
     {
@@ -161,7 +162,8 @@
         "max_parallel_angle_rad": 0.03490658503988659,
         "buffer_distance_m": 0.1,
         "buffer_policy_id": "synthetic_precomputed_boundary_buffer_v1",
-        "planarity_tolerance_m": 0.000001
+        "planarity_tolerance_m": 0.000001,
+        "coordinate_unit": "metre"
       }
     }
   ],
