@@ -1507,36 +1507,21 @@ mod tests {
         let evaluator = temp.join("evaluator");
         std::fs::create_dir_all(&candidate).expect("candidate root");
         std::fs::create_dir_all(&evaluator).expect("evaluator root");
-        std::fs::copy(
-            synthetic_data_roots().0.join("room-a-scan.bin"),
-            candidate.join("room-a-scan.bin"),
-        )
-        .expect("copy candidate artifact");
-        std::fs::copy(
-            synthetic_data_roots()
-                .0
-                .join("survey/room-a-transform.json"),
-            candidate.join("room-a-transform.json"),
-        )
-        .expect("copy candidate transform artifact");
         let evaluator_source = synthetic_data_roots().1.join("room-a-reference.bin");
-        std::fs::copy(&evaluator_source, evaluator.join("room-a-reference.bin"))
-            .expect("copy evaluator artifact");
         symlink(&evaluator_source, candidate.join("escape.bin")).expect("create escape symlink");
 
         let mut value = fixture_value();
-        value["scenes"][0]["candidate_inputs"][0]["relative_path"] =
+        value["candidate_runtime_artifacts"][0]["relative_path"] =
             serde_json::json!("escape.bin");
         let error = super::verify_manifest_artifact_files(
             value.to_string().as_bytes(),
             &candidate,
             &evaluator,
         )
-        .expect_err("symlinked candidate artifacts must be rejected");
+        .expect_err("symlinked candidate runtime artifacts must be rejected");
         assert!(error.contains("path contains a symlink"));
         let _ = std::fs::remove_dir_all(&temp);
     }
-
     #[test]
     fn rejects_reference_derived_normalization_bounds() {
         let mut value = fixture_value();
