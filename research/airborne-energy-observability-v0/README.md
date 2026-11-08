@@ -40,3 +40,14 @@ The report carries integer numerator/denominator counts; it does not turn sample
 - A UNIQUE_WITHIN_DECLARED_SAMPLE_SET result is not a physical ObservabilityReceipt and cannot authorize POWER_ACTIVE. It must not be wired into #4080 as an operational permit.
 - The received-power proxy is intentionally ignored by the pose-identifiability decision. High power with ambiguous signatures remains AMBIGUOUS.
 - No flight, energized beam test, spectrum use, optical operation, aviation approval or physical safety certification is authorized by this package.
+
+
+## Exact-head software validation
+
+The dedicated GitHub Actions workflow `.github/workflows/airborne-energy-observability.yml` runs the following on Ubuntu, Windows and macOS for changes to this contract/package:
+
+- `cargo fmt --manifest-path tools/airborne-energy-observability-validator/Cargo.toml -- --check`
+- `cargo test --locked --manifest-path tools/airborne-energy-observability-validator/Cargo.toml`
+- `cargo run --locked --manifest-path tools/airborne-energy-observability-validator/Cargo.toml -- research/airborne-energy-observability-v0/observability.unique.synthetic.json`
+
+The unit tests also execute the ambiguous high-power fixture and the NOT_RUN template. These checks validate only the finite synthetic known-truth evaluator. They do not qualify a physical field, continuous pose region, tracking controller, flight system or operational permit.
