@@ -742,9 +742,7 @@ pub fn select_admissible_pareto(
                 AdmissionDecision::Admissible => {
                     let eig = expected_information_gain(prior, &candidate.observation_model)
                         .map_err(|error| {
-                            ConstrainedSelectionError::InvalidObservationModel(format!(
-                                "{error:?}"
-                            ))
+                            ConstrainedSelectionError::InvalidObservationModel(format!("{error:?}"))
                         })?;
                     admitted.push((index, eig));
                     assessments.push(ConstrainedActionAssessment {
@@ -756,12 +754,8 @@ pub fn select_admissible_pareto(
                     });
                     continue;
                 }
-                AdmissionDecision::Rejected => {
-                    CandidateDisposition::RejectedByPhysicalVerifier
-                }
-                AdmissionDecision::Unknown => {
-                    CandidateDisposition::UnknownPhysicalAdmissibility
-                }
+                AdmissionDecision::Rejected => CandidateDisposition::RejectedByPhysicalVerifier,
+                AdmissionDecision::Unknown => CandidateDisposition::UnknownPhysicalAdmissibility,
             }
         };
 
@@ -1335,10 +1329,7 @@ mod tests {
         .unwrap();
 
         assert_eq!(one.pareto_action_ids, two.pareto_action_ids);
-        assert_eq!(
-            one.pareto_action_ids,
-            vec!["b".to_owned(), "a".to_owned()]
-        );
+        assert_eq!(one.pareto_action_ids, vec!["b".to_owned(), "a".to_owned()]);
     }
 
     #[test]
