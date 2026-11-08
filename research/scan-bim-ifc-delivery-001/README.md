@@ -145,7 +145,27 @@ Keep all results separate. Do not build a weighted score that allows a strong pa
 
 Numeric geometry tolerances are profile- and requirement-specific. No global tolerance is invented. No vendor superiority claim is permitted from a feature checklist or synthetic corpus.
 
-## 8. Claim ceiling
+## 8. First Rust contract auditor
+
+The initial implementation is in `tools/scan-bim-replay-contract/src/delivery.rs`, exported through the existing replay-contract crate so it reuses the pinned serde/serde_json toolchain and lockfile.
+
+The auditor:
+- strictly deserializes the v0.1 receipt with unknown fields denied;
+- requires the exact nine gate identities, exactly once and in canonical order;
+- binds every gate to the same replay receipt digest and scene;
+- verifies that IFC, element-graph and IDS subject digests match the receipt's declared artifact identities;
+- requires producer/configuration/evidence/subject bindings for PASS and FAIL;
+- requires NOT_RUN rows to have no producer, subjects or execution evidence;
+- checks supported IFC ↔ graph crosswalk mappings for one-to-one uniqueness and evidence;
+- derives QUALIFIED / BLOCKED / UNQUALIFIED itself and rejects a contradictory producer decision;
+- prevents qualification while any identity mapping is ambiguous/unresolved or IDS requirements are absent;
+- rejects path traversal and malformed lowercase SHA-256 / commit identities.
+
+The unit corpus includes the five committed JSON known-answer cases plus Rust-side checks for all-pass qualification, unresolved identity, missing IDS inputs, path traversal and unknown fields.
+
+**Important boundary:** this is a receipt-semantics auditor, not a full JSON Schema 2020-12 implementation. It does not hash referenced files, parse STEP/IFC, execute IDS, validate geometric/topological equivalence, or perform an import/edit/export round trip. Those remain separate producers/gates. The workflow is triggered by the Rust module changes; its exact-head result must be recorded separately and is not inferred from a queued run.
+
+## 9. Claim ceiling
 
 P0 establishes receipt-shape and decision semantics on synthetic data only. P1 can establish interoperability conformance for named tool versions, schemas, exchange profiles and fixtures. Neither establishes physical survey accuracy, building-code compliance, structural adequacy, professional sign-off, safe construction, or authority to mutate an authoritative asset record.
 
