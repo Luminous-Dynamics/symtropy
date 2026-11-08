@@ -1724,14 +1724,8 @@ mod tests {
         assert_eq!(report.evaluator_artifact_count, 2);
         assert_eq!(report.pipeline_id, "synthetic-scan-bim-candidate-v0.2");
         assert_eq!(report.metric_suite_version, "0.3");
-        assert_eq!(
-            report.metric_accuracy_direction,
-            "reference_to_candidate"
-        );
-        assert_eq!(
-            report.metric_definition_authority,
-            "official_results_page"
-        );
+        assert_eq!(report.metric_accuracy_direction, "reference_to_candidate");
+        assert_eq!(report.metric_definition_authority, "official_results_page");
         assert_eq!(
             report.metric_accuracy_sample_strategy,
             "reference_surface_samples"
