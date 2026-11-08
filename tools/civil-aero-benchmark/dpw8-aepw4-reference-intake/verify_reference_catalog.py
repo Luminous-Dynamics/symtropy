@@ -23,6 +23,7 @@ ALLOWED_ACQUISITION = {
     "listing_only",
     "text_preview_inspected_exact_bytes_not_acquired",
     "linked_file_not_acquired",
+    "linked_files_not_acquired",
 }
 ADMITTED_TERMS = {"reviewed_permitted", "public_domain_or_open_license_verified"}
 ADMITTED_ACQUISITION = {"bytes_acquired_and_verified"}
