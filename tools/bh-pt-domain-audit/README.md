@@ -19,7 +19,7 @@ With time dependence exp(-i ω Δt), the homogeneous radial equation is
 
 The QNM poles are
 
-    ω_n^± = [-i(n + 1/2) ± iν] / b, n = 0,1,...
+    ω_n^± = [-i(n + 1/2) ± sqrt(λ - 1/4)] / b, n = 0,1,...
 
 The split Green-function terms have Matsubara poles
 
@@ -30,7 +30,9 @@ in the full frequency-domain Green function. They are nevertheless required
 for the correct regional time-domain representation. They are not extra QNM
 poles.
 
-At λ=1/4, ν=0 and the two displayed QNM branches coincide. This crate records
+The principal square root assigns the plus branch positive real frequency for
+λ>1/4. For 0<λ<1/4, the plus branch is the less-damped purely imaginary
+branch. At λ=1/4 the two displayed QNM branches coincide. This crate records
 that frequency degeneracy only. It makes no exceptional-point, Jordan-chain
 or resolvent claim.
 
