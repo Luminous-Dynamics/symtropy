@@ -500,26 +500,26 @@ def hostile_controls(data: bytes) -> None:
     cbeam_index = next(i for i, line in enumerate(implicit_cbeam[bulk_index + 1 :], start=bulk_index + 1)
                        if line.startswith("CBEAM"))
     implicit_cbeam.insert(cbeam_index + 1, fixed(["", "0.1", "0.2", "0.3"]))
-    inventory(("\\n".join(implicit_cbeam) + "\\n").encode("ascii"))
+    inventory(("\n".join(implicit_cbeam) + "\\n").encode("ascii"))
     print("positive_control=pass case=implicit_cbeam_continuation")
 
     implicit_conm2 = lines.copy()
     conm2_index = next(i for i, line in enumerate(implicit_conm2[bulk_index + 1 :], start=bulk_index + 1)
                        if line.startswith("CONM2"))
     implicit_conm2.insert(conm2_index + 1, fixed(["", "1.", "2.", "3."]))
-    inventory(("\\n".join(implicit_conm2) + "\\n").encode("ascii"))
+    inventory(("\n".join(implicit_conm2) + "\\n").encode("ascii"))
     print("positive_control=pass case=implicit_conm2_continuation")
 
     orphan_implicit = lines.copy()
     orphan_implicit.insert(bulk_index + 1, fixed(["", "1.", "2."]))
     expect_rejected("orphan_implicit_continuation",
-                    lambda: inventory(("\\n".join(orphan_implicit) + "\\n").encode("ascii")))
+                    lambda: inventory(("\n".join(orphan_implicit) + "\\n").encode("ascii")))
 
     blank_spc_value = lines.copy()
     spc_index = next(i for i, line in enumerate(blank_spc_value[bulk_index + 1 :], start=bulk_index + 1)
                      if line.startswith("SPC"))
     blank_spc_value[spc_index] = fixed(["SPC", "1", "1", "123456", ""])
-    inventory(("\\n".join(blank_spc_value) + "\\n").encode("ascii"))
+    inventory(("\n".join(blank_spc_value) + "\\n").encode("ascii"))
     print("positive_control=pass case=blank_spc_enforced_value")
 
     wrong_continuation = lines.copy()
