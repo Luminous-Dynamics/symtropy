@@ -50,14 +50,23 @@ jobs:
             > /tmp/scan-bim-replay-report.json
           jq -e '
             (.metadata_audit.scene_count == 2) and
-            (.metadata_audit.candidate_artifact_count == 2) and
+            (.metadata_audit.candidate_artifact_count == 9) and
+            (.metadata_audit.candidate_pipeline_artifact_count == 3) and
+            (.metadata_audit.candidate_output_count == 4) and
             (.metadata_audit.evaluator_artifact_count == 2) and
-            (.artifact_verification.candidate_verified == 2) and
+            (.metadata_audit.candidate_run_id == "SYNTHETIC-CANDIDATE-RUN-001") and
+            (.metadata_audit.coordinate_linear_unit == "metre") and
+            (.metadata_audit.metres_per_unit == 1.0) and
+            (.metadata_audit.metric_accuracy_direction == "reference_to_candidate") and
+            (.artifact_verification.candidate_verified == 9) and
+            (.artifact_verification.candidate_input_verified == 2) and
+            (.artifact_verification.candidate_pipeline_verified == 3) and
+            (.artifact_verification.candidate_output_verified == 4) and
             (.artifact_verification.evaluator_verified == 2) and
             (.metadata_audit.scenes[0].theoretically_visible_area_m2 == 10.0) and
             (.metadata_audit.scenes[0].captured_visible_area_m2 == 8.0) and
             (.metadata_audit.scenes[0].not_captured_visible_area_m2 == 2.0) and
             (.metadata_audit.scenes[0].self_occluded_area_m2 == 4.0) and
             (.metadata_audit.scenes[0].externally_occluded_area_m2 == 3.0) and
-            (.metadata_audit.claim_ceiling | startswith("METADATA_AND_VISIBILITY_ACCOUNTING_ONLY"))
+            (.metadata_audit.claim_ceiling | startswith("DECLARED_PIPELINE_AND_EVALUATION_PROFILE"))
           ' /tmp/scan-bim-replay-report.json
