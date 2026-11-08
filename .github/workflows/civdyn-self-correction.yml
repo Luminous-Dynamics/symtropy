@@ -41,8 +41,8 @@ jobs:
             END { if (NR != 2001) exit 42; print "retained all 2,000 seed/controller/regime episodes" }
           ' /tmp/civdyn-causal-drift-episodes.csv
           awk -F, '
-            NR == 1 { if (NF != 19) exit 43; next }
-            NF != 19 { exit 44 }
+            NR == 1 { if (NF != 23) exit 43; next }
+            NF != 23 { exit 44 }
             $3 != 100 { exit 45 }
             $1 == "stable_positive" && ($2 == "cusum_signal_only" || $2 == "mechanism_aware") {
               if ($7 > 0.05 || $11 > 0.05) exit 46
@@ -62,7 +62,7 @@ jobs:
             $1 == "confounder_shift" && $2 == "cusum_signal_only" {
               if ($4 < 0.90 || $15 < 2.50) exit 51
             }
-            END { if (NR != 21) exit 52; print "20 aggregate groups validated; 100 replicates/group; Wilson intervals retained" }
+            END { if (NR != 21) exit 52; print "20 aggregate groups validated; 100 replicates/group; Wilson intervals retained for detection, diagnosis and both false-alarm rates" }
           ' /tmp/civdyn-causal-drift-summary.csv
       - name: Verify causal-drift detection versus mechanism diagnosis
         run: |
