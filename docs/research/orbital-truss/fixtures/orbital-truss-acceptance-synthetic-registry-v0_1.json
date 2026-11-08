@@ -74,13 +74,13 @@
       "member_axial_force_n": -62.5,
       "member_stress_pa": -625000,
       "apex_displacement_x_m": 0,
-      "apex_displacement_y": -0.000005580357142857143,
       "left_support_reaction_fx_n": 37.5,
       "left_support_reaction_fy_n": 50,
       "right_support_reaction_fx_n": -37.5,
       "right_support_reaction_fy_n": 50,
       "equilibrium_residual_n": 0,
-      "assumption": "Small-displacement linear axial truss; equal bars; pinned member ends; exact symmetric geometry."
+      "assumption": "Small-displacement linear axial truss; equal bars; pinned member ends; exact symmetric geometry.",
+      "apex_displacement_y_m": -0.000005580357142857143
     },
     "important_limit": "This analytic fixture validates only narrow truss arithmetic. It does not represent a composite orbital joint, beam bending, dynamics, buckling, fatigue, thermal/vacuum effects or a flight article."
   },
