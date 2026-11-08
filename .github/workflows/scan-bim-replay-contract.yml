@@ -6,19 +6,23 @@ on:
     paths:
       - "tools/scan-bim-replay-contract/**"
       - "docs/research/built-asset/scan-bim/SCAN_BIM_REPLAY_CONTRACT_V0_2.md"
+      - "docs/research/built-asset/scan-bim/SCAN_BIM_REPLAY_CONTRACT_V0_3.md"
       - "docs/research/built-asset/scan-bim/ERSOZ_BOSCHE_MATCHING_CONFIDENCE_BASELINE_AUDIT_V0_1.md"
       - "docs/research/built-asset/scan-bim/SCAN_BIM_2026_FRONTIER_COMPARATOR_MATRIX_V0_1.md"
       - "docs/research/built-asset/scan-bim/SCAN_BIM_PARADIGM_SHIFT_AND_BENCHMARK_TARGETS_V0_1.md"
       - "docs/research/built-asset/scan-bim/SCAN_BIM_CANDIDATE_EVALUATOR_ISOLATION_THREAT_MODEL_V0_1.md"
+      - "docs/research/built-asset/scan-bim/SCAN_BIM_EXECUTION_RECEIPT_AND_BENCHMARK_TARGETS_V0_1.md"
   push:
-    branches: ["main", "research/scan-bim-admission-v0-1", "research/scan-bim-replay-p0-v0-2"]
+    branches: ["main", "research/scan-bim-admission-v0-1", "research/scan-bim-replay-p0-v0-2", "research/scan-bim-execution-receipt-v0-2"]
     paths:
       - "tools/scan-bim-replay-contract/**"
       - "docs/research/built-asset/scan-bim/SCAN_BIM_REPLAY_CONTRACT_V0_2.md"
+      - "docs/research/built-asset/scan-bim/SCAN_BIM_REPLAY_CONTRACT_V0_3.md"
       - "docs/research/built-asset/scan-bim/ERSOZ_BOSCHE_MATCHING_CONFIDENCE_BASELINE_AUDIT_V0_1.md"
       - "docs/research/built-asset/scan-bim/SCAN_BIM_2026_FRONTIER_COMPARATOR_MATRIX_V0_1.md"
       - "docs/research/built-asset/scan-bim/SCAN_BIM_PARADIGM_SHIFT_AND_BENCHMARK_TARGETS_V0_1.md"
       - "docs/research/built-asset/scan-bim/SCAN_BIM_CANDIDATE_EVALUATOR_ISOLATION_THREAT_MODEL_V0_1.md"
+      - "docs/research/built-asset/scan-bim/SCAN_BIM_EXECUTION_RECEIPT_AND_BENCHMARK_TARGETS_V0_1.md"
 
 permissions:
   contents: read
@@ -53,24 +57,34 @@ jobs:
             --evaluator-root tools/scan-bim-replay-contract/fixtures/data/evaluator \
             > /tmp/scan-bim-replay-report.json
           jq -e '
+            (.metadata_audit.schema_version == "0.3") and
             (.metadata_audit.scene_count == 2) and
-            (.metadata_audit.candidate_artifact_count == 9) and
-            (.metadata_audit.candidate_pipeline_artifact_count == 3) and
-            (.metadata_audit.candidate_output_count == 4) and
+            (.metadata_audit.pipeline_id == "synthetic-scan-bim-candidate-v0.2") and
+            (.metadata_audit.source_commit_sha == "1111111111111111111111111111111111111111") and
+            (.metadata_audit.candidate_artifact_count == 11) and
             (.metadata_audit.evaluator_artifact_count == 2) and
-            (.metadata_audit.candidate_run_id == "SYNTHETIC-CANDIDATE-RUN-001") and
-            (.metadata_audit.coordinate_linear_unit == "metre") and
-            (.metadata_audit.metres_per_unit == 1.0) and
-            (.metadata_audit.metric_accuracy_direction == "reference_to_candidate") and
-            (.artifact_verification.candidate_verified == 9) and
-            (.artifact_verification.candidate_input_verified == 2) and
-            (.artifact_verification.candidate_pipeline_verified == 3) and
+            (.artifact_verification.candidate_verified == 11) and
+            (.artifact_verification.candidate_runtime_verified == 3) and
+            (.artifact_verification.candidate_input_verified == 4) and
             (.artifact_verification.candidate_output_verified == 4) and
             (.artifact_verification.evaluator_verified == 2) and
+            (.metadata_audit.metric_suite_id == "luminous_synthetic_contract_metrics") and
+            (.metadata_audit.metric_definition_authority == "project_defined") and
+            (.metadata_audit.metric_accuracy_direction == "reference_to_candidate") and
+            (.metadata_audit.metric_accuracy_sample_strategy == "reference_surface_samples") and
+            (.metadata_audit.scenes[0].coordinate_frame_id == "BUILDING-A-LOCAL") and
+            (.metadata_audit.scenes[0].transform_artifact_id == "ROOM-A-TRANSFORM") and
+            (.metadata_audit.scenes[0].linear_unit_to_metre_factor == 1.0) and
+            (.metadata_audit.candidate_outputs[0].artifact_id == "ROOM-A-IFC") and
+            (.metadata_audit.candidate_outputs[0].sha256 == "1388812a1750215452fc4dea388e113d754231c3bd9e9ff4932917da6cef3698") and
+            (.metadata_audit.requirement_revision == "synthetic-requirements-v0.2") and
+            (.metadata_audit.tolerance_decision_policy == "report_only") and
+            (.metadata_audit.tolerance_uncertainty_model_id == null) and
+            (.metadata_audit.normalization_mode == "partial_input_only") and
             (.metadata_audit.scenes[0].theoretically_visible_area_m2 == 10.0) and
             (.metadata_audit.scenes[0].captured_visible_area_m2 == 8.0) and
             (.metadata_audit.scenes[0].not_captured_visible_area_m2 == 2.0) and
             (.metadata_audit.scenes[0].self_occluded_area_m2 == 4.0) and
             (.metadata_audit.scenes[0].externally_occluded_area_m2 == 3.0) and
-            (.metadata_audit.claim_ceiling | startswith("DECLARED_PIPELINE_AND_EVALUATION_PROFILE"))
+            (.metadata_audit.claim_ceiling | startswith("METADATA_LOCAL_ARTIFACT_INTEGRITY_AND_VISIBILITY_ACCOUNTING_ONLY"))
           ' /tmp/scan-bim-replay-report.json
