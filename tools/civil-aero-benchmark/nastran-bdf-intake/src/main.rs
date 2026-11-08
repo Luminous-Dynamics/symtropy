@@ -981,8 +981,8 @@ mod tests {
             fixed_line(&["CONM2", "201", "2", "0", "5.", "0.", "0.", "0."]),
             fixed_line(&["RBE2", "301", "1", "123", "2", "3"]),
             fixed_line(&["SPC", "1", "1", "123", "0."]),
-            fixed_line(&["FORCE", "2", "3", "0", "1000.", "0.", "1.", "0."]),
-            fixed_line(&["LOAD", "2", "1.", "1.", "2"]),
+            fixed_line(&["FORCE", "3", "3", "0", "1000.", "0.", "1.", "0."]),
+            fixed_line(&["LOAD", "2", "1.", "1.", "3"]),
             fixed_line(&["PARAM", "WTMASS", ".00259"]),
             fixed_line(&["DUMMY", "1", "OPAQUE"]),
         ]
@@ -998,7 +998,7 @@ mod tests {
         assert_eq!(inventory.property_materials.get(&20), Some(&10));
         assert_eq!(inventory.rbe2_ids.len(), 1);
         assert_eq!(inventory.spc_set_ids, BTreeSet::from([1]));
-        assert_eq!(inventory.force_set_ids, BTreeSet::from([2]));
+        assert_eq!(inventory.force_set_ids, BTreeSet::from([3]));
         assert_eq!(inventory.load_set_ids, BTreeSet::from([2]));
         assert_eq!(inventory.opaque_cards, 1);
         assert_eq!(inventory.orphan_grid_count, 0);
@@ -1033,6 +1033,58 @@ mod tests {
         cards[3] = fixed_line(&["CBEAM", "101", "20", "1", "99", "0.", "1.", "0."]);
         let bytes = deck_text(cards);
         assert!(parse_bytes(&bytes).is_err());
+    }
+
+    #[test]
+    fn cbeam_reference_to_missing_pbeam_is_rejected() {
+        let mut cards = minimal_valid_cards();
+        cards[3] = fixed_line(&["CBEAM", "101", "99", "1", "2", "0.", "1.", "0."]);
+        let bytes = deck_text(cards);
+        assert!(parse_bytes(&bytes).is_err());
+    }
+
+    #[test]
+    fn nested_load_dependency_resolves_to_force_set() {
+        let mut cards = minimal_valid_cards();
+        cards[11] = fixed_line(&["LOAD", "2", "1.", "1.", "4"]);
+        cards.push(fixed_line(&["LOAD", "4", "1.", "1.", "3"]));
+        assert!(parse_bytes(&deck_text(cards)).is_ok());
+    }
+
+    #[test]
+    fn cyclic_load_dependency_is_rejected() {
+        let mut cards = minimal_valid_cards();
+        cards[11] = fixed_line(&["LOAD", "2", "1.", "1.", "4"]);
+        cards.push(fixed_line(&["LOAD", "4", "1.", "1.", "2"]));
+        assert!(parse_bytes(&deck_text(cards)).is_err());
+    }
+
+    #[test]
+    fn selected_case_control_load_must_resolve() {
+        let mut cards = minimal_valid_cards();
+        cards.remove(11);
+        assert!(parse_bytes(&deck_text(cards)).is_err());
+    }
+
+    #[test]
+    fn unsupported_nonbasic_grid_coordinate_system_is_rejected() {
+        let mut cards = minimal_valid_cards();
+        cards[0] = fixed_line(&["GRID", "1", "9", "0.", "0.", "0."]);
+        assert!(parse_bytes(&deck_text(cards)).is_err());
+    }
+
+    #[test]
+    fn unsupported_nonbasic_force_coordinate_system_is_rejected() {
+        let mut cards = minimal_valid_cards();
+        cards[10] = fixed_line(&["FORCE", "3", "3", "1", "1000.", "0.", "1.", "0."]);
+        assert!(parse_bytes(&deck_text(cards)).is_err());
+    }
+
+    #[test]
+    fn invalid_spc_component_digits_are_rejected() {
+        let mut cards = minimal_valid_cards();
+        cards[9] = fixed_line(&["SPC", "1", "1", "0", "0."]);
+        assert!(parse_bytes(&deck_text(cards)).is_err());
     }
 
     #[test]
