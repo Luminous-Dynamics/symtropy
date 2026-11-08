@@ -5,16 +5,18 @@
 
 use civdyn_generational_accounting::{SyntheticPolicy, run_synthetic_cohort_policy};
 
-const COLUMNS: usize = 11;
+const COLUMNS: usize = 13;
 
 fn row(policy: SyntheticPolicy) -> Vec<String> {
     let outcome = run_synthetic_cohort_policy(policy).expect("cohort policy must validate");
     vec![
         outcome.policy.name().to_string(),
-        outcome.region_ledger_conserved.to_string(),
+        outcome.region_ledgers_conserved.to_string(),
         format!("{:.6}", outcome.current_household_water_served_m3),
         format!("{:.6}", outcome.current_household_water_unmet_m3),
+        format!("{:.6}", outcome.current_maintenance_energy_served_kwh),
         format!("{:.6}", outcome.future_inherited_water_m3),
+        format!("{:.6}", outcome.future_inherited_energy_kwh),
         format!("{:.6}", outcome.future_maintenance_energy_liability_kwh),
         format!("{:.6}", outcome.future_financial_liability_zar),
         format!("{:.6}", outcome.future_pump_condition_index),
@@ -26,7 +28,7 @@ fn row(policy: SyntheticPolicy) -> Vec<String> {
 
 fn main() {
     println!(
-        "policy,resource_ledger_conserved,current_household_water_served_m3,current_household_water_unmet_m3,future_inherited_water_m3,future_maintenance_energy_liability_kwh,future_financial_liability_zar,future_pump_condition_index,assigned_liability_records,unassigned_liability_records,cohort_service_reconciled"
+        "policy,all_region_ledgers_conserved,current_household_water_served_m3,current_household_water_unmet_m3,current_maintenance_energy_served_kwh,future_inherited_water_m3,future_inherited_energy_kwh,future_maintenance_energy_liability_kwh,future_financial_liability_zar,future_pump_condition_index,assigned_liability_records,unassigned_liability_records,cohort_service_reconciled"
     );
     for policy in SyntheticPolicy::ALL {
         let fields = row(policy);
