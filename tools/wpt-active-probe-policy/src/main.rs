@@ -676,6 +676,34 @@ mod tests {
     }
 
     #[test]
+    fn global_latency_tiebreak_uses_energy_slack_from_the_worst_branch() {
+        let c = ProbeCase {
+            case_id: "global-tie-break".into(),
+            evidence_class: "SYNTHETIC_KNOWN_TRUTH".into(),
+            pose_case_sha256: "a".repeat(64),
+            action_library_sha256: "b".repeat(64),
+            pose_ids: vec!["P0".into(), "P1".into(), "P2".into(), "P3".into()],
+            energy_budget_uj: 50,
+            latency_budget_us: 50,
+            max_actions: 3,
+            max_ripple_ppm: 1_000,
+            min_zvs_margin_permille: 0,
+            max_service_drop_ppm: 1_000,
+            actions: vec![
+                ProbeAction { id: "root".into(), energy_uj: 1, duration_us: 1, ripple_ppm: 0, zvs_margin_permille: 1_000, service_drop_ppm: 0, outcomes: vec![0, 0, 1, 1] },
+                ProbeAction { id: "left_fast".into(), energy_uj: 6, duration_us: 1, ripple_ppm: 0, zvs_margin_permille: 1_000, service_drop_ppm: 0, outcomes: vec![0, 1, 0, 0] },
+                ProbeAction { id: "left_slow".into(), energy_uj: 5, duration_us: 10, ripple_ppm: 0, zvs_margin_permille: 1_000, service_drop_ppm: 0, outcomes: vec![0, 1, 0, 0] },
+                ProbeAction { id: "right".into(), energy_uj: 20, duration_us: 2, ripple_ppm: 0, zvs_margin_permille: 1_000, service_drop_ppm: 0, outcomes: vec![0, 0, 1, 0] },
+            ],
+        };
+        let p = adaptive_plan(&c).unwrap();
+        assert_eq!(p.worst_case_energy_uj, 21);
+        assert_eq!(p.worst_case_latency_us, 3);
+        assert_eq!(p.action_id.as_deref(), Some("root"));
+        assert_eq!(p.branches[0].1.action_id.as_deref(), Some("left_fast"));
+    }
+
+    #[test]
     fn constant_outcomes_produce_abstention() {
         let bad = FIXTURE
             .lines()
