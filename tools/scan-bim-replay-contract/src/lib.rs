@@ -332,7 +332,7 @@ fn register_artifact(
     sha256: &str,
     label: &str,
     ids: &mut BTreeSet<String>,
-    paths: &mut BTreeSet<String>,
+    paths: &mut BTreeMap<String, String>,
     digests: &mut BTreeSet<String>,
 ) -> Result<(), String> {
     if !valid_identifier(artifact_id) || !digest_is_sha256(sha256) {
@@ -348,8 +348,13 @@ fn register_artifact(
     if !ids.insert(artifact_id.to_owned()) {
         return Err(format!("duplicate {label} artifact_id: {artifact_id}"));
     }
-    if !paths.insert(relative_path.to_owned()) {
-        return Err(format!("duplicate {label} artifact path: {relative_path}"));
+    if let Some(previous_digest) =
+        paths.insert(relative_path.to_owned(), sha256.to_owned())
+        && previous_digest != sha256
+    {
+        return Err(format!(
+            "{label} artifact path {relative_path} is declared with conflicting SHA-256 digests"
+        ));
     }
     digests.insert(sha256.to_owned());
     Ok(())
@@ -548,9 +553,9 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
 
     let mut scene_ids = BTreeSet::new();
     let mut candidate_ids = BTreeSet::new();
-    let mut candidate_paths = BTreeSet::new();
+    let mut candidate_paths = BTreeMap::new();
     let mut evaluator_ids = BTreeSet::new();
-    let mut evaluator_paths = BTreeSet::new();
+    let mut evaluator_paths = BTreeMap::new();
     let mut candidate_digests = BTreeSet::new();
     let mut evaluator_digests = BTreeSet::new();
     let mut building_splits: BTreeMap<&str, &str> = BTreeMap::new();
@@ -1359,6 +1364,37 @@ mod tests {
         value["scenes"][0]["candidate_outputs"][0]["artifact_id"] = candidate_id;
         let error = audit(&value).expect_err("candidate input/output identities must be unique");
         assert!(error.contains("duplicate candidate output artifact_id"));
+    }
+
+    #[test]
+    fn allows_shared_evaluator_reference_for_distinct_capture_scenes() {
+        let mut value = fixture_value();
+        let shared_path = value["scenes"][0]["evaluator_artifacts"][0]["relative_path"].clone();
+        let shared_digest = value["scenes"][0]["evaluator_artifacts"][0]["sha256"].clone();
+        value["scenes"][1]["evaluator_artifacts"][0]["relative_path"] = shared_path;
+        value["scenes"][1]["evaluator_artifacts"][0]["sha256"] = shared_digest;
+
+        let report = audit(&value).expect("two captures may share one physical reference artifact");
+        assert_eq!(report.scene_count, 2);
+        let (candidate, evaluator) = synthetic_data_roots();
+        let summary = super::verify_manifest_artifact_files(
+            value.to_string().as_bytes(),
+            &candidate,
+            &evaluator,
+        )
+        .expect("the shared reference bytes are verified against the same declared digest");
+        assert_eq!(summary.evaluator_verified, 2);
+    }
+
+    #[test]
+    fn rejects_shared_artifact_path_with_conflicting_digests() {
+        let mut value = fixture_value();
+        let shared_path = value["scenes"][0]["evaluator_artifacts"][0]["relative_path"].clone();
+        value["scenes"][1]["evaluator_artifacts"][0]["relative_path"] = shared_path;
+        value["scenes"][1]["evaluator_artifacts"][0]["sha256"] =
+            serde_json::json!("0000000000000000000000000000000000000000000000000000000000000000");
+        let error = audit(&value).expect_err("one relative file cannot have two declared digests");
+        assert!(error.contains("conflicting SHA-256 digests"));
     }
 
     #[test]
