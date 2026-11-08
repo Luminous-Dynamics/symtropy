@@ -143,7 +143,11 @@
     "commissioning_does_not_imply_continuous_service",
     "unknown_or_stale_required_evidence_never_becomes_pass",
     "wet_dry_and_electrical_segregation_are_separate_hard_constraints",
-    "all_source_owner_claims_retain_owner_schema_revision_and_subject_identity"
+    "all_source_owner_claims_retain_owner_schema_revision_and_subject_identity",
+    "nominal_design_geometry_is_not_as_built_geometry",
+    "tolerance_stack_method_and_owner_revision_are_explicit",
+    "buffer_allowance_is_not_infinite_or_implicitly_adjustable",
+    "no_force_fit_or_unapproved_field_modification_is_accepted"
   ],
   "metrics": [
     "accepted_units_per_scheduled_hour",
@@ -167,5 +171,23 @@
     "E3_instrumented_lab",
     "E4_supervised_facility_pilot",
     "E5_sustained_replication"
-  ]
+  ],
+  "tolerance_chain": {
+    "required": true,
+    "tolerance_method_id": null,
+    "tolerance_method_revision": null,
+    "design_datum_revision": null,
+    "host_as_built_measurement_receipt": null,
+    "host_measurement_instrument_calibration_receipt": null,
+    "module_as_manufactured_measurement_receipt": null,
+    "module_measurement_instrument_calibration_receipt": null,
+    "interface_allowance_definition": null,
+    "buffer_mechanism_definition": null,
+    "buffer_qualified_range": null,
+    "assembly_sequence_revision": null,
+    "final_installed_interface_measurement_receipt": null,
+    "acceptance_owner": null,
+    "status": "unspecified",
+    "policy": "Do not infer a fit from nominal BIM geometry. No forced fit, cutting, drilling, slot extension or shim acceptance without an owner-approved disposition and evidence."
+  }
 }
