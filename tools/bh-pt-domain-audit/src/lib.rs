@@ -12,7 +12,10 @@ use core::fmt;
 use num_complex::Complex64;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum QnmBranch { Plus, Minus }
+pub enum QnmBranch {
+    Plus,
+    Minus,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CausalRegion {
@@ -56,11 +59,17 @@ impl fmt::Display for ModelError {
         match self {
             Self::NonFiniteParameter => write!(f, "model parameters must be finite"),
             Self::NonPositiveWidth => write!(f, "potential width b must be strictly positive"),
-            Self::NonPositivePeakStrength => write!(f, "barrier peak strength V0 must be strictly positive"),
+            Self::NonPositivePeakStrength => {
+                write!(f, "barrier peak strength V0 must be strictly positive")
+            }
             Self::ParameterOverflow => write!(f, "dimensionless barrier strength V0 b² overflowed"),
-            Self::NonFiniteCoordinate => write!(f, "source and observer coordinates must be finite"),
+            Self::NonFiniteCoordinate => {
+                write!(f, "source and observer coordinates must be finite")
+            }
             Self::NonFiniteTime => write!(f, "time separation must be finite"),
-            Self::InvalidBoundaryTolerance => write!(f, "boundary tolerance must be finite and non-negative"),
+            Self::InvalidBoundaryTolerance => {
+                write!(f, "boundary tolerance must be finite and non-negative")
+            }
         }
     }
 }
@@ -73,22 +82,43 @@ impl PoschlTellerModel {
         if !width.is_finite() || !peak_strength.is_finite() {
             return Err(ModelError::NonFiniteParameter);
         }
-        if width <= 0.0 { return Err(ModelError::NonPositiveWidth); }
-        if peak_strength <= 0.0 { return Err(ModelError::NonPositivePeakStrength); }
+        if width <= 0.0 {
+            return Err(ModelError::NonPositiveWidth);
+        }
+        if peak_strength <= 0.0 {
+            return Err(ModelError::NonPositivePeakStrength);
+        }
         let lambda = peak_strength * width * width;
-        if !lambda.is_finite() { return Err(ModelError::ParameterOverflow); }
+        if !lambda.is_finite() {
+            return Err(ModelError::ParameterOverflow);
+        }
         let nu = Complex64::new(0.25 - lambda, 0.0).sqrt();
-        Ok(Self { width, peak_strength, lambda, nu })
+        Ok(Self {
+            width,
+            peak_strength,
+            lambda,
+            nu,
+        })
     }
 
-    pub const fn width(self) -> f64 { self.width }
-    pub const fn peak_strength(self) -> f64 { self.peak_strength }
-    pub const fn dimensionless_strength(self) -> f64 { self.lambda }
-    pub const fn nu(self) -> Complex64 { self.nu }
+    pub const fn width(self) -> f64 {
+        self.width
+    }
+    pub const fn peak_strength(self) -> f64 {
+        self.peak_strength
+    }
+    pub const fn dimensionless_strength(self) -> f64 {
+        self.lambda
+    }
+    pub const fn nu(self) -> Complex64 {
+        self.nu
+    }
 
     /// Evaluate V(x) = V0 sech²(x / b) without large-argument cosh overflow.
     pub fn potential(self, x: f64) -> Result<f64, ModelError> {
-        if !x.is_finite() { return Err(ModelError::NonFiniteCoordinate); }
+        if !x.is_finite() {
+            return Err(ModelError::NonFiniteCoordinate);
+        }
         let y = (x / self.width).abs();
         let sech_squared = if y > 20.0 {
             let e = (-y).exp();
@@ -97,7 +127,11 @@ impl PoschlTellerModel {
             1.0 / y.cosh().powi(2)
         };
         let value = self.peak_strength * sech_squared;
-        if value.is_finite() { Ok(value) } else { Err(ModelError::ParameterOverflow) }
+        if value.is_finite() {
+            Ok(value)
+        } else {
+            Err(ModelError::ParameterOverflow)
+        }
     }
 
     /// Dimensional QNM frequency: omega_n^± = [-i(n+1/2) ± i nu] / b.
@@ -105,7 +139,10 @@ impl PoschlTellerModel {
     pub fn qnm_frequency(self, n: u32, branch: QnmBranch) -> Complex64 {
         let base = Complex64::new(0.0, -(f64::from(n) + 0.5));
         let split = Complex64::new(0.0, 1.0) * self.nu;
-        let signed_split = match branch { QnmBranch::Plus => split, QnmBranch::Minus => -split };
+        let signed_split = match branch {
+            QnmBranch::Plus => split,
+            QnmBranch::Minus => -split,
+        };
         (base + signed_split) / self.width
     }
 
@@ -130,7 +167,9 @@ impl PoschlTellerModel {
         x_observer: f64,
         boundary_tolerance: f64,
     ) -> Result<CausalDomain, ModelError> {
-        if !delta_t.is_finite() { return Err(ModelError::NonFiniteTime); }
+        if !delta_t.is_finite() {
+            return Err(ModelError::NonFiniteTime);
+        }
         if !x_source.is_finite() || !x_observer.is_finite() {
             return Err(ModelError::NonFiniteCoordinate);
         }
@@ -149,7 +188,12 @@ impl PoschlTellerModel {
             (false, false) if delta_t < reflected_delay => CausalRegion::RegionII,
             (false, false) => CausalRegion::RegionI,
         };
-        Ok(CausalDomain { delta_t, direct_delay, reflected_delay, region })
+        Ok(CausalDomain {
+            delta_t,
+            direct_delay,
+            reflected_delay,
+            region,
+        })
     }
 }
 
@@ -222,17 +266,35 @@ mod tests {
     #[test]
     fn same_side_points_select_all_three_regions() {
         let m = model(1.0, 0.75);
-        assert_eq!(m.classify_causal_domain(0.5, 3.0, 4.0, 0.0).unwrap().region, CausalRegion::RegionIII);
-        assert_eq!(m.classify_causal_domain(2.0, 3.0, 4.0, 0.0).unwrap().region, CausalRegion::RegionII);
-        assert_eq!(m.classify_causal_domain(8.0, 3.0, 4.0, 0.0).unwrap().region, CausalRegion::RegionI);
+        assert_eq!(
+            m.classify_causal_domain(0.5, 3.0, 4.0, 0.0).unwrap().region,
+            CausalRegion::RegionIII
+        );
+        assert_eq!(
+            m.classify_causal_domain(2.0, 3.0, 4.0, 0.0).unwrap().region,
+            CausalRegion::RegionII
+        );
+        assert_eq!(
+            m.classify_causal_domain(8.0, 3.0, 4.0, 0.0).unwrap().region,
+            CausalRegion::RegionI
+        );
     }
 
     #[test]
     fn lightcone_boundaries_are_explicit() {
         let m = model(1.0, 0.75);
-        assert_eq!(m.classify_causal_domain(1.0, 3.0, 4.0, 0.0).unwrap().region, CausalRegion::DirectLightcone);
-        assert_eq!(m.classify_causal_domain(7.0, 3.0, 4.0, 0.0).unwrap().region, CausalRegion::ReflectedLightcone);
-        assert_eq!(m.classify_causal_domain(0.0, 0.0, 0.0, 0.0).unwrap().region, CausalRegion::CoincidentLightcones);
+        assert_eq!(
+            m.classify_causal_domain(1.0, 3.0, 4.0, 0.0).unwrap().region,
+            CausalRegion::DirectLightcone
+        );
+        assert_eq!(
+            m.classify_causal_domain(7.0, 3.0, 4.0, 0.0).unwrap().region,
+            CausalRegion::ReflectedLightcone
+        );
+        assert_eq!(
+            m.classify_causal_domain(0.0, 0.0, 0.0, 0.0).unwrap().region,
+            CausalRegion::CoincidentLightcones
+        );
     }
 
     #[test]
@@ -242,21 +304,48 @@ mod tests {
         assert_eq!(d.direct_delay, 7.0);
         assert_eq!(d.reflected_delay, 1.0);
         assert_eq!(d.region, CausalRegion::RegionIII);
-        assert_eq!(m.classify_causal_domain(8.0, -3.0, 4.0, 0.0).unwrap().region, CausalRegion::RegionI);
+        assert_eq!(
+            m.classify_causal_domain(8.0, -3.0, 4.0, 0.0)
+                .unwrap()
+                .region,
+            CausalRegion::RegionI
+        );
     }
 
     #[test]
     fn boundary_tolerance_is_explicit() {
         let m = model(1.0, 0.75);
-        assert_eq!(m.classify_causal_domain(1.0001, 3.0, 4.0, 0.001).unwrap().region, CausalRegion::DirectLightcone);
-        assert_eq!(m.classify_causal_domain(1.0001, 3.0, 4.0, 0.00001).unwrap().region, CausalRegion::RegionII);
-        assert_eq!(m.classify_causal_domain(1.0, 3.0, 4.0, -1.0), Err(ModelError::InvalidBoundaryTolerance));
+        assert_eq!(
+            m.classify_causal_domain(1.0001, 3.0, 4.0, 0.001)
+                .unwrap()
+                .region,
+            CausalRegion::DirectLightcone
+        );
+        assert_eq!(
+            m.classify_causal_domain(1.0001, 3.0, 4.0, 0.00001)
+                .unwrap()
+                .region,
+            CausalRegion::RegionII
+        );
+        assert_eq!(
+            m.classify_causal_domain(1.0, 3.0, 4.0, -1.0),
+            Err(ModelError::InvalidBoundaryTolerance)
+        );
     }
 
     #[test]
     fn invalid_model_inputs_fail_closed() {
-        assert_eq!(PoschlTellerModel::new(0.0, 1.0), Err(ModelError::NonPositiveWidth));
-        assert_eq!(PoschlTellerModel::new(1.0, 0.0), Err(ModelError::NonPositivePeakStrength));
-        assert_eq!(PoschlTellerModel::new(f64::NAN, 1.0), Err(ModelError::NonFiniteParameter));
+        assert_eq!(
+            PoschlTellerModel::new(0.0, 1.0),
+            Err(ModelError::NonPositiveWidth)
+        );
+        assert_eq!(
+            PoschlTellerModel::new(1.0, 0.0),
+            Err(ModelError::NonPositivePeakStrength)
+        );
+        assert_eq!(
+            PoschlTellerModel::new(f64::NAN, 1.0),
+            Err(ModelError::NonFiniteParameter)
+        );
     }
 }
