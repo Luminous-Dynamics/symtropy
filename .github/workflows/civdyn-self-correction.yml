@@ -37,7 +37,7 @@ jobs:
           cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin self-correction-sweep > /tmp/civdyn-self-correction.csv
           awk -F, '
             NR == 1 { if (NF != 21) exit 10; next }
-            NF != 20 { exit 11 }
+            NF != 21 { exit 11 }
             $1 == "sensor_drift_sham" {
               sensor++
               if ($2 == "outcome_reactive" && $6 != "12.000000") exit 12
