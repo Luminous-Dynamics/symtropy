@@ -5,7 +5,7 @@
 // not a CFD/FE solver, sensor deconvolution package, or modal-identification tool.
 
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 
 const DPW8_CATALOG: &str =
@@ -46,12 +46,17 @@ impl PsdSpec {
         let Some(segment_length) = self.segment_length_samples else {
             return false;
         };
-        self.window.as_deref().is_some_and(|value| !value.is_empty())
+        self.window
+            .as_deref()
+            .is_some_and(|value| !value.is_empty())
             && segment_length >= 2
             && self
                 .overlap_samples
                 .is_some_and(|overlap| overlap < segment_length)
-            && self.detrend.as_deref().is_some_and(|value| !value.is_empty())
+            && self
+                .detrend
+                .as_deref()
+                .is_some_and(|value| !value.is_empty())
             && self
                 .estimator
                 .as_deref()
@@ -221,9 +226,7 @@ fn assess_pair(
             {
                 return Decision::reject("synchronization uncertainty is invalid");
             }
-            if left_sync > maximum_sync_uncertainty_s
-                || right_sync > maximum_sync_uncertainty_s
-            {
+            if left_sync > maximum_sync_uncertainty_s || right_sync > maximum_sync_uncertainty_s {
                 return Decision::abstain(
                     "synchronization uncertainty exceeds the predeclared phase/coherence budget",
                 );
@@ -237,9 +240,7 @@ fn assess_pair(
             Decision::allow()
         }
         ComparisonKind::ModalValidation => {
-            if !left.structural_mode_evidence_admitted
-                || !right.structural_mode_evidence_admitted
-            {
+            if !left.structural_mode_evidence_admitted || !right.structural_mode_evidence_admitted {
                 return Decision::not_assessed(
                     "admitted structural mode/deformation evidence is absent; pressure or buffet indicators alone do not establish a structural mode",
                 );
@@ -262,11 +263,14 @@ fn classify_jaxa_spectral_feature(
     if !frequency_hz.is_finite() || frequency_hz < 0.0 {
         return "INVALID_FREQUENCY";
     }
-    if source_attributed_confounds_hz.iter().any(|(name, lower, upper)| {
-        instrument.eq_ignore_ascii_case(name)
-            && frequency_hz >= *lower
-            && frequency_hz <= *upper
-    }) {
+    if source_attributed_confounds_hz
+        .iter()
+        .any(|(name, lower, upper)| {
+            instrument.eq_ignore_ascii_case(name)
+                && frequency_hz >= *lower
+                && frequency_hz <= *upper
+        })
+    {
         return "SOURCE_ATTRIBUTED_CONFOUNDER_NOT_A_STRUCTURAL_MODE";
     }
     "UNCLASSIFIED_SPECTRAL_FEATURE_REQUIRES_INDEPENDENT_EVIDENCE"
@@ -282,16 +286,13 @@ fn classify_buffet_indicator(channel: &str) -> &'static str {
 
 fn source_admitted(source: &Value) -> bool {
     source.get("exact_bytes_acquired").and_then(Value::as_bool) == Some(true)
-        && source
-            .get("acquisition_state")
-            .and_then(Value::as_str)
+        && source.get("acquisition_state").and_then(Value::as_str)
             == Some("bytes_acquired_and_verified")
         && source
             .get("terms_status")
             .and_then(Value::as_str)
             .is_some_and(|status| {
-                status == "reviewed_permitted"
-                    || status == "public_domain_or_open_license_verified"
+                status == "reviewed_permitted" || status == "public_domain_or_open_license_verified"
             })
         && source
             .get("sha256")
@@ -307,7 +308,9 @@ fn case3_audit(catalog: &Value) -> Result<Value, String> {
         .and_then(Value::as_str)
         .ok_or_else(|| "catalog schema_version missing".to_owned())?;
     if schema != "aero-reference-catalog/0.2.0" {
-        return Err(format!("unsupported DPW8 reference catalog schema {schema}"));
+        return Err(format!(
+            "unsupported DPW8 reference catalog schema {schema}"
+        ));
     }
 
     let cases = catalog
@@ -316,9 +319,7 @@ fn case3_audit(catalog: &Value) -> Result<Value, String> {
         .ok_or_else(|| "benchmark_cases missing".to_owned())?;
     let case = cases
         .iter()
-        .find(|item| {
-            item.get("case_id").and_then(Value::as_str) == Some("DPW8-CRM-DYNAMIC-FSI-3")
-        })
+        .find(|item| item.get("case_id").and_then(Value::as_str) == Some("DPW8-CRM-DYNAMIC-FSI-3"))
         .ok_or_else(|| "DPW8-CRM-DYNAMIC-FSI-3 missing".to_owned())?;
 
     let sources = catalog
@@ -364,10 +365,7 @@ fn case3_audit(catalog: &Value) -> Result<Value, String> {
             .get("exact_bytes_acquired")
             .and_then(Value::as_bool)
             .unwrap_or(false);
-        let digest_present = source
-            .get("sha256")
-            .and_then(Value::as_str)
-            .is_some();
+        let digest_present = source.get("sha256").and_then(Value::as_str).is_some();
 
         channel_reports.push(json!({
             "channel_family": family,
@@ -411,12 +409,10 @@ fn case3_audit(catalog: &Value) -> Result<Value, String> {
         == Some("pending");
 
     let kulite = channels.iter().find(|channel| {
-        channel.get("channel_family").and_then(Value::as_str)
-            == Some("unsteady_point_pressure")
+        channel.get("channel_family").and_then(Value::as_str) == Some("unsteady_point_pressure")
     });
     let upsp = channels.iter().find(|channel| {
-        channel.get("channel_family").and_then(Value::as_str)
-            == Some("unsteady_surface_pressure")
+        channel.get("channel_family").and_then(Value::as_str) == Some("unsteady_surface_pressure")
     });
     let c_b = channels.iter().find(|channel| {
         channel.get("channel_family").and_then(Value::as_str) == Some("buffet_intensity")
@@ -519,7 +515,10 @@ fn main() {
             std::process::exit(2);
         }
     };
-    println!("{}", serde_json::to_string_pretty(&report).expect("JSON serialization"));
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&report).expect("JSON serialization")
+    );
 }
 
 #[cfg(test)]
@@ -528,8 +527,20 @@ mod tests {
 
     #[test]
     fn identical_admitted_observation_operators_allow_rms_comparison() {
-        let left = synthetic_channel("pressure-measurement", "pressure", "Pa", "sensor-grid-A", "bandpass-A");
-        let right = synthetic_channel("pressure-prediction-through-sensor", "pressure", "Pa", "sensor-grid-A", "bandpass-A");
+        let left = synthetic_channel(
+            "pressure-measurement",
+            "pressure",
+            "Pa",
+            "sensor-grid-A",
+            "bandpass-A",
+        );
+        let right = synthetic_channel(
+            "pressure-prediction-through-sensor",
+            "pressure",
+            "Pa",
+            "sensor-grid-A",
+            "bandpass-A",
+        );
         assert_eq!(
             assess_pair(&left, &right, ComparisonKind::Rms, 1.0e-5).status,
             DecisionStatus::Allow
@@ -538,8 +549,20 @@ mod tests {
 
     #[test]
     fn different_temporal_responses_reject_raw_rms_equality() {
-        let left = synthetic_channel("kulite", "pressure", "Pa", "sensor-grid-A", "broadband-kulite");
-        let right = synthetic_channel("upsp", "pressure", "Pa", "sensor-grid-A", "camera-exposure-lowpass");
+        let left = synthetic_channel(
+            "kulite",
+            "pressure",
+            "Pa",
+            "sensor-grid-A",
+            "broadband-kulite",
+        );
+        let right = synthetic_channel(
+            "upsp",
+            "pressure",
+            "Pa",
+            "sensor-grid-A",
+            "camera-exposure-lowpass",
+        );
         let result = assess_pair(&left, &right, ComparisonKind::Rms, 1.0e-5);
         assert_eq!(result.status, DecisionStatus::Reject);
         assert!(result.reasons[0].contains("temporal instrument responses differ"));
@@ -580,7 +603,13 @@ mod tests {
 
     #[test]
     fn required_surface_mask_must_be_applied() {
-        let left = synthetic_channel("upsp-measured", "Cp", "1", "surface-map-A", "camera-lowpass-A");
+        let left = synthetic_channel(
+            "upsp-measured",
+            "Cp",
+            "1",
+            "surface-map-A",
+            "camera-lowpass-A",
+        );
         let mut right = left.clone();
         right.mask_required = true;
         right.mask_applied = false;
@@ -675,7 +704,10 @@ mod tests {
 
     #[test]
     fn buffet_coefficient_is_an_indicator_not_a_modal_result() {
-        assert_eq!(classify_buffet_indicator("C_B"), "BUFFET_ONSET_INDICATOR_ONLY");
+        assert_eq!(
+            classify_buffet_indicator("C_B"),
+            "BUFFET_ONSET_INDICATOR_ONLY"
+        );
     }
 
     #[test]
@@ -684,9 +716,18 @@ mod tests {
         let report = case3_audit(&catalog).unwrap();
         assert_eq!(report["case_status"], "OPTIONAL");
         assert_eq!(report["source_admission"], "NOT_ADMITTED");
-        assert_eq!(report["comparison_decisions"]["psd_comparison"], "ABSTAIN_MISSING_SAMPLING_AND_ESTIMATOR_METADATA");
-        assert_eq!(report["comparison_decisions"]["quantitative_deformation"], "NOT_ASSESSED_OFFICIAL_DEFORMATION_PENDING");
-        assert_eq!(report["comparison_decisions"]["psp_simultaneous_drag"], "NULL_NOT_IMPUTED");
+        assert_eq!(
+            report["comparison_decisions"]["psd_comparison"],
+            "ABSTAIN_MISSING_SAMPLING_AND_ESTIMATOR_METADATA"
+        );
+        assert_eq!(
+            report["comparison_decisions"]["quantitative_deformation"],
+            "NOT_ASSESSED_OFFICIAL_DEFORMATION_PENDING"
+        );
+        assert_eq!(
+            report["comparison_decisions"]["psp_simultaneous_drag"],
+            "NULL_NOT_IMPUTED"
+        );
     }
 
     #[test]
