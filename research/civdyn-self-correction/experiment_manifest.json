@@ -200,8 +200,8 @@
       ],
       "maximum_looks": 4,
       "action_benefit_threshold": 0.5,
-      "one_sided_confidence_critical_value": 2.5,
-      "sequential_error_control": "Bonferroni-style conservative one-sided bound across four predeclared looks",
+      "one_sided_confidence_critical_value": 2.8,
+      "sequential_error_control": "Conservative one-sided normal critical value 2.8 across four predeclared looks; under the stated normal approximation, union-bound family-wise false-stop probability is below 1.1%.",
       "expected_controls": {
         "stable_positive": {
           "false_stops": 0,
