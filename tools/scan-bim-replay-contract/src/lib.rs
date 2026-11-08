@@ -152,6 +152,7 @@ struct MetricProfile {
     scope: MetricScope,
     definition_authority: MetricDefinitionAuthority,
     accuracy_direction: AccuracyDirection,
+    sample_strategy: AccuracySampleStrategy,
     surface_buffer_m: f64,
     accuracy_cutoff_m: f64,
 }
@@ -176,8 +177,18 @@ enum AccuracyDirection {
 #[serde(rename_all = "snake_case")]
 enum MetricDefinitionAuthority {
     OfficialResultsPage,
+    EvaluationFramework2018,
     FinalResultsPaper2021,
     BidirectionalDiagnostic,
+}
+
+#[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum AccuracySampleStrategy {
+    ReferenceSurfaceSamples,
+    SourceSurfaceVertices,
+    SourceSurfaceSamples,
+    BothDirectionsDiagnostic,
 }
 
 #[derive(Debug, Deserialize)]
@@ -322,6 +333,7 @@ pub struct ReplayAuditReport {
     pub metric_scope: String,
     pub metric_definition_authority: String,
     pub metric_accuracy_direction: String,
+    pub metric_accuracy_sample_strategy: String,
     pub surface_buffer_m: f64,
     pub accuracy_cutoff_m: f64,
     pub manifest_sha256: String,
@@ -442,6 +454,15 @@ fn metric_scope_label(value: MetricScope) -> &'static str {
     }
 }
 
+fn accuracy_sample_strategy_label(value: AccuracySampleStrategy) -> &'static str {
+    match value {
+        AccuracySampleStrategy::ReferenceSurfaceSamples => "reference_surface_samples",
+        AccuracySampleStrategy::SourceSurfaceVertices => "source_surface_vertices",
+        AccuracySampleStrategy::SourceSurfaceSamples => "source_surface_samples",
+        AccuracySampleStrategy::BothDirectionsDiagnostic => "both_directions_diagnostic",
+    }
+}
+
 fn metric_definition_authority_label(value: MetricDefinitionAuthority) -> &'static str {
     match value {
         MetricDefinitionAuthority::OfficialResultsPage => "official_results_page",
@@ -463,8 +484,8 @@ fn valid_identifier(value: &str) -> bool {
 }
 
 fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
-    if manifest.schema_version != "0.2" {
-        return Err("unsupported schema_version; expected 0.2".to_owned());
+    if manifest.schema_version != "0.3" {
+        return Err("unsupported schema_version; expected 0.3".to_owned());
     }
     if !valid_identifier(&manifest.replay_id) {
         return Err("replay_id must be non-empty".to_owned());
@@ -555,23 +576,35 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
         );
     }
     if manifest.metric_profile.suite_id == "isprs_indoor_modelling_wall" {
-        let direction_matches_authority = match manifest.metric_profile.definition_authority {
+        let authority_matches_definition = match manifest.metric_profile.definition_authority {
             MetricDefinitionAuthority::OfficialResultsPage => {
                 manifest.metric_profile.accuracy_direction
                     == AccuracyDirection::ReferenceToCandidate
+                    && manifest.metric_profile.sample_strategy
+                        == AccuracySampleStrategy::ReferenceSurfaceSamples
+            }
+            MetricDefinitionAuthority::EvaluationFramework2018 => {
+                manifest.metric_profile.accuracy_direction
+                    == AccuracyDirection::CandidateToReference
+                    && manifest.metric_profile.sample_strategy
+                        == AccuracySampleStrategy::SourceSurfaceVertices
             }
             MetricDefinitionAuthority::FinalResultsPaper2021 => {
                 manifest.metric_profile.accuracy_direction
                     == AccuracyDirection::CandidateToReference
+                    && manifest.metric_profile.sample_strategy
+                        == AccuracySampleStrategy::SourceSurfaceSamples
             }
             MetricDefinitionAuthority::BidirectionalDiagnostic => {
                 manifest.metric_profile.accuracy_direction
                     == AccuracyDirection::BidirectionalDiagnostic
+                    && manifest.metric_profile.sample_strategy
+                        == AccuracySampleStrategy::BothDirectionsDiagnostic
             }
         };
-        if manifest.metric_profile.scope != MetricScope::WallOnly || !direction_matches_authority {
+        if manifest.metric_profile.scope != MetricScope::WallOnly || !authority_matches_definition {
             return Err(
-                "ISPRS wall metric profile must pair wall_only scope with the direction declared by definition_authority"
+                "ISPRS wall metric profile must pair wall_only scope, accuracy direction and sample strategy with definition_authority"
                     .to_owned(),
             );
         }
@@ -1355,6 +1388,10 @@ pub fn audit_manifest_bytes(bytes: &[u8]) -> Result<ReplayAuditReport, String> {
         )
         .to_owned(),
         metric_accuracy_direction: accuracy_direction_label(manifest.metric_profile.accuracy_direction).to_owned(),
+        metric_accuracy_sample_strategy: accuracy_sample_strategy_label(
+            manifest.metric_profile.sample_strategy,
+        )
+        .to_owned(),
         surface_buffer_m: manifest.metric_profile.surface_buffer_m,
         accuracy_cutoff_m: manifest.metric_profile.accuracy_cutoff_m,
         manifest_sha256,
@@ -1509,9 +1546,24 @@ mod tests {
         value["metric_profile"]["definition_authority"] =
             serde_json::json!("final_results_paper2021");
         value["metric_profile"]["accuracy_direction"] = serde_json::json!("candidate_to_reference");
+        value["metric_profile"]["sample_strategy"] = serde_json::json!("source_surface_samples");
         let report = audit(&value).expect("paper-specific profile should be explicit and reproducible");
         assert_eq!(report.metric_accuracy_direction, "candidate_to_reference");
         assert_eq!(report.metric_definition_authority, "final_results_paper_2021");
+        assert_eq!(report.metric_accuracy_sample_strategy, "source_surface_samples");
+    }
+
+    #[test]
+    fn accepts_2018_evaluation_framework_vertex_to_reference_definition() {
+        let mut value = isprs_pair_fixture();
+        value["metric_profile"]["suite_id"] = serde_json::json!("isprs_indoor_modelling_wall");
+        value["metric_profile"]["scope"] = serde_json::json!("wall_only");
+        value["metric_profile"]["definition_authority"] =
+            serde_json::json!("evaluation_framework2018");
+        value["metric_profile"]["accuracy_direction"] = serde_json::json!("candidate_to_reference");
+        value["metric_profile"]["sample_strategy"] = serde_json::json!("source_surface_vertices");
+        let report = audit(&value).expect("2018 framework's source vertices must be separately recorded");
+        assert_eq!(report.metric_accuracy_sample_strategy, "source_surface_vertices");
     }
 
     #[test]
@@ -1523,8 +1575,14 @@ mod tests {
             serde_json::json!("bidirectional_diagnostic");
         value["metric_profile"]["accuracy_direction"] =
             serde_json::json!("bidirectional_diagnostic");
+        value["metric_profile"]["sample_strategy"] =
+            serde_json::json!("both_directions_diagnostic");
         let report = audit(&value).expect("both directed distances may be retained as diagnostics");
         assert_eq!(report.metric_accuracy_direction, "bidirectional_diagnostic");
+        assert_eq!(
+            report.metric_accuracy_sample_strategy,
+            "both_directions_diagnostic"
+        );
     }
 
     #[test]
@@ -1645,7 +1703,7 @@ mod tests {
         assert_eq!(report.candidate_artifact_count, 11);
         assert_eq!(report.evaluator_artifact_count, 2);
         assert_eq!(report.pipeline_id, "synthetic-scan-bim-candidate-v0.2");
-        assert_eq!(report.metric_suite_version, "0.2");
+        assert_eq!(report.metric_suite_version, "0.3");
         assert_eq!(
             report.metric_accuracy_direction,
             "reference_to_candidate"
@@ -1653,6 +1711,10 @@ mod tests {
         assert_eq!(
             report.metric_definition_authority,
             "official_results_page"
+        );
+        assert_eq!(
+            report.metric_accuracy_sample_strategy,
+            "reference_surface_samples"
         );
         assert_eq!(report.tolerance_distance_limit_m, 0.05);
         assert_eq!(report.scenes[0].linear_unit, "metre");
