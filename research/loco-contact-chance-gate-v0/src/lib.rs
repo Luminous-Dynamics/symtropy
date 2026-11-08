@@ -573,13 +573,13 @@ fn assess_candidate(
         allocation,
         now_ns,
     ) {
-            Ok(receipt_id) => receipt_id,
-            Err(reason) => {
-                let mut assessment = base();
-                assessment.abstention_reason = Some(reason);
-                return assessment;
-            }
-        };
+        Ok(receipt_id) => receipt_id,
+        Err(reason) => {
+            let mut assessment = base();
+            assessment.abstention_reason = Some(reason);
+            return assessment;
+        }
+    };
 
     let mut assessment = base();
     assessment.calibration_receipt_id = Some(receipt_id);
@@ -1185,10 +1185,16 @@ mod tests {
     #[test]
     fn independent_zero_tail_validation_uses_exact_95_percent_upper_bound() {
         let mut underpowered = candidate("underpowered", 0.1);
-        underpowered.calibration_receipt.as_mut().unwrap()
+        underpowered
+            .calibration_receipt
+            .as_mut()
+            .unwrap()
             .independent_validation_units_by_constraint = [298; CONSTRAINT_COUNT];
         let mut adequately_powered = candidate("adequately-powered", 0.1);
-        adequately_powered.calibration_receipt.as_mut().unwrap()
+        adequately_powered
+            .calibration_receipt
+            .as_mut()
+            .unwrap()
             .independent_validation_units_by_constraint = [299; CONSTRAINT_COUNT];
 
         let report = evaluate_actions(
@@ -1197,24 +1203,41 @@ mod tests {
             50_000_000,
             "rough-terrain-v1",
             2_000,
-        ).unwrap();
-        let underpowered = report.assessments.iter()
-            .find(|assessment| assessment.action_id == "underpowered").unwrap();
-        let adequately_powered = report.assessments.iter()
-            .find(|assessment| assessment.action_id == "adequately-powered").unwrap();
-        assert_eq!(underpowered.abstention_reason,
-            Some(AbstentionReason::InsufficientIndependentValidationUnits));
-        assert_eq!(adequately_powered.disposition, CandidateDisposition::Admitted);
+        )
+        .unwrap();
+        let underpowered = report
+            .assessments
+            .iter()
+            .find(|assessment| assessment.action_id == "underpowered")
+            .unwrap();
+        let adequately_powered = report
+            .assessments
+            .iter()
+            .find(|assessment| assessment.action_id == "adequately-powered")
+            .unwrap();
+        assert_eq!(
+            underpowered.abstention_reason,
+            Some(AbstentionReason::InsufficientIndependentValidationUnits)
+        );
+        assert_eq!(
+            adequately_powered.disposition,
+            CandidateDisposition::Admitted
+        );
     }
 
     #[test]
     fn any_observed_validation_tail_event_abstains_in_zero_event_v0() {
         let mut c = candidate("tail-event", 1.0);
-        c.calibration_receipt.as_mut().unwrap()
+        c.calibration_receipt
+            .as_mut()
+            .unwrap()
             .upper_tail_exceedances_by_constraint[2] = 1;
-        let report = evaluate_actions(&[c], &limits(), 50_000_000, "rough-terrain-v1", 2_000).unwrap();
-        assert_eq!(report.assessments[0].abstention_reason,
-            Some(AbstentionReason::ObservedCalibrationTailExceedance));
+        let report =
+            evaluate_actions(&[c], &limits(), 50_000_000, "rough-terrain-v1", 2_000).unwrap();
+        assert_eq!(
+            report.assessments[0].abstention_reason,
+            Some(AbstentionReason::ObservedCalibrationTailExceedance)
+        );
         assert!(report.eligible_action_ids_by_information.is_empty());
     }
 
