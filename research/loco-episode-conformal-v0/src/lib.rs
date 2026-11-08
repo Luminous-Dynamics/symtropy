@@ -161,9 +161,7 @@ fn conformal_rank(n: u128, alpha_ppm: u32) -> Result<u128, ConformalError> {
     ceil_div(numerator, u128::from(SCALE_PPM))
 }
 
-/// Exact split-conformal order statistic:
-///
-///     k = ceil((n + 1) * (1 - alpha))
+/// Exact split-conformal order statistic: `k = ceil((n + 1) * (1 - alpha))`.
 ///
 /// When k > n, this returns an unbounded threshold rather than incorrectly
 /// clamping to the maximum observed calibration score.
