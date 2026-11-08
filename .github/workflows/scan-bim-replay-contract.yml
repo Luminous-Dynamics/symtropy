@@ -47,13 +47,15 @@ jobs:
             --manifest tools/scan-bim-replay-contract/fixtures/synthetic-observability.json \
             > /tmp/scan-bim-replay-report.json
           jq -e '
-            (.scene_count == 2) and
-            (.candidate_artifact_count == 2) and
-            (.evaluator_artifact_count == 2) and
-            (.scenes[0].theoretically_visible_area_m2 == 10.0) and
-            (.scenes[0].captured_visible_area_m2 == 8.0) and
-            (.scenes[0].not_captured_visible_area_m2 == 2.0) and
-            (.scenes[0].self_occluded_area_m2 == 4.0) and
-            (.scenes[0].externally_occluded_area_m2 == 3.0) and
-            (.claim_ceiling | startswith("METADATA_AND_VISIBILITY_ACCOUNTING_ONLY"))
+            (.metadata_audit.scene_count == 2) and
+            (.metadata_audit.candidate_artifact_count == 2) and
+            (.metadata_audit.evaluator_artifact_count == 2) and
+            (.artifact_verification.candidate_verified == 2) and
+            (.artifact_verification.evaluator_verified == 2) and
+            (.metadata_audit.scenes[0].theoretically_visible_area_m2 == 10.0) and
+            (.metadata_audit.scenes[0].captured_visible_area_m2 == 8.0) and
+            (.metadata_audit.scenes[0].not_captured_visible_area_m2 == 2.0) and
+            (.metadata_audit.scenes[0].self_occluded_area_m2 == 4.0) and
+            (.metadata_audit.scenes[0].externally_occluded_area_m2 == 3.0) and
+            (.metadata_audit.claim_ceiling | startswith("METADATA_AND_VISIBILITY_ACCOUNTING_ONLY"))
           ' /tmp/scan-bim-replay-report.json
