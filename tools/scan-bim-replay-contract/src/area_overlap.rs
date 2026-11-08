@@ -16,6 +16,7 @@
 //! are reproduced from the original implementation.
 
 use crate::metrics::Point3;
+use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 
 const GEOMETRY_EPSILON: f64 = 1.0e-10;
@@ -42,7 +43,8 @@ pub enum ReferenceVisibility {
     Unobservable,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
 pub enum AreaAggregationPolicy {
     /// 2018 evaluation-framework equations: sum every compatible pairwise
     /// source/reference intersection area.
@@ -108,7 +110,8 @@ impl ReferenceAreaSurface {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct AreaOverlapProfile {
     pub profile_id: String,
     pub metric_authority: AreaMetricAuthority,
@@ -757,17 +760,8 @@ fn projected_source_polygon(
     validate_convex_polygon(&projected, "projected source surface")
 }
 
-/// Calculate audit-ready completeness/correctness numerators and denominators.
-///
-/// All source and reference polygons must be convex and planar, in the same declared
-/// metre-valued frame. The reference buffer polygon must be supplied by a separately
-/// versioned buffer constructor. This function does not guess the angle threshold,
-/// infer visibility or create the buffer itself.
-pub fn evaluate_area_overlap(
-    profile: &AreaOverlapProfile,
-    source_surfaces: &[SourceAreaSurface],
-    reference_surfaces: &[ReferenceAreaSurface],
-) -> Result<AreaOverlapResult, String> {
+/// Validate a replay-bound area-overlap profile without accessing geometry.
+pub fn validate_area_overlap_profile(profile: &AreaOverlapProfile) -> Result<(), String> {
     if profile.profile_id.trim().is_empty()
         || profile.metric_authority.trim().is_empty()
         || profile.common_frame_id.trim().is_empty()
@@ -797,6 +791,21 @@ pub fn evaluate_area_overlap(
     if !profile.buffer_distance_m.is_finite() || profile.buffer_distance_m < 0.0 {
         return Err("buffer_distance_m must be finite and non-negative metres".to_owned());
     }
+    Ok(())
+}
+
+/// Calculate audit-ready completeness/correctness numerators and denominators.
+///
+/// All source and reference polygons must be convex and planar, in the same declared
+/// metre-valued frame. The reference buffer polygon must be supplied by a separately
+/// versioned buffer constructor. This function does not guess the angle threshold,
+/// infer visibility or create the buffer itself.
+pub fn evaluate_area_overlap(
+    profile: &AreaOverlapProfile,
+    source_surfaces: &[SourceAreaSurface],
+    reference_surfaces: &[ReferenceAreaSurface],
+) -> Result<AreaOverlapResult, String> {
+    validate_area_overlap_profile(profile)?;
     if source_surfaces.len() > MAX_SURFACES || reference_surfaces.len() > MAX_SURFACES {
         return Err("surface count exceeds the bounded area-overlap profile".to_owned());
     }
