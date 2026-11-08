@@ -37,10 +37,6 @@ impl Point3 {
         Self::new(self.x - other.x, self.y - other.y, self.z - other.z)
     }
 
-    fn add(self, other: Self) -> Self {
-        Self::new(self.x + other.x, self.y + other.y, self.z + other.z)
-    }
-
     fn scale(self, factor: f64) -> Self {
         Self::new(self.x * factor, self.y * factor, self.z * factor)
     }
