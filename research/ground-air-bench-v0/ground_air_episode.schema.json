@@ -85,7 +85,9 @@
           "MISSION_SERVICE",
           "FAIRNESS_AND_ASSET_HEALTH",
           "SAFETY_AND_EVIDENCE",
-          "COMPUTATION"
+          "COMPUTATION",
+          "MECHANICAL_CAPTURE",
+          "REPLENISHMENT_STRATEGY"
         ]
       }
     },
@@ -138,7 +140,9 @@
             "DYNAMIC_TRANSFER",
             "DEPART_REACQUIRE",
             "SHARED_SITE_COEXISTENCE",
-            "OUTAGE_RECOVERY"
+            "OUTAGE_RECOVERY",
+            "MULTIMODAL_REPLENISHMENT",
+            "POWER_LINE_ENERGY_CORRIDOR"
           ]
         },
         "site_id": {
@@ -239,7 +243,10 @@
             "SOURCE_TO_LOAD_METROLOGY",
             "STANDARDS_APPLICABILITY",
             "ASSET_HEALTH",
-            "MISSION_ENERGY"
+            "MISSION_ENERGY",
+            "MECHANICAL_CAPTURE",
+            "CAPTURE_OBSERVABILITY_COMPOSITION",
+            "REPLENISHMENT_STRATEGY"
           ]
         },
         "artifact_path": {
@@ -347,7 +354,9 @@
               "CLIMB_DESCENT",
               "DYNAMIC_FLIGHT",
               "DEPARTURE",
-              "REACQUISITION"
+              "REACQUISITION",
+              "LANDING_APPROACH",
+              "BATTERY_SWAP"
             ]
           }
         },
@@ -406,7 +415,10 @@
         "SOURCE_TO_LOAD_METROLOGY",
         "STANDARDS_APPLICABILITY",
         "ASSET_HEALTH",
-        "MISSION_ENERGY"
+        "MISSION_ENERGY",
+        "MECHANICAL_CAPTURE",
+        "CAPTURE_OBSERVABILITY_COMPOSITION",
+        "REPLENISHMENT_STRATEGY"
       ]
     },
     "receiver": {
@@ -503,7 +515,16 @@
             "EXACT_PARETO_ORACLE",
             "FIXED_MEASUREMENT",
             "ONE_STEP_EVSI",
-            "SEQUENTIAL_EVSI"
+            "SEQUENTIAL_EVSI",
+            "ROBOTIC_CONDUCTIVE",
+            "BATTERY_EXCHANGE",
+            "STATIC_IPT",
+            "STATIC_CPT",
+            "RF_BEAM",
+            "OPTICAL_BEAM",
+            "POWER_LINE_CORRIDOR",
+            "ADAPTIVE_REPLENISHMENT",
+            "EXACT_REPLENISHMENT_PARETO_ORACLE"
           ]
         },
         "artifact_sha256": {
