@@ -508,6 +508,33 @@ def main() -> int:
         require(evaluate(local_outlier)["decision_status"] == "EXCEEDS_DECLARED_LIMIT",
                 "local component gate failed to preserve outlier")
 
+        dependent = copy.deepcopy(request)
+        dependent["uncertainty"]["independent_components"] = False
+        cross = copy.deepcopy(dependent["uncertainty"]["numerical"])
+        cross["source_id"] = "cross-source-covariance"
+        cross["matrix"] = [
+            [0.0, 0.001, 0.0],
+            [0.001, 0.0, 0.0],
+            [0.0, 0.0, 0.0],
+        ]
+        cross["max_diagonal_variance"] = None
+        dependent["uncertainty"]["cross_source"] = cross
+        dependent_result = evaluate(dependent)
+        require(
+            dependent_result["cross_source_covariance_source_id"] == "cross-source-covariance"
+            and dependent_result["cross_source_uncertainty"]["artifact_sha256"] == cross["artifact_sha256"],
+            "explicit cross-source covariance provenance was not retained",
+        )
+        require(
+            not math.isclose(
+                dependent_result["covariance_weighted_d2"],
+                expected["covariance_weighted_d2"],
+                rel_tol=1e-12,
+                abs_tol=1e-12,
+            ),
+            "explicit cross-source covariance had no effect on the metric",
+        )
+
         hostile_controls(request)
         if args.rust_output is not None:
             actual = json.loads(args.rust_output.read_text(encoding="utf-8"))
