@@ -1,0 +1,62 @@
+name: AER-01 response-vector VVUQ
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/aero-response-vvuq.yml"
+      - "tools/civil-aero-benchmark/response-vvuq/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-response-vector-metric:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact pull-request head
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust with rustfmt
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Record Rust toolchain identity
+        run: |
+          rustc --version --verbose
+          cargo --version
+
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path tools/civil-aero-benchmark/response-vvuq/Cargo.toml -- --check
+
+      - name: Run response-vector known-answer and hostile tests
+        run: cargo test --manifest-path tools/civil-aero-benchmark/response-vvuq/Cargo.toml
+
+      - name: Run Rust response-vector evaluator
+        run: cargo run --quiet --manifest-path tools/civil-aero-benchmark/response-vvuq/Cargo.toml > response-vvuq-result.json
+
+      - name: Independently recompute covariance and diagnostics in Python
+        run: python3 tools/civil-aero-benchmark/response-vvuq/verify_independent.py --rust-output response-vvuq-result.json
+
+      - name: Create source and output digest receipts
+        run: |
+          sha256sum tools/civil-aero-benchmark/response-vvuq/data/known-answer-response-vector-v0.1.json > response-vvuq-source.sha256
+          sha256sum response-vvuq-result.json > response-vvuq-result.sha256
+
+      - name: Retain exact fixture, result and digest receipts
+        uses: actions/upload-artifact@v4
+        with:
+          name: aero-response-vvuq-${{ github.sha }}
+          path: |
+            tools/civil-aero-benchmark/response-vvuq/data/known-answer-response-vector-v0.1.json
+            response-vvuq-result.json
+            response-vvuq-source.sha256
+            response-vvuq-result.sha256
+          if-no-files-found: error
+          retention-days: 90
