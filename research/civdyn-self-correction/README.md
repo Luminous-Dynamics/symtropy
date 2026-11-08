@@ -67,6 +67,25 @@ The first comparison is intentionally simple: frozen policy, outcome-reactive th
 5. source-backed real-world calibration and independent hydrological/environmental validation;
 6. composition with the existing causal-path and robust-policy evaluators once their branches are integrated.
 
+## Scenario C: causal sign reversal hidden by confounding
+
+The synthetic structural outcome equation is:
+
+`Y = 10 + U + τ_t A`
+
+where (U) is a common cause, (A) is the intervention, and (τ_t) is the time-varying causal effect. The observational treated group has a +5 confounder imbalance, so the observational association is (τ_t + 5). After the causal effect reverses from +2 to -3 at tick 4, the observed association remains +2. An outcome-reactive controller therefore continues the intervention despite its negative causal effect.
+
+The mechanism-aware controller periodically runs a deterministic matched-pair probe. Each treatment/control pair shares the same confounder value; the probe estimate is computed from the paired synthetic outcomes, not read directly from the hidden regime parameter. The first known-answer version has no sampling noise, so this demonstrates the protocol logic, not statistical power or real-world identification.
+
+Three regimes test different failure modes:
+- `stable_positive`: effect remains +2; the controller must not over-correct or shut down a still-beneficial intervention.
+- `sign_reversal`: effect changes from +2 to -3 at tick 4 while the observational association remains positive; the controller must detect the change and suspend the intervention on the next tick.
+- `confounded_null`: true effect is zero while observational association remains +5; the controller must reject the spurious benefit.
+
+The portfolio compares frozen, outcome-reactive and mechanism-aware controllers across all three regimes. It reports false causal attribution, matched probe estimates, active ticks after the effect becomes non-positive, action and probe costs, native net utility, oracle utility and regret. The oracle is a ground-truth upper bound, not a deployable baseline.
+
+Known-answer controls: the outcome-reactive controller continues all eight ticks in the sign-reversal and confounded-null cases; the mechanism-aware controller detects sign reversal at tick 4 and null effect at tick 2, with one-tick action latency; it does not disable the stable-positive mechanism.
+
 ## Run
 
 ```sh
@@ -75,16 +94,18 @@ cargo clippy --locked --manifest-path research/civdyn-self-correction/Cargo.toml
 cargo check --locked --manifest-path research/civdyn-self-correction/Cargo.toml --all-targets
 cargo test --locked --manifest-path research/civdyn-self-correction/Cargo.toml --all-targets
 cargo run --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin self-correction-sweep
+cargo run --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin causal-drift-sweep
 ```
 
 ## Claim ceiling
 
-This benchmark demonstrates deterministic accounting, known-answer sensor-drift controls, matched counterfactual branches, and an explicit policy trade-off under a declared synthetic scenario. It does not establish:
+This benchmark demonstrates deterministic accounting, sensor-drift controls, a confounded causal sign-reversal control, matched synthetic counterfactuals, and explicit policy trade-offs under declared synthetic scenarios. It does not establish:
 - empirical causal identification;
 - calibrated hydrological, ecological, economic or institutional behaviour;
 - real-world policy effectiveness;
 - biodiversity, ecosystem health or environmental-flow adequacy;
 - a universal normative priority ordering;
+- empirical causal identification or drift-detection performance under sampling noise;
 - superiority to SimBench, SSDataBench, LiveCultureBench or any other SOTA benchmark.
 
 Green software CI validates this reference implementation only.
