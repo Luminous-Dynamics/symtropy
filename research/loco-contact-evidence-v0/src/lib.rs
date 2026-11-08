@@ -190,6 +190,11 @@ fn assess(p: &EvidencePolicy, e: &SourceEvidence) -> SourceDisposition {
 }
 
 fn unknown_report(p: &EvidencePolicy, sources: Vec<SourceAssessment>, skew: Option<u64>) -> ContactEvidenceReport {
+    let qualified_source_ids = sources
+        .iter()
+        .filter(|source| source.disposition == SourceDisposition::Qualified)
+        .map(|source| source.source_id.clone())
+        .collect();
     ContactEvidenceReport {
         status: EnvelopeStatus::Unknown,
         foot_id: p.foot_id.clone(),
@@ -198,7 +203,7 @@ fn unknown_report(p: &EvidencePolicy, sources: Vec<SourceAssessment>, skew: Opti
         constraint_digest: p.constraint_digest.clone(),
         domain_digest: p.domain_digest.clone(),
         sources,
-        qualified_source_ids: Vec::new(),
+        qualified_source_ids,
         envelope: None,
         timestamp_skew_ns: skew,
     }
