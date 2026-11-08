@@ -1,0 +1,40 @@
+name: WPT Capture-Observability Composition
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "research/wpt-capture-observability-composition-v0/**"
+      - "tools/wpt-capture-observability-composition/**"
+      - ".github/workflows/wpt-capture-observability-composition.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "research/wpt-capture-observability-composition-v0/**"
+      - "tools/wpt-capture-observability-composition/**"
+      - ".github/workflows/wpt-capture-observability-composition.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate (cross-platform)
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Test capture-conditioned observability composition
+        run: cargo test --locked --manifest-path tools/wpt-capture-observability-composition/Cargo.toml
+      - name: Evaluate flat-pad baseline
+        run: cargo run --locked --manifest-path tools/wpt-capture-observability-composition/Cargo.toml -- research/wpt-capture-observability-composition-v0/flat-pad-capture.tsv research/wpt-capture-observability-composition-v0/flat-pad-observations.tsv
+      - name: Evaluate passive-guide baseline
+        run: cargo run --locked --manifest-path tools/wpt-capture-observability-composition/Cargo.toml -- research/wpt-capture-observability-composition-v0/v-guide-capture.tsv research/wpt-capture-observability-composition-v0/v-guide-observations.tsv
+      - name: Evaluate guide plus qualified probe signature
+        run: cargo run --locked --manifest-path tools/wpt-capture-observability-composition/Cargo.toml -- research/wpt-capture-observability-composition-v0/v-guide-capture.tsv research/wpt-capture-observability-composition-v0/v-guide-probe-observations.tsv
+      - name: Evaluate rebound negative control
+        run: cargo run --locked --manifest-path tools/wpt-capture-observability-composition/Cargo.toml -- research/wpt-capture-observability-composition-v0/rebound-capture.tsv research/wpt-capture-observability-composition-v0/rebound-observations.tsv
