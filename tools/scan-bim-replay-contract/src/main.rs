@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 use scan_bim_replay_contract::{
-    audit_manifest_bytes, verify_manifest_artifact_files, ArtifactVerificationSummary,
-    ReplayAuditReport,
+    ArtifactVerificationSummary, ReplayAuditReport, audit_manifest_bytes,
+    verify_manifest_artifact_files,
 };
 use serde::Serialize;
 use std::env;
