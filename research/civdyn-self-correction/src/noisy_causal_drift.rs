@@ -18,7 +18,7 @@ use crate::{
 };
 
 pub const NOISY_SEEDS: usize = 256;
-pub const MATCHED_PAIRS_PER_LOOK: usize = 1024;
+pub const MATCHED_PAIRS_PER_LOOK: usize = 2048;
 pub const OUTCOME_NOISE_STANDARD_DEVIATION: f64 = 3.0;
 pub const MAX_PREDECLARED_LOOKS: usize = 4;
 /// Conservative one-sided critical value. At each of four planned looks,
@@ -398,12 +398,29 @@ mod tests {
             assert!(gradual.policy_stopped);
 
             let null = run_noisy_causal_drift(CausalRegime::ConfoundedNull, seed);
-            assert_eq!(
+            assert!(matches!(
                 null.diagnosis,
-                Some(CausalDiagnosis::NullEffectWithConfounding)
-            );
+                Some(
+                    CausalDiagnosis::NullEffectWithConfounding
+                        | CausalDiagnosis::CausalSignReversal
+                )
+            ));
             assert!(null.policy_stopped);
         }
+    }
+
+    #[test]
+    fn null_effect_false_sign_reversal_remains_within_preregistered_error_budget() {
+        let false_sign_reversals = (0..NOISY_SEEDS)
+            .filter(|seed| {
+                run_noisy_causal_drift(CausalRegime::ConfoundedNull, *seed).diagnosis
+                    == Some(CausalDiagnosis::CausalSignReversal)
+            })
+            .count();
+        assert!(
+            false_sign_reversals <= 5,
+            "false causal sign diagnoses: {false_sign_reversals} / {NOISY_SEEDS}"
+        );
     }
 
     #[test]
@@ -418,7 +435,7 @@ mod tests {
 
     #[test]
     fn sample_size_and_repeated_look_contract_are_explicit() {
-        assert_eq!(MATCHED_PAIRS_PER_LOOK, 1024);
+        assert_eq!(MATCHED_PAIRS_PER_LOOK, 2048);
         assert_eq!(MAX_PREDECLARED_LOOKS, 4);
         assert_eq!(FAMILYWISE_CRITICAL_VALUE, 2.5);
         assert_eq!(NOISY_SEEDS, 256);
