@@ -119,7 +119,7 @@ The fixed-look benchmark in Scenario D uses the full sample maximum at each sche
 
 Three Gaussian e-processes are evaluated:
 - **Negative-effect test:** null mean effect is at least 0; negative-effect evidence requires the e-value to cross its boundary.
-- **Below-threshold test:** null mean effect is at least 0.5; crossing supports stopping the action, but does not imply the effect is negative.
+- **Below-threshold test:** null mean effect is at least 0.5; crossing supports stopping the action, but does not imply the effect is negative. When a gradual reversal has become non-beneficial but the sample does not support a negative-effect claim, this weaker diagnosis is the correct outcome.
 - **Positive-benefit test:** null mean effect is at most 0.5; crossing supports retention of a beneficial intervention.
 
 The paired-difference variance is known from the synthetic generator: each treatment/control outcome has independent Gaussian noise with standard deviation 2.0, so the paired difference variance is 8. The e-process increment is:
@@ -132,7 +132,7 @@ There are three one-sided processes at four predeclared looks, so each receives 
 
 The comparison runner executes the fixed-look method and the anytime method with the same episode seed and same per-look sample streams. It retains both decisions, policy consequences, fixed and anytime sample counts, per-look sample consumption and log e-values. It reports sample reduction rather than using a single blended quality score.
 
-The CI operating gates require at least 250/256 correct episodes in each non-beneficial/corrective regime, no policy shutdown on stable-positive episodes, retention of the beneficial action after confounder-only shift, no more than five false negative-effect labels under the null, and at least 30% fewer matched pairs overall versus the fixed-look baseline. These are synthetic-generator acceptance gates; failed seed rows are retained.
+The CI operating gates require at least 250/256 correct sign-reversal diagnoses, at least 250/256 non-beneficial decisions for gradual reversal (negative-effect or below-benefit-threshold evidence), at least 250/256 correct null and confounder-shift outcomes, no policy shutdown on stable-positive episodes, retention of the beneficial action after confounder-only shift, no more than five false negative-effect labels under the null, and at least 30% fewer matched pairs overall versus the fixed-look baseline. These are synthetic-generator acceptance gates; failed seed rows are retained.
 
 ## Run
 
