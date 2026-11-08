@@ -450,15 +450,22 @@ fn run_recovery_interval(
     maintenance_enabled: bool,
     reports: &mut Vec<StepReport>,
 ) -> Result<(), SelfCorrectionError> {
-    let extra_recharge = if maintenance_enabled {
-        MAINTENANCE_ENERGY_KWH_PER_TICK * MAINTENANCE_PUMPING_YIELD_M3_PER_KWH
-    } else {
-        0.0
-    };
     for _ in 0..RECOVERY_TICKS {
+        // Pump output is bounded by energy actually available in the source
+        // basin. The following ledger step transfers and consumes that same
+        // energy quantity at the maintenance node.
+        let pump_energy_kwh = if maintenance_enabled {
+            world.regions()[BASIN]
+                .opening_stock
+                .energy_kwh
+                .min(MAINTENANCE_ENERGY_KWH_PER_TICK)
+        } else {
+            0.0
+        };
+        let extra_recharge_m3 = pump_energy_kwh * MAINTENANCE_PUMPING_YIELD_M3_PER_KWH;
         reports.push(delayed_step(
             world,
-            BASE_RECHARGE_M3_PER_TICK + extra_recharge,
+            BASE_RECHARGE_M3_PER_TICK + extra_recharge_m3,
             true,
             maintenance_enabled,
         )?);
@@ -499,17 +506,10 @@ fn simulate_repeated_shock(
     })
 }
 
-fn sum_unmet(reports: &[StepReport], region_index: usize, water: bool) -> f64 {
+fn sum_unmet_water(reports: &[StepReport], region_index: usize) -> f64 {
     reports
         .iter()
-        .map(|report| {
-            let outcome = &report.regions[region_index];
-            if water {
-                outcome.unmet.water_m3
-            } else {
-                outcome.unmet.energy_kwh
-            }
-        })
+        .map(|report| report.regions[region_index].unmet.water_m3)
         .sum()
 }
 
@@ -625,7 +625,7 @@ pub fn run_delayed_externality(
     }
 
     let mut last_household_coverage = 1.0_f64;
-    for shock_tick in 0..REPEATED_SHOCK_TICKS {
+    for _ in 0..REPEATED_SHOCK_TICKS {
         let industry_enabled = match controller {
             ControllerKind::FrozenPolicy => true,
             ControllerKind::OutcomeReactive => last_household_coverage >= ESSENTIAL_COVERAGE_FLOOR,
@@ -637,7 +637,6 @@ pub fn run_delayed_externality(
             .water
             .unwrap_or(0.0);
         reports.push(report);
-        let _ = shock_tick;
     }
 
     if reports.len() != DELAYED_TOTAL_TICKS {
@@ -655,8 +654,8 @@ pub fn run_delayed_externality(
         reserve_after_growth_m3,
         reserve_after_recovery_m3,
         reserve_after_repeated_shock_m3: world.regions()[BASIN].opening_stock.water_m3,
-        household_unmet_m3: sum_unmet(&reports, HOUSEHOLD, true),
-        industry_unmet_m3: sum_unmet(&reports, INDUSTRY, true),
+        household_unmet_m3: sum_unmet_water(&reports, HOUSEHOLD),
+        industry_unmet_m3: sum_unmet_water(&reports, INDUSTRY),
         minimum_household_coverage: minimum_coverage(&reports, HOUSEHOLD),
         maintenance_energy_kwh: sum_maintenance_energy(&reports),
         counterfactual_industry_attributable_household_unmet_m3,
@@ -740,7 +739,7 @@ mod tests {
         let frozen = delayed(ControllerKind::FrozenPolicy);
         assert_eq!(reactive.household_unmet_m3, frozen.household_unmet_m3);
         assert_eq!(reactive.household_unmet_m3, 25.0);
-        assert_eq!(reactive.mechanism_identified, false);
+        assert!(!reactive.mechanism_identified);
         assert_eq!(reactive.minimum_household_coverage, 0.0);
     }
 
