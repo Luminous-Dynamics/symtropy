@@ -83,9 +83,13 @@ Evaluate distributions and declared contingencies: hot/high, payload/fuel/CG, ba
 
 **OAT15A Verification 1a (required):** Mach 0.73, chord Reynolds number 3,000,000, static temperature 271 K, angles [1.36, 1.50, 2.50, 3.00, 3.10] degrees. Six-member grid family; four required, six desirable. Sidewall boundary condition is periodic.
 
-**CRM Static FSI Test Case 2a(E) (required):** initialize CFD/FEM from jig/unloaded wind-off geometry; Mach 0.85, Reynolds number 5 million, dynamic pressure 1,384 psf, CL=0.5000 ± 0.0001, temperature 322.04 K. Comparison metrics include forces/moments, sectional twist/deformation, sectional Cp and separate flow/structural residuals. Measured span stations are η=[0, 0.4286, 0.5546, 0.6773, 0.7954, 0.9150].
+**CRM rigid Configuration B 2a/2b:** the current DPW-8 Test Cases page specifies Mach 0.85, chord Reynolds number 5 million and 100°F (310.928 K). Rigid 2a is alpha=2.50° with grid levels 1–6; rigid 2b uses alpha=[-1.50, 2.50, 2.75, 3.00, 3.25, 3.50, 3.75, 4.00, 4.25] degrees at grid level 3 or 4.
 
-**CRM Static FSI Test Case 2b(E) (required):** alpha sweep [-1.50, 0, 1.50, 2.50, 3.00, 3.50, 4.00, 4.50] degrees; grid level 3 in the working-group test sheet.
+**CRM elastic Static FSI 2a(E) (required):** the dedicated Static Deformation Working Group PDF specifies Mach 0.85, Reynolds number 5 million, Q∞=1,384 psf, alpha=2.50°, 120°F (322.04 K), and grid levels 1–6. It lists forces/moments, sectional Cp, and separate flow/structural residuals. Its geometry description says committee-supplied NASA CRM geometry including a deformed-wing matching condition; the current DPW-8 Test Cases page separately says initialize CFD/FEM from jig “as-built” geometry/grid. Preserve and resolve that source-detail difference before data admission.
+
+**CRM elastic Static FSI 2b(E) (required):** alpha=[-1.50, 2.50, 3.00, 3.50, 4.00, 4.50] degrees, 120°F (322.04 K), grid level 3, same Mach/Reynolds/dynamic-pressure reference. The static-deformation PDF says jig/unloaded geometry; the current DPW-8 page says jig “as-built” geometry/grid. Do not import the rigid-CFD nine-angle schedule into elastic FSI 2b(E).
+
+The AIAA Static Deformation PDF supplies comparison datasets from NTF197, NTF215, NTF229, ETW ESWIRP and Ames216. Its PDF pages 7–8 are the controlling case sheets for 2a/2b(E); the generic Configuration B page is the separate rigid-CFD description.
 
 Use the AIAA bending/twist template v3 semantics: deflection normalized by reference semi-span. Retain -999 as the documented optional-data sentinel; never reinterpret it as zero.
 
