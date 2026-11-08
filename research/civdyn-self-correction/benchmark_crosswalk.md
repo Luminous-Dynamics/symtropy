@@ -16,6 +16,18 @@ This document is a research comparison plan. It does not claim CIVDYN already ou
 | Physical / socio-ecological viability | CIVDYN resource ledger, resilience and eco-flow references | Unit-specific conservation, service coverage, reserve, maintenance and environmental-flow delivery | Treat the shared resource ledger as the sole stock/flow authority | Calibrated hydrology, ecology, infrastructure networks and independent external datasets |
 | Self-correction | This proposal | Evidence-backed transition from discrepancy to diagnosis to verified, constraint-respecting policy revision | Compose the above without creating a new simulator or a composite score | Human/expert policy references, real episodes, long-horizon prospective validation |
 
+### Drift-detection standard and CIVDYN extension
+
+The KDD 2026 benchmark by Cerqueira et al. compares 14 established drift detectors on seven real-world data streams, covering four distributional drift types (class-prior, label-swap, feature-permutation and feature-filtering) under both abrupt and gradual changes. It emphasizes timing-aware detection metrics and leave-one-dataset-out hyperparameter selection. This is an appropriate baseline protocol for statistical drift detection, but it does not by itself test whether a detected shift changed the causal effect of an intervention. [KDD 2026 / ACM DOI](https://doi.org/10.1145/3770855.3819070) · [arXiv](https://arxiv.org/abs/2606.07789)
+
+CIVDYN's causal-drift reference therefore separates two questions:
+1. **Signal:** did the observed distribution or association change? The first comparator is a two-sided CUSUM control. Future baselines should include ADWIN, Page-Hinkley, DDM/EDDM and other detectors from the KDD suite, with identical observation budgets and held-out-family tuning.
+2. **Mechanism:** did the intervention's causal effect change, or did measurement/confounding/population composition change? A matched intervention probe or an explicit abstention protocol is required. CUSUM alone cannot answer this.
+
+The current synthetic control deliberately includes a confounder-only shift: CUSUM detects a real observational change, but a signal-only policy disables a still-beneficial intervention. The matched-pair controller instead diagnoses a confounder shift and retains the intervention. This is a known-answer software fixture without sampling noise, not evidence of empirical causal identification or superiority to the 14-detector benchmark.
+
+The next extension should add gradual/noisy shifts, delayed/partial outcomes, multiple detector baselines and leave-one-mechanism-family-out tuning before any performance claim.
+
 ### Important comparison rule
 
 The published SimBench headline of 40.80/100 is a result on its own task suite and scoring protocol. It is not an attainable target for the CIVDYN self-correction benchmark. Similarly, SSDataBench's statistical-realism metrics, LiveCultureBench's norm/evaluator measures, and APB's plan grades are not interchangeable. Any direct comparison must reproduce the same dataset, split, prompt/configuration, unit of analysis, scorer, and compute budget.
