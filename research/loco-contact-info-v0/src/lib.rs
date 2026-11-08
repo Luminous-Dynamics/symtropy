@@ -680,6 +680,16 @@ mod tests {
     }
 
     #[test]
+    fn inverse_overflow_fails_closed_for_extreme_but_positive_variance() {
+        let tiny_positive = f64::from_bits(1);
+        let covariance = matrix(1, 1, &[tiny_positive]);
+        assert_eq!(
+            covariance.inverse_spd(),
+            Err(GaussianError::NonFiniteValue)
+        );
+    }
+
+    #[test]
     fn cholesky_inverse_and_logdet_agree_for_diagonal_matrix() {
         let covariance = matrix(2, 2, &[4.0, 0.0, 0.0, 9.0]);
         let inverse = covariance.inverse_spd().unwrap();
