@@ -7,6 +7,9 @@ use std::collections::{btree_map::Entry, BTreeMap, BTreeSet};
 
 pub type Tick = u64;
 
+/// Capability-limited, time-bounded input surface for online recovery policies.
+pub mod observation_boundary;
+
 /// A source observation, including when it became available to the policy.
 ///
 /// `id` identifies the underlying event; `observation_key` identifies the
