@@ -143,6 +143,59 @@ impl HorizonRiskPlan {
         Ok(plan)
     }
 
+    /// Construct an immutable, predeclared nonuniform allocation profile.
+    ///
+    /// This permits phase- or constraint-weighted risk allocation while
+    /// preserving one exact family-wise horizon budget. The vector is frozen
+    /// into the plan; the ledger provides no post-outcome reallocation path.
+    pub fn from_preallocated_allocations(
+        identity: RiskPlanIdentity,
+        step_allocations_ppb: Vec<[u64; CONSTRAINT_COUNT]>,
+    ) -> Result<Self, RiskPlanError> {
+        if [
+            identity.episode_id.as_str(),
+            identity.risk_plan_id.as_str(),
+            identity.model_digest.as_str(),
+            identity.operating_domain_digest.as_str(),
+            identity.calibration_digest.as_str(),
+        ]
+        .iter()
+        .any(|value| value.trim().is_empty())
+        {
+            return Err(RiskPlanError::EmptyIdentity);
+        }
+
+        if step_allocations_ppb.is_empty() {
+            return Err(RiskPlanError::InvalidHorizon);
+        }
+        if step_allocations_ppb.len() > MAX_HORIZON_STEPS as usize {
+            return Err(RiskPlanError::HorizonTooLarge);
+        }
+        if step_allocations_ppb.iter().flatten().any(|alpha| *alpha == 0) {
+            return Err(RiskPlanError::InsufficientRiskResolution);
+        }
+
+        let familywise_alpha_ppb = step_allocations_ppb
+            .iter()
+            .flat_map(|allocation| allocation.iter())
+            .try_fold(0_u64, |sum, alpha| sum.checked_add(*alpha))
+            .ok_or(RiskPlanError::ArithmeticOverflow)?;
+        if !(MIN_FAMILYWISE_ALPHA_PPB..=MAX_FAMILYWISE_ALPHA_PPB)
+            .contains(&familywise_alpha_ppb)
+        {
+            return Err(RiskPlanError::InvalidFamilywiseAlpha);
+        }
+
+        let horizon_steps = u32::try_from(step_allocations_ppb.len())
+            .map_err(|_| RiskPlanError::ArithmeticOverflow)?;
+        Ok(Self {
+            identity,
+            horizon_steps,
+            familywise_alpha_ppb,
+            step_allocations_ppb,
+        })
+    }
+
     pub fn identity(&self) -> &RiskPlanIdentity {
         &self.identity
     }
@@ -1224,6 +1277,44 @@ mod tests {
     }
 
     #[test]
+    #[test]
+    fn preallocated_nonuniform_profile_preserves_exact_step_and_constraint_values() {
+        let profile = vec![
+            [6_000_000, 5_000_000, 4_000_000, 3_000_000, 2_000_000],
+            [1_000_000, 2_000_000, 3_000_000, 4_000_000, 5_000_000],
+        ];
+        let risk_plan =
+            HorizonRiskPlan::from_preallocated_allocations(identity(), profile.clone()).unwrap();
+
+        assert_eq!(risk_plan.horizon_steps(), 2);
+        assert_eq!(risk_plan.familywise_alpha_ppb(), 35_000_000);
+        assert_eq!(risk_plan.allocation_for_step(0).unwrap(), profile[0]);
+        assert_eq!(risk_plan.allocation_for_step(1).unwrap(), profile[1]);
+        assert_eq!(risk_plan.total_allocated_alpha_ppb(), 35_000_000);
+    }
+
+    #[test]
+    fn preallocated_nonuniform_profile_rejects_empty_zero_or_invalid_budget() {
+        assert_eq!(
+            HorizonRiskPlan::from_preallocated_allocations(identity(), Vec::new()),
+            Err(RiskPlanError::InvalidHorizon)
+        );
+        assert_eq!(
+            HorizonRiskPlan::from_preallocated_allocations(
+                identity(),
+                vec![[10, 10, 10, 10, 0]],
+            ),
+            Err(RiskPlanError::InsufficientRiskResolution)
+        );
+        assert_eq!(
+            HorizonRiskPlan::from_preallocated_allocations(
+                identity(),
+                vec![[1, 1, 1, 1, 1]],
+            ),
+            Err(RiskPlanError::InvalidFamilywiseAlpha)
+        );
+    }
+
     fn plan_allocation_is_deterministic_for_same_identity_and_budget() {
         let left = plan(127, 123_456_789);
         let right = plan(127, 123_456_789);
