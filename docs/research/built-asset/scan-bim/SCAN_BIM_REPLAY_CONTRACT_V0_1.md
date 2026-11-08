@@ -1,12 +1,12 @@
 # Scan-to-BIM Replay Contract v0.1
 
-**Status:** P0.3 schema/receipt contract; still not an external dataset replay. The current manifest schema is v0.2 and records candidate execution identity, per-scene frame/units, tolerance/sampling/metric profiles, candidate outputs and local byte verification.  
+**Status:** P0.3 schema/receipt contract; still not an external dataset replay. The current manifest schema is v0.3 and records candidate execution identity, per-scene frame/units/registration-transform evidence, tolerance/sampling/metric profiles, candidate outputs and local byte verification.  
 **Issue:** #4116 — SCAN-BIM-REPLAY-001.  
 **Package:** `tools/scan-bim-replay-contract/`.
 
 ## What this tranche does
 
-The Rust CLI validates a replay manifest and verifies its declared local artifacts before any evaluator is run. Schema v0.2 checks:
+The Rust CLI validates a replay manifest and verifies its declared local artifacts before any evaluator is run. Schema v0.3 checks:
 
 - dataset use class and explicit prohibition on committing source data or embedding source bytes in CI artifacts;
 - separate typed candidate-input and evaluator-artifact namespaces;
@@ -54,9 +54,9 @@ The CLI rejects shared artifact IDs and candidate/evaluator content digests. Run
 
 This is **local integrity verification**, not process isolation. Candidate and evaluator roots are both readable by this one verifier process. Standard-library path checks are not race-free against a concurrently malicious process; OS-level descriptor-relative no-follow opens/mounts, separate processes/identities and independent custody remain separate gates. Rights flags are still manifest assertions; this CLI does not inspect Git history or arbitrary CI artifact archives.
 
-## Schema v0.2 execution receipt
+## Schema v0.3 execution receipt
 
-The v0.2 manifest requires a candidate pipeline/source commit, toolchain and command; runtime artefact IDs for executable/configuration/optional model weights; candidate outputs bound to declared scene IDs (including at least one IFC-role output per scene); coordinate-frame metadata per scene; and SI-metre tolerance/sampling/metric profiles. The official ISPRS wall profile requires an explicit metric-definition authority: `official_results_page` pairs with reference-to-candidate, `final_results_paper_2021` pairs with candidate-to-reference, and `bidirectional_diagnostic` permits both directed distributions without claiming official equivalence. This reflects a real contradiction between the current results page and the 2021 final-results paper; no canonical historical direction is silently assumed. This binds an experiment declaration to bytes, not to a validated physical CRS transform or actual candidate process execution.
+The v0.3 manifest requires a candidate pipeline/source commit, toolchain and command; runtime artefact IDs for executable/configuration/optional model weights; candidate outputs bound to declared scene IDs (including at least one IFC-role output per scene); coordinate-frame metadata per scene; and SI-metre tolerance/sampling/metric profiles. The official ISPRS wall profile requires an explicit metric-definition authority and accuracy sample strategy: `official_results_page` pairs reference-to-candidate with reference-surface samples; `evaluation_framework2018` pairs candidate-to-reference with source vertices projected inside observable reference surfaces; `final_results_paper_2021` pairs candidate-to-reference with source-surface samples; `bidirectional_diagnostic` retains both directed distributions. This reflects a real contradiction between the current results page and the published evaluation methodology; no canonical historical direction or sample population is silently assumed. This binds an experiment declaration to bytes, not to a validated physical CRS transform or actual candidate process execution.
 
 See [SCAN_BIM_EXECUTION_RECEIPT_AND_BENCHMARK_TARGETS_V0_1.md](SCAN_BIM_EXECUTION_RECEIPT_AND_BENCHMARK_TARGETS_V0_1.md) for competitive targets and research comparators.
 
