@@ -1,5 +1,5 @@
 {
-  "schema_version": "0.3",
+  "schema_version": "0.4",
   "replay_id": "SYNTHETIC-OBSERVABILITY-001",
   "dataset": {
     "dataset_id": "SYNTHETIC-OBSERVABILITY-001",
@@ -252,5 +252,11 @@
       "relative_path": "outputs/room-b-graph.json",
       "sha256": "4351d593ce59c6f562a8fdb4cab7aa1e14377b822ebf3ca247a363d1d9ebffc9"
     }
-  ]
+  ],
+  "matching_confidence": {
+    "profile": "upstream_code_ff21962_v1",
+    "upstream_commit_sha": "ff21962c1c65ae9bfb966f21dfd66af0b8648a19",
+    "matching_radius_m": 0.05,
+    "coarse_obb_expansion_m": 0.1
+  }
 }
