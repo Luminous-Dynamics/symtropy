@@ -192,12 +192,11 @@ fn cholesky_lower(matrix: &Matrix3, dimension: usize) -> Result<Matrix3, FusionE
     if dimension == 0 || dimension > MAX_CHANNELS {
         return Err(FusionError::InvalidCovarianceShape);
     }
-    for row in 0..dimension {
-        for column in 0..dimension {
-            if !matrix[row][column].is_finite() {
+    for (row, row_values) in matrix.iter().enumerate().take(dimension) {
+        for (column, left) in row_values.iter().copied().enumerate().take(dimension) {
+            if !left.is_finite() {
                 return Err(FusionError::NonFiniteValue);
             }
-            let left = matrix[row][column];
             let right = matrix[column][row];
             let scale = 1.0_f64.max(left.abs()).max(right.abs());
             if (left - right).abs() > SYMMETRY_TOLERANCE * scale {
@@ -210,8 +209,8 @@ fn cholesky_lower(matrix: &Matrix3, dimension: usize) -> Result<Matrix3, FusionE
     for row in 0..dimension {
         for column in 0..=row {
             let mut value = matrix[row][column];
-            for inner in 0..column {
-                value -= lower[row][inner] * lower[column][inner];
+            for (inner, lower_value) in lower[row].iter().copied().enumerate().take(column) {
+                value -= lower_value * lower[column][inner];
             }
             if row == column {
                 if !value.is_finite() || value <= 0.0 {
@@ -782,9 +781,9 @@ pub fn update_joint_contact_belief(
         CONTACT_STATE_DIM,
     )?;
     let mut posterior_covariance = zero_matrix();
-    for row in 0..CONTACT_STATE_DIM {
-        for column in 0..CONTACT_STATE_DIM {
-            posterior_covariance[row][column] = prior.covariance[row][column] - k_h_p[row][column];
+    for (row, posterior_row) in posterior_covariance.iter_mut().enumerate() {
+        for (column, posterior_value) in posterior_row.iter_mut().enumerate() {
+            *posterior_value = prior.covariance[row][column] - k_h_p[row][column];
         }
     }
     for row in 0..CONTACT_STATE_DIM {
