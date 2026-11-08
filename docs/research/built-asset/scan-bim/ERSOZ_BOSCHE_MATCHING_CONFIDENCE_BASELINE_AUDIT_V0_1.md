@@ -4,7 +4,7 @@
 **Primary paper:** Ersöz & Bosché, *Evaluating confidence in geometric matching between 3D point clouds and BIM models by integrating coverage, distance, and distribution metrics*, Automation in Construction 181 (2026), 106636. DOI: https://doi.org/10.1016/j.autcon.2025.106636  
 **Upstream implementation:** https://github.com/CyberbuildLab/pcd-bim-matching-confidence  
 **Pinned source revision inspected:** `ff21962c1c65ae9bfb966f21dfd66af0b8648a19`  
-**Declared upstream license:** Apache-2.0 (verify the exact license file and all dependencies before redistribution or vendoring).
+**Declared upstream license:** Apache-2.0, confirmed by the pinned revision's root `LICENSE` file (blob `7cee444ba2f31f5cdb9b9e99cbcb3ebb0fb7e0a3`). Dependency and transitive-license review is still required before redistribution or vendoring.
 
 ## Why this baseline matters
 
@@ -20,7 +20,7 @@ At the pinned revision:
 - The default geometric matching threshold is `delta = 0.05` (model units must be confirmed for each input).
 - Default mesh sampling resolution is 0.02; scan voxel downsampling is 0.01.
 - The program reads IFC through IfcOpenShell, converts product geometry to Open3D meshes, reads PLY point clouds, filters relevant elements, samples expected surfaces and emits per-element CSV metrics and processed geometry.
-- Dependencies in `requirements.txt`: Open3D 0.19, Shapely, pandas, Matplotlib, scikit-learn, NumPy 1.26.4, plyfile 1.1, IfcOpenShell 0.8.1 and trimesh. Exact transitive environment and platform support must be locked before reproducibility claims.
+- Dependencies in the pinned `requirements.txt` blob `fc6c4764c397c4af65a462ae58dfb45e4853da73`: Open3D 0.19, Shapely, pandas, Matplotlib, scikit-learn, NumPy 1.26.4, plyfile 1.1, IfcOpenShell 0.8.1 and trimesh. Exact transitive environment, dependency licences and platform support must be locked before reproduction/redistribution claims.
 
 ### Three confidence factors
 
