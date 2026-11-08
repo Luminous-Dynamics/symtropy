@@ -1614,18 +1614,12 @@ mod tests {
 
     #[test]
     fn impossible_gregorian_date_is_rejected() {
-        let mut input = fixture();
-        input.intervals[0].local_date = "2026-02-31".to_owned();
-        input.billing_month = "2026-02".to_owned();
-        assert_eq!(calculate_bill(&input).unwrap_err(), CalcError::InvalidDate);
+        assert_eq!(parse_date("2026-02-31"), Err(CalcError::InvalidDate));
     }
 
     #[test]
     fn nonleap_year_february_29_is_rejected() {
-        let mut input = fixture();
-        input.intervals[0].local_date = "2026-02-29".to_owned();
-        input.billing_month = "2026-02".to_owned();
-        assert_eq!(calculate_bill(&input).unwrap_err(), CalcError::InvalidDate);
+        assert_eq!(parse_date("2026-02-29"), Err(CalcError::InvalidDate));
     }
 
     #[test]
