@@ -7,6 +7,7 @@ Parent: [LOCO-CONTACT-SAFETY-001 / #4010](https://github.com/Luminous-Dynamics/s
 V0 complements:
 - [#4008](https://github.com/Luminous-Dynamics/symtropy/pull/4008): action-conditioned contact information and deterministic caller-supplied envelope filtering;
 - [#4017](https://github.com/Luminous-Dynamics/symtropy/issues/4017): correlated multi-channel Gaussian contact fusion;
+- [#4245](https://github.com/Luminous-Dynamics/symtropy/pull/4245): immutable finite-horizon per-step/per-constraint alpha allocation and non-recycling execution ledger;
 - [#4119](https://github.com/Luminous-Dynamics/symtropy/pull/4119): certificate evidence freshness/deadline gate;
 - [#4058/#4061](https://github.com/Luminous-Dynamics/symtropy/issues/4058): finite robust physical viability/recoverability.
 
@@ -72,9 +73,27 @@ The upper bound must be no greater than that constraint's Bonferroni allocation.
 
 This direct exceedance check is distribution-free under the declared independent/exchangeable validation-unit assumption for the exact stratum and event definition. It validates the supplied quantile bound empirically; it does not prove performance under unobserved distribution shift or establish an operational safety case. Calibration receipt flags/digests remain caller-supplied trust inputs; this crate checks consistency and freshness but does not cryptographically authenticate the source artifact.
 
+## Finite-horizon composition
+
+The one-step convenience API `evaluate_actions(..., familywise_alpha_ppb, ...)` keeps its deterministic equal five-way split.
+
+The finite-horizon ledger in [#4245](https://github.com/Luminous-Dynamics/symtropy/pull/4245) allocates alpha separately to every (step, constraint) pair. It must not be collapsed to a step total and then divided again, because integer remainder placement can change the original allocations. V0 therefore also exposes:
+
+    evaluate_actions_with_allocation(
+        candidates,
+        limits,
+        [alpha_energy, alpha_support, alpha_peak_force, alpha_impulse, alpha_actuator],
+        operating_domain_digest,
+        now_ns,
+    )
+
+This API consumes all five preallocated values exactly as supplied and reports the same array in the result. It rejects zero allocations, invalid totals and arithmetic overflow rather than silently redistributing ppb. The caller must bind the returned assessment to the same step/admission receipt in the horizon ledger.
+
+This composes with #4245 without turning the chance gate into a horizon authority: #4231 validates the one-step marginal bounds; #4245 accounts for the non-recyclable horizon allocations and execution lifecycle.
+
 ## Implemented tests
 
-Twenty deterministic fixtures cover:
+Twenty-two deterministic fixtures cover:
 - standard-normal upper quantiles at multiple tail levels, including 1e-8;
 - exact integer Bonferroni allocation;
 - safe action admission with all five bounds;
@@ -94,7 +113,9 @@ Twenty deterministic fixtures cover:
 - empty prediction set abstention without panic;
 - exact 95% zero-event validation sample threshold (298 underpowered, 299 admitted at 1% allocated risk);
 - abstention on any observed calibration tail event;
-- public quantile invalid-tail input rejection.
+- public quantile invalid-tail input rejection;
+- exact per-constraint horizon allocation consumption without re-splitting;
+- zero-per-constraint and out-of-range preallocated-budget rejection.
 
 Synthetic fixtures validate the declared arithmetic and metadata gate only.
 
