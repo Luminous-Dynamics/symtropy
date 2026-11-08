@@ -11,6 +11,7 @@
 //! sensor error and correction evidence as separate quantities.
 
 pub mod causal_drift;
+pub mod seeded_monte_carlo;
 
 use civdyn_resource_ledger::{
     Production, Region, ResourceVector, StepInput, StepReport, TransferPolicy, TransferRequest,
