@@ -88,6 +88,26 @@ The portfolio compares frozen, outcome-reactive, CUSUM signal-only and mechanism
 
 Known-answer controls: CUSUM detects abrupt observational change at tick 4, gradual change at tick 5, and confounder shift at tick 5. The mechanism-aware controller diagnoses abrupt reversal at tick 4, gradual reversal at tick 6, confounded null at tick 2, and confounder-only shift at tick 6. It does not disable the stable-positive mechanism or the still-beneficial intervention under confounder shift.
 
+## Scenario D: seeded noisy causal-drift Monte Carlo pilot
+
+The deterministic scenarios are known-answer unit controls. This separate Monte Carlo runner introduces Gaussian sampling noise and retains every seed/controller/regime episode.
+
+Default frozen design:
+- 100 replicates per regime, four controllers and five regimes = 2,000 seed-level episodes.
+- Base seed 20,261,108,000; all controller comparisons use common per-seed/per-tick observation noise.
+- Observational samples use 50 observations per arm and outcome-noise standard deviation 2.0.
+- Each mechanism-aware episode takes matched randomized probes at ticks 2, 4, 6 and 8, each with 512 paired observations.
+- Probe intervals use the estimate ± 1.96 standard errors. Binomial rates use 95% Wilson score intervals.
+- Two-sided CUSUM uses allowance 0.25 and threshold 7.0. This threshold was calibrated on the fixed synthetic pilot schedule, not on external test streams.
+
+The runner writes two files:
+- `causal_drift_episodes.csv`: all 2,000 individual seed/controller/regime episodes, including false alarms, missed detections and false diagnoses.
+- `causal_drift_summary.csv`: 20 regime/controller groups with rates, Wilson intervals, detection delays, action losses, probe coverage, utility and oracle regret.
+
+The declared onset for gradual causal change is tick 3 (the treatment effect first changes from +2 to +1), not tick 5 (the first negative effect). This avoids overstating detection delay by confusing onset of change with the later point at which the action becomes harmful.
+
+These intervals measure repeatability under the synthetic Gaussian generator. They do not quantify model uncertainty, real-world uncertainty or external validity. The 100-seed run is a calibration pilot, not a 14-detector/KDD benchmark reproduction.
+
 ## Run
 
 ```sh
@@ -97,6 +117,7 @@ cargo check --locked --manifest-path research/civdyn-self-correction/Cargo.toml 
 cargo test --locked --manifest-path research/civdyn-self-correction/Cargo.toml --all-targets
 cargo run --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin self-correction-sweep
 cargo run --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin causal-drift-sweep
+cargo run --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin causal-drift-monte-carlo -- causal_drift_episodes.csv causal_drift_summary.csv
 ```
 
 ## Claim ceiling
