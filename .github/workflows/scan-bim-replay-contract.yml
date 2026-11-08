@@ -14,6 +14,7 @@ on:
       - "docs/research/built-asset/scan-bim/SCAN_BIM_EXECUTION_RECEIPT_AND_BENCHMARK_TARGETS_V0_1.md"
       - "docs/research/built-asset/scan-bim/SCAN_BIM_BUILD_ATTESTATION_AND_EXECUTION_RECEIPT_V0_1.md"
       - "docs/research/built-asset/scan-bim/SCAN_BIM_DIRECTED_ACCURACY_CORE_V0_2.md"
+      - "docs/research/built-asset/scan-bim/SCAN_BIM_DECISION_SUFFICIENT_CAPTURE_V0_1.md"
   push:
     branches: ["main", "research/scan-bim-admission-v0-1", "research/scan-bim-replay-p0-v0-2", "research/scan-bim-execution-receipt-v0-2", "research/scan-bim-directed-accuracy-v0-6"]
     paths:
@@ -27,6 +28,7 @@ on:
       - "docs/research/built-asset/scan-bim/SCAN_BIM_EXECUTION_RECEIPT_AND_BENCHMARK_TARGETS_V0_1.md"
       - "docs/research/built-asset/scan-bim/SCAN_BIM_BUILD_ATTESTATION_AND_EXECUTION_RECEIPT_V0_1.md"
       - "docs/research/built-asset/scan-bim/SCAN_BIM_DIRECTED_ACCURACY_CORE_V0_2.md"
+      - "docs/research/built-asset/scan-bim/SCAN_BIM_DECISION_SUFFICIENT_CAPTURE_V0_1.md"
 
 permissions:
   contents: read
