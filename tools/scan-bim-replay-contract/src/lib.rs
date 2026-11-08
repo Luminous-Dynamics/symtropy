@@ -1049,7 +1049,9 @@ fn summarize_scene(scene: &SceneRecord) -> SceneVisibilityAudit {
         axis_order: axis_order_label(scene.coordinate_frame.axis_order).to_owned(),
         handedness: handedness_label(scene.coordinate_frame.handedness).to_owned(),
         linear_unit: linear_unit_label(scene.coordinate_frame.linear_unit).to_owned(),
-        linear_unit_to_metre_factor: linear_unit_to_metre_factor(scene.coordinate_frame.linear_unit),
+        linear_unit_to_metre_factor: linear_unit_to_metre_factor(
+            scene.coordinate_frame.linear_unit,
+        ),
         vertical_datum_id: scene.coordinate_frame.vertical_datum_id.clone(),
         transform_artifact_id: scene.coordinate_frame.transform_artifact_id.clone(),
         building_group_id: scene.building_group_id.clone(),
@@ -1378,17 +1380,24 @@ pub fn audit_manifest_bytes(bytes: &[u8]) -> Result<ReplayAuditReport, String> {
         candidate_runtime_artifacts: candidate_runtime_receipts,
         candidate_outputs: candidate_output_receipts,
         tolerance_distance_limit_m: manifest.tolerance_profile.surface_distance_limit_m,
-        tolerance_decision_policy: decision_policy_label(manifest.tolerance_profile.decision_policy).to_owned(),
+        tolerance_decision_policy: decision_policy_label(
+            manifest.tolerance_profile.decision_policy,
+        )
+        .to_owned(),
         reference_surface_spacing_m: manifest.sampling_profile.reference_surface_spacing_m,
         scan_voxel_size_m: manifest.sampling_profile.scan_voxel_size_m,
         distance_cutoff_m: manifest.sampling_profile.distance_cutoff_m,
-        normalization_mode: normalization_mode_label(manifest.sampling_profile.normalization).to_owned(),
+        normalization_mode: normalization_mode_label(manifest.sampling_profile.normalization)
+            .to_owned(),
         metric_scope: metric_scope_label(manifest.metric_profile.scope).to_owned(),
         metric_definition_authority: metric_definition_authority_label(
             manifest.metric_profile.definition_authority,
         )
         .to_owned(),
-        metric_accuracy_direction: accuracy_direction_label(manifest.metric_profile.accuracy_direction).to_owned(),
+        metric_accuracy_direction: accuracy_direction_label(
+            manifest.metric_profile.accuracy_direction,
+        )
+        .to_owned(),
         metric_accuracy_sample_strategy: accuracy_sample_strategy_label(
             manifest.metric_profile.sample_strategy,
         )
@@ -1533,7 +1542,8 @@ mod tests {
         let mut value = isprs_pair_fixture();
         value["metric_profile"]["suite_id"] = serde_json::json!("isprs_indoor_modelling_wall");
         value["metric_profile"]["scope"] = serde_json::json!("wall_only");
-        value["metric_profile"]["definition_authority"] = serde_json::json!("official_results_page");
+        value["metric_profile"]["definition_authority"] =
+            serde_json::json!("official_results_page");
         value["metric_profile"]["accuracy_direction"] = serde_json::json!("candidate_to_reference");
         let error = audit(&value).expect_err("direction must match selected definition authority");
         assert!(error.contains("definition_authority"));
@@ -1548,10 +1558,17 @@ mod tests {
             serde_json::json!("final_results_paper2021");
         value["metric_profile"]["accuracy_direction"] = serde_json::json!("candidate_to_reference");
         value["metric_profile"]["sample_strategy"] = serde_json::json!("source_surface_samples");
-        let report = audit(&value).expect("paper-specific profile should be explicit and reproducible");
+        let report =
+            audit(&value).expect("paper-specific profile should be explicit and reproducible");
         assert_eq!(report.metric_accuracy_direction, "candidate_to_reference");
-        assert_eq!(report.metric_definition_authority, "final_results_paper_2021");
-        assert_eq!(report.metric_accuracy_sample_strategy, "source_surface_samples");
+        assert_eq!(
+            report.metric_definition_authority,
+            "final_results_paper_2021"
+        );
+        assert_eq!(
+            report.metric_accuracy_sample_strategy,
+            "source_surface_samples"
+        );
     }
 
     #[test]
@@ -1563,8 +1580,12 @@ mod tests {
             serde_json::json!("evaluation_framework2018");
         value["metric_profile"]["accuracy_direction"] = serde_json::json!("candidate_to_reference");
         value["metric_profile"]["sample_strategy"] = serde_json::json!("source_surface_vertices");
-        let report = audit(&value).expect("2018 framework's source vertices must be separately recorded");
-        assert_eq!(report.metric_accuracy_sample_strategy, "source_surface_vertices");
+        let report =
+            audit(&value).expect("2018 framework's source vertices must be separately recorded");
+        assert_eq!(
+            report.metric_accuracy_sample_strategy,
+            "source_surface_vertices"
+        );
     }
 
     #[test]
@@ -1589,8 +1610,7 @@ mod tests {
     #[test]
     fn accepts_official_isprs_metric_direction_and_scope() {
         let mut value = isprs_pair_fixture();
-        value["metric_profile"]["suite_id"] =
-            serde_json::json!("isprs_indoor_modelling_wall");
+        value["metric_profile"]["suite_id"] = serde_json::json!("isprs_indoor_modelling_wall");
         value["metric_profile"]["scope"] = serde_json::json!("wall_only");
         value["metric_profile"]["accuracy_direction"] = serde_json::json!("reference_to_candidate");
         let report = audit(&value).expect("official profile direction and wall scope are valid");
@@ -1626,8 +1646,7 @@ mod tests {
     #[test]
     fn reports_millimetre_to_metre_conversion_factor() {
         let mut value = fixture_value();
-        value["scenes"][0]["coordinate_frame"]["linear_unit"] =
-            serde_json::json!("millimetre");
+        value["scenes"][0]["coordinate_frame"]["linear_unit"] = serde_json::json!("millimetre");
         let report = audit(&value).expect("millimetre frame is supported explicitly");
         assert_eq!(report.scenes[0].linear_unit_to_metre_factor, 0.001);
     }
@@ -1650,8 +1669,7 @@ mod tests {
     #[test]
     fn rejects_unknown_coordinate_units() {
         let mut value = fixture_value();
-        value["scenes"][0]["coordinate_frame"]["linear_unit"] =
-            serde_json::json!("yards");
+        value["scenes"][0]["coordinate_frame"]["linear_unit"] = serde_json::json!("yards");
         let error = audit(&value).expect_err("coordinate units are a closed vocabulary");
         assert!(error.contains("unknown variant"));
     }
@@ -1675,9 +1693,10 @@ mod tests {
     #[test]
     fn requires_ifc_output_for_every_scene() {
         let mut value = fixture_value();
-        value["candidate_outputs"].as_array_mut().expect("output array").retain(
-            |output| output["scene_id"] != "ROOM-B" || output["role"] != "ifc_model"
-        );
+        value["candidate_outputs"]
+            .as_array_mut()
+            .expect("output array")
+            .retain(|output| output["scene_id"] != "ROOM-B" || output["role"] != "ifc_model");
         let error = audit(&value).expect_err("every scene needs a candidate IFC output");
         assert!(error.contains("requires at least one ifc_model"));
     }
@@ -1723,7 +1742,10 @@ mod tests {
         assert_eq!(report.scenes[0].transform_artifact_id, "ROOM-A-TRANSFORM");
         assert_eq!(report.candidate_runtime_artifacts.len(), 3);
         assert_eq!(report.candidate_outputs.len(), 4);
-        assert_eq!(report.candidate_outputs[0].sha256, "1388812a1750215452fc4dea388e113d754231c3bd9e9ff4932917da6cef3698");
+        assert_eq!(
+            report.candidate_outputs[0].sha256,
+            "1388812a1750215452fc4dea388e113d754231c3bd9e9ff4932917da6cef3698"
+        );
         assert_eq!(report.candidate_outputs[0].role, "ifc_model");
         assert_eq!(report.command[0], "scan-bim-candidate");
         assert_eq!(report.executable_sha256.len(), 64);
