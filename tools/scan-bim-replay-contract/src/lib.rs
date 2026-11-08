@@ -643,6 +643,7 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
                     && manifest.metric_profile.sample_strategy
                         == AccuracySampleStrategy::BothDirectionsDiagnostic
             }
+            MetricDefinitionAuthority::ProjectDefined => false,
         };
         if manifest.metric_profile.scope != MetricScope::WallOnly || !authority_matches_definition {
             return Err(
