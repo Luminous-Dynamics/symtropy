@@ -696,7 +696,7 @@ mod tests {
         );
         assert_eq!(
             comparison(&result, "derived_buffet_index_vs_deflection").status,
-            "ABSTAIN"
+            "INCOMPATIBLE"
         );
         assert_eq!(
             comparison(&result, "masked_upsp_channel").status,
