@@ -126,8 +126,11 @@ def validate_case3(catalog: dict[str, Any]) -> tuple[dict[str, Any], dict[str, d
             f"{source_id}: unacquired source unexpectedly counted as admitted",
         )
 
-    kulite_limits = " ".join(by_family["unsteady_point_pressure"].get("limitations", []))
-    require("9 kHz" in kulite_limits, "Kulite 9 kHz wind-tunnel-noise warning missing")
+    kulite_limits = " ".join(by_family["unsteady_point_pressure"].get("limitations", [])).lower()
+    require(
+        "9 khz" in kulite_limits and "wind-tunnel noise" in kulite_limits,
+        "Kulite approximately 9 kHz wind-tunnel-noise confounder must remain source-attributed",
+    )
     upsp_limits = " ".join(by_family["unsteady_surface_pressure"].get("limitations", []))
     require("low-pass" in upsp_limits.lower(), "uPSP low-pass limitation missing")
     require("masks" in upsp_limits.lower(), "uPSP reliability-mask limitation missing")
