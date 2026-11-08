@@ -389,3 +389,228 @@ pub fn sample_observable_surfaces(
         samples: all_samples,
     })
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        AreaWeightedSamplingProfile, SurfaceTriangleInput, SurfaceVisibility,
+        sample_observable_surfaces,
+    };
+    use crate::metrics::Point3;
+
+    fn profile(spacing: f64, seed: u64) -> AreaWeightedSamplingProfile {
+        AreaWeightedSamplingProfile {
+            target_spacing_m: spacing,
+            seed,
+            max_samples: 100_000,
+        }
+    }
+
+    fn triangle(
+        surface: &str,
+        id: &str,
+        a: [f64; 3],
+        b: [f64; 3],
+        c: [f64; 3],
+        visibility: SurfaceVisibility,
+    ) -> SurfaceTriangleInput {
+        SurfaceTriangleInput::new(
+            surface,
+            id,
+            Point3::new(a[0], a[1], a[2]),
+            Point3::new(b[0], b[1], b[2]),
+            Point3::new(c[0], c[1], c[2]),
+            visibility,
+        )
+    }
+
+    fn square(
+        surface: &str,
+        prefix: &str,
+        area: f64,
+        visibility: SurfaceVisibility,
+    ) -> Vec<SurfaceTriangleInput> {
+        let width = area.sqrt();
+        vec![
+            triangle(
+                surface,
+                &format!("{prefix}-a"),
+                [0.0, 0.0, 0.0],
+                [width, 0.0, 0.0],
+                [width, width, 0.0],
+                visibility,
+            ),
+            triangle(
+                surface,
+                &format!("{prefix}-b"),
+                [0.0, 0.0, 0.0],
+                [width, width, 0.0],
+                [0.0, width, 0.0],
+                visibility,
+            ),
+        ]
+    }
+
+    #[test]
+    fn sample_count_is_area_proportional_and_weights_conserve_area() {
+        let mut input = square("SURFACE-A", "a", 1.0, SurfaceVisibility::Observable);
+        input.extend(square("SURFACE-B", "b", 3.0, SurfaceVisibility::Observable));
+        let receipt =
+            sample_observable_surfaces(&input, profile(0.2, 7)).expect("analytic mesh samples");
+        assert_eq!(receipt.surfaces.len(), 2);
+        assert_eq!(receipt.surfaces[0].surface_id, "SURFACE-A");
+        assert_eq!(receipt.surfaces[1].surface_id, "SURFACE-B");
+        assert!((receipt.observable_area_m2 - 4.0).abs() < 1e-12);
+        assert_eq!(receipt.surfaces[0].sample_count, 25);
+        assert_eq!(receipt.surfaces[1].sample_count, 75);
+        assert_eq!(receipt.sample_count, 100);
+        assert!((receipt.surfaces[0].represented_area_m2 - 1.0).abs() < 1e-12);
+        assert!((receipt.surfaces[1].represented_area_m2 - 3.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn generated_barycentric_points_lie_inside_their_source_square() {
+        let input = square("WALL", "wall", 1.0, SurfaceVisibility::Observable);
+        let receipt = sample_observable_surfaces(&input, profile(0.1, 21))
+            .expect("valid triangulated wall should be sampled");
+        assert_eq!(receipt.sample_count, 100);
+        for sample in &receipt.samples {
+            assert!(sample.barycentric.iter().all(|weight| *weight >= 0.0));
+            assert!((sample.barycentric.iter().sum::<f64>() - 1.0).abs() < 1e-12);
+            assert!(sample.point.x >= -1e-12 && sample.point.y >= -1e-12);
+            assert!(sample.point.x <= 1.0 + 1e-12 && sample.point.y <= 1.0 + 1e-12);
+            assert!(sample.represented_area_m2 > 0.0);
+        }
+    }
+
+    #[test]
+    fn triangle_input_permutation_does_not_change_the_ordered_receipt() {
+        let mut input = square("WALL", "wall", 1.0, SurfaceVisibility::Observable);
+        input.extend(square("FLOOR", "floor", 2.0, SurfaceVisibility::Observable));
+        let first =
+            sample_observable_surfaces(&input, profile(0.1, 4)).expect("first receipt");
+        input.reverse();
+        let second =
+            sample_observable_surfaces(&input, profile(0.1, 4)).expect("second receipt");
+        assert_eq!(first, second);
+    }
+
+    #[test]
+    fn seed_changes_points_but_preserves_sample_identity_and_count() {
+        let input = square("WALL", "wall", 1.0, SurfaceVisibility::Observable);
+        let first = sample_observable_surfaces(&input, profile(0.1, 1)).expect("seed one");
+        let second = sample_observable_surfaces(&input, profile(0.1, 2)).expect("seed two");
+        assert_eq!(first.sample_count, second.sample_count);
+        for (left, right) in first.samples.iter().zip(&second.samples) {
+            assert_eq!(left.surface_id, right.surface_id);
+            assert_eq!(left.sample_ordinal, right.sample_ordinal);
+        }
+        assert_ne!(first.samples[0].point, second.samples[0].point);
+    }
+
+    #[test]
+    fn unobservable_area_is_reported_and_never_sampled() {
+        let mut input = square("WALL", "visible", 1.0, SurfaceVisibility::Observable);
+        input.extend(square(
+            "WALL",
+            "occluded",
+            2.0,
+            SurfaceVisibility::ExternallyOccluded,
+        ));
+        let receipt =
+            sample_observable_surfaces(&input, profile(0.1, 12)).expect("visible wall samples");
+        assert!((receipt.observable_area_m2 - 1.0).abs() < 1e-12);
+        assert!((receipt.excluded_area_m2 - 2.0).abs() < 1e-12);
+        assert_eq!(receipt.sample_count, 100);
+        assert_eq!(receipt.surfaces[0].excluded_by_visibility.len(), 1);
+        assert_eq!(
+            receipt.surfaces[0].excluded_by_visibility[0].visibility,
+            SurfaceVisibility::ExternallyOccluded
+        );
+        assert!(receipt.samples.iter().all(|sample| sample.triangle_id.starts_with("visible-")));
+    }
+
+    #[test]
+    fn entirely_unobservable_mesh_has_an_empty_not_zero_error_receipt() {
+        let input = square("WALL", "hidden", 1.0, SurfaceVisibility::Unknown);
+        let receipt =
+            sample_observable_surfaces(&input, profile(0.1, 12)).expect("visibility accounting");
+        assert_eq!(receipt.sample_count, 0);
+        assert!(receipt.samples.is_empty());
+        assert_eq!(receipt.observable_area_m2, 0.0);
+        assert!((receipt.excluded_area_m2 - 1.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn sample_budget_overflow_fails_instead_of_truncating() {
+        let input = square("WALL", "wall", 1.0, SurfaceVisibility::Observable);
+        let constrained = AreaWeightedSamplingProfile {
+            target_spacing_m: 0.001,
+            seed: 1,
+            max_samples: 10,
+        };
+        let error = sample_observable_surfaces(&input, constrained)
+            .expect_err("the declared sample budget is a hard limit");
+        assert!(error.contains("sample budget exceeded"));
+    }
+
+    #[test]
+    fn duplicate_surface_triangle_identity_fails_closed() {
+        let input = vec![
+            triangle(
+                "WALL",
+                "duplicate",
+                [0.0, 0.0, 0.0],
+                [1.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0],
+                SurfaceVisibility::Observable,
+            ),
+            triangle(
+                "WALL",
+                "duplicate",
+                [0.0, 0.0, 0.0],
+                [2.0, 0.0, 0.0],
+                [0.0, 2.0, 0.0],
+                SurfaceVisibility::Observable,
+            ),
+        ];
+        let error = sample_observable_surfaces(&input, profile(0.1, 1))
+            .expect_err("duplicate triangle IDs are ambiguous");
+        assert!(error.contains("duplicate triangle identity"));
+    }
+
+    #[test]
+    fn degenerate_and_non_finite_triangles_fail_even_when_occluded() {
+        let degenerate = vec![triangle(
+            "HIDDEN",
+            "bad",
+            [0.0, 0.0, 0.0],
+            [1.0, 1.0, 1.0],
+            [2.0, 2.0, 2.0],
+            SurfaceVisibility::SelfOccluded,
+        )];
+        let error = sample_observable_surfaces(&degenerate, profile(0.1, 1))
+            .expect_err("hidden degenerate geometry must still be rejected");
+        assert!(error.contains("degenerate"));
+
+        let mut non_finite = square("HIDDEN", "bad", 1.0, SurfaceVisibility::Unknown);
+        non_finite[0].a.x = f64::NAN;
+        let error = sample_observable_surfaces(&non_finite, profile(0.1, 1))
+            .expect_err("hidden non-finite geometry must still be rejected");
+        assert!(error.contains("non-finite"));
+    }
+
+    #[test]
+    fn invalid_spacing_and_zero_sample_budget_fail_closed() {
+        let input = square("WALL", "wall", 1.0, SurfaceVisibility::Observable);
+        let error = sample_observable_surfaces(&input, profile(0.0, 1))
+            .expect_err("zero spacing is invalid");
+        assert!(error.contains("target_spacing_m"));
+        let mut zero_budget = profile(0.1, 1);
+        zero_budget.max_samples = 0;
+        let error = sample_observable_surfaces(&input, zero_budget)
+            .expect_err("zero budget is invalid");
+        assert!(error.contains("max_samples"));
+    }
+}
