@@ -13,7 +13,7 @@ use crate::causal_drift::{
     ACTION_COST, CausalDiagnosis, CausalDriftController, CausalRegime,
 };
 
-pub const MONTE_CARLO_BASE_SEED: u64 = 20_261_108_000;
+pub const MONTE_CARLO_BASE_SEED: u64 = 20_261_108_100;
 pub const MONTE_CARLO_REPLICATES_PER_REGIME: usize = 100;
 pub const OBSERVATION_SAMPLE_SIZE_PER_ARM: usize = 50;
 pub const MATCHED_PROBE_PAIRS: usize = 512;
