@@ -61,6 +61,10 @@ Calibration comparators:
 - Learnable Conformal Prediction (ICRA 2026): https://doi.org/10.1109/ICRA57385.2026.11697249
 - Online Conformal Prediction via Online Optimization (ICML 2025): https://proceedings.mlr.press/v267/areces25a.html
 
+**Contact-probability calibration metrics.** The separate [#4148 / PR #4159](https://github.com/Luminous-Dynamics/symtropy/pull/4159) reference computes exact fixed-point Brier, ECE and MCE for one declared channel/target/model/domain/split stratum at a time. Report every reliability bin, including empty bins, and distinguish correlated observation count from independent session/trial count. This is a diagnostic utility, not an estimator or safety guarantee.
+
+**Action-conditioned contact information.** [LOCO-CONTACT-INFO-001 / #4004](https://github.com/Luminous-Dynamics/symtropy/issues/4004) now has a small linear-Gaussian posterior and expected-information-gain oracle in [PR #4161](https://github.com/Luminous-Dynamics/symtropy/pull/4161). It tests how different action-conditioned observation maps H(u,m) change expected information gain, preserves rank-deficient/unobservable directions, and separates expected information gain from the realized posterior update. The oracle does not certify any action's physical admissibility; the full system must apply an independent viability/safety filter before a probe is considered.
+
 The benchmark must therefore distinguish at least four constructs: static support margin, dynamic geometric margin, robust future physical viability, and empirical learning recoverability. None is a synonym for another.
 
 1. **B0: SPINDER-style CPG/IK baseline** — coupled oscillators, local trajectory generation, analytic IK, fixed or velocity-conditioned gait schedule.
@@ -69,13 +73,15 @@ The benchmark must therefore distinguish at least four constructs: static suppor
 4. **B3: learned baseline** — a declared DRL/CPG or residual-policy controller, with its training budget and observation set frozen.
 5. **S0: Symtropy finite-oracle-only** — consume a supplied finite transition graph; explicitly synthetic/abstract evidence only.
 6. **S1: Symtropy hybrid assurance** — sound interval/set-valued abstraction feeding the finite robust viability oracle.
-7. **S2: Symtropy dual-channel** — S1 plus belief/provenance and active contact information, with probing restricted to robustly admitted actions.
+7. **S2: Symtropy dual-channel** — S1 plus belief/provenance and action-conditioned contact information (#4004/#4161); any probing policy must first pass an independent robust physical-admissibility filter.
 8. **E0: Binary Contact KF** — binary contact validity baseline.
 9. **E1: Continuous Contact KF** — continuous reliability/covariance-regulation ablation.
 10. **E2: Contact-reliability-aware neural residual KF** — Zhao et al. full baseline, including separate dynamic and observation residuals.
-11. **S2: Symtropy graded contact evidence** — source-provenance and dependence-safe interval envelope across D1/D2/D3, used only as a qualified evidence product.
-12. **C1: HORIZON-style learning curriculum** — reproduce its episode-length, tracking and checkpoint-preservation gate without formal physical viability certification.
-13. **S3: Symtropy dual-frontier curriculum** — empirical learning gate plus independently sourced physical viability and certificate-validity gates; hardware progression requires all gates, while out-of-envelope exploration remains simulation-only.
+11. **E3: Symtropy graded contact evidence** — source-provenance and dependence-safe interval envelope across D1/D2/D3, used only as a qualified evidence product (#4143/#4144).
+12. **E4: contact-probability calibration metrics** — exact Brier/ECE/MCE and reliability bins per fixed stratum, with session/trial clustering (#4148/#4159); evaluation utility, not an estimator.
+13. **E5: episode-level conformal uncertainty calibration** — finite-sample whole-unit marginal coverage under the declared exchangeability assumption and exact operating domain (#4146/#4147); not a physical safety claim.
+14. **C1: HORIZON-style learning curriculum** — reproduce its episode-length, tracking and checkpoint-preservation gate without formal physical viability certification.
+15. **S3: Symtropy dual-frontier curriculum** — empirical learning gate plus independently sourced physical viability and certificate-validity gates; hardware progression requires all gates, while out-of-envelope exploration remains simulation-only.
 
 Do not compare a simulated S1/S2 result directly against hardware B0/B1 as if they shared evidence maturity. Publish simulator and hardware scorecards separately.
 
