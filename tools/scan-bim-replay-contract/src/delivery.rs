@@ -648,6 +648,7 @@ mod tests {
 
     fn all_pass_receipt() -> Value {
         let mut value = case_report("all_gates_not_run");
+        let ids_digest = "a".repeat(64);
         value["ids_requirements"] = json!({
             "sha256": ids_digest.clone(),
             "standard_version": "1.0",
@@ -656,7 +657,6 @@ mod tests {
 
         let ifc_digest = value["ifc"]["sha256"].as_str().expect("IFC digest").to_owned();
         let graph_digest = value["element_graph"]["sha256"].as_str().expect("graph digest").to_owned();
-        let ids_digest = "a".repeat(64);
         let gate_ids = [
             ("artifact_integrity", vec!["ifc_output", "element_graph"]),
             ("step_parse", vec!["ifc_output"]),
