@@ -1,0 +1,63 @@
+name: AER-01 structural observability oracle
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/aero-structural-observability.yml"
+      - "tools/civil-aero-benchmark/structural-observability/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-observability-placement:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact pull-request head
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust with rustfmt
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Record toolchain identity
+        run: |
+          rustc --version --verbose
+          cargo --version
+          python3 --version
+
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path tools/civil-aero-benchmark/structural-observability/Cargo.toml -- --check
+
+      - name: Run Rust observability known-answer and hostile tests
+        run: cargo test --manifest-path tools/civil-aero-benchmark/structural-observability/Cargo.toml
+
+      - name: Generate sensor-placement observability audit
+        run: cargo run --quiet --manifest-path tools/civil-aero-benchmark/structural-observability/Cargo.toml > structural-observability-audit.json
+
+      - name: Independently recompute FIM and placements in Python
+        run: python3 tools/civil-aero-benchmark/structural-observability/verify_independent.py --rust-output structural-observability-audit.json
+
+      - name: Create fixture and output digest receipts
+        run: |
+          sha256sum tools/civil-aero-benchmark/structural-observability/data/synthetic-wing-observability-v0.1.json > observability-fixture.sha256
+          sha256sum structural-observability-audit.json > structural-observability-audit.sha256
+
+      - name: Retain synthetic fixture, result and receipts
+        uses: actions/upload-artifact@v4
+        with:
+          name: aero-structural-observability-${{ github.sha }}
+          path: |
+            tools/civil-aero-benchmark/structural-observability/data/synthetic-wing-observability-v0.1.json
+            structural-observability-audit.json
+            observability-fixture.sha256
+            structural-observability-audit.sha256
+          if-no-files-found: error
+          retention-days: 90
