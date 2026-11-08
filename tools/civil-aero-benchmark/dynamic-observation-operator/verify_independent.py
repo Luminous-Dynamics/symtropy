@@ -280,6 +280,17 @@ def assess_pair(
         return "ABSTAIN", "source bytes, terms and applicability are not admitted"
     if not left.get("calibration_admitted") or not right.get("calibration_admitted"):
         return "ABSTAIN", "instrument calibration/uncertainty is not admitted"
+    for channel in (left, right):
+        if not channel.get("calibration_operator_id"):
+            return "ABSTAIN", "calibration operator identity is missing"
+        uncertainty = channel.get("standard_uncertainty")
+        if (
+            not isinstance(uncertainty, (int, float))
+            or not math.isfinite(uncertainty)
+            or uncertainty <= 0
+            or not channel.get("uncertainty_budget_id")
+        ):
+            return "ABSTAIN", "standard uncertainty or its traceable uncertainty-budget identity is missing"
     for key, description in (
         ("quantity", "physical quantities differ"),
         ("unit", "units differ and no explicit canonical conversion was supplied"),
@@ -290,10 +301,14 @@ def assess_pair(
     ):
         if left.get(key) != right.get(key):
             return "REJECT", description
-    if (left.get("mask_required") and not left.get("mask_applied")) or (
-        right.get("mask_required") and not right.get("mask_applied")
+    if (
+        left.get("mask_required") and (not left.get("mask_applied") or not left.get("mask_operator_id"))
+    ) or (
+        right.get("mask_required") and (not right.get("mask_applied") or not right.get("mask_operator_id"))
     ):
-        return "REJECT", "a required reliability mask has not been applied"
+        return "REJECT", "a required reliability mask is missing or unapplied"
+    if left.get("mask_operator_id") != right.get("mask_operator_id"):
+        return "REJECT", "reliability mask identities differ"
     band = left.get("bandwidth_hz")
     require(
         isinstance(band, list)
@@ -369,8 +384,12 @@ def synthetic_channel(
         "temporal_operator_id": temporal_operator_id,
         "source_admitted": True,
         "calibration_admitted": True,
+        "calibration_operator_id": "synthetic-calibration-A",
+        "standard_uncertainty": 0.01,
+        "uncertainty_budget_id": "synthetic-uncertainty-budget-A",
         "mask_required": False,
         "mask_applied": True,
+        "mask_operator_id": None,
         "timebase_id": "synthetic-clock-A",
         "sample_rate_hz": 20_000.0,
         "synchronization_uncertainty_s": 1.0e-6,
@@ -456,6 +475,36 @@ def synthetic_comparison_controls() -> None:
     no_source = copy.deepcopy(right)
     no_source["source_admitted"] = False
     require(assess_pair(left, no_source, "rms", 1.0e-5)[0] == "ABSTAIN", "unadmitted source must abstain")
+
+    no_uncertainty = copy.deepcopy(right)
+    no_uncertainty["standard_uncertainty"] = None
+    require(
+        assess_pair(left, no_uncertainty, "rms", 1.0e-5)[0] == "ABSTAIN",
+        "missing standard uncertainty must abstain",
+    )
+
+    no_budget = copy.deepcopy(right)
+    no_budget["uncertainty_budget_id"] = None
+    require(
+        assess_pair(left, no_budget, "rms", 1.0e-5)[0] == "ABSTAIN",
+        "missing uncertainty budget identity must abstain",
+    )
+
+    no_calibration = copy.deepcopy(right)
+    no_calibration["calibration_operator_id"] = None
+    require(
+        assess_pair(left, no_calibration, "rms", 1.0e-5)[0] == "ABSTAIN",
+        "missing calibration-operator identity must abstain",
+    )
+
+    different_mask = copy.deepcopy(right)
+    different_mask["mask_required"] = True
+    different_mask["mask_applied"] = True
+    different_mask["mask_operator_id"] = "surface-mask-revision-B"
+    require(
+        assess_pair(left, different_mask, "pointwise", 1.0e-5)[0] == "REJECT",
+        "different reliability-mask identity must reject",
+    )
 
     no_modes = copy.deepcopy(right)
     require(assess_pair(left, no_modes, "modal_validation", 1.0e-5)[0] == "NOT_ASSESSED",
