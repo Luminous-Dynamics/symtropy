@@ -37,6 +37,7 @@ pub enum SpecialError {
     NonFiniteResult,
     InvalidConfiguration,
     AssociatedLegendreDomainUnsupported,
+    InvalidPoschlTellerParameters,
 }
 
 impl fmt::Display for SpecialError {
@@ -61,6 +62,9 @@ impl fmt::Display for SpecialError {
             Self::InvalidConfiguration => write!(f, "series configuration is invalid"),
             Self::AssociatedLegendreDomainUnsupported => {
                 write!(f, "Ferrers associated-Legendre control requires real z strictly between -1 and 1")
+            }
+            Self::InvalidPoschlTellerParameters => {
+                write!(f, "Pöschl–Teller Jost parameters require finite omega, b>0 and lambda>=0")
             }
         }
     }
@@ -516,6 +520,118 @@ pub fn associated_legendre_ferrers(
     })
 }
 
+
+/// Direction of the outgoing Jost boundary condition.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum JostSide {
+    /// Unit outgoing wave exp(-i omega x) as x -> -infinity.
+    Left,
+    /// Unit outgoing wave exp(+i omega x) as x -> +infinity.
+    Right,
+}
+
+/// Unit-normalized Pöschl–Teller Jost solution and x derivatives.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct PoschlTellerJostEvaluation {
+    pub value: Complex64,
+    pub first_x_derivative: Complex64,
+    pub second_x_derivative: Complex64,
+    pub degree: Complex64,
+    pub order: Complex64,
+}
+
+/// Evaluate one outgoing Pöschl–Teller Jost solution for
+///
+///     u''(x) + [omega² - lambda/b² sech²(x/b)] u(x) = 0.
+///
+/// With z=tanh(x/b), degree l=-1/2+sqrt(1/4-lambda), and order mu=i b omega,
+/// the right-outgoing solution is Gamma(1-mu) P_l^mu(z), while the
+/// left-outgoing solution is Gamma(1-mu) P_l^mu(-z).
+///
+/// The unit normalization follows from P_l^mu(z) ~ exp(mu atanh(z)) /
+/// Gamma(1-mu) as z -> +1. This is a homogeneous Jost solution only; it does
+/// not compute the scattering matrix, Green function, Wronskian residues,
+/// or contour prescription.
+pub fn poschl_teller_jost(
+    width: f64,
+    lambda: f64,
+    omega: Complex64,
+    x: f64,
+    side: JostSide,
+    config: SeriesConfig,
+) -> Result<PoschlTellerJostEvaluation, SpecialError> {
+    config.validate()?;
+    validate_complex(&[omega])?;
+    if !width.is_finite()
+        || !lambda.is_finite()
+        || !x.is_finite()
+        || width <= 0.0
+        || lambda < 0.0
+    {
+        return Err(SpecialError::InvalidPoschlTellerParameters);
+    }
+
+    let z = (x / width).tanh();
+    let side_sign = match side {
+        JostSide::Right => 1.0,
+        JostSide::Left => -1.0,
+    };
+    let argument = Complex64::new(side_sign * z, 0.0);
+    if argument.re <= -1.0 || argument.re >= 1.0 {
+        return Err(SpecialError::AssociatedLegendreDomainUnsupported);
+    }
+
+    let degree = Complex64::new(-0.5, 0.0)
+        + Complex64::new(0.25 - lambda, 0.0).sqrt();
+    let order = Complex64::new(0.0, 1.0) * width * omega;
+    let legendre = associated_legendre_ferrers(degree, order, argument, config)?;
+    let normalization = gamma(Complex64::new(1.0, 0.0) - order)?;
+
+    let sech_squared = 1.0 - z * z;
+    let argument_x_derivative = side_sign * sech_squared / width;
+    let argument_x_second_derivative =
+        -2.0 * side_sign * z * sech_squared / (width * width);
+
+    let value = normalization * legendre.value;
+    let first_x_derivative =
+        normalization * legendre.first_derivative * argument_x_derivative;
+    let second_x_derivative = normalization
+        * (legendre.second_derivative * argument_x_derivative.powi(2)
+            + legendre.first_derivative * argument_x_second_derivative);
+
+    if !finite(value) || !finite(first_x_derivative) || !finite(second_x_derivative) {
+        return Err(SpecialError::NonFiniteResult);
+    }
+
+    Ok(PoschlTellerJostEvaluation {
+        value,
+        first_x_derivative,
+        second_x_derivative,
+        degree,
+        order,
+    })
+}
+
+/// Compute W[f_left, f_right] at one tortoise coordinate using unit-normalized
+/// Pöschl–Teller Jost solutions.
+pub fn poschl_teller_jost_wronskian(
+    width: f64,
+    lambda: f64,
+    omega: Complex64,
+    x: f64,
+    config: SeriesConfig,
+) -> Result<Complex64, SpecialError> {
+    let left = poschl_teller_jost(width, lambda, omega, x, JostSide::Left, config)?;
+    let right = poschl_teller_jost(width, lambda, omega, x, JostSide::Right, config)?;
+    let value = left.value * right.first_x_derivative
+        - left.first_x_derivative * right.value;
+    if finite(value) {
+        Ok(value)
+    } else {
+        Err(SpecialError::NonFiniteResult)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -781,6 +897,83 @@ mod tests {
                 Err(SpecialError::AssociatedLegendreDomainUnsupported)
             );
         }
+    }
+
+
+    #[test]
+    fn free_potential_jost_solutions_are_exact_plane_waves() {
+        let omega = z(0.9, -0.12);
+        let x = 0.73;
+        let config = SeriesConfig::default();
+        let left = poschl_teller_jost(1.4, 0.0, omega, x, JostSide::Left, config).unwrap();
+        let right = poschl_teller_jost(1.4, 0.0, omega, x, JostSide::Right, config).unwrap();
+        close(left.value, (-z(0.0, 1.0) * omega * x).exp(), 2.0e-13);
+        close(right.value, (z(0.0, 1.0) * omega * x).exp(), 2.0e-13);
+        close(left.first_x_derivative, -z(0.0, 1.0) * omega * left.value, 2.0e-13);
+        close(right.first_x_derivative, z(0.0, 1.0) * omega * right.value, 2.0e-13);
+        close(
+            left.value * right.first_x_derivative - left.first_x_derivative * right.value,
+            z(0.0, 2.0) * omega,
+            5.0e-13,
+        );
+    }
+
+    #[test]
+    fn barrier_jost_solutions_satisfy_the_potential_ode() {
+        let width = 1.3;
+        let lambda = 0.75;
+        let omega = z(0.9, -0.12);
+        for x in [-1.4, -0.2, 0.8, 1.5] {
+            for side in [JostSide::Left, JostSide::Right] {
+                let solution = poschl_teller_jost(
+                    width,
+                    lambda,
+                    omega,
+                    x,
+                    side,
+                    SeriesConfig::default(),
+                )
+                .unwrap();
+                let sech_squared = 1.0 - (x / width).tanh().powi(2);
+                let residual = solution.second_x_derivative
+                    + (omega * omega - lambda * sech_squared / (width * width))
+                        * solution.value;
+                assert!(
+                    residual.norm() < 2.0e-9,
+                    "x={x}, side={side:?}, residual={residual:?}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn barrier_jost_wronskian_is_position_independent() {
+        let width = 1.0;
+        let lambda = 0.75;
+        let omega = z(0.9, -0.12);
+        let config = SeriesConfig::default();
+        let reference = poschl_teller_jost_wronskian(width, lambda, omega, -1.2, config).unwrap();
+        for x in [-0.7, 0.0, 0.65, 1.1] {
+            let value = poschl_teller_jost_wronskian(width, lambda, omega, x, config).unwrap();
+            close(value, reference, 2.0e-9);
+        }
+    }
+
+    #[test]
+    fn jost_parameters_and_saturated_coordinates_fail_closed() {
+        let config = SeriesConfig::default();
+        assert_eq!(
+            poschl_teller_jost(0.0, 0.75, z(0.9, -0.1), 0.0, JostSide::Right, config),
+            Err(SpecialError::InvalidPoschlTellerParameters)
+        );
+        assert_eq!(
+            poschl_teller_jost(1.0, -0.1, z(0.9, -0.1), 0.0, JostSide::Right, config),
+            Err(SpecialError::InvalidPoschlTellerParameters)
+        );
+        assert_eq!(
+            poschl_teller_jost(1.0, 0.75, z(0.9, -0.1), 30.0, JostSide::Right, config),
+            Err(SpecialError::AssociatedLegendreDomainUnsupported)
+        );
     }
 
     #[test]
