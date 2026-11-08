@@ -29,10 +29,7 @@ pub struct SpinWeightedMode {
 
 impl SpinWeightedMode {
     pub fn new(ell: u32, m: i32, spin_weight: i32) -> Result<Self, TailLawError> {
-        if i32::try_from(ell).is_err()
-            || m.unsigned_abs() > ell
-            || spin_weight.unsigned_abs() > ell
-        {
+        if i32::try_from(ell).is_err() || m.unsigned_abs() > ell || spin_weight.unsigned_abs() > ell {
             return Err(TailLawError::InvalidMode);
         }
         if spin_weight == 0 {
@@ -97,9 +94,15 @@ pub enum TailLawError {
 impl fmt::Display for TailLawError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::InvalidMode => write!(f, "invalid spin-weighted mode: require |m| <= ell and |s| <= ell"),
+            Self::InvalidMode => write!(
+                f,
+                "invalid spin-weighted mode: require |m| <= ell and |s| <= ell"
+            ),
             Self::ScalarFormulaNotSpecified => {
-                write!(f, "the cited spin-weighted sourced-tail formula is not specified for s = 0")
+                write!(
+                    f,
+                    "the cited spin-weighted sourced-tail formula is not specified for s = 0"
+                )
             }
             Self::NonFiniteBeta => write!(f, "source falloff beta must be finite"),
             Self::UnsupportedBetaRegime {
@@ -123,10 +126,7 @@ impl std::error::Error for TailLawError {}
 /// the far-field approximation, perturbative source, mode excitation,
 /// amplitude, extraction radius, or detector observability. Those require
 /// independent physical and numerical experiments.
-pub fn classify_tail_law(
-    mode: SpinWeightedMode,
-    beta: f64,
-) -> Result<TailLaw, TailLawError> {
+pub fn classify_tail_law(mode: SpinWeightedMode, beta: f64) -> Result<TailLaw, TailLawError> {
     if !beta.is_finite() {
         return Err(TailLawError::NonFiniteBeta);
     }
@@ -210,14 +210,8 @@ mod tests {
             classify_tail_law(m, 1.0).unwrap().branch,
             TailBranch::SourcedLowBeta
         );
-        assert_eq!(
-            classify_tail_law(m, 2.0).unwrap().branch,
-            TailBranch::Price
-        );
-        assert_eq!(
-            classify_tail_law(m, 5.0).unwrap().branch,
-            TailBranch::Price
-        );
+        assert_eq!(classify_tail_law(m, 2.0).unwrap().branch, TailBranch::Price);
+        assert_eq!(classify_tail_law(m, 5.0).unwrap().branch, TailBranch::Price);
         assert_eq!(
             classify_tail_law(m, 6.0).unwrap().branch,
             TailBranch::SourcedHighBeta
@@ -247,8 +241,14 @@ mod tests {
 
     #[test]
     fn invalid_angular_modes_are_rejected() {
-        assert_eq!(SpinWeightedMode::new(1, 2, 1), Err(TailLawError::InvalidMode));
-        assert_eq!(SpinWeightedMode::new(1, 0, 2), Err(TailLawError::InvalidMode));
+        assert_eq!(
+            SpinWeightedMode::new(1, 2, 1),
+            Err(TailLawError::InvalidMode)
+        );
+        assert_eq!(
+            SpinWeightedMode::new(1, 0, 2),
+            Err(TailLawError::InvalidMode)
+        );
     }
 
     #[test]
