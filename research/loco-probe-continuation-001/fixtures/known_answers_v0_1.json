@@ -277,9 +277,7 @@
         "1": [
           "terminal-recoverable"
         ],
-        "2": [
-          "latency-prefix"
-        ],
+        "2": [],
         "3": [
           "s0"
         ]
