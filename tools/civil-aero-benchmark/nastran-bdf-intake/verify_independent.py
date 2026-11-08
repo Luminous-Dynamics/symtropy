@@ -61,15 +61,29 @@ def parse_deck(data: bytes) -> tuple[list[dict[str, Any]], list[str]]:
                 in_bulk = True
             continue
         if stripped.upper() == "ENDDATA":
-            require(pending is None, f"line {number}: ENDDATA with unresolved continuation")
+            if pending is not None:
+                require(pending["next"] is None,
+                        f"line {number}: ENDDATA with unresolved continuation {pending['next']}")
+                cards.append(pending)
+                pending = None
             enddata = True
             break
 
         fields = fixed_fields(line, number)
         first = fields[0]
-        require(first, f"line {number}: blank first field is not an admitted implicit continuation")
-        require(not first.startswith("*"), f"line {number}: large-field card not admitted in v0.1")
+        if not first:
+            require(pending is not None, f"line {number}: orphan implicit continuation")
+            require(pending["next"] is None,
+                    f"line {number}: card {pending['name']} requires explicit continuation {pending['next']}")
+            pending["fields"].extend(fields[1:9])
+            pending["lines"].append(number)
+            next_cont = fields[9] or None
+            if next_cont is not None:
+                require(next_cont.startswith("+"), f"line {number}: unsupported continuation label")
+            pending["next"] = next_cont
+            continue
 
+        require(not first.startswith("*"), f"line {number}: large-field card not admitted in v0.1")
         if first.startswith("+"):
             require(pending is not None, f"line {number}: orphan continuation")
             require(
@@ -84,7 +98,11 @@ def parse_deck(data: bytes) -> tuple[list[dict[str, Any]], list[str]]:
                 pending = None
             continue
 
-        require(pending is None, f"line {number}: new card before continuation completed")
+        if pending is not None:
+            require(pending["next"] is None,
+                    f"line {number}: new card before required continuation {pending['next']}")
+            cards.append(pending)
+            pending = None
         require(not first.endswith("*"), f"line {number}: large-field card not admitted in v0.1")
         next_cont = fields[9] or None
         if next_cont is not None:
@@ -95,9 +113,6 @@ def parse_deck(data: bytes) -> tuple[list[dict[str, Any]], list[str]]:
             "lines": [number],
             "next": next_cont,
         }
-        if pending["next"] is None:
-            cards.append(pending)
-            pending = None
 
     require(in_bulk, "BEGIN BULK missing")
     require(enddata, "ENDDATA missing")
@@ -304,7 +319,9 @@ def inventory(data: bytes) -> dict[str, Any]:
                 spc_refs.add(as_id(fields[index], "SPC GRID"))
                 components = required(index + 1, "SPC component")
                 validate_component_digits(components, f"SPC {sid} components")
-                as_float(required(index + 2, "SPC value"), "SPC value")
+                enforced_value = fields[index + 2]
+                if enforced_value.strip():
+                    as_float(enforced_value, "SPC value")
         elif name == "SPC1":
             sid = as_id(required(0, "SPC1 SID"), "SPC1 SID")
             spc_sets.add(sid)
@@ -477,6 +494,33 @@ def hostile_controls(data: bytes) -> None:
                  if line.startswith("SPC"))
     invalid_spc_components[index] = fixed(["SPC", "1", "1", "0", "0."])
     expect_rejected("invalid_spc_components", lambda: inventory(("\n".join(invalid_spc_components) + "\n").encode("ascii")))
+
+    bulk_index = lines.index("BEGIN BULK")
+    implicit_cbeam = lines.copy()
+    cbeam_index = next(i for i, line in enumerate(implicit_cbeam[bulk_index + 1 :], start=bulk_index + 1)
+                       if line.startswith("CBEAM"))
+    implicit_cbeam.insert(cbeam_index + 1, fixed(["", "0.1", "0.2", "0.3"]))
+    inventory(("\\n".join(implicit_cbeam) + "\\n").encode("ascii"))
+    print("positive_control=pass case=implicit_cbeam_continuation")
+
+    implicit_conm2 = lines.copy()
+    conm2_index = next(i for i, line in enumerate(implicit_conm2[bulk_index + 1 :], start=bulk_index + 1)
+                       if line.startswith("CONM2"))
+    implicit_conm2.insert(conm2_index + 1, fixed(["", "1.", "2.", "3."]))
+    inventory(("\\n".join(implicit_conm2) + "\\n").encode("ascii"))
+    print("positive_control=pass case=implicit_conm2_continuation")
+
+    orphan_implicit = lines.copy()
+    orphan_implicit.insert(bulk_index + 1, fixed(["", "1.", "2."]))
+    expect_rejected("orphan_implicit_continuation",
+                    lambda: inventory(("\\n".join(orphan_implicit) + "\\n").encode("ascii")))
+
+    blank_spc_value = lines.copy()
+    spc_index = next(i for i, line in enumerate(blank_spc_value[bulk_index + 1 :], start=bulk_index + 1)
+                     if line.startswith("SPC"))
+    blank_spc_value[spc_index] = fixed(["SPC", "1", "1", "123456", ""])
+    inventory(("\\n".join(blank_spc_value) + "\\n").encode("ascii"))
+    print("positive_control=pass case=blank_spc_enforced_value")
 
     wrong_continuation = lines.copy()
     index = next(i for i, line in enumerate(wrong_continuation) if line.startswith("+A"))
