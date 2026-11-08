@@ -204,8 +204,7 @@
         "properties": {
           "ifc_global_id": {
             "type": "string",
-            "minLength": 1,
-            "maxLength": 64
+            "pattern": "^[0-3][0-9A-Za-z_$]{21}$"
           },
           "element_graph_id": {
             "type": "string",
