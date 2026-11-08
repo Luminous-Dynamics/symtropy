@@ -1512,8 +1512,8 @@ mod tests {
     #[test]
     fn rejects_duplicate_candidate_artifact_paths() {
         let mut value = fixture_value();
-        value["scenes"][0]["candidate_inputs"][1]["relative_path"] =
-            value["scenes"][0]["candidate_inputs"][0]["relative_path"].clone();
+        let input_path = value["scenes"][0]["candidate_inputs"][0]["relative_path"].clone();
+        value["scenes"][0]["candidate_inputs"][1]["relative_path"] = input_path;
         let (candidate, evaluator) = synthetic_data_roots();
         let error = super::verify_manifest_artifact_files(
             value.to_string().as_bytes(),
