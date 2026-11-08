@@ -149,6 +149,19 @@ pub fn gram_weighted_log10_resolvent(
         .cholesky()
         .ok_or(NormError::GramNotPositiveDefinite)?;
     let lower = decomposition.l().clone();
+    // Cholesky over complex scalars can represent a negative real pivot as
+    // an imaginary square root. A Hermitian positive-definite Gram factor
+    // must have strictly positive real diagonal pivots.
+    for i in 0..n {
+        let pivot = lower[(i, i)];
+        if !pivot.re.is_finite()
+            || !pivot.im.is_finite()
+            || pivot.re <= 0.0
+            || pivot.im.abs() > 64.0 * f64::EPSILON * pivot.norm().max(f64::MIN_POSITIVE)
+        {
+            return Err(NormError::GramNotPositiveDefinite);
+        }
+    }
     let q = lower.adjoint();
     let q_inverse = q
         .clone()
@@ -361,7 +374,6 @@ mod tests {
         let gram = DMatrix::<Complex64>::identity(2, 2);
         let epsilons = [1.0e-2_f64, 1.0e-4, 1.0e-6, 1.0e-8];
         let mut radii = Vec::new();
-        let mut singular_values = Vec::new();
 
         for epsilon in epsilons {
             let radius = epsilon.sqrt();
@@ -373,13 +385,12 @@ mod tests {
             )
             .unwrap();
             radii.push(radius);
-            singular_values.push(report.sigma_min_shifted);
             assert!((report.sigma_min_shifted / epsilon - 1.0).abs() < 0.02);
         }
 
         let log_radius_span = radii[3].ln() - radii[0].ln();
-        let log_singular_span = singular_values[3].ln() - singular_values[0].ln();
-        let slope = log_radius_span / log_singular_span;
+        let log_epsilon_span = epsilons[3].ln() - epsilons[0].ln();
+        let slope = log_radius_span / log_epsilon_span;
         assert!((slope - 0.5).abs() < 0.005);
     }
 
