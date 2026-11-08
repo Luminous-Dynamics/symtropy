@@ -557,6 +557,7 @@ mod tests {
         let result = evaluate_directed_accuracy_curve(
             AccuracyDirection::CandidateToReference,
             AccuracySamplePopulation::SourceSurfaceSamples,
+            CorrespondencePolicy::OrthogonalProjectionInsideTriangle,
             &samples,
             &[plane(0.0, true)],
             &[0.02, 0.10, 0.25],
@@ -579,6 +580,7 @@ mod tests {
         let result = evaluate_directed_accuracy_curve(
             AccuracyDirection::CandidateToReference,
             AccuracySamplePopulation::SourceSurfaceVertices,
+            CorrespondencePolicy::OrthogonalProjectionInsideTriangle,
             &samples,
             &[plane(0.0, true)],
             &[0.10],
@@ -594,6 +596,7 @@ mod tests {
         let result = evaluate_directed_accuracy_curve(
             AccuracyDirection::CandidateToReference,
             AccuracySamplePopulation::SourceSurfaceVertices,
+            CorrespondencePolicy::OrthogonalProjectionInsideTriangle,
             &samples,
             &[plane(0.0, true), plane(0.02, true)],
             &[0.1],
@@ -608,6 +611,7 @@ mod tests {
         let error = evaluate_directed_accuracy_curve(
             AccuracyDirection::ReferenceToCandidate,
             AccuracySamplePopulation::SourceSurfaceVertices,
+            CorrespondencePolicy::OrthogonalProjectionInsideTriangle,
             &samples,
             &[plane(0.0, true)],
             &[0.1],
@@ -622,6 +626,7 @@ mod tests {
         let invalid = evaluate_directed_accuracy_curve(
             AccuracyDirection::CandidateToReference,
             AccuracySamplePopulation::SourceSurfaceVertices,
+            CorrespondencePolicy::OrthogonalProjectionInsideTriangle,
             &samples,
             &[plane(0.0, true)],
             &[0.1, 0.1],
@@ -632,6 +637,7 @@ mod tests {
         let non_positive = evaluate_directed_accuracy_curve(
             AccuracyDirection::CandidateToReference,
             AccuracySamplePopulation::SourceSurfaceVertices,
+            CorrespondencePolicy::OrthogonalProjectionInsideTriangle,
             &samples,
             &[plane(0.0, true)],
             &[0.0],
@@ -652,6 +658,7 @@ mod tests {
         let error = evaluate_directed_accuracy_curve(
             AccuracyDirection::CandidateToReference,
             AccuracySamplePopulation::SourceSurfaceVertices,
+            CorrespondencePolicy::OrthogonalProjectionInsideTriangle,
             &sample,
             &[degenerate],
             &[0.1],
@@ -678,6 +685,7 @@ mod tests {
         let result = evaluate_directed_accuracy_curve(
             AccuracyDirection::CandidateToReference,
             AccuracySamplePopulation::SourceSurfaceVertices,
+            CorrespondencePolicy::OrthogonalProjectionInsideTriangle,
             &samples,
             &[plane(0.0, true)],
             &[0.1],
@@ -687,6 +695,10 @@ mod tests {
         assert_eq!(
             result.sample_population,
             AccuracySamplePopulation::SourceSurfaceVertices
+        );
+        assert_eq!(
+            result.correspondence_policy,
+            CorrespondencePolicy::OrthogonalProjectionInsideTriangle
         );
     }
 }
