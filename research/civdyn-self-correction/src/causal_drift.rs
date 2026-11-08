@@ -105,8 +105,40 @@ fn event(
 /// declared treatment effect exactly. This makes the control deterministic
 /// and known-answer; it does not model sampling noise or prove real-world
 /// identification assumptions.
-fn observational_association(causal_effect: f64) -> f64 {
-    causal_effect + CONFOUNDER_ASSOCIATION_BIAS
+fn potential_outcome(
+    regime: CausalRegime,
+    one_based_tick: usize,
+    treatment: bool,
+    confounder: f64,
+) -> f64 {
+    // A deterministic structural equation with an explicit common cause.
+    // The controller only receives observed outcomes and the probe estimate;
+    // it does not receive the regime label or this function's causal effect.
+    let treatment_value = if treatment { 1.0 } else { 0.0 };
+    10.0 + confounder + regime.causal_effect(one_based_tick) * treatment_value
+}
+
+fn observational_association(regime: CausalRegime, one_based_tick: usize) -> f64 {
+    // The treated observational group has a +5 confounder imbalance.
+    // This leaves its association positive after the causal effect reverses.
+    potential_outcome(regime, one_based_tick, true, CONFOUNDER_ASSOCIATION_BIAS)
+        - potential_outcome(regime, one_based_tick, false, 0.0)
+}
+
+fn matched_randomized_probe_estimate(
+    regime: CausalRegime,
+    one_based_tick: usize,
+) -> f64 {
+    // Treatment is balanced within each confounder-matched pair. The estimator
+    // is computed from synthetic observed outcomes, not by reading the hidden
+    // regime coefficient directly. There is deliberately no sampling noise
+    // in this first known-answer control.
+    const MATCHED_CONFOUNDER_VALUES: [f64; 5] = [-2.0, -1.0, 0.0, 1.0, 2.0];
+    let paired_differences = MATCHED_CONFOUNDER_VALUES.map(|confounder| {
+        potential_outcome(regime, one_based_tick, true, confounder)
+            - potential_outcome(regime, one_based_tick, false, confounder)
+    });
+    paired_differences.iter().sum::<f64>() / paired_differences.len() as f64
 }
 
 fn oracle_utility(regime: CausalRegime) -> f64 {
@@ -192,7 +224,7 @@ pub fn run_causal_drift_scenario(
 
     for tick in 1..=CAUSAL_DRIFT_TICKS {
         let true_effect = regime.causal_effect(tick);
-        let observed_association = observational_association(true_effect);
+        let observed_association = observational_association(regime, tick);
         final_true_causal_effect = true_effect;
         final_observational_association = observed_association;
 
@@ -223,9 +255,10 @@ pub fn run_causal_drift_scenario(
                 if policy_enabled && tick % MATCHED_PROBE_INTERVAL_TICKS == 0 {
                     diagnostic_probe_count += 1;
                     diagnostic_probe_cost += DIAGNOSTIC_PROBE_COST;
-                    last_matched_probe_estimate = Some(true_effect);
-                    if true_effect <= ACTION_COST && diagnosis.is_none() {
-                        let identified = if true_effect < 0.0 {
+                    let probe_estimate = matched_randomized_probe_estimate(regime, tick);
+                    last_matched_probe_estimate = Some(probe_estimate);
+                    if probe_estimate <= ACTION_COST && diagnosis.is_none() {
+                        let identified = if probe_estimate < 0.0 {
                             CausalDiagnosis::CausalSignReversal
                         } else {
                             CausalDiagnosis::NullEffectWithConfounding
@@ -348,6 +381,7 @@ mod tests {
         assert_eq!(outcome.active_after_nonpositive_effect_ticks, 0);
         assert!(outcome.trace.is_empty());
         assert!(!outcome.trace_valid);
+        assert_eq!(outcome.last_matched_probe_estimate, Some(2.0));
     }
 
     #[test]
