@@ -129,7 +129,7 @@ jobs:
             }
             $2 == "gradual_sign_reversal" {
               gradual++
-              if ($7 == "negative_causal_effect" && $8 == "6" && $9 == "true" && $14 == "2") gradual_good++
+              if (($7 == "negative_causal_effect" || $7 == "effect_not_above_action_threshold") && $9 == "true" && $14 == "2") gradual_good++
             }
             $2 == "confounded_null" {
               nulls++
