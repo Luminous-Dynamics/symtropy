@@ -46,6 +46,15 @@ pub struct PaperRunAttestation {
     pub study_id: String,
     pub study_config_blob_sha: String,
     pub evaluator_blob_sha: String,
+    pub baseline_runner_blob_sha: String,
+    pub generation_runner_blob_sha: String,
+    pub generation_pipeline_blob_sha: String,
+    pub evaluator_runner_blob_sha: String,
+    pub stats_lib_blob_sha: String,
+    /// Operator attestation that the pinned analysis implementation was not
+    /// substituted. The source blob checks below validate the declaration;
+    /// this boolean alone is not execution proof.
+    pub analysis_protocol_preserved: bool,
     pub run_id: String,
     pub model_id: String,
     pub prompt_preset: String,
@@ -198,6 +207,17 @@ fn parse_json(bytes: &[u8], filename: &str) -> Result<Value, PaperImportError> {
         .map_err(|error| PaperImportError::new(format!("{filename}: invalid JSON: {error}")))
 }
 
+fn expected_execution_source_sha(path: &str) -> Result<String, PaperImportError> {
+    let profile = parse_json(
+        include_bytes!("../foundational_12_profile.json"),
+        "foundational_12_profile.json",
+    )?;
+    let sources = profile
+        .get("execution_sources")
+        .ok_or_else(|| PaperImportError::new("paper profile is missing execution_sources"))?;
+    Ok(json_string(sources, path)?.to_string())
+}
+
 fn parse_independent_unit(value: &str) -> Result<IndependentUnit, PaperImportError> {
     match value {
         "participant" => Ok(IndependentUnit::Participant),
@@ -242,6 +262,15 @@ fn parse_attestation(bytes: &[u8]) -> Result<PaperRunAttestation, PaperImportErr
         study_id: json_string(&json, "study_id")?.to_string(),
         study_config_blob_sha: json_string(&json, "study_config_blob_sha")?.to_string(),
         evaluator_blob_sha: json_string(&json, "evaluator_blob_sha")?.to_string(),
+        baseline_runner_blob_sha: json_string(&json, "baseline_runner_blob_sha")?.to_string(),
+        generation_runner_blob_sha: json_string(&json, "generation_runner_blob_sha")?.to_string(),
+        generation_pipeline_blob_sha: json_string(&json, "generation_pipeline_blob_sha")?.to_string(),
+        evaluator_runner_blob_sha: json_string(&json, "evaluator_runner_blob_sha")?.to_string(),
+        stats_lib_blob_sha: json_string(&json, "stats_lib_blob_sha")?.to_string(),
+        analysis_protocol_preserved: json
+            .get("analysis_protocol_preserved")
+            .and_then(Value::as_bool)
+            .ok_or_else(|| PaperImportError::new("missing or invalid boolean field: analysis_protocol_preserved"))?,
         run_id: json_string(&json, "run_id")?.to_string(),
         model_id: json_string(&json, "model_id")?.to_string(),
         prompt_preset: json_string(&json, "prompt_preset")?.to_string(),
@@ -274,6 +303,11 @@ fn validate_attestation(attestation: &PaperRunAttestation) -> Result<String, Pap
             "prompt_template_sha256 must be a 64-character lowercase SHA-256",
         ));
     }
+    if !attestation.analysis_protocol_preserved {
+        return Err(PaperImportError::new(
+            "run attestation must explicitly declare analysis_protocol_preserved=true",
+        ));
+    }
     let (pin, _) = execution_pin(&attestation.study_id)?;
     if attestation.study_config_blob_sha != pin.config_blob_sha
         || attestation.evaluator_blob_sha != pin.evaluator_blob_sha
@@ -282,6 +316,42 @@ fn validate_attestation(attestation: &PaperRunAttestation) -> Result<String, Pap
             "{}: study config/evaluator blob identities do not match the pinned paper source",
             attestation.study_id
         )));
+    }
+
+    for (field, path, actual) in [
+        (
+            "baseline_runner_blob_sha",
+            "scripts/run_baseline_pipeline.py",
+            &attestation.baseline_runner_blob_sha,
+        ),
+        (
+            "generation_runner_blob_sha",
+            "generation_pipeline/run.py",
+            &attestation.generation_runner_blob_sha,
+        ),
+        (
+            "generation_pipeline_blob_sha",
+            "generation_pipeline/pipeline.py",
+            &attestation.generation_pipeline_blob_sha,
+        ),
+        (
+            "evaluator_runner_blob_sha",
+            "src/evaluation/evaluator_runner.py",
+            &attestation.evaluator_runner_blob_sha,
+        ),
+        (
+            "stats_lib_blob_sha",
+            "src/evaluation/stats_lib.py",
+            &attestation.stats_lib_blob_sha,
+        ),
+    ] {
+        let expected = expected_execution_source_sha(path)?;
+        if actual != &expected {
+            return Err(PaperImportError::new(format!(
+                "{}: {field} does not match the pinned execution source {path}",
+                attestation.study_id
+            )));
+        }
     }
     Ok(attestation.study_id.clone())
 }
@@ -651,9 +721,9 @@ pub fn import_paper_study_run(run_directory: &Path) -> Result<PaperStudyImport, 
         analysis_pipeline_sha256,
         agent_config_sha256,
         prompt_template_sha256: attestation.prompt_template_sha256.clone(),
-        // This is an operator attestation bound to exact pinned source identities,
-        // not independent proof that the upstream process was executed correctly.
-        analysis_protocol_preserved: execution_pin.study_id == study_id,
+        // The sidecar and pinned source hashes document the operator's
+        // execution claim. They are not independent proof of process execution.
+        analysis_protocol_preserved: attestation.analysis_protocol_preserved,
         official_pas: Some(official_pas),
         official_ecs: ecs,
         effects: extract_effects(test_results),
@@ -832,6 +902,21 @@ mod tests {
             .iter()
             .find(|pin| pin.study_id == study_id)
             .expect("paper source pin");
+        let baseline_runner_blob_sha =
+            expected_execution_source_sha("scripts/run_baseline_pipeline.py")
+                .expect("baseline runner source pin");
+        let generation_runner_blob_sha =
+            expected_execution_source_sha("generation_pipeline/run.py")
+                .expect("generation runner source pin");
+        let generation_pipeline_blob_sha =
+            expected_execution_source_sha("generation_pipeline/pipeline.py")
+                .expect("generation pipeline source pin");
+        let evaluator_runner_blob_sha =
+            expected_execution_source_sha("src/evaluation/evaluator_runner.py")
+                .expect("evaluator runner source pin");
+        let stats_lib_blob_sha =
+            expected_execution_source_sha("src/evaluation/stats_lib.py")
+                .expect("statistics implementation source pin");
         json!({
             "protocol_id": PAPER_12_PROTOCOL_ID,
             "source_repository": PAPER_12_SOURCE_REPOSITORY,
@@ -839,6 +924,12 @@ mod tests {
             "study_id": study_id,
             "study_config_blob_sha": pin.config_blob_sha,
             "evaluator_blob_sha": pin.evaluator_blob_sha,
+            "baseline_runner_blob_sha": baseline_runner_blob_sha,
+            "generation_runner_blob_sha": generation_runner_blob_sha,
+            "generation_pipeline_blob_sha": generation_pipeline_blob_sha,
+            "evaluator_runner_blob_sha": evaluator_runner_blob_sha,
+            "stats_lib_blob_sha": stats_lib_blob_sha,
+            "analysis_protocol_preserved": true,
             "run_id": "synthetic-paper-run-001",
             "model_id": "synthetic-model-not-a-real-run",
             "prompt_preset": "v3_human_plus_demo",
@@ -964,24 +1055,28 @@ mod tests {
     fn mismatched_source_commit_fails_closed() {
         let path = temp_run_dir();
         write_fixture(&path, "study_001", true);
-        let att = json!({
-            "protocol_id": PAPER_12_PROTOCOL_ID,
-            "source_repository": PAPER_12_SOURCE_REPOSITORY,
-            "source_commit": "0".repeat(40),
-            "study_id": "study_001",
-            "study_config_blob_sha": PAPER_STUDY_EXECUTION_PINS[0].config_blob_sha,
-            "evaluator_blob_sha": PAPER_STUDY_EXECUTION_PINS[0].evaluator_blob_sha,
-            "run_id": "synthetic-paper-run-001",
-            "model_id": "synthetic-model-not-a-real-run",
-            "prompt_preset": "v3_human_plus_demo",
-            "prompt_template_sha256": "d".repeat(64),
-            "independent_unit": "participant"
-        });
+        let mut att = attestation("study_001");
+        att["source_commit"] = json!("0".repeat(40));
         fs::write(
             path.join(ATTESTATION_FILE),
             serde_json::to_vec(&att).unwrap(),
         )
         .unwrap();
+        assert!(import_paper_study_run(&path).is_err());
+        fs::remove_dir_all(path).expect("remove temp directory");
+    }
+
+    #[test]
+    fn mismatched_global_runner_source_fails_closed() {
+        let path = temp_run_dir();
+        write_fixture(&path, "study_001", true);
+        let mut att = attestation("study_001");
+        att["generation_pipeline_blob_sha"] = json!("0".repeat(40));
+        fs::write(
+            path.join(ATTESTATION_FILE),
+            serde_json::to_vec(&att).expect("serialize invalid runner attestation"),
+        )
+        .expect("write invalid runner attestation");
         assert!(import_paper_study_run(&path).is_err());
         fs::remove_dir_all(path).expect("remove temp directory");
     }
