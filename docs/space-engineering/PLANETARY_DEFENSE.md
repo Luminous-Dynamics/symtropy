@@ -29,7 +29,7 @@ This programme should build on established public systems and flight evidence ra
 
 - DART struck Dimorphos on 2022-09-26. The observed mutual-orbit period change was approximately −33.0 ± 1.0 minutes (3σ); published analysis inferred an along-track velocity change of 2.70 ± 0.10 mm/s (1σ). These are historical benchmark measurements.
 - DART did not establish a universal momentum-transfer coefficient. The response depends on target mass, density, porosity, cohesion, shape, spin, impact geometry and ejecta physics; uncertainty in target mass materially affects inferred parameters.
-- ESA's Hera spacecraft arrived at the Didymos–Dimorphos system on 2026-11-04 (JST). JAXA reported first thermal imaging of the binary asteroid system on 2026-11-06. As of this baseline date (2026-11-08), Hera is in its Early Characterization Phase: simultaneous imaging and measurements are intended to constrain mass, shape, orbital dynamics and rotation. The mission plan lists Detailed Characterization beginning 2026-12-02, CubeSat deployment in January 2027, and dedicated close observation of the DART impact crater beginning in February 2027. A 2026-11-25 arrival/science event is expected, but do not treat planned data releases or first thermal images as final parameter estimates. No post-impact mass, internal-structure or crater-physics result is claimed here.
+- ESA's Hera spacecraft arrived at the Didymos–Dimorphos system on 2026-11-04 (JST) and entered its Early Characterization Phase. JAXA's 2026-11-06 TIRI release reports thermal images acquired on 2026-10-28/29 and 2026-10-31; the 2026-10-31 frame was taken from 57 km before arrival. The release date is not the observation date. JAXA states that Didymos surface-temperature analysis is still underway; thermal time series may later constrain thermal inertia and surface physical state, but no calibrated derived estimate is asserted here. The mission plan schedules Detailed Characterization from 2026-12-02, CubeSat deployment from 2027-01-13, close observation of the DART crater from 2027-02-03, and a closer experimental phase from 2027-04-28. The ESA/Hera arrival event is expected on 2026-11-25. Do not treat pre-arrival thermal images or early visible-light imagery as final mass, internal-structure or crater-physics results.
 
 ### Impact-monitoring algorithm baseline
 
@@ -367,8 +367,9 @@ A queued test is not a pass. A model result without source and configuration is 
 - Thomas et al., “Orbital period change of Dimorphos due to the DART kinetic impact,” Nature (2023): https://www.nature.com/articles/s41586-023-05805-2
 - Cheng et al., “Momentum transfer from the DART mission kinetic impact on asteroid Dimorphos,” Nature (2023): https://www.nature.com/articles/s41586-023-05878-z
 - ESA Hera mission: https://www.esa.int/Space_Safety/Hera
-- JAXA/Hera-Japan first thermal imaging report (2026-11-06) and arrival confirmation (2026-11-04 JST): https://hera.isas.jaxa.jp/wp-hera/en/date/2026/11/
-- Hera observation/operations plan (2026-11-02): https://hera.isas.jaxa.jp/wp-hera/en/4827/
+- JAXA/ISAS TIRI initial thermal images (released 2026-11-06; includes 2026-10-28/29 and 2026-10-31 acquisition timestamps): https://www.isas.jaxa.jp/topics/004428.html
+- JAXA/Hera-Japan November 2026 mission updates and arrival confirmation (2026-11-04 JST): https://hera.isas.jaxa.jp/wp-hera/en/date/2026/11/
+- Hera observation/operations plan (2026-11-02; ECP, DCP, CubeSat, crater close-observation and experimental phase schedule): https://hera.isas.jaxa.jp/wp-hera/en/4827/
 - ESA first separate resolution of Didymos and Dimorphos (2026-10-27): https://www.esa.int/Space_Safety/Hera/First_light_Hera_resolves_two_asteroids_instead_of_one
 
 ### Data-exchange and evidence standards
