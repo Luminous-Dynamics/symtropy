@@ -22,7 +22,10 @@
           "design_revision": "D1",
           "bom_digest": "bom-1",
           "as_built_revision": "A1",
-          "evidence_state": "current"
+          "evidence_state": "current",
+          "component_ids": [
+            "trim-01"
+          ]
         },
         "connection": {
           "connection_id": "conn-01",
@@ -107,7 +110,10 @@
           "design_revision": "D1",
           "bom_digest": "bom-1",
           "as_built_revision": "A1",
-          "evidence_state": "current"
+          "evidence_state": "current",
+          "component_ids": [
+            "trim-01"
+          ]
         },
         "connection": {
           "connection_id": "conn-01",
@@ -194,7 +200,10 @@
           "design_revision": "D1",
           "bom_digest": "bom-1",
           "as_built_revision": "A1",
-          "evidence_state": "current"
+          "evidence_state": "current",
+          "component_ids": [
+            "trim-01"
+          ]
         },
         "connection": {
           "connection_id": "conn-01",
@@ -281,7 +290,10 @@
           "design_revision": "D1",
           "bom_digest": "bom-1",
           "as_built_revision": "A1",
-          "evidence_state": "current"
+          "evidence_state": "current",
+          "component_ids": [
+            "trim-01"
+          ]
         },
         "connection": {
           "connection_id": "conn-01",
@@ -369,7 +381,10 @@
           "design_revision": "D1",
           "bom_digest": "bom-1",
           "as_built_revision": "A1",
-          "evidence_state": "current"
+          "evidence_state": "current",
+          "component_ids": [
+            "trim-01"
+          ]
         },
         "connection": {
           "connection_id": "conn-01",
@@ -455,7 +470,10 @@
           "design_revision": "D1",
           "bom_digest": "bom-1",
           "as_built_revision": "A1",
-          "evidence_state": "current"
+          "evidence_state": "current",
+          "component_ids": [
+            "trim-01"
+          ]
         },
         "connection": {
           "connection_id": "conn-01",
@@ -542,7 +560,10 @@
           "design_revision": "D1",
           "bom_digest": "bom-1",
           "as_built_revision": "A1",
-          "evidence_state": "current"
+          "evidence_state": "current",
+          "component_ids": [
+            "trim-01"
+          ]
         },
         "connection": {
           "connection_id": "conn-01",
@@ -630,7 +651,10 @@
           "design_revision": "D1",
           "bom_digest": "bom-1",
           "as_built_revision": "A1",
-          "evidence_state": "current"
+          "evidence_state": "current",
+          "component_ids": [
+            "trim-01"
+          ]
         },
         "connection": {
           "connection_id": "conn-01",
@@ -717,7 +741,10 @@
           "design_revision": "D1",
           "bom_digest": "bom-1",
           "as_built_revision": "A1",
-          "evidence_state": "current"
+          "evidence_state": "current",
+          "component_ids": [
+            "trim-01"
+          ]
         },
         "connection": {
           "connection_id": "conn-01",
@@ -804,7 +831,10 @@
           "design_revision": "D1",
           "bom_digest": "bom-1",
           "as_built_revision": "A1",
-          "evidence_state": "current"
+          "evidence_state": "current",
+          "component_ids": [
+            "trim-01"
+          ]
         },
         "connection": {
           "connection_id": "conn-01",
@@ -891,7 +921,10 @@
           "design_revision": "D1",
           "bom_digest": "bom-1",
           "as_built_revision": "A1",
-          "evidence_state": "current"
+          "evidence_state": "current",
+          "component_ids": [
+            "trim-01"
+          ]
         },
         "connection": {
           "connection_id": "conn-01",
@@ -958,12 +991,14 @@
       "expected": {
         "case_id": "PD-011",
         "disposition": "Evaluated",
-        "reason_codes": [],
-        "removal": "Feasible",
-        "component": "ReusableCandidate",
-        "reassembly": "Accepted",
+        "reason_codes": [
+          "COMPONENT_ID_NOT_IN_RELEASED_BOM"
+        ],
+        "removal": "NotComparable",
+        "component": "NotEvaluated",
+        "reassembly": "NotEvaluated",
         "shared_resource": "Feasible",
-        "final_state": "AcceptedReusableAssembly"
+        "final_state": "NotComparable"
       }
     },
     {
@@ -976,7 +1011,10 @@
           "design_revision": "D1",
           "bom_digest": "bom-1",
           "as_built_revision": "A1",
-          "evidence_state": "stale"
+          "evidence_state": "stale",
+          "component_ids": [
+            "trim-01"
+          ]
         },
         "connection": {
           "connection_id": "conn-01",
@@ -1063,7 +1101,10 @@
           "design_revision": "D1",
           "bom_digest": "bom-1",
           "as_built_revision": "A1",
-          "evidence_state": "current"
+          "evidence_state": "current",
+          "component_ids": [
+            "trim-01"
+          ]
         },
         "connection": {
           "connection_id": "conn-01",
@@ -1150,7 +1191,10 @@
           "design_revision": "D1",
           "bom_digest": "bom-1",
           "as_built_revision": "A1",
-          "evidence_state": "current"
+          "evidence_state": "current",
+          "component_ids": [
+            "trim-01"
+          ]
         },
         "connection": {
           "connection_id": "conn-01",
@@ -1237,7 +1281,10 @@
           "design_revision": "D1",
           "bom_digest": "bom-1",
           "as_built_revision": "A1",
-          "evidence_state": "current"
+          "evidence_state": "current",
+          "component_ids": [
+            "trim-01"
+          ]
         },
         "connection": {
           "connection_id": "conn-01",
@@ -1324,7 +1371,10 @@
           "design_revision": "D1",
           "bom_digest": "bom-1",
           "as_built_revision": "A1",
-          "evidence_state": "current"
+          "evidence_state": "current",
+          "component_ids": [
+            "trim-01"
+          ]
         },
         "connection": {
           "connection_id": "conn-01",
@@ -1411,7 +1461,10 @@
           "design_revision": "D1",
           "bom_digest": "bom-1",
           "as_built_revision": "A1",
-          "evidence_state": "current"
+          "evidence_state": "current",
+          "component_ids": [
+            "trim-01"
+          ]
         },
         "connection": {
           "connection_id": "conn-01",
@@ -1498,7 +1551,10 @@
           "design_revision": "D1",
           "bom_digest": "bom-1",
           "as_built_revision": "A1",
-          "evidence_state": "current"
+          "evidence_state": "current",
+          "component_ids": [
+            "trim-01"
+          ]
         },
         "connection": {
           "connection_id": "conn-01",
@@ -1585,7 +1641,10 @@
           "design_revision": "D1",
           "bom_digest": "bom-1",
           "as_built_revision": "A1",
-          "evidence_state": "current"
+          "evidence_state": "current",
+          "component_ids": [
+            "trim-01"
+          ]
         },
         "connection": {
           "connection_id": "conn-01",
@@ -1670,7 +1729,10 @@
           "design_revision": "D1",
           "bom_digest": "bom-1",
           "as_built_revision": "A1",
-          "evidence_state": "current"
+          "evidence_state": "current",
+          "component_ids": [
+            "trim-01"
+          ]
         },
         "connection": {
           "connection_id": "conn-01",
@@ -1757,7 +1819,10 @@
           "design_revision": "D1",
           "bom_digest": "bom-1",
           "as_built_revision": "A1",
-          "evidence_state": "current"
+          "evidence_state": "current",
+          "component_ids": [
+            "trim-01"
+          ]
         },
         "connection": {
           "connection_id": "conn-01",
@@ -1844,7 +1909,10 @@
           "design_revision": "D1",
           "bom_digest": "bom-1",
           "as_built_revision": "A1",
-          "evidence_state": "current"
+          "evidence_state": "current",
+          "component_ids": [
+            "trim-01"
+          ]
         },
         "connection": {
           "connection_id": "conn-01",
@@ -1931,7 +1999,10 @@
           "design_revision": "D1",
           "bom_digest": "bom-1",
           "as_built_revision": "A1",
-          "evidence_state": "current"
+          "evidence_state": "current",
+          "component_ids": [
+            "trim-01"
+          ]
         },
         "connection": {
           "connection_id": "conn-01",
@@ -2020,7 +2091,10 @@
           "design_revision": "D1",
           "bom_digest": "bom-1",
           "as_built_revision": "A1",
-          "evidence_state": "current"
+          "evidence_state": "current",
+          "component_ids": [
+            "trim-01"
+          ]
         },
         "connection": {
           "connection_id": "conn-01",
