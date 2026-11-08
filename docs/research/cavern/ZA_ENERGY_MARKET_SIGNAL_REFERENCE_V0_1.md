@@ -13,6 +13,8 @@ https://joburg.org.za/documents_/Documents/2026-27-Final-Medium-Budget-Reports/2
 
 The tariff is not universally available. The budget states that it applies to qualifying large consumers with supply capacity exceeding 100 kVA, on application and subject to City Power approval. It is intended for consumers able to reduce peak/standard demand and shift load. The actual site's distributor, supply capacity, voltage and approved tariff must be verified from its account and contract.
 
+**Eligibility-source conflict (8 November 2026):** the City budget's clause 5.4.3 (printed p.97) says new Business TOU consumers must have supply capacity **exceeding 100 kVA**, on application and subject to qualification/approval. A current engineering-provider schedule, updated 31 August 2026, describes the LPU TOU tariff as using the same LV LPU qualification band as the demand tariff (**70–1,000 kVA at 400 V**) and separate MV criteria (800 kVA and above), on application and approval: https://www.focalenergy.co.za/knowledge/city-power-tariffs-johannesburg. This is a secondary interpretation of the approved schedule and conflicts with the budget's printed clause. It may reflect a later/approved tariff-book rule, a category interpretation, or a difference between supply-capacity and demand criteria; the available sources do not resolve it. Therefore the profile retains the strict >100 kVA budget rule as the automated admission gate, but 70–100 kVA accounts must be marked **SOURCE_CONFLICT / NEEDS_ACCOUNT_CONFIRMATION**, not treated as universally ineligible or eligible. The customer's approved tariff/account statement and City Power confirmation take precedence.
+
 ### Published energy charge schedule
 
 | Season | Peak | Standard | Off-peak |
