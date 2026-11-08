@@ -1359,9 +1359,9 @@ mod tests {
         let summary =
             super::verify_manifest_artifact_files(FIXTURE.as_bytes(), &candidate, &evaluator)
                 .expect("synthetic artifact bytes should match the declared hashes");
-        assert_eq!(summary.candidate_verified, 9);
+        assert_eq!(summary.candidate_verified, 11);
         assert_eq!(summary.candidate_runtime_verified, 3);
-        assert_eq!(summary.candidate_input_verified, 2);
+        assert_eq!(summary.candidate_input_verified, 4);
         assert_eq!(summary.candidate_output_verified, 4);
         assert_eq!(summary.evaluator_verified, 2);
     }
@@ -1492,6 +1492,39 @@ mod tests {
     }
 
     #[test]
+    fn rejects_scene_without_declared_registration_transform() {
+        let mut value = fixture_value();
+        value["scenes"][0]["coordinate_frame"]["transform_artifact_id"] =
+            serde_json::json!("MISSING-TRANSFORM");
+        let error = audit(&value).expect_err("frame must bind registration evidence");
+        assert!(error.contains("transform_artifact_id must reference a registration_metadata"));
+    }
+
+    #[test]
+    fn reports_millimetre_to_metre_conversion_factor() {
+        let mut value = fixture_value();
+        value["scenes"][0]["coordinate_frame"]["linear_unit"] =
+            serde_json::json!("millimetre");
+        let report = audit(&value).expect("millimetre frame is supported explicitly");
+        assert_eq!(report.scenes[0].linear_unit_to_metre_factor, 0.001);
+    }
+
+    #[test]
+    fn rejects_duplicate_candidate_artifact_paths() {
+        let mut value = fixture_value();
+        value["scenes"][0]["candidate_inputs"][1]["relative_path"] =
+            value["scenes"][0]["candidate_inputs"][0]["relative_path"].clone();
+        let (candidate, evaluator) = synthetic_data_roots();
+        let error = super::verify_manifest_artifact_files(
+            value.to_string().as_bytes(),
+            &candidate,
+            &evaluator,
+        )
+        .expect_err("candidate artifact paths must be unambiguous");
+        assert!(error.contains("duplicate candidate relative_path"));
+    }
+
+    #[test]
     fn rejects_unknown_coordinate_units() {
         let mut value = fixture_value();
         value["scenes"][0]["coordinate_frame"]["linear_unit"] =
@@ -1545,7 +1578,7 @@ mod tests {
     fn accepts_synthetic_visibility_manifest() {
         let report = audit_manifest_bytes(FIXTURE.as_bytes()).expect("manifest should pass");
         assert_eq!(report.scene_count, 2);
-        assert_eq!(report.candidate_artifact_count, 9);
+        assert_eq!(report.candidate_artifact_count, 11);
         assert_eq!(report.evaluator_artifact_count, 2);
         assert_eq!(report.pipeline_id, "synthetic-scan-bim-candidate-v0.2");
         assert_eq!(report.metric_suite_version, "0.2");
