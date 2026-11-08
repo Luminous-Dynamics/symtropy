@@ -289,7 +289,7 @@ pub fn parse_and_validate_json(input:&str)->Result<ResponseManifest,ManifestErro
 #[cfg(test)]
 mod tests {
     use super::*;
-    fn d(c:char)->String{std::iter::repeat(c).take(64).collect()}
+    fn d(c:char)->String{std::iter::repeat_n(c, 64).collect()}
     fn base()->ResponseManifest{
         ResponseManifest{
             schema_version:SCHEMA_VERSION.into(),
