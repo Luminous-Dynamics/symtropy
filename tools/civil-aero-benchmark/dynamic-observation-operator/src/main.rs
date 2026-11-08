@@ -395,7 +395,7 @@ fn case3_audit(catalog: &Value) -> Result<Value, String> {
     ];
     let missing_spectral = spectral_fields
         .iter()
-        .filter(|field| spectral.get(**field).is_none_or(Value::is_null))
+        .filter(|field| spectral.get(*field).is_none_or(Value::is_null))
         .map(|field| (*field).to_owned())
         .collect::<Vec<_>>();
 
