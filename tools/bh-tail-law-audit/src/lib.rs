@@ -29,7 +29,10 @@ pub struct SpinWeightedMode {
 
 impl SpinWeightedMode {
     pub fn new(ell: u32, m: i32, spin_weight: i32) -> Result<Self, TailLawError> {
-        if i32::try_from(ell).is_err() || m.unsigned_abs() > ell || spin_weight.unsigned_abs() > ell {
+        let invalid_mode = i32::try_from(ell).is_err()
+            || m.unsigned_abs() > ell
+            || spin_weight.unsigned_abs() > ell;
+        if invalid_mode {
             return Err(TailLawError::InvalidMode);
         }
         if spin_weight == 0 {
