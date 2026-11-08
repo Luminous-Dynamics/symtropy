@@ -12,6 +12,7 @@
       "relative_residual_tolerance": 0.0,
       "max_iterations": 100,
       "expected_status": "CONVERGED",
+      "expected_exact_acceleration_m_per_s2": 4.0,
       "expected_acceleration_m_per_s2": 4.0,
       "expected_amplification_factor": -0.5
     },
@@ -25,6 +26,7 @@
       "relative_residual_tolerance": 0.0,
       "max_iterations": 20,
       "expected_status": "NON_CONVERGED",
+      "expected_exact_acceleration_m_per_s2": 2.0,
       "expected_acceleration_m_per_s2": null,
       "expected_amplification_factor": -4.0
     },
@@ -38,6 +40,7 @@
       "relative_residual_tolerance": 0.0,
       "max_iterations": 20,
       "expected_status": "CONVERGED",
+      "expected_exact_acceleration_m_per_s2": 2.0,
       "expected_acceleration_m_per_s2": 2.0,
       "expected_amplification_factor": 0.0
     }
