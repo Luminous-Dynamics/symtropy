@@ -18,13 +18,13 @@ permissions:
   contents: read
 
 concurrency:
-  group: bh-dynamic-source-audit-\${{ github.event.pull_request.number || github.ref }}
+  group: bh-dynamic-source-audit-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
   test:
-    name: Dynamic source controls (\${{ matrix.os }})
-    runs-on: \${{ matrix.os }}
+    name: Dynamic source controls (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
