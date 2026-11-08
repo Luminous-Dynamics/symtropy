@@ -471,6 +471,74 @@
       ],
       "transferability": "Strong control-architecture comparator for spatial climate representation and uncertainty-aware MPC. Compose with crop/biomass models and independent humidity/dehumidification/HVAC measurements; do not equate out-of-sample temperature robustness with crop-harvest service or underground-cavern validation.",
       "source_scope_warning": "Source record: Elsevier publisher abstract and Politecnico di Bari institutional repository. Qualitative result only; no numeric performance target admitted."
+    },
+    {
+      "comparator_id": "DATA-DRIVEN-GRU-LSTM-GREENHOUSE-MPC-2026",
+      "title": "Data-driven greenhouse climate regulation in lettuce cultivation using BiLSTM and GRU predictive control",
+      "authors": "Soumo Emmanuel Arnaud, Marcello Calisti, Athanasios Polydoros",
+      "publication_date": "2026-06",
+      "venue": "Computers and Electronics in Agriculture, Volume 247, article 111719",
+      "doi": "10.1016/j.compag.2026.111719",
+      "source_url": "https://doi.org/10.1016/j.compag.2026.111719",
+      "evidence_class": "TRANSIENT_MODEL_SCENARIOS",
+      "system_domain": "Lettuce greenhouse climate control; data-driven LSTM/GRU prediction models embedded in MPC; not a vertical-farm or cavern field trial",
+      "method_summary": "LSTM/BiLSTM and GRU predictors for temperature, humidity, CO2 and crop dry matter embedded in MPC for heating, ventilation and CO2 injection. Training data were generated from a validated dynamic greenhouse model; predictive robustness was evaluated with 10-fold cross-validation. The learned controllers were compared with conventional MPC.",
+      "reported_metrics": [
+        {
+          "metric_id": "humidity_violations_conventional_mpc",
+          "reported_value": "54.77%",
+          "unit": "% of evaluated control horizon / conditions",
+          "basis": "Article abstract; conventional MPC reference",
+          "status": "MODEL_SCENARIO",
+          "notes": "Exact aggregation/denominator requires full methods and supplement; retain abstract-level scope."
+        },
+        {
+          "metric_id": "humidity_violations_gru_mpc",
+          "reported_value": "15.45%",
+          "unit": "% of evaluated control horizon / conditions",
+          "basis": "Article abstract; GRU-based MPC",
+          "status": "MODEL_SCENARIO",
+          "notes": "Not a field-measured vertical-farm rate."
+        },
+        {
+          "metric_id": "humidity_violations_lstm_mpc",
+          "reported_value": "17.71%",
+          "unit": "% of evaluated control horizon / conditions",
+          "basis": "Article abstract; LSTM-based MPC",
+          "status": "MODEL_SCENARIO"
+        },
+        {
+          "metric_id": "temperature_day_night_deviation",
+          "reported_value": "below 2",
+          "unit": "°C",
+          "basis": "Article abstract; day/night temperature deviations under learned MPC",
+          "status": "MODEL_SCENARIO"
+        },
+        {
+          "metric_id": "gru_computation_time_reduction_vs_lstm",
+          "reported_value": "up to 40%",
+          "unit": "% less computation time",
+          "basis": "Article abstract; real-time scenarios",
+          "status": "MODEL_SCENARIO"
+        },
+        {
+          "metric_id": "cross_validation",
+          "reported_value": "10-fold",
+          "unit": "folds",
+          "basis": "Article abstract; predictor robustness evaluation",
+          "status": "AUTHOR_REPORTED"
+        }
+      ],
+      "limitations": [
+        "The system domain is greenhouse lettuce, not multi-tier vertical farming or underground CEA.",
+        "Training data were generated from a validated dynamic model; the abstract does not establish full independent field validation of the learned MPC policies.",
+        "The abstract reports humidity-violation aggregates but the denominator, climate envelope and aggregation details require full-text admission before a direct benchmark score can be reproduced.",
+        "The study optimizes heating, ventilation and CO2 injection; it does not establish joint LED/spectrum, dehumidification, full-facility metering, demand-charge or harvest-marketability guarantees.",
+        "The abstract reports maintained crop yield and economic performance qualitatively, but gives no numerical marketable-harvest confidence bounds.",
+        "The publisher full text returned HTTP 403 during this audit; comparator admission is based on the publisher abstract."
+      ],
+      "transferability": "A learned-model controller baseline for #4065. Reproduce abstract-level humidity/temperature results only after the full metric definition is admitted. Then compare PID, conventional MPC, LSTM-MPC and GRU-MPC on identical crop and climate traces, followed by spatial multi-zone, dehumidification, independently observed biomass, actuator-latency and held-out real-facility tests.",
+      "source_scope_warning": "Publisher abstract only: source opened via search record but full-text endpoint returned HTTP 403. Results remain model-scenario/abstract-level, not measured vertical-farm performance."
     }
   ],
   "interpretation_rules": [
