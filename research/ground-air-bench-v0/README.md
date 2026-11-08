@@ -27,6 +27,10 @@ An energy opportunity is admissible only when the upstream evidence required for
 
 GroundAirBench consumes receipts from these owners. It must not infer, repair or supersede their claims.
 
+## NOT_RUN template
+
+`ground_air_episode.NOT_RUN.template.json` demonstrates a schema-shaped, empty manifest. It is intentionally non-executable: no opportunities, receivers, policies, metric lanes or upstream receipts are asserted. The semantic evaluator rejects NOT_RUN as a pass. Do not populate placeholder receipts or synthetic values merely to make a NOT_RUN record validate as an executable fixture.
+
 ## v0 contract
 
 - `ground_air_episode.schema.json` defines a closed episode manifest.
