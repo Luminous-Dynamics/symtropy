@@ -63,7 +63,7 @@ Calibration comparators:
 
 **Contact-probability calibration metrics.** The separate [#4148 / PR #4159](https://github.com/Luminous-Dynamics/symtropy/pull/4159) reference computes exact fixed-point Brier, ECE and MCE for one declared channel/target/model/domain/split stratum at a time. Report every reliability bin, including empty bins, and distinguish correlated observation count from independent session/trial count. This is a diagnostic utility, not an estimator or safety guarantee.
 
-**Action-conditioned contact information.** [LOCO-CONTACT-INFO-001 / #4004](https://github.com/Luminous-Dynamics/symtropy/issues/4004) now has a small linear-Gaussian posterior and expected-information-gain oracle in [PR #4161](https://github.com/Luminous-Dynamics/symtropy/pull/4161). It tests how different action-conditioned observation maps H(u,m) change expected information gain, preserves rank-deficient/unobservable directions, and separates expected information gain from the realized posterior update. The oracle does not certify any action's physical admissibility; the full system must apply an independent viability/safety filter before a probe is considered.
+**Action-conditioned contact information.** [LOCO-CONTACT-INFO-001 / #4004](https://github.com/Luminous-Dynamics/symtropy/issues/4004) composes with the scalar source-qualified contact-information reference [#4008](https://github.com/Luminous-Dynamics/symtropy/pull/4008) and the joint correlated Gaussian fusion reference [#4230](https://github.com/Luminous-Dynamics/symtropy/pull/4230). V0 and V1 distinguish the scalar conditional-independence path from the full cross-channel covariance path. The joint path uses a calibrated R matrix, Cholesky solves and a log-determinant EIG; it rejects asynchronously acquired samples instead of silently fusing them as simultaneous. Neither path validates sensor covariance from raw hardware data or certifies probe safety.
 
 The benchmark must therefore distinguish at least four constructs: static support margin, dynamic geometric margin, robust future physical viability, and empirical learning recoverability. None is a synonym for another.
 
@@ -73,7 +73,7 @@ The benchmark must therefore distinguish at least four constructs: static suppor
 4. **B3: learned baseline** — a declared DRL/CPG or residual-policy controller, with its training budget and observation set frozen.
 5. **S0: Symtropy finite-oracle-only** — consume a supplied finite transition graph; explicitly synthetic/abstract evidence only.
 6. **S1: Symtropy hybrid assurance** — sound interval/set-valued abstraction feeding the finite robust viability oracle.
-7. **S2: Symtropy dual-channel** — S1 plus belief/provenance and action-conditioned contact information (#4004/#4161); any probing policy must first pass an independent robust physical-admissibility filter.
+7. **S2: Symtropy dual-channel** — S1 plus belief/provenance and action-conditioned contact information (#4004/#4008/#4230); any probing policy must first pass an independent robust physical-admissibility filter.
 8. **E0: Binary Contact KF** — binary contact validity baseline.
 9. **E1: Continuous Contact KF** — continuous reliability/covariance-regulation ablation.
 10. **E2: Contact-reliability-aware neural residual KF** — Zhao et al. full baseline, including separate dynamic and observation residuals.
@@ -82,10 +82,42 @@ The benchmark must therefore distinguish at least four constructs: static suppor
 13. **E5: episode-level conformal uncertainty calibration** — finite-sample whole-unit marginal coverage under the declared exchangeability assumption and exact operating domain (#4146/#4147); not a physical safety claim.
 14. **C1: HORIZON-style learning curriculum** — reproduce its episode-length, tracking and checkpoint-preservation gate without formal physical viability certification.
 15. **S3: Symtropy dual-frontier curriculum** — empirical learning gate plus independently sourced physical viability and certificate-validity gates; hardware progression requires all gates, while out-of-envelope exploration remains simulation-only.
+16. **E6: joint correlated contact fusion** — calibrated full cross-channel R, exact channel-order manifest and synchronized multivariate update (#4017/#4230). The diagonal-R path must match the scalar reference; deliberately treating correlated channels as independent is a required overconfidence negative control.
+17. **P1: calibrated one-step chance gate** — five marginal constraints with explicit Bonferroni alpha, independent session/episode tail validation and abstention on underpowered or out-of-domain calibration (#4010/#4231). The EIG ranking is applied only after every constraint passes.
+18. **P2: finite-horizon risk ledger** — immutable allocation over all 5H events, action admission/consumption receipts, and non-recyclable skipped/unknown allocations (#4232/#4245). Compare against the invalid negative control that reuses the same one-step alpha on every footfall.
+19. **S4: composed dual-assurance candidate** — S1 robust set-based viability + E6 correlated evidence + P1 one-step bounds using P2's exact per-step/per-constraint allocation + certificate lifecycle. A probability pass cannot override a robust rejection; Unknown on either authority path remains explicit.
+20. **A1: actuator/energy transfer baseline** — compare a constant-efficiency model, calibrated static loss map (#4179/#4182), and PACE-style bottom-up dynamic actuator identification. PACE's reported 32% ANYmal full-CoT reduction is a different platform result; reproduce its methodology and energy boundary rather than comparing that number directly with SPINDER.
 
 Do not compare a simulated S1/S2 result directly against hardware B0/B1 as if they shared evidence maturity. Publish simulator and hardware scorecards separately.
 
 For curriculum comparisons, match policy architecture, training compute, observation interface, seed count and fixed-OOD scenarios when reproducing HORIZON. Report its empirical checkpoint gate separately from the physical viability oracle. No rollout-survival statistic may promote an Unknown physical model to Certified.
+
+### 2.1 Assurance-policy and horizon-risk ablations
+
+Run the following policy/assurance variants under the same plant, observations, action candidates, operating domain and compute limits:
+
+- **R-only:** robust set-valued viability/recovery gate, with no probabilistic risk channel.
+- **P-only:** calibrated five-constraint one-step chance gate, with no claim of robust future invariance. This is an analysis arm, not a hardware-authorized fallback.
+- **R+P:** robust viability and one-step calibrated chance gate both pass; a pass on one channel cannot compensate for a rejection/Unknown on the other.
+- **R+P+H:** R+P with the immutable finite-horizon allocation from #4245. The exact five per-constraint ppb amounts for each step must pass into #4231 unchanged; do not collapse them to a step sum and re-divide.
+- **Reused-alpha negative control:** reapply the same one-step family-wise alpha at every step. It must be labelled invalid for the declared horizon guarantee and included only to demonstrate cumulative-risk inflation.
+- **EIG-only negative control:** rank by expected information gain without an admissibility filter. It must never be included in a deployment-eligible set.
+- **Diagonal-covariance negative control:** treat deliberately correlated D1/D2/D3 channels as independent. Measure overconfidence against the joint-R reference.
+- **One-step allocation negative control:** recompute an equal five-way split from each step's alpha sum when the horizon ledger has an uneven ppb remainder. It must fail exact allocation-identity checks.
+
+Report robust and probabilistic outputs separately. The horizon union bound is conditional on each event's marginal tail validity under the declared filtration; a good finite allocator cannot rescue a miscalibrated predictive model. A finite-graph viability pass cannot authenticate the physical graph abstraction.
+
+### 2.2 External comparator matching
+
+The comparison must be layered, not a leaderboard mash-up:
+
+- **Locomotion/controller:** SPINDER CPG, SPINDER hybrid/rule feedback, matched CBF/QP, robust MPC and a version-pinned learned policy on the same plant.
+- **Contact/state estimator:** Binary Contact KF, continuous reliability KF, Zhao et al.'s full residual KF and regime-specific MoE odometry.
+- **Safety/foothold screening:** reproduce STEP-CBF+ under its reduced-order model assumptions; separately test robust MPC and set-valued viability. Do not report a simulation-only STEP-CBF+ result as hardware safety evidence.
+- **Sim-to-real/energy:** PACE-style bottom-up actuator identification and the constant-efficiency baseline, followed by actuator-map transfer tests. Report electrical battery energy, actuator electrical input, mechanical positive/negative work and auxiliary loads as separate boundaries.
+- **Standards:** use ISO 18646-5:2026 for matched locomotion-performance measures. Its scope explicitly does not verify or validate safety requirements; report the independent viability/runtime-assurance evidence separately. Do not claim conformance from a subset of tests.
+
+The PACE paper reports a 32% full Cost-of-Transport reduction for ANYmal (reported CoT 1.27) and transfer to ten additional robots using a physics-grounded actuator/energy model. This is a strong methodology baseline, not a directly comparable SPINDER or FlyGym score. Reproduce the system boundary and identification protocol before interpreting relative energy. https://doi.org/10.1177/02783649261459628
 
 ## 3. Frozen scenario matrix
 
@@ -131,6 +163,16 @@ Keep the quantities separate:
 - contact-loss survival rate and worst-case recovery horizon;
 - unknown/incomplete/abstain rate with reason.
 
+### Finite-horizon risk accounting
+- declared horizon H and total family-wise alpha;
+- exact alpha[t,j] for every step and physical constraint;
+- cumulative allocated, committed/reserved, consumed, skipped-unused, unknown-locked and pending alpha;
+- horizon-level violations and per-event marginal violations;
+- admission, execution, unknown and reconciliation receipt counts;
+- zero allocation, replay, mismatch, stale and unresolved execution counts;
+- rate of candidate rejection/abstention by reason;
+- exact consistency of the one-step gate allocation with the horizon ledger.
+
 ### Locomotion quality
 - course completion and time;
 - gait transition settling cycles and phase error;
@@ -168,6 +210,8 @@ Do not compare mechanical-only simulation work to hardware battery energy. Do no
 - Use paired trial seeds and matched initial states/commands for simulation comparisons.
 - Report numerator, denominator, failure definition and confidence interval for every success/failure rate.
 - A zero-failure sample is not a zero-risk guarantee. Report an upper confidence bound and sample size. For independent Bernoulli trials, the exact one-sided 95% Clopper–Pearson upper bound after zero observed events is (1 - 0.05^{1/n}): about 1% still requires 299 independent trials, 0.1% requires 2,995, and 0.01% requires 29,956. These counts are illustrative only; repeated ticks and correlated episodes from one session do not count as independent trials. State the exchangeability/independence unit and use clustered or session-level inference when appropriate.
+- For the five-constraint one-step gate, validate each one-sided marginal tail against independent session/episode units in the exact operating stratum. With zero exceedances and a 95% one-sided Clopper–Pearson bound, a 1% marginal allocation needs 299 independent units; a 0.1% marginal allocation needs 2,995. For a 10-step horizon with 5% total alpha equally split across 50 events, each event receives 0.1%, so the zero-event validation target is 2,995 independent units per declared event stratum unless a preregistered pooling/exchangeability argument justifies a shared sample. Do not count correlated ticks or adjacent windows as independent units.
+- Report horizon-level family-wise confidence bounds separately from per-step marginal calibration. A one-step 5% guarantee reused on each footfall is not a 5% episode guarantee.
 - Report median, 5th percentile, 95th percentile and worst observed recovery times, not only means.
 - Stratify results by gait, phase at disturbance, contact mode, terrain compliance, individual, battery state and thermal state.
 - Preserve raw traces, controller/config digests, actuator/sensor calibrations and trial receipts.
@@ -182,6 +226,10 @@ These are targets for qualification, not achieved results:
 - V2: demonstrate nonzero useful viable-state coverage and publish coverage-versus-inflation curves. A vacuous tiny safe set does not qualify as practical success.
 - V3: on hardware, show statistically supported recovery improvement against B0/B1/B2 under matched faults while preserving hard limits; pre-register effect size and sample size after baseline variance is measured.
 - V3: no hardware deployment certificate from simulation alone; validate sensor health, timing, actuator limits, contact bounds and physical model discrepancy.
+- V2: no one-step alpha reuse across a horizon; the sum of all preallocated marginal ppb values must equal the declared horizon budget exactly, with no zero-alpha event and no post-outcome recycling.
+- V2: zero allocation-identity mismatches between horizon ledger and one-step gate; Unknown execution locks its allocation and blocks progression until receipt-backed reconciliation.
+- V2: the chance-gate calibration receipt must meet the exact per-constraint sample/coverage threshold; an underpowered, heavy-tailed, miscalibrated or OOD prediction abstains.
+- V3: publish the robustness/energy/task-performance Pareto frontier under matched hardware and a preregistered independent-session validation plan; no single weighted reward substitutes for the separate scorecards.
 
 Do not set a universal millisecond or recovery-success threshold before measuring the actual platform's control period, actuator response and baseline variation.
 
@@ -196,6 +244,8 @@ Do not set a universal millisecond or recovery-success threshold before measurin
 Each hypothesis needs at least one negative control and a preregistered falsification criterion.
 
 ## 8. Publication-quality evidence package
+
+For probabilistic/horizon claims also bind the risk-plan identity, total alpha, exact per-step/per-constraint allocation vector, independent validation-unit definition, held-out tail counts, model/calibration/domain digests, filtration/conditioning contract, and every execution/Unknown/reconciliation receipt. The evaluator must be able to recompute the horizon union-bound total from raw allocation records.
 
 For every reported result bind:
 - source commit and code/configuration digest;
