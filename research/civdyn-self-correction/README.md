@@ -94,7 +94,7 @@ The deterministic scenarios are known-answer unit controls. This separate Monte 
 
 Default frozen design:
 - 100 replicates per regime, four controllers and five regimes = 2,000 seed-level episodes.
-- Base seed 20,261,108,000; all controller comparisons use common per-seed/per-tick observation noise.
+- Evaluation seeds 20,261,108,100–20,261,108,199; the development-only calibration block 20,261,108,000–20,261,108,099 is excluded. All controller comparisons use common per-seed/per-tick observation noise.
 - Observational samples use 50 observations per arm and outcome-noise standard deviation 2.0.
 - Each mechanism-aware episode takes matched randomized probes at ticks 2, 4, 6 and 8, each with 512 paired observations.
 - Probe intervals use the estimate ± 1.96 standard errors. Binomial rates use 95% Wilson score intervals.
