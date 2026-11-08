@@ -10,11 +10,13 @@ Standalone, dependency-free Rust evaluator for deterministic City Power 2026/27 
 - Preserves the Saturday 18:00–20:00 source-text ambiguity until an approved account/tariff confirmation reference is supplied.
 - Calculates energy, service, monthly network, billed demand, reactive-energy and optional per-kWh network surcharge components.
 - Requires exactly 12 contiguous prior monthly peak-demand records for the rolling demand ratchet.
+- Requires full-month contiguous interval coverage: day 1 starts at 00:00, each interval begins at the prior interval's end, every date is present, and the last interval ends at 24:00 on the billing month's last day. Zero-kWh intervals are valid and must still be represented.
+- Requires one day-class and one date-specific public-holiday evidence reference across every interval on the same local date. It does not infer South African public-holiday status or convert timezones.
 - Accepts the Business/LPU account surcharge and VAT only as externally assessed invoice lines with evidence references. It does not guess their bases or hardcode VAT.
 - Returns INCOMPLETE_INVOICE_RECONCILIATION and a known-component subtotal whenever a bill line is unknown.
 - Includes a full synthetic July 2026 counterexample: moving 230 kWh of weekday load from winter peak to off-peak lowers the energy-charge component by R1,301.34 while total kWh and billed kVA remain unchanged; unknown Business/LPU and VAT lines keep the invoice total absent.
 
-The 70 kVA minimum demand floor and the 70–1,000 kVA LV LPU service-connection range are not TOU eligibility rules. The Industrial TOU tariff clause 5.4.3 uses a strict >100 kVA supply-capacity gate plus application/approval.
+The 70 kVA minimum demand floor and the 70–1,000 kVA LV LPU service-connection range are not TOU eligibility rules. The budget's Industrial TOU clause 5.4.3 states a strict >100 kVA supply-capacity gate plus application/approval. A current secondary engineering-provider schedule describes a 70–1,000 kVA low-voltage LPU qualification band for TOU, so accounts in the 70–100 kVA range remain a source-conflict/manual-confirmation case; this evaluator does not admit them without the actual approved account tariff.
 
 ## Run
 
@@ -23,4 +25,4 @@ cargo test --manifest-path tools/za-energy-billing-bench/Cargo.toml
 cargo run --manifest-path tools/za-energy-billing-bench/Cargo.toml
 ~~~
 
-The CLI emits a machine-readable receipt from a synthetic, complete 31-day July 2026 trace containing 2,976 fifteen-minute intervals. Its FNV-1a-64 value is a reproducible non-cryptographic input fingerprint, not an authenticity signature. The reference is not a production customer billing system and makes no real-facility saving claim.
+The CLI emits a machine-readable receipt from a synthetic, complete 31-day July 2026 trace containing 2,976 fifteen-minute intervals, including zero-kWh periods. The library also accepts nonuniform interval durations when they are contiguous and remain within a tariff band. Its FNV-1a-64 value is a reproducible non-cryptographic input fingerprint, not an authenticity signature. The reference is not a production customer billing system and makes no real-facility saving claim.
