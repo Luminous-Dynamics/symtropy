@@ -63,6 +63,8 @@ jobs:
             (.artifact_verification.candidate_output_verified == 4) and
             (.artifact_verification.evaluator_verified == 2) and
             (.metadata_audit.metric_suite_id == "luminous_synthetic_contract_metrics") and
+            (.metadata_audit.metric_definition_authority == "official_results_page") and
+            (.metadata_audit.metric_accuracy_direction == "reference_to_candidate") and
             (.metadata_audit.scenes[0].coordinate_frame_id == "BUILDING-A-LOCAL") and
             (.metadata_audit.scenes[0].transform_artifact_id == "ROOM-A-TRANSFORM") and
             (.metadata_audit.scenes[0].linear_unit_to_metre_factor == 1.0) and
