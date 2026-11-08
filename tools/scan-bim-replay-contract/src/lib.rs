@@ -1772,7 +1772,7 @@ mod tests {
 
     #[test]
     fn allows_shared_evaluator_reference_path_with_identical_digest() {
-        let mut value = fixture_value();
+        let mut value = isprs_pair_fixture();
         let shared_path = value["scenes"][0]["evaluator_artifacts"][0]["relative_path"].clone();
         let shared_digest = value["scenes"][0]["evaluator_artifacts"][0]["sha256"].clone();
         value["scenes"][1]["evaluator_artifacts"][0]["relative_path"] = shared_path;
@@ -1790,7 +1790,7 @@ mod tests {
 
     #[test]
     fn rejects_shared_evaluator_reference_path_with_conflicting_digest() {
-        let mut value = fixture_value();
+        let mut value = isprs_pair_fixture();
         let shared_path = value["scenes"][0]["evaluator_artifacts"][0]["relative_path"].clone();
         value["scenes"][1]["evaluator_artifacts"][0]["relative_path"] = shared_path;
         value["scenes"][1]["evaluator_artifacts"][0]["sha256"] =
