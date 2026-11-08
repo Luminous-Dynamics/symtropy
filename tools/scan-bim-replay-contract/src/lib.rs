@@ -794,7 +794,13 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
                 output.artifact_id, output.scene_id
             ));
         }
-        if output.role == CandidateOutputRole::IfcModel {
+        let is_ifc_model = match output.role {
+            CandidateOutputRole::IfcModel => true,
+            CandidateOutputRole::GeometryModel
+            | CandidateOutputRole::ElementGraph
+            | CandidateOutputRole::CandidateMetrics => false,
+        };
+        if is_ifc_model {
             output_scenes.insert(output.scene_id.as_str());
         }
     }
