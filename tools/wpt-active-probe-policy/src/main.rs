@@ -344,10 +344,10 @@ pub fn adaptive_plan(case: &ProbeCase) -> Option<PolicyPlan> {
     )
 }
 
-fn jointly_unique(actions: &[&ProbeAction], pose_count: usize) -> bool {
+fn jointly_unique(chosen: &[usize], case: &ProbeCase) -> bool {
     let mut signatures = BTreeSet::new();
-    for pose in 0..pose_count {
-        let tuple: Vec<u32> = actions.iter().map(|a| a.outcomes[pose]).collect();
+    for pose in 0..case.pose_ids.len() {
+        let tuple: Vec<u32> = chosen.iter().map(|index| case.actions[*index].outcomes[pose]).collect();
         if !signatures.insert(tuple) { return false; }
     }
     true
@@ -355,14 +355,14 @@ fn jointly_unique(actions: &[&ProbeAction], pose_count: usize) -> bool {
 
 fn fixed_search(
     start: usize,
-    chosen: &mut Vec<&ProbeAction>,
+    chosen: &mut Vec<usize>,
     case: &ProbeCase,
     best: &mut Option<FixedPlan>,
 ) {
-    if !chosen.is_empty() && jointly_unique(chosen, case.pose_ids.len()) {
-        let energy = chosen.iter().map(|a| a.energy_uj).sum();
-        let latency = chosen.iter().map(|a| a.duration_us).sum();
-        let mut ids: Vec<_> = chosen.iter().map(|a| a.id.clone()).collect();
+    if !chosen.is_empty() && jointly_unique(chosen, case) {
+        let energy: u64 = chosen.iter().map(|index| case.actions[*index].energy_uj).sum();
+        let latency: u64 = chosen.iter().map(|index| case.actions[*index].duration_us).sum();
+        let mut ids: Vec<_> = chosen.iter().map(|index| case.actions[*index].id.clone()).collect();
         ids.sort();
         let plan = FixedPlan {
             action_ids: ids,
@@ -380,9 +380,8 @@ fn fixed_search(
     }
     if chosen.len() >= case.max_actions { return; }
     for i in start..case.actions.len() {
-        let action = &case.actions[i];
-        if exclusion_reason(action, case).is_some() { continue; }
-        chosen.push(action);
+        if exclusion_reason(&case.actions[i], case).is_some() { continue; }
+        chosen.push(i);
         fixed_search(i + 1, chosen, case, best);
         chosen.pop();
     }
@@ -390,7 +389,7 @@ fn fixed_search(
 
 pub fn best_fixed_plan(case: &ProbeCase) -> Option<FixedPlan> {
     let mut best = None;
-    fixed_search(0, &mut Vec::new(), case, &mut best);
+    fixed_search(0, &mut Vec::<usize>::new(), case, &mut best);
     best
 }
 
