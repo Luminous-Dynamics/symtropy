@@ -251,14 +251,26 @@ pub struct ReplayAuditReport {
     pub candidate_source_commit: String,
     pub candidate_toolchain_id: String,
     pub candidate_command_sha256: String,
+    pub candidate_build_sha256: String,
+    pub candidate_model_sha256: String,
+    pub candidate_configuration_sha256: String,
     pub coordinate_frame_id: String,
     pub coordinate_crs_id: String,
+    pub coordinate_axis_order: String,
     pub coordinate_linear_unit: String,
     pub metres_per_unit: f64,
     pub tolerance_profile_id: String,
+    pub surface_distance_cutoff_m: f64,
+    pub surface_intersection_buffer_m: f64,
+    pub reference_surface_spacing_m: f64,
+    pub candidate_surface_spacing_m: f64,
+    pub point_cloud_voxel_size_m: f64,
+    pub sampling_random_seed: u64,
     pub metric_suite_id: String,
     pub metric_suite_version: String,
     pub metric_accuracy_direction: String,
+    pub metric_buffer_distances_m: Vec<f64>,
+    pub metric_distance_cutoff_distances_m: Vec<f64>,
     pub scene_count: usize,
     pub candidate_artifact_count: usize,
     pub candidate_pipeline_artifact_count: usize,
@@ -941,23 +953,67 @@ pub fn verify_manifest_artifact_files(
     }
 
     let mut candidate_verified = 0;
+    let mut candidate_input_verified = 0;
+    let mut candidate_pipeline_verified = 0;
+    let mut candidate_output_verified = 0;
     let mut evaluator_verified = 0;
+
+    for artifact in [
+        &manifest.candidate_pipeline.build_artifact,
+        &manifest.candidate_pipeline.model_artifact,
+        &manifest.candidate_pipeline.configuration_artifact,
+    ] {
+        let path = resolve_file_beneath_root(
+            &candidate_root,
+            &artifact.relative_path,
+            "candidate pipeline",
+            &artifact.artifact_id,
+        )?;
+        let actual = sha256_file(&path, "candidate pipeline", &artifact.artifact_id)?;
+        if actual != artifact.sha256 {
+            return Err(format!(
+                "candidate pipeline artifact {} SHA-256 mismatch: declared {}, actual {}",
+                artifact.artifact_id, artifact.sha256, actual
+            ));
+        }
+        candidate_verified += 1;
+        candidate_pipeline_verified += 1;
+    }
+
     for scene in &manifest.scenes {
         for artifact in &scene.candidate_inputs {
             let path = resolve_file_beneath_root(
                 &candidate_root,
                 &artifact.relative_path,
-                "candidate",
+                "candidate input",
                 &artifact.artifact_id,
             )?;
-            let actual = sha256_file(&path, "candidate", &artifact.artifact_id)?;
+            let actual = sha256_file(&path, "candidate input", &artifact.artifact_id)?;
             if actual != artifact.sha256 {
                 return Err(format!(
-                    "candidate artifact {} SHA-256 mismatch: declared {}, actual {}",
+                    "candidate input {} SHA-256 mismatch: declared {}, actual {}",
                     artifact.artifact_id, artifact.sha256, actual
                 ));
             }
             candidate_verified += 1;
+            candidate_input_verified += 1;
+        }
+        for artifact in &scene.candidate_outputs {
+            let path = resolve_file_beneath_root(
+                &candidate_root,
+                &artifact.relative_path,
+                "candidate output",
+                &artifact.artifact_id,
+            )?;
+            let actual = sha256_file(&path, "candidate output", &artifact.artifact_id)?;
+            if actual != artifact.sha256 {
+                return Err(format!(
+                    "candidate output {} SHA-256 mismatch: declared {}, actual {}",
+                    artifact.artifact_id, artifact.sha256, actual
+                ));
+            }
+            candidate_verified += 1;
+            candidate_output_verified += 1;
         }
         for artifact in &scene.evaluator_artifacts {
             let path = resolve_file_beneath_root(
@@ -979,6 +1035,9 @@ pub fn verify_manifest_artifact_files(
 
     Ok(ArtifactVerificationSummary {
         candidate_verified,
+        candidate_input_verified,
+        candidate_pipeline_verified,
+        candidate_output_verified,
         evaluator_verified,
     })
 }
