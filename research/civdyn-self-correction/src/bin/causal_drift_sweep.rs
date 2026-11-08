@@ -3,9 +3,7 @@
 
 //! Export the synthetic causal-drift portfolio as a separate CSV.
 
-use civdyn_self_correction::causal_drift::{
-    CausalDriftOutcome, run_causal_drift_portfolio,
-};
+use civdyn_self_correction::causal_drift::{CausalDriftOutcome, run_causal_drift_portfolio};
 
 const CSV_COLUMNS: usize = 24;
 
@@ -66,7 +64,8 @@ impl CausalDriftCsvRecord {
             number(self.net_utility),
             number(self.oracle_net_utility),
             number(self.regret_to_oracle),
-            self.proxy_driven_action_under_nonpositive_effect.to_string(),
+            self.proxy_driven_action_under_nonpositive_effect
+                .to_string(),
             self.signal_change_detected.to_string(),
             optional_tick(self.signal_detection_tick),
             self.mechanism_identified.to_string(),
@@ -101,7 +100,9 @@ fn row(outcome: &CausalDriftOutcome) -> Vec<String> {
         signal_change_detected: outcome.signal_change_detected,
         signal_detection_tick: outcome.signal_detection_tick,
         mechanism_identified: outcome.mechanism_identified,
-        diagnosis: outcome.diagnosis.map(|diagnosis| diagnosis.name().to_string()),
+        diagnosis: outcome
+            .diagnosis
+            .map(|diagnosis| diagnosis.name().to_string()),
         diagnosis_tick: outcome.diagnosis_tick,
         correction_latency_ticks: outcome.correction_latency_ticks,
         trace_valid: outcome.trace_valid,
