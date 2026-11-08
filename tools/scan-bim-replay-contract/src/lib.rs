@@ -1173,7 +1173,10 @@ mod tests {
         let summary =
             super::verify_manifest_artifact_files(FIXTURE.as_bytes(), &candidate, &evaluator)
                 .expect("synthetic artifact bytes should match the declared hashes");
-        assert_eq!(summary.candidate_verified, 2);
+        assert_eq!(summary.candidate_verified, 9);
+        assert_eq!(summary.candidate_input_verified, 2);
+        assert_eq!(summary.candidate_pipeline_verified, 3);
+        assert_eq!(summary.candidate_output_verified, 4);
         assert_eq!(summary.evaluator_verified, 2);
     }
 
@@ -1259,8 +1262,97 @@ mod tests {
     fn accepts_synthetic_visibility_manifest() {
         let report = audit_manifest_bytes(FIXTURE.as_bytes()).expect("manifest should pass");
         assert_eq!(report.scene_count, 2);
-        assert_eq!(report.candidate_artifact_count, 2);
+        assert_eq!(report.candidate_artifact_count, 9);
+        assert_eq!(report.candidate_pipeline_artifact_count, 3);
+        assert_eq!(report.candidate_output_count, 4);
         assert_eq!(report.evaluator_artifact_count, 2);
+        assert_eq!(report.candidate_run_id, "SYNTHETIC-CANDIDATE-RUN-001");
+        assert_eq!(report.coordinate_linear_unit, "metre");
+        assert_eq!(report.metric_accuracy_direction, "reference_to_candidate");
+    }
+
+    #[test]
+    fn rejects_invalid_candidate_source_commit() {
+        let mut value = fixture_value();
+        value["candidate_pipeline"]["source_commit"] =
+            serde_json::json!("A".repeat(40));
+        let error = audit(&value).expect_err("source commit must be canonical lowercase hex");
+        assert!(error.contains("40-character lowercase Git SHA-1"));
+    }
+
+    #[test]
+    fn rejects_coordinate_unit_scale_mismatch() {
+        let mut value = fixture_value();
+        value["evaluation_profile"]["coordinate_reference"]["linear_unit"] =
+            serde_json::json!("millimetre");
+        let error = audit(&value).expect_err("millimetre coordinates cannot claim one metre per unit");
+        assert!(error.contains("metres_per_unit does not match"));
+    }
+
+    #[test]
+    fn rejects_zero_surface_tolerance() {
+        let mut value = fixture_value();
+        value["evaluation_profile"]["tolerances"]["surface_distance_cutoff_m"] =
+            serde_json::json!(0.0);
+        let error = audit(&value).expect_err("surface cutoff must be positive");
+        assert!(error.contains("finite positive metre thresholds"));
+    }
+
+    #[test]
+    fn rejects_non_monotonic_metric_cutoff_curve() {
+        let mut value = fixture_value();
+        value["evaluation_profile"]["metric_definition"]["distance_cutoff_distances_m"] =
+            serde_json::json!([0.0, 0.1, 0.1]);
+        let error = audit(&value).expect_err("cutoff curve must be strictly increasing");
+        assert!(error.contains("strictly increasing"));
+    }
+
+    #[test]
+    fn requires_ifc_model_and_element_graph_outputs_per_scene() {
+        let mut value = fixture_value();
+        value["scenes"][0]["candidate_outputs"][1]["role"] =
+            serde_json::json!("geometry_mesh");
+        let error = audit(&value).expect_err("scene must expose IFC and element graph outputs");
+        assert!(error.contains("requires both ifc_model and element_graph"));
+    }
+
+    #[test]
+    fn rejects_candidate_output_id_collision_with_candidate_input() {
+        let mut value = fixture_value();
+        let candidate_id = value["scenes"][0]["candidate_inputs"][0]["artifact_id"].clone();
+        value["scenes"][0]["candidate_outputs"][0]["artifact_id"] = candidate_id;
+        let error = audit(&value).expect_err("candidate input/output identities must be unique");
+        assert!(error.contains("duplicate candidate output artifact_id"));
+    }
+
+    #[test]
+    fn rejects_candidate_pipeline_build_digest_mismatch() {
+        let mut value = fixture_value();
+        value["candidate_pipeline"]["build_artifact"]["sha256"] =
+            serde_json::json!("0000000000000000000000000000000000000000000000000000000000000000");
+        let (candidate, evaluator) = synthetic_data_roots();
+        let error = super::verify_manifest_artifact_files(
+            value.to_string().as_bytes(),
+            &candidate,
+            &evaluator,
+        )
+        .expect_err("candidate build digest must be checked against exact local bytes");
+        assert!(error.contains("candidate pipeline artifact SYNTHETIC-CANDIDATE-BUILD SHA-256 mismatch"));
+    }
+
+    #[test]
+    fn rejects_candidate_output_path_traversal() {
+        let mut value = fixture_value();
+        value["scenes"][0]["candidate_outputs"][0]["relative_path"] =
+            serde_json::json!("../../evaluator/room-a-reference.bin");
+        let (candidate, evaluator) = synthetic_data_roots();
+        let error = super::verify_manifest_artifact_files(
+            value.to_string().as_bytes(),
+            &candidate,
+            &evaluator,
+        )
+        .expect_err("candidate outputs cannot escape the candidate root");
+        assert!(error.contains("unsafe relative_path"));
     }
 
     #[test]
