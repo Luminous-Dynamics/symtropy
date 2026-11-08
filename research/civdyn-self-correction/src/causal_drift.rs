@@ -146,11 +146,7 @@ pub struct CausalDriftOutcome {
     pub trace_valid: bool,
 }
 
-fn event(
-    stage: CorrectionStage,
-    tick: usize,
-    evidence_code: &'static str,
-) -> CorrectionEvent {
+fn event(stage: CorrectionStage, tick: usize, evidence_code: &'static str) -> CorrectionEvent {
     CorrectionEvent {
         stage,
         tick,
@@ -268,16 +264,8 @@ fn correction_trace(
             diagnosis_tick,
             "matched_randomized_treatment_control_probe",
         ),
-        event(
-            CorrectionStage::BeliefUpdated,
-            diagnosis_tick,
-            update_code,
-        ),
-        event(
-            CorrectionStage::Intervened,
-            diagnosis_tick + 1,
-            action_code,
-        ),
+        event(CorrectionStage::BeliefUpdated, diagnosis_tick, update_code),
+        event(CorrectionStage::Intervened, diagnosis_tick + 1, action_code),
         event(
             CorrectionStage::Audited,
             CAUSAL_DRIFT_TICKS,
@@ -347,9 +335,7 @@ pub fn run_causal_drift_scenario(
                 }
             }
             CausalDriftController::MechanismAware => {
-                if policy_enabled
-                    && diagnosis.is_none()
-                    && tick % MATCHED_PROBE_INTERVAL_TICKS == 0
+                if policy_enabled && diagnosis.is_none() && tick % MATCHED_PROBE_INTERVAL_TICKS == 0
                 {
                     diagnostic_probe_count += 1;
                     diagnostic_probe_cost += DIAGNOSTIC_PROBE_COST;
@@ -372,11 +358,7 @@ pub fn run_causal_drift_scenario(
                     if let Some(identified) = identified {
                         diagnosis = Some(identified);
                         diagnosis_tick = Some(tick);
-                        trace = correction_trace(
-                            signal_detector.detection_tick,
-                            tick,
-                            identified,
-                        );
+                        trace = correction_trace(signal_detector.detection_tick, tick, identified);
                         if matches!(
                             identified,
                             CausalDiagnosis::CausalSignReversal
@@ -394,8 +376,7 @@ pub fn run_causal_drift_scenario(
     }
 
     let oracle_net_utility = oracle_utility(regime);
-    let net_utility =
-        cumulative_causal_contribution - action_cost - diagnostic_probe_cost;
+    let net_utility = cumulative_causal_contribution - action_cost - diagnostic_probe_cost;
     let trace_valid = !trace.is_empty() && validate_full_correction_trace(&trace).is_ok();
     let signal_detection_tick = signal_detector.detection_tick;
     let correction_latency_ticks = diagnosis_tick.map(|diagnosed| {
