@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 //! Joint Gaussian fusion for time-aligned, correlated legged-contact channels.
 //!
 //! V1 complements the scalar, action/clock-receipt-qualified contact-information
