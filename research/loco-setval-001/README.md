@@ -6,6 +6,8 @@ Issue: https://github.com/Luminous-Dynamics/symtropy/issues/4083
 
 Axiswise uncertainty reserve definition: [#4130](https://github.com/Luminous-Dynamics/symtropy/issues/4130); finite ladder bracket auditor: [#4132 / PR #4133](https://github.com/Luminous-Dynamics/symtropy/pull/4133). Matched protocol: `VIABILITY_RESERVE_PROTOCOL.md`.
 
+Industry locomotion-performance crosswalk: `ISO18646-5-2026-CROSSWALK.md` (performance comparison only; ISO 18646-5 does not validate safety requirements). Graded multi-channel contact reliability reference: [#4143](https://github.com/Luminous-Dynamics/symtropy/issues/4143).
+
 Exact rational interval/event-order fixtures are tracked separately in [LOCO-HYBRID-MATH-001 / #4113](https://github.com/Luminous-Dynamics/symtropy/issues/4113), with implementation in [PR #4107](https://github.com/Luminous-Dynamics/symtropy/pull/4107).
 
 ## Purpose
