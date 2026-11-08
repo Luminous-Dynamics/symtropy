@@ -76,7 +76,7 @@ pub fn validate_register(input: &str) -> Result<Vec<Record>, Vec<String>> {
         let enums: [(&str, &[&str], &str); 6] = [
             (doc_type, &["STANDARD","PAS","TECHNICAL_REPORT","ACTIVE_PAR","REGULATION","FREQUENCY_PLAN","AUTHORITY_GUIDANCE"], "document_type"),
             (lifecycle, &["PUBLISHED","ACTIVE_STANDARD","ACTIVE_PAR","IN_DEVELOPMENT","WITHDRAWN","UNKNOWN"], "lifecycle_status"),
-            (evidence, &["EMF_EXPOSURE","RF_EMISSIONS_EMC","RADIATIVE_WPT_STANDARDIZATION","ELECTRICAL_SAFETY","RADIO_SPECTRUM_ALLOCATION","EQUIPMENT_AUTHORIZATION","CIVIL_AVIATION","OTHER"], "evidence_domain"),
+            (evidence, &["EMF_EXPOSURE","RF_EMISSIONS_EMC","RADIATIVE_WPT_STANDARDIZATION","ELECTRICAL_SAFETY","RADIO_SPECTRUM_ALLOCATION","RADIO_SPECTRUM_EXEMPTION","EQUIPMENT_AUTHORIZATION","CIVIL_AVIATION","OTHER"], "evidence_domain"),
             (modality, &["INDUCTIVE_WPT","CAPACITIVE_WPT","RADIATIVE_WPT","RADIO_BEAM_WPT","MULTI_MODAL","UNKNOWN"], "modality_scope"),
             (applicability, &["UNASSESSED","UNKNOWN","IN_SCOPE","CONDITIONAL","OUT_OF_SCOPE"], "airborne_applicability"),
             (discrepancy, &["NONE","SOURCE_INCONSISTENCY"], "scope_discrepancy"),
@@ -145,10 +145,11 @@ mod tests {
 
     #[test] fn fixture_is_valid_and_aircraft_scope_is_unassessed() {
         let r = validate_register(FIXTURE).unwrap();
-        assert_eq!(r.len(), 9);
+        assert_eq!(r.len(), 10);
         assert!(r.iter().all(|x| matches!(x.airborne_applicability.as_str(), "UNASSESSED"|"UNKNOWN")));
         assert_eq!(r.iter().filter(|x| x.lifecycle_status == "ACTIVE_PAR").count(), 1);
         assert!(r.iter().any(|x| x.document_id == "South Africa National Radio Frequency Plan 2026 (GG 55048; Notice 4044)"));
+        assert!(r.iter().any(|x| x.document_id == "GG 48643 Notice 1822 (23 May 2023) Annex B amendment" && x.airborne_applicability == "UNKNOWN"));
     }
     #[test] fn published_standard_cannot_be_relabelled_active_par() {
         let bad = FIXTURE.replace("\tSTANDARD\tACTIVE_STANDARD\t", "\tACTIVE_PAR\tACTIVE_PAR\t");
@@ -170,6 +171,13 @@ mod tests {
     #[test] fn assessed_applicability_requires_clause_and_reviewer() {
         let bad = FIXTURE.replacen("\tUNASSESSED\t", "\tIN_SCOPE\t", 1);
         assert!(validate_register(&bad).unwrap_err().iter().any(|e| e.contains("clause locator and named reviewer")));
+    }
+    #[test] fn inductive_exemption_record_preserves_85khz_scope_and_field_limit() {
+        let line = FIXTURE.lines().find(|l| l.starts_with("icasa-annex-b-inductive-exemption\t")).unwrap();
+        assert!(line.contains("9-135 kHz; 85 kHz in band"));
+        assert!(line.contains("42 dBµA/m at 10 m"));
+        assert!(line.contains("SANS 300 330"));
+        assert!(line.split('\t').nth(11).unwrap() == "UNKNOWN");
     }
     #[test] fn unknown_applicability_requires_unreviewed_placeholders() {
         assert!(validate_register(FIXTURE).is_ok());
