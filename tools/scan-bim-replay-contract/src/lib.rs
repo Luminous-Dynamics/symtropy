@@ -116,6 +116,9 @@ struct ToleranceProfile {
     requirement_revision: String,
     surface_distance_limit_m: f64,
     decision_policy: DecisionPolicy,
+    uncertainty_model_id: Option<String>,
+    coverage_probability: Option<f64>,
+    coverage_factor: Option<f64>,
 }
 
 #[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]
@@ -180,6 +183,7 @@ enum MetricDefinitionAuthority {
     EvaluationFramework2018,
     FinalResultsPaper2021,
     BidirectionalDiagnostic,
+    ProjectDefined,
 }
 
 #[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]
@@ -326,6 +330,9 @@ pub struct ReplayAuditReport {
     pub candidate_outputs: Vec<CandidateOutputReceipt>,
     pub tolerance_distance_limit_m: f64,
     pub tolerance_decision_policy: String,
+    pub tolerance_uncertainty_model_id: Option<String>,
+    pub tolerance_coverage_probability: Option<f64>,
+    pub tolerance_coverage_factor: Option<f64>,
     pub reference_surface_spacing_m: f64,
     pub scan_voxel_size_m: f64,
     pub distance_cutoff_m: f64,
@@ -469,6 +476,7 @@ fn metric_definition_authority_label(value: MetricDefinitionAuthority) -> &'stat
         MetricDefinitionAuthority::EvaluationFramework2018 => "evaluation_framework2018",
         MetricDefinitionAuthority::FinalResultsPaper2021 => "final_results_paper_2021",
         MetricDefinitionAuthority::BidirectionalDiagnostic => "bidirectional_diagnostic",
+        MetricDefinitionAuthority::ProjectDefined => "project_defined",
     }
 }
 
@@ -543,6 +551,39 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
     {
         return Err("tolerance profile requires an ID, revision and finite positive distance limit in metres".to_owned());
     }
+    let tolerance = &manifest.tolerance_profile;
+    match tolerance.decision_policy {
+        DecisionPolicy::StatisticalInterval => {
+            let valid_model = tolerance
+                .uncertainty_model_id
+                .as_deref()
+                .is_some_and(valid_identifier);
+            let valid_probability = tolerance
+                .coverage_probability
+                .is_some_and(|value| value.is_finite() && value > 0.0 && value < 1.0);
+            let valid_factor = tolerance
+                .coverage_factor
+                .is_some_and(|value| value.is_finite() && value > 0.0);
+            if !valid_model || !valid_probability || !valid_factor {
+                return Err(
+                    "statistical_interval requires uncertainty_model_id, coverage_probability in (0,1), and a finite positive coverage_factor"
+                        .to_owned(),
+                );
+            }
+        }
+        DecisionPolicy::ReportOnly | DecisionPolicy::HardLimit => {
+            if tolerance.uncertainty_model_id.is_some()
+                || tolerance.coverage_probability.is_some()
+                || tolerance.coverage_factor.is_some()
+            {
+                return Err(
+                    "uncertainty model, coverage probability and coverage factor are only valid for statistical_interval"
+                        .to_owned(),
+                );
+            }
+        }
+    }
+
     if !valid_identifier(&manifest.sampling_profile.profile_id)
         || !manifest
             .sampling_profile
@@ -609,6 +650,11 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
                     .to_owned(),
             );
         }
+    } else if manifest.metric_profile.definition_authority != MetricDefinitionAuthority::ProjectDefined {
+        return Err(
+            "non-ISPRS metric suites must use project_defined authority; published benchmark authorities are reserved for their named suites"
+                .to_owned(),
+        );
     }
 
     if manifest.candidate_runtime_artifacts.is_empty() {
@@ -1190,7 +1236,7 @@ pub fn verify_manifest_artifact_files(
     let mut candidate_output_verified = 0;
     let mut evaluator_verified = 0;
     let mut candidate_paths = BTreeSet::new();
-    let mut evaluator_paths = BTreeSet::new();
+    let mut evaluator_paths: BTreeMap<&str, &str> = BTreeMap::new();
 
     for artifact in &manifest.candidate_runtime_artifacts {
         if !candidate_paths.insert(artifact.relative_path.as_str()) {
@@ -1262,9 +1308,13 @@ pub fn verify_manifest_artifact_files(
             candidate_input_verified += 1;
         }
         for artifact in &scene.evaluator_artifacts {
-            if !evaluator_paths.insert(artifact.relative_path.as_str()) {
+            if let Some(previous_digest) = evaluator_paths.insert(
+                artifact.relative_path.as_str(),
+                artifact.sha256.as_str(),
+            ) && previous_digest != artifact.sha256.as_str()
+            {
                 return Err(format!(
-                    "duplicate evaluator relative_path: {}",
+                    "evaluator path {} is declared with conflicting SHA-256 digests",
                     artifact.relative_path
                 ));
             }
@@ -1384,6 +1434,9 @@ pub fn audit_manifest_bytes(bytes: &[u8]) -> Result<ReplayAuditReport, String> {
             manifest.tolerance_profile.decision_policy,
         )
         .to_owned(),
+        tolerance_uncertainty_model_id: manifest.tolerance_profile.uncertainty_model_id,
+        tolerance_coverage_probability: manifest.tolerance_profile.coverage_probability,
+        tolerance_coverage_factor: manifest.tolerance_profile.coverage_factor,
         reference_surface_spacing_m: manifest.sampling_profile.reference_surface_spacing_m,
         scan_voxel_size_m: manifest.sampling_profile.scan_voxel_size_m,
         distance_cutoff_m: manifest.sampling_profile.distance_cutoff_m,
@@ -1674,6 +1727,78 @@ mod tests {
     }
 
     #[test]
+    fn rejects_non_isprs_suite_claiming_published_metric_authority() {
+        let mut value = fixture_value();
+        value["metric_profile"]["definition_authority"] =
+            serde_json::json!("official_results_page");
+        let error = audit(&value).expect_err("published authority cannot label a synthetic suite");
+        assert!(error.contains("non-ISPRS metric suites must use project_defined authority"));
+    }
+
+    #[test]
+    fn rejects_statistical_interval_without_uncertainty_model_and_coverage() {
+        let mut value = fixture_value();
+        value["tolerance_profile"]["decision_policy"] =
+            serde_json::json!("statistical_interval");
+        let error = audit(&value).expect_err("statistical decisions require explicit assumptions");
+        assert!(error.contains("requires uncertainty_model_id"));
+    }
+
+    #[test]
+    fn accepts_statistical_interval_with_explicit_model_and_coverage() {
+        let mut value = fixture_value();
+        value["tolerance_profile"]["decision_policy"] =
+            serde_json::json!("statistical_interval");
+        value["tolerance_profile"]["uncertainty_model_id"] =
+            serde_json::json!("synthetic-gaussian-normal-error-v1");
+        value["tolerance_profile"]["coverage_probability"] = serde_json::json!(0.95);
+        value["tolerance_profile"]["coverage_factor"] = serde_json::json!(1.96);
+        let report = audit(&value).expect("statistical profile has explicit uncertainty assumptions");
+        assert_eq!(
+            report.tolerance_uncertainty_model_id.as_deref(),
+            Some("synthetic-gaussian-normal-error-v1")
+        );
+        assert_eq!(report.tolerance_coverage_probability, Some(0.95));
+        assert_eq!(report.tolerance_coverage_factor, Some(1.96));
+    }
+
+    #[test]
+    fn allows_shared_evaluator_reference_path_with_identical_digest() {
+        let mut value = fixture_value();
+        let shared_path = value["scenes"][0]["evaluator_artifacts"][0]["relative_path"].clone();
+        let shared_digest = value["scenes"][0]["evaluator_artifacts"][0]["sha256"].clone();
+        value["scenes"][1]["evaluator_artifacts"][0]["relative_path"] = shared_path;
+        value["scenes"][1]["evaluator_artifacts"][0]["sha256"] = shared_digest;
+
+        let (candidate, evaluator) = synthetic_data_roots();
+        let summary = super::verify_manifest_artifact_files(
+            value.to_string().as_bytes(),
+            &candidate,
+            &evaluator,
+        )
+        .expect("distinct acquisition records may share one physical reference artifact");
+        assert_eq!(summary.evaluator_verified, 2);
+    }
+
+    #[test]
+    fn rejects_shared_evaluator_reference_path_with_conflicting_digest() {
+        let mut value = fixture_value();
+        let shared_path = value["scenes"][0]["evaluator_artifacts"][0]["relative_path"].clone();
+        value["scenes"][1]["evaluator_artifacts"][0]["relative_path"] = shared_path;
+        value["scenes"][1]["evaluator_artifacts"][0]["sha256"] =
+            serde_json::json!("0000000000000000000000000000000000000000000000000000000000000000");
+
+        let (candidate, evaluator) = synthetic_data_roots();
+        let error = super::verify_manifest_artifact_files(
+            value.to_string().as_bytes(),
+            &candidate,
+            &evaluator,
+        )
+        .expect_err("one evaluator file cannot have multiple declared digests");
+        assert!(error.contains("conflicting SHA-256 digests"));
+    }
+
+    #[test]
     fn rejects_candidate_output_with_wrong_scene_binding() {
         let mut value = fixture_value();
         value["candidate_outputs"][0]["scene_id"] = serde_json::json!("SCENE-NOT-IN-MANIFEST");
@@ -1716,7 +1841,7 @@ mod tests {
         assert_eq!(report.pipeline_id, "synthetic-scan-bim-candidate-v0.2");
         assert_eq!(report.metric_suite_version, "0.3");
         assert_eq!(report.metric_accuracy_direction, "reference_to_candidate");
-        assert_eq!(report.metric_definition_authority, "official_results_page");
+        assert_eq!(report.metric_definition_authority, "project_defined");
         assert_eq!(
             report.metric_accuracy_sample_strategy,
             "reference_surface_samples"
