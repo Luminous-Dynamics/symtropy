@@ -248,24 +248,22 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
         if let Some(previous) = building_splits.insert(
             scene.building_group_id.as_str(),
             scene.split_group_id.as_str(),
-        ) {
-            if previous != scene.split_group_id.as_str() {
-                return Err(format!(
-                    "building {} crosses split groups",
-                    scene.building_group_id
-                ));
-            }
+        ) && previous != scene.split_group_id.as_str()
+        {
+            return Err(format!(
+                "building {} crosses split groups",
+                scene.building_group_id
+            ));
         }
         if let Some(previous) = capture_splits.insert(
             scene.capture_group_id.as_str(),
             scene.split_group_id.as_str(),
-        ) {
-            if previous != scene.split_group_id.as_str() {
-                return Err(format!(
-                    "capture lineage {} crosses split groups",
-                    scene.capture_group_id
-                ));
-            }
+        ) && previous != scene.split_group_id.as_str()
+        {
+            return Err(format!(
+                "capture lineage {} crosses split groups",
+                scene.capture_group_id
+            ));
         }
 
         if scene.candidate_inputs.is_empty() {
