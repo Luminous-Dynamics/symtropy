@@ -799,6 +799,15 @@ pub fn evaluate(request: &ResponseVectorRequest) -> Result<ResponseVectorResult>
             .cross_source
             .as_ref()
             .map(|block| block.source_id.clone()),
+        cross_source_uncertainty: request.uncertainty.cross_source.as_ref().map(|block| {
+            UncertaintySourceReceipt {
+                source_id: block.source_id.clone(),
+                artifact_sha256: block.artifact_sha256.clone(),
+                estimator_build_sha256: block.estimator_build_sha256.clone(),
+                calibration_dataset_sha256: block.calibration_dataset_sha256.clone(),
+                calibration_envelope_sha256: block.calibration_envelope_sha256.clone(),
+            }
+        }),
         decision_status,
         decision_limit_d2: limit_d2,
         decision_limit_max_abs_marginal_z: limit_z,
