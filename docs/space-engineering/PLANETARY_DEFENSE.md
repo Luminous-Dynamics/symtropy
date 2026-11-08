@@ -29,7 +29,7 @@ This programme should build on established public systems and flight evidence ra
 
 - DART struck Dimorphos on 2022-09-26. The observed mutual-orbit period change was approximately −33.0 ± 1.0 minutes (3σ); published analysis inferred an along-track velocity change of 2.70 ± 0.10 mm/s (1σ). These are historical benchmark measurements.
 - DART did not establish a universal momentum-transfer coefficient. The response depends on target mass, density, porosity, cohesion, shape, spin, impact geometry and ejecta physics; uncertainty in target mass materially affects inferred parameters.
-- ESA's Hera spacecraft is in its target-approach phase in November 2026. ESA reported separate resolution of Didymos and Dimorphos in late October, with the first detailed post-impact images announced for 2026-11-25. The mission's purpose is to characterize the DART impact outcome and improve the physical understanding of kinetic impact deflection. Do not claim Hera's full post-impact characterization results before those data are released and analyzed.
+- ESA's Hera spacecraft arrived at the Didymos–Dimorphos system on 2026-11-04 (JST). JAXA reported first thermal imaging of the binary asteroid system on 2026-11-06. As of this baseline date (2026-11-08), Hera is in its Early Characterization Phase: simultaneous imaging and measurements are intended to constrain mass, shape, orbital dynamics and rotation. The mission plan lists Detailed Characterization beginning 2026-12-02, CubeSat deployment in January 2027, and dedicated close observation of the DART impact crater beginning in February 2027. A 2026-11-25 arrival/science event is expected, but do not treat planned data releases or first thermal images as final parameter estimates. No post-impact mass, internal-structure or crater-physics result is claimed here.
 
 ### Impact-monitoring algorithm baseline
 
@@ -59,6 +59,14 @@ References:
 - Brahe: https://docs.brahe.space/latest/ and https://arxiv.org/abs/2601.06452
 - Horizons: https://ssd.jpl.nasa.gov/horizons/manual.html
 - SBDB API: https://ssd-api.jpl.nasa.gov/doc/sbdb.html
+
+### Reuse the existing comparative benchmark methodology
+
+Brahe's current public benchmark suite covers 32 tasks across eight general astrodynamics modules and compares against OreKit 13.1.5, GMAT R2026a, Basilisk and Nyx/ANISE where equivalent public APIs exist. Its published protocol separates performance (200 iterations on fixed inputs) from accuracy (a sweep of 200 independent initial conditions), and reports p50/p95/p99/maximum error distributions rather than a single mean. The docs explicitly warn that comparisons must be apples-to-apples: different frames, gravity models, API setup costs and unsupported operations can create misleading comparisons.
+
+Symtropy should reuse this protocol and task taxonomy where applicable. Do not duplicate the generic 32-task suite. Add a domain-specific NEO extension for heliocentric state propagation, observation residuals, orbit-determination consistency, encounter/B-plane geometry, virtual-impactor discovery, rare-event probability estimation, posterior calibration and time-sliced historical impact replay. Use OreKit/Brahe/Nyx/ANISE as implementation comparators, SPICE/Horizons as convention-matched ephemeris references, and CNEOS outputs as operational impact-monitoring comparisons. No single software package is ground truth for every NEO quantity; independent reference products and physical event truth must remain distinct.
+
+Reference methodology: https://docs.brahe.space/latest/about/benchmarks.html
 
 ### What this baseline means
 
@@ -351,8 +359,9 @@ A queued test is not a pass. A model result without source and configuration is 
 - Thomas et al., “Orbital period change of Dimorphos due to the DART kinetic impact,” Nature (2023): https://www.nature.com/articles/s41586-023-05805-2
 - Cheng et al., “Momentum transfer from the DART mission kinetic impact on asteroid Dimorphos,” Nature (2023): https://www.nature.com/articles/s41586-023-05878-z
 - ESA Hera mission: https://www.esa.int/Space_Safety/Hera
+- JAXA/Hera-Japan first thermal imaging report (2026-11-06) and arrival confirmation (2026-11-04 JST): https://hera.isas.jaxa.jp/wp-hera/en/date/2026/11/
+- Hera observation/operations plan (2026-11-02): https://hera.isas.jaxa.jp/wp-hera/en/4827/
 - ESA first separate resolution of Didymos and Dimorphos (2026-10-27): https://www.esa.int/Space_Safety/Hera/First_light_Hera_resolves_two_asteroids_instead_of_one
-- ESA Hera approach sequence (2026-11-05): https://www.esa.int/ga/media/about-us/directorates/operations/space-safety/hera/hera-s-approach-to-target-asteroids
 
 ### Data-exchange and evidence standards
 - CCSDS Orbit Data Messages, CCSDS 502.0-B-3 (with June 2026 technical corrigendum): https://ccsds.org/publications/allpubs/entry/3073/
