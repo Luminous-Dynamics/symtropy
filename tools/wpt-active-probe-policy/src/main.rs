@@ -127,6 +127,10 @@ pub fn parse_case(input: &str) -> Result<ProbeCase, Vec<String>> {
             }
         } else {
             metadata = Some(meta.clone());
+            if fields[0].trim().is_empty() || fields[0].trim() != fields[0] {
+                errors.push(format!("line {line_no}: case_id must be a non-empty trimmed string"));
+                continue;
+            }
             let pose_ids = match parse_list(fields[4], "pose_ids", |s, _| {
                 if s.trim().is_empty() { Err("pose ID must be non-empty".into()) } else { Ok(s.to_string()) }
             }) {
@@ -214,6 +218,7 @@ pub fn parse_case(input: &str) -> Result<ProbeCase, Vec<String>> {
     if let Some(c) = &mut case {
         c.actions.sort_by(|a, b| a.id.cmp(&b.id));
         if c.actions.is_empty() { errors.push("case contains no probe actions".into()); }
+        if c.actions.len() > MAX_ACTIONS { errors.push(format!("action library exceeds v0 limit of {MAX_ACTIONS}")); }
     } else if errors.is_empty() {
         errors.push("case contains no usable metadata row".into());
     }
