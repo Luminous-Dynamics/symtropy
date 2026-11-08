@@ -78,6 +78,10 @@ fn sha256_hex(bytes: &[u8]) -> String {
     output
 }
 
+fn norm_squared(vector: [f64; 3]) -> f64 {
+    vector[0] * vector[0] + vector[1] * vector[1] + vector[2] * vector[2]
+}
+
 fn valid_sha256(value: &str) -> bool {
     value.len() == 64
         && value
@@ -432,6 +436,22 @@ fn push_unique(set: &mut BTreeSet<u32>, value: u32, label: &str) -> ParseResult<
     Ok(())
 }
 
+fn validate_component_digits(value: &str, label: &str) -> ParseResult<()> {
+    if value.is_empty()
+        || !value
+            .bytes()
+            .all(|byte| (b'1'..=b'6').contains(&byte))
+    {
+        return fail(format!("{label}: components must contain only digits 1 through 6"));
+    }
+    let bytes = value.as_bytes();
+    let mut unique = BTreeSet::new();
+    if bytes.iter().any(|byte| !unique.insert(*byte)) {
+        return fail(format!("{label}: duplicate component digit"));
+    }
+    Ok(())
+}
+
 fn parse_spc1(
     card: &Card,
     refs: &mut BTreeSet<u32>,
@@ -439,7 +459,8 @@ fn parse_spc1(
 ) -> ParseResult<()> {
     let sid = parse_id(required_text(card, 0, "SID")?, "SPC1 SID")?;
     set_ids.insert(sid);
-    let _components = required_text(card, 1, "component")?;
+    let components = required_text(card, 1, "component")?;
+    validate_component_digits(components, "SPC1 components")?;
     let mut index = 2usize;
     while index < card.fields.len() {
         let token = field(card, index, "grid/THRU")?;
@@ -473,6 +494,57 @@ fn parse_spc1(
     Ok(())
 }
 
+fn case_control_references(
+    executive_control: &[String],
+) -> ParseResult<(BTreeSet<u32>, BTreeSet<u32>)> {
+    let mut selected_spc = BTreeSet::new();
+    let mut selected_load = BTreeSet::new();
+    for line in executive_control {
+        let Some((key, value)) = line.split_once('=') else {
+            continue;
+        };
+        let key = key.trim().to_ascii_uppercase();
+        if key == "SPC" {
+            selected_spc.insert(parse_id(value.trim(), "case-control SPC")?);
+        } else if key == "LOAD" {
+            selected_load.insert(parse_id(value.trim(), "case-control LOAD")?);
+        }
+    }
+    Ok((selected_spc, selected_load))
+}
+
+fn visit_load_set(
+    sid: u32,
+    dependencies: &BTreeMap<u32, BTreeSet<u32>>,
+    force_set_ids: &BTreeSet<u32>,
+    visiting: &mut BTreeSet<u32>,
+    completed: &mut BTreeSet<u32>,
+) -> ParseResult<()> {
+    if force_set_ids.contains(&sid) {
+        if dependencies.contains_key(&sid) {
+            return fail(format!(
+                "load set ID {sid} is ambiguously defined by both LOAD and FORCE cards"
+            ));
+        }
+        return Ok(());
+    }
+    if completed.contains(&sid) {
+        return Ok(());
+    }
+    let Some(children) = dependencies.get(&sid) else {
+        return fail(format!("LOAD references unresolved load set ID {sid}"));
+    };
+    if !visiting.insert(sid) {
+        return fail(format!("cyclic LOAD dependency detected at set {sid}"));
+    }
+    for child in children {
+        visit_load_set(*child, dependencies, force_set_ids, visiting, completed)?;
+    }
+    visiting.remove(&sid);
+    completed.insert(sid);
+    Ok(())
+}
+
 fn build_inventory(deck: &Deck) -> ParseResult<Inventory> {
     let mut inventory = Inventory {
         claim_ceiling: "syntax_and_topology_inventory_only",
@@ -484,12 +556,13 @@ fn build_inventory(deck: &Deck) -> ParseResult<Inventory> {
     let mut property_materials = BTreeMap::new();
     let mut material_ids = BTreeSet::new();
     let mut beam_grid_refs = BTreeSet::new();
+    let mut beam_property_refs = BTreeSet::new();
     let mut rbe_grid_refs = BTreeSet::new();
     let mut spc_grid_refs = BTreeSet::new();
     let mut force_grid_refs = BTreeSet::new();
     let mut force_set_ids = BTreeSet::new();
     let mut load_set_ids = BTreeSet::new();
-    let mut load_refs = BTreeSet::new();
+    let mut load_dependencies = BTreeMap::<u32, BTreeSet<u32>>::new();
 
     for card in &deck.cards {
         *inventory.card_counts.entry(card.name.clone()).or_insert(0) += 1;
@@ -503,8 +576,16 @@ fn build_inventory(deck: &Deck) -> ParseResult<Inventory> {
                 let id = parse_id(required_text(card, 0, "GRID ID")?, "GRID ID")?;
                 push_unique(&mut grid_ids, id, "GRID")?;
                 let cp = field(card, 1, "GRID CP")?;
-                if !cp.is_empty() {
-                    parse_u32(cp, "GRID CP")?;
+                if !cp.is_empty() && parse_u32(cp, "GRID CP")? != 0 {
+                    return fail(format!(
+                        "GRID {id}: non-basic coordinate system CP is outside the v0.1 parser"
+                    ));
+                }
+                let cd = field(card, 5, "GRID CD")?;
+                if !cd.is_empty() && parse_u32(cd, "GRID CD")? != 0 {
+                    return fail(format!(
+                        "GRID {id}: non-basic displacement coordinate system CD is unsupported"
+                    ));
                 }
                 validate_numeric_if_present(card, &[2, 3, 4])?;
                 for index in [2usize, 3, 4] {
@@ -515,7 +596,8 @@ fn build_inventory(deck: &Deck) -> ParseResult<Inventory> {
             }
             "CBEAM" => {
                 let eid = parse_id(required_text(card, 0, "CBEAM EID")?, "CBEAM EID")?;
-                let _pid = parse_id(required_text(card, 1, "CBEAM PID")?, "CBEAM PID")?;
+                let pid = parse_id(required_text(card, 1, "CBEAM PID")?, "CBEAM PID")?;
+                beam_property_refs.insert(pid);
                 let ga = parse_id(required_text(card, 2, "CBEAM GA")?, "CBEAM GA")?;
                 let gb = parse_id(required_text(card, 3, "CBEAM GB")?, "CBEAM GB")?;
                 if ga == gb {
@@ -534,6 +616,16 @@ fn build_inventory(deck: &Deck) -> ParseResult<Inventory> {
                     ));
                 }
                 validate_numeric_if_present(card, &[4, 5, 6])?;
+                if present == 3 {
+                    let vector = [
+                        parse_nastran_float(&orientation[0], "CBEAM orientation X")?,
+                        parse_nastran_float(&orientation[1], "CBEAM orientation Y")?,
+                        parse_nastran_float(&orientation[2], "CBEAM orientation Z")?,
+                    ];
+                    if norm_squared(vector) <= 1.0e-24 {
+                        return fail(format!("CBEAM {eid}: zero orientation vector"));
+                    }
+                }
             }
             "MAT1" => {
                 let mid = parse_id(required_text(card, 0, "MAT1 MID")?, "MAT1 MID")?;
@@ -555,8 +647,10 @@ fn build_inventory(deck: &Deck) -> ParseResult<Inventory> {
                 let grid = parse_id(required_text(card, 1, "CONM2 GRID")?, "CONM2 GRID")?;
                 push_unique(&mut element_ids, eid, "element")?;
                 let cid = field(card, 2, "CONM2 CID")?;
-                if !cid.is_empty() {
-                    parse_u32(cid, "CONM2 CID")?;
+                if !cid.is_empty() && parse_u32(cid, "CONM2 CID")? != 0 {
+                    return fail(format!(
+                        "CONM2 {eid}: non-basic coordinate system CID is unsupported"
+                    ));
                 }
                 let mass =
                     parse_nastran_float(required_text(card, 3, "CONM2 mass")?, "CONM2 mass")?;
@@ -578,7 +672,8 @@ fn build_inventory(deck: &Deck) -> ParseResult<Inventory> {
                     required_text(card, 1, "RBE2 independent GRID")?,
                     "RBE2 independent GRID",
                 )?;
-                let _components = required_text(card, 2, "RBE2 components")?;
+                let components = required_text(card, 2, "RBE2 components")?;
+                validate_component_digits(components, "RBE2 components")?;
                 push_unique(&mut element_ids, eid, "element")?;
                 inventory.rbe2_ids.insert(eid);
                 rbe_grid_refs.insert(independent);
@@ -613,14 +708,7 @@ fn build_inventory(deck: &Deck) -> ParseResult<Inventory> {
                 for index in (1..end).step_by(3) {
                     let grid = parse_id(field(card, index, "SPC GRID")?, "SPC GRID")?;
                     let components = required_text(card, index + 1, "SPC component")?;
-                    if !components
-                        .bytes()
-                        .all(|byte| byte.is_ascii_digit() && byte <= b'6')
-                    {
-                        return fail(format!(
-                            "SPC {sid}: invalid component digits {components:?}"
-                        ));
-                    }
+                    validate_component_digits(components, &format!("SPC {sid} components"))?;
                     parse_nastran_float(field(card, index + 2, "SPC value")?, "SPC value")?;
                     spc_grid_refs.insert(grid);
                 }
@@ -632,8 +720,10 @@ fn build_inventory(deck: &Deck) -> ParseResult<Inventory> {
                 let sid = parse_id(required_text(card, 0, "FORCE SID")?, "FORCE SID")?;
                 let grid = parse_id(required_text(card, 1, "FORCE GRID")?, "FORCE GRID")?;
                 let cid = field(card, 2, "FORCE CID")?;
-                if !cid.is_empty() {
-                    parse_u32(cid, "FORCE CID")?;
+                if !cid.is_empty() && parse_u32(cid, "FORCE CID")? != 0 {
+                    return fail(format!(
+                        "FORCE SID {sid}: non-basic coordinate system CID is unsupported"
+                    ));
                 }
                 for index in [3usize, 4, 5, 6] {
                     parse_nastran_float(field(card, index, "FORCE numeric")?, "FORCE numeric")?;
@@ -643,7 +733,11 @@ fn build_inventory(deck: &Deck) -> ParseResult<Inventory> {
             }
             "LOAD" => {
                 let sid = parse_id(required_text(card, 0, "LOAD SID")?, "LOAD SID")?;
+                if load_dependencies.contains_key(&sid) {
+                    return fail(format!("duplicate LOAD set ID {sid}"));
+                }
                 load_set_ids.insert(sid);
+                let mut dependencies = BTreeSet::new();
                 parse_nastran_float(field(card, 1, "LOAD scale")?, "LOAD scale")?;
                 let end = card
                     .fields
@@ -656,11 +750,12 @@ fn build_inventory(deck: &Deck) -> ParseResult<Inventory> {
                 }
                 for index in (2..end).step_by(2) {
                     parse_nastran_float(field(card, index, "LOAD scale factor")?, "LOAD factor")?;
-                    load_refs.insert(parse_id(
+                    dependencies.insert(parse_id(
                         field(card, index + 1, "LOAD set ID")?,
                         "LOAD set ID",
                     )?);
                 }
+                load_dependencies.insert(sid, dependencies);
             }
             "PARAM" => {
                 let _name = required_text(card, 0, "PARAM name")?;
@@ -672,6 +767,11 @@ fn build_inventory(deck: &Deck) -> ParseResult<Inventory> {
         }
     }
 
+    for pid in &beam_property_refs {
+        if !property_materials.contains_key(pid) {
+            return fail(format!("CBEAM references missing PBEAM property ID {pid}"));
+        }
+    }
     for (pid, mid) in &property_materials {
         if !material_ids.contains(mid) {
             return fail(format!("PBEAM {pid}: referenced MAT1 MID {mid} is missing"));
@@ -690,12 +790,33 @@ fn build_inventory(deck: &Deck) -> ParseResult<Inventory> {
             return fail(format!("referenced GRID {grid} does not exist"));
         }
     }
-    for load_ref in &load_refs {
-        if !force_set_ids.contains(load_ref) {
-            return fail(format!(
-                "LOAD references set {load_ref}, but no FORCE entry with that SID was admitted"
-            ));
+    let mut visiting = BTreeSet::new();
+    let mut completed = BTreeSet::new();
+    for sid in load_dependencies.keys() {
+        visit_load_set(
+            *sid,
+            &load_dependencies,
+            &force_set_ids,
+            &mut visiting,
+            &mut completed,
+        )?;
+    }
+
+    let (selected_spc_sets, selected_load_sets) =
+        case_control_references(&deck.executive_control)?;
+    for sid in &selected_spc_sets {
+        if !inventory.spc_set_ids.contains(sid) {
+            return fail(format!("case control selects missing SPC set {sid}"));
         }
+    }
+    for sid in &selected_load_sets {
+        visit_load_set(
+            *sid,
+            &load_dependencies,
+            &force_set_ids,
+            &mut visiting,
+            &mut completed,
+        )?;
     }
 
     // A GRID not referenced by an element, rigid link, constraint or force is
