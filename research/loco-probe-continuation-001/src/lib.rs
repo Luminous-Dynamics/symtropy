@@ -14,6 +14,9 @@ pub struct ViabilityReceipt {
     pub state_digest: String,
     pub abstraction_digest: String,
     pub assurance_receipt_id: String,
+    /// Digests of the exact, separately qualified finite result sets.
+    pub viability_result_digest: String,
+    pub recovery_result_digest: String,
     pub valid_from_ns: u64,
     pub valid_until_ns: u64,
     pub horizon_steps: u32,
@@ -97,6 +100,8 @@ pub struct ProbeProblem {
     pub viability_receipt: ViabilityReceipt,
     pub execution_receipt: ProbeExecutionReceipt,
     pub viable_states_by_remaining_horizon: Vec<HorizonStateSet>,
+    /// Kept distinct from viability: these are qualified recovery/hold targets.
+    pub recovery_states_by_remaining_horizon: Vec<HorizonStateSet>,
     pub outcomes: Vec<ObservationOutcome>,
     pub branches: Vec<ProbeBranch>,
     pub continuation_actions: Vec<ContinuationAction>,
