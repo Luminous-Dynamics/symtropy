@@ -1,0 +1,112 @@
+{
+  "schema_version": "aero-structural-observability-fixture/0.1.0",
+  "problem_id": "SYNTHETIC-WING-2PARAM-OBSERVABILITY-001",
+  "claim_ceiling": "synthetic_linear_fisher_observability_only",
+  "model_assumptions": {
+    "parameter_names": [
+      "normalized_bending_load_scale",
+      "normalized_torsional_stiffness_change"
+    ],
+    "observation_model": "linearized_static_sensitivity",
+    "noise_model": "independent_zero_mean_gaussian_sensor_noise",
+    "sensitivity_units": "dimensionless_normalized",
+    "noise_standard_uncertainty_units": "dimensionless_normalized",
+    "physical_aircraft_model": false,
+    "calibration_model": "synthetic_reference_only"
+  },
+  "constraints": {
+    "d_opt_sensor_count": 2,
+    "e_opt_sensor_count": 2,
+    "robust_e_opt_sensor_count": 3,
+    "sensor_dropout_budget": 1,
+    "maximum_total_cost_units": 3.0
+  },
+  "sensors": [
+    {
+      "sensor_id": "S1",
+      "sensor_type": "strain_gauge",
+      "span_eta": 0.15,
+      "chord_x_over_c": 0.25,
+      "sensitivity": [1.0, 0.0],
+      "noise_standard_uncertainty": 1.0,
+      "calibration_admitted": true,
+      "calibration_reference_id": "synthetic-reference-v1",
+      "deployment_cost_units": 1.0,
+      "mass_g": 10.0,
+      "power_mw": 100.0
+    },
+    {
+      "sensor_id": "S2",
+      "sensor_type": "strain_gauge",
+      "span_eta": 0.50,
+      "chord_x_over_c": 0.25,
+      "sensitivity": [0.0, 1.0],
+      "noise_standard_uncertainty": 1.0,
+      "calibration_admitted": true,
+      "calibration_reference_id": "synthetic-reference-v1",
+      "deployment_cost_units": 1.0,
+      "mass_g": 10.0,
+      "power_mw": 100.0
+    },
+    {
+      "sensor_id": "S3",
+      "sensor_type": "fiber_optic_strain",
+      "span_eta": 0.25,
+      "chord_x_over_c": 0.75,
+      "sensitivity": [1.0, 1.0],
+      "noise_standard_uncertainty": 1.4142135623730951,
+      "calibration_admitted": true,
+      "calibration_reference_id": "synthetic-reference-v1",
+      "deployment_cost_units": 1.0,
+      "mass_g": 15.0,
+      "power_mw": 150.0
+    },
+    {
+      "sensor_id": "S4",
+      "sensor_type": "strain_gauge",
+      "span_eta": 0.75,
+      "chord_x_over_c": 0.75,
+      "sensitivity": [1.0, -1.0],
+      "noise_standard_uncertainty": 1.0,
+      "calibration_admitted": true,
+      "calibration_reference_id": "synthetic-reference-v1",
+      "deployment_cost_units": 1.0,
+      "mass_g": 15.0,
+      "power_mw": 150.0
+    },
+    {
+      "sensor_id": "S5",
+      "sensor_type": "fiber_optic_strain",
+      "span_eta": 0.10,
+      "chord_x_over_c": 0.50,
+      "sensitivity": [2.0, 0.0],
+      "noise_standard_uncertainty": 2.0,
+      "calibration_admitted": true,
+      "calibration_reference_id": "synthetic-reference-v1",
+      "deployment_cost_units": 1.0,
+      "mass_g": 12.0,
+      "power_mw": 80.0
+    },
+    {
+      "sensor_id": "S6",
+      "sensor_type": "fiber_optic_strain",
+      "span_eta": 0.90,
+      "chord_x_over_c": 0.50,
+      "sensitivity": [0.0, 2.0],
+      "noise_standard_uncertainty": 2.0,
+      "calibration_admitted": true,
+      "calibration_reference_id": "synthetic-reference-v1",
+      "deployment_cost_units": 1.0,
+      "mass_g": 12.0,
+      "power_mw": 80.0
+    }
+  ],
+  "expected": {
+    "d_opt_sensor_ids": ["S3", "S4"],
+    "d_opt_determinant": 2.0,
+    "e_opt_sensor_ids": ["S1", "S2"],
+    "e_opt_minimum_eigenvalue": 1.0,
+    "robust_e_opt_sensor_ids": ["S1", "S2", "S4"],
+    "robust_e_opt_worst_case_minimum_eigenvalue": 0.3819660112501051
+  }
+}
