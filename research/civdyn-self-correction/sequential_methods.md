@@ -62,7 +62,7 @@ is a nonnegative supermartingale under the corresponding Gaussian composite null
 
 Each direction receives alpha = 0.025, giving an e-value threshold of 40. Ville's inequality controls optional stopping separately for each direction; a union bound controls either directional declaration at 0.05 per episode. This guarantee depends on the declared known-variance Gaussian sampling model. It is not distribution-free.
 
-The zero-effect null and the minimum-benefit boundary are separate confirmatory controls. The first stresses false harmful declarations at effect 0; the second stresses false benefit declarations at the minimum worthwhile effect of 0.5. Each has 256 frozen seed episodes per method. Both are required to remain within the declared false-directional-decision gate.
+The zero-effect null and the minimum-benefit boundary are separate confirmatory controls. The first stresses false harmful declarations at effect 0; the second stresses false benefit declarations at the minimum worthwhile effect of 0.5. Each has 256 frozen seed episodes per method. Both are required to remain within the declared false-directional-decision gate. The fixed seed reference produces the following independent replay counts across 256 episodes per method and boundary: the zero-effect boundary has 5/256, 2/256, 7/256, 8/256 and 7/256 false directional decisions for fixed-horizon, conservative four-look, O'Brien-Fleming, Pocock and Gaussian mixture e-process respectively; the minimum-benefit boundary has 7/256, 0/256, 5/256, 2/256 and 5/256. These are synthetic Monte Carlo observations, not theoretical guarantees or empirical-world estimates.
 
 The 256 simulated episodes per regime are Monte Carlo replications used to estimate operating characteristics. The per-episode alpha guarantee is not a family-wise guarantee across all 256 episodes, all regions, all agents or repeated real-world deployments. Operational use would require explicit multiplicity allocation, recycling or hierarchical testing.
 
@@ -72,7 +72,7 @@ The benchmark can test:
 
 - Correct implementation of the stated synthetic Gaussian procedures.
 - Method comparisons on identical paired observations.
-- Sample-use and operating-characteristic differences across the five frozen endpoint regimes.
+- Sample-use and operating-characteristic differences across the six frozen endpoint regimes, including both directional null boundaries.
 - Optional stopping behavior under the declared null and variance assumptions.
 - Whether lack of benefit evidence remains distinct from evidence of harm.
 
