@@ -20,7 +20,7 @@ pub const MATCHED_PROBE_PAIRS: usize = 512;
 pub const OUTCOME_NOISE_SD: f64 = 2.0;
 pub const PROBE_CI_Z: f64 = 1.96;
 pub const MONTE_CARLO_CUSUM_ALLOWANCE: f64 = 0.25;
-pub const MONTE_CARLO_CUSUM_THRESHOLD: f64 = 5.0;
+pub const MONTE_CARLO_CUSUM_THRESHOLD: f64 = 7.0;
 pub const MONTE_CARLO_PROBE_COST: f64 = 0.25;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -295,7 +295,11 @@ pub struct MonteCarloSummary {
     pub correct_diagnosis_rate: f64,
     pub correct_diagnosis_ci_low: f64,
     pub correct_diagnosis_ci_high: f64,
+    pub premature_alarm_ci_low: f64,
+    pub premature_alarm_ci_high: f64,
     pub false_diagnosis_rate: f64,
+    pub false_diagnosis_ci_low: f64,
+    pub false_diagnosis_ci_high: f64,
     pub mean_signal_detection_delay_ticks: Option<f64>,
     pub mean_diagnosis_after_signal_ticks: Option<f64>,
     pub mean_active_after_nonpositive_effect_ticks: f64,
@@ -450,9 +454,9 @@ fn run_episode(
         .zip(onset)
         .is_some_and(|(detected, onset_tick)| detected < onset_tick)
         || (onset.is_none() && signal_tick.is_some());
-    let diagnosis_after_signal_ticks = diagnosis_tick.zip(signal_tick).map(
-        |(diagnosed, detected)| diagnosed.saturating_sub(detected),
-    );
+    let diagnosis_after_signal_ticks = diagnosis_tick
+        .zip(signal_tick)
+        .and_then(|(diagnosed, detected)| (diagnosed >= detected).then_some(diagnosed - detected));
     let oracle_net_utility = (1..=8)
         .map(|tick| (regime.causal_effect(tick) - ACTION_COST).max(0.0))
         .sum::<f64>();
@@ -518,6 +522,10 @@ fn summarize(
         wilson_interval(signal_successes, count);
     let (correct_diagnosis_ci_low, correct_diagnosis_ci_high) =
         wilson_interval(correct, count);
+    let (premature_alarm_ci_low, premature_alarm_ci_high) =
+        wilson_interval(premature, count);
+    let (false_diagnosis_ci_low, false_diagnosis_ci_high) =
+        wilson_interval(false_diagnoses, count);
 
     MonteCarloSummary {
         regime,
@@ -530,7 +538,11 @@ fn summarize(
         correct_diagnosis_rate: correct as f64 / count as f64,
         correct_diagnosis_ci_low,
         correct_diagnosis_ci_high,
+        premature_alarm_ci_low,
+        premature_alarm_ci_high,
         false_diagnosis_rate: false_diagnoses as f64 / count as f64,
+        false_diagnosis_ci_low,
+        false_diagnosis_ci_high,
         mean_signal_detection_delay_ticks: mean(
             episodes
                 .iter()
@@ -709,6 +721,8 @@ mod tests {
                 .expect("summary exists");
             assert!(summary.premature_alarm_rate <= 0.05);
             assert!(summary.false_diagnosis_rate <= 0.05);
+            assert!(summary.premature_alarm_ci_high <= 0.10);
+            assert!(summary.false_diagnosis_ci_high <= 0.10);
             if controller == CausalDriftController::MechanismAware {
                 assert!(
                     summary.mean_probe_ci_coverage.unwrap_or_default() >= 0.90
