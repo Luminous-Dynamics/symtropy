@@ -1,0 +1,12 @@
+[package]
+name = "bh-source-spectrum-audit"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+publish = false
+description = "Analytic localized-source Fourier controls for QNM excitation research"
+
+[dependencies]
+num-complex = "0.4"
+
+[workspace]
