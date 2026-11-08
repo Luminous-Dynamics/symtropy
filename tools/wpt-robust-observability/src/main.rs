@@ -427,7 +427,7 @@ mod tests {
 
     #[test]
     fn expired_admissible_hypothesis_invalidates_entire_case() {
-        let expired = NOMINAL.replace("\t20\n", "\t4\n");
+        let expired = NOMINAL.replace("\t20", "\t4");
         assert!(parse_case(&expired).is_err());
     }
 
