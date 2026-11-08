@@ -16,12 +16,13 @@ from pathlib import Path
 from typing import Any
 
 HERE = Path(__file__).resolve().parent
-CATALOG = HERE / "dpw8-reference-catalog-v0.1.json"
+CATALOG = HERE / "dpw8-reference-catalog-v0.2.json"
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 ALLOWED_ACQUISITION = {
     "page_inspected",
     "listing_only",
     "text_preview_inspected_exact_bytes_not_acquired",
+    "linked_file_not_acquired",
 }
 ADMITTED_TERMS = {"reviewed_permitted", "public_domain_or_open_license_verified"}
 ADMITTED_ACQUISITION = {"bytes_acquired_and_verified"}
@@ -205,6 +206,16 @@ def validate_case(case: dict[str, Any], source_ids: set[str]) -> None:
     for source_id in case_sheet_refs:
         require(source_id in source_ids, f"{case_id}: dangling case-sheet source reference {source_id}")
 
+    data_refs = case.get("data_source_ids", [])
+    require(isinstance(data_refs, list), f"{case_id}.data_source_ids must be a list")
+    for source_id in data_refs:
+        require(source_id in source_ids, f"{case_id}: dangling data source reference {source_id}")
+
+    for channel in case.get("measurement_channels", []):
+        require(isinstance(channel, dict), f"{case_id}: measurement channel must be an object")
+        source_id = channel.get("source_id")
+        require(source_id in source_ids, f"{case_id}: dangling measurement-channel source {source_id}")
+
     ceiling = case.get("claim_ceiling")
     require(isinstance(ceiling, str) and ceiling.strip(), f"{case_id}: explicit claim ceiling required")
 
@@ -214,7 +225,7 @@ def math_is_positive(value: int | float) -> bool:
 
 
 def validate_catalog(data: dict[str, Any]) -> None:
-    require(data.get("schema_version") == "aero-reference-catalog/0.1.0", "unsupported schema_version")
+    require(data.get("schema_version") == "aero-reference-catalog/0.2.0", "unsupported schema_version")
     require(data.get("claim_ceiling") == "public_source_discovery_and_partial_content_inspection_only",
             "catalog claim ceiling was weakened or changed")
     policy = data.get("acquisition_policy")
@@ -318,6 +329,94 @@ def validate_catalog(data: dict[str, Any]) -> None:
             [-1.5, 2.5, 2.75, 3.0, 3.25, 3.5, 3.75, 4.0, 4.25],
             "rigid CRM Configuration B polar schedule mismatch")
 
+    # DPW-8 Buffet Working Group Test Case 3 is optional and dynamic.
+    # Its measurement streams have different operators, bandwidths and frames;
+    # do not promote them into one interchangeable response vector.
+    dynamic = next((case for case in cases if case["case_id"] == "DPW8-CRM-DYNAMIC-FSI-3"), None)
+    require(dynamic is not None, "CRM dynamic FSI Test Case 3 missing")
+    require(dynamic.get("required") is False, "CRM Test Case 3 must remain optional")
+    require(dynamic.get("workshop_status") == "optional_buffet_working_group_case",
+            "CRM Test Case 3 optional status changed")
+    conditions = dynamic.get("conditions", {})
+    require(conditions.get("mach") == 0.85, "CRM Test Case 3 Mach mismatch")
+    require(conditions.get("reynolds_chord") == 2_270_000, "CRM Test Case 3 Reynolds mismatch")
+    require(conditions.get("static_temperature_k") == 326.15, "CRM Test Case 3 static temperature mismatch")
+    require(conditions.get("total_pressure_kpa") == 12.0, "CRM Test Case 3 total pressure mismatch")
+    require(conditions.get("angles_of_attack_deg") == [3.05, 3.61, 4.70],
+            "CRM Test Case 3 angle schedule mismatch")
+    require(conditions.get("initial_geometry") == "unloaded_wind_off",
+            "CRM Test Case 3 must start from unloaded wind-off geometry")
+    require(dynamic.get("grid_family", {}).get("levels") == [1, 2, 3, 4, 5, 6],
+            "CRM Test Case 3 grid levels mismatch")
+
+    measurement_channels = dynamic.get("measurement_channels", [])
+    by_family = {item.get("channel_family"): item for item in measurement_channels}
+    expected_families = {
+        "integrated_balance",
+        "buffet_intensity",
+        "steady_pressure",
+        "unsteady_point_pressure",
+        "unsteady_surface_pressure",
+        "structural_deformation",
+    }
+    require(set(by_family) == expected_families, "CRM Test Case 3 measurement families changed")
+    require(
+        any("CD is N/A" in item for item in by_family["integrated_balance"].get("limitations", [])),
+        "PSP-simultaneous drag missingness must remain explicit",
+    )
+    require(
+        "Kulite" in by_family["unsteady_point_pressure"].get("instrument_or_method", ""),
+        "unsteady point pressure must preserve Kulite provenance",
+    )
+    require(
+        "uPSP" in by_family["unsteady_surface_pressure"].get("instrument_or_method", ""),
+        "surface pressure must preserve uPSP provenance",
+    )
+    upsp_limits = " ".join(by_family["unsteady_surface_pressure"].get("limitations", []))
+    require("low-pass" in upsp_limits, "uPSP camera low-pass effect must remain explicit")
+    require("masks" in upsp_limits, "uPSP reliability masks must remain explicit")
+    kulite_limits = " ".join(by_family["unsteady_point_pressure"].get("limitations", []))
+    require("9 kHz" in kulite_limits and "wind-tunnel noise" in kulite_limits,
+            "9 kHz tunnel-noise PSD feature must not be promoted to a structural mode")
+
+    structural_channel = by_family["structural_deformation"]
+    require(structural_channel.get("evidence_status") == "PENDING_NOT_PUBLISHED",
+            "official dynamic structural-deformation evidence must remain pending")
+    deformation = dynamic.get("deformation_evidence", {})
+    require(deformation.get("official_measurements_status") == "pending",
+            "official dynamic deformation measurements must remain pending")
+    require(deformation.get("preliminary_tip_deflection_mm") == [10, 12],
+            "preliminary JAXA tip-deflection note changed")
+    require(deformation.get("preliminary_angle_of_attack_deg") == 4.70,
+            "preliminary tip-deflection point must remain at alpha=4.70 deg")
+    require(deformation.get("preliminary_evidence_class") == "qualitative_only_not_validation",
+            "preliminary tip-deflection point cannot be promoted to validation data")
+    require(deformation.get("allow_as_quantitative_acceptance_threshold") is False,
+            "preliminary tip-deflection must not become a quantitative acceptance threshold")
+
+    spectral = dynamic.get("spectral_processing", {})
+    require(spectral.get("status") == "must_be_admitted_from_case3_artifact_headers_or_controlling_procedure",
+            "Test Case 3 spectral processing must be source-admitted")
+    require(spectral.get("time_step_s") is None and spectral.get("sampling_rate_hz") is None,
+            "Test Case 3 sampling values must not be invented")
+    require(spectral.get("window") is None and spectral.get("segment_length") is None
+            and spectral.get("overlap") is None and spectral.get("psd_normalization") is None,
+            "Test Case 3 PSD settings must remain unknown until source admission")
+    require("Do not copy Test Case 2" in spectral.get("explicit_non_inheritance", ""),
+            "Test Case 2 PSD settings must not be inherited into Test Case 3")
+
+    jaxa_index = next((source for source in sources if source["source_id"] == "jaxa-dpw8-test3-experimental-data-index"), None)
+    require(jaxa_index is not None, "JAXA Test Case 3 data index source missing")
+    require(jaxa_index.get("terms_status") == "all_rights_reserved_review_required",
+            "JAXA copyright/terms review state was changed")
+    require(jaxa_index.get("exact_bytes_acquired") is False and jaxa_index.get("sha256") is None,
+            "JAXA page inspection must not be promoted to acquired data bytes")
+    deformation_source = next((source for source in sources if source["source_id"] == "jaxa-dpw8-test3-preliminary-deformation-note"), None)
+    require(deformation_source is not None, "JAXA preliminary deformation note source missing")
+    require(any("official deformation measurements" in fact and "still pending" in fact
+                for fact in deformation_source.get("observed_facts", [])),
+            "JAXA official-deformation-pending statement must remain visible")
+
     format_observations = data.get("data_format_observations")
     require(isinstance(format_observations, dict), "data_format_observations missing")
     require(
@@ -373,6 +472,44 @@ def run_negative_controls(data: dict[str, Any]) -> None:
     bad = copy.deepcopy(data)
     bad["data_format_observations"]["optional_missing_value_sentinel"] = 0
     expect_rejected("missing_value_sentinel_mutation", lambda: validate_catalog(bad))
+
+    bad = copy.deepcopy(data)
+    case = next(x for x in bad["benchmark_cases"] if x["case_id"] == "DPW8-CRM-DYNAMIC-FSI-3")
+    case["required"] = True
+    expect_rejected("optional_dynamic_case_not_silently_promoted_to_required", lambda: validate_catalog(bad))
+
+    bad = copy.deepcopy(data)
+    case = next(x for x in bad["benchmark_cases"] if x["case_id"] == "DPW8-CRM-DYNAMIC-FSI-3")
+    case["deformation_evidence"]["preliminary_evidence_class"] = "quantitative_validation"
+    expect_rejected("preliminary_tip_deflection_not_validation", lambda: validate_catalog(bad))
+
+    bad = copy.deepcopy(data)
+    case = next(x for x in bad["benchmark_cases"] if x["case_id"] == "DPW8-CRM-DYNAMIC-FSI-3")
+    case["spectral_processing"]["sampling_rate_hz"] = 50000.0
+    expect_rejected("unadmitted_sampling_rate_not_invented", lambda: validate_catalog(bad))
+
+    bad = copy.deepcopy(data)
+    case = next(x for x in bad["benchmark_cases"] if x["case_id"] == "DPW8-CRM-DYNAMIC-FSI-3")
+    case["measurement_channels"] = [
+        item for item in case["measurement_channels"] if item["channel_family"] != "unsteady_surface_pressure"
+    ]
+    expect_rejected("uPSP_measurement_operator_cannot_be_omitted", lambda: validate_catalog(bad))
+
+    bad = copy.deepcopy(data)
+    case = next(x for x in bad["benchmark_cases"] if x["case_id"] == "DPW8-CRM-DYNAMIC-FSI-3")
+    by_family = {item["channel_family"]: item for item in case["measurement_channels"]}
+    by_family["unsteady_surface_pressure"]["limitations"] = [
+        "uPSP data provide a direct unfiltered surface pressure signal"
+    ]
+    expect_rejected("uPSP_low_pass_and_mask_limitations_must_remain", lambda: validate_catalog(bad))
+
+    bad = copy.deepcopy(data)
+    case = next(x for x in bad["benchmark_cases"] if x["case_id"] == "DPW8-CRM-DYNAMIC-FSI-3")
+    by_family = {item["channel_family"]: item for item in case["measurement_channels"]}
+    by_family["unsteady_point_pressure"]["limitations"] = [
+        "9 kHz is the main structural resonance"
+    ]
+    expect_rejected("wind_tunnel_9khz_peak_not_structural_mode", lambda: validate_catalog(bad))
 
 
 def main() -> int:
