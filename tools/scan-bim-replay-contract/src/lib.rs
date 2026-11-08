@@ -862,6 +862,24 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
                 scene.scene_id
             ));
         }
+        let area_unit_matches_frame = match scene.coordinate_frame.linear_unit {
+            LinearUnit::Metre => {
+                scene.area_overlap_profile.coordinate_unit == area_overlap::AreaCoordinateUnit::Metre
+            }
+            LinearUnit::Millimetre => {
+                scene.area_overlap_profile.coordinate_unit == area_overlap::AreaCoordinateUnit::Millimetre
+            }
+            LinearUnit::FootInternational => {
+                scene.area_overlap_profile.coordinate_unit
+                    == area_overlap::AreaCoordinateUnit::FootInternational
+            }
+        };
+        if !area_unit_matches_frame {
+            return Err(format!(
+                "scene {} area overlap coordinate unit does not match its coordinate frame",
+                scene.scene_id
+            ));
+        }
         if !valid_identifier(&scene.coordinate_frame.transform_artifact_id) {
             return Err(format!(
                 "scene {} coordinate frame requires transform_artifact_id",
@@ -1673,6 +1691,15 @@ mod tests {
         value["sampling_profile"]["surface_sampling_max_samples"] = serde_json::json!(10_000_001);
         let excessive = audit(&value).expect_err("sample budget must be bounded");
         assert!(excessive.contains("surface_sampling_max_samples"));
+    }
+
+    #[test]
+    fn rejects_area_overlap_unit_mismatch_with_scene_coordinate_frame() {
+        let mut value = fixture_value();
+        value["scenes"][0]["coordinate_frame"]["linear_unit"] = serde_json::json!("millimetre");
+        value["scenes"][0]["area_overlap_profile"]["coordinate_unit"] = serde_json::json!("metre");
+        let error = audit(&value).expect_err("area geometry must use the scene's declared native unit");
+        assert!(error.contains("coordinate unit does not match"));
     }
 
     #[test]
