@@ -28,11 +28,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - name: Generate isolated crate lockfile for exact dependency resolution
-        run: cargo generate-lockfile --manifest-path tools/groundairbench-manifest-validator/Cargo.toml
-      - name: Print generated lockfile for review
-        shell: bash
-        run: cat tools/groundairbench-manifest-validator/Cargo.lock
       - name: Test GroundAirBench manifest validator
         run: cargo test --locked --manifest-path tools/groundairbench-manifest-validator/Cargo.toml
       - name: Validate ambiguous-pose negative control
