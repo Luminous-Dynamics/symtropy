@@ -1505,10 +1505,10 @@ mod tests {
         let summary =
             super::verify_manifest_artifact_files(FIXTURE.as_bytes(), &candidate, &evaluator)
                 .expect("synthetic artifact bytes should match the declared hashes");
-        assert_eq!(summary.candidate_verified, 11);
+        assert_eq!(summary.candidate_verified, 13);
         assert_eq!(summary.candidate_runtime_verified, 3);
         assert_eq!(summary.candidate_input_verified, 4);
-        assert_eq!(summary.candidate_output_verified, 4);
+        assert_eq!(summary.candidate_output_verified, 6);
         assert_eq!(summary.evaluator_verified, 2);
     }
 
@@ -1665,6 +1665,7 @@ mod tests {
         let mut value = isprs_pair_fixture();
         value["metric_profile"]["suite_id"] = serde_json::json!("isprs_indoor_modelling_wall");
         value["metric_profile"]["scope"] = serde_json::json!("wall_only");
+        value["metric_profile"]["definition_authority"] = serde_json::json!("official_results_page");
         value["metric_profile"]["accuracy_direction"] = serde_json::json!("reference_to_candidate");
         let report = audit(&value).expect("official profile direction and wall scope are valid");
         assert_eq!(report.metric_suite_id, "isprs_indoor_modelling_wall");
@@ -2033,10 +2034,17 @@ mod tests {
         value["dataset"]["dataset_id"] = serde_json::json!("ISPRS-INDOOR-MODELLING");
         value["dataset"]["use_class"] = serde_json::json!("research_only_non_redistributable");
         value["split"]["evaluation_group_ids"] = serde_json::json!(["TUB-BUILDING"]);
-        value["candidate_outputs"][0]["scene_id"] = serde_json::json!("TUB1");
-        value["candidate_outputs"][1]["scene_id"] = serde_json::json!("TUB1");
-        value["candidate_outputs"][2]["scene_id"] = serde_json::json!("TUB2");
-        value["candidate_outputs"][3]["scene_id"] = serde_json::json!("TUB2");
+        for output in value["candidate_outputs"]
+            .as_array_mut()
+            .expect("candidate outputs array")
+        {
+            let scene_id = output["scene_id"].as_str().expect("scene ID");
+            output["scene_id"] = serde_json::json!(match scene_id {
+                "ROOM-A" => "TUB1",
+                "ROOM-B" => "TUB2",
+                other => other,
+            });
+        }
         for (index, scene_id, capture_id) in
             [(0, "TUB1", "TUB1-CAPTURE"), (1, "TUB2", "TUB2-CAPTURE")]
         {
