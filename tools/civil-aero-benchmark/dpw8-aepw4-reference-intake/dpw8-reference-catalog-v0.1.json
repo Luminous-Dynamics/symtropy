@@ -270,6 +270,31 @@
         "Exact PDF bytes and SHA-256",
         "Underlying experimental data, measurement uncertainty and full operating point lineage"
       ]
+    },
+    {
+      "source_id": "aiaa-dpw8-testcases-matrix",
+      "publisher": "AIAA DPW8 Verifications and Configurations",
+      "canonical_url": "https://www.aiaa-dpw.org/TestCases/testcases.html",
+      "evidence_url": "https://www.aiaa-dpw.org/TestCases/testcases.html",
+      "source_kind": "html_workshop_test_matrix",
+      "artifact_role": "verification_and_rigid_configuration_case_matrix",
+      "acquisition_state": "page_inspected",
+      "exact_bytes_acquired": false,
+      "sha256": null,
+      "listed_size": null,
+      "last_modified": null,
+      "observed_facts": [
+        "Verification 4 is the CRM FEM validation case and maps to Static Deformation Working Group Test Case 1b",
+        "Rigid Configuration B Test Case 2a is alpha 2.50 degrees with grid levels 1-6",
+        "Rigid Configuration B Test Case 2b is alpha [-1.50, 2.50, 2.75, 3.00, 3.25, 3.50, 3.75, 4.00, 4.25] degrees and grid level 3 or 4",
+        "The page separately describes elastic cases 2a(E) and 2b(E), which must use the dedicated Static Deformation PDF for their exact conditions"
+      ],
+      "terms_status": "review_required",
+      "redistribution_status": "not_decided",
+      "unknowns": [
+        "Page archival snapshot and exact bytes",
+        "Underlying data files and experimental uncertainties"
+      ]
     }
   ],
   "benchmark_cases": [
@@ -528,7 +553,8 @@
       ],
       "claim_ceiling": "CRM FEM case-specific model verification/validation; not low-speed aircraft validation",
       "case_sheet_source_ids": [
-        "dpw8-root-index"
+        "aiaa-dpw8-testcases-matrix",
+        "aiaa-static-fsi-2ae-2be-case-sheet"
       ]
     }
   ],
