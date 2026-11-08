@@ -793,8 +793,21 @@ mod tests {
         assert_eq!(f.action_ids, vec!["left_discriminator".to_string(), "passive_telemetry_split".to_string(), "right_discriminator".to_string()]);
         assert!(!f.within_energy_budget);
         assert!(!f.within_latency_budget);
+        assert!(r.best_feasible_fixed_plan.is_none());
         assert!(a.worst_case_energy_uj <= c.energy_budget_uj);
         assert!(a.worst_case_latency_us <= c.latency_budget_us);
+    }
+
+    #[test]
+    fn feasible_fixed_baseline_is_reported_separately_from_unconstrained_optimum() {
+        let mut c = case();
+        c.energy_budget_uj = 30;
+        c.latency_budget_us = 10;
+        let fixed = best_feasible_fixed_plan(&c).unwrap();
+        assert_eq!(fixed.action_ids, vec!["global_probe".to_string()]);
+        assert_eq!(fixed.total_energy_uj, 30);
+        assert_eq!(fixed.total_latency_us, 8);
+        assert!(fixed.within_energy_budget && fixed.within_latency_budget);
     }
 
     #[test]
