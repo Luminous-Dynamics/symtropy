@@ -603,8 +603,10 @@ fn wilson_interval(successes: usize, total: usize) -> RateInterval {
         numerator: successes,
         denominator: total,
         rate: p,
-        lower_95: (center - margin).max(0.0),
-        upper_95: (center + margin).min(1.0),
+        // Guard endpoint arithmetic against floating-point cancellation:
+        // Wilson bounds must remain in [0, 1] and contain the observed rate.
+        lower_95: (center - margin).max(0.0).min(p),
+        upper_95: (center + margin).min(1.0).max(p),
     }
 }
 
