@@ -14,7 +14,7 @@ use std::fs;
 use std::process::ExitCode;
 
 const EPISODE_COLUMNS: usize = 25;
-const SUMMARY_COLUMNS: usize = 19;
+const SUMMARY_COLUMNS: usize = 23;
 
 fn optional_tick(value: Option<usize>) -> String {
     value.map(|tick| tick.to_string()).unwrap_or_default()
@@ -69,7 +69,11 @@ fn summary_fields(summary: &MonteCarloSummary) -> Vec<String> {
         format!("{:.8}", summary.correct_diagnosis_rate),
         format!("{:.8}", summary.correct_diagnosis_ci_low),
         format!("{:.8}", summary.correct_diagnosis_ci_high),
+        format!("{:.8}", summary.premature_alarm_ci_low),
+        format!("{:.8}", summary.premature_alarm_ci_high),
         format!("{:.8}", summary.false_diagnosis_rate),
+        format!("{:.8}", summary.false_diagnosis_ci_low),
+        format!("{:.8}", summary.false_diagnosis_ci_high),
         optional_number(summary.mean_signal_detection_delay_ticks),
         optional_number(summary.mean_diagnosis_after_signal_ticks),
         format!("{:.8}", summary.mean_active_after_nonpositive_effect_ticks),
@@ -119,7 +123,7 @@ fn run() -> Result<(), String> {
     }
 
     let mut summaries = String::from(
-        "regime,controller,episodes,signal_detection_rate,signal_detection_ci_low,signal_detection_ci_high,premature_alarm_rate,correct_diagnosis_rate,correct_diagnosis_ci_low,correct_diagnosis_ci_high,false_diagnosis_rate,mean_signal_detection_delay_ticks,mean_diagnosis_after_signal_ticks,mean_active_after_nonpositive_effect_ticks,mean_missed_beneficial_action_ticks,mean_probe_count,mean_probe_ci_coverage,mean_net_utility,mean_regret_to_oracle\n",
+        "regime,controller,episodes,signal_detection_rate,signal_detection_ci_low,signal_detection_ci_high,premature_alarm_rate,correct_diagnosis_rate,correct_diagnosis_ci_low,correct_diagnosis_ci_high,premature_alarm_ci_low,premature_alarm_ci_high,false_diagnosis_rate,false_diagnosis_ci_low,false_diagnosis_ci_high,mean_signal_detection_delay_ticks,mean_diagnosis_after_signal_ticks,mean_active_after_nonpositive_effect_ticks,mean_missed_beneficial_action_ticks,mean_probe_count,mean_probe_ci_coverage,mean_net_utility,mean_regret_to_oracle\n",
     );
     for summary in &report.summaries {
         summaries.push_str(
