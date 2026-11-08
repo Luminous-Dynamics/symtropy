@@ -328,5 +328,36 @@
       "end_inclusive": 20261108199,
       "used_for": "100-seed per-regime/controller evaluation; no tuning on these seeds"
     }
+  },
+  "timing_aware_detection_evaluator": {
+    "status": "rust_reference_metric_implementation",
+    "acceptable_window": "inclusive [drift_start - delta_pre, drift_end + max_delay]",
+    "matching_rule": "earliest unmatched alarm in each event window; one-to-one; overlapping event windows rejected",
+    "outputs": [
+      "precision",
+      "recall",
+      "f1",
+      "false_alarm_rate_per_tick",
+      "missed_drift_rate",
+      "mean_detection_delay_ticks",
+      "mean_normalized_detection_time"
+    ],
+    "normalized_detection_time": "(alarm_tick - drift_start_tick) / max_delay_ticks",
+    "negative_ndt": "preserved for accepted early alarms",
+    "tests": [
+      "inclusive early boundary",
+      "inclusive late boundary",
+      "outside-window and duplicate alarms",
+      "missed drift events",
+      "multiple non-overlapping events",
+      "overlapping windows rejected",
+      "unsorted events and alarms rejected",
+      "empty event/alarms undefined metrics",
+      "invalid event intervals and zero max delay rejected"
+    ],
+    "claim_ceiling": [
+      "This evaluator is a metric-conformance component and is not a complete KDD 2026 benchmark reproduction.",
+      "No detector-performance results or SOTA comparisons are claimed from unit tests."
+    ]
   }
 }
