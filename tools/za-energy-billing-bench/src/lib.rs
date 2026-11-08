@@ -20,6 +20,8 @@ pub const CITY_POWER_UTILITY_ID: &str = "CITY_POWER_JOHANNESBURG";
 const TOU_ELIGIBILITY_THRESHOLD_KVA: f64 = 100.0;
 const MINIMUM_BILLED_DEMAND_KVA: f64 = 70.0;
 const DEMAND_RATCHET_FRACTION: f64 = 0.80;
+/// Current City Power demand-interval comparator; the account tariff/meter must confirm it.
+const DEMAND_HISTORY_INTERVAL_MINUTES: u16 = 30;
 const REACTIVE_ENERGY_THRESHOLD_FRACTION: f64 = 0.30;
 const NETWORK_SURCHARGE_R_PER_KWH: f64 = 0.06;
 const REACTIVE_ENERGY_R_PER_KVARH: f64 = 0.4625;
@@ -101,6 +103,7 @@ pub enum CalcError {
     },
     IncompleteDemandHistory,
     DemandHistoryMonthMismatch,
+    UnsupportedDemandHistoryInterval,
     InvalidPowerFactor,
     InvalidAssessedLine(&'static str),
 }
@@ -197,11 +200,15 @@ impl fmt::Display for CalcError {
             ),
             Self::IncompleteDemandHistory => write!(
                 f,
-                "exactly 12 qualified preceding monthly demand peaks are required"
+                "complete contiguous demand-interval observations for the preceding twelve calendar months are required"
             ),
             Self::DemandHistoryMonthMismatch => write!(
                 f,
-                "demand history must contain the 12 consecutive months immediately before the billing month"
+                "demand history timestamps must exactly cover the preceding twelve months at the admitted interval without gaps or duplicates"
+            ),
+            Self::UnsupportedDemandHistoryInterval => write!(
+                f,
+                "demand-history interval is not the admitted 30-minute City Power comparator; confirm account meter/tariff basis"
             ),
             Self::InvalidPowerFactor => write!(f, "power factor must be finite and in (0, 1]"),
             Self::InvalidAssessedLine(name) => write!(
@@ -246,8 +253,12 @@ pub struct MeteredInterval {
 
 #[derive(Debug, Clone)]
 pub struct DemandHistoryPoint {
-    pub billing_month: String,
-    pub measured_peak_kva: f64,
+    /// Africa/Johannesburg local date of the demand averaging interval.
+    pub local_date: String,
+    /// Local minute from midnight at which the demand interval starts.
+    pub local_start_minute: u16,
+    /// Mean apparent demand over the complete, account-qualified interval.
+    pub measured_demand_kva: f64,
 }
 
 #[derive(Debug, Clone)]
@@ -269,6 +280,10 @@ pub struct TariffInput {
     pub declared_active_energy_kwh: f64,
     pub measured_monthly_peak_demand_kva: f64,
     pub preceding_12_month_demand_history: Vec<DemandHistoryPoint>,
+    /// Confirmed apparent-demand averaging interval for the source account.
+    pub demand_history_interval_minutes: u16,
+    pub demand_history_interval_evidence_reference: String,
+    pub demand_history_coverage_evidence_reference: String,
     pub power_factor: f64,
     pub measured_reactive_energy_kvarh: f64,
     /// None means the actual account's network-surcharge treatment is unknown.
@@ -611,13 +626,16 @@ fn fingerprint(input: &TariffInput) -> String {
             .service_connection_classification_reference
             .as_deref()
             .unwrap_or("UNKNOWN"),
-        input.preceding_12_month_demand_history.len()
+        input.preceding_12_month_demand_history.len(),
+        input.demand_history_interval_minutes,
+        input.demand_history_interval_evidence_reference,
+        input.demand_history_coverage_evidence_reference
     );
     for point in &input.preceding_12_month_demand_history {
         let _ = write!(
             canonical,
-            "|{}:{}",
-            point.billing_month, point.measured_peak_kva
+            "|{}:{}:{}",
+            point.local_date, point.local_start_minute, point.measured_demand_kva
         );
     }
     for interval in &input.intervals {
@@ -686,22 +704,56 @@ fn validate_account(account: &Account) -> Result<(), CalcError> {
 fn validate_demand_history(
     billing_month: &str,
     history: &[DemandHistoryPoint],
+    interval_minutes: u16,
+    interval_evidence_reference: &str,
+    coverage_evidence_reference: &str,
 ) -> Result<f64, CalcError> {
-    if history.len() != 12 {
-        return Err(CalcError::IncompleteDemandHistory);
+    if interval_minutes != DEMAND_HISTORY_INTERVAL_MINUTES {
+        return Err(CalcError::UnsupportedDemandHistoryInterval);
     }
+    if !nonblank(interval_evidence_reference) || !nonblank(coverage_evidence_reference) {
+        return Err(CalcError::MissingEvidence("demand-history interval/coverage"));
+    }
+
     let (year, month) = parse_month(billing_month)?;
     let current_index = month_index(year, month);
-    for (position, point) in history.iter().enumerate() {
-        let expected = month_from_index(current_index - 12 + position as i32);
-        if point.billing_month != expected {
-            return Err(CalcError::DemandHistoryMonthMismatch);
-        }
-        if !point.measured_peak_kva.is_finite() || point.measured_peak_kva < 0.0 {
-            return Err(CalcError::InvalidMeasurement("prior monthly demand"));
+    let expected_start_index = current_index - 12;
+    let intervals_per_day = 1_440 / interval_minutes;
+    let mut expected_count = 0_usize;
+
+    // Demand memory is a rolling stream of meter intervals, not twelve monthly
+    // summaries. Every local half-hour in the preceding twelve calendar months
+    // must be represented exactly once in this v0.1 source comparator.
+    for month_offset in 0..12 {
+        let absolute = expected_start_index + month_offset;
+        let expected_year = absolute.div_euclid(12);
+        let expected_month = (absolute.rem_euclid(12) + 1) as u8;
+        for day in 1..=days_in_month(expected_year, expected_month) {
+            let expected_date = format!("{expected_year:04}-{expected_month:02}-{day:02}");
+            for slot in 0..intervals_per_day {
+                let position = expected_count;
+                let point = history
+                    .get(position)
+                    .ok_or(CalcError::IncompleteDemandHistory)?;
+                let expected_start = slot * interval_minutes;
+                if point.local_date != expected_date
+                    || point.local_start_minute != expected_start
+                    || point.local_start_minute >= 1_440
+                    || !point.measured_demand_kva.is_finite()
+                    || point.measured_demand_kva < 0.0
+                {
+                    return Err(CalcError::DemandHistoryMonthMismatch);
+                }
+                expected_count += 1;
+            }
         }
     }
-    let mut peaks: Vec<f64> = history.iter().map(|p| p.measured_peak_kva).collect();
+
+    if history.len() != expected_count {
+        return Err(CalcError::IncompleteDemandHistory);
+    }
+
+    let mut peaks: Vec<f64> = history.iter().map(|p| p.measured_demand_kva).collect();
     peaks.sort_by(|a, b| b.total_cmp(a));
     let top_three_average = (peaks[0] + peaks[1] + peaks[2]) / 3.0;
     Ok(top_three_average)
@@ -749,6 +801,14 @@ pub fn calculate_bill(input: &TariffInput) -> Result<BillReceipt, CalcError> {
         (
             "meter calibration",
             input.meter_calibration_reference.as_str(),
+        ),
+        (
+            "demand-history interval evidence",
+            input.demand_history_interval_evidence_reference.as_str(),
+        ),
+        (
+            "demand-history coverage evidence",
+            input.demand_history_coverage_evidence_reference.as_str(),
         ),
         ("input manifest", input.input_manifest_reference.as_str()),
     ] {
@@ -876,6 +936,9 @@ pub fn calculate_bill(input: &TariffInput) -> Result<BillReceipt, CalcError> {
     let top_three_average = validate_demand_history(
         &input.billing_month,
         &input.preceding_12_month_demand_history,
+        input.demand_history_interval_minutes,
+        &input.demand_history_interval_evidence_reference,
+        &input.demand_history_coverage_evidence_reference,
     )?;
     let ratchet_floor = DEMAND_RATCHET_FRACTION * top_three_average;
     let billed_demand_kva = input
@@ -1072,12 +1135,25 @@ mod tests {
     fn history_for(billing_month: &str, peak: f64) -> Vec<DemandHistoryPoint> {
         let (year, month) = parse_month(billing_month).unwrap();
         let current = month_index(year, month);
-        (0..12)
-            .map(|offset| DemandHistoryPoint {
-                billing_month: month_from_index(current - 12 + offset),
-                measured_peak_kva: peak,
-            })
-            .collect()
+        let mut history = Vec::new();
+        for month_offset in 0..12 {
+            let absolute = current - 12 + month_offset;
+            let history_year = absolute.div_euclid(12);
+            let history_month = (absolute.rem_euclid(12) + 1) as u8;
+            for day in 1..=days_in_month(history_year, history_month) {
+                let local_date = format!("{history_year:04}-{history_month:02}-{day:02}");
+                for local_start_minute in
+                    (0..1_440).step_by(usize::from(DEMAND_HISTORY_INTERVAL_MINUTES))
+                {
+                    history.push(DemandHistoryPoint {
+                        local_date: local_date.clone(),
+                        local_start_minute: local_start_minute as u16,
+                        measured_demand_kva: peak,
+                    });
+                }
+            }
+        }
+        history
     }
 
     fn fixture() -> TariffInput {
@@ -1140,6 +1216,9 @@ mod tests {
             declared_active_energy_kwh,
             measured_monthly_peak_demand_kva: 95.0,
             preceding_12_month_demand_history: history_for("2026-07", 125.0),
+            demand_history_interval_minutes: DEMAND_HISTORY_INTERVAL_MINUTES,
+            demand_history_interval_evidence_reference: "SYNTHETIC-30-MINUTE-METER-INTERVAL".to_owned(),
+            demand_history_coverage_evidence_reference: "SYNTHETIC-COMPLETE-PRECEDING-12-MONTH-DEMAND-TRACE".to_owned(),
             power_factor: 0.95,
             measured_reactive_energy_kvarh: 5.0,
             network_surcharge_applies: Some(true),
@@ -1433,10 +1512,54 @@ mod tests {
     #[test]
     fn nonconsecutive_demand_history_is_rejected() {
         let mut input = fixture();
-        input.preceding_12_month_demand_history[5].billing_month = "2026-01".to_owned();
+        input.preceding_12_month_demand_history[5].local_start_minute = 45;
         assert_eq!(
             calculate_bill(&input).unwrap_err(),
             CalcError::DemandHistoryMonthMismatch
+        );
+    }
+
+    #[test]
+    fn top_three_demands_may_all_come_from_one_day_of_the_rolling_interval_stream() {
+        let mut input = fixture();
+        let history = &mut input.preceding_12_month_demand_history;
+        history[0].measured_demand_kva = 300.0;
+        history[1].measured_demand_kva = 270.0;
+        history[2].measured_demand_kva = 240.0;
+        input.measured_monthly_peak_demand_kva = 100.0;
+        close(
+            calculate_bill(&input).unwrap().breakdown.billed_demand_kva,
+            0.8 * (300.0 + 270.0 + 240.0) / 3.0,
+        );
+    }
+
+    #[test]
+    fn missing_single_half_hour_history_interval_is_rejected() {
+        let mut input = fixture();
+        input.preceding_12_month_demand_history.remove(100);
+        assert_eq!(
+            calculate_bill(&input).unwrap_err(),
+            CalcError::IncompleteDemandHistory
+        );
+    }
+
+    #[test]
+    fn demand_history_interval_requires_account_specific_30_minute_evidence() {
+        let mut input = fixture();
+        input.demand_history_interval_minutes = 15;
+        assert_eq!(
+            calculate_bill(&input).unwrap_err(),
+            CalcError::UnsupportedDemandHistoryInterval
+        );
+    }
+
+    #[test]
+    fn missing_demand_history_interval_evidence_is_rejected() {
+        let mut input = fixture();
+        input.demand_history_interval_evidence_reference.clear();
+        assert_eq!(
+            calculate_bill(&input).unwrap_err(),
+            CalcError::MissingEvidence("demand-history interval/coverage")
         );
     }
 
