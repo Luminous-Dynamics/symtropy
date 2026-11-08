@@ -21,7 +21,9 @@ fn optional_tick(value: Option<usize>) -> String {
 }
 
 fn optional_number(value: Option<f64>) -> String {
-    value.map(|number| format!("{number:.8}")).unwrap_or_default()
+    value
+        .map(|number| format!("{number:.8}"))
+        .unwrap_or_default()
 }
 
 fn episode_fields(episode: &MonteCarloEpisode) -> Vec<String> {
@@ -44,7 +46,9 @@ fn episode_fields(episode: &MonteCarloEpisode) -> Vec<String> {
         episode.active_ticks.to_string(),
         episode.active_after_nonpositive_effect_ticks.to_string(),
         episode.missed_beneficial_action_ticks.to_string(),
-        episode.proxy_driven_action_under_nonpositive_effect.to_string(),
+        episode
+            .proxy_driven_action_under_nonpositive_effect
+            .to_string(),
         episode.diagnostic_probe_count.to_string(),
         episode.probe_ci_coverage_count.to_string(),
         episode.probe_ci_count.to_string(),
@@ -105,9 +109,7 @@ fn csv_row(fields: Vec<String>, expected: usize) -> Result<String, String> {
 fn run() -> Result<(), String> {
     let args: Vec<_> = env::args_os().collect();
     if args.len() != 3 {
-        return Err(
-            "Usage: causal-drift-monte-carlo <episodes.csv> <summary.csv>".to_string(),
-        );
+        return Err("Usage: causal-drift-monte-carlo <episodes.csv> <summary.csv>".to_string());
     }
     let config = MonteCarloConfig::default();
     let report = run_monte_carlo(config).map_err(|error| error.to_string())?;
@@ -126,10 +128,15 @@ fn run() -> Result<(), String> {
         "regime,controller,episodes,signal_detection_rate,signal_detection_ci_low,signal_detection_ci_high,premature_alarm_rate,correct_diagnosis_rate,correct_diagnosis_ci_low,correct_diagnosis_ci_high,premature_alarm_ci_low,premature_alarm_ci_high,false_diagnosis_rate,false_diagnosis_ci_low,false_diagnosis_ci_high,mean_signal_detection_delay_ticks,mean_diagnosis_after_signal_ticks,mean_active_after_nonpositive_effect_ticks,mean_missed_beneficial_action_ticks,mean_probe_count,mean_probe_ci_coverage,mean_net_utility,mean_regret_to_oracle\n",
     );
     for summary in &report.summaries {
-        summaries.push_str(
-            &csv_row(summary_fields(summary), SUMMARY_COLUMNS)
-                .map_err(|error| format!("summary {} / {}: {error}", summary.regime.name(), summary.controller.name()))?,
-        );
+        summaries.push_str(&csv_row(summary_fields(summary), SUMMARY_COLUMNS).map_err(
+            |error| {
+                format!(
+                    "summary {} / {}: {error}",
+                    summary.regime.name(),
+                    summary.controller.name()
+                )
+            },
+        )?);
         summaries.push('\n');
     }
 
