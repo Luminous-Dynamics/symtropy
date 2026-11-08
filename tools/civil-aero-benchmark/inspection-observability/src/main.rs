@@ -13,7 +13,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::PathBuf;
 
-const CORPUS: &[u8] = include_bytes!("inspection-observability-corpus-v0.1.json");
+const CORPUS: &[u8] = include_bytes!("../inspection-observability-corpus-v0.1.json");
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -403,7 +403,7 @@ mod tests {
         corpus
     }
 
-    fn case_mut(id: &str, corpus: &mut Corpus) -> &mut Case {
+    fn case_mut<'a>(id: &str, corpus: &'a mut Corpus) -> &'a mut Case {
         corpus
             .cases
             .iter_mut()
