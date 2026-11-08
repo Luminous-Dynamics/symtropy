@@ -545,7 +545,7 @@ pub fn evaluate_probe_continuation(
                 outcome_id: outcome.id.clone(),
             });
         }
-        if matches!(outcome.kind, ObservationKind::Unknown)
+        if matches!(&outcome.kind, ObservationKind::Unknown)
             && !problem.continuation_actions.iter().any(|action| {
                 action.fallback_only
                     && robust_admissible_action_ids
@@ -560,7 +560,7 @@ pub fn evaluate_probe_continuation(
 
         outcome_continuations.push(OutcomeContinuation {
             outcome_id: outcome.id.clone(),
-            is_unknown: matches!(outcome.kind, ObservationKind::Unknown),
+            is_unknown: matches!(&outcome.kind, ObservationKind::Unknown),
             probability_ppb,
             possible_branch_ids: possible_branch_ids.into_iter().collect(),
             possible_terminal_state_ids: possible_terminal_state_ids.into_iter().collect(),
