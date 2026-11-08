@@ -26,3 +26,12 @@ cargo run --manifest-path tools/za-energy-billing-bench/Cargo.toml
 ~~~
 
 The CLI emits a machine-readable receipt from a synthetic, complete 31-day July 2026 trace containing 2,976 fifteen-minute intervals, including zero-kWh periods. The library also accepts nonuniform interval durations when they are contiguous and remain within a tariff band. Its FNV-1a-64 value is a reproducible non-cryptographic input fingerprint, not an authenticity signature. The reference is not a production customer billing system and makes no real-facility saving claim.
+
+
+## Rolling demand-memory counterexample (#4194)
+
+A separate integration test in `tests/demand_memory.rs` exercises the 12-month City Power ratchet through the public `calculate_bill` reference. It does not duplicate tariff parsing or introduce a battery/dispatch model.
+
+The synthetic two-month case begins with prior monthly peaks of 250, 240 and 140 kVA (the other nine months are 140 kVA), so July 2026's 80%-of-top-three floor is 168 kVA. A 10 kVA shave of July's measured peak from 160 to 150 kVA does not change July's billed demand: the 168 kVA historical ratchet still binds. However, the July measurement then enters the August history while July 2025's 250 kVA peak rolls out. August's ratchet is 144 kVA without the shave and 141.333... kVA with it.
+
+At the published LV demand rate of R461.28/kVA/month, that changes August demand charge by R1,230.08. With a deliberately synthetic R1,000 action cost, a current-month-only policy rejects the action, while an exact two-month enumeration selects it and reduces the two-month demand-cost-plus-action-cost objective by R230.08. This is a minimal counterexample to horizon-myopic control—not a measured facility saving, battery-performance claim or actual customer bill. The monthly fixtures deliberately leave assessed LPU/VAT lines unknown, so invoice totals remain incomplete.
