@@ -1301,19 +1301,19 @@ pub fn audit_manifest_bytes(bytes: &[u8]) -> Result<ReplayAuditReport, String> {
         serde_json::from_slice(bytes).map_err(|error| format!("invalid manifest JSON: {error}"))?;
     validate_manifest(&manifest)?;
 
-    let candidate_artifact_count = manifest
+    let candidate_artifact_count: usize = manifest
         .scenes
         .iter()
         .map(|scene| scene.candidate_inputs.len())
         .sum();
-    let evaluator_artifact_count = manifest
+    let evaluator_artifact_count: usize = manifest
         .scenes
         .iter()
         .map(|scene| scene.evaluator_artifacts.len())
         .sum();
-    let scenes = manifest.scenes.iter().map(summarize_scene).collect();
+    let scenes: Vec<SceneVisibilityAudit> = manifest.scenes.iter().map(summarize_scene).collect();
     let digest = Sha256::digest(bytes);
-    let manifest_sha256 = digest.iter().map(|byte| format!("{byte:02x}")).collect();
+    let manifest_sha256: String = digest.iter().map(|byte| format!("{byte:02x}")).collect();
 
     let executable_sha256 = manifest
         .candidate_runtime_artifacts
