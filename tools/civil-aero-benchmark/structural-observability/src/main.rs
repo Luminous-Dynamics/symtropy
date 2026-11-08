@@ -162,11 +162,9 @@ fn validate_fixture(fixture: &Fixture) -> AuditResult<()> {
         return fail("v0.1 oracle requires exactly two declared target parameters");
     }
     if fixture.model_assumptions.observation_model != "linearized_static_sensitivity"
-        || fixture.model_assumptions.noise_model
-            != "independent_zero_mean_gaussian_sensor_noise"
+        || fixture.model_assumptions.noise_model != "independent_zero_mean_gaussian_sensor_noise"
         || fixture.model_assumptions.sensitivity_units != "dimensionless_normalized"
-        || fixture.model_assumptions.noise_standard_uncertainty_units
-            != "dimensionless_normalized"
+        || fixture.model_assumptions.noise_standard_uncertainty_units != "dimensionless_normalized"
         || fixture.model_assumptions.calibration_model != "synthetic_reference_only"
     {
         return fail("fixture assumptions are outside the admitted synthetic oracle");
@@ -176,7 +174,8 @@ fn validate_fixture(fixture: &Fixture) -> AuditResult<()> {
     }
     if fixture.constraints.d_opt_sensor_count == 0
         || fixture.constraints.e_opt_sensor_count == 0
-        || fixture.constraints.robust_e_opt_sensor_count <= fixture.constraints.sensor_dropout_budget
+        || fixture.constraints.robust_e_opt_sensor_count
+            <= fixture.constraints.sensor_dropout_budget
     {
         return fail("sensor selection/dropout counts are invalid");
     }
@@ -191,7 +190,10 @@ fn validate_fixture(fixture: &Fixture) -> AuditResult<()> {
     let mut previous_id: Option<&str> = None;
     for sensor in &fixture.sensors {
         if sensor.sensor_id.trim().is_empty() || !ids.insert(sensor.sensor_id.as_str()) {
-            return fail(format!("empty or duplicate sensor_id: {}", sensor.sensor_id));
+            return fail(format!(
+                "empty or duplicate sensor_id: {}",
+                sensor.sensor_id
+            ));
         }
         if previous_id.is_some_and(|previous| previous >= sensor.sensor_id.as_str()) {
             return fail("sensor candidates must be strictly ordered by sensor_id");
@@ -205,16 +207,28 @@ fn validate_fixture(fixture: &Fixture) -> AuditResult<()> {
             || !sensor.chord_x_over_c.is_finite()
             || !(0.0..=1.0).contains(&sensor.chord_x_over_c)
         {
-            return fail(format!("{}: normalized sensor coordinate outside [0, 1]", sensor.sensor_id));
+            return fail(format!(
+                "{}: normalized sensor coordinate outside [0, 1]",
+                sensor.sensor_id
+            ));
         }
         if !sensor.sensitivity.iter().all(|value| value.is_finite()) {
-            return fail(format!("{}: sensitivity vector contains non-finite values", sensor.sensor_id));
+            return fail(format!(
+                "{}: sensitivity vector contains non-finite values",
+                sensor.sensor_id
+            ));
         }
         if !finite_positive(sensor.noise_standard_uncertainty) {
-            return fail(format!("{}: noise standard uncertainty must be finite and positive", sensor.sensor_id));
+            return fail(format!(
+                "{}: noise standard uncertainty must be finite and positive",
+                sensor.sensor_id
+            ));
         }
         if !sensor.calibration_admitted || sensor.calibration_reference_id.trim().is_empty() {
-            return fail(format!("{}: synthetic calibration reference is not admitted", sensor.sensor_id));
+            return fail(format!(
+                "{}: synthetic calibration reference is not admitted",
+                sensor.sensor_id
+            ));
         }
         if !finite_positive(sensor.deployment_cost_units)
             || !sensor.mass_g.is_finite()
@@ -222,7 +236,10 @@ fn validate_fixture(fixture: &Fixture) -> AuditResult<()> {
             || !sensor.power_mw.is_finite()
             || sensor.power_mw < 0.0
         {
-            return fail(format!("{}: invalid synthetic deployment cost/mass/power", sensor.sensor_id));
+            return fail(format!(
+                "{}: invalid synthetic deployment cost/mass/power",
+                sensor.sensor_id
+            ));
         }
     }
 
@@ -258,8 +275,7 @@ fn information_metrics(sensors: &[&SensorCandidate]) -> InformationMetrics {
     let trace = f11 + f22;
     let minimum = ((trace - discriminant) / 2.0).max(0.0);
     let maximum = ((trace + discriminant) / 2.0).max(0.0);
-    let rank =
-        (minimum > RANK_TOLERANCE) as usize + (maximum > RANK_TOLERANCE) as usize;
+    let rank = (minimum > RANK_TOLERANCE) as usize + (maximum > RANK_TOLERANCE) as usize;
 
     InformationMetrics {
         fisher_information: [[f11, f12], [f12, f22]],
@@ -303,7 +319,10 @@ fn combinations(length: usize, choose: usize) -> Vec<Vec<usize>> {
 }
 
 fn selected_ids(sensors: &[SensorCandidate], indices: &[usize]) -> Vec<String> {
-    indices.iter().map(|index| sensors[*index].sensor_id.clone()).collect()
+    indices
+        .iter()
+        .map(|index| sensors[*index].sensor_id.clone())
+        .collect()
 }
 
 fn subset_sensors<'a>(
@@ -457,9 +476,9 @@ fn best_selection(
         let ids = selected_ids(&fixture.sensors, &indices);
         let is_better = score > best_score + SCORE_TOLERANCE
             || ((score - best_score).abs() <= SCORE_TOLERANCE
-                && best_indices.as_ref().is_none_or(|current| {
-                    ids < selected_ids(&fixture.sensors, current)
-                }));
+                && best_indices
+                    .as_ref()
+                    .is_none_or(|current| ids < selected_ids(&fixture.sensors, current)));
         if is_better {
             best_score = score;
             best_indices = Some(indices);
@@ -617,7 +636,9 @@ mod tests {
         let selected = vec![&fixture.sensors[0], &fixture.sensors[4]];
         let metrics = information_metrics(&selected);
         assert_eq!(metrics.effective_rank, 1);
-        assert!(metrics.log_determinant.is_none() || metrics.log_determinant.unwrap().is_infinite());
+        assert!(
+            metrics.log_determinant.is_none() || metrics.log_determinant.unwrap().is_infinite()
+        );
         assert!(metrics.eigenvalues_ascending[0] <= RANK_TOLERANCE);
     }
 
