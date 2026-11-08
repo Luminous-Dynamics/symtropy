@@ -32,6 +32,20 @@ The next extension should add gradual/noisy shifts, delayed/partial outcomes, mu
 
 The published SimBench headline of 40.80/100 is a result on its own task suite and scoring protocol. It is not an attainable target for the CIVDYN self-correction benchmark. Similarly, SSDataBench's statistical-realism metrics, LiveCultureBench's norm/evaluator measures, and APB's plan grades are not interchangeable. Any direct comparison must reproduce the same dataset, split, prompt/configuration, unit of analysis, scorer, and compute budget.
 
+### Adaptive-threshold selection: AAAI 2026 DTD
+
+Lu et al., *Autonomous Concept Drift Threshold Determination* (AAAI 2026, [DOI](https://doi.org/10.1609/aaai.v40i29.39586)), introduce DTD as an adaptive response-selection wrapper. After a drift event it compares three candidate paths—Early Drift Model (EDM), Reactive Drift Model (RDM), and Previous Model (PM)—over a future comparison window, then adjusts detector parameters based on the best candidate's predictive performance. Its public reference implementation supports DDM, EDDM, HDDM-A/W, KSWIN, Page-Hinkley and PUDD; the inspected repository main commit is `034307f54d8db7cc39d9d617fb669b38abf9faab`. [Official source](https://github.com/AAII-DeSI/concept-drift-RocStone)
+
+CIVDYN should treat DTD as an important comparator, but **not simply maximize predictive accuracy**. A civilization-level response must pass hard resource/service/rights/ecological constraints and disclose burden displacement. The new research issue [#4233](https://github.com/Luminous-Dynamics/symtropy/issues/4233) proposes consequence-aware response selection:
+- Early correction (sensitive threshold / earlier onset hypothesis).
+- Reactive correction (current threshold).
+- Conservative continuation (higher threshold / preserve prior policy).
+- Mechanism-aware matched probe or abstention.
+
+Evaluate shadow candidates from cloned states with common random numbers. Filter infeasible candidates, publish native-unit consequence vectors and uncertainty, select from the nondominated feasible set under a predeclared priority rule, then validate the chosen response on an independent confirmation window. This avoids selecting and confirming a policy on the same future outcomes.
+
+The present Monte Carlo pilot does not implement DTD and does not claim to outperform it. A fair DTD reproduction must match its classification dataset, model, detector, comparison window, split and metric; its classification accuracy cannot be compared directly with CIVDYN's socio-ecological policy outcomes.
+
 ## 2. What current industry practice tends to optimize
 
 A useful competitor map is by discipline, not by vendor:
