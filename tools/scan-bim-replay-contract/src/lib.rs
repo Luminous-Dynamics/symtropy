@@ -1110,6 +1110,9 @@ pub fn audit_manifest_bytes(bytes: &[u8]) -> Result<ReplayAuditReport, String> {
         LinearUnit::UsSurveyFoot => "us_survey_foot",
     };
     let metric = &manifest.evaluation_profile.metric_definition;
+    let metric_accuracy_direction = match metric.isprs_accuracy_direction {
+        AccuracyDirection::ReferenceToCandidate => "reference_to_candidate",
+    };
     let scenes = scenes;
 
     Ok(ReplayAuditReport {
@@ -1153,7 +1156,7 @@ pub fn audit_manifest_bytes(bytes: &[u8]) -> Result<ReplayAuditReport, String> {
         sampling_random_seed: manifest.evaluation_profile.sampling.random_seed,
         metric_suite_id: metric.suite_id.clone(),
         metric_suite_version: metric.version.clone(),
-        metric_accuracy_direction: "reference_to_candidate".to_owned(),
+        metric_accuracy_direction: metric_accuracy_direction.to_owned(),
         metric_buffer_distances_m: metric.buffer_distances_m.clone(),
         metric_distance_cutoff_distances_m: metric.distance_cutoff_distances_m.clone(),
         scene_count: manifest.scenes.len(),
@@ -1246,6 +1249,23 @@ mod tests {
         use std::os::unix::fs::symlink;
         use std::sync::atomic::{AtomicU64, Ordering};
 
+        fn copy_directory(source: &std::path::Path, destination: &std::path::Path) {
+            std::fs::create_dir_all(destination).expect("create copy destination");
+            for entry in std::fs::read_dir(source).expect("read source directory") {
+                let entry = entry.expect("directory entry");
+                let source_path = entry.path();
+                let destination_path = destination.join(entry.file_name());
+                let file_type = entry.file_type().expect("source file type");
+                if file_type.is_dir() {
+                    copy_directory(&source_path, &destination_path);
+                } else if file_type.is_file() {
+                    std::fs::copy(&source_path, &destination_path).expect("copy fixture file");
+                } else {
+                    panic!("fixture tree must contain only regular files and directories");
+                }
+            }
+        }
+
         static NEXT: AtomicU64 = AtomicU64::new(0);
         let temp = std::env::temp_dir().join(format!(
             "scan-bim-replay-symlink-{}-{}",
@@ -1254,17 +1274,14 @@ mod tests {
         ));
         let candidate = temp.join("candidate");
         let evaluator = temp.join("evaluator");
-        std::fs::create_dir_all(&candidate).expect("candidate root");
-        std::fs::create_dir_all(&evaluator).expect("evaluator root");
-        std::fs::copy(
-            synthetic_data_roots().0.join("room-a-scan.bin"),
-            candidate.join("room-a-scan.bin"),
+        let (source_candidate, source_evaluator) = synthetic_data_roots();
+        copy_directory(&source_candidate, &candidate);
+        copy_directory(&source_evaluator, &evaluator);
+        symlink(
+            evaluator.join("room-a-reference.bin"),
+            candidate.join("escape.bin"),
         )
-        .expect("copy candidate artifact");
-        let evaluator_source = synthetic_data_roots().1.join("room-a-reference.bin");
-        std::fs::copy(&evaluator_source, evaluator.join("room-a-reference.bin"))
-            .expect("copy evaluator artifact");
-        symlink(&evaluator_source, candidate.join("escape.bin")).expect("create escape symlink");
+        .expect("create escape symlink");
 
         let mut value = fixture_value();
         value["scenes"][0]["candidate_inputs"][0]["relative_path"] =
@@ -1445,7 +1462,7 @@ mod tests {
         let mut value = fixture_value();
         value["scenes"][0]["candidate_inputs"][0]["sha256"] = serde_json::json!("A".repeat(64));
         let error = audit(&value).expect_err("SHA-256 must use canonical lowercase hex");
-        assert!(error.contains("invalid ID or SHA-256"));
+        assert!(error.contains("invalid ID or lowercase SHA-256"));
     }
 
     #[test]
