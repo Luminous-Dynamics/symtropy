@@ -1760,6 +1760,11 @@ mod tests {
         {
             interval.public_holiday_evidence_reference =
                 Some("SYNTHETIC-DATE-SPECIFIC-PUBLIC-HOLIDAY-A".to_owned());
+            if (1_080..1_200).contains(&interval.local_start_minute) {
+                interval.saturday_evening_confirmed = true;
+                interval.saturday_confirmation_reference =
+                    Some("SYNTHETIC-SATURDAY-TOU-CONFIRMATION".to_owned());
+            }
         }
         let holiday_receipt_a = calculate_bill(&input).unwrap();
 
