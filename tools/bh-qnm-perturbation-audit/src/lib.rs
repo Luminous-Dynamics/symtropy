@@ -31,7 +31,9 @@ impl fmt::Display for PerturbationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::NonFiniteWidthParameter => write!(f, "width parameter zeta must be finite"),
-            Self::NonPositiveWidthParameter => write!(f, "width parameter zeta must be strictly positive"),
+            Self::NonPositiveWidthParameter => {
+                write!(f, "width parameter zeta must be strictly positive")
+            }
             Self::ThresholdSingularity => write!(f, "frequency derivative is singular at zeta = 2"),
             Self::NonFiniteResult => write!(f, "frequency derivative produced a non-finite result"),
         }
@@ -66,7 +68,11 @@ impl PoschlTellerQnm {
         if zeta <= 0.0 {
             return Err(PerturbationError::NonPositiveWidthParameter);
         }
-        Ok(Self { zeta, overtone, branch })
+        Ok(Self {
+            zeta,
+            overtone,
+            branch,
+        })
     }
 
     pub const fn zeta(self) -> f64 {
@@ -179,10 +185,7 @@ mod tests {
     #[test]
     fn first_derivative_matches_published_width_shift_for_multiple_overtones() {
         for n in [0, 1, 2, 5, 10, 15, 30, 40, 50] {
-            let expected = Complex64::new(
-                -1.0 / (2.0 * 3.0_f64.sqrt()),
-                -(f64::from(n) + 0.5),
-            );
+            let expected = Complex64::new(-1.0 / (2.0 * 3.0_f64.sqrt()), -(f64::from(n) + 0.5));
             close(plus(1.0, n).first_derivative().unwrap(), expected, 1.0e-14);
         }
     }
