@@ -98,9 +98,7 @@ impl HorizonRiskPlan {
         if horizon_steps > MAX_HORIZON_STEPS {
             return Err(RiskPlanError::HorizonTooLarge);
         }
-        if !(MIN_FAMILYWISE_ALPHA_PPB..=MAX_FAMILYWISE_ALPHA_PPB)
-            .contains(&familywise_alpha_ppb)
-        {
+        if !(MIN_FAMILYWISE_ALPHA_PPB..=MAX_FAMILYWISE_ALPHA_PPB).contains(&familywise_alpha_ppb) {
             return Err(RiskPlanError::InvalidFamilywiseAlpha);
         }
 
@@ -113,7 +111,8 @@ impl HorizonRiskPlan {
 
         let base = familywise_alpha_ppb / event_count;
         let remainder = familywise_alpha_ppb % event_count;
-        let capacity = usize::try_from(horizon_steps).map_err(|_| RiskPlanError::ArithmeticOverflow)?;
+        let capacity =
+            usize::try_from(horizon_steps).map_err(|_| RiskPlanError::ArithmeticOverflow)?;
         let mut step_allocations_ppb = vec![[base; CONSTRAINT_COUNT]; capacity];
 
         // Deterministically distribute indivisible ppb units in canonical
@@ -449,9 +448,7 @@ impl HorizonRiskLedger {
         {
             return Err(LedgerError::AdmissionIdentityMismatch);
         }
-        if receipt.allocated_alpha_ppb
-            != self.plan.allocation_for_step(receipt.step_index)?
-        {
+        if receipt.allocated_alpha_ppb != self.plan.allocation_for_step(receipt.step_index)? {
             return Err(LedgerError::AllocationMismatch);
         }
 
@@ -484,7 +481,12 @@ impl HorizonRiskLedger {
                 action_digest,
                 committed_at_ns,
                 ..
-            } => (admission_receipt_id, action_id, action_digest, committed_at_ns),
+            } => (
+                admission_receipt_id,
+                action_id,
+                action_digest,
+                committed_at_ns,
+            ),
             _ => return Err(LedgerError::StepNotCommitted),
         };
         if [
@@ -542,10 +544,7 @@ impl HorizonRiskLedger {
     /// Mark a committed step Unknown when delivery/execution provenance is
     /// unresolved. Its allocation remains locked, the horizon cannot advance,
     /// and it cannot be classified as unused until independently reconciled.
-    pub fn mark_unknown(
-        &mut self,
-        receipt: StepUnknownReceipt,
-    ) -> Result<(), LedgerError> {
+    pub fn mark_unknown(&mut self, receipt: StepUnknownReceipt) -> Result<(), LedgerError> {
         self.validate_next_step_index(receipt.step_index)?;
         self.validate_monotonic_time(receipt.recorded_at_ns)?;
         if [
@@ -623,8 +622,11 @@ impl HorizonRiskLedger {
         }
         match &self.statuses[receipt.step_index as usize] {
             StepStatus::Pending if receipt.admission_receipt_id.is_none() => {}
-            StepStatus::Unknown { admission_receipt_id, .. }
-                if receipt.admission_receipt_id.as_deref() == Some(admission_receipt_id.as_str()) => {}
+            StepStatus::Unknown {
+                admission_receipt_id,
+                ..
+            } if receipt.admission_receipt_id.as_deref() == Some(admission_receipt_id.as_str()) => {
+            }
             _ => return Err(LedgerError::StepAlreadyResolved),
         }
 
@@ -655,7 +657,9 @@ impl HorizonRiskLedger {
             next_step_index: self.next_step_index,
         };
         for (step_index, status) in self.statuses.iter().enumerate() {
-            let amount = self.plan.step_allocations_ppb[step_index].iter().sum::<u64>();
+            let amount = self.plan.step_allocations_ppb[step_index]
+                .iter()
+                .sum::<u64>();
             match status {
                 StepStatus::Pending => {
                     summary.pending_preallocated_alpha_ppb = summary
@@ -729,7 +733,12 @@ mod tests {
         HorizonRiskPlan::new(identity(), horizon, alpha_ppb).unwrap()
     }
 
-    fn admission(plan: &HorizonRiskPlan, step: u32, suffix: &str, committed_at_ns: u64) -> StepAdmissionReceipt {
+    fn admission(
+        plan: &HorizonRiskPlan,
+        step: u32,
+        suffix: &str,
+        committed_at_ns: u64,
+    ) -> StepAdmissionReceipt {
         StepAdmissionReceipt {
             receipt_id: format!("admission-{suffix}"),
             episode_id: "episode-01".to_owned(),
@@ -747,7 +756,11 @@ mod tests {
         }
     }
 
-    fn execution(admission: &StepAdmissionReceipt, suffix: &str, executed_at_ns: u64) -> StepExecutionReceipt {
+    fn execution(
+        admission: &StepAdmissionReceipt,
+        suffix: &str,
+        executed_at_ns: u64,
+    ) -> StepExecutionReceipt {
         StepExecutionReceipt {
             receipt_id: format!("execution-{suffix}"),
             admission_receipt_id: admission.receipt_id.clone(),
@@ -767,7 +780,12 @@ mod tests {
         }
     }
 
-    fn skip(plan: &HorizonRiskPlan, step: u32, suffix: &str, skipped_at_ns: u64) -> StepSkipReceipt {
+    fn skip(
+        plan: &HorizonRiskPlan,
+        step: u32,
+        suffix: &str,
+        skipped_at_ns: u64,
+    ) -> StepSkipReceipt {
         StepSkipReceipt {
             receipt_id: format!("skip-{suffix}"),
             episode_id: "episode-01".to_owned(),
@@ -820,10 +838,7 @@ mod tests {
             risk_plan.allocation_for_step(0).unwrap(),
             [3_333_334, 3_333_334, 3_333_334, 3_333_333, 3_333_333]
         );
-        assert_eq!(
-            risk_plan.allocation_for_step(1).unwrap(),
-            [3_333_333; 5]
-        );
+        assert_eq!(risk_plan.allocation_for_step(1).unwrap(), [3_333_333; 5]);
         assert_eq!(risk_plan.total_allocated_alpha_ppb(), 50_000_002);
     }
 
@@ -831,7 +846,13 @@ mod tests {
     fn horizon_ten_allocation_sums_exactly() {
         let risk_plan = plan(10, 50_000_000);
         assert_eq!(risk_plan.total_allocated_alpha_ppb(), 50_000_000);
-        assert!(risk_plan.step_allocations_ppb.iter().flatten().all(|value| *value > 0));
+        assert!(
+            risk_plan
+                .step_allocations_ppb
+                .iter()
+                .flatten()
+                .all(|value| *value > 0)
+        );
     }
 
     #[test]
@@ -867,11 +888,14 @@ mod tests {
         for horizon in [1, 2, 3, 10, 127, 1_000] {
             let risk_plan = plan(horizon, 500_000_000);
             assert_eq!(risk_plan.total_allocated_alpha_ppb(), 500_000_000);
-            assert_eq!(
-                risk_plan.step_allocations_ppb.len(),
-                horizon as usize
+            assert_eq!(risk_plan.step_allocations_ppb.len(), horizon as usize);
+            assert!(
+                risk_plan
+                    .step_allocations_ppb
+                    .iter()
+                    .flatten()
+                    .all(|value| *value > 0)
             );
-            assert!(risk_plan.step_allocations_ppb.iter().flatten().all(|value| *value > 0));
         }
     }
 
@@ -881,7 +905,9 @@ mod tests {
         let allocation = risk_plan.allocation_for_step(1).unwrap();
         assert_eq!(allocation.len(), CONSTRAINT_COUNT);
         assert_eq!(
-            risk_plan.allocation_for(1, RiskConstraint::SupportMargin).unwrap(),
+            risk_plan
+                .allocation_for(1, RiskConstraint::SupportMargin)
+                .unwrap(),
             allocation[RiskConstraint::SupportMargin.index()]
         );
     }
@@ -891,8 +917,13 @@ mod tests {
         let risk_plan = plan(2, 50_000_000);
         let original_step_one = risk_plan.allocation_for_step(1).unwrap();
         let mut ledger = HorizonRiskLedger::new(risk_plan.clone());
-        ledger.skip_step(skip(&risk_plan, 0, "zero", 1_000)).unwrap();
-        assert_eq!(ledger.plan().allocation_for_step(1).unwrap(), original_step_one);
+        ledger
+            .skip_step(skip(&risk_plan, 0, "zero", 1_000))
+            .unwrap();
+        assert_eq!(
+            ledger.plan().allocation_for_step(1).unwrap(),
+            original_step_one
+        );
         let summary = ledger.summary().unwrap();
         assert_eq!(summary.skipped_unused_alpha_ppb, 25_000_000);
         assert_eq!(summary.pending_preallocated_alpha_ppb, 25_000_000);
@@ -910,7 +941,9 @@ mod tests {
         assert_eq!(committed.pending_preallocated_alpha_ppb, 25_000_000);
         assert_eq!(committed.consumed_alpha_ppb, 0);
 
-        ledger.consume_step(execution(&admission_receipt, "zero", 1_100)).unwrap();
+        ledger
+            .consume_step(execution(&admission_receipt, "zero", 1_100))
+            .unwrap();
         let consumed = ledger.summary().unwrap();
         assert_eq!(consumed.committed_reserved_alpha_ppb, 0);
         assert_eq!(consumed.consumed_alpha_ppb, 25_000_000);
@@ -940,10 +973,7 @@ mod tests {
         );
         let valid = skip(&risk_plan, 0, "zero", 1_000);
         ledger.skip_step(valid.clone()).unwrap();
-        assert_eq!(
-            ledger.skip_step(valid),
-            Err(LedgerError::StepOutOfOrder)
-        );
+        assert_eq!(ledger.skip_step(valid), Err(LedgerError::StepOutOfOrder));
     }
 
     #[test]
@@ -977,7 +1007,10 @@ mod tests {
             ledger.consume_step(wrong),
             Err(LedgerError::ExecutionIdentityMismatch)
         );
-        assert_eq!(ledger.summary().unwrap().committed_reserved_alpha_ppb, 25_000_000);
+        assert_eq!(
+            ledger.summary().unwrap().committed_reserved_alpha_ppb,
+            25_000_000
+        );
     }
 
     #[test]
@@ -1031,22 +1064,31 @@ mod tests {
         let risk_plan = plan(3, 50_000_000);
         let step_two_before = risk_plan.allocation_for_step(2).unwrap();
         let mut ledger = HorizonRiskLedger::new(risk_plan.clone());
-        ledger.skip_step(skip(&risk_plan, 0, "zero", 1_000)).unwrap();
+        ledger
+            .skip_step(skip(&risk_plan, 0, "zero", 1_000))
+            .unwrap();
         let committed = admission(&risk_plan, 1, "one", 1_100);
         ledger.commit_step(committed.clone()).unwrap();
-        ledger.consume_step(execution(&committed, "one", 1_200)).unwrap();
+        ledger
+            .consume_step(execution(&committed, "one", 1_200))
+            .unwrap();
         assert_eq!(risk_plan.allocation_for_step(2).unwrap(), step_two_before);
         let summary = ledger.summary().unwrap();
         assert_eq!(summary.skipped_unused_alpha_ppb, 50_000_000 / 3);
         assert_eq!(summary.consumed_alpha_ppb, 50_000_000 / 3);
-        assert_eq!(summary.pending_preallocated_alpha_ppb, 50_000_000 - 2 * (50_000_000 / 3));
+        assert_eq!(
+            summary.pending_preallocated_alpha_ppb,
+            50_000_000 - 2 * (50_000_000 / 3)
+        );
     }
 
     #[test]
     fn skipped_step_requires_monotonic_event_time() {
         let risk_plan = plan(2, 50_000_000);
         let mut ledger = HorizonRiskLedger::new(risk_plan.clone());
-        ledger.skip_step(skip(&risk_plan, 0, "zero", 2_000)).unwrap();
+        ledger
+            .skip_step(skip(&risk_plan, 0, "zero", 2_000))
+            .unwrap();
         let later_skip = skip(&risk_plan, 1, "one", 1_999);
         assert_eq!(
             ledger.skip_step(later_skip),
@@ -1060,17 +1102,30 @@ mod tests {
         let mut ledger = HorizonRiskLedger::new(risk_plan.clone());
         let admitted = admission(&risk_plan, 0, "zero", 1_000);
         ledger.commit_step(admitted.clone()).unwrap();
-        ledger.mark_unknown(unknown(&admitted, "zero", 1_050)).unwrap();
+        ledger
+            .mark_unknown(unknown(&admitted, "zero", 1_050))
+            .unwrap();
 
-        assert!(matches!(ledger.status(0).unwrap(), StepStatus::Unknown { .. }));
+        assert!(matches!(
+            ledger.status(0).unwrap(),
+            StepStatus::Unknown { .. }
+        ));
         let summary = ledger.summary().unwrap();
         assert_eq!(summary.unknown_locked_alpha_ppb, 25_000_000);
         assert_eq!(summary.committed_reserved_alpha_ppb, 0);
         assert_eq!(summary.consumed_alpha_ppb, 0);
-        assert_eq!(summary.unexposed_preallocated_alpha_ppb().unwrap(), 25_000_000);
-        assert_eq!(summary.reserved_or_consumed_alpha_ppb().unwrap(), 25_000_000);
-        assert_eq!(ledger.commit_step(admission(&risk_plan, 1, "one", 1_100)),
-            Err(LedgerError::StepOutOfOrder));
+        assert_eq!(
+            summary.unexposed_preallocated_alpha_ppb().unwrap(),
+            25_000_000
+        );
+        assert_eq!(
+            summary.reserved_or_consumed_alpha_ppb().unwrap(),
+            25_000_000
+        );
+        assert_eq!(
+            ledger.commit_step(admission(&risk_plan, 1, "one", 1_100)),
+            Err(LedgerError::StepOutOfOrder)
+        );
     }
 
     #[test]
@@ -1079,14 +1134,24 @@ mod tests {
         let mut ledger = HorizonRiskLedger::new(risk_plan.clone());
         let admitted = admission(&risk_plan, 0, "zero", 1_000);
         ledger.commit_step(admitted.clone()).unwrap();
-        ledger.mark_unknown(unknown(&admitted, "zero", 1_050)).unwrap();
+        ledger
+            .mark_unknown(unknown(&admitted, "zero", 1_050))
+            .unwrap();
 
         let mut mismatched = execution(&admitted, "zero", 1_100);
         mismatched.actuator_model_digest = "other-actuator-model".to_owned();
-        assert_eq!(ledger.consume_step(mismatched), Err(LedgerError::ExecutionIdentityMismatch));
-        assert_eq!(ledger.summary().unwrap().unknown_locked_alpha_ppb, 25_000_000);
+        assert_eq!(
+            ledger.consume_step(mismatched),
+            Err(LedgerError::ExecutionIdentityMismatch)
+        );
+        assert_eq!(
+            ledger.summary().unwrap().unknown_locked_alpha_ppb,
+            25_000_000
+        );
 
-        ledger.consume_step(execution(&admitted, "zero", 1_100)).unwrap();
+        ledger
+            .consume_step(execution(&admitted, "zero", 1_100))
+            .unwrap();
         let summary = ledger.summary().unwrap();
         assert_eq!(summary.unknown_locked_alpha_ppb, 0);
         assert_eq!(summary.consumed_alpha_ppb, 25_000_000);
@@ -1100,7 +1165,9 @@ mod tests {
         let mut ledger = HorizonRiskLedger::new(risk_plan.clone());
         let admitted = admission(&risk_plan, 0, "zero", 1_000);
         ledger.commit_step(admitted.clone()).unwrap();
-        ledger.mark_unknown(unknown(&admitted, "zero", 1_050)).unwrap();
+        ledger
+            .mark_unknown(unknown(&admitted, "zero", 1_050))
+            .unwrap();
 
         let mut no_delivery = skip(&risk_plan, 0, "zero", 1_100);
         no_delivery.admission_receipt_id = Some(admitted.receipt_id.clone());
@@ -1121,11 +1188,17 @@ mod tests {
 
         let mut wrong_episode = unknown(&admitted, "wrong-episode", 1_050);
         wrong_episode.episode_id = "other-episode".to_owned();
-        assert_eq!(ledger.mark_unknown(wrong_episode), Err(LedgerError::UnknownIdentityMismatch));
+        assert_eq!(
+            ledger.mark_unknown(wrong_episode),
+            Err(LedgerError::UnknownIdentityMismatch)
+        );
 
         let mut wrong_admission = unknown(&admitted, "wrong-admission", 1_050);
         wrong_admission.admission_receipt_id = "other-admission".to_owned();
-        assert_eq!(ledger.mark_unknown(wrong_admission), Err(LedgerError::UnknownIdentityMismatch));
+        assert_eq!(
+            ledger.mark_unknown(wrong_admission),
+            Err(LedgerError::UnknownIdentityMismatch)
+        );
     }
 
     #[test]
@@ -1134,7 +1207,9 @@ mod tests {
         let mut ledger = HorizonRiskLedger::new(risk_plan.clone());
         let admitted = admission(&risk_plan, 0, "zero", 1_000);
         ledger.commit_step(admitted.clone()).unwrap();
-        ledger.mark_unknown(unknown(&admitted, "zero", 1_050)).unwrap();
+        ledger
+            .mark_unknown(unknown(&admitted, "zero", 1_050))
+            .unwrap();
         let summary = ledger.summary().unwrap();
         assert_eq!(summary.unknown_step_count, 1);
         assert_eq!(summary.skipped_unused_alpha_ppb, 0);
