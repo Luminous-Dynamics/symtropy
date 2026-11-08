@@ -82,37 +82,62 @@ pub struct MatchedProbeEstimate {
     pub sample_pairs: usize,
 }
 
-/// Generate a deterministic prefix of matched treatment/control differences.
-///
-/// Every look is keyed by (regime, episode seed, tick), so fixed-look and
-/// anytime-valid methods can consume identical nested prefixes. Each pair
-/// shares the same confounder value; the treatment and control noises are
-/// independent Gaussian draws with the declared standard deviation.
+/// A deterministic, prefix-readable stream of matched treatment/control
+/// differences. An anytime-valid test can stop consuming observations without
+/// materializing the unused tail of the stream.
+pub struct PairedDifferenceStream {
+    regime: CausalRegime,
+    tick: usize,
+    rng: SplitMix64,
+    index: usize,
+    pair_count: usize,
+}
+
+impl Iterator for PairedDifferenceStream {
+    type Item = f64;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.index >= self.pair_count {
+            return None;
+        }
+        const CONFOUNDER_VALUES: [f64; 8] = [-3.0, -2.0, -1.0, 0.0, 0.0, 1.0, 2.0, 3.0];
+        let confounder = CONFOUNDER_VALUES[self.index % CONFOUNDER_VALUES.len()];
+        self.index += 1;
+        let treatment_noise = self.rng.normal(OUTCOME_NOISE_STANDARD_DEVIATION);
+        let control_noise = self.rng.normal(OUTCOME_NOISE_STANDARD_DEVIATION);
+        let treatment_outcome =
+            10.0 + confounder + self.regime.causal_effect(self.tick) + treatment_noise;
+        let control_outcome = 10.0 + confounder + control_noise;
+        Some(treatment_outcome - control_outcome)
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let remaining = self.pair_count.saturating_sub(self.index);
+        (remaining, Some(remaining))
+    }
+}
+
+/// Generate a replayable matched-pair stream. Every method using the same
+/// (regime, tick, seed_index) receives identical nested prefixes.
 pub fn paired_difference_stream(
     regime: CausalRegime,
     tick: usize,
     seed_index: usize,
     pair_count: usize,
-) -> Option<Vec<f64>> {
+) -> Option<PairedDifferenceStream> {
     if pair_count < 2 {
         return None;
     }
-    const CONFOUNDER_VALUES: [f64; 8] = [-3.0, -2.0, -1.0, 0.0, 0.0, 1.0, 2.0, 3.0];
     const LOOK_SEED_MIX: u64 = 0xd6e8_feb8_6659_fd93;
-    let look_seed = scenario_seed(regime, seed_index)
-        ^ (tick as u64).wrapping_mul(LOOK_SEED_MIX);
-    let mut rng = SplitMix64::new(look_seed);
-    let mut differences = Vec::with_capacity(pair_count);
-
-    for pair_index in 0..pair_count {
-        let confounder = CONFOUNDER_VALUES[pair_index % CONFOUNDER_VALUES.len()];
-        let treatment_noise = rng.normal(OUTCOME_NOISE_STANDARD_DEVIATION);
-        let control_noise = rng.normal(OUTCOME_NOISE_STANDARD_DEVIATION);
-        let treatment_outcome = 10.0 + confounder + regime.causal_effect(tick) + treatment_noise;
-        let control_outcome = 10.0 + confounder + control_noise;
-        differences.push(treatment_outcome - control_outcome);
-    }
-    Some(differences)
+    let look_seed =
+        scenario_seed(regime, seed_index) ^ (tick as u64).wrapping_mul(LOOK_SEED_MIX);
+    Some(PairedDifferenceStream {
+        regime,
+        tick,
+        rng: SplitMix64::new(look_seed),
+        index: 0,
+        pair_count,
+    })
 }
 
 fn summarize_matched_differences(differences: &[f64]) -> MatchedProbeEstimate {
@@ -137,13 +162,14 @@ fn matched_probe(
     tick: usize,
     seed_index: usize,
 ) -> MatchedProbeEstimate {
-    let differences = paired_difference_stream(
+    let differences: Vec<f64> = paired_difference_stream(
         regime,
         tick,
         seed_index,
         MATCHED_PAIRS_PER_LOOK,
     )
-    .expect("the frozen matched-pair sample size is greater than one");
+    .expect("the frozen matched-pair sample size is greater than one")
+    .collect();
     summarize_matched_differences(&differences)
 }
 
