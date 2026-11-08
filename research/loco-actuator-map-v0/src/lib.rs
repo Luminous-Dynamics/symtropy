@@ -586,12 +586,7 @@ impl ActuatorPowerMap {
             ),
             loss_consistency: electrical_minus_mechanical_loss_pw.consistency(),
             electrical_minus_mechanical_loss_pw,
-            node_evidence: collect_node_evidence(
-                &self.nodes,
-                &self.axes,
-                cells,
-                fractions,
-            )?,
+            node_evidence: collect_node_evidence(&self.nodes, &self.axes, cells, fractions)?,
         })
     }
 }
@@ -735,7 +730,10 @@ fn interpolate_component(
 
         let index = flat_index(dimensions, coordinates)?;
         let weight = corner_weight(fractions, corner_mask)?;
-        let power = i128::from(interval_component(field_interval(&nodes[index], field), component));
+        let power = i128::from(interval_component(
+            field_interval(&nodes[index], field),
+            component,
+        ));
         let weighted = power
             .checked_mul(i128::try_from(weight).map_err(|_| MapError::ArithmeticOverflow)?)
             .ok_or(MapError::ArithmeticOverflow)?;
@@ -977,16 +975,26 @@ mod tests {
     fn all_four_torque_speed_quadrants_are_preserved() {
         let map = map_from(
             axes(vec![-2, 2], vec![-3, 3], vec![0, 1], vec![24_000, 26_000]),
-            |torque, speed, _temperature, _voltage| {
-                i64::from(torque) * i64::from(speed) + 1
-            },
+            |torque, speed, _temperature, _voltage| i64::from(torque) * i64::from(speed) + 1,
         );
 
         let cases = [
             (operating_point(1, 2, 0, 24_000), TorqueSpeedQuadrant::Q1, 3),
-            (operating_point(-1, 2, 0, 24_000), TorqueSpeedQuadrant::Q2, -1),
-            (operating_point(-1, -2, 0, 24_000), TorqueSpeedQuadrant::Q3, 3),
-            (operating_point(1, -2, 0, 24_000), TorqueSpeedQuadrant::Q4, -1),
+            (
+                operating_point(-1, 2, 0, 24_000),
+                TorqueSpeedQuadrant::Q2,
+                -1,
+            ),
+            (
+                operating_point(-1, -2, 0, 24_000),
+                TorqueSpeedQuadrant::Q3,
+                3,
+            ),
+            (
+                operating_point(1, -2, 0, 24_000),
+                TorqueSpeedQuadrant::Q4,
+                -1,
+            ),
         ];
 
         for (point, expected_quadrant, expected_electrical) in cases {
@@ -1008,32 +1016,21 @@ mod tests {
         let prediction = map.predict(operating_point(-1, 2, 0, 24_000)).unwrap();
 
         assert!(prediction.mechanical_joint_power_pw.nominal_pw() < 0);
-        assert_eq!(
-            prediction.electrical_returned_power_pw.nominal_pw(),
-            0
-        );
-        assert_eq!(
-            prediction.mechanical_absorbed_power_pw.nominal_pw(),
-            2
-        );
+        assert_eq!(prediction.electrical_returned_power_pw.nominal_pw(), 0);
+        assert_eq!(prediction.mechanical_absorbed_power_pw.nominal_pw(), 2);
     }
 
     #[test]
     fn electrical_return_is_derived_only_from_signed_electrical_power() {
         let map = map_from(
             axes(vec![-2, 2], vec![-2, 2], vec![0, 1], vec![24_000, 26_000]),
-            |torque, speed, _temperature, _voltage| {
-                i64::from(torque) * i64::from(speed) - 3
-            },
+            |torque, speed, _temperature, _voltage| i64::from(torque) * i64::from(speed) - 3,
         );
         let prediction = map.predict(operating_point(-1, 2, 0, 24_000)).unwrap();
 
         assert_eq!(prediction.mechanical_joint_power_pw.nominal_pw(), -2);
         assert_eq!(prediction.electrical_input_power_pw.nominal_pw(), -5);
-        assert_eq!(
-            prediction.electrical_returned_power_pw.nominal_pw(),
-            5
-        );
+        assert_eq!(prediction.electrical_returned_power_pw.nominal_pw(), 5);
         assert_eq!(prediction.electrical_draw_power_pw.nominal_pw(), 0);
     }
 
@@ -1063,10 +1060,7 @@ mod tests {
         let prediction = map.predict(operating_point(2, 2, 2, 26_000)).unwrap();
         assert_eq!(prediction.interpolation_cell, [0, 0, 0, 0]);
         assert_eq!(prediction.interpolation_fraction_q16, [65_536; 4]);
-        assert_eq!(
-            prediction.electrical_input_power_pw.nominal_pw(),
-            14
-        );
+        assert_eq!(prediction.electrical_input_power_pw.nominal_pw(), 14);
     }
 
     #[test]
@@ -1075,10 +1069,7 @@ mod tests {
         let prediction = map.predict(operating_point(1, 1, 1, 25_000)).unwrap();
 
         assert_eq!(prediction.node_evidence.len(), 16);
-        assert_eq!(
-            prediction.node_evidence[0].sample_id,
-            "sample-0"
-        );
+        assert_eq!(prediction.node_evidence[0].sample_id, "sample-0");
         assert_eq!(
             prediction.node_evidence[0].input_artifact_digest,
             "input-artifact-0"
