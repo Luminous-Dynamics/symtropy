@@ -264,13 +264,18 @@ fn parse_attestation(bytes: &[u8]) -> Result<PaperRunAttestation, PaperImportErr
         evaluator_blob_sha: json_string(&json, "evaluator_blob_sha")?.to_string(),
         baseline_runner_blob_sha: json_string(&json, "baseline_runner_blob_sha")?.to_string(),
         generation_runner_blob_sha: json_string(&json, "generation_runner_blob_sha")?.to_string(),
-        generation_pipeline_blob_sha: json_string(&json, "generation_pipeline_blob_sha")?.to_string(),
+        generation_pipeline_blob_sha: json_string(&json, "generation_pipeline_blob_sha")?
+            .to_string(),
         evaluator_runner_blob_sha: json_string(&json, "evaluator_runner_blob_sha")?.to_string(),
         stats_lib_blob_sha: json_string(&json, "stats_lib_blob_sha")?.to_string(),
         analysis_protocol_preserved: json
             .get("analysis_protocol_preserved")
             .and_then(Value::as_bool)
-            .ok_or_else(|| PaperImportError::new("missing or invalid boolean field: analysis_protocol_preserved"))?,
+            .ok_or_else(|| {
+                PaperImportError::new(
+                    "missing or invalid boolean field: analysis_protocol_preserved",
+                )
+            })?,
         run_id: json_string(&json, "run_id")?.to_string(),
         model_id: json_string(&json, "model_id")?.to_string(),
         prompt_preset: json_string(&json, "prompt_preset")?.to_string(),
@@ -914,9 +919,8 @@ mod tests {
         let evaluator_runner_blob_sha =
             expected_execution_source_sha("src/evaluation/evaluator_runner.py")
                 .expect("evaluator runner source pin");
-        let stats_lib_blob_sha =
-            expected_execution_source_sha("src/evaluation/stats_lib.py")
-                .expect("statistics implementation source pin");
+        let stats_lib_blob_sha = expected_execution_source_sha("src/evaluation/stats_lib.py")
+            .expect("statistics implementation source pin");
         json!({
             "protocol_id": PAPER_12_PROTOCOL_ID,
             "source_repository": PAPER_12_SOURCE_REPOSITORY,
