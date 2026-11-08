@@ -296,8 +296,8 @@ pub fn evaluate(dataset: &MetricDataset) -> Result<CalibrationMetrics, MetricErr
                 observation.exchangeability_unit_id.clone(),
             );
         }
-        episodes.insert(observation.episode_id.clone());
-        units.insert(observation.exchangeability_unit_id.clone());
+        episodes.insert(observation.episode_id.clone(), ());
+        units.insert(observation.exchangeability_unit_id.clone(), ());
 
         squared_error_sum = checked_square_accumulate(
             squared_error_sum,
