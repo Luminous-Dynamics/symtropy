@@ -10,8 +10,7 @@ use std::fmt::Write as _;
 use std::str;
 
 const FIXTURE: &[u8] = include_bytes!("../data/synthetic-equivalent-beam.bdf");
-const CRM_SHAPED_FIXTURE: &[u8] =
-    include_bytes!("../data/synthetic-crm-equivalent-beam-shape.bdf");
+const CRM_SHAPED_FIXTURE: &[u8] = include_bytes!("../data/synthetic-crm-equivalent-beam-shape.bdf");
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct RawLine {
@@ -1070,20 +1069,57 @@ mod tests {
         assert!(inventory.load_set_ids.is_empty());
         assert_eq!(inventory.opaque_cards, 0);
         assert_eq!(inventory.orphan_grid_count, 0);
-        assert_eq!(deck.cards.iter().filter(|card| card.name == "GRID").count(), 49);
-        assert_eq!(deck.cards.iter().filter(|card| card.name == "CBEAM").count(), 16);
-        assert_eq!(deck.cards.iter().filter(|card| card.name == "PBEAM").count(), 16);
-        assert_eq!(deck.cards.iter().filter(|card| card.name == "CONM2").count(), 15);
-        assert_eq!(deck.cards.iter().filter(|card| card.name == "RBE2").count(), 16);
+        assert_eq!(
+            deck.cards.iter().filter(|card| card.name == "GRID").count(),
+            49
+        );
+        assert_eq!(
+            deck.cards
+                .iter()
+                .filter(|card| card.name == "CBEAM")
+                .count(),
+            16
+        );
+        assert_eq!(
+            deck.cards
+                .iter()
+                .filter(|card| card.name == "PBEAM")
+                .count(),
+            16
+        );
+        assert_eq!(
+            deck.cards
+                .iter()
+                .filter(|card| card.name == "CONM2")
+                .count(),
+            15
+        );
+        assert_eq!(
+            deck.cards.iter().filter(|card| card.name == "RBE2").count(),
+            16
+        );
 
         let beam = deck.cards.iter().find(|card| card.name == "CBEAM").unwrap();
-        assert_eq!(beam.raw_lines.len(), 2, "CBEAM implicit continuation must be preserved");
+        assert_eq!(
+            beam.raw_lines.len(),
+            2,
+            "CBEAM implicit continuation must be preserved"
+        );
         let mass = deck.cards.iter().find(|card| card.name == "CONM2").unwrap();
-        assert_eq!(mass.raw_lines.len(), 2, "CONM2 implicit continuation must be preserved");
+        assert_eq!(
+            mass.raw_lines.len(),
+            2,
+            "CONM2 implicit continuation must be preserved"
+        );
         let spc = deck.cards.iter().find(|card| card.name == "SPC").unwrap();
-        assert!(spc.fields.get(3).is_some_and(|value| value.is_empty()),
-                "blank SPC enforced-displacement field must remain blank in the raw inventory");
-        assert_eq!(inventory.claim_ceiling, "syntax_and_topology_inventory_only");
+        assert!(
+            spc.fields.get(3).is_some_and(|value| value.is_empty()),
+            "blank SPC enforced-displacement field must remain blank in the raw inventory"
+        );
+        assert_eq!(
+            inventory.claim_ceiling,
+            "syntax_and_topology_inventory_only"
+        );
     }
 
     #[test]
