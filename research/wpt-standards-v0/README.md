@@ -78,3 +78,16 @@ Sources:
 - https://www.icasa.org.za/uploads/files/Amendment-To-The-Radio-Frequency-Spectrum-Regulations-2015.pdf
 
 The register records this as RADIO_SPECTRUM_EXEMPTION with airborne applicability UNKNOWN. It is not an exemption determination, spectrum licence or approval to operate.
+
+
+## 85 kHz allocation vs apparatus exemption — additional distinction (2026-11-08)
+
+ICASA's official NFRP 2026 interface shows the 84–86 kHz band allocated to RADIONAVIGATION (footnote 5.60). Its typical-applications column also references Inductive Loop Systems in the broader 9–135 kHz span and cites the Annex B amendment. These are separate facts:
+
+- The NFRP entry describes national allocation and typical applications.
+- Annex B describes a conditional apparatus-specific spectrum-licence exemption for inductive applications at 9–135 kHz (including a 42 dBµA/m at 10 m field-strength limit and SANS 300 330).
+- Neither statement alone establishes that a 350 W UAV charging transmitter is exempt or may operate without harmful interference.
+
+The new register row keeps the 84–86 kHz allocation as a separate record and leaves aircraft/WPT applicability UNKNOWN. This is intentionally stricter than interpreting "85 kHz is in the 9–135 kHz range" as permission to transmit.
+
+Official NFRP interface: https://app3.icasa.org.za/
