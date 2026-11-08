@@ -1,0 +1,34 @@
+name: Aero Replenishment Strategy
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "research/aero-replenishment-strategy-v0/**"
+      - "tools/aero-replenishment-strategy/**"
+      - ".github/workflows/aero-replenishment-strategy.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "research/aero-replenishment-strategy-v0/**"
+      - "tools/aero-replenishment-strategy/**"
+      - ".github/workflows/aero-replenishment-strategy.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate (cross-platform)
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Test exact mission-path evaluator
+        run: cargo test --locked --manifest-path tools/aero-replenishment-strategy/Cargo.toml
+      - name: Evaluate synthetic replenishment Pareto frontier
+        run: cargo run --locked --manifest-path tools/aero-replenishment-strategy/Cargo.toml -- research/aero-replenishment-strategy-v0/synthetic-mission-edges.tsv
