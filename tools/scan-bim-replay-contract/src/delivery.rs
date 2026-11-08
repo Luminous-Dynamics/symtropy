@@ -611,7 +611,10 @@ fn validate_crosswalk(entries: &[CrosswalkEntry]) -> Result<(usize, usize), Stri
 
 #[cfg(test)]
 mod tests {
-    use super::{DeliveryAuditReport, DeliveryDecisionStatus, audit_delivery_receipt_bytes};
+    use super::{
+        DeliveryAuditReport, DeliveryDecisionStatus, audit_delivery_receipt_bytes,
+        validate_ifc_global_id,
+    };
     use serde_json::{Value, json};
 
     fn fixture_cases() -> Value {
@@ -1050,6 +1053,22 @@ mod tests {
         )
         .expect_err("IDS results cannot be grounded without IDS input");
         assert!(error.contains("gate references IDS requirements absent"));
+    }
+
+    #[test]
+    fn accepts_buildingsmart_ifc_guid_example() {
+        assert!(
+            validate_ifc_global_id("3t3TDZl_D9NOIWB0BSjzJI").is_ok(),
+            "the IFC 4.3.2.0 published compressed GUID example must pass lexical validation"
+        );
+    }
+
+    #[test]
+    fn rejects_non_alphabet_character_in_ifc_global_id() {
+        let error = validate_ifc_global_id("3t3TDZl_D9NOIWB0BSjzJ!").expect_err(
+            "characters outside the compressed IFC GUID alphabet must be rejected",
+        );
+        assert!(error.contains("22-character compressed IFC GUID alphabet"));
     }
 
     #[test]
