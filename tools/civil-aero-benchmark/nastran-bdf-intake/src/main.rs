@@ -10,6 +10,8 @@ use std::fmt::Write as _;
 use std::str;
 
 const FIXTURE: &[u8] = include_bytes!("../data/synthetic-equivalent-beam.bdf");
+const CRM_SHAPED_FIXTURE: &[u8] =
+    include_bytes!("../data/synthetic-crm-equivalent-beam-shape.bdf");
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct RawLine {
@@ -933,8 +935,21 @@ fn property_materials_json(values: &BTreeMap<u32, u32>) -> String {
 }
 
 fn main() {
-    let digest = sha256_hex(FIXTURE);
-    let deck = match parse_deck(FIXTURE, &digest) {
+    let use_crm_shape = match std::env::args().nth(1).as_deref() {
+        None => false,
+        Some("--crm-shaped") => true,
+        Some(other) => {
+            eprintln!("unsupported argument: {other}; use --crm-shaped or no argument");
+            std::process::exit(2);
+        }
+    };
+    let source = if use_crm_shape {
+        CRM_SHAPED_FIXTURE
+    } else {
+        FIXTURE
+    };
+    let digest = sha256_hex(source);
+    let deck = match parse_deck(source, &digest) {
         Ok(deck) => deck,
         Err(error) => {
             eprintln!("bdf_parse_error={error}");
@@ -1038,6 +1053,37 @@ mod tests {
         cards[0] = fixed_line(&["GRID", "0", "0", "0.", "0.", "0."]);
         let bytes = deck_text(cards);
         assert!(parse_bytes(&bytes).is_err());
+    }
+
+    #[test]
+    fn crm_shaped_synthetic_fixture_matches_preview_topology_without_claiming_source_identity() {
+        let (deck, inventory) =
+            parse_bytes(CRM_SHAPED_FIXTURE).expect("CRM-shaped synthetic fixture must parse");
+        assert_eq!(inventory.grid_ids.len(), 49);
+        assert_eq!(inventory.cbeam_ids.len(), 16);
+        assert_eq!(inventory.property_materials.len(), 16);
+        assert_eq!(inventory.element_ids.len(), 47);
+        assert_eq!(inventory.material_ids, BTreeSet::from([1]));
+        assert_eq!(inventory.rbe2_ids.len(), 16);
+        assert_eq!(inventory.spc_set_ids, BTreeSet::from([1]));
+        assert_eq!(inventory.force_set_ids, BTreeSet::from([1]));
+        assert!(inventory.load_set_ids.is_empty());
+        assert_eq!(inventory.opaque_cards, 0);
+        assert_eq!(inventory.orphan_grid_count, 0);
+        assert_eq!(deck.cards.iter().filter(|card| card.name == "GRID").count(), 49);
+        assert_eq!(deck.cards.iter().filter(|card| card.name == "CBEAM").count(), 16);
+        assert_eq!(deck.cards.iter().filter(|card| card.name == "PBEAM").count(), 16);
+        assert_eq!(deck.cards.iter().filter(|card| card.name == "CONM2").count(), 15);
+        assert_eq!(deck.cards.iter().filter(|card| card.name == "RBE2").count(), 16);
+
+        let beam = deck.cards.iter().find(|card| card.name == "CBEAM").unwrap();
+        assert_eq!(beam.raw_lines.len(), 2, "CBEAM implicit continuation must be preserved");
+        let mass = deck.cards.iter().find(|card| card.name == "CONM2").unwrap();
+        assert_eq!(mass.raw_lines.len(), 2, "CONM2 implicit continuation must be preserved");
+        let spc = deck.cards.iter().find(|card| card.name == "SPC").unwrap();
+        assert!(spc.fields.get(3).is_some_and(|value| value.is_empty()),
+                "blank SPC enforced-displacement field must remain blank in the raw inventory");
+        assert_eq!(inventory.claim_ceiling, "syntax_and_topology_inventory_only");
     }
 
     #[test]
