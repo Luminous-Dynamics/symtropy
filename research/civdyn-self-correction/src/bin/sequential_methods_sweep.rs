@@ -91,9 +91,11 @@ fn main() {
         outcomes.len(),
         CausalRegime::ALL.len() * 256 * SequentialMethod::ALL.len()
     );
-    assert!(outcomes
-        .iter()
-        .all(|item| item.receipt.pairs_used <= MAX_PAIRS));
+    assert!(
+        outcomes
+            .iter()
+            .all(|item| item.receipt.pairs_used <= MAX_PAIRS)
+    );
 
     for outcome in &outcomes {
         let fields = row(outcome);
