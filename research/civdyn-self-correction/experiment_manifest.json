@@ -47,6 +47,65 @@
         "frozen_policy_maintenance_energy_unmet_kwh": 60,
         "mechanism_aware_maintenance_energy_unmet_kwh": 50
       }
+    },
+    "causal_drift": {
+      "ticks": 8,
+      "reversal_starts_on_one_based_tick": 4,
+      "common_cause_observational_imbalance": 5,
+      "action_cost": 0.5,
+      "matched_probe_interval_ticks": 2,
+      "matched_probe_pairs": 5,
+      "matched_confounder_values": [
+        -2,
+        -1,
+        0,
+        1,
+        2
+      ],
+      "diagnostic_probe_cost": 0.25,
+      "regimes": {
+        "stable_positive": {
+          "causal_effect": 2,
+          "expected_observational_association": 7
+        },
+        "sign_reversal": {
+          "effect_before_tick_4": 2,
+          "effect_from_tick_4": -3,
+          "expected_final_observational_association": 2
+        },
+        "confounded_null": {
+          "causal_effect": 0,
+          "expected_observational_association": 5
+        }
+      },
+      "expected_controls": {
+        "stable_positive_mechanism_aware": {
+          "diagnosis": null,
+          "active_ticks": 8,
+          "last_probe_estimate": 2
+        },
+        "sign_reversal_outcome_reactive": {
+          "diagnosis": null,
+          "active_after_nonpositive_effect_ticks": 5,
+          "false_causal_attribution": true
+        },
+        "sign_reversal_mechanism_aware": {
+          "diagnosis": "causal_sign_reversal",
+          "detection_tick": 4,
+          "active_after_nonpositive_effect_ticks": 1
+        },
+        "confounded_null_mechanism_aware": {
+          "diagnosis": "null_effect_with_confounding",
+          "detection_tick": 2,
+          "active_ticks": 2
+        }
+      },
+      "claim_ceiling": [
+        "All potential outcomes and confounder values are synthetic deterministic software fixtures.",
+        "Matched-pair estimates are derived from paired synthetic outcomes with no sampling noise; this does not establish empirical identification.",
+        "The common cause is represented in the synthetic outcome equation and its imbalance is a declared design input.",
+        "Oracle utility uses scenario ground truth and is an upper-bound comparator, not a deployable controller."
+      ]
     }
   },
   "correction_event_order": [
@@ -76,7 +135,21 @@
     "trace_valid",
     "maximum_water_residual_m3",
     "maximum_energy_residual_kwh",
-    "maintenance_energy_unmet_kwh"
+    "maintenance_energy_unmet_kwh",
+    "final_true_causal_effect",
+    "final_observational_association",
+    "last_matched_probe_estimate",
+    "active_ticks",
+    "active_after_nonpositive_effect_ticks",
+    "cumulative_causal_contribution",
+    "diagnostic_probe_count",
+    "diagnostic_probe_cost",
+    "net_utility",
+    "oracle_net_utility",
+    "regret_to_oracle",
+    "false_causal_attribution",
+    "diagnosis",
+    "detection_tick"
   ],
   "claim_ceiling": [
     "The scenarios and all quantities are synthetic and not calibrated to a real catchment or society.",
