@@ -653,7 +653,13 @@ mod tests {
 
     #[test]
     fn missing_calibration_identity_or_uncertainty_budget_abstains() {
-        let left = synthetic_channel("measurement", "pressure", "Pa", "sensor-grid-A", "bandpass-A");
+        let left = synthetic_channel(
+            "measurement",
+            "pressure",
+            "Pa",
+            "sensor-grid-A",
+            "bandpass-A",
+        );
         let mut no_calibration_id = left.clone();
         no_calibration_id.calibration_operator_id = None;
         assert_eq!(
@@ -676,7 +682,13 @@ mod tests {
 
     #[test]
     fn different_reliability_masks_reject_direct_comparison() {
-        let left = synthetic_channel("measurement", "Cp", "1", "surface-map-A", "camera-lowpass-A");
+        let left = synthetic_channel(
+            "measurement",
+            "Cp",
+            "1",
+            "surface-map-A",
+            "camera-lowpass-A",
+        );
         let mut right = left.clone();
         right.mask_required = true;
         right.mask_operator_id = Some("uPSP-mask-rev-A".to_owned());
