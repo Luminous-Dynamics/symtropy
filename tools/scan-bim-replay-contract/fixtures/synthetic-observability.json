@@ -1,5 +1,5 @@
 {
-  "schema_version": "0.1",
+  "schema_version": "0.2",
   "replay_id": "SYNTHETIC-OBSERVABILITY-001",
   "dataset": {
     "dataset_id": "SYNTHETIC-OBSERVABILITY-001",
@@ -9,8 +9,13 @@
     "ci_artifacts_include_source_data": false
   },
   "split": {
-    "development_group_ids": ["BUILDING-DEV"],
-    "evaluation_group_ids": ["BUILDING-A", "BUILDING-B"]
+    "development_group_ids": [
+      "BUILDING-DEV"
+    ],
+    "evaluation_group_ids": [
+      "BUILDING-A",
+      "BUILDING-B"
+    ]
   },
   "scenes": [
     {
@@ -37,35 +42,43 @@
       "surface_strata": [
         {
           "stratum_id": "VISIBLE-CAPTURED",
-          "area_m2": 8.0,
+          "area_m2": 8,
           "visibility": "theoretically_visible",
           "observation": "captured"
         },
         {
           "stratum_id": "VISIBLE-MISSED",
-          "area_m2": 2.0,
+          "area_m2": 2,
           "visibility": "theoretically_visible",
           "observation": "not_captured"
         },
         {
           "stratum_id": "SELF-OCCLUDED",
-          "area_m2": 4.0,
+          "area_m2": 4,
           "visibility": "self_occluded",
           "observation": "not_captured"
         },
         {
           "stratum_id": "EXTERNAL-OCCLUSION",
-          "area_m2": 3.0,
+          "area_m2": 3,
           "visibility": "externally_occluded",
           "observation": "not_captured"
         },
         {
           "stratum_id": "VISIBILITY-UNKNOWN",
-          "area_m2": 1.0,
+          "area_m2": 1,
           "visibility": "unknown",
           "observation": "unknown"
         }
-      ]
+      ],
+      "coordinate_frame": {
+        "frame_id": "BUILDING-A-LOCAL",
+        "crs_id": "LOCAL:BUILDING-A",
+        "axis_order": "xyz",
+        "handedness": "right",
+        "linear_unit": "metre",
+        "vertical_datum_id": "LOCAL:0.000"
+      }
     },
     {
       "scene_id": "ROOM-B",
@@ -91,13 +104,13 @@
       "surface_strata": [
         {
           "stratum_id": "VISIBLE-CAPTURED",
-          "area_m2": 12.0,
+          "area_m2": 12,
           "visibility": "theoretically_visible",
           "observation": "captured"
         },
         {
           "stratum_id": "VISIBLE-UNKNOWN",
-          "area_m2": 2.0,
+          "area_m2": 2,
           "visibility": "theoretically_visible",
           "observation": "unknown"
         },
@@ -107,7 +120,100 @@
           "visibility": "externally_occluded",
           "observation": "not_captured"
         }
-      ]
+      ],
+      "coordinate_frame": {
+        "frame_id": "BUILDING-B-LOCAL",
+        "crs_id": "LOCAL:BUILDING-B",
+        "axis_order": "xyz",
+        "handedness": "right",
+        "linear_unit": "metre",
+        "vertical_datum_id": "LOCAL:0.000"
+      }
+    }
+  ],
+  "candidate_run": {
+    "pipeline_id": "synthetic-scan-bim-candidate-v0.2",
+    "source_commit_sha": "1111111111111111111111111111111111111111",
+    "toolchain": "rustc 1.96.0 / x86_64-unknown-linux-gnu",
+    "command": [
+      "scan-bim-candidate",
+      "--deterministic",
+      "--fixture",
+      "synthetic-observability"
+    ],
+    "executable_artifact_id": "CANDIDATE-EXECUTABLE",
+    "configuration_artifact_id": "CANDIDATE-CONFIG",
+    "model_artifact_id": "CANDIDATE-MODEL"
+  },
+  "candidate_runtime_artifacts": [
+    {
+      "artifact_id": "CANDIDATE-EXECUTABLE",
+      "role": "candidate_executable",
+      "relative_path": "runtime/scan-bim-candidate.bin",
+      "sha256": "b72014bdc0bc584961d9073382b72c982ecd3014d294d0578b0c652075ebe4cb"
+    },
+    {
+      "artifact_id": "CANDIDATE-CONFIG",
+      "role": "candidate_configuration",
+      "relative_path": "runtime/config.json",
+      "sha256": "b45a10b01efa6599bf52fc5204cc35e5134db2d63563e855a77124b0dcc73055"
+    },
+    {
+      "artifact_id": "CANDIDATE-MODEL",
+      "role": "model_weights",
+      "relative_path": "runtime/model.bin",
+      "sha256": "9abd35ce0eca07e5bf0b46f8a7e384dceb516e144536a0d657160ad93f6e5b0b"
+    }
+  ],
+  "tolerance_profile": {
+    "profile_id": "synthetic-report-only-5cm",
+    "requirement_revision": "synthetic-requirements-v0.2",
+    "surface_distance_limit_m": 0.05,
+    "decision_policy": "report_only"
+  },
+  "sampling_profile": {
+    "profile_id": "synthetic-partial-input-10mm",
+    "reference_surface_spacing_m": 0.02,
+    "scan_voxel_size_m": 0.01,
+    "distance_cutoff_m": 0.1,
+    "normalization": "partial_input_only"
+  },
+  "metric_profile": {
+    "suite_id": "luminous_synthetic_contract_metrics",
+    "version": "0.2",
+    "scope": "all_elements",
+    "accuracy_direction": "reference_to_candidate",
+    "surface_buffer_m": 0.1,
+    "accuracy_cutoff_m": 0.1
+  },
+  "candidate_outputs": [
+    {
+      "artifact_id": "ROOM-A-IFC",
+      "scene_id": "ROOM-A",
+      "role": "ifc_model",
+      "relative_path": "outputs/room-a.ifc.placeholder",
+      "sha256": "1388812a1750215452fc4dea388e113d754231c3bd9e9ff4932917da6cef3698"
+    },
+    {
+      "artifact_id": "ROOM-A-METRICS",
+      "scene_id": "ROOM-A",
+      "role": "candidate_metrics",
+      "relative_path": "outputs/room-a-metrics.json",
+      "sha256": "8b672a8de43da196b7492f779991714870c093dbf555d14f36f0d0eaf29d6852"
+    },
+    {
+      "artifact_id": "ROOM-B-IFC",
+      "scene_id": "ROOM-B",
+      "role": "ifc_model",
+      "relative_path": "outputs/room-b.ifc.placeholder",
+      "sha256": "86035f5541958d4f1785574783d750bebe9206d1011e3682f8135af7f393b026"
+    },
+    {
+      "artifact_id": "ROOM-B-METRICS",
+      "scene_id": "ROOM-B",
+      "role": "candidate_metrics",
+      "relative_path": "outputs/room-b-metrics.json",
+      "sha256": "2c156a0684a35a60708ac6d396e54805c72b84112994576ccfde3a0b7b905260"
     }
   ]
 }
