@@ -15,6 +15,12 @@ pub struct ReplayManifest {
     replay_id: String,
     dataset: DatasetPolicy,
     split: SplitPolicy,
+    candidate_run: CandidateRun,
+    candidate_runtime_artifacts: Vec<CandidateArtifact>,
+    tolerance_profile: ToleranceProfile,
+    sampling_profile: SamplingProfile,
+    metric_profile: MetricProfile,
+    candidate_outputs: Vec<CandidateOutputArtifact>,
     scenes: Vec<SceneRecord>,
 }
 
@@ -51,9 +57,136 @@ struct SceneRecord {
     building_group_id: String,
     capture_group_id: String,
     split_group_id: String,
+    coordinate_frame: CoordinateFrame,
     candidate_inputs: Vec<CandidateArtifact>,
     evaluator_artifacts: Vec<EvaluatorArtifact>,
     surface_strata: Vec<SurfaceStratum>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct CandidateRun {
+    pipeline_id: String,
+    source_commit_sha: String,
+    toolchain: String,
+    command: Vec<String>,
+    executable_artifact_id: String,
+    configuration_artifact_id: String,
+    model_artifact_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct CoordinateFrame {
+    frame_id: String,
+    crs_id: String,
+    axis_order: AxisOrder,
+    handedness: Handedness,
+    linear_unit: LinearUnit,
+    vertical_datum_id: String,
+}
+
+#[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum AxisOrder {
+    Xyz,
+    EastNorthUp,
+}
+
+#[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum Handedness {
+    Right,
+    Left,
+}
+
+#[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum LinearUnit {
+    Metre,
+    Millimetre,
+    FootInternational,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ToleranceProfile {
+    profile_id: String,
+    requirement_revision: String,
+    surface_distance_limit_m: f64,
+    decision_policy: DecisionPolicy,
+}
+
+#[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum DecisionPolicy {
+    ReportOnly,
+    HardLimit,
+    StatisticalInterval,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SamplingProfile {
+    profile_id: String,
+    reference_surface_spacing_m: f64,
+    scan_voxel_size_m: f64,
+    distance_cutoff_m: f64,
+    normalization: NormalizationMode,
+}
+
+#[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum NormalizationMode {
+    PartialInputOnly,
+    CandidateBoundsOnly,
+    ReferenceDerivedFullBounds,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct MetricProfile {
+    suite_id: String,
+    version: String,
+    scope: MetricScope,
+    accuracy_direction: AccuracyDirection,
+    surface_buffer_m: f64,
+    accuracy_cutoff_m: f64,
+}
+
+#[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum MetricScope {
+    WallOnly,
+    AllElements,
+    StructuralElements,
+}
+
+#[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum AccuracyDirection {
+    ReferenceToCandidate,
+    CandidateToReference,
+    BidirectionalDiagnostic,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct CandidateOutputArtifact {
+    artifact_id: String,
+    scene_id: String,
+    role: CandidateOutputRole,
+    relative_path: String,
+    sha256: String,
+}
+
+#[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum CandidateOutputRole {
+    IfcModel,
+    GeometryModel,
+    ElementGraph,
+    CandidateMetrics,
 }
 
 #[derive(Debug, Deserialize)]
@@ -82,6 +215,9 @@ enum CandidateInputRole {
     PriorAssetModel,
     RegistrationMetadata,
     CalibrationArtifact,
+    CandidateExecutable,
+    CandidateConfiguration,
+    ModelWeights,
 }
 
 #[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]
@@ -125,6 +261,9 @@ enum ObservationStatus {
 #[derive(Debug, Serialize)]
 pub struct ArtifactVerificationSummary {
     pub candidate_verified: usize,
+    pub candidate_runtime_verified: usize,
+    pub candidate_input_verified: usize,
+    pub candidate_output_verified: usize,
     pub evaluator_verified: usize,
 }
 
@@ -133,6 +272,12 @@ pub struct ReplayAuditReport {
     pub schema_version: String,
     pub replay_id: String,
     pub dataset_id: String,
+    pub pipeline_id: String,
+    pub source_commit_sha: String,
+    pub tolerance_profile_id: String,
+    pub sampling_profile_id: String,
+    pub metric_suite_id: String,
+    pub metric_suite_version: String,
     pub manifest_sha256: String,
     pub scene_count: usize,
     pub candidate_artifact_count: usize,
@@ -172,8 +317,8 @@ fn valid_identifier(value: &str) -> bool {
 }
 
 fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
-    if manifest.schema_version != "0.1" {
-        return Err("unsupported schema_version; expected 0.1".to_owned());
+    if manifest.schema_version != "0.2" {
+        return Err("unsupported schema_version; expected 0.2".to_owned());
     }
     if !valid_identifier(&manifest.replay_id) {
         return Err("replay_id must be non-empty".to_owned());
@@ -196,6 +341,133 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
         && manifest.dataset.use_class != DataUseClass::ResearchOnlyNonRedistributable
     {
         return Err("ISPRS replay requires research_only_non_redistributable use class".to_owned());
+    }
+
+    let run = &manifest.candidate_run;
+    if !valid_identifier(&run.pipeline_id)
+        || !valid_identifier(&run.toolchain)
+        || !valid_identifier(&run.executable_artifact_id)
+        || !valid_identifier(&run.configuration_artifact_id)
+    {
+        return Err("candidate run identity fields must be non-empty".to_owned());
+    }
+    if run.source_commit_sha.len() != 40
+        || !run
+            .source_commit_sha
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    {
+        return Err("candidate source_commit_sha must be 40 lowercase hexadecimal characters".to_owned());
+    }
+    if run.command.is_empty() || run.command.iter().any(|part| !valid_identifier(part)) {
+        return Err("candidate command must contain non-empty arguments".to_owned());
+    }
+
+    if !valid_identifier(&manifest.tolerance_profile.profile_id)
+        || !valid_identifier(&manifest.tolerance_profile.requirement_revision)
+        || !manifest
+            .tolerance_profile
+            .surface_distance_limit_m
+            .is_finite()
+        || manifest.tolerance_profile.surface_distance_limit_m <= 0.0
+    {
+        return Err("tolerance profile requires an ID, revision and finite positive distance limit in metres".to_owned());
+    }
+    if !valid_identifier(&manifest.sampling_profile.profile_id)
+        || !manifest
+            .sampling_profile
+            .reference_surface_spacing_m
+            .is_finite()
+        || manifest.sampling_profile.reference_surface_spacing_m <= 0.0
+        || !manifest.sampling_profile.scan_voxel_size_m.is_finite()
+        || manifest.sampling_profile.scan_voxel_size_m <= 0.0
+        || !manifest.sampling_profile.distance_cutoff_m.is_finite()
+        || manifest.sampling_profile.distance_cutoff_m <= 0.0
+    {
+        return Err("sampling profile values must be finite and positive in metres".to_owned());
+    }
+    if manifest.sampling_profile.normalization == NormalizationMode::ReferenceDerivedFullBounds {
+        return Err("reference-derived full-object bounds are forbidden in candidate normalization".to_owned());
+    }
+    if !valid_identifier(&manifest.metric_profile.suite_id)
+        || !valid_identifier(&manifest.metric_profile.version)
+        || !manifest.metric_profile.surface_buffer_m.is_finite()
+        || manifest.metric_profile.surface_buffer_m <= 0.0
+        || !manifest.metric_profile.accuracy_cutoff_m.is_finite()
+        || manifest.metric_profile.accuracy_cutoff_m <= 0.0
+    {
+        return Err("metric profile must declare a version and finite positive metre thresholds".to_owned());
+    }
+    if manifest.metric_profile.suite_id == "isprs_indoor_modelling_wall"
+        && (manifest.metric_profile.scope != MetricScope::WallOnly
+            || manifest.metric_profile.accuracy_direction
+                != AccuracyDirection::ReferenceToCandidate)
+    {
+        return Err("official ISPRS wall metric profile requires wall_only scope and reference_to_candidate accuracy".to_owned());
+    }
+
+    if manifest.candidate_runtime_artifacts.is_empty() {
+        return Err("candidate_runtime_artifacts must not be empty".to_owned());
+    }
+    if manifest.candidate_outputs.is_empty() {
+        return Err("candidate_outputs must not be empty".to_owned());
+    }
+
+    let mut runtime_ids = BTreeSet::new();
+    let mut runtime_digests = BTreeSet::new();
+    let mut has_executable = false;
+    let mut has_configuration = false;
+    let mut has_model = false;
+    for artifact in &manifest.candidate_runtime_artifacts {
+        if !valid_identifier(&artifact.artifact_id)
+            || !digest_is_sha256(&artifact.sha256)
+            || !runtime_ids.insert(artifact.artifact_id.as_str())
+        {
+            return Err(format!(
+                "candidate runtime artifact {} has invalid or duplicate identity/digest",
+                artifact.artifact_id
+            ));
+        }
+        runtime_digests.insert(artifact.sha256.as_str());
+        match artifact.role {
+            CandidateInputRole::CandidateExecutable => has_executable = true,
+            CandidateInputRole::CandidateConfiguration => has_configuration = true,
+            CandidateInputRole::ModelWeights => has_model = true,
+            _ => return Err(format!(
+                "candidate runtime artifact {} has a non-runtime role",
+                artifact.artifact_id
+            )),
+        }
+    }
+    let executable = manifest
+        .candidate_runtime_artifacts
+        .iter()
+        .find(|artifact| artifact.artifact_id == run.executable_artifact_id);
+    if !has_executable
+        || executable.is_none_or(|artifact| artifact.role != CandidateInputRole::CandidateExecutable)
+    {
+        return Err("candidate executable_artifact_id must reference a candidate_executable runtime artifact".to_owned());
+    }
+    let configuration = manifest
+        .candidate_runtime_artifacts
+        .iter()
+        .find(|artifact| artifact.artifact_id == run.configuration_artifact_id);
+    if !has_configuration
+        || configuration.is_none_or(|artifact| artifact.role != CandidateInputRole::CandidateConfiguration)
+    {
+        return Err("candidate configuration_artifact_id must reference a candidate_configuration runtime artifact".to_owned());
+    }
+    if let Some(model_id) = &run.model_artifact_id {
+        if !has_model
+            || !manifest.candidate_runtime_artifacts.iter().any(|artifact| {
+                artifact.artifact_id == *model_id
+                    && artifact.role == CandidateInputRole::ModelWeights
+            })
+        {
+            return Err("candidate model_artifact_id must reference a model_weights runtime artifact".to_owned());
+        }
+    } else if has_model {
+        return Err("unreferenced model_weights runtime artifact is not permitted".to_owned());
     }
 
     let development: BTreeSet<&str> = manifest
@@ -225,6 +497,12 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
     let mut evaluator_ids = BTreeSet::new();
     let mut candidate_digests = BTreeSet::new();
     let mut evaluator_digests = BTreeSet::new();
+    for artifact in &manifest.candidate_runtime_artifacts {
+        if !candidate_ids.insert(artifact.artifact_id.as_str()) {
+            return Err(format!("duplicate candidate artifact_id: {}", artifact.artifact_id));
+        }
+        candidate_digests.insert(artifact.sha256.as_str());
+    }
     let mut building_splits: BTreeMap<&str, &str> = BTreeMap::new();
     let mut capture_splits: BTreeMap<&str, &str> = BTreeMap::new();
     let mut tub1: Option<(&str, &str, &str)> = None;
@@ -241,6 +519,15 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
             || !valid_identifier(&scene.split_group_id)
         {
             return Err("scene and group identifiers must be non-empty".to_owned());
+        }
+        if !valid_identifier(&scene.coordinate_frame.frame_id)
+            || !valid_identifier(&scene.coordinate_frame.crs_id)
+            || !valid_identifier(&scene.coordinate_frame.vertical_datum_id)
+        {
+            return Err(format!(
+                "scene {} coordinate frame requires frame_id, crs_id and vertical_datum_id",
+                scene.scene_id
+            ));
         }
         if !scene_ids.insert(scene.scene_id.as_str()) {
             return Err(format!("duplicate scene_id: {}", scene.scene_id));
@@ -405,6 +692,49 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
                 scene.split_group_id.as_str(),
             ));
         }
+    }
+
+    let mut output_ids = BTreeSet::new();
+    let mut output_digests = BTreeSet::new();
+    let mut output_scenes = BTreeSet::new();
+    for output in &manifest.candidate_outputs {
+        if !valid_identifier(&output.artifact_id)
+            || !valid_identifier(&output.scene_id)
+            || !digest_is_sha256(&output.sha256)
+            || !output_ids.insert(output.artifact_id.as_str())
+        {
+            return Err(format!(
+                "candidate output {} has invalid or duplicate identity/digest",
+                output.artifact_id
+            ));
+        }
+        if !scene_ids.contains(output.scene_id.as_str()) {
+            return Err(format!(
+                "candidate output {} references unknown scene {}",
+                output.artifact_id, output.scene_id
+            ));
+        }
+        output_digests.insert(output.sha256.as_str());
+        if output.role == CandidateOutputRole::IfcModel {
+            output_scenes.insert(output.scene_id.as_str());
+        }
+    }
+    for scene in &manifest.scenes {
+        if !output_scenes.contains(scene.scene_id.as_str()) {
+            return Err(format!(
+                "scene {} requires at least one ifc_model candidate output",
+                scene.scene_id
+            ));
+        }
+    }
+    for output in &manifest.candidate_outputs {
+        if !candidate_ids.insert(output.artifact_id.as_str()) {
+            return Err(format!(
+                "candidate output artifact_id collides with another candidate artifact: {}",
+                output.artifact_id
+            ));
+        }
+        candidate_digests.insert(output.sha256.as_str());
     }
 
     if candidate_ids.iter().any(|id| evaluator_ids.contains(*id)) {
@@ -608,8 +938,45 @@ pub fn verify_manifest_artifact_files(
         );
     }
 
-    let mut candidate_verified = 0;
+    let mut candidate_runtime_verified = 0;
+    let mut candidate_input_verified = 0;
+    let mut candidate_output_verified = 0;
     let mut evaluator_verified = 0;
+
+    for artifact in &manifest.candidate_runtime_artifacts {
+        let path = resolve_file_beneath_root(
+            &candidate_root,
+            &artifact.relative_path,
+            "candidate runtime",
+            &artifact.artifact_id,
+        )?;
+        let actual = sha256_file(&path, "candidate runtime", &artifact.artifact_id)?;
+        if actual != artifact.sha256 {
+            return Err(format!(
+                "candidate runtime artifact {} SHA-256 mismatch: declared {}, actual {}",
+                artifact.artifact_id, artifact.sha256, actual
+            ));
+        }
+        candidate_runtime_verified += 1;
+    }
+
+    for output in &manifest.candidate_outputs {
+        let path = resolve_file_beneath_root(
+            &candidate_root,
+            &output.relative_path,
+            "candidate output",
+            &output.artifact_id,
+        )?;
+        let actual = sha256_file(&path, "candidate output", &output.artifact_id)?;
+        if actual != output.sha256 {
+            return Err(format!(
+                "candidate output {} SHA-256 mismatch: declared {}, actual {}",
+                output.artifact_id, output.sha256, actual
+            ));
+        }
+        candidate_output_verified += 1;
+    }
+
     for scene in &manifest.scenes {
         for artifact in &scene.candidate_inputs {
             let path = resolve_file_beneath_root(
@@ -625,7 +992,7 @@ pub fn verify_manifest_artifact_files(
                     artifact.artifact_id, artifact.sha256, actual
                 ));
             }
-            candidate_verified += 1;
+            candidate_input_verified += 1;
         }
         for artifact in &scene.evaluator_artifacts {
             let path = resolve_file_beneath_root(
@@ -645,8 +1012,13 @@ pub fn verify_manifest_artifact_files(
         }
     }
 
+    let candidate_verified =
+        candidate_runtime_verified + candidate_input_verified + candidate_output_verified;
     Ok(ArtifactVerificationSummary {
         candidate_verified,
+        candidate_runtime_verified,
+        candidate_input_verified,
+        candidate_output_verified,
         evaluator_verified,
     })
 }
@@ -674,9 +1046,17 @@ pub fn audit_manifest_bytes(bytes: &[u8]) -> Result<ReplayAuditReport, String> {
         schema_version: manifest.schema_version,
         replay_id: manifest.replay_id,
         dataset_id: manifest.dataset.dataset_id,
+        pipeline_id: manifest.candidate_run.pipeline_id,
+        source_commit_sha: manifest.candidate_run.source_commit_sha,
+        tolerance_profile_id: manifest.tolerance_profile.profile_id,
+        sampling_profile_id: manifest.sampling_profile.profile_id,
+        metric_suite_id: manifest.metric_profile.suite_id,
+        metric_suite_version: manifest.metric_profile.version,
         manifest_sha256,
         scene_count: manifest.scenes.len(),
-        candidate_artifact_count,
+        candidate_artifact_count: candidate_artifact_count
+            + manifest.candidate_runtime_artifacts.len()
+            + manifest.candidate_outputs.len(),
         evaluator_artifact_count,
         scenes,
         claim_ceiling: "METADATA_AND_VISIBILITY_ACCOUNTING_ONLY; no geometry reconstruction, official ISPRS scoring, OS sandboxing, or proof of organizational evaluator independence",
