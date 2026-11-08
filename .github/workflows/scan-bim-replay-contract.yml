@@ -43,8 +43,10 @@ jobs:
         run: cargo clippy --locked --manifest-path tools/scan-bim-replay-contract/Cargo.toml --all-targets -- -D warnings
       - name: Audit synthetic fixture
         run: |
-          cargo run --manifest-path tools/scan-bim-replay-contract/Cargo.toml -- \
+          cargo run --locked --manifest-path tools/scan-bim-replay-contract/Cargo.toml -- \
             --manifest tools/scan-bim-replay-contract/fixtures/synthetic-observability.json \
+            --candidate-root tools/scan-bim-replay-contract/fixtures/data/candidate \
+            --evaluator-root tools/scan-bim-replay-contract/fixtures/data/evaluator \
             > /tmp/scan-bim-replay-report.json
           jq -e '
             (.metadata_audit.scene_count == 2) and
