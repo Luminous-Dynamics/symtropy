@@ -11,7 +11,6 @@
 use core::fmt;
 
 use crate::{
-    causal_drift::{CAUSAL_DRIFT_TICKS, CausalRegime},
     noisy_causal_drift::{
         MATCHED_PAIRS_PER_LOOK, NOISY_BASE_SEED, NOISY_SEEDS, OUTCOME_NOISE_STANDARD_DEVIATION,
     },
@@ -31,6 +30,59 @@ pub const FIXED_HORIZON_CRITICAL_VALUE: f64 = 1.959963984540054;
 pub const CONSERVATIVE_FOUR_LOOK_CRITICAL_VALUE: f64 = 2.8;
 
 const CONFONDER_VALUES: [f64; 8] = [-3.0, -2.0, -1.0, 0.0, 0.0, 1.0, 2.0, 3.0];
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SequentialRegime {
+    StablePositive,
+    SignReversal,
+    GradualSignReversal,
+    ConfoundedNull,
+    ConfounderShift,
+    BenefitBoundary,
+}
+
+impl SequentialRegime {
+    pub const ALL: [Self; 6] = [
+        Self::StablePositive,
+        Self::SignReversal,
+        Self::GradualSignReversal,
+        Self::ConfoundedNull,
+        Self::ConfounderShift,
+        Self::BenefitBoundary,
+    ];
+
+    pub const fn name(self) -> &'static str {
+        match self {
+            Self::StablePositive => "stable_positive",
+            Self::SignReversal => "sign_reversal",
+            Self::GradualSignReversal => "gradual_sign_reversal",
+            Self::ConfoundedNull => "confounded_null",
+            Self::ConfounderShift => "confounder_shift",
+            Self::BenefitBoundary => "benefit_boundary",
+        }
+    }
+
+    pub const fn true_effect(self) -> f64 {
+        match self {
+            Self::StablePositive | Self::ConfounderShift => 2.0,
+            Self::SignReversal => -3.0,
+            Self::GradualSignReversal => -2.0,
+            Self::ConfoundedNull => 0.0,
+            Self::BenefitBoundary => ACTION_BENEFIT_THRESHOLD,
+        }
+    }
+
+    pub const fn observational_association(self) -> f64 {
+        match self {
+            Self::ConfounderShift => -3.0,
+            Self::StablePositive => 7.0,
+            Self::SignReversal => 2.0,
+            Self::GradualSignReversal => 3.0,
+            Self::ConfoundedNull => 5.0,
+            Self::BenefitBoundary => 5.5,
+        }
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SequentialMethod {
@@ -125,7 +177,7 @@ pub struct SequentialReceipt {
 pub struct SequentialEpisodeResult {
     pub seed: u64,
     pub seed_index: usize,
-    pub regime: CausalRegime,
+    pub regime: SequentialRegime,
     pub true_effect: f64,
     pub observational_association: f64,
     pub stream_hash: u64,
@@ -181,8 +233,8 @@ impl SplitMix64 {
     }
 }
 
-fn episode_seed(regime: CausalRegime, seed_index: usize) -> u64 {
-    let regime_index = CausalRegime::ALL
+fn episode_seed(regime: SequentialRegime, seed_index: usize) -> u64 {
+    let regime_index = SequentialRegime::ALL
         .iter()
         .position(|candidate| *candidate == regime)
         .expect("regime belongs to frozen portfolio") as u64;
@@ -202,10 +254,10 @@ fn stream_hash(values: &[f64]) -> u64 {
     hash
 }
 
-fn generate_paired_stream(regime: CausalRegime, seed_index: usize) -> (u64, Vec<f64>, u64) {
+fn generate_paired_stream(regime: SequentialRegime, seed_index: usize) -> (u64, Vec<f64>, u64) {
     let seed = episode_seed(regime, seed_index);
     let mut rng = SplitMix64::new(seed);
-    let effect = regime.causal_effect(CAUSAL_DRIFT_TICKS);
+    let effect = regime.true_effect();
     let mut differences = Vec::with_capacity(MAX_PAIRS);
 
     for pair_index in 0..MAX_PAIRS {
@@ -380,12 +432,12 @@ pub fn evaluate_stream(
 
 pub fn run_sequential_method_portfolio() -> Vec<SequentialEpisodeResult> {
     let mut results =
-        Vec::with_capacity(CausalRegime::ALL.len() * NOISY_SEEDS * SequentialMethod::ALL.len());
+        Vec::with_capacity(SequentialRegime::ALL.len() * NOISY_SEEDS * SequentialMethod::ALL.len());
 
-    for regime in CausalRegime::ALL {
-        let true_effect = regime.causal_effect(CAUSAL_DRIFT_TICKS);
+    for regime in SequentialRegime::ALL {
+        let true_effect = regime.true_effect();
         let observational_association =
-            true_effect + regime.observational_confounder_imbalance(CAUSAL_DRIFT_TICKS);
+            true_effect + regime.observational_association();
 
         for seed_index in 0..NOISY_SEEDS {
             let (seed, stream, digest) = generate_paired_stream(regime, seed_index);
@@ -436,8 +488,8 @@ mod tests {
 
     #[test]
     fn stream_is_replayable_and_all_methods_receive_same_digest() {
-        let (seed_a, stream_a, hash_a) = generate_paired_stream(CausalRegime::SignReversal, 17);
-        let (seed_b, stream_b, hash_b) = generate_paired_stream(CausalRegime::SignReversal, 17);
+        let (seed_a, stream_a, hash_a) = generate_paired_stream(SequentialRegime::SignReversal, 17);
+        let (seed_b, stream_b, hash_b) = generate_paired_stream(SequentialRegime::SignReversal, 17);
 
         assert_eq!(seed_a, seed_b);
         assert_eq!(stream_a, stream_b);
@@ -460,18 +512,18 @@ mod tests {
             2.0 * OUTCOME_NOISE_STANDARD_DEVIATION * OUTCOME_NOISE_STANDARD_DEVIATION
         );
 
-        let (_, harmful, _) = generate_paired_stream(CausalRegime::SignReversal, 9);
+        let (_, harmful, _) = generate_paired_stream(SequentialRegime::SignReversal, 9);
         let harm = evaluate_stream(SequentialMethod::GaussianMixtureEProcess, &harmful).unwrap();
         assert_eq!(harm.decision, SequentialDecision::HarmfulEffectEstablished);
         assert!(harm.pairs_used < 100);
 
-        let (_, beneficial, _) = generate_paired_stream(CausalRegime::StablePositive, 9);
+        let (_, beneficial, _) = generate_paired_stream(SequentialRegime::StablePositive, 9);
         let benefit =
             evaluate_stream(SequentialMethod::GaussianMixtureEProcess, &beneficial).unwrap();
         assert_eq!(benefit.decision, SequentialDecision::BenefitEstablished);
         assert!(benefit.pairs_used < 200);
 
-        let (_, null, _) = generate_paired_stream(CausalRegime::ConfoundedNull, 9);
+        let (_, null, _) = generate_paired_stream(SequentialRegime::ConfoundedNull, 9);
         let neither = evaluate_stream(SequentialMethod::GaussianMixtureEProcess, &null).unwrap();
         assert_eq!(neither.decision, SequentialDecision::Inconclusive);
     }
@@ -479,7 +531,7 @@ mod tests {
     #[test]
     fn fixed_and_group_sequential_use_nested_prefix_looks() {
         assert_eq!(LOOKS, [512, 1024, 1536, MAX_PAIRS]);
-        let (_, stream, _) = generate_paired_stream(CausalRegime::StablePositive, 21);
+        let (_, stream, _) = generate_paired_stream(SequentialRegime::StablePositive, 21);
 
         let fixed = evaluate_stream(SequentialMethod::FixedHorizon, &stream).unwrap();
         let pocock = evaluate_stream(SequentialMethod::Pocock, &stream).unwrap();
@@ -492,21 +544,42 @@ mod tests {
     #[test]
     fn null_operating_characteristics_stay_within_frozen_seed_gate() {
         for method in SequentialMethod::ALL {
+            for null_regime in [
+                SequentialRegime::ConfoundedNull,
+                SequentialRegime::BenefitBoundary,
+            ] {
+                let false_actions = (0..NOISY_SEEDS)
+                    .filter(|seed_index| {
+                        let (_, stream, _) = generate_paired_stream(null_regime, *seed_index);
+                        evaluate_stream(method, &stream).unwrap().decision
+                            != SequentialDecision::Inconclusive
+                    })
+                    .count();
+
+                assert!(
+                    false_actions <= 12,
+                    "{} false actions in {}: {false_actions}/{}",
+                    method.name(),
+                    null_regime.name(),
+                    NOISY_SEEDS
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn benefit_boundary_remains_inconclusive_at_the_minimum_worthwhile_effect() {
+        assert_eq!(SequentialRegime::BenefitBoundary.true_effect(), ACTION_BENEFIT_THRESHOLD);
+        for method in SequentialMethod::ALL {
             let false_actions = (0..NOISY_SEEDS)
                 .filter(|seed_index| {
                     let (_, stream, _) =
-                        generate_paired_stream(CausalRegime::ConfoundedNull, *seed_index);
+                        generate_paired_stream(SequentialRegime::BenefitBoundary, *seed_index);
                     evaluate_stream(method, &stream).unwrap().decision
                         != SequentialDecision::Inconclusive
                 })
                 .count();
-
-            assert!(
-                false_actions <= 12,
-                "{} false actions: {false_actions}/{}",
-                method.name(),
-                NOISY_SEEDS
-            );
+            assert!(false_actions <= 12);
         }
     }
 
