@@ -117,11 +117,11 @@ mod tests{
  #[test]fn not_run_is_not_a_pass(){let r=validate_json(NOT_RUN).unwrap();assert_eq!(r.status,"NOT_RUN");assert_eq!(r.expected_session_state,"NOT_ADMITTED");}
  #[test]fn high_signal_proxy_cannot_override_ambiguous_pose(){let mut v=fixture();for r in v["required_receipts"].as_array_mut().unwrap(){if r["owner"]=="OBSERVABILITY"{r["signal_strength_proxy_uw"]=json!(9999999999_u64);}}let r=validate(&v).unwrap();assert_eq!(r.expected_session_state,"NOT_ADMITTED");}
  #[test]fn missing_owner_fails_closed(){let mut v=fixture();v["required_receipts"].as_array_mut().unwrap().retain(|x|x["owner"]!="ENERGY_METROLOGY");assert!(validate(&v).unwrap_err().contains("missing owner ENERGY_METROLOGY"));}
- #[test]fn duplicate_owner_fails_closed(){let mut v=fixture();let x=v["required_receipts"][0].clone();v["required_receipts"].as_array_mut().unwrap().push(x);assert!(validate(&v).unwrap_err().contains("duplicate owner"));}
+ #[test]fn duplicate_owner_fails_closed(){let mut v=fixture();let mut x=v["required_receipts"][0].clone();x["receipt_id"]=json!("second-source-catalogue-reference");v["required_receipts"].as_array_mut().unwrap().push(x);assert!(validate(&v).unwrap_err().contains("duplicate owner"));}
  #[test]fn malformed_digest_fails_closed(){let mut v=fixture();v["required_receipts"][0]["sha256"]=json!("bad");assert!(validate(&v).unwrap_err().contains("expected lowercase SHA-256"));}
  #[test]fn synthetic_fixture_rejects_field_evidence(){let mut v=fixture();v["required_receipts"][0]["evidence_class"]=json!("FIELD_MEASURED");assert!(validate(&v).unwrap_err().contains("cannot import non-synthetic"));}
  #[test]fn unknown_fields_fail_closed(){let mut v=fixture();v["unexpected"]=json!(true);assert!(validate(&v).unwrap_err().contains("unknown property unexpected"));}
- #[test]fn metric_boundary_and_unit_must_match(){let mut v=fixture();v["metric_contracts"][0]["boundary_id"]=json!("SOURCE_TO_BATTERY");assert!(validate(&v).unwrap_err().contains("unit incompatible"));}
+ #[test]fn metric_boundary_and_unit_must_match(){let mut v=fixture();v["metric_contracts"][0]["boundary_id"]=json!("SOURCE_TO_BATTERY");v["metric_contracts"][0]["unit"]=json!("ratio");assert!(validate(&v).unwrap_err().contains("unit incompatible"));}
  #[test]fn receipt_order_does_not_change_report(){let a=validate(&fixture()).unwrap();let mut v=fixture();v["required_receipts"].as_array_mut().unwrap().reverse();assert_eq!(a,validate(&v).unwrap());}
  #[test]fn unresolved_receipt_cannot_claim_synthetic_service(){let mut v=fixture();v["expected_session_state"]=json!("SYNTHETIC_ONLY_NO_POWER");assert!(validate(&v).unwrap_err().contains("unresolved critical receipt requires NOT_ADMITTED"));}
 }
