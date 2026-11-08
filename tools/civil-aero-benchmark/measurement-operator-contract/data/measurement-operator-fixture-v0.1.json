@@ -61,8 +61,8 @@
     },
     {
       "id": "healthy_point_mean_b",
-      "instrument_family": "esp",
-      "instrument_id": "esp-17",
+      "instrument_family": "kulite",
+      "instrument_id": "kulite-17-reference",
       "quantity": "pressure_coefficient_mean",
       "units": "1",
       "sign_convention": "positive_gauge_pressure",
