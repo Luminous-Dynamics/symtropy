@@ -140,7 +140,7 @@ fn validate_identity(value: &str) -> Result<(), ConformalError> {
 
 fn ceil_div(numerator: u128, denominator: u128) -> Result<u128, ConformalError> {
     let quotient = numerator / denominator;
-    if numerator % denominator == 0 {
+    if numerator.is_multiple_of(denominator) {
         Ok(quotient)
     } else {
         quotient
