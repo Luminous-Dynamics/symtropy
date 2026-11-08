@@ -1726,11 +1726,11 @@ mod tests {
     #[test]
     fn requires_pinned_source_commit_for_upstream_matching_profile() {
         let mut value = fixture_value();
-        value["matching_confidence"]["profile"] =
-            serde_json::json!("upstream_code_ff21962_v1");
+        value["matching_confidence"]["profile"] = serde_json::json!("upstream_code_ff21962_v1");
         value["matching_confidence"]["upstream_commit_sha"] =
             serde_json::json!("1111111111111111111111111111111111111111");
-        let error = audit(&value).expect_err("upstream profile must pin its released implementation");
+        let error =
+            audit(&value).expect_err("upstream profile must pin its released implementation");
         assert!(error.contains("must bind the pinned upstream commit"));
     }
 
