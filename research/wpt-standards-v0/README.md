@@ -62,3 +62,19 @@ Official sources:
 - https://www.caa.co.za/industry-information/uas/
 
 These records are jurisdictional research anchors. They do not replace the authoritative Gazette/Act text, a band-specific review, product-specific classification, direct SACAA/ICASA interpretation or specialist legal review.
+
+
+### 85 kHz IPT and Annex B exemption boundary
+
+A further important overlap was verified against the current NRFP 2026 interactive table and the official ICASA Annex B amendment:
+
+- The NRFP table's 84–86 kHz row lists radionavigation allocation/footnote 5.60 and also shows inductive-loop / RFID typical-application references.
+- Annex B lists **Inductive Applications at 9–135 kHz**, with a field-strength limit of **42 dBµA/m at 10 m**, performance standard **SANS 300 330**, and additional restrictions for levels above 42 dBµA/m.
+- Therefore the 85 kHz IPT lane sits inside the Annex B frequency interval, but this does **not** establish that a high-power WPT charger qualifies for the exemption. The apparatus must fit the defined application category and meet all specified limits, performance standards, EMC/safety and any additional restrictions. Product classification and measured field strength at the prescribed distance are unresolved.
+
+Sources:
+- https://app3.icasa.org.za/ (NRFP 2026; 84–86 kHz row)
+- https://www.icasa.org.za/uploads/files/Notice-to-amend-Annexure-B-of-the-Radio-Frequency-Spectrum.pdf (GG 48643, Notice 1822, 23 May 2023)
+- https://www.icasa.org.za/uploads/files/Amendment-To-The-Radio-Frequency-Spectrum-Regulations-2015.pdf
+
+The register records this as RADIO_SPECTRUM_EXEMPTION with airborne applicability UNKNOWN. It is not an exemption determination, spectrum licence or approval to operate.
