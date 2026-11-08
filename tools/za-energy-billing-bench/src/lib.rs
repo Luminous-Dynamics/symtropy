@@ -1455,6 +1455,109 @@ mod tests {
     }
 
     #[test]
+    fn winter_peak_to_offpeak_shift_reduces_charge_not_energy_or_billed_demand() {
+        fn monthly_schedule(shift_lighting_offpeak: bool) -> TariffInput {
+            let mut input = fixture();
+            input.intervals.clear();
+            input.declared_active_energy_kwh = 0.0;
+            input.measured_monthly_peak_demand_kva = 95.0;
+            input.preceding_12_month_demand_history = history_for("2026-07", 125.0);
+            input.power_factor = 0.98;
+            input.measured_reactive_energy_kvarh = 0.0;
+            input.business_lpu_surcharge = None;
+            input.vat = None;
+
+            for day in 1..=31_u8 {
+                let local_date = format!("2026-07-{day:02}");
+                let weekday = weekday_monday_zero(2026, 7, day);
+                let day_class = match weekday {
+                    5 => DayClass::SaturdayOrPublicHoliday,
+                    6 => DayClass::Sunday,
+                    _ => DayClass::Weekday,
+                };
+
+                for slot in 0..96_u16 {
+                    let local_start_minute = slot * 15;
+                    let mut energy_kwh = 1.0;
+
+                    if day_class == DayClass::Weekday {
+                        if !shift_lighting_offpeak
+                            && (local_start_minute == 420 || local_start_minute == 1_080)
+                        {
+                            energy_kwh += 5.0;
+                        }
+                        if shift_lighting_offpeak
+                            && (local_start_minute == 120 || local_start_minute == 135)
+                        {
+                            energy_kwh += 5.0;
+                        }
+                    }
+
+                    let saturday_evening = day_class == DayClass::SaturdayOrPublicHoliday
+                        && (1_080..1_200).contains(&local_start_minute);
+                    input.declared_active_energy_kwh += energy_kwh;
+                    input.intervals.push(MeteredInterval {
+                        local_date: local_date.clone(),
+                        day_class,
+                        local_start_minute,
+                        duration_minutes: 15,
+                        energy_kwh,
+                        saturday_evening_confirmed: saturday_evening,
+                        saturday_confirmation_reference: saturday_evening
+                            .then(|| "SYNTHETIC-SATURDAY-BAND-CONFIRMATION".to_owned()),
+                        public_holiday_evidence_reference: None,
+                    });
+                }
+            }
+            input.interval_series_complete = true;
+            input.interval_coverage_evidence_reference =
+                "SYNTHETIC-COMPLETE-2026-07-MONTH-INTERVAL-SERIES".to_owned();
+            input
+        }
+
+        let peak_loaded = calculate_bill(&monthly_schedule(false)).unwrap();
+        let offpeak_shifted = calculate_bill(&monthly_schedule(true)).unwrap();
+
+        close(
+            peak_loaded.breakdown.active_energy_kwh,
+            offpeak_shifted.breakdown.active_energy_kwh,
+        );
+        close(
+            peak_loaded.breakdown.billed_demand_kva,
+            offpeak_shifted.breakdown.billed_demand_kva,
+        );
+        close(
+            peak_loaded.breakdown.billed_demand_kva,
+            100.0,
+        );
+
+        // 23 weekdays × 10 kWh moved from peak to off-peak × R5.658/kWh.
+        close(
+            peak_loaded.breakdown.energy_charge_zar
+                - offpeak_shifted.breakdown.energy_charge_zar,
+            1_301.34,
+        );
+        close(
+            peak_loaded.breakdown.known_component_subtotal_zar
+                - offpeak_shifted.breakdown.known_component_subtotal_zar,
+            1_301.34,
+        );
+
+        // Missing assessed LPU and VAT lines prevent this from becoming
+        // a complete invoice or a claim about total customer bill savings.
+        assert_eq!(
+            peak_loaded.status,
+            InvoiceStatus::IncompleteInvoiceReconciliation
+        );
+        assert_eq!(
+            offpeak_shifted.status,
+            InvoiceStatus::IncompleteInvoiceReconciliation
+        );
+        assert_eq!(peak_loaded.breakdown.invoice_total_zar, None);
+        assert_eq!(offpeak_shifted.breakdown.invoice_total_zar, None);
+    }
+
+    #[test]
     fn wrong_profile_version_is_rejected() {
         let mut input = fixture();
         input.profile_version = "0.2".to_owned();
