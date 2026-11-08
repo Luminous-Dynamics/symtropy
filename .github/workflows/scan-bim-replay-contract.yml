@@ -37,10 +37,19 @@ jobs:
           components: clippy, rustfmt
       - name: Check formatting
         run: cargo fmt --manifest-path tools/scan-bim-replay-contract/Cargo.toml -- --check
+      - name: Generate dependency lock for review
+        run: cargo generate-lockfile --manifest-path tools/scan-bim-replay-contract/Cargo.toml
       - name: Run contract tests
-        run: cargo test --manifest-path tools/scan-bim-replay-contract/Cargo.toml
+        run: cargo test --locked --manifest-path tools/scan-bim-replay-contract/Cargo.toml
       - name: Run strict Clippy
         run: cargo clippy --manifest-path tools/scan-bim-replay-contract/Cargo.toml --all-targets -- -D warnings
+      - name: Upload generated dependency lock for pinning
+        uses: actions/upload-artifact@v4
+        with:
+          name: scan-bim-replay-cargo-lock
+          path: tools/scan-bim-replay-contract/Cargo.lock
+          if-no-files-found: error
+          retention-days: 3
       - name: Audit synthetic fixture
         run: |
           cargo run --manifest-path tools/scan-bim-replay-contract/Cargo.toml -- \
