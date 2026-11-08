@@ -1231,16 +1231,27 @@ mod tests {
 
     #[test]
     fn oversized_grid_is_rejected_before_node_allocation_is_trusted() {
+        let large_axis = (0..16).collect::<Vec<i32>>();
         let axes = ActuatorAxes::new(
-            vec![0; 2],
-            vec![0, 1],
-            vec![0, 1],
-            vec![24_000, 26_000],
+            large_axis.clone(),
+            large_axis.clone(),
+            large_axis.clone(),
+            large_axis,
+        )
+        .unwrap();
+        assert_eq!(
+            ActuatorPowerMap::new(
+                "actuator".to_owned(),
+                "drive".to_owned(),
+                "gearbox".to_owned(),
+                "firmware".to_owned(),
+                "domain".to_owned(),
+                "map".to_owned(),
+                axes,
+                Vec::new(),
+            ),
+            Err(MapError::GridTooLarge)
         );
-        assert!(matches!(
-            axes,
-            Err(MapError::AxisNotStrictlyIncreasing(MapAxis::Torque))
-        ));
     }
 
     #[test]
