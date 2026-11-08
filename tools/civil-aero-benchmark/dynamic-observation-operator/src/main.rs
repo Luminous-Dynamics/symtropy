@@ -82,8 +82,12 @@ struct ObservationChannel {
     temporal_operator_id: String,
     source_admitted: bool,
     calibration_admitted: bool,
+    calibration_operator_id: Option<String>,
+    standard_uncertainty: Option<f64>,
+    uncertainty_budget_id: Option<String>,
     mask_required: bool,
     mask_applied: bool,
+    mask_operator_id: Option<String>,
     timebase_id: Option<String>,
     sample_rate_hz: Option<f64>,
     synchronization_uncertainty_s: Option<f64>,
@@ -150,6 +154,25 @@ fn assess_pair(
     if !left.calibration_admitted || !right.calibration_admitted {
         return Decision::abstain("instrument calibration/uncertainty is not admitted");
     }
+    for channel in [left, right] {
+        if channel
+            .calibration_operator_id
+            .as_deref()
+            .is_none_or(|identity| identity.trim().is_empty())
+        {
+            return Decision::abstain("calibration operator identity is missing");
+        }
+        if !finite_positive(channel.standard_uncertainty)
+            || channel
+                .uncertainty_budget_id
+                .as_deref()
+                .is_none_or(|identity| identity.trim().is_empty())
+        {
+            return Decision::abstain(
+                "standard uncertainty or its traceable uncertainty-budget identity is missing",
+            );
+        }
+    }
     if left.quantity != right.quantity {
         return Decision::reject("physical quantities differ");
     }
@@ -164,8 +187,13 @@ fn assess_pair(
             "spatial sampling/mapping operators differ; project both products through one admitted operator",
         );
     }
-    if left.mask_required && !left.mask_applied || right.mask_required && !right.mask_applied {
-        return Decision::reject("a required reliability mask has not been applied");
+    if (left.mask_required && (!left.mask_applied || left.mask_operator_id.is_none()))
+        || (right.mask_required && (!right.mask_applied || right.mask_operator_id.is_none()))
+    {
+        return Decision::reject("a required reliability mask is missing or unapplied");
+    }
+    if left.mask_operator_id != right.mask_operator_id {
+        return Decision::reject("reliability mask identities differ");
     }
     if left.temporal_operator_id != right.temporal_operator_id {
         return Decision::reject(
@@ -499,8 +527,12 @@ fn synthetic_channel(
         temporal_operator_id: temporal_operator.to_owned(),
         source_admitted: true,
         calibration_admitted: true,
+        calibration_operator_id: Some("synthetic-calibration-A".to_owned()),
+        standard_uncertainty: Some(0.01),
+        uncertainty_budget_id: Some("synthetic-uncertainty-budget-A".to_owned()),
         mask_required: false,
         mask_applied: true,
+        mask_operator_id: None,
         timebase_id: Some("synthetic-clock-A".to_owned()),
         sample_rate_hz: Some(20_000.0),
         synchronization_uncertainty_s: Some(1.0e-6),
@@ -615,6 +647,50 @@ mod tests {
         right.coordinate_frame = "wind-tunnel-frame".to_owned();
         assert_eq!(
             assess_pair(&left, &right, ComparisonKind::Pointwise, 1.0e-5).status,
+            DecisionStatus::Reject
+        );
+    }
+
+    #[test]
+    fn missing_calibration_identity_or_uncertainty_budget_abstains() {
+        let left = synthetic_channel("measurement", "pressure", "Pa", "sensor-grid-A", "bandpass-A");
+        let mut no_calibration_id = left.clone();
+        no_calibration_id.calibration_operator_id = None;
+        assert_eq!(
+            assess_pair(&left, &no_calibration_id, ComparisonKind::Rms, 1.0e-5).status,
+            DecisionStatus::Abstain
+        );
+        let mut no_uncertainty = left.clone();
+        no_uncertainty.standard_uncertainty = None;
+        assert_eq!(
+            assess_pair(&left, &no_uncertainty, ComparisonKind::Rms, 1.0e-5).status,
+            DecisionStatus::Abstain
+        );
+        let mut no_budget = left.clone();
+        no_budget.uncertainty_budget_id = None;
+        assert_eq!(
+            assess_pair(&left, &no_budget, ComparisonKind::Rms, 1.0e-5).status,
+            DecisionStatus::Abstain
+        );
+    }
+
+    #[test]
+    fn different_reliability_masks_reject_direct_comparison() {
+        let left = synthetic_channel("measurement", "Cp", "1", "surface-map-A", "camera-lowpass-A");
+        let mut right = left.clone();
+        right.mask_required = true;
+        right.mask_operator_id = Some("uPSP-mask-rev-A".to_owned());
+        assert_eq!(
+            assess_pair(&left, &right, ComparisonKind::Pointwise, 1.0e-5).status,
+            DecisionStatus::Reject
+        );
+        let mut same_mask = left.clone();
+        same_mask.mask_required = true;
+        same_mask.mask_operator_id = Some("uPSP-mask-rev-A".to_owned());
+        let mut prediction = same_mask.clone();
+        prediction.mask_operator_id = Some("uPSP-mask-rev-B".to_owned());
+        assert_eq!(
+            assess_pair(&same_mask, &prediction, ComparisonKind::Pointwise, 1.0e-5).status,
             DecisionStatus::Reject
         );
     }
