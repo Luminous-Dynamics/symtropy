@@ -81,6 +81,8 @@ pub enum CalcError {
     MissingEvidence(&'static str),
     InvalidDate,
     DateOutsideBillingMonth,
+    DayClassDoesNotMatchDate,
+    PublicHolidayEvidenceMissing,
     InvalidInterval,
     IntervalCrossesMidnight,
     IntervalCrossesPriceBoundary,
@@ -132,6 +134,12 @@ impl fmt::Display for CalcError {
             Self::InvalidDate => write!(f, "invalid local date; expected YYYY-MM-DD"),
             Self::DateOutsideBillingMonth => {
                 write!(f, "interval date does not match the declared billing month")
+            }
+            Self::DayClassDoesNotMatchDate => {
+                write!(f, "declared tariff day class does not match the Gregorian local date")
+            }
+            Self::PublicHolidayEvidenceMissing => {
+                write!(f, "weekday classified as Saturday/public holiday requires date-specific holiday evidence")
             }
             Self::InvalidInterval => write!(
                 f,
@@ -215,6 +223,9 @@ pub struct MeteredInterval {
     pub energy_kwh: f64,
     pub saturday_evening_confirmed: bool,
     pub saturday_confirmation_reference: Option<String>,
+    /// Required when a Monday-Friday date is classified under the
+    /// Saturday/public-holiday tariff bands.
+    pub public_holiday_evidence_reference: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -369,9 +380,10 @@ pub fn classify_interval(
     }
 
     let first = classify_minute(day, start_minute);
-    let last = classify_minute(day, (end - 1) as u16);
-    if first != last {
-        return Err(CalcError::IntervalCrossesPriceBoundary);
+    for minute in (u32::from(start_minute) + 1)..end {
+        if classify_minute(day, minute as u16) != first {
+            return Err(CalcError::IntervalCrossesPriceBoundary);
+        }
     }
     Ok(first)
 }
@@ -447,7 +459,7 @@ fn parse_date(date: &str) -> Result<(i32, u8, u8), CalcError> {
     let year: i32 = year.parse().map_err(|_| CalcError::InvalidDate)?;
     let month: u8 = month.parse().map_err(|_| CalcError::InvalidDate)?;
     let day: u8 = day.parse().map_err(|_| CalcError::InvalidDate)?;
-    if !(1..=12).contains(&month) || day == 0 {
+    if year < 1 || !(1..=12).contains(&month) || day == 0 {
         return Err(CalcError::InvalidDate);
     }
     let maximum_day = match month {
@@ -460,6 +472,55 @@ fn parse_date(date: &str) -> Result<(i32, u8, u8), CalcError> {
         return Err(CalcError::InvalidDate);
     }
     Ok((year, month, day))
+}
+
+/// Returns Monday=0 through Sunday=6 using the Gregorian calendar.
+fn weekday_monday_zero(year: i32, month: u8, day: u8) -> u8 {
+    let mut adjusted_year = year;
+    let mut adjusted_month = i32::from(month);
+    if adjusted_month < 3 {
+        adjusted_year -= 1;
+        adjusted_month += 12;
+    }
+
+    let year_of_century = adjusted_year % 100;
+    let zero_based_century = adjusted_year / 100;
+    let zeller = (i32::from(day)
+        + (13 * (adjusted_month + 1)) / 5
+        + year_of_century
+        + year_of_century / 4
+        + zero_based_century / 4
+        + 5 * zero_based_century)
+        % 7;
+
+    match zeller {
+        0 => 5, // Saturday
+        1 => 6, // Sunday
+        _ => (zeller - 2) as u8, // Monday through Friday
+    }
+}
+
+fn validate_day_class(
+    local_date: &str,
+    day_class: DayClass,
+    public_holiday_evidence_reference: Option<&str>,
+) -> Result<(), CalcError> {
+    let (year, month, day) = parse_date(local_date)?;
+    let weekday = weekday_monday_zero(year, month, day);
+
+    match (day_class, weekday) {
+        (DayClass::Weekday, 0..=4) => Ok(()),
+        (DayClass::SaturdayOrPublicHoliday, 5) => Ok(()),
+        (DayClass::SaturdayOrPublicHoliday, 0..=4) => {
+            if public_holiday_evidence_reference.is_some_and(nonblank) {
+                Ok(())
+            } else {
+                Err(CalcError::PublicHolidayEvidenceMissing)
+            }
+        }
+        (DayClass::Sunday, 6) => Ok(()),
+        _ => Err(CalcError::DayClassDoesNotMatchDate),
+    }
 }
 
 fn month_index(year: i32, month: u8) -> i32 {
@@ -543,7 +604,7 @@ fn fingerprint(input: &TariffInput) -> String {
     for interval in &input.intervals {
         let _ = write!(
             canonical,
-            "|{}:{:?}:{}:{}:{}:{}:{}:{}",
+            "|{}:{:?}:{}:{}:{}:{}:{}:{}:{}",
             interval.local_date,
             interval.day_class,
             interval.local_start_minute,
@@ -552,6 +613,10 @@ fn fingerprint(input: &TariffInput) -> String {
             interval.saturday_evening_confirmed,
             interval
                 .saturday_confirmation_reference
+                .as_deref()
+                .unwrap_or("UNKNOWN"),
+            interval
+                .public_holiday_evidence_reference
                 .as_deref()
                 .unwrap_or("UNKNOWN"),
             season_for_date(&interval.local_date)
@@ -719,6 +784,11 @@ pub fn calculate_bill(input: &TariffInput) -> Result<BillReceipt, CalcError> {
         if date_year != year || date_month != month {
             return Err(CalcError::DateOutsideBillingMonth);
         }
+        validate_day_class(
+            &interval.local_date,
+            interval.day_class,
+            interval.public_holiday_evidence_reference.as_deref(),
+        )?;
         if season_for_date(&interval.local_date)? != season_for_month(month)? {
             return Err(CalcError::SeasonDoesNotMatchBillingMonth);
         }
@@ -987,6 +1057,7 @@ mod tests {
                 energy_kwh: 10.0,
                 saturday_evening_confirmed: false,
                 saturday_confirmation_reference: None,
+                public_holiday_evidence_reference: None,
             }],
             interval_series_complete: true,
             interval_coverage_evidence_reference: "SYNTHETIC-COMPLETE-INTERVAL-COVERAGE".to_owned(),
@@ -1183,6 +1254,16 @@ mod tests {
             classify_interval(DayClass::SaturdayOrPublicHoliday, 1_080, 15, true, None)
                 .unwrap_err(),
             CalcError::SaturdayConfirmationReferenceMissing
+        );
+    }
+
+    #[test]
+    fn interval_crossing_multiple_bands_is_rejected_even_when_endpoints_match() {
+        // 06:55 is standard and 10:04 is also standard, but the interval
+        // crosses the 07:00-10:00 weekday peak band in between.
+        assert_eq!(
+            classify_interval(DayClass::Weekday, 415, 190, false, None).unwrap_err(),
+            CalcError::IntervalCrossesPriceBoundary
         );
     }
 
@@ -1472,6 +1553,38 @@ mod tests {
 
 
     #[test]
+    fn date_and_day_class_must_agree() {
+        let mut input = fixture();
+        // 1 July 2026 is a Wednesday, so it cannot use Saturday/Public Holiday bands.
+        input.intervals[0].day_class = DayClass::SaturdayOrPublicHoliday;
+        assert_eq!(
+            calculate_bill(&input).unwrap_err(),
+            CalcError::PublicHolidayEvidenceMissing
+        );
+
+        input.intervals[0].public_holiday_evidence_reference =
+            Some("SYNTHETIC-DATE-SPECIFIC-PUBLIC-HOLIDAY".to_owned());
+        assert!(calculate_bill(&input).is_ok());
+
+        input.intervals[0].public_holiday_evidence_reference = None;
+        input.intervals[0].day_class = DayClass::Sunday;
+        assert_eq!(
+            calculate_bill(&input).unwrap_err(),
+            CalcError::DayClassDoesNotMatchDate
+        );
+    }
+
+    #[test]
+    fn saturday_date_cannot_be_misclassified_as_weekday() {
+        let mut input = fixture();
+        input.intervals[0].local_date = "2026-07-04".to_owned();
+        assert_eq!(
+            calculate_bill(&input).unwrap_err(),
+            CalcError::DayClassDoesNotMatchDate
+        );
+    }
+
+    #[test]
     fn impossible_gregorian_date_is_rejected() {
         let mut input = fixture();
         input.intervals[0].local_date = "2026-02-31".to_owned();
@@ -1513,6 +1626,7 @@ mod tests {
             energy_kwh: 1.0,
             saturday_evening_confirmed: false,
             saturday_confirmation_reference: None,
+            public_holiday_evidence_reference: None,
         });
         input.declared_active_energy_kwh += 1.0;
         assert_eq!(
