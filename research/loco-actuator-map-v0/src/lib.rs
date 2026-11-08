@@ -317,10 +317,7 @@ impl ActuatorPowerMap {
     /// Interpolation fractions use Q16 per axis. The 16 non-negative weights
     /// sum exactly to 2^64. Lower power is rounded outward/down, upper power
     /// outward/up, and nominal power to nearest with ties-to-even.
-    pub fn predict(
-        &self,
-        operating_point: OperatingPoint,
-    ) -> Result<ActuatorPrediction, MapError> {
+    pub fn predict(&self, operating_point: OperatingPoint) -> Result<ActuatorPrediction, MapError> {
         let query = operating_point.coordinates();
         let axes = [
             MapAxis::Torque,
@@ -355,13 +352,10 @@ impl ActuatorPowerMap {
             fractions,
             fraction_remainders,
         )?;
-        let electrical_input_power_pw =
-            PowerInterval::new(lower_pw, nominal_pw, upper_pw)?;
+        let electrical_input_power_pw = PowerInterval::new(lower_pw, nominal_pw, upper_pw)?;
 
         let mechanical_joint_power_pw = i128::from(operating_point.torque_micro_nm)
-            .checked_mul(i128::from(
-                operating_point.angular_velocity_microrad_s,
-            ))
+            .checked_mul(i128::from(operating_point.angular_velocity_microrad_s))
             .ok_or(MapError::ArithmeticOverflow)?;
         let electrical_minus_mechanical_loss_pw =
             SignedPowerInterval::from_electrical_minus_mechanical(
@@ -554,16 +548,14 @@ fn weight_sum(fractions: [u32; 4]) -> Result<u128, MapError> {
                 .checked_mul(axis_weight)
                 .ok_or(MapError::ArithmeticOverflow)?;
         }
-        sum = sum.checked_add(weight).ok_or(MapError::ArithmeticOverflow)?;
+        sum = sum
+            .checked_add(weight)
+            .ok_or(MapError::ArithmeticOverflow)?;
     }
     Ok(sum)
 }
 
-fn round_divide(
-    numerator: i128,
-    denominator: i128,
-    rounding: Rounding,
-) -> Result<i64, MapError> {
+fn round_divide(numerator: i128, denominator: i128, rounding: Rounding) -> Result<i64, MapError> {
     if denominator <= 0 {
         return Err(MapError::ArithmeticOverflow);
     }
@@ -605,13 +597,7 @@ mod tests {
     use super::*;
 
     fn axes() -> ActuatorAxes {
-        ActuatorAxes::new(
-            vec![0, 2],
-            vec![0, 2],
-            vec![0, 2],
-            vec![0, 2],
-        )
-        .unwrap()
+        ActuatorAxes::new(vec![0, 2], vec![0, 2], vec![0, 2], vec![0, 2]).unwrap()
     }
 
     fn map_with(values: Vec<PowerInterval>) -> ActuatorPowerMap {
@@ -664,9 +650,7 @@ mod tests {
     #[test]
     fn exact_four_axis_linear_interpolation_matches_known_answer() {
         let map = map_with(linear_grid());
-        let prediction = map
-            .predict(operating_point(1, 1, 1, 1))
-            .unwrap();
+        let prediction = map.predict(operating_point(1, 1, 1, 1)).unwrap();
         assert_eq!(prediction.electrical_input_power_pw, interval(14, 15, 16));
         assert_eq!(prediction.interpolation_cell, [0, 0, 0, 0]);
         assert_eq!(
@@ -705,12 +689,8 @@ mod tests {
             }
         }
         let map = map_with(values);
-        let negative = map
-            .predict(operating_point(0, 2, 1, 1))
-            .unwrap();
-        let positive = map
-            .predict(operating_point(2, 0, 1, 1))
-            .unwrap();
+        let negative = map.predict(operating_point(0, 2, 1, 1)).unwrap();
+        let positive = map.predict(operating_point(2, 0, 1, 1)).unwrap();
         assert!(negative.electrical_input_power_pw.nominal_pw() < 0);
         assert!(positive.electrical_input_power_pw.nominal_pw() > 0);
     }
@@ -736,9 +716,7 @@ mod tests {
     #[test]
     fn inclusive_upper_boundary_uses_last_cell_with_unit_fraction() {
         let map = map_with(linear_grid());
-        let prediction = map
-            .predict(operating_point(2, 2, 2, 2))
-            .unwrap();
+        let prediction = map.predict(operating_point(2, 2, 2, 2)).unwrap();
         assert_eq!(prediction.interpolation_cell, [0, 0, 0, 0]);
         assert_eq!(prediction.interpolation_fraction_q16, [65_536; 4]);
         assert_eq!(prediction.electrical_input_power_pw, interval(29, 30, 31));
@@ -748,9 +726,7 @@ mod tests {
     fn lower_and_upper_interpolation_round_outward_for_negative_values() {
         let values = vec![interval(-2, -1, 0); 16];
         let map = map_with(values);
-        let prediction = map
-            .predict(operating_point(1, 1, 1, 1))
-            .unwrap();
+        let prediction = map.predict(operating_point(1, 1, 1, 1)).unwrap();
         assert_eq!(prediction.electrical_input_power_pw, interval(-2, -1, 0));
     }
 
@@ -838,13 +814,7 @@ mod tests {
                 }
             }
         }
-        let axes = ActuatorAxes::new(
-            vec![-100, 100],
-            vec![0, 2],
-            vec![0, 2],
-            vec![0, 2],
-        )
-        .unwrap();
+        let axes = ActuatorAxes::new(vec![-100, 100], vec![0, 2], vec![0, 2], vec![0, 2]).unwrap();
         let map = ActuatorPowerMap::new(
             "actuator".to_owned(),
             "drive".to_owned(),
@@ -856,18 +826,14 @@ mod tests {
             values,
         )
         .unwrap();
-        let prediction = map
-            .predict(operating_point(0, 1, 1, 1))
-            .unwrap();
+        let prediction = map.predict(operating_point(0, 1, 1, 1)).unwrap();
         assert_eq!(prediction.electrical_input_power_pw, interval(-1, 0, 1));
     }
 
     #[test]
     fn source_and_calibration_digests_are_returned_with_each_prediction() {
         let map = map_with(vec![interval(10, 12, 14); 16]);
-        let prediction = map
-            .predict(operating_point(1, 1, 1, 1))
-            .unwrap();
+        let prediction = map.predict(operating_point(1, 1, 1, 1)).unwrap();
         assert_eq!(prediction.actuator_id, "actuator-A");
         assert_eq!(prediction.drive_id, "drive-A");
         assert_eq!(prediction.firmware_digest, "firmware-7");
