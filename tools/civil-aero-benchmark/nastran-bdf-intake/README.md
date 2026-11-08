@@ -52,10 +52,17 @@ From the repository root:
 cargo fmt --manifest-path tools/civil-aero-benchmark/nastran-bdf-intake/Cargo.toml -- --check
 cargo test --manifest-path tools/civil-aero-benchmark/nastran-bdf-intake/Cargo.toml
 cargo run --quiet --manifest-path tools/civil-aero-benchmark/nastran-bdf-intake/Cargo.toml > /tmp/nastran-bdf-inventory.json
-python3 tools/civil-aero-benchmark/nastran-bdf-intake/verify_independent.py --rust-output /tmp/nastran-bdf-inventory.json
+cargo run --quiet --manifest-path tools/civil-aero-benchmark/nastran-bdf-intake/Cargo.toml -- --crm-shaped > /tmp/nastran-bdf-crm-shaped-inventory.json
+python3 tools/civil-aero-benchmark/nastran-bdf-intake/verify_independent.py \
+  --rust-output /tmp/nastran-bdf-inventory.json \
+  --rust-shape-output /tmp/nastran-bdf-crm-shaped-inventory.json
 ~~~
 
 The independent Python oracle parses the same synthetic fixed-field fixture and checks the Rust output. It is not imported by the Rust crate.
+
+A second fixture, `data/synthetic-crm-equivalent-beam-shape.bdf`, scales the topology to the 180-line NASA browser preview's visible inventory counts (49 GRID, 16 CBEAM, 16 PBEAM, 15 CONM2, 16 RBE2, one SPC and one FORCE). It uses invented coordinates, material values, masses and loads. It is **not** a transcription of the NASA deck and cannot be used as a CRM physical model.
+
+The executable accepts `--crm-shaped` to emit this second inventory. CI runs both fixture paths and independently compares both Rust JSON outputs with the separate Python implementation. The second fixture specifically exercises implicit blank-field continuation on all 16 CBEAM and 15 CONM2 records, plus the optional blank SPC enforced-displacement field.
 
 ## Hostile controls
 
