@@ -119,6 +119,50 @@ def as_id(value: str, label: str) -> int:
     return result
 
 
+def validate_component_digits(value: str, label: str) -> None:
+    require(
+        bool(value) and all("1" <= char <= "6" for char in value),
+        f"{label}: components must contain only digits 1 through 6",
+    )
+    require(len(set(value)) == len(value), f"{label}: duplicate component digit")
+
+
+def case_control_references(executive: list[str]) -> tuple[set[int], set[int]]:
+    spc: set[int] = set()
+    loads: set[int] = set()
+    for line in executive:
+        if "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip().upper()
+        if key == "SPC":
+            spc.add(as_id(value, "case-control SPC"))
+        elif key == "LOAD":
+            loads.add(as_id(value, "case-control LOAD"))
+    return spc, loads
+
+
+def visit_load_set(
+    sid: int,
+    dependencies: dict[int, set[int]],
+    force_sets: set[int],
+    visiting: set[int],
+    completed: set[int],
+) -> None:
+    if sid in force_sets:
+        require(sid not in dependencies, f"load set {sid} is both LOAD and FORCE")
+        return
+    if sid in completed:
+        return
+    require(sid in dependencies, f"LOAD references unresolved load set ID {sid}")
+    require(sid not in visiting, f"cyclic LOAD dependency at set {sid}")
+    visiting.add(sid)
+    for child in dependencies[sid]:
+        visit_load_set(child, dependencies, force_sets, visiting, completed)
+    visiting.remove(sid)
+    completed.add(sid)
+
+
 def as_float(value: str, label: str) -> float:
     token = value.strip().replace("D", "E").replace("d", "E")
     if not token:
@@ -141,7 +185,7 @@ def as_float(value: str, label: str) -> float:
 
 
 def inventory(data: bytes) -> dict[str, Any]:
-    cards, _executive = parse_deck(data)
+    cards, executive = parse_deck(data)
     names: dict[str, int] = {}
     grids: set[int] = set()
     cbeams: set[int] = set()
@@ -153,10 +197,11 @@ def inventory(data: bytes) -> dict[str, Any]:
     force_sets: set[int] = set()
     load_sets: set[int] = set()
     beam_refs: set[int] = set()
+    beam_property_refs: set[int] = set()
     rbe_refs: set[int] = set()
     spc_refs: set[int] = set()
     force_refs: set[int] = set()
-    load_refs: set[int] = set()
+    load_dependencies: dict[int, set[int]] = {}
     opaque = 0
 
     def unique(target: set[int], value: int, kind: str) -> None:
@@ -182,12 +227,17 @@ def inventory(data: bytes) -> dict[str, Any]:
             gid = as_id(required(0, "GRID ID"), "GRID ID")
             unique(grids, gid, "GRID")
             if fields[1].strip():
-                as_int(fields[1], "GRID CP")
+                require(as_int(fields[1], "GRID CP") == 0,
+                        f"GRID {gid}: non-basic CP coordinate system unsupported")
+            if fields[5].strip():
+                require(as_int(fields[5], "GRID CD") == 0,
+                        f"GRID {gid}: non-basic CD displacement frame unsupported")
             for index in (2, 3, 4):
                 as_float(required(index, f"coordinate {index - 1}"), f"GRID {gid} coordinate")
         elif name == "CBEAM":
             eid = as_id(required(0, "CBEAM EID"), "CBEAM EID")
-            as_id(required(1, "CBEAM PID"), "CBEAM PID")
+            pid = as_id(required(1, "CBEAM PID"), "CBEAM PID")
+            beam_property_refs.add(pid)
             ga = as_id(required(2, "CBEAM GA"), "CBEAM GA")
             gb = as_id(required(3, "CBEAM GB"), "CBEAM GB")
             require(ga != gb, f"CBEAM {eid}: identical end grids")
@@ -197,9 +247,13 @@ def inventory(data: bytes) -> dict[str, Any]:
             orientation = [fields[index] for index in (4, 5, 6)]
             present = sum(bool(value.strip()) for value in orientation)
             require(present in (0, 3), f"CBEAM {eid}: partial orientation vector")
+            orientation_numbers = []
             for index, value in zip((4, 5, 6), orientation):
                 if value.strip():
-                    as_float(value, f"CBEAM {eid} orientation")
+                    orientation_numbers.append(as_float(value, f"CBEAM {eid} orientation"))
+            if present == 3:
+                require(sum(value * value for value in orientation_numbers) > 1.0e-24,
+                        f"CBEAM {eid}: zero orientation vector")
         elif name == "MAT1":
             mid = as_id(required(0, "MAT1 MID"), "MAT1 MID")
             unique(materials, mid, "MAT1")
@@ -219,7 +273,8 @@ def inventory(data: bytes) -> dict[str, Any]:
             grid = as_id(required(1, "CONM2 GRID"), "CONM2 GRID")
             unique(elements, eid, "element")
             if fields[2].strip():
-                as_int(fields[2], "CONM2 CID")
+                require(as_int(fields[2], "CONM2 CID") == 0,
+                        f"CONM2 {eid}: non-basic coordinate system CID unsupported")
             mass = as_float(required(3, "CONM2 mass"), "CONM2 mass")
             require(mass >= 0.0, f"CONM2 {eid}: negative mass")
             for index in range(4, min(13, len(fields))):
@@ -229,7 +284,7 @@ def inventory(data: bytes) -> dict[str, Any]:
         elif name == "RBE2":
             eid = as_id(required(0, "RBE2 EID"), "RBE2 EID")
             independent = as_id(required(1, "RBE2 GN"), "RBE2 GN")
-            required(2, "RBE2 component")
+            validate_component_digits(required(2, "RBE2 component"), "RBE2 components")
             unique(elements, eid, "element")
             rbe2_ids.add(eid)
             rbe_refs.add(independent)
@@ -248,12 +303,12 @@ def inventory(data: bytes) -> dict[str, Any]:
             for index in range(1, end, 3):
                 spc_refs.add(as_id(fields[index], "SPC GRID"))
                 components = required(index + 1, "SPC component")
-                require(all(ch.isdigit() and int(ch) <= 6 for ch in components), "invalid SPC component digits")
+                validate_component_digits(components, f"SPC {sid} components")
                 as_float(required(index + 2, "SPC value"), "SPC value")
         elif name == "SPC1":
             sid = as_id(required(0, "SPC1 SID"), "SPC1 SID")
             spc_sets.add(sid)
-            required(1, "SPC1 component")
+            validate_component_digits(required(1, "SPC1 component"), "SPC1 components")
             index = 2
             while index < len(fields):
                 if not fields[index].strip():
@@ -273,32 +328,47 @@ def inventory(data: bytes) -> dict[str, Any]:
             sid = as_id(required(0, "FORCE SID"), "FORCE SID")
             grid = as_id(required(1, "FORCE GRID"), "FORCE GRID")
             if fields[2].strip():
-                as_int(fields[2], "FORCE CID")
+                require(as_int(fields[2], "FORCE CID") == 0,
+                        f"FORCE SID {sid}: non-basic coordinate system CID unsupported")
             for index in range(3, 7):
                 as_float(required(index, "FORCE number"), "FORCE number")
             force_sets.add(sid)
             force_refs.add(grid)
         elif name == "LOAD":
             sid = as_id(required(0, "LOAD SID"), "LOAD SID")
+            require(sid not in load_dependencies, f"duplicate LOAD set ID {sid}")
             load_sets.add(sid)
             as_float(required(1, "LOAD scale"), "LOAD scale")
             end = max((i + 1 for i, value in enumerate(fields) if value.strip()), default=2)
             require(end >= 4 and (end - 2) % 2 == 0, f"LOAD {sid}: malformed scale pairs")
+            dependencies: set[int] = set()
             for index in range(2, end, 2):
                 as_float(fields[index], "LOAD scale factor")
-                load_refs.add(as_id(fields[index + 1], "LOAD set reference"))
+                dependencies.add(as_id(fields[index + 1], "LOAD set reference"))
+            load_dependencies[sid] = dependencies
         elif name == "PARAM":
             required(0, "PARAM name")
             required(1, "PARAM value")
 
+    for pid in beam_property_refs:
+        require(pid in pbeam_materials, f"CBEAM references missing PBEAM property ID {pid}")
     for pid, mid in pbeam_materials.items():
         require(mid in materials, f"PBEAM {pid}: missing MAT1 {mid}")
 
     all_refs = beam_refs | rbe_refs | spc_refs | force_refs
     for grid in all_refs:
         require(grid in grids, f"referenced GRID {grid} missing")
-    for load_ref in load_refs:
-        require(load_ref in force_sets, f"LOAD references missing FORCE SID {load_ref}")
+
+    visiting: set[int] = set()
+    completed: set[int] = set()
+    for sid in load_dependencies:
+        visit_load_set(sid, load_dependencies, force_sets, visiting, completed)
+
+    selected_spc, selected_loads = case_control_references(executive)
+    for sid in selected_spc:
+        require(sid in spc_sets, f"case control selects missing SPC set {sid}")
+    for sid in selected_loads:
+        visit_load_set(sid, load_dependencies, force_sets, visiting, completed)
 
     connected = beam_refs | rbe_refs | spc_refs | force_refs
     return {
