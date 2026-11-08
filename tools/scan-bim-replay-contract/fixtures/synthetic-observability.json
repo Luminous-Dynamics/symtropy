@@ -194,11 +194,13 @@
       "version": "0.2",
       "isprs_accuracy_direction": "reference_to_candidate",
       "buffer_distances_m": [
+        0,
         0.05,
         0.1,
         0.15
       ],
       "distance_cutoff_distances_m": [
+        0,
         0.05,
         0.1,
         0.15
