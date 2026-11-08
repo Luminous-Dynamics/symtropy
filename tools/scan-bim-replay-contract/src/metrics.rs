@@ -70,7 +70,12 @@ pub struct SurfaceTriangle {
 
 impl SurfaceTriangle {
     pub const fn new(a: Point3, b: Point3, c: Point3, observable: bool) -> Self {
-        Self { a, b, c, observable }
+        Self {
+            a,
+            b,
+            c,
+            observable,
+        }
     }
 }
 
@@ -148,9 +153,7 @@ pub fn evaluate_directed_accuracy_curve(
     if direction == AccuracyDirection::ReferenceToCandidate
         && sample_population != AccuracySamplePopulation::ReferenceSurfaceSamples
     {
-        return Err(
-            "reference_to_candidate requires reference_surface_samples".to_owned(),
-        );
+        return Err("reference_to_candidate requires reference_surface_samples".to_owned());
     }
     if direction == AccuracyDirection::CandidateToReference
         && sample_population == AccuracySamplePopulation::ReferenceSurfaceSamples
@@ -183,7 +186,9 @@ pub fn evaluate_directed_accuracy_curve(
     let mut prepared = Vec::with_capacity(target_surfaces.len());
     for (index, triangle) in target_surfaces.iter().enumerate() {
         if !triangle.a.is_finite() || !triangle.b.is_finite() || !triangle.c.is_finite() {
-            return Err(format!("target triangle {index} contains a non-finite coordinate"));
+            return Err(format!(
+                "target triangle {index} contains a non-finite coordinate"
+            ));
         }
         let ab = triangle.b.sub(triangle.a);
         let ac = triangle.c.sub(triangle.a);
@@ -277,9 +282,7 @@ fn projection_inside_triangle(point: Point3, origin: Point3, ab: Point3, ac: Poi
     let w = (d00 * d21 - d01 * d20) / denominator;
     let u = 1.0 - v - w;
 
-    u >= -BARYCENTRIC_EPSILON
-        && v >= -BARYCENTRIC_EPSILON
-        && w >= -BARYCENTRIC_EPSILON
+    u >= -BARYCENTRIC_EPSILON && v >= -BARYCENTRIC_EPSILON && w >= -BARYCENTRIC_EPSILON
 }
 
 fn median_sorted(values: &[f64]) -> Option<f64> {
@@ -392,10 +395,7 @@ mod tests {
 
     #[test]
     fn even_sample_median_averages_middle_pair() {
-        let samples = [
-            Point3::new(0.2, 0.2, 0.01),
-            Point3::new(0.4, 0.2, 0.05),
-        ];
+        let samples = [Point3::new(0.2, 0.2, 0.01), Point3::new(0.4, 0.2, 0.05)];
         let result = evaluate_directed_accuracy_curve(
             AccuracyDirection::CandidateToReference,
             AccuracySamplePopulation::SourceSurfaceVertices,
