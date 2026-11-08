@@ -11,8 +11,8 @@ const CRITICAL:&[&str]=&["PHYSICAL_SUPPORT","OBSERVABILITY","SESSION_LIFECYCLE",
 #[derive(Debug,Clone,PartialEq,Eq)]
 pub struct Report { pub episode_id:String, pub status:String, pub expected_session_state:String, pub receipts:usize, pub metrics:usize, pub unresolved:Vec<String> }
 
-fn obj(v:&Value,p:&str)->Result<&serde_json::Map<String,Value>,String>{v.as_object().ok_or_else(||format!("{p}: must be an object"))}
-fn arr(v:&Value,p:&str)->Result<&Vec<Value>,String>{v.as_array().ok_or_else(||format!("{p}: must be an array"))}
+fn obj<'a>(v:&'a Value,p:&str)->Result<&'a serde_json::Map<String,Value>,String>{v.as_object().ok_or_else(||format!("{p}: must be an object"))}
+fn arr<'a>(v:&'a Value,p:&str)->Result<&'a Vec<Value>,String>{v.as_array().ok_or_else(||format!("{p}: must be an array"))}
 fn get<'a>(v:&'a Value,k:&str,p:&str)->Result<&'a Value,String>{obj(v,p)?.get(k).ok_or_else(||format!("{p}: missing {k}"))}
 fn s<'a>(v:&'a Value,k:&str,p:&str)->Result<&'a str,String>{get(v,k,p)?.as_str().filter(|x|!x.trim().is_empty()&&x.trim()==*x).ok_or_else(||format!("{p}.{k}: non-empty trimmed string required"))}
 fn keys(v:&Value,required:&[&str],optional:&[&str],p:&str)->Result<(),String>{
