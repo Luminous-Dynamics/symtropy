@@ -345,6 +345,10 @@ fn evaluate(case: &Case) -> Evaluation {
             .iter()
             .map(|transition| transition.post_pose_id.clone())
             .collect();
+        let _possible_post_state_ids: BTreeSet<String> = transitions
+            .iter()
+            .map(|transition| transition.post_state_id.clone())
+            .collect();
         let has_out_of_domain = transitions
             .iter()
             .any(|transition| !transition.in_domain || transition.outcome == "OUT_OF_DOMAIN");
@@ -571,7 +575,7 @@ mod tests {
 
     #[test]
     fn conflicting_post_state_pose_mapping_is_rejected() {
-        let conflict = COMPLETE.replace("POST_LEFT_B\tPOSE_LEFT_B", "POST_LEFT_B\tPOSE_LEFT_A");
+        let conflict = COMPLETE.replace("POST_RIGHT\tPOSE_RIGHT", "POST_LEFT_A\tPOSE_RIGHT");
         assert!(parse_case(&conflict).is_err());
     }
 
