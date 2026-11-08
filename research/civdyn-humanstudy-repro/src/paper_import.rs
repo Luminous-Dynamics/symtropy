@@ -577,7 +577,7 @@ pub fn import_paper_study_run(run_directory: &Path) -> Result<PaperStudyImport, 
     let attestation_bytes = read_native_file(run_directory, ATTESTATION_FILE)?;
     let attestation = parse_attestation(&attestation_bytes)?;
     let study_id = validate_attestation(&attestation)?;
-    let (execution_pin, study_tree_sha) = execution_pin(&study_id)?;
+    let (_execution_pin, study_tree_sha) = execution_pin(&study_id)?;
 
     let full_bytes = read_native_file(run_directory, FULL_BENCHMARK_FILE)?;
     let csv_bytes = read_native_file(run_directory, DETAILED_STATS_FILE)?;
