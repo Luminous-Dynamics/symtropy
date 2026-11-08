@@ -72,8 +72,12 @@ impl fmt::Display for NormError {
             Self::DimensionMismatch => write!(f, "operator and Gram dimensions must match"),
             Self::NonFiniteInput => write!(f, "operator, Gram matrix and frequency must be finite"),
             Self::NonHermitianGram => write!(f, "Gram matrix must be Hermitian"),
-            Self::GramNotPositiveDefinite => write!(f, "Gram matrix is not numerically positive definite"),
-            Self::SingularShift => write!(f, "shifted operator is singular at the requested frequency"),
+            Self::GramNotPositiveDefinite => {
+                write!(f, "Gram matrix is not numerically positive definite")
+            }
+            Self::SingularShift => {
+                write!(f, "shifted operator is singular at the requested frequency")
+            }
             Self::NonFiniteResult => write!(f, "resolvent diagnostic produced a non-finite result"),
         }
     }
@@ -122,10 +126,7 @@ pub fn gram_weighted_log10_resolvent(
     if operator.nrows() != gram.nrows() {
         return Err(NormError::DimensionMismatch);
     }
-    if !finite(omega)
-        || operator.iter().any(|&z| !finite(z))
-        || gram.iter().any(|&z| !finite(z))
-    {
+    if !finite(omega) || operator.iter().any(|&z| !finite(z)) || gram.iter().any(|&z| !finite(z)) {
         return Err(NormError::NonFiniteInput);
     }
 
@@ -224,13 +225,8 @@ mod tests {
         let operator = jordan_like_operator();
         let omega = Complex64::new(-0.8, 0.7);
         let gram = DMatrix::<Complex64>::identity(2, 2);
-        let report = gram_weighted_log10_resolvent(
-            &operator,
-            omega,
-            &gram,
-            NormPlacement::Gram,
-        )
-        .unwrap();
+        let report =
+            gram_weighted_log10_resolvent(&operator, omega, &gram, NormPlacement::Gram).unwrap();
         assert!(report.log10_resolvent_norm.is_finite());
         assert!((report.gram_condition_2 - 1.0).abs() < 1.0e-14);
     }
@@ -240,20 +236,10 @@ mod tests {
         let operator = jordan_like_operator();
         let omega = Complex64::new(-0.8, 0.7);
         let gram = diagonal(4.0, 0.25);
-        let energy = gram_weighted_log10_resolvent(
-            &operator,
-            omega,
-            &gram,
-            NormPlacement::Gram,
-        )
-        .unwrap();
-        let dual = gram_weighted_log10_resolvent(
-            &operator,
-            omega,
-            &gram,
-            NormPlacement::Dual,
-        )
-        .unwrap();
+        let energy =
+            gram_weighted_log10_resolvent(&operator, omega, &gram, NormPlacement::Gram).unwrap();
+        let dual =
+            gram_weighted_log10_resolvent(&operator, omega, &gram, NormPlacement::Dual).unwrap();
         assert!((energy.log10_resolvent_norm - 1.2012767555437331).abs() < 1.0e-10);
         assert!((dual.log10_resolvent_norm - 0.243102895186264).abs() < 1.0e-10);
         assert!((energy.log10_resolvent_norm - dual.log10_resolvent_norm).abs() > 0.5);
@@ -271,13 +257,8 @@ mod tests {
         let transformed_operator = &s * &operator * &s_inverse;
         let transformed_gram = s_inverse.adjoint() * &gram * &s_inverse;
 
-        let original = gram_weighted_log10_resolvent(
-            &operator,
-            omega,
-            &gram,
-            NormPlacement::Gram,
-        )
-        .unwrap();
+        let original =
+            gram_weighted_log10_resolvent(&operator, omega, &gram, NormPlacement::Gram).unwrap();
         let transformed = gram_weighted_log10_resolvent(
             &transformed_operator,
             omega,
@@ -286,9 +267,7 @@ mod tests {
         )
         .unwrap();
 
-        assert!(
-            (original.log10_resolvent_norm - transformed.log10_resolvent_norm).abs() < 1.0e-10
-        );
+        assert!((original.log10_resolvent_norm - transformed.log10_resolvent_norm).abs() < 1.0e-10);
     }
 
     #[test]
@@ -300,20 +279,11 @@ mod tests {
         let s_inverse = diagonal(1.0e-3, 1.0e3);
         let transformed_operator = &s * &operator * &s_inverse;
 
-        let original = gram_weighted_log10_resolvent(
-            &operator,
-            omega,
-            &gram,
-            NormPlacement::Gram,
-        )
-        .unwrap();
-        let mismatched = gram_weighted_log10_resolvent(
-            &transformed_operator,
-            omega,
-            &gram,
-            NormPlacement::Gram,
-        )
-        .unwrap();
+        let original =
+            gram_weighted_log10_resolvent(&operator, omega, &gram, NormPlacement::Gram).unwrap();
+        let mismatched =
+            gram_weighted_log10_resolvent(&transformed_operator, omega, &gram, NormPlacement::Gram)
+                .unwrap();
         assert!((original.log10_resolvent_norm - mismatched.log10_resolvent_norm).abs() > 1.0);
     }
 
