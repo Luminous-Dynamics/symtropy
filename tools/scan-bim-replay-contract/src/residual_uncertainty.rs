@@ -44,9 +44,7 @@ pub enum CorrelationEvidence {
     },
     /// Explicit content-addressed evidence that the two coordinate errors
     /// may be treated as independent for this exact residual population.
-    IndependenceAttested {
-        attestation_sha256: String,
-    },
+    IndependenceAttested { attestation_sha256: String },
     /// The common error lineage is unknown. No scalar sigma is emitted.
     Unknown,
 }
@@ -140,9 +138,7 @@ fn covariance_is_symmetric_psd<const N: usize>(matrix: &[[f64; N]; N]) -> bool {
     let mut eigen_work = [[0.0_f64; N]; N];
     for row in 0..N {
         for column in 0..N {
-            if (matrix[row][column] - matrix[column][row]).abs()
-                > scale * SYMMETRY_TOLERANCE
-            {
+            if (matrix[row][column] - matrix[column][row]).abs() > scale * SYMMETRY_TOLERANCE {
                 return false;
             }
             eigen_work[row][column] = matrix[row][column] / scale;
@@ -198,10 +194,8 @@ fn covariance_is_symmetric_psd<const N: usize>(matrix: &[[f64; N]; N]) -> bool {
             eigen_work[q][index] = new_iq;
         }
 
-        eigen_work[p][p] =
-            cosine * cosine * app - 2.0 * sine * cosine * apq + sine * sine * aqq;
-        eigen_work[q][q] =
-            sine * sine * app + 2.0 * sine * cosine * apq + cosine * cosine * aqq;
+        eigen_work[p][p] = cosine * cosine * app - 2.0 * sine * cosine * apq + sine * sine * aqq;
+        eigen_work[q][q] = sine * sine * app + 2.0 * sine * cosine * apq + cosine * cosine * aqq;
         eigen_work[p][q] = 0.0;
         eigen_work[q][p] = 0.0;
     }
@@ -258,9 +252,8 @@ fn projected_variance(
     let mut variance = 0.0_f64;
     for row in 0..3 {
         for column in 0..3 {
-            let difference_covariance = sample[row][column] + target[row][column]
-                - cross[row][column]
-                - cross[column][row];
+            let difference_covariance =
+                sample[row][column] + target[row][column] - cross[row][column] - cross[column][row];
             variance += normal[row] * difference_covariance * normal[column];
         }
     }
@@ -318,12 +311,17 @@ pub fn evaluate_normal_residual_uncertainty(
     if !digest_is_lowercase_sha256(&input.sample_covariance_receipt_sha256)
         || !digest_is_lowercase_sha256(&input.target_covariance_receipt_sha256)
     {
-        return Err("sample and target covariance receipt digests must be lowercase SHA-256".to_owned());
+        return Err(
+            "sample and target covariance receipt digests must be lowercase SHA-256".to_owned(),
+        );
     }
     if !covariance_is_symmetric_psd(&input.sample_covariance)
         || !covariance_is_symmetric_psd(&input.target_covariance)
     {
-        return Err("sample and target covariance must be finite symmetric positive-semidefinite matrices".to_owned());
+        return Err(
+            "sample and target covariance must be finite symmetric positive-semidefinite matrices"
+                .to_owned(),
+        );
     }
 
     let sample_scale = input.sample_unit.metres_per_unit();
@@ -348,12 +346,11 @@ pub fn evaluate_normal_residual_uncertainty(
         }
         CorrelationEvidence::IndependenceAttested { attestation_sha256 } => {
             if !digest_is_lowercase_sha256(attestation_sha256) {
-                return Err("independence attestation digest must be lowercase SHA-256".to_owned());
+                return Err(
+                    "independence attestation digest must be lowercase SHA-256".to_owned(),
+                );
             }
-            (
-                [[0.0; 3]; 3],
-                Some(attestation_sha256.clone()),
-            )
+            ([[0.0; 3]; 3], Some(attestation_sha256.clone()))
         }
         CorrelationEvidence::Unknown => ([[0.0; 3]; 3], None),
     };
@@ -362,24 +359,34 @@ pub fn evaluate_normal_residual_uncertainty(
         TransformUncertaintyEvidence::NoTransformRequired => None,
         TransformUncertaintyEvidence::IncludedInSampleCovariance { receipt_sha256 } => {
             if !digest_is_lowercase_sha256(receipt_sha256) {
-                return Err("transform covariance receipt digest must be lowercase SHA-256".to_owned());
+                return Err(
+                    "transform covariance receipt digest must be lowercase SHA-256".to_owned(),
+                );
             }
             Some(receipt_sha256.clone())
         }
         TransformUncertaintyEvidence::Unavailable => None,
         TransformUncertaintyEvidence::ScalarAccuracyOnly { receipt_sha256 } => {
             if !digest_is_lowercase_sha256(receipt_sha256) {
-                return Err("scalar transform accuracy receipt digest must be lowercase SHA-256".to_owned());
+                return Err(
+                    "scalar transform accuracy receipt digest must be lowercase SHA-256".to_owned(),
+                );
             }
             Some(receipt_sha256.clone())
         }
     };
 
     let mut reasons = Vec::new();
-    if matches!(input.transform_uncertainty, TransformUncertaintyEvidence::Unavailable) {
+    if matches!(
+        input.transform_uncertainty,
+        TransformUncertaintyEvidence::Unavailable
+    ) {
         reasons.push(UncertaintyUnqualification::TransformCovarianceUnavailable);
     }
-    if matches!(input.transform_uncertainty, TransformUncertaintyEvidence::ScalarAccuracyOnly { .. }) {
+    if matches!(
+        input.transform_uncertainty,
+        TransformUncertaintyEvidence::ScalarAccuracyOnly { .. }
+    ) {
         reasons.push(UncertaintyUnqualification::TransformOnlyScalarAccuracy);
     }
     if matches!(input.correlation, CorrelationEvidence::Unknown) {
@@ -442,15 +449,13 @@ pub fn evaluate_normal_residual_uncertainty(
 mod tests {
     use super::{
         CorrelationEvidence, NormalResidualCovarianceInput, ResidualLinearUnit,
-        ResidualUncertaintyDisposition, TransformUncertaintyEvidence,
-        UncertaintyUnqualification, evaluate_normal_residual_uncertainty,
+        ResidualUncertaintyDisposition, TransformUncertaintyEvidence, UncertaintyUnqualification,
+        evaluate_normal_residual_uncertainty,
     };
     use crate::metrics::Point3;
 
-    const SAMPLE_DIGEST: &str =
-        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-    const TARGET_DIGEST: &str =
-        "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+    const SAMPLE_DIGEST: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    const TARGET_DIGEST: &str = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
     const EVIDENCE_DIGEST: &str =
         "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
 
@@ -486,17 +491,13 @@ mod tests {
     #[test]
     fn preserves_full_covariance_for_oblique_normal() {
         let mut value = input();
-        value.target_normal = Point3::new(1.0 / 3.0_f64.sqrt(), 1.0 / 3.0_f64.sqrt(), 1.0 / 3.0_f64.sqrt());
-        value.sample_covariance = [
-            [0.04, 0.01, 0.0],
-            [0.01, 0.02, 0.005],
-            [0.0, 0.005, 0.03],
-        ];
-        value.target_covariance = [
-            [0.01, 0.002, 0.0],
-            [0.002, 0.04, 0.006],
-            [0.0, 0.006, 0.02],
-        ];
+        value.target_normal = Point3::new(
+            1.0 / 3.0_f64.sqrt(),
+            1.0 / 3.0_f64.sqrt(),
+            1.0 / 3.0_f64.sqrt(),
+        );
+        value.sample_covariance = [[0.04, 0.01, 0.0], [0.01, 0.02, 0.005], [0.0, 0.005, 0.03]];
+        value.target_covariance = [[0.01, 0.002, 0.0], [0.002, 0.04, 0.006], [0.0, 0.006, 0.02]];
         let result = evaluate_normal_residual_uncertainty(&value).expect("valid full covariance");
         assert_eq!(
             result.disposition,
@@ -511,11 +512,7 @@ mod tests {
     fn cross_covariance_reduces_variance_without_assuming_independence() {
         let mut value = input();
         value.correlation = CorrelationEvidence::CrossCovariance {
-            sample_target_covariance: [
-                [0.005, 0.0, 0.0],
-                [0.0, 0.005, 0.0],
-                [0.0, 0.0, 0.005],
-            ],
+            sample_target_covariance: [[0.005, 0.0, 0.0], [0.0, 0.005, 0.0], [0.0, 0.0, 0.005]],
             receipt_sha256: EVIDENCE_DIGEST.to_owned(),
         };
         let result = evaluate_normal_residual_uncertainty(&value).expect("valid joint covariance");
@@ -526,8 +523,12 @@ mod tests {
     fn unknown_correlation_returns_unqualified_without_numeric_sigma() {
         let mut value = input();
         value.correlation = CorrelationEvidence::Unknown;
-        let result = evaluate_normal_residual_uncertainty(&value).expect("unknown is a disposition");
-        assert_eq!(result.disposition, ResidualUncertaintyDisposition::Unqualified);
+        let result =
+            evaluate_normal_residual_uncertainty(&value).expect("unknown is a disposition");
+        assert_eq!(
+            result.disposition,
+            ResidualUncertaintyDisposition::Unqualified
+        );
         assert_eq!(result.variance_m2, None);
         assert_eq!(result.standard_uncertainty_m, None);
         assert_eq!(
@@ -555,8 +556,12 @@ mod tests {
     fn unavailable_transform_covariance_is_not_ignored() {
         let mut value = input();
         value.transform_uncertainty = TransformUncertaintyEvidence::Unavailable;
-        let result = evaluate_normal_residual_uncertainty(&value).expect("missing is a disposition");
-        assert_eq!(result.disposition, ResidualUncertaintyDisposition::Unqualified);
+        let result =
+            evaluate_normal_residual_uncertainty(&value).expect("missing is a disposition");
+        assert_eq!(
+            result.disposition,
+            ResidualUncertaintyDisposition::Unqualified
+        );
         assert_eq!(
             result.reasons,
             vec![UncertaintyUnqualification::TransformCovarianceUnavailable]
@@ -568,8 +573,16 @@ mod tests {
         let mut value = input();
         value.sample_unit = ResidualLinearUnit::Millimetre;
         value.target_unit = ResidualLinearUnit::Millimetre;
-        value.sample_covariance = [[40_000.0, 0.0, 0.0], [0.0, 10_000.0, 0.0], [0.0, 0.0, 10_000.0]];
-        value.target_covariance = [[10_000.0, 0.0, 0.0], [0.0, 40_000.0, 0.0], [0.0, 0.0, 40_000.0]];
+        value.sample_covariance = [
+            [40_000.0, 0.0, 0.0],
+            [0.0, 10_000.0, 0.0],
+            [0.0, 0.0, 10_000.0],
+        ];
+        value.target_covariance = [
+            [10_000.0, 0.0, 0.0],
+            [0.0, 40_000.0, 0.0],
+            [0.0, 0.0, 40_000.0],
+        ];
         let result = evaluate_normal_residual_uncertainty(&value).expect("millimetre covariance");
         assert!((result.variance_m2.expect("variance") - 0.05).abs() < 1.0e-12);
     }
@@ -579,12 +592,17 @@ mod tests {
         let mut value = input();
         value.sample_unit = ResidualLinearUnit::Millimetre;
         value.target_unit = ResidualLinearUnit::Metre;
-        value.sample_covariance = [[40_000.0, 0.0, 0.0], [0.0, 10_000.0, 0.0], [0.0, 0.0, 10_000.0]];
+        value.sample_covariance = [
+            [40_000.0, 0.0, 0.0],
+            [0.0, 10_000.0, 0.0],
+            [0.0, 0.0, 10_000.0],
+        ];
         value.correlation = CorrelationEvidence::CrossCovariance {
             sample_target_covariance: [[5.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
             receipt_sha256: EVIDENCE_DIGEST.to_owned(),
         };
-        let result = evaluate_normal_residual_uncertainty(&value).expect("mixed-unit cross covariance");
+        let result =
+            evaluate_normal_residual_uncertainty(&value).expect("mixed-unit cross covariance");
         assert!((result.variance_m2.expect("variance") - 0.04).abs() < 1.0e-12);
     }
 
@@ -598,8 +616,8 @@ mod tests {
 
         let mut value = input();
         value.target_normal = Point3::new(2.0, 0.0, 0.0);
-        let normal_error = evaluate_normal_residual_uncertainty(&value)
-            .expect_err("normal must be unit length");
+        let normal_error =
+            evaluate_normal_residual_uncertainty(&value).expect_err("normal must be unit length");
         assert!(normal_error.contains("unit length"));
     }
 
