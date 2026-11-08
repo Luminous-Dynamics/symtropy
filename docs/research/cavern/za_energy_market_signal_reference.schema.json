@@ -267,6 +267,47 @@
             },
             "service_connection_source_ref": {
               "type": "string"
+            },
+            "source_conflict_status": {
+              "enum": [
+                "NONE_DECLARED",
+                "BUDGET_CLAUSE_5_4_3_VS_SECONDARY_APPROVED_SCHEDULE_REQUIRES_ACCOUNT_CONFIRMATION"
+              ]
+            },
+            "source_conflict_note": {
+              "type": "string"
+            },
+            "source_conflict_sources": {
+              "type": "array",
+              "minItems": 2,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "source_id",
+                  "source_type",
+                  "locator",
+                  "url"
+                ],
+                "properties": {
+                  "source_id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "source_type": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "locator": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "url": {
+                    "type": "string",
+                    "format": "uri"
+                  }
+                }
+              }
             }
           }
         },
