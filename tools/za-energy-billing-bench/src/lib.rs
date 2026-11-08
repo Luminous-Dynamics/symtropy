@@ -89,6 +89,8 @@ pub enum CalcError {
     AmbiguousSaturdayEndpoint,
     SaturdayConfirmationReferenceMissing,
     IntervalOrderOrOverlap,
+    IncompleteIntervalCoverage,
+    InconsistentDayClassification,
     SeasonDoesNotMatchBillingMonth,
     NoIntervals,
     IncompleteIntervalSeries,
@@ -169,6 +171,14 @@ impl fmt::Display for CalcError {
             Self::IntervalOrderOrOverlap => {
                 write!(f, "intervals must be chronological and non-overlapping")
             }
+            Self::IncompleteIntervalCoverage => write!(
+                f,
+                "metered intervals must cover the complete billing month contiguously from 00:00 to 24:00"
+            ),
+            Self::InconsistentDayClassification => write!(
+                f,
+                "all intervals on a local date must share one tariff day class and public-holiday evidence reference"
+            ),
             Self::SeasonDoesNotMatchBillingMonth => {
                 write!(f, "season does not match the billing-month calendar")
             }
@@ -468,16 +478,19 @@ fn parse_date(date: &str) -> Result<(i32, u8, u8), CalcError> {
     if year < 1 || !(1..=12).contains(&month) || day == 0 {
         return Err(CalcError::InvalidDate);
     }
-    let maximum_day = match month {
+    if day > days_in_month(year, month) {
+        return Err(CalcError::InvalidDate);
+    }
+    Ok((year, month, day))
+}
+
+fn days_in_month(year: i32, month: u8) -> u8 {
+    match month {
         2 if year % 400 == 0 || (year % 4 == 0 && year % 100 != 0) => 29,
         2 => 28,
         4 | 6 | 9 | 11 => 30,
         _ => 31,
-    };
-    if day > maximum_day {
-        return Err(CalcError::InvalidDate);
     }
-    Ok((year, month, day))
 }
 
 /// Returns Monday=0 through Sunday=6 using the Gregorian calendar.
@@ -784,9 +797,11 @@ pub fn calculate_bill(input: &TariffInput) -> Result<BillReceipt, CalcError> {
     let mut energy_charge = 0.0;
     let mut prior_date = String::new();
     let mut prior_end = 0_u16;
+    let mut prior_day_class: Option<DayClass> = None;
+    let mut prior_public_holiday_evidence: Option<String> = None;
 
     for interval in &input.intervals {
-        let (date_year, date_month, _) = parse_date(&interval.local_date)?;
+        let (date_year, date_month, date_day) = parse_date(&interval.local_date)?;
         if date_year != year || date_month != month {
             return Err(CalcError::DateOutsideBillingMonth);
         }
@@ -801,14 +816,35 @@ pub fn calculate_bill(input: &TariffInput) -> Result<BillReceipt, CalcError> {
         if !interval.energy_kwh.is_finite() || interval.energy_kwh < 0.0 {
             return Err(CalcError::InvalidMeasurement("interval energy"));
         }
-        if !prior_date.is_empty() {
-            if interval.local_date < prior_date {
+        if prior_date.is_empty() {
+            if date_day != 1 || interval.local_start_minute != 0 {
+                return Err(CalcError::IncompleteIntervalCoverage);
+            }
+        } else if interval.local_date < prior_date {
+            return Err(CalcError::IntervalOrderOrOverlap);
+        } else if interval.local_date == prior_date {
+            if interval.day_class != prior_day_class.unwrap_or(interval.day_class)
+                || interval.public_holiday_evidence_reference.as_deref()
+                    != prior_public_holiday_evidence.as_deref()
+            {
+                return Err(CalcError::InconsistentDayClassification);
+            }
+            if interval.local_start_minute < prior_end {
                 return Err(CalcError::IntervalOrderOrOverlap);
             }
-            if interval.local_date == prior_date && interval.local_start_minute < prior_end {
-                return Err(CalcError::IntervalOrderOrOverlap);
+            if interval.local_start_minute > prior_end {
+                return Err(CalcError::IncompleteIntervalCoverage);
+            }
+        } else {
+            let (_, _, previous_day) = parse_date(&prior_date)?;
+            if date_day != previous_day + 1
+                || prior_end != 1_440
+                || interval.local_start_minute != 0
+            {
+                return Err(CalcError::IncompleteIntervalCoverage);
             }
         }
+
         let band = classify_interval(
             interval.day_class,
             interval.local_start_minute,
@@ -821,6 +857,14 @@ pub fn calculate_bill(input: &TariffInput) -> Result<BillReceipt, CalcError> {
         energy_charge += interval.energy_kwh * rate;
         prior_date = interval.local_date.clone();
         prior_end = interval.local_start_minute + interval.duration_minutes;
+        prior_day_class = Some(interval.day_class);
+        prior_public_holiday_evidence =
+            interval.public_holiday_evidence_reference.clone();
+    }
+
+    let (_, _, last_covered_day) = parse_date(&prior_date)?;
+    if last_covered_day != days_in_month(year, month) || prior_end != 1_440 {
+        return Err(CalcError::IncompleteIntervalCoverage);
     }
 
     if (interval_energy - input.declared_active_energy_kwh).abs() > 1e-6 {
@@ -1038,6 +1082,42 @@ mod tests {
     }
 
     fn fixture() -> TariffInput {
+        let mut intervals = Vec::with_capacity(31 * 96);
+        let mut declared_active_energy_kwh = 0.0;
+
+        for day in 1..=31_u8 {
+            let local_date = format!("2026-07-{day:02}");
+            let weekday = weekday_monday_zero(2026, 7, day);
+            let day_class = match weekday {
+                5 => DayClass::SaturdayOrPublicHoliday,
+                6 => DayClass::Sunday,
+                _ => DayClass::Weekday,
+            };
+
+            for slot in 0..96_u16 {
+                let local_start_minute = slot * 15;
+                let energy_kwh = if day == 1 && local_start_minute == 420 {
+                    10.0
+                } else {
+                    0.0
+                };
+                let saturday_evening = day_class == DayClass::SaturdayOrPublicHoliday
+                    && (1_080..1_200).contains(&local_start_minute);
+                declared_active_energy_kwh += energy_kwh;
+                intervals.push(MeteredInterval {
+                    local_date: local_date.clone(),
+                    day_class,
+                    local_start_minute,
+                    duration_minutes: 15,
+                    energy_kwh,
+                    saturday_evening_confirmed: saturday_evening,
+                    saturday_confirmation_reference: saturday_evening
+                        .then(|| "SYNTHETIC-SATURDAY-TOU-CONFIRMATION".to_owned()),
+                    public_holiday_evidence_reference: None,
+                });
+            }
+        }
+
         TariffInput {
             source_profile_id: SOURCE_PROFILE_ID.to_owned(),
             profile_version: "0.1".to_owned(),
@@ -1055,19 +1135,10 @@ mod tests {
                     "SYNTHETIC-LV-LPU-SERVICE-CLASS".to_owned(),
                 ),
             },
-            intervals: vec![MeteredInterval {
-                local_date: "2026-07-01".to_owned(),
-                day_class: DayClass::Weekday,
-                local_start_minute: 420,
-                duration_minutes: 15,
-                energy_kwh: 10.0,
-                saturday_evening_confirmed: false,
-                saturday_confirmation_reference: None,
-                public_holiday_evidence_reference: None,
-            }],
+            intervals,
             interval_series_complete: true,
             interval_coverage_evidence_reference: "SYNTHETIC-COMPLETE-INTERVAL-COVERAGE".to_owned(),
-            declared_active_energy_kwh: 10.0,
+            declared_active_energy_kwh,
             measured_monthly_peak_demand_kva: 95.0,
             preceding_12_month_demand_history: history_for("2026-07", 125.0),
             power_factor: 0.95,
@@ -1671,18 +1742,24 @@ mod tests {
     fn date_and_day_class_must_agree() {
         let mut input = fixture();
         // 1 July 2026 is a Wednesday, so it cannot use Saturday/Public Holiday bands.
-        input.intervals[0].day_class = DayClass::SaturdayOrPublicHoliday;
+        for interval in input.intervals.iter_mut().filter(|i| i.local_date == "2026-07-01") {
+            interval.day_class = DayClass::SaturdayOrPublicHoliday;
+        }
         assert_eq!(
             calculate_bill(&input).unwrap_err(),
             CalcError::PublicHolidayEvidenceMissing
         );
 
-        input.intervals[0].public_holiday_evidence_reference =
-            Some("SYNTHETIC-DATE-SPECIFIC-PUBLIC-HOLIDAY-A".to_owned());
+        for interval in input.intervals.iter_mut().filter(|i| i.local_date == "2026-07-01") {
+            interval.public_holiday_evidence_reference =
+                Some("SYNTHETIC-DATE-SPECIFIC-PUBLIC-HOLIDAY-A".to_owned());
+        }
         let holiday_receipt_a = calculate_bill(&input).unwrap();
 
-        input.intervals[0].public_holiday_evidence_reference =
-            Some("SYNTHETIC-DATE-SPECIFIC-PUBLIC-HOLIDAY-B".to_owned());
+        for interval in input.intervals.iter_mut().filter(|i| i.local_date == "2026-07-01") {
+            interval.public_holiday_evidence_reference =
+                Some("SYNTHETIC-DATE-SPECIFIC-PUBLIC-HOLIDAY-B".to_owned());
+        }
         let holiday_receipt_b = calculate_bill(&input).unwrap();
         assert_ne!(
             holiday_receipt_a.input_fingerprint_fnv1a64,
@@ -1690,14 +1767,18 @@ mod tests {
             "the date-specific public-holiday evidence must be bound into the input fingerprint"
         );
 
-        input.intervals[0].public_holiday_evidence_reference = None;
-        input.intervals[0].day_class = DayClass::Sunday;
+        for interval in input.intervals.iter_mut().filter(|i| i.local_date == "2026-07-01") {
+            interval.public_holiday_evidence_reference = None;
+            interval.day_class = DayClass::Sunday;
+        }
         assert_eq!(
             calculate_bill(&input).unwrap_err(),
             CalcError::DayClassDoesNotMatchDate
         );
 
-        input.intervals[0].local_date = "2026-07-05".to_owned();
+        for interval in input.intervals.iter_mut().filter(|i| i.local_date == "2026-07-05") {
+            interval.day_class = DayClass::Sunday;
+        }
         assert!(calculate_bill(&input).is_ok(), "2026-07-05 is a Sunday");
     }
 
@@ -1754,6 +1835,115 @@ mod tests {
             calculate_bill(&input).unwrap_err(),
             CalcError::IntervalOrderOrOverlap
         );
+    }
+
+    #[test]
+    fn complete_month_must_start_at_local_midnight() {
+        let mut input = fixture();
+        input.intervals[0].local_start_minute = 15;
+        assert_eq!(
+            calculate_bill(&input).unwrap_err(),
+            CalcError::IncompleteIntervalCoverage
+        );
+    }
+
+    #[test]
+    fn missing_interval_inside_a_day_is_rejected_even_when_energy_sum_matches() {
+        let mut input = fixture();
+        input.intervals.remove(20);
+        // The manifest and declared kWh are unchanged; the time gap must still fail.
+        assert_eq!(
+            calculate_bill(&input).unwrap_err(),
+            CalcError::IncompleteIntervalCoverage
+        );
+    }
+
+    #[test]
+    fn gap_between_days_is_rejected() {
+        let mut input = fixture();
+        let next_day_start = 96;
+        input.intervals[next_day_start].local_start_minute = 15;
+        assert_eq!(
+            calculate_bill(&input).unwrap_err(),
+            CalcError::IncompleteIntervalCoverage
+        );
+    }
+
+    #[test]
+    fn skipped_local_calendar_day_is_rejected() {
+        let mut input = fixture();
+        input.intervals.drain(96..192);
+        assert_eq!(
+            calculate_bill(&input).unwrap_err(),
+            CalcError::IncompleteIntervalCoverage
+        );
+    }
+
+    #[test]
+    fn final_interval_must_end_at_local_midnight() {
+        let mut input = fixture();
+        input.intervals.last_mut().unwrap().duration_minutes = 14;
+        assert_eq!(
+            calculate_bill(&input).unwrap_err(),
+            CalcError::IncompleteIntervalCoverage
+        );
+    }
+
+    #[test]
+    fn final_calendar_day_must_be_present() {
+        let mut input = fixture();
+        input.intervals.truncate(30 * 96);
+        assert_eq!(
+            calculate_bill(&input).unwrap_err(),
+            CalcError::IncompleteIntervalCoverage
+        );
+    }
+
+    #[test]
+    fn day_class_must_be_constant_across_all_intervals_on_a_date() {
+        let mut input = fixture();
+        // Both labels are individually valid for a Wednesday only when the
+        // Saturday/Public Holiday interval carries its date-specific reference.
+        input.intervals[1].day_class = DayClass::SaturdayOrPublicHoliday;
+        input.intervals[1].public_holiday_evidence_reference =
+            Some("SYNTHETIC-DATE-SPECIFIC-PUBLIC-HOLIDAY".to_owned());
+        assert_eq!(
+            calculate_bill(&input).unwrap_err(),
+            CalcError::InconsistentDayClassification
+        );
+    }
+
+    #[test]
+    fn public_holiday_evidence_must_be_constant_across_all_intervals_on_a_date() {
+        let mut input = fixture();
+        for interval in input.intervals.iter_mut().filter(|i| i.local_date == "2026-07-01") {
+            interval.day_class = DayClass::SaturdayOrPublicHoliday;
+            interval.public_holiday_evidence_reference =
+                Some("SYNTHETIC-DATE-SPECIFIC-PUBLIC-HOLIDAY-A".to_owned());
+        }
+        input.intervals[1].public_holiday_evidence_reference =
+            Some("SYNTHETIC-DATE-SPECIFIC-PUBLIC-HOLIDAY-B".to_owned());
+        assert_eq!(
+            calculate_bill(&input).unwrap_err(),
+            CalcError::InconsistentDayClassification
+        );
+    }
+
+    #[test]
+    fn zero_kwh_intervals_are_valid_and_complete_coverage_is_still_required() {
+        let input = fixture();
+        assert_eq!(input.intervals.len(), 31 * 96);
+        assert!(input.intervals.iter().any(|i| i.energy_kwh == 0.0));
+        assert!(calculate_bill(&input).is_ok());
+    }
+
+    #[test]
+    fn nonuniform_but_contiguous_intervals_are_valid() {
+        let mut input = fixture();
+        // Merge 00:00-00:15 and 00:15-00:30 into one 30-minute off-peak interval.
+        input.intervals[0].duration_minutes = 30;
+        input.intervals.remove(1);
+        assert!(calculate_bill(&input).is_ok());
     }
 
     #[test]
