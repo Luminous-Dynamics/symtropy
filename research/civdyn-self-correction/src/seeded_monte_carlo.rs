@@ -454,8 +454,10 @@ fn decide_actions(
                 }
             }
             CausalDriftController::MechanismAware => {
-                if tick % 2 == 0 && diagnosis.is_none() {
-                    if let Some(probe) = observable.matched_probes[index] {
+                if tick % 2 == 0
+                    && diagnosis.is_none()
+                    && let Some(probe) = observable.matched_probes[index]
+                {
                         diagnostic_probe_count += 1;
                         let probe_class = classify_probe(probe);
                         match probe_class {
@@ -488,7 +490,6 @@ fn decide_actions(
                             ProbeClass::Uncertain => {}
                         }
                         previous_probe_class = Some(probe_class);
-                    }
                 }
             }
         }
