@@ -105,17 +105,18 @@
     }
   ],
   "execution_sources": {
+    "docs/PAS_ECS_math.md": "a03ad2e33166df20ecd2ff3bd30bb341391f75ca",
+    "docs/RESULT_STORAGE.md": "f97d47ddad3dc67adf8f8f88ea2c49777a3dc8c7",
+    "generation_pipeline/pipeline.py": "76ef97ae5939c493f6de66925ae76756b3a5b9d3",
+    "generation_pipeline/run.py": "5604a469aea0e1b5f5b9ebd94f55587f1d50cf18",
     "scripts/run_baseline_pipeline.py": "4572ad360135d591e6a9d3d1f2c91a4bba3d099c",
     "scripts/simple_results.py": "dc181a92002399967d68076c91f65095e2254de1",
-    "src/evaluation/stats_lib.py": "24bc535b0d21cef24dd5b7139209478134c57d64",
-    "src/evaluation/scorer.py": "f9deb60bc3cfbff4223949f24cbee582b17f846c",
+    "src/core/benchmark.py": "b8e2a29a895bca6275c1bbde14c5fdc441b50700",
     "src/evaluation/evaluator_runner.py": "0b67c4c31d491932655258e84a2ca1609ad74b46",
     "src/evaluation/metrics.py": "0738bb66203daf0354b5fb7fc0ea63b330282784",
+    "src/evaluation/scorer.py": "f9deb60bc3cfbff4223949f24cbee582b17f846c",
     "src/evaluation/standardizers.py": "b0178a0fc7507f4205a8ebdcc2bd1e5f896cfb5b",
-    "src/core/benchmark.py": "b8e2a29a895bca6275c1bbde14c5fdc441b50700",
-    "generation_pipeline/run.py": "5604a469aea0e1b5f5b9ebd94f55587f1d50cf18",
-    "docs/PAS_ECS_math.md": "a03ad2e33166df20ecd2ff3bd30bb341391f75ca",
-    "docs/RESULT_STORAGE.md": "f97d47ddad3dc67adf8f8f88ea2c49777a3dc8c7"
+    "src/evaluation/stats_lib.py": "24bc535b0d21cef24dd5b7139209478134c57d64"
   },
   "metric_contract": {
     "id": "HSB-PAPER-METRICS-SOURCECODE-CF05D330",
