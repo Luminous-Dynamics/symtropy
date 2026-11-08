@@ -746,6 +746,7 @@ mod tests {
         let c = case();
         let p = adaptive_plan(&c).unwrap();
         assert_eq!(p.action_id.as_deref(), Some("passive_telemetry_split"));
+        assert_eq!(c.actions.iter().find(|a| a.id == "passive_telemetry_split").unwrap().kind, "PASSIVE_OBSERVE");
         assert_eq!(p.worst_case_energy_uj, 15);
         assert_eq!(p.worst_case_latency_us, 7);
         assert_eq!(p.worst_case_actions, 2);
@@ -834,6 +835,17 @@ mod tests {
         rows[last] = fields.join(&tab.to_string());
         let bad = rows.join(&newline.to_string());
         assert!(parse_case(&bad).is_err());
+    }
+
+    #[test]
+    fn active_excitation_cannot_claim_zero_incremental_energy() {
+        let tab = char::from(9);
+        let newline = char::from(10);
+        let mut rows: Vec<String> = FIXTURE.lines().map(str::to_string).collect();
+        let mut fields: Vec<String> = rows[1].split(tab).map(str::to_string).collect();
+        fields[13] = "0".to_string();
+        rows[1] = fields.join(&tab.to_string());
+        assert!(parse_case(&rows.join(&newline.to_string())).is_err());
     }
 
     #[test]
