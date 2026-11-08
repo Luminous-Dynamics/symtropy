@@ -456,7 +456,7 @@ fn unique_pose(case: &Case, belief: &BTreeSet<String>) -> Option<String> {
         .iter()
         .filter_map(|state| case.state_poses.get(state));
     let first = poses.next()?.clone();
-    if poses.all(|pose| *pose == first) {
+    if poses.all(|pose| pose == &first) {
         Some(first)
     } else {
         None
@@ -517,11 +517,16 @@ fn frontier(
     case: &Case,
     belief: &BTreeSet<String>,
     elapsed_us: u64,
+    evidence_deadline_us: u64,
     remaining_actions: usize,
-    memo: &mut BTreeMap<(Vec<String>, u64, usize), Vec<Plan>>,
+    memo: &mut BTreeMap<(Vec<String>, u64, u64, usize), Vec<Plan>>,
 ) -> Vec<Plan> {
     if let Some(pose) = unique_pose(case, belief) {
-        return vec![Plan::terminal(pose)];
+        return if elapsed_us <= evidence_deadline_us {
+            vec![Plan::terminal(pose)]
+        } else {
+            Vec::new()
+        };
     }
     if remaining_actions == 0 {
         return Vec::new();
@@ -530,6 +535,7 @@ fn frontier(
     let key = (
         belief.iter().cloned().collect::<Vec<_>>(),
         elapsed_us,
+        evidence_deadline_us,
         remaining_actions,
     );
     if let Some(cached) = memo.get(&key) {
@@ -592,6 +598,7 @@ fn frontier(
                 case,
                 &next_belief,
                 end_time_us,
+                evidence_deadline_us.min(action.valid_until_us),
                 remaining_actions - 1,
                 memo,
             );
@@ -667,6 +674,7 @@ fn solve(case: &Case) -> Option<Plan> {
         case,
         &case.initial_states,
         0,
+        u64::MAX,
         case.max_actions,
         &mut memo,
     );
@@ -746,10 +754,15 @@ mod tests {
         case: &Case,
         belief: &BTreeSet<String>,
         elapsed_us: u64,
+        evidence_deadline_us: u64,
         remaining_actions: usize,
     ) -> Vec<(u64, u64, usize)> {
         if unique_pose(case, belief).is_some() {
-            return vec![(0, 0, 0)];
+            return if elapsed_us <= evidence_deadline_us {
+                vec![(0, 0, 0)]
+            } else {
+                Vec::new()
+            };
         }
         if remaining_actions == 0 {
             return Vec::new();
@@ -811,6 +824,7 @@ mod tests {
                     case,
                     next_belief,
                     end_time,
+                    evidence_deadline_us.min(action.valid_until_us),
                     remaining_actions - 1,
                 );
                 if child_scores.is_empty() {
@@ -886,6 +900,7 @@ mod tests {
             &case,
             &case.initial_states,
             0,
+            u64::MAX,
             case.max_actions,
         );
         let oracle_best = oracle_scores.into_iter().min().expect("oracle has a policy");
@@ -911,7 +926,7 @@ mod tests {
             Some("second_probe")
         );
         assert_all_leaves_unique(&plan);
-        let oracle_scores = oracle(&case, &case.initial_states, 0, case.max_actions);
+        let oracle_scores = oracle(&case, &case.initial_states, 0, u64::MAX, case.max_actions);
         let oracle_best = oracle_scores.into_iter().min().expect("moving oracle has a policy");
         assert_eq!(
             oracle_best,
@@ -943,6 +958,16 @@ mod tests {
     #[test]
     fn expired_action_validity_causes_abstention() {
         let input = MOVING.replace("\ttrue\t10", "\ttrue\t0");
+        let case = parsed(&input);
+        assert!(solve(&case).is_none());
+    }
+
+    #[test]
+    fn earlier_observation_expiry_invalidates_a_later_terminal_decision() {
+        let mut input = MOVING.to_string();
+        for _ in 0..4 {
+            input = input.replacen("\ttrue\t10", "\ttrue\t1", 1);
+        }
         let case = parsed(&input);
         assert!(solve(&case).is_none());
     }
