@@ -8,9 +8,24 @@
     "end_year_exclusive": 2027
   },
   "cohorts": [
-    {"id": "cohort_older_1945_1965", "birth_start_year": 1945, "birth_end_year_exclusive": 1965, "population_assumption": 1},
-    {"id": "cohort_current_1980_2000", "birth_start_year": 1980, "birth_end_year_exclusive": 2000, "population_assumption": 1},
-    {"id": "cohort_future_2050_2070", "birth_start_year": 2050, "birth_end_year_exclusive": 2070, "population_assumption": 1}
+    {
+      "id": "cohort_older_1945_1965",
+      "birth_start_year": 1945,
+      "birth_end_year_exclusive": 1965,
+      "population_assumption": 1
+    },
+    {
+      "id": "cohort_current_1980_2000",
+      "birth_start_year": 1980,
+      "birth_end_year_exclusive": 2000,
+      "population_assumption": 1
+    },
+    {
+      "id": "cohort_future_2050_2070",
+      "birth_start_year": 2050,
+      "birth_end_year_exclusive": 2070,
+      "population_assumption": 1
+    }
   ],
   "scenarios": {
     "maintain_now": {
@@ -21,7 +36,9 @@
       "future_inherited_water_m3": 80,
       "future_maintenance_energy_liability_kwh": 0,
       "future_financial_liability_zar_2026": 0,
-      "future_pump_condition_index": 0.95
+      "future_pump_condition_index": 0.95,
+      "current_maintenance_energy_served_kwh": 40,
+      "future_inherited_energy_kwh": 60
     },
     "defer_maintenance_and_export_water": {
       "opening_basin_water_m3": 100,
@@ -31,13 +48,17 @@
       "future_inherited_water_m3": 50,
       "future_maintenance_energy_liability_kwh": 40,
       "future_financial_liability_zar_2026": 1000000,
-      "future_pump_condition_index": 0.60
+      "future_pump_condition_index": 0.6,
+      "current_maintenance_energy_served_kwh": 0,
+      "future_inherited_energy_kwh": 100
     }
   },
   "output_metrics": [
     "current_household_water_served_m3",
+    "current_maintenance_energy_served_kwh",
     "current_household_water_unmet_m3",
     "future_inherited_water_m3",
+    "future_inherited_energy_kwh",
     "future_maintenance_energy_liability_kwh",
     "future_financial_liability_zar_2026",
     "future_pump_condition_index",
@@ -53,7 +74,8 @@
     "Reassigning a liability changes cohort incidence but cannot change the physical or financial total.",
     "A cohort inheritance record references outstanding financial liability IDs and cannot duplicate their amounts.",
     "Every future cohort outside the simulation horizon has an inheritance snapshot from the preceding closing-year boundary.",
-    "Unassigned obligations remain visible with an explicit reason."
+    "Unassigned obligations remain visible with an explicit reason.",
+    "Maintenance performed in the current period must appear as an energy transfer and a served maintenance-region demand in the shared resource ledger."
   ],
   "claim_ceiling": [
     "Population counts and cohort sizes are synthetic scenario assumptions, not observed demographics.",
