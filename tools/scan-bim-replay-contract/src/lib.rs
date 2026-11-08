@@ -1665,7 +1665,8 @@ mod tests {
         let mut value = isprs_pair_fixture();
         value["metric_profile"]["suite_id"] = serde_json::json!("isprs_indoor_modelling_wall");
         value["metric_profile"]["scope"] = serde_json::json!("wall_only");
-        value["metric_profile"]["definition_authority"] = serde_json::json!("official_results_page");
+        value["metric_profile"]["definition_authority"] =
+            serde_json::json!("official_results_page");
         value["metric_profile"]["accuracy_direction"] = serde_json::json!("reference_to_candidate");
         let report = audit(&value).expect("official profile direction and wall scope are valid");
         assert_eq!(report.metric_suite_id, "isprs_indoor_modelling_wall");
