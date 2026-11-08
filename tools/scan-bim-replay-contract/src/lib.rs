@@ -466,6 +466,7 @@ fn accuracy_sample_strategy_label(value: AccuracySampleStrategy) -> &'static str
 fn metric_definition_authority_label(value: MetricDefinitionAuthority) -> &'static str {
     match value {
         MetricDefinitionAuthority::OfficialResultsPage => "official_results_page",
+        MetricDefinitionAuthority::EvaluationFramework2018 => "evaluation_framework2018",
         MetricDefinitionAuthority::FinalResultsPaper2021 => "final_results_paper_2021",
         MetricDefinitionAuthority::BidirectionalDiagnostic => "bidirectional_diagnostic",
     }
