@@ -1,0 +1,98 @@
+{
+  "schema_version": "0.1.0",
+  "case_id": "dart-dimorphos-2022-period-and-momentum",
+  "case_type": "historical_mission_observation_replay",
+  "target": {
+    "name": "Dimorphos",
+    "designation": "S/2003 (65803) 1",
+    "primary": "65803 Didymos",
+    "system": "Didymos binary asteroid system"
+  },
+  "event": {
+    "mission": "NASA Double Asteroid Redirection Test (DART)",
+    "impactor": "DART spacecraft",
+    "event_type": "kinetic_impact",
+    "epoch_utc": "2022-09-26T23:14:00Z"
+  },
+  "reference_observables": [
+    {
+      "observable_id": "dimorphos_binary_period_change",
+      "value": -33,
+      "unit": "min",
+      "uncertainty": {
+        "value": 1,
+        "unit": "min",
+        "sigma_multiplier": 3
+      },
+      "evidence_status": "directly_observed",
+      "method": "Ground-based optical and radar observations of the mutual orbit before and after impact.",
+      "source_id": "dart-period-nature-2023"
+    },
+    {
+      "observable_id": "dimorphos_along_track_velocity_change",
+      "value": -2.7,
+      "unit": "mm/s",
+      "uncertainty": {
+        "value": 0.1,
+        "unit": "mm/s",
+        "sigma_multiplier": 1
+      },
+      "evidence_status": "derived_from_observations_and_geometry",
+      "method": "Inference from the measured period change, system geometry, shape estimates and stated covariance assumptions.",
+      "source_id": "dart-momentum-nature-2023"
+    }
+  ],
+  "derived_inferences": [
+    {
+      "inference_id": "momentum_enhancement_factor_beta",
+      "value": 3.61,
+      "unit": "dimensionless",
+      "asymmetric_uncertainty": {
+        "lower": 0.25,
+        "upper": 0.19,
+        "sigma_multiplier": 1
+      },
+      "conditioning": {
+        "dimorphos_bulk_density_kg_m3": 2400,
+        "interpretation": "Conditional estimate assuming Dimorphos and Didymos have equal bulk densities of 2400 kg/m^3."
+      },
+      "sensitivity": {
+        "density_range_kg_m3": [
+          1500,
+          3300
+        ],
+        "beta_range": [
+          2.2,
+          4.9
+        ],
+        "interpretation": "Published expected beta range across the stated Dimorphos bulk-density interval; this is not a universal material constant."
+      },
+      "source_id": "dart-momentum-nature-2023"
+    }
+  ],
+  "sources": [
+    {
+      "source_id": "dart-period-nature-2023",
+      "title": "Orbital period change of Dimorphos due to the DART kinetic impact",
+      "published_date": "2023-03-01",
+      "doi": "10.1038/s41586-023-05805-2",
+      "url": "https://www.nature.com/articles/s41586-023-05805-2",
+      "role": "primary_measurement"
+    },
+    {
+      "source_id": "dart-momentum-nature-2023",
+      "title": "Momentum transfer from the DART mission kinetic impact on asteroid Dimorphos",
+      "published_date": "2023-03-01",
+      "doi": "10.1038/s41586-023-05878-z",
+      "url": "https://www.nature.com/articles/s41586-023-05878-z",
+      "role": "momentum_inference"
+    }
+  ],
+  "claim_ceiling": "historical_reference_only_not_operational_validation",
+  "not_established": [
+    "This fixture does not reproduce DART impact hydrodynamics, crater formation or ejecta distribution.",
+    "The conditional beta estimate is not transferable to a different asteroid without characterization and validated physical modeling.",
+    "This historical reference case is not an operational impact-risk calculation, mission design or flight qualification.",
+    "Hera-derived mass and internal-structure constraints are not included in this baseline fixture."
+  ]
+}
