@@ -80,7 +80,7 @@ fn object(value: &Value, path: &str) -> Result<(), String> {
     }
 }
 
-fn array(value: &Value, path: &str) -> Result<&Vec<Value>, String> {
+fn array<'a>(value: &'a Value, path: &str) -> Result<&'a Vec<Value>, String> {
     value
         .as_array()
         .ok_or_else(|| fail(path, "must be an array"))
