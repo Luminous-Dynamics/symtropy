@@ -24,7 +24,7 @@ pub struct ProbeAction {
     pub ripple_ppm: u64,
     pub zvs_margin_permille: u64,
     pub service_drop_ppm: u64,
-    pub outcomes: Vec<u32>,
+    pub outcomes: Vec<BTreeSet<u32>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -190,8 +190,15 @@ pub fn parse_case(input: &str) -> Result<ProbeCase, Vec<String>> {
             errors.push(format!("line {line_no}: action energy/duration must be positive and electrical metrics within bounds"));
             continue;
         }
-        let outcomes = match parse_list(fields[17], &format!("line {line_no} outcomes"), |s, p| {
-            s.parse::<u32>().map_err(|_| format!("{p}: outcome must be a non-negative integer class"))
+        let outcomes = match parse_list(fields[17], &format!("line {line_no} outcomes"), |pose_bins, path| {
+            let bins = parse_list(pose_bins, path, |s, p| {
+                s.parse::<u32>().map_err(|_| format!("{p}: outcome must be a non-negative integer class"))
+            })?;
+            let unique: BTreeSet<_> = bins.iter().copied().collect();
+            if unique.len() != bins.len() {
+                return Err(format!("{path}: duplicate outcome class"));
+            }
+            Ok(unique)
         }) {
             Ok(v) => v,
             Err(e) => { errors.push(e); continue; }
@@ -245,12 +252,22 @@ fn singleton_index(mask: u16) -> Option<usize> {
 type MemoKey = (u16, u64, u64, usize);
 
 fn outcome_groups(mask: u16, action: &ProbeAction, pose_count: usize) -> BTreeMap<u32, u16> {
-    let mut groups: BTreeMap<u32, u16> = BTreeMap::new();
+    let mut possible_outcomes = BTreeSet::new();
     for pose_index in 0..pose_count {
         if (mask & (1_u16 << pose_index)) != 0 {
-            let outcome = action.outcomes[pose_index];
-            *groups.entry(outcome).or_insert(0) |= 1_u16 << pose_index;
+            possible_outcomes.extend(action.outcomes[pose_index].iter().copied());
         }
+    }
+    let mut groups: BTreeMap<u32, u16> = BTreeMap::new();
+    for outcome in possible_outcomes {
+        let mut group_mask = 0_u16;
+        for pose_index in 0..pose_count {
+            if (mask & (1_u16 << pose_index)) != 0
+                && action.outcomes[pose_index].contains(&outcome) {
+                group_mask |= 1_u16 << pose_index;
+            }
+        }
+        groups.insert(outcome, group_mask);
     }
     groups
 }
@@ -276,7 +293,7 @@ fn minimum_worst_case_energy(
             continue;
         }
         let groups = outcome_groups(mask, action, case.pose_ids.len());
-        if groups.len() < 2 { continue; }
+        if groups.len() < 2 || groups.values().any(|child_mask| *child_mask == mask) { continue; }
         let mut worst_child = 0_u64;
         let mut feasible = true;
         for child_mask in groups.values() {
@@ -448,10 +465,15 @@ pub fn adaptive_plan(case: &ProbeCase) -> Option<PolicyPlan> {
 }
 
 fn jointly_unique(chosen: &[usize], case: &ProbeCase) -> bool {
-    let mut signatures = BTreeSet::new();
-    for pose in 0..case.pose_ids.len() {
-        let tuple: Vec<u32> = chosen.iter().map(|index| case.actions[*index].outcomes[pose]).collect();
-        if !signatures.insert(tuple) { return false; }
+    for left in 0..case.pose_ids.len() {
+        for right in (left + 1)..case.pose_ids.len() {
+            let separated = chosen.iter().any(|index| {
+                let a = &case.actions[*index].outcomes[left];
+                let b = &case.actions[*index].outcomes[right];
+                a.is_disjoint(b)
+            });
+            if !separated { return false; }
+        }
     }
     true
 }
@@ -678,6 +700,36 @@ mod tests {
         assert!(parse_case(&dup).is_err());
         let bad_digest = FIXTURE.replacen(&"a".repeat(64), &"A".repeat(64), 1);
         assert!(parse_case(&bad_digest).is_err());
+    }
+
+    #[test]
+    fn set_valued_noisy_outcomes_keep_overlapping_pose_hypotheses_until_refined() {
+        let set = |values: &[u32]| values.iter().copied().collect::<BTreeSet<_>>();
+        let c = ProbeCase {
+            case_id: "set-valued-noise".into(),
+            evidence_class: "SYNTHETIC_KNOWN_TRUTH".into(),
+            pose_case_sha256: "a".repeat(64),
+            action_library_sha256: "b".repeat(64),
+            pose_ids: vec!["P0".into(), "P1".into(), "P2".into()],
+            energy_budget_uj: 20,
+            latency_budget_us: 10,
+            max_actions: 2,
+            max_ripple_ppm: 1_000,
+            min_zvs_margin_permille: 0,
+            max_service_drop_ppm: 1_000,
+            actions: vec![
+                ProbeAction { id: "0_root".into(), energy_uj: 5, duration_us: 1, ripple_ppm: 0, zvs_margin_permille: 1_000, service_drop_ppm: 0,
+                    outcomes: vec![set(&[0, 1]), set(&[1, 2]), set(&[3])] },
+                ProbeAction { id: "1_refine".into(), energy_uj: 4, duration_us: 2, ripple_ppm: 0, zvs_margin_permille: 1_000, service_drop_ppm: 0,
+                    outcomes: vec![set(&[0]), set(&[1]), set(&[0])] },
+            ],
+        };
+        let p = adaptive_plan(&c).unwrap();
+        assert_eq!(p.action_id.as_deref(), Some("0_root"));
+        assert_eq!(p.worst_case_energy_uj, 9);
+        assert_eq!(p.worst_case_latency_us, 3);
+        let ambiguous_branch = p.branches.iter().find(|(outcome, _)| *outcome == 1).unwrap();
+        assert_eq!(ambiguous_branch.1.action_id.as_deref(), Some("1_refine"));
     }
 
     #[test]
