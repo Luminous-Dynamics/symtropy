@@ -8,6 +8,7 @@
 //! caller-supplied, and must be digest-bound by the replay receipt.
 
 use crate::metrics::Point3;
+use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
 pub const SAMPLING_ALGORITHM_ID: &str = "uniform_area_halton_v1";
@@ -105,6 +106,7 @@ pub struct SurfaceSamplingReceipt {
     pub observable_area_m2: f64,
     pub excluded_area_m2: f64,
     pub sample_count: usize,
+    pub sample_set_sha256: String,
     pub surfaces: Vec<SurfaceSamplingSummary>,
     pub samples: Vec<SurfaceSample>,
 }
@@ -220,6 +222,77 @@ fn barycentric_sample(a: Point3, b: Point3, c: Point3, u: f64, v: f64) -> ([f64;
         weights[0] * a.z + weights[1] * b.z + weights[2] * c.z,
     );
     (weights, point)
+}
+
+fn update_u64(hasher: &mut Sha256, value: u64) {
+    hasher.update(value.to_le_bytes());
+}
+
+fn update_f64(hasher: &mut Sha256, value: f64) {
+    hasher.update(value.to_bits().to_le_bytes());
+}
+
+fn update_string(hasher: &mut Sha256, value: &str) {
+    update_u64(hasher, value.len() as u64);
+    hasher.update(value.as_bytes());
+}
+
+fn visibility_label(value: SurfaceVisibility) -> &'static str {
+    match value {
+        SurfaceVisibility::Observable => "observable",
+        SurfaceVisibility::SelfOccluded => "self_occluded",
+        SurfaceVisibility::ExternallyOccluded => "externally_occluded",
+        SurfaceVisibility::OutsideSensorCoverage => "outside_sensor_coverage",
+        SurfaceVisibility::Unknown => "unknown",
+        SurfaceVisibility::Contradictory => "contradictory",
+    }
+}
+
+fn sampling_receipt_digest(
+    profile: AreaWeightedSamplingProfile,
+    observable_area_m2: f64,
+    excluded_area_m2: f64,
+    surfaces: &[SurfaceSamplingSummary],
+    samples: &[SurfaceSample],
+) -> String {
+    let mut hasher = Sha256::new();
+    update_string(&mut hasher, SAMPLING_ALGORITHM_ID);
+    update_f64(&mut hasher, profile.target_spacing_m);
+    update_u64(&mut hasher, profile.seed);
+    update_u64(&mut hasher, profile.max_samples as u64);
+    update_f64(&mut hasher, observable_area_m2);
+    update_f64(&mut hasher, excluded_area_m2);
+    update_u64(&mut hasher, surfaces.len() as u64);
+
+    for surface in surfaces {
+        update_string(&mut hasher, &surface.surface_id);
+        update_f64(&mut hasher, surface.observable_area_m2);
+        update_f64(&mut hasher, surface.excluded_area_m2);
+        update_u64(&mut hasher, surface.sample_count as u64);
+        update_f64(&mut hasher, surface.represented_area_m2);
+        update_u64(&mut hasher, surface.excluded_by_visibility.len() as u64);
+        for excluded in &surface.excluded_by_visibility {
+            update_string(&mut hasher, visibility_label(excluded.visibility));
+            update_f64(&mut hasher, excluded.area_m2);
+        }
+    }
+
+    update_u64(&mut hasher, samples.len() as u64);
+    for sample in samples {
+        update_string(&mut hasher, &sample.surface_id);
+        update_u64(&mut hasher, sample.sample_ordinal);
+        update_string(&mut hasher, &sample.triangle_id);
+        for weight in sample.barycentric {
+            update_f64(&mut hasher, weight);
+        }
+        update_f64(&mut hasher, sample.point.x);
+        update_f64(&mut hasher, sample.point.y);
+        update_f64(&mut hasher, sample.point.z);
+        update_f64(&mut hasher, sample.represented_area_m2);
+    }
+
+    let digest = hasher.finalize();
+    digest.iter().map(|byte| format!("{byte:02x}")).collect()
 }
 
 /// Generate an ordered, deterministic area-uniform sample receipt.
@@ -377,6 +450,14 @@ pub fn sample_observable_surfaces(
         });
     }
 
+    let sample_set_sha256 = sampling_receipt_digest(
+        profile,
+        total_observable_area_m2,
+        total_excluded_area_m2,
+        &surface_summaries,
+        &all_samples,
+    );
+
     Ok(SurfaceSamplingReceipt {
         algorithm_id: SAMPLING_ALGORITHM_ID.to_owned(),
         target_spacing_m: profile.target_spacing_m,
@@ -385,6 +466,7 @@ pub fn sample_observable_surfaces(
         observable_area_m2: total_observable_area_m2,
         excluded_area_m2: total_excluded_area_m2,
         sample_count: all_samples.len(),
+        sample_set_sha256,
         surfaces: surface_summaries,
         samples: all_samples,
     })
@@ -507,6 +589,8 @@ mod tests {
             assert_eq!(left.sample_ordinal, right.sample_ordinal);
         }
         assert_ne!(first.samples[0].point, second.samples[0].point);
+        assert_ne!(first.sample_set_sha256, second.sample_set_sha256);
+        assert_eq!(first.sample_set_sha256.len(), 64);
     }
 
     #[test]
