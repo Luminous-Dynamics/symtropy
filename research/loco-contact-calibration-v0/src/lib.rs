@@ -135,11 +135,13 @@ fn nonblank(value: &str) -> bool {
 }
 
 fn checked_add(left: u128, right: u128) -> Result<u128, MetricError> {
-    left.checked_add(right).ok_or(MetricError::ArithmeticOverflow)
+    left.checked_add(right)
+        .ok_or(MetricError::ArithmeticOverflow)
 }
 
 fn checked_mul(left: u128, right: u128) -> Result<u128, MetricError> {
-    left.checked_mul(right).ok_or(MetricError::ArithmeticOverflow)
+    left.checked_mul(right)
+        .ok_or(MetricError::ArithmeticOverflow)
 }
 
 fn validate_identity(value: &str) -> Result<(), MetricError> {
@@ -157,10 +159,7 @@ fn probability_bin(probability_ppm: u32, bin_count: usize) -> usize {
     ((u128::from(probability_ppm) * bin_count as u128) / u128::from(SCALE_PPM)) as usize
 }
 
-fn brier_squared_error(
-    probability_ppm: u32,
-    outcome: BinaryOutcome,
-) -> Result<u128, MetricError> {
+fn brier_squared_error(probability_ppm: u32, outcome: BinaryOutcome) -> Result<u128, MetricError> {
     let predicted = u128::from(probability_ppm);
     let expected = match outcome {
         BinaryOutcome::Negative => 0,
@@ -263,9 +262,7 @@ pub fn evaluate(dataset: &MetricDataset) -> Result<CalibrationMetrics, MetricErr
             ));
         }
         if observation.target != dataset.target {
-            return Err(MetricError::MixedTarget(
-                observation.observation_id.clone(),
-            ));
+            return Err(MetricError::MixedTarget(observation.observation_id.clone()));
         }
         if observation.model_digest != dataset.model_digest {
             return Err(MetricError::MixedModelDigest(
@@ -305,10 +302,7 @@ pub fn evaluate(dataset: &MetricDataset) -> Result<CalibrationMetrics, MetricErr
 
         squared_error_sum = checked_add(
             squared_error_sum,
-            brier_squared_error(
-                observation.predicted_probability_ppm,
-                observation.outcome,
-            )?,
+            brier_squared_error(observation.predicted_probability_ppm, observation.outcome)?,
         )?;
 
         let index = probability_bin(observation.predicted_probability_ppm, dataset.bin_count);
@@ -337,10 +331,7 @@ pub fn evaluate(dataset: &MetricDataset) -> Result<CalibrationMetrics, MetricErr
         if bin.observation_count == 0 {
             continue;
         }
-        let observed_positive_sum = checked_mul(
-            bin.positive_outcome_count,
-            u128::from(SCALE_PPM),
-        )?;
+        let observed_positive_sum = checked_mul(bin.positive_outcome_count, u128::from(SCALE_PPM))?;
         bin.absolute_gap_sum_ppm = bin
             .predicted_probability_sum_ppm
             .abs_diff(observed_positive_sum);
@@ -441,9 +432,27 @@ mod tests {
             10,
         ))
         .unwrap();
-        assert_eq!(report.brier_score, ExactRational { numerator: 0, denominator: 2 * SCALE_SQUARED });
-        assert_eq!(report.expected_calibration_error_ppm, ExactRational { numerator: 0, denominator: 2 });
-        assert_eq!(report.maximum_calibration_error.unwrap().gap_ppm, ExactRational { numerator: 0, denominator: 1 });
+        assert_eq!(
+            report.brier_score,
+            ExactRational {
+                numerator: 0,
+                denominator: 2 * SCALE_SQUARED
+            }
+        );
+        assert_eq!(
+            report.expected_calibration_error_ppm,
+            ExactRational {
+                numerator: 0,
+                denominator: 2
+            }
+        );
+        assert_eq!(
+            report.maximum_calibration_error.unwrap().gap_ppm,
+            ExactRational {
+                numerator: 0,
+                denominator: 1
+            }
+        );
     }
 
     #[test]
@@ -456,8 +465,20 @@ mod tests {
             10,
         ))
         .unwrap();
-        assert_eq!(report.brier_score, ExactRational { numerator: 500_000_000_000, denominator: 2 * SCALE_SQUARED });
-        assert_eq!(report.expected_calibration_error_ppm, ExactRational { numerator: 0, denominator: 2 });
+        assert_eq!(
+            report.brier_score,
+            ExactRational {
+                numerator: 500_000_000_000,
+                denominator: 2 * SCALE_SQUARED
+            }
+        );
+        assert_eq!(
+            report.expected_calibration_error_ppm,
+            ExactRational {
+                numerator: 0,
+                denominator: 2
+            }
+        );
     }
 
     #[test]
@@ -470,9 +491,27 @@ mod tests {
             10,
         ))
         .unwrap();
-        assert_eq!(report.brier_score, ExactRational { numerator: 2 * SCALE_SQUARED, denominator: 2 * SCALE_SQUARED });
-        assert_eq!(report.expected_calibration_error_ppm, ExactRational { numerator: 2 * u128::from(SCALE_PPM), denominator: 2 });
-        assert_eq!(report.maximum_calibration_error.unwrap().gap_ppm, ExactRational { numerator: u128::from(SCALE_PPM), denominator: 1 });
+        assert_eq!(
+            report.brier_score,
+            ExactRational {
+                numerator: 2 * SCALE_SQUARED,
+                denominator: 2 * SCALE_SQUARED
+            }
+        );
+        assert_eq!(
+            report.expected_calibration_error_ppm,
+            ExactRational {
+                numerator: 2 * u128::from(SCALE_PPM),
+                denominator: 2
+            }
+        );
+        assert_eq!(
+            report.maximum_calibration_error.unwrap().gap_ppm,
+            ExactRational {
+                numerator: u128::from(SCALE_PPM),
+                denominator: 1
+            }
+        );
     }
 
     #[test]
@@ -530,9 +569,27 @@ mod tests {
     fn observations_from_one_session_do_not_inflate_independent_unit_count() {
         let report = evaluate(&dataset(
             vec![
-                observation("o1", "episode-a", "session-a", 800_000, BinaryOutcome::Positive),
-                observation("o2", "episode-a", "session-a", 700_000, BinaryOutcome::Positive),
-                observation("o3", "episode-b", "session-a", 600_000, BinaryOutcome::Negative),
+                observation(
+                    "o1",
+                    "episode-a",
+                    "session-a",
+                    800_000,
+                    BinaryOutcome::Positive,
+                ),
+                observation(
+                    "o2",
+                    "episode-a",
+                    "session-a",
+                    700_000,
+                    BinaryOutcome::Positive,
+                ),
+                observation(
+                    "o3",
+                    "episode-b",
+                    "session-a",
+                    600_000,
+                    BinaryOutcome::Negative,
+                ),
             ],
             5,
         ))
@@ -551,71 +608,145 @@ mod tests {
             ],
             5,
         );
-        assert_eq!(evaluate(&data), Err(MetricError::DuplicateObservationId("same".to_owned())));
+        assert_eq!(
+            evaluate(&data),
+            Err(MetricError::DuplicateObservationId("same".to_owned()))
+        );
     }
 
     #[test]
     fn episode_cannot_map_to_multiple_exchangeability_units() {
         let data = dataset(
             vec![
-                observation("o1", "same-episode", "session-a", 500_000, BinaryOutcome::Positive),
-                observation("o2", "same-episode", "session-b", 500_000, BinaryOutcome::Positive),
+                observation(
+                    "o1",
+                    "same-episode",
+                    "session-a",
+                    500_000,
+                    BinaryOutcome::Positive,
+                ),
+                observation(
+                    "o2",
+                    "same-episode",
+                    "session-b",
+                    500_000,
+                    BinaryOutcome::Positive,
+                ),
             ],
             5,
         );
-        assert_eq!(evaluate(&data), Err(MetricError::EpisodeMapsToMultipleUnits("same-episode".to_owned())));
+        assert_eq!(
+            evaluate(&data),
+            Err(MetricError::EpisodeMapsToMultipleUnits(
+                "same-episode".to_owned()
+            ))
+        );
     }
 
     #[test]
     fn fit_or_test_observation_leakage_is_rejected() {
         let data = dataset(
-            vec![observation("fit-observation-01", "e1", "s1", 500_000, BinaryOutcome::Positive)],
+            vec![observation(
+                "fit-observation-01",
+                "e1",
+                "s1",
+                500_000,
+                BinaryOutcome::Positive,
+            )],
             5,
         );
-        assert_eq!(evaluate(&data), Err(MetricError::CalibrationLeakage("fit-observation-01".to_owned())));
+        assert_eq!(
+            evaluate(&data),
+            Err(MetricError::CalibrationLeakage(
+                "fit-observation-01".to_owned()
+            ))
+        );
     }
 
     #[test]
     fn mixed_channel_target_model_domain_or_split_is_rejected() {
         let mut a = observation("o1", "e1", "s1", 500_000, BinaryOutcome::Positive);
         a.channel = ContactChannel::ProprioceptiveResidual;
-        assert_eq!(evaluate(&dataset(vec![a], 5)), Err(MetricError::MixedChannel("o1".to_owned())));
+        assert_eq!(
+            evaluate(&dataset(vec![a], 5)),
+            Err(MetricError::MixedChannel("o1".to_owned()))
+        );
 
         let mut a = observation("o1", "e1", "s1", 500_000, BinaryOutcome::Positive);
         a.target = ContactTarget::TractionFeasibility;
-        assert_eq!(evaluate(&dataset(vec![a], 5)), Err(MetricError::MixedTarget("o1".to_owned())));
+        assert_eq!(
+            evaluate(&dataset(vec![a], 5)),
+            Err(MetricError::MixedTarget("o1".to_owned()))
+        );
 
         let mut a = observation("o1", "e1", "s1", 500_000, BinaryOutcome::Positive);
         a.model_digest = "other".to_owned();
-        assert_eq!(evaluate(&dataset(vec![a], 5)), Err(MetricError::MixedModelDigest("o1".to_owned())));
+        assert_eq!(
+            evaluate(&dataset(vec![a], 5)),
+            Err(MetricError::MixedModelDigest("o1".to_owned()))
+        );
 
         let mut a = observation("o1", "e1", "s1", 500_000, BinaryOutcome::Positive);
         a.domain_digest = "new-terrain".to_owned();
-        assert_eq!(evaluate(&dataset(vec![a], 5)), Err(MetricError::MixedDomainDigest("o1".to_owned())));
+        assert_eq!(
+            evaluate(&dataset(vec![a], 5)),
+            Err(MetricError::MixedDomainDigest("o1".to_owned()))
+        );
 
         let mut a = observation("o1", "e1", "s1", 500_000, BinaryOutcome::Positive);
         a.calibration_split_digest = "other-split".to_owned();
-        assert_eq!(evaluate(&dataset(vec![a], 5)), Err(MetricError::MixedCalibrationSplitDigest("o1".to_owned())));
+        assert_eq!(
+            evaluate(&dataset(vec![a], 5)),
+            Err(MetricError::MixedCalibrationSplitDigest("o1".to_owned()))
+        );
     }
 
     #[test]
     fn invalid_probability_and_bin_count_are_rejected() {
         let mut a = observation("o1", "e1", "s1", 500_000, BinaryOutcome::Positive);
         a.predicted_probability_ppm = SCALE_PPM + 1;
-        assert_eq!(evaluate(&dataset(vec![a], 5)), Err(MetricError::InvalidProbability("o1".to_owned())));
+        assert_eq!(
+            evaluate(&dataset(vec![a], 5)),
+            Err(MetricError::InvalidProbability("o1".to_owned()))
+        );
 
-        let data = dataset(vec![observation("o1", "e1", "s1", 500_000, BinaryOutcome::Positive)], 0);
+        let data = dataset(
+            vec![observation(
+                "o1",
+                "e1",
+                "s1",
+                500_000,
+                BinaryOutcome::Positive,
+            )],
+            0,
+        );
         assert_eq!(evaluate(&data), Err(MetricError::InvalidBinCount));
-        let data = dataset(vec![observation("o1", "e1", "s1", 500_000, BinaryOutcome::Positive)], MAX_BIN_COUNT + 1);
+        let data = dataset(
+            vec![observation(
+                "o1",
+                "e1",
+                "s1",
+                500_000,
+                BinaryOutcome::Positive,
+            )],
+            MAX_BIN_COUNT + 1,
+        );
         assert_eq!(evaluate(&data), Err(MetricError::InvalidBinCount));
     }
 
     #[test]
     fn empty_bins_are_retained_in_the_reliability_diagram() {
         let report = evaluate(&dataset(
-            vec![observation("o1", "e1", "s1", 100_000, BinaryOutcome::Negative)],
+            vec![observation(
+                "o1",
+                "e1",
+                "s1",
+                100_000,
+                BinaryOutcome::Negative,
+            )],
             10,
-        )).unwrap();
+        ))
+        .unwrap();
         assert_eq!(report.bins.len(), 10);
         assert_eq!(report.bins[9].observation_count, 0);
     }
@@ -631,8 +762,17 @@ mod tests {
 
     #[test]
     fn checked_accumulator_rejects_overflow() {
-        assert_eq!(checked_square_accumulate(u128::MAX, 1), Err(MetricError::ArithmeticOverflow));
-        assert_eq!(checked_add(u128::MAX, 1), Err(MetricError::ArithmeticOverflow));
-        assert_eq!(checked_mul(u128::MAX, 2), Err(MetricError::ArithmeticOverflow));
+        assert_eq!(
+            checked_square_accumulate(u128::MAX, 1),
+            Err(MetricError::ArithmeticOverflow)
+        );
+        assert_eq!(
+            checked_add(u128::MAX, 1),
+            Err(MetricError::ArithmeticOverflow)
+        );
+        assert_eq!(
+            checked_mul(u128::MAX, 2),
+            Err(MetricError::ArithmeticOverflow)
+        );
     }
 }
