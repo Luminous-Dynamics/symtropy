@@ -168,7 +168,9 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
         || (!manifest.dataset.source_uri.starts_with("https://")
             && !manifest.dataset.source_uri.starts_with("urn:"))
     {
-        return Err("dataset_id must be non-empty and source_uri must use https:// or urn:".to_owned());
+        return Err(
+            "dataset_id must be non-empty and source_uri must use https:// or urn:".to_owned(),
+        );
     }
     if manifest.dataset.source_data_committed {
         return Err("source dataset bytes must not be committed".to_owned());
@@ -270,7 +272,10 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
             return Err(format!("scene {} has no candidate inputs", scene.scene_id));
         }
         if scene.evaluator_artifacts.is_empty() {
-            return Err(format!("scene {} has no evaluator artifacts", scene.scene_id));
+            return Err(format!(
+                "scene {} has no evaluator artifacts",
+                scene.scene_id
+            ));
         }
         for artifact in &scene.candidate_inputs {
             let _role = artifact.role;
@@ -305,7 +310,10 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
             evaluator_digests.insert(artifact.sha256.as_str());
         }
         if scene.surface_strata.is_empty() {
-            return Err(format!("scene {} has no surface visibility strata", scene.scene_id));
+            return Err(format!(
+                "scene {} has no surface visibility strata",
+                scene.scene_id
+            ));
         }
         let mut stratum_ids = BTreeSet::new();
         for stratum in &scene.surface_strata {
@@ -377,7 +385,9 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
                 return Err("TUB1 and TUB2 must share building and split groups".to_owned());
             }
             if first.1 == second.1 {
-                return Err("TUB1 and TUB2 must retain distinct capture-group identifiers".to_owned());
+                return Err(
+                    "TUB1 and TUB2 must retain distinct capture-group identifiers".to_owned(),
+                );
             }
         } else {
             return Err("ISPRS manifest must include both TUB1 and TUB2".to_owned());
@@ -552,8 +562,7 @@ mod tests {
     #[test]
     fn rejects_unknown_visibility_mislabeled_as_captured() {
         let mut value = fixture_value();
-        value["scenes"][0]["surface_strata"][4]["observation"] =
-            serde_json::json!("captured");
+        value["scenes"][0]["surface_strata"][4]["observation"] = serde_json::json!("captured");
         let error = audit(&value).expect_err("unknown visibility cannot be reported captured");
         assert!(error.contains("unknown visibility"));
     }
@@ -578,16 +587,13 @@ mod tests {
     fn isprs_pair_fixture() -> Value {
         let mut value = fixture_value();
         value["dataset"]["dataset_id"] = serde_json::json!("ISPRS-INDOOR-MODELLING");
-        value["dataset"]["use_class"] =
-            serde_json::json!("research_only_non_redistributable");
+        value["dataset"]["use_class"] = serde_json::json!("research_only_non_redistributable");
         value["split"]["evaluation_group_ids"] = serde_json::json!(["TUB-BUILDING"]);
-        for (index, scene_id, capture_id) in [
-            (0, "TUB1", "TUB1-CAPTURE"),
-            (1, "TUB2", "TUB2-CAPTURE"),
-        ] {
+        for (index, scene_id, capture_id) in
+            [(0, "TUB1", "TUB1-CAPTURE"), (1, "TUB2", "TUB2-CAPTURE")]
+        {
             value["scenes"][index]["scene_id"] = serde_json::json!(scene_id);
-            value["scenes"][index]["building_group_id"] =
-                serde_json::json!("TUB-BUILDING");
+            value["scenes"][index]["building_group_id"] = serde_json::json!("TUB-BUILDING");
             value["scenes"][index]["split_group_id"] = serde_json::json!("TUB-BUILDING");
             value["scenes"][index]["capture_group_id"] = serde_json::json!(capture_id);
         }
