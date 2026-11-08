@@ -774,7 +774,7 @@ mod tests {
     }
 
     #[test]
-    fn noisy_confirmatory_portfolio_reports_complete_rate_intervals() {
+    fn noisy_confirmatory_portfolio_retains_all_replicates_and_rate_intervals() {
         let report = report();
         assert_eq!(report.rows.len(), 20);
         assert_eq!(report.replicates.len(), 20_000);
@@ -790,19 +790,43 @@ mod tests {
     }
 
     #[test]
-    fn mechanism_aware_controller_does_not_false_diagnose_stable_positive_episodes() {
-        let report = run_seeded_confirmatory_benchmark();
-        let row = report.rows.iter().find(|row| {
+    fn mechanism_aware_controller_has_low_noise_false_diagnosis_and_high_detection() {
+        let report = report();
+        let stable = report.rows.iter().find(|row| {
             row.regime == CausalRegime::StablePositive
                 && row.controller == CausalDriftController::MechanismAware
         }).expect("stable mechanism-aware aggregate");
-        assert_eq!(row.false_diagnoses, 0);
-        assert_eq!(row.missed_diagnoses, 0);
+        assert_eq!(stable.false_diagnoses, 0);
+        assert_eq!(stable.missed_diagnoses, 0);
+
+        for regime in [
+            CausalRegime::SignReversal,
+            CausalRegime::GradualSignReversal,
+            CausalRegime::ConfoundedNull,
+            CausalRegime::ConfounderShift,
+        ] {
+            let row = report.rows.iter().find(|row| {
+                row.regime == regime
+                    && row.controller == CausalDriftController::MechanismAware
+            }).expect("mechanism-aware aggregate");
+            assert!(
+                row.correct_diagnoses.rate >= 0.95,
+                "{} diagnosis rate was {:.4}",
+                regime.name(),
+                row.correct_diagnoses.rate
+            );
+        }
+
+        let stable_cusum = report.rows.iter().find(|row| {
+            row.regime == CausalRegime::StablePositive
+                && row.controller == CausalDriftController::CusumSignalOnly
+        }).expect("stable CUSUM aggregate");
+        assert!(stable_cusum.signal_alarm.upper_95 <= 0.01);
     }
 
     #[test]
     fn mechanism_aware_controller_preserves_beneficial_action_after_confounder_shift() {
-        let report = run_seeded_confirmatory_benchmark();
+        let report = report();
         let mechanism_aware = report.rows.iter().find(|row| {
             row.regime == CausalRegime::ConfounderShift
                 && row.controller == CausalDriftController::MechanismAware
