@@ -256,9 +256,9 @@
     "No SOTA or real-world policy effectiveness claim is made."
   ],
   "stochastic_causal_drift_pilot": {
-    "status": "seeded_synthetic_calibration_pilot",
+    "status": "synthetic_seed_holdout",
     "generator": "dependency-free SplitMix64 + Box-Muller normal variates",
-    "base_seed": 20261108000,
+    "base_seed": 20261108100,
     "replicates_per_regime": 100,
     "regimes": [
       "stable_positive",
@@ -315,7 +315,18 @@
       "The random generator and structural equations are synthetic and deterministic by seed.",
       "Wilson intervals quantify Monte Carlo repeatability under this generator, not uncertainty about real-world validity.",
       "The 100-seed calibration pilot is not the full KDD 2026 detector benchmark and does not establish superiority to its 14 detectors.",
-      "The matched-probe confidence intervals rely on the declared Gaussian outcome-noise model and do not establish empirical identification."
-    ]
+      "The matched-probe confidence intervals rely on the declared Gaussian outcome-noise model and do not establish empirical identification.",
+      "The evaluation seed block is held out from the threshold-calibration seed block but uses the same synthetic mechanism generator and is not a held-out mechanism family or real-world dataset."
+    ],
+    "pilot_calibration_seed_range": {
+      "start_inclusive": 20261108000,
+      "end_inclusive": 20261108099,
+      "used_for": "development-only CUSUM threshold selection; excluded from the evaluation receipt"
+    },
+    "evaluation_seed_range": {
+      "start_inclusive": 20261108100,
+      "end_inclusive": 20261108199,
+      "used_for": "100-seed per-regime/controller evaluation; no tuning on these seeds"
+    }
   }
 }
