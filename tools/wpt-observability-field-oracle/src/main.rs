@@ -115,7 +115,7 @@ mod tests{
  #[test]fn hard_off_target_limit_rejects_even_high_information(){let s=all().into_iter().find(|x|x.id=="off_target_violation_control").unwrap();assert_eq!(s.disposition,"HARD_CONSTRAINT_REJECTED");assert!(s.min_fisher_per_mm2>0.0);}
  #[test]fn pareto_front_preserves_energy_information_tradeoff(){let(_,p)=evaluate(DATA).unwrap();assert!(p.contains(&"position_lut_analogue".into()));assert!(p.contains(&"information_bearing_candidate".into()));assert!(!p.contains(&"off_target_violation_control".into()));}
  #[test]fn duplicate_ids_fail_closed(){let row=DATA.lines().nth(1).unwrap();let mut d=DATA.to_string();d.push_str(row);d.push('\n');assert!(parse_designs(&d).unwrap_err().iter().any(|e|e.contains("duplicate design_id")));}
- #[test]fn zero_noise_sigma_fails_closed(){let d=DATA.replacen("\t1\t1\t","\t0\t1\t",1);assert!(parse_designs(&d).is_err());}
+ #[test]fn zero_noise_sigma_fails_closed(){let d=DATA.replacen("\t0.1\t0.1\t","\t0\t0.1\t",1);assert!(parse_designs(&d).is_err());}
  #[test]fn invalid_header_and_row_width_fail_closed(){assert!(parse_designs(&DATA.replacen("design_id","design_identifier",1)).is_err());assert!(parse_designs(&DATA.replacen("\t350\t35\t","\t350\t35\t1\t",1)).is_err());}
  #[test]fn output_is_deterministic_under_candidate_permutation(){let a=evaluate(DATA).unwrap();let mut r=DATA.lines().collect::<Vec<_>>();r[1..].reverse();let b=format!("{}\n{}\n",r[0],r[1..].join("\n"));assert_eq!(a,evaluate(&b).unwrap());}
 }
