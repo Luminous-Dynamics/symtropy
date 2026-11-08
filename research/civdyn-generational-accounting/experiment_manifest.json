@@ -1,0 +1,65 @@
+{
+  "manifest_id": "CIVDYN-GENERATIONAL-001",
+  "version": "0.1.0",
+  "status": "synthetic_accounting_reference",
+  "physical_authority": "../civdyn-resource-ledger",
+  "time_horizon": {
+    "start_year": 2026,
+    "end_year_exclusive": 2027
+  },
+  "cohorts": [
+    {"id": "cohort_older_1945_1965", "birth_start_year": 1945, "birth_end_year_exclusive": 1965, "population_assumption": 1},
+    {"id": "cohort_current_1980_2000", "birth_start_year": 1980, "birth_end_year_exclusive": 2000, "population_assumption": 1},
+    {"id": "cohort_future_2050_2070", "birth_start_year": 2050, "birth_end_year_exclusive": 2070, "population_assumption": 1}
+  ],
+  "scenarios": {
+    "maintain_now": {
+      "opening_basin_water_m3": 100,
+      "current_household_water_served_m3": 20,
+      "current_household_water_unmet_m3": 0,
+      "industrial_export_m3": 0,
+      "future_inherited_water_m3": 80,
+      "future_maintenance_energy_liability_kwh": 0,
+      "future_financial_liability_zar_2026": 0,
+      "future_pump_condition_index": 0.95
+    },
+    "defer_maintenance_and_export_water": {
+      "opening_basin_water_m3": 100,
+      "current_household_water_served_m3": 20,
+      "current_household_water_unmet_m3": 0,
+      "industrial_export_m3": 30,
+      "future_inherited_water_m3": 50,
+      "future_maintenance_energy_liability_kwh": 40,
+      "future_financial_liability_zar_2026": 1000000,
+      "future_pump_condition_index": 0.60
+    }
+  },
+  "output_metrics": [
+    "current_household_water_served_m3",
+    "current_household_water_unmet_m3",
+    "future_inherited_water_m3",
+    "future_maintenance_energy_liability_kwh",
+    "future_financial_liability_zar_2026",
+    "future_pump_condition_index",
+    "assigned_liability_records",
+    "unassigned_liability_records",
+    "cohort_service_reconciled",
+    "region_ledger_conserved"
+  ],
+  "mandatory_invariants": [
+    "The cohort service allocation must reconcile to RegionOutcome.served and RegionOutcome.unmet from the shared resource ledger.",
+    "Changing the financial discount rate cannot change physical stock, service, or liability quantities.",
+    "Splitting a cohort into identical subcohorts cannot change region-year aggregate service quantities.",
+    "Reassigning a liability changes cohort incidence but cannot change the physical or financial total.",
+    "A cohort inheritance record references outstanding financial liability IDs and cannot duplicate their amounts.",
+    "Every future cohort outside the simulation horizon has an inheritance snapshot from the preceding closing-year boundary.",
+    "Unassigned obligations remain visible with an explicit reason."
+  ],
+  "claim_ceiling": [
+    "Population counts and cohort sizes are synthetic scenario assumptions, not observed demographics.",
+    "The pump condition index and maintenance obligation are declared synthetic inputs, not calibrated engineering models.",
+    "The ZAR amount is illustrative synthetic nominal debt in a 2026 price base, not a current fiscal estimate.",
+    "The benchmark does not determine a correct discount rate, utility function, or universal fairness weighting.",
+    "No empirical intergenerational welfare or SOTA superiority claim is made."
+  ]
+}
