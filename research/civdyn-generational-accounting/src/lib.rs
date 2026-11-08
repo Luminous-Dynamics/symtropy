@@ -11,7 +11,7 @@
 //! Physical resources, financial liabilities and capital-condition measures
 //! remain separate types with separate units and validation rules.
 
-use civdyn_resource_ledger::{RegionOutcome, ResourceVector};
+use civdyn_resource_ledger::{RegionOutcome, ResourceVector, TransferReceipt};
 use core::fmt;
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -92,6 +92,18 @@ pub struct CohortServiceRecord {
     /// Resource quantities of essential demand not served.
     pub unmet: ResourceVector,
     pub people_exposed: f64,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct CohortResourceTransfer {
+    pub transfer_id: String,
+    pub request_index: usize,
+    pub recipient_cohort_id: CohortId,
+    pub from_region_id: String,
+    pub to_region_id: String,
+    pub year: i32,
+    /// Actual quantity delivered by the shared physical ledger.
+    pub delivered: ResourceVector,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -200,6 +212,7 @@ pub struct CohortIncidenceLedger {
     pub horizon: SimulationHorizon,
     pub cohorts: Vec<Cohort>,
     pub services: Vec<CohortServiceRecord>,
+    pub resource_transfers: Vec<CohortResourceTransfer>,
     pub physical_liabilities: Vec<PhysicalLiability>,
     pub financial_liabilities: Vec<FinancialLiability>,
     pub inheritances: Vec<CohortInheritance>,
@@ -243,6 +256,8 @@ pub enum CohortAccountingError {
         ledger_total: f64,
     },
     MissingServiceRecords { region_id: String, year: i32 },
+    MissingTransferRecords { request_index: usize, year: i32 },
+    TransferReceiptMismatch { request_index: usize, resource: &'static str, cohort_total: f64, ledger_total: f64 },
 }
 
 impl fmt::Display for CohortAccountingError {
@@ -317,6 +332,12 @@ impl fmt::Display for CohortAccountingError {
             Self::MissingServiceRecords { region_id, year } => {
                 write!(f, "no cohort service records for {region_id} in {year}")
             }
+            Self::MissingTransferRecords { request_index, year } => {
+                write!(f, "no cohort incidence records for transfer {request_index} in {year}")
+            }
+            Self::TransferReceiptMismatch { request_index, resource, cohort_total, ledger_total } => {
+                write!(f, "cohort transfer {request_index} does not reconcile ({resource}: {cohort_total} vs {ledger_total})")
+            }
         }
     }
 }
@@ -385,6 +406,32 @@ impl CohortIncidenceLedger {
                     value: record.people_exposed,
                 });
             }
+        }
+
+        let mut transfer_ids = BTreeSet::new();
+        for transfer in &self.resource_transfers {
+            if transfer.transfer_id.trim().is_empty()
+                || transfer.from_region_id.trim().is_empty()
+                || transfer.to_region_id.trim().is_empty()
+            {
+                return Err(CohortAccountingError::EmptyIdentifier("cohort_resource_transfer"));
+            }
+            if !known_cohort(&transfer.recipient_cohort_id) {
+                return Err(CohortAccountingError::UnknownCohort(
+                    transfer.recipient_cohort_id.clone(),
+                ));
+            }
+            if transfer.year < self.horizon.start_year
+                || transfer.year >= self.horizon.end_year_exclusive
+            {
+                return Err(CohortAccountingError::InvalidYear { year: transfer.year });
+            }
+            if !transfer_ids.insert(transfer.transfer_id.clone()) {
+                return Err(CohortAccountingError::DuplicateObligation(
+                    transfer.transfer_id.clone(),
+                ));
+            }
+            validate_resource_vector(transfer.delivered, "cohort_resource_transfer.delivered")?;
         }
 
         let mut obligation_ids = BTreeSet::new();
@@ -537,6 +584,53 @@ impl CohortIncidenceLedger {
         Ok(())
     }
 
+    /// Reconcile cohort-assigned recipient benefits against an actual resource
+    /// transfer receipt. If multiple cohorts share one transfer, their native
+    /// delivered quantities must sum to the ledger receipt exactly.
+    pub fn reconcile_transfer_receipt(
+        &self,
+        receipt: &TransferReceipt,
+        from_region_id: &str,
+        to_region_id: &str,
+        year: i32,
+    ) -> Result<(), CohortAccountingError> {
+        let records: Vec<_> = self
+            .resource_transfers
+            .iter()
+            .filter(|record| {
+                record.request_index == receipt.request_index
+                    && record.from_region_id == from_region_id
+                    && record.to_region_id == to_region_id
+                    && record.year == year
+            })
+            .collect();
+        if records.is_empty() {
+            return Err(CohortAccountingError::MissingTransferRecords {
+                request_index: receipt.request_index,
+                year,
+            });
+        }
+        let mut delivered = ResourceVector::default();
+        for record in records {
+            delivered = add_resource_vectors(delivered, record.delivered);
+        }
+        for (resource, cohort_total, ledger_total) in [
+            ("water_m3", delivered.water_m3, receipt.delivered.water_m3),
+            ("energy_kwh", delivered.energy_kwh, receipt.delivered.energy_kwh),
+            ("food_kg", delivered.food_kg, receipt.delivered.food_kg),
+        ] {
+            if !approximately_equal(cohort_total, ledger_total) {
+                return Err(CohortAccountingError::TransferReceiptMismatch {
+                    request_index: receipt.request_index,
+                    resource,
+                    cohort_total,
+                    ledger_total,
+                });
+            }
+        }
+        Ok(())
+    }
+
     pub fn total_service_by_region_year(
         &self,
     ) -> BTreeMap<(String, i32), (ResourceVector, ResourceVector)> {
@@ -679,6 +773,7 @@ pub struct CohortScenarioOutcome {
     pub region_ledgers_conserved: bool,
     pub current_household_water_served_m3: f64,
     pub current_household_water_unmet_m3: f64,
+    pub current_industry_water_transfer_m3: f64,
     pub current_maintenance_energy_served_kwh: f64,
     pub future_inherited_water_m3: f64,
     pub future_inherited_energy_kwh: f64,
@@ -710,6 +805,12 @@ pub fn run_synthetic_cohort_policy(
         },
         Cohort {
             id: current_id.clone(),
+            birth_start_year: 1980,
+            birth_end_year_exclusive: 2000,
+            population_assumption: 1.0,
+        },
+        Cohort {
+            id: CohortId::new("cohort_industry_current")?,
             birth_start_year: 1980,
             birth_end_year_exclusive: 2000,
             population_assumption: 1.0,
@@ -795,6 +896,12 @@ pub fn run_synthetic_cohort_policy(
         .get(2)
         .ok_or(CohortAccountingError::InvalidQuantity {
             field: "maintenance_region_report",
+        })?;
+    let industry_receipt = report
+        .transfers
+        .first()
+        .ok_or(CohortAccountingError::InvalidQuantity {
+            field: "industry_transfer_receipt",
         })?;
 
     let physical_liabilities = match policy {
@@ -883,6 +990,15 @@ pub fn run_synthetic_cohort_policy(
                 people_exposed: 1.0,
             },
         ],
+        resource_transfers: vec![CohortResourceTransfer {
+            transfer_id: "industry_water_export_2026".to_string(),
+            request_index: industry_receipt.request_index,
+            recipient_cohort_id: CohortId::new("cohort_industry_current")?,
+            from_region_id: "basin_households".to_string(),
+            to_region_id: "industry".to_string(),
+            year: 2026,
+            delivered: industry_receipt.delivered,
+        }],
         physical_liabilities,
         financial_liabilities,
         inheritances,
@@ -891,6 +1007,12 @@ pub fn run_synthetic_cohort_policy(
     ledger.validate()?;
     ledger.reconcile_region_service(basin, 2026)?;
     ledger.reconcile_region_service(maintenance_region, 2026)?;
+    ledger.reconcile_transfer_receipt(
+        industry_receipt,
+        "basin_households",
+        "industry",
+        2026,
+    )?;
     let cohort_service_reconciled = true;
     let region_ledgers_conserved = report
         .regions
@@ -916,6 +1038,7 @@ pub fn run_synthetic_cohort_policy(
         region_ledgers_conserved,
         current_household_water_served_m3: basin.served.water_m3,
         current_household_water_unmet_m3: basin.unmet.water_m3,
+        current_industry_water_transfer_m3: industry_receipt.delivered.water_m3,
         current_maintenance_energy_served_kwh: maintenance_region.served.energy_kwh,
         future_inherited_water_m3: future.inherited_resource_stocks.water_m3,
         future_inherited_energy_kwh: future.inherited_resource_stocks.energy_kwh,
@@ -964,7 +1087,7 @@ mod tests {
 
     fn base_ledger() -> CohortIncidenceLedger {
         let maintain = outcome(SyntheticPolicy::MaintainNow);
-        assert!(maintain.region_ledger_conserved);
+        assert!(maintain.region_ledgers_conserved);
         assert!(maintain.cohort_service_reconciled);
         let _ = maintain;
         let older = CohortId::new("older").expect("id");
@@ -989,7 +1112,9 @@ mod tests {
                     population_assumption: 10.0,
                 },
             ],
+            resource_transfers: Vec::new(),
             services: vec![CohortServiceRecord {
+                service_kind: CohortServiceKind::HouseholdService,
                 cohort_id: older,
                 region_id: "basin".to_string(),
                 year: 2026,
@@ -1043,6 +1168,8 @@ mod tests {
         assert_eq!(deferred.current_household_water_unmet_m3, 0.0);
         assert!(maintained.cohort_service_reconciled);
         assert!(deferred.cohort_service_reconciled);
+        assert_eq!(maintained.current_industry_water_transfer_m3, 0.0);
+        assert_eq!(deferred.current_industry_water_transfer_m3, 30.0);
     }
 
     #[test]
