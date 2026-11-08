@@ -431,6 +431,9 @@
       "required": [
         "gate_id",
         "status",
+        "replay_receipt_sha256",
+        "scene_id",
+        "subject_artifacts",
         "scope",
         "limitation",
         "producer",
@@ -458,6 +461,45 @@
             "UNRESOLVED",
             "NOT_RUN"
           ]
+        },
+        "replay_receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "scene_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "subject_artifacts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "artifact_id",
+              "role",
+              "sha256"
+            ],
+            "properties": {
+              "artifact_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "role": {
+                "enum": [
+                  "ifc_output",
+                  "element_graph",
+                  "ids_requirements",
+                  "source_model",
+                  "round_trip_output"
+                ]
+              },
+              "sha256": {
+                "$ref": "#/$defs/sha256"
+              }
+            }
+          }
         },
         "scope": {
           "type": "string",
@@ -579,6 +621,9 @@
               "producer": {
                 "type": "object"
               },
+              "subject_artifacts": {
+                "minItems": 1
+              },
               "evidence": {
                 "minItems": 1
               }
@@ -600,6 +645,9 @@
             "properties": {
               "producer": {
                 "type": "null"
+              },
+              "subject_artifacts": {
+                "maxItems": 0
               },
               "evidence": {
                 "maxItems": 0
