@@ -1113,7 +1113,6 @@ pub fn audit_manifest_bytes(bytes: &[u8]) -> Result<ReplayAuditReport, String> {
     let metric_accuracy_direction = match metric.isprs_accuracy_direction {
         AccuracyDirection::ReferenceToCandidate => "reference_to_candidate",
     };
-    let scenes = scenes;
 
     Ok(ReplayAuditReport {
         schema_version: manifest.schema_version,
