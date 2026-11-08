@@ -1063,8 +1063,16 @@ mod tests {
     fn skipped_or_consumed_alpha_is_never_added_to_future_allocations() {
         let risk_plan = plan(3, 50_000_000);
         let step_two_before = risk_plan.allocation_for_step(2).unwrap();
-        let step_zero_total = risk_plan.allocation_for_step(0).unwrap().iter().sum::<u64>();
-        let step_one_total = risk_plan.allocation_for_step(1).unwrap().iter().sum::<u64>();
+        let step_zero_total = risk_plan
+            .allocation_for_step(0)
+            .unwrap()
+            .iter()
+            .sum::<u64>();
+        let step_one_total = risk_plan
+            .allocation_for_step(1)
+            .unwrap()
+            .iter()
+            .sum::<u64>();
         let mut ledger = HorizonRiskLedger::new(risk_plan.clone());
         ledger
             .skip_step(skip(&risk_plan, 0, "zero", 1_000))
