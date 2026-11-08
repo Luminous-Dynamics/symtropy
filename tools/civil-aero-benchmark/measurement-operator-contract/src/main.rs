@@ -5,6 +5,7 @@
 // filtered, interpolated, deconvolved, calibrated or physically validated here.
 
 use serde::{Deserialize, Serialize};
+#[cfg(test)]
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
