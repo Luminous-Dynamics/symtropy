@@ -123,6 +123,16 @@ struct Case {
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
+struct UnitSystem {
+    mass: String,
+    stiffness: String,
+    damping: String,
+    force: String,
+    response: String,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 struct Tolerance {
     absolute: f64,
     relative: f64,
@@ -140,6 +150,7 @@ struct Corpus {
     aircraft_validation_claim: bool,
     frequency_convention: String,
     response_convention: String,
+    unit_system: UnitSystem,
     tolerance: Tolerance,
     cases: Vec<Case>,
 }
@@ -550,6 +561,14 @@ fn evaluate(corpus_bytes: &[u8]) -> Result<OracleResult> {
         corpus.response_convention
             == "x = inverse(K - omega^2*M + i*omega*C) * F; e^(+i*omega*t) phasor",
         "response/phasor convention changed",
+    )?;
+    require(
+        corpus.unit_system.mass == "kg"
+            && corpus.unit_system.stiffness == "N/m"
+            && corpus.unit_system.damping == "N*s/m"
+            && corpus.unit_system.force == "N"
+            && corpus.unit_system.response == "m/N",
+        "unit system convention changed",
     )?;
     require(
         corpus.tolerance.absolute.is_finite()
