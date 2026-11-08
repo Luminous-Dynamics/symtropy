@@ -30,8 +30,12 @@ fn valid_date(s: &str) -> bool {
 fn allowed(value: &str, set: &[&str]) -> bool { set.contains(&value) }
 
 pub fn validate_register(input: &str) -> Result<Vec<Record>, Vec<String>> {
+    let normalized = input.replace("\r\n", "\n");
+    if normalized.contains('\r') {
+        return Err(vec!["bare carriage return is not a valid line ending".into()]);
+    }
     let mut errors = Vec::new();
-    let mut lines = input.split_terminator('\n');
+    let mut lines = normalized.split_terminator('\n');
     let Some(header) = lines.next() else { return Err(vec!["register is empty".into()]); };
     if header.split('\t').collect::<Vec<_>>().as_slice() != HEADER.as_slice() {
         return Err(vec![format!("header mismatch: expected exact {}-column v0 header", HEADER.len())]);
@@ -42,7 +46,6 @@ pub fn validate_register(input: &str) -> Result<Vec<Record>, Vec<String>> {
     for (offset, line) in lines.enumerate() {
         let n = offset + 2;
         if line.is_empty() { continue; }
-        if line.ends_with('\r') { errors.push(format!("line {n}: CRLF is not accepted; normalize line endings")); continue; }
         let f: Vec<_> = line.split('\t').collect();
         if f.len() != HEADER.len() {
             errors.push(format!("line {n}: expected {} fields, found {}", HEADER.len(), f.len())); continue;
@@ -170,6 +173,12 @@ mod tests {
     #[test] fn malformed_dates_are_rejected() {
         let bad = FIXTURE.replacen("2026-11-08", "2026-02-30", 1);
         assert!(validate_register(&bad).is_err());
+    }
+    #[test] fn windows_crlf_fixture_is_normalized_but_bare_cr_is_rejected() {
+        let crlf = FIXTURE.replace('\n', "\r\n");
+        assert!(validate_register(&crlf).is_ok());
+        let bare_cr = FIXTURE.replace('\n', "\r");
+        assert!(validate_register(&bare_cr).is_err());
     }
     #[test] fn row_width_and_header_are_exact() {
         let bad = FIXTURE.replacen("\tUNASSESSED\t", "\tUNASSESSED\textra\t", 1);
