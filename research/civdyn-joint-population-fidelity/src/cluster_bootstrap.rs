@@ -11,7 +11,7 @@
 
 use std::collections::BTreeMap;
 
-use crate::{FidelityError, PairBootstrapReport, PairFidelityReport, PairObservation, compare_pair};
+use crate::{FidelityError, PairFidelityReport, PairObservation, compare_pair};
 
 pub const MIN_BOOTSTRAP_REPLICATES: usize = 200;
 pub const BOOTSTRAP_CONFIDENCE_LEVEL: f64 = 0.95;
