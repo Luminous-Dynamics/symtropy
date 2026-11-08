@@ -294,7 +294,18 @@
     "false_sign_diagnosis",
     "policy_stopped",
     "deterministic_diagnosis_tick",
-    "deterministic_active_ticks"
+    "deterministic_active_ticks",
+    "anytime_diagnosis",
+    "anytime_diagnosis_tick",
+    "anytime_sample_pairs",
+    "sample_reduction_fraction",
+    "log_e_negative_effect",
+    "log_e_below_threshold",
+    "log_e_beneficial_effect",
+    "look_1_pairs",
+    "look_2_pairs",
+    "look_3_pairs",
+    "look_4_pairs"
   ],
   "claim_ceiling": [
     "The scenarios and all quantities are synthetic and not calibrated to a real catchment or society.",
@@ -303,5 +314,73 @@
     "A paired deterministic counterfactual is a software control, not empirical causal identification.",
     "The benchmark does not model biodiversity, environmental flows, distributional justice beyond named service groups, institutional legitimacy or ecological health.",
     "No SOTA or real-world policy effectiveness claim is made."
-  ]
+  ],
+  "sequential_inference": {
+    "method": "Gaussian anytime-valid e-process comparator",
+    "paired_stream_source": "noisy_causal_drift::paired_difference_stream",
+    "known_paired_difference_variance": 8,
+    "looks": [
+      2,
+      4,
+      6,
+      8
+    ],
+    "hypotheses_per_look": 3,
+    "familywise_alpha_per_episode": 0.05,
+    "alpha_per_hypothesis": 0.004166666666666667,
+    "e_value_crossing_threshold": 240,
+    "processes": {
+      "negative_effect": {
+        "null": "mean treatment effect >= 0",
+        "alternative": "mean treatment effect < 0",
+        "betting_parameter": -0.125,
+        "action": "suspend policy only after e-value boundary crossing"
+      },
+      "below_action_threshold": {
+        "null": "mean treatment effect >= 0.5",
+        "alternative": "mean treatment effect < 0.5",
+        "betting_parameter": -0.025,
+        "action": "suspend policy without claiming the effect is negative"
+      },
+      "positive_benefit": {
+        "null": "mean treatment effect <= 0.5",
+        "alternative": "mean treatment effect > 0.5",
+        "betting_parameter": 0.0625,
+        "action": "support retention of action; combined with a CUSUM signal it can diagnose confounder shift"
+      }
+    },
+    "max_pairs_per_look": 2048,
+    "expected_controls": {
+      "stable_positive": {
+        "diagnosis": null,
+        "policy_stopped": false
+      },
+      "sign_reversal": {
+        "diagnosis": "negative_causal_effect",
+        "diagnosis_tick": 4,
+        "policy_stopped": true
+      },
+      "gradual_sign_reversal": {
+        "diagnosis": "negative_causal_effect",
+        "diagnosis_tick": 6,
+        "policy_stopped": true
+      },
+      "confounded_null": {
+        "diagnosis": "effect_not_above_action_threshold",
+        "diagnosis_tick": 2,
+        "policy_stopped": true
+      },
+      "confounder_shift": {
+        "diagnosis": "confounder_shift_with_beneficial_effect",
+        "diagnosis_tick": 6,
+        "policy_stopped": false
+      }
+    },
+    "claim_ceiling": [
+      "E-process validity is conditional on independent Gaussian paired differences and the declared known variance of eight.",
+      "The per-episode alpha allocation covers three one-sided hypotheses at each of four predeclared looks; it does not automatically control error across multiple distinct episodes or all civilizational claims.",
+      "The e-process is not distribution-free and must not be used under heteroskedasticity, dependence, missing-not-at-random outcomes or variance misspecification without a separate valid method.",
+      "Synthetic operating characteristics do not establish real-world policy effectiveness or external causal identification."
+    ]
+  }
 }
