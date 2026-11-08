@@ -202,11 +202,7 @@ fn fail<T>(message: impl Into<String>) -> Result<T> {
 }
 
 fn require(condition: bool, message: impl Into<String>) -> Result<()> {
-    if condition {
-        Ok(())
-    } else {
-        fail(message)
-    }
+    if condition { Ok(()) } else { fail(message) }
 }
 
 fn sha256_hex(bytes: &[u8]) -> String {
@@ -233,7 +229,10 @@ fn validate_system(system: &System, label: &str) -> Result<()> {
     for matrix in [&system.stiffness_n_m, &system.damping_ns_m] {
         for row in matrix {
             for value in row {
-                require(value.is_finite(), format!("{label}: non-finite matrix entry"))?;
+                require(
+                    value.is_finite(),
+                    format!("{label}: non-finite matrix entry"),
+                )?;
             }
         }
     }
@@ -282,16 +281,9 @@ fn frf(system: &System, frequency_hz: f64) -> Result<[Complex; 2]> {
     let d11 = Complex::new(k[1][1] - omega * omega * m[1], omega * c[1][1]);
 
     let determinant = d00.mul(d11).sub(d01.mul(d10));
-    let numerator_0 = d11
-        .mul(system.force_n[0])
-        .sub(d01.mul(system.force_n[1]));
-    let numerator_1 = d00
-        .mul(system.force_n[1])
-        .sub(d10.mul(system.force_n[0]));
-    let response = [
-        numerator_0.div(determinant)?,
-        numerator_1.div(determinant)?,
-    ];
+    let numerator_0 = d11.mul(system.force_n[0]).sub(d01.mul(system.force_n[1]));
+    let numerator_1 = d00.mul(system.force_n[1]).sub(d10.mul(system.force_n[0]));
+    let response = [numerator_0.div(determinant)?, numerator_1.div(determinant)?];
     require(
         response.iter().all(|value| value.is_finite()),
         "FRF result contains a non-finite value",
@@ -308,14 +300,16 @@ fn sensor_observation(sensor: &Sensor, response: [Complex; 2]) -> Result<Option<
             .stuck_value
             .filter(|value| value.is_finite())
             .map(Some)
-            .ok_or_else(|| OracleError(format!("{}: STUCK_AT sensor has no finite stuck value", sensor.sensor_id)));
+            .ok_or_else(|| {
+                OracleError(format!(
+                    "{}: STUCK_AT sensor has no finite stuck value",
+                    sensor.sensor_id
+                ))
+            });
     }
 
     let phase = sensor.phase_deg.to_radians();
-    let gain = Complex::new(
-        sensor.gain * phase.cos(),
-        sensor.gain * phase.sin(),
-    );
+    let gain = Complex::new(sensor.gain * phase.cos(), sensor.gain * phase.sin());
     Ok(Some(
         gain.mul(response[sensor.dof as usize]).add(sensor.bias),
     ))
@@ -324,13 +318,20 @@ fn sensor_observation(sensor: &Sensor, response: [Complex; 2]) -> Result<Option<
 fn observation_rank(sensors: &[Sensor]) -> usize {
     let dofs = sensors
         .iter()
-        .filter(|sensor| sensor.available && sensor.fault != "DROPOUT" && sensor.fault != "STUCK_AT")
+        .filter(|sensor| {
+            sensor.available && sensor.fault != "DROPOUT" && sensor.fault != "STUCK_AT"
+        })
         .map(|sensor| sensor.dof)
         .collect::<BTreeSet<_>>();
     dofs.len()
 }
 
-fn compare_complex(actual: Complex, expected: Complex, tolerance: &Tolerance, label: &str) -> Result<()> {
+fn compare_complex(
+    actual: Complex,
+    expected: Complex,
+    tolerance: &Tolerance,
+    label: &str,
+) -> Result<()> {
     let delta = actual.sub(expected).magnitude();
     let threshold = tolerance.absolute + tolerance.relative * expected.magnitude();
     require(
@@ -358,13 +359,22 @@ fn validate_sensor(sensor: &Sensor, case_id: &str) -> Result<()> {
         !sensor.sensor_id.trim().is_empty(),
         format!("{case_id}: empty sensor ID"),
     )?;
-    require(sensor.dof <= 1, format!("{case_id}: sensor DOF must be 0 or 1"))?;
+    require(
+        sensor.dof <= 1,
+        format!("{case_id}: sensor DOF must be 0 or 1"),
+    )?;
     require(
         sensor.gain.is_finite() && sensor.gain >= 0.0,
         format!("{case_id}: sensor gain must be finite and non-negative"),
     )?;
-    require(sensor.phase_deg.is_finite(), format!("{case_id}: non-finite sensor phase"))?;
-    require(sensor.bias.is_finite(), format!("{case_id}: non-finite sensor bias"))?;
+    require(
+        sensor.phase_deg.is_finite(),
+        format!("{case_id}: non-finite sensor phase"),
+    )?;
+    require(
+        sensor.bias.is_finite(),
+        format!("{case_id}: non-finite sensor bias"),
+    )?;
     require(
         matches!(
             sensor.fault.as_str(),
@@ -381,11 +391,7 @@ fn validate_sensor(sensor: &Sensor, case_id: &str) -> Result<()> {
     Ok(())
 }
 
-fn validate_case(
-    case: &Case,
-    tolerance: &Tolerance,
-    corpus_sha256: &str,
-) -> Result<ComputedCase> {
+fn validate_case(case: &Case, tolerance: &Tolerance, corpus_sha256: &str) -> Result<ComputedCase> {
     require(!case.case_id.trim().is_empty(), "case ID is empty")?;
     require(
         matches!(case.state.as_str(), "HH" | "HF" | "DH" | "DF"),
@@ -408,11 +414,17 @@ fn validate_case(
     }
     require(
         case.expected_observation_rank <= 2,
-        format!("{}: observation rank exceeds system dimension", case.case_id),
+        format!(
+            "{}: observation rank exceeds system dimension",
+            case.case_id
+        ),
     )?;
     require(
         observation_rank(&case.sensors) == case.expected_observation_rank,
-        format!("{}: observation rank does not match frozen answer", case.case_id),
+        format!(
+            "{}: observation rank does not match frozen answer",
+            case.case_id
+        ),
     )?;
     require(
         case.expected_reference.len() == case.frequencies_hz.len(),
@@ -424,7 +436,10 @@ fn validate_case(
         let expected = &case.expected_reference[index];
         require(
             (expected.frequency_hz - *frequency_hz).abs() <= 1.0e-12,
-            format!("{}: frequency schedule mismatch at index {index}", case.case_id),
+            format!(
+                "{}: frequency schedule mismatch at index {index}",
+                case.case_id
+            ),
         )?;
         let nominal = frf(&case.nominal_model, *frequency_hz)?;
         let physical = frf(&case.physical_model, *frequency_hz)?;
@@ -460,13 +475,18 @@ fn validate_case(
                     actual,
                     expected_value,
                     tolerance,
-                    &format!("{} {} at {} Hz", case.case_id, sensor.sensor_id, frequency_hz),
+                    &format!(
+                        "{} {} at {} Hz",
+                        case.case_id, sensor.sensor_id, frequency_hz
+                    ),
                 )?,
                 (None, None) => {}
-                _ => return fail(format!(
-                    "{}: missing channel semantics mismatch for {}",
-                    case.case_id, sensor.sensor_id
-                )),
+                _ => {
+                    return fail(format!(
+                        "{}: missing channel semantics mismatch for {}",
+                        case.case_id, sensor.sensor_id
+                    ));
+                }
             }
             observed.push(ObservedChannel {
                 sensor_id: sensor.sensor_id.clone(),
@@ -514,8 +534,14 @@ fn evaluate(corpus_bytes: &[u8]) -> Result<OracleResult> {
         corpus.claim_ceiling == "analytical_2dof_frequency_response_and_sensor_mapping_only",
         "corpus claim ceiling changed",
     )?;
-    require(!corpus.physical_pod_claim, "synthetic FRF corpus cannot claim physical POD")?;
-    require(!corpus.aircraft_validation_claim, "synthetic FRF corpus cannot claim aircraft validation")?;
+    require(
+        !corpus.physical_pod_claim,
+        "synthetic FRF corpus cannot claim physical POD",
+    )?;
+    require(
+        !corpus.aircraft_validation_claim,
+        "synthetic FRF corpus cannot claim aircraft validation",
+    )?;
     require(
         corpus.frequency_convention == "f_hz; omega_rad_s = 2*pi*f_hz",
         "frequency convention changed",
