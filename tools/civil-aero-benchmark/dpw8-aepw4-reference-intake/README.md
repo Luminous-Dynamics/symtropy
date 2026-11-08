@@ -1,4 +1,4 @@
-# DPW-8 / AePW-4 external reference intake v0.1
+# DPW-8 / AePW-4 external reference intake v0.2
 
 **Parent:** [AER-01 reference admission #4111](https://github.com/Luminous-Dynamics/symtropy/issues/4111)  
 **Related structural bridge:** [#4093](https://github.com/Luminous-Dynamics/symtropy/issues/4093)  
@@ -8,7 +8,7 @@
 
 A versioned discovery catalog for public NASA/AIAA DPW-8 and AePW-4 reference resources, plus a fail-closed Python standard-library validator. It records the exact source URLs, listing facts, inspected text-preview facts, benchmark conditions, comparison outputs and unresolved terms/units/hash fields.
 
-It is deliberately **not** an admitted benchmark bundle. No source file in v0.1 has been acquired byte-for-byte, hashed, licensed for redistribution or independently replayed. The catalog must not be described as a validated benchmark dataset.
+It is deliberately **not** an admitted benchmark bundle. No source file in v0.2 has been acquired byte-for-byte, hashed, licensed for redistribution or independently replayed. The catalog must not be described as a validated benchmark dataset.
 
 ## Important discoveries
 
@@ -40,10 +40,31 @@ This is an attractive first parser/interop target because it is small. Its text 
 
 The material/unit interpretation is unresolved, including the observed MAT1 E/G values and WTMASS field. No analysis result or model-validity claim is made. The parser PR #4142 uses only a synthetic fixture. It must not be applied to the NASA model as if its card dialect were already verified.
 
+### 4. Optional dynamic CRM FSI Test Case 3: preserve the measurement operators
+
+The DPW-8 Buffet Working Group identifies Configuration A Test Case 3 as an **optional** unsteady CFD + dynamic-wing fluid/structure-interaction case. The public AIAA test matrix specifies Mach 0.85, chord Reynolds number 2.27 million, static temperature 326.15 K, total pressure 12.0 kPa and angles of attack 3.05°, 3.61° and 4.70°. It calls for an unloaded (wind-off) CFD/FEM start, full- and half-span stick FEMs, six grid levels, and resolution of wing structural dynamics/spectra.
+
+JAXA's 2.16%-scale CRM data page exposes several measurement families. They are different observation operators, not interchangeable rows of one response vector:
+
+| Measurement family | Published content | Required handling |
+|---|---|---|
+| Wind-tunnel balance | Corrected CL/CD/Cm with PSP-simultaneous vs standalone balance (BL) tags | Preserve each row's provenance; PSP-simultaneous CD is N/A and must remain missing, not imputed |
+| Wing-root strain gauge | Buffet intensity coefficient C_B | Preserve definition: RMS signal at alpha divided by zero-lift RMS at alpha=-0.8°; it is an onset indicator, not a full structural mode/deformation field |
+| ESP | Time-averaged point Cp | Use sensor coordinates/IDs from the paired CSV |
+| Kulite | Point Cp RMS and sensor-specific PSD | Link each trace/PSD to sensor position through the ESP file; the page flags a PSD peak near 9 kHz as wind-tunnel noise |
+| Unsteady PSP (uPSP) | Time-averaged/RMS surface Cp, surface PSD and snapshots | Retain CRM jig-shape mapping, MAC rescaling, masks and camera-exposure low-pass effects; do not equate uPSP RMS directly with Kulite RMS |
+| Structural deformation | Official deformation data pending | The only stated 10–12 mm tip deflection at alpha=4.7° is preliminary qualitative information, not a calibrated validation target |
+
+The JAXA page carries a copyright notice ("All Rights Reserved"). Its links are public, but the v0.2 catalog marks terms and redistribution as review-required; no CSV/ZIP bytes have been acquired or hashed. Do not redistribute the source data or derived datasets until the rights and permitted uses are reviewed.
+
+**Do not inherit Test Case 2 spectral settings into Test Case 3.** The exact time step, sampling rate, record length, window, segment length, overlap, PSD normalization, sensor synchronization and calibration must be read from the Test Case 3 files or controlling procedure. The #3071 unsteady evidence owner already requires those to be explicit; this catalog does not implement another Welch PSD engine.
+
+The dynamic-FSI benchmark must keep separate outputs for force/balance, buffet C_B, ESP means, Kulite RMS/PSD, uPSP mean/RMS/PSD, and structural dynamics. A successful pressure-spectrum reproduction cannot be promoted into measured wing deformation validation while the official deformation data remain pending.
+
 ## Files
 
-- `dpw8-reference-catalog-v0.1.json`: known sources and case matrix.
-- `verify_reference_catalog.py`: independent standard-library consistency checks and hostile mutations.
+- `dpw8-reference-catalog-v0.2.json`: source and benchmark-case catalog (17 source records, 7 benchmark cases; all downloaded artifacts remain unadmitted).
+- `verify_reference_catalog.py`: independent standard-library consistency checks and hostile mutations, including Test Case 3 measurement-operator and evidence-boundary checks.
 - `AER01_INDUSTRY_BENCHMARK_MATRIX_V0_1.md`: industry comparison, benchmark ladder, matched-budget protocol and internal target gates.
 
 Run:
@@ -52,7 +73,7 @@ Run:
 python3 tools/civil-aero-benchmark/dpw8-aepw4-reference-intake/verify_reference_catalog.py
 ~~~
 
-The validator checks unique source/case IDs, HTTPS provenance, explicit acquisition status, SHA-256 requirements for exact bytes, non-admission of unresolved terms, grid-level ordering, normalized span-station ordering, cross-references and a few source-derived case invariants. It deliberately does not download, unpack, solve or certify anything.
+The validator checks unique source/case IDs, HTTPS provenance, explicit acquisition status, SHA-256 requirements for exact bytes, non-admission of unresolved terms, grid-level ordering, normalized span-station ordering, cross-references, source-derived case invariants, optional Test Case 3 status, modality separation, missing-data semantics and the official-deformation-pending boundary. It deliberately does not download, unpack, solve or certify anything.
 
 ## Next engineering sequence
 
