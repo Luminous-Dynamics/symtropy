@@ -397,8 +397,7 @@ mod tests {
             assert!((report.sigma_min_shifted / epsilon - 1.0).abs() < 1.0e-10);
         }
 
-        let slope = (measured[3].ln() - measured[0].ln())
-            / (epsilons[3].ln() - epsilons[0].ln());
+        let slope = (measured[3].ln() - measured[0].ln()) / (epsilons[3].ln() - epsilons[0].ln());
         assert!((slope - 1.0).abs() < 1.0e-10);
     }
 
