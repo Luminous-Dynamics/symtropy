@@ -191,9 +191,20 @@ pub fn parse_case(input: &str) -> Result<ProbeCase, Vec<String>> {
             continue;
         }
         let outcomes = match parse_list(fields[17], &format!("line {line_no} outcomes"), |pose_bins, path| {
-            let bins = parse_list(pose_bins, path, |s, p| {
-                s.parse::<u32>().map_err(|_| format!("{p}: outcome must be a non-negative integer class"))
-            })?;
+            let mut bins = BTreeSet::new();
+            for (index, value) in pose_bins.split('|').enumerate() {
+                if value.is_empty() || value.trim() != value {
+                    return Err(format!("{path}[{index}]: empty or untrimmed outcome"));
+                }
+                let parsed = value.parse::<u32>()
+                    .map_err(|_| format!("{path}[{index}]: outcome must be a non-negative integer class"))?;
+                if !bins.insert(parsed) {
+                    return Err(format!("{path}[{index}]: duplicate outcome class"));
+                }
+            }
+            if bins.is_empty() {
+                return Err(format!("{path}: at least one possible outcome is required"));
+            }
             let unique: BTreeSet<_> = bins.iter().copied().collect();
             if unique.len() != bins.len() {
                 return Err(format!("{path}: duplicate outcome class"));
@@ -734,6 +745,7 @@ mod tests {
 
     #[test]
     fn global_latency_tiebreak_uses_energy_slack_from_the_worst_branch() {
+        let singleton = |value| [value].into_iter().collect::<BTreeSet<u32>>();
         let c = ProbeCase {
             case_id: "global-tie-break".into(),
             evidence_class: "SYNTHETIC_KNOWN_TRUTH".into(),
@@ -747,10 +759,10 @@ mod tests {
             min_zvs_margin_permille: 0,
             max_service_drop_ppm: 1_000,
             actions: vec![
-                ProbeAction { id: "root".into(), energy_uj: 1, duration_us: 1, ripple_ppm: 0, zvs_margin_permille: 1_000, service_drop_ppm: 0, outcomes: vec![0, 0, 1, 1] },
-                ProbeAction { id: "left_fast".into(), energy_uj: 6, duration_us: 1, ripple_ppm: 0, zvs_margin_permille: 1_000, service_drop_ppm: 0, outcomes: vec![0, 1, 0, 0] },
-                ProbeAction { id: "left_slow".into(), energy_uj: 5, duration_us: 10, ripple_ppm: 0, zvs_margin_permille: 1_000, service_drop_ppm: 0, outcomes: vec![0, 1, 0, 0] },
-                ProbeAction { id: "right".into(), energy_uj: 20, duration_us: 2, ripple_ppm: 0, zvs_margin_permille: 1_000, service_drop_ppm: 0, outcomes: vec![0, 0, 1, 0] },
+                ProbeAction { id: "root".into(), energy_uj: 1, duration_us: 1, ripple_ppm: 0, zvs_margin_permille: 1_000, service_drop_ppm: 0, outcomes: vec![singleton(0), singleton(0), singleton(1), singleton(1)] },
+                ProbeAction { id: "left_fast".into(), energy_uj: 6, duration_us: 1, ripple_ppm: 0, zvs_margin_permille: 1_000, service_drop_ppm: 0, outcomes: vec![singleton(0), singleton(1), singleton(0), singleton(0)] },
+                ProbeAction { id: "left_slow".into(), energy_uj: 5, duration_us: 10, ripple_ppm: 0, zvs_margin_permille: 1_000, service_drop_ppm: 0, outcomes: vec![singleton(0), singleton(1), singleton(0), singleton(0)] },
+                ProbeAction { id: "right".into(), energy_uj: 20, duration_us: 2, ripple_ppm: 0, zvs_margin_permille: 1_000, service_drop_ppm: 0, outcomes: vec![singleton(0), singleton(0), singleton(1), singleton(0)] },
             ],
         };
         let p = adaptive_plan(&c).unwrap();
