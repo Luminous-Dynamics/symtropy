@@ -93,7 +93,9 @@ fn row(
     fixed: &civdyn_self_correction::noisy_causal_drift::NoisyCausalDriftOutcome,
     anytime: &AnytimeCausalOutcome,
 ) -> Vec<String> {
-    let fixed_diagnosis = fixed.diagnosis.map(|value: CausalDiagnosis| value.name().to_string());
+    let fixed_diagnosis = fixed
+        .diagnosis
+        .map(|value: CausalDiagnosis| value.name().to_string());
     let anytime_diagnosis = anytime
         .diagnosis
         .map(|value: SequentialDiagnosis| value.name().to_string());
