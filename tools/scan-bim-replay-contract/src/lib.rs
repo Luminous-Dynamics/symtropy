@@ -532,9 +532,7 @@ fn resolve_file_beneath_root(
         };
         current.push(name);
         let metadata = fs::symlink_metadata(&current).map_err(|error| {
-            format!(
-                "{label} artifact {artifact_id} path component is unavailable: {error}"
-            )
+            format!("{label} artifact {artifact_id} path component is unavailable: {error}")
         })?;
         if metadata.file_type().is_symlink() {
             return Err(format!(
@@ -605,7 +603,9 @@ pub fn verify_manifest_artifact_files(
         || candidate_root.starts_with(&evaluator_root)
         || evaluator_root.starts_with(&candidate_root)
     {
-        return Err("candidate and evaluator roots must be distinct and non-overlapping".to_owned());
+        return Err(
+            "candidate and evaluator roots must be distinct and non-overlapping".to_owned(),
+        );
     }
 
     let mut candidate_verified = 0;
@@ -708,12 +708,9 @@ mod tests {
     #[test]
     fn verifies_exact_candidate_and_evaluator_file_bytes() {
         let (candidate, evaluator) = synthetic_data_roots();
-        let summary = super::verify_manifest_artifact_files(
-            FIXTURE.as_bytes(),
-            &candidate,
-            &evaluator,
-        )
-        .expect("synthetic artifact bytes should match the declared hashes");
+        let summary =
+            super::verify_manifest_artifact_files(FIXTURE.as_bytes(), &candidate, &evaluator)
+                .expect("synthetic artifact bytes should match the declared hashes");
         assert_eq!(summary.candidate_verified, 2);
         assert_eq!(summary.evaluator_verified, 2);
     }
@@ -751,12 +748,9 @@ mod tests {
     #[test]
     fn rejects_candidate_and_evaluator_roots_that_overlap() {
         let (candidate, _) = synthetic_data_roots();
-        let error = super::verify_manifest_artifact_files(
-            FIXTURE.as_bytes(),
-            &candidate,
-            &candidate,
-        )
-        .expect_err("candidate and evaluator roots must not alias");
+        let error =
+            super::verify_manifest_artifact_files(FIXTURE.as_bytes(), &candidate, &candidate)
+                .expect_err("candidate and evaluator roots must not alias");
         assert!(error.contains("distinct and non-overlapping"));
     }
 
