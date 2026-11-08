@@ -570,6 +570,14 @@ fn run(path: &Path) -> Result<(), String> {
     let report = evaluate(&case);
     println!("WPT adaptive probe policy v0 — {}", case.evidence_class);
     println!("Case: {}", report.case_id);
+    println!("ACTION LIBRARY:");
+    for action in &case.actions {
+        println!(
+            "  {} [{}] incremental_energy={} synthetic µJ duration={} synthetic µs ripple={} ppm zvs_margin={} permille service_drop={} ppm",
+            action.id, action.kind, action.energy_uj, action.duration_us,
+            action.ripple_ppm, action.zvs_margin_permille, action.service_drop_ppm
+        );
+    }
     for (id, reason) in &report.excluded_actions {
         println!("EXCLUDED {id}: {reason}");
     }
