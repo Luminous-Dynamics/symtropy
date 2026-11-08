@@ -86,6 +86,32 @@ def validate_source(source: dict[str, Any]) -> None:
         f"{source_id}: v0.1 discovery catalog cannot assert artifact admission",
     )
 
+    attempts = source.get("retrieval_attempts", [])
+    require(isinstance(attempts, list), f"{source_id}.retrieval_attempts must be a list")
+    for index, attempt in enumerate(attempts):
+        require(isinstance(attempt, dict), f"{source_id}.retrieval_attempts[{index}] must be an object")
+        require(attempt.get("requested_url") == source["canonical_url"],
+                f"{source_id}: retrieval attempt URL differs from canonical source")
+        require(isinstance(attempt.get("attempted_on"), str) and attempt["attempted_on"],
+                f"{source_id}: retrieval attempt date missing")
+        require(isinstance(attempt.get("method"), str) and attempt["method"],
+                f"{source_id}: retrieval method missing")
+        received = attempt.get("exact_bytes_received")
+        require(isinstance(received, bool), f"{source_id}: exact_bytes_received must be boolean")
+        attempt_sha = attempt.get("sha256")
+        if received:
+            require(
+                isinstance(attempt_sha, str) and SHA256_RE.fullmatch(attempt_sha) is not None,
+                f"{source_id}: received bytes require an exact SHA-256",
+            )
+            require(exact and digest == attempt_sha,
+                    f"{source_id}: received-byte attempt must match the admitted source digest")
+        else:
+            require(attempt_sha is None,
+                    f"{source_id}: no digest may be recorded when a retrieval attempt returned no bytes")
+            require(attempt.get("outcome") == "failed_no_bytes_returned",
+                    f"{source_id}: failed retrieval must remain explicitly not acquired")
+
     listed_size = source.get("listed_size")
     if listed_size is not None:
         require(
@@ -323,6 +349,11 @@ def run_negative_controls(data: dict[str, Any]) -> None:
     bdf = next(x for x in bad["sources"] if x["source_id"] == "crm-halfspan-equivalent-beam-bdf")
     bdf["sha256"] = "0" * 64
     expect_rejected("invent_digest_for_unacquired_preview", lambda: validate_catalog(bad))
+
+    bad = copy.deepcopy(data)
+    bdf = next(x for x in bad["sources"] if x["source_id"] == "crm-halfspan-equivalent-beam-bdf")
+    bdf["retrieval_attempts"][0]["exact_bytes_received"] = True
+    expect_rejected("failed_retrieval_cannot_be_promoted_to_acquired_bytes", lambda: validate_catalog(bad))
 
     bad = copy.deepcopy(data)
     case = next(x for x in bad["benchmark_cases"] if x["case_id"] == "DPW8-CRM-STATIC-FSI-2A-E")
