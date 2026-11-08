@@ -1510,6 +1510,11 @@ mod tests {
             candidate.join("room-a-scan.bin"),
         )
         .expect("copy candidate artifact");
+        std::fs::copy(
+            synthetic_data_roots().0.join("survey/room-a-transform.json"),
+            candidate.join("room-a-transform.json"),
+        )
+        .expect("copy candidate transform artifact");
         let evaluator_source = synthetic_data_roots().1.join("room-a-reference.bin");
         std::fs::copy(&evaluator_source, evaluator.join("room-a-reference.bin"))
             .expect("copy evaluator artifact");
