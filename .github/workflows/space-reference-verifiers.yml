@@ -8,7 +8,6 @@ on:
       - "tools/propulsion-reference-verifier/**"
       - "docs/space-engineering/reference-cases/**"
       - "docs/space-engineering/schemas/**"
-      - ".github/workflows/space-reference-verifiers.yml"
   workflow_dispatch:
 
 concurrency:
