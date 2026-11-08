@@ -9,6 +9,7 @@ use std::io::Read;
 use std::path::{Component, Path, PathBuf};
 
 pub mod metrics;
+pub mod sampling;
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -139,6 +140,9 @@ struct SamplingProfile {
     scan_voxel_size_m: f64,
     distance_cutoff_m: f64,
     normalization: NormalizationMode,
+    surface_sampling_algorithm: String,
+    surface_sampling_seed: u64,
+    surface_sampling_max_samples: usize,
 }
 
 #[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]
@@ -331,6 +335,9 @@ pub struct ReplayAuditReport {
     pub tolerance_profile_id: String,
     pub requirement_revision: String,
     pub sampling_profile_id: String,
+    pub surface_sampling_algorithm: String,
+    pub surface_sampling_seed: u64,
+    pub surface_sampling_max_samples: usize,
     pub metric_suite_id: String,
     pub metric_suite_version: String,
     pub toolchain: String,
@@ -633,6 +640,21 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
                     .to_owned(),
             );
         }
+    }
+    if manifest.sampling_profile.surface_sampling_algorithm
+        != sampling::SAMPLING_ALGORITHM_ID
+    {
+        return Err(format!(
+            "unsupported surface_sampling_algorithm; expected {}",
+            sampling::SAMPLING_ALGORITHM_ID
+        ));
+    }
+    if manifest.sampling_profile.surface_sampling_max_samples == 0
+        || manifest.sampling_profile.surface_sampling_max_samples > 10_000_000
+    {
+        return Err(
+            "surface_sampling_max_samples must be between 1 and 10000000".to_owned(),
+        );
     }
     if !valid_identifier(&manifest.metric_profile.suite_id)
         || !valid_identifier(&manifest.metric_profile.version)
@@ -1465,6 +1487,13 @@ pub fn audit_manifest_bytes(bytes: &[u8]) -> Result<ReplayAuditReport, String> {
         tolerance_profile_id: manifest.tolerance_profile.profile_id,
         requirement_revision: manifest.tolerance_profile.requirement_revision,
         sampling_profile_id: manifest.sampling_profile.profile_id,
+        surface_sampling_algorithm: manifest
+            .sampling_profile
+            .surface_sampling_algorithm,
+        surface_sampling_seed: manifest.sampling_profile.surface_sampling_seed,
+        surface_sampling_max_samples: manifest
+            .sampling_profile
+            .surface_sampling_max_samples,
         metric_suite_id: manifest.metric_profile.suite_id,
         metric_suite_version: manifest.metric_profile.version,
         toolchain: manifest.candidate_run.toolchain,
