@@ -239,7 +239,7 @@ pub fn hyp2f1_series(
 
     let mut term = Complex64::new(1.0, 0.0);
     let mut sum = term;
-    let mut previous_estimate = f64::INFINITY;
+    let mut consecutive_small = 0_usize;
 
     for n in 1..=config.max_terms {
         let n_minus_one = (n - 1) as f64;
@@ -289,23 +289,17 @@ pub fn hyp2f1_series(
             config.absolute_tolerance + config.relative_tolerance * sum.norm();
 
         if n >= 4 && estimated_tail <= tolerance {
-            // Require the estimate to remain below tolerance on consecutive
-            // iterations to avoid a one-step accidental cancellation.
-            if estimated_tail >= previous_estimate {
-                previous_estimate = estimated_tail;
-            } else {
-                previous_estimate = estimated_tail;
-            }
-            if previous_estimate <= tolerance {
-                return Ok(HypergeometricEvaluation {
-                    value: sum,
-                    method: EvaluationMethod::DirectSeries,
-                    terms: n + 1,
-                    estimated_absolute_error: estimated_tail,
-                });
-            }
+            consecutive_small += 1;
         } else {
-            previous_estimate = estimated_tail;
+            consecutive_small = 0;
+        }
+        if consecutive_small >= 3 {
+            return Ok(HypergeometricEvaluation {
+                value: sum,
+                method: EvaluationMethod::DirectSeries,
+                terms: n + 1,
+                estimated_absolute_error: estimated_tail,
+            });
         }
     }
 
@@ -417,12 +411,12 @@ pub fn hyp2f1(
     validate_complex(&[a, b, c, z])?;
     validate_hypergeometric_denominator(c)?;
 
-    if on_principal_branch_cut(z) {
-        return Err(SpecialError::BranchCutUnsupported);
-    }
-
     if terminating_degree(a).is_some() || terminating_degree(b).is_some() {
         return hyp2f1_series(a, b, c, z, config);
+    }
+
+    if on_principal_branch_cut(z) {
+        return Err(SpecialError::BranchCutUnsupported);
     }
 
     if z.norm() < 0.85 {
@@ -584,7 +578,7 @@ mod tests {
             Err(SpecialError::BranchCutUnsupported)
         );
         assert_eq!(
-            hyp2f1(z(0.6, 0.0), z(0.8, 0.0), z(2.0, 0.0), z(0.95, 0.0), SeriesConfig::default()),
+            hyp2f1(z(0.6, 0.0), z(0.8, 0.0), z(2.4, 0.0), z(0.95, 0.0), SeriesConfig::default()),
             Err(SpecialError::ResonantContinuationUnsupported)
         );
     }
