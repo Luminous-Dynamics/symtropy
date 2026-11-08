@@ -317,6 +317,21 @@ fn inverse_standard_normal_lower_tail(alpha_ppb: u64) -> Result<f64, AbstentionR
         return Err(AbstentionReason::InvalidCalibrationReceipt);
     }
 
+    const A: [f64; 6] = [
+        -3.969_683_028_665_376e1,
+        2.209_460_984_245_205e2,
+        -2.759_285_104_469_687e2,
+        1.383_577_518_672_690e2,
+        -3.066_479_806_614_716e1,
+        2.506_628_277_459_239,
+    ];
+    const B: [f64; 5] = [
+        -5.447_609_879_822_406e1,
+        1.615_858_368_580_409e2,
+        -1.556_989_798_598_866e2,
+        6.680_131_188_771_972e1,
+        -1.328_068_155_288_572e1,
+    ];
     const C: [f64; 6] = [
         -7.784_894_002_430_293e-3,
         -3.223_964_580_411_365e-1,
@@ -332,11 +347,24 @@ fn inverse_standard_normal_lower_tail(alpha_ppb: u64) -> Result<f64, AbstentionR
         3.754_408_661_907_416,
     ];
 
-    let q = (-2.0 * p.ln()).sqrt();
-    let numerator = (((((C[0] * q + C[1]) * q + C[2]) * q + C[3]) * q + C[4]) * q)
-        + C[5];
-    let denominator = ((((D[0] * q + D[1]) * q + D[2]) * q + D[3]) * q) + 1.0;
-    let value = numerator / denominator;
+    // Acklam uses a central rational approximation for p >= 0.02425 and a
+    // logarithmic tail approximation below that split point.
+    let value = if p < 0.024_25 {
+        let q = (-2.0 * p.ln()).sqrt();
+        let numerator = (((((C[0] * q + C[1]) * q + C[2]) * q + C[3]) * q + C[4]) * q)
+            + C[5];
+        let denominator = ((((D[0] * q + D[1]) * q + D[2]) * q + D[3]) * q) + 1.0;
+        numerator / denominator
+    } else {
+        let q = p - 0.5;
+        let r = q * q;
+        let numerator = (((((A[0] * r + A[1]) * r + A[2]) * r + A[3]) * r + A[4]) * r
+            + A[5])
+            * q;
+        let denominator = ((((B[0] * r + B[1]) * r + B[2]) * r + B[3]) * r + B[4]) * r
+            + 1.0;
+        numerator / denominator
+    };
     if value.is_finite() && value < 0.0 {
         Ok(value)
     } else {
