@@ -17,10 +17,6 @@ fn optional_number(value: Option<f64>) -> String {
     value.map(number).unwrap_or_default()
 }
 
-fn optional_text(value: Option<&str>) -> String {
-    value.unwrap_or_default().to_string()
-}
-
 fn optional_tick(value: Option<usize>) -> String {
     value.map(|tick| tick.to_string()).unwrap_or_default()
 }
