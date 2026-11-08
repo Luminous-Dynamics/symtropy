@@ -92,7 +92,7 @@ pub enum UncertaintyUnqualification {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ResidualUncertaintyDisposition {
-    QualifiedCovariance,
+    QualifiedConditionalCovariance,
     Unqualified,
 }
 
@@ -431,7 +431,7 @@ pub fn evaluate_normal_residual_uncertainty(
     let standard_uncertainty_m = variance_m2.sqrt();
 
     Ok(NormalResidualUncertainty {
-        disposition: ResidualUncertaintyDisposition::QualifiedCovariance,
+        disposition: ResidualUncertaintyDisposition::QualifiedConditionalCovariance,
         reasons,
         common_frame_id: input.sample_frame_id.clone(),
         target_normal: input.target_normal,
@@ -481,7 +481,7 @@ mod tests {
         let result = evaluate_normal_residual_uncertainty(&input()).expect("valid covariance");
         assert_eq!(
             result.disposition,
-            ResidualUncertaintyDisposition::QualifiedCovariance
+            ResidualUncertaintyDisposition::QualifiedConditionalCovariance
         );
         assert!((result.variance_m2.expect("variance") - 0.05).abs() < 1.0e-12);
         assert!((result.standard_uncertainty_m.expect("sigma") - 0.05_f64.sqrt()).abs() < 1.0e-12);
@@ -500,7 +500,7 @@ mod tests {
         let result = evaluate_normal_residual_uncertainty(&value).expect("valid full covariance");
         assert_eq!(
             result.disposition,
-            ResidualUncertaintyDisposition::QualifiedCovariance
+            ResidualUncertaintyDisposition::QualifiedConditionalCovariance
         );
         let variance = result.variance_m2.expect("variance");
         let expected = (0.05 + 0.06 + 0.05 + 2.0 * (0.012 + 0.0 + 0.011)) / 3.0;
