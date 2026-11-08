@@ -98,9 +98,9 @@ The seeded Monte Carlo runner uses:
 - independent treatment/control outcome noise with standard deviation 2.0;
 - 2,048 matched treatment/control pairs per look, sharing the same confounder value within each pair;
 - four predeclared looks at ticks 2, 4, 6 and 8;
-- an estimated standard error and a conservative one-sided critical value of 2.5 for the upper confidence bound against the declared action-benefit threshold of 0.5.
+- an estimated standard error and a conservative one-sided critical value of 2.8 for the upper confidence bound against the declared action-benefit threshold of 0.5.
 
-The repeated-look rule is conservative relative to a one-sided Bonferroni allocation across four planned looks under the stated approximately Gaussian paired-difference model. It uses a normal critical value with estimated variance, not an exact finite-sample randomization test. Its statistical interpretation depends on the generator and assumptions being correctly specified. A future version should add exact/permutation inference, heteroskedastic noise, missing outcomes and blinded randomization checks.
+The repeated-look rule is conservative relative to a one-sided Bonferroni allocation across four planned looks under the stated approximately Gaussian paired-difference model; the normal-approximation union bound is about 1.1% family-wise, more conservative than a 5% budget. It uses a normal critical value with estimated variance, not an exact finite-sample randomization test. Its statistical interpretation depends on the generator and assumptions being correctly specified. A future version should add exact/permutation inference, heteroskedastic noise, missing outcomes and blinded randomization checks.
 
 Every seed/regime row is exported. The receipt includes signal-detection tick, diagnosis and tick, policy action counts, probe look count, final paired estimate, standard error, lower/upper bound, sample size, confidence critical value, false sign diagnosis flag, and the paired deterministic comparator.
 
