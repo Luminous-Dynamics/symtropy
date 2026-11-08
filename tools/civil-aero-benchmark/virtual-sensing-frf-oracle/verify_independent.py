@@ -264,6 +264,16 @@ def validate_corpus(data: dict[str, Any], raw_bytes: bytes | None = None) -> dic
     require(data.get("response_convention") ==
             "x = inverse(K - omega^2*M + i*omega*C) * F; e^(+i*omega*t) phasor",
             "phasor convention changed")
+    require(
+        data.get("unit_system") == {
+            "mass": "kg",
+            "stiffness": "N/m",
+            "damping": "N*s/m",
+            "force": "N",
+            "response": "m/N",
+        },
+        "unit system convention changed",
+    )
     require(len(data.get("cases", [])) == 9, "frozen scenario count changed")
     if raw_bytes is None:
         raw_bytes = json.dumps(data, sort_keys=True, separators=(",", ":")).encode("utf-8")
