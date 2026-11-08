@@ -23,6 +23,7 @@ pub enum GaussianError {
     DuplicateActionId(String),
     EmptyActionId,
     NoActions,
+    RiskScoreOutOfRange,
     InformationGainNumericallyNegative,
 }
 
