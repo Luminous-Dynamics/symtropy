@@ -679,6 +679,8 @@ mod tests {
             state_digest: "state-digest".to_owned(),
             abstraction_digest: "abstraction-digest".to_owned(),
             assurance_receipt_id: "assurance-receipt".to_owned(),
+            viability_result_digest: "viability-result".to_owned(),
+            recovery_result_digest: "recovery-result".to_owned(),
             valid_from_ns: 100,
             valid_until_ns: 1_000,
             horizon_steps: 3,
@@ -727,6 +729,7 @@ mod tests {
                 horizon(2, &["grip-good", "grip-degraded"]),
                 horizon(1, &["advance-good", "retreat-good", "retreat-degraded"]),
             ],
+            recovery_states_by_remaining_horizon: vec![],
             outcomes: vec![
                 ObservationOutcome { id: "grip-confirmed".to_owned(), kind: ObservationKind::Known },
                 ObservationOutcome { id: "grip-degraded".to_owned(), kind: ObservationKind::Known },
@@ -805,7 +808,7 @@ mod tests {
         assert!(!report.admitted);
         assert!(report.violations.iter().any(|violation| matches!(
             violation,
-            ProbeViolation::TerminalStateOutsideViableSet { branch_id, .. }
+            ProbeViolation::TerminalStateOutsideViableOrRecoverySet { branch_id, .. }
                 if branch_id == "b-zero-probability-trap"
         )));
     }
@@ -863,7 +866,7 @@ mod tests {
         assert_eq!(
             report.violations.iter().filter(|violation| matches!(
                 violation,
-                ProbeViolation::IntermediateStateOutsideViableSet { .. }
+                ProbeViolation::IntermediateStateOutsideViableOrRecoverySet { .. }
             )).count(),
             2
         );
@@ -897,6 +900,49 @@ mod tests {
             violation,
             ProbeViolation::MissingUnknownFallback { outcome_id } if outcome_id == "unknown"
         )));
+    }
+
+    #[test]
+    fn recovery_target_remains_distinct_from_walkable_viability() {
+        let mut problem = safe_problem();
+        problem.viable_states_by_remaining_horizon[1]
+            .state_ids
+            .retain(|state| state != "grip-degraded");
+        problem.viable_states_by_remaining_horizon[2]
+            .state_ids
+            .retain(|state| state != "retreat-degraded");
+        problem.recovery_states_by_remaining_horizon = vec![
+            horizon(2, &["grip-degraded"]),
+            horizon(1, &["retreat-degraded"]),
+        ];
+
+        let report = evaluate_probe_continuation(&problem).expect("separate recovery fixture");
+        assert!(report.admitted);
+        let degraded = report
+            .outcome_continuations
+            .iter()
+            .find(|item| item.outcome_id == "grip-degraded")
+            .expect("degraded observation");
+        assert!(degraded.possible_terminal_viable_state_ids.is_empty());
+        assert_eq!(
+            degraded.possible_terminal_recovery_state_ids,
+            vec!["grip-degraded".to_owned()]
+        );
+        assert_eq!(
+            degraded.robust_admissible_action_ids,
+            vec!["retreat".to_owned()]
+        );
+    }
+
+    #[test]
+    fn state_cannot_be_classified_as_both_viable_and_recovery() {
+        let mut problem = safe_problem();
+        problem.recovery_states_by_remaining_horizon =
+            vec![horizon(2, &["grip-good"])];
+        assert_eq!(
+            evaluate_probe_continuation(&problem),
+            Err(ProbeContinuationError::StateInBothViableAndRecoverySet)
+        );
     }
 
     #[test]
