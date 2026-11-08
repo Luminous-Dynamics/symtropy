@@ -750,6 +750,44 @@ mod tests {
     }
 
     #[test]
+    fn hyp2f1_complex_resonant_case_matches_independent_100_digit_fixture() {
+        let result = hyp2f1(
+            z(0.6, 0.2),
+            z(0.8, -0.1),
+            z(2.4, 0.1),
+            z(0.95, 0.0),
+            SeriesConfig::default(),
+        )
+        .unwrap();
+        assert_eq!(result.method, EvaluationMethod::DirectSeries);
+        close(
+            result.value,
+            z(1.417_466_195_157_772_6, 0.079_463_109_250_766_79),
+            5.0e-13,
+        );
+        assert!(result.estimated_absolute_error < 1.0e-12);
+    }
+
+    #[test]
+    fn hyp2f1_resonant_fallback_abstains_when_term_budget_is_insufficient() {
+        let config = SeriesConfig {
+            max_terms: 16,
+            absolute_tolerance: 2.0e-15,
+            relative_tolerance: 2.0e-14,
+        };
+        assert_eq!(
+            hyp2f1(
+                z(0.6, 0.2),
+                z(0.8, -0.1),
+                z(2.4, 0.1),
+                z(0.95, 0.0),
+                config,
+            ),
+            Err(SpecialError::NoConvergence)
+        );
+    }
+
+    #[test]
     fn hyp2f1_is_symmetric_in_a_and_b() {
         let (a, b, c, z) = (z(0.8, 0.1), z(1.2, -0.2), z(2.3, 0.4), z(0.72, 0.08));
         let forward = hyp2f1(a, b, c, z, SeriesConfig::default()).unwrap();
