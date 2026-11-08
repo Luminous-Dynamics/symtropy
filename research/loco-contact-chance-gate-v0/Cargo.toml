@@ -1,0 +1,9 @@
+[package]
+name = "loco-contact-chance-gate"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Bonferroni chance bounds for calibrated locomotion contact actions"
+
+[workspace]
