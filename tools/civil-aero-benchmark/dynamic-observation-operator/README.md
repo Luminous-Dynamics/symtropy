@@ -21,7 +21,9 @@ A simulation field is not the same thing as an instrument observation. A declare
 - \`M\`: reliability mask and missing-data operator
 - \`b\`: admitted calibration/bias transform
 
-Only products that share an admitted quantity, unit, reference frame, spatial mapping, temporal response, mask treatment and bandwidth are directly comparable. Otherwise the software rejects the direct comparison or abstains pending evidence. Inverse filtering is not attempted.
+Only products that share an admitted quantity, unit, reference frame, spatial mapping, temporal response, mask identity/treatment and bandwidth are directly comparable. Each side must also retain a calibration-operator identity and a positive standard-uncertainty value tied to a traceable uncertainty-budget identity. Different uncertainty budgets are allowed because measurement and model uncertainties are distinct; missing budgets or values force abstention rather than a zero-uncertainty assumption. Otherwise the software rejects the direct comparison or abstains pending evidence. Inverse filtering is not attempted.
+
+Calibration-operator identities and uncertainty-budget IDs preserve provenance; they are not themselves proof of metrological traceability. A traceability claim still requires the calibration chain, reference standards, measured result and uncertainty contributions for every relevant link.
 
 For PSD and coherence, additional metadata is required: sample rate, timebase, synchronization uncertainty, window, segment length, overlap, detrending, estimator, normalization and output units. Missing metadata does not receive defaults.
 
@@ -80,7 +82,8 @@ The separate Python implementation independently checks the catalog, hostile mut
 - direct RMS comparison with different temporal responses;
 - incompatible units or coordinate frames;
 - unadmitted source or calibration;
-- required spatial mask omitted;
+- missing calibration-operator identity, standard uncertainty or traceable uncertainty-budget identity;
+- different reliability-mask identity or required spatial mask omitted;
 - unknown sample rate or incomplete PSD method;
 - absent common timebase or excessive synchronization uncertainty;
 - modal claim without admitted structural-mode evidence;
