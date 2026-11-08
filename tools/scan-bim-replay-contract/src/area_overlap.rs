@@ -17,12 +17,15 @@
 
 use crate::metrics::Point3;
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeSet;
+use sha2::{Digest, Sha256};
+use std::collections::{BTreeMap, BTreeSet};
 
 const GEOMETRY_EPSILON: f64 = 1.0e-10;
 const MAX_SURFACES: usize = 100_000;
 const MAX_VERTICES_PER_SURFACE: usize = 20_000;
-const MAX_PAIRS: usize = 10_000_000;
+const MAX_PAIRS: usize = 1_000_000;
+const MAX_UNION_EDGES_PER_REFERENCE: usize = 2_048;
+const MAX_TOTAL_UNION_PAIR_TESTS: usize = 50_000_000;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Point2 {
@@ -43,14 +46,21 @@ pub enum ReferenceVisibility {
     Unobservable,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SourceVisibility {
+    Observed,
+    Interpreted,
+    Unobservable,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum AreaAggregationPolicy {
-    /// 2018 evaluation-framework equations: sum every compatible pairwise
-    /// source/reference intersection area.
-    PairwiseSum2018,
-    /// 2021 final-results equations: union the intersecting source patches
-    /// separately for each reference surface, then sum those per-reference unions.
+    /// Project-defined diagnostic: sum every pairwise projected source/reference
+    /// intersection. This is not a source-faithful 2018 3D surface-buffer replay.
+    PairwiseProjectedDiagnostic,
+    /// 2021 final-results method: orthogonally project source surfaces, intersect
+    /// with each visible reference buffer, then union per reference surface.
     UnionPerReference2021,
 }
 
@@ -60,8 +70,10 @@ pub struct SourceAreaSurface {
     pub geometry_artifact_id: String,
     pub geometry_artifact_sha256: String,
     pub frame_id: String,
-    /// Convex, planar, ordered polygon boundary in the common frame, metres.
+    /// Convex, planar, ordered polygon boundary in the common frame, native units.
     pub vertices: Vec<Point3>,
+    /// Interpreted and unobservable source faces are excluded from comparison.
+    pub visibility: SourceVisibility,
 }
 
 impl SourceAreaSurface {
@@ -78,7 +90,13 @@ impl SourceAreaSurface {
             geometry_artifact_sha256: geometry_artifact_sha256.into(),
             frame_id: frame_id.into(),
             vertices,
+            visibility: SourceVisibility::Observed,
         }
+    }
+
+    pub fn with_visibility(mut self, visibility: SourceVisibility) -> Self {
+        self.visibility = visibility;
+        self
     }
 }
 
@@ -148,7 +166,6 @@ impl AreaCoordinateUnit {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum AreaMetricAuthority {
-    EvaluationFramework2018,
     FinalResultsPaper2021,
     ProjectDefined,
 }
@@ -171,36 +188,43 @@ pub struct AreaOverlapProfile {
     pub planarity_tolerance_m: f64,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct GeometryArtifactRef {
+    pub artifact_id: String,
+    pub sha256: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct PairwiseAreaIntersection {
     pub source_surface_id: String,
     pub reference_surface_id: String,
     pub area_m2: f64,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct ReferenceAreaLedger {
     pub reference_surface_id: String,
     pub observable_reference_area_m2: f64,
     pub matched_area_m2: f64,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct AreaOverlapResult {
     pub profile_id: String,
     pub metric_authority: AreaMetricAuthority,
     pub coordinate_unit: AreaCoordinateUnit,
-    pub source_geometry_artifact_ids: Vec<String>,
-    pub source_geometry_artifact_digests: Vec<String>,
-    pub reference_geometry_artifact_ids: Vec<String>,
-    pub reference_geometry_artifact_digests: Vec<String>,
-    pub buffer_artifact_ids: Vec<String>,
-    pub buffer_artifact_digests: Vec<String>,
+    pub source_geometry_artifacts: Vec<GeometryArtifactRef>,
+    pub reference_geometry_artifacts: Vec<GeometryArtifactRef>,
+    pub buffer_artifacts: Vec<GeometryArtifactRef>,
     pub aggregation_policy: AreaAggregationPolicy,
     pub max_parallel_angle_rad: f64,
     pub buffer_distance_m: f64,
     pub buffer_policy_id: String,
+    /// Eligible observed source area used as correctness denominator.
     pub source_surface_area_m2: f64,
+    pub source_surface_total_area_m2: f64,
+    pub interpreted_source_area_excluded_m2: f64,
+    pub unobservable_source_area_excluded_m2: f64,
     pub observable_reference_surface_area_m2: f64,
     pub interpreted_reference_area_excluded_m2: f64,
     pub unobservable_reference_area_excluded_m2: f64,
@@ -210,10 +234,10 @@ pub struct AreaOverlapResult {
     pub pairwise_intersections: Vec<PairwiseAreaIntersection>,
     pub reference_ledger: Vec<ReferenceAreaLedger>,
     pub skipped_non_parallel_pair_count: usize,
-    /// Nonzero ratios are preserved rather than clamped. A value above one
-    /// signals an incompatibility or overlapping-denominator condition.
     pub completeness_exceeds_one: bool,
     pub correctness_exceeds_one: bool,
+    /// SHA-256 of deterministic result JSON with this field empty.
+    pub receipt_sha256: String,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -289,6 +313,7 @@ struct PreparedReference {
 #[derive(Debug, Clone)]
 struct PreparedSource {
     surface_id: String,
+    visibility: SourceVisibility,
     area_m2: f64,
     normal: Vec3,
     vertices: Vec<Point3>,
@@ -743,6 +768,7 @@ fn prepare_source(
     )?;
     Ok(PreparedSource {
         surface_id: source.surface_id.clone(),
+        visibility: source.visibility,
         area_m2,
         normal: frame.normal,
         vertices,
@@ -776,16 +802,7 @@ fn prepare_reference(
         "reference surface",
         profile.planarity_tolerance_m,
     )?;
-    let buffered_vertices: Vec<Point2> = reference
-        .buffered_boundary_2d
-        .iter()
-        .map(|point| scale_point2(*point, unit_scale))
-        .collect();
-    let buffered_2d = validate_convex_polygon(
-        &buffered_vertices,
-        "buffered reference boundary",
-    )?;
-    if reference.visibility == ReferenceVisibility::Observed {
+    let buffered_2d = if reference.visibility == ReferenceVisibility::Observed {
         let buffer_id = reference
             .buffer_artifact_id
             .as_deref()
@@ -800,6 +817,13 @@ fn prepare_reference(
         if !digest_is_sha256(digest) {
             return Err("buffer artifact digest must be lowercase SHA-256".to_owned());
         }
+        let buffered_vertices: Vec<Point2> = reference
+            .buffered_boundary_2d
+            .iter()
+            .map(|point| scale_point2(*point, unit_scale))
+            .collect();
+        let buffered_2d =
+            validate_convex_polygon(&buffered_vertices, "buffered reference boundary")?;
         for vertex in &original_2d {
             if !point_in_convex_polygon(*vertex, &buffered_2d) {
                 return Err(format!(
@@ -808,7 +832,10 @@ fn prepare_reference(
                 ));
             }
         }
-    }
+        buffered_2d
+    } else {
+        Vec::new()
+    };
     Ok(PreparedReference {
         surface_id: reference.surface_id.clone(),
         visibility: reference.visibility,
@@ -852,7 +879,6 @@ fn projected_source_polygon(
 /// Validate a replay-bound area-overlap profile without accessing geometry.
 pub fn validate_area_overlap_profile(profile: &AreaOverlapProfile) -> Result<(), String> {
     if profile.profile_id.trim().is_empty()
-        || profile.metric_authority.trim().is_empty()
         || profile.common_frame_id.trim().is_empty()
         || profile.buffer_policy_id.trim().is_empty()
     {
@@ -872,12 +898,12 @@ pub fn validate_area_overlap_profile(profile: &AreaOverlapProfile) -> Result<(),
         return Err("planarity_tolerance_m must be finite and positive metres".to_owned());
     }
     match (profile.metric_authority, profile.aggregation_policy) {
-        (AreaMetricAuthority::EvaluationFramework2018, AreaAggregationPolicy::PairwiseSum2018)
-        | (AreaMetricAuthority::FinalResultsPaper2021, AreaAggregationPolicy::UnionPerReference2021)
+        (AreaMetricAuthority::FinalResultsPaper2021, AreaAggregationPolicy::UnionPerReference2021)
         | (AreaMetricAuthority::ProjectDefined, _) => {}
         _ => {
             return Err(
-                "published area aggregation policy must match its named metric authority".to_owned(),
+                "only union_per_reference_2021 may claim final_results_paper_2021 authority"
+                    .to_owned(),
             );
         }
     }
@@ -1018,8 +1044,28 @@ pub fn evaluate_area_overlap(
         }
 
         let matched_reference_area_m2 = match profile.aggregation_policy {
-            AreaAggregationPolicy::PairwiseSum2018 => pairwise_reference_area,
+            AreaAggregationPolicy::PairwiseProjectedDiagnostic => pairwise_reference_area,
             AreaAggregationPolicy::UnionPerReference2021 => {
+                let edge_count: usize = intersection_polygons.iter().map(Vec::len).sum();
+                if edge_count > MAX_UNION_EDGES_PER_REFERENCE {
+                    return Err(format!(
+                        "reference {} union edge count {} exceeds bounded limit {}",
+                        reference.surface_id, edge_count, MAX_UNION_EDGES_PER_REFERENCE
+                    ));
+                }
+                let pair_tests = edge_count
+                    .checked_mul(edge_count.saturating_sub(1))
+                    .map(|value| value / 2)
+                    .ok_or("union edge-pair count overflowed")?;
+                total_union_pair_tests = total_union_pair_tests
+                    .checked_add(pair_tests)
+                    .ok_or("total union edge-pair count overflowed")?;
+                if total_union_pair_tests > MAX_TOTAL_UNION_PAIR_TESTS {
+                    return Err(
+                        "total polygon-union work exceeds the bounded area-overlap profile"
+                            .to_owned(),
+                    );
+                }
                 convex_union_area(&intersection_polygons)?
             }
         };
