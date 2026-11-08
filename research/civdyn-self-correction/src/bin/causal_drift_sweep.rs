@@ -36,7 +36,7 @@ struct CausalDriftCsvRecord {
     net_utility: f64,
     oracle_net_utility: f64,
     regret_to_oracle: f64,
-    false_causal_attribution: bool,
+    proxy_driven_action_under_nonpositive_effect: bool,
     mechanism_identified: bool,
     diagnosis: Option<String>,
     detection_tick: Option<usize>,
@@ -62,7 +62,7 @@ impl CausalDriftCsvRecord {
             number(self.net_utility),
             number(self.oracle_net_utility),
             number(self.regret_to_oracle),
-            self.false_causal_attribution.to_string(),
+            self.proxy_driven_action_under_nonpositive_effect.to_string(),
             self.mechanism_identified.to_string(),
             self.diagnosis.unwrap_or_default(),
             optional_tick(self.detection_tick),
@@ -89,7 +89,7 @@ fn row(outcome: &CausalDriftOutcome) -> Vec<String> {
         net_utility: outcome.net_utility,
         oracle_net_utility: outcome.oracle_net_utility,
         regret_to_oracle: outcome.regret_to_oracle,
-        false_causal_attribution: outcome.false_causal_attribution,
+        proxy_driven_action_under_nonpositive_effect: outcome.proxy_driven_action_under_nonpositive_effect,
         mechanism_identified: outcome.mechanism_identified,
         diagnosis: outcome.diagnosis.map(|diagnosis| diagnosis.name().to_string()),
         detection_tick: outcome.detection_tick,
@@ -111,7 +111,7 @@ fn emit(fields: Vec<String>) {
 
 fn main() {
     println!(
-        "regime,controller,final_true_causal_effect,final_observational_association,last_matched_probe_estimate,active_ticks,active_after_nonpositive_effect_ticks,cumulative_causal_contribution,action_cost,diagnostic_probe_count,diagnostic_probe_cost,net_utility,oracle_net_utility,regret_to_oracle,false_causal_attribution,mechanism_identified,diagnosis,detection_tick,correction_latency_ticks,trace_valid,trace_event_count"
+        "regime,controller,final_true_causal_effect,final_observational_association,last_matched_probe_estimate,active_ticks,active_after_nonpositive_effect_ticks,cumulative_causal_contribution,action_cost,diagnostic_probe_count,diagnostic_probe_cost,net_utility,oracle_net_utility,regret_to_oracle,proxy_driven_action_under_nonpositive_effect,mechanism_identified,diagnosis,detection_tick,correction_latency_ticks,trace_valid,trace_event_count"
     );
     for outcome in run_causal_drift_portfolio() {
         emit(row(&outcome));
