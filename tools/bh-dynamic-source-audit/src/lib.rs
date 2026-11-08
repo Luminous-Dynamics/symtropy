@@ -28,7 +28,11 @@ impl SourceSegment {
         if start >= end {
             return Err(SourceError::InvalidSegment);
         }
-        Ok(Self { start, end, amplitude })
+        Ok(Self {
+            start,
+            end,
+            amplitude,
+        })
     }
 }
 
@@ -93,9 +97,7 @@ impl SourceHistory {
     /// earlier segment is inactive and the later segment is active.
     pub fn new(segments: Vec<SourceSegment>) -> Result<Self, SourceError> {
         for segment in &segments {
-            if !segment.start.is_finite()
-                || !segment.end.is_finite()
-                || !finite(segment.amplitude)
+            if !segment.start.is_finite() || !segment.end.is_finite() || !finite(segment.amplitude)
             {
                 return Err(SourceError::NonFiniteInput);
             }
@@ -163,11 +165,7 @@ impl RetardedPole {
             let z2 = z * z;
             let z3 = z2 * z;
             let z4 = z3 * z;
-            Complex64::new(1.0, 0.0)
-                + z * 0.5
-                + z2 / 6.0
-                + z3 / 24.0
-                + z4 / 120.0
+            Complex64::new(1.0, 0.0) + z * 0.5 + z2 / 6.0 + z3 / 24.0 + z4 / 120.0
         } else {
             (Complex64::new(1.0, 0.0) - z.exp()) / (-z)
         };
@@ -210,7 +208,11 @@ impl RetardedPole {
         let direct = self.direct_gain * source_now;
         let total = activation + direct;
         if finite(activation) && finite(direct) && finite(total) {
-            Ok(DynamicResponse { activation, direct, total })
+            Ok(DynamicResponse {
+                activation,
+                direct,
+                total,
+            })
         } else {
             Err(SourceError::NonFiniteResult)
         }
@@ -314,7 +316,10 @@ mod tests {
         let earlier = SourceHistory::new(vec![segment(0.0, 1.0, z(1.0, 0.0))]).unwrap();
         let later = SourceHistory::new(vec![segment(0.5, 1.0, z(1.0, 0.0))]).unwrap();
         let time = 0.75;
-        assert_eq!(earlier.value_at(time).unwrap(), later.value_at(time).unwrap());
+        assert_eq!(
+            earlier.value_at(time).unwrap(),
+            later.value_at(time).unwrap()
+        );
         let a = pole().evaluate(&earlier, time).unwrap();
         let b = pole().evaluate(&later, time).unwrap();
         assert_eq!(a.direct, b.direct);
