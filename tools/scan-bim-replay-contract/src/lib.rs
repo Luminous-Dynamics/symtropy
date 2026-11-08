@@ -8,6 +8,7 @@ use std::fs::{self, File};
 use std::io::Read;
 use std::path::{Component, Path, PathBuf};
 
+pub mod area_overlap;
 pub mod metrics;
 pub mod residual_uncertainty;
 pub mod sampling;
