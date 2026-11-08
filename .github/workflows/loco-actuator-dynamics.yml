@@ -1,0 +1,31 @@
+name: LOCO Actuator Dynamics Verification
+
+on:
+  pull_request:
+    paths:
+      - "research/loco-actuator-dynamics-v0/**"
+      - ".github/workflows/loco-actuator-dynamics.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "research/loco-actuator-dynamics-v0/**"
+      - ".github/workflows/loco-actuator-dynamics.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/loco-actuator-dynamics-v0/Cargo.toml -- --check
+      - name: Run actuator response and friction fixtures
+        run: cargo test --manifest-path research/loco-actuator-dynamics-v0/Cargo.toml --locked
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path research/loco-actuator-dynamics-v0/Cargo.toml --locked --all-targets -- -D warnings
