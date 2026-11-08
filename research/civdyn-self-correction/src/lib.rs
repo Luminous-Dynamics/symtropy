@@ -370,10 +370,10 @@ pub fn run_sensor_drift_sham(
             TransferPolicy::Unrestricted,
         )?;
 
-        if extra_dispatch_m3 > 0.0 {
-            if let Some(receipt) = report.transfers.get(1) {
-                unnecessary_dispatch_m3 += receipt.delivered.water_m3;
-            }
+        if extra_dispatch_m3 > 0.0
+            && let Some(receipt) = report.transfers.get(1)
+        {
+            unnecessary_dispatch_m3 += receipt.delivered.water_m3;
         }
         let household = &report.regions[HOUSEHOLD];
         minimum_true_household_coverage =
