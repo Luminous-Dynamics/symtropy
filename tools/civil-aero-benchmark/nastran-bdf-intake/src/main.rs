@@ -1146,6 +1146,62 @@ mod tests {
     }
 
     #[test]
+    fn implicit_blank_field_continuation_is_joined_to_cbeam() {
+        let mut cards = minimal_valid_cards();
+        cards.insert(4, fixed_line(&["", "0.1", "0.2", "0.3"]));
+        let bytes = deck_text(cards);
+        let digest = sha256_hex(&bytes);
+        let deck = parse_deck(&bytes, &digest).expect("implicit continuation must parse");
+        let beam = deck
+            .cards
+            .iter()
+            .find(|card| card.name == "CBEAM" && card.fields[0] == "101")
+            .expect("CBEAM 101 is present");
+        assert_eq!(beam.raw_lines.len(), 2);
+        assert_eq!(beam.fields[8], "0.1");
+        assert_eq!(beam.fields[9], "0.2");
+        assert_eq!(beam.fields[10], "0.3");
+        assert!(build_inventory(&deck).is_ok());
+    }
+
+    #[test]
+    fn implicit_blank_field_continuation_is_joined_to_conm2() {
+        let mut cards = minimal_valid_cards();
+        cards.insert(8, fixed_line(&["", "1.", "2.", "3."]));
+        let bytes = deck_text(cards);
+        let digest = sha256_hex(&bytes);
+        let deck = parse_deck(&bytes, &digest).expect("CONM2 continuation must parse");
+        let mass = deck
+            .cards
+            .iter()
+            .find(|card| card.name == "CONM2")
+            .expect("CONM2 is present");
+        assert_eq!(mass.raw_lines.len(), 2);
+        assert_eq!(mass.fields[8], "1.");
+        assert_eq!(mass.fields[9], "2.");
+        assert_eq!(mass.fields[10], "3.");
+        assert!(build_inventory(&deck).is_ok());
+    }
+
+    #[test]
+    fn orphan_implicit_continuation_is_rejected() {
+        let mut bytes = deck_text(minimal_valid_cards());
+        let insertion = fixed_line(&["", "1.", "2."]);
+        let text = String::from_utf8(bytes).unwrap();
+        let changed = text.replace("BEGIN BULK", &format!("BEGIN BULK\n{insertion}"));
+        bytes = changed.into_bytes();
+        assert!(parse_bytes(&bytes).is_err());
+    }
+
+    #[test]
+    fn spc_blank_enforced_value_is_preserved_as_valid_input_syntax() {
+        let mut cards = minimal_valid_cards();
+        cards[9] = fixed_line(&["SPC", "1", "1", "123456", ""]);
+        let bytes = deck_text(cards);
+        assert!(parse_bytes(&bytes).is_ok());
+    }
+
+    #[test]
     fn explicit_continuation_is_joined_without_losing_raw_provenance() {
         let mut cards = minimal_valid_cards();
         cards[8] = fixed_line(&["RBE2", "301", "1", "123", "2", "", "", "", "", "+A"]);
