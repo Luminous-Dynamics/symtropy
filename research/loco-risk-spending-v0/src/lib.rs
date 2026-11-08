@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 //! Finite-horizon Bonferroni alpha allocation and irreversible risk accounting.
 //!
 //! A family-wise alpha budget is preallocated over every horizon step and
@@ -50,6 +51,7 @@ pub struct RiskPlanIdentity {
     pub episode_id: String,
     pub risk_plan_id: String,
     pub model_digest: String,
+    pub actuator_model_digest: String,
     pub operating_domain_digest: String,
     pub calibration_digest: String,
 }
@@ -191,6 +193,7 @@ pub struct StepAdmissionReceipt {
     pub action_id: String,
     pub action_digest: String,
     pub model_digest: String,
+    pub actuator_model_digest: String,
     pub operating_domain_digest: String,
     pub calibration_digest: String,
     pub allocated_alpha_ppb: [u64; CONSTRAINT_COUNT],
@@ -206,7 +209,13 @@ pub struct StepExecutionReceipt {
     pub episode_id: String,
     pub risk_plan_id: String,
     pub step_index: u32,
+    pub action_id: String,
+    pub delivered_action_id: String,
     pub action_digest: String,
+    pub model_digest: String,
+    pub actuator_model_digest: String,
+    pub operating_domain_digest: String,
+    pub calibration_digest: String,
     pub measured_actuation_digest: String,
     pub executed_at_ns: u64,
     /// Trust input from the action-delivery verifier.
@@ -219,11 +228,26 @@ pub struct StepSkipReceipt {
     pub episode_id: String,
     pub risk_plan_id: String,
     pub step_index: u32,
+    /// Required when reconciling an Unknown committed step; absent for a
+    /// pre-commit skip.
+    pub admission_receipt_id: Option<String>,
     pub reason: String,
     pub evidence_digest: String,
     pub skipped_at_ns: u64,
     /// Requires independent evidence that no physical action was delivered.
     pub no_execution_verified: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct StepUnknownReceipt {
+    pub receipt_id: String,
+    pub episode_id: String,
+    pub risk_plan_id: String,
+    pub step_index: u32,
+    pub admission_receipt_id: String,
+    pub reason: String,
+    pub evidence_digest: String,
+    pub recorded_at_ns: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -242,6 +266,15 @@ pub enum StepStatus {
         action_digest: String,
         executed_at_ns: u64,
     },
+    Unknown {
+        unknown_receipt_id: String,
+        admission_receipt_id: String,
+        action_id: String,
+        action_digest: String,
+        committed_at_ns: u64,
+        reason: String,
+        recorded_at_ns: u64,
+    },
     Skipped {
         skip_receipt_id: String,
         reason: String,
@@ -259,6 +292,7 @@ pub enum LedgerError {
     AdmissionReceiptNotVerified,
     ExecutionReceiptNotVerified,
     SkipReceiptNotVerified,
+    UnknownIdentityMismatch,
     AdmissionIdentityMismatch,
     ExecutionIdentityMismatch,
     SkipIdentityMismatch,
@@ -277,6 +311,9 @@ pub struct RiskLedgerSummary {
     pub committed_reserved_alpha_ppb: u64,
     /// Risk amount attached to actions with verified delivery evidence.
     pub consumed_alpha_ppb: u64,
+    /// Committed allocations whose execution/delivery status is unresolved.
+    /// These remain locked and are never treated as unused or reusable.
+    pub unknown_locked_alpha_ppb: u64,
     /// Allocations for steps explicitly skipped before an action was committed.
     /// They remain unused and cannot be transferred to a future step.
     pub skipped_unused_alpha_ppb: u64,
@@ -285,6 +322,7 @@ pub struct RiskLedgerSummary {
     pub committed_step_count: u32,
     pub consumed_step_count: u32,
     pub skipped_step_count: u32,
+    pub unknown_step_count: u32,
     pub resolved_step_count: u32,
     pub next_step_index: u32,
 }
@@ -293,6 +331,7 @@ impl RiskLedgerSummary {
     pub fn reserved_or_consumed_alpha_ppb(&self) -> Result<u64, LedgerError> {
         self.committed_reserved_alpha_ppb
             .checked_add(self.consumed_alpha_ppb)
+            .and_then(|value| value.checked_add(self.unknown_locked_alpha_ppb))
             .ok_or(LedgerError::ArithmeticOverflow)
     }
 
@@ -338,13 +377,18 @@ impl HorizonRiskLedger {
             .ok_or(LedgerError::StepOutOfRange)
     }
 
-    fn validate_next_step(&self, step_index: u32) -> Result<(), LedgerError> {
+    fn validate_next_step_index(&self, step_index: u32) -> Result<(), LedgerError> {
         if step_index >= self.plan.horizon_steps {
             return Err(LedgerError::StepOutOfRange);
         }
         if step_index != self.next_step_index {
             return Err(LedgerError::StepOutOfOrder);
         }
+        Ok(())
+    }
+
+    fn validate_next_pending_step(&self, step_index: u32) -> Result<(), LedgerError> {
+        self.validate_next_step_index(step_index)?;
         if self.statuses[step_index as usize] != StepStatus::Pending {
             return Err(LedgerError::StepAlreadyResolved);
         }
@@ -374,7 +418,7 @@ impl HorizonRiskLedger {
     /// Commit a one-step admitted action under the immutable allocation for
     /// this exact episode/step. This reserves risk before physical execution.
     pub fn commit_step(&mut self, receipt: StepAdmissionReceipt) -> Result<(), LedgerError> {
-        self.validate_next_step(receipt.step_index)?;
+        self.validate_next_pending_step(receipt.step_index)?;
         self.validate_monotonic_time(receipt.committed_at_ns)?;
         if [
             receipt.receipt_id.as_str(),
@@ -383,6 +427,7 @@ impl HorizonRiskLedger {
             receipt.action_id.as_str(),
             receipt.action_digest.as_str(),
             receipt.model_digest.as_str(),
+            receipt.actuator_model_digest.as_str(),
             receipt.operating_domain_digest.as_str(),
             receipt.calibration_digest.as_str(),
         ]
@@ -398,6 +443,7 @@ impl HorizonRiskLedger {
         if receipt.episode_id != identity.episode_id
             || receipt.risk_plan_id != identity.risk_plan_id
             || receipt.model_digest != identity.model_digest
+            || receipt.actuator_model_digest != identity.actuator_model_digest
             || receipt.operating_domain_digest != identity.operating_domain_digest
             || receipt.calibration_digest != identity.calibration_digest
         {
@@ -423,28 +469,36 @@ impl HorizonRiskLedger {
     /// Consume a committed allocation only when a verified execution receipt
     /// binds the delivered action to the preceding admission receipt.
     pub fn consume_step(&mut self, receipt: StepExecutionReceipt) -> Result<(), LedgerError> {
-        if receipt.step_index >= self.plan.horizon_steps {
-            return Err(LedgerError::StepOutOfRange);
-        }
-        if receipt.step_index != self.next_step_index {
-            return Err(LedgerError::StepOutOfOrder);
-        }
+        self.validate_next_step_index(receipt.step_index)?;
         let status = self.statuses[receipt.step_index as usize].clone();
-        let StepStatus::Committed {
-            admission_receipt_id,
-            action_id: _,
-            action_digest,
-            committed_at_ns,
-        } = status
-        else {
-            return Err(LedgerError::StepNotCommitted);
+        let (admission_receipt_id, action_id, action_digest, committed_at_ns) = match status {
+            StepStatus::Committed {
+                admission_receipt_id,
+                action_id,
+                action_digest,
+                committed_at_ns,
+            }
+            | StepStatus::Unknown {
+                admission_receipt_id,
+                action_id,
+                action_digest,
+                committed_at_ns,
+                ..
+            } => (admission_receipt_id, action_id, action_digest, committed_at_ns),
+            _ => return Err(LedgerError::StepNotCommitted),
         };
         if [
             receipt.receipt_id.as_str(),
             receipt.admission_receipt_id.as_str(),
             receipt.episode_id.as_str(),
             receipt.risk_plan_id.as_str(),
+            receipt.action_id.as_str(),
+            receipt.delivered_action_id.as_str(),
             receipt.action_digest.as_str(),
+            receipt.model_digest.as_str(),
+            receipt.actuator_model_digest.as_str(),
+            receipt.operating_domain_digest.as_str(),
+            receipt.calibration_digest.as_str(),
             receipt.measured_actuation_digest.as_str(),
         ]
         .iter()
@@ -458,7 +512,12 @@ impl HorizonRiskLedger {
         if receipt.episode_id != self.plan.identity.episode_id
             || receipt.risk_plan_id != self.plan.identity.risk_plan_id
             || receipt.admission_receipt_id != admission_receipt_id
+            || receipt.action_id != action_id
             || receipt.action_digest != action_digest
+            || receipt.model_digest != self.plan.identity.model_digest
+            || receipt.actuator_model_digest != self.plan.identity.actuator_model_digest
+            || receipt.operating_domain_digest != self.plan.identity.operating_domain_digest
+            || receipt.calibration_digest != self.plan.identity.calibration_digest
         {
             return Err(LedgerError::ExecutionIdentityMismatch);
         }
@@ -471,7 +530,7 @@ impl HorizonRiskLedger {
         self.statuses[receipt.step_index as usize] = StepStatus::Consumed {
             admission_receipt_id,
             execution_receipt_id: receipt.receipt_id,
-            action_id: self.committed_action_id(receipt.step_index)?,
+            action_id,
             action_digest,
             executed_at_ns: receipt.executed_at_ns,
         };
@@ -480,18 +539,67 @@ impl HorizonRiskLedger {
         Ok(())
     }
 
-    fn committed_action_id(&self, step_index: u32) -> Result<String, LedgerError> {
-        match self.statuses.get(step_index as usize) {
-            Some(StepStatus::Committed { action_id, .. }) => Ok(action_id.clone()),
-            _ => Err(LedgerError::StepNotCommitted),
+    /// Mark a committed step Unknown when delivery/execution provenance is
+    /// unresolved. Its allocation remains locked, the horizon cannot advance,
+    /// and it cannot be classified as unused until independently reconciled.
+    pub fn mark_unknown(
+        &mut self,
+        receipt: StepUnknownReceipt,
+    ) -> Result<(), LedgerError> {
+        self.validate_next_step_index(receipt.step_index)?;
+        self.validate_monotonic_time(receipt.recorded_at_ns)?;
+        if [
+            receipt.receipt_id.as_str(),
+            receipt.episode_id.as_str(),
+            receipt.risk_plan_id.as_str(),
+            receipt.admission_receipt_id.as_str(),
+            receipt.reason.as_str(),
+            receipt.evidence_digest.as_str(),
+        ]
+        .iter()
+        .any(|value| !nonblank(value))
+        {
+            return Err(LedgerError::EmptyIdentity);
         }
+        if receipt.episode_id != self.plan.identity.episode_id
+            || receipt.risk_plan_id != self.plan.identity.risk_plan_id
+        {
+            return Err(LedgerError::UnknownIdentityMismatch);
+        }
+        let status = self.statuses[receipt.step_index as usize].clone();
+        let StepStatus::Committed {
+            admission_receipt_id,
+            action_id,
+            action_digest,
+            committed_at_ns,
+        } = status
+        else {
+            return Err(LedgerError::StepNotCommitted);
+        };
+        if receipt.admission_receipt_id != admission_receipt_id
+            || receipt.recorded_at_ns < committed_at_ns
+        {
+            return Err(LedgerError::UnknownIdentityMismatch);
+        }
+        self.insert_receipt_id(&receipt.receipt_id)?;
+        self.statuses[receipt.step_index as usize] = StepStatus::Unknown {
+            unknown_receipt_id: receipt.receipt_id,
+            admission_receipt_id,
+            action_id,
+            action_digest,
+            committed_at_ns,
+            reason: receipt.reason,
+            recorded_at_ns: receipt.recorded_at_ns,
+        };
+        self.last_event_time_ns = Some(receipt.recorded_at_ns);
+        Ok(())
     }
 
     /// Mark a step unused only when an independent receipt establishes that no
     /// action was delivered. The allocation is retained as skipped-unused and
     /// is never redistributed to another step.
     pub fn skip_step(&mut self, receipt: StepSkipReceipt) -> Result<(), LedgerError> {
-        self.validate_next_step(receipt.step_index)?;
+        self.validate_next_step_index(receipt.step_index)?;
         self.validate_monotonic_time(receipt.skipped_at_ns)?;
         if [
             receipt.receipt_id.as_str(),
@@ -513,6 +621,12 @@ impl HorizonRiskLedger {
         {
             return Err(LedgerError::SkipIdentityMismatch);
         }
+        match &self.statuses[receipt.step_index as usize] {
+            StepStatus::Pending if receipt.admission_receipt_id.is_none() => {}
+            StepStatus::Unknown { admission_receipt_id, .. }
+                if receipt.admission_receipt_id.as_deref() == Some(admission_receipt_id.as_str()) => {}
+            _ => return Err(LedgerError::StepAlreadyResolved),
+        }
 
         self.insert_receipt_id(&receipt.receipt_id)?;
         self.statuses[receipt.step_index as usize] = StepStatus::Skipped {
@@ -530,11 +644,13 @@ impl HorizonRiskLedger {
             familywise_alpha_ppb: self.plan.familywise_alpha_ppb,
             committed_reserved_alpha_ppb: 0,
             consumed_alpha_ppb: 0,
+            unknown_locked_alpha_ppb: 0,
             skipped_unused_alpha_ppb: 0,
             pending_preallocated_alpha_ppb: 0,
             committed_step_count: 0,
             consumed_step_count: 0,
             skipped_step_count: 0,
+            unknown_step_count: 0,
             resolved_step_count: 0,
             next_step_index: self.next_step_index,
         };
@@ -562,6 +678,13 @@ impl HorizonRiskLedger {
                     summary.consumed_step_count += 1;
                     summary.resolved_step_count += 1;
                 }
+                StepStatus::Unknown { .. } => {
+                    summary.unknown_locked_alpha_ppb = summary
+                        .unknown_locked_alpha_ppb
+                        .checked_add(amount)
+                        .ok_or(LedgerError::ArithmeticOverflow)?;
+                    summary.unknown_step_count += 1;
+                }
                 StepStatus::Skipped { .. } => {
                     summary.skipped_unused_alpha_ppb = summary
                         .skipped_unused_alpha_ppb
@@ -576,6 +699,7 @@ impl HorizonRiskLedger {
         let accounted = summary
             .committed_reserved_alpha_ppb
             .checked_add(summary.consumed_alpha_ppb)
+            .and_then(|value| value.checked_add(summary.unknown_locked_alpha_ppb))
             .and_then(|value| value.checked_add(summary.skipped_unused_alpha_ppb))
             .and_then(|value| value.checked_add(summary.pending_preallocated_alpha_ppb))
             .ok_or(LedgerError::ArithmeticOverflow)?;
@@ -595,6 +719,7 @@ mod tests {
             episode_id: "episode-01".to_owned(),
             risk_plan_id: "risk-plan-01".to_owned(),
             model_digest: "model-v1".to_owned(),
+            actuator_model_digest: "actuator-model-v1".to_owned(),
             operating_domain_digest: "rough-terrain-v1".to_owned(),
             calibration_digest: "calibration-v1".to_owned(),
         }
@@ -613,6 +738,7 @@ mod tests {
             action_id: format!("action-{suffix}"),
             action_digest: format!("action-digest-{suffix}"),
             model_digest: "model-v1".to_owned(),
+            actuator_model_digest: "actuator-model-v1".to_owned(),
             operating_domain_digest: "rough-terrain-v1".to_owned(),
             calibration_digest: "calibration-v1".to_owned(),
             allocated_alpha_ppb: plan.allocation_for_step(step).unwrap(),
@@ -628,7 +754,13 @@ mod tests {
             episode_id: admission.episode_id.clone(),
             risk_plan_id: admission.risk_plan_id.clone(),
             step_index: admission.step_index,
+            action_id: admission.action_id.clone(),
+            delivered_action_id: format!("delivered-{suffix}"),
             action_digest: admission.action_digest.clone(),
+            model_digest: admission.model_digest.clone(),
+            actuator_model_digest: admission.actuator_model_digest.clone(),
+            operating_domain_digest: admission.operating_domain_digest.clone(),
+            calibration_digest: admission.calibration_digest.clone(),
             measured_actuation_digest: format!("measured-actuation-{suffix}"),
             executed_at_ns,
             execution_verified: true,
@@ -641,6 +773,7 @@ mod tests {
             episode_id: "episode-01".to_owned(),
             risk_plan_id: "risk-plan-01".to_owned(),
             step_index: step,
+            admission_receipt_id: None,
             reason: "candidate rejected before delivery".to_owned(),
             evidence_digest: format!("no-delivery-evidence-{suffix}"),
             skipped_at_ns,
