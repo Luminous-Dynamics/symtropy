@@ -336,6 +336,21 @@ impl PowerStream {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PowerStreamReceipt {
+    pub stream_id: String,
+    pub boundary: EnergyBoundary,
+    pub sensor_id: String,
+    pub source_artifact_digest: String,
+    pub calibration_digest: String,
+    pub clock_basis_digest: String,
+    pub configured_maximum_sample_gap_ns: u64,
+    pub observed_maximum_sample_gap_ns: u64,
+    pub first_timestamp_ns: u64,
+    pub last_timestamp_ns: u64,
+    pub sample_count: u128,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BoundaryEnergyLedger {
     pub boundary: EnergyBoundary,
     pub stream_count: u128,
@@ -467,6 +482,7 @@ impl EnergyRun {
 
         let mut stream_ids = BTreeMap::<String, ()>::new();
         let mut ledgers = BTreeMap::<EnergyBoundary, BoundaryEnergyLedger>::new();
+        let mut stream_receipts = Vec::with_capacity(streams.len());
 
         for stream in streams {
             if stream.run_id != self.run_id {
@@ -480,15 +496,32 @@ impl EnergyRun {
             let ledger = ledgers
                 .entry(stream.boundary)
                 .or_insert_with(|| BoundaryEnergyLedger::empty(stream.boundary));
-            ledger.add_stream(
-                positive,
-                negative,
-                u128::try_from(stream.samples.len())
-                    .map_err(|_| EnergyError::ArithmeticOverflow)?,
-            )?;
+            let sample_count = u128::try_from(stream.samples.len())
+                .map_err(|_| EnergyError::ArithmeticOverflow)?;
+            ledger.add_stream(positive, negative, sample_count)?;
+            let observed_maximum_sample_gap_ns = stream
+                .samples
+                .windows(2)
+                .map(|pair| pair[1].timestamp_ns - pair[0].timestamp_ns)
+                .max()
+                .unwrap_or(0);
+            stream_receipts.push(PowerStreamReceipt {
+                stream_id: stream.stream_id.clone(),
+                boundary: stream.boundary,
+                sensor_id: stream.sensor_id.clone(),
+                source_artifact_digest: stream.source_artifact_digest.clone(),
+                calibration_digest: stream.calibration_digest.clone(),
+                clock_basis_digest: stream.clock_basis_digest.clone(),
+                configured_maximum_sample_gap_ns: stream.maximum_sample_gap_ns,
+                observed_maximum_sample_gap_ns,
+                first_timestamp_ns: stream.samples[0].timestamp_ns,
+                last_timestamp_ns: stream.samples[stream.samples.len() - 1].timestamp_ns,
+                sample_count,
+            });
         }
 
         let boundary_ledgers = ledgers.into_values().collect::<Vec<_>>();
+        stream_receipts.sort_by(|left, right| left.stream_id.cmp(&right.stream_id));
         let transport_metrics = self.compute_transport_metrics(&boundary_ledgers)?;
 
         Ok(EnergyRunReport {
@@ -496,7 +529,10 @@ impl EnergyRun {
             robot_digest: self.robot_digest.clone(),
             controller_digest: self.controller_digest.clone(),
             mass_configuration_digest: self.mass_configuration_digest.clone(),
+            mass_mg: self.mass_mg,
+            gravity_um_s2: self.gravity_um_s2,
             measured_path_distance_um: self.measured_path_distance_um,
+            stream_receipts,
             boundary_ledgers,
             transport_metrics,
         })
@@ -562,7 +598,11 @@ pub struct EnergyRunReport {
     pub robot_digest: String,
     pub controller_digest: String,
     pub mass_configuration_digest: String,
+    pub mass_mg: u64,
+    pub gravity_um_s2: u64,
     pub measured_path_distance_um: u64,
+    /// Sorted by stream ID and bound to source, calibration and clock identity.
+    pub stream_receipts: Vec<PowerStreamReceipt>,
     /// Sorted by boundary. No aggregate across nested boundaries is provided.
     pub boundary_ledgers: Vec<BoundaryEnergyLedger>,
     pub transport_metrics: TransportMetrics,
@@ -881,8 +921,8 @@ mod tests {
             "battery",
             EnergyBoundary::BatteryTerminal,
             vec![
-                sample("a", 0, 9_806_650_000_000_000_000),
-                sample("b", 10, 9_806_650_000_000_000_000),
+                sample("a", 0, 9_806_650_000_000_000_000_000),
+                sample("b", 10, 9_806_650_000_000_000_000_000),
             ],
             10,
         );
