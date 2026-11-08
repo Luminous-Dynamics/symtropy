@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 //! Calibrated marginal chance constraints for contact-aware locomotion.
 //!
 //! Five one-sided Gaussian predictive envelopes are combined with a
@@ -207,6 +208,7 @@ pub enum AbstentionReason {
     InvalidVarianceAttribution,
     UnitMismatch,
     InvalidInformationGain,
+    InvalidRiskAllocation,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -308,7 +310,7 @@ fn allocate_bonferroni_alpha(
 /// in 1 - alpha when calculating the upper one-sided quantile.
 fn inverse_standard_normal_lower_tail(alpha_ppb: u64) -> Result<f64, AbstentionReason> {
     if alpha_ppb == 0 || alpha_ppb >= RISK_SCALE_PPB / 2 {
-        return Err(AbstentionReason::InvalidCalibrationReceipt);
+        return Err(AbstentionReason::InvalidRiskAllocation);
     }
     let p = alpha_ppb as f64 / RISK_SCALE_PPB as f64;
     if !p.is_finite() || p <= 0.0 || p >= 0.5 {
@@ -360,11 +362,13 @@ fn required_predictions(
         ordered[index] = Some(prediction);
     }
 
-    let mut result = [&predictions[0]; CONSTRAINT_COUNT];
-    for index in 0..CONSTRAINT_COUNT {
-        result[index] = ordered[index].ok_or(AbstentionReason::PredictionSetIncomplete)?;
-    }
-    Ok(result)
+    Ok([
+        ordered[0].ok_or(AbstentionReason::PredictionSetIncomplete)?,
+        ordered[1].ok_or(AbstentionReason::PredictionSetIncomplete)?,
+        ordered[2].ok_or(AbstentionReason::PredictionSetIncomplete)?,
+        ordered[3].ok_or(AbstentionReason::PredictionSetIncomplete)?,
+        ordered[4].ok_or(AbstentionReason::PredictionSetIncomplete)?,
+    ])
 }
 
 fn calibration_abstention_reason(
