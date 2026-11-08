@@ -130,7 +130,7 @@ pub fn paired_difference_stream(
     }
     const LOOK_SEED_MIX: u64 = 0xd6e8_feb8_6659_fd93;
     let look_seed =
-        scenario_seed(regime, seed_index) ^ (tick as u64).wrapping_mul(LOOK_SEED_MIX);
+        noisy_episode_seed(regime, seed_index) ^ (tick as u64).wrapping_mul(LOOK_SEED_MIX);
     Some(PairedDifferenceStream {
         regime,
         tick,
@@ -281,7 +281,7 @@ fn correction_trace(
     ]
 }
 
-fn scenario_seed(regime: CausalRegime, seed_index: usize) -> u64 {
+pub fn noisy_episode_seed(regime: CausalRegime, seed_index: usize) -> u64 {
     let regime_index = CausalRegime::ALL
         .iter()
         .position(|candidate| *candidate == regime)
