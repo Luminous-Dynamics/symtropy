@@ -18,7 +18,7 @@ The four group-sequential looks are at 512, 1,024, 1,536 and 2,048 pairs. The O'
 
 The reference is stacked on the exact noisy-probe baseline commit `e854d6768443aaa6029aa8532317cd1988663707` (PR #4185). It reuses the baseline regime definitions, SplitMix64/Box-Muller generator and seed schedule. The base seed is `0x43495644594e3236`; each episode seed is the base seed XOR the seed-index multiplier `0x9e3779b97f4a7c15` XOR the regime-index multiplier `0xbf58476d1ce4e5b9`, with 64-bit wrapping arithmetic. The exported stream digest is FNV-1a over the IEEE-754 bit patterns of the paired differences.
 
-Each of the five frozen causal regimes has 256 deterministic seed episodes. Each episode generates exactly 2,048 paired treatment/control differences. Both members of a pair share the same confounder value; their outcome noise is independent Gaussian with standard deviation 2.0. The known variance of a paired difference is therefore 8.0 in this synthetic reference.
+Each of the six frozen endpoint regimes has 256 deterministic seed episodes. Each episode generates exactly 2,048 paired treatment/control differences. Both members of a pair share the same confounder value; their outcome noise is independent Gaussian with standard deviation 2.0. The known variance of a paired difference is therefore 8.0 in this synthetic reference.
 
 All five methods receive the exact same observation stream, verified using a common 64-bit FNV-1a digest. Group-sequential analyses use nested prefixes of that stream, not independently sampled batches. This makes sample-use comparisons fair.
 
@@ -33,6 +33,7 @@ The regime values are endpoint snapshots at tick 8:
 | Gradual sign reversal | -2 | +3 | Harmful effect established |
 | Confounded null | 0 | +5 | Inconclusive |
 | Confounder-only shift | +2 | -3 | Benefit established |
+| Minimum-benefit boundary | +0.5 | +5.5 | Inconclusive |
 
 These endpoint snapshots do not measure temporal diagnosis latency or demonstrate that a controller tracked the entire transition path. Observational association is exported for interpretation but is not used by the paired randomized-effect estimator.
 
@@ -61,7 +62,9 @@ is a nonnegative supermartingale under the corresponding Gaussian composite null
 
 Each direction receives alpha = 0.025, giving an e-value threshold of 40. Ville's inequality controls optional stopping separately for each direction; a union bound controls either directional declaration at 0.05 per episode. This guarantee depends on the declared known-variance Gaussian sampling model. It is not distribution-free.
 
-The 256 simulated episodes are Monte Carlo replications used to estimate operating characteristics. The per-episode alpha guarantee is not a family-wise guarantee across all 256 episodes, all regions, all agents or repeated real-world deployments. Operational use would require explicit multiplicity allocation, recycling or hierarchical testing.
+The zero-effect null and the minimum-benefit boundary are separate confirmatory controls. The first stresses false harmful declarations at effect 0; the second stresses false benefit declarations at the minimum worthwhile effect of 0.5. Each has 256 frozen seed episodes per method. Both are required to remain within the declared false-directional-decision gate.
+
+The 256 simulated episodes per regime are Monte Carlo replications used to estimate operating characteristics. The per-episode alpha guarantee is not a family-wise guarantee across all 256 episodes, all regions, all agents or repeated real-world deployments. Operational use would require explicit multiplicity allocation, recycling or hierarchical testing.
 
 ## Interpretation
 
