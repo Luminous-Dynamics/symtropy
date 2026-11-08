@@ -437,12 +437,10 @@ fn push_unique(set: &mut BTreeSet<u32>, value: u32, label: &str) -> ParseResult<
 }
 
 fn validate_component_digits(value: &str, label: &str) -> ParseResult<()> {
-    if value.is_empty()
-        || !value
-            .bytes()
-            .all(|byte| (b'1'..=b'6').contains(&byte))
-    {
-        return fail(format!("{label}: components must contain only digits 1 through 6"));
+    if value.is_empty() || !value.bytes().all(|byte| (b'1'..=b'6').contains(&byte)) {
+        return fail(format!(
+            "{label}: components must contain only digits 1 through 6"
+        ));
     }
     let bytes = value.as_bytes();
     let mut unique = BTreeSet::new();
@@ -802,8 +800,7 @@ fn build_inventory(deck: &Deck) -> ParseResult<Inventory> {
         )?;
     }
 
-    let (selected_spc_sets, selected_load_sets) =
-        case_control_references(&deck.executive_control)?;
+    let (selected_spc_sets, selected_load_sets) = case_control_references(&deck.executive_control)?;
     for sid in &selected_spc_sets {
         if !inventory.spc_set_ids.contains(sid) {
             return fail(format!("case control selects missing SPC set {sid}"));
