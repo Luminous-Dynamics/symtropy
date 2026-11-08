@@ -36,7 +36,10 @@ impl fmt::Display for SourceSpectrumError {
             Self::NonPositiveWidth => write!(f, "Gaussian width must be strictly positive"),
             Self::NonFiniteWavenumber => write!(f, "wavenumber must be finite"),
             Self::NonFiniteModeGain => write!(f, "intrinsic mode gain must be finite"),
-            Self::NonFiniteResult => write!(f, "source-spectrum calculation overflowed or became non-finite"),
+            Self::NonFiniteResult => write!(
+                f,
+                "source-spectrum calculation overflowed or became non-finite"
+            ),
         }
     }
 }
@@ -117,8 +120,7 @@ impl GaussianCarrier {
         }
         let displacement = x - self.center;
         let envelope = (-0.5 * (displacement / self.width).powi(2)).exp();
-        let value =
-            self.amplitude * envelope * (self.carrier_wavenumber * displacement).cos();
+        let value = self.amplitude * envelope * (self.carrier_wavenumber * displacement).cos();
         if value.is_finite() {
             Ok(value)
         } else {
@@ -148,8 +150,7 @@ impl GaussianCarrier {
         let plus_exponent = plus * plus * (-0.5 * sigma_squared);
         let translation_phase = Complex64::new(0.0, -self.center) * wavenumber;
 
-        let prefactor =
-            self.amplitude * (2.0 * core::f64::consts::PI).sqrt() * self.width * 0.5;
+        let prefactor = self.amplitude * (2.0 * core::f64::consts::PI).sqrt() * self.width * 0.5;
         let result = Complex64::new(prefactor, 0.0)
             * translation_phase.exp()
             * (minus_exponent.exp() + plus_exponent.exp());
@@ -244,9 +245,7 @@ mod tests {
     fn analytic_transform_matches_independent_real_space_quadrature() {
         let profile = source(0.37, 0.8, 2.2);
         let k = 1.35;
-        let analytic = profile
-            .fourier_transform(Complex64::new(k, 0.0))
-            .unwrap();
+        let analytic = profile.fourier_transform(Complex64::new(k, 0.0)).unwrap();
         let numeric = simpson_fourier(profile, k);
         assert!((analytic - numeric).norm() < 2.0e-11);
     }
@@ -256,9 +255,7 @@ mod tests {
         let centered = source(0.0, 0.75, 1.8);
         let translated = source(1.25, 0.75, 1.8);
         let k = 2.1;
-        let a = centered
-            .fourier_transform(Complex64::new(k, 0.0))
-            .unwrap();
+        let a = centered.fourier_transform(Complex64::new(k, 0.0)).unwrap();
         let b = translated
             .fourier_transform(Complex64::new(k, 0.0))
             .unwrap();
@@ -270,9 +267,7 @@ mod tests {
     #[test]
     fn real_profile_has_conjugate_symmetric_fourier_transform() {
         let profile = source(-0.4, 0.9, 2.4);
-        let positive = profile
-            .fourier_transform(Complex64::new(1.7, 0.0))
-            .unwrap();
+        let positive = profile.fourier_transform(Complex64::new(1.7, 0.0)).unwrap();
         let negative = profile
             .fourier_transform(Complex64::new(-1.7, 0.0))
             .unwrap();
@@ -313,14 +308,8 @@ mod tests {
 
     #[test]
     fn source_only_intervention_changes_modal_coefficients_not_mode_locations() {
-        let modes = [
-            Complex64::new(1.5, -0.08),
-            Complex64::new(3.5, -0.12),
-        ];
-        let gains = [
-            Complex64::new(0.7, 0.2),
-            Complex64::new(1.1, -0.1),
-        ];
+        let modes = [Complex64::new(1.5, -0.08), Complex64::new(3.5, -0.12)];
+        let gains = [Complex64::new(0.7, 0.2), Complex64::new(1.1, -0.1)];
         let source_a = source(0.0, 2.0, 1.5);
         let source_b = source(0.0, 2.0, 3.5);
 
@@ -359,8 +348,7 @@ mod tests {
 
         let normalized_narrow =
             GaussianCarrier::new(1.0 / narrow_l2.sqrt(), 0.0, 0.5, 1.8).unwrap();
-        let normalized_broad =
-            GaussianCarrier::new(1.0 / broad_l2.sqrt(), 0.0, 2.0, 1.8).unwrap();
+        let normalized_broad = GaussianCarrier::new(1.0 / broad_l2.sqrt(), 0.0, 2.0, 1.8).unwrap();
         assert!((normalized_narrow.l2_norm_squared().unwrap() - 1.0).abs() < 1.0e-12);
         assert!((normalized_broad.l2_norm_squared().unwrap() - 1.0).abs() < 1.0e-12);
         assert!((normalized_narrow.amplitude() - normalized_broad.amplitude()).abs() > 0.1);
