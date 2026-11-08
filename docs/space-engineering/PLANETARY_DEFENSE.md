@@ -151,6 +151,7 @@ The following active issues already own important shared primitives. Planetary d
 - **Symtropy #1972 / #1737:** retain the historical mission capability ledger and independent verifier as the parent evidence and test infrastructure.
 - **Symtropy #4217 — ASTRODYNAMICS-INTEROP-001:** compare ANISE/hifitime, Nyx and Brahe against frozen SPICE/Horizons/CNEOS references before selecting or implementing a NEO dynamics backend.
 - **Symtropy PR #4219:** adds a frozen DART/Dimorphos reference record and standalone Rust data-contract verifier. Seven Rust tests are authored but not yet reported as run; this is not an orbit or impact-physics simulation.
+- **Symtropy #4264 — HERA-DATA-CLOSURE-001:** independently validate DART response models against Hera observations as calibrated products are released. Keep observations, derived estimates, model outputs and held-out validation separate; do not infer final mass, internal structure or crater physics from first-light/thermal imagery.
 - **Symtropy #4221 / PR #4224:** adds a historical 2008 TC3 terminal-event reconstruction summary. It is explicitly summary-only until original time-sliced astrometry and pre-impact forecast snapshots are frozen.
 - **Symthaea #11112 / Mycelix #5952 / Sol-Atlas #640:** supply decision-value observation planning, astrometric provenance and source-bound uncertainty visualization.
 
