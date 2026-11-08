@@ -193,7 +193,10 @@
     "reference_surface_spacing_m": 0.02,
     "scan_voxel_size_m": 0.01,
     "distance_cutoff_m": 0.1,
-    "normalization": "partial_input_only"
+    "normalization": "partial_input_only",
+    "surface_sampling_algorithm": "uniform_area_halton_v1",
+    "surface_sampling_seed": 42,
+    "surface_sampling_max_samples": 100000
   },
   "metric_profile": {
     "suite_id": "luminous_synthetic_contract_metrics",

@@ -9,6 +9,7 @@ use std::io::Read;
 use std::path::{Component, Path, PathBuf};
 
 pub mod metrics;
+pub mod sampling;
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -139,6 +140,9 @@ struct SamplingProfile {
     scan_voxel_size_m: f64,
     distance_cutoff_m: f64,
     normalization: NormalizationMode,
+    surface_sampling_algorithm: String,
+    surface_sampling_seed: u64,
+    surface_sampling_max_samples: usize,
 }
 
 #[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]
@@ -331,6 +335,9 @@ pub struct ReplayAuditReport {
     pub tolerance_profile_id: String,
     pub requirement_revision: String,
     pub sampling_profile_id: String,
+    pub surface_sampling_algorithm: String,
+    pub surface_sampling_seed: u64,
+    pub surface_sampling_max_samples: usize,
     pub metric_suite_id: String,
     pub metric_suite_version: String,
     pub toolchain: String,
@@ -633,6 +640,17 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
                     .to_owned(),
             );
         }
+    }
+    if manifest.sampling_profile.surface_sampling_algorithm != sampling::SAMPLING_ALGORITHM_ID {
+        return Err(format!(
+            "unsupported surface_sampling_algorithm; expected {}",
+            sampling::SAMPLING_ALGORITHM_ID
+        ));
+    }
+    if manifest.sampling_profile.surface_sampling_max_samples == 0
+        || manifest.sampling_profile.surface_sampling_max_samples > 10_000_000
+    {
+        return Err("surface_sampling_max_samples must be between 1 and 10000000".to_owned());
     }
     if !valid_identifier(&manifest.metric_profile.suite_id)
         || !valid_identifier(&manifest.metric_profile.version)
@@ -1465,6 +1483,9 @@ pub fn audit_manifest_bytes(bytes: &[u8]) -> Result<ReplayAuditReport, String> {
         tolerance_profile_id: manifest.tolerance_profile.profile_id,
         requirement_revision: manifest.tolerance_profile.requirement_revision,
         sampling_profile_id: manifest.sampling_profile.profile_id,
+        surface_sampling_algorithm: manifest.sampling_profile.surface_sampling_algorithm,
+        surface_sampling_seed: manifest.sampling_profile.surface_sampling_seed,
+        surface_sampling_max_samples: manifest.sampling_profile.surface_sampling_max_samples,
         metric_suite_id: manifest.metric_profile.suite_id,
         metric_suite_version: manifest.metric_profile.version,
         toolchain: manifest.candidate_run.toolchain,
@@ -1621,6 +1642,26 @@ mod tests {
         assert!(error.contains("path contains a symlink"));
         let _ = std::fs::remove_dir_all(&temp);
     }
+    #[test]
+    fn rejects_unknown_surface_sampling_algorithm() {
+        let mut value = fixture_value();
+        value["sampling_profile"]["surface_sampling_algorithm"] =
+            serde_json::json!("unversioned_random_points");
+        let error = audit(&value).expect_err("sampler identity must be versioned and closed");
+        assert!(error.contains("unsupported surface_sampling_algorithm"));
+    }
+
+    #[test]
+    fn rejects_zero_or_unbounded_surface_sampling_budget() {
+        let mut value = fixture_value();
+        value["sampling_profile"]["surface_sampling_max_samples"] = serde_json::json!(0);
+        let zero = audit(&value).expect_err("zero sample budget is invalid");
+        assert!(zero.contains("surface_sampling_max_samples"));
+        value["sampling_profile"]["surface_sampling_max_samples"] = serde_json::json!(10_000_001);
+        let excessive = audit(&value).expect_err("sample budget must be bounded");
+        assert!(excessive.contains("surface_sampling_max_samples"));
+    }
+
     #[test]
     fn rejects_reference_derived_normalization_bounds() {
         let mut value = fixture_value();
@@ -1940,6 +1981,9 @@ mod tests {
         assert_eq!(report.evaluator_artifact_count, 2);
         assert_eq!(report.pipeline_id, "synthetic-scan-bim-candidate-v0.2");
         assert_eq!(report.metric_suite_version, "0.3");
+        assert_eq!(report.surface_sampling_algorithm, "uniform_area_halton_v1");
+        assert_eq!(report.surface_sampling_seed, 42);
+        assert_eq!(report.surface_sampling_max_samples, 100_000);
         assert_eq!(report.metric_accuracy_direction, "reference_to_candidate");
         assert_eq!(report.metric_definition_authority, "project_defined");
         assert_eq!(
