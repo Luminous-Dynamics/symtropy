@@ -725,6 +725,13 @@ pub fn run_seeded_confirmatory_benchmark() -> SeededBenchmarkReport {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::OnceLock;
+
+    static REPORT: OnceLock<SeededBenchmarkReport> = OnceLock::new();
+
+    fn report() -> &'static SeededBenchmarkReport {
+        REPORT.get_or_init(run_seeded_confirmatory_benchmark)
+    }
 
     #[test]
     fn random_stream_and_matched_probe_are_seed_reproducible() {
@@ -768,8 +775,9 @@ mod tests {
 
     #[test]
     fn noisy_confirmatory_portfolio_reports_complete_rate_intervals() {
-        let report = run_seeded_confirmatory_benchmark();
+        let report = report();
         assert_eq!(report.rows.len(), 20);
+        assert_eq!(report.replicates.len(), 20_000);
         assert_eq!(report.confirmatory_seed_count, CONFIRMATORY_SEED_COUNT);
         assert!(report.tuning.false_alarm_constraint_met);
         for row in &report.rows {
