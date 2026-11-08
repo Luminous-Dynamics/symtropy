@@ -113,6 +113,46 @@ jobs:
               print "Noisy causal-drift Monte Carlo passed: 1,280 retained episodes; stable false-stops=0; reversal=" reversal_good "/256; gradual=" gradual_good "/256; null=" null_good "/256; confounder-shift=" confounder_good "/256; false sign diagnoses on null=" null_false_sign
             }
           ' /tmp/civdyn-noisy-causal-drift.csv
+      - name: Compare fixed-look and anytime-valid causal probes
+        run: |
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin sequential-probe-comparison > /tmp/civdyn-sequential-probe-comparison.csv
+          awk -F, '
+            NR == 1 { if (NF != 25) exit 50; next }
+            NF != 25 { exit 51 }
+            $2 == "stable_positive" {
+              stable++
+              if ($7 != "" || $9 != "false" || $13 != "8") exit 52
+            }
+            $2 == "sign_reversal" {
+              reversal++
+              if ($7 == "negative_causal_effect" && $8 == "4" && $9 == "true" && $14 == "1") reversal_good++
+            }
+            $2 == "gradual_sign_reversal" {
+              gradual++
+              if ($7 == "negative_causal_effect" && $8 == "6" && $9 == "true" && $14 == "2") gradual_good++
+            }
+            $2 == "confounded_null" {
+              nulls++
+              if ($7 == "effect_not_above_action_threshold" && $8 == "2" && $9 == "true") null_good++
+              if ($7 == "negative_causal_effect") null_false_sign++
+            }
+            $2 == "confounder_shift" {
+              confounder++
+              if ($7 == "confounder_shift_with_beneficial_effect" && $8 == "6" && $9 == "false" && $15 == "0") confounder_good++
+            }
+            END {
+              if (NR != 1281 || stable != 256 || reversal != 256 || gradual != 256 || nulls != 256 || confounder != 256) exit 53
+              if (reversal_good < 250 || gradual_good < 250 || null_good < 250 || confounder_good < 250) exit 54
+              if (null_false_sign > 5) exit 55
+              reduction = 1 - anytime_pairs_total / fixed_pairs_total
+              if (fixed_pairs_total <= 0 || reduction < 0.30) exit 56
+              print "Sequential comparison passed: 1,280 paired episodes; anytime sample reduction=" reduction "; reversal=" reversal_good "/256; gradual=" gradual_good "/256; null=" null_good "/256; confounder=" confounder_good "/256; null false-sign labels=" null_false_sign
+            }
+            {
+              fixed_pairs_total += $6
+              anytime_pairs_total += $10
+            }
+          ' /tmp/civdyn-sequential-probe-comparison.csv
       - name: Verify deterministic CSV contract and known-answer outputs
         run: |
           cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin self-correction-sweep > /tmp/civdyn-self-correction.csv
