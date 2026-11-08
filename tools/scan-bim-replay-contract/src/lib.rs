@@ -1946,6 +1946,10 @@ mod tests {
             report.metric_accuracy_sample_strategy,
             "reference_surface_samples"
         );
+        assert_eq!(
+            report.metric_correspondence_policy,
+            "euclidean_closest_point_on_triangle"
+        );
         assert_eq!(report.tolerance_distance_limit_m, 0.05);
         assert_eq!(report.scenes[0].linear_unit, "metre");
         assert_eq!(report.scenes[0].linear_unit_to_metre_factor, 1.0);
