@@ -144,15 +144,15 @@ impl Matrix {
             return Err(GaussianError::NonFiniteValue);
         }
         let mut result = vec![0.0; self.rows];
-        for row in 0..self.rows {
+        for (row, output) in result.iter_mut().enumerate() {
             let mut sum = 0.0;
-            for column in 0..self.columns {
-                sum += self.get(row, column) * vector[column];
+            for (column, vector_value) in vector.iter().enumerate() {
+                sum += self.get(row, column) * vector_value;
             }
             if !sum.is_finite() {
                 return Err(GaussianError::NonFiniteValue);
             }
-            result[row] = sum;
+            *output = sum;
         }
         Ok(result)
     }
@@ -207,8 +207,8 @@ impl Matrix {
             let mut forward = vec![0.0; dimension];
             for row in 0..dimension {
                 let mut value = if row == column { 1.0 } else { 0.0 };
-                for inner in 0..row {
-                    value -= lower.get(row, inner) * forward[inner];
+                for (inner, forward_value) in forward.iter().enumerate().take(row) {
+                    value -= lower.get(row, inner) * forward_value;
                 }
                 forward[row] = value / lower.get(row, row);
             }
@@ -217,8 +217,8 @@ impl Matrix {
             for reverse in 0..dimension {
                 let row = dimension - 1 - reverse;
                 let mut value = forward[row];
-                for inner in (row + 1)..dimension {
-                    value -= lower.get(inner, row) * solution[inner];
+                for (inner, solution_value) in solution.iter().enumerate().skip(row + 1) {
+                    value -= lower.get(inner, row) * solution_value;
                 }
                 solution[row] = value / lower.get(row, row);
                 if !solution[row].is_finite() {
@@ -226,8 +226,8 @@ impl Matrix {
                 }
             }
 
-            for row in 0..dimension {
-                inverse.set(row, column, solution[row]);
+            for (row, value) in solution.iter().copied().enumerate() {
+                inverse.set(row, column, value);
             }
         }
 
@@ -788,7 +788,7 @@ pub fn select_admissible_pareto(
         if is_dominated {
             assessments[candidate.0].disposition = CandidateDisposition::AdmittedDominated;
         } else {
-            front.push(candidate.clone());
+            front.push(*candidate);
         }
     }
 
