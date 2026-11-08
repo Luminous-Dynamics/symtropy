@@ -6,11 +6,11 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::{env, fs, path::Path, process::ExitCode};
 
-const HEADER: [&str; 18] = [
+const HEADER: [&str; 19] = [
     "case_id", "evidence_class", "pose_case_sha256", "action_library_sha256",
     "pose_ids", "energy_budget_uj", "latency_budget_us", "max_actions",
     "max_ripple_ppm", "min_zvs_margin_permille", "max_service_drop_ppm",
-    "action_id", "energy_cost_uj", "duration_us", "ripple_ppm",
+    "action_id", "action_kind", "energy_cost_uj", "duration_us", "ripple_ppm",
     "zvs_margin_permille", "service_drop_ppm", "outcomes",
 ];
 const MAX_POSES: usize = 16;
@@ -19,6 +19,7 @@ const MAX_ACTIONS: usize = 16;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProbeAction {
     pub id: String,
+    pub kind: String,
     pub energy_uj: u64,
     pub duration_us: u64,
     pub ripple_ppm: u64,
@@ -183,14 +184,22 @@ pub fn parse_case(input: &str) -> Result<ProbeCase, Vec<String>> {
             errors.push(format!("line {line_no}: duplicate action_id {id}"));
             continue;
         }
-        let nums = (12..=16).map(|i| parse_u64(fields[i], &format!("line {line_no} column {}", i + 1)))
-            .collect::<Result<Vec<_>, _>>();
-        let nums = match nums { Ok(v) => v, Err(e) => { errors.push(e); continue; } };
-        if nums[0] == 0 || nums[1] == 0 || nums[3] > 1_000 || nums[4] > 1_000_000 {
-            errors.push(format!("line {line_no}: action energy/duration must be positive and electrical metrics within bounds"));
+        let kind = fields[12];
+        if !["PASSIVE_OBSERVE", "ACTIVE_EXCITATION"].contains(&kind) {
+            errors.push(format!("line {line_no}: unsupported action_kind {kind:?}"));
             continue;
         }
-        let outcomes = match parse_list(fields[17], &format!("line {line_no} outcomes"), |pose_bins, path| {
+        let nums = (13..=17).map(|i| parse_u64(fields[i], &format!("line {line_no} column {}", i + 1)))
+            .collect::<Result<Vec<_>, _>>();
+        let nums = match nums { Ok(v) => v, Err(e) => { errors.push(e); continue; } };
+        if nums[1] == 0
+            || (kind == "ACTIVE_EXCITATION" && nums[0] == 0)
+            || nums[3] > 1_000
+            || nums[4] > 1_000_000 {
+            errors.push(format!("line {line_no}: duration must be positive, active excitation energy must be positive, and electrical metrics must be within bounds"));
+            continue;
+        }
+        let outcomes = match parse_list(fields[18], &format!("line {line_no} outcomes"), |pose_bins, path| {
             let mut bins = BTreeSet::new();
             for (index, value) in pose_bins.split('|').enumerate() {
                 if value.is_empty() || value.trim() != value {
@@ -219,6 +228,7 @@ pub fn parse_case(input: &str) -> Result<ProbeCase, Vec<String>> {
         if let Some(c) = &mut case {
             c.actions.push(ProbeAction {
                 id: id.to_string(),
+                kind: kind.to_string(),
                 energy_uj: nums[0],
                 duration_us: nums[1],
                 ripple_ppm: nums[2],
