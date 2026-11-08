@@ -786,14 +786,15 @@ pub fn update_joint_contact_belief(
             *posterior_value = prior.covariance[row][column] - k_h_p[row][column];
         }
     }
-    for row in 0..CONTACT_STATE_DIM {
-        for column in 0..row {
-            let average =
-                0.5 * (posterior_covariance[row][column] + posterior_covariance[column][row]);
-            posterior_covariance[row][column] = average;
-            posterior_covariance[column][row] = average;
+    let mut symmetric_covariance = posterior_covariance;
+    for (row, row_values) in posterior_covariance.iter().enumerate().skip(1) {
+        for (column, value) in row_values.iter().copied().enumerate().take(row) {
+            let average = 0.5 * (value + posterior_covariance[column][row]);
+            symmetric_covariance[row][column] = average;
+            symmetric_covariance[column][row] = average;
         }
     }
+    posterior_covariance = symmetric_covariance;
     validate_covariance(&posterior_covariance, CONTACT_STATE_DIM)?;
 
     let expected_information_gain_nats = 0.5
