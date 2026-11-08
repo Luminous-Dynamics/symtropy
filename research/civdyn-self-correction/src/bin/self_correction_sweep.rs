@@ -123,7 +123,11 @@ fn delayed_row(outcome: &DelayedExternalityOutcome) -> Vec<String> {
 }
 
 fn emit(fields: Vec<String>) {
-    assert_eq!(fields.len(), CSV_COLUMNS, "self-correction CSV schema changed");
+    assert_eq!(
+        fields.len(),
+        CSV_COLUMNS,
+        "self-correction CSV schema changed"
+    );
     println!("{}", fields.join(","));
 }
 
@@ -161,7 +165,9 @@ mod tests {
     #[test]
     fn portfolio_has_three_controllers_for_each_of_two_scenarios() {
         assert_eq!(
-            run_sensor_drift_portfolio().expect("sensor portfolio").len(),
+            run_sensor_drift_portfolio()
+                .expect("sensor portfolio")
+                .len(),
             ControllerKind::ALL.len()
         );
         assert_eq!(
