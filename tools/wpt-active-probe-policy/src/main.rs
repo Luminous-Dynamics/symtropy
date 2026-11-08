@@ -963,11 +963,15 @@ mod tests {
 
     #[test]
     fn constant_outcomes_produce_abstention() {
-        let bad = FIXTURE
-            .lines()
-            .map(|line| if line.contains("root_split") { line.replace("0,0,1,1", "0,0,0,0") } else { line.to_string() })
-            .collect::<Vec<_>>()
-            .join("\n");
+        let tab = char::from(9);
+        let newline = char::from(10);
+        let mut rows: Vec<String> = FIXTURE.lines().map(str::to_string).collect();
+        for row in rows.iter_mut().skip(1) {
+            let mut fields: Vec<String> = row.split(tab).map(str::to_string).collect();
+            fields[18] = "0,0,0,0".to_string();
+            *row = fields.join(&tab.to_string());
+        }
+        let bad = rows.join(&newline.to_string());
         let c = parse_case(&bad).unwrap();
         assert!(adaptive_plan(&c).is_none());
     }
