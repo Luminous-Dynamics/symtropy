@@ -1,6 +1,6 @@
 # Ersöz–Bosché point-cloud/BIM matching-confidence baseline audit v0.1
 
-**Status:** source inspection completed; exact metric reproduction not yet run.  
+**Status:** source inspection completed; exact metric reproduction not yet run. Source/dependency pins last checked: 2026-11-08.  
 **Primary paper:** Ersöz & Bosché, *Evaluating confidence in geometric matching between 3D point clouds and BIM models by integrating coverage, distance, and distribution metrics*, Automation in Construction 181 (2026), 106636. DOI: https://doi.org/10.1016/j.autcon.2025.106636  
 **Upstream implementation:** https://github.com/CyberbuildLab/pcd-bim-matching-confidence  
 **Pinned source revision inspected:** `ff21962c1c65ae9bfb966f21dfd66af0b8648a19`  
