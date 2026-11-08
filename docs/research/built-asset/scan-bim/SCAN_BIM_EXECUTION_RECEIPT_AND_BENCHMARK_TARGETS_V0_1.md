@@ -57,18 +57,24 @@ Bind reference surface spacing, scan voxel spacing and metric distance cutoff in
 
 ### Metric profile and direction
 
-A metric suite is identified by ID and version, along with scope, accuracy direction, surface buffer and accuracy cutoff. For `isprs_indoor_modelling_wall`, the validator requires:
-- `wall_only` scope;
-- `reference_to_candidate` accuracy direction.
+A metric suite is identified by ID/version, scope, accuracy direction, definition authority, surface buffer and accuracy cutoff. The v0.2 contract uses a typed `definition_authority` to prevent two conflicting published descriptions from being collapsed into one unlabeled “official” scorer:
 
-The current official ISPRS Indoor Modelling results page defines:
+| Definition authority | Direction encoded | Meaning |
+|---|---|---|
+| `official_results_page` | `reference_to_candidate` | Current official leaderboard page: reference-surface samples to closest surface in submitted source model |
+| `final_results_paper_2021` | `candidate_to_reference` | 2021 ISPRS final-results paper equation: submitted source samples to closest reference surface |
+| `bidirectional_diagnostic` | `bidirectional_diagnostic` | Compute and retain both directed distributions; not a substitute for either published definition |
+
+Both sources agree on the other reported measures at the high level:
 - completeness = intersection area / total reference surface area;
 - correctness = intersection area / total submitted source surface area;
-- accuracy = median absolute distance from reference-surface samples to the closest surface in the submitted source model, as a function of cutoff distance.
+- the historical competition reports the metrics for wall elements only.
 
-The results page states the published metrics apply only to wall elements. The official definition resolves the earlier secondary-source wording ambiguity at the specification level. The canonical scorer implementation still must be identified and reproduced before P1 is marked complete. Do not silently replace the source sampling, mesh tessellation, area estimator, buffer rule or curve aggregation with a merely similar implementation.
+The official ISPRS Indoor Modelling results page says accuracy is the median absolute distance from reference-surface samples to the closest surface in the submitted source model, as a function of cutoff distance. The 2021 *Results of the ISPRS benchmark on indoor modelling* paper describes accuracy in its equation as source-surface samples to the closest reference surface. These are opposing directed distances. Treat the website definition as the leaderboard's current displayed specification, but do not claim that this resolves the historical evaluator implementation. A canonical scorer source/code or written clarification from the benchmark maintainers is still required before P1 can choose one direction for exact historical reproduction. Until then, retain both directions as explicitly labelled diagnostics and do not relabel either one as the other.
 
-Source: https://isprs.org/resources/datasets/benchmarks/IndoorModeling/results.aspx
+Sources:
+- Official results page: https://isprs.org/resources/datasets/benchmarks/IndoorModeling/results.aspx
+- 2021 final-results paper: https://www.sciencedirect.com/science/article/pii/S2667393221000089
 
 ## 2026 research frontier and the real competitive targets
 
