@@ -24,6 +24,7 @@ pub struct ReplayManifest {
     tolerance_profile: ToleranceProfile,
     sampling_profile: SamplingProfile,
     metric_profile: MetricProfile,
+    matching_confidence: MatchingConfidenceProfileRecord,
     candidate_outputs: Vec<CandidateOutputArtifact>,
     scenes: Vec<SceneRecord>,
 }
@@ -214,6 +215,22 @@ enum MetricCorrespondencePolicy {
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
+struct MatchingConfidenceProfileRecord {
+    profile: MatchingConfidenceProfileId,
+    upstream_commit_sha: Option<String>,
+    matching_radius_m: f64,
+    coarse_obb_expansion_m: f64,
+}
+
+#[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum MatchingConfidenceProfileId {
+    PaperTextV1,
+    UpstreamCodeFf21962V1,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 struct CandidateOutputArtifact {
     artifact_id: String,
     scene_id: String,
@@ -341,6 +358,10 @@ pub struct ReplayAuditReport {
     pub surface_sampling_max_samples: usize,
     pub metric_suite_id: String,
     pub metric_suite_version: String,
+    pub matching_confidence_profile: String,
+    pub matching_confidence_upstream_commit_sha: Option<String>,
+    pub matching_radius_m: f64,
+    pub coarse_obb_expansion_m: f64,
     pub toolchain: String,
     pub command: Vec<String>,
     pub executable_sha256: String,
@@ -529,8 +550,8 @@ fn valid_identifier(value: &str) -> bool {
 }
 
 fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
-    if manifest.schema_version != "0.3" {
-        return Err("unsupported schema_version; expected 0.3".to_owned());
+    if manifest.schema_version != "0.4" {
+        return Err("unsupported schema_version; expected 0.4".to_owned());
     }
     if !valid_identifier(&manifest.replay_id) {
         return Err("replay_id must be non-empty".to_owned());
@@ -642,6 +663,37 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
             );
         }
     }
+    let matching = &manifest.matching_confidence;
+    if !matching.matching_radius_m.is_finite()
+        || matching.matching_radius_m <= 0.0
+        || !matching.coarse_obb_expansion_m.is_finite()
+        || matching.coarse_obb_expansion_m <= 0.0
+    {
+        return Err(
+            "matching confidence radius and coarse OBB expansion must be finite positive metres"
+                .to_owned(),
+        );
+    }
+    match matching.profile {
+        MatchingConfidenceProfileId::PaperTextV1 => {
+            if matching.upstream_commit_sha.is_some() {
+                return Err(
+                    "paper_text_v1 must not claim a released-code upstream commit".to_owned(),
+                );
+            }
+        }
+        MatchingConfidenceProfileId::UpstreamCodeFf21962V1 => {
+            if matching.upstream_commit_sha.as_deref()
+                != Some("ff21962c1c65ae9bfb966f21dfd66af0b8648a19")
+            {
+                return Err(
+                    "upstream_code_ff21962_v1 must bind the pinned upstream commit ff21962c1c65ae9bfb966f21dfd66af0b8648a19"
+                        .to_owned(),
+                );
+            }
+        }
+    }
+
     if manifest.sampling_profile.surface_sampling_algorithm != sampling::SAMPLING_ALGORITHM_ID {
         return Err(format!(
             "unsupported surface_sampling_algorithm; expected {}",
@@ -1489,6 +1541,14 @@ pub fn audit_manifest_bytes(bytes: &[u8]) -> Result<ReplayAuditReport, String> {
         surface_sampling_max_samples: manifest.sampling_profile.surface_sampling_max_samples,
         metric_suite_id: manifest.metric_profile.suite_id,
         metric_suite_version: manifest.metric_profile.version,
+        matching_confidence_profile: match manifest.matching_confidence.profile {
+            MatchingConfidenceProfileId::PaperTextV1 => "paper_text_v1",
+            MatchingConfidenceProfileId::UpstreamCodeFf21962V1 => "upstream_code_ff21962_v1",
+        }
+        .to_owned(),
+        matching_confidence_upstream_commit_sha: manifest.matching_confidence.upstream_commit_sha,
+        matching_radius_m: manifest.matching_confidence.matching_radius_m,
+        coarse_obb_expansion_m: manifest.matching_confidence.coarse_obb_expansion_m,
         toolchain: manifest.candidate_run.toolchain,
         command: manifest.candidate_run.command,
         executable_sha256,
@@ -1661,6 +1721,30 @@ mod tests {
         value["sampling_profile"]["surface_sampling_max_samples"] = serde_json::json!(10_000_001);
         let excessive = audit(&value).expect_err("sample budget must be bounded");
         assert!(excessive.contains("surface_sampling_max_samples"));
+    }
+
+    #[test]
+    fn requires_pinned_source_commit_for_upstream_matching_profile() {
+        let mut value = fixture_value();
+        value["matching_confidence"]["profile"] =
+            serde_json::json!("upstream_code_ff21962_v1");
+        value["matching_confidence"]["upstream_commit_sha"] =
+            serde_json::json!("1111111111111111111111111111111111111111");
+        let error = audit(&value).expect_err("upstream profile must pin its released implementation");
+        assert!(error.contains("must bind the pinned upstream commit"));
+    }
+
+    #[test]
+    fn rejects_zero_matching_radius_and_coarse_expansion() {
+        let mut value = fixture_value();
+        value["matching_confidence"]["matching_radius_m"] = serde_json::json!(0.0);
+        let error = audit(&value).expect_err("matching radius must be positive");
+        assert!(error.contains("matching confidence radius"));
+
+        value["matching_confidence"]["matching_radius_m"] = serde_json::json!(0.05);
+        value["matching_confidence"]["coarse_obb_expansion_m"] = serde_json::json!(0.0);
+        let error = audit(&value).expect_err("coarse OBB expansion must be positive");
+        assert!(error.contains("matching confidence radius"));
     }
 
     #[test]
@@ -1982,6 +2066,16 @@ mod tests {
         assert_eq!(report.evaluator_artifact_count, 2);
         assert_eq!(report.pipeline_id, "synthetic-scan-bim-candidate-v0.2");
         assert_eq!(report.metric_suite_version, "0.3");
+        assert_eq!(
+            report.matching_confidence_profile,
+            "upstream_code_ff21962_v1"
+        );
+        assert_eq!(
+            report.matching_confidence_upstream_commit_sha.as_deref(),
+            Some("ff21962c1c65ae9bfb966f21dfd66af0b8648a19")
+        );
+        assert_eq!(report.matching_radius_m, 0.05);
+        assert_eq!(report.coarse_obb_expansion_m, 0.1);
         assert_eq!(report.surface_sampling_algorithm, "uniform_area_halton_v1");
         assert_eq!(report.surface_sampling_seed, 42);
         assert_eq!(report.surface_sampling_max_samples, 100_000);
