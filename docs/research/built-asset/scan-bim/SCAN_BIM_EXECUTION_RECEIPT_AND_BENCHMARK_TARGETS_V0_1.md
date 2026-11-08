@@ -14,7 +14,7 @@ The receipt must make this chain replayable:
 
 This does not mean the receipt proves the physical building is correct. It proves which inputs, software identity, declared parameters and output bytes were evaluated. Physical accuracy still depends on reference quality, independent metrology, the metric implementation and the task-specific acceptance authority.
 
-## Manifest v0.2 contract
+## Manifest v0.3 contract
 
 The Rust contract extends the previous v0.1 metadata/visibility manifest with:
 
@@ -41,7 +41,7 @@ Every scene declares:
 - vertical datum identity;
 - an artifact ID for the scene's registration transform, which must resolve to a typed candidate `registration_metadata` artifact whose exact bytes are verified under the candidate root.
 
-The tolerance and sampling profiles use canonical metres. This avoids silently comparing a 50 mm tolerance with a coordinate frame expressed in feet or millimetres. The verifier records units and emits an explicit unit-to-metre conversion factor (1.0, 0.001 or 0.3048 for the supported units); it does not transform coordinates or prove that the submitted CRS/transform is physically correct. Transform metadata is byte-bound, not independently surveyed. Coordinate transformation artifacts and survey control belong to #1607. Coordinate transformation artifacts and survey control belong to #1607.
+The tolerance and sampling profiles use canonical metres. This avoids silently comparing a 50 mm tolerance with a coordinate frame expressed in feet or millimetres. The verifier records units and emits an explicit unit-to-metre conversion factor (1.0, 0.001 or 0.3048 for the supported units); it does not transform coordinates or prove that the submitted CRS/transform is physically correct. Transform metadata is byte-bound, not independently surveyed. Coordinate transformation artifacts and survey control belong to #1607.
 
 ### Tolerance profile
 
@@ -58,24 +58,28 @@ Bind reference surface spacing, scan voxel spacing and metric distance cutoff in
 
 ### Metric profile and direction
 
-A metric suite is identified by ID/version, scope, accuracy direction, definition authority, surface buffer and accuracy cutoff. The v0.2 contract uses a typed `definition_authority` to prevent two conflicting published descriptions from being collapsed into one unlabeled “official” scorer:
+A metric suite is identified by ID/version, scope, accuracy direction, definition authority, sample strategy, surface buffer and accuracy cutoff. The v0.3 contract prevents three published descriptions from being collapsed into one unlabeled “official” score:
 
-| Definition authority | Direction encoded | Meaning |
+| Definition authority | Direction | Sample strategy / correspondence |
 |---|---|---|
-| `official_results_page` | `reference_to_candidate` | Current official leaderboard page: reference-surface samples to closest surface in submitted source model |
-| `final_results_paper_2021` | `candidate_to_reference` | 2021 ISPRS final-results paper equation: submitted source samples to closest reference surface |
-| `bidirectional_diagnostic` | `bidirectional_diagnostic` | Compute and retain both directed distributions; not a substitute for either published definition |
+| `official_results_page` | reference → candidate | Reference-surface samples to closest submitted source-model surface |
+| `evaluation_framework2018` | candidate → reference | Source-model vertices projected to closest observable reference surface plane; projection must fall within the reference surface boundary |
+| `final_results_paper_2021` | candidate → reference | Source-surface sample points to closest reference surface plane |
+| `bidirectional_diagnostic` | both directions | Retain two directed distributions separately; not an official score |
 
-Both sources agree on the other reported measures at the high level:
-- completeness = intersection area / total reference surface area;
-- correctness = intersection area / total submitted source surface area;
-- the historical competition reports the metrics for wall elements only.
+The 2018 framework is especially specific: it excludes interpreted reference surfaces, chooses the closest observable reference plane, requires the orthogonal projection to fall inside the surface boundary, and applies a distance cut-off before taking the median. The 2021 final-results paper uses source-surface sample points to closest reference surface planes. The current results page, however, defines accuracy in the reverse direction, using reference-surface samples to the submitted source model. All three describe the historic wall-only metric family, but the reference page's direction conflicts with both methodological papers, and even the papers differ in sample population.
 
-The official ISPRS Indoor Modelling results page says accuracy is the median absolute distance from reference-surface samples to the closest surface in the submitted source model, as a function of cutoff distance. The 2021 *Results of the ISPRS benchmark on indoor modelling* paper describes accuracy in its equation as source-surface samples to the closest reference surface. These are opposing directed distances. Treat the website definition as the leaderboard's current displayed specification, but do not claim that this resolves the historical evaluator implementation. A canonical scorer source/code or written clarification from the benchmark maintainers is still required before P1 can choose one direction for exact historical reproduction. Until then, retain both directions as explicitly labelled diagnostics and do not relabel either one as the other.
+The v0.3 schema binds `definition_authority`, `accuracy_direction` and `sample_strategy` as one validated tuple. It does not claim that the current leaderboard page alone proves which implementation generated the historical tables. P1 must reproduce the 2018 and 2021 named methodology profiles, compare the current results-page profile, and seek the canonical scorer or maintainer clarification. Until then, keep both directed distances and their sample strategies explicit. Do not average directions or silently relabel one as the other.
+
+Completeness and correctness are area-based:
+- completeness = buffered source/reference surface intersection area / total observable reference surface area;
+- correctness = buffered source/reference surface intersection area / total source surface area;
+- both vary with buffer size and only compatible/parallel surfaces are counted in each intersection calculation (2018 framework).
 
 Sources:
-- Official results page: https://isprs.org/resources/datasets/benchmarks/IndoorModeling/results.aspx
-- 2021 final-results paper: https://www.sciencedirect.com/science/article/pii/S2667393221000089
+- Current official results page: https://isprs.org/resources/datasets/benchmarks/IndoorModeling/results.aspx
+- 2018 evaluation framework: https://doi.org/10.5194/isprs-archives-XLII-4-297-2018
+- 2021 final-results paper: https://doi.org/10.1016/j.ophoto.2021.100008
 
 ## 2026 research frontier and the real competitive targets
 
