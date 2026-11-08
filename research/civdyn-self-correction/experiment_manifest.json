@@ -229,7 +229,22 @@
     "missed_beneficial_action_ticks",
     "signal_change_detected",
     "signal_detection_tick",
-    "diagnosis_tick"
+    "diagnosis_tick",
+    "signal_alarm_rate",
+    "signal_alarm_wilson_lower_95",
+    "signal_alarm_wilson_upper_95",
+    "correct_diagnosis_rate",
+    "diagnosis_wilson_lower_95",
+    "diagnosis_wilson_upper_95",
+    "false_diagnosis_count",
+    "missed_diagnosis_count",
+    "mean_nonpositive_effect_action_ticks",
+    "mean_missed_beneficial_action_ticks",
+    "mean_probe_count",
+    "net_utility_ci_lower_95",
+    "net_utility_ci_upper_95",
+    "development_false_alarm_count",
+    "confirmatory_replicate_seed"
   ],
   "claim_ceiling": [
     "The scenarios and all quantities are synthetic and not calibrated to a real catchment or society.",
@@ -238,5 +253,110 @@
     "A paired deterministic counterfactual is a software control, not empirical causal identification.",
     "The benchmark does not model biodiversity, environmental flows, distributional justice beyond named service groups, institutional legitimacy or ecological health.",
     "No SOTA or real-world policy effectiveness claim is made."
-  ]
+  ],
+  "seeded_confirmatory": {
+    "version": "0.1.0",
+    "status": "synthetic_noise_aware_confirmatory",
+    "regime_count": 5,
+    "controller_count": 4,
+    "development_seeds": {
+      "start": 1,
+      "count": 512
+    },
+    "confirmatory_seeds": {
+      "start": 10001,
+      "count": 1000,
+      "disjoint_from_development": true
+    },
+    "confirmatory_cells": 20,
+    "confirmatory_replicates": 20000,
+    "random_generator": {
+      "algorithm": "xorshift64star",
+      "seed_derivation": "documented deterministic 64-bit mixing with independent observation, covariate, and probe streams",
+      "all_seeds_retained": true
+    },
+    "noise_model": {
+      "observational_association": "uniform[-2,+2]",
+      "measured_covariate": "uniform[-1,+1]",
+      "each_matched_arm_outcome": "independent uniform[-2,+2]",
+      "matched_probe_pairs": 256,
+      "common_cause_matched_within_pair": true,
+      "probes_on_one_based_ticks": [
+        2,
+        4,
+        6,
+        8
+      ]
+    },
+    "probe_decision": {
+      "confidence_interval": "sample mean +/- 1.96 * sample standard error",
+      "beneficial": "lower_95 > +0.5",
+      "harmful": "upper_95 < -0.5",
+      "null_equivalent": "lower_95 > -0.5 AND upper_95 < +0.5",
+      "otherwise": "uncertain_abstain"
+    },
+    "cusum_tuning": {
+      "candidate_grid": [
+        [
+          2.25,
+          2.5
+        ],
+        [
+          2.25,
+          3
+        ],
+        [
+          2.25,
+          3.5
+        ],
+        [
+          2,
+          3.5
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          2,
+          4.5
+        ],
+        [
+          2,
+          5
+        ],
+        [
+          1.75,
+          5
+        ],
+        [
+          1.5,
+          6
+        ]
+      ],
+      "stable_positive_max_development_false_alarms": 1,
+      "detection_score": "mean signal detection rate over sign reversal, gradual sign reversal, and confounder shift",
+      "tuning_only_on_development_seeds": true,
+      "selected_parameters_frozen_before_confirmatory": true
+    },
+    "summary_statistics": {
+      "proportion_intervals": "Wilson 95% intervals",
+      "mean_utility_interval": "normal-approximation 95% interval over confirmatory seeds",
+      "uncertainty_scope": "finite-seed Monte Carlo variation only; excludes scenario-generator and real-world model uncertainty"
+    },
+    "exports": {
+      "summary_binary": "seeded-drift-sweep",
+      "summary_rows": 20,
+      "replicate_binary": "seeded-drift-replicates",
+      "replicate_rows": 20000
+    },
+    "claim_ceiling": [
+      "This is a seeded synthetic stress test, not a benchmark run on real social, economic, ecological, or participant data.",
+      "The deterministic pseudo-random stream and disjoint seeds establish reproducibility and tuning/evaluation separation, not representativeness.",
+      "CUSUM tuning is specific to the declared bounded-noise generator and is not a result on the KDD 2026 detector benchmark.",
+      "Matched probe intervals are model-based under the declared uniform error law and do not establish empirical causal identification.",
+      "Wilson and normal-approximation intervals capture finite replicate variation under the generator; they do not cover structural uncertainty or misspecification.",
+      "No SOTA superiority or real-world policy-effectiveness claim is made."
+    ]
+  }
 }
