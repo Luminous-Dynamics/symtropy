@@ -1,0 +1,175 @@
+{
+  "schema_version": 1,
+  "case_id": "SOURCE-LANGENFELD-BUGBEE-LETTUCE-ZERO-DISCHARGE-2026-001",
+  "source": {
+    "title": "Using mass-balance principles to optimize nutrition of lettuce",
+    "authors": "Noah James Langenfeld and Bruce Bugbee",
+    "journal": "Frontiers in Plant Science 17",
+    "publication_date": "2026-08-10",
+    "doi": "10.3389/fpls.2026.1885837",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC13500615/"
+  },
+  "system_design": {
+    "system_type": "Deep-water culture hydroponics in a glass greenhouse",
+    "container_volume_l": 56,
+    "plants_per_container": 8,
+    "cultivars": [
+      "Grand Rapids",
+      "Red Sails",
+      "Rex"
+    ],
+    "cultivar_units": "One cultivar community per container; the methods report n=1 container for each cultivar",
+    "aeration_l_min_container": 5,
+    "solution_replacement_policy": "Long-running zero-discharge treatments retained solution across harvests; Study 3 also included a solution-replacement treatment after each harvest.",
+    "replication_note": "The source describes one eight-plant community per cultivar container. It does not document independently replicated reservoir units per cultivar/treatment sufficient for a treatment-level generalization."
+  },
+  "experimental_unit_audit": {
+    "treatment_assignment_unit": "Reservoir/container containing one cultivar community",
+    "independent_reservoir_replicates_reported": 1,
+    "plants_are_subsamples": true,
+    "cycles_are_repeated_measures": true,
+    "source_author_pseudoreplication_note": "The article explicitly says plotted statistics were tested among pseudoreplicates (n=3 cultivars) and calls for future replication to eliminate pseudoreplication.",
+    "reported_plot_n": 3
+  },
+  "environmental_envelope": {
+    "temperature_day_night_c": [
+      25,
+      20
+    ],
+    "relative_humidity_mean_percent": 50,
+    "relative_humidity_spread_percent": 20,
+    "dli_range_mol_m2_day": [
+      25,
+      40
+    ],
+    "photoperiod_h": 16,
+    "wue_recipe_value_g_dry_matter_l_transpired_water": 3,
+    "wue_assumption_context": "The refill recipe used a WUE of 3 g dry biomass per litre transpired water; the article describes this as typical around 450 ppm CO2, 50% RH, daytime VPD ~1.5 kPa at 25 C. Actual WUE varied by cultivar and crop cycle.",
+    "elevated_co2_wue_note": "The discussion cites that WUE in elevated-CO2 indoor environments can be as high as 6 g/L. This is not a direct elevated-CO2 treatment outcome in this experiment; it is a transfer challenge."
+  },
+  "management_arms": [
+    {
+      "arm_id": "STUDY-1",
+      "policy": "Mass-balance refill recipe, no nutrient solution replacement, repeated plantings",
+      "evidence_status": "SOURCE_REPORTED"
+    },
+    {
+      "arm_id": "STUDY-2",
+      "policy": "Adjusted mass-balance recipe to reduce accumulation of Ca/Mg/S/B/Cu while maintaining crop nutrition",
+      "evidence_status": "SOURCE_REPORTED"
+    },
+    {
+      "arm_id": "STUDY-3-ZD",
+      "policy": "Zero-discharge mass-balance solution retained across harvest cycles",
+      "evidence_status": "SOURCE_REPORTED"
+    },
+    {
+      "arm_id": "STUDY-3-SR",
+      "policy": "Solution replacement after each harvest to reset EC",
+      "evidence_status": "SOURCE_REPORTED"
+    },
+    {
+      "arm_id": "PROPOSED-ADAPTIVE",
+      "policy": "Independently replicated mass-balance recipe updated from per-loop tissue assays, transpiration and environmental data",
+      "evidence_status": "PROPOSED_REPLICATION"
+    },
+    {
+      "arm_id": "PROPOSED-HYBRID",
+      "policy": "Adaptive mass balance with residual-triggered independent ISE or laboratory sentinel assays",
+      "evidence_status": "PROPOSED_REPLICATION"
+    }
+  ],
+  "reported_results": {
+    "study_periods": [
+      {
+        "study_id": "STUDY-1",
+        "cycles": 25,
+        "cycle_days": 28,
+        "campaign_days": 707,
+        "planting_period": "January 2022 to March 2024"
+      },
+      {
+        "study_id": "STUDY-2",
+        "cycles": 7,
+        "cycle_days": 28,
+        "campaign_days": 196,
+        "planting_period": "January to August 2023"
+      },
+      {
+        "study_id": "STUDY-3",
+        "cycles": 9,
+        "cycle_days": 28,
+        "campaign_days": 252,
+        "planting_period": "March to December 2024"
+      }
+    ],
+    "zero_discharge_reported": true,
+    "yield_and_wue_difference_reported": "The authors report no difference in yield, WUE or mass-balance recovery between zero-discharge and solution-replacement management in Study 3.",
+    "mass_balance_recovery": [
+      {
+        "element": "Most measured elements (pooled study-three analysis)",
+        "reported_recovery_percent": 100,
+        "interpretation": "Reported as 100 ±10% for most elements; the published abstract describes most elements above 90%.",
+        "evidence_status": "SOURCE_REPORTED"
+      },
+      {
+        "element": "Zinc",
+        "reported_recovery_percent": 116,
+        "interpretation": "Authors attributed over-recovery to zinc contamination in the fresh nutrient solution.",
+        "evidence_status": "SOURCE_REPORTED"
+      },
+      {
+        "element": "Silicon",
+        "reported_recovery_percent": 88,
+        "interpretation": "Below 90%; possible precipitation / interaction discussed.",
+        "evidence_status": "SOURCE_REPORTED"
+      },
+      {
+        "element": "Molybdenum",
+        "reported_recovery_percent": 86,
+        "interpretation": "Low solution concentrations and analytical detection limits may affect recovery.",
+        "evidence_status": "SOURCE_REPORTED"
+      },
+      {
+        "element": "Manganese",
+        "reported_recovery_percent": 50,
+        "interpretation": "Large apparent deficit; authors discuss active uptake, precipitation and analytical limitations; mechanism not fully resolved.",
+        "evidence_status": "SOURCE_REPORTED"
+      }
+    ],
+    "non_significant_control_result": "Solution replacement after harvest did not significantly increase yield, WUE or nutrient uptake in the reported Study 3 comparison; the source does not demonstrate independent multi-reservoir treatment replication.",
+    "evidence_status": "PUBLISHED_RESULT"
+  },
+  "measurement_and_missingness": {
+    "solution_assay_method": "ICP-OES for elemental solution concentrations; nitrate-N by cadmium-reduction flow-injection analysis.",
+    "tissue_assay_method": "Tissue digestion and ICP-OES; total tissue N by combustion. Plant tissues separated into roots, young leaves and (Study 3) mature leaves.",
+    "ph_control_input_accounting": "pH control solution contributed N and, in early studies, S; these additions were included in the source's N input calculation and must remain part of every replication ledger.",
+    "source_reported_missing_or_estimated_values": [
+      "Mature leaf tissue was not analyzed in Studies 1 and 2.",
+      "In Study 3, mature leaf tissue was not analyzed for the first harvest due to a harvesting error and estimated from later plantings.",
+      "Study 3 solution was not analyzed after the third harvest and was interpolated between the second and fourth plantings."
+    ],
+    "boundary_caveats": [
+      "The study used one container per cultivar community (n=1) and explicitly recognizes pseudoreplication.",
+      "The 56 L reservoir has a high solution-volume-to-cultivation-area ratio and high nutrient buffering; this differs from smaller-volume systems.",
+      "Actual DLI ranged 25–40 mol m^-2 d^-1, which the authors state is higher than typical commercial production.",
+      "Relative humidity was not controlled and averaged 50% ±20%; VPD varied.",
+      "Zero liquid discharge does not independently prove zero gaseous nutrient loss or complete elemental closure.",
+      "Substrate adsorption/desorption and NFT hydraulics were not tested in this DWC experiment."
+    ]
+  },
+  "replication_requirements": [
+    "Use multiple independently controlled reservoir loops per treatment and cultivar; determine count with pilot variance and prospective power analysis.",
+    "Treat plants as subsamples within a reservoir and crop cycles as repeated measures.",
+    "Randomize treatment across independent reservoirs and block by chamber/rack/environment.",
+    "Use at least one held-out cultivar × environment combination for transfer evaluation.",
+    "Pre-register one primary treatment contrast, minimum useful effect and non-inferiority limits for yield and tissue adequacy.",
+    "Measure DLI, VPD, CO2, temperature, transpiration and dry biomass; do not assume WUE remains 3 g/L outside its qualified envelope.",
+    "Account for all pH dosing, fertilizer, source-water, sample, tissue, residual, purge and discharge streams by element.",
+    "Measure roots, young leaves and mature leaves for whole-plant nutrient accounting where biologically appropriate.",
+    "Preserve ICP-OES / laboratory reference assays, ISE calibration, detection limit, uncertainty and raw trace.",
+    "Retain apparent over-recovery, under-recovery and unknown fractions as diagnostic residuals; do not relabel them as plant uptake.",
+    "Do not claim food safety or microbial containment from nutrient mass balance."
+  ],
+  "claim_ceiling": "Published single-greenhouse DWC result with one container per cultivar community and source-reported long-run cycles. The fixture is a literature audit and replication requirement, not independent proof of generalizable multi-facility zero-discharge performance."
+}
