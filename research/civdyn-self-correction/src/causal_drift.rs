@@ -86,7 +86,7 @@ pub struct CausalDriftOutcome {
     pub net_utility: f64,
     pub oracle_net_utility: f64,
     pub regret_to_oracle: f64,
-    pub false_causal_attribution: bool,
+    pub proxy_driven_action_under_nonpositive_effect: bool,
     pub mechanism_identified: bool,
     pub diagnosis: Option<CausalDiagnosis>,
     pub detection_tick: Option<usize>,
@@ -225,7 +225,7 @@ pub fn run_causal_drift_scenario(
     let mut diagnosis = None;
     let mut detection_tick = None;
     let mut trace = Vec::new();
-    let mut false_causal_attribution = false;
+    let mut proxy_driven_action_under_nonpositive_effect = false;
     let mut final_true_causal_effect = 0.0;
     let mut final_observational_association = 0.0;
 
@@ -244,7 +244,7 @@ pub fn run_causal_drift_scenario(
                 if controller == ControllerKind::OutcomeReactive
                     && observed_association > 0.0
                 {
-                    false_causal_attribution = true;
+                    proxy_driven_action_under_nonpositive_effect = true;
                 }
             }
         }
@@ -301,7 +301,7 @@ pub fn run_causal_drift_scenario(
         net_utility,
         oracle_net_utility,
         regret_to_oracle: oracle_net_utility - net_utility,
-        false_causal_attribution,
+        proxy_driven_action_under_nonpositive_effect,
         mechanism_identified: diagnosis.is_some(),
         diagnosis,
         detection_tick,
@@ -337,7 +337,7 @@ mod tests {
         );
         assert_eq!(outcome.final_true_causal_effect, -3.0);
         assert_eq!(outcome.final_observational_association, 2.0);
-        assert!(outcome.false_causal_attribution);
+        assert!(outcome.proxy_driven_action_under_nonpositive_effect);
         assert_eq!(outcome.active_after_nonpositive_effect_ticks, 5);
     }
 
@@ -433,7 +433,7 @@ mod tests {
             CausalRegime::ConfoundedNull,
             ControllerKind::OutcomeReactive,
         );
-        assert!(outcome.false_causal_attribution);
+        assert!(outcome.proxy_driven_action_under_nonpositive_effect);
         assert_eq!(outcome.active_ticks, CAUSAL_DRIFT_TICKS);
         assert_eq!(outcome.final_true_causal_effect, 0.0);
         assert_eq!(outcome.final_observational_association, 5.0);
