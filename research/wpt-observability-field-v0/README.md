@@ -12,7 +12,7 @@ This is a mathematical software oracle for a fixed lateral pose grid. It is not 
 
 - Pose grid: -100, -50, 0, +50 and +100 mm on one lateral axis.
 - Global alias test separation: 100 mm.
-- Two normalized sensor features per pose; each feature has declared standard deviation 1.
+- Two normalized sensor features per pose; each feature has declared standard deviation 0.1.
 - A pose pair is an alias when its normalized signature distance is at or below 1.5.
 - Local scalar Fisher information uses finite differences per sample and reports the minimum across the grid.
 - Service and off-target values are dimensionless synthetic indices. Values 350 and 315 are not watts; values 35 and 32 are not field-strength or exposure units.
