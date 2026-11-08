@@ -136,10 +136,16 @@ impl fmt::Display for CalcError {
                 write!(f, "interval date does not match the declared billing month")
             }
             Self::DayClassDoesNotMatchDate => {
-                write!(f, "declared tariff day class does not match the Gregorian local date")
+                write!(
+                    f,
+                    "declared tariff day class does not match the Gregorian local date"
+                )
             }
             Self::PublicHolidayEvidenceMissing => {
-                write!(f, "weekday classified as Saturday/public holiday requires date-specific holiday evidence")
+                write!(
+                    f,
+                    "weekday classified as Saturday/public holiday requires date-specific holiday evidence"
+                )
             }
             Self::InvalidInterval => write!(
                 f,
@@ -494,8 +500,8 @@ fn weekday_monday_zero(year: i32, month: u8, day: u8) -> u8 {
         % 7;
 
     match zeller {
-        0 => 5, // Saturday
-        1 => 6, // Sunday
+        0 => 5,                  // Saturday
+        1 => 6,                  // Sunday
         _ => (zeller - 2) as u8, // Monday through Friday
     }
 }
@@ -1550,7 +1556,6 @@ mod tests {
             CalcError::DateOutsideBillingMonth
         );
     }
-
 
     #[test]
     fn date_and_day_class_must_agree() {
