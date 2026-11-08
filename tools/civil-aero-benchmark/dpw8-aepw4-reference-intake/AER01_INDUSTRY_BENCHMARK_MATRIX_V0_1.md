@@ -28,6 +28,15 @@ The NASA and community references establish that aircraft sizing, multidisciplin
 - **ShapeBench** reports 103 aerodynamic optimization tasks over eight shape categories and mean pairwise optimizer-ranking Spearman correlation of 0.013 across environments. This makes cross-category validation essential.
 - **BOCoDe** reports 307 black-box optimization tasks, including 159 engineering problems, and compares 31 methods across five main problem classes. Use the existing Symtropy BOCoDe interoperability/reproduction protocol for its prescribed budgets, seed counts and all-attempt ledger; do not create a weakened local imitation and call it an official reproduction.
 
+### Verification, uncertainty and dynamic-MDAO reference context
+
+- **NASA-STD-7009B** is the active NASA standard for models and simulations. **NASA-HDBK-7009B Version B** (published 3 February 2026) is its public implementation handbook. AER-01 should borrow the disciplined acceptance-criteria, credibility and reporting structure, but must not imply NASA approval or compliance merely by adopting similar fields.
+- **ASME V&V 10-2019 (R2025)** is the solid-mechanics V&V reference; **ASME V&V 20** addresses CFD/heat-transfer validation; **ASME VVUQ 20.1-2024** describes multivariate validation metrics for correlated responses. PR #4195 implements a separately disclosed response-vector diagnostic inspired by that problem class; it is not a reproduction or compliance claim for the proprietary ASME standard.
+- **Dynamic MDAO** research (Bruggeman et al., Aerospace Science and Technology 175, 111748, 2026; DOI 10.1016/j.ast.2026.111748) demonstrates changing workflow topologies on a mathematical VSDS Goldstein example. This is a valuable architecture-level reference, but not proof of aircraft-scale benefit. AER-01 should compare static fixed graphs with architecture-specific dynamic graphs only after freezing a real engineering case and ensuring every selected graph satisfies the discipline/claim dependency contract.
+- **NASA Design for Inspection (DFI)** and the Inspectability Metric provide a further design-space direction: inspectability, defect findability and inspection access should be considered alongside structural mass and manufacturability. Our #4165 work should benchmark against the published methodology without claiming to reproduce a NASA proprietary implementation.
+
+
+
 
 
 ## 2. Paradigm shifts worth pursuing
@@ -67,6 +76,16 @@ Search discrete architecture choices (direct/series/hybrid propulsion, propulsor
 
 Evaluate distributions and declared contingencies: hot/high, payload/fuel/CG, battery end-of-life, wind, icing where applicable, degraded propulsion, cooling loss, asymmetric thrust and maintenance downtime. Optimize completed mission service and lifecycle cost under declared risk constraints. Keep probability of violation, tail loss, worst-case margin and uncertainty calibration separate.
 
+### 2.7 Let aircraft architecture change the analysis graph—but never the evidence gates
+
+A conventional single-engine aircraft, distributed-electric aircraft and series-hybrid aircraft do not need identical analysis graphs. The graph should be generated from the selected architecture's actual subsystems and coupling paths, so irrelevant solvers are not run and mandatory disciplines are not omitted.
+
+The graph compiler must consume an explicit architecture-to-discipline dependency contract. A propulsion topology change must trigger the required mass, power, cooling, wiring, structure, CG/inertia, controls and mission analyses. Every skipped discipline needs an explicit reason and must not be counted as assessed. Compare fixed-graph MDO and architecture-specific dynamic graphs on identical frozen cases, budgets and solver fidelities; measure total cost-to-decision, missed dependencies, stale-state acceptance and independent replay.
+
+### 2.8 Co-design the ability to inspect and substantiate the aircraft
+
+Treat inspection access, NDE method, SHM sensor location, sensor-fault discriminability, replacement access and evidence acquisition cost as design variables alongside structure and aerodynamics. This extends #4165 and #4056 rather than creating a new maintenance ledger. A structure that is slightly lighter but cannot be inspected reliably may be inferior over its service life.
+
 ## 3. External benchmark ladder and acceptance evidence
 
 | Tier | Case | Primary outputs | Evidence goal | Claim ceiling |
@@ -78,6 +97,9 @@ Evaluate distributions and declared contingencies: hot/high, payload/fuel/CG, ba
 | 4 | Static FSI Test Case 2b(E), other CRM configurations and suitable dynamic cases | AoA/polar response, mesh sensitivity, loads, deformation and spectra where specified | Generalization across operating points/configurations | Exact admitted workshop families only |
 | 5 | Wren 2 and Wayfarer 4 candidate-specific models | Payload-range, runway/hot-high, trim/stability, structural margins, energy/thermal, failure recourse | Candidate-specific analysis only after controlling data and physical correlation | No certification claim |
 | 6 | Approved component/aircraft test and certification programme | Calibrated measurement, traceable requirements and authority-accepted compliance evidence | Independent, authority-governed substantiation | Only the approved scope |
+| 0A | Correlated response-vector VVUQ diagnostic (synthetic first; CRM after admission) | Raw channel residuals, normalization, uncertainty-source covariance, D², marginal z and local gates | Independent Rust/Python agreement, covariance identity, no silent zero-fill/regularization, no held-out data leakage | Multivariate discrepancy diagnostic only; not physical validation or ASME conformance |
+| 0B | Design-for-inspection / sensing observability (synthetic panels then admitted structural cases) | Defect findability, access/tool-path coverage, sensor fault vs damage discriminability, inspect/repair time | Independent detection/uncertainty and cost replay against published DFI principles | Candidate-specific inspectability study only |
+
 
 ### DPW-8 details to preserve
 
@@ -183,11 +205,26 @@ The strongest differentiated result would be:
 
 The competitive claim should be “more reliable independently reproducible engineering decisions per total engineering cost on held-out tasks,” not “our AI beats NASTRAN,” “we replace Aviary,” or “fewer CFD calls means a better aircraft.”
 
-## 7. Current state and gaps
+## 7. Standards and evidence references
+
+Use these as versioned sources for the engineering programme, not as automatic certifications:
+
+| Reference | Intended use in AER-01 | Boundary |
+|---|---|---|
+| NASA-STD-7009B + NASA-HDBK-7009B Version B | Model/simulation credibility, acceptance criteria, uncertainty and reporting discipline | The handbook guides NASA practice; adopting fields does not make a project NASA-approved or compliant |
+| ASME V&V 10-2019 (R2025) | Computational solid mechanics verification and validation | Case-specific structural V&V; not an aircraft certification basis |
+| ASME V&V 20 | CFD and heat-transfer validation | Use with appropriate experimental data, uncertainty and numerical verification |
+| ASME VVUQ 20.1-2024 | Multivariate response discrepancy and correlated uncertainty | PR #4195 is a transparent diagnostic layer, not a claimed implementation/conformance of the standard |
+| AIAA DPW-8 / AePW-4 case sheets | Shared transonic CFD, CRM structural and static-FSI comparisons | Exact case/geometry/data scope only |
+| NASA Design for Inspection / Inspectability Metric | Co-design inspection access and defect findability | Published methodology reference; do not claim reproduction of unavailable proprietary internals |
+
+## 8. Current state and gaps
 
 - The bounded Rust analytical oracle and independent Python replay have passed exact-head CI on PR #4110.
-- The DPW-8 catalog and hostile consistency checks have passed exact-head CI on PR #4137.
-- The CRM equivalent-beam file has only a browser text preview; bytes, terms, units and expected solution are not admitted.
+- The DPW-8 catalog and hostile consistency checks have passed exact-head CI on PR #4137; the current catalog separates rigid Configuration B 2b from elastic 2b(E) and uses the dedicated elastic PDF schedule.
+- The direct HTTPS retrieval attempt for the 8 KB CRM equivalent-beam BDF returned no bytes; this is recorded as a failed attempt, with no fabricated SHA-256. The file remains preview-only, not admitted.
+- The NASTRAN read-only parser PR #4142 has a green synthetic-fixture CI result; it has not yet parsed the real NASA deck.
+- The covariance-aware response VVUQ PR #4195 has a green synthetic Rust/Python result; it has not yet compared admitted CRM measurement data.
 - The OAT15A archive is listed but its member inventory is not inspected.
 - No SU2/NASTRAN workshop solve has been reproduced by this programme.
 - No CRM static-FSI result or Wren 2 / Wayfarer 4 physical result is claimed.
