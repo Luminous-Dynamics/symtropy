@@ -10,7 +10,7 @@ Evaluate the correction process, not just the final target KPI:
 
 `observe → detect → explain → discriminate → update → intervene → audit`
 
-A correction is not qualified merely because one reported metric improves. The benchmark reports household service, industrial service, reserve stock, maintenance energy, unnecessary dispatch, and conservation separately. It does not emit a composite welfare score.
+A correction is not qualified merely because one reported metric improves. The benchmark reports household service, industrial service, reserve stock, maintenance energy served and unmet, unnecessary dispatch, and conservation separately. It does not emit a composite welfare score.
 
 ## Scenario A: sensor-drift sham
 
@@ -36,7 +36,7 @@ The declared policy constraint is household essential-service coverage of at lea
 
 Expected synthetic known answers:
 - frozen/outcome-reactive: reserve 60 m³ after growth, 50 m³ after recovery, 25 m³ household unmet under the repeated shock, 15 m³ industrial unmet;
-- mechanism-aware: 70 m³ reserve after maintenance-assisted recovery, 0 m³ household unmet, 30 m³ industrial unmet, 10 kWh maintenance energy consumed.
+- mechanism-aware: 70 m³ reserve after maintenance-assisted recovery, 0 m³ household unmet, 30 m³ industrial unmet, 10 kWh maintenance energy served and 50 kWh maintenance-energy obligation unmet.
 
 The outcome-reactive controller waits for actual household service failure before curtailing industry; by then the reserve is exhausted. The mechanism-aware controller uses paired maintenance and demand-ablation counterfactuals before failure.
 
@@ -47,7 +47,7 @@ The CSV exposes:
 - industrial unmet water;
 - unnecessary emergency dispatch;
 - reserve before, after growth, after recovery, and after repeated shock;
-- maintenance energy consumed;
+- maintenance energy served and unmet;
 - household unmet demand in matched industry-on and industry-off shock branches;
 - household unmet demand without maintenance, even when industry is curtailed;
 - mechanism identification, correction latency, event-trace validity;
