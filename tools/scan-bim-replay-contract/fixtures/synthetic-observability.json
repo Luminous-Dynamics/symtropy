@@ -1,5 +1,5 @@
 {
-  "schema_version": "0.2",
+  "schema_version": "0.3",
   "replay_id": "SYNTHETIC-OBSERVABILITY-001",
   "dataset": {
     "dataset_id": "SYNTHETIC-OBSERVABILITY-001",
@@ -29,6 +29,12 @@
           "role": "point_cloud_observation",
           "relative_path": "room-a-scan.bin",
           "sha256": "dbffe0270d1b912c13ae51e52fababd1c678827298eb5eea0632892d649b11b0"
+        },
+        {
+          "artifact_id": "ROOM-A-TRANSFORM",
+          "role": "registration_metadata",
+          "relative_path": "survey/room-a-transform.json",
+          "sha256": "ad0224605a82e6b31a8b51a5c2b9ce2124607e65f67a2bdaf9cc5dd723d1c64a"
         }
       ],
       "evaluator_artifacts": [
@@ -71,20 +77,15 @@
           "observation": "unknown"
         }
       ],
-      "candidate_outputs": [
-        {
-          "artifact_id": "ROOM-A-CANDIDATE-IFC",
-          "role": "ifc_model",
-          "relative_path": "outputs/room-a.ifc",
-          "sha256": "86ce816bceda5f273b77a58fcd13ec239bb2219ab9fd60bae20e8aaee5331bdf"
-        },
-        {
-          "artifact_id": "ROOM-A-CANDIDATE-GRAPH",
-          "role": "element_graph",
-          "relative_path": "outputs/room-a-graph.json",
-          "sha256": "104dc8bd264d1c4e8f53ccce173ccd105e85cb3536c4b2e978525a91e4c631b2"
-        }
-      ]
+      "coordinate_frame": {
+        "frame_id": "BUILDING-A-LOCAL",
+        "crs_id": "LOCAL:BUILDING-A",
+        "axis_order": "xyz",
+        "handedness": "right",
+        "linear_unit": "metre",
+        "vertical_datum_id": "LOCAL:0.000",
+        "transform_artifact_id": "ROOM-A-TRANSFORM"
+      }
     },
     {
       "scene_id": "ROOM-B",
@@ -97,6 +98,12 @@
           "role": "point_cloud_observation",
           "relative_path": "room-b-scan.bin",
           "sha256": "dbffe0270d1b912c13ae51e52fababd1c678827298eb5eea0632892d649b11b0"
+        },
+        {
+          "artifact_id": "ROOM-B-TRANSFORM",
+          "role": "registration_metadata",
+          "relative_path": "survey/room-b-transform.json",
+          "sha256": "ff32883c8a420433e7668d365f8730943441680e88734d4e47b4d12fb3ff1657"
         }
       ],
       "evaluator_artifacts": [
@@ -127,84 +134,102 @@
           "observation": "not_captured"
         }
       ],
-      "candidate_outputs": [
-        {
-          "artifact_id": "ROOM-B-CANDIDATE-IFC",
-          "role": "ifc_model",
-          "relative_path": "outputs/room-b.ifc",
-          "sha256": "e5d62032b8255b40f73d2335ee8cf13257c314446fbec943865288c81a6ef9a8"
-        },
-        {
-          "artifact_id": "ROOM-B-CANDIDATE-GRAPH",
-          "role": "element_graph",
-          "relative_path": "outputs/room-b-graph.json",
-          "sha256": "4351d593ce59c6f562a8fdb4cab7aa1e14377b822ebf3ca247a363d1d9ebffc9"
-        }
-      ]
+      "coordinate_frame": {
+        "frame_id": "BUILDING-B-LOCAL",
+        "crs_id": "LOCAL:BUILDING-B",
+        "axis_order": "xyz",
+        "handedness": "right",
+        "linear_unit": "metre",
+        "vertical_datum_id": "LOCAL:0.000",
+        "transform_artifact_id": "ROOM-B-TRANSFORM"
+      }
     }
   ],
-  "candidate_pipeline": {
-    "run_id": "SYNTHETIC-CANDIDATE-RUN-001",
-    "source_commit": "0123456789abcdef0123456789abcdef01234567",
-    "toolchain_id": "rustc 1.96.0; x86_64-unknown-linux-gnu",
-    "command_argv": [
-      "synthetic-scanbim",
+  "candidate_run": {
+    "pipeline_id": "synthetic-scan-bim-candidate-v0.2",
+    "source_commit_sha": "1111111111111111111111111111111111111111",
+    "toolchain": "rustc 1.96.0 / x86_64-unknown-linux-gnu",
+    "command": [
+      "scan-bim-candidate",
+      "--deterministic",
       "--fixture",
-      "v0.2",
-      "--seed",
-      "42"
+      "synthetic-observability"
     ],
-    "build_artifact": {
-      "artifact_id": "SYNTHETIC-CANDIDATE-BUILD",
-      "relative_path": "pipeline/build.bin",
-      "sha256": "5cbaf8f918c083add16a21b539a83fb6e0937158b3b85dccedf6129bc3191c3f"
-    },
-    "model_artifact": {
-      "artifact_id": "SYNTHETIC-CANDIDATE-MODEL",
-      "relative_path": "pipeline/model.bin",
-      "sha256": "35af953b07065498c50f27d62bdffd989c96690acc9f9e2cd85f77ce4fdd648d"
-    },
-    "configuration_artifact": {
-      "artifact_id": "SYNTHETIC-CANDIDATE-CONFIG",
-      "relative_path": "pipeline/config.json",
-      "sha256": "c5702caeaee5a2cca8b7bde7ebfdc0e78504ef25a306eb976c3ebf6b27831d13"
-    }
+    "executable_artifact_id": "CANDIDATE-EXECUTABLE",
+    "configuration_artifact_id": "CANDIDATE-CONFIG",
+    "model_artifact_id": "CANDIDATE-MODEL"
   },
-  "evaluation_profile": {
-    "coordinate_reference": {
-      "frame_id": "LOCAL:BUILDING-A-B",
-      "crs_id": "LOCAL:METRE",
-      "axis_order": "east_north_up",
-      "linear_unit": "metre",
-      "metres_per_unit": 1
+  "candidate_runtime_artifacts": [
+    {
+      "artifact_id": "CANDIDATE-EXECUTABLE",
+      "role": "candidate_executable",
+      "relative_path": "runtime/scan-bim-candidate.bin",
+      "sha256": "b72014bdc0bc584961d9073382b72c982ecd3014d294d0578b0c652075ebe4cb"
     },
-    "tolerances": {
-      "profile_id": "SYNTHETIC-REPLAY-TOLERANCE-V0.2",
-      "surface_distance_cutoff_m": 0.1,
-      "surface_intersection_buffer_m": 0.1
+    {
+      "artifact_id": "CANDIDATE-CONFIG",
+      "role": "candidate_configuration",
+      "relative_path": "runtime/config.json",
+      "sha256": "b45a10b01efa6599bf52fc5204cc35e5134db2d63563e855a77124b0dcc73055"
     },
-    "sampling": {
-      "reference_surface_spacing_m": 0.02,
-      "candidate_surface_spacing_m": 0.02,
-      "point_cloud_voxel_size_m": 0.01,
-      "random_seed": 42
-    },
-    "metric_definition": {
-      "suite_id": "SCAN-BIM-REPLAY-SURFACE-PROFILE",
-      "version": "0.2",
-      "isprs_accuracy_direction": "reference_to_candidate",
-      "buffer_distances_m": [
-        0,
-        0.05,
-        0.1,
-        0.15
-      ],
-      "distance_cutoff_distances_m": [
-        0,
-        0.05,
-        0.1,
-        0.15
-      ]
+    {
+      "artifact_id": "CANDIDATE-MODEL",
+      "role": "model_weights",
+      "relative_path": "runtime/model.bin",
+      "sha256": "9abd35ce0eca07e5bf0b46f8a7e384dceb516e144536a0d657160ad93f6e5b0b"
     }
-  }
+  ],
+  "tolerance_profile": {
+    "profile_id": "synthetic-report-only-5cm",
+    "requirement_revision": "synthetic-requirements-v0.2",
+    "surface_distance_limit_m": 0.05,
+    "decision_policy": "report_only"
+  },
+  "sampling_profile": {
+    "profile_id": "synthetic-partial-input-10mm",
+    "reference_surface_spacing_m": 0.02,
+    "scan_voxel_size_m": 0.01,
+    "distance_cutoff_m": 0.1,
+    "normalization": "partial_input_only"
+  },
+  "metric_profile": {
+    "suite_id": "luminous_synthetic_contract_metrics",
+    "version": "0.3",
+    "scope": "all_elements",
+    "accuracy_direction": "reference_to_candidate",
+    "surface_buffer_m": 0.1,
+    "accuracy_cutoff_m": 0.1,
+    "definition_authority": "official_results_page",
+    "sample_strategy": "reference_surface_samples"
+  },
+  "candidate_outputs": [
+    {
+      "artifact_id": "ROOM-A-IFC",
+      "scene_id": "ROOM-A",
+      "role": "ifc_model",
+      "relative_path": "outputs/room-a.ifc.placeholder",
+      "sha256": "1388812a1750215452fc4dea388e113d754231c3bd9e9ff4932917da6cef3698"
+    },
+    {
+      "artifact_id": "ROOM-A-METRICS",
+      "scene_id": "ROOM-A",
+      "role": "candidate_metrics",
+      "relative_path": "outputs/room-a-metrics.json",
+      "sha256": "8b672a8de43da196b7492f779991714870c093dbf555d14f36f0d0eaf29d6852"
+    },
+    {
+      "artifact_id": "ROOM-B-IFC",
+      "scene_id": "ROOM-B",
+      "role": "ifc_model",
+      "relative_path": "outputs/room-b.ifc.placeholder",
+      "sha256": "86035f5541958d4f1785574783d750bebe9206d1011e3682f8135af7f393b026"
+    },
+    {
+      "artifact_id": "ROOM-B-METRICS",
+      "scene_id": "ROOM-B",
+      "role": "candidate_metrics",
+      "relative_path": "outputs/room-b-metrics.json",
+      "sha256": "2c156a0684a35a60708ac6d396e54805c72b84112994576ccfde3a0b7b905260"
+    }
+  ]
 }
