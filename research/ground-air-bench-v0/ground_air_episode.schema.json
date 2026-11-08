@@ -51,7 +51,7 @@
     },
     "opportunities": {
       "type": "array",
-      "minItems": 1,
+      "minItems": 0,
       "maxItems": 64,
       "items": {
         "$ref": "#/$defs/opportunity"
@@ -59,7 +59,7 @@
     },
     "receivers": {
       "type": "array",
-      "minItems": 1,
+      "minItems": 0,
       "maxItems": 128,
       "items": {
         "$ref": "#/$defs/receiver"
@@ -67,7 +67,7 @@
     },
     "candidate_policies": {
       "type": "array",
-      "minItems": 1,
+      "minItems": 0,
       "maxItems": 64,
       "items": {
         "$ref": "#/$defs/policy"
@@ -75,7 +75,7 @@
     },
     "metric_lanes": {
       "type": "array",
-      "minItems": 1,
+      "minItems": 0,
       "uniqueItems": true,
       "items": {
         "enum": [
@@ -522,5 +522,65 @@
         }
       }
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "case_state": {
+            "const": "NOT_RUN"
+          }
+        },
+        "required": [
+          "case_state"
+        ]
+      },
+      "then": {
+        "properties": {
+          "opportunities": {
+            "maxItems": 0
+          },
+          "receivers": {
+            "maxItems": 0
+          },
+          "candidate_policies": {
+            "maxItems": 0
+          },
+          "metric_lanes": {
+            "maxItems": 0
+          },
+          "frozen_inputs": {
+            "properties": {
+              "upstream_receipts": {
+                "maxItems": 0
+              }
+            }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "opportunities": {
+            "minItems": 1
+          },
+          "receivers": {
+            "minItems": 1
+          },
+          "candidate_policies": {
+            "minItems": 1
+          },
+          "metric_lanes": {
+            "minItems": 1
+          },
+          "frozen_inputs": {
+            "properties": {
+              "upstream_receipts": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
 }
