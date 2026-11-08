@@ -21,6 +21,7 @@ from typing import Any
 
 HERE = Path(__file__).resolve().parent
 FIXTURE = HERE / "data" / "synthetic-equivalent-beam.bdf"
+CRM_SHAPED_FIXTURE = HERE / "data" / "synthetic-crm-equivalent-beam-shape.bdf"
 
 
 class AuditError(ValueError):
@@ -557,26 +558,45 @@ def verify_rust_output(output: dict[str, Any], expected: dict[str, Any]) -> None
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--rust-output", type=Path)
+    parser.add_argument("--rust-shape-output", type=Path)
     args = parser.parse_args()
     try:
         data = synthetic_text()
         expected = inventory(data)
-        require(expected["card_counts"]["GRID"] == 3, "fixture GRID count changed")
-        require(expected["card_counts"]["CBEAM"] == 2, "fixture CBEAM count changed")
-        require(expected["card_counts"]["RBE2"] == 1, "fixture RBE2 count changed")
-        require(expected["opaque_cards"] == 1, "unknown card should remain opaque")
-        require(expected["orphan_grid_count"] == 0, "fixture unexpectedly contains orphan grids")
+        require(expected["card_counts"]["GRID"] == 3, "base fixture GRID count changed")
+        require(expected["card_counts"]["CBEAM"] == 2, "base fixture CBEAM count changed")
+        require(expected["card_counts"]["RBE2"] == 1, "base fixture RBE2 count changed")
+        require(expected["opaque_cards"] == 1, "base fixture unknown card should remain opaque")
+        require(expected["orphan_grid_count"] == 0, "base fixture unexpectedly contains orphan grids")
+
+        shape_data = CRM_SHAPED_FIXTURE.read_bytes()
+        shape_expected = inventory(shape_data)
+        require(shape_expected["card_counts"]["GRID"] == 49, "CRM-shaped GRID count changed")
+        require(shape_expected["card_counts"]["CBEAM"] == 16, "CRM-shaped CBEAM count changed")
+        require(shape_expected["card_counts"]["PBEAM"] == 16, "CRM-shaped PBEAM count changed")
+        require(shape_expected["card_counts"]["CONM2"] == 15, "CRM-shaped CONM2 count changed")
+        require(shape_expected["card_counts"]["RBE2"] == 16, "CRM-shaped RBE2 count changed")
+        require(shape_expected["orphan_grid_count"] == 0, "CRM-shaped fixture unexpectedly contains orphan grids")
+        require(shape_expected["opaque_cards"] == 0, "CRM-shaped fixture should have no opaque cards")
 
         if args.rust_output is not None:
             actual = json.loads(args.rust_output.read_text(encoding="utf-8"))
             verify_rust_output(actual, expected)
+        if args.rust_shape_output is not None:
+            actual_shape = json.loads(args.rust_shape_output.read_text(encoding="utf-8"))
+            verify_rust_output(actual_shape, shape_expected)
         hostile_controls(data)
 
-        mode = "rust_python_boundary=pass" if args.rust_output is not None else "rust_python_boundary=not_run"
+        base_mode = "base_rust_python=pass" if args.rust_output is not None else "base_rust_python=not_run"
+        shape_mode = "crm_shape_rust_python=pass" if args.rust_shape_output is not None else "crm_shape_rust_python=not_run"
         print(
             "nastran_bdf_independent_oracle=pass "
-            f"cards={expected['card_count']} grids={len(expected['grid_ids'])} "
-            f"elements={len(expected['element_ids'])} {mode}"
+            f"base_cards={expected['card_count']} base_grids={len(expected['grid_ids'])} "
+            f"base_elements={len(expected['element_ids'])} "
+            f"crm_shape_cards={shape_expected['card_count']} "
+            f"crm_shape_grids={len(shape_expected['grid_ids'])} "
+            f"crm_shape_cbeams={len(shape_expected['cbeam_ids'])} "
+            f"{base_mode} {shape_mode}"
         )
     except (OSError, json.JSONDecodeError, AuditError, KeyError, TypeError, ValueError) as error:
         print(f"nastran_bdf_oracle_error={error}", file=sys.stderr)
