@@ -121,6 +121,7 @@ fn finite_point(point: Point3) -> bool {
     point.x.is_finite() && point.y.is_finite() && point.z.is_finite()
 }
 
+#[allow(clippy::needless_range_loop)] // Paired indices are intrinsic to fixed-size symmetric-matrix rotations.
 fn covariance_is_symmetric_psd<const N: usize>(matrix: &[[f64; N]; N]) -> bool {
     if !matrix.iter().flatten().all(|value| value.is_finite()) {
         return false;
