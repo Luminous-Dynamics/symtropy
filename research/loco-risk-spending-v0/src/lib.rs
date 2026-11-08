@@ -781,7 +781,6 @@ mod tests {
     }
 
     fn skip(
-        plan: &HorizonRiskPlan,
         step: u32,
         suffix: &str,
         skipped_at_ns: u64,
@@ -918,7 +917,7 @@ mod tests {
         let original_step_one = risk_plan.allocation_for_step(1).unwrap();
         let mut ledger = HorizonRiskLedger::new(risk_plan.clone());
         ledger
-            .skip_step(skip(&risk_plan, 0, "zero", 1_000))
+            .skip_step(skip(0, "zero", 1_000))
             .unwrap();
         assert_eq!(
             ledger.plan().allocation_for_step(1).unwrap(),
@@ -965,13 +964,13 @@ mod tests {
     fn duplicate_skip_and_unverified_no_delivery_receipt_are_rejected() {
         let risk_plan = plan(2, 50_000_000);
         let mut ledger = HorizonRiskLedger::new(risk_plan.clone());
-        let mut unverified = skip(&risk_plan, 0, "zero", 1_000);
+        let mut unverified = skip(0, "zero", 1_000);
         unverified.no_execution_verified = false;
         assert_eq!(
             ledger.skip_step(unverified),
             Err(LedgerError::SkipReceiptNotVerified)
         );
-        let valid = skip(&risk_plan, 0, "zero", 1_000);
+        let valid = skip(0, "zero", 1_000);
         ledger.skip_step(valid.clone()).unwrap();
         assert_eq!(ledger.skip_step(valid), Err(LedgerError::StepOutOfOrder));
     }
@@ -1075,7 +1074,7 @@ mod tests {
             .sum::<u64>();
         let mut ledger = HorizonRiskLedger::new(risk_plan.clone());
         ledger
-            .skip_step(skip(&risk_plan, 0, "zero", 1_000))
+            .skip_step(skip(0, "zero", 1_000))
             .unwrap();
         let committed = admission(&risk_plan, 1, "one", 1_100);
         ledger.commit_step(committed.clone()).unwrap();
@@ -1097,9 +1096,9 @@ mod tests {
         let risk_plan = plan(2, 50_000_000);
         let mut ledger = HorizonRiskLedger::new(risk_plan.clone());
         ledger
-            .skip_step(skip(&risk_plan, 0, "zero", 2_000))
+            .skip_step(skip(0, "zero", 2_000))
             .unwrap();
-        let later_skip = skip(&risk_plan, 1, "one", 1_999);
+        let later_skip = skip(1, "one", 1_999);
         assert_eq!(
             ledger.skip_step(later_skip),
             Err(LedgerError::NonMonotonicEventTime)
@@ -1179,7 +1178,7 @@ mod tests {
             .mark_unknown(unknown(&admitted, "zero", 1_050))
             .unwrap();
 
-        let mut no_delivery = skip(&risk_plan, 0, "zero", 1_100);
+        let mut no_delivery = skip(0, "zero", 1_100);
         no_delivery.admission_receipt_id = Some(admitted.receipt_id.clone());
         ledger.skip_step(no_delivery).unwrap();
         let summary = ledger.summary().unwrap();
