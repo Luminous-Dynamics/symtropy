@@ -229,7 +229,23 @@
     "missed_beneficial_action_ticks",
     "signal_change_detected",
     "signal_detection_tick",
-    "diagnosis_tick"
+    "diagnosis_tick",
+    "signal_detection_rate",
+    "signal_detection_ci_low",
+    "signal_detection_ci_high",
+    "premature_alarm_rate",
+    "premature_alarm_ci_low",
+    "premature_alarm_ci_high",
+    "correct_diagnosis_rate",
+    "correct_diagnosis_ci_low",
+    "correct_diagnosis_ci_high",
+    "false_diagnosis_rate",
+    "false_diagnosis_ci_low",
+    "false_diagnosis_ci_high",
+    "mean_signal_detection_delay_ticks",
+    "mean_diagnosis_after_signal_ticks",
+    "mean_probe_ci_coverage",
+    "mean_regret_to_oracle"
   ],
   "claim_ceiling": [
     "The scenarios and all quantities are synthetic and not calibrated to a real catchment or society.",
@@ -238,5 +254,110 @@
     "A paired deterministic counterfactual is a software control, not empirical causal identification.",
     "The benchmark does not model biodiversity, environmental flows, distributional justice beyond named service groups, institutional legitimacy or ecological health.",
     "No SOTA or real-world policy effectiveness claim is made."
-  ]
+  ],
+  "stochastic_causal_drift_pilot": {
+    "status": "synthetic_seed_holdout",
+    "generator": "dependency-free SplitMix64 + Box-Muller normal variates",
+    "base_seed": 20261108100,
+    "replicates_per_regime": 100,
+    "regimes": [
+      "stable_positive",
+      "sign_reversal",
+      "gradual_sign_reversal",
+      "confounded_null",
+      "confounder_shift"
+    ],
+    "controllers": [
+      "frozen_policy",
+      "outcome_reactive",
+      "cusum_signal_only",
+      "mechanism_aware"
+    ],
+    "total_seed_controller_regime_episodes": 2000,
+    "common_random_numbers": "same per-seed/per-tick observation noise is reused across controllers; mechanism-aware probes use separate tick-derived streams",
+    "observation": {
+      "sample_size_per_arm": 50,
+      "outcome_noise_standard_deviation": 2,
+      "observed_association_standard_error": "sigma * sqrt(2 / sample_size_per_arm)"
+    },
+    "matched_probe": {
+      "paired_samples": 512,
+      "outcome_noise_standard_deviation": 2,
+      "confidence_interval": "estimate +/- 1.96 * sample_standard_error",
+      "probe_ticks": [
+        2,
+        4,
+        6,
+        8
+      ],
+      "cost_per_probe": 0.25
+    },
+    "signal_detector": {
+      "type": "two-sided CUSUM",
+      "allowance": 0.25,
+      "threshold": 7,
+      "note": "threshold calibrated on a fixed 100-seed synthetic pilot; not tuned on external test streams"
+    },
+    "statistics": {
+      "binomial_intervals": "95% Wilson score interval",
+      "detection_delay": "signal detection tick minus declared drift onset tick",
+      "gradual_change_onset_tick": 3,
+      "causal_sign_reversal_onset_tick": 4,
+      "confounder_shift_onset_tick": 5
+    },
+    "receipts": {
+      "per_episode_file": "causal_drift_episodes.csv",
+      "aggregate_file": "causal_drift_summary.csv",
+      "keep_all_episodes": true,
+      "failed_or_false_alarm_episodes_are_not_dropped": true
+    },
+    "claim_ceiling": [
+      "The random generator and structural equations are synthetic and deterministic by seed.",
+      "Wilson intervals quantify Monte Carlo repeatability under this generator, not uncertainty about real-world validity.",
+      "The 100-seed calibration pilot is not the full KDD 2026 detector benchmark and does not establish superiority to its 14 detectors.",
+      "The matched-probe confidence intervals rely on the declared Gaussian outcome-noise model and do not establish empirical identification.",
+      "The evaluation seed block is held out from the threshold-calibration seed block but uses the same synthetic mechanism generator and is not a held-out mechanism family or real-world dataset."
+    ],
+    "pilot_calibration_seed_range": {
+      "start_inclusive": 20261108000,
+      "end_inclusive": 20261108099,
+      "used_for": "development-only CUSUM threshold selection; excluded from the evaluation receipt"
+    },
+    "evaluation_seed_range": {
+      "start_inclusive": 20261108100,
+      "end_inclusive": 20261108199,
+      "used_for": "100-seed per-regime/controller evaluation; no tuning on these seeds"
+    }
+  },
+  "timing_aware_detection_evaluator": {
+    "status": "rust_reference_metric_implementation",
+    "acceptable_window": "inclusive [drift_start - delta_pre, drift_end + max_delay]",
+    "matching_rule": "earliest unmatched alarm in each event window; one-to-one; overlapping event windows rejected",
+    "outputs": [
+      "precision",
+      "recall",
+      "f1",
+      "false_alarm_rate_per_tick",
+      "missed_drift_rate",
+      "mean_detection_delay_ticks",
+      "mean_normalized_detection_time"
+    ],
+    "normalized_detection_time": "(alarm_tick - drift_start_tick) / max_delay_ticks",
+    "negative_ndt": "preserved for accepted early alarms",
+    "tests": [
+      "inclusive early boundary",
+      "inclusive late boundary",
+      "outside-window and duplicate alarms",
+      "missed drift events",
+      "multiple non-overlapping events",
+      "overlapping windows rejected",
+      "unsorted events and alarms rejected",
+      "empty event/alarms undefined metrics",
+      "invalid event intervals and zero max delay rejected"
+    ],
+    "claim_ceiling": [
+      "This evaluator is a metric-conformance component and is not a complete KDD 2026 benchmark reproduction.",
+      "No detector-performance results or SOTA comparisons are claimed from unit tests."
+    ]
+  }
 }

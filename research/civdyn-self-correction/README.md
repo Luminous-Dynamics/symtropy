@@ -88,6 +88,44 @@ The portfolio compares frozen, outcome-reactive, CUSUM signal-only and mechanism
 
 Known-answer controls: CUSUM detects abrupt observational change at tick 4, gradual change at tick 5, and confounder shift at tick 5. The mechanism-aware controller diagnoses abrupt reversal at tick 4, gradual reversal at tick 6, confounded null at tick 2, and confounder-only shift at tick 6. It does not disable the stable-positive mechanism or the still-beneficial intervention under confounder shift.
 
+## Scenario D: seeded noisy causal-drift Monte Carlo pilot
+
+The deterministic scenarios are known-answer unit controls. This separate Monte Carlo runner introduces Gaussian sampling noise and retains every seed/controller/regime episode.
+
+Default frozen design:
+- 100 replicates per regime, four controllers and five regimes = 2,000 seed-level episodes.
+- Evaluation seeds 20,261,108,100–20,261,108,199; the development-only calibration block 20,261,108,000–20,261,108,099 is excluded. All controller comparisons use common per-seed/per-tick observation noise.
+- Observational samples use 50 observations per arm and outcome-noise standard deviation 2.0.
+- Each mechanism-aware episode takes matched randomized probes at ticks 2, 4, 6 and 8, each with 512 paired observations.
+- Probe intervals use the estimate ± 1.96 standard errors. Binomial rates use 95% Wilson score intervals.
+- Two-sided CUSUM uses allowance 0.25 and threshold 7.0. This threshold was calibrated on the fixed synthetic pilot schedule, not on external test streams.
+
+The runner writes two files:
+- `causal_drift_episodes.csv`: all 2,000 individual seed/controller/regime episodes, including false alarms, missed detections and false diagnoses.
+- `causal_drift_summary.csv`: 20 regime/controller groups with rates, Wilson intervals, detection delays, action losses, probe coverage, utility and oracle regret.
+
+The declared onset for gradual causal change is tick 3 (the treatment effect first changes from +2 to +1), not tick 5 (the first negative effect). This avoids overstating detection delay by confusing onset of change with the later point at which the action becomes harmful.
+
+These intervals measure repeatability under the synthetic Gaussian generator. They do not quantify model uncertainty, real-world uncertainty or external validity. The 100-seed run is a calibration pilot, not a 14-detector/KDD benchmark reproduction.
+
+## Scenario E: timing-aware alarm evaluation
+
+The Rust module `detection_eval` implements an independent drift-event evaluator using the KDD 2026 acceptable-window definition.
+
+For each known drift interval `[d_s, d_e]`, an alarm counts as a true positive when it falls inside the inclusive window:
+
+`[d_s - δ_pre, d_e + δ_max]`
+
+One alarm may match only one event; duplicates and alarms outside all windows are false positives. Unmatched drift events are false negatives. Inputs with unsorted events/alarms or overlapping acceptance windows fail closed.
+
+The evaluator reports precision, recall, F1, false alarms per stream tick, missed-drift rate, mean delay and Normalized Detection Time:
+
+`NDT = (d_alarm - d_s) / δ_max`
+
+Negative NDT is preserved for accepted early alarms. Metrics are returned separately; no composite score is created. Nine known-answer tests cover inclusive boundaries, early/late alarms, duplicates, missed events, multiple events, overlapping windows, invalid ordering and empty streams.
+
+This is a metric-conformance component, not a reproduction of the full KDD 14-detector / 7-dataset benchmark. It does not depend on Python or external data and does not claim empirical performance.
+ 
 ## Run
 
 ```sh
@@ -97,6 +135,7 @@ cargo check --locked --manifest-path research/civdyn-self-correction/Cargo.toml 
 cargo test --locked --manifest-path research/civdyn-self-correction/Cargo.toml --all-targets
 cargo run --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin self-correction-sweep
 cargo run --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin causal-drift-sweep
+cargo run --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin causal-drift-monte-carlo -- causal_drift_episodes.csv causal_drift_summary.csv
 ```
 
 ## Claim ceiling

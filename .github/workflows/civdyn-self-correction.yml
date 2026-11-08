@@ -32,6 +32,39 @@ jobs:
         run: cargo check --locked --manifest-path research/civdyn-self-correction/Cargo.toml --all-targets
       - name: Test correction chain, negative controls and ledger conservation
         run: cargo test --locked --manifest-path research/civdyn-self-correction/Cargo.toml --all-targets
+      - name: Validate seeded noisy causal-drift Monte Carlo receipts
+        run: |
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin causal-drift-monte-carlo -- /tmp/civdyn-causal-drift-episodes.csv /tmp/civdyn-causal-drift-summary.csv
+          awk -F, '
+            NR == 1 { if (NF != 25) exit 40; next }
+            NF != 25 { exit 41 }
+            END { if (NR != 2001) exit 42; print "retained all 2,000 seed/controller/regime episodes" }
+          ' /tmp/civdyn-causal-drift-episodes.csv
+          awk -F, '
+            NR == 1 { if (NF != 23) exit 43; next }
+            NF != 23 { exit 44 }
+            $3 != 100 { exit 45 }
+            $1 == "stable_positive" && ($2 == "cusum_signal_only" || $2 == "mechanism_aware") {
+              if ($7 > 0.05 || $12 > 0.12 || $13 > 0.05 || $15 > 0.12) exit 46
+            }
+            $1 == "sign_reversal" && $2 == "mechanism_aware" {
+              if ($8 < 0.95) exit 47
+            }
+            $1 == "gradual_sign_reversal" && $2 == "mechanism_aware" {
+              if ($8 < 0.90) exit 48
+            }
+            $1 == "confounded_null" && $2 == "mechanism_aware" {
+              if ($8 < 0.90) exit 49
+            }
+            $1 == "confounder_shift" && $2 == "mechanism_aware" {
+              if ($8 < 0.90 || $19 > 0.10 || $21 < 0.90) exit 50
+            }
+            $1 == "confounder_shift" && $2 == "cusum_signal_only" {
+              if ($4 < 0.90 || $19 < 2.50) exit 51
+            }
+            $2 == "mechanism_aware" && $21 < 0.90 { exit 53 }
+            END { if (NR != 21) exit 52; print "20 aggregate groups validated; 100 replicates/group; Wilson intervals retained for detection, diagnosis and both false-alarm rates" }
+          ' /tmp/civdyn-causal-drift-summary.csv
       - name: Verify causal-drift detection versus mechanism diagnosis
         run: |
           cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin causal-drift-sweep > /tmp/civdyn-causal-drift.csv
