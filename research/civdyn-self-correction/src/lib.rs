@@ -853,8 +853,14 @@ mod tests {
         assert_eq!(outcome.reserve_after_recovery_m3, 70.0);
         assert_eq!(outcome.maintenance_energy_kwh, 10.0);
         assert_eq!(outcome.maintenance_energy_unmet_kwh, 50.0);
-        assert_eq!(outcome.counterfactual_industry_attributable_household_unmet_m3, 10.0);
-        assert_eq!(outcome.counterfactual_without_maintenance_household_unmet_m3, 10.0);
+        assert_eq!(
+            outcome.counterfactual_industry_attributable_household_unmet_m3,
+            10.0
+        );
+        assert_eq!(
+            outcome.counterfactual_without_maintenance_household_unmet_m3,
+            10.0
+        );
         assert!(outcome.mechanism_identified);
         assert!(outcome.trace_valid);
         assert_eq!(outcome.correction_latency_ticks, Some(1));
