@@ -539,6 +539,8 @@ pub fn evaluate_probe_continuation(
     for (outcome_index, outcome) in problem.outcomes.iter().enumerate() {
         let mut possible_branch_ids = BTreeSet::new();
         let mut possible_terminal_state_ids = BTreeSet::new();
+        let mut possible_terminal_viable_state_ids = BTreeSet::new();
+        let mut possible_terminal_recovery_state_ids = BTreeSet::new();
         let mut probability_ppb = 0_u64;
 
         for branch in &problem.branches {
@@ -549,6 +551,20 @@ pub fn evaluate_probe_continuation(
             {
                 possible_branch_ids.insert(branch.id.clone());
                 possible_terminal_state_ids.insert(branch.terminal_state_id.clone());
+                if contains_viable_state(
+                    &problem.viable_states_by_remaining_horizon,
+                    terminal_remaining,
+                    &branch.terminal_state_id,
+                )? {
+                    possible_terminal_viable_state_ids.insert(branch.terminal_state_id.clone());
+                }
+                if contains_recovery_state(
+                    &problem.recovery_states_by_remaining_horizon,
+                    terminal_remaining,
+                    &branch.terminal_state_id,
+                ) {
+                    possible_terminal_recovery_state_ids.insert(branch.terminal_state_id.clone());
+                }
             }
             probability_ppb = add_u64(
                 probability_ppb,
@@ -623,6 +639,8 @@ pub fn evaluate_probe_continuation(
             probability_ppb,
             possible_branch_ids: possible_branch_ids.into_iter().collect(),
             possible_terminal_state_ids: possible_terminal_state_ids.into_iter().collect(),
+            possible_terminal_viable_state_ids: possible_terminal_viable_state_ids.into_iter().collect(),
+            possible_terminal_recovery_state_ids: possible_terminal_recovery_state_ids.into_iter().collect(),
             robust_admissible_action_ids,
         });
     }
