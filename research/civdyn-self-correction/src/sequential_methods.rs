@@ -436,8 +436,7 @@ pub fn run_sequential_method_portfolio() -> Vec<SequentialEpisodeResult> {
 
     for regime in SequentialRegime::ALL {
         let true_effect = regime.true_effect();
-        let observational_association =
-            true_effect + regime.observational_association();
+        let observational_association = regime.observational_association();
 
         for seed_index in 0..NOISY_SEEDS {
             let (seed, stream, digest) = generate_paired_stream(regime, seed_index);
