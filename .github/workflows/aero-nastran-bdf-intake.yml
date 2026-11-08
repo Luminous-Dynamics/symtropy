@@ -38,25 +38,37 @@ jobs:
       - name: Run Rust BDF parser and hostile tests
         run: cargo test --manifest-path tools/civil-aero-benchmark/nastran-bdf-intake/Cargo.toml
 
-      - name: Run read-only inventory executable
+      - name: Run small read-only inventory executable
         run: cargo run --quiet --manifest-path tools/civil-aero-benchmark/nastran-bdf-intake/Cargo.toml > nastran-bdf-intake-result.json
 
-      - name: Independently recompute source and topology in Python
-        run: python3 tools/civil-aero-benchmark/nastran-bdf-intake/verify_independent.py --rust-output nastran-bdf-intake-result.json
+      - name: Run CRM-shaped synthetic inventory executable
+        run: cargo run --quiet --manifest-path tools/civil-aero-benchmark/nastran-bdf-intake/Cargo.toml -- --crm-shaped > nastran-bdf-crm-shaped-result.json
+
+      - name: Independently recompute both source and topology inventories in Python
+        run: |
+          python3 tools/civil-aero-benchmark/nastran-bdf-intake/verify_independent.py \
+            --rust-output nastran-bdf-intake-result.json \
+            --rust-shape-output nastran-bdf-crm-shaped-result.json
 
       - name: Create source and result digest receipts
         run: |
           sha256sum tools/civil-aero-benchmark/nastran-bdf-intake/data/synthetic-equivalent-beam.bdf > nastran-source-fixture.sha256
+          sha256sum tools/civil-aero-benchmark/nastran-bdf-intake/data/synthetic-crm-equivalent-beam-shape.bdf > nastran-crm-shaped-source-fixture.sha256
           sha256sum nastran-bdf-intake-result.json > nastran-bdf-intake-result.sha256
+          sha256sum nastran-bdf-crm-shaped-result.json > nastran-bdf-crm-shaped-result.sha256
 
-      - name: Retain exact fixture, inventory and receipts
+      - name: Retain fixtures, inventories and digest receipts
         uses: actions/upload-artifact@v4
         with:
           name: aero-nastran-bdf-intake-${{ github.sha }}
           path: |
             tools/civil-aero-benchmark/nastran-bdf-intake/data/synthetic-equivalent-beam.bdf
+            tools/civil-aero-benchmark/nastran-bdf-intake/data/synthetic-crm-equivalent-beam-shape.bdf
             nastran-bdf-intake-result.json
+            nastran-bdf-crm-shaped-result.json
             nastran-source-fixture.sha256
+            nastran-crm-shaped-source-fixture.sha256
             nastran-bdf-intake-result.sha256
+            nastran-bdf-crm-shaped-result.sha256
           if-no-files-found: error
           retention-days: 90
