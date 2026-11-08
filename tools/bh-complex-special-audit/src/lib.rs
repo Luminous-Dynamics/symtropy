@@ -990,4 +990,30 @@ mod tests {
             Err(SpecialError::InvalidConfiguration)
         );
     }
+    #[test]
+    fn jost_domain_map_identifies_matsubara_resonant_continuation() {
+        let config = SeriesConfig::default();
+        for n in [0_u32, 1, 2] {
+            let omega = z(0.0, f64::from(n));
+            assert!(
+                poschl_teller_jost(1.0, 0.75, omega, 0.0, JostSide::Left, config).is_ok(),
+                "center-point left Jost evaluation should use the direct series at n={n}"
+            );
+            assert!(
+                poschl_teller_jost(1.0, 0.75, omega, 0.0, JostSide::Right, config).is_ok(),
+                "center-point right Jost evaluation should use the direct series at n={n}"
+            );
+            assert_eq!(
+                poschl_teller_jost(1.0, 0.75, omega, 1.0, JostSide::Left, config),
+                Err(SpecialError::ResonantContinuationUnsupported),
+                "left Jost continuation should identify the resonant outer region at n={n}"
+            );
+            assert_eq!(
+                poschl_teller_jost(1.0, 0.75, omega, -1.0, JostSide::Right, config),
+                Err(SpecialError::ResonantContinuationUnsupported),
+                "right Jost continuation should identify the resonant outer region at n={n}"
+            );
+        }
+    }
+
 }
