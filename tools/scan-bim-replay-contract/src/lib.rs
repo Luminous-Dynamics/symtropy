@@ -1511,8 +1511,7 @@ mod tests {
         symlink(&evaluator_source, candidate.join("escape.bin")).expect("create escape symlink");
 
         let mut value = fixture_value();
-        value["candidate_runtime_artifacts"][0]["relative_path"] =
-            serde_json::json!("escape.bin");
+        value["candidate_runtime_artifacts"][0]["relative_path"] = serde_json::json!("escape.bin");
         let error = super::verify_manifest_artifact_files(
             value.to_string().as_bytes(),
             &candidate,
