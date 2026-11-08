@@ -382,9 +382,7 @@ impl JointMeasurementModel {
         validate_covariance(&self.noise_covariance, count)?;
         for row in 0..MAX_CHANNELS {
             for column in 0..MAX_CHANNELS {
-                if (row >= count || column >= count)
-                    && self.noise_covariance[row][column] != 0.0
-                {
+                if (row >= count || column >= count) && self.noise_covariance[row][column] != 0.0 {
                     return Err(FusionError::InvalidCovarianceShape);
                 }
             }
@@ -657,9 +655,7 @@ pub fn update_joint_contact_belief(
             .ok_or_else(|| FusionError::UnknownSensor(sample.sensor_id.clone()))?;
         let declared_channel = &model.channels[channel_index];
         if declared_channel.channel != sample.channel {
-            return Err(FusionError::SensorChannelMismatch(
-                sample.sensor_id.clone(),
-            ));
+            return Err(FusionError::SensorChannelMismatch(sample.sensor_id.clone()));
         }
         if declared_channel.coordinate_frame_id != sample.coordinate_frame_id {
             return Err(FusionError::CoordinateFrameMismatch(
@@ -788,8 +784,7 @@ pub fn update_joint_contact_belief(
     let mut posterior_covariance = zero_matrix();
     for row in 0..CONTACT_STATE_DIM {
         for column in 0..CONTACT_STATE_DIM {
-            posterior_covariance[row][column] =
-                prior.covariance[row][column] - k_h_p[row][column];
+            posterior_covariance[row][column] = prior.covariance[row][column] - k_h_p[row][column];
         }
     }
     for row in 0..CONTACT_STATE_DIM {
@@ -813,8 +808,7 @@ pub fn update_joint_contact_belief(
 
     let mut maximum_sample_age_ns = 0;
     for sample in &group.samples {
-        maximum_sample_age_ns =
-            maximum_sample_age_ns.max(evaluated_at_ns - sample.sample_time_ns);
+        maximum_sample_age_ns = maximum_sample_age_ns.max(evaluated_at_ns - sample.sample_time_ns);
     }
 
     Ok(JointFusionReport {
@@ -958,7 +952,11 @@ mod tests {
     #[test]
     fn one_channel_update_matches_scalar_gaussian_reference() {
         let measurement_model = model(
-            vec![channel("sensor-a", SensorChannel::D1Interface, [1.0, 0.0, 0.0])],
+            vec![channel(
+                "sensor-a",
+                SensorChannel::D1Interface,
+                [1.0, 0.0, 0.0],
+            )],
             [[1.0, 0.0, 0.0], [0.0; 3], [0.0; 3]],
         );
         let report = update(
@@ -995,9 +993,7 @@ mod tests {
         assert!((report.posterior.covariance[1][1] - (2.0 / 3.0)).abs() < 1.0e-12);
         assert!(report.posterior.covariance[0][1].abs() < 1.0e-12);
         assert!(
-            (report.expected_information_gain_nats
-                - 0.5 * (2.0_f64.ln() + 1.5_f64.ln()))
-            .abs()
+            (report.expected_information_gain_nats - 0.5 * (2.0_f64.ln() + 1.5_f64.ln())).abs()
                 < 1.0e-12
         );
     }
@@ -1112,7 +1108,11 @@ mod tests {
     #[test]
     fn mismatched_clock_mapping_receipt_is_rejected() {
         let measurement_model = model(
-            vec![channel("sensor-a", SensorChannel::D1Interface, [1.0, 0.0, 0.0])],
+            vec![channel(
+                "sensor-a",
+                SensorChannel::D1Interface,
+                [1.0, 0.0, 0.0],
+            )],
             [[1.0, 0.0, 0.0], [0.0; 3], [0.0; 3]],
         );
         let mut a = sample("sensor-a", SensorChannel::D1Interface, 0.0);
@@ -1126,7 +1126,11 @@ mod tests {
     #[test]
     fn unverified_clock_mapping_receipt_is_rejected() {
         let measurement_model = model(
-            vec![channel("sensor-a", SensorChannel::D1Interface, [1.0, 0.0, 0.0])],
+            vec![channel(
+                "sensor-a",
+                SensorChannel::D1Interface,
+                [1.0, 0.0, 0.0],
+            )],
             [[1.0, 0.0, 0.0], [0.0; 3], [0.0; 3]],
         );
         let mut receipt = clock_receipt();
@@ -1152,7 +1156,11 @@ mod tests {
     #[test]
     fn stale_samples_and_arrival_before_sample_are_rejected() {
         let measurement_model = model(
-            vec![channel("sensor-a", SensorChannel::D1Interface, [1.0, 0.0, 0.0])],
+            vec![channel(
+                "sensor-a",
+                SensorChannel::D1Interface,
+                [1.0, 0.0, 0.0],
+            )],
             [[1.0, 0.0, 0.0], [0.0; 3], [0.0; 3]],
         );
         let group = JointObservationGroup {
@@ -1183,7 +1191,11 @@ mod tests {
     #[test]
     fn action_execution_receipt_and_actuator_model_are_bound() {
         let measurement_model = model(
-            vec![channel("sensor-a", SensorChannel::D1Interface, [1.0, 0.0, 0.0])],
+            vec![channel(
+                "sensor-a",
+                SensorChannel::D1Interface,
+                [1.0, 0.0, 0.0],
+            )],
             [[1.0, 0.0, 0.0], [0.0; 3], [0.0; 3]],
         );
         let group = JointObservationGroup {
@@ -1225,7 +1237,11 @@ mod tests {
     #[test]
     fn action_model_and_calibration_digest_mismatch_are_rejected() {
         let measurement_model = model(
-            vec![channel("sensor-a", SensorChannel::D1Interface, [1.0, 0.0, 0.0])],
+            vec![channel(
+                "sensor-a",
+                SensorChannel::D1Interface,
+                [1.0, 0.0, 0.0],
+            )],
             [[1.0, 0.0, 0.0], [0.0; 3], [0.0; 3]],
         );
         let mut a = sample("sensor-a", SensorChannel::D1Interface, 0.0);
@@ -1259,7 +1275,10 @@ mod tests {
         assert_eq!(
             update(
                 &measurement_model,
-                vec![sample("sensor-a", SensorChannel::D1Interface, 0.0), duplicate]
+                vec![
+                    sample("sensor-a", SensorChannel::D1Interface, 0.0),
+                    duplicate
+                ]
             ),
             Err(FusionError::DuplicateSensorId)
         );
@@ -1269,7 +1288,10 @@ mod tests {
         assert_eq!(
             update(
                 &measurement_model,
-                vec![sample("sensor-a", SensorChannel::D1Interface, 0.0), duplicate]
+                vec![
+                    sample("sensor-a", SensorChannel::D1Interface, 0.0),
+                    duplicate
+                ]
             ),
             Err(FusionError::DuplicateEvidenceId)
         );
@@ -1278,7 +1300,11 @@ mod tests {
     #[test]
     fn covariance_calibration_identity_is_required() {
         let mut measurement_model = model(
-            vec![channel("sensor-a", SensorChannel::D1Interface, [1.0, 0.0, 0.0])],
+            vec![channel(
+                "sensor-a",
+                SensorChannel::D1Interface,
+                [1.0, 0.0, 0.0],
+            )],
             [[1.0, 0.0, 0.0], [0.0; 3], [0.0; 3]],
         );
         measurement_model.covariance_calibration_id.clear();
@@ -1291,7 +1317,11 @@ mod tests {
     #[test]
     fn sample_age_and_clock_mapping_validity_boundaries_are_inclusive() {
         let measurement_model = model(
-            vec![channel("sensor-a", SensorChannel::D1Interface, [1.0, 0.0, 0.0])],
+            vec![channel(
+                "sensor-a",
+                SensorChannel::D1Interface,
+                [1.0, 0.0, 0.0],
+            )],
             [[1.0, 0.0, 0.0], [0.0; 3], [0.0; 3]],
         );
         let group = JointObservationGroup {
@@ -1317,7 +1347,11 @@ mod tests {
     #[test]
     fn nonfinite_values_and_invalid_prior_are_rejected() {
         let measurement_model = model(
-            vec![channel("sensor-a", SensorChannel::D1Interface, [1.0, 0.0, 0.0])],
+            vec![channel(
+                "sensor-a",
+                SensorChannel::D1Interface,
+                [1.0, 0.0, 0.0],
+            )],
             [[1.0, 0.0, 0.0], [0.0; 3], [0.0; 3]],
         );
         let mut a = sample("sensor-a", SensorChannel::D1Interface, f64::NAN);
