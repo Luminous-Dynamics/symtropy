@@ -304,11 +304,7 @@ pub fn check_application(
 mod tests {
     use super::*;
 
-    fn block(
-        unit: &str,
-        episodes: &[(&str, EpisodeOutcome)],
-        score: u64,
-    ) -> CalibrationBlock {
+    fn block(unit: &str, episodes: &[(&str, EpisodeOutcome)], score: u64) -> CalibrationBlock {
         CalibrationBlock {
             exchangeability_unit_id: unit.to_owned(),
             episodes: episodes
@@ -420,8 +416,16 @@ mod tests {
     #[test]
     fn duplicate_exchangeability_unit_is_rejected() {
         let blocks = vec![
-            block("same-session", &[("episode-a", EpisodeOutcome::Completed)], 1),
-            block("same-session", &[("episode-b", EpisodeOutcome::Completed)], 2),
+            block(
+                "same-session",
+                &[("episode-a", EpisodeOutcome::Completed)],
+                1,
+            ),
+            block(
+                "same-session",
+                &[("episode-b", EpisodeOutcome::Completed)],
+                2,
+            ),
         ];
         assert_eq!(
             calibrate(&dataset(blocks, 100_000)),
@@ -434,12 +438,22 @@ mod tests {
     #[test]
     fn duplicate_episode_id_is_rejected() {
         let blocks = vec![
-            block("session-a", &[("episode-same", EpisodeOutcome::Completed)], 1),
-            block("session-b", &[("episode-same", EpisodeOutcome::Completed)], 2),
+            block(
+                "session-a",
+                &[("episode-same", EpisodeOutcome::Completed)],
+                1,
+            ),
+            block(
+                "session-b",
+                &[("episode-same", EpisodeOutcome::Completed)],
+                2,
+            ),
         ];
         assert_eq!(
             calibrate(&dataset(blocks, 100_000)),
-            Err(ConformalError::DuplicateEpisodeId("episode-same".to_owned()))
+            Err(ConformalError::DuplicateEpisodeId(
+                "episode-same".to_owned()
+            ))
         );
     }
 
