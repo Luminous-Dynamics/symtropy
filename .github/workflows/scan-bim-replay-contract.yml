@@ -65,7 +65,7 @@ jobs:
             --evaluator-root tools/scan-bim-replay-contract/fixtures/data/evaluator \
             > /tmp/scan-bim-replay-report.json
           jq -e '
-            (.metadata_audit.schema_version == "0.3") and
+            (.metadata_audit.schema_version == "0.4") and
             (.metadata_audit.scene_count == 2) and
             (.metadata_audit.pipeline_id == "synthetic-scan-bim-candidate-v0.2") and
             (.metadata_audit.source_commit_sha == "1111111111111111111111111111111111111111") and
@@ -76,6 +76,10 @@ jobs:
             (.artifact_verification.candidate_input_verified == 4) and
             (.artifact_verification.candidate_output_verified == 6) and
             (.artifact_verification.evaluator_verified == 2) and
+            (.metadata_audit.matching_confidence_profile == "upstream_code_ff21962_v1") and
+            (.metadata_audit.matching_confidence_upstream_commit_sha == "ff21962c1c65ae9bfb966f21dfd66af0b8648a19") and
+            (.metadata_audit.matching_radius_m == 0.05) and
+            (.metadata_audit.coarse_obb_expansion_m == 0.1) and
             (.metadata_audit.metric_suite_id == "luminous_synthetic_contract_metrics") and
             (.metadata_audit.metric_definition_authority == "project_defined") and
             (.metadata_audit.metric_accuracy_direction == "reference_to_candidate") and
