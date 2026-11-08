@@ -301,10 +301,7 @@ pub fn evaluate(dataset: &MetricDataset) -> Result<CalibrationMetrics, MetricErr
 
         squared_error_sum = checked_square_accumulate(
             squared_error_sum,
-            brier_error_magnitude(
-                observation.predicted_probability_ppm,
-                observation.outcome,
-            ),
+            brier_error_magnitude(observation.predicted_probability_ppm, observation.outcome),
         )?;
 
         let index = probability_bin(observation.predicted_probability_ppm, dataset.bin_count);
