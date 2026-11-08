@@ -106,11 +106,8 @@ fn delayed_row(outcome: &DelayedExternalityOutcome) -> Vec<String> {
         Some(outcome.reserve_after_recovery_m3),
         outcome.reserve_after_repeated_shock_m3,
         outcome.maintenance_energy_kwh,
-        Some(
-            outcome.household_unmet_m3
-                + outcome.counterfactual_industry_attributable_household_unmet_m3,
-        ),
-        Some(outcome.household_unmet_m3),
+        Some(outcome.counterfactual_household_unmet_industry_on_m3),
+        Some(outcome.counterfactual_household_unmet_industry_off_m3),
         Some(outcome.counterfactual_without_maintenance_household_unmet_m3),
         outcome.mechanism_identified,
         outcome.correction_latency_ticks,
