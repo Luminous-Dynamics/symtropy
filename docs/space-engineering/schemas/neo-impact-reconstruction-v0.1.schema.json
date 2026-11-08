@@ -271,7 +271,10 @@
             "minLength": 8
           },
           "published_date": {
-            "type": "string",
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "date"
           },
           "url": {
