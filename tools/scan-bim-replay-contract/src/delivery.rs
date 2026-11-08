@@ -590,7 +590,7 @@ fn validate_ifc_global_id(global_id: &str) -> Result<(), String> {
             .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_' || byte == 36)
     {
         return Err(
-            "IFC GlobalId must use the compressed 22-character GUID alphabet and leading range 0..=3"
+            "22-character compressed IFC GUID alphabet required; leading range 0..=3"
                 .to_owned(),
         );
     }
