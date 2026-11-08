@@ -144,6 +144,118 @@
           "start_ms": 0,
           "end_ms": 2000
         }
+      },
+      {
+        "receipt_id": "synthetic-ground-auth",
+        "owner_issue": "#4080",
+        "role": "AUTHORIZATION",
+        "artifact_path": "fixtures/synthetic-ground-auth.json",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "configuration_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "evidence_class": "SYNTHETIC_ONLY",
+        "disposition": "SYNTHETIC_ONLY",
+        "validity": {
+          "start_ms": 0,
+          "end_ms": 2000
+        }
+      },
+      {
+        "receipt_id": "synthetic-ground-local-protection",
+        "owner_issue": "#4080",
+        "role": "LOCAL_PROTECTION",
+        "artifact_path": "fixtures/synthetic-ground-local-protection.json",
+        "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "configuration_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "evidence_class": "SYNTHETIC_ONLY",
+        "disposition": "SYNTHETIC_ONLY",
+        "validity": {
+          "start_ms": 0,
+          "end_ms": 2000
+        }
+      },
+      {
+        "receipt_id": "synthetic-ground-session-admission",
+        "owner_issue": "#4080",
+        "role": "SESSION_ADMISSION",
+        "artifact_path": "fixtures/synthetic-ground-session-admission.json",
+        "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "configuration_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "evidence_class": "SYNTHETIC_ONLY",
+        "disposition": "SYNTHETIC_ONLY",
+        "validity": {
+          "start_ms": 0,
+          "end_ms": 2000
+        }
+      },
+      {
+        "receipt_id": "synthetic-ground-standards",
+        "owner_issue": "#4141",
+        "role": "STANDARDS_APPLICABILITY",
+        "artifact_path": "fixtures/synthetic-ground-standards.json",
+        "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "configuration_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "evidence_class": "SYNTHETIC_ONLY",
+        "disposition": "SYNTHETIC_ONLY",
+        "validity": {
+          "start_ms": 0,
+          "end_ms": 2000
+        }
+      },
+      {
+        "receipt_id": "synthetic-ground-mission-energy",
+        "owner_issue": "#3885",
+        "role": "MISSION_ENERGY",
+        "artifact_path": "fixtures/synthetic-ground-mission-energy.json",
+        "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "configuration_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "evidence_class": "SYNTHETIC_ONLY",
+        "disposition": "SYNTHETIC_ONLY",
+        "validity": {
+          "start_ms": 0,
+          "end_ms": 2000
+        }
+      },
+      {
+        "receipt_id": "synthetic-air-session-admission",
+        "owner_issue": "#4080",
+        "role": "SESSION_ADMISSION",
+        "artifact_path": "fixtures/synthetic-air-session-admission.json",
+        "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "configuration_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "evidence_class": "SYNTHETIC_ONLY",
+        "disposition": "SYNTHETIC_ONLY",
+        "validity": {
+          "start_ms": 0,
+          "end_ms": 2000
+        }
+      },
+      {
+        "receipt_id": "synthetic-air-standards",
+        "owner_issue": "#4141",
+        "role": "STANDARDS_APPLICABILITY",
+        "artifact_path": "fixtures/synthetic-air-standards.json",
+        "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "configuration_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "evidence_class": "SYNTHETIC_ONLY",
+        "disposition": "SYNTHETIC_ONLY",
+        "validity": {
+          "start_ms": 0,
+          "end_ms": 2000
+        }
+      },
+      {
+        "receipt_id": "synthetic-air-mission-energy",
+        "owner_issue": "#3885",
+        "role": "MISSION_ENERGY",
+        "artifact_path": "fixtures/synthetic-air-mission-energy.json",
+        "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "configuration_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "evidence_class": "SYNTHETIC_ONLY",
+        "disposition": "SYNTHETIC_ONLY",
+        "validity": {
+          "start_ms": 0,
+          "end_ms": 2000
+        }
       }
     ]
   },
@@ -169,14 +281,24 @@
       "required_receipt_roles": [
         "PHYSICAL_ENVELOPE",
         "OBSERVABILITY",
+        "AUTHORIZATION",
+        "LOCAL_PROTECTION",
+        "SESSION_ADMISSION",
         "SITE_ALLOCATION",
-        "SOURCE_TO_LOAD_METROLOGY"
+        "SOURCE_TO_LOAD_METROLOGY",
+        "STANDARDS_APPLICABILITY",
+        "MISSION_ENERGY"
       ],
       "receipt_ids": [
         "synthetic-site-budget",
         "synthetic-ground-envelope",
         "synthetic-ground-observability",
-        "synthetic-meters"
+        "synthetic-meters",
+        "synthetic-ground-auth",
+        "synthetic-ground-local-protection",
+        "synthetic-ground-session-admission",
+        "synthetic-ground-standards",
+        "synthetic-ground-mission-energy"
       ]
     },
     {
@@ -203,7 +325,10 @@
         "AUTHORIZATION",
         "LOCAL_PROTECTION",
         "SITE_ALLOCATION",
-        "SOURCE_TO_LOAD_METROLOGY"
+        "SOURCE_TO_LOAD_METROLOGY",
+        "SESSION_ADMISSION",
+        "STANDARDS_APPLICABILITY",
+        "MISSION_ENERGY"
       ],
       "receipt_ids": [
         "synthetic-site-budget",
@@ -211,7 +336,10 @@
         "synthetic-air-observability-ambiguous",
         "synthetic-meters",
         "synthetic-air-auth",
-        "synthetic-air-local-protection"
+        "synthetic-air-local-protection",
+        "synthetic-air-session-admission",
+        "synthetic-air-standards",
+        "synthetic-air-mission-energy"
       ]
     }
   ],
