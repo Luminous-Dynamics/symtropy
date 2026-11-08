@@ -886,12 +886,16 @@ pub fn evaluate_area_overlap(
     }
 
     let mut source_ids = BTreeSet::new();
+    let mut source_geometry_artifact_ids = BTreeSet::new();
+    let mut source_geometry_artifact_digests = BTreeSet::new();
     let mut prepared_sources = Vec::with_capacity(source_surfaces.len());
     let mut source_surface_area_m2 = 0.0;
     for source in source_surfaces {
         if !source_ids.insert(source.surface_id.as_str()) {
             return Err(format!("duplicate source surface_id: {}", source.surface_id));
         }
+        source_geometry_artifact_ids.insert(source.geometry_artifact_id.clone());
+        source_geometry_artifact_digests.insert(source.geometry_artifact_sha256.clone());
         let prepared = prepare_source(source, profile)?;
         source_surface_area_m2 += prepared.area_m2;
         if !source_surface_area_m2.is_finite() {
@@ -901,6 +905,10 @@ pub fn evaluate_area_overlap(
     }
 
     let mut reference_ids = BTreeSet::new();
+    let mut reference_geometry_artifact_ids = BTreeSet::new();
+    let mut reference_geometry_artifact_digests = BTreeSet::new();
+    let mut buffer_artifact_ids = BTreeSet::new();
+    let mut buffer_artifact_digests = BTreeSet::new();
     let mut prepared_references = Vec::with_capacity(reference_surfaces.len());
     let mut observable_reference_surface_area_m2 = 0.0;
     let mut interpreted_reference_area_excluded_m2 = 0.0;
@@ -911,6 +919,14 @@ pub fn evaluate_area_overlap(
                 "duplicate reference surface_id: {}",
                 reference.surface_id
             ));
+        }
+        reference_geometry_artifact_ids.insert(reference.geometry_artifact_id.clone());
+        reference_geometry_artifact_digests.insert(reference.geometry_artifact_sha256.clone());
+        if let Some(artifact_id) = &reference.buffer_artifact_id {
+            buffer_artifact_ids.insert(artifact_id.clone());
+        }
+        if let Some(digest) = &reference.buffer_artifact_sha256 {
+            buffer_artifact_digests.insert(digest.clone());
         }
         let prepared = prepare_reference(reference, profile)?;
         match prepared.visibility {
@@ -998,6 +1014,13 @@ pub fn evaluate_area_overlap(
     Ok(AreaOverlapResult {
         profile_id: profile.profile_id.clone(),
         metric_authority: profile.metric_authority,
+        coordinate_unit: profile.coordinate_unit,
+        source_geometry_artifact_ids: source_geometry_artifact_ids.into_iter().collect(),
+        source_geometry_artifact_digests: source_geometry_artifact_digests.into_iter().collect(),
+        reference_geometry_artifact_ids: reference_geometry_artifact_ids.into_iter().collect(),
+        reference_geometry_artifact_digests: reference_geometry_artifact_digests.into_iter().collect(),
+        buffer_artifact_ids: buffer_artifact_ids.into_iter().collect(),
+        buffer_artifact_digests: buffer_artifact_digests.into_iter().collect(),
         aggregation_policy: profile.aggregation_policy,
         max_parallel_angle_rad: profile.max_parallel_angle_rad,
         buffer_distance_m: profile.buffer_distance_m,
