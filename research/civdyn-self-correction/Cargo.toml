@@ -21,3 +21,7 @@ civdyn-resource-ledger = { path = "../civdyn-resource-ledger" }
 [[bin]]
 name = "causal-drift-sweep"
 path = "src/bin/causal_drift_sweep.rs"
+
+[[bin]]
+name = "causal-drift-monte-carlo"
+path = "src/bin/causal_drift_monte_carlo.rs"
