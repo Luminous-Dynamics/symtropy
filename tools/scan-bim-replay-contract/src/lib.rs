@@ -84,6 +84,7 @@ struct CoordinateFrame {
     handedness: Handedness,
     linear_unit: LinearUnit,
     vertical_datum_id: String,
+    transform_artifact_id: String,
 }
 
 #[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]
@@ -268,6 +269,23 @@ pub struct ArtifactVerificationSummary {
 }
 
 #[derive(Debug, Serialize)]
+pub struct CandidateRuntimeReceipt {
+    pub artifact_id: String,
+    pub role: String,
+    pub relative_path: String,
+    pub sha256: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct CandidateOutputReceipt {
+    pub artifact_id: String,
+    pub scene_id: String,
+    pub role: String,
+    pub relative_path: String,
+    pub sha256: String,
+}
+
+#[derive(Debug, Serialize)]
 pub struct ReplayAuditReport {
     pub schema_version: String,
     pub replay_id: String,
@@ -275,6 +293,7 @@ pub struct ReplayAuditReport {
     pub pipeline_id: String,
     pub source_commit_sha: String,
     pub tolerance_profile_id: String,
+    pub requirement_revision: String,
     pub sampling_profile_id: String,
     pub metric_suite_id: String,
     pub metric_suite_version: String,
@@ -283,6 +302,8 @@ pub struct ReplayAuditReport {
     pub executable_sha256: String,
     pub configuration_sha256: String,
     pub model_sha256: Option<String>,
+    pub candidate_runtime_artifacts: Vec<CandidateRuntimeReceipt>,
+    pub candidate_outputs: Vec<CandidateOutputReceipt>,
     pub tolerance_distance_limit_m: f64,
     pub tolerance_decision_policy: String,
     pub reference_surface_spacing_m: f64,
@@ -309,7 +330,9 @@ pub struct SceneVisibilityAudit {
     pub axis_order: String,
     pub handedness: String,
     pub linear_unit: String,
+    pub linear_unit_to_metre_factor: f64,
     pub vertical_datum_id: String,
+    pub transform_artifact_id: String,
     pub building_group_id: String,
     pub capture_group_id: String,
     pub split_group_id: String,
@@ -352,6 +375,36 @@ fn linear_unit_label(value: LinearUnit) -> &'static str {
         LinearUnit::Metre => "metre",
         LinearUnit::Millimetre => "millimetre",
         LinearUnit::FootInternational => "foot_international",
+    }
+}
+
+fn linear_unit_to_metre_factor(value: LinearUnit) -> f64 {
+    match value {
+        LinearUnit::Metre => 1.0,
+        LinearUnit::Millimetre => 0.001,
+        LinearUnit::FootInternational => 0.3048,
+    }
+}
+
+fn candidate_input_role_label(value: CandidateInputRole) -> &'static str {
+    match value {
+        CandidateInputRole::PointCloudObservation => "point_cloud_observation",
+        CandidateInputRole::SensorMetadata => "sensor_metadata",
+        CandidateInputRole::PriorAssetModel => "prior_asset_model",
+        CandidateInputRole::RegistrationMetadata => "registration_metadata",
+        CandidateInputRole::CalibrationArtifact => "calibration_artifact",
+        CandidateInputRole::CandidateExecutable => "candidate_executable",
+        CandidateInputRole::CandidateConfiguration => "candidate_configuration",
+        CandidateInputRole::ModelWeights => "model_weights",
+    }
+}
+
+fn candidate_output_role_label(value: CandidateOutputRole) -> &'static str {
+    match value {
+        CandidateOutputRole::IfcModel => "ifc_model",
+        CandidateOutputRole::GeometryModel => "geometry_model",
+        CandidateOutputRole::ElementGraph => "element_graph",
+        CandidateOutputRole::CandidateMetrics => "candidate_metrics",
     }
 }
 
@@ -624,6 +677,21 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
         {
             return Err(format!(
                 "scene {} coordinate frame requires frame_id, crs_id and vertical_datum_id",
+                scene.scene_id
+            ));
+        }
+        if !valid_identifier(&scene.coordinate_frame.transform_artifact_id) {
+            return Err(format!(
+                "scene {} coordinate frame requires transform_artifact_id",
+                scene.scene_id
+            ));
+        }
+        if !scene.candidate_inputs.iter().any(|artifact| {
+            artifact.artifact_id == scene.coordinate_frame.transform_artifact_id
+                && artifact.role == CandidateInputRole::RegistrationMetadata
+        }) {
+            return Err(format!(
+                "scene {} transform_artifact_id must reference a registration_metadata candidate input",
                 scene.scene_id
             ));
         }
@@ -914,7 +982,9 @@ fn summarize_scene(scene: &SceneRecord) -> SceneVisibilityAudit {
         axis_order: axis_order_label(scene.coordinate_frame.axis_order).to_owned(),
         handedness: handedness_label(scene.coordinate_frame.handedness).to_owned(),
         linear_unit: linear_unit_label(scene.coordinate_frame.linear_unit).to_owned(),
+        linear_unit_to_metre_factor: linear_unit_to_metre_factor(scene.coordinate_frame.linear_unit),
         vertical_datum_id: scene.coordinate_frame.vertical_datum_id.clone(),
+        transform_artifact_id: scene.coordinate_frame.transform_artifact_id.clone(),
         building_group_id: scene.building_group_id.clone(),
         capture_group_id: scene.capture_group_id.clone(),
         split_group_id: scene.split_group_id.clone(),
@@ -1050,8 +1120,16 @@ pub fn verify_manifest_artifact_files(
     let mut candidate_input_verified = 0;
     let mut candidate_output_verified = 0;
     let mut evaluator_verified = 0;
+    let mut candidate_paths = BTreeSet::new();
+    let mut evaluator_paths = BTreeSet::new();
 
     for artifact in &manifest.candidate_runtime_artifacts {
+        if !candidate_paths.insert(artifact.relative_path.as_str()) {
+            return Err(format!(
+                "duplicate candidate relative_path: {}",
+                artifact.relative_path
+            ));
+        }
         let path = resolve_file_beneath_root(
             &candidate_root,
             &artifact.relative_path,
@@ -1069,6 +1147,12 @@ pub fn verify_manifest_artifact_files(
     }
 
     for output in &manifest.candidate_outputs {
+        if !candidate_paths.insert(output.relative_path.as_str()) {
+            return Err(format!(
+                "duplicate candidate relative_path: {}",
+                output.relative_path
+            ));
+        }
         let path = resolve_file_beneath_root(
             &candidate_root,
             &output.relative_path,
@@ -1087,6 +1171,12 @@ pub fn verify_manifest_artifact_files(
 
     for scene in &manifest.scenes {
         for artifact in &scene.candidate_inputs {
+            if !candidate_paths.insert(artifact.relative_path.as_str()) {
+                return Err(format!(
+                    "duplicate candidate relative_path: {}",
+                    artifact.relative_path
+                ));
+            }
             let path = resolve_file_beneath_root(
                 &candidate_root,
                 &artifact.relative_path,
@@ -1103,6 +1193,12 @@ pub fn verify_manifest_artifact_files(
             candidate_input_verified += 1;
         }
         for artifact in &scene.evaluator_artifacts {
+            if !evaluator_paths.insert(artifact.relative_path.as_str()) {
+                return Err(format!(
+                    "duplicate evaluator relative_path: {}",
+                    artifact.relative_path
+                ));
+            }
             let path = resolve_file_beneath_root(
                 &evaluator_root,
                 &artifact.relative_path,
@@ -1174,6 +1270,28 @@ pub fn audit_manifest_bytes(bytes: &[u8]) -> Result<ReplayAuditReport, String> {
         })
         .map(|artifact| artifact.sha256.clone());
 
+    let candidate_runtime_receipts = manifest
+        .candidate_runtime_artifacts
+        .iter()
+        .map(|artifact| CandidateRuntimeReceipt {
+            artifact_id: artifact.artifact_id.clone(),
+            role: candidate_input_role_label(artifact.role).to_owned(),
+            relative_path: artifact.relative_path.clone(),
+            sha256: artifact.sha256.clone(),
+        })
+        .collect();
+    let candidate_output_receipts = manifest
+        .candidate_outputs
+        .iter()
+        .map(|artifact| CandidateOutputReceipt {
+            artifact_id: artifact.artifact_id.clone(),
+            scene_id: artifact.scene_id.clone(),
+            role: candidate_output_role_label(artifact.role).to_owned(),
+            relative_path: artifact.relative_path.clone(),
+            sha256: artifact.sha256.clone(),
+        })
+        .collect();
+
     Ok(ReplayAuditReport {
         schema_version: manifest.schema_version,
         replay_id: manifest.replay_id,
@@ -1181,6 +1299,7 @@ pub fn audit_manifest_bytes(bytes: &[u8]) -> Result<ReplayAuditReport, String> {
         pipeline_id: manifest.candidate_run.pipeline_id,
         source_commit_sha: manifest.candidate_run.source_commit_sha,
         tolerance_profile_id: manifest.tolerance_profile.profile_id,
+        requirement_revision: manifest.tolerance_profile.requirement_revision,
         sampling_profile_id: manifest.sampling_profile.profile_id,
         metric_suite_id: manifest.metric_profile.suite_id,
         metric_suite_version: manifest.metric_profile.version,
@@ -1189,6 +1308,8 @@ pub fn audit_manifest_bytes(bytes: &[u8]) -> Result<ReplayAuditReport, String> {
         executable_sha256,
         configuration_sha256,
         model_sha256,
+        candidate_runtime_artifacts: candidate_runtime_receipts,
+        candidate_outputs: candidate_output_receipts,
         tolerance_distance_limit_m: manifest.tolerance_profile.surface_distance_limit_m,
         tolerance_decision_policy: decision_policy_label(manifest.tolerance_profile.decision_policy).to_owned(),
         reference_surface_spacing_m: manifest.sampling_profile.reference_surface_spacing_m,
@@ -1434,6 +1555,12 @@ mod tests {
         );
         assert_eq!(report.tolerance_distance_limit_m, 0.05);
         assert_eq!(report.scenes[0].linear_unit, "metre");
+        assert_eq!(report.scenes[0].linear_unit_to_metre_factor, 1.0);
+        assert_eq!(report.scenes[0].transform_artifact_id, "ROOM-A-TRANSFORM");
+        assert_eq!(report.candidate_runtime_artifacts.len(), 3);
+        assert_eq!(report.candidate_outputs.len(), 4);
+        assert_eq!(report.candidate_outputs[0].sha256, "1388812a1750215452fc4dea388e113d754231c3bd9e9ff4932917da6cef3698");
+        assert_eq!(report.candidate_outputs[0].role, "ifc_model");
         assert_eq!(report.command[0], "scan-bim-candidate");
         assert_eq!(report.executable_sha256.len(), 64);
     }
