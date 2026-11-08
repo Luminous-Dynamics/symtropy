@@ -11,7 +11,7 @@
 //! Physical resources, financial liabilities and capital-condition measures
 //! remain separate types with separate units and validation rules.
 
-use civdyn_resource_ledger::{RegionOutcome, ResourceVector, WorldError};
+use civdyn_resource_ledger::{RegionOutcome, ResourceVector};
 use core::fmt;
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -198,7 +198,7 @@ pub struct CohortIncidenceLedger {
     pub inheritances: Vec<CohortInheritance>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum CohortAccountingError {
     EmptyIdentifier(&'static str),
     InvalidCohortInterval { cohort_id: CohortId },
@@ -315,14 +315,6 @@ impl fmt::Display for CohortAccountingError {
 }
 
 impl std::error::Error for CohortAccountingError {}
-
-impl From<WorldError> for CohortAccountingError {
-    fn from(value: WorldError) -> Self {
-        Self::InvalidQuantity {
-            field: "shared_resource_ledger",
-        }
-    }
-}
 
 fn validate_resource_vector(
     value: ResourceVector,
@@ -586,7 +578,7 @@ impl CohortIncidenceLedger {
                     year: obligation.due_year,
                 });
             }
-            let years = (obligation.due_year - valuation_year) as i32;
+            let years = obligation.due_year - valuation_year;
             let factor = (1.0 + real_discount_rate).powi(-years);
             output.push(DiscountedFinancialLiability {
                 obligation_id: obligation.obligation_id.clone(),
