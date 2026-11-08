@@ -100,14 +100,17 @@ fn valid_sha256(value: &str) -> bool {
             .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
 }
 
-fn hash_bytes(bytes: &[u8]) -> String {
-    let digest = Sha256::digest(bytes);
+fn digest_hex(digest: &[u8]) -> String {
     let mut output = String::with_capacity(64);
     for byte in digest {
         use std::fmt::Write;
         write!(&mut output, "{byte:02x}").expect("writing into String cannot fail");
     }
     output
+}
+
+fn hash_bytes(bytes: &[u8]) -> String {
+    digest_hex(&Sha256::digest(bytes))
 }
 
 fn hash_surface(surface: &Surface, include_traction: bool) -> String {
@@ -138,7 +141,7 @@ fn hash_surface(surface: &Surface, include_traction: bool) -> String {
             }
         }
     }
-    hash_bytes(&hasher.finalize())
+    digest_hex(&hasher.finalize())
 }
 
 fn hash_displacements(values: &[Vec3]) -> String {
