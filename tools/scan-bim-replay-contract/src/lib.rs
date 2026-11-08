@@ -336,10 +336,14 @@ fn register_artifact(
     digests: &mut BTreeSet<String>,
 ) -> Result<(), String> {
     if !valid_identifier(artifact_id) || !digest_is_sha256(sha256) {
-        return Err(format!("{label} artifact has invalid ID or lowercase SHA-256"));
+        return Err(format!(
+            "{label} artifact has invalid ID or lowercase SHA-256"
+        ));
     }
     if !safe_relative_path(relative_path) {
-        return Err(format!("{label} artifact {artifact_id} has an unsafe relative_path"));
+        return Err(format!(
+            "{label} artifact {artifact_id} has an unsafe relative_path"
+        ));
     }
     if !ids.insert(artifact_id.to_owned()) {
         return Err(format!("duplicate {label} artifact_id: {artifact_id}"));
@@ -362,7 +366,9 @@ fn expected_metres_per_unit(unit: LinearUnit) -> f64 {
 
 fn validate_curve(values: &[f64], label: &str) -> Result<(), String> {
     if values.len() < 2
-        || values.iter().any(|value| !value.is_finite() || *value < 0.0)
+        || values
+            .iter()
+            .any(|value| !value.is_finite() || *value < 0.0)
         || values.windows(2).any(|pair| pair[0] >= pair[1])
     {
         return Err(format!(
@@ -370,7 +376,9 @@ fn validate_curve(values: &[f64], label: &str) -> Result<(), String> {
         ));
     }
     if values[0] != 0.0 {
-        return Err(format!("{label} must start at zero for an auditable cutoff curve"));
+        return Err(format!(
+            "{label} must start at zero for an auditable cutoff curve"
+        ));
     }
     Ok(())
 }
@@ -380,15 +388,23 @@ fn validate_candidate_pipeline(pipeline: &CandidatePipelineRecord) -> Result<(),
         return Err("candidate_pipeline.run_id must be non-empty".to_owned());
     }
     if !commit_is_sha1(&pipeline.source_commit) {
-        return Err("candidate_pipeline.source_commit must be a 40-character lowercase Git SHA-1".to_owned());
+        return Err(
+            "candidate_pipeline.source_commit must be a 40-character lowercase Git SHA-1"
+                .to_owned(),
+        );
     }
     if !valid_identifier(&pipeline.toolchain_id) {
         return Err("candidate_pipeline.toolchain_id must be non-empty".to_owned());
     }
     if pipeline.command_argv.is_empty()
-        || pipeline.command_argv.iter().any(|argument| !valid_identifier(argument))
+        || pipeline
+            .command_argv
+            .iter()
+            .any(|argument| !valid_identifier(argument))
     {
-        return Err("candidate_pipeline.command_argv must contain non-empty arguments".to_owned());
+        return Err(
+            "candidate_pipeline.command_argv must contain non-empty arguments".to_owned(),
+        );
     }
 
     for (label, artifact) in [
@@ -438,7 +454,9 @@ fn validate_evaluation_profile(profile: &EvaluationProfile) -> Result<(), String
     let expected_scale = expected_metres_per_unit(coordinate.linear_unit);
     let scale_error = (coordinate.metres_per_unit - expected_scale).abs();
     if !coordinate.metres_per_unit.is_finite() || scale_error > expected_scale * 1e-12 {
-        return Err("coordinate metres_per_unit does not match the declared linear_unit".to_owned());
+        return Err(
+            "coordinate metres_per_unit does not match the declared linear_unit".to_owned(),
+        );
     }
 
     let tolerances = &profile.tolerances;
@@ -448,7 +466,10 @@ fn validate_evaluation_profile(profile: &EvaluationProfile) -> Result<(), String
         || !tolerances.surface_intersection_buffer_m.is_finite()
         || tolerances.surface_intersection_buffer_m <= 0.0
     {
-        return Err("tolerance profile requires a non-empty ID and finite positive metre thresholds".to_owned());
+        return Err(
+            "tolerance profile requires a non-empty ID and finite positive metre thresholds"
+                .to_owned(),
+        );
     }
 
     let sampling = &profile.sampling;
@@ -459,7 +480,9 @@ fn validate_evaluation_profile(profile: &EvaluationProfile) -> Result<(), String
         || !sampling.point_cloud_voxel_size_m.is_finite()
         || sampling.point_cloud_voxel_size_m <= 0.0
     {
-        return Err("sampling spacings and voxel size must be finite positive metre values".to_owned());
+        return Err(
+            "sampling spacings and voxel size must be finite positive metre values".to_owned(),
+        );
     }
 
     let metric = &profile.metric_definition;
@@ -1274,8 +1297,7 @@ mod tests {
     #[test]
     fn rejects_invalid_candidate_source_commit() {
         let mut value = fixture_value();
-        value["candidate_pipeline"]["source_commit"] =
-            serde_json::json!("A".repeat(40));
+        value["candidate_pipeline"]["source_commit"] = serde_json::json!("A".repeat(40));
         let error = audit(&value).expect_err("source commit must be canonical lowercase hex");
         assert!(error.contains("40-character lowercase Git SHA-1"));
     }
@@ -1285,7 +1307,8 @@ mod tests {
         let mut value = fixture_value();
         value["evaluation_profile"]["coordinate_reference"]["linear_unit"] =
             serde_json::json!("millimetre");
-        let error = audit(&value).expect_err("millimetre coordinates cannot claim one metre per unit");
+        let error =
+            audit(&value).expect_err("millimetre coordinates cannot claim one metre per unit");
         assert!(error.contains("metres_per_unit does not match"));
     }
 
@@ -1310,8 +1333,7 @@ mod tests {
     #[test]
     fn requires_ifc_model_and_element_graph_outputs_per_scene() {
         let mut value = fixture_value();
-        value["scenes"][0]["candidate_outputs"][1]["role"] =
-            serde_json::json!("geometry_mesh");
+        value["scenes"][0]["candidate_outputs"][1]["role"] = serde_json::json!("geometry_mesh");
         let error = audit(&value).expect_err("scene must expose IFC and element graph outputs");
         assert!(error.contains("requires both ifc_model and element_graph"));
     }
@@ -1337,7 +1359,10 @@ mod tests {
             &evaluator,
         )
         .expect_err("candidate build digest must be checked against exact local bytes");
-        assert!(error.contains("candidate pipeline artifact SYNTHETIC-CANDIDATE-BUILD SHA-256 mismatch"));
+        assert!(
+            error
+                .contains("candidate pipeline artifact SYNTHETIC-CANDIDATE-BUILD SHA-256 mismatch")
+        );
     }
 
     #[test]
