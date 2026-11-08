@@ -17,3 +17,7 @@ path = "src/bin/self_correction_sweep.rs"
 
 [dependencies]
 civdyn-resource-ledger = { path = "../civdyn-resource-ledger" }
+
+[[bin]]
+name = "causal-drift-sweep"
+path = "src/bin/causal_drift_sweep.rs"

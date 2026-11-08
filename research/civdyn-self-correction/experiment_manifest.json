@@ -47,6 +47,141 @@
         "frozen_policy_maintenance_energy_unmet_kwh": 60,
         "mechanism_aware_maintenance_energy_unmet_kwh": 50
       }
+    },
+    "causal_drift": {
+      "ticks": 8,
+      "reversal_starts_on_one_based_tick": 4,
+      "common_cause_observational_imbalance": 5,
+      "action_cost": 0.5,
+      "matched_probe_interval_ticks": 2,
+      "matched_probe_pairs": 5,
+      "matched_confounder_values": [
+        -2,
+        -1,
+        0,
+        1,
+        2
+      ],
+      "diagnostic_probe_cost": 0.25,
+      "regimes": {
+        "stable_positive": {
+          "causal_effect": 2,
+          "expected_observational_association": 7
+        },
+        "sign_reversal": {
+          "effect_before_tick_4": 2,
+          "effect_from_tick_4": -3,
+          "expected_final_observational_association": 2
+        },
+        "confounded_null": {
+          "causal_effect": 0,
+          "expected_observational_association": 5
+        },
+        "gradual_sign_reversal": {
+          "effect_ticks_1_to_2": 2,
+          "effect_ticks_3_to_4": 1,
+          "effect_ticks_5_to_6": -1,
+          "effect_ticks_7_to_8": -2,
+          "expected_final_observational_association": 3
+        },
+        "confounder_shift": {
+          "causal_effect": 2,
+          "observational_confounder_imbalance_before_tick_5": 5,
+          "observational_confounder_imbalance_from_tick_5": -5,
+          "expected_observational_association_before_tick_5": 7,
+          "expected_observational_association_from_tick_5": -3
+        }
+      },
+      "expected_controls": {
+        "stable_positive_mechanism_aware": {
+          "diagnosis": null,
+          "active_ticks": 8,
+          "last_probe_estimate": 2
+        },
+        "sign_reversal_outcome_reactive": {
+          "diagnosis": null,
+          "active_after_nonpositive_effect_ticks": 5,
+          "proxy_driven_action_under_nonpositive_effect": true
+        },
+        "sign_reversal_mechanism_aware": {
+          "diagnosis": "causal_sign_reversal",
+          "detection_tick": 4,
+          "active_after_nonpositive_effect_ticks": 1
+        },
+        "confounded_null_mechanism_aware": {
+          "diagnosis": "null_effect_with_confounding",
+          "detection_tick": 2,
+          "active_ticks": 2
+        },
+        "gradual_sign_reversal_mechanism_aware": {
+          "diagnosis": "causal_sign_reversal",
+          "detection_tick": 6,
+          "active_after_nonpositive_effect_ticks": 2,
+          "active_ticks": 6
+        },
+        "confounder_shift_cusum_signal_only": {
+          "signal_detection_tick": 5,
+          "mechanism_identified": false,
+          "missed_beneficial_action_ticks": 3
+        },
+        "confounder_shift_mechanism_aware": {
+          "signal_detection_tick": 5,
+          "diagnosis": "confounder_shift_without_causal_effect_change",
+          "diagnosis_tick": 6,
+          "matched_probe_estimate": 2,
+          "missed_beneficial_action_ticks": 0
+        },
+        "confounder_shift_outcome_reactive": {
+          "signal_detection_tick": 5,
+          "mechanism_identified": false,
+          "missed_beneficial_action_ticks": 3,
+          "active_ticks": 5
+        },
+        "stable_positive_cusum_signal_only": {
+          "signal_change_detected": false,
+          "missed_beneficial_action_ticks": 0,
+          "active_ticks": 8
+        }
+      },
+      "claim_ceiling": [
+        "All potential outcomes and confounder values are synthetic deterministic software fixtures.",
+        "Matched-pair estimates are derived from paired synthetic outcomes with no sampling noise; this does not establish empirical identification.",
+        "The common cause is represented in the synthetic outcome equation and its imbalance is a declared design input.",
+        "Oracle utility uses scenario ground truth and is an upper-bound comparator, not a deployable controller."
+      ],
+      "reversal_modes": {
+        "abrupt": {
+          "reversal_starts_on_one_based_tick": 4,
+          "effect_before_reversal": 2,
+          "effect_from_reversal": -3
+        },
+        "gradual": {
+          "effect_by_tick": {
+            "1": 2,
+            "2": 2,
+            "3": 1,
+            "4": 1,
+            "5": -1,
+            "6": -1,
+            "7": -2,
+            "8": -2
+          },
+          "detection_target_tick": 6,
+          "final_observational_association": 3
+        }
+      },
+      "controllers": [
+        "frozen_policy",
+        "outcome_reactive",
+        "cusum_signal_only",
+        "mechanism_aware"
+      ],
+      "cusum": {
+        "allowance": 0.25,
+        "threshold": 2,
+        "comparison": "two-sided cumulative observational-association deviation from the first tick",
+        "claim_ceiling": "CUSUM detects a statistical shift in the observed association; it does not identify a causal mechanism."
+      }
     }
   },
   "correction_event_order": [
@@ -76,7 +211,25 @@
     "trace_valid",
     "maximum_water_residual_m3",
     "maximum_energy_residual_kwh",
-    "maintenance_energy_unmet_kwh"
+    "maintenance_energy_unmet_kwh",
+    "final_true_causal_effect",
+    "final_observational_association",
+    "last_matched_probe_estimate",
+    "active_ticks",
+    "active_after_nonpositive_effect_ticks",
+    "cumulative_causal_contribution",
+    "diagnostic_probe_count",
+    "diagnostic_probe_cost",
+    "net_utility",
+    "oracle_net_utility",
+    "regret_to_oracle",
+    "proxy_driven_action_under_nonpositive_effect",
+    "diagnosis",
+    "detection_tick",
+    "missed_beneficial_action_ticks",
+    "signal_change_detected",
+    "signal_detection_tick",
+    "diagnosis_tick"
   ],
   "claim_ceiling": [
     "The scenarios and all quantities are synthetic and not calibrated to a real catchment or society.",

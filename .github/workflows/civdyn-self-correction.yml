@@ -32,6 +32,53 @@ jobs:
         run: cargo check --locked --manifest-path research/civdyn-self-correction/Cargo.toml --all-targets
       - name: Test correction chain, negative controls and ledger conservation
         run: cargo test --locked --manifest-path research/civdyn-self-correction/Cargo.toml --all-targets
+      - name: Verify causal-drift detection versus mechanism diagnosis
+        run: |
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin causal-drift-sweep > /tmp/civdyn-causal-drift.csv
+          awk -F, '
+            NR == 1 { if (NF != 24) exit 20; next }
+            NF != 24 { exit 21 }
+            $1 == "sign_reversal" && $2 == "outcome_reactive" {
+              reversal_reactive++
+              if ($4 != "2.000000" || $16 != "true" || $17 != "true" || $19 != "false" || $6 != "8") exit 22
+            }
+            $1 == "sign_reversal" && $2 == "cusum_signal_only" {
+              reversal_cusum++
+              if ($17 != "true" || $18 != "4" || $19 != "false" || $7 != "1") exit 23
+            }
+            $1 == "sign_reversal" && $2 == "mechanism_aware" {
+              reversal_aware++
+              if ($20 != "causal_sign_reversal" || $18 != "4" || $21 != "4" || $7 != "1" || $23 != "true") exit 24
+            }
+            $1 == "gradual_sign_reversal" && $2 == "mechanism_aware" {
+              gradual_aware++
+              if ($3 != "-2.000000" || $4 != "3.000000" || $20 != "causal_sign_reversal" || $18 != "5" || $21 != "6" || $22 != "2" || $7 != "2") exit 25
+            }
+            $1 == "confounded_null" && $2 == "mechanism_aware" {
+              null_aware++
+              if ($4 != "5.000000" || $5 != "0.000000" || $20 != "null_effect_with_confounding" || $21 != "2") exit 26
+            }
+            $1 == "stable_positive" && $2 == "mechanism_aware" {
+              stable_aware++
+              if ($17 != "false" || $19 != "false" || $6 != "8" || $5 != "2.000000") exit 27
+            }
+            $1 == "confounder_shift" && $2 == "cusum_signal_only" {
+              confounder_cusum++
+              if ($3 != "2.000000" || $4 != "-3.000000" || $17 != "true" || $18 != "5" || $19 != "false" || $8 != "3") exit 28
+            }
+            $1 == "confounder_shift" && $2 == "mechanism_aware" {
+              confounder_aware++
+              if ($4 != "-3.000000" || $17 != "true" || $18 != "5" || $5 != "2.000000" || $20 != "confounder_shift_without_causal_effect_change" || $21 != "6" || $6 != "8" || $8 != "0" || $23 != "true") exit 29
+            }
+            $1 == "confounder_shift" && $2 == "outcome_reactive" {
+              confounder_reactive++
+              if ($8 != "3" || $6 != "5" || $19 != "false") exit 30
+            }
+            END {
+              if (NR != 21 || reversal_reactive != 1 || reversal_cusum != 1 || reversal_aware != 1 || gradual_aware != 1 || null_aware != 1 || stable_aware != 1 || confounder_cusum != 1 || confounder_aware != 1 || confounder_reactive != 1) exit 31
+              print "Causal-drift CSV valid: 20 regime/controller cases, 24 columns; causal and confounder controls passed"
+            }
+          ' /tmp/civdyn-causal-drift.csv
       - name: Verify deterministic CSV contract and known-answer outputs
         run: |
           cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin self-correction-sweep > /tmp/civdyn-self-correction.csv

@@ -10,6 +10,8 @@
 //! household service, industrial service, reserve capital, maintenance energy,
 //! sensor error and correction evidence as separate quantities.
 
+pub mod causal_drift;
+
 use civdyn_resource_ledger::{
     Production, Region, ResourceVector, StepInput, StepReport, TransferPolicy, TransferRequest,
     World, WorldError,
