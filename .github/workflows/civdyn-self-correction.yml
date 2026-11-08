@@ -1,0 +1,55 @@
+name: CIVDYN self-correction reference
+
+on:
+  pull_request:
+    paths:
+      - "research/civdyn-self-correction/**"
+      - "research/civdyn-resource-ledger/**"
+      - ".github/workflows/civdyn-self-correction.yml"
+  push:
+    paths:
+      - "research/civdyn-self-correction/**"
+      - "research/civdyn-resource-ledger/**"
+      - ".github/workflows/civdyn-self-correction.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy,rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/civdyn-self-correction/Cargo.toml --all -- --check
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path research/civdyn-self-correction/Cargo.toml --all-targets -- -D warnings
+      - name: Compile
+        run: cargo check --locked --manifest-path research/civdyn-self-correction/Cargo.toml --all-targets
+      - name: Test correction chain, negative controls and ledger conservation
+        run: cargo test --locked --manifest-path research/civdyn-self-correction/Cargo.toml --all-targets
+      - name: Verify deterministic CSV contract and known-answer outputs
+        run: |
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin self-correction-sweep > /tmp/civdyn-self-correction.csv
+          awk -F, '
+            NR == 1 { if (NF != 20) exit 10; next }
+            NF != 20 { exit 11 }
+            $1 == "sensor_drift_sham" {
+              sensor++
+              if ($2 == "outcome_reactive" && $6 != "12.000000") exit 12
+              if ($2 == "mechanism_aware" && $6 != "0.000000") exit 13
+            }
+            $1 == "delayed_externality" {
+              delayed++
+              if ($2 == "frozen_policy" && $4 != "25.000000") exit 14
+              if ($2 == "mechanism_aware" && ($4 != "0.000000" || $5 != "30.000000")) exit 15
+            }
+            END {
+              if (sensor != 3 || delayed != 3) exit 16
+              print "CSV valid: 3 sensor-drift controllers + 3 delayed-externality controllers; 20 columns"
+            }
+          ' /tmp/civdyn-self-correction.csv
