@@ -69,7 +69,22 @@ Reference: https://standards.nasa.gov/standard/NASA/NASA-STD-5012
 NASA's Inspector General has also documented the importance and cost of propulsion test infrastructure, test availability, test-facility sustainment and qualification evidence:
 https://oig.nasa.gov/wp-content/uploads/2024/09/ig-24-018.pdf
 
-## 3. Paradigm shifts
+## 3. First executable analytic benchmark slice
+
+Symtropy draft PR [#4220](https://github.com/Luminous-Dynamics/symtropy/pull/4220) adds a standalone Rust reference verifier with a frozen JSON case for:
+
+- ideal rocket-equation consistency: Δv = Isp × g0 × ln(m0 / mf);
+- ideal nozzle thrust consistency: F = mdot × ve + Ae × (pe − pa);
+- derived specific impulse: Isp = F / (mdot × g0);
+- explicit SI units, finite/positive domain checks, source records, an analytical-only claim ceiling and a SHA-256 receipt over the exact fixture bytes.
+
+The fixture uses illustrative values and is not associated with Prometheus, NASA RAMPT or a real engine. It validates algebraic identities only. Seven Rust positive/negative tests are authored; they have **not** been reported as executed in the absence of a Rust toolchain. An independent script recomputed the frozen Δv, thrust and specific-impulse values, but that is not a substitute for the Rust test run.
+
+The next gate is to run the verifier locally/CI on the exact PR head, then expand to frozen component-level reference cases with experimental data, measurement uncertainty and validity envelopes. Do not jump directly from this analytic slice to CFD or engine qualification.
+
+**Important scope boundary:** analytic equations verify definitions and numerical plumbing; they do not validate combustion, feed systems, thermal management, materials, turbomachinery, fatigue, engine life or flight performance.
+
+## 4. Paradigm shifts
 
 ### 3.1 Optimize delivered mission service, not engine headline metrics
 
@@ -318,6 +333,7 @@ The opportunity is to improve the connection between specialist physics, real me
 - Symtropy #3228 — Earth-orbit delivery chain.
 - Symtropy #3253 — orbital last-mile / transfer vehicles.
 - Symtropy #4199 — NEO planetary-defence and risk assessment.
+- Symtropy PR #4220 — executable, analytical-only rocket equation / thrust reference verifier (seven Rust tests authored, not yet run).
 - Symthaea #8192 — natural-hazard value-of-information planning.
 - Mycelix #4020 — industrial bootstrap milestone provenance.
 - Mycelix #455 / #413 — qualified spatial/orbital state and spatial-truth contracts.
