@@ -161,6 +161,13 @@ pub struct ReferenceAreaLedger {
 pub struct AreaOverlapResult {
     pub profile_id: String,
     pub metric_authority: AreaMetricAuthority,
+    pub coordinate_unit: AreaCoordinateUnit,
+    pub source_geometry_artifact_ids: Vec<String>,
+    pub source_geometry_artifact_digests: Vec<String>,
+    pub reference_geometry_artifact_ids: Vec<String>,
+    pub reference_geometry_artifact_digests: Vec<String>,
+    pub buffer_artifact_ids: Vec<String>,
+    pub buffer_artifact_digests: Vec<String>,
     pub aggregation_policy: AreaAggregationPolicy,
     pub max_parallel_angle_rad: f64,
     pub buffer_distance_m: f64,
@@ -671,12 +678,23 @@ fn convex_union_area(polygons: &[Vec<Point2>]) -> Result<f64, String> {
     Ok(union_area)
 }
 
+fn scale_point3(point: Point3, factor: f64) -> Point3 {
+    Point3::new(point.x * factor, point.y * factor, point.z * factor)
+}
+
+fn scale_point2(point: Point2, factor: f64) -> Point2 {
+    Point2::new(point.x * factor, point.y * factor)
+}
+
 fn prepare_source(
     source: &SourceAreaSurface,
     profile: &AreaOverlapProfile,
 ) -> Result<PreparedSource, String> {
-    if source.surface_id.trim().is_empty() {
-        return Err("source surface_id must be non-empty".to_owned());
+    if source.surface_id.trim().is_empty()
+        || source.geometry_artifact_id.trim().is_empty()
+        || !digest_is_sha256(&source.geometry_artifact_sha256)
+    {
+        return Err("source surface requires a stable ID and content-addressed geometry artifact".to_owned());
     }
     if source.frame_id != profile.common_frame_id {
         return Err(format!(
@@ -684,8 +702,14 @@ fn prepare_source(
             source.surface_id
         ));
     }
+    let unit_scale = profile.coordinate_unit.metres_per_unit();
+    let vertices: Vec<Point3> = source
+        .vertices
+        .iter()
+        .map(|point| scale_point3(*point, unit_scale))
+        .collect();
     let (frame, _, area_m2) = plane_frame(
-        &source.vertices,
+        &vertices,
         "source surface",
         profile.planarity_tolerance_m,
     )?;
@@ -693,7 +717,7 @@ fn prepare_source(
         surface_id: source.surface_id.clone(),
         area_m2,
         normal: frame.normal,
-        vertices: source.vertices.clone(),
+        vertices,
     })
 }
 
@@ -701,8 +725,11 @@ fn prepare_reference(
     reference: &ReferenceAreaSurface,
     profile: &AreaOverlapProfile,
 ) -> Result<PreparedReference, String> {
-    if reference.surface_id.trim().is_empty() {
-        return Err("reference surface_id must be non-empty".to_owned());
+    if reference.surface_id.trim().is_empty()
+        || reference.geometry_artifact_id.trim().is_empty()
+        || !digest_is_sha256(&reference.geometry_artifact_sha256)
+    {
+        return Err("reference surface requires a stable ID and content-addressed geometry artifact".to_owned());
     }
     if reference.frame_id != profile.common_frame_id {
         return Err(format!(
@@ -710,16 +737,34 @@ fn prepare_reference(
             reference.surface_id
         ));
     }
+    let unit_scale = profile.coordinate_unit.metres_per_unit();
+    let reference_vertices: Vec<Point3> = reference
+        .vertices
+        .iter()
+        .map(|point| scale_point3(*point, unit_scale))
+        .collect();
     let (frame, original_2d, area_m2) = plane_frame(
-        &reference.vertices,
+        &reference_vertices,
         "reference surface",
         profile.planarity_tolerance_m,
     )?;
+    let buffered_vertices: Vec<Point2> = reference
+        .buffered_boundary_2d
+        .iter()
+        .map(|point| scale_point2(*point, unit_scale))
+        .collect();
     let buffered_2d = validate_convex_polygon(
-        &reference.buffered_boundary_2d,
+        &buffered_vertices,
         "buffered reference boundary",
     )?;
     if reference.visibility == ReferenceVisibility::Observed {
+        let buffer_id = reference
+            .buffer_artifact_id
+            .as_deref()
+            .ok_or("observed reference surface requires a buffer artifact ID")?;
+        if buffer_id.trim().is_empty() {
+            return Err("buffer artifact ID must be non-empty".to_owned());
+        }
         let digest = reference
             .buffer_artifact_sha256
             .as_deref()
@@ -784,6 +829,10 @@ pub fn validate_area_overlap_profile(profile: &AreaOverlapProfile) -> Result<(),
         || profile.buffer_policy_id.trim().is_empty()
     {
         return Err("area overlap profile identifiers must be non-empty".to_owned());
+    }
+    let unit_scale = profile.coordinate_unit.metres_per_unit();
+    if !unit_scale.is_finite() || unit_scale <= 0.0 {
+        return Err("area overlap coordinate unit has invalid SI conversion".to_owned());
     }
     if !profile.max_parallel_angle_rad.is_finite()
         || profile.max_parallel_angle_rad < 0.0
