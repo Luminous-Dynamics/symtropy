@@ -205,6 +205,26 @@ fn contains_viable_state(
     Ok(set.state_ids.iter().any(|candidate| candidate.as_str() == state_id))
 }
 
+fn contains_recovery_state(
+    sets: &[HorizonStateSet],
+    remaining_steps: u32,
+    state_id: &str,
+) -> bool {
+    sets.iter()
+        .find(|set| set.remaining_steps == remaining_steps)
+        .is_some_and(|set| set.state_ids.iter().any(|candidate| candidate == state_id))
+}
+
+fn contains_viable_or_recovery_state(
+    viable_sets: &[HorizonStateSet],
+    recovery_sets: &[HorizonStateSet],
+    remaining_steps: u32,
+    state_id: &str,
+) -> Result<bool, ProbeContinuationError> {
+    Ok(contains_viable_state(viable_sets, remaining_steps, state_id)?
+        || contains_recovery_state(recovery_sets, remaining_steps, state_id))
+}
+
 fn has_viability_horizon(
     sets: &[HorizonStateSet],
     remaining_steps: u32,
@@ -234,6 +254,8 @@ fn validate_problem(problem: &ProbeProblem) -> Result<(), ProbeContinuationError
         || !nonempty(&receipt.state_digest)
         || !nonempty(&receipt.abstraction_digest)
         || !nonempty(&receipt.assurance_receipt_id)
+        || !nonempty(&receipt.viability_result_digest)
+        || !nonempty(&receipt.recovery_result_digest)
         || !nonempty(&execution.receipt_id)
         || !nonempty(&execution.command_action_id)
         || !nonempty(&execution.delivered_action_id)
@@ -275,6 +297,30 @@ fn validate_problem(problem: &ProbeProblem) -> Result<(), ProbeContinuationError
             }
             if !states.insert(state) {
                 return Err(ProbeContinuationError::DuplicateViableState);
+            }
+        }
+    }
+
+    let mut recovery_horizons = BTreeSet::new();
+    for set in &problem.recovery_states_by_remaining_horizon {
+        if !recovery_horizons.insert(set.remaining_steps) {
+            return Err(ProbeContinuationError::DuplicateHorizonSet);
+        }
+        let mut recovery_states = BTreeSet::new();
+        for state in &set.state_ids {
+            if !nonempty(state) {
+                return Err(ProbeContinuationError::EmptyIdentifier);
+            }
+            if !recovery_states.insert(state) {
+                return Err(ProbeContinuationError::DuplicateRecoveryState);
+            }
+        }
+        if let Some(viable) = problem.viable_states_by_remaining_horizon
+            .iter()
+            .find(|viable| viable.remaining_steps == set.remaining_steps)
+        {
+            if set.state_ids.iter().any(|state| viable.state_ids.contains(state)) {
+                return Err(ProbeContinuationError::StateInBothViableAndRecoverySet);
             }
         }
     }
