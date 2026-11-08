@@ -732,9 +732,9 @@ mod tests {
             min_zvs_margin_permille: 0,
             max_service_drop_ppm: 1_000,
             actions: vec![
-                ProbeAction { id: "0_root".into(), energy_uj: 5, duration_us: 1, ripple_ppm: 0, zvs_margin_permille: 1_000, service_drop_ppm: 0,
+                ProbeAction { id: "0_root".into(), kind: "ACTIVE_EXCITATION".into(), energy_uj: 5, duration_us: 1, ripple_ppm: 0, zvs_margin_permille: 1_000, service_drop_ppm: 0,
                     outcomes: vec![set(&[0, 1]), set(&[1, 2]), set(&[3])] },
-                ProbeAction { id: "1_refine".into(), energy_uj: 4, duration_us: 2, ripple_ppm: 0, zvs_margin_permille: 1_000, service_drop_ppm: 0,
+                ProbeAction { id: "1_refine".into(), kind: "ACTIVE_EXCITATION".into(), energy_uj: 4, duration_us: 2, ripple_ppm: 0, zvs_margin_permille: 1_000, service_drop_ppm: 0,
                     outcomes: vec![set(&[0]), set(&[1]), set(&[0])] },
             ],
         };
@@ -820,7 +820,7 @@ mod tests {
     fn outcome_support_sets_parse_and_duplicate_bins_fail_closed() {
         let mut rows: Vec<String> = FIXTURE.lines().map(str::to_string).collect();
         let mut fields: Vec<String> = rows[1].split('\t').map(str::to_string).collect();
-        fields[17] = "0|1,0,1,1".to_string();
+        fields[18] = "0|1,0,1,1".to_string();
         rows[1] = fields.join("\t");
         let supported = rows.join("\n");
         let parsed = parse_case(&supported).unwrap();
@@ -871,9 +871,9 @@ mod tests {
             min_zvs_margin_permille: 0,
             max_service_drop_ppm: 1_000,
             actions: vec![
-                ProbeAction { id: "0_root".into(), energy_uj: 5, duration_us: 1, ripple_ppm: 0, zvs_margin_permille: 1_000, service_drop_ppm: 0,
+                ProbeAction { id: "0_root".into(), kind: "ACTIVE_EXCITATION".into(), energy_uj: 5, duration_us: 1, ripple_ppm: 0, zvs_margin_permille: 1_000, service_drop_ppm: 0,
                     outcomes: vec![set(&[0, 1]), set(&[1, 2]), set(&[3])] },
-                ProbeAction { id: "1_refine".into(), energy_uj: 4, duration_us: 2, ripple_ppm: 0, zvs_margin_permille: 1_000, service_drop_ppm: 0,
+                ProbeAction { id: "1_refine".into(), kind: "ACTIVE_EXCITATION".into(), energy_uj: 4, duration_us: 2, ripple_ppm: 0, zvs_margin_permille: 1_000, service_drop_ppm: 0,
                     outcomes: vec![set(&[0]), set(&[1]), set(&[0])] },
             ],
         };
@@ -901,10 +901,10 @@ mod tests {
             min_zvs_margin_permille: 0,
             max_service_drop_ppm: 1_000,
             actions: vec![
-                ProbeAction { id: "root".into(), energy_uj: 1, duration_us: 1, ripple_ppm: 0, zvs_margin_permille: 1_000, service_drop_ppm: 0, outcomes: vec![singleton(0), singleton(0), singleton(1), singleton(1)] },
-                ProbeAction { id: "left_fast".into(), energy_uj: 6, duration_us: 1, ripple_ppm: 0, zvs_margin_permille: 1_000, service_drop_ppm: 0, outcomes: vec![singleton(0), singleton(1), singleton(0), singleton(0)] },
-                ProbeAction { id: "left_slow".into(), energy_uj: 5, duration_us: 10, ripple_ppm: 0, zvs_margin_permille: 1_000, service_drop_ppm: 0, outcomes: vec![singleton(0), singleton(1), singleton(0), singleton(0)] },
-                ProbeAction { id: "right".into(), energy_uj: 20, duration_us: 2, ripple_ppm: 0, zvs_margin_permille: 1_000, service_drop_ppm: 0, outcomes: vec![singleton(0), singleton(0), singleton(1), singleton(0)] },
+                ProbeAction { id: "root".into(), kind: "ACTIVE_EXCITATION".into(), energy_uj: 1, duration_us: 1, ripple_ppm: 0, zvs_margin_permille: 1_000, service_drop_ppm: 0, outcomes: vec![singleton(0), singleton(0), singleton(1), singleton(1)] },
+                ProbeAction { id: "left_fast".into(), kind: "ACTIVE_EXCITATION".into(), energy_uj: 6, duration_us: 1, ripple_ppm: 0, zvs_margin_permille: 1_000, service_drop_ppm: 0, outcomes: vec![singleton(0), singleton(1), singleton(0), singleton(0)] },
+                ProbeAction { id: "left_slow".into(), kind: "ACTIVE_EXCITATION".into(), energy_uj: 5, duration_us: 10, ripple_ppm: 0, zvs_margin_permille: 1_000, service_drop_ppm: 0, outcomes: vec![singleton(0), singleton(1), singleton(0), singleton(0)] },
+                ProbeAction { id: "right".into(), kind: "ACTIVE_EXCITATION".into(), energy_uj: 20, duration_us: 2, ripple_ppm: 0, zvs_margin_permille: 1_000, service_drop_ppm: 0, outcomes: vec![singleton(0), singleton(0), singleton(1), singleton(0)] },
             ],
         };
         let p = adaptive_plan(&c).unwrap();
