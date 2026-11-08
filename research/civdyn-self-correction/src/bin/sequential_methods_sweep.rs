@@ -3,9 +3,8 @@
 
 //! Emit per-episode, per-method receipts for the common-stream benchmark.
 
-use civdyn_self_correction::sequential_methods::SequentialRegime;
 use civdyn_self_correction::sequential_methods::{
-    MAX_PAIRS, SequentialDecision, SequentialEpisodeResult, SequentialMethod,
+    MAX_PAIRS, SequentialDecision, SequentialEpisodeResult, SequentialMethod, SequentialRegime,
     run_sequential_method_portfolio, wilson_95,
 };
 
@@ -48,7 +47,9 @@ fn print_summary(outcomes: &[SequentialEpisodeResult]) {
         let mut alternative_costs: Vec<usize> = outcomes
             .iter()
             .filter(|item| {
-                item.receipt.method == method\n                    && item.regime != SequentialRegime::ConfoundedNull\n                    && item.regime != SequentialRegime::BenefitBoundary
+                item.receipt.method == method
+                    && item.regime != SequentialRegime::ConfoundedNull
+                    && item.regime != SequentialRegime::BenefitBoundary
             })
             .map(|item| item.receipt.pairs_used)
             .collect();
@@ -105,11 +106,9 @@ fn main() {
         outcomes.len(),
         SequentialRegime::ALL.len() * 256 * SequentialMethod::ALL.len()
     );
-    assert!(
-        outcomes
-            .iter()
-            .all(|item| item.receipt.pairs_used <= MAX_PAIRS)
-    );
+    assert!(outcomes
+        .iter()
+        .all(|item| item.receipt.pairs_used <= MAX_PAIRS));
 
     for outcome in &outcomes {
         let fields = row(outcome);
