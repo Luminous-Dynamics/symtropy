@@ -1,0 +1,10 @@
+[package]
+name = "ground-air-bench-validator"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Semantic receipt-composition validator for synthetic ground-air energy benchmark episodes"
+
+[dependencies]
+serde_json = "1.0"

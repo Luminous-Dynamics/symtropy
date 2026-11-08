@@ -125,6 +125,7 @@ exclude = [
 members = [
     ".",
     "crates/apps/symtropy-cli",
+    "tools/ground-air-bench-validator",
     "crates/bridges/symtropy-bevy",
     "crates/core/symtropy-bevy-core",
     "crates/core/symtropy-bevy-scene",
