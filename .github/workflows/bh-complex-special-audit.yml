@@ -10,6 +10,8 @@ on:
   pull_request:
     branches:
       - main
+      # Stacked physical Green-kernel audit; base is this Jost implementation branch.
+      - research/bh-complex-special-audit-v0.1
     paths:
       - tools/bh-complex-special-audit/**
       - .github/workflows/bh-complex-special-audit.yml
