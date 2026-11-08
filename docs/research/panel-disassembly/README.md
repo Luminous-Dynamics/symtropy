@@ -10,3 +10,10 @@
 - `AcceptedReusableAssembly` requires successful removal prerequisites, requalification and current post-reassembly fastening, torque, geometry and functional evidence.
 
 See [PANEL-DISASSEMBLY-BENCHMARK-PROTOCOL-V0.1](./PANEL_DISASSEMBLY_BENCHMARK_PROTOCOL_V0_1.md) for the experimental protocol and claim boundaries.
+
+
+## Exact-head qualification contract
+
+The standalone Rust oracle runs against this corpus with the pinned Rust 1.96.0 toolchain. Its receipt must bind the exact Git HEAD and corpus SHA-256. Formatting, tests, strict Clippy and locked dependency resolution are separate required steps. A workflow status of queued, action_required or skipped is not a test result.
+
+The oracle consumes declared fixture evidence. It does not authorize a physical removal, calculate a trajectory, prove a component is structurally suitable or certify the building.
