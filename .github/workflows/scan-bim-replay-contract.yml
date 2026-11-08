@@ -5,7 +5,7 @@ on:
     branches: ["main", "research/scan-bim-admission-v0-1"]
     paths:
       - "tools/scan-bim-replay-contract/**"
-      - "docs/research/built-asset/scan-bim/SCAN_BIM_REPLAY_CONTRACT_V0_1.md"
+      - "docs/research/built-asset/scan-bim/SCAN_BIM_REPLAY_CONTRACT_V0_2.md"
       - "docs/research/built-asset/scan-bim/ERSOZ_BOSCHE_MATCHING_CONFIDENCE_BASELINE_AUDIT_V0_1.md"
       - "docs/research/built-asset/scan-bim/SCAN_BIM_2026_FRONTIER_COMPARATOR_MATRIX_V0_1.md"
       - "docs/research/built-asset/scan-bim/SCAN_BIM_PARADIGM_SHIFT_AND_BENCHMARK_TARGETS_V0_1.md"
@@ -13,7 +13,7 @@ on:
     branches: ["main", "research/scan-bim-admission-v0-1", "research/scan-bim-replay-p0-v0-2"]
     paths:
       - "tools/scan-bim-replay-contract/**"
-      - "docs/research/built-asset/scan-bim/SCAN_BIM_REPLAY_CONTRACT_V0_1.md"
+      - "docs/research/built-asset/scan-bim/SCAN_BIM_REPLAY_CONTRACT_V0_2.md"
       - "docs/research/built-asset/scan-bim/ERSOZ_BOSCHE_MATCHING_CONFIDENCE_BASELINE_AUDIT_V0_1.md"
       - "docs/research/built-asset/scan-bim/SCAN_BIM_2026_FRONTIER_COMPARATOR_MATRIX_V0_1.md"
       - "docs/research/built-asset/scan-bim/SCAN_BIM_PARADIGM_SHIFT_AND_BENCHMARK_TARGETS_V0_1.md"
