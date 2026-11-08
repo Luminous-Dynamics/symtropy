@@ -1444,7 +1444,12 @@ mod tests {
     fn low_power_factor_charges_only_reactive_energy_above_thirty_percent() {
         let mut input = fixture();
         input.declared_active_energy_kwh = 100.0;
-        input.intervals[0].energy_kwh = 100.0;
+        input
+            .intervals
+            .iter_mut()
+            .find(|interval| interval.energy_kwh > 0.0)
+            .expect("fixture has one positive-energy interval")
+            .energy_kwh = 100.0;
         input.power_factor = 0.95;
         input.measured_reactive_energy_kvarh = 40.0;
         close(
@@ -1488,7 +1493,12 @@ mod tests {
     fn per_kwh_network_surcharge_is_applied_once() {
         let mut input = fixture();
         input.declared_active_energy_kwh = 100.0;
-        input.intervals[0].energy_kwh = 100.0;
+        input
+            .intervals
+            .iter_mut()
+            .find(|interval| interval.energy_kwh > 0.0)
+            .expect("fixture has one positive-energy interval")
+            .energy_kwh = 100.0;
         input.network_surcharge_applies = Some(true);
         close(
             calculate_bill(&input)
@@ -1796,6 +1806,14 @@ mod tests {
             CalcError::DayClassDoesNotMatchDate
         );
 
+        for interval in input
+            .intervals
+            .iter_mut()
+            .filter(|i| i.local_date == "2026-07-01")
+        {
+            interval.day_class = DayClass::Weekday;
+            interval.public_holiday_evidence_reference = None;
+        }
         for interval in input
             .intervals
             .iter_mut()
