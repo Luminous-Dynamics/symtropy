@@ -525,7 +525,7 @@ fn minimum_coverage(reports: &[StepReport], region_index: usize) -> f64 {
         .fold(1.0_f64, f64::min)
 }
 
-fn sum_maintenance_energy(reports: &[StepReport]) -> f64 {
+fn sum_maintenance_energy_served(reports: &[StepReport]) -> f64 {
     reports
         .iter()
         .map(|report| {
@@ -534,6 +534,13 @@ fn sum_maintenance_energy(reports: &[StepReport]) -> f64 {
                 .served_essential_demand
                 .energy_kwh
         })
+        .sum()
+}
+
+fn sum_maintenance_energy_unmet(reports: &[StepReport]) -> f64 {
+    reports
+        .iter()
+        .map(|report| report.regions[PUMP_MAINTENANCE].unmet.energy_kwh)
         .sum()
 }
 
@@ -548,6 +555,9 @@ pub struct DelayedExternalityOutcome {
     pub industry_unmet_m3: f64,
     pub minimum_household_coverage: f64,
     pub maintenance_energy_kwh: f64,
+    /// Cumulative maintenance-energy obligation not delivered across the
+    /// complete trajectory. This is reported separately from energy consumed.
+    pub maintenance_energy_unmet_kwh: f64,
     /// Household unmet demand in the industry-on shock branch from the exact
     /// post-recovery snapshot.
     pub counterfactual_household_unmet_industry_on_m3: f64,
@@ -677,7 +687,8 @@ pub fn run_delayed_externality(
         household_unmet_m3: sum_unmet_water(&reports, HOUSEHOLD),
         industry_unmet_m3: sum_unmet_water(&reports, INDUSTRY),
         minimum_household_coverage: minimum_coverage(&reports, HOUSEHOLD),
-        maintenance_energy_kwh: sum_maintenance_energy(&reports),
+        maintenance_energy_kwh: sum_maintenance_energy_served(&reports),
+        maintenance_energy_unmet_kwh: sum_maintenance_energy_unmet(&reports),
         counterfactual_household_unmet_industry_on_m3: industry_on.household_unmet_m3,
         counterfactual_household_unmet_industry_off_m3: industry_off.household_unmet_m3,
         counterfactual_industry_attributable_household_unmet_m3,
@@ -770,6 +781,7 @@ mod tests {
         let outcome = delayed(ControllerKind::MechanismAware);
         assert_eq!(outcome.reserve_after_recovery_m3, 70.0);
         assert_eq!(outcome.maintenance_energy_kwh, 10.0);
+        assert_eq!(outcome.maintenance_energy_unmet_kwh, 50.0);
         assert_eq!(outcome.counterfactual_industry_attributable_household_unmet_m3, 10.0);
         assert_eq!(outcome.counterfactual_without_maintenance_household_unmet_m3, 10.0);
         assert!(outcome.mechanism_identified);
