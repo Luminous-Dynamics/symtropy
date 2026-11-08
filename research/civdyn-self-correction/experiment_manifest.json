@@ -76,6 +76,13 @@
         "confounded_null": {
           "causal_effect": 0,
           "expected_observational_association": 5
+        },
+        "gradual_sign_reversal": {
+          "effect_ticks_1_to_2": 2,
+          "effect_ticks_3_to_4": 1,
+          "effect_ticks_5_to_6": -1,
+          "effect_ticks_7_to_8": -2,
+          "expected_final_observational_association": 3
         }
       },
       "expected_controls": {
@@ -98,6 +105,12 @@
           "diagnosis": "null_effect_with_confounding",
           "detection_tick": 2,
           "active_ticks": 2
+        },
+        "gradual_sign_reversal_mechanism_aware": {
+          "diagnosis": "causal_sign_reversal",
+          "detection_tick": 6,
+          "active_after_nonpositive_effect_ticks": 2,
+          "active_ticks": 6
         }
       },
       "claim_ceiling": [
@@ -105,7 +118,28 @@
         "Matched-pair estimates are derived from paired synthetic outcomes with no sampling noise; this does not establish empirical identification.",
         "The common cause is represented in the synthetic outcome equation and its imbalance is a declared design input.",
         "Oracle utility uses scenario ground truth and is an upper-bound comparator, not a deployable controller."
-      ]
+      ],
+      "reversal_modes": {
+        "abrupt": {
+          "reversal_starts_on_one_based_tick": 4,
+          "effect_before_reversal": 2,
+          "effect_from_reversal": -3
+        },
+        "gradual": {
+          "effect_by_tick": {
+            "1": 2,
+            "2": 2,
+            "3": 1,
+            "4": 1,
+            "5": -1,
+            "6": -1,
+            "7": -2,
+            "8": -2
+          },
+          "detection_target_tick": 6,
+          "final_observational_association": 3
+        }
+      }
     }
   },
   "correction_event_order": [
