@@ -159,14 +159,13 @@ fn probability_bin(probability_ppm: u32, bin_count: usize) -> usize {
     ((u128::from(probability_ppm) * bin_count as u128) / u128::from(SCALE_PPM)) as usize
 }
 
-fn brier_squared_error(probability_ppm: u32, outcome: BinaryOutcome) -> Result<u128, MetricError> {
+fn brier_error_magnitude(probability_ppm: u32, outcome: BinaryOutcome) -> u128 {
     let predicted = u128::from(probability_ppm);
     let expected = match outcome {
         BinaryOutcome::Negative => 0,
         BinaryOutcome::Positive => u128::from(SCALE_PPM),
     };
-    let difference = predicted.abs_diff(expected);
-    checked_mul(difference, difference)
+    predicted.abs_diff(expected)
 }
 
 fn checked_square_accumulate(total: u128, value: u128) -> Result<u128, MetricError> {
@@ -300,9 +299,12 @@ pub fn evaluate(dataset: &MetricDataset) -> Result<CalibrationMetrics, MetricErr
         episodes.insert(observation.episode_id.clone());
         units.insert(observation.exchangeability_unit_id.clone());
 
-        squared_error_sum = checked_add(
+        squared_error_sum = checked_square_accumulate(
             squared_error_sum,
-            brier_squared_error(observation.predicted_probability_ppm, observation.outcome)?,
+            brier_error_magnitude(
+                observation.predicted_probability_ppm,
+                observation.outcome,
+            ),
         )?;
 
         let index = probability_bin(observation.predicted_probability_ppm, dataset.bin_count);
