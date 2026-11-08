@@ -1,0 +1,56 @@
+name: Scan-to-BIM Replay Contract
+
+on:
+  pull_request:
+    branches: ["main", "research/scan-bim-admission-v0-1"]
+    paths:
+      - "tools/scan-bim-replay-contract/**"
+      - "docs/research/built-asset/scan-bim/SCAN_BIM_REPLAY_CONTRACT_V0_1.md"
+  push:
+    branches: ["main", "research/scan-bim-admission-v0-1", "research/scan-bim-replay-p0-v0-1"]
+    paths:
+      - "tools/scan-bim-replay-contract/**"
+      - "docs/research/built-asset/scan-bim/SCAN_BIM_REPLAY_CONTRACT_V0_1.md"
+      - ".github/workflows/scan-bim-replay-contract.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scan-bim-replay-contract-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  replay-contract:
+    name: Replay contract (Rust 1.96)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/scan-bim-replay-contract/Cargo.toml -- --check
+      - name: Run contract tests
+        run: cargo test --manifest-path tools/scan-bim-replay-contract/Cargo.toml
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path tools/scan-bim-replay-contract/Cargo.toml --all-targets -- -D warnings
+      - name: Audit synthetic fixture
+        run: |
+          cargo run --manifest-path tools/scan-bim-replay-contract/Cargo.toml -- \
+            --manifest tools/scan-bim-replay-contract/fixtures/synthetic-observability.json \
+            > /tmp/scan-bim-replay-report.json
+          jq -e '
+            (.scene_count == 2) and
+            (.candidate_artifact_count == 2) and
+            (.evaluator_artifact_count == 2) and
+            (.scenes[0].theoretically_visible_area_m2 == 10.0) and
+            (.scenes[0].captured_visible_area_m2 == 8.0) and
+            (.scenes[0].not_captured_visible_area_m2 == 2.0) and
+            (.scenes[0].self_occluded_area_m2 == 4.0) and
+            (.scenes[0].externally_occluded_area_m2 == 3.0) and
+            (.claim_ceiling | startswith("METADATA_AND_VISIBILITY_ACCOUNTING_ONLY"))
+          ' /tmp/scan-bim-replay-report.json
