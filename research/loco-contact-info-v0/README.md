@@ -33,7 +33,7 @@ where P = L L^T. The value is returned in nats. Unlike realized posterior change
 - Deterministic comparison of candidate observation maps, ranked by expected information gain.
 - Correlated observation-noise covariance is supported; no diagonal/independent-channel assumption is imposed by the math.
 - Rank-deficient observation maps are allowed; unobservable state directions remain unupdated.
-- Twelve known-answer/adversarial tests for scalar posterior, partial observability, action-dependent information, measurement-independent EIG, zero-information null, correlated noise, invalid covariance and dimension/identity failures.
+- Fourteen known-answer/adversarial tests for scalar posterior, partial observability, action-dependent information, measurement-independent EIG, zero-information null, correlated noise, invalid covariance and dimension/identity failures.
 
 ## Important boundary
 
