@@ -127,7 +127,11 @@ pub struct GaussianCalibrationReceipt {
     /// Upstream evidence claim that Gaussian marginal tails were checked for
     /// the declared operating stratum. This crate does not authenticate it.
     pub gaussian_tail_validation_passed: bool,
-    pub independent_validation_unit_count: u64,
+    /// Independent session/episode counts per constraint. Repeated ticks from
+    /// one rollout do not qualify as independent units.
+    pub independent_validation_units_by_constraint: [u64; CONSTRAINT_COUNT],
+    /// Observed violations beyond each one-sided bound. V0 only admits zero.
+    pub upper_tail_exceedances_by_constraint: [u64; CONSTRAINT_COUNT],
     pub valid_from_ns: u64,
     pub valid_until_ns: u64,
     pub verified: bool,
@@ -195,6 +199,8 @@ pub enum AbstentionReason {
     UnsupportedDistributionFamily,
     GaussianTailCalibrationNotEstablished,
     NoIndependentValidationUnits,
+    InsufficientIndependentValidationUnits,
+    ObservedCalibrationTailExceedance,
     PredictionSetIncomplete,
     DuplicateConstraintPrediction,
     PredictionIdentityMismatch,
@@ -318,7 +324,7 @@ fn inverse_standard_normal_lower_tail(alpha_ppb: u64) -> Result<f64, AbstentionR
         -3.969_683_028_665_376e1,
         2.209_460_984_245_205e2,
         -2.759_285_104_469_687e2,
-        1.383_577_518_672_690e2,
+        1.383_577_518_672_69e2,
         -3.066_479_806_614_716e1,
         2.506_628_277_459_239,
     ];
@@ -396,6 +402,7 @@ fn calibration_abstention_reason(
     candidate: &ActionCandidate,
     predictions: &[&ConstraintPrediction; CONSTRAINT_COUNT],
     expected_domain_digest: &str,
+    allocation: &[u64; CONSTRAINT_COUNT],
     now_ns: u64,
 ) -> Result<String, AbstentionReason> {
     let receipt = candidate
@@ -430,8 +437,26 @@ fn calibration_abstention_reason(
     if !receipt.gaussian_tail_validation_passed {
         return Err(AbstentionReason::GaussianTailCalibrationNotEstablished);
     }
-    if receipt.independent_validation_unit_count == 0 {
-        return Err(AbstentionReason::NoIndependentValidationUnits);
+    for (index, (units, exceedances)) in receipt
+        .independent_validation_units_by_constraint
+        .iter()
+        .copied()
+        .zip(receipt.upper_tail_exceedances_by_constraint.iter().copied())
+        .enumerate()
+    {
+        if units == 0 {
+            return Err(AbstentionReason::NoIndependentValidationUnits);
+        }
+        if exceedances > 0 {
+            return Err(AbstentionReason::ObservedCalibrationTailExceedance);
+        }
+        // Exact one-sided 95% Clopper-Pearson upper bound for zero observed
+        // Bernoulli tail events: 1 - 0.05^(1/n). exp_m1 avoids cancellation.
+        let upper = -((0.05_f64.ln()) / units as f64).exp_m1();
+        let allowed = allocation[index] as f64 / RISK_SCALE_PPB as f64;
+        if !upper.is_finite() || upper > allowed {
+            return Err(AbstentionReason::InsufficientIndependentValidationUnits);
+        }
     }
     if receipt.operating_domain_digest != expected_domain_digest {
         return Err(AbstentionReason::OperatingDomainMismatch);
@@ -541,8 +566,13 @@ fn assess_candidate(
         }
     };
 
-    let receipt_id =
-        match calibration_abstention_reason(candidate, &ordered, expected_domain_digest, now_ns) {
+    let receipt_id = match calibration_abstention_reason(
+        candidate,
+        &ordered,
+        expected_domain_digest,
+        allocation,
+        now_ns,
+    ) {
             Ok(receipt_id) => receipt_id,
             Err(reason) => {
                 let mut assessment = base();
@@ -706,7 +736,8 @@ mod tests {
             calibration_digest: "calibration-v1".to_owned(),
             distribution_family: DistributionFamily::GaussianMarginal,
             gaussian_tail_validation_passed: true,
-            independent_validation_unit_count: 500,
+            independent_validation_units_by_constraint: [500; CONSTRAINT_COUNT],
+            upper_tail_exceedances_by_constraint: [0; CONSTRAINT_COUNT],
             valid_from_ns: 500,
             valid_until_ns: 10_000,
             verified: true,
@@ -1149,6 +1180,42 @@ mod tests {
             upper_normal_quantile(RISK_SCALE_PPB / 2),
             Err(AbstentionReason::InvalidRiskAllocation)
         );
+    }
+
+    #[test]
+    fn independent_zero_tail_validation_uses_exact_95_percent_upper_bound() {
+        let mut underpowered = candidate("underpowered", 0.1);
+        underpowered.calibration_receipt.as_mut().unwrap()
+            .independent_validation_units_by_constraint = [298; CONSTRAINT_COUNT];
+        let mut adequately_powered = candidate("adequately-powered", 0.1);
+        adequately_powered.calibration_receipt.as_mut().unwrap()
+            .independent_validation_units_by_constraint = [299; CONSTRAINT_COUNT];
+
+        let report = evaluate_actions(
+            &[underpowered, adequately_powered],
+            &limits(),
+            50_000_000,
+            "rough-terrain-v1",
+            2_000,
+        ).unwrap();
+        let underpowered = report.assessments.iter()
+            .find(|assessment| assessment.action_id == "underpowered").unwrap();
+        let adequately_powered = report.assessments.iter()
+            .find(|assessment| assessment.action_id == "adequately-powered").unwrap();
+        assert_eq!(underpowered.abstention_reason,
+            Some(AbstentionReason::InsufficientIndependentValidationUnits));
+        assert_eq!(adequately_powered.disposition, CandidateDisposition::Admitted);
+    }
+
+    #[test]
+    fn any_observed_validation_tail_event_abstains_in_zero_event_v0() {
+        let mut c = candidate("tail-event", 1.0);
+        c.calibration_receipt.as_mut().unwrap()
+            .upper_tail_exceedances_by_constraint[2] = 1;
+        let report = evaluate_actions(&[c], &limits(), 50_000_000, "rough-terrain-v1", 2_000).unwrap();
+        assert_eq!(report.assessments[0].abstention_reason,
+            Some(AbstentionReason::ObservedCalibrationTailExceedance));
+        assert!(report.eligible_action_ids_by_information.is_empty());
     }
 
     #[test]
