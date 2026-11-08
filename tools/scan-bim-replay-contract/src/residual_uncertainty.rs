@@ -180,7 +180,7 @@ fn covariance_is_symmetric_psd<const N: usize>(matrix: &[[f64; N]; N]) -> bool {
             continue;
         }
 
-        let angle = 0.5 * (-2.0 * apq).atan2(aqq - app);
+        let angle = 0.5 * (2.0 * apq).atan2(aqq - app);
         let cosine = angle.cos();
         let sine = angle.sin();
 
