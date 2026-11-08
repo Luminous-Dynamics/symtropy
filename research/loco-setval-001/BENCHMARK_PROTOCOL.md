@@ -167,7 +167,7 @@ Do not compare mechanical-only simulation work to hardware battery energy. Do no
 - Freeze scenario definitions and primary metrics before comparing controllers.
 - Use paired trial seeds and matched initial states/commands for simulation comparisons.
 - Report numerator, denominator, failure definition and confidence interval for every success/failure rate.
-- A zero-failure sample is not a zero-risk guarantee. Report an upper confidence bound and sample size.
+- A zero-failure sample is not a zero-risk guarantee. Report an upper confidence bound and sample size. For independent Bernoulli trials, the exact one-sided 95% Clopper–Pearson upper bound after zero observed events is (1 - 0.05^{1/n}): about 1% still requires 299 independent trials, 0.1% requires 2,995, and 0.01% requires 29,956. These counts are illustrative only; repeated ticks and correlated episodes from one session do not count as independent trials. State the exchangeability/independence unit and use clustered or session-level inference when appropriate.
 - Report median, 5th percentile, 95th percentile and worst observed recovery times, not only means.
 - Stratify results by gait, phase at disturbance, contact mode, terrain compliance, individual, battery state and thermal state.
 - Preserve raw traces, controller/config digests, actuator/sensor calibrations and trial receipts.
