@@ -710,24 +710,35 @@ fn build_inventory(deck: &Deck) -> ParseResult<Inventory> {
             "SPC" => {
                 let sid = parse_id(required_text(card, 0, "SPC SID")?, "SPC SID")?;
                 inventory.spc_set_ids.insert(sid);
-                let end = card
-                    .fields
-                    .iter()
-                    .rposition(|value| !value.is_empty())
-                    .map(|index| index + 1)
-                    .unwrap_or(1);
-                if end < 4 || (end - 1) % 3 != 0 {
-                    return fail(format!("SPC {sid}: expected GRID/component/value triplets"));
-                }
-                for index in (1..end).step_by(3) {
-                    let grid = parse_id(field(card, index, "SPC GRID")?, "SPC GRID")?;
-                    let components = required_text(card, index + 1, "SPC component")?;
-                    validate_component_digits(components, &format!("SPC {sid} components"))?;
-                    let enforced_value = field(card, index + 2, "SPC value")?;
-                    if !enforced_value.trim().is_empty() {
-                        parse_nastran_float(enforced_value, "SPC value")?;
+                let mut group_count = 0usize;
+                let mut index = 1usize;
+                while index < card.fields.len() {
+                    let grid_field = field(card, index, "SPC GRID")?;
+                    let component_field = field(card, index + 1, "SPC component")?;
+                    let value_field = field(card, index + 2, "SPC value")?;
+                    if grid_field.trim().is_empty()
+                        && component_field.trim().is_empty()
+                        && value_field.trim().is_empty()
+                    {
+                        break;
+                    }
+                    if grid_field.trim().is_empty() || component_field.trim().is_empty() {
+                        return fail(format!("SPC {sid}: incomplete GRID/component pair"));
+                    }
+                    let grid = parse_id(grid_field, "SPC GRID")?;
+                    validate_component_digits(
+                        component_field,
+                        &format!("SPC {sid} components"),
+                    )?;
+                    if !value_field.trim().is_empty() {
+                        parse_nastran_float(value_field, "SPC value")?;
                     }
                     spc_grid_refs.insert(grid);
+                    group_count += 1;
+                    index += 3;
+                }
+                if group_count == 0 {
+                    return fail(format!("SPC {sid}: no GRID/component groups"));
                 }
             }
             "SPC1" => {
