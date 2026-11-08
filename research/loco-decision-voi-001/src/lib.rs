@@ -403,11 +403,8 @@ pub fn evaluate_decision_value(
     });
 
     let mut outcome_order: Vec<usize> = (0..problem.outcomes.len()).collect();
-    outcome_order.sort_by(|left, right| {
-        problem.outcomes[*left]
-            .id
-            .cmp(&problem.outcomes[*right].id)
-    });
+    outcome_order
+        .sort_by(|left, right| problem.outcomes[*left].id.cmp(&problem.outcomes[*right].id));
 
     let mut admitted_decisions = Vec::new();
     let mut admitted_fallbacks = Vec::new();
@@ -512,10 +509,8 @@ pub fn evaluate_decision_value(
             }
         };
 
-        expected_posterior_risk_numerator = checked_add(
-            expected_posterior_risk_numerator,
-            risk_numerator,
-        )?;
+        expected_posterior_risk_numerator =
+            checked_add(expected_posterior_risk_numerator, risk_numerator)?;
 
         outcome_evaluations.push(OutcomeEvaluation {
             outcome_id: outcome.id.clone(),
@@ -531,30 +526,23 @@ pub fn evaluate_decision_value(
     }
 
     let scaled_prior_risk = checked_mul(SCALE, prior_risk_numerator)?;
-    let voi_numerator = signed_difference(
-        scaled_prior_risk,
-        expected_posterior_risk_numerator,
-    )?;
+    let voi_numerator = signed_difference(scaled_prior_risk, expected_posterior_risk_numerator)?;
 
-    let action_switch_probability_numerator =
-        if prior_optimal_decision_ids.len() == 1 {
-            let prior_best = &prior_optimal_decision_ids[0];
-            let mut switched_mass = 0_u128;
-            for outcome in &outcome_evaluations {
-                if !outcome.optimal_decision_ids.contains(prior_best) {
-                    switched_mass = checked_add(
-                        switched_mass,
-                        outcome.probability_numerator_ppb_squared,
-                    )?;
-                }
+    let action_switch_probability_numerator = if prior_optimal_decision_ids.len() == 1 {
+        let prior_best = &prior_optimal_decision_ids[0];
+        let mut switched_mass = 0_u128;
+        for outcome in &outcome_evaluations {
+            if !outcome.optimal_decision_ids.contains(prior_best) {
+                switched_mass =
+                    checked_add(switched_mass, outcome.probability_numerator_ppb_squared)?;
             }
-            Some(switched_mass)
-        } else {
-            None
-        };
+        }
+        Some(switched_mass)
+    } else {
+        None
+    };
 
-    let information_gain_nats =
-        expected_information_gain(&problem.hypotheses, &outcome_order)?;
+    let information_gain_nats = expected_information_gain(&problem.hypotheses, &outcome_order)?;
 
     Ok(DecisionValueEvaluation {
         probe_id: problem.probe.id.clone(),
@@ -586,11 +574,7 @@ mod tests {
         }
     }
 
-    fn decision(
-        id: &str,
-        losses: &[u64],
-        fallback_only: bool,
-    ) -> Decision {
+    fn decision(id: &str, losses: &[u64], fallback_only: bool) -> Decision {
         Decision {
             id: id.to_owned(),
             loss_ppb_by_hypothesis: losses.to_vec(),
@@ -692,12 +676,18 @@ mod tests {
             ],
         );
 
-        assert_eq!(report.prior_risk_numerator_ppb_squared, 490_000_000_000_000_000);
+        assert_eq!(
+            report.prior_risk_numerator_ppb_squared,
+            490_000_000_000_000_000
+        );
         assert_eq!(
             report.expected_posterior_risk_numerator_ppb_cubed,
             400_000_000_000_000_000_000_000_000
         );
-        assert_eq!(report.voi_numerator_ppb_cubed, 90_000_000_000_000_000_000_000_000_i128);
+        assert_eq!(
+            report.voi_numerator_ppb_cubed,
+            90_000_000_000_000_000_000_000_000_i128
+        );
         assert_eq!(report.prior_optimal_decision_ids, vec!["action-A"]);
         assert_eq!(
             report.action_switch_probability_numerator_ppb_squared,
@@ -796,10 +786,13 @@ mod tests {
             report.expected_posterior_risk_numerator_ppb_cubed,
             438_400_000_000_000_000_000_000_000
         );
-        assert_eq!(report.voi_numerator_ppb_cubed, 51_600_000_000_000_000_000_000_000_i128);
+        assert_eq!(
+            report.voi_numerator_ppb_cubed,
+            51_600_000_000_000_000_000_000_000_i128
+        );
         assert_eq!(
             report.action_switch_probability_numerator_ppb_squared,
-            Some(ppb(0.498))
+            Some(498_000_000_000_000_000)
         );
         let unknown = report
             .outcome_evaluations
@@ -864,11 +857,10 @@ mod tests {
             evaluate_decision_value(&problem),
             Err(DecisionValueError::UnknownFallbackMissing)
         );
-
     }
 
     #[test]
-    fn unadmitted_decision_is_excluded_not_used() {
+    fn unadmitted_decision_is_excluded_not_used {
         let mut excluded = decision("action-B", &[0, 1_000_000_000], false);
         excluded.admission.status = AdmissionStatus::Unknown;
         let report = evaluate(
