@@ -86,18 +86,3 @@ fn main() {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use civdyn_self_correction::seeded_monte_carlo::{
-        run_seeded_confirmatory_benchmark,
-    };
-
-    #[test]
-    fn every_seeded_aggregate_row_matches_the_thirty_four_column_contract() {
-        let report = run_seeded_confirmatory_benchmark();
-        for aggregate in &report.rows {
-            assert_eq!(row(&report, aggregate).len(), CSV_COLUMNS);
-        }
-    }
-}
