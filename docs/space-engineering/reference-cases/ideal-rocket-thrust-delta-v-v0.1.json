@@ -1,0 +1,45 @@
+{
+  "schema_version": "0.1.0",
+  "case_id": "ideal-rocket-equation-and-nozzle-thrust",
+  "scope": "analytical_invariant_check_only",
+  "constants": {
+    "standard_gravity_m_s2": 9.80665
+  },
+  "rocket_equation": {
+    "mass_initial_kg": 10000,
+    "mass_final_kg": 2000,
+    "specific_impulse_s": 350,
+    "expected_delta_v_m_s": 5524.118006390154,
+    "tolerance_m_s": 1e-9
+  },
+  "nozzle_thrust": {
+    "mass_flow_kg_s": 100,
+    "exit_velocity_m_s": 2800,
+    "exit_pressure_pa": 140000,
+    "ambient_pressure_pa": 100000,
+    "exit_area_m2": 0.5,
+    "expected_thrust_n": 300000,
+    "expected_specific_impulse_s": 305.9148638933785,
+    "tolerance_thrust_n": 1e-8,
+    "tolerance_specific_impulse_s": 1e-10
+  },
+  "sources": [
+    {
+      "source_id": "nasa-glenn-ideal-rocket-equation",
+      "title": "Ideal Rocket Equation — NASA Glenn Research Center",
+      "url": "https://www1.grc.nasa.gov/beginners-guide-to-aeronautics/ideal-rocket-equation/"
+    },
+    {
+      "source_id": "nasa-glenn-thrust-equation",
+      "title": "Rocket Thrust Equation — NASA Glenn Research Center",
+      "url": "https://www1.grc.nasa.gov/beginners-guide-to-aeronautics/rocket-thrust-equation/"
+    }
+  ],
+  "claim_ceiling": "analytical_equation_checks_only_not_engine_performance_or_qualification",
+  "not_established": [
+    "These ideal equations do not model gravity loss, aerodynamic drag, staging, finite-burn steering or trajectory optimization.",
+    "The case does not model combustion chemistry, turbomachinery, injector dynamics, regenerative cooling, nozzle separation or transient startup.",
+    "A matching analytic result is not a measured thrust-stand result, material qualification, engine qualification or flight-readiness finding.",
+    "The illustrative numbers are chosen for equation verification and do not describe Prometheus, RAMPT or any specific flight engine."
+  ]
+}
