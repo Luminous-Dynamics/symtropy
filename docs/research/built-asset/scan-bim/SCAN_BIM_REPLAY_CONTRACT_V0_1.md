@@ -65,9 +65,9 @@ The CLI rejects shared artifact IDs. It does not provide filesystem sandboxing, 
 
 ```sh
 cargo fmt --manifest-path tools/scan-bim-replay-contract/Cargo.toml -- --check
-cargo test --manifest-path tools/scan-bim-replay-contract/Cargo.toml
-cargo clippy --manifest-path tools/scan-bim-replay-contract/Cargo.toml --all-targets -- -D warnings
-cargo run --manifest-path tools/scan-bim-replay-contract/Cargo.toml -- \
+cargo test --locked --manifest-path tools/scan-bim-replay-contract/Cargo.toml
+cargo clippy --locked --manifest-path tools/scan-bim-replay-contract/Cargo.toml --all-targets -- -D warnings
+cargo run --locked --manifest-path tools/scan-bim-replay-contract/Cargo.toml -- \
   --manifest tools/scan-bim-replay-contract/fixtures/synthetic-observability.json
 ```
 
