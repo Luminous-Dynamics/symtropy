@@ -134,3 +134,53 @@ jobs:
               print "CSV valid: 3 sensor-drift controllers + 3 delayed-externality controllers; 21 columns"
             }
           ' /tmp/civdyn-self-correction.csv
+
+      - name: Verify common-stream sequential method portfolio
+        run: |
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin sequential-methods-sweep > /tmp/civdyn-sequential-methods.csv 2>/tmp/civdyn-sequential-methods-summary.txt
+          awk -F, '
+            NR == 1 { if (NF != 14) exit 60; next }
+            NF != 14 { exit 61 }
+            {
+              rows++
+              methods[$7]++
+              key = $1 SUBSEP $2 SUBSEP $3
+              if (key in digest && digest[key] != $6) exit 62
+              digest[key] = $6
+              if ($9 < 1 || $9 > 2048) exit 63
+              if ($3 == "stable_positive" || $3 == "confounder_shift") {
+                alt_rows[$7, $3]++
+                if ($8 == "benefit_established") correct[$7, $3]++
+              }
+              if ($3 == "sign_reversal" || $3 == "gradual_sign_reversal") {
+                alt_rows[$7, $3]++
+                if ($8 == "harmful_effect_established") correct[$7, $3]++
+              }
+              if ($3 == "confounded_null") {
+                null_rows[$7]++
+                if ($8 != "inconclusive") false_action[$7]++
+              }
+              if ($3 != "confounded_null") {
+                alt_n[$7]++
+                alt_cost[$7] += $9
+              }
+            }
+            END {
+              if (rows != 6400) exit 64
+              method_count = 0
+              for (m in methods) {
+                method_count++
+                if (methods[m] != 1280) exit 65
+                if (null_rows[m] != 256 || false_action[m] > 13) exit 66
+                for (r in expected_regimes) { }
+                if (alt_rows[m, "stable_positive"] != 256 || correct[m, "stable_positive"] < 250) exit 67
+                if (alt_rows[m, "sign_reversal"] != 256 || correct[m, "sign_reversal"] < 250) exit 68
+                if (alt_rows[m, "gradual_sign_reversal"] != 256 || correct[m, "gradual_sign_reversal"] < 250) exit 69
+                if (alt_rows[m, "confounder_shift"] != 256 || correct[m, "confounder_shift"] < 250) exit 70
+                mean_cost = alt_cost[m] / alt_n[m]
+                if (mean_cost <= 0.70 * 2048) efficient++
+              }
+              if (method_count != 5 || efficient < 1) exit 71
+              print "Sequential portfolio valid: 6,400 receipts; identical stream digests; 256 seeds per regime; false null actions <=13/256; at least one method saves >=30% samples on alternatives"
+            }
+          ' /tmp/civdyn-sequential-methods.csv
