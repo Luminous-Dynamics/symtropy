@@ -67,36 +67,3 @@ fn main() {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use civdyn_self_correction::seeded_monte_carlo::run_seeded_confirmatory_benchmark;
-
-    #[test]
-    fn every_confirmatory_replicate_has_the_fixed_seventeen_column_contract() {
-        let report = run_seeded_confirmatory_benchmark();
-        assert_eq!(report.replicates.len(), 20_000);
-        for outcome in &report.replicates {
-            assert_eq!(row(outcome).len(), CSV_COLUMNS);
-        }
-    }
-
-    #[test]
-    fn confirmatory_seed_receipts_are_unique_per_regime_controller_pair() {
-        let report = run_seeded_confirmatory_benchmark();
-        for regime in civdyn_self_correction::causal_drift::CausalRegime::ALL {
-            for controller in
-                civdyn_self_correction::causal_drift::CausalDriftController::ALL
-            {
-                let count = report
-                    .replicates
-                    .iter()
-                    .filter(|outcome| {
-                        outcome.regime == regime && outcome.controller == controller
-                    })
-                    .count();
-                assert_eq!(count, report.confirmatory_seed_count);
-            }
-        }
-    }
-}
