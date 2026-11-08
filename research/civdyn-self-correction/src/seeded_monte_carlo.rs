@@ -473,14 +473,12 @@ fn decide_actions(
                         }
                         ProbeClass::Beneficial => {
                             if previous_probe_class == Some(ProbeClass::Beneficial)
-                                && signal_detection_tick
-                                    .is_some_and(|detected| detected <= tick)
+                                && signal_detection_tick.is_some_and(|detected| detected <= tick)
                                 && observed_covariate_shift_tick
                                     .is_some_and(|shifted| shifted <= tick)
                             {
-                                diagnosis = Some(
-                                    CausalDiagnosis::ConfounderShiftWithoutCausalEffectChange,
-                                );
+                                diagnosis =
+                                    Some(CausalDiagnosis::ConfounderShiftWithoutCausalEffectChange);
                                 diagnosis_tick = Some(tick);
                                 // Preserve the intervention: measured
                                 // evidence says the treatment effect remains
