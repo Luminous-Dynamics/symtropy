@@ -417,46 +417,42 @@ fn covariate_shift_tick(values: &[f64; 8]) -> Option<usize> {
         })
 }
 
-fn run_controller(
-    regime: CausalRegime,
-    seed: u64,
+#[derive(Debug, Clone, PartialEq)]
+struct ControllerDecision {
+    actions: [bool; 8],
+    signal_detection_tick: Option<usize>,
+    covariate_shift_tick: Option<usize>,
+    diagnosis: Option<CausalDiagnosis>,
+    diagnosis_tick: Option<usize>,
+    diagnostic_probe_count: usize,
+}
+
+/// The policy boundary receives only observations, measured covariates and
+/// noisy matched-probe estimates. It cannot access the scenario regime or
+/// evaluator-only causal-effect trajectory.
+fn decide_actions(
     observable: &ObservableEvidence,
-    truth: &EvaluatorTruth,
     controller: CausalDriftController,
     tuning: &CusumTuningReceipt,
-) -> SeededEpisodeOutcome {
+) -> ControllerDecision {
     let signal_detection_tick =
         cusum_detection_tick(&observable.observational_association, tuning.config);
     let observed_covariate_shift_tick =
         covariate_shift_tick(&observable.measured_covariate_imbalance);
 
     let mut policy_enabled = true;
+    let mut actions = [false; 8];
     let mut diagnosis = None;
     let mut diagnosis_tick = None;
     let mut previous_probe_class = None;
     let mut diagnostic_probe_count = 0usize;
-    let mut active_ticks = 0usize;
-    let mut nonpositive_effect_action_ticks = 0usize;
-    let mut missed_beneficial_action_ticks = 0usize;
-    let mut net_utility = 0.0_f64;
 
-    for index in 0..8 {
+    for (index, action) in actions.iter_mut().enumerate() {
         let tick = index + 1;
-        let causal_effect = truth.causal_effects[index];
-
-        // Action is chosen before this tick's observation/probe is revealed.
-        if policy_enabled {
-            active_ticks += 1;
-            net_utility += causal_effect - ACTION_COST_PER_TICK;
-            if causal_effect <= 0.0 {
-                nonpositive_effect_action_ticks += 1;
-            }
-        } else if causal_effect > ACTION_COST_PER_TICK {
-            missed_beneficial_action_ticks += 1;
-        }
+        // Decide the action before this tick's observation/probe is revealed.
+        *action = policy_enabled;
 
         let observed_association = observable.observational_association[index];
-
         match controller {
             CausalDriftController::FrozenPolicy => {}
             CausalDriftController::OutcomeReactive => {
@@ -473,9 +469,7 @@ fn run_controller(
                 if tick % 2 == 0 && diagnosis.is_none() {
                     if let Some(probe) = observable.matched_probes[index] {
                         diagnostic_probe_count += 1;
-                        net_utility -= PROBE_COST;
                         let probe_class = classify_probe(probe);
-
                         match probe_class {
                             ProbeClass::Harmful => {
                                 diagnosis = Some(CausalDiagnosis::CausalSignReversal);
@@ -489,7 +483,8 @@ fn run_controller(
                             }
                             ProbeClass::Beneficial => {
                                 if previous_probe_class == Some(ProbeClass::Beneficial)
-                                    && signal_detection_tick.is_some_and(|detected| detected <= tick)
+                                    && signal_detection_tick
+                                        .is_some_and(|detected| detected <= tick)
                                     && observed_covariate_shift_tick
                                         .is_some_and(|shifted| shifted <= tick)
                                 {
@@ -497,9 +492,9 @@ fn run_controller(
                                         CausalDiagnosis::ConfounderShiftWithoutCausalEffectChange,
                                     );
                                     diagnosis_tick = Some(tick);
-                                    // Preserve the action: the matched causal
-                                    // effect remains beneficial despite a
-                                    // changed observational association.
+                                    // Preserve the intervention: measured
+                                    // evidence says the treatment effect remains
+                                    // beneficial despite the signal shift.
                                 }
                             }
                             ProbeClass::Uncertain => {}
@@ -511,10 +506,48 @@ fn run_controller(
         }
     }
 
+    ControllerDecision {
+        actions,
+        signal_detection_tick,
+        covariate_shift_tick: observed_covariate_shift_tick,
+        diagnosis,
+        diagnosis_tick,
+        diagnostic_probe_count,
+    }
+}
+
+/// Independent scoring happens only after the controller has returned its
+/// complete action mask. Hidden causal effects never flow back into policy
+/// selection.
+fn score_decision(
+    regime: CausalRegime,
+    controller: CausalDriftController,
+    seed: u64,
+    truth: &EvaluatorTruth,
+    decision: ControllerDecision,
+) -> SeededEpisodeOutcome {
+    let mut active_ticks = 0usize;
+    let mut nonpositive_effect_action_ticks = 0usize;
+    let mut missed_beneficial_action_ticks = 0usize;
+    let mut net_utility = -(decision.diagnostic_probe_count as f64 * PROBE_COST);
+
+    for (index, action) in decision.actions.iter().copied().enumerate() {
+        let causal_effect = truth.causal_effects[index];
+        if action {
+            active_ticks += 1;
+            net_utility += causal_effect - ACTION_COST_PER_TICK;
+            if causal_effect <= 0.0 {
+                nonpositive_effect_action_ticks += 1;
+            }
+        } else if causal_effect > ACTION_COST_PER_TICK {
+            missed_beneficial_action_ticks += 1;
+        }
+    }
+
     let expected = expected_diagnosis(regime);
-    let correct_diagnosis = diagnosis == expected;
-    let false_diagnosis = diagnosis.is_some() && diagnosis != expected;
-    let missed_diagnosis = expected.is_some() && diagnosis != expected;
+    let correct_diagnosis = decision.diagnosis == expected;
+    let false_diagnosis = decision.diagnosis.is_some() && decision.diagnosis != expected;
+    let missed_diagnosis = expected.is_some() && decision.diagnosis != expected;
     let oracle_net_utility = truth
         .causal_effects
         .iter()
@@ -532,21 +565,33 @@ fn run_controller(
         regime: truth.regime,
         controller,
         seed,
-        signal_detection_tick,
-        covariate_shift_tick: observed_covariate_shift_tick,
-        diagnosis,
-        diagnosis_tick,
+        signal_detection_tick: decision.signal_detection_tick,
+        covariate_shift_tick: decision.covariate_shift_tick,
+        diagnosis: decision.diagnosis,
+        diagnosis_tick: decision.diagnosis_tick,
         correct_diagnosis,
         false_diagnosis,
         missed_diagnosis,
         active_ticks,
         nonpositive_effect_action_ticks,
         missed_beneficial_action_ticks,
-        diagnostic_probe_count,
+        diagnostic_probe_count: decision.diagnostic_probe_count,
         net_utility,
         oracle_net_utility,
         regret_to_oracle,
     }
+}
+
+fn run_controller(
+    regime: CausalRegime,
+    seed: u64,
+    observable: &ObservableEvidence,
+    truth: &EvaluatorTruth,
+    controller: CausalDriftController,
+    tuning: &CusumTuningReceipt,
+) -> SeededEpisodeOutcome {
+    let decision = decide_actions(observable, controller, tuning);
+    score_decision(regime, controller, seed, truth, decision)
 }
 
 fn wilson_interval(successes: usize, total: usize) -> RateInterval {
