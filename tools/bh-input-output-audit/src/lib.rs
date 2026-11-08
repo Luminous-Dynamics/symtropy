@@ -330,8 +330,7 @@ mod tests {
     fn inaccessible_or_unobservable_modes_are_absent_from_the_transfer_map() {
         let direct = scalar(z(0.0, 0.0));
         let both_modes = DMatrix::from_column_slice(2, 1, &[z(1.0, 0.0), z(1.0, 0.0)]);
-        let first_mode_only =
-            DMatrix::from_column_slice(2, 1, &[z(1.0, 0.0), z(0.0, 0.0)]);
+        let first_mode_only = DMatrix::from_column_slice(2, 1, &[z(1.0, 0.0), z(0.0, 0.0)]);
         let observe_both = DMatrix::from_row_slice(1, 2, &[z(1.0, 0.0), z(1.0, 0.0)]);
         let observe_first_only = DMatrix::from_row_slice(1, 2, &[z(1.0, 0.0), z(0.0, 0.0)]);
 
@@ -340,21 +339,11 @@ mod tests {
             let expected = z(1.0, 0.0) / (s + z(1.0, 0.0));
 
             // The second mode is present in L but cannot be excited by B.
-            let source_hidden = transfer_response(
-                &pencil,
-                &first_mode_only,
-                &observe_both,
-                &direct,
-            )
-            .unwrap();
+            let source_hidden =
+                transfer_response(&pencil, &first_mode_only, &observe_both, &direct).unwrap();
             // The second mode is excited, but C cannot observe it.
-            let observer_hidden = transfer_response(
-                &pencil,
-                &both_modes,
-                &observe_first_only,
-                &direct,
-            )
-            .unwrap();
+            let observer_hidden =
+                transfer_response(&pencil, &both_modes, &observe_first_only, &direct).unwrap();
 
             assert!((source_hidden.response[(0, 0)] - expected).norm() < 1.0e-12);
             assert!((observer_hidden.response[(0, 0)] - expected).norm() < 1.0e-12);
@@ -411,11 +400,8 @@ mod tests {
 
     #[test]
     fn first_variation_matches_central_finite_differences_with_second_order_error() {
-        let pencil = DMatrix::from_row_slice(
-            2,
-            2,
-            &[z(1.2, 0.3), z(0.2, 0.0), z(0.0, 0.1), z(2.1, -0.1)],
-        );
+        let pencil =
+            DMatrix::from_row_slice(2, 2, &[z(1.2, 0.3), z(0.2, 0.0), z(0.0, 0.1), z(2.1, -0.1)]);
         let source = DMatrix::from_column_slice(2, 1, &[z(1.0, 0.2), z(0.4, -0.1)]);
         let observation = DMatrix::from_row_slice(1, 2, &[z(0.7, 0.0), z(1.1, 0.1)]);
         let direct = scalar(z(0.05, 0.02));
