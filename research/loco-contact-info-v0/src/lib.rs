@@ -659,6 +659,6 @@ mod tests {
         let inverse = covariance.inverse_spd().unwrap();
         assert!((inverse.get(0, 0) - 0.25).abs() < 1.0e-12);
         assert!((inverse.get(1, 1) - (1.0 / 9.0)).abs() < 1.0e-12);
-        assert!((covariance.log_determinant_spd() - 4.0_f64.ln() - 9.0_f64.ln()).abs() < 1.0e-12);
+        assert!((covariance.log_determinant_spd().unwrap() - 4.0_f64.ln() - 9.0_f64.ln()).abs() < 1.0e-12);
     }
 }
