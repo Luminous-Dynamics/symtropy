@@ -125,6 +125,34 @@ impl ReferenceAreaSurface {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AreaCoordinateUnit {
+    Metre,
+    Millimetre,
+    FootInternational,
+    UsSurveyFoot,
+}
+
+impl AreaCoordinateUnit {
+    fn metres_per_unit(self) -> f64 {
+        match self {
+            Self::Metre => 1.0,
+            Self::Millimetre => 0.001,
+            Self::FootInternational => 0.3048,
+            Self::UsSurveyFoot => 1200.0 / 3937.0,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AreaMetricAuthority {
+    EvaluationFramework2018,
+    FinalResultsPaper2021,
+    ProjectDefined,
+}
+
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct AreaOverlapProfile {
