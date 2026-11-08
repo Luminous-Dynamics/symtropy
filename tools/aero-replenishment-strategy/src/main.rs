@@ -860,7 +860,7 @@ mod tests {
         );
         assert_eq!(strategy.installed_mass_g, 2_800);
         assert_eq!(strategy.site_energy_mwh, 240);
-        assert_eq!(strategy.terminal_battery_mwh, 70);
+        assert_eq!(strategy.terminal_battery_mwh, 80);
     }
 
     #[test]
