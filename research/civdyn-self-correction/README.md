@@ -108,6 +108,24 @@ The declared onset for gradual causal change is tick 3 (the treatment effect fir
 
 These intervals measure repeatability under the synthetic Gaussian generator. They do not quantify model uncertainty, real-world uncertainty or external validity. The 100-seed run is a calibration pilot, not a 14-detector/KDD benchmark reproduction.
 
+## Scenario E: timing-aware alarm evaluation
+
+The Rust module `detection_eval` implements an independent drift-event evaluator using the KDD 2026 acceptable-window definition.
+
+For each known drift interval `[d_s, d_e]`, an alarm counts as a true positive when it falls inside the inclusive window:
+
+`[d_s - δ_pre, d_e + δ_max]`
+
+One alarm may match only one event; duplicates and alarms outside all windows are false positives. Unmatched drift events are false negatives. Inputs with unsorted events/alarms or overlapping acceptance windows fail closed.
+
+The evaluator reports precision, recall, F1, false alarms per stream tick, missed-drift rate, mean delay and Normalized Detection Time:
+
+`NDT = (d_alarm - d_s) / δ_max`
+
+Negative NDT is preserved for accepted early alarms. Metrics are returned separately; no composite score is created. Nine known-answer tests cover inclusive boundaries, early/late alarms, duplicates, missed events, multiple events, overlapping windows, invalid ordering and empty streams.
+
+This is a metric-conformance component, not a reproduction of the full KDD 14-detector / 7-dataset benchmark. It does not depend on Python or external data and does not claim empirical performance.
+ 
 ## Run
 
 ```sh
