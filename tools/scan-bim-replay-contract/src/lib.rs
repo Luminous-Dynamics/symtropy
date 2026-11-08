@@ -150,7 +150,10 @@ pub struct SceneVisibilityAudit {
 }
 
 fn digest_is_sha256(value: &str) -> bool {
-    value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
+    value.len() == 64
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
 }
 
 fn valid_identifier(value: &str) -> bool {
@@ -275,8 +278,17 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
                 scene.scene_id
             ));
         }
+        let has_point_cloud_observation = scene
+            .candidate_inputs
+            .iter()
+            .any(|artifact| artifact.role == CandidateInputRole::PointCloudObservation);
+        if !has_point_cloud_observation {
+            return Err(format!(
+                "scene {} requires at least one point_cloud_observation candidate input",
+                scene.scene_id
+            ));
+        }
         for artifact in &scene.candidate_inputs {
-            let _role = artifact.role;
             if !valid_identifier(&artifact.artifact_id) || !digest_is_sha256(&artifact.sha256) {
                 return Err(format!(
                     "candidate artifact in scene {} has invalid ID or SHA-256",
@@ -291,8 +303,17 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
             }
             candidate_digests.insert(artifact.sha256.as_str());
         }
+        let has_reference_geometry = scene
+            .evaluator_artifacts
+            .iter()
+            .any(|artifact| artifact.role == EvaluatorArtifactRole::ReferenceGeometry);
+        if !has_reference_geometry {
+            return Err(format!(
+                "scene {} requires at least one reference_geometry evaluator artifact",
+                scene.scene_id
+            ));
+        }
         for artifact in &scene.evaluator_artifacts {
-            let _role = artifact.role;
             if !valid_identifier(&artifact.artifact_id) || !digest_is_sha256(&artifact.sha256) {
                 return Err(format!(
                     "evaluator artifact in scene {} has invalid ID or SHA-256",
@@ -314,6 +335,7 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
             ));
         }
         let mut stratum_ids = BTreeSet::new();
+        let mut total_surface_area = 0.0_f64;
         for stratum in &scene.surface_strata {
             if !valid_identifier(&stratum.stratum_id)
                 || !stratum_ids.insert(stratum.stratum_id.as_str())
@@ -327,6 +349,13 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
                 return Err(format!(
                     "scene {} stratum {} must have finite positive area",
                     scene.scene_id, stratum.stratum_id
+                ));
+            }
+            total_surface_area += stratum.area_m2;
+            if !total_surface_area.is_finite() {
+                return Err(format!(
+                    "scene {} classified surface area overflows f64",
+                    scene.scene_id
                 ));
             }
             match stratum.visibility {
@@ -528,6 +557,44 @@ mod tests {
                 .abs()
                 < 1e-9
         );
+    }
+
+    #[test]
+    fn rejects_uppercase_sha256_encoding() {
+        let mut value = fixture_value();
+        value["scenes"][0]["candidate_inputs"][0]["sha256"] =
+            serde_json::json!("A".repeat(64));
+        let error = audit(&value).expect_err("SHA-256 must use canonical lowercase hex");
+        assert!(error.contains("invalid ID or SHA-256"));
+    }
+
+    #[test]
+    fn requires_candidate_point_cloud_observation() {
+        let mut value = fixture_value();
+        value["scenes"][0]["candidate_inputs"][0]["role"] =
+            serde_json::json!("sensor_metadata");
+        let error = audit(&value).expect_err("candidate scene needs a point-cloud observation");
+        assert!(error.contains("point_cloud_observation"));
+    }
+
+    #[test]
+    fn requires_evaluator_reference_geometry() {
+        let mut value = fixture_value();
+        value["scenes"][0]["evaluator_artifacts"][0]["role"] =
+            serde_json::json!("ground_truth_labels");
+        let error = audit(&value).expect_err("scene needs evaluator reference geometry");
+        assert!(error.contains("reference_geometry"));
+    }
+
+    #[test]
+    fn rejects_overflowing_surface_area_total() {
+        let mut value = fixture_value();
+        value["scenes"][0]["surface_strata"][0]["area_m2"] =
+            serde_json::json!(f64::MAX);
+        value["scenes"][0]["surface_strata"][1]["area_m2"] =
+            serde_json::json!(f64::MAX);
+        let error = audit(&value).expect_err("finite individual areas can still overflow in sum");
+        assert!(error.contains("overflows f64"));
     }
 
     #[test]
