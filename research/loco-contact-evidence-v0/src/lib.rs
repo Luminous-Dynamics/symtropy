@@ -438,108 +438,237 @@ mod tests {
         )
     }
     fn d3(lo: u32, hi: u32, t: Option<u64>) -> SourceEvidence {
-        src("d3", ContactChannel::ProprioceptiveResidual, "cal-d3", lo, hi, t)
+        src(
+            "d3",
+            ContactChannel::ProprioceptiveResidual,
+            "cal-d3",
+            lo,
+            hi,
+            t,
+        )
     }
 
-    #[test] fn one_source_is_explicitly_single_source() {
-        let r=aggregate(&policy(),&[d1(800_000,900_000,Some(995))]).unwrap();
-        assert_eq!(r.status,EnvelopeStatus::SingleSource);
-        assert_eq!(r.envelope.unwrap().lower_ppm,800_000);
+    #[test]
+    fn one_source_is_explicitly_single_source() {
+        let r = aggregate(&policy(), &[d1(800_000, 900_000, Some(995))]).unwrap();
+        assert_eq!(r.status, EnvelopeStatus::SingleSource);
+        assert_eq!(r.envelope.unwrap().lower_ppm, 800_000);
     }
-    #[test] fn d1_d2_d3_use_hull_not_intersection() {
-        let r=aggregate(&policy(),&[d1(800_000,900_000,Some(995)),d2(700_000,950_000,Some(990)),d3(850_000,920_000,Some(998))]).unwrap();
-        assert_eq!(r.status,EnvelopeStatus::MultiSource);
-        let e=r.envelope.unwrap();
-        assert_eq!((e.lower_ppm,e.upper_ppm),(700_000,950_000));
-        assert_eq!(e.common_intersection,Some(ReliabilityInterval{lower_ppm:850_000,upper_ppm:900_000}));
+    #[test]
+    fn d1_d2_d3_use_hull_not_intersection() {
+        let r = aggregate(
+            &policy(),
+            &[
+                d1(800_000, 900_000, Some(995)),
+                d2(700_000, 950_000, Some(990)),
+                d3(850_000, 920_000, Some(998)),
+            ],
+        )
+        .unwrap();
+        assert_eq!(r.status, EnvelopeStatus::MultiSource);
+        let e = r.envelope.unwrap();
+        assert_eq!((e.lower_ppm, e.upper_ppm), (700_000, 950_000));
+        assert_eq!(
+            e.common_intersection,
+            Some(ReliabilityInterval {
+                lower_ppm: 850_000,
+                upper_ppm: 900_000
+            })
+        );
     }
-    #[test] fn disjoint_sources_flag_disagreement_and_keep_hull() {
-        let r=aggregate(&policy(),&[d1(800_000,900_000,Some(995)),d2(200_000,400_000,Some(990))]).unwrap();
-        assert_eq!(r.status,EnvelopeStatus::Disagreement);
-        let e=r.envelope.unwrap();
-        assert_eq!((e.lower_ppm,e.upper_ppm),(200_000,900_000));
-        assert_eq!(e.common_intersection,None);
+    #[test]
+    fn disjoint_sources_flag_disagreement_and_keep_hull() {
+        let r = aggregate(
+            &policy(),
+            &[
+                d1(800_000, 900_000, Some(995)),
+                d2(200_000, 400_000, Some(990)),
+            ],
+        )
+        .unwrap();
+        assert_eq!(r.status, EnvelopeStatus::Disagreement);
+        let e = r.envelope.unwrap();
+        assert_eq!((e.lower_ppm, e.upper_ppm), (200_000, 900_000));
+        assert_eq!(e.common_intersection, None);
     }
-    #[test] fn minimum_source_count_defers_without_losing_assessments() {
-        let mut p=policy(); p.minimum_sources=2;
-        let r=aggregate(&p,&[d1(700_000,900_000,Some(995))]).unwrap();
-        assert_eq!(r.status,EnvelopeStatus::Unknown);
-        assert_eq!(r.sources[0].disposition,SourceDisposition::Qualified);
+    #[test]
+    fn minimum_source_count_defers_without_losing_assessments() {
+        let mut p = policy();
+        p.minimum_sources = 2;
+        let r = aggregate(&p, &[d1(700_000, 900_000, Some(995))]).unwrap();
+        assert_eq!(r.status, EnvelopeStatus::Unknown);
+        assert_eq!(r.sources[0].disposition, SourceDisposition::Qualified);
     }
-    #[test] fn stale_high_confidence_source_is_excluded() {
-        let r=aggregate(&policy(),&[d1(990_000,1_000_000,Some(899))]).unwrap();
-        assert_eq!(r.sources[0].disposition,SourceDisposition::Stale);
-        assert_eq!(r.status,EnvelopeStatus::Unknown);
+    #[test]
+    fn stale_high_confidence_source_is_excluded() {
+        let r = aggregate(&policy(), &[d1(990_000, 1_000_000, Some(899))]).unwrap();
+        assert_eq!(r.sources[0].disposition, SourceDisposition::Stale);
+        assert_eq!(r.status, EnvelopeStatus::Unknown);
     }
-    #[test] fn unhealthy_or_ood_source_is_excluded() {
-        let mut a=d1(800_000,900_000,Some(995)); a.healthy=false;
-        let mut b=d2(700_000,950_000,Some(995)); b.out_of_distribution=true;
-        let r=aggregate(&policy(),&[a,b]).unwrap();
-        assert!(r.sources.iter().all(|s| s.disposition!=SourceDisposition::Qualified));
+    #[test]
+    fn unhealthy_or_ood_source_is_excluded() {
+        let mut a = d1(800_000, 900_000, Some(995));
+        a.healthy = false;
+        let mut b = d2(700_000, 950_000, Some(995));
+        b.out_of_distribution = true;
+        let r = aggregate(&policy(), &[a, b]).unwrap();
+        assert!(
+            r.sources
+                .iter()
+                .all(|s| s.disposition != SourceDisposition::Qualified)
+        );
     }
-    #[test] fn calibration_and_context_mismatch_are_excluded() {
-        let mut a=d1(800_000,900_000,Some(995)); a.calibration_digest="other".into();
-        let mut b=d2(700_000,950_000,Some(995)); b.foot_id="rear-right".into();
-        let r=aggregate(&policy(),&[a,b]).unwrap();
-        assert!(r.sources.iter().any(|s| s.disposition==SourceDisposition::CalibrationMismatch));
-        assert!(r.sources.iter().any(|s| s.disposition==SourceDisposition::ContextMismatch));
+    #[test]
+    fn calibration_and_context_mismatch_are_excluded() {
+        let mut a = d1(800_000, 900_000, Some(995));
+        a.calibration_digest = "other".into();
+        let mut b = d2(700_000, 950_000, Some(995));
+        b.foot_id = "rear-right".into();
+        let r = aggregate(&policy(), &[a, b]).unwrap();
+        assert!(
+            r.sources
+                .iter()
+                .any(|s| s.disposition == SourceDisposition::CalibrationMismatch)
+        );
+        assert!(
+            r.sources
+                .iter()
+                .any(|s| s.disposition == SourceDisposition::ContextMismatch)
+        );
     }
-    #[test] fn wrong_target_does_not_alias_contact_presence_to_no_slip() {
-        let mut a=d1(900_000,990_000,Some(995)); a.target=EvidenceTarget::ContactPresence;
-        let r=aggregate(&policy(),&[a]).unwrap();
-        assert_eq!(r.sources[0].disposition,SourceDisposition::ContextMismatch);
+    #[test]
+    fn wrong_target_does_not_alias_contact_presence_to_no_slip() {
+        let mut a = d1(900_000, 990_000, Some(995));
+        a.target = EvidenceTarget::ContactPresence;
+        let r = aggregate(&policy(), &[a]).unwrap();
+        assert_eq!(r.sources[0].disposition, SourceDisposition::ContextMismatch);
     }
-    #[test] fn unknown_source_and_wrong_channel_are_excluded() {
-        let unknown=src("camera",ContactChannel::InterfaceFields,"cal-d1",800_000,900_000,Some(995));
-        let wrong=src("d1",ContactChannel::ProprioceptiveResidual,"cal-d1",800_000,900_000,Some(995));
-        let r=aggregate(&policy(),&[unknown,wrong]).unwrap();
-        assert!(r.sources.iter().any(|s| s.disposition==SourceDisposition::UnknownSource));
-        assert!(r.sources.iter().any(|s| s.disposition==SourceDisposition::ChannelMismatch));
+    #[test]
+    fn unknown_source_and_wrong_channel_are_excluded() {
+        let unknown = src(
+            "camera",
+            ContactChannel::InterfaceFields,
+            "cal-d1",
+            800_000,
+            900_000,
+            Some(995),
+        );
+        let wrong = src(
+            "d1",
+            ContactChannel::ProprioceptiveResidual,
+            "cal-d1",
+            800_000,
+            900_000,
+            Some(995),
+        );
+        let r = aggregate(&policy(), &[unknown, wrong]).unwrap();
+        assert!(
+            r.sources
+                .iter()
+                .any(|s| s.disposition == SourceDisposition::UnknownSource)
+        );
+        assert!(
+            r.sources
+                .iter()
+                .any(|s| s.disposition == SourceDisposition::ChannelMismatch)
+        );
     }
-    #[test] fn duplicate_source_is_rejected() {
-        let e=aggregate(&policy(),&[d1(700_000,900_000,Some(995)),d1(800_000,950_000,Some(996))]);
-        assert_eq!(e,Err(EvidenceError::DuplicateSource("d1".into())));
+    #[test]
+    fn duplicate_source_is_rejected() {
+        let e = aggregate(
+            &policy(),
+            &[
+                d1(700_000, 900_000, Some(995)),
+                d1(800_000, 950_000, Some(996)),
+            ],
+        );
+        assert_eq!(e, Err(EvidenceError::DuplicateSource("d1".into())));
     }
-    #[test] fn missing_or_future_time_is_not_qualified() {
-        let a=aggregate(&policy(),&[d1(800_000,900_000,None)]).unwrap();
-        assert_eq!(a.sources[0].disposition,SourceDisposition::TimestampMissing);
-        let b=aggregate(&policy(),&[d1(800_000,900_000,Some(1_001))]).unwrap();
-        assert_eq!(b.sources[0].disposition,SourceDisposition::TimestampFuture);
+    #[test]
+    fn missing_or_future_time_is_not_qualified() {
+        let a = aggregate(&policy(), &[d1(800_000, 900_000, None)]).unwrap();
+        assert_eq!(
+            a.sources[0].disposition,
+            SourceDisposition::TimestampMissing
+        );
+        let b = aggregate(&policy(), &[d1(800_000, 900_000, Some(1_001))]).unwrap();
+        assert_eq!(b.sources[0].disposition, SourceDisposition::TimestampFuture);
     }
-    #[test] fn uncertain_clock_suppresses_aggregation() {
-        let mut p=policy(); p.clock_uncertain=true;
-        let r=aggregate(&p,&[d1(800_000,900_000,Some(995))]).unwrap();
-        assert_eq!(r.status,EnvelopeStatus::Unknown);
-        assert_eq!(r.sources[0].disposition,SourceDisposition::ClockUncertain);
+    #[test]
+    fn uncertain_clock_suppresses_aggregation() {
+        let mut p = policy();
+        p.clock_uncertain = true;
+        let r = aggregate(&p, &[d1(800_000, 900_000, Some(995))]).unwrap();
+        assert_eq!(r.status, EnvelopeStatus::Unknown);
+        assert_eq!(r.sources[0].disposition, SourceDisposition::ClockUncertain);
     }
-    #[test] fn excessive_source_skew_suppresses_aggregation() {
-        let r=aggregate(&policy(),&[d1(800_000,900_000,Some(970)),d2(700_000,950_000,Some(999))]).unwrap();
-        assert_eq!(r.status,EnvelopeStatus::Unknown);
-        assert_eq!(r.timestamp_skew_ns,Some(29));
-        assert!(r.sources.iter().all(|s|s.disposition==SourceDisposition::CrossSourceSkew));
+    #[test]
+    fn excessive_source_skew_suppresses_aggregation() {
+        let r = aggregate(
+            &policy(),
+            &[
+                d1(800_000, 900_000, Some(970)),
+                d2(700_000, 950_000, Some(999)),
+            ],
+        )
+        .unwrap();
+        assert_eq!(r.status, EnvelopeStatus::Unknown);
+        assert_eq!(r.timestamp_skew_ns, Some(29));
+        assert!(
+            r.sources
+                .iter()
+                .all(|s| s.disposition == SourceDisposition::CrossSourceSkew)
+        );
     }
-    #[test] fn age_and_skew_boundaries_are_inclusive() {
-        let r=aggregate(&policy(),&[d1(800_000,900_000,Some(900)),d2(700_000,950_000,Some(920))]).unwrap();
-        assert_eq!(r.status,EnvelopeStatus::MultiSource);
-        assert_eq!(r.timestamp_skew_ns,Some(20));
+    #[test]
+    fn age_and_skew_boundaries_are_inclusive() {
+        let r = aggregate(
+            &policy(),
+            &[
+                d1(800_000, 900_000, Some(900)),
+                d2(700_000, 950_000, Some(920)),
+            ],
+        )
+        .unwrap();
+        assert_eq!(r.status, EnvelopeStatus::MultiSource);
+        assert_eq!(r.timestamp_skew_ns, Some(20));
     }
-    #[test] fn confidence_interval_must_be_ordered_and_bounded() {
-        assert_eq!(ReliabilityInterval::new(900_000,800_000),Err(EvidenceError::InvalidInterval));
-        assert_eq!(ReliabilityInterval::new(0,1_000_001),Err(EvidenceError::InvalidInterval));
+    #[test]
+    fn confidence_interval_must_be_ordered_and_bounded() {
+        assert_eq!(
+            ReliabilityInterval::new(900_000, 800_000),
+            Err(EvidenceError::InvalidInterval)
+        );
+        assert_eq!(
+            ReliabilityInterval::new(0, 1_000_001),
+            Err(EvidenceError::InvalidInterval)
+        );
     }
-    #[test] fn malformed_policy_is_rejected() {
-        let mut p=policy(); p.foot_id.clear();
-        assert_eq!(aggregate(&p,&[]),Err(EvidenceError::EmptyIdentity));
-        let mut p=policy(); p.minimum_sources=0;
-        assert_eq!(aggregate(&p,&[]),Err(EvidenceError::InvalidMinimumSources));
+    #[test]
+    fn malformed_policy_is_rejected() {
+        let mut p = policy();
+        p.foot_id.clear();
+        assert_eq!(aggregate(&p, &[]), Err(EvidenceError::EmptyIdentity));
+        let mut p = policy();
+        p.minimum_sources = 0;
+        assert_eq!(
+            aggregate(&p, &[]),
+            Err(EvidenceError::InvalidMinimumSources)
+        );
     }
-    #[test] fn order_of_input_sources_does_not_change_report() {
-        let a=d1(800_000,900_000,Some(995)); let b=d2(700_000,950_000,Some(990));
-        assert_eq!(aggregate(&policy(),&[a.clone(),b.clone()]).unwrap(),aggregate(&policy(),&[b,a]).unwrap());
+    #[test]
+    fn order_of_input_sources_does_not_change_report() {
+        let a = d1(800_000, 900_000, Some(995));
+        let b = d2(700_000, 950_000, Some(990));
+        assert_eq!(
+            aggregate(&policy(), &[a.clone(), b.clone()]).unwrap(),
+            aggregate(&policy(), &[b, a]).unwrap()
+        );
     }
-    #[test] fn gait_phase_alone_is_not_a_contact_channel() {
-        let r=aggregate(&policy(),&[]).unwrap();
-        assert_eq!(r.status,EnvelopeStatus::Unknown);
+    #[test]
+    fn gait_phase_alone_is_not_a_contact_channel() {
+        let r = aggregate(&policy(), &[]).unwrap();
+        assert_eq!(r.status, EnvelopeStatus::Unknown);
         assert!(r.envelope.is_none());
     }
 }
