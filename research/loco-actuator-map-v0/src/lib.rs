@@ -537,8 +537,8 @@ fn weight_sum(fractions: [u32; 4]) -> Result<u128, MapError> {
     let mut sum = 0_u128;
     for mask in 0_u32..16 {
         let mut weight = 1_u128;
-        for axis_index in 0..4 {
-            let fraction = u128::from(fractions[axis_index]);
+        for (axis_index, fraction_value) in fractions.iter().enumerate() {
+            let fraction = u128::from(*fraction_value);
             let axis_weight = if (mask & (1 << axis_index)) != 0 {
                 fraction
             } else {
