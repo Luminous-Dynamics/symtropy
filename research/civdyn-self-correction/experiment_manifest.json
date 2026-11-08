@@ -181,7 +181,7 @@
     "net_utility",
     "oracle_net_utility",
     "regret_to_oracle",
-    "false_causal_attribution",
+    "proxy_driven_action_under_nonpositive_effect",
     "diagnosis",
     "detection_tick"
   ],
