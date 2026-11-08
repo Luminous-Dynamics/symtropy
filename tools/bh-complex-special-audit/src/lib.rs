@@ -46,25 +46,45 @@ impl fmt::Display for SpecialError {
             Self::NonFiniteInput => write!(f, "special-function inputs must be finite"),
             Self::GammaPole => write!(f, "gamma function has a pole at this input"),
             Self::HypergeometricDenominatorPole => {
-                write!(f, "hypergeometric denominator parameter is a non-positive integer")
+                write!(
+                    f,
+                    "hypergeometric denominator parameter is a non-positive integer"
+                )
             }
             Self::ResonantContinuationUnsupported => {
                 write!(f, "connection formula is resonant when c-a-b is an integer")
             }
             Self::BranchCutUnsupported => {
-                write!(f, "the requested point lies on the principal ₂F₁ branch cut [1, infinity)")
+                write!(
+                    f,
+                    "the requested point lies on the principal ₂F₁ branch cut [1, infinity)"
+                )
             }
             Self::ContinuationRegionUnsupported => {
-                write!(f, "input is outside the explicitly supported ₂F₁ continuation regions")
+                write!(
+                    f,
+                    "input is outside the explicitly supported ₂F₁ continuation regions"
+                )
             }
-            Self::NoConvergence => write!(f, "hypergeometric series did not meet its error criterion"),
-            Self::NonFiniteResult => write!(f, "special-function calculation produced a non-finite result"),
+            Self::NoConvergence => {
+                write!(f, "hypergeometric series did not meet its error criterion")
+            }
+            Self::NonFiniteResult => write!(
+                f,
+                "special-function calculation produced a non-finite result"
+            ),
             Self::InvalidConfiguration => write!(f, "series configuration is invalid"),
             Self::AssociatedLegendreDomainUnsupported => {
-                write!(f, "Ferrers associated-Legendre control requires real z strictly between -1 and 1")
+                write!(
+                    f,
+                    "Ferrers associated-Legendre control requires real z strictly between -1 and 1"
+                )
             }
             Self::InvalidPoschlTellerParameters => {
-                write!(f, "Pöschl–Teller Jost parameters require finite omega, b>0 and lambda>=0")
+                write!(
+                    f,
+                    "Pöschl–Teller Jost parameters require finite omega, b>0 and lambda>=0"
+                )
             }
         }
     }
@@ -122,8 +142,7 @@ fn lanczos_gamma(z: Complex64) -> Complex64 {
     let shifted = z - Complex64::new(1.0, 0.0);
     let mut sum = Complex64::new(LANCZOS_COEFFICIENTS[0], 0.0);
     for (index, coefficient) in LANCZOS_COEFFICIENTS.iter().enumerate().skip(1) {
-        sum += Complex64::new(*coefficient, 0.0)
-            / (shifted + Complex64::new(index as f64, 0.0));
+        sum += Complex64::new(*coefficient, 0.0) / (shifted + Complex64::new(index as f64, 0.0));
     }
 
     let t = shifted + Complex64::new(LANCZOS_G + 0.5, 0.0);
@@ -256,9 +275,7 @@ pub fn hyp2f1_series(
             return Err(SpecialError::HypergeometricDenominatorPole);
         }
 
-        term *= (a + Complex64::new(n_minus_one, 0.0))
-            * (b + Complex64::new(n_minus_one, 0.0))
-            * z
+        term *= (a + Complex64::new(n_minus_one, 0.0)) * (b + Complex64::new(n_minus_one, 0.0)) * z
             / (denominator_parameter * n as f64);
         sum += term;
 
@@ -280,9 +297,8 @@ pub fn hyp2f1_series(
         if next_denominator == Complex64::new(0.0, 0.0) {
             return Err(SpecialError::HypergeometricDenominatorPole);
         }
-        let next_ratio = ((a + n_complex) * (b + n_complex) * z
-            / (next_denominator * (n as f64 + 1.0)))
-        .norm();
+        let next_ratio =
+            ((a + n_complex) * (b + n_complex) * z / (next_denominator * (n as f64 + 1.0))).norm();
 
         // The ratio tends to |z|. Using the larger of the local ratio and |z|
         // avoids an optimistic estimate when the asymptotic ratio is approached
@@ -293,8 +309,7 @@ pub fn hyp2f1_series(
         } else {
             f64::INFINITY
         };
-        let tolerance =
-            config.absolute_tolerance + config.relative_tolerance * sum.norm();
+        let tolerance = config.absolute_tolerance + config.relative_tolerance * sum.norm();
 
         if n >= 4 && estimated_tail <= tolerance {
             consecutive_small += 1;
@@ -335,13 +350,7 @@ fn connection_near_one(
     }
 
     let one_minus_z = Complex64::new(1.0, 0.0) - z;
-    let series_one = hyp2f1_series(
-        a,
-        b,
-        Complex64::new(1.0, 0.0) - delta,
-        one_minus_z,
-        config,
-    )?;
+    let series_one = hyp2f1_series(a, b, Complex64::new(1.0, 0.0) - delta, one_minus_z, config)?;
     let series_two = hyp2f1_series(
         c - a,
         c - b,
@@ -353,8 +362,7 @@ fn connection_near_one(
     let gamma_c = gamma(c)?;
     let coefficient_one =
         gamma_c * gamma(delta)? * reciprocal_gamma(c - a)? * reciprocal_gamma(c - b)?;
-    let coefficient_two =
-        gamma_c * gamma(-delta)? * reciprocal_gamma(a)? * reciprocal_gamma(b)?;
+    let coefficient_two = gamma_c * gamma(-delta)? * reciprocal_gamma(a)? * reciprocal_gamma(b)?;
     let power = (delta * one_minus_z.ln()).exp();
 
     let value = coefficient_one * series_one.value + coefficient_two * power * series_two.value;
@@ -443,7 +451,6 @@ pub fn hyp2f1(
     Err(SpecialError::ContinuationRegionUnsupported)
 }
 
-
 /// Value and first two derivatives of the Ferrers associated-Legendre function.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct AssociatedLegendreEvaluation {
@@ -520,7 +527,6 @@ pub fn associated_legendre_ferrers(
     })
 }
 
-
 /// Direction of the outgoing Jost boundary condition.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum JostSide {
@@ -562,12 +568,7 @@ pub fn poschl_teller_jost(
 ) -> Result<PoschlTellerJostEvaluation, SpecialError> {
     config.validate()?;
     validate_complex(&[omega])?;
-    if !width.is_finite()
-        || !lambda.is_finite()
-        || !x.is_finite()
-        || width <= 0.0
-        || lambda < 0.0
-    {
+    if !width.is_finite() || !lambda.is_finite() || !x.is_finite() || width <= 0.0 || lambda < 0.0 {
         return Err(SpecialError::InvalidPoschlTellerParameters);
     }
 
@@ -581,20 +582,17 @@ pub fn poschl_teller_jost(
         return Err(SpecialError::AssociatedLegendreDomainUnsupported);
     }
 
-    let degree = Complex64::new(-0.5, 0.0)
-        + Complex64::new(0.25 - lambda, 0.0).sqrt();
+    let degree = Complex64::new(-0.5, 0.0) + Complex64::new(0.25 - lambda, 0.0).sqrt();
     let order = Complex64::new(0.0, 1.0) * width * omega;
     let legendre = associated_legendre_ferrers(degree, order, argument, config)?;
     let normalization = gamma(Complex64::new(1.0, 0.0) - order)?;
 
     let sech_squared = 1.0 - z * z;
     let argument_x_derivative = side_sign * sech_squared / width;
-    let argument_x_second_derivative =
-        -2.0 * side_sign * z * sech_squared / (width * width);
+    let argument_x_second_derivative = -2.0 * side_sign * z * sech_squared / (width * width);
 
     let value = normalization * legendre.value;
-    let first_x_derivative =
-        normalization * legendre.first_derivative * argument_x_derivative;
+    let first_x_derivative = normalization * legendre.first_derivative * argument_x_derivative;
     let second_x_derivative = normalization
         * (legendre.second_derivative * argument_x_derivative.powi(2)
             + legendre.first_derivative * argument_x_second_derivative);
@@ -623,8 +621,7 @@ pub fn poschl_teller_jost_wronskian(
 ) -> Result<Complex64, SpecialError> {
     let left = poschl_teller_jost(width, lambda, omega, x, JostSide::Left, config)?;
     let right = poschl_teller_jost(width, lambda, omega, x, JostSide::Right, config)?;
-    let value = left.value * right.first_x_derivative
-        - left.first_x_derivative * right.value;
+    let value = left.value * right.first_x_derivative - left.first_x_derivative * right.value;
     if finite(value) {
         Ok(value)
     } else {
@@ -650,20 +647,14 @@ mod tests {
     #[test]
     fn gamma_matches_independent_80_digit_fixture_one() {
         let actual = gamma(z(0.3, 1.2)).unwrap();
-        let expected = z(
-            0.107_075_474_962_553_64,
-            -0.353_143_987_729_088_6,
-        );
+        let expected = z(0.107_075_474_962_553_64, -0.353_143_987_729_088_6);
         close(actual, expected, 2.0e-14);
     }
 
     #[test]
     fn gamma_reflection_path_matches_independent_80_digit_fixture() {
         let actual = gamma(z(-1.2, 0.7)).unwrap();
-        let expected = z(
-            0.174_095_916_181_767_3,
-            0.706_909_450_271_453_4,
-        );
+        let expected = z(0.174_095_916_181_767_3, 0.706_909_450_271_453_4);
         close(actual, expected, 3.0e-14);
     }
 
@@ -673,15 +664,18 @@ mod tests {
         let lhs = gamma(value + z(1.0, 0.0)).unwrap();
         let rhs = value * gamma(value).unwrap();
         close(lhs, rhs, 2.0e-13);
-        close(gamma(value.conj()).unwrap(), gamma(value).unwrap().conj(), 2.0e-13);
+        close(
+            gamma(value.conj()).unwrap(),
+            gamma(value).unwrap().conj(),
+            2.0e-13,
+        );
     }
 
     #[test]
     fn gamma_reflection_identity_holds() {
         let value = z(0.37, 0.82);
         let lhs = gamma(value).unwrap() * gamma(z(1.0, 0.0) - value).unwrap();
-        let rhs = z(core::f64::consts::PI, 0.0)
-            / (z(core::f64::consts::PI, 0.0) * value).sin();
+        let rhs = z(core::f64::consts::PI, 0.0) / (z(core::f64::consts::PI, 0.0) * value).sin();
         close(lhs, rhs, 2.0e-13);
     }
 
@@ -771,11 +765,23 @@ mod tests {
     #[test]
     fn branch_cut_and_resonant_continuation_are_rejected() {
         assert_eq!(
-            hyp2f1(z(0.5, 0.0), z(0.7, 0.0), z(1.4, 0.0), z(1.2, 0.0), SeriesConfig::default()),
+            hyp2f1(
+                z(0.5, 0.0),
+                z(0.7, 0.0),
+                z(1.4, 0.0),
+                z(1.2, 0.0),
+                SeriesConfig::default()
+            ),
             Err(SpecialError::BranchCutUnsupported)
         );
         assert_eq!(
-            hyp2f1(z(0.6, 0.0), z(0.8, 0.0), z(2.4, 0.0), z(0.95, 0.0), SeriesConfig::default()),
+            hyp2f1(
+                z(0.6, 0.0),
+                z(0.8, 0.0),
+                z(2.4, 0.0),
+                z(0.95, 0.0),
+                SeriesConfig::default()
+            ),
             Err(SpecialError::ResonantContinuationUnsupported)
         );
     }
@@ -783,11 +789,23 @@ mod tests {
     #[test]
     fn denominator_poles_and_unsupported_continuation_fail_closed() {
         assert_eq!(
-            hyp2f1(z(0.5, 0.0), z(0.7, 0.0), z(-2.0, 0.0), z(0.2, 0.0), SeriesConfig::default()),
+            hyp2f1(
+                z(0.5, 0.0),
+                z(0.7, 0.0),
+                z(-2.0, 0.0),
+                z(0.2, 0.0),
+                SeriesConfig::default()
+            ),
             Err(SpecialError::HypergeometricDenominatorPole)
         );
         assert_eq!(
-            hyp2f1(z(0.4, 0.2), z(1.1, -0.3), z(2.2, 0.1), z(0.5, 1.0), SeriesConfig::default()),
+            hyp2f1(
+                z(0.4, 0.2),
+                z(1.1, -0.3),
+                z(2.2, 0.1),
+                z(0.5, 1.0),
+                SeriesConfig::default()
+            ),
             Err(SpecialError::ContinuationRegionUnsupported)
         );
     }
@@ -799,14 +817,25 @@ mod tests {
         let c = z(2.0, 0.1);
         let point = z(0.35, 0.08);
         let h = 1.0e-5;
-        let upper = hyp2f1(a, b, c, point + z(h, 0.0), SeriesConfig::default()).unwrap().value;
-        let lower = hyp2f1(a, b, c, point - z(h, 0.0), SeriesConfig::default()).unwrap().value;
+        let upper = hyp2f1(a, b, c, point + z(h, 0.0), SeriesConfig::default())
+            .unwrap()
+            .value;
+        let lower = hyp2f1(a, b, c, point - z(h, 0.0), SeriesConfig::default())
+            .unwrap()
+            .value;
         let numeric = (upper - lower) / (2.0 * h);
         let analytic = a * b / c
-            * hyp2f1(a + z(1.0, 0.0), b + z(1.0, 0.0), c + z(1.0, 0.0), point, SeriesConfig::default()).unwrap().value;
+            * hyp2f1(
+                a + z(1.0, 0.0),
+                b + z(1.0, 0.0),
+                c + z(1.0, 0.0),
+                point,
+                SeriesConfig::default(),
+            )
+            .unwrap()
+            .value;
         close(numeric, analytic, 2.0e-8);
     }
-
 
     #[test]
     fn associated_legendre_reduces_to_exact_legendre_polynomial() {
@@ -828,23 +857,14 @@ mod tests {
         let degree = z(-0.5, 0.7);
         let order = z(0.35, -0.2);
         for y in [0.23, -0.9] {
-            let result = associated_legendre_ferrers(
-                degree,
-                order,
-                z(y, 0.0),
-                SeriesConfig::default(),
-            )
-            .unwrap();
+            let result =
+                associated_legendre_ferrers(degree, order, z(y, 0.0), SeriesConfig::default())
+                    .unwrap();
             let one_minus_y2 = 1.0 - y * y;
             let residual = one_minus_y2 * result.second_derivative
                 - 2.0 * y * result.first_derivative
-                + (degree * (degree + z(1.0, 0.0))
-                    - order * order / one_minus_y2)
-                    * result.value;
-            assert!(
-                residual.norm() < 3.0e-10,
-                "z={y}, residual={residual:?}"
-            );
+                + (degree * (degree + z(1.0, 0.0)) - order * order / one_minus_y2) * result.value;
+            assert!(residual.norm() < 3.0e-10, "z={y}, residual={residual:?}");
         }
     }
 
@@ -854,34 +874,17 @@ mod tests {
         let order = z(0.35, -0.2);
         let y = 0.23;
         let h = 1.0e-5;
-        let base = associated_legendre_ferrers(
-            degree,
-            order,
-            z(y, 0.0),
-            SeriesConfig::default(),
-        )
-        .unwrap();
-        let upper = associated_legendre_ferrers(
-            degree,
-            order,
-            z(y + h, 0.0),
-            SeriesConfig::default(),
-        )
-        .unwrap()
-        .value;
-        let lower = associated_legendre_ferrers(
-            degree,
-            order,
-            z(y - h, 0.0),
-            SeriesConfig::default(),
-        )
-        .unwrap()
-        .value;
-        close(
-            base.first_derivative,
-            (upper - lower) / (2.0 * h),
-            2.0e-8,
-        );
+        let base =
+            associated_legendre_ferrers(degree, order, z(y, 0.0), SeriesConfig::default()).unwrap();
+        let upper =
+            associated_legendre_ferrers(degree, order, z(y + h, 0.0), SeriesConfig::default())
+                .unwrap()
+                .value;
+        let lower =
+            associated_legendre_ferrers(degree, order, z(y - h, 0.0), SeriesConfig::default())
+                .unwrap()
+                .value;
+        close(base.first_derivative, (upper - lower) / (2.0 * h), 2.0e-8);
     }
 
     #[test]
@@ -899,7 +902,6 @@ mod tests {
         }
     }
 
-
     #[test]
     fn free_potential_jost_solutions_are_exact_plane_waves() {
         let omega = z(0.9, -0.12);
@@ -909,8 +911,16 @@ mod tests {
         let right = poschl_teller_jost(1.4, 0.0, omega, x, JostSide::Right, config).unwrap();
         close(left.value, (-z(0.0, 1.0) * omega * x).exp(), 2.0e-13);
         close(right.value, (z(0.0, 1.0) * omega * x).exp(), 2.0e-13);
-        close(left.first_x_derivative, -z(0.0, 1.0) * omega * left.value, 2.0e-13);
-        close(right.first_x_derivative, z(0.0, 1.0) * omega * right.value, 2.0e-13);
+        close(
+            left.first_x_derivative,
+            -z(0.0, 1.0) * omega * left.value,
+            2.0e-13,
+        );
+        close(
+            right.first_x_derivative,
+            z(0.0, 1.0) * omega * right.value,
+            2.0e-13,
+        );
         close(
             left.value * right.first_x_derivative - left.first_x_derivative * right.value,
             z(0.0, 2.0) * omega,
@@ -925,19 +935,12 @@ mod tests {
         let omega = z(0.9, -0.12);
         for x in [-1.4, -0.2, 0.8, 1.5] {
             for side in [JostSide::Left, JostSide::Right] {
-                let solution = poschl_teller_jost(
-                    width,
-                    lambda,
-                    omega,
-                    x,
-                    side,
-                    SeriesConfig::default(),
-                )
-                .unwrap();
+                let solution =
+                    poschl_teller_jost(width, lambda, omega, x, side, SeriesConfig::default())
+                        .unwrap();
                 let sech_squared = 1.0 - (x / width).tanh().powi(2);
                 let residual = solution.second_x_derivative
-                    + (omega * omega - lambda * sech_squared / (width * width))
-                        * solution.value;
+                    + (omega * omega - lambda * sech_squared / (width * width)) * solution.value;
                 assert!(
                     residual.norm() < 2.0e-9,
                     "x={x}, side={side:?}, residual={residual:?}"
