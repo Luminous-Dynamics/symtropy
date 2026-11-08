@@ -483,7 +483,9 @@ fn validate_case(case: &Case, tolerance: &Tolerance) -> Result<ComputedCase> {
         });
     }
 
-    let scenario_bytes = serde_json::to_vec(case)
+    let scenario_value = serde_json::to_value(case)
+        .map_err(|error| OracleError(format!("scenario canonicalization failed: {error}")))?;
+    let scenario_bytes = serde_json::to_vec(&scenario_value)
         .map_err(|error| OracleError(format!("scenario serialization failed: {error}")))?;
     Ok(ComputedCase {
         case_id: case.case_id.clone(),
