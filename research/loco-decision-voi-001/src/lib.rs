@@ -106,6 +106,8 @@ pub struct DecisionValueEvaluation {
     /// Defined only when there is exactly one prior-optimal decision. Numerator
     /// is over SCALE^2 and counts outcomes whose optimal set excludes it.
     pub action_switch_probability_numerator_ppb_squared: Option<u128>,
+    /// Probability of an explicit unknown/out-of-model observation, over SCALE^2.
+    pub unknown_outcome_probability_numerator_ppb_squared: u128,
     /// Comparator only. It is never used in the exact VOI calculation.
     pub information_gain_nats: f64,
     pub excluded_decision_ids: Vec<String>,
@@ -532,7 +534,7 @@ pub fn evaluate_decision_value(
         let prior_best = &prior_optimal_decision_ids[0];
         let mut switched_mass = 0_u128;
         for outcome in &outcome_evaluations {
-            if !outcome.optimal_decision_ids.contains(prior_best) {
+            if !outcome.is_unknown && !outcome.optimal_decision_ids.contains(prior_best) {
                 switched_mass =
                     checked_add(switched_mass, outcome.probability_numerator_ppb_squared)?;
             }
@@ -541,6 +543,16 @@ pub fn evaluate_decision_value(
     } else {
         None
     };
+
+    let mut unknown_outcome_probability_numerator = 0_u128;
+    for outcome in &outcome_evaluations {
+        if outcome.is_unknown {
+            unknown_outcome_probability_numerator = checked_add(
+                unknown_outcome_probability_numerator,
+                outcome.probability_numerator_ppb_squared,
+            )?;
+        }
+    }
 
     let information_gain_nats = expected_information_gain(&problem.hypotheses, &outcome_order)?;
 
@@ -552,6 +564,7 @@ pub fn evaluate_decision_value(
         prior_optimal_decision_ids,
         outcome_evaluations,
         action_switch_probability_numerator_ppb_squared: action_switch_probability_numerator,
+        unknown_outcome_probability_numerator_ppb_squared: unknown_outcome_probability_numerator,
         information_gain_nats,
         excluded_decision_ids,
     })
@@ -792,7 +805,11 @@ mod tests {
         );
         assert_eq!(
             report.action_switch_probability_numerator_ppb_squared,
-            Some(498_000_000_000_000_000)
+            Some(349_000_000_000_000_000)
+        );
+        assert_eq!(
+            report.unknown_outcome_probability_numerator_ppb_squared,
+            149_000_000_000_000_000
         );
         let unknown = report
             .outcome_evaluations
