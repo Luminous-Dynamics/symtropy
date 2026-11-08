@@ -15,9 +15,10 @@ ASME VVUQ 20.1-2024 is a methodology and benchmark reference. This crate is not 
 
 For each channel, the implementation retains:
 - physical residual in the channel's original units;
-- normalized residual using its declared reference scale;
+- the normalization scale and normalized residual;
 - marginal standardized residual;
 - combined standard deviation.
+The result also retains the complete provenance receipt for any cross-source covariance contribution.
 
 For the normalized residual vector r and combined covariance Sigma, it computes:
 
@@ -25,7 +26,7 @@ For the normalized residual vector r and combined covariance Sigma, it computes:
 D^2 = r^T \Sigma^{-1} r
 \]
 
-The result also reports an infinity-norm covariance-condition estimate and Cholesky pivot diagnostics.
+The result also reports an infinity-norm covariance-condition estimate and the minimum/maximum Cholesky diagonal pivots (not their squared values).
 
 D² is a covariance-weighted discrepancy diagnostic. It is not automatically a chi-square statistic, probability, p-value, confidence level or validation theorem. A within-limit status is emitted only when the caller provides a predeclared D² limit, a maximum marginal-z limit, a protocol digest and a claim-scope digest matching the request. Without a limit the result is DIAGNOSTIC_ONLY.
 
@@ -42,7 +43,7 @@ The three mandatory uncertainty components are experimental/measurement, numeric
 - exact state-identity digest;
 - exact normalization-basis digest.
 
-For declared-independent sources, the three component covariance matrices are added. If source dependence is declared, an explicit cross-source covariance matrix and source receipt are mandatory. An implicit zero cross-covariance is never substituted for unknown dependence.
+For declared-independent sources, the three component covariance matrices are added. If source dependence is declared, an explicit cross-source covariance contribution and source receipt are mandatory. In v0.1, the cross-source matrix represents the symmetric contribution Cov(A,B) + Cov(B,A), not one directional cross-covariance block by itself. This contribution can be indefinite; only the sum of all covariance and cross-covariance contributions must be positive definite for evaluation. An implicit zero cross-covariance is never substituted for unknown dependence. The output retains the cross-source artifact, estimator, calibration and source IDs.
 
 Every covariance matrix is expressed in normalized response coordinates. The normalization basis is hashed from canonical channel ID, quantity, units, frame, sample coordinate and normalization scale. Channel arrays and covariance matrices may use different ordering; the evaluator canonicalizes by channel ID and reorders matrix rows/columns. A channel identity or scale change invalidates the source-bound basis digest.
 
