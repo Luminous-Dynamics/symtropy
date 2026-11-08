@@ -109,10 +109,6 @@ fn digest_hex(digest: &[u8]) -> String {
     output
 }
 
-fn hash_bytes(bytes: &[u8]) -> String {
-    digest_hex(&Sha256::digest(bytes))
-}
-
 fn hash_surface(surface: &Surface, include_traction: bool) -> String {
     let mut hasher = Sha256::new();
     hasher.update(b"aero-surface-v0.1\0");
@@ -152,7 +148,7 @@ fn hash_displacements(values: &[Vec3]) -> String {
             hasher.update(component.to_le_bytes());
         }
     }
-    hash_bytes(&hasher.finalize())
+    digest_hex(&hasher.finalize())
 }
 
 fn validate_identity(fixture: &Fixture) -> Result<()> {
