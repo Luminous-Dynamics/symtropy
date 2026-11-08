@@ -239,6 +239,35 @@ def validate_catalog(data: dict[str, Any]) -> None:
     require(static_fsi["measured_span_stations_eta"] == [0.0, 0.4286, 0.5546, 0.6773, 0.7954, 0.9150],
             "CRM measured span station schedule changed")
 
+    require(static_fsi["conditions"].get("angle_of_attack_deg") == 2.5,
+            "CRM FSI 2a(E) angle-of-attack reference mismatch")
+    require(static_fsi["conditions"].get("static_temperature_f") == 120.0,
+            "CRM FSI 2a(E) temperature in degrees F mismatch")
+    require(static_fsi["conditions"].get("static_temperature_k") == 322.04,
+            "CRM FSI 2a(E) temperature in kelvin mismatch")
+
+    static_polar = next((case for case in cases if case["case_id"] == "DPW8-CRM-STATIC-FSI-2B-E"), None)
+    require(static_polar is not None, "CRM static FSI 2b(E) case missing")
+    require(static_polar["conditions"].get("angles_of_attack_deg") == [-1.5, 2.5, 3.0, 3.5, 4.0, 4.5],
+            "CRM static FSI 2b(E) angle schedule mismatch")
+    require(static_polar["conditions"].get("static_temperature_f") == 120.0,
+            "CRM static FSI 2b(E) temperature mismatch")
+    require(static_polar["grid_family"].get("levels") == [3],
+            "CRM static FSI 2b(E) grid level mismatch")
+
+    rigid_grid = next((case for case in cases if case["case_id"] == "DPW8-CRM-RIGID-2A"), None)
+    rigid_polar = next((case for case in cases if case["case_id"] == "DPW8-CRM-RIGID-2B"), None)
+    require(rigid_grid is not None and rigid_polar is not None,
+            "rigid CRM Configuration B cases must remain separate from FSI")
+    for case in (rigid_grid, rigid_polar):
+        require(case["conditions"].get("static_temperature_f") == 100.0,
+                f"{case['case_id']}: rigid Configuration B temperature mismatch")
+        require(case["conditions"].get("static_temperature_k") == 310.928,
+                f"{case['case_id']}: rigid Configuration B kelvin mismatch")
+    require(rigid_polar["conditions"].get("angles_of_attack_deg") ==
+            [-1.5, 2.5, 2.75, 3.0, 3.25, 3.5, 3.75, 4.0, 4.25],
+            "rigid CRM Configuration B polar schedule mismatch")
+
     format_observations = data.get("data_format_observations")
     require(isinstance(format_observations, dict), "data_format_observations missing")
     require(
