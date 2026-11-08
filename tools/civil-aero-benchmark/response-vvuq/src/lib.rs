@@ -854,6 +854,51 @@ mod tests {
     }
 
     #[test]
+    fn covariance_matrix_reordering_preserves_the_metric() {
+        let mut input = request();
+        let original = evaluate(&input).unwrap();
+        for block in [
+            &mut input.uncertainty.experimental,
+            &mut input.uncertainty.numerical,
+            &mut input.uncertainty.input,
+        ] {
+            block.channel_ids.reverse();
+            block.matrix.reverse();
+            for row in &mut block.matrix {
+                row.reverse();
+            }
+            block.max_diagonal_variance.as_mut().unwrap().reverse();
+        }
+        let reordered = evaluate(&input).unwrap();
+        assert!((original.covariance_weighted_d2 - reordered.covariance_weighted_d2).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn dependent_components_with_explicit_cross_covariance_are_receipted() {
+        let mut input = request();
+        input.uncertainty.independent_components = false;
+        let mut cross = input.uncertainty.numerical.clone();
+        cross.source_id = "cross-source-covariance".to_owned();
+        cross.matrix = vec![
+            vec![0.0, 0.001, 0.0],
+            vec![0.001, 0.0, 0.0],
+            vec![0.0, 0.0, 0.0],
+        ];
+        cross.max_diagonal_variance = None;
+        input.uncertainty.cross_source = Some(cross);
+
+        let result = evaluate(&input).expect("explicit cross covariance should evaluate");
+        assert_eq!(
+            result.cross_source_covariance_source_id.as_deref(),
+            Some("cross-source-covariance")
+        );
+        assert_eq!(
+            result.cross_source_uncertainty.as_ref().unwrap().source_id,
+            "cross-source-covariance"
+        );
+    }
+
+    #[test]
     fn missing_channel_is_rejected_not_zero_filled() {
         let mut input = request();
         input.channels.pop();
