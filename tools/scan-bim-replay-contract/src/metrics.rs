@@ -230,13 +230,13 @@ pub fn evaluate_directed_accuracy_curve(
             }
 
             let distance = match correspondence_policy {
-                CorrespondencePolicy::EuclideanClosestPointOnTriangle => {
-                    Some(
-                        sample
-                            .sub(closest_point_on_triangle(*sample, triangle.a, triangle.b, triangle.c))
-                            .norm(),
-                    )
-                }
+                CorrespondencePolicy::EuclideanClosestPointOnTriangle => Some(
+                    sample
+                        .sub(closest_point_on_triangle(
+                            *sample, triangle.a, triangle.b, triangle.c,
+                        ))
+                        .norm(),
+                ),
                 CorrespondencePolicy::OrthogonalProjectionInsideTriangle => {
                     let signed_distance = sample.sub(triangle.a).dot(*normal);
                     let projection = sample.sub(normal.scale(signed_distance));
@@ -247,7 +247,9 @@ pub fn evaluate_directed_accuracy_curve(
 
             if let Some(distance) = distance {
                 if !distance.is_finite() {
-                    return Err("point-to-surface distance overflowed or became non-finite".to_owned());
+                    return Err(
+                        "point-to-surface distance overflowed or became non-finite".to_owned()
+                    );
                 }
                 if best_distance.is_none_or(|best| distance < best) {
                     best_distance = Some(distance);
@@ -382,8 +384,8 @@ fn median_sorted(values: &[f64]) -> Option<f64> {
 #[cfg(test)]
 mod tests {
     use super::{
-        AccuracyDirection, AccuracySamplePopulation, CorrespondencePolicy, Point3,
-        SurfaceTriangle, evaluate_directed_accuracy_curve,
+        AccuracyDirection, AccuracySamplePopulation, CorrespondencePolicy, Point3, SurfaceTriangle,
+        evaluate_directed_accuracy_curve,
     };
 
     fn plane(z: f64, observable: bool) -> SurfaceTriangle {
