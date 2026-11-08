@@ -1,0 +1,109 @@
+{
+  "schema_version": "0.1",
+  "replay_id": "SYNTHETIC-OBSERVABILITY-001",
+  "dataset": {
+    "dataset_id": "SYNTHETIC-OBSERVABILITY-001",
+    "source_uri": "urn:luminous:synthetic:scan-bim-observability-v0.1",
+    "use_class": "synthetic",
+    "source_data_committed": false,
+    "ci_artifacts_include_source_data": false
+  },
+  "split": {
+    "development_group_ids": ["BUILDING-DEV"],
+    "evaluation_group_ids": ["BUILDING-A", "BUILDING-B"]
+  },
+  "scenes": [
+    {
+      "scene_id": "ROOM-A",
+      "building_group_id": "BUILDING-A",
+      "capture_group_id": "BUILDING-A-CAPTURE-01",
+      "split_group_id": "BUILDING-A",
+      "candidate_inputs": [
+        {
+          "artifact_id": "ROOM-A-PARTIAL-SCAN",
+          "role": "point_cloud_observation",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "evaluator_artifacts": [
+        {
+          "artifact_id": "ROOM-A-REFERENCE",
+          "role": "reference_geometry",
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        }
+      ],
+      "surface_strata": [
+        {
+          "stratum_id": "VISIBLE-CAPTURED",
+          "area_m2": 8.0,
+          "visibility": "theoretically_visible",
+          "observation": "captured"
+        },
+        {
+          "stratum_id": "VISIBLE-MISSED",
+          "area_m2": 2.0,
+          "visibility": "theoretically_visible",
+          "observation": "not_captured"
+        },
+        {
+          "stratum_id": "SELF-OCCLUDED",
+          "area_m2": 4.0,
+          "visibility": "self_occluded",
+          "observation": "not_captured"
+        },
+        {
+          "stratum_id": "EXTERNAL-OCCLUSION",
+          "area_m2": 3.0,
+          "visibility": "externally_occluded",
+          "observation": "not_captured"
+        },
+        {
+          "stratum_id": "VISIBILITY-UNKNOWN",
+          "area_m2": 1.0,
+          "visibility": "unknown",
+          "observation": "unknown"
+        }
+      ]
+    },
+    {
+      "scene_id": "ROOM-B",
+      "building_group_id": "BUILDING-B",
+      "capture_group_id": "BUILDING-B-CAPTURE-01",
+      "split_group_id": "BUILDING-B",
+      "candidate_inputs": [
+        {
+          "artifact_id": "ROOM-B-PARTIAL-SCAN",
+          "role": "point_cloud_observation",
+          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "evaluator_artifacts": [
+        {
+          "artifact_id": "ROOM-B-REFERENCE",
+          "role": "ground_truth_labels",
+          "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        }
+      ],
+      "surface_strata": [
+        {
+          "stratum_id": "VISIBLE-CAPTURED",
+          "area_m2": 12.0,
+          "visibility": "theoretically_visible",
+          "observation": "captured"
+        },
+        {
+          "stratum_id": "VISIBLE-UNKNOWN",
+          "area_m2": 2.0,
+          "visibility": "theoretically_visible",
+          "observation": "unknown"
+        },
+        {
+          "stratum_id": "BLINDED-OPENING",
+          "area_m2": 2.5,
+          "visibility": "externally_occluded",
+          "observation": "not_captured"
+        }
+      ]
+    }
+  ]
+}
