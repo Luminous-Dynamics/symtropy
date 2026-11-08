@@ -1043,7 +1043,7 @@ pub fn evaluate_area_overlap(
 #[cfg(test)]
 mod tests {
     use super::{
-        AreaAggregationPolicy, AreaMetricAuthority, AreaOverlapProfile, Point2,
+        AreaAggregationPolicy, AreaCoordinateUnit, AreaMetricAuthority, AreaOverlapProfile, Point2,
         ReferenceAreaSurface, ReferenceVisibility, SourceAreaSurface, evaluate_area_overlap,
         validate_area_overlap_profile,
     };
@@ -1060,6 +1060,8 @@ mod tests {
     ) -> SourceAreaSurface {
         SourceAreaSurface::new(
             surface_id,
+            format!("source-model-{surface_id}"),
+            "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
             frame_id,
             vec![
                 Point3::new(x, y, z),
@@ -1081,6 +1083,8 @@ mod tests {
     ) -> ReferenceAreaSurface {
         ReferenceAreaSurface::new(
             surface_id,
+            format!("reference-model-{surface_id}"),
+            "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
             "LOCAL-A",
             visibility,
             vec![
@@ -1090,6 +1094,7 @@ mod tests {
                 Point3::new(x, y + height, 0.0),
             ],
             buffered_boundary_2d,
+            Some(format!("buffer-{surface_id}")),
             Some("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned()),
         )
     }
@@ -1110,6 +1115,7 @@ mod tests {
                 AreaAggregationPolicy::PairwiseSum2018 => AreaMetricAuthority::EvaluationFramework2018,
                 AreaAggregationPolicy::UnionPerReference2021 => AreaMetricAuthority::FinalResultsPaper2021,
             },
+            coordinate_unit: AreaCoordinateUnit::Metre,
             aggregation_policy: policy,
             common_frame_id: "LOCAL-A".to_owned(),
             max_parallel_angle_rad: 0.01,
@@ -1141,6 +1147,71 @@ mod tests {
         let error = validate_area_overlap_profile(&value)
             .expect_err("zero planarity tolerance is invalid");
         assert!(error.contains("planarity_tolerance_m"));
+    }
+
+    #[test]
+    fn metre_and_millimetre_area_profiles_produce_identical_si_results() {
+        let ref_surface = reference(
+            "REF",
+            ReferenceVisibility::Observed,
+            0.0, 0.0, 2.0, 1.0,
+            buffer(0.0, 0.0, 2.0, 1.0, 0.0),
+        );
+        let src_surface = square_3d("SRC", "LOCAL-A", 0.0, 0.0, 0.0, 2.0, 1.0);
+        let metric_m = evaluate_area_overlap(
+            &profile(AreaAggregationPolicy::PairwiseSum2018),
+            std::slice::from_ref(&src_surface),
+            std::slice::from_ref(&ref_surface),
+        )
+        .expect("metre input");
+
+        let mut profile_mm = profile(AreaAggregationPolicy::PairwiseSum2018);
+        profile_mm.coordinate_unit = AreaCoordinateUnit::Millimetre;
+        let reference_mm = ReferenceAreaSurface::new(
+            "REF",
+            "reference-model-REF",
+            "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "LOCAL-A",
+            ReferenceVisibility::Observed,
+            vec![
+                Point3::new(0.0, 0.0, 0.0),
+                Point3::new(2000.0, 0.0, 0.0),
+                Point3::new(2000.0, 1000.0, 0.0),
+                Point3::new(0.0, 1000.0, 0.0),
+            ],
+            buffer(0.0, 0.0, 2000.0, 1000.0, 0.0),
+            Some("buffer-REF".to_owned()),
+            Some("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned()),
+        );
+        let source_mm = square_3d("SRC", "LOCAL-A", 0.0, 0.0, 0.0, 2000.0, 1000.0);
+        let metric_mm = evaluate_area_overlap(&profile_mm, &[source_mm], &[reference_mm])
+            .expect("millimetre input");
+        assert!((metric_m.matched_area_numerator_m2 - metric_mm.matched_area_numerator_m2).abs() < 1e-12);
+        assert!((metric_mm.source_surface_area_m2 - 2.0).abs() < 1e-12);
+        assert_eq!(metric_mm.coordinate_unit, AreaCoordinateUnit::Millimetre);
+    }
+
+    #[test]
+    fn area_result_carries_geometry_and_buffer_artifact_provenance() {
+        let reference = reference(
+            "REF",
+            ReferenceVisibility::Observed,
+            0.0, 0.0, 1.0, 1.0,
+            buffer(0.0, 0.0, 1.0, 1.0, 0.0),
+        );
+        let source = square_3d("SRC", "LOCAL-A", 0.0, 0.0, 0.0, 1.0, 1.0);
+        let result = evaluate_area_overlap(
+            &profile(AreaAggregationPolicy::UnionPerReference2021),
+            &[source],
+            &[reference],
+        )
+        .expect("content-addressed geometry inputs");
+        assert_eq!(result.source_geometry_artifact_ids, vec!["source-model-SRC"]);
+        assert_eq!(result.reference_geometry_artifact_ids, vec!["reference-model-REF"]);
+        assert_eq!(result.buffer_artifact_ids, vec!["buffer-REF"]);
+        assert_eq!(result.source_geometry_artifact_digests.len(), 1);
+        assert_eq!(result.reference_geometry_artifact_digests.len(), 1);
+        assert_eq!(result.buffer_artifact_digests.len(), 1);
     }
 
     #[test]
