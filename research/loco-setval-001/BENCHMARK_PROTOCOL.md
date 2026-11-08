@@ -99,7 +99,10 @@ Run the following policy/assurance variants under the same plant, observations, 
 - **R-only:** robust set-valued viability/recovery gate, with no probabilistic risk channel.
 - **P-only:** calibrated five-constraint one-step chance gate, with no claim of robust future invariance. This is an analysis arm, not a hardware-authorized fallback.
 - **R+P:** robust viability and one-step calibrated chance gate both pass; a pass on one channel cannot compensate for a rejection/Unknown on the other.
-- **R+P+H:** R+P with the immutable finite-horizon allocation from #4245. The exact five per-constraint ppb amounts for each step must pass into #4231 unchanged; do not collapse them to a step sum and re-divide.
+- **R+P+H:** R+P with the immutable finite-horizon allocation from #4245. The exact five per-constraint ppb amounts for each step must pass into #4231 unchanged; do not collapse them to a step sum and re-divide. Compare uniform and predeclared nonuniform profiles at matched total alpha.
+- **Uniform horizon profile:** equal alpha across all (step, constraint) events, with deterministic ppb remainder placement.
+- **Predeclared nonuniform profile:** phase-/constraint-weighted vector from `HorizonRiskPlan::from_preallocated_allocations`, frozen before the episode and with exactly the same total alpha as the uniform arm. Candidate profiles may allocate more to touchdown, support exchange, slip recovery or high-load actuator constraints only when that profile is declared before the relevant outcomes.
+- **Post-outcome reallocation negative control:** increase or transfer alpha after observing an adverse event. This must be rejected/labelled invalid because the risk plan is immutable and the horizon budget cannot be replenished after outcomes.
 - **Reused-alpha negative control:** reapply the same one-step family-wise alpha at every step. It must be labelled invalid for the declared horizon guarantee and included only to demonstrate cumulative-risk inflation.
 - **EIG-only negative control:** rank by expected information gain without an admissibility filter. It must never be included in a deployment-eligible set.
 - **Diagonal-covariance negative control:** treat deliberately correlated D1/D2/D3 channels as independent. Measure overconfidence against the joint-R reference.
