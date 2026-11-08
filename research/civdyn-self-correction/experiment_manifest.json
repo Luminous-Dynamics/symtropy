@@ -361,9 +361,14 @@
         "policy_stopped": true
       },
       "gradual_sign_reversal": {
-        "diagnosis": "negative_causal_effect",
+        "acceptable_diagnoses": [
+          "negative_causal_effect",
+          "effect_not_above_action_threshold"
+        ],
         "diagnosis_tick": 6,
-        "policy_stopped": true
+        "policy_stopped": true,
+        "active_after_nonpositive_effect_ticks": 2,
+        "interpretation": "A below-threshold diagnosis is acceptable when the noisy sample is sufficient to reject worthwhile benefit but not sufficient to certify a negative effect; never force a sign claim."
       },
       "confounded_null": {
         "diagnosis": "effect_not_above_action_threshold",
