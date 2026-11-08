@@ -203,7 +203,8 @@
     "surface_buffer_m": 0.1,
     "accuracy_cutoff_m": 0.1,
     "definition_authority": "project_defined",
-    "sample_strategy": "reference_surface_samples"
+    "sample_strategy": "reference_surface_samples",
+    "correspondence_policy": "euclidean_closest_point_on_triangle"
   },
   "candidate_outputs": [
     {
