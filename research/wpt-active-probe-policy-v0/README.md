@@ -22,7 +22,7 @@ No Bayesian prior is required. Each action maps every finite pose hypothesis to 
 
 ## Hard constraints
 
-Each action is typed PASSIVE_OBSERVE or ACTIVE_EXCITATION. An active excitation must have positive incremental energy cost; passive observation may have zero incremental excitation-energy cost but always has positive duration. Each action is excluded before planning if it exceeds maximum ripple, falls below minimum ZVS margin, or exceeds maximum service disturbance. The complete policy must fit the declared worst-case energy, latency and action-count budgets. If no such decision tree exists, the evaluator abstains.
+Each action is typed PASSIVE_OBSERVE or ACTIVE_EXCITATION. An active excitation must have positive incremental energy cost; passive observation may have zero incremental energy cost only when reusing already-running telemetry (any actual sensor draw is charged), and it always has positive duration. Each action is excluded before planning if it exceeds maximum ripple, falls below minimum ZVS margin, or exceeds maximum service disturbance. The complete policy must fit the declared worst-case energy, latency and action-count budgets. If no such decision tree exists, the evaluator abstains.
 
 ## Synthetic fixture
 
