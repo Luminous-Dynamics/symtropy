@@ -1,0 +1,9 @@
+[package]
+name = "aero-dynamic-coupling-audit"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Reduced-order stability and transaction audit for partitioned aerodynamic-structural coupling"
+
+[workspace]
