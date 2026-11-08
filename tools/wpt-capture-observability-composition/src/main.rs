@@ -6,7 +6,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::{env, fs, process::ExitCode};
 
-const CAPTURE_HEADER: [&str; 16] = [
+const CAPTURE_HEADER: [&str; 15] = [
     "case_id",
     "evidence_class",
     "decision_time_us",
