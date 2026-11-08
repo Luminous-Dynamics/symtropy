@@ -1,0 +1,613 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/scan-bim-ifc-delivery-receipt-v0.1.json",
+  "title": "Scan-to-BIM IFC Delivery Receipt v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "delivery_id",
+    "reported_at",
+    "replay",
+    "scene",
+    "ifc",
+    "element_graph",
+    "exchange_profile",
+    "ids_requirements",
+    "crosswalk",
+    "required_gate_ids",
+    "gates",
+    "decision",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "delivery_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "reported_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "replay": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_id",
+        "receipt_sha256",
+        "candidate_source_commit"
+      ],
+      "properties": {
+        "run_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "candidate_source_commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        }
+      }
+    },
+    "scene": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "building_group_id",
+        "scene_id",
+        "source_model_revision"
+      ],
+      "properties": {
+        "building_group_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "scene_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "source_model_revision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      }
+    },
+    "ifc": {
+      "$ref": "#/$defs/artifact"
+    },
+    "element_graph": {
+      "$ref": "#/$defs/artifact"
+    },
+    "exchange_profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ifc_schema",
+        "exchange_view",
+        "length_unit",
+        "coordinate_frame_id",
+        "axis_order",
+        "handedness",
+        "placement_convention"
+      ],
+      "properties": {
+        "ifc_schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "exchange_view": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "length_unit": {
+          "enum": [
+            "metre",
+            "millimetre",
+            "international_foot",
+            "us_survey_foot"
+          ]
+        },
+        "coordinate_frame_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "axis_order": {
+          "enum": [
+            "XYZ",
+            "XZY",
+            "YXZ",
+            "YZX",
+            "ZXY",
+            "ZYX"
+          ]
+        },
+        "handedness": {
+          "enum": [
+            "right",
+            "left"
+          ]
+        },
+        "placement_convention": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "crs": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 256
+        },
+        "vertical_datum": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 256
+        }
+      }
+    },
+    "ids_requirements": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "standard_version",
+            "requirement_revision"
+          ],
+          "properties": {
+            "sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "standard_version": {
+              "const": "1.0"
+            },
+            "requirement_revision": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        }
+      ]
+    },
+    "crosswalk": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ifc_global_id",
+          "element_graph_id",
+          "correspondence"
+        ],
+        "properties": {
+          "ifc_global_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "element_graph_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "correspondence": {
+            "enum": [
+              "supported",
+              "ambiguous",
+              "unresolved",
+              "unmatched_ifc",
+              "unmatched_graph"
+            ]
+          },
+          "evidence_sha256": {
+            "$ref": "#/$defs/sha256"
+          }
+        }
+      }
+    },
+    "required_gate_ids": {
+      "const": [
+        "artifact_integrity",
+        "step_parse",
+        "ifc_schema",
+        "ids_xsd_validity",
+        "ids_semantic_support",
+        "ifc_ids_conformance",
+        "semantic_preservation",
+        "geometry_topology",
+        "edit_round_trip"
+      ]
+    },
+    "gates": {
+      "type": "array",
+      "minItems": 9,
+      "maxItems": 9,
+      "items": {
+        "$ref": "#/$defs/gate"
+      },
+      "contains": {
+        "properties": {
+          "gate_id": {
+            "const": "artifact_integrity"
+          }
+        },
+        "required": [
+          "gate_id"
+        ]
+      },
+      "minContains": 1,
+      "allOf": [
+        {
+          "contains": {
+            "properties": {
+              "gate_id": {
+                "const": "step_parse"
+              }
+            },
+            "required": [
+              "gate_id"
+            ]
+          },
+          "minContains": 1
+        },
+        {
+          "contains": {
+            "properties": {
+              "gate_id": {
+                "const": "ifc_schema"
+              }
+            },
+            "required": [
+              "gate_id"
+            ]
+          },
+          "minContains": 1
+        },
+        {
+          "contains": {
+            "properties": {
+              "gate_id": {
+                "const": "ids_xsd_validity"
+              }
+            },
+            "required": [
+              "gate_id"
+            ]
+          },
+          "minContains": 1
+        },
+        {
+          "contains": {
+            "properties": {
+              "gate_id": {
+                "const": "ids_semantic_support"
+              }
+            },
+            "required": [
+              "gate_id"
+            ]
+          },
+          "minContains": 1
+        },
+        {
+          "contains": {
+            "properties": {
+              "gate_id": {
+                "const": "ifc_ids_conformance"
+              }
+            },
+            "required": [
+              "gate_id"
+            ]
+          },
+          "minContains": 1
+        },
+        {
+          "contains": {
+            "properties": {
+              "gate_id": {
+                "const": "semantic_preservation"
+              }
+            },
+            "required": [
+              "gate_id"
+            ]
+          },
+          "minContains": 1
+        },
+        {
+          "contains": {
+            "properties": {
+              "gate_id": {
+                "const": "geometry_topology"
+              }
+            },
+            "required": [
+              "gate_id"
+            ]
+          },
+          "minContains": 1
+        },
+        {
+          "contains": {
+            "properties": {
+              "gate_id": {
+                "const": "edit_round_trip"
+              }
+            },
+            "required": [
+              "gate_id"
+            ]
+          },
+          "minContains": 1
+        }
+      ]
+    },
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "reason_codes"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "QUALIFIED",
+            "BLOCKED",
+            "UNQUALIFIED"
+          ]
+        },
+        "reason_codes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        }
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2048
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "sha256",
+        "byte_length"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "byte_length": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "gate_id",
+        "status",
+        "scope",
+        "limitation",
+        "producer",
+        "evidence",
+        "diagnostics"
+      ],
+      "properties": {
+        "gate_id": {
+          "enum": [
+            "artifact_integrity",
+            "step_parse",
+            "ifc_schema",
+            "ids_xsd_validity",
+            "ids_semantic_support",
+            "ifc_ids_conformance",
+            "semantic_preservation",
+            "geometry_topology",
+            "edit_round_trip"
+          ]
+        },
+        "status": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "UNRESOLVED",
+            "NOT_RUN"
+          ]
+        },
+        "scope": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "limitation": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "producer": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "tool",
+                "version",
+                "configuration_sha256"
+              ],
+              "properties": {
+                "tool": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "version": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                },
+                "configuration_sha256": {
+                  "$ref": "#/$defs/sha256"
+                }
+              }
+            }
+          ]
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "artifact_id",
+              "sha256",
+              "media_type"
+            ],
+            "properties": {
+              "artifact_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "sha256": {
+                "$ref": "#/$defs/sha256"
+              },
+              "media_type": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              }
+            }
+          }
+        },
+        "diagnostics": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "code",
+              "severity",
+              "message"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "severity": {
+                "enum": [
+                  "info",
+                  "warning",
+                  "error"
+                ]
+              },
+              "message": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              }
+            }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "PASS",
+                  "FAIL"
+                ]
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "producer": {
+                "type": "object"
+              },
+              "evidence": {
+                "minItems": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "NOT_RUN"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "producer": {
+                "type": "null"
+              },
+              "evidence": {
+                "maxItems": 0
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}
