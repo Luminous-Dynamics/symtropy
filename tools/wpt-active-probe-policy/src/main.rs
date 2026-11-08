@@ -687,7 +687,11 @@ mod tests {
 
     #[test]
     fn outcome_support_sets_parse_and_duplicate_bins_fail_closed() {
-        let supported = FIXTURE.replacen("root_split\\t8\\t3\\t300\\t400\\t250\\t0,0,1,1", "root_split\\t8\\t3\\t300\\t400\\t250\\t0|1,0,1,1", 1);
+        let mut rows: Vec<String> = FIXTURE.lines().map(str::to_string).collect();
+        let mut fields: Vec<String> = rows[1].split('\t').map(str::to_string).collect();
+        fields[17] = "0|1,0,1,1".to_string();
+        rows[1] = fields.join("\t");
+        let supported = rows.join("\n");
         let parsed = parse_case(&supported).unwrap();
         let root = parsed.actions.iter().find(|a| a.id == "root_split").unwrap();
         assert!(root.outcomes[0].contains(&0));
