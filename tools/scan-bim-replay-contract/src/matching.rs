@@ -153,26 +153,24 @@ fn histogram_bin(normal: Point3, profile: MatchingConfidenceProfile) -> Result<u
             } else {
                 4
             };
-            let azimuth = if polar == 0
-                || polar == 4
-                || !(-3.0 * PI / 4.0..3.0 * PI / 4.0).contains(&phi)
-            {
-                0
-            } else if phi < -PI / 2.0 {
-                1
-            } else if phi < -PI / 4.0 {
-                2
-            } else if phi < 0.0 {
-                3
-            } else if phi < PI / 4.0 {
-                4
-            } else if phi < PI / 2.0 {
-                5
-            } else if phi < 3.0 * PI / 4.0 {
-                6
-            } else {
-                7
-            };
+            let azimuth =
+                if polar == 0 || polar == 4 || !(-3.0 * PI / 4.0..3.0 * PI / 4.0).contains(&phi) {
+                    0
+                } else if phi < -PI / 2.0 {
+                    1
+                } else if phi < -PI / 4.0 {
+                    2
+                } else if phi < 0.0 {
+                    3
+                } else if phi < PI / 4.0 {
+                    4
+                } else if phi < PI / 2.0 {
+                    5
+                } else if phi < 3.0 * PI / 4.0 {
+                    6
+                } else {
+                    7
+                };
             (polar, azimuth)
         }
     };
