@@ -313,15 +313,23 @@ def inventory(data: bytes) -> dict[str, Any]:
         elif name == "SPC":
             sid = as_id(required(0, "SPC SID"), "SPC SID")
             spc_sets.add(sid)
-            end = max((i + 1 for i, value in enumerate(fields) if value.strip()), default=1)
-            require(end >= 4 and (end - 1) % 3 == 0, f"SPC {sid}: malformed triplets")
-            for index in range(1, end, 3):
-                spc_refs.add(as_id(fields[index], "SPC GRID"))
-                components = required(index + 1, "SPC component")
-                validate_component_digits(components, f"SPC {sid} components")
-                enforced_value = fields[index + 2]
-                if enforced_value.strip():
-                    as_float(enforced_value, "SPC value")
+            group_count = 0
+            index = 1
+            while index < len(fields):
+                grid_field = fields[index] if index < len(fields) else ""
+                component_field = fields[index + 1] if index + 1 < len(fields) else ""
+                value_field = fields[index + 2] if index + 2 < len(fields) else ""
+                if not grid_field.strip() and not component_field.strip() and not value_field.strip():
+                    break
+                require(grid_field.strip() and component_field.strip(),
+                        f"SPC {sid}: incomplete GRID/component pair")
+                spc_refs.add(as_id(grid_field, "SPC GRID"))
+                validate_component_digits(component_field, f"SPC {sid} components")
+                if value_field.strip():
+                    as_float(value_field, "SPC value")
+                group_count += 1
+                index += 3
+            require(group_count > 0, f"SPC {sid}: no GRID/component groups")
         elif name == "SPC1":
             sid = as_id(required(0, "SPC1 SID"), "SPC1 SID")
             spc_sets.add(sid)
@@ -476,7 +484,7 @@ def hostile_controls(data: bytes) -> None:
 
     missing_control_load = lines.copy()
     load_control_index = next(i for i, line in enumerate(missing_control_load) if line.strip().upper() == "LOAD = 2")
-    missing_control_load.pop(load_control_index)
+    missing_control_load[load_control_index] = "LOAD = 99"
     expect_rejected("case_control_load_missing", lambda: inventory(("\n".join(missing_control_load) + "\n").encode("ascii")))
 
     nonbasic_grid_frame = lines.copy()
