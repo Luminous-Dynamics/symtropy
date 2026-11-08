@@ -83,6 +83,13 @@
           "effect_ticks_5_to_6": -1,
           "effect_ticks_7_to_8": -2,
           "expected_final_observational_association": 3
+        },
+        "confounder_shift": {
+          "causal_effect": 2,
+          "observational_confounder_imbalance_before_tick_5": 5,
+          "observational_confounder_imbalance_from_tick_5": -5,
+          "expected_observational_association_before_tick_5": 7,
+          "expected_observational_association_from_tick_5": -3
         }
       },
       "expected_controls": {
@@ -111,6 +118,18 @@
           "detection_tick": 6,
           "active_after_nonpositive_effect_ticks": 2,
           "active_ticks": 6
+        },
+        "confounder_shift_cusum_signal_only": {
+          "signal_detection_tick": 5,
+          "mechanism_identified": false,
+          "missed_beneficial_action_ticks": 3
+        },
+        "confounder_shift_mechanism_aware": {
+          "signal_detection_tick": 5,
+          "diagnosis": "confounder_shift_without_causal_effect_change",
+          "diagnosis_tick": 6,
+          "matched_probe_estimate": 2,
+          "missed_beneficial_action_ticks": 0
         }
       },
       "claim_ceiling": [
@@ -139,6 +158,18 @@
           "detection_target_tick": 6,
           "final_observational_association": 3
         }
+      },
+      "controllers": [
+        "frozen_policy",
+        "outcome_reactive",
+        "cusum_signal_only",
+        "mechanism_aware"
+      ],
+      "cusum": {
+        "allowance": 0.25,
+        "threshold": 2,
+        "comparison": "two-sided cumulative observational-association deviation from the first tick",
+        "claim_ceiling": "CUSUM detects a statistical shift in the observed association; it does not identify a causal mechanism."
       }
     }
   },
@@ -183,7 +214,11 @@
     "regret_to_oracle",
     "proxy_driven_action_under_nonpositive_effect",
     "diagnosis",
-    "detection_tick"
+    "detection_tick",
+    "missed_beneficial_action_ticks",
+    "signal_change_detected",
+    "signal_detection_tick",
+    "diagnosis_tick"
   ],
   "claim_ceiling": [
     "The scenarios and all quantities are synthetic and not calibrated to a real catchment or society.",
