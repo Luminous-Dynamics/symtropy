@@ -50,6 +50,21 @@ jobs:
         run: cargo fmt --manifest-path tools/scan-bim-replay-contract/Cargo.toml -- --check
       - name: Run contract tests
         run: cargo test --locked --manifest-path tools/scan-bim-replay-contract/Cargo.toml
+      - name: Check IFC delivery schema and fixture JSON
+        run: |
+          jq -e '
+            (.schema_version == "0.1") and
+            ((.properties.required_gate_ids.const | length) == 9) and
+            (.properties.gates.minItems == 9) and
+            (.properties.gates.maxItems == 9) and
+            (.properties.crosswalk.items.properties.ifc_global_id.pattern == "^[0-3][0-9A-Za-z_$]{21}$")
+          ' research/scan-bim-ifc-delivery-001/schema/delivery-receipt.schema.json
+          jq -e '
+            (.fixture_version == "0.1") and
+            ((.cases | map(.case_id) | unique | length) == 5) and
+            (([.cases[] | select(.case_id != "missing_required_gate" and (.report.gates | length) != 9)] | length) == 0) and
+            ((.cases[] | select(.case_id == "missing_required_gate") | .report.gates | length) == 8)
+          ' research/scan-bim-ifc-delivery-001/fixtures/known_answers_v0_1.json
       - name: Run strict Clippy
         run: cargo clippy --locked --manifest-path tools/scan-bim-replay-contract/Cargo.toml --all-targets -- -D warnings
       - name: Audit synthetic fixture
