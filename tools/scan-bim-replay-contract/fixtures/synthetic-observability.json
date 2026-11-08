@@ -1,5 +1,5 @@
 {
-  "schema_version": "0.1",
+  "schema_version": "0.2",
   "replay_id": "SYNTHETIC-OBSERVABILITY-001",
   "dataset": {
     "dataset_id": "SYNTHETIC-OBSERVABILITY-001",
@@ -9,8 +9,13 @@
     "ci_artifacts_include_source_data": false
   },
   "split": {
-    "development_group_ids": ["BUILDING-DEV"],
-    "evaluation_group_ids": ["BUILDING-A", "BUILDING-B"]
+    "development_group_ids": [
+      "BUILDING-DEV"
+    ],
+    "evaluation_group_ids": [
+      "BUILDING-A",
+      "BUILDING-B"
+    ]
   },
   "scenes": [
     {
@@ -37,33 +42,47 @@
       "surface_strata": [
         {
           "stratum_id": "VISIBLE-CAPTURED",
-          "area_m2": 8.0,
+          "area_m2": 8,
           "visibility": "theoretically_visible",
           "observation": "captured"
         },
         {
           "stratum_id": "VISIBLE-MISSED",
-          "area_m2": 2.0,
+          "area_m2": 2,
           "visibility": "theoretically_visible",
           "observation": "not_captured"
         },
         {
           "stratum_id": "SELF-OCCLUDED",
-          "area_m2": 4.0,
+          "area_m2": 4,
           "visibility": "self_occluded",
           "observation": "not_captured"
         },
         {
           "stratum_id": "EXTERNAL-OCCLUSION",
-          "area_m2": 3.0,
+          "area_m2": 3,
           "visibility": "externally_occluded",
           "observation": "not_captured"
         },
         {
           "stratum_id": "VISIBILITY-UNKNOWN",
-          "area_m2": 1.0,
+          "area_m2": 1,
           "visibility": "unknown",
           "observation": "unknown"
+        }
+      ],
+      "candidate_outputs": [
+        {
+          "artifact_id": "ROOM-A-CANDIDATE-IFC",
+          "role": "ifc_model",
+          "relative_path": "outputs/room-a.ifc",
+          "sha256": "86ce816bceda5f273b77a58fcd13ec239bb2219ab9fd60bae20e8aaee5331bdf"
+        },
+        {
+          "artifact_id": "ROOM-A-CANDIDATE-GRAPH",
+          "role": "element_graph",
+          "relative_path": "outputs/room-a-graph.json",
+          "sha256": "104dc8bd264d1c4e8f53ccce173ccd105e85cb3536c4b2e978525a91e4c631b2"
         }
       ]
     },
@@ -91,13 +110,13 @@
       "surface_strata": [
         {
           "stratum_id": "VISIBLE-CAPTURED",
-          "area_m2": 12.0,
+          "area_m2": 12,
           "visibility": "theoretically_visible",
           "observation": "captured"
         },
         {
           "stratum_id": "VISIBLE-UNKNOWN",
-          "area_m2": 2.0,
+          "area_m2": 2,
           "visibility": "theoretically_visible",
           "observation": "unknown"
         },
@@ -107,7 +126,83 @@
           "visibility": "externally_occluded",
           "observation": "not_captured"
         }
+      ],
+      "candidate_outputs": [
+        {
+          "artifact_id": "ROOM-B-CANDIDATE-IFC",
+          "role": "ifc_model",
+          "relative_path": "outputs/room-b.ifc",
+          "sha256": "e5d62032b8255b40f73d2335ee8cf13257c314446fbec943865288c81a6ef9a8"
+        },
+        {
+          "artifact_id": "ROOM-B-CANDIDATE-GRAPH",
+          "role": "element_graph",
+          "relative_path": "outputs/room-b-graph.json",
+          "sha256": "4351d593ce59c6f562a8fdb4cab7aa1e14377b822ebf3ca247a363d1d9ebffc9"
+        }
       ]
     }
-  ]
+  ],
+  "candidate_pipeline": {
+    "run_id": "SYNTHETIC-CANDIDATE-RUN-001",
+    "source_commit": "0123456789abcdef0123456789abcdef01234567",
+    "toolchain_id": "rustc 1.96.0; x86_64-unknown-linux-gnu",
+    "command_argv": [
+      "synthetic-scanbim",
+      "--fixture",
+      "v0.2",
+      "--seed",
+      "42"
+    ],
+    "build_artifact": {
+      "artifact_id": "SYNTHETIC-CANDIDATE-BUILD",
+      "relative_path": "pipeline/build.bin",
+      "sha256": "5cbaf8f918c083add16a21b539a83fb6e0937158b3b85dccedf6129bc3191c3f"
+    },
+    "model_artifact": {
+      "artifact_id": "SYNTHETIC-CANDIDATE-MODEL",
+      "relative_path": "pipeline/model.bin",
+      "sha256": "35af953b07065498c50f27d62bdffd989c96690acc9f9e2cd85f77ce4fdd648d"
+    },
+    "configuration_artifact": {
+      "artifact_id": "SYNTHETIC-CANDIDATE-CONFIG",
+      "relative_path": "pipeline/config.json",
+      "sha256": "c5702caeaee5a2cca8b7bde7ebfdc0e78504ef25a306eb976c3ebf6b27831d13"
+    }
+  },
+  "evaluation_profile": {
+    "coordinate_reference": {
+      "frame_id": "LOCAL:BUILDING-A-B",
+      "crs_id": "LOCAL:METRE",
+      "axis_order": "east_north_up",
+      "linear_unit": "metre",
+      "metres_per_unit": 1
+    },
+    "tolerances": {
+      "profile_id": "SYNTHETIC-REPLAY-TOLERANCE-V0.2",
+      "surface_distance_cutoff_m": 0.1,
+      "surface_intersection_buffer_m": 0.1
+    },
+    "sampling": {
+      "reference_surface_spacing_m": 0.02,
+      "candidate_surface_spacing_m": 0.02,
+      "point_cloud_voxel_size_m": 0.01,
+      "random_seed": 42
+    },
+    "metric_definition": {
+      "suite_id": "SCAN-BIM-REPLAY-SURFACE-PROFILE",
+      "version": "0.2",
+      "isprs_accuracy_direction": "reference_to_candidate",
+      "buffer_distances_m": [
+        0.05,
+        0.1,
+        0.15
+      ],
+      "distance_cutoff_distances_m": [
+        0.05,
+        0.1,
+        0.15
+      ]
+    }
+  }
 }
