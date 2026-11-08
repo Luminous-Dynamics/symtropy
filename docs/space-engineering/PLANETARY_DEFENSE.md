@@ -104,23 +104,26 @@ Every visualization must carry epoch, frame, units, model/version, source digest
 The following active issues already own important shared primitives. Planetary defence should integrate with them rather than create parallel implementations:
 
 - **Symthaea #8192 — HAZARD-VOI-001:** cost-aware experiment and observation selection for natural-hazard uncertainty. Reuse its decision-sensitive value-of-information framing for telescope follow-up, reconnaissance and model-discrimination experiments.
+- **Symthaea #11112 — NEO-OBSERVATION-VOI-001:** specialize that value-of-information work for NEO observation scheduling, correlated observatories, multi-modal posterior discrimination and explicit abstention.
 - **Mycelix #455 — qualified orbital-state profiles:** use its explicit state/frame/time/dynamics/uncertainty/provenance contract as the cross-domain reference; extend with heliocentric system identity instead of accepting a bare ECI/JD state.
+- **Mycelix #5952 — NEO-EVIDENCE-001:** preserve ADES astrometry, orbit-solution provenance, observatory/source correlations, correction history and immutable content digests without duplicating raw instrument telemetry in the DHT.
 - **Mycelix #413 — common spatial truth substrate:** reuse typed observation/estimate/prediction separation, covariance, reference systems, source independence, trusted time and provenance. Preserve its rule that raw telemetry does not belong in the Holochain DHT.
 - **Mycelix #4020 — BootstrapMilestone provenance:** reuse content-addressed evidence references, state transitions, correction/retraction history and authority-basis separation for manufacturing/mission milestones.
 - **Sol-Atlas #76 — ephemeris-backed hierarchical solar-system catalogue:** use the renderer-neutral object catalogue, JPL Horizons adapter, explicit epoch/frame/time metadata and bounded body selection. Planetary-defence layers should add uncertainty and risk semantics, not a second catalogue/ephemeris cache.
+- **Sol-Atlas #640 — NEO-RISK-VIS-001:** consume qualified trajectories and posterior products to render encounter geometry, multi-modal uncertainty and source/evidence metadata; do not calculate official impact probabilities in the renderer.
 - **Symtropy #1972 / #1737:** retain the historical mission capability ledger and independent verifier as the parent evidence and test infrastructure.
 
 These interfaces are dependencies and integration targets, not evidence that the planetary-defence system is already implemented.
 
 ## 6. Paradigm shifts
 
-### 5.1 From discovery counts to completeness and recoverability
+### 6.1 From discovery counts to completeness and recoverability
 
 A telescope seeing many moving objects is not the same as a system knowing which objects could hit Earth. Measure survey completeness by size, albedo, orbit, solar elongation, sky coverage and observation cadence. Track the full path from transient alert → candidate linkage → confirmed object → orbit-quality threshold → risk assessment → continued recoverability.
 
 Optimize telescope scheduling for **expected reduction in decision loss**, not only apparent magnitude or discovery count.
 
-### 5.2 From one best-fit orbit to a calibrated posterior
+### 6.2 From one best-fit orbit to a calibrated posterior
 
 The best-fit orbit is not the risk distribution. Preserve:
 - correlated astrometric errors and observatory/star-catalog biases;
@@ -131,7 +134,7 @@ The best-fit orbit is not the risk distribution. Preserve:
 
 A Gaussian covariance is useful only where its approximation has been validated. Do not compress a multi-modal impact solution into a single mean and covariance ellipse.
 
-### 5.3 From nominal miss distance to robust risk reduction
+### 6.3 From nominal miss distance to robust risk reduction
 
 A mitigation is not successful because the nominal trajectory misses Earth. Evaluate the posterior encounter distribution, possible gravitational keyholes, model uncertainty and residual impact probability. The required acceptable risk threshold is an authority/governance decision, not a number Symtropy invents.
 
@@ -141,7 +144,7 @@ The linearized planning model can be expressed as:
 
 where Φ is the state-transition matrix, δx₀ is initial-state perturbation, and δu represents a modeled intervention. This is a local sensitivity model, not a substitute for nonlinear propagation, posterior sampling or validated impact physics.
 
-### 5.4 From one-shot missions to adaptive campaigns
+### 6.4 From one-shot missions to adaptive campaigns
 
 A credible campaign can include:
 1. rapid follow-up and orbit refinement;
@@ -152,15 +155,15 @@ A credible campaign can include:
 
 Not every threat will permit every phase. Short warning times, high relative velocities, high-inclination orbits, comets and large objects may sharply constrain available options. Civil protection remains necessary.
 
-### 5.5 From ideal CAD to manufacturing-aware mission assurance
+### 6.5 From ideal CAD to manufacturing-aware mission assurance
 
 Interceptors and spacecraft are not just trajectories. Qualification must connect design, material batch, manufacturing process, nondestructive inspection, environmental testing, acceptance evidence, operations and repairability. Unknown material properties or unqualified parts must remain explicit risk terms.
 
-### 5.6 From proprietary point solutions to an interoperable public evidence fabric
+### 6.6 From proprietary point solutions to an interoperable public evidence fabric
 
 Use public standards and authoritative reference products. Exchange data through documented interfaces; preserve provenance and disagreement; make benchmark inputs and outputs reproducible. The differentiator should be integration quality, calibrated uncertainty and trustworthy evidence—not a claim that a new software stack is automatically more accurate than specialist agencies.
 
-## 6. Mitigation concepts to compare
+## 7. Mitigation concepts to compare
 
 This is a high-level civil planetary-defence comparison, not a weapon-design specification.
 
@@ -174,7 +177,7 @@ This is a high-level civil planetary-defence comparison, not a weapon-design spe
 
 Do not recommend fragmentation or disruption from one nominal simulation. A fragmented object can remain dangerous, and the resulting distribution must be modeled and independently reviewed. Initial engineering scope should focus on detection, characterization, uncertainty reduction, kinetic-impact evidence replay and civil-protection interfaces.
 
-## 7. Benchmark suite and acceptance targets
+## 8. Benchmark suite and acceptance targets
 
 Targets below are proposed research gates, not current system capabilities or regulatory standards.
 
@@ -241,7 +244,7 @@ Every benchmark receipt must include:
 
 A queued test is not a pass. A model result without source and configuration is not evidence. Synthetic fixtures must never be represented as measured observations or historical mission reproduction.
 
-## 8. Initial work packages and ordering
+## 9. Initial work packages and ordering
 
 ### P0 — Domain and evidence contracts
 
@@ -291,7 +294,7 @@ A queued test is not a pass. A model result without source and configuration is 
 - Impact forecasting interfaces for emergency management and civil protection.
 - Sol-Atlas risk and observation visualization.
 
-## 9. Stop conditions and authority boundaries
+## 10. Stop conditions and authority boundaries
 
 - No autonomous mission command or deflection execution from Symthaea, Symtropy, Sol-Atlas or Mycelix.
 - No public hazard declaration from an unreviewed model output.
@@ -301,7 +304,7 @@ A queued test is not a pass. A model result without source and configuration is 
 - Any material disagreement between independent orbit solutions must remain visible and block automated certainty claims.
 - Flight/operational certification remains with the responsible agencies and authorities.
 
-## 10. Research references
+## 11. Research references
 
 ### Operational and observation systems
 - JPL CNEOS / Sentry / Scout: https://cneos.jpl.nasa.gov/about/cneos.html
