@@ -1676,6 +1676,44 @@ mod tests {
     }
 
     #[test]
+    fn rejects_mismatched_published_area_aggregation_policy() {
+        let mut value = fixture_value();
+        value["scenes"][0]["area_overlap_profile"]["metric_authority"] =
+            serde_json::json!("evaluation_framework2018");
+        value["scenes"][0]["area_overlap_profile"]["aggregation_policy"] =
+            serde_json::json!("union_per_reference_2021");
+        let error = audit(&value).expect_err("published area authority and aggregation must match");
+        assert!(error.contains("published area aggregation policy must match"));
+    }
+
+    #[test]
+    fn rejects_area_overlap_profile_frame_mismatch() {
+        let mut value = fixture_value();
+        value["scenes"][0]["area_overlap_profile"]["common_frame_id"] =
+            serde_json::json!("OTHER-FRAME");
+        let error = audit(&value).expect_err("area profile frame must match the scene frame");
+        assert!(error.contains("area overlap profile frame_id does not match"));
+    }
+
+    #[test]
+    fn rejects_non_finite_or_implicit_parallel_angle_tolerance() {
+        let mut value = fixture_value();
+        value["scenes"][0]["area_overlap_profile"]["max_parallel_angle_rad"] =
+            serde_json::json!(f64::NAN);
+        let error = audit(&value).expect_err("area profile angle must be finite and explicit");
+        assert!(error.contains("max_parallel_angle_rad"));
+    }
+
+    #[test]
+    fn rejects_area_overlap_profile_without_buffer_provenance() {
+        let mut value = fixture_value();
+        value["scenes"][0]["area_overlap_profile"]["buffer_policy_id"] =
+            serde_json::json!("");
+        let error = audit(&value).expect_err("buffer policy must have an identifier");
+        assert!(error.contains("profile identifiers must be non-empty"));
+    }
+
+    #[test]
     fn rejects_reference_derived_normalization_bounds() {
         let mut value = fixture_value();
         value["sampling_profile"]["normalization"] =
@@ -1997,6 +2035,12 @@ mod tests {
         assert_eq!(report.surface_sampling_algorithm, "uniform_area_halton_v1");
         assert_eq!(report.surface_sampling_seed, 42);
         assert_eq!(report.surface_sampling_max_samples, 100_000);
+        assert_eq!(report.scenes[0].area_overlap_profile.profile_id, "synthetic-area-overlap-v0.1");
+        assert_eq!(report.scenes[0].area_overlap_profile.common_frame_id, "BUILDING-A-LOCAL");
+        assert_eq!(
+            report.scenes[0].area_overlap_profile.metric_authority,
+            area_overlap::AreaMetricAuthority::ProjectDefined
+        );
         assert_eq!(report.metric_accuracy_direction, "reference_to_candidate");
         assert_eq!(report.metric_definition_authority, "project_defined");
         assert_eq!(
