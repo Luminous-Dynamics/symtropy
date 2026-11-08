@@ -22,7 +22,6 @@ const CAPTURE_HEADER: [&str; 16] = [
     "outcome",
     "transition_in_domain",
     "valid_until_us",
-    "_reserved",
 ];
 const OBSERVATION_HEADER: [&str; 15] = [
     "case_id",
@@ -210,13 +209,6 @@ fn parse_capture_case(input: &str) -> Result<CaptureCase, Vec<String>> {
             ));
             continue;
         }
-        if !fields[15].is_empty() {
-            errors.push(format!(
-                "capture line {line_no}: reserved column must be empty"
-            ));
-            continue;
-        }
-
         let row_metadata: Vec<String> =
             fields[..9].iter().map(|field| (*field).to_string()).collect();
         if let Some(first) = &metadata {
@@ -943,7 +935,7 @@ mod tests {
         let (_, _, base_result) = composed(GUIDE_CAPTURE, GUIDE_PROBE_OBSERVATIONS);
         let extra = GUIDE_PROBE_OBSERVATIONS
             .lines()
-            .nth(2)
+            .nth(3)
             .expect("POST_B drift row")
             .replace("\tOBS_B\t", "\tOBS_COMPOSITE_01\t")
             .replace("\tGAIN_DRIFT\t", "\tGAIN_DRIFT_EXTRA\t")
@@ -980,10 +972,6 @@ mod tests {
         let bad_frame = GUIDE_OBSERVATIONS.replace(
             "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-        );
-        let (_, _) = (
-            parse_capture_case(GUIDE_CAPTURE).expect("capture parses"),
-            parse_observation_case(&bad_frame).expect("observation parses"),
         );
         let capture = parse_capture_case(GUIDE_CAPTURE).expect("capture parses");
         let observation = parse_observation_case(&bad_frame).expect("observation parses");
