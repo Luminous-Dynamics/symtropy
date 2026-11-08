@@ -53,7 +53,7 @@ pub enum DeliveryDecisionStatus {
     Unqualified,
 }
 
-#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(rename_all = "snake_case")]
 pub enum SubjectRole {
     IfcOutput,
@@ -649,7 +649,7 @@ mod tests {
     fn all_pass_receipt() -> Value {
         let mut value = case_report("all_gates_not_run");
         value["ids_requirements"] = json!({
-            "sha256": ids_digest,
+            "sha256": ids_digest.clone(),
             "standard_version": "1.0",
             "requirement_revision": "synthetic-ids-v0.1"
         });
