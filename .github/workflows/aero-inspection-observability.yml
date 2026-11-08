@@ -1,0 +1,44 @@
+name: AER-01 inspection observability synthetic contract
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/aero-inspection-observability.yml"
+      - "tools/civil-aero-benchmark/inspection-observability/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-inspection-observability-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact pull-request head
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate synthetic corpus and independent policy oracle
+        run: python3 tools/civil-aero-benchmark/inspection-observability/verify_independent.py > inspection-observability-result.json
+
+      - name: Create source and result digest receipts
+        run: |
+          sha256sum tools/civil-aero-benchmark/inspection-observability/inspection-observability-corpus-v0.1.json > inspection-observability-source.sha256
+          sha256sum inspection-observability-result.json > inspection-observability-result.sha256
+
+      - name: Retain corpus, schema, result and receipts
+        uses: actions/upload-artifact@v4
+        with:
+          name: aero-inspection-observability-${{ github.sha }}
+          path: |
+            tools/civil-aero-benchmark/inspection-observability/inspection-observability-corpus-v0.1.json
+            tools/civil-aero-benchmark/inspection-observability/inspection-observability-corpus-v0.1.schema.json
+            inspection-observability-result.json
+            inspection-observability-source.sha256
+            inspection-observability-result.sha256
+          if-no-files-found: error
+          retention-days: 90
