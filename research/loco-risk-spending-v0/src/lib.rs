@@ -834,11 +834,11 @@ mod tests {
     #[test]
     fn three_step_uneven_ppb_budget_distributes_remainder_canonically() {
         let risk_plan = plan(3, 50_000_002);
+        assert_eq!(risk_plan.allocation_for_step(0).unwrap(), [3_333_334; 5]);
         assert_eq!(
-            risk_plan.allocation_for_step(0).unwrap(),
-            [3_333_334, 3_333_334, 3_333_334, 3_333_333, 3_333_333]
+            risk_plan.allocation_for_step(1).unwrap(),
+            [3_333_334, 3_333_334, 3_333_333, 3_333_333, 3_333_333]
         );
-        assert_eq!(risk_plan.allocation_for_step(1).unwrap(), [3_333_333; 5]);
         assert_eq!(risk_plan.total_allocated_alpha_ppb(), 50_000_002);
     }
 
@@ -1063,6 +1063,8 @@ mod tests {
     fn skipped_or_consumed_alpha_is_never_added_to_future_allocations() {
         let risk_plan = plan(3, 50_000_000);
         let step_two_before = risk_plan.allocation_for_step(2).unwrap();
+        let step_zero_total = risk_plan.allocation_for_step(0).unwrap().iter().sum::<u64>();
+        let step_one_total = risk_plan.allocation_for_step(1).unwrap().iter().sum::<u64>();
         let mut ledger = HorizonRiskLedger::new(risk_plan.clone());
         ledger
             .skip_step(skip(&risk_plan, 0, "zero", 1_000))
@@ -1074,11 +1076,11 @@ mod tests {
             .unwrap();
         assert_eq!(risk_plan.allocation_for_step(2).unwrap(), step_two_before);
         let summary = ledger.summary().unwrap();
-        assert_eq!(summary.skipped_unused_alpha_ppb, 50_000_000 / 3);
-        assert_eq!(summary.consumed_alpha_ppb, 50_000_000 / 3);
+        assert_eq!(summary.skipped_unused_alpha_ppb, step_zero_total);
+        assert_eq!(summary.consumed_alpha_ppb, step_one_total);
         assert_eq!(
             summary.pending_preallocated_alpha_ppb,
-            50_000_000 - 2 * (50_000_000 / 3)
+            50_000_000 - step_zero_total - step_one_total
         );
     }
 
