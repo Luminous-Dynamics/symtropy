@@ -85,4 +85,3 @@ fn main() {
         emit(row(&report, aggregate));
     }
 }
-
