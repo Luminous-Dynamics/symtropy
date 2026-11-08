@@ -17,10 +17,6 @@ fn number(value: f64) -> String {
     format!("{value:.8}")
 }
 
-fn optional_number(value: Option<f64>) -> String {
-    value.map(number).unwrap_or_default()
-}
-
 fn optional_tick(value: Option<usize>) -> String {
     value.map(|tick| tick.to_string()).unwrap_or_default()
 }
