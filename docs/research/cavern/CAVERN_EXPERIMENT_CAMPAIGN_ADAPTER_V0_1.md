@@ -149,3 +149,13 @@ Raw observations, corrected measurements, model outputs and adjudications stay d
 ## 11. Claim ceiling
 
 v0.1 establishes only a proposed data/decision interface and synthetic admissibility semantics. It does not qualify the sequential engine, prove a real likelihood model, approve a physical experiment, establish crop yield, certify food or water quality, close life support, or qualify a cavern or planetary habitat.
+
+
+## Addendum — representative measurement under distribution shift
+
+The adapter now has a deterministic synthetic counterexample package:
+- [CAVERN-REPRESENTATIVENESS-SHIFT-001 protocol](./CAVERN_REPRESENTATIVENESS_SHIFT_BENCHMARK_V0_1.md)
+- [JSON Schema](./cavern_representativeness_shift_case.schema.json)
+- [Known-answer fixture](./fixtures/cavern-representativeness-shift-001.v0_1.json)
+
+It separates training and deployment strata and freezes a case where a maximum-mutual-information measurement wins on the nominal/training mix but loses on a shifted decision-loss objective. All values are SYNTHETIC_ONLY. This composes with #3171; it does not implement R-IDeA or a new acquisition engine.
