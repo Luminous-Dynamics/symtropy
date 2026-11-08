@@ -183,7 +183,10 @@
     "profile_id": "synthetic-report-only-5cm",
     "requirement_revision": "synthetic-requirements-v0.2",
     "surface_distance_limit_m": 0.05,
-    "decision_policy": "report_only"
+    "decision_policy": "report_only",
+    "uncertainty_model_id": null,
+    "coverage_probability": null,
+    "coverage_factor": null
   },
   "sampling_profile": {
     "profile_id": "synthetic-partial-input-10mm",
@@ -199,7 +202,7 @@
     "accuracy_direction": "reference_to_candidate",
     "surface_buffer_m": 0.1,
     "accuracy_cutoff_m": 0.1,
-    "definition_authority": "official_results_page",
+    "definition_authority": "project_defined",
     "sample_strategy": "reference_surface_samples"
   },
   "candidate_outputs": [
