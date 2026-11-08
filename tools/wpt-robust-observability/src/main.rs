@@ -3,7 +3,7 @@
 //! Exact finite-set robust pose-identifiability evaluator.
 //! This is not a sensor estimator, fault detector, physical model, or permit issuer.
 
-use std::collections::{BTreeSet, BTreeMap};
+use std::collections::BTreeSet;
 use std::{env, fs, process::ExitCode};
 
 const HEADER: [&str; 13] = [
@@ -108,6 +108,7 @@ fn parse_case(input: &str) -> Result<Case, Vec<String>> {
     let mut metadata: Option<Vec<String>> = None;
     let mut case: Option<Case> = None;
     let mut unique_tuples = BTreeSet::new();
+    let mut model_digests = std::collections::BTreeMap::<String, String>::new();
     let mut errors = Vec::new();
 
     for (offset, raw_line) in lines.enumerate() {
@@ -208,6 +209,17 @@ fn parse_case(input: &str) -> Result<Case, Vec<String>> {
                 "line {line_no}: admissible hypothesis evidence expired before decision time"
             ));
             continue;
+        }
+
+        if let Some(existing_digest) = model_digests.get(model_id) {
+            if existing_digest != model_sha256 {
+                errors.push(format!(
+                    "line {line_no}: model_id {model_id} maps to conflicting model digests"
+                ));
+                continue;
+            }
+        } else {
+            model_digests.insert(model_id.to_string(), model_sha256.to_string());
         }
 
         let tuple_key = (
@@ -383,10 +395,11 @@ mod tests {
     #[test]
     fn expanding_admissible_hypotheses_never_shrinks_survivors() {
         let full = parsed(DRIFT);
-        let nominal_only = parsed(
-            &DRIFT.lines().take(2).collect::<Vec<_>>().join("\n")
-                + "\n",
+        let nominal_only_input = format!(
+            "{}\n",
+            DRIFT.lines().take(2).collect::<Vec<_>>().join("\n")
         );
+        let nominal_only = parsed(&nominal_only_input);
         let before = survivor_tuple_keys(&nominal_only);
         let after = survivor_tuple_keys(&full);
         assert!(before.is_subset(&after));
@@ -400,11 +413,16 @@ mod tests {
     #[test]
     fn incompatible_added_hypothesis_does_not_change_survivors() {
         let base = parsed(NOMINAL);
-        let expanded = parsed(&NOMINAL.replace(
-            "nominal_unique_v0\tSYNTHETIC_KNOWN_TRUTH\tSIG_A\t5",
-            "nominal_unique_v0\tSYNTHETIC_KNOWN_TRUTH\tSIG_A\t5",
-        ) + "");
+        let extra = NOMINAL
+            .lines()
+            .nth(1)
+            .expect("nominal hypothesis row")
+            .replace("POSE_A", "POSE_C")
+            .replace("SIG_A;SIG_B", "OTHER");
+        let expanded_input = format!("{NOMINAL}{extra}\n");
+        let expanded = parsed(&expanded_input);
         assert_eq!(evaluate(&base), evaluate(&expanded));
+        assert_eq!(expanded.hypotheses.len(), base.hypotheses.len() + 1);
     }
 
     #[test]
@@ -423,6 +441,15 @@ mod tests {
     fn mismatched_case_metadata_is_rejected() {
         let mismatched = NOMINAL.replacen("SIG_A\t5", "SIG_B\t5", 1);
         assert!(parse_case(&mismatched).is_err());
+    }
+
+    #[test]
+    fn one_model_id_cannot_alias_different_model_digests() {
+        let conflicting = NOMINAL.replace(
+            "POSE_B\tNOMINAL\teeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "POSE_B\tNOMINAL\tffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        );
+        assert!(parse_case(&conflicting).is_err());
     }
 
     #[test]
