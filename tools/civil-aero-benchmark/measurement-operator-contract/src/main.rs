@@ -196,7 +196,10 @@ fn validate_identity(identity: &StateIdentity, label: &str) -> Result<()> {
     ] {
         require_sha256(value, &format!("{label} {field} digest"))?;
     }
-    require_nonempty(&identity.mission_phase_id, &format!("{label} mission phase"))?;
+    require_nonempty(
+        &identity.mission_phase_id,
+        &format!("{label} mission phase"),
+    )?;
     require_nonempty(&identity.test_article_id, &format!("{label} test article"))?;
     Ok(())
 }
@@ -216,7 +219,10 @@ fn validate_calibration(calibration: &Calibration, channel_id: &str) -> Result<(
                 &format!("{channel_id} calibration artifact"),
             )?;
             require_sha256(
-                calibration.validity_envelope_sha256.as_deref().unwrap_or(""),
+                calibration
+                    .validity_envelope_sha256
+                    .as_deref()
+                    .unwrap_or(""),
                 &format!("{channel_id} calibration validity envelope"),
             )?;
             if !calibration.valid_at_test_state {
@@ -243,7 +249,10 @@ fn validate_calibration(calibration: &Calibration, channel_id: &str) -> Result<(
 
 fn validate_sampling(sampling: &Sampling, channel_id: &str) -> Result<()> {
     require_nonempty(&sampling.statistic, &format!("{channel_id} statistic"))?;
-    require_nonempty(&sampling.time_window_id, &format!("{channel_id} time window"))?;
+    require_nonempty(
+        &sampling.time_window_id,
+        &format!("{channel_id} time window"),
+    )?;
     match sampling.synchronization_status.as_str() {
         "SYNCHRONIZED" => {
             require_nonempty(
@@ -280,7 +289,10 @@ fn validate_sampling(sampling: &Sampling, channel_id: &str) -> Result<()> {
     if let Some(digest) = &sampling.spectral_estimator_sha256 {
         require_sha256(digest, &format!("{channel_id} spectral-estimator digest"))?;
     }
-    if matches!(sampling.statistic.as_str(), "PSD" | "CROSS_SPECTRUM" | "COHERENCE") {
+    if matches!(
+        sampling.statistic.as_str(),
+        "PSD" | "CROSS_SPECTRUM" | "COHERENCE"
+    ) {
         finite_positive(
             sampling.sample_rate_hz.unwrap_or(f64::NAN),
             &format!("{channel_id} spectral sample rate"),
@@ -325,7 +337,9 @@ fn validate_observation(observation: &Observation, channel_id: &str) -> Result<(
     match observation.status.as_str() {
         "PRESENT" => {
             let Some(value) = observation.value else {
-                return error(format!("{channel_id}: PRESENT observation requires a numeric value"));
+                return error(format!(
+                    "{channel_id}: PRESENT observation requires a numeric value"
+                ));
             };
             if !value.is_finite() {
                 return error(format!("{channel_id}: PRESENT observation is non-finite"));
@@ -394,7 +408,12 @@ fn validate_channel(channel: &MeasurementChannel) -> Result<()> {
     Ok(())
 }
 
-fn incompatible(id: &str, left: &MeasurementChannel, right: &MeasurementChannel, reasons: Vec<String>) -> ComparisonResult {
+fn incompatible(
+    id: &str,
+    left: &MeasurementChannel,
+    right: &MeasurementChannel,
+    reasons: Vec<String>,
+) -> ComparisonResult {
     ComparisonResult {
         id: id.to_owned(),
         left_channel_id: left.id.clone(),
@@ -404,7 +423,12 @@ fn incompatible(id: &str, left: &MeasurementChannel, right: &MeasurementChannel,
     }
 }
 
-fn abstain(id: &str, left: &MeasurementChannel, right: &MeasurementChannel, reasons: Vec<String>) -> ComparisonResult {
+fn abstain(
+    id: &str,
+    left: &MeasurementChannel,
+    right: &MeasurementChannel,
+    reasons: Vec<String>,
+) -> ComparisonResult {
     ComparisonResult {
         id: id.to_owned(),
         left_channel_id: left.id.clone(),
@@ -492,10 +516,12 @@ fn compare_pair(
     if left.filter.mask_sha256 != right.filter.mask_sha256 {
         reasons.push("SPATIAL_MASK_MISMATCH".to_owned());
     }
-    if matches!(left.sampling.statistic.as_str(), "PSD" | "CROSS_SPECTRUM" | "COHERENCE")
-        && (left.sampling.sample_rate_hz != right.sampling.sample_rate_hz
-            || left.sampling.frequency_grid_sha256 != right.sampling.frequency_grid_sha256
-            || left.sampling.spectral_estimator_sha256 != right.sampling.spectral_estimator_sha256)
+    if matches!(
+        left.sampling.statistic.as_str(),
+        "PSD" | "CROSS_SPECTRUM" | "COHERENCE"
+    ) && (left.sampling.sample_rate_hz != right.sampling.sample_rate_hz
+        || left.sampling.frequency_grid_sha256 != right.sampling.frequency_grid_sha256
+        || left.sampling.spectral_estimator_sha256 != right.sampling.spectral_estimator_sha256)
     {
         reasons.push("SPECTRAL_PROCESSING_MISMATCH".to_owned());
     }
@@ -519,12 +545,17 @@ fn compare_pair(
                     left_channel_id: left.id.clone(),
                     right_channel_id: right.id.clone(),
                     status: "UNSYNCHRONIZED".to_owned(),
-                    reason_codes: vec!["COMMON_TIMEBASE_OR_SYNC_RECEIPT_NOT_ESTABLISHED".to_owned()],
+                    reason_codes: vec![
+                        "COMMON_TIMEBASE_OR_SYNC_RECEIPT_NOT_ESTABLISHED".to_owned(),
+                    ],
                 });
             }
         }
         other => {
-            return error(format!("{}: unsupported comparison mode {other:?}", request.id));
+            return error(format!(
+                "{}: unsupported comparison mode {other:?}",
+                request.id
+            ));
         }
     }
 
@@ -568,10 +599,16 @@ fn validate_dataset(dataset: &Dataset) -> Result<()> {
         if !channel_ids.contains(&comparison.left_channel_id)
             || !channel_ids.contains(&comparison.right_channel_id)
         {
-            return error(format!("{}: comparison references unknown channel", comparison.id));
+            return error(format!(
+                "{}: comparison references unknown channel",
+                comparison.id
+            ));
         }
         if comparison.left_channel_id == comparison.right_channel_id {
-            return error(format!("{}: self-comparison is not admitted", comparison.id));
+            return error(format!(
+                "{}: self-comparison is not admitted",
+                comparison.id
+            ));
         }
     }
     Ok(())
@@ -613,10 +650,22 @@ fn evaluate_dataset(dataset: &Dataset, source_bytes: &[u8]) -> Result<Evaluation
         comparisons.push(compare_pair(request, left, right)?);
     }
 
-    let admitted = comparisons.iter().filter(|item| item.status == "DIRECT_COMPARISON_ADMITTED").count();
-    let abstained = comparisons.iter().filter(|item| item.status == "ABSTAIN").count();
-    let incompatible_count = comparisons.iter().filter(|item| item.status == "INCOMPATIBLE").count();
-    let unsynchronized = comparisons.iter().filter(|item| item.status == "UNSYNCHRONIZED").count();
+    let admitted = comparisons
+        .iter()
+        .filter(|item| item.status == "DIRECT_COMPARISON_ADMITTED")
+        .count();
+    let abstained = comparisons
+        .iter()
+        .filter(|item| item.status == "ABSTAIN")
+        .count();
+    let incompatible_count = comparisons
+        .iter()
+        .filter(|item| item.status == "INCOMPATIBLE")
+        .count();
+    let unsynchronized = comparisons
+        .iter()
+        .filter(|item| item.status == "UNSYNCHRONIZED")
+        .count();
 
     Ok(Evaluation {
         schema_version: "aero-measurement-operator-result/0.1.0",
@@ -705,10 +754,7 @@ mod tests {
             comparison(&result, "derived_buffet_index_vs_deflection").status,
             "INCOMPATIBLE"
         );
-        assert_eq!(
-            comparison(&result, "masked_upsp_channel").status,
-            "ABSTAIN"
-        );
+        assert_eq!(comparison(&result, "masked_upsp_channel").status, "ABSTAIN");
         assert_eq!(
             comparison(&result, "stale_geometry_pair").status,
             "INCOMPATIBLE"
@@ -879,18 +925,26 @@ mod tests {
     fn derived_buffet_index_is_not_a_displacement_channel() {
         let value = fixture_value();
         let result = result_for(&value);
-        assert!(comparison(&result, "derived_buffet_index_vs_deflection")
-            .reason_codes
-            .contains(&"QUANTITY_MISMATCH".to_owned()));
+        assert!(
+            comparison(&result, "derived_buffet_index_vs_deflection")
+                .reason_codes
+                .contains(&"QUANTITY_MISMATCH".to_owned())
+        );
     }
 
     #[test]
     fn unavailable_balance_drag_is_retained_as_null() {
         let value = fixture_value();
         let result = result_for(&value);
-        let channel = result.channel_results.iter()
-            .find(|item| item.id == "balance_psp_simultaneous_cd").unwrap();
+        let channel = result
+            .channel_results
+            .iter()
+            .find(|item| item.id == "balance_psp_simultaneous_cd")
+            .unwrap();
         assert_eq!(channel.observation_status, "UNAVAILABLE");
-        assert_eq!(comparison(&result, "psp_simultaneous_drag_not_available").status, "ABSTAIN");
+        assert_eq!(
+            comparison(&result, "psp_simultaneous_drag_not_available").status,
+            "ABSTAIN"
+        );
     }
 }
