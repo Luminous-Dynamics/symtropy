@@ -198,7 +198,8 @@
     "scope": "all_elements",
     "accuracy_direction": "reference_to_candidate",
     "surface_buffer_m": 0.1,
-    "accuracy_cutoff_m": 0.1
+    "accuracy_cutoff_m": 0.1,
+    "definition_authority": "official_results_page"
   },
   "candidate_outputs": [
     {
