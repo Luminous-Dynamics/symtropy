@@ -955,8 +955,9 @@ pub fn evaluate_area_overlap(
 #[cfg(test)]
 mod tests {
     use super::{
-        AreaAggregationPolicy, AreaOverlapProfile, Point2, ReferenceAreaSurface,
-        ReferenceVisibility, SourceAreaSurface, evaluate_area_overlap,
+        AreaAggregationPolicy, AreaMetricAuthority, AreaOverlapProfile, Point2,
+        ReferenceAreaSurface, ReferenceVisibility, SourceAreaSurface, evaluate_area_overlap,
+        validate_area_overlap_profile,
     };
     use crate::metrics::Point3;
 
@@ -1028,6 +1029,30 @@ mod tests {
             buffer_policy_id: "synthetic-precomputed-buffer-v1".to_owned(),
             planarity_tolerance_m: 1.0e-6,
         }
+    }
+
+    #[test]
+    fn published_metric_authority_must_match_its_aggregation_policy() {
+        let mut profile = profile(AreaAggregationPolicy::UnionPerReference2021);
+        profile.metric_authority = AreaMetricAuthority::EvaluationFramework2018;
+        let error = validate_area_overlap_profile(&profile)
+            .expect_err("2018 pairwise aggregation cannot be labelled as 2021 union");
+        assert!(error.contains("must match its named metric authority"));
+    }
+
+    #[test]
+    fn zero_or_non_finite_parallel_threshold_is_rejected_when_invalid() {
+        let mut value = profile(AreaAggregationPolicy::PairwiseSum2018);
+        value.max_parallel_angle_rad = f64::NAN;
+        let error = validate_area_overlap_profile(&value)
+            .expect_err("NaN parallel threshold is invalid");
+        assert!(error.contains("max_parallel_angle_rad"));
+
+        let mut value = profile(AreaAggregationPolicy::PairwiseSum2018);
+        value.planarity_tolerance_m = 0.0;
+        let error = validate_area_overlap_profile(&value)
+            .expect_err("zero planarity tolerance is invalid");
+        assert!(error.contains("planarity_tolerance_m"));
     }
 
     #[test]
