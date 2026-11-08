@@ -84,5 +84,13 @@ jobs:
       if: ${{ hashFiles('tools/airborne-energy-observability-validator/Cargo.toml') != '' }}
       run: cargo test --locked -p airborne-energy-observability-validator
 
+    - name: Test GroundAirBench semantic validator
+      if: ${{ hashFiles('tools/ground-air-bench-validator/Cargo.toml') != '' }}
+      run: cargo test --locked -p ground-air-bench-validator
+
+    - name: Validate GroundAirBench synthetic fixture
+      if: ${{ hashFiles('tools/ground-air-bench-validator/Cargo.toml') != '' }}
+      run: cargo run --locked -p ground-air-bench-validator -- research/ground-air-bench-v0/ground_air_episode.synthetic.json
+
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
