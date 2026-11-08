@@ -936,7 +936,7 @@ mod tests {
     #[test]
     fn duplicate_edge_ids_are_rejected() {
         let duplicate = format!(
-            "{FIXTURE}{}\\n",
+            "{FIXTURE}{}\n",
             FIXTURE.lines().nth(1).expect("mission leg row")
         );
         assert!(parse_case(&duplicate).is_err());
