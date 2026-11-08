@@ -560,6 +560,47 @@ mod tests {
     }
 
     #[test]
+    fn rejects_committed_source_dataset_bytes() {
+        let mut value = fixture_value();
+        value["dataset"]["source_data_committed"] = serde_json::json!(true);
+        let error = audit(&value).expect_err("source bytes must stay outside the repository");
+        assert!(error.contains("source dataset bytes must not be committed"));
+    }
+
+    #[test]
+    fn rejects_source_dataset_bytes_in_ci_artifacts() {
+        let mut value = fixture_value();
+        value["dataset"]["ci_artifacts_include_source_data"] = serde_json::json!(true);
+        let error = audit(&value).expect_err("CI artifacts must not contain source dataset bytes");
+        assert!(error.contains("CI artifacts must not include source dataset bytes"));
+    }
+
+    #[test]
+    fn rejects_reference_derived_bounds_in_candidate_inputs() {
+        let mut value = fixture_value();
+        value["scenes"][0]["candidate_inputs"][0]["full_object_bounds"] =
+            serde_json::json!([0.0, 0.0, 0.0, 1.0, 1.0, 1.0]);
+        let error = audit(&value).expect_err("candidate input schema must reject target-derived bounds");
+        assert!(error.contains("unknown field"));
+    }
+
+    #[test]
+    fn rejects_unsupported_source_uri_scheme() {
+        let mut value = fixture_value();
+        value["dataset"]["source_uri"] = serde_json::json!("file:///restricted/scan.ply");
+        let error = audit(&value).expect_err("manifest cannot embed local source paths");
+        assert!(error.contains("source_uri must use https:// or urn:"));
+    }
+
+    #[test]
+    fn rejects_duplicate_scene_ids() {
+        let mut value = fixture_value();
+        value["scenes"][1]["scene_id"] = serde_json::json!("ROOM-A");
+        let error = audit(&value).expect_err("scene identifiers must be unique");
+        assert!(error.contains("duplicate scene_id"));
+    }
+
+    #[test]
     fn rejects_uppercase_sha256_encoding() {
         let mut value = fixture_value();
         value["scenes"][0]["candidate_inputs"][0]["sha256"] = serde_json::json!("A".repeat(64));
