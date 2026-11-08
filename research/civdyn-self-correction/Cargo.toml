@@ -25,3 +25,7 @@ path = "src/bin/causal_drift_sweep.rs"
 [[bin]]
 name = "seeded-drift-sweep"
 path = "src/bin/seeded_drift_sweep.rs"
+
+[[bin]]
+name = "seeded-drift-replicates"
+path = "src/bin/seeded_drift_replicates.rs"
