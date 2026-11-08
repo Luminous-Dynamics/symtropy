@@ -1,0 +1,1004 @@
+{
+  "schema_version": "aero-reference-catalog/0.2.0",
+  "catalog_id": "AER-01-DPW8-AEPW4-INTAKE-2026-11-v0.2",
+  "retrieved_on_utc_date": "2026-11-08",
+  "claim_ceiling": "public_source_discovery_and_partial_content_inspection_only",
+  "acquisition_policy": {
+    "exact_bytes_required_before_admission": true,
+    "hash_algorithm": "SHA-256",
+    "no_inferred_units_or_terms": true,
+    "unknown_is_not_zero_or_pass": true,
+    "archives_are_not_extracted_until_safety_limits_are_set": true
+  },
+  "sources": [
+    {
+      "source_id": "dpw8-root-index",
+      "publisher": "NASA Langley Research Center DPW-8 file curator",
+      "canonical_url": "https://dpw.larc.nasa.gov/DPW8/",
+      "evidence_url": "https://dpw.larc.nasa.gov/DPW8/",
+      "source_kind": "public_directory_index",
+      "artifact_role": "workshop_reference_index",
+      "acquisition_state": "page_inspected",
+      "exact_bytes_acquired": false,
+      "sha256": null,
+      "listed_size": null,
+      "last_modified": null,
+      "observed_facts": [
+        "DPW8 index lists Buffet, ONERA_OAT15A, Scatter, Static_Deformation and Test_Environment collections",
+        "DPW8 index labels the directory as the Eighth Drag Prediction Workshop (2026)"
+      ],
+      "terms_status": "not_reviewed",
+      "redistribution_status": "not_decided",
+      "unknowns": [
+        "No source bundle acquired",
+        "Directory listings do not establish archive contents",
+        "Publisher authenticity and artifact hashes have not been independently authenticated"
+      ]
+    },
+    {
+      "source_id": "onera-oat15a-experimental-archive",
+      "publisher": "NASA Langley Research Center DPW-8 file curator; underlying geometry is identified by AIAA as ONERA intellectual property",
+      "canonical_url": "https://dpw.larc.nasa.gov/DPW8/ONERA_OAT15A/Experimental_Data/onera-oat15a.zip",
+      "evidence_url": "https://dpw.larc.nasa.gov/DPW8/ONERA_OAT15A/Experimental_Data/",
+      "source_kind": "zip_archive",
+      "artifact_role": "experimental_reference_bundle_uninspected",
+      "acquisition_state": "listing_only",
+      "exact_bytes_acquired": false,
+      "sha256": null,
+      "listed_size": "207 KB",
+      "last_modified": "2026-06-25 16:26:56 (source directory listing time; timezone not supplied)",
+      "observed_facts": [
+        "NASA directory lists onera-oat15a.zip at 207 KB",
+        "AIAA DPW page describes ONERA OAT15A experimental data, airfoil coordinates and IGES geometry as available",
+        "DPW-8 Verification 1a is the required ONERA OAT15A steady-CFD grid-convergence/polar case"
+      ],
+      "terms_status": "review_required",
+      "redistribution_status": "not_decided",
+      "unknowns": [
+        "Archive member list and byte hashes",
+        "Exact measured variables, data units and calibration records in this particular archive",
+        "Whether this archive contains geometry, measurements, both or supporting metadata",
+        "Dataset redistribution permission",
+        "Experimental uncertainty and case-by-case applicability"
+      ]
+    },
+    {
+      "source_id": "crm-halfspan-equivalent-beam-bdf",
+      "publisher": "NASA Langley Research Center DPW-8 file curator; model attributed by source README to DPW-8/AePW-4",
+      "canonical_url": "https://dpw.larc.nasa.gov/DPW8/Static_Deformation/Test_Case_2/FEM_Models/NASA_CRM_HALFSPAN_FEM.REV00/equivalent_beam_january_2025.bdf",
+      "evidence_url": "https://dpw.larc.nasa.gov/DPW8/Static_Deformation/Test_Case_2/FEM_Models/NASA_CRM_HALFSPAN_FEM.REV00/",
+      "source_kind": "nastran_bulk_data_file",
+      "artifact_role": "equivalent_beam_structural_model_preview",
+      "acquisition_state": "text_preview_inspected_exact_bytes_not_acquired",
+      "exact_bytes_acquired": false,
+      "sha256": null,
+      "listed_size": "8 KB",
+      "last_modified": "2025-03-20 12:18:37 (source directory listing time; timezone not supplied)",
+      "preview_source": "https://dpw.larc.nasa.gov/DPW8/Static_Deformation/Test_Case_2/FEM_Models/NASA_CRM_HALFSPAN_FEM.REV00/equivalent_beam_january_2025.bdf",
+      "observed_facts": [
+        "Text preview contained 180 numbered source lines",
+        "Observed card families include SOL 101, GRID, CBEAM, MAT1, PBEAM, CONM2, SPC, RBE2 and FORCE",
+        "Preview includes 16 CBEAM entries joining beam grids 1 through 17",
+        "Preview includes 16 PBEAM entries, 15 CONM2 entries and 16 RBE2 connection entries",
+        "Preview includes a root SPC entry and a FORCE entry at beam grid 17",
+        "The displayed MAT1 card contains E=1.0, G=1.0 and NU=0.0 fields; their unit interpretation is unknown",
+        "The deck includes PARAM WTMASS 0.00259; its dimensional interpretation is not admitted"
+      ],
+      "terms_status": "review_required",
+      "redistribution_status": "not_decided",
+      "known_unknowns": [
+        "Exact file bytes and SHA-256",
+        "Coordinate and force units",
+        "Material and beam property unit system",
+        "Meaning and intended use of WTMASS for this deck",
+        "Load normalization, boundary-condition rationale and expected solver result",
+        "Whether the model is intended only as an equivalent-beam method comparison or has additional approved uses",
+        "No NASTRAN solution has been independently reproduced"
+      ],
+      "unknowns": [
+        "No claim is made that this model is a validated aircraft structural model",
+        "No material allowables or certification basis are inferred from the deck",
+        "The browser text preview does not replace exact-byte acquisition and digest verification"
+      ],
+      "retrieval_attempts": [
+        {
+          "attempted_on": "2026-11-08",
+          "method": "direct HTTPS file download from the canonical NASA DPW-8 file URL",
+          "requested_url": "https://dpw.larc.nasa.gov/DPW8/Static_Deformation/Test_Case_2/FEM_Models/NASA_CRM_HALFSPAN_FEM.REV00/equivalent_beam_january_2025.bdf",
+          "outcome": "failed_no_bytes_returned",
+          "exact_bytes_received": false,
+          "sha256": null,
+          "note": "The retrieval operation failed before bytes were returned. This is an access/tooling failure record, not evidence that the NASA resource is missing or corrupt."
+        }
+      ]
+    },
+    {
+      "source_id": "crm-halfspan-fem-bdf",
+      "publisher": "NASA Langley Research Center DPW-8 file curator",
+      "canonical_url": "https://dpw.larc.nasa.gov/DPW8/Static_Deformation/Test_Case_2/FEM_Models/NASA_CRM_HALFSPAN_FEM.REV00/CRM-mode-tet4-001-den-noEng_sk_halfspan.bdf",
+      "evidence_url": "https://dpw.larc.nasa.gov/DPW8/Static_Deformation/Test_Case_2/FEM_Models/",
+      "source_kind": "nastran_bulk_data_file",
+      "artifact_role": "halfspan_crm_finite_element_model",
+      "acquisition_state": "listing_only",
+      "exact_bytes_acquired": false,
+      "sha256": null,
+      "listed_size": "219 MB",
+      "last_modified": "2025-03-20 12:18:48 (source directory listing time; timezone not supplied)",
+      "observed_facts": [
+        "NASA directory lists a half-span CRM FEM bulk-data file at 219 MB",
+        "README identifies this as a semispan model generated for DPW-8/AePW-4"
+      ],
+      "terms_status": "review_required",
+      "redistribution_status": "not_decided",
+      "unknowns": [
+        "Exact bytes, digest, card inventory and model units",
+        "Solver compatibility and model assumptions",
+        "Material/property interpretation and intended applicability"
+      ]
+    },
+    {
+      "source_id": "crm-fullspan-fem-bdf-archive",
+      "publisher": "NASA Langley Research Center DPW-8 file curator; source README attributes it to the CRM website",
+      "canonical_url": "https://dpw.larc.nasa.gov/DPW8/Static_Deformation/Test_Case_2/FEM_Models/NASA_CRM_FULLSPAN_WBT0.REV00/CRM-mode-tet4-001-den-noEng_sk.bdf_.zip",
+      "evidence_url": "https://dpw.larc.nasa.gov/DPW8/Static_Deformation/Test_Case_2/FEM_Models/",
+      "source_kind": "zip_archive",
+      "artifact_role": "fullspan_crm_wing_body_tail_finite_element_model",
+      "acquisition_state": "listing_only",
+      "exact_bytes_acquired": false,
+      "sha256": null,
+      "listed_size": "112 MB",
+      "last_modified": "2025-03-21 16:46:55 (source directory listing time; timezone not supplied)",
+      "observed_facts": [
+        "NASA directory lists a 112 MB full-span WBT0 model archive",
+        "README points to the CRM website as the source of this model"
+      ],
+      "terms_status": "review_required",
+      "redistribution_status": "not_decided",
+      "unknowns": [
+        "Archive members and exact bytes",
+        "Source model revision, terms and solver compatibility",
+        "Model units and all physical property assumptions"
+      ]
+    },
+    {
+      "source_id": "crm-static-fsi-test2-grid-family",
+      "publisher": "NASA Langley Research Center DPW-8 file curator",
+      "canonical_url": "https://dpw.larc.nasa.gov/DPW8/Static_Deformation/Test_Case_2/",
+      "evidence_url": "https://dpw.larc.nasa.gov/DPW8/Static_Deformation/Test_Case_2/",
+      "source_kind": "grid_family_directory",
+      "artifact_role": "cfd_grid_family_for_crm_static_fsi",
+      "acquisition_state": "listing_only",
+      "exact_bytes_acquired": false,
+      "sha256": null,
+      "listed_size": null,
+      "last_modified": null,
+      "observed_facts": [
+        "Directory lists Ames, Cadence and Helden grid-family revisions",
+        "AIAA Test Case 2a(E)/2b(E) maps the FSI study to the Test_Case_2 grid family",
+        "The AIAA case sheet labels grid levels L1 Tiny, L2 Coarse, L3 Medium, L4 Fine, L5 eXtra-fine and L6 Ultra-fine"
+      ],
+      "terms_status": "review_required",
+      "redistribution_status": "not_decided",
+      "unknowns": [
+        "Individual grid files, exact sizes and bytes",
+        "Grid-generation details, topology, wall treatment and mesh quality",
+        "Applicability to any aircraft other than the named CRM workshop configurations"
+      ]
+    },
+    {
+      "source_id": "crm-static-fsi-test4-ames-grid-family",
+      "publisher": "NASA Langley Research Center DPW-8 file curator",
+      "canonical_url": "https://dpw.larc.nasa.gov/DPW8/Static_Deformation/Test_Case_4/Ames_Grids.REV00/",
+      "evidence_url": "https://dpw.larc.nasa.gov/DPW8/Static_Deformation/Test_Case_4/Ames_Grids.REV00/",
+      "source_kind": "grid_archive_family_directory",
+      "artifact_role": "cfd_grid_family_for_crm_wing_body_nacelle_pylon_static_fsi",
+      "acquisition_state": "listing_only",
+      "exact_bytes_acquired": false,
+      "sha256": null,
+      "listed_members": [
+        {
+          "name": "L1.zip",
+          "listed_size": "361 MB"
+        },
+        {
+          "name": "L2.zip",
+          "listed_size": "834 MB"
+        },
+        {
+          "name": "L3.zip",
+          "listed_size": "1 GB"
+        },
+        {
+          "name": "L4.zip",
+          "listed_size": "5 GB"
+        },
+        {
+          "name": "L5.zip",
+          "listed_size": "12 GB"
+        },
+        {
+          "name": "L6.zip",
+          "listed_size": "33 GB"
+        }
+      ],
+      "last_modified": "2026-05-08 (listing shows individual timestamps)",
+      "observed_facts": [
+        "AIAA Test Case 4a(E)/4b(E) is Configuration D: CRM wing/body/nacelle/pylon static fluid-structure interaction",
+        "The Test Case 4 grid directory exposes six zip archives from 361 MB through 33 GB"
+      ],
+      "terms_status": "review_required",
+      "redistribution_status": "not_decided",
+      "unknowns": [
+        "Archive member manifests, exact bytes and SHA-256 digests",
+        "Mesh cell/point counts and exact grid levels",
+        "Whether all six levels are required for a selected benchmark result"
+      ]
+    },
+    {
+      "source_id": "aiaa-static-fsi-2ae-2be-case-sheet",
+      "publisher": "AIAA DPW8 Static Deformation Working Group",
+      "canonical_url": "https://www.aiaa-dpw.org/WorkingGroups/Group2/TestCases/staticdeformation-case2aE-2bE-v1.pdf",
+      "evidence_url": "https://www.aiaa-dpw.org/WorkingGroups/Group2/group2.html",
+      "source_kind": "pdf_case_definition",
+      "artifact_role": "elastic_static_fsi_case_definition",
+      "acquisition_state": "page_inspected",
+      "exact_bytes_acquired": false,
+      "sha256": null,
+      "listed_size": null,
+      "last_modified": null,
+      "observed_facts": [
+        "Page 1 defines Test Case 2a(E): CRM wing/body static FSI, Mach 0.85, chord Reynolds 5 million, Qinf 1384 psf, CL 0.5000 +/- 0.0001, approximate alpha 2.75 degrees, 120 F (322.04 K), wind-off jig/unloaded start, grids 1-6, six measured span stations",
+        "Page 2 defines Test Case 2b(E): Mach 0.85, chord Reynolds 5 million, Qinf 1384 psf, alpha [-1.50, 0.00, 1.50, 2.50, 3.00, 3.50, 4.00, 4.50] degrees, 120 F (322.04 K), wind-off jig/unloaded start, grid level 3",
+        "Both elastic cases list force/moment, sectional twist/deformation, sectional Cp and flow/structural solver residual comparisons"
+      ],
+      "terms_status": "review_required",
+      "redistribution_status": "not_decided",
+      "unknowns": [
+        "Exact PDF bytes and SHA-256",
+        "Raw comparison-data files and their own units/uncertainties/calibration",
+        "The PDF gives a required workshop case definition but is not itself an experimental measurement dataset"
+      ]
+    },
+    {
+      "source_id": "aiaa-static-rigid-2a-2b-case-sheet",
+      "publisher": "AIAA DPW8 Static Deformation Working Group",
+      "canonical_url": "https://www.aiaa-dpw.org/WorkingGroups/Group2/TestCases/staticdeformation-case2a-2b-v1.pdf",
+      "evidence_url": "https://www.aiaa-dpw.org/WorkingGroups/Group2/group2.html",
+      "source_kind": "pdf_case_definition",
+      "artifact_role": "rigid_steady_cfd_case_definition",
+      "acquisition_state": "page_inspected",
+      "exact_bytes_acquired": false,
+      "sha256": null,
+      "listed_size": null,
+      "last_modified": null,
+      "observed_facts": [
+        "Page 1 defines rigid Test Case 2a: Mach 0.85, chord Reynolds 5 million, Qinf 1384 psf, alpha 2.50 degrees, 120 F (322.04 K), NASA CRM geometry including deformed-wing matching condition, grid levels 1-6",
+        "Page 2 defines rigid Test Case 2b: Mach 0.85, chord Reynolds 5 million, Qinf 1384 psf, alpha [-1.50, 2.50, 3.00, 3.50, 4.00, 4.50] degrees, 120 F (322.04 K), wind-off geometry, grid level 3"
+      ],
+      "terms_status": "review_required",
+      "redistribution_status": "not_decided",
+      "unknowns": [
+        "Exact PDF bytes and SHA-256",
+        "Underlying experimental data, measurement uncertainty and full operating point lineage"
+      ]
+    },
+    {
+      "source_id": "aiaa-dpw8-testcases-matrix",
+      "publisher": "AIAA DPW8 Verifications and Configurations",
+      "canonical_url": "https://www.aiaa-dpw.org/TestCases/testcases.html",
+      "evidence_url": "https://www.aiaa-dpw.org/TestCases/testcases.html",
+      "source_kind": "html_workshop_test_matrix",
+      "artifact_role": "verification_and_rigid_configuration_case_matrix",
+      "acquisition_state": "page_inspected",
+      "exact_bytes_acquired": false,
+      "sha256": null,
+      "listed_size": null,
+      "last_modified": null,
+      "observed_facts": [
+        "Verification 4 is the CRM FEM validation case and maps to Static Deformation Working Group Test Case 1b",
+        "Rigid Configuration B Test Case 2a is alpha 2.50 degrees with grid levels 1-6",
+        "Rigid Configuration B Test Case 2b is alpha [-1.50, 2.50, 2.75, 3.00, 3.25, 3.50, 3.75, 4.00, 4.25] degrees and grid level 3 or 4",
+        "The page separately describes elastic cases 2a(E) and 2b(E), which must use the dedicated Static Deformation PDF for their exact conditions"
+      ],
+      "terms_status": "review_required",
+      "redistribution_status": "not_decided",
+      "unknowns": [
+        "Page archival snapshot and exact bytes",
+        "Underlying data files and experimental uncertainties"
+      ]
+    },
+    {
+      "source_id": "aiaa-dpw8-buffet-working-group-matrix",
+      "publisher": "AIAA DPW8 Buffet Working Group",
+      "canonical_url": "https://www.aiaa-dpw.org/WorkingGroups/Group3/group3.html",
+      "evidence_url": "https://www.aiaa-dpw.org/WorkingGroups/Group3/group3.html",
+      "source_kind": "html_working_group_case_matrix",
+      "artifact_role": "unsteady_cfd_and_dynamic_fsi_case_definition",
+      "acquisition_state": "page_inspected",
+      "exact_bytes_acquired": false,
+      "sha256": null,
+      "listed_size": null,
+      "last_modified": "page inspected 2026-11-08; page reports last updated 2025-09-29",
+      "observed_facts": [
+        "Buffet Working Group lists Test Case 3 as Common Research Model unsteady CFD with unsteady fluid/structure interaction",
+        "Test Case 3 is explicitly marked optional",
+        "Working Group page links grids, experimental data and a supporting paper",
+        "The test case is distinct from Test Case 2 unsteady CFD on a rigid/static wing"
+      ],
+      "terms_status": "review_required",
+      "redistribution_status": "not_decided",
+      "unknowns": [
+        "Exact case-sheet PDF bytes and SHA-256",
+        "Exact time-step, output sampling, transient-removal and PSD processing rules for this particular dynamic FSI case",
+        "Whether all published experimental products have a common time base and synchronized acquisition",
+        "Data redistribution and derivative-work permissions"
+      ]
+    },
+    {
+      "source_id": "jaxa-dpw8-test3-experimental-data-index",
+      "publisher": "Japan Aerospace Exploration Agency (JAXA); page copyright identifies Yosuke Sugioka",
+      "canonical_url": "https://cfdws.chofu.jaxa.jp/apc/dpw/upsp.html",
+      "evidence_url": "https://cfdws.chofu.jaxa.jp/apc/dpw/upsp.html",
+      "source_kind": "html_experimental_data_index",
+      "artifact_role": "multimodal_dynamic_buffet_and_pressure_measurement_index",
+      "acquisition_state": "page_inspected",
+      "exact_bytes_acquired": false,
+      "sha256": null,
+      "listed_size": null,
+      "last_modified": null,
+      "observed_facts": [
+        "Page states the data are measured on the 2.16 percent NASA CRM model in the JAXA wind tunnel",
+        "Page publishes model reference geometry: S=0.179014 m2, c=0.15131 m, b=1.26927 m, moment reference (0.72741,0,0.097627) m",
+        "Page states that it is copyrighted by JAXA Yosuke Sugioka and all rights are reserved",
+        "Page links corrected aerodynamic coefficients, wing-root strain-gauge buffet intensity, ESP/Kulite sectional archives and uPSP surface archives",
+        "The page distinguishes test-case data products and provides notes about sensor measurement limitations"
+      ],
+      "terms_status": "all_rights_reserved_review_required",
+      "redistribution_status": "not_decided",
+      "unknowns": [
+        "No JAXA source file bytes have been acquired or hashed",
+        "Per-file licenses, redistribution permissions and permitted derived-data use have not been reviewed",
+        "Exact acquisition timing/synchronization across ESP, Kulite, uPSP, strain gauge and balance systems remains to be established",
+        "Time sample rates, windowing, PSD normalization and uncertainty must be read from actual artifact metadata or controlling procedure",
+        "The model-scale reference area definition and all normalization conventions must be cross-checked against the official submission template before comparison"
+      ]
+    },
+    {
+      "source_id": "jaxa-dpw8-test3-corrected-force-moment-csv",
+      "publisher": "JAXA DPW-8 Test Case 3 experimental data",
+      "canonical_url": "https://cfdws.chofu.jaxa.jp/apc/dpw/exp_data_tc3/buffet-TC3_cdclcm_dpw8.csv",
+      "evidence_url": "https://cfdws.chofu.jaxa.jp/apc/dpw/upsp.html",
+      "source_kind": "csv_measurement_table",
+      "artifact_role": "corrected_integrated_force_and_moment_coefficients",
+      "acquisition_state": "linked_file_not_acquired",
+      "exact_bytes_acquired": false,
+      "sha256": null,
+      "listed_size": null,
+      "last_modified": null,
+      "observed_facts": [
+        "JAXA page lists corrected Re, total pressure, total temperature, Mach, angle of attack, CD, CL and pitching-moment coefficient for runs at approximately alpha 3.06, 3.61 and 4.71 degrees",
+        "The page distinguishes coefficients measured during PSP tests from independent standalone balance (BL) measurements",
+        "Drag coefficient is N/A for the PSP-simultaneous records because force measurements preceded wind-tunnel pre-heating and balance completion"
+      ],
+      "terms_status": "all_rights_reserved_review_required",
+      "redistribution_status": "not_decided",
+      "unknowns": [
+        "Exact CSV bytes, row count, units in raw file and SHA-256",
+        "Per-row PSP/BL provenance and measurement uncertainty from the actual CSV",
+        "No drag coefficient may be inferred for PSP-simultaneous records"
+      ]
+    },
+    {
+      "source_id": "jaxa-dpw8-test3-wing-root-strain-buffet-index",
+      "publisher": "JAXA DPW-8 Test Case 3 experimental data",
+      "canonical_url": "https://cfdws.chofu.jaxa.jp/apc/dpw/exp_data_tc3/buffet-TC3_buffet-intensity_dpw8.csv",
+      "evidence_url": "https://cfdws.chofu.jaxa.jp/apc/dpw/upsp.html",
+      "source_kind": "csv_measurement_table",
+      "artifact_role": "wing_root_strain_gauge_buffet_intensity_indicator",
+      "acquisition_state": "linked_file_not_acquired",
+      "exact_bytes_acquired": false,
+      "sha256": null,
+      "listed_size": null,
+      "last_modified": null,
+      "observed_facts": [
+        "Buffet coefficient C_B is defined as the RMS wing-root strain-gauge signal at the condition divided by the RMS zero-lift strain-gauge signal",
+        "The zero-lift reference is reported at alpha=-0.8 degrees",
+        "JAXA describes C_B as an indicator for buffet onset, not as a direct full-field deformation or modal-response measurement"
+      ],
+      "terms_status": "all_rights_reserved_review_required",
+      "redistribution_status": "not_decided",
+      "unknowns": [
+        "Exact CSV bytes, sampling/acquisition metadata and SHA-256",
+        "Strain-gauge calibration, bandwidth, uncertainty and raw signal availability",
+        "No damage, fatigue or structural-margin claim follows from C_B alone"
+      ]
+    },
+    {
+      "source_id": "jaxa-dpw8-test3-kulite-sectional-archive-family",
+      "publisher": "JAXA DPW-8 Test Case 3 experimental data",
+      "canonical_url": "https://cfdws.chofu.jaxa.jp/apc/dpw/exp_data_tc3/ESP-Kulite/sectional_AoA306.zip",
+      "evidence_url": "https://cfdws.chofu.jaxa.jp/apc/dpw/upsp.html",
+      "source_kind": "zip_archive_family",
+      "artifact_role": "steady_ESP_mean_pressure_and_unsteady_Kulite_pressure_rms_PSD",
+      "acquisition_state": "linked_files_not_acquired",
+      "exact_bytes_acquired": false,
+      "sha256": null,
+      "listed_size": null,
+      "listed_members": [
+        {
+          "name": "sectional_AoA306.zip",
+          "url": "https://cfdws.chofu.jaxa.jp/apc/dpw/exp_data_tc3/ESP-Kulite/sectional_AoA306.zip",
+          "listed_size": null
+        },
+        {
+          "name": "sectional_AoA361.zip",
+          "url": "https://cfdws.chofu.jaxa.jp/apc/dpw/exp_data_tc3/ESP-Kulite/sectional_AoA361.zip",
+          "listed_size": null
+        },
+        {
+          "name": "sectional_AoA471.zip",
+          "url": "https://cfdws.chofu.jaxa.jp/apc/dpw/exp_data_tc3/ESP-Kulite/sectional_AoA471.zip",
+          "listed_size": null
+        }
+      ],
+      "observed_facts": [
+        "Archive members include AoA*_Cp_ESP.csv (time-averaged Cp), AoA*_Cprms_Kulite.csv (Kulite Cp RMS) and AoA*_psd_Kulite.No*csv (sensor-specific PSD)",
+        "The ESP CSV files identify corresponding Kulite sensor locations and numbering",
+        "The page says pressure data are measured on the right unsteady wing of the full-span model",
+        "A PSD peak near 9 kHz is explicitly attributed to wind-tunnel noise"
+      ],
+      "terms_status": "all_rights_reserved_review_required",
+      "redistribution_status": "not_decided",
+      "unknowns": [
+        "Exact archive bytes/member lists/SHA-256 and file headers",
+        "Actual Kulite sensor calibration, transfer function, sampling rate, timing, PSD estimator and units",
+        "The 9 kHz noise feature must not be labelled a structural/aerodynamic resonance without independent evidence"
+      ]
+    },
+    {
+      "source_id": "jaxa-dpw8-test3-upsp-archive-family",
+      "publisher": "JAXA DPW-8 Test Case 3 experimental data",
+      "canonical_url": "https://cfdws.chofu.jaxa.jp/apc/dpw/exp_data_tc3/Unsteady-PSP/upsp_AoA306.zip",
+      "evidence_url": "https://cfdws.chofu.jaxa.jp/apc/dpw/upsp.html",
+      "source_kind": "zip_archive_family",
+      "artifact_role": "unsteady_pressure_sensitive_paint_surface_pressure_fields_and_spectral_products",
+      "acquisition_state": "linked_files_not_acquired",
+      "exact_bytes_acquired": false,
+      "sha256": null,
+      "listed_size": null,
+      "listed_members": [
+        {
+          "name": "upsp_AoA306.zip",
+          "url": "https://cfdws.chofu.jaxa.jp/apc/dpw/exp_data_tc3/Unsteady-PSP/upsp_AoA306.zip",
+          "listed_size": null
+        },
+        {
+          "name": "upsp_AoA361.zip",
+          "url": "https://cfdws.chofu.jaxa.jp/apc/dpw/exp_data_tc3/Unsteady-PSP/upsp_AoA361.zip",
+          "listed_size": null
+        },
+        {
+          "name": "upsp_AoA471.zip",
+          "url": "https://cfdws.chofu.jaxa.jp/apc/dpw/exp_data_tc3/Unsteady-PSP/upsp_AoA471.zip",
+          "listed_size": null
+        }
+      ],
+      "observed_facts": [
+        "Archive members include time-averaged/RMS Cp by span section, surface average/RMS Cp, surface PSD and uPSP time snapshots",
+        "JAXA states uPSP data are mapped onto CRM jig shape and rescaled using mean aerodynamic chord",
+        "JAXA states unreliable regions are masked, including unsteady pressure-sensor lines, markers and areas near model edges",
+        "JAXA states camera exposure introduces low-pass filtering and therefore uPSP Cp RMS can differ from Kulite RMS"
+      ],
+      "terms_status": "all_rights_reserved_review_required",
+      "redistribution_status": "not_decided",
+      "unknowns": [
+        "Exact archive bytes/member list/SHA-256 and coordinate/data headers",
+        "uPSP camera exposure transfer function, temporal sampling, synchronization and uncertainty",
+        "Exact mask geometry and surface coordinate-frame transformation must be acquired from the source files",
+        "No unfiltered physical pressure field should be inferred by undoing low-pass effects without an admitted measurement model"
+      ]
+    },
+    {
+      "source_id": "jaxa-dpw8-test3-preliminary-deformation-note",
+      "publisher": "JAXA DPW-8 Test Case 3 experimental data page",
+      "canonical_url": "https://cfdws.chofu.jaxa.jp/apc/dpw/upsp.html",
+      "evidence_url": "https://cfdws.chofu.jaxa.jp/apc/dpw/upsp.html",
+      "source_kind": "html_preliminary_measurement_note",
+      "artifact_role": "preliminary_qualitative_wing_tip_deflection_note",
+      "acquisition_state": "page_inspected",
+      "exact_bytes_acquired": false,
+      "sha256": null,
+      "listed_size": null,
+      "observed_facts": [
+        "JAXA page explicitly states that official deformation measurements for this campaign are still pending",
+        "The page provides one preliminary qualitative point: wing-tip vertical deflection approximately 10-12 mm at alpha 4.7 degrees",
+        "This preliminary point is offered for qualitative CFD validation only and is not a calibrated deformation dataset or an aeroelastic structural-validation result"
+      ],
+      "terms_status": "all_rights_reserved_review_required",
+      "redistribution_status": "not_decided",
+      "unknowns": [
+        "No official distributed deformation, twist, modal or structural time-history measurements are currently supplied by this page",
+        "The preliminary 10-12 mm estimate has no published uncertainty interval or detailed metrology protocol on the page",
+        "Do not use the preliminary point as a numerical acceptance threshold"
+      ]
+    }
+  ],
+  "benchmark_cases": [
+    {
+      "case_id": "DPW8-OAT15A-V1A",
+      "title": "ONERA OAT15A steady RANS grid-convergence and polar",
+      "authority_url": "https://www.aiaa-dpw.org/TestCases/testcases.html",
+      "working_group_url": "https://www.aiaa-dpw.org/WorkingGroups/Group2/group2.html",
+      "required": true,
+      "physics_track": "steady_transonic_cfd_verification",
+      "conditions": {
+        "mach": 0.73,
+        "reynolds_chord": 3000000,
+        "static_temperature_k": 271,
+        "angles_of_attack_deg": [
+          1.36,
+          1.5,
+          2.5,
+          3,
+          3.1
+        ],
+        "analysis": "steady CFD (e.g. RANS)"
+      },
+      "grid_family": {
+        "levels": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "minimum_required_members": 4,
+        "desirable_members": 6,
+        "sidewall_boundary_condition": "periodic"
+      },
+      "comparison_outputs": [
+        "force_and_moment_polar",
+        "grid_convergence",
+        "reported_solver_residuals"
+      ],
+      "claim_ceiling": "OAT15A case-specific CFD method verification; not CRM or low-speed aircraft validation"
+    },
+    {
+      "case_id": "DPW8-CRM-STATIC-FSI-2A-E",
+      "title": "CRM wing/body static fluid-structure interaction at cruise lift coefficient",
+      "authority_url": "https://www.aiaa-dpw.org/WorkingGroups/Group2/TestCases/staticdeformation-case2a-2b-v1.pdf",
+      "working_group_url": "https://www.aiaa-dpw.org/WorkingGroups/Group2/group2.html",
+      "required": true,
+      "physics_track": "static_aeroelastic_fsi",
+      "conditions": {
+        "mach": 0.85,
+        "reynolds_chord": 5000000,
+        "dynamic_pressure_psf": 1384,
+        "lift_coefficient_target": 0.5,
+        "lift_coefficient_tolerance": 0.0001,
+        "angle_of_attack_approx_deg": 2.75,
+        "static_temperature_k": 322.04,
+        "initial_geometry": "jig_unloaded_wind_off",
+        "wing_trip_location": "10 percent chord upper and lower surfaces",
+        "static_temperature_f": 120,
+        "angle_of_attack_status": "approximate value associated with CL target; CL target is controlling"
+      },
+      "grid_family": {
+        "levels": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "level_names": [
+          "tiny",
+          "coarse",
+          "medium",
+          "fine",
+          "extra_fine",
+          "ultra_fine"
+        ]
+      },
+      "measured_span_stations_eta": [
+        0,
+        0.4286,
+        0.5546,
+        0.6773,
+        0.7954,
+        0.915
+      ],
+      "comparison_outputs": [
+        "integrated_forces_and_moments",
+        "sectional_twist_and_deformation",
+        "sectional_pressure_coefficient_distribution",
+        "flow_solver_residuals",
+        "structural_solver_residuals"
+      ],
+      "structural_reference_source_ids": [
+        "crm-halfspan-equivalent-beam-bdf",
+        "crm-halfspan-fem-bdf",
+        "crm-fullspan-fem-bdf-archive"
+      ],
+      "claim_ceiling": "CRM workshop static-FSI reproduction for the admitted geometry, model and conditions only",
+      "case_sheet_source_ids": [
+        "aiaa-static-fsi-2ae-2be-case-sheet"
+      ]
+    },
+    {
+      "case_id": "DPW8-CRM-STATIC-FSI-2B-E",
+      "title": "CRM wing/body static FSI angle-of-attack polar",
+      "authority_url": "https://www.aiaa-dpw.org/WorkingGroups/Group2/TestCases/staticdeformation-case2a-2b-v1.pdf",
+      "working_group_url": "https://www.aiaa-dpw.org/WorkingGroups/Group2/group2.html",
+      "required": true,
+      "physics_track": "static_aeroelastic_fsi_polar",
+      "conditions": {
+        "mach": 0.85,
+        "reynolds_chord": 5000000,
+        "dynamic_pressure_psf": 1384,
+        "angles_of_attack_deg": [
+          -1.5,
+          0,
+          1.5,
+          2.5,
+          3,
+          3.5,
+          4,
+          4.5
+        ],
+        "static_temperature_k": 322.04,
+        "initial_geometry": "jig_unloaded_wind_off",
+        "static_temperature_f": 120
+      },
+      "grid_family": {
+        "levels": [
+          3
+        ],
+        "note": "Dedicated static-deformation Test Case 2b PDF specifies Grid Level 3."
+      },
+      "measured_span_stations_eta": [
+        0,
+        0.4286,
+        0.5546,
+        0.6773,
+        0.7954,
+        0.915
+      ],
+      "comparison_outputs": [
+        "integrated_forces_and_moments",
+        "sectional_twist_and_deformation",
+        "sectional_pressure_coefficient_distribution",
+        "flow_solver_residuals",
+        "structural_solver_residuals"
+      ],
+      "claim_ceiling": "CRM workshop static-FSI polar reproduction for admitted conditions only",
+      "case_sheet_source_ids": [
+        "aiaa-static-fsi-2ae-2be-case-sheet"
+      ]
+    },
+    {
+      "case_id": "DPW8-CRM-RIGID-2A",
+      "title": "CRM wing/body rigid steady-CFD grid convergence",
+      "authority_url": "https://www.aiaa-dpw.org/TestCases/testcases.html",
+      "working_group_url": "https://www.aiaa-dpw.org/WorkingGroups/Group2/group2.html",
+      "required": true,
+      "physics_track": "steady_transonic_cfd_grid_convergence_rigid_geometry",
+      "conditions": {
+        "mach": 0.85,
+        "reynolds_chord": 5000000,
+        "static_temperature_f": 100,
+        "static_temperature_k": 310.928,
+        "angle_of_attack_deg": 2.5,
+        "geometry_policy": "Configuration B page maps alpha=2.50 deg to the 2.50-deg low-q aeroelastic CRM geometry; the 2a(E) static-FSI task is a separate case.",
+        "turbulence_model": "multiple may be submitted; source-of-scatter guidance separately specifies French Vanilla SA-(neg) all-terms",
+        "residual_guidance": "The Configuration B additional instructions for Sources of Scatter recommend residuals near 1e-10; do not impose as universal criterion on every participant."
+      },
+      "grid_family": {
+        "levels": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "minimum_required_members": 4,
+        "desirable_members": 6
+      },
+      "comparison_outputs": [
+        "integrated_forces_and_moments",
+        "grid_convergence",
+        "sectional_pressure_coefficient_distribution",
+        "solver_residuals"
+      ],
+      "claim_ceiling": "rigid_transonic_CRM_configuration_B_CFD_case_only",
+      "case_sheet_source_ids": [
+        "aiaa-static-rigid-2a-2b-case-sheet"
+      ]
+    },
+    {
+      "case_id": "DPW8-CRM-RIGID-2B",
+      "title": "CRM wing/body rigid steady-CFD angle-of-attack sweep",
+      "authority_url": "https://www.aiaa-dpw.org/TestCases/testcases.html",
+      "working_group_url": "https://www.aiaa-dpw.org/WorkingGroups/Group2/group2.html",
+      "required": true,
+      "physics_track": "steady_transonic_cfd_rigid_geometry_polar",
+      "conditions": {
+        "mach": 0.85,
+        "reynolds_chord": 5000000,
+        "static_temperature_f": 100,
+        "static_temperature_k": 310.928,
+        "angles_of_attack_deg": [
+          -1.5,
+          2.5,
+          2.75,
+          3,
+          3.25,
+          3.5,
+          3.75,
+          4,
+          4.25
+        ],
+        "geometry_policy": "Configuration B rigid-CFD geometry mapping from the current DPW8 Test Cases page; not the elastic 2b(E) FSI schedule."
+      },
+      "grid_family": {
+        "levels": [
+          3,
+          4
+        ],
+        "note": "Current Test Cases page lists grid level 3 or 4."
+      },
+      "comparison_outputs": [
+        "integrated_forces_and_moments",
+        "angle_of_attack_polar",
+        "sectional_pressure_coefficient_distribution",
+        "solver_residuals"
+      ],
+      "claim_ceiling": "rigid_transonic_CRM_configuration_B_alpha_sweep_only",
+      "case_sheet_source_ids": [
+        "aiaa-static-rigid-2a-2b-case-sheet"
+      ]
+    },
+    {
+      "case_id": "DPW8-CRM-FEM-VERIFICATION-4",
+      "title": "NASA CRM finite-element-model validation (Static Deformation Working Group Test Case 1b)",
+      "authority_url": "https://www.aiaa-dpw.org/TestCases/testcases.html",
+      "working_group_url": "https://www.aiaa-dpw.org/WorkingGroups/Group2/group2.html",
+      "required": true,
+      "physics_track": "structural_model_verification_validation",
+      "conditions": {
+        "test_case": "DPW8 Verification 4 / Static Deformation WG Test Case 1b",
+        "detailed_conditions_status": "not_supplied_on_public_test_matrix_page"
+      },
+      "structural_reference_source_ids": [
+        "crm-halfspan-equivalent-beam-bdf",
+        "crm-halfspan-fem-bdf",
+        "crm-fullspan-fem-bdf-archive"
+      ],
+      "claim_ceiling": "CRM FEM case-specific model verification/validation; not low-speed aircraft validation",
+      "case_sheet_source_ids": [
+        "aiaa-dpw8-testcases-matrix",
+        "aiaa-static-fsi-2ae-2be-case-sheet"
+      ]
+    },
+    {
+      "case_id": "DPW8-CRM-DYNAMIC-FSI-3",
+      "title": "JAXA CRM wing/body/tail unsteady CFD with dynamic wing fluid-structure interaction",
+      "authority_url": "https://www.aiaa-dpw.org/TestCases/testcases.html",
+      "working_group_url": "https://www.aiaa-dpw.org/WorkingGroups/Group3/group3.html",
+      "experimental_data_url": "https://cfdws.chofu.jaxa.jp/apc/dpw/upsp.html",
+      "required": false,
+      "workshop_status": "optional_buffet_working_group_case",
+      "physics_track": "unsteady_dynamic_aeroelastic_fsi",
+      "conditions": {
+        "mach": 0.85,
+        "reynolds_chord": 2270000,
+        "static_temperature_k": 326.15,
+        "total_pressure_kpa": 12,
+        "angles_of_attack_deg": [
+          3.05,
+          3.61,
+          4.7
+        ],
+        "initial_geometry": "unloaded_wind_off",
+        "model_scale": "2.16_percent_NASA_CRM_test_article",
+        "reference_geometry": {
+          "reference_area_m2": 0.179014,
+          "mean_aerodynamic_chord_m": 0.15131,
+          "span_m": 1.26927,
+          "moment_reference_xyz_m": [
+            0.72741,
+            0,
+            0.097627
+          ],
+          "source_id": "jaxa-dpw8-test3-experimental-data-index"
+        }
+      },
+      "grid_family": {
+        "levels": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "note": "AIAA Test Case 3 lists committee-supplied URANS grid levels 1-6; exact mesh artifacts and revisions remain unadmitted."
+      },
+      "structural_model": {
+        "model_families": [
+          "full_span_stick_FEM",
+          "half_span_stick_FEM"
+        ],
+        "model_source_id": "aiaa-dpw8-buffet-working-group-matrix",
+        "exact_model_bytes_admitted": false
+      },
+      "measurement_channels": [
+        {
+          "channel_family": "integrated_balance",
+          "instrument_or_method": "wind_tunnel_balance",
+          "quantities": [
+            "CL",
+            "CD",
+            "Cm"
+          ],
+          "limitations": [
+            "Rows distinguish PSP-simultaneous and standalone balance (BL) measurements",
+            "CD is N/A for PSP-simultaneous records and must remain null, not imputed"
+          ],
+          "source_id": "jaxa-dpw8-test3-corrected-force-moment-csv"
+        },
+        {
+          "channel_family": "buffet_intensity",
+          "instrument_or_method": "wing_root_strain_gauge",
+          "quantity": "C_B",
+          "definition": "RMS strain-gauge signal at alpha divided by RMS signal at zero-lift alpha=-0.8 degrees",
+          "limitations": [
+            "Buffet-onset indicator only; not a full structural mode or deformation measurement"
+          ],
+          "source_id": "jaxa-dpw8-test3-wing-root-strain-buffet-index"
+        },
+        {
+          "channel_family": "steady_pressure",
+          "instrument_or_method": "ESP",
+          "quantity": "time_averaged_Cp",
+          "spatial_semantics": "point_sensors_on_right_unsteady_wing",
+          "limitations": [
+            "ESP point coordinates and Kulite matching IDs are to be read from the acquired CSV headers"
+          ],
+          "source_id": "jaxa-dpw8-test3-kulite-sectional-archive-family"
+        },
+        {
+          "channel_family": "unsteady_point_pressure",
+          "instrument_or_method": "Kulite",
+          "quantities": [
+            "Cp_rms",
+            "PSD"
+          ],
+          "spatial_semantics": "point_sensors_on_right_unsteady_wing",
+          "limitations": [
+            "PSD files are sensor-specific; mapping must use the paired ESP sensor-location file",
+            "The JAXA page flags the approximately 9 kHz PSD peak as wind-tunnel noise"
+          ],
+          "source_id": "jaxa-dpw8-test3-kulite-sectional-archive-family"
+        },
+        {
+          "channel_family": "unsteady_surface_pressure",
+          "instrument_or_method": "uPSP",
+          "quantities": [
+            "time_averaged_Cp",
+            "Cp_rms",
+            "surface_PSD",
+            "time_snapshots"
+          ],
+          "spatial_semantics": "surface_field_mapped_to_CRM_jig_shape_rescaled_by_MAC",
+          "limitations": [
+            "Reliability masks exclude sensor lines, markers and edge regions",
+            "Camera exposure introduces low-pass filtering; uPSP RMS must not be equated directly to Kulite RMS"
+          ],
+          "source_id": "jaxa-dpw8-test3-upsp-archive-family"
+        },
+        {
+          "channel_family": "structural_deformation",
+          "instrument_or_method": "official_deformation_measurement",
+          "quantities": [
+            "wing_tip_vertical_deflection",
+            "sectional_twist",
+            "distributed_deformation"
+          ],
+          "evidence_status": "PENDING_NOT_PUBLISHED",
+          "source_id": "jaxa-dpw8-test3-preliminary-deformation-note",
+          "limitations": [
+            "No official distributed deformation or modal time-history measurement is currently published on the JAXA page"
+          ]
+        }
+      ],
+      "measurement_operator_requirements": [
+        "Bind each instrument family to its own calibration, sampling, spatial mapping, transfer function and uncertainty",
+        "Do not merge ESP, Kulite and uPSP samples as though they are co-located/co-bandwidth observations",
+        "Do not infer simultaneous time synchronization between balance, strain gauge, Kulite and uPSP without source metadata",
+        "Do not remove or reinterpret the approximately 9 kHz wind-tunnel noise feature as a physical structural resonance without independent evidence",
+        "Preserve raw measurement values and masks; any filtering/correction is a separate source-bound transformation",
+        "Do not inherit the DPW8 Test Case 2 Welch sampling/window/PSD settings into Test Case 3"
+      ],
+      "spectral_processing": {
+        "time_step_s": null,
+        "sampling_rate_hz": null,
+        "window": null,
+        "segment_length": null,
+        "overlap": null,
+        "psd_normalization": null,
+        "status": "must_be_admitted_from_case3_artifact_headers_or_controlling_procedure",
+        "explicit_non_inheritance": "Do not copy Test Case 2 PSD processing settings into this Test Case 3 dataset without source evidence."
+      },
+      "deformation_evidence": {
+        "official_measurements_status": "pending",
+        "preliminary_tip_deflection_mm": [
+          10,
+          12
+        ],
+        "preliminary_angle_of_attack_deg": 4.7,
+        "preliminary_evidence_class": "qualitative_only_not_validation",
+        "allow_as_quantitative_acceptance_threshold": false
+      },
+      "comparison_outputs": [
+        "integrated_force_and_moment_coefficients_with_PSP_vs_BL_provenance",
+        "wing_root_strain_gauge_buffet_intensity_C_B",
+        "ESP_time_averaged_Cp_by_sensor_location",
+        "Kulite_Cp_rms_and_sensor_specific_PSD",
+        "uPSP_surface_time_averaged_and_rms_Cp_with_masks",
+        "uPSP_surface_PSD_and_time_snapshots",
+        "time_step_and_sampling_convergence_when_artifact_metadata_is_admitted",
+        "dynamic_FSI_fluid_and_structural_residuals",
+        "structural_modal_frequency_amplitude_and_phase_only_where_supported_by_admitted_measurements"
+      ],
+      "case_sheet_source_ids": [
+        "aiaa-dpw8-buffet-working-group-matrix",
+        "aiaa-dpw8-testcases-matrix",
+        "jaxa-dpw8-test3-experimental-data-index"
+      ],
+      "data_source_ids": [
+        "jaxa-dpw8-test3-corrected-force-moment-csv",
+        "jaxa-dpw8-test3-wing-root-strain-buffet-index",
+        "jaxa-dpw8-test3-kulite-sectional-archive-family",
+        "jaxa-dpw8-test3-upsp-archive-family",
+        "jaxa-dpw8-test3-preliminary-deformation-note"
+      ],
+      "claim_ceiling": "optional_CRM_dynamic_buffet_and_measurement_pipeline_case; official_wing_deformation_measurements_pending; not aircraft qualification"
+    }
+  ],
+  "data_format_observations": {
+    "submission_overview_url": "https://www.aiaa-dpw.org/postprocessing.html",
+    "container_format": "Tecplot-readable ASCII templates are used for workshop submissions",
+    "identified_data_products": [
+      "vehicle integrated forces and moments",
+      "surface pressure",
+      "spanwise load distribution",
+      "boundary-layer profiles",
+      "bending and twist deformations"
+    ],
+    "bending_twist_template_version": 3,
+    "bending_twist_template_date": "2026-05-06",
+    "normalization_note": "The AIAA change log states version 3 reports deflection normalized by reference semi-span",
+    "optional_missing_value_sentinel": -999,
+    "admission_note": "Read the actual template and preserve its columns, units, coordinates and missing-value semantics before implementing an importer",
+    "dynamic_measurement_operator_policy": {
+      "ESP": "time-averaged point-pressure coefficient; use its CSV for sensor locations and numbering",
+      "Kulite": "unsteady point-pressure RMS and sensor-specific PSD; link by sensor ID to the ESP coordinate CSV",
+      "uPSP": "surface-pressure mean/RMS/PSD/snapshots mapped to jig shape; retain masks and camera-exposure low-pass transfer limitations",
+      "wing_root_strain_gauge": "derived buffet-intensity coefficient normalized by the zero-lift RMS at alpha=-0.8 degrees",
+      "balance": "preserve PSP-simultaneous vs standalone BL provenance; PSP-simultaneous CD remains unavailable",
+      "structural_deformation": "official distributed deformation measurements pending; preliminary 10-12 mm at alpha=4.7 degrees is qualitative only"
+    },
+    "dynamic_spectral_cautions": [
+      "JAXA identifies the approximately 9 kHz Kulite PSD peak as wind-tunnel noise; do not call it a structural mode without independent evidence",
+      "uPSP camera exposure introduces low-pass filtering; uPSP RMS and Kulite RMS are not directly interchangeable",
+      "Do not inherit Test Case 2 Welch/PSD sampling settings for Test Case 3 without source evidence",
+      "Do not assume common time synchronization across balance, strain gauge, Kulite and uPSP"
+    ],
+    "jaxa_terms_status": "all_rights_reserved_review_required",
+    "dynamic_fsi_claim_limit": "The JAXA page reports official deformation measurements are pending; this dataset supports pressure/buffet and dynamic-method studies, but not a complete measured dynamic wing deformation validation."
+  }
+}
