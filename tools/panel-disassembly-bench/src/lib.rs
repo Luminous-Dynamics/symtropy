@@ -2,8 +2,8 @@
 //! It validates a bounded evidence chain; it does not compute robot motion,
 //! removal forces, structural stability, safety interlocks or material truth.
 
-use std::collections::BTreeSet;
 use serde_json::{Value, json};
+use std::collections::BTreeSet;
 
 fn text<'a>(v: &'a Value, key: &str) -> &'a str {
     v.get(key).and_then(Value::as_str).unwrap_or("")
@@ -81,27 +81,83 @@ fn validate(input: &Value) -> Result<(), BTreeSet<String>> {
     }
 
     let state_fields = [
-        (panel, "evidence_state", &["current", "stale", "unknown"][..]),
+        (
+            panel,
+            "evidence_state",
+            &["current", "stale", "unknown"][..],
+        ),
         (tool, "evidence_state", &["current", "stale", "unknown"][..]),
-        (tool, "calibration_state", &["current", "stale", "unknown"][..]),
-        (connection, "sequence_state", &["current", "stale", "unknown"][..]),
-        (connection, "access_state", &["clear", "occluded", "blocked"][..]),
-        (connection, "release_process_state", &["qualified", "unknown", "unqualified"][..]),
-        (component, "condition_evidence_state", &["current", "stale", "unknown"][..]),
-        (input.get("repair").unwrap_or(&Value::Null), "evidence_state", &["current", "stale", "unknown"][..]),
-        (input.get("repair").unwrap_or(&Value::Null), "process_state", &["not_required", "qualified", "unknown", "unqualified"][..]),
-        (input.get("repair").unwrap_or(&Value::Null), "result", &["not_required", "passed", "failed", "pending"][..]),
-        (input.get("requalification").unwrap_or(&Value::Null), "evidence_state", &["current", "stale", "unknown"][..]),
-        (input.get("requalification").unwrap_or(&Value::Null), "result", &["passed", "failed", "pending"][..]),
-        (input.get("reassembly").unwrap_or(&Value::Null), "evidence_state", &["current", "stale", "unknown"][..]),
-        (resources, "evidence_state", &["current", "stale", "unknown"][..]),
+        (
+            tool,
+            "calibration_state",
+            &["current", "stale", "unknown"][..],
+        ),
+        (
+            connection,
+            "sequence_state",
+            &["current", "stale", "unknown"][..],
+        ),
+        (
+            connection,
+            "access_state",
+            &["clear", "occluded", "blocked"][..],
+        ),
+        (
+            connection,
+            "release_process_state",
+            &["qualified", "unknown", "unqualified"][..],
+        ),
+        (
+            component,
+            "condition_evidence_state",
+            &["current", "stale", "unknown"][..],
+        ),
+        (
+            input.get("repair").unwrap_or(&Value::Null),
+            "evidence_state",
+            &["current", "stale", "unknown"][..],
+        ),
+        (
+            input.get("repair").unwrap_or(&Value::Null),
+            "process_state",
+            &["not_required", "qualified", "unknown", "unqualified"][..],
+        ),
+        (
+            input.get("repair").unwrap_or(&Value::Null),
+            "result",
+            &["not_required", "passed", "failed", "pending"][..],
+        ),
+        (
+            input.get("requalification").unwrap_or(&Value::Null),
+            "evidence_state",
+            &["current", "stale", "unknown"][..],
+        ),
+        (
+            input.get("requalification").unwrap_or(&Value::Null),
+            "result",
+            &["passed", "failed", "pending"][..],
+        ),
+        (
+            input.get("reassembly").unwrap_or(&Value::Null),
+            "evidence_state",
+            &["current", "stale", "unknown"][..],
+        ),
+        (
+            resources,
+            "evidence_state",
+            &["current", "stale", "unknown"][..],
+        ),
     ];
     for (value, key, allowed) in state_fields {
         if !allowed.contains(&text(value, key)) {
             errors.insert(format!("STATE_FIELD_UNSUPPORTED:{key}"));
         }
     }
-    if errors.is_empty() { Ok(()) } else { Err(errors) }
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(errors)
+    }
 }
 
 /// Recompute one synthetic episode from input facts only. The expected output
@@ -186,13 +242,24 @@ pub fn evaluate_case(case: &Value) -> Value {
     ) {
         component_state = "Rejected";
         reasons.insert("COMPONENT_CONDITION_FAILED".to_owned());
-    } else if component.get("single_use").and_then(Value::as_bool).unwrap_or(false)
-        && component.get("intended_reuse").and_then(Value::as_bool).unwrap_or(false)
+    } else if component
+        .get("single_use")
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
+        && component
+            .get("intended_reuse")
+            .and_then(Value::as_bool)
+            .unwrap_or(false)
     {
         component_state = "Rejected";
         reasons.insert("SINGLE_USE_COMPONENT_REUSE_PROHIBITED".to_owned());
-    } else if repair.get("required").and_then(Value::as_bool).unwrap_or(false) {
-        if text(repair, "evidence_state") != "current" || text(repair, "process_state") == "unknown" {
+    } else if repair
+        .get("required")
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
+    {
+        if text(repair, "evidence_state") != "current" || text(repair, "process_state") == "unknown"
+        {
             component_state = "Unknown";
             reasons.insert("REPAIR_PROCESS_EVIDENCE_UNKNOWN".to_owned());
         } else if text(repair, "process_state") != "qualified" {
@@ -309,7 +376,8 @@ fn equivalent(actual: &Value, expected: &Value) -> bool {
         (Value::Object(left), Value::Object(right)) => {
             left.len() == right.len()
                 && right.iter().all(|(key, value)| {
-                    left.get(key).is_some_and(|actual| equivalent(actual, value))
+                    left.get(key)
+                        .is_some_and(|actual| equivalent(actual, value))
                 })
         }
         _ => actual == expected,
@@ -319,7 +387,9 @@ fn equivalent(actual: &Value, expected: &Value) -> bool {
 pub fn matches_expected(actual: &Value, expected: &Value) -> bool {
     expected.as_object().is_some_and(|fields| {
         fields.iter().all(|(key, value)| {
-            actual.get(key).is_some_and(|actual| equivalent(actual, value))
+            actual
+                .get(key)
+                .is_some_and(|actual| equivalent(actual, value))
         })
     })
 }
@@ -355,7 +425,10 @@ mod tests {
         assert_eq!(c["corpus_id"], "PANEL-DISASSEMBLY-CORPUS-V0.1");
         let cases = c["cases"].as_array().unwrap();
         assert_eq!(cases.len(), 24);
-        let ids = cases.iter().map(|x| x["case_id"].as_str().unwrap().to_owned()).collect::<BTreeSet<_>>();
+        let ids = cases
+            .iter()
+            .map(|x| x["case_id"].as_str().unwrap().to_owned())
+            .collect::<BTreeSet<_>>();
         assert_eq!(ids.len(), cases.len());
     }
 
@@ -375,10 +448,18 @@ mod tests {
 
     #[test]
     fn unknown_or_wrong_identity_never_becomes_reusable() {
-        for id in ["PD-002", "PD-008", "PD-012", "PD-013", "PD-016", "PD-021", "PD-022"] {
-            assert_ne!(evaluate_case(&case(id))["final_state"], "AcceptedReusableAssembly");
+        for id in [
+            "PD-002", "PD-008", "PD-012", "PD-013", "PD-016", "PD-021", "PD-022",
+        ] {
+            assert_ne!(
+                evaluate_case(&case(id))["final_state"],
+                "AcceptedReusableAssembly"
+            );
         }
-        assert_eq!(evaluate_case(&case("PD-011"))["final_state"], "NotComparable");
+        assert_eq!(
+            evaluate_case(&case("PD-011"))["final_state"],
+            "NotComparable"
+        );
     }
 
     #[test]
@@ -398,7 +479,10 @@ mod tests {
     #[test]
     fn repair_requalification_and_reassembly_are_distinct() {
         assert_eq!(evaluate_case(&case("PD-018"))["final_state"], "Unknown");
-        assert_eq!(evaluate_case(&case("PD-019"))["final_state"], "AcceptedReusableAssembly");
+        assert_eq!(
+            evaluate_case(&case("PD-019"))["final_state"],
+            "AcceptedReusableAssembly"
+        );
         assert_eq!(evaluate_case(&case("PD-021"))["reassembly"], "Unknown");
         assert_eq!(evaluate_case(&case("PD-022"))["reassembly"], "Unknown");
     }
@@ -414,7 +498,10 @@ mod tests {
     fn resource_claim_permutation_does_not_change_result() {
         let mut item = case("PD-024");
         let baseline = evaluate_case(&item);
-        item["input"]["shared_resources"]["claims"].as_array_mut().unwrap().reverse();
+        item["input"]["shared_resources"]["claims"]
+            .as_array_mut()
+            .unwrap()
+            .reverse();
         assert_eq!(baseline, evaluate_case(&item));
     }
 }
