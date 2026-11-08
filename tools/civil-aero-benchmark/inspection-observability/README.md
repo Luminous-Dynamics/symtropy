@@ -20,14 +20,21 @@ Two research directions are now actionable:
 
 - `inspection-observability-corpus-v0.1.json`: 12 synthetic known-answer cases.
 - `inspection-observability-corpus-v0.1.schema.json`: JSON Schema draft 2020-12 format for the case contract.
-- `verify_independent.py`: independent standard-library policy oracle and eight hostile mutations.
-- `.github/workflows/aero-inspection-observability.yml`: exact-head replay, SHA-256 receipts and retained result bundle.
+- `Cargo.toml` / `src/main.rs`: Rust-first typed policy evaluator, schema/invariant validation and deterministic result JSON.
+- `verify_independent.py`: independent standard-library Python oracle with eight hostile mutations and Rust/Python result comparison.
+- `.github/workflows/aero-inspection-observability.yml`: exact-head Rust tests, independent replay, SHA-256 receipts and retained result bundle.
 
 Run:
 
 ~~~sh
-python3 tools/civil-aero-benchmark/inspection-observability/verify_independent.py
+cargo fmt --manifest-path tools/civil-aero-benchmark/inspection-observability/Cargo.toml -- --check
+cargo test --manifest-path tools/civil-aero-benchmark/inspection-observability/Cargo.toml
+cargo run --quiet --manifest-path tools/civil-aero-benchmark/inspection-observability/Cargo.toml > /tmp/inspection-observability-rust.json
+python3 tools/civil-aero-benchmark/inspection-observability/verify_independent.py \
+  --rust-output /tmp/inspection-observability-rust.json
 ~~~
+
+The Rust evaluator is the implementation under test. The separate Python standard-library evaluator independently recomputes all twelve decisions and checks the Rust corpus hash, disposition map and claim ceiling. Neither implementation estimates NDE detectability, physical POD, sensor reliability probabilities or aircraft structural safety.
 
 The verifier is deliberately a small state/identity/coverage policy oracle. It confirms that:
 - stale geometry and wrong coordinate frames are rejected;
