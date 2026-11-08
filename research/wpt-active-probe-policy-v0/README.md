@@ -38,7 +38,7 @@ Worst-case energy is 23 synthetic µJ and latency is 8 synthetic µs. The best a
 
 Three unique-pose actions are deliberately unsafe and must be excluded: ripple violation, insufficient ZVS margin and excessive service disturbance.
 
-The test corpus also includes a set-valued noisy case where the first probe leaves an overlapping pair of pose hypotheses for one observation bin; a second probe resolves them. This demonstrates robust hypothesis-set propagation, not a probabilistic noise model.
+The test corpus also includes a set-valued noisy case where the first probe leaves an overlapping pair of pose hypotheses for one observation bin; a second probe resolves them. The parser rejects empty support sets and duplicate bins. This demonstrates robust bounded-support hypothesis propagation, not a probability distribution or calibrated stochastic noise model.
 
 These values and output supports are entirely synthetic. Synthetic µJ/µs values are not measured physical quantities and do not imply a realizable excitation waveform.
 
