@@ -1,0 +1,30 @@
+{
+ "$schema":"https://json-schema.org/draft/2020-12/schema",
+ "$id":"https://github.com/Luminous-Dynamics/symtropy/blob/main/research/groundairbench-v0/episode.schema.json",
+ "title":"GroundAirBench episode manifest v0","type":"object","additionalProperties":false,
+ "required":["schema_version","episode_id","record_state","evidence_class","partition","scenario","inputs_sha256","policy","required_receipts","metric_contracts","expected_session_state","claim_ceiling"],
+ "properties":{
+  "schema_version":{"const":"groundairbench-episode-v0"},
+  "episode_id":{"type":"string","minLength":1},
+  "record_state":{"enum":["NOT_RUN","FIXTURE"]},
+  "evidence_class":{"enum":["NOT_RUN","SYNTHETIC"]},
+  "partition":{"enum":["UNASSIGNED","TRAIN","VALIDATION","TEST"]},
+  "scenario":{"anyOf":[{"type":"null"},{"$ref":"#/$defs/scenario"}]},
+  "inputs_sha256":{"type":["string","null"],"pattern":"^[a-f0-9]{64}$"},
+  "policy":{"anyOf":[{"type":"null"},{"$ref":"#/$defs/policy"}]},
+  "required_receipts":{"type":"array","items":{"$ref":"#/$defs/receipt"}},
+  "metric_contracts":{"type":"array","items":{"$ref":"#/$defs/metric"}},
+  "expected_session_state":{"enum":["NOT_ADMITTED","SYNTHETIC_ONLY_NO_POWER"]},
+  "claim_ceiling":{"type":"string","minLength":1}
+ },
+ "$defs":{
+  "scenario":{"type":"object","additionalProperties":false,"required":["bearer","motion","environment_tags"],"properties":{"bearer":{"enum":["IPT","CPT","RF_MICROWAVE","OPTICAL","CONDUCTIVE","TETHER","BATTERY_EXCHANGE"]},"motion":{"enum":["DOCKED","HOVER","TRANSLATING","CLIMB_DESCENT","DYNAMIC_FLIGHT","DEPARTURE_REACQUISITION"]},"environment_tags":{"type":"array","minItems":1,"uniqueItems":true,"items":{"type":"string","minLength":1}}}},
+  "policy":{"type":"object","additionalProperties":false,"required":["policy_id","revision","artifact_sha256","baseline_family"],"properties":{"policy_id":{"type":"string","minLength":1},"revision":{"type":"string","minLength":1},"artifact_sha256":{"type":"string","pattern":"^[a-f0-9]{64}$"},"baseline_family":{"type":"string","minLength":1}}},
+  "receipt":{"type":"object","additionalProperties":false,"required":["owner","receipt_id","sha256","evidence_class","disposition","claim_ceiling"],"properties":{"owner":{"enum":["SOURCE_CATALOGUE","PHYSICAL_SUPPORT","OBSERVABILITY","SESSION_LIFECYCLE","SITE_CAPACITY","ENERGY_METROLOGY","STANDARDS_APPLICABILITY"]},"receipt_id":{"type":"string","minLength":1},"sha256":{"type":"string","pattern":"^[a-f0-9]{64}$"},"evidence_class":{"const":"SYNTHETIC"},"disposition":{"enum":["PASS","AMBIGUOUS","UNKNOWN","NOT_RUN","NOT_ADMITTED","OUT_OF_DOMAIN","NOT_APPLICABLE"]},"claim_ceiling":{"type":"string","minLength":1},"signal_strength_proxy_uw":{"type":"integer","minimum":0}}},
+  "metric":{"type":"object","additionalProperties":false,"required":["metric_id","boundary_id","unit","aggregation"],"properties":{"metric_id":{"type":"string","minLength":1},"boundary_id":{"enum":["SOURCE_TO_BATTERY","DC_TO_DC","POSE_OBSERVABILITY","MISSION_SERVICE","SITE_POWER","SESSION_RELIABILITY"]},"unit":{"enum":["Wh","W","ratio","mm","ms","count"]},"aggregation":{"enum":["NONE","SUM","MEAN","MIN","MAX","P50","P95","P99"]}}}
+ },
+ "allOf":[
+  {"if":{"properties":{"record_state":{"const":"NOT_RUN"}}},"then":{"properties":{"episode_id":{"const":"NOT_RUN"},"evidence_class":{"const":"NOT_RUN"},"partition":{"const":"UNASSIGNED"},"scenario":{"type":"null"},"inputs_sha256":{"type":"null"},"policy":{"type":"null"},"required_receipts":{"maxItems":0},"metric_contracts":{"maxItems":0},"expected_session_state":{"const":"NOT_ADMITTED"}}},
+  {"if":{"properties":{"record_state":{"const":"FIXTURE"}}},"then":{"properties":{"evidence_class":{"const":"SYNTHETIC"},"partition":{"enum":["TRAIN","VALIDATION","TEST"]},"scenario":{"$ref":"#/$defs/scenario"},"inputs_sha256":{"type":"string","pattern":"^[a-f0-9]{64}$"},"policy":{"$ref":"#/$defs/policy"},"required_receipts":{"minItems":7,"maxItems":7},"metric_contracts":{"minItems":1}}}
+ ]
+}
