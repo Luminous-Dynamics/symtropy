@@ -92,6 +92,17 @@ impl SourceHistory {
     /// Adjacent segments may share an endpoint. At the shared endpoint the
     /// earlier segment is inactive and the later segment is active.
     pub fn new(segments: Vec<SourceSegment>) -> Result<Self, SourceError> {
+        for segment in &segments {
+            if !segment.start.is_finite()
+                || !segment.end.is_finite()
+                || !finite(segment.amplitude)
+            {
+                return Err(SourceError::NonFiniteInput);
+            }
+            if segment.start >= segment.end {
+                return Err(SourceError::InvalidSegment);
+            }
+        }
         for pair in segments.windows(2) {
             if pair[1].start < pair[0].end {
                 return Err(SourceError::OverlappingOrUnsortedSegments);
@@ -343,6 +354,14 @@ mod tests {
                 segment(1.0, 3.0, z(1.0, 0.0)),
             ]),
             Err(SourceError::OverlappingOrUnsortedSegments)
+        );
+        assert_eq!(
+            SourceHistory::new(vec![SourceSegment {
+                start: f64::NAN,
+                end: 1.0,
+                amplitude: z(1.0, 0.0),
+            }]),
+            Err(SourceError::NonFiniteInput)
         );
         assert_eq!(
             SourceHistory::new(vec![
