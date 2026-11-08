@@ -263,7 +263,7 @@ pub fn audit_delivery_receipt(
         }
     }
 
-    if receipt.required_gate_ids.as_slice() != REQUIRED_GATE_IDS {
+    if receipt.required_gate_ids.as_slice() != &REQUIRED_GATE_IDS[..] {
         return Err("required_gate_ids must equal the nine canonical gate identities in order".to_owned());
     }
     if receipt.gates.len() != REQUIRED_GATE_IDS.len() {
@@ -451,7 +451,9 @@ fn validate_gate_subjects(gate: &Gate, receipt: &DeliveryReceipt) -> Result<(), 
         }
     }
 
-    if gate.status == GateStatus::NotRun {
+    if gate.status == GateStatus::NotRun
+        || (gate.status == GateStatus::Unresolved && gate.producer.is_none())
+    {
         return Ok(());
     }
 
@@ -647,11 +649,14 @@ mod tests {
     fn all_pass_receipt() -> Value {
         let mut value = case_report("all_gates_not_run");
         value["ids_requirements"] = json!({
-            "sha256": "a".repeat(64),
+            "sha256": ids_digest,
             "standard_version": "1.0",
             "requirement_revision": "synthetic-ids-v0.1"
         });
 
+        let ifc_digest = value["ifc"]["sha256"].as_str().expect("IFC digest").to_owned();
+        let graph_digest = value["element_graph"]["sha256"].as_str().expect("graph digest").to_owned();
+        let ids_digest = "a".repeat(64);
         let gate_ids = [
             ("artifact_integrity", vec!["ifc_output", "element_graph"]),
             ("step_parse", vec!["ifc_output"]),
@@ -680,9 +685,9 @@ mod tests {
             let mut subjects = Vec::new();
             for (subject_index, role) in roles.into_iter().enumerate() {
                 let digest = match role {
-                    "ifc_output" => value["ifc"]["sha256"].as_str().expect("IFC digest").to_owned(),
-                    "element_graph" => value["element_graph"]["sha256"].as_str().expect("graph digest").to_owned(),
-                    "ids_requirements" => value["ids_requirements"]["sha256"].as_str().expect("IDS digest").to_owned(),
+                    "ifc_output" => ifc_digest.clone(),
+                    "element_graph" => graph_digest.clone(),
+                    "ids_requirements" => ids_digest.clone(),
                     "round_trip_output" => "d".repeat(64),
                     _ => unreachable!("known fixture role"),
                 };
