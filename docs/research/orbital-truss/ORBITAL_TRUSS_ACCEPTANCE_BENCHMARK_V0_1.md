@@ -197,6 +197,9 @@ Targets, not achieved results:
 
 A passing software suite does not promote a structure to hardware or flight qualification.
 
+
+A risk-scaled credibility approach should set the required VVUQ depth according to **model influence × decision consequence**, while keeping the domain authority and acceptance rule explicit. A low-consequence exploratory ranking and a critical structural acceptance decision must not inherit the same evidence burden merely because they use the same software.
+
 ## 11. Review questions
 
 1. Does each case distinguish measured, inferred, simulated, missing and unobserved information?
@@ -209,6 +212,7 @@ A passing software suite does not promote a structure to hardware or flight qual
 ## References
 
 - NASA-STD-7009B and NASA-HDBK-7009B: model/simulation credibility and context of use. https://standards.nasa.gov/node/263 and https://standards.nasa.gov/standard/NASA/NASA-HDBK-7009
+- NIST AMS 100-85 (5 October 2026), *On Methods of Uncertainty Quantification in Computational Modeling and Simulation: Harmonizing Modeling and Metrology Practices*: risk-proportional credibility assessment linking ASME VVUQ with JCGM metrology. https://doi.org/10.6028/NIST.AMS.100-85
 - ASME V&V 10-2019: computational solid mechanics; ASME VVUQ 20.1-2024: multivariate validation metrics. https://www.asme.org/codes-standards/publications-information/verification-validation-uncertainty
 - NAFEMS verification resources and SOFiSTiK verification catalog may be admitted only after exact case equivalence and licensing are checked.
 
