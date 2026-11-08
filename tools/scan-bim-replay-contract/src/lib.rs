@@ -1047,11 +1047,19 @@ pub fn audit_manifest_bytes(bytes: &[u8]) -> Result<ReplayAuditReport, String> {
         serde_json::from_slice(bytes).map_err(|error| format!("invalid manifest JSON: {error}"))?;
     validate_manifest(&manifest)?;
 
-    let candidate_artifact_count = manifest
+    let candidate_input_count: usize = manifest
         .scenes
         .iter()
         .map(|scene| scene.candidate_inputs.len())
         .sum();
+    let candidate_output_count: usize = manifest
+        .scenes
+        .iter()
+        .map(|scene| scene.candidate_outputs.len())
+        .sum();
+    let candidate_pipeline_artifact_count = 3;
+    let candidate_artifact_count =
+        candidate_input_count + candidate_output_count + candidate_pipeline_artifact_count;
     let evaluator_artifact_count = manifest
         .scenes
         .iter()
@@ -1060,17 +1068,80 @@ pub fn audit_manifest_bytes(bytes: &[u8]) -> Result<ReplayAuditReport, String> {
     let scenes = manifest.scenes.iter().map(summarize_scene).collect();
     let digest = Sha256::digest(bytes);
     let manifest_sha256 = digest.iter().map(|byte| format!("{byte:02x}")).collect();
+    let command_bytes = serde_json::to_vec(&manifest.candidate_pipeline.command_argv)
+        .map_err(|error| format!("candidate command serialization failed: {error}"))?;
+    let command_digest = Sha256::digest(command_bytes);
+    let candidate_command_sha256 = command_digest
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect();
+
+    let coordinate = &manifest.evaluation_profile.coordinate_reference;
+    let coordinate_axis_order = match coordinate.axis_order {
+        AxisOrder::EastNorthUp => "east_north_up",
+        AxisOrder::NorthEastUp => "north_east_up",
+        AxisOrder::Xyz => "xyz",
+    };
+    let coordinate_linear_unit = match coordinate.linear_unit {
+        LinearUnit::Metre => "metre",
+        LinearUnit::Millimetre => "millimetre",
+        LinearUnit::InternationalFoot => "international_foot",
+        LinearUnit::UsSurveyFoot => "us_survey_foot",
+    };
+    let metric = &manifest.evaluation_profile.metric_definition;
+    let scenes = scenes;
 
     Ok(ReplayAuditReport {
         schema_version: manifest.schema_version,
         replay_id: manifest.replay_id,
         dataset_id: manifest.dataset.dataset_id,
         manifest_sha256,
+        candidate_run_id: manifest.candidate_pipeline.run_id,
+        candidate_source_commit: manifest.candidate_pipeline.source_commit,
+        candidate_toolchain_id: manifest.candidate_pipeline.toolchain_id,
+        candidate_command_sha256,
+        candidate_build_sha256: manifest.candidate_pipeline.build_artifact.sha256,
+        candidate_model_sha256: manifest.candidate_pipeline.model_artifact.sha256,
+        candidate_configuration_sha256: manifest.candidate_pipeline.configuration_artifact.sha256,
+        coordinate_frame_id: coordinate.frame_id.clone(),
+        coordinate_crs_id: coordinate.crs_id.clone(),
+        coordinate_axis_order: coordinate_axis_order.to_owned(),
+        coordinate_linear_unit: coordinate_linear_unit.to_owned(),
+        metres_per_unit: coordinate.metres_per_unit,
+        tolerance_profile_id: manifest.evaluation_profile.tolerances.profile_id.clone(),
+        surface_distance_cutoff_m: manifest
+            .evaluation_profile
+            .tolerances
+            .surface_distance_cutoff_m,
+        surface_intersection_buffer_m: manifest
+            .evaluation_profile
+            .tolerances
+            .surface_intersection_buffer_m,
+        reference_surface_spacing_m: manifest
+            .evaluation_profile
+            .sampling
+            .reference_surface_spacing_m,
+        candidate_surface_spacing_m: manifest
+            .evaluation_profile
+            .sampling
+            .candidate_surface_spacing_m,
+        point_cloud_voxel_size_m: manifest
+            .evaluation_profile
+            .sampling
+            .point_cloud_voxel_size_m,
+        sampling_random_seed: manifest.evaluation_profile.sampling.random_seed,
+        metric_suite_id: metric.suite_id.clone(),
+        metric_suite_version: metric.version.clone(),
+        metric_accuracy_direction: "reference_to_candidate".to_owned(),
+        metric_buffer_distances_m: metric.buffer_distances_m.clone(),
+        metric_distance_cutoff_distances_m: metric.distance_cutoff_distances_m.clone(),
         scene_count: manifest.scenes.len(),
         candidate_artifact_count,
+        candidate_pipeline_artifact_count,
+        candidate_output_count,
         evaluator_artifact_count,
         scenes,
-        claim_ceiling: "METADATA_AND_VISIBILITY_ACCOUNTING_ONLY; no geometry reconstruction, official ISPRS scoring, OS sandboxing, or proof of organizational evaluator independence",
+        claim_ceiling: "DECLARED_PIPELINE_AND_EVALUATION_PROFILE_PLUS_LOCAL_ARTIFACT_INTEGRITY_AND_VISIBILITY_ACCOUNTING; no candidate execution, geometric scoring, visibility raycasting, OS sandbox, or proof of independent evaluator custody",
     })
 }
 
