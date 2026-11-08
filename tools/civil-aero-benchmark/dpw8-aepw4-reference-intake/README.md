@@ -18,20 +18,16 @@ The DPW-8 test matrix defines required Verification 1a for the ONERA OAT15A airf
 
 The NASA-hosted OAT15A experimental directory lists a 207 KB archive. Its archive contents have not yet been inspected. AIAA states ONERA retains intellectual property in the geometry and specifies attribution conditions; the supporting paper is separately restricted to personal use and may not be reposted or redistributed. Public download does not imply a redistribution licence.
 
-### 2. The CRM Test Case 2a(E) static-FSI case is a concrete coupling benchmark
+### 2. Keep rigid-CFD and elastic-FSI cases separate
 
-The AIAA static-deformation case sheet specifies:
+The current DPW-8 Test Cases page defines **rigid Configuration B** at Mach 0.85, chord Reynolds number 5 million and 100°F (310.928 K). Its rigid 2a case is a six-grid convergence study at alpha=2.50 degrees. Its rigid 2b sweep uses alpha=[-1.50, 2.50, 2.75, 3.00, 3.25, 3.50, 3.75, 4.00, 4.25] degrees with grid level 3 or 4.
 
-- CRM wing/body, initialized from jig/unloaded (wind-off) geometry/grid;
-- Mach 0.85, Reynolds number 5 million;
-- dynamic pressure 1,384 psf;
-- target lift coefficient 0.5000 ± 0.0001 (approximately 2.75 degrees angle of attack);
-- static temperature 322.04 K;
-- six grid levels, L1 Tiny through L6 Ultra-fine;
-- forces/moments, sectional twist/deformation, sectional pressure coefficient, and separate flow/structural residuals;
-- six normalized span stations: 0, 0.4286, 0.5546, 0.6773, 0.7954, 0.9150.
+The separate AIAA Static Deformation Working Group PDF defines the **elastic FSI** cases at 120°F (322.04 K), not 100°F:
 
-Test Case 2b(E) defines a static-FSI polar at the same Mach/Reynolds/dynamic-pressure reference, with angles -1.50, 0, 1.50, 2.50, 3.00, 3.50, 4.00 and 4.50 degrees.
+- **2a(E), Wing/Body Cruise:** Mach 0.85, Reynolds number 5 million, dynamic pressure 1,384 psf, alpha=2.50 degrees, 120°F, grid levels 1–6. The PDF describes committee-supplied NASA CRM geometry including a deformed-wing matching condition. The current DPW-8 test page separately says initialise CFD/FEM from jig “as-built” geometry/grid. Preserve this source-detail discrepancy and reconcile the exact geometry artifact/revision before admission.
+- **2b(E), Wing/Body Polar:** Mach 0.85, Reynolds number 5 million, dynamic pressure 1,384 psf, alpha=[-1.50, 2.50, 3.00, 3.50, 4.00, 4.50] degrees, 120°F, grid level 3. The PDF describes NASA CRM geometry in jig/unloaded condition; the current DPW-8 page says jig “as-built” geometry/grid. Reconcile exact geometry revision before admission.
+
+The static-FSI PDF lists comparison data from NTF197, NTF215, NTF229, ETW ESWIRP and Ames216, and comparison metrics including forces/moments, sectional Cp and separate flow/structural residuals. Do not import the rigid-CFD nine-point alpha schedule into the elastic 2b(E) polar.
 
 The workshop data-submission page defines Tecplot-readable ASCII templates, includes bending/twist deformation output, notes that template version 3 normalizes deflection by reference semi-span, and specifies -999 for optional data not submitted. The actual template must be fetched and parsed before an importer is implemented; do not infer columns from this summary.
 
