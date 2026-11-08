@@ -432,7 +432,9 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
             .bytes()
             .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
     {
-        return Err("candidate source_commit_sha must be 40 lowercase hexadecimal characters".to_owned());
+        return Err(
+            "candidate source_commit_sha must be 40 lowercase hexadecimal characters".to_owned(),
+        );
     }
     if run.command.is_empty() || run.command.iter().any(|part| !valid_identifier(part)) {
         return Err("candidate command must contain non-empty arguments".to_owned());
@@ -464,7 +466,10 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
     match manifest.sampling_profile.normalization {
         NormalizationMode::PartialInputOnly | NormalizationMode::CandidateBoundsOnly => {}
         NormalizationMode::ReferenceDerivedFullBounds => {
-            return Err("reference-derived full-object bounds are forbidden in candidate normalization".to_owned());
+            return Err(
+                "reference-derived full-object bounds are forbidden in candidate normalization"
+                    .to_owned(),
+            );
         }
     }
     if !valid_identifier(&manifest.metric_profile.suite_id)
@@ -474,7 +479,9 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
         || !manifest.metric_profile.accuracy_cutoff_m.is_finite()
         || manifest.metric_profile.accuracy_cutoff_m <= 0.0
     {
-        return Err("metric profile must declare a version and finite positive metre thresholds".to_owned());
+        return Err(
+            "metric profile must declare a version and finite positive metre thresholds".to_owned(),
+        );
     }
     if manifest.metric_profile.suite_id == "isprs_indoor_modelling_wall"
         && (manifest.metric_profile.scope != MetricScope::WallOnly
@@ -509,10 +516,12 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
             CandidateInputRole::CandidateExecutable => has_executable = true,
             CandidateInputRole::CandidateConfiguration => has_configuration = true,
             CandidateInputRole::ModelWeights => has_model = true,
-            _ => return Err(format!(
-                "candidate runtime artifact {} has a non-runtime role",
-                artifact.artifact_id
-            )),
+            _ => {
+                return Err(format!(
+                    "candidate runtime artifact {} has a non-runtime role",
+                    artifact.artifact_id
+                ));
+            }
         }
     }
     let executable = manifest
@@ -520,7 +529,8 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
         .iter()
         .find(|artifact| artifact.artifact_id == run.executable_artifact_id);
     if !has_executable
-        || executable.is_none_or(|artifact| artifact.role != CandidateInputRole::CandidateExecutable)
+        || executable
+            .is_none_or(|artifact| artifact.role != CandidateInputRole::CandidateExecutable)
     {
         return Err("candidate executable_artifact_id must reference a candidate_executable runtime artifact".to_owned());
     }
@@ -529,7 +539,8 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
         .iter()
         .find(|artifact| artifact.artifact_id == run.configuration_artifact_id);
     if !has_configuration
-        || configuration.is_none_or(|artifact| artifact.role != CandidateInputRole::CandidateConfiguration)
+        || configuration
+            .is_none_or(|artifact| artifact.role != CandidateInputRole::CandidateConfiguration)
     {
         return Err("candidate configuration_artifact_id must reference a candidate_configuration runtime artifact".to_owned());
     }
@@ -540,7 +551,10 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
                     && artifact.role == CandidateInputRole::ModelWeights
             })
         {
-            return Err("candidate model_artifact_id must reference a model_weights runtime artifact".to_owned());
+            return Err(
+                "candidate model_artifact_id must reference a model_weights runtime artifact"
+                    .to_owned(),
+            );
         }
     } else if has_model {
         return Err("unreferenced model_weights runtime artifact is not permitted".to_owned());
@@ -575,7 +589,10 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
     let mut evaluator_digests = BTreeSet::new();
     for artifact in &manifest.candidate_runtime_artifacts {
         if !candidate_ids.insert(artifact.artifact_id.as_str()) {
-            return Err(format!("duplicate candidate artifact_id: {}", artifact.artifact_id));
+            return Err(format!(
+                "duplicate candidate artifact_id: {}",
+                artifact.artifact_id
+            ));
         }
         candidate_digests.insert(artifact.sha256.as_str());
     }
@@ -1318,11 +1335,9 @@ mod tests {
     #[test]
     fn rejects_candidate_to_reference_accuracy_for_official_isprs_profile() {
         let mut value = isprs_pair_fixture();
-        value["metric_profile"]["suite_id"] =
-            serde_json::json!("isprs_indoor_modelling_wall");
+        value["metric_profile"]["suite_id"] = serde_json::json!("isprs_indoor_modelling_wall");
         value["metric_profile"]["scope"] = serde_json::json!("wall_only");
-        value["metric_profile"]["accuracy_direction"] =
-            serde_json::json!("candidate_to_reference");
+        value["metric_profile"]["accuracy_direction"] = serde_json::json!("candidate_to_reference");
         let error = audit(&value).expect_err("official direction is reference-to-candidate");
         assert!(error.contains("reference_to_candidate accuracy"));
     }
@@ -1333,8 +1348,7 @@ mod tests {
         value["metric_profile"]["suite_id"] =
             serde_json::json!("isprs_indoor_modelling_wall");
         value["metric_profile"]["scope"] = serde_json::json!("wall_only");
-        value["metric_profile"]["accuracy_direction"] =
-            serde_json::json!("reference_to_candidate");
+        value["metric_profile"]["accuracy_direction"] = serde_json::json!("reference_to_candidate");
         let report = audit(&value).expect("official profile direction and wall scope are valid");
         assert_eq!(report.metric_suite_id, "isprs_indoor_modelling_wall");
     }
