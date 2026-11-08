@@ -323,7 +323,10 @@ pub fn sample_observable_surfaces(
             ));
         }
         let _ = triangle_area_m2(triangle.a, triangle.b, triangle.c)?;
-        grouped.entry(triangle.surface_id.clone()).or_default().push(triangle);
+        grouped
+            .entry(triangle.surface_id.clone())
+            .or_default()
+            .push(triangle);
     }
 
     let mut all_samples = Vec::new();
@@ -342,7 +345,9 @@ pub fn sample_observable_surfaces(
             if triangle.visibility == SurfaceVisibility::Observable {
                 observable_area_m2 += area_m2;
                 if !observable_area_m2.is_finite() {
-                    return Err(format!("observable area overflowed for surface {surface_id}"));
+                    return Err(format!(
+                        "observable area overflowed for surface {surface_id}"
+                    ));
                 }
                 observable.push((
                     triangle.triangle_id.clone(),
@@ -367,7 +372,10 @@ pub fn sample_observable_surfaces(
                 area_m2: *area_m2,
             })
             .collect();
-        let excluded_area_m2: f64 = excluded_by_visibility.iter().map(|entry| entry.area_m2).sum();
+        let excluded_area_m2: f64 = excluded_by_visibility
+            .iter()
+            .map(|entry| entry.area_m2)
+            .sum();
         if !excluded_area_m2.is_finite() {
             return Err(format!("excluded area overflowed for surface {surface_id}"));
         }
@@ -391,7 +399,9 @@ pub fn sample_observable_surfaces(
             observable_area_m2 / sample_count as f64
         };
         if sample_count > 0 && (!represented_area_m2.is_finite() || represented_area_m2 <= 0.0) {
-            return Err(format!("invalid represented area weight for surface {surface_id}"));
+            return Err(format!(
+                "invalid represented area weight for surface {surface_id}"
+            ));
         }
 
         let mut cumulative = 0.0;
@@ -399,7 +409,9 @@ pub fn sample_observable_surfaces(
         for (triangle_id, a, b, c, area_m2) in observable {
             cumulative += area_m2;
             if !cumulative.is_finite() {
-                return Err(format!("triangle area accumulation overflowed for {surface_id}"));
+                return Err(format!(
+                    "triangle area accumulation overflowed for {surface_id}"
+                ));
             }
             prepared.push(PreparedTriangle {
                 triangle_id,
@@ -410,7 +422,9 @@ pub fn sample_observable_surfaces(
             });
         }
         if sample_count > 0 && prepared.is_empty() {
-            return Err(format!("positive observable area has no triangles for {surface_id}"));
+            return Err(format!(
+                "positive observable area has no triangles for {surface_id}"
+            ));
         }
 
         let scramble = surface_scramble(profile.seed, &surface_id);
@@ -437,7 +451,9 @@ pub fn sample_observable_surfaces(
         let represented_total = represented_area_m2 * sample_count as f64;
         let tolerance = observable_area_m2.abs().max(1.0) * 1.0e-12;
         if (represented_total - observable_area_m2).abs() > tolerance {
-            return Err(format!("sample weights do not conserve area for {surface_id}"));
+            return Err(format!(
+                "sample weights do not conserve area for {surface_id}"
+            ));
         }
 
         surface_summaries.push(SurfaceSamplingSummary {
@@ -471,7 +487,6 @@ pub fn sample_observable_surfaces(
         samples: all_samples,
     })
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -570,11 +585,9 @@ mod tests {
     fn triangle_input_permutation_does_not_change_the_ordered_receipt() {
         let mut input = square("WALL", "wall", 1.0, SurfaceVisibility::Observable);
         input.extend(square("FLOOR", "floor", 2.0, SurfaceVisibility::Observable));
-        let first =
-            sample_observable_surfaces(&input, profile(0.1, 4)).expect("first receipt");
+        let first = sample_observable_surfaces(&input, profile(0.1, 4)).expect("first receipt");
         input.reverse();
-        let second =
-            sample_observable_surfaces(&input, profile(0.1, 4)).expect("second receipt");
+        let second = sample_observable_surfaces(&input, profile(0.1, 4)).expect("second receipt");
         assert_eq!(first, second);
     }
 
@@ -612,7 +625,12 @@ mod tests {
             receipt.surfaces[0].excluded_by_visibility[0].visibility,
             SurfaceVisibility::ExternallyOccluded
         );
-        assert!(receipt.samples.iter().all(|sample| sample.triangle_id.starts_with("visible-")));
+        assert!(
+            receipt
+                .samples
+                .iter()
+                .all(|sample| sample.triangle_id.starts_with("visible-"))
+        );
     }
 
     #[test]
@@ -693,8 +711,8 @@ mod tests {
         assert!(error.contains("target_spacing_m"));
         let mut zero_budget = profile(0.1, 1);
         zero_budget.max_samples = 0;
-        let error = sample_observable_surfaces(&input, zero_budget)
-            .expect_err("zero budget is invalid");
+        let error =
+            sample_observable_surfaces(&input, zero_budget).expect_err("zero budget is invalid");
         assert!(error.contains("max_samples"));
     }
 }
