@@ -346,9 +346,7 @@ pub fn evaluate_normal_residual_uncertainty(
         }
         CorrelationEvidence::IndependenceAttested { attestation_sha256 } => {
             if !digest_is_lowercase_sha256(attestation_sha256) {
-                return Err(
-                    "independence attestation digest must be lowercase SHA-256".to_owned(),
-                );
+                return Err("independence attestation digest must be lowercase SHA-256".to_owned());
             }
             ([[0.0; 3]; 3], Some(attestation_sha256.clone()))
         }
@@ -544,7 +542,10 @@ mod tests {
             receipt_sha256: EVIDENCE_DIGEST.to_owned(),
         };
         let result = evaluate_normal_residual_uncertainty(&value).expect("scalar is preserved");
-        assert_eq!(result.disposition, ResidualUncertaintyDisposition::Unqualified);
+        assert_eq!(
+            result.disposition,
+            ResidualUncertaintyDisposition::Unqualified
+        );
         assert_eq!(result.standard_uncertainty_m, None);
         assert_eq!(
             result.reasons,
