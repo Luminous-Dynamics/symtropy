@@ -99,7 +99,20 @@ Visualize:
 
 Every visualization must carry epoch, frame, units, model/version, source digest and uncertainty. A thin line representing only the nominal trajectory is not an acceptable hazard visualization.
 
-## 5. Paradigm shifts
+## 5. Existing cross-repository work to compose with
+
+The following active issues already own important shared primitives. Planetary defence should integrate with them rather than create parallel implementations:
+
+- **Symthaea #8192 — HAZARD-VOI-001:** cost-aware experiment and observation selection for natural-hazard uncertainty. Reuse its decision-sensitive value-of-information framing for telescope follow-up, reconnaissance and model-discrimination experiments.
+- **Mycelix #455 — qualified orbital-state profiles:** use its explicit state/frame/time/dynamics/uncertainty/provenance contract as the cross-domain reference; extend with heliocentric system identity instead of accepting a bare ECI/JD state.
+- **Mycelix #413 — common spatial truth substrate:** reuse typed observation/estimate/prediction separation, covariance, reference systems, source independence, trusted time and provenance. Preserve its rule that raw telemetry does not belong in the Holochain DHT.
+- **Mycelix #4020 — BootstrapMilestone provenance:** reuse content-addressed evidence references, state transitions, correction/retraction history and authority-basis separation for manufacturing/mission milestones.
+- **Sol-Atlas #76 — ephemeris-backed hierarchical solar-system catalogue:** use the renderer-neutral object catalogue, JPL Horizons adapter, explicit epoch/frame/time metadata and bounded body selection. Planetary-defence layers should add uncertainty and risk semantics, not a second catalogue/ephemeris cache.
+- **Symtropy #1972 / #1737:** retain the historical mission capability ledger and independent verifier as the parent evidence and test infrastructure.
+
+These interfaces are dependencies and integration targets, not evidence that the planetary-defence system is already implemented.
+
+## 6. Paradigm shifts
 
 ### 5.1 From discovery counts to completeness and recoverability
 
