@@ -14,9 +14,9 @@
 
 Fixed multi-sine or sequential probing spends the same excitation budget independent of the remaining ambiguity. This policy chooses the next action based on the current outcome branch and stops as soon as one pose hypothesis remains. Its objective is exact and robust:
 
-1. Minimize worst-case cumulative probe energy.
-2. Break ties by worst-case latency.
-3. Break remaining ties by action count and stable action ID.
+1. First compute the globally minimum feasible worst-case cumulative probe energy.
+2. Then minimize worst-case cumulative latency subject to that globally minimal energy bound.
+3. The action-count limit is a hard feasibility constraint; stable action ID resolves remaining ties.
 
 No Bayesian prior is required. Each action maps every finite pose hypothesis to a quantized outcome class produced upstream. A decision tree is admissible only when every possible outcome branch ends in one pose within the hard cumulative budgets.
 
