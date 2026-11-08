@@ -8,6 +8,8 @@ structural safety, maintenance status, or aircraft acceptability.
 
 from __future__ import annotations
 
+import argparse
+
 import copy
 import hashlib
 import json
@@ -235,20 +237,74 @@ def run_hostile_controls(data: dict[str, Any]) -> int:
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--rust-output", type=Path)
+    args = parser.parse_args()
     try:
         raw = CORPUS.read_bytes()
         data = json.loads(raw.decode("utf-8"))
         validate_corpus(data)
         hostile_count = run_hostile_controls(data)
+        expected_dispositions = {
+            case["case_id"]: decide(case) for case in data["cases"]
+        }
+        rust_boundary = "not_run"
+        rust_output_sha256 = None
+
+        if args.rust_output is not None:
+            rust_bytes = args.rust_output.read_bytes()
+            rust_result = json.loads(rust_bytes.decode("utf-8"))
+            require(
+                rust_result.get("schema_version") == "aero-inspection-observability-result/0.1.0",
+                "Rust result schema version mismatch",
+            )
+            require(
+                rust_result.get("corpus_sha256") == hashlib.sha256(raw).hexdigest(),
+                "Rust result corpus digest mismatch",
+            )
+            require(
+                rust_result.get("case_count") == len(data["cases"]),
+                "Rust result case count mismatch",
+            )
+            require(
+                rust_result.get("synthetic_dispositions") == expected_dispositions,
+                "Rust/Python disposition map mismatch",
+            )
+            require(
+                rust_result.get("physical_pod") == "NOT_ASSESSED",
+                "Rust result promoted synthetic POD",
+            )
+            require(
+                rust_result.get("sensor_reliability_probability") == "NOT_ASSESSED",
+                "Rust result promoted synthetic sensor reliability",
+            )
+            require(
+                rust_result.get("inspection_acceptance") == "NOT_A_REAL_INSPECTION",
+                "Rust result promoted inspection acceptance",
+            )
+            require(
+                rust_result.get("maintenance_release") == "NOT_AUTHORIZED",
+                "Rust result promoted maintenance release",
+            )
+            require(
+                rust_result.get("aircraft_status") == "NOT_ASSESSED",
+                "Rust result promoted aircraft status",
+            )
+            require(
+                rust_result.get("claim_ceiling") == "synthetic_contract_conformance_only",
+                "Rust result claim ceiling changed",
+            )
+            rust_boundary = "pass"
+            rust_output_sha256 = hashlib.sha256(rust_bytes).hexdigest()
 
         result = {
             "schema_version": "aero-inspection-observability-result/0.1.0",
             "corpus_sha256": hashlib.sha256(raw).hexdigest(),
             "case_count": len(data["cases"]),
             "hostile_control_count": hostile_count,
-            "synthetic_dispositions": {
-                case["case_id"]: decide(case) for case in data["cases"]
-            },
+            "synthetic_dispositions": expected_dispositions,
+            "rust_python_boundary": rust_boundary,
+            "rust_output_sha256": rust_output_sha256,
             "physical_pod": "NOT_ASSESSED",
             "sensor_reliability_probability": "NOT_ASSESSED",
             "inspection_acceptance": "NOT_A_REAL_INSPECTION",
@@ -257,7 +313,15 @@ def main() -> int:
             "claim_ceiling": "synthetic_contract_conformance_only",
         }
         print(json.dumps(result, sort_keys=True, separators=(",", ":")))
-    except (OSError, UnicodeDecodeError, json.JSONDecodeError, ContractError, KeyError, TypeError) as error:
+    except (
+        OSError,
+        UnicodeDecodeError,
+        json.JSONDecodeError,
+        ContractError,
+        KeyError,
+        TypeError,
+        ValueError,
+    ) as error:
         print(f"inspection_observability_error={error}", file=sys.stderr)
         return 1
     return 0
