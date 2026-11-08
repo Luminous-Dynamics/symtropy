@@ -6,7 +6,7 @@
 //! This evaluator checks receipt joins and evidence dispositions. It is not a
 //! physical model, scheduler, controller, safety interlock, or operating permit.
 
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 
 const BLOCKING_DISPOSITIONS: &[&str] = &[
@@ -146,11 +146,7 @@ fn parse_receipts(
         "$.frozen_inputs.scenario_sha256",
     )?;
     validate_digest(
-        string(
-            frozen_inputs,
-            "source_catalogue_sha256",
-            "$.frozen_inputs",
-        )?,
+        string(frozen_inputs, "source_catalogue_sha256", "$.frozen_inputs")?,
         "$.frozen_inputs.source_catalogue_sha256",
     )?;
 
@@ -316,10 +312,7 @@ fn validate_policies(policies: &Value) -> Result<usize, String> {
             &format!("{path}.artifact_sha256"),
         )?;
         if unsigned(policy, "compute_budget_ms", &path)? == 0 {
-            return Err(fail(
-                &path,
-                "compute_budget_ms must be greater than zero",
-            ));
+            return Err(fail(&path, "compute_budget_ms must be greater than zero"));
         }
     }
     Ok(rows.len())
@@ -413,14 +406,10 @@ fn evaluate_opportunity(
         referenced_roles.insert(receipt.role.clone());
         evidence_classes.insert(receipt.evidence_class.clone());
 
-        if receipt.role == "PHYSICAL_ENVELOPE"
-            && receipt.configuration_sha256 == field_sha256
-        {
+        if receipt.role == "PHYSICAL_ENVELOPE" && receipt.configuration_sha256 == field_sha256 {
             has_matching_physical_envelope = true;
         }
-        if receipt.role == "OBSERVABILITY"
-            && receipt.configuration_sha256 != field_sha256
-        {
+        if receipt.role == "OBSERVABILITY" && receipt.configuration_sha256 != field_sha256 {
             blockers.insert(format!("{receipt_id}:FIELD_CONFIGURATION_MISMATCH"));
         }
 
@@ -506,17 +495,14 @@ pub fn evaluate_case(value: &Value) -> Result<EvaluationReport, String> {
     let slot_count = unsigned(scenario, "slot_count", "$.scenario")?;
     let _ = slot_duration_ms;
 
-    let receipts = parse_receipts(
-        field(value, "frozen_inputs", "$")?,
-        horizon_ms,
-    )?;
+    let receipts = parse_receipts(field(value, "frozen_inputs", "$")?, horizon_ms)?;
 
-    let opportunities_value = array(
-        field(value, "opportunities", "$")?,
-        "$.opportunities",
-    )?;
+    let opportunities_value = array(field(value, "opportunities", "$")?, "$.opportunities")?;
     if opportunities_value.is_empty() {
-        return Err(fail("$.opportunities", "at least one opportunity is required"));
+        return Err(fail(
+            "$.opportunities",
+            "at least one opportunity is required",
+        ));
     }
 
     let mut opportunity_ids = BTreeSet::new();
@@ -538,9 +524,7 @@ pub fn evaluate_case(value: &Value) -> Result<EvaluationReport, String> {
             slot_count,
         )?);
     }
-    opportunity_evaluations.sort_by(|left, right| {
-        left.opportunity_id.cmp(&right.opportunity_id)
-    });
+    opportunity_evaluations.sort_by(|left, right| left.opportunity_id.cmp(&right.opportunity_id));
 
     let receiver_count = validate_receivers(
         field(value, "receivers", "$")?,
@@ -572,9 +556,8 @@ mod tests {
     use super::*;
     use serde_json::json;
 
-    const FIXTURE: &str = include_str!(
-        "../../../research/ground-air-bench-v0/ground_air_episode.synthetic.json"
-    );
+    const FIXTURE: &str =
+        include_str!("../../../research/ground-air-bench-v0/ground_air_episode.synthetic.json");
 
     fn fixture() -> Value {
         serde_json::from_str(FIXTURE).expect("GroundAirBench fixture JSON")
@@ -600,9 +583,10 @@ mod tests {
         );
         let air = opportunity(&report, "air-rf-hover");
         assert_eq!(air.benchmark_disposition, "BLOCKED");
-        assert!(air
-            .blocking_reasons
-            .contains(&"synthetic-air-observability-ambiguous:AMBIGUOUS".to_owned()));
+        assert!(
+            air.blocking_reasons
+                .contains(&"synthetic-air-observability-ambiguous:AMBIGUOUS".to_owned())
+        );
     }
 
     #[test]
@@ -623,9 +607,11 @@ mod tests {
             .as_array_mut()
             .unwrap()
             .push(duplicate);
-        assert!(evaluate_case(&value)
-            .unwrap_err()
-            .contains("duplicate receipt_id"));
+        assert!(
+            evaluate_case(&value)
+                .unwrap_err()
+                .contains("duplicate receipt_id")
+        );
     }
 
     #[test]
@@ -635,9 +621,11 @@ mod tests {
             .as_array_mut()
             .unwrap()
             .push(json!("missing-receipt"));
-        assert!(evaluate_case(&value)
-            .unwrap_err()
-            .contains("unresolved upstream receipt_id"));
+        assert!(
+            evaluate_case(&value)
+                .unwrap_err()
+                .contains("unresolved upstream receipt_id")
+        );
     }
 
     #[test]
@@ -652,9 +640,11 @@ mod tests {
             "synthetic-air-standards",
             "synthetic-air-mission-energy"
         ]);
-        assert!(evaluate_case(&value)
-            .unwrap_err()
-            .contains("missing required receipt role AUTHORIZATION"));
+        assert!(
+            evaluate_case(&value)
+                .unwrap_err()
+                .contains("missing required receipt role AUTHORIZATION")
+        );
     }
 
     #[test]
@@ -662,9 +652,11 @@ mod tests {
         let mut value = fixture();
         value["frozen_inputs"]["upstream_receipts"][3]["configuration_sha256"] =
             json!("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee");
-        assert!(evaluate_case(&value)
-            .unwrap_err()
-            .contains("no PHYSICAL_ENVELOPE receipt is bound"));
+        assert!(
+            evaluate_case(&value)
+                .unwrap_err()
+                .contains("no PHYSICAL_ENVELOPE receipt is bound")
+        );
     }
 
     #[test]
@@ -674,31 +666,31 @@ mod tests {
         let report = evaluate_case(&value).unwrap();
         let air = opportunity(&report, "air-rf-hover");
         assert_eq!(air.benchmark_disposition, "BLOCKED");
-        assert!(air
-            .blocking_reasons
-            .contains(&"synthetic-air-observability-ambiguous:STALE".to_owned()));
+        assert!(
+            air.blocking_reasons
+                .contains(&"synthetic-air-observability-ambiguous:STALE".to_owned())
+        );
     }
 
     #[test]
     fn validity_that_does_not_cover_full_episode_blocks_opportunity() {
         let mut value = fixture();
-        value["frozen_inputs"]["upstream_receipts"][0]["validity"]["end_ms"] =
-            json!(1_000);
+        value["frozen_inputs"]["upstream_receipts"][0]["validity"]["end_ms"] = json!(1_000);
         let report = evaluate_case(&value).unwrap();
         let ground = opportunity(&report, "ground-ipt-dock");
         assert_eq!(ground.benchmark_disposition, "BLOCKED");
-        assert!(ground
-            .blocking_reasons
-            .contains(&"synthetic-site-budget:VALIDITY_DOES_NOT_COVER_EPISODE".to_owned()));
+        assert!(
+            ground
+                .blocking_reasons
+                .contains(&"synthetic-site-budget:VALIDITY_DOES_NOT_COVER_EPISODE".to_owned())
+        );
     }
 
     #[test]
     fn out_of_domain_and_revoked_receipts_block() {
         let mut value = fixture();
-        value["frozen_inputs"]["upstream_receipts"][4]["disposition"] =
-            json!("OUT_OF_DOMAIN");
-        value["frozen_inputs"]["upstream_receipts"][10]["disposition"] =
-            json!("REVOKED");
+        value["frozen_inputs"]["upstream_receipts"][4]["disposition"] = json!("OUT_OF_DOMAIN");
+        value["frozen_inputs"]["upstream_receipts"][10]["disposition"] = json!("REVOKED");
         let report = evaluate_case(&value).unwrap();
         assert_eq!(
             opportunity(&report, "air-rf-hover").benchmark_disposition,
@@ -728,27 +720,33 @@ mod tests {
     fn unknown_receiver_opportunity_is_rejected() {
         let mut value = fixture();
         value["receivers"][0]["eligible_opportunity_ids"] = json!(["not-a-real-opportunity"]);
-        assert!(evaluate_case(&value)
-            .unwrap_err()
-            .contains("unknown eligible opportunity"));
+        assert!(
+            evaluate_case(&value)
+                .unwrap_err()
+                .contains("unknown eligible opportunity")
+        );
     }
 
     #[test]
     fn deadline_outside_episode_is_rejected() {
         let mut value = fixture();
         value["receivers"][0]["deadline_slot"] = json!(2);
-        assert!(evaluate_case(&value)
-            .unwrap_err()
-            .contains("deadline_slot must fall within"));
+        assert!(
+            evaluate_case(&value)
+                .unwrap_err()
+                .contains("deadline_slot must fall within")
+        );
     }
 
     #[test]
     fn not_run_template_cannot_be_promoted_to_pass() {
         let mut value = fixture();
         value["case_state"] = json!("NOT_RUN");
-        assert!(evaluate_case(&value)
-            .unwrap_err()
-            .contains("NOT_RUN is not a pass"));
+        assert!(
+            evaluate_case(&value)
+                .unwrap_err()
+                .contains("NOT_RUN is not a pass")
+        );
     }
 
     #[test]
