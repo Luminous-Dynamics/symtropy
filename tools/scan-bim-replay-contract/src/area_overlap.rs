@@ -229,7 +229,6 @@ struct PreparedReference {
     visibility: ReferenceVisibility,
     area_m2: f64,
     frame: PlaneFrame,
-    original_2d: Vec<Point2>,
     buffered_2d: Vec<Point2>,
 }
 
@@ -723,7 +722,6 @@ fn prepare_reference(
         visibility: reference.visibility,
         area_m2,
         frame,
-        original_2d,
         buffered_2d,
     })
 }
@@ -736,9 +734,14 @@ fn digest_is_sha256(value: &str) -> bool {
 }
 
 fn point_in_convex_polygon(point: Point2, polygon: &[Point2]) -> bool {
+    let scale = polygon
+        .iter()
+        .flat_map(|vertex| [vertex.x.abs(), vertex.y.abs()])
+        .fold(1.0_f64, f64::max);
+    let epsilon = scale * scale * GEOMETRY_EPSILON;
     polygon.iter().enumerate().all(|(index, start)| {
         let end = polygon[(index + 1) % polygon.len()];
-        cross2(*start, end, point) >= -GEOMETRY_EPSILON
+        cross2(*start, end, point) >= -epsilon
     })
 }
 
@@ -797,8 +800,8 @@ pub fn evaluate_area_overlap(
     if source_surfaces.len() > MAX_SURFACES || reference_surfaces.len() > MAX_SURFACES {
         return Err("surface count exceeds the bounded area-overlap profile".to_owned());
     }
-    if source_surfaces.is_empty() || reference_surfaces.is_empty() {
-        return Err("area overlap requires non-empty source and reference surface sets".to_owned());
+    if source_surfaces.is_empty() && reference_surfaces.is_empty() {
+        return Err("area overlap requires at least one source or reference surface".to_owned());
     }
     if source_surfaces
         .len()
@@ -1158,6 +1161,57 @@ mod tests {
         assert!((union.matched_area_numerator_m2 - 2.0).abs() < 1e-9);
         assert!(pairwise.completeness_exceeds_one);
         assert!((union.completeness.expect("completeness") - 1.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn empty_source_has_zero_completeness_and_undefined_correctness() {
+        let reference = reference(
+            "REF",
+            ReferenceVisibility::Observed,
+            0.0, 0.0, 2.0, 1.0,
+            buffer(0.0, 0.0, 2.0, 1.0, 0.0),
+        );
+        let result = evaluate_area_overlap(
+            &profile(AreaAggregationPolicy::UnionPerReference2021),
+            &[],
+            &[reference],
+        )
+        .expect("an empty source model is a valid zero-completeness case");
+        assert_eq!(result.matched_area_numerator_m2, 0.0);
+        assert_eq!(result.completeness, Some(0.0));
+        assert_eq!(result.correctness, None);
+    }
+
+    #[test]
+    fn empty_observable_reference_denominator_is_reported_as_undefined() {
+        let source = square_3d("SRC", "LOCAL-A", 0.0, 0.0, 0.0, 1.0, 1.0);
+        let interpreted = reference(
+            "REF-INTERPRETED",
+            ReferenceVisibility::Interpreted,
+            0.0, 0.0, 1.0, 1.0,
+            buffer(0.0, 0.0, 1.0, 1.0, 0.0),
+        );
+        let result = evaluate_area_overlap(
+            &profile(AreaAggregationPolicy::UnionPerReference2021),
+            &[source],
+            &[interpreted],
+        )
+        .expect("interpreted references are excluded from observed denominator");
+        assert_eq!(result.completeness, None);
+        assert_eq!(result.correctness, Some(0.0));
+    }
+
+    #[test]
+    fn empty_reference_set_does_not_fabricate_a_completeness_score() {
+        let source = square_3d("SRC", "LOCAL-A", 0.0, 0.0, 0.0, 1.0, 1.0);
+        let result = evaluate_area_overlap(
+            &profile(AreaAggregationPolicy::UnionPerReference2021),
+            &[source],
+            &[],
+        )
+        .expect("empty reference set has a zero reference denominator");
+        assert_eq!(result.completeness, None);
+        assert_eq!(result.correctness, Some(0.0));
     }
 
     #[test]
