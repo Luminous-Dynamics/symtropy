@@ -171,7 +171,11 @@ impl HorizonRiskPlan {
         if step_allocations_ppb.len() > MAX_HORIZON_STEPS as usize {
             return Err(RiskPlanError::HorizonTooLarge);
         }
-        if step_allocations_ppb.iter().flatten().any(|alpha| *alpha == 0) {
+        if step_allocations_ppb
+            .iter()
+            .flatten()
+            .any(|alpha| *alpha == 0)
+        {
             return Err(RiskPlanError::InsufficientRiskResolution);
         }
 
@@ -180,9 +184,7 @@ impl HorizonRiskPlan {
             .flat_map(|allocation| allocation.iter())
             .try_fold(0_u64, |sum, alpha| sum.checked_add(*alpha))
             .ok_or(RiskPlanError::ArithmeticOverflow)?;
-        if !(MIN_FAMILYWISE_ALPHA_PPB..=MAX_FAMILYWISE_ALPHA_PPB)
-            .contains(&familywise_alpha_ppb)
-        {
+        if !(MIN_FAMILYWISE_ALPHA_PPB..=MAX_FAMILYWISE_ALPHA_PPB).contains(&familywise_alpha_ppb) {
             return Err(RiskPlanError::InvalidFamilywiseAlpha);
         }
 
@@ -1300,17 +1302,11 @@ mod tests {
             Err(RiskPlanError::InvalidHorizon)
         );
         assert_eq!(
-            HorizonRiskPlan::from_preallocated_allocations(
-                identity(),
-                vec![[10, 10, 10, 10, 0]],
-            ),
+            HorizonRiskPlan::from_preallocated_allocations(identity(), vec![[10, 10, 10, 10, 0]],),
             Err(RiskPlanError::InsufficientRiskResolution)
         );
         assert_eq!(
-            HorizonRiskPlan::from_preallocated_allocations(
-                identity(),
-                vec![[1, 1, 1, 1, 1]],
-            ),
+            HorizonRiskPlan::from_preallocated_allocations(identity(), vec![[1, 1, 1, 1, 1]],),
             Err(RiskPlanError::InvalidFamilywiseAlpha)
         );
     }
