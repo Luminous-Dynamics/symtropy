@@ -45,7 +45,7 @@ jobs:
             NF != 23 { exit 44 }
             $3 != 100 { exit 45 }
             $1 == "stable_positive" && ($2 == "cusum_signal_only" || $2 == "mechanism_aware") {
-              if ($7 > 0.05 || $11 > 0.05) exit 46
+              if ($7 > 0.05 || $12 > 0.12 || $13 > 0.05 || $15 > 0.12) exit 46
             }
             $1 == "sign_reversal" && $2 == "mechanism_aware" {
               if ($8 < 0.95) exit 47
@@ -57,11 +57,12 @@ jobs:
               if ($8 < 0.90) exit 49
             }
             $1 == "confounder_shift" && $2 == "mechanism_aware" {
-              if ($8 < 0.90 || $15 > 0.10) exit 50
+              if ($8 < 0.90 || $19 > 0.10 || $21 < 0.90) exit 50
             }
             $1 == "confounder_shift" && $2 == "cusum_signal_only" {
-              if ($4 < 0.90 || $15 < 2.50) exit 51
+              if ($4 < 0.90 || $19 < 2.50) exit 51
             }
+            $2 == "mechanism_aware" && $21 < 0.90 { exit 53 }
             END { if (NR != 21) exit 52; print "20 aggregate groups validated; 100 replicates/group; Wilson intervals retained for detection, diagnosis and both false-alarm rates" }
           ' /tmp/civdyn-causal-drift-summary.csv
       - name: Verify causal-drift detection versus mechanism diagnosis
