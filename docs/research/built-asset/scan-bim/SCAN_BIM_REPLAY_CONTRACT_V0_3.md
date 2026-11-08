@@ -56,9 +56,26 @@ This is **local integrity verification**, not process isolation. Candidate and e
 
 ## Schema v0.3 execution receipt
 
-The v0.3 manifest requires a candidate pipeline/source commit, toolchain and command; runtime artefact IDs for executable/configuration/optional model weights; candidate outputs bound to declared scene IDs (including at least one IFC-role output per scene); coordinate-frame metadata per scene; and SI-metre tolerance/sampling/metric profiles. The official ISPRS wall profile requires an explicit metric-definition authority and accuracy sample strategy: `official_results_page` pairs reference-to-candidate with reference-surface samples; `evaluation_framework2018` pairs candidate-to-reference with source vertices projected inside observable reference surfaces; `final_results_paper_2021` pairs candidate-to-reference with source-surface samples; `bidirectional_diagnostic` retains both directed distributions. This reflects a real contradiction between the current results page and the published evaluation methodology; no canonical historical direction or sample population is silently assumed. This binds an experiment declaration to bytes, not to a validated physical CRS transform or actual candidate process execution.
+The v0.3 manifest requires a candidate pipeline/source commit, toolchain and command; runtime artefact IDs for executable/configuration/optional model weights; candidate outputs bound to declared scene IDs (including at least one IFC-role output per scene); coordinate-frame metadata per scene; and SI-metre tolerance/sampling/metric profiles. The official ISPRS wall profile requires an explicit metric-definition authority and accuracy sample strategy: `official_results_page` pairs reference-to-candidate with reference-surface samples; `evaluation_framework2018` pairs candidate-to-reference with source vertices projected inside observable reference surfaces; `final_results_paper_2021` pairs candidate-to-reference with source-surface samples; `bidirectional_diagnostic` retains both directed distributions. This reflects a real contradiction between the current results page and the published evaluation methodology; no canonical historical direction or sample population is silently assumed. This binds an experiment declaration to bytes, not to a validated physical CRS transform or actual candidate process execution. The source commit is syntax-checked as a 40-character Git SHA-1 but is not fetched or cryptographically linked to the executable. Runtime/configuration/model/output bytes are verified locally; no SLSA/in-toto build attestation is yet required.
 
 See [SCAN_BIM_EXECUTION_RECEIPT_AND_BENCHMARK_TARGETS_V0_1.md](SCAN_BIM_EXECUTION_RECEIPT_AND_BENCHMARK_TARGETS_V0_1.md) for competitive targets and research comparators.
+
+
+## Authority and tolerance semantics
+
+For the named ISPRS wall suite, the authority, scope, direction and sample strategy are one validated tuple:
+- official results page: wall-only, reference-to-candidate, reference-surface samples;
+- 2018 evaluation framework: wall-only, candidate-to-reference, source-surface vertices projected inside observable reference boundaries;
+- 2021 final-results paper: wall-only, candidate-to-reference, source-surface samples;
+- bidirectional diagnostic: both directed distributions remain separate and are not labelled an official score.
+
+Other suites must declare project-defined metric authority. A synthetic or custom metric cannot label itself as the official results-page definition.
+
+A report-only or hard-limit tolerance declares no statistical-interval fields. A statistical-interval policy must additionally provide a non-empty uncertainty-model ID, a coverage probability strictly between zero and one, and a finite positive coverage factor. These are declaration checks only: the P0.3 verifier does not fit, validate or calibrate the uncertainty model, and it does not issue a project acceptance decision. A statistical profile without those assumptions fails closed.
+
+## Candidate execution boundary
+
+The command argument vector and candidate runtime artifact identities are recorded, but the command is not launched by this CLI. The verifier checks runtime, input, output and evaluator file digests; it does not prove that the source revision produced the executable. Candidate/evaluator file roots are separate arguments to one process, not distinct OS identities. There is no network isolation, mount namespace, evaluator canary or independent custody in this tranche.
 
 ## Deliberate non-goals
 
