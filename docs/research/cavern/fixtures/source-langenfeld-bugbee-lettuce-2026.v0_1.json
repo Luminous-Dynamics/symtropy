@@ -25,11 +25,13 @@
   },
   "experimental_unit_audit": {
     "treatment_assignment_unit": "Reservoir/container containing one cultivar community",
-    "independent_reservoir_replicates_reported": 1,
     "plants_are_subsamples": true,
     "cycles_are_repeated_measures": true,
     "source_author_pseudoreplication_note": "The article explicitly says plotted statistics were tested among pseudoreplicates (n=3 cultivars) and calls for future replication to eliminate pseudoreplication.",
-    "reported_plot_n": 3
+    "reported_plot_n": 3,
+    "containers_per_cultivar_community": 1,
+    "independent_replicate_reservoirs_per_arm": null,
+    "replication_detail_note": "Methods section 2.3 reports one container (n=1) for each cultivar community. Figure 2 labels n=3 cultivars as pseudoreplicates. The exact number of independently replicated reservoirs per treatment arm is not clearly documented in the accessible methods; do not infer independent replication from cultivar or plant counts."
   },
   "environmental_envelope": {
     "temperature_day_night_c": [
@@ -86,21 +88,27 @@
         "cycles": 25,
         "cycle_days": 28,
         "campaign_days": 707,
-        "planting_period": "January 2022 to March 2024"
+        "planting_period": "January 2022 to March 2024",
+        "unallocated_elapsed_days": 7,
+        "elapsed_day_residual_note": "Reported elapsed campaign duration exceeds the sum of nominal crop-cycle days; source does not identify the additional elapsed days."
       },
       {
         "study_id": "STUDY-2",
         "cycles": 7,
         "cycle_days": 28,
         "campaign_days": 196,
-        "planting_period": "January to August 2023"
+        "planting_period": "January to August 2023",
+        "unallocated_elapsed_days": 0,
+        "elapsed_day_residual_note": "Reported campaign duration matches crop-cycle arithmetic."
       },
       {
         "study_id": "STUDY-3",
         "cycles": 9,
         "cycle_days": 28,
         "campaign_days": 252,
-        "planting_period": "March to December 2024"
+        "planting_period": "March to December 2024",
+        "unallocated_elapsed_days": 0,
+        "elapsed_day_residual_note": "Reported campaign duration matches crop-cycle arithmetic."
       }
     ],
     "zero_discharge_reported": true,
@@ -110,7 +118,8 @@
         "element": "Most measured elements (pooled study-three analysis)",
         "reported_recovery_percent": 100,
         "interpretation": "Reported as 100 ±10% for most elements; the published abstract describes most elements above 90%.",
-        "evidence_status": "SOURCE_REPORTED"
+        "evidence_status": "SOURCE_REPORTED",
+        "reported_uncertainty_percent": 10
       },
       {
         "element": "Zinc",
