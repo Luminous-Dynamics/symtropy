@@ -515,7 +515,9 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
 
     let mut scene_ids = BTreeSet::new();
     let mut candidate_ids = BTreeSet::new();
+    let mut candidate_paths = BTreeSet::new();
     let mut evaluator_ids = BTreeSet::new();
+    let mut evaluator_paths = BTreeSet::new();
     let mut candidate_digests = BTreeSet::new();
     let mut evaluator_digests = BTreeSet::new();
     let mut building_splits: BTreeMap<&str, &str> = BTreeMap::new();
@@ -525,6 +527,22 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
 
     if manifest.scenes.is_empty() {
         return Err("manifest must contain at least one scene".to_owned());
+    }
+
+    for artifact in [
+        &manifest.candidate_pipeline.build_artifact,
+        &manifest.candidate_pipeline.model_artifact,
+        &manifest.candidate_pipeline.configuration_artifact,
+    ] {
+        register_artifact(
+            &artifact.artifact_id,
+            &artifact.relative_path,
+            &artifact.sha256,
+            "candidate pipeline",
+            &mut candidate_ids,
+            &mut candidate_paths,
+            &mut candidate_digests,
+        )?;
     }
 
     for scene in &manifest.scenes {
@@ -593,19 +611,44 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
             ));
         }
         for artifact in &scene.candidate_inputs {
-            if !valid_identifier(&artifact.artifact_id) || !digest_is_sha256(&artifact.sha256) {
-                return Err(format!(
-                    "candidate artifact in scene {} has invalid ID or SHA-256",
-                    scene.scene_id
-                ));
-            }
-            if !candidate_ids.insert(artifact.artifact_id.as_str()) {
-                return Err(format!(
-                    "duplicate candidate artifact_id: {}",
-                    artifact.artifact_id
-                ));
-            }
-            candidate_digests.insert(artifact.sha256.as_str());
+            register_artifact(
+                &artifact.artifact_id,
+                &artifact.relative_path,
+                &artifact.sha256,
+                "candidate input",
+                &mut candidate_ids,
+                &mut candidate_paths,
+                &mut candidate_digests,
+            )?;
+        }
+
+        if scene.candidate_outputs.is_empty() {
+            return Err(format!("scene {} has no candidate outputs", scene.scene_id));
+        }
+        let has_ifc_model = scene
+            .candidate_outputs
+            .iter()
+            .any(|artifact| artifact.role == CandidateOutputRole::IfcModel);
+        let has_element_graph = scene
+            .candidate_outputs
+            .iter()
+            .any(|artifact| artifact.role == CandidateOutputRole::ElementGraph);
+        if !has_ifc_model || !has_element_graph {
+            return Err(format!(
+                "scene {} requires both ifc_model and element_graph candidate outputs",
+                scene.scene_id
+            ));
+        }
+        for artifact in &scene.candidate_outputs {
+            register_artifact(
+                &artifact.artifact_id,
+                &artifact.relative_path,
+                &artifact.sha256,
+                "candidate output",
+                &mut candidate_ids,
+                &mut candidate_paths,
+                &mut candidate_digests,
+            )?;
         }
         let has_reference_geometry = scene
             .evaluator_artifacts
@@ -618,19 +661,15 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
             ));
         }
         for artifact in &scene.evaluator_artifacts {
-            if !valid_identifier(&artifact.artifact_id) || !digest_is_sha256(&artifact.sha256) {
-                return Err(format!(
-                    "evaluator artifact in scene {} has invalid ID or SHA-256",
-                    scene.scene_id
-                ));
-            }
-            if !evaluator_ids.insert(artifact.artifact_id.as_str()) {
-                return Err(format!(
-                    "duplicate evaluator artifact_id: {}",
-                    artifact.artifact_id
-                ));
-            }
-            evaluator_digests.insert(artifact.sha256.as_str());
+            register_artifact(
+                &artifact.artifact_id,
+                &artifact.relative_path,
+                &artifact.sha256,
+                "evaluator",
+                &mut evaluator_ids,
+                &mut evaluator_paths,
+                &mut evaluator_digests,
+            )?;
         }
         if scene.surface_strata.is_empty() {
             return Err(format!(
@@ -700,12 +739,12 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
         }
     }
 
-    if candidate_ids.iter().any(|id| evaluator_ids.contains(*id)) {
+    if candidate_ids.iter().any(|id| evaluator_ids.contains(id)) {
         return Err("candidate and evaluator artifact identifiers must be disjoint".to_owned());
     }
     if candidate_digests
         .iter()
-        .any(|digest| evaluator_digests.contains(*digest))
+        .any(|digest| evaluator_digests.contains(digest))
     {
         return Err("candidate and evaluator artifact SHA-256 digests must be disjoint".to_owned());
     }
