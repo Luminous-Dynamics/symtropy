@@ -853,8 +853,21 @@ pub fn validate_adaptive_policy_bytes(
         (&left.path, &left.code, &left.detail).cmp(&(&right.path, &right.code, &right.detail))
     });
     summary.results.sort_by(|left, right| {
-        (&left["case_id"], &left["policy"]["policy_id"])
-            .cmp(&(&right["case_id"], &right["policy"]["policy_id"]))
+        let left_key = (
+            left.get("case_id").and_then(Value::as_str).unwrap_or_default(),
+            left.get("policy")
+                .and_then(|policy| policy.get("policy_id"))
+                .and_then(Value::as_str)
+                .unwrap_or_default(),
+        );
+        let right_key = (
+            right.get("case_id").and_then(Value::as_str).unwrap_or_default(),
+            right.get("policy")
+                .and_then(|policy| policy.get("policy_id"))
+                .and_then(Value::as_str)
+                .unwrap_or_default(),
+        );
+        left_key.cmp(&right_key)
     });
     summary.passed = summary.failures.is_empty()
         && summary.cases_passed == summary.cases_seen
