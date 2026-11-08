@@ -785,6 +785,24 @@ mod tests {
     }
 
     #[test]
+    fn wilson_interval_contains_empirical_rate_for_every_binomial_count() {
+        for denominator in 1..=1_000 {
+            for successes in 0..=denominator {
+                let interval = wilson_interval(successes, denominator);
+                let rate = successes as f64 / denominator as f64;
+                assert!(
+                    interval.lower_95 <= rate && rate <= interval.upper_95,
+                    "count {successes}/{denominator}: rate={rate}, lower={}, upper={}",
+                    interval.lower_95,
+                    interval.upper_95
+                );
+                assert_eq!(interval.numerator, successes);
+                assert_eq!(interval.denominator, denominator);
+            }
+        }
+    }
+
+    #[test]
     fn development_tuning_is_deterministic_and_respects_false_alarm_budget() {
         let first = tune_cusum();
         let second = tune_cusum();
@@ -809,8 +827,28 @@ mod tests {
             assert_eq!(row.episodes, CONFIRMATORY_SEED_COUNT);
             assert!(row.signal_alarm.lower_95 <= row.signal_alarm.rate);
             assert!(row.signal_alarm.rate <= row.signal_alarm.upper_95);
-            assert!(row.correct_diagnoses.lower_95 <= row.correct_diagnoses.rate);
-            assert!(row.correct_diagnoses.rate <= row.correct_diagnoses.upper_95);
+            assert!(
+                row.correct_diagnoses.lower_95 <= row.correct_diagnoses.rate,
+                "Wilson lower bound above estimate for {} / {}: {}/{} rate={} lower={} upper={}",
+                row.regime.name(),
+                row.controller.name(),
+                row.correct_diagnoses.numerator,
+                row.correct_diagnoses.denominator,
+                row.correct_diagnoses.rate,
+                row.correct_diagnoses.lower_95,
+                row.correct_diagnoses.upper_95
+            );
+            assert!(
+                row.correct_diagnoses.rate <= row.correct_diagnoses.upper_95,
+                "Wilson upper bound below estimate for {} / {}: {}/{} rate={} lower={} upper={}",
+                row.regime.name(),
+                row.controller.name(),
+                row.correct_diagnoses.numerator,
+                row.correct_diagnoses.denominator,
+                row.correct_diagnoses.rate,
+                row.correct_diagnoses.lower_95,
+                row.correct_diagnoses.upper_95
+            );
         }
     }
 
