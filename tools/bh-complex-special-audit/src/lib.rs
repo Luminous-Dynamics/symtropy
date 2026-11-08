@@ -36,6 +36,7 @@ pub enum SpecialError {
     NoConvergence,
     NonFiniteResult,
     InvalidConfiguration,
+    AssociatedLegendreDomainUnsupported,
 }
 
 impl fmt::Display for SpecialError {
@@ -58,6 +59,9 @@ impl fmt::Display for SpecialError {
             Self::NoConvergence => write!(f, "hypergeometric series did not meet its error criterion"),
             Self::NonFiniteResult => write!(f, "special-function calculation produced a non-finite result"),
             Self::InvalidConfiguration => write!(f, "series configuration is invalid"),
+            Self::AssociatedLegendreDomainUnsupported => {
+                write!(f, "Ferrers associated-Legendre control requires real z strictly between -1 and 1")
+            }
         }
     }
 }
@@ -435,6 +439,83 @@ pub fn hyp2f1(
     Err(SpecialError::ContinuationRegionUnsupported)
 }
 
+
+/// Value and first two derivatives of the Ferrers associated-Legendre function.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct AssociatedLegendreEvaluation {
+    pub value: Complex64,
+    pub first_derivative: Complex64,
+    pub second_derivative: Complex64,
+    pub value_method: EvaluationMethod,
+    pub first_derivative_method: EvaluationMethod,
+    pub second_derivative_method: EvaluationMethod,
+}
+
+/// Evaluate the Ferrers function P_degree^order(z) and its first two
+/// derivatives with respect to the real argument z in (-1,1).
+///
+/// Uses
+///
+/// P_l^mu(z) = exp(mu atanh(z)) / Gamma(1-mu)
+///             * 2F1(-l, l+1; 1-mu; (1-z)/2).
+///
+/// This interval is the physical tanh(x/b) coordinate for the real
+/// Pöschl–Teller tortoise line. Complex degree and order are supported.
+/// Integer/resonant cases that make the underlying 2F1 denominator singular,
+/// or require logarithmic continuation, are returned as typed errors.
+///
+/// Derivatives are computed from contiguous 2F1 identities, not by
+/// differentiating the ODE. This allows an independent ODE residual check.
+pub fn associated_legendre_ferrers(
+    degree: Complex64,
+    order: Complex64,
+    z: Complex64,
+    config: SeriesConfig,
+) -> Result<AssociatedLegendreEvaluation, SpecialError> {
+    config.validate()?;
+    validate_complex(&[degree, order, z])?;
+    if z.im != 0.0 || z.re <= -1.0 || z.re >= 1.0 {
+        return Err(SpecialError::AssociatedLegendreDomainUnsupported);
+    }
+
+    let one = Complex64::new(1.0, 0.0);
+    let two = Complex64::new(2.0, 0.0);
+    let a = -degree;
+    let b = degree + one;
+    let c = one - order;
+    let argument = (one - z) / two;
+
+    let f0 = hyp2f1(a, b, c, argument, config)?;
+    let f1 = hyp2f1(a + one, b + one, c + one, argument, config)?;
+    let f2 = hyp2f1(a + two, b + two, c + two, argument, config)?;
+
+    let first_factor = a * b / c;
+    let second_factor = a * (a + one) * b * (b + one) / (c * (c + one));
+
+    let q = order / (one - z * z);
+    let q_prime = two * order * z / ((one - z * z) * (one - z * z));
+    let prefactor = (order * z.re.atanh()).exp() * reciprocal_gamma(c)?;
+
+    let value = prefactor * f0.value;
+    let first_derivative = prefactor * (q * f0.value - 0.5 * first_factor * f1.value);
+    let second_derivative = prefactor
+        * ((q * q + q_prime) * f0.value - q * first_factor * f1.value
+            + 0.25 * second_factor * f2.value);
+
+    if !finite(value) || !finite(first_derivative) || !finite(second_derivative) {
+        return Err(SpecialError::NonFiniteResult);
+    }
+
+    Ok(AssociatedLegendreEvaluation {
+        value,
+        first_derivative,
+        second_derivative,
+        value_method: f0.method,
+        first_derivative_method: f1.method,
+        second_derivative_method: f2.method,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -608,6 +689,98 @@ mod tests {
         let analytic = a * b / c
             * hyp2f1(a + z(1.0, 0.0), b + z(1.0, 0.0), c + z(1.0, 0.0), point, SeriesConfig::default()).unwrap().value;
         close(numeric, analytic, 2.0e-8);
+    }
+
+
+    #[test]
+    fn associated_legendre_reduces_to_exact_legendre_polynomial() {
+        let y = 0.31;
+        let result = associated_legendre_ferrers(
+            z(2.0, 0.0),
+            z(0.0, 0.0),
+            z(y, 0.0),
+            SeriesConfig::default(),
+        )
+        .unwrap();
+        close(result.value, z((3.0 * y * y - 1.0) / 2.0, 0.0), 2.0e-14);
+        close(result.first_derivative, z(3.0 * y, 0.0), 2.0e-13);
+        close(result.second_derivative, z(3.0, 0.0), 2.0e-12);
+    }
+
+    #[test]
+    fn associated_legendre_satisfies_ode_in_direct_and_near_one_regions() {
+        let degree = z(-0.5, 0.7);
+        let order = z(0.35, -0.2);
+        for y in [0.23, -0.9] {
+            let result = associated_legendre_ferrers(
+                degree,
+                order,
+                z(y, 0.0),
+                SeriesConfig::default(),
+            )
+            .unwrap();
+            let one_minus_y2 = 1.0 - y * y;
+            let residual = one_minus_y2 * result.second_derivative
+                - 2.0 * y * result.first_derivative
+                + (degree * (degree + z(1.0, 0.0))
+                    - order * order / one_minus_y2)
+                    * result.value;
+            assert!(
+                residual.norm() < 3.0e-10,
+                "z={y}, residual={residual:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn associated_legendre_first_derivative_matches_central_difference() {
+        let degree = z(-0.5, 0.7);
+        let order = z(0.35, -0.2);
+        let y = 0.23;
+        let h = 1.0e-5;
+        let base = associated_legendre_ferrers(
+            degree,
+            order,
+            z(y, 0.0),
+            SeriesConfig::default(),
+        )
+        .unwrap();
+        let upper = associated_legendre_ferrers(
+            degree,
+            order,
+            z(y + h, 0.0),
+            SeriesConfig::default(),
+        )
+        .unwrap()
+        .value;
+        let lower = associated_legendre_ferrers(
+            degree,
+            order,
+            z(y - h, 0.0),
+            SeriesConfig::default(),
+        )
+        .unwrap()
+        .value;
+        close(
+            base.first_derivative,
+            (upper - lower) / (2.0 * h),
+            2.0e-8,
+        );
+    }
+
+    #[test]
+    fn associated_legendre_rejects_endpoints_and_complex_argument() {
+        for argument in [z(-1.0, 0.0), z(1.0, 0.0), z(0.2, 0.01)] {
+            assert_eq!(
+                associated_legendre_ferrers(
+                    z(-0.5, 0.7),
+                    z(0.35, -0.2),
+                    argument,
+                    SeriesConfig::default(),
+                ),
+                Err(SpecialError::AssociatedLegendreDomainUnsupported)
+            );
+        }
     }
 
     #[test]
