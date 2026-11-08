@@ -88,12 +88,18 @@ The separate Python implementation independently checks the catalog, hostile mut
 - promotion of preliminary deflection to quantitative validation;
 - invented sampling rate, removed uPSP filtering/masks, or deleted measurement family.
 
-## Standards references
+## V&V and metrology references
 
-- ISO 18431-1: transformations, signal categories and units for quantitative comparison of vibration/shock data. https://www.iso.org/standard/35588.html
-- ISO 18431-2: time-domain windows used before Fourier-transform spectral analysis. https://www.iso.org/standard/35589.html
+The observation contract should support, rather than replace, established uncertainty-aware V&V practice:
 
-These are implementation references, not a claim of ISO certification. No DPW-8 PSD processing parameters are inferred from these standards.
+- **ASME V&V 20-2009 (R2021)** defines comparison of a specified simulation variable with data at a specified validation point, accounting for uncertainty in both simulation and experiment. The standard explicitly does not turn point validation into unrestricted domain-wide validation. https://www.asme.org/codes-standards/find-codes-standards/standard-for-verification-and-validation-in-computational-fluid-dynamics-and-heat-transfer
+- **ASME V&V 10-2019** and **VVUQ 10.2-2021** cover verification/validation and uncertainty in computational solid mechanics. These are the structural counterpart for later coupled CRM work. https://www.asme.org/codes-standards/vvuq-standards
+- **ASME VVUQ 20.1-2024** introduces a multivariate validation metric. This is relevant when comparing balance, pressure, strain and deformation channels: publish each quantity's discrepancy and uncertainty, then use a declared multivariate metric without allowing a strong channel to conceal an unsupported one. https://www.asme.org/codes-standards/vvuq-standards
+- **NIST metrological traceability policy** defines an unbroken calibration chain, with each link contributing to measurement uncertainty. A sensor calibration label alone is insufficient; the calibration references, measurement result and uncertainty must be traceable. https://www.nist.gov/metrology/metrological-traceability
+- **ISO 18431-1:2005** defines transformations and physical units for quantitative comparison of vibration/shock data. https://www.iso.org/standard/35588.html
+- **ISO 18431-2:2004** specifies time-domain windows used before Fourier-transform spectral analysis. https://www.iso.org/standard/35589.html
+
+These are engineering references, not a claim of ASME/ISO certification. They do not provide missing JAXA sample rates, synchronization, windows, calibration, transfer functions or PSD normalization. No Test Case 3 processing parameters are inferred from standards.
 
 ## Claim ceiling
 
