@@ -10,11 +10,12 @@
 //! validity or real-world causal identification.
 
 use crate::{
-    CorrectionEvent, CorrectionStage, validate_full_correction_trace,
+    CorrectionEvent, CorrectionStage,
     causal_drift::{
-        ACTION_COST, CAUSAL_DRIFT_TICKS, CausalDiagnosis, CausalDriftController,
-        CausalRegime, run_causal_drift_scenario,
+        ACTION_COST, CAUSAL_DRIFT_TICKS, CausalDiagnosis, CausalDriftController, CausalRegime,
+        run_causal_drift_scenario,
     },
+    validate_full_correction_trace,
 };
 
 pub const NOISY_SEEDS: usize = 256;
@@ -81,11 +82,7 @@ pub struct MatchedProbeEstimate {
     pub sample_pairs: usize,
 }
 
-fn matched_probe(
-    regime: CausalRegime,
-    tick: usize,
-    rng: &mut SplitMix64,
-) -> MatchedProbeEstimate {
+fn matched_probe(regime: CausalRegime, tick: usize, rng: &mut SplitMix64) -> MatchedProbeEstimate {
     // The same confounder value is used for both members of every randomized
     // pair. Treatment assignment is balanced within pair; independent outcome
     // noise remains. This is the synthetic randomized-probe design.
@@ -97,8 +94,7 @@ fn matched_probe(
         let confounder = CONFOUNDER_VALUES[pair_index % CONFOUNDER_VALUES.len()];
         let treatment_noise = rng.normal(OUTCOME_NOISE_STANDARD_DEVIATION);
         let control_noise = rng.normal(OUTCOME_NOISE_STANDARD_DEVIATION);
-        let treatment_outcome =
-            10.0 + confounder + regime.causal_effect(tick) + treatment_noise;
+        let treatment_outcome = 10.0 + confounder + regime.causal_effect(tick) + treatment_noise;
         let control_outcome = 10.0 + confounder + control_noise;
         let difference = treatment_outcome - control_outcome;
         sum += difference;
@@ -202,13 +198,29 @@ fn correction_trace(
         ),
     };
     vec![
-        event(CorrectionStage::Observed, observed_tick, "observational_signal"),
-        event(CorrectionStage::Detected, observed_tick, "predeclared_signal_or_probe_trigger"),
+        event(
+            CorrectionStage::Observed,
+            observed_tick,
+            "observational_signal",
+        ),
+        event(
+            CorrectionStage::Detected,
+            observed_tick,
+            "predeclared_signal_or_probe_trigger",
+        ),
         event(CorrectionStage::Diagnosed, diagnosis_tick, diagnosis_code),
-        event(CorrectionStage::Discriminated, diagnosis_tick, "matched_randomized_probe_with_sampling_uncertainty"),
+        event(
+            CorrectionStage::Discriminated,
+            diagnosis_tick,
+            "matched_randomized_probe_with_sampling_uncertainty",
+        ),
         event(CorrectionStage::BeliefUpdated, diagnosis_tick, update_code),
         event(CorrectionStage::Intervened, diagnosis_tick + 1, action_code),
-        event(CorrectionStage::Audited, CAUSAL_DRIFT_TICKS, "sample_receipt_and_action_ledger_reconciled"),
+        event(
+            CorrectionStage::Audited,
+            CAUSAL_DRIFT_TICKS,
+            "sample_receipt_and_action_ledger_reconciled",
+        ),
     ]
 }
 
@@ -222,10 +234,7 @@ fn scenario_seed(regime: CausalRegime, seed_index: usize) -> u64 {
         ^ regime_index.wrapping_mul(0xbf58_476d_1ce4_e5b9)
 }
 
-pub fn run_noisy_causal_drift(
-    regime: CausalRegime,
-    seed_index: usize,
-) -> NoisyCausalDriftOutcome {
+pub fn run_noisy_causal_drift(regime: CausalRegime, seed_index: usize) -> NoisyCausalDriftOutcome {
     let seed = scenario_seed(regime, seed_index);
     let mut rng = SplitMix64::new(seed);
     let mut cusum = NoisyCusum::default();
@@ -298,10 +307,7 @@ pub fn run_noisy_causal_drift(
         }
     }
 
-    let deterministic = run_causal_drift_scenario(
-        regime,
-        CausalDriftController::MechanismAware,
-    );
+    let deterministic = run_causal_drift_scenario(regime, CausalDriftController::MechanismAware);
     let trace_valid = !trace.is_empty() && validate_full_correction_trace(&trace).is_ok();
     let signal_detection_tick = cusum.detection_tick;
     let correction_latency_ticks = diagnosis_tick.map(|diagnosed| {
@@ -389,7 +395,10 @@ mod tests {
     fn noisy_sign_reversal_and_null_effects_are_detected_with_frozen_seed_suite() {
         for seed in 0..NOISY_SEEDS {
             let reversal = run_noisy_causal_drift(CausalRegime::SignReversal, seed);
-            assert_eq!(reversal.diagnosis, Some(CausalDiagnosis::CausalSignReversal));
+            assert_eq!(
+                reversal.diagnosis,
+                Some(CausalDiagnosis::CausalSignReversal)
+            );
             assert!(reversal.policy_stopped);
             assert_eq!(reversal.active_after_nonpositive_effect_ticks, 1);
 
