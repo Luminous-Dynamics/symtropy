@@ -9,9 +9,7 @@
 //! retained; summary intervals describe Monte Carlo repeatability, not
 //! uncertainty about real-world model validity.
 
-use crate::causal_drift::{
-    ACTION_COST, CausalDiagnosis, CausalDriftController, CausalRegime,
-};
+use crate::causal_drift::{ACTION_COST, CausalDiagnosis, CausalDriftController, CausalRegime};
 
 pub const MONTE_CARLO_BASE_SEED: u64 = 20_261_108_100;
 pub const MONTE_CARLO_REPLICATES_PER_REGIME: usize = 100;
@@ -147,13 +145,9 @@ impl CusumState {
             return;
         }
         let deviation = value - baseline;
-        self.positive =
-            (self.positive + deviation - config.cusum_allowance).max(0.0);
-        self.negative =
-            (self.negative - deviation - config.cusum_allowance).max(0.0);
-        if self.positive >= config.cusum_threshold
-            || self.negative >= config.cusum_threshold
-        {
+        self.positive = (self.positive + deviation - config.cusum_allowance).max(0.0);
+        self.negative = (self.negative - deviation - config.cusum_allowance).max(0.0);
+        if self.positive >= config.cusum_threshold || self.negative >= config.cusum_threshold {
             self.alarm_tick = Some(tick);
         }
     }
@@ -177,9 +171,7 @@ fn expected_diagnosis(regime: CausalRegime) -> Option<CausalDiagnosis> {
         CausalRegime::SignReversal | CausalRegime::GradualSignReversal => {
             Some(CausalDiagnosis::CausalSignReversal)
         }
-        CausalRegime::ConfoundedNull => {
-            Some(CausalDiagnosis::NullEffectWithConfounding)
-        }
+        CausalRegime::ConfoundedNull => Some(CausalDiagnosis::NullEffectWithConfounding),
         CausalRegime::ConfounderShift => {
             Some(CausalDiagnosis::ConfounderShiftWithoutCausalEffectChange)
         }
@@ -202,11 +194,9 @@ fn noisy_observational_association(
     config: MonteCarloConfig,
 ) -> f64 {
     let mut rng = SplitMix64::new(mix_seed(seed, 1, tick));
-    let standard_error = config.outcome_noise_sd
-        * (2.0 / config.observation_sample_size_per_arm as f64).sqrt();
-    regime.causal_effect(tick)
-        + confounder_imbalance(regime, tick)
-        + standard_error * rng.normal()
+    let standard_error =
+        config.outcome_noise_sd * (2.0 / config.observation_sample_size_per_arm as f64).sqrt();
+    regime.causal_effect(tick) + confounder_imbalance(regime, tick) + standard_error * rng.normal()
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -237,9 +227,8 @@ fn noisy_matched_probe(
     }
     let count = config.matched_probe_pairs as f64;
     let estimate = sum / count;
-    let sample_variance = ((sum_squares - count * estimate * estimate).max(0.0)
-        / (count - 1.0))
-        .max(0.0);
+    let sample_variance =
+        ((sum_squares - count * estimate * estimate).max(0.0) / (count - 1.0)).max(0.0);
     let standard_error = (sample_variance / count).sqrt();
     let margin = config.probe_ci_z * standard_error;
     let lower_95 = estimate - margin;
@@ -326,8 +315,7 @@ fn wilson_interval(successes: usize, trials: usize) -> (f64, f64) {
     let p = successes as f64 / n;
     let denominator = 1.0 + z * z / n;
     let center = (p + z * z / (2.0 * n)) / denominator;
-    let half = z * ((p * (1.0 - p) / n + z * z / (4.0 * n * n)).sqrt())
-        / denominator;
+    let half = z * ((p * (1.0 - p) / n + z * z / (4.0 * n * n)).sqrt()) / denominator;
     ((center - half).max(0.0), (center + half).min(1.0))
 }
 
@@ -365,8 +353,7 @@ fn run_episode(
 
     for tick in 1..=8 {
         let true_effect = regime.causal_effect(tick);
-        let association =
-            noisy_observational_association(regime, tick, seed, config);
+        let association = noisy_observational_association(regime, tick, seed, config);
 
         // Actions are executed before the current observation/probe arrives.
         if policy_enabled {
@@ -375,8 +362,7 @@ fn run_episode(
             action_cost += ACTION_COST;
             if true_effect <= 0.0 {
                 active_after_nonpositive_effect_ticks += 1;
-                if controller == CausalDriftController::OutcomeReactive
-                    && association > ACTION_COST
+                if controller == CausalDriftController::OutcomeReactive && association > ACTION_COST
                 {
                     proxy_driven_action_under_nonpositive_effect = true;
                 }
@@ -460,8 +446,7 @@ fn run_episode(
     let oracle_net_utility = (1..=8)
         .map(|tick| (regime.causal_effect(tick) - ACTION_COST).max(0.0))
         .sum::<f64>();
-    let net_utility =
-        cumulative_causal_contribution - action_cost - diagnostic_probe_cost;
+    let net_utility = cumulative_causal_contribution - action_cost - diagnostic_probe_cost;
 
     MonteCarloEpisode {
         seed,
@@ -502,7 +487,9 @@ fn summarize(
         .iter()
         .filter(|episode| {
             drift_onset(regime).is_some_and(|onset| {
-                episode.signal_detection_tick.is_some_and(|tick| tick >= onset)
+                episode
+                    .signal_detection_tick
+                    .is_some_and(|tick| tick >= onset)
             })
         })
         .count();
@@ -520,12 +507,9 @@ fn summarize(
         .count();
     let (signal_detection_ci_low, signal_detection_ci_high) =
         wilson_interval(signal_successes, count);
-    let (correct_diagnosis_ci_low, correct_diagnosis_ci_high) =
-        wilson_interval(correct, count);
-    let (premature_alarm_ci_low, premature_alarm_ci_high) =
-        wilson_interval(premature, count);
-    let (false_diagnosis_ci_low, false_diagnosis_ci_high) =
-        wilson_interval(false_diagnoses, count);
+    let (correct_diagnosis_ci_low, correct_diagnosis_ci_high) = wilson_interval(correct, count);
+    let (premature_alarm_ci_low, premature_alarm_ci_high) = wilson_interval(premature, count);
+    let (false_diagnosis_ci_low, false_diagnosis_ci_high) = wilson_interval(false_diagnoses, count);
 
     MonteCarloSummary {
         regime,
@@ -588,18 +572,13 @@ fn summarize(
     }
 }
 
-pub fn run_monte_carlo(
-    config: MonteCarloConfig,
-) -> Result<MonteCarloReport, &'static str> {
+pub fn run_monte_carlo(config: MonteCarloConfig) -> Result<MonteCarloReport, &'static str> {
     config.validate()?;
     let mut episodes = Vec::with_capacity(
-        CausalRegime::ALL.len()
-            * CausalDriftController::ALL.len()
-            * config.replicates_per_regime,
+        CausalRegime::ALL.len() * CausalDriftController::ALL.len() * config.replicates_per_regime,
     );
-    let mut summaries = Vec::with_capacity(
-        CausalRegime::ALL.len() * CausalDriftController::ALL.len(),
-    );
+    let mut summaries =
+        Vec::with_capacity(CausalRegime::ALL.len() * CausalDriftController::ALL.len());
 
     for regime in CausalRegime::ALL {
         let start = episodes.len();
@@ -657,9 +636,7 @@ mod tests {
             report
                 .summaries
                 .iter()
-                .find(|summary| {
-                    summary.regime == regime && summary.controller == controller
-                })
+                .find(|summary| summary.regime == regime && summary.controller == controller)
                 .expect("summary exists")
         };
         let causal_shift = get(
@@ -724,9 +701,7 @@ mod tests {
             assert!(summary.premature_alarm_ci_high <= 0.10);
             assert!(summary.false_diagnosis_ci_high <= 0.10);
             if controller == CausalDriftController::MechanismAware {
-                assert!(
-                    summary.mean_probe_ci_coverage.unwrap_or_default() >= 0.90
-                );
+                assert!(summary.mean_probe_ci_coverage.unwrap_or_default() >= 0.90);
             }
         }
     }
