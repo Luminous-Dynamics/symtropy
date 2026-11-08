@@ -150,6 +150,7 @@ struct MetricProfile {
     suite_id: String,
     version: String,
     scope: MetricScope,
+    definition_authority: MetricDefinitionAuthority,
     accuracy_direction: AccuracyDirection,
     surface_buffer_m: f64,
     accuracy_cutoff_m: f64,
@@ -168,6 +169,14 @@ enum MetricScope {
 enum AccuracyDirection {
     ReferenceToCandidate,
     CandidateToReference,
+    BidirectionalDiagnostic,
+}
+
+#[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum MetricDefinitionAuthority {
+    OfficialResultsPage,
+    FinalResultsPaper2021,
     BidirectionalDiagnostic,
 }
 
@@ -311,6 +320,7 @@ pub struct ReplayAuditReport {
     pub distance_cutoff_m: f64,
     pub normalization_mode: String,
     pub metric_scope: String,
+    pub metric_definition_authority: String,
     pub metric_accuracy_direction: String,
     pub surface_buffer_m: f64,
     pub accuracy_cutoff_m: f64,
@@ -432,6 +442,14 @@ fn metric_scope_label(value: MetricScope) -> &'static str {
     }
 }
 
+fn metric_definition_authority_label(value: MetricDefinitionAuthority) -> &'static str {
+    match value {
+        MetricDefinitionAuthority::OfficialResultsPage => "official_results_page",
+        MetricDefinitionAuthority::FinalResultsPaper2021 => "final_results_paper_2021",
+        MetricDefinitionAuthority::BidirectionalDiagnostic => "bidirectional_diagnostic",
+    }
+}
+
 fn accuracy_direction_label(value: AccuracyDirection) -> &'static str {
     match value {
         AccuracyDirection::ReferenceToCandidate => "reference_to_candidate",
@@ -536,12 +554,27 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
             "metric profile must declare a version and finite positive metre thresholds".to_owned(),
         );
     }
-    if manifest.metric_profile.suite_id == "isprs_indoor_modelling_wall"
-        && (manifest.metric_profile.scope != MetricScope::WallOnly
-            || manifest.metric_profile.accuracy_direction
-                != AccuracyDirection::ReferenceToCandidate)
-    {
-        return Err("official ISPRS wall metric profile requires wall_only scope and reference_to_candidate accuracy".to_owned());
+    if manifest.metric_profile.suite_id == "isprs_indoor_modelling_wall" {
+        let direction_matches_authority = match manifest.metric_profile.definition_authority {
+            MetricDefinitionAuthority::OfficialResultsPage => {
+                manifest.metric_profile.accuracy_direction
+                    == AccuracyDirection::ReferenceToCandidate
+            }
+            MetricDefinitionAuthority::FinalResultsPaper2021 => {
+                manifest.metric_profile.accuracy_direction
+                    == AccuracyDirection::CandidateToReference
+            }
+            MetricDefinitionAuthority::BidirectionalDiagnostic => {
+                manifest.metric_profile.accuracy_direction
+                    == AccuracyDirection::BidirectionalDiagnostic
+            }
+        };
+        if manifest.metric_profile.scope != MetricScope::WallOnly || !direction_matches_authority {
+            return Err(
+                "ISPRS wall metric profile must pair wall_only scope with the direction declared by definition_authority"
+                    .to_owned(),
+            );
+        }
     }
 
     if manifest.candidate_runtime_artifacts.is_empty() {
@@ -1317,6 +1350,10 @@ pub fn audit_manifest_bytes(bytes: &[u8]) -> Result<ReplayAuditReport, String> {
         distance_cutoff_m: manifest.sampling_profile.distance_cutoff_m,
         normalization_mode: normalization_mode_label(manifest.sampling_profile.normalization).to_owned(),
         metric_scope: metric_scope_label(manifest.metric_profile.scope).to_owned(),
+        metric_definition_authority: metric_definition_authority_label(
+            manifest.metric_profile.definition_authority,
+        )
+        .to_owned(),
         metric_accuracy_direction: accuracy_direction_label(manifest.metric_profile.accuracy_direction).to_owned(),
         surface_buffer_m: manifest.metric_profile.surface_buffer_m,
         accuracy_cutoff_m: manifest.metric_profile.accuracy_cutoff_m,
@@ -1454,13 +1491,40 @@ mod tests {
     }
 
     #[test]
-    fn rejects_candidate_to_reference_accuracy_for_official_isprs_profile() {
+    fn rejects_direction_mismatch_for_official_results_page_profile() {
         let mut value = isprs_pair_fixture();
         value["metric_profile"]["suite_id"] = serde_json::json!("isprs_indoor_modelling_wall");
         value["metric_profile"]["scope"] = serde_json::json!("wall_only");
+        value["metric_profile"]["definition_authority"] = serde_json::json!("official_results_page");
         value["metric_profile"]["accuracy_direction"] = serde_json::json!("candidate_to_reference");
-        let error = audit(&value).expect_err("official direction is reference-to-candidate");
-        assert!(error.contains("reference_to_candidate accuracy"));
+        let error = audit(&value).expect_err("direction must match selected definition authority");
+        assert!(error.contains("definition_authority"));
+    }
+
+    #[test]
+    fn accepts_published_2021_paper_direction_as_a_separate_named_profile() {
+        let mut value = isprs_pair_fixture();
+        value["metric_profile"]["suite_id"] = serde_json::json!("isprs_indoor_modelling_wall");
+        value["metric_profile"]["scope"] = serde_json::json!("wall_only");
+        value["metric_profile"]["definition_authority"] =
+            serde_json::json!("final_results_paper2021");
+        value["metric_profile"]["accuracy_direction"] = serde_json::json!("candidate_to_reference");
+        let report = audit(&value).expect("paper-specific profile should be explicit and reproducible");
+        assert_eq!(report.metric_accuracy_direction, "candidate_to_reference");
+        assert_eq!(report.metric_definition_authority, "final_results_paper_2021");
+    }
+
+    #[test]
+    fn accepts_bidirectional_isprs_diagnostics_without_mislabeling_them_official() {
+        let mut value = isprs_pair_fixture();
+        value["metric_profile"]["suite_id"] = serde_json::json!("isprs_indoor_modelling_wall");
+        value["metric_profile"]["scope"] = serde_json::json!("wall_only");
+        value["metric_profile"]["definition_authority"] =
+            serde_json::json!("bidirectional_diagnostic");
+        value["metric_profile"]["accuracy_direction"] =
+            serde_json::json!("bidirectional_diagnostic");
+        let report = audit(&value).expect("both directed distances may be retained as diagnostics");
+        assert_eq!(report.metric_accuracy_direction, "bidirectional_diagnostic");
     }
 
     #[test]
@@ -1585,6 +1649,10 @@ mod tests {
         assert_eq!(
             report.metric_accuracy_direction,
             "reference_to_candidate"
+        );
+        assert_eq!(
+            report.metric_definition_authority,
+            "official_results_page"
         );
         assert_eq!(report.tolerance_distance_limit_m, 0.05);
         assert_eq!(report.scenes[0].linear_unit, "metre");
