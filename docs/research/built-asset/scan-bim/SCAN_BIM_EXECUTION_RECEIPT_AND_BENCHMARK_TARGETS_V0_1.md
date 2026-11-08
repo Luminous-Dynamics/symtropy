@@ -163,4 +163,4 @@ Never compress the ladder into one weighted score. Do not use a better pooled po
 
 ## Claim ceiling
 
-The v0.2 execution receipt binds a declared run to local runtime/input/output file digests, per-scene frames, tolerance/sampling parameters and metric definitions. It does not execute or sandbox the candidate, compute geometry, validate CRS transformations, run the official ISPRS scorer, or establish field productivity. The synthetic IFC-placeholder files are byte fixtures, not valid IFC deliverables. P0.3 remains a contract and receipt foundation until exact-head validation and a later independent geometric scorer pass.
+The v0.3 execution receipt binds a declared run to local runtime/input/output file digests, per-scene frames, tolerance/sampling parameters and metric definitions. It does not execute or sandbox the candidate, compute geometry, validate CRS transformations, run the official ISPRS scorer, or establish field productivity. The synthetic IFC-placeholder files are byte fixtures, not valid IFC deliverables. P0.3 remains a contract and receipt foundation until exact-head validation and a later independent geometric scorer pass.
