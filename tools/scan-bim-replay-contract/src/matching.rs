@@ -371,8 +371,7 @@ pub fn evaluate_matching_confidence(
                 .entry(scan.sample_id.clone())
                 .or_insert(bim.normal);
             matched_area_m2 += bim.represented_area_m2;
-            distance_weighted_area +=
-                bim.represented_area_m2 * (1.0 - distance_m / delta_m);
+            distance_weighted_area += bim.represented_area_m2 * (1.0 - distance_m / delta_m);
         }
     }
 
@@ -431,13 +430,12 @@ pub fn evaluate_matching_confidence(
         scan_histogram = scan_bins;
     }
 
-    let confidence_product_selected =
-        match (distance_index_sample_count, selected_distribution) {
-            (Some(distance), Some(distribution)) => {
-                Some(coverage_index_sample_count * distance * distribution)
-            }
-            _ => None,
-        };
+    let confidence_product_selected = match (distance_index_sample_count, selected_distribution) {
+        (Some(distance), Some(distribution)) => {
+            Some(coverage_index_sample_count * distance * distribution)
+        }
+        _ => None,
+    };
 
     Ok(MatchingConfidenceReport {
         profile,
@@ -595,10 +593,7 @@ mod tests {
             bim("b1", [1.0, 0.0, 0.0], [0.0, 1.0, 0.0], 1.0),
             bim("b0", [0.0, 0.0, 0.0], [1.0, 0.0, 0.0], 1.0),
         ];
-        let scan_samples = vec![
-            scan("s1", [1.01, 0.0, 0.0]),
-            scan("s0", [0.01, 0.0, 0.0]),
-        ];
+        let scan_samples = vec![scan("s1", [1.01, 0.0, 0.0]), scan("s0", [0.01, 0.0, 0.0])];
         let first = evaluate_matching_confidence(
             &bim_samples,
             &scan_samples,
@@ -625,13 +620,20 @@ mod tests {
         // Two normals in a north-polar cap have different azimuths. The paper
         // text splits their azimuth bins; the upstream code collapses both into
         // its first polar bucket.
-        let normals = [
-            Point3::new(0.1, 0.0, 1.0),
-            Point3::new(-0.1, 0.0, 1.0),
-        ];
+        let normals = [Point3::new(0.1, 0.0, 1.0), Point3::new(-0.1, 0.0, 1.0)];
         let bim_samples = vec![
-            bim("b0", [0.0, 0.0, 0.0], [normals[0].x, normals[0].y, normals[0].z], 1.0),
-            bim("b1", [0.001, 0.0, 0.0], [normals[1].x, normals[1].y, normals[1].z], 1.0),
+            bim(
+                "b0",
+                [0.0, 0.0, 0.0],
+                [normals[0].x, normals[0].y, normals[0].z],
+                1.0,
+            ),
+            bim(
+                "b1",
+                [0.001, 0.0, 0.0],
+                [normals[1].x, normals[1].y, normals[1].z],
+                1.0,
+            ),
         ];
         let scan_samples = vec![scan("s0", [0.0005, 0.0, 0.0])];
         let report = evaluate_matching_confidence(
@@ -683,12 +685,7 @@ mod tests {
     #[test]
     fn rejects_non_finite_points_invalid_normals_and_bad_thresholds() {
         let scan_samples = vec![scan("s0", [0.0, 0.0, 0.0])];
-        let invalid_point = vec![bim(
-            "bad-point",
-            [f64::NAN, 0.0, 0.0],
-            [0.0, 0.0, 1.0],
-            1.0,
-        )];
+        let invalid_point = vec![bim("bad-point", [f64::NAN, 0.0, 0.0], [0.0, 0.0, 1.0], 1.0)];
         let error = evaluate_matching_confidence(
             &invalid_point,
             &scan_samples,
