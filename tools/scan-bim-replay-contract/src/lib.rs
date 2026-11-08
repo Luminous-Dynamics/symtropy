@@ -402,9 +402,7 @@ fn validate_candidate_pipeline(pipeline: &CandidatePipelineRecord) -> Result<(),
             .iter()
             .any(|argument| !valid_identifier(argument))
     {
-        return Err(
-            "candidate_pipeline.command_argv must contain non-empty arguments".to_owned(),
-        );
+        return Err("candidate_pipeline.command_argv must contain non-empty arguments".to_owned());
     }
 
     for (label, artifact) in [
