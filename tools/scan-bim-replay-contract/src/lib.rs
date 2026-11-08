@@ -414,7 +414,6 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
     }
 
     let mut runtime_ids = BTreeSet::new();
-    let mut runtime_digests = BTreeSet::new();
     let mut has_executable = false;
     let mut has_configuration = false;
     let mut has_model = false;
@@ -428,7 +427,6 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
                 artifact.artifact_id
             ));
         }
-        runtime_digests.insert(artifact.sha256.as_str());
         match artifact.role {
             CandidateInputRole::CandidateExecutable => has_executable = true,
             CandidateInputRole::CandidateConfiguration => has_configuration = true,
@@ -695,7 +693,6 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
     }
 
     let mut output_ids = BTreeSet::new();
-    let mut output_digests = BTreeSet::new();
     let mut output_scenes = BTreeSet::new();
     for output in &manifest.candidate_outputs {
         if !valid_identifier(&output.artifact_id)
@@ -714,7 +711,6 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
                 output.artifact_id, output.scene_id
             ));
         }
-        output_digests.insert(output.sha256.as_str());
         if output.role == CandidateOutputRole::IfcModel {
             output_scenes.insert(output.scene_id.as_str());
         }
@@ -1059,7 +1055,7 @@ pub fn audit_manifest_bytes(bytes: &[u8]) -> Result<ReplayAuditReport, String> {
             + manifest.candidate_outputs.len(),
         evaluator_artifact_count,
         scenes,
-        claim_ceiling: "METADATA_AND_VISIBILITY_ACCOUNTING_ONLY; no geometry reconstruction, official ISPRS scoring, OS sandboxing, or proof of organizational evaluator independence",
+        claim_ceiling: "METADATA_LOCAL_ARTIFACT_INTEGRITY_AND_VISIBILITY_ACCOUNTING_ONLY; no candidate execution, geometry reconstruction, official ISPRS scoring, OS sandboxing, or proof of organizational evaluator independence",
     })
 }
 
@@ -1091,7 +1087,10 @@ mod tests {
         let summary =
             super::verify_manifest_artifact_files(FIXTURE.as_bytes(), &candidate, &evaluator)
                 .expect("synthetic artifact bytes should match the declared hashes");
-        assert_eq!(summary.candidate_verified, 2);
+        assert_eq!(summary.candidate_verified, 9);
+        assert_eq!(summary.candidate_runtime_verified, 3);
+        assert_eq!(summary.candidate_input_verified, 2);
+        assert_eq!(summary.candidate_output_verified, 4);
         assert_eq!(summary.evaluator_verified, 2);
     }
 
@@ -1174,11 +1173,113 @@ mod tests {
     }
 
     #[test]
+    fn rejects_reference_derived_normalization_bounds() {
+        let mut value = fixture_value();
+        value["sampling_profile"]["normalization"] =
+            serde_json::json!("reference_derived_full_bounds");
+        let error = audit(&value).expect_err("reference-derived bounds leak evaluator knowledge");
+        assert!(error.contains("reference-derived full-object bounds are forbidden"));
+    }
+
+    #[test]
+    fn rejects_candidate_to_reference_accuracy_for_official_isprs_profile() {
+        let mut value = isprs_pair_fixture();
+        value["metric_profile"]["suite_id"] =
+            serde_json::json!("isprs_indoor_modelling_wall");
+        value["metric_profile"]["scope"] = serde_json::json!("wall_only");
+        value["metric_profile"]["accuracy_direction"] =
+            serde_json::json!("candidate_to_reference");
+        let error = audit(&value).expect_err("official direction is reference-to-candidate");
+        assert!(error.contains("reference_to_candidate accuracy"));
+    }
+
+    #[test]
+    fn accepts_official_isprs_metric_direction_and_scope() {
+        let mut value = isprs_pair_fixture();
+        value["metric_profile"]["suite_id"] =
+            serde_json::json!("isprs_indoor_modelling_wall");
+        value["metric_profile"]["scope"] = serde_json::json!("wall_only");
+        value["metric_profile"]["accuracy_direction"] =
+            serde_json::json!("reference_to_candidate");
+        let report = audit(&value).expect("official profile direction and wall scope are valid");
+        assert_eq!(report.metric_suite_id, "isprs_indoor_modelling_wall");
+    }
+
+    #[test]
+    fn rejects_invalid_candidate_source_commit_identity() {
+        let mut value = fixture_value();
+        value["candidate_run"]["source_commit_sha"] = serde_json::json!("not-a-commit");
+        let error = audit(&value).expect_err("candidate source commit must be pinned");
+        assert!(error.contains("40 lowercase hexadecimal"));
+    }
+
+    #[test]
+    fn rejects_missing_executable_artifact_reference() {
+        let mut value = fixture_value();
+        value["candidate_run"]["executable_artifact_id"] =
+            serde_json::json!("UNDECLARED-EXECUTABLE");
+        let error = audit(&value).expect_err("run identity must bind the executable bytes");
+        assert!(error.contains("executable_artifact_id must reference"));
+    }
+
+    #[test]
+    fn rejects_unknown_coordinate_units() {
+        let mut value = fixture_value();
+        value["scenes"][0]["coordinate_frame"]["linear_unit"] =
+            serde_json::json!("yards");
+        let error = audit(&value).expect_err("coordinate units are a closed vocabulary");
+        assert!(error.contains("unknown variant"));
+    }
+
+    #[test]
+    fn rejects_non_positive_tolerance() {
+        let mut value = fixture_value();
+        value["tolerance_profile"]["surface_distance_limit_m"] = serde_json::json!(0.0);
+        let error = audit(&value).expect_err("tolerance must be positive");
+        assert!(error.contains("finite positive distance limit"));
+    }
+
+    #[test]
+    fn rejects_candidate_output_with_wrong_scene_binding() {
+        let mut value = fixture_value();
+        value["candidate_outputs"][0]["scene_id"] = serde_json::json!("SCENE-NOT-IN-MANIFEST");
+        let error = audit(&value).expect_err("output must bind to a declared scene");
+        assert!(error.contains("references unknown scene"));
+    }
+
+    #[test]
+    fn requires_ifc_output_for_every_scene() {
+        let mut value = fixture_value();
+        value["candidate_outputs"].as_array_mut().expect("output array").retain(
+            |output| output["scene_id"] != "ROOM-B" || output["role"] != "ifc_model"
+        );
+        let error = audit(&value).expect_err("every scene needs a candidate IFC output");
+        assert!(error.contains("requires at least one ifc_model"));
+    }
+
+    #[test]
+    fn rejects_candidate_output_bytes_that_do_not_match_digest() {
+        let mut value = fixture_value();
+        value["candidate_outputs"][0]["sha256"] =
+            serde_json::json!("0000000000000000000000000000000000000000000000000000000000000000");
+        let (candidate, evaluator) = synthetic_data_roots();
+        let error = super::verify_manifest_artifact_files(
+            value.to_string().as_bytes(),
+            &candidate,
+            &evaluator,
+        )
+        .expect_err("candidate outputs must be hashed just like input artifacts");
+        assert!(error.contains("candidate output ROOM-A-IFC SHA-256 mismatch"));
+    }
+
+    #[test]
     fn accepts_synthetic_visibility_manifest() {
         let report = audit_manifest_bytes(FIXTURE.as_bytes()).expect("manifest should pass");
         assert_eq!(report.scene_count, 2);
-        assert_eq!(report.candidate_artifact_count, 2);
+        assert_eq!(report.candidate_artifact_count, 9);
         assert_eq!(report.evaluator_artifact_count, 2);
+        assert_eq!(report.pipeline_id, "synthetic-scan-bim-candidate-v0.2");
+        assert_eq!(report.metric_suite_version, "0.2");
     }
 
     #[test]
@@ -1334,6 +1435,10 @@ mod tests {
         value["dataset"]["dataset_id"] = serde_json::json!("ISPRS-INDOOR-MODELLING");
         value["dataset"]["use_class"] = serde_json::json!("research_only_non_redistributable");
         value["split"]["evaluation_group_ids"] = serde_json::json!(["TUB-BUILDING"]);
+        value["candidate_outputs"][0]["scene_id"] = serde_json::json!("TUB1");
+        value["candidate_outputs"][1]["scene_id"] = serde_json::json!("TUB1");
+        value["candidate_outputs"][2]["scene_id"] = serde_json::json!("TUB2");
+        value["candidate_outputs"][3]["scene_id"] = serde_json::json!("TUB2");
         for (index, scene_id, capture_id) in
             [(0, "TUB1", "TUB1-CAPTURE"), (1, "TUB2", "TUB2-CAPTURE")]
         {
