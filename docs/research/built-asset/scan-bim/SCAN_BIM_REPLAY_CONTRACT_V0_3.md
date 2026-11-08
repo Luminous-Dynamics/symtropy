@@ -1,6 +1,6 @@
 # Scan-to-BIM Replay Contract v0.3
 
-**Status:** P0.3 schema/receipt contract; still not an external dataset replay. The current manifest schema is v0.3 and records candidate execution identity, per-scene frame/units/registration-transform evidence, tolerance/sampling/metric profiles, candidate outputs and local byte verification.  
+**Status:** P0.3 schema/receipt contract; still not an external dataset replay. The current manifest schema is v0.3 and records candidate execution identity, per-scene frame/units/registration-transform evidence, tolerance/sampling/metric profiles (including correspondence policy), candidate outputs and local byte verification.  
 **Issue:** #4116 — SCAN-BIM-REPLAY-001.  
 **Package:** `tools/scan-bim-replay-contract/`.
 
@@ -69,7 +69,7 @@ For the named ISPRS wall suite, the authority, scope, direction and sample strat
 - 2021 final-results paper: wall-only, candidate-to-reference, source-surface samples;
 - bidirectional diagnostic: both directed distributions remain separate and are not labelled an official score.
 
-Other suites must declare project-defined metric authority. A synthetic or custom metric cannot label itself as the official results-page definition.
+Other suites must declare project-defined metric authority. A synthetic or custom metric cannot label itself as the official results-page definition. The v0.3 manifest binds `metric_profile.correspondence_policy`; the Rust P1.0 core implements `euclidean_closest_point_on_triangle` and `orthogonal_projection_inside_triangle` as distinct policies. It declares the 2021 profile unresolved until the exact source method is reproduced.
 
 A report-only or hard-limit tolerance declares no statistical-interval fields. A statistical-interval policy must additionally provide a non-empty uncertainty-model ID, a coverage probability strictly between zero and one, and a finite positive coverage factor. These are declaration checks only: the P0.3 verifier does not fit, validate or calibrate the uncertainty model, and it does not issue a project acceptance decision. A statistical profile without those assumptions fails closed.
 

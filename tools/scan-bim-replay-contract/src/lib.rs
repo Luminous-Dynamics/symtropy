@@ -8,6 +8,8 @@ use std::fs::{self, File};
 use std::io::Read;
 use std::path::{Component, Path, PathBuf};
 
+pub mod metrics;
+
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ReplayManifest {
@@ -156,6 +158,7 @@ struct MetricProfile {
     definition_authority: MetricDefinitionAuthority,
     accuracy_direction: AccuracyDirection,
     sample_strategy: AccuracySampleStrategy,
+    correspondence_policy: MetricCorrespondencePolicy,
     surface_buffer_m: f64,
     accuracy_cutoff_m: f64,
 }
@@ -193,6 +196,15 @@ enum AccuracySampleStrategy {
     SourceSurfaceVertices,
     SourceSurfaceSamples,
     BothDirectionsDiagnostic,
+}
+
+#[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum MetricCorrespondencePolicy {
+    EuclideanClosestPointOnTriangle,
+    OrthogonalProjectionInsideTriangle,
+    UnresolvedUntilReferenceMethodReproduction,
+    BidirectionalDiagnostic,
 }
 
 #[derive(Debug, Deserialize)]
@@ -341,6 +353,7 @@ pub struct ReplayAuditReport {
     pub metric_definition_authority: String,
     pub metric_accuracy_direction: String,
     pub metric_accuracy_sample_strategy: String,
+    pub metric_correspondence_policy: String,
     pub surface_buffer_m: f64,
     pub accuracy_cutoff_m: f64,
     pub manifest_sha256: String,
@@ -467,6 +480,21 @@ fn accuracy_sample_strategy_label(value: AccuracySampleStrategy) -> &'static str
         AccuracySampleStrategy::SourceSurfaceVertices => "source_surface_vertices",
         AccuracySampleStrategy::SourceSurfaceSamples => "source_surface_samples",
         AccuracySampleStrategy::BothDirectionsDiagnostic => "both_directions_diagnostic",
+    }
+}
+
+fn metric_correspondence_policy_label(value: MetricCorrespondencePolicy) -> &'static str {
+    match value {
+        MetricCorrespondencePolicy::EuclideanClosestPointOnTriangle => {
+            "euclidean_closest_point_on_triangle"
+        }
+        MetricCorrespondencePolicy::OrthogonalProjectionInsideTriangle => {
+            "orthogonal_projection_inside_triangle"
+        }
+        MetricCorrespondencePolicy::UnresolvedUntilReferenceMethodReproduction => {
+            "unresolved_until_reference_method_reproduction"
+        }
+        MetricCorrespondencePolicy::BidirectionalDiagnostic => "bidirectional_diagnostic",
     }
 }
 
@@ -624,30 +652,38 @@ fn validate_manifest(manifest: &ReplayManifest) -> Result<(), String> {
                     == AccuracyDirection::ReferenceToCandidate
                     && manifest.metric_profile.sample_strategy
                         == AccuracySampleStrategy::ReferenceSurfaceSamples
+                    && manifest.metric_profile.correspondence_policy
+                        == MetricCorrespondencePolicy::EuclideanClosestPointOnTriangle
             }
             MetricDefinitionAuthority::EvaluationFramework2018 => {
                 manifest.metric_profile.accuracy_direction
                     == AccuracyDirection::CandidateToReference
                     && manifest.metric_profile.sample_strategy
                         == AccuracySampleStrategy::SourceSurfaceVertices
+                    && manifest.metric_profile.correspondence_policy
+                        == MetricCorrespondencePolicy::OrthogonalProjectionInsideTriangle
             }
             MetricDefinitionAuthority::FinalResultsPaper2021 => {
                 manifest.metric_profile.accuracy_direction
                     == AccuracyDirection::CandidateToReference
                     && manifest.metric_profile.sample_strategy
                         == AccuracySampleStrategy::SourceSurfaceSamples
+                    && manifest.metric_profile.correspondence_policy
+                        == MetricCorrespondencePolicy::UnresolvedUntilReferenceMethodReproduction
             }
             MetricDefinitionAuthority::BidirectionalDiagnostic => {
                 manifest.metric_profile.accuracy_direction
                     == AccuracyDirection::BidirectionalDiagnostic
                     && manifest.metric_profile.sample_strategy
                         == AccuracySampleStrategy::BothDirectionsDiagnostic
+                    && manifest.metric_profile.correspondence_policy
+                        == MetricCorrespondencePolicy::BidirectionalDiagnostic
             }
             MetricDefinitionAuthority::ProjectDefined => false,
         };
         if manifest.metric_profile.scope != MetricScope::WallOnly || !authority_matches_definition {
             return Err(
-                "ISPRS wall metric profile must pair wall_only scope, accuracy direction and sample strategy with definition_authority"
+                "ISPRS wall metric profile must pair wall_only scope, accuracy direction, sample strategy and correspondence policy with definition_authority"
                     .to_owned(),
             );
         }
@@ -1464,6 +1500,10 @@ pub fn audit_manifest_bytes(bytes: &[u8]) -> Result<ReplayAuditReport, String> {
             manifest.metric_profile.sample_strategy,
         )
         .to_owned(),
+        metric_correspondence_policy: metric_correspondence_policy_label(
+            manifest.metric_profile.correspondence_policy,
+        )
+        .to_owned(),
         surface_buffer_m: manifest.metric_profile.surface_buffer_m,
         accuracy_cutoff_m: manifest.metric_profile.accuracy_cutoff_m,
         manifest_sha256,
@@ -1611,8 +1651,10 @@ mod tests {
             serde_json::json!("final_results_paper2021");
         value["metric_profile"]["accuracy_direction"] = serde_json::json!("candidate_to_reference");
         value["metric_profile"]["sample_strategy"] = serde_json::json!("source_surface_samples");
+        value["metric_profile"]["correspondence_policy"] =
+            serde_json::json!("unresolved_until_reference_method_reproduction");
         let report =
-            audit(&value).expect("paper-specific profile should be explicit and reproducible");
+            audit(&value).expect("paper-specific profile remains explicitly method-unresolved");
         assert_eq!(report.metric_accuracy_direction, "candidate_to_reference");
         assert_eq!(
             report.metric_definition_authority,
@@ -1621,6 +1663,10 @@ mod tests {
         assert_eq!(
             report.metric_accuracy_sample_strategy,
             "source_surface_samples"
+        );
+        assert_eq!(
+            report.metric_correspondence_policy,
+            "unresolved_until_reference_method_reproduction"
         );
     }
 
@@ -1633,11 +1679,18 @@ mod tests {
             serde_json::json!("evaluation_framework2018");
         value["metric_profile"]["accuracy_direction"] = serde_json::json!("candidate_to_reference");
         value["metric_profile"]["sample_strategy"] = serde_json::json!("source_surface_vertices");
-        let report =
-            audit(&value).expect("2018 framework's source vertices must be separately recorded");
+        value["metric_profile"]["correspondence_policy"] =
+            serde_json::json!("orthogonal_projection_inside_triangle");
+        let report = audit(&value).expect(
+            "2018 framework's source vertices and projection rule must be separately recorded",
+        );
         assert_eq!(
             report.metric_accuracy_sample_strategy,
             "source_surface_vertices"
+        );
+        assert_eq!(
+            report.metric_correspondence_policy,
+            "orthogonal_projection_inside_triangle"
         );
     }
 
@@ -1652,11 +1705,17 @@ mod tests {
             serde_json::json!("bidirectional_diagnostic");
         value["metric_profile"]["sample_strategy"] =
             serde_json::json!("both_directions_diagnostic");
+        value["metric_profile"]["correspondence_policy"] =
+            serde_json::json!("bidirectional_diagnostic");
         let report = audit(&value).expect("both directed distances may be retained as diagnostics");
         assert_eq!(report.metric_accuracy_direction, "bidirectional_diagnostic");
         assert_eq!(
             report.metric_accuracy_sample_strategy,
             "both_directions_diagnostic"
+        );
+        assert_eq!(
+            report.metric_correspondence_policy,
+            "bidirectional_diagnostic"
         );
     }
 
@@ -1670,6 +1729,26 @@ mod tests {
         value["metric_profile"]["accuracy_direction"] = serde_json::json!("reference_to_candidate");
         let report = audit(&value).expect("official profile direction and wall scope are valid");
         assert_eq!(report.metric_suite_id, "isprs_indoor_modelling_wall");
+        assert_eq!(
+            report.metric_correspondence_policy,
+            "euclidean_closest_point_on_triangle"
+        );
+    }
+
+    #[test]
+    fn rejects_official_results_page_when_plane_projection_policy_is_used() {
+        let mut value = isprs_pair_fixture();
+        value["metric_profile"]["suite_id"] = serde_json::json!("isprs_indoor_modelling_wall");
+        value["metric_profile"]["scope"] = serde_json::json!("wall_only");
+        value["metric_profile"]["definition_authority"] =
+            serde_json::json!("official_results_page");
+        value["metric_profile"]["accuracy_direction"] = serde_json::json!("reference_to_candidate");
+        value["metric_profile"]["sample_strategy"] = serde_json::json!("reference_surface_samples");
+        value["metric_profile"]["correspondence_policy"] =
+            serde_json::json!("orthogonal_projection_inside_triangle");
+        let error = audit(&value)
+            .expect_err("official closest-surface scoring must not use plane-only correspondence");
+        assert!(error.contains("correspondence policy"));
     }
 
     #[test]
@@ -1866,6 +1945,10 @@ mod tests {
         assert_eq!(
             report.metric_accuracy_sample_strategy,
             "reference_surface_samples"
+        );
+        assert_eq!(
+            report.metric_correspondence_policy,
+            "euclidean_closest_point_on_triangle"
         );
         assert_eq!(report.tolerance_distance_limit_m, 0.05);
         assert_eq!(report.scenes[0].linear_unit, "metre");
