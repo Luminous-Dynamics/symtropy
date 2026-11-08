@@ -88,6 +88,42 @@ The portfolio compares frozen, outcome-reactive, CUSUM signal-only and mechanism
 
 Known-answer controls: CUSUM detects abrupt observational change at tick 4, gradual change at tick 5, and confounder shift at tick 5. The mechanism-aware controller diagnoses abrupt reversal at tick 4, gradual reversal at tick 6, confounded null at tick 2, and confounder-only shift at tick 6. It does not disable the stable-positive mechanism or the still-beneficial intervention under confounder shift.
 
+## Scenario D: seeded, noisy confirmatory drift evaluation
+
+The deterministic controls above establish known-answer semantics but cannot estimate diagnosis rates or false-alarm uncertainty. The seeded benchmark adds bounded stochastic variation while retaining the same five causal regimes and four controllers.
+
+### Data-generation contract
+
+- Each scenario seed produces eight observational-association observations.
+- Observation noise is uniform on \\([-2,+2]\\); measured covariate noise is uniform on \\([-1,+1]\\).
+- Matched probes contain 256 treatment/control pairs. Each pair shares the same synthetic common-cause value; independent outcome errors are uniform on \\([-2,+2]\\).
+- Probe effects are estimated from paired outcome differences. A normal-approximation 95% interval uses the sample standard error and multiplier 1.96.
+- The predeclared decision regions are: beneficial when the lower interval exceeds +0.5; harmful when the upper interval is below -0.5; null-equivalent when the interval lies entirely inside [-0.5,+0.5]; otherwise uncertain/abstain.
+- The policy receives only the noisy observation stream, measured covariate stream and matched-probe estimates. The regime label and true causal-effect trajectory are held for the independent scorer and are not passed to the decision function.
+
+### Development and confirmatory separation
+
+- Development seed range: 1–512.
+- Confirmatory seed range: 10,001–11,000 (1,000 per regime/controller cell).
+- CUSUM allowance/threshold are selected from a fixed nine-candidate grid using only development seeds. Eligible candidates must produce at most one stable-positive false alarm in 512 development episodes; among eligible candidates, selection maximizes average signal detection over abrupt reversal, gradual reversal and confounder shift.
+- If no candidate satisfies the development false-alarm constraint, the receipt marks the constraint as unmet; the benchmark must not silently call it a pass.
+- Confirmatory seeds are disjoint from tuning seeds. Thresholds are frozen before confirmatory evaluation.
+
+### Statistical output
+
+Run the two exporters independently:
+
+```sh
+cargo run --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin seeded-drift-sweep > seeded-drift-summary.csv
+cargo run --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin seeded-drift-replicates > seeded-drift-replicates.csv
+```
+
+The summary contains 20 regime/controller rows and reports signal-alarm and diagnosis rates with Wilson 95% intervals, false/missed diagnosis counts, timing, harmful and missed-beneficial action ticks, mean utility with a normal-approximation interval, and oracle regret.
+
+The replicate export contains 20,000 unique regime/controller/seed records. Failed or missed diagnoses are retained; no episode is dropped because its result is unfavourable.
+
+The Wilson intervals describe binomial variation over this fixed synthetic seed design. The utility intervals describe variation over confirmatory seeds using a normal approximation. Neither interval incorporates uncertainty about whether the scenario generator or causal structure is a valid model of a real society. The probe intervals are also model-based; bounded uniform errors are not a substitute for real participant or field data.
+
 ## Run
 
 ```sh
@@ -97,6 +133,8 @@ cargo check --locked --manifest-path research/civdyn-self-correction/Cargo.toml 
 cargo test --locked --manifest-path research/civdyn-self-correction/Cargo.toml --all-targets
 cargo run --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin self-correction-sweep
 cargo run --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin causal-drift-sweep
+cargo run --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin seeded-drift-sweep
+cargo run --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin seeded-drift-replicates
 ```
 
 ## Claim ceiling
