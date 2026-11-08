@@ -44,7 +44,7 @@ Important source limitations are preserved:
 - uPSP masks unreliable regions and camera-exposure low-pass filtering can make its RMS differ from Kulite RMS.
 - Official deformation measurements remain pending; the 10–12 mm wing-tip figure at alpha 4.7 degrees is qualitative only.
 
-JAXA source: https://cfdws.chofu.nasa.gov/apc/dpw/upsp.html  
+JAXA source: https://cfdws.chofu.jaxa.jp/apc/dpw/upsp.html  
 AIAA Test Case 3 page: https://www.aiaa-dpw.org/TestCases/testcases.html
 
 The JAXA source page states all rights reserved. The referenced CSV/ZIP files remain linked but unacquired in the catalog. No raw data bytes, calibration, sampling rate, clock alignment, exposure transfer function, PSD window or normalization are claimed here.
