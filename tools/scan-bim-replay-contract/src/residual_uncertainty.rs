@@ -386,6 +386,16 @@ pub fn evaluate_normal_residual_uncertainty(
         reasons.push(UncertaintyUnqualification::UnknownSampleTargetCorrelation);
     }
 
+    if !matches!(input.correlation, CorrelationEvidence::Unknown)
+        && !joint_covariance_is_psd(
+            &sample_covariance_m2,
+            &target_covariance_m2,
+            &cross_covariance_m2,
+        )
+    {
+        return Err("joint sample/target covariance block is not positive-semidefinite".to_owned());
+    }
+
     if !reasons.is_empty() {
         return Ok(NormalResidualUncertainty {
             disposition: ResidualUncertaintyDisposition::Unqualified,
@@ -399,14 +409,6 @@ pub fn evaluate_normal_residual_uncertainty(
             correlation_receipt_sha256,
             transform_receipt_sha256,
         });
-    }
-
-    if !joint_covariance_is_psd(
-        &sample_covariance_m2,
-        &target_covariance_m2,
-        &cross_covariance_m2,
-    ) {
-        return Err("joint sample/target covariance block is not positive-semidefinite".to_owned());
     }
 
     let normal = [
