@@ -444,6 +444,9 @@ fn compare_pair(
     if left.identity != right.identity {
         reasons.push("STATE_IDENTITY_MISMATCH".to_owned());
     }
+    if left.instrument_family != right.instrument_family {
+        reasons.push("INSTRUMENT_FAMILY_MISMATCH".to_owned());
+    }
     if left.quantity != right.quantity {
         reasons.push("QUANTITY_MISMATCH".to_owned());
     }
@@ -470,6 +473,9 @@ fn compare_pair(
     }
     if left.sampling.time_window_id != right.sampling.time_window_id {
         reasons.push("TIME_WINDOW_MISMATCH".to_owned());
+    }
+    if left.sampling.sample_rate_hz != right.sampling.sample_rate_hz {
+        reasons.push("SAMPLE_RATE_MISMATCH".to_owned());
     }
     if left.measurement_run_id != right.measurement_run_id {
         reasons.push("MEASUREMENT_RUN_MISMATCH".to_owned());
@@ -783,6 +789,23 @@ mod tests {
             .find(|item| item["id"] == "healthy_point_mean_b")
             .unwrap();
         channel["filter"]["transfer_function_sha256"] = Value::from("d".repeat(64));
+        let result = result_for(&value);
+        assert_eq!(
+            comparison(&result, "healthy_same_point_mean").status,
+            "INCOMPATIBLE"
+        );
+    }
+
+    #[test]
+    fn different_instrument_families_are_not_directly_compared() {
+        let mut value = fixture_value();
+        let channel = value["channels"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|item| item["id"] == "healthy_point_mean_b")
+            .unwrap();
+        channel["instrument_family"] = Value::from("esp");
         let result = result_for(&value);
         assert_eq!(
             comparison(&result, "healthy_same_point_mean").status,
