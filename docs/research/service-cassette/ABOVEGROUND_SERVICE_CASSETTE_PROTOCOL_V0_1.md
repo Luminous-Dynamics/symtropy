@@ -70,6 +70,27 @@ Each module revision specifies, without inventing technical ratings:
 
 Unknown specialist properties stay Unknown. A schematic, BIM object or product catalogue field is not physical evidence.
 
+## 5A. Tolerance architecture is a first-class design input
+
+A prefab MEP module is only useful if its factory geometry, building as-built geometry, installation sequence and interfaces fit within an explicitly engineered tolerance budget. Do not assume that a nominal BIM coordinate is an as-built datum.
+
+Bind a tolerance chain for each interface:
+- design datum and design revision;
+- host structure / support-frame as-built observation, instrument and calibration;
+- module manufacturing measurement and calibration;
+- support, hanger, opening and access geometry;
+- component and interface manufacturing/install tolerance;
+- declared buffer/adjustment mechanism and allowed range;
+- assembly sequence and the point at which each adjustment can still be made;
+- final measured fit and independent acceptance;
+- remaining service clearance and maintainability after adjustment.
+
+Record the named tolerance method (e.g. worst-case stack, statistical method or an owner-approved hybrid), its assumptions, source revision and responsible engineering owner. Do not mix statistical distributions with guaranteed physical envelopes without an explicit rule. A buffer may absorb only the variation it is designed and qualified to absorb. No force-fit, field cutting, slot extension, drilling, shimming or other deviation may be silently accepted; each needs its own approved disposition and evidence.
+
+A useful 2026 comparator is the five-project MEP prefabrication study by Li et al. It identifies communication, detailed design, quality control and buffer assembly as prescriptive tolerance-management principles, and reports that none of the cases applied every principle. This supports testing tolerance closure as part of the workflow, not simply geometric accuracy at the factory: https://doi.org/10.1080/01446193.2026.2626735.
+
+Singapore BCA describes prefab MEP as off-site integrated subassemblies and reports project-specific time savings up to 60%, while highlighting the need to identify suitable components and coordinate stakeholders. Treat this as an industry example, not as a performance target transferable to our mock article: https://www1.bca.gov.sg/growth-and-transformation/productivity/design-for-manufacturing-and-assembly-dfma/prefabricated-mechanical-electrical-and-plumbing-mep-system/.
+
 ## 6. Test sequence
 
 ### Factory
