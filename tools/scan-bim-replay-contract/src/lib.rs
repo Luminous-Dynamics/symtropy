@@ -580,7 +580,8 @@ mod tests {
         let mut value = fixture_value();
         value["scenes"][0]["candidate_inputs"][0]["full_object_bounds"] =
             serde_json::json!([0.0, 0.0, 0.0, 1.0, 1.0, 1.0]);
-        let error = audit(&value).expect_err("candidate input schema must reject target-derived bounds");
+        let error =
+            audit(&value).expect_err("candidate input schema must reject target-derived bounds");
         assert!(error.contains("unknown field"));
     }
 
