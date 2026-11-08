@@ -43,7 +43,9 @@
         "frozen_policy_industry_unmet_m3": 15,
         "mechanism_aware_household_unmet_m3": 0,
         "mechanism_aware_industry_unmet_m3": 30,
-        "mechanism_aware_maintenance_energy_kwh": 10
+        "mechanism_aware_maintenance_energy_kwh": 10,
+        "frozen_policy_maintenance_energy_unmet_kwh": 60,
+        "mechanism_aware_maintenance_energy_unmet_kwh": 50
       }
     }
   },
@@ -73,7 +75,8 @@
     "correction_latency_ticks",
     "trace_valid",
     "maximum_water_residual_m3",
-    "maximum_energy_residual_kwh"
+    "maximum_energy_residual_kwh",
+    "maintenance_energy_unmet_kwh"
   ],
   "claim_ceiling": [
     "The scenarios and all quantities are synthetic and not calibrated to a real catchment or society.",
