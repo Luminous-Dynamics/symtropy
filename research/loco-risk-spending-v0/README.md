@@ -18,7 +18,9 @@ Given a valid conditional marginal tail bound for every event, the union bound g
       <= sum(t,j) alpha[t,j]
       <= alpha_total
 
-No independence between constraints or time steps is required. The marginal validity still must hold under the declared history/filtration and operating domain. This crate allocates risk; it does not validate those probability models.
+No independence between constraints or time steps is required. The marginal validity still must hold under the declared history/filtration and operating domain. This crate allocates **operational violation risk alpha**; it does not validate those probability models.
+
+Keep alpha separate from **statistical confidence delta** in estimated marginal tail bounds. The one-step chance gate #4231 currently reports pointwise 95% Clopper–Pearson upper bounds per constraint; that is not simultaneous 95% confidence across all constraints or the horizon. A simultaneous horizon-wide confidence claim requires a separately declared delta budget allocated over the 5H marginal validation claims (and matching finite-sample bounds). The risk ledger V0 does not allocate delta and does not turn pointwise calibration intervals into a joint confidence guarantee.
 
 ## Deterministic allocation
 
