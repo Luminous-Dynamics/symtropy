@@ -163,6 +163,21 @@ The current self-correction reference intentionally exposes a policy trade-off: 
 5. Introduce source-backed operational data only after units, rights, calibration, spatial resolution and validation windows are frozen.
 6. Run blinded expert review on mechanism diagnosis and correction traces; use structured labels and measure inter-rater reliability rather than relying solely on an LLM judge.
 
+## 10. Noise-aware confirmatory self-correction benchmark
+
+The seeded extension adds a separate development/confirmatory protocol rather than treating deterministic controls as performance evidence. Development seeds 1–512 select the CUSUM configuration under a declared false-alarm budget; confirmatory seeds 10,001–11,000 are untouched. The evaluator reports Wilson 95% intervals for signal/diagnosis rates, normal-approximation intervals for mean utility, and retains all 20,000 episode receipts.
+
+This closes part of the gap between a software fixture and a statistical benchmark, but the generator is still synthetic. The intervals quantify finite-seed Monte Carlo variation only; they do not account for structural model uncertainty, real-world measurement error, cultural heterogeneity, historical confounding, or ecological model misspecification. The matched-probe intervals are conditional on the declared bounded-uniform noise model.
+
+Before comparing against external drift or causal-inference SOTA, the next steps remain:
+- reproduce detector baselines on the exact public streams used by the target benchmark;
+- test multiple noise families and unbounded/heavy-tailed errors;
+- add delayed, missing and selectively observed outcomes;
+- tune by held-out mechanism family/site rather than only seed split;
+- use empirical interventions or defensible natural experiments where lawful, with independent domain review.
+
+The current noise-aware implementation is an internal confirmatory harness, not a reproduction of KDD 2026's 14-detector, seven-dataset benchmark and not an empirical civilizational policy evaluation.
+
 ## 9. Claim boundary
 
 This crosswalk defines a research plan and proposed targets. It is not an empirical comparison, benchmark leaderboard, independent peer review, or demonstration of SOTA superiority. Synthetic reference results establish deterministic software behaviour under declared inputs only.
