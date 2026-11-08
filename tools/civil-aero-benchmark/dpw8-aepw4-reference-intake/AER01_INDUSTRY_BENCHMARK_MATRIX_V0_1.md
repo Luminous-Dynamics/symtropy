@@ -86,6 +86,26 @@ The graph compiler must consume an explicit architecture-to-discipline dependenc
 
 Treat inspection access, NDE method, SHM sensor location, sensor-fault discriminability, replacement access and evidence acquisition cost as design variables alongside structure and aerodynamics. This extends #4165 and #4056 rather than creating a new maintenance ledger. A structure that is slightly lighter but cannot be inspected reliably may be inferior over its service life.
 
+### 2.9 Treat every sensor as a measurement operator, not a interchangeable data channel
+
+A sensor does not expose the physical state directly. It exposes a filtered, spatially sampled, calibrated, noisy and time-stamped observation:
+
+`y_j(t) = H_j[ x(t); geometry, calibration, bandwidth, timing ] + \epsilon_j(t)`
+
+ESP, Kulite, uPSP, strain gauges and balance instruments have different observation operators. Their outputs cannot be concatenated into one response vector merely because they describe the same test article.
+
+For every measurement family, bind:
+- physical quantity, units, sensor position/orientation and reference coordinate frame;
+- calibration and measurement uncertainty;
+- temporal sample rate, time base, clock/synchronization state and filtering/windowing;
+- spatial mapping, masks, missing channels and coordinate transforms;
+- bandwidth/transfer function, exposure or acquisition integration effects;
+- sensor health and raw-vs-corrected provenance.
+
+Only fuse channels after an explicit observation-operator map and common-state/time mapping are justified. A missing balance coefficient, masked PSP region or failed Kulite is unknown/unavailable—not zero. A PSD peak is not automatically a structural mode; environmental/tunnel noise and measurement-chain resonances must be independently distinguished.
+
+This connects #3071 unsteady spectral qualification, #4176/#4177 virtual sensing, #4165 inspection observability and #4195 response-vector discrepancy without duplicating their algorithms.
+
 ## 3. External benchmark ladder and acceptance evidence
 
 | Tier | Case | Primary outputs | Evidence goal | Claim ceiling |
@@ -94,7 +114,8 @@ Treat inspection access, NDE method, SHM sensor location, sensor-fault discrimin
 | 1 | CRM equivalent-beam BDF intake | Card inventory, topology, source/units provenance | Read-only NASTRAN syntax/topology admission | No structural response claim |
 | 2 | DPW-8 ONERA OAT15A Verification 1a | CL/CD/CM polar, Cp as available, six-grid convergence, residuals | Exact steady-RANS method reproduction; four grids required, six desirable | OAT15A transonic airfoil case only |
 | 3 | DPW-8 CRM FEM Verification 1b and Static FSI Test Case 2a(E) | Forces/moments, sectional twist/deflection, Cp, separate flow/structural residuals | Structural model and static-FSI reproduction against the admitted workshop model/data | Exact CRM case only |
-| 4 | Static FSI Test Case 2b(E), other CRM configurations and suitable dynamic cases | AoA/polar response, mesh sensitivity, loads, deformation and spectra where specified | Generalization across operating points/configurations | Exact admitted workshop families only |
+| 4a | CRM elastic Static FSI Test Case 2b(E) | AoA/polar response, mesh sensitivity, loads, sectional twist/deformation and separate residuals | Generalization across static-FSI operating points | Exact admitted static workshop case only |
+| 4b | DPW-8 CRM Buffet Working Group Test Case 3 (optional dynamic FSI) | Balance CL/CD/Cm provenance, wing-root strain-derived buffet index, ESP mean Cp, Kulite RMS/PSD, uPSP surface mean/RMS/PSD/snapshots, dynamic FSI outputs where supported | Unsteady measurement-pipeline and dynamic-method reproduction with instrument-specific operators | Official distributed deformation measurements are pending; preliminary 10–12 mm tip note is qualitative only; no structural-response validation claim |
 | 5 | Wren 2 and Wayfarer 4 candidate-specific models | Payload-range, runway/hot-high, trim/stability, structural margins, energy/thermal, failure recourse | Candidate-specific analysis only after controlling data and physical correlation | No certification claim |
 | 6 | Approved component/aircraft test and certification programme | Calibrated measurement, traceable requirements and authority-accepted compliance evidence | Independent, authority-governed substantiation | Only the approved scope |
 | 0A | Correlated response-vector VVUQ diagnostic (synthetic first; CRM after admission) | Raw channel residuals, normalization, uncertainty-source covariance, D², marginal z and local gates | Independent Rust/Python agreement, covariance identity, no silent zero-fill/regularization, no held-out data leakage | Multivariate discrepancy diagnostic only; not physical validation or ASME conformance |
@@ -113,6 +134,17 @@ Treat inspection access, NDE method, SHM sensor location, sensor-fault discrimin
 The AIAA Static Deformation PDF supplies comparison datasets from NTF197, NTF215, NTF229, ETW ESWIRP and Ames216. Its PDF pages 7–8 are the controlling case sheets for 2a/2b(E); the generic Configuration B page is the separate rigid-CFD description.
 
 Use the AIAA bending/twist template v3 semantics: deflection normalized by reference semi-span. Retain -999 as the documented optional-data sentinel; never reinterpret it as zero.
+
+**CRM dynamic Test Case 3 (optional; Configuration A, Buffet Working Group):** Mach 0.85, chord Reynolds number 2.27 million, static temperature 326.15 K, total pressure 12 kPa, alpha=[3.05, 3.61, 4.70] degrees, with an unloaded wind-off CFD/FEM start, full- and half-span stick FEM references, and grid levels 1–6. The AIAA test matrix states the aim is to resolve wing structural dynamics and capture the spectra.
+
+The JAXA experimental reference is from a 2.16%-scale CRM model. Its published data planes are not interchangeable:
+- The balance table tags PSP-simultaneous versus independent balance (BL) runs; drag is unavailable for the PSP-simultaneous records.
+- Wing-root strain gauge supplies a normalized buffet intensity coefficient, with zero-lift RMS at alpha=-0.8° as its denominator.
+- ESP supplies time-averaged point Cp; Kulite supplies point Cp RMS and sensor-specific PSD. The JAXA page identifies a roughly 9 kHz PSD peak as wind-tunnel noise.
+- uPSP supplies surface mean/RMS/PSD/snapshots mapped to the CRM jig shape, with masks and camera-exposure low-pass effects; its RMS is not interchangeable with Kulite RMS.
+- The page says official deformation measurements are still pending. The cited 10–12 mm wing-tip deflection at alpha=4.7° is preliminary qualitative information only, not a numerical acceptance target.
+
+Do not inherit Test Case 2 PSD/time-sampling settings into Test Case 3. Sampling rate, PSD window/normalization, calibration, time synchronization, sensor location mapping and transfer functions remain unknown until admitted from the exact Test Case 3 artifacts or controlling procedures. The linked JAXA material is marked all-rights-reserved; public links are not permission to redistribute.
 
 ## 4. Fair industry comparison protocol
 
@@ -150,7 +182,7 @@ Do not compare a high-fidelity workflow with a low-fidelity workflow by objectiv
 
 Report all of the following separately:
 
-**Physical/numerical agreement:** grid convergence, integrated forces/moments, Cp distributions, sectional twist and deflection, structural residuals, force/moment conservation, modal frequency/damping when specified, mesh/model sensitivity and comparison with admitted experimental uncertainty.
+**Physical/numerical agreement:** grid convergence, integrated forces/moments, Cp distributions, sectional twist and deflection, structural residuals, force/moment conservation, modal frequency/damping when specified, mesh/model sensitivity and comparison with admitted experimental uncertainty. For dynamic cases also report time-step/sampling convergence, spectral peak and band-power error, RMS and coherence/phase where supported, while separately qualifying each sensor's calibration, bandwidth, coordinate map and observation operator.
 
 **Engineering feasibility:** feasible attainment, worst-decile constraint margin, false-feasible rate, out-of-domain abstention, hard-constraint violation and stale-identity rejection.
 
@@ -183,6 +215,9 @@ These are proposed research acceptance targets, not aviation standards or achiev
 | Unknown handling | Zero missing units, properties, load cases or measurements silently converted to zero/pass |
 | Load transfer | Force and moment residuals within predeclared floating-point/mapping error budget |
 | CRM static FSI | Report error at all six span stations plus integrated loads, Cp and separate flow/structural residuals; compare against admitted measurement uncertainty |
+| Dynamic sensor provenance | 100% of channels bind sensor family, location/frame, calibration, time base, bandwidth/filter, mask and source digest; no silent cross-sensor merge |
+| Dynamic spectral qualification | No PSD result without admitted sampling/window/normalization; no Test Case 2 settings inherited into Test Case 3 |
+| Dynamic deformation claim | No structural response validation while official deformation measurements remain pending; the JAXA 10–12 mm point remains qualitative only |
 | CFD grid convergence | Reproduce at least four required grid levels; six desirable; show refinement and non-monotonic scatter, not only final residuals |
 | Optimizer generalization | At least five independent engineering families with held-out geometry/mission tests for a broad superiority claim |
 | Primary decision quality | Seek ≥10% improvement on a preregistered mission metric without worsening any hard constraint |
