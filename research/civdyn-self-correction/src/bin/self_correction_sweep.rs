@@ -136,13 +136,11 @@ fn main() {
         "scenario,controller,minimum_household_coverage,household_unmet_m3,industry_unmet_m3,unnecessary_dispatch_m3,reserve_before_m3,reserve_after_growth_m3,reserve_after_recovery_m3,reserve_after_scenario_m3,maintenance_energy_kwh,maintenance_energy_unmet_kwh,counterfactual_industry_on_household_unmet_m3,counterfactual_industry_off_household_unmet_m3,counterfactual_without_maintenance_household_unmet_m3,mechanism_identified,correction_latency_ticks,full_trace_valid,trace_event_count,maximum_water_residual_m3,maximum_energy_residual_kwh"
     );
 
-    for outcome in run_sensor_drift_portfolio()
-        .expect("sensor drift portfolio must validate")
-    {
+    for outcome in run_sensor_drift_portfolio().expect("sensor drift portfolio must validate") {
         emit(sensor_row(&outcome));
     }
-    for outcome in run_delayed_externality_portfolio()
-        .expect("delayed externality portfolio must validate")
+    for outcome in
+        run_delayed_externality_portfolio().expect("delayed externality portfolio must validate")
     {
         emit(delayed_row(&outcome));
     }
@@ -153,7 +151,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn every_csv_row_has_the_fixed_twenty_column_contract() {
+    fn every_csv_row_has_the_fixed_twenty_one_column_contract() {
         for outcome in run_sensor_drift_portfolio().expect("sensor portfolio") {
             assert_eq!(sensor_row(&outcome).len(), CSV_COLUMNS);
         }
