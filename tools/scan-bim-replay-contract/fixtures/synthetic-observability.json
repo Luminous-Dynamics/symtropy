@@ -233,6 +233,20 @@
       "role": "candidate_metrics",
       "relative_path": "outputs/room-b-metrics.json",
       "sha256": "2c156a0684a35a60708ac6d396e54805c72b84112994576ccfde3a0b7b905260"
+    },
+    {
+      "artifact_id": "ROOM-A-GRAPH",
+      "scene_id": "ROOM-A",
+      "role": "element_graph",
+      "relative_path": "outputs/room-a-graph.json",
+      "sha256": "104dc8bd264d1c4e8f53ccce173ccd105e85cb3536c4b2e978525a91e4c631b2"
+    },
+    {
+      "artifact_id": "ROOM-B-GRAPH",
+      "scene_id": "ROOM-B",
+      "role": "element_graph",
+      "relative_path": "outputs/room-b-graph.json",
+      "sha256": "4351d593ce59c6f562a8fdb4cab7aa1e14377b822ebf3ca247a363d1d9ebffc9"
     }
   ]
 }
