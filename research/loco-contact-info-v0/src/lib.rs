@@ -219,6 +219,9 @@ impl Matrix {
                     value -= lower.get(inner, row) * solution[inner];
                 }
                 solution[row] = value / lower.get(row, row);
+                if !solution[row].is_finite() {
+                    return Err(GaussianError::NonFiniteValue);
+                }
             }
 
             for row in 0..dimension {
@@ -230,6 +233,9 @@ impl Matrix {
         for row in 0..dimension {
             for column in 0..row {
                 let average = 0.5 * (inverse.get(row, column) + inverse.get(column, row));
+                if !average.is_finite() {
+                    return Err(GaussianError::NonFiniteValue);
+                }
                 inverse.set(row, column, average);
                 inverse.set(column, row, average);
             }
@@ -253,11 +259,19 @@ impl Matrix {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct GaussianBelief {
-    pub mean: Vec<f64>,
-    pub covariance: Matrix,
+    mean: Vec<f64>,
+    covariance: Matrix,
 }
 
 impl GaussianBelief {
+    pub fn mean(&self) -> &[f64] {
+        &self.mean
+    }
+
+    pub fn covariance(&self) -> &Matrix {
+        &self.covariance
+    }
+
     pub fn new(mean: Vec<f64>, covariance: Matrix) -> Result<Self, GaussianError> {
         if mean.is_empty() {
             return Err(GaussianError::EmptyDimension);
@@ -280,15 +294,27 @@ impl GaussianBelief {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ActionConditionedObservation {
-    pub action_id: String,
+    action_id: String,
     /// H(u,m) in y = H x + epsilon. Different actions may expose different
     /// latent contact/terrain dimensions.
-    pub observation_matrix: Matrix,
+    observation_matrix: Matrix,
     /// R, the calibrated covariance of this action-conditioned observation.
-    pub noise_covariance: Matrix,
+    noise_covariance: Matrix,
 }
 
 impl ActionConditionedObservation {
+    pub fn action_id(&self) -> &str {
+        &self.action_id
+    }
+
+    pub fn observation_matrix(&self) -> &Matrix {
+        &self.observation_matrix
+    }
+
+    pub fn noise_covariance(&self) -> &Matrix {
+        &self.noise_covariance
+    }
+
     pub fn new(
         action_id: String,
         observation_matrix: Matrix,
