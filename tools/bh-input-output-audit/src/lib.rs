@@ -187,6 +187,19 @@ pub fn transfer_response(
     })
 }
 
+/// Perturbations of the four maps in the source-to-observer transfer function.
+#[derive(Debug, Clone, Copy)]
+pub struct TransferPerturbation<'a> {
+    /// Perturbation of the frequency-domain operator pencil.
+    pub delta_pencil: &'a DMatrix<Complex64>,
+    /// Perturbation of source excitation / initial data.
+    pub delta_source: &'a DMatrix<Complex64>,
+    /// Perturbation of the observation / extraction map.
+    pub delta_observation: &'a DMatrix<Complex64>,
+    /// Perturbation of the direct / feedthrough channel.
+    pub delta_direct: &'a DMatrix<Complex64>,
+}
+
 /// Evaluate the first variation of H with respect to L, B, C, and D.
 ///
 /// All perturbation matrices must have exactly the same shape as their
@@ -208,11 +221,14 @@ pub fn first_order_response_variation(
     source: &DMatrix<Complex64>,
     observation: &DMatrix<Complex64>,
     direct: &DMatrix<Complex64>,
-    delta_pencil: &DMatrix<Complex64>,
-    delta_source: &DMatrix<Complex64>,
-    delta_observation: &DMatrix<Complex64>,
-    delta_direct: &DMatrix<Complex64>,
+    perturbation: TransferPerturbation<'_>,
 ) -> Result<DMatrix<Complex64>, TransferError> {
+    let TransferPerturbation {
+        delta_pencil,
+        delta_source,
+        delta_observation,
+        delta_direct,
+    } = perturbation;
     let (state_dimension, output_dimension, input_dimension) =
         validate_shapes(pencil, source, observation, direct)?;
 
@@ -414,17 +430,15 @@ mod tests {
         let delta_observation = DMatrix::from_row_slice(1, 2, &[z(0.01, 0.0), z(0.0, -0.03)]);
         let delta_direct = scalar(z(0.0, 0.02));
 
-        let derivative = first_order_response_variation(
-            &pencil,
-            &source,
-            &observation,
-            &direct,
-            &delta_pencil,
-            &delta_source,
-            &delta_observation,
-            &delta_direct,
-        )
-        .unwrap();
+        let perturbation = TransferPerturbation {
+            delta_pencil: &delta_pencil,
+            delta_source: &delta_source,
+            delta_observation: &delta_observation,
+            delta_direct: &delta_direct,
+        };
+        let derivative =
+            first_order_response_variation(&pencil, &source, &observation, &direct, perturbation)
+                .unwrap();
 
         let central_difference = |eta: f64| {
             let plus = transfer_response(
@@ -500,10 +514,12 @@ mod tests {
                 &source,
                 &observation,
                 &direct,
-                &delta_pencil,
-                &delta_source,
-                &delta_observation,
-                &delta_direct,
+                TransferPerturbation {
+                    delta_pencil: &delta_pencil,
+                    delta_source: &delta_source,
+                    delta_observation: &delta_observation,
+                    delta_direct: &delta_direct,
+                },
             ),
             Err(TransferError::DimensionMismatch)
         );
