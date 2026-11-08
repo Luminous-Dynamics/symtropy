@@ -53,6 +53,7 @@ struct Case {
 struct ApproachResult {
     approach_state_id: String,
     disposition: &'static str,
+    possible_post_state_ids: BTreeSet<String>,
     possible_post_pose_ids: BTreeSet<String>,
 }
 
@@ -62,6 +63,7 @@ struct Evaluation {
     approaches: Vec<ApproachResult>,
     capture_only_approach_count: usize,
     residual_captured_pose_ids: BTreeSet<String>,
+    minimum_valid_until_us: u64,
 }
 
 fn parse_u64(value: &str, name: &str) -> Result<u64, String> {
@@ -345,7 +347,7 @@ fn evaluate(case: &Case) -> Evaluation {
             .iter()
             .map(|transition| transition.post_pose_id.clone())
             .collect();
-        let _possible_post_state_ids: BTreeSet<String> = transitions
+        let possible_post_state_ids: BTreeSet<String> = transitions
             .iter()
             .map(|transition| transition.post_state_id.clone())
             .collect();
@@ -392,6 +394,7 @@ fn evaluate(case: &Case) -> Evaluation {
         approaches.push(ApproachResult {
             approach_state_id: approach_state_id.clone(),
             disposition,
+            possible_post_state_ids,
             possible_post_pose_ids,
         });
     }
@@ -408,11 +411,20 @@ fn evaluate(case: &Case) -> Evaluation {
         "NO_UNIFORM_CAPTURE"
     };
 
+    let minimum_valid_until_us = case
+        .transitions
+        .values()
+        .flatten()
+        .map(|transition| transition.valid_until_us)
+        .min()
+        .unwrap_or(0);
+
     Evaluation {
         disposition,
         approaches,
         capture_only_approach_count,
         residual_captured_pose_ids,
+        minimum_valid_until_us,
     }
 }
 
@@ -431,6 +443,7 @@ fn run(path: &str) -> Result<(), String> {
     println!("frame_sha256={}", case.frame_sha256);
     println!("calibration_sha256={}", case.calibration_sha256);
     println!("disposition={}", result.disposition);
+    println!("minimum_valid_until_us={}", result.minimum_valid_until_us);
     println!(
         "capture_only_approach_count={}/{}",
         result.capture_only_approach_count,
@@ -447,9 +460,15 @@ fn run(path: &str) -> Result<(), String> {
     );
     for approach in &result.approaches {
         println!(
-            "approach_state={}|{}|{}",
+            "approach_state={}|{}|post_states={}|post_poses={}",
             approach.approach_state_id,
             approach.disposition,
+            approach
+                .possible_post_state_ids
+                .iter()
+                .cloned()
+                .collect::<Vec<_>>()
+                .join(";"),
             approach
                 .possible_post_pose_ids
                 .iter()
