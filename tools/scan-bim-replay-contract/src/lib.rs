@@ -348,8 +348,7 @@ fn register_artifact(
     if !ids.insert(artifact_id.to_owned()) {
         return Err(format!("duplicate {label} artifact_id: {artifact_id}"));
     }
-    if let Some(previous_digest) =
-        paths.insert(relative_path.to_owned(), sha256.to_owned())
+    if let Some(previous_digest) = paths.insert(relative_path.to_owned(), sha256.to_owned())
         && previous_digest != sha256
     {
         return Err(format!(
