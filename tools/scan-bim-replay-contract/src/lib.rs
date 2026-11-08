@@ -9,6 +9,7 @@ use std::io::Read;
 use std::path::{Component, Path, PathBuf};
 
 pub mod metrics;
+pub mod residual_uncertainty;
 pub mod sampling;
 
 #[derive(Debug, Deserialize)]
