@@ -53,6 +53,14 @@ Run every controller on the same six-leg plant, actuator model, sensor availabil
 
 **Contact-reliability-aware state estimation.** Zhao et al. (Sensors 26(19), 6041; published 23 September 2026) provide a direct modern baseline beyond binary foot switches. Their framework retains a physics-based Kalman recursion, estimates gait-phase-constrained continuous contact reliability, uses it to regulate contact-related covariance, and separately adds dynamic and observation residual corrections. Their paper reports 61.0% / 56.2% base-position RMSE reductions, 32.2% / 31.2% base-velocity reductions and 59.1% / 54.7% average foot-position reductions versus Binary Contact KF on its flat / mildly uneven simulation cases. Its reported mean full-pipeline latency is 26.46 ms, maximum 36.24 ms, with approximately 50 ms update period; physical results cover indoor walking and turning, not complex terrain. These are paper-specific results, not general performance guarantees. Compare binary KF, continuous-contact KF, the full neural residual KF and D1/D2/D3 ablations under matched data and update periods. Add calibration, out-of-domain, inter-source dependence and deadline tests; do not equate lower RMSE with contact-safety assurance. https://doi.org/10.3390/s26196041
 
+**Episode-level conformal calibration of estimator uncertainty.** Compare nominal covariance, bi-level covariance/kinematics calibration, IUCA-style correlated-state calibration and split/learnable conformal approaches. The Symtropy V0 protocol treats a whole independent session/trial block as one exchangeability unit and calibrates a maximum error score across the declared trajectory horizon, all feet and state dimensions. It reports the exact finite-sample order statistic and returns an unbounded threshold when the sample count cannot attain the requested coverage. Calibration is scoped to exact model, target, score-definition and operating-domain digests; a new/OOD domain invalidates reuse. This is a statistical marginal-coverage diagnostic, not a physical safety guarantee. See [#4146](https://github.com/Luminous-Dynamics/symtropy/issues/4146) and [PR #4147](https://github.com/Luminous-Dynamics/symtropy/pull/4147).
+
+Calibration comparators:
+- Cheng et al. (ICRA 2026), simultaneous covariance and kinematics calibration: https://www.leggedai.com/publication/2026icra_calibration/
+- IUCA (IEEE Journal of Selected Areas in Sensors, 2026): https://doi.org/10.1109/JSAS.2026.3731931
+- Learnable Conformal Prediction (ICRA 2026): https://doi.org/10.1109/ICRA57385.2026.11697249
+- Online Conformal Prediction via Online Optimization (ICML 2025): https://proceedings.mlr.press/v267/areces25a.html
+
 The benchmark must therefore distinguish at least four constructs: static support margin, dynamic geometric margin, robust future physical viability, and empirical learning recoverability. None is a synonym for another.
 
 1. **B0: SPINDER-style CPG/IK baseline** — coupled oscillators, local trajectory generation, analytic IK, fixed or velocity-conditioned gait schedule.
@@ -128,6 +136,8 @@ Keep the quantities separate:
 ### Sensing and model quality
 - contact event precision/recall and mode confusion matrix;
 - continuous contact-reliability calibration: Brier score, log loss, reliability diagrams and coverage-versus-risk;
+- whole-episode conformal coverage at declared alpha, empirical coverage confidence intervals, threshold width/volume and independent calibration-unit count;
+- fit/calibration/test leakage, exchangeability-unit grouping and OOD-domain abstention;
 - per-channel and cross-channel disagreement, timestamp skew and abstention;
 - detection latency for stale, missing, stuck and saturated signals;
 - prediction calibration by surface and individual;
