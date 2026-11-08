@@ -246,3 +246,30 @@ Source: https://doi.org/10.1109/LRA.2026.3692086
 ## 11. Claim ceiling
 
 A finite result qualifies only the supplied finite transition/observation system. It does not prove physical abstraction soundness, continuous-time reachability, calibrated transition probabilities, robot safety, hardware superiority or biological validity. Those require measured and independently verified contact, sensor, actuator, timing, mass and terrain bounds, together with matched physical experiments.
+
+## 12. Executable Rust V0 reference
+
+The standalone dependency-free crate in this directory provides a finite composition oracle that consumes:
+- an upstream viability receipt and horizon-indexed viable/recovery state sets;
+- a time-qualified probe-execution receipt;
+- every declared probe branch, contiguous intermediate prefix and terminal successor;
+- the physical observation possibility relation, separately from joint calibrated probability mass;
+- continuation-action successor rows for each possible terminal state.
+
+It returns:
+- prefix/terminal viability violations with branch/state/horizon witnesses;
+- each observation's complete physical branch and terminal-state set;
+- the robust continuation action IDs that are safe from every state and every declared action successor;
+- explicit missing-continuation and missing-unknown-fallback violations.
+
+The verifier requires one intermediate state for every elapsed abstraction step before the observation is available. This avoids treating a terminal-state check as proof that the intervening probe/latency path was viable.
+
+The Rust tests cover safe branch-specific continuation, zero-probability physical dead-end branches, aliased observations, intermediate latency loss, unknown fallback, receipt freshness/context, added-branch monotonicity, input permutation and incomplete action transition rows.
+
+Validation commands:
+
+    cargo fmt --manifest-path research/loco-probe-continuation-001/Cargo.toml -- --check
+    cargo test --manifest-path research/loco-probe-continuation-001/Cargo.toml --locked
+    cargo clippy --manifest-path research/loco-probe-continuation-001/Cargo.toml --locked --all-targets -- -D warnings
+
+The exact-head GitHub workflow is authoritative for Rust 1.96 qualification. This authoring session has no Rust compiler; no local compilation, test or Clippy pass is claimed. A green workflow will qualify only the finite supplied transition/observation inputs, not physical abstraction soundness or hardware safety.
