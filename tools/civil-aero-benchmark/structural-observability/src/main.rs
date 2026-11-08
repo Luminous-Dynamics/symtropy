@@ -180,6 +180,9 @@ fn validate_fixture(fixture: &Fixture) -> AuditResult<()> {
     {
         return fail("sensor selection/dropout counts are invalid");
     }
+    if fixture.constraints.sensor_dropout_budget != 1 {
+        return fail("v0.1 supports exactly one sensor dropout per robustness scenario");
+    }
     if !finite_positive(fixture.constraints.maximum_total_cost_units) {
         return fail("maximum_total_cost_units must be finite and positive");
     }
@@ -255,8 +258,8 @@ fn information_metrics(sensors: &[&SensorCandidate]) -> InformationMetrics {
     let trace = f11 + f22;
     let minimum = ((trace - discriminant) / 2.0).max(0.0);
     let maximum = ((trace + discriminant) / 2.0).max(0.0);
-    let rank = usize::from(minimum > RANK_TOLERANCE)
-        + usize::from(maximum > RANK_TOLERANCE);
+    let rank =
+        (minimum > RANK_TOLERANCE) as usize + (maximum > RANK_TOLERANCE) as usize;
 
     InformationMetrics {
         fisher_information: [[f11, f12], [f12, f22]],
