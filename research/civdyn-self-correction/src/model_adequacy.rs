@@ -394,9 +394,16 @@ impl std::error::Error for AdequacyError {}
 /// calibration digest. Split-predictive evaluation requires draws conditioned
 /// on exactly the calibration digest frozen in manifest.
 ///
-/// The returned interval is an empirical central reference interval. The
-/// predictive rank is a descriptive mid-rank. Neither is a universally
-/// calibrated frequentist test; callers must not relabel it as an SPC p-value.
+/// The returned central interval is an empirical reference interval, and
+/// the predictive rank is a descriptive mid-rank. For split-predictive draws,
+/// the result also includes the Monte Carlo estimate of the single-SPC upper
+/// tail probability Pr(T_pred >= T_heldout), with inclusive ties.
+///
+/// This is not a finite-sample exact p-value guarantee. The published single
+/// SPC asymptotic calibration result depends on its statistical assumptions,
+/// split design and test statistic. A Wilson interval for the Monte Carlo
+/// estimate is reported only when draws are explicitly marked independent;
+/// it quantifies Monte Carlo precision, not model adequacy or data uncertainty.
 pub fn assess_predictive_partition(
     registry: &StatisticRegistry,
     manifest: &SplitManifest,
