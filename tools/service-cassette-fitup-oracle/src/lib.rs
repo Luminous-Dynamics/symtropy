@@ -307,6 +307,10 @@ fn build_stack(
     canonical_unit: &str,
     reasons: &mut BTreeSet<String>,
 ) -> BTreeMap<String, Interval> {
+    if canonical_unit.is_empty() {
+        add_incomplete(reasons, "CANONICAL_LENGTH_UNIT_MISSING");
+        return BTreeMap::new();
+    }
     let scope = input.get("scope").unwrap_or(&Value::Null);
     let model = input.get("tolerance_model").unwrap_or(&Value::Null);
     let allowance = model.get("interface_allowance").unwrap_or(&Value::Null);
@@ -350,6 +354,10 @@ fn build_stack(
     let cassette_receipt = text(cassette, "measurement_receipt_id");
 
     let mut seen = BTreeSet::new();
+    let mut axis_term_counts = axes
+        .iter()
+        .map(|axis| (axis.clone(), 0usize))
+        .collect::<BTreeMap<_, _>>();
     let mut sums = axes
         .iter()
         .map(|axis| {
@@ -405,6 +413,7 @@ fn build_stack(
             add_invalid(reasons, "TOLERANCE_TERM_COEFFICIENT_OVERFLOW");
             continue;
         };
+        *axis_term_counts.entry(axis.to_owned()).or_default() += 1;
         let current = sums.get(axis).copied().unwrap_or(Interval {
             lower_nm: 0,
             upper_nm: 0,
@@ -424,14 +433,16 @@ fn build_stack(
         );
     }
 
-    if !required_ids.is_subset(&seen) {
-        add_incomplete(reasons, "TOLERANCE_REQUIRED_TERM_MISSING");
-    }
-    if !seen.is_subset(&required_ids) {
-        add_invalid(reasons, "TOLERANCE_UNEXPECTED_TERM_PRESENT");
+    if scope.get("required_tolerance_term_ids").is_some() {
+        if !required_ids.is_subset(&seen) {
+            add_incomplete(reasons, "TOLERANCE_REQUIRED_TERM_MISSING");
+        }
+        if !seen.is_subset(&required_ids) {
+            add_invalid(reasons, "TOLERANCE_UNEXPECTED_TERM_PRESENT");
+        }
     }
     for axis in &axes {
-        if !sums.contains_key(axis) {
+        if axis_term_counts.get(axis).copied().unwrap_or(0) == 0 {
             add_incomplete(reasons, "TOLERANCE_STACK_AXIS_MISSING");
         }
     }
@@ -443,6 +454,10 @@ fn allowance_intervals(
     canonical_unit: &str,
     reasons: &mut BTreeSet<String>,
 ) -> BTreeMap<String, Interval> {
+    if canonical_unit.is_empty() {
+        add_incomplete(reasons, "CANONICAL_LENGTH_UNIT_MISSING");
+        return BTreeMap::new();
+    }
     let allowance = input
         .get("tolerance_model")
         .and_then(|v| v.get("interface_allowance"))
@@ -481,11 +496,18 @@ fn buffer_covers_required_correction(
         .get("tolerance_model")
         .and_then(|v| v.get("buffer"))
         .unwrap_or(&Value::Null);
-    if buffer.get("qualified").and_then(Value::as_bool) != Some(true)
-        || text(buffer, "buffer_id").is_empty()
+    if buffer.get("qualified").and_then(Value::as_bool) != Some(true) {
+        return false;
+    }
+    if text(buffer, "buffer_id").is_empty()
         || text(buffer, "buffer_revision").is_empty()
-        || text(buffer, "qualified_revision") != text(buffer, "buffer_revision")
+        || text(buffer, "qualified_revision").is_empty()
     {
+        add_incomplete(reasons, "BUFFER_QUALIFICATION_BINDING_INCOMPLETE");
+        return false;
+    }
+    if text(buffer, "qualified_revision") != text(buffer, "buffer_revision") {
+        add_invalid(reasons, "BUFFER_QUALIFICATION_REVISION_MISMATCH");
         return false;
     }
     let axes = buffer.get("axes").unwrap_or(&Value::Null);
