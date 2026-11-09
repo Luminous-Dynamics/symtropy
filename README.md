@@ -81,6 +81,7 @@ The exact crate graph, features and supported APIs evolve. Consult the manifests
 - [Current physics validity envelope and known limitations](crates/core/symtropy-physics/RESEARCH_VALIDATION.md)
 - [Oriented-collision validation](crates/core/symtropy-physics/ORIENTED_COLLISION_VALIDATION.md)
 - [Robotics platform roadmap](Robotics_Platform_ROADMAP.md)
+- [Cross-simulator semantic equivalence contract](docs/research/CROSS_SIMULATOR_SEMANTIC_EQUIVALENCE_V0_1.md)
 
 ## Research tracks
 
