@@ -238,8 +238,16 @@ impl HydraulicInput {
         self.water_density
     }
 
+    pub const fn upstream_flow(&self) -> FlowRateM3PerSecond {
+        self.upstream_flow
+    }
+
     pub const fn flow_rate(&self) -> FlowRateM3PerSecond {
         self.flow_rate
+    }
+
+    pub fn flow_balance_residual(&self) -> f64 {
+        self.upstream_flow.get() - self.flow_rate.get() - self.bypass_flow.get()
     }
 
     pub const fn bypass_flow(&self) -> FlowRateM3PerSecond {
