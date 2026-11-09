@@ -81,8 +81,12 @@ fn linear_draws(start: f64, end: f64) -> Vec<f64> {
 
 fn render(kind: PredictiveKind, assessment: &AdequacyAssessment) {
     for result in &assessment.statistics {
+        let coverage = assessment
+            .coverage
+            .iter()
+            .find(|summary| summary.statistic_id == result.statistic_id);
         println!(
-            "{},{},{},{},{},{},{},{},{},{},{},{},{}",
+            "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
             kind.name(),
             result.statistic_id,
             result.independent_unit_id,
@@ -99,6 +103,13 @@ fn render(kind: PredictiveKind, assessment: &AdequacyAssessment) {
             result.measurement_unit,
             assessment.domain_status.name(),
             result.source_digest,
+            coverage.map(|summary| summary.independent_unit.name()).unwrap_or_default(),
+            coverage.map(|summary| summary.expected_independent_units.to_string()).unwrap_or_default(),
+            coverage.map(|summary| summary.assessed_independent_units.to_string()).unwrap_or_default(),
+            coverage.map(|summary| summary.covered_independent_units.to_string()).unwrap_or_default(),
+            coverage.and_then(|summary| summary.empirical_coverage).map(|value| format!("{value:.6}")).unwrap_or_default(),
+            coverage.and_then(|summary| summary.wilson_lower_95).map(|value| format!("{value:.6}")).unwrap_or_default(),
+            coverage.and_then(|summary| summary.wilson_upper_95).map(|value| format!("{value:.6}")).unwrap_or_default(),
         );
     }
 }
@@ -178,7 +189,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         &linear_draws(0.005, 0.025),
     ));
 
-    println!("kind,statistic_id,unit_id,status,observed,measurement_se,lower,upper,rank,n_draws,measurement_unit,domain_status,source_digest");
+    println!("kind,statistic_id,unit_id,status,observed,measurement_se,lower,upper,rank,n_draws,measurement_unit,domain_status,source_digest,independent_unit,expected_units,assessed_units,covered_units,empirical_coverage,wilson_lower_95,wilson_upper_95");
 
     let prior = assess_predictive_partition(
         &registry,
