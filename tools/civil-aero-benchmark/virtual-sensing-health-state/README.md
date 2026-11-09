@@ -128,6 +128,27 @@ The paper's reported best model varies by failure family: F2F-led TST variants l
 For fair architecture comparison, reproduce the paper's own baseline families (XGBoost, CatBoost, xLSTM-M, Transformer/TST, PatchTSMixer, ModernTCN) on the admitted dataset/split. Then add physics-informed observer/ROM baselines, wavelet/TCN models, graph/multisensor fusion, F2F-style pretraining, input sensor dropout and adversarial training. Evaluate every model on identical data splits and total budgets. Averages are insufficient: keep per-mode and per-channel severity curves plus earliest baseline crossing.
 
 
+
+## Environment/damage confounding: causal identifiability contract
+
+The additional Rust executable \`src/bin/environment_damage_confounding.rs\` separates structural and environmental explanations before assigning a structural state. A three-channel synthetic structural signature is combined with independently measured mean-temperature and span-gradient effects:
+
+- nominal environment contributes no offset;
+- uniform heating adds a common-mode response;
+- span gradient adds a localized wing response that is intentionally identical to the synthetic damage signature;
+- combined heating and gradient adds both effects.
+
+This creates a deliberate identifiability test. A measured vector of [1, 0, 0] is consistent with either healthy structure + thermal gradient or damaged structure + nominal environment. With no independent environmental evidence, both hypotheses are returned and the oracle abstains. With an admitted, calibrated, time-aligned environmental witness, it may resolve the pair. The environmental witness is itself checked for source digest, uncertainty, independent common-cause group, acquisition window, spatial support and redundant gradient-probe agreement. Expired, contradictory, out-of-profile or unaligned witnesses cannot authorize a damage call.
+
+The 15-case synthetic corpus includes healthy/nominal, healthy/heated, damaged/nominal, damage plus heating, damage plus combined environment, the damage/gradient collision both with and without a witness, conflicting redundant gradient probes, expired calibration, time-window mismatch, excessive uncertainty, out-of-profile temperature, structural/environment model mismatch and incomplete environmental observations.
+
+This is an identifiability and abstention contract, not a causal effect estimator, temperature compensation model or physical SHM result. Its environment-response coefficients and all probes are synthetic. A physical version must derive the causal graph and transfer functions from validated structural/thermal evidence, test sensor placement and common-cause independence, account for spatially varying temperature/strain fields, and validate across held-out specimens and excitation regimes.
+
+### Why this matters against current research
+
+The October 2026 causal MO-CBO paper by Chen & Liu explicitly models environment, structural properties, damage, sensor configuration and measured response in a structural causal model, with do-calculus and counterfactual uncertainty; it also reports numerical, experimental and full-scale bridge evaluation. The June 2026 aerospace sensing-digital-twin paper separately models structural damage and sensor faults, with ROM-based signal reconstruction and sensor reliability. These are stronger systems than this small oracle; we do not claim to reproduce or beat them. The contribution of this child is a small executable contract that forces the environment/damage ambiguity to remain visible and makes independent environmental evidence a precondition for disambiguation. References: https://doi.org/10.1016/j.ymssp.2026.114895 and https://doi.org/10.1007/s00158-026-04324-8.
+
+
 ## Advancement ladder
 
 **Tier 0 — this crate:** frozen synthetic HH/HF/DH/DF + abstention; independent fault witness; immutable raw data; independent Rust/Python replay.
