@@ -226,7 +226,10 @@ impl fmt::Display for UncertaintyError {
                 "standard uncertainty must be finite and non-negative; got {value}"
             ),
             Self::MissingProvenance { field } => {
-                write!(formatter, "uncertainty provenance field {field} must not be empty")
+                write!(
+                    formatter,
+                    "uncertainty provenance field {field} must not be empty"
+                )
             }
             Self::NonFiniteSensitivity { field, value } => {
                 write!(formatter, "sensitivity {field} is non-finite: {value}")
@@ -534,12 +537,9 @@ mod tests {
 
     #[test]
     fn analytic_uncertainty_known_answer() {
-        let report = propagate_net_power_standard_uncertainty(
-            &result(),
-            &complete_uncertainties(),
-        )
-        .unwrap()
-        .unwrap();
+        let report = propagate_net_power_standard_uncertainty(&result(), &complete_uncertainties())
+            .unwrap()
+            .unwrap();
 
         assert!((report.standard_uncertainty_w.get() - 138.98178437322835).abs() < 1e-9);
         assert!(report.comparison_eligible);
@@ -552,12 +552,9 @@ mod tests {
     #[test]
     fn sensitivity_matches_finite_difference_for_each_input() {
         let base = result();
-        let report = propagate_net_power_standard_uncertainty(
-            &base,
-            &complete_uncertainties(),
-        )
-        .unwrap()
-        .unwrap();
+        let report = propagate_net_power_standard_uncertainty(&base, &complete_uncertainties())
+            .unwrap()
+            .unwrap();
 
         let epsilons = [0.01, 1e-6, 1e-5, 1e-6, 1e-6, 1e-3];
         let labels = [
@@ -611,8 +608,7 @@ mod tests {
     fn missing_any_required_uncertainty_returns_unknown() {
         let mut uncertainties = complete_uncertainties();
         uncertainties.net_head_m = None;
-        let report = propagate_net_power_standard_uncertainty(&result(), &uncertainties)
-            .unwrap();
+        let report = propagate_net_power_standard_uncertainty(&result(), &uncertainties).unwrap();
         assert!(report.is_none());
     }
 
@@ -699,7 +695,11 @@ mod tests {
     #[test]
     fn uncertainty_provenance_requires_method_window_and_revision() {
         let result = UncertaintyProvenance::new(
-            EvidenceReference::new("UNCERTAINTY-PROVENANCE-001", EvidenceClass::LaboratoryModelTest).unwrap(),
+            EvidenceReference::new(
+                "UNCERTAINTY-PROVENANCE-001",
+                EvidenceClass::LaboratoryModelTest,
+            )
+            .unwrap(),
             " ",
             "2026-11-09",
             "METER-001",
