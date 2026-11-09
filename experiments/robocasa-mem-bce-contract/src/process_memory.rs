@@ -140,11 +140,11 @@ pub fn fold_obligations(
                     (ObligationState::Active, ObligationEventKind::Satisfied) => {
                         ObligationState::Satisfied
                     }
-                    (state, event) => {
+                    (state, kind) => {
                         return Err(ProcessMemoryError::InvalidTransition {
-                            obligation_id: event_id_for_error(&event, &event_placeholder(event, &event)),
+                            obligation_id: record.obligation_id.clone(),
                             state,
-                            event,
+                            event: kind,
                         });
                     }
                 };
@@ -165,20 +165,6 @@ pub fn can_submit(records: &BTreeMap<String, ObligationRecord>) -> bool {
     records
         .values()
         .all(|record| record.state == ObligationState::Satisfied)
-}
-
-fn event_id_for_error(_kind: &ObligationEventKind, fallback: &str) -> String {
-    fallback.to_owned()
-}
-
-fn event_placeholder(kind: ObligationEventKind, _kind2: &ObligationEventKind) -> ObligationEvent {
-    ObligationEvent {
-        event_id: String::new(),
-        sequence: 0,
-        task_id: String::new(),
-        obligation_id: String::new(),
-        kind,
-    }
 }
 
 #[cfg(test)]
