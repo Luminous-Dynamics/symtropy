@@ -97,3 +97,10 @@ The schema remains a composition vocabulary. It does not evaluate continuous phy
 The schema includes a conditional POSE_CALIBRATION receipt role and a separate POSE_CALIBRATION metric lane for #4297 / PR #4300. It may be referenced when an opportunity depends on calibrated pose-set evidence. This receipt is not a universal prerequisite for every energy bearer, and a calibrated singleton prediction set retains only a marginal exchangeability-based coverage interpretation; it is not conditional correctness or an operating permit.
 
 Calibration policy baselines now name Standard split conformal, IUCA-style in-situ calibration, LCP-style learnable/contextual conformal prediction, CaPTURe-style contact-aware calibration, deterministic polytopic set-membership and Conformal Policy Control. These are comparison labels, not claims that GroundAirBench implements those methods.
+
+
+## First-failure asset lifecycle evidence
+
+The schema includes a conditional ASSET_LIFECYCLE receipt role / metric lane for #4303 / PR #4305. The receipt may identify a hardware-revision- and stress-regime-specific first-failure cohort and right-censored Kaplan–Meier summary. It must preserve exposure unit, independent component count, failures, censoring, test regime, failure-criterion digest and the explicit non-informative-censoring/independence assumptions.
+
+Do not pool accelerated, bench and field exposures. A right-censored component is not a lifetime success, and the survival curve is descriptive rather than an established maintenance interval. Accelerated-to-field extrapolation requires an independently qualified acceleration model and is not implemented by the v0 tool.
