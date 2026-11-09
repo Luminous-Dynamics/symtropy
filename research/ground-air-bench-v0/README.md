@@ -104,3 +104,10 @@ Calibration policy baselines now name Standard split conformal, IUCA-style in-si
 The schema includes a conditional ASSET_LIFECYCLE receipt role / metric lane for #4303 / PR #4305. The receipt may identify a hardware-revision- and stress-regime-specific first-failure cohort and right-censored Kaplan–Meier summary. It must preserve exposure unit, independent component count, failures, censoring, test regime, failure-criterion digest and the explicit non-informative-censoring/independence assumptions.
 
 Do not pool accelerated, bench and field exposures. A right-censored component is not a lifetime success, and the survival curve is descriptive rather than an established maintenance interval. Accelerated-to-field extrapolation requires an independently qualified acceleration model and is not implemented by the v0 tool.
+
+
+## Declarative capability profile integration
+
+The schema includes a conditional CAPABILITY_PROFILE receipt role, an INTEROPERABILITY metric lane and a CAPABILITY_PROFILE_MATCHER policy baseline for #4307 / PR #4309. This reference describes static, issuer-authored support for a specific receiver revision, geometry, frame, motion state, environment and session mode.
+
+ESCP matching does not prove physical compatibility, receipt-byte authenticity or operational permission. GroundAirBench remains responsible for composing the profile digest with episode-specific observability, protection, authorization, metrology, site and session receipts. Capability profiles are declarations; the evidence references carry the qualification scope and validity.
