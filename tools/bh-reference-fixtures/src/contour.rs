@@ -134,6 +134,7 @@ pub enum QnmContourValidationError {
     InvalidRoot(usize),
     InvalidPole(usize),
     InvalidConfiguration,
+    CountOverflow,
 }
 
 impl core::fmt::Display for QnmContourValidationError {
@@ -172,6 +173,9 @@ impl core::fmt::Display for QnmContourValidationError {
             }
             Self::InvalidConfiguration => {
                 write!(f, "contour-analysis tolerances are invalid")
+            }
+            Self::CountOverflow => {
+                write!(f, "argument-principle zero/pole multiplicity count overflowed u32")
             }
         }
     }
@@ -265,6 +269,7 @@ impl QnmContourCountFixture {
             ));
         }
         if self.fine_resolution.samples.len() < 16
+            || self.fine_resolution.resolution_id == self.coarse_resolution.resolution_id
             || self.fine_resolution.samples.len()
                 < self.coarse_resolution.samples.len().saturating_mul(2)
         {
@@ -548,16 +553,20 @@ pub fn analyze_qnm_contour_count(
     let config = fixture.analysis_config;
     let coarse = analyze_resolution(&fixture.coarse_resolution, fixture.contour, config);
     let fine = analyze_resolution(&fixture.fine_resolution, fixture.contour, config);
-    let poles_inside_count = fixture
+    let Some(poles_inside_count) = fixture
         .poles_inside_contour
         .iter()
-        .map(|pole| pole.multiplicity)
-        .sum::<u32>();
-    let enumerated_zero_multiplicity = fixture
+        .try_fold(0_u32, |count, pole| count.checked_add(pole.multiplicity))
+    else {
+        return Err(QnmContourValidationError::CountOverflow);
+    };
+    let Some(enumerated_zero_multiplicity) = fixture
         .enumerated_roots
         .iter()
-        .map(|root| root.multiplicity)
-        .sum::<u32>();
+        .try_fold(0_u32, |count, root| count.checked_add(root.multiplicity))
+    else {
+        return Err(QnmContourValidationError::CountOverflow);
+    };
 
     let unresolved = |coarse: QnmContourResolutionAnalysis,
                       fine: QnmContourResolutionAnalysis,
