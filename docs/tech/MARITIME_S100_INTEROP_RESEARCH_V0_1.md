@@ -12,6 +12,7 @@ The International Hydrographic Organization (IHO) S-100 family is a strong inter
 | S-102 Bathymetric Surface | 3.0.0 | Bathymetric coverage profile; preserve depth reference, uncertainty/quality information, coverage, and edition |
 | S-104 Water Level Information for Surface Navigation | 2.0.0 | Water-level observations/predictions; preserve the vertical reference, validity interval, product/status and time semantics |
 | S-111 Surface Currents | 2.0.0 | Current information; preserve direction/speed units, reference frame, spatial/time coverage and quality |
+| S-131 Marine Harbour Infrastructure | 2.0.0 | Port-facility layout and port-service information; preserve feature/portrayal catalogue revisions, geometry/CRS, feature validity and source-native service semantics. It supplements ENC and is not a live berth-commitment feed. |
 | S-124 Navigational Warnings | 2.0.0 | Warning records; preserve issuer, warning identifier, issue/revision and validity/withdrawal state |
 | S-129 Under Keel Clearance Management | 2.0.0 | Interoperability profile relevant to UKC management; not itself evidence that a local clearance calculation is valid or authorized |
 
@@ -32,7 +33,7 @@ These lanes form a source-discovery matrix, not a single “trusted source” ra
 
 The repository now has a separate [S-100 profile metadata schema](./MARITIME_S100_PROFILE_V0_1.schema.json) and a 20-case synthetic corpus at `crates/tools/maritime-data-receipt/tests/fixtures/s100-profile-corpus-v0.1.json`. The receipt crate exposes an offline `--validate-s100-profile <profile-json> <receipt-json> [artifact-override]` mode. It rejects profile/schema drift, unpinned editions/revisions, product-incompatible units, missing required datum/validity metadata, expired windows, malformed timestamps, unsupported product codes, unreviewed public-data terms, unreceipted transformations, and authority promotion. It cross-checks the profile's source kind, product/domain, dataset ID/revision, CRS, vertical reference, units, time coverage, receipt ID and receipt SHA against the exact generic receipt, then verifies that receipt's artifact bytes. Its output remains `NotAdmitted`.
 
-This is only a profile metadata envelope; it is **not** an S-100/S-102/S-104/S-111 payload decoder, IHO validation engine, publisher-authentication mechanism, or physical qualification. The example bound S-104-like record and all profile-corpus values are synthetic. Source-specific product metadata still must be reviewed and tied to actual source artifacts. Exact-head CI must pass before treating even this metadata guard as software-qualified.
+This is only a profile metadata envelope; it is **not** an S-100/S-102/S-104/S-111/S-131 payload decoder, IHO validation engine, publisher-authentication mechanism, or physical qualification. The profile now has 30 synthetic cases, including S-131 Edition 2.0.0 metadata cases. S-131 feature and portrayal catalogue revision identifiers are required, but their raw ZIP bytes are not yet independently receipted. Source-specific product metadata still must be reviewed and tied to actual source artifacts. Exact-head CI must pass before treating even this metadata guard as software-qualified.
 
 ## Source-discovery lanes (do not confuse discovery with operational authority)
 
@@ -86,7 +87,7 @@ Reference: [GS1 EPCIS/CBV](https://www.gs1.org/standards/epcis) defines interope
 
 ## First safe vertical slice
 
-Use frozen synthetic S-100-shaped metadata/fixture examples for S-102, S-104 and S-111 profile tests before attempting real payload parsing. Then select one small, explicitly permitted public example only after its source-specific licence, edition, coverage, quality metadata and redistribution constraints have been reviewed. Do not download or publish real facility-security data merely because it is accessible.
+Use frozen synthetic S-100-shaped metadata/fixture examples for S-102, S-104, S-111 and S-131 profile tests before attempting real payload parsing. Then select one small, explicitly permitted public example only after its source-specific licence, edition, coverage, quality metadata and redistribution constraints have been reviewed. Do not download or publish real facility-security data merely because it is accessible.
 
 Required negative cases:
 
@@ -95,6 +96,7 @@ Required negative cases:
 - S-104 water-level value missing vertical reference or validity semantics;
 - S-102-like bathymetry missing depth reference, uncertainty/quality or coverage;
 - S-111-like current missing units, direction/reference-frame or time semantics;
+- S-131-like port-facility metadata with unpinned feature/portrayal catalogues, missing CRS, incorrect measurement units, or service data promoted into live berth/operational authority;
 - S-124-like warning that is expired, withdrawn, superseded or from an unqualified source;
 - two products share a URL but differ in edition/cell/update sequence;
 - normalization changes CRS, datum, units, grid, or timestamps without a transform receipt;
