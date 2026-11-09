@@ -1,0 +1,69 @@
+name: AER-01 structural analytical oracle
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/aero-structural-analytic-oracle.yml"
+      - "tools/civil-aero-benchmark/structural-aeroelastic-oracle/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-analytical-bridge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact pull-request head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Assert exact subject revision
+        env:
+          EXPECTED_SUBJECT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          actual_subject_sha="$(git rev-parse HEAD)"
+          test "$actual_subject_sha" = "$EXPECTED_SUBJECT_SHA"
+          printf 'subject_commit=%s\n' "$actual_subject_sha"
+          printf 'event_commit=%s\n' "$GITHUB_SHA"
+          printf 'workflow_ref=%s\n' "$GITHUB_WORKFLOW_REF"
+
+      - name: Install stable Rust with rustfmt
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Record Rust toolchain identity
+        run: |
+          rustc --version --verbose
+          cargo --version
+
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path tools/civil-aero-benchmark/structural-aeroelastic-oracle/Cargo.toml -- --check
+
+      - name: Run Rust analytical known-answer and hostile tests
+        run: cargo test --manifest-path tools/civil-aero-benchmark/structural-aeroelastic-oracle/Cargo.toml
+
+      - name: Run Rust executable and retain its JSON result
+        run: cargo run --quiet --manifest-path tools/civil-aero-benchmark/structural-aeroelastic-oracle/Cargo.toml > structural-oracle-result.json
+
+      - name: Independently recompute and verify Rust output in Python
+        run: python3 tools/civil-aero-benchmark/structural-aeroelastic-oracle/verify_independent.py --rust-output structural-oracle-result.json
+
+      - name: Create output digest receipt
+        run: sha256sum structural-oracle-result.json > structural-oracle-result.sha256
+
+      - name: Retain exact analytical result and digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: aero-structural-analytic-oracle-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            structural-oracle-result.json
+            structural-oracle-result.sha256
+          if-no-files-found: error
+          retention-days: 90

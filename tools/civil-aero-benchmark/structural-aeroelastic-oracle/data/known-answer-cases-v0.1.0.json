@@ -1,0 +1,104 @@
+{
+  "schema_version": "aero-structural-analytic-oracle-fixture/0.1.0",
+  "claim_ceiling": "bounded_analytical_software_verification_only",
+  "aircraft_feasibility": "NOT_ASSESSED",
+  "analysis_identity": {
+    "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "geometry_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "loading_state_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "mission_phase_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "environment_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+  },
+  "inputs": {
+    "beam": {
+      "youngs_modulus_pa": 70000000000.0,
+      "second_moment_m4": 0.000002,
+      "span_m": 4.0,
+      "tip_force_n": 1000.0,
+      "uniform_load_n_per_m": 200.0,
+      "extreme_fibre_distance_m": 0.05
+    },
+    "wing_box": {
+      "cap_area_m2": 0.0015,
+      "cap_separation_m": 0.25,
+      "median_width_m": 0.6,
+      "median_height_m": 0.25,
+      "wall_thickness_m": 0.0015,
+      "youngs_modulus_pa": 70000000000.0,
+      "shear_modulus_pa": 27000000000.0,
+      "root_bending_moment_nm": 12000.0,
+      "applied_torque_nm": 250.0,
+      "span_m": 4.0
+    },
+    "load_transfer": {
+      "target_stations_x_m": [0.0, 2.0, 4.0],
+      "source_loads": [
+        {
+          "x_m": 1.0,
+          "force_n": [0.0, -1000.0, 0.0],
+          "couple_nm": [10.0, 20.0, 30.0]
+        },
+        {
+          "x_m": 3.0,
+          "force_n": [0.0, -500.0, 200.0],
+          "couple_nm": [-2.0, 5.0, 7.0]
+        }
+      ]
+    },
+    "static_aeroelastic": {
+      "compliance_m_per_n": 0.0001,
+      "baseline_lift_n": 1000.0,
+      "lift_feedback_n_per_m": 2000.0,
+      "tolerance_m": 0.000000000001,
+      "max_iterations": 100
+    },
+    "divergent_control": {
+      "compliance_m_per_n": 0.0001,
+      "baseline_lift_n": 1000.0,
+      "lift_feedback_n_per_m": 12000.0,
+      "tolerance_m": 0.000000000001,
+      "max_iterations": 40
+    }
+  },
+  "expected": {
+    "beam": {
+      "root_moment_nm": 5600.0,
+      "tip_deflection_m": 0.1980952380952381,
+      "tip_slope_rad": 0.07238095238095238,
+      "root_bending_stress_pa": 140000000.0
+    },
+    "wing_box": {
+      "bending_second_moment_m4": 0.000046875,
+      "bending_stress_pa": 32000000.0,
+      "torsion_constant_m4": 0.00007941176470588236,
+      "torsional_shear_flow_n_per_m": 833.3333333333334,
+      "wall_shear_stress_pa": 555555.5555555556,
+      "tip_twist_rad": 0.0004663923182441701
+    },
+    "load_transfer": {
+      "resultant_force_n": [0.0, -1500.0, 200.0],
+      "resultant_moment_nm": [8.0, -575.0, -2463.0],
+      "maximum_component_force_residual_n": 0.0,
+      "maximum_component_moment_residual_nm": 0.0
+    },
+    "static_aeroelastic": {
+      "status": "CONVERGED",
+      "gain": 0.2,
+      "closed_form_tip_deflection_m": 0.125,
+      "iteration_limit": 100
+    },
+    "divergent_control": {
+      "status": "NON_CONVERGED",
+      "gain": 1.2,
+      "iteration_limit": 40
+    }
+  },
+  "unassessed_aircraft_claims": [
+    "full_envelope_strength",
+    "buckling_and_local_instability",
+    "dynamic_flutter_and_buffet_clearance",
+    "fatigue_and_service_life",
+    "candidate_specific_validation",
+    "airworthiness_and_certification"
+  ]
+}
