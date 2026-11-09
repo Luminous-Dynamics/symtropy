@@ -72,6 +72,8 @@ pub struct FaultScenario {
     pub initial_state_digest: String,
     pub payload_digest: String,
     pub fault_profile_digest: String,
+    pub task_digest: String,
+    pub command_schedule_digest: String,
     pub terrain_stratum_digest: String,
     pub morphology_digest: String,
     pub actuator_model_digest: String,
@@ -177,6 +179,7 @@ pub struct FaultTrial {
     pub energy_mj: u64,
     pub event_vector_receipt_digest: String,
     pub viability_receipt_digest: String,
+    pub action_applied: bool,
     pub certificate_current_at_action: bool,
     pub applied_action_admitted: bool,
 }
@@ -224,6 +227,7 @@ pub struct PolicyCoverage {
     pub recovery_success_count: usize,
     pub stale_certificate_count: usize,
     pub unadmitted_action_count: usize,
+    pub action_abstention_count: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -353,6 +357,8 @@ fn validate_scenario(
         scenario.initial_state_digest.as_str(),
         scenario.payload_digest.as_str(),
         scenario.fault_profile_digest.as_str(),
+        scenario.task_digest.as_str(),
+        scenario.command_schedule_digest.as_str(),
         scenario.terrain_stratum_digest.as_str(),
         scenario.morphology_digest.as_str(),
         scenario.actuator_model_digest.as_str(),
@@ -380,6 +386,8 @@ fn validate_scenario(
         || scenario.actuator_model_digest != context.actuator_model_digest
         || scenario.sensor_model_digest != context.sensor_model_digest
         || scenario.physics_digest != context.physics_digest
+        || scenario.task_digest != context.task_digest
+        || scenario.command_schedule_digest != context.command_schedule_digest
     {
         return Err(FaultBenchmarkError::ScenarioContextMismatch);
     }
@@ -424,10 +432,10 @@ fn validate_trial(
     {
         return Err(FaultBenchmarkError::EmptyReceiptDigest);
     }
-    if !trial.certificate_current_at_action {
+    if trial.action_applied && !trial.certificate_current_at_action {
         return Err(FaultBenchmarkError::StaleCertificateActionApplied);
     }
-    if !trial.applied_action_admitted {
+    if trial.action_applied && !trial.applied_action_admitted {
         return Err(FaultBenchmarkError::UnadmittedActionApplied);
     }
 
@@ -762,6 +770,7 @@ pub fn audit_fault_benchmark(
             recovery_success_count: 0,
             stale_certificate_count: 0,
             unadmitted_action_count: 0,
+            action_abstention_count: 0,
         };
         for scenario_id in scenarios.keys() {
             for block_id in &block_ids {
@@ -782,11 +791,14 @@ pub fn audit_fault_benchmark(
                 if trial.recovery_succeeded {
                     row.recovery_success_count += 1;
                 }
-                if !trial.certificate_current_at_action {
+                if trial.action_applied && !trial.certificate_current_at_action {
                     row.stale_certificate_count += 1;
                 }
-                if !trial.applied_action_admitted {
+                if trial.action_applied && !trial.applied_action_admitted {
                     row.unadmitted_action_count += 1;
+                }
+                if !trial.action_applied {
+                    row.action_abstention_count += 1;
                 }
             }
         }
@@ -856,6 +868,8 @@ mod tests {
             initial_state_digest: "initial-state-v1".to_owned(),
             payload_digest: "payload-v1".to_owned(),
             fault_profile_digest: format!("profile-{id}"),
+            task_digest: "task-v1".to_owned(),
+            command_schedule_digest: "commands-v1".to_owned(),
             terrain_stratum_digest: "terrain-rough-v1".to_owned(),
             morphology_digest: "morphology-v1".to_owned(),
             actuator_model_digest: "actuator-v1".to_owned(),
@@ -897,6 +911,7 @@ mod tests {
             energy_mj: 500,
             event_vector_receipt_digest: "event-vector-receipt".to_owned(),
             viability_receipt_digest: "viability-receipt".to_owned(),
+            action_applied: true,
             certificate_current_at_action: true,
             applied_action_admitted: true,
         }
@@ -1016,8 +1031,26 @@ mod tests {
     }
 
     #[test]
+    fn safe_abstention_does_not_count_as_an_unadmitted_applied_command() {
+        let mut input = problem();
+        input.trials[0].action_applied = false;
+        input.trials[0].certificate_current_at_action = false;
+        input.trials[0].applied_action_admitted = false;
+        let report = audit_fault_benchmark(&input).expect("safe abstention is measurable");
+        let policy = report
+            .policy_coverage
+            .iter()
+            .find(|row| row.policy_id == "nominal")
+            .expect("nominal policy");
+        assert_eq!(policy.action_abstention_count, 1);
+        assert_eq!(policy.stale_certificate_count, 0);
+        assert_eq!(policy.unadmitted_action_count, 0);
+    }
+
+    #[test]
     fn stale_certificate_cannot_authorize_an_applied_action() {
         let mut input = problem();
+        input.trials[0].action_applied = true;
         input.trials[0].certificate_current_at_action = false;
         assert_eq!(
             audit_fault_benchmark(&input),
@@ -1028,6 +1061,7 @@ mod tests {
     #[test]
     fn unadmitted_action_cannot_be_marked_as_applied() {
         let mut input = problem();
+        input.trials[0].action_applied = true;
         input.trials[0].applied_action_admitted = false;
         assert_eq!(
             audit_fault_benchmark(&input),
@@ -1050,6 +1084,8 @@ mod tests {
             .expect("locked coverage");
         assert_eq!(locked.unknown_diagnosis_count, 1);
         assert_eq!(locked.detection_count, 3);
+        assert_eq!(locked.fault_set_covered_count, 4);
+        assert_eq!(locked.fault_set_uncovered_count, 0);
     }
 
     #[test]
