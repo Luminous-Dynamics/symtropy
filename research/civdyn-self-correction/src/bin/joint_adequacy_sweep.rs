@@ -111,17 +111,25 @@ fn predictive_draws(
         .collect()
 }
 
-fn emit_candidate(
-    candidate: &str,
-    model_digest: &str,
-    draw_set_digest: &str,
+struct JointCandidate {
+    name: &'static str,
+    model_digest: &'static str,
+    draw_set_digest: &'static str,
     values: [[f64; 2]; 2],
+}
+
+fn emit_candidate(
+    candidate: &JointCandidate,
     statistic: &JointStatisticSpec,
     manifest: &SplitManifest,
     observation: &JointObservation,
     config: &JointMetricConfig,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let draws = predictive_draws(model_digest, draw_set_digest, values);
+    let draws = predictive_draws(
+        candidate.model_digest,
+        candidate.draw_set_digest,
+        candidate.values,
+    );
     let result = assess_joint_predictive_draws(
         statistic,
         manifest,
@@ -133,7 +141,7 @@ fn emit_candidate(
 
     for pair in &result.variogram_pairs {
         let fields = vec![
-            candidate.to_string(),
+            candidate.name.to_string(),
             "joint_pair".to_string(),
             result.statistic_id.clone(),
             result.independent_unit_id.clone(),
@@ -143,13 +151,13 @@ fn emit_candidate(
             format!("{energy_beta:.6}", energy_beta = result.energy_beta),
             format!("{energy_score:.8}", energy_score = result.energy_score),
             format!("{variogram_power:.6}", variogram_power = result.variogram_power),
-            format!("{:.8}", result.variogram_score),
+            format!("{variogram_score:.8}", variogram_score = result.variogram_score),
             pair.component_a.clone(),
             pair.component_b.clone(),
-            format!("{:.6}", pair.weight),
-            format!("{:.8}", pair.observed_pair_distance),
-            format!("{:.8}", pair.predictive_pair_distance),
-            format!("{:.8}", pair.weighted_contribution),
+            format!("{pair_weight:.6}", pair_weight = pair.weight),
+            format!("{observed_pair_distance:.8}", observed_pair_distance = pair.observed_pair_distance),
+            format!("{predictive_pair_distance:.8}", predictive_pair_distance = pair.predictive_pair_distance),
+            format!("{weighted_contribution:.8}", weighted_contribution = pair.weighted_contribution),
             result.model_digest.clone(),
             result.draw_set_digest.clone(),
             result.source_digest.clone(),
@@ -170,25 +178,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Both candidates have exactly the same marginal draws {0,1} for each
     // resource. Only their cross-resource coupling differs.
-    emit_candidate(
-        "positive-dependence",
-        "sha256-joint-model-positive",
-        "sha256-joint-draws-positive",
-        [[0.0, 0.0], [1.0, 1.0]],
-        &statistic,
-        &manifest,
-        &observation,
-        &config,
-    )?;
-    emit_candidate(
-        "negative-dependence",
-        "sha256-joint-model-negative",
-        "sha256-joint-draws-negative",
-        [[0.0, 1.0], [1.0, 0.0]],
-        &statistic,
-        &manifest,
-        &observation,
-        &config,
-    )?;
+    let candidates = [
+        JointCandidate {
+            name: "positive-dependence",
+            model_digest: "sha256-joint-model-positive",
+            draw_set_digest: "sha256-joint-draws-positive",
+            values: [[0.0, 0.0], [1.0, 1.0]],
+        },
+        JointCandidate {
+            name: "negative-dependence",
+            model_digest: "sha256-joint-model-negative",
+            draw_set_digest: "sha256-joint-draws-negative",
+            values: [[0.0, 1.0], [1.0, 0.0]],
+        },
+    ];
+    for candidate in &candidates {
+        emit_candidate(candidate, &statistic, &manifest, &observation, &config)?;
+    }
     Ok(())
 }
