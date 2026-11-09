@@ -1066,7 +1066,7 @@ mod tests {
                 .violations()
                 .contains(&ServiceViolation::WaterAllocationExceedsUpstreamFlow)
         );
-        assert!(result.credited_net_electrical_power().is_none());
+        assert!(result.service_eligible_net_electrical_power().is_none());
     }
 
     #[test]
@@ -1255,7 +1255,7 @@ mod tests {
             "PAT-1",
             "rev-a",
             "point-1",
-            evidence("map", EvidenceClass.LaboratoryModelTest),
+            evidence("map", EvidenceClass::LaboratoryModelTest),
             HeadMetres::new(3.0).unwrap(),
             HeadMetres::new(2.0).unwrap(),
             FlowRateM3PerSecond::new(0.1).unwrap(),
