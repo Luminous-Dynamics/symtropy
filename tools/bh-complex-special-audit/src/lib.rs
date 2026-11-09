@@ -662,8 +662,7 @@ pub fn poschl_teller_jost_wronskian_connection(
     }
 
     let one = Complex64::new(1.0, 0.0);
-    let degree = Complex64::new(-0.5, 0.0)
-        + Complex64::new(0.25 - lambda, 0.0).sqrt();
+    let degree = Complex64::new(-0.5, 0.0) + Complex64::new(0.25 - lambda, 0.0).sqrt();
     let order = Complex64::new(0.0, 1.0) * width * omega;
     let gamma_factor = gamma(one - order)?;
     let inverse_left_connection = reciprocal_gamma(one - order + degree)?;
@@ -1104,29 +1103,18 @@ mod tests {
             (1.0, 0.75, z(0.0, 0.0)),
         ];
         for (width, lambda, omega) in cases {
-            let analytic =
-                poschl_teller_jost_wronskian_connection(width, lambda, omega).unwrap();
+            let analytic = poschl_teller_jost_wronskian_connection(width, lambda, omega).unwrap();
             for x in [-1.1, -0.2, 0.0, 0.65, 1.3] {
-                let direct =
-                    poschl_teller_jost_wronskian(width, lambda, omega, x, config).unwrap();
-                close(
-                    direct,
-                    analytic,
-                    2.0e-9 * (1.0 + analytic.norm()),
-                );
+                let direct = poschl_teller_jost_wronskian(width, lambda, omega, x, config).unwrap();
+                close(direct, analytic, 2.0e-9 * (1.0 + analytic.norm()));
             }
         }
     }
 
     #[test]
     fn connection_wronskian_free_limit_is_two_i_omega() {
-        for (width, omega) in [
-            (0.7, z(0.9, -0.12)),
-            (1.3, z(0.0, 0.0)),
-            (2.1, z(0.3, 0.2)),
-        ] {
-            let actual =
-                poschl_teller_jost_wronskian_connection(width, 0.0, omega).unwrap();
+        for (width, omega) in [(0.7, z(0.9, -0.12)), (1.3, z(0.0, 0.0)), (2.1, z(0.3, 0.2))] {
+            let actual = poschl_teller_jost_wronskian_connection(width, 0.0, omega).unwrap();
             close(actual, z(0.0, 2.0) * omega, 5.0e-13);
         }
     }
@@ -1140,8 +1128,7 @@ mod tests {
                 let split = Complex64::new(lambda - 0.25, 0.0).sqrt();
                 let plus = z(0.0, -damping) + split;
                 let minus = z(0.0, -damping) - split;
-                let plus_w =
-                    poschl_teller_jost_wronskian_connection(width, lambda, plus).unwrap();
+                let plus_w = poschl_teller_jost_wronskian_connection(width, lambda, plus).unwrap();
                 let minus_w =
                     poschl_teller_jost_wronskian_connection(width, lambda, minus).unwrap();
                 assert!(
@@ -1172,11 +1159,9 @@ mod tests {
         close(exact, z(0.0, 0.0), 0.0);
 
         let h = 1.0e-3;
-        let at_h =
-            poschl_teller_jost_wronskian_connection(1.0, lambda, pole + z(h, 0.0)).unwrap();
+        let at_h = poschl_teller_jost_wronskian_connection(1.0, lambda, pole + z(h, 0.0)).unwrap();
         let at_half =
-            poschl_teller_jost_wronskian_connection(1.0, lambda, pole + z(h / 2.0, 0.0))
-                .unwrap();
+            poschl_teller_jost_wronskian_connection(1.0, lambda, pole + z(h / 2.0, 0.0)).unwrap();
         let scaled_h = at_h.norm() / h.powi(2);
         let scaled_half = at_half.norm() / (h / 2.0).powi(2);
         assert!(scaled_h.is_finite() && scaled_half.is_finite());
@@ -1205,5 +1190,4 @@ mod tests {
             Err(SpecialError::NonFiniteInput)
         );
     }
-
 }
