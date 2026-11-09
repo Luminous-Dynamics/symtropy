@@ -9,6 +9,7 @@ use core::fmt;
 use serde::{Deserialize, Serialize};
 
 pub mod qnm;
+pub use qnm::KerrQnmSequenceFixture;
 
 pub const FIXTURE_SCHEMA_VERSION: u32 = 1;
 
