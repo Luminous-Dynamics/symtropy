@@ -501,6 +501,25 @@ mod tests {
     }
 
     #[test]
+    fn seed_zero_stream_digests_are_pinned_for_every_frozen_regime() {
+        let expected = [
+            0x0cdf_a6a0_2ef3_55b9,
+            0x4a32_25ff_7614_33c7,
+            0x5e65_a19b_c3f2_b8c2,
+            0x7af7_c9fa_39d8_ffaa,
+            0x34a6_4752_8d0c_4a67,
+            0xec4a_9566_682a_839e,
+        ];
+
+        assert_eq!(SequentialRegime::ALL.len(), expected.len());
+        for (regime, expected_digest) in SequentialRegime::ALL.into_iter().zip(expected) {
+            let (_, stream, digest) = generate_paired_stream(regime, 0);
+            assert_eq!(digest, expected_digest, "stream digest for {}", regime.name());
+            assert_eq!(digest, stream_hash(&stream));
+        }
+    }
+
+    #[test]
     fn e_process_starts_at_one_and_separates_harm_benefit_and_inconclusive() {
         assert!(log_gaussian_mixture_e(0.0, 0).abs() < 1e-12);
         assert!((LOG_E_THRESHOLD - 40.0_f64.ln()).abs() < 1e-12);
