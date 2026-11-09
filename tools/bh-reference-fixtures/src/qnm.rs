@@ -50,7 +50,7 @@ pub struct QnmModeResiduals {
 }
 
 impl QnmModeResiduals {
-    fn validate(&self) -> bool {
+    pub(crate) fn validate(&self) -> bool {
         let residuals = [
             self.angular_ode_relative,
             self.radial_ode_relative,
