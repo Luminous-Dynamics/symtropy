@@ -2083,6 +2083,116 @@ mod tests {
     }
 
     #[test]
+    fn simple_pole_residue_is_invariant_under_contour_radius_and_center_translation() {
+        let config = SeriesConfig::default();
+        let pole = z((0.75_f64 - 0.25).sqrt(), -0.5);
+        let radii = [0.02_f64, 0.03, 0.05];
+        let mut evaluations = Vec::with_capacity(radii.len());
+        for radius in radii {
+            evaluations.push(
+                poschl_teller_retarded_green_laurent(
+                    1.0,
+                    0.75,
+                    pole,
+                    PoschlTellerGreenContourConfig {
+                        radius,
+                        observer_x: 0.4,
+                        source_x: -0.3,
+                        samples: 128,
+                    },
+                    config,
+                )
+                .unwrap(),
+            );
+        }
+
+        for evaluation in &evaluations {
+            assert_eq!(evaluation.winding_number, 1);
+            assert!(evaluation.c_minus_two.norm() < 2.0e-7);
+            assert!(evaluation.stable_quadrature_refinements >= 2);
+        }
+        for evaluation in &evaluations[1..] {
+            close(evaluation.c_minus_one, evaluations[0].c_minus_one, 2.0e-7);
+            close(evaluation.c_minus_two, evaluations[0].c_minus_two, 2.0e-7);
+        }
+
+        let shift = z(0.003, 0.002);
+        let shifted = poschl_teller_retarded_green_laurent(
+            1.0,
+            0.75,
+            pole + shift,
+            PoschlTellerGreenContourConfig {
+                radius: 0.05,
+                observer_x: 0.4,
+                source_x: -0.3,
+                samples: 128,
+            },
+            config,
+        )
+        .unwrap();
+        assert_eq!(shifted.winding_number, 1);
+        close(shifted.c_minus_one, evaluations[2].c_minus_one, 2.0e-7);
+        let translated_first_moment =
+            evaluations[2].c_minus_two - shift * evaluations[2].c_minus_one;
+        close(shifted.c_minus_two, translated_first_moment, 2.0e-7);
+    }
+
+    #[test]
+    fn threshold_double_pole_moments_obey_contour_center_translation() {
+        let config = SeriesConfig::default();
+        let center = z(0.0, -0.5);
+        let radii = [0.025_f64, 0.04, 0.05];
+        let mut evaluations = Vec::with_capacity(radii.len());
+        for radius in radii {
+            evaluations.push(
+                poschl_teller_retarded_green_laurent(
+                    1.0,
+                    0.25,
+                    center,
+                    PoschlTellerGreenContourConfig {
+                        radius,
+                        observer_x: 0.4,
+                        source_x: -0.3,
+                        samples: 128,
+                    },
+                    config,
+                )
+                .unwrap(),
+            );
+        }
+
+        for evaluation in &evaluations {
+            assert_eq!(evaluation.winding_number, 2);
+            assert!(evaluation.c_minus_two.norm() > 1.0e-3);
+            assert!(evaluation.stable_quadrature_refinements >= 2);
+        }
+        for evaluation in &evaluations[1..] {
+            close(evaluation.c_minus_one, evaluations[0].c_minus_one, 2.0e-6);
+            close(evaluation.c_minus_two, evaluations[0].c_minus_two, 2.0e-6);
+        }
+
+        let shift = z(0.002, -0.001);
+        let shifted = poschl_teller_retarded_green_laurent(
+            1.0,
+            0.25,
+            center + shift,
+            PoschlTellerGreenContourConfig {
+                radius: 0.05,
+                observer_x: 0.4,
+                source_x: -0.3,
+                samples: 128,
+            },
+            config,
+        )
+        .unwrap();
+        assert_eq!(shifted.winding_number, 2);
+        close(shifted.c_minus_one, evaluations[2].c_minus_one, 2.0e-6);
+        let translated_first_moment =
+            evaluations[2].c_minus_two - shift * evaluations[2].c_minus_one;
+        close(shifted.c_minus_two, translated_first_moment, 2.0e-6);
+    }
+
+    #[test]
     fn argument_principle_winding_is_stable_under_nested_refinement() {
         let simple = poschl_teller_wronskian_winding_number(
             1.0,
