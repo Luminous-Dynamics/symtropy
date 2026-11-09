@@ -15,8 +15,9 @@
 //! restricted to a demonstrably reflection-free time window.
 
 use core::fmt;
+use serde::Serialize;
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 pub struct CompactPulse {
     pub center_x: f64,
     pub spatial_half_width: f64,
@@ -63,7 +64,7 @@ impl CompactPulse {
 }
 
 /// Numerical and physical parameters for the direct PDE reference.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 pub struct SimulationConfig {
     pub width: f64,
     pub lambda: f64,
@@ -148,13 +149,13 @@ impl SimulationConfig {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 pub struct ObserverSample {
     pub time: f64,
     pub value: f64,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 pub struct EnergyDiagnostics {
     pub final_energy: f64,
     pub source_work: f64,
