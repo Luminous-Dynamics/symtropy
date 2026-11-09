@@ -50,10 +50,18 @@
     "system_boundary": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["status", "description"],
+      "required": [
+        "status",
+        "description"
+      ],
       "properties": {
         "status": {
-          "enum": ["DECLARED", "FRAGMENTED", "UNKNOWN", "NOT_APPLICABLE"]
+          "enum": [
+            "DECLARED",
+            "FRAGMENTED",
+            "UNKNOWN",
+            "NOT_APPLICABLE"
+          ]
         },
         "description": {
           "type": "string",
@@ -73,13 +81,24 @@
         "spatial"
       ],
       "properties": {
-        "modality": { "type": "string", "minLength": 1 },
+        "modality": {
+          "type": "string",
+          "minLength": 1
+        },
         "units": {
           "type": "array",
           "minItems": 1,
-          "items": { "type": "string", "minLength": 1 }
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
         },
-        "unit_status": { "enum": ["DECLARED", "UNKNOWN"] },
+        "unit_status": {
+          "enum": [
+            "DECLARED",
+            "UNKNOWN"
+          ]
+        },
         "calibration_status": {
           "enum": [
             "QUALIFIED_SYNTHETIC_REFERENCE",
@@ -98,20 +117,64 @@
             "coverage_fraction"
           ],
           "properties": {
-            "window_seconds": { "type": "number", "exclusiveMinimum": 0 },
-            "sampling_interval_seconds": { "type": "number", "exclusiveMinimum": 0 },
-            "target_process_timescale_seconds": { "type": "number", "exclusiveMinimum": 0 },
-            "coverage_fraction": { "type": "number", "minimum": 0, "maximum": 1 }
+            "window_seconds": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "exclusiveMinimum": 0
+            },
+            "sampling_interval_seconds": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "exclusiveMinimum": 0
+            },
+            "target_process_timescale_seconds": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "exclusiveMinimum": 0
+            },
+            "coverage_fraction": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 1
+            }
           }
         },
         "spatial": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["coordinate_frame", "footprint_fraction"],
+          "required": [
+            "coordinate_frame",
+            "footprint_fraction"
+          ],
           "properties": {
-            "coordinate_frame": { "type": "string", "minLength": 1 },
-            "footprint_fraction": { "type": "number", "minimum": 0, "maximum": 1 },
-            "resolution_m": { "type": ["number", "null"], "exclusiveMinimum": 0 }
+            "coordinate_frame": {
+              "type": "string",
+              "minLength": 1
+            },
+            "footprint_fraction": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 1
+            },
+            "resolution_m": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "exclusiveMinimum": 0
+            }
           }
         }
       }
@@ -138,28 +201,64 @@
         "sentience_consciousness"
       ],
       "properties": {
-        "organization": { "$ref": "#/$defs/propertyState" },
-        "boundary": { "$ref": "#/$defs/propertyState" },
-        "energy_matter_throughput": { "$ref": "#/$defs/propertyState" },
-        "persistence": { "$ref": "#/$defs/propertyState" },
-        "homeostasis_regulation": { "$ref": "#/$defs/propertyState" },
-        "self_maintenance": { "$ref": "#/$defs/propertyState" },
-        "information_retention": { "$ref": "#/$defs/propertyState" },
-        "information_transfer": { "$ref": "#/$defs/propertyState" },
-        "reproduction": { "$ref": "#/$defs/propertyState" },
-        "heredity": { "$ref": "#/$defs/propertyState" },
-        "adaptation": { "$ref": "#/$defs/propertyState" },
-        "learning": { "$ref": "#/$defs/propertyState" },
-        "agency": { "$ref": "#/$defs/propertyState" },
-        "intelligence": { "$ref": "#/$defs/propertyState" },
-        "collective_intelligence": { "$ref": "#/$defs/propertyState" },
-        "sentience_consciousness": { "$ref": "#/$defs/propertyState" }
+        "organization": {
+          "$ref": "#/$defs/propertyState"
+        },
+        "boundary": {
+          "$ref": "#/$defs/propertyState"
+        },
+        "energy_matter_throughput": {
+          "$ref": "#/$defs/propertyState"
+        },
+        "persistence": {
+          "$ref": "#/$defs/propertyState"
+        },
+        "homeostasis_regulation": {
+          "$ref": "#/$defs/propertyState"
+        },
+        "self_maintenance": {
+          "$ref": "#/$defs/propertyState"
+        },
+        "information_retention": {
+          "$ref": "#/$defs/propertyState"
+        },
+        "information_transfer": {
+          "$ref": "#/$defs/propertyState"
+        },
+        "reproduction": {
+          "$ref": "#/$defs/propertyState"
+        },
+        "heredity": {
+          "$ref": "#/$defs/propertyState"
+        },
+        "adaptation": {
+          "$ref": "#/$defs/propertyState"
+        },
+        "learning": {
+          "$ref": "#/$defs/propertyState"
+        },
+        "agency": {
+          "$ref": "#/$defs/propertyState"
+        },
+        "intelligence": {
+          "$ref": "#/$defs/propertyState"
+        },
+        "collective_intelligence": {
+          "$ref": "#/$defs/propertyState"
+        },
+        "sentience_consciousness": {
+          "$ref": "#/$defs/propertyState"
+        }
       }
     },
     "expected_result": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["disposition", "absence_inference_allowed", "reason"],
+      "required": [
+        "disposition",
+        "absence_inference_allowed",
+        "reason"
+      ],
       "properties": {
         "disposition": {
           "enum": [
@@ -171,24 +270,43 @@
             "OUT_OF_DOMAIN"
           ]
         },
-        "absence_inference_allowed": { "type": "boolean" },
-        "reason": { "type": "string", "minLength": 1 }
+        "absence_inference_allowed": {
+          "type": "boolean"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
       }
     },
     "source": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["reference", "data_status"],
+      "required": [
+        "reference",
+        "data_status"
+      ],
       "properties": {
-        "reference": { "type": "string" },
-        "data_status": { "type": "string", "minLength": 1 },
-        "note": { "type": "string" }
+        "reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "data_status": {
+          "type": "string",
+          "minLength": 1
+        },
+        "note": {
+          "type": "string"
+        }
       }
     },
     "limitations": {
       "type": "array",
       "minItems": 1,
-      "items": { "type": "string", "minLength": 1 }
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
     }
   },
   "$defs": {
