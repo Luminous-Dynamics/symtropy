@@ -285,9 +285,12 @@ fn validate_fixture(value: &Value) -> Vec<String> {
                 errors.push("measurement.units must contain only non-empty strings".to_owned());
             }
         }
-        (Some(values), "UNKNOWN") if values.is_empty() => {}
-        (Some(_), "UNKNOWN") => {
-            errors.push("measurement.units must be empty when unit_status is UNKNOWN".to_owned());
+        (Some(values), "UNKNOWN") => {
+            if values.iter().any(|item| {
+                item.as_str().is_none_or(|text| text.trim().is_empty())
+            }) {
+                errors.push("measurement.units must contain only non-empty known unit strings when unit_status is UNKNOWN".to_owned());
+            }
         }
         (Some(_), "DECLARED") => {
             errors.push("measurement.units must be non-empty when unit_status is DECLARED".to_owned());
@@ -674,7 +677,9 @@ mod tests {
             serde_json::from_str(include_str!("../fixtures/oli-m0-dusty-plasma-001.json")).unwrap();
         assert_eq!(value["measurement"]["units"].as_array().unwrap().len(), 0);
         assert!(validate_fixture(&value).is_empty());
-        value["measurement"]["units"] = serde_json::json!(["unknown_unit"]);
+        value["measurement"]["units"] = serde_json::json!(["s"]);
+        assert!(validate_fixture(&value).is_empty());
+        value["measurement"]["units"] = serde_json::json!([""]);
         assert!(!validate_fixture(&value).is_empty());
     }
 
