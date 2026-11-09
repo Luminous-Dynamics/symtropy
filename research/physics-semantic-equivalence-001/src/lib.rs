@@ -158,7 +158,11 @@ pub fn validate_receipt(receipt: &MappingReceipt) -> ValidationReport {
     validate_backend(&mut issues, "right_backend", &receipt.right_backend);
 
     validate_non_empty(&mut issues, "review.author_id", &receipt.review.author_id);
-    validate_non_empty(&mut issues, "review.reviewer_id", &receipt.review.reviewer_id);
+    validate_non_empty(
+        &mut issues,
+        "review.reviewer_id",
+        &receipt.review.reviewer_id,
+    );
     if !receipt.review.author_id.is_empty()
         && receipt.review.author_id == receipt.review.reviewer_id
     {
@@ -202,11 +206,7 @@ pub fn validate_receipt(receipt: &MappingReceipt) -> ValidationReport {
                 }
             }
             MappingStatus::MappedEquivalentWithBound => {
-                if mapping
-                    .transformation
-                    .as_deref()
-                    .is_none_or(str::is_empty)
-                {
+                if mapping.transformation.as_deref().is_none_or(str::is_empty) {
                     issues.push(issue(
                         "missing_mapping_transformation",
                         &format!("{path}.transformation"),
@@ -244,9 +244,7 @@ pub fn validate_receipt(receipt: &MappingReceipt) -> ValidationReport {
             validate_non_empty(&mut issues, &format!("{bound_path}.metric"), &bound.metric);
             validate_non_empty(&mut issues, &format!("{bound_path}.unit"), &bound.unit);
             validate_non_empty(&mut issues, &format!("{bound_path}.source"), &bound.source);
-            if !bound.maximum_absolute_error.is_finite()
-                || bound.maximum_absolute_error < 0.0
-            {
+            if !bound.maximum_absolute_error.is_finite() || bound.maximum_absolute_error < 0.0 {
                 issues.push(issue(
                     "invalid_error_bound",
                     &format!("{bound_path}.maximum_absolute_error"),
@@ -296,11 +294,7 @@ pub fn validate_receipt(receipt: &MappingReceipt) -> ValidationReport {
 fn validate_backend(issues: &mut Vec<ValidationIssue>, prefix: &str, backend: &BackendIdentity) {
     validate_non_empty(issues, &format!("{prefix}.engine_id"), &backend.engine_id);
     validate_non_empty(issues, &format!("{prefix}.version"), &backend.version);
-    validate_non_empty(
-        issues,
-        &format!("{prefix}.profile_id"),
-        &backend.profile_id,
-    );
+    validate_non_empty(issues, &format!("{prefix}.profile_id"), &backend.profile_id);
     validate_commit(
         issues,
         &format!("{prefix}.adapter_commit"),
@@ -371,7 +365,8 @@ mod tests {
             dimension,
             status,
             rationale: format!("Frozen comparison for {}", dimension.as_str()),
-            transformation: mapped.then(|| "Convert values to SI and the declared world frame".to_owned()),
+            transformation: mapped
+                .then(|| "Convert values to SI and the declared world frame".to_owned()),
             error_bounds: if mapped {
                 vec![ErrorBound {
                     metric: "position_error".to_owned(),
@@ -439,8 +434,18 @@ mod tests {
 
         let report = validate_receipt(&candidate);
         assert!(!report.score_eligible);
-        assert!(report.issues.iter().any(|issue| issue.code == "missing_mapping_transformation"));
-        assert!(report.issues.iter().any(|issue| issue.code == "missing_error_bound"));
+        assert!(
+            report
+                .issues
+                .iter()
+                .any(|issue| issue.code == "missing_mapping_transformation")
+        );
+        assert!(
+            report
+                .issues
+                .iter()
+                .any(|issue| issue.code == "missing_error_bound")
+        );
     }
 
     #[test]
@@ -469,7 +474,12 @@ mod tests {
         }
         let report = validate_receipt(&candidate);
         assert!(!report.score_eligible);
-        assert!(report.issues.iter().any(|issue| issue.code == "missing_not_applicable_evidence"));
+        assert!(
+            report
+                .issues
+                .iter()
+                .any(|issue| issue.code == "missing_not_applicable_evidence")
+        );
     }
 
     #[test]
@@ -529,8 +539,18 @@ mod tests {
 
         let report = validate_receipt(&candidate);
         assert!(!report.score_eligible);
-        assert!(report.issues.iter().any(|issue| issue.code == "duplicate_dimension"));
-        assert!(report.issues.iter().any(|issue| issue.code == "missing_dimension"));
+        assert!(
+            report
+                .issues
+                .iter()
+                .any(|issue| issue.code == "duplicate_dimension")
+        );
+        assert!(
+            report
+                .issues
+                .iter()
+                .any(|issue| issue.code == "missing_dimension")
+        );
     }
 
     #[test]
@@ -540,7 +560,12 @@ mod tests {
 
         let report = validate_receipt(&candidate);
         assert!(!report.score_eligible);
-        assert!(report.issues.iter().any(|issue| issue.code == "self_review_forbidden"));
+        assert!(
+            report
+                .issues
+                .iter()
+                .any(|issue| issue.code == "self_review_forbidden")
+        );
     }
 
     #[test]
@@ -550,7 +575,12 @@ mod tests {
 
         let report = validate_receipt(&candidate);
         assert!(!report.score_eligible);
-        assert!(report.issues.iter().any(|issue| issue.code == "invalid_error_bound"));
+        assert!(
+            report
+                .issues
+                .iter()
+                .any(|issue| issue.code == "invalid_error_bound")
+        );
     }
 
     #[test]
@@ -560,6 +590,11 @@ mod tests {
 
         let report = validate_receipt(&candidate);
         assert!(!report.score_eligible);
-        assert!(report.issues.iter().any(|issue| issue.code == "invalid_sha256_digest"));
+        assert!(
+            report
+                .issues
+                .iter()
+                .any(|issue| issue.code == "invalid_sha256_digest")
+        );
     }
 }
