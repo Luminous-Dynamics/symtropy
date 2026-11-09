@@ -135,11 +135,18 @@ pub struct AdmittedFallback {
     pub action_digest: String,
     pub state_digest: String,
     pub model_digest: String,
+    pub abstraction_digest: String,
+    pub domain_digest: String,
     pub actuator_digest: String,
+    pub viability_receipt_id: String,
+    pub viability_result_digest: String,
+    pub assurance_receipt_id: String,
+    pub assurance_result_digest: String,
     pub viability_status: AuthorityStatus,
     pub assurance_status: AuthorityStatus,
     pub valid_from_ns: u64,
     pub valid_until_ns: u64,
+    pub intended_apply_at_ns: u64,
     pub reason: String,
 }
 
@@ -247,13 +254,23 @@ fn fallback_disposition(
         };
     };
     if fallback.action_digest.trim().is_empty()
+        || fallback.action_digest == problem.result.projected_command_digest
         || !nonempty(&fallback.reason)
+        || !nonempty(&fallback.viability_receipt_id)
+        || !nonempty(&fallback.viability_result_digest)
+        || !nonempty(&fallback.assurance_receipt_id)
+        || !nonempty(&fallback.assurance_result_digest)
         || fallback.state_digest != problem.proposal.input_state_digest
         || fallback.model_digest != problem.proposal.model_digest
+        || fallback.abstraction_digest != problem.proposal.abstraction_digest
+        || fallback.domain_digest != problem.proposal.domain_digest
         || fallback.actuator_digest != problem.proposal.actuator_digest
+        || fallback.intended_apply_at_ns != problem.proposal.intended_apply_at_ns
         || fallback.valid_from_ns > fallback.valid_until_ns
         || problem.now_ns < fallback.valid_from_ns
         || problem.now_ns > fallback.valid_until_ns
+        || fallback.intended_apply_at_ns < fallback.valid_from_ns
+        || fallback.intended_apply_at_ns > fallback.valid_until_ns
         || fallback.viability_status != AuthorityStatus::Admitted
         || fallback.assurance_status != AuthorityStatus::Admitted
     {
@@ -787,11 +804,18 @@ mod tests {
             action_digest: "fallback-v1".to_owned(),
             state_digest: "state-v1".to_owned(),
             model_digest: "model-v1".to_owned(),
+            abstraction_digest: "abstraction-v1".to_owned(),
+            domain_digest: "domain-v1".to_owned(),
             actuator_digest: "actuator-v1".to_owned(),
+            viability_receipt_id: "fallback-viability-receipt".to_owned(),
+            viability_result_digest: "fallback-viability-result".to_owned(),
+            assurance_receipt_id: "fallback-assurance-receipt".to_owned(),
+            assurance_result_digest: "fallback-assurance-result".to_owned(),
             viability_status: AuthorityStatus::Admitted,
             assurance_status: AuthorityStatus::Admitted,
             valid_from_ns: 150,
             valid_until_ns: 250,
+            intended_apply_at_ns: 200,
             reason: "prequalified hold".to_owned(),
         }
     }
@@ -903,6 +927,9 @@ mod tests {
         input.now_ns = 205;
         input.proposal.intended_apply_at_ns = 205;
         input.proposal.deadline_ns = 205;
+        if let Some(fallback) = input.fallback.as_mut() {
+            fallback.intended_apply_at_ns = 205;
+        }
         input.result.deadline_ns = 205;
         input.result.disposition = SolverDisposition::DeadlineMiss;
         input.result.completed_at_ns = 201;
@@ -939,6 +966,18 @@ mod tests {
             qualify_projected_action(&input),
             Err(ProjectionError::DuplicateConstraintEvidence)
         );
+    }
+
+    #[test]
+    fn fallback_with_wrong_model_or_state_is_never_executed() {
+        let mut input = problem();
+        input.result.disposition = SolverDisposition::Unknown;
+        input.result.status_reason = Some("unknown-solver-state".to_owned());
+        let mut fallback = admitted_fallback();
+        fallback.model_digest = "different-model".to_owned();
+        input.fallback = Some(fallback);
+        let report = qualify_projected_action(&input).expect("mismatched fallback withheld");
+        assert!(matches!(report.disposition, GateDisposition::Unknown { .. }));
     }
 
     #[test]
