@@ -150,8 +150,7 @@ fn validate_fixture(fixture: &Fixture) -> Result<(), String> {
     }
     if fixture.assumptions.observation_model != "static_normalized_sensor_response"
         || fixture.assumptions.fault_model != "at_most_one_arbitrary_channel_residual"
-        || fixture.assumptions.structural_states
-            != vec!["HEALTHY".to_owned(), "DAMAGED".to_owned()]
+        || fixture.assumptions.structural_states != vec!["HEALTHY".to_owned(), "DAMAGED".to_owned()]
         || fixture.assumptions.response_units != "normalized_response"
         || fixture.assumptions.operator_status != "ADMITTED"
         || fixture.assumptions.calibration_status != "VALID"
@@ -171,25 +170,35 @@ fn validate_fixture(fixture: &Fixture) -> Result<(), String> {
     }
     let mut seen = BTreeSet::new();
     for channel in &fixture.channels {
-        if channel.sensor_id.trim().is_empty()
-            || !seen.insert(channel.sensor_id.as_str())
-        {
+        if channel.sensor_id.trim().is_empty() || !seen.insert(channel.sensor_id.as_str()) {
             return Err("channel IDs must be non-empty and unique".to_owned());
         }
         if channel.quantity.trim().is_empty()
             || channel.unit != "normalized_response"
             || channel.common_cause_group.trim().is_empty()
         {
-            return Err(format!("{}: incomplete channel contract", channel.sensor_id));
+            return Err(format!(
+                "{}: incomplete channel contract",
+                channel.sensor_id
+            ));
         }
         if !is_sha256(&channel.operator_sha256) {
             return Err(format!("{}: invalid operator digest", channel.sensor_id));
         }
         if !matches!(channel.operator_status.as_str(), "ADMITTED" | "UNKNOWN") {
-            return Err(format!("{}: unsupported operator status", channel.sensor_id));
+            return Err(format!(
+                "{}: unsupported operator status",
+                channel.sensor_id
+            ));
         }
-        if !matches!(channel.calibration_status.as_str(), "VALID" | "EXPIRED" | "UNKNOWN") {
-            return Err(format!("{}: unsupported calibration status", channel.sensor_id));
+        if !matches!(
+            channel.calibration_status.as_str(),
+            "VALID" | "EXPIRED" | "UNKNOWN"
+        ) {
+            return Err(format!(
+                "{}: unsupported calibration status",
+                channel.sensor_id
+            ));
         }
     }
 
@@ -198,9 +207,15 @@ fn validate_fixture(fixture: &Fixture) -> Result<(), String> {
         || fixture.policy.minimum_consistent_channels > fixture.channels.len()
         || !fixture.policy.absolute_residual_tolerance.is_finite()
         || fixture.policy.absolute_residual_tolerance <= 0.0
-        || !fixture.policy.reconstruction_requires_unique_joint_hypothesis
-        || !fixture.policy.damage_clearance_from_reconstruction_prohibited
-        || !fixture.policy.fault_confirmation_requires_independent_witness
+        || !fixture
+            .policy
+            .reconstruction_requires_unique_joint_hypothesis
+        || !fixture
+            .policy
+            .damage_clearance_from_reconstruction_prohibited
+        || !fixture
+            .policy
+            .fault_confirmation_requires_independent_witness
         || !fixture.policy.raw_measurements_immutable
         || !fixture.policy.reconstruction_is_not_measurement
     {
@@ -219,12 +234,25 @@ fn validate_fixture(fixture: &Fixture) -> Result<(), String> {
             || case.damaged_template.len() != fixture.channels.len()
             || case.observed_values.len() != fixture.channels.len()
         {
-            return Err(format!("{}: template/observation dimension mismatch", case.case_id));
+            return Err(format!(
+                "{}: template/observation dimension mismatch",
+                case.case_id
+            ));
         }
-        if case.healthy_template.iter().chain(&case.damaged_template).any(|v| !v.is_finite()) {
+        if case
+            .healthy_template
+            .iter()
+            .chain(&case.damaged_template)
+            .any(|v| !v.is_finite())
+        {
             return Err(format!("{}: non-finite structural template", case.case_id));
         }
-        if case.observed_values.iter().flatten().any(|v| !v.is_finite()) {
+        if case
+            .observed_values
+            .iter()
+            .flatten()
+            .any(|v| !v.is_finite())
+        {
             return Err(format!("{}: non-finite observation", case.case_id));
         }
         let mut witness_ids = BTreeSet::new();
@@ -232,7 +260,10 @@ fn validate_fixture(fixture: &Fixture) -> Result<(), String> {
             if !ids.iter().any(|id| id == &witness.sensor_id)
                 || !witness_ids.insert(witness.sensor_id.as_str())
             {
-                return Err(format!("{}: unknown or duplicate sensor-fault witness", case.case_id));
+                return Err(format!(
+                    "{}: unknown or duplicate sensor-fault witness",
+                    case.case_id
+                ));
             }
             if witness.evidence_kind.trim().is_empty() {
                 return Err(format!("{}: witness evidence_kind is empty", case.case_id));
@@ -240,15 +271,26 @@ fn validate_fixture(fixture: &Fixture) -> Result<(), String> {
             match witness.status.as_str() {
                 "FAULT_CONFIRMED" => {
                     if !witness.evidence_sha256.as_deref().is_some_and(is_sha256) {
-                        return Err(format!("{}: confirmed fault witness requires a SHA-256 receipt", case.case_id));
+                        return Err(format!(
+                            "{}: confirmed fault witness requires a SHA-256 receipt",
+                            case.case_id
+                        ));
                     }
                 }
                 "NOT_CONFIRMED" => {
                     if witness.evidence_sha256.is_some() {
-                        return Err(format!("{}: unconfirmed witness cannot carry a confirmation digest", case.case_id));
+                        return Err(format!(
+                            "{}: unconfirmed witness cannot carry a confirmation digest",
+                            case.case_id
+                        ));
                     }
                 }
-                _ => return Err(format!("{}: unsupported sensor-fault witness status", case.case_id)),
+                _ => {
+                    return Err(format!(
+                        "{}: unsupported sensor-fault witness status",
+                        case.case_id
+                    ));
+                }
             }
         }
         if !matches!(
@@ -263,7 +305,10 @@ fn validate_fixture(fixture: &Fixture) -> Result<(), String> {
                 | "ABSTAIN_UNQUALIFIED_MEASUREMENT_CHAIN"
                 | "ABSTAIN_SENSOR_FAULT_UNCONFIRMED"
         ) {
-            return Err(format!("{}: unsupported expected disposition", case.case_id));
+            return Err(format!(
+                "{}: unsupported expected disposition",
+                case.case_id
+            ));
         }
     }
     Ok(())
@@ -409,12 +454,7 @@ fn evaluate_case(fixture: &Fixture, case: &CaseInput) -> CaseResult {
             })
         });
         if !all_faults_have_independent_witness {
-            return abstain(
-                case,
-                "ABSTAIN_SENSOR_FAULT_UNCONFIRMED",
-                1,
-                "NOT_CONFIRMED",
-            );
+            return abstain(case, "ABSTAIN_SENSOR_FAULT_UNCONFIRMED", 1, "NOT_CONFIRMED");
         }
     }
 
@@ -512,16 +552,32 @@ mod tests {
         let report = evaluate(&data, FIXTURE).expect("fixture evaluates");
         assert_eq!(report.case_count, 8);
         for (actual, expected) in report.cases.iter().zip(&data.cases) {
-            assert_eq!(actual.disposition, expected.expected.disposition, "{}", actual.case_id);
-            assert_eq!(actual.structural_state, expected.expected.structural_state, "{}", actual.case_id);
-            assert_eq!(actual.faulty_sensor_ids, expected.expected.faulty_sensor_ids, "{}", actual.case_id);
+            assert_eq!(
+                actual.disposition, expected.expected.disposition,
+                "{}",
+                actual.case_id
+            );
+            assert_eq!(
+                actual.structural_state, expected.expected.structural_state,
+                "{}",
+                actual.case_id
+            );
+            assert_eq!(
+                actual.faulty_sensor_ids, expected.expected.faulty_sensor_ids,
+                "{}",
+                actual.case_id
+            );
             assert_eq!(
                 actual.post_reconstruction_structural_state,
                 expected.expected.post_reconstruction_structural_state,
                 "{}",
                 actual.case_id
             );
-            assert_eq!(actual.damage_preserved, expected.expected.damage_preserved, "{}", actual.case_id);
+            assert_eq!(
+                actual.damage_preserved, expected.expected.damage_preserved,
+                "{}",
+                actual.case_id
+            );
         }
     }
 
@@ -542,10 +598,7 @@ mod tests {
         );
         assert_eq!(df.damage_preserved, Some(true));
         assert_eq!(df.observed_values[1], Some(1.8));
-        assert_eq!(
-            df.model_imputed_values.as_ref().unwrap()[1],
-            Some(1.0)
-        );
+        assert_eq!(df.model_imputed_values.as_ref().unwrap()[1], Some(1.0));
         assert_eq!(
             df.reconstruction_status,
             "CONDITIONAL_MODEL_ESTIMATE_NOT_MEASUREMENT"
@@ -627,8 +680,14 @@ mod tests {
     fn out_of_model_and_insufficient_observations_do_not_get_relabelled_as_damage() {
         let report = evaluate(&fixture(), FIXTURE).unwrap();
         for (id, disposition) in [
-            ("OUT_OF_MODEL_ENVIRONMENTAL_OR_UNKNOWN_SHIFT", "ABSTAIN_OUT_OF_MODEL"),
-            ("INSUFFICIENT_OBSERVATIONS", "ABSTAIN_INSUFFICIENT_OBSERVABILITY"),
+            (
+                "OUT_OF_MODEL_ENVIRONMENTAL_OR_UNKNOWN_SHIFT",
+                "ABSTAIN_OUT_OF_MODEL",
+            ),
+            (
+                "INSUFFICIENT_OBSERVATIONS",
+                "ABSTAIN_INSUFFICIENT_OBSERVABILITY",
+            ),
         ] {
             let case = report.cases.iter().find(|case| case.case_id == id).unwrap();
             assert_eq!(case.disposition, disposition);
