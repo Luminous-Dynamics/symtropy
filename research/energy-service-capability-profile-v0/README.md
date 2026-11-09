@@ -10,7 +10,9 @@ ESCP lets a provider advertise a versioned energy-service offer independently of
 
 One offer evidence row per receipt. Multiple rows with the same profile ID repeat identical profile metadata and contribute separate evidence roles. Exact TSV header:
 
-    profile_id provider_id profile_version bearer field_regime receiver_hardware_sha256 receiver_geometry_sha256 coordinate_frame_sha256 supported_motion_states supported_environment_strata session_modes evidence_role receipt_id receipt_sha256 evidence_class review_status disposition valid_until_us
+    profile_id provider_id profile_version bearer field_regime receiver_hardware_sha256 receiver_geometry_sha256 coordinate_frame_sha256 supported_motion_states supported_environment_strata session_modes evidence_role receipt_id receipt_sha256 evidence_class review_status disposition valid_until_us claim_ceiling schema_version
+
+Every row repeats the profile's exact claim_ceiling and schema_version. v0 accepts schema_version=1 and profile_version=1 only. The claim ceiling is a declarative non-authority statement carried with the profile.
 
 Bearer: CONDUCTIVE, IPT, CPT, BATTERY_EXCHANGE, RF_MICROWAVE, OPTICAL, POWER_LINE.
 
