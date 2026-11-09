@@ -459,6 +459,27 @@ fn validate_public_reference(value: &Value) -> Check<Value> {
         0.5,
         "Table 5 component R&R hours",
     )?;
+    let brine_bladders = records
+        .iter()
+        .find(|record| record["record_id"] == "ICES2025-127-BPA-BLADDER")
+        .ok_or_else(|| format!("{at}: missing brine processor bladder row"))?;
+    if !brine_bladders["throughput_limited_life"].is_null() {
+        return Err(format!("{at}: batch cadence must not be encoded as a throughput-limited life"));
+    }
+    require_eq(
+        number(
+            &brine_bladders["calendar_limited_life"]["value"],
+            "brine bladder calendar life",
+        )?,
+        35.0,
+        "brine bladder 35-week disposal limit",
+    )?;
+    if !brine_bladders["notes"]
+        .as_str()
+        .is_some_and(|note| note.contains("24 L") && note.contains("26 days"))
+    {
+        return Err(format!("{at}: BPA batch volume/cadence reference was lost"));
+    }
 
     let crew_tasks = array(field(value, "crew_task_records", at)?, "crew_task_records")?;
     require_eq(crew_tasks.len(), 2usize, "selected Table 1 crew task count")?;

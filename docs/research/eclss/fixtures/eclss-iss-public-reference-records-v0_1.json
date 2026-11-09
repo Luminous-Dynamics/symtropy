@@ -178,15 +178,12 @@
       "operational_k_factor": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
-      "throughput_limited_life": {
-        "value": 24,
-        "unit": "L brine per 26-day batch interval"
-      },
+      "throughput_limited_life": null,
       "calendar_limited_life": {
         "value": 35,
         "unit": "weeks maximum after brine fill before disposal"
       },
-      "notes": "Paper reports 24 L brine processed every 26 days and each filled bladder disposed within 35 weeks. The main text separately describes bladder capacity around 22 L; do not assume the 24 L batch figure is the bladder's instantaneous capacity.",
+      "notes": "Table 4 states that each bladder must be disposed of within 35 weeks of brine fill. The paper separately reports the BPA batch processes 24 L of brine every 26 days; this is a batch/cadence reference, not a throughput-limited lifetime or the bladder's instantaneous capacity.",
       "component_r_and_r_hours": null
     }
   ],
