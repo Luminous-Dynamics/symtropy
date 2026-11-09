@@ -396,23 +396,74 @@ mod tests {
         WaterServiceState,
     };
 
-    fn complete_uncertainties() -> HydraulicPowerStandardUncertainties {
-        HydraulicPowerStandardUncertainties {
-            water_density_kg_per_m3: Some(StandardUncertainty::new(0.5).unwrap()),
-            turbine_flow_m3_per_s: Some(StandardUncertainty::new(0.001).unwrap()),
-            net_head_m: Some(StandardUncertainty::new(0.1).unwrap()),
-            turbine_efficiency: Some(StandardUncertainty::new(0.01).unwrap()),
-            generator_efficiency: Some(StandardUncertainty::new(0.005).unwrap()),
-            auxiliary_power_w: Some(StandardUncertainty::new(2.0).unwrap()),
-        }
-    }
-
-    fn uncertainty_evidence() -> EvidenceReference {
-        EvidenceReference::new(
-            "UNCERTAINTY-BUDGET-TEST-001",
-            EvidenceClass::LaboratoryModelTest,
+    fn provenance(
+        id: &str,
+        method: &str,
+        instrument_or_map: &str,
+        revision: &str,
+    ) -> UncertaintyProvenance {
+        UncertaintyProvenance::new(
+            EvidenceReference::new(id, EvidenceClass::LaboratoryModelTest).unwrap(),
+            method,
+            "2026-11-09T12:00:00Z",
+            instrument_or_map,
+            revision,
+            "calibration valid through 2027-11-09",
         )
         .unwrap()
+    }
+
+    fn bound_uncertainty(
+        value: f64,
+        id: &str,
+        method: &str,
+        instrument_or_map: &str,
+    ) -> EvidenceBoundStandardUncertainty {
+        EvidenceBoundStandardUncertainty::new(
+            StandardUncertainty::new(value).unwrap(),
+            provenance(id, method, instrument_or_map, "revision-a"),
+        )
+    }
+
+    fn complete_uncertainties() -> HydraulicPowerStandardUncertainties {
+        HydraulicPowerStandardUncertainties {
+            water_density_kg_per_m3: Some(bound_uncertainty(
+                0.5,
+                "UNCERTAINTY-DENSITY-001",
+                "temperature-to-density propagation",
+                "WATER-DENSITY-CAL-01",
+            )),
+            turbine_flow_m3_per_s: Some(bound_uncertainty(
+                0.001,
+                "UNCERTAINTY-FLOW-001",
+                "meter calibration certificate",
+                "TURBINE-FLOW-METER-01",
+            )),
+            net_head_m: Some(bound_uncertainty(
+                0.1,
+                "UNCERTAINTY-HEAD-001",
+                "paired pressure-transducer calibration and head conversion",
+                "NET-HEAD-MEASUREMENT-01",
+            )),
+            turbine_efficiency: Some(bound_uncertainty(
+                0.01,
+                "UNCERTAINTY-TURBINE-001",
+                "laboratory turbine map repeatability",
+                "PAT-MAP-REV-A",
+            )),
+            generator_efficiency: Some(bound_uncertainty(
+                0.005,
+                "UNCERTAINTY-GENERATOR-001",
+                "generator dynamometer test",
+                "GENERATOR-MAP-REV-A",
+            )),
+            auxiliary_power_w: Some(bound_uncertainty(
+                2.0,
+                "UNCERTAINTY-AUX-001",
+                "auxiliary-load power-meter calibration",
+                "AUX-METER-01",
+            )),
+        }
     }
 
     fn result() -> HydraulicGenerationResult {
@@ -485,8 +536,7 @@ mod tests {
     fn analytic_uncertainty_known_answer() {
         let report = propagate_net_power_standard_uncertainty(
             &result(),
-            complete_uncertainties(),
-            uncertainty_evidence(),
+            &complete_uncertainties(),
         )
         .unwrap()
         .unwrap();
@@ -504,8 +554,7 @@ mod tests {
         let base = result();
         let report = propagate_net_power_standard_uncertainty(
             &base,
-            complete_uncertainties(),
-            uncertainty_evidence(),
+            &complete_uncertainties(),
         )
         .unwrap()
         .unwrap();
@@ -562,32 +611,53 @@ mod tests {
     fn missing_any_required_uncertainty_returns_unknown() {
         let mut uncertainties = complete_uncertainties();
         uncertainties.net_head_m = None;
-        let report = propagate_net_power_standard_uncertainty(
-            &result(),
-            uncertainties,
-            uncertainty_evidence(),
-        )
-        .unwrap();
+        let report = propagate_net_power_standard_uncertainty(&result(), &uncertainties)
+            .unwrap();
         assert!(report.is_none());
     }
 
     #[test]
     fn zero_standard_uncertainty_is_valid_but_not_inferred() {
-        let uncertainties = HydraulicPowerStandardUncertainties {
-            water_density_kg_per_m3: Some(StandardUncertainty::new(0.0).unwrap()),
-            turbine_flow_m3_per_s: Some(StandardUncertainty::new(0.0).unwrap()),
-            net_head_m: Some(StandardUncertainty::new(0.0).unwrap()),
-            turbine_efficiency: Some(StandardUncertainty::new(0.0).unwrap()),
-            generator_efficiency: Some(StandardUncertainty::new(0.0).unwrap()),
-            auxiliary_power_w: Some(StandardUncertainty::new(0.0).unwrap()),
-        };
-        let report = propagate_net_power_standard_uncertainty(
-            &result(),
-            uncertainties,
-            uncertainty_evidence(),
-        )
-        .unwrap()
-        .unwrap();
+        let mut uncertainties = complete_uncertainties();
+        uncertainties.water_density_kg_per_m3 = Some(bound_uncertainty(
+            0.0,
+            "UNCERTAINTY-DENSITY-ZERO",
+            "explicit zero-uncertainty test fixture",
+            "DENSITY-ZERO-TEST",
+        ));
+        uncertainties.turbine_flow_m3_per_s = Some(bound_uncertainty(
+            0.0,
+            "UNCERTAINTY-FLOW-ZERO",
+            "explicit zero-uncertainty test fixture",
+            "FLOW-ZERO-TEST",
+        ));
+        uncertainties.net_head_m = Some(bound_uncertainty(
+            0.0,
+            "UNCERTAINTY-HEAD-ZERO",
+            "explicit zero-uncertainty test fixture",
+            "HEAD-ZERO-TEST",
+        ));
+        uncertainties.turbine_efficiency = Some(bound_uncertainty(
+            0.0,
+            "UNCERTAINTY-TURBINE-ZERO",
+            "explicit zero-uncertainty test fixture",
+            "TURBINE-ZERO-TEST",
+        ));
+        uncertainties.generator_efficiency = Some(bound_uncertainty(
+            0.0,
+            "UNCERTAINTY-GENERATOR-ZERO",
+            "explicit zero-uncertainty test fixture",
+            "GENERATOR-ZERO-TEST",
+        ));
+        uncertainties.auxiliary_power_w = Some(bound_uncertainty(
+            0.0,
+            "UNCERTAINTY-AUX-ZERO",
+            "explicit zero-uncertainty test fixture",
+            "AUX-ZERO-TEST",
+        ));
+        let report = propagate_net_power_standard_uncertainty(&result(), &uncertainties)
+            .unwrap()
+            .unwrap();
         assert_eq!(report.standard_uncertainty_w.get(), 0.0);
     }
 
@@ -599,22 +669,47 @@ mod tests {
     }
 
     #[test]
-    fn evidence_and_independence_assumption_are_retained() {
+    fn evidence_is_preserved_per_uncertainty_input() {
         let report = propagate_net_power_standard_uncertainty(
             &result(),
-            complete_uncertainties(),
-            uncertainty_evidence(),
+            &complete_uncertainties(),
         )
         .unwrap()
         .unwrap();
-        assert_eq!(
-            report.uncertainty_evidence.source_id(),
-            "UNCERTAINTY-BUDGET-TEST-001"
+        let density = report
+            .input_uncertainties
+            .water_density_kg_per_m3
+            .as_ref()
+            .unwrap()
+            .provenance();
+        let turbine = report
+            .input_uncertainties
+            .turbine_efficiency
+            .as_ref()
+            .unwrap()
+            .provenance();
+
+        assert_eq!(density.evidence().source_id(), "UNCERTAINTY-DENSITY-001");
+        assert_eq!(density.instrument_or_map_id(), "WATER-DENSITY-CAL-01");
+        assert_eq!(density.method(), "temperature-to-density propagation");
+        assert_eq!(turbine.evidence().source_id(), "UNCERTAINTY-TURBINE-001");
+        assert_eq!(turbine.revision(), "revision-a");
+    }
+
+    #[test]
+    fn uncertainty_provenance_requires_method_window_and_revision() {
+        let result = UncertaintyProvenance::new(
+            EvidenceReference::new("UNCERTAINTY-PROVENANCE-001", EvidenceClass::LaboratoryModelTest).unwrap(),
+            " ",
+            "2026-11-09",
+            "METER-001",
+            "revision-a",
+            "valid through 2027-11-09",
         );
-        assert_eq!(
-            report.dependence,
-            UncertaintyDependence::IndependentStandardUncertaintiesAssumed
-        );
+        assert!(matches!(
+            result,
+            Err(UncertaintyError::MissingProvenance { field: "method" })
+        ));
     }
 
     #[test]
@@ -625,8 +720,7 @@ mod tests {
         };
         let report = propagate_net_power_standard_uncertainty(
             &base,
-            complete_uncertainties(),
-            uncertainty_evidence(),
+            &complete_uncertainties(),
         )
         .unwrap()
         .unwrap();
