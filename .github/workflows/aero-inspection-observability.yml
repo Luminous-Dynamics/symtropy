@@ -16,6 +16,8 @@ jobs:
     steps:
       - name: Check out exact pull-request head
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Install stable Rust with rustfmt
         uses: dtolnay/rust-toolchain@stable
@@ -64,9 +66,10 @@ jobs:
 
       - name: Create exact source, execution and output digest receipts
         run: |
-          workflow_blob=$(git rev-parse "${GITHUB_SHA}:.github/workflows/aero-inspection-observability.yml")
-          printf 'subject_commit=%s\nworkflow_ref=%s\nworkflow_blob=%s\nrun_id=%s\nrun_attempt=%s\n' \
-            "$GITHUB_SHA" "$GITHUB_WORKFLOW_REF" "$workflow_blob" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" \
+          subject_sha="${{ github.event.pull_request.head.sha || github.sha }}"
+          workflow_blob=$(git rev-parse "${subject_sha}:.github/workflows/aero-inspection-observability.yml")
+          printf 'subject_commit=%s\nevent_commit=%s\nworkflow_ref=%s\nworkflow_blob=%s\nrun_id=%s\nrun_attempt=%s\n' \
+            "$subject_sha" "$GITHUB_SHA" "$GITHUB_WORKFLOW_REF" "$workflow_blob" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" \
             > inspection-observability-run-manifest.txt
           sha256sum rust-toolchain.toml > inspection-observability-toolchain.sha256
           sha256sum tools/civil-aero-benchmark/inspection-observability/Cargo.toml > inspection-observability-cargo-manifest.sha256
@@ -83,7 +86,7 @@ jobs:
       - name: Retain source-complete execution and digest receipts
         uses: actions/upload-artifact@v4
         with:
-          name: aero-inspection-observability-${{ github.sha }}
+          name: aero-inspection-observability-${{ github.event.pull_request.head.sha || github.sha }}
           path: |
             rust-toolchain.toml
             .github/workflows/aero-inspection-observability.yml
