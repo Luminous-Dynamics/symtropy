@@ -69,8 +69,8 @@ The engineering evidence model should align with established VVUQ practice:
 - ASME V&V 10-2019 (R2025) for computational solid mechanics;
 - ASME VVUQ 10.2-2021 for uncertainty in solid mechanics V&V;
 - ASME VVUQ 20.1-2024 for multivariate validation metrics;
-- NASA-STD-7009B (2024) for model/simulation lifecycle credibility and responsible technical authority;
-- FMI 3.0.2 as an interoperability reference for dynamic model exchange and co-simulation.
+- NASA-STD-7009B (2024) for model/simulation lifecycle credibility and responsible technical authority, with the NASA-HDBK-7009B implementation handbook published 2026-02-03;
+- FMI 3.0.2 as an interoperability reference for dynamic model exchange, co-simulation and scheduled execution. FMI standardizes interfaces; it does not by itself define or qualify the importer’s co-simulation master algorithm.
 
 These standards and specifications are reference frameworks, not certifications obtained by implementing a schema.
 
@@ -79,7 +79,8 @@ References:
 - ASME V&V 10: https://www.asme.org/codes-standards/find-codes-standards/standard-for-verification-and-validation-in-computational-solid-mechanics/2019/pdf
 - ASME VVUQ 10.2: https://www.asme.org/codes-standards/find-codes-standards/the-role-of-uncertainty-quantification-in-verification-and-validation-of-computational-solid-mechanics-models
 - NASA-STD-7009B: https://standards.nasa.gov/node/263
-- FMI: https://fmi-standard.org/
+- NASA-HDBK-7009B (published 2026-02-03): https://standards.nasa.gov/standard/NASA/NASA-HDBK-7009
+- FMI 3.0.2 specification: https://fmi-standard.org/docs/3.0.2/
 
 ## 3.5 How to outperform established simulators
 
@@ -138,6 +139,33 @@ Newton 1.7.0's release notes document changes affecting imported damping interpr
 ### How Symtropy can win
 
 The attainable differentiation is not "faster than every incumbent". It is to show, on a narrow high-value engineering vertical, that Symtropy can produce a lower-cost, independently reproducible and better-bounded decision. The rotary-joint demonstrator is a credible first vertical because it joins mechanics, actuation losses, thermal response, measurement uncertainty, service history and an exact product configuration. The performance question becomes: how much time and test effort does it take to reach a decision whose limits and evidence can be independently reviewed?
+
+### Shift 7 — From file adapters to a proof-carrying semantic compiler
+
+A neutral API is not enough: two adapters can expose the same function signatures while implementing different physics. The longer-term architecture should treat backend import as a compiler/lowering step with explicit proof obligations.
+
+1. Preserve the authored source artifact and its digest (MJCF, URDF, USD, CAD-derived model or native model).
+2. Parse and normalize it into a versioned **Physical Problem IR** containing stable entity/topology identity, units, frames, geometry, mass properties, constraints, contact/friction laws, integration requirements, actuators, boundaries and requested observables.
+3. Lower that IR into each backend's effective model. Return the exact imported-model digest, importer version/options, selected solver path, precision, relevant numerical settings and supported/approximated/unsupported semantics.
+4. Emit a mapping receipt that binds each lowering to the exact source, IR and effective-model identities. Every nontrivial transformation carries a testable transformation, evidence reference and error/uncertainty bound.
+5. Run round-trip and metamorphic controls on units, frames, inertia, topology and observable conventions before admitting paired traces.
+
+The IR is an interlingua for declaring and comparing physical meaning, not a replacement for backend-native models or a promise that every backend can express every field. Unsupported or lossy lowering is explicit. It must not silently invent a default, replace a full inertia tensor, approximate a contact law or coerce an unavailable observable to zero.
+
+Ownership stays compositional: #4366 owns pairwise semantic admission; #1472 declares the exact native capability/model path; #1172 owns scenario/replay identity; #460 owns the corpus and evidence record; #443 owns the Rapier execution adapter. Do not duplicate their registries or execution paths.
+
+### Shift 8 — From arbitrary test volume to active experiment design
+
+Choose the next simulation or physical experiment for its expected ability to reduce uncertainty or change an engineering decision, not because it is easy to generate. A candidate experiment should identify:
+
+- the competing model hypotheses or uncertain parameters it can distinguish;
+- the predicted observable differences and measurement resolution required;
+- the expected information gain or decision-risk reduction, including test cost;
+- the predeclared stopping/acceptance rule and the data reserved for blind validation.
+
+Use multi-fidelity methods deliberately: cheap analytical/reduced models to screen candidates, expensive independent solvers for refinement, and physical experiments for the remaining consequential uncertainty. The acquisition policy itself must be versioned and audited. Do not use the held-out validation set to select experiments and then report it as independent validation.
+
+A useful objective is **expected reduction in decision regret per unit test cost**, subject to hard safety and evidence gates. It is not an instruction to optimize a proxy metric or to trade a safety-critical failure against an efficiency gain.
 
 ## 4. Benchmark architecture
 
