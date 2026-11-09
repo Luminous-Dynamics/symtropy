@@ -159,6 +159,8 @@ This benchmark measures empirical sampled success, transfer and lower-tail outco
 
 ## 11. Executable finite Rust V0 reference
 
+Each cross-fit result is keyed to one training-seed identity. Training seeds are the independent replication unit and are aggregated by a separate seed-clustered statistical analysis; repeated episodes and timesteps are not represented as independent training seeds.
+
 The standalone, dependency-free Rust crate consumes:
 - one ordered feature severity ladder with integer successes/trials at every tested level;
 - a frozen train/validation/held-out level manifest;
@@ -181,7 +183,7 @@ The cross-fitted CVaR estimator:
 - rejects train/validation/test overlap, episode reuse, level-manifest leakage, incomplete level coverage and split identity reuse;
 - preserves morphology, physics and simulation/hardware/biological evidence tier in the output.
 
-The V0 crate has ten deterministic tests for monotone and non-monotone capability brackets, all-pass/all-fail censoring, cross-fit rank/score separation, held-out leakage, morphology/evidence-tier identity, missing level coverage and tail-fraction bounds.
+The V0 crate has eleven deterministic tests for monotone and non-monotone capability brackets, all-pass/all-fail censoring, cross-fit rank/score separation, held-out leakage, morphology/evidence-tier identity, missing level coverage and tail-fraction bounds.
 
 Qualification commands:
 
