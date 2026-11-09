@@ -29,3 +29,7 @@ path = "src/bin/noisy_causal_drift_sweep.rs"
 [[bin]]
 name = "sequential-methods-sweep"
 path = "src/bin/sequential_methods_sweep.rs"
+
+[[bin]]
+name = "model-adequacy-sweep"
+path = "src/bin/model_adequacy_sweep.rs"
