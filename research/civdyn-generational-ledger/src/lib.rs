@@ -1049,10 +1049,10 @@ mod tests {
             .assemble_tick(
                 &second_source,
                 service_rows_at(
-                    2,
-                    CohortAssignment::assigned("working-age-2026").unwrap(),
-                    future.clone(),
-                ),
+                2,
+                CohortAssignment::assigned("working-age-2026").unwrap(),
+                future.clone(),
+            ),
                 stock_rows_at(2, future, shared, ResourceVector::new(60.0, 120.0, 48.0)),
                 vec![],
                 vec![],
@@ -1154,10 +1154,10 @@ mod tests {
         let result = ledger.assemble_tick(
             &second_source,
             service_rows_at(
-                    3,
-                    CohortAssignment::assigned("working-age-2026").unwrap(),
-                    future.clone(),
-                ),
+                3,
+                CohortAssignment::assigned("working-age-2026").unwrap(),
+                future.clone(),
+            ),
             stock_rows_at(3, future, shared, ResourceVector::new(60.0, 120.0, 48.0)),
             vec![],
             vec![],
