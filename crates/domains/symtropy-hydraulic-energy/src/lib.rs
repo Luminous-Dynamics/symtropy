@@ -771,14 +771,14 @@ mod tests {
     fn service_contract() -> WaterServiceContract {
         WaterServiceContract::new(
             "WATER-SERVICE-001",
-            PressurePascals::new(400_000.0).expect("minimum pressure"),
-            FlowRateM3PerSecond::new(0.09).expect("minimum delivery flow"),
-            FlowRateM3PerSecond::new(0.015).expect("minimum ecological flow"),
-            PressurePascals::new(50_000.0).expect("maximum pressure drop"),
             evidence(
                 "WATER-SERVICE-CONTRACT-EVIDENCE-001",
                 EvidenceClass::OperatorApprovedContract,
             ),
+            PressurePascals::new(400_000.0).expect("minimum pressure"),
+            FlowRateM3PerSecond::new(0.09).expect("minimum delivery flow"),
+            FlowRateM3PerSecond::new(0.015).expect("minimum ecological flow"),
+            PressurePascals::new(50_000.0).expect("maximum pressure drop"),
             FlowRateM3PerSecond::new(0.005).expect("maximum delivery flow reduction"),
             FlowRateM3PerSecond::new(0.001).expect("maximum ecological flow reduction"),
         )
