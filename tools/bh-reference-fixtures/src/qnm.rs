@@ -261,7 +261,9 @@ impl KerrQnmSequenceFixture {
         mode: &QnmModeRecord,
     ) -> Option<f64> {
         if mode.solver_method != QnmSolverMethod::KerrNormalProlateGenusOneWkb
-            || !(self.spin_over_mass > 0.0 && self.spin_over_mass < 1.0)
+            || !self.spin_over_mass.is_finite()
+            || self.spin_over_mass <= 0.0
+            || self.spin_over_mass >= 1.0
         {
             return None;
         }
