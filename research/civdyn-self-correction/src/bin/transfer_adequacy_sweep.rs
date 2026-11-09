@@ -12,7 +12,7 @@ use civdyn_self_correction::transfer_adequacy::{
 const MODEL_DIGEST: &str = "sha256-frozen-civdyn-transfer-model";
 const CALIBRATION_DIGEST: &str = "sha256-frozen-civdyn-transfer-calibration";
 const DRAW_VALUES: [f64; 7] = [0.44, 0.47, 0.49, 0.50, 0.51, 0.53, 0.56];
-const CSV_COLUMNS: usize = 29;
+const CSV_COLUMNS: usize = 30;
 
 fn csv_field(value: &str) -> String {
     if value.contains([',', '"', '\n', '\r']) {
@@ -206,6 +206,7 @@ fn emit_report(report: &TransferAssessment) {
                 statistic.not_assessed_units.to_string(),
                 statistic.status.name().to_string(),
                 report.calibration_data_digest.clone(),
+                report.evidence_complete.to_string(),
                 report.claim_ceiling.name().to_string(),
                 report.registry_version.clone(),
                 report.source_validation_domain_count.to_string(),
@@ -220,7 +221,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let report = assess_zero_shot_transfer(&domains)?;
 
     println!(
-        "domain_id,axis,role,independent_unit_kind,model_digest,split_manifest_id,split_manifest_digest,domain_status,required_evidence_complete,statistic_id,construct,measurement_unit,population,context,source_family,source_digest,primary,required,expected_units,assessed_units,within_reference_units,outside_reference_units,not_assessed_units,statistic_status,calibration_data_digest,claim_ceiling,registry_version,source_validation_domain_count,held_out_challenge_domain_count"
+        "domain_id,axis,role,independent_unit_kind,model_digest,split_manifest_id,split_manifest_digest,domain_status,required_evidence_complete,statistic_id,construct,measurement_unit,population,context,source_family,source_digest,primary,required,expected_units,assessed_units,within_reference_units,outside_reference_units,not_assessed_units,statistic_status,calibration_data_digest,evidence_complete,claim_ceiling,registry_version,source_validation_domain_count,held_out_challenge_domain_count"
     );
     emit_report(&report);
     Ok(())
