@@ -43,7 +43,7 @@ The locked answer is:
 - E-optimal subset: S_A + S_C;
 - Fisher information for S_A + S_C: [[2,1],[1,1]];
 - minimum eigenvalue: (3 - sqrt(5))/2, approximately 0.38196601125;
-- log determinant: 0.
+- log determinant: approximately 0 (floating-point result is within the locked tolerance).
 
 This fixture is constructed solely to test known-answer arithmetic and deterministic selection. Its sensor sensitivities, variances and parameter scales are not physical CRM or AER-01 values.
 
