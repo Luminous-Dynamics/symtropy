@@ -92,6 +92,7 @@ pub enum QnmContinuationValidationError {
     InvalidModeNumbers,
     EmptySamples,
     InvalidSpinSample(usize),
+    ExactExtremalSampleRequiresHeunD,
     SpinSamplesNotStrictlyMonotonic(usize),
     AngularBranchChanged(usize),
     InvalidSpectralIdentity,
@@ -122,6 +123,10 @@ impl core::fmt::Display for QnmContinuationValidationError {
             Self::InvalidSpinSample(index) => {
                 write!(f, "spin-continuation sample {index} has invalid values or residuals")
             }
+            Self::ExactExtremalSampleRequiresHeunD => write!(
+                f,
+                "gravitational exact-extremal samples require the double-confluent Heun method"
+            ),
             Self::SpinSamplesNotStrictlyMonotonic(index) => {
                 write!(
                     f,
@@ -251,6 +256,13 @@ impl KerrQnmSpinContinuationTrace {
             {
                 return Err(QnmContinuationValidationError::InvalidSpinSample(index));
             }
+            if sample.spin_over_mass.abs() == 1.0
+                && self.spin_weight != 0
+                && sample.solver_method
+                    != QnmSolverMethod::ExactExtremalDoubleConfluentHeun
+            {
+                return Err(QnmContinuationValidationError::ExactExtremalSampleRequiresHeunD);
+            }
             if sample.angular_branch_id != *first_branch
                 || sample.angular_continuation_path_id != *first_path
             {
@@ -370,7 +382,11 @@ mod tests {
                 angular_eigenvalue: ComplexValue { re: 3.0, im: -0.1 },
                 angular_branch_id: "angular-branch-A".to_owned(),
                 angular_continuation_path_id: "spin-increasing".to_owned(),
-                solver_method: QnmSolverMethod::Other,
+                solver_method: if *spin == 1.0 {
+                    QnmSolverMethod::ExactExtremalDoubleConfluentHeun
+                } else {
+                    QnmSolverMethod::Leaver
+                },
                 method_applicability: QnmMethodApplicability::WithinDocumentedRegime,
                 precision_bits: 200,
                 residuals: QnmModeResiduals {
