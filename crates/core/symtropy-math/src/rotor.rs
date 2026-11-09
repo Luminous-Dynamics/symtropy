@@ -530,6 +530,39 @@ mod tests {
     }
 
     #[test]
+    fn bivector_exponential_respects_adjoint_equivariance() {
+        // The exponential map commutes with the adjoint action:
+        // Q exp(B) Q⁻¹ = exp(Q B Q⁻¹). This is a core SO(D) frame-covariance
+        // property and catches basis/order/sign errors in bivector conversion.
+        let mut frame_generator = Bivector::<4>::zero();
+        frame_generator.set(0, 2, 0.31);
+        frame_generator.set(1, 3, -0.47);
+        frame_generator.set(0, 1, 0.19);
+        let frame = Rotor::from_bivector(&frame_generator);
+
+        let mut body_generator = Bivector::<4>::zero();
+        body_generator.set(0, 3, -0.62);
+        body_generator.set(1, 2, 0.28);
+        body_generator.set(0, 2, 0.11);
+
+        let original_exponential = Rotor::from_bivector(&body_generator);
+        let conjugated = frame
+            .compose(&original_exponential)
+            .compose(&frame.reverse());
+
+        let transformed_matrix =
+            frame.to_matrix() * body_generator.to_matrix() * frame.to_matrix().transpose();
+        let transformed_generator = Bivector::<4>::from_matrix(&transformed_matrix);
+        let exponential_after_adjoint = Rotor::from_bivector(&transformed_generator);
+
+        let residual = conjugated.to_matrix() - exponential_after_adjoint.to_matrix();
+        let max_error = residual.iter().fold(0.0_f64, |m, x| m.max(x.abs()));
+        assert!(max_error < 1e-9, "SO(4) adjoint-equivariance residual={max_error:e}");
+        assert!(conjugated.is_proper_rotation(1e-9));
+        assert!(exponential_after_adjoint.is_proper_rotation(1e-9));
+    }
+
+    #[test]
     fn slerp_endpoints() {
         let plane = Bivector::<3>::unit_plane(0, 1);
         let r = Rotor::from_plane_angle(&plane, 1.0);
