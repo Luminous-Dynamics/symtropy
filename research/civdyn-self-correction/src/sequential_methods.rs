@@ -10,10 +10,8 @@
 
 use core::fmt;
 
-use crate::{
-    noisy_causal_drift::{
-        MATCHED_PAIRS_PER_LOOK, NOISY_BASE_SEED, NOISY_SEEDS, OUTCOME_NOISE_STANDARD_DEVIATION,
-    },
+use crate::noisy_causal_drift::{
+    MATCHED_PAIRS_PER_LOOK, NOISY_BASE_SEED, NOISY_SEEDS, OUTCOME_NOISE_STANDARD_DEVIATION,
 };
 
 pub const MAX_PAIRS: usize = MATCHED_PAIRS_PER_LOOK;
@@ -568,7 +566,10 @@ mod tests {
 
     #[test]
     fn benefit_boundary_remains_inconclusive_at_the_minimum_worthwhile_effect() {
-        assert_eq!(SequentialRegime::BenefitBoundary.true_effect(), ACTION_BENEFIT_THRESHOLD);
+        assert_eq!(
+            SequentialRegime::BenefitBoundary.true_effect(),
+            ACTION_BENEFIT_THRESHOLD
+        );
         for method in SequentialMethod::ALL {
             let false_actions = (0..NOISY_SEEDS)
                 .filter(|seed_index| {
