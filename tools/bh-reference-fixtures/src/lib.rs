@@ -418,8 +418,8 @@ impl Default for RadialChannelMetrics {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RadialComparisonResult {
     pub status: RadialComparisonStatus,
-    pub differing_fields: Vec<&'static str>,
-    pub unresolved_reason: Option<&'static str>,
+    pub differing_fields: Vec<String>,
+    pub unresolved_reason: Option<String>,
     pub in_value: RadialChannelMetrics,
     pub in_derivative: RadialChannelMetrics,
     pub up_value: RadialChannelMetrics,
@@ -464,7 +464,11 @@ pub fn compare_radial_fixtures(
     if compatibility.status == CompatibilityStatus::Unmatched {
         return Ok(RadialComparisonResult {
             status: RadialComparisonStatus::Unmatched,
-            differing_fields: compatibility.differing_fields,
+            differing_fields: compatibility
+                .differing_fields
+                .into_iter()
+                .map(str::to_owned)
+                .collect(),
             unresolved_reason: None,
             in_value: RadialChannelMetrics::default(),
             in_derivative: RadialChannelMetrics::default(),
@@ -553,7 +557,7 @@ fn unresolved_radial_comparison(reason: &'static str) -> RadialComparisonResult 
     RadialComparisonResult {
         status: RadialComparisonStatus::Unresolved,
         differing_fields: Vec::new(),
-        unresolved_reason: Some(reason),
+        unresolved_reason: Some(reason.to_owned()),
         in_value: RadialChannelMetrics::default(),
         in_derivative: RadialChannelMetrics::default(),
         up_value: RadialChannelMetrics::default(),
@@ -783,6 +787,101 @@ mod tests {
         let result = assess_compatibility(&left, &right);
         assert_eq!(result.status, CompatibilityStatus::Matched);
         assert!(result.differing_fields.is_empty());
+    }
+
+    fn comparison_config() -> RadialComparisonConfig {
+        RadialComparisonConfig {
+            absolute_tolerance: 1.0e-12,
+            relative_tolerance: 1.0e-9,
+        }
+    }
+
+    #[test]
+    fn identical_radial_fixtures_agree_on_exact_common_nodes() {
+        let left = fixture();
+        let right = fixture();
+        let comparison =
+            compare_radial_fixtures(&left, &right, comparison_config()).unwrap();
+        assert_eq!(
+            comparison.status,
+            RadialComparisonStatus::NumericallyAgreeing
+        );
+        assert_eq!(comparison.in_value.compared_values, 1);
+        assert_eq!(comparison.in_derivative.compared_values, 1);
+        assert_eq!(comparison.up_value.compared_values, 1);
+        assert_eq!(comparison.up_derivative.compared_values, 1);
+        assert_eq!(comparison.in_value.maximum_absolute_error, 0.0);
+    }
+
+    #[test]
+    fn radial_comparison_reports_scaled_errors_and_disagreement() {
+        let left = fixture();
+        let mut within = fixture();
+        within.data.radial_samples[0].in_value =
+            Some(ComplexValue { re: 1.0 + 1.0e-10, im: 0.0 });
+        let agreeing = compare_radial_fixtures(&left, &within, comparison_config()).unwrap();
+        assert_eq!(
+            agreeing.status,
+            RadialComparisonStatus::NumericallyAgreeing
+        );
+        assert!(agreeing.in_value.maximum_scaled_error < 1.0);
+
+        let mut outside = fixture();
+        outside.data.radial_samples[0].in_value =
+            Some(ComplexValue { re: 1.0 + 1.0e-5, im: 0.0 });
+        let disagreeing = compare_radial_fixtures(&left, &outside, comparison_config()).unwrap();
+        assert_eq!(
+            disagreeing.status,
+            RadialComparisonStatus::NumericallyDisagreeing
+        );
+        assert_eq!(disagreeing.in_value.values_outside_tolerance, 1);
+        assert!(disagreeing.in_value.maximum_scaled_error > 1.0);
+    }
+
+    #[test]
+    fn radial_comparison_abstains_on_different_nodes_or_channel_coverage() {
+        let left = fixture();
+        let mut different_nodes = fixture();
+        different_nodes.data.radial_samples[1].r_over_m = 4.1;
+        let node_result =
+            compare_radial_fixtures(&left, &different_nodes, comparison_config()).unwrap();
+        assert_eq!(node_result.status, RadialComparisonStatus::Unresolved);
+        assert!(node_result.unresolved_reason.unwrap().contains("nodes differ"));
+
+        let mut different_coverage = fixture();
+        different_coverage.data.radial_samples[0].in_derivative = None;
+        let coverage_result =
+            compare_radial_fixtures(&left, &different_coverage, comparison_config()).unwrap();
+        assert_eq!(coverage_result.status, RadialComparisonStatus::Unresolved);
+        assert!(coverage_result
+            .unresolved_reason
+            .unwrap()
+            .contains("coverage differs"));
+    }
+
+    #[test]
+    fn radial_comparison_reports_convention_mismatch_without_comparing_values() {
+        let left = fixture();
+        let mut right = fixture();
+        right.fourier_convention = FourierConvention::EPlusIOmegaT;
+        let comparison = compare_radial_fixtures(&left, &right, comparison_config()).unwrap();
+        assert_eq!(comparison.status, RadialComparisonStatus::Unmatched);
+        assert_eq!(comparison.differing_fields, vec!["fourier_convention"]);
+        assert_eq!(comparison.in_value.compared_values, 0);
+    }
+
+    #[test]
+    fn radial_comparison_rejects_invalid_tolerances() {
+        let left = fixture();
+        let error = compare_radial_fixtures(
+            &left,
+            &left,
+            RadialComparisonConfig {
+                absolute_tolerance: 0.0,
+                relative_tolerance: 0.0,
+            },
+        );
+        assert_eq!(error, Err(RadialComparisonError::InvalidTolerance));
     }
 
     #[test]
