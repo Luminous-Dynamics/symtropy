@@ -219,7 +219,10 @@ fn signature_digest(signature: &PossibleHealthSignature) -> Result<String, Failo
         if !nonempty(&state.channel_id) {
             return Err(FailoverError::EmptyIdentifier);
         }
-        if states.insert(state.channel_id.as_str(), state.health).is_some() {
+        if states
+            .insert(state.channel_id.as_str(), state.health)
+            .is_some()
+        {
             return Err(FailoverError::DuplicateChannelInSignature);
         }
     }
@@ -362,9 +365,7 @@ fn validate_receipt(
     Ok(())
 }
 
-pub fn evaluate_failover(
-    problem: &FailoverProblem,
-) -> Result<FailoverReport, FailoverError> {
+pub fn evaluate_failover(problem: &FailoverProblem) -> Result<FailoverReport, FailoverError> {
     if !nonempty(&problem.initial_state_digest)
         || !nonempty(&problem.model_digest)
         || !nonempty(&problem.abstraction_digest)
@@ -395,9 +396,7 @@ pub fn evaluate_failover(
 
     let downshift = problem.target_mode.rank < problem.current_mode.rank;
     let upgrade = problem.target_mode.rank > problem.current_mode.rank;
-    if upgrade
-        && problem.now_ns - problem.last_mode_change_ns < problem.minimum_upgrade_dwell_ns
-    {
+    if upgrade && problem.now_ns - problem.last_mode_change_ns < problem.minimum_upgrade_dwell_ns {
         return Ok(FailoverReport {
             disposition: FailoverDisposition::HoldCurrentMode {
                 mode_id: problem.current_mode.mode_id.clone(),
@@ -466,7 +465,10 @@ pub fn evaluate_failover(
         if !nonempty(&receipt.signature_id) {
             return Err(FailoverError::EmptyIdentifier);
         }
-        if receipts.insert(receipt.signature_id.as_str(), receipt).is_some() {
+        if receipts
+            .insert(receipt.signature_id.as_str(), receipt)
+            .is_some()
+        {
             return Err(FailoverError::DuplicateTransitionReceipt);
         }
         if !signature_ids.contains(receipt.signature_id.as_str()) {
@@ -726,11 +728,11 @@ mod tests {
     #[test]
     fn admitted_vision_fallback_enters_only_with_common_action() {
         let report = evaluate_failover(&base_problem()).expect("valid failover");
+        assert_eq!(as_enter(&report), ("proprioceptive-haptic", "hold"));
         assert_eq!(
-            as_enter(&report),
-            ("proprioceptive-haptic", "hold")
+            report.canonical_signature_ids,
+            vec!["vision-ood".to_owned()]
         );
-        assert_eq!(report.canonical_signature_ids, vec!["vision-ood".to_owned()]);
     }
 
     #[test]
@@ -810,7 +812,10 @@ mod tests {
         ));
         problem.possible_signatures.push(second);
         let report = evaluate_failover(&problem).expect("empty intersection");
-        assert_eq!(report.disposition, FailoverDisposition::NoCommonAdmittedAction);
+        assert_eq!(
+            report.disposition,
+            FailoverDisposition::NoCommonAdmittedAction
+        );
     }
 
     #[test]
@@ -914,7 +919,9 @@ mod tests {
     #[test]
     fn duplicate_health_evidence_is_rejected() {
         let mut problem = base_problem();
-        problem.health_evidence.push(problem.health_evidence[0].clone());
+        problem
+            .health_evidence
+            .push(problem.health_evidence[0].clone());
         assert_eq!(
             evaluate_failover(&problem),
             Err(FailoverError::DuplicateHealthEvidence)
