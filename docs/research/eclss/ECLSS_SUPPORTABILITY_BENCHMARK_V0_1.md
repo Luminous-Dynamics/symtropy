@@ -63,11 +63,20 @@ NASA's 2026 ICES paper describes using the ISS as a testbed to mature exploratio
 
 Source: https://ntrs.nasa.gov/citations/20260003280
 
-### 2.4 Regenerative life support
+### 2.4 Regenerative life support — MELiSSA is an active comparator, not just a concept
 
-ESA's MELiSSA concept seeks to recover food, water and oxygen from organic waste, CO2 and minerals through coupled biological and physicochemical processes. This is an important architectural comparator, but the concept page is not a single closed-loop performance dataset. Compare it at the evidence level actually available; do not infer total closure, crew-equivalent capacity or operational reliability from a conceptual description.
+ESA's MELiSSA programme is a mature, multi-decade regenerative-life-support research programme, and it must be treated as a serious comparator rather than as a diagram-only architecture:
 
-Source: https://www.esa.int/Enabling_Support/Space_Engineering_Technology/Melissa/Closed_Loop_Concept
+- The MELiSSA Pilot Plant at UAB/Barcelona runs connected biological and cultivation compartments continuously: C3 photobioreactors, C4a/C4b higher-plant cultivation, and a C5 small-mammal crew-compartment model. The MELiSSA Foundation describes it as continuous integrated full-loop operation, not isolated single-process trials. This is ground pilot evidence at its tested scale, not an operational human space habitat.
+- The Concordia Antarctic station has a greywater recycling system derived from MELiSSA research. The Foundation reports >90% greywater recovery and 11 years of autonomous operation with almost no maintenance. This is a strong remote-site greywater reference; it is **not** total ECLSS closure or an eleven-year human life-support-loop demonstration.
+- The programme reports nine flight experiments. ARTEMISS (2024) demonstrated CO2-to-O2 conversion kinetics; WAPS (plants) and URINIS (urine) are described as next experiments in preparation. The Foundation describes four technology-demonstrator lines targeting 2030. These are programme statements and staged technology goals, not evidence that the complete regenerative habitat has flown.
+
+Sources:
+- MELiSSA ground demonstration: https://melissafoundation.org/the-melissa-program/ground-demonstration/
+- MELiSSA flight experiments: https://melissafoundation.org/the-melissa-program/flight-experiments/
+- ESA MELiSSA concept: https://www.esa.int/Enabling_Support/Space_Engineering_Technology/Melissa/Closed_Loop_Concept
+
+**Competitive implication:** integrated biological-loop modelling, predictive process control and long-duration ground integration are not novel contributions that Symtropy can claim over MELiSSA. The Symtropy research opportunity is complementary: interoperable evidence contracts across biological/physicochemical subsystems, exact component/configuration/maintenance lineage, finite mission spares and crew-time accounting, consumer-quality service floors, source-bounded model applicability, independently replayable balances and adversarial qualification. Any performance claim must still be tested on a matched MELiSSA-relevant boundary and must not substitute an accounting layer for MELiSSA's biological process expertise.
 
 ### 2.5 Integrated lunar infrastructure
 
@@ -93,6 +102,27 @@ The 2026 status paper adds source-bounded operational evidence that should becom
 Machine-readable narratives and source-page lineage are stored in `docs/research/eclss/fixtures/eclss-2026-iss-operational-cases-v0_1.json`. The file intentionally distinguishes observed operational events, operating adaptations, planned design features and applicability limits.
 
 Source: Brown et al., *International Space Station as a Testbed for Exploration ECLSS: 2026 Status*, ICES-2026-379: https://ntrs.nasa.gov/citations/20260003280
+
+### 2.7 AOGA schedule evidence: preserve milestone and forecast variance
+
+The AOGA schedule must be treated as a versioned set of dated programme statements, not as one timeless target:
+
+| Source snapshot | Published / updated | Stated milestone |
+|---|---|---|
+| NASA TechPort project 157887 | Updated 18 Dec 2025 | Mod-kit delivery planned early calendar 2026; launch to ISS in fall |
+| ICES-2026-423, *Status of the Advanced Oxygen Generation Assembly in 2026* | 12 Jul 2026 | AOGA hardware described as undergoing build; launch to ISS slated late 2026 |
+| ICES-2026-379, *ISS as a Testbed for Exploration ECLSS: 2026 Status* | 12–16 Jul 2026 | AOGA delivery to ISS described as planned for mid-2027, with three new manifolds and pressure-sensor qualification on the critical path |
+| NASA FY 2026/2027 Agency Performance Plan | Apr 2026 | Deliver AOGA for testing on ISS is a FY 2027 critical milestone |
+
+These are not perfectly equivalent milestone verbs: "mod-kit delivery", "delivery for testing" and "launch" may refer to different integration steps. However, the publication snapshots contain a material schedule variance. As of this benchmark's 9 November 2026 research cutoff, the sources collected here do not independently establish that AOGA has launched or entered operational service. Preserve each assertion, date, source and milestone term; do not silently select the most optimistic date, infer a slip cause, or treat a plan as an achieved milestone.
+
+Machine-readable records are stored in `docs/research/eclss/fixtures/eclss-aoga-schedule-snapshots-v0_1.json`. This is a schedule-provenance fixture, not a programme-control schedule.
+
+Sources:
+- NASA TechPort project 157887: https://techport.nasa.gov/projects/157887
+- ICES-2026-423: https://doi.org/10.32865/2346/109056
+- ICES-2026-379: https://ntrs.nasa.gov/citations/20260003280
+- NASA FY 2026/2027 Agency Performance Plan, page 7: https://www.nasa.gov/wp-content/uploads/2026/04/nasa-fy-27-volume-of-integrated-performancevf.pdf
 
 ## 3. Paradigm shift
 
@@ -209,7 +239,52 @@ Use matched cases and clearly separate empirical, simulated and conceptual evide
 6. Adaptive maintenance or measurement selection only where likelihoods, decision utility and observation access are justified.
 7. No-failure and perfect-information runs as diagnostic bounds, never peer competitors.
 
-Where the strongest industry reference is unavailable as executable code/data, state the limitation and compare only the published quantities that are actually disclosed. Do not claim a software or architecture victory from unlike boundaries.
+### 6.1 Industry comparison matrix — compare capabilities, not brand names
+
+| Reference | What is actually demonstrated / modelled | Important boundary | Symtropy's fair target |
+|---|---|---|---|
+| NASA Langley EMAT | Mission-timeline, stochastic component failures, repair actions and spare tracking, as characterised by the 2025 ICES paper | Component reliability / maintainability focus; do not assume public source code or identical assumptions | Consume its component/event semantics if executable comparator access is available; add quality-qualified service and interoperable evidence receipts without rebuilding its reliability model |
+| RELISSA | ECLSS stochastic failure and backup activation; integration with ESM mass, volume, power and heat described in the 2025 paper | The paper characterises crew-time accounting as absent; executable parity and current version must be established before performance ranking | Add crew/robot task scheduling, task precedence, service-floor consequences and exact repair/requalification evidence; no claimed numerical superiority yet |
+| ISS operational ECLSS | Long-duration flight operation and real repair, spare, sensor, fouling and configuration lessons | ISS microgravity, pressure, crew, logistics and certified-configuration scope differ from a partial-gravity surface mission; public event histories are incomplete | Reproduce named operational cases, retain current critical/demo configuration, quantify only measured or disclosed performance |
+| ESA MELiSSA | Continuous integrated ground pilot plant; nine reported flight experiments, with ARTEMISS 2024 CO2-to-O2 kinetics; Concordia greywater >90% recovery and 11-year autonomous system reported by Foundation | Different process boundaries and evidence tiers; pilot plant/animal-model and remote greywater references do not equal a full human-rated flight loop | Complement, do not replace: harmonize service and material ledgers, evidence lineage, sustainment and adversarial cross-boundary qualification |
+| Symtropy target | A domain adapter that composes existing physics, resource, evidence, logistics and policy owners | Current PR is documentation + schemas + source-bounded and synthetic registries; no integrated executable engine has been demonstrated in this PR | Demonstrate exact replay, source traceability, independent balance checks, zero seeded false acceptance and fair paired policy outcomes before any SOTA claim |
+
+### 6.2 Where a paradigm shift could be real
+
+The research hypothesis is **proof-carrying operations across a heterogeneous life-support system**. Each consequential service-state change should carry a replayable evidence packet tying together:
+
+1. Exact installed component, configuration, software, spare revision and compatibility evidence.
+2. Context-of-use vector: gravity, pressure, fluid state, temperature, duty cycle, crew load and operating envelope.
+3. Calibrated observations, sensor health/drift/fouling, sampling window and contradictory evidence.
+4. Process boundary, input/product/residual streams, units, quality grade and conservation checks.
+5. Service demand, hard floor, delivery, reserves and explicit unmet service.
+6. Forecast assumptions, alternative model families, validity and unknowns.
+7. Maintenance/intervention authority, crew/robot skills, task precedence, tools, consumables, spare and energy/thermal budgets.
+8. Repair receipt and independent post-repair acceptance tied to the exact new configuration.
+9. Evidence expiry, triggers for reinspection, and a machine-readable reason to abstain.
+
+The packet is not a new simulator or digital-twin platform. It is the auditable bridge between domain engines and a decision that affects service. No subsystem is allowed to certify its own output.
+
+### 6.3 Candidate targets — staged and falsifiable
+
+**Before executable comparison:**
+- 100% of the 30 synthetic known-answer cases match an independent evaluator.
+- 100% of seeded wrong-configuration, stale, out-of-domain, failed-quality, false-sensor and repair-without-requalification controls are rejected or explicitly marked INDETERMINATE.
+- Zero unexplained inventory, mass/element balance or unit conversions.
+- Byte-identical deterministic replay for identical frozen inputs and software identity.
+
+**Against established component-maintenance baselines:**
+- Same component dataset, failure/event semantics, mission horizon, task availability and spare assumptions for EMAT/RELISSA or an equivalent reproducible implementation.
+- Report service-floor breaches, downtime, spare mass, maintenance crew-hours, energy/heat and run-time/memory separately.
+- Candidate target after baseline parity: at least 20% lower sustainment burden (predeclared Pareto measure, e.g. crew-hours plus spare mass with explicit conversion only if approved) or service-loss regret, while showing no worse critical service outcome in any held-out scenario family. Do not declare the percentage target achieved from synthetic-only data.
+- Zero false admission of an incompatible replacement, an expired spare or a demo-only assembly as critical qualified service in the frozen adversarial corpus.
+
+**Against biological-loop references:**
+- Do not compete with MELiSSA's biological expertise on conceptual completeness. First establish comparable mass/element balances, quality contracts, operating duration, intervention burden and evidence tier.
+- Treat Concordia's greywater result as a greywater reference only; treat pilot-plant loop and ARTEMISS as their actual system/experiment boundaries.
+- Target independent reproduction of disclosed measurements and improved cross-source traceability, not unsupported higher biological recovery.
+
+All outcomes remain a vector and a Pareto frontier. A weighted average cannot offset a critical service-floor failure.
 
 ## 7. Metrics
 
