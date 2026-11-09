@@ -20,6 +20,7 @@ pub struct PolicyProposal {
     pub submitted_at_ns: u64,
     pub intended_apply_at_ns: u64,
     pub deadline_ns: u64,
+    pub horizon_steps: u32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -304,7 +305,8 @@ fn identity_gate(problem: &ProjectionGateProblem) -> Result<(), ProjectionError>
             return Err(ProjectionError::EmptyIdentifier);
         }
     }
-    if proposal.submitted_at_ns > problem.now_ns
+    if proposal.horizon_steps == 0
+        || proposal.submitted_at_ns > problem.now_ns
         || proposal.submitted_at_ns > proposal.intended_apply_at_ns
         || proposal.intended_apply_at_ns > proposal.deadline_ns
         || problem.now_ns > proposal.intended_apply_at_ns
@@ -513,7 +515,7 @@ fn validate_independent_receipts(
     if viability.constraint_inventory_digest != proposal.constraint_inventory_digest {
         return Err(ProjectionError::ConstraintInventoryMismatch);
     }
-    if viability.horizon_steps == 0 {
+    if viability.horizon_steps == 0 || viability.horizon_steps != proposal.horizon_steps {
         return Err(ProjectionError::InvalidReceipt);
     }
     validate_receipt_interval(
@@ -700,6 +702,7 @@ mod tests {
             submitted_at_ns: 100,
             intended_apply_at_ns: 200,
             deadline_ns: 200,
+            horizon_steps: 10,
         }
     }
 
@@ -900,6 +903,16 @@ mod tests {
         assert_eq!(
             qualify_projected_action(&input),
             Err(ProjectionError::ProjectedCommandMismatch)
+        );
+    }
+
+    #[test]
+    fn viability_horizon_must_match_the_proposal_horizon() {
+        let mut input = problem();
+        input.viability.horizon_steps = 9;
+        assert_eq!(
+            qualify_projected_action(&input),
+            Err(ProjectionError::InvalidReceipt)
         );
     }
 
