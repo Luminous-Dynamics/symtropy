@@ -39,3 +39,11 @@ cargo run --manifest-path tools/bh-reference-fixtures/Cargo.toml -- compare-radi
 Statuses are `unmatched` (problem/convention mismatch), `unresolved` (different radial nodes or data coverage), `numerically_agreeing`, and `numerically_disagreeing`.
 
 Exit codes: `0` numerical agreement, `2` malformed input/invalid fixture or tolerance, `4` problem or convention mismatch, `5` numerical disagreement, `6` comparison unresolved.
+
+## WKB and mode-family identity
+
+`KerrQnmSequenceFixture` preserves the conventional overtone index `n` separately from the high-overtone genus-one quantization integer `N`. The Hatsuda normal-prolate method is represented as `KerrNormalProlateGenusOneWkb` and requires `N`, an expansion truncation order, an explicit cycle ID, and a normal-prolate oscillator level. The method is rejected on an `Oblate` family label.
+
+Do not hard-code the prolate angular scaling limit to one. In the normal-prolate expansion, the expected leading ratio is `eta = 2 Lbar + 1`, where `Lbar` is the equatorial oscillator level; for scalar fields `Lbar = ell - |m|`. For nonzero spin weight, the mapping from spherical labels to `Lbar` must be established by branch continuation. Each family-evidence record therefore stores its expected angular-scaling limit explicitly.
+
+The genus-one WKB result is asymptotic and its coefficients grow factorially. Store the chosen truncation order and, when available, the least-term / best-truncation order. A larger truncation order is not automatically more accurate. The outer-scattering cycle is an input, not inferred from the elliptic curve.
