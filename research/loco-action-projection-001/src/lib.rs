@@ -45,6 +45,7 @@ pub struct ConstraintRequirement {
     pub id: String,
     pub class: ConstraintClass,
     pub residual_unit_id: String,
+    pub residual_tolerance: u64,
     pub margin_unit_id: String,
     /// All declared hard/contact constraints are mandatory.
     pub required: bool,
@@ -55,7 +56,6 @@ pub struct ConstraintEvidence {
     pub id: String,
     pub residual_unit_id: String,
     pub residual: u64,
-    pub residual_tolerance: u64,
     /// Non-negative is feasible; negative is a hard/contact violation.
     pub margin: i64,
     pub margin_unit_id: String,
@@ -247,6 +247,7 @@ fn fallback_disposition(
         };
     };
     if fallback.action_digest.trim().is_empty()
+        || !nonempty(&fallback.reason)
         || fallback.state_digest != problem.proposal.input_state_digest
         || fallback.model_digest != problem.proposal.model_digest
         || fallback.actuator_digest != problem.proposal.actuator_digest
@@ -292,7 +293,10 @@ fn identity_gate(problem: &ProjectionGateProblem) -> Result<(), ProjectionError>
     {
         return Err(ProjectionError::InvalidProposalTiming);
     }
-    if result.started_at_ns > result.completed_at_ns || result.started_at_ns < proposal.submitted_at_ns {
+    if result.started_at_ns > result.completed_at_ns
+        || result.started_at_ns < proposal.submitted_at_ns
+        || result.completed_at_ns > problem.now_ns
+    {
         return Err(ProjectionError::InvalidSolverTiming);
     }
     if result.proposal_digest != proposal.proposal_digest {
@@ -419,7 +423,7 @@ fn constraint_gate(
         {
             return Err(ProjectionError::ConstraintUnitMismatch);
         }
-        let passed = evidence.residual <= evidence.residual_tolerance && evidence.margin >= 0;
+        let passed = evidence.residual <= requirement.residual_tolerance && evidence.margin >= 0;
         if requirement.required && !passed {
             match requirement.class {
                 ConstraintClass::HardPhysical => hard_failures.push((*id).to_owned()),
@@ -433,7 +437,7 @@ fn constraint_gate(
             id: (*id).to_owned(),
             class: requirement.class,
             residual: evidence.residual,
-            residual_tolerance: evidence.residual_tolerance,
+            residual_tolerance: requirement.residual_tolerance,
             margin: evidence.margin,
             passed,
         });
@@ -686,6 +690,7 @@ mod tests {
             id: id.to_owned(),
             class,
             residual_unit_id: "residual_nano".to_owned(),
+            residual_tolerance: 10,
             margin_unit_id: "margin_ppm".to_owned(),
             required: true,
         }
@@ -694,10 +699,8 @@ mod tests {
     fn evidence(id: &str, residual: u64, margin: i64) -> ConstraintEvidence {
         ConstraintEvidence {
             id: id.to_owned(),
-            residual,
-            residual_tolerance: 10,
             residual_unit_id: "residual_nano".to_owned(),
-            residual_tolerance: 10,
+            residual,
             margin,
             margin_unit_id: "margin_ppm".to_owned(),
         }
