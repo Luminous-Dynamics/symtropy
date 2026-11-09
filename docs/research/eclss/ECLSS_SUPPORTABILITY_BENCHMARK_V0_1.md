@@ -124,6 +124,11 @@ Sources:
 - ICES-2026-379: https://ntrs.nasa.gov/citations/20260003280
 - NASA FY 2026/2027 Agency Performance Plan, page 7: https://www.nasa.gov/wp-content/uploads/2026/04/nasa-fy-27-volume-of-integrated-performancevf.pdf
 
+
+## Industry comparison and matched SOTA evaluation
+
+See [ECLSS Industry / SOTA Comparison Protocol v0.1](ECLSS_INDUSTRY_SOTA_COMPARISON_V0_1.md). It explicitly compares EMAT, RELISSA, SmartHab stochastic MILP and the 2026 distributionally robust maintenance/spares MILP; defines common-input fairness rules, ablations, metrics and target hypotheses. It does not claim an unmeasured performance win.
+
 ## 3. Paradigm shift
 
 ### From recovery fraction to accepted service
