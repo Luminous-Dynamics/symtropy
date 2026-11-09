@@ -43,6 +43,14 @@ pub enum ScenarioSplit {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FaultOnsetProfile {
+    Abrupt,
+    Ramped,
+    Intermittent,
+    Persistent,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EvidenceTier {
     Simulation,
     SupportedHardware,
@@ -60,6 +68,10 @@ pub struct FaultScenario {
     pub severity_lower_ppm: u32,
     pub severity_upper_ppm: u32,
     pub onset_phase: FaultPhase,
+    pub onset_profile: FaultOnsetProfile,
+    pub initial_state_digest: String,
+    pub payload_digest: String,
+    pub fault_profile_digest: String,
     pub terrain_stratum_digest: String,
     pub morphology_digest: String,
     pub actuator_model_digest: String,
@@ -74,6 +86,7 @@ pub struct FaultScenario {
 pub struct MatchedBenchmarkContext {
     pub morphology_digest: String,
     pub actuator_model_digest: String,
+    pub actuator_response_digest: String,
     pub sensor_model_digest: String,
     pub terrain_suite_digest: String,
     pub task_digest: String,
@@ -81,6 +94,7 @@ pub struct MatchedBenchmarkContext {
     pub physics_digest: String,
     pub event_taxonomy_digest: String,
     pub event_detector_digest: String,
+    pub energy_boundary_digest: String,
     pub interaction_budget_steps: u64,
     pub compute_budget_micros: u64,
     pub test_exposure_units: u64,
@@ -116,11 +130,15 @@ pub struct BenchmarkManifest {
 pub enum DetectionResult {
     Detected {
         inferred_family: FaultFamily,
+        plausible_families: Vec<FaultFamily>,
         latency_ms: u64,
         confidence_ppm: u32,
+        severity_estimate_ppm: Option<u32>,
+        severity_interval_ppm: Option<(u32, u32)>,
     },
     Unknown {
         reason: String,
+        plausible_families: Vec<FaultFamily>,
     },
     Missed,
 }
@@ -147,6 +165,9 @@ pub struct FaultTrial {
     pub policy_id: String,
     pub scenario_id: String,
     pub paired_block_id: String,
+    pub realized_severity_ppm: u32,
+    pub fault_injection_receipt_digest: String,
+    pub run_trace_digest: String,
     pub detected: DetectionResult,
     pub adaptation: AdaptationResult,
     pub terminal_outcome: TerminalOutcome,
@@ -175,6 +196,12 @@ pub struct FamilyCoverage {
     pub unknown_diagnosis_count: usize,
     pub missed_diagnosis_count: usize,
     pub misclassified_count: usize,
+    pub fault_set_covered_count: usize,
+    pub fault_set_uncovered_count: usize,
+    pub hypothesis_set_size_total: usize,
+    pub severity_estimate_count: usize,
+    pub severity_absolute_error_sum_ppm: u64,
+    pub severity_interval_coverage_count: usize,
     pub late_detection_count: usize,
     pub stable_adaptation_count: usize,
     pub late_adaptation_count: usize,
@@ -186,6 +213,8 @@ pub struct FamilyCoverage {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PolicyCoverage {
     pub policy_id: String,
+    pub training_fault_truth_visible: bool,
+    pub oracle_upper_bound: bool,
     pub trial_count: usize,
     pub task_completion_count: usize,
     pub controlled_stop_count: usize,
@@ -226,6 +255,8 @@ pub enum FaultBenchmarkError {
     EmptyAffectedComponentSet,
     InvalidSeverityRange,
     InvalidPpmValue,
+    InvalidSeverityEstimate,
+    InvalidSeverityInterval,
     InvalidDeadline,
     InvalidMatchedContext,
     PolicyContextMismatch,
@@ -260,6 +291,16 @@ fn nonempty(value: &str) -> bool {
     !value.trim().is_empty()
 }
 
+fn validate_family_set(families: &[FaultFamily]) -> Result<(), FaultBenchmarkError> {
+    let mut unique = BTreeSet::new();
+    for family in families {
+        if !unique.insert(*family) {
+            return Err(FaultBenchmarkError::InvalidDetectionResult);
+        }
+    }
+    Ok(())
+}
+
 fn validate_unique_ids<'a, I>(values: I) -> Result<BTreeSet<&'a str>, FaultBenchmarkError>
 where
     I: IntoIterator<Item = &'a str>,
@@ -280,6 +321,7 @@ fn validate_context(context: &MatchedBenchmarkContext) -> Result<(), FaultBenchm
     let ids = [
         context.morphology_digest.as_str(),
         context.actuator_model_digest.as_str(),
+        context.actuator_response_digest.as_str(),
         context.sensor_model_digest.as_str(),
         context.terrain_suite_digest.as_str(),
         context.task_digest.as_str(),
@@ -287,6 +329,7 @@ fn validate_context(context: &MatchedBenchmarkContext) -> Result<(), FaultBenchm
         context.physics_digest.as_str(),
         context.event_taxonomy_digest.as_str(),
         context.event_detector_digest.as_str(),
+        context.energy_boundary_digest.as_str(),
         context.test_exposure_unit_id.as_str(),
     ];
     if ids.iter().any(|id| !nonempty(id)) {
@@ -307,6 +350,9 @@ fn validate_scenario(
 ) -> Result<(), FaultBenchmarkError> {
     let ids = [
         scenario.scenario_id.as_str(),
+        scenario.initial_state_digest.as_str(),
+        scenario.payload_digest.as_str(),
+        scenario.fault_profile_digest.as_str(),
         scenario.terrain_stratum_digest.as_str(),
         scenario.morphology_digest.as_str(),
         scenario.actuator_model_digest.as_str(),
@@ -363,10 +409,19 @@ fn validate_trial(
     if !block_ids.contains(trial.paired_block_id.as_str()) {
         return Err(FaultBenchmarkError::UnknownTrialBlock);
     }
-    if trial.task_progress_ppm > PPM_SCALE {
+    if trial.task_progress_ppm > PPM_SCALE || trial.realized_severity_ppm > PPM_SCALE {
         return Err(FaultBenchmarkError::InvalidPpmValue);
     }
-    if !nonempty(&trial.event_vector_receipt_digest) || !nonempty(&trial.viability_receipt_digest) {
+    if trial.realized_severity_ppm < scenario.severity_lower_ppm
+        || trial.realized_severity_ppm > scenario.severity_upper_ppm
+    {
+        return Err(FaultBenchmarkError::InvalidSeverityRange);
+    }
+    if !nonempty(&trial.fault_injection_receipt_digest)
+        || !nonempty(&trial.run_trace_digest)
+        || !nonempty(&trial.event_vector_receipt_digest)
+        || !nonempty(&trial.viability_receipt_digest)
+    {
         return Err(FaultBenchmarkError::EmptyReceiptDigest);
     }
     if !trial.certificate_current_at_action {
@@ -378,18 +433,37 @@ fn validate_trial(
 
     match &trial.detected {
         DetectionResult::Detected {
-            latency_ms,
+            inferred_family,
+            plausible_families,
             confidence_ppm,
+            severity_estimate_ppm,
+            severity_interval_ppm,
             ..
         } => {
             if *confidence_ppm > PPM_SCALE {
                 return Err(FaultBenchmarkError::InvalidPpmValue);
             }
+            validate_family_set(plausible_families)?;
+            if !plausible_families.contains(inferred_family) {
+                return Err(FaultBenchmarkError::InvalidDetectionResult);
+            }
+            if severity_estimate_ppm.is_some_and(|estimate| estimate > PPM_SCALE) {
+                return Err(FaultBenchmarkError::InvalidSeverityEstimate);
+            }
+            if let Some((lower, upper)) = severity_interval_ppm {
+                if lower > upper || *upper > PPM_SCALE {
+                    return Err(FaultBenchmarkError::InvalidSeverityInterval);
+                }
+            }
         }
-        DetectionResult::Unknown { reason } => {
+        DetectionResult::Unknown {
+            reason,
+            plausible_families,
+        } => {
             if !nonempty(reason) {
                 return Err(FaultBenchmarkError::InvalidDetectionResult);
             }
+            validate_family_set(plausible_families)?;
         }
         DetectionResult::Missed => {}
     }
@@ -419,7 +493,6 @@ fn validate_trial(
         return Err(FaultBenchmarkError::InvalidRecoveryResult);
     }
 
-    let _ = scenario;
     let _ = policy;
     Ok(())
 }
@@ -575,6 +648,12 @@ pub fn audit_fault_benchmark(
             unknown_diagnosis_count: 0,
             missed_diagnosis_count: 0,
             misclassified_count: 0,
+            fault_set_covered_count: 0,
+            fault_set_uncovered_count: 0,
+            hypothesis_set_size_total: 0,
+            severity_estimate_count: 0,
+            severity_absolute_error_sum_ppm: 0,
+            severity_interval_coverage_count: 0,
             late_detection_count: 0,
             stable_adaptation_count: 0,
             late_adaptation_count: 0,
@@ -595,22 +674,55 @@ pub fn audit_fault_benchmark(
                     match &trial.detected {
                         DetectionResult::Detected {
                             inferred_family,
+                            plausible_families,
                             latency_ms,
+                            severity_estimate_ppm,
+                            severity_interval_ppm,
                             ..
                         } => {
                             row.detection_count += 1;
                             if *inferred_family != scenario.fault_family {
                                 row.misclassified_count += 1;
                             }
+                            if plausible_families.contains(&scenario.fault_family) {
+                                row.fault_set_covered_count += 1;
+                            } else {
+                                row.fault_set_uncovered_count += 1;
+                            }
+                            row.hypothesis_set_size_total += plausible_families.len();
                             if *latency_ms > scenario.detection_deadline_ms {
                                 row.late_detection_count += 1;
                             }
+                            if let Some(estimate) = severity_estimate_ppm {
+                                row.severity_estimate_count += 1;
+                                row.severity_absolute_error_sum_ppm = row
+                                    .severity_absolute_error_sum_ppm
+                                    .checked_add(estimate.abs_diff(trial.realized_severity_ppm))
+                                    .ok_or(FaultBenchmarkError::ArithmeticOverflow)?;
+                            }
+                            if let Some((lower, upper)) = severity_interval_ppm {
+                                if *lower <= trial.realized_severity_ppm
+                                    && trial.realized_severity_ppm <= *upper
+                                {
+                                    row.severity_interval_coverage_count += 1;
+                                }
+                            }
                         }
-                        DetectionResult::Unknown { .. } => {
+                        DetectionResult::Unknown {
+                            plausible_families,
+                            ..
+                        } => {
                             row.unknown_diagnosis_count += 1;
+                            if plausible_families.contains(&scenario.fault_family) {
+                                row.fault_set_covered_count += 1;
+                            } else {
+                                row.fault_set_uncovered_count += 1;
+                            }
+                            row.hypothesis_set_size_total += plausible_families.len();
                         }
                         DetectionResult::Missed => {
                             row.missed_diagnosis_count += 1;
+                            row.fault_set_uncovered_count += 1;
                         }
                     }
                     if let AdaptationResult::Stable { latency_ms } = &trial.adaptation {
@@ -639,6 +751,8 @@ pub fn audit_fault_benchmark(
     for policy in &manifest.policies {
         let mut row = PolicyCoverage {
             policy_id: policy.policy_id.clone(),
+            training_fault_truth_visible: policy.training_fault_truth_visible,
+            oracle_upper_bound: policy.oracle_upper_bound,
             trial_count: 0,
             task_completion_count: 0,
             controlled_stop_count: 0,
@@ -702,6 +816,7 @@ mod tests {
         MatchedBenchmarkContext {
             morphology_digest: "morphology-v1".to_owned(),
             actuator_model_digest: "actuator-v1".to_owned(),
+            actuator_response_digest: "actuator-response-v1".to_owned(),
             sensor_model_digest: "sensors-v1".to_owned(),
             terrain_suite_digest: "terrain-v1".to_owned(),
             task_digest: "task-v1".to_owned(),
@@ -709,6 +824,7 @@ mod tests {
             physics_digest: "physics-v1".to_owned(),
             event_taxonomy_digest: "taxonomy-v1".to_owned(),
             event_detector_digest: "detector-v1".to_owned(),
+            energy_boundary_digest: "energy-boundary-v1".to_owned(),
             interaction_budget_steps: 1_000_000,
             compute_budget_micros: 10_000_000,
             test_exposure_units: 100,
@@ -736,6 +852,10 @@ mod tests {
             severity_lower_ppm: 250_000,
             severity_upper_ppm: 750_000,
             onset_phase: FaultPhase::Stance,
+            onset_profile: FaultOnsetProfile::Abrupt,
+            initial_state_digest: "initial-state-v1".to_owned(),
+            payload_digest: "payload-v1".to_owned(),
+            fault_profile_digest: format!("profile-{id}"),
             terrain_stratum_digest: "terrain-rough-v1".to_owned(),
             morphology_digest: "morphology-v1".to_owned(),
             actuator_model_digest: "actuator-v1".to_owned(),
@@ -758,10 +878,16 @@ mod tests {
             policy_id: policy_id.to_owned(),
             scenario_id: scenario_id.to_owned(),
             paired_block_id: block_id.to_owned(),
+            realized_severity_ppm: 500_000,
+            fault_injection_receipt_digest: "fault-injection-receipt".to_owned(),
+            run_trace_digest: "run-trace-digest".to_owned(),
             detected: DetectionResult::Detected {
                 inferred_family: family,
+                plausible_families: vec![family],
                 latency_ms: 10,
                 confidence_ppm: 900_000,
+                severity_estimate_ppm: Some(500_000),
+                severity_interval_ppm: Some((450_000, 550_000)),
             },
             adaptation: AdaptationResult::Stable { latency_ms: 80 },
             terminal_outcome: TerminalOutcome::TaskCompleted,
@@ -930,8 +1056,14 @@ mod tests {
         let mut input = problem();
         input.trials[0].detected = DetectionResult::Detected {
             inferred_family: FaultFamily::TorqueDerating,
+            plausible_families: vec![
+                FaultFamily::JointLocked,
+                FaultFamily::TorqueDerating,
+            ],
             latency_ms: 10,
             confidence_ppm: 800_000,
+            severity_estimate_ppm: None,
+            severity_interval_ppm: None,
         };
         let report = audit_fault_benchmark(&input).expect("misclassification measured");
         let row = report
@@ -947,8 +1079,11 @@ mod tests {
         let mut input = problem();
         input.trials[0].detected = DetectionResult::Detected {
             inferred_family: FaultFamily::JointLocked,
+            plausible_families: vec![FaultFamily::JointLocked],
             latency_ms: 25,
             confidence_ppm: 900_000,
+            severity_estimate_ppm: Some(500_000),
+            severity_interval_ppm: Some((450_000, 550_000)),
         };
         input.trials[0].adaptation = AdaptationResult::Stable { latency_ms: 125 };
         let report = audit_fault_benchmark(&input).expect("late response measured");
