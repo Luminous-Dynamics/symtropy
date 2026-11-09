@@ -92,6 +92,7 @@ fn summary_row(
         String::new(),
         String::new(),
         String::new(),
+        String::new(),
         ceiling.to_string(),
         unqualified_models.to_string(),
         any_model_without_feasible_policy.to_string(),
