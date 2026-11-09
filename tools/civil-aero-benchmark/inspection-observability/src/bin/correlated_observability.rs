@@ -79,6 +79,8 @@ struct SubsetMetrics {
     robustly_feasible: bool,
     worst_case_minimum_eigenvalue: Option<f64>,
     worst_case_log_determinant: Option<f64>,
+    worst_case_diagonal_assumption_minimum_eigenvalue: Option<f64>,
+    worst_case_diagonal_assumption_log_determinant: Option<f64>,
     limiting_scenario_id: String,
     scenario_metrics: Vec<ScenarioMetrics>,
 }
@@ -541,7 +543,13 @@ fn select_best(
         if robust && !subset.robustly_feasible {
             continue;
         }
-        let value = if robust {
+        let value = if robust && diagonal {
+            if objective_is_d {
+                subset.worst_case_diagonal_assumption_log_determinant?
+            } else {
+                subset.worst_case_diagonal_assumption_minimum_eigenvalue?
+            }
+        } else if robust {
             if objective_is_d {
                 subset.worst_case_log_determinant?
             } else {
@@ -629,6 +637,23 @@ fn evaluate(input: &ModelInput, source_sha256: &str) -> Result<Report, String> {
         } else {
             None
         };
+        let worst_case_diagonal_assumption_log_determinant = if robustly_feasible {
+            metrics
+                .iter()
+                .map(|metric| metric.diagonal_assumption_log_determinant)
+                .collect::<Option<Vec<f64>>>()
+                .and_then(|values| values.into_iter().reduce(f64::min))
+        } else {
+            None
+        };
+        let worst_case_diagonal_assumption_minimum_eigenvalue = if robustly_feasible {
+            metrics
+                .iter()
+                .map(|metric| metric.diagonal_assumption_minimum_eigenvalue)
+                .reduce(f64::min)
+        } else {
+            None
+        };
         subsets.push(SubsetMetrics {
             sensor_ids,
             nominal_rank: nominal.rank,
@@ -643,6 +668,8 @@ fn evaluate(input: &ModelInput, source_sha256: &str) -> Result<Report, String> {
                 None
             },
             worst_case_log_determinant,
+            worst_case_diagonal_assumption_minimum_eigenvalue,
+            worst_case_diagonal_assumption_log_determinant,
             limiting_scenario_id: limiting.scenario_id,
             scenario_metrics: metrics,
         });
