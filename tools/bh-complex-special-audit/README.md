@@ -78,6 +78,23 @@ parameter-domain result, not a universal continuation theorem; larger
 arguments, branch-cut crossings and other resonant domains remain explicit
 abstention cases until separately qualified.
 
+### Independent Pöschl–Teller connection Wronskian
+
+The unit-normalized Jost pair also admits an analytic connection-formula Wronskian,
+independent of evaluating both Jost solutions and their derivatives at a finite
+tortoise position. With ell=-1/2+sqrt(1/4-lambda) and mu=i b omega:
+
+    W = -(2/b) Gamma(1-mu)^2
+        / (Gamma(1-mu+ell) Gamma(-ell-mu)).
+
+The implementation exposes this as a separate reference function and compares
+it with the direct Jost Wronskian over multiple complex frequencies and
+tortoise positions. It also checks W=2 i omega in the free-potential limit,
+the principal-root pole labels on both sides of lambda=1/4, and the
+second-order Wronskian zero at threshold. The threshold test classifies the
+local zero order only; it does not infer an exceptional point without a
+separate resolvent/eigenfunction analysis.
+
 ## Independent fixtures
 
 Four complex fixtures were generated with mpmath 1.3.0 at 80 decimal digits
