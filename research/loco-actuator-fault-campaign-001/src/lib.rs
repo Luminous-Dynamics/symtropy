@@ -459,7 +459,10 @@ fn validate_trial(
                 return Err(FaultBenchmarkError::InvalidSeverityEstimate);
             }
             if let Some((lower, upper)) = severity_interval_ppm {
-                if lower > upper || *upper > PPM_SCALE {
+                if lower > upper
+                    || *upper > PPM_SCALE
+                    || severity_estimate_ppm.is_some_and(|estimate| estimate < *lower || estimate > *upper)
+                {
                     return Err(FaultBenchmarkError::InvalidSeverityInterval);
                 }
             }
@@ -1209,6 +1212,50 @@ mod tests {
         assert_eq!(
             audit_fault_benchmark(&input),
             Err(FaultBenchmarkError::ScenarioContextMismatch)
+        );
+    }
+
+    #[test]
+    fn fault_task_and_command_schedule_must_match_campaign_context() {
+        let mut input = problem();
+        input.manifest.heldout_scenarios[0].task_digest = "different-task".to_owned();
+        assert_eq!(
+            audit_fault_benchmark(&input),
+            Err(FaultBenchmarkError::ScenarioContextMismatch)
+        );
+    }
+
+    #[test]
+    fn safe_abstention_does_not_count_as_an_unadmitted_applied_command() {
+        let mut input = problem();
+        input.trials[0].action_applied = false;
+        input.trials[0].certificate_current_at_action = false;
+        input.trials[0].applied_action_admitted = false;
+        let report = audit_fault_benchmark(&input).expect("safe abstention is measurable");
+        let policy = report
+            .policy_coverage
+            .iter()
+            .find(|row| row.policy_id == "nominal")
+            .expect("nominal policy");
+        assert_eq!(policy.action_abstention_count, 1);
+        assert_eq!(policy.stale_certificate_count, 0);
+        assert_eq!(policy.unadmitted_action_count, 0);
+    }
+
+    #[test]
+    fn severity_estimate_outside_its_declared_interval_is_rejected() {
+        let mut input = problem();
+        input.trials[0].detected = DetectionResult::Detected {
+            inferred_family: FaultFamily::JointLocked,
+            plausible_families: vec![FaultFamily::JointLocked],
+            latency_ms: 10,
+            confidence_ppm: 900_000,
+            severity_estimate_ppm: Some(800_000),
+            severity_interval_ppm: Some((400_000, 600_000)),
+        };
+        assert_eq!(
+            audit_fault_benchmark(&input),
+            Err(FaultBenchmarkError::InvalidSeverityInterval)
         );
     }
 
