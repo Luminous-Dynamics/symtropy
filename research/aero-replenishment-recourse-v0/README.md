@@ -17,11 +17,11 @@ No probabilities, expected values or failure rates are inferred from scenario co
 
 One TSV row per scenario/stage/action alternative. Exact header:
 
-    case_id evidence_class deadline_slots capacity_mwh initial_battery_mwh reserve_mwh site_energy_plane_id battery_energy_plane_id start_node observation_node terminal_node scenario_id observation_label stage action_id from_node to_node is_terminal edge_kind mode_id available duration_slots battery_gain_mwh aircraft_draw_mwh site_energy_mwh asset_id installed_mass_g
+    case_id evidence_class deadline_slots capacity_mwh initial_battery_mwh reserve_mwh site_energy_plane_id battery_energy_plane_id start_node observation_node terminal_node scenario_id observation_label stage action_id from_node to_node is_terminal edge_kind mode_id available duration_slots battery_gain_mwh aircraft_draw_mwh site_energy_mwh asset_id installed_mass_g observation_source_receipt_id observation_source_receipt_sha256 observation_partition_sha256
 
 All rows repeat the same case metadata. Each scenario must have an identical stage-0 action set and an identical stage-1 action ID/topology set. Availability and energy outcomes may differ by scenario. A service action unavailable in a scenario remains explicitly present with `available=false` and zero energy transfer; it is never silently removed from the uncertainty set.
 
-Stage-0 action is selected once and shared across every scenario. Its declared observation label becomes available at the decision node. Stage-1 actions are then selected under one of the three information structures above.
+Stage-0 action is selected once and shared across every scenario. Its declared observation label becomes available at the decision node. The observation equivalence partition is bound to one upstream observation/probe receipt ID and two SHA-256 digests: receipt content and partition artifact. The finite policy evaluator syntax-checks these identifiers and requires them to be identical on every input row; it does not fetch or verify the referenced bytes. Stage-1 actions are then selected under one of the three information structures above. Non-anticipativity is conditional on the upstream partition actually representing information available to the decision-maker.
 
 Battery transition is caller-supplied:
 
