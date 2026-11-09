@@ -1,0 +1,36 @@
+name: WPT Action-Conditioned Calibration Bank
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "research/wpt-action-calibration-bank-v0/**"
+      - "tools/wpt-action-calibration-bank/**"
+      - ".github/workflows/wpt-action-calibration-bank.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "research/wpt-action-calibration-bank-v0/**"
+      - "tools/wpt-action-calibration-bank/**"
+      - ".github/workflows/wpt-action-calibration-bank.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate (cross-platform)
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Test exact action-key calibration lookup
+        run: cargo test --locked --manifest-path tools/wpt-action-calibration-bank/Cargo.toml
+      - name: Resolve known V-guide probe calibrator
+        run: cargo run --locked --manifest-path tools/wpt-action-calibration-bank/Cargo.toml -- research/wpt-action-calibration-bank-v0/calibration-bank.tsv research/wpt-action-calibration-bank-v0/vguide-probe-a-request.tsv
+      - name: Abstain on unseen action sequence
+        run: cargo run --locked --manifest-path tools/wpt-action-calibration-bank/Cargo.toml -- research/wpt-action-calibration-bank-v0/calibration-bank.tsv research/wpt-action-calibration-bank-v0/unseen-action-request.tsv
