@@ -376,6 +376,7 @@ impl KerrQnmSpinContinuationTrace {
 #[serde(deny_unknown_fields)]
 pub struct QnmExtremalDampingAnalysisConfig {
     pub fit_samples: usize,
+    pub minimum_log_surface_gravity_span: f64,
     pub zero_damping_min_exponent: f64,
     pub finite_damping_max_exponent: f64,
     pub minimum_finite_damping_rate: f64,
@@ -385,7 +386,8 @@ pub struct QnmExtremalDampingAnalysisConfig {
 impl Default for QnmExtremalDampingAnalysisConfig {
     fn default() -> Self {
         Self {
-            fit_samples: 3,
+            fit_samples: 4,
+            minimum_log_surface_gravity_span: 1.0,
             zero_damping_min_exponent: 0.7,
             finite_damping_max_exponent: 0.25,
             minimum_finite_damping_rate: 1.0e-5,
@@ -399,6 +401,8 @@ pub struct QnmExtremalDampingAnalysis {
     pub classification: QnmExtremalDampingBehavior,
     pub observed_damping_vs_surface_gravity_exponent: Option<f64>,
     pub log_fit_rms: Option<f64>,
+    pub log_surface_gravity_span: Option<f64>,
+    pub exponent_standard_error: Option<f64>,
     pub exact_extremal_damping_rate: Option<f64>,
     pub closest_subextremal_damping_rate: Option<f64>,
     pub fit_samples_used: usize,
@@ -458,6 +462,8 @@ pub fn analyze_extremal_damping(
         .map_err(QnmExtremalDampingAnalysisError::InvalidTrace)?;
 
     if config.fit_samples < 3
+        || !config.minimum_log_surface_gravity_span.is_finite()
+        || config.minimum_log_surface_gravity_span <= 0.0
         || !config.zero_damping_min_exponent.is_finite()
         || !config.finite_damping_max_exponent.is_finite()
         || config.zero_damping_min_exponent <= config.finite_damping_max_exponent
@@ -479,6 +485,8 @@ pub fn analyze_extremal_damping(
             classification: QnmExtremalDampingBehavior::Unresolved,
             observed_damping_vs_surface_gravity_exponent: None,
             log_fit_rms: None,
+            log_surface_gravity_span: None,
+            exponent_standard_error: None,
             exact_extremal_damping_rate: None,
             closest_subextremal_damping_rate: None,
             fit_samples_used: 0,
@@ -492,6 +500,8 @@ pub fn analyze_extremal_damping(
             classification: QnmExtremalDampingBehavior::Unresolved,
             observed_damping_vs_surface_gravity_exponent: None,
             log_fit_rms: None,
+            log_surface_gravity_span: None,
+            exponent_standard_error: None,
             exact_extremal_damping_rate: Some(exact_damping),
             closest_subextremal_damping_rate: None,
             fit_samples_used: 0,
@@ -517,6 +527,8 @@ pub fn analyze_extremal_damping(
             classification: QnmExtremalDampingBehavior::Unresolved,
             observed_damping_vs_surface_gravity_exponent: None,
             log_fit_rms: None,
+            log_surface_gravity_span: None,
+            exponent_standard_error: None,
             exact_extremal_damping_rate: Some(exact_damping),
             closest_subextremal_damping_rate: None,
             fit_samples_used: subextremal.len(),
@@ -531,6 +543,8 @@ pub fn analyze_extremal_damping(
                 classification: QnmExtremalDampingBehavior::Unresolved,
                 observed_damping_vs_surface_gravity_exponent: None,
                 log_fit_rms: None,
+                log_surface_gravity_span: None,
+                exponent_standard_error: None,
                 exact_extremal_damping_rate: Some(exact_damping),
                 closest_subextremal_damping_rate: None,
                 fit_samples_used: subextremal.len(),
@@ -543,6 +557,8 @@ pub fn analyze_extremal_damping(
                 classification: QnmExtremalDampingBehavior::Unresolved,
                 observed_damping_vs_surface_gravity_exponent: None,
                 log_fit_rms: None,
+                log_surface_gravity_span: None,
+                exponent_standard_error: None,
                 exact_extremal_damping_rate: Some(exact_damping),
                 closest_subextremal_damping_rate: Some(damping),
                 fit_samples_used: subextremal.len(),
@@ -564,6 +580,8 @@ pub fn analyze_extremal_damping(
             classification: QnmExtremalDampingBehavior::Unresolved,
             observed_damping_vs_surface_gravity_exponent: None,
             log_fit_rms: None,
+            log_surface_gravity_span: None,
+            exponent_standard_error: None,
             exact_extremal_damping_rate: Some(exact_damping),
             closest_subextremal_damping_rate: None,
             fit_samples_used: points.len(),
@@ -576,23 +594,30 @@ pub fn analyze_extremal_damping(
         .sum::<f64>();
     let exponent = covariance / variance_x;
     let intercept = mean_y - exponent * mean_x;
-    let log_fit_rms = (points
+    let squared_log_residuals = points
         .iter()
         .map(|point| (point.1 - (intercept + exponent * point.0)).powi(2))
-        .sum::<f64>()
-        / count)
-        .sqrt();
-    let closest_subextremal_damping = points
-        .last()
-        .map(|_| {
-            dimensionless_damping_rate(
-                trace.fourier_convention,
-                subextremal[0].omega_m,
-            )
-        });
+        .sum::<f64>();
+    let log_fit_rms = (squared_log_residuals / count).sqrt();
+    let log_surface_gravity_span = points
+        .iter()
+        .map(|point| point.0)
+        .fold(f64::NEG_INFINITY, f64::max)
+        - points
+            .iter()
+            .map(|point| point.0)
+            .fold(f64::INFINITY, f64::min);
+    let exponent_standard_error = (points.len() > 2)
+        .then(|| (squared_log_residuals / (count - 2.0) / variance_x).sqrt());
+    let closest_subextremal_damping = Some(dimensionless_damping_rate(
+        trace.fourier_convention,
+        subextremal[0].omega_m,
+    ));
 
     let classification = if !exponent.is_finite()
         || !log_fit_rms.is_finite()
+        || !log_surface_gravity_span.is_finite()
+        || log_surface_gravity_span < config.minimum_log_surface_gravity_span
         || log_fit_rms > config.maximum_log_fit_rms
     {
         QnmExtremalDampingBehavior::Ambiguous
@@ -612,6 +637,8 @@ pub fn analyze_extremal_damping(
         classification,
         observed_damping_vs_surface_gravity_exponent: Some(exponent),
         log_fit_rms: Some(log_fit_rms),
+        log_surface_gravity_span: Some(log_surface_gravity_span),
+        exponent_standard_error,
         exact_extremal_damping_rate: Some(exact_damping),
         closest_subextremal_damping_rate: closest_subextremal_damping,
         fit_samples_used: points.len(),
@@ -632,7 +659,7 @@ mod tests {
             generated_at_utc: "2026-11-09T00:00:00Z".to_owned(),
             precision_bits: 200,
         };
-        let spins = [0.9_f64, 0.99, 0.999, 1.0];
+        let spins = [0.9_f64, 0.99, 0.999, 0.9999, 1.0];
         let samples = spins
             .iter()
             .enumerate()
@@ -679,8 +706,8 @@ mod tests {
         )
         .then_some(ExtremalLimitEvidence {
             fit_window_min_abs_spin: 0.9,
-            fit_window_max_abs_spin: 0.999,
-            fit_sample_count: 3,
+            fit_window_max_abs_spin: 0.9999,
+            fit_sample_count: 4,
             estimated_damping_limit: if damping == QnmExtremalDampingBehavior::ZeroDamping {
                 0.0
             } else {
