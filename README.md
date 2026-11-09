@@ -78,6 +78,8 @@ The exact crate graph, features and supported APIs evolve. Consult the manifests
 - [Engine notes](ENGINE.md)
 - [Crate and feature licensing](docs/LICENSING.md)
 - [Experimental features and claim boundaries](docs/EXPERIMENTAL_FEATURES.md)
+- [Current physics validity envelope and known limitations](crates/core/symtropy-physics/RESEARCH_VALIDATION.md)
+- [Oriented-collision validation](crates/core/symtropy-physics/ORIENTED_COLLISION_VALIDATION.md)
 - [Robotics platform roadmap](Robotics_Platform_ROADMAP.md)
 
 ## Research tracks
