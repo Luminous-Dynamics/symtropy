@@ -1360,7 +1360,10 @@ mod tests {
             "public_dataset",
             "offline_research"
         ));
-        assert!(!intended_use_scope_allowed("unknown_source_kind", "offline_research"));
+        assert!(!intended_use_scope_allowed(
+            "unknown_source_kind",
+            "offline_research"
+        ));
     }
 
     #[test]
@@ -1517,7 +1520,8 @@ mod tests {
             .expect("schema allOf")
             .iter()
             .find(|rule| {
-                rule["if"]["properties"]["source"]["properties"]["kind"]["const"] == "synthetic_fixture"
+                rule["if"]["properties"]["source"]["properties"]["kind"]["const"]
+                    == "synthetic_fixture"
             })
             .expect("synthetic source scope rule");
         assert!(
@@ -1531,7 +1535,8 @@ mod tests {
             .expect("schema allOf")
             .iter()
             .find(|rule| {
-                rule["if"]["properties"]["source"]["properties"]["kind"]["const"] == "public_dataset"
+                rule["if"]["properties"]["source"]["properties"]["kind"]["const"]
+                    == "public_dataset"
             })
             .expect("public source scope rule");
         assert!(
