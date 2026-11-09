@@ -1,0 +1,79 @@
+{
+  "benchmark_id": "ECLSS-SUPPORTABILITY-001",
+  "version": "0.1.0",
+  "evidence_class": "PUBLISHED_PROGRAMME_SCHEDULE_SNAPSHOTS",
+  "claim_status": "SCHEDULE_VARIANCE_UNRESOLVED",
+  "research_cutoff": "2026-11-09",
+  "records": [
+    {
+      "record_id": "AOGA-SCHED-2025-ICES345",
+      "source": "NASA ICES-2025-345, Status of the Advanced Oxygen Generation Assembly",
+      "source_url": "https://ntrs.nasa.gov/citations/20250005808",
+      "published": "2025-07",
+      "source_type": "conference_paper",
+      "milestone": "ISS launch",
+      "forecast": "2026",
+      "precision": "calendar_year",
+      "statement": "AOGA to be launched to ISS in 2026; design reviews and development tests complete and flight hardware components being manufactured.",
+      "status": "PLANNED",
+      "notes": "2025 snapshot; not an achieved launch."
+    },
+    {
+      "record_id": "AOGA-SCHED-2025-TECHPORT",
+      "source": "NASA TechPort project 157887",
+      "source_url": "https://techport.nasa.gov/projects/157887",
+      "published": "2025-12-18",
+      "source_type": "programme_project_page",
+      "milestone": "mod-kit delivery",
+      "forecast": "early 2026",
+      "precision": "calendar_part",
+      "statement": "Mod-kit delivery planned early calendar year 2026; launch to ISS in the fall.",
+      "status": "PLANNED",
+      "notes": "The page update predates the 2026 conference papers; mod-kit delivery and launch are distinct milestones."
+    },
+    {
+      "record_id": "AOGA-SCHED-2026-ICES423",
+      "source": "Oliver-Butler et al., ICES-2026-423, Status of the Advanced Oxygen Generation Assembly in 2026",
+      "source_url": "https://doi.org/10.32865/2346/109056",
+      "published": "2026-07-12",
+      "source_type": "conference_paper_abstract_and_metadata",
+      "milestone": "ISS launch",
+      "forecast": "late 2026",
+      "precision": "calendar_part",
+      "statement": "AOGA hardware is described as undergoing build and slated to launch to ISS in late 2026.",
+      "status": "PLANNED",
+      "notes": "Full PDF was not accessible through the current browser retrieval path; statement taken from the indexed article abstract/metadata."
+    },
+    {
+      "record_id": "AOGA-SCHED-2026-ICES379",
+      "source": "Brown et al., ICES-2026-379, ISS as a Testbed for Exploration ECLSS: 2026 Status",
+      "source_url": "https://ntrs.nasa.gov/citations/20260003280",
+      "published": "2026-07-12",
+      "source_type": "conference_paper",
+      "milestone": "delivery to ISS for integration/testing",
+      "forecast": "mid-2027",
+      "precision": "calendar_part",
+      "statement": "The report describes delivery planned for mid-2027 and identifies three new manifolds and pressure-sensor qualification among critical-path items.",
+      "status": "PLANNED",
+      "notes": "Do not silently equate delivery to integration/testing with launch/activation."
+    },
+    {
+      "record_id": "AOGA-SCHED-2026-NASA-FY27-PLAN",
+      "source": "NASA FY 2026/2027 Agency Performance Plan",
+      "source_url": "https://www.nasa.gov/wp-content/uploads/2026/04/nasa-fy-27-volume-of-integrated-performancevf.pdf",
+      "published": "2026-04",
+      "source_type": "agency_performance_plan",
+      "milestone": "delivery for testing on ISS",
+      "forecast": "FY2027",
+      "precision": "fiscal_year",
+      "statement": "NASA lists delivery of the Advanced Oxygen Generation Assembly for testing on ISS as a FY 2027 critical milestone.",
+      "status": "PLANNED",
+      "notes": "Agency milestone; delivery for testing is not stated as launch or operational activation."
+    }
+  ],
+  "interpretation": {
+    "status": "UNRESOLVED_SCHEDULE_VARIANCE",
+    "explanation": "Forecasts differ and milestone verbs/boundaries are not equivalent. Do not infer a slip cause, choose the most optimistic date, or state actual launch/activation from planned dates alone.",
+    "required_follow_up": "Reconcile revision/configuration, mod-kit delivery, shipment, ISS arrival, integration, launch/installation, activation and critical-system qualification as separate events; update only with a dated primary source or operational record."
+  }
+}
