@@ -554,13 +554,13 @@ pub fn analyze_model_set_decisions(
                     metric_id: value.metric_id.clone(),
                 });
             }
-            if let Some(number) = value.value {
-                if !number.is_finite() {
-                    return Err(ModelSetError::NonFiniteMetricValue {
-                        metric_id: value.metric_id.clone(),
-                        value: number,
-                    });
-                }
+            if let Some(number) = value.value
+                && !number.is_finite()
+            {
+                return Err(ModelSetError::NonFiniteMetricValue {
+                    metric_id: value.metric_id.clone(),
+                    value: number,
+                });
             }
         }
 
@@ -693,9 +693,7 @@ pub fn analyze_model_set_decisions(
                 .iter()
                 .map(|(_, outcome)| constraint_status(*outcome, &manifest.metrics))
                 .collect::<Vec<_>>();
-            let constraint_unknown = statuses
-                .iter()
-                .any(|status| *status == FeasibilityStatus::Unknown);
+            let constraint_unknown = statuses.contains(&FeasibilityStatus::Unknown);
             let feasible_policy_indices = statuses
                 .iter()
                 .enumerate()
@@ -1092,33 +1090,30 @@ mod tests {
     }
 
     fn outcome(
-        model_id: &str,
-        model_digest: &str,
-        case_id: &str,
-        case_digest: &str,
-        policy_id: &str,
-        policy_digest: &str,
-        unmet_water: Option<f64>,
-        coverage: Option<f64>,
+        model: (&str, &str),
+        case: (&str, &str),
+        policy: (&str, &str),
+        unmet_water_m3: f64,
+        essential_coverage: f64,
     ) -> ModelPolicyOutcome {
         ModelPolicyOutcome {
-            model_id: model_id.to_string(),
-            model_digest: model_digest.to_string(),
-            case_id: case_id.to_string(),
-            case_digest: case_digest.to_string(),
-            policy_id: policy_id.to_string(),
-            policy_digest: policy_digest.to_string(),
-            outcome_digest: format!("sha256-{model_id}-{case_id}-{policy_id}"),
+            model_id: model.0.to_string(),
+            model_digest: model.1.to_string(),
+            case_id: case.0.to_string(),
+            case_digest: case.1.to_string(),
+            policy_id: policy.0.to_string(),
+            policy_digest: policy.1.to_string(),
+            outcome_digest: format!("sha256-{}-{}-{}", model.0, case.0, policy.0),
             values: vec![
                 DecisionMetricValue {
                     metric_id: "unmet-water".to_string(),
                     unit: "m3".to_string(),
-                    value: unmet_water,
+                    value: Some(unmet_water_m3),
                 },
                 DecisionMetricValue {
                     metric_id: "essential-coverage".to_string(),
                     unit: "fraction".to_string(),
-                    value: coverage,
+                    value: Some(essential_coverage),
                 },
             ],
         }
@@ -1165,14 +1160,11 @@ mod tests {
             for (case_index, case_rows) in cases.into_iter().enumerate() {
                 for (policy_id, policy_digest, unmet, coverage) in case_rows {
                     rows.push(outcome(
-                        model_id,
-                        model_digest,
-                        case_ids[case_index],
-                        case_digests[case_index],
-                        policy_id,
-                        policy_digest,
-                        Some(unmet),
-                        Some(coverage),
+                        (model_id, model_digest),
+                        (case_ids[case_index], case_digests[case_index]),
+                        (policy_id, policy_digest),
+                        unmet,
+                        coverage,
                     ));
                 }
             }
