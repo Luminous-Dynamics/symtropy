@@ -91,7 +91,8 @@
           "POSE_CALIBRATION",
           "ASSET_LIFECYCLE",
           "INTEROPERABILITY",
-          "MISSION_RECOURSE"
+          "MISSION_RECOURSE",
+          "PHYSICAL_DATASET_INTEGRITY"
         ]
       }
     },
@@ -254,7 +255,8 @@
             "POSE_CALIBRATION",
             "ASSET_LIFECYCLE",
             "CAPABILITY_PROFILE",
-            "MISSION_RECOURSE_POLICY"
+            "MISSION_RECOURSE_POLICY",
+            "PHYSICAL_DATASET_INTEGRITY"
           ]
         },
         "artifact_path": {
@@ -430,7 +432,8 @@
         "POSE_CALIBRATION",
         "ASSET_LIFECYCLE",
         "CAPABILITY_PROFILE",
-        "MISSION_RECOURSE_POLICY"
+        "MISSION_RECOURSE_POLICY",
+        "PHYSICAL_DATASET_INTEGRITY"
       ]
     },
     "receiver": {
@@ -546,7 +549,12 @@
             "CAPABILITY_PROFILE_MATCHER",
             "OPEN_LOOP_ROBUST_REPLENISHMENT",
             "OBSERVATION_CONDITIONED_RECOURSE",
-            "PERFECT_INFORMATION_UPPER_BOUND_NON_DEPLOYABLE"
+            "PERFECT_INFORMATION_UPPER_BOUND_NON_DEPLOYABLE",
+            "EPISODE_GROUPED_HOLDOUT",
+            "RECEIVER_SERIAL_HOLDOUT",
+            "HARDWARE_REVISION_HOLDOUT",
+            "SITE_ENVIRONMENT_HOLDOUT",
+            "TRAJECTORY_HOLDOUT"
           ]
         },
         "artifact_sha256": {
