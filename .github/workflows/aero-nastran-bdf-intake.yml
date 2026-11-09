@@ -16,6 +16,17 @@ jobs:
     steps:
       - name: Check out exact pull-request head
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Assert exact subject revision
+        env:
+          EXPECTED_SUBJECT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          actual_subject_sha="$(git rev-parse HEAD)"
+          test "$actual_subject_sha" = "$EXPECTED_SUBJECT_SHA"
+          printf 'subject_commit=%s\n' "$actual_subject_sha"
+          printf 'event_commit=%s\n' "$GITHUB_SHA"
+          printf 'workflow_ref=%s\n' "$GITHUB_WORKFLOW_REF"
 
       - name: Install stable Rust with rustfmt
         uses: dtolnay/rust-toolchain@stable
@@ -60,7 +71,7 @@ jobs:
       - name: Retain fixtures, inventories and digest receipts
         uses: actions/upload-artifact@v4
         with:
-          name: aero-nastran-bdf-intake-${{ github.sha }}
+          name: aero-nastran-bdf-intake-${{ github.event.pull_request.head.sha || github.sha }}
           path: |
             tools/civil-aero-benchmark/nastran-bdf-intake/data/synthetic-equivalent-beam.bdf
             tools/civil-aero-benchmark/nastran-bdf-intake/data/synthetic-crm-equivalent-beam-shape.bdf
