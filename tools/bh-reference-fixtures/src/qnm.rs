@@ -11,7 +11,7 @@ use crate::{
     FrequencyNormalization,
 };
 
-pub const QNM_SEQUENCE_SCHEMA_VERSION: u32 = 1;
+pub const QNM_SEQUENCE_SCHEMA_VERSION: u32 = 2;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -469,9 +469,47 @@ pub enum QnmMethodApplicability {
     Unresolved,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum QnmRiemannSheetKind {
+    Conventional,
+    Unconventional,
+    OtherNamed,
+    Unresolved,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum QnmContinuationClass {
+    ClassI,
+    ClassII,
+    OtherNamed,
+    NotApplicable,
+    Unresolved,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum QnmFrequencyCutRelation {
+    OffCut,
+    PositiveRealSide,
+    NegativeRealSide,
+    OnCut,
+    NotApplicable,
+    Unresolved,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct QnmModeRecord {
+    /// Stable identity of this analytic mode lineage; not inferred from n.
+    pub mode_lineage_id: String,
+    pub riemann_sheet_kind: QnmRiemannSheetKind,
+    /// Producer-defined sheet/chart identifier.
+    pub riemann_sheet_id: String,
+    pub continuation_class: QnmContinuationClass,
+    pub continuation_class_label: Option<String>,
+    pub frequency_cut_relation: QnmFrequencyCutRelation,
     pub sequence_position: u32,
     pub overtone_index: Option<u32>,
     pub omega_m: ComplexValue,
@@ -536,6 +574,7 @@ pub enum QnmSequenceValidationError {
     SequencePositionsNotStrictlyIncreasing(usize),
     DuplicateOvertoneIndex(u32),
     NonFiniteModeValue(usize),
+    InvalidSpectralIdentity(usize),
     InconsistentInitialGuessMetadata(usize),
     InvalidModeResiduals(usize),
     InvalidFamilyEvidence,
@@ -587,6 +626,10 @@ impl core::fmt::Display for QnmSequenceValidationError {
                     "QNM mode {index} has a non-finite frequency/eigenvalue/guess"
                 )
             }
+            Self::InvalidSpectralIdentity(index) => write!(
+                f,
+                "QNM mode {index} has incomplete or inconsistent Riemann-sheet/continuation identity"
+            ),
             Self::InconsistentInitialGuessMetadata(index) => {
                 write!(
                     f,
@@ -735,6 +778,20 @@ impl KerrQnmSequenceFixture {
             {
                 return Err(QnmSequenceValidationError::NonFiniteModeValue(index));
             }
+            if mode.mode_lineage_id.trim().is_empty()
+                || mode.riemann_sheet_id.trim().is_empty()
+                || (mode.continuation_class == QnmContinuationClass::OtherNamed
+                    && mode
+                        .continuation_class_label
+                        .as_deref()
+                        .is_none_or(str::is_empty))
+                || (mode.continuation_class != QnmContinuationClass::OtherNamed
+                    && mode.continuation_class_label.is_some())
+                || (mode.riemann_sheet_kind == QnmRiemannSheetKind::Unresolved
+                    && mode.riemann_sheet_id != "unresolved")
+            {
+                return Err(QnmSequenceValidationError::InvalidSpectralIdentity(index));
+            }
             if mode.initial_guess.is_some()
                 && mode.initial_guess_source == QnmInitialGuessSource::NoInitialGuessRequired
             {
@@ -851,6 +908,12 @@ mod tests {
             });
         let modes = (0..3)
             .map(|position| QnmModeRecord {
+                mode_lineage_id: format!("test-mode-lineage-{position}"),
+                riemann_sheet_kind: QnmRiemannSheetKind::Conventional,
+                riemann_sheet_id: "conventional".to_owned(),
+                continuation_class: QnmContinuationClass::NotApplicable,
+                continuation_class_label: None,
+                frequency_cut_relation: QnmFrequencyCutRelation::OffCut,
                 sequence_position: position,
                 overtone_index: Some(position),
                 omega_m: ComplexValue {
@@ -938,6 +1001,38 @@ mod tests {
         assert_eq!(
             value.validate(),
             Err(QnmSequenceValidationError::AngularEigenvalueConventionIncomplete)
+        );
+    }
+
+    #[test]
+    fn qnm_mode_identity_keeps_riemann_sheet_and_continuation_class_orthogonal_to_family() {
+        let mut value = sequence(QnmFamilyClassification::Unresolved);
+        value.modes[0].riemann_sheet_kind = QnmRiemannSheetKind::Unconventional;
+        value.modes[0].riemann_sheet_id = "unconventional-lower-half-plane".to_owned();
+        value.modes[0].continuation_class = QnmContinuationClass::ClassI;
+        value.modes[0].frequency_cut_relation = QnmFrequencyCutRelation::NegativeRealSide;
+        assert_eq!(value.validate(), Ok(()));
+        assert_eq!(
+            value.family_classification,
+            QnmFamilyClassification::Unresolved
+        );
+    }
+
+    #[test]
+    fn qnm_mode_identity_rejects_missing_sheet_and_bad_named_class() {
+        let mut missing_sheet = sequence(QnmFamilyClassification::Unresolved);
+        missing_sheet.modes[0].riemann_sheet_id.clear();
+        assert_eq!(
+            missing_sheet.validate(),
+            Err(QnmSequenceValidationError::InvalidSpectralIdentity(0))
+        );
+
+        let mut bad_named_class = sequence(QnmFamilyClassification::Unresolved);
+        bad_named_class.modes[0].continuation_class = QnmContinuationClass::OtherNamed;
+        bad_named_class.modes[0].continuation_class_label = None;
+        assert_eq!(
+            bad_named_class.validate(),
+            Err(QnmSequenceValidationError::InvalidSpectralIdentity(0))
         );
     }
 
