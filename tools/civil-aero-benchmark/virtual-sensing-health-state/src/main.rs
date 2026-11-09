@@ -294,6 +294,36 @@ fn validate_fixture(fixture: &Fixture) -> Result<(), String> {
                 }
             }
         }
+        let expected_state = case.expected.structural_state.as_deref();
+        if expected_state.is_some_and(|state| !matches!(state, "HEALTHY" | "DAMAGED")) {
+            return Err(format!("{}: unsupported expected structural state", case.case_id));
+        }
+        if case.expected.post_reconstruction_structural_state
+            != case.expected.structural_state
+        {
+            return Err(format!(
+                "{}: expected reconstruction state must preserve the structural hypothesis",
+                case.case_id
+            ));
+        }
+        if case.expected.damage_preserved != expected_state.map(|state| state == "DAMAGED") {
+            return Err(format!(
+                "{}: expected damage-preservation marker contradicts structural state",
+                case.case_id
+            ));
+        }
+        let mut expected_fault_ids = BTreeSet::new();
+        for sensor_id in &case.expected.faulty_sensor_ids {
+            if !ids.iter().any(|id| id == sensor_id)
+                || !expected_fault_ids.insert(sensor_id.as_str())
+            {
+                return Err(format!(
+                    "{}: expected fault sensor IDs must be known and unique",
+                    case.case_id
+                ));
+            }
+        }
+
         if !matches!(
             case.expected.disposition.as_str(),
             "HEALTHY_WITHIN_DECLARED_SYNTHETIC_SUPPORT"
