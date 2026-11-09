@@ -124,11 +124,12 @@ pub struct TransferDomainResult {
     pub statistics: Vec<TransferStatisticResult>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct TransferAssessment {
     pub registry_version: String,
     pub model_digest: String,
     pub calibration_data_digest: String,
+    pub central_mass: f64,
     pub evidence_complete: bool,
     pub source_validation_domain_count: usize,
     pub held_out_challenge_domain_count: usize,
@@ -162,6 +163,8 @@ pub enum TransferAdequacyError {
     StatisticRoleMismatch { domain_id: String, statistic_id: String },
     StatisticUnitKindMismatch { domain_id: String, statistic_id: String },
     AssessmentManifestMismatch { domain_id: String },
+    InvalidCentralMass,
+    AssessmentCentralMassMismatch { domain_id: String },
     AssessmentRegistryMismatch { domain_id: String },
     AssessmentRoleMismatch { domain_id: String },
     MixedModelIdentityWithinDomain { domain_id: String },
@@ -222,6 +225,7 @@ fn evaluate_domain(
     expected_schema: &[StatisticSemanticSignature],
     expected_registry_version: &str,
     expected_calibration_digest: &str,
+    expected_central_mass: f64,
 ) -> Result<(TransferDomainResult, String), TransferAdequacyError> {
     let domain_id = &domain.domain_id;
     domain.registry.validate()?;
@@ -239,6 +243,11 @@ fn evaluate_domain(
     }
     if domain.assessment.predictive_kind != PredictiveKind::Split {
         return Err(TransferAdequacyError::InvalidPredictiveKind {
+            domain_id: domain_id.clone(),
+        });
+    }
+    if domain.assessment.central_mass != expected_central_mass {
+        return Err(TransferAdequacyError::AssessmentCentralMassMismatch {
             domain_id: domain_id.clone(),
         });
     }
@@ -552,6 +561,10 @@ pub fn assess_zero_shot_transfer(
     let expected_schema = semantic_schema(&first.registry);
     let expected_registry_version = first.registry.version.as_str();
     let expected_calibration_digest = first.manifest.calibration_data_digest.as_str();
+    let expected_central_mass = first.assessment.central_mass;
+    if !expected_central_mass.is_finite() || expected_central_mass <= 0.0 || expected_central_mass >= 1.0 {
+        return Err(TransferAdequacyError::InvalidCentralMass);
+    }
 
     let mut seen_domains = BTreeSet::new();
     let mut seen_manifest_ids = BTreeSet::new();
@@ -583,6 +596,7 @@ pub fn assess_zero_shot_transfer(
             &expected_schema,
             expected_registry_version,
             expected_calibration_digest,
+            expected_central_mass,
         )?;
         if model_digest
             .as_deref()
@@ -636,6 +650,7 @@ pub fn assess_zero_shot_transfer(
         registry_version: expected_registry_version.to_string(),
         model_digest: model_digest.unwrap_or_default(),
         calibration_data_digest: expected_calibration_digest.to_string(),
+        central_mass: expected_central_mass,
         evidence_complete,
         source_validation_domain_count,
         held_out_challenge_domain_count,
@@ -895,6 +910,16 @@ mod tests {
         assert!(matches!(
             assess_zero_shot_transfer(&domains),
             Err(TransferAdequacyError::InvalidPredictiveKind { .. })
+        ));
+    }
+
+    #[test]
+    fn differing_predictive_interval_mass_is_rejected() {
+        let mut domains = standard_domains();
+        domains[1].assessment.central_mass = 0.95;
+        assert!(matches!(
+            assess_zero_shot_transfer(&domains),
+            Err(TransferAdequacyError::AssessmentCentralMassMismatch { .. })
         ));
     }
 
