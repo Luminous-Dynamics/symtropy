@@ -959,7 +959,7 @@ mod tests {
                 region_id: "district-a".into(),
                 asset_id: "reservoir-a".into(),
                 resource: Resource::Water,
-                closing_stock: 40.0,
+                closing_stock: closing.water_m3 / 2.0,
                 source_evidence_ref: source_ref.clone(),
             },
             InheritedStockAllocation {
@@ -977,7 +977,7 @@ mod tests {
                 region_id: "district-a".into(),
                 asset_id: "grid-storage-a".into(),
                 resource: Resource::Energy,
-                closing_stock: 80.0,
+                closing_stock: closing.energy_kwh / 2.0,
                 source_evidence_ref: source_ref.clone(),
             },
             InheritedStockAllocation {
@@ -995,7 +995,7 @@ mod tests {
                 region_id: "district-a".into(),
                 asset_id: "food-reserve-a".into(),
                 resource: Resource::Food,
-                closing_stock: 32.0,
+                closing_stock: closing.food_kg / 2.0,
                 source_evidence_ref: source_ref.clone(),
             },
         ]
