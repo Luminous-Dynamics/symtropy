@@ -79,8 +79,8 @@ From the repository root:
 
 ~~~sh
 cargo fmt --manifest-path tools/civil-aero-benchmark/structural-observability/Cargo.toml -- --check
-cargo test --manifest-path tools/civil-aero-benchmark/structural-observability/Cargo.toml
-cargo run --quiet --manifest-path tools/civil-aero-benchmark/structural-observability/Cargo.toml > /tmp/aero-observability.json
+cargo test --locked --manifest-path tools/civil-aero-benchmark/structural-observability/Cargo.toml
+cargo run --locked --quiet --manifest-path tools/civil-aero-benchmark/structural-observability/Cargo.toml > /tmp/aero-observability.json
 python3 tools/civil-aero-benchmark/structural-observability/verify_independent.py \
   --rust-output /tmp/aero-observability.json
 ~~~
