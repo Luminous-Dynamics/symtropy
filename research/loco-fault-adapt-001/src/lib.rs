@@ -212,8 +212,8 @@ pub struct FaultBenchmarkReport {
     pub matched_trial_count: usize,
     pub family_coverage: Vec<FamilyCoverage>,
     pub policy_coverage: Vec<PolicyCoverage>,
-    /// The report intentionally preserves no single aggregate fault-tolerance
-    /// score. Per-trial records remain the source of detailed distributions.
+    // The report intentionally preserves no single aggregate fault-tolerance
+    // score. Per-trial records remain the source of detailed distributions.
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
