@@ -394,7 +394,7 @@ pub enum RadialComparisonStatus {
     NumericallyDisagreeing,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Serialize, Deserialize)]
 pub struct RadialChannelMetrics {
     pub compared_values: usize,
     pub maximum_absolute_error: f64,
@@ -404,16 +404,6 @@ pub struct RadialChannelMetrics {
     pub values_outside_tolerance: usize,
 }
 
-impl Default for RadialChannelMetrics {
-    fn default() -> Self {
-        Self {
-            compared_values: 0,
-            maximum_absolute_error: 0.0,
-            maximum_scaled_error: 0.0,
-            values_outside_tolerance: 0,
-        }
-    }
-}
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RadialComparisonResult {
