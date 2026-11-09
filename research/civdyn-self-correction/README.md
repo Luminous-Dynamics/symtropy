@@ -216,7 +216,7 @@ The evaluator consumes typed statistic registries, split manifests and adequacy 
 A transfer report is only valid when every domain uses:
 - the same exact frozen model digest (zero target adaptation);
 - the same calibration-data digest;
-- the same semantic statistic IDs, constructs and measurement units;
+- the same semantic statistic IDs, constructs and measurement units, and the same predictive central-mass threshold;
 - unique domain and split-manifest identities;
 - source, observation, registry and split identities consistent with each typed assessment.
 
