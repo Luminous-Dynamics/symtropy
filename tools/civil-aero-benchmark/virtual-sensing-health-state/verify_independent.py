@@ -96,6 +96,12 @@ def validate(data: dict[str, Any]) -> None:
             "correction must require a unique joint hypothesis")
     require(policy.get("damage_clearance_from_correction_prohibited") is True,
             "damage-preservation guard may not be disabled")
+    require(policy.get("fault_confirmation_requires_independent_witness") is True,
+            "independent fault witness must be required")
+    require(policy.get("raw_measurements_immutable") is True,
+            "raw measurements must remain immutable")
+    require(policy.get("reconstruction_is_not_measurement") is True,
+            "model reconstruction must not be represented as a measurement")
 
     cases = data.get("cases")
     require(isinstance(cases, list) and 0 < len(cases) <= 64,
@@ -119,21 +125,47 @@ def validate(data: dict[str, Any]) -> None:
             isinstance(value, (int, float)) and math.isfinite(value)
         ) for value in case["observed_values"]),
                 f"{identifier}: observation contains non-finite value")
+        witnesses = case.get("sensor_fault_witnesses")
+        require(isinstance(witnesses, list), f"{identifier}: sensor_fault_witnesses must be a list")
+        witness_ids: set[str] = set()
+        for witness in witnesses:
+            sensor_id = witness.get("sensor_id")
+            require(sensor_id in ids and sensor_id not in witness_ids,
+                    f"{identifier}: unknown or duplicate sensor-fault witness")
+            witness_ids.add(sensor_id)
+            require(isinstance(witness.get("evidence_kind"), str)
+                    and witness["evidence_kind"].strip(),
+                    f"{identifier}: witness evidence kind missing")
+            if witness.get("status") == "FAULT_CONFIRMED":
+                require(witness.get("evidence_kind") == "independent_builtin_self_test",
+                        f"{identifier}: unsupported fault-witness mechanism")
+                require(is_sha256(witness.get("evidence_sha256")),
+                        f"{identifier}: confirmed fault witness requires SHA-256 evidence")
+            elif witness.get("status") == "NOT_CONFIRMED":
+                require(witness.get("evidence_sha256") is None,
+                        f"{identifier}: unconfirmed witness cannot carry a confirmation digest")
+            else:
+                raise AuditError(f"{identifier}: unsupported sensor-fault witness status")
         expected = case.get("expected")
         require(isinstance(expected, dict), f"{identifier}: expected answer missing")
         require(isinstance(expected.get("disposition"), str),
                 f"{identifier}: expected disposition missing")
 
 
-def abstain(case: dict[str, Any], disposition: str, explanation_count: int = 0) -> dict[str, Any]:
+def abstain(case: dict[str, Any], disposition: str,
+           explanation_count: int = 0,
+           sensor_fault_confirmation: str = "NOT_ASSESSED") -> dict[str, Any]:
     return {
         "case_id": case["case_id"],
         "disposition": disposition,
         "structural_state": None,
         "faulty_sensor_ids": [],
         "explanation_count": explanation_count,
-        "corrected_values": None,
-        "correction_applied_sensor_ids": [],
+        "observed_values": list(case["observed_values"]),
+        "model_imputed_values": None,
+        "reconstructed_sensor_ids": [],
+        "reconstruction_status": "NOT_PERFORMED",
+        "sensor_fault_confirmation": sensor_fault_confirmation,
         "post_correction_structural_state": None,
         "damage_preserved": None,
         "claim_ceiling": CLAIM_CEILING,
@@ -177,13 +209,12 @@ def evaluate_case(data: dict[str, Any], case: dict[str, Any]) -> dict[str, Any]:
     if len(observed_indices) < data["policy"]["minimum_consistent_channels"]:
         return abstain(case, "ABSTAIN_INSUFFICIENT_OBSERVABILITY")
 
-    # Do not correct an unqualified measurement channel into a healthy-looking value.
-    unqualified = any(
+    # Do not reconstruct unqualified observations into apparently admissible values.
+    if any(
         channels[index]["operator_status"] != "ADMITTED"
         or channels[index]["calibration_status"] != "VALID"
         for index in observed_indices
-    )
-    if unqualified:
+    ):
         return abstain(case, "ABSTAIN_UNQUALIFIED_MEASUREMENT_CHAIN")
 
     explanations = []
@@ -197,40 +228,68 @@ def evaluate_case(data: dict[str, Any], case: dict[str, Any]) -> dict[str, Any]:
         explanations.append(healthy)
     if damaged is not None:
         explanations.append(damaged)
-
     if not explanations:
         return abstain(case, "ABSTAIN_OUT_OF_MODEL")
     if len(explanations) > 1:
         return abstain(case, "ABSTAIN_AMBIGUOUS_HYPOTHESES", len(explanations))
 
     explanation = explanations[0]
-    state = explanation["structural_state"]
     faulty_ids = [channels[index]["sensor_id"] for index in explanation["faulty_indices"]]
+    if faulty_ids:
+        witnesses = {
+            item["sensor_id"]: item
+            for item in case["sensor_fault_witnesses"]
+        }
+        confirmed = all(
+            sensor_id in witnesses
+            and witnesses[sensor_id]["status"] == "FAULT_CONFIRMED"
+            and witnesses[sensor_id]["evidence_kind"] == "independent_builtin_self_test"
+            and is_sha256(witnesses[sensor_id]["evidence_sha256"])
+            for sensor_id in faulty_ids
+        )
+        if not confirmed:
+            return abstain(
+                case,
+                "ABSTAIN_SENSOR_FAULT_UNCONFIRMED",
+                1,
+                "NOT_CONFIRMED",
+            )
+
+    state = explanation["structural_state"]
     if state == "HEALTHY" and not faulty_ids:
         disposition = "HEALTHY_WITHIN_DECLARED_SYNTHETIC_SUPPORT"
     elif state == "HEALTHY":
-        disposition = "SENSOR_FAULT_SUSPECTED"
+        disposition = "SENSOR_FAULT_WITNESS_CONFIRMED"
     elif not faulty_ids:
         disposition = "STRUCTURAL_DAMAGE_SUSPECTED"
     else:
-        disposition = "DAMAGE_AND_SENSOR_FAULT_SUSPECTED"
+        disposition = "DAMAGE_AND_SENSOR_FAULT_WITNESS_CONFIRMED"
 
-    # Corrections are downstream of a unique joint hypothesis. They never re-infer
-    # or overwrite the structural state, so they cannot clear a damage hypothesis.
-    corrected = list(case["observed_values"])
-    for index in explanation["faulty_indices"]:
-        corrected[index] = explanation["template"][index]
-    damage_preserved = state == "DAMAGED"
+    # Preserve raw values. A model-imputed value is separate and not a measurement.
+    imputed = None
+    reconstruction_status = "NOT_APPLICABLE"
+    if faulty_ids:
+        imputed = [None] * len(case["observed_values"])
+        for index in explanation["faulty_indices"]:
+            imputed[index] = explanation["template"][index]
+        reconstruction_status = "CONDITIONAL_MODEL_ESTIMATE_NOT_MEASUREMENT"
+
     return {
         "case_id": case["case_id"],
         "disposition": disposition,
         "structural_state": state,
         "faulty_sensor_ids": faulty_ids,
         "explanation_count": 1,
-        "corrected_values": corrected,
-        "correction_applied_sensor_ids": faulty_ids,
+        "observed_values": list(case["observed_values"]),
+        "model_imputed_values": imputed,
+        "reconstructed_sensor_ids": faulty_ids,
+        "reconstruction_status": reconstruction_status,
+        "sensor_fault_confirmation": (
+            "INDEPENDENT_WITNESS_CONFIRMED" if faulty_ids
+            else "NO_SENSOR_FAULT_HYPOTHESIS"
+        ),
         "post_correction_structural_state": state,
-        "damage_preserved": damage_preserved,
+        "damage_preserved": state == "DAMAGED",
         "claim_ceiling": CLAIM_CEILING,
     }
 
@@ -281,24 +340,24 @@ def hostile_controls(data: dict[str, Any]) -> None:
     result = evaluate_case(data, ambiguous)
     require(result["disposition"] == "ABSTAIN_AMBIGUOUS_HYPOTHESES",
             "ambiguous damage-vs-sensor case was promoted")
-    require(result["corrected_values"] is None,
-            "ambiguous case received a virtual correction")
+    require(result["model_imputed_values"] is None,
+            "ambiguous case received a virtual reconstruction")
 
     unqualified = copy.deepcopy(data)
     unqualified["channels"][1]["operator_status"] = "UNKNOWN"
     result = evaluate_case(unqualified, unqualified["cases"][1])
     require(result["disposition"] == "ABSTAIN_UNQUALIFIED_MEASUREMENT_CHAIN",
             "unqualified operator was accepted")
-    require(result["corrected_values"] is None,
-            "unqualified operator was corrected")
+    require(result["model_imputed_values"] is None,
+            "unqualified operator was reconstructed")
 
     expired = copy.deepcopy(data)
     expired["channels"][1]["calibration_status"] = "EXPIRED"
     result = evaluate_case(expired, expired["cases"][1])
     require(result["disposition"] == "ABSTAIN_UNQUALIFIED_MEASUREMENT_CHAIN",
             "expired calibration was accepted")
-    require(result["corrected_values"] is None,
-            "expired channel was corrected")
+    require(result["model_imputed_values"] is None,
+            "expired channel was reconstructed")
 
     deficient = copy.deepcopy(data)
     deficient["cases"][0]["observed_values"] = [0.0, None, None]
@@ -333,17 +392,27 @@ def main() -> int:
         raw = FIXTURE.read_bytes()
         data = json.loads(raw)
         expected = evaluate(data, raw)
-        require(expected["case_count"] == 7, "frozen case count changed")
+        require(expected["case_count"] == 8, "frozen case count changed")
         by_id = {case["case_id"]: case for case in expected["cases"]}
         require(by_id["HH_HEALTHY_STRUCTURE_HEALTHY_SENSORS"]["disposition"]
                 == "HEALTHY_WITHIN_DECLARED_SYNTHETIC_SUPPORT", "HH known answer changed")
         require(by_id["HF_HEALTHY_STRUCTURE_FAULTY_SENSOR"]["faulty_sensor_ids"] == ["S2"],
                 "HF channel known answer changed")
+        require(by_id["HF_HEALTHY_STRUCTURE_FAULTY_SENSOR"]["disposition"]
+                == "SENSOR_FAULT_WITNESS_CONFIRMED", "HF witness disposition changed")
+        require(by_id["HF_HEALTHY_STRUCTURE_FAULTY_SENSOR"]["observed_values"][1] == 0.8
+                and by_id["HF_HEALTHY_STRUCTURE_FAULTY_SENSOR"]["model_imputed_values"][1] == 0.0,
+                "HF raw observation/imputation separation changed")
         require(by_id["DH_DAMAGED_STRUCTURE_HEALTHY_SENSORS"]["structural_state"] == "DAMAGED",
                 "DH known answer changed")
         require(by_id["DF_DAMAGED_STRUCTURE_FAULTY_SENSOR"]["structural_state"] == "DAMAGED"
-                and by_id["DF_DAMAGED_STRUCTURE_FAULTY_SENSOR"]["faulty_sensor_ids"] == ["S2"],
+                and by_id["DF_DAMAGED_STRUCTURE_FAULTY_SENSOR"]["faulty_sensor_ids"] == ["S2"]
+                and by_id["DF_DAMAGED_STRUCTURE_FAULTY_SENSOR"]["disposition"]
+                == "DAMAGE_AND_SENSOR_FAULT_WITNESS_CONFIRMED",
                 "DF joint known answer changed")
+        require(by_id["UNWITNESSED_LOCALIZED_ANOMALY"]["disposition"]
+                == "ABSTAIN_SENSOR_FAULT_UNCONFIRMED",
+                "unwitnessed localized anomaly was promoted")
         require(by_id["AMBIGUOUS_DAMAGE_VS_SINGLE_SENSOR_FAULT"]["disposition"]
                 == "ABSTAIN_AMBIGUOUS_HYPOTHESES", "ambiguity known answer changed")
         actual = json.loads(args.rust_output.read_text(encoding="utf-8"))
