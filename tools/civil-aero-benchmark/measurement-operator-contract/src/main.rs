@@ -159,6 +159,10 @@ fn error<T>(message: impl Into<String>) -> Result<T> {
     Err(ContractError(message.into()))
 }
 
+fn sha256_hex(bytes: &[u8]) -> String {
+    format!("{:x}", Sha256::digest(bytes))
+}
+
 fn is_sha256(value: &str) -> bool {
     value.len() == 64
         && value
@@ -891,6 +895,14 @@ mod tests {
         assert_eq!(
             comparison(&result, "kulite_vs_upsp_rms").status,
             "INCOMPATIBLE"
+        );
+    }
+
+    #[test]
+    fn sha256_helper_matches_known_answer() {
+        assert_eq!(
+            sha256_hex(b"abc"),
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
         );
     }
 
