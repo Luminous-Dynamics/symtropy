@@ -86,6 +86,48 @@ References:
 - [Project Chrono 10.0.0 release](https://github.com/projectchrono/chrono/releases/tag/10.0.0)
 - [FMI 3.0.2 specification](https://fmi-standard.org/docs/3.0.2/)
 
+## 5.1 V0.2 proposal — effective imported-model identity
+
+V0.1 is a pairwise decision receipt. It does not yet make importer/lowering identity a first-class field set. Do not change V0.1 in place. A future V0.2 should bind the *effective model actually presented to the solver*, not only the authored asset and backend release.
+
+Proposed identity chain:
+
+```text
+authored source artifact(s)
+  -> importer/parser + options
+  -> normalized physical-problem representation
+  -> backend lowering / selected model path
+  -> effective imported-model digest
+  -> solver profile + execution environment
+  -> raw observations
+```
+
+Proposed fields (normative fields or digested subrecords):
+
+| Field | Why it matters |
+|---|---|
+| `source_artifacts[]` | Preserve original MJCF/URDF/USD/native files and their individual digests |
+| `importer_id`, `importer_version` | Parser and conversion implementation can change physical meaning |
+| `importer_options_digest` | Bind unit conversion, damping interpretation, reference poses and compatibility flags |
+| `normalized_problem_ir_digest` | Bind units, frames, entity topology and declared physical semantics before backend lowering |
+| `effective_model_digest` | Identify the actual engine model after import/lowering, not just the authored source bytes |
+| `lowering_profile_digest` | Bind all exact/approximate/unsupported model-path selections and conversion rules |
+| `solver_path_id`, `solver_profile_digest` | Distinguish engines with multiple solver/integrator/contact paths |
+| `execution_environment_digest` | Bind precision, hardware/backend, thread policy, relevant runtime and feature flags |
+
+Newton 1.7.0 is a concrete motivating example: its release notes describe changed or clarified URDF damping interpretation, USD angular-velocity conversion, joint-coordinate reference handling and MPM material scaling. Two runs using the same authored asset bytes can therefore represent different effective models when importer version/options differ.
+
+The IR must remain an interchange contract, not a new simulator or a duplicate of #1472's capability census. Pairwise admission remains #4366's responsibility; #1472 declares exact backend capabilities/model paths; #1172 owns scenario identity and replay; #460 owns benchmark scenarios and evidence; #443 owns Rapier execution/readback.
+
+### V0.2 acceptance tests
+
+- Source artifact digest unchanged but importer option changed: effective model identity must change or the adapter must prove the option is semantically irrelevant for that asset.
+- Same source/importer/options but solver path changed: solver profile identity must change.
+- Unit/frame conversion round trip: independently verified within an explicit bound.
+- A lossy conversion (for example, full inertia tensor to isotropic approximation): reported as approximation with a domain-specific bound or excluded from matched scoring.
+- Unsupported required feature: fail closed; no silent importer fallback.
+- Post-import model digest reproduced independently from a clean checkout and pinned toolchain.
+
 ## 6. First negative controls
 
 1. **Friction mismatch:** nominally same friction coefficient but one engine uses a different friction-cone/contact formulation. Expected: `NonEquivalent` until mapped and bounded.
