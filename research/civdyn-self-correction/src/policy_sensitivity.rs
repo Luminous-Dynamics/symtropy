@@ -65,6 +65,8 @@ pub struct ModelWorld {
     pub model_digest: String,
     /// Model identity named by the adequacy assessment being applied.
     pub adequacy_model_digest: String,
+    /// Identity of the model-adequacy assessment receipt for this model.
+    pub adequacy_receipt_digest: String,
     pub adequacy: ModelAdequacyState,
 }
 
@@ -225,6 +227,7 @@ pub fn evaluate_policy_sensitivity(
             || model.family_id.trim().is_empty()
             || model.model_digest.trim().is_empty()
             || model.adequacy_model_digest.trim().is_empty()
+            || model.adequacy_receipt_digest.trim().is_empty()
         {
             return Err(PolicySensitivityError::InvalidPortfolio);
         }
@@ -631,6 +634,7 @@ mod tests {
                 family_id: "mechanism-family-a".to_string(),
                 model_digest: "sha256-model-a".to_string(),
                 adequacy_model_digest: "sha256-model-a".to_string(),
+                adequacy_receipt_digest: "sha256-adequacy-a".to_string(),
                 adequacy: ModelAdequacyState::NoPrimaryDiscrepancyDetected,
             },
             ModelWorld {
@@ -638,6 +642,7 @@ mod tests {
                 family_id: "mechanism-family-b".to_string(),
                 model_digest: "sha256-model-b".to_string(),
                 adequacy_model_digest: "sha256-model-b".to_string(),
+                adequacy_receipt_digest: "sha256-adequacy-b".to_string(),
                 adequacy: ModelAdequacyState::NoPrimaryDiscrepancyDetected,
             },
         ]
