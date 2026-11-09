@@ -160,3 +160,12 @@ Machine-readable fixtures: [fixtures/known_answers_v0_1.json](fixtures/known_ans
 ## Claim ceiling
 
 V0 qualifies exact evidence joins and multi-gate classifications over supplied finite results. It does not compute viability, validate physical abstractions, classify contact events, estimate task success, calculate statistical intervals, measure energy, authenticate receipts or prove robot safety. Real operating-envelope claims require each upstream authority and physical hardware trial to be independently qualified.
+
+
+### Executable V0 review refinements
+
+The canonical cell identity explicitly includes the dynamics-model digest, transition-abstraction digest, operating-mode ID, safety-taxonomy digest and event-detector digest in addition to platform physics, morphology, sensor/calibration, actuator, payload, energy boundary and exposure.
+
+When the requirements declare that adverse-category non-regression must be established, a matched baseline is mandatory. It must share the exact scenario and exposure identities while using a distinct controller digest. A baseline mismatch suppresses the safety non-regression claim and prevents cell qualification; it does not alter the absolute per-category upper-bound results.
+
+The baseline comparison remains independently reportable. A cell's absolute qualification and its eligibility for a paired method ranking are separate fields.
