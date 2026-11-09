@@ -273,6 +273,62 @@
           "interval_end_s": 13599
         }
       ]
+    },
+    {
+      "track_id": "COMPOUND_ARTICLE_CAMPAIGN_HOLDOUT",
+      "objective": "Transfer jointly to unseen specimen, acquisition campaign and laminate configuration",
+      "split_mode": "group_holdout",
+      "holdout_axis": "specimen_id+campaign_id+configuration_id",
+      "required_splits": [
+        "train",
+        "validation",
+        "test"
+      ],
+      "purge_policy": null,
+      "records": [
+        {
+          "sample_id": "COMPOUND_ARTICLE_CAMPAIGN_HOLDOUT-TRAIN",
+          "split": "train",
+          "dataset_id": "SYNTHETIC_SPLIT_CONTRACT",
+          "source_record_id": "SRC-COMPOUND_ARTICLE_CAMPAIGN_HOLDOUT-TRAIN",
+          "acquisition_window_id": "WIN-COMPOUND_ARTICLE_CAMPAIGN_HOLDOUT-TRAIN",
+          "specimen_id": "PANEL-C1",
+          "campaign_id": "CAMPAIGN-A",
+          "configuration_id": "LAYUP-01",
+          "thermal_regime_id": "MIXED-EOV",
+          "installation_generation": "INSTALL-BASE",
+          "interval_start_s": null,
+          "interval_end_s": null
+        },
+        {
+          "sample_id": "COMPOUND_ARTICLE_CAMPAIGN_HOLDOUT-VALIDATION",
+          "split": "validation",
+          "dataset_id": "SYNTHETIC_SPLIT_CONTRACT",
+          "source_record_id": "SRC-COMPOUND_ARTICLE_CAMPAIGN_HOLDOUT-VALIDATION",
+          "acquisition_window_id": "WIN-COMPOUND_ARTICLE_CAMPAIGN_HOLDOUT-VALIDATION",
+          "specimen_id": "PANEL-C2",
+          "campaign_id": "CAMPAIGN-B",
+          "configuration_id": "LAYUP-02",
+          "thermal_regime_id": "MIXED-EOV",
+          "installation_generation": "INSTALL-BASE",
+          "interval_start_s": null,
+          "interval_end_s": null
+        },
+        {
+          "sample_id": "COMPOUND_ARTICLE_CAMPAIGN_HOLDOUT-TEST",
+          "split": "test",
+          "dataset_id": "SYNTHETIC_SPLIT_CONTRACT",
+          "source_record_id": "SRC-COMPOUND_ARTICLE_CAMPAIGN_HOLDOUT-TEST",
+          "acquisition_window_id": "WIN-COMPOUND_ARTICLE_CAMPAIGN_HOLDOUT-TEST",
+          "specimen_id": "PANEL-C3",
+          "campaign_id": "CAMPAIGN-C",
+          "configuration_id": "LAYUP-03",
+          "thermal_regime_id": "MIXED-EOV",
+          "installation_generation": "INSTALL-BASE",
+          "interval_start_s": null,
+          "interval_end_s": null
+        }
+      ]
     }
   ]
 }
