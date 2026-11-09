@@ -9,7 +9,7 @@ use std::collections::BTreeSet;
 pub const PROBABILITY_SCALE_PPB: u64 = 1_000_000_000;
 const SCALE: u128 = PROBABILITY_SCALE_PPB as u128;
 const SCALE_SQUARED: u128 = SCALE * SCALE;
-const SCALE_CUBED: u128 = SCALE_SQUARED * SCALE;
+pub const SCALE_CUBED: u128 = SCALE_SQUARED * SCALE;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AdmissionStatus {
@@ -366,10 +366,9 @@ pub fn evaluate_decision_value(
         if let OutcomeKind::Unknown {
             fallback_decision_id,
         } = &outcome.kind
+            && !is_nonempty(fallback_decision_id)
         {
-            if !is_nonempty(fallback_decision_id) {
-                return Err(DecisionValueError::EmptyIdentifier);
-            }
+            return Err(DecisionValueError::EmptyIdentifier);
         }
     }
 
