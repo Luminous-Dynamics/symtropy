@@ -1203,7 +1203,7 @@ mod tests {
         let observer_time_s = 10.0;
         let events = [
             KerrQnmSourceEvent {
-                coordinate_time_s: observer_time_s - 5.2 * rg / SPEED_OF_LIGHT_M_S,
+                coordinate_time_s: observer_time_s - 5.5 * rg / SPEED_OF_LIGHT_M_S,
                 radius_m: 3.0 * rg,
             },
             KerrQnmSourceEvent {
@@ -1211,7 +1211,7 @@ mod tests {
                 radius_m: 3.0 * rg,
             },
             KerrQnmSourceEvent {
-                coordinate_time_s: observer_time_s - 5.5 * rg / SPEED_OF_LIGHT_M_S,
+                coordinate_time_s: observer_time_s - 5.2 * rg / SPEED_OF_LIGHT_M_S,
                 radius_m: 3.0 * rg,
             },
         ];
@@ -1222,7 +1222,7 @@ mod tests {
         assert_eq!(classified.len(), events.len());
         assert_eq!(
             classified[0].convergence.region,
-            KerrQnmConvergenceRegion::NeitherFamilyConvergent
+            KerrQnmConvergenceRegion::BothFamiliesConvergent
         );
         assert_eq!(
             classified[1].convergence.region,
@@ -1230,7 +1230,7 @@ mod tests {
         );
         assert_eq!(
             classified[2].convergence.region,
-            KerrQnmConvergenceRegion::BothFamiliesConvergent
+            KerrQnmConvergenceRegion::NeitherFamilyConvergent
         );
         assert_eq!(
             classified
@@ -1243,7 +1243,6 @@ mod tests {
                 .collect::<Vec<_>>()
         );
     }
-
     #[test]
     fn kerr_source_history_rejects_future_and_nonfinite_events() {
         let reference = KerrOpticalReference::new(hole(0.7)).unwrap();
