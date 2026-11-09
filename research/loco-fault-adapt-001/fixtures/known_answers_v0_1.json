@@ -1,0 +1,209 @@
+{
+  "schema_version": "loco-fault-adapt-known-answers-v0.1",
+  "scenario_dimensions": [
+    "fault_family",
+    "affected_joint_set",
+    "severity_ppm",
+    "fault_onset_phase",
+    "terrain_stratum",
+    "sensor_delay_us",
+    "payload_mg",
+    "controller_identity"
+  ],
+  "fault_families": [
+    "torque_derating",
+    "complete_power_loss",
+    "joint_locked",
+    "free_swinging",
+    "intermittent_actuation",
+    "thermal_derating",
+    "encoder_drift",
+    "imu_delay",
+    "contact_sensor_dropout",
+    "command_delay",
+    "common_power_rail"
+  ],
+  "phases": [
+    "stance",
+    "swing",
+    "push_off",
+    "contact_transition"
+  ],
+  "claim_boundary": "Synthetic contract fixtures; no robot response or safety result is claimed.",
+  "fixtures": [
+    {
+      "id": "A-power-loss-phase-cross",
+      "fault_family": "complete_power_loss",
+      "phases": [
+        "stance",
+        "swing",
+        "push_off",
+        "contact_transition"
+      ],
+      "expected": {
+        "phase_specific_trials_required": true,
+        "pooled_phase_mean_insufficient": true
+      }
+    },
+    {
+      "id": "B-locked-vs-free-swing",
+      "fault_families": [
+        "joint_locked",
+        "free_swinging"
+      ],
+      "same_joint": true,
+      "expected": {
+        "fault_models_distinct": true,
+        "one_torque_scaling_model_not_equivalent": true
+      }
+    },
+    {
+      "id": "C-torque-derating-directional",
+      "fault_family": "torque_derating",
+      "efficiency_ppm": {
+        "positive_direction": 250000,
+        "negative_direction": 700000
+      },
+      "expected": {
+        "scalar_symmetry_assumption_forbidden": true
+      }
+    },
+    {
+      "id": "D-intermittent-at-touchdown",
+      "fault_family": "intermittent_actuation",
+      "onset_phase": "contact_transition",
+      "dropout_period_ms": 40,
+      "expected": {
+        "mode_switch_dynamics_included": true
+      }
+    },
+    {
+      "id": "E-slip-confounds-fault",
+      "fault_family": "torque_derating",
+      "confounder": "low_friction_slip",
+      "expected": {
+        "fault_hypothesis_set_retains_both": true,
+        "diagnosis_abstention_allowed": true
+      }
+    },
+    {
+      "id": "F-encoder-drift-vs-motion",
+      "fault_family": "encoder_drift",
+      "confounder": "real_joint_deflection",
+      "expected": {
+        "sensor_vs_plant_faults_distinct": true
+      }
+    },
+    {
+      "id": "G-common-rail-fault",
+      "fault_family": "common_power_rail",
+      "affected_joint_count": 6,
+      "expected": {
+        "common_cause_branch_retained": true,
+        "independent_joint_factorization_forbidden": true
+      }
+    },
+    {
+      "id": "H-stale-prefault-certificate",
+      "fault_onset_ms": 100,
+      "certificate_epoch_ms": 0,
+      "action_epoch_ms": 101,
+      "expected": {
+        "certificate_invalid": true,
+        "action_rejected": true
+      }
+    },
+    {
+      "id": "I-adaptation-breaks-retreat",
+      "before": {
+        "walking_admitted": true,
+        "retreat_admitted": true
+      },
+      "after": {
+        "walking_admitted": true,
+        "retreat_admitted": false
+      },
+      "expected": {
+        "adaptation_not_admissible": true,
+        "continue_only_claim_invalid": true
+      }
+    },
+    {
+      "id": "J-two-physical-modes-one-fault-label",
+      "fault_family": "complete_power_loss",
+      "possible_successors": [
+        "joint_passive_swing",
+        "joint_braked_by_mechanical_failure"
+      ],
+      "expected": {
+        "all_physical_successors_must_be_modeled": true
+      }
+    },
+    {
+      "id": "K-two-fault-hidden-common-cause",
+      "fault_families": [
+        "imu_delay",
+        "common_power_rail"
+      ],
+      "expected": {
+        "joint_physical_branch_enumeration_required": true
+      }
+    },
+    {
+      "id": "L-deadline-missed",
+      "fault_family": "torque_derating",
+      "adaptation_compute_ms": 27,
+      "control_deadline_ms": 20,
+      "expected": {
+        "adapted_command_must_not_be_applied": true,
+        "stale_or_previous_qualified_fallback_only": true
+      }
+    },
+    {
+      "id": "M-probe-spends-reserve",
+      "probe": {
+        "energy_mj": 120,
+        "thermal_reserve_ppm": 100000
+      },
+      "limits": {
+        "energy_mj": 100,
+        "thermal_reserve_ppm": 150000
+      },
+      "expected": {
+        "probe_rejected_before_information_ranking": true
+      }
+    },
+    {
+      "id": "N-zero-mass-impossible-recovery",
+      "branches": [
+        {
+          "id": "normal",
+          "mass_ppb": 1000000000,
+          "recovery": true
+        },
+        {
+          "id": "dead-end",
+          "mass_ppb": 0,
+          "recovery": false
+        }
+      ],
+      "expected": {
+        "robust_admission": "rejected",
+        "zero_mass_branch_not_removed": true
+      }
+    },
+    {
+      "id": "O-privileged-fault-label",
+      "training": {
+        "fault_truth_visible": true
+      },
+      "deployment": {
+        "fault_truth_visible": false
+      },
+      "expected": {
+        "deployment_baselines_must_not_receive_truth_label": true,
+        "training_privilege_declared": true
+      }
+    }
+  ]
+}
