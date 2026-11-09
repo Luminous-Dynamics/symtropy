@@ -47,7 +47,7 @@ fn field<'a>(value: &'a Value, key: &str, at: &str) -> Check<&'a Value> {
         .ok_or_else(|| format!("{at}: missing field {key}"))
 }
 
-fn text(value: &Value, at: &str) -> Check<&str> {
+fn text<'a>(value: &'a Value, at: &str) -> Check<&'a str> {
     value
         .as_str()
         .ok_or_else(|| format!("{at}: expected string"))
