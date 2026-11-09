@@ -9,8 +9,8 @@
 
 use civdyn_robust_policy::model_set_robustness::{
     CandidateModel, ConstraintComparison, DecisionCase, DecisionMetricRole, DecisionMetricSpec,
-    DecisionMetricValue, DecisionPolicy, ModelPolicyOutcome, ModelQualification,
-    ModelSetCoverage, ModelSetManifest, analyze_model_set_decisions,
+    DecisionMetricValue, DecisionPolicy, ModelPolicyOutcome, ModelQualification, ModelSetCoverage,
+    ModelSetManifest, analyze_model_set_decisions,
 };
 
 const MODEL_SET_ID: &str = "civdyn-structural-decision-fixture-v0-1";
@@ -121,7 +121,8 @@ fn fixture() -> (ModelSetManifest, Vec<ModelPolicyOutcome>) {
                 metric_id: "unmet-water".to_string(),
                 unit: "m3".to_string(),
                 role: DecisionMetricRole::Objective {
-                    direction: civdyn_robust_policy::model_set_robustness::ObjectiveDirection::Minimize,
+                    direction:
+                        civdyn_robust_policy::model_set_robustness::ObjectiveDirection::Minimize,
                 },
             },
             DecisionMetricSpec {
@@ -136,18 +137,126 @@ fn fixture() -> (ModelSetManifest, Vec<ModelPolicyOutcome>) {
     };
 
     let rows = vec![
-        outcome("model-a", "sha256-model-a", "drought", "sha256-drought", "reserve", "sha256-reserve", 10.0, 0.99),
-        outcome("model-a", "sha256-model-a", "drought", "sha256-drought", "demand-first", "sha256-demand-first", 8.0, 0.98),
-        outcome("model-a", "sha256-model-a", "drought", "sha256-drought", "growth-first", "sha256-growth-first", 2.0, 0.90),
-        outcome("model-a", "sha256-model-a", "energy-shock", "sha256-energy-shock", "reserve", "sha256-reserve", 7.0, 0.98),
-        outcome("model-a", "sha256-model-a", "energy-shock", "sha256-energy-shock", "demand-first", "sha256-demand-first", 6.0, 0.97),
-        outcome("model-a", "sha256-model-a", "energy-shock", "sha256-energy-shock", "growth-first", "sha256-growth-first", 1.0, 0.91),
-        outcome("model-b", "sha256-model-b", "drought", "sha256-drought", "reserve", "sha256-reserve", 9.0, 0.98),
-        outcome("model-b", "sha256-model-b", "drought", "sha256-drought", "demand-first", "sha256-demand-first", 1.0, 0.90),
-        outcome("model-b", "sha256-model-b", "drought", "sha256-drought", "growth-first", "sha256-growth-first", 6.0, 0.99),
-        outcome("model-b", "sha256-model-b", "energy-shock", "sha256-energy-shock", "reserve", "sha256-reserve", 8.0, 0.97),
-        outcome("model-b", "sha256-model-b", "energy-shock", "sha256-energy-shock", "demand-first", "sha256-demand-first", 2.0, 0.92),
-        outcome("model-b", "sha256-model-b", "energy-shock", "sha256-energy-shock", "growth-first", "sha256-growth-first", 5.0, 0.98),
+        outcome(
+            "model-a",
+            "sha256-model-a",
+            "drought",
+            "sha256-drought",
+            "reserve",
+            "sha256-reserve",
+            10.0,
+            0.99,
+        ),
+        outcome(
+            "model-a",
+            "sha256-model-a",
+            "drought",
+            "sha256-drought",
+            "demand-first",
+            "sha256-demand-first",
+            8.0,
+            0.98,
+        ),
+        outcome(
+            "model-a",
+            "sha256-model-a",
+            "drought",
+            "sha256-drought",
+            "growth-first",
+            "sha256-growth-first",
+            2.0,
+            0.90,
+        ),
+        outcome(
+            "model-a",
+            "sha256-model-a",
+            "energy-shock",
+            "sha256-energy-shock",
+            "reserve",
+            "sha256-reserve",
+            7.0,
+            0.98,
+        ),
+        outcome(
+            "model-a",
+            "sha256-model-a",
+            "energy-shock",
+            "sha256-energy-shock",
+            "demand-first",
+            "sha256-demand-first",
+            6.0,
+            0.97,
+        ),
+        outcome(
+            "model-a",
+            "sha256-model-a",
+            "energy-shock",
+            "sha256-energy-shock",
+            "growth-first",
+            "sha256-growth-first",
+            1.0,
+            0.91,
+        ),
+        outcome(
+            "model-b",
+            "sha256-model-b",
+            "drought",
+            "sha256-drought",
+            "reserve",
+            "sha256-reserve",
+            9.0,
+            0.98,
+        ),
+        outcome(
+            "model-b",
+            "sha256-model-b",
+            "drought",
+            "sha256-drought",
+            "demand-first",
+            "sha256-demand-first",
+            1.0,
+            0.90,
+        ),
+        outcome(
+            "model-b",
+            "sha256-model-b",
+            "drought",
+            "sha256-drought",
+            "growth-first",
+            "sha256-growth-first",
+            6.0,
+            0.99,
+        ),
+        outcome(
+            "model-b",
+            "sha256-model-b",
+            "energy-shock",
+            "sha256-energy-shock",
+            "reserve",
+            "sha256-reserve",
+            8.0,
+            0.97,
+        ),
+        outcome(
+            "model-b",
+            "sha256-model-b",
+            "energy-shock",
+            "sha256-energy-shock",
+            "demand-first",
+            "sha256-demand-first",
+            2.0,
+            0.92,
+        ),
+        outcome(
+            "model-b",
+            "sha256-model-b",
+            "energy-shock",
+            "sha256-energy-shock",
+            "growth-first",
+            "sha256-growth-first",
+            5.0,
+            0.98,
+        ),
     ];
 
     (manifest, rows)
@@ -227,8 +336,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         row[12] = summary.expected_model_case_count.to_string();
         row[13] = summary.assessed_model_case_count.to_string();
         row[15] = summary.unknown_model_case_count.to_string();
-        row[17] = summary.mean_regret.map(|value| format!("{value:.6}")).unwrap_or_default();
-        row[18] = summary.worst_case_regret.map(|value| format!("{value:.6}")).unwrap_or_default();
+        row[17] = summary
+            .mean_regret
+            .map(|value| format!("{value:.6}"))
+            .unwrap_or_default();
+        row[18] = summary
+            .worst_case_regret
+            .map(|value| format!("{value:.6}"))
+            .unwrap_or_default();
         row[20] = report.coverage.name().to_string();
         emit(row);
     }
@@ -239,7 +354,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         row[9] = summary.unit.clone();
         row[10] = "metric_specific".to_string();
         row[16] = summary.minimax_policy_ids.join("|");
-        row[18] = summary.minimum_worst_case_regret.map(|value| format!("{value:.6}")).unwrap_or_default();
+        row[18] = summary
+            .minimum_worst_case_regret
+            .map(|value| format!("{value:.6}"))
+            .unwrap_or_default();
         row[19] = summary.minimax_policy_ids.join("|");
         row[20] = report.coverage.name().to_string();
         emit(row);
