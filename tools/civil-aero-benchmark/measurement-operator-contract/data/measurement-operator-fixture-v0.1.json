@@ -1,0 +1,730 @@
+{
+  "schema_version": "aero-measurement-operator/0.1.0",
+  "dataset_id": "jaxa-dpw8-test3-synthetic-observation-operator-contract",
+  "evidence_class": "synthetic_contract_fixture",
+  "claim_ceiling": "measurement_operator_compatibility_only",
+  "channels": [
+    {
+      "id": "healthy_point_mean_a",
+      "instrument_family": "kulite",
+      "instrument_id": "healthy_point_mean_a",
+      "quantity": "pressure_coefficient_mean",
+      "units": "1",
+      "sign_convention": "positive_gauge_pressure",
+      "spatial_support": "POINT",
+      "spatial_location_id": "tap-17",
+      "coordinate_frame": "CRM_jig",
+      "registration_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "identity": {
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "geometry_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "loading_state_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "environment_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "mission_phase_id": "tc3-alpha-3p06-synthetic",
+        "test_article_id": "crm-2p16-synthetic-article"
+      },
+      "measurement_run_id": "tc3-synthetic-run-306",
+      "source_artifact_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "raw_data_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "derived_processing_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "calibration": {
+        "status": "VALID",
+        "calibration_id": "cal-healthy_point_mean_a",
+        "calibration_artifact_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "validity_envelope_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "valid_at_test_state": true
+      },
+      "sampling": {
+        "statistic": "TIME_MEAN",
+        "time_window_id": "window-mean-01",
+        "sample_rate_hz": 50000,
+        "time_base_id": "clock-kulite-a",
+        "synchronization_status": "SYNCHRONIZED",
+        "synchronization_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "frequency_grid_sha256": null,
+        "spectral_estimator_sha256": null
+      },
+      "filter": {
+        "transfer_function_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "bandwidth_hz": 20000,
+        "low_pass": false,
+        "integration_time_s": null,
+        "exposure_time_s": null,
+        "mask_sha256": null
+      },
+      "observation": {
+        "status": "PRESENT",
+        "value": 0.14,
+        "missing_reason": null
+      },
+      "interpretation_limitations": []
+    },
+    {
+      "id": "healthy_point_mean_b",
+      "instrument_family": "kulite",
+      "instrument_id": "kulite-17-reference",
+      "quantity": "pressure_coefficient_mean",
+      "units": "1",
+      "sign_convention": "positive_gauge_pressure",
+      "spatial_support": "POINT",
+      "spatial_location_id": "tap-17",
+      "coordinate_frame": "CRM_jig",
+      "registration_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "identity": {
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "geometry_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "loading_state_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "environment_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "mission_phase_id": "tc3-alpha-3p06-synthetic",
+        "test_article_id": "crm-2p16-synthetic-article"
+      },
+      "measurement_run_id": "tc3-synthetic-run-306",
+      "source_artifact_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "raw_data_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "derived_processing_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "calibration": {
+        "status": "VALID",
+        "calibration_id": "cal-healthy_point_mean_b",
+        "calibration_artifact_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "validity_envelope_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "valid_at_test_state": true
+      },
+      "sampling": {
+        "statistic": "TIME_MEAN",
+        "time_window_id": "window-mean-01",
+        "sample_rate_hz": 50000,
+        "time_base_id": "clock-esp-a",
+        "synchronization_status": "SYNCHRONIZED",
+        "synchronization_receipt_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+        "frequency_grid_sha256": null,
+        "spectral_estimator_sha256": null
+      },
+      "filter": {
+        "transfer_function_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "bandwidth_hz": 20000,
+        "low_pass": false,
+        "integration_time_s": null,
+        "exposure_time_s": null,
+        "mask_sha256": null
+      },
+      "observation": {
+        "status": "PRESENT",
+        "value": 0.145,
+        "missing_reason": null
+      },
+      "interpretation_limitations": []
+    },
+    {
+      "id": "kulite_point_a",
+      "instrument_family": "kulite",
+      "instrument_id": "kulite_point_a",
+      "quantity": "pressure_coefficient_rms",
+      "units": "1",
+      "sign_convention": "positive_gauge_pressure",
+      "spatial_support": "POINT",
+      "spatial_location_id": "tap-17",
+      "coordinate_frame": "CRM_jig",
+      "registration_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "identity": {
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "geometry_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "loading_state_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "environment_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "mission_phase_id": "tc3-alpha-3p06-synthetic",
+        "test_article_id": "crm-2p16-synthetic-article"
+      },
+      "measurement_run_id": "tc3-synthetic-run-306",
+      "source_artifact_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "raw_data_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "derived_processing_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "calibration": {
+        "status": "VALID",
+        "calibration_id": "cal-kulite_point_a",
+        "calibration_artifact_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "validity_envelope_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "valid_at_test_state": true
+      },
+      "sampling": {
+        "statistic": "RMS",
+        "time_window_id": "rms-window-01",
+        "sample_rate_hz": 50000,
+        "time_base_id": "clock-kulite-a",
+        "synchronization_status": "SYNCHRONIZED",
+        "synchronization_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "frequency_grid_sha256": null,
+        "spectral_estimator_sha256": null
+      },
+      "filter": {
+        "transfer_function_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+        "bandwidth_hz": 20000,
+        "low_pass": false,
+        "integration_time_s": null,
+        "exposure_time_s": null,
+        "mask_sha256": null
+      },
+      "observation": {
+        "status": "PRESENT",
+        "value": 0.082,
+        "missing_reason": null
+      },
+      "interpretation_limitations": []
+    },
+    {
+      "id": "upsp_surface_rms",
+      "instrument_family": "uPSP",
+      "instrument_id": "camera-system",
+      "quantity": "pressure_coefficient_rms",
+      "units": "1",
+      "sign_convention": "positive_gauge_pressure",
+      "spatial_support": "SURFACE_FIELD",
+      "spatial_location_id": "right-wing-surface",
+      "coordinate_frame": "CRM_jig",
+      "registration_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+      "identity": {
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "geometry_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "loading_state_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "environment_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "mission_phase_id": "tc3-alpha-3p06-synthetic",
+        "test_article_id": "crm-2p16-synthetic-article"
+      },
+      "measurement_run_id": "tc3-synthetic-run-306",
+      "source_artifact_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "raw_data_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "derived_processing_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "calibration": {
+        "status": "VALID",
+        "calibration_id": "cal-upsp_surface_rms",
+        "calibration_artifact_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "validity_envelope_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "valid_at_test_state": true
+      },
+      "sampling": {
+        "statistic": "RMS",
+        "time_window_id": "rms-window-01",
+        "sample_rate_hz": 1000,
+        "time_base_id": "upsp-camera-clock",
+        "synchronization_status": "UNKNOWN",
+        "synchronization_receipt_sha256": null,
+        "frequency_grid_sha256": null,
+        "spectral_estimator_sha256": null
+      },
+      "filter": {
+        "transfer_function_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "bandwidth_hz": 500,
+        "low_pass": true,
+        "integration_time_s": null,
+        "exposure_time_s": 0.0005,
+        "mask_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "observation": {
+        "status": "PRESENT",
+        "value": 0.061,
+        "missing_reason": null
+      },
+      "interpretation_limitations": [
+        "camera exposure introduces low-pass filtering",
+        "surface reliability mask excludes sensor lines, markers and edge regions"
+      ]
+    },
+    {
+      "id": "upsp_surface_masked",
+      "instrument_family": "uPSP",
+      "instrument_id": "camera-system",
+      "quantity": "pressure_coefficient_rms",
+      "units": "1",
+      "sign_convention": "positive_gauge_pressure",
+      "spatial_support": "SURFACE_FIELD",
+      "spatial_location_id": "right-wing-surface",
+      "coordinate_frame": "CRM_jig",
+      "registration_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+      "identity": {
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "geometry_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "loading_state_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "environment_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "mission_phase_id": "tc3-alpha-3p06-synthetic",
+        "test_article_id": "crm-2p16-synthetic-article"
+      },
+      "measurement_run_id": "tc3-synthetic-run-306",
+      "source_artifact_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "raw_data_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "derived_processing_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "calibration": {
+        "status": "VALID",
+        "calibration_id": "cal-upsp_surface_masked",
+        "calibration_artifact_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "validity_envelope_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "valid_at_test_state": true
+      },
+      "sampling": {
+        "statistic": "RMS",
+        "time_window_id": "rms-window-01",
+        "sample_rate_hz": 1000,
+        "time_base_id": "upsp-camera-clock",
+        "synchronization_status": "UNKNOWN",
+        "synchronization_receipt_sha256": null,
+        "frequency_grid_sha256": null,
+        "spectral_estimator_sha256": null
+      },
+      "filter": {
+        "transfer_function_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "bandwidth_hz": 500,
+        "low_pass": true,
+        "integration_time_s": null,
+        "exposure_time_s": 0.0005,
+        "mask_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "observation": {
+        "status": "MASKED",
+        "value": null,
+        "missing_reason": "surface mask marks this panel region unreliable"
+      },
+      "interpretation_limitations": []
+    },
+    {
+      "id": "balance_psp_simultaneous_cd",
+      "instrument_family": "balance",
+      "instrument_id": "wind-tunnel-balance",
+      "quantity": "drag_coefficient",
+      "units": "1",
+      "sign_convention": "positive_gauge_pressure",
+      "spatial_support": "INTEGRATED",
+      "spatial_location_id": "whole_aircraft",
+      "coordinate_frame": "CRM_jig",
+      "registration_sha256": null,
+      "identity": {
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "geometry_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "loading_state_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "environment_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "mission_phase_id": "tc3-alpha-3p06-synthetic",
+        "test_article_id": "crm-2p16-synthetic-article"
+      },
+      "measurement_run_id": "tc3-psp-simultaneous-run",
+      "source_artifact_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "raw_data_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "derived_processing_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "calibration": {
+        "status": "VALID",
+        "calibration_id": "cal-balance_psp_simultaneous_cd",
+        "calibration_artifact_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "validity_envelope_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "valid_at_test_state": true
+      },
+      "sampling": {
+        "statistic": "TIME_MEAN",
+        "time_window_id": "window-mean-01",
+        "sample_rate_hz": null,
+        "time_base_id": null,
+        "synchronization_status": "UNKNOWN",
+        "synchronization_receipt_sha256": null,
+        "frequency_grid_sha256": null,
+        "spectral_estimator_sha256": null
+      },
+      "filter": {
+        "transfer_function_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "bandwidth_hz": null,
+        "low_pass": false,
+        "integration_time_s": null,
+        "exposure_time_s": null,
+        "mask_sha256": null
+      },
+      "observation": {
+        "status": "UNAVAILABLE",
+        "value": null,
+        "missing_reason": "drag is N/A for PSP-simultaneous balance records"
+      },
+      "interpretation_limitations": []
+    },
+    {
+      "id": "balance_standalone_cd",
+      "instrument_family": "balance",
+      "instrument_id": "wind-tunnel-balance",
+      "quantity": "drag_coefficient",
+      "units": "1",
+      "sign_convention": "positive_gauge_pressure",
+      "spatial_support": "INTEGRATED",
+      "spatial_location_id": "whole_aircraft",
+      "coordinate_frame": "CRM_jig",
+      "registration_sha256": null,
+      "identity": {
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "geometry_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "loading_state_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "environment_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "mission_phase_id": "tc3-alpha-3p06-synthetic",
+        "test_article_id": "crm-2p16-synthetic-article"
+      },
+      "measurement_run_id": "tc3-standalone-bl-run",
+      "source_artifact_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "raw_data_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "derived_processing_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "calibration": {
+        "status": "VALID",
+        "calibration_id": "cal-balance_standalone_cd",
+        "calibration_artifact_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "validity_envelope_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "valid_at_test_state": true
+      },
+      "sampling": {
+        "statistic": "TIME_MEAN",
+        "time_window_id": "window-mean-01",
+        "sample_rate_hz": null,
+        "time_base_id": null,
+        "synchronization_status": "UNKNOWN",
+        "synchronization_receipt_sha256": null,
+        "frequency_grid_sha256": null,
+        "spectral_estimator_sha256": null
+      },
+      "filter": {
+        "transfer_function_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "bandwidth_hz": null,
+        "low_pass": false,
+        "integration_time_s": null,
+        "exposure_time_s": null,
+        "mask_sha256": null
+      },
+      "observation": {
+        "status": "PRESENT",
+        "value": 0.031,
+        "missing_reason": null
+      },
+      "interpretation_limitations": []
+    },
+    {
+      "id": "strain_derived_cb",
+      "instrument_family": "strain_gauge",
+      "instrument_id": "wing-root-strain-gauge",
+      "quantity": "buffet_intensity_C_B",
+      "units": "1",
+      "sign_convention": "positive_gauge_pressure",
+      "spatial_support": "DERIVED_SCALAR",
+      "spatial_location_id": "wing_root",
+      "coordinate_frame": "CRM_jig",
+      "registration_sha256": null,
+      "identity": {
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "geometry_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "loading_state_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "environment_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "mission_phase_id": "tc3-alpha-3p06-synthetic",
+        "test_article_id": "crm-2p16-synthetic-article"
+      },
+      "measurement_run_id": "tc3-strain-run",
+      "source_artifact_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "raw_data_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "derived_processing_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "calibration": {
+        "status": "VALID",
+        "calibration_id": "cal-strain_derived_cb",
+        "calibration_artifact_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "validity_envelope_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "valid_at_test_state": true
+      },
+      "sampling": {
+        "statistic": "RMS_RATIO",
+        "time_window_id": "window-mean-01",
+        "sample_rate_hz": 50000,
+        "time_base_id": "strain-clock",
+        "synchronization_status": "UNKNOWN",
+        "synchronization_receipt_sha256": null,
+        "frequency_grid_sha256": null,
+        "spectral_estimator_sha256": null
+      },
+      "filter": {
+        "transfer_function_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "bandwidth_hz": 12000,
+        "low_pass": false,
+        "integration_time_s": null,
+        "exposure_time_s": null,
+        "mask_sha256": null
+      },
+      "observation": {
+        "status": "PRESENT",
+        "value": 1.2,
+        "missing_reason": null
+      },
+      "interpretation_limitations": [
+        "derived RMS ratio referenced to zero-lift alpha=-0.8 degrees",
+        "buffet onset indicator only; not displacement or mode shape"
+      ]
+    },
+    {
+      "id": "synthetic_tip_deflection",
+      "instrument_family": "laser-displacement",
+      "instrument_id": "synthetic-deflectometer",
+      "quantity": "wing_tip_vertical_deflection",
+      "units": "mm",
+      "sign_convention": "positive_down",
+      "spatial_support": "POINT",
+      "spatial_location_id": "wing_tip",
+      "coordinate_frame": "CRM_jig",
+      "registration_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "identity": {
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "geometry_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "loading_state_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "environment_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "mission_phase_id": "tc3-alpha-3p06-synthetic",
+        "test_article_id": "crm-2p16-synthetic-article"
+      },
+      "measurement_run_id": "synthetic-validation-run",
+      "source_artifact_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "raw_data_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "derived_processing_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "calibration": {
+        "status": "VALID",
+        "calibration_id": "cal-synthetic_tip_deflection",
+        "calibration_artifact_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "validity_envelope_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "valid_at_test_state": true
+      },
+      "sampling": {
+        "statistic": "TIME_MEAN",
+        "time_window_id": "window-mean-01",
+        "sample_rate_hz": 1000,
+        "time_base_id": "deflection-clock",
+        "synchronization_status": "SYNCHRONIZED",
+        "synchronization_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "frequency_grid_sha256": null,
+        "spectral_estimator_sha256": null
+      },
+      "filter": {
+        "transfer_function_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "bandwidth_hz": 300,
+        "low_pass": false,
+        "integration_time_s": null,
+        "exposure_time_s": null,
+        "mask_sha256": null
+      },
+      "observation": {
+        "status": "PRESENT",
+        "value": 11,
+        "missing_reason": null
+      },
+      "interpretation_limitations": []
+    },
+    {
+      "id": "official_deformation_pending",
+      "instrument_family": "official_deformation",
+      "instrument_id": "not_published",
+      "quantity": "wing_tip_vertical_deflection",
+      "units": "mm",
+      "sign_convention": "positive_down",
+      "spatial_support": "POINT",
+      "spatial_location_id": "wing_tip",
+      "coordinate_frame": "CRM_jig",
+      "registration_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "identity": {
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "geometry_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "loading_state_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "environment_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "mission_phase_id": "tc3-alpha-3p06-synthetic",
+        "test_article_id": "crm-2p16-synthetic-article"
+      },
+      "measurement_run_id": "not-collected",
+      "source_artifact_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "raw_data_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "derived_processing_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "calibration": {
+        "status": "UNKNOWN",
+        "calibration_id": null,
+        "calibration_artifact_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "validity_envelope_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "valid_at_test_state": false
+      },
+      "sampling": {
+        "statistic": "TIME_MEAN",
+        "time_window_id": "window-mean-01",
+        "sample_rate_hz": null,
+        "time_base_id": null,
+        "synchronization_status": "UNKNOWN",
+        "synchronization_receipt_sha256": null,
+        "frequency_grid_sha256": null,
+        "spectral_estimator_sha256": null
+      },
+      "filter": {
+        "transfer_function_sha256": null,
+        "bandwidth_hz": null,
+        "low_pass": false,
+        "integration_time_s": null,
+        "exposure_time_s": null,
+        "mask_sha256": null
+      },
+      "observation": {
+        "status": "NOT_COLLECTED",
+        "value": null,
+        "missing_reason": "official distributed deformation measurements are pending"
+      },
+      "interpretation_limitations": []
+    },
+    {
+      "id": "stale_geometry_point",
+      "instrument_family": "kulite",
+      "instrument_id": "kulite-17-alt",
+      "quantity": "pressure_coefficient_mean",
+      "units": "1",
+      "sign_convention": "positive_gauge_pressure",
+      "spatial_support": "POINT",
+      "spatial_location_id": "tap-17",
+      "coordinate_frame": "CRM_jig",
+      "registration_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "identity": {
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "geometry_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "loading_state_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "environment_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "mission_phase_id": "tc3-alpha-3p06-synthetic",
+        "test_article_id": "crm-2p16-synthetic-article"
+      },
+      "measurement_run_id": "tc3-synthetic-run-306",
+      "source_artifact_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "raw_data_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "derived_processing_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "calibration": {
+        "status": "VALID",
+        "calibration_id": "cal-stale_geometry_point",
+        "calibration_artifact_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "validity_envelope_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "valid_at_test_state": true
+      },
+      "sampling": {
+        "statistic": "TIME_MEAN",
+        "time_window_id": "window-mean-01",
+        "sample_rate_hz": 50000,
+        "time_base_id": "clock-kulite-a",
+        "synchronization_status": "SYNCHRONIZED",
+        "synchronization_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "frequency_grid_sha256": null,
+        "spectral_estimator_sha256": null
+      },
+      "filter": {
+        "transfer_function_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "bandwidth_hz": 20000,
+        "low_pass": false,
+        "integration_time_s": null,
+        "exposure_time_s": null,
+        "mask_sha256": null
+      },
+      "observation": {
+        "status": "PRESENT",
+        "value": 0.13,
+        "missing_reason": null
+      },
+      "interpretation_limitations": []
+    },
+    {
+      "id": "expired_calibration_point",
+      "instrument_family": "kulite",
+      "instrument_id": "kulite-expired",
+      "quantity": "pressure_coefficient_mean",
+      "units": "1",
+      "sign_convention": "positive_gauge_pressure",
+      "spatial_support": "POINT",
+      "spatial_location_id": "tap-17",
+      "coordinate_frame": "CRM_jig",
+      "registration_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "identity": {
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "geometry_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "loading_state_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "environment_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "mission_phase_id": "tc3-alpha-3p06-synthetic",
+        "test_article_id": "crm-2p16-synthetic-article"
+      },
+      "measurement_run_id": "tc3-synthetic-run-306",
+      "source_artifact_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "raw_data_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "derived_processing_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "calibration": {
+        "status": "EXPIRED",
+        "calibration_id": "cal-expired_calibration_point",
+        "calibration_artifact_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "validity_envelope_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "valid_at_test_state": false
+      },
+      "sampling": {
+        "statistic": "TIME_MEAN",
+        "time_window_id": "window-mean-01",
+        "sample_rate_hz": 50000,
+        "time_base_id": "clock-kulite-a",
+        "synchronization_status": "SYNCHRONIZED",
+        "synchronization_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "frequency_grid_sha256": null,
+        "spectral_estimator_sha256": null
+      },
+      "filter": {
+        "transfer_function_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "bandwidth_hz": 20000,
+        "low_pass": false,
+        "integration_time_s": null,
+        "exposure_time_s": null,
+        "mask_sha256": null
+      },
+      "observation": {
+        "status": "PRESENT",
+        "value": 0.11,
+        "missing_reason": null
+      },
+      "interpretation_limitations": []
+    }
+  ],
+  "comparisons": [
+    {
+      "id": "healthy_same_point_mean",
+      "left_channel_id": "healthy_point_mean_a",
+      "right_channel_id": "healthy_point_mean_b",
+      "mode": "DIRECT_SCALAR"
+    },
+    {
+      "id": "kulite_vs_upsp_rms",
+      "left_channel_id": "kulite_point_a",
+      "right_channel_id": "upsp_surface_rms",
+      "mode": "DIRECT_SCALAR"
+    },
+    {
+      "id": "phase_pair_unsynchronized",
+      "left_channel_id": "healthy_point_mean_a",
+      "right_channel_id": "healthy_point_mean_b",
+      "mode": "COHERENCE_OR_PHASE"
+    },
+    {
+      "id": "psp_simultaneous_drag_not_available",
+      "left_channel_id": "balance_psp_simultaneous_cd",
+      "right_channel_id": "balance_standalone_cd",
+      "mode": "DIRECT_SCALAR"
+    },
+    {
+      "id": "derived_buffet_index_vs_deflection",
+      "left_channel_id": "strain_derived_cb",
+      "right_channel_id": "synthetic_tip_deflection",
+      "mode": "DIRECT_SCALAR"
+    },
+    {
+      "id": "masked_upsp_channel",
+      "left_channel_id": "upsp_surface_rms",
+      "right_channel_id": "upsp_surface_masked",
+      "mode": "DIRECT_SCALAR"
+    },
+    {
+      "id": "stale_geometry_pair",
+      "left_channel_id": "healthy_point_mean_a",
+      "right_channel_id": "stale_geometry_point",
+      "mode": "DIRECT_SCALAR"
+    },
+    {
+      "id": "expired_calibration_pair",
+      "left_channel_id": "healthy_point_mean_a",
+      "right_channel_id": "expired_calibration_point",
+      "mode": "DIRECT_SCALAR"
+    },
+    {
+      "id": "official_deformation_pending",
+      "left_channel_id": "official_deformation_pending",
+      "right_channel_id": "synthetic_tip_deflection",
+      "mode": "DIRECT_SCALAR"
+    }
+  ]
+}
