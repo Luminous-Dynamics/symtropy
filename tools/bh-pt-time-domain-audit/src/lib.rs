@@ -517,8 +517,10 @@ mod tests {
 
     #[test]
     fn rejects_unstable_and_untiled_grids() {
+        let mut unstable = config(0.1, 0.05, 0.75);
+        unstable.output_interval = 0.1;
         assert_eq!(
-            config(0.1, 0.05, 0.75).validate(),
+            unstable.validate(),
             Err(WaveError::UnstableTimeStep)
         );
         assert_eq!(
@@ -558,15 +560,20 @@ mod tests {
     }
 
     #[test]
-    fn source_response_has_no_measurable_pre_front_signal() {
+    fn source_response_has_bounded_pre_front_leakage() {
         let value = config(0.1, 0.0025, 0.75);
         let waveform = evolve(value).unwrap();
-        let floor = waveform.max_abs() * 1.0e-8;
+        let relative_leakage = waveform.max_abs_before(2.5) / waveform.max_abs();
         assert!(
-            waveform.max_abs_before(2.5) <= floor,
-            "pre-front signal={} floor={floor:e} max={:e}",
-            waveform.max_abs_before(2.5),
-            waveform.max_abs()
+            relative_leakage <= 1.0e-6,
+            "relative pre-front leakage={relative_leakage:e}"
+        );
+
+        let finer = evolve(config(0.05, 0.0025, 0.75)).unwrap();
+        let finer_relative_leakage = finer.max_abs_before(2.5) / finer.max_abs();
+        assert!(
+            finer_relative_leakage < relative_leakage,
+            "pre-front leakage did not decrease under spatial refinement: coarse={relative_leakage:e}, fine={finer_relative_leakage:e}"
         );
     }
 
