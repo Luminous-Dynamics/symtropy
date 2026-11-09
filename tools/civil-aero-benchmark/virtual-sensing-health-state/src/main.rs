@@ -30,6 +30,9 @@ struct Policy {
     absolute_residual_tolerance: f64,
     correction_requires_unique_structural_state: bool,
     damage_clearance_from_correction_prohibited: bool,
+    fault_confirmation_requires_independent_witness: bool,
+    raw_measurements_immutable: bool,
+    reconstruction_is_not_measurement: bool,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -41,6 +44,14 @@ struct Channel {
     operator_status: String,
     calibration_status: String,
     common_cause_group: String,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+struct SensorFaultWitness {
+    sensor_id: String,
+    status: String,
+    evidence_kind: String,
+    evidence_sha256: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -58,6 +69,7 @@ struct CaseInput {
     healthy_template: Vec<f64>,
     damaged_template: Vec<f64>,
     observed_values: Vec<Option<f64>>,
+    sensor_fault_witnesses: Vec<SensorFaultWitness>,
     expected: CaseExpected,
 }
 
@@ -80,8 +92,11 @@ struct CaseResult {
     structural_state: Option<String>,
     faulty_sensor_ids: Vec<String>,
     explanation_count: usize,
-    corrected_values: Option<Vec<Option<f64>>>,
-    correction_applied_sensor_ids: Vec<String>,
+    observed_values: Vec<Option<f64>>,
+    model_imputed_values: Option<Vec<Option<f64>>>,
+    reconstructed_sensor_ids: Vec<String>,
+    reconstruction_status: String,
+    sensor_fault_confirmation: String,
     post_correction_structural_state: Option<String>,
     damage_preserved: Option<bool>,
     claim_ceiling: String,
@@ -185,6 +200,9 @@ fn validate_fixture(fixture: &Fixture) -> Result<(), String> {
         || fixture.policy.absolute_residual_tolerance <= 0.0
         || !fixture.policy.correction_requires_unique_structural_state
         || !fixture.policy.damage_clearance_from_correction_prohibited
+        || !fixture.policy.fault_confirmation_requires_independent_witness
+        || !fixture.policy.raw_measurements_immutable
+        || !fixture.policy.reconstruction_is_not_measurement
     {
         return Err("v0.1 fault, support or damage-preservation policy was changed".to_owned());
     }
@@ -209,6 +227,30 @@ fn validate_fixture(fixture: &Fixture) -> Result<(), String> {
         if case.observed_values.iter().flatten().any(|v| !v.is_finite()) {
             return Err(format!("{}: non-finite observation", case.case_id));
         }
+        let mut witness_ids = BTreeSet::new();
+        for witness in &case.sensor_fault_witnesses {
+            if !ids.iter().any(|id| id == &witness.sensor_id)
+                || !witness_ids.insert(witness.sensor_id.as_str())
+            {
+                return Err(format!("{}: unknown or duplicate sensor-fault witness", case.case_id));
+            }
+            if witness.evidence_kind.trim().is_empty() {
+                return Err(format!("{}: witness evidence_kind is empty", case.case_id));
+            }
+            match witness.status.as_str() {
+                "FAULT_CONFIRMED" => {
+                    if !witness.evidence_sha256.as_deref().is_some_and(is_sha256) {
+                        return Err(format!("{}: confirmed fault witness requires a SHA-256 receipt", case.case_id));
+                    }
+                }
+                "NOT_CONFIRMED" => {
+                    if witness.evidence_sha256.is_some() {
+                        return Err(format!("{}: unconfirmed witness cannot carry a confirmation digest", case.case_id));
+                    }
+                }
+                _ => return Err(format!("{}: unsupported sensor-fault witness status", case.case_id)),
+            }
+        }
         if !matches!(
             case.expected.disposition.as_str(),
             "HEALTHY_WITHIN_DECLARED_SYNTHETIC_SUPPORT"
@@ -218,6 +260,8 @@ fn validate_fixture(fixture: &Fixture) -> Result<(), String> {
                 | "ABSTAIN_AMBIGUOUS_HYPOTHESES"
                 | "ABSTAIN_OUT_OF_MODEL"
                 | "ABSTAIN_INSUFFICIENT_OBSERVABILITY"
+                | "ABSTAIN_UNQUALIFIED_MEASUREMENT_CHAIN"
+                | "ABSTAIN_SENSOR_FAULT_UNCONFIRMED"
         ) {
             return Err(format!("{}: unsupported expected disposition", case.case_id));
         }
@@ -262,15 +306,23 @@ fn explanation_for_template(
     })
 }
 
-fn abstain(case: &CaseInput, disposition: &str, explanation_count: usize) -> CaseResult {
+fn abstain(
+    case: &CaseInput,
+    disposition: &str,
+    explanation_count: usize,
+    sensor_fault_confirmation: &str,
+) -> CaseResult {
     CaseResult {
         case_id: case.case_id.clone(),
         disposition: disposition.to_owned(),
         structural_state: None,
         faulty_sensor_ids: Vec::new(),
         explanation_count,
-        corrected_values: None,
-        correction_applied_sensor_ids: Vec::new(),
+        observed_values: case.observed_values.clone(),
+        model_imputed_values: None,
+        reconstructed_sensor_ids: Vec::new(),
+        reconstruction_status: "NOT_PERFORMED".to_owned(),
+        sensor_fault_confirmation: sensor_fault_confirmation.to_owned(),
         post_correction_structural_state: None,
         damage_preserved: None,
         claim_ceiling: CLAIM_CEILING.to_owned(),
@@ -286,16 +338,26 @@ fn evaluate_case(fixture: &Fixture, case: &CaseInput) -> CaseResult {
         .collect();
 
     if observed_indices.len() < fixture.policy.minimum_consistent_channels {
-        return abstain(case, "ABSTAIN_INSUFFICIENT_OBSERVABILITY", 0);
+        return abstain(
+            case,
+            "ABSTAIN_INSUFFICIENT_OBSERVABILITY",
+            0,
+            "NOT_ASSESSED",
+        );
     }
 
-    // An unqualified channel must never be corrected into a seemingly healthy one.
+    // An unqualified channel must never be reconstructed into a seemingly valid one.
     let unqualified = observed_indices.iter().any(|index| {
         let channel = &fixture.channels[*index];
         channel.operator_status != "ADMITTED" || channel.calibration_status != "VALID"
     });
     if unqualified {
-        return abstain(case, "ABSTAIN_UNQUALIFIED_MEASUREMENT_CHAIN", 0);
+        return abstain(
+            case,
+            "ABSTAIN_UNQUALIFIED_MEASUREMENT_CHAIN",
+            0,
+            "NOT_ASSESSED",
+        );
     }
 
     let mut explanations = Vec::new();
@@ -319,10 +381,15 @@ fn evaluate_case(fixture: &Fixture, case: &CaseInput) -> CaseResult {
     }
 
     if explanations.is_empty() {
-        return abstain(case, "ABSTAIN_OUT_OF_MODEL", 0);
+        return abstain(case, "ABSTAIN_OUT_OF_MODEL", 0, "NOT_ASSESSED");
     }
     if explanations.len() > 1 {
-        return abstain(case, "ABSTAIN_AMBIGUOUS_HYPOTHESES", explanations.len());
+        return abstain(
+            case,
+            "ABSTAIN_AMBIGUOUS_HYPOTHESES",
+            explanations.len(),
+            "NOT_ASSESSED",
+        );
     }
 
     let explanation = explanations.pop().expect("exactly one explanation exists");
@@ -331,6 +398,26 @@ fn evaluate_case(fixture: &Fixture, case: &CaseInput) -> CaseResult {
         .iter()
         .map(|index| fixture.channels[*index].sensor_id.clone())
         .collect();
+
+    if !faulty_sensor_ids.is_empty() {
+        let all_faults_have_independent_witness = explanation.faulty_indices.iter().all(|index| {
+            case.sensor_fault_witnesses.iter().any(|witness| {
+                witness.sensor_id == fixture.channels[*index].sensor_id
+                    && witness.status == "FAULT_CONFIRMED"
+                    && witness.evidence_kind == "independent_builtin_self_test"
+                    && witness.evidence_sha256.as_deref().is_some_and(is_sha256)
+            })
+        });
+        if !all_faults_have_independent_witness {
+            return abstain(
+                case,
+                "ABSTAIN_SENSOR_FAULT_UNCONFIRMED",
+                1,
+                "NOT_CONFIRMED",
+            );
+        }
+    }
+
     let structural_state = explanation.structural_state;
     let disposition = match (structural_state, faulty_sensor_ids.is_empty()) {
         ("HEALTHY", true) => "HEALTHY_WITHIN_DECLARED_SYNTHETIC_SUPPORT",
@@ -340,13 +427,22 @@ fn evaluate_case(fixture: &Fixture, case: &CaseInput) -> CaseResult {
         _ => unreachable!("only the two admitted structural states exist"),
     };
 
-    // Correct only after a unique joint hypothesis. The structural state is immutable:
-    // sensor correction is not allowed to clear or downgrade a damage hypothesis.
-    let mut corrected_values = case.observed_values.clone();
-    for index in &explanation.faulty_indices {
-        corrected_values[*index] = Some(explanation.template[*index]);
-    }
-    let damage_preserved = structural_state == "DAMAGED";
+    // Raw observations remain immutable. Model imputations have a separate field
+    // and are never relabeled as measurements or fed back as independent evidence.
+    let model_imputed_values = if faulty_sensor_ids.is_empty() {
+        None
+    } else {
+        let mut estimates = vec![None; case.observed_values.len()];
+        for index in &explanation.faulty_indices {
+            estimates[*index] = Some(explanation.template[*index]);
+        }
+        Some(estimates)
+    };
+    let reconstruction_status = if faulty_sensor_ids.is_empty() {
+        "NOT_APPLICABLE"
+    } else {
+        "CONDITIONAL_MODEL_ESTIMATE_NOT_MEASUREMENT"
+    };
 
     CaseResult {
         case_id: case.case_id.clone(),
@@ -354,10 +450,17 @@ fn evaluate_case(fixture: &Fixture, case: &CaseInput) -> CaseResult {
         structural_state: Some(structural_state.to_owned()),
         faulty_sensor_ids: faulty_sensor_ids.clone(),
         explanation_count: 1,
-        corrected_values: Some(corrected_values),
-        correction_applied_sensor_ids: faulty_sensor_ids,
+        observed_values: case.observed_values.clone(),
+        model_imputed_values,
+        reconstructed_sensor_ids: faulty_sensor_ids,
+        reconstruction_status: reconstruction_status.to_owned(),
+        sensor_fault_confirmation: if explanation.faulty_indices.is_empty() {
+            "NO_SENSOR_FAULT_HYPOTHESIS".to_owned()
+        } else {
+            "INDEPENDENT_WITNESS_CONFIRMED".to_owned()
+        },
         post_correction_structural_state: Some(structural_state.to_owned()),
-        damage_preserved: Some(damage_preserved),
+        damage_preserved: Some(structural_state == "DAMAGED"),
         claim_ceiling: CLAIM_CEILING.to_owned(),
     }
 }
