@@ -7,7 +7,7 @@
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 use std::fmt::Write as _;
 
 const FIXTURE: &[u8] = include_bytes!("../data/instrument-correlated-noise-v0.1.json");
@@ -836,7 +836,9 @@ fn audit(fixture: &Fixture, source: &[u8]) -> AuditResult<Audit> {
         covariance_channel_count: fixture.noise_covariance.channel_ids.len(),
         covariance_positive_definite: true,
         covariance_correlated_pairs: (0..fixture.noise_covariance.matrix.len())
-            .flat_map(|i| (i + 1)..fixture.noise_covariance.matrix.len())
+            .flat_map(|i| {
+                ((i + 1)..fixture.noise_covariance.matrix.len()).map(move |j| (i, j))
+            })
             .filter(|(i, j)| fixture.noise_covariance.matrix[*i][*j].abs() > 1.0e-12)
             .count(),
         diagonal_e_opt,
