@@ -1,0 +1,31 @@
+name: LOCO Modal Fault Space Verification
+
+on:
+  pull_request:
+    paths:
+      - 'research/loco-modal-fault-space-001/**'
+      - '.github/workflows/loco-modal-fault-space.yml'
+  push:
+    branches: [main, research/loco-modal-fault-space-rust-v0]
+    paths:
+      - 'research/loco-modal-fault-space-001/**'
+      - '.github/workflows/loco-modal-fault-space.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/loco-modal-fault-space-001/Cargo.toml -- --check
+      - name: Run exact common-cause enumeration tests
+        run: cargo test --manifest-path research/loco-modal-fault-space-001/Cargo.toml --locked
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path research/loco-modal-fault-space-001/Cargo.toml --locked --all-targets -- -D warnings
