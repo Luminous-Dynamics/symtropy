@@ -64,7 +64,7 @@ The crate also exposes a first-order uncertainty reference for the net electrica
 
 `P_net = rho * g * Q_turbine * H_net * eta_turbine * eta_generator - P_aux`
 
-All six input standard uncertainties are required: water density, turbine branch flow, net head, turbine efficiency, generator efficiency and auxiliary power. Missing any one returns `Ok(None)`; it is never treated as zero. The report contains the analytic Jacobian, signed per-input contributions, combined standard uncertainty, the declared independence assumption and the uncertainty-evidence reference.
+All six input standard uncertainties are required: water density, turbine branch flow, net head, turbine efficiency, generator efficiency and auxiliary power. Missing any one returns `Ok(None)`; it is never treated as zero. Each uncertainty is individually bound to a source/evidence class, method, observation or assessment window, instrument or map identity, revision and calibration-validity statement. The report retains all six provenance records with the analytic Jacobian, signed per-input contributions, combined standard uncertainty and declared independence assumption.
 
 Important limits:
 - V0.1 assumes mutually independent standard uncertainties. It does not infer independence from sensor IDs or shared calibration systems.
