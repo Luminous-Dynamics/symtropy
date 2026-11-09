@@ -136,6 +136,8 @@ pub struct ViableVoiProblem {
     pub abstraction_digest: String,
     pub domain_digest: String,
     pub probe: ProbeAdmission,
+    /// Fresh baseline evidence for the no-probe/passive admitted action set.
+    pub passive_receipt: EvidenceReceipt,
     pub hypotheses: Vec<Hypothesis>,
     pub branches: Vec<Branch>,
     pub outcomes: Vec<Outcome>,
@@ -176,7 +178,7 @@ pub struct ViableVoiReport {
     /// Sum over outcomes of unnormalized joint mass × loss; denominator SCALE.
     pub post_probe_risk_numerator_ppb_squared: Option<u128>,
     /// Difference of risk numerators; divide by SCALE² for normalized VOI.
-    pub viable_voi_numerator_ppb_cubed: Option<i128>,
+    pub viable_voi_numerator_ppb_squared: Option<i128>,
     pub unknown_outcome_mass_ppb: u64,
     pub outcome_decisions: Vec<OutcomeDecision>,
 }
@@ -195,6 +197,7 @@ pub enum ViableVoiError {
     NoOutcomes,
     DuplicateHypothesisId,
     DuplicateBranchId,
+    BranchSetMismatch,
     DuplicateOutcomeId,
     DuplicatePhysicalPair,
     DuplicateHypothesisBranchPair,
@@ -225,6 +228,7 @@ pub enum ViableVoiError {
     InvalidLoss,
     DuplicateContinuationLossCell,
     MissingContinuationLossCell,
+    LossForUnadmittedAction,
     ArithmeticOverflow,
     ResourceLimitInvalid,
 }
@@ -451,6 +455,13 @@ fn validate_and_compute(problem: &ViableVoiProblem) -> Result<ViableVoiReport, V
     if problem.probe.receipt.subject_id != problem.probe.probe_action_id {
         return Err(ViableVoiError::ProbeSubjectMismatch);
     }
+    validate_receipt(
+        &problem.passive_receipt,
+        problem,
+        "passive-baseline",
+        problem.probe.receipt.horizon_steps,
+    )
+    .map_err(|_| ViableVoiError::ContinuationContextMismatch)?;
 
     match &problem.probe.status {
         ProbeGateStatus::Rejected { witness_id } => {
@@ -464,7 +475,7 @@ fn validate_and_compute(problem: &ViableVoiProblem) -> Result<ViableVoiReport, V
                 passive_selected_action_id: None,
                 passive_risk_numerator_ppb_squared: None,
                 post_probe_risk_numerator_ppb_squared: None,
-                viable_voi_numerator_ppb_cubed: None,
+                viable_voi_numerator_ppb_squared: None,
                 unknown_outcome_mass_ppb: 0,
                 outcome_decisions: Vec::new(),
             });
@@ -480,7 +491,7 @@ fn validate_and_compute(problem: &ViableVoiProblem) -> Result<ViableVoiReport, V
                 passive_selected_action_id: None,
                 passive_risk_numerator_ppb_squared: None,
                 post_probe_risk_numerator_ppb_squared: None,
-                viable_voi_numerator_ppb_cubed: None,
+                viable_voi_numerator_ppb_squared: None,
                 unknown_outcome_mass_ppb: 0,
                 outcome_decisions: Vec::new(),
             });
@@ -495,7 +506,7 @@ fn validate_and_compute(problem: &ViableVoiProblem) -> Result<ViableVoiReport, V
             passive_selected_action_id: None,
             passive_risk_numerator_ppb_squared: None,
             post_probe_risk_numerator_ppb_squared: None,
-            viable_voi_numerator_ppb_cubed: None,
+            viable_voi_numerator_ppb_squared: None,
             unknown_outcome_mass_ppb: 0,
             outcome_decisions: Vec::new(),
         });
@@ -585,6 +596,21 @@ fn validate_and_compute(problem: &ViableVoiProblem) -> Result<ViableVoiReport, V
     }
     if continuation_ids.len() != problem.outcomes.len() {
         return Err(ViableVoiError::MissingContinuationOutcome);
+    }
+
+    let mut declared_branch_ids = BTreeSet::new();
+    for branch_id in &problem.probe.branch_ids {
+        if !nonempty(branch_id) {
+            return Err(ViableVoiError::EmptyIdentifier);
+        }
+        if !declared_branch_ids.insert(branch_id.as_str()) {
+            return Err(ViableVoiError::DuplicateBranchId);
+        }
+    }
+    let input_branch_ids: BTreeSet<&str> =
+        problem.branches.iter().map(|branch| branch.id.as_str()).collect();
+    if declared_branch_ids != input_branch_ids {
+        return Err(ViableVoiError::BranchSetMismatch);
     }
 
     let mut physical_pairs = BTreeSet::new();
@@ -698,6 +724,32 @@ fn validate_and_compute(problem: &ViableVoiProblem) -> Result<ViableVoiReport, V
         return Err(ViableVoiError::JointMassNotNormalized);
     }
 
+    let admitted_by_outcome: Vec<(&str, BTreeSet<&str>)> = problem
+        .continuation_evidence
+        .iter()
+        .map(|evidence| {
+            (
+                evidence.outcome_id.as_str(),
+                evidence
+                    .robust_admitted_action_ids
+                    .iter()
+                    .map(String::as_str)
+                    .collect(),
+            )
+        })
+        .collect();
+    for cell in &problem.continuation_loss_cells {
+        let Some((_, admitted_actions)) = admitted_by_outcome
+            .iter()
+            .find(|(outcome_id, _)| *outcome_id == cell.outcome_id)
+        else {
+            return Err(ViableVoiError::MissingContinuationOutcome);
+        };
+        if !admitted_actions.contains(cell.action_id.as_str()) {
+            return Err(ViableVoiError::LossForUnadmittedAction);
+        }
+    }
+
     let (passive_action_id, passive_risk) = passive_risk(problem)?;
     let mut outcome_decisions = Vec::with_capacity(problem.outcomes.len());
     let mut post_probe_risk = 0_u128;
@@ -767,7 +819,7 @@ fn validate_and_compute(problem: &ViableVoiProblem) -> Result<ViableVoiReport, V
         passive_selected_action_id: Some(passive_action_id),
         passive_risk_numerator_ppb_squared: Some(passive_risk),
         post_probe_risk_numerator_ppb_squared: Some(post_probe_risk),
-        viable_voi_numerator_ppb_cubed: Some(voi),
+        viable_voi_numerator_ppb_squared: Some(voi),
         unknown_outcome_mass_ppb: unknown_mass,
         outcome_decisions,
     })
@@ -930,6 +982,7 @@ mod tests {
                     },
                 ],
             },
+            passive_receipt: receipt("passive-baseline", "passive-admission", 4),
             hypotheses,
             branches,
             outcomes,
@@ -991,7 +1044,7 @@ mod tests {
             Some(100_000_000_000_000_000)
         );
         assert_eq!(
-            report.viable_voi_numerator_ppb_cubed,
+            report.viable_voi_numerator_ppb_squared,
             Some(400_000_000_000_000_000)
         );
         assert_eq!(
@@ -1024,7 +1077,7 @@ mod tests {
                 witness_id: "branch-loses-recovery".to_owned()
             }
         );
-        assert_eq!(report.viable_voi_numerator_ppb_cubed, None);
+        assert_eq!(report.viable_voi_numerator_ppb_squared, None);
     }
 
     #[test]
@@ -1049,7 +1102,7 @@ mod tests {
                 resource_id: "energy_mj".to_owned()
             }
         );
-        assert_eq!(report.viable_voi_numerator_ppb_cubed, None);
+        assert_eq!(report.viable_voi_numerator_ppb_squared, None);
     }
 
     #[test]
