@@ -58,6 +58,7 @@ pub struct SingleSpcResult {
     pub source_digest: String,
     pub observation_digest: String,
     pub calibration_data_digest: String,
+    pub split_manifest_digest: String,
     pub randomization_seed: u64,
 }
 
@@ -104,6 +105,7 @@ pub enum SplitPredictiveError {
     MixedModelIdentities,
     MixedTailDirections,
     MixedCalibrationIdentities,
+    MixedSplitManifestIdentities,
     MixedSourceIdentities,
     MixedMeasurementUnits,
     MixedSampleSizes,
@@ -273,6 +275,7 @@ pub fn single_split_predictive_check(
         source_digest: statistic.source_digest.clone(),
         observation_digest: observation.observation_digest.clone(),
         calibration_data_digest: manifest.calibration_data_digest.clone(),
+        split_manifest_digest: manifest.manifest_digest.clone(),
         randomization_seed: unit_seed,
     })
 }
@@ -332,6 +335,9 @@ pub fn divided_split_predictive_check(
         }
         if check.calibration_data_digest != manifest.calibration_data_digest {
             return Err(SplitPredictiveError::MixedCalibrationIdentities);
+        }
+        if check.split_manifest_digest != manifest.manifest_digest {
+            return Err(SplitPredictiveError::MixedSplitManifestIdentities);
         }
         if check.independent_unit_kind != manifest.independent_unit
             || !check.predictive_p_value.is_finite()
@@ -700,6 +706,16 @@ mod tests {
         assert!(matches!(
             divided_split_predictive_check(&manifest(), SplitRole::Validation, &checks, 999, 1),
             Err(SplitPredictiveError::MixedTailDirections)
+        ));
+    }
+
+    #[test]
+    fn divided_spc_rejects_mixed_split_manifest_identity() {
+        let mut checks = checks();
+        checks[1].split_manifest_digest = "sha256-other-manifest".to_string();
+        assert!(matches!(
+            divided_split_predictive_check(&manifest(), SplitRole::Validation, &checks, 999, 1),
+            Err(SplitPredictiveError::MixedSplitManifestIdentities)
         ));
     }
 
