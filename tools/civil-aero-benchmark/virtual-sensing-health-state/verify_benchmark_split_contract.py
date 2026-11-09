@@ -42,40 +42,59 @@ def validate_policy(policy: dict[str, Any]) -> None:
 
 
 def axis_value(record: dict[str, Any], axis: str) -> str | None:
-    if axis not in ("specimen_id", "thermal_regime_id", "installation_generation"):
+    if axis not in (
+        "specimen_id",
+        "thermal_regime_id",
+        "installation_generation",
+        "campaign_id",
+        "configuration_id",
+    ):
         return None
     return record[axis]
 
 
 def validate_group_holdout(track: dict[str, Any]) -> list[str]:
-    axis = track.get("holdout_axis")
-    require(isinstance(axis, str) and axis in (
-        "specimen_id", "thermal_regime_id", "installation_generation"
-    ), "group holdout requires supported holdout axis")
+    specification = track.get("holdout_axis")
+    require(isinstance(specification, str) and specification.strip(),
+            "group holdout requires supported holdout axis")
+    axes = specification.split("+")
+    supported = {
+        "specimen_id",
+        "thermal_regime_id",
+        "installation_generation",
+        "campaign_id",
+        "configuration_id",
+    }
+    require(
+        all(axis in supported for axis in axes) and len(axes) == len(set(axes)),
+        "unsupported, empty or duplicate group holdout axis",
+    )
     require(track.get("purge_policy") is None,
             "group-holdout track must not carry a temporal purge policy")
-    values = {
-        split: {
-            axis_value(record, axis)
-            for record in track["records"]
-            if record["split"] == split
-        }
-        for split in SPLITS
-    }
-    require(all(values[split] for split in SPLITS),
-            "required split missing from group holdout")
-    for left_index, left in enumerate(SPLITS):
-        for right in SPLITS[left_index + 1:]:
-            require(
-                values[left].isdisjoint(values[right]),
-                f"holdout leakage on axis {axis} between {left} and {right}",
-            )
-    return [
+    checks = [
         "SAMPLE_ID_UNIQUE",
         "SOURCE_RECORD_ID_UNIQUE",
         "ACQUISITION_WINDOW_ID_UNIQUE",
-        f"GROUP_DISJOINT:{axis}",
     ]
+    for axis in axes:
+        values = {
+            split: {
+                axis_value(record, axis)
+                for record in track["records"]
+                if record["split"] == split
+            }
+            for split in SPLITS
+        }
+        require(all(values[split] for split in SPLITS),
+                "required split missing from group holdout")
+        for left_index, left in enumerate(SPLITS):
+            for right in SPLITS[left_index + 1:]:
+                require(
+                    values[left].isdisjoint(values[right]),
+                    f"holdout leakage on axis {axis} between {left} and {right}",
+                )
+        checks.append(f"GROUP_DISJOINT:{axis}")
+    return checks
 
 
 def validate_temporal_forward(track: dict[str, Any]) -> list[str]:
@@ -256,6 +275,18 @@ def negative_controls(data: dict[str, Any]) -> None:
     else:
         raise AuditError("negative control failed: specimen leakage accepted")
 
+    compound = copy.deepcopy(data)
+    track = next(item for item in compound["tracks"]
+                 if item["track_id"] == "COMPOUND_ARTICLE_CAMPAIGN_HOLDOUT")
+    track["records"][2]["configuration_id"] = track["records"][0]["configuration_id"]
+    try:
+        validate_fixture(compound)
+    except AuditError as error:
+        require("holdout leakage on axis configuration_id" in str(error),
+                "compound-axis negative control failed for wrong reason")
+    else:
+        raise AuditError("negative control failed: compound configuration leakage accepted")
+
     purge = copy.deepcopy(data)
     track = next(item for item in purge["tracks"]
                  if item["track_id"] == "TEMPORAL_FORWARD")
@@ -270,6 +301,7 @@ def negative_controls(data: dict[str, Any]) -> None:
 
     print("negative_control=pass case=duplicate_acquisition_window")
     print("negative_control=pass case=held_out_specimen_overlap")
+    print("negative_control=pass case=compound_configuration_campaign_specimen_leak")
     print("negative_control=pass case=insufficient_temporal_purge_gap")
 
 
@@ -281,13 +313,13 @@ def main() -> int:
         raw = FIXTURE.read_bytes()
         data = json.loads(raw)
         expected = evaluate(data, raw)
-        require(expected["track_count"] == 4, "frozen split-track count changed")
-        require(expected["sample_record_count"] == 14, "frozen sample-record count changed")
+        require(expected["track_count"] == 5, "frozen split-track count changed")
+        require(expected["sample_record_count"] == 17, "frozen sample-record count changed")
         actual = json.loads(args.rust_output.read_text(encoding="utf-8"))
         compare(actual, expected)
         negative_controls(data)
         print(
-            "aero_shm_benchmark_split_contract=pass tracks=4 samples=14 "
+             "aero_shm_benchmark_split_contract=pass tracks=5 samples=17 "
             "axes=specimen+thermal+installation+forward_time rust_python=pass"
         )
         return 0
