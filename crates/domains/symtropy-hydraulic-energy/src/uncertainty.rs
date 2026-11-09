@@ -31,31 +31,129 @@ impl StandardUncertainty {
     }
 }
 
+/// Provenance for one standard-uncertainty value. Strings identify the
+/// method, observation/assessment window, instrument or map and calibration
+/// revision/validity. They are retained as declared metadata, not authenticated.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct UncertaintyProvenance {
+    evidence: EvidenceReference,
+    method: String,
+    observation_window: String,
+    instrument_or_map_id: String,
+    revision: String,
+    calibration_validity: String,
+}
+
+impl UncertaintyProvenance {
+    pub fn new(
+        evidence: EvidenceReference,
+        method: impl Into<String>,
+        observation_window: impl Into<String>,
+        instrument_or_map_id: impl Into<String>,
+        revision: impl Into<String>,
+        calibration_validity: impl Into<String>,
+    ) -> Result<Self, UncertaintyError> {
+        let method = method.into();
+        let observation_window = observation_window.into();
+        let instrument_or_map_id = instrument_or_map_id.into();
+        let revision = revision.into();
+        let calibration_validity = calibration_validity.into();
+
+        for (field, value) in [
+            ("method", method.as_str()),
+            ("observation_window", observation_window.as_str()),
+            ("instrument_or_map_id", instrument_or_map_id.as_str()),
+            ("revision", revision.as_str()),
+            ("calibration_validity", calibration_validity.as_str()),
+        ] {
+            if value.trim().is_empty() {
+                return Err(UncertaintyError::MissingProvenance { field });
+            }
+        }
+
+        Ok(Self {
+            evidence,
+            method,
+            observation_window,
+            instrument_or_map_id,
+            revision,
+            calibration_validity,
+        })
+    }
+
+    pub fn evidence(&self) -> &EvidenceReference {
+        &self.evidence
+    }
+
+    pub fn method(&self) -> &str {
+        &self.method
+    }
+
+    pub fn observation_window(&self) -> &str {
+        &self.observation_window
+    }
+
+    pub fn instrument_or_map_id(&self) -> &str {
+        &self.instrument_or_map_id
+    }
+
+    pub fn revision(&self) -> &str {
+        &self.revision
+    }
+
+    pub fn calibration_validity(&self) -> &str {
+        &self.calibration_validity
+    }
+}
+
+/// One standard uncertainty bound to its own provenance.
+#[derive(Debug, Clone, PartialEq)]
+pub struct EvidenceBoundStandardUncertainty {
+    value: StandardUncertainty,
+    provenance: UncertaintyProvenance,
+}
+
+impl EvidenceBoundStandardUncertainty {
+    pub const fn new(value: StandardUncertainty, provenance: UncertaintyProvenance) -> Self {
+        Self { value, provenance }
+    }
+
+    pub const fn value(&self) -> StandardUncertainty {
+        self.value
+    }
+
+    pub fn provenance(&self) -> &UncertaintyProvenance {
+        &self.provenance
+    }
+}
+
 /// Standard uncertainties for the exact component boundary used by the
 /// hydraulic generation result.
 ///
-/// Each field is optional by design. None means unknown, not zero. The
-/// turbine-flow uncertainty is for the measured turbine branch, not the
-/// upstream/bypass allocation. net_head_m is the uncertainty of the derived
-/// net head, including the conveyance/head-loss method chosen by the caller.
-#[derive(Debug, Clone, Copy, Default, PartialEq)]
+/// Each field is optional by design. None means unknown, not zero. Each
+/// populated field has its own source, method, measurement window, instrument
+/// or map identity, revision and calibration-validity metadata. The turbine
+/// flow is the measured turbine branch, not the upstream/bypass allocation.
+/// net_head_m is uncertainty of derived net head, including the caller's
+/// declared conveyance/head-loss method.
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct HydraulicPowerStandardUncertainties {
     /// Standard uncertainty in kg/m³.
-    pub water_density_kg_per_m3: Option<StandardUncertainty>,
+    pub water_density_kg_per_m3: Option<EvidenceBoundStandardUncertainty>,
     /// Standard uncertainty in m³/s at the turbine branch.
-    pub turbine_flow_m3_per_s: Option<StandardUncertainty>,
+    pub turbine_flow_m3_per_s: Option<EvidenceBoundStandardUncertainty>,
     /// Standard uncertainty in m of net hydraulic head.
-    pub net_head_m: Option<StandardUncertainty>,
+    pub net_head_m: Option<EvidenceBoundStandardUncertainty>,
     /// Dimensionless standard uncertainty in turbine hydraulic efficiency.
-    pub turbine_efficiency: Option<StandardUncertainty>,
+    pub turbine_efficiency: Option<EvidenceBoundStandardUncertainty>,
     /// Dimensionless standard uncertainty in generator efficiency.
-    pub generator_efficiency: Option<StandardUncertainty>,
+    pub generator_efficiency: Option<EvidenceBoundStandardUncertainty>,
     /// Standard uncertainty in auxiliary electrical power, W.
-    pub auxiliary_power_w: Option<StandardUncertainty>,
+    pub auxiliary_power_w: Option<EvidenceBoundStandardUncertainty>,
 }
 
 impl HydraulicPowerStandardUncertainties {
-    pub const fn is_complete(self) -> bool {
+    pub fn is_complete(&self) -> bool {
         self.water_density_kg_per_m3.is_some()
             && self.turbine_flow_m3_per_s.is_some()
             && self.net_head_m.is_some()
@@ -105,7 +203,7 @@ pub struct NetPowerUncertaintyReport {
     pub sensitivity: NetPowerSensitivity,
     pub contributions: NetPowerUncertaintyContributions,
     pub dependence: UncertaintyDependence,
-    pub uncertainty_evidence: EvidenceReference,
+    pub input_uncertainties: HydraulicPowerStandardUncertainties,
     /// False means the nominal point fails the water-service or source
     /// evidence eligibility gates. Uncertainty cannot lift either gate.
     pub comparison_eligible: bool,
@@ -114,6 +212,7 @@ pub struct NetPowerUncertaintyReport {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum UncertaintyError {
     InvalidStandardUncertainty { value: f64 },
+    MissingProvenance { field: &'static str },
     NonFiniteSensitivity { field: &'static str, value: f64 },
     NonFiniteContribution { field: &'static str, value: f64 },
     NonFiniteCombinedUncertainty { value: f64 },
@@ -126,6 +225,9 @@ impl fmt::Display for UncertaintyError {
                 formatter,
                 "standard uncertainty must be finite and non-negative; got {value}"
             ),
+            Self::MissingProvenance { field } => {
+                write!(formatter, "uncertainty provenance field {field} must not be empty")
+            }
             Self::NonFiniteSensitivity { field, value } => {
                 write!(formatter, "sensitivity {field} is non-finite: {value}")
             }
@@ -162,8 +264,7 @@ impl std::error::Error for UncertaintyError {}
 /// remains diagnostic if the nominal hydraulic result is not eligible.
 pub fn propagate_net_power_standard_uncertainty(
     result: &HydraulicGenerationResult,
-    uncertainties: HydraulicPowerStandardUncertainties,
-    uncertainty_evidence: EvidenceReference,
+    uncertainties: &HydraulicPowerStandardUncertainties,
 ) -> Result<Option<NetPowerUncertaintyReport>, UncertaintyError> {
     let (
         Some(u_density),
@@ -173,12 +274,12 @@ pub fn propagate_net_power_standard_uncertainty(
         Some(u_generator_efficiency),
         Some(u_auxiliary),
     ) = (
-        uncertainties.water_density_kg_per_m3,
-        uncertainties.turbine_flow_m3_per_s,
-        uncertainties.net_head_m,
-        uncertainties.turbine_efficiency,
-        uncertainties.generator_efficiency,
-        uncertainties.auxiliary_power_w,
+        uncertainties.water_density_kg_per_m3.as_ref(),
+        uncertainties.turbine_flow_m3_per_s.as_ref(),
+        uncertainties.net_head_m.as_ref(),
+        uncertainties.turbine_efficiency.as_ref(),
+        uncertainties.generator_efficiency.as_ref(),
+        uncertainties.auxiliary_power_w.as_ref(),
     )
     else {
         return Ok(None);
@@ -239,14 +340,14 @@ pub fn propagate_net_power_standard_uncertainty(
     }
 
     let contributions = NetPowerUncertaintyContributions {
-        water_density_w: sensitivity.water_density_w_per_kg_m3 * u_density.get(),
-        turbine_flow_w: sensitivity.turbine_flow_w_per_m3_per_s * u_flow.get(),
-        net_head_w: sensitivity.net_head_w_per_m * u_head.get(),
+        water_density_w: sensitivity.water_density_w_per_kg_m3 * u_density.value().get(),
+        turbine_flow_w: sensitivity.turbine_flow_w_per_m3_per_s * u_flow.value().get(),
+        net_head_w: sensitivity.net_head_w_per_m * u_head.value().get(),
         turbine_efficiency_w: sensitivity.turbine_efficiency_w_per_unit
-            * u_turbine_efficiency.get(),
+            * u_turbine_efficiency.value().get(),
         generator_efficiency_w: sensitivity.generator_efficiency_w_per_unit
-            * u_generator_efficiency.get(),
-        auxiliary_power_w: sensitivity.auxiliary_power_w_per_w * u_auxiliary.get(),
+            * u_generator_efficiency.value().get(),
+        auxiliary_power_w: sensitivity.auxiliary_power_w_per_w * u_auxiliary.value().get(),
     };
 
     for (field, value) in [
@@ -281,7 +382,7 @@ pub fn propagate_net_power_standard_uncertainty(
         sensitivity,
         contributions,
         dependence: UncertaintyDependence::IndependentStandardUncertaintiesAssumed,
-        uncertainty_evidence,
+        input_uncertainties: uncertainties.clone(),
         comparison_eligible: result.service_eligible_net_electrical_power().is_some(),
     }))
 }
