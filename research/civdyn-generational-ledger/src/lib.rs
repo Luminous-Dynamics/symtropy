@@ -188,7 +188,9 @@ impl InheritedStockAllocation {
         validate_text(&self.asset_id, "stock_asset_id")?;
         validate_text(&self.source_evidence_ref, "stock_source_ref")?;
         if !ids.insert(self.allocation_id.clone()) {
-            return Err(IncidenceError::DuplicateRecordId(self.allocation_id.clone()));
+            return Err(IncidenceError::DuplicateRecordId(
+                self.allocation_id.clone(),
+            ));
         }
         validate_quantity(self.closing_stock, "inherited_closing_stock")
     }
@@ -276,11 +278,7 @@ pub struct FinancialObligation {
 }
 
 impl FinancialObligation {
-    fn validate(
-        &self,
-        source_tick: u64,
-        ids: &mut BTreeSet<String>,
-    ) -> Result<(), IncidenceError> {
+    fn validate(&self, source_tick: u64, ids: &mut BTreeSet<String>) -> Result<(), IncidenceError> {
         validate_text(&self.obligation_id, "financial_obligation_id")?;
         validate_text(
             &self.originating_action_id,
@@ -300,7 +298,9 @@ impl FinancialObligation {
         }
         validate_time(self.created_tick, self.due_tick, source_tick)?;
         if !ids.insert(self.obligation_id.clone()) {
-            return Err(IncidenceError::DuplicateRecordId(self.obligation_id.clone()));
+            return Err(IncidenceError::DuplicateRecordId(
+                self.obligation_id.clone(),
+            ));
         }
         validate_quantity(self.amount, "financial_obligation_amount")?;
         self.uncertainty.validate()
@@ -443,9 +443,7 @@ impl CohortIncidenceLedger {
         let mut region_ids = BTreeSet::new();
         for region in &source.regions {
             if !region_ids.insert(region.region_id.as_str()) {
-                return Err(IncidenceError::DuplicateRegionId(
-                    region.region_id.clone(),
-                ));
+                return Err(IncidenceError::DuplicateRegionId(region.region_id.clone()));
             }
             if !region.ledger.is_conserved() {
                 return Err(IncidenceError::SourceLedgerNotConserved(
