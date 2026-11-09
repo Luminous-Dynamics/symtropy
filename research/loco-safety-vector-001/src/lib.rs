@@ -659,6 +659,7 @@ mod tests {
         let input = problem(
             vec![
                 event("b-s1", "b-i1", "shank_collision", 300),
+                event("b-s2", "b-i4", "shank_collision", 300),
                 event("b-f1", "b-i2", "foot_scuff", 100),
                 event("b-l1", "b-i3", "fall", 900),
             ],
