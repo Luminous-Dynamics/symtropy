@@ -1793,40 +1793,30 @@ mod tests {
 
     #[test]
     fn causal_region_selector_reproduces_all_three_exact_domains() {
-        let late = classify_poschl_teller_mode_sum_region(
-            2.0, 0.75, 8.0, 4.0, 2.0, 1.0e-10,
-        )
-        .unwrap();
+        let late =
+            classify_poschl_teller_mode_sum_region(2.0, 0.75, 8.0, 4.0, 2.0, 1.0e-10).unwrap();
         assert_eq!(late.region, PoschlTellerModeSumRegion::LateQnm);
         assert!(late.direct_lightcone_margin > 0.0);
         assert!(late.reflected_lightcone_margin > 0.0);
 
-        let early = classify_poschl_teller_mode_sum_region(
-            2.0, 0.75, 4.0, 4.0, 2.0, 1.0e-10,
-        )
-        .unwrap();
+        let early =
+            classify_poschl_teller_mode_sum_region(2.0, 0.75, 4.0, 4.0, 2.0, 1.0e-10).unwrap();
         assert_eq!(early.region, PoschlTellerModeSumRegion::EarlyMatsubara);
         assert!(early.direct_lightcone_margin > 0.0);
         assert!(early.reflected_lightcone_margin < 0.0);
 
-        let zero = classify_poschl_teller_mode_sum_region(
-            2.0, 0.75, 1.0, 4.0, 2.0, 1.0e-10,
-        )
-        .unwrap();
+        let zero =
+            classify_poschl_teller_mode_sum_region(2.0, 0.75, 1.0, 4.0, 2.0, 1.0e-10).unwrap();
         assert_eq!(zero.region, PoschlTellerModeSumRegion::CausallyZero);
         assert!(zero.direct_lightcone_margin < 0.0);
     }
 
     #[test]
     fn causal_region_selector_scales_with_width_and_handles_opposite_sides() {
-        let narrow = classify_poschl_teller_mode_sum_region(
-            2.0, 0.75, 4.0, 4.0, 2.0, 1.0e-10,
-        )
-        .unwrap();
-        let scaled = classify_poschl_teller_mode_sum_region(
-            4.0, 0.75, 8.0, 8.0, 4.0, 1.0e-10,
-        )
-        .unwrap();
+        let narrow =
+            classify_poschl_teller_mode_sum_region(2.0, 0.75, 4.0, 4.0, 2.0, 1.0e-10).unwrap();
+        let scaled =
+            classify_poschl_teller_mode_sum_region(4.0, 0.75, 8.0, 8.0, 4.0, 1.0e-10).unwrap();
         assert_eq!(narrow.region, scaled.region);
         assert_eq!(narrow.dimensionless_time, scaled.dimensionless_time);
         assert_eq!(
@@ -1838,10 +1828,8 @@ mod tests {
             scaled.reflected_lightcone_margin
         );
 
-        let opposite_sides = classify_poschl_teller_mode_sum_region(
-            2.0, 0.75, 4.0, 4.0, -2.0, 1.0e-10,
-        )
-        .unwrap();
+        let opposite_sides =
+            classify_poschl_teller_mode_sum_region(2.0, 0.75, 4.0, 4.0, -2.0, 1.0e-10).unwrap();
         assert_eq!(
             opposite_sides.region,
             PoschlTellerModeSumRegion::CausallyZero
@@ -1850,19 +1838,15 @@ mod tests {
 
     #[test]
     fn causal_region_selector_abstains_at_both_wavefronts() {
-        let direct = classify_poschl_teller_mode_sum_region(
-            1.0, 0.75, 1.0, 2.0, 1.0, 1.0e-8,
-        )
-        .unwrap();
+        let direct =
+            classify_poschl_teller_mode_sum_region(1.0, 0.75, 1.0, 2.0, 1.0, 1.0e-8).unwrap();
         assert_eq!(
             direct.region,
             PoschlTellerModeSumRegion::TransitionUnresolved
         );
 
-        let reflected = classify_poschl_teller_mode_sum_region(
-            1.0, 0.75, 3.0, 2.0, 1.0, 1.0e-8,
-        )
-        .unwrap();
+        let reflected =
+            classify_poschl_teller_mode_sum_region(1.0, 0.75, 3.0, 2.0, 1.0, 1.0e-8).unwrap();
         assert_eq!(
             reflected.region,
             PoschlTellerModeSumRegion::TransitionUnresolved
@@ -1885,6 +1869,4 @@ mod tests {
             );
         }
     }
-
-
 }
