@@ -18,6 +18,8 @@ A Fourier-sign, coordinate, branch, frequency-normalization, or boundary-normali
 
 ## Scope limits
 
-The first schema does not claim to encode every BHPT product. Source orbits, fluxes, higher derivatives, arbitrary charts, branch-cut metadata, and QNM pole records will be added only with explicit typed definitions and fixtures. Unknown fields are rejected to prevent silent schema drift.
+The first schema covers radial reference fixtures and a separate Kerr QNM-sequence record. It does not yet encode source orbits, fluxes, higher derivatives, arbitrary charts, branch-cut metadata, or complete sourced waveforms. These require explicit typed definitions and fixtures. Unknown fields are rejected to prevent silent schema drift.
+
+QNM sequence records preserve sequence position independently of an optional overtone index. A prolate/oblate family label requires a multi-mode asymptotic evidence record, but the schema only checks that evidence is present and finite. It does not prove the family classification or assess whether the measured residuals are small enough. Unresolved and Ambiguous remain first-class outcomes.
 
 Reference fixtures are data, not executable instructions. Do not load untrusted notebooks or code from a fixture payload.
