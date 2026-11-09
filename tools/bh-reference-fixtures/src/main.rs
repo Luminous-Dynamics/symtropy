@@ -114,8 +114,9 @@ fn run(args: &[String]) -> Result<i32, String> {
         }
         [command, sequence_path, analysis_path] if command == "analyze-qnm" => {
             let sequence = read_qnm_sequence(sequence_path)?;
-            let payload_sha256 = canonical_payload_sha256(&sequence)
-                .map_err(|error| format!("cannot canonicalize QNM sequence {sequence_path}: {error}"))?;
+            let payload_sha256 = canonical_payload_sha256(&sequence).map_err(|error| {
+                format!("cannot canonicalize QNM sequence {sequence_path}: {error}")
+            })?;
             let request = read_qnm_analysis_request(analysis_path)?;
             let analysis = analyze_qnm_family_sequence(&sequence, request.targets, request.config)
                 .map_err(|error| error.to_string())?;
@@ -141,10 +142,12 @@ fn run(args: &[String]) -> Result<i32, String> {
         [command, left_path, right_path, abs_tol, rel_tol] if command == "compare-radial" => {
             let left = read_radial_fixture(left_path)?;
             let right = read_radial_fixture(right_path)?;
-            let left_payload_sha256 = canonical_payload_sha256(&left)
-                .map_err(|error| format!("cannot canonicalize left fixture {left_path}: {error}"))?;
-            let right_payload_sha256 = canonical_payload_sha256(&right)
-                .map_err(|error| format!("cannot canonicalize right fixture {right_path}: {error}"))?;
+            let left_payload_sha256 = canonical_payload_sha256(&left).map_err(|error| {
+                format!("cannot canonicalize left fixture {left_path}: {error}")
+            })?;
+            let right_payload_sha256 = canonical_payload_sha256(&right).map_err(|error| {
+                format!("cannot canonicalize right fixture {right_path}: {error}")
+            })?;
             let absolute_tolerance = abs_tol
                 .parse::<f64>()
                 .map_err(|error| format!("invalid absolute tolerance {abs_tol}: {error}"))?;
