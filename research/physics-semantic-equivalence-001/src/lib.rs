@@ -54,6 +54,8 @@ impl Dimension {
 pub enum MappingStatus {
     StrictlyEquivalent,
     MappedEquivalentWithBound,
+    NotApplicable,
+    NotProvided,
     NonEquivalent,
     Unsupported,
     UnknownUnassessed,
@@ -63,7 +65,7 @@ impl MappingStatus {
     pub const fn is_admissible(self) -> bool {
         matches!(
             self,
-            Self::StrictlyEquivalent | Self::MappedEquivalentWithBound
+            Self::StrictlyEquivalent | Self::MappedEquivalentWithBound | Self::NotApplicable
         )
     }
 }
@@ -176,6 +178,20 @@ pub fn validate_receipt(receipt: &MappingReceipt) -> ValidationReport {
 
         match mapping.status {
             MappingStatus::StrictlyEquivalent => {}
+            MappingStatus::NotApplicable => {
+                if mapping.evidence_refs.is_empty() {
+                    issues.push(issue(
+                        "missing_not_applicable_evidence",
+                        &format!("{path}.evidence_refs"),
+                    ));
+                }
+                if mapping.transformation.is_some() || !mapping.error_bounds.is_empty() {
+                    issues.push(issue(
+                        "not_applicable_has_mapping",
+                        &format!("{path}.transformation"),
+                    ));
+                }
+            }
             MappingStatus::MappedEquivalentWithBound => {
                 if mapping
                     .transformation
@@ -200,7 +216,8 @@ pub fn validate_receipt(receipt: &MappingReceipt) -> ValidationReport {
                     ));
                 }
             }
-            MappingStatus::NonEquivalent
+            MappingStatus::NotProvided
+            | MappingStatus::NonEquivalent
             | MappingStatus::Unsupported
             | MappingStatus::UnknownUnassessed => {
                 inadmissible_dimensions.push(mapping.dimension);
@@ -396,6 +413,41 @@ mod tests {
         assert!(!report.score_eligible);
         assert!(report.issues.iter().any(|issue| issue.code == "missing_mapping_transformation"));
         assert!(report.issues.iter().any(|issue| issue.code == "missing_error_bound"));
+    }
+
+    #[test]
+    fn not_applicable_dimension_is_admissible_only_with_evidence() {
+        let mut candidate = receipt(MappingStatus::StrictlyEquivalent);
+        let contact = candidate
+            .dimensions
+            .iter_mut()
+            .find(|mapping| mapping.dimension == Dimension::Contacts)
+            .expect("contact dimension exists");
+        contact.status = MappingStatus::NotApplicable;
+        contact.evidence_refs = vec!["scenario:no-contact-001".to_owned()];
+
+        let report = validate_receipt(&candidate);
+        assert!(report.score_eligible, "{:?}", report.issues);
+
+        contact.evidence_refs.clear();
+        let report = validate_receipt(&candidate);
+        assert!(!report.score_eligible);
+        assert!(report.issues.iter().any(|issue| issue.code == "missing_not_applicable_evidence"));
+    }
+
+    #[test]
+    fn not_provided_dimension_blocks_admission() {
+        let mut candidate = receipt(MappingStatus::StrictlyEquivalent);
+        let ccd = candidate
+            .dimensions
+            .iter_mut()
+            .find(|mapping| mapping.dimension == Dimension::Ccd)
+            .expect("CCD dimension exists");
+        ccd.status = MappingStatus::NotProvided;
+
+        let report = validate_receipt(&candidate);
+        assert!(!report.score_eligible);
+        assert_eq!(report.inadmissible_dimensions, vec![Dimension::Ccd]);
     }
 
     #[test]
