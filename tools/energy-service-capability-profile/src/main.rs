@@ -894,6 +894,68 @@ mod tests {
         assert!(parse_offers(&mismatch).is_err());
     }
 
+
+    #[test]
+    fn battery_exchange_offer_matches_exact_swap_service_request() {
+        let swap_request = REQUEST
+            .replace("CONDUCTIVE;IPT", "BATTERY_EXCHANGE")
+            .replace("CONTACT;NEAR_FIELD", "CONTACT")
+            .replace("\tDOCKED\t", "\tBATTERY_SWAP\t")
+            .replace("DRY_INDOOR", "DRY_INDOOR")
+            .replace("\tDOCK\t", "\tSWAP\t")
+            .replace("PHYSICAL_ENVELOPE;OBSERVABILITY;SESSION_ADMISSION", "PHYSICAL_ENVELOPE")
+            .replace("SIMULATED", "BENCH_MEASURED");
+        let report = evaluate(&offers(OFFERS), &request(&swap_request));
+        assert_eq!(
+            by_id(&report.results, "battery_swap_001").disposition,
+            "MATCH_BENCH"
+        );
+    }
+
+    #[test]
+    fn optical_and_rf_offers_match_only_their_declared_airborne_regimes() {
+        let optical_request = REQUEST
+            .replace("CONDUCTIVE;IPT", "OPTICAL")
+            .replace("CONTACT;NEAR_FIELD", "FAR_FIELD")
+            .replace("1111111111111111111111111111111111111111111111111111111111111111", "9999999999999999999999999999999999999999999999999999999999999999")
+            .replace("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd")
+            .replace("\tDOCKED\t", "\tHOVER\t")
+            .replace("DRY_INDOOR", "CLEAR_AIR")
+            .replace("\tDOCK\t", "\tTRACK\t")
+            .replace("PHYSICAL_ENVELOPE;OBSERVABILITY;SESSION_ADMISSION", "PHYSICAL_ENVELOPE")
+            .replace("SIMULATED", "FIELD_MEASURED");
+        let report = evaluate(&offers(OFFERS), &request(&optical_request));
+        assert_eq!(
+            by_id(&report.results, "optical_hover_001").disposition,
+            "MATCH_FIELD"
+        );
+
+        let rf_request = optical_request.replace("OPTICAL", "RF_MICROWAVE");
+        let report = evaluate(&offers(OFFERS), &request(&rf_request));
+        assert_eq!(
+            by_id(&report.results, "rf_hover_001").disposition,
+            "MATCH_SIMULATED"
+        );
+    }
+
+    #[test]
+    fn power_line_profile_is_visible_but_declared_only() {
+        let line_request = REQUEST
+            .replace("CONDUCTIVE;IPT", "POWER_LINE")
+            .replace("CONTACT;NEAR_FIELD", "ENERGY_CARRIER")
+            .replace("1111111111111111111111111111111111111111111111111111111111111111", "9999999999999999999999999999999999999999999999999999999999999999")
+            .replace("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee")
+            .replace("\tDOCKED\t", "\tTRANSLATING\t")
+            .replace("DRY_INDOOR", "POWERLINE_CORRIDOR")
+            .replace("\tDOCK\t", "\tTRACK\t")
+            .replace("PHYSICAL_ENVELOPE;OBSERVABILITY;SESSION_ADMISSION", "PHYSICAL_ENVELOPE");
+        let report = evaluate(&offers(OFFERS), &request(&line_request));
+        assert_eq!(
+            by_id(&report.results, "powerline_corridor_001").disposition,
+            "DECLARED_ONLY"
+        );
+    }
+
     #[test]
     fn row_permutation_preserves_compatibility_results() {
         let mut rows: Vec<&str> = OFFERS.lines().collect();
