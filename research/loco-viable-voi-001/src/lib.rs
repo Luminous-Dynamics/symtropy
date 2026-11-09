@@ -662,7 +662,6 @@ fn validate_and_compute(problem: &ViableVoiProblem) -> Result<ViableVoiReport, V
     }
 
     let mut possible_hby = BTreeSet::new();
-    let mut possible_hby_branch_outcomes = BTreeSet::new();
     for triple in &problem.probe.possible_hypothesis_branch_outcomes {
         if !possible_hb.contains(&(triple.hypothesis_id.as_str(), triple.branch_id.as_str()))
             || !physical_pairs.contains(&(triple.branch_id.as_str(), triple.outcome_id.as_str()))
@@ -676,10 +675,6 @@ fn validate_and_compute(problem: &ViableVoiProblem) -> Result<ViableVoiReport, V
         )) {
             return Err(ViableVoiError::DuplicateJointPossibility);
         }
-        possible_hby_branch_outcomes.insert((
-            triple.branch_id.as_str(),
-            triple.outcome_id.as_str(),
-        ));
     }
     let projected_hb: BTreeSet<(&str, &str)> = problem
         .probe
@@ -1264,6 +1259,13 @@ mod tests {
             .push(PhysicalBranchOutcome {
                 branch_id: "b-good".to_owned(),
                 outcome_id: "degraded-contact".to_owned(),
+            });
+        problem
+            .probe
+            .possible_hypothesis_branches
+            .push(PossibleHypothesisBranch {
+                hypothesis_id: "h-bad".to_owned(),
+                branch_id: "b-good".to_owned(),
             });
         problem
             .probe
