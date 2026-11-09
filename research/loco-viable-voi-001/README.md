@@ -181,3 +181,42 @@ Do not collapse viability, recovery, calibration, decision value, energy and com
 ## 10. Claim ceiling
 
 V0 qualifies exact composition arithmetic and evidence/admission semantics for supplied finite inputs. It does not validate physical likelihoods/losses, prove upstream viability soundness, authenticate receipts, establish continuous-time safety or demonstrate real-world locomotion superiority. Simulation, biological and hardware results remain separate evidence tiers.
+
+
+## 11. Executable finite Rust V0 reference
+
+The standalone dependency-free Rust crate in this directory consumes:
+- an upstream probe-admission receipt and status from the robust probe-continuation layer;
+- complete physical branch/outcome possibility pairs and hypothesis/branch support pairs;
+- one complete joint mass cube over hypothesis × branch × outcome;
+- upstream outcome-specific robust continuation action sets and their evidence receipts;
+- passive/no-probe action losses and post-probe action/hypothesis/branch/outcome losses;
+- explicit energy, time, actuator and risk resource usage/limits.
+
+It returns one of three gate dispositions before any probability ranking:
+- physical rejected (with upstream witness);
+- physical Unknown (with reason);
+- resource rejected (with the hard-limit dimension).
+
+Only when those gates pass does it evaluate the passive baseline and the outcome-specific admitted continuation choices. The joint mass cube must be complete and sum exactly to the fixed-point scale. A positive joint cell must be supported by both the declared hypothesis/branch support and physical branch/outcome possibility relation. Zero-mass physical branches remain in the upstream robust gate.
+
+Unknown outcomes require an explicit fallback, and the fallback must be the only action exposed for that unknown outcome. Decision losses are evaluated only for the upstream admitted action IDs. No fallback or action set is synthesized by this crate.
+
+The V0 Rust tests cover:
+- exact passive risk 0.5, post-probe risk 0.1 and gross viability-conditioned VOI 0.4;
+- physical rejection short-circuit before decision ranking;
+- retention of Unknown outcome mass and explicit fallback;
+- energy hard-limit rejection before ranking;
+- positive mass assigned to a physically impossible cell;
+- missing outcome continuation evidence;
+- invalid Unknown fallback action set;
+- permutation invariance;
+- stale continuation receipt rejection.
+
+Qualification commands:
+
+    cargo fmt --manifest-path research/loco-viable-voi-001/Cargo.toml -- --check
+    cargo test --manifest-path research/loco-viable-voi-001/Cargo.toml --locked
+    cargo clippy --manifest-path research/loco-viable-voi-001/Cargo.toml --locked --all-targets -- -D warnings
+
+The exact-head workflow is authoritative for Rust 1.96. A green result qualifies finite arithmetic and supplied evidence-composition semantics only; it does not authenticate upstream receipts, prove robust viability or validate physical likelihoods, losses or resource measurements.
