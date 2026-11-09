@@ -38,6 +38,7 @@ fn observed(statistic_id: &str, unit: &str, value: f64) -> ObservedStatistic {
         statistic_id: statistic_id.to_string(),
         independent_unit_id: UNIT_ID.to_string(),
         measurement_unit: unit.to_string(),
+        source_digest: format!("fixture-source-{statistic_id}-v1"),
         sample_size: SAMPLE_SIZE,
         value,
         measurement_standard_error: Some(0.01),
@@ -81,7 +82,7 @@ fn linear_draws(start: f64, end: f64) -> Vec<f64> {
 fn render(kind: PredictiveKind, assessment: &AdequacyAssessment) {
     for result in &assessment.statistics {
         println!(
-            "{},{},{},{},{},{},{},{},{},{},{},{}",
+            "{},{},{},{},{},{},{},{},{},{},{},{},{}",
             kind.name(),
             result.statistic_id,
             result.independent_unit_id,
@@ -97,6 +98,7 @@ fn render(kind: PredictiveKind, assessment: &AdequacyAssessment) {
             result.draw_count,
             result.measurement_unit,
             assessment.domain_status.name(),
+            result.source_digest,
         );
     }
 }
@@ -176,7 +178,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         &linear_draws(0.005, 0.025),
     ));
 
-    println!("kind,statistic_id,unit_id,status,observed,measurement_se,lower,upper,rank,n_draws,measurement_unit,domain_status");
+    println!("kind,statistic_id,unit_id,status,observed,measurement_se,lower,upper,rank,n_draws,measurement_unit,domain_status,source_digest");
 
     let prior = assess_predictive_partition(
         &registry,
