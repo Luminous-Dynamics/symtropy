@@ -9389,7 +9389,6 @@ dependencies = [
  "bevy",
  "nalgebra 0.34.2",
  "serde",
- "symtropy-consciousness-physics",
  "symtropy-math",
  "symtropy-physics",
 ]
