@@ -959,7 +959,7 @@ mod tests {
 
     #[test]
     fn regression_limit_is_hard_even_when_service_floor_passes() {
-        let candidate = service_state("WATER-CANDIDATE-REGRESSION", 430_000.0, 0.095, 0.018);
+        let candidate = service_state("WATER-CANDIDATE-REGRESSION", 430_000.0, 0.094, 0.018);
         let result = evaluate_hydraulic_generation(
             hydraulic_input(0.1, 12.0, 2.0),
             turbine(),
