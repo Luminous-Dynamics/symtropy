@@ -1,0 +1,61 @@
+{
+  "schema_version": "oli-m0-fixture-v0.1",
+  "fixture_id": "OLI-M0-OOD-SENSOR-001",
+  "scenario_family": "OOD_SENSOR_ENVIRONMENT",
+  "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+  "physical_substrate": "unknown_substrate_under_unqualified_sensor_modality",
+  "system_boundary": {
+    "status": "UNKNOWN",
+    "description": "The sensor response and observation-to-physical-variable mapping are not calibrated for this environment."
+  },
+  "measurement": {
+    "modality": "unseen_spectral_sensor_v9",
+    "units": ["unknown_signal_unit"],
+    "unit_status": "UNKNOWN",
+    "calibration_status": "UNQUALIFIED",
+    "temporal": {
+      "window_seconds": 300.0,
+      "sampling_interval_seconds": 1.0,
+      "target_process_timescale_seconds": 3.0,
+      "coverage_fraction": 1.0
+    },
+    "spatial": {
+      "coordinate_frame": "unqualified_sensor_frame",
+      "footprint_fraction": 1.0,
+      "resolution_m": null
+    }
+  },
+  "property_assessments": {
+    "organization": "MODEL_INADEQUATE",
+    "boundary": "MODEL_INADEQUATE",
+    "energy_matter_throughput": "MODEL_INADEQUATE",
+    "persistence": "MODEL_INADEQUATE",
+    "homeostasis_regulation": "NOT_OBSERVABLE_WITH_CURRENT_INSTRUMENT",
+    "self_maintenance": "NOT_OBSERVABLE_WITH_CURRENT_INSTRUMENT",
+    "information_retention": "MODEL_INADEQUATE",
+    "information_transfer": "MODEL_INADEQUATE",
+    "reproduction": "NOT_TESTED",
+    "heredity": "NOT_TESTED",
+    "adaptation": "NOT_TESTED",
+    "learning": "NOT_TESTED",
+    "agency": "NOT_TESTED",
+    "intelligence": "NOT_TESTED",
+    "collective_intelligence": "NOT_TESTED",
+    "sentience_consciousness": "NOT_TESTED"
+  },
+  "expected_result": {
+    "disposition": "OUT_OF_DOMAIN",
+    "absence_inference_allowed": false,
+    "reason": "The sensor modality, units and calibration envelope are unqualified for this environment. Abstain; do not infer property support, contradiction or absence."
+  },
+  "source": {
+    "reference": "synthetic://oli-m0/ood-sensor-v1",
+    "data_status": "SYNTHETIC_FIXTURE_ONLY",
+    "note": "The fixture intentionally supplies unknown units and an unqualified sensor response."
+  },
+  "limitations": [
+    "Out-of-domain status is a measurement-model limitation, not evidence about the candidate system.",
+    "The fixture does not simulate or validate an actual instrument.",
+    "No life-presence or absence inference is permitted."
+  ]
+}
