@@ -258,6 +258,18 @@ pub struct StatisticAssessment {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub struct CoverageSummary {
+    pub statistic_id: String,
+    pub expected_independent_units: usize,
+    pub assessed_independent_units: usize,
+    pub not_assessed_independent_units: usize,
+    pub covered_independent_units: usize,
+    pub empirical_coverage: Option<f64>,
+    pub wilson_lower_95: Option<f64>,
+    pub wilson_upper_95: Option<f64>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct AdequacyAssessment {
     pub registry_version: String,
     pub split_manifest_id: String,
@@ -267,6 +279,8 @@ pub struct AdequacyAssessment {
     pub central_mass: f64,
     pub domain_status: DomainStatus,
     pub statistics: Vec<StatisticAssessment>,
+    /// Coverage is calculated across independent units, separately per statistic.
+    pub coverage: Vec<CoverageSummary>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -577,6 +591,51 @@ pub fn assess_predictive_partition(
         DomainStatus::NoPrimaryDiscrepancyDetected
     };
 
+    let mut coverage = Vec::new();
+    for statistic in registry.statistics.iter().filter(|spec| spec.role == role) {
+        let statistic_results: Vec<&StatisticAssessment> = results
+            .iter()
+            .filter(|result| result.statistic_id == statistic.id)
+            .collect();
+        if statistic_results.is_empty() {
+            continue;
+        }
+
+        let expected_units = if statistic.required {
+            expected_units.len()
+        } else {
+            statistic_results.len()
+        };
+        let assessed_units = statistic_results
+            .iter()
+            .filter(|result| result.status != StatisticStatus::NotAssessed)
+            .count();
+        let not_assessed_units = expected_units.saturating_sub(assessed_units);
+        let covered_units = statistic_results
+            .iter()
+            .filter(|result| result.status == StatisticStatus::WithinReferenceInterval)
+            .count();
+        let empirical_coverage = (assessed_units > 0)
+            .then_some(covered_units as f64 / assessed_units as f64);
+        let (wilson_lower_95, wilson_upper_95) = if assessed_units > 0 {
+            let (lower, upper) = wilson_interval_95(covered_units, assessed_units);
+            (Some(lower), Some(upper))
+        } else {
+            (None, None)
+        };
+
+        coverage.push(CoverageSummary {
+            statistic_id: statistic.id.clone(),
+            expected_independent_units: expected_units,
+            assessed_independent_units: assessed_units,
+            not_assessed_independent_units: not_assessed_units,
+            covered_independent_units: covered_units,
+            empirical_coverage,
+            wilson_lower_95,
+            wilson_upper_95,
+        });
+    }
+
     Ok(AdequacyAssessment {
         registry_version: registry.version.clone(),
         split_manifest_id: manifest.id.clone(),
@@ -586,6 +645,7 @@ pub fn assess_predictive_partition(
         central_mass,
         domain_status,
         statistics: results,
+        coverage,
     })
 }
 
@@ -600,6 +660,20 @@ fn quantile(sorted_values: &[f64], probability: f64) -> f64 {
         let weight = position - lower_index as f64;
         sorted_values[lower_index] * (1.0 - weight) + sorted_values[upper_index] * weight
     }
+}
+
+fn wilson_interval_95(successes: usize, total: usize) -> (f64, f64) {
+    debug_assert!(total > 0 && successes <= total);
+    let z = 1.959_963_984_540_054_f64;
+    let n = total as f64;
+    let proportion = successes as f64 / n;
+    let z_squared = z * z;
+    let denominator = 1.0 + z_squared / n;
+    let center = (proportion + z_squared / (2.0 * n)) / denominator;
+    let half_width = z
+        * (proportion * (1.0 - proportion) / n + z_squared / (4.0 * n * n)).sqrt()
+        / denominator;
+    ((center - half_width).max(0.0), (center + half_width).min(1.0))
 }
 
 fn mid_rank(sorted_values: &[f64], observed: f64) -> f64 {
@@ -1079,6 +1153,57 @@ mod tests {
             assessment.domain_status,
             DomainStatus::PrimaryDiscrepancyDetected
         );
+    }
+
+    #[test]
+    fn coverage_summary_uses_independent_units_and_reports_wilson_uncertainty() {
+        let mut manifest = manifest();
+        manifest.validation_units = (0..10)
+            .map(|index| format!("region-{index}"))
+            .collect();
+
+        let registry = StatisticRegistry {
+            version: "coverage-v1".to_string(),
+            statistics: vec![spec("service-rate", SplitRole::Validation, true)],
+        };
+
+        let mut observations = Vec::new();
+        let mut predictive = Vec::new();
+        for (index, unit_id) in manifest.validation_units.iter().enumerate() {
+            let observed_value = if index < 8 { 0.3 } else { 0.9 };
+            let mut row = observation("service-rate", "region-val", observed_value);
+            row.independent_unit_id = unit_id.clone();
+            observations.push(row);
+
+            let mut unit_draws = draws(
+                PredictiveKind::Split,
+                "service-rate",
+                unit_id,
+                &[0.1, 0.2, 0.3, 0.4, 0.5],
+            );
+            predictive.append(&mut unit_draws);
+        }
+
+        let assessment = assess_predictive_partition(
+            &registry,
+            &manifest,
+            &observations,
+            &predictive,
+            SplitRole::Validation,
+            PredictiveKind::Split,
+            0.8,
+        )
+        .expect("valid independent-unit coverage fixture");
+
+        assert_eq!(assessment.coverage.len(), 1);
+        let coverage = &assessment.coverage[0];
+        assert_eq!(coverage.expected_independent_units, 10);
+        assert_eq!(coverage.assessed_independent_units, 10);
+        assert_eq!(coverage.not_assessed_independent_units, 0);
+        assert_eq!(coverage.covered_independent_units, 8);
+        assert!((coverage.empirical_coverage.unwrap() - 0.8).abs() < 1e-12);
+        assert!(coverage.wilson_lower_95.unwrap() < 0.5);
+        assert!(coverage.wilson_upper_95.unwrap() > 0.9);
     }
 
     #[test]
