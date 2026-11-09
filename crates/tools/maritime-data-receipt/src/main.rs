@@ -802,10 +802,22 @@ fn validate_receipt(root: &JsonValue) -> Result<ReceiptFacts, String> {
             "data_context.freshness_policy",
             "not_applicable_synthetic",
         )?;
-        if observation_time.is_none() {
+        // Observation products must bind their observation time. Series and
+        // static/reference products may carry their temporal semantics in a
+        // product-specific profile instead of inventing an observation timestamp.
+        if ["water_level", "currents", "hydrography"].contains(&domain)
+            && observation_time.is_none()
+        {
             return Err(
-                "synthetic fixture requires its explicitly synthetic timestamp for test coverage"
+                "synthetic observation fixture requires its explicitly synthetic timestamp"
                     .to_owned(),
+            );
+        }
+        if domain == "water_level_prediction"
+            && (coverage_start.is_none() || coverage_end.is_none())
+        {
+            return Err(
+                "synthetic prediction fixture requires a bounded validity interval".to_owned(),
             );
         }
     } else {
@@ -1303,6 +1315,29 @@ mod tests {
         );
         let result = parse_strict(mutated.as_bytes()).and_then(|value| validate_receipt(&value));
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn synthetic_non_observation_domain_delegates_time_semantics_to_its_profile() {
+        let bytes = include_bytes!("../tests/fixtures/synthetic-plsci-receipt.json");
+        let parsed = parse_strict(bytes).expect("synthetic PLSCI receipt JSON");
+        let facts = validate_receipt(&parsed)
+            .expect("non-observation synthetic series may define its period in its product profile");
+        assert_eq!(facts.domain, "other");
+    }
+
+    #[test]
+    fn synthetic_observation_requires_an_explicit_observation_timestamp() {
+        let raw = String::from_utf8(receipt_bytes()).expect("receipt is UTF-8");
+        let mutated = raw.replacen(
+            "\"survey_or_observation_time_utc\": \"2026-10-14T12:00:00Z\"",
+            "\"survey_or_observation_time_utc\": null",
+            1,
+        );
+        let error = parse_strict(mutated.as_bytes())
+            .and_then(|value| validate_receipt(&value))
+            .expect_err("synthetic observation without an observation time must fail");
+        assert!(error.contains("synthetic observation fixture requires"));
     }
 
     #[test]
