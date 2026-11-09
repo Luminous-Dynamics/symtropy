@@ -836,7 +836,7 @@ mod tests {
         assert!((result.generator_loss_power.get() - 784.532).abs() < 1e-9);
         assert!((result.net_candidate_electrical_power.get() - 6_960.788).abs() < 1e-9);
         assert!(result.water_service.is_feasible());
-        assert_eq!(result.credited_net_electrical_power().unwrap().get(), 6_960.788);
+        assert!((result.credited_net_electrical_power().unwrap().get() - 6_960.788).abs() < 1e-9);
     }
 
     #[test]
