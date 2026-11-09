@@ -14,27 +14,27 @@
     "description": "One-region synthetic service and closing-stock incidence allocation across a present cohort, a future cohort and an explicitly unassigned shared asset.",
     "tick": 1,
     "region_id": "district-a",
-    "population": 4.0,
+    "population": 4,
     "opening_stock": {
-      "water_m3": 100.0,
-      "energy_kwh": 200.0,
-      "food_kg": 80.0
+      "water_m3": 100,
+      "energy_kwh": 200,
+      "food_kg": 80
     },
     "essential_demand_per_capita": {
-      "water_m3": 5.0,
-      "energy_kwh": 10.0,
-      "food_kg": 4.0
+      "water_m3": 5,
+      "energy_kwh": 10,
+      "food_kg": 4
     },
     "production": {
-      "water_m3": 0.0,
-      "energy_kwh": 0.0,
-      "food_kg": 0.0
+      "water_m3": 0,
+      "energy_kwh": 0,
+      "food_kg": 0
     },
     "transfer_policy": "unrestricted",
     "expected_closing_stock": {
-      "water_m3": 80.0,
-      "energy_kwh": 160.0,
-      "food_kg": 64.0
+      "water_m3": 80,
+      "energy_kwh": 160,
+      "food_kg": 64
     }
   },
   "cohort_allocations": {
@@ -55,13 +55,15 @@
     "financial obligations never net against physical resource stocks or obligations",
     "changing welfare discount rates changes only the derived discounted-service view",
     "cohort splitting and reassignment preserve aggregate physical totals",
-    "future cohorts inherit the preceding closing state rather than a reset baseline"
+    "future cohorts inherit the preceding closing state rather than a reset baseline",
+    "incidence ticks are contiguous and previous source-ledger closing stock equals the next source-ledger opening stock per region and resource"
   ],
   "claim_ceiling": [
     "All values are synthetic and are not calibrated to any real population, catchment, infrastructure system or fiscal account.",
     "The implementation validates allocation and reconciliation contracts; it does not infer who actually received services from aggregate source-ledger totals.",
     "Cohort assignments are explicit assumptions and must not be interpreted as observed incidence.",
     "The welfare discount view is normative sensitivity analysis and is not a physical accounting operation.",
-    "Financial and physical obligations remain distinct and are not combined into a universal fairness or sustainability score."
+    "Financial and physical obligations remain distinct and are not combined into a universal fairness or sustainability score.",
+    "Region retirement, mergers, resource conversions and other topology changes require a future explicit transition protocol; the current continuity gate fails closed rather than inferring them."
   ]
 }
