@@ -80,6 +80,12 @@ jobs:
       - name: Independently recompute environment-damage hypotheses
         run: python3 tools/civil-aero-benchmark/virtual-sensing-health-state/verify_environment_damage_independent.py --rust-output environment-damage-confounding-result.json
 
+      - name: Run Rust anti-leakage benchmark split contract
+        run: cargo run --locked --quiet --manifest-path tools/civil-aero-benchmark/virtual-sensing-health-state/Cargo.toml --bin benchmark_split_contract > benchmark-split-contract-result.json
+
+      - name: Independently verify benchmark split partitions
+        run: python3 tools/civil-aero-benchmark/virtual-sensing-health-state/verify_benchmark_split_contract.py --rust-output benchmark-split-contract-result.json
+
       - name: Create exact source and result SHA-256 receipts
         run: |
           set -euo pipefail
@@ -102,6 +108,10 @@ jobs:
           sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/verify_environment_damage_independent.py > environment-damage-python-source.sha256
           sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/data/environment-damage-confounding-v0.1.json > environment-damage-source.sha256
           sha256sum environment-damage-confounding-result.json > environment-damage-result.sha256
+          sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/src/bin/benchmark_split_contract.rs > benchmark-split-rust-source.sha256
+          sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/verify_benchmark_split_contract.py > benchmark-split-python-source.sha256
+          sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/data/benchmark-split-contract-v0.1.json > benchmark-split-source.sha256
+          sha256sum benchmark-split-contract-result.json > benchmark-split-result.sha256
           sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/verify_muvis_c_independent.py > muvis-c-python-source.sha256
           sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/data/muvis-c-corruption-v0.1.json > muvis-c-source.sha256
           sha256sum muvis-c-corruption-result.json > muvis-c-result.sha256
@@ -125,6 +135,10 @@ jobs:
             tools/civil-aero-benchmark/virtual-sensing-health-state/data/external-benchmark-register-v0.1.json
             tools/civil-aero-benchmark/virtual-sensing-health-state/src/bin/muvis_c_corruption.rs
             tools/civil-aero-benchmark/virtual-sensing-health-state/src/bin/environment_damage_confounding.rs
+            tools/civil-aero-benchmark/virtual-sensing-health-state/src/bin/benchmark_split_contract.rs
+            tools/civil-aero-benchmark/virtual-sensing-health-state/verify_benchmark_split_contract.py
+            tools/civil-aero-benchmark/virtual-sensing-health-state/data/benchmark-split-contract-v0.1.json
+            benchmark-split-contract-result.json
             tools/civil-aero-benchmark/virtual-sensing-health-state/verify_environment_damage_independent.py
             tools/civil-aero-benchmark/virtual-sensing-health-state/data/environment-damage-confounding-v0.1.json
             environment-damage-confounding-result.json
@@ -148,6 +162,10 @@ jobs:
             environment-damage-python-source.sha256
             environment-damage-source.sha256
             environment-damage-result.sha256
+            benchmark-split-rust-source.sha256
+            benchmark-split-python-source.sha256
+            benchmark-split-source.sha256
+            benchmark-split-result.sha256
             muvis-c-python-source.sha256
             muvis-c-source.sha256
             muvis-c-result.sha256
