@@ -1,0 +1,397 @@
+{
+  "schema_version": "construction-layout-robot-benchmark/0.1",
+  "profile_id": "construction-layout-printing-common-reference-v0.1",
+  "status": "research_profile_not_executed",
+  "issue_url": "https://github.com/Luminous-Dynamics/symtropy/issues/3523",
+  "ownership": {
+    "parent_physical_protocol": "https://github.com/Luminous-Dynamics/symtropy/pull/3506",
+    "trial_receipt": "https://github.com/Luminous-Dynamics/symtropy/pull/3522",
+    "survey_evidence": "https://github.com/Luminous-Dynamics/symtropy/issues/1607",
+    "shared_scenarios": "https://github.com/Luminous-Dynamics/symtropy/issues/1595",
+    "snapshot_safety": "https://github.com/Luminous-Dynamics/symtropy/pull/3317",
+    "temporal_safety": "https://github.com/Luminous-Dynamics/symtropy/pull/3499",
+    "mission_qualification": "https://github.com/Luminous-Dynamics/symtropy/issues/2672"
+  },
+  "comparison_policy": {
+    "rule": "Never rank unlike task conditions or vendor-reported accuracy figures as if they were matched independent results.",
+    "tracks": [
+      {
+        "id": "vendor_configuration_reproduction",
+        "purpose": "Attempt reproduction of each manufacturer's stated setup, control method and operating conditions without silently substituting the common referee."
+      },
+      {
+        "id": "common_independent_referee",
+        "purpose": "Compare outputs on identical frozen layouts and ODD strata using an independent calibrated survey/reference system not used by the robot's navigation or print control."
+      }
+    ],
+    "evidence_labels": [
+      "vendor_reported",
+      "independently_measured",
+      "synthetic_fixture",
+      "not_publicly_disclosed",
+      "not_evaluated"
+    ]
+  },
+  "product_reference_claims": [
+    {
+      "product": "HP SitePrint",
+      "evidence_label": "vendor_reported",
+      "source_url": "https://www.hp.com/us-en/printers/site-print/layout-robot.html",
+      "source_checked_on": "2026-11-04",
+      "claims": {
+        "layout_tolerance_mm": 2,
+        "layout_tolerance_semantics": "manufacturer-stated tolerance; not a common-reference result",
+        "average_floor_level_accuracy_mm": 0.8,
+        "configuration": {
+          "prism": "SMR prism",
+          "mode": "High Accuracy Print Mode",
+          "total_station": "1-inch total station",
+          "operating_range_m": [
+            5,
+            30
+          ]
+        },
+        "productivity_claims": {
+          "headline_claim": "up to 30% faster point printing",
+          "comparison_basis": "manufacturer comparison against previous software version, not a manual-layout baseline",
+          "application_footnote": "official product-page footnote reports 8% for interior-wall layouts; other task types vary",
+          "evidence_label": "vendor_reported"
+        }
+      },
+      "comparability": "Configuration-specific. Reproduce the declared prism, print mode, total station and distance range; independently measure output in the common-referee track."
+    },
+    {
+      "product": "Dusty FieldPrinter 2",
+      "evidence_label": "vendor_reported",
+      "source_url": "https://support.dustyrobotics.com/hc/en-us/articles/52682349645851-FieldPrinter-Specs",
+      "source_published": "2026-09-21",
+      "source_checked_on": "2026-11-04",
+      "claims": {
+        "print_accuracy_mm": 1.6,
+        "print_accuracy_semantics": "manufacturer-stated accuracy given accurate surveyed control",
+        "forward_time_of_flight_sensors": 3,
+        "approximate_forward_obstacle_sensor_range_m": 0.9,
+        "maximum_slab_slope_degrees": 5.8,
+        "ingress_protection_equivalent": "IP51",
+        "rain_operation": "not_supported"
+      },
+      "comparability": "Manufacturer specification provides test-condition boundaries and sensor details, not independent proof of obstacle safety or equivalent accuracy."
+    }
+  ],
+  "task": {
+    "task_family": "autonomous_construction_layout_printing",
+    "functional_unit": "accepted_layout_feature_and_accepted_printed_metre",
+    "acceptance_authority": "project-defined layout tolerance and independent survey acceptance; no universal tolerance implied",
+    "required_bindings": [
+      "design_revision",
+      "design_sha256",
+      "robot_as_built_revision",
+      "tool_revision",
+      "firmware_revision",
+      "controller_revision",
+      "safety_configuration",
+      "sensor_calibrations",
+      "site_snapshot",
+      "coordinate_frame",
+      "work_package",
+      "ODD_profile",
+      "reference_instruments",
+      "protocol_digest"
+    ]
+  },
+  "layout_strata": [
+    {
+      "id": "sparse_orthogonal",
+      "geometry_features": [
+        "long_lines",
+        "right_angles",
+        "room_perimeters"
+      ],
+      "complexity_dimensions": [
+        "total_print_length",
+        "entity_count",
+        "junction_count",
+        "minimum_feature_spacing"
+      ]
+    },
+    {
+      "id": "dense_mep",
+      "geometry_features": [
+        "parallel_lines",
+        "closely_spaced_features",
+        "symbols",
+        "text"
+      ],
+      "complexity_dimensions": [
+        "entity_density_per_m2",
+        "minimum_spacing",
+        "overlap_count",
+        "text_and_symbol_count"
+      ]
+    },
+    {
+      "id": "curvilinear",
+      "geometry_features": [
+        "arcs",
+        "circles",
+        "non_orthogonal_intersections"
+      ],
+      "complexity_dimensions": [
+        "curved_length_fraction",
+        "arc_count",
+        "radius_range",
+        "tangent_transition_count"
+      ]
+    },
+    {
+      "id": "edge_and_obstacle_adjacent",
+      "geometry_features": [
+        "near_edge_lines",
+        "obstacle_adjacent_features",
+        "holes",
+        "openings"
+      ],
+      "complexity_dimensions": [
+        "edge_clearance",
+        "obstacle_density",
+        "unmodeled_obstacle_count",
+        "feature_count_near_hazards"
+      ]
+    },
+    {
+      "id": "station_transition",
+      "geometry_features": [
+        "long_runs",
+        "repeated_restations",
+        "overlapping_print_regions"
+      ],
+      "complexity_dimensions": [
+        "station_count",
+        "tracker_range_m",
+        "overlap_error",
+        "registration_drift"
+      ]
+    }
+  ],
+  "metrology": {
+    "survey_owner_issue": 1607,
+    "independent_checkpoints_required": true,
+    "calibration_points_must_not_be_reused_as_independent_checkpoints": true,
+    "coordinate_semantics": [
+      "horizontal_crs_or_local_definition",
+      "vertical_datum",
+      "coordinate_epoch_if_applicable",
+      "axis_order",
+      "units",
+      "handedness",
+      "transform_bundle_digest"
+    ],
+    "report": [
+      "signed_x_residual_mm",
+      "signed_y_residual_mm",
+      "absolute_plan_residual_mm",
+      "orientation_error_mrad",
+      "feature_completeness",
+      "local_warp_mm",
+      "length_error_mm",
+      "angle_error_mrad"
+    ],
+    "uncertainty_gate": {
+      "proposed_u95_to_decision_margin_max_ratio": 0.3333333333,
+      "status": "proposed_protocol_target_not_an_iso_requirement",
+      "rule": "If reference uncertainty cannot resolve the decision band, return indeterminate or not_evaluated."
+    }
+  },
+  "odd_dimensions": [
+    {
+      "id": "surface",
+      "measurements": [
+        "material",
+        "roughness",
+        "flatness",
+        "moisture_state",
+        "slope_degrees"
+      ]
+    },
+    {
+      "id": "illumination",
+      "measurements": [
+        "illuminance_lux",
+        "glare_direction",
+        "shadow_fraction"
+      ]
+    },
+    {
+      "id": "environment",
+      "measurements": [
+        "temperature_c",
+        "relative_humidity_percent",
+        "wind_m_s",
+        "precipitation_state"
+      ]
+    },
+    {
+      "id": "survey_control",
+      "measurements": [
+        "control_point_count",
+        "control_geometry_condition",
+        "visibility",
+        "instrument_setup",
+        "range_m"
+      ]
+    },
+    {
+      "id": "obstacles",
+      "measurements": [
+        "density_per_m2",
+        "height_m",
+        "material",
+        "occlusion_fraction",
+        "unregistered_obstacle_count"
+      ]
+    },
+    {
+      "id": "communications",
+      "measurements": [
+        "latency_ms",
+        "jitter_ms",
+        "packet_loss_percent",
+        "reconnect_events"
+      ]
+    },
+    {
+      "id": "configuration",
+      "measurements": [
+        "robot_mode",
+        "print_speed_m_s",
+        "tool_revision",
+        "calibration_age_h",
+        "battery_state"
+      ]
+    },
+    {
+      "id": "site_change",
+      "measurements": [
+        "site_snapshot_revision",
+        "design_revision",
+        "temporary_barrier_change",
+        "map_age_s"
+      ]
+    },
+    {
+      "id": "worksite_coordination",
+      "measurements": [
+        "active_trade_count",
+        "concurrent_plant_activity",
+        "work_zone_boundary_revision",
+        "temporary_exclusion_zone_revision",
+        "access_route_revision",
+        "site_phase_revision",
+        "design_change_notice_sequence",
+        "crew_briefing_record_reference"
+      ],
+      "privacy_rule": "Record organizational/site state and briefing records without collecting worker identity, biometrics, inferred intent, or affect."
+    }
+  ],
+  "metrics": {
+    "geometry": [
+      "p50_plan_residual_mm",
+      "p95_plan_residual_mm",
+      "p99_plan_residual_mm",
+      "maximum_plan_residual_mm",
+      "signed_bias_x_mm",
+      "signed_bias_y_mm",
+      "feature_completeness_percent",
+      "omitted_features",
+      "duplicated_features",
+      "distorted_features",
+      "first_pass_acceptance_percent"
+    ],
+    "safety": [
+      "obstacle_encounter_miss_count",
+      "obstacle_detection_latency_ms",
+      "minimum_swept_volume_clearance_mm",
+      "stop_request_latency_ms",
+      "brake_onset_latency_ms",
+      "physical_stop_time_ms",
+      "false_interventions_per_1000_robot_hours",
+      "unsafe_resume_attempts"
+    ],
+    "productivity": [
+      "accepted_printed_metres_per_hour",
+      "accepted_features_per_hour",
+      "crew_hours_per_accepted_1000m",
+      "setup_time_s",
+      "restation_time_s",
+      "rework_time_s",
+      "material_consumption_per_accepted_unit",
+      "productive_time_fraction"
+    ],
+    "reliability": [
+      "task_completion_rate",
+      "interruption_count",
+      "recovery_time_s",
+      "sensor_degradation_events",
+      "configuration_drift_events"
+    ]
+  },
+  "baselines": [
+    {
+      "id": "L0",
+      "description": "Manual layout using the same frozen design, surveyed control and acceptance criteria."
+    },
+    {
+      "id": "L1",
+      "description": "Manufacturer's declared robot configuration reproduced as specified."
+    },
+    {
+      "id": "L2",
+      "description": "Same robot configuration evaluated under independent common-referee metrology."
+    },
+    {
+      "id": "L3",
+      "description": "Matched cross-product common-referee track with identical layout, ODD stratum and functional unit."
+    }
+  ],
+  "prospective_targets": {
+    "geometry_p95_mm": 1,
+    "geometry_p99_mm": 2,
+    "critical_feature_omissions": 0,
+    "minimum_crew_hour_reduction_vs_matched_manual_baseline_percent": 20,
+    "independent_second_site_replication_required": true,
+    "status": "aspirational_challenge_targets_not_achieved_results",
+    "qualification_rule": "All task-specific safety and geometry gates must pass before productivity comparisons can be treated as eligible.",
+    "minimum_total_workflow_crew_hour_reduction_vs_directly_measured_matched_manual_baseline_percent": 70,
+    "minimum_elapsed_layout_duration_reduction_vs_directly_measured_matched_manual_baseline_percent": 20,
+    "minimum_rework_crew_hour_reduction_vs_directly_measured_matched_manual_baseline_percent": 90,
+    "target_rationale": "SOTA challenge hypotheses intended to exceed the 2025 single-project comparison (68% total labour-hour reduction and 18% fewer layout days), but under a stronger protocol: directly observed manual baseline, matched geometry and conditions, independent referee and complete VDC/coordination/setup/inspection/rework accounting."
+  },
+  "claim_limits": [
+    "Manufacturer-reported figures are not independently reproduced.",
+    "Print accuracy does not establish obstacle detection or physical safety.",
+    "A sensor list or ingress-protection rating is not a safety conformity assessment.",
+    "No robot is qualified by this profile until actual physical trials are independently measured and adjudicated.",
+    "No composite score may trade away critical safety or geometry failures.",
+    "The 2025 single-project case study's manual baseline was estimated rather than directly observed; its labour and schedule reductions are contextual evidence, not a universal causal estimate.",
+    "HP's up-to-30% faster-point-printing claim compares against its previous software version; the official product footnote reports 8% for interior-wall layouts. Do not compare it to manual baseline performance.",
+    "SOTA challenge targets of 70% workflow crew-hour reduction, 20% elapsed layout-duration reduction and 90% rework-hour reduction are hypotheses only; direct matched manual measurement and full workflow accounting are mandatory."
+  ],
+  "case_study_reference": {
+    "title": "Comparison of dusty robotics and traditional layout methods",
+    "doi": "10.1007/s41693-025-00163-z",
+    "url": "https://link.springer.com/article/10.1007/s41693-025-00163-z",
+    "publication_date": "2025-09-15",
+    "task_and_site": "single 8-floor medical office building, multi-trade construction layout",
+    "published_comparison": {
+      "total_labour_hours_reduction_percent": 68,
+      "layout_days_reduction_percent": 18,
+      "physically_straining_work_reduction_percent": 99,
+      "rework_estimate_manual_percent": 6.42,
+      "rework_estimate_robot_percent": 0.25,
+      "robot_print_hours": 393,
+      "additional_vdc_coordination_and_file_preparation_hours": 204
+    },
+    "critical_limitation": "Traditional-method impacts were estimated rather than directly observed. Single-project case study; not a randomized, multi-vendor matched comparison.",
+    "use": "Contextual field evidence to motivate prospective targets. Not a directly comparable score or causal universal baseline."
+  }
+}

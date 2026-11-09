@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/construction-layout-robot-benchmark-adversarial-v0.1.schema.json",
+  "title": "Construction Layout Robot Benchmark Adversarial Corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "corpus_id",
+    "owner_issue",
+    "evidence_class",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "corpus_id": {
+      "const": "construction-layout-robot-benchmark-adversarial-v0.1"
+    },
+    "owner_issue": {
+      "const": 3523
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 15,
+      "maxItems": 15,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "name",
+          "input",
+          "expected",
+          "must_not_emit"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "pattern": "^LAYOUT-[0-9]{3}$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "input": {
+            "type": "object"
+          },
+          "expected": {
+            "type": "string",
+            "minLength": 1
+          },
+          "must_not_emit": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}
