@@ -580,6 +580,7 @@ mod tests {
                 HealthState::Degraded,
                 HealthState::Ood,
                 HealthState::Unavailable,
+                HealthState::Unknown,
             ];
             components.push(component(&a, &group_id, &domain));
             components.push(component(&b, &group_id, &domain));
