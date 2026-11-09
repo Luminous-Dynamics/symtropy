@@ -1292,11 +1292,6 @@ mod tests {
                 direction: ObjectiveDirection::Maximize,
             },
         });
-        for row in &mut candidate.metrics {
-            if row.metric_id == "unmet-water" {
-                // Keep one minimize and one maximize objective.
-            }
-        }
         let mut rows = complete_outcomes();
         for row in &mut rows {
             row.values.push(DecisionMetricValue {
