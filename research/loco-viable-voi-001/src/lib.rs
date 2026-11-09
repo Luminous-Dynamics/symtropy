@@ -299,8 +299,10 @@ fn resource_exceeded(
     usage: &ResourceUsage,
     limits: &ResourceLimits,
 ) -> Result<Option<String>, ViableVoiError> {
-    if usage.actuator_peak_ppm > SCALE_PPB || limits.actuator_peak_ppm > SCALE_PPB
-        || usage.risk_alpha_ppb > SCALE_PPB || limits.risk_alpha_ppb > SCALE_PPB
+    if usage.actuator_peak_ppm > SCALE_PPB
+        || limits.actuator_peak_ppm > SCALE_PPB
+        || usage.risk_alpha_ppb > SCALE_PPB
+        || limits.risk_alpha_ppb > SCALE_PPB
     {
         return Err(ViableVoiError::ResourceLimitInvalid);
     }
@@ -319,9 +321,7 @@ fn resource_exceeded(
     Ok(None)
 }
 
-fn passive_risk(
-    problem: &ViableVoiProblem,
-) -> Result<(String, u128), ViableVoiError> {
+fn passive_risk(problem: &ViableVoiProblem) -> Result<(String, u128), ViableVoiError> {
     if problem.passive_admitted_action_ids.is_empty() {
         return Err(ViableVoiError::NoPassiveActions);
     }
@@ -339,9 +339,7 @@ fn passive_risk(
             let matches: Vec<&PassiveLossCell> = problem
                 .passive_loss_cells
                 .iter()
-                .filter(|cell| {
-                    cell.action_id == *action_id && cell.hypothesis_id == hypothesis.id
-                })
+                .filter(|cell| cell.action_id == *action_id && cell.hypothesis_id == hypothesis.id)
                 .collect();
             if matches.len() != 1 {
                 return Err(if matches.is_empty() {
@@ -364,8 +362,8 @@ fn passive_risk(
         }
         match &best {
             None => best = Some((action_id.clone(), risk)),
-            Some((best_id, best_risk)) if risk < *best_risk
-                || (risk == *best_risk && action_id < best_id) =>
+            Some((best_id, best_risk))
+                if risk < *best_risk || (risk == *best_risk && action_id < best_id) =>
             {
                 best = Some((action_id.clone(), risk));
             }
@@ -430,9 +428,7 @@ fn continuation_risk_for_action(
     Ok(total)
 }
 
-fn validate_and_compute(
-    problem: &ViableVoiProblem,
-) -> Result<ViableVoiReport, ViableVoiError> {
+fn validate_and_compute(problem: &ViableVoiProblem) -> Result<ViableVoiReport, ViableVoiError> {
     if !nonempty(&problem.initial_state_digest)
         || !nonempty(&problem.model_digest)
         || !nonempty(&problem.abstraction_digest)
@@ -492,7 +488,8 @@ fn validate_and_compute(
         ProbeGateStatus::Admitted => {}
     }
 
-    if let Some(resource_id) = resource_exceeded(&problem.resource_usage, &problem.resource_limits)? {
+    if let Some(resource_id) = resource_exceeded(&problem.resource_usage, &problem.resource_limits)?
+    {
         return Ok(ViableVoiReport {
             disposition: GateDisposition::ResourceRejected { resource_id },
             passive_selected_action_id: None,
@@ -528,7 +525,10 @@ fn validate_and_compute(
         return Err(ViableVoiError::PriorMassNotNormalized);
     }
 
-    let remaining_horizon = problem.probe.receipt.horizon_steps
+    let remaining_horizon = problem
+        .probe
+        .receipt
+        .horizon_steps
         .checked_sub(problem.probe.probe_duration_steps)
         .ok_or(ViableVoiError::InvalidHorizon)?;
     let mut continuation_ids = BTreeSet::new();
@@ -536,7 +536,11 @@ fn validate_and_compute(
         if !continuation_ids.insert(continuation.outcome_id.as_str()) {
             return Err(ViableVoiError::DuplicateContinuationOutcome);
         }
-        if !problem.outcomes.iter().any(|outcome| outcome.id == continuation.outcome_id) {
+        if !problem
+            .outcomes
+            .iter()
+            .any(|outcome| outcome.id == continuation.outcome_id)
+        {
             return Err(ViableVoiError::UnknownPhysicalOutcome);
         }
         validate_receipt(
@@ -550,14 +554,20 @@ fn validate_and_compute(
             return Err(ViableVoiError::EmptyPostStateSetDigest);
         }
         validate_unique_nonempty(
-            continuation.robust_admitted_action_ids.iter().map(String::as_str),
+            continuation
+                .robust_admitted_action_ids
+                .iter()
+                .map(String::as_str),
         )
         .map_err(|_| ViableVoiError::DuplicateContinuationAction)?;
         if continuation.robust_admitted_action_ids.is_empty() {
             return Err(ViableVoiError::NoRobustContinuation);
         }
         if matches!(
-            problem.outcomes.iter().find(|outcome| outcome.id == continuation.outcome_id)
+            problem
+                .outcomes
+                .iter()
+                .find(|outcome| outcome.id == continuation.outcome_id)
                 .map(|outcome| &outcome.kind),
             Some(OutcomeKind::Unknown)
         ) {
@@ -579,10 +589,18 @@ fn validate_and_compute(
 
     let mut physical_pairs = BTreeSet::new();
     for pair in &problem.probe.physically_possible_branch_outcomes {
-        if !problem.branches.iter().any(|branch| branch.id == pair.branch_id) {
+        if !problem
+            .branches
+            .iter()
+            .any(|branch| branch.id == pair.branch_id)
+        {
             return Err(ViableVoiError::UnknownPhysicalBranch);
         }
-        if !problem.outcomes.iter().any(|outcome| outcome.id == pair.outcome_id) {
+        if !problem
+            .outcomes
+            .iter()
+            .any(|outcome| outcome.id == pair.outcome_id)
+        {
             return Err(ViableVoiError::UnknownPhysicalOutcome);
         }
         if !physical_pairs.insert((pair.branch_id.as_str(), pair.outcome_id.as_str())) {
@@ -593,20 +611,32 @@ fn validate_and_compute(
         return Err(ViableVoiError::NoBranches);
     }
     for branch in &problem.branches {
-        if !physical_pairs.iter().any(|(branch_id, _)| *branch_id == branch.id) {
+        if !physical_pairs
+            .iter()
+            .any(|(branch_id, _)| *branch_id == branch.id)
+        {
             return Err(ViableVoiError::BranchHasNoPhysicalOutcome);
         }
     }
     for outcome in &problem.outcomes {
-        if !physical_pairs.iter().any(|(_, outcome_id)| *outcome_id == outcome.id) {
+        if !physical_pairs
+            .iter()
+            .any(|(_, outcome_id)| *outcome_id == outcome.id)
+        {
             return Err(ViableVoiError::OutcomeHasNoPhysicalBranch);
         }
     }
 
     let mut possible_hb = BTreeSet::new();
     for pair in &problem.probe.possible_hypothesis_branches {
-        if !problem.hypotheses.iter().any(|item| item.id == pair.hypothesis_id)
-            || !problem.branches.iter().any(|item| item.id == pair.branch_id)
+        if !problem
+            .hypotheses
+            .iter()
+            .any(|item| item.id == pair.hypothesis_id)
+            || !problem
+                .branches
+                .iter()
+                .any(|item| item.id == pair.branch_id)
         {
             return Err(ViableVoiError::UnknownHypothesisBranch);
         }
@@ -634,9 +664,18 @@ fn validate_and_compute(
         if cell.mass_ppb > SCALE_PPB {
             return Err(ViableVoiError::InvalidJointMass);
         }
-        if !problem.hypotheses.iter().any(|item| item.id == cell.hypothesis_id)
-            || !problem.branches.iter().any(|item| item.id == cell.branch_id)
-            || !problem.outcomes.iter().any(|item| item.id == cell.outcome_id)
+        if !problem
+            .hypotheses
+            .iter()
+            .any(|item| item.id == cell.hypothesis_id)
+            || !problem
+                .branches
+                .iter()
+                .any(|item| item.id == cell.branch_id)
+            || !problem
+                .outcomes
+                .iter()
+                .any(|item| item.id == cell.outcome_id)
         {
             return Err(ViableVoiError::MissingJointMassCell);
         }
@@ -683,11 +722,8 @@ fn validate_and_compute(
             }
         }
         if outcome.kind == OutcomeKind::Unknown {
-            unknown_mass = u64::try_from(add_u128(
-                u128::from(unknown_mass),
-                joint_mass,
-            )?)
-            .map_err(|_| ViableVoiError::ArithmeticOverflow)?;
+            unknown_mass = u64::try_from(add_u128(u128::from(unknown_mass), joint_mass)?)
+                .map_err(|_| ViableVoiError::ArithmeticOverflow)?;
         }
 
         let mut best: Option<(String, u128)> = None;
@@ -695,8 +731,8 @@ fn validate_and_compute(
             let risk = continuation_risk_for_action(problem, action_id, &outcome.id)?;
             match &best {
                 None => best = Some((action_id.clone(), risk)),
-                Some((best_id, best_risk)) if risk < *best_risk
-                    || (risk == *best_risk && action_id < best_id) =>
+                Some((best_id, best_risk))
+                    if risk < *best_risk || (risk == *best_risk && action_id < best_id) =>
                 {
                     best = Some((action_id.clone(), risk));
                 }
@@ -718,10 +754,10 @@ fn validate_and_compute(
         });
     }
 
-    let passive_signed = i128::try_from(passive_risk)
-        .map_err(|_| ViableVoiError::ArithmeticOverflow)?;
-    let post_signed = i128::try_from(post_probe_risk)
-        .map_err(|_| ViableVoiError::ArithmeticOverflow)?;
+    let passive_signed =
+        i128::try_from(passive_risk).map_err(|_| ViableVoiError::ArithmeticOverflow)?;
+    let post_signed =
+        i128::try_from(post_probe_risk).map_err(|_| ViableVoiError::ArithmeticOverflow)?;
     let voi = passive_signed
         .checked_sub(post_signed)
         .ok_or(ViableVoiError::ArithmeticOverflow)?;
@@ -740,9 +776,7 @@ fn validate_and_compute(
 /// Evaluate only after the upstream robust probe gate has admitted every
 /// physical branch/prefix. Rejected/Unknown gates return without probability
 /// ranking or decision-value arithmetic.
-pub fn evaluate_viable_voi(
-    problem: &ViableVoiProblem,
-) -> Result<ViableVoiReport, ViableVoiError> {
+pub fn evaluate_viable_voi(problem: &ViableVoiProblem) -> Result<ViableVoiReport, ViableVoiError> {
     validate_and_compute(problem)
 }
 
@@ -767,16 +801,32 @@ mod tests {
 
     fn safe_problem() -> ViableVoiProblem {
         let hypotheses = vec![
-            Hypothesis { id: "h-good".to_owned(), passive_prior_mass_ppb: 500_000_000 },
-            Hypothesis { id: "h-bad".to_owned(), passive_prior_mass_ppb: 500_000_000 },
+            Hypothesis {
+                id: "h-good".to_owned(),
+                passive_prior_mass_ppb: 500_000_000,
+            },
+            Hypothesis {
+                id: "h-bad".to_owned(),
+                passive_prior_mass_ppb: 500_000_000,
+            },
         ];
         let branches = vec![
-            Branch { id: "b-good".to_owned() },
-            Branch { id: "b-degraded".to_owned() },
+            Branch {
+                id: "b-good".to_owned(),
+            },
+            Branch {
+                id: "b-degraded".to_owned(),
+            },
         ];
         let outcomes = vec![
-            Outcome { id: "good-contact".to_owned(), kind: OutcomeKind::Known },
-            Outcome { id: "degraded-contact".to_owned(), kind: OutcomeKind::Known },
+            Outcome {
+                id: "good-contact".to_owned(),
+                kind: OutcomeKind::Known,
+            },
+            Outcome {
+                id: "degraded-contact".to_owned(),
+                kind: OutcomeKind::Known,
+            },
         ];
         let mut joint_mass_cells = Vec::new();
         for h in &hypotheses {
@@ -860,12 +910,24 @@ mod tests {
                 probe_duration_steps: 1,
                 branch_ids: vec!["b-good".to_owned(), "b-degraded".to_owned()],
                 physically_possible_branch_outcomes: vec![
-                    PhysicalBranchOutcome { branch_id: "b-good".to_owned(), outcome_id: "good-contact".to_owned() },
-                    PhysicalBranchOutcome { branch_id: "b-degraded".to_owned(), outcome_id: "degraded-contact".to_owned() },
+                    PhysicalBranchOutcome {
+                        branch_id: "b-good".to_owned(),
+                        outcome_id: "good-contact".to_owned(),
+                    },
+                    PhysicalBranchOutcome {
+                        branch_id: "b-degraded".to_owned(),
+                        outcome_id: "degraded-contact".to_owned(),
+                    },
                 ],
                 possible_hypothesis_branches: vec![
-                    PossibleHypothesisBranch { hypothesis_id: "h-good".to_owned(), branch_id: "b-good".to_owned() },
-                    PossibleHypothesisBranch { hypothesis_id: "h-bad".to_owned(), branch_id: "b-degraded".to_owned() },
+                    PossibleHypothesisBranch {
+                        hypothesis_id: "h-good".to_owned(),
+                        branch_id: "b-good".to_owned(),
+                    },
+                    PossibleHypothesisBranch {
+                        hypothesis_id: "h-bad".to_owned(),
+                        branch_id: "b-degraded".to_owned(),
+                    },
                 ],
             },
             hypotheses,
@@ -875,14 +937,40 @@ mod tests {
             continuation_evidence,
             passive_admitted_action_ids: vec!["passive-A".to_owned(), "passive-B".to_owned()],
             passive_loss_cells: vec![
-                PassiveLossCell { action_id: "passive-A".to_owned(), hypothesis_id: "h-good".to_owned(), loss_ppb: 0 },
-                PassiveLossCell { action_id: "passive-A".to_owned(), hypothesis_id: "h-bad".to_owned(), loss_ppb: SCALE_PPB },
-                PassiveLossCell { action_id: "passive-B".to_owned(), hypothesis_id: "h-good".to_owned(), loss_ppb: SCALE_PPB },
-                PassiveLossCell { action_id: "passive-B".to_owned(), hypothesis_id: "h-bad".to_owned(), loss_ppb: 0 },
+                PassiveLossCell {
+                    action_id: "passive-A".to_owned(),
+                    hypothesis_id: "h-good".to_owned(),
+                    loss_ppb: 0,
+                },
+                PassiveLossCell {
+                    action_id: "passive-A".to_owned(),
+                    hypothesis_id: "h-bad".to_owned(),
+                    loss_ppb: SCALE_PPB,
+                },
+                PassiveLossCell {
+                    action_id: "passive-B".to_owned(),
+                    hypothesis_id: "h-good".to_owned(),
+                    loss_ppb: SCALE_PPB,
+                },
+                PassiveLossCell {
+                    action_id: "passive-B".to_owned(),
+                    hypothesis_id: "h-bad".to_owned(),
+                    loss_ppb: 0,
+                },
             ],
             continuation_loss_cells,
-            resource_usage: ResourceUsage { energy_mj: 50_000, elapsed_ms: 100, actuator_peak_ppm: 700_000, risk_alpha_ppb: 500_000 },
-            resource_limits: ResourceLimits { energy_mj: 100_000, elapsed_ms: 200, actuator_peak_ppm: 900_000, risk_alpha_ppb: 1_000_000 },
+            resource_usage: ResourceUsage {
+                energy_mj: 50_000,
+                elapsed_ms: 100,
+                actuator_peak_ppm: 700_000,
+                risk_alpha_ppb: 500_000,
+            },
+            resource_limits: ResourceLimits {
+                energy_mj: 100_000,
+                elapsed_ms: 200,
+                actuator_peak_ppm: 900_000,
+                risk_alpha_ppb: 1_000_000,
+            },
         }
     }
 
@@ -890,13 +978,35 @@ mod tests {
     fn viable_voi_uses_outcome_specific_robust_action_sets() {
         let report = evaluate_viable_voi(&safe_problem()).expect("valid finite composition");
         assert_eq!(report.disposition, GateDisposition::Evaluated);
-        assert_eq!(report.passive_selected_action_id.as_deref(), Some("passive-A"));
-        assert_eq!(report.passive_risk_numerator_ppb_squared, Some(500_000_000_000_000_000));
-        assert_eq!(report.post_probe_risk_numerator_ppb_squared, Some(100_000_000_000_000_000));
-        assert_eq!(report.viable_voi_numerator_ppb_cubed, Some(400_000_000_000_000_000));
         assert_eq!(
-            report.outcome_decisions.iter().map(|item| item.selected_action_id.as_str()).collect::<Vec<_>>(),
-            vec!["degraded-contact", "good-contact"].map(|id| if id == "degraded-contact" { "retreat" } else { "advance" })
+            report.passive_selected_action_id.as_deref(),
+            Some("passive-A")
+        );
+        assert_eq!(
+            report.passive_risk_numerator_ppb_squared,
+            Some(500_000_000_000_000_000)
+        );
+        assert_eq!(
+            report.post_probe_risk_numerator_ppb_squared,
+            Some(100_000_000_000_000_000)
+        );
+        assert_eq!(
+            report.viable_voi_numerator_ppb_cubed,
+            Some(400_000_000_000_000_000)
+        );
+        assert_eq!(
+            report
+                .outcome_decisions
+                .iter()
+                .map(|item| item.selected_action_id.as_str())
+                .collect::<Vec<_>>(),
+            vec!["degraded-contact", "good-contact"].map(|id| {
+                if id == "degraded-contact" {
+                    "retreat"
+                } else {
+                    "advance"
+                }
+            })
         );
     }
 
@@ -910,7 +1020,9 @@ mod tests {
         let report = evaluate_viable_voi(&problem).expect("rejected gate report");
         assert_eq!(
             report.disposition,
-            GateDisposition::PhysicalRejected { witness_id: "branch-loses-recovery".to_owned() }
+            GateDisposition::PhysicalRejected {
+                witness_id: "branch-loses-recovery".to_owned()
+            }
         );
         assert_eq!(report.viable_voi_numerator_ppb_cubed, None);
     }
@@ -931,16 +1043,27 @@ mod tests {
         let mut problem = safe_problem();
         problem.resource_usage.energy_mj = 100_001;
         let report = evaluate_viable_voi(&problem).expect("resource rejection");
-        assert_eq!(report.disposition, GateDisposition::ResourceRejected { resource_id: "energy_mj".to_owned() });
+        assert_eq!(
+            report.disposition,
+            GateDisposition::ResourceRejected {
+                resource_id: "energy_mj".to_owned()
+            }
+        );
         assert_eq!(report.viable_voi_numerator_ppb_cubed, None);
     }
 
     #[test]
     fn positive_joint_mass_for_impossible_physical_cell_is_rejected() {
         let mut problem = safe_problem();
-        let cell = problem.joint_mass_cells.iter_mut().find(|cell| {
-            cell.hypothesis_id == "h-good" && cell.branch_id == "b-degraded" && cell.outcome_id == "good-contact"
-        }).expect("joint cell");
+        let cell = problem
+            .joint_mass_cells
+            .iter_mut()
+            .find(|cell| {
+                cell.hypothesis_id == "h-good"
+                    && cell.branch_id == "b-degraded"
+                    && cell.outcome_id == "good-contact"
+            })
+            .expect("joint cell");
         cell.mass_ppb = 1;
         assert_eq!(
             evaluate_viable_voi(&problem),
@@ -962,7 +1085,8 @@ mod tests {
     fn unknown_outcome_requires_exactly_one_declared_fallback_action() {
         let mut problem = safe_problem();
         problem.outcomes[1].kind = OutcomeKind::Unknown;
-        problem.continuation_evidence[1].robust_admitted_action_ids = vec!["retreat".to_owned(), "advance".to_owned()];
+        problem.continuation_evidence[1].robust_admitted_action_ids =
+            vec!["retreat".to_owned(), "advance".to_owned()];
         problem.continuation_evidence[1].explicit_fallback_action_id = Some("retreat".to_owned());
         assert_eq!(
             evaluate_viable_voi(&problem),
