@@ -1178,6 +1178,182 @@ mod tests {
         );
     }
 
+    fn synthetic_asymptotic_sequence(
+        family: QnmFamilyClassification,
+    ) -> KerrQnmSequenceFixture {
+        let mut value = sequence(QnmFamilyClassification::Unresolved);
+        value.spin_over_mass = 0.7;
+        value.normal_prolate_oscillator_level = Some(1);
+        for (index, mode) in value.modes.iter_mut().enumerate() {
+            mode.overtone_index = None;
+            mode.omega_m = ComplexValue {
+                re: 0.4,
+                im: -0.2 - 0.5 * index as f64,
+            };
+            let angular_factor = match family {
+                QnmFamilyClassification::Prolate => ComplexValue {
+                    re: 0.0,
+                    im: value.spin_over_mass,
+                },
+                QnmFamilyClassification::Oblate => ComplexValue {
+                    re: -value.spin_over_mass.powi(2),
+                    im: 0.0,
+                },
+                QnmFamilyClassification::Unresolved | QnmFamilyClassification::Ambiguous => {
+                    unreachable!("synthetic helper requires a concrete family")
+                }
+            };
+            let angular_target = match family {
+                QnmFamilyClassification::Prolate => ComplexValue { re: 3.0, im: 0.0 },
+                QnmFamilyClassification::Oblate => ComplexValue { re: 1.0, im: 0.0 },
+                QnmFamilyClassification::Unresolved | QnmFamilyClassification::Ambiguous => {
+                    unreachable!("synthetic helper requires a concrete family")
+                }
+            };
+            let angular_base = match family {
+                QnmFamilyClassification::Prolate => {
+                    complex_mul(angular_factor, mode.omega_m)
+                }
+                QnmFamilyClassification::Oblate => {
+                    complex_mul(angular_factor, complex_mul(mode.omega_m, mode.omega_m))
+                }
+                QnmFamilyClassification::Unresolved | QnmFamilyClassification::Ambiguous => {
+                    unreachable!("synthetic helper requires a concrete family")
+                }
+            };
+            mode.angular_eigenvalue = complex_mul(angular_base, angular_target);
+        }
+        value
+    }
+
+    fn synthetic_family_targets() -> QnmFamilyAsymptoticTargets {
+        QnmFamilyAsymptoticTargets {
+            prolate_spacing_m: ComplexValue { re: 0.0, im: -0.5 },
+            oblate_spacing_m: ComplexValue { re: 0.0, im: -0.5 },
+        }
+    }
+
+    #[test]
+    fn sequence_analysis_recomputes_prolate_family_without_trusting_overtone_labels() {
+        let mut value = synthetic_asymptotic_sequence(QnmFamilyClassification::Prolate);
+        let targets = synthetic_family_targets();
+        let result = analyze_qnm_family_sequence(
+            &value,
+            targets,
+            QnmFamilyAnalysisConfig::default(),
+        )
+        .unwrap();
+        assert_eq!(result.classification, QnmFamilyClassification::Prolate);
+        assert!(result.prolate.is_some());
+        assert!(result.oblate.is_none());
+
+        // Traditional n labels are absent. The analyser uses sequence order
+        // and the complex angular/frequency data, not the producer's labels.
+        for mode in &mut value.modes {
+            mode.overtone_index = None;
+        }
+        let without_overtone_labels = analyze_qnm_family_sequence(
+            &value,
+            targets,
+            QnmFamilyAnalysisConfig::default(),
+        )
+        .unwrap();
+        assert_eq!(
+            without_overtone_labels.classification,
+            QnmFamilyClassification::Prolate
+        );
+    }
+
+    #[test]
+    fn sequence_analysis_recomputes_oblate_family_from_angular_scaling_and_spacing() {
+        let value = synthetic_asymptotic_sequence(QnmFamilyClassification::Oblate);
+        let result = analyze_qnm_family_sequence(
+            &value,
+            synthetic_family_targets(),
+            QnmFamilyAnalysisConfig::default(),
+        )
+        .unwrap();
+        assert_eq!(result.classification, QnmFamilyClassification::Oblate);
+        assert!(result.prolate.is_none());
+        assert!(result.oblate.is_some());
+    }
+
+    #[test]
+    fn sequence_analysis_abstains_on_wrong_spacing_or_discontinuous_angular_branch() {
+        let mut value = synthetic_asymptotic_sequence(QnmFamilyClassification::Prolate);
+        let mut wrong_target = synthetic_family_targets();
+        wrong_target.prolate_spacing_m = ComplexValue { re: 0.0, im: -0.3 };
+        let wrong_spacing = analyze_qnm_family_sequence(
+            &value,
+            wrong_target,
+            QnmFamilyAnalysisConfig::default(),
+        )
+        .unwrap();
+        assert_eq!(
+            wrong_spacing.classification,
+            QnmFamilyClassification::Unresolved
+        );
+
+        value.modes[1].angular_branch_id = "branch-after-crossing".to_owned();
+        let changed_branch = analyze_qnm_family_sequence(
+            &value,
+            synthetic_family_targets(),
+            QnmFamilyAnalysisConfig::default(),
+        )
+        .unwrap();
+        assert_eq!(
+            changed_branch.classification,
+            QnmFamilyClassification::Unresolved
+        );
+        assert!(changed_branch.reason.is_some());
+    }
+
+    #[test]
+    fn sequence_analysis_abstains_for_method_breakdown_and_unsupported_angular_convention() {
+        let mut breakdown = synthetic_asymptotic_sequence(QnmFamilyClassification::Prolate);
+        breakdown.modes[1].method_applicability = QnmMethodApplicability::KnownBreakdown;
+        let result = analyze_qnm_family_sequence(
+            &breakdown,
+            synthetic_family_targets(),
+            QnmFamilyAnalysisConfig::default(),
+        )
+        .unwrap();
+        assert_eq!(result.classification, QnmFamilyClassification::Unresolved);
+
+        let mut unsupported = synthetic_asymptotic_sequence(QnmFamilyClassification::Prolate);
+        unsupported.angular_eigenvalue_convention =
+            AngularEigenvalueConvention::TeukolskyRadialLambda;
+        assert_eq!(
+            analyze_qnm_family_sequence(
+                &unsupported,
+                synthetic_family_targets(),
+                QnmFamilyAnalysisConfig::default()
+            ),
+            Err(QnmFamilyAnalysisError::UnsupportedAngularEigenvalueConvention)
+        );
+    }
+
+    #[test]
+    fn sequence_analysis_reports_ambiguity_when_both_models_pass_declared_tolerances() {
+        let value = synthetic_asymptotic_sequence(QnmFamilyClassification::Prolate);
+        let config = QnmFamilyAnalysisConfig {
+            maximum_angular_residual: 1.0e6,
+            maximum_frequency_spacing_residual: 1.0e6,
+            maximum_angular_drift: 1.0e6,
+            maximum_frequency_spacing_drift: 1.0e6,
+            ..QnmFamilyAnalysisConfig::default()
+        };
+        let result = analyze_qnm_family_sequence(
+            &value,
+            synthetic_family_targets(),
+            config,
+        )
+        .unwrap();
+        assert_eq!(result.classification, QnmFamilyClassification::Ambiguous);
+        assert!(result.prolate.is_some());
+        assert!(result.oblate.is_some());
+    }
+
     #[test]
     fn serde_roundtrip_preserves_sequence_and_family_evidence() {
         let original = sequence(QnmFamilyClassification::Prolate);
