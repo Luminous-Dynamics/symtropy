@@ -196,7 +196,6 @@ pub enum FailoverError {
     StaleTransitionReceipt,
     TransitionDurationMismatch,
     HorizonMismatch,
-    DuplicateAdmittedAction,
     EmptyAdmittedActionSet,
     EmptyTransitionWitness,
     EmptyUnknownReason,
