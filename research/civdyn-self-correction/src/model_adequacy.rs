@@ -167,6 +167,7 @@ pub struct ObservedStatistic {
     pub statistic_id: String,
     pub independent_unit_id: String,
     pub measurement_unit: String,
+    pub source_digest: String,
     pub sample_size: usize,
     pub value: f64,
     pub measurement_standard_error: Option<f64>,
@@ -241,6 +242,7 @@ impl DomainStatus {
 pub struct StatisticAssessment {
     pub statistic_id: String,
     pub source_family: String,
+    pub source_digest: String,
     pub independent_unit_id: String,
     pub measurement_unit: String,
     pub sample_size: usize,
@@ -351,6 +353,7 @@ pub fn assess_predictive_partition(
             });
         }
         if observation.measurement_unit != statistic.measurement_unit
+            || observation.source_digest != statistic.source_digest
             || observation.sample_size == 0
             || !observation.value.is_finite()
             || observation
@@ -476,6 +479,7 @@ pub fn assess_predictive_partition(
                 results.push(StatisticAssessment {
                     statistic_id: statistic.id.clone(),
                     source_family: statistic.source_family.clone(),
+                    source_digest: statistic.source_digest.clone(),
                     independent_unit_id: unit_id.to_string(),
                     measurement_unit: statistic.measurement_unit.clone(),
                     sample_size: 0,
@@ -506,6 +510,7 @@ pub fn assess_predictive_partition(
                 results.push(StatisticAssessment {
                     statistic_id: statistic.id.clone(),
                     source_family: statistic.source_family.clone(),
+                    source_digest: statistic.source_digest.clone(),
                     independent_unit_id: unit_id.to_string(),
                     measurement_unit: statistic.measurement_unit.clone(),
                     sample_size: observation.sample_size,
@@ -533,6 +538,7 @@ pub fn assess_predictive_partition(
             results.push(StatisticAssessment {
                 statistic_id: statistic.id.clone(),
                 source_family: statistic.source_family.clone(),
+                source_digest: statistic.source_digest.clone(),
                 independent_unit_id: unit_id.to_string(),
                 measurement_unit: statistic.measurement_unit.clone(),
                 sample_size: observation.sample_size,
@@ -661,6 +667,7 @@ mod tests {
             statistic_id: statistic_id.to_string(),
             independent_unit_id: independent_unit_id.to_string(),
             measurement_unit: "fraction".to_string(),
+            source_digest: format!("sha256-source-{statistic_id}"),
             sample_size: 100,
             value,
             measurement_standard_error: Some(0.01),
@@ -881,6 +888,30 @@ mod tests {
     fn measurement_unit_mismatch_fails_closed() {
         let mut observations = vec![observation("service-rate", "region-val", 0.5)];
         observations[0].measurement_unit = "percent".to_string();
+        let prior = draws(
+            PredictiveKind::Prior,
+            "service-rate",
+            "region-val",
+            &[0.1, 0.2, 0.3, 0.4, 0.5],
+        );
+        assert!(matches!(
+            assess_predictive_partition(
+                &registry(),
+                &manifest(),
+                &observations,
+                &prior,
+                SplitRole::Validation,
+                PredictiveKind::Prior,
+                0.8
+            ),
+            Err(AdequacyError::InvalidObservation { .. })
+        ));
+    }
+
+    #[test]
+    fn observation_source_digest_must_match_the_registered_statistic() {
+        let mut observations = vec![observation("service-rate", "region-val", 0.5)];
+        observations[0].source_digest = "sha256-substituted-source".to_string();
         let prior = draws(
             PredictiveKind::Prior,
             "service-rate",
