@@ -74,11 +74,14 @@ For every subset and scenario it records surviving sensor identities, observatio
     max_S min_f lambda_min(F(S minus failed(f)))
 
 The finite fixture has six candidates, four selected sensors, six single-sensor outage scenarios, three common-cause group outages and the no-failure baseline: 15 exact subsets × 10 scenarios. Its known answer is deliberately adversarial:
+- nominal D-optimum: S_A + S_B + S_C + S_D, with log determinant ln(100) approximately 4.60517018599;
 - nominal E-optimum: S_A + S_B + S_C + S_D, with minimum eigenvalue 10.0;
 - that nominal optimum is rejected because loss of PWR_X or PWR_Y leaves a rank-one observation;
-- robust maximin E-optimum: S_A + S_C + S_E + S_F;
-- 12 of 15 candidate subsets satisfy all 10 full-rank constraints;
-- robust objective: minimum eigenvalue approximately 4.4826666667 across the declared scenarios.
+- robust maximin D-optimum: S_A + S_C + S_E + S_F, with worst-case log determinant ln(25) approximately 3.21887582487;
+- robust maximin E-optimum: S_A + S_C + S_E + S_F, with worst-case minimum eigenvalue approximately 4.4826666667;
+- 12 of 15 candidate subsets satisfy all 10 full-rank constraints.
+
+D-optimality maximizes information volume (log determinant); E-optimality maximizes the weakest normalized parameter direction (minimum eigenvalue). Agreement on this fixture is a property of this intentionally small symmetric corpus, not a theorem that the objectives are interchangeable.
 
 The Python verifier independently recomputes every subset/scenario result and compares the complete report produced by Rust. Hostile controls include duplicate/unknown group members, duplicate sensor IDs, non-positive variance and a rank-deficient corpus for which no robust selection may be emitted.
 
