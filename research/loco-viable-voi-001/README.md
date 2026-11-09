@@ -131,10 +131,18 @@ All methods get the same priors, physical branches, observations, calibration, l
 4. Fisher-information ranking after identical hard gates.
 5. Fixed-state VOI #4272 followed by the #4293 continuation gate (critical ablation).
 6. Viability-conditioned VOI using outcome-specific (S_y) and (A_R(y)).
-7. Robust viability-only selection without information objective.
-8. EIG-only without post-probe viability as a negative control only; never a deployment controller.
+7. Short-rollout context inference / meta-RL adaptation (e.g. ARER-MetaRL-style fault-context embedding and policy reconfiguration), with identical probe duration, energy, actuator/risk budget and post-probe horizon; compare its adapted action only after the same upstream viability/continuation admission.
+8. Robust viability-only selection without information objective.
+9. EIG-only without post-probe viability as a negative control only; never a deployment controller.
 
 Selectors cannot access hidden truth, evaluator-only fields, true branch IDs or future observations.
+
+
+
+### Current SOTA comparators added in 2026
+
+- **ARER-MetaRL under locked-joint faults** (Wu et al., PLOS One 21(10), e0361099, published 16 Oct 2026): context encoding from a short rollout, modular policy routing and regularized fast adaptation. In Isaac Sim only, 12-DoF quadruped, 1000 Hz physics/50 Hz control; meta-training covers 0–3 locked joints, severity tests up to six. Paper-reported MELV/MERP are 0.86/0.84 at one locked joint and 0.55/0.54 at six, versus single-task RL 0.21/0.18 and 0.05/0.03. This paper explicitly defers hardware, reduced-torque, intermittent-fault and freely-swinging-joint tests. Use it as a short-context adaptation baseline; its context inference does not certify that the chosen probe or adapted action remains viable. https://doi.org/10.1371/journal.pone.0361099
+- **Quadruped UED curriculum benchmark** (Gilewicz et al., arXiv:2610.40364, 29 Oct 2026): 14 curricula across five quadruped morphologies with an eight-dimensional terrain space, matched PPO environment steps and five seeds. Its evaluation adds held-out structured terrain, cross-fitted CVaR25, per-feature 50%-success capability envelopes and level-wise domination. The in-distribution random-terrain leader differs from the held-out leader on Go1, Go2 and Barkour. Use its method matrix and held-out protocol when evaluating where probes/adaptive curricula should collect information, but do not conflate a success envelope with a robust viability/recovery certificate. https://arxiv.org/abs/2610.40364
 
 ## 7. Frozen known-answer and falsification corpus
 
