@@ -127,13 +127,9 @@ pub enum DetectionResult {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AdaptationResult {
-    Stable {
-        latency_ms: u64,
-    },
+    Stable { latency_ms: u64 },
     Unstable,
-    Abstained {
-        reason: String,
-    },
+    Abstained { reason: String },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -324,13 +320,8 @@ fn validate_scenario(
     if scenario.affected_component_ids.is_empty() {
         return Err(FaultBenchmarkError::EmptyAffectedComponentSet);
     }
-    validate_unique_ids(
-        scenario
-            .affected_component_ids
-            .iter()
-            .map(String::as_str),
-    )
-    .map_err(|_| FaultBenchmarkError::DuplicateComponent)?;
+    validate_unique_ids(scenario.affected_component_ids.iter().map(String::as_str))
+        .map_err(|_| FaultBenchmarkError::DuplicateComponent)?;
     if scenario.severity_lower_ppm > scenario.severity_upper_ppm
         || scenario.severity_upper_ppm > PPM_SCALE
     {
@@ -349,10 +340,7 @@ fn validate_scenario(
     Ok(())
 }
 
-fn policy_context_matches(
-    left: &MatchedBenchmarkContext,
-    right: &MatchedBenchmarkContext,
-) -> bool {
+fn policy_context_matches(left: &MatchedBenchmarkContext, right: &MatchedBenchmarkContext) -> bool {
     left == right
 }
 
@@ -378,9 +366,7 @@ fn validate_trial(
     if trial.task_progress_ppm > PPM_SCALE {
         return Err(FaultBenchmarkError::InvalidPpmValue);
     }
-    if !nonempty(&trial.event_vector_receipt_digest)
-        || !nonempty(&trial.viability_receipt_digest)
-    {
+    if !nonempty(&trial.event_vector_receipt_digest) || !nonempty(&trial.viability_receipt_digest) {
         return Err(FaultBenchmarkError::EmptyReceiptDigest);
     }
     if !trial.certificate_current_at_action {
@@ -470,21 +456,12 @@ pub fn audit_fault_benchmark(
         return Err(FaultBenchmarkError::TooManyTrials);
     }
 
-    let training_ids = validate_unique_ids(
-        manifest
-            .training_scenario_ids
-            .iter()
-            .map(String::as_str),
-    )?;
+    let training_ids =
+        validate_unique_ids(manifest.training_scenario_ids.iter().map(String::as_str))?;
     let validation_ids = if manifest.validation_scenario_ids.is_empty() {
         BTreeSet::new()
     } else {
-        validate_unique_ids(
-            manifest
-                .validation_scenario_ids
-                .iter()
-                .map(String::as_str),
-        )?
+        validate_unique_ids(manifest.validation_scenario_ids.iter().map(String::as_str))?
     };
     let heldout_ids = validate_unique_ids(
         manifest
@@ -502,10 +479,8 @@ pub fn audit_fault_benchmark(
         return Err(FaultBenchmarkError::ValidationHeldoutLeakage);
     }
 
-    let block_ids = validate_unique_ids(
-        manifest.paired_block_ids.iter().map(String::as_str),
-    )
-    .map_err(|_| FaultBenchmarkError::DuplicatePairedBlock)?;
+    let block_ids = validate_unique_ids(manifest.paired_block_ids.iter().map(String::as_str))
+        .map_err(|_| FaultBenchmarkError::DuplicatePairedBlock)?;
 
     let mut policies = BTreeMap::new();
     for policy in &manifest.policies {
@@ -526,7 +501,11 @@ pub fn audit_fault_benchmark(
     if policies.len() < 2 {
         return Err(FaultBenchmarkError::NoCandidatePolicy);
     }
-    for policy in manifest.policies.iter().filter(|item| item.policy_id != manifest.baseline_policy_id) {
+    for policy in manifest
+        .policies
+        .iter()
+        .filter(|item| item.policy_id != manifest.baseline_policy_id)
+    {
         if !policy_context_matches(&baseline.context, &policy.context) {
             return Err(FaultBenchmarkError::PolicyContextMismatch);
         }
@@ -539,8 +518,13 @@ pub fn audit_fault_benchmark(
             return Err(FaultBenchmarkError::TrialOutsideHeldoutSet);
         }
         validate_scenario(scenario, &baseline.context)?;
-        *family_scenario_counts.entry(scenario.fault_family).or_default() += 1;
-        if scenarios.insert(scenario.scenario_id.as_str(), scenario).is_some() {
+        *family_scenario_counts
+            .entry(scenario.fault_family)
+            .or_default() += 1;
+        if scenarios
+            .insert(scenario.scenario_id.as_str(), scenario)
+            .is_some()
+        {
             return Err(FaultBenchmarkError::DuplicateScenario);
         }
     }
@@ -605,11 +589,7 @@ pub fn audit_fault_benchmark(
             for policy in &manifest.policies {
                 for block_id in &block_ids {
                     let trial = observed
-                        .get(&(
-                            policy.policy_id.as_str(),
-                            *scenario_id,
-                            *block_id,
-                        ))
+                        .get(&(policy.policy_id.as_str(), *scenario_id, *block_id))
                         .ok_or(FaultBenchmarkError::MissingMatchedTrial)?;
                     row.matched_trial_count += 1;
                     match &trial.detected {
@@ -672,11 +652,7 @@ pub fn audit_fault_benchmark(
         for scenario_id in scenarios.keys() {
             for block_id in &block_ids {
                 let trial = observed
-                    .get(&(
-                        policy.policy_id.as_str(),
-                        *scenario_id,
-                        *block_id,
-                    ))
+                    .get(&(policy.policy_id.as_str(), *scenario_id, *block_id))
                     .ok_or(FaultBenchmarkError::MissingMatchedTrial)?;
                 row.trial_count += 1;
                 match trial.terminal_outcome {
@@ -999,8 +975,7 @@ mod tests {
     #[test]
     fn scenario_model_identity_must_match_benchmark_context() {
         let mut input = problem();
-        input.manifest.heldout_scenarios[0].sensor_model_digest =
-            "other-sensors".to_owned();
+        input.manifest.heldout_scenarios[0].sensor_model_digest = "other-sensors".to_owned();
         assert_eq!(
             audit_fault_benchmark(&input),
             Err(FaultBenchmarkError::ScenarioContextMismatch)
