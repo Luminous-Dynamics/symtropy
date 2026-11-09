@@ -75,6 +75,7 @@ fn summary_row(summary: &ObjectivePolicySummary, report: &PolicySensitivityRepor
         String::new(),
         String::new(),
         String::new(),
+        String::new(),
         summary.feasibility.name().to_string(),
         summary.feasible_model_count.to_string(),
         summary.total_model_count.to_string(),
@@ -91,7 +92,6 @@ fn summary_row(summary: &ObjectivePolicySummary, report: &PolicySensitivityRepor
             .map(|value| value.to_string())
             .unwrap_or_default(),
         summary.models_where_best.to_string(),
-        String::new(),
         String::new(),
         String::new(),
         String::new(),
