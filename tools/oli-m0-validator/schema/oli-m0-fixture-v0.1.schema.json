@@ -1,0 +1,206 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/research/oli-m0-validator-v0/tools/oli-m0-validator/schema/oli-m0-fixture-v0.1.schema.json",
+  "title": "OLI M0 benchmark fixture v0.1",
+  "description": "Property-profile fixture for open-world life and intelligence benchmark tasks. It intentionally has no global alive/intelligent/consciousness score.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "fixture_id",
+    "scenario_family",
+    "evidence_class",
+    "physical_substrate",
+    "system_boundary",
+    "measurement",
+    "property_assessments",
+    "expected_result",
+    "source",
+    "limitations"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "oli-m0-fixture-v0.1"
+    },
+    "fixture_id": {
+      "type": "string",
+      "minLength": 8
+    },
+    "scenario_family": {
+      "enum": [
+        "KNOWN_BIOLOGICAL_REFERENCE",
+        "ABIOTIC_SELF_ORGANIZING_CONTROL",
+        "DUSTY_PLASMA_PHYSICS_REFERENCE",
+        "UNKNOWN_HELD_OUT_GENERATOR",
+        "TEMPORAL_UNDERSAMPLING_FALSE_NEGATIVE",
+        "OOD_SENSOR_ENVIRONMENT"
+      ]
+    },
+    "evidence_class": {
+      "enum": [
+        "SYNTHETIC_KNOWN_TRUTH",
+        "PUBLISHED_EXPERIMENT_REFERENCE_METADATA_ONLY",
+        "SYNTHETIC_UNKNOWN_GENERATOR"
+      ]
+    },
+    "physical_substrate": {
+      "type": "string",
+      "minLength": 1
+    },
+    "system_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "description"],
+      "properties": {
+        "status": {
+          "enum": ["DECLARED", "FRAGMENTED", "UNKNOWN", "NOT_APPLICABLE"]
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "measurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "modality",
+        "units",
+        "unit_status",
+        "calibration_status",
+        "temporal",
+        "spatial"
+      ],
+      "properties": {
+        "modality": { "type": "string", "minLength": 1 },
+        "units": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "unit_status": { "enum": ["DECLARED", "UNKNOWN"] },
+        "calibration_status": {
+          "enum": [
+            "QUALIFIED_SYNTHETIC_REFERENCE",
+            "SOURCE_REPORTED_NOT_INDEPENDENTLY_REPRODUCED",
+            "NOT_ESTABLISHED",
+            "UNQUALIFIED"
+          ]
+        },
+        "temporal": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "window_seconds",
+            "sampling_interval_seconds",
+            "target_process_timescale_seconds",
+            "coverage_fraction"
+          ],
+          "properties": {
+            "window_seconds": { "type": "number", "exclusiveMinimum": 0 },
+            "sampling_interval_seconds": { "type": "number", "exclusiveMinimum": 0 },
+            "target_process_timescale_seconds": { "type": "number", "exclusiveMinimum": 0 },
+            "coverage_fraction": { "type": "number", "minimum": 0, "maximum": 1 }
+          }
+        },
+        "spatial": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["coordinate_frame", "footprint_fraction"],
+          "properties": {
+            "coordinate_frame": { "type": "string", "minLength": 1 },
+            "footprint_fraction": { "type": "number", "minimum": 0, "maximum": 1 },
+            "resolution_m": { "type": ["number", "null"], "exclusiveMinimum": 0 }
+          }
+        }
+      }
+    },
+    "property_assessments": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "organization",
+        "boundary",
+        "energy_matter_throughput",
+        "persistence",
+        "homeostasis_regulation",
+        "self_maintenance",
+        "information_retention",
+        "information_transfer",
+        "reproduction",
+        "heredity",
+        "adaptation",
+        "learning",
+        "agency",
+        "intelligence",
+        "collective_intelligence",
+        "sentience_consciousness"
+      ],
+      "properties": {
+        "organization": { "$ref": "#/$defs/propertyState" },
+        "boundary": { "$ref": "#/$defs/propertyState" },
+        "energy_matter_throughput": { "$ref": "#/$defs/propertyState" },
+        "persistence": { "$ref": "#/$defs/propertyState" },
+        "homeostasis_regulation": { "$ref": "#/$defs/propertyState" },
+        "self_maintenance": { "$ref": "#/$defs/propertyState" },
+        "information_retention": { "$ref": "#/$defs/propertyState" },
+        "information_transfer": { "$ref": "#/$defs/propertyState" },
+        "reproduction": { "$ref": "#/$defs/propertyState" },
+        "heredity": { "$ref": "#/$defs/propertyState" },
+        "adaptation": { "$ref": "#/$defs/propertyState" },
+        "learning": { "$ref": "#/$defs/propertyState" },
+        "agency": { "$ref": "#/$defs/propertyState" },
+        "intelligence": { "$ref": "#/$defs/propertyState" },
+        "collective_intelligence": { "$ref": "#/$defs/propertyState" },
+        "sentience_consciousness": { "$ref": "#/$defs/propertyState" }
+      }
+    },
+    "expected_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["disposition", "absence_inference_allowed", "reason"],
+      "properties": {
+        "disposition": {
+          "enum": [
+            "KNOWN_BIOLOGICAL_REFERENCE",
+            "ABIOTIC_CONTROL_REFERENCE",
+            "PHYSICS_ONLY_REFERENCE",
+            "OTHER_OR_UNRESOLVED",
+            "NON_DETECTION_INCONCLUSIVE",
+            "OUT_OF_DOMAIN"
+          ]
+        },
+        "absence_inference_allowed": { "type": "boolean" },
+        "reason": { "type": "string", "minLength": 1 }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reference", "data_status"],
+      "properties": {
+        "reference": { "type": "string" },
+        "data_status": { "type": "string", "minLength": 1 },
+        "note": { "type": "string" }
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    }
+  },
+  "$defs": {
+    "propertyState": {
+      "enum": [
+        "SUPPORTED_WITHIN_SCOPE",
+        "CONTRADICTED_WITHIN_SCOPE",
+        "INSUFFICIENT_EVIDENCE",
+        "NOT_TESTED",
+        "NOT_OBSERVABLE_WITH_CURRENT_INSTRUMENT",
+        "MODEL_INADEQUATE"
+      ]
+    }
+  }
+}
