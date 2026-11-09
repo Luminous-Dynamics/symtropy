@@ -204,7 +204,10 @@ def admit_witness(data: dict[str, Any], case: dict[str, Any],
                 "ABSTAIN_UNQUALIFIED_ENVIRONMENTAL_WITNESS")
         seen_ids.add(sensor_id)
         seen_groups.add(group)
-        if sensor_id in model["structural_channel_ids"]                 or group in model["structural_channel_common_cause_groups"]:
+        if (
+            sensor_id in model["structural_channel_ids"]
+            or group in model["structural_channel_common_cause_groups"]
+        ):
             raise AuditError("ABSTAIN_ENVIRONMENTAL_WITNESS_NOT_INDEPENDENT")
         require(probe["independent_of_structural_channels"] is True,
                 "ABSTAIN_ENVIRONMENTAL_WITNESS_NOT_INDEPENDENT")
@@ -214,7 +217,10 @@ def admit_witness(data: dict[str, Any], case: dict[str, Any],
             domain_keys = validate_fault_domains(probe["fault_domains"])
         except AuditError:
             raise AuditError("ABSTAIN_UNQUALIFIED_ENVIRONMENTAL_WITNESS")
-        if not domain_keys.isdisjoint(structural_domains) or not domain_keys.isdisjoint(seen_failure_domains):
+        if (
+            not domain_keys.isdisjoint(structural_domains)
+            or not domain_keys.isdisjoint(seen_failure_domains)
+        ):
             raise AuditError("ABSTAIN_ENVIRONMENTAL_WITNESS_NOT_INDEPENDENT")
         seen_failure_domains.update(domain_keys)
         require(probe["operator_status"] == "ADMITTED"
