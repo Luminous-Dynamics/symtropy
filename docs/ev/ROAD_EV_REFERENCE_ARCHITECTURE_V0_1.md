@@ -5,7 +5,7 @@
 **Reference configuration / integration:** [ROAD-EV-REFERENCE-001 #4346](https://github.com/Luminous-Dynamics/symtropy/issues/4346)  
 **Benchmark owner:** [EV-BENCH-001 #2164](https://github.com/Luminous-Dynamics/symtropy/issues/2164)  
 **Battery circularity owner:** [EV-BATTERY-CIRCULARITY-001 #2155](https://github.com/Luminous-Dynamics/symtropy/issues/2155)  
-**Related work:** [Symtropy family-vehicle substrate PR #1762](https://github.com/Luminous-Dynamics/symtropy/pull/1762) · [Symtropy whole-life transport #1601](https://github.com/Luminous-Dynamics/symtropy/issues/1601) · [Symtropy repairability compiler #1773](https://github.com/Luminous-Dynamics/symtropy/issues/1773) · [Symtropy localization #1780](https://github.com/Luminous-Dynamics/symtropy/issues/1780) · [Symtropy continuity calibration #1791](https://github.com/Luminous-Dynamics/symtropy/issues/1791) · [GLOBAL-MOBILITY-001 #1832](https://github.com/Luminous-Dynamics/symtropy/issues/1832) · [Symthaea road dynamics #6247](https://github.com/Luminous-Dynamics/symthaea/issues/6247) · [Symthaea family-vehicle engineering PR #7751](https://github.com/Luminous-Dynamics/symthaea/pull/7751) · [Symthaea EV-HEALTH-ADVISORY-001 #11239](https://github.com/Luminous-Dynamics/symthaea/issues/11239) · [Sol-Atlas EV-ROUTE-ENERGY-001 #664](https://github.com/Luminous-Dynamics/sol-atlas-leptos/issues/664) · [Sol-Atlas EV-CHARGING-SITE-001 #665](https://github.com/Luminous-Dynamics/sol-atlas-leptos/issues/665) · [Mycelix vehicle dossier PR #5131](https://github.com/Luminous-Dynamics/mycelix/pull/5131) · [Mycelix Mobility Commons #3708](https://github.com/Luminous-Dynamics/mycelix/issues/3708) · [Mycelix Mobility Configuration #3709](https://github.com/Luminous-Dynamics/mycelix/issues/3709)
+**Related work:** [Symtropy family-vehicle substrate PR #1762](https://github.com/Luminous-Dynamics/symtropy/pull/1762) · [Symtropy whole-life transport #1601](https://github.com/Luminous-Dynamics/symtropy/issues/1601) · [Symtropy repairability compiler #1773](https://github.com/Luminous-Dynamics/symtropy/issues/1773) · [Symtropy localization #1780](https://github.com/Luminous-Dynamics/symtropy/issues/1780) · [Symtropy continuity calibration #1791](https://github.com/Luminous-Dynamics/symtropy/issues/1791) · [GLOBAL-MOBILITY-001 #1832](https://github.com/Luminous-Dynamics/symtropy/issues/1832) · [Symthaea road dynamics #6247](https://github.com/Luminous-Dynamics/symthaea/issues/6247) · [Symthaea road autonomy benchmark #6256](https://github.com/Luminous-Dynamics/symthaea/issues/6256) · [Symthaea physical pilot ladder #6254](https://github.com/Luminous-Dynamics/symthaea/issues/6254) · [Symthaea family-vehicle engineering PR #7751](https://github.com/Luminous-Dynamics/symthaea/pull/7751) · [Symthaea EV-HEALTH-ADVISORY-001 #11239](https://github.com/Luminous-Dynamics/symthaea/issues/11239) · [Sol-Atlas EV-ROUTE-ENERGY-001 #664](https://github.com/Luminous-Dynamics/sol-atlas-leptos/issues/664) · [Sol-Atlas EV-CHARGING-SITE-001 #665](https://github.com/Luminous-Dynamics/sol-atlas-leptos/issues/665) · [Mycelix vehicle dossier PR #5131](https://github.com/Luminous-Dynamics/mycelix/pull/5131) · [Mycelix Mobility Commons #3708](https://github.com/Luminous-Dynamics/mycelix/issues/3708) · [Mycelix Mobility Configuration #3709](https://github.com/Luminous-Dynamics/mycelix/issues/3709)
 
 ## 1. Purpose and strategy
 
@@ -59,7 +59,11 @@ Symthaea can estimate, predict, explain uncertainty, identify anomalies and reco
 
 Vehicle routing, charger queues, charger/site capacity, grid constraints, energy tariffs, maintenance, route closures and reserve requirements should be planned together. The network remains federated and interoperable; owners should not be locked into one operator or one vehicle brand. Use Symtropy #2164 and #3472/#3473 for fleet/charging benchmark semantics; Sol-Atlas #664 consumes vehicle configuration and route evidence for route-energy planning.
 
-### 2.7 Treat the digital thread as a product capability
+### 2.7 Design autonomy around counterfactual decision quality, not just perception accuracy
+
+A capable scene detector is not a safe driving policy, and open-loop trajectory similarity is not closed-loop competence. Keep perception, motion prediction, planning, reactive multi-agent simulation, closed-loop behavior, compute latency, ODD coverage, physical pilot transfer and operational outcomes as separate benchmark families. Test whether a policy chooses a safer/better action than available alternatives under the same evidence and constraints; record why it abstains or enters a minimum-risk state. Symthaea #6256 owns the road autonomy benchmark portfolio, #6255 the external benchmark identity/rights waist, and #6254 the low-consequence physical pilot ladder.
+
+### 2.8 Treat the digital thread as a product capability
 
 The configuration of a physical vehicle includes design revision, parts, materials, process substitutions, tolerances, software/firmware, inspection state, repairs and operational restrictions. “Same model name” is not enough to establish engineering equivalence. Reuse Mycelix #3708/#3709 rather than creating a separate vehicle passport or identity system.
 
@@ -150,7 +154,7 @@ Track refurbishment, remanufacture, quarantine, second-life qualification and en
 
 ### 4.9 Driving automation
 
-Progress through driver assistance and restricted ODD pilots. Use camera/radar/lidar choices based on cost, operating conditions, safety performance and evidence—not sensor ideology. Local sensor observations, map priors, simulator oracle, V2X advisories and derived predictions remain separate evidence classes.
+Progress through driver assistance and restricted ODD pilots. Use camera/radar/lidar choices based on cost, operating conditions, safety performance and evidence—not sensor ideology. Local sensor observations, map priors, simulator oracle, V2X advisories and derived predictions remain separate evidence classes. Symthaea #6256 owns the benchmark suite and #6254 owns the physical pilot ladder; #6255 governs external benchmark identity, rights and claim ceilings.
 
 Begin autonomy research in simulation and closed/controlled environments. A driverless deployment claim requires a defined ODD, independently justified safety case, scenario coverage, physical testing, cybersecurity and regulatory approval. “L4” without an ODD and evidence dossier is not a meaningful programme acceptance criterion. Reuse Symthaea's existing road-autonomy benchmark/scenario work, Symtropy replay and Mycelix V2X provenance; this architecture does not create a parallel autonomy evaluation stack.
 
@@ -238,7 +242,31 @@ Score by ODD, not one combined autonomy score:
 
 Simulation success is not road safety evidence.
 
-## 7. South African proving ground
+## 7. 2026 competitive frontier and interpretation
+
+### Energy efficiency and real-world route comparison
+
+The CAA's September 2026 22-vehicle common 230 km route test reported 11.43 kWh/100 km for its most efficient tested vehicle and a 28.91 kWh/100 km result for a much larger/heavier SUV. These figures establish the importance of vehicle class and test boundary; they are not a single SOTA target for EV-REF-01. The programme should compare the same class, payload/occupancy, ambient conditions, route/cycle, reserve and usable performance.
+
+### Ultra-fast charging
+
+The IEA's 2026 review describes new cell, power-electronics and pack developments, including early-charge C-rates up to 10C/12C for some announced technologies and passenger-vehicle high-voltage systems above 800 V. BYD's second-generation Blade/FLASH launch claims 10–70% in 5 minutes and 10–97% in 9 minutes; those are manufacturer claims, not an independent matched vehicle/charger test. The engineering metric is the complete SOC/temperature-dependent curve and energy delivered at the vehicle boundary, including thermal preconditioning, taper, site/feeder limits, queue, repeated-session behavior, degradation and infrastructure cost.
+
+Luminous should design interfaces that can accommodate higher-voltage/faster-charging variants without making a 1 MW-class charger a dependency of the affordable base configuration. A high-power architecture is only useful where cells, busbars, contactors, cable cooling, connector, EVSE, site import, feeder and thermal envelope all support it. The IEA also reports that V2G capability remains uncommon and multiparty interoperability inconsistent; V2H/V2G should therefore be optional and not a base-case revenue assumption.
+
+### Battery integration and circularity
+
+The 2026 literature shows why this is not a simple modular-versus-structural binary. Nature Reviews Clean Technology reports system-level benefits from integrated structures, but also risks in diagnostic access, intervention granularity and end-of-life material recovery. Nature Reviews Electrical Engineering frames integration as function reassignment: every deleted boundary still had mechanical, thermal, electrical and safety functions. #2155 must evaluate the candidate architectures on that whole-life basis.
+
+### Manufacturing strategy
+
+Industry platforms already offer integrated CAD/CAM, process simulation, inspection and manufacturing digital-thread features; #2164 already contains the capability map and a matched manufacturing comparison protocol. Luminous should not claim novelty merely for “having a digital twin.” The differentiator worth testing is an interoperable, vendor-neutral evidence layer that binds exact CAD/PMI, process, lot, machine/calibration, inspection result, repair and as-built configuration without requiring an enterprise to replace its existing PLM/MES/QMS stack.
+
+### Autonomous driving measurement
+
+Symthaea #6256 already covers Waymo, nuScenes, Argoverse, CommonRoad, nuPlan, CARLA, Waymax, ASAM OpenSCENARIO and MLPerf Automotive as distinct evidence tracks. NIST's four-tier measurement programme is a particularly useful independent pattern: surrogate safety metrics, predicted outcomes, counterfactual comparison against baselines, and recurrent weakness diagnosis. Align our evaluation with these measurement questions while explicitly avoiding any claim of NIST endorsement or certification.
+
+## 8. South African proving ground
 
 First route family: Johannesburg–Durban / N3 in both directions, then urban Johannesburg routes and selected rural/low-density charging gaps.
 
@@ -254,7 +282,7 @@ The CHARGE N3 Geely E2 measurements are a source-labelled external example, not 
 
 Design for heat, dust, potholes, rough surfaces, elevation, grid constraints, limited rural charger density and local service/parts availability.
 
-## 8. Safety, security and legal engineering
+## 9. Safety, security and legal engineering
 
 Build a compliance applicability matrix, not a claim of compliance. At minimum investigate:
 - ISO 26262 functional safety;
@@ -270,7 +298,7 @@ Build a compliance applicability matrix, not a claim of compliance. At minimum i
 
 An issue, simulation, test report or digital passport cannot certify a vehicle. Professional engineering and regulatory review are necessary before physical release or road use.
 
-## 9. Execution sequence and work ownership
+## 10. Execution sequence and work ownership
 
 1. **EV-REF-01 integration/configuration:** [Symtropy #4346](https://github.com/Luminous-Dynamics/symtropy/issues/4346).
 2. **Industry comparison:** [Symtropy #2164](https://github.com/Luminous-Dynamics/symtropy/issues/2164).
@@ -282,7 +310,7 @@ An issue, simulation, test report or digital passport cannot certify a vehicle. 
 8. Freeze mission, packaging and vehicle-level requirements; create the component/interface graph and candidate BOM; link exact configs into existing benchmark owners.
 9. Run public-data and analytical comparisons before committing to a physical demonstrator.
 
-## 10. Qualification gates
+## 11. Qualification gates
 
 No single weighted score can compensate for a hard failure. Each design candidate must pass:
 - physical/energy feasibility;
@@ -296,7 +324,7 @@ No single weighted score can compensate for a hard failure. Each design candidat
 
 A candidate can be promising but unqualified. Preserve that distinction in every report.
 
-## 11. Initial claim ceiling
+## 12. Initial claim ceiling
 
 At this stage, Luminous has research software, models, benchmark programmes and an emerging architecture. This document does **not** establish a built prototype, a measured vehicle efficiency improvement, battery qualification, production capability, public charging uptime, autonomous-driving safety, homologation or superiority over an incumbent manufacturer.
 
