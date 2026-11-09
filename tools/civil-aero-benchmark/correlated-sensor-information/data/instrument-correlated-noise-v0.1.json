@@ -20,7 +20,8 @@
     "e_opt_sensor_count": 2,
     "robust_e_opt_sensor_count": 4,
     "sensor_dropout_budget": 1,
-    "common_cause_group_dropout": true
+    "common_cause_group_dropout": true,
+    "minimum_robust_minimum_eigenvalue": 1
   },
   "sensors": [
     {
@@ -181,6 +182,16 @@
       "S3",
       "S4"
     ],
-    "robust_d_opt_worst_case_log_determinant": 1.4271163556401458
+    "robust_d_opt_worst_case_log_determinant": 1.4271163556401458,
+    "minimum_cost_robust_sensor_ids": [
+      "S1",
+      "S2",
+      "S3",
+      "S4"
+    ],
+    "minimum_cost_robust_worst_case_minimum_eigenvalue": 1.1538461538461515,
+    "minimum_cost_robust_total_deployment_cost_units": 4,
+    "minimum_cost_robust_total_mass_g": 50,
+    "minimum_cost_robust_total_power_mw": 500
   }
 }
