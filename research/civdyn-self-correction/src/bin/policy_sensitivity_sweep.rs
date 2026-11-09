@@ -7,8 +7,8 @@ use civdyn_self_correction::model_adequacy::{
 };
 use civdyn_self_correction::policy_sensitivity::{
     ConstraintRelation, MetricKind, MetricSpec, ModelWorld, ObjectiveDirection,
-    ObjectivePolicySummary, PairwisePolicyOrdering, PolicyMetricOutcome,
-    PolicySensitivityReport, PolicySpec, evaluate_policy_sensitivity,
+    ObjectivePolicySummary, PairwisePolicyOrdering, PolicyMetricOutcome, PolicySensitivityReport,
+    PolicySpec, evaluate_policy_sensitivity,
 };
 
 const CSV_COLUMNS: usize = 29;
