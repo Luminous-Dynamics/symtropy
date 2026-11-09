@@ -63,6 +63,9 @@ struct SurvivalPoint {
     at_risk: usize,
     failures: usize,
     survival: f64,
+    greenwood_sum: Option<f64>,
+    lower_95_log_log: Option<f64>,
+    upper_95_log_log: Option<f64>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -340,6 +343,8 @@ fn evaluate(cohort: &Cohort) -> Evaluation {
         .collect();
 
     let mut survival = 1.0f64;
+    let mut greenwood_sum = 0.0f64;
+    let mut greenwood_defined = true;
     let mut curve = Vec::new();
     let mut median_failure_exposure = None;
 
@@ -363,11 +368,37 @@ fn evaluate(cohort: &Cohort) -> Evaluation {
         }
 
         survival *= (at_risk - failures) as f64 / at_risk as f64;
+
+        // Greenwood's cumulative sum is sum_j d_j / (n_j * (n_j - d_j)).
+        // If every remaining component fails at one event time, the denominator
+        // is zero and a finite Greenwood variance / log-log interval is undefined.
+        if failures == at_risk {
+            greenwood_defined = false;
+        } else if greenwood_defined {
+            greenwood_sum += failures as f64
+                / (at_risk as f64 * (at_risk - failures) as f64);
+        }
+
+        let (point_greenwood, lower_95_log_log, upper_95_log_log) =
+            if greenwood_defined && survival > 0.0 && survival < 1.0 {
+                let log_neg_log_survival = (-survival.ln()).ln();
+                let standard_error = greenwood_sum.sqrt() / survival.ln().abs();
+                let z_975 = 1.959_963_984_540_054_f64;
+                let lower = (-(log_neg_log_survival + z_975 * standard_error).exp()).exp();
+                let upper = (-(log_neg_log_survival - z_975 * standard_error).exp()).exp();
+                (Some(greenwood_sum), Some(lower), Some(upper))
+            } else {
+                (None, None, None)
+            };
+
         curve.push(SurvivalPoint {
             exposure_value,
             at_risk,
             failures,
             survival,
+            greenwood_sum: point_greenwood,
+            lower_95_log_log,
+            upper_95_log_log,
         });
         if median_failure_exposure.is_none() && survival <= 0.5 {
             median_failure_exposure = Some(exposure_value);
@@ -425,15 +456,27 @@ fn run(path: &str) -> Result<(), String> {
             .join(";")
     );
     for point in &result.curve {
+        let greenwood = point
+            .greenwood_sum
+            .map(|value| format!("{value:.6}"))
+            .unwrap_or_else(|| "UNDEFINED_BOUNDARY".to_string());
+        let lower = point
+            .lower_95_log_log
+            .map(|value| format!("{value:.6}"))
+            .unwrap_or_else(|| "UNDEFINED_BOUNDARY".to_string());
+        let upper = point
+            .upper_95_log_log
+            .map(|value| format!("{value:.6}"))
+            .unwrap_or_else(|| "UNDEFINED_BOUNDARY".to_string());
         println!(
-            "survival_at_{}={:.6};at_risk={};failures={}",
-            point.exposure_value, point.survival, point.at_risk, point.failures
+            "survival_at_{}={:.6};at_risk={};failures={};greenwood_sum={};pointwise_95_loglog=[{},{}]",
+            point.exposure_value, point.survival, point.at_risk, point.failures, greenwood, lower, upper
         );
     }
     println!("censoring_assumption=NON_INFORMATIVE_WITHIN_DECLARED_TEST_GROUP_NOT_VERIFIED");
     println!("component_independence=DECLARED_PHYSICAL_ASSET_SERIAL_NOT_VERIFIED");
     println!("accelerated_to_field_extrapolation=NOT_PERFORMED");
-    println!("confidence_intervals=NOT_REPORTED_IN_V0");
+    println!("confidence_intervals=GREENWOOD_POINTWISE_95_PERCENT_LOG_LOG_APPROXIMATION");
     println!("operational_permit=false");
     println!("authority=NONE_DESCRIPTIVE_LIFECYCLE_EVIDENCE_ONLY");
     Ok(())
@@ -484,6 +527,31 @@ mod tests {
         assert_eq!(result.median_failure_exposure, Some(20));
         assert_eq!(result.failure_modes.get("CONTACT_RESISTANCE_DRIFT"), Some(&2));
         assert_eq!(result.failure_modes.get("CONTACT_DROPOUT"), Some(&1));
+    }
+
+    #[test]
+    fn greenwood_variance_and_pointwise_log_log_bounds_are_reported() {
+        let result = evaluate(&parsed(FIXTURE));
+        assert!((result.curve[0].greenwood_sum.unwrap() - 0.05).abs() < 1e-12);
+        assert!((result.curve[1].greenwood_sum.unwrap() - (0.05 + 2.0 / 3.0)).abs() < 1e-12);
+        for point in &result.curve {
+            let lower = point.lower_95_log_log.expect("finite survival lower bound");
+            let upper = point.upper_95_log_log.expect("finite survival upper bound");
+            assert!(lower >= 0.0 && lower <= point.survival);
+            assert!(point.survival <= upper && upper <= 1.0);
+        }
+    }
+
+    #[test]
+    fn complete_failure_boundary_has_no_finite_greenwood_interval() {
+        let first_row = FIXTURE.lines().nth(1).expect("first component");
+        let single = format!("{}\n{}\n", FIXTURE.lines().next().unwrap(), first_row);
+        let result = evaluate(&parsed(&single));
+        assert_eq!(result.curve.len(), 1);
+        assert_eq!(result.curve[0].survival, 0.0);
+        assert_eq!(result.curve[0].greenwood_sum, None);
+        assert_eq!(result.curve[0].lower_95_log_log, None);
+        assert_eq!(result.curve[0].upper_95_log_log, None);
     }
 
     #[test]
