@@ -54,18 +54,6 @@ Research question to extract: can overload-slip coupling preserve the drive trai
 
 Guo et al., *Fault-tolerant control of a mole cricket-inspired quadruped robot with functional arms under single-leg loss* (Advanced Bionics, Mar 2026), DOI 10.1016/j.abs.2026.02.001. The robot uses functional arms as compensatory support/mobility appendages after a single-leg loss; paper-reported physical mobility is 85.5–90.9% of the nominal reference depending on failure and configuration. This is a morphology concept demonstrator with different sensing/control hardware, not a directly comparable Go2 result.
 
-### Self-sufficient modular sub-machines and amputation-agnostic control
-
-Yu et al., *Agile legged locomotion in reconfigurable modular robots*, PNAS 123(10), e2519129123 (published 10 March 2026), [paper](https://pmc.ncbi.nlm.nih.gov/articles/PMC12974426/), [project](https://modularlegs.github.io/).
-
-Each module is itself a small legged machine: one-DoF actuation with its own battery, motor, sensing, processing and communications. The modules can be joined into bodies with modules serving as legs, arms, tails or a spine. The authors estimate about (10^{11}) possible designs for five modules and search using an eight-dimensional latent representation and asynchronous Bayesian optimization. They explicitly report that the learned latent decoder does not always reconstruct a hand-designed topology exactly, a warning that every proposed latent design must be decoded and validated against a physical topology/geometry manifest.
-
-A single amputation-agnostic sensorimotor policy was distilled from expert trajectories for intact, one-module-loss, two-module-loss and four-module-loss configurations. The physical five-module quadruped was tested at three previously unseen cut locations: one hindlimb removed, both hindlimbs removed and all but one module remaining. The authors report retained forward locomotion in all three cases and 105.3% of the original controller's speed in the undamaged configuration.
-
-**How we use it:** this is the strongest current comparator for *self-sufficient modular sub-machines and structural damage tolerance*. It is distinct from (a) functional arms that are repurposed only after failure, (b) detachable limbs dependent on a central torso for power/control, and (c) passive overload clutches that protect a transmission but do not supply autonomous locomotion after module loss.
-
-**Limits:** only three previously unseen amputation cases were tested on physical hardware; broader damage coverage was simulated. The modules are not autonomously reabsorbed/reconfigured after damage; the paper explicitly leaves self-repair and in-situ morphology changes as future work. Treat module disconnection, broken dock, power loss, sensing loss and control/network isolation as separate fault modes. A controller that continues sending commands to a disconnected module is not evidence that the module/whole robot has passed a viability gate.
-
 ### Morphology-conditioned dynamics transfer
 
 Danesh et al., *Morphology-Conditioned World Model for Cross-Embodiment Quadrupedal Locomotion* (CoRL 2026; arXiv:2604.08780; code https://github.com/modanesh/QWM). One world model is conditioned on a compact morphology vector and trained across eight quadruped embodiments. The project reports 20 held-out hardware trials across Go1 and ANYmal-D with zero falls on flat-ground velocity tracking, and reports 75–84% normal episode length under 20% torque loss or added payload. The authors describe a fixed 12-DoF quadruped template and flat-ground scope; this does not establish transfer to structural topology changes, limb loss or complex contact terrain. Use as a model-transfer baseline, not a fault diagnosis/reconfiguration or safety certificate.
@@ -243,3 +231,37 @@ The machine-readable corpus is [fixtures/design_candidates_v0_1.json](fixtures/d
 ## Claim ceiling
 
 This is a design and validation protocol, not a morphology performance result. A microrobot perturbation recovery rate, simulation optimization, single-leg mechanism prototype or short hardware demo does not establish whole-quadruped arbitrary-fault tolerance. Only directly measured, exact hardware cells supported by #4358 and the #4340 conjunction may be called qualified.
+
+
+## 11. Executable finite Rust V0 reference
+
+The standalone dependency-free Rust crate validates one frozen design campaign and computes a **non-dominated candidate set** without weighted aggregation.
+
+Input binds:
+- exact campaign, mission, fault manifest, terrain manifest, metric schema, comparison stratum and evidence tier;
+- each candidate's morphology, categorical topology, actuator/transmission/power/sensing architecture identities;
+- categorical design axes as explicit labels (never interpolated);
+- a complete vector of fixed integer metric values;
+- five independent gate statuses: robust viability, recovery, adverse-outcome safety, energy/thermal reserve and runtime assurance;
+- explicit hard metric constraints such as maximum mass or minimum faulted-task success.
+
+A candidate is eligible only when every gate is exactly Valid and every hard constraint passes. Rejected, Unknown or Invalid evidence never receives a Pareto rank. Eligible candidates are compared using exact direction-aware componentwise dominance across the declared metric vector. A candidate is removed only if another eligible candidate is no worse on every declared metric and strictly better on at least one.
+
+The report retains all ineligible candidates and their gate/constraint reasons, eligible IDs, Pareto IDs, pairwise dominance relations and categorical design-axis metadata. It does not invent a scalar score, compare evidence tiers, infer topology mappings or compute physical viability.
+
+Seven deterministic Rust tests cover:
+- nominal-specialist vs degraded-robust design trade-off remains non-dominated;
+- strict all-metric domination removes a candidate;
+- superior metrics cannot bypass Unknown viability;
+- different support topologies remain categorical metadata;
+- simulation/hardware context mismatch is rejected;
+- missing/duplicate metric rows are rejected;
+- mass hard limit removes a candidate before Pareto comparison.
+
+Qualification commands:
+
+    cargo fmt --manifest-path research/loco-morph-fault-codesign-001/Cargo.toml -- --check
+    cargo test --manifest-path research/loco-morph-fault-codesign-001/Cargo.toml --locked
+    cargo clippy --manifest-path research/loco-morph-fault-codesign-001/Cargo.toml --locked --all-targets -- -D warnings
+
+The exact-head Rust 1.96 workflow is authoritative. It qualifies finite comparison and hard-gate semantics over supplied measurements only; it does not validate the CAD model, fault physics, actuator maps, labels, upstream evidence authenticity or physical safety.

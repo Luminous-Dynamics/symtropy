@@ -1,0 +1,31 @@
+name: LOCO Morph Fault Co-design Verification
+
+on:
+  pull_request:
+    paths:
+      - 'research/loco-morph-fault-codesign-001/**'
+      - '.github/workflows/loco-morph-fault-codesign.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'research/loco-morph-fault-codesign-001/**'
+      - '.github/workflows/loco-morph-fault-codesign.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/loco-morph-fault-codesign-001/Cargo.toml -- --check
+      - name: Run exact hard-gate and Pareto tests
+        run: cargo test --manifest-path research/loco-morph-fault-codesign-001/Cargo.toml --locked
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path research/loco-morph-fault-codesign-001/Cargo.toml --locked --all-targets -- -D warnings
