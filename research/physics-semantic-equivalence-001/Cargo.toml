@@ -6,4 +6,7 @@ license = "AGPL-3.0-or-later"
 publish = false
 description = "Fail-closed semantic admission for cross-simulator physics comparisons"
 
+[dependencies]
+serde_json = "=1.0.150"
+
 [workspace]
