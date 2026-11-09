@@ -1087,8 +1087,13 @@ pub fn poschl_teller_retarded_green_laurent(
         return Err(SpecialError::InvalidPoschlTellerParameters);
     }
     let radius = contour.radius;
-    let samples = contour.samples;
-    let winding = poschl_teller_wronskian_winding_number(width, lambda, center, radius, samples)?;
+    let requested_samples = contour.samples;
+    let winding =
+        poschl_teller_wronskian_winding_number(width, lambda, center, radius, requested_samples)?;
+    // Use at least the refined winding grid for Laurent quadrature, so the
+    // pole count and contour coefficients are not qualified at unrelated
+    // resolution levels.
+    let samples = winding.samples;
     let mut c_minus_one = Complex64::new(0.0, 0.0);
     let mut c_minus_two = Complex64::new(0.0, 0.0);
     let mut max_relative_wronskian_disagreement: f64 = 0.0;
