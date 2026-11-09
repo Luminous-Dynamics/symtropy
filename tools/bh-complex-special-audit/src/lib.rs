@@ -776,13 +776,7 @@ mod tests {
             relative_tolerance: 2.0e-14,
         };
         assert_eq!(
-            hyp2f1(
-                z(0.6, 0.2),
-                z(0.8, -0.1),
-                z(2.4, 0.1),
-                z(0.95, 0.0),
-                config,
-            ),
+            hyp2f1(z(0.6, 0.2), z(0.8, -0.1), z(2.4, 0.1), z(0.95, 0.0), config,),
             Err(SpecialError::NoConvergence)
         );
     }
@@ -1056,5 +1050,4 @@ mod tests {
             }
         }
     }
-
 }
