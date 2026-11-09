@@ -1,0 +1,122 @@
+name: AER-01 correlated sensor information
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/aero-correlated-sensor-information.yml"
+      - "tools/civil-aero-benchmark/correlated-sensor-information/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-correlated-sensor-information:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact pull-request head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Assert exact subject revision
+        env:
+          EXPECTED_SUBJECT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          actual_subject_sha="$(git rev-parse HEAD)"
+          test "$actual_subject_sha" = "$EXPECTED_SUBJECT_SHA"
+          printf 'subject_commit=%s\n' "$actual_subject_sha"
+          printf 'event_commit=%s\n' "$GITHUB_SHA"
+          printf 'workflow_ref=%s\n' "$GITHUB_WORKFLOW_REF"
+
+      - name: Install stable Rust with rustfmt
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Record toolchain and runner identity
+        run: |
+          {
+            echo "rust-toolchain.toml:"
+            cat rust-toolchain.toml
+            echo
+            rustc --version --verbose
+            cargo --version
+            python3 --version
+            printf 'RUNNER_OS=%s\n' "${RUNNER_OS:-unknown}"
+            printf 'RUNNER_ARCH=%s\n' "${RUNNER_ARCH:-unknown}"
+            printf 'ImageOS=%s\n' "${ImageOS:-unknown}"
+            printf 'ImageVersion=%s\n' "${ImageVersion:-unknown}"
+            uname -a
+          } | tee correlated-sensor-environment.txt
+
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path tools/civil-aero-benchmark/correlated-sensor-information/Cargo.toml -- --check
+
+      - name: Run Rust covariance, operator and placement known-answer tests
+        run: cargo test --locked --manifest-path tools/civil-aero-benchmark/correlated-sensor-information/Cargo.toml
+
+      - name: Run correlated Fisher-information executable
+        run: cargo run --locked --quiet --manifest-path tools/civil-aero-benchmark/correlated-sensor-information/Cargo.toml > correlated-sensor-information-result.json
+
+      - name: Independently recompute in Python
+        run: python3 tools/civil-aero-benchmark/correlated-sensor-information/verify_independent.py --rust-output correlated-sensor-information-result.json
+
+      - name: Create exact source and result digest receipts
+        run: |
+          set -euo pipefail
+          subject_sha="${{ github.event.pull_request.head.sha || github.sha }}"
+          workflow_blob=$(git rev-parse "${subject_sha}:.github/workflows/aero-correlated-sensor-information.yml")
+          printf 'subject_commit=%s\nevent_commit=%s\nworkflow_ref=%s\nworkflow_blob=%s\nrun_id=%s\nrun_attempt=%s\n' \
+            "$subject_sha" "$GITHUB_SHA" "$GITHUB_WORKFLOW_REF" "$workflow_blob" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" \
+            > correlated-sensor-run-manifest.txt
+          sha256sum rust-toolchain.toml > correlated-sensor-toolchain.sha256
+          sha256sum tools/civil-aero-benchmark/correlated-sensor-information/Cargo.toml > correlated-sensor-cargo-manifest.sha256
+          sha256sum tools/civil-aero-benchmark/correlated-sensor-information/Cargo.lock > correlated-sensor-cargo-lock.sha256
+          sha256sum tools/civil-aero-benchmark/correlated-sensor-information/src/main.rs > correlated-sensor-rust-source.sha256
+          sha256sum tools/civil-aero-benchmark/correlated-sensor-information/verify_independent.py > correlated-sensor-python-source.sha256
+          sha256sum tools/civil-aero-benchmark/correlated-sensor-information/README.md > correlated-sensor-readme.sha256
+          sha256sum .github/workflows/aero-correlated-sensor-information.yml > correlated-sensor-workflow.sha256
+          sha256sum tools/civil-aero-benchmark/correlated-sensor-information/data/instrument-correlated-noise-v0.1.json > correlated-sensor-source.sha256
+          sha256sum tools/civil-aero-benchmark/correlated-sensor-information/data/instrument-correlated-failure-v0.1.json > correlated-sensor-joint-source.sha256
+          sha256sum correlated-sensor-environment.txt > correlated-sensor-environment.sha256
+          sha256sum correlated-sensor-information-result.json > correlated-sensor-result.sha256
+          sha256sum correlated-sensor-run-manifest.txt > correlated-sensor-run-manifest.sha256
+
+      - name: Retain complete source, result and SHA-256 receipts
+        uses: actions/upload-artifact@v4
+        with:
+          name: aero-correlated-sensor-information-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            rust-toolchain.toml
+            .github/workflows/aero-correlated-sensor-information.yml
+            tools/civil-aero-benchmark/correlated-sensor-information/Cargo.toml
+            tools/civil-aero-benchmark/correlated-sensor-information/Cargo.lock
+            tools/civil-aero-benchmark/correlated-sensor-information/README.md
+            tools/civil-aero-benchmark/correlated-sensor-information/src/main.rs
+            tools/civil-aero-benchmark/correlated-sensor-information/verify_independent.py
+            tools/civil-aero-benchmark/correlated-sensor-information/data/instrument-correlated-noise-v0.1.json
+            tools/civil-aero-benchmark/correlated-sensor-information/data/instrument-correlated-failure-v0.1.json
+            correlated-sensor-information-result.json
+            correlated-sensor-environment.txt
+            correlated-sensor-run-manifest.txt
+            correlated-sensor-toolchain.sha256
+            correlated-sensor-cargo-manifest.sha256
+            correlated-sensor-cargo-lock.sha256
+            correlated-sensor-rust-source.sha256
+            correlated-sensor-python-source.sha256
+            correlated-sensor-readme.sha256
+            correlated-sensor-workflow.sha256
+            correlated-sensor-source.sha256
+            correlated-sensor-joint-source.sha256
+            correlated-sensor-environment.sha256
+            correlated-sensor-result.sha256
+            correlated-sensor-run-manifest.sha256
+          if-no-files-found: error
+          retention-days: 90

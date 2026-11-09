@@ -1,0 +1,186 @@
+{
+  "schema_version": "aero-correlated-sensor-information/0.1.0",
+  "problem_id": "SYNTHETIC-INSTRUMENT-AWARE-CORRELATED-NOISE-001",
+  "claim_ceiling": "synthetic_correlated_fisher_observability_only",
+  "model_assumptions": {
+    "parameter_names": [
+      "normalized_bending_load_scale",
+      "normalized_torsional_stiffness_change"
+    ],
+    "observation_model": "linear_scalar_gain_times_static_sensitivity",
+    "noise_model": "correlated_zero_mean_gaussian_covariance",
+    "sensitivity_units": "dimensionless_normalized",
+    "covariance_units": "normalized_output_squared",
+    "operating_point_id": "synthetic_quasistatic_reference",
+    "dynamic_transfer_function_status": "NOT_ASSESSED",
+    "physical_aircraft_model": false
+  },
+  "constraints": {
+    "d_opt_sensor_count": 2,
+    "e_opt_sensor_count": 2,
+    "robust_e_opt_sensor_count": 4,
+    "sensor_dropout_budget": 1,
+    "common_cause_group_dropout": true
+  },
+  "sensors": [
+    {
+      "sensor_id": "S1",
+      "sensor_type": "strain_gauge",
+      "sensitivity": [
+        1.5,
+        0
+      ],
+      "operator_gain": 1,
+      "operator_status": "ADMITTED",
+      "operator_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "calibration_status": "VALID",
+      "common_cause_group": "POWER_A",
+      "deployment_cost_units": 1,
+      "mass_g": 10,
+      "power_mw": 100
+    },
+    {
+      "sensor_id": "S2",
+      "sensor_type": "strain_gauge",
+      "sensitivity": [
+        0,
+        1.5
+      ],
+      "operator_gain": 1,
+      "operator_status": "ADMITTED",
+      "operator_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "calibration_status": "VALID",
+      "common_cause_group": "POWER_A",
+      "deployment_cost_units": 1,
+      "mass_g": 10,
+      "power_mw": 100
+    },
+    {
+      "sensor_id": "S3",
+      "sensor_type": "fiber_optic_strain",
+      "sensitivity": [
+        1,
+        1
+      ],
+      "operator_gain": 1,
+      "operator_status": "ADMITTED",
+      "operator_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "calibration_status": "VALID",
+      "common_cause_group": "INTERROGATOR_B",
+      "deployment_cost_units": 1,
+      "mass_g": 15,
+      "power_mw": 150
+    },
+    {
+      "sensor_id": "S4",
+      "sensor_type": "fiber_optic_strain",
+      "sensitivity": [
+        1,
+        -1
+      ],
+      "operator_gain": 1,
+      "operator_status": "ADMITTED",
+      "operator_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "calibration_status": "VALID",
+      "common_cause_group": "INTERROGATOR_B",
+      "deployment_cost_units": 1,
+      "mass_g": 15,
+      "power_mw": 150
+    },
+    {
+      "sensor_id": "S5",
+      "sensor_type": "fiber_optic_strain",
+      "sensitivity": [
+        0.8,
+        0.6
+      ],
+      "operator_gain": 1,
+      "operator_status": "ADMITTED",
+      "operator_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "calibration_status": "VALID",
+      "common_cause_group": "INDEPENDENT_C",
+      "deployment_cost_units": 1,
+      "mass_g": 12,
+      "power_mw": 80
+    }
+  ],
+  "noise_covariance": {
+    "channel_ids": [
+      "S1",
+      "S2",
+      "S3",
+      "S4",
+      "S5"
+    ],
+    "units": "normalized_output_squared",
+    "evidence_status": "synthetic_reference_only",
+    "matrix": [
+      [
+        1,
+        0.95,
+        0,
+        0,
+        0
+      ],
+      [
+        0.95,
+        1,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        1,
+        0.2,
+        0
+      ],
+      [
+        0,
+        0,
+        0.2,
+        1,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        1
+      ]
+    ]
+  },
+  "expected": {
+    "diagonal_e_opt_sensor_ids": [
+      "S1",
+      "S2"
+    ],
+    "diagonal_e_opt_minimum_eigenvalue": 2.25,
+    "correlated_d_opt_sensor_ids": [
+      "S1",
+      "S2"
+    ],
+    "correlated_d_opt_determinant": 51.92307692307692,
+    "correlated_e_opt_sensor_ids": [
+      "S3",
+      "S4"
+    ],
+    "correlated_e_opt_minimum_eigenvalue": 1.6666666666666667,
+    "robust_e_opt_sensor_ids": [
+      "S1",
+      "S2",
+      "S3",
+      "S4"
+    ],
+    "robust_e_opt_worst_case_minimum_eigenvalue": 1.1538461538461515,
+    "robust_d_opt_sensor_ids": [
+      "S1",
+      "S2",
+      "S3",
+      "S4"
+    ],
+    "robust_d_opt_worst_case_log_determinant": 1.4271163556401458
+  }
+}
