@@ -53,6 +53,22 @@ fn run(args: &[String]) -> Result<i32, String> {
         }
         [command, path] if command == "validate-qnm" => {
             let sequence = read_qnm_sequence(path)?;
+            let mode_summaries = sequence
+                .modes
+                .iter()
+                .map(|mode| {
+                    json!({
+                        "sequence_position": mode.sequence_position,
+                        "overtone_index_n": mode.overtone_index,
+                        "wkb_quantization_index_N": mode.wkb_quantization_index,
+                        "solver_method": mode.solver_method,
+                        "method_applicability": mode.method_applicability,
+                        "angular_branch_id": mode.angular_branch_id,
+                        "normal_prolate_wkb_small_spin_parameter": sequence
+                            .normal_prolate_wkb_small_spin_parameter(mode)
+                    })
+                })
+                .collect::<Vec<_>>();
             println!(
                 "{}",
                 json!({
@@ -60,7 +76,10 @@ fn run(args: &[String]) -> Result<i32, String> {
                     "schema_version": sequence.schema_version,
                     "sequence_id": sequence.sequence_id,
                     "family_classification": sequence.family_classification,
-                    "modes": sequence.modes.len()
+                    "spin_over_mass": sequence.spin_over_mass,
+                    "angular_eigenvalue_convention": sequence.angular_eigenvalue_convention,
+                    "normal_prolate_oscillator_level": sequence.normal_prolate_oscillator_level,
+                    "modes": mode_summaries
                 })
             );
             Ok(0)
