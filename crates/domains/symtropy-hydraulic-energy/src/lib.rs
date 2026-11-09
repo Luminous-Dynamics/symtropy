@@ -411,6 +411,9 @@ impl WaterServiceContract {
                 "water_service_contract_id",
             ));
         }
+        if evidence.evidence_class() != EvidenceClass::OperatorApprovedContract {
+            return Err(HydraulicError::InvalidServiceContractEvidence);
+        }
 
         Ok(Self {
             contract_id,
@@ -668,6 +671,7 @@ pub enum HydraulicError {
         head_loss_m: f64,
     },
     InvalidOperatingMapRange(&'static str),
+    InvalidServiceContractEvidence,
     TurbineMapOutOfDomain {
         net_head_m: f64,
         flow_m3_per_s: f64,
@@ -699,6 +703,9 @@ impl fmt::Display for HydraulicError {
             ),
             Self::InvalidOperatingMapRange(message) => {
                 write!(formatter, "invalid turbine operating-map range: {message}")
+            }
+            Self::InvalidServiceContractEvidence => {
+                write!(formatter, "water-service limits require operator-approved contract evidence")
             }
             Self::TurbineMapOutOfDomain {
                 net_head_m,
@@ -1074,6 +1081,24 @@ mod tests {
         assert!(matches!(
             result,
             Err(HydraulicError::InvalidOperatingMapRange(_))
+        ));
+    }
+
+    #[test]
+    fn water_service_limits_require_operator_approved_evidence() {
+        let result = WaterServiceContract::new(
+            "WATER-SERVICE-UNAPPROVED",
+            evidence("SCENARIO-CONTRACT", EvidenceClass::ScenarioAssumption),
+            PressurePascals::new(1.0).unwrap(),
+            FlowRateM3PerSecond::new(0.0).unwrap(),
+            FlowRateM3PerSecond::new(0.0).unwrap(),
+            PressurePascals::new(0.0).unwrap(),
+            FlowRateM3PerSecond::new(0.0).unwrap(),
+            FlowRateM3PerSecond::new(0.0).unwrap(),
+        );
+        assert!(matches!(
+            result,
+            Err(HydraulicError::InvalidServiceContractEvidence)
         ));
     }
 
