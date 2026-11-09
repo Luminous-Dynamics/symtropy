@@ -34,3 +34,16 @@ cargo run --release --manifest-path tools/bh-pt-time-domain-audit/Cargo.toml -- 
 ## Limitations
 
 This is a pilot direct solver for a prescribed 1D scalar master equation. It is not hyperboloidal, does not model black-hole horizon/infinity compactification, and does not solve Teukolsky/Regge–Wheeler/Zerilli equations. Its finite-difference waveform is an independent falsification reference for the Pöschl–Teller Green-kernel work, not a replacement for issue #4052.
+
+## Reproducible run artifact
+
+The CLI writes two paired files:
+
+- `<waveform.csv>` — observer time series.
+- `<waveform.csv>.manifest.json` — versioned machine-readable run manifest.
+
+The manifest binds the equation and potential, dimensionless units, source formula/support/amplitude, zero initial data, fixed Dirichlet boundaries, spatial/time scheme and grid, source/observer coordinates, exact build revision when supplied by CI, configuration SHA-256, waveform SHA-256, energy/work balance, first physical arrival, measured pre-front leakage and boundary-reflection-free time.
+
+The manifest explicitly labels the artifact as `direct_pde_reference_only`; it does not claim Green-function or QNM/Matsubara agreement. A finite-grid RK4 method-of-lines solution can exhibit a small pre-front numerical tail. The manifest records the measured leakage rather than labelling it zero.
+
+GitHub Actions builds and archives the CSV/manifest pair separately for Ubuntu, Windows and macOS. Platform-specific artifacts are useful for checking deterministic behavior and floating-point variation; they must not be conflated into one bit-identical waveform expectation.
