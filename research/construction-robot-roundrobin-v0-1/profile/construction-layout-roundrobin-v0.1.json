@@ -1,0 +1,133 @@
+{
+  "profile_id": "construction-layout-roundrobin-v0.1",
+  "version": "0.1.0",
+  "status": "proposed",
+  "task_family": "construction_layout_printing",
+  "tracks": [
+    "vendor_configuration_reproduction",
+    "common_independent_referee"
+  ],
+  "platform_references": [
+    {
+      "platform": "HP SitePrint",
+      "vendor": "HP",
+      "reference_uri": "https://www.hp.com/us-en/printers/site-print/layout-robot.html",
+      "evidence_status": "vendor_reported"
+    },
+    {
+      "platform": "Dusty FieldPrinter 2",
+      "vendor": "Dusty Robotics",
+      "reference_uri": "https://support.dustyrobotics.com/hc/en-us/articles/52682349645851-FieldPrinter-Specs",
+      "evidence_status": "vendor_reported"
+    }
+  ],
+  "design": {
+    "structure": "not_yet_selected",
+    "planned_laboratories": null,
+    "independent_unit": "endpoint_specific",
+    "factors": [
+      "laboratory",
+      "physical_site",
+      "platform_model",
+      "serial_unit",
+      "operator",
+      "session",
+      "reference_instrument",
+      "task_stratum",
+      "environmental_condition",
+      "software_configuration",
+      "payload_tool"
+    ],
+    "randomization_required": true,
+    "pilot_separate_from_confirmatory": true,
+    "confounding_disclosure_required": true,
+    "sample_size_basis": "Set only after a distinct pilot estimates variance and feasibility; preregister required uncertainty, decision margin, practically meaningful difference, and identifiable variance components before confirmatory collection."
+  },
+  "reference_measurement": {
+    "artifact_id": "unassigned-common-reference-artifact",
+    "artifact_status": "to_be_defined",
+    "before_after_session_checks": true,
+    "robot_control_independent": true,
+    "instrument_calibration_recorded": true,
+    "uncertainty_recorded": true,
+    "common_mode_dependencies_recorded": true
+  },
+  "preregistration": {
+    "required_before_confirmatory": true,
+    "primary_endpoints_frozen": true,
+    "analysis_plan_frozen": true,
+    "exclusions_and_stopping_rules_frozen": true,
+    "blind_run_identifiers": true,
+    "sample_size_rationale": "No confirmatory sample size selected. Determine from pilot variance, required uncertainty, decision margin and predeclared practically meaningful difference."
+  },
+  "endpoints": [
+    {
+      "name": "signed_plan_position_residual",
+      "family": "metrology",
+      "unit": "mm",
+      "analysis_family": "continuous",
+      "reported_by_stratum": true
+    },
+    {
+      "name": "critical_feature_completeness",
+      "family": "task_quality",
+      "unit": "proportion_of_required_features",
+      "analysis_family": "binary",
+      "reported_by_stratum": true
+    },
+    {
+      "name": "first_pass_acceptance",
+      "family": "task_quality",
+      "unit": "accepted_or_rejected_feature",
+      "analysis_family": "binary",
+      "reported_by_stratum": true
+    },
+    {
+      "name": "accepted_output_per_total_crew_hour",
+      "family": "productivity",
+      "unit": "accepted_features_per_crew_hour",
+      "analysis_family": "ratio",
+      "reported_by_stratum": true
+    },
+    {
+      "name": "reason_coded_task_interruption",
+      "family": "reliability",
+      "unit": "events_per_robot_hour",
+      "analysis_family": "rate",
+      "reported_by_stratum": true
+    }
+  ],
+  "safety_separation": {
+    "qualification_is_external": true,
+    "hard_gate_non_compensable": true,
+    "composite_safety_productivity_score_prohibited": true
+  },
+  "execution_status": "not_executed",
+  "schema_version": "construction-roundrobin-study-plan-v0.1",
+  "uncertainty_policy": {
+    "measurement_model_declared": true,
+    "type_a_type_b_components_separated": true,
+    "correlations_and_covariances_recorded": true,
+    "known_corrections_applied_or_justified": true,
+    "nonlinearity_assessed": true,
+    "propagation_method": "not_yet_selected",
+    "coverage_factor": null,
+    "uncertainty_budget_artifact_required": true,
+    "measurement_capability_failure_is_indeterminate": true
+  },
+  "decision_rule": {
+    "rule_id": "to-be-defined-by-task-owner",
+    "method": "not_yet_selected",
+    "task_specific_limits": true,
+    "guard_band_policy": "not_yet_selected",
+    "false_accept_risk_considered": true,
+    "false_reject_risk_considered": true,
+    "boundary_result_policy": "indeterminate_when_capability_insufficient",
+    "decision_states": [
+      "accepted_under_named_rule",
+      "rejected_under_named_rule",
+      "indeterminate_measurement_capability_or_boundary",
+      "not_evaluated"
+    ]
+  }
+}
