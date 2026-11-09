@@ -199,20 +199,14 @@ fn validate_and_canonicalize(
     }
 
     let mut axis_indices: Vec<usize> = (0..family.axes.len()).collect();
-    axis_indices.sort_by(|left, right| {
-        family.axes[*left]
-            .axis_id
-            .cmp(&family.axes[*right].axis_id)
-    });
+    axis_indices
+        .sort_by(|left, right| family.axes[*left].axis_id.cmp(&family.axes[*right].axis_id));
 
     let mut axes = Vec::with_capacity(family.axes.len());
     let mut axis_ids = BTreeSet::new();
     for index in &axis_indices {
         let axis = &family.axes[*index];
-        if !nonempty(&axis.axis_id)
-            || !nonempty(&axis.unit)
-            || !nonempty(&axis.constructor_digest)
-        {
+        if !nonempty(&axis.axis_id) || !nonempty(&axis.unit) || !nonempty(&axis.constructor_digest) {
             return Err(FrontierError::EmptyIdentifier);
         }
         if !axis_ids.insert(axis.axis_id.as_str()) {
@@ -273,7 +267,12 @@ fn validate_and_canonicalize(
     samples.sort_by(|left, right| left.theta.cmp(&right.theta));
 
     let mut all_points = Vec::with_capacity(expected_grid_point_count);
-    enumerate_grid(&axes, 0, &mut Vec::with_capacity(axes.len()), &mut all_points);
+    enumerate_grid(
+        &axes,
+        0,
+        &mut Vec::with_capacity(axes.len()),
+        &mut all_points,
+    );
     let missing = all_points
         .into_iter()
         .filter(|theta| !coordinates.contains(theta))
@@ -282,12 +281,7 @@ fn validate_and_canonicalize(
     Ok((axes, samples, expected_grid_point_count, missing))
 }
 
-fn enumerate_grid(
-    axes: &[Axis],
-    index: usize,
-    current: &mut Vec<u32>,
-    output: &mut Vec<Vec<u32>>,
-) {
+fn enumerate_grid(axes: &[Axis], index: usize, current: &mut Vec<u32>, output: &mut Vec<Vec<u32>>) {
     if index == axes.len() {
         output.push(current.clone());
         return;
@@ -390,11 +384,7 @@ fn compute_predicate_frontier(
 
     let maximal_sampled_safe = viable
         .iter()
-        .filter(|point| {
-            !viable
-                .iter()
-                .any(|other| strictly_dominates(point, other))
-        })
+        .filter(|point| !viable.iter().any(|other| strictly_dominates(point, other)))
         .cloned()
         .collect();
 
@@ -443,17 +433,11 @@ pub fn audit_frontier(family: &FrontierFamily) -> Result<FrontierReport, Frontie
             .then_with(|| left.higher_theta.cmp(&right.higher_theta))
     });
 
-    let viability = compute_predicate_frontier(
-        &samples,
-        Predicate::Viability,
-        missing_grid_points.len(),
-    )
-    .ok_or(FrontierError::NoSamples)?;
-    let recovery = compute_predicate_frontier(
-        &samples,
-        Predicate::Recovery,
-        missing_grid_points.len(),
-    );
+    let viability =
+        compute_predicate_frontier(&samples, Predicate::Viability, missing_grid_points.len())
+            .ok_or(FrontierError::NoSamples)?;
+    let recovery =
+        compute_predicate_frontier(&samples, Predicate::Recovery, missing_grid_points.len());
 
     let invalid_results = samples.iter().any(|sample| {
         matches!(&sample.viability.status, OracleStatus::Invalid { .. })
@@ -465,7 +449,8 @@ pub fn audit_frontier(family: &FrontierFamily) -> Result<FrontierReport, Frontie
 
     let mut unqualified_reasons = Vec::new();
     if !all_axes_nested {
-        unqualified_reasons.push("one or more axes do not declare nested uncertainty sets".to_owned());
+        unqualified_reasons
+            .push("one or more axes do not declare nested uncertainty sets".to_owned());
     }
     if !violations.is_empty() {
         unqualified_reasons.push("coordinatewise monotonicity contradiction detected".to_owned());
@@ -593,10 +578,7 @@ mod tests {
             vec![vec![1, 2], vec![2, 1]]
         );
         let recovery = report.recovery.expect("recovery predicate");
-        assert_eq!(
-            recovery.maximal_sampled_safe,
-            vec![vec![0, 2], vec![1, 0]]
-        );
+        assert_eq!(recovery.maximal_sampled_safe, vec![vec![0, 2], vec![1, 0]]);
         assert_eq!(
             recovery.minimal_sampled_unsafe,
             vec![vec![1, 1], vec![2, 0]]
@@ -643,14 +625,8 @@ mod tests {
         let report = audit_frontier(&family).expect("report contradiction");
         assert!(!report.family_qualified);
         assert_eq!(report.monotonicity_violations.len(), 1);
-        assert_eq!(
-            report.monotonicity_violations[0].lower_theta,
-            vec![1]
-        );
-        assert_eq!(
-            report.monotonicity_violations[0].higher_theta,
-            vec![2]
-        );
+        assert_eq!(report.monotonicity_violations[0].lower_theta, vec![1]);
+        assert_eq!(report.monotonicity_violations[0].higher_theta, vec![2]);
         assert_eq!(
             report.monotonicity_violations[0].lower_witness_id,
             "lower-fails"
@@ -713,10 +689,7 @@ mod tests {
             vec![vec![1, 1], vec![2, 0]]
         );
         let recovery = report.recovery.expect("recovery report");
-        assert_eq!(
-            recovery.maximal_sampled_safe,
-            vec![vec![0, 1], vec![1, 0]]
-        );
+        assert_eq!(recovery.maximal_sampled_safe, vec![vec![0, 1], vec![1, 0]]);
     }
 
     #[test]
@@ -746,10 +719,7 @@ mod tests {
             report.viability.maximal_sampled_safe,
             vec![vec![0, 1, 1], vec![1, 0, 1], vec![1, 1, 0]]
         );
-        assert_eq!(
-            report.viability.minimal_sampled_unsafe,
-            vec![vec![1, 1, 1]]
-        );
+        assert_eq!(report.viability.minimal_sampled_unsafe, vec![vec![1, 1, 1]]);
     }
 
     #[test]
@@ -777,10 +747,12 @@ mod tests {
         duplicate.axes[0].nested = false;
         let report = audit_frontier(&duplicate).expect("non-nested family report");
         assert!(!report.family_qualified);
-        assert!(report
-            .unqualified_reasons
-            .iter()
-            .any(|reason| reason.contains("nested")));
+        assert!(
+            report
+                .unqualified_reasons
+                .iter()
+                .any(|reason| reason.contains("nested"))
+        );
     }
 
     #[test]
