@@ -222,7 +222,7 @@ A transfer report is only valid when every domain uses:
 
 Population, context, source family, source digest, axis and independent-unit type can differ by domain. This is deliberate: a region-level source validation may be compared to a site-level and a time-block target challenge without pretending the independent units are identical.
 
-Each domain and statistic remains visible separately. The report emits expected, assessed, within-reference, outside-reference and not-assessed unit counts. It does not pool target domains into one adequacy percentage.
+Each domain and statistic remains visible separately. The report emits expected, assessed, within-reference, outside-reference and not-assessed unit counts. It does not pool target domains into one adequacy percentage. A report-level evidence_complete flag exposes whether all registered domains have complete required evidence. A known target-domain discrepancy remains the claim ceiling even when a different target is under-assessed; it is not averaged away. However, a discrepancy in the source-validation domain prevents a causal or predictive transfer claim and leaves the global claim ceiling NotAssessed.
 
 ### Known-answer fixture
 
