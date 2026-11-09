@@ -27,10 +27,28 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Record Rust toolchain identity
+      - name: Record exact toolchain and runner identity
         run: |
-          rustc --version --verbose
-          cargo --version
+          {
+            echo "rust-toolchain.toml:"
+            cat rust-toolchain.toml
+            echo
+            echo "rustc:"
+            rustc --version --verbose
+            echo
+            echo "cargo:"
+            cargo --version
+            echo
+            echo "python:"
+            python3 --version
+            echo
+            echo "runner:"
+            printf 'RUNNER_OS=%s\\n' "${RUNNER_OS:-unknown}"
+            printf 'RUNNER_ARCH=%s\\n' "${RUNNER_ARCH:-unknown}"
+            printf 'ImageOS=%s\\n' "${ImageOS:-unknown}"
+            printf 'ImageVersion=%s\\n' "${ImageVersion:-unknown}"
+            uname -a
+          } | tee inspection-observability-environment.txt
 
       - name: Check Rust formatting
         run: cargo fmt --manifest-path tools/civil-aero-benchmark/inspection-observability/Cargo.toml -- --check
@@ -47,6 +65,7 @@ jobs:
       - name: Create source and output digest receipts
         run: |
           sha256sum tools/civil-aero-benchmark/inspection-observability/Cargo.lock > inspection-observability-lock.sha256
+          sha256sum inspection-observability-environment.txt > inspection-observability-environment.sha256
           sha256sum tools/civil-aero-benchmark/inspection-observability/fixtures/known-answer-observability-v0.1.json > inspection-observability-source.sha256
           sha256sum inspection-observability-result.json > inspection-observability-result.sha256
 
@@ -59,6 +78,8 @@ jobs:
             tools/civil-aero-benchmark/inspection-observability/fixtures/known-answer-observability-v0.1.json
             inspection-observability-result.json
             inspection-observability-lock.sha256
+            inspection-observability-environment.txt
+            inspection-observability-environment.sha256
             inspection-observability-source.sha256
             inspection-observability-result.sha256
           if-no-files-found: error
