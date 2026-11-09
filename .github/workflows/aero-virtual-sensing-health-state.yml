@@ -98,10 +98,10 @@ jobs:
           sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/data/hh-hf-dh-df-v0.1.json > virtual-sensing-source.sha256
           sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/data/external-benchmark-register-v0.1.json > virtual-sensing-external-register.sha256
           sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/src/bin/muvis_c_corruption.rs > muvis-c-rust-source.sha256
-      sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/src/bin/environment_damage_confounding.rs > environment-damage-rust-source.sha256
-      sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/verify_environment_damage_independent.py > environment-damage-python-source.sha256
-      sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/data/environment-damage-confounding-v0.1.json > environment-damage-source.sha256
-      sha256sum environment-damage-confounding-result.json > environment-damage-result.sha256
+          sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/src/bin/environment_damage_confounding.rs > environment-damage-rust-source.sha256
+          sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/verify_environment_damage_independent.py > environment-damage-python-source.sha256
+          sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/data/environment-damage-confounding-v0.1.json > environment-damage-source.sha256
+          sha256sum environment-damage-confounding-result.json > environment-damage-result.sha256
           sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/verify_muvis_c_independent.py > muvis-c-python-source.sha256
           sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/data/muvis-c-corruption-v0.1.json > muvis-c-source.sha256
           sha256sum muvis-c-corruption-result.json > muvis-c-result.sha256
@@ -124,10 +124,10 @@ jobs:
             tools/civil-aero-benchmark/virtual-sensing-health-state/data/hh-hf-dh-df-v0.1.json
             tools/civil-aero-benchmark/virtual-sensing-health-state/data/external-benchmark-register-v0.1.json
             tools/civil-aero-benchmark/virtual-sensing-health-state/src/bin/muvis_c_corruption.rs
-      tools/civil-aero-benchmark/virtual-sensing-health-state/src/bin/environment_damage_confounding.rs
-      tools/civil-aero-benchmark/virtual-sensing-health-state/verify_environment_damage_independent.py
-      tools/civil-aero-benchmark/virtual-sensing-health-state/data/environment-damage-confounding-v0.1.json
-      environment-damage-confounding-result.json
+            tools/civil-aero-benchmark/virtual-sensing-health-state/src/bin/environment_damage_confounding.rs
+            tools/civil-aero-benchmark/virtual-sensing-health-state/verify_environment_damage_independent.py
+            tools/civil-aero-benchmark/virtual-sensing-health-state/data/environment-damage-confounding-v0.1.json
+            environment-damage-confounding-result.json
             tools/civil-aero-benchmark/virtual-sensing-health-state/verify_muvis_c_independent.py
             tools/civil-aero-benchmark/virtual-sensing-health-state/data/muvis-c-corruption-v0.1.json
             muvis-c-corruption-result.json
@@ -144,10 +144,10 @@ jobs:
             virtual-sensing-source.sha256
             virtual-sensing-external-register.sha256
             muvis-c-rust-source.sha256
-      environment-damage-rust-source.sha256
-      environment-damage-python-source.sha256
-      environment-damage-source.sha256
-      environment-damage-result.sha256
+            environment-damage-rust-source.sha256
+            environment-damage-python-source.sha256
+            environment-damage-source.sha256
+            environment-damage-result.sha256
             muvis-c-python-source.sha256
             muvis-c-source.sha256
             muvis-c-result.sha256
