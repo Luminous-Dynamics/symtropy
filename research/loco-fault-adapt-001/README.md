@@ -163,3 +163,35 @@ Machine-readable synthetic cases are in [fixtures/known_answers_v0_1.json](fixtu
 ## Claim ceiling
 
 V0 qualifies scenario completeness, identity matching, trial comparability and fault response scorecard semantics over supplied records. It does not prove a robot can tolerate any fault. Physical claims require controlled fault injection, measured actuator reality, independent event labels, sufficient matched trials and a separately qualified robust viability/recovery gate.
+
+
+## 11. Executable finite Rust V0 reference
+
+The standalone, dependency-free Rust crate consumes:
+- a frozen list of held-out fault scenarios and explicit training/validation scenario IDs;
+- policy descriptors, marking whether privileged fault truth is available in training and/or deployment;
+- shared morphology, actuator, sensor, terrain, command, task, physics, taxonomy, detector, interaction/compute budget and exposure identities;
+- paired test-block IDs;
+- one trial record for every policy × held-out scenario × paired block.
+
+The reference:
+- rejects policy comparisons with different morphology or actuator/sensor/task/physics/compute/exposure contexts;
+- rejects train/validation/held-out scenario leakage;
+- rejects deployment access to true fault identity unless the method is explicitly marked as an oracle upper bound;
+- validates severity, affected components, onset phase, fault-injection and model identity;
+- requires complete matched trial coverage and rejects duplicate/missing trials;
+- requires each trial to carry independent event-vector and viability receipt digests;
+- rejects stale-certificate or unadmitted applied actions;
+- retains Unknown and missed fault diagnoses separately from false family classification;
+- reports detection and adaptation deadline misses independently;
+- preserves separate controlled-stop, recoverable-fall, unrecovered-fall, task-completion and Unknown outcomes.
+
+The V0 tests include matched matrix coverage, missing/duplicate trials, train/validation/test leakage, context mismatch, privileged truth misuse, stale certificates, unadmitted commands, Unknown diagnosis, fault misclassification, late detection/adaptation, recovery-evidence inconsistency, scenario-model mismatch and invalid resource context.
+
+Qualification commands:
+
+    cargo fmt --manifest-path research/loco-fault-adapt-001/Cargo.toml -- --check
+    cargo test --manifest-path research/loco-fault-adapt-001/Cargo.toml --locked
+    cargo clippy --manifest-path research/loco-fault-adapt-001/Cargo.toml --locked --all-targets -- -D warnings
+
+The exact-head workflow is authoritative for Rust 1.96. The crate audits supplied benchmark identities and records; it does not diagnose raw telemetry, classify physical events, prove actuator models or certify viability.
