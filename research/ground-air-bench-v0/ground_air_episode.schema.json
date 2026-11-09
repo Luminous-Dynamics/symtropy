@@ -87,7 +87,8 @@
           "SAFETY_AND_EVIDENCE",
           "COMPUTATION",
           "MECHANICAL_CAPTURE",
-          "REPLENISHMENT_STRATEGY"
+          "REPLENISHMENT_STRATEGY",
+          "POSE_CALIBRATION"
         ]
       }
     },
@@ -246,7 +247,8 @@
             "MISSION_ENERGY",
             "MECHANICAL_CAPTURE",
             "CAPTURE_OBSERVABILITY_COMPOSITION",
-            "REPLENISHMENT_STRATEGY"
+            "REPLENISHMENT_STRATEGY",
+            "POSE_CALIBRATION"
           ]
         },
         "artifact_path": {
@@ -418,7 +420,8 @@
         "MISSION_ENERGY",
         "MECHANICAL_CAPTURE",
         "CAPTURE_OBSERVABILITY_COMPOSITION",
-        "REPLENISHMENT_STRATEGY"
+        "REPLENISHMENT_STRATEGY",
+        "POSE_CALIBRATION"
       ]
     },
     "receiver": {
@@ -524,7 +527,13 @@
             "OPTICAL_BEAM",
             "POWER_LINE_CORRIDOR",
             "ADAPTIVE_REPLENISHMENT",
-            "EXACT_REPLENISHMENT_PARETO_ORACLE"
+            "EXACT_REPLENISHMENT_PARETO_ORACLE",
+            "STANDARD_SPLIT_CONFORMAL",
+            "IUCA_IN_SITU_CALIBRATION",
+            "LEARNABLE_CONFORMAL_PREDICTION",
+            "CAPTURE_AWARE_CONFORMAL",
+            "POLYTOPIC_SET_MEMBERSHIP",
+            "CONFORMAL_POLICY_CONTROL"
           ]
         },
         "artifact_sha256": {
