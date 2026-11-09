@@ -176,9 +176,9 @@ The split contract is explicit:
 - Model and draw-set identities must remain constant within each statistic/unit draw set.
 - Units, source identity, finite values, unique draw indices and required-statistic coverage are checked fail-closed.
 
-The output is one record per statistic and independent unit. It retains native units, the registered source digest, the observed value, measurement standard error, reference interval, empirical mid-rank and draw count. Measurement uncertainty is exposed separately from structural model discrepancy; this first slice does not combine them into one width or score.
+The output is one record per statistic and independent unit. It retains native units, the registered source digest, the observed value, measurement standard error, reference interval, empirical mid-rank and draw count. A separate per-statistic coverage summary reports the numerator, assessed/expected independent-unit counts, declared sampling-unit type, empirical coverage and a 95% Wilson interval. Missing units are counted as not assessed, not silently treated as covered. Measurement uncertainty is exposed separately from structural model discrepancy; this first slice does not combine them into one width or score.
 
-The reference interval is an empirical central interval of the supplied finite draws. Its mid-rank is descriptive. Neither output is claimed to be a calibrated frequentist p-value or a full implementation of the JASA split predictive check theory. In particular, this v0.1 does not yet implement the single/divided SPC test statistic calibration, power guarantees, joint trajectory discrepancy, or multiplicity control. It also does not verify that caller-supplied digest strings are cryptographically correct; upstream ingestion must hash and independently verify the bytes.
+The reference interval is an empirical central interval of the supplied finite draws. Its mid-rank is descriptive. Wilson intervals summarize coverage across the declared independent units; they do not prove that the chosen units are truly independent, and their precision depends on the number of such units. Neither output is claimed to be a calibrated frequentist p-value or a full implementation of the JASA split predictive check theory. In particular, this v0.1 does not yet implement the single/divided SPC test statistic calibration, power guarantees, joint trajectory discrepancy, or multiplicity control. It also does not verify that caller-supplied digest strings are cryptographically correct; upstream ingestion must hash and independently verify the bytes.
 
 ### Frozen known-answer fixture
 
@@ -196,7 +196,7 @@ A no_primary_discrepancy_detected result means only that no discrepancy was dete
 
 This slice does not yet implement:
 1. Joint and trajectory discrepancies with dependence-aware reference distributions.
-2. Coverage uncertainty across independent units, including sample-size/power planning.
+2. Prospective sample-size/power planning and dependence-aware uncertainty beyond the current Wilson coverage summary.
 3. Explicit treatment of measurement-error distributions rather than retaining the supplied measurement SE.
 4. Multiple source-family, site, cohort and temporal transfer tests.
 5. A diagnosis/repair lineage with fresh challenge sets and leakage receipts.
