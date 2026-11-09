@@ -718,9 +718,9 @@ mod tests {
         ]))
         .expect("candidate disposition report");
         assert_eq!(report.pareto_candidate_ids, vec!["within-limit".to_owned()]);
-        assert_eq!(report.dispositions[1].candidate_id, "overweight");
+        assert_eq!(report.dispositions[0].candidate_id, "overweight");
         assert_eq!(
-            report.dispositions[1].constraint_failures[0].metric_id,
+            report.dispositions[0].constraint_failures[0].metric_id,
             "mass_g"
         );
     }
