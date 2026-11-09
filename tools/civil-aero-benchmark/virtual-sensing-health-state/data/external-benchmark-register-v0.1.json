@@ -281,7 +281,9 @@
           "full acquired .sg2 signals",
           "MATLAB processing scripts"
         ],
-        "related_event": "EWSHM 2026"
+        "related_event": "EWSHM 2026",
+        "reported_archive_size_bytes": 18437111,
+        "record_data_volume_bytes": 3900000000
       },
       "recommended_use": {
         "track": "environment_only_before_damage_training",
@@ -298,7 +300,7 @@
       },
       "admission": {
         "status": "REFERENCE_ONLY_NOT_ADMITTED",
-        "retrieval_status": "NOT_RETRIEVED",
+        "retrieval_status": "DOWNLOAD_ATTEMPTED_NOT_RETRIEVED",
         "exact_source_sha256": null,
         "exact_source_bytes": null,
         "retrieval_timestamp_utc": null,
@@ -306,7 +308,9 @@
         "license_status": "NO_LICENSE_FIELD_VISIBLE_IN_RECORD",
         "notes": [
           "Zenodo marks the record Dataset Open and publishes the zip and readme, but this review has not established a specific reuse licence.",
-          "The readme PDF was linked but its contents could not be decoded through the research interface."
+          "The readme PDF was linked but its contents could not be decoded through the research interface.",
+          "The Zenodo record confirms the file Dataset_CompositeTest_June2024.zip and reports 18.4 MB for the archive; the record's current version reports 3.9 GB total data volume. A direct download attempt was rejected by the research fetch path because the payload exceeded its content-size limit, and local container DNS resolution was unavailable. No local bytes or SHA-256 were produced.",
+          "No explicit licence was visible in the Zenodo Rights section during inspection; the open-access status is not a substitute for a reuse licence."
         ]
       }
     },
