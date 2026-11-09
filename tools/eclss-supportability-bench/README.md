@@ -11,7 +11,7 @@ cargo test --manifest-path tools/eclss-supportability-bench/Cargo.toml
 cargo run --release --manifest-path tools/eclss-supportability-bench/Cargo.toml
 ```
 
-The fixtures are embedded with `include_str!` so the validator checks exactly the versioned files in this commit. Rebuild after changing a fixture.
+The fixtures are embedded with `include_str!` so the validator checks exactly the versioned files in this commit. Rebuild after changing a fixture. A dedicated GitHub Actions workflow checks formatting, runs tests, validates the exact PR head, and uploads a 90-day receipt.
 
 ## Checks
 
