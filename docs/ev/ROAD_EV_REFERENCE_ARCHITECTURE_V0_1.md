@@ -5,7 +5,7 @@
 **Reference configuration / integration:** [ROAD-EV-REFERENCE-001 #4346](https://github.com/Luminous-Dynamics/symtropy/issues/4346)  
 **Benchmark owner:** [EV-BENCH-001 #2164](https://github.com/Luminous-Dynamics/symtropy/issues/2164)  
 **Battery circularity owner:** [EV-BATTERY-CIRCULARITY-001 #2155](https://github.com/Luminous-Dynamics/symtropy/issues/2155)  
-**Related work:** [GLOBAL-MOBILITY-001 #1832](https://github.com/Luminous-Dynamics/symtropy/issues/1832) · [Symthaea family-vehicle engineering PR #7751](https://github.com/Luminous-Dynamics/symthaea/pull/7751) · [Symthaea EV-HEALTH-ADVISORY-001 #11239](https://github.com/Luminous-Dynamics/symthaea/issues/11239) · [Sol-Atlas EV-ROUTE-ENERGY-001 #664](https://github.com/Luminous-Dynamics/sol-atlas-leptos/issues/664) · [Mycelix vehicle dossier PR #5131](https://github.com/Luminous-Dynamics/mycelix/pull/5131) · [Mycelix Mobility Commons #3708](https://github.com/Luminous-Dynamics/mycelix/issues/3708) · [Mycelix Mobility Configuration #3709](https://github.com/Luminous-Dynamics/mycelix/issues/3709)
+**Related work:** [Symtropy family-vehicle substrate PR #1762](https://github.com/Luminous-Dynamics/symtropy/pull/1762) · [Symtropy whole-life transport #1601](https://github.com/Luminous-Dynamics/symtropy/issues/1601) · [Symtropy repairability compiler #1773](https://github.com/Luminous-Dynamics/symtropy/issues/1773) · [Symtropy localization #1780](https://github.com/Luminous-Dynamics/symtropy/issues/1780) · [Symtropy continuity calibration #1791](https://github.com/Luminous-Dynamics/symtropy/issues/1791) · [GLOBAL-MOBILITY-001 #1832](https://github.com/Luminous-Dynamics/symtropy/issues/1832) · [Symthaea road dynamics #6247](https://github.com/Luminous-Dynamics/symthaea/issues/6247) · [Symthaea family-vehicle engineering PR #7751](https://github.com/Luminous-Dynamics/symthaea/pull/7751) · [Symthaea EV-HEALTH-ADVISORY-001 #11239](https://github.com/Luminous-Dynamics/symthaea/issues/11239) · [Sol-Atlas EV-ROUTE-ENERGY-001 #664](https://github.com/Luminous-Dynamics/sol-atlas-leptos/issues/664) · [Mycelix vehicle dossier PR #5131](https://github.com/Luminous-Dynamics/mycelix/pull/5131) · [Mycelix Mobility Commons #3708](https://github.com/Luminous-Dynamics/mycelix/issues/3708) · [Mycelix Mobility Configuration #3709](https://github.com/Luminous-Dynamics/mycelix/issues/3709)
 
 ## 1. Purpose and strategy
 
@@ -67,8 +67,8 @@ The configuration of a physical vehicle includes design revision, parts, materia
 
 | System | EV programme responsibility | Explicit boundary |
 |---|---|---|
-| **Symtropy** | Declared physical/energy model execution, road-load and vehicle-system dynamics, thermal/energy trajectories where qualified, scenario and fault replay, reference configuration integration | A general rigid-body engine is not automatically a validated tyre, motor, electrochemical or thermal solver. Use typed adapters and specialist models. |
-| **Symthaea** | Candidate architecture exploration, experiment selection, energy/route/maintenance reasoning, battery and traction health advisory, driver interaction and autonomy research | No sole authority over BMS protection, contactors, inverter torque, steering, braking or emergency actions. |
+| **Symtropy** | Energy-system design/twin composition, declared battery/charging/thermal trajectories where qualified, scenario/fault replay and EV-REF-01 integration | Does not claim a complete passenger-road-vehicle tyre/contact/braking model. Reuse Symthaea #6247 for road-dynamics ownership; specialist solvers require explicit validity envelopes. |
+| **Symthaea** | Road/off-road dynamics profile semantics through #6247; candidate architecture/experiment reasoning; energy/route/maintenance reasoning; battery/traction health advisory; driver interaction and autonomy research | The #6247 profile is an ownership/qualification contract, not automatic proof of a validated tyre or vehicle model. No sole authority over BMS protection, contactors, inverter torque, steering, braking or emergency actions. |
 | **Sol-Atlas** | Spatial geometry, road and infrastructure graphs, terrain/elevation, route feasibility, charger geography/capacity evidence, read-only operational projection | The renderer is not a solver; map/advisory display is not physical truth or vehicle control. |
 | **Mycelix** | Configuration/lifecycle lineage, identity and provenance references, supplier/repair records, permissions, attestations and transaction coordination | A cryptographic receipt binds evidence to an issuer/bytes; it does not prove physical truth or grant certification/operating authority. |
 | **Luminous engineering platform** | Requirements, variant/configuration, BOM, change impact, engineering decision records, controlled drawings, supplier/process records, verification plan and claims register | It does not replace competent engineering review, regulators, notified bodies or homologation authorities. |
@@ -88,6 +88,8 @@ A proposal cannot validate itself. A model output cannot be promoted to measured
 The following are work packages, not a frozen production architecture.
 
 ### 4.1 Vehicle structure and chassis
+
+The road/off-road dynamics profile is owned by Symthaea [TRANSPORT-ROAD-001 #6247](https://github.com/Luminous-Dynamics/symthaea/issues/6247), under multimodal systems architecture #6244. EV-REF-01 must consume its exact tire/contact, traction/slip, steering/handling, braking/regen/friction-brake, thermal/fade, grade/surface/friction/weather and mass/CG/inertia semantics. The family-vehicle corpus and continuity proxy in Symtropy PR #1762 are not a calibrated road-vehicle physics model; calibration/held-out evidence is separately tracked in #1791.
 
 - Define occupant/package envelopes, seating, ingress/egress, cargo and accessibility requirements.
 - Compare steel, aluminium and mixed-material structures against mass, crash load paths, joining, repair and local manufacturing capability.
@@ -185,16 +187,15 @@ Report:
 - HVAC/thermal energy by ambient-temperature stratum;
 - uncertainty, calibration and held-out model discrepancy.
 
-### Model-fidelity targets (research gates, not achieved)
+### Model-fidelity and performance targets
 
-- After parameter calibration on training/reference conditions, median energy discrepancy ≤2.5% and no more than 5% on each predeclared held-out cycle/stratum, provided independent source measurements are sufficiently precise.
+EV-BENCH-001 #2164 owns the authoritative matched-comparison protocol. Do not freeze a universal percentage improvement or model-error threshold before the reference measurements, instrument uncertainty, cycle coverage and repeatability are known. First establish a calibrated baseline, measurement resolution and repeat-run variance. Then preregister the primary outcome, minimum meaningful effect, sample size/power, held-out strata and uncertainty procedure before confirmatory comparison.
+
 - No held-out tuning; publish per-vehicle/per-cycle results and uncertainty.
-- At least one independent cross-check beyond the in-house evaluator (FASTSim is an initial external comparator, supplemented by analytical known-answer submodels).
+- Use FASTSim as one independent comparator, not as ground truth; add analytical known-answer submodels and another specialist comparison where scope allows.
 - Zero energy-creation or unit/sign errors in known-truth fixtures.
-
-### Performance-improvement targets (aspirational)
-
-Seek ≥5% lower measured wall-to-wheel energy than the best comparable reference in the same class, payload, route/cycle, temperature and performance envelope; 10% is a stretch goal. Do not compare a smaller/slower vehicle to a larger/faster vehicle without explicit service normalization.
+- Report every per-scenario regression and preserve failed/ineligible/indeterminate cases in the denominator.
+- Any claim of an improvement must compare the same vehicle class, payload, route/cycle, temperature, reserve and performance envelope; a smaller/slower vehicle is not a like-for-like energy victory.
 
 ### Battery
 
