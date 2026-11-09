@@ -32,14 +32,14 @@ pub mod connection;
 pub mod curvature;
 /// Schwarzschild timelike/null geodesics with Christoffel and Hamiltonian formulations.
 pub mod geodesic;
+/// Family-specific Kerr prolate/oblate QNM optical convergence references.
+pub mod kerr_qnm_convergence;
 /// Kerr equatorial circular-null-orbit and light-ring observables.
 pub mod light_ring;
 /// Validated stationary black-hole metric components in a declared chart.
 pub mod metric;
 /// Posterior-preserving transforms for Kerr remnant horizon observables.
 pub mod posterior;
-/// Family-specific Kerr prolate/oblate QNM optical convergence references.
-pub mod kerr_qnm_convergence;
 /// Noise-weighted frequency-domain waveform comparison and error diagnostics.
 pub mod waveform_metrics;
 
