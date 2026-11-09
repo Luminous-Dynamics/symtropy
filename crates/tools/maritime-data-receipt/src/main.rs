@@ -1506,5 +1506,39 @@ mod tests {
             value["properties"]["schema_version"]["const"],
             serde_json::Value::String(SCHEMA_VERSION.to_owned())
         );
+        assert!(
+            value["properties"]["intended_use"]["properties"]["scope"]["enum"]
+                .as_array()
+                .expect("scope enum")
+                .contains(&serde_json::Value::String("synthetic_test_only".to_owned()))
+        );
+        let synthetic_scope = value["allOf"]
+            .as_array()
+            .expect("schema allOf")
+            .iter()
+            .find(|rule| {
+                rule["if"]["properties"]["source"]["properties"]["kind"]["const"] == "synthetic_fixture"
+            })
+            .expect("synthetic source scope rule");
+        assert!(
+            synthetic_scope["then"]["properties"]["intended_use"]["properties"]["scope"]["enum"]
+                .as_array()
+                .expect("synthetic scope enum")
+                .contains(&serde_json::Value::String("synthetic_test_only".to_owned()))
+        );
+        let public_scope = value["allOf"]
+            .as_array()
+            .expect("schema allOf")
+            .iter()
+            .find(|rule| {
+                rule["if"]["properties"]["source"]["properties"]["kind"]["const"] == "public_dataset"
+            })
+            .expect("public source scope rule");
+        assert!(
+            !public_scope["then"]["properties"]["intended_use"]["properties"]["scope"]["enum"]
+                .as_array()
+                .expect("public scope enum")
+                .contains(&serde_json::Value::String("synthetic_test_only".to_owned()))
+        );
     }
 }
