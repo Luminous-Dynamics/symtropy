@@ -10,6 +10,9 @@ const ISS_REFERENCE: &str = include_str!(
 const ISS_OPERATIONAL: &str = include_str!(
     "../../../docs/research/eclss/fixtures/eclss-2026-iss-operational-cases-v0_1.json"
 );
+const ISS_APPENDIX_SUPPLEMENT: &str = include_str!(
+    "../../../docs/research/eclss/fixtures/eclss-iss-appendix-supplement-v0_1.json"
+);
 const AOGA_SCHEDULE: &str =
     include_str!("../../../docs/research/eclss/fixtures/eclss-aoga-schedule-snapshots-v0_1.json");
 
@@ -562,6 +565,258 @@ fn validate_operational_cases(value: &Value) -> Check<Value> {
     }))
 }
 
+fn validate_appendix_supplement(value: &Value) -> Check<Value> {
+    let at = "iss_appendix_supplement";
+    exact_keys(
+        value,
+        &[
+            "benchmark_id",
+            "version",
+            "evidence_class",
+            "claim_status",
+            "source",
+            "records",
+            "crew_task_records",
+            "reconciliation",
+        ],
+        at,
+    )?;
+    require_eq(
+        text(field(value, "benchmark_id", at)?, "benchmark_id")?,
+        "ECLSS-SUPPORTABILITY-001",
+        at,
+    )?;
+    require_eq(text(field(value, "version", at)?, "version")?, "0.1.0", at)?;
+    require_eq(
+        text(field(value, "evidence_class", at)?, "evidence_class")?,
+        "PUBLISHED_REFERENCE_SUPPLEMENT",
+        at,
+    )?;
+    require_eq(
+        text(field(value, "claim_status", at)?, "claim_status")?,
+        "PRELIMINARY_REFERENCE_ONLY",
+        at,
+    )?;
+
+    let source = field(value, "source", at)?;
+    let limitations = array(field(source, "limitations", at)?, "source.limitations")?;
+    if limitations.len() < 6 {
+        return Err(format!("{at}: source limitations were lost"));
+    }
+
+    let records = array(field(value, "records", at)?, "records")?;
+    require_eq(records.len(), 133usize, "supplement component record count")?;
+    let allowed_tables = [
+        "Table 2", "Table 3", "Table 5", "Table 6",
+        "Table 7", "Table 8", "Table 9", "Table 10",
+    ];
+    let mut ids = std::collections::BTreeSet::new();
+    let mut counts = std::collections::BTreeMap::<String, usize>::new();
+    for (index, record) in records.iter().enumerate() {
+        let record_at = format!("iss_appendix_supplement.records[{index}]");
+        exact_keys(
+            record,
+            &[
+                "record_id",
+                "table",
+                "printed_page",
+                "subsystem",
+                "component",
+                "mass_kg",
+                "mtbf_hours",
+                "operational_mttr_hours",
+                "operational_k_factor",
+                "crew_r_and_r_hours",
+                "preventive_r_and_r_interval_days",
+                "preventive_r_and_r_duration_hours",
+                "throughput_limited_life",
+                "calendar_limited_life",
+                "notes",
+            ],
+            &record_at,
+        )?;
+        let id = text(field(record, "record_id", &record_at)?, "record_id")?;
+        if !id.starts_with("ICES2025-127-T") || !ids.insert(id) {
+            return Err(format!("{record_at}: invalid or duplicate record id {id}"));
+        }
+        let table = text(field(record, "table", &record_at)?, "table")?;
+        if !allowed_tables.contains(&table) {
+            return Err(format!("{record_at}: unexpected source table {table}"));
+        }
+        *counts.entry(table.to_owned()).or_default() += 1;
+        if integer(field(record, "printed_page", &record_at)?, "printed_page")? == 0 {
+            return Err(format!("{record_at}: printed page must be positive"));
+        }
+        for key in ["subsystem", "component", "notes"] {
+            if text(field(record, key, &record_at)?, key)?.is_empty() {
+                return Err(format!("{record_at}.{key}: must not be empty"));
+            }
+        }
+        for metric in [
+            "mass_kg",
+            "mtbf_hours",
+            "operational_mttr_hours",
+            "operational_k_factor",
+            "crew_r_and_r_hours",
+            "preventive_r_and_r_interval_days",
+            "preventive_r_and_r_duration_hours",
+        ] {
+            let metric_value = field(record, metric, &record_at)?;
+            if !metric_value.is_null() {
+                let value = number(metric_value, metric)?;
+                if value < 0.0
+                    || (metric == "mtbf_hours"
+                        || metric == "operational_k_factor"
+                        || metric == "preventive_r_and_r_interval_days")
+                        && value == 0.0
+                {
+                    return Err(format!("{record_at}.{metric}: invalid numeric value"));
+                }
+            }
+        }
+        for limit in ["throughput_limited_life", "calendar_limited_life"] {
+            let limit_value = field(record, limit, &record_at)?;
+            if !limit_value.is_null() {
+                exact_keys(limit_value, &["value", "unit"], &format!("{record_at}.{limit}"))?;
+                if number(field(limit_value, "value", limit)?, "limit.value")? < 0.0
+                    || text(field(limit_value, "unit", limit)?, "limit.unit")?.is_empty()
+                {
+                    return Err(format!("{record_at}.{limit}: invalid limit"));
+                }
+            }
+        }
+    }
+    for (table, expected) in [
+        ("Table 2", 12usize),
+        ("Table 3", 7usize),
+        ("Table 5", 12usize),
+        ("Table 6", 30usize),
+        ("Table 7", 16usize),
+        ("Table 8", 24usize),
+        ("Table 9", 21usize),
+        ("Table 10", 11usize),
+    ] {
+        require_eq(
+            counts.get(table).copied().unwrap_or_default(),
+            expected,
+            table,
+        )?;
+    }
+
+    let actex = records
+        .iter()
+        .find(|record| record["table"] == "Table 6" && record["component"] == "ACTEX")
+        .ok_or_else(|| format!("{at}: missing Table 6 ACTEX row"))?;
+    require_eq(
+        integer(&actex["preventive_r_and_r_interval_days"], "ACTEX PM interval")?,
+        1460,
+        "Table 6 ACTEX PM interval",
+    )?;
+    require_eq(
+        number(&actex["preventive_r_and_r_duration_hours"], "ACTEX PM duration")?,
+        0.33,
+        "Table 6 ACTEX PM duration",
+    )?;
+    require_eq(
+        number(&actex["throughput_limited_life"]["value"], "ACTEX throughput")?,
+        6750.0,
+        "Table 6 ACTEX throughput limit",
+    )?;
+
+    let hydrogen_sensor = records
+        .iter()
+        .find(|record| record["table"] == "Table 10" && record["component"] == "Sensor, Hydrogen ORU")
+        .ok_or_else(|| format!("{at}: missing OGA hydrogen sensor row"))?;
+    require_eq(
+        integer(&hydrogen_sensor["preventive_r_and_r_interval_days"], "H2 sensor PM interval")?,
+        201,
+        "H2 sensor PM interval",
+    )?;
+
+    let crew_tasks = array(field(value, "crew_task_records", at)?, "crew_task_records")?;
+    require_eq(crew_tasks.len(), 39usize, "supplement crew task count")?;
+    let mut crew_ids = std::collections::BTreeSet::new();
+    for (index, task) in crew_tasks.iter().enumerate() {
+        let task_at = format!("iss_appendix_supplement.crew_task_records[{index}]");
+        exact_keys(
+            task,
+            &[
+                "record_id",
+                "table",
+                "printed_page",
+                "subsystem",
+                "oru",
+                "crew_time_minutes",
+                "notes",
+            ],
+            &task_at,
+        )?;
+        let id = text(field(task, "record_id", &task_at)?, "record_id")?;
+        if !id.starts_with("ICES2025-127-CREW-") || !crew_ids.insert(id) {
+            return Err(format!("{task_at}: invalid or duplicate crew task id {id}"));
+        }
+        require_eq(text(field(task, "table", &task_at)?, "table")?, "Table 1", &task_at)?;
+        require_eq(
+            integer(field(task, "printed_page", &task_at)?, "printed_page")?,
+            9,
+            &task_at,
+        )?;
+        if integer(field(task, "crew_time_minutes", &task_at)?, "crew_time_minutes")? == 0 {
+            return Err(format!("{task_at}: crew time must be positive"));
+        }
+        for key in ["subsystem", "oru", "notes"] {
+            if text(field(task, key, &task_at)?, key)?.is_empty() {
+                return Err(format!("{task_at}.{key}: must not be empty"));
+            }
+        }
+    }
+    let heat_exchanger_task = crew_tasks
+        .iter()
+        .find(|task| task["oru"] == "Lab CCAA — Heat Exchanger")
+        .ok_or_else(|| format!("{at}: missing CCAA heat exchanger crew task"))?;
+    require_eq(
+        integer(&heat_exchanger_task["crew_time_minutes"], "crew task minutes")?,
+        330,
+        "CCAA heat exchanger crew R&R",
+    )?;
+
+    let reconciliation = field(value, "reconciliation", at)?;
+    exact_keys(
+        reconciliation,
+        &[
+            "selected_register_component_records",
+            "supplementary_component_records",
+            "combined_component_records",
+            "selected_register_crew_task_records",
+            "supplementary_crew_task_records",
+            "combined_crew_task_records",
+            "note",
+        ],
+        "reconciliation",
+    )?;
+    for (key, expected) in [
+        ("selected_register_component_records", 9u64),
+        ("supplementary_component_records", 133u64),
+        ("combined_component_records", 142u64),
+        ("selected_register_crew_task_records", 2u64),
+        ("supplementary_crew_task_records", 39u64),
+        ("combined_crew_task_records", 41u64),
+    ] {
+        require_eq(integer(field(reconciliation, key, at)?, key)?, expected, key)?;
+    }
+
+    Ok(json!({
+        "additional_component_records": records.len(),
+        "unique_component_record_ids": ids.len(),
+        "additional_crew_task_records": crew_tasks.len(),
+        "unique_crew_task_record_ids": crew_ids.len(),
+        "combined_component_records": 142,
+        "combined_crew_task_records": 41,
+        "source_limitations_retained": limitations.len(),
+        "life_limit_types_kept_separate": true
+    }))
+}
+
 fn validate_schedule(value: &Value) -> Check<Value> {
     let at = "aoga_schedule";
     exact_keys(
@@ -652,11 +907,13 @@ fn validate_all() -> Check<Value> {
     let synthetic = parse_embedded("synthetic registry", SYNTHETIC)?;
     let public_reference = parse_embedded("ISS public reference", ISS_REFERENCE)?;
     let operational = parse_embedded("ISS operational cases", ISS_OPERATIONAL)?;
+    let appendix_supplement = parse_embedded("ISS appendix supplement", ISS_APPENDIX_SUPPLEMENT)?;
     let schedule = parse_embedded("AOGA schedule", AOGA_SCHEDULE)?;
 
     let synthetic_report = validate_synthetic(&synthetic)?;
     let reference_report = validate_public_reference(&public_reference)?;
     let operational_report = validate_operational_cases(&operational)?;
+    let appendix_supplement_report = validate_appendix_supplement(&appendix_supplement)?;
     let schedule_report = validate_schedule(&schedule)?;
 
     Ok(json!({
@@ -668,6 +925,7 @@ fn validate_all() -> Check<Value> {
         "synthetic": synthetic_report,
         "published_reference": reference_report,
         "published_operational_cases": operational_report,
+        "published_appendix_supplement": appendix_supplement_report,
         "programme_schedule": schedule_report
     }))
 }
@@ -709,6 +967,27 @@ mod tests {
             10
         );
         assert_eq!(report["programme_schedule"]["schedule_snapshots"], 5);
+    }
+
+    #[test]
+    fn appendix_reference_rows_reconcile_to_the_full_published_tables() {
+        let report = validate_all().expect("appendix reference rows must validate");
+        assert_eq!(
+            report["published_appendix_supplement"]["additional_component_records"],
+            133
+        );
+        assert_eq!(
+            report["published_appendix_supplement"]["additional_crew_task_records"],
+            39
+        );
+        assert_eq!(
+            report["published_appendix_supplement"]["combined_component_records"],
+            142
+        );
+        assert_eq!(
+            report["published_appendix_supplement"]["combined_crew_task_records"],
+            41
+        );
     }
 
     #[test]
