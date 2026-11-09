@@ -851,6 +851,70 @@ pub fn classify_poschl_teller_mode_sum_region(
     })
 }
 
+/// Asymptotic residue-ratio limits for the region-appropriate Pöschl–Teller
+/// mode sum. These are ratio-test limits, not finite-truncation tail bounds.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct PoschlTellerModeSumAsymptoticRatios {
+    pub region: PoschlTellerModeSumRegion,
+    /// Present only in the late-time QNM region:
+    /// exp(-T + |X| + |X'|).
+    pub qnm_ratio_limit: Option<f64>,
+    /// Present only in the early-time Matsubara region:
+    /// exp(T - |X| - |X'|).
+    pub matsubara_positive_ratio_limit: Option<f64>,
+    /// Present only in the early-time Matsubara region:
+    /// exp(-T - |X| - |X'|).
+    pub matsubara_negative_ratio_limit: Option<f64>,
+}
+
+/// Return the asymptotic ratio-test limits derived for the Pöschl–Teller
+/// residue sums in Arnaudo, Carballo & Withers, PRD 114, 024025 (2026),
+/// Eqs. (31), (35) and (36). The values are asymptotic successive-term
+/// ratios; they establish a ratio-test convergence region when below one,
+/// but do not certify a finite-N remainder or account for floating-point
+/// cancellation. Those must be measured separately.
+pub fn poschl_teller_mode_sum_asymptotic_ratios(
+    width: f64,
+    lambda: f64,
+    delta_time: f64,
+    observer_x: f64,
+    source_x: f64,
+    boundary_tolerance: f64,
+) -> Result<PoschlTellerModeSumAsymptoticRatios, SpecialError> {
+    let geometry = classify_poschl_teller_mode_sum_region(
+        width,
+        lambda,
+        delta_time,
+        observer_x,
+        source_x,
+        boundary_tolerance,
+    )?;
+    let dimensionless_sum = (observer_x / width).abs() + (source_x / width).abs();
+
+    let (qnm_ratio_limit, matsubara_positive_ratio_limit, matsubara_negative_ratio_limit) =
+        match geometry.region {
+            PoschlTellerModeSumRegion::LateQnm => (
+                Some((-geometry.dimensionless_time + dimensionless_sum).exp()),
+                None,
+                None,
+            ),
+            PoschlTellerModeSumRegion::EarlyMatsubara => (
+                None,
+                Some((geometry.dimensionless_time - dimensionless_sum).exp()),
+                Some((-geometry.dimensionless_time - dimensionless_sum).exp()),
+            ),
+            PoschlTellerModeSumRegion::CausallyZero
+            | PoschlTellerModeSumRegion::TransitionUnresolved => (None, None, None),
+        };
+
+    Ok(PoschlTellerModeSumAsymptoticRatios {
+        region: geometry.region,
+        qnm_ratio_limit,
+        matsubara_positive_ratio_limit,
+        matsubara_negative_ratio_limit,
+    })
+}
+
 /// Winding-number result for the analytic Pöschl–Teller connection Wronskian.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct PoschlTellerWindingEvaluation {
@@ -1869,4 +1933,56 @@ mod tests {
             );
         }
     }
+
+    #[test]
+    fn asymptotic_ratio_limits_match_the_published_region_tests() {
+        let late = poschl_teller_mode_sum_asymptotic_ratios(
+            2.0, 0.75, 8.0, 4.0, 2.0, 1.0e-10,
+        )
+        .unwrap();
+        assert_eq!(late.region, PoschlTellerModeSumRegion::LateQnm);
+        close(
+            z(late.qnm_ratio_limit.unwrap(), 0.0),
+            z((-1.0_f64).exp(), 0.0),
+            1.0e-14,
+        );
+        assert!(late.matsubara_positive_ratio_limit.is_none());
+        assert!(late.matsubara_negative_ratio_limit.is_none());
+
+        let early = poschl_teller_mode_sum_asymptotic_ratios(
+            2.0, 0.75, 4.0, 4.0, 2.0, 1.0e-10,
+        )
+        .unwrap();
+        assert_eq!(early.region, PoschlTellerModeSumRegion::EarlyMatsubara);
+        close(
+            z(early.matsubara_positive_ratio_limit.unwrap(), 0.0),
+            z((-1.0_f64).exp(), 0.0),
+            1.0e-14,
+        );
+        close(
+            z(early.matsubara_negative_ratio_limit.unwrap(), 0.0),
+            z((-5.0_f64).exp(), 0.0),
+            1.0e-14,
+        );
+        assert!(early.qnm_ratio_limit.is_none());
+    }
+
+    #[test]
+    fn asymptotic_ratio_limits_are_absent_outside_sum_regions() {
+        for (time, expected) in [
+            (1.0, PoschlTellerModeSumRegion::CausallyZero),
+            (6.0, PoschlTellerModeSumRegion::TransitionUnresolved),
+        ] {
+            let result = poschl_teller_mode_sum_asymptotic_ratios(
+                2.0, 0.75, time, 4.0, 2.0, 1.0e-8,
+            )
+            .unwrap();
+            assert_eq!(result.region, expected);
+            assert!(result.qnm_ratio_limit.is_none());
+            assert!(result.matsubara_positive_ratio_limit.is_none());
+            assert!(result.matsubara_negative_ratio_limit.is_none());
+        }
+    }
+
+
 }
