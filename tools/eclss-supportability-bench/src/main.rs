@@ -440,8 +440,18 @@ fn validate_public_reference(value: &Value) -> Check<Value> {
         "distillation crew R&R",
     )?;
 
+    let selected_crew_task_records = records
+        .iter()
+        .filter(|record| record["record_id"].as_str().is_some_and(|id| id.starts_with("ICES2025-127-CREW-")))
+        .count();
+    let selected_component_records = records.len() - selected_crew_task_records;
+    require_eq(selected_component_records, 9usize, "selected component record count")?;
+    require_eq(selected_crew_task_records, 2usize, "selected crew task record count")?;
+
     Ok(json!({
-        "component_reference_records": records.len(),
+        "selected_register_records": records.len(),
+        "selected_component_records": selected_component_records,
+        "selected_crew_task_records": selected_crew_task_records,
         "unique_record_ids": ids.len(),
         "distinct_mttr_vs_crew_rr_preserved": true,
         "source_limitations_retained": limitations.len()
