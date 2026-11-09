@@ -625,10 +625,12 @@ mod tests {
         let report = enumerate_fault_envelope(&camera_pair_problem()).expect("camera group");
         assert_eq!(report.global_signature_count, 3);
         assert_eq!(report.signatures[0].states.len(), 2);
-        assert_eq!(
-            report.signatures[0].states[0].health_state,
-            HealthState::Valid
-        );
+        assert!(report.signatures.iter().any(|signature| {
+            signature
+                .states
+                .iter()
+                .all(|state| state.health_state == HealthState::Valid)
+        }));
         assert_eq!(report.conservative_cross_group_overapproximation, false);
     }
 
