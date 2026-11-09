@@ -369,6 +369,256 @@ impl KerrQnmSpinContinuationTrace {
     }
 }
 
+/// Numerical controls for classifying a single spin-continuation trace.
+/// The exponent windows are user-declared decision thresholds, not universal
+/// physical constants. They must be included in every reported analysis.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct QnmExtremalDampingAnalysisConfig {
+    pub fit_samples: usize,
+    pub zero_damping_min_exponent: f64,
+    pub finite_damping_max_exponent: f64,
+    pub minimum_finite_damping_rate: f64,
+    pub maximum_log_fit_rms: f64,
+}
+
+impl Default for QnmExtremalDampingAnalysisConfig {
+    fn default() -> Self {
+        Self {
+            fit_samples: 3,
+            zero_damping_min_exponent: 0.7,
+            finite_damping_max_exponent: 0.25,
+            minimum_finite_damping_rate: 1.0e-5,
+            maximum_log_fit_rms: 0.2,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct QnmExtremalDampingAnalysis {
+    pub classification: QnmExtremalDampingBehavior,
+    pub observed_damping_vs_surface_gravity_exponent: Option<f64>,
+    pub log_fit_rms: Option<f64>,
+    pub exact_extremal_damping_rate: Option<f64>,
+    pub closest_subextremal_damping_rate: Option<f64>,
+    pub fit_samples_used: usize,
+    pub producer_label_matches_analysis: bool,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum QnmExtremalDampingAnalysisError {
+    InvalidTrace(QnmContinuationValidationError),
+    InvalidConfiguration,
+}
+
+impl core::fmt::Display for QnmExtremalDampingAnalysisError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::InvalidTrace(error) => write!(f, "invalid QNM continuation trace: {error}"),
+            Self::InvalidConfiguration => write!(
+                f,
+                "damping-analysis thresholds must be finite, nonnegative, ordered, and use at least three fit samples"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for QnmExtremalDampingAnalysisError {}
+
+fn dimensionless_surface_gravity(spin_over_mass: f64) -> Option<f64> {
+    let spin = spin_over_mass.abs();
+    if !spin.is_finite() || spin >= 1.0 {
+        return None;
+    }
+    let discriminant = ((1.0 - spin) * (1.0 + spin)).sqrt();
+    let value = discriminant / (2.0 * (1.0 + discriminant));
+    (value.is_finite() && value > 0.0).then_some(value)
+}
+
+fn dimensionless_damping_rate(
+    convention: FourierConvention,
+    omega_m: ComplexValue,
+) -> f64 {
+    match convention {
+        FourierConvention::EMinusIOmegaT => -omega_m.im,
+        FourierConvention::EPlusIOmegaT => omega_m.im,
+    }
+}
+
+/// Fit log(damping) = intercept + exponent * log(surface gravity).
+/// A slope near one indicates damping that vanishes with surface gravity;
+/// a slope near zero indicates a finite damping limit. This local classifier
+/// is intentionally separate from the analytic sheet and family labels.
+pub fn analyze_extremal_damping(
+    trace: &KerrQnmSpinContinuationTrace,
+    config: QnmExtremalDampingAnalysisConfig,
+) -> Result<QnmExtremalDampingAnalysis, QnmExtremalDampingAnalysisError> {
+    trace
+        .validate()
+        .map_err(QnmExtremalDampingAnalysisError::InvalidTrace)?;
+
+    if config.fit_samples < 3
+        || !config.zero_damping_min_exponent.is_finite()
+        || !config.finite_damping_max_exponent.is_finite()
+        || config.zero_damping_min_exponent <= config.finite_damping_max_exponent
+        || config.finite_damping_max_exponent < 0.0
+        || !config.minimum_finite_damping_rate.is_finite()
+        || config.minimum_finite_damping_rate <= 0.0
+        || !config.maximum_log_fit_rms.is_finite()
+        || config.maximum_log_fit_rms <= 0.0
+    {
+        return Err(QnmExtremalDampingAnalysisError::InvalidConfiguration);
+    }
+
+    let exact_sample = trace
+        .samples
+        .iter()
+        .find(|sample| sample.spin_over_mass.abs() == 1.0);
+    let Some(exact_sample) = exact_sample else {
+        return Ok(QnmExtremalDampingAnalysis {
+            classification: QnmExtremalDampingBehavior::Unresolved,
+            observed_damping_vs_surface_gravity_exponent: None,
+            log_fit_rms: None,
+            exact_extremal_damping_rate: None,
+            closest_subextremal_damping_rate: None,
+            fit_samples_used: 0,
+            producer_label_matches_analysis: false,
+        });
+    };
+
+    let exact_damping = dimensionless_damping_rate(trace.fourier_convention, exact_sample.omega_m);
+    if !exact_damping.is_finite() || exact_damping < 0.0 {
+        return Ok(QnmExtremalDampingAnalysis {
+            classification: QnmExtremalDampingBehavior::Unresolved,
+            observed_damping_vs_surface_gravity_exponent: None,
+            log_fit_rms: None,
+            exact_extremal_damping_rate: Some(exact_damping),
+            closest_subextremal_damping_rate: None,
+            fit_samples_used: 0,
+            producer_label_matches_analysis: false,
+        });
+    }
+
+    let mut subextremal = trace
+        .samples
+        .iter()
+        .filter(|sample| sample.spin_over_mass.abs() < 1.0)
+        .collect::<Vec<_>>();
+    subextremal.sort_by(|left, right| {
+        right
+            .spin_over_mass
+            .abs()
+            .total_cmp(&left.spin_over_mass.abs())
+    });
+    subextremal.truncate(config.fit_samples);
+
+    if subextremal.len() < config.fit_samples {
+        return Ok(QnmExtremalDampingAnalysis {
+            classification: QnmExtremalDampingBehavior::Unresolved,
+            observed_damping_vs_surface_gravity_exponent: None,
+            log_fit_rms: None,
+            exact_extremal_damping_rate: Some(exact_damping),
+            closest_subextremal_damping_rate: None,
+            fit_samples_used: subextremal.len(),
+            producer_label_matches_analysis: false,
+        });
+    }
+
+    let mut points = Vec::with_capacity(subextremal.len());
+    for sample in &subextremal {
+        let Some(surface_gravity) = dimensionless_surface_gravity(sample.spin_over_mass) else {
+            return Ok(QnmExtremalDampingAnalysis {
+                classification: QnmExtremalDampingBehavior::Unresolved,
+                observed_damping_vs_surface_gravity_exponent: None,
+                log_fit_rms: None,
+                exact_extremal_damping_rate: Some(exact_damping),
+                closest_subextremal_damping_rate: None,
+                fit_samples_used: subextremal.len(),
+                producer_label_matches_analysis: false,
+            });
+        };
+        let damping = dimensionless_damping_rate(trace.fourier_convention, sample.omega_m);
+        if !damping.is_finite() || damping <= 0.0 {
+            return Ok(QnmExtremalDampingAnalysis {
+                classification: QnmExtremalDampingBehavior::Unresolved,
+                observed_damping_vs_surface_gravity_exponent: None,
+                log_fit_rms: None,
+                exact_extremal_damping_rate: Some(exact_damping),
+                closest_subextremal_damping_rate: Some(damping),
+                fit_samples_used: subextremal.len(),
+                producer_label_matches_analysis: false,
+            });
+        }
+        points.push((surface_gravity.ln(), damping.ln()));
+    }
+
+    let count = points.len() as f64;
+    let mean_x = points.iter().map(|point| point.0).sum::<f64>() / count;
+    let mean_y = points.iter().map(|point| point.1).sum::<f64>() / count;
+    let variance_x = points
+        .iter()
+        .map(|point| (point.0 - mean_x).powi(2))
+        .sum::<f64>();
+    if !variance_x.is_finite() || variance_x <= f64::MIN_POSITIVE {
+        return Ok(QnmExtremalDampingAnalysis {
+            classification: QnmExtremalDampingBehavior::Unresolved,
+            observed_damping_vs_surface_gravity_exponent: None,
+            log_fit_rms: None,
+            exact_extremal_damping_rate: Some(exact_damping),
+            closest_subextremal_damping_rate: None,
+            fit_samples_used: points.len(),
+            producer_label_matches_analysis: false,
+        });
+    }
+    let covariance = points
+        .iter()
+        .map(|point| (point.0 - mean_x) * (point.1 - mean_y))
+        .sum::<f64>();
+    let exponent = covariance / variance_x;
+    let intercept = mean_y - exponent * mean_x;
+    let log_fit_rms = (points
+        .iter()
+        .map(|point| (point.1 - (intercept + exponent * point.0)).powi(2))
+        .sum::<f64>()
+        / count)
+        .sqrt();
+    let closest_subextremal_damping = points
+        .last()
+        .map(|_| {
+            dimensionless_damping_rate(
+                trace.fourier_convention,
+                subextremal[0].omega_m,
+            )
+        });
+
+    let classification = if !exponent.is_finite()
+        || !log_fit_rms.is_finite()
+        || log_fit_rms > config.maximum_log_fit_rms
+    {
+        QnmExtremalDampingBehavior::Ambiguous
+    } else if exponent >= config.zero_damping_min_exponent
+        && exact_damping <= config.minimum_finite_damping_rate
+    {
+        QnmExtremalDampingBehavior::ZeroDamping
+    } else if exponent <= config.finite_damping_max_exponent
+        && exact_damping > config.minimum_finite_damping_rate
+    {
+        QnmExtremalDampingBehavior::FiniteDamping
+    } else {
+        QnmExtremalDampingBehavior::Ambiguous
+    };
+
+    Ok(QnmExtremalDampingAnalysis {
+        classification,
+        observed_damping_vs_surface_gravity_exponent: Some(exponent),
+        log_fit_rms: Some(log_fit_rms),
+        exact_extremal_damping_rate: Some(exact_damping),
+        closest_subextremal_damping_rate: closest_subextremal_damping,
+        fit_samples_used: points.len(),
+        producer_label_matches_analysis: classification == trace.extremal_damping_behavior,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
