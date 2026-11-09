@@ -13,7 +13,8 @@ Symtropy uses a **dual-track license model**. The split is designed to:
 | `symtropy-physics` | **Apache-2.0 OR MIT** | Core: GJK+EPA, CCD, joints, raycasting, deterministic replay. Zero AGPL deps. |
 | `symtropy-render-bridge` | **Apache-2.0 OR MIT** | Core: ND→Bevy projection, 4D cross-section slicing. Zero AGPL deps. |
 | `symtropy-bevy-core` | **Apache-2.0 OR MIT** | Core: Bevy plugin with generic `PhysicsCallback` coupling. Zero AGPL deps. Use directly for proprietary games; `symtropy-bevy` (AGPL) adds ConsciousnessField. |
-| `symtropy-robotics-bridge` | **AGPL-3.0-or-later** (*see note 1*) | Currently depends on AGPL `consciousness-physics` + Symthaea FEP. Phase 1 will split into a permissive `-core` + AGPL integration crate. |
+| `symtropy-robotics-bridge-core` | **Apache-2.0 OR MIT** | Platform/agent interfaces and a local command-attenuation helper. No AGPL or Symthaea dependency after the extraction in this change; not a safety-rated controller. |
+| `symtropy-robotics-bridge` | **AGPL-3.0-or-later** | Full Symthaea/Bevy/consciousness-physics integration. The separated `symtropy-robotics-bridge-core` is Apache/MIT. |
 | `symtropy-net` | **AGPL-3.0-or-later** (*see note 1*) | Currently depends on AGPL `symtropy-holochain-relay`. Phase 1 will extract permissive `symtropy-net-core`. |
 | `symtropy-bevy` | **AGPL-3.0-or-later** (*see note 1*) | Currently depends on AGPL `consciousness-physics` throughout `plugin.rs`, `biometrics.rs`, `macro_bridge.rs`. Phase 0.5 extracts `symtropy-bevy-core` (permissive) via feature-gating. |
 | `symtropy-consciousness-physics` | **AGPL-3.0-or-later** | Research hero: Φ coupling, 63 experiments, Master Equation, ThermodynamicLedger. |
@@ -26,16 +27,16 @@ Symtropy uses a **dual-track license model**. The split is designed to:
 | `symtropy-manipulator-demo` | **AGPL-3.0-or-later** | Demo game. |
 | Root `symtropy` (game crate) | **AGPL-3.0-or-later** | *The Room That Remembers You* + Sol Atlas. |
 
-> **Note 1** — These three crates were initially targeted for permissive licensing to support generalist adoption, but each has required dependencies on AGPL crates. AGPL is viral: any crate that *requires* AGPL code cannot itself be permissively licensed without misrepresenting the combined work's terms. The Phase 0.5 / Phase 1 roadmap extracts permissive `-core` variants by feature-gating the AGPL integrations:
+> **Note 1** — Full robotics, networking and Bevy integration crates remain AGPL where they require AGPL components. The robotics core extraction is complete in the current source tree: `symtropy-robotics-bridge-core` has no required dependency on consciousness-physics or Symthaea. Verify the exact dependency graph for every release; do not infer licensing from crate names or SPDX headers alone:
 >
 > - **`symtropy-bevy-core`** — physics plugin, gizmos, input. No consciousness-physics. Apache/MIT.
 > - **`symtropy-bevy`** — re-exports `-core` + adds consciousness/biometrics systems. AGPL.
 > - **`symtropy-net-core`** — spatial authority + lockstep protocol. No Holochain. Apache/MIT.
 > - **`symtropy-net`** — adds Holochain DHT persistence. AGPL.
-> - **`symtropy-robotics-bridge-core`** — platform traits + `PhysicsCallback` hook. No Symthaea. Apache/MIT.
-> - **`symtropy-robotics-bridge`** — current functionality. AGPL.
+> - **`symtropy-robotics-bridge-core`** — platform traits, a local attenuation helper and generic bridge interfaces. No Symthaea or consciousness-physics dependency. Apache/MIT.
+> - **`symtropy-robotics-bridge`** — Symthaea/Bevy/consciousness-physics integration. AGPL.
 >
-> The `symtropy-math`, `symtropy-physics`, `symtropy-render-bridge` crates already have zero AGPL deps, so they're truly permissive today.
+> The `symtropy-math`, `symtropy-physics`, `symtropy-render-bridge`, `symtropy-bevy-core` and `symtropy-robotics-bridge-core` crates are intended to remain free of required AGPL dependencies; confirm their complete resolved dependency graphs before each release.
 
 ## What this means in practice
 
@@ -57,7 +58,7 @@ Under the permissive (Apache-2.0 OR MIT) core crates:
 ### You need a commercial license if you
 
 - Want to integrate any of the **AGPL crates** into a **proprietary** product or service without releasing your modifications.
-- See the parent `COMMERCIAL_LICENSE.md` in `/srv/luminous-dynamics/COMMERCIAL_LICENSE.md` for terms.
+- Contact Luminous Dynamics for current commercial licensing terms; this public repository does not include a commercial terms document.
 - Cooperatives, B-corps, and mission-aligned organisations may qualify for favourable terms.
 
 ### Contact for commercial licensing
@@ -113,5 +114,5 @@ Users who want permissive licensing should depend on `symtropy-math >= 0.2.0`, `
 - Apache License 2.0: `LICENSE-APACHE`
 - MIT License: `LICENSE-MIT`
 - GNU AGPL v3: `/srv/luminous-dynamics/LICENSE`
-- Commercial licensing terms: `/srv/luminous-dynamics/COMMERCIAL_LICENSE.md`
+- Commercial licensing terms are available by request from Luminous Dynamics; no terms document is included in this repository.
 - CLA: `/srv/luminous-dynamics/CLA.md`
