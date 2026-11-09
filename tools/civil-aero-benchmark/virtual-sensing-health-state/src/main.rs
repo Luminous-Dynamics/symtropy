@@ -296,11 +296,12 @@ fn validate_fixture(fixture: &Fixture) -> Result<(), String> {
         }
         let expected_state = case.expected.structural_state.as_deref();
         if expected_state.is_some_and(|state| !matches!(state, "HEALTHY" | "DAMAGED")) {
-            return Err(format!("{}: unsupported expected structural state", case.case_id));
+            return Err(format!(
+                "{}: unsupported expected structural state",
+                case.case_id
+            ));
         }
-        if case.expected.post_reconstruction_structural_state
-            != case.expected.structural_state
-        {
+        if case.expected.post_reconstruction_structural_state != case.expected.structural_state {
             return Err(format!(
                 "{}: expected reconstruction state must preserve the structural hypothesis",
                 case.case_id
