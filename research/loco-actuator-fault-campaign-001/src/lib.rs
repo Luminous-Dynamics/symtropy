@@ -1040,6 +1040,7 @@ mod tests {
         let mut input = problem();
         input.trials[0].detected = DetectionResult::Unknown {
             reason: "slip and torque-loss hypotheses overlap".to_owned(),
+            plausible_families: vec![FaultFamily::JointLocked],
         };
         let report = audit_fault_benchmark(&input).expect("unknown diagnosis preserved");
         let locked = report
@@ -1072,6 +1073,64 @@ mod tests {
             .find(|row| row.family == FaultFamily::JointLocked)
             .expect("locked row");
         assert_eq!(row.misclassified_count, 1);
+    }
+
+    #[test]
+    fn fault_hypothesis_set_coverage_is_distinct_from_top_one_accuracy() {
+        let mut input = problem();
+        input.trials[0].detected = DetectionResult::Detected {
+            inferred_family: FaultFamily::TorqueDerating,
+            plausible_families: vec![
+                FaultFamily::JointLocked,
+                FaultFamily::TorqueDerating,
+            ],
+            latency_ms: 10,
+            confidence_ppm: 800_000,
+            severity_estimate_ppm: None,
+            severity_interval_ppm: None,
+        };
+        let report = audit_fault_benchmark(&input).expect("set-valued diagnosis");
+        let row = report
+            .family_coverage
+            .iter()
+            .find(|row| row.family == FaultFamily::JointLocked)
+            .expect("locked family");
+        assert_eq!(row.misclassified_count, 1);
+        assert_eq!(row.fault_set_covered_count, 4);
+        assert_eq!(row.fault_set_uncovered_count, 0);
+    }
+
+    #[test]
+    fn fault_severity_estimate_and_interval_coverage_are_reported() {
+        let report = audit_fault_benchmark(&problem()).expect("severity metrics");
+        let row = report
+            .family_coverage
+            .iter()
+            .find(|row| row.family == FaultFamily::JointLocked)
+            .expect("locked family");
+        assert_eq!(row.severity_estimate_count, 4);
+        assert_eq!(row.severity_absolute_error_sum_ppm, 0);
+        assert_eq!(row.severity_interval_coverage_count, 4);
+    }
+
+    #[test]
+    fn duplicate_fault_hypothesis_is_rejected() {
+        let mut input = problem();
+        input.trials[0].detected = DetectionResult::Detected {
+            inferred_family: FaultFamily::JointLocked,
+            plausible_families: vec![
+                FaultFamily::JointLocked,
+                FaultFamily::JointLocked,
+            ],
+            latency_ms: 10,
+            confidence_ppm: 900_000,
+            severity_estimate_ppm: None,
+            severity_interval_ppm: None,
+        };
+        assert_eq!(
+            audit_fault_benchmark(&input),
+            Err(FaultBenchmarkError::InvalidDetectionResult)
+        );
     }
 
     #[test]
