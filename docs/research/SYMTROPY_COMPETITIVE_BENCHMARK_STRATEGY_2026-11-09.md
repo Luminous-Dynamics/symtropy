@@ -31,11 +31,13 @@ Official references:
 
 A fair benchmark freezes the physical problem, geometry, units, material parameters, boundary conditions, initial conditions, actuator models, controller, solver tolerances, time step, hardware and measurement method. If a backend cannot represent the same physical model, report the mismatch rather than silently changing the problem.
 
+**New MuJoCo comparator lanes:** (a) a 4.0.0 speculative-contact / CCD lane, with thin-wall translation and rotation cases; (b) a separate 3.17.0 CPU batch lane measuring throughput, scaling, memory and output equivalence against a serial reference at fixed model and hardware. Do not conflate these with the older 3.16 locomotion baseline or compare CPU batch results to GPU throughput as if they were the same execution regime.
+
 ### 2.1 Version-pinned comparison baselines (checked 2026-11-09)
 
 | System | Current reference | What changed / why it matters |
 |---|---|---|
-| MuJoCo | **4.0.0**, released 2026-11-06 | Adds speculative convex contacts intended to prevent tunnelling within a timestep, and stateful elasto-plasticity for joint/tendon springs and 2D/3D flexes. CCD/contact comparisons must add this as a distinct profile; old 3.x results remain historical. |
+| MuJoCo | **4.0.0**, released 2026-11-06; **3.17.0** batch API introduced 2026-10-22 | 4.0.0 adds speculative convex contacts intended to prevent tunnelling within a timestep, and stateful elasto-plasticity for joint/tendon springs and 2D/3D flexes. The 3.17.0 batch API runs many simulations of one model on a thread pool and documents bit-identical results to a plain loop across thread counts. Benchmark CCD/contact capability and CPU batch scaling as separate profiles; preserve historical 3.x receipts. |
 | Isaac Lab | **3.0.0 GA**, released 2026-10-20 | A single task API spans multiple physics/rendering backends, including kit-less Newton workflows. Pin Isaac Lab plus the exact physics backend, renderer, task and solver path. |
 | Newton | **1.6.0** release line | Expands GPU collision/scheduling, deformable and particle workflows, compliant mechanics, rods and robot controllers. Pin the exact solver path and Warp/CUDA configuration; do not compare headline GPU throughput with CPU-only Rust measurements. |
 | Project Chrono | **10.0.0**, released 2026-03-27 | Adds/updates FSI solver paths, peridynamics, checkpointing, implicit-integrator Jacobian strategies and sensor functionality. Use domain-specific modules only where the physical problem overlaps. |
