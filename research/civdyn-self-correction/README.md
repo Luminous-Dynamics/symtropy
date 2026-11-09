@@ -137,3 +137,22 @@ This benchmark demonstrates deterministic accounting, sensor-drift controls, a c
 - superiority to SimBench, SSDataBench, LiveCultureBench or any other SOTA benchmark.
 
 Green software CI validates this reference implementation only.
+
+## Scenario E: interference and spillover identifiability
+
+The first exact interference twin-world control is implemented in `interference_identifiability.rs`, advancing [CIVDYN-ID-001 #4251](https://github.com/Luminous-Dynamics/symtropy/issues/4251).
+
+It separates a two-unit network into a source neighbor (A) and a focal neighbor (B):
+- no-spillover world: `Y_B = T_B`;
+- positive-spillover world: `Y_B = T_B OR T_A`.
+
+The observational reference only records focal-neighbor outcomes when the source neighbor is untreated. Across focal treatment assignments `T_B ∈ {0,1}`, both worlds produce `[0,1]`; their observed distributions are exactly equal under this declared observation design.
+
+Three exact interventions demonstrate why a full rollout is not automatically the most informative experiment:
+- baseline `do(T_A=0,T_B=0)`: both worlds predict 0; no discrimination;
+- neighbor-only probe `do(T_A=1,T_B=0)`: no-spillover predicts 0 and positive-spillover predicts 1; total variation is 1 and expected information gain is 1 bit under a 0.5/0.5 world prior;
+- full rollout `do(T_A=1,T_B=1)`: both worlds predict 1 because direct treatment saturates the binary outcome; no discrimination.
+
+The selector respects a declared intervention budget, excludes non-discriminating probes, and returns no selected experiment when the permitted set cannot separate the candidate worlds. It keeps observational ambiguity and the identified spillover-effect set `{0,1}` explicit.
+
+This is an exact two-node protocol control, not a general network causal estimator. It does not cover partial-interference assumptions, weighted/directed networks, exposure mappings beyond the OR rule, treatment compliance, endogenous network formation, heterogeneous spillover effects, equilibrium feedback, or empirical social-network data. Those are the next benchmark families in #4251.
