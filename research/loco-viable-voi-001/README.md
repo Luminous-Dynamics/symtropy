@@ -248,3 +248,8 @@ The standalone crate's current Rust module contains 16 deterministic tests. In a
 - rejection of foreign passive-loss rows.
 
 The finite joint mass and loss scale are each (S=10^9), so the expected-loss and VOI numerators are (S^2)-scaled. The Rust report field is named accordingly. These tests qualify only the composition contract over supplied finite evidence.
+
+
+### Exact joint possibility support
+
+The finite relation must explicitly enumerate the allowed triples ((h,b,y)), separately from their calibrated mass. Its ((h,b)) projection must exactly equal the declared hypothesis/branch support; its ((b,y)) projection must exactly equal the physical branch/observation support. A cell can therefore be impossible even when both pairwise projections are individually allowed. Positive joint mass outside the declared triple relation is Invalid. Zero-mass but physically possible triples remain in the possibility relation and are not removed from the robust physical gate.
