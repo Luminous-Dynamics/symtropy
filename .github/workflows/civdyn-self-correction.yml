@@ -277,6 +277,56 @@ jobs:
           assert math.isclose(float(negative["predictive_pair_distance"]), 1.0, abs_tol=1e-12)
           print("Joint-adequacy CSV valid: identical marginals, opposite coupling, distinct energy and variogram scores, exact source/model/split lineage.")
           PY
+      - name: Verify same-degree network topology adequacy controls
+        run: |
+          set -euo pipefail
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin network-adequacy-sweep > /tmp/civdyn-network-adequacy.csv
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin network-adequacy-sweep > /tmp/civdyn-network-adequacy-replay.csv
+          cmp /tmp/civdyn-network-adequacy.csv /tmp/civdyn-network-adequacy-replay.csv
+          python3 - <<'PY'
+          import csv
+          from pathlib import Path
+
+          path = Path("/tmp/civdyn-network-adequacy.csv")
+          with path.open(newline="", encoding="utf-8") as handle:
+              reader = csv.DictReader(handle)
+              rows = list(reader)
+              fields = reader.fieldnames
+
+          assert fields is not None and len(fields) == 23
+          assert len(rows) == 2
+          candidates = {row["candidate"]: row for row in rows}
+          correct = candidates["topology_correct"]
+          wrong = candidates["same_degree_wrong_topology"]
+
+          assert correct["independent_unit"] == wrong["independent_unit"] == "network"
+          assert correct["graph_semantics"] == wrong["graph_semantics"] == "undirected_unweighted_simple"
+          assert correct["node_count"] == wrong["node_count"] == "6"
+          assert correct["edge_count"] == wrong["edge_count"] == "6"
+          assert correct["degree_sequence"] == wrong["degree_sequence"] == "2;2;2;2;2;2"
+          assert correct["degree_histogram"] == wrong["degree_histogram"] == "2:6"
+          assert correct["component_count"] == "1" and wrong["component_count"] == "2"
+          assert correct["largest_component_share"] == "1.000000"
+          assert wrong["largest_component_share"] == "0.500000"
+          assert correct["global_transitivity"] == "0.000000"
+          assert wrong["global_transitivity"] == "1.000000"
+          assert correct["reachable_unordered_pairs"] == "15"
+          assert wrong["reachable_unordered_pairs"] == "6"
+          assert correct["mean_finite_shortest_path"] == "1.800000"
+          assert wrong["mean_finite_shortest_path"] == "1.000000"
+          assert correct["energy_score"] == "0.0000000000000000"
+          assert correct["variogram_score"] == "0.0000000000000000"
+          assert float(wrong["energy_score"]) > 0.0
+          assert float(wrong["variogram_score"]) > 0.0
+          assert correct["draw_count"] == wrong["draw_count"] == "20"
+          assert correct["source_digest"] == wrong["source_digest"]
+          assert correct["observation_digest"] == wrong["observation_digest"]
+          assert correct["calibration_digest"] == wrong["calibration_digest"]
+          assert correct["split_manifest_digest"] == wrong["split_manifest_digest"]
+          assert correct["model_digest"] != wrong["model_digest"]
+          assert correct["draw_set_digest"] != wrong["draw_set_digest"]
+          print("Network-adequacy CSV valid: identical degree sequences, distinct held-out topology, positive multivariate penalty, exact provenance and deterministic replay.")
+          PY
 
 
       - name: Verify same-marginal joint and trajectory adequacy controls
