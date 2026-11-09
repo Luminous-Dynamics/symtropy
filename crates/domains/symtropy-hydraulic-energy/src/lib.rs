@@ -62,7 +62,7 @@ impl EvidenceReference {
 }
 
 macro_rules! non_negative_quantity {
-    ($name:ident, $field:literal, $unit:literal) => {
+    ($name:ident, $field:literal) => {
         #[derive(Debug, Clone, Copy, PartialEq)]
         pub struct $name(f64);
 
@@ -84,11 +84,28 @@ macro_rules! non_negative_quantity {
     };
 }
 
-non_negative_quantity!(FlowRateM3PerSecond, "flow_rate_m3_per_s", "m3/s");
-non_negative_quantity!(HeadMetres, "head_m", "m");
-non_negative_quantity!(PressurePascals, "pressure_pa", "Pa");
-non_negative_quantity!(PowerWatts, "power_w", "W");
-non_negative_quantity!(DurationSeconds, "duration_s", "s");
+non_negative_quantity!(FlowRateM3PerSecond, "flow_rate_m3_per_s");
+non_negative_quantity!(HeadMetres, "head_m");
+non_negative_quantity!(PressurePascals, "pressure_pa");
+non_negative_quantity!(PowerWatts, "power_w");
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct DurationSeconds(f64);
+
+impl DurationSeconds {
+    pub fn new(value: f64) -> Result<Self, HydraulicError> {
+        if !value.is_finite() || value <= 0.0 {
+            return Err(HydraulicError::InvalidQuantity {
+                field: "duration_s",
+                value,
+            });
+        }
+        Ok(Self(value))
+    }
+
+    pub const fn get(self) -> f64 {
+        self.0
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct WaterDensityKgPerM3(f64);
