@@ -73,6 +73,11 @@ pub struct ModelWorld {
     /// Content identity supplied by the receipt producer. This module checks
     /// presence and lineage but does not cryptographically authenticate bytes.
     adequacy_receipt_digest: String,
+    adequacy_registry_version: Option<String>,
+    adequacy_split_manifest_id: Option<String>,
+    adequacy_split_manifest_digest: Option<String>,
+    adequacy_role: Option<SplitRole>,
+    adequacy_required_evidence_complete: bool,
     adequacy: ModelAdequacyState,
     adequacy_reason: Option<String>,
 }
@@ -123,6 +128,13 @@ impl ModelWorld {
             SplitRole::Validation => &manifest.validation_units,
             SplitRole::Challenge => &manifest.challenge_units,
         };
+        if registry.statistics.iter().any(|spec| {
+            spec.role == assessment.role && spec.independent_unit != manifest.independent_unit
+        }) {
+            return Err(PolicySensitivityError::Adequacy(AdequacyError::UnitKindMismatch {
+                statistic_id: "registered-independent-unit".to_string(),
+            }));
+        }
         let required_specs: Vec<_> = registry
             .statistics
             .iter()
@@ -131,6 +143,32 @@ impl ModelWorld {
 
         let mut required_evidence_complete =
             !required_specs.is_empty() && !expected_units.is_empty();
+        let mut assessment_rows = BTreeSet::new();
+        for row in &assessment.statistics {
+            let spec = registry.get(&row.statistic_id).ok_or_else(|| {
+                PolicySensitivityError::Adequacy(AdequacyError::UnknownStatistic {
+                    statistic_id: row.statistic_id.clone(),
+                })
+            })?;
+            if spec.role != assessment.role
+                || spec.source_digest != row.source_digest
+                || spec.source_family != row.source_family
+                || spec.measurement_unit != row.measurement_unit
+                || spec.independent_unit != manifest.independent_unit
+                || !expected_units.iter().any(|unit| unit == &row.independent_unit_id)
+            {
+                return Err(PolicySensitivityError::AdequacyStatisticIdentityMismatch {
+                    statistic_id: row.statistic_id.clone(),
+                    unit_id: row.independent_unit_id.clone(),
+                });
+            }
+            if !assessment_rows.insert((row.statistic_id.as_str(), row.independent_unit_id.as_str())) {
+                return Err(PolicySensitivityError::AdequacyStatisticIdentityMismatch {
+                    statistic_id: row.statistic_id.clone(),
+                    unit_id: row.independent_unit_id.clone(),
+                });
+            }
+        }
         for spec in &required_specs {
             for unit_id in expected_units {
                 let matching: Vec<_> = assessment
@@ -198,21 +236,32 @@ impl ModelWorld {
                     .is_some_and(|spec| spec.role == assessment.role && spec.primary)
             })
             .collect();
-        let derived_state = if primary_rows
+        let has_primary_discrepancy = primary_rows
             .iter()
-            .any(|row| row.status == StatisticStatus::OutsideReferenceInterval)
-        {
-            ModelAdequacyState::PrimaryDiscrepancyDetected
-        } else if !primary_rows.is_empty()
+            .any(|row| row.status == StatisticStatus::OutsideReferenceInterval);
+        let no_primary_discrepancy = !primary_rows.is_empty()
             && required_evidence_complete
             && primary_rows
                 .iter()
-                .all(|row| row.status != StatisticStatus::NotAssessed)
-            && assessment.domain_status == DomainStatus::NoPrimaryDiscrepancyDetected
-        {
-            ModelAdequacyState::NoPrimaryDiscrepancyDetected
+                .all(|row| row.status != StatisticStatus::NotAssessed);
+        let derived_domain_status = if has_primary_discrepancy {
+            DomainStatus::PrimaryDiscrepancyDetected
+        } else if no_primary_discrepancy {
+            DomainStatus::NoPrimaryDiscrepancyDetected
         } else {
-            ModelAdequacyState::NotAssessed
+            DomainStatus::NotAssessed
+        };
+        if assessment.domain_status != derived_domain_status {
+            return Err(PolicySensitivityError::AdequacyStatusMismatch);
+        }
+        let derived_state = match derived_domain_status {
+            DomainStatus::PrimaryDiscrepancyDetected => {
+                ModelAdequacyState::PrimaryDiscrepancyDetected
+            }
+            DomainStatus::NoPrimaryDiscrepancyDetected => {
+                ModelAdequacyState::NoPrimaryDiscrepancyDetected
+            }
+            DomainStatus::NotAssessed => ModelAdequacyState::NotAssessed,
         };
 
         Ok(Self {
@@ -221,6 +270,11 @@ impl ModelWorld {
             model_digest: model_digest.clone(),
             adequacy_model_digest: model_digest,
             adequacy_receipt_digest,
+            adequacy_registry_version: Some(registry.version.clone()),
+            adequacy_split_manifest_id: Some(manifest.id.clone()),
+            adequacy_split_manifest_digest: Some(manifest.manifest_digest.clone()),
+            adequacy_role: Some(assessment.role),
+            adequacy_required_evidence_complete: required_evidence_complete,
             adequacy: derived_state,
             adequacy_reason: None,
         })
@@ -254,6 +308,11 @@ impl ModelWorld {
             model_digest: model_digest.clone(),
             adequacy_model_digest: model_digest,
             adequacy_receipt_digest,
+            adequacy_registry_version: None,
+            adequacy_split_manifest_id: None,
+            adequacy_split_manifest_digest: None,
+            adequacy_role: None,
+            adequacy_required_evidence_complete: false,
             adequacy: ModelAdequacyState::OutOfDomain,
             adequacy_reason: Some(reason),
         })
@@ -277,6 +336,26 @@ impl ModelWorld {
 
     pub fn adequacy_reason(&self) -> Option<&str> {
         self.adequacy_reason.as_deref()
+    }
+
+    pub fn adequacy_registry_version(&self) -> Option<&str> {
+        self.adequacy_registry_version.as_deref()
+    }
+
+    pub fn adequacy_split_manifest_id(&self) -> Option<&str> {
+        self.adequacy_split_manifest_id.as_deref()
+    }
+
+    pub fn adequacy_split_manifest_digest(&self) -> Option<&str> {
+        self.adequacy_split_manifest_digest.as_deref()
+    }
+
+    pub fn adequacy_role(&self) -> Option<SplitRole> {
+        self.adequacy_role
+    }
+
+    pub fn adequacy_required_evidence_complete(&self) -> bool {
+        self.adequacy_required_evidence_complete
     }
 }
 
@@ -390,6 +469,7 @@ pub enum PolicySensitivityError {
     AdequacyStatisticIdentityMismatch { statistic_id: String, unit_id: String },
     AdequacyReceiptHasNoModelIdentity,
     AdequacyEvidenceCompletenessMismatch,
+    AdequacyStatusMismatch,
     InvalidMetric { metric_id: String },
     DuplicateIdentity { kind: &'static str, id: String },
     DuplicateModelDigest { digest: String },
