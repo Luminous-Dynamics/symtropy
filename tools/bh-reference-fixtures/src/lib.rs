@@ -31,6 +31,16 @@ pub enum FrequencyNormalization {
     DimensionlessMOmega,
 }
 
+/// Mathematical definition of the angular eigenvalue stored in a fixture.
+/// Producer-defined conventions require a separate non-empty definition.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AngularEigenvalueConvention {
+    SpinWeightedSpheroidalA,
+    TeukolskyRadialLambda,
+    Other,
+}
+
 /// Complex values use explicit named components, avoiding ambiguous array
 /// ordering or an implicit real/imaginary versus magnitude/phase convention.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
@@ -72,6 +82,8 @@ pub struct KerrProblem {
     pub m: i32,
     pub omega_m: ComplexValue,
     pub angular_eigenvalue: Option<ComplexValue>,
+    pub angular_eigenvalue_convention: Option<AngularEigenvalueConvention>,
+    pub angular_eigenvalue_definition: Option<String>,
     pub angular_branch_id: Option<String>,
     pub source_id: Option<String>,
 }
@@ -140,6 +152,7 @@ pub enum FixtureValidationError {
     InvalidModeNumbers,
     NonFiniteFrequency,
     AngularBranchMetadataIncomplete,
+    AngularEigenvalueConventionIncomplete,
     NonFiniteAngularEigenvalue,
     NoRadialSamples,
     InvalidRadialSample(usize),
@@ -167,6 +180,9 @@ impl fmt::Display for FixtureValidationError {
                     f,
                     "angular eigenvalue and branch ID must be supplied together"
                 )
+            }
+            Self::AngularEigenvalueConventionIncomplete => {
+                write!(f, "angular eigenvalue convention/definition is missing or inconsistent")
             }
             Self::NonFiniteAngularEigenvalue => write!(f, "angular eigenvalue must be finite"),
             Self::NoRadialSamples => write!(f, "at least one radial sample is required"),
@@ -238,6 +254,18 @@ impl ReferenceFixture {
             }
             (None, None) => {}
             _ => return Err(FixtureValidationError::AngularBranchMetadataIncomplete),
+        }
+        match (
+            self.problem.angular_eigenvalue,
+            self.problem.angular_eigenvalue_convention,
+            self.problem.angular_eigenvalue_definition.as_deref(),
+        ) {
+            (Some(_), Some(AngularEigenvalueConvention::Other), Some(definition)) => {
+                require_nonempty(definition, "angular_eigenvalue_definition")?;
+            }
+            (Some(_), Some(_), _) => {}
+            (None, None, None) => {}
+            _ => return Err(FixtureValidationError::AngularEigenvalueConventionIncomplete),
         }
 
         require_nonempty(&self.normalization.in_basis, "normalization.in_basis")?;
@@ -336,6 +364,12 @@ pub fn assess_compatibility(
     }
     if left.problem.angular_eigenvalue != right.problem.angular_eigenvalue {
         differing_fields.push("angular_eigenvalue");
+    }
+    if left.problem.angular_eigenvalue_convention != right.problem.angular_eigenvalue_convention {
+        differing_fields.push("angular_eigenvalue_convention");
+    }
+    if left.problem.angular_eigenvalue_definition != right.problem.angular_eigenvalue_definition {
+        differing_fields.push("angular_eigenvalue_definition");
     }
     if left.problem.angular_branch_id != right.problem.angular_branch_id {
         differing_fields.push("angular_branch_id");
@@ -660,6 +694,10 @@ mod tests {
                 m: 2,
                 omega_m: ComplexValue { re: 0.5, im: 0.0 },
                 angular_eigenvalue: Some(ComplexValue { re: 3.0, im: 0.0 }),
+                angular_eigenvalue_convention: Some(
+                    AngularEigenvalueConvention::SpinWeightedSpheroidalA,
+                ),
+                angular_eigenvalue_definition: None,
                 angular_branch_id: Some("continued-from-real-frequency".to_owned()),
                 source_id: None,
             },
@@ -758,6 +796,35 @@ mod tests {
         let result = assess_compatibility(&left, &right);
         assert_eq!(result.status, CompatibilityStatus::Unmatched);
         assert_eq!(result.differing_fields, vec!["fourier_convention"]);
+    }
+
+    #[test]
+    fn angular_eigenvalue_convention_mismatch_is_unmatched() {
+        let left = fixture();
+        let mut right = fixture();
+        right.problem.angular_eigenvalue_convention =
+            Some(AngularEigenvalueConvention::TeukolskyRadialLambda);
+        let result = assess_compatibility(&left, &right);
+        assert_eq!(result.status, CompatibilityStatus::Unmatched);
+        assert_eq!(
+            result.differing_fields,
+            vec!["angular_eigenvalue_convention"]
+        );
+    }
+
+    #[test]
+    fn producer_defined_angular_eigenvalue_requires_definition() {
+        let mut missing = fixture();
+        missing.problem.angular_eigenvalue_convention =
+            Some(AngularEigenvalueConvention::Other);
+        assert_eq!(
+            missing.validate(),
+            Err(FixtureValidationError::AngularEigenvalueConventionIncomplete)
+        );
+
+        missing.problem.angular_eigenvalue_definition =
+            Some("producer-defined separation value".to_owned());
+        assert_eq!(missing.validate(), Ok(()));
     }
 
     #[test]
