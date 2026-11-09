@@ -211,7 +211,7 @@ Run the model-adequacy-sweep binary using Cargo with the locked manifest at rese
 
 The first executable decision-sensitivity slice is in src/policy_sensitivity.rs and the deterministic policy-sensitivity-sweep binary.
 
-It consumes a finite set of model worlds, candidate policies, native-unit objective/constraint specifications, and source-identified policy/model outcomes. It does not simulate new worlds or assign posterior probabilities to structural models.
+It consumes a finite set of model worlds, candidate policies, native-unit objective/constraint specifications, and source-identified policy/model outcomes. Each world must carry a model digest, a matching adequacy-model digest, and a non-empty adequacy-receipt digest; a stale adequacy receipt bound to another model is rejected. It does not simulate new worlds or assign posterior probabilities to structural models.
 
 The evaluator changes policy comparison in five ways:
 
@@ -221,7 +221,7 @@ The evaluator changes policy comparison in five ways:
 4. Pairwise policy orderings expose cross-model rank reversals and ties. Their counts are finite-model-set diagnostics, not probabilities or independent sample estimates.
 5. If any model is marked as having a primary discrepancy, not assessed, or out of domain, the report is explicitly exploratory-only. A bounded model-set-qualified result is not a real-world effectiveness claim.
 
-The model set is deliberately unweighted. Duplicate model digests are rejected so repeating the same structural model under another label cannot silently give it extra influence in model counts, regret or rank-reversal diagnostics. Objective-only comparisons are allowed when no hard constraints are declared; absence of a constraint is not treated as a hidden zero threshold.
+The model set is deliberately unweighted. Duplicate model digests are rejected so repeating the same structural model under another label cannot silently give it extra influence in model counts, regret or rank-reversal diagnostics. The output retains the policy-outcome source digest and both model/adequacy receipt identities. Objective-only comparisons are allowed when no hard constraints are declared; absence of a constraint is not treated as a hidden zero threshold.
 
 ### Frozen known-answer fixture
 
