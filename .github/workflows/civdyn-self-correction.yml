@@ -202,7 +202,7 @@ jobs:
               rows = list(reader)
               fields = reader.fieldnames
 
-          assert fields is not None and len(fields) == 24, f"expected 24 columns, got {len(fields or [])}"
+          assert fields is not None and len(fields) == 29, f"expected 29 columns, got {len(fields or [])}"
           assert len(rows) == 6, f"expected six statistic assessments, got {len(rows)}"
 
           expected = {
@@ -228,7 +228,24 @@ jobs:
               assert row["wilson_lower_95"] and row["wilson_upper_95"]
               assert row["required_evidence_complete"] == "true"
               assert row["n_draws"] == "20"
+              assert row["draw_dependence"] == "independent"
+              if row["kind"] == "prior":
+                  assert row["single_spc_upper_tail_estimate"] == ""
+                  assert row["single_spc_exceedance_count"] == ""
+                  assert row["single_spc_mc_wilson_lower_95"] == ""
+                  assert row["single_spc_mc_wilson_upper_95"] == ""
+              else:
+                  spc_expected = {
+                      "household-water-mean": ("0.500000", "10"),
+                      "health-income-joint": ("0.000000", "0"),
+                      "rare-service-failure-rate": ("0.000000", "0"),
+                  }
+                  tail, exceedances = spc_expected[row["statistic_id"]]
+                  assert row["single_spc_upper_tail_estimate"] == tail
+                  assert row["single_spc_exceedance_count"] == exceedances
+                  assert row["single_spc_mc_wilson_lower_95"] != ""
+                  assert row["single_spc_mc_wilson_upper_95"] != ""
 
           assert actual == expected, f"unexpected reachability/adequacy classifications: {actual}"
-          print("Model-adequacy CSV valid: prior reachability and split-predictive controls preserve marginal, joint and rare-tail discrepancies as separate results.")
+          print("Model-adequacy CSV valid: prior reachability, split-predictive localization and single-SPC tail estimates preserve marginal, joint and rare-tail discrepancies as separate results.")
           PY
