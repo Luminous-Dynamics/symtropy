@@ -1302,6 +1302,19 @@ mod tests {
     }
 
     #[test]
+    fn joint_possibility_projections_must_match_declared_pairwise_supports() {
+        let mut problem = safe_problem();
+        problem
+            .probe
+            .possible_hypothesis_branch_outcomes
+            .pop();
+        assert_eq!(
+            evaluate_viable_voi(&problem),
+            Err(ViableVoiError::JointPossibilityProjectionMismatch)
+        );
+    }
+
+    #[test]
     fn missing_outcome_continuation_is_rejected() {
         let mut problem = safe_problem();
         problem.continuation_evidence.pop();
