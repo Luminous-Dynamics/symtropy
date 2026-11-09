@@ -17,8 +17,8 @@ The fixtures are embedded with `include_str!` so the validator checks exactly th
 
 - 30 synthetic case IDs, required keys, enum values, and fail-closed expected dispositions.
 - Abstract 98% recovery / finite make-up arithmetic using integer basis points: 60 make-up units required, 40 available, 20 unserved.
-- 11 selected ICES-2025-127 records plus 133 supplementary Appendix Table 2–10 component rows: 142 published component reference rows across both registers.
-- All 41 published Table 1 crew R&R task estimates are represented across the selected and supplementary registers (2 + 39); the estimates exclude gathering/stowing and are not complete mission downtime.
+- 9 selected ICES-2025-127 component rows plus 133 supplementary Appendix Table 2–10 component rows: 142 component reference rows total.
+- 2 selected Table 1 crew-task rows plus 39 supplementary rows: all 41 published crew R&R task estimates are represented. The estimates exclude gathering/stowing and are not complete mission downtime.
 - Component MTBF, operational MTTR, crew R&R, preventive R&R interval/duration, throughput limits and calendar/shelf-life limits remain distinct nullable fields. Blank published fields remain null.
 - 10 source-bounded ICES-2026-379 operational / planned / applicability records with source locations and claim ceilings.
 - Five source-bounded AOGA schedule snapshots; milestone variance remains unresolved rather than treating forecasts as achieved results.
