@@ -1,10 +1,14 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use civdyn_self_correction::model_adequacy::{
+    assess_predictive_partition, IndependentUnitKind, ObservedStatistic, PredictiveDraw,
+    PredictiveKind, SplitManifest, SplitRole, StatisticRegistry, StatisticSpec,
+};
 use civdyn_self_correction::policy_sensitivity::{
-    evaluate_policy_sensitivity, ConstraintRelation, MetricKind, MetricSpec,
-    ModelAdequacyState, ModelWorld, ObjectiveDirection, PairwisePolicyOrdering,
-    PolicyFeasibility, PolicyMetricOutcome, PolicySensitivityReport, PolicySpec,
+    evaluate_policy_sensitivity, ConstraintRelation, MetricKind, MetricSpec, ModelWorld,
+    ObjectiveDirection, PairwisePolicyOrdering, PolicyFeasibility, PolicyMetricOutcome,
+    PolicySensitivityReport, PolicySpec,
 };
 
 const CSV_COLUMNS: usize = 29;
@@ -30,11 +34,11 @@ fn model_outcome_row(
         format!("{value:.6}", value = outcome.value),
         feasible.to_string(),
         violations.join(";"),
-        model.model_digest.clone(),
-        model.adequacy_model_digest.clone(),
-        model.adequacy_receipt_digest.clone(),
+        model.model_digest().to_string(),
+        model.model_digest().to_string(),
+        model.adequacy_receipt_digest().to_string(),
         outcome.source_digest.clone(),
-        model.adequacy.name().to_string(),
+        model.adequacy_state().name().to_string(),
         String::new(),
         String::new(),
         String::new(),
@@ -140,29 +144,108 @@ fn pairwise_row(
     ]
 }
 
-fn fixture() -> (
-    Vec<ModelWorld>,
-    Vec<PolicySpec>,
-    Vec<MetricSpec>,
-    Vec<PolicyMetricOutcome>,
-) {
+fn qualified_model_world(
+    id: &str,
+    family_id: &str,
+    model_digest: &str,
+    adequacy_receipt_digest: &str,
+    predictive_values: &[f64],
+) -> Result<ModelWorld, Box<dyn std::error::Error>> {
+    let registry = StatisticRegistry {
+        version: "policy-sensitivity-adequacy-v1".to_string(),
+        statistics: vec![StatisticSpec {
+            id: "essential-service-fit".to_string(),
+            construct: "essential service".to_string(),
+            measurement_unit: "households_served".to_string(),
+            population: "synthetic-district".to_string(),
+            context: "policy-sensitivity-known-answer".to_string(),
+            source_family: "synthetic-service-observations".to_string(),
+            source_digest: "sha256-policy-service-source".to_string(),
+            independent_unit: IndependentUnitKind::Region,
+            role: SplitRole::Validation,
+            primary: true,
+            required: true,
+            minimum_draws: 5,
+        }],
+    };
+    let manifest = SplitManifest {
+        id: "policy-sensitivity-split-v1".to_string(),
+        independent_unit: IndependentUnitKind::Region,
+        calibration_data_digest: "sha256-policy-calibration".to_string(),
+        manifest_digest: "sha256-policy-split-manifest".to_string(),
+        calibration_units: vec!["region-calibration".to_string()],
+        validation_units: vec!["region-held-out".to_string()],
+        challenge_units: Vec::new(),
+    };
+    let observations = vec![ObservedStatistic {
+        statistic_id: "essential-service-fit".to_string(),
+        independent_unit_id: "region-held-out".to_string(),
+        measurement_unit: "households_served".to_string(),
+        source_digest: "sha256-policy-service-source".to_string(),
+        sample_size: 100,
+        value: 5.0,
+        measurement_standard_error: Some(0.1),
+        observation_digest: "sha256-policy-observation".to_string(),
+    }];
+    let draws: Vec<PredictiveDraw> = predictive_values
+        .iter()
+        .enumerate()
+        .map(|(index, value)| PredictiveDraw {
+            kind: PredictiveKind::Split,
+            statistic_id: "essential-service-fit".to_string(),
+            independent_unit_id: "region-held-out".to_string(),
+            sample_size: 100,
+            draw_index: index as u64,
+            value: *value,
+            model_digest: model_digest.to_string(),
+            draw_set_digest: format!("sha256-policy-draws-{model_digest}"),
+            calibration_data_digest: Some("sha256-policy-calibration".to_string()),
+        })
+        .collect();
+    let assessment = assess_predictive_partition(
+        &registry,
+        &manifest,
+        &observations,
+        &draws,
+        SplitRole::Validation,
+        PredictiveKind::Split,
+        0.9,
+    )?;
+    Ok(ModelWorld::from_adequacy_assessment(
+        id,
+        family_id,
+        model_digest,
+        adequacy_receipt_digest,
+        &registry,
+        &manifest,
+        &assessment,
+    )?)
+}
+
+fn fixture() -> Result<
+    (
+        Vec<ModelWorld>,
+        Vec<PolicySpec>,
+        Vec<MetricSpec>,
+        Vec<PolicyMetricOutcome>,
+    ),
+    Box<dyn std::error::Error>,
+> {
     let models = vec![
-        ModelWorld {
-            id: "world-a".to_string(),
-            family_id: "mechanism-family-a".to_string(),
-            model_digest: "sha256-model-a".to_string(),
-            adequacy_model_digest: "sha256-model-a".to_string(),
-            adequacy_receipt_digest: "sha256-adequacy-a".to_string(),
-            adequacy: ModelAdequacyState::NoPrimaryDiscrepancyDetected,
-        },
-        ModelWorld {
-            id: "world-b".to_string(),
-            family_id: "mechanism-family-b".to_string(),
-            model_digest: "sha256-model-b".to_string(),
-            adequacy_model_digest: "sha256-model-b".to_string(),
-            adequacy_receipt_digest: "sha256-adequacy-b".to_string(),
-            adequacy: ModelAdequacyState::PrimaryDiscrepancyDetected,
-        },
+        qualified_model_world(
+            "world-a",
+            "mechanism-family-a",
+            "sha256-model-a",
+            "sha256-adequacy-a",
+            &[3.0, 4.0, 5.0, 6.0, 7.0],
+        )?,
+        qualified_model_world(
+            "world-b",
+            "mechanism-family-b",
+            "sha256-model-b",
+            "sha256-adequacy-b",
+            &[0.0, 1.0, 2.0, 3.0, 4.0],
+        )?,
     ];
 
     let policies = ["baseline", "conserve", "expand"]
@@ -231,7 +314,7 @@ fn fixture() -> (
         }
     }
 
-    (models, policies, metrics, outcomes)
+    Ok((models, policies, metrics, outcomes))
 }
 
 fn emit_report(
@@ -252,7 +335,7 @@ fn emit_report(
             .expect("complete model-policy feasibility matrix");
         let model = models
             .iter()
-            .find(|model| model.id == outcome.model_id)
+            .find(|model| model.id() == outcome.model_id)
             .expect("model identity exists");
         let fields = model_outcome_row(
             outcome,
@@ -293,7 +376,7 @@ fn emit_report(
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let (models, policies, metrics, outcomes) = fixture();
+    let (models, policies, metrics, outcomes) = fixture()?;
     let report = evaluate_policy_sensitivity(&models, &policies, &metrics, &outcomes)?;
 
     println!(
