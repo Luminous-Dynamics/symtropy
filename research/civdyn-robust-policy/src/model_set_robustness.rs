@@ -113,7 +113,7 @@ pub struct DecisionMetricSpec {
     pub role: DecisionMetricRole,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ModelSetManifest {
     pub model_set_id: String,
     pub manifest_digest: String,
@@ -299,7 +299,7 @@ pub struct ModelSetDecisionReport {
     pub minimax_regret: Vec<MinimaxRegretSummary>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ModelSetError {
     InvalidManifest,
     DuplicateModel { model_id: String },
@@ -821,10 +821,7 @@ pub fn analyze_model_set_decisions(
                 .find(|row| row.policy_id == policy.policy_id)
                 .map(|row| row.feasible_across_qualified_models)
                 .unwrap_or(None);
-            let policy_cases = objective_cases
-                .iter()
-                .filter(|row| row.model_id != "" )
-                .collect::<Vec<_>>();
+            let policy_cases = objective_cases.iter().collect::<Vec<_>>();
             let mut regrets = Vec::new();
             let mut unknown_count = 0usize;
             let mut worst_model_id: Option<String> = None;
