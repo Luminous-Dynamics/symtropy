@@ -1068,9 +1068,16 @@ mod tests {
         assert_eq!(inherited.inherited_stock.water_m3, 30.0);
         assert_eq!(inherited.inherited_stock.energy_kwh, 60.0);
         assert_eq!(inherited.inherited_stock.food_kg, 24.0);
+        let previous = ledger
+            .cohort_summaries(1)
+            .unwrap()
+            .into_iter()
+            .find(|row| row.assignment == future)
+            .unwrap();
+        assert_eq!(previous.inherited_stock.water_m3, 40.0);
         assert_ne!(
             inherited.inherited_stock.water_m3,
-            ledger.cohort_summaries(1).unwrap()[1].inherited_stock.water_m3
+            previous.inherited_stock.water_m3
         );
     }
 
