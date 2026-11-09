@@ -21,4 +21,4 @@ cargo clippy --manifest-path research/physics-semantic-equivalence-001/Cargo.tom
 
 The validator accepts a comparison only when all nine required dimensions appear exactly once, every required identity is well-formed, every bounded mapping supplies a transformation and finite non-negative bound, and the author differs from the reviewer. Any non-equivalent, unsupported or unassessed dimension blocks a matched score without pretending the schema itself is invalid.
 
-This first slice validates typed Rust values; JSON decoding and full schema-validator integration remain a separate adapter concern.
+This first slice validates typed Rust values; JSON decoding and full schema-validator integration remain a separate adapter concern. The V0.1 JSON Schema also requires exactly one occurrence of each of the nine dimensions (not merely an array of length nine). `fixtures/duplicate-dimension.invalid.json` is a negative schema fixture: it repeats `identity_geometry` and omits `numerical_profile`. The typed validator has a corresponding duplicate/missing-dimension test; schema execution against all fixtures is still pending.
