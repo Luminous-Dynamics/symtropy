@@ -47,3 +47,9 @@ Exit codes: `0` numerical agreement, `2` malformed input/invalid fixture or tole
 Do not hard-code the prolate angular scaling limit to one. In the normal-prolate expansion, the expected leading ratio is `eta = 2 Lbar + 1`, where `Lbar` is the equatorial oscillator level; for scalar fields `Lbar = ell - |m|`. For nonzero spin weight, the mapping from spherical labels to `Lbar` must be established by branch continuation. Each family-evidence record therefore stores its expected angular-scaling limit explicitly.
 
 The genus-one WKB result is asymptotic and its coefficients grow factorially. Store the chosen truncation order and, when available, the least-term / best-truncation order. A larger truncation order is not automatically more accurate. The outer-scattering cycle is an input, not inferred from the elliptic curve.
+
+## Angular eigenvalue conventions
+
+Radial and QNM fixtures name the angular quantity explicitly with `AngularEigenvalueConvention`: `spin_weighted_spheroidal_a`, `teukolsky_radial_lambda`, or `other`. The last form requires a producer-authored definition string. These values are not interchangeable; an adapter must document any conversion before comparing radial solutions. The angular branch ID is a separate piece of metadata and cannot substitute for the eigenvalue convention.
+
+Generic prolate-family classifications do not infer an equatorial oscillator label from `(s, ell, m)`. The optional normal-prolate oscillator level is required only when a mode is explicitly tagged with the normal-prolate genus-one WKB method. For scalar fields the cited expansion uses `Lbar = ell - |m|`; for nonzero spin weight a mapping must be established by branch continuation before the WKB method is used.
