@@ -488,7 +488,7 @@ impl KerrOpticalReference {
 }
 
 /// A point on an already-defined source trajectory, in Boyer-Lindquist
-/// coordinate time (seconds) and areal radius (metres).
+/// coordinate time (seconds) and Boyer-Lindquist radial coordinate r (metres).
 ///
 /// This is a kinematic query input only; source amplitudes and field content
 /// belong to the source-history and Green-function owners.
@@ -901,8 +901,9 @@ mod tests {
                 .add(ComplexCoordinate::new(1.0, 0.0))
                 .add(y2.scale(alpha2));
             let integrand = ComplexCoordinate::new(2.0 * s * alpha2, 0.0).div(denominator);
-            // The map from [-1,1] to [0,1] contributes a factor of 1/2.
-            sum = sum.add(integrand.scale(0.5 * weight));
+            // weight already includes the 1/2 Jacobian for the map
+            // from the standard Legendre interval [-1,1] to s in [0,1].
+            sum = sum.add(integrand.scale(weight));
         }
 
         endpoint.mul(sum)
