@@ -1,0 +1,62 @@
+name: AER-01 inspection observability oracle
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/aero-inspection-observability.yml"
+      - "tools/civil-aero-benchmark/inspection-observability/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-inspection-observability:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact pull-request head
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust with rustfmt
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Record Rust toolchain identity
+        run: |
+          rustc --version --verbose
+          cargo --version
+
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path tools/civil-aero-benchmark/inspection-observability/Cargo.toml -- --check
+
+      - name: Run known-answer and hostile tests
+        run: cargo test --manifest-path tools/civil-aero-benchmark/inspection-observability/Cargo.toml
+
+      - name: Run Rust observability evaluator
+        run: cargo run --quiet --manifest-path tools/civil-aero-benchmark/inspection-observability/Cargo.toml > inspection-observability-result.json
+
+      - name: Independently recompute rank, Fisher information and selections in Python
+        run: python3 tools/civil-aero-benchmark/inspection-observability/verify_independent.py --rust-output inspection-observability-result.json
+
+      - name: Create source and output digest receipts
+        run: |
+          sha256sum tools/civil-aero-benchmark/inspection-observability/fixtures/known-answer-observability-v0.1.json > inspection-observability-source.sha256
+          sha256sum inspection-observability-result.json > inspection-observability-result.sha256
+
+      - name: Retain exact fixture, result and digest receipts
+        uses: actions/upload-artifact@v4
+        with:
+          name: aero-inspection-observability
+          path: |
+            tools/civil-aero-benchmark/inspection-observability/fixtures/known-answer-observability-v0.1.json
+            inspection-observability-result.json
+            inspection-observability-source.sha256
+            inspection-observability-result.sha256
+          if-no-files-found: error
+          retention-days: 90
