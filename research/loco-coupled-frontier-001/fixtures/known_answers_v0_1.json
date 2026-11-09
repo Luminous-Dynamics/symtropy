@@ -144,7 +144,7 @@
         "recovery_maximal_safe": [
           [
             0,
-            1
+            2
           ],
           [
             1,
@@ -152,10 +152,6 @@
           ]
         ],
         "recovery_minimal_unsafe": [
-          [
-            0,
-            2
-          ],
           [
             1,
             1
@@ -221,7 +217,7 @@
             0,
             2
           ],
-          "viability": "viable"
+          "viability": "nonviable"
         },
         {
           "theta": [
@@ -249,7 +245,7 @@
             2,
             0
           ],
-          "viability": "viable"
+          "viability": "nonviable"
         },
         {
           "theta": [
@@ -270,26 +266,18 @@
         "family_qualified": true,
         "viability_maximal_safe": [
           [
-            0,
-            2
-          ],
-          [
             1,
             1
-          ],
-          [
-            2,
-            0
           ]
         ],
         "viability_minimal_unsafe": [
           [
-            1,
+            0,
             2
           ],
           [
             2,
-            1
+            0
           ]
         ]
       }
