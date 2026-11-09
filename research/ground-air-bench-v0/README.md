@@ -121,3 +121,10 @@ The schema now includes a conditional MISSION_RECOURSE_POLICY receipt role and M
 - PERFECT_INFORMATION_UPPER_BOUND_NON_DEPLOYABLE: optimistic hidden-scenario oracle, never an admissible operational policy.
 
 A GroundAirBench result must preserve the scenario-set digest, observation partition, non-anticipativity rule, stage action mapping, per-scenario constraints and explicit scenario coverage limitations. Scenario counts are not probabilities. The perfect-information benchmark must never be promoted to a policy receipt that grants authority.
+
+
+## Physical 6-DOF dataset integrity evidence
+
+The schema includes a conditional PHYSICAL_DATASET_INTEGRITY role and metric lane for #4320 / PR #4322. The receipt must preserve the dataset manifest digest, evidence class, episode sampling unit, holdout axis, split counts, unique independent-unit counts, timing skew bound, coordinate-frame/ground-truth/sensor-calibration identities and validation disposition.
+
+Policy labels now identify episode-grouped, receiver-serial, hardware-revision, site/environment and trajectory holdouts. GroundAirBench must not treat a random-frame split as independent physical evidence. This receipt validates manifest integrity only; it does not verify referenced raw payload bytes, instrument calibration or continuous 6-DOF coverage.
