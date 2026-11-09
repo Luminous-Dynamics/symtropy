@@ -424,7 +424,7 @@ mod tests {
             fourier_convention: FourierConvention::EMinusIOmegaT,
             frequency_normalization: FrequencyNormalization::DimensionlessMOmega,
             family_classification: classification,
-            normal_prolate_oscillator_level: (classification == QnmFamilyClassification::Prolate).then_some(0),
+            normal_prolate_oscillator_level: None,
             family_evidence: evidence,
             modes,
         }
