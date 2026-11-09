@@ -92,9 +92,9 @@ def validate(data: dict[str, Any]) -> None:
     tolerance = policy.get("absolute_residual_tolerance")
     require(isinstance(tolerance, (int, float)) and math.isfinite(tolerance) and tolerance > 0,
             "residual tolerance must be finite and positive")
-    require(policy.get("correction_requires_unique_structural_state") is True,
+    require(policy.get("reconstruction_requires_unique_joint_hypothesis") is True,
             "correction must require a unique joint hypothesis")
-    require(policy.get("damage_clearance_from_correction_prohibited") is True,
+    require(policy.get("damage_clearance_from_reconstruction_prohibited") is True,
             "damage-preservation guard may not be disabled")
     require(policy.get("fault_confirmation_requires_independent_witness") is True,
             "independent fault witness must be required")
@@ -166,7 +166,7 @@ def abstain(case: dict[str, Any], disposition: str,
         "reconstructed_sensor_ids": [],
         "reconstruction_status": "NOT_PERFORMED",
         "sensor_fault_confirmation": sensor_fault_confirmation,
-        "post_correction_structural_state": None,
+        "post_reconstruction_structural_state": None,
         "damage_preserved": None,
         "claim_ceiling": CLAIM_CEILING,
     }
@@ -288,7 +288,7 @@ def evaluate_case(data: dict[str, Any], case: dict[str, Any]) -> dict[str, Any]:
             "INDEPENDENT_WITNESS_CONFIRMED" if faulty_ids
             else "NO_SENSOR_FAULT_HYPOTHESIS"
         ),
-        "post_correction_structural_state": state,
+        "post_reconstruction_structural_state": state,
         "damage_preserved": state == "DAMAGED",
         "claim_ceiling": CLAIM_CEILING,
     }
@@ -374,7 +374,7 @@ def hostile_controls(data: dict[str, Any]) -> None:
     df = next(case for case in data["cases"]
               if case["case_id"] == "DF_DAMAGED_STRUCTURE_FAULTY_SENSOR")
     result = evaluate_case(data, df)
-    require(result["post_correction_structural_state"] == "DAMAGED"
+    require(result["post_reconstruction_structural_state"] == "DAMAGED"
             and result["damage_preserved"] is True,
             "sensor reconstruction erased a damage hypothesis")
     require(result["observed_values"][1] == 1.8
