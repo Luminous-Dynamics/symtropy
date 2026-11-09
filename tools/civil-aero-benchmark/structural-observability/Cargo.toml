@@ -1,0 +1,14 @@
+[package]
+name = "aero-structural-observability"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Synthetic known-answer sensor observability and structural evidence co-design oracle"
+
+[dependencies]
+serde = { version = "=1.0.229", features = ["derive"] }
+serde_json = "=1.0.154"
+sha2 = "=0.10.9"
+
+[workspace]

@@ -1,0 +1,119 @@
+name: AER-01 structural observability oracle
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/aero-structural-observability.yml"
+      - "tools/civil-aero-benchmark/structural-observability/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-observability-placement:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact pull-request head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Assert exact subject revision
+        env:
+          EXPECTED_SUBJECT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          actual_subject_sha="$(git rev-parse HEAD)"
+          test "$actual_subject_sha" = "$EXPECTED_SUBJECT_SHA"
+          printf 'subject_commit=%s\n' "$actual_subject_sha"
+          printf 'event_commit=%s\n' "$GITHUB_SHA"
+          printf 'workflow_ref=%s\n' "$GITHUB_WORKFLOW_REF"
+
+      - name: Install stable Rust with rustfmt
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Record toolchain and runner identity
+        run: |
+          {
+            echo "rust-toolchain.toml:"
+            cat rust-toolchain.toml
+            echo
+            rustc --version --verbose
+            cargo --version
+            python3 --version
+            printf 'RUNNER_OS=%s\n' "${RUNNER_OS:-unknown}"
+            printf 'RUNNER_ARCH=%s\n' "${RUNNER_ARCH:-unknown}"
+            printf 'ImageOS=%s\n' "${ImageOS:-unknown}"
+            printf 'ImageVersion=%s\n' "${ImageVersion:-unknown}"
+            uname -a
+          } | tee structural-observability-environment.txt
+
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path tools/civil-aero-benchmark/structural-observability/Cargo.toml -- --check
+
+      - name: Run Rust observability known-answer and hostile tests
+        run: cargo test --locked --manifest-path tools/civil-aero-benchmark/structural-observability/Cargo.toml
+
+      - name: Generate sensor-placement observability audit
+        run: cargo run --locked --quiet --manifest-path tools/civil-aero-benchmark/structural-observability/Cargo.toml > structural-observability-audit.json
+
+      - name: Independently recompute FIM and placements in Python
+        run: python3 tools/civil-aero-benchmark/structural-observability/verify_independent.py --rust-output structural-observability-audit.json
+
+      - name: Create exact source and result digest receipts
+        run: |
+          set -euo pipefail
+          subject_sha="${{ github.event.pull_request.head.sha || github.sha }}"
+          workflow_blob=$(git rev-parse "${subject_sha}:.github/workflows/aero-structural-observability.yml")
+          printf 'subject_commit=%s\nevent_commit=%s\nworkflow_ref=%s\nworkflow_blob=%s\nrun_id=%s\nrun_attempt=%s\n' \
+            "$subject_sha" "$GITHUB_SHA" "$GITHUB_WORKFLOW_REF" "$workflow_blob" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" \
+            > structural-observability-run-manifest.txt
+          sha256sum rust-toolchain.toml > structural-observability-toolchain.sha256
+          sha256sum tools/civil-aero-benchmark/structural-observability/Cargo.toml > structural-observability-cargo-manifest.sha256
+          sha256sum tools/civil-aero-benchmark/structural-observability/Cargo.lock > structural-observability-cargo-lock.sha256
+          sha256sum tools/civil-aero-benchmark/structural-observability/src/main.rs > structural-observability-rust-source.sha256
+          sha256sum tools/civil-aero-benchmark/structural-observability/verify_independent.py > structural-observability-python-source.sha256
+          sha256sum tools/civil-aero-benchmark/structural-observability/README.md > structural-observability-readme.sha256
+          sha256sum .github/workflows/aero-structural-observability.yml > structural-observability-workflow.sha256
+          sha256sum tools/civil-aero-benchmark/structural-observability/data/synthetic-wing-observability-v0.1.json > structural-observability-source.sha256
+          sha256sum structural-observability-environment.txt > structural-observability-environment.sha256
+          sha256sum structural-observability-audit.json > structural-observability-audit.sha256
+          sha256sum structural-observability-run-manifest.txt > structural-observability-run-manifest.sha256
+
+      - name: Retain complete source, output and digest receipts
+        uses: actions/upload-artifact@v4
+        with:
+          name: aero-structural-observability-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            rust-toolchain.toml
+            .github/workflows/aero-structural-observability.yml
+            tools/civil-aero-benchmark/structural-observability/Cargo.toml
+            tools/civil-aero-benchmark/structural-observability/Cargo.lock
+            tools/civil-aero-benchmark/structural-observability/README.md
+            tools/civil-aero-benchmark/structural-observability/src/main.rs
+            tools/civil-aero-benchmark/structural-observability/verify_independent.py
+            tools/civil-aero-benchmark/structural-observability/data/synthetic-wing-observability-v0.1.json
+            structural-observability-audit.json
+            structural-observability-environment.txt
+            structural-observability-run-manifest.txt
+            structural-observability-toolchain.sha256
+            structural-observability-cargo-manifest.sha256
+            structural-observability-cargo-lock.sha256
+            structural-observability-rust-source.sha256
+            structural-observability-python-source.sha256
+            structural-observability-readme.sha256
+            structural-observability-workflow.sha256
+            structural-observability-source.sha256
+            structural-observability-environment.sha256
+            structural-observability-audit.sha256
+            structural-observability-run-manifest.sha256
+          if-no-files-found: error
+          retention-days: 90
