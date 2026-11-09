@@ -122,13 +122,26 @@ fn validate_input(input: &ModelInput) -> Result<(), String> {
             return Err("sensor IDs must be non-empty and unique".to_owned());
         }
         if sensor.observation_row.len() != parameter_count {
-            return Err(format!("sensor {} observation row has wrong dimension", sensor.id));
+            return Err(format!(
+                "sensor {} observation row has wrong dimension",
+                sensor.id
+            ));
         }
         if !sensor.variance.is_finite() || sensor.variance <= 0.0 {
-            return Err(format!("sensor {} variance must be finite and positive", sensor.id));
+            return Err(format!(
+                "sensor {} variance must be finite and positive",
+                sensor.id
+            ));
         }
-        if sensor.observation_row.iter().any(|value| !value.is_finite()) {
-            return Err(format!("sensor {} row contains non-finite values", sensor.id));
+        if sensor
+            .observation_row
+            .iter()
+            .any(|value| !value.is_finite())
+        {
+            return Err(format!(
+                "sensor {} row contains non-finite values",
+                sensor.id
+            ));
         }
     }
     Ok(())
@@ -141,7 +154,10 @@ fn rank_of(matrix: &[Vec<f64>]) -> usize {
     let mut work = matrix.to_vec();
     let rows = work.len();
     let columns = work[0].len();
-    let max_abs = work.iter().flatten().fold(0.0_f64, |acc, x| acc.max(x.abs()));
+    let max_abs = work
+        .iter()
+        .flatten()
+        .fold(0.0_f64, |acc, x| acc.max(x.abs()));
     let tolerance = RANK_REL_TOL * max_abs.max(1.0);
     let mut pivot_row = 0usize;
 
@@ -293,10 +309,20 @@ fn log_determinant_spd(matrix: &[Vec<f64>]) -> Option<f64> {
             }
         }
     }
-    if logdet.is_finite() { Some(logdet) } else { None }
+    if logdet.is_finite() {
+        Some(logdet)
+    } else {
+        None
+    }
 }
 
-fn combinations(start: usize, remaining: usize, count: usize, current: &mut Vec<usize>, out: &mut Vec<Vec<usize>>) {
+fn combinations(
+    start: usize,
+    remaining: usize,
+    count: usize,
+    current: &mut Vec<usize>,
+    out: &mut Vec<Vec<usize>>,
+) {
     if remaining == 0 {
         out.push(current.clone());
         return;
@@ -358,7 +384,13 @@ fn evaluate(input: &ModelInput, source_sha256: &str) -> Result<Report, String> {
     sensors.sort_by(|a, b| a.id.cmp(&b.id));
 
     let mut index_sets = Vec::new();
-    combinations(0, input.select_count, sensors.len(), &mut Vec::new(), &mut index_sets);
+    combinations(
+        0,
+        input.select_count,
+        sensors.len(),
+        &mut Vec::new(),
+        &mut index_sets,
+    );
     if index_sets.is_empty() {
         return Err("no sensor subsets were enumerated".to_owned());
     }
@@ -370,8 +402,12 @@ fn evaluate(input: &ModelInput, source_sha256: &str) -> Result<Report, String> {
         let mut sensor_ids = Vec::with_capacity(indices.len());
         for index in indices {
             let sensor = &sensors[index];
-            let row: Vec<f64> = sensor.observation_row.iter().zip(&scales)
-                .map(|(value, scale)| value * scale).collect();
+            let row: Vec<f64> = sensor
+                .observation_row
+                .iter()
+                .zip(&scales)
+                .map(|(value, scale)| value * scale)
+                .collect();
             if row.iter().any(|value| !value.is_finite()) {
                 return Err(format!("sensor {} normalized row overflowed", sensor.id));
             }
@@ -387,7 +423,11 @@ fn evaluate(input: &ModelInput, source_sha256: &str) -> Result<Report, String> {
         }
         let eigenvalues = symmetric_eigenvalues(&fisher)?;
         let minimum_eigenvalue = eigenvalues[0];
-        let log_determinant = if rank == dimensions { log_determinant_spd(&fisher) } else { None };
+        let log_determinant = if rank == dimensions {
+            log_determinant_spd(&fisher)
+        } else {
+            None
+        };
         subsets.push(SubsetMetrics {
             sensor_ids,
             rank,
@@ -448,9 +488,19 @@ mod tests {
         let result = evaluate_bytes(FIXTURE).expect("fixture must evaluate");
         assert_eq!(result.subset_count, 6);
         assert_eq!(result.full_rank_subset_count, 6);
-        assert_eq!(result.d_optimal_selection.unwrap().sensor_ids, vec!["S_A", "S_C"]);
-        assert_eq!(result.e_optimal_selection.unwrap().sensor_ids, vec!["S_A", "S_C"]);
-        let ac = result.subsets.iter().find(|s| s.sensor_ids == vec!["S_A", "S_C"]).unwrap();
+        assert_eq!(
+            result.d_optimal_selection.unwrap().sensor_ids,
+            vec!["S_A", "S_C"]
+        );
+        assert_eq!(
+            result.e_optimal_selection.unwrap().sensor_ids,
+            vec!["S_A", "S_C"]
+        );
+        let ac = result
+            .subsets
+            .iter()
+            .find(|s| s.sensor_ids == vec!["S_A", "S_C"])
+            .unwrap();
         assert_eq!(ac.fisher_information, vec![vec![2.0, 1.0], vec![1.0, 1.0]]);
         assert!((ac.minimum_eigenvalue - (3.0 - 5.0_f64.sqrt()) / 2.0).abs() < 1.0e-12);
         assert!((ac.log_determinant.unwrap()).abs() < 1.0e-12);
@@ -505,7 +555,13 @@ mod tests {
         let reverse_bytes = serde_json::to_vec(&value).unwrap();
         let reversed = evaluate(&value, &sha256_hex(&reverse_bytes)).unwrap();
         assert_eq!(original.subset_count, reversed.subset_count);
-        assert_eq!(original.d_optimal_selection.unwrap().sensor_ids, reversed.d_optimal_selection.unwrap().sensor_ids);
-        assert_eq!(original.e_optimal_selection.unwrap().sensor_ids, reversed.e_optimal_selection.unwrap().sensor_ids);
+        assert_eq!(
+            original.d_optimal_selection.unwrap().sensor_ids,
+            reversed.d_optimal_selection.unwrap().sensor_ids
+        );
+        assert_eq!(
+            original.e_optimal_selection.unwrap().sensor_ids,
+            reversed.e_optimal_selection.unwrap().sensor_ids
+        );
     }
 }
