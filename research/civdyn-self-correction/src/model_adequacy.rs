@@ -1085,7 +1085,7 @@ mod tests {
     fn missing_required_non_primary_statistic_blocks_domain_qualification() {
         let mut candidate = registry();
         candidate.statistics[1].primary = false;
-        let observations = vec![observation("service-rate", "region-val", 0.5)];
+        let observations = vec![observation("service-rate", "region-val", 0.3)];
         let split_draws = draws(
             PredictiveKind::Split,
             "service-rate",
@@ -1179,7 +1179,7 @@ mod tests {
     #[test]
     fn each_registered_statistic_remains_separate_without_composite_averaging() {
         let observations = vec![
-            observation("service-rate", "region-val", 0.5),
+            observation("service-rate", "region-val", 0.3),
             observation("joint-dependence", "region-val", 0.95),
         ];
         let mut split_draws = draws(
