@@ -245,6 +245,8 @@ pub struct StatisticAssessment {
     pub measurement_unit: String,
     pub sample_size: usize,
     pub observed_value: Option<f64>,
+    /// Kept separate from structural model discrepancy.
+    pub measurement_standard_error: Option<f64>,
     pub lower_reference: Option<f64>,
     pub upper_reference: Option<f64>,
     /// Empirical mid-rank in [0, 1]. This is descriptive, not a p-value.
@@ -478,6 +480,7 @@ pub fn assess_predictive_partition(
                     measurement_unit: statistic.measurement_unit.clone(),
                     sample_size: 0,
                     observed_value: None,
+                    measurement_standard_error: None,
                     lower_reference: None,
                     upper_reference: None,
                     predictive_rank: None,
@@ -507,6 +510,7 @@ pub fn assess_predictive_partition(
                     measurement_unit: statistic.measurement_unit.clone(),
                     sample_size: observation.sample_size,
                     observed_value: Some(observation.value),
+                    measurement_standard_error: observation.measurement_standard_error,
                     lower_reference: None,
                     upper_reference: None,
                     predictive_rank: None,
@@ -533,6 +537,7 @@ pub fn assess_predictive_partition(
                 measurement_unit: statistic.measurement_unit.clone(),
                 sample_size: observation.sample_size,
                 observed_value: Some(observation.value),
+                measurement_standard_error: observation.measurement_standard_error,
                 lower_reference: Some(lower),
                 upper_reference: Some(upper),
                 predictive_rank: Some(rank),
@@ -550,17 +555,18 @@ pub fn assess_predictive_partition(
                 .is_some_and(|spec| spec.primary)
         })
         .collect();
-    let domain_status = if primary.is_empty()
-        || primary
-            .iter()
-            .any(|result| result.status == StatisticStatus::NotAssessed)
-    {
+    let domain_status = if primary.is_empty() {
         DomainStatus::NotAssessed
     } else if primary
         .iter()
         .any(|result| result.status == StatisticStatus::OutsideReferenceInterval)
     {
         DomainStatus::PrimaryDiscrepancyDetected
+    } else if primary
+        .iter()
+        .any(|result| result.status == StatisticStatus::NotAssessed)
+    {
+        DomainStatus::NotAssessed
     } else {
         DomainStatus::NoPrimaryDiscrepancyDetected
     };
