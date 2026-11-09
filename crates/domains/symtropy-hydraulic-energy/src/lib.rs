@@ -1247,10 +1247,13 @@ mod tests {
 
     #[test]
     fn scenario_hydraulic_input_cannot_receive_comparison_credit() {
-        let hydraulic = HydraulicInput::new(
+        let hydraulic = HydraulicInput::new_with_flow_allocation(
             evidence("SYNTHETIC-HYDRO-001", EvidenceClass::ScenarioAssumption),
             WaterDensityKgPerM3::new(1_000.0).unwrap(),
+            FlowRateM3PerSecond::new(0.15).unwrap(),
             FlowRateM3PerSecond::new(0.1).unwrap(),
+            FlowRateM3PerSecond::new(0.05).unwrap(),
+            FlowRateM3PerSecond::new(1e-9).unwrap(),
             HeadMetres::new(12.0).unwrap(),
             HeadMetres::new(2.0).unwrap(),
         )
