@@ -2044,6 +2044,11 @@ mod tests {
         assert_eq!(contour.winding_number, 1);
         assert!(contour.c_minus_two.norm() < 1.0e-8);
         assert!(contour.max_relative_wronskian_disagreement < 2.0e-8);
+        assert!(contour.quadrature_refinements >= 3);
+        assert!(contour.stable_quadrature_refinements >= 2);
+        assert!(
+            contour.scaled_quadrature_difference <= GREEN_LAURENT_QUADRATURE_TOLERANCE
+        );
 
         let left = poschl_teller_jost(1.0, 0.75, pole, -0.3, JostSide::Left, config).unwrap();
         let right = poschl_teller_jost(1.0, 0.75, pole, 0.4, JostSide::Right, config).unwrap();
@@ -2089,6 +2094,14 @@ mod tests {
         assert_eq!(fine.winding_number, 2);
         close(coarse.c_minus_two, fine.c_minus_two, 2.0e-7);
         close(coarse.c_minus_one, fine.c_minus_one, 2.0e-7);
+        assert!(coarse.stable_quadrature_refinements >= 2);
+        assert!(fine.stable_quadrature_refinements >= 2);
+        assert!(
+            coarse.scaled_quadrature_difference <= GREEN_LAURENT_QUADRATURE_TOLERANCE
+        );
+        assert!(
+            fine.scaled_quadrature_difference <= GREEN_LAURENT_QUADRATURE_TOLERANCE
+        );
         assert!(fine.c_minus_two.norm() > 1.0e-3);
         assert!(fine.max_relative_wronskian_disagreement < 2.0e-8);
     }
