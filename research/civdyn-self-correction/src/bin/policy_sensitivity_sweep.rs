@@ -45,17 +45,12 @@ fn model_outcome_row(
         String::new(),
         String::new(),
         String::new(),
+        String::new(),
         ceiling.to_string(),
         String::new(),
-        report_flag_placeholder(),
         String::new(),
     ]
 }
-
-fn report_flag_placeholder() -> String {
-    String::new()
-}
-
 fn summary_row(
     policy_id: &str,
     metric_id: &str,
