@@ -77,6 +77,8 @@
           "enum": [
             "strictly_equivalent",
             "mapped_equivalent_with_bound",
+            "not_applicable",
+            "not_provided",
             "non_equivalent",
             "unsupported",
             "unknown_unassessed"
@@ -102,6 +104,13 @@
               "error_bounds": { "minItems": 1 },
               "evidence_refs": { "minItems": 1 }
             }
+          }
+        },
+        {
+          "if": { "properties": { "status": { "const": "not_applicable" } }, "required": ["status"] },
+          "then": {
+            "properties": { "evidence_refs": { "minItems": 1 } },
+            "not": { "anyOf": [{ "required": ["transformation"] }, { "required": ["error_bounds"] }] }
           }
         }
       ]
