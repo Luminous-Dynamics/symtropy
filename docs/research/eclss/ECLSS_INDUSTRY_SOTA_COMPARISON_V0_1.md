@@ -13,6 +13,7 @@ This project must not claim novelty for any of the following in isolation: stoch
 |---|---|---|---|
 | NASA Langley EMAT | Mission-timeline simulation; stochastic component failures; repair actions; spare-part demand; mission and system configuration inputs | Failure/repair/spare trajectory, task assumptions, life-limited items, mass/volume, mission service loss and resource burden | NASA's EMAT paper documents the tool and input structure; public paper is not a current, executable, independently reproducible full ECLSS data package |
 | ELISSA / RELISSA | ECLSS failure simulation, backup activation and reliability trends; RELISSA links reliability simulation results to ESM mass, volume, power and heat | Same component graph and reliability assumptions; backup/dependency closure; reliability curves; ESM vector; model-run budget | ICES-2025-127 describes RELISSA as an established comparator; it notes no integrated crew-time accounting in the described RELISSA approach |
+| ESA MELiSSA / Barcelona Pilot Plant / Concordia greywater | Long-term ground integration of biological compartments, mechanistic process models and control; ARTEMISS 2024 demonstrated CO2-to-O2 conversion kinetics in orbit; nine flight experiments reported; Concordia greywater system reports >90% greywater recovery and 11 years autonomous operation | Compare only matched process boundaries: CO2 conversion, oxygen production, bioreactor stability, accepted edible output, greywater quality/recovery, process control and component maintenance. Keep pilot-plant compartments, ARTEMISS flight experiment and Concordia greywater system as separate evidence arms | MELiSSA pilot-plant continuous operation is ground/pilot evidence; ARTEMISS validates a narrow in-orbit conversion result, not a complete regenerative habitat; Concordia is a greywater subsystem, not total ECLSS closure. Programme-reported figures must retain their source and boundary |
 | SmartHab stochastic MILP (2024) | Telemetry-informed, chance-constrained stochastic mixed-integer optimization jointly selects maintenance and spare provisioning for deep-space habitats | Same mission horizon, telemetry, failure data, spare catalog, service demand, risk limit and resource budget; compare service probability, stockouts, cost and solve time | Rozas, Basciftci and Gebraeel, *Acta Astronautica* 214 (Jan 2024), DOI 10.1016/j.actaastro.2023.10.028; evaluated through simulation studies, not a flight demonstration |
 | Distributionally robust CBM + spares MILP (2026) | Uses remaining-life distributions from prognostics; discrepancy-based ambiguity sets and distributionally robust chance constraints; exact MILP reformulation for its stated formulation; wind-turbine simulation case | Test sensitivity to biased/noisy RUL distributions, multiple non-identical components, spare diversity, opportunistic maintenance, and the same ambiguity set / compute budget | Rozas, Xie, Gebraeel and Robinson, *European Journal of Operational Research* 328 (2026), DOI 10.1016/j.ejor.2025.06.025; wind-turbine case study, not spaceflight/ECLSS validation |
 | Deterministic and robust finite-scenario references | Transparent rules, exact small-instance policies and finite model-set robustness | Preserve non-probabilistic model uncertainty; compare maximin/minimax-regret or predeclared model-wise criteria without fabricating model probabilities | Compose Symtropy #1752, #4057 and #3171; do not create a second policy optimizer |
@@ -43,7 +44,25 @@ This is a compositional interoperability and assurance contribution. It succeeds
 
 The benchmark's proposed differentiator is not a new optimizer. It is to wrap schedule proposals (including EMAT/RELISSA/SmartHab/DRCC outputs) in an independently checkable **maintenance-plan envelope**: exact asset/configuration, procedure, isolation, staff/tool qualification, parts compatibility and reservation, service-floor margin, resource vector, authorization scope, and post-repair requalification. The plan must be rejectable or deferred when evidence is missing or stale. Execution receipts and after-tests are separate objects from plans. This complements existing reliability and optimization methods; it is not a claim that their tools lack all assurance features.
 
-## 3. Mandatory paired-comparison protocol
+## 3. Fair comparison with regenerative biological life support
+
+MELiSSA must be treated as a genuine technical comparator, but its different evidence layers must not be merged:
+
+- **Barcelona Pilot Plant:** connected biological and cultivation compartments with continuous ground operation and model-based process control. Compare biological process dynamics, elemental closure, product quality, stability and long-duration operation only against matched compartments and boundaries.
+- **ARTEMISS 2024:** a flight experiment that demonstrated CO2-to-O2 conversion kinetics. It is a narrow orbital process result, not a crew-equivalent ECLSS or complete food/water/air loop.
+- **Nine reported flight experiments:** a programme-level count of precursor experiments; it is not nine complete regenerative habitats.
+- **Concordia greywater:** the MELiSSA Foundation reports greater than 90% greywater recovery and eleven years of autonomous operation with very little maintenance. This is a remote-site greywater reference only. Do not compare it directly with total water recovery, potable output, oxygen recovery or a complete human ECLSS.
+
+Sources:
+- Pilot plant: https://webs.uab.cat/melissapilotplant/en/the-melissa-pilot-plant/
+- Peer-reviewed compartment integration: https://www.frontiersin.org/journals/astronomy-and-space-sciences/articles/10.3389/fspas.2021.750616/full
+- Ground demonstration and Concordia: https://melissafoundation.org/the-melissa-program/ground-demonstration/
+- Flight experiments and ARTEMISS: https://melissafoundation.org/the-melissa-program/flight-experiments/
+- MELiSSA modeling/control: https://melissafoundation.org/the-melissa-program/research-development/modelling-control/
+
+A fair Symtropy contribution is **not** to claim superior biological process control, microbial ecology, or loop closure. The complementary research target is to compose existing biological/physicochemical process models with source-bounded evidence, material/component lineage, service-quality contracts, maintenance and requalification, finite spares/consumables, common resource ledgers and independent replay. Biological safety and ecological structure remain with the domain owners (#2244 and #2206); this ECLSS adapter consumes their qualified outputs and keeps structural biological uncertainty explicit.
+
+## 4. Mandatory paired-comparison protocol
 
 Every method receives the same frozen:
 - component graph, installed configuration and functional dependencies;
@@ -70,7 +89,7 @@ Baselines must include:
 
 If an external tool is inaccessible or cannot accept identical inputs, report a **feature / assumption coverage comparison**, not a runtime or performance ranking.
 
-## 4. Metric vector
+## 5. Metric vector
 
 Report per scenario and aggregated only with visible uncertainty:
 
@@ -86,7 +105,7 @@ Report per scenario and aggregated only with visible uncertainty:
 
 Do not report a scalar leaderboard score that can trade a protected service-floor failure for lower spares mass or crew time.
 
-## 5. Proposed benchmark targets — hypotheses, not results
+## 6. Proposed benchmark targets — hypotheses, not results
 
 - **Hard controls:** every frozen critical negative control must reject false availability, unqualified output, wrong-revision spare, missing repair test, stale sensor and unsupported environment. Zero false accepts on the frozen deterministic corpus is a software acceptance criterion, not a statistical safety claim.
 - **Conservation:** exact or declared-tolerance closure for each independent mass/element/resource ledger; every residual and rejected output accounted for.
@@ -97,7 +116,7 @@ Do not report a scalar leaderboard score that can trade a protected service-floo
 
 A claimed SOTA improvement requires an executable baseline, identical frozen inputs, predeclared metrics, independent outcome recomputation and a complete accounting of constraints/compute. Source comparison alone does not establish superiority.
 
-## 6. Ablations and falsification
+## 7. Ablations and falsification
 
 Required ablations:
 - remove product-quality gating;
@@ -113,7 +132,7 @@ Required ablations:
 
 The benchmark should make a plausible policy fail for explainable reasons when one of these controls is removed. This is stronger evidence than a high average score on only nominal cases.
 
-## 7. Execution sequence
+## 8. Execution sequence
 
 1. Preserve the selected public ICES-2025 component rows as source records, not a statistically complete raw maintenance dataset.
 2. Use the 2026 ISS operational cases as scenario narratives and configuration / supportability controls, not invented event-rate samples.
