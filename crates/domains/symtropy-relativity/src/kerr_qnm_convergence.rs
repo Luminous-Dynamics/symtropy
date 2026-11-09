@@ -25,7 +25,10 @@ const MAX_QUADRATURE_SEGMENTS: usize = 8192;
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum KerrOpticalError {
     NonFiniteInput(&'static str),
-    RadiusAtOrInsideHorizon { radius_m: f64, horizon_m: f64 },
+    RadiusAtOrInsideHorizon {
+        radius_m: f64,
+        horizon_m: f64,
+    },
     ExtremalSpinUnsupported,
     SourceEventAfterObservation {
         source_time_s: f64,
@@ -406,9 +409,7 @@ impl KerrOpticalReference {
         boundary_tolerance_m: f64,
     ) -> Result<Vec<KerrQnmSourceEventQualification>, KerrOpticalError> {
         if !observation_time_s.is_finite() {
-            return Err(KerrOpticalError::NonFiniteInput(
-                "observation_time_s",
-            ));
+            return Err(KerrOpticalError::NonFiniteInput("observation_time_s"));
         }
 
         let mut qualifications = Vec::with_capacity(source_events.len());
@@ -1078,12 +1079,7 @@ mod tests {
             },
         ];
         let classified = reference
-            .classify_source_events(
-                observer_time_s,
-                4.0 * rg,
-                &events,
-                1.0e-8 * rg,
-            )
+            .classify_source_events(observer_time_s, 4.0 * rg, &events, 1.0e-8 * rg)
             .unwrap();
 
         assert_eq!(classified.len(), events.len());
