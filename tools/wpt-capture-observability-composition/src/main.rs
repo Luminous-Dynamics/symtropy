@@ -998,9 +998,10 @@ mod tests {
 
     #[test]
     fn unsupported_observation_abstains_without_inventing_a_pose() {
-        let unsupported = GUIDE_PROBE_OBSERVATIONS.replace(
+        let unsupported = GUIDE_PROBE_OBSERVATIONS.replacen(
             "OBS_COMPOSITE_01",
             "UNSEEN_SIGNATURE",
+            1,
         );
         let (_, _, result) = composed(GUIDE_CAPTURE, &unsupported);
         assert_eq!(result.disposition, "ABSTAIN_NO_SUPPORT");
