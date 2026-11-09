@@ -516,6 +516,72 @@ impl WaterServiceContract {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EvidenceViolation {
+    HydraulicInputNotMeasured,
+    TurbineMapNotIndependentlyTestedOrGuaranteed,
+    GeneratorMapNotIndependentlyTestedOrGuaranteed,
+    BaselineWaterServiceNotMeasured,
+    CandidateWaterServiceNotMeasured,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EvidenceAssessment {
+    violations: Vec<EvidenceViolation>,
+}
+
+impl EvidenceAssessment {
+    pub fn violations(&self) -> &[EvidenceViolation] {
+        &self.violations
+    }
+
+    pub fn is_eligible_for_comparison(&self) -> bool {
+        self.violations.is_empty()
+    }
+}
+
+fn measured_or_telemetry(class: EvidenceClass) -> bool {
+    matches!(
+        class,
+        EvidenceClass::FieldMeasurement | EvidenceClass::OperatorTelemetry
+    )
+}
+
+fn independently_tested_or_guaranteed(class: EvidenceClass) -> bool {
+    matches!(
+        class,
+        EvidenceClass::LaboratoryModelTest | EvidenceClass::ManufacturerGuaranteedMap
+    )
+}
+
+fn assess_evidence(
+    hydraulic: &HydraulicInput,
+    turbine: &TurbineMapCell,
+    generator: &GeneratorModel,
+    baseline: &WaterServiceState,
+    candidate: &WaterServiceState,
+) -> EvidenceAssessment {
+    let mut violations = Vec::new();
+
+    if !measured_or_telemetry(hydraulic.evidence.evidence_class()) {
+        violations.push(EvidenceViolation::HydraulicInputNotMeasured);
+    }
+    if !independently_tested_or_guaranteed(turbine.evidence.evidence_class()) {
+        violations.push(EvidenceViolation::TurbineMapNotIndependentlyTestedOrGuaranteed);
+    }
+    if !independently_tested_or_guaranteed(generator.evidence.evidence_class()) {
+        violations.push(EvidenceViolation::GeneratorMapNotIndependentlyTestedOrGuaranteed);
+    }
+    if !measured_or_telemetry(baseline.evidence.evidence_class()) {
+        violations.push(EvidenceViolation::BaselineWaterServiceNotMeasured);
+    }
+    if !measured_or_telemetry(candidate.evidence.evidence_class()) {
+        violations.push(EvidenceViolation::CandidateWaterServiceNotMeasured);
+    }
+
+    EvidenceAssessment { violations }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ServiceViolation {
     DownstreamPressureBelowMinimum,
     DeliveryFlowBelowMinimum,
@@ -593,6 +659,7 @@ pub struct HydraulicGenerationResult {
     pub baseline_water_service: WaterServiceState,
     pub candidate_water_service: WaterServiceState,
     pub water_service: WaterServiceAssessment,
+    pub evidence_assessment: EvidenceAssessment,
     pub hydraulic_input_power: PowerWatts,
     pub turbine_shaft_power: PowerWatts,
     pub turbine_loss_power: PowerWatts,
@@ -606,8 +673,8 @@ pub struct HydraulicGenerationResult {
 impl HydraulicGenerationResult {
     /// Candidate net output is not service-eligible when the water-service gate fails.
     pub fn service_eligible_net_electrical_power(&self) -> Option<PowerWatts> {
-        self.water_service
-            .is_feasible()
+        (self.water_service.is_feasible()
+            && self.evidence_assessment.is_eligible_for_comparison())
             .then_some(self.net_candidate_electrical_power)
     }
 }
@@ -685,6 +752,7 @@ pub fn evaluate_hydraulic_generation(
         baseline_water_service: baseline_service,
         candidate_water_service: candidate_service,
         water_service,
+        evidence_assessment,
         hydraulic_input_power,
         turbine_shaft_power: PowerWatts::new(turbine_shaft_w)?,
         turbine_loss_power: PowerWatts::new(turbine_loss_w)?,
@@ -1169,6 +1237,67 @@ mod tests {
                 .contains(&ServiceViolation::EcologicalFlowRegressionExceeded)
         );
         assert!(result.service_eligible_net_electrical_power().is_none());
+    }
+
+    #[test]
+    fn scenario_hydraulic_input_cannot_receive_comparison_credit() {
+        let hydraulic = HydraulicInput::new(
+            evidence("SYNTHETIC-HYDRO-001", EvidenceClass::ScenarioAssumption),
+            WaterDensityKgPerM3::new(1_000.0).unwrap(),
+            FlowRateM3PerSecond::new(0.1).unwrap(),
+            HeadMetres::new(12.0).unwrap(),
+            HeadMetres::new(2.0).unwrap(),
+        )
+        .unwrap();
+        let result = evaluate_hydraulic_generation(
+            hydraulic,
+            turbine(),
+            generator(100.0),
+            service_contract(),
+            baseline_service(),
+            feasible_candidate_service(),
+        )
+        .unwrap();
+
+        assert!(result.water_service.is_feasible());
+        assert!(!result.evidence_assessment.is_eligible_for_comparison());
+        assert!(result
+            .evidence_assessment
+            .violations()
+            .contains(&EvidenceViolation::HydraulicInputNotMeasured));
+        assert!(result.credited_net_electrical_power().is_none());
+    }
+
+    #[test]
+    fn published_vendor_map_alone_does_not_qualify_comparison_credit() {
+        let turbine = TurbineMapCell::new(
+            "PAT-REFERENCE-001",
+            "rev-a",
+            "map-cell-10m-0.1m3s",
+            evidence("PAT-MAP-PUBLISHED-001", EvidenceClass::ManufacturerPublishedMap),
+            HeadMetres::new(5.0).unwrap(),
+            HeadMetres::new(15.0).unwrap(),
+            FlowRateM3PerSecond::new(0.05).unwrap(),
+            FlowRateM3PerSecond::new(0.2).unwrap(),
+            Efficiency::new(0.8).unwrap(),
+        )
+        .unwrap();
+        let result = evaluate_hydraulic_generation(
+            hydraulic_input(0.1, 12.0, 2.0),
+            turbine,
+            generator(100.0),
+            service_contract(),
+            baseline_service(),
+            feasible_candidate_service(),
+        )
+        .unwrap();
+
+        assert!(result.water_service.is_feasible());
+        assert!(!result.evidence_assessment.is_eligible_for_comparison());
+        assert!(result.evidence_assessment.violations().contains(
+            &EvidenceViolation::TurbineMapNotIndependentlyTestedOrGuaranteed
+        ));
+        assert!(result.credited_net_electrical_power().is_none());
     }
 
     #[test]
