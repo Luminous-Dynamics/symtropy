@@ -111,7 +111,7 @@ pub struct JointPredictiveDraw {
     pub components: Vec<JointComponentValue>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct JointMetricConfig {
     /// Energy-score exponent, constrained to (0, 2).
     pub energy_beta: f64,
@@ -398,7 +398,7 @@ pub fn assess_joint_predictive_draws(
         });
     }
 
-    let component_residuals_standardized = statistic
+    let component_residuals_standardized: Vec<(String, f64)> = statistic
         .components
         .iter()
         .enumerate()
