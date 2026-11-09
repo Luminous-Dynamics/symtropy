@@ -601,6 +601,7 @@ mod tests {
         assert!(first.iter().all(|row| row.predictive_p_value < 1.0));
         assert!(first.iter().all(|row| row.predictive_draw_count == 5));
         assert!(first.iter().all(|row| row.calibration_data_digest == "sha256-calibration"));
+        assert!(first.iter().all(|row| row.split_manifest_digest == "sha256-manifest"));
     }
 
     #[test]
@@ -628,6 +629,23 @@ mod tests {
                 "basin-water-flow", "region-a", SpcTail::Lower, 42
             ),
             Err(SplitPredictiveError::CalibrationRoleNotAllowed)
+        ));
+    }
+
+    #[test]
+    fn single_spc_rejects_predictive_draws_from_a_different_calibration_split() {
+        let mut foreign_draws = draws();
+        for row in &mut foreign_draws {
+            row.calibration_data_digest = Some("sha256-foreign-calibration".to_string());
+        }
+        assert!(matches!(
+            single_split_predictive_check(
+                &registry(), &manifest(), &observations(), &foreign_draws,
+                SplitRole::Validation, "basin-water-flow", "region-a", SpcTail::Lower, 42
+            ),
+            Err(SplitPredictiveError::Adequacy(
+                AdequacyError::CalibrationDigestMismatch { .. }
+            ))
         ));
     }
 
@@ -662,6 +680,8 @@ mod tests {
         ).expect("replayed divided SPC");
         assert_eq!(first, second);
         assert_eq!(first.unit_count, 3);
+        assert_eq!(first.sample_size, 10);
+        assert_eq!(first.split_manifest_digest, "sha256-manifest");
         assert_eq!(first.monte_carlo_replicates, 999);
         assert!(first.uniformity_p_value > 0.0 && first.uniformity_p_value <= 1.0);
     }
