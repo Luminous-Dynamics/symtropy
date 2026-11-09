@@ -28,7 +28,14 @@ fn component(
     }
 }
 
-fn fixture() -> (JointStatisticSpec, SplitManifest, JointObservation, JointMetricConfig) {
+struct JointFixture {
+    statistic: JointStatisticSpec,
+    manifest: SplitManifest,
+    observation: JointObservation,
+    config: JointMetricConfig,
+}
+
+fn fixture() -> JointFixture {
     let statistic = JointStatisticSpec {
         id: "district-water-energy-state".to_string(),
         source_family: "synthetic-district-resource-source".to_string(),
@@ -85,7 +92,12 @@ fn fixture() -> (JointStatisticSpec, SplitManifest, JointObservation, JointMetri
         pair_weights: vec![1.0],
     };
 
-    (statistic, manifest, observation, config)
+    JointFixture {
+        statistic,
+        manifest,
+        observation,
+        config,
+    }
 }
 
 fn predictive_draws(
@@ -173,7 +185,7 @@ fn emit_candidate(
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let (statistic, manifest, observation, config) = fixture();
+    let fixture = fixture();
     println!(
         "candidate,record_type,statistic_id,unit_id,independent_unit_kind,sample_size,predictive_draws,energy_beta,energy_score,variogram_power,variogram_score,component_a,component_b,pair_weight,observed_pair_distance,predictive_pair_distance,weighted_contribution,model_digest,draw_set_digest,source_digest,observation_digest,calibration_digest,split_manifest_digest"
     );
@@ -195,7 +207,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         },
     ];
     for candidate in &candidates {
-        emit_candidate(candidate, &statistic, &manifest, &observation, &config)?;
+        emit_candidate(
+            candidate,
+            &fixture.statistic,
+            &fixture.manifest,
+            &fixture.observation,
+            &fixture.config,
+        )?;
     }
     Ok(())
 }
