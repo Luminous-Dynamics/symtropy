@@ -75,15 +75,15 @@ As checked 2026-11-09:
 |---|---|---|
 | MuJoCo | 4.0.0 (2026-11-06) | Speculative convex contacts for tunnelling resistance; stateful ideal and continuum elasto-plasticity. Record exact contact mode and plastic state. |
 | Isaac Lab | 3.0.0 GA (2026-10-20) | Task API spans multiple physics/render backends. Pin the selected backend independently of the Isaac Lab release. |
-| Newton | 1.6.0 | GPU/multi-solver ecosystem; pin solver path, Warp/CUDA, model importer and feature flags. |
-| Project Chrono | 10.0.0 (2026-03-27) | Broad multibody, vehicle, FSI and peridynamics scope. Select a task-specific module and model path. |
+| Newton | 1.7.0 (2026-10-14) | GPU/multi-solver ecosystem; pin solver path, Warp/CUDA, model importer/options, damping mode, angular-unit compatibility flags, joint-reference conventions and MPM material scaling. |
+| Project Chrono | 10.0.0 (2026-04-07) | Broad multibody, vehicle, FSI and peridynamics scope. Select a task-specific module and model path. |
 | Rapier | 0.18.0 in the current Symtropy bridge manifest | Preserve old evidence under 0.18.0; compare newer versions in a separate lane. |
 
 References:
 - [MuJoCo 4.0.0 changelog](https://mujoco.readthedocs.io/en/4.0.0/changelog.html)
 - [Isaac Lab releases](https://github.com/isaac-sim/IsaacLab/releases)
-- [Newton releases](https://github.com/newton-physics/newton/releases)
-- [Project Chrono 10.0.0 announcement](https://projectchrono.org/news/)
+- [Newton 1.7.0 release](https://github.com/newton-physics/newton/releases/tag/v1.7.0)
+- [Project Chrono 10.0.0 release](https://github.com/projectchrono/chrono/releases/tag/10.0.0)
 - [FMI 3.0.2 specification](https://fmi-standard.org/docs/3.0.2/)
 
 ## 6. First negative controls
