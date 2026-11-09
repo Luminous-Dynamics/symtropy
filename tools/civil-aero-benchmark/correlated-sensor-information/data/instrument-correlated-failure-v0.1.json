@@ -1,0 +1,232 @@
+{
+  "schema_version": "aero-correlated-sensor-information/0.1.0",
+  "problem_id": "aer01-six-channel-correlated-common-cause-regression-001",
+  "claim_ceiling": "synthetic_correlated_fisher_observability_only",
+  "model_assumptions": {
+    "parameter_names": [
+      "theta_x",
+      "theta_y"
+    ],
+    "observation_model": "linear_scalar_gain_times_static_sensitivity",
+    "noise_model": "correlated_zero_mean_gaussian_covariance",
+    "sensitivity_units": "dimensionless_normalized",
+    "covariance_units": "normalized_output_squared",
+    "operating_point_id": "synthetic_quasistatic_reference",
+    "dynamic_transfer_function_status": "NOT_ASSESSED",
+    "physical_aircraft_model": false
+  },
+  "constraints": {
+    "d_opt_sensor_count": 4,
+    "e_opt_sensor_count": 4,
+    "robust_e_opt_sensor_count": 4,
+    "sensor_dropout_budget": 1,
+    "common_cause_group_dropout": true,
+    "minimum_robust_minimum_eigenvalue": 1.5
+  },
+  "sensors": [
+    {
+      "sensor_id": "S_A",
+      "sensor_type": "strain_gauge",
+      "sensitivity": [
+        1,
+        0
+      ],
+      "operator_gain": 1,
+      "operator_status": "ADMITTED",
+      "operator_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "calibration_status": "VALID",
+      "common_cause_group": "PWR_X",
+      "deployment_cost_units": 1,
+      "mass_g": 10,
+      "power_mw": 2
+    },
+    {
+      "sensor_id": "S_B",
+      "sensor_type": "strain_gauge",
+      "sensitivity": [
+        1,
+        0
+      ],
+      "operator_gain": 1,
+      "operator_status": "ADMITTED",
+      "operator_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "calibration_status": "VALID",
+      "common_cause_group": "PWR_X",
+      "deployment_cost_units": 1.2,
+      "mass_g": 13,
+      "power_mw": 3
+    },
+    {
+      "sensor_id": "S_C",
+      "sensor_type": "strain_gauge",
+      "sensitivity": [
+        0,
+        1
+      ],
+      "operator_gain": 1,
+      "operator_status": "ADMITTED",
+      "operator_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "calibration_status": "VALID",
+      "common_cause_group": "PWR_Y",
+      "deployment_cost_units": 1.4,
+      "mass_g": 16,
+      "power_mw": 4
+    },
+    {
+      "sensor_id": "S_D",
+      "sensor_type": "strain_gauge",
+      "sensitivity": [
+        0,
+        1
+      ],
+      "operator_gain": 1,
+      "operator_status": "ADMITTED",
+      "operator_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "calibration_status": "VALID",
+      "common_cause_group": "PWR_Y",
+      "deployment_cost_units": 1.6,
+      "mass_g": 19,
+      "power_mw": 5
+    },
+    {
+      "sensor_id": "S_E",
+      "sensor_type": "strain_gauge",
+      "sensitivity": [
+        0.82,
+        0.82
+      ],
+      "operator_gain": 1,
+      "operator_status": "ADMITTED",
+      "operator_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+      "calibration_status": "VALID",
+      "common_cause_group": "PWR_Z",
+      "deployment_cost_units": 1.8,
+      "mass_g": 22,
+      "power_mw": 6
+    },
+    {
+      "sensor_id": "S_F",
+      "sensor_type": "strain_gauge",
+      "sensitivity": [
+        0.82,
+        -0.82
+      ],
+      "operator_gain": 1,
+      "operator_status": "ADMITTED",
+      "operator_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+      "calibration_status": "VALID",
+      "common_cause_group": "PWR_Z",
+      "deployment_cost_units": 2,
+      "mass_g": 25,
+      "power_mw": 7
+    }
+  ],
+  "noise_covariance": {
+    "channel_ids": [
+      "S_A",
+      "S_B",
+      "S_C",
+      "S_D",
+      "S_E",
+      "S_F"
+    ],
+    "units": "normalized_output_squared",
+    "evidence_status": "synthetic_reference_only",
+    "matrix": [
+      [
+        0.2,
+        0.11,
+        0.016,
+        0.016,
+        0.019595917942265,
+        0.019595917942265
+      ],
+      [
+        0.11,
+        0.2,
+        0.016,
+        0.016,
+        0.019595917942265,
+        0.019595917942265
+      ],
+      [
+        0.016,
+        0.016,
+        0.2,
+        0.11,
+        0.019595917942265,
+        0.019595917942265
+      ],
+      [
+        0.016,
+        0.016,
+        0.11,
+        0.2,
+        0.019595917942265,
+        0.019595917942265
+      ],
+      [
+        0.019595917942265,
+        0.019595917942265,
+        0.019595917942265,
+        0.019595917942265,
+        0.3,
+        0.165
+      ],
+      [
+        0.019595917942265,
+        0.019595917942265,
+        0.019595917942265,
+        0.019595917942265,
+        0.165,
+        0.3
+      ]
+    ]
+  },
+  "expected": {
+    "diagonal_e_opt_sensor_ids": [
+      "S_A",
+      "S_B",
+      "S_C",
+      "S_D"
+    ],
+    "diagonal_e_opt_minimum_eigenvalue": 10,
+    "correlated_d_opt_sensor_ids": [
+      "S_A",
+      "S_C",
+      "S_E",
+      "S_F"
+    ],
+    "correlated_d_opt_determinant": 110.06839252299024,
+    "correlated_e_opt_sensor_ids": [
+      "S_A",
+      "S_B",
+      "S_E",
+      "S_F"
+    ],
+    "correlated_e_opt_minimum_eigenvalue": 8.542911483435997,
+    "robust_d_opt_sensor_ids": [
+      "S_A",
+      "S_C",
+      "S_E",
+      "S_F"
+    ],
+    "robust_d_opt_worst_case_log_determinant": 3.2252963926711233,
+    "robust_e_opt_sensor_ids": [
+      "S_A",
+      "S_C",
+      "S_E",
+      "S_F"
+    ],
+    "robust_e_opt_worst_case_minimum_eigenvalue": 2.9060881776439027,
+    "minimum_cost_robust_sensor_ids": [
+      "S_A",
+      "S_C",
+      "S_E"
+    ],
+    "minimum_cost_robust_worst_case_minimum_eigenvalue": 1.5036392172580708,
+    "minimum_cost_robust_total_deployment_cost_units": 4.2,
+    "minimum_cost_robust_total_mass_g": 48,
+    "minimum_cost_robust_total_power_mw": 12
+  }
+}
