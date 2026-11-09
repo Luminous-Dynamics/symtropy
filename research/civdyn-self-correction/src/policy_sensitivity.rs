@@ -1604,6 +1604,159 @@ mod tests {
         assert_eq!(out_of_domain.adequacy_receipt_digest, "");
     }
 
+    fn pareto_tolerances() -> BTreeMap<String, f64> {
+        BTreeMap::from([
+            ("essential-service".to_string(), 0.0),
+            ("ecological-integrity".to_string(), 0.0),
+        ])
+    }
+
+    #[test]
+    fn pareto_frontier_applies_constraints_before_multimetric_dominance() {
+        let report = evaluate_pareto_frontiers(
+            &models(),
+            &policies(),
+            &metrics(),
+            &fixture_outcomes(),
+            &pareto_tolerances(),
+        )
+        .expect("valid Pareto fixture");
+
+        let baseline = report
+            .policy_summaries
+            .iter()
+            .find(|row| row.policy_id == "baseline")
+            .expect("baseline Pareto summary");
+        let conserve = report
+            .policy_summaries
+            .iter()
+            .find(|row| row.policy_id == "conserve")
+            .expect("conserve Pareto summary");
+        let expand = report
+            .policy_summaries
+            .iter()
+            .find(|row| row.policy_id == "expand")
+            .expect("expand Pareto summary");
+
+        assert!(baseline.robustly_feasible);
+        assert!(baseline.robustly_pareto_efficient);
+        assert!(conserve.robustly_feasible);
+        assert!(conserve.robustly_pareto_efficient);
+        assert_eq!(expand.feasible_model_count, 1);
+        assert_eq!(expand.efficient_model_count, 0);
+        assert!(!expand.robustly_feasible);
+        assert!(!expand.robustly_pareto_efficient);
+
+        let world_a_expand = report
+            .memberships
+            .iter()
+            .find(|row| row.model_id == "world-a" && row.policy_id == "expand")
+            .expect("world-a expansion membership");
+        assert!(!world_a_expand.feasible);
+        assert!(!world_a_expand.pareto_efficient);
+        assert!(world_a_expand.dominated_by.is_empty());
+
+        let world_b_expand = report
+            .memberships
+            .iter()
+            .find(|row| row.model_id == "world-b" && row.policy_id == "expand")
+            .expect("world-b expansion membership");
+        assert!(world_b_expand.feasible);
+        assert!(!world_b_expand.pareto_efficient);
+        assert_eq!(world_b_expand.dominated_by, vec!["conserve".to_string()]);
+    }
+
+    #[test]
+    fn native_unit_tolerances_prevent_false_strict_dominance() {
+        let tolerance = BTreeMap::from([
+            ("essential-service".to_string(), 100.0),
+            ("ecological-integrity".to_string(), 100.0),
+        ]);
+        let report = evaluate_pareto_frontiers(
+            &models(),
+            &policies(),
+            &metrics(),
+            &fixture_outcomes(),
+            &tolerance,
+        )
+        .expect("valid tolerance fixture");
+
+        for row in report
+            .memberships
+            .iter()
+            .filter(|row| row.model_id == "world-b" && row.feasible)
+        {
+            assert!(row.pareto_efficient);
+            assert!(row.dominated_by.is_empty());
+        }
+        assert_eq!(
+            report.dominance_tolerances,
+            vec![
+                ("essential-service".to_string(), 100.0),
+                ("ecological-integrity".to_string(), 100.0),
+            ]
+        );
+    }
+
+    #[test]
+    fn Pareto_frontier_inherits_exploratory_claim_ceiling_from_adequacy() {
+        let report = evaluate_pareto_frontiers(
+            &models_with_discrepancy(),
+            &policies(),
+            &metrics(),
+            &fixture_outcomes(),
+            &pareto_tolerances(),
+        )
+        .expect("valid exploratory Pareto fixture");
+        assert_eq!(report.claim_ceiling, ModelSetClaimCeiling::ExploratoryOnly);
+        assert_eq!(
+            report.models_with_unqualified_adequacy,
+            vec!["world-b".to_string()]
+        );
+    }
+
+    #[test]
+    fn Pareto_frontier_requires_one_valid_tolerance_per_objective() {
+        let mut missing = pareto_tolerances();
+        missing.remove("ecological-integrity");
+        assert!(matches!(
+            evaluate_pareto_frontiers(
+                &models(),
+                &policies(),
+                &metrics(),
+                &fixture_outcomes(),
+                &missing
+            ),
+            Err(PolicySensitivityError::MissingParetoTolerance { .. })
+        ));
+
+        let mut negative = pareto_tolerances();
+        negative.insert("essential-service".to_string(), -0.1);
+        assert!(matches!(
+            evaluate_pareto_frontiers(
+                &models(),
+                &policies(),
+                &metrics(),
+                &fixture_outcomes(),
+                &negative
+            ),
+            Err(PolicySensitivityError::InvalidParetoTolerance { .. })
+        ));
+
+        let mut unknown = pareto_tolerances();
+        unknown.insert("water-withdrawal".to_string(), 0.0);
+        assert!(matches!(
+            evaluate_pareto_frontiers(
+                &models(),
+                &policies(),
+                &metrics(),
+                &fixture_outcomes(),
+                &unknown
+            ),
+            Err(PolicySensitivityError::UnknownParetoToleranceMetric { .. })
+        ));
+    }
+
     #[test]
     fn bounded_model_set_qualification_does_not_mean_real_world_validation() {
         let report = evaluate(&models(), &fixture_outcomes()).expect("valid fixture");
