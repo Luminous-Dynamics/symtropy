@@ -12,7 +12,8 @@
 use core::fmt;
 use std::collections::{BTreeMap, BTreeSet};
 
-use civdyn_resource_ledger::{Resource, StepReport};
+pub use civdyn_resource_ledger::Resource;
+use civdyn_resource_ledger::StepReport;
 
 const RESOURCES: [Resource; 3] = [Resource::Water, Resource::Energy, Resource::Food];
 const ABSOLUTE_TOLERANCE: f64 = 1e-9;
