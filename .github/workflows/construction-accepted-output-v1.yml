@@ -1,0 +1,88 @@
+name: Construction Accepted Output V1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "research/construction-accepted-output-v0-1/**"
+      - ".github/workflows/construction-accepted-output-v1.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: construction-accepted-output-v1-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Accepted output ledger (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - name: Verify committed package lockfile
+        run: cargo metadata --manifest-path research/construction-accepted-output-v0-1/Cargo.toml --locked --format-version 1
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/construction-accepted-output-v0-1/Cargo.toml -- --check
+      - name: Run unit and contract tests
+        run: cargo test --manifest-path research/construction-accepted-output-v0-1/Cargo.toml --locked
+      - name: Run deterministic accepted-output oracle
+        run: cargo run --manifest-path research/construction-accepted-output-v0-1/Cargo.toml --locked
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path research/construction-accepted-output-v0-1/Cargo.toml --locked --all-targets -- -D warnings
+      - name: Export package lockfile
+        uses: actions/upload-artifact@v4
+        with:
+          name: construction-accepted-output-cargo-lock-${{ matrix.os }}
+          path: research/construction-accepted-output-v0-1/Cargo.lock
+          if-no-files-found: error
+          retention-days: 7
+
+  commit_lockfile:
+    name: Commit exact package lockfile after matrix qualification (package file only)
+    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'research/construction-accepted-output-v0-1' }}
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
+      - name: Download Ubuntu-generated package lockfile
+        uses: actions/download-artifact@v4
+        with:
+          name: construction-accepted-output-cargo-lock-ubuntu-latest
+          path: /tmp/accepted-output-lock
+      - name: Commit the package lockfile and pin lock verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          package="research/construction-accepted-output-v0-1"
+          generated="/tmp/accepted-output-lock/Cargo.lock"
+          committed="$package/Cargo.lock"
+          test -f "$generated"
+          if test -f "$committed"; then
+            if cmp -s "$generated" "$committed"; then
+              echo "committed package lockfile matches the generated artifact"
+              exit 0
+            fi
+            echo "committed package lockfile differs from the generated artifact" >&2
+            exit 1
+          fi
+          cp "$generated" "$committed"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$committed"
+          git commit -m "build(research): pin accepted-output package dependencies"
+          git push origin "HEAD:refs/heads/${GITHUB_HEAD_REF}"
