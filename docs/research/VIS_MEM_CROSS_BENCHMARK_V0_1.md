@@ -516,6 +516,43 @@ Paper-reported results:
 
 **Physical-evaluation limitation:** the paper reports 10 trials per method per task on three count-conditioned banana-transfer variants using a Galbot G1 in a fixed-base configuration. The base did not navigate between rooms; the robot rotated its waist between pickup and placement tables. These results are strong motivation for progress-aware memory, but are not evidence of mobile navigation, diverse-object transfer, multi-site reliability, or production readiness.
 
+### MOST representation ablation: what the memory must contain
+
+The paper's Table 4 provides a more actionable controlled study on its RoboCasa365 Target-100% Composite-Seen split (16 tasks):
+
+| Memory representation | Success | MC@25 | MC@50 | MC@75 | Max progress | PPL | OPS | UPS |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| No memory (XR-1) | 57.91 | 90.83 | 84.37 | 70.41 | 79.48 | 63.55 | 74.83 | 84.56 |
+| Visual history (MOST-Raw) | 63.33 | 90.62 | 85.00 | 73.95 | 81.68 | 65.06 | 76.67 | 86.82 |
+| Current task state only | 56.45 | 89.37 | 81.66 | 68.54 | 77.50 | 61.35 | 72.24 | 83.00 |
+| Task-state history | 65.20 | 91.04 | 84.79 | 75.83 | 82.18 | 66.23 | 77.88 | 86.67 |
+| Subtask trajectory only | 67.08 | 92.91 | 86.45 | 76.66 | 83.67 | 67.88 | 79.25 | 88.02 |
+| Object-state trajectory only | 66.04 | 92.70 | 87.08 | 76.66 | 83.67 | 68.09 | 79.31 | 86.87 |
+| Task-state trajectory (MOST) | 68.75 | 94.79 | 89.16 | 80.20 | 85.88 | 68.50 | 82.09 | 89.37 |
+
+Values are percent; PPL = path-weighted progress length; OPS/UPS = ordered/unordered progress score. These are paper-reported metrics under its own matched protocol, not Symtropy results and not a direct comparison with the independently maintained RoboCasa365 public board.
+
+The result is not simply "more memory is better":
+- A current-state-only representation underperforms the no-memory baseline on terminal success.
+- Raw visual history helps, but explicit task-state history does better.
+- Subtask trajectory and object-state trajectory each help, and their combination with future-state queries performs best in this ablation.
+- This is a representation study in one benchmark split; it is not a universal ordering across embodiments, environments or memory budgets.
+
+The RoboCasa-Long experiment further illustrates why terminal success and progress must remain separate. Across its three simulated tasks, MOST's average terminal success is 6.66% (XR-1 and MOST-Raw are both 0%), while maximum task progress rises from 20.83% to 42.22%. This is a substantial progress result but still low full-task completion; it must not be described as reliable task completion.
+
+**VIS-MEM test implication:** extend the existing memory-intervention suite to include these *representation-level controls*, not just memory on/off:
+1. current-state snapshot only;
+2. temporal task-state history;
+3. subtask trajectory only;
+4. object-state trajectory only;
+5. combined task-state trajectory / predictive query;
+6. raw visual history at matched context and compute budget.
+
+For each, evaluate both terminal success and progress / ordered execution. Then perform causal interventions on individual entries: remove or stale a completed subtask, alter one object's last verified state, insert a contradictory observation, and perturb only irrelevant history. A correct system should be sensitive to the relevant history, invariant to irrelevant history, and abstain/re-observe when it cannot resolve a conflict. The acting policy must never receive future evaluator constraints or state unavailable from its own permitted observations.
+
+Source: https://arxiv.org/abs/2611.00734 (paper sections 4.2–4.5; Table 4 and discussion).
+
+
 **Comparability limitation:** the paper's RoboCasa365 average is not the same evaluation protocol as the public RoboCasa365 50-task leaderboard snapshot. Do not compare MOST's 72.1% directly with that board's 85.6% top score. Freeze exact tasks, checkpoints, seeds, evaluators and training data before any matched claim.
 
 ### New benchmark: RoboCasa-Mem — environment and process memory
