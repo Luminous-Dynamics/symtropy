@@ -1,0 +1,9 @@
+[package]
+name = "loco-fault-adapt"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Matched fault adaptation benchmark evidence auditor"
+
+[workspace]
