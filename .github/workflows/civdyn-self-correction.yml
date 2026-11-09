@@ -24,6 +24,19 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy,rustfmt
+      - name: Snapshot rustfmt-normalized source (temporary research aid)
+        run: |
+          set -euo pipefail
+          cargo fmt --manifest-path research/civdyn-self-correction/Cargo.toml --all
+          printf '\nRUSTFMT_START:research/civdyn-self-correction/src/joint_adequacy.rs\n'
+          base64 -w0 'research/civdyn-self-correction/src/joint_adequacy.rs'
+          printf '\nRUSTFMT_END:research/civdyn-self-correction/src/joint_adequacy.rs\n'
+          printf '\nRUSTFMT_START:research/civdyn-self-correction/src/bin/joint_adequacy_sweep.rs\n'
+          base64 -w0 'research/civdyn-self-correction/src/bin/joint_adequacy_sweep.rs'
+          printf '\nRUSTFMT_END:research/civdyn-self-correction/src/bin/joint_adequacy_sweep.rs\n'
+          printf '\nRUSTFMT_START:research/civdyn-self-correction/src/lib.rs\n'
+          base64 -w0 'research/civdyn-self-correction/src/lib.rs'
+          printf '\nRUSTFMT_END:research/civdyn-self-correction/src/lib.rs\n'
       - name: Check formatting
         run: cargo fmt --manifest-path research/civdyn-self-correction/Cargo.toml --all -- --check
       - name: Run strict Clippy
