@@ -584,6 +584,13 @@ def expect_rejected(label: str, action) -> None:
 
 
 def hostile_controls(data: dict[str, Any], source_bytes: bytes) -> None:
+    impossible = copy.deepcopy(data)
+    impossible["constraints"]["minimum_robust_minimum_eigenvalue"] = 1.0e9
+    require(
+        minimum_cost_robust_selection(impossible) is None,
+        "unreachable information threshold must return no selected design",
+    )
+
     bad = copy.deepcopy(data)
     bad["noise_covariance"]["matrix"][0][1] = 0.1
     expect_rejected("asymmetric_covariance", lambda: compute(bad, source_bytes))
