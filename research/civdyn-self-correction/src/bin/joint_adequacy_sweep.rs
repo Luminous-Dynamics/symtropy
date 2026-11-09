@@ -88,7 +88,6 @@ fn fixture() -> (JointStatisticSpec, SplitManifest, JointObservation, JointMetri
 }
 
 fn predictive_draws(
-    candidate: &str,
     model_digest: &str,
     draw_set_digest: &str,
     values: [[f64; 2]; 2],
@@ -122,7 +121,7 @@ fn emit_candidate(
     observation: &JointObservation,
     config: &JointMetricConfig,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let draws = predictive_draws(candidate, model_digest, draw_set_digest, values);
+    let draws = predictive_draws(model_digest, draw_set_digest, values);
     let result = assess_joint_predictive_draws(
         statistic,
         manifest,
@@ -141,9 +140,9 @@ fn emit_candidate(
             result.independent_unit_kind.name().to_string(),
             result.sample_size.to_string(),
             result.predictive_draw_count.to_string(),
-            format!("{:.6}", result.energy_beta),
-            format!("{:.8}", result.energy_score),
-            format!("{:.6}", result.variogram_power),
+            format!("{energy_beta:.6}", energy_beta = result.energy_beta),
+            format!("{energy_score:.8}", energy_score = result.energy_score),
+            format!("{variogram_power:.6}", variogram_power = result.variogram_power),
             format!("{:.8}", result.variogram_score),
             pair.component_a.clone(),
             pair.component_b.clone(),
