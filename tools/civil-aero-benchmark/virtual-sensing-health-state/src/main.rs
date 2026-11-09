@@ -28,8 +28,8 @@ struct Policy {
     maximum_faulty_channels: usize,
     minimum_consistent_channels: usize,
     absolute_residual_tolerance: f64,
-    correction_requires_unique_structural_state: bool,
-    damage_clearance_from_correction_prohibited: bool,
+    reconstruction_requires_unique_joint_hypothesis: bool,
+    damage_clearance_from_reconstruction_prohibited: bool,
     fault_confirmation_requires_independent_witness: bool,
     raw_measurements_immutable: bool,
     reconstruction_is_not_measurement: bool,
@@ -59,7 +59,7 @@ struct CaseExpected {
     disposition: String,
     structural_state: Option<String>,
     faulty_sensor_ids: Vec<String>,
-    post_correction_structural_state: Option<String>,
+    post_reconstruction_structural_state: Option<String>,
     damage_preserved: Option<bool>,
 }
 
@@ -97,7 +97,7 @@ struct CaseResult {
     reconstructed_sensor_ids: Vec<String>,
     reconstruction_status: String,
     sensor_fault_confirmation: String,
-    post_correction_structural_state: Option<String>,
+    post_reconstruction_structural_state: Option<String>,
     damage_preserved: Option<bool>,
     claim_ceiling: String,
 }
@@ -198,8 +198,8 @@ fn validate_fixture(fixture: &Fixture) -> Result<(), String> {
         || fixture.policy.minimum_consistent_channels > fixture.channels.len()
         || !fixture.policy.absolute_residual_tolerance.is_finite()
         || fixture.policy.absolute_residual_tolerance <= 0.0
-        || !fixture.policy.correction_requires_unique_structural_state
-        || !fixture.policy.damage_clearance_from_correction_prohibited
+        || !fixture.policy.reconstruction_requires_unique_joint_hypothesis
+        || !fixture.policy.damage_clearance_from_reconstruction_prohibited
         || !fixture.policy.fault_confirmation_requires_independent_witness
         || !fixture.policy.raw_measurements_immutable
         || !fixture.policy.reconstruction_is_not_measurement
@@ -323,7 +323,7 @@ fn abstain(
         reconstructed_sensor_ids: Vec::new(),
         reconstruction_status: "NOT_PERFORMED".to_owned(),
         sensor_fault_confirmation: sensor_fault_confirmation.to_owned(),
-        post_correction_structural_state: None,
+        post_reconstruction_structural_state: None,
         damage_preserved: None,
         claim_ceiling: CLAIM_CEILING.to_owned(),
     }
@@ -459,7 +459,7 @@ fn evaluate_case(fixture: &Fixture, case: &CaseInput) -> CaseResult {
         } else {
             "INDEPENDENT_WITNESS_CONFIRMED".to_owned()
         },
-        post_correction_structural_state: Some(structural_state.to_owned()),
+        post_reconstruction_structural_state: Some(structural_state.to_owned()),
         damage_preserved: Some(structural_state == "DAMAGED"),
         claim_ceiling: CLAIM_CEILING.to_owned(),
     }
@@ -516,8 +516,8 @@ mod tests {
             assert_eq!(actual.structural_state, expected.expected.structural_state, "{}", actual.case_id);
             assert_eq!(actual.faulty_sensor_ids, expected.expected.faulty_sensor_ids, "{}", actual.case_id);
             assert_eq!(
-                actual.post_correction_structural_state,
-                expected.expected.post_correction_structural_state,
+                actual.post_reconstruction_structural_state,
+                expected.expected.post_reconstruction_structural_state,
                 "{}",
                 actual.case_id
             );
@@ -537,7 +537,7 @@ mod tests {
         assert_eq!(df.structural_state.as_deref(), Some("DAMAGED"));
         assert_eq!(df.faulty_sensor_ids, vec!["S2"]);
         assert_eq!(
-            df.post_correction_structural_state.as_deref(),
+            df.post_reconstruction_structural_state.as_deref(),
             Some("DAMAGED")
         );
         assert_eq!(df.damage_preserved, Some(true));
@@ -672,7 +672,7 @@ mod tests {
         assert!(validate_fixture(&data).is_err());
 
         let mut data = fixture();
-        data.policy.damage_clearance_from_correction_prohibited = false;
+        data.policy.damage_clearance_from_reconstruction_prohibited = false;
         assert!(validate_fixture(&data).is_err());
     }
 }
