@@ -10,7 +10,7 @@ ESCP lets a provider advertise a versioned energy-service offer independently of
 
 One offer evidence row per receipt. Multiple rows with the same profile ID repeat identical profile metadata and contribute separate evidence roles. Exact TSV header:
 
-    profile_id provider_id profile_version bearer field_regime receiver_hardware_sha256 receiver_geometry_sha256 coordinate_frame_sha256 supported_motion_states supported_environment_strata session_modes evidence_role receipt_id receipt_sha256 evidence_class disposition valid_until_us
+    profile_id provider_id profile_version bearer field_regime receiver_hardware_sha256 receiver_geometry_sha256 coordinate_frame_sha256 supported_motion_states supported_environment_strata session_modes evidence_role receipt_id receipt_sha256 evidence_class review_status disposition valid_until_us
 
 Bearer: CONDUCTIVE, IPT, CPT, BATTERY_EXCHANGE, RF_MICROWAVE, OPTICAL, POWER_LINE.
 
@@ -18,7 +18,7 @@ Field regime: CONTACT, NEAR_FIELD, FAR_FIELD, ENERGY_CARRIER, NOT_APPLICABLE.
 
 Motion state and session mode are explicit, never inferred from bearer. Supported sets are semicolon-delimited exact identifiers. A profile cannot declare an unknown wildcard.
 
-Evidence class and disposition are separate. DECLARED_ONLY is not evidence-backed. Blocking dispositions include AMBIGUOUS, STALE, OUT_OF_DOMAIN, UNKNOWN, REVOKED, NOT_ADMITTED and NOT_EVALUATED. An issuer declaration does not verify its own receipt digest; artifact resolution and independent verification remain with upstream owners and GroundAirBench.
+Evidence class, review status and disposition are separate. Review status is NOT_REVIEWED or INDEPENDENTLY_REVIEWED; it does not replace the measurement evidence class. An independent review is represented by a distinct INDEPENDENT_REVIEW receipt role. DECLARED_ONLY is not evidence-backed. Blocking dispositions include AMBIGUOUS, STALE, OUT_OF_DOMAIN, UNKNOWN, REVOKED, NOT_ADMITTED and NOT_EVALUATED. An issuer declaration does not verify its own receipt digest; artifact resolution and independent verification remain with upstream owners and GroundAirBench.
 
 ## Receiver demand descriptor
 
@@ -36,7 +36,7 @@ If a profile only has DECLARED_ONLY evidence for a required role, its output is 
 - DECLARED_ONLY: declarative compatibility exists but evidence is absent/declared-only or below the requested tier.
 - MATCH_SYNTHETIC_ONLY, MATCH_SIMULATED, MATCH_BENCH, MATCH_FIELD: every required role has nonblocking evidence and the weakest measurement tier meets the request.
 
-INDEPENDENTLY_REVIEWED is orthogonal; if requested, a distinct receipt with that class must be present. Match output never means operational authorization.
+INDEPENDENTLY_REVIEWED is orthogonal; if requested, a distinct INDEPENDENT_REVIEW receipt must have review_status INDEPENDENTLY_REVIEWED and a non-blocking qualified disposition. Match output never means operational authorization.
 
 ## Claim ceiling
 
