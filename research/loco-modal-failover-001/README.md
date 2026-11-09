@@ -158,3 +158,48 @@ Do not combine OOD classification, physical viability, recovery and task success
 ## Claim ceiling
 
 V0 qualifies finite evidence-mode state transitions and admission semantics over supplied upstream health and viability results. It does not validate OOD detector accuracy, physical transition abstractions, continuous-time safety, hardware sensor reliability or robot-level superiority. Hardware qualification must separately validate detectors, actuator models, transitions and the full adverse-event taxonomy.
+
+
+## 11. Executable finite Rust V0 reference
+
+The standalone dependency-free crate consumes:
+- typed per-channel health evidence with calibration/clock/common-cause identities and acquisition/arrival/freshness times;
+- a declared complete-set receipt for the possible sensor-health signatures;
+- the complete set of signatures still physically possible under the upstream health interpreter;
+- one independent robust transition receipt per possible signature;
+- current/target mode and rank, actuator, state/model/abstraction/domain, transition identity and timing;
+- a preferred fallback action that must be admitted for every possible signature.
+
+The Rust reference:
+- rejects stale/future/duplicate health evidence;
+- requires every possible signature to include the same canonical sensor-channel inventory as the source health evidence;
+- requires a fresh complete-set receipt matching the health evidence, signature-set, state/model/domain and actuator identities;
+- requires exactly one transition receipt for every possible signature and rejects foreign/extra receipt keys;
+- validates each transition receipt against the exact signature representation, mode, state/model/domain/actuator, action, horizon and validity interval;
+- stops on any Rejected or Unknown physical signature;
+- computes the intersection of action IDs admitted across all possible signatures;
+- permits the preferred action only when it belongs to that full intersection;
+- enforces transition deadline and blocks upgrades until dwell/revalidation, while never applying upgrade dwell to safety downshifts;
+- canonicalizes signature and action ordering.
+
+The current deterministic tests cover admitted fallback, multi-signature action intersection, preferred-action rejection, empty intersection, rejected and Unknown signatures, upgrade dwell, immediate downshift, stale/duplicate health evidence, actuator and transition-receipt mismatch, transition deadline, permutation invariance, duplicate channels, complete signature-set receipt, missing receipt and foreign receipt keys.
+
+Qualification commands:
+
+    cargo fmt --manifest-path research/loco-modal-failover-001/Cargo.toml -- --check
+    cargo test --manifest-path research/loco-modal-failover-001/Cargo.toml --locked
+    cargo clippy --manifest-path research/loco-modal-failover-001/Cargo.toml --locked --all-targets -- -D warnings
+
+The exact-head workflow is authoritative for Rust 1.96. The crate qualifies only finite evidence-mode composition and receipt identity fields supplied by upstream authorities. It does not authenticate receipts, validate health classifiers, prove continuous-time safety or qualify physical mode-switch transitions.
+
+
+### Receipt and digest semantics
+
+The per-signature digest is an **opaque source-issued digest** from the upstream health-signature interpreter. The Rust reference checks exact identity equality and duplicate-digest rejection; it does not compute a cryptographic hash or authenticate the upstream issuer. The complete-set receipt is likewise consumed as evidence, not authenticated by this crate.
+
+Receipt action semantics are status-specific: an Admitted receipt must contain at least one admitted action; Rejected and Unknown receipts must not contain admitted actions. Their rejection witness or Unknown reason is preserved rather than being hidden by an empty action-set validation error.
+
+The current Rust module has 20 deterministic tests, including duplicate source digest, possibility-set completeness/context, foreign receipt, missing receipt, and the original channel-health/mode-intersection/hysteresis cases.
+
+
+Status-specific transition receipt contract: an **Admitted** receipt must carry a non-empty, duplicate-free admitted-action set. A **Rejected** receipt must carry a non-empty counterexample witness and no admitted actions. An **Unknown** receipt must carry a non-empty reason and no admitted actions. The composition preserves the rejected/unknown witness instead of misreporting it as an empty-action-set format failure.
