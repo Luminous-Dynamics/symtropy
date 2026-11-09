@@ -1,0 +1,69 @@
+{
+  "schema": "CIVDYN_GENERATIONAL_INCIDENCE_MANIFEST_V0_1",
+  "status": "synthetic_protocol_reference",
+  "source_resource_ledger": {
+    "repository": "Luminous-Dynamics/symtropy",
+    "pull_request": 3391,
+    "branch": "research/civdyn-resource-ledger-2026-11",
+    "commit": "71b6f46e61f2803fe670e3437fcf7fd0689a6d4f",
+    "resource_ledger_lib_blob_sha1": "d04e25084e46eb0529ea135305668eb70ed6ec3f",
+    "cargo_toml_blob_sha1": "03c2dc7bdb638d685fa8674ecc4d2396a8cca059"
+  },
+  "scenario": {
+    "scenario_id": "GEN-INC-001",
+    "description": "One-region synthetic service and closing-stock incidence allocation across a present cohort, a future cohort and an explicitly unassigned shared asset.",
+    "tick": 1,
+    "region_id": "district-a",
+    "population": 4,
+    "opening_stock": {
+      "water_m3": 100,
+      "energy_kwh": 200,
+      "food_kg": 80
+    },
+    "essential_demand_per_capita": {
+      "water_m3": 5,
+      "energy_kwh": 10,
+      "food_kg": 4
+    },
+    "production": {
+      "water_m3": 0,
+      "energy_kwh": 0,
+      "food_kg": 0
+    },
+    "transfer_policy": "unrestricted",
+    "expected_closing_stock": {
+      "water_m3": 80,
+      "energy_kwh": 160,
+      "food_kg": 64
+    }
+  },
+  "cohort_allocations": {
+    "service": [
+      "working-age-2026",
+      "future-born-2040"
+    ],
+    "inherited_stock": [
+      "future-born-2040",
+      "unassigned:SharedPublicAsset"
+    ],
+    "allocation_rule": "explicit synthetic assignments; no automatic population-proportional imputation"
+  },
+  "invariants": [
+    "service demand, served and unmet reconcile separately for water_m3, energy_kwh and food_kg",
+    "inherited stock allocation reconciles separately for water_m3, energy_kwh and food_kg",
+    "unknown incidence remains explicitly unassigned",
+    "financial obligations never net against physical resource stocks or obligations",
+    "changing welfare discount rates changes only the derived discounted-service view",
+    "cohort splitting and reassignment preserve aggregate physical totals",
+    "future cohorts inherit the preceding closing state rather than a reset baseline",
+    "incidence ticks are contiguous and previous source-ledger closing stock equals the next source-ledger opening stock per region and resource"
+  ],
+  "claim_ceiling": [
+    "All values are synthetic and are not calibrated to any real population, catchment, infrastructure system or fiscal account.",
+    "The implementation validates allocation and reconciliation contracts; it does not infer who actually received services from aggregate source-ledger totals.",
+    "Cohort assignments are explicit assumptions and must not be interpreted as observed incidence.",
+    "The welfare discount view is normative sensitivity analysis and is not a physical accounting operation.",
+    "Financial and physical obligations remain distinct and are not combined into a universal fairness or sustainability score.",
+    "Region retirement, mergers, resource conversions and other topology changes require a future explicit transition protocol; the current continuity gate fails closed rather than inferring them."
+  ]
+}

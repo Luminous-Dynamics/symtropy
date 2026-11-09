@@ -1,0 +1,19 @@
+[workspace]
+
+[package]
+name = "civdyn-generational-ledger"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Cohort-indexed service, stock inheritance and liability accounting over the shared CIVDYN resource ledger"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "generational-incidence-sweep"
+path = "src/bin/generational_incidence_sweep.rs"
+
+[dependencies]
+civdyn-resource-ledger = { path = "../civdyn-resource-ledger" }
