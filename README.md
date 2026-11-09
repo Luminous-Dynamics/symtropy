@@ -31,7 +31,7 @@ Symtropy is not an all-in-one CAD, FEA, EDA, CAM, MES or product-lifecycle-manag
 | **Mycelix** | Identity, permissions, custody/provenance, attestations and governance |
 | **Luminous engineering platform** | Requirements, candidate selection, configuration baselines, EBOM/MBOM/service BOM, technical documents, engineering changes, production and as-built/service records |
 
-The Luminous platform is the product-lifecycle authority. Symtropy supplies simulation execution and model outputs. A result is evidence only within its declared model, solver, configuration, uncertainty and context of use.
+The **target** Luminous engineering digital-thread layer is intended to become the product-lifecycle authority; this Symtropy repository does not implement a complete PLM system. The current Luminous workspace contains engineering, digital-twin, simulation and fabrication components, but still needs a unified product identity/configuration model, controlled product structures, engineering changes/effectivity, and as-built/service configuration. Symtropy supplies simulation execution and model outputs. A result is evidence only within its declared model, solver, configuration, uncertainty and context of use.
 
 ## Current physics capabilities and known limits
 
