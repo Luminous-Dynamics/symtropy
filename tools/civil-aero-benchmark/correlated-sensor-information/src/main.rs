@@ -968,6 +968,25 @@ mod tests {
                 .abs()
                 < 1.0e-9
         );
+        let minimum_cost = result
+            .cost_constrained_robust
+            .expect("baseline must have a cost-feasible robust design");
+        assert_eq!(
+            minimum_cost.sensor_ids,
+            fixture.expected.minimum_cost_robust_sensor_ids
+        );
+        assert!(
+            (minimum_cost.achieved_worst_case_minimum_eigenvalue
+                - fixture.expected.minimum_cost_robust_worst_case_minimum_eigenvalue)
+                .abs()
+                < 1.0e-9
+        );
+        assert!(
+            (minimum_cost.total_deployment_cost_units
+                - fixture.expected.minimum_cost_robust_total_deployment_cost_units)
+                .abs()
+                < 1.0e-9
+        );
     }
 
     #[test]
@@ -1014,6 +1033,25 @@ mod tests {
         assert!(result.robust_correlated_e_opt.scenarios.iter().all(|scenario| {
             scenario.effective_rank == 2 && scenario.minimum_eigenvalue > RANK_TOLERANCE
         }));
+        let minimum_cost = result
+            .cost_constrained_robust
+            .expect("joint fixture must have a minimum-cost robust design");
+        assert_eq!(minimum_cost.sensor_ids, vec!["S_A", "S_C", "S_E"]);
+        assert!(
+            (minimum_cost.required_minimum_eigenvalue - 1.5).abs() < 1.0e-12
+        );
+        assert!(
+            (minimum_cost.achieved_worst_case_minimum_eigenvalue
+                - 1.5036392172580708)
+                .abs()
+                < 1.0e-9
+        );
+        assert!(
+            (minimum_cost.total_deployment_cost_units - 4.2).abs() < 1.0e-9
+        );
+        assert_eq!(minimum_cost.total_mass_g, 48.0);
+        assert_eq!(minimum_cost.total_power_mw, 12.0);
+        assert_eq!(minimum_cost.scenarios.len(), 6);
 
         // The nominal E-optimal set A+B+E+F is not robust because PWR_Z
         // removes E/F and leaves only one parameter direction.
