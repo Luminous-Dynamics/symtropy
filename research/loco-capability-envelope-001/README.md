@@ -193,3 +193,6 @@ The exact-head workflow is authoritative for Rust 1.96. This crate qualifies onl
 
 
 The exact-head strict-Clippy correction elides the lifetime on the borrowed level-partition set; it does not change benchmark or statistical semantics. The current executable test inventory is ten deterministic tests. No confidence interval or physical robustness proof is produced by this crate.
+
+
+The exact-head Clippy correction removed a needless explicit lifetime from the borrowed level-partition validator. The computation and split semantics are unchanged. Formatting and tests passed on the preceding run; a fresh exact-head run is required to qualify this commit.
