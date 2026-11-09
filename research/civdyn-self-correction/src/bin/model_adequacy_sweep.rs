@@ -86,7 +86,7 @@ fn render(kind: PredictiveKind, assessment: &AdequacyAssessment) {
             .iter()
             .find(|summary| summary.statistic_id == result.statistic_id);
         println!(
-            "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
+            "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
             kind.name(),
             result.statistic_id,
             result.independent_unit_id,
@@ -103,6 +103,9 @@ fn render(kind: PredictiveKind, assessment: &AdequacyAssessment) {
             result.measurement_unit,
             assessment.domain_status.name(),
             result.source_digest,
+            result.observation_digest.as_deref().unwrap_or_default(),
+            result.model_digest.as_deref().unwrap_or_default(),
+            result.draw_set_digest.as_deref().unwrap_or_default(),
             coverage.map(|summary| summary.independent_unit.name()).unwrap_or_default(),
             coverage.map(|summary| summary.expected_independent_units.to_string()).unwrap_or_default(),
             coverage.map(|summary| summary.assessed_independent_units.to_string()).unwrap_or_default(),
@@ -190,7 +193,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         &linear_draws(0.005, 0.025),
     ));
 
-    println!("kind,statistic_id,unit_id,status,observed,measurement_se,lower,upper,rank,n_draws,measurement_unit,domain_status,source_digest,independent_unit,expected_units,assessed_units,covered_units,empirical_coverage,wilson_lower_95,wilson_upper_95,required_evidence_complete");
+    println!("kind,statistic_id,unit_id,status,observed,measurement_se,lower,upper,rank,n_draws,measurement_unit,domain_status,source_digest,observation_digest,model_digest,draw_set_digest,independent_unit,expected_units,assessed_units,covered_units,empirical_coverage,wilson_lower_95,wilson_upper_95,required_evidence_complete");
 
     let prior = assess_predictive_partition(
         &registry,
