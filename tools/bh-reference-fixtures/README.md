@@ -53,3 +53,17 @@ The genus-one WKB result is asymptotic and its coefficients grow factorially. St
 Radial and QNM fixtures name the angular quantity explicitly with `AngularEigenvalueConvention`: `spin_weighted_spheroidal_a`, `teukolsky_radial_lambda`, or `other`. The last form requires a producer-authored definition string. These values are not interchangeable; an adapter must document any conversion before comparing radial solutions. The angular branch ID is a separate piece of metadata and cannot substitute for the eigenvalue convention.
 
 Generic prolate-family classifications do not infer an equatorial oscillator label from `(s, ell, m)`. The optional normal-prolate oscillator level is required only when a mode is explicitly tagged with the normal-prolate genus-one WKB method. For scalar fields the cited expansion uses `Lbar = ell - |m|`; for nonzero spin weight a mapping must be established by branch continuation before the WKB method is used.
+
+## Method applicability and WKB reproducibility
+
+Each QNM mode stores a producer-reported `method_applicability`: `within_documented_regime`, `extrapolated`, `known_breakdown`, or `unresolved`. This metadata does not certify the claim; it preserves the producer's stated validity assessment so a near-extremal potential-peak WKB failure is not hidden by an aggregate error score.
+
+The normal-prolate genus-one WKB record requires:
+- positive sub-extremal spin in the method's declared fixed-spin domain, `0 < a/M < 1`;
+- a branch-continuation path ID, explicit cycle ID, quantization integer `N` separate from overtone `n`, and truncation order;
+- both elliptic cycle periods `J0` and `J1`, the quantization residual, and a producer-estimated truncation error;
+- an explicit normal-prolate oscillator level. The mapping from `(s, ell, m)` is not inferred for nonzero spin weight.
+
+`KerrQnmSequenceFixture::normal_prolate_wkb_small_spin_parameter` exposes the non-uniformity parameter `chi^(-4/3)/(N + 1/2)`. It is a diagnostic, not a universal pass/fail threshold; publish accuracy against this parameter, spin, and truncation order.
+
+The exact-extremal WKB method is a distinct method record and the current fixture validation limits it to scalar-field records. It must not be conflated with the fixed-spin, non-extremal genus-one expansion.
