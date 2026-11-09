@@ -668,7 +668,9 @@ fn validate_and_compute(problem: &ViableVoiProblem) -> Result<ViableVoiReport, V
         return Err(ViableVoiError::JointCellCardinalityMismatch);
     }
 
-    let mut joint_keys = BTreeSet::new();
+    let mut joint_mass_index = JointMassIndex::new();
+    let mut joint_mass_by_outcome = JointOutcomeMassIndex::new();
+    let mut joint_mass_by_hypothesis = BTreeMap::<&str, u128>::new();
     let mut joint_total = 0_u128;
     for cell in &problem.joint_mass_cells {
         if cell.mass_ppb > SCALE_PPB {
@@ -689,13 +691,30 @@ fn validate_and_compute(problem: &ViableVoiProblem) -> Result<ViableVoiReport, V
         {
             return Err(ViableVoiError::MissingJointMassCell);
         }
-        if !joint_keys.insert((
+        let joint_key = (
             cell.hypothesis_id.as_str(),
             cell.branch_id.as_str(),
             cell.outcome_id.as_str(),
-        )) {
+        );
+        if joint_mass_index.insert(joint_key, cell.mass_ppb).is_some() {
             return Err(ViableVoiError::DuplicateJointMassCell);
         }
+        let outcome_total = joint_mass_by_outcome
+            .get(cell.outcome_id.as_str())
+            .copied()
+            .unwrap_or(0);
+        joint_mass_by_outcome.insert(
+            cell.outcome_id.as_str(),
+            add_u128(outcome_total, u128::from(cell.mass_ppb))?,
+        );
+        let hypothesis_total = joint_mass_by_hypothesis
+            .get(cell.hypothesis_id.as_str())
+            .copied()
+            .unwrap_or(0);
+        joint_mass_by_hypothesis.insert(
+            cell.hypothesis_id.as_str(),
+            add_u128(hypothesis_total, u128::from(cell.mass_ppb))?,
+        );
         if cell.mass_ppb > 0
             && (!physical_pairs.contains(&(cell.branch_id.as_str(), cell.outcome_id.as_str()))
                 || !possible_hb.contains(&(cell.hypothesis_id.as_str(), cell.branch_id.as_str())))
@@ -709,13 +728,10 @@ fn validate_and_compute(problem: &ViableVoiProblem) -> Result<ViableVoiReport, V
     }
 
     for hypothesis in &problem.hypotheses {
-        let marginal = problem
-            .joint_mass_cells
-            .iter()
-            .filter(|cell| cell.hypothesis_id == hypothesis.id)
-            .try_fold(0_u128, |total, cell| {
-                add_u128(total, u128::from(cell.mass_ppb))
-            })?;
+        let marginal = joint_mass_by_hypothesis
+            .get(hypothesis.id.as_str())
+            .copied()
+            .unwrap_or(0);
         if marginal != u128::from(hypothesis.passive_prior_mass_ppb) {
             return Err(ViableVoiError::HypothesisMarginalMismatch);
         }
@@ -731,7 +747,7 @@ fn validate_and_compute(problem: &ViableVoiProblem) -> Result<ViableVoiReport, V
         .iter()
         .map(|item| item.id.as_str())
         .collect();
-    let mut passive_loss_keys = BTreeSet::new();
+    let mut passive_loss_index = PassiveLossIndex::new();
     for cell in &problem.passive_loss_cells {
         if !hypothesis_ids.contains(cell.hypothesis_id.as_str()) {
             return Err(ViableVoiError::UnknownPassiveLossKey);
@@ -742,7 +758,13 @@ fn validate_and_compute(problem: &ViableVoiProblem) -> Result<ViableVoiReport, V
         if cell.loss_ppb > SCALE_PPB {
             return Err(ViableVoiError::InvalidLoss);
         }
-        if !passive_loss_keys.insert((cell.action_id.as_str(), cell.hypothesis_id.as_str())) {
+        if passive_loss_index
+            .insert(
+                (cell.action_id.as_str(), cell.hypothesis_id.as_str()),
+                cell.loss_ppb,
+            )
+            .is_some()
+        {
             return Err(ViableVoiError::DuplicatePassiveLossCell);
         }
     }
@@ -771,7 +793,7 @@ fn validate_and_compute(problem: &ViableVoiProblem) -> Result<ViableVoiReport, V
         .iter()
         .map(|item| item.id.as_str())
         .collect();
-    let mut continuation_loss_keys = BTreeSet::new();
+    let mut continuation_loss_index = ContinuationLossIndex::new();
     for cell in &problem.continuation_loss_cells {
         if !hypothesis_ids.contains(cell.hypothesis_id.as_str())
             || !branch_ids.contains(cell.branch_id.as_str())
@@ -788,17 +810,24 @@ fn validate_and_compute(problem: &ViableVoiProblem) -> Result<ViableVoiReport, V
         if cell.loss_ppb > SCALE_PPB {
             return Err(ViableVoiError::InvalidLoss);
         }
-        if !continuation_loss_keys.insert((
-            cell.action_id.as_str(),
-            cell.hypothesis_id.as_str(),
-            cell.branch_id.as_str(),
-            cell.outcome_id.as_str(),
-        )) {
+        if continuation_loss_index
+            .insert(
+                (
+                    cell.action_id.as_str(),
+                    cell.hypothesis_id.as_str(),
+                    cell.branch_id.as_str(),
+                    cell.outcome_id.as_str(),
+                ),
+                cell.loss_ppb,
+            )
+            .is_some()
+        {
             return Err(ViableVoiError::DuplicateContinuationLossCell);
         }
     }
 
-    let (passive_action_id, passive_risk) = passive_risk(problem)?;
+    let (passive_action_id, passive_risk) =
+        passive_risk(problem, &passive_loss_index)?;
     let mut outcome_decisions = Vec::with_capacity(problem.outcomes.len());
     let mut post_probe_risk = 0_u128;
     let mut unknown_mass = 0_u64;
@@ -815,12 +844,10 @@ fn validate_and_compute(problem: &ViableVoiProblem) -> Result<ViableVoiReport, V
         let mut admitted_actions = continuation.robust_admitted_action_ids.clone();
         admitted_actions.sort();
 
-        let mut joint_mass = 0_u128;
-        for cell in &problem.joint_mass_cells {
-            if cell.outcome_id == outcome.id {
-                joint_mass = add_u128(joint_mass, u128::from(cell.mass_ppb))?;
-            }
-        }
+        let joint_mass = joint_mass_by_outcome
+            .get(outcome.id.as_str())
+            .copied()
+            .ok_or(ViableVoiError::MissingJointMassCell)?;
         if outcome.kind == OutcomeKind::Unknown {
             unknown_mass = u64::try_from(add_u128(u128::from(unknown_mass), joint_mass)?)
                 .map_err(|_| ViableVoiError::ArithmeticOverflow)?;
@@ -828,7 +855,13 @@ fn validate_and_compute(problem: &ViableVoiProblem) -> Result<ViableVoiReport, V
 
         let mut best: Option<(String, u128)> = None;
         for action_id in &admitted_actions {
-            let risk = continuation_risk_for_action(problem, action_id, &outcome.id)?;
+            let risk = continuation_risk_for_action(
+                problem,
+                action_id,
+                &outcome.id,
+                &joint_mass_index,
+                &continuation_loss_index,
+            )?;
             match &best {
                 None => best = Some((action_id.clone(), risk)),
                 Some((best_id, best_risk))
