@@ -83,11 +83,11 @@ jobs:
             }
             $1 == "physical_obligation" {
               physical++
-              if ($19 != "m3" || ($20 - 12.0) > 0.000001 || (12.0 - $20) > 0.000001) exit 13
+              if ($20 != "m3" || ($21 - 12.0) > 0.000001 || (12.0 - $21) > 0.000001) exit 13
             }
             $1 == "financial_obligation" {
               financial++
-              if ($21 != "USD" || ($22 - 500.0) > 0.000001 || (500.0 - $22) > 0.000001 || $23 != "2026") exit 14
+              if ($19 != "Principal" || $20 != "USD" || $22 != "USD" || ($23 - 500.0) > 0.000001 || (500.0 - $23) > 0.000001 || $24 != "2026") exit 14
             }
             END {
               printf "Verifier counts: rows=%d reconciliations=%d cohort_rows=%d physical=%d financial=%d future_stock=%d unassigned_stock=%d\n", NR, reconciliations, cohort_rows, physical, financial, future_stock, unassigned_stock
