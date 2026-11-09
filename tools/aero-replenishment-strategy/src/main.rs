@@ -889,8 +889,11 @@ mod tests {
     }
 
     #[test]
-    fn capacity_overflow_rejects_charging_modes_but_keeps_battery_only() {
-        let input = FIXTURE.replace("\t120\t115\t25\tSITE_GRID_REAL_ENERGY", "\t80\t115\t25\tSITE_GRID_REAL_ENERGY");
+    fn capacity_overflow_rejects_replenishment_but_keeps_battery_only() {
+        let input = FIXTURE
+            .replace("\t120\t115\t25\tSITE_GRID_REAL_ENERGY", "\t80\t80\t25\tSITE_GRID_REAL_ENERGY")
+            .replace("\tMISSION_LEG_1\t1\t0\t40\t", "\tMISSION_LEG_1\t1\t0\t10\t")
+            .replace("\tMISSION_LEG_FINAL\t1\t0\t30\t", "\tMISSION_LEG_FINAL\t1\t0\t20\t");
         let case = parsed(&input);
         let result = evaluate(&case).expect("evaluation");
         assert!(result.rejections.capacity > 0);
@@ -899,6 +902,9 @@ mod tests {
             !strategy.edge_ids.iter().any(|id| {
                 matches!(id.as_str(), "conductive_contact" | "robotic_contact" | "battery_exchange" | "optical_beam" | "ipt_dock" | "cpt_dock" | "optical_top_up")
             })
+        }));
+        assert!(result.all_feasible_paths.iter().any(|strategy| {
+            strategy.edge_ids == ["mission_leg_1", "battery_only_continue", "battery_leg", "final_mission_leg"]
         }));
     }
 
@@ -913,10 +919,13 @@ mod tests {
 
     #[test]
     fn unavailable_modes_never_appear_in_a_selected_path() {
-        let input = FIXTURE.replace(
-            "battery_only_continue\tCHECKPOINT_1\tCHECKPOINT_2\tMISSION_LEG\tBATTERY_ONLY\t1\t0\t0\t0\tNONE\t0\ttrue",
-            "battery_only_continue\tCHECKPOINT_1\tCHECKPOINT_2\tMISSION_LEG\tBATTERY_ONLY\t1\t0\t0\t0\tNONE\t0\tfalse",
-        );
+        let unavailable_edge = FIXTURE
+            .lines()
+            .nth(2)
+            .expect("conductive replenishment edge")
+            .replace("conductive_contact", "unavailable_contact")
+            .replace("\ttrue", "\tfalse");
+        let input = format!("{FIXTURE}{unavailable_edge}\n");
         let case = parsed(&input);
         let result = evaluate(&case).expect("evaluation");
         assert_eq!(result.unavailable_edge_count, 1);
@@ -944,9 +953,10 @@ mod tests {
 
     #[test]
     fn inconsistent_installed_asset_mass_is_rejected() {
-        let conflict = FIXTURE.replace(
+        let conflict = FIXTURE.replacen(
             "OPTICAL_RX\t2800\ttrue",
             "OPTICAL_RX\t2801\ttrue",
+            1,
         );
         assert!(parse_case(&conflict).is_err());
     }
