@@ -1303,6 +1303,74 @@ mod tests {
     }
 
     #[test]
+    fn adding_a_qualified_countermodel_can_remove_robust_feasibility() {
+        let mut candidate = manifest();
+        candidate.models.push(CandidateModel {
+            model_id: "model-c".to_string(),
+            model_family_id: "ecological-feedback-family".to_string(),
+            model_digest: "sha256-model-c".to_string(),
+            adequacy_receipt_digest: "sha256-adequacy-c".to_string(),
+            qualification: ModelQualification::NoPrimaryDiscrepancyDetected,
+        });
+
+        let mut rows = complete_outcomes();
+        for (case_id, case_digest) in [
+            ("drought", "sha256-drought"),
+            ("energy-shock", "sha256-energy-shock"),
+        ] {
+            rows.push(outcome(
+                ("model-c", "sha256-model-c"),
+                (case_id, case_digest),
+                ("reserve", "sha256-reserve"),
+                50.0,
+                0.90,
+            ));
+            rows.push(outcome(
+                ("model-c", "sha256-model-c"),
+                (case_id, case_digest),
+                ("demand-first", "sha256-demand-first"),
+                1.0,
+                0.96,
+            ));
+            rows.push(outcome(
+                ("model-c", "sha256-model-c"),
+                (case_id, case_digest),
+                ("growth-first", "sha256-growth-first"),
+                2.0,
+                0.96,
+            ));
+        }
+
+        let report = analyze_model_set_decisions(&candidate, &rows).unwrap();
+        assert_eq!(report.coverage, ModelSetCoverage::AllDeclaredModelsQualified);
+        assert_eq!(report.qualified_model_count, 3);
+        assert!(
+            report
+                .policy_robust_feasibility
+                .iter()
+                .all(|row| row.feasible_across_qualified_models == Some(false))
+        );
+        assert!(
+            report
+                .minimax_regret
+                .iter()
+                .all(|row| row.minimum_worst_case_regret.is_none())
+        );
+    }
+
+    #[test]
+    fn metric_tie_tolerance_must_be_finite_and_nonnegative() {
+        for invalid in [-1.0, f64::NAN, f64::INFINITY] {
+            let mut candidate = manifest();
+            candidate.metrics[0].tie_tolerance = invalid;
+            assert!(matches!(
+                candidate.validate(),
+                Err(ModelSetError::InvalidTieTolerance { .. })
+            ));
+        }
+    }
+
+    #[test]
     fn metric_unit_substitution_fails_closed() {
         let mut rows = complete_outcomes();
         rows[0].values[0].unit = "kWh".to_string();
