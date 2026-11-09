@@ -182,7 +182,10 @@ impl fmt::Display for FixtureValidationError {
                 )
             }
             Self::AngularEigenvalueConventionIncomplete => {
-                write!(f, "angular eigenvalue convention/definition is missing or inconsistent")
+                write!(
+                    f,
+                    "angular eigenvalue convention/definition is missing or inconsistent"
+                )
             }
             Self::NonFiniteAngularEigenvalue => write!(f, "angular eigenvalue must be finite"),
             Self::NoRadialSamples => write!(f, "at least one radial sample is required"),
@@ -438,7 +441,6 @@ pub struct RadialChannelMetrics {
     pub values_outside_tolerance: usize,
 }
 
-
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RadialComparisonResult {
     pub status: RadialComparisonStatus,
@@ -460,9 +462,14 @@ pub enum RadialComparisonError {
 impl fmt::Display for RadialComparisonError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::InvalidTolerance => write!(f, "comparison tolerances must be finite, non-negative, and not both zero"),
+            Self::InvalidTolerance => write!(
+                f,
+                "comparison tolerances must be finite, non-negative, and not both zero"
+            ),
             Self::InvalidLeftFixture(error) => write!(f, "left radial fixture is invalid: {error}"),
-            Self::InvalidRightFixture(error) => write!(f, "right radial fixture is invalid: {error}"),
+            Self::InvalidRightFixture(error) => {
+                write!(f, "right radial fixture is invalid: {error}")
+            }
         }
     }
 }
@@ -600,12 +607,10 @@ fn compare_optional_channel(
         (Some(left), Some(right)) => {
             let absolute_error = (left.re - right.re).hypot(left.im - right.im);
             let reference_scale = left.re.hypot(left.im).max(right.re.hypot(right.im));
-            let tolerance =
-                config.absolute_tolerance + config.relative_tolerance * reference_scale;
+            let tolerance = config.absolute_tolerance + config.relative_tolerance * reference_scale;
             let scaled_error = absolute_error / tolerance;
             metrics.compared_values += 1;
-            metrics.maximum_absolute_error =
-                metrics.maximum_absolute_error.max(absolute_error);
+            metrics.maximum_absolute_error = metrics.maximum_absolute_error.max(absolute_error);
             metrics.maximum_scaled_error = metrics.maximum_scaled_error.max(scaled_error);
             if scaled_error > 1.0 {
                 metrics.values_outside_tolerance += 1;
@@ -815,8 +820,7 @@ mod tests {
     #[test]
     fn producer_defined_angular_eigenvalue_requires_definition() {
         let mut missing = fixture();
-        missing.problem.angular_eigenvalue_convention =
-            Some(AngularEigenvalueConvention::Other);
+        missing.problem.angular_eigenvalue_convention = Some(AngularEigenvalueConvention::Other);
         assert_eq!(
             missing.validate(),
             Err(FixtureValidationError::AngularEigenvalueConventionIncomplete)
@@ -857,8 +861,7 @@ mod tests {
     fn identical_radial_fixtures_agree_on_exact_common_nodes() {
         let left = fixture();
         let right = fixture();
-        let comparison =
-            compare_radial_fixtures(&left, &right, comparison_config()).unwrap();
+        let comparison = compare_radial_fixtures(&left, &right, comparison_config()).unwrap();
         assert_eq!(
             comparison.status,
             RadialComparisonStatus::NumericallyAgreeing
@@ -874,18 +877,19 @@ mod tests {
     fn radial_comparison_reports_scaled_errors_and_disagreement() {
         let left = fixture();
         let mut within = fixture();
-        within.data.radial_samples[0].in_value =
-            Some(ComplexValue { re: 1.0 + 1.0e-10, im: 0.0 });
+        within.data.radial_samples[0].in_value = Some(ComplexValue {
+            re: 1.0 + 1.0e-10,
+            im: 0.0,
+        });
         let agreeing = compare_radial_fixtures(&left, &within, comparison_config()).unwrap();
-        assert_eq!(
-            agreeing.status,
-            RadialComparisonStatus::NumericallyAgreeing
-        );
+        assert_eq!(agreeing.status, RadialComparisonStatus::NumericallyAgreeing);
         assert!(agreeing.in_value.maximum_scaled_error < 1.0);
 
         let mut outside = fixture();
-        outside.data.radial_samples[0].in_value =
-            Some(ComplexValue { re: 1.0 + 1.0e-5, im: 0.0 });
+        outside.data.radial_samples[0].in_value = Some(ComplexValue {
+            re: 1.0 + 1.0e-5,
+            im: 0.0,
+        });
         let disagreeing = compare_radial_fixtures(&left, &outside, comparison_config()).unwrap();
         assert_eq!(
             disagreeing.status,
@@ -903,17 +907,24 @@ mod tests {
         let node_result =
             compare_radial_fixtures(&left, &different_nodes, comparison_config()).unwrap();
         assert_eq!(node_result.status, RadialComparisonStatus::Unresolved);
-        assert!(node_result.unresolved_reason.unwrap().contains("nodes differ"));
+        assert!(
+            node_result
+                .unresolved_reason
+                .unwrap()
+                .contains("nodes differ")
+        );
 
         let mut different_coverage = fixture();
         different_coverage.data.radial_samples[0].in_derivative = None;
         let coverage_result =
             compare_radial_fixtures(&left, &different_coverage, comparison_config()).unwrap();
         assert_eq!(coverage_result.status, RadialComparisonStatus::Unresolved);
-        assert!(coverage_result
-            .unresolved_reason
-            .unwrap()
-            .contains("coverage differs"));
+        assert!(
+            coverage_result
+                .unresolved_reason
+                .unwrap()
+                .contains("coverage differs")
+        );
     }
 
     #[test]
