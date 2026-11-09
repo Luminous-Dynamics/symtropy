@@ -839,6 +839,19 @@ mod tests {
     }
 
     #[test]
+    fn damping_analysis_reports_fit_span_and_exponent_uncertainty() {
+        let value = trace(2, QnmExtremalDampingBehavior::FiniteDamping);
+        let result = analyze_extremal_damping(
+            &value,
+            QnmExtremalDampingAnalysisConfig::default(),
+        )
+        .unwrap();
+        assert!(result.log_surface_gravity_span.unwrap() >= 1.0);
+        assert!(result.exponent_standard_error.is_some());
+        assert_eq!(result.fit_samples_used, 4);
+    }
+
+    #[test]
     fn continuation_trace_rejects_self_parent_and_multiple_extremal_endpoints() {
         let mut self_parent = trace(2, QnmExtremalDampingBehavior::ZeroDamping);
         self_parent.continuation_from_trace_id = Some(self_parent.trace_id.clone());
