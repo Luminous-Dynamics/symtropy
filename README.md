@@ -36,7 +36,7 @@ A consequential result should be accompanied by enough context to answer:
 
 A simulation result must not silently become a qualification result. Missing inputs remain missing; out-of-domain results remain out of domain; stale evidence remains stale after a relevant model or configuration change.
 
-See [the engineering evidence model](docs/tech/ENGINEERING_EVIDENCE_MODEL.md).
+See [the engineering evidence model](docs/tech/ENGINEERING_EVIDENCE_MODEL.md) and [competitive benchmark strategy](docs/research/SYMTROPY_COMPETITIVE_BENCHMARK_STRATEGY_2026-11-09.md).
 
 ## Place in the Luminous ecosystem
 
