@@ -23,11 +23,11 @@
     "maximum_faulty_channels": 1,
     "minimum_consistent_channels": 2,
     "absolute_residual_tolerance": 0.05,
-    "correction_requires_unique_structural_state": true,
-    "damage_clearance_from_correction_prohibited": true,
     "fault_confirmation_requires_independent_witness": true,
     "raw_measurements_immutable": true,
-    "reconstruction_is_not_measurement": true
+    "reconstruction_is_not_measurement": true,
+    "reconstruction_requires_unique_joint_hypothesis": true,
+    "damage_clearance_from_reconstruction_prohibited": true
   },
   "channels": [
     {
@@ -80,10 +80,10 @@
         "disposition": "HEALTHY_WITHIN_DECLARED_SYNTHETIC_SUPPORT",
         "structural_state": "HEALTHY",
         "faulty_sensor_ids": [],
-        "post_correction_structural_state": "HEALTHY",
         "damage_preserved": false
       },
-      "sensor_fault_witnesses": []
+      "sensor_fault_witnesses": [],
+      "post_reconstruction_structural_state": "HEALTHY"
     },
     {
       "case_id": "HF_HEALTHY_STRUCTURE_FAULTY_SENSOR",
@@ -108,7 +108,6 @@
         "faulty_sensor_ids": [
           "S2"
         ],
-        "post_correction_structural_state": "HEALTHY",
         "damage_preserved": false
       },
       "sensor_fault_witnesses": [
@@ -118,7 +117,8 @@
           "evidence_kind": "independent_builtin_self_test",
           "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
         }
-      ]
+      ],
+      "post_reconstruction_structural_state": "HEALTHY"
     },
     {
       "case_id": "DH_DAMAGED_STRUCTURE_HEALTHY_SENSORS",
@@ -141,10 +141,10 @@
         "disposition": "STRUCTURAL_DAMAGE_SUSPECTED",
         "structural_state": "DAMAGED",
         "faulty_sensor_ids": [],
-        "post_correction_structural_state": "DAMAGED",
         "damage_preserved": true
       },
-      "sensor_fault_witnesses": []
+      "sensor_fault_witnesses": [],
+      "post_reconstruction_structural_state": "DAMAGED"
     },
     {
       "case_id": "DF_DAMAGED_STRUCTURE_FAULTY_SENSOR",
@@ -169,7 +169,6 @@
         "faulty_sensor_ids": [
           "S2"
         ],
-        "post_correction_structural_state": "DAMAGED",
         "damage_preserved": true
       },
       "sensor_fault_witnesses": [
@@ -179,7 +178,8 @@
           "evidence_kind": "independent_builtin_self_test",
           "evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
         }
-      ]
+      ],
+      "post_reconstruction_structural_state": "DAMAGED"
     },
     {
       "case_id": "AMBIGUOUS_DAMAGE_VS_SINGLE_SENSOR_FAULT",
@@ -202,10 +202,10 @@
         "disposition": "ABSTAIN_AMBIGUOUS_HYPOTHESES",
         "structural_state": null,
         "faulty_sensor_ids": [],
-        "post_correction_structural_state": null,
         "damage_preserved": null
       },
-      "sensor_fault_witnesses": []
+      "sensor_fault_witnesses": [],
+      "post_reconstruction_structural_state": null
     },
     {
       "case_id": "OUT_OF_MODEL_ENVIRONMENTAL_OR_UNKNOWN_SHIFT",
@@ -228,10 +228,10 @@
         "disposition": "ABSTAIN_OUT_OF_MODEL",
         "structural_state": null,
         "faulty_sensor_ids": [],
-        "post_correction_structural_state": null,
         "damage_preserved": null
       },
-      "sensor_fault_witnesses": []
+      "sensor_fault_witnesses": [],
+      "post_reconstruction_structural_state": null
     },
     {
       "case_id": "INSUFFICIENT_OBSERVATIONS",
@@ -254,10 +254,10 @@
         "disposition": "ABSTAIN_INSUFFICIENT_OBSERVABILITY",
         "structural_state": null,
         "faulty_sensor_ids": [],
-        "post_correction_structural_state": null,
         "damage_preserved": null
       },
-      "sensor_fault_witnesses": []
+      "sensor_fault_witnesses": [],
+      "post_reconstruction_structural_state": null
     },
     {
       "case_id": "UNWITNESSED_LOCALIZED_ANOMALY",
@@ -281,9 +281,9 @@
         "disposition": "ABSTAIN_SENSOR_FAULT_UNCONFIRMED",
         "structural_state": null,
         "faulty_sensor_ids": [],
-        "post_correction_structural_state": null,
         "damage_preserved": null
-      }
+      },
+      "post_reconstruction_structural_state": null
     }
   ]
 }
