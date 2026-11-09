@@ -205,3 +205,43 @@ This slice does not yet implement:
 7. Empirical data adapters or independent domain qualification.
 
 Run the model-adequacy-sweep binary using Cargo with the locked manifest at research/civdyn-self-correction/Cargo.toml. The existing CIVDYN workflow also runs this binary after formatting, strict Clippy, compilation and tests. These are engineering checks against frozen synthetic contracts only.
+
+
+## Scenario J: zero-shot adequacy transfer
+
+The first cross-domain transfer evaluator is in src/transfer_adequacy.rs with a deterministic transfer-adequacy-sweep binary. It advances [CIVDYN-TRANSFER-001 #4413](https://github.com/Luminous-Dynamics/symtropy/issues/4413).
+
+The evaluator consumes typed statistic registries, split manifests and adequacy assessments from model_adequacy.rs. It requires at least one in-domain Validation domain and one held-out Challenge domain, and requires split-predictive evidence rather than prior-predictive reachability.
+
+A transfer report is only valid when every domain uses:
+- the same exact frozen model digest (zero target adaptation);
+- the same calibration-data digest;
+- the same semantic statistic IDs, constructs and measurement units;
+- unique domain and split-manifest identities;
+- source, observation, registry and split identities consistent with each typed assessment.
+
+Population, context, source family, source digest, axis and independent-unit type can differ by domain. This is deliberate: a region-level source validation may be compared to a site-level and a time-block target challenge without pretending the independent units are identical.
+
+Each domain and statistic remains visible separately. The report emits expected, assessed, within-reference, outside-reference and not-assessed unit counts. It does not pool target domains into one adequacy percentage.
+
+### Known-answer fixture
+
+One frozen model and one frozen calibration digest are evaluated on three domains:
+1. In-domain source-region Validation: within the declared reference.
+2. Target-institution Challenge: primary discrepancy detected.
+3. Target-time-block Challenge: within the declared reference.
+
+The overall claim ceiling is transfer_discrepancy_detected. The passing time-block result must not erase the failing institution target.
+
+### Claim ceiling and limitations
+
+- A target failure is a detected discrepancy in that registered target domain, not proof of which mechanism caused it.
+- A missing/underpowered domain is not_assessed, never a pass.
+- A target adapted model must carry a different model digest and requires a separate adaptation protocol.
+- The same calibration digest is required across domains; changing calibration data creates a different experiment.
+- A result with no primary discrepancy means only that none was detected on this finite, frozen set of declared domains and metrics.
+- This is synthetic protocol evidence, not real-world transportability evidence or causal transport identification.
+
+Causal transport under selection diagrams, hierarchical partial pooling, domain adaptation, subgroup transfer and sequential deployment drift are separate follow-on research tasks, not implemented by this slice.
+
+Run the transfer-adequacy-sweep binary using Cargo with the locked manifest at research/civdyn-self-correction/Cargo.toml. The CIVDYN workflow validates the named CSV schema, source/target roles, model/calibration identity, per-domain classifications and deterministic replay.
