@@ -18,7 +18,7 @@ BHPTExportTeukolskyRadialFixture[config_Association] := Module[
   },
 
   required = {
-    "FixtureId", "OutputPath", "MassKg", "SpinWeight", "Ell", "M",
+    "FixtureId", "OutputPath", "MassKg", "SpinWeight", "Ell", "AzimuthalM",
     "SpinOverMass", "OmegaM", "PrecisionBits", "RadialNodesOverM",
     "AngularBranchId", "FourierConvention", "TeukolskyVersion"
   };
@@ -27,7 +27,7 @@ BHPTExportTeukolskyRadialFixture[config_Association] := Module[
 
   s = config["SpinWeight"];
   ell = config["Ell"];
-  m = config["M"];
+  m = config["AzimuthalM"];
   a = config["SpinOverMass"];
   omega = config["OmegaM"];
   massKg = config["MassKg"];
@@ -181,7 +181,7 @@ BHPTExportTeukolskyRadialFixture[config_Association] := Module[
      "FixtureId" -> "bhpt-s-2-l2-m2-a03-w05",
      "OutputPath" -> "bhpt-s-2-l2-m2-a03-w05.json",
      "MassKg" -> 1.98847*^30,
-     "SpinWeight" -> -2, "Ell" -> 2, "M" -> 2,
+     "SpinWeight" -> -2, "Ell" -> 2, "AzimuthalM" -> 2,
      "SpinOverMass" -> SetPrecision[3/10, 100],
      "OmegaM" -> SetPrecision[1/2, 100],
      "PrecisionBits" -> 300,
