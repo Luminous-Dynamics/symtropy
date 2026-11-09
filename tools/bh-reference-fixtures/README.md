@@ -67,3 +67,11 @@ The normal-prolate genus-one WKB record requires:
 `KerrQnmSequenceFixture::normal_prolate_wkb_small_spin_parameter` exposes the non-uniformity parameter `chi^(-4/3)/(N + 1/2)`. It is a diagnostic, not a universal pass/fail threshold; publish accuracy against this parameter, spin, and truncation order.
 
 The exact-extremal WKB method is a distinct method record and the current fixture validation limits it to scalar-field records. It must not be conflated with the fixed-spin, non-extremal genus-one expansion.
+
+## Solver independence and initial-guess provenance
+
+QNM records keep `solver_method` separate from `initial_guess_source`. The source enum distinguishes an explicit independent guess, BHPT interpolation-table seed, Python `qnm` cache, asymptotic fallback, previous-spin continuation, previous-overtone continuation, and unknown provenance. A numerical initial guess without provenance is rejected.
+
+This matters for BHPT: its current documentation says `SpheroidalEigenvalue` and `IncidenceAmplitude` use the `Interpolation` result as the default initial guess, falling back to asymptotic expansions where tables are absent. Those methods are algorithmically different but may share seed data. `InterpolationFromPythonQnmCache` is an explicit method label, not an independent numerical confirmation.
+
+The method enum also preserves BHPT's Schwarzschild-only `Spectral1D`, `Large-l Asymptotic`, and `Large-n Asymptotic` routes separately. Their limited background/regime validity should remain visible in each comparison.
