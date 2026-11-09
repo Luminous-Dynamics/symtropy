@@ -68,6 +68,26 @@ struct Protocol {
 }
 
 #[derive(Clone, Debug, Deserialize)]
+struct ExpectedWorstCase {
+    failure_mode: String,
+    channel_id: String,
+    severity: f64,
+    rmse: f64,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+struct ExpectedMetrics {
+    clean_rmse: f64,
+    naive_rmse: f64,
+    mpc: f64,
+    rpc: f64,
+    npc: f64,
+    s_cross: Option<f64>,
+    grid_result_count: usize,
+    worst_case: ExpectedWorstCase,
+}
+
+#[derive(Clone, Debug, Deserialize)]
 struct Fixture {
     schema_version: String,
     problem_id: String,
@@ -82,6 +102,7 @@ struct Fixture {
     outlier_uniform: Vec<Vec<Vec<f64>>>,
     outlier_delta_unit: Vec<Vec<Vec<f64>>>,
     bootstrap_resample_indices: Vec<Vec<usize>>,
+    expected_metrics: ExpectedMetrics,
 }
 
 #[derive(Clone, Debug, Serialize, PartialEq)]
@@ -579,6 +600,28 @@ mod tests {
         assert!(result.rpc.is_finite() && result.rpc > 0.0);
         assert!(result.npc.is_finite() && result.npc > 0.0);
         assert!(result.worst_case.rmse >= result.mpc);
+    }
+
+    #[test]
+    fn frozen_muvis_c_metrics_match_known_answers() {
+        let data = fixture();
+        let result = evaluate(&data, FIXTURE).unwrap();
+        let expected = &data.expected_metrics;
+        for (actual, wanted) in [
+            (result.clean_rmse, expected.clean_rmse),
+            (result.naive_rmse, expected.naive_rmse),
+            (result.mpc, expected.mpc),
+            (result.rpc, expected.rpc),
+            (result.npc, expected.npc),
+            (result.worst_case.rmse, expected.worst_case.rmse),
+        ] {
+            assert!((actual - wanted).abs() < 1.0e-9, "{actual} != {wanted}");
+        }
+        assert_eq!(result.s_cross, expected.s_cross);
+        assert_eq!(result.grid_result_count, expected.grid_result_count);
+        assert_eq!(result.worst_case.failure_mode, expected.worst_case.failure_mode);
+        assert_eq!(result.worst_case.channel_id, expected.worst_case.channel_id);
+        assert_eq!(result.worst_case.severity, expected.worst_case.severity);
     }
 
     #[test]
