@@ -4,6 +4,9 @@ use bh_reference_fixtures::continuation::{
     KerrQnmSpinContinuationTrace, QnmExtremalDampingAnalysisConfig,
     QnmExtremalDampingBehavior, analyze_extremal_damping,
 };
+use bh_reference_fixtures::contour::{
+    QnmContourCountClassification, QnmContourCountFixture, analyze_qnm_contour_count,
+};
 use bh_reference_fixtures::qnm::{
     QnmFamilyAnalysisConfig, QnmFamilyAsymptoticTargets, QnmFamilyClassification,
     analyze_qnm_family_sequence,
@@ -48,6 +51,17 @@ fn read_qnm_continuation(path: &str) -> Result<KerrQnmSpinContinuationTrace, Str
     Ok(trace)
 }
 
+fn read_qnm_contour_count(path: &str) -> Result<QnmContourCountFixture, String> {
+    let source = fs::read_to_string(path)
+        .map_err(|error| format!("cannot read QNM contour-count fixture {path}: {error}"))?;
+    let fixture: QnmContourCountFixture = serde_json::from_str(&source)
+        .map_err(|error| format!("cannot parse QNM contour-count fixture {path}: {error}"))?;
+    fixture
+        .validate()
+        .map_err(|error| format!("invalid QNM contour-count fixture {path}: {error}"))?;
+    Ok(fixture)
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct QnmAnalysisRequest {
@@ -69,6 +83,7 @@ fn print_usage() {
          bh-reference-fixtures validate-qnm <sequence.json>\n  \
          bh-reference-fixtures validate-continuation <trace.json>\n  \
          bh-reference-fixtures analyze-continuation <trace.json>\n  \
+         bh-reference-fixtures analyze-contour-count <contour-count.json>\n  \
          bh-reference-fixtures analyze-qnm <sequence.json> <analysis.json>\n  \
          bh-reference-fixtures compare-radial <left.json> <right.json> <abs-tol> <rel-tol>"
     );
@@ -201,6 +216,31 @@ fn run(args: &[String]) -> Result<i32, String> {
                 | QnmExtremalDampingBehavior::ZeroDamping => Ok(0),
                 QnmExtremalDampingBehavior::Unresolved
                 | QnmExtremalDampingBehavior::Ambiguous => Ok(6),
+            }
+        }
+        [command, path] if command == "analyze-contour-count" => {
+            let fixture = read_qnm_contour_count(path)?;
+            let payload_sha256 = canonical_payload_sha256(&fixture)
+                .map_err(|error| format!("cannot canonicalize QNM contour-count fixture {path}: {error}"))?;
+            let analysis = analyze_qnm_contour_count(&fixture)
+                .map_err(|error| error.to_string())?;
+            println!(
+                "{}",
+                json!({
+                    "status": "analyzed",
+                    "contour_id": fixture.contour_id,
+                    "characteristic_function_id": fixture.characteristic_function_id,
+                    "payload_sha256": payload_sha256,
+                    "angular_branch_id": fixture.angular_branch_id,
+                    "riemann_sheet_kind": fixture.riemann_sheet_kind,
+                    "riemann_sheet_id": fixture.riemann_sheet_id,
+                    "analysis": analysis
+                })
+            );
+            match analysis.classification {
+                QnmContourCountClassification::CompleteWithinDomain => Ok(0),
+                QnmContourCountClassification::IncompleteOrInconsistent => Ok(5),
+                QnmContourCountClassification::Unresolved => Ok(6),
             }
         }
         [command, sequence_path, analysis_path] if command == "analyze-qnm" => {
