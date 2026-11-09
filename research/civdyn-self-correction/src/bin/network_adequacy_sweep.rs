@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use civdyn_self_correction::joint_adequacy::{
-    assess_joint_predictive_draws, JointComponentSpec, JointMetricConfig, JointObservation,
-    JointPredictiveDraw, JointStatisticSpec,
+    JointComponentSpec, JointMetricConfig, JointObservation, JointPredictiveDraw,
+    JointStatisticSpec, assess_joint_predictive_draws,
 };
 use civdyn_self_correction::model_adequacy::{IndependentUnitKind, SplitManifest, SplitRole};
 use civdyn_self_correction::network_adequacy::UndirectedNetwork;
