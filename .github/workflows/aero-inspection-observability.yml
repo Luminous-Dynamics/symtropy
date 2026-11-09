@@ -67,11 +67,17 @@ jobs:
       - name: Run known-answer and hostile tests
         run: cargo test --locked --manifest-path tools/civil-aero-benchmark/inspection-observability/Cargo.toml
 
-      - name: Run Rust observability evaluator
+      - name: Run Rust baseline observability evaluator
         run: cargo run --locked --quiet --manifest-path tools/civil-aero-benchmark/inspection-observability/Cargo.toml > inspection-observability-result.json
 
-      - name: Independently recompute rank, Fisher information and selections in Python
+      - name: Independently recompute baseline results in Python
         run: python3 tools/civil-aero-benchmark/inspection-observability/verify_independent.py --rust-output inspection-observability-result.json
+
+      - name: Run Rust fault-tolerant observability evaluator
+        run: cargo run --locked --quiet --manifest-path tools/civil-aero-benchmark/inspection-observability/Cargo.toml --bin fault_tolerant_observability > fault-tolerant-observability-result.json
+
+      - name: Independently recompute every failure scenario in Python
+        run: python3 tools/civil-aero-benchmark/inspection-observability/verify_fault_tolerant_independent.py --rust-output fault-tolerant-observability-result.json
 
       - name: Create exact source, execution and output digest receipts
         run: |
@@ -88,6 +94,10 @@ jobs:
           sha256sum tools/civil-aero-benchmark/inspection-observability/README.md > inspection-observability-readme.sha256
           sha256sum .github/workflows/aero-inspection-observability.yml > inspection-observability-workflow.sha256
           sha256sum tools/civil-aero-benchmark/inspection-observability/fixtures/known-answer-observability-v0.1.json > inspection-observability-source.sha256
+          sha256sum tools/civil-aero-benchmark/inspection-observability/src/bin/fault_tolerant_observability.rs > fault-tolerant-observability-rust-source.sha256
+          sha256sum tools/civil-aero-benchmark/inspection-observability/verify_fault_tolerant_independent.py > fault-tolerant-observability-python-source.sha256
+          sha256sum tools/civil-aero-benchmark/inspection-observability/fixtures/fault-tolerant-observability-v0.1.json > fault-tolerant-observability-source.sha256
+          sha256sum fault-tolerant-observability-result.json > fault-tolerant-observability-result.sha256
           sha256sum inspection-observability-environment.txt > inspection-observability-environment.sha256
           sha256sum inspection-observability-result.json > inspection-observability-result.sha256
           sha256sum inspection-observability-run-manifest.txt > inspection-observability-run-manifest.sha256
@@ -103,9 +113,13 @@ jobs:
             tools/civil-aero-benchmark/inspection-observability/Cargo.lock
             tools/civil-aero-benchmark/inspection-observability/README.md
             tools/civil-aero-benchmark/inspection-observability/src/main.rs
+            tools/civil-aero-benchmark/inspection-observability/src/bin/fault_tolerant_observability.rs
             tools/civil-aero-benchmark/inspection-observability/verify_independent.py
+            tools/civil-aero-benchmark/inspection-observability/verify_fault_tolerant_independent.py
             tools/civil-aero-benchmark/inspection-observability/fixtures/known-answer-observability-v0.1.json
+            tools/civil-aero-benchmark/inspection-observability/fixtures/fault-tolerant-observability-v0.1.json
             inspection-observability-result.json
+            fault-tolerant-observability-result.json
             inspection-observability-environment.txt
             inspection-observability-run-manifest.txt
             inspection-observability-toolchain.sha256
@@ -119,5 +133,9 @@ jobs:
             inspection-observability-environment.sha256
             inspection-observability-result.sha256
             inspection-observability-run-manifest.sha256
+            fault-tolerant-observability-rust-source.sha256
+            fault-tolerant-observability-python-source.sha256
+            fault-tolerant-observability-source.sha256
+            fault-tolerant-observability-result.sha256
           if-no-files-found: error
           retention-days: 90
