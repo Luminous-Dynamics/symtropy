@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use civdyn_self_correction::model_adequacy::{
-    assess_predictive_partition, AdequacyAssessment, IndependentUnitKind, ObservedStatistic,
-    PredictiveDraw, PredictiveKind, SplitManifest, SplitRole, StatisticRegistry, StatisticSpec,
+    AdequacyAssessment, IndependentUnitKind, ObservedStatistic, PredictiveDraw, PredictiveKind,
+    SplitManifest, SplitRole, StatisticRegistry, StatisticSpec, assess_predictive_partition,
 };
 
 const UNIT_ID: &str = "region-west";
@@ -11,12 +11,7 @@ const SAMPLE_SIZE: usize = 100;
 const DRAW_COUNT: usize = 20;
 const CALIBRATION_DIGEST: &str = "fixture-calibration-data-v1";
 
-fn statistic(
-    id: &str,
-    construct: &str,
-    unit: &str,
-    source_family: &str,
-) -> StatisticSpec {
+fn statistic(id: &str, construct: &str, unit: &str, source_family: &str) -> StatisticSpec {
     StatisticSpec {
         id: id.to_string(),
         construct: construct.to_string(),
@@ -73,9 +68,7 @@ fn predictive_draws(
 
 fn linear_draws(start: f64, end: f64) -> Vec<f64> {
     (0..DRAW_COUNT)
-        .map(|index| {
-            start + (end - start) * index as f64 / (DRAW_COUNT - 1) as f64
-        })
+        .map(|index| start + (end - start) * index as f64 / (DRAW_COUNT - 1) as f64)
         .collect()
 }
 
@@ -91,14 +84,26 @@ fn render(kind: PredictiveKind, assessment: &AdequacyAssessment) {
             result.statistic_id,
             result.independent_unit_id,
             result.status.name(),
-            result.observed_value.map(|value| format!("{value:.6}")).unwrap_or_default(),
+            result
+                .observed_value
+                .map(|value| format!("{value:.6}"))
+                .unwrap_or_default(),
             result
                 .measurement_standard_error
                 .map(|value| format!("{value:.6}"))
                 .unwrap_or_default(),
-            result.lower_reference.map(|value| format!("{value:.6}")).unwrap_or_default(),
-            result.upper_reference.map(|value| format!("{value:.6}")).unwrap_or_default(),
-            result.predictive_rank.map(|value| format!("{value:.6}")).unwrap_or_default(),
+            result
+                .lower_reference
+                .map(|value| format!("{value:.6}"))
+                .unwrap_or_default(),
+            result
+                .upper_reference
+                .map(|value| format!("{value:.6}"))
+                .unwrap_or_default(),
+            result
+                .predictive_rank
+                .map(|value| format!("{value:.6}"))
+                .unwrap_or_default(),
             result.draw_count,
             result.measurement_unit,
             assessment.domain_status.name(),
@@ -106,13 +111,30 @@ fn render(kind: PredictiveKind, assessment: &AdequacyAssessment) {
             result.observation_digest.as_deref().unwrap_or_default(),
             result.model_digest.as_deref().unwrap_or_default(),
             result.draw_set_digest.as_deref().unwrap_or_default(),
-            coverage.map(|summary| summary.independent_unit.name()).unwrap_or_default(),
-            coverage.map(|summary| summary.expected_independent_units.to_string()).unwrap_or_default(),
-            coverage.map(|summary| summary.assessed_independent_units.to_string()).unwrap_or_default(),
-            coverage.map(|summary| summary.covered_independent_units.to_string()).unwrap_or_default(),
-            coverage.and_then(|summary| summary.empirical_coverage).map(|value| format!("{value:.6}")).unwrap_or_default(),
-            coverage.and_then(|summary| summary.wilson_lower_95).map(|value| format!("{value:.6}")).unwrap_or_default(),
-            coverage.and_then(|summary| summary.wilson_upper_95).map(|value| format!("{value:.6}")).unwrap_or_default(),
+            coverage
+                .map(|summary| summary.independent_unit.name())
+                .unwrap_or_default(),
+            coverage
+                .map(|summary| summary.expected_independent_units.to_string())
+                .unwrap_or_default(),
+            coverage
+                .map(|summary| summary.assessed_independent_units.to_string())
+                .unwrap_or_default(),
+            coverage
+                .map(|summary| summary.covered_independent_units.to_string())
+                .unwrap_or_default(),
+            coverage
+                .and_then(|summary| summary.empirical_coverage)
+                .map(|value| format!("{value:.6}"))
+                .unwrap_or_default(),
+            coverage
+                .and_then(|summary| summary.wilson_lower_95)
+                .map(|value| format!("{value:.6}"))
+                .unwrap_or_default(),
+            coverage
+                .and_then(|summary| summary.wilson_upper_95)
+                .map(|value| format!("{value:.6}"))
+                .unwrap_or_default(),
             assessment.required_evidence_complete,
         );
     }
@@ -193,7 +215,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         &linear_draws(0.005, 0.025),
     ));
 
-    println!("kind,statistic_id,unit_id,status,observed,measurement_se,lower,upper,rank,n_draws,measurement_unit,domain_status,source_digest,observation_digest,model_digest,draw_set_digest,independent_unit,expected_units,assessed_units,covered_units,empirical_coverage,wilson_lower_95,wilson_upper_95,required_evidence_complete");
+    println!(
+        "kind,statistic_id,unit_id,status,observed,measurement_se,lower,upper,rank,n_draws,measurement_unit,domain_status,source_digest,observation_digest,model_digest,draw_set_digest,independent_unit,expected_units,assessed_units,covered_units,empirical_coverage,wilson_lower_95,wilson_upper_95,required_evidence_complete"
+    );
 
     let prior = assess_predictive_partition(
         &registry,
