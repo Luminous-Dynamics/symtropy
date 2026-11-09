@@ -16,24 +16,24 @@ env:
 jobs:
 
   aero-01-virtual-sensing-exact-head:
-    if: ${{ github.event_name == 'pull_request' && startsWith(github.head_ref, 'research/aero-01-') }}
+    if: \${{ github.event_name == 'pull_request' && startsWith(github.head_ref, 'research/aero-01-') }}
     name: AER-01 Virtual Sensing (Exact PR Head)
     runs-on: ubuntu-latest
     steps:
     - name: Check out exact pull-request head
       uses: actions/checkout@v4
       with:
-        ref: ${{ github.event.pull_request.head.sha || github.sha }}
+        ref: \${{ github.event.pull_request.head.sha || github.sha }}
 
     - name: Assert exact subject revision
       env:
-        EXPECTED_SUBJECT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        EXPECTED_SUBJECT_SHA: \${{ github.event.pull_request.head.sha || github.sha }}
       run: |
         set -euo pipefail
         actual_subject_sha="$(git rev-parse HEAD)"
         test "$actual_subject_sha" = "$EXPECTED_SUBJECT_SHA"
-        printf 'subject_commit=%s\\n' "$actual_subject_sha"
-        printf 'event_commit=%s\\n' "$GITHUB_SHA"
+        printf 'subject_commit=%s\n' "$actual_subject_sha"
+        printf 'event_commit=%s\n' "$GITHUB_SHA"
 
     - name: Set up pinned Rust
       uses: dtolnay/rust-toolchain@stable
@@ -61,11 +61,9 @@ jobs:
     - name: Create exact subject and digest receipts
       run: |
         set -euo pipefail
-        subject_sha="${{ github.event.pull_request.head.sha || github.sha }}"
-        workflow_blob=$(git rev-parse "${subject_sha}:.github/workflows/ci.yml")
-        printf 'subject_commit=%s\\nevent_commit=%s\\nworkflow_blob=%s\\nrun_id=%s\\nrun_attempt=%s\\n' \\
-          "$subject_sha" "$GITHUB_SHA" "$workflow_blob" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" \\
-          > virtual-sensing-exact-head-manifest.txt
+        subject_sha="\${{ github.event.pull_request.head.sha || github.sha }}"
+        workflow_blob=$(git rev-parse "\${subject_sha}:.github/workflows/ci.yml")
+        printf 'subject_commit=%s\nevent_commit=%s\nworkflow_blob=%s\nrun_id=%s\nrun_attempt=%s\n' "$subject_sha" "$GITHUB_SHA" "$workflow_blob" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" > virtual-sensing-exact-head-manifest.txt
         sha256sum rust-toolchain.toml > virtual-sensing-toolchain.sha256
         sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/Cargo.toml > virtual-sensing-cargo-manifest.sha256
         sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/Cargo.lock > virtual-sensing-cargo-lock.sha256
@@ -78,7 +76,7 @@ jobs:
     - name: Retain exact-head source, output and receipts
       uses: actions/upload-artifact@v4
       with:
-        name: aero-01-virtual-sensing-${{ github.event.pull_request.head.sha || github.sha }}
+        name: aero-01-virtual-sensing-\${{ github.event.pull_request.head.sha || github.sha }}
         path: |
           rust-toolchain.toml
           .github/workflows/ci.yml
