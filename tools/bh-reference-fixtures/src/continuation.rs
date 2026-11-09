@@ -636,15 +636,23 @@ mod tests {
         let samples = spins
             .iter()
             .enumerate()
-            .map(|(index, spin)| KerrQnmSpinSample {
+            .map(|(index, spin)| {
+                let damping_rate = match damping {
+                    QnmExtremalDampingBehavior::ZeroDamping if index < 3 => {
+                        0.25 * dimensionless_surface_gravity(*spin).unwrap()
+                    }
+                    QnmExtremalDampingBehavior::ZeroDamping => 0.0,
+                    QnmExtremalDampingBehavior::FiniteDamping => 0.1,
+                    QnmExtremalDampingBehavior::Unresolved
+                    | QnmExtremalDampingBehavior::Ambiguous => {
+                        if index == 3 { 0.0 } else { 0.1 }
+                    }
+                };
+                KerrQnmSpinSample {
                 spin_over_mass: *spin,
                 omega_m: ComplexValue {
                     re: 0.5 * f64::from(m),
-                    im: if index == 3 {
-                        0.0
-                    } else {
-                        -0.1 * (1.0 - spin).sqrt()
-                    },
+                    im: -damping_rate,
                 },
                 angular_eigenvalue: ComplexValue { re: 3.0, im: -0.1 },
                 angular_branch_id: "angular-branch-A".to_owned(),
@@ -662,6 +670,7 @@ mod tests {
                     continued_fraction_relative: None,
                     incidence_amplitude_relative: None,
                 },
+            }
             })
             .collect();
         let evidence = matches!(
@@ -712,6 +721,48 @@ mod tests {
             superradiant_bound_detuning(exact, value.m, 1.0),
             ComplexValue { re: 0.0, im: 0.0 }
         );
+    }
+
+    #[test]
+    fn classifies_surface_gravity_scaling_for_zero_and_finite_damping() {
+        let zero_trace = trace(-2, QnmExtremalDampingBehavior::ZeroDamping);
+        let zero = analyze_extremal_damping(
+            &zero_trace,
+            QnmExtremalDampingAnalysisConfig::default(),
+        )
+        .unwrap();
+        assert_eq!(zero.classification, QnmExtremalDampingBehavior::ZeroDamping);
+        assert!((zero.observed_damping_vs_surface_gravity_exponent.unwrap() - 1.0).abs() < 1.0e-12);
+        assert!(zero.producer_label_matches_analysis);
+
+        let finite_trace = trace(2, QnmExtremalDampingBehavior::FiniteDamping);
+        let finite = analyze_extremal_damping(
+            &finite_trace,
+            QnmExtremalDampingAnalysisConfig::default(),
+        )
+        .unwrap();
+        assert_eq!(
+            finite.classification,
+            QnmExtremalDampingBehavior::FiniteDamping
+        );
+        assert!(finite.observed_damping_vs_surface_gravity_exponent.unwrap().abs() < 1.0e-12);
+        assert!(finite.producer_label_matches_analysis);
+    }
+
+    #[test]
+    fn leaves_intermediate_damping_scaling_ambiguous() {
+        let mut value = trace(2, QnmExtremalDampingBehavior::ZeroDamping);
+        for sample in value.samples.iter_mut().take(3) {
+            let gravity = dimensionless_surface_gravity(sample.spin_over_mass).unwrap();
+            sample.omega_m.im = -0.1 * gravity.sqrt();
+        }
+        let result = analyze_extremal_damping(
+            &value,
+            QnmExtremalDampingAnalysisConfig::default(),
+        )
+        .unwrap();
+        assert_eq!(result.classification, QnmExtremalDampingBehavior::Ambiguous);
+        assert!(!result.producer_label_matches_analysis);
     }
 
     #[test]
