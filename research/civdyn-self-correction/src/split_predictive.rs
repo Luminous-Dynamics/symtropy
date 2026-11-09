@@ -74,6 +74,7 @@ pub struct DividedSpcResult {
     pub calibration_data_digest: String,
     pub tail: SpcTail,
     pub independent_unit_kind: IndependentUnitKind,
+    pub sample_size: usize,
     pub unit_p_values: Vec<SpcUnitPValue>,
     pub ks_statistic: f64,
     pub uniformity_p_value: f64,
@@ -105,6 +106,7 @@ pub enum SplitPredictiveError {
     MixedCalibrationIdentities,
     MixedSourceIdentities,
     MixedMeasurementUnits,
+    MixedSampleSizes,
     InvalidMonteCarloReplicates,
 }
 
@@ -325,6 +327,9 @@ pub fn divided_split_predictive_check(
         if check.measurement_unit != first.measurement_unit {
             return Err(SplitPredictiveError::MixedMeasurementUnits);
         }
+        if check.sample_size != first.sample_size {
+            return Err(SplitPredictiveError::MixedSampleSizes);
+        }
         if check.calibration_data_digest != manifest.calibration_data_digest {
             return Err(SplitPredictiveError::MixedCalibrationIdentities);
         }
@@ -399,6 +404,7 @@ pub fn divided_split_predictive_check(
         calibration_data_digest: manifest.calibration_data_digest.clone(),
         tail: first.tail,
         independent_unit_kind: manifest.independent_unit,
+        sample_size: first.sample_size,
         unit_p_values,
         ks_statistic,
         uniformity_p_value,
@@ -711,6 +717,16 @@ mod tests {
         assert!(matches!(
             divided_split_predictive_check(&manifest(), SplitRole::Validation, &checks, 999, 1),
             Err(SplitPredictiveError::MixedMeasurementUnits)
+        ));
+    }
+
+    #[test]
+    fn divided_spc_rejects_mixed_sample_sizes() {
+        let mut checks = checks();
+        checks[1].sample_size += 1;
+        assert!(matches!(
+            divided_split_predictive_check(&manifest(), SplitRole::Validation, &checks, 999, 1),
+            Err(SplitPredictiveError::MixedSampleSizes)
         ));
     }
 
