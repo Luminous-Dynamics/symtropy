@@ -35,7 +35,7 @@ impl fmt::Display for NetworkAdequacyError {
             ),
             Self::DuplicateUndirectedEdge { left, right } => {
                 write!(formatter, "duplicate undirected edge ({left}, {right})")
-            },
+            }
             Self::NoReachablePairsForPathStatistic => {
                 write!(
                     formatter,
