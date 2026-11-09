@@ -223,21 +223,18 @@ fn complex_mean(values: &[ComplexValue]) -> Option<ComplexValue> {
 }
 
 fn scaled_complex_error(value: ComplexValue, expected: ComplexValue) -> f64 {
-    complex_norm(complex_sub(value, expected))
-        / complex_norm(expected).max(f64::MIN_POSITIVE)
+    complex_norm(complex_sub(value, expected)) / complex_norm(expected).max(f64::MIN_POSITIVE)
 }
 
-fn mode_has_qualified_residuals(
-    mode: &QnmModeRecord,
-    maximum_solver_residual: f64,
-) -> bool {
+fn mode_has_qualified_residuals(mode: &QnmModeRecord, maximum_solver_residual: f64) -> bool {
     let Some(residuals) = &mode.residuals else {
         return false;
     };
     let Some(angular) = residuals.angular_ode_relative else {
         return false;
     };
-    let radial_or_root = residuals.radial_ode_relative
+    let radial_or_root = residuals
+        .radial_ode_relative
         .or(residuals.continued_fraction_relative)
         .or(residuals.incidence_amplitude_relative);
     angular <= maximum_solver_residual
@@ -317,11 +314,9 @@ pub fn analyze_qnm_family_sequence(
 
     let spin = sequence.spin_over_mass;
     let oscillator_level = sequence.normal_prolate_oscillator_level;
-    let expected_prolate_angular = oscillator_level.map(|level| {
-        ComplexValue {
-            re: 2.0 * f64::from(level) + 1.0,
-            im: 0.0,
-        }
+    let expected_prolate_angular = oscillator_level.map(|level| ComplexValue {
+        re: 2.0 * f64::from(level) + 1.0,
+        im: 0.0,
     });
     let expected_oblate_angular = ComplexValue { re: 1.0, im: 0.0 };
 
@@ -329,13 +324,7 @@ pub fn analyze_qnm_family_sequence(
         let ratios = window
             .iter()
             .map(|mode| {
-                let denominator = complex_mul(
-                    ComplexValue {
-                        re: 0.0,
-                        im: spin,
-                    },
-                    mode.omega_m,
-                );
+                let denominator = complex_mul(ComplexValue { re: 0.0, im: spin }, mode.omega_m);
                 complex_div(mode.angular_eigenvalue, denominator)
             })
             .collect::<Option<Vec<_>>>()?;
@@ -352,30 +341,32 @@ pub fn analyze_qnm_family_sequence(
         )
     });
 
-    let oblate = (spin > 0.0).then(|| {
-        let ratios = window
-            .iter()
-            .map(|mode| {
-                let omega_squared = complex_mul(mode.omega_m, mode.omega_m);
-                let denominator = ComplexValue {
-                    re: -spin * spin * omega_squared.re,
-                    im: -spin * spin * omega_squared.im,
-                };
-                complex_div(mode.angular_eigenvalue, denominator)
-            })
-            .collect::<Option<Vec<_>>>()?;
-        let spacings = window
-            .windows(2)
-            .map(|pair| complex_sub(pair[1].omega_m, pair[0].omega_m))
-            .collect::<Vec<_>>();
-        candidate_diagnostics(
-            &ratios,
-            &spacings,
-            expected_oblate_angular,
-            targets.oblate_spacing_m,
-            config,
-        )
-    }).flatten();
+    let oblate = (spin > 0.0)
+        .then(|| {
+            let ratios = window
+                .iter()
+                .map(|mode| {
+                    let omega_squared = complex_mul(mode.omega_m, mode.omega_m);
+                    let denominator = ComplexValue {
+                        re: -spin * spin * omega_squared.re,
+                        im: -spin * spin * omega_squared.im,
+                    };
+                    complex_div(mode.angular_eigenvalue, denominator)
+                })
+                .collect::<Option<Vec<_>>>()?;
+            let spacings = window
+                .windows(2)
+                .map(|pair| complex_sub(pair[1].omega_m, pair[0].omega_m))
+                .collect::<Vec<_>>();
+            candidate_diagnostics(
+                &ratios,
+                &spacings,
+                expected_oblate_angular,
+                targets.oblate_spacing_m,
+                config,
+            )
+        })
+        .flatten();
 
     let classification = match (prolate.is_some(), oblate.is_some()) {
         (true, false) => QnmFamilyClassification::Prolate,
@@ -1178,9 +1169,7 @@ mod tests {
         );
     }
 
-    fn synthetic_asymptotic_sequence(
-        family: QnmFamilyClassification,
-    ) -> KerrQnmSequenceFixture {
+    fn synthetic_asymptotic_sequence(family: QnmFamilyClassification) -> KerrQnmSequenceFixture {
         let mut value = sequence(QnmFamilyClassification::Unresolved);
         value.spin_over_mass = 0.7;
         value.normal_prolate_oscillator_level = Some(1);
@@ -1211,9 +1200,7 @@ mod tests {
                 }
             };
             let angular_base = match family {
-                QnmFamilyClassification::Prolate => {
-                    complex_mul(angular_factor, mode.omega_m)
-                }
+                QnmFamilyClassification::Prolate => complex_mul(angular_factor, mode.omega_m),
                 QnmFamilyClassification::Oblate => {
                     complex_mul(angular_factor, complex_mul(mode.omega_m, mode.omega_m))
                 }
@@ -1237,12 +1224,9 @@ mod tests {
     fn sequence_analysis_recomputes_prolate_family_without_trusting_overtone_labels() {
         let mut value = synthetic_asymptotic_sequence(QnmFamilyClassification::Prolate);
         let targets = synthetic_family_targets();
-        let result = analyze_qnm_family_sequence(
-            &value,
-            targets,
-            QnmFamilyAnalysisConfig::default(),
-        )
-        .unwrap();
+        let result =
+            analyze_qnm_family_sequence(&value, targets, QnmFamilyAnalysisConfig::default())
+                .unwrap();
         assert_eq!(result.classification, QnmFamilyClassification::Prolate);
         assert!(result.prolate.is_some());
         assert!(result.oblate.is_none());
@@ -1252,12 +1236,9 @@ mod tests {
         for mode in &mut value.modes {
             mode.overtone_index = None;
         }
-        let without_overtone_labels = analyze_qnm_family_sequence(
-            &value,
-            targets,
-            QnmFamilyAnalysisConfig::default(),
-        )
-        .unwrap();
+        let without_overtone_labels =
+            analyze_qnm_family_sequence(&value, targets, QnmFamilyAnalysisConfig::default())
+                .unwrap();
         assert_eq!(
             without_overtone_labels.classification,
             QnmFamilyClassification::Prolate
@@ -1283,12 +1264,9 @@ mod tests {
         let mut value = synthetic_asymptotic_sequence(QnmFamilyClassification::Prolate);
         let mut wrong_target = synthetic_family_targets();
         wrong_target.prolate_spacing_m = ComplexValue { re: 0.0, im: -0.3 };
-        let wrong_spacing = analyze_qnm_family_sequence(
-            &value,
-            wrong_target,
-            QnmFamilyAnalysisConfig::default(),
-        )
-        .unwrap();
+        let wrong_spacing =
+            analyze_qnm_family_sequence(&value, wrong_target, QnmFamilyAnalysisConfig::default())
+                .unwrap();
         assert_eq!(
             wrong_spacing.classification,
             QnmFamilyClassification::Unresolved
@@ -1343,12 +1321,8 @@ mod tests {
             maximum_frequency_spacing_drift: 1.0e6,
             ..QnmFamilyAnalysisConfig::default()
         };
-        let result = analyze_qnm_family_sequence(
-            &value,
-            synthetic_family_targets(),
-            config,
-        )
-        .unwrap();
+        let result =
+            analyze_qnm_family_sequence(&value, synthetic_family_targets(), config).unwrap();
         assert_eq!(result.classification, QnmFamilyClassification::Ambiguous);
         assert!(result.prolate.is_some());
         assert!(result.oblate.is_some());
