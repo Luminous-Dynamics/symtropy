@@ -111,6 +111,8 @@ pub struct DecisionMetricSpec {
     pub metric_id: String,
     pub unit: String,
     pub role: DecisionMetricRole,
+    /// Absolute tie tolerance in this metric's native unit.
+    pub tie_tolerance: f64,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -319,6 +321,10 @@ pub enum ModelSetError {
     InvalidMetric {
         metric_id: String,
     },
+    InvalidTieTolerance {
+        metric_id: String,
+        tie_tolerance: f64,
+    },
     InvalidConstraintThreshold {
         metric_id: String,
         threshold: f64,
@@ -438,6 +444,12 @@ impl ModelSetManifest {
             if !metric_ids.insert(metric.metric_id.as_str()) {
                 return Err(ModelSetError::DuplicateMetric {
                     metric_id: metric.metric_id.clone(),
+                });
+            }
+            if !metric.tie_tolerance.is_finite() || metric.tie_tolerance < 0.0 {
+                return Err(ModelSetError::InvalidTieTolerance {
+                    metric_id: metric.metric_id.clone(),
+                    tie_tolerance: metric.tie_tolerance,
                 });
             }
             match metric.role {
@@ -758,7 +770,7 @@ pub fn analyze_model_set_decisions(
                             );
                             let winners = candidate_values
                                 .iter()
-                                .filter(|(_, value)| (*value - best).abs() <= 1e-12)
+                                .filter(|(_, value)| (*value - best).abs() <= objective.tie_tolerance)
                                 .map(|(policy_id, _)| (*policy_id).to_string())
                                 .collect::<Vec<_>>();
                             (
@@ -923,7 +935,7 @@ pub fn analyze_model_set_decisions(
             .map(|best| {
                 eligible_regrets
                     .iter()
-                    .filter(|(_, value)| (*value - best).abs() <= 1e-12)
+                    .filter(|(_, value)| (*value - best).abs() <= objective.tie_tolerance)
                     .map(|(policy_id, _)| policy_id.clone())
                     .collect()
             })
@@ -1076,6 +1088,7 @@ mod tests {
                     role: DecisionMetricRole::Objective {
                         direction: ObjectiveDirection::Minimize,
                     },
+                    tie_tolerance: 1e-12,
                 },
                 DecisionMetricSpec {
                     metric_id: "essential-coverage".to_string(),
@@ -1084,6 +1097,7 @@ mod tests {
                         comparison: ConstraintComparison::AtLeast,
                         threshold: 0.95,
                     },
+                    tie_tolerance: 0.0,
                 },
             ],
         }
@@ -1327,6 +1341,7 @@ mod tests {
             role: DecisionMetricRole::Objective {
                 direction: ObjectiveDirection::Maximize,
             },
+            tie_tolerance: 1e-9,
         });
         let mut rows = complete_outcomes();
         for row in &mut rows {
