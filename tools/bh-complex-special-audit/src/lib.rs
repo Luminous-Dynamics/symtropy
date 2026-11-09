@@ -1006,9 +1006,8 @@ pub fn poschl_teller_wronskian_winding_number(
     let mut current_samples = samples;
     let mut previous_winding: Option<i32> = None;
     let mut stable_refinements = 0_usize;
-    let mut refinements = 0_usize;
 
-    for _ in 0..8 {
+    for refinements in 0..8 {
         let (winding_number, max_phase_step) =
             sample_poschl_teller_wronskian_winding(width, lambda, center, radius, current_samples)?;
         if max_phase_step >= core::f64::consts::FRAC_PI_8 {
@@ -1033,7 +1032,6 @@ pub fn poschl_teller_wronskian_winding_number(
         current_samples = current_samples
             .checked_mul(2)
             .ok_or(SpecialError::InvalidConfiguration)?;
-        refinements += 1;
     }
 
     Err(SpecialError::NoConvergence)
@@ -1063,12 +1061,11 @@ fn sample_retarded_green_laurent_grid(
     width: f64,
     lambda: f64,
     center: Complex64,
-    radius: f64,
-    samples: usize,
-    observer_x: f64,
-    source_x: f64,
+    contour: PoschlTellerGreenContourConfig,
     config: SeriesConfig,
 ) -> Result<GreenLaurentGridEvaluation, SpecialError> {
+    let radius = contour.radius;
+    let samples = contour.samples;
     let mut c_minus_one = Complex64::new(0.0, 0.0);
     let mut c_minus_two = Complex64::new(0.0, 0.0);
     let mut max_relative_wronskian_disagreement: f64 = 0.0;
@@ -1077,8 +1074,14 @@ fn sample_retarded_green_laurent_grid(
         let angle = core::f64::consts::TAU * index as f64 / samples as f64;
         let displacement = Complex64::new(radius * angle.cos(), radius * angle.sin());
         let omega = center + displacement;
-        let evaluation =
-            poschl_teller_retarded_green(width, lambda, omega, observer_x, source_x, config)?;
+        let evaluation = poschl_teller_retarded_green(
+            width,
+            lambda,
+            omega,
+            contour.observer_x,
+            contour.source_x,
+            config,
+        )?;
         let denominator = evaluation
             .wronskian
             .norm()
@@ -1160,37 +1163,24 @@ pub fn poschl_teller_retarded_green_laurent(
 
     // Winding and Laurent integrations both start from the refined winding
     // grid, but the coefficient quadrature has its own nested-grid acceptance.
-    let mut samples = winding.samples.max(contour.samples);
-    let mut previous = sample_retarded_green_laurent_grid(
-        width,
-        lambda,
-        center,
-        contour.radius,
-        samples,
-        contour.observer_x,
-        contour.source_x,
-        config,
-    )?;
+    let mut refined_contour = PoschlTellerGreenContourConfig {
+        samples: winding.samples.max(contour.samples),
+        ..contour
+    };
+    let mut previous =
+        sample_retarded_green_laurent_grid(width, lambda, center, refined_contour, config)?;
     let mut stable_quadrature_refinements = 0_usize;
-    let mut scaled_quadrature_difference = f64::INFINITY;
 
     for quadrature_refinements in 1..=MAX_GREEN_LAURENT_REFINEMENTS {
-        samples = samples
+        refined_contour.samples = refined_contour
+            .samples
             .checked_mul(2)
             .ok_or(SpecialError::InvalidConfiguration)?;
-        let current = sample_retarded_green_laurent_grid(
-            width,
-            lambda,
-            center,
-            contour.radius,
-            samples,
-            contour.observer_x,
-            contour.source_x,
-            config,
-        )?;
+        let current =
+            sample_retarded_green_laurent_grid(width, lambda, center, refined_contour, config)?;
         let c1_scale = current.c_minus_one.norm().max(1.0);
         let c2_scale = current.c_minus_two.norm().max(1.0);
-        scaled_quadrature_difference = ((current.c_minus_one - previous.c_minus_one).norm()
+        let scaled_quadrature_difference = ((current.c_minus_one - previous.c_minus_one).norm()
             / c1_scale)
             .max((current.c_minus_two - previous.c_minus_two).norm() / c2_scale);
 
@@ -1204,7 +1194,7 @@ pub fn poschl_teller_retarded_green_laurent(
             return Ok(PoschlTellerGreenLaurentEvaluation {
                 center,
                 radius: contour.radius,
-                samples,
+                samples: refined_contour.samples,
                 winding_number: winding.winding_number,
                 max_phase_step: winding.max_phase_step,
                 c_minus_one: current.c_minus_one,
