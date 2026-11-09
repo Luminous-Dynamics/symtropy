@@ -350,7 +350,8 @@
           "enum": [
             "provenance_test_only",
             "offline_research",
-            "planning_only"
+            "planning_only",
+            "synthetic_test_only"
           ]
         },
         "navigation_use_authorized": {
@@ -448,6 +449,18 @@
                 "type": "null"
               }
             }
+          },
+          "intended_use": {
+            "properties": {
+              "scope": {
+                "enum": [
+                  "provenance_test_only",
+                  "synthetic_test_only",
+                  "offline_research",
+                  "planning_only"
+                ]
+              }
+            }
           }
         }
       }
@@ -536,6 +549,17 @@
               "terms_sha256": {
                 "type": "string",
                 "pattern": "^[a-f0-9]{64}$"
+              }
+            }
+          },
+          "intended_use": {
+            "properties": {
+              "scope": {
+                "enum": [
+                  "provenance_test_only",
+                  "offline_research",
+                  "planning_only"
+                ]
               }
             }
           }
