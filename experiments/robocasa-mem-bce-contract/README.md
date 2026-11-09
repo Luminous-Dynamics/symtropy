@@ -13,6 +13,8 @@ It does not implement RoboCasa-Mem, reproduce its task evaluator, or run the Rob
 - Two episodes with identical policy-visible inputs may correctly have different evaluator-private expected entities because their earlier valid choices differed.
 - Missing prior interactions fail closed; there is no fixed-target fallback.
 - Duplicate/replayed IDs, mixed episodes and reordered/duplicate sequence numbers are rejected rather than silently repaired.
+- A separate synthetic process-memory oracle preserves paused/open obligations across interleaved task threads; submission remains blocked until all obligations are satisfied.
+- Illegal task transitions, cross-task satisfaction, duplicate openings, late resumption after completion and reordered/replayed events fail closed.
 
 The synthetic example models a prior choice of cup A or cup B followed by a later choice that must remain consistent with the earlier interaction. This is an intentionally minimal semantic fixture, not a copy of any RoboCasa-Mem task.
 
