@@ -1,0 +1,12 @@
+[package]
+name = "aero-nastran-bdf-intake"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Read-only, provenance-preserving NASTRAN BDF syntax and topology intake"
+
+[dependencies]
+sha2 = "0.10"
+
+[workspace]
