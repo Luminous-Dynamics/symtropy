@@ -90,7 +90,8 @@
           "REPLENISHMENT_STRATEGY",
           "POSE_CALIBRATION",
           "ASSET_LIFECYCLE",
-          "INTEROPERABILITY"
+          "INTEROPERABILITY",
+          "MISSION_RECOURSE"
         ]
       }
     },
@@ -252,7 +253,8 @@
             "REPLENISHMENT_STRATEGY",
             "POSE_CALIBRATION",
             "ASSET_LIFECYCLE",
-            "CAPABILITY_PROFILE"
+            "CAPABILITY_PROFILE",
+            "MISSION_RECOURSE_POLICY"
           ]
         },
         "artifact_path": {
@@ -427,7 +429,8 @@
         "REPLENISHMENT_STRATEGY",
         "POSE_CALIBRATION",
         "ASSET_LIFECYCLE",
-        "CAPABILITY_PROFILE"
+        "CAPABILITY_PROFILE",
+        "MISSION_RECOURSE_POLICY"
       ]
     },
     "receiver": {
@@ -540,7 +543,10 @@
             "CAPTURE_AWARE_CONFORMAL",
             "POLYTOPIC_SET_MEMBERSHIP",
             "CONFORMAL_POLICY_CONTROL",
-            "CAPABILITY_PROFILE_MATCHER"
+            "CAPABILITY_PROFILE_MATCHER",
+            "OPEN_LOOP_ROBUST_REPLENISHMENT",
+            "OBSERVATION_CONDITIONED_RECOURSE",
+            "PERFECT_INFORMATION_UPPER_BOUND_NON_DEPLOYABLE"
           ]
         },
         "artifact_sha256": {
