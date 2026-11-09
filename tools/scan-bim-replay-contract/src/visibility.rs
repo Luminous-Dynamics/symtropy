@@ -28,8 +28,15 @@ pub enum OccluderKind {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum OccluderCoverage {
+    Complete,
+    Incomplete,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ViewVisibilityStatus {
     Observable,
+    Backface,
     OutsideSensorCoverage,
     SelfOccluded,
     ExternallyOccluded,
@@ -43,6 +50,9 @@ pub struct VisibilityProbe {
     pub surface_id: String,
     pub triangle_id: String,
     pub point: Point3,
+    /// Outward normal in the same declared frame as point. The evaluator
+    /// validates and normalizes it before the sensor-incidence test.
+    pub normal: Point3,
     /// Area represented by this probe, in square metres. Probe generation
     /// and area conservation are caller-owned and must be receipt-bound.
     pub represented_area_m2: f64,
@@ -79,6 +89,22 @@ pub struct VisibilityProfile {
     /// Maximum number of probe × view × occluder ray/triangle tests. Exceeding
     /// this budget is an error; the evaluator never silently truncates.
     pub max_ray_tests: usize,
+    /// Minimum cosine between the outward surface normal and the direction
+    /// from the probe toward the sensor. Zero accepts only front-facing views.
+    pub min_incidence_cosine: f64,
+}
+
+pub struct VisibilityEvaluation<'a> {
+    pub scene_id: &'a str,
+    pub frame_id: &'a str,
+    pub reference_model_sha256: &'a str,
+    pub probe_set_sha256: &'a str,
+    pub occluder_manifest_sha256: &'a str,
+    pub occluder_coverage: OccluderCoverage,
+    pub probes: &'a [VisibilityProbe],
+    pub views: &'a [VisibilityView],
+    pub occluders: &'a [OccluderTriangle],
+    pub profile: VisibilityProfile,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -105,6 +131,7 @@ pub struct VisibilityProbeResult {
 pub struct VisibilitySurfaceArea {
     pub surface_id: String,
     pub observable_area_m2: f64,
+    pub backface_area_m2: f64,
     pub self_occluded_area_m2: f64,
     pub externally_occluded_area_m2: f64,
     pub outside_sensor_coverage_area_m2: f64,
@@ -118,11 +145,15 @@ pub struct VisibilityReceipt {
     pub scene_id: String,
     pub frame_id: String,
     pub reference_model_sha256: String,
+    pub probe_set_sha256: String,
     pub occluder_manifest_sha256: String,
+    pub occluder_coverage: OccluderCoverage,
+    pub min_incidence_cosine: f64,
     pub probe_count: usize,
     pub view_count: usize,
     pub ray_test_count: usize,
     pub observable_area_m2: f64,
+    pub backface_area_m2: f64,
     pub self_occluded_area_m2: f64,
     pub externally_occluded_area_m2: f64,
     pub outside_sensor_coverage_area_m2: f64,
