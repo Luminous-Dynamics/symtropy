@@ -273,20 +273,26 @@ fn validate_fixture(value: &Value) -> Vec<String> {
         .get("measurement")
         .and_then(|measurement| measurement.get("units"))
         .and_then(Value::as_array);
-    match units {
-        Some(values) if !values.is_empty() => {
+    let unit_status = get_str(value, &["measurement", "unit_status"]).unwrap_or_default();
+    if !in_set(unit_status, &["DECLARED", "UNKNOWN"]) {
+        errors.push(format!("unsupported measurement.unit_status: {unit_status}"));
+    }
+    match (units, unit_status) {
+        (Some(values), "DECLARED") if !values.is_empty() => {
             if values.iter().any(|item| {
                 item.as_str().is_none_or(|text| text.trim().is_empty())
             }) {
                 errors.push("measurement.units must contain only non-empty strings".to_owned());
             }
         }
-        _ => errors.push("measurement.units must be a non-empty array".to_owned()),
-    }
-
-    let unit_status = get_str(value, &["measurement", "unit_status"]).unwrap_or_default();
-    if !in_set(unit_status, &["DECLARED", "UNKNOWN"]) {
-        errors.push(format!("unsupported measurement.unit_status: {unit_status}"));
+        (Some(values), "UNKNOWN") if values.is_empty() => {}
+        (Some(_), "UNKNOWN") => {
+            errors.push("measurement.units must be empty when unit_status is UNKNOWN".to_owned());
+        }
+        (Some(_), "DECLARED") => {
+            errors.push("measurement.units must be non-empty when unit_status is DECLARED".to_owned());
+        }
+        _ => errors.push("measurement.units must be an array".to_owned()),
     }
 
     let calibration = get_str(value, &["measurement", "calibration_status"]).unwrap_or_default();
@@ -660,6 +666,16 @@ mod tests {
         assert!(validate_fixture(&value)
             .iter()
             .any(|error| error.contains("not permitted by the closed schema")));
+    }
+
+    #[test]
+    fn unknown_units_are_represented_by_an_empty_list_not_a_fake_unit() {
+        let mut value: Value =
+            serde_json::from_str(include_str!("../fixtures/oli-m0-dusty-plasma-001.json")).unwrap();
+        assert_eq!(value["measurement"]["units"].as_array().unwrap().len(), 0);
+        assert!(validate_fixture(&value).is_empty());
+        value["measurement"]["units"] = serde_json::json!(["unknown_unit"]);
+        assert!(!validate_fixture(&value).is_empty());
     }
 
     #[test]
