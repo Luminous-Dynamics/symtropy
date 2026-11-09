@@ -401,7 +401,7 @@ pub fn assess_predictive_partition(
     }
 
     let mut draw_indices = BTreeSet::new();
-    let mut draw_set_identities: BTreeMap<(String, String), (String, String)> = BTreeMap::new();
+    let mut draw_set_identities: BTreeMap<(String, String, usize), (String, String)> = BTreeMap::new();
     for draw in draws.iter().filter(|draw| draw.kind == kind) {
         let statistic = registry.get(&draw.statistic_id).ok_or_else(|| {
             AdequacyError::UnknownStatistic {
@@ -452,6 +452,7 @@ pub fn assess_predictive_partition(
         let key = (
             draw.statistic_id.clone(),
             draw.independent_unit_id.clone(),
+            draw.sample_size,
         );
         if !draw_indices.insert((
             draw.statistic_id.clone(),
@@ -1128,6 +1129,42 @@ mod tests {
             ),
             Err(AdequacyError::DuplicateDraw { .. })
         ));
+    }
+
+    #[test]
+    fn sample_size_specific_draw_sets_can_coexist() {
+        let observations = vec![observation("service-rate", "region-val", 0.3)];
+        let mut sample_100 = draws(
+            PredictiveKind::Split,
+            "service-rate",
+            "region-val",
+            &[0.1, 0.2, 0.3, 0.4, 0.5],
+        );
+        let mut sample_50 = sample_100.clone();
+        for draw in &mut sample_100 {
+            draw.draw_set_digest = "draw-set-n100".to_string();
+        }
+        for draw in &mut sample_50 {
+            draw.sample_size = 50;
+            draw.draw_set_digest = "draw-set-n50".to_string();
+        }
+        sample_100.extend(sample_50);
+
+        let assessment = assess_predictive_partition(
+            &registry(),
+            &manifest(),
+            &observations,
+            &sample_100,
+            SplitRole::Validation,
+            PredictiveKind::Split,
+            0.8,
+        )
+        .expect("distinct sample-size draw sets are independently identified");
+        assert_eq!(
+            assessment.statistics[0].status,
+            StatisticStatus::WithinReferenceInterval
+        );
+        assert_eq!(assessment.statistics[0].draw_count, 5);
     }
 
     #[test]
