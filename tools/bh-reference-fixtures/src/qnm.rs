@@ -658,12 +658,14 @@ mod tests {
         let mut value = sequence(QnmFamilyClassification::Prolate);
         value.spin_weight = 0;
         value.normal_prolate_oscillator_level = Some(0);
-        let mode = &mut value.modes[0];
-        mode.solver_method = QnmSolverMethod::KerrNormalProlateGenusOneWkb;
-        mode.wkb_quantization_index = Some(120);
-        mode.overtone_index = Some(7);
+        {
+            let mode = &mut value.modes[0];
+            mode.solver_method = QnmSolverMethod::KerrNormalProlateGenusOneWkb;
+            mode.wkb_quantization_index = Some(120);
+            mode.overtone_index = Some(7);
+        }
         let parameter = value
-            .normal_prolate_wkb_small_spin_parameter(mode)
+            .normal_prolate_wkb_small_spin_parameter(&value.modes[0])
             .unwrap();
         let expected = 0.3_f64.powf(-4.0 / 3.0) / 120.5;
         assert!((parameter - expected).abs() <= 4.0 * f64::EPSILON * expected);
