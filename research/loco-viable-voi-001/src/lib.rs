@@ -388,11 +388,7 @@ fn continuation_risk_for_action(
     for hypothesis in &problem.hypotheses {
         for branch in &problem.branches {
             let mass = joint_mass_index
-                .get(&(
-                    hypothesis.id.as_str(),
-                    branch.id.as_str(),
-                    outcome_id,
-                ))
+                .get(&(hypothesis.id.as_str(), branch.id.as_str(), outcome_id))
                 .copied()
                 .ok_or(ViableVoiError::MissingJointMassCell)?;
             let loss = loss_index
@@ -404,10 +400,7 @@ fn continuation_risk_for_action(
                 ))
                 .copied()
                 .ok_or(ViableVoiError::MissingContinuationLossCell)?;
-            total = add_u128(
-                total,
-                mul_u128(u128::from(mass), u128::from(loss))?,
-            )?;
+            total = add_u128(total, mul_u128(u128::from(mass), u128::from(loss))?)?;
         }
     }
     Ok(total)
@@ -826,8 +819,7 @@ fn validate_and_compute(problem: &ViableVoiProblem) -> Result<ViableVoiReport, V
         }
     }
 
-    let (passive_action_id, passive_risk) =
-        passive_risk(problem, &passive_loss_index)?;
+    let (passive_action_id, passive_risk) = passive_risk(problem, &passive_loss_index)?;
     let mut outcome_decisions = Vec::with_capacity(problem.outcomes.len());
     let mut post_probe_risk = 0_u128;
     let mut unknown_mass = 0_u64;
