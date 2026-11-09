@@ -134,3 +134,29 @@ Do not collapse robustness, recovery, calibration, task reward, energy and compu
 ## Claim ceiling
 
 This protocol qualifies sampled finite-grid structure for a declared nested family only. It does not prove parameterization nesting, physical abstraction soundness or the correct classification of every continuous point between samples. Hardware claims require validated physical bounds, independent model/abstraction qualification and matched trials.
+
+
+## 12. Executable finite Rust V0 reference
+
+The standalone dependency-free Rust crate in this directory consumes a declared family and a finite table of already-qualified upstream oracle outcomes. It does not compute viability or certify physics.
+
+The reference:
+- canonicalizes axis order by stable ID and reorders sample coordinates accordingly;
+- validates axis levels, coordinate membership, family identity, result digests and required nonviability witnesses;
+- bounds Cartesian grid enumeration at 65,536 points and fails explicitly above that bound;
+- reports every missing grid vector;
+- calculates maximal-sampled-safe and minimal-sampled-unsafe antichains separately for viability and recovery;
+- flags a lower-severity Nonviable sample dominated by a higher-severity Viable sample as a monotonicity contradiction;
+- excludes Unknown and Invalid samples from both antichains;
+- marks Invalid results and monotonicity contradictions as unqualified;
+- reports sampled-grid completeness separately from family monotonicity qualification.
+
+The tests cover the two-dimensional staircase and rectangular control, distinct recovery frontiers, monotonicity contradictions, Unknown/missing samples, the three-dimensional antichain, axis/sample permutation, duplicate coordinates, non-nested axes, Invalid results and grid-size exhaustion.
+
+Qualification commands:
+
+    cargo fmt --manifest-path research/loco-coupled-frontier-001/Cargo.toml -- --check
+    cargo test --manifest-path research/loco-coupled-frontier-001/Cargo.toml --locked
+    cargo clippy --manifest-path research/loco-coupled-frontier-001/Cargo.toml --locked --all-targets -- -D warnings
+
+The exact-head GitHub workflow is authoritative for Rust 1.96. A green run qualifies only the finite grid schema and antichain arithmetic over supplied oracle outcomes; it does not prove uncertainty-set nesting or physical abstraction soundness.
