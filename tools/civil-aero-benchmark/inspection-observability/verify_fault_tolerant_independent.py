@@ -211,23 +211,40 @@ def evaluate(data: dict[str, Any], raw: bytes) -> dict[str, Any]:
             "scenario_metrics": metrics,
         })
 
-    nominal_best = None
-    robust_best = None
+    nominal_d_best = None
+    nominal_e_best = None
+    robust_d_best = None
+    robust_e_best = None
     for subset in subsets:
+        if subset["nominal_log_determinant"] is not None:
+            candidate = {
+                "sensor_ids": subset["sensor_ids"],
+                "objective_value": subset["nominal_log_determinant"],
+            }
+            if nominal_d_best is None or better(candidate, nominal_d_best):
+                nominal_d_best = candidate
         if subset["nominal_rank"] == 2:
             candidate = {
                 "sensor_ids": subset["sensor_ids"],
                 "objective_value": subset["nominal_minimum_eigenvalue"],
             }
-            if nominal_best is None or better(candidate, nominal_best):
-                nominal_best = candidate
+            if nominal_e_best is None or better(candidate, nominal_e_best):
+                nominal_e_best = candidate
         if subset["robustly_feasible"]:
+            robust_logs = [metric["log_determinant"] for metric in subset["scenario_metrics"]]
+            if all(value is not None for value in robust_logs):
+                candidate = {
+                    "sensor_ids": subset["sensor_ids"],
+                    "objective_value": min(robust_logs),
+                }
+                if robust_d_best is None or better(candidate, robust_d_best):
+                    robust_d_best = candidate
             candidate = {
                 "sensor_ids": subset["sensor_ids"],
                 "objective_value": subset["worst_case_minimum_eigenvalue"],
             }
-            if robust_best is None or better(candidate, robust_best):
-                robust_best = candidate
+            if robust_e_best is None or better(candidate, robust_e_best):
+                robust_e_best = candidate
 
     return {
         "schema_version": data["schema_version"],
@@ -239,8 +256,10 @@ def evaluate(data: dict[str, Any], raw: bytes) -> dict[str, Any]:
         "subset_count": len(subsets),
         "robustly_feasible_subset_count": sum(1 for subset in subsets
                                                if subset["robustly_feasible"]),
-        "nominal_e_optimal_selection": nominal_best,
-        "robust_e_optimal_selection": robust_best,
+        "nominal_d_optimal_selection": nominal_d_best,
+        "nominal_e_optimal_selection": nominal_e_best,
+        "robust_d_optimal_selection": robust_d_best,
+        "robust_e_optimal_selection": robust_e_best,
         "subsets": subsets,
         "claim_ceiling": "synthetic_single_sensor_dropout_and_single_common_cause_group_only",
     }
@@ -317,9 +336,21 @@ def main() -> int:
         require(expected["failure_scenario_count"] == 10, "known-answer scenario count changed")
         require(expected["robustly_feasible_subset_count"] == 12,
                 "known-answer robust-feasibility count changed")
+        require(expected["nominal_d_optimal_selection"]["sensor_ids"]
+                == ["S_A", "S_B", "S_C", "S_D"],
+                "nominal D-optimal known answer changed")
+        require(math.isclose(expected["nominal_d_optimal_selection"]["objective_value"],
+                             math.log(100.0), rel_tol=1.0e-10),
+                "nominal D-optimal objective changed")
         require(expected["nominal_e_optimal_selection"]["sensor_ids"]
                 == ["S_A", "S_B", "S_C", "S_D"],
                 "nominal E-optimal known answer changed")
+        require(expected["robust_d_optimal_selection"]["sensor_ids"]
+                == ["S_A", "S_C", "S_E", "S_F"],
+                "robust D-optimal known answer changed")
+        require(math.isclose(expected["robust_d_optimal_selection"]["objective_value"],
+                             3.2188758248682006, rel_tol=1.0e-9),
+                "robust D-optimal objective changed")
         require(expected["robust_e_optimal_selection"]["sensor_ids"]
                 == ["S_A", "S_C", "S_E", "S_F"],
                 "robust E-optimal known answer changed")
@@ -332,7 +363,7 @@ def main() -> int:
         hostile_controls(data)
         print("aero_fault_tolerant_observability=pass "
               "subsets=15 scenarios=10 robust_feasible=12 "
-              "nominal=ABCD robust=ACEF rust_python=pass")
+              "nominal_d_e=ABCD robust_d_e=ACEF rust_python=pass")
         return 0
     except (OSError, json.JSONDecodeError, AuditError, KeyError, TypeError, ValueError) as error:
         print(f"fault_tolerant_observability_error={error}")
