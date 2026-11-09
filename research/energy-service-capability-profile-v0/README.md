@@ -46,3 +46,18 @@ A pass establishes only exact profile/demand matching and evidence reference sem
 
     cargo test --locked --manifest-path tools/energy-service-capability-profile/Cargo.toml
     cargo run --locked --manifest-path tools/energy-service-capability-profile/Cargo.toml -- research/energy-service-capability-profile-v0/synthetic-offers.tsv research/energy-service-capability-profile-v0/docked-receiver-request.tsv
+
+
+## Relationship to existing interoperability standards
+
+ESCP is a **capability/evidence registry layer**, not a replacement for normative WPT standards or certification.
+
+- SAE J2954_202408 covers stationary WPT interoperability, safety, performance, alignment and test methods for light-duty road EVs. It defines three levels up to 11 kVA and references companion communications/use-case standards SAE J2847/6 and J2836/6. Its scope is stationary light-duty road vehicles; UAV applicability is not established by this standard. https://saemobilus.sae.org/standards/j2954_202408-wireless-power-transfer-light-duty-plug-electric-vehicles-alignment-methodology
+- IEC PAS 61980-4:2025 covers stationary high-power magnetic-field WPT for electric road vehicles, including positioning, electrical safety, basic communication and EMC. It explicitly excludes vehicles primarily designed for off-road use; it should not be treated as a UAV approval path. https://webstore.iec.ch/en/publication/67337
+- IEC PAS 61980-5:2024 covers dynamic magnetic-field WPT for electric road vehicles in motion and related safety/EMC requirements. It does not itself establish airborne-UAV applicability. https://webstore.iec.ch/en/publication/64273
+
+A service profile may reference an applicability assessment receipt from #4141 / PR #4174. The profile must preserve `APPLICABILITY_UNKNOWN` as unknown; a standard's existence, title or frequency reference is not permission to operate. Any UAV-specific standardization proposal should begin with a scoped standards gap analysis and regulator/standards-body engagement.
+
+## Research positioning
+
+The novel hypothesis is not "an interoperability standard is missing." Mature road-EV WPT standards already define interoperability and safety within their scope. The gap is whether a **proof-carrying, multi-bearer energy-service declaration** can safely compose receiver revision, field regime, motion/environment domain, calibrated pose evidence, session lifecycle, source-to-battery metrology, maintenance/lifecycle evidence and regulatory applicability across heterogeneous UAV service architectures. ESCP v0 only validates the declaration structure and matching rules; it does not prove the physical interoperability hypothesis.
