@@ -836,9 +836,7 @@ fn audit(fixture: &Fixture, source: &[u8]) -> AuditResult<Audit> {
         covariance_channel_count: fixture.noise_covariance.channel_ids.len(),
         covariance_positive_definite: true,
         covariance_correlated_pairs: (0..fixture.noise_covariance.matrix.len())
-            .flat_map(|i| {
-                ((i + 1)..fixture.noise_covariance.matrix.len()).map(move |j| (i, j))
-            })
+            .flat_map(|i| ((i + 1)..fixture.noise_covariance.matrix.len()).map(move |j| (i, j)))
             .filter(|(i, j)| fixture.noise_covariance.matrix[*i][*j].abs() > 1.0e-12)
             .count(),
         diagonal_e_opt,
