@@ -98,7 +98,7 @@ The engineering scenario/replay envelope is being developed in [ENG-SYNTH #1172]
 | Articulated robot dynamics | MuJoCo; Newton for GPU/differentiable and multiphysics comparisons | [#1172 engineering scenario substrate](https://github.com/Luminous-Dynamics/symtropy/issues/1172) and [#1472 capability census](https://github.com/Luminous-Dynamics/symtropy/issues/1472) |
 | Locomotion and recovery | Version-pinned FlyGym/NeuroMechFly, simple PID/reflex and matched learned baselines | [#3357 locomotion benchmark](https://github.com/Luminous-Dynamics/symtropy/issues/3357), [#4332 failover](https://github.com/Luminous-Dynamics/symtropy/issues/4332) |
 | Actuator and whole-robot energy | Calibrated electrical/mechanical measurements and matched duty cycles | [#4044 energy accounting](https://github.com/Luminous-Dynamics/symtropy/issues/4044), [#4179 actuator loss maps](https://github.com/Luminous-Dynamics/symtropy/issues/4179) |
-| Spatial understanding and execution | BEHAVIOR-Spatial, ESI-Bench and held-out physical-scene trials | [Humanoid engineering plan](docs/research/HUMANOID_ENGINEERING_EXECUTION_PLAN_2026-11-09.md) |
+| Spatial understanding and execution | ESI-Bench, BEHAVIOR-Spatial, VA-Bench and held-out physical-scene trials | [Humanoid engineering plan](docs/research/HUMANOID_ENGINEERING_EXECUTION_PLAN_2026-11-09.md) |
 | Humanoid application readiness | NIST's proposed baseline and Fraunhofer IPA's independent six-area assessment | [Humanoid engineering plan](docs/research/HUMANOID_ENGINEERING_EXECUTION_PLAN_2026-11-09.md) |
 
 A performance comparison is valid only when model semantics, scenario, timestep, solver tolerance, observations, controller rate, hardware/compute budget, seeds and measurement boundary are matched and disclosed.
