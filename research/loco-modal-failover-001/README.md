@@ -200,3 +200,6 @@ The per-signature digest is an **opaque source-issued digest** from the upstream
 Receipt action semantics are status-specific: an Admitted receipt must contain at least one admitted action; Rejected and Unknown receipts must not contain admitted actions. Their rejection witness or Unknown reason is preserved rather than being hidden by an empty action-set validation error.
 
 The current Rust module has 20 deterministic tests, including duplicate source digest, possibility-set completeness/context, foreign receipt, missing receipt, and the original channel-health/mode-intersection/hysteresis cases.
+
+
+Status-specific transition receipt contract: an **Admitted** receipt must carry a non-empty, duplicate-free admitted-action set. A **Rejected** receipt must carry a non-empty counterexample witness and no admitted actions. An **Unknown** receipt must carry a non-empty reason and no admitted actions. The composition preserves the rejected/unknown witness instead of misreporting it as an empty-action-set format failure.
