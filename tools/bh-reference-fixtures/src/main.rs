@@ -1,11 +1,11 @@
 use std::{env, fs, process};
 
+use bh_reference_fixtures::continuation::{
+    KerrQnmSpinContinuationTrace, QnmExtremalDampingBehavior,
+};
 use bh_reference_fixtures::qnm::{
     QnmFamilyAnalysisConfig, QnmFamilyAsymptoticTargets, QnmFamilyClassification,
     analyze_qnm_family_sequence,
-};
-use bh_reference_fixtures::continuation::{
-    KerrQnmSpinContinuationTrace, QnmExtremalDampingBehavior,
 };
 use bh_reference_fixtures::{
     KerrQnmSequenceFixture, RadialComparisonConfig, RadialComparisonStatus, ReferenceFixture,
@@ -167,8 +167,9 @@ fn run(args: &[String]) -> Result<i32, String> {
             match trace.extremal_damping_behavior {
                 QnmExtremalDampingBehavior::FiniteDamping
                 | QnmExtremalDampingBehavior::ZeroDamping => Ok(0),
-                QnmExtremalDampingBehavior::Unresolved
-                | QnmExtremalDampingBehavior::Ambiguous => Ok(6),
+                QnmExtremalDampingBehavior::Unresolved | QnmExtremalDampingBehavior::Ambiguous => {
+                    Ok(6)
+                }
             }
         }
         [command, sequence_path, analysis_path] if command == "analyze-qnm" => {
