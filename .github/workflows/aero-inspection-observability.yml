@@ -32,6 +32,9 @@ jobs:
           rustc --version --verbose
           cargo --version
 
+      - name: Generate initial dependency lock for source capture
+        run: cargo generate-lockfile --manifest-path tools/civil-aero-benchmark/inspection-observability/Cargo.toml
+
       - name: Check Rust formatting
         run: cargo fmt --manifest-path tools/civil-aero-benchmark/inspection-observability/Cargo.toml -- --check
 
@@ -54,6 +57,7 @@ jobs:
         with:
           name: aero-inspection-observability
           path: |
+            tools/civil-aero-benchmark/inspection-observability/Cargo.lock
             tools/civil-aero-benchmark/inspection-observability/fixtures/known-answer-observability-v0.1.json
             inspection-observability-result.json
             inspection-observability-source.sha256
