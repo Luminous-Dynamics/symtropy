@@ -203,10 +203,10 @@ impl KerrQnmSequenceFixture {
         if self.provenance.precision_bits < 53 {
             return Err(QnmSequenceValidationError::InvalidPrecision);
         }
-        if let Some(digest) = &self.provenance.producer_artifact_sha256 {
-            if digest.len() != 64 || !digest.bytes().all(|byte| byte.is_ascii_hexdigit()) {
-                return Err(QnmSequenceValidationError::InvalidSha256);
-            }
+        if let Some(digest) = &self.provenance.producer_artifact_sha256
+            && (digest.len() != 64 || !digest.bytes().all(|byte| byte.is_ascii_hexdigit()))
+        {
+            return Err(QnmSequenceValidationError::InvalidSha256);
         }
         if !self.spin_over_mass.is_finite() || self.spin_over_mass.abs() >= 1.0 {
             return Err(QnmSequenceValidationError::InvalidSpin);
@@ -228,10 +228,10 @@ impl KerrQnmSequenceFixture {
             }
             previous_position = Some(mode.sequence_position);
 
-            if let Some(overtone) = mode.overtone_index {
-                if !overtone_indices.insert(overtone) {
-                    return Err(QnmSequenceValidationError::DuplicateOvertoneIndex(overtone));
-                }
+            if let Some(overtone) = mode.overtone_index
+                && !overtone_indices.insert(overtone)
+            {
+                return Err(QnmSequenceValidationError::DuplicateOvertoneIndex(overtone));
             }
             if !mode.omega_m.is_finite()
                 || !mode.angular_eigenvalue.is_finite()
@@ -270,17 +270,16 @@ impl KerrQnmSequenceFixture {
                 }
             }
             QnmFamilyClassification::Unresolved | QnmFamilyClassification::Ambiguous => {
-                if let Some(evidence) = &self.family_evidence {
-                    if !evidence.angular_scaling_ratio.is_finite()
+                if let Some(evidence) = &self.family_evidence
+                    && (!evidence.angular_scaling_ratio.is_finite()
                         || !evidence.observed_frequency_spacing_m.is_finite()
                         || !evidence.predicted_frequency_spacing_m.is_finite()
                         || !evidence.angular_scaling_relative_residual.is_finite()
                         || evidence.angular_scaling_relative_residual < 0.0
                         || !evidence.frequency_spacing_relative_residual.is_finite()
-                        || evidence.frequency_spacing_relative_residual < 0.0
-                    {
-                        return Err(QnmSequenceValidationError::InvalidFamilyEvidence);
-                    }
+                        || evidence.frequency_spacing_relative_residual < 0.0)
+                {
+                    return Err(QnmSequenceValidationError::InvalidFamilyEvidence);
                 }
             }
         }
