@@ -267,6 +267,9 @@ impl ReferenceFixture {
             (Some(_), Some(AngularEigenvalueConvention::Other), Some(definition)) => {
                 require_nonempty(definition, "angular_eigenvalue_definition")?;
             }
+            (Some(_), Some(AngularEigenvalueConvention::Other), None) => {
+                return Err(FixtureValidationError::AngularEigenvalueConventionIncomplete);
+            }
             (Some(_), Some(_), _) => {}
             (None, None, None) => {}
             _ => return Err(FixtureValidationError::AngularEigenvalueConventionIncomplete),
