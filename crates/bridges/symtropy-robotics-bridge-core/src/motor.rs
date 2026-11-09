@@ -3,12 +3,13 @@
 
 //! Per-joint motor-command planning.
 //!
-//! The [`RoboticAgent`](crate::RoboticAgent) computes a scalar motor-authority
-//! gain each tick (from its consciousness level and NRC safety tier). That
-//! gain is a *cap*, not a command: for real embodied control, each actuator
-//! needs its own signal.
+//! A [`RoboticAgent`](crate::RoboticAgent) supplies a scalar motor-authority
+//! gain each tick. The source and policy for that gain belong to the agent;
+//! this core crate does not assume Phi, a particular confidence model or an
+//! NRC-derived threshold. The gain is a *cap*, not a command. It is not a
+//! substitute for actuator limits or an independent safety authority.
 //!
-//! A [`MotorPlanner`] consumes the observation + the safety-gated gain and
+//! A [`MotorPlanner`] consumes the observation + a caller-bounded gain and
 //! produces per-actuator commands matching the platform's actuator count.
 //! Platforms (humanoid, quadrotor, manipulator, …) provide their own
 //! planners backed by their specific kinematics / dynamics; this crate
@@ -38,8 +39,9 @@
 /// Plan per-actuator motor commands for one tick.
 ///
 /// `observation` is the agent's current sensor reading (as passed to
-/// [`RoboticAgent::tick`](crate::RoboticAgent::tick)). `gain` is the
-/// NRC-tier safety gain in `[0.0, 1.0]`. `num_actuators` is the target
+/// [`RoboticAgent::tick`](crate::RoboticAgent::tick)). `gain` is a caller-
+/// supplied scalar in `[0.0, 1.0]`; this trait does not make it a safety
+/// decision. `num_actuators` is the target
 /// platform's actuator count (see [`PlatformType::num_actuators`](crate::PlatformType::num_actuators)).
 ///
 /// Returned vector **must** have length `num_actuators` — callers will
