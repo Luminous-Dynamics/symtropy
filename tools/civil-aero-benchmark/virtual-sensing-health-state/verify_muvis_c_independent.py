@@ -86,6 +86,13 @@ def validate(data: dict[str, Any]) -> None:
             and protocol["bootstrap_index_method"]
             == "LCG32_1664525_1013904223_mod_sample_count",
             "bootstrap index provenance changed")
+    require(protocol["noise_draw_seed"] == 260917
+            and protocol["noise_draw_method"] == "LCG32_BOX_MULLER_PRECOMPUTED",
+            "noise draw provenance changed")
+    require(protocol["outlier_uniform_seed"] == 260918
+            and protocol["outlier_delta_seed"] == 260919
+            and protocol["uniform_draw_method"] == "LCG32_PRECOMPUTED_UNIFORM_32",
+            "outlier draw provenance changed")
     severities = protocol["severity_grid"]
     require(len(severities) == 20, "v0.1 requires 20 severity steps")
     for index, value in enumerate(severities):
