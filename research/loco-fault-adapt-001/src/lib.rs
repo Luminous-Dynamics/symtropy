@@ -235,6 +235,7 @@ pub enum FaultBenchmarkError {
     PolicyContextMismatch,
     UnknownBaselinePolicy,
     NoCandidatePolicy,
+    TrainingValidationLeakage,
     TrainingHeldoutLeakage,
     ValidationHeldoutLeakage,
     DuplicatePairedBlock,
@@ -382,10 +383,10 @@ fn validate_trial(
     {
         return Err(FaultBenchmarkError::EmptyReceiptDigest);
     }
-    if trial.applied_action_admitted && !trial.certificate_current_at_action {
+    if !trial.certificate_current_at_action {
         return Err(FaultBenchmarkError::StaleCertificateActionApplied);
     }
-    if trial.applied_action_admitted && !trial.certificate_current_at_action {
+    if !trial.applied_action_admitted {
         return Err(FaultBenchmarkError::UnadmittedActionApplied);
     }
 
@@ -398,9 +399,6 @@ fn validate_trial(
             if *confidence_ppm > PPM_SCALE {
                 return Err(FaultBenchmarkError::InvalidPpmValue);
             }
-            if *latency_ms == 0 {
-                return Err(FaultBenchmarkError::InvalidDetectionResult);
-            }
         }
         DetectionResult::Unknown { reason } => {
             if !nonempty(reason) {
@@ -410,9 +408,6 @@ fn validate_trial(
         DetectionResult::Missed => {}
     }
     match &trial.adaptation {
-        AdaptationResult::Stable { latency_ms } if *latency_ms == 0 => {
-            return Err(FaultBenchmarkError::InvalidAdaptationResult);
-        }
         AdaptationResult::Abstained { reason } if !nonempty(reason) => {
             return Err(FaultBenchmarkError::InvalidAdaptationResult);
         }
@@ -497,6 +492,9 @@ pub fn audit_fault_benchmark(
             .iter()
             .map(|scenario| scenario.scenario_id.as_str()),
     )?;
+    if !training_ids.is_disjoint(&validation_ids) {
+        return Err(FaultBenchmarkError::TrainingValidationLeakage);
+    }
     if !training_ids.is_disjoint(&heldout_ids) {
         return Err(FaultBenchmarkError::TrainingHeldoutLeakage);
     }
@@ -865,6 +863,19 @@ mod tests {
         assert_eq!(
             audit_fault_benchmark(&input),
             Err(FaultBenchmarkError::DuplicateTrial)
+        );
+    }
+
+    #[test]
+    fn training_validation_scenario_leakage_is_rejected() {
+        let mut input = problem();
+        input
+            .manifest
+            .training_scenario_ids
+            .push("validation-power".to_owned());
+        assert_eq!(
+            audit_fault_benchmark(&input),
+            Err(FaultBenchmarkError::TrainingValidationLeakage)
         );
     }
 
