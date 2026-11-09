@@ -7,7 +7,7 @@ use civdyn_self_correction::model_adequacy::{
 };
 use civdyn_self_correction::policy_sensitivity::{
     ConstraintRelation, MetricKind, MetricSpec, ModelWorld, ObjectiveDirection,
-    PairwisePolicyOrdering, PolicyFeasibility, PolicyMetricOutcome, PolicySensitivityReport,
+    ObjectivePolicySummary, PairwisePolicyOrdering, PolicyFeasibility, PolicyMetricOutcome, PolicySensitivityReport,
     PolicySpec, evaluate_policy_sensitivity,
 };
 
@@ -62,26 +62,15 @@ fn model_outcome_row(
     ]
 }
 fn summary_row(
-    policy_id: &str,
-    metric_id: &str,
-    unit: &str,
-    feasibility: PolicyFeasibility,
-    feasible_count: usize,
-    model_count: usize,
-    regret: Option<f64>,
-    best_rank: Option<usize>,
-    worst_rank: Option<usize>,
-    models_where_best: usize,
-    ceiling: &str,
-    unqualified_models: &str,
-    any_model_without_feasible_policy: bool,
+    summary: &ObjectivePolicySummary,
+    report: &PolicySensitivityReport,
 ) -> Vec<String> {
     vec![
         "objective_summary".to_string(),
         String::new(),
-        policy_id.to_string(),
-        metric_id.to_string(),
-        unit.to_string(),
+        summary.policy_id.clone(),
+        summary.metric_id.clone(),
+        summary.measurement_unit.clone(),
         String::new(),
         String::new(),
         String::new(),
@@ -89,17 +78,19 @@ fn summary_row(
         String::new(),
         String::new(),
         String::new(),
-        feasibility.name().to_string(),
-        feasible_count.to_string(),
-        model_count.to_string(),
-        regret
+        summary.feasibility.name().to_string(),
+        summary.feasible_model_count.to_string(),
+        summary.total_model_count.to_string(),
+        summary
+            .worst_case_regret
             .map(|value| format!("{value:.6}"))
             .unwrap_or_default(),
-        best_rank.map(|value| value.to_string()).unwrap_or_default(),
-        worst_rank
+        summary.best_rank.map(|value| value.to_string()).unwrap_or_default(),
+        summary
+            .worst_rank
             .map(|value| value.to_string())
             .unwrap_or_default(),
-        models_where_best.to_string(),
+        summary.models_where_best.to_string(),
         String::new(),
         String::new(),
         String::new(),
@@ -107,9 +98,9 @@ fn summary_row(
         String::new(),
         String::new(),
         String::new(),
-        ceiling.to_string(),
-        unqualified_models.to_string(),
-        any_model_without_feasible_policy.to_string(),
+        report.claim_ceiling.name().to_string(),
+        report.models_with_unqualified_adequacy.join(";"),
+        report.any_model_without_feasible_policy.to_string(),
     ]
 }
 
@@ -230,15 +221,14 @@ fn qualified_model_world(
     )?)
 }
 
-fn fixture() -> Result<
-    (
-        Vec<ModelWorld>,
-        Vec<PolicySpec>,
-        Vec<MetricSpec>,
-        Vec<PolicyMetricOutcome>,
-    ),
-    Box<dyn std::error::Error>,
-> {
+struct PolicySensitivityFixture {
+    models: Vec<ModelWorld>,
+    policies: Vec<PolicySpec>,
+    metrics: Vec<MetricSpec>,
+    outcomes: Vec<PolicyMetricOutcome>,
+}
+
+fn fixture() -> Result<PolicySensitivityFixture, Box<dyn std::error::Error>> {
     let models = vec![
         qualified_model_world(
             "world-a",
@@ -322,7 +312,12 @@ fn fixture() -> Result<
         }
     }
 
-    Ok((models, policies, metrics, outcomes))
+    Ok(PolicySensitivityFixture {
+        models,
+        policies,
+        metrics,
+        outcomes,
+    })
 }
 
 fn emit_report(
@@ -354,21 +349,7 @@ fn emit_report(
     }
 
     for summary in &report.objective_summaries {
-        emit(summary_row(
-            &summary.policy_id,
-            &summary.metric_id,
-            &summary.measurement_unit,
-            summary.feasibility,
-            summary.feasible_model_count,
-            summary.total_model_count,
-            summary.worst_case_regret,
-            summary.best_rank,
-            summary.worst_rank,
-            summary.models_where_best,
-            ceiling,
-            &unqualified,
-            report.any_model_without_feasible_policy,
-        ));
+        emit(summary_row(summary, report));
     }
 
     for pair in &report.pairwise_orderings {
@@ -382,12 +363,17 @@ fn emit_report(
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let (models, policies, metrics, outcomes) = fixture()?;
-    let report = evaluate_policy_sensitivity(&models, &policies, &metrics, &outcomes)?;
+    let fixture = fixture()?;
+    let report = evaluate_policy_sensitivity(
+        &fixture.models,
+        &fixture.policies,
+        &fixture.metrics,
+        &fixture.outcomes,
+    )?;
 
     println!(
         "record_type,model_id,policy_id,metric_id,measurement_unit,value,feasible,violated_constraints,model_digest,adequacy_model_digest,adequacy_receipt_digest,source_digest,adequacy_state,policy_feasibility,feasible_model_count,total_model_count,worst_case_regret,best_rank,worst_rank,models_where_best,policy_a,policy_b,models_where_a_better,models_where_b_better,tied_models,discordant_model_pairs,claim_ceiling,models_with_unqualified_adequacy,any_model_without_feasible_policy"
     );
-    emit_report(&models, &outcomes, &report);
+    emit_report(&fixture.models, &fixture.outcomes, &report);
     Ok(())
 }
