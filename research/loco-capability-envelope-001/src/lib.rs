@@ -273,10 +273,9 @@ pub fn estimate_capability_envelope(
     })
 }
 
-fn validate_level_partition(
-    name: &str,
-    values: &[String],
-) -> Result<BTreeSet<&str>, CapabilityError> {
+fn validate_level_partition<'a>(
+    values: &'a [String],
+) -> Result<BTreeSet<&'a str>, CapabilityError> {
     if values.is_empty() {
         return Err(CapabilityError::EmptySplitManifest);
     }
@@ -289,15 +288,14 @@ fn validate_level_partition(
             return Err(CapabilityError::DuplicateLevelId);
         }
     }
-    let _ = name;
     Ok(set)
 }
 
-fn validate_episode_split(
+fn validate_episode_split<'a>(
     split_id: &str,
-    episodes: &[EpisodeOutcome],
+    episodes: &'a [EpisodeOutcome],
     heldout_levels: &BTreeSet<&str>,
-) -> Result<BTreeSet<&str>, CapabilityError> {
+) -> Result<BTreeSet<&'a str>, CapabilityError> {
     if !nonempty(split_id) {
         return Err(CapabilityError::EmptyIdentifier);
     }
@@ -330,9 +328,9 @@ fn validate_episode_split(
 fn average_rank_by_level(
     episodes: &[EpisodeOutcome],
     heldout_levels: &BTreeSet<&str>,
-) -> Result<Vec<(String, i128, u128)>, CapabilityError> {
+) -> Result<Vec<(String, i128, u64)>, CapabilityError> {
     let mut sums = BTreeMap::<&str, i128>::new();
-    let mut counts = BTreeMap::<&str, u128>::new();
+    let mut counts = BTreeMap::<&str, u64>::new();
     for episode in episodes {
         let sum = sums.get(episode.level_id.as_str()).copied().unwrap_or(0);
         sums.insert(
@@ -361,15 +359,12 @@ fn average_rank_by_level(
             .ok_or(CapabilityError::MissingRankLevel)?;
         ranked.push(((*level_id).to_owned(), sum, count));
     }
+    // At most MAX_EPISODES observations per split, so the cross-products of
+    // an i64 reward sum and a u64 count are well inside the i128 range.
     ranked.sort_by(|left, right| {
-        let left_cross = left.1.checked_mul(i128::try_from(right.2).unwrap_or(i128::MAX));
-        let right_cross = right.1.checked_mul(i128::try_from(left.2).unwrap_or(i128::MAX));
-        match (left_cross, right_cross) {
-            (Some(left_value), Some(right_value)) => left_value
-                .cmp(&right_value)
-                .then_with(|| left.0.cmp(&right.0)),
-            _ => left.0.cmp(&right.0),
-        }
+        (left.1 * i128::from(right.2))
+            .cmp(&(right.1 * i128::from(left.2)))
+            .then_with(|| left.0.cmp(&right.0))
     });
     Ok(ranked)
 }
@@ -415,14 +410,12 @@ fn lower_tail_report(
 
     let scoring_episode_count = score_values.len();
     let numerator = checked_mul_u128(
-        scoring_episode_count as u128,
+        u128::try_from(scoring_episode_count)
+            .map_err(|_| CapabilityError::ArithmeticOverflow)?,
         u128::from(tail_fraction_ppm),
     )?;
     let tail_episode_count = usize::try_from(
-        numerator
-            .checked_add(u128::from(PPM_SCALE - 1))
-            .ok_or(CapabilityError::ArithmeticOverflow)?
-            / u128::from(PPM_SCALE),
+        numerator.div_ceil(u128::from(PPM_SCALE)),
     )
     .map_err(|_| CapabilityError::ArithmeticOverflow)?
     .max(1);
@@ -472,9 +465,9 @@ pub fn cross_fitted_cvar25(
         return Err(CapabilityError::InvalidTailFraction);
     }
 
-    let training = validate_level_partition("training", &problem.training_level_ids)?;
-    let validation = validate_level_partition("validation", &problem.validation_level_ids)?;
-    let heldout = validate_level_partition("heldout", &problem.heldout_level_ids)?;
+    let training = validate_level_partition(&problem.training_level_ids)?;
+    let validation = validate_level_partition(&problem.validation_level_ids)?;
+    let heldout = validate_level_partition(&problem.heldout_level_ids)?;
     if heldout.is_empty() {
         return Err(CapabilityError::NoHeldoutLevels);
     }
