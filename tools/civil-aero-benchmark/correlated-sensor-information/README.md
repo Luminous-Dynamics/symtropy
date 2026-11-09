@@ -90,6 +90,22 @@ The nominal E-optimum is deliberately non-robust: losing common-cause group PWR_
 The executable emits a JSON bundle containing both the original five-channel baseline and the six-channel regression. The independent standard-library Python implementation recomputes both fixtures from their exact bytes, and CI retains both source fixtures and the combined result. All second-fixture values are synthetic; no physical sensor placement or aircraft claim follows.
 
 
+
+## Minimum-cost robust design under an information floor
+
+The fixtures also declare a minimum acceptable worst-case E-optimal information value. A separate exact enumeration ranges over every deployment size that can survive the declared single-sensor dropout budget and searches for the **lowest deployment-cost design that remains full-rank and meets the information floor in every individual-sensor and common-cause failure scenario**.
+
+The comparison is intentionally different from maximin D/E:
+- maximin D/E asks how much information a fixed-size sensor set can maximize;
+- minimum-cost robust design asks how little instrumentation can meet a predeclared information requirement.
+
+For the five-channel baseline, the floor is lambda_min >= 1.0. The minimum-cost robust set is S1 + S2 + S3 + S4: deployment cost 4.0 units, 50 g, 500 mW, worst-case lambda_min approximately 1.1538462.
+
+For the six-channel joint fixture, the floor is lambda_min >= 1.5. The minimum-cost robust set is S_A + S_C + S_E: deployment cost 4.2 units, 48 g, 12 mW, worst-case lambda_min approximately 1.5036392. The four-channel maximin E-optimal set S_A + S_C + S_E + S_F has a higher worst-case value (approximately 2.9060882) but costs 6.2 units, weighs 73 g and draws 19 mW. Under the declared synthetic costs, the three-channel result saves approximately 32.3% of deployment cost while still clearing the stated information floor under every scenario.
+
+This is not a universal optimum or aircraft design recommendation. The threshold is expressed in the fixture's normalized parameter coordinates; parameter scaling and the choice of acceptable information floor are part of the engineering requirement and must be justified from the actual use case. If no subset meets the threshold, the selector returns no design rather than quietly weakening the floor.
+
+
 ## Hostile controls
 
 The Rust tests and Python verifier reject:
