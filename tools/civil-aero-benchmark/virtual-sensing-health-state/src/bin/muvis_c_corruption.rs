@@ -185,13 +185,17 @@ fn validate_cube(
 ) -> Result<(), String> {
     if cube.len() != samples
         || cube.iter().any(|sample| {
-            sample.len() != time_steps
-                || sample.iter().any(|step| step.len() != channels)
+            sample.len() != time_steps || sample.iter().any(|step| step.len() != channels)
         })
     {
         return fail(format!("{label}: expected N×T×C cube dimensions"));
     }
-    if cube.iter().flatten().flatten().any(|value| !value.is_finite()) {
+    if cube
+        .iter()
+        .flatten()
+        .flatten()
+        .any(|value| !value.is_finite())
+    {
         return fail(format!("{label}: non-finite sample"));
     }
     Ok(())
@@ -229,7 +233,11 @@ fn validate(fixture: &Fixture) -> Result<(), String> {
     if fixture.predictor.model_id != "frozen_linear_virtual_sensor_v0"
         || fixture.predictor.model_class != "linear_temporal_mean_regressor"
         || fixture.predictor.channel_weights.len() != c
-        || fixture.predictor.channel_weights.iter().any(|value| !value.is_finite())
+        || fixture
+            .predictor
+            .channel_weights
+            .iter()
+            .any(|value| !value.is_finite())
         || !fixture.predictor.training_target_mean.is_finite()
         || fixture.predictor.target_units.trim().is_empty()
     {
@@ -276,7 +284,10 @@ fn validate(fixture: &Fixture) -> Result<(), String> {
         || normalization.mean.len() != c
         || normalization.std.len() != c
         || normalization.mean.iter().any(|value| !value.is_finite())
-        || normalization.std.iter().any(|value| !value.is_finite() || *value <= 0.0)
+        || normalization
+            .std
+            .iter()
+            .any(|value| !value.is_finite() || *value <= 0.0)
     {
         return fail("frozen per-channel z-score statistics are invalid");
     }
@@ -306,7 +317,9 @@ fn validate(fixture: &Fixture) -> Result<(), String> {
                     - normalization.mean[channel])
                     / normalization.std[channel];
                 if (normalized - fixture.windows[sample][time][channel]).abs() > 1.0e-10 {
-                    return fail("standardized window differs from raw value and frozen channel statistics");
+                    return fail(
+                        "standardized window differs from raw value and frozen channel statistics",
+                    );
                 }
             }
         }
@@ -372,8 +385,7 @@ fn validate(fixture: &Fixture) -> Result<(), String> {
                     radius * angle.cos()
                 };
                 let expected = round_12(expected);
-                if (fixture.noise_standard_normal[sample][time][channel] - expected).abs()
-                    > 1.0e-10
+                if (fixture.noise_standard_normal[sample][time][channel] - expected).abs() > 1.0e-10
                 {
                     return fail("normal noise draw does not match declared seed/method");
                 }
@@ -400,8 +412,7 @@ fn validate(fixture: &Fixture) -> Result<(), String> {
     }
     if protocol.metric_definitions.mpc
         != "mean bootstrapped RMSE over failure_mode x channel x severity"
-        || protocol.metric_definitions.rpc
-            != "mPC / clean_RMSE; 1 means no average degradation"
+        || protocol.metric_definitions.rpc != "mPC / clean_RMSE; 1 means no average degradation"
         || protocol.metric_definitions.s_cross
             != "minimum severity where any failure/channel bootstrapped RMSE >= naive mean predictor RMSE; null if no crossing"
         || protocol.metric_definitions.npc != "mPC / naive_RMSE"
@@ -420,8 +431,8 @@ fn validate(fixture: &Fixture) -> Result<(), String> {
                     / t as f64
             })
             .collect();
-        let expected_target = 0.50 * means[0] - 0.27 * means[1]
-            + 0.16 * means[2] + fixture.target_noise[sample];
+        let expected_target =
+            0.50 * means[0] - 0.27 * means[1] + 0.16 * means[2] + fixture.target_noise[sample];
         if (fixture.target[sample] - expected_target).abs() > 1.0e-10 {
             return fail("target vector does not match the frozen synthetic target equation");
         }
@@ -447,9 +458,7 @@ fn apply_failure(
         "bias" => value + s * k,
         "noise" => value + noise_draw * s * k,
         "scaling" => value * (1.0 + s * (k - 1.0)),
-        "time_varying_scaling" => {
-            value * (1.0 + s * (k - 1.0) * fraction)
-        }
+        "time_varying_scaling" => value * (1.0 + s * (k - 1.0) * fraction),
         "linear_drift" => value + s * k * fraction,
         "nonlinear_drift" => value + s * k * fraction.powi(2),
         "outliers" => {
@@ -490,11 +499,8 @@ fn predict(windows: &[Vec<Vec<f64>>], weights: &[f64]) -> Vec<f64> {
             let time_steps = sample.len() as f64;
             let mut prediction = 0.0;
             for (channel, weight) in weights.iter().enumerate() {
-                let channel_mean = sample
-                    .iter()
-                    .map(|step| step[channel])
-                    .sum::<f64>()
-                    / time_steps;
+                let channel_mean =
+                    sample.iter().map(|step| step[channel]).sum::<f64>() / time_steps;
                 prediction += weight * channel_mean;
             }
             prediction
@@ -502,11 +508,7 @@ fn predict(windows: &[Vec<Vec<f64>>], weights: &[f64]) -> Vec<f64> {
         .collect()
 }
 
-fn bootstrap_mean_rmse(
-    predictions: &[f64],
-    target: &[f64],
-    resamples: &[Vec<usize>],
-) -> f64 {
+fn bootstrap_mean_rmse(predictions: &[f64], target: &[f64], resamples: &[Vec<usize>]) -> f64 {
     let sum: f64 = resamples
         .iter()
         .map(|indices| {
@@ -542,9 +544,8 @@ fn evaluate(fixture: &Fixture, source_bytes: &[u8]) -> Result<Report, String> {
         return fail("clean and naïve RMSE must be positive for normalized corruption metrics");
     }
 
-    let mut grid = Vec::with_capacity(
-        FAILURE_MODES.len() * c * fixture.protocol.severity_grid.len(),
-    );
+    let mut grid =
+        Vec::with_capacity(FAILURE_MODES.len() * c * fixture.protocol.severity_grid.len());
     for mode in FAILURE_MODES {
         for channel in 0..c {
             for severity in &fixture.protocol.severity_grid {
@@ -664,18 +665,8 @@ mod tests {
         let data = fixture();
         let x = 0.75;
         for mode in FAILURE_MODES {
-            let actual = apply_failure(
-                mode,
-                0.0,
-                x,
-                0.25,
-                0.5,
-                -0.5,
-                3,
-                8,
-                &data.protocol,
-            )
-            .unwrap();
+            let actual =
+                apply_failure(mode, 0.0, x, 0.25, 0.5, -0.5, 3, 8, &data.protocol).unwrap();
             let expected = if mode == "hard_fault" { 0.0 } else { x };
             assert!((actual - expected).abs() < 1.0e-12, "{mode}");
         }
@@ -740,7 +731,10 @@ mod tests {
         }
         assert_eq!(result.s_cross, expected.s_cross);
         assert_eq!(result.grid_result_count, expected.grid_result_count);
-        assert_eq!(result.worst_case.failure_mode, expected.worst_case.failure_mode);
+        assert_eq!(
+            result.worst_case.failure_mode,
+            expected.worst_case.failure_mode
+        );
         assert_eq!(result.worst_case.channel_id, expected.worst_case.channel_id);
         assert_eq!(result.worst_case.severity, expected.worst_case.severity);
     }
