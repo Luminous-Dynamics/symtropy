@@ -930,7 +930,9 @@ mod tests {
             "MATCH_FIELD"
         );
 
-        let rf_request = optical_request.replace("OPTICAL", "RF_MICROWAVE");
+        let rf_request = optical_request
+            .replace("OPTICAL", "RF_MICROWAVE")
+            .replace("FIELD_MEASURED", "SIMULATED");
         let report = evaluate(&offers(OFFERS), &request(&rf_request));
         assert_eq!(
             by_id(&report.results, "rf_hover_001").disposition,
