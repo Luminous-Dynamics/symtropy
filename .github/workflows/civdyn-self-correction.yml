@@ -31,10 +31,7 @@ jobs:
           git fetch origin "refs/heads/${branch}:refs/remotes/origin/${branch}"
           git checkout -B "${branch}" "origin/${branch}"
           cargo fmt --manifest-path research/civdyn-self-correction/Cargo.toml --all
-          git add \
-          'research/civdyn-self-correction/src/joint_adequacy.rs'
-          'research/civdyn-self-correction/src/bin/joint_adequacy_sweep.rs'
-          'research/civdyn-self-correction/src/lib.rs'
+          git add 'research/civdyn-self-correction/src/joint_adequacy.rs' 'research/civdyn-self-correction/src/bin/joint_adequacy_sweep.rs' 'research/civdyn-self-correction/src/lib.rs'
           if ! git diff --cached --quiet; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
