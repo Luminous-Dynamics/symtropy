@@ -332,7 +332,23 @@
           "sensor drift",
           "sensor installation shifts"
         ],
-        "host": "University of Utah"
+        "host": "University of Utah",
+        "paper_reported_sampling": {
+          "measurement_interval_seconds": 170,
+          "signal_count_approximate": 6400000,
+          "signals_per_measurement": 8,
+          "actuators": 2,
+          "receivers": 4
+        },
+        "paper_reported_damage_type_count": 13,
+        "unresolved_secondary_page_discrepancy": {
+          "source": "https://smartdata.ece.ufl.edu/index.php/2025/07/23/long-term-guided-wave-dataset-under-real-world-conditions-dataset/",
+          "reported_signal_count": 7600000,
+          "reported_measurement_interval_seconds": 30,
+          "reported_piezoelectric_sensor_count": 14,
+          "reconciliation_status": "NOT_RECONCILED_WITH_PAPER",
+          "instruction": "Do not merge these counts, sensor topologies or sampling intervals until the exact archive inventory and acquisition metadata are acquired and checked."
+        }
       },
       "recommended_use": {
         "track": "long_term_environmental_sensor_drift",
@@ -356,9 +372,13 @@
         "terms_review_status": "PENDING",
         "license_status": "PAPER_DESCRIBES_DATASET_AS_PUBLIC_OPEN_ACCESS",
         "notes": [
-          "The data descriptor reports a public dataset; exact source files, licence and channel inventory must be checked before use."
+          "The data descriptor reports a public dataset; exact source files, licence and channel inventory must be checked before use.",
+          "The paper describes approximately 6.4 million signals, sampled about every 170 seconds, comprising eight guided-wave paths from two actuators to four receivers; it reports 13 introduced damage types.",
+          "The lab's separate dataset landing page currently reports over 7.6 million signals, a 30-second interval and 14 piezoelectric sensors. These metadata conflict with the paper record and have not been reconciled.",
+          "The repository landing page warns that the original dataset URL is no longer available and points users to a new dataset link. The GitHub repository is recorded as a candidate retrieval route, not proof that exact bytes were acquired."
         ]
-      }
+      },
+      "alternative_retrieval_path": "https://github.com/SmartDATA-Lab/Long_Term_Guided_Waves"
     },
     {
       "benchmark_id": "OPEN_GUIDED_WAVES_OMEGA_STRINGER_CFRP_DEBOND",
@@ -429,6 +449,36 @@
       "preserve raw files and treat every filter, normalization, resampling and reconstruction as a versioned measurement operator",
       "group train/validation/test by specimen, damage state, acquisition day, thermal regime, sensor installation and physical campaign to prevent adjacent-window leakage",
       "retain independent NDE/X-ray/ultrasound ground truth and inspection timing; report interval censoring where damage evolves between inspections"
+    ],
+    "split_contract_reference": "tools/civil-aero-benchmark/virtual-sensing-health-state/data/benchmark-split-contract-v0.1.json",
+    "split_contract_tracks": [
+      "specimen_holdout",
+      "thermal_extrapolation",
+      "installation_shift",
+      "purged_forward_time"
+    ],
+    "sota_comparison_register": [
+      {
+        "work": "MuViS-C",
+        "date": "2026-09-16",
+        "source": "https://arxiv.org/abs/2609.18396",
+        "status": "PROTOCOL_REFERENCE_ONLY",
+        "note": "Nine datasets, six domains, six model families and ten sensor corruption modes; local adapter is not a full reproduction."
+      },
+      {
+        "work": "Causal Bayesian optimization for sensor placement and deconfounding in SHM",
+        "date": "2026-10-01",
+        "source": "https://doi.org/10.1016/j.ymssp.2026.114895",
+        "status": "LITERATURE_REFERENCE_ONLY",
+        "note": "SCM/do-calculus, counterfactual placement, multi-objective optimization and full-scale bridge evaluation; no claim of reproducing or surpassing it."
+      },
+      {
+        "work": "Real-time sensing digital twin for aerospace SHM",
+        "date": "2026-06-08",
+        "source": "https://doi.org/10.1007/s00158-026-04324-8",
+        "status": "LITERATURE_REFERENCE_ONLY",
+        "note": "Physics-informed ROM, sensor placement, fault mechanisms, classifier, correction and reliability on a progressive composite-wing panel; direct application comparator."
+      }
     ]
   }
 }
