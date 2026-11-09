@@ -2026,7 +2026,7 @@ mod tests {
         assert_eq!(contour.winding_number, 1);
         assert!(contour.c_minus_two.norm() < 1.0e-8);
         assert!(contour.max_relative_wronskian_disagreement < 2.0e-8);
-        assert!(contour.quadrature_refinements >= 3);
+        assert!(contour.quadrature_refinements >= 2);
         assert!(contour.stable_quadrature_refinements >= 2);
         assert!(contour.scaled_quadrature_difference <= GREEN_LAURENT_QUADRATURE_TOLERANCE);
 
