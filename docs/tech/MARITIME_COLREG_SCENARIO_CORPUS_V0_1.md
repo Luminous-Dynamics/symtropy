@@ -79,7 +79,7 @@ The corpus contains 30 cases:
 - false confidence in rule context or authority;
 - simulation/counterfactual scenario mislabeled as physical observation.
 
-Six cases are expected to remain `SCENARIO_CONTRACT_VALID_SYNTHETIC_ONLY`; 24 negative cases have expected contract codes. The crossing/overtaking label variants are deliberately negative controls until their track geometry is changed to match the label; the ambiguous rule-applicability case preserves the clear head-on class while marking rule context/role Unknown. The corpus is a specification/fixture seed until an independent Rust oracle and mutation runner exist and pass exact-head checks.
+Three cases are expected to remain `SCENARIO_CONTRACT_VALID_SYNTHETIC_ONLY`; 27 negative cases have expected contract codes. The crossing/overtaking label variants are deliberately negative controls until their track geometry is changed to match the label; the ambiguous rule-applicability case preserves the clear head-on class while marking rule context/role Unknown. The corpus is a specification/fixture seed until an independent Rust oracle and mutation runner exist and pass exact-head checks.
 
 ## Benchmark metrics
 
