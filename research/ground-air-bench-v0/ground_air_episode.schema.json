@@ -88,7 +88,8 @@
           "COMPUTATION",
           "MECHANICAL_CAPTURE",
           "REPLENISHMENT_STRATEGY",
-          "POSE_CALIBRATION"
+          "POSE_CALIBRATION",
+          "ASSET_LIFECYCLE"
         ]
       }
     },
@@ -248,7 +249,8 @@
             "MECHANICAL_CAPTURE",
             "CAPTURE_OBSERVABILITY_COMPOSITION",
             "REPLENISHMENT_STRATEGY",
-            "POSE_CALIBRATION"
+            "POSE_CALIBRATION",
+            "ASSET_LIFECYCLE"
           ]
         },
         "artifact_path": {
@@ -421,7 +423,8 @@
         "MECHANICAL_CAPTURE",
         "CAPTURE_OBSERVABILITY_COMPOSITION",
         "REPLENISHMENT_STRATEGY",
-        "POSE_CALIBRATION"
+        "POSE_CALIBRATION",
+        "ASSET_LIFECYCLE"
       ]
     },
     "receiver": {
