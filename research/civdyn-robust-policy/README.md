@@ -77,6 +77,7 @@ A model with no detected discrepancy is not thereby proven true. A policy stable
 - Every candidate model, case, policy and metric has a declared identity/digest.
 - Outcomes must match the model, case and policy digests in the manifest.
 - Objective metrics retain their own direction and native unit.
+- Tie tolerances are declared per metric in that metric's native unit; no universal epsilon is applied across water, energy, coverage or other measures.
 - Hard constraints are evaluated separately and cannot be traded against another objective.
 - Missing outcomes or missing metric values remain unknown; there is no partial oracle.
 - A policy is robust-feasible only if it passes every hard constraint in every qualified model and matched case.
@@ -84,6 +85,7 @@ A model with no detected discrepancy is not thereby proven true. A policy stable
 - Rank reversals, winner-set intersection and model-family counts are reported explicitly.
 - Worst-case regret and minimax policy are reported per objective, only for policies feasible across the entire qualified set and with complete comparisons.
 - No model probabilities are inferred and no universal cross-objective score is emitted.
+- Adding a new qualified countermodel can invalidate every previously robust-feasible policy; this transition is a required adversarial test, not hidden by model averaging.
 
 The initial reference fixture has two qualified structural models and one model excluded for a detected primary discrepancy. Both qualified models share the same three policies and two matched shock cases. The preferred policy reverses between models, only the reserve-protected policy remains feasible in all qualified model/case combinations, and its worst-case unmet-water regret is 3 m3. The excluded candidate is reported, so this result cannot be mistaken for a complete model-set guarantee.
 
