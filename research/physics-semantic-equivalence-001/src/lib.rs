@@ -223,10 +223,16 @@ pub fn validate_receipt(receipt: &MappingReceipt) -> ValidationReport {
                     ));
                 }
             }
-            MappingStatus::NotProvided
-            | MappingStatus::NonEquivalent
-            | MappingStatus::Unsupported
-            | MappingStatus::UnknownUnassessed => {
+            MappingStatus::NonEquivalent | MappingStatus::Unsupported => {
+                if mapping.evidence_refs.is_empty() {
+                    issues.push(issue(
+                        "missing_mapping_evidence",
+                        &format!("{path}.evidence_refs"),
+                    ));
+                }
+                inadmissible_dimensions.push(mapping.dimension);
+            }
+            MappingStatus::NotProvided | MappingStatus::UnknownUnassessed => {
                 inadmissible_dimensions.push(mapping.dimension);
             }
         }
