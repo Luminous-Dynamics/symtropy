@@ -106,6 +106,14 @@ fn nonempty(value: &str) -> bool {
     !value.trim().is_empty()
 }
 
+fn has_required_splits(splits: &[String]) -> bool {
+    splits.len() == REQUIRED_SPLITS.len()
+        && splits
+            .iter()
+            .zip(REQUIRED_SPLITS)
+            .all(|(actual, expected)| actual == expected)
+}
+
 fn holdout_value<'a>(record: &'a SampleRecord, axis: &str) -> Option<&'a str> {
     match axis {
         "specimen_id" => Some(&record.specimen_id),
@@ -116,7 +124,7 @@ fn holdout_value<'a>(record: &'a SampleRecord, axis: &str) -> Option<&'a str> {
 }
 
 fn validate_policy(policy: &Policy) -> AuditResult<()> {
-    if policy.required_splits != REQUIRED_SPLITS
+    if !has_required_splits(&policy.required_splits)
         || !policy.every_sample_has_unique_sample_id
         || !policy.every_sample_has_unique_source_record_id_within_track
         || !policy.every_sample_has_unique_acquisition_window_id_within_track
@@ -264,7 +272,7 @@ fn validate_track(track: &Track) -> AuditResult<TrackResult> {
     if !nonempty(&track.track_id) || !nonempty(&track.objective) {
         return fail("track identity and objective must be non-empty");
     }
-    if track.required_splits != REQUIRED_SPLITS {
+    if !has_required_splits(&track.required_splits) {
         return fail(format!("{}: required split set changed", track.track_id));
     }
     if track.records.len() < 3 {
