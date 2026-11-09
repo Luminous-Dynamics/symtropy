@@ -49,7 +49,8 @@ impl Dimension {
     }
 }
 
-/// Pairwise semantic disposition. Only the first two statuses can be admitted.
+/// Pairwise semantic disposition. Strict, bounded, and jointly-not-applicable
+/// dimensions may be admitted; every unknown or incomplete state fails closed.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum MappingStatus {
     StrictlyEquivalent,
@@ -136,7 +137,8 @@ pub struct ValidationReport {
 ///
 /// This function is intentionally conservative:
 /// - every required dimension must appear exactly once;
-/// - only StrictlyEquivalent and MappedEquivalentWithBound may be admitted;
+/// - only StrictlyEquivalent, MappedEquivalentWithBound, and evidenced
+///   NotApplicable dimensions may be admitted;
 /// - bounded mappings require a non-empty transformation and explicit finite
 ///   non-negative error bounds;
 /// - all comparisons require exact version/configuration identities;
@@ -319,7 +321,11 @@ fn validate_non_empty(issues: &mut Vec<ValidationIssue>, path: &str, value: &str
 
 fn validate_commit(issues: &mut Vec<ValidationIssue>, path: &str, value: &str) {
     let valid_len = value.len() == 40 || value.len() == 64;
-    if !valid_len || !value.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+    if !valid_len
+        || !value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    {
         issues.push(issue("invalid_commit_identity", path));
     }
 }
@@ -409,6 +415,13 @@ mod tests {
     #[test]
     fn strictly_equivalent_receipt_is_admitted() {
         let report = validate_receipt(&receipt(MappingStatus::StrictlyEquivalent));
+        assert!(report.score_eligible, "{:?}", report.issues);
+        assert!(report.issues.is_empty());
+    }
+
+    #[test]
+    fn mapped_receipt_with_a_bound_is_admitted() {
+        let report = validate_receipt(&receipt(MappingStatus::MappedEquivalentWithBound));
         assert!(report.score_eligible, "{:?}", report.issues);
         assert!(report.issues.is_empty());
     }
