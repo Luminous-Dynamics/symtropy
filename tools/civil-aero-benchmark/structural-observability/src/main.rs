@@ -626,7 +626,8 @@ mod tests {
         assert!(close(metrics.fisher_information[0][1], -0.5, 1.0e-12));
         assert!(close(metrics.fisher_information[1][1], 1.5, 1.0e-12));
         assert!(close(metrics.determinant, 2.0, 1.0e-12));
-        assert_eq!(metrics.eigenvalues_ascending, [1.0, 2.0]);
+        assert!(close(metrics.eigenvalues_ascending[0], 1.0, 1.0e-12));
+        assert!(close(metrics.eigenvalues_ascending[1], 2.0, 1.0e-12));
         assert_eq!(metrics.effective_rank, 2);
     }
 
