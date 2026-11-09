@@ -5,7 +5,7 @@
 **Reference configuration / integration:** [ROAD-EV-REFERENCE-001 #4346](https://github.com/Luminous-Dynamics/symtropy/issues/4346)  
 **Benchmark owner:** [EV-BENCH-001 #2164](https://github.com/Luminous-Dynamics/symtropy/issues/2164)  
 **Battery circularity owner:** [EV-BATTERY-CIRCULARITY-001 #2155](https://github.com/Luminous-Dynamics/symtropy/issues/2155)  
-**Related work:** [Symtropy family-vehicle substrate PR #1762](https://github.com/Luminous-Dynamics/symtropy/pull/1762) · [Symtropy whole-life transport #1601](https://github.com/Luminous-Dynamics/symtropy/issues/1601) · [Symtropy repairability compiler #1773](https://github.com/Luminous-Dynamics/symtropy/issues/1773) · [Symtropy localization #1780](https://github.com/Luminous-Dynamics/symtropy/issues/1780) · [Symtropy continuity calibration #1791](https://github.com/Luminous-Dynamics/symtropy/issues/1791) · [GLOBAL-MOBILITY-001 #1832](https://github.com/Luminous-Dynamics/symtropy/issues/1832) · [Symthaea road dynamics #6247](https://github.com/Luminous-Dynamics/symthaea/issues/6247) · [Symthaea road autonomy benchmark #6256](https://github.com/Luminous-Dynamics/symthaea/issues/6256) · [Symthaea physical pilot ladder #6254](https://github.com/Luminous-Dynamics/symthaea/issues/6254) · [Symthaea family-vehicle engineering PR #7751](https://github.com/Luminous-Dynamics/symthaea/pull/7751) · [Symthaea EV-HEALTH-ADVISORY-001 #11239](https://github.com/Luminous-Dynamics/symthaea/issues/11239) · [Sol-Atlas EV-ROUTE-ENERGY-001 #664](https://github.com/Luminous-Dynamics/sol-atlas-leptos/issues/664) · [Sol-Atlas EV-CHARGING-SITE-001 #665](https://github.com/Luminous-Dynamics/sol-atlas-leptos/issues/665) · [Mycelix vehicle dossier PR #5131](https://github.com/Luminous-Dynamics/mycelix/pull/5131) · [Mycelix Mobility Commons #3708](https://github.com/Luminous-Dynamics/mycelix/issues/3708) · [Mycelix Mobility Configuration #3709](https://github.com/Luminous-Dynamics/mycelix/issues/3709)
+**Related work:** [Symtropy EV platform portfolio #2112](https://github.com/Luminous-Dynamics/symtropy/issues/2112) · [Symtropy user-fit/HMI #1801](https://github.com/Luminous-Dynamics/symtropy/issues/1801) · [Symtropy family-vehicle substrate PR #1762](https://github.com/Luminous-Dynamics/symtropy/pull/1762) · [Symtropy whole-life transport #1601](https://github.com/Luminous-Dynamics/symtropy/issues/1601) · [Symtropy repairability compiler #1773](https://github.com/Luminous-Dynamics/symtropy/issues/1773) · [Symtropy localization #1780](https://github.com/Luminous-Dynamics/symtropy/issues/1780) · [Symtropy continuity calibration #1791](https://github.com/Luminous-Dynamics/symtropy/issues/1791) · [GLOBAL-MOBILITY-001 #1832](https://github.com/Luminous-Dynamics/symtropy/issues/1832) · [Symthaea road dynamics #6247](https://github.com/Luminous-Dynamics/symthaea/issues/6247) · [Symthaea road autonomy benchmark #6256](https://github.com/Luminous-Dynamics/symthaea/issues/6256) · [Symthaea physical pilot ladder #6254](https://github.com/Luminous-Dynamics/symthaea/issues/6254) · [Symthaea family-vehicle engineering PR #7751](https://github.com/Luminous-Dynamics/symthaea/pull/7751) · [Symthaea EV-HEALTH-ADVISORY-001 #11239](https://github.com/Luminous-Dynamics/symthaea/issues/11239) · [Sol-Atlas EV-ROUTE-ENERGY-001 #664](https://github.com/Luminous-Dynamics/sol-atlas-leptos/issues/664) · [Sol-Atlas EV-CHARGING-SITE-001 #665](https://github.com/Luminous-Dynamics/sol-atlas-leptos/issues/665) · [Mycelix vehicle dossier PR #5131](https://github.com/Luminous-Dynamics/mycelix/pull/5131) · [Mycelix Mobility Commons #3708](https://github.com/Luminous-Dynamics/mycelix/issues/3708) · [Mycelix Mobility Configuration #3709](https://github.com/Luminous-Dynamics/mycelix/issues/3709)
 
 ## 1. Purpose and strategy
 
@@ -27,7 +27,7 @@ The primary product claim must be supported by matched operating conditions and 
 6. Human-centred driver assistance with a separately qualified path toward bounded autonomy.
 7. Manufacturing processes that can scale and localize without assuming every component should be made locally from day one.
 
-Do not start by designing a family of seven vehicles. Establish one reference configuration and a reusable platform boundary; derive other body/mission variants only after comparative evidence justifies them.
+Do not start by designing a family of seven passenger vehicles. Symtropy #2112 owns the wider duty-cycle-first EV and electric mobile machinery portfolio; use EV-REF-01 as the first integrated road passenger/utility reference configuration, then derive other variants only where #2112's mission-specific requirements and comparative evidence justify them.
 
 ## 2. Paradigm shifts to test
 
@@ -63,7 +63,9 @@ Vehicle routing, charger queues, charger/site capacity, grid constraints, energy
 
 A capable scene detector is not a safe driving policy, and open-loop trajectory similarity is not closed-loop competence. Keep perception, motion prediction, planning, reactive multi-agent simulation, closed-loop behavior, compute latency, ODD coverage, physical pilot transfer and operational outcomes as separate benchmark families. Test whether a policy chooses a safer/better action than available alternatives under the same evidence and constraints; record why it abstains or enters a minimum-risk state. Symthaea #6256 owns the road autonomy benchmark portfolio, #6255 the external benchmark identity/rights waist, and #6254 the low-consequence physical pilot ladder.
 
-### 2.8 Treat the digital thread as a product capability
+### 2.8 Treat the human interface as an owner-controlled, measurable subsystem
+
+Symtropy [VEHICLE-USER-FIT-001 #1801](https://github.com/Luminous-Dynamics/symtropy/issues/1801) owns the user-fit/HMI and personalization contract. EV-REF-01 consumes it rather than creating a separate profile manager. Evaluate task completion, errors, glance/workload, accessibility by user subgroup, profile switching, guest privacy, offline capability, export/reset/recovery and repairability of user-facing modules. Keep safety-critical controls and ADAS thresholds non-overridable; profile changes affecting operating contexts must be limited to approved parked-state procedures. Personalization is a usability hypothesis to measure, not an assumed improvement.
 
 The configuration of a physical vehicle includes design revision, parts, materials, process substitutions, tolerances, software/firmware, inspection state, repairs and operational restrictions. “Same model name” is not enough to establish engineering equivalence. Reuse Mycelix #3708/#3709 rather than creating a separate vehicle passport or identity system.
 
@@ -121,7 +123,7 @@ Compare motor types, winding/material choices, gear ratios, inverter topologies,
 
 Treat battery, motor/inverter and cabin thermal loads as a coupled but separately accountable subsystem. Evaluate heat pumps, refrigerant choice, thermal storage and waste-heat recovery with climate-specific duty cycles. Report winter and hot-weather energy penalties, preconditioning cost and occupant comfort.
 
-### 4.5 Software, electrical architecture and interface
+- Versioned power, data, diagnostics and safety interfaces.
 
 - Versioned power, data, diagnostics and safety interfaces.
 - Clear separation of safety-critical and non-safety-critical networks.
