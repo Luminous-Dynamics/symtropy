@@ -12,6 +12,8 @@
 
 #![forbid(unsafe_code)]
 
+pub mod process_memory;
+
 use std::collections::BTreeSet;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
