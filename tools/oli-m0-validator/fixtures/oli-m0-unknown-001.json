@@ -1,0 +1,61 @@
+{
+  "schema_version": "oli-m0-fixture-v0.1",
+  "fixture_id": "OLI-M0-UNKNOWN-001",
+  "scenario_family": "UNKNOWN_HELD_OUT_GENERATOR",
+  "evidence_class": "SYNTHETIC_UNKNOWN_GENERATOR",
+  "physical_substrate": "unknown_held_out_synthetic_substrate",
+  "system_boundary": {
+    "status": "UNKNOWN",
+    "description": "Generator and stable system boundary are intentionally withheld from the evaluator; fixture provides only a limited observation summary."
+  },
+  "measurement": {
+    "modality": "synthetic_held_out_multimodal_trace",
+    "units": ["s", "unknown_signal_unit"],
+    "unit_status": "UNKNOWN",
+    "calibration_status": "NOT_ESTABLISHED",
+    "temporal": {
+      "window_seconds": 120.0,
+      "sampling_interval_seconds": 1.0,
+      "target_process_timescale_seconds": 4.0,
+      "coverage_fraction": 0.6
+    },
+    "spatial": {
+      "coordinate_frame": "unknown_local_frame",
+      "footprint_fraction": 0.6,
+      "resolution_m": null
+    }
+  },
+  "property_assessments": {
+    "organization": "INSUFFICIENT_EVIDENCE",
+    "boundary": "MODEL_INADEQUATE",
+    "energy_matter_throughput": "INSUFFICIENT_EVIDENCE",
+    "persistence": "INSUFFICIENT_EVIDENCE",
+    "homeostasis_regulation": "NOT_TESTED",
+    "self_maintenance": "NOT_TESTED",
+    "information_retention": "INSUFFICIENT_EVIDENCE",
+    "information_transfer": "NOT_TESTED",
+    "reproduction": "NOT_TESTED",
+    "heredity": "NOT_TESTED",
+    "adaptation": "NOT_TESTED",
+    "learning": "NOT_TESTED",
+    "agency": "NOT_TESTED",
+    "intelligence": "NOT_TESTED",
+    "collective_intelligence": "NOT_TESTED",
+    "sentience_consciousness": "NOT_TESTED"
+  },
+  "expected_result": {
+    "disposition": "OTHER_OR_UNRESOLVED",
+    "absence_inference_allowed": false,
+    "reason": "A held-out synthetic generator is outside the registered model family. Preserve OTHER_OR_UNRESOLVED and model inadequacy rather than forcing a nearest known category."
+  },
+  "source": {
+    "reference": "synthetic://oli-m0/held-out-generator-v1",
+    "data_status": "SYNTHETIC_HIDDEN_GENERATOR_FIXTURE",
+    "note": "Hidden generator details are retained by the evaluator in a future sealed challenge; this public fixture exposes only the observation envelope."
+  },
+  "limitations": [
+    "This is not a natural unknown-substrate observation.",
+    "The hidden generator is a benchmark mechanism, not evidence of unknown life.",
+    "No prior or absence probability should be updated from this fixture."
+  ]
+}
