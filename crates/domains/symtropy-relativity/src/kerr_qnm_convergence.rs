@@ -27,6 +27,10 @@ pub enum KerrOpticalError {
     NonFiniteInput(&'static str),
     RadiusAtOrInsideHorizon { radius_m: f64, horizon_m: f64 },
     ExtremalSpinUnsupported,
+    SourceEventAfterObservation {
+        source_time_s: f64,
+        observation_time_s: f64,
+    },
     RootNotBracketed,
     RootNotConverged,
     QuadratureNotConverged,
@@ -47,6 +51,13 @@ impl fmt::Display for KerrOpticalError {
             Self::ExtremalSpinUnsupported => write!(
                 f,
                 "exact extremality is outside the non-extremal optical-coordinate formula"
+            ),
+            Self::SourceEventAfterObservation {
+                source_time_s,
+                observation_time_s,
+            } => write!(
+                f,
+                "source event at t={source_time_s} s is later than observation at t={observation_time_s} s"
             ),
             Self::RootNotBracketed => write!(f, "Kerr optical bounce root was not bracketed"),
             Self::RootNotConverged => write!(f, "Kerr optical bounce root did not converge"),
@@ -380,6 +391,56 @@ impl KerrOpticalReference {
         })
     }
 
+    /// Classify an extended source history event-by-event against the
+    /// prolate and oblate QNM convergence domains.
+    ///
+    /// The input order is preserved. This method evaluates geometry and
+    /// coordinate-time margins only: it does not weight, evolve or sum source
+    /// amplitudes. Dynamic activation and the physical source convolution
+    /// remain owned by the source-history / Green-function layers.
+    pub fn classify_source_events(
+        self,
+        observation_time_s: f64,
+        observer_radius_m: f64,
+        source_events: &[KerrQnmSourceEvent],
+        boundary_tolerance_m: f64,
+    ) -> Result<Vec<KerrQnmSourceEventQualification>, KerrOpticalError> {
+        if !observation_time_s.is_finite() {
+            return Err(KerrOpticalError::NonFiniteInput(
+                "observation_time_s",
+            ));
+        }
+
+        let mut qualifications = Vec::with_capacity(source_events.len());
+        for event in source_events {
+            if !event.coordinate_time_s.is_finite() {
+                return Err(KerrOpticalError::NonFiniteInput(
+                    "source_event.coordinate_time_s",
+                ));
+            }
+            if event.coordinate_time_s > observation_time_s {
+                return Err(KerrOpticalError::SourceEventAfterObservation {
+                    source_time_s: event.coordinate_time_s,
+                    observation_time_s,
+                });
+            }
+
+            let convergence = self.convergence_margins(
+                observation_time_s - event.coordinate_time_s,
+                observer_radius_m,
+                event.radius_m,
+                boundary_tolerance_m,
+            )?;
+            qualifications.push(KerrQnmSourceEventQualification {
+                source_time_s: event.coordinate_time_s,
+                source_radius_m: event.radius_m,
+                convergence,
+            });
+        }
+
+        Ok(qualifications)
+    }
+
     fn dimensionless_horizons(self) -> (f64, f64, f64) {
         let d = ((1.0 - self.dimensionless_spin_abs) * (1.0 + self.dimensionless_spin_abs)).sqrt();
         let plus = 1.0 + d;
@@ -399,6 +460,26 @@ impl KerrOpticalReference {
         }
         Ok(radius_m)
     }
+}
+
+/// A point on an already-defined source trajectory, in Boyer-Lindquist
+/// coordinate time (seconds) and areal radius (metres).
+///
+/// This is a kinematic query input only; source amplitudes and field content
+/// belong to the source-history and Green-function owners.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct KerrQnmSourceEvent {
+    pub coordinate_time_s: f64,
+    pub radius_m: f64,
+}
+
+/// The family-domain qualification for one source-trajectory event and a
+/// fixed observation event.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct KerrQnmSourceEventQualification {
+    pub source_time_s: f64,
+    pub source_radius_m: f64,
+    pub convergence: KerrQnmConvergenceEvaluation,
 }
 
 /// Family-specific convergence region for the full QNM contribution.
@@ -974,6 +1055,84 @@ mod tests {
             positive.prolate_bounce_radius_m,
             negative.prolate_bounce_radius_m,
             1.0e-14,
+        );
+    }
+
+    #[test]
+    fn kerr_source_history_is_partitioned_by_family_domain_per_event() {
+        let reference = KerrOpticalReference::new(hole(0.7)).unwrap();
+        let rg = reference.gravitational_radius_m;
+        let observer_time_s = 10.0;
+        let events = [
+            KerrQnmSourceEvent {
+                coordinate_time_s: observer_time_s - 5.2 * rg / SPEED_OF_LIGHT_M_S,
+                radius_m: 3.0 * rg,
+            },
+            KerrQnmSourceEvent {
+                coordinate_time_s: observer_time_s - 5.4 * rg / SPEED_OF_LIGHT_M_S,
+                radius_m: 3.0 * rg,
+            },
+            KerrQnmSourceEvent {
+                coordinate_time_s: observer_time_s - 5.5 * rg / SPEED_OF_LIGHT_M_S,
+                radius_m: 3.0 * rg,
+            },
+        ];
+        let classified = reference
+            .classify_source_events(
+                observer_time_s,
+                4.0 * rg,
+                &events,
+                1.0e-8 * rg,
+            )
+            .unwrap();
+
+        assert_eq!(classified.len(), events.len());
+        assert_eq!(
+            classified[0].convergence.region,
+            KerrQnmConvergenceRegion::NeitherFamilyConvergent
+        );
+        assert_eq!(
+            classified[1].convergence.region,
+            KerrQnmConvergenceRegion::ProlateFamilyOnlyConvergent
+        );
+        assert_eq!(
+            classified[2].convergence.region,
+            KerrQnmConvergenceRegion::BothFamiliesConvergent
+        );
+        assert_eq!(
+            classified
+                .iter()
+                .map(|event| event.source_time_s)
+                .collect::<Vec<_>>(),
+            events
+                .iter()
+                .map(|event| event.coordinate_time_s)
+                .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn kerr_source_history_rejects_future_and_nonfinite_events() {
+        let reference = KerrOpticalReference::new(hole(0.7)).unwrap();
+        let rg = reference.gravitational_radius_m;
+        let future = [KerrQnmSourceEvent {
+            coordinate_time_s: 1.1,
+            radius_m: 3.0 * rg,
+        }];
+        assert!(matches!(
+            reference.classify_source_events(1.0, 4.0 * rg, &future, 1.0e-8 * rg),
+            Err(KerrOpticalError::SourceEventAfterObservation { .. })
+        ));
+
+        let nonfinite = [KerrQnmSourceEvent {
+            coordinate_time_s: f64::NAN,
+            radius_m: 3.0 * rg,
+        }];
+        assert_eq!(
+            reference.classify_source_events(1.0, 4.0 * rg, &nonfinite, 1.0e-8 * rg),
+            Err(KerrOpticalError::NonFiniteInput(
+                "source_event.coordinate_time_s"
+            ))
         );
     }
 
