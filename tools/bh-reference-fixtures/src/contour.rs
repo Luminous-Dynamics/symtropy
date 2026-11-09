@@ -13,7 +13,9 @@ use serde::{Deserialize, Serialize};
 use crate::{
     AngularEigenvalueConvention, ComplexValue, FixtureProvenance, FourierConvention,
     FrequencyNormalization,
-    qnm::{QnmFrequencyCutRelation, QnmRiemannSheetKind},
+    qnm::{
+        QnmFrequencyCutRelation, QnmMethodApplicability, QnmRiemannSheetKind, QnmSolverMethod,
+    },
 };
 
 pub const QNM_CONTOUR_COUNT_SCHEMA_VERSION: u32 = 1;
@@ -92,6 +94,11 @@ pub struct QnmContourCountFixture {
     pub schema_version: u32,
     pub contour_id: String,
     pub characteristic_function_id: String,
+    /// Exact producer-defined mathematical characteristic function, including
+    /// its normalization and boundary-condition convention.
+    pub characteristic_function_definition: String,
+    pub solver_method: QnmSolverMethod,
+    pub method_applicability: QnmMethodApplicability,
     pub provenance: FixtureProvenance,
     pub spin_over_mass: f64,
     pub spin_weight: i32,
@@ -126,6 +133,7 @@ pub enum QnmContourValidationError {
     InvalidModeNumbers,
     InvalidAngularConvention,
     InvalidSpectralSheet,
+    ExactExtremalContourRequiresHeunD,
     FrequencyCutNotSeparated,
     InvalidContour,
     InvalidResolution(&'static str),
@@ -154,6 +162,10 @@ impl core::fmt::Display for QnmContourValidationError {
             Self::InvalidSpectralSheet => {
                 write!(f, "contour count requires an explicitly named analytic sheet and angular branch")
             }
+            Self::ExactExtremalContourRequiresHeunD => write!(
+                f,
+                "gravitational exact-extremal contour counts require the double-confluent Heun method"
+            ),
             Self::FrequencyCutNotSeparated => {
                 write!(f, "a contour count cannot be treated as one analytic loop when it lies on or crosses an unresolved cut")
             }
@@ -196,6 +208,10 @@ impl QnmContourCountFixture {
                 self.characteristic_function_id.as_str(),
                 "characteristic_function_id",
             ),
+            (
+                self.characteristic_function_definition.as_str(),
+                "characteristic_function_definition",
+            ),
             (self.provenance.engine.as_str(), "provenance.engine"),
             (
                 self.provenance.engine_version.as_str(),
@@ -230,6 +246,12 @@ impl QnmContourCountFixture {
         }
         if !self.spin_over_mass.is_finite() || self.spin_over_mass.abs() > 1.0 {
             return Err(QnmContourValidationError::InvalidSpin);
+        }
+        if self.spin_over_mass.abs() == 1.0
+            && self.spin_weight != 0
+            && self.solver_method != QnmSolverMethod::ExactExtremalDoubleConfluentHeun
+        {
+            return Err(QnmContourValidationError::ExactExtremalContourRequiresHeunD);
         }
         if self.ell < self.spin_weight.unsigned_abs() || self.m.unsigned_abs() > self.ell {
             return Err(QnmContourValidationError::InvalidModeNumbers);
@@ -725,6 +747,11 @@ mod tests {
             schema_version: QNM_CONTOUR_COUNT_SCHEMA_VERSION,
             contour_id: "unit-circle-a07-sheet-conventional".to_owned(),
             characteristic_function_id: "ingoing-incidence-amplitude".to_owned(),
+            characteristic_function_definition:
+                "A_in(omega) from the declared horizon-ingoing / infinity-outgoing radial normalization"
+                    .to_owned(),
+            solver_method: QnmSolverMethod::IncidenceAmplitude,
+            method_applicability: QnmMethodApplicability::WithinDocumentedRegime,
             provenance: FixtureProvenance {
                 engine: "synthetic-argument-principle-test".to_owned(),
                 engine_version: "0.1.0".to_owned(),
@@ -805,6 +832,26 @@ mod tests {
             result.classification,
             QnmContourCountClassification::CompleteWithinDomain
         );
+    }
+
+    #[test]
+    fn exact_extremal_gravitational_contour_requires_heun_d() {
+        let mut value = fixture(None, true);
+        value.spin_over_mass = 1.0;
+        assert_eq!(
+            value.validate(),
+            Err(QnmContourValidationError::ExactExtremalContourRequiresHeunD)
+        );
+        value.solver_method = QnmSolverMethod::ExactExtremalDoubleConfluentHeun;
+        assert_eq!(value.validate(), Ok(()));
+    }
+
+    #[test]
+    fn method_breakdown_abstains_instead_of_becoming_a_count_claim() {
+        let mut value = fixture(None, true);
+        value.method_applicability = QnmMethodApplicability::KnownBreakdown;
+        let result = analyze_qnm_contour_count(&value).unwrap();
+        assert_eq!(result.classification, QnmContourCountClassification::Unresolved);
     }
 
     #[test]
