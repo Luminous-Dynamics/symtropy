@@ -986,8 +986,8 @@ mod tests {
     #[test]
     fn unavailable_edge_must_have_zero_delivered_energy_and_never_selected() {
         let invalid = FIXTURE.replace(
-            "BATTERY_EXCHANGE\\tfalse\\t0\\t0\\t0\\t0\\tSWAP_RX",
-            "BATTERY_EXCHANGE\\tfalse\\t0\\t45\\t4\\t72\\tSWAP_RX",
+            "BATTERY_EXCHANGE\tfalse\t0\t0\t0\t0\tSWAP_RX",
+            "BATTERY_EXCHANGE\tfalse\t0\t45\t4\t72\tSWAP_RX",
         );
         assert!(parse_case(&invalid).is_err());
     }
@@ -996,7 +996,7 @@ mod tests {
     fn incomplete_scenario_action_universe_is_rejected() {
         let incomplete = FIXTURE
             .lines()
-            .filter(|line| !line.contains("\\tS3\\tDEGRADED\\t1\\tSWAP\\t"))
+            .filter(|line| !line.contains("\tS3\tDEGRADED\t1\tSWAP\t"))
             .collect::<Vec<_>>()
             .join("\n")
             + "\n";
@@ -1006,8 +1006,8 @@ mod tests {
     #[test]
     fn inconsistent_observation_label_across_rows_is_rejected() {
         let inconsistent = FIXTURE.replacen(
-            "S1\\tNORMAL\\t1\\tCONTACT",
-            "S1\\tDEGRADED\\t1\\tCONTACT",
+            "S1\tNORMAL\t1\tCONTACT",
+            "S1\tDEGRADED\t1\tCONTACT",
             1,
         );
         assert!(parse_case(&inconsistent).is_err());
@@ -1016,8 +1016,8 @@ mod tests {
     #[test]
     fn action_identity_and_receiver_mass_cannot_change_by_scenario() {
         let inconsistent = FIXTURE.replacen(
-            "S2\\tNORMAL\\t1\\tCONTACT\\tDECISION\\tTERMINAL\\ttrue\\tREPLENISHMENT\\tCONDUCTIVE_CONTACT\\ttrue\\t2\\t32\\t5\\t65\\tCONTACT_RX\\t100",
-            "S2\\tNORMAL\\t1\\tCONTACT\\tDECISION\\tTERMINAL\\ttrue\\tREPLENISHMENT\\tCONDUCTIVE_CONTACT\\ttrue\\t2\\t32\\t5\\t65\\tCONTACT_RX\\t101",
+            "S2\tNORMAL\t1\tCONTACT\tDECISION\tTERMINAL\ttrue\tREPLENISHMENT\tCONDUCTIVE_CONTACT\ttrue\t2\t32\t5\t65\tCONTACT_RX\t100",
+            "S2\tNORMAL\t1\tCONTACT\tDECISION\tTERMINAL\ttrue\tREPLENISHMENT\tCONDUCTIVE_CONTACT\ttrue\t2\t32\t5\t65\tCONTACT_RX\t101",
             1,
         );
         assert!(parse_case(&inconsistent).is_err());
@@ -1026,8 +1026,8 @@ mod tests {
     #[test]
     fn no_robust_policy_is_reported_when_all_stage1_services_fail_one_scenario() {
         let failed = FIXTURE.replace(
-            "IPT_DOCK\\ttrue\\t3\\t30\\t6\\t50\\tIPT_RX\\t450",
-            "IPT_DOCK\\tfalse\\t0\\t0\\t0\\t0\\tIPT_RX\\t450",
+            "IPT_DOCK\ttrue\t3\t30\t6\t50\tIPT_RX\t450",
+            "IPT_DOCK\tfalse\t0\t0\t0\t0\tIPT_RX\t450",
         );
         let case = parsed(&failed);
         let report = evaluate(&case).expect("evaluation");
