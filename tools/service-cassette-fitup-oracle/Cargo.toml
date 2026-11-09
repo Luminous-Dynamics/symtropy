@@ -1,0 +1,13 @@
+[package]
+name = "service-cassette-fitup-oracle"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Synthetic-first exact-unit service-cassette fit-up and tolerance-stack oracle"
+
+[dependencies]
+serde_json = "=1.0.149"
+sha2 = "=0.10.9"
+
+[workspace]
