@@ -263,7 +263,28 @@ def evaluate_case(data: dict[str, Any], case: dict[str, Any]) -> dict[str, Any]:
     if not witnesses:
         admitted = profiles
     else:
+        witness_ids: set[str] = set()
+        probe_ids: set[str] = set()
+        common_cause_groups: set[str] = set()
         for witness in witnesses:
+            if witness.get("witness_id") in witness_ids:
+                return abstain(
+                    case,
+                    "ABSTAIN_ENVIRONMENTAL_WITNESS_NOT_INDEPENDENT",
+                    "REJECTED",
+                )
+            witness_ids.add(witness.get("witness_id"))
+            for probe in witness.get("probes", []):
+                sensor_id = probe.get("sensor_id")
+                group = probe.get("common_cause_group")
+                if sensor_id in probe_ids or group in common_cause_groups:
+                    return abstain(
+                        case,
+                        "ABSTAIN_ENVIRONMENTAL_WITNESS_NOT_INDEPENDENT",
+                        "REJECTED",
+                    )
+                probe_ids.add(sensor_id)
+                common_cause_groups.add(group)
             try:
                 profile = admit_witness(data, case, witness)
             except AuditError as error:
@@ -382,6 +403,12 @@ def hostile_controls(data: dict[str, Any]) -> None:
     require(result["disposition"] == "ABSTAIN_UNQUALIFIED_ENVIRONMENTAL_WITNESS",
             "invalid environmental evidence digest was accepted")
 
+    shared = next(case for case in data["cases"]
+                  if case["case_id"] == "DUPLICATE_COMMON_CAUSE_ENVIRONMENTAL_WITNESSES")
+    result = evaluate_case(data, shared)
+    require(result["disposition"] == "ABSTAIN_ENVIRONMENTAL_WITNESS_NOT_INDEPENDENT",
+            "separate witnesses with a shared common-cause group were accepted")
+
     print("negative_control=pass case=damage_environment_ambiguity")
     print("negative_control=pass case=shared_common_cause_environmental_probe")
     print("negative_control=pass case=expired_calibration")
@@ -396,7 +423,7 @@ def main() -> int:
         raw = FIXTURE.read_bytes()
         data = json.loads(raw)
         expected = evaluate(data, raw)
-        require(expected["case_count"] == 15, "frozen case count changed")
+        require(expected["case_count"] == 16, "frozen case count changed")
         by_id = {case["case_id"]: case for case in expected["cases"]}
         require(by_id["APPARENT_DAMAGE_EXPLAINED_BY_THERMAL_GRADIENT"]["structural_state"]
                 == "HEALTHY", "thermal-gradient counterexample changed")
