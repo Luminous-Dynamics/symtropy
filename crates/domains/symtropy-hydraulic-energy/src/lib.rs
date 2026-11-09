@@ -17,6 +17,14 @@
 
 use core::fmt;
 
+mod uncertainty;
+
+pub use uncertainty::{
+    HydraulicPowerStandardUncertainties, NetPowerSensitivity, NetPowerUncertaintyContributions,
+    NetPowerUncertaintyReport, StandardUncertainty, UncertaintyDependence, UncertaintyError,
+    propagate_net_power_standard_uncertainty,
+};
+
 pub const STANDARD_GRAVITY_M_PER_S2: f64 = 9.80665;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
