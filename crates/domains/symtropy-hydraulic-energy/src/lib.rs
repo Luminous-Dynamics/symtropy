@@ -20,8 +20,9 @@ use core::fmt;
 mod uncertainty;
 
 pub use uncertainty::{
-    HydraulicPowerStandardUncertainties, NetPowerSensitivity, NetPowerUncertaintyContributions,
-    NetPowerUncertaintyReport, StandardUncertainty, UncertaintyDependence, UncertaintyError,
+    EvidenceBoundStandardUncertainty, HydraulicPowerStandardUncertainties,
+    NetPowerSensitivity, NetPowerUncertaintyContributions, NetPowerUncertaintyReport,
+    StandardUncertainty, UncertaintyDependence, UncertaintyError, UncertaintyProvenance,
     propagate_net_power_standard_uncertainty,
 };
 
