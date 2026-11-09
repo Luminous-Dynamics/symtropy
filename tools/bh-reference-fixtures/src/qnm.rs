@@ -50,7 +50,7 @@ impl QnmModeResiduals {
             .into_iter()
             .flatten()
             .all(|value| value.is_finite() && value >= 0.0)
-            && residuals.into_iter().any(Option::is_some)
+            && residuals.into_iter().any(|value| value.is_some())
     }
 }
 
@@ -111,6 +111,7 @@ pub enum QnmSequenceValidationError {
     UnsupportedSchemaVersion(u32),
     EmptyField(&'static str),
     InvalidPrecision,
+    InvalidSha256,
     InvalidSpin,
     InvalidModeNumbers,
     EmptySequence,
@@ -130,6 +131,7 @@ impl core::fmt::Display for QnmSequenceValidationError {
             }
             Self::EmptyField(name) => write!(f, "required QNM sequence field {name} is empty"),
             Self::InvalidPrecision => write!(f, "all QNM modes require precision_bits >= 53"),
+            Self::InvalidSha256 => write!(f, "producer artifact SHA-256 must contain 64 hex characters"),
             Self::InvalidSpin => write!(f, "spin_over_mass must be finite and satisfy |a/M| < 1"),
             Self::InvalidModeNumbers => {
                 write!(f, "mode numbers must satisfy ell >= |s| and |m| <= ell")
@@ -182,9 +184,7 @@ impl KerrQnmSequenceFixture {
         }
         if let Some(digest) = &self.provenance.producer_artifact_sha256 {
             if digest.len() != 64 || !digest.bytes().all(|byte| byte.is_ascii_hexdigit()) {
-                return Err(QnmSequenceValidationError::EmptyField(
-                    "producer_artifact_sha256",
-                ));
+                return Err(QnmSequenceValidationError::InvalidSha256);
             }
         }
         if !self.spin_over_mass.is_finite() || self.spin_over_mass.abs() >= 1.0 {
