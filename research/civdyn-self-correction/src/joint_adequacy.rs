@@ -699,6 +699,77 @@ mod tests {
     }
 
     #[test]
+    fn temporal_path_reordering_is_detected_when_each_time_marginal_matches() {
+        let mut spec = statistic();
+        spec.id = "resource-trajectory".to_string();
+        spec.components = (0..3)
+            .map(|index| JointComponentSpec {
+                id: format!("tick-{index}"),
+                measurement_unit: "service_fraction".to_string(),
+                reference_center: 0.0,
+                reference_scale: 1.0,
+            })
+            .collect();
+        spec.minimum_draws = 2;
+
+        let mut observed = observation([1.0, 1.0]);
+        observed.statistic_id = spec.id.clone();
+        observed.components = (0..3)
+            .map(|index| JointComponentValue {
+                component_id: format!("tick-{index}"),
+                measurement_unit: "service_fraction".to_string(),
+                value: 1.0,
+            })
+            .collect();
+
+        let make_path_draw = |index: u64, values: [f64; 3], set: &str| {
+            JointPredictiveDraw {
+                statistic_id: spec.id.clone(),
+                independent_unit_id: "region-a".to_string(),
+                sample_size: 10,
+                draw_index: index,
+                model_digest: format!("model-{set}"),
+                draw_set_digest: set.to_string(),
+                calibration_data_digest: Some("sha256-calibration".to_string()),
+                components: (0..3)
+                    .map(|position| JointComponentValue {
+                        component_id: format!("tick-{position}"),
+                        measurement_unit: "service_fraction".to_string(),
+                        value: values[position],
+                    })
+                    .collect(),
+            }
+        };
+
+        let positive_path = vec![
+            make_path_draw(0, [0.0, 0.0, 0.0], "positive"),
+            make_path_draw(1, [1.0, 1.0, 1.0], "positive"),
+        ];
+        let reordered_path = vec![
+            make_path_draw(0, [0.0, 1.0, 0.0], "reordered"),
+            make_path_draw(1, [1.0, 0.0, 1.0], "reordered"),
+        ];
+        let path_config = JointMetricConfig {
+            energy_beta: 1.0,
+            variogram_power: 1.0,
+            pair_weights: vec![1.0, 1.0, 1.0],
+        };
+
+        let positive = assess_joint_predictive_draws(
+            &spec, &manifest(), SplitRole::Validation, &observed,
+            &positive_path, &path_config
+        ).expect("positive temporal coupling");
+        let reordered = assess_joint_predictive_draws(
+            &spec, &manifest(), SplitRole::Validation, &observed,
+            &reordered_path, &path_config
+        ).expect("reordered temporal coupling");
+
+        assert_eq!(positive.variogram_score, 0.0);
+        assert_eq!(reordered.variogram_score, 2.0);
+        assert_ne!(positive.energy_score, reordered.energy_score);
+    }
+
+    #[test]
     fn component_order_is_a_semantic_contract() {
         let mut observed = observation([1.0, 1.0]);
         observed.components.swap(0, 1);
