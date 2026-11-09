@@ -317,7 +317,7 @@ impl KerrQnmSequenceFixture {
             && self
                 .angular_eigenvalue_definition
                 .as_deref()
-                .is_none_or(str::is_empty)
+                .is_none_or(|definition| definition.trim().is_empty)
         {
             return Err(QnmSequenceValidationError::AngularEigenvalueConventionIncomplete);
         }
@@ -532,6 +532,17 @@ mod tests {
         assert_eq!(
             value.modes[0].method_applicability,
             QnmMethodApplicability::KnownBreakdown
+        );
+    }
+
+    #[test]
+    fn producer_defined_qnm_angular_eigenvalue_rejects_whitespace_definition() {
+        let mut value = sequence(QnmFamilyClassification::Unresolved);
+        value.angular_eigenvalue_convention = AngularEigenvalueConvention::Other;
+        value.angular_eigenvalue_definition = Some("   ".to_owned());
+        assert_eq!(
+            value.validate(),
+            Err(QnmSequenceValidationError::AngularEigenvalueConventionIncomplete)
         );
     }
 
