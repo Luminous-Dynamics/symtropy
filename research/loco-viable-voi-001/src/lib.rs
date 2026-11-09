@@ -4,7 +4,7 @@
 //! continuation evidence. It does not compute or authenticate those upstream
 //! safety/viability results.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 pub const SCALE_PPB: u64 = 1_000_000_000;
 const SCALE: u128 = SCALE_PPB as u128;
@@ -1126,13 +1126,7 @@ mod tests {
                 .iter()
                 .map(|item| item.selected_action_id.as_str())
                 .collect::<Vec<_>>(),
-            vec!["degraded-contact", "good-contact"].map(|id| {
-                if id == "degraded-contact" {
-                    "retreat"
-                } else {
-                    "advance"
-                }
-            })
+            vec!["retreat", "advance"]
         );
     }
 
