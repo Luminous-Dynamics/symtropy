@@ -838,6 +838,72 @@ mod tests {
         );
     }
 
+    fn integrate_complex_gauss_legendre(
+        spin: f64,
+        endpoint: ComplexCoordinate,
+        order: usize,
+    ) -> ComplexCoordinate {
+        assert!(order >= 16 && order.is_multiple_of(2));
+        let alpha2 = spin * spin;
+        let mut sum = ComplexCoordinate::new(0.0, 0.0);
+        let mut previous_sqrt: Option<ComplexCoordinate> = None;
+
+        // Roots are generated from the largest to smallest Legendre abscissa,
+        // which traverses the regularized path from spatial infinity toward
+        // the complex turning point and keeps square-root sheet tracking
+        // directional and deterministic.
+        for index in 0..order {
+            let mut z = (core::f64::consts::PI * (index as f64 + 0.75)
+                / (order as f64 + 0.5))
+                .cos();
+            let mut derivative = 0.0;
+            for _ in 0..16 {
+                let mut p_previous = 1.0;
+                let mut p_current = z;
+                for degree in 2..=order {
+                    let degree_f64 = degree as f64;
+                    let next = ((2.0 * degree_f64 - 1.0) * z * p_current
+                        - (degree_f64 - 1.0) * p_previous)
+                        / degree_f64;
+                    p_previous = p_current;
+                    p_current = next;
+                }
+                derivative =
+                    order as f64 * (z * p_current - p_previous) / (z * z - 1.0);
+                let delta = p_current / derivative;
+                z -= delta;
+                if delta.abs() <= 2.0 * f64::EPSILON {
+                    break;
+                }
+            }
+
+            let weight = 1.0 / ((1.0 - z * z) * derivative * derivative);
+            let s = 0.5 * (z + 1.0);
+            let y = endpoint.scale(1.0 - s * s);
+            let y2 = y.mul(y);
+            let y3 = y2.mul(y);
+            let polynomial = ComplexCoordinate::new(1.0, 0.0)
+                .add(y2.scale(alpha2))
+                .add(y3.scale(2.0 * alpha2));
+            let mut root = polynomial.sqrt();
+            if let Some(previous) = previous_sqrt
+                && root.sub(previous).norm() > root.neg().sub(previous).norm()
+            {
+                root = root.neg();
+            }
+            previous_sqrt = Some(root);
+
+            let denominator = root
+                .add(ComplexCoordinate::new(1.0, 0.0))
+                .add(y2.scale(alpha2));
+            let integrand = ComplexCoordinate::new(2.0 * s * alpha2, 0.0).div(denominator);
+            // The map from [-1,1] to [0,1] contributes a factor of 1/2.
+            sum = sum.add(integrand.scale(0.5 * weight));
+        }
+
+        endpoint.mul(sum)
+    }
+
     #[test]
     fn kerr_optical_bounces_reproduce_reference_spin_zero_point_seven() {
         let reference = KerrOpticalReference::new(hole(0.7)).unwrap();
@@ -1065,6 +1131,23 @@ mod tests {
 
         relative_close(oblate_derivative, expected_oblate, 2.0e-8);
         relative_close(prolate_derivative, expected_prolate, 2.0e-8);
+    }
+
+    #[test]
+    fn prolate_complex_turning_point_integral_agrees_with_independent_gauss_legendre() {
+        for spin in [0.3_f64, 0.7, 0.99] {
+            let turning_point = prolate_turning_point(spin);
+            let endpoint = ComplexCoordinate::new(1.0, 0.0).div(turning_point);
+            let simpson = prolate_complex_correction(spin, turning_point)
+                .unwrap()
+                .0;
+            let gauss = integrate_complex_gauss_legendre(spin, endpoint, 192);
+            let discrepancy = simpson.sub(gauss).norm();
+            assert!(
+                discrepancy < 5.0e-10 * (1.0 + simpson.norm()),
+                "spin={spin}, Simpson={simpson:?}, Gauss-Legendre={gauss:?}, discrepancy={discrepancy:e}"
+            );
+        }
     }
 
     #[test]
