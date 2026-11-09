@@ -588,7 +588,13 @@ impl CohortIncidenceLedger {
                 + report
                     .financial_obligations
                     .iter()
-                    .filter(|row| row.liable_cohort.is_unassigned())
+                    .filter(|row| {
+                    row.liable_cohort.is_unassigned()
+                        || row
+                            .recipient_cohort
+                            .as_ref()
+                            .is_some_and(CohortAssignment::is_unassigned)
+                })
                     .count()
                 + report
                     .capital_records
@@ -978,18 +984,28 @@ mod tests {
         let split_a = CohortAssignment::assigned("working-age-a").unwrap();
         let split_b = CohortAssignment::assigned("working-age-b").unwrap();
         let mut split_rows = service_rows(split_a.clone(), future.clone());
-        split_rows[0].demand = 2.0;
-        split_rows[0].served = 2.0;
-        split_rows.push(ServiceAllocation {
-            allocation_id: "service-water-split".into(),
-            assignment: split_b.clone(),
-            region_id: "district-a".into(),
-            resource: Resource::Water,
-            demand: 3.0,
-            served: 3.0,
-            originating_action_id: "policy:baseline".into(),
-            source_evidence_ref: "ledger:tick-1:district-a".into(),
-        });
+        for (resource, demand, served, id) in [
+            (Resource::Water, 5.0, 5.0, "service-water-split"),
+            (Resource::Energy, 10.0, 10.0, "service-energy-split"),
+            (Resource::Food, 4.0, 4.0, "service-food-split"),
+        ] {
+            let original = split_rows
+                .iter_mut()
+                .find(|row| row.resource == resource && row.assignment == split_a)
+                .expect("first subcohort allocation exists");
+            original.demand = demand * 0.4;
+            original.served = served * 0.4;
+            split_rows.push(ServiceAllocation {
+                allocation_id: id.into(),
+                assignment: split_b.clone(),
+                region_id: "district-a".into(),
+                resource,
+                demand: demand * 0.6,
+                served: served * 0.6,
+                originating_action_id: "policy:baseline".into(),
+                source_evidence_ref: "ledger:tick-1:district-a".into(),
+            });
+        }
         let split = assembled(split_rows, stock_rows(future, shared));
 
         let original_totals: Vec<_> = original.last().unwrap().regional_reconciliations.clone();
