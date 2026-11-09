@@ -665,14 +665,14 @@ mod tests {
             .enumerate()
             .map(|(index, spin)| {
                 let damping_rate = match damping {
-                    QnmExtremalDampingBehavior::ZeroDamping if index < 3 => {
+                    QnmExtremalDampingBehavior::ZeroDamping if index < 4 => {
                         0.25 * dimensionless_surface_gravity(*spin).unwrap()
                     }
                     QnmExtremalDampingBehavior::ZeroDamping => 0.0,
                     QnmExtremalDampingBehavior::FiniteDamping => 0.1,
                     QnmExtremalDampingBehavior::Unresolved
                     | QnmExtremalDampingBehavior::Ambiguous => {
-                        if index == 3 { 0.0 } else { 0.1 }
+                        if index == 4 { 0.0 } else { 0.1 }
                     }
                 };
                 KerrQnmSpinSample {
