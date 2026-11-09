@@ -1,0 +1,62 @@
+{
+  "schema_version": "oli-m0-fixture-v0.1",
+  "fixture_id": "OLI-M0-DUSTY-PLASMA-001",
+  "scenario_family": "DUSTY_PLASMA_PHYSICS_REFERENCE",
+  "evidence_class": "PUBLISHED_EXPERIMENT_REFERENCE_METADATA_ONLY",
+  "physical_substrate": "laboratory_dusty_or_complex_plasma",
+  "system_boundary": {
+    "status": "FRAGMENTED",
+    "description": "Published laboratory experiment observes charged dust-particle trajectories in a plasma environment; system boundaries and model scope follow the source paper."
+  },
+  "measurement": {
+    "modality": "three_dimensional_particle_trajectory_reference",
+    "units": ["m", "s"],
+    "unit_status": "DECLARED",
+    "calibration_status": "SOURCE_REPORTED_NOT_INDEPENDENTLY_REPRODUCED",
+    "temporal": {
+      "window_seconds": 1.0,
+      "sampling_interval_seconds": 0.001,
+      "target_process_timescale_seconds": 0.01,
+      "coverage_fraction": 1.0
+    },
+    "spatial": {
+      "coordinate_frame": "source_defined_laboratory_frame",
+      "footprint_fraction": 1.0,
+      "resolution_m": 0.000001
+    }
+  },
+  "property_assessments": {
+    "organization": "NOT_TESTED",
+    "boundary": "INSUFFICIENT_EVIDENCE",
+    "energy_matter_throughput": "NOT_TESTED",
+    "persistence": "NOT_TESTED",
+    "homeostasis_regulation": "NOT_TESTED",
+    "self_maintenance": "NOT_TESTED",
+    "information_retention": "NOT_TESTED",
+    "information_transfer": "NOT_TESTED",
+    "reproduction": "NOT_TESTED",
+    "heredity": "NOT_TESTED",
+    "adaptation": "NOT_TESTED",
+    "learning": "NOT_TESTED",
+    "agency": "NOT_TESTED",
+    "intelligence": "NOT_TESTED",
+    "collective_intelligence": "NOT_TESTED",
+    "sentience_consciousness": "NOT_TESTED"
+  },
+  "expected_result": {
+    "disposition": "PHYSICS_ONLY_REFERENCE",
+    "absence_inference_allowed": false,
+    "reason": "The cited work demonstrates physics-tailored inference of effective interparticle forces from laboratory trajectories. That physical result does not test life, agency, intelligence, or consciousness."
+  },
+  "source": {
+    "reference": "https://doi.org/10.1073/pnas.2505725122",
+    "data_status": "METADATA_ONLY_RIGHTS_ADMISSION_PENDING",
+    "note": "Yu et al., PNAS 122(31), e2505725122 (2025). Verify exact upstream dataset/code commits, file-level licence, provenance, data dictionary, and checksums before downloading or redistributing."
+  },
+  "limitations": [
+    "No external experimental data are included in this fixture.",
+    "No independent reproduction of the published force-inference result is claimed.",
+    "The paper is a physical system-identification comparator, not evidence of plasma life or intelligence.",
+    "Dusty plasma is not interchangeable with RF-CCP, ideal MHD, kinetic PIC, or fusion plasma."
+  ]
+}
