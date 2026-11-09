@@ -1,0 +1,31 @@
+name: LOCO Coupled Frontier Verification
+
+on:
+  pull_request:
+    paths:
+      - 'research/loco-coupled-frontier-001/**'
+      - '.github/workflows/loco-coupled-frontier.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'research/loco-coupled-frontier-001/**'
+      - '.github/workflows/loco-coupled-frontier.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/loco-coupled-frontier-001/Cargo.toml -- --check
+      - name: Run exact finite-grid and antichain tests
+        run: cargo test --manifest-path research/loco-coupled-frontier-001/Cargo.toml --locked
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path research/loco-coupled-frontier-001/Cargo.toml --locked --all-targets -- -D warnings
