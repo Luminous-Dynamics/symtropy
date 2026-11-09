@@ -149,6 +149,33 @@ This is an identifiability and abstention contract, not a causal effect estimato
 The October 2026 causal MO-CBO paper by Chen & Liu explicitly models environment, structural properties, damage, sensor configuration and measured response in a structural causal model, with do-calculus and counterfactual uncertainty; it also reports numerical, experimental and full-scale bridge evaluation. The June 2026 aerospace sensing-digital-twin paper separately models structural damage and sensor faults, with ROM-based signal reconstruction and sensor reliability. These are stronger systems than this small oracle; we do not claim to reproduce or beat them. The contribution of this child is a small executable contract that forces the environment/damage ambiguity to remain visible and makes independent environmental evidence a precondition for disambiguation. References: https://doi.org/10.1016/j.ymssp.2026.114895 and https://doi.org/10.1007/s00158-026-04324-8.
 
 
+
+## Aerospace dataset ladder: stop treating civil-bridge data as the only route
+
+The external register now identifies five aerospace/composite sources that are more directly relevant than Z24. None has been acquired or admitted by this PR; all remain reference-only pending exact bytes, data rights, channel maps, units, and provenance.
+
+1. **Controlled EOV before damage:** the Airbus/USES2 2026 Lamb-wave panel record (Zenodo 19209079) reports an undamaged composite panel in a climatic chamber from 20–70 °C, constant humidity and five-minute interrogations, with raw guided-wave files and climate logs. This is an environment-only benchmark: measure thermal response and calibrate the environmental witness before any damage classifier sees it.
+2. **Damage progression with independent imaging:** NASA PCoE's CFRP composite dataset reports 16 PZT Lamb-wave sensors, multiple triaxial strain gauges, three laminate layups, tension–tension fatigue to failure and periodic X-rays as damage ground truth. It is suitable for damage progression and sensor-fusion evaluation, with X-ray inspection timing treated as interval-censored truth rather than continuous labels.
+3. **Full-scale aeronautical article + sensor integrity:** the SARISTU outer-wing demonstrator paper reports a roughly 4.5 m composite outer-wing structure with 160 secondarily bonded PZT transducers. Its SHM system measures electromechanical impedance at each transducer to assess reliability and bond strength, in addition to active guided-wave screening; four stages span before loading, before fatigue, before impact and after impact. This is an unusually useful joint structural/sensing reference.
+4. **Long-term environmental drift transfer:** the University of Utah guided-wave descriptor reports ~4.5 years and ~6.4 million measurements in outdoor conditions, including large daily temperature swings, rain/snow, sensor drift and installation shifts. It is civil/infrastructure, not aircraft evidence, but can stress long-horizon environmental and installation-shift robustness.
+5. **Damage morphology and ultrasound verification:** the Open Guided Waves omega-stringer CFRP dataset reports intact, local-debond and large-debond cases with full guided-wave fields and conventional ultrasound verification, under constant-temperature conditions.
+
+The intended experimental sequence is therefore not one monolithic leaderboard. Use environment-only data to assess environmental response and probe integrity; use fatigue/X-ray and guided-wave/ultrasound data for damage localization and progression; use full-scale outer-wing data to examine sensor/bond health alongside damage; then use long-term outdoor data as a cross-domain EOV/drift challenge. Do not transfer one dataset's labels, unit scales or calibration to another without an admitted mapping.
+
+### Admission and split rules
+
+The register records each source URL, reported metadata, dataset role, claim ceiling, rights uncertainty and admission state. Before bytes are admitted:
+- record the data owner, source-version/record identifier, licence and intended commercial/non-commercial use;
+- obtain any required permission in writing, especially where the catalogue only requests acknowledgement or where licence terms are unstated;
+- download the original archive and record byte count and SHA-256 before unpacking; retain the archive and a complete extracted-file inventory;
+- validate channel IDs, physical units, sensor locations, time bases, acquisition windows, calibration, damage state, environment and ground-truth timing;
+- freeze the partition by specimen, layup/configuration, damage campaign, acquisition day, temperature regime and sensor installation—not random overlapping windows;
+- treat every bandpass, normalization, temperature compensation, resampling and model reconstruction as a versioned measurement operator; preserve raw data unchanged;
+- keep X-ray/ultrasound/NDE truth separate from model predictions. Report uncertainty in damage timing when ground truth is periodic.
+
+This ladder creates a defensible way to compare the industry baselines on comparable real signals before attempting Wren 2 / Wayfarer 4 candidate validation. It does not turn a bridge, coupon or demonstrator into an aircraft certification article.
+
+
 ## Advancement ladder
 
 **Tier 0 — this crate:** frozen synthetic HH/HF/DH/DF + abstention; independent fault witness; immutable raw data; independent Rust/Python replay.
