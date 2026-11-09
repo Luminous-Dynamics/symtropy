@@ -10,9 +10,7 @@
   },
   "measurement": {
     "modality": "three_dimensional_particle_trajectory_reference",
-    "units": [
-      "unknown_source_coordinate_unit"
-    ],
+    "units": [],
     "unit_status": "UNKNOWN",
     "calibration_status": "SOURCE_REPORTED_NOT_INDEPENDENTLY_REPRODUCED",
     "temporal": {
