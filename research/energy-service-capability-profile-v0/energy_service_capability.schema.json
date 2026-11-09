@@ -1,0 +1,343 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/energy-service-capability-profile-v0/energy_service_capability.schema.json",
+  "title": "Energy Service Capability Profile v0",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/serviceProfile"
+    },
+    {
+      "$ref": "#/$defs/receiverDemand"
+    }
+  ],
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "identifier": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "bearer": {
+      "enum": [
+        "CONDUCTIVE",
+        "IPT",
+        "CPT",
+        "BATTERY_EXCHANGE",
+        "RF_MICROWAVE",
+        "OPTICAL",
+        "POWER_LINE"
+      ]
+    },
+    "fieldRegime": {
+      "enum": [
+        "CONTACT",
+        "NEAR_FIELD",
+        "FAR_FIELD",
+        "ENERGY_CARRIER",
+        "NOT_APPLICABLE"
+      ]
+    },
+    "motionState": {
+      "enum": [
+        "PARKED",
+        "DOCKED",
+        "HOVER",
+        "TRANSLATING",
+        "CLIMB_DESCENT",
+        "DYNAMIC_FLIGHT",
+        "DEPARTURE",
+        "REACQUISITION",
+        "LANDING_APPROACH",
+        "BATTERY_SWAP"
+      ]
+    },
+    "sessionMode": {
+      "enum": [
+        "DOCK",
+        "ACQUIRE",
+        "TRACK",
+        "POWER",
+        "DEPART",
+        "REACQUIRE",
+        "SWAP"
+      ]
+    },
+    "evidenceRole": {
+      "enum": [
+        "PHYSICAL_ENVELOPE",
+        "OBSERVABILITY",
+        "SESSION_ADMISSION",
+        "AUTHORIZATION",
+        "LOCAL_PROTECTION",
+        "SITE_ALLOCATION",
+        "SOURCE_TO_LOAD_METROLOGY",
+        "STANDARDS_APPLICABILITY",
+        "MECHANICAL_CAPTURE",
+        "CAPTURE_OBSERVABILITY_COMPOSITION",
+        "REPLENISHMENT_STRATEGY",
+        "POSE_CALIBRATION",
+        "ASSET_LIFECYCLE",
+        "INDEPENDENT_REVIEW"
+      ]
+    },
+    "evidenceClass": {
+      "enum": [
+        "DECLARED",
+        "SYNTHETIC_ONLY",
+        "SIMULATED",
+        "BENCH_MEASURED",
+        "FIELD_MEASURED",
+        "INDEPENDENTLY_REVIEWED"
+      ]
+    },
+    "disposition": {
+      "enum": [
+        "QUALIFIED_FOR_DECLARED_SCOPE",
+        "DECLARED_ONLY",
+        "NOT_ADMITTED",
+        "NOT_EVALUATED",
+        "AMBIGUOUS",
+        "STALE",
+        "OUT_OF_DOMAIN",
+        "UNKNOWN",
+        "REVOKED"
+      ]
+    },
+    "receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "role",
+        "receipt_id",
+        "receipt_sha256",
+        "evidence_class",
+        "disposition",
+        "valid_until_us"
+      ],
+      "properties": {
+        "role": {
+          "$ref": "#/$defs/evidenceRole"
+        },
+        "receipt_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "evidence_class": {
+          "$ref": "#/$defs/evidenceClass"
+        },
+        "disposition": {
+          "$ref": "#/$defs/disposition"
+        },
+        "valid_until_us": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "serviceProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "profile_id",
+        "provider_id",
+        "profile_version",
+        "bearer",
+        "field_regime",
+        "receiver_hardware_sha256",
+        "receiver_geometry_sha256",
+        "coordinate_frame_sha256",
+        "supported_motion_states",
+        "supported_environment_strata",
+        "session_modes",
+        "evidence_receipts",
+        "claim_ceiling"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "escp-v0"
+        },
+        "profile_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "provider_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "profile_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "bearer": {
+          "$ref": "#/$defs/bearer"
+        },
+        "field_regime": {
+          "$ref": "#/$defs/fieldRegime"
+        },
+        "receiver_hardware_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "receiver_geometry_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "coordinate_frame_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "supported_motion_states": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/motionState"
+          }
+        },
+        "supported_environment_strata": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/identifier",
+            "not": {
+              "enum": [
+                "ANY",
+                "UNKNOWN"
+              ]
+            }
+          }
+        },
+        "session_modes": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/sessionMode"
+          }
+        },
+        "evidence_receipts": {
+          "type": "array",
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/receipt"
+          }
+        },
+        "claim_ceiling": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        }
+      }
+    },
+    "receiverDemand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "request_id",
+        "allowed_bearers",
+        "allowed_field_regimes",
+        "receiver_hardware_sha256",
+        "receiver_geometry_sha256",
+        "coordinate_frame_sha256",
+        "motion_state",
+        "environment_stratum",
+        "session_mode",
+        "required_evidence_roles",
+        "minimum_evidence_tier",
+        "require_independent_review",
+        "decision_time_us"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "escp-demand-v0"
+        },
+        "request_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "allowed_bearers": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/bearer"
+          }
+        },
+        "allowed_field_regimes": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/fieldRegime"
+          }
+        },
+        "receiver_hardware_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "receiver_geometry_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "coordinate_frame_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "motion_state": {
+          "$ref": "#/$defs/motionState"
+        },
+        "environment_stratum": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/identifier"
+            },
+            {
+              "not": {
+                "enum": [
+                  "ANY",
+                  "UNKNOWN"
+                ]
+              }
+            }
+          ]
+        },
+        "session_mode": {
+          "$ref": "#/$defs/sessionMode"
+        },
+        "required_evidence_roles": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "allOf": [
+              {
+                "$ref": "#/$defs/evidenceRole"
+              },
+              {
+                "not": {
+                  "const": "INDEPENDENT_REVIEW"
+                }
+              }
+            ]
+          }
+        },
+        "minimum_evidence_tier": {
+          "enum": [
+            "SYNTHETIC_ONLY",
+            "SIMULATED",
+            "BENCH_MEASURED",
+            "FIELD_MEASURED"
+          ]
+        },
+        "require_independent_review": {
+          "type": "boolean"
+        },
+        "decision_time_us": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}
