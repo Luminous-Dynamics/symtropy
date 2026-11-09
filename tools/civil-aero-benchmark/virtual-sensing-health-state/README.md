@@ -70,6 +70,32 @@ python3 tools/civil-aero-benchmark/virtual-sensing-health-state/verify_independe
 
 The independent Python verifier uses only the standard library and does not import the Rust implementation. It recomputes every case and compares the complete JSON report, then runs hostile controls including wrong-channel witnesses, missing/expired channel admission, ambiguous hypotheses, out-of-model signals, insufficient observations and post-reconstruction damage preservation. The exact-head GitHub Actions workflow asserts the PR subject SHA and retains source, fixture, toolchain/environment, output and SHA-256 receipts.
 
+
+## Public benchmark path: Z24 environmental variability and damage campaign
+
+The external reference register data/external-benchmark-register-v0.1.json records a realistic next comparison target without pretending the files have been acquired or admitted.
+
+KU Leuven's official Z24 portal describes two distinct acquisition programmes:
+- a year-long continuous monitoring campaign, with 16 acceleration measurements, 48 environmental measurements, detailed temperature sensors, hourly scans/averages, and reported drift, sensor loss and accelerometer failure;
+- a short-term progressive-damage campaign, with 291 measured DOFs collected across nine setups and five reference channels, two shakers, 3–30 Hz force content, and 65,536 samples at 100 Hz with a 30 Hz anti-alias cutoff.
+
+The official portal states that data are available for non-commercial research only, require registration/acknowledgement/citation, and may not be transferred to third parties. Luminous must obtain written permission for commercial use or transfer before any data retrieval, integration or publication. The dataset has not been downloaded, hashed, terms-reviewed or admitted by this PR. Source: https://bwk.kuleuven.be/bwm/z24
+
+A second, recent comparison target is Pham Hong et al., *SpectralTCN* (PLOS ONE, 21 September 2026). The paper reports 92.2% accuracy on its Z24 protocol, against 10 baseline models in stratified five-fold cross-validation. Its reported preprocessing uses a fourth-order zero-phase 0.5–40 Hz Butterworth bandpass, per-channel z-score normalization and 1024-sample Hann windows. Those details become a reproduction target, not a claim of aircraft-level SOTA. Source: https://doi.org/10.1371/journal.pone.0358224
+
+There is a channel-inventory discrepancy to resolve before reproduction: the SpectralTCN paper reports 27 accelerometer channels, while KU Leuven's official long-term overview describes 16 acceleration measurements. These may refer to different acquisition subsets or derived channel configurations. Do not silently assume the same channel map; reconcile the registered raw files, configuration and preprocessing first.
+
+### Two evaluation tracks—do not mix their scores
+
+**Track A: paper replication.** After permission and exact-byte admission, reproduce the published 0.5–40 Hz preprocessing, z-score normalization, windows, splits, baselines and metrics. This is needed for a fair comparison with the 92.2% published result.
+
+**Track B: fault- and domain-preserving evaluation.** Separately hold out contiguous time/environment blocks, sensor installations, damage regimes and entire campaign segments. Compare preprocessing variants that preserve low-frequency bias/drift, gain changes and channel health rather than removing those signatures before sensor-fault diagnosis. Measure HH/HF/DH/DF, fault isolation, false-clear/false-damage, out-of-domain abstention, uncertainty, decision preservation and total cost—not just damage-class accuracy.
+
+A high-pass filter and per-channel z-score can be legitimate for a particular damage-classification task, but they can also erase information needed to detect drift or gain faults. Keep the paper-reproduction track unchanged, then add a separately preregistered fault-preserving track. Do not claim it outperforms SpectralTCN unless both methods use matched, disclosed data splits and costs.
+
+Z24 is a civil-infrastructure transfer benchmark, not an aerospace validation article. The My Thuan comparison in the register is an FEM-derived simulation dataset, not physical bridge measurements. Neither replaces an admitted composite aerospace article, a validated damage morphology or an NDE/POD study.
+
+
 ## Advancement ladder
 
 **Tier 0 — this crate:** frozen synthetic HH/HF/DH/DF + abstention; independent fault witness; immutable raw data; independent Rust/Python replay.
