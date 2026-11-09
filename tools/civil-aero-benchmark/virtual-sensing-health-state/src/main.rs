@@ -7,7 +7,6 @@
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
-use std::fs;
 
 const FIXTURE: &[u8] = include_bytes!("../data/hh-hf-dh-df-v0.1.json");
 const CLAIM_CEILING: &str = "synthetic_joint_structure_sensor_state_and_abstention_only";
@@ -92,6 +91,8 @@ struct CaseResult {
     structural_state: Option<String>,
     faulty_sensor_ids: Vec<String>,
     explanation_count: usize,
+    consistent_channel_count: Option<usize>,
+    maximum_consistent_residual: Option<f64>,
     observed_values: Vec<Option<f64>>,
     model_imputed_values: Option<Vec<Option<f64>>>,
     reconstructed_sensor_ids: Vec<String>,
@@ -363,6 +364,8 @@ fn abstain(
         structural_state: None,
         faulty_sensor_ids: Vec::new(),
         explanation_count,
+        consistent_channel_count: None,
+        maximum_consistent_residual: None,
         observed_values: case.observed_values.clone(),
         model_imputed_values: None,
         reconstructed_sensor_ids: Vec::new(),
@@ -490,6 +493,8 @@ fn evaluate_case(fixture: &Fixture, case: &CaseInput) -> CaseResult {
         structural_state: Some(structural_state.to_owned()),
         faulty_sensor_ids: faulty_sensor_ids.clone(),
         explanation_count: 1,
+        consistent_channel_count: Some(explanation.consistent_count),
+        maximum_consistent_residual: Some(explanation.maximum_consistent_residual),
         observed_values: case.observed_values.clone(),
         model_imputed_values,
         reconstructed_sensor_ids: faulty_sensor_ids,
