@@ -28,6 +28,8 @@ For each source-ledger region and each of water, energy and food, the assembler 
 
 The original resource ledger's independent conservation checks must also pass. A financial obligation cannot compensate for a physical conservation residual. No metric combines m³, kWh, kg and currency.
 
+Across ticks, incidence reports must be contiguous. Every previously tracked region/resource closing stock must equal the next source-ledger opening stock, independently in its native unit. A skipped tick, missing previously tracked region or stock discontinuity fails closed; explicit region retirement/merger and resource conversion protocols are not yet implemented.
+
 All records carry an action/asset identifier and a source-evidence reference. An incomplete allocation fails closed; it is not silently prorated.
 
 ## Metamorphic and negative controls
@@ -37,10 +39,11 @@ The library tests:
 - cohort split invariance: splitting one identical cohort into two preserves aggregate physical totals;
 - reassignment: moving an item between cohorts changes incidence but not physical totals;
 - discount invariance: changing the normative discount rate changes only a derived discounted-service view, never source stocks, obligations or conservation;
-- future inheritance: a not-yet-born cohort receives the previous step's closing stock rather than a reset baseline;
+- future inheritance: a not-yet-born cohort can be assigned the previous step's closing stock rather than a reset baseline, with tick-to-tick source-ledger continuity checked;
 - unassigned incidence: shared/public assets remain visible as explicitly unassigned;
 - separate units: all three resource components reconcile independently;
-- fail-closed behavior for incomplete allocations, invalid obligations and duplicate record identities.
+- fail-closed behavior for incomplete allocations, invalid obligations and duplicate record identities;
+- consecutive tick enforcement and cross-tick opening/closing stock continuity, including negative controls for skipped ticks and discontinuous openings.
 
 ## Run
 
