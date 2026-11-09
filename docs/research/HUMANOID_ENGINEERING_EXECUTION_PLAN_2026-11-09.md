@@ -217,7 +217,27 @@ The first deliverable is a reviewed requirements and interface baseline—not an
 
 Standards are design inputs. They do not certify the robot or substitute for a competent conformity assessment.
 
-## 9. Paradigm-level success criteria
+## 9. Proposed internal milestone register
+
+These are **proposed research and engineering targets**, not current results, industry standards, or certification thresholds. Freeze the test method, configuration, measurement uncertainty, pass/fail rule and independent reviewer before using any target as a release gate.
+
+| Domain | Proposed milestone | Required qualification caveat |
+|---|---|---|
+| Environmental protection | IP6X + IPX6 on the complete assembled configuration, with a -20°C to +55°C operating design envelope | DR02 advertises IP66 and this temperature range; verify our own complete robot in an independent lab. Repeat affected ingress tests after defined seal/service cycles. IP66 is not an immersion rating. |
+| Mixed-duty runtime | ≥2 h 30 min as an initial stretch target under a preregistered mixed standing/walking/manipulation profile | Measure at battery and DC bus; compare with Fraunhofer's 1 h 49 min G1 mixed-duty result only under matched payload, hands, firmware, gait, speed, terrain and temperature. |
+| Spatial reasoning | ≥70% held-out configuration and ≥50% changed-instruction success on BEHAVIOR-Spatial as stretch milestones | Report separate benchmark task splits, uncertainty, confidence intervals, target-grounding errors and real action success; never pool with ESI-Bench or VA-Bench. |
+| Active perception | ≥30% fewer observation actions for equal-or-better success than passive/random-view baselines on ESI-Bench and VA-Bench | Preregister the task subset, action/latency budget and quality constraint; report cases where active sensing increases risk or fails to resolve ambiguity. |
+| Simulation validity | Zero false PASS on registered negative controls; no silent execution of unsupported model paths | For each physical observable, set a context-specific acceptance envelope using combined prediction and measurement uncertainty; a generic universal error percentage is not appropriate. |
+| Initial reliability screen | ≥95% operational availability over a defined 100-hour field screening profile | Report planned/unplanned downtime, intervention time, fault counts and operating envelope. This is only an initial screening milestone—not an MTBF claim or industrial reliability demonstration. |
+| Extended reliability | A multi-unit, ≥500-hour field pilot with failure-mode, maintenance and confidence-interval reporting | Use actual duty-cycle exposure and censoring rules; do not infer population MTBF from a single robot or a short demonstration. |
+| Manufacturing readiness | 100% traceability for designated critical components; measure first-pass yield, rework, cycle time and process capability | A future Cpk ≥1.33 target may be set for stable, capable processes on selected critical dimensions; it is not meaningful before process stability and measurement-system analysis. |
+| Maintainability | Replace designated external protection/service modules without opening the protected core, then complete calibration and requalification | Measure service time, tools, skills, errors, seal damage, replacement-part traceability and post-service test results. Do not assume a universal reseal cycle count before the design is selected. |
+| Human/functional safety | Independent assessment against the hazard analysis and standards applicable to the intended application | Do not adopt a universal collision-force threshold from another robot's test. Limits depend on body region, contact type, duration, speed, protective measures and application. |
+| Cybersecurity | Signed firmware/model artifacts, secure update and rollback, SBOM/model manifest, and no unresolved critical/high findings at release | Include update-chain, key management, remote interface, telemetry/privacy, vulnerability disclosure and recovery tests. |
+
+The strongest “better than SOTA” claim should be made only on a named benchmark lane, under a matched protocol and resource budget, with a reproducible baseline and statistical uncertainty. A faster simulation with different contact semantics, a longer advertised battery runtime on a different duty cycle, or a higher score on a different task split is not a fair comparison.
+
+## 10. Paradigm-level success criteria
 
 Symtropy should aim to outperform the status quo on **reproducibility, capability transparency, cross-tool traceability, falsification efficiency and measured simulation-to-physical correlation**—not claim a universal physics advantage.
 
