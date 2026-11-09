@@ -163,13 +163,13 @@ fn emit_candidate(
             result.sample_size.to_string(),
             result.predictive_draw_count.to_string(),
             format!("{energy_beta:.6}", energy_beta = result.energy_beta),
-            format!("{energy_score:.8}", energy_score = result.energy_score),
+            format!("{energy_score:.16}", energy_score = result.energy_score),
             format!(
                 "{variogram_power:.6}",
                 variogram_power = result.variogram_power
             ),
             format!(
-                "{variogram_score:.8}",
+                "{variogram_score:.16}",
                 variogram_score = result.variogram_score
             ),
             pair.component_a.clone(),
