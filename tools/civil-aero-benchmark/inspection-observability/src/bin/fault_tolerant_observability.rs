@@ -85,7 +85,9 @@ struct Report {
     failure_scenario_count: usize,
     subset_count: usize,
     robustly_feasible_subset_count: usize,
+    nominal_d_optimal_selection: Option<Selection>,
     nominal_e_optimal_selection: Option<Selection>,
+    robust_d_optimal_selection: Option<Selection>,
     robust_e_optimal_selection: Option<Selection>,
     subsets: Vec<SubsetMetrics>,
     claim_ceiling: String,
@@ -403,25 +405,51 @@ fn evaluate(input: &ModelInput, source_sha256: &str) -> Result<Report, String> {
         });
     }
 
-    let mut nominal_best: Option<Selection> = None;
-    let mut robust_best: Option<Selection> = None;
+    let mut nominal_d_best: Option<Selection> = None;
+    let mut nominal_e_best: Option<Selection> = None;
+    let mut robust_d_best: Option<Selection> = None;
+    let mut robust_e_best: Option<Selection> = None;
     for subset in &subsets {
+        if let Some(value) = subset.nominal_log_determinant {
+            let candidate = Selection {
+                sensor_ids: subset.sensor_ids.clone(),
+                objective_value: value,
+            };
+            if nominal_d_best.as_ref().is_none_or(|previous| better(&candidate, previous)) {
+                nominal_d_best = Some(candidate);
+            }
+        }
         if subset.nominal_rank == 2 {
             let candidate = Selection {
                 sensor_ids: subset.sensor_ids.clone(),
                 objective_value: subset.nominal_minimum_eigenvalue,
             };
-            if nominal_best.as_ref().is_none_or(|previous| better(&candidate, previous)) {
-                nominal_best = Some(candidate);
+            if nominal_e_best.as_ref().is_none_or(|previous| better(&candidate, previous)) {
+                nominal_e_best = Some(candidate);
             }
         }
         if subset.robustly_feasible {
+            let worst_case_log_determinant = subset
+                .scenario_metrics
+                .iter()
+                .map(|metric| metric.log_determinant)
+                .collect::<Option<Vec<f64>>>()
+                .and_then(|values| values.into_iter().reduce(f64::min));
+            if let Some(value) = worst_case_log_determinant {
+                let candidate = Selection {
+                    sensor_ids: subset.sensor_ids.clone(),
+                    objective_value: value,
+                };
+                if robust_d_best.as_ref().is_none_or(|previous| better(&candidate, previous)) {
+                    robust_d_best = Some(candidate);
+                }
+            }
             let candidate = Selection {
                 sensor_ids: subset.sensor_ids.clone(),
                 objective_value: subset.worst_case_minimum_eigenvalue.unwrap_or(0.0),
             };
-            if robust_best.as_ref().is_none_or(|previous| better(&candidate, previous)) {
-                robust_best = Some(candidate);
+            if robust_e_best.as_ref().is_none_or(|previous| better(&candidate, previous)) {
+                robust_e_best = Some(candidate);
             }
         }
     }
@@ -436,8 +464,10 @@ fn evaluate(input: &ModelInput, source_sha256: &str) -> Result<Report, String> {
         failure_scenario_count: scenarios.len(),
         subset_count: subsets.len(),
         robustly_feasible_subset_count,
-        nominal_e_optimal_selection: nominal_best,
-        robust_e_optimal_selection: robust_best,
+        nominal_d_optimal_selection: nominal_d_best,
+        nominal_e_optimal_selection: nominal_e_best,
+        robust_d_optimal_selection: robust_d_best,
+        robust_e_optimal_selection: robust_e_best,
         subsets,
         claim_ceiling: "synthetic_single_sensor_dropout_and_single_common_cause_group_only".to_owned(),
     })
@@ -474,6 +504,9 @@ mod tests {
         let nominal = result.nominal_e_optimal_selection.unwrap();
         assert_eq!(nominal.sensor_ids, vec!["S_A", "S_B", "S_C", "S_D"]);
         assert!((nominal.objective_value - 10.0).abs() < 1.0e-10);
+        let nominal_d = result.nominal_d_optimal_selection.unwrap();
+        assert_eq!(nominal_d.sensor_ids, vec!["S_A", "S_B", "S_C", "S_D"]);
+        assert!((nominal_d.objective_value - 100.0_f64.ln()).abs() < 1.0e-10);
         let nominal_metrics = result
             .subsets
             .iter()
@@ -491,6 +524,9 @@ mod tests {
         let robust = result.robust_e_optimal_selection.unwrap();
         assert_eq!(robust.sensor_ids, vec!["S_A", "S_C", "S_E", "S_F"]);
         assert!((robust.objective_value - 4.482666666666667).abs() < 1.0e-9);
+        let robust_d = result.robust_d_optimal_selection.unwrap();
+        assert_eq!(robust_d.sensor_ids, vec!["S_A", "S_C", "S_E", "S_F"]);
+        assert!((robust_d.objective_value - 3.2188758248682006).abs() < 1.0e-9);
         let selected = result
             .subsets
             .iter()
