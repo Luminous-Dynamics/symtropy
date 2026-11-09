@@ -73,6 +73,10 @@ Sources:
 
 A fair Symtropy contribution is **not** to claim superior biological process control, microbial ecology, or loop closure. The complementary research target is to compose existing biological/physicochemical process models with source-bounded evidence, material/component lineage, service-quality contracts, maintenance and requalification, finite spares/consumables, common resource ledgers and independent replay. Biological safety and ecological structure remain with the domain owners (#2244 and #2206); this ECLSS adapter consumes their qualified outputs and keeps structural biological uncertainty explicit.
 
+### Source data semantic safeguard
+
+The benchmark source register now keeps component R&R and Table 1 crew task times as separate data classes. In particular, Table 5 R&R values are not silently treated as Table 1 crew-hours, and the UPA Distillation Assembly's 7 h operational MTTR is not conflated with its separate 3 h Table 1 crew R&R task. This is necessary for fair comparison with EMAT/RELISSA/SmartHab/DRCC models that distinguish repair duration from crew task time.
+
 ## 4. Mandatory paired-comparison protocol
 
 Every method receives the same frozen:
