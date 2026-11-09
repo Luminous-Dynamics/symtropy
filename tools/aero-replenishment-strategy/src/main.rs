@@ -929,7 +929,7 @@ mod tests {
         let case = parsed(&input);
         let result = evaluate(&case).expect("evaluation");
         assert_eq!(result.unavailable_edge_count, 1);
-        assert!(result.all_feasible_paths.iter().all(|strategy| !strategy.edge_ids.contains(&"battery_only_continue".to_string())));
+        assert!(result.all_feasible_paths.iter().all(|strategy| !strategy.edge_ids.contains(&"unavailable_contact".to_string())));
     }
 
     #[test]
