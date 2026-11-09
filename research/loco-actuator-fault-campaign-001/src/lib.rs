@@ -1116,10 +1116,7 @@ mod tests {
         let mut input = problem();
         input.trials[0].detected = DetectionResult::Detected {
             inferred_family: FaultFamily::TorqueDerating,
-            plausible_families: vec![
-                FaultFamily::JointLocked,
-                FaultFamily::TorqueDerating,
-            ],
+            plausible_families: vec![FaultFamily::JointLocked, FaultFamily::TorqueDerating],
             latency_ms: 10,
             confidence_ppm: 800_000,
             severity_estimate_ppm: None,
