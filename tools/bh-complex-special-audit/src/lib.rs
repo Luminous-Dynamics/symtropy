@@ -810,6 +810,15 @@ pub fn poschl_teller_wronskian_winding_number(
     })
 }
 
+/// Inputs that define a Green-function frequency contour and its source/observer.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct PoschlTellerGreenContourConfig {
+    pub radius: f64,
+    pub observer_x: f64,
+    pub source_x: f64,
+    pub samples: usize,
+}
+
 /// Laurent coefficients of the retarded Green kernel about a circularly
 /// enclosed pole cluster. The trapezoidal contour identities are
 ///
@@ -836,15 +845,14 @@ pub fn poschl_teller_retarded_green_laurent(
     width: f64,
     lambda: f64,
     center: Complex64,
-    radius: f64,
-    observer_x: f64,
-    source_x: f64,
-    samples: usize,
+    contour: PoschlTellerGreenContourConfig,
     config: SeriesConfig,
 ) -> Result<PoschlTellerGreenLaurentEvaluation, SpecialError> {
-    if !observer_x.is_finite() || !source_x.is_finite() {
+    if !contour.observer_x.is_finite() || !contour.source_x.is_finite() {
         return Err(SpecialError::InvalidPoschlTellerParameters);
     }
+    let radius = contour.radius;
+    let samples = contour.samples;
     let winding = poschl_teller_wronskian_winding_number(width, lambda, center, radius, samples)?;
     let mut c_minus_one = Complex64::new(0.0, 0.0);
     let mut c_minus_two = Complex64::new(0.0, 0.0);
@@ -854,8 +862,14 @@ pub fn poschl_teller_retarded_green_laurent(
         let angle = core::f64::consts::TAU * index as f64 / samples as f64;
         let displacement = Complex64::new(radius * angle.cos(), radius * angle.sin());
         let omega = center + displacement;
-        let evaluation =
-            poschl_teller_retarded_green(width, lambda, omega, observer_x, source_x, config)?;
+        let evaluation = poschl_teller_retarded_green(
+            width,
+            lambda,
+            omega,
+            contour.observer_x,
+            contour.source_x,
+            config,
+        )?;
         let denominator = evaluation
             .wronskian
             .norm()
@@ -1600,9 +1614,19 @@ mod tests {
         let config = SeriesConfig::default();
         let q = (0.75_f64 - 0.25).sqrt();
         let pole = z(q, -0.5);
-        let contour =
-            poschl_teller_retarded_green_laurent(1.0, 0.75, pole, 0.03, 0.4, -0.3, 128, config)
-                .unwrap();
+        let contour = poschl_teller_retarded_green_laurent(
+            1.0,
+            0.75,
+            pole,
+            PoschlTellerGreenContourConfig {
+                radius: 0.03,
+                observer_x: 0.4,
+                source_x: -0.3,
+                samples: 128,
+            },
+            config,
+        )
+        .unwrap();
         assert_eq!(contour.winding_number, 1);
         assert!(contour.c_minus_two.norm() < 1.0e-8);
         assert!(contour.max_relative_wronskian_disagreement < 2.0e-8);
@@ -1621,12 +1645,32 @@ mod tests {
     fn threshold_contour_extracts_second_order_laurent_coefficient() {
         let config = SeriesConfig::default();
         let center = z(0.0, -0.5);
-        let coarse =
-            poschl_teller_retarded_green_laurent(1.0, 0.25, center, 0.05, 0.4, -0.3, 128, config)
-                .unwrap();
-        let fine =
-            poschl_teller_retarded_green_laurent(1.0, 0.25, center, 0.025, 0.4, -0.3, 256, config)
-                .unwrap();
+        let coarse = poschl_teller_retarded_green_laurent(
+            1.0,
+            0.25,
+            center,
+            PoschlTellerGreenContourConfig {
+                radius: 0.05,
+                observer_x: 0.4,
+                source_x: -0.3,
+                samples: 128,
+            },
+            config,
+        )
+        .unwrap();
+        let fine = poschl_teller_retarded_green_laurent(
+            1.0,
+            0.25,
+            center,
+            PoschlTellerGreenContourConfig {
+                radius: 0.025,
+                observer_x: 0.4,
+                source_x: -0.3,
+                samples: 256,
+            },
+            config,
+        )
+        .unwrap();
         assert_eq!(coarse.winding_number, 2);
         assert_eq!(fine.winding_number, 2);
         close(coarse.c_minus_two, fine.c_minus_two, 2.0e-7);
