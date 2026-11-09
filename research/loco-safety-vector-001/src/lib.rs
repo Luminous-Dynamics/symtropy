@@ -168,7 +168,9 @@ fn direction_from_cross_products(
     })
 }
 
-fn validate_taxonomy(taxonomy: &Taxonomy) -> Result<BTreeMap<&str, &TaxonomyCategory>, SafetyVectorError> {
+fn validate_taxonomy(
+    taxonomy: &Taxonomy,
+) -> Result<BTreeMap<&str, &TaxonomyCategory>, SafetyVectorError> {
     if !nonempty(&taxonomy.version) || !nonempty(&taxonomy.digest) {
         return Err(SafetyVectorError::EmptyIdentifier);
     }
@@ -263,7 +265,9 @@ fn validate_and_aggregate_policy(
         if !event_ids.insert(event.event_id.as_str()) {
             return Err(SafetyVectorError::DuplicateEventId);
         }
-        if !incident_categories.insert((event.physical_event_id.as_str(), event.category_id.as_str())) {
+        if !incident_categories
+            .insert((event.physical_event_id.as_str(), event.category_id.as_str()))
+        {
             return Err(SafetyVectorError::DuplicatePhysicalEventCategory);
         }
         let category = taxonomy_categories
@@ -358,14 +362,10 @@ pub fn audit_safety_vector(
     problem: &SafetyVectorProblem,
 ) -> Result<SafetyVectorReport, SafetyVectorError> {
     let taxonomy_categories = validate_taxonomy(&problem.taxonomy)?;
-    let baseline_aggregates = validate_and_aggregate_policy(
-        &taxonomy_categories,
-        &problem.baseline,
-    )?;
-    let candidate_aggregates = validate_and_aggregate_policy(
-        &taxonomy_categories,
-        &problem.candidate,
-    )?;
+    let baseline_aggregates =
+        validate_and_aggregate_policy(&taxonomy_categories, &problem.baseline)?;
+    let candidate_aggregates =
+        validate_and_aggregate_policy(&taxonomy_categories, &problem.candidate)?;
 
     if problem.primary_claim_category_ids.is_empty() {
         return Err(SafetyVectorError::NoPrimaryClaimCategories);
@@ -383,11 +383,8 @@ pub fn audit_safety_vector(
         }
     }
 
-    let withheld_reasons = policy_comparability_reasons(
-        &problem.taxonomy,
-        &problem.baseline,
-        &problem.candidate,
-    );
+    let withheld_reasons =
+        policy_comparability_reasons(&problem.taxonomy, &problem.baseline, &problem.candidate);
     let comparable = withheld_reasons.is_empty();
 
     let baseline_coverage: BTreeMap<&str, &CategoryCoverage> = problem
@@ -576,11 +573,7 @@ mod tests {
         }
     }
 
-    fn policy(
-        policy_id: &str,
-        exposure: u64,
-        events: Vec<EventRecord>,
-    ) -> PolicyResult {
+    fn policy(policy_id: &str, exposure: u64, events: Vec<EventRecord>) -> PolicyResult {
         PolicyResult {
             policy_id: policy_id.to_owned(),
             matched_stratum_digest: "stairs-stratum-v1".to_owned(),
@@ -648,8 +641,14 @@ mod tests {
             ],
         );
         let report = audit_safety_vector(&input).expect("valid proxy-shift case");
-        assert_eq!(comparison(&report, "shank_collision").event_rate_direction, Direction::Improved);
-        assert_eq!(comparison(&report, "foot_scuff").event_rate_direction, Direction::Worsened);
+        assert_eq!(
+            comparison(&report, "shank_collision").event_rate_direction,
+            Direction::Improved
+        );
+        assert_eq!(
+            comparison(&report, "foot_scuff").event_rate_direction,
+            Direction::Worsened
+        );
         assert!(report.proxy_shift_detected);
         assert!(!report.complete_safety_improvement_claim);
     }
@@ -687,8 +686,14 @@ mod tests {
             ],
         );
         let report = audit_safety_vector(&input).expect("valid fall-regression case");
-        assert_eq!(comparison(&report, "shank_collision").event_rate_direction, Direction::Improved);
-        assert_eq!(comparison(&report, "fall").event_rate_direction, Direction::Worsened);
+        assert_eq!(
+            comparison(&report, "shank_collision").event_rate_direction,
+            Direction::Improved
+        );
+        assert_eq!(
+            comparison(&report, "fall").event_rate_direction,
+            Direction::Worsened
+        );
         assert!(report.proxy_shift_detected);
         assert!(!report.complete_safety_improvement_claim);
     }
@@ -719,8 +724,14 @@ mod tests {
         let mut input = problem(Vec::new(), Vec::new());
         input.candidate.category_coverage[1].observed_exposure = 200;
         let report = audit_safety_vector(&input).expect("partial coverage report");
-        assert_eq!(comparison(&report, "foot_scuff").event_rate_direction, Direction::Withheld);
-        assert_eq!(report.measurement_coverage_gaps, vec!["foot_scuff".to_owned()]);
+        assert_eq!(
+            comparison(&report, "foot_scuff").event_rate_direction,
+            Direction::Withheld
+        );
+        assert_eq!(
+            report.measurement_coverage_gaps,
+            vec!["foot_scuff".to_owned()]
+        );
         assert!(!report.complete_safety_improvement_claim);
     }
 
@@ -739,8 +750,16 @@ mod tests {
         input.candidate.exposure.unit_id = "robot_hours".to_owned();
         let report = audit_safety_vector(&input).expect("incomparable report");
         assert!(!report.comparable);
-        assert!(report.withheld_reasons.iter().any(|reason| reason.contains("exposure units")));
-        assert_eq!(comparison(&report, "shank_collision").event_rate_direction, Direction::Withheld);
+        assert!(
+            report
+                .withheld_reasons
+                .iter()
+                .any(|reason| reason.contains("exposure units"))
+        );
+        assert_eq!(
+            comparison(&report, "shank_collision").event_rate_direction,
+            Direction::Withheld
+        );
         assert!(!report.complete_safety_improvement_claim);
     }
 
@@ -770,7 +789,10 @@ mod tests {
         );
         input.primary_claim_category_ids = vec!["shank_collision".to_owned()];
         let report = audit_safety_vector(&input).expect("multi-outcome incident");
-        assert_eq!(comparison(&report, "shank_collision").candidate_event_count, 1);
+        assert_eq!(
+            comparison(&report, "shank_collision").candidate_event_count,
+            1
+        );
         assert_eq!(comparison(&report, "foot_scuff").candidate_event_count, 1);
     }
 
@@ -788,7 +810,10 @@ mod tests {
         let mut input = problem(Vec::new(), Vec::new());
         input.candidate.category_coverage[1].objective_included = false;
         let report = audit_safety_vector(&input).expect("objective gap report");
-        assert_eq!(report.objective_coverage_gaps, vec!["foot_scuff".to_owned()]);
+        assert_eq!(
+            report.objective_coverage_gaps,
+            vec!["foot_scuff".to_owned()]
+        );
         assert!(!report.complete_safety_improvement_claim);
     }
 
