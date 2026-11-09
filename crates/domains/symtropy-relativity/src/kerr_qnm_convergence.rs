@@ -1044,6 +1044,35 @@ mod tests {
     }
 
     #[test]
+    fn bounce_radii_satisfy_their_own_optical_coordinate_equations_across_spin() {
+        for spin in [0.01_f64, 0.3, 0.7, 0.99, 0.999_999] {
+            let reference = KerrOpticalReference::new(hole(spin)).unwrap();
+            let rg = reference.gravitational_radius_m;
+            let oblate_value = reference
+                .oblate_coordinate_m(reference.oblate_bounce_radius_m)
+                .unwrap();
+            let prolate_value = reference
+                .prolate_coordinate_m(reference.prolate_bounce_radius_m)
+                .unwrap();
+            let oblate_residual = (oblate_value - reference.oblate_bounce_coordinate_m).abs() / rg;
+            let prolate_residual = (prolate_value - reference.prolate_bounce_coordinate_m).abs() / rg;
+
+            assert!(
+                oblate_residual < 2.0e-9,
+                "spin={spin}, oblate root residual={oblate_residual:e}"
+            );
+            assert!(
+                prolate_residual < 2.0e-8,
+                "spin={spin}, prolate root residual={prolate_residual:e}"
+            );
+            assert!(
+                reference.prolate_bounce_radius_m > reference.oblate_bounce_radius_m,
+                "nonzero spin={spin} should split the prolate bounce outside the oblate bounce"
+            );
+        }
+    }
+
+    #[test]
     fn kerr_optical_bounces_are_even_under_spin_reversal() {
         let positive = KerrOpticalReference::new(hole(0.7)).unwrap();
         let negative = KerrOpticalReference::new(hole(-0.7)).unwrap();
