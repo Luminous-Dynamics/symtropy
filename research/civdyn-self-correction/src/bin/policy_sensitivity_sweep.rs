@@ -2,19 +2,23 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use civdyn_self_correction::model_adequacy::{
-    assess_predictive_partition, IndependentUnitKind, ObservedStatistic, PredictiveDraw,
-    PredictiveKind, SplitManifest, SplitRole, StatisticRegistry, StatisticSpec,
+    IndependentUnitKind, ObservedStatistic, PredictiveDraw, PredictiveKind, SplitManifest,
+    SplitRole, StatisticRegistry, StatisticSpec, assess_predictive_partition,
 };
 use civdyn_self_correction::policy_sensitivity::{
-    evaluate_policy_sensitivity, ConstraintRelation, MetricKind, MetricSpec, ModelWorld,
-    ObjectiveDirection, PairwisePolicyOrdering, PolicyFeasibility, PolicyMetricOutcome,
-    PolicySensitivityReport, PolicySpec,
+    ConstraintRelation, MetricKind, MetricSpec, ModelWorld, ObjectiveDirection,
+    PairwisePolicyOrdering, PolicyFeasibility, PolicyMetricOutcome, PolicySensitivityReport,
+    PolicySpec, evaluate_policy_sensitivity,
 };
 
 const CSV_COLUMNS: usize = 29;
 
 fn emit(fields: Vec<String>) {
-    assert_eq!(fields.len(), CSV_COLUMNS, "CSV receipt must match the frozen schema");
+    assert_eq!(
+        fields.len(),
+        CSV_COLUMNS,
+        "CSV receipt must match the frozen schema"
+    );
     println!("{}", fields.join(","));
 }
 
@@ -88,9 +92,13 @@ fn summary_row(
         feasibility.name().to_string(),
         feasible_count.to_string(),
         model_count.to_string(),
-        regret.map(|value| format!("{value:.6}")).unwrap_or_default(),
+        regret
+            .map(|value| format!("{value:.6}"))
+            .unwrap_or_default(),
         best_rank.map(|value| value.to_string()).unwrap_or_default(),
-        worst_rank.map(|value| value.to_string()).unwrap_or_default(),
+        worst_rank
+            .map(|value| value.to_string())
+            .unwrap_or_default(),
         models_where_best.to_string(),
         String::new(),
         String::new(),
@@ -329,9 +337,7 @@ fn emit_report(
         let feasibility = report
             .model_policy_feasibility
             .iter()
-            .find(|row| {
-                row.model_id == outcome.model_id && row.policy_id == outcome.policy_id
-            })
+            .find(|row| row.model_id == outcome.model_id && row.policy_id == outcome.policy_id)
             .expect("complete model-policy feasibility matrix");
         let model = models
             .iter()

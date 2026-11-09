@@ -101,8 +101,12 @@ impl ModelWorld {
         let model_digest = model_digest.into();
         let adequacy_receipt_digest = adequacy_receipt_digest.into();
 
-        registry.validate().map_err(PolicySensitivityError::Adequacy)?;
-        manifest.validate().map_err(PolicySensitivityError::Adequacy)?;
+        registry
+            .validate()
+            .map_err(PolicySensitivityError::Adequacy)?;
+        manifest
+            .validate()
+            .map_err(PolicySensitivityError::Adequacy)?;
 
         if id.trim().is_empty()
             || family_id.trim().is_empty()
@@ -134,9 +138,11 @@ impl ModelWorld {
         if registry.statistics.iter().any(|spec| {
             spec.role == assessment.role && spec.independent_unit != manifest.independent_unit
         }) {
-            return Err(PolicySensitivityError::Adequacy(AdequacyError::UnitKindMismatch {
-                statistic_id: "registered-independent-unit".to_string(),
-            }));
+            return Err(PolicySensitivityError::Adequacy(
+                AdequacyError::UnitKindMismatch {
+                    statistic_id: "registered-independent-unit".to_string(),
+                },
+            ));
         }
         let required_specs: Vec<_> = registry
             .statistics
@@ -158,14 +164,18 @@ impl ModelWorld {
                 || spec.source_family != row.source_family
                 || spec.measurement_unit != row.measurement_unit
                 || spec.independent_unit != manifest.independent_unit
-                || !expected_units.iter().any(|unit| unit == &row.independent_unit_id)
+                || !expected_units
+                    .iter()
+                    .any(|unit| unit == &row.independent_unit_id)
             {
                 return Err(PolicySensitivityError::AdequacyStatisticIdentityMismatch {
                     statistic_id: row.statistic_id.clone(),
                     unit_id: row.independent_unit_id.clone(),
                 });
             }
-            if !assessment_rows.insert((row.statistic_id.as_str(), row.independent_unit_id.as_str())) {
+            if !assessment_rows
+                .insert((row.statistic_id.as_str(), row.independent_unit_id.as_str()))
+            {
                 return Err(PolicySensitivityError::AdequacyStatisticIdentityMismatch {
                     statistic_id: row.statistic_id.clone(),
                     unit_id: row.independent_unit_id.clone(),
@@ -196,7 +206,11 @@ impl ModelWorld {
                         unit_id: unit_id.clone(),
                     });
                 }
-                if row.model_digest.as_deref().is_some_and(|digest| digest != model_digest) {
+                if row
+                    .model_digest
+                    .as_deref()
+                    .is_some_and(|digest| digest != model_digest)
+                {
                     return Err(PolicySensitivityError::AdequacyModelIdentityMismatch {
                         model_id: id.clone(),
                     });
@@ -216,7 +230,11 @@ impl ModelWorld {
         // identity must still refer to this exact model.
         let mut has_model_identity = false;
         for row in &assessment.statistics {
-            if row.model_digest.as_deref().is_some_and(|digest| digest != model_digest) {
+            if row
+                .model_digest
+                .as_deref()
+                .is_some_and(|digest| digest != model_digest)
+            {
                 return Err(PolicySensitivityError::AdequacyModelIdentityMismatch {
                     model_id: id.clone(),
                 });
@@ -470,30 +488,55 @@ pub enum PolicySensitivityError {
     AdequacyManifestIdentityMismatch,
     AdequacyCalibrationRoleNotAllowed,
     AdequacySplitPredictiveCheckRequired,
-    AdequacyStatisticIdentityMismatch { statistic_id: String, unit_id: String },
+    AdequacyStatisticIdentityMismatch {
+        statistic_id: String,
+        unit_id: String,
+    },
     AdequacyReceiptHasNoModelIdentity,
     AdequacyEvidenceCompletenessMismatch,
     AdequacyStatusMismatch,
-    InvalidMetric { metric_id: String },
-    DuplicateIdentity { kind: &'static str, id: String },
-    DuplicateModelDigest { digest: String },
-    AdequacyModelIdentityMismatch { model_id: String },
-    UnknownModel { model_id: String },
-    UnknownPolicy { policy_id: String },
-    UnknownMetric { metric_id: String },
+    InvalidMetric {
+        metric_id: String,
+    },
+    DuplicateIdentity {
+        kind: &'static str,
+        id: String,
+    },
+    DuplicateModelDigest {
+        digest: String,
+    },
+    AdequacyModelIdentityMismatch {
+        model_id: String,
+    },
+    UnknownModel {
+        model_id: String,
+    },
+    UnknownPolicy {
+        policy_id: String,
+    },
+    UnknownMetric {
+        metric_id: String,
+    },
     DuplicateOutcome {
         model_id: String,
         policy_id: String,
         metric_id: String,
     },
-    IncompleteOutcomeMatrix { expected: usize, actual: usize },
+    IncompleteOutcomeMatrix {
+        expected: usize,
+        actual: usize,
+    },
     InvalidOutcome {
         model_id: String,
         policy_id: String,
         metric_id: String,
     },
-    MetricUnitMismatch { metric_id: String },
-    InvalidConstraint { metric_id: String },
+    MetricUnitMismatch {
+        metric_id: String,
+    },
+    InvalidConstraint {
+        metric_id: String,
+    },
     NoObjectiveMetrics,
 }
 
@@ -664,15 +707,17 @@ pub fn evaluate_policy_sensitivity(
         for policy in policies {
             let mut violated_constraints = Vec::new();
             for metric in &constraint_metrics {
-                let value = values[&(
-                    model.id.clone(),
-                    policy.id.clone(),
-                    metric.id.clone(),
-                )];
+                let value = values[&(model.id.clone(), policy.id.clone(), metric.id.clone())];
                 let satisfied = match metric.kind {
-                    MetricKind::Constraint { relation: ConstraintRelation::AtLeast(limit) } => value >= limit,
-                    MetricKind::Constraint { relation: ConstraintRelation::AtMost(limit) } => value <= limit,
-                    MetricKind::Objective { .. } => unreachable!("constraint metric partitioned above"),
+                    MetricKind::Constraint {
+                        relation: ConstraintRelation::AtLeast(limit),
+                    } => value >= limit,
+                    MetricKind::Constraint {
+                        relation: ConstraintRelation::AtMost(limit),
+                    } => value <= limit,
+                    MetricKind::Objective { .. } => {
+                        unreachable!("constraint metric partitioned above")
+                    }
                 };
                 if !satisfied {
                     violated_constraints.push(metric.id.clone());
@@ -709,9 +754,7 @@ pub fn evaluate_policy_sensitivity(
         for model in models {
             let feasible_policies: Vec<&PolicySpec> = policies
                 .iter()
-                .filter(|policy| {
-                    feasibility_lookup[&(model.id.clone(), policy.id.clone())]
-                })
+                .filter(|policy| feasibility_lookup[&(model.id.clone(), policy.id.clone())])
                 .collect();
 
             if feasible_policies.is_empty() {
@@ -721,11 +764,7 @@ pub fn evaluate_policy_sensitivity(
 
             let best_value = feasible_policies
                 .iter()
-                .map(|policy| values[&(
-                    model.id.clone(),
-                    policy.id.clone(),
-                    metric.id.clone(),
-                )])
+                .map(|policy| values[&(model.id.clone(), policy.id.clone(), metric.id.clone())])
                 .reduce(|best, candidate| match direction {
                     ObjectiveDirection::Maximize => best.max(candidate),
                     ObjectiveDirection::Minimize => best.min(candidate),
@@ -738,11 +777,7 @@ pub fn evaluate_policy_sensitivity(
                 .map(|policy| {
                     (
                         *policy,
-                        values[&(
-                            model.id.clone(),
-                            policy.id.clone(),
-                            metric.id.clone(),
-                        )],
+                        values[&(model.id.clone(), policy.id.clone(), metric.id.clone())],
                     )
                 })
                 .collect();
@@ -757,10 +792,7 @@ pub fn evaluate_policy_sensitivity(
                 if previous_value.is_some_and(|previous| previous.total_cmp(value).is_ne()) {
                     rank = index + 1;
                 }
-                ranks_by_model.insert(
-                    (model.id.clone(), policy.id.clone()),
-                    rank,
-                );
+                ranks_by_model.insert((model.id.clone(), policy.id.clone()), rank);
                 if value.total_cmp(&best_value).is_eq() {
                     winners_by_model
                         .entry(model.id.clone())
@@ -774,9 +806,7 @@ pub fn evaluate_policy_sensitivity(
         for policy in policies {
             let feasible_model_count = models
                 .iter()
-                .filter(|model| {
-                    feasibility_lookup[&(model.id.clone(), policy.id.clone())]
-                })
+                .filter(|model| feasibility_lookup[&(model.id.clone(), policy.id.clone())])
                 .count();
             let feasibility = if feasible_model_count == models.len() {
                 PolicyFeasibility::RobustlyFeasible
@@ -805,11 +835,8 @@ pub fn evaluate_policy_sensitivity(
                         .map(|model| {
                             let best = best_value_by_model[&model.id]
                                 .expect("checked complete feasible comparator");
-                            let actual = values[&(
-                                model.id.clone(),
-                                policy.id.clone(),
-                                metric.id.clone(),
-                            )];
+                            let actual =
+                                values[&(model.id.clone(), policy.id.clone(), metric.id.clone())];
                             match direction {
                                 ObjectiveDirection::Maximize => best - actual,
                                 ObjectiveDirection::Minimize => actual - best,
@@ -859,21 +886,16 @@ pub fn evaluate_policy_sensitivity(
                 let mut tied = 0;
 
                 for model in models {
-                    let both_feasible = feasibility_lookup[&(model.id.clone(), policy_a.id.clone())]
+                    let both_feasible = feasibility_lookup
+                        [&(model.id.clone(), policy_a.id.clone())]
                         && feasibility_lookup[&(model.id.clone(), policy_b.id.clone())];
                     if !both_feasible {
                         continue;
                     }
-                    let a_value = values[&(
-                        model.id.clone(),
-                        policy_a.id.clone(),
-                        metric.id.clone(),
-                    )];
-                    let b_value = values[&(
-                        model.id.clone(),
-                        policy_b.id.clone(),
-                        metric.id.clone(),
-                    )];
+                    let a_value =
+                        values[&(model.id.clone(), policy_a.id.clone(), metric.id.clone())];
+                    let b_value =
+                        values[&(model.id.clone(), policy_b.id.clone(), metric.id.clone())];
                     let ordering = match direction {
                         ObjectiveDirection::Maximize => a_value.total_cmp(&b_value),
                         ObjectiveDirection::Minimize => b_value.total_cmp(&a_value),
@@ -902,9 +924,7 @@ pub fn evaluate_policy_sensitivity(
 
     let models_with_unqualified_adequacy: Vec<String> = models
         .iter()
-        .filter(|model| {
-            model.adequacy != ModelAdequacyState::NoPrimaryDiscrepancyDetected
-        })
+        .filter(|model| model.adequacy != ModelAdequacyState::NoPrimaryDiscrepancyDetected)
         .map(|model| model.id.clone())
         .collect();
 
@@ -928,8 +948,8 @@ pub fn evaluate_policy_sensitivity(
 mod tests {
     use super::*;
     use crate::model_adequacy::{
-        assess_predictive_partition, IndependentUnitKind, ObservedStatistic, PredictiveDraw,
-        SplitManifest, StatisticRegistry, StatisticSpec,
+        IndependentUnitKind, ObservedStatistic, PredictiveDraw, SplitManifest, StatisticRegistry,
+        StatisticSpec, assess_predictive_partition,
     };
 
     fn model_world(
@@ -1136,13 +1156,7 @@ mod tests {
                     "index_points",
                     ecology,
                 ));
-                outcomes.push(outcome(
-                    model,
-                    policy,
-                    "water-withdrawal",
-                    "m3",
-                    water,
-                ));
+                outcomes.push(outcome(model, policy, "water-withdrawal", "m3", water));
             }
         }
         outcomes
@@ -1249,9 +1263,11 @@ mod tests {
 
     #[test]
     fn policy_world_qualification_is_derived_from_actual_adequacy_results() {
-        assert!(models().iter().all(|model| {
-            model.adequacy == ModelAdequacyState::NoPrimaryDiscrepancyDetected
-        }));
+        assert!(
+            models().iter().all(|model| {
+                model.adequacy == ModelAdequacyState::NoPrimaryDiscrepancyDetected
+            })
+        );
         assert_eq!(
             models_with_discrepancy()[1].adequacy,
             ModelAdequacyState::PrimaryDiscrepancyDetected
@@ -1465,13 +1481,9 @@ mod tests {
         metric_set[2].kind = MetricKind::Constraint {
             relation: ConstraintRelation::AtLeast(10.0),
         };
-        let report = evaluate_policy_sensitivity(
-            &models(),
-            &policies(),
-            &metric_set,
-            &fixture_outcomes(),
-        )
-        .expect("valid lower-bound constraint fixture");
+        let report =
+            evaluate_policy_sensitivity(&models(), &policies(), &metric_set, &fixture_outcomes())
+                .expect("valid lower-bound constraint fixture");
         let baseline = report
             .model_policy_feasibility
             .iter()
@@ -1493,14 +1505,21 @@ mod tests {
     #[test]
     fn detects_when_a_model_has_no_feasible_policy() {
         let mut outcomes = fixture_outcomes();
-        for outcome in outcomes.iter_mut().filter(|row| {
-            row.model_id == "world-b" && row.metric_id == "water-withdrawal"
-        }) {
+        for outcome in outcomes
+            .iter_mut()
+            .filter(|row| row.model_id == "world-b" && row.metric_id == "water-withdrawal")
+        {
             outcome.value = 20.0;
         }
         let report = evaluate(&models(), &outcomes).expect("valid but infeasible portfolio");
         assert!(report.any_model_without_feasible_policy);
-        assert!(report.model_policy_feasibility.iter().filter(|row| row.model_id == "world-b").all(|row| !row.feasible));
+        assert!(
+            report
+                .model_policy_feasibility
+                .iter()
+                .filter(|row| row.model_id == "world-b")
+                .all(|row| !row.feasible)
+        );
         assert_eq!(
             summary(&report, "baseline", "essential-service").worst_case_regret,
             None
@@ -1513,13 +1532,9 @@ mod tests {
         metric_set[0].kind = MetricKind::Objective {
             direction: ObjectiveDirection::Minimize,
         };
-        let report = evaluate_policy_sensitivity(
-            &models(),
-            &policies(),
-            &metric_set,
-            &fixture_outcomes(),
-        )
-        .expect("valid minimization fixture");
+        let report =
+            evaluate_policy_sensitivity(&models(), &policies(), &metric_set, &fixture_outcomes())
+                .expect("valid minimization fixture");
         assert_eq!(
             summary(&report, "conserve", "essential-service").worst_case_regret,
             Some(10.0)
@@ -1567,14 +1582,15 @@ mod tests {
             .into_iter()
             .filter(|row| row.metric_id != "water-withdrawal")
             .collect::<Vec<_>>();
-        let report = evaluate_policy_sensitivity(
-            &models(),
-            &policies(),
-            &metric_set,
-            &selected_outcomes,
-        )
-        .expect("objective-only portfolio with no declared hard constraints");
-        assert!(report.model_policy_feasibility.iter().all(|row| row.feasible));
+        let report =
+            evaluate_policy_sensitivity(&models(), &policies(), &metric_set, &selected_outcomes)
+                .expect("objective-only portfolio with no declared hard constraints");
+        assert!(
+            report
+                .model_policy_feasibility
+                .iter()
+                .all(|row| row.feasible)
+        );
     }
 
     #[test]
