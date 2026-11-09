@@ -7,7 +7,7 @@ use civdyn_self_correction::model_adequacy::{
 };
 use civdyn_self_correction::split_predictive::{
     divided_split_predictive_check, single_split_predictive_check, DividedSpcResult,
-    SingleSpcResult, SpcTail,
+    SingleSpcRequest, SingleSpcResult, SpcTail,
 };
 
 const CSV_COLUMNS: usize = 23;
@@ -168,11 +168,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             &manifest,
             &observations,
             &draws,
-            SplitRole::Validation,
-            "basin-water-flow",
-            unit_id,
-            SpcTail::Lower,
-            0x4356_4459_4e53_5043,
+            SingleSpcRequest {
+                role: SplitRole::Validation,
+                statistic_id: "basin-water-flow",
+                independent_unit_id: unit_id,
+                tail: SpcTail::Lower,
+                seed: 0x4356_4459_4e53_5043,
+            },
         )?;
         checks.push(check);
     }
