@@ -455,14 +455,6 @@ fn validate_and_compute(problem: &ViableVoiProblem) -> Result<ViableVoiReport, V
     if problem.probe.receipt.subject_id != problem.probe.probe_action_id {
         return Err(ViableVoiError::ProbeSubjectMismatch);
     }
-    validate_receipt(
-        &problem.passive_receipt,
-        problem,
-        "passive-baseline",
-        problem.probe.receipt.horizon_steps,
-    )
-    .map_err(|_| ViableVoiError::ContinuationContextMismatch)?;
-
     match &problem.probe.status {
         ProbeGateStatus::Rejected { witness_id } => {
             if !nonempty(witness_id) {
@@ -511,6 +503,14 @@ fn validate_and_compute(problem: &ViableVoiProblem) -> Result<ViableVoiReport, V
             outcome_decisions: Vec::new(),
         });
     }
+
+    validate_receipt(
+        &problem.passive_receipt,
+        problem,
+        "passive-baseline",
+        problem.probe.receipt.horizon_steps,
+    )
+    .map_err(|_| ViableVoiError::ContinuationContextMismatch)?;
 
     if problem.hypotheses.is_empty() {
         return Err(ViableVoiError::NoHypotheses);
@@ -1158,6 +1158,42 @@ mod tests {
         permuted.continuation_loss_cells.reverse();
         let reordered = evaluate_viable_voi(&permuted).expect("permuted result");
         assert_eq!(original, reordered);
+    }
+
+    #[test]
+    fn probe_receipt_branch_inventory_must_match_input_branch_set() {
+        let mut problem = safe_problem();
+        problem.probe.branch_ids.pop();
+        assert_eq!(
+            evaluate_viable_voi(&problem),
+            Err(ViableVoiError::BranchSetMismatch)
+        );
+    }
+
+    #[test]
+    fn passive_baseline_receipt_must_be_fresh_and_context_bound() {
+        let mut problem = safe_problem();
+        problem.passive_receipt.valid_until_ns = 499;
+        assert_eq!(
+            evaluate_viable_voi(&problem),
+            Err(ViableVoiError::ContinuationContextMismatch)
+        );
+    }
+
+    #[test]
+    fn loss_rows_for_unadmitted_continuation_actions_are_rejected() {
+        let mut problem = safe_problem();
+        problem.continuation_loss_cells.push(DecisionLossCell {
+            action_id: "not-admitted".to_owned(),
+            hypothesis_id: "h-good".to_owned(),
+            branch_id: "b-good".to_owned(),
+            outcome_id: "good-contact".to_owned(),
+            loss_ppb: 0,
+        });
+        assert_eq!(
+            evaluate_viable_voi(&problem),
+            Err(ViableVoiError::LossForUnadmittedAction)
+        );
     }
 
     #[test]
