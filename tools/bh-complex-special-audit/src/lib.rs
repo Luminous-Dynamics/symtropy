@@ -1102,9 +1102,7 @@ mod tests {
         let steps = (((target_x - initial_x).abs() / max_step).ceil() as usize).max(1);
         let step = (target_x - initial_x) / steps as f64;
         let potential = |x: f64| lambda / (width * width) / (x / width).cosh().powi(2);
-        let rhs = |x: f64, y: Complex64, dy: Complex64| {
-            (dy, (potential(x) - omega * omega) * y)
-        };
+        let rhs = |x: f64, y: Complex64, dy: Complex64| (dy, (potential(x) - omega * omega) * y);
 
         for index in 0..steps {
             let x = initial_x + index as f64 * step;
@@ -1119,14 +1117,9 @@ mod tests {
                 value + step * k2_y / 2.0,
                 derivative + step * k2_dy / 2.0,
             );
-            let (k4_y, k4_dy) = rhs(
-                x + step,
-                value + step * k3_y,
-                derivative + step * k3_dy,
-            );
+            let (k4_y, k4_dy) = rhs(x + step, value + step * k3_y, derivative + step * k3_dy);
             value += step * (k1_y + 2.0 * k2_y + 2.0 * k3_y + k4_y) / 6.0;
-            derivative +=
-                step * (k1_dy + 2.0 * k2_dy + 2.0 * k3_dy + k4_dy) / 6.0;
+            derivative += step * (k1_dy + 2.0 * k2_dy + 2.0 * k3_dy + k4_dy) / 6.0;
         }
 
         (value, derivative)
@@ -1795,29 +1788,16 @@ mod tests {
         let source_x = 0.73;
         let expected_left = z(1.077_691_453_714_667_6, 0.475_573_043_669_987_6);
         let expected_right = z(0.843_603_430_198_184_2, 0.826_004_257_644_994_8);
-        let expected_wronskian =
-            z(-0.924_255_829_850_433_7, 1.347_984_031_935_372_3);
+        let expected_wronskian = z(-0.924_255_829_850_433_7, 1.347_984_031_935_372_3);
         let expected_green = z(-0.473_003_612_861_573_6, 0.707_349_028_100_136_9);
 
         let mut previous_left_error = f64::INFINITY;
         let mut previous_right_error = f64::INFINITY;
         for max_step in [0.02, 0.01, 0.005] {
-            let left = integrate_jost_rk4(
-                width,
-                lambda,
-                omega,
-                observer_x,
-                JostSide::Left,
-                max_step,
-            );
-            let right = integrate_jost_rk4(
-                width,
-                lambda,
-                omega,
-                source_x,
-                JostSide::Right,
-                max_step,
-            );
+            let left =
+                integrate_jost_rk4(width, lambda, omega, observer_x, JostSide::Left, max_step);
+            let right =
+                integrate_jost_rk4(width, lambda, omega, source_x, JostSide::Right, max_step);
             let left_at_center =
                 integrate_jost_rk4(width, lambda, omega, 0.0, JostSide::Left, max_step);
             let right_at_center =
