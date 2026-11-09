@@ -10,7 +10,7 @@ use civdyn_self_correction::causal_transport::{
 const SOURCE_DIGEST: &str = "sha256-causal-transport-source-rct";
 const TARGET_DIGEST: &str = "sha256-causal-transport-target-population";
 const PROTOCOL_DIGEST: &str = "sha256-causal-transport-protocol-v0.1";
-const CSV_COLUMNS: usize = 29;
+const CSV_COLUMNS: usize = 33;
 
 fn csv_field(value: &str) -> String {
     if value.contains([',', '"', '\n', '\r']) {
@@ -127,6 +127,10 @@ fn emit_result(
             format_optional(result.target_ate_upper),
             format!("{:.8}", result.supported_target_mass),
             format!("{:.8}", result.unsupported_target_mass),
+            result.source_population_total.to_string(),
+            result.target_population_total.to_string(),
+            result.supported_target_population_count.to_string(),
+            result.unsupported_target_population_count.to_string(),
             result.identification_status.name().to_string(),
             result.identification_reason.name().to_string(),
             result
@@ -158,7 +162,7 @@ fn emit_result(
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!(
-        "scenario,modifier_id,source_population_count,target_population_count,source_control_n,source_control_events,source_treatment_n,source_treatment_events,control_risk,treatment_risk,conditional_risk_difference,target_population_share,source_support,source_ate,target_ate_point,target_ate_lower,target_ate_upper,supported_target_mass,unsupported_target_mass,identification_status,identification_reason,source_internal_validity,selection_exchangeability,no_interference,treatment_version_invariance,source_data_digest,target_population_digest,protocol_digest,estimand"
+        "scenario,modifier_id,source_population_count,target_population_count,source_control_n,source_control_events,source_treatment_n,source_treatment_events,control_risk,treatment_risk,conditional_risk_difference,target_population_share,source_support,source_ate,target_ate_point,target_ate_lower,target_ate_upper,supported_target_mass,unsupported_target_mass,source_population_total,target_population_total,supported_target_population_count,unsupported_target_population_count,identification_status,identification_reason,source_internal_validity,selection_exchangeability,no_interference,treatment_version_invariance,source_data_digest,target_population_digest,protocol_digest,estimand"
     );
 
     let identified = assess_risk_difference_transport(&input(vec![
