@@ -124,6 +124,7 @@ fn fixture() -> (ModelSetManifest, Vec<ModelPolicyOutcome>) {
                     direction:
                         civdyn_robust_policy::model_set_robustness::ObjectiveDirection::Minimize,
                 },
+                tie_tolerance: 1e-12,
             },
             DecisionMetricSpec {
                 metric_id: "essential-coverage".to_string(),
@@ -132,6 +133,7 @@ fn fixture() -> (ModelSetManifest, Vec<ModelPolicyOutcome>) {
                     comparison: ConstraintComparison::AtLeast,
                     threshold: 0.95,
                 },
+                tie_tolerance: 0.0,
             },
         ],
     };
