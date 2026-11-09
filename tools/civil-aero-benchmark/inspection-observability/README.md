@@ -49,7 +49,7 @@ This fixture is constructed solely to test known-answer arithmetic and determini
 
 ## Reproducible toolchain inputs
 
-Direct Rust dependencies are pinned in Cargo.toml and the complete resolved dependency graph is committed in Cargo.lock. CI uses Cargo's --locked mode for tests and execution, so dependency resolution may not silently mutate the lockfile. The lockfile SHA-256 is included in the retained evidence bundle.
+Direct Rust dependencies are pinned in Cargo.toml and the complete resolved dependency graph is committed in Cargo.lock. CI uses Cargo's --locked mode for tests and execution, so dependency resolution may not silently mutate the lockfile. The lockfile SHA-256 is included in the retained evidence bundle. The bundle also records the checked-in Rust toolchain file, rustc/cargo/Python versions, runner OS/architecture/image identifiers and kernel identity, with its own SHA-256 receipt.
 
 ## Deliberate v0.1 boundaries
 
