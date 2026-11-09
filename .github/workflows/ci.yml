@@ -69,8 +69,7 @@ jobs:
         sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/Cargo.lock > virtual-sensing-cargo-lock.sha256
         sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/src/main.rs > virtual-sensing-rust-source.sha256
         sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/verify_independent.py > virtual-sensing-python-source.sha256
-        sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/data/hh-hf-dh-df-v0.1.json
-          tools/civil-aero-benchmark/virtual-sensing-health-state/data/external-benchmark-register-v0.1.json > virtual-sensing-source.sha256
+        sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/data/hh-hf-dh-df-v0.1.json > virtual-sensing-source.sha256
           sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/data/external-benchmark-register-v0.1.json > virtual-sensing-external-register.sha256
         sha256sum virtual-sensing-health-state-result.json > virtual-sensing-result.sha256
         sha256sum virtual-sensing-exact-head-manifest.txt > virtual-sensing-manifest.sha256
@@ -88,6 +87,7 @@ jobs:
           tools/civil-aero-benchmark/virtual-sensing-health-state/src/main.rs
           tools/civil-aero-benchmark/virtual-sensing-health-state/verify_independent.py
           tools/civil-aero-benchmark/virtual-sensing-health-state/data/hh-hf-dh-df-v0.1.json
+          tools/civil-aero-benchmark/virtual-sensing-health-state/data/external-benchmark-register-v0.1.json
           virtual-sensing-health-state-result.json
           virtual-sensing-exact-head-manifest.txt
           virtual-sensing-toolchain.sha256
