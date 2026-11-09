@@ -256,6 +256,34 @@ fn validate(fixture: &Fixture) -> Result<(), String> {
     {
         return fail("bootstrap index matrix must be B×N with indices in 0..N");
     }
+    if protocol.metric_definitions.mpc
+        != "mean bootstrapped RMSE over failure_mode x channel x severity"
+        || protocol.metric_definitions.rpc
+            != "mPC / clean_RMSE; 1 means no average degradation"
+        || protocol.metric_definitions.s_cross
+            != "minimum severity where any failure/channel bootstrapped RMSE >= naive mean predictor RMSE; null if no crossing"
+        || protocol.metric_definitions.npc != "mPC / naive_RMSE"
+    {
+        return fail("MuViS-C metric definitions were changed");
+    }
+
+    // Freeze target provenance rather than treating the scalar reference as opaque.
+    for sample in 0..n {
+        let means: Vec<f64> = (0..c)
+            .map(|channel| {
+                fixture.windows[sample]
+                    .iter()
+                    .map(|step| step[channel])
+                    .sum::<f64>()
+                    / t as f64
+            })
+            .collect();
+        let expected_target = 0.50 * means[0] - 0.27 * means[1]
+            + 0.16 * means[2] + fixture.target_noise[sample];
+        if (fixture.target[sample] - expected_target).abs() > 1.0e-10 {
+            return fail("target vector does not match the frozen synthetic target equation");
+        }
+    }
     Ok(())
 }
 
