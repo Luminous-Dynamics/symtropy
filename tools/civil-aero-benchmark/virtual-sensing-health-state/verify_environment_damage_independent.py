@@ -500,6 +500,18 @@ def hostile_controls(data: dict[str, Any]) -> None:
     require(result["disposition"] == "ABSTAIN_UNQUALIFIED_ENVIRONMENTAL_WITNESS",
             "invalid environmental evidence digest was accepted")
 
+    bad_topology_digest = copy.deepcopy(damaged)
+    bad_topology_digest["environmental_witnesses"][0]["probes"][0]["topology_evidence_sha256"] = "bad"
+    result = evaluate_case(data, bad_topology_digest)
+    require(result["disposition"] == "ABSTAIN_UNQUALIFIED_ENVIRONMENTAL_WITNESS",
+            "invalid topology evidence digest was accepted")
+
+    incomplete_domains = copy.deepcopy(damaged)
+    incomplete_domains["environmental_witnesses"][0]["probes"][0]["fault_domains"].pop()
+    result = evaluate_case(data, incomplete_domains)
+    require(result["disposition"] == "ABSTAIN_UNQUALIFIED_ENVIRONMENTAL_WITNESS",
+            "incomplete fault-domain manifest was accepted")
+
     shared = next(case for case in data["cases"]
                   if case["case_id"] == "DUPLICATE_COMMON_CAUSE_ENVIRONMENTAL_WITNESSES")
     result = evaluate_case(data, shared)
@@ -507,9 +519,11 @@ def hostile_controls(data: dict[str, Any]) -> None:
             "separate witnesses with a shared common-cause group were accepted")
 
     print("negative_control=pass case=damage_environment_ambiguity")
-    print("negative_control=pass case=shared_common_cause_environmental_probe")
+    print("negative_control=pass case=shared_structural_daq_failure_domain")
+    print("negative_control=pass case=independent_witness_shared_clock_failure_domain")
     print("negative_control=pass case=expired_calibration")
-    print("negative_control=pass case=invalid_witness_digest")
+    print("negative_control=pass case=invalid_measurement_and_topology_digests")
+    print("negative_control=pass case=incomplete_fault_domain_manifest")
 
 
 def main() -> int:
