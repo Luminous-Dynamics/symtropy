@@ -2965,5 +2965,20 @@
       0.5006490024003252,
       0.19838018115655476
     ]
+  },
+  "expected_metrics": {
+    "clean_rmse": 0.09313337917881975,
+    "naive_rmse": 0.31985490634283725,
+    "mpc": 0.20028734562031947,
+    "rpc": 2.1505430962164476,
+    "npc": 0.6261818769965686,
+    "s_cross": 0.05,
+    "grid_result_count": 600,
+    "worst_case": {
+      "failure_mode": "hard_fault",
+      "channel_id": "wing_root_strain_proxy",
+      "severity": 1,
+      "rmse": 1.3473686486287964
+    }
   }
 }
