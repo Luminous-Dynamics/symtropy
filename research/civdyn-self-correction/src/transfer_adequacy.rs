@@ -47,6 +47,8 @@ impl TransferAxis {
 #[derive(Debug, Clone, PartialEq)]
 pub struct TransferDomainEvidence {
     pub domain_id: String,
+    /// Expected, frozen model identity even when a domain has no usable draws.
+    pub model_digest: String,
     pub axis: TransferAxis,
     pub registry: StatisticRegistry,
     pub manifest: SplitManifest,
@@ -224,7 +226,7 @@ fn evaluate_domain(
     domain.registry.validate()?;
     domain.manifest.validate()?;
 
-    if domain_id.trim().is_empty() {
+    if domain_id.trim().is_empty() || domain.model_digest.trim().is_empty() {
         return Err(TransferAdequacyError::InvalidDomainId);
     }
     if domain.assessment.role != SplitRole::Validation
@@ -343,22 +345,18 @@ fn evaluate_domain(
         }
     }
 
-    let mut model_digest: Option<&str> = None;
+    let model_digest = domain.model_digest.as_str();
     for row in &domain.assessment.statistics {
-        if let Some(row_digest) = row.model_digest.as_deref() {
-            if model_digest.is_some_and(|existing| existing != row_digest) {
-                return Err(TransferAdequacyError::MixedModelIdentityWithinDomain {
-                    domain_id: domain_id.clone(),
-                });
-            }
-            model_digest = Some(row_digest);
+        if row
+            .model_digest
+            .as_deref()
+            .is_some_and(|row_digest| row_digest != model_digest)
+        {
+            return Err(TransferAdequacyError::MixedModelIdentityWithinDomain {
+                domain_id: domain_id.clone(),
+            });
         }
     }
-    let model_digest = model_digest.ok_or_else(|| {
-        TransferAdequacyError::AssessmentModelIdentityMissing {
-            domain_id: domain_id.clone(),
-        }
-    })?;
 
     let required_specs: Vec<_> = domain.registry.statistics.iter()
         .filter(|spec| spec.role == domain.assessment.role && spec.required)
@@ -391,6 +389,29 @@ fn evaluate_domain(
                 return Err(TransferAdequacyError::MixedModelIdentityWithinDomain {
                     domain_id: domain_id.clone(),
                 });
+            }
+            if row.status != StatisticStatus::NotAssessed {
+                let valid_assessed_row = row.model_digest.as_deref() == Some(model_digest)
+                    && row.draw_set_digest.as_deref().is_some_and(|digest| !digest.trim().is_empty())
+                    && row.observation_digest.as_deref().is_some_and(|digest| !digest.trim().is_empty())
+                    && row.sample_size > 0
+                    && row.observed_value.is_some_and(f64::is_finite)
+                    && row.lower_reference.is_some_and(f64::is_finite)
+                    && row.upper_reference.is_some_and(f64::is_finite)
+                    && row.lower_reference <= row.upper_reference
+                    && row.predictive_rank.is_some_and(|rank| {
+                        rank.is_finite() && (0.0..=1.0).contains(&rank)
+                    })
+                    && row.draw_count >= spec.minimum_draws
+                    && row.measurement_standard_error.is_none_or(|value| {
+                        value.is_finite() && value >= 0.0
+                    });
+                if !valid_assessed_row {
+                    return Err(TransferAdequacyError::AssessmentStatisticIdentityMismatch {
+                        domain_id: domain_id.clone(),
+                        statistic_id: spec.id.clone(),
+                    });
+                }
             }
             match row.status {
                 StatisticStatus::WithinReferenceInterval => {
@@ -479,7 +500,7 @@ fn evaluate_domain(
             status: derived_status,
             statistics: statistic_results,
         },
-        model_digest.to_string(),
+        domain.model_digest.clone(),
     ))
 }
 
@@ -564,14 +585,17 @@ pub fn assess_zero_shot_transfer(
     }
 
     let has_required_not_assessed = results.iter().any(|domain| {
-        domain.status == DomainStatus::NotAssessed
-            || !domain.required_evidence_complete
+        domain.status == DomainStatus::NotAssessed || !domain.required_evidence_complete
+    });
+    let source_domain_not_qualified = results.iter().any(|domain| {
+        domain.role == SplitRole::Validation
+            && domain.status != DomainStatus::NoPrimaryDiscrepancyDetected
     });
     let has_challenge_discrepancy = results.iter().any(|domain| {
         domain.role == SplitRole::Challenge
             && domain.status == DomainStatus::PrimaryDiscrepancyDetected
     });
-    let claim_ceiling = if has_required_not_assessed {
+    let claim_ceiling = if has_required_not_assessed || source_domain_not_qualified {
         TransferClaimCeiling::NotAssessed
     } else if has_challenge_discrepancy {
         TransferClaimCeiling::TransferDiscrepancyDetected
@@ -704,6 +728,7 @@ mod tests {
         .expect("synthetic transfer domain assessment");
         TransferDomainEvidence {
             domain_id: domain_id.to_string(),
+            model_digest: model_digest.to_string(),
             axis,
             registry,
             manifest: assessment_manifest,
