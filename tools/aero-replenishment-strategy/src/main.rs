@@ -921,7 +921,7 @@ mod tests {
     fn unavailable_modes_never_appear_in_a_selected_path() {
         let unavailable_edge = FIXTURE
             .lines()
-            .nth(2)
+            .nth(3)
             .expect("conductive replenishment edge")
             .replace("conductive_contact", "unavailable_contact")
             .replace("\ttrue", "\tfalse");
