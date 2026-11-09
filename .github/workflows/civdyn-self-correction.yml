@@ -277,3 +277,48 @@ jobs:
           assert math.isclose(float(negative["predictive_pair_distance"]), 1.0, abs_tol=1e-12)
           print("Joint-adequacy CSV valid: identical marginals, opposite coupling, distinct energy and variogram scores, exact source/model/split lineage.")
           PY
+
+
+      - name: Verify same-marginal joint and trajectory adequacy controls
+        run: |
+          set -euo pipefail
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin joint-adequacy-sweep > /tmp/civdyn-joint-adequacy.csv
+          python3 - <<'PY'
+          import csv
+          import math
+          from pathlib import Path
+
+          path = Path("/tmp/civdyn-joint-adequacy.csv")
+          with path.open(newline="", encoding="utf-8") as handle:
+              reader = csv.DictReader(handle)
+              rows = list(reader)
+              fields = reader.fieldnames
+
+          assert fields is not None and len(fields) == 23, f"expected 23 columns, got {len(fields or [])}"
+          assert len(rows) == 2, f"expected two joint candidates, got {len(rows)}"
+          candidates = {row["candidate"]: row for row in rows}
+          positive = candidates["positive-dependence"]
+          negative = candidates["negative-dependence"]
+
+          assert positive["statistic_id"] == negative["statistic_id"] == "district-water-energy-state"
+          assert positive["unit_id"] == negative["unit_id"] == "district-held-out"
+          assert positive["sample_size"] == negative["sample_size"] == "10"
+          assert positive["predictive_draws"] == negative["predictive_draws"] == "2"
+          assert positive["component_a"] == negative["component_a"] == "water-service"
+          assert positive["component_b"] == negative["component_b"] == "energy-service"
+          assert positive["source_digest"] == negative["source_digest"]
+          assert positive["observation_digest"] == negative["observation_digest"]
+          assert positive["calibration_digest"] == negative["calibration_digest"]
+          assert positive["split_manifest_digest"] == negative["split_manifest_digest"]
+          assert positive["model_digest"] != negative["model_digest"]
+          assert positive["draw_set_digest"] != negative["draw_set_digest"]
+
+          assert math.isclose(float(positive["energy_score"]), 0.3535533905932738, rel_tol=1e-10, abs_tol=1e-10)
+          assert math.isclose(float(negative["energy_score"]), 0.6464466094067263, rel_tol=1e-10, abs_tol=1e-10)
+          assert math.isclose(float(positive["variogram_score"]), 0.0, abs_tol=1e-12)
+          assert math.isclose(float(negative["variogram_score"]), 1.0, abs_tol=1e-12)
+          assert math.isclose(float(positive["observed_pair_distance"]), 0.0, abs_tol=1e-12)
+          assert math.isclose(float(positive["predictive_pair_distance"]), 0.0, abs_tol=1e-12)
+          assert math.isclose(float(negative["predictive_pair_distance"]), 1.0, abs_tol=1e-12)
+          print("Joint-adequacy CSV valid: identical marginals, opposite coupling, distinct energy and variogram scores, exact source/model/split lineage.")
+          PY
