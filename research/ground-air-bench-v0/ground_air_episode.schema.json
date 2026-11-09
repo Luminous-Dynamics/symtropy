@@ -89,7 +89,8 @@
           "MECHANICAL_CAPTURE",
           "REPLENISHMENT_STRATEGY",
           "POSE_CALIBRATION",
-          "ASSET_LIFECYCLE"
+          "ASSET_LIFECYCLE",
+          "INTEROPERABILITY"
         ]
       }
     },
@@ -250,7 +251,8 @@
             "CAPTURE_OBSERVABILITY_COMPOSITION",
             "REPLENISHMENT_STRATEGY",
             "POSE_CALIBRATION",
-            "ASSET_LIFECYCLE"
+            "ASSET_LIFECYCLE",
+            "CAPABILITY_PROFILE"
           ]
         },
         "artifact_path": {
@@ -424,7 +426,8 @@
         "CAPTURE_OBSERVABILITY_COMPOSITION",
         "REPLENISHMENT_STRATEGY",
         "POSE_CALIBRATION",
-        "ASSET_LIFECYCLE"
+        "ASSET_LIFECYCLE",
+        "CAPABILITY_PROFILE"
       ]
     },
     "receiver": {
@@ -536,7 +539,8 @@
             "LEARNABLE_CONFORMAL_PREDICTION",
             "CAPTURE_AWARE_CONFORMAL",
             "POLYTOPIC_SET_MEMBERSHIP",
-            "CONFORMAL_POLICY_CONTROL"
+            "CONFORMAL_POLICY_CONTROL",
+            "CAPABILITY_PROFILE_MATCHER"
           ]
         },
         "artifact_sha256": {
