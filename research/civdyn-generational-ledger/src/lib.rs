@@ -102,15 +102,6 @@ impl ResourceAmounts {
         }
     }
 
-    fn from_vector(vector: ResourceVector) -> Self {
-        Self::new(vector.water_m3, vector.energy_kwh, vector.food_kg)
-    }
-
-    fn is_close(self, other: Self) -> bool {
-        RESOURCES
-            .into_iter()
-            .all(|resource| close(self.get(resource), other.get(resource)))
-    }
 }
 
 fn close(left: f64, right: f64) -> bool {
