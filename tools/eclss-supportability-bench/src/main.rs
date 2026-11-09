@@ -1,11 +1,15 @@
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::process::ExitCode;
 
-const SYNTHETIC: &str = include_str!("../../../docs/research/eclss/fixtures/eclss-supportability-synthetic-registry-v0_1.json");
-const ISS_REFERENCE: &str =
-    include_str!("../../../docs/research/eclss/fixtures/eclss-iss-public-reference-records-v0_1.json");
-const ISS_OPERATIONAL: &str =
-    include_str!("../../../docs/research/eclss/fixtures/eclss-2026-iss-operational-cases-v0_1.json");
+const SYNTHETIC: &str = include_str!(
+    "../../../docs/research/eclss/fixtures/eclss-supportability-synthetic-registry-v0_1.json"
+);
+const ISS_REFERENCE: &str = include_str!(
+    "../../../docs/research/eclss/fixtures/eclss-iss-public-reference-records-v0_1.json"
+);
+const ISS_OPERATIONAL: &str = include_str!(
+    "../../../docs/research/eclss/fixtures/eclss-2026-iss-operational-cases-v0_1.json"
+);
 const AOGA_SCHEDULE: &str =
     include_str!("../../../docs/research/eclss/fixtures/eclss-aoga-schedule-snapshots-v0_1.json");
 
@@ -98,11 +102,7 @@ fn validate_synthetic(value: &Value) -> Check<Value> {
         "ECLSS-SUPPORTABILITY-001",
         at,
     )?;
-    require_eq(
-        text(field(value, "version", at)?, "version")?,
-        "0.1.0",
-        at,
-    )?;
+    require_eq(text(field(value, "version", at)?, "version")?, "0.1.0", at)?;
     require_eq(
         text(field(value, "claim_status", at)?, "claim_status")?,
         "SYNTHETIC_ONLY",
@@ -110,7 +110,9 @@ fn validate_synthetic(value: &Value) -> Check<Value> {
     )?;
     let basis = text(field(value, "unit_basis", at)?, "unit_basis")?;
     if !basis.contains("abstract synthetic") {
-        return Err(format!("{at}: unit basis must identify abstract synthetic units"));
+        return Err(format!(
+            "{at}: unit basis must identify abstract synthetic units"
+        ));
     }
 
     let ledger = field(value, "reference_ledger", at)?;
@@ -135,31 +137,36 @@ fn validate_synthetic(value: &Value) -> Check<Value> {
         "reference_ledger.basis",
     )?;
 
-    let daily_demand =
-        integer(field(ledger, "daily_demand_units", at)?, "daily_demand_units")?;
+    let daily_demand = integer(
+        field(ledger, "daily_demand_units", at)?,
+        "daily_demand_units",
+    )?;
     let horizon = integer(field(ledger, "horizon_days", at)?, "horizon_days")?;
     let inventory = integer(
         field(ledger, "initial_makeup_inventory_units", at)?,
         "initial_makeup_inventory_units",
     )?;
-    let recovery = number(
-        field(ledger, "recovery_fraction", at)?,
-        "recovery_fraction",
-    )?;
+    let recovery = number(field(ledger, "recovery_fraction", at)?, "recovery_fraction")?;
     if daily_demand == 0 || horizon == 0 || !(0.0..=1.0).contains(&recovery) {
-        return Err(format!("{at}: invalid demand, horizon, or recovery fraction"));
+        return Err(format!(
+            "{at}: invalid demand, horizon, or recovery fraction"
+        ));
     }
 
     // Convert the declared decimal recovery ratio to exact integer basis points.
     let recovery_bps = (recovery * 10_000.0).round() as u64;
     if (recovery * 10_000.0 - recovery_bps as f64).abs() > 1e-9 {
-        return Err(format!("{at}: recovery ratio is not representable in basis points"));
+        return Err(format!(
+            "{at}: recovery ratio is not representable in basis points"
+        ));
     }
     let makeup_daily_numerator = daily_demand
         .checked_mul(10_000 - recovery_bps)
         .ok_or_else(|| format!("{at}: overflow computing daily make-up"))?;
     if makeup_daily_numerator % 10_000 != 0 {
-        return Err(format!("{at}: reference arithmetic is not integral in v0.1"));
+        return Err(format!(
+            "{at}: reference arithmetic is not integral in v0.1"
+        ));
     }
     let makeup_daily = makeup_daily_numerator / 10_000;
     let makeup_total = makeup_daily
@@ -417,7 +424,10 @@ fn validate_public_reference(value: &Value) -> Check<Value> {
         .find(|record| record["record_id"] == "ICES2025-127-UPA-DISTILLATION-ASSEMBLY")
         .ok_or_else(|| format!("{at}: missing distillation assembly row"))?;
     require_eq(
-        number(&distillation["operational_mttr_hours"], "operational_mttr_hours")?,
+        number(
+            &distillation["operational_mttr_hours"],
+            "operational_mttr_hours",
+        )?,
         7.0,
         "distillation operational MTTR",
     )?;
@@ -512,7 +522,10 @@ fn validate_operational_cases(value: &Value) -> Check<Value> {
                 return Err(format!("{record_at}.{key}: too short"));
             }
         }
-        let locations = array(field(record, "source_locations", &record_at)?, "source_locations")?;
+        let locations = array(
+            field(record, "source_locations", &record_at)?,
+            "source_locations",
+        )?;
         if locations.is_empty() {
             return Err(format!("{record_at}: source location missing"));
         }
@@ -524,7 +537,11 @@ fn validate_operational_cases(value: &Value) -> Check<Value> {
                 &location_at,
             )?;
             integer(field(location, "pdf_page", &location_at)?, "pdf_page")?;
-            if integer(field(location, "printed_page", &location_at)?, "printed_page")? == 0 {
+            if integer(
+                field(location, "printed_page", &location_at)?,
+                "printed_page",
+            )? == 0
+            {
                 return Err(format!("{location_at}: printed page must be positive"));
             }
             text(field(location, "section", &location_at)?, "section")?;
@@ -534,7 +551,9 @@ fn validate_operational_cases(value: &Value) -> Check<Value> {
         return Err(format!("{at}: finite-spares operational case missing"));
     }
     if !ids.contains("NASA-ICES-2026-FBCO2-SPARE-VALVE-MISMATCH") {
-        return Err(format!("{at}: configuration-mismatch operational case missing"));
+        return Err(format!(
+            "{at}: configuration-mismatch operational case missing"
+        ));
     }
     Ok(json!({
         "operational_records": records.len(),
@@ -615,7 +634,10 @@ fn validate_schedule(value: &Value) -> Check<Value> {
         "aoga_schedule.interpretation",
     )?;
     require_eq(
-        text(field(interpretation, "status", at)?, "interpretation.status")?,
+        text(
+            field(interpretation, "status", at)?,
+            "interpretation.status",
+        )?,
         "UNRESOLVED_SCHEDULE_VARIANCE",
         "interpretation.status",
     )?;
@@ -653,7 +675,10 @@ fn validate_all() -> Check<Value> {
 fn main() -> ExitCode {
     match validate_all() {
         Ok(report) => {
-            println!("{}", serde_json::to_string_pretty(&report).expect("report serializes"));
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&report).expect("report serializes")
+            );
             ExitCode::SUCCESS
         }
         Err(error) => {
@@ -671,9 +696,18 @@ mod tests {
     fn frozen_registries_and_known_answers_validate() {
         let report = validate_all().expect("all frozen benchmark registries must validate");
         assert_eq!(report["result"], "PASS_FIXTURE_STRUCTURE_AND_KNOWN_ANSWER");
-        assert_eq!(report["synthetic"]["reference_ledger"]["total_makeup_units"], 60);
-        assert_eq!(report["synthetic"]["reference_ledger"]["unserved_units"], 20);
-        assert_eq!(report["published_operational_cases"]["operational_records"], 10);
+        assert_eq!(
+            report["synthetic"]["reference_ledger"]["total_makeup_units"],
+            60
+        );
+        assert_eq!(
+            report["synthetic"]["reference_ledger"]["unserved_units"],
+            20
+        );
+        assert_eq!(
+            report["published_operational_cases"]["operational_records"],
+            10
+        );
         assert_eq!(report["programme_schedule"]["schedule_snapshots"], 5);
     }
 
