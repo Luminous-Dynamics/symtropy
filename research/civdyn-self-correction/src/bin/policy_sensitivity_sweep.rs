@@ -7,7 +7,7 @@ use civdyn_self_correction::model_adequacy::{
 };
 use civdyn_self_correction::policy_sensitivity::{
     ConstraintRelation, MetricKind, MetricSpec, ModelWorld, ObjectiveDirection,
-    ObjectivePolicySummary, PairwisePolicyOrdering, PolicyFeasibility, PolicyMetricOutcome,
+    ObjectivePolicySummary, PairwisePolicyOrdering, PolicyMetricOutcome,
     PolicySensitivityReport, PolicySpec, evaluate_policy_sensitivity,
 };
 
