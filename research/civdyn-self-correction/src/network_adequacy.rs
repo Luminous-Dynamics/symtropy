@@ -33,12 +33,14 @@ impl fmt::Display for NetworkAdequacyError {
                 formatter,
                 "node {node} is outside the valid range 0..{node_count}"
             ),
-            Self::DuplicateUndirectedEdge { left, right } => write!(
-                formatter,
-                "duplicate undirected edge ({left}, {right})"
-            ),
+            Self::DuplicateUndirectedEdge { left, right } => {
+                write!(formatter, "duplicate undirected edge ({left}, {right})")
+            },
             Self::NoReachablePairsForPathStatistic => {
-                write!(formatter, "mean finite shortest path is undefined without reachable pairs")
+                write!(
+                    formatter,
+                    "mean finite shortest path is undefined without reachable pairs"
+                )
             }
         }
     }
@@ -139,11 +141,10 @@ impl UndirectedNetwork {
         let (component_sizes, reachable_unordered_pairs, distance_sum) =
             self.component_and_distance_summary();
         let component_count = component_sizes.len();
-        let largest_component_share = component_sizes.iter().copied().max().unwrap_or(0) as f64
-            / self.node_count as f64;
-        let mean_finite_shortest_path = (reachable_unordered_pairs > 0).then(|| {
-            distance_sum as f64 / reachable_unordered_pairs as f64
-        });
+        let largest_component_share =
+            component_sizes.iter().copied().max().unwrap_or(0) as f64 / self.node_count as f64;
+        let mean_finite_shortest_path = (reachable_unordered_pairs > 0)
+            .then(|| distance_sum as f64 / reachable_unordered_pairs as f64);
 
         let connected_triplets: u128 = self
             .adjacency
@@ -267,9 +268,7 @@ impl NetworkSummary {
     /// The ordered vector is a semantic contract shared by observations and
     /// predictive draws. Units and reference scales are declared separately
     /// in JointStatisticSpec.
-    pub fn joint_component_values(
-        &self,
-    ) -> Result<Vec<JointComponentValue>, NetworkAdequacyError> {
+    pub fn joint_component_values(&self) -> Result<Vec<JointComponentValue>, NetworkAdequacyError> {
         let mean_path = self
             .mean_finite_shortest_path
             .ok_or(NetworkAdequacyError::NoReachablePairsForPathStatistic)?;
@@ -317,8 +316,8 @@ impl NetworkSummary {
 mod tests {
     use super::*;
     use crate::joint_adequacy::{
-        assess_joint_predictive_draws, JointComponentSpec, JointMetricConfig,
-        JointObservation, JointPredictiveDraw, JointStatisticSpec,
+        JointComponentSpec, JointMetricConfig, JointObservation, JointPredictiveDraw,
+        JointStatisticSpec, assess_joint_predictive_draws,
     };
     use crate::model_adequacy::{IndependentUnitKind, SplitManifest, SplitRole};
 
@@ -354,35 +353,42 @@ mod tests {
         assert_eq!(cycle.reachable_unordered_pairs, 15);
         assert_eq!(triangles.reachable_unordered_pairs, 6);
         assert!((cycle.mean_finite_shortest_path.expect("C6 has paths") - 1.8).abs() < 1e-12);
-        assert!((triangles.mean_finite_shortest_path.expect("triangles have paths") - 1.0).abs() < 1e-12);
+        assert!(
+            (triangles
+                .mean_finite_shortest_path
+                .expect("triangles have paths")
+                - 1.0)
+                .abs()
+                < 1e-12
+        );
     }
 
     #[test]
     fn edge_order_and_endpoint_orientation_do_not_change_canonical_graph() {
-        let first = UndirectedNetwork::new(
-            6,
-            [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 0)],
-        )
-        .expect("valid graph");
-        let reordered = UndirectedNetwork::new(
-            6,
-            [(5, 4), (3, 2), (1, 0), (0, 5), (4, 3), (2, 1)],
-        )
-        .expect("same undirected edges");
+        let first = UndirectedNetwork::new(6, [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 0)])
+            .expect("valid graph");
+        let reordered = UndirectedNetwork::new(6, [(5, 4), (3, 2), (1, 0), (0, 5), (4, 3), (2, 1)])
+            .expect("same undirected edges");
         assert_eq!(first.canonical_edges(), reordered.canonical_edges());
         assert_eq!(first.summarize(), reordered.summarize());
     }
 
     #[test]
     fn rejects_zero_nodes_self_loops_out_of_range_and_duplicate_edges() {
-        assert_eq!(UndirectedNetwork::new(0, []).unwrap_err(), NetworkAdequacyError::ZeroNodes);
+        assert_eq!(
+            UndirectedNetwork::new(0, []).unwrap_err(),
+            NetworkAdequacyError::ZeroNodes
+        );
         assert_eq!(
             UndirectedNetwork::new(3, [(1, 1)]).unwrap_err(),
             NetworkAdequacyError::SelfLoop { node: 1 }
         );
         assert_eq!(
             UndirectedNetwork::new(3, [(0, 3)]).unwrap_err(),
-            NetworkAdequacyError::NodeOutOfRange { node: 3, node_count: 3 }
+            NetworkAdequacyError::NodeOutOfRange {
+                node: 3,
+                node_count: 3
+            }
         );
         assert_eq!(
             UndirectedNetwork::new(3, [(0, 1), (1, 0)]).unwrap_err(),
@@ -454,7 +460,10 @@ mod tests {
         }
     }
 
-    fn assess_candidate(predicted: &UndirectedNetwork, model_digest: &str) -> crate::joint_adequacy::JointAdequacyResult {
+    fn assess_candidate(
+        predicted: &UndirectedNetwork,
+        model_digest: &str,
+    ) -> crate::joint_adequacy::JointAdequacyResult {
         let schema = joint_schema();
         let manifest = joint_manifest();
         let observation = JointObservation {
