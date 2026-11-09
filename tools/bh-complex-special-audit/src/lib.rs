@@ -1936,10 +1936,8 @@ mod tests {
 
     #[test]
     fn asymptotic_ratio_limits_match_the_published_region_tests() {
-        let late = poschl_teller_mode_sum_asymptotic_ratios(
-            2.0, 0.75, 8.0, 4.0, 2.0, 1.0e-10,
-        )
-        .unwrap();
+        let late =
+            poschl_teller_mode_sum_asymptotic_ratios(2.0, 0.75, 8.0, 4.0, 2.0, 1.0e-10).unwrap();
         assert_eq!(late.region, PoschlTellerModeSumRegion::LateQnm);
         close(
             z(late.qnm_ratio_limit.unwrap(), 0.0),
@@ -1949,10 +1947,8 @@ mod tests {
         assert!(late.matsubara_positive_ratio_limit.is_none());
         assert!(late.matsubara_negative_ratio_limit.is_none());
 
-        let early = poschl_teller_mode_sum_asymptotic_ratios(
-            2.0, 0.75, 4.0, 4.0, 2.0, 1.0e-10,
-        )
-        .unwrap();
+        let early =
+            poschl_teller_mode_sum_asymptotic_ratios(2.0, 0.75, 4.0, 4.0, 2.0, 1.0e-10).unwrap();
         assert_eq!(early.region, PoschlTellerModeSumRegion::EarlyMatsubara);
         close(
             z(early.matsubara_positive_ratio_limit.unwrap(), 0.0),
@@ -1973,16 +1969,13 @@ mod tests {
             (1.0, PoschlTellerModeSumRegion::CausallyZero),
             (6.0, PoschlTellerModeSumRegion::TransitionUnresolved),
         ] {
-            let result = poschl_teller_mode_sum_asymptotic_ratios(
-                2.0, 0.75, time, 4.0, 2.0, 1.0e-8,
-            )
-            .unwrap();
+            let result =
+                poschl_teller_mode_sum_asymptotic_ratios(2.0, 0.75, time, 4.0, 2.0, 1.0e-8)
+                    .unwrap();
             assert_eq!(result.region, expected);
             assert!(result.qnm_ratio_limit.is_none());
             assert!(result.matsubara_positive_ratio_limit.is_none());
             assert!(result.matsubara_negative_ratio_limit.is_none());
         }
     }
-
-
 }
