@@ -96,6 +96,7 @@ pub enum QnmContinuationValidationError {
     SpinSamplesNotStrictlyMonotonic(usize),
     AngularBranchChanged(usize),
     InvalidSpectralIdentity,
+    MultipleExactExtremalEndpoints,
     MissingExactExtremalSample,
     MissingExtremalLimitEvidence,
     InvalidExtremalLimitEvidence,
@@ -154,6 +155,10 @@ impl core::fmt::Display for QnmContinuationValidationError {
                     "Riemann-sheet or continuation-class identity is incomplete"
                 )
             }
+            Self::MultipleExactExtremalEndpoints => write!(
+                f,
+                "one spin-continuation trace may terminate at only one exact extremal endpoint"
+            ),
             Self::MissingExactExtremalSample => {
                 write!(
                     f,
@@ -253,6 +258,13 @@ impl KerrQnmSpinContinuationTrace {
         {
             return Err(QnmContinuationValidationError::InvalidSpectralIdentity);
         }
+        if self
+            .continuation_from_trace_id
+            .as_deref()
+            .is_some_and(|parent| parent.trim().is_empty() || parent == self.trace_id)
+        {
+            return Err(QnmContinuationValidationError::InvalidSpectralIdentity);
+        }
         if self.samples.len() < 2 {
             return Err(QnmContinuationValidationError::EmptySamples);
         }
@@ -270,7 +282,10 @@ impl KerrQnmSpinContinuationTrace {
                 || sample.precision_bits < 53
                 || sample.residuals.angular_ode_relative.is_none()
                 || !sample.residuals.validate()
-                || sample.method_applicability == QnmMethodApplicability::KnownBreakdown
+                || matches!(
+                    sample.method_applicability,
+                    QnmMethodApplicability::KnownBreakdown | QnmMethodApplicability::Unresolved
+                )
             {
                 return Err(QnmContinuationValidationError::InvalidSpinSample(index));
             }
@@ -296,10 +311,15 @@ impl KerrQnmSpinContinuationTrace {
             }
         }
 
-        let has_exact_extremal = self
+        let exact_extremal_count = self
             .samples
             .iter()
-            .any(|sample| sample.spin_over_mass.abs() == 1.0);
+            .filter(|sample| sample.spin_over_mass.abs() == 1.0)
+            .count();
+        let has_exact_extremal = exact_extremal_count == 1;
+        if exact_extremal_count > 1 {
+            return Err(QnmContinuationValidationError::MultipleExactExtremalEndpoints);
+        }
         match self.extremal_damping_behavior {
             QnmExtremalDampingBehavior::FiniteDamping | QnmExtremalDampingBehavior::ZeroDamping => {
                 if !has_exact_extremal {
@@ -774,6 +794,66 @@ mod tests {
         );
         assert!(finite.observed_damping_vs_surface_gravity_exponent.unwrap().abs() < 1.0e-12);
         assert!(finite.producer_label_matches_analysis);
+    }
+
+    #[test]
+    fn damping_analysis_is_invariant_under_fourier_sign_convention() {
+        let original = trace(-2, QnmExtremalDampingBehavior::ZeroDamping);
+        let baseline = analyze_extremal_damping(
+            &original,
+            QnmExtremalDampingAnalysisConfig::default(),
+        )
+        .unwrap();
+
+        let mut reversed_convention = original;
+        reversed_convention.fourier_convention = FourierConvention::EPlusIOmegaT;
+        for sample in &mut reversed_convention.samples {
+            sample.omega_m.im = -sample.omega_m.im;
+        }
+        let transformed = analyze_extremal_damping(
+            &reversed_convention,
+            QnmExtremalDampingAnalysisConfig::default(),
+        )
+        .unwrap();
+
+        assert_eq!(baseline.classification, transformed.classification);
+        assert!(
+            (baseline.observed_damping_vs_surface_gravity_exponent.unwrap()
+                - transformed.observed_damping_vs_surface_gravity_exponent.unwrap())
+            .abs()
+                < 1.0e-12
+        );
+    }
+
+    #[test]
+    fn damping_analysis_abstains_when_surface_gravity_span_is_too_small() {
+        let value = trace(-2, QnmExtremalDampingBehavior::ZeroDamping);
+        let mut config = QnmExtremalDampingAnalysisConfig::default();
+        config.minimum_log_surface_gravity_span = 100.0;
+        let result = analyze_extremal_damping(&value, config).unwrap();
+        assert_eq!(result.classification, QnmExtremalDampingBehavior::Ambiguous);
+        assert!(
+            result.log_surface_gravity_span.unwrap()
+                < config.minimum_log_surface_gravity_span
+        );
+    }
+
+    #[test]
+    fn continuation_trace_rejects_self_parent_and_multiple_extremal_endpoints() {
+        let mut self_parent = trace(2, QnmExtremalDampingBehavior::ZeroDamping);
+        self_parent.continuation_from_trace_id = Some(self_parent.trace_id.clone());
+        assert_eq!(
+            self_parent.validate(),
+            Err(QnmContinuationValidationError::InvalidSpectralIdentity)
+        );
+
+        let mut both_extremal = trace(2, QnmExtremalDampingBehavior::ZeroDamping);
+        both_extremal.samples[0].spin_over_mass = -1.0;
+        both_extremal.samples[1].spin_over_mass = -0.99;
+        assert_eq!(
+            both_extremal.validate(),
+            Err(QnmContinuationValidationError::MultipleExactExtremalEndpoints)
+        );
     }
 
     #[test]
