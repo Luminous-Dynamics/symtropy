@@ -295,7 +295,7 @@ fn enumerate_grid(
     for level in &axes[index].levels {
         current.push(*level);
         enumerate_grid(axes, index + 1, current, output);
-        current.pop();
+        let _ = current.pop();
     }
 }
 
