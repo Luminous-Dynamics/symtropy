@@ -205,3 +205,22 @@ This slice does not yet implement:
 7. Empirical data adapters or independent domain qualification.
 
 Run the model-adequacy-sweep binary using Cargo with the locked manifest at research/civdyn-self-correction/Cargo.toml. The existing CIVDYN workflow also runs this binary after formatting, strict Clippy, compilation and tests. These are engineering checks against frozen synthetic contracts only.
+
+
+### Single split-predictive-check tail diagnostic
+
+The adequacy evaluator now also reports the Monte Carlo estimate of the single-SPC upper-tail probability for split-predictive draws:
+
+`Pr(T_pred >= T_heldout)`
+
+The observed held-out statistic and predictive draws must match the same registered statistic, independent unit and held-out sample size. Split-predictive draws must carry the exact calibration-data digest frozen in the split manifest. Ties are included in the upper tail.
+
+The receipt reports the tail estimate and exceedance numerator; the existing draw count is its denominator. Predictive draw dependence is explicit:
+- independent draws receive a Wilson interval for the Monte Carlo tail estimate;
+- correlated draws retain the tail estimate but receive no binomial Monte Carlo interval;
+- mixing independent and correlated declarations inside one draw set fails closed;
+- prior-predictive reachability results do not receive an SPC tail estimate.
+
+This is the Monte Carlo approximation to the single-SPC tail probability for the supplied split, statistic and predictive draw set. It is **not** a finite-sample exact p-value guarantee. The 2026 JASA single-SPC asymptotic calibration theory applies under its stated assumptions and split/statistic design. CIVDYN v0.1 does not implement divided SPC, does not fit the posterior, and does not prove those assumptions hold for a real empirical CIVDYN dataset. Monte Carlo Wilson bounds quantify only draw-simulation precision under the declared independent-draw contract; they are not adequacy or empirical-coverage intervals.
+
+The frozen six-row reference emits split-SPC tail estimates of 0.5 for household-water mean, 0 for health-income dependence and 0 for the rare service-failure rate. These values are synthetic known-answer outputs chosen to test the tail arithmetic, not evidence of calibration or empirical model performance.
