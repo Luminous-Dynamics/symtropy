@@ -54,7 +54,8 @@
           "enum": [
             "S-102",
             "S-104",
-            "S-111"
+            "S-111",
+            "S-131"
           ]
         },
         "s100_edition": {
@@ -80,6 +81,14 @@
           "minLength": 1
         },
         "native_encoding": {
+          "type": "string",
+          "minLength": 1
+        },
+        "feature_catalogue_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "portrayal_catalogue_revision": {
           "type": "string",
           "minLength": 1
         }
@@ -124,7 +133,8 @@
               "cm/s",
               "kn",
               "knot",
-              "knots"
+              "knots",
+              "count"
             ]
           }
         }
@@ -607,6 +617,75 @@
               "output_vertical_reference": {
                 "type": "null"
               }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "product": {
+            "properties": {
+              "code": {
+                "const": "S-131"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "product": {
+            "required": [
+              "feature_catalogue_revision",
+              "portrayal_catalogue_revision"
+            ],
+            "properties": {
+              "feature_catalogue_revision": {
+                "type": "string",
+                "minLength": 1
+              },
+              "portrayal_catalogue_revision": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "coverage": {
+            "properties": {
+              "measurement_units": {
+                "items": {
+                  "enum": [
+                    "m",
+                    "cm",
+                    "mm",
+                    "ft",
+                    "in",
+                    "count"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "product": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "feature_catalogue_revision"
+                  ]
+                },
+                {
+                  "required": [
+                    "portrayal_catalogue_revision"
+                  ]
+                }
+              ]
             }
           }
         }
