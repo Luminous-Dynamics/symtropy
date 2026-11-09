@@ -1,0 +1,191 @@
+{
+  "schema_version": "loco-action-projection-known-answers-v0.1",
+  "solver_dispositions": [
+    "feasible",
+    "infeasible",
+    "unknown",
+    "deadline_miss",
+    "invalid"
+  ],
+  "required_gate_order": [
+    "proposal_identity",
+    "solver_and_residuals",
+    "complete_hard_constraint_set",
+    "robust_contact_constraint_set",
+    "independent_viability",
+    "application_time_assurance",
+    "execute_exact_projected_digest"
+  ],
+  "fixtures": [
+    {
+      "id": "A-nominal-ok-robust-friction-fails",
+      "proposal_digest": "proposal-1",
+      "projected_digest": "projected-1",
+      "nominal_friction_margin_ppm": 100000,
+      "friction_interval_ppm": [
+        300000,
+        700000
+      ],
+      "minimum_required_margin_ppm": 50000,
+      "solver_status": "feasible",
+      "robust_members": [
+        {
+          "mu_ppm": 300000,
+          "margin_ppm": -10000
+        },
+        {
+          "mu_ppm": 700000,
+          "margin_ppm": 80000
+        }
+      ],
+      "expected": "reject-robust-contact"
+    },
+    {
+      "id": "B-contact-mode-intersection-empty",
+      "proposal_digest": "proposal-2",
+      "projected_digest": "projected-2",
+      "possible_contact_modes": [
+        "full_support",
+        "toe_edge"
+      ],
+      "mode_feasible_actions": {
+        "full_support": [
+          "a1",
+          "a2"
+        ],
+        "toe_edge": [
+          "a3"
+        ]
+      },
+      "expected": {
+        "common_projected_action_set": [],
+        "disposition": "unknown-or-reject"
+      }
+    },
+    {
+      "id": "C-residual-over-tolerance",
+      "solver_status": "feasible",
+      "primal_residual_nano": 1500,
+      "primal_tolerance_nano": 1000,
+      "kkt_residual_nano": 300,
+      "kkt_tolerance_nano": 1000,
+      "expected": "invalid-not-executable"
+    },
+    {
+      "id": "D-hard-actuator-limit",
+      "task_reward_units": 1000000000,
+      "peak_torque_milli_nm": 120000,
+      "torque_limit_milli_nm": 100000,
+      "solver_status": "infeasible",
+      "expected": "reject-hard-constraint"
+    },
+    {
+      "id": "E-no-robust-recovery",
+      "solver_status": "feasible",
+      "projected_digest": "projected-5",
+      "viability_receipt": {
+        "action_digest": "projected-5",
+        "status": "rejected",
+        "witness": "successor-no-recovery"
+      },
+      "expected": "reject-viability"
+    },
+    {
+      "id": "F-projected-digest-mismatch",
+      "solver_status": "feasible",
+      "projected_digest": "projected-6a",
+      "viability_receipt": {
+        "action_digest": "projected-6b",
+        "status": "admitted"
+      },
+      "expected": "invalid-identity"
+    },
+    {
+      "id": "G-deadline-miss",
+      "solver_status": "deadline_miss",
+      "deadline_ns": 100,
+      "solver_completed_ns": 101,
+      "fallback": {
+        "action_digest": "fallback-1",
+        "independently_admitted": true
+      },
+      "expected": "execute-only-fallback"
+    },
+    {
+      "id": "H-stale-assurance",
+      "solver_status": "feasible",
+      "application_time_ns": 1000,
+      "assurance_receipt": {
+        "valid_until_ns": 999,
+        "state_digest": "state-1",
+        "action_digest": "projected-8"
+      },
+      "expected": "unknown-no-execute"
+    },
+    {
+      "id": "I-contact-evidence-stale",
+      "contact_evidence": {
+        "acquired_ns": 100,
+        "now_ns": 300,
+        "max_age_ns": 100,
+        "duplicate": true
+      },
+      "expected": "reject-contact-evidence"
+    },
+    {
+      "id": "J-actuator-delivery-mismatch",
+      "command_torque_milli_nm": 40000,
+      "delivered_torque_milli_nm": 20000,
+      "allowed_tracking_error_milli_nm": 5000,
+      "expected": "invalidate-next-cycle-assurance"
+    },
+    {
+      "id": "K-incomplete-contact-mode-inventory",
+      "declared_modes": [
+        "full_support",
+        "toe_edge"
+      ],
+      "projected_constraint_modes": [
+        "full_support"
+      ],
+      "solver_status": "feasible",
+      "expected": "unknown-incomplete-mode-enumeration"
+    },
+    {
+      "id": "L-model-digest-mismatch",
+      "proposal_model_digest": "model-a",
+      "projection_model_digest": "model-b",
+      "expected": "invalid-identity"
+    },
+    {
+      "id": "M-order-permutation",
+      "axes": [
+        "x",
+        "y"
+      ],
+      "contacts": [
+        "left",
+        "right"
+      ],
+      "permuted_axes": [
+        "y",
+        "x"
+      ],
+      "permuted_contacts": [
+        "right",
+        "left"
+      ],
+      "expected": "same-canonical-result"
+    },
+    {
+      "id": "N-unknown-needs-admitted-fallback",
+      "solver_status": "unknown",
+      "partial_command_digest": "partial-14",
+      "fallback": {
+        "action_digest": "fallback-14",
+        "independently_admitted": false
+      },
+      "expected": "no-command-executed"
+    }
+  ]
+}
