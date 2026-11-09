@@ -28,9 +28,36 @@ Primary source: https://www.nasa.gov/spacecraft-oxygen-recovery-scor/
 
 ### 2.3 Reliability and supportability
 
-The 2025 ICES paper *Advancing ECLSS Reliability Modeling* states that the last release of ECLSS reliability data was in 2004 and that this leaves a gap for modern systems. The paper describes incorporating recent ISS component replacement rates, shelf life and throughput limits into reliability/sparing analysis. Its public abstract establishes the research direction; it does not expose a complete machine-readable event dataset in the abstract. We must not invent replacement distributions, MTBF, MTTR or mission probabilities from it.
+The full 2025 ICES paper is materially more useful than its abstract alone: it presents a **preliminary component-level ISS ECLSS reference dataset** in its appendix, derived from the Maintenance & Analysis Data Set (MADS). Published fields include ORU mass, operational K-factor, MTBF, operational MTTR, preventive-maintenance remove/replace interval and duration, and operational-/throughput-limited life where applicable. It also gives major-ORU crew R&R time estimates. This is a public comparison surface, not a complete validated mission-reliability database: the authors state that the reliability dataset is not yet complete, that analogies may be used when data are missing, and that a larger integrated simulation framework is still in development.
+
+Examples transcribed into the versioned source register in this PR include:
+- Water Processor Assembly: catalytic reactor 57.43 kg / 27,077 h MTBF / 6 h MTTR / K=1.05; ion-exchange bed 12.02 kg / 442,478 h / 0.65 h / K=1.38; pump/separator 27.58 kg / 39,429 h / 1.15 h / K=3.26.
+- Urine Processor Assembly: distillation assembly 75.57 kg / 41,376 h / 7 h / K=1.84.
+- Maintenance-limited items: brine filter 60 days between preventive R&R, with 0.17 h preventive R&R time; the purge and distillate filters are listed at 545 days and 0.17 h.
+- Water-storage ACTEX filter: 1.46 kg, 469,469 h MTBF, K=1.15, 0.5 h R&R, plus 6,750 lb throughput or four years wetted-life limits.
+- Brine Processor Assembly: 10.8-year processor life; each bladder is to be disposed of within 35 weeks of brine fill, and the paper reports a 24 L brine-processing batch every 26 days.
+
+These figures are **published component reference values**, not guaranteed mission lifetimes, current fleet predictions or calibrated failure probabilities. The paper's annual failure-rate expression includes duty cycle, quantity and K-factor as well as MTBF; do not derive a mission probability from MTBF alone. Keep calendar-limited, throughput-limited, preventive-maintenance and stochastic failure mechanisms as separate competing life limits. The paper's Table 1 crew times explicitly exclude gathering and stowing; the authors say they depend on installation location, accessibility and task complexity and are not exhaustive. For example, Table 1 gives 14 h for OGA hydrogen ORU R&R and 19 h 15 min for the combined WPA gas-separator/water-delivery/ion-exchange/AAA task grouping. Treat these as task-time reference points, not complete EVA/IVA or mission timeline durations.
 
 Source: https://ntrs.nasa.gov/citations/20250003955
+
+### 2.3.1 Industry baseline and the research gap
+
+The same paper identifies two relevant established comparison families:
+- **NASA Langley's EMAT**: a mission-timeline simulation that stochastically triggers component failures, executes repair actions and tracks spare parts. The paper characterizes it as primarily focused on component reliability and maintainability.
+- **RELISSA**: an ECLSS reliability simulator using stochastic failures and backup activation, with failure/reliability trend outputs; the authors describe its integration with ESM mass/volume/power/heat for early system optimization, but without crew-time accounting.
+
+The 2025 paper's own direction is to extend component evidence with replacement rate, shelf/throughput limits and crew R&R time. It says the larger integrated simulation is still future work. Therefore the fair opportunity for Symtropy is **not** to claim a more accurate NASA reliability model. It is to build a reproducible service-and-sustainment evaluation layer around public component data and existing reliability methods:
+
+1. Preserve component-level source values and life-limit semantics.
+2. Add task scheduling, crew/robot availability, precedence, access and maintenance contention; distinguish R&R duration from logistics/gather/stow/diagnosis time.
+3. Couple component state to accepted product quality and time-resolved service floors.
+4. Track finite consumables, inventory, qualified interchangeability, shelf-life and resupply windows.
+5. Compose power, thermal rejection and resource ledgers without collapsing temperature grade or mass/quality grade.
+6. Require exact-configuration post-repair tests before service is requalified.
+7. Evaluate model uncertainty, missing data, and alternate hazard models without fabricating priors or censoring rules.
+
+Start with deterministic known-answer scheduling/resource cases and reproduce only the paper's public reference records. Compare against EMAT/RELISSA or equivalent tools only when executable implementations, inputs and identical boundaries are available. Otherwise report a feature/assumption comparison, not a performance ranking.
 
 NASA's 2026 ICES paper describes using the ISS as a testbed to mature exploration-class ECLSS hardware and integration, with performance and reliability evidence intended to support deep-space missions.
 
