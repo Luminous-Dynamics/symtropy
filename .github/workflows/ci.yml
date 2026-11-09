@@ -62,7 +62,7 @@ jobs:
       run: |
         set -euo pipefail
         subject_sha="${{ github.event.pull_request.head.sha || github.sha }}"
-        workflow_blob=$(git rev-parse "\${subject_sha}:.github/workflows/ci.yml")
+        workflow_blob=$(git rev-parse "${subject_sha}:.github/workflows/ci.yml")
         printf 'subject_commit=%s\nevent_commit=%s\nworkflow_blob=%s\nrun_id=%s\nrun_attempt=%s\n' "$subject_sha" "$GITHUB_SHA" "$workflow_blob" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" > virtual-sensing-exact-head-manifest.txt
         sha256sum rust-toolchain.toml > virtual-sensing-toolchain.sha256
         sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/Cargo.toml > virtual-sensing-cargo-manifest.sha256
