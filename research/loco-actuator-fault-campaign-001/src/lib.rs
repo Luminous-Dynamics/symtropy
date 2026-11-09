@@ -783,6 +783,8 @@ pub fn audit_fault_benchmark(
             severity_estimate_count: 0,
             severity_absolute_error_sum_ppm: 0,
             severity_interval_coverage_count: 0,
+            brier_score_numerator_ppm_squared: 0,
+            brier_score_count: 0,
             late_detection_count: 0,
             stable_adaptation_count: 0,
             late_adaptation_count: 0,
@@ -804,6 +806,8 @@ pub fn audit_fault_benchmark(
                         DetectionResult::Detected {
                             inferred_family,
                             plausible_families,
+                            family_probabilities,
+                            unknown_probability_ppm,
                             latency_ms,
                             severity_estimate_ppm,
                             severity_interval_ppm,
@@ -819,6 +823,16 @@ pub fn audit_fault_benchmark(
                                 row.fault_set_uncovered_count += 1;
                             }
                             row.hypothesis_set_size_total += plausible_families.len();
+                            let brier = multiclass_brier_numerator(
+                                family_probabilities,
+                                *unknown_probability_ppm,
+                                scenario.fault_family,
+                            )?;
+                            row.brier_score_numerator_ppm_squared = row
+                                .brier_score_numerator_ppm_squared
+                                .checked_add(brier)
+                                .ok_or(FaultBenchmarkError::ArithmeticOverflow)?;
+                            row.brier_score_count += 1;
                             if *latency_ms > scenario.detection_deadline_ms {
                                 row.late_detection_count += 1;
                             }
@@ -838,7 +852,10 @@ pub fn audit_fault_benchmark(
                             }
                         }
                         DetectionResult::Unknown {
-                            plausible_families, ..
+                            plausible_families,
+                            family_probabilities,
+                            unknown_probability_ppm,
+                            ..
                         } => {
                             row.unknown_diagnosis_count += 1;
                             if plausible_families.contains(&scenario.fault_family) {
@@ -847,6 +864,16 @@ pub fn audit_fault_benchmark(
                                 row.fault_set_uncovered_count += 1;
                             }
                             row.hypothesis_set_size_total += plausible_families.len();
+                            let brier = multiclass_brier_numerator(
+                                family_probabilities,
+                                *unknown_probability_ppm,
+                                scenario.fault_family,
+                            )?;
+                            row.brier_score_numerator_ppm_squared = row
+                                .brier_score_numerator_ppm_squared
+                                .checked_add(brier)
+                                .ok_or(FaultBenchmarkError::ArithmeticOverflow)?;
+                            row.brier_score_count += 1;
                         }
                         DetectionResult::Missed => {
                             row.missed_diagnosis_count += 1;
