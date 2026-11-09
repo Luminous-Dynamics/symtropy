@@ -77,3 +77,19 @@ The benchmark is considered defective if it accepts: a suite whose scenarios dif
 ## Implementation boundary
 
 This benchmark document plus `shipyard-policy-replay` tests whether declared observable histories constrain action selection. It does not implement rolling-horizon optimization. That should be a separate policy engine whose outputs are replayed through this independent gate and the existing independent feasibility audit.
+
+
+## Policy input boundary — V0.1 extension
+
+Output-level non-anticipativity remains necessary but is not sufficient to demonstrate that a candidate could not access future scenario information. The new `observation_boundary` module supplies the policy through an immutable, decision-time `ObservedSnapshot` built from source records:
+
+- Include only `PolicyVisible` records with `observed_at_tick <= decision_tick`.
+- Retain `effective_at_tick` separately, so late-arriving corrections do not leak into earlier as-known snapshots.
+- Exclude `EvaluatorOnly` records from the policy snapshot even if the evaluator stores them in the same source tape.
+- Sort and length-prefix canonical snapshot fields to make keys deterministic and unambiguous.
+- Bind the receipt to the exact decision tick, snapshot key, policy revision and candidate action key.
+- Keep feasibility, safety, authorization, optimality and final outcome scoring outside the candidate's proposal API.
+
+The policy trait accepts only `&ObservedSnapshot` and declared `ActionBounds`; it has no evaluator-truth parameter. This is an API/type boundary, **not a security sandbox**. For untrusted policies, process isolation and narrow authenticated IPC are required to prevent ambient access to hidden inputs. Snapshot canonical keys and supplied payload SHA-256 strings are not authenticated cryptographic proof in this crate; an approved digest/signature mechanism must be provided by the trusted envelope layer.
+
+Required conformance properties include future-event prefix invariance, late-arrival exclusion, hidden-truth invariance, action-epoch binding, source-qualified event identity and exact receipt-to-snapshot binding. The original replay audit remains an independent output-level check, and the spatial/resource verifier remains an independent feasibility check.
