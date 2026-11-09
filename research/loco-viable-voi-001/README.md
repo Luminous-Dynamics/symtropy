@@ -234,3 +234,17 @@ The Rust reference now additionally requires:
 - a physically rejected probe to short-circuit before mass/decision computation even when a physical branch has zero probability mass; the branch remains in the upstream physical possibility inventory.
 
 For joint mass and loss both scaled by (S=10^9), the unnormalized risk numerator and VOI numerator are on scale (S^2), not (S^3). Normalized loss/VOI is obtained by division by (S^2). The reference uses checked integer arithmetic.
+
+
+### Exact-head compile corrections and current test inventory
+
+The standalone crate's current Rust module contains 16 deterministic tests. In addition to the initial composition cases, it explicitly checks:
+- probe-receipt branch inventory equality;
+- a fresh context-bound passive/no-probe receipt;
+- rejection of loss rows for unadmitted actions;
+- equality of every joint-mass hypothesis marginal to the passive prior;
+- rejection of unknown hypothesis/branch/outcome loss keys;
+- zero-probability branches still being retained by the physical rejection gate;
+- rejection of foreign passive-loss rows.
+
+The finite joint mass and loss scale are each (S=10^9), so the expected-loss and VOI numerators are (S^2)-scaled. The Rust report field is named accordingly. These tests qualify only the composition contract over supplied finite evidence.
