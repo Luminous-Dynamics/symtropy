@@ -1311,7 +1311,7 @@ mod tests {
                 .violations()
                 .contains(&EvidenceViolation::TurbineMapNotIndependentlyTestedOrGuaranteed)
         );
-        assert!(result.credited_net_electrical_power().is_none());
+        assert!(result.service_eligible_net_electrical_power().is_none());
     }
 
     #[test]
