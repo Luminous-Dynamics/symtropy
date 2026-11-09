@@ -95,7 +95,9 @@ impl ObservationTape {
                 return Err(ObservationError::DuplicateEventId(record.event_id.clone()));
             }
             if !is_lowercase_sha256(&record.payload_sha256) {
-                return Err(ObservationError::InvalidPayloadDigest(record.event_id.clone()));
+                return Err(ObservationError::InvalidPayloadDigest(
+                    record.event_id.clone(),
+                ));
             }
         }
         Ok(Self { records })
@@ -148,10 +150,7 @@ fn is_lowercase_sha256(value: &str) -> bool {
 }
 
 /// Length-prefix every string field to avoid delimiter ambiguity.
-fn canonical_snapshot_key(
-    decision_tick: Tick,
-    observations: &[SnapshotObservation],
-) -> String {
+fn canonical_snapshot_key(decision_tick: Tick, observations: &[SnapshotObservation]) -> String {
     let mut key = format!(
         "observed-snapshot-v1|tick={decision_tick}|count={}|",
         observations.len()
@@ -198,11 +197,7 @@ pub struct CandidateAction {
 
 /// Minimal policy interface: no scenario ID, future tape or evaluator truth.
 pub trait RecoveryPolicy {
-    fn propose(
-        &self,
-        snapshot: &ObservedSnapshot,
-        bounds: &ActionBounds,
-    ) -> CandidateAction;
+    fn propose(&self, snapshot: &ObservedSnapshot, bounds: &ActionBounds) -> CandidateAction;
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -249,9 +244,7 @@ pub fn decide<P: RecoveryPolicy>(
         .iter()
         .any(|kind| kind == &action.action_kind)
     {
-        return Err(DecisionError::ActionKindOutsideBounds(
-            action.action_kind,
-        ));
+        return Err(DecisionError::ActionKindOutsideBounds(action.action_kind));
     }
     Ok(PolicyDecisionReceipt {
         decision_tick: snapshot.decision_tick,
@@ -289,11 +282,7 @@ mod tests {
     struct WaitPolicy;
 
     impl RecoveryPolicy for WaitPolicy {
-        fn propose(
-            &self,
-            snapshot: &ObservedSnapshot,
-            _bounds: &ActionBounds,
-        ) -> CandidateAction {
+        fn propose(&self, snapshot: &ObservedSnapshot, _bounds: &ActionBounds) -> CandidateAction {
             CandidateAction {
                 decision_tick: snapshot.decision_tick(),
                 action_kind: "wait".into(),
@@ -311,7 +300,11 @@ mod tests {
     #[test]
     fn future_observation_does_not_change_earlier_snapshot() {
         let before = ObservationTape::new(vec![record(
-            "known", 2, 2, DIGEST_A, Visibility::PolicyVisible,
+            "known",
+            2,
+            2,
+            DIGEST_A,
+            Visibility::PolicyVisible,
         )])
         .unwrap();
         let after = ObservationTape::new(vec![
@@ -328,7 +321,11 @@ mod tests {
     #[test]
     fn late_arriving_event_is_excluded_until_observed() {
         let tape = ObservationTape::new(vec![record(
-            "late-correction", 4, 9, DIGEST_A, Visibility::PolicyVisible,
+            "late-correction",
+            4,
+            9,
+            DIGEST_A,
+            Visibility::PolicyVisible,
         )])
         .unwrap();
         assert!(tape.snapshot_at(8).observations().is_empty());
@@ -359,9 +356,13 @@ mod tests {
 
     #[test]
     fn new_observation_changes_snapshot_only_after_admission_tick() {
-        let base = ObservationTape::new(vec![
-            record("base", 0, 0, DIGEST_A, Visibility::PolicyVisible),
-        ])
+        let base = ObservationTape::new(vec![record(
+            "base",
+            0,
+            0,
+            DIGEST_A,
+            Visibility::PolicyVisible,
+        )])
         .unwrap();
         let with_new = ObservationTape::new(vec![
             record("base", 0, 0, DIGEST_A, Visibility::PolicyVisible),
@@ -408,9 +409,13 @@ mod tests {
 
     #[test]
     fn policy_receipt_binds_exact_snapshot_and_policy_revision() {
-        let tape = ObservationTape::new(vec![
-            record("known", 1, 1, DIGEST_A, Visibility::PolicyVisible),
-        ])
+        let tape = ObservationTape::new(vec![record(
+            "known",
+            1,
+            1,
+            DIGEST_A,
+            Visibility::PolicyVisible,
+        )])
         .unwrap();
         let snapshot = tape.snapshot_at(5);
         let receipt = decide(&WaitPolicy, "policy:abc123", &snapshot, &bounds()).unwrap();
@@ -454,9 +459,13 @@ mod tests {
             duplicate.unwrap_err(),
             ObservationError::DuplicateEventId("same".into())
         );
-        let bad_digest = ObservationTape::new(vec![
-            record("bad", 0, 0, "not-a-digest", Visibility::PolicyVisible),
-        ]);
+        let bad_digest = ObservationTape::new(vec![record(
+            "bad",
+            0,
+            0,
+            "not-a-digest",
+            Visibility::PolicyVisible,
+        )]);
         assert_eq!(
             bad_digest.unwrap_err(),
             ObservationError::InvalidPayloadDigest("bad".into())
