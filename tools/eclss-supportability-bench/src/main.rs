@@ -14,8 +14,9 @@ const ISS_APPENDIX_SUPPLEMENT: &str =
     include_str!("../../../docs/research/eclss/fixtures/eclss-iss-appendix-supplement-v0_1.json");
 const AOGA_SCHEDULE: &str =
     include_str!("../../../docs/research/eclss/fixtures/eclss-aoga-schedule-snapshots-v0_1.json");
-const MAINTENANCE_PLAN_ADMISSIBILITY: &str =
-    include_str!("../../../docs/research/eclss/fixtures/eclss-maintenance-plan-admissibility-v0_1.json");
+const MAINTENANCE_PLAN_ADMISSIBILITY: &str = include_str!(
+    "../../../docs/research/eclss/fixtures/eclss-maintenance-plan-admissibility-v0_1.json"
+);
 
 type Check<T> = Result<T, String>;
 
@@ -389,7 +390,9 @@ fn validate_public_reference(value: &Value) -> Check<Value> {
         )?;
         let id = text(field(record, "record_id", &record_at)?, "record_id")?;
         if id.starts_with("ICES2025-127-CREW-") || !component_ids.insert(id) {
-            return Err(format!("{record_at}: invalid or duplicate component record id {id}"));
+            return Err(format!(
+                "{record_at}: invalid or duplicate component record id {id}"
+            ));
         }
         for metric in [
             "mass_kg",
@@ -452,10 +455,7 @@ fn validate_public_reference(value: &Value) -> Check<Value> {
         .find(|record| record["record_id"] == "ICES2025-127-WATER-STORAGE-ACTEX-FILTER")
         .ok_or_else(|| format!("{at}: missing water-storage ACTEX row"))?;
     require_eq(
-        number(
-            &actex["component_r_and_r_hours"],
-            "component_r_and_r_hours",
-        )?,
+        number(&actex["component_r_and_r_hours"], "component_r_and_r_hours")?,
         0.5,
         "Table 5 component R&R hours",
     )?;
@@ -464,7 +464,9 @@ fn validate_public_reference(value: &Value) -> Check<Value> {
         .find(|record| record["record_id"] == "ICES2025-127-BPA-BLADDER")
         .ok_or_else(|| format!("{at}: missing brine processor bladder row"))?;
     if !brine_bladders["throughput_limited_life"].is_null() {
-        return Err(format!("{at}: batch cadence must not be encoded as a throughput-limited life"));
+        return Err(format!(
+            "{at}: batch cadence must not be encoded as a throughput-limited life"
+        ));
     }
     require_eq(
         number(
@@ -537,7 +539,11 @@ fn validate_public_reference(value: &Value) -> Check<Value> {
     )?;
     let wpa_combined = crew_tasks
         .iter()
-        .find(|task| task["oru"].as_str().is_some_and(|oru| oru.starts_with("WPA — Gas Separator")))
+        .find(|task| {
+            task["oru"]
+                .as_str()
+                .is_some_and(|oru| oru.starts_with("WPA — Gas Separator"))
+        })
         .ok_or_else(|| format!("{at}: missing selected combined WPA task"))?;
     require_eq(
         integer(&wpa_combined["crew_time_minutes"], "crew_time_minutes")?,
@@ -845,7 +851,7 @@ fn validate_appendix_supplement(value: &Value) -> Check<Value> {
 
     let hydrogen_sensor = records
         .iter()
-.find(|record| {
+        .find(|record| {
             record["table"] == "Table 10" && record["component"] == "Sensor, Hydrogen ORU"
         })
         .ok_or_else(|| format!("{at}: missing OGA hydrogen sensor row"))?;
@@ -998,7 +1004,9 @@ fn validate_maintenance_plan_admissibility(value: &Value) -> Check<Value> {
         at,
     )?;
     if !text(field(value, "unit_basis", at)?, "unit_basis")?.contains("integer") {
-        return Err(format!("{at}: unit basis must declare integer time/resource units"));
+        return Err(format!(
+            "{at}: unit basis must declare integer time/resource units"
+        ));
     }
 
     let cases = array(field(value, "cases", at)?, "cases")?;
@@ -1036,8 +1044,10 @@ fn validate_maintenance_plan_admissibility(value: &Value) -> Check<Value> {
         if !ids.insert(case_id) {
             return Err(format!("{case_at}: duplicate case id"));
         }
-        let expected_disposition =
-            text(field(case, "expected_disposition", &case_at)?, "expected_disposition")?;
+        let expected_disposition = text(
+            field(case, "expected_disposition", &case_at)?,
+            "expected_disposition",
+        )?;
         let expected_reason = text(field(case, "expected_reason", &case_at)?, "expected_reason")?;
         if !["ADMISSIBLE", "REJECTED"].contains(&expected_disposition)
             || !expected_reasons.contains(&expected_reason)
@@ -1072,11 +1082,16 @@ fn validate_maintenance_plan_admissibility(value: &Value) -> Check<Value> {
         let tools = array(field(plan, "tools", &case_at)?, "tools")?;
         let procedures = array(field(plan, "procedures", &case_at)?, "procedures")?;
         let spares = array(field(plan, "spares", &case_at)?, "spares")?;
-        let isolations = array(field(plan, "isolation_records", &case_at)?, "isolation_records")?;
+        let isolations = array(
+            field(plan, "isolation_records", &case_at)?,
+            "isolation_records",
+        )?;
         let authorizations = array(field(plan, "authorizations", &case_at)?, "authorizations")?;
         let tasks = array(field(plan, "tasks", &case_at)?, "tasks")?;
         if tasks.is_empty() {
-            return Err(format!("{case_at}: at least one maintenance task is required"));
+            return Err(format!(
+                "{case_at}: at least one maintenance task is required"
+            ));
         }
 
         let mut computed_reason: Option<&'static str> = None;
@@ -1122,8 +1137,10 @@ fn validate_maintenance_plan_admissibility(value: &Value) -> Check<Value> {
             let asset_id = text(field(task, "asset_id", &task_at)?, "asset_id")?;
             let asset_revision = text(field(task, "asset_revision", &task_at)?, "asset_revision")?;
             let procedure_id = text(field(task, "procedure_id", &task_at)?, "procedure_id")?;
-            let procedure_revision =
-                text(field(task, "procedure_revision", &task_at)?, "procedure_revision")?;
+            let procedure_revision = text(
+                field(task, "procedure_revision", &task_at)?,
+                "procedure_revision",
+            )?;
             let start = integer(field(task, "start_minute", &task_at)?, "start_minute")?;
             let duration = integer(
                 field(task, "duration_minutes", &task_at)?,
@@ -1147,8 +1164,10 @@ fn validate_maintenance_plan_admissibility(value: &Value) -> Check<Value> {
             } else {
                 Some(text(spare_value, "spare_id")?.to_owned())
             };
-            let isolation_id =
-                text(field(task, "isolation_evidence_id", &task_at)?, "isolation_evidence_id")?;
+            let isolation_id = text(
+                field(task, "isolation_evidence_id", &task_at)?,
+                "isolation_evidence_id",
+            )?;
             let floor = integer(
                 field(task, "required_service_floor_bp", &task_at)?,
                 "required_service_floor_bp",
@@ -1158,10 +1177,14 @@ fn validate_maintenance_plan_admissibility(value: &Value) -> Check<Value> {
                 "service_capacity_during_bp",
             )?;
             let authority_id = text(field(task, "authority_id", &task_at)?, "authority_id")?;
-            let post_test_status =
-                text(field(task, "post_test_status", &task_at)?, "post_test_status")?;
-            let post_test_revision =
-                text(field(task, "post_test_asset_revision", &task_at)?, "post_test_asset_revision")?;
+            let post_test_status = text(
+                field(task, "post_test_status", &task_at)?,
+                "post_test_status",
+            )?;
+            let post_test_revision = text(
+                field(task, "post_test_asset_revision", &task_at)?,
+                "post_test_asset_revision",
+            )?;
             let dependencies = array(field(task, "dependencies", &task_at)?, "dependencies")?
                 .iter()
                 .map(|dep| text(dep, "dependency").map(str::to_owned))
@@ -1171,10 +1194,14 @@ fn validate_maintenance_plan_admissibility(value: &Value) -> Check<Value> {
                 .iter()
                 .find(|asset| asset["asset_id"] == asset_id)
                 .ok_or_else(|| format!("{task_at}: referenced asset is missing"))?;
-            let installed_revision =
-                text(field(asset, "installed_revision", "asset")?, "installed_revision")?;
+            let installed_revision = text(
+                field(asset, "installed_revision", "asset")?,
+                "installed_revision",
+            )?;
             if installed_revision != asset_revision {
-                return Err(format!("{task_at}: task asset revision does not match installed asset"));
+                return Err(format!(
+                    "{task_at}: task asset revision does not match installed asset"
+                ));
             }
 
             let procedure = procedures
@@ -1183,7 +1210,10 @@ fn validate_maintenance_plan_admissibility(value: &Value) -> Check<Value> {
                 .ok_or_else(|| format!("{task_at}: referenced procedure is missing"))?;
             let procedure_is_valid = procedure["revision"] == procedure_revision
                 && procedure["approved"].as_bool() == Some(true)
-                && integer(&procedure["valid_through_minute"], "procedure.valid_through_minute")? >= end;
+                && integer(
+                    &procedure["valid_through_minute"],
+                    "procedure.valid_through_minute",
+                )? >= end;
             reject!(!procedure_is_valid, "PROCEDURE_NOT_APPROVED");
 
             let worker = workers
@@ -1195,7 +1225,10 @@ fn validate_maintenance_plan_admissibility(value: &Value) -> Check<Value> {
                 .any(|skill| skill.as_str() == Some(required_skill));
             let worker_is_valid = worker["status"] == "CURRENT"
                 && worker_has_skill
-                && integer(&worker["valid_through_minute"], "worker.valid_through_minute")? >= end;
+                && integer(
+                    &worker["valid_through_minute"],
+                    "worker.valid_through_minute",
+                )? >= end;
             reject!(!worker_is_valid, "WORKER_NOT_QUALIFIED");
 
             for tool_id in &tool_ids {
@@ -1211,10 +1244,13 @@ fn validate_maintenance_plan_admissibility(value: &Value) -> Check<Value> {
                     .iter()
                     .find(|record| record["spare_id"] == spare_id.as_str())
                     .ok_or_else(|| format!("{task_at}: referenced spare {spare_id} is missing"))?;
-                let compatible_assets = array(&spare["compatible_asset_ids"], "spare.compatible_asset_ids")?;
+                let compatible_assets =
+                    array(&spare["compatible_asset_ids"], "spare.compatible_asset_ids")?;
                 let config_matches = spare["qualified"].as_bool() == Some(true)
                     && spare["compatible_revision"] == asset_revision
-                    && compatible_assets.iter().any(|id| id.as_str() == Some(asset_id));
+                    && compatible_assets
+                        .iter()
+                        .any(|id| id.as_str() == Some(asset_id));
                 reject!(!config_matches, "SPARE_CONFIGURATION_MISMATCH");
                 reject!(
                     integer(&spare["expiry_minute"], "spare.expiry_minute")? < end,
@@ -1230,7 +1266,10 @@ fn validate_maintenance_plan_admissibility(value: &Value) -> Check<Value> {
             let isolation_is_valid = isolation["asset_id"] == asset_id
                 && isolation["asset_revision"] == asset_revision
                 && isolation["status"] == "VERIFIED"
-                && integer(&isolation["valid_through_minute"], "isolation.valid_through_minute")? >= end;
+                && integer(
+                    &isolation["valid_through_minute"],
+                    "isolation.valid_through_minute",
+                )? >= end;
             reject!(!isolation_is_valid, "ISOLATION_NOT_VERIFIED");
 
             reject!(during_capacity < floor, "SERVICE_FLOOR_BREACH");
@@ -1242,7 +1281,10 @@ fn validate_maintenance_plan_admissibility(value: &Value) -> Check<Value> {
             let authority_is_valid = authority["asset_id"] == asset_id
                 && authority["asset_revision"] == asset_revision
                 && authority["status"] == "APPROVED"
-                && integer(&authority["valid_through_minute"], "authority.valid_through_minute")? >= end;
+                && integer(
+                    &authority["valid_through_minute"],
+                    "authority.valid_through_minute",
+                )? >= end;
             reject!(!authority_is_valid, "AUTHORITY_EXPIRED_OR_REVOKED");
 
             reject!(
@@ -1531,18 +1573,9 @@ mod tests {
     #[test]
     fn maintenance_plan_admissibility_rejects_all_seeded_negative_controls() {
         let report = validate_all().expect("maintenance plan cases must independently validate");
-        assert_eq!(
-            report["maintenance_plan_admissibility"]["case_count"],
-            13
-        );
-        assert_eq!(
-            report["maintenance_plan_admissibility"]["admissible"],
-            1
-        );
-        assert_eq!(
-            report["maintenance_plan_admissibility"]["rejected"],
-            12
-        );
+        assert_eq!(report["maintenance_plan_admissibility"]["case_count"], 13);
+        assert_eq!(report["maintenance_plan_admissibility"]["admissible"], 1);
+        assert_eq!(report["maintenance_plan_admissibility"]["rejected"], 12);
         assert_eq!(
             report["maintenance_plan_admissibility"]["execution_authorized"],
             false
