@@ -1,8 +1,8 @@
 use std::{env, fs, process};
 
 use bh_reference_fixtures::{
-    KerrQnmSequenceFixture, RadialComparisonConfig, RadialComparisonStatus,
-    ReferenceFixture, compare_radial_fixtures,
+    KerrQnmSequenceFixture, RadialComparisonConfig, RadialComparisonStatus, ReferenceFixture,
+    compare_radial_fixtures,
 };
 use serde_json::json;
 
@@ -85,9 +85,7 @@ fn run(args: &[String]) -> Result<i32, String> {
             );
             Ok(0)
         }
-        [command, left_path, right_path, abs_tol, rel_tol]
-            if command == "compare-radial" =>
-        {
+        [command, left_path, right_path, abs_tol, rel_tol] if command == "compare-radial" => {
             let left = read_radial_fixture(left_path)?;
             let right = read_radial_fixture(right_path)?;
             let absolute_tolerance = abs_tol
