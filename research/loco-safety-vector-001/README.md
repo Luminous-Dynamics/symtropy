@@ -146,3 +146,38 @@ Keep independent:
 ## Claim ceiling
 
 V0 qualifies taxonomy and scorecard completeness over supplied already-classified event records. It does not validate sensor detection, classify raw physical events, authenticate labels or prove robot safety. Hardware superiority requires independent event labels, matched exposure, preregistered adverse strata and a separately qualified physical safety gate.
+
+
+## 11. Executable finite Rust V0 reference
+
+The standalone dependency-free Rust crate consumes:
+- the versioned adverse-outcome taxonomy;
+- baseline/candidate policy identities, matched stratum and detector digests;
+- a common exposure value and explicit exposure unit;
+- per-category observed exposure and objective-coverage declarations;
+- canonical event records with event ID, physical incident ID, category, timestamp and severity.
+
+It reports each category separately:
+- event count and exact rational event-rate direction;
+- severity sum and severity-load-per-exposure direction;
+- maximum observed severity and direction;
+- completeness and objective inclusion for each method.
+
+The auditor:
+- refuses comparisons across different matched strata, taxonomy/detector digests or exposure units/values;
+- rejects missing/duplicate category coverage, duplicate event IDs and duplicate physical-incident/category pairs;
+- permits one physical incident to create multiple distinct typed outcomes;
+- rejects categories outside the declared taxonomy and mismatched severity units;
+- treats zero exposure as invalid, never as zero risk;
+- identifies target-category improvements masked by another adverse outcome regression;
+- suppresses complete safety-improvement claims on any adverse-category regression, missing/partial adverse coverage, objective omission or nonzero Unknown events.
+
+Fourteen deterministic tests exercise proxy shift, all-category improvement, fall regression, severity-load regression, missing coverage, Unknown events, exposure mismatch, duplicate channel/event identity, multiple typed outcomes from one incident, detector/taxonomy mismatch, zero exposure and undeclared categories.
+
+Qualification commands:
+
+    cargo fmt --manifest-path research/loco-safety-vector-001/Cargo.toml -- --check
+    cargo test --manifest-path research/loco-safety-vector-001/Cargo.toml --locked
+    cargo clippy --manifest-path research/loco-safety-vector-001/Cargo.toml --locked --all-targets -- -D warnings
+
+The exact-head workflow is authoritative for Rust 1.96. It qualifies only completeness and exact comparison semantics for supplied classified records; it does not validate event detection, raw sensor classifiers or physical safety.
