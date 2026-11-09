@@ -319,8 +319,8 @@ def main() -> int:
         compare(actual, expected)
         negative_controls(data)
         print(
-             "aero_shm_benchmark_split_contract=pass tracks=5 samples=17 "
-            "axes=specimen+thermal+installation+forward_time rust_python=pass"
+            "aero_shm_benchmark_split_contract=pass tracks=5 samples=17 "
+            "axes=specimen+thermal+installation+compound+forward_time rust_python=pass"
         )
         return 0
     except (OSError, json.JSONDecodeError, AuditError, KeyError, TypeError, ValueError) as error:
