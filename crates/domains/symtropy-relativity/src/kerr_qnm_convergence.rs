@@ -162,6 +162,10 @@ pub struct KerrOpticalReference {
     pub prolate_bounce_coordinate_m: f64,
     /// Im x(r_c), retained for the prolate complex-time period check.
     pub prolate_turning_point_im_coordinate_m: f64,
+    /// Oblate large-overtone damping spacing, equal to the outer surface-gravity rate.
+    pub oblate_asymptotic_frequency_spacing_s_inv: f64,
+    /// Prolate large-overtone damping spacing from pi/(2 Im x(r_c)).
+    pub prolate_asymptotic_frequency_spacing_s_inv: f64,
     pub oblate_bounce_radius_m: f64,
     pub prolate_bounce_radius_m: f64,
     /// Composite-Simpson intervals used for x(r_c).
@@ -214,6 +218,8 @@ impl KerrOpticalReference {
                 prolate_turning_point_im_coordinate_m: 2.0
                     * core::f64::consts::PI
                     * rg,
+                oblate_asymptotic_frequency_spacing_s_inv: black_hole.surface_gravity_rate_s_inv(),
+                prolate_asymptotic_frequency_spacing_s_inv: SPEED_OF_LIGHT_M_S / (4.0 * rg),
                 oblate_bounce_radius_m: bounce,
                 prolate_bounce_radius_m: bounce,
                 prolate_complex_quadrature_segments: 0,
@@ -263,6 +269,9 @@ impl KerrOpticalReference {
             oblate_bounce_coordinate_m: oblate_coordinate * rg,
             prolate_bounce_coordinate_m: prolate_coordinate.re * rg,
             prolate_turning_point_im_coordinate_m: prolate_coordinate.im * rg,
+            oblate_asymptotic_frequency_spacing_s_inv: black_hole.surface_gravity_rate_s_inv(),
+            prolate_asymptotic_frequency_spacing_s_inv: core::f64::consts::PI * SPEED_OF_LIGHT_M_S
+                / (2.0 * prolate_coordinate.im * rg),
             oblate_bounce_radius_m: oblate_bounce * rg,
             prolate_bounce_radius_m: prolate_bounce * rg,
             prolate_complex_quadrature_segments: quadrature_segments,
@@ -275,6 +284,8 @@ impl KerrOpticalReference {
             result.oblate_bounce_coordinate_m,
             result.prolate_bounce_coordinate_m,
             result.prolate_turning_point_im_coordinate_m,
+            result.oblate_asymptotic_frequency_spacing_s_inv,
+            result.prolate_asymptotic_frequency_spacing_s_inv,
             result.oblate_bounce_radius_m,
             result.prolate_bounce_radius_m,
             result.prolate_complex_quadrature_error_m,
@@ -651,7 +662,7 @@ fn solve_oblate_bounce(
     let function = |radius: f64| {
         oblate_tortoise_dimensionless(radius, x_plus, x_minus, gap) - target
     };
-    let mut f_low = function(low);
+    let f_low = function(low);
     let mut f_high = function(high);
     if !f_low.is_finite() || !f_high.is_finite() {
         return Err(KerrOpticalError::NonFiniteResult(
@@ -679,10 +690,8 @@ fn solve_oblate_bounce(
         }
         if f_middle > 0.0 {
             high = middle;
-            f_high = f_middle;
         } else {
             low = middle;
-            f_low = f_middle;
         }
         if high - low <= 4.0e-14 * (1.0 + middle.abs()) {
             return Ok(0.5 * (low + high));
@@ -707,7 +716,7 @@ fn solve_prolate_bounce(
         Ok(r_star + correction - target)
     };
 
-    let mut f_low = function(low)?;
+    let f_low = function(low)?;
     let mut f_high = function(high)?;
     if !f_low.is_finite() || !f_high.is_finite() {
         return Err(KerrOpticalError::NonFiniteResult(
@@ -735,10 +744,8 @@ fn solve_prolate_bounce(
         }
         if f_middle > 0.0 {
             high = middle;
-            f_high = f_middle;
         } else {
             low = middle;
-            f_low = f_middle;
         }
         if high - low <= 1.0e-12 * (1.0 + middle.abs()) {
             return Ok(0.5 * (low + high));
@@ -883,6 +890,80 @@ mod tests {
             .convergence_margins(0.0, 4.0 * rg, 3.0 * rg, 1.0e-8 * rg)
             .unwrap();
         assert_eq!(neither.region, KerrQnmConvergenceRegion::NeitherFamilyConvergent);
+    }
+
+    #[test]
+    fn kerr_optical_asymptotic_mode_spacings_match_reference_values() {
+        let at_point_three = KerrOpticalReference::new(hole(0.3)).unwrap();
+        let rg = at_point_three.gravitational_radius_m;
+        relative_close(
+            at_point_three.prolate_asymptotic_frequency_spacing_s_inv * rg
+                / SPEED_OF_LIGHT_M_S,
+            0.252_920_435_361_936_1,
+            2.0e-9,
+        );
+        relative_close(
+            at_point_three.oblate_asymptotic_frequency_spacing_s_inv * rg
+                / SPEED_OF_LIGHT_M_S,
+            0.244_106_674_538_586_94,
+            2.0e-9,
+        );
+
+        let at_point_seven = KerrOpticalReference::new(hole(0.7)).unwrap();
+        let rg = at_point_seven.gravitational_radius_m;
+        relative_close(
+            at_point_seven.prolate_asymptotic_frequency_spacing_s_inv * rg
+                / SPEED_OF_LIGHT_M_S,
+            0.255_363_536_519_921_47,
+            2.0e-9,
+        );
+        relative_close(
+            at_point_seven.oblate_asymptotic_frequency_spacing_s_inv * rg
+                / SPEED_OF_LIGHT_M_S,
+            0.208_309_023_320_699_0,
+            2.0e-9,
+        );
+    }
+
+    #[test]
+    fn complex_prolate_turning_point_solves_the_expected_cubic() {
+        for spin in [0.01_f64, 0.3, 0.7, 0.99, 0.999_999] {
+            let root = prolate_turning_point(spin);
+            let cube = root.mul(root).mul(root);
+            let residual = cube
+                .add(root.scale(spin * spin))
+                .add(ComplexCoordinate::new(2.0 * spin * spin, 0.0));
+            let scale = 1.0 + cube.norm() + 2.0 * spin * spin;
+            assert!(
+                residual.norm() / scale < 2.0e-14,
+                "spin={spin}, residual={residual:?}"
+            );
+            assert!(root.re > 0.0 && root.im > 0.0);
+        }
+    }
+
+    #[test]
+    fn optical_coordinate_derivatives_match_their_defining_metrics() {
+        let reference = KerrOpticalReference::new(hole(0.7)).unwrap();
+        let rg = reference.gravitational_radius_m;
+        let radius = 3.2 * rg;
+        let step = 1.0e-5 * rg;
+        let oblate_derivative = (reference.oblate_coordinate_m(radius + step).unwrap()
+            - reference.oblate_coordinate_m(radius - step).unwrap())
+            / (2.0 * step);
+        let prolate_derivative = (reference.prolate_coordinate_m(radius + step).unwrap()
+            - reference.prolate_coordinate_m(radius - step).unwrap())
+            / (2.0 * step);
+
+        let x = radius / rg;
+        let a = reference.dimensionless_spin_abs;
+        let delta = x * x - 2.0 * x + a * a;
+        let expected_oblate = (x * x + a * a) / delta;
+        let radial_polynomial = x.powi(4) + a * a * x * x + 2.0 * a * a * x;
+        let expected_prolate = radial_polynomial.sqrt() / delta;
+
+        relative_close(oblate_derivative, expected_oblate, 2.0e-8);
+        relative_close(prolate_derivative, expected_prolate, 2.0e-8);
     }
 
     #[test]
