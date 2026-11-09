@@ -212,6 +212,29 @@ A profile identifies:
 
 Unknown lifetime, replacement rate, failure rate or maintenance duration remains unknown. Do not substitute a convenient distribution or zero.
 
+### Maintenance-induced risk and paired condition-policy falsification
+
+Maintenance is not a free state transition. Opening a subsystem, disconnecting a line, changing seals/valves, handling a filter, disturbing contamination or reinstalling an ORU can introduce leaks, damage, contamination or configuration errors. The benchmark must therefore measure the *net* effect of maintenance, not assume that every completed intervention reduces risk.
+
+For paired policies under the #1752 owner, compare:
+1. conservative approved interval-based maintenance;
+2. condition-based maintenance using qualified, in-domain sensing and predeclared thresholds;
+3. hybrid condition-based maintenance with independent confirmation, sensor-health monitoring and conservative approved life limits.
+
+All policies receive the same scenario/event trace, sensor channels, calibration and observation-latency contract, crew/tool/spare budgets and authority limits. Include:
+- true degradation crossing the threshold;
+- healthy component with false-positive alarm and unnecessary removal;
+- sensor drift / false-normal;
+- blocked or fouled sensor head;
+- common-mode bias across apparently independent channels;
+- stale or delayed telemetry;
+- missing calibration or out-of-domain sensor;
+- maintenance-induced damage / contamination / leak during a task;
+- repair that restores nominal flow but fails the output-quality or post-repair acceptance test;
+- condition-based proposal that would exceed the approved life limit.
+
+Report false deferral, unnecessary maintenance, missed/late maintenance, diagnosis latency, maintenance-induced fault/damage, service-floor exposure, spare use, worker/tool time, and verified post-task service. A predictive model may recommend a measurement or task; it cannot promote a sensor observation to qualified evidence or extend an approved component life limit without separate authority and evidence.
+
 ### Proof-carrying maintenance plan fixture (synthetic only)
 
 The executable reference now includes a second frozen corpus:
