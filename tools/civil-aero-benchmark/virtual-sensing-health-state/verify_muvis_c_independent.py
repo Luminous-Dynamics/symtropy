@@ -131,12 +131,34 @@ def validate(data: dict[str, Any]) -> None:
     require(len(data["target_noise"]) == n
             and all(math.isfinite(x) for x in data["target_noise"]),
             "target noise vector invalid")
+    definitions = protocol["metric_definitions"]
+    require(definitions["mpc"] == "mean bootstrapped RMSE over failure_mode x channel x severity",
+            "mPC definition changed")
+    require(definitions["rpc"] == "mPC / clean_RMSE; 1 means no average degradation",
+            "rPC definition changed")
+    require(definitions["s_cross"] == "minimum severity where any failure/channel bootstrapped RMSE >= naive mean predictor RMSE; null if no crossing",
+            "s_cross definition changed")
+    require(definitions["npc"] == "mPC / naive_RMSE", "nPC definition changed")
+
     indices = data["bootstrap_resample_indices"]
     require(len(indices) == 200 and all(len(row) == n for row in indices),
             "bootstrap matrix must be 200xN")
     require(all(isinstance(index, int) and 0 <= index < n
                 for row in indices for index in row),
             "bootstrap index outside sample range")
+    # Independently bind targets to the fixture's declared synthetic response equation.
+    for sample in range(n):
+        means = [
+            sum(step[channel] for step in data["windows"][sample]) / t
+            for channel in range(c)
+        ]
+        expected_target = (
+            0.50 * means[0] - 0.27 * means[1] + 0.16 * means[2]
+            + data["target_noise"][sample]
+        )
+        require(math.isclose(data["target"][sample], expected_target,
+                             rel_tol=0.0, abs_tol=1.0e-10),
+                "target vector does not match synthetic reference equation")
 
 
 def apply_failure(mode: str, severity: float, value: float, noise_draw: float,
