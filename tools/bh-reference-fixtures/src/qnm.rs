@@ -205,7 +205,10 @@ impl core::fmt::Display for QnmSequenceValidationError {
                 write!(f, "mode numbers must satisfy ell >= |s| and |m| <= ell")
             }
             Self::AngularEigenvalueConventionIncomplete => {
-                write!(f, "producer-defined angular eigenvalue convention requires a definition")
+                write!(
+                    f,
+                    "producer-defined angular eigenvalue convention requires a definition"
+                )
             }
             Self::EmptySequence => write!(f, "at least one QNM mode is required"),
             Self::SequencePositionsNotStrictlyIncreasing(index) => {
@@ -269,7 +272,10 @@ impl core::fmt::Display for QnmSequenceValidationError {
                 )
             }
             Self::ExtremalFixtureRequiresScalarExactWkb => {
-                write!(f, "exact extremality is represented only by a scalar exact-WKB fixture")
+                write!(
+                    f,
+                    "exact extremality is represented only by a scalar exact-WKB fixture"
+                )
             }
         }
     }
@@ -282,10 +288,7 @@ impl KerrQnmSequenceFixture {
     /// non-uniformity of the normal-prolate genus-one expansion,
     /// chi^(-4/3) / (N + 1/2). The asymptotic regime requires this parameter
     /// to be small; this accessor does not impose a universal cutoff.
-    pub fn normal_prolate_wkb_small_spin_parameter(
-        &self,
-        mode: &QnmModeRecord,
-    ) -> Option<f64> {
+    pub fn normal_prolate_wkb_small_spin_parameter(&self, mode: &QnmModeRecord) -> Option<f64> {
         if mode.solver_method != QnmSolverMethod::KerrNormalProlateGenusOneWkb
             || !self.spin_over_mass.is_finite()
             || self.spin_over_mass <= 0.0
@@ -294,8 +297,8 @@ impl KerrQnmSequenceFixture {
             return None;
         }
         let quantization_index = mode.wkb_quantization_index?;
-        let parameter = self.spin_over_mass.powf(-4.0 / 3.0)
-            / (f64::from(quantization_index) + 0.5);
+        let parameter =
+            self.spin_over_mass.powf(-4.0 / 3.0) / (f64::from(quantization_index) + 0.5);
         parameter.is_finite().then_some(parameter)
     }
 
@@ -388,9 +391,7 @@ impl KerrQnmSequenceFixture {
                 return Err(QnmSequenceValidationError::InvalidModeResiduals(index));
             }
             if mode.solver_method == QnmSolverMethod::KerrNormalProlateGenusOneWkb {
-                if self.spin_over_mass <= 0.0
-                    || self.spin_over_mass >= 1.0
-                {
+                if self.spin_over_mass <= 0.0 || self.spin_over_mass >= 1.0 {
                     return Err(QnmSequenceValidationError::InvalidWkbSpinDomain(index));
                 }
                 if mode.wkb_quantization_index.is_none()
@@ -405,8 +406,12 @@ impl KerrQnmSequenceFixture {
                 {
                     return Err(QnmSequenceValidationError::MissingWkbMetadata(index));
                 }
-                if mode.wkb_cycle_period_j0.is_none_or(|value| !value.is_finite())
-                    || mode.wkb_cycle_period_j1.is_none_or(|value| !value.is_finite())
+                if mode
+                    .wkb_cycle_period_j0
+                    .is_none_or(|value| !value.is_finite())
+                    || mode
+                        .wkb_cycle_period_j1
+                        .is_none_or(|value| !value.is_finite())
                     || mode
                         .wkb_quantization_residual
                         .is_none_or(|value| !value.is_finite() || value < 0.0)
@@ -641,8 +646,7 @@ mod tests {
         );
 
         let mut shared = sequence(QnmFamilyClassification::Unresolved);
-        shared.modes[0].initial_guess_source =
-            QnmInitialGuessSource::BhptInterpolationTable;
+        shared.modes[0].initial_guess_source = QnmInitialGuessSource::BhptInterpolationTable;
         assert_eq!(shared.validate(), Ok(()));
 
         let mut unknown = sequence(QnmFamilyClassification::Unresolved);
@@ -653,11 +657,9 @@ mod tests {
     #[test]
     fn qnm_solver_methods_preserve_interpolation_and_schwarzschild_only_methods() {
         let mut interpolation = sequence(QnmFamilyClassification::Unresolved);
-        interpolation.modes[0].solver_method =
-            QnmSolverMethod::InterpolationFromPythonQnmCache;
+        interpolation.modes[0].solver_method = QnmSolverMethod::InterpolationFromPythonQnmCache;
         interpolation.modes[0].initial_guess = None;
-        interpolation.modes[0].initial_guess_source =
-            QnmInitialGuessSource::PythonQnmCache;
+        interpolation.modes[0].initial_guess_source = QnmInitialGuessSource::PythonQnmCache;
         assert_eq!(interpolation.validate(), Ok(()));
 
         let mut asymptotic = sequence(QnmFamilyClassification::Unresolved);
@@ -702,10 +704,8 @@ mod tests {
         wrong_family.modes[0].wkb_quantization_index = Some(120);
         wrong_family.modes[0].wkb_truncation_order = Some(47);
         wrong_family.modes[0].angular_continuation_path_id = Some("path".to_owned());
-        wrong_family.modes[0].wkb_cycle_period_j0 =
-            Some(ComplexValue { re: 1.0, im: 0.0 });
-        wrong_family.modes[0].wkb_cycle_period_j1 =
-            Some(ComplexValue { re: 1.0, im: 0.0 });
+        wrong_family.modes[0].wkb_cycle_period_j0 = Some(ComplexValue { re: 1.0, im: 0.0 });
+        wrong_family.modes[0].wkb_cycle_period_j1 = Some(ComplexValue { re: 1.0, im: 0.0 });
         wrong_family.modes[0].wkb_quantization_residual = Some(1.0e-12);
         wrong_family.modes[0].wkb_truncation_error_estimate = Some(1.0e-8);
         wrong_family.modes[0].wkb_cycle_id = Some("outer".to_owned());
@@ -721,10 +721,8 @@ mod tests {
         missing_cycle.modes[0].wkb_quantization_index = Some(120);
         missing_cycle.modes[0].wkb_truncation_order = Some(47);
         missing_cycle.modes[0].angular_continuation_path_id = Some("path".to_owned());
-        missing_cycle.modes[0].wkb_cycle_period_j0 =
-            Some(ComplexValue { re: 1.0, im: 0.0 });
-        missing_cycle.modes[0].wkb_cycle_period_j1 =
-            Some(ComplexValue { re: 1.0, im: 0.0 });
+        missing_cycle.modes[0].wkb_cycle_period_j0 = Some(ComplexValue { re: 1.0, im: 0.0 });
+        missing_cycle.modes[0].wkb_cycle_period_j1 = Some(ComplexValue { re: 1.0, im: 0.0 });
         missing_cycle.modes[0].wkb_quantization_residual = Some(1.0e-12);
         missing_cycle.modes[0].wkb_truncation_error_estimate = Some(1.0e-8);
         assert_eq!(
@@ -782,7 +780,10 @@ mod tests {
         mode.wkb_quantization_index = Some(120);
         mode.wkb_truncation_order = Some(47);
         mode.wkb_cycle_id = Some("outer".to_owned());
-        mode.wkb_cycle_period_j0 = Some(ComplexValue { re: f64::NAN, im: 0.0 });
+        mode.wkb_cycle_period_j0 = Some(ComplexValue {
+            re: f64::NAN,
+            im: 0.0,
+        });
         mode.wkb_cycle_period_j1 = Some(ComplexValue { re: 1.0, im: 0.0 });
         mode.wkb_quantization_residual = Some(1.0e-12);
         mode.wkb_truncation_error_estimate = Some(1.0e-8);
