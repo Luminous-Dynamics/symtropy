@@ -519,10 +519,7 @@ mod tests {
     fn rejects_unstable_and_untiled_grids() {
         let mut unstable = config(0.1, 0.05, 0.75);
         unstable.output_interval = 0.1;
-        assert_eq!(
-            unstable.validate(),
-            Err(WaveError::UnstableTimeStep)
-        );
+        assert_eq!(unstable.validate(), Err(WaveError::UnstableTimeStep));
         assert_eq!(
             config(0.13, 0.0025, 0.75).validate(),
             Err(WaveError::GridDoesNotTileDomain)
