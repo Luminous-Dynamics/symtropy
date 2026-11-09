@@ -294,7 +294,7 @@ impl KerrQnmSpinContinuationTrace {
                     .samples
                     .iter()
                     .find(|sample| sample.spin_over_mass.abs() == 1.0)
-                    .expect("exact extremal sample checked above");
+                    .ok_or(QnmContinuationValidationError::MissingExactExtremalSample)?;
                 let expected_detuning = superradiant_bound_detuning(
                     exact_sample.omega_m,
                     self.m,
@@ -438,6 +438,20 @@ mod tests {
         assert_eq!(
             value.validate(),
             Err(QnmContinuationValidationError::MissingExactExtremalSample)
+        );
+    }
+
+    #[test]
+    fn rejects_wrong_signed_superradiant_detuning() {
+        let mut value = trace(-2, QnmExtremalDampingBehavior::ZeroDamping);
+        value
+            .extremal_limit_evidence
+            .as_mut()
+            .unwrap()
+            .exact_extremal_superradiant_detuning = ComplexValue { re: 2.0, im: 0.0 };
+        assert_eq!(
+            value.validate(),
+            Err(QnmContinuationValidationError::InvalidExtremalLimitEvidence)
         );
     }
 
