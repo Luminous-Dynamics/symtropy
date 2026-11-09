@@ -1,15 +1,15 @@
 use std::{env, fs, process};
 
-use bh_reference_fixtures::{
-    KerrQnmSequenceFixture, RadialComparisonConfig, RadialComparisonStatus, ReferenceFixture,
-    compare_radial_fixtures,
-};
-use serde_json::json;
 use bh_reference_fixtures::qnm::{
     QnmFamilyAnalysisConfig, QnmFamilyAsymptoticTargets, QnmFamilyClassification,
     analyze_qnm_family_sequence,
 };
+use bh_reference_fixtures::{
+    KerrQnmSequenceFixture, RadialComparisonConfig, RadialComparisonStatus, ReferenceFixture,
+    compare_radial_fixtures,
+};
 use serde::Deserialize;
+use serde_json::json;
 
 fn read_radial_fixture(path: &str) -> Result<ReferenceFixture, String> {
     let source = fs::read_to_string(path)
@@ -109,12 +109,8 @@ fn run(args: &[String]) -> Result<i32, String> {
         [command, sequence_path, analysis_path] if command == "analyze-qnm" => {
             let sequence = read_qnm_sequence(sequence_path)?;
             let request = read_qnm_analysis_request(analysis_path)?;
-            let analysis = analyze_qnm_family_sequence(
-                &sequence,
-                request.targets,
-                request.config,
-            )
-            .map_err(|error| error.to_string())?;
+            let analysis = analyze_qnm_family_sequence(&sequence, request.targets, request.config)
+                .map_err(|error| error.to_string())?;
             let producer_label_matches_computed =
                 sequence.family_classification == analysis.classification;
             println!(
