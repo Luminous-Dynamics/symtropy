@@ -155,3 +155,38 @@ Machine-readable fixtures: [fixtures/known_answers_v0_1.json](fixtures/known_ans
 ## Claim ceiling
 
 This benchmark measures empirical sampled success, transfer and lower-tail outcomes over frozen distributions. It does not prove worst-case safety or continuous viability and does not replace #4308. Physical safety claims require independent event classification, sound physical abstraction and qualified hardware trials.
+
+
+## 11. Executable finite Rust V0 reference
+
+The standalone, dependency-free Rust crate consumes:
+- one ordered feature severity ladder with integer successes/trials at every tested level;
+- a frozen train/validation/held-out level manifest;
+- four disjoint evaluation episode splits: rank-A, score-A, rank-B, score-B;
+- exact morphology, physics, controller, reward-unit and evidence-tier identities;
+- a preregistered number of worst levels to select and a CVaR tail fraction.
+
+The capability estimator:
+- compares observed success fractions exactly using integer arithmetic;
+- identifies adjacent monotonicity violations (success rising at higher severity);
+- suppresses a single 50%-success threshold when the sampled response is non-monotone;
+- returns the largest tested passing level and smallest tested failing level when qualified;
+- reports all-pass/all-fail censoring and never interpolates between tested levels.
+
+The cross-fitted CVaR estimator:
+- ranks held-out levels by mean reward on one split only;
+- scores the selected worst levels on a disjoint split only;
+- reverses the rank/score roles and reports both folds;
+- returns the exact arithmetic mean of the two fold estimates as a rational numerator/denominator;
+- rejects train/validation/test overlap, episode reuse, level-manifest leakage, incomplete level coverage and split identity reuse;
+- preserves morphology, physics and simulation/hardware/biological evidence tier in the output.
+
+The V0 crate has ten deterministic tests for monotone and non-monotone capability brackets, all-pass/all-fail censoring, cross-fit rank/score separation, held-out leakage, morphology/evidence-tier identity, missing level coverage and tail-fraction bounds.
+
+Qualification commands:
+
+    cargo fmt --manifest-path research/loco-capability-envelope-001/Cargo.toml -- --check
+    cargo test --manifest-path research/loco-capability-envelope-001/Cargo.toml --locked
+    cargo clippy --manifest-path research/loco-capability-envelope-001/Cargo.toml --locked --all-targets -- -D warnings
+
+The exact-head workflow is authoritative for Rust 1.96. This crate qualifies only empirical split/threshold/tail arithmetic over supplied results. It does not prove viability, safety or physical reliability.
