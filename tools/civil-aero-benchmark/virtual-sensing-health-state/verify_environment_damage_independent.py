@@ -42,6 +42,51 @@ def close(left: float, right: float, tolerance: float) -> bool:
     return abs(left - right) <= tolerance
 
 
+REQUIRED_FAULT_DOMAIN_TYPES = (
+    "power",
+    "daq",
+    "clock",
+    "calibration_chain",
+    "wiring_harness",
+)
+
+
+def validate_fault_domains(domains: list[dict[str, Any]]) -> set[tuple[str, str]]:
+    require(len(domains) == len(REQUIRED_FAULT_DOMAIN_TYPES),
+            "fault-domain manifest must contain five typed failure domains")
+    types: set[str] = set()
+    keys: set[tuple[str, str]] = set()
+    for domain in domains:
+        kind = domain.get("domain_type")
+        identifier = domain.get("domain_id")
+        require(kind in REQUIRED_FAULT_DOMAIN_TYPES
+                and isinstance(identifier, str) and identifier.strip()
+                and kind not in types,
+                "fault-domain manifest has an unknown type, empty ID or duplicate type")
+        types.add(kind)
+        keys.add((kind, identifier))
+    require(types == set(REQUIRED_FAULT_DOMAIN_TYPES),
+            "fault-domain manifest is incomplete")
+    return keys
+
+
+def structural_fault_domain_keys(model: dict[str, Any]) -> set[tuple[str, str]]:
+    records = model.get("structural_channel_fault_domains", [])
+    require(len(records) == len(model["structural_channel_ids"]),
+            "structural topology manifests must cover every channel")
+    sensor_ids: set[str] = set()
+    keys: set[tuple[str, str]] = set()
+    for record in records:
+        sensor_id = record.get("sensor_id")
+        require(sensor_id in model["structural_channel_ids"] and sensor_id not in sensor_ids,
+                "structural topology manifest has an unknown/duplicate sensor ID")
+        sensor_ids.add(sensor_id)
+        require(is_sha256(record.get("topology_evidence_sha256")),
+                "structural topology evidence digest invalid")
+        keys.update(validate_fault_domains(record["fault_domains"]))
+    return keys
+
+
 def validate(data: dict[str, Any]) -> None:
     require(
         data.get("schema_version") == "aero-causal-environment-damage-confounding/0.1.0",
@@ -61,6 +106,7 @@ def validate(data: dict[str, Any]) -> None:
             "duplicate structural sensor ID")
     require(len(set(model["structural_channel_common_cause_groups"])) == 3,
             "structural channels must have distinct common-cause groups")
+    structural_fault_domain_keys(model)
     require(all(math.isfinite(x) for x in model["healthy_signature"]),
             "healthy signature contains non-finite value")
     require(all(math.isfinite(x) for x in model["damage_signature"]),
@@ -142,8 +188,10 @@ def admit_witness(data: dict[str, Any], case: dict[str, Any],
             "ABSTAIN_UNQUALIFIED_ENVIRONMENTAL_WITNESS")
     probes = witness["probes"]
     require(len(probes) == 3, "ABSTAIN_INSUFFICIENT_ENVIRONMENTAL_OBSERVABILITY")
+    structural_domains = structural_fault_domain_keys(model)
     seen_ids: set[str] = set()
     seen_groups: set[str] = set()
+    seen_failure_domains: set[tuple[str, str]] = set()
     mean_probe = None
     gradient_probes = []
     for probe in probes:
@@ -160,6 +208,15 @@ def admit_witness(data: dict[str, Any], case: dict[str, Any],
             raise AuditError("ABSTAIN_ENVIRONMENTAL_WITNESS_NOT_INDEPENDENT")
         require(probe["independent_of_structural_channels"] is True,
                 "ABSTAIN_ENVIRONMENTAL_WITNESS_NOT_INDEPENDENT")
+        require(is_sha256(probe.get("topology_evidence_sha256")),
+                "ABSTAIN_UNQUALIFIED_ENVIRONMENTAL_WITNESS")
+        try:
+            domain_keys = validate_fault_domains(probe["fault_domains"])
+        except AuditError:
+            raise AuditError("ABSTAIN_UNQUALIFIED_ENVIRONMENTAL_WITNESS")
+        if not domain_keys.isdisjoint(structural_domains) or not domain_keys.isdisjoint(seen_failure_domains):
+            raise AuditError("ABSTAIN_ENVIRONMENTAL_WITNESS_NOT_INDEPENDENT")
+        seen_failure_domains.update(domain_keys)
         require(probe["operator_status"] == "ADMITTED"
                 and probe["calibration_status"] == "VALID"
                 and is_sha256(probe["evidence_sha256"]),
@@ -266,6 +323,7 @@ def evaluate_case(data: dict[str, Any], case: dict[str, Any]) -> dict[str, Any]:
         witness_ids: set[str] = set()
         probe_ids: set[str] = set()
         common_cause_groups: set[str] = set()
+        failure_domain_keys: set[tuple[str, str]] = set()
         for witness in witnesses:
             if witness.get("witness_id") in witness_ids:
                 return abstain(
@@ -277,7 +335,19 @@ def evaluate_case(data: dict[str, Any], case: dict[str, Any]) -> dict[str, Any]:
             for probe in witness.get("probes", []):
                 sensor_id = probe.get("sensor_id")
                 group = probe.get("common_cause_group")
-                if sensor_id in probe_ids or group in common_cause_groups:
+                try:
+                    domains = validate_fault_domains(probe["fault_domains"])
+                except AuditError:
+                    return abstain(
+                        case,
+                        "ABSTAIN_UNQUALIFIED_ENVIRONMENTAL_WITNESS",
+                        "REJECTED",
+                    )
+                if (
+                    sensor_id in probe_ids
+                    or group in common_cause_groups
+                    or not failure_domain_keys.isdisjoint(domains)
+                ):
                     return abstain(
                         case,
                         "ABSTAIN_ENVIRONMENTAL_WITNESS_NOT_INDEPENDENT",
@@ -285,6 +355,7 @@ def evaluate_case(data: dict[str, Any], case: dict[str, Any]) -> dict[str, Any]:
                     )
                 probe_ids.add(sensor_id)
                 common_cause_groups.add(group)
+                failure_domain_keys.update(domains)
             try:
                 profile = admit_witness(data, case, witness)
             except AuditError as error:
@@ -391,6 +462,26 @@ def hostile_controls(data: dict[str, Any]) -> None:
     require(result["disposition"] == "ABSTAIN_ENVIRONMENTAL_WITNESS_NOT_INDEPENDENT",
             "environmental witness sharing a structural common cause was accepted")
 
+    wrong_daq = copy.deepcopy(damaged)
+    structural = next(
+        item for item in data["model"]["structural_channel_fault_domains"]
+        if item["sensor_id"] == "S1"
+    )
+    wrong_daq["environmental_witnesses"][0]["probes"][0]["fault_domains"] = copy.deepcopy(
+        structural["fault_domains"]
+    )
+    result = evaluate_case(data, wrong_daq)
+    require(result["disposition"] == "ABSTAIN_ENVIRONMENTAL_WITNESS_NOT_INDEPENDENT",
+            "environmental probe sharing structural DAQ/power/clock topology was accepted")
+
+    cross_witness = next(
+        case for case in data["cases"]
+        if case["case_id"] == "DUPLICATE_COMMON_CAUSE_ENVIRONMENTAL_WITNESSES"
+    )
+    result = evaluate_case(data, cross_witness)
+    require(result["disposition"] == "ABSTAIN_ENVIRONMENTAL_WITNESS_NOT_INDEPENDENT",
+            "separate witnesses sharing one typed failure domain were accepted")
+
     expired = copy.deepcopy(damaged)
     expired["environmental_witnesses"][0]["probes"][0]["calibration_status"] = "EXPIRED"
     result = evaluate_case(data, expired)
@@ -423,7 +514,7 @@ def main() -> int:
         raw = FIXTURE.read_bytes()
         data = json.loads(raw)
         expected = evaluate(data, raw)
-        require(expected["case_count"] == 16, "frozen case count changed")
+        require(expected["case_count"] == 17, "frozen case count changed")
         by_id = {case["case_id"]: case for case in expected["cases"]}
         require(by_id["APPARENT_DAMAGE_EXPLAINED_BY_THERMAL_GRADIENT"]["structural_state"]
                 == "HEALTHY", "thermal-gradient counterexample changed")
@@ -436,7 +527,7 @@ def main() -> int:
         compare(actual, expected)
         hostile_controls(data)
         print(
-            "aero_environment_damage_confounding=pass cases=15 "
+            "aero_environment_damage_confounding=pass cases=17 "
             "joint_states=structure_x_environment "
             "damage_gradient_collision=abstain rust_python=pass"
         )
