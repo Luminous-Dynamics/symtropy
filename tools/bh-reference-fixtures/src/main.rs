@@ -63,6 +63,7 @@ fn run(args: &[String]) -> Result<i32, String> {
                         "wkb_quantization_index_N": mode.wkb_quantization_index,
                         "solver_method": mode.solver_method,
                         "method_applicability": mode.method_applicability,
+                        "initial_guess_source": mode.initial_guess_source,
                         "angular_branch_id": mode.angular_branch_id,
                         "normal_prolate_wkb_small_spin_parameter": sequence
                             .normal_prolate_wkb_small_spin_parameter(mode)
