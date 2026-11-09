@@ -35,6 +35,21 @@ pub struct HealthState {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct HealthPossibilityReceipt {
+    pub receipt_id: String,
+    pub health_evidence_digest: String,
+    pub possible_signature_set_digest: String,
+    pub initial_state_digest: String,
+    pub model_digest: String,
+    pub domain_digest: String,
+    pub actuator_digest: String,
+    pub result_digest: String,
+    pub enumeration_complete: bool,
+    pub valid_from_ns: u64,
+    pub valid_until_ns: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PossibleHealthSignature {
     pub signature_id: String,
     pub health_evidence_digest: String,
@@ -97,6 +112,9 @@ pub struct FailoverProblem {
     pub transition_duration_ns: u64,
     pub maximum_transition_duration_ns: u64,
     pub preferred_fallback_action_id: String,
+    pub health_evidence_digest: String,
+    pub possible_signature_set_digest: String,
+    pub possibility_receipt: HealthPossibilityReceipt,
     pub health_evidence: Vec<HealthEvidence>,
     /// Complete set of health signatures still physically possible according
     /// to the upstream evidence/uncertainty interpreter. Unknown must expand,
@@ -153,6 +171,9 @@ pub enum FailoverError {
     FutureLastModeChange,
     DuplicateHealthEvidence,
     DuplicateChannelHealth,
+    DuplicateSignature,
+    DuplicateReceiptSignature,
+    DuplicateAdmittedAction,
     InvalidHealthEvidenceInterval,
     StaleHealthEvidence,
     FutureHealthEvidence,
@@ -160,6 +181,11 @@ pub enum FailoverError {
     DuplicateSignature,
     EmptySignature,
     DuplicateChannelInSignature,
+    SignatureChannelSetMismatch,
+    PossibilityReceiptInvalid,
+    StalePossibilityReceipt,
+    PossibilitySetIncomplete,
+    PossibilityContextMismatch,
     UnknownHealthReceipt,
     DuplicateTransitionReceipt,
     MissingTransitionReceipt,
@@ -263,6 +289,40 @@ fn validate_health_evidence(problem: &FailoverProblem) -> Result<(), FailoverErr
     Ok(())
 }
 
+fn validate_possibility_receipt(problem: &FailoverProblem) -> Result<(), FailoverError> {
+    let receipt = &problem.possibility_receipt;
+    if !nonempty(&receipt.receipt_id)
+        || !nonempty(&receipt.health_evidence_digest)
+        || !nonempty(&receipt.possible_signature_set_digest)
+        || !nonempty(&receipt.initial_state_digest)
+        || !nonempty(&receipt.model_digest)
+        || !nonempty(&receipt.domain_digest)
+        || !nonempty(&receipt.actuator_digest)
+        || !nonempty(&receipt.result_digest)
+    {
+        return Err(FailoverError::EmptyIdentifier);
+    }
+    if receipt.valid_from_ns > receipt.valid_until_ns {
+        return Err(FailoverError::PossibilityReceiptInvalid);
+    }
+    if problem.now_ns < receipt.valid_from_ns || problem.now_ns > receipt.valid_until_ns {
+        return Err(FailoverError::StalePossibilityReceipt);
+    }
+    if !receipt.enumeration_complete {
+        return Err(FailoverError::PossibilitySetIncomplete);
+    }
+    if receipt.health_evidence_digest != problem.health_evidence_digest
+        || receipt.possible_signature_set_digest != problem.possible_signature_set_digest
+        || receipt.initial_state_digest != problem.initial_state_digest
+        || receipt.model_digest != problem.model_digest
+        || receipt.domain_digest != problem.domain_digest
+        || receipt.actuator_digest != problem.actuator_digest
+    {
+        return Err(FailoverError::PossibilityContextMismatch);
+    }
+    Ok(())
+}
+
 fn validate_receipt(
     problem: &FailoverProblem,
     signature: &PossibleHealthSignature,
@@ -308,7 +368,15 @@ fn validate_receipt(
     if receipt.horizon_steps != problem.horizon_steps {
         return Err(FailoverError::HorizonMismatch);
     }
-    validate_unique_ids(receipt.admitted_action_ids.iter().map(String::as_str))?;
+    let mut action_ids = BTreeSet::new();
+    for action_id in &receipt.admitted_action_ids {
+        if !nonempty(action_id) {
+            return Err(FailoverError::EmptyIdentifier);
+        }
+        if !action_ids.insert(action_id.as_str()) {
+            return Err(FailoverError::DuplicateAdmittedAction);
+        }
+    }
     if receipt.admitted_action_ids.is_empty() {
         return Err(FailoverError::EmptyAdmittedActionSet);
     }
@@ -344,6 +412,7 @@ pub fn evaluate_failover(
     }
 
     validate_health_evidence(problem)?;
+    validate_possibility_receipt(problem)?;
 
     let downshift = problem.target_mode.rank < problem.current_mode.rank;
     let upgrade = problem.target_mode.rank > problem.current_mode.rank;
@@ -378,12 +447,26 @@ pub fn evaluate_failover(
     if problem.possible_signatures.is_empty() {
         return Err(FailoverError::NoPossibleSignatures);
     }
-    validate_unique_ids(
-        problem
-            .possible_signatures
+    let mut signature_ids = BTreeSet::new();
+    for signature in &problem.possible_signatures {
+        if !signature_ids.insert(signature.signature_id.as_str()) {
+            return Err(FailoverError::DuplicateSignature);
+        }
+        let _ = signature_digest(signature)?;
+        let channels = signature
+            .states
             .iter()
-            .map(|signature| signature.signature_id.as_str()),
-    )?;
+            .map(|state| state.channel_id.as_str())
+            .collect::<BTreeSet<_>>();
+        let evidence_channels = problem
+            .health_evidence
+            .iter()
+            .map(|evidence| evidence.channel_id.as_str())
+            .collect::<BTreeSet<_>>();
+        if channels != evidence_channels {
+            return Err(FailoverError::SignatureChannelSetMismatch);
+        }
+    }
 
     let mut signatures = problem.possible_signatures.clone();
     for signature in &signatures {
@@ -403,6 +486,13 @@ pub fn evaluate_failover(
         if receipts.insert(receipt.signature_id.as_str(), receipt).is_some() {
             return Err(FailoverError::DuplicateTransitionReceipt);
         }
+        if !signature_ids.contains(receipt.signature_id.as_str()) {
+            return Err(FailoverError::DuplicateReceiptSignature);
+        }
+    }
+
+    if receipts.len() != signature_ids.len() {
+        return Err(FailoverError::MissingTransitionReceipt);
     }
 
     let mut common_actions: Option<BTreeSet<String>> = None;
@@ -580,6 +670,17 @@ mod tests {
                     valid_until_ns: 550,
                 },
                 HealthEvidence {
+                    evidence_id: "health-foot-wrench".to_owned(),
+                    channel_id: "foot-wrench".to_owned(),
+                    calibration_digest: "foot-wrench-cal-v1".to_owned(),
+                    clock_mapping_digest: "clock-v1".to_owned(),
+                    common_cause_group: "foot-sensor-bus-1".to_owned(),
+                    health: ChannelHealth::Valid,
+                    acquired_at_ns: 490,
+                    arrived_at_ns: 495,
+                    valid_until_ns: 550,
+                },
+                HealthEvidence {
                     evidence_id: "health-joints".to_owned(),
                     channel_id: "joint-encoders".to_owned(),
                     calibration_digest: "joint-cal-v1".to_owned(),
@@ -591,6 +692,21 @@ mod tests {
                     valid_until_ns: 550,
                 },
             ],
+            health_evidence_digest: "health-evidence-set-v1".to_owned(),
+            possible_signature_set_digest: "signature-set-v1".to_owned(),
+            possibility_receipt: HealthPossibilityReceipt {
+                receipt_id: "possibility-receipt-v1".to_owned(),
+                health_evidence_digest: "health-evidence-set-v1".to_owned(),
+                possible_signature_set_digest: "signature-set-v1".to_owned(),
+                initial_state_digest: "state-001".to_owned(),
+                model_digest: "model-001".to_owned(),
+                domain_digest: "domain-001".to_owned(),
+                actuator_digest: "actuator-v1".to_owned(),
+                result_digest: "complete-signature-set-v1".to_owned(),
+                enumeration_complete: true,
+                valid_from_ns: 100,
+                valid_until_ns: 1_000,
+            },
             possible_signatures: Vec::new(),
             transition_receipts: Vec::new(),
         };
