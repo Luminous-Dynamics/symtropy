@@ -398,7 +398,7 @@ mod tests {
             ledger.bind_ticket(7, 109, "controller-shared"),
             Err(OutcomeLedgerError::ControllerTicketAlreadyBound)
         );
-        assert_eq!(ledger.is_ticket_bound(7, 109), false);
+        assert!(!ledger.is_ticket_bound(7, 109));
     }
 
     #[test]
