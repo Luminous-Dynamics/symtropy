@@ -247,7 +247,7 @@ jobs:
               rows = list(reader)
               fields = reader.fieldnames
 
-          assert fields is not None and len(fields) == 29, f"expected 29 columns, got {len(fields or [])}"
+          assert fields is not None and len(fields) == 30, f"expected 30 columns, got {len(fields or [])}"
           assert len(rows) == 3, f"expected three domain-statistic receipts, got {len(rows)}"
           by_domain = {row["domain_id"]: row for row in rows}
           assert set(by_domain) == {"source-region", "target-institution", "target-time-period"}
@@ -289,6 +289,7 @@ jobs:
           assert len({row["source_digest"] for row in rows}) == 3
           assert len({row["split_manifest_id"] for row in rows}) == 3
           assert len({row["split_manifest_digest"] for row in rows}) == 3
+          assert all(row["evidence_complete"] == "true" for row in rows)
           assert all(row["claim_ceiling"] == "transfer_discrepancy_detected" for row in rows)
           assert all(row["source_validation_domain_count"] == "1" for row in rows)
           assert all(row["held_out_challenge_domain_count"] == "2" for row in rows)
