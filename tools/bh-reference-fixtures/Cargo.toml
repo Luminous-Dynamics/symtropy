@@ -8,6 +8,7 @@ description = "Strict, convention-safe reference fixture schema for black-hole p
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
-serde_json = { version = "1", features = ["float_roundtrip"] }
+serde_json = { version = "=1.0.154", features = ["float_roundtrip"] }
+sha2 = "=0.10.9"
 
 [workspace]
