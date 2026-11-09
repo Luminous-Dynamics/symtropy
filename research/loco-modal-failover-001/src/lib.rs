@@ -774,6 +774,7 @@ mod tests {
             vec![
                 ("depth-camera", ChannelHealth::Ood),
                 ("joint-encoders", ChannelHealth::Degraded),
+                ("foot-wrench", ChannelHealth::Valid),
             ],
         );
         problem.transition_receipts.push(receipt(
@@ -930,7 +931,7 @@ mod tests {
     #[test]
     fn actuator_receipt_mismatch_is_rejected() {
         let mut problem = base_problem();
-        problem.actuator_digest = "actuator-derated-v2".to_owned();
+        problem.transition_receipts[0].actuator_digest = "actuator-derated-v2".to_owned();
         assert_eq!(
             evaluate_failover(&problem),
             Err(FailoverError::ReceiptIdentityMismatch)
