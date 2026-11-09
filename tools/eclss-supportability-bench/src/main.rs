@@ -335,7 +335,8 @@ fn validate_public_reference(value: &Value) -> Check<Value> {
             "evidence_class",
             "claim_status",
             "source",
-            "records",
+            "component_records",
+            "crew_task_records",
         ],
         at,
     )?;
@@ -356,15 +357,15 @@ fn validate_public_reference(value: &Value) -> Check<Value> {
     )?;
     let source = field(value, "source", at)?;
     let limitations = array(field(source, "limitations", at)?, "source.limitations")?;
-    if limitations.len() < 6 {
+    if limitations.len() < 7 {
         return Err(format!("{at}: source limitations were lost"));
     }
-    let records = array(field(value, "records", at)?, "records")?;
-    require_eq(records.len(), 11usize, "ISS reference record count")?;
-    let mut ids = std::collections::BTreeSet::new();
 
+    let records = array(field(value, "component_records", at)?, "component_records")?;
+    require_eq(records.len(), 9usize, "selected ISS component record count")?;
+    let mut component_ids = std::collections::BTreeSet::new();
     for (index, record) in records.iter().enumerate() {
-        let record_at = format!("iss_reference.records[{index}]");
+        let record_at = format!("iss_reference.component_records[{index}]");
         exact_keys(
             record,
             &[
@@ -377,7 +378,7 @@ fn validate_public_reference(value: &Value) -> Check<Value> {
                 "mtbf_hours",
                 "operational_mttr_hours",
                 "operational_k_factor",
-                "crew_r_and_r_hours",
+                "component_r_and_r_hours",
                 "preventive_r_and_r_interval_days",
                 "preventive_r_and_r_duration_hours",
                 "throughput_limited_life",
@@ -387,35 +388,41 @@ fn validate_public_reference(value: &Value) -> Check<Value> {
             &record_at,
         )?;
         let id = text(field(record, "record_id", &record_at)?, "record_id")?;
-        if !ids.insert(id) {
-            return Err(format!("{record_at}: duplicate record id {id}"));
+        if id.starts_with("ICES2025-127-CREW-") || !component_ids.insert(id) {
+            return Err(format!("{record_at}: invalid or duplicate component record id {id}"));
         }
         for metric in [
             "mass_kg",
             "mtbf_hours",
             "operational_mttr_hours",
             "operational_k_factor",
-            "crew_r_and_r_hours",
+            "component_r_and_r_hours",
             "preventive_r_and_r_interval_days",
             "preventive_r_and_r_duration_hours",
         ] {
-            let value = field(record, metric, &record_at)?;
-            if !value.is_null() {
-                let metric_value = number(value, metric)?;
-                if metric_value < 0.0
-                    || (metric == "mtbf_hours" || metric == "operational_k_factor")
-                        && metric_value == 0.0
+            let metric_value = field(record, metric, &record_at)?;
+            if !metric_value.is_null() {
+                let value = number(metric_value, metric)?;
+                if value < 0.0
+                    || (metric == "mtbf_hours"
+                        || metric == "operational_k_factor"
+                        || metric == "preventive_r_and_r_interval_days")
+                        && value == 0.0
                 {
                     return Err(format!("{record_at}.{metric}: invalid numeric value"));
                 }
             }
         }
         for limit in ["throughput_limited_life", "calendar_limited_life"] {
-            let value = field(record, limit, &record_at)?;
-            if !value.is_null() {
-                exact_keys(value, &["value", "unit"], &format!("{record_at}.{limit}"))?;
-                if number(field(value, "value", limit)?, "limit.value")? < 0.0
-                    || text(field(value, "unit", limit)?, "limit.unit")?.is_empty()
+            let limit_value = field(record, limit, &record_at)?;
+            if !limit_value.is_null() {
+                exact_keys(
+                    limit_value,
+                    &["value", "unit"],
+                    &format!("{record_at}.{limit}"),
+                )?;
+                if number(field(limit_value, "value", limit)?, "limit.value")? < 0.0
+                    || text(field(limit_value, "unit", limit)?, "limit.unit")?.is_empty()
                 {
                     return Err(format!("{record_at}.{limit}: invalid limit"));
                 }
@@ -435,38 +442,95 @@ fn validate_public_reference(value: &Value) -> Check<Value> {
         7.0,
         "distillation operational MTTR",
     )?;
+    if !distillation["component_r_and_r_hours"].is_null() {
+        return Err(format!(
+            "{at}: Table 1 crew task time was duplicated into the Table 3 component row"
+        ));
+    }
+    let actex = records
+        .iter()
+        .find(|record| record["record_id"] == "ICES2025-127-WATER-STORAGE-ACTEX-FILTER")
+        .ok_or_else(|| format!("{at}: missing water-storage ACTEX row"))?;
     require_eq(
-        number(&distillation["crew_r_and_r_hours"], "crew_r_and_r_hours")?,
-        3.0,
-        "distillation crew R&R",
+        number(
+            &actex["component_r_and_r_hours"],
+            "component_r_and_r_hours",
+        )?,
+        0.5,
+        "Table 5 component R&R hours",
     )?;
 
-    let selected_crew_task_records = records
+    let crew_tasks = array(field(value, "crew_task_records", at)?, "crew_task_records")?;
+    require_eq(crew_tasks.len(), 2usize, "selected Table 1 crew task count")?;
+    let mut crew_ids = std::collections::BTreeSet::new();
+    for (index, task) in crew_tasks.iter().enumerate() {
+        let task_at = format!("iss_reference.crew_task_records[{index}]");
+        exact_keys(
+            task,
+            &[
+                "record_id",
+                "table",
+                "printed_page",
+                "subsystem",
+                "oru",
+                "crew_time_minutes",
+                "notes",
+            ],
+            &task_at,
+        )?;
+        let id = text(field(task, "record_id", &task_at)?, "record_id")?;
+        if !id.starts_with("ICES2025-127-CREW-") || !crew_ids.insert(id) {
+            return Err(format!("{task_at}: invalid or duplicate crew task id {id}"));
+        }
+        require_eq(
+            text(field(task, "table", &task_at)?, "table")?,
+            "Table 1",
+            &task_at,
+        )?;
+        require_eq(
+            integer(field(task, "printed_page", &task_at)?, "printed_page")?,
+            9,
+            &task_at,
+        )?;
+        if integer(
+            field(task, "crew_time_minutes", &task_at)?,
+            "crew_time_minutes",
+        )? == 0
+        {
+            return Err(format!("{task_at}: crew time must be positive"));
+        }
+        for key in ["subsystem", "oru", "notes"] {
+            if text(field(task, key, &task_at)?, key)?.is_empty() {
+                return Err(format!("{task_at}.{key}: must not be empty"));
+            }
+        }
+    }
+    let oga_hydrogen = crew_tasks
         .iter()
-        .filter(|record| {
-            record["record_id"]
-                .as_str()
-                .is_some_and(|id| id.starts_with("ICES2025-127-CREW-"))
-        })
-        .count();
-    let selected_component_records = records.len() - selected_crew_task_records;
+        .find(|task| task["oru"] == "OGA — Hydrogen")
+        .ok_or_else(|| format!("{at}: missing selected OGA hydrogen task"))?;
     require_eq(
-        selected_component_records,
-        9usize,
-        "selected component record count",
+        integer(&oga_hydrogen["crew_time_minutes"], "crew_time_minutes")?,
+        840,
+        "OGA hydrogen crew R&R minutes",
     )?;
+    let wpa_combined = crew_tasks
+        .iter()
+        .find(|task| task["oru"].as_str().is_some_and(|oru| oru.starts_with("WPA — Gas Separator")))
+        .ok_or_else(|| format!("{at}: missing selected combined WPA task"))?;
     require_eq(
-        selected_crew_task_records,
-        2usize,
-        "selected crew task record count",
+        integer(&wpa_combined["crew_time_minutes"], "crew_time_minutes")?,
+        1155,
+        "combined WPA crew R&R minutes",
     )?;
 
     Ok(json!({
-        "selected_register_records": records.len(),
-        "selected_component_records": selected_component_records,
-        "selected_crew_task_records": selected_crew_task_records,
-        "unique_record_ids": ids.len(),
-        "distinct_mttr_vs_crew_rr_preserved": true,
+        "selected_register_records": records.len() + crew_tasks.len(),
+        "selected_component_records": records.len(),
+        "selected_crew_task_records": crew_tasks.len(),
+        "unique_component_record_ids": component_ids.len(),
+        "unique_crew_task_record_ids": crew_ids.len(),
+        "component_rr_distinct_from_table1_crew_time": true,
         "source_limitations_retained": limitations.len()
     }))
 }
@@ -648,7 +712,7 @@ fn validate_appendix_supplement(value: &Value) -> Check<Value> {
                 "mtbf_hours",
                 "operational_mttr_hours",
                 "operational_k_factor",
-                "crew_r_and_r_hours",
+                "component_r_and_r_hours",
                 "preventive_r_and_r_interval_days",
                 "preventive_r_and_r_duration_hours",
                 "throughput_limited_life",
@@ -679,7 +743,7 @@ fn validate_appendix_supplement(value: &Value) -> Check<Value> {
             "mtbf_hours",
             "operational_mttr_hours",
             "operational_k_factor",
-            "crew_r_and_r_hours",
+            "component_r_and_r_hours",
             "preventive_r_and_r_interval_days",
             "preventive_r_and_r_duration_hours",
         ] {
