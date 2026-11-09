@@ -38,6 +38,7 @@ pub enum SpecialError {
     InvalidConfiguration,
     AssociatedLegendreDomainUnsupported,
     InvalidPoschlTellerParameters,
+    InvalidCausalRegionParameters,
 }
 
 impl fmt::Display for SpecialError {
@@ -85,6 +86,9 @@ impl fmt::Display for SpecialError {
                     f,
                     "Pöschl–Teller Jost parameters require finite omega, b>0 and lambda>=0"
                 )
+            }
+            Self::InvalidCausalRegionParameters => {
+                write!(f, "Pöschl–Teller causal-region parameters are invalid")
             }
         }
     }
@@ -748,6 +752,102 @@ pub fn poschl_teller_retarded_green(
         connection_wronskian,
         left_jost_value: left.value,
         right_jost_value: right.value,
+    })
+}
+
+/// Region in which a Pöschl–Teller retarded response has a qualified
+/// mode-sum representation under the Arnaudo–Carballo–Withers split.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PoschlTellerModeSumRegion {
+    /// Both split frequency-space terms close in the lower half-plane;
+    /// their Matsubara residues cancel and the QNM sum converges.
+    LateQnm,
+    /// The QNM-bearing term closes in the upper half-plane and the other in
+    /// the lower half-plane; the response is represented by Matsubara modes.
+    EarlyMatsubara,
+    /// Both terms close in the upper half-plane; the retarded Green function
+    /// vanishes by causality.
+    CausallyZero,
+    /// The point lies within the caller-declared uncertainty band around a
+    /// direct or potential-reflected light cone. No series is selected.
+    TransitionUnresolved,
+}
+
+/// Dimensionless geometry and signed distances to the two Pöschl–Teller
+/// light-cone boundaries. Positive margins are on the post-front side.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct PoschlTellerModeSumRegionEvaluation {
+    pub region: PoschlTellerModeSumRegion,
+    pub dimensionless_time: f64,
+    pub direct_lightcone_margin: f64,
+    pub reflected_lightcone_margin: f64,
+    pub boundary_tolerance: f64,
+}
+
+/// Classify the causal mode-sum region for
+/// V(x)=lambda/width^2 * sech^2(x/width), with its peak at x=0.
+///
+/// This is the exact Pöschl–Teller region geometry in
+/// Arnaudo, Carballo & Withers, Phys. Rev. D 114, 024025 (2026),
+/// DOI 10.1103/1bcl-q79x. In dimensionless coordinates
+///
+///     T = (t-t')/width, X = observer_x/width, X' = source_x/width,
+///
+/// the direct front is T=|X-X'| and the front scattered from the potential
+/// peak is T=|X+X'|. Region I is QNM-only when both margins are positive;
+/// Region II is Matsubara-only when the direct margin is positive and the
+/// reflected margin is negative; Region III is causally zero before the
+/// direct front. A positive boundary tolerance creates an explicit abstention
+/// band instead of making a numerically fragile choice at either front.
+///
+/// The formula is a geometric domain selector, not a convergence certificate.
+/// The selected expansion must still establish its own residue-sum remainder
+/// or return unresolved.
+pub fn classify_poschl_teller_mode_sum_region(
+    width: f64,
+    lambda: f64,
+    delta_time: f64,
+    observer_x: f64,
+    source_x: f64,
+    boundary_tolerance: f64,
+) -> Result<PoschlTellerModeSumRegionEvaluation, SpecialError> {
+    if !width.is_finite()
+        || !lambda.is_finite()
+        || !delta_time.is_finite()
+        || !observer_x.is_finite()
+        || !source_x.is_finite()
+        || width <= 0.0
+        || lambda <= 0.0
+        || !boundary_tolerance.is_finite()
+        || boundary_tolerance <= 0.0
+    {
+        return Err(SpecialError::InvalidCausalRegionParameters);
+    }
+
+    let dimensionless_time = delta_time / width;
+    let observer = observer_x / width;
+    let source = source_x / width;
+    let direct_lightcone_margin = dimensionless_time - (observer - source).abs();
+    let reflected_lightcone_margin = dimensionless_time - (observer + source).abs();
+
+    let region = if direct_lightcone_margin.abs() <= boundary_tolerance
+        || reflected_lightcone_margin.abs() <= boundary_tolerance
+    {
+        PoschlTellerModeSumRegion::TransitionUnresolved
+    } else if direct_lightcone_margin > 0.0 && reflected_lightcone_margin > 0.0 {
+        PoschlTellerModeSumRegion::LateQnm
+    } else if direct_lightcone_margin > 0.0 && reflected_lightcone_margin < 0.0 {
+        PoschlTellerModeSumRegion::EarlyMatsubara
+    } else {
+        PoschlTellerModeSumRegion::CausallyZero
+    };
+
+    Ok(PoschlTellerModeSumRegionEvaluation {
+        region,
+        dimensionless_time,
+        direct_lightcone_margin,
+        reflected_lightcone_margin,
+        boundary_tolerance,
     })
 }
 
@@ -1690,4 +1790,101 @@ mod tests {
             Err(SpecialError::InvalidConfiguration)
         );
     }
+
+    #[test]
+    fn causal_region_selector_reproduces_all_three_exact_domains() {
+        let late = classify_poschl_teller_mode_sum_region(
+            2.0, 0.75, 8.0, 4.0, 2.0, 1.0e-10,
+        )
+        .unwrap();
+        assert_eq!(late.region, PoschlTellerModeSumRegion::LateQnm);
+        assert!(late.direct_lightcone_margin > 0.0);
+        assert!(late.reflected_lightcone_margin > 0.0);
+
+        let early = classify_poschl_teller_mode_sum_region(
+            2.0, 0.75, 4.0, 4.0, 2.0, 1.0e-10,
+        )
+        .unwrap();
+        assert_eq!(early.region, PoschlTellerModeSumRegion::EarlyMatsubara);
+        assert!(early.direct_lightcone_margin > 0.0);
+        assert!(early.reflected_lightcone_margin < 0.0);
+
+        let zero = classify_poschl_teller_mode_sum_region(
+            2.0, 0.75, 1.0, 4.0, 2.0, 1.0e-10,
+        )
+        .unwrap();
+        assert_eq!(zero.region, PoschlTellerModeSumRegion::CausallyZero);
+        assert!(zero.direct_lightcone_margin < 0.0);
+    }
+
+    #[test]
+    fn causal_region_selector_scales_with_width_and_handles_opposite_sides() {
+        let narrow = classify_poschl_teller_mode_sum_region(
+            2.0, 0.75, 4.0, 4.0, 2.0, 1.0e-10,
+        )
+        .unwrap();
+        let scaled = classify_poschl_teller_mode_sum_region(
+            4.0, 0.75, 8.0, 8.0, 4.0, 1.0e-10,
+        )
+        .unwrap();
+        assert_eq!(narrow.region, scaled.region);
+        assert_eq!(narrow.dimensionless_time, scaled.dimensionless_time);
+        assert_eq!(
+            narrow.direct_lightcone_margin,
+            scaled.direct_lightcone_margin
+        );
+        assert_eq!(
+            narrow.reflected_lightcone_margin,
+            scaled.reflected_lightcone_margin
+        );
+
+        let opposite_sides = classify_poschl_teller_mode_sum_region(
+            2.0, 0.75, 4.0, 4.0, -2.0, 1.0e-10,
+        )
+        .unwrap();
+        assert_eq!(
+            opposite_sides.region,
+            PoschlTellerModeSumRegion::CausallyZero
+        );
+    }
+
+    #[test]
+    fn causal_region_selector_abstains_at_both_wavefronts() {
+        let direct = classify_poschl_teller_mode_sum_region(
+            1.0, 0.75, 1.0, 2.0, 1.0, 1.0e-8,
+        )
+        .unwrap();
+        assert_eq!(
+            direct.region,
+            PoschlTellerModeSumRegion::TransitionUnresolved
+        );
+
+        let reflected = classify_poschl_teller_mode_sum_region(
+            1.0, 0.75, 3.0, 2.0, 1.0, 1.0e-8,
+        )
+        .unwrap();
+        assert_eq!(
+            reflected.region,
+            PoschlTellerModeSumRegion::TransitionUnresolved
+        );
+    }
+
+    #[test]
+    fn causal_region_selector_fails_closed_on_invalid_inputs() {
+        for (width, lambda, time, observer, source, tolerance) in [
+            (0.0, 0.75, 1.0, 2.0, 1.0, 1.0e-8),
+            (1.0, 0.0, 1.0, 2.0, 1.0, 1.0e-8),
+            (1.0, 0.75, f64::NAN, 2.0, 1.0, 1.0e-8),
+            (1.0, 0.75, 1.0, 2.0, 1.0, 0.0),
+        ] {
+            assert_eq!(
+                classify_poschl_teller_mode_sum_region(
+                    width, lambda, time, observer, source, tolerance
+                ),
+                Err(SpecialError::InvalidCausalRegionParameters)
+            );
+        }
+    }
+
+
 }
