@@ -364,6 +364,230 @@ pub fn assess_compatibility(
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RadialComparisonConfig {
+    pub absolute_tolerance: f64,
+    pub relative_tolerance: f64,
+}
+
+impl RadialComparisonConfig {
+    fn validate(self) -> Result<(), RadialComparisonError> {
+        if !self.absolute_tolerance.is_finite()
+            || !self.relative_tolerance.is_finite()
+            || self.absolute_tolerance < 0.0
+            || self.relative_tolerance < 0.0
+            || (self.absolute_tolerance == 0.0 && self.relative_tolerance == 0.0)
+        {
+            return Err(RadialComparisonError::InvalidTolerance);
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RadialComparisonStatus {
+    Unmatched,
+    Unresolved,
+    NumericallyAgreeing,
+    NumericallyDisagreeing,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct RadialChannelMetrics {
+    pub compared_values: usize,
+    pub maximum_absolute_error: f64,
+    /// Maximum error divided by (absolute tolerance + relative tolerance
+    /// times the larger magnitude at the compared point).
+    pub maximum_scaled_error: f64,
+    pub values_outside_tolerance: usize,
+}
+
+impl Default for RadialChannelMetrics {
+    fn default() -> Self {
+        Self {
+            compared_values: 0,
+            maximum_absolute_error: 0.0,
+            maximum_scaled_error: 0.0,
+            values_outside_tolerance: 0,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct RadialComparisonResult {
+    pub status: RadialComparisonStatus,
+    pub differing_fields: Vec<&'static str>,
+    pub unresolved_reason: Option<&'static str>,
+    pub in_value: RadialChannelMetrics,
+    pub in_derivative: RadialChannelMetrics,
+    pub up_value: RadialChannelMetrics,
+    pub up_derivative: RadialChannelMetrics,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RadialComparisonError {
+    InvalidTolerance,
+    InvalidLeftFixture(FixtureValidationError),
+    InvalidRightFixture(FixtureValidationError),
+}
+
+impl fmt::Display for RadialComparisonError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InvalidTolerance => write!(f, "comparison tolerances must be finite, non-negative, and not both zero"),
+            Self::InvalidLeftFixture(error) => write!(f, "left radial fixture is invalid: {error}"),
+            Self::InvalidRightFixture(error) => write!(f, "right radial fixture is invalid: {error}"),
+        }
+    }
+}
+
+impl std::error::Error for RadialComparisonError {}
+
+/// Compare two radial fixtures only when their declared mathematical problem,
+/// sample radii, and per-channel coverage match exactly. No interpolation,
+/// normalization fitting, or silent sample dropping is performed.
+pub fn compare_radial_fixtures(
+    left: &ReferenceFixture,
+    right: &ReferenceFixture,
+    config: RadialComparisonConfig,
+) -> Result<RadialComparisonResult, RadialComparisonError> {
+    config.validate()?;
+    left.validate()
+        .map_err(RadialComparisonError::InvalidLeftFixture)?;
+    right
+        .validate()
+        .map_err(RadialComparisonError::InvalidRightFixture)?;
+
+    let compatibility = assess_compatibility(left, right);
+    if compatibility.status == CompatibilityStatus::Unmatched {
+        return Ok(RadialComparisonResult {
+            status: RadialComparisonStatus::Unmatched,
+            differing_fields: compatibility.differing_fields,
+            unresolved_reason: None,
+            in_value: RadialChannelMetrics::default(),
+            in_derivative: RadialChannelMetrics::default(),
+            up_value: RadialChannelMetrics::default(),
+            up_derivative: RadialChannelMetrics::default(),
+        });
+    }
+
+    if left.data.radial_samples.len() != right.data.radial_samples.len()
+        || left
+            .data
+            .radial_samples
+            .iter()
+            .zip(&right.data.radial_samples)
+            .any(|(left_sample, right_sample)| left_sample.r_over_m != right_sample.r_over_m)
+    {
+        return Ok(unresolved_radial_comparison(
+            "radial sample nodes differ; interpolation is intentionally not implicit",
+        ));
+    }
+
+    let mut result = RadialComparisonResult {
+        status: RadialComparisonStatus::NumericallyAgreeing,
+        differing_fields: Vec::new(),
+        unresolved_reason: None,
+        in_value: RadialChannelMetrics::default(),
+        in_derivative: RadialChannelMetrics::default(),
+        up_value: RadialChannelMetrics::default(),
+        up_derivative: RadialChannelMetrics::default(),
+    };
+
+    for (left_sample, right_sample) in left
+        .data
+        .radial_samples
+        .iter()
+        .zip(&right.data.radial_samples)
+    {
+        if !compare_optional_channel(
+            left_sample.in_value,
+            right_sample.in_value,
+            config,
+            &mut result.in_value,
+        ) || !compare_optional_channel(
+            left_sample.in_derivative,
+            right_sample.in_derivative,
+            config,
+            &mut result.in_derivative,
+        ) || !compare_optional_channel(
+            left_sample.up_value,
+            right_sample.up_value,
+            config,
+            &mut result.up_value,
+        ) || !compare_optional_channel(
+            left_sample.up_derivative,
+            right_sample.up_derivative,
+            config,
+            &mut result.up_derivative,
+        ) {
+            return Ok(unresolved_radial_comparison(
+                "radial channel coverage differs between fixtures",
+            ));
+        }
+    }
+
+    let compared_values = result.in_value.compared_values
+        + result.in_derivative.compared_values
+        + result.up_value.compared_values
+        + result.up_derivative.compared_values;
+    if compared_values == 0 {
+        return Ok(unresolved_radial_comparison(
+            "fixtures contain no paired radial solution values",
+        ));
+    }
+
+    let failures = result.in_value.values_outside_tolerance
+        + result.in_derivative.values_outside_tolerance
+        + result.up_value.values_outside_tolerance
+        + result.up_derivative.values_outside_tolerance;
+    if failures > 0 {
+        result.status = RadialComparisonStatus::NumericallyDisagreeing;
+    }
+    Ok(result)
+}
+
+fn unresolved_radial_comparison(reason: &'static str) -> RadialComparisonResult {
+    RadialComparisonResult {
+        status: RadialComparisonStatus::Unresolved,
+        differing_fields: Vec::new(),
+        unresolved_reason: Some(reason),
+        in_value: RadialChannelMetrics::default(),
+        in_derivative: RadialChannelMetrics::default(),
+        up_value: RadialChannelMetrics::default(),
+        up_derivative: RadialChannelMetrics::default(),
+    }
+}
+
+fn compare_optional_channel(
+    left: Option<ComplexValue>,
+    right: Option<ComplexValue>,
+    config: RadialComparisonConfig,
+    metrics: &mut RadialChannelMetrics,
+) -> bool {
+    match (left, right) {
+        (None, None) => true,
+        (Some(left), Some(right)) => {
+            let absolute_error = (left.re - right.re).hypot(left.im - right.im);
+            let reference_scale = left.re.hypot(left.im).max(right.re.hypot(right.im));
+            let tolerance =
+                config.absolute_tolerance + config.relative_tolerance * reference_scale;
+            let scaled_error = absolute_error / tolerance;
+            metrics.compared_values += 1;
+            metrics.maximum_absolute_error =
+                metrics.maximum_absolute_error.max(absolute_error);
+            metrics.maximum_scaled_error = metrics.maximum_scaled_error.max(scaled_error);
+            if scaled_error > 1.0 {
+                metrics.values_outside_tolerance += 1;
+            }
+            true
+        }
+        _ => false,
+    }
+}
+
 fn require_nonempty(value: &str, name: &'static str) -> Result<(), FixtureValidationError> {
     if value.trim().is_empty() {
         Err(FixtureValidationError::EmptyField(name))
