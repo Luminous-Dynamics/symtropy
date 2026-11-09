@@ -304,7 +304,8 @@ fn identity_gate(problem: &ProjectionGateProblem) -> Result<(), ProjectionError>
             return Err(ProjectionError::EmptyIdentifier);
         }
     }
-    if proposal.submitted_at_ns > proposal.intended_apply_at_ns
+    if proposal.submitted_at_ns > problem.now_ns
+        || proposal.submitted_at_ns > proposal.intended_apply_at_ns
         || proposal.intended_apply_at_ns > proposal.deadline_ns
         || problem.now_ns > proposal.intended_apply_at_ns
     {
@@ -927,13 +928,12 @@ mod tests {
         input.now_ns = 205;
         input.proposal.intended_apply_at_ns = 205;
         input.proposal.deadline_ns = 205;
-        if let Some(fallback) = input.fallback.as_mut() {
-            fallback.intended_apply_at_ns = 205;
-        }
         input.result.deadline_ns = 205;
         input.result.disposition = SolverDisposition::DeadlineMiss;
         input.result.completed_at_ns = 201;
-        input.fallback = Some(admitted_fallback());
+        let mut fallback = admitted_fallback();
+        fallback.intended_apply_at_ns = 205;
+        input.fallback = Some(fallback);
         let report = qualify_projected_action(&input).expect("deadline fallback");
         assert!(matches!(report.disposition, GateDisposition::ExecuteFallback { .. }));
     }
@@ -955,6 +955,37 @@ mod tests {
         assert_eq!(
             qualify_projected_action(&input),
             Err(ProjectionError::ConstraintUnitMismatch)
+        );
+    }
+
+    #[test]
+    fn constraint_inventory_digest_mismatch_is_invalid() {
+        let mut input = problem();
+        input.result.constraint_inventory_digest = "different-constraints".to_owned();
+        assert_eq!(
+            qualify_projected_action(&input),
+            Err(ProjectionError::ConstraintInventoryMismatch)
+        );
+    }
+
+    #[test]
+    fn hard_constraint_cannot_be_declared_optional() {
+        let mut input = problem();
+        input.result.declared_constraints[0].required = false;
+        input.required_constraint_inventory[0].required = false;
+        assert_eq!(
+            qualify_projected_action(&input),
+            Err(ProjectionError::PhysicalConstraintCannotBeOptional)
+        );
+    }
+
+    #[test]
+    fn future_projection_result_is_not_accepted_before_completion() {
+        let mut input = problem();
+        input.now_ns = 170;
+        assert_eq!(
+            qualify_projected_action(&input),
+            Err(ProjectionError::InvalidSolverTiming)
         );
     }
 
