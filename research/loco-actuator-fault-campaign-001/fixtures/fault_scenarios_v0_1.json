@@ -611,6 +611,101 @@
         "D2_wrench"
       ],
       "expected_gate": "missingness_is_not_scored_as_no_fault_or_no_adverse_event"
+    },
+    {
+      "id": "F19-overload-clutch-slip",
+      "split": "heldout_fault",
+      "platform_stratum": "microhexapod_mechanical_coupling",
+      "faults": [
+        {
+          "component": "FR_leg_magnetic_coupler",
+          "family": "mechanical_transmission",
+          "type": "overload_slip",
+          "parameters": {
+            "nominal_torque_mNm": 12,
+            "slip_threshold_mNm": 20,
+            "load_pulse_peak_mNm": 28,
+            "pulse_duration_ms": 180
+          }
+        }
+      ],
+      "onset": {
+        "time_ms": 5000,
+        "gait_phase": "stance"
+      },
+      "terrain": "obstacle_contact",
+      "task": "walk_through_contact_perturbation",
+      "payload_kg": 0,
+      "runtime_channels": [
+        "Hall_phase_left",
+        "Hall_phase_right",
+        "motor_current",
+        "body_pose"
+      ],
+      "expected_gate": "slip_must_prevent_drive_stall_and_reengage_within_declared_phase_error_and_deadline"
+    },
+    {
+      "id": "F20-nuisance-clutch-slip",
+      "split": "adversarial",
+      "platform_stratum": "microhexapod_mechanical_coupling",
+      "faults": [
+        {
+          "component": "shared_drive_module_coupler",
+          "family": "mechanical_transmission",
+          "type": "nuisance_slip_under_nominal_load",
+          "parameters": {
+            "nominal_torque_mNm": 18,
+            "slip_threshold_mNm": 17,
+            "terrain": "flat",
+            "task_load_class": "nominal"
+          }
+        }
+      ],
+      "onset": {
+        "time_ms": 0,
+        "gait_phase": "continuous"
+      },
+      "terrain": "flat",
+      "task": "nominal_velocity_tracking",
+      "payload_kg": 0,
+      "runtime_channels": [
+        "Hall_phase_left",
+        "Hall_phase_right",
+        "motor_current",
+        "body_pose"
+      ],
+      "expected_gate": "nominal_nuisance_slip_is_counted_as_capability_and_energy_regression"
+    },
+    {
+      "id": "F21-clutch-fails-to-reengage",
+      "split": "adversarial",
+      "platform_stratum": "microhexapod_mechanical_coupling",
+      "faults": [
+        {
+          "component": "RR_leg_magnetic_coupler",
+          "family": "mechanical_transmission",
+          "type": "failed_reengagement_after_slip",
+          "parameters": {
+            "slip_event": true,
+            "reengagement_timeout_ms": 250,
+            "post_slip_phase_error_mdeg": 45000
+          }
+        }
+      ],
+      "onset": {
+        "time_ms": 6000,
+        "gait_phase": "stance"
+      },
+      "terrain": "asymmetric_load",
+      "task": "recover_after_overload",
+      "payload_kg": 0,
+      "runtime_channels": [
+        "Hall_phase_left",
+        "Hall_phase_right",
+        "motor_current",
+        "body_pose"
+      ],
+      "expected_gate": "mode_must_not_be_marked_recovered_without_valid_coupling_and_phase_receipt"
     }
   ]
 }
