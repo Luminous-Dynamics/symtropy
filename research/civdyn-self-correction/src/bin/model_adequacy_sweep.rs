@@ -86,7 +86,7 @@ fn render(kind: PredictiveKind, assessment: &AdequacyAssessment) {
             .iter()
             .find(|summary| summary.statistic_id == result.statistic_id);
         println!(
-            "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
+            "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
             kind.name(),
             result.statistic_id,
             result.independent_unit_id,
