@@ -98,6 +98,7 @@ pub enum QnmInitialGuessSource {
     AsymptoticFallback,
     PreviousSpinContinuation,
     PreviousOvertoneContinuation,
+    NoInitialGuessRequired,
     Unknown,
 }
 
@@ -124,7 +125,7 @@ pub struct QnmModeRecord {
     pub method_applicability: QnmMethodApplicability,
     pub initial_guess: Option<ComplexValue>,
     /// Records shared seed-table or continuation dependencies between methods.
-    pub initial_guess_source: Option<QnmInitialGuessSource>,
+    pub initial_guess_source: QnmInitialGuessSource,
     pub precision_bits: u16,
     pub residuals: Option<QnmModeResiduals>,
     /// Hatsuda's normal-prolate WKB integer N. It is not generally the
@@ -373,7 +374,9 @@ impl KerrQnmSequenceFixture {
             {
                 return Err(QnmSequenceValidationError::NonFiniteModeValue(index));
             }
-            if mode.initial_guess.is_some() && mode.initial_guess_source.is_none() {
+            if mode.initial_guess.is_some()
+                && mode.initial_guess_source == QnmInitialGuessSource::NoInitialGuessRequired
+            {
                 return Err(QnmSequenceValidationError::InvalidInitialGuessMetadata(index));
             }
             if mode.precision_bits < 53
@@ -500,7 +503,7 @@ mod tests {
                 solver_method: QnmSolverMethod::Leaver,
                 method_applicability: QnmMethodApplicability::WithinDocumentedRegime,
                 initial_guess: Some(ComplexValue { re: 0.5, im: -0.1 }),
-                initial_guess_source: Some(QnmInitialGuessSource::ExplicitIndependent),
+                initial_guess_source: QnmInitialGuessSource::ExplicitIndependent,
                 precision_bits: 128,
                 residuals: Some(QnmModeResiduals {
                     angular_ode_relative: Some(1.0e-14),
@@ -631,7 +634,7 @@ mod tests {
     #[test]
     fn initial_guess_requires_provenance_and_shared_seed_source_is_explicit() {
         let mut missing = sequence(QnmFamilyClassification::Unresolved);
-        missing.modes[0].initial_guess_source = None;
+        missing.modes[0].initial_guess_source = QnmInitialGuessSource::NoInitialGuessRequired;
         assert_eq!(
             missing.validate(),
             Err(QnmSequenceValidationError::InvalidInitialGuessMetadata(0))
@@ -639,7 +642,7 @@ mod tests {
 
         let mut shared = sequence(QnmFamilyClassification::Unresolved);
         shared.modes[0].initial_guess_source =
-            Some(QnmInitialGuessSource::BhptInterpolationTable);
+            QnmInitialGuessSource::BhptInterpolationTable;
         assert_eq!(shared.validate(), Ok(()));
     }
 
@@ -650,7 +653,7 @@ mod tests {
             QnmSolverMethod::InterpolationFromPythonQnmCache;
         interpolation.modes[0].initial_guess = None;
         interpolation.modes[0].initial_guess_source =
-            Some(QnmInitialGuessSource::PythonQnmCache);
+            QnmInitialGuessSource::PythonQnmCache;
         assert_eq!(interpolation.validate(), Ok(()));
 
         let mut asymptotic = sequence(QnmFamilyClassification::Unresolved);
