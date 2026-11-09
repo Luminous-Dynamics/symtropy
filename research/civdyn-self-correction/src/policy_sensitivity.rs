@@ -927,6 +927,10 @@ pub fn evaluate_policy_sensitivity(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::model_adequacy::{
+        assess_predictive_partition, IndependentUnitKind, ObservedStatistic, PredictiveDraw,
+        SplitManifest, StatisticRegistry, StatisticSpec,
+    };
 
     fn model_world(
         id: &str,
