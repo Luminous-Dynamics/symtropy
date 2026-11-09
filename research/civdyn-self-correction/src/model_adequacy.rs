@@ -185,6 +185,21 @@ pub enum PredictiveKind {
     Split,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PredictiveDrawDependence {
+    Independent,
+    Correlated,
+}
+
+impl PredictiveDrawDependence {
+    pub const fn name(self) -> &'static str {
+        match self {
+            Self::Independent => "independent",
+            Self::Correlated => "correlated",
+        }
+    }
+}
+
 impl PredictiveKind {
     pub const fn name(self) -> &'static str {
         match self {
@@ -202,6 +217,9 @@ pub struct PredictiveDraw {
     pub sample_size: usize,
     pub draw_index: u64,
     pub value: f64,
+    /// Dependence among predictive draws in this statistic/unit/sample-size
+    /// draw set. A binomial Monte Carlo interval is only emitted for iid draws.
+    pub dependence: PredictiveDrawDependence,
     pub model_digest: String,
     pub draw_set_digest: String,
     /// Present only for split-predictive draws, and must match the frozen
@@ -261,6 +279,14 @@ pub struct StatisticAssessment {
     pub upper_reference: Option<f64>,
     /// Empirical mid-rank in [0, 1]. This is descriptive, not a p-value.
     pub predictive_rank: Option<f64>,
+    /// Monte Carlo estimate of Pr(T_pred >= T_heldout) for Split draws only.
+    /// It is a single-SPC tail estimate, not a finite-sample exact p-value.
+    pub single_spc_upper_tail_estimate: Option<f64>,
+    pub single_spc_exceedance_count: Option<usize>,
+    pub draw_dependence: Option<PredictiveDrawDependence>,
+    /// Monte Carlo uncertainty for the tail estimate, only for independent draws.
+    pub single_spc_mc_wilson_lower_95: Option<f64>,
+    pub single_spc_mc_wilson_upper_95: Option<f64>,
     pub draw_count: usize,
     pub status: StatisticStatus,
 }
@@ -345,6 +371,10 @@ pub enum AdequacyError {
         unit_id: String,
     },
     MixedModelDrawSet {
+        statistic_id: String,
+        unit_id: String,
+    },
+    MixedDrawDependence {
         statistic_id: String,
         unit_id: String,
     },
@@ -438,8 +468,10 @@ pub fn assess_predictive_partition(
     }
 
     let mut draw_indices = BTreeSet::new();
-    let mut draw_set_identities: BTreeMap<(String, String, usize), (String, String)> =
-        BTreeMap::new();
+    let mut draw_set_identities: BTreeMap<
+        (String, String, usize),
+        (String, String, PredictiveDrawDependence),
+    > = BTreeMap::new();
     for draw in draws.iter().filter(|draw| draw.kind == kind) {
         let statistic =
             registry
@@ -506,10 +538,20 @@ pub fn assess_predictive_partition(
             });
         }
 
-        let identity = (draw.model_digest.clone(), draw.draw_set_digest.clone());
+        let identity = (
+            draw.model_digest.clone(),
+            draw.draw_set_digest.clone(),
+            draw.dependence,
+        );
         if let Some(previous) = draw_set_identities.get(&key) {
-            if previous != &identity {
+            if previous.0 != identity.0 || previous.1 != identity.1 {
                 return Err(AdequacyError::MixedModelDrawSet {
+                    statistic_id: draw.statistic_id.clone(),
+                    unit_id: draw.independent_unit_id.clone(),
+                });
+            }
+            if previous.2 != identity.2 {
+                return Err(AdequacyError::MixedDrawDependence {
                     statistic_id: draw.statistic_id.clone(),
                     unit_id: draw.independent_unit_id.clone(),
                 });
@@ -553,6 +595,11 @@ pub fn assess_predictive_partition(
                     lower_reference: None,
                     upper_reference: None,
                     predictive_rank: None,
+                    single_spc_upper_tail_estimate: None,
+                    single_spc_exceedance_count: None,
+                    draw_dependence: None,
+                    single_spc_mc_wilson_lower_95: None,
+                    single_spc_mc_wilson_upper_95: None,
                     draw_count: 0,
                     status: StatisticStatus::NotAssessed,
                 });
@@ -591,6 +638,11 @@ pub fn assess_predictive_partition(
                     lower_reference: None,
                     upper_reference: None,
                     predictive_rank: None,
+                    single_spc_upper_tail_estimate: None,
+                    single_spc_exceedance_count: None,
+                    draw_dependence: matching_draws.first().map(|draw| draw.dependence),
+                    single_spc_mc_wilson_lower_95: None,
+                    single_spc_mc_wilson_upper_95: None,
                     draw_count: values.len(),
                     status: StatisticStatus::NotAssessed,
                 });
@@ -601,6 +653,32 @@ pub fn assess_predictive_partition(
             let lower = quantile(&values, tail_mass);
             let upper = quantile(&values, 1.0 - tail_mass);
             let rank = mid_rank(&values, observation.value);
+            let (single_spc_upper_tail_estimate, single_spc_exceedance_count,
+                draw_dependence, single_spc_mc_wilson_lower_95,
+                single_spc_mc_wilson_upper_95) = if kind == PredictiveKind::Split {
+                let exceedances = values
+                    .iter()
+                    .filter(|value| **value >= observation.value)
+                    .count();
+                let tail_estimate = exceedances as f64 / values.len() as f64;
+                let dependence = matching_draws.first().map(|draw| draw.dependence);
+                let (lower_mc, upper_mc) = match dependence {
+                    Some(PredictiveDrawDependence::Independent) => {
+                        let (lower, upper) = wilson_interval_95(exceedances, values.len());
+                        (Some(lower), Some(upper))
+                    }
+                    Some(PredictiveDrawDependence::Correlated) | None => (None, None),
+                };
+                (
+                    Some(tail_estimate),
+                    Some(exceedances),
+                    dependence,
+                    lower_mc,
+                    upper_mc,
+                )
+            } else {
+                (None, None, None, None, None)
+            };
             let status = if observation.value >= lower && observation.value <= upper {
                 StatisticStatus::WithinReferenceInterval
             } else {
@@ -622,6 +700,11 @@ pub fn assess_predictive_partition(
                 lower_reference: Some(lower),
                 upper_reference: Some(upper),
                 predictive_rank: Some(rank),
+                single_spc_upper_tail_estimate,
+                single_spc_exceedance_count,
+                draw_dependence,
+                single_spc_mc_wilson_lower_95,
+                single_spc_mc_wilson_upper_95,
                 draw_count: values.len(),
                 status,
             });
@@ -846,6 +929,7 @@ mod tests {
                 value: *value,
                 model_digest: "sha256-model".to_string(),
                 draw_set_digest: format!("sha256-draw-set-{}", kind.name()),
+                dependence: PredictiveDrawDependence::Independent,
                 calibration_data_digest: match kind {
                     PredictiveKind::Prior => None,
                     PredictiveKind::Split => Some("sha256-calibration".to_string()),
@@ -976,6 +1060,8 @@ mod tests {
             assessment.statistics[0].draw_set_digest.as_deref(),
             Some("sha256-draw-set-prior")
         );
+        assert_eq!(assessment.statistics[0].single_spc_upper_tail_estimate, None);
+        assert_eq!(assessment.statistics[0].single_spc_exceedance_count, None);
     }
 
     #[test]
@@ -1005,6 +1091,88 @@ mod tests {
             assessment.domain_status,
             DomainStatus::PrimaryDiscrepancyDetected
         );
+    }
+
+    #[test]
+    fn single_spc_uses_inclusive_upper_tail_probability_for_split_draws() {
+        let observations = vec![observation("service-rate", "region-val", 0.5)];
+        let split_draws = draws(
+            PredictiveKind::Split,
+            "service-rate",
+            "region-val",
+            &[0.1, 0.5, 0.5, 0.5, 0.9],
+        );
+        let assessment = assess_predictive_partition(
+            &registry(),
+            &manifest(),
+            &observations,
+            &split_draws,
+            SplitRole::Validation,
+            PredictiveKind::Split,
+            0.8,
+        )
+        .expect("valid single-SPC fixture");
+
+        let result = &assessment.statistics[0];
+        assert_eq!(result.single_spc_exceedance_count, Some(4));
+        assert_eq!(result.single_spc_upper_tail_estimate, Some(0.8));
+        assert_eq!(result.draw_dependence, Some(PredictiveDrawDependence::Independent));
+        assert!(result.single_spc_mc_wilson_lower_95.is_some());
+        assert!(result.single_spc_mc_wilson_upper_95.is_some());
+    }
+
+    #[test]
+    fn correlated_split_draws_have_no_binomial_monte_carlo_interval() {
+        let observations = vec![observation("service-rate", "region-val", 0.5)];
+        let mut split_draws = draws(
+            PredictiveKind::Split,
+            "service-rate",
+            "region-val",
+            &[0.1, 0.2, 0.3, 0.4, 0.5],
+        );
+        for draw in &mut split_draws {
+            draw.dependence = PredictiveDrawDependence::Correlated;
+        }
+        let assessment = assess_predictive_partition(
+            &registry(),
+            &manifest(),
+            &observations,
+            &split_draws,
+            SplitRole::Validation,
+            PredictiveKind::Split,
+            0.8,
+        )
+        .expect("correlated draws still support a tail estimate");
+        let result = &assessment.statistics[0];
+        assert_eq!(result.single_spc_upper_tail_estimate, Some(0.2));
+        assert_eq!(result.single_spc_exceedance_count, Some(1));
+        assert_eq!(result.draw_dependence, Some(PredictiveDrawDependence::Correlated));
+        assert_eq!(result.single_spc_mc_wilson_lower_95, None);
+        assert_eq!(result.single_spc_mc_wilson_upper_95, None);
+    }
+
+    #[test]
+    fn a_draw_set_cannot_mix_independent_and_correlated_draws() {
+        let observations = vec![observation("service-rate", "region-val", 0.5)];
+        let mut split_draws = draws(
+            PredictiveKind::Split,
+            "service-rate",
+            "region-val",
+            &[0.1, 0.2, 0.3, 0.4, 0.5],
+        );
+        split_draws[2].dependence = PredictiveDrawDependence::Correlated;
+        assert!(matches!(
+            assess_predictive_partition(
+                &registry(),
+                &manifest(),
+                &observations,
+                &split_draws,
+                SplitRole::Validation,
+                PredictiveKind::Split,
+                0.8
+            ),
+            Err(AdequacyError::MixedDrawDependence { .. })
+        ));
     }
 
     #[test]
