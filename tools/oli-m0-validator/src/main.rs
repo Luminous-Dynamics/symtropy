@@ -105,9 +105,15 @@ fn validate_object_keys(
     }
 }
 
-fn validate_fraction(value: Option<f64>, name: &str, errors: &mut Vec<String>) {
+fn validate_fraction(
+    value: Option<f64>,
+    name: &str,
+    allow_unknown: bool,
+    errors: &mut Vec<String>,
+) {
     match value {
-        Some(number) if (0.0..=1.0).contains(&number) => {}
+        Some(number) if number.is_finite() && (0.0..=1.0).contains(&number) => {}
+        None if allow_unknown => {}
         _ => errors.push(format!("{name} must be a finite fraction in [0, 1]")),
     }
 }
@@ -222,11 +228,12 @@ fn validate_fixture(value: &Value) -> Vec<String> {
     }
 
     let fixture_id = get_str(value, &["fixture_id"]).unwrap_or_default();
-    if fixture_id.trim().is_empty() {
-        errors.push("fixture_id must be a non-empty string".to_owned());
+    if fixture_id.trim().len() < 8 {
+        errors.push("fixture_id must contain at least 8 non-whitespace characters".to_owned());
     }
 
     let scenario = get_str(value, &["scenario_family"]).unwrap_or_default();
+    let allow_unknown_measurement = scenario == "DUSTY_PLASMA_PHYSICS_REFERENCE";
     if !in_set(scenario, SCENARIOS) {
         errors.push(format!("unsupported scenario_family: {scenario}"));
     }
@@ -268,7 +275,9 @@ fn validate_fixture(value: &Value) -> Vec<String> {
         .and_then(Value::as_array);
     match units {
         Some(values) if !values.is_empty() => {
-            if values.iter().any(|item| item.as_str().is_none_or(str::is_empty)) {
+            if values.iter().any(|item| {
+                item.as_str().is_none_or(|text| text.trim().is_empty())
+            }) {
                 errors.push("measurement.units must contain only non-empty strings".to_owned());
             }
         }
@@ -306,18 +315,22 @@ fn validate_fixture(value: &Value) -> Vec<String> {
         ("sampling_interval_seconds", cadence),
         ("target_process_timescale_seconds", process_scale),
     ] {
-        if number.is_none_or(|number| !number.is_finite() || number <= 0.0) {
-            errors.push(format!("measurement.temporal.{name} must be positive and finite"));
+        match number {
+            Some(number) if number.is_finite() && number > 0.0 => {}
+            None if allow_unknown_measurement => {}
+            _ => errors.push(format!("measurement.temporal.{name} must be positive and finite")),
         }
     }
     validate_fraction(
         get_f64(value, &["measurement", "temporal", "coverage_fraction"]),
         "measurement.temporal.coverage_fraction",
+        allow_unknown_measurement,
         &mut errors,
     );
     validate_fraction(
         get_f64(value, &["measurement", "spatial", "footprint_fraction"]),
         "measurement.spatial.footprint_fraction",
+        allow_unknown_measurement,
         &mut errors,
     );
     if get_str(value, &["measurement", "spatial", "coordinate_frame"])
@@ -399,6 +412,15 @@ fn validate_fixture(value: &Value) -> Vec<String> {
                 || disposition != "PHYSICS_ONLY_REFERENCE"
             {
                 errors.push("dusty plasma fixture must remain a physics-only metadata reference".to_owned());
+            }
+            if unit_status != "UNKNOWN"
+                || window.is_some()
+                || cadence.is_some()
+                || process_scale.is_some()
+                || get_f64(value, &["measurement", "temporal", "coverage_fraction"]).is_some()
+                || get_f64(value, &["measurement", "spatial", "footprint_fraction"]).is_some()
+            {
+                errors.push("metadata-only dusty plasma fixture must not invent units, timing, or coverage before source data admission".to_owned());
             }
             for property in [
                 "self_maintenance",
@@ -591,6 +613,18 @@ mod tests {
         value["property_assessments"]["intelligence"] =
             Value::String("SUPPORTED_WITHIN_SCOPE".to_owned());
         assert!(!validate_fixture(&value).is_empty());
+    }
+
+    #[test]
+    fn metadata_only_dusty_plasma_has_no_invented_sampling_metadata() {
+        let value: Value =
+            serde_json::from_str(include_str!("../fixtures/oli-m0-dusty-plasma-001.json")).unwrap();
+        assert!(get_f64(&value, &["measurement", "temporal", "sampling_interval_seconds"]).is_none());
+        assert!(validate_fixture(&value).is_empty());
+        let mut altered = value;
+        altered["measurement"]["temporal"]["sampling_interval_seconds"] =
+            Value::Number(serde_json::Number::from_f64(0.001).unwrap());
+        assert!(!validate_fixture(&altered).is_empty());
     }
 
     #[test]
