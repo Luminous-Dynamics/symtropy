@@ -38,7 +38,7 @@ struct ModelInput {
     select_count: usize,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, PartialEq)]
 struct SubsetMetrics {
     sensor_ids: Vec<String>,
     rank: usize,
@@ -49,7 +49,7 @@ struct SubsetMetrics {
     log_determinant: Option<f64>,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, PartialEq)]
 struct Selection {
     sensor_ids: Vec<String>,
     rank: usize,
@@ -57,7 +57,7 @@ struct Selection {
     objective_value: f64,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, PartialEq)]
 struct Report {
     schema_version: String,
     model_id: String,
@@ -549,19 +549,11 @@ mod tests {
 
     #[test]
     fn sensor_input_order_does_not_change_selection_or_output() {
-        let original = evaluate_bytes(FIXTURE).unwrap();
+        let source_digest = sha256_hex(FIXTURE);
+        let original = evaluate(&input(), &source_digest).unwrap();
         let mut value = input();
         value.sensors.reverse();
-        let reverse_bytes = serde_json::to_vec(&value).unwrap();
-        let reversed = evaluate(&value, &sha256_hex(&reverse_bytes)).unwrap();
-        assert_eq!(original.subset_count, reversed.subset_count);
-        assert_eq!(
-            original.d_optimal_selection.unwrap().sensor_ids,
-            reversed.d_optimal_selection.unwrap().sensor_ids
-        );
-        assert_eq!(
-            original.e_optimal_selection.unwrap().sensor_ids,
-            reversed.e_optimal_selection.unwrap().sensor_ids
-        );
+        let reversed = evaluate(&value, &source_digest).unwrap();
+        assert_eq!(original, reversed);
     }
 }
