@@ -85,43 +85,48 @@
       ],
       "environmental_witnesses": [
         {
-          "sensor_id": "ENV-MEAN-01",
-          "quantity": "wing_mean_temperature_delta",
-          "reading_k": 0,
-          "standard_uncertainty_k": 0.1,
-          "calibration_status": "VALID",
-          "operator_status": "ADMITTED",
-          "evidence_sha256": "10101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010",
-          "common_cause_group": "ENV-BUS-A",
-          "acquisition_window_id": "WIN-001",
-          "spatial_support": "WING-THERMAL-CONTEXT-01",
-          "independent_of_structural_channels": true
-        },
-        {
-          "sensor_id": "ENV-GRAD-A",
-          "quantity": "wing_span_temperature_gradient",
-          "reading_k": 0,
-          "standard_uncertainty_k": 0.1,
-          "calibration_status": "VALID",
-          "operator_status": "ADMITTED",
-          "evidence_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
-          "common_cause_group": "ENV-BUS-B",
-          "acquisition_window_id": "WIN-001",
-          "spatial_support": "WING-THERMAL-CONTEXT-01",
-          "independent_of_structural_channels": true
-        },
-        {
-          "sensor_id": "ENV-GRAD-B",
-          "quantity": "wing_span_temperature_gradient",
-          "reading_k": 0,
-          "standard_uncertainty_k": 0.1,
-          "calibration_status": "VALID",
-          "operator_status": "ADMITTED",
-          "evidence_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
-          "common_cause_group": "ENV-BUS-C",
-          "acquisition_window_id": "WIN-001",
-          "spatial_support": "WING-THERMAL-CONTEXT-01",
-          "independent_of_structural_channels": true
+          "witness_id": "WITNESS-HH_NOMINAL_ENVIRONMENT-1",
+          "probes": [
+            {
+              "sensor_id": "ENV-MEAN-01",
+              "quantity": "wing_mean_temperature_delta",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+              "common_cause_group": "ENV-BUS-A",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true
+            },
+            {
+              "sensor_id": "ENV-GRAD-A",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "common_cause_group": "ENV-BUS-B",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true
+            },
+            {
+              "sensor_id": "ENV-GRAD-B",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "common_cause_group": "ENV-BUS-C",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true
+            }
+          ]
         }
       ],
       "expected": {
@@ -140,43 +145,48 @@
       ],
       "environmental_witnesses": [
         {
-          "sensor_id": "ENV-MEAN-01",
-          "quantity": "wing_mean_temperature_delta",
-          "reading_k": 20,
-          "standard_uncertainty_k": 0.1,
-          "calibration_status": "VALID",
-          "operator_status": "ADMITTED",
-          "evidence_sha256": "10101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010",
-          "common_cause_group": "ENV-BUS-A",
-          "acquisition_window_id": "WIN-001",
-          "spatial_support": "WING-THERMAL-CONTEXT-01",
-          "independent_of_structural_channels": true
-        },
-        {
-          "sensor_id": "ENV-GRAD-A",
-          "quantity": "wing_span_temperature_gradient",
-          "reading_k": 0,
-          "standard_uncertainty_k": 0.1,
-          "calibration_status": "VALID",
-          "operator_status": "ADMITTED",
-          "evidence_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
-          "common_cause_group": "ENV-BUS-B",
-          "acquisition_window_id": "WIN-001",
-          "spatial_support": "WING-THERMAL-CONTEXT-01",
-          "independent_of_structural_channels": true
-        },
-        {
-          "sensor_id": "ENV-GRAD-B",
-          "quantity": "wing_span_temperature_gradient",
-          "reading_k": 0,
-          "standard_uncertainty_k": 0.1,
-          "calibration_status": "VALID",
-          "operator_status": "ADMITTED",
-          "evidence_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
-          "common_cause_group": "ENV-BUS-C",
-          "acquisition_window_id": "WIN-001",
-          "spatial_support": "WING-THERMAL-CONTEXT-01",
-          "independent_of_structural_channels": true
+          "witness_id": "WITNESS-HH_UNIFORM_HEATING-1",
+          "probes": [
+            {
+              "sensor_id": "ENV-MEAN-01",
+              "quantity": "wing_mean_temperature_delta",
+              "reading_k": 20,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+              "common_cause_group": "ENV-BUS-A",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true
+            },
+            {
+              "sensor_id": "ENV-GRAD-A",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "common_cause_group": "ENV-BUS-B",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true
+            },
+            {
+              "sensor_id": "ENV-GRAD-B",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "common_cause_group": "ENV-BUS-C",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true
+            }
+          ]
         }
       ],
       "expected": {
@@ -195,43 +205,48 @@
       ],
       "environmental_witnesses": [
         {
-          "sensor_id": "ENV-MEAN-01",
-          "quantity": "wing_mean_temperature_delta",
-          "reading_k": 0,
-          "standard_uncertainty_k": 0.1,
-          "calibration_status": "VALID",
-          "operator_status": "ADMITTED",
-          "evidence_sha256": "10101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010",
-          "common_cause_group": "ENV-BUS-A",
-          "acquisition_window_id": "WIN-001",
-          "spatial_support": "WING-THERMAL-CONTEXT-01",
-          "independent_of_structural_channels": true
-        },
-        {
-          "sensor_id": "ENV-GRAD-A",
-          "quantity": "wing_span_temperature_gradient",
-          "reading_k": 0,
-          "standard_uncertainty_k": 0.1,
-          "calibration_status": "VALID",
-          "operator_status": "ADMITTED",
-          "evidence_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
-          "common_cause_group": "ENV-BUS-B",
-          "acquisition_window_id": "WIN-001",
-          "spatial_support": "WING-THERMAL-CONTEXT-01",
-          "independent_of_structural_channels": true
-        },
-        {
-          "sensor_id": "ENV-GRAD-B",
-          "quantity": "wing_span_temperature_gradient",
-          "reading_k": 0,
-          "standard_uncertainty_k": 0.1,
-          "calibration_status": "VALID",
-          "operator_status": "ADMITTED",
-          "evidence_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
-          "common_cause_group": "ENV-BUS-C",
-          "acquisition_window_id": "WIN-001",
-          "spatial_support": "WING-THERMAL-CONTEXT-01",
-          "independent_of_structural_channels": true
+          "witness_id": "WITNESS-DH_NOMINAL_ENVIRONMENT-1",
+          "probes": [
+            {
+              "sensor_id": "ENV-MEAN-01",
+              "quantity": "wing_mean_temperature_delta",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+              "common_cause_group": "ENV-BUS-A",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true
+            },
+            {
+              "sensor_id": "ENV-GRAD-A",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "common_cause_group": "ENV-BUS-B",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true
+            },
+            {
+              "sensor_id": "ENV-GRAD-B",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "common_cause_group": "ENV-BUS-C",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true
+            }
+          ]
         }
       ],
       "expected": {
@@ -250,43 +265,48 @@
       ],
       "environmental_witnesses": [
         {
-          "sensor_id": "ENV-MEAN-01",
-          "quantity": "wing_mean_temperature_delta",
-          "reading_k": 0,
-          "standard_uncertainty_k": 0.1,
-          "calibration_status": "VALID",
-          "operator_status": "ADMITTED",
-          "evidence_sha256": "10101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010",
-          "common_cause_group": "ENV-BUS-A",
-          "acquisition_window_id": "WIN-001",
-          "spatial_support": "WING-THERMAL-CONTEXT-01",
-          "independent_of_structural_channels": true
-        },
-        {
-          "sensor_id": "ENV-GRAD-A",
-          "quantity": "wing_span_temperature_gradient",
-          "reading_k": 5,
-          "standard_uncertainty_k": 0.1,
-          "calibration_status": "VALID",
-          "operator_status": "ADMITTED",
-          "evidence_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
-          "common_cause_group": "ENV-BUS-B",
-          "acquisition_window_id": "WIN-001",
-          "spatial_support": "WING-THERMAL-CONTEXT-01",
-          "independent_of_structural_channels": true
-        },
-        {
-          "sensor_id": "ENV-GRAD-B",
-          "quantity": "wing_span_temperature_gradient",
-          "reading_k": 5,
-          "standard_uncertainty_k": 0.1,
-          "calibration_status": "VALID",
-          "operator_status": "ADMITTED",
-          "evidence_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
-          "common_cause_group": "ENV-BUS-C",
-          "acquisition_window_id": "WIN-001",
-          "spatial_support": "WING-THERMAL-CONTEXT-01",
-          "independent_of_structural_channels": true
+          "witness_id": "WITNESS-APPARENT_DAMAGE_EXPLAINED_BY_THERMAL_GRADIENT-1",
+          "probes": [
+            {
+              "sensor_id": "ENV-MEAN-01",
+              "quantity": "wing_mean_temperature_delta",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+              "common_cause_group": "ENV-BUS-A",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true
+            },
+            {
+              "sensor_id": "ENV-GRAD-A",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 5,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "common_cause_group": "ENV-BUS-B",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true
+            },
+            {
+              "sensor_id": "ENV-GRAD-B",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 5,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "common_cause_group": "ENV-BUS-C",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true
+            }
+          ]
         }
       ],
       "expected": {
@@ -305,43 +325,48 @@
       ],
       "environmental_witnesses": [
         {
-          "sensor_id": "ENV-MEAN-01",
-          "quantity": "wing_mean_temperature_delta",
-          "reading_k": 20,
-          "standard_uncertainty_k": 0.1,
-          "calibration_status": "VALID",
-          "operator_status": "ADMITTED",
-          "evidence_sha256": "10101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010",
-          "common_cause_group": "ENV-BUS-A",
-          "acquisition_window_id": "WIN-001",
-          "spatial_support": "WING-THERMAL-CONTEXT-01",
-          "independent_of_structural_channels": true
-        },
-        {
-          "sensor_id": "ENV-GRAD-A",
-          "quantity": "wing_span_temperature_gradient",
-          "reading_k": 0,
-          "standard_uncertainty_k": 0.1,
-          "calibration_status": "VALID",
-          "operator_status": "ADMITTED",
-          "evidence_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
-          "common_cause_group": "ENV-BUS-B",
-          "acquisition_window_id": "WIN-001",
-          "spatial_support": "WING-THERMAL-CONTEXT-01",
-          "independent_of_structural_channels": true
-        },
-        {
-          "sensor_id": "ENV-GRAD-B",
-          "quantity": "wing_span_temperature_gradient",
-          "reading_k": 0,
-          "standard_uncertainty_k": 0.1,
-          "calibration_status": "VALID",
-          "operator_status": "ADMITTED",
-          "evidence_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
-          "common_cause_group": "ENV-BUS-C",
-          "acquisition_window_id": "WIN-001",
-          "spatial_support": "WING-THERMAL-CONTEXT-01",
-          "independent_of_structural_channels": true
+          "witness_id": "WITNESS-DAMAGE_PLUS_UNIFORM_HEATING-1",
+          "probes": [
+            {
+              "sensor_id": "ENV-MEAN-01",
+              "quantity": "wing_mean_temperature_delta",
+              "reading_k": 20,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+              "common_cause_group": "ENV-BUS-A",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true
+            },
+            {
+              "sensor_id": "ENV-GRAD-A",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "common_cause_group": "ENV-BUS-B",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true
+            },
+            {
+              "sensor_id": "ENV-GRAD-B",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "common_cause_group": "ENV-BUS-C",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true
+            }
+          ]
         }
       ],
       "expected": {
@@ -360,43 +385,48 @@
       ],
       "environmental_witnesses": [
         {
-          "sensor_id": "ENV-MEAN-01",
-          "quantity": "wing_mean_temperature_delta",
-          "reading_k": 20,
-          "standard_uncertainty_k": 0.1,
-          "calibration_status": "VALID",
-          "operator_status": "ADMITTED",
-          "evidence_sha256": "10101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010",
-          "common_cause_group": "ENV-BUS-A",
-          "acquisition_window_id": "WIN-001",
-          "spatial_support": "WING-THERMAL-CONTEXT-01",
-          "independent_of_structural_channels": true
-        },
-        {
-          "sensor_id": "ENV-GRAD-A",
-          "quantity": "wing_span_temperature_gradient",
-          "reading_k": 5,
-          "standard_uncertainty_k": 0.1,
-          "calibration_status": "VALID",
-          "operator_status": "ADMITTED",
-          "evidence_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
-          "common_cause_group": "ENV-BUS-B",
-          "acquisition_window_id": "WIN-001",
-          "spatial_support": "WING-THERMAL-CONTEXT-01",
-          "independent_of_structural_channels": true
-        },
-        {
-          "sensor_id": "ENV-GRAD-B",
-          "quantity": "wing_span_temperature_gradient",
-          "reading_k": 5,
-          "standard_uncertainty_k": 0.1,
-          "calibration_status": "VALID",
-          "operator_status": "ADMITTED",
-          "evidence_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
-          "common_cause_group": "ENV-BUS-C",
-          "acquisition_window_id": "WIN-001",
-          "spatial_support": "WING-THERMAL-CONTEXT-01",
-          "independent_of_structural_channels": true
+          "witness_id": "WITNESS-DAMAGE_PLUS_COMBINED_ENVIRONMENT-1",
+          "probes": [
+            {
+              "sensor_id": "ENV-MEAN-01",
+              "quantity": "wing_mean_temperature_delta",
+              "reading_k": 20,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+              "common_cause_group": "ENV-BUS-A",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true
+            },
+            {
+              "sensor_id": "ENV-GRAD-A",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 5,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "common_cause_group": "ENV-BUS-B",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true
+            },
+            {
+              "sensor_id": "ENV-GRAD-B",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 5,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "common_cause_group": "ENV-BUS-C",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true
+            }
+          ]
         }
       ],
       "expected": {
@@ -445,43 +475,48 @@
       ],
       "environmental_witnesses": [
         {
-          "sensor_id": "ENV-MEAN-01",
-          "quantity": "wing_mean_temperature_delta",
-          "reading_k": 0,
-          "standard_uncertainty_k": 0.1,
-          "calibration_status": "VALID",
-          "operator_status": "ADMITTED",
-          "evidence_sha256": "10101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010",
-          "common_cause_group": "ENV-BUS-A",
-          "acquisition_window_id": "WIN-001",
-          "spatial_support": "WING-THERMAL-CONTEXT-01",
-          "independent_of_structural_channels": true
-        },
-        {
-          "sensor_id": "ENV-GRAD-A",
-          "quantity": "wing_span_temperature_gradient",
-          "reading_k": 0,
-          "standard_uncertainty_k": 0.1,
-          "calibration_status": "VALID",
-          "operator_status": "ADMITTED",
-          "evidence_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
-          "common_cause_group": "ENV-BUS-B",
-          "acquisition_window_id": "WIN-001",
-          "spatial_support": "WING-THERMAL-CONTEXT-01",
-          "independent_of_structural_channels": true
-        },
-        {
-          "sensor_id": "ENV-GRAD-B",
-          "quantity": "wing_span_temperature_gradient",
-          "reading_k": 5,
-          "standard_uncertainty_k": 0.1,
-          "calibration_status": "VALID",
-          "operator_status": "ADMITTED",
-          "evidence_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
-          "common_cause_group": "ENV-BUS-C",
-          "acquisition_window_id": "WIN-001",
-          "spatial_support": "WING-THERMAL-CONTEXT-01",
-          "independent_of_structural_channels": true
+          "witness_id": "WITNESS-CONFLICTING_REDUNDANT_GRADIENT_PROBES-1",
+          "probes": [
+            {
+              "sensor_id": "ENV-MEAN-01",
+              "quantity": "wing_mean_temperature_delta",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+              "common_cause_group": "ENV-BUS-A",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true
+            },
+            {
+              "sensor_id": "ENV-GRAD-A",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "common_cause_group": "ENV-BUS-B",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true
+            },
+            {
+              "sensor_id": "ENV-GRAD-B",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 5,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "common_cause_group": "ENV-BUS-C",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true
+            }
+          ]
         }
       ],
       "expected": {
@@ -500,43 +535,48 @@
       ],
       "environmental_witnesses": [
         {
-          "sensor_id": "ENV-MEAN-01",
-          "quantity": "wing_mean_temperature_delta",
-          "reading_k": 0,
-          "standard_uncertainty_k": 0.1,
-          "calibration_status": "VALID",
-          "operator_status": "ADMITTED",
-          "evidence_sha256": "10101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010",
-          "common_cause_group": "ENV-BUS-A",
-          "acquisition_window_id": "WIN-001",
-          "spatial_support": "WING-THERMAL-CONTEXT-01",
-          "independent_of_structural_channels": true
-        },
-        {
-          "sensor_id": "ENV-GRAD-A",
-          "quantity": "wing_span_temperature_gradient",
-          "reading_k": 5,
-          "standard_uncertainty_k": 0.1,
-          "calibration_status": "EXPIRED",
-          "operator_status": "ADMITTED",
-          "evidence_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
-          "common_cause_group": "ENV-BUS-B",
-          "acquisition_window_id": "WIN-001",
-          "spatial_support": "WING-THERMAL-CONTEXT-01",
-          "independent_of_structural_channels": true
-        },
-        {
-          "sensor_id": "ENV-GRAD-B",
-          "quantity": "wing_span_temperature_gradient",
-          "reading_k": 5,
-          "standard_uncertainty_k": 0.1,
-          "calibration_status": "VALID",
-          "operator_status": "ADMITTED",
-          "evidence_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
-          "common_cause_group": "ENV-BUS-C",
-          "acquisition_window_id": "WIN-001",
-          "spatial_support": "WING-THERMAL-CONTEXT-01",
-          "independent_of_structural_channels": true
+          "witness_id": "WITNESS-EXPIRED_ENVIRONMENTAL_PROBE-1",
+          "probes": [
+            {
+              "sensor_id": "ENV-MEAN-01",
+              "quantity": "wing_mean_temperature_delta",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+              "common_cause_group": "ENV-BUS-A",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true
+            },
+            {
+              "sensor_id": "ENV-GRAD-A",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 5,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "EXPIRED",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "common_cause_group": "ENV-BUS-B",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true
+            },
+            {
+              "sensor_id": "ENV-GRAD-B",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 5,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "common_cause_group": "ENV-BUS-C",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true
+            }
+          ]
         }
       ],
       "expected": {
@@ -555,43 +595,48 @@
       ],
       "environmental_witnesses": [
         {
-          "sensor_id": "ENV-MEAN-01",
-          "quantity": "wing_mean_temperature_delta",
-          "reading_k": 0,
-          "standard_uncertainty_k": 0.1,
-          "calibration_status": "VALID",
-          "operator_status": "ADMITTED",
-          "evidence_sha256": "10101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010",
-          "common_cause_group": "ENV-BUS-A",
-          "acquisition_window_id": "WIN-001",
-          "spatial_support": "WING-THERMAL-CONTEXT-01",
-          "independent_of_structural_channels": true
-        },
-        {
-          "sensor_id": "ENV-GRAD-A",
-          "quantity": "wing_span_temperature_gradient",
-          "reading_k": 5,
-          "standard_uncertainty_k": 0.1,
-          "calibration_status": "VALID",
-          "operator_status": "ADMITTED",
-          "evidence_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
-          "common_cause_group": "ENV-BUS-B",
-          "acquisition_window_id": "WIN-001",
-          "spatial_support": "WING-THERMAL-CONTEXT-01",
-          "independent_of_structural_channels": true
-        },
-        {
-          "sensor_id": "ENV-GRAD-B",
-          "quantity": "wing_span_temperature_gradient",
-          "reading_k": 5,
-          "standard_uncertainty_k": 0.1,
-          "calibration_status": "VALID",
-          "operator_status": "ADMITTED",
-          "evidence_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
-          "common_cause_group": "ENV-BUS-C",
-          "acquisition_window_id": "WIN-002",
-          "spatial_support": "WING-THERMAL-CONTEXT-01",
-          "independent_of_structural_channels": true
+          "witness_id": "WITNESS-ENVIRONMENTAL_PROBE_WINDOW_MISMATCH-1",
+          "probes": [
+            {
+              "sensor_id": "ENV-MEAN-01",
+              "quantity": "wing_mean_temperature_delta",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+              "common_cause_group": "ENV-BUS-A",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true
+            },
+            {
+              "sensor_id": "ENV-GRAD-A",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 5,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "common_cause_group": "ENV-BUS-B",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true
+            },
+            {
+              "sensor_id": "ENV-GRAD-B",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 5,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "common_cause_group": "ENV-BUS-C",
+              "acquisition_window_id": "WIN-002",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true
+            }
+          ]
         }
       ],
       "expected": {
@@ -610,43 +655,48 @@
       ],
       "environmental_witnesses": [
         {
-          "sensor_id": "ENV-MEAN-01",
-          "quantity": "wing_mean_temperature_delta",
-          "reading_k": 0,
-          "standard_uncertainty_k": 0.1,
-          "calibration_status": "VALID",
-          "operator_status": "ADMITTED",
-          "evidence_sha256": "10101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010",
-          "common_cause_group": "ENV-BUS-A",
-          "acquisition_window_id": "WIN-001",
-          "spatial_support": "WING-THERMAL-CONTEXT-01",
-          "independent_of_structural_channels": true
-        },
-        {
-          "sensor_id": "ENV-GRAD-A",
-          "quantity": "wing_span_temperature_gradient",
-          "reading_k": 5,
-          "standard_uncertainty_k": 2,
-          "calibration_status": "VALID",
-          "operator_status": "ADMITTED",
-          "evidence_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
-          "common_cause_group": "ENV-BUS-B",
-          "acquisition_window_id": "WIN-001",
-          "spatial_support": "WING-THERMAL-CONTEXT-01",
-          "independent_of_structural_channels": true
-        },
-        {
-          "sensor_id": "ENV-GRAD-B",
-          "quantity": "wing_span_temperature_gradient",
-          "reading_k": 5,
-          "standard_uncertainty_k": 0.1,
-          "calibration_status": "VALID",
-          "operator_status": "ADMITTED",
-          "evidence_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
-          "common_cause_group": "ENV-BUS-C",
-          "acquisition_window_id": "WIN-001",
-          "spatial_support": "WING-THERMAL-CONTEXT-01",
-          "independent_of_structural_channels": true
+          "witness_id": "WITNESS-ENVIRONMENTAL_PROBE_UNCERTAINTY_TOO_LARGE-1",
+          "probes": [
+            {
+              "sensor_id": "ENV-MEAN-01",
+              "quantity": "wing_mean_temperature_delta",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+              "common_cause_group": "ENV-BUS-A",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true
+            },
+            {
+              "sensor_id": "ENV-GRAD-A",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 5,
+              "standard_uncertainty_k": 2,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "common_cause_group": "ENV-BUS-B",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true
+            },
+            {
+              "sensor_id": "ENV-GRAD-B",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 5,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "common_cause_group": "ENV-BUS-C",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true
+            }
+          ]
         }
       ],
       "expected": {
@@ -665,43 +715,48 @@
       ],
       "environmental_witnesses": [
         {
-          "sensor_id": "ENV-MEAN-01",
-          "quantity": "wing_mean_temperature_delta",
-          "reading_k": 10,
-          "standard_uncertainty_k": 0.1,
-          "calibration_status": "VALID",
-          "operator_status": "ADMITTED",
-          "evidence_sha256": "10101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010",
-          "common_cause_group": "ENV-BUS-A",
-          "acquisition_window_id": "WIN-001",
-          "spatial_support": "WING-THERMAL-CONTEXT-01",
-          "independent_of_structural_channels": true
-        },
-        {
-          "sensor_id": "ENV-GRAD-A",
-          "quantity": "wing_span_temperature_gradient",
-          "reading_k": 2,
-          "standard_uncertainty_k": 0.1,
-          "calibration_status": "VALID",
-          "operator_status": "ADMITTED",
-          "evidence_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
-          "common_cause_group": "ENV-BUS-B",
-          "acquisition_window_id": "WIN-001",
-          "spatial_support": "WING-THERMAL-CONTEXT-01",
-          "independent_of_structural_channels": true
-        },
-        {
-          "sensor_id": "ENV-GRAD-B",
-          "quantity": "wing_span_temperature_gradient",
-          "reading_k": 2,
-          "standard_uncertainty_k": 0.1,
-          "calibration_status": "VALID",
-          "operator_status": "ADMITTED",
-          "evidence_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
-          "common_cause_group": "ENV-BUS-C",
-          "acquisition_window_id": "WIN-001",
-          "spatial_support": "WING-THERMAL-CONTEXT-01",
-          "independent_of_structural_channels": true
+          "witness_id": "WITNESS-ENVIRONMENT_OUTSIDE_DECLARED_PROFILES-1",
+          "probes": [
+            {
+              "sensor_id": "ENV-MEAN-01",
+              "quantity": "wing_mean_temperature_delta",
+              "reading_k": 10,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+              "common_cause_group": "ENV-BUS-A",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true
+            },
+            {
+              "sensor_id": "ENV-GRAD-A",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 2,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "common_cause_group": "ENV-BUS-B",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true
+            },
+            {
+              "sensor_id": "ENV-GRAD-B",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 2,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "common_cause_group": "ENV-BUS-C",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true
+            }
+          ]
         }
       ],
       "expected": {
@@ -720,43 +775,48 @@
       ],
       "environmental_witnesses": [
         {
-          "sensor_id": "ENV-MEAN-01",
-          "quantity": "wing_mean_temperature_delta",
-          "reading_k": 0,
-          "standard_uncertainty_k": 0.1,
-          "calibration_status": "VALID",
-          "operator_status": "ADMITTED",
-          "evidence_sha256": "10101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010",
-          "common_cause_group": "ENV-BUS-A",
-          "acquisition_window_id": "WIN-001",
-          "spatial_support": "WING-THERMAL-CONTEXT-01",
-          "independent_of_structural_channels": true
-        },
-        {
-          "sensor_id": "ENV-GRAD-A",
-          "quantity": "wing_span_temperature_gradient",
-          "reading_k": 0,
-          "standard_uncertainty_k": 0.1,
-          "calibration_status": "VALID",
-          "operator_status": "ADMITTED",
-          "evidence_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
-          "common_cause_group": "ENV-BUS-B",
-          "acquisition_window_id": "WIN-001",
-          "spatial_support": "WING-THERMAL-CONTEXT-01",
-          "independent_of_structural_channels": true
-        },
-        {
-          "sensor_id": "ENV-GRAD-B",
-          "quantity": "wing_span_temperature_gradient",
-          "reading_k": 0,
-          "standard_uncertainty_k": 0.1,
-          "calibration_status": "VALID",
-          "operator_status": "ADMITTED",
-          "evidence_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
-          "common_cause_group": "ENV-BUS-C",
-          "acquisition_window_id": "WIN-001",
-          "spatial_support": "WING-THERMAL-CONTEXT-01",
-          "independent_of_structural_channels": true
+          "witness_id": "WITNESS-STRUCTURE_ENVIRONMENT_MODEL_MISMATCH-1",
+          "probes": [
+            {
+              "sensor_id": "ENV-MEAN-01",
+              "quantity": "wing_mean_temperature_delta",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+              "common_cause_group": "ENV-BUS-A",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true
+            },
+            {
+              "sensor_id": "ENV-GRAD-A",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "common_cause_group": "ENV-BUS-B",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true
+            },
+            {
+              "sensor_id": "ENV-GRAD-B",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "common_cause_group": "ENV-BUS-C",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true
+            }
+          ]
         }
       ],
       "expected": {
@@ -775,34 +835,144 @@
       ],
       "environmental_witnesses": [
         {
-          "sensor_id": "ENV-MEAN-01",
-          "quantity": "wing_mean_temperature_delta",
-          "reading_k": 0,
-          "standard_uncertainty_k": 0.1,
-          "calibration_status": "VALID",
-          "operator_status": "ADMITTED",
-          "evidence_sha256": "10101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010",
-          "common_cause_group": "ENV-BUS-A",
-          "acquisition_window_id": "WIN-001",
-          "spatial_support": "WING-THERMAL-CONTEXT-01",
-          "independent_of_structural_channels": true
-        },
-        {
-          "sensor_id": "ENV-GRAD-A",
-          "quantity": "wing_span_temperature_gradient",
-          "reading_k": 5,
-          "standard_uncertainty_k": 0.1,
-          "calibration_status": "VALID",
-          "operator_status": "ADMITTED",
-          "evidence_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
-          "common_cause_group": "ENV-BUS-B",
-          "acquisition_window_id": "WIN-001",
-          "spatial_support": "WING-THERMAL-CONTEXT-01",
-          "independent_of_structural_channels": true
+          "witness_id": "WITNESS-INSUFFICIENT_ENVIRONMENTAL_PROBES-1",
+          "probes": [
+            {
+              "sensor_id": "ENV-MEAN-01",
+              "quantity": "wing_mean_temperature_delta",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+              "common_cause_group": "ENV-BUS-A",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true
+            },
+            {
+              "sensor_id": "ENV-GRAD-A",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 5,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "common_cause_group": "ENV-BUS-B",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true
+            }
+          ]
         }
       ],
       "expected": {
         "disposition": "ABSTAIN_INSUFFICIENT_ENVIRONMENTAL_OBSERVABILITY",
+        "structural_state": null,
+        "environmental_state": null,
+        "candidate_count": 0
+      }
+    },
+    {
+      "case_id": "DUPLICATE_COMMON_CAUSE_ENVIRONMENTAL_WITNESSES",
+      "acquisition_window_id": "WIN-001",
+      "observed_values": [
+        0,
+        0,
+        0
+      ],
+      "environmental_witnesses": [
+        {
+          "witness_id": "WITNESS-HH_NOMINAL_ENVIRONMENT-1",
+          "probes": [
+            {
+              "sensor_id": "ENV-MEAN-01",
+              "quantity": "wing_mean_temperature_delta",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+              "common_cause_group": "ENV-BUS-A",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true
+            },
+            {
+              "sensor_id": "ENV-GRAD-A",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "common_cause_group": "ENV-BUS-B",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true
+            },
+            {
+              "sensor_id": "ENV-GRAD-B",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "common_cause_group": "ENV-BUS-C",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true
+            }
+          ]
+        },
+        {
+          "witness_id": "WITNESS-DUPLICATE-COMMON-CAUSE-2",
+          "probes": [
+            {
+              "sensor_id": "ENV-MEAN-02",
+              "quantity": "wing_mean_temperature_delta",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+              "common_cause_group": "ENV-BUS-A",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true
+            },
+            {
+              "sensor_id": "ENV-GRAD-C",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+              "common_cause_group": "ENV-BUS-B",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true
+            },
+            {
+              "sensor_id": "ENV-GRAD-D",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+              "common_cause_group": "ENV-BUS-C",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true
+            }
+          ]
+        }
+      ],
+      "expected": {
+        "disposition": "ABSTAIN_ENVIRONMENTAL_WITNESS_NOT_INDEPENDENT",
         "structural_state": null,
         "environmental_state": null,
         "candidate_count": 0
