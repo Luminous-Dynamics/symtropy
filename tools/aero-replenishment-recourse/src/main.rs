@@ -6,7 +6,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::{env, fs, process::ExitCode};
 
-const HEADER: [&str; 27] = [
+const HEADER: [&str; 30] = [
     "case_id",
     "evidence_class",
     "deadline_slots",
@@ -34,6 +34,9 @@ const HEADER: [&str; 27] = [
     "site_energy_mwh",
     "asset_id",
     "installed_mass_g",
+    "observation_source_receipt_id",
+    "observation_source_receipt_sha256",
+    "observation_partition_sha256",
 ];
 
 const MAX_SCENARIOS: usize = 64;
@@ -53,6 +56,9 @@ struct Metadata {
     start_node: String,
     observation_node: String,
     terminal_node: String,
+    observation_source_receipt_id: String,
+    observation_source_receipt_sha256: String,
+    observation_partition_sha256: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -210,8 +216,9 @@ fn parse_case(input: &str) -> Result<Case, Vec<String>> {
             continue;
         }
 
-        let row_metadata: Vec<String> =
+        let mut row_metadata: Vec<String> =
             fields[..11].iter().map(|field| (*field).to_string()).collect();
+        row_metadata.extend(fields[27..30].iter().map(|field| (*field).to_string()));
         if let Some(first) = &metadata {
             if *first != row_metadata {
                 errors.push(format!("line {line_no}: case metadata differs from first row"));
@@ -241,6 +248,9 @@ fn parse_case(input: &str) -> Result<Case, Vec<String>> {
                 start_node: fields[8].to_string(),
                 observation_node: fields[9].to_string(),
                 terminal_node: fields[10].to_string(),
+                observation_source_receipt_id: fields[27].to_string(),
+                observation_source_receipt_sha256: fields[28].to_string(),
+                observation_partition_sha256: fields[29].to_string(),
             };
             if !valid_id(&candidate.case_id)
                 || candidate.evidence_class != "SYNTHETIC_KNOWN_TRUTH"
@@ -254,6 +264,11 @@ fn parse_case(input: &str) -> Result<Case, Vec<String>> {
                 || !valid_id(&candidate.start_node)
                 || !valid_id(&candidate.observation_node)
                 || !valid_id(&candidate.terminal_node)
+                || !valid_id(&candidate.observation_source_receipt_id)
+                || candidate.observation_source_receipt_sha256.len() != 64
+                || !candidate.observation_source_receipt_sha256.bytes().all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
+                || candidate.observation_partition_sha256.len() != 64
+                || !candidate.observation_partition_sha256.bytes().all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
                 || candidate.start_node == candidate.observation_node
                 || candidate.observation_node == candidate.terminal_node
                 || candidate.start_node == candidate.terminal_node
@@ -785,6 +800,10 @@ fn run(path: &str) -> Result<(), String> {
     let report = evaluate(&case)?;
 
     println!("case_id={}", case.meta.case_id);
+    println!("observation_source_receipt_id={}", case.meta.observation_source_receipt_id);
+    println!("observation_source_receipt_sha256={}", case.meta.observation_source_receipt_sha256);
+    println!("observation_partition_sha256={}", case.meta.observation_partition_sha256);
+    println!("observation_partition_claim=UPSTREAM_RECEIPT_BOUND_NOT_VERIFIED_BY_THIS_CRATE");
     println!("evidence_class={}", case.meta.evidence_class);
     println!("scenario_count={}", case.scenarios.len());
     println!("observation_count={}", case.scenarios.values().map(|s| s.observation_label.clone()).collect::<BTreeSet<_>>().len());
