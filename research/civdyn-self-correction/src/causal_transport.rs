@@ -180,6 +180,8 @@ pub struct CausalTransportResult {
     pub target_ate_upper: Option<f64>,
     pub source_population_total: u64,
     pub target_population_total: u64,
+    pub supported_target_population_count: u64,
+    pub unsupported_target_population_count: u64,
     pub supported_target_mass: f64,
     pub unsupported_target_mass: f64,
     pub assumptions: CausalTransportAssumptions,
@@ -198,6 +200,7 @@ pub enum CausalTransportError {
     ZeroSourcePopulation,
     ZeroTargetPopulation,
     CountOverflow,
+    UnsupportedTargetMassBelowFloatingPrecision,
     EmptyModifierId,
     DuplicateSourceModifier { modifier_id: String },
     DuplicateTargetModifier { modifier_id: String },
@@ -322,7 +325,7 @@ pub fn assess_risk_difference_transport(
         source_ate += source_share * (treatment_risk - control_risk);
     }
 
-    let mut supported_target_mass = 0.0;
+    let mut supported_target_population_count = 0_u64;
     let mut target_weighted_effect = 0.0;
     let mut strata = Vec::with_capacity(input.target_strata.len());
 
@@ -332,7 +335,9 @@ pub fn assess_risk_difference_transport(
             let control_risk = source.control_events as f64 / source.control_sample_size as f64;
             let treatment_risk = source.treatment_events as f64 / source.treatment_sample_size as f64;
             let conditional_effect = treatment_risk - control_risk;
-            supported_target_mass += target_share;
+            supported_target_population_count = supported_target_population_count
+                .checked_add(target.target_population_count)
+                .ok_or(CausalTransportError::CountOverflow)?;
             target_weighted_effect += target_share * conditional_effect;
             strata.push(TransportStratumResult {
                 modifier_id: target.modifier_id.clone(),
@@ -366,8 +371,19 @@ pub fn assess_risk_difference_transport(
         }
     }
 
-    let unsupported_target_mass = (1.0 - supported_target_mass).max(0.0);
-    let target_support_complete = unsupported_target_mass <= 1e-12;
+    let unsupported_target_population_count = target_total
+        .checked_sub(supported_target_population_count)
+        .ok_or(CausalTransportError::CountOverflow)?;
+    let supported_target_mass =
+        supported_target_population_count as f64 / target_total as f64;
+    let unsupported_target_mass =
+        unsupported_target_population_count as f64 / target_total as f64;
+    let target_support_complete = unsupported_target_population_count == 0;
+    if unsupported_target_population_count > 0
+        && unsupported_target_mass <= f64::EPSILON
+    {
+        return Err(CausalTransportError::UnsupportedTargetMassBelowFloatingPrecision);
+    }
     let assumptions_supported = input.assumptions.all_supported();
 
     let (identification_status, identification_reason, target_ate_point, target_ate_lower, target_ate_upper) =
@@ -420,6 +436,8 @@ pub fn assess_risk_difference_transport(
         target_ate_upper,
         source_population_total: source_total,
         target_population_total: target_total,
+        supported_target_population_count,
+        unsupported_target_population_count,
         supported_target_mass,
         unsupported_target_mass,
         assumptions: input.assumptions.clone(),
@@ -581,6 +599,47 @@ mod tests {
             .expect("invalid source study remains a nonidentified report");
         assert_eq!(result.identification_status, TransportIdentificationStatus::NotIdentified);
         assert_eq!(result.target_ate_point, None);
+    }
+
+    #[test]
+    fn does_not_round_tiny_target_only_strata_into_full_support() {
+        let mut candidate = input(full_support_target());
+        candidate.target_strata[0].target_population_count = u64::MAX - 1;
+        candidate.target_strata[1].target_population_count = 0;
+        candidate.target_strata.push(TargetPopulationStratum {
+            modifier_id: "remote-isolated".to_string(),
+            target_population_count: 1,
+        });
+        assert_eq!(
+            assess_risk_difference_transport(&candidate).unwrap_err(),
+            CausalTransportError::InvalidTargetStratum {
+                modifier_id: "high-infrastructure".to_string()
+            }
+        );
+
+        let mut candidate = input(vec![
+            TargetPopulationStratum {
+                modifier_id: "low-infrastructure".to_string(),
+                target_population_count: u64::MAX - 1,
+            },
+            TargetPopulationStratum {
+                modifier_id: "remote-isolated".to_string(),
+                target_population_count: 1,
+            },
+        ]);
+        assert_eq!(
+            assess_risk_difference_transport(&candidate).unwrap_err(),
+            CausalTransportError::UnsupportedTargetMassBelowFloatingPrecision
+        );
+        candidate.target_strata[0].target_population_count = u64::MAX / 2;
+        candidate.target_strata[1].target_population_count = u64::MAX / 2;
+        let result = assess_risk_difference_transport(&candidate)
+            .expect("representable unsupported target mass remains partially identified");
+        assert_eq!(
+            result.identification_status,
+            TransportIdentificationStatus::PartiallyIdentified
+        );
+        assert_eq!(result.unsupported_target_population_count, u64::MAX / 2);
     }
 
     #[test]
