@@ -28,6 +28,7 @@ pub enum QnmSolverMethod {
     PotentialPeakPadeWkb,
     PotentialPeakBorelPadeWkb,
     ExactExtremalWkb,
+    ExactExtremalDoubleConfluentHeun,
     Other,
 }
 
@@ -582,7 +583,7 @@ pub enum QnmSequenceValidationError {
     MissingWkbMetadata(usize),
     InvalidWkbMetadata(usize),
     InvalidWkbSpinDomain(usize),
-    ExtremalFixtureRequiresScalarExactWkb,
+    ExtremalFixtureRequiresExactExtremalMethod,
 }
 
 impl core::fmt::Display for QnmSequenceValidationError {
@@ -672,10 +673,10 @@ impl core::fmt::Display for QnmSequenceValidationError {
                     "QNM mode {index} uses the fixed-spin normal-prolate WKB method outside 0 < a/M < 1"
                 )
             }
-            Self::ExtremalFixtureRequiresScalarExactWkb => {
+            Self::ExtremalFixtureRequiresExactExtremalMethod => {
                 write!(
                     f,
-                    "exact extremality is represented only by a scalar exact-WKB fixture"
+                    "exact extremality requires an explicitly supported exact-extremal method; nonzero spin weight requires the double-confluent Heun reference"
                 )
             }
         }
@@ -732,13 +733,17 @@ impl KerrQnmSequenceFixture {
             return Err(QnmSequenceValidationError::InvalidSpin);
         }
         if self.spin_over_mass.abs() == 1.0
-            && (self.spin_weight != 0
-                || self
-                    .modes
-                    .iter()
-                    .any(|mode| mode.solver_method != QnmSolverMethod::ExactExtremalWkb))
+            && self.modes.iter().any(|mode| {
+                if self.spin_weight == 0 {
+                    mode.solver_method != QnmSolverMethod::ExactExtremalWkb
+                        && mode.solver_method
+                            != QnmSolverMethod::ExactExtremalDoubleConfluentHeun
+                } else {
+                    mode.solver_method != QnmSolverMethod::ExactExtremalDoubleConfluentHeun
+                }
+            })
         {
-            return Err(QnmSequenceValidationError::ExtremalFixtureRequiresScalarExactWkb);
+            return Err(QnmSequenceValidationError::ExtremalFixtureRequiresExactExtremalMethod);
         }
         if self.ell < self.spin_weight.unsigned_abs() || self.m.unsigned_abs() > self.ell {
             return Err(QnmSequenceValidationError::InvalidModeNumbers);
@@ -1260,8 +1265,12 @@ mod tests {
         gravitational.spin_weight = -2;
         assert_eq!(
             gravitational.validate(),
-            Err(QnmSequenceValidationError::ExtremalFixtureRequiresScalarExactWkb)
+            Err(QnmSequenceValidationError::ExtremalFixtureRequiresExactExtremalMethod)
         );
+        for mode in &mut gravitational.modes {
+            mode.solver_method = QnmSolverMethod::ExactExtremalDoubleConfluentHeun;
+        }
+        assert_eq!(gravitational.validate(), Ok(()));
     }
 
     fn synthetic_analysis_config() -> QnmFamilyAnalysisConfig {
