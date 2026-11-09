@@ -1,0 +1,635 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/maritime-colreg-scenario-corpus-v0.1.schema.json",
+  "title": "Maritime COLREG Scenario Corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "corpus_id",
+    "corpus_version",
+    "claim_ceiling",
+    "base_episodes",
+    "cases"
+  ],
+  "properties": {
+    "corpus_id": {
+      "const": "luminous.symtropy.maritime-colreg-scenario-corpus"
+    },
+    "corpus_version": {
+      "const": "0.1.0"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "base_episodes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "valid_head_on"
+      ],
+      "properties": {
+        "valid_head_on": {
+          "$ref": "#/$defs/episode"
+        }
+      }
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 30,
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    }
+  },
+  "$defs": {
+    "nullableNumber": {
+      "oneOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "episode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scenario_id",
+        "fixture_kind",
+        "corpus_version",
+        "split",
+        "split_group",
+        "voyage_group",
+        "geography",
+        "time_policy",
+        "ownship",
+        "contacts",
+        "phases",
+        "tracks",
+        "encounter_graph",
+        "sensor_profile",
+        "expected"
+      ],
+      "properties": {
+        "scenario_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fixture_kind": {
+          "const": "synthetic_fixture"
+        },
+        "corpus_version": {
+          "const": "0.1.0"
+        },
+        "split": {
+          "enum": [
+            "train",
+            "validation",
+            "test",
+            "held_out"
+          ]
+        },
+        "split_group": {
+          "type": "string",
+          "minLength": 1
+        },
+        "voyage_group": {
+          "type": "string",
+          "minLength": 1
+        },
+        "geography": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "waterway_id",
+            "operating_area",
+            "horizontal_crs",
+            "visibility",
+            "traffic_density"
+          ],
+          "properties": {
+            "waterway_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "operating_area": {
+              "enum": [
+                "open_water",
+                "restricted_channel",
+                "harbour_approach"
+              ]
+            },
+            "horizontal_crs": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "visibility": {
+              "enum": [
+                "good",
+                "moderate",
+                "poor",
+                "unknown"
+              ]
+            },
+            "traffic_density": {
+              "enum": [
+                "low",
+                "moderate",
+                "high",
+                "unknown"
+              ]
+            }
+          }
+        },
+        "time_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "time_standard",
+            "evaluation_cutoff_utc",
+            "max_track_age_s",
+            "observation_history_s",
+            "prediction_horizon_s"
+          ],
+          "properties": {
+            "time_standard": {
+              "const": "UTC"
+            },
+            "evaluation_cutoff_utc": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "max_track_age_s": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "observation_history_s": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "prediction_horizon_s": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 1
+            }
+          }
+        },
+        "ownship": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "vessel_id",
+            "vessel_class",
+            "length_m",
+            "beam_m",
+            "speed_mps",
+            "course_deg",
+            "mode"
+          ],
+          "properties": {
+            "vessel_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "vessel_class": {
+              "enum": [
+                "cargo",
+                "container",
+                "tanker",
+                "passenger",
+                "fishing",
+                "tug",
+                "other"
+              ]
+            },
+            "length_m": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "beam_m": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "speed_mps": {
+              "type": "number",
+              "minimum": 0
+            },
+            "course_deg": {
+              "type": "number",
+              "minimum": 0,
+              "exclusiveMaximum": 360
+            },
+            "mode": {
+              "enum": [
+                "human_operated_synthetic",
+                "remote_operated_synthetic",
+                "autonomous_synthetic"
+              ]
+            }
+          }
+        },
+        "contacts": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "vessel_id",
+              "vessel_class",
+              "length_m",
+              "beam_m",
+              "speed_mps",
+              "course_deg",
+              "source_track_id"
+            ],
+            "properties": {
+              "vessel_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "vessel_class": {
+                "enum": [
+                  "cargo",
+                  "container",
+                  "tanker",
+                  "passenger",
+                  "fishing",
+                  "tug",
+                  "other"
+                ]
+              },
+              "length_m": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "beam_m": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "speed_mps": {
+                "type": "number",
+                "minimum": 0
+              },
+              "course_deg": {
+                "type": "number",
+                "minimum": 0,
+                "exclusiveMaximum": 360
+              },
+              "source_track_id": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "phases": {
+          "type": "array",
+          "minItems": 3,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "phase",
+              "source_time_utc",
+              "range_nm",
+              "relative_bearing_deg",
+              "cpa_time_utc",
+              "cpa_distance_nm"
+            ],
+            "properties": {
+              "phase": {
+                "enum": [
+                  "approach",
+                  "closest_approach",
+                  "departure"
+                ]
+              },
+              "source_time_utc": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "range_nm": {
+                "type": "number",
+                "minimum": 0
+              },
+              "relative_bearing_deg": {
+                "type": "number",
+                "minimum": 0,
+                "exclusiveMaximum": 360
+              },
+              "cpa_time_utc": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "cpa_distance_nm": {
+                "type": "number",
+                "minimum": 0
+              }
+            }
+          }
+        },
+        "tracks": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "track_id",
+              "vessel_id",
+              "source_id",
+              "source_time_utc",
+              "retrieved_at_utc",
+              "latitude_deg",
+              "longitude_deg",
+              "speed_mps",
+              "course_deg",
+              "position_uncertainty_m",
+              "observation_state"
+            ],
+            "properties": {
+              "track_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "vessel_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "source_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "source_time_utc": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "retrieved_at_utc": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "latitude_deg": {
+                "type": "number",
+                "minimum": -90,
+                "maximum": 90
+              },
+              "longitude_deg": {
+                "type": "number",
+                "minimum": -180,
+                "maximum": 180
+              },
+              "speed_mps": {
+                "type": "number",
+                "minimum": 0
+              },
+              "course_deg": {
+                "type": "number",
+                "minimum": 0,
+                "exclusiveMaximum": 360
+              },
+              "position_uncertainty_m": {
+                "type": "number",
+                "minimum": 0
+              },
+              "observation_state": {
+                "enum": [
+                  "observed",
+                  "missing",
+                  "interpolated",
+                  "synthetic_estimate"
+                ]
+              }
+            }
+          }
+        },
+        "encounter_graph": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "nodes",
+            "edges"
+          ],
+          "properties": {
+            "nodes": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "node_id",
+                  "node_kind"
+                ],
+                "properties": {
+                  "node_id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "node_kind": {
+                    "const": "vessel"
+                  }
+                }
+              }
+            },
+            "edges": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "edge_id",
+                  "from",
+                  "to",
+                  "interaction_kind"
+                ],
+                "properties": {
+                  "edge_id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "from": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "to": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "interaction_kind": {
+                    "enum": [
+                      "encounter",
+                      "constrained_interaction",
+                      "other"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "sensor_profile": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sensor_set_id",
+            "position_source",
+            "heading_source",
+            "observation_gap_policy",
+            "time_sync_state",
+            "track_confidence"
+          ],
+          "properties": {
+            "sensor_set_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "position_source": {
+              "enum": [
+                "synthetic_ais_like",
+                "synthetic_radar",
+                "synthetic_fused"
+              ]
+            },
+            "heading_source": {
+              "enum": [
+                "synthetic_ais_like",
+                "synthetic_gyro",
+                "synthetic_fused"
+              ]
+            },
+            "observation_gap_policy": {
+              "enum": [
+                "explicit_missing",
+                "bounded_interpolation",
+                "silently_interpolate"
+              ]
+            },
+            "time_sync_state": {
+              "enum": [
+                "synchronized_synthetic",
+                "unknown",
+                "unsynchronized"
+              ]
+            },
+            "track_confidence": {
+              "enum": [
+                "nominal_synthetic",
+                "degraded_synthetic",
+                "unknown"
+              ]
+            }
+          }
+        },
+        "expected": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "encounter_class",
+            "rule_context",
+            "ownship_role",
+            "contact_roles",
+            "expected_contract_code"
+          ],
+          "properties": {
+            "encounter_class": {
+              "enum": [
+                "head_on",
+                "crossing_starboard",
+                "crossing_port",
+                "overtaking",
+                "restricted_channel",
+                "multi_vessel",
+                "ambiguous"
+              ]
+            },
+            "rule_context": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ownship_role": {
+              "enum": [
+                "give_way",
+                "stand_on",
+                "equal_duty",
+                "unknown"
+              ]
+            },
+            "contact_roles": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "give_way",
+                  "stand_on",
+                  "equal_duty",
+                  "unknown"
+                ]
+              }
+            },
+            "expected_contract_code": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "mutation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "op"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "op": {
+          "enum": [
+            "set",
+            "remove",
+            "insert"
+          ]
+        },
+        "value": {}
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "base",
+        "mutations",
+        "expected_code"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "base": {
+          "const": "valid_head_on"
+        },
+        "mutations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/mutation"
+          }
+        },
+        "expected_code": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}
