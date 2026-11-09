@@ -885,14 +885,7 @@ mod tests {
             horizon(3, &["s0"]),
             horizon(2, &[]),
             horizon(1, &["grip-good", "grip-degraded"]),
-            horizon(
-                0,
-                &[
-                    "advance-good",
-                    "retreat-good",
-                    "retreat-degraded",
-                ],
-            ),
+            horizon(0, &["advance-good", "retreat-good", "retreat-degraded"]),
         ];
         for branch in &mut problem.branches {
             branch.intermediate_states = vec![TimedState {
