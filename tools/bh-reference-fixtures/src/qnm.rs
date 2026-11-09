@@ -178,7 +178,7 @@ pub enum QnmSequenceValidationError {
     SequencePositionsNotStrictlyIncreasing(usize),
     DuplicateOvertoneIndex(u32),
     NonFiniteModeValue(usize),
-    InvalidInitialGuessMetadata(usize),
+    InconsistentInitialGuessMetadata(usize),
     InvalidModeResiduals(usize),
     InvalidFamilyEvidence,
     MissingFamilyEvidence,
@@ -226,10 +226,10 @@ impl core::fmt::Display for QnmSequenceValidationError {
                     "QNM mode {index} has a non-finite frequency/eigenvalue/guess"
                 )
             }
-            Self::InvalidInitialGuessMetadata(index) => {
+            Self::InconsistentInitialGuessMetadata(index) => {
                 write!(
                     f,
-                    "QNM mode {index} supplies an initial guess without provenance"
+                    "QNM mode {index} supplies an initial guess but marks it as not required"
                 )
             }
             Self::InvalidModeResiduals(index) => {
@@ -377,7 +377,7 @@ impl KerrQnmSequenceFixture {
             if mode.initial_guess.is_some()
                 && mode.initial_guess_source == QnmInitialGuessSource::NoInitialGuessRequired
             {
-                return Err(QnmSequenceValidationError::InvalidInitialGuessMetadata(index));
+                return Err(QnmSequenceValidationError::InconsistentInitialGuessMetadata(index));
             }
             if mode.precision_bits < 53
                 || mode
@@ -632,18 +632,22 @@ mod tests {
     }
 
     #[test]
-    fn initial_guess_requires_provenance_and_shared_seed_source_is_explicit() {
+    fn initial_guess_source_cannot_claim_no_guess_when_a_value_is_present() {
         let mut missing = sequence(QnmFamilyClassification::Unresolved);
         missing.modes[0].initial_guess_source = QnmInitialGuessSource::NoInitialGuessRequired;
         assert_eq!(
             missing.validate(),
-            Err(QnmSequenceValidationError::InvalidInitialGuessMetadata(0))
+            Err(QnmSequenceValidationError::InconsistentInitialGuessMetadata(0))
         );
 
         let mut shared = sequence(QnmFamilyClassification::Unresolved);
         shared.modes[0].initial_guess_source =
             QnmInitialGuessSource::BhptInterpolationTable;
         assert_eq!(shared.validate(), Ok(()));
+
+        let mut unknown = sequence(QnmFamilyClassification::Unresolved);
+        unknown.modes[0].initial_guess_source = QnmInitialGuessSource::Unknown;
+        assert_eq!(unknown.validate(), Ok(()));
     }
 
     #[test]
