@@ -44,4 +44,18 @@ jobs:
       - name: Run Clippy
         run: cargo clippy --manifest-path tools/bh-pt-time-domain-audit/Cargo.toml --all-targets -- -D warnings
       - name: Run tests
+        env:
+          SOURCE_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
         run: cargo test --manifest-path tools/bh-pt-time-domain-audit/Cargo.toml --all-targets
+      - name: Build and emit waveform plus manifest
+        env:
+          SOURCE_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: cargo run --release --manifest-path tools/bh-pt-time-domain-audit/Cargo.toml -- --output bh-pt-time-domain-waveform.csv
+      - name: Upload waveform and manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: bh-pt-time-domain-${{ matrix.os }}-${{ github.sha }}
+          path: |
+            bh-pt-time-domain-waveform.csv
+            bh-pt-time-domain-waveform.csv.manifest.json
+          if-no-files-found: error
