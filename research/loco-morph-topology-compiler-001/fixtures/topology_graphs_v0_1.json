@@ -1,0 +1,675 @@
+{
+  "schema_version": "loco-morph-topology-graphs-v0.1",
+  "issue": 4367,
+  "status": "synthetic_topology_graph_fixtures",
+  "graph_kinds": [
+    "structural",
+    "energy",
+    "sensing",
+    "communication",
+    "command",
+    "actuation"
+  ],
+  "fixtures": [
+    {
+      "id": "T01-valid-conventional-quadruped",
+      "expected": "valid",
+      "modules": [
+        {
+          "id": "torso",
+          "class": "body",
+          "roles": [
+            "spine"
+          ],
+          "local": {
+            "power": false,
+            "compute": true,
+            "sensing": true,
+            "actuation": false,
+            "command": true
+          },
+          "ports": [
+            {
+              "id": "fl",
+              "interface": "limb_dock",
+              "revision": "v1",
+              "cardinality": 1,
+              "orientations": [
+                "forward"
+              ]
+            },
+            {
+              "id": "fr",
+              "interface": "limb_dock",
+              "revision": "v1",
+              "cardinality": 1,
+              "orientations": [
+                "forward"
+              ]
+            },
+            {
+              "id": "rl",
+              "interface": "limb_dock",
+              "revision": "v1",
+              "cardinality": 1,
+              "orientations": [
+                "rear"
+              ]
+            },
+            {
+              "id": "rr",
+              "interface": "limb_dock",
+              "revision": "v1",
+              "cardinality": 1,
+              "orientations": [
+                "rear"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "fl_leg",
+          "class": "leg",
+          "roles": [
+            "leg"
+          ],
+          "local": {
+            "power": true,
+            "compute": false,
+            "sensing": true,
+            "actuation": true,
+            "command": false
+          },
+          "ports": [
+            {
+              "id": "dock",
+              "interface": "limb_dock",
+              "revision": "v1",
+              "cardinality": 1,
+              "orientations": [
+                "forward",
+                "rear"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "fr_leg",
+          "class": "leg",
+          "roles": [
+            "leg"
+          ],
+          "local": {
+            "power": true,
+            "compute": false,
+            "sensing": true,
+            "actuation": true,
+            "command": false
+          },
+          "ports": [
+            {
+              "id": "dock",
+              "interface": "limb_dock",
+              "revision": "v1",
+              "cardinality": 1,
+              "orientations": [
+                "forward",
+                "rear"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "rl_leg",
+          "class": "leg",
+          "roles": [
+            "leg"
+          ],
+          "local": {
+            "power": true,
+            "compute": false,
+            "sensing": true,
+            "actuation": true,
+            "command": false
+          },
+          "ports": [
+            {
+              "id": "dock",
+              "interface": "limb_dock",
+              "revision": "v1",
+              "cardinality": 1,
+              "orientations": [
+                "forward",
+                "rear"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "rr_leg",
+          "class": "leg",
+          "roles": [
+            "leg"
+          ],
+          "local": {
+            "power": true,
+            "compute": false,
+            "sensing": true,
+            "actuation": true,
+            "command": false
+          },
+          "ports": [
+            {
+              "id": "dock",
+              "interface": "limb_dock",
+              "revision": "v1",
+              "cardinality": 1,
+              "orientations": [
+                "forward",
+                "rear"
+              ]
+            }
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "id": "s-fl",
+          "kind": "structural",
+          "source": [
+            "torso",
+            "fl"
+          ],
+          "target": [
+            "fl_leg",
+            "dock"
+          ],
+          "orientation": "forward"
+        },
+        {
+          "id": "p-fl",
+          "kind": "energy",
+          "source": [
+            "torso",
+            "power"
+          ],
+          "target": [
+            "fl_leg",
+            "power"
+          ],
+          "orientation": "none"
+        },
+        {
+          "id": "c-fl",
+          "kind": "command",
+          "source": [
+            "torso",
+            "cmd"
+          ],
+          "target": [
+            "fl_leg",
+            "cmd"
+          ],
+          "orientation": "none"
+        },
+        {
+          "id": "s-fr",
+          "kind": "structural",
+          "source": [
+            "torso",
+            "fr"
+          ],
+          "target": [
+            "fr_leg",
+            "dock"
+          ],
+          "orientation": "forward"
+        },
+        {
+          "id": "p-fr",
+          "kind": "energy",
+          "source": [
+            "torso",
+            "power"
+          ],
+          "target": [
+            "fr_leg",
+            "power"
+          ],
+          "orientation": "none"
+        },
+        {
+          "id": "c-fr",
+          "kind": "command",
+          "source": [
+            "torso",
+            "cmd"
+          ],
+          "target": [
+            "fr_leg",
+            "cmd"
+          ],
+          "orientation": "none"
+        },
+        {
+          "id": "s-rl",
+          "kind": "structural",
+          "source": [
+            "torso",
+            "rl"
+          ],
+          "target": [
+            "rl_leg",
+            "dock"
+          ],
+          "orientation": "rear"
+        },
+        {
+          "id": "p-rl",
+          "kind": "energy",
+          "source": [
+            "torso",
+            "power"
+          ],
+          "target": [
+            "rl_leg",
+            "power"
+          ],
+          "orientation": "none"
+        },
+        {
+          "id": "c-rl",
+          "kind": "command",
+          "source": [
+            "torso",
+            "cmd"
+          ],
+          "target": [
+            "rl_leg",
+            "cmd"
+          ],
+          "orientation": "none"
+        },
+        {
+          "id": "s-rr",
+          "kind": "structural",
+          "source": [
+            "torso",
+            "rr"
+          ],
+          "target": [
+            "rr_leg",
+            "dock"
+          ],
+          "orientation": "rear"
+        },
+        {
+          "id": "p-rr",
+          "kind": "energy",
+          "source": [
+            "torso",
+            "power"
+          ],
+          "target": [
+            "rr_leg",
+            "power"
+          ],
+          "orientation": "none"
+        },
+        {
+          "id": "c-rr",
+          "kind": "command",
+          "source": [
+            "torso",
+            "cmd"
+          ],
+          "target": [
+            "rr_leg",
+            "cmd"
+          ],
+          "orientation": "none"
+        }
+      ],
+      "expected_graphs": {
+        "structural_components": 1,
+        "energy_components": 1,
+        "command_components": 1
+      }
+    },
+    {
+      "id": "T02-valid-autonomous-modules",
+      "expected": "valid",
+      "modules": [
+        {
+          "id": "module-a",
+          "class": "autonomous_leg",
+          "roles": [
+            "leg"
+          ],
+          "local": {
+            "power": true,
+            "compute": true,
+            "sensing": true,
+            "actuation": true,
+            "command": true
+          },
+          "ports": [
+            {
+              "id": "dock1",
+              "interface": "module_dock",
+              "revision": "m2",
+              "cardinality": 2,
+              "orientations": [
+                "front",
+                "rear"
+              ]
+            },
+            {
+              "id": "dock2",
+              "interface": "module_dock",
+              "revision": "m2",
+              "cardinality": 2,
+              "orientations": [
+                "front",
+                "rear"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "module-b",
+          "class": "autonomous_leg",
+          "roles": [
+            "leg"
+          ],
+          "local": {
+            "power": true,
+            "compute": true,
+            "sensing": true,
+            "actuation": true,
+            "command": true
+          },
+          "ports": [
+            {
+              "id": "dock1",
+              "interface": "module_dock",
+              "revision": "m2",
+              "cardinality": 2,
+              "orientations": [
+                "front",
+                "rear"
+              ]
+            },
+            {
+              "id": "dock2",
+              "interface": "module_dock",
+              "revision": "m2",
+              "cardinality": 2,
+              "orientations": [
+                "front",
+                "rear"
+              ]
+            }
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "id": "dock-ab",
+          "kind": "structural",
+          "source": [
+            "module-a",
+            "dock2"
+          ],
+          "target": [
+            "module-b",
+            "dock1"
+          ],
+          "orientation": "front"
+        },
+        {
+          "id": "local-power-a",
+          "kind": "energy",
+          "source": [
+            "module-a",
+            "battery"
+          ],
+          "target": [
+            "module-a",
+            "drive"
+          ],
+          "orientation": "none"
+        },
+        {
+          "id": "local-power-b",
+          "kind": "energy",
+          "source": [
+            "module-b",
+            "battery"
+          ],
+          "target": [
+            "module-b",
+            "drive"
+          ],
+          "orientation": "none"
+        }
+      ],
+      "mission": {
+        "required_connected_graphs": [
+          "structural"
+        ],
+        "autonomous_modules": [
+          "module-a",
+          "module-b"
+        ]
+      },
+      "expected_graphs": {
+        "structural_components": 1,
+        "energy_components": 2,
+        "autonomous_modules": 2
+      }
+    },
+    {
+      "id": "T03-invalid-connector-class",
+      "expected": "invalid",
+      "error": "IncompatibleInterface",
+      "mutates": "T01-valid-conventional-quadruped",
+      "mutation": {
+        "module": "fl_leg",
+        "port": "dock",
+        "interface": "sensor_bus"
+      }
+    },
+    {
+      "id": "T04-invalid-connector-revision",
+      "expected": "invalid",
+      "error": "IncompatibleRevision",
+      "mutates": "T01-valid-conventional-quadruped",
+      "mutation": {
+        "module": "fr_leg",
+        "port": "dock",
+        "revision": "v9"
+      }
+    },
+    {
+      "id": "T05-invalid-orientation",
+      "expected": "invalid",
+      "error": "ForbiddenOrientation",
+      "mutates": "T01-valid-conventional-quadruped",
+      "mutation": {
+        "edge": "s-fl",
+        "orientation": "rear"
+      }
+    },
+    {
+      "id": "T06-duplicate-module-id",
+      "expected": "invalid",
+      "error": "DuplicateModuleId",
+      "mutation": {
+        "duplicate": "module-a"
+      }
+    },
+    {
+      "id": "T07-duplicate-port-id",
+      "expected": "invalid",
+      "error": "DuplicatePortId",
+      "mutation": {
+        "module": "module-a",
+        "port": "dock1"
+      }
+    },
+    {
+      "id": "T08-duplicate-edge-id",
+      "expected": "invalid",
+      "error": "DuplicateEdgeId",
+      "mutation": {
+        "edge": "dock-ab"
+      }
+    },
+    {
+      "id": "T09-port-over-subscription",
+      "expected": "invalid",
+      "error": "PortCardinalityExceeded",
+      "mutation": {
+        "module": "torso",
+        "port": "fl",
+        "second_mate": "extra_leg"
+      }
+    },
+    {
+      "id": "T10-structural-connected-command-disconnected",
+      "expected": "functional_incomplete",
+      "graphs": {
+        "structural": {
+          "components": 1
+        },
+        "command": {
+          "components": 3
+        }
+      },
+      "expected_unavailable": [
+        "front_left_command",
+        "rear_right_command"
+      ],
+      "rule": "Structural connectivity does not imply command connectivity."
+    },
+    {
+      "id": "T11-autonomous-module-missing-compute",
+      "expected": "invalid",
+      "error": "AutonomousCapabilityMissing",
+      "module": "module-b",
+      "local": {
+        "power": true,
+        "compute": false,
+        "sensing": true,
+        "actuation": true,
+        "command": true
+      }
+    },
+    {
+      "id": "T12-autonomous-module-missing-power",
+      "expected": "invalid",
+      "error": "AutonomousCapabilityMissing",
+      "module": "module-b",
+      "local": {
+        "power": false,
+        "compute": true,
+        "sensing": true,
+        "actuation": true,
+        "command": true
+      }
+    },
+    {
+      "id": "T13-intentionally-disconnected-autonomous-components",
+      "expected": "valid",
+      "modules": [
+        "module-a",
+        "module-b"
+      ],
+      "mission": {
+        "required_connected_graphs": [],
+        "autonomous_modules": [
+          "module-a",
+          "module-b"
+        ],
+        "independent_components_allowed": true
+      },
+      "expected_graphs": {
+        "structural_components": 2,
+        "autonomous_modules": 2
+      }
+    },
+    {
+      "id": "T14-cycle-policy",
+      "expected": "relation_specific",
+      "graphs": {
+        "energy": {
+          "cycle_allowed": true
+        },
+        "structural": {
+          "cycle_allowed": false
+        }
+      },
+      "mutation": {
+        "add_cycle_edges": [
+          "e1",
+          "e2"
+        ]
+      },
+      "rule": "Cycle policy is per graph kind, not global."
+    },
+    {
+      "id": "T15-module-removal-articulation",
+      "expected": "valid_with_removal_report",
+      "base": "T01-valid-conventional-quadruped",
+      "remove_module": "torso",
+      "expected_removal": {
+        "structural_components": 4,
+        "command_orphans": 4
+      }
+    },
+    {
+      "id": "T16-dock-edge-removal",
+      "expected": "valid_with_removal_report",
+      "base": "T02-valid-autonomous-modules",
+      "remove_edge": "dock-ab",
+      "expected_removal": {
+        "structural_components": 2,
+        "autonomous_components": 2
+      }
+    },
+    {
+      "id": "T17-latent-decoder-topology-mismatch",
+      "expected": "invalid_round_trip",
+      "source_digest": "topology-a",
+      "decoded_digest": "topology-b",
+      "rule": "Decoder mismatch must become a distinct candidate, never reuse source identity."
+    },
+    {
+      "id": "T18-cad-urdf-identity-mismatch",
+      "expected": "invalid",
+      "error": "ArtifactIdentityMismatch",
+      "manifest_module_id": "module-a",
+      "urdf_module_id": "module-x"
+    },
+    {
+      "id": "T19-permutation-invariance",
+      "expected": "canonical_equal",
+      "mutates": "T02-valid-autonomous-modules",
+      "mutation": "reverse modules, ports and edges; canonical digest and report remain identical"
+    },
+    {
+      "id": "T20-resource-exhaustion",
+      "expected": "resource_exhausted_no_partial_receipt",
+      "bounds": {
+        "max_modules": 64,
+        "max_edges": 256,
+        "max_removal_cases": 128
+      },
+      "mutation": {
+        "modules": 65
+      },
+      "rule": "No partial graph is emitted as compile-valid."
+    }
+  ]
+}
