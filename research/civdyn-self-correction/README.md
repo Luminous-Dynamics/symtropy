@@ -205,3 +205,41 @@ This slice does not yet implement:
 7. Empirical data adapters or independent domain qualification.
 
 Run the model-adequacy-sweep binary using Cargo with the locked manifest at research/civdyn-self-correction/Cargo.toml. The existing CIVDYN workflow also runs this binary after formatting, strict Clippy, compilation and tests. These are engineering checks against frozen synthetic contracts only.
+
+
+## Scenario G: policy rankings under structural model disagreement
+
+The first executable decision-sensitivity slice is in src/policy_sensitivity.rs and the deterministic policy-sensitivity-sweep binary.
+
+It consumes a finite set of model worlds, candidate policies, native-unit objective/constraint specifications, and source-identified policy/model outcomes. Each world must carry a model digest, a matching adequacy-model digest, and a non-empty adequacy-receipt digest; a stale adequacy receipt bound to another model is rejected. It does not simulate new worlds or assign posterior probabilities to structural models.
+
+The evaluator changes policy comparison in five ways:
+
+1. Hard constraints are checked independently in every model before objectives are ranked.
+2. A policy is robustly feasible only when it satisfies every declared hard constraint in every model world.
+3. Worst-case regret is reported separately for each objective, in that objective's native unit, and only when the policy is robustly feasible and every model has at least one feasible comparator.
+4. Pairwise policy orderings expose cross-model rank reversals and ties. Their counts are finite-model-set diagnostics, not probabilities or independent sample estimates.
+5. If any model is marked as having a primary discrepancy, not assessed, or out of domain, the report is explicitly exploratory-only. A bounded model-set-qualified result is not a real-world effectiveness claim.
+
+The model set is deliberately unweighted. Duplicate model digests are rejected so repeating the same structural model under another label cannot silently give it extra influence in model counts, regret or rank-reversal diagnostics. The output retains the policy-outcome source digest and both model/adequacy receipt identities. Objective-only comparisons are allowed when no hard constraints are declared; absence of a constraint is not treated as a hidden zero threshold.
+
+### Frozen known-answer fixture
+
+The sweep compares three policies over two structural worlds and three metrics:
+- Essential service (maximize; households served).
+- Ecological integrity (maximize; index points).
+- Water withdrawal (hard constraint; m³ no greater than 12).
+
+The fixture intentionally produces:
+- A baseline/conservation service ranking reversal between the two worlds.
+- Conservation's worst-case regret of 5 households-served units and 20 ecological-index points, reported separately.
+- Expansion infeasible in one world and feasible in the other, so it receives no robust-regret value.
+- An exploratory-only claim ceiling because one candidate model has a declared primary adequacy discrepancy.
+
+All values are synthetic and chosen to test the decision contract, not to represent an empirical policy scenario.
+
+### Limitations and next steps
+
+This v0.1 evaluator compares a finite supplied model set; it does not establish that the set contains the true world, optimize over a continuous ambiguity set, calculate distributionally robust bounds, or prove that a policy is safe outside the listed candidate models. It also does not propagate uncertainty intervals on each policy outcome, model discrepancy distributions, or metric measurement error.
+
+Next work should add source-pinned coupling to the CIVDYN adequacy receipts, confidence/uncertainty intervals for policy metrics, Pareto-dominance diagnostics without scalarization, and a held-out model-family benchmark. Real applications still require empirical calibration and domain review.
