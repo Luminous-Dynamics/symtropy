@@ -20,6 +20,18 @@ A Fourier-sign, coordinate, branch, frequency-normalization, or boundary-normali
 
 The first schema covers radial reference fixtures and a separate Kerr QNM-sequence record. It does not yet encode source orbits, fluxes, higher derivatives, arbitrary charts, branch-cut metadata, or complete sourced waveforms. These require explicit typed definitions and fixtures. Unknown fields are rejected to prevent silent schema drift.
 
+## Payload identity
+
+The CLI prints a `payload_sha256` digest for every validated radial fixture and QNM sequence. It is computed from deterministic JSON bytes produced by this crate:
+
+- object keys are sorted recursively;
+- array order is preserved;
+- negative zero is normalized to positive zero;
+- non-finite numbers are rejected by the fixture validators;
+- `serde_json` is pinned in `Cargo.toml` so its number formatting is reproducible.
+
+This is a schema-defined deterministic JSON profile, not a claim of general RFC 8785/JCS conformance. The producer artifact digest and the payload digest are distinct: one identifies the generating code/artifact, the other identifies the actual serialized fixture content. A change in any fixture value or convention changes its payload digest.
+
 QNM sequence records preserve sequence position independently of an optional overtone index. A prolate/oblate family label requires a multi-mode asymptotic evidence record, but the schema only checks that evidence is present and finite. It does not prove the family classification or assess whether the measured residuals are small enough. Unresolved and Ambiguous remain first-class outcomes.
 
 Reference fixtures are data, not executable instructions. Do not load untrusted notebooks or code from a fixture payload.
