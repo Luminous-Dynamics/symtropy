@@ -49,6 +49,13 @@ pub struct PossibleHypothesisBranch {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PossibleHypothesisBranchOutcome {
+    pub hypothesis_id: String,
+    pub branch_id: String,
+    pub outcome_id: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProbeAdmission {
     pub receipt: EvidenceReceipt,
     pub status: ProbeGateStatus,
@@ -58,6 +65,9 @@ pub struct ProbeAdmission {
     /// Physical possibility is independent of joint probability mass.
     pub physically_possible_branch_outcomes: Vec<PhysicalBranchOutcome>,
     pub possible_hypothesis_branches: Vec<PossibleHypothesisBranch>,
+    /// Complete possibility support for the joint latent-hypothesis,
+    /// physical-branch and observation relation. This is not probability mass.
+    pub possible_hypothesis_branch_outcomes: Vec<PossibleHypothesisBranchOutcome>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -206,6 +216,9 @@ pub enum ViableVoiError {
     DuplicateOutcomeId,
     DuplicatePhysicalPair,
     DuplicateHypothesisBranchPair,
+    DuplicateJointPossibility,
+    EmptyJointPossibility,
+    JointPossibilityProjectionMismatch,
     UnknownPhysicalBranch,
     UnknownPhysicalOutcome,
     UnknownHypothesisBranch,
@@ -648,6 +661,42 @@ fn validate_and_compute(problem: &ViableVoiProblem) -> Result<ViableVoiReport, V
         }
     }
 
+    let mut possible_hby = BTreeSet::new();
+    let mut possible_hby_branch_outcomes = BTreeSet::new();
+    for triple in &problem.probe.possible_hypothesis_branch_outcomes {
+        if !possible_hb.contains(&(triple.hypothesis_id.as_str(), triple.branch_id.as_str()))
+            || !physical_pairs.contains(&(triple.branch_id.as_str(), triple.outcome_id.as_str()))
+        {
+            return Err(ViableVoiError::EmptyJointPossibility);
+        }
+        if !possible_hby.insert((
+            triple.hypothesis_id.as_str(),
+            triple.branch_id.as_str(),
+            triple.outcome_id.as_str(),
+        )) {
+            return Err(ViableVoiError::DuplicateJointPossibility);
+        }
+        possible_hby_branch_outcomes.insert((
+            triple.branch_id.as_str(),
+            triple.outcome_id.as_str(),
+        ));
+    }
+    let projected_hb: BTreeSet<(&str, &str)> = problem
+        .probe
+        .possible_hypothesis_branch_outcomes
+        .iter()
+        .map(|triple| (triple.hypothesis_id.as_str(), triple.branch_id.as_str()))
+        .collect();
+    let projected_by: BTreeSet<(&str, &str)> = problem
+        .probe
+        .possible_hypothesis_branch_outcomes
+        .iter()
+        .map(|triple| (triple.branch_id.as_str(), triple.outcome_id.as_str()))
+        .collect();
+    if projected_hb != possible_hb || projected_by != physical_pairs {
+        return Err(ViableVoiError::JointPossibilityProjectionMismatch);
+    }
+
     let expected_joint_cells = problem
         .hypotheses
         .len()
@@ -709,8 +758,11 @@ fn validate_and_compute(problem: &ViableVoiProblem) -> Result<ViableVoiReport, V
             add_u128(hypothesis_total, u128::from(cell.mass_ppb))?,
         );
         if cell.mass_ppb > 0
-            && (!physical_pairs.contains(&(cell.branch_id.as_str(), cell.outcome_id.as_str()))
-                || !possible_hb.contains(&(cell.hypothesis_id.as_str(), cell.branch_id.as_str())))
+            && !possible_hby.contains(&(
+                cell.hypothesis_id.as_str(),
+                cell.branch_id.as_str(),
+                cell.outcome_id.as_str(),
+            ))
         {
             return Err(ViableVoiError::PositiveMassForImpossibleCell);
         }
@@ -1054,6 +1106,18 @@ mod tests {
                         branch_id: "b-degraded".to_owned(),
                     },
                 ],
+                possible_hypothesis_branch_outcomes: vec![
+                    PossibleHypothesisBranchOutcome {
+                        hypothesis_id: "h-good".to_owned(),
+                        branch_id: "b-good".to_owned(),
+                        outcome_id: "good-contact".to_owned(),
+                    },
+                    PossibleHypothesisBranchOutcome {
+                        hypothesis_id: "h-bad".to_owned(),
+                        branch_id: "b-degraded".to_owned(),
+                        outcome_id: "degraded-contact".to_owned(),
+                    },
+                ],
             },
             passive_receipt: receipt("passive-baseline", "passive-admission", 4),
             hypotheses,
@@ -1185,6 +1249,50 @@ mod tests {
             })
             .expect("joint cell");
         cell.mass_ppb = 1;
+        assert_eq!(
+            evaluate_viable_voi(&problem),
+            Err(ViableVoiError::PositiveMassForImpossibleCell)
+        );
+    }
+
+    #[test]
+    fn pairwise_possible_but_jointly_impossible_observation_cell_is_rejected() {
+        let mut problem = safe_problem();
+        problem
+            .probe
+            .physically_possible_branch_outcomes
+            .push(PhysicalBranchOutcome {
+                branch_id: "b-good".to_owned(),
+                outcome_id: "degraded-contact".to_owned(),
+            });
+        problem
+            .probe
+            .possible_hypothesis_branch_outcomes
+            .push(PossibleHypothesisBranchOutcome {
+                hypothesis_id: "h-bad".to_owned(),
+                branch_id: "b-good".to_owned(),
+                outcome_id: "degraded-contact".to_owned(),
+            });
+        let good_cell = problem
+            .joint_mass_cells
+            .iter_mut()
+            .find(|cell| {
+                cell.hypothesis_id == "h-good"
+                    && cell.branch_id == "b-good"
+                    && cell.outcome_id == "good-contact"
+            })
+            .expect("good joint cell");
+        good_cell.mass_ppb -= 1;
+        let impossible_cell = problem
+            .joint_mass_cells
+            .iter_mut()
+            .find(|cell| {
+                cell.hypothesis_id == "h-good"
+                    && cell.branch_id == "b-good"
+                    && cell.outcome_id == "degraded-contact"
+            })
+            .expect("pairwise possible but triple-impossible cell");
+        impossible_cell.mass_ppb = 1;
         assert_eq!(
             evaluate_viable_voi(&problem),
             Err(ViableVoiError::PositiveMassForImpossibleCell)
