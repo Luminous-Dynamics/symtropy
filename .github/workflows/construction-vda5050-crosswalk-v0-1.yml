@@ -1,0 +1,80 @@
+name: Construction VDA 5050 Crosswalk V0.1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "research/construction-vda5050-crosswalk-v0-1/**"
+      - ".github/workflows/construction-vda5050-crosswalk-v0-1.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: construction-vda5050-crosswalk-v0-1-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Crosswalk core (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - name: Verify package metadata and committed lockfile
+        run: cargo metadata --manifest-path research/construction-vda5050-crosswalk-v0-1/Cargo.toml --locked --format-version 1
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/construction-vda5050-crosswalk-v0-1/Cargo.toml -- --check
+      - name: Run crosswalk and sidecar-binding tests
+        run: cargo test --manifest-path research/construction-vda5050-crosswalk-v0-1/Cargo.toml --locked
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path research/construction-vda5050-crosswalk-v0-1/Cargo.toml --locked --all-targets -- -D warnings
+
+  json-schema-and-profile:
+    name: Validate profile, fixture, and Rust mapping consistency
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned JSON Schema validator
+        run: python -m pip install --disable-pip-version-check jsonschema==4.23.0
+      - name: Validate closed schemas and crosswalk consistency
+        run: |
+          python - <<'PY'
+          import json
+          import re
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          root = Path("research/construction-vda5050-crosswalk-v0-1")
+          profile = json.loads((root / "profile/vda5050-construction-crosswalk-v0.1.json").read_text())
+          profile_schema = json.loads((root / "schema/vda5050-construction-crosswalk-v0.1.schema.json").read_text())
+          fixtures = json.loads((root / "fixtures/vda5050-crosswalk-cases-v0.1.json").read_text())
+          fixture_schema = json.loads((root / "schema/vda5050-crosswalk-cases-v0.1.schema.json").read_text())
+
+          Draft202012Validator.check_schema(profile_schema)
+          Draft202012Validator.check_schema(fixture_schema)
+          Draft202012Validator(profile_schema).validate(profile)
+          Draft202012Validator(fixture_schema).validate(fixtures)
+
+          rust = (root / "src/lib.rs").read_text()
+          rust_fields = re.findall(r'canonical_field: "([^"]+)"', rust)
+          profile_fields = [row["canonical_field"] for row in profile["mappings"]]
+          assert rust_fields == profile_fields, "Rust mapping order/content differs from profile"
+          assert len(profile_fields) == len(set(profile_fields)), "duplicate canonical field in profile"
+          case_ids = [case["case_id"] for case in fixtures["cases"]]
+          assert len(case_ids) == len(set(case_ids)), "duplicate fixture case ID"
+          assert len(case_ids) >= 12, "fixture corpus unexpectedly shrank"
+          assert all(row["sidecar_required"] is True for row in profile["mappings"])
+          for field in ("acceptance.independent", "safety.authorization"):
+              row = next(item for item in profile["mappings"] if item["canonical_field"] == field)
+              assert row["mapping_class"] == "not_representable" and row["vda_surface"] is None
+          print(f"validated {len(profile_fields)} mappings and {len(case_ids)} frozen cases")
+          PY

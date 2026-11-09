@@ -1,0 +1,254 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/vda5050-crosswalk-cases-v0.1.schema.json",
+  "title": "VDA 5050 Construction Crosswalk Cases v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "corpus_id",
+    "owner_issue",
+    "evidence_class",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "corpus_id": {
+      "const": "construction-vda5050-crosswalk-cases-v0.1"
+    },
+    "owner_issue": {
+      "const": 3703
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 12,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "name",
+          "observation",
+          "expected_projection",
+          "expected_disposition",
+          "must_not_emit"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "pattern": "^VDA-CW-[0-9]{3}$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "observation": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "kind",
+                  "order_id",
+                  "order_update_id"
+                ],
+                "properties": {
+                  "kind": {
+                    "const": "order_received"
+                  },
+                  "order_id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "order_update_id": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "kind",
+                  "map_id",
+                  "map_version"
+                ],
+                "properties": {
+                  "kind": {
+                    "const": "map_version_observed"
+                  },
+                  "map_id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "map_version": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "kind",
+                  "zone_set_id",
+                  "zone_id"
+                ],
+                "properties": {
+                  "kind": {
+                    "const": "zone_access_granted"
+                  },
+                  "zone_set_id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "zone_id": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "kind",
+                  "order_id",
+                  "action_id"
+                ],
+                "properties": {
+                  "kind": {
+                    "const": "action_state_finished"
+                  },
+                  "order_id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "action_id": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "kind",
+                  "order_id",
+                  "node_id",
+                  "sequence_id"
+                ],
+                "properties": {
+                  "kind": {
+                    "const": "node_traversed"
+                  },
+                  "order_id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "node_id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "sequence_id": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "kind"
+                ],
+                "properties": {
+                  "kind": {
+                    "const": "connection_lost"
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "kind",
+                  "signal_type",
+                  "payload_digest"
+                ],
+                "properties": {
+                  "kind": {
+                    "const": "vendor_extension_unknown"
+                  },
+                  "signal_type": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "payload_digest": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "kind",
+                  "manufacturer",
+                  "serial_number"
+                ],
+                "properties": {
+                  "kind": {
+                    "const": "factsheet_capability_reported"
+                  },
+                  "manufacturer": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "serial_number": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              }
+            ]
+          },
+          "sidecar": {
+            "enum": [
+              "missing",
+              "valid_but_stale_epoch",
+              "bound_to_order_update_2",
+              "exact_structural_match"
+            ]
+          },
+          "expected_projection": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expected_disposition": {
+            "type": "string",
+            "minLength": 1
+          },
+          "must_not_emit": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    }
+  }
+}

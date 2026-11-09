@@ -1,0 +1,192 @@
+{
+  "schema_version": "0.1.0",
+  "corpus_id": "construction-vda5050-crosswalk-cases-v0.1",
+  "owner_issue": 3703,
+  "evidence_class": "synthetic",
+  "cases": [
+    {
+      "case_id": "VDA-CW-001",
+      "name": "transport-order-id-is-not-task-id",
+      "observation": {
+        "kind": "order_received",
+        "order_id": "transport-91",
+        "order_update_id": 2
+      },
+      "expected_projection": "transport_order_received",
+      "expected_disposition": "retain_separate_sidecar_identity",
+      "must_not_emit": [
+        "task_accepted",
+        "task_id=transport-91"
+      ]
+    },
+    {
+      "case_id": "VDA-CW-002",
+      "name": "map-version-is-not-design-revision",
+      "observation": {
+        "kind": "map_version_observed",
+        "map_id": "level-02",
+        "map_version": "map-17"
+      },
+      "expected_projection": "navigation_map_observed",
+      "expected_disposition": "sidecar_design_revision_still_required",
+      "must_not_emit": [
+        "design_revision_current",
+        "site_epoch_current"
+      ]
+    },
+    {
+      "case_id": "VDA-CW-003",
+      "name": "zone-grant-is-not-safety-permit",
+      "observation": {
+        "kind": "zone_access_granted",
+        "zone_set_id": "zs-4",
+        "zone_id": "zone-8"
+      },
+      "expected_projection": "fleet_traffic_access_reported",
+      "expected_disposition": "traffic_only",
+      "must_not_emit": [
+        "safety_authorized",
+        "motion_authorized"
+      ]
+    },
+    {
+      "case_id": "VDA-CW-004",
+      "name": "action-finished-is-not-output-acceptance",
+      "observation": {
+        "kind": "action_state_finished",
+        "order_id": "transport-91",
+        "action_id": "drill-1"
+      },
+      "expected_projection": "executor_action_finished_reported",
+      "expected_disposition": "measurement_and_inspection_pending",
+      "must_not_emit": [
+        "independently_accepted",
+        "output_evidence_verified"
+      ]
+    },
+    {
+      "case_id": "VDA-CW-005",
+      "name": "node-traversed-is-not-work-complete",
+      "observation": {
+        "kind": "node_traversed",
+        "order_id": "transport-91",
+        "node_id": "n-9",
+        "sequence_id": 6
+      },
+      "expected_projection": "route_progress_reported",
+      "expected_disposition": "executor_progress_only",
+      "must_not_emit": [
+        "work_package_completed",
+        "independently_accepted"
+      ]
+    },
+    {
+      "case_id": "VDA-CW-006",
+      "name": "disconnect-makes-state-unknown",
+      "observation": {
+        "kind": "connection_lost"
+      },
+      "expected_projection": "communication_unavailable",
+      "expected_disposition": "indeterminate_until_reconciled",
+      "must_not_emit": [
+        "task_completed",
+        "reservation_released"
+      ]
+    },
+    {
+      "case_id": "VDA-CW-007",
+      "name": "missing-sidecar-blocks-dispatch",
+      "observation": {
+        "kind": "order_received",
+        "order_id": "transport-91",
+        "order_update_id": 2
+      },
+      "sidecar": "missing",
+      "expected_projection": "transport_order_received",
+      "expected_disposition": "reject_dispatch_missing_context",
+      "must_not_emit": [
+        "dispatch_authorized",
+        "task_started"
+      ]
+    },
+    {
+      "case_id": "VDA-CW-008",
+      "name": "stale-site-epoch-blocks-context-binding",
+      "observation": {
+        "kind": "order_received",
+        "order_id": "transport-91",
+        "order_update_id": 2
+      },
+      "sidecar": "valid_but_stale_epoch",
+      "expected_projection": "transport_order_received",
+      "expected_disposition": "reject_stale_context",
+      "must_not_emit": [
+        "context_current",
+        "task_started"
+      ]
+    },
+    {
+      "case_id": "VDA-CW-009",
+      "name": "different-order-update-is-not-same-task-context",
+      "observation": {
+        "kind": "order_received",
+        "order_id": "transport-91",
+        "order_update_id": 3
+      },
+      "sidecar": "bound_to_order_update_2",
+      "expected_projection": "transport_order_received",
+      "expected_disposition": "reject_sidecar_mismatch",
+      "must_not_emit": [
+        "context_current",
+        "task_started"
+      ]
+    },
+    {
+      "case_id": "VDA-CW-010",
+      "name": "unknown-observation-remains-explicit",
+      "observation": {
+        "kind": "vendor_extension_unknown",
+        "payload_digest": "synthetic",
+        "signal_type": "vendor_extension_unknown"
+      },
+      "expected_projection": "unclassified_signal",
+      "expected_disposition": "typed_unknown",
+      "must_not_emit": [
+        "success",
+        "task_accepted",
+        "safety_authorized"
+      ]
+    },
+    {
+      "case_id": "VDA-CW-011",
+      "name": "valid-sidecar-is-structural-only",
+      "observation": {
+        "kind": "order_received",
+        "order_id": "transport-91",
+        "order_update_id": 2
+      },
+      "sidecar": "exact_structural_match",
+      "expected_projection": "transport_order_received",
+      "expected_disposition": "structurally_bound_not_authorized",
+      "must_not_emit": [
+        "motion_authorized",
+        "independently_accepted"
+      ]
+    },
+    {
+      "case_id": "VDA-CW-012",
+      "name": "factsheet-is-not-configuration-attestation",
+      "observation": {
+        "kind": "factsheet_capability_reported",
+        "manufacturer": "Example",
+        "serial_number": "R-01"
+      },
+      "expected_projection": "reported_capability_only",
+      "expected_disposition": "configuration_digest_sidecar_required",
+      "must_not_emit": [
+        "configuration_authenticated",
+        "qualified_for_task"
+      ]
+    }
+  ]
+}
