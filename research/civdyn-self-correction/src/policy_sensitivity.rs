@@ -480,6 +480,43 @@ pub struct PolicySensitivityReport {
     pub any_model_without_feasible_policy: bool,
 }
 
+/// A model-local Pareto classification after applying the model's hard
+/// constraints. An infeasible policy is never placed on the frontier.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ModelPolicyPareto {
+    pub model_id: String,
+    pub policy_id: String,
+    pub feasible: bool,
+    pub pareto_efficient: bool,
+    /// All other feasible policies that strictly dominate this policy under
+    /// the frozen per-objective tolerances.
+    pub dominated_by: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct PolicyParetoSummary {
+    pub policy_id: String,
+    pub total_model_count: usize,
+    pub feasible_model_count: usize,
+    pub efficient_model_count: usize,
+    pub robustly_feasible: bool,
+    /// True only when feasible and nondominated in every declared model.
+    pub robustly_pareto_efficient: bool,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ParetoFrontierReport {
+    pub model_ids: Vec<String>,
+    pub policy_ids: Vec<String>,
+    pub objective_metrics: Vec<(String, String)>,
+    /// Absolute comparison tolerance in each objective's native unit.
+    pub dominance_tolerances: Vec<(String, f64)>,
+    pub claim_ceiling: ModelSetClaimCeiling,
+    pub models_with_unqualified_adequacy: Vec<String>,
+    pub memberships: Vec<ModelPolicyPareto>,
+    pub policy_summaries: Vec<PolicyParetoSummary>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PolicySensitivityError {
     InvalidPortfolio,
@@ -538,6 +575,9 @@ pub enum PolicySensitivityError {
         metric_id: String,
     },
     NoObjectiveMetrics,
+    MissingParetoTolerance { metric_id: String },
+    InvalidParetoTolerance { metric_id: String },
+    UnknownParetoToleranceMetric { metric_id: String },
 }
 
 impl fmt::Display for PolicySensitivityError {
@@ -942,6 +982,196 @@ pub fn evaluate_policy_sensitivity(
         pairwise_orderings,
         any_model_without_feasible_policy,
     })
+}
+
+/// Identify feasible, model-local Pareto frontiers without scalarizing
+/// heterogeneous objectives. Each objective requires a predeclared absolute
+/// tolerance in its own native unit. Differences within that tolerance are
+/// treated as ties; a strict improvement must exceed tolerance on at least
+/// one objective without being worse by more than tolerance on any objective.
+///
+/// This function first runs the full policy-sensitivity validator, so it
+/// inherits the exact model/adequacy provenance, complete outcome matrix,
+/// constraint-first feasibility and claim ceiling checks.
+pub fn evaluate_pareto_frontiers(
+    models: &[ModelWorld],
+    policies: &[PolicySpec],
+    metrics: &[MetricSpec],
+    outcomes: &[PolicyMetricOutcome],
+    tolerances_by_metric: &BTreeMap<String, f64>,
+) -> Result<ParetoFrontierReport, PolicySensitivityError> {
+    let decision_report = evaluate_policy_sensitivity(models, policies, metrics, outcomes)?;
+    let objective_metrics: Vec<&MetricSpec> = metrics
+        .iter()
+        .filter(|metric| matches!(metric.kind, MetricKind::Objective { .. }))
+        .collect();
+
+    for metric in &objective_metrics {
+        let tolerance = tolerances_by_metric
+            .get(&metric.id)
+            .ok_or_else(|| PolicySensitivityError::MissingParetoTolerance {
+                metric_id: metric.id.clone(),
+            })?;
+        if !tolerance.is_finite() || *tolerance < 0.0 {
+            return Err(PolicySensitivityError::InvalidParetoTolerance {
+                metric_id: metric.id.clone(),
+            });
+        }
+    }
+    for metric_id in tolerances_by_metric.keys() {
+        if !objective_metrics
+            .iter()
+            .any(|metric| metric.id == *metric_id)
+        {
+            return Err(PolicySensitivityError::UnknownParetoToleranceMetric {
+                metric_id: metric_id.clone(),
+            });
+        }
+    }
+
+    let values: BTreeMap<(String, String, String), f64> = outcomes
+        .iter()
+        .map(|outcome| {
+            (
+                (
+                    outcome.model_id.clone(),
+                    outcome.policy_id.clone(),
+                    outcome.metric_id.clone(),
+                ),
+                outcome.value,
+            )
+        })
+        .collect();
+    let feasible: BTreeMap<(String, String), bool> = decision_report
+        .model_policy_feasibility
+        .iter()
+        .map(|row| {
+            (
+                (row.model_id.clone(), row.policy_id.clone()),
+                row.feasible,
+            )
+        })
+        .collect();
+
+    let mut memberships = Vec::with_capacity(models.len() * policies.len());
+    for model in models {
+        for policy in policies {
+            let is_feasible = feasible[&(model.id.clone(), policy.id.clone())];
+            let dominated_by: Vec<String> = if !is_feasible {
+                Vec::new()
+            } else {
+                policies
+                    .iter()
+                    .filter(|candidate| {
+                        candidate.id != policy.id
+                            && feasible[&(model.id.clone(), candidate.id.clone())]
+                            && dominates_policy(
+                                &model.id,
+                                &candidate.id,
+                                &policy.id,
+                                &objective_metrics,
+                                tolerances_by_metric,
+                                &values,
+                            )
+                    })
+                    .map(|candidate| candidate.id.clone())
+                    .collect()
+            };
+            memberships.push(ModelPolicyPareto {
+                model_id: model.id.clone(),
+                policy_id: policy.id.clone(),
+                feasible: is_feasible,
+                pareto_efficient: is_feasible && dominated_by.is_empty(),
+                dominated_by,
+            });
+        }
+    }
+
+    let policy_summaries = policies
+        .iter()
+        .map(|policy| {
+            let rows: Vec<&ModelPolicyPareto> = memberships
+                .iter()
+                .filter(|row| row.policy_id == policy.id)
+                .collect();
+            let feasible_model_count = rows.iter().filter(|row| row.feasible).count();
+            let efficient_model_count = rows.iter().filter(|row| row.pareto_efficient).count();
+            let robustly_feasible = feasible_model_count == models.len();
+            PolicyParetoSummary {
+                policy_id: policy.id.clone(),
+                total_model_count: models.len(),
+                feasible_model_count,
+                efficient_model_count,
+                robustly_feasible,
+                robustly_pareto_efficient: robustly_feasible
+                    && efficient_model_count == models.len(),
+            }
+        })
+        .collect();
+
+    Ok(ParetoFrontierReport {
+        model_ids: decision_report.model_ids,
+        policy_ids: decision_report.policy_ids,
+        objective_metrics: objective_metrics
+            .iter()
+            .map(|metric| (metric.id.clone(), metric.measurement_unit.clone()))
+            .collect(),
+        dominance_tolerances: objective_metrics
+            .iter()
+            .map(|metric| (metric.id.clone(), tolerances_by_metric[&metric.id]))
+            .collect(),
+        claim_ceiling: decision_report.claim_ceiling,
+        models_with_unqualified_adequacy: decision_report.models_with_unqualified_adequacy,
+        memberships,
+        policy_summaries,
+    })
+}
+
+fn dominates_policy(
+    model_id: &str,
+    candidate_id: &str,
+    target_id: &str,
+    objective_metrics: &[&MetricSpec],
+    tolerances_by_metric: &BTreeMap<String, f64>,
+    values: &BTreeMap<(String, String, String), f64>,
+) -> bool {
+    let mut strictly_better = false;
+    for metric in objective_metrics {
+        let candidate = values[&(
+            model_id.to_string(),
+            candidate_id.to_string(),
+            metric.id.clone(),
+        )];
+        let target = values[&(
+            model_id.to_string(),
+            target_id.to_string(),
+            metric.id.clone(),
+        )];
+        let tolerance = tolerances_by_metric[&metric.id];
+
+        match metric.kind {
+            MetricKind::Objective {
+                direction: ObjectiveDirection::Maximize,
+            } => {
+                if target - candidate > tolerance {
+                    return false;
+                }
+                strictly_better |= candidate - target > tolerance;
+            }
+            MetricKind::Objective {
+                direction: ObjectiveDirection::Minimize,
+            } => {
+                if candidate - target > tolerance {
+                    return false;
+                }
+                strictly_better |= target - candidate > tolerance;
+            }
+            MetricKind::Constraint { .. } => {
+                unreachable!("objective metrics filtered before Pareto comparison")
+            }
+        }
+    }
+    strictly_better
 }
 
 #[cfg(test)]
