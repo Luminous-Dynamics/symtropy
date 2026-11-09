@@ -124,6 +124,12 @@ def validate_fixture(data: dict[str, Any]) -> None:
     require(constraints["sensor_dropout_budget"] == 1
             and constraints["common_cause_group_dropout"] is True,
             "v0.1 only supports one sensor or common-cause group dropout")
+    require(
+        isinstance(constraints["minimum_robust_minimum_eigenvalue"], (int, float))
+        and math.isfinite(constraints["minimum_robust_minimum_eigenvalue"])
+        and constraints["minimum_robust_minimum_eigenvalue"] > 0.0,
+        "minimum robust information threshold must be finite and positive",
+    )
 
     sensors = data["sensors"]
     require(5 <= len(sensors) <= 16, "v0.1 requires 5..=16 sensor candidates")
@@ -359,6 +365,38 @@ def select_robust_d_opt(data: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def minimum_cost_robust_selection(data: dict[str, Any]) -> dict[str, Any] | None:
+    required = data["constraints"]["minimum_robust_minimum_eigenvalue"]
+    minimum_count = max(3, data["constraints"]["sensor_dropout_budget"] + 2)
+    sensors = data["sensors"]
+    candidates = []
+    for count in range(minimum_count, len(sensors) + 1):
+        for indices in combinations(len(sensors), count):
+            worst_e, _worst_d, records = robust_score(data, indices)
+            if worst_e + SCORE_TOLERANCE < required:
+                continue
+            cost = sum(sensors[i]["deployment_cost_units"] for i in indices)
+            mass = sum(sensors[i]["mass_g"] for i in indices)
+            power = sum(sensors[i]["power_mw"] for i in indices)
+            candidates.append((cost, mass, power, ids_for(data, indices), worst_e, records))
+    if not candidates:
+        return None
+    candidates.sort(key=lambda row: (
+        round(row[0], 10), round(row[1], 10), round(row[2], 10), row[3]
+    ))
+    cost, mass, power, selected, achieved, records = candidates[0]
+    return {
+        "sensor_ids": selected,
+        "objective": "MINIMIZE_DEPLOYMENT_COST_SUBJECT_TO_ROBUST_EIGENVALUE_FLOOR",
+        "required_minimum_eigenvalue": required,
+        "achieved_worst_case_minimum_eigenvalue": achieved,
+        "total_deployment_cost_units": cost,
+        "total_mass_g": mass,
+        "total_power_mw": power,
+        "scenarios": records,
+    }
+
+
 def compute(data: dict[str, Any], source_bytes: bytes) -> dict[str, Any]:
     validate_fixture(data)
     diagonal = select_e_opt(data, diagonal_only=True)
@@ -366,6 +404,7 @@ def compute(data: dict[str, Any], source_bytes: bytes) -> dict[str, Any]:
     e_opt = select_e_opt(data, diagonal_only=False)
     robust_d = select_robust_d_opt(data)
     robust = select_robust_e_opt(data)
+    minimum_cost_robust = minimum_cost_robust_selection(data)
     covariance = data["noise_covariance"]["matrix"]
     correlated_pairs = sum(
         abs(covariance[i][j]) > 1.0e-12
@@ -386,6 +425,7 @@ def compute(data: dict[str, Any], source_bytes: bytes) -> dict[str, Any]:
         "correlated_e_opt": e_opt,
         "robust_correlated_d_opt": robust_d,
         "robust_correlated_e_opt": robust,
+        "cost_constrained_robust": minimum_cost_robust,
         "diagonal_to_correlated_e_opt_changed": diagonal["sensor_ids"] != e_opt["sensor_ids"],
         "model_claim_ceiling": CLAIM,
         "aircraft_feasibility": "NOT_ASSESSED",
@@ -417,6 +457,32 @@ def verify_frozen_expected(data: dict[str, Any], result: dict[str, Any]) -> None
         "robust E-opt worst-case value",
         1e-9,
         1e-10,
+    )
+    minimum_cost = result["cost_constrained_robust"]
+    require(minimum_cost is not None, "minimum-cost robust design must exist in frozen fixture")
+    require(
+        minimum_cost["sensor_ids"] == expected["minimum_cost_robust_sensor_ids"],
+        "minimum-cost robust sensor IDs mismatch",
+    )
+    close(
+        minimum_cost["achieved_worst_case_minimum_eigenvalue"],
+        expected["minimum_cost_robust_worst_case_minimum_eigenvalue"],
+        "minimum-cost robust achieved information",
+    )
+    close(
+        minimum_cost["total_deployment_cost_units"],
+        expected["minimum_cost_robust_total_deployment_cost_units"],
+        "minimum-cost robust deployment cost",
+    )
+    close(
+        minimum_cost["total_mass_g"],
+        expected["minimum_cost_robust_total_mass_g"],
+        "minimum-cost robust mass",
+    )
+    close(
+        minimum_cost["total_power_mw"],
+        expected["minimum_cost_robust_total_power_mw"],
+        "minimum-cost robust power",
     )
 
 
@@ -471,6 +537,41 @@ def compare_rust(actual: dict[str, Any], expected: dict[str, Any]) -> None:
                     close(ai["fisher_information"][i][j], ei["fisher_information"][i][j], f"{section}.F[{i},{j}]")
             for i in range(2):
                 close(ai["eigenvalues_ascending"][i], ei["eigenvalues_ascending"][i], f"{section}.eigen[{i}]")
+
+
+    expected_minimum_cost = expected["cost_constrained_robust"]
+    actual_minimum_cost = actual.get("cost_constrained_robust")
+    require(
+        (actual_minimum_cost is None) == (expected_minimum_cost is None),
+        "minimum-cost robust result availability mismatch",
+    )
+    if expected_minimum_cost is not None:
+        for key in ("sensor_ids", "objective"):
+            require(actual_minimum_cost[key] == expected_minimum_cost[key],
+                    f"minimum-cost robust {key} mismatch")
+        for key in ("required_minimum_eigenvalue",
+                    "achieved_worst_case_minimum_eigenvalue",
+                    "total_deployment_cost_units", "total_mass_g", "total_power_mw"):
+            close(actual_minimum_cost[key], expected_minimum_cost[key],
+                  f"minimum-cost robust {key}")
+        require(
+            len(actual_minimum_cost["scenarios"]) == len(expected_minimum_cost["scenarios"]),
+            "minimum-cost robust scenario count mismatch",
+        )
+        for a_scenario, e_scenario in zip(
+            actual_minimum_cost["scenarios"], expected_minimum_cost["scenarios"]
+        ):
+            for field in ("scenario_id", "lost_sensor_ids", "surviving_sensor_ids", "effective_rank"):
+                require(a_scenario[field] == e_scenario[field],
+                        f"minimum-cost robust scenario {field} mismatch")
+            close(a_scenario["minimum_eigenvalue"], e_scenario["minimum_eigenvalue"],
+                  "minimum-cost robust scenario eigenvalue")
+            if e_scenario["log_determinant"] is None:
+                require(a_scenario["log_determinant"] is None,
+                        "minimum-cost robust logdet availability mismatch")
+            else:
+                close(a_scenario["log_determinant"], e_scenario["log_determinant"],
+                      "minimum-cost robust scenario logdet")
 
 
 def expect_rejected(label: str, action) -> None:
