@@ -6,7 +6,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::{env, fs, process::ExitCode};
 
-const OFFER_HEADER: [&str; 17] = [
+const OFFER_HEADER: [&str; 18] = [
     "profile_id",
     "provider_id",
     "profile_version",
@@ -22,6 +22,7 @@ const OFFER_HEADER: [&str; 17] = [
     "receipt_id",
     "receipt_sha256",
     "evidence_class",
+    "review_status",
     "disposition",
     "valid_until_us",
 ];
@@ -66,6 +67,7 @@ struct EvidenceReceipt {
     receipt_id: String,
     receipt_sha256: String,
     evidence_class: String,
+    review_status: String,
     disposition: String,
     valid_until_us: u64,
 }
@@ -238,7 +240,6 @@ fn allowed_evidence_class(value: &str) -> bool {
             | "SIMULATED"
             | "BENCH_MEASURED"
             | "FIELD_MEASURED"
-            | "INDEPENDENTLY_REVIEWED"
     )
 }
 
@@ -369,11 +370,13 @@ fn parse_offers(input: &str) -> Result<Vec<Offer>, Vec<String>> {
         let receipt_id = fields[12];
         let receipt_sha256 = fields[13];
         let evidence_class = fields[14];
-        let disposition = fields[15];
+        let review_status = fields[15];
+        let disposition = fields[16];
         if !allowed_evidence_role(role)
             || !valid_id(receipt_id)
             || !digest_valid(receipt_sha256)
             || !allowed_evidence_class(evidence_class)
+            || !matches!(review_status, "NOT_REVIEWED" | "INDEPENDENTLY_REVIEWED")
             || !(disposition == "QUALIFIED_FOR_DECLARED_SCOPE"
                 || disposition == "DECLARED_ONLY"
                 || BLOCKING_DISPOSITIONS.contains(&disposition))
@@ -384,7 +387,7 @@ fn parse_offers(input: &str) -> Result<Vec<Offer>, Vec<String>> {
             continue;
         }
 
-        let valid_until_us = match parse_u64(fields[16], "valid_until_us") {
+        let valid_until_us = match parse_u64(fields[17], "valid_until_us") {
             Ok(value) => value,
             Err(error) => {
                 errors.push(format!("offer line {line_no}: {error}"));
@@ -409,6 +412,7 @@ fn parse_offers(input: &str) -> Result<Vec<Offer>, Vec<String>> {
                 receipt_id: receipt_id.to_string(),
                 receipt_sha256: receipt_sha256.to_string(),
                 evidence_class: evidence_class.to_string(),
+                review_status: review_status.to_string(),
                 disposition: disposition.to_string(),
                 valid_until_us,
             },
@@ -609,7 +613,7 @@ fn match_offer(offer: &Offer, request: &Request) -> MatchResult {
         }
         independently_reviewed =
             review.disposition == "QUALIFIED_FOR_DECLARED_SCOPE"
-                && review.evidence_class == "INDEPENDENTLY_REVIEWED";
+                && review.review_status == "INDEPENDENTLY_REVIEWED";
     }
 
     if request.require_independent_review && !independently_reviewed {
