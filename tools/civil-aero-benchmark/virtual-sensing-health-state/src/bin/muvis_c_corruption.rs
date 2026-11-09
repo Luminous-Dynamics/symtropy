@@ -64,6 +64,11 @@ struct Protocol {
     bootstrap_replicates: usize,
     bootstrap_index_seed: u64,
     bootstrap_index_method: String,
+    noise_draw_seed: u64,
+    noise_draw_method: String,
+    outlier_uniform_seed: u64,
+    outlier_delta_seed: u64,
+    uniform_draw_method: String,
     metric_definitions: MetricDefinitions,
 }
 
@@ -230,6 +235,11 @@ fn validate(fixture: &Fixture) -> Result<(), String> {
         || protocol.bootstrap_replicates != 200
         || protocol.bootstrap_index_seed != 260916
         || protocol.bootstrap_index_method != "LCG32_1664525_1013904223_mod_sample_count"
+        || protocol.noise_draw_seed != 260917
+        || protocol.noise_draw_method != "LCG32_BOX_MULLER_PRECOMPUTED"
+        || protocol.outlier_uniform_seed != 260918
+        || protocol.outlier_delta_seed != 260919
+        || protocol.uniform_draw_method != "LCG32_PRECOMPUTED_UNIFORM_32"
     {
         return fail("MuViS-C protocol constants or atomic corruption rule changed");
     }
