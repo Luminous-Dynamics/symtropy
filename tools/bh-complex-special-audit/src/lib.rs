@@ -1084,6 +1084,54 @@ mod tests {
         );
     }
 
+    fn integrate_jost_rk4(
+        width: f64,
+        lambda: f64,
+        omega: Complex64,
+        target_x: f64,
+        side: JostSide,
+        max_step: f64,
+    ) -> (Complex64, Complex64) {
+        let (initial_x, direction) = match side {
+            JostSide::Left => (-18.0, -1.0),
+            JostSide::Right => (18.0, 1.0),
+        };
+        let imaginary_direction = Complex64::new(0.0, direction);
+        let mut value = (imaginary_direction * omega * initial_x).exp();
+        let mut derivative = imaginary_direction * omega * value;
+        let steps = (((target_x - initial_x).abs() / max_step).ceil() as usize).max(1);
+        let step = (target_x - initial_x) / steps as f64;
+        let potential = |x: f64| lambda / (width * width) / (x / width).cosh().powi(2);
+        let rhs = |x: f64, y: Complex64, dy: Complex64| {
+            (dy, (potential(x) - omega * omega) * y)
+        };
+
+        for index in 0..steps {
+            let x = initial_x + index as f64 * step;
+            let (k1_y, k1_dy) = rhs(x, value, derivative);
+            let (k2_y, k2_dy) = rhs(
+                x + step / 2.0,
+                value + step * k1_y / 2.0,
+                derivative + step * k1_dy / 2.0,
+            );
+            let (k3_y, k3_dy) = rhs(
+                x + step / 2.0,
+                value + step * k2_y / 2.0,
+                derivative + step * k2_dy / 2.0,
+            );
+            let (k4_y, k4_dy) = rhs(
+                x + step,
+                value + step * k3_y,
+                derivative + step * k3_dy,
+            );
+            value += step * (k1_y + 2.0 * k2_y + 2.0 * k3_y + k4_y) / 6.0;
+            derivative +=
+                step * (k1_dy + 2.0 * k2_dy + 2.0 * k3_dy + k4_dy) / 6.0;
+        }
+
+        (value, derivative)
+    }
+
     #[test]
     fn gamma_matches_independent_80_digit_fixture_one() {
         let actual = gamma(z(0.3, 1.2)).unwrap();
@@ -1736,6 +1784,71 @@ mod tests {
 
         close(conjugate.value, value.value.conj(), 5.0e-11);
         close(conjugate.wronskian, value.wronskian.conj(), 5.0e-11);
+    }
+
+    #[test]
+    fn independent_rk4_jost_integration_reproduces_green_fixture() {
+        let width = 1.3;
+        let lambda = 0.75;
+        let omega = z(0.9, -0.12);
+        let observer_x = -0.21;
+        let source_x = 0.73;
+        let expected_left = z(1.077_691_453_714_667_6, 0.475_573_043_669_987_6);
+        let expected_right = z(0.843_603_430_198_184_2, 0.826_004_257_644_994_8);
+        let expected_wronskian =
+            z(-0.924_255_829_850_433_7, 1.347_984_031_935_372_3);
+        let expected_green = z(-0.473_003_612_861_573_6, 0.707_349_028_100_136_9);
+
+        let mut previous_left_error = f64::INFINITY;
+        let mut previous_right_error = f64::INFINITY;
+        for max_step in [0.02, 0.01, 0.005] {
+            let left = integrate_jost_rk4(
+                width,
+                lambda,
+                omega,
+                observer_x,
+                JostSide::Left,
+                max_step,
+            );
+            let right = integrate_jost_rk4(
+                width,
+                lambda,
+                omega,
+                source_x,
+                JostSide::Right,
+                max_step,
+            );
+            let left_at_center =
+                integrate_jost_rk4(width, lambda, omega, 0.0, JostSide::Left, max_step);
+            let right_at_center =
+                integrate_jost_rk4(width, lambda, omega, 0.0, JostSide::Right, max_step);
+            let wronskian =
+                left_at_center.0 * right_at_center.1 - left_at_center.1 * right_at_center.0;
+            let green = -(left.0 * right.0) / wronskian;
+
+            let left_error = (left.0 - expected_left).norm();
+            let right_error = (right.0 - expected_right).norm();
+            assert!(left_error < previous_left_error);
+            assert!(right_error < previous_right_error);
+            assert!(left_error < 3.0e-8, "left ODE error={left_error:e}");
+            assert!(right_error < 3.0e-8, "right ODE error={right_error:e}");
+            close(wronskian, expected_wronskian, 1.0e-7);
+            close(green, expected_green, 1.0e-8);
+            previous_left_error = left_error;
+            previous_right_error = right_error;
+        }
+
+        let w_left =
+            integrate_jost_rk4(width, lambda, omega, -0.5, JostSide::Left, 0.01);
+        let w_right =
+            integrate_jost_rk4(width, lambda, omega, -0.5, JostSide::Right, 0.01);
+        let w_at_minus_half = w_left.0 * w_right.1 - w_left.1 * w_right.0;
+        let w_left =
+            integrate_jost_rk4(width, lambda, omega, 0.65, JostSide::Left, 0.01);
+        let w_right =
+            integrate_jost_rk4(width, lambda, omega, 0.65, JostSide::Right, 0.01);
+        let w_at_plus_point = w_left.0 * w_right.1 - w_left.1 * w_right.0;
+        close(w_at_minus_half, w_at_plus_point, 1.0e-9);
     }
 
     #[test]
