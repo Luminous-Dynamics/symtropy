@@ -381,45 +381,61 @@ fn observe_from_view(
     occluders: &[OccluderTriangle],
     occluder_coverage: OccluderCoverage,
     profile: VisibilityProfile,
-) -> Result<ViewObservation, String> {
+) -> Result<(ViewObservation, usize), String> {
     let Some((direction, target_distance)) = view_covers_probe(view, probe.point)? else {
-        return Ok(ViewObservation {
-            view_id: view.view_id.clone(),
-            status: ViewVisibilityStatus::OutsideSensorCoverage,
-            blocker_kind: None,
-            blocker_triangle_ids: Vec::new(),
-            blocker_distance_m: None,
-        });
+        return Ok((
+            ViewObservation {
+                view_id: view.view_id.clone(),
+                status: ViewVisibilityStatus::OutsideSensorCoverage,
+                blocker_kind: None,
+                blocker_triangle_ids: Vec::new(),
+                blocker_distance_m: None,
+            },
+            0,
+        ));
     };
 
     let normal = Vec3::from_point(probe.normal);
     let normal_length = normal.norm();
     if !normal_length.is_finite() || normal_length <= VECTOR_EPSILON {
-        return Err(format!("probe {} has a zero or invalid normal", probe.probe_id));
+        return Err(format!(
+            "probe {} has a zero or invalid normal",
+            probe.probe_id
+        ));
     }
     let incidence_cosine = normal
         .scale(1.0 / normal_length)
         .dot(direction.scale(-1.0));
     if !incidence_cosine.is_finite() {
-        return Err(format!("probe {} incidence became non-finite", probe.probe_id));
+        return Err(format!(
+            "probe {} incidence became non-finite",
+            probe.probe_id
+        ));
     }
     if incidence_cosine <= profile.min_incidence_cosine {
-        return Ok(ViewObservation {
-            view_id: view.view_id.clone(),
-            status: ViewVisibilityStatus::Backface,
-            blocker_kind: None,
-            blocker_triangle_ids: Vec::new(),
-            blocker_distance_m: None,
-        });
+        return Ok((
+            ViewObservation {
+                view_id: view.view_id.clone(),
+                status: ViewVisibilityStatus::Backface,
+                blocker_kind: None,
+                blocker_triangle_ids: Vec::new(),
+                blocker_distance_m: None,
+            },
+            0,
+        ));
     }
 
     let origin = Vec3::from_point(view.origin);
+    let mut ray_tests = 0usize;
     let mut nearest_distance: Option<f64> = None;
     let mut nearest: Vec<(&OccluderTriangle, f64)> = Vec::new();
     for occluder in occluders {
-        if occluder.surface_id == probe.surface_id && occluder.triangle_id == probe.triangle_id {
+        if occluder.surface_id == probe.surface_id
+            && occluder.triangle_id == probe.triangle_id
+        {
             continue;
         }
+        ray_tests += 1;
         if let Some(distance) =
             ray_triangle_distance(origin, direction, target_distance, occluder)
         {
@@ -442,23 +458,29 @@ fn observe_from_view(
     }
 
     if occluder_coverage == OccluderCoverage::Incomplete {
-        return Ok(ViewObservation {
-            view_id: view.view_id.clone(),
-            status: ViewVisibilityStatus::Unknown,
-            blocker_kind: None,
-            blocker_triangle_ids: Vec::new(),
-            blocker_distance_m: None,
-        });
+        return Ok((
+            ViewObservation {
+                view_id: view.view_id.clone(),
+                status: ViewVisibilityStatus::Unknown,
+                blocker_kind: None,
+                blocker_triangle_ids: Vec::new(),
+                blocker_distance_m: None,
+            },
+            ray_tests,
+        ));
     }
 
     if nearest.is_empty() {
-        return Ok(ViewObservation {
-            view_id: view.view_id.clone(),
-            status: ViewVisibilityStatus::Observable,
-            blocker_kind: None,
-            blocker_triangle_ids: Vec::new(),
-            blocker_distance_m: None,
-        });
+        return Ok((
+            ViewObservation {
+                view_id: view.view_id.clone(),
+                status: ViewVisibilityStatus::Observable,
+                blocker_kind: None,
+                blocker_triangle_ids: Vec::new(),
+                blocker_distance_m: None,
+            },
+            ray_tests,
+        ));
     }
 
     nearest.sort_by(|left, right| {
@@ -486,17 +508,20 @@ fn observe_from_view(
             None => return Err("ray query produced a blocker without a class".to_owned()),
         }
     };
-    Ok(ViewObservation {
-        view_id: view.view_id.clone(),
-        status,
-        blocker_kind: if status == ViewVisibilityStatus::Contradictory {
-            None
-        } else {
-            kinds.iter().next().copied()
+    Ok((
+        ViewObservation {
+            view_id: view.view_id.clone(),
+            status,
+            blocker_kind: if status == ViewVisibilityStatus::Contradictory {
+                None
+            } else {
+                kinds.iter().next().copied()
+            },
+            blocker_triangle_ids,
+            blocker_distance_m: nearest_distance,
         },
-        blocker_triangle_ids,
-        blocker_distance_m: nearest_distance,
-    })
+        ray_tests,
+    ))
 }
 
 fn aggregate_probe_visibility(views: &[ViewObservation]) -> SurfaceVisibility {
