@@ -250,7 +250,7 @@ pub struct ObjectiveStabilitySummary {
     /// Non-empty only if at least one policy is a best policy in every
     /// assessed model/case. This is an intersection, not a weighted vote.
     pub best_policy_intersection: Vec<String>,
-    pub ranking_sensitive: Option<bool>,
+    pub best_policy_stable_across_all_model_cases: Option<bool>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -797,11 +797,8 @@ pub fn analyze_model_set_decisions(
         let expected_model_case_count = eligible_models.len() * manifest.cases.len();
         let complete = expected_model_case_count > 0
             && assessed == expected_model_case_count;
-        let ranking_sensitive = if complete {
-            Some(distinct_winners.len() > 1)
-        } else {
-            None
-        };
+        let best_policy_stable_across_all_model_cases =
+            complete.then_some(!intersection.is_empty());
 
         objective_stability.push(ObjectiveStabilitySummary {
             objective_id: objective.metric_id.clone(),
@@ -812,7 +809,7 @@ pub fn analyze_model_set_decisions(
             not_assessed_count: not_assessed,
             distinct_winner_policy_count: distinct_winners.len(),
             best_policy_intersection: intersection.into_iter().collect(),
-            ranking_sensitive,
+            best_policy_stable_across_all_model_cases,
         });
 
         for policy in &manifest.policies {
@@ -1173,7 +1170,7 @@ mod tests {
         let report = analyze_model_set_decisions(&manifest(), &complete_outcomes()).unwrap();
         let stability = &report.objective_stability[0];
         assert_eq!(stability.distinct_winner_policy_count, 2);
-        assert_eq!(stability.ranking_sensitive, Some(true));
+        assert_eq!(stability.best_policy_stable_across_all_model_cases, Some(false));
         assert!(stability.best_policy_intersection.is_empty());
 
         let reserve = report
@@ -1203,10 +1200,10 @@ mod tests {
                 && row.policy_id == "reserve")
         });
         let report = analyze_model_set_decisions(&manifest(), &rows).unwrap();
-        assert!(report.objective_stability[0].ranking_sensitive.is_none());
+        assert!(report.objective_stability[0].best_policy_stable_across_all_model_cases.is_none());
         assert!(report.minimax_regret[0].minimum_worst_case_regret.is_none());
         assert!(report.policy_robust_feasibility.iter().any(|row| {
-            row.policy_id == "growth-first" && row.feasible_across_qualified_models.is_none()
+            row.policy_id == "reserve" && row.feasible_across_qualified_models.is_none()
         }));
     }
 
