@@ -5,7 +5,8 @@
 
 use std::collections::BTreeSet;
 
-pub const MAX_GRID_POINTS: usize = 65_536;
+pub const MAX_GRID_POINTS: usize = 4_096;
+pub const MAX_AXES: usize = 16;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Axis {
@@ -111,6 +112,7 @@ pub enum FrontierError {
     EmptyIdentifier,
     InvalidHorizon,
     NoAxes,
+    TooManyAxes,
     NoSamples,
     DuplicateAxisId,
     DuplicateAxisLevel,
@@ -201,6 +203,9 @@ fn validate_and_canonicalize(
     validate_identity(&family.identity)?;
     if family.axes.is_empty() {
         return Err(FrontierError::NoAxes);
+    }
+    if family.axes.len() > MAX_AXES {
+        return Err(FrontierError::TooManyAxes);
     }
     if family.samples.is_empty() {
         return Err(FrontierError::NoSamples);
@@ -816,6 +821,24 @@ mod tests {
             audit_frontier(&family),
             Err(FrontierError::MissingNonviabilityWitness)
         );
+    }
+
+    #[test]
+    fn axis_count_is_bounded_before_recursive_enumeration() {
+        let axes = (0..=MAX_AXES)
+            .map(|index| axis(&format!("axis-{index:02}"), &[0]))
+            .collect();
+        let family = FrontierFamily {
+            family_id: "too-many-axes".to_owned(),
+            identity: identity(),
+            axes,
+            samples: vec![Sample {
+                theta: vec![0; MAX_AXES + 1],
+                viability: viable("result"),
+                recovery: None,
+            }],
+        };
+        assert_eq!(audit_frontier(&family), Err(FrontierError::TooManyAxes));
     }
 
     #[test]
