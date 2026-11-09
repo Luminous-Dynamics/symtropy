@@ -151,7 +151,9 @@ impl ServiceAllocation {
         validate_text(&self.originating_action_id, "service_action_id")?;
         validate_text(&self.source_evidence_ref, "service_source_ref")?;
         if !ids.insert(self.allocation_id.clone()) {
-            return Err(IncidenceError::DuplicateRecordId(self.allocation_id.clone()));
+            return Err(IncidenceError::DuplicateRecordId(
+                self.allocation_id.clone(),
+            ));
         }
         validate_quantity(self.demand, "service_demand")?;
         validate_quantity(self.served, "service_served")?;
@@ -204,10 +206,7 @@ impl QuantityUncertainty {
         match self {
             Self::Known => Ok(()),
             Self::Interval { lower, upper }
-                if lower.is_finite()
-                    && upper.is_finite()
-                    && *lower >= 0.0
-                    && *upper >= *lower =>
+                if lower.is_finite() && upper.is_finite() && *lower >= 0.0 && *upper >= *lower =>
             {
                 Ok(())
             }
@@ -233,11 +232,7 @@ pub struct PhysicalObligation {
 }
 
 impl PhysicalObligation {
-    fn validate(
-        &self,
-        source_tick: u64,
-        ids: &mut BTreeSet<String>,
-    ) -> Result<(), IncidenceError> {
+    fn validate(&self, source_tick: u64, ids: &mut BTreeSet<String>) -> Result<(), IncidenceError> {
         validate_text(&self.obligation_id, "physical_obligation_id")?;
         validate_text(&self.originating_action_id, "physical_obligation_action_id")?;
         validate_text(&self.region_id, "physical_obligation_region_id")?;
@@ -246,7 +241,9 @@ impl PhysicalObligation {
         validate_text(&self.source_evidence_ref, "physical_obligation_source_ref")?;
         validate_time(self.created_tick, self.due_tick, source_tick)?;
         if !ids.insert(self.obligation_id.clone()) {
-            return Err(IncidenceError::DuplicateRecordId(self.obligation_id.clone()));
+            return Err(IncidenceError::DuplicateRecordId(
+                self.obligation_id.clone(),
+            ));
         }
         validate_quantity(self.quantity, "physical_obligation_quantity")?;
         self.uncertainty.validate()
@@ -285,10 +282,16 @@ impl FinancialObligation {
         ids: &mut BTreeSet<String>,
     ) -> Result<(), IncidenceError> {
         validate_text(&self.obligation_id, "financial_obligation_id")?;
-        validate_text(&self.originating_action_id, "financial_obligation_action_id")?;
+        validate_text(
+            &self.originating_action_id,
+            "financial_obligation_action_id",
+        )?;
         validate_text(&self.source_evidence_ref, "financial_obligation_source_ref")?;
         if self.currency_code.len() != 3
-            || !self.currency_code.bytes().all(|byte| byte.is_ascii_uppercase())
+            || !self
+                .currency_code
+                .bytes()
+                .all(|byte| byte.is_ascii_uppercase())
         {
             return Err(IncidenceError::InvalidCurrencyCode);
         }
@@ -409,7 +412,9 @@ pub struct CohortIncidenceLedger {
 
 impl CohortIncidenceLedger {
     pub fn new() -> Self {
-        Self { reports: Vec::new() }
+        Self {
+            reports: Vec::new(),
+        }
     }
 
     /// Assemble one cohort-incidence report from an existing resource-ledger
@@ -427,17 +432,25 @@ impl CohortIncidenceLedger {
         if source.regions.is_empty() {
             return Err(IncidenceError::EmptySourceReport);
         }
-        if self.reports.last().is_some_and(|last| source.tick <= last.tick) {
+        if self
+            .reports
+            .last()
+            .is_some_and(|last| source.tick <= last.tick)
+        {
             return Err(IncidenceError::NonIncreasingTick);
         }
 
         let mut region_ids = BTreeSet::new();
         for region in &source.regions {
             if !region_ids.insert(region.region_id.as_str()) {
-                return Err(IncidenceError::DuplicateRegionId(region.region_id.clone()));
+                return Err(IncidenceError::DuplicateRegionId(
+                    region.region_id.clone(),
+                ));
             }
             if !region.ledger.is_conserved() {
-                return Err(IncidenceError::SourceLedgerNotConserved(region.region_id.clone()));
+                return Err(IncidenceError::SourceLedgerNotConserved(
+                    region.region_id.clone(),
+                ));
             }
         }
 
@@ -535,30 +548,38 @@ impl CohortIncidenceLedger {
         let mut summaries: BTreeMap<CohortAssignment, CohortSummary> = BTreeMap::new();
 
         for row in &report.service_allocations {
-            let summary = summaries
-                .entry(row.assignment.clone())
-                .or_insert_with(|| CohortSummary {
-                    assignment: row.assignment.clone(),
-                    service_demand: ResourceAmounts::default(),
-                    service_served: ResourceAmounts::default(),
-                    service_unmet: ResourceAmounts::default(),
-                    inherited_stock: ResourceAmounts::default(),
-                });
-            summary.service_demand.add_resource(row.resource, row.demand);
-            summary.service_served.add_resource(row.resource, row.served);
-            summary.service_unmet.add_resource(row.resource, row.unmet());
+            let summary =
+                summaries
+                    .entry(row.assignment.clone())
+                    .or_insert_with(|| CohortSummary {
+                        assignment: row.assignment.clone(),
+                        service_demand: ResourceAmounts::default(),
+                        service_served: ResourceAmounts::default(),
+                        service_unmet: ResourceAmounts::default(),
+                        inherited_stock: ResourceAmounts::default(),
+                    });
+            summary
+                .service_demand
+                .add_resource(row.resource, row.demand);
+            summary
+                .service_served
+                .add_resource(row.resource, row.served);
+            summary
+                .service_unmet
+                .add_resource(row.resource, row.unmet());
         }
 
         for row in &report.inherited_stocks {
-            let summary = summaries
-                .entry(row.assignment.clone())
-                .or_insert_with(|| CohortSummary {
-                    assignment: row.assignment.clone(),
-                    service_demand: ResourceAmounts::default(),
-                    service_served: ResourceAmounts::default(),
-                    service_unmet: ResourceAmounts::default(),
-                    inherited_stock: ResourceAmounts::default(),
-                });
+            let summary =
+                summaries
+                    .entry(row.assignment.clone())
+                    .or_insert_with(|| CohortSummary {
+                        assignment: row.assignment.clone(),
+                        service_demand: ResourceAmounts::default(),
+                        service_served: ResourceAmounts::default(),
+                        service_unmet: ResourceAmounts::default(),
+                        inherited_stock: ResourceAmounts::default(),
+                    });
             summary
                 .inherited_stock
                 .add_resource(row.resource, row.closing_stock);
@@ -589,12 +610,12 @@ impl CohortIncidenceLedger {
                     .financial_obligations
                     .iter()
                     .filter(|row| {
-                    row.liable_cohort.is_unassigned()
-                        || row
-                            .recipient_cohort
-                            .as_ref()
-                            .is_some_and(CohortAssignment::is_unassigned)
-                })
+                        row.liable_cohort.is_unassigned()
+                            || row
+                                .recipient_cohort
+                                .as_ref()
+                                .is_some_and(CohortAssignment::is_unassigned)
+                    })
                     .count()
                 + report
                     .capital_records
@@ -724,7 +745,10 @@ impl fmt::Display for IncidenceError {
                 write!(f, "record creation tick is later than the source step")
             }
             Self::InvalidUncertainty => {
-                write!(f, "uncertainty interval must be finite, nonnegative and ordered")
+                write!(
+                    f,
+                    "uncertainty interval must be finite, nonnegative and ordered"
+                )
             }
             Self::InvalidCurrencyCode => {
                 write!(f, "currency code must be a three-letter uppercase code")
@@ -733,21 +757,35 @@ impl fmt::Display for IncidenceError {
             Self::InvalidCapitalCondition => {
                 write!(f, "capital condition must be finite and within [0, 1]")
             }
-            Self::DuplicateRecordId(record) => write!(f, "duplicate incidence record id: {record}"),
+            Self::DuplicateRecordId(record) => {
+                write!(f, "duplicate incidence record id: {record}")
+            }
             Self::ServedExceedsDemand { allocation_id } => {
-                write!(f, "served quantity exceeds demand in allocation {allocation_id}")
+                write!(
+                    f,
+                    "served quantity exceeds demand in allocation {allocation_id}"
+                )
             }
             Self::UnknownRegion(region) => {
                 write!(f, "incidence record references unknown region: {region}")
             }
             Self::RegionalReconciliationFailed { region, resource } => {
-                write!(f, "cohort allocations do not reconcile for {region}/{resource:?}")
+                write!(
+                    f,
+                    "cohort allocations do not reconcile for {region}/{resource:?}"
+                )
             }
             Self::InvalidDiscountRate => {
-                write!(f, "welfare discount rate must be finite and greater than -1")
+                write!(
+                    f,
+                    "welfare discount rate must be finite and greater than -1"
+                )
             }
             Self::InvalidDiscountReferenceTick => {
-                write!(f, "discount reference tick cannot be later than the report tick")
+                write!(
+                    f,
+                    "discount reference tick cannot be later than the report tick"
+                )
             }
         }
     }
@@ -781,10 +819,7 @@ mod tests {
             .expect("valid source step")
     }
 
-    fn service_rows(
-        first: CohortAssignment,
-        second: CohortAssignment,
-    ) -> Vec<ServiceAllocation> {
+    fn service_rows(first: CohortAssignment, second: CohortAssignment) -> Vec<ServiceAllocation> {
         let source_ref = "ledger:tick-1:district-a";
         let action = "policy:baseline";
         vec![
@@ -937,9 +972,12 @@ mod tests {
 
         let report = ledger.last().unwrap();
         assert_eq!(report.regional_reconciliations.len(), 3);
-        assert!(report.regional_reconciliations.iter().all(
-            RegionalResourceReconciliation::is_reconciled
-        ));
+        assert!(
+            report
+                .regional_reconciliations
+                .iter()
+                .all(RegionalResourceReconciliation::is_reconciled)
+        );
     }
 
     #[test]
@@ -968,7 +1006,10 @@ mod tests {
         let present = CohortAssignment::assigned("working-age-2026").unwrap();
         let future = CohortAssignment::assigned("future-born-2040").unwrap();
         let unknown = CohortAssignment::unassigned(UnassignedReason::SharedPublicAsset);
-        let ledger = assembled(service_rows(present, future.clone()), stock_rows(future, unknown));
+        let ledger = assembled(
+            service_rows(present, future.clone()),
+            stock_rows(future, unknown),
+        );
         assert_eq!(ledger.unassigned_record_count(1), Some(3));
 
         let summary = ledger
@@ -976,8 +1017,7 @@ mod tests {
             .unwrap()
             .into_iter()
             .find(|row| {
-                row.assignment
-                    == CohortAssignment::unassigned(UnassignedReason::SharedPublicAsset)
+                row.assignment == CohortAssignment::unassigned(UnassignedReason::SharedPublicAsset)
             })
             .unwrap();
         assert_eq!(summary.inherited_stock.water_m3, 40.0);
@@ -1088,7 +1128,10 @@ mod tests {
                     measure_id: "restoration-water".into(),
                     unit: "m3".into(),
                     quantity: 12.0,
-                    uncertainty: QuantityUncertainty::Interval { lower: 10.0, upper: 15.0 },
+                    uncertainty: QuantityUncertainty::Interval {
+                        lower: 10.0,
+                        upper: 15.0,
+                    },
                     source_evidence_ref: "policy-receipt:1".into(),
                 }],
                 vec![FinancialObligation {
