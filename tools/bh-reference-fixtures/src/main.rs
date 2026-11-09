@@ -5,6 +5,11 @@ use bh_reference_fixtures::{
     compare_radial_fixtures,
 };
 use serde_json::json;
+use bh_reference_fixtures::qnm::{
+    QnmFamilyAnalysisConfig, QnmFamilyAsymptoticTargets, QnmFamilyClassification,
+    analyze_qnm_family_sequence,
+};
+use serde::Deserialize;
 
 fn read_radial_fixture(path: &str) -> Result<ReferenceFixture, String> {
     let source = fs::read_to_string(path)
@@ -28,10 +33,26 @@ fn read_qnm_sequence(path: &str) -> Result<KerrQnmSequenceFixture, String> {
     Ok(sequence)
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct QnmAnalysisRequest {
+    targets: QnmFamilyAsymptoticTargets,
+    #[serde(default)]
+    config: QnmFamilyAnalysisConfig,
+}
+
+fn read_qnm_analysis_request(path: &str) -> Result<QnmAnalysisRequest, String> {
+    let source = fs::read_to_string(path)
+        .map_err(|error| format!("cannot read QNM analysis request {path}: {error}"))?;
+    serde_json::from_str(&source)
+        .map_err(|error| format!("cannot parse QNM analysis request {path}: {error}"))
+}
+
 fn print_usage() {
     eprintln!(
         "Usage:\n  bh-reference-fixtures validate-radial <fixture.json>\n  \
          bh-reference-fixtures validate-qnm <sequence.json>\n  \
+         bh-reference-fixtures analyze-qnm <sequence.json> <analysis.json>\n  \
          bh-reference-fixtures compare-radial <left.json> <right.json> <abs-tol> <rel-tol>"
     );
 }
@@ -84,6 +105,33 @@ fn run(args: &[String]) -> Result<i32, String> {
                 })
             );
             Ok(0)
+        }
+        [command, sequence_path, analysis_path] if command == "analyze-qnm" => {
+            let sequence = read_qnm_sequence(sequence_path)?;
+            let request = read_qnm_analysis_request(analysis_path)?;
+            let analysis = analyze_qnm_family_sequence(
+                &sequence,
+                request.targets,
+                request.config,
+            )
+            .map_err(|error| error.to_string())?;
+            let producer_label_matches_computed =
+                sequence.family_classification == analysis.classification;
+            println!(
+                "{}",
+                json!({
+                    "status": "analyzed",
+                    "sequence_id": sequence.sequence_id,
+                    "producer_family_label": sequence.family_classification,
+                    "computed_family_classification": analysis.classification,
+                    "producer_label_matches_computed": producer_label_matches_computed,
+                    "analysis": analysis
+                })
+            );
+            match analysis.classification {
+                QnmFamilyClassification::Prolate | QnmFamilyClassification::Oblate => Ok(0),
+                QnmFamilyClassification::Unresolved | QnmFamilyClassification::Ambiguous => Ok(6),
+            }
         }
         [command, left_path, right_path, abs_tol, rel_tol] if command == "compare-radial" => {
             let left = read_radial_fixture(left_path)?;
