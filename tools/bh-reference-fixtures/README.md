@@ -141,3 +141,15 @@ cargo run --manifest-path tools/bh-reference-fixtures/Cargo.toml -- validate-con
 ```
 
 The trace validator checks identity, monotonic spin order, angular-branch continuity, per-sample residuals, exact-extremal method selection and superradiant detuning consistency. It does not itself prove that the damping-limit fit is physically correct; that requires the numerical reproduction and uncertainty analysis tracked by #4415.
+
+### Independent damping-limit analysis
+
+`analyze_extremal_damping` recomputes the damping classification instead of trusting the producer's label. It uses the declared Fourier convention to convert Im(M omega) to a positive damping rate, computes the dimensionless Kerr surface gravity for each subextremal spin, and fits `log(damping) = intercept + p log(M kappa)` over the nearest-to-extremal samples.
+
+```sh
+cargo run --manifest-path tools/bh-reference-fixtures/Cargo.toml -- analyze-continuation qnm-spin-trace.json
+```
+
+The JSON report includes the fitted exponent `p`, log-fit RMS, span in `log(M kappa)`, slope standard error, exact-extremal damping, nearest-subextremal damping, sample count, and whether the independently computed class matches the producer label.
+
+The default classifier requires four subextremal points over at least one natural-log unit of surface-gravity span. It calls zero damping only when the fitted exponent is at least 0.7 and the exact-extremal damping is at or below `1e-5`; it calls finite damping only when the exponent is at most 0.25 and the exact damping exceeds `1e-5`. The middle region or a poorly fitting trend remains `Ambiguous`; missing or invalid data remains `Unresolved`. These are declared initial engineering thresholds, not universal theoretical boundaries. Always report the full config, fit interval, sample values, residuals and uncertainty with any physical conclusion.
