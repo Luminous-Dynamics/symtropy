@@ -325,14 +325,12 @@ fn validate_problem(problem: &ProbeProblem) -> Result<(), ProbeContinuationError
             .viable_states_by_remaining_horizon
             .iter()
             .find(|viable| viable.remaining_steps == set.remaining_steps)
-        {
-            if set
+            && set
                 .state_ids
                 .iter()
                 .any(|state| viable.state_ids.contains(state))
-            {
-                return Err(ProbeContinuationError::StateInBothViableAndRecoverySet);
-            }
+        {
+            return Err(ProbeContinuationError::StateInBothViableAndRecoverySet);
         }
     }
 
