@@ -252,6 +252,26 @@ impl core::fmt::Display for QnmSequenceValidationError {
 impl std::error::Error for QnmSequenceValidationError {}
 
 impl KerrQnmSequenceFixture {
+    /// Return the dimensionless small-spin parameter governing the
+    /// non-uniformity of the normal-prolate genus-one expansion,
+    /// chi^(-4/3) / (N + 1/2). The asymptotic regime requires this parameter
+    /// to be small; this accessor does not impose a universal cutoff.
+    pub fn normal_prolate_wkb_small_spin_parameter(
+        &self,
+        mode: &QnmModeRecord,
+    ) -> Option<f64> {
+        if mode.solver_method != QnmSolverMethod::KerrNormalProlateGenusOneWkb
+            || !(self.spin_over_mass > 0.0 && self.spin_over_mass < 1.0)
+        {
+            return None;
+        }
+        let quantization_index = mode.wkb_quantization_index?;
+        Some(
+            self.spin_over_mass.powf(-4.0 / 3.0)
+                / (f64::from(quantization_index) + 0.5),
+        )
+    }
+
     /// Validate sequence structure and evidence presence. This does not prove
     /// that the producer's family label is mathematically correct.
     pub fn validate(&self) -> Result<(), QnmSequenceValidationError> {
@@ -596,6 +616,8 @@ mod tests {
         );
 
         let mut missing_cycle = sequence(QnmFamilyClassification::Prolate);
+        missing_cycle.spin_weight = 0;
+        missing_cycle.normal_prolate_oscillator_level = Some(0);
         missing_cycle.modes[0].solver_method = QnmSolverMethod::KerrNormalProlateGenusOneWkb;
         missing_cycle.modes[0].wkb_quantization_index = Some(120);
         missing_cycle.modes[0].wkb_truncation_order = Some(47);
@@ -629,6 +651,23 @@ mod tests {
             negative_spin.validate(),
             Err(QnmSequenceValidationError::InvalidWkbSpinDomain(0))
         );
+    }
+
+    #[test]
+    fn normal_prolate_wkb_small_spin_parameter_uses_quantization_index_n_not_overtone_n() {
+        let mut value = sequence(QnmFamilyClassification::Prolate);
+        value.spin_weight = 0;
+        value.normal_prolate_oscillator_level = Some(0);
+        let mode = &mut value.modes[0];
+        mode.solver_method = QnmSolverMethod::KerrNormalProlateGenusOneWkb;
+        mode.wkb_quantization_index = Some(120);
+        mode.overtone_index = Some(7);
+        let parameter = value
+            .normal_prolate_wkb_small_spin_parameter(mode)
+            .unwrap();
+        let expected = 0.3_f64.powf(-4.0 / 3.0) / 120.5;
+        assert!((parameter - expected).abs() <= 4.0 * f64::EPSILON * expected);
+        assert!(parameter < 1.0);
     }
 
     #[test]
