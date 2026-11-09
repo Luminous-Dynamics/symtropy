@@ -23,6 +23,7 @@ pub const STANDARD_GRAVITY_M_PER_S2: f64 = 9.80665;
 pub enum EvidenceClass {
     FieldMeasurement,
     OperatorTelemetry,
+    OperatorApprovedContract,
     LaboratoryModelTest,
     ManufacturerGuaranteedMap,
     ManufacturerPublishedMap,
@@ -383,6 +384,7 @@ impl WaterServiceState {
 #[derive(Debug, Clone, PartialEq)]
 pub struct WaterServiceContract {
     contract_id: String,
+    evidence: EvidenceReference,
     minimum_downstream_pressure: PressurePascals,
     minimum_delivered_flow: FlowRateM3PerSecond,
     minimum_ecological_flow: FlowRateM3PerSecond,
@@ -395,6 +397,7 @@ impl WaterServiceContract {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         contract_id: impl Into<String>,
+        evidence: EvidenceReference,
         minimum_downstream_pressure: PressurePascals,
         minimum_delivered_flow: FlowRateM3PerSecond,
         minimum_ecological_flow: FlowRateM3PerSecond,
@@ -411,6 +414,7 @@ impl WaterServiceContract {
 
         Ok(Self {
             contract_id,
+            evidence,
             minimum_downstream_pressure,
             minimum_delivered_flow,
             minimum_ecological_flow,
@@ -422,6 +426,10 @@ impl WaterServiceContract {
 
     pub fn contract_id(&self) -> &str {
         &self.contract_id
+    }
+
+    pub fn evidence(&self) -> &EvidenceReference {
+        &self.evidence
     }
 }
 
@@ -445,7 +453,7 @@ impl WaterServiceAssessment {
         &self.violations
     }
 
-    pub const fn is_feasible(&self) -> bool {
+    pub fn is_feasible(&self) -> bool {
         self.violations.is_empty()
     }
 }
@@ -674,7 +682,7 @@ impl fmt::Display for HydraulicError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::InvalidQuantity { field, value } => {
-                write!(formatter, "{field} must be finite and non-negative; got {value}")
+                write!(formatter, "{field} must be finite and within its declared physical domain; got {value}")
             }
             Self::InvalidEfficiency { value } => {
                 write!(formatter, "efficiency must be finite and in [0, 1]; got {value}")
@@ -767,8 +775,12 @@ mod tests {
             FlowRateM3PerSecond::new(0.09).expect("minimum delivery flow"),
             FlowRateM3PerSecond::new(0.015).expect("minimum ecological flow"),
             PressurePascals::new(50_000.0).expect("maximum pressure drop"),
-            FlowRateM3PerSecond::new(0.02).expect("maximum delivery flow reduction"),
-            FlowRateM3PerSecond::new(0.005).expect("maximum ecological flow reduction"),
+            evidence(
+                "WATER-SERVICE-CONTRACT-EVIDENCE-001",
+                EvidenceClass::OperatorApprovedContract,
+            ),
+            FlowRateM3PerSecond::new(0.005).expect("maximum delivery flow reduction"),
+            FlowRateM3PerSecond::new(0.001).expect("maximum ecological flow reduction"),
         )
         .expect("service contract")
     }
@@ -1069,6 +1081,7 @@ mod tests {
     fn water_service_contract_requires_identity() {
         let contract = WaterServiceContract::new(
             " ",
+            evidence("CONTRACT-EVIDENCE", EvidenceClass::OperatorApprovedContract),
             PressurePascals::new(1.0).unwrap(),
             FlowRateM3PerSecond::new(0.0).unwrap(),
             FlowRateM3PerSecond::new(0.0).unwrap(),
