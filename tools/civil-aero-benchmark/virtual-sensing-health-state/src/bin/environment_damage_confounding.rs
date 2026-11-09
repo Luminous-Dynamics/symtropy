@@ -732,6 +732,40 @@ mod tests {
     }
 
     #[test]
+    fn malformed_topology_receipt_or_incomplete_fault_domains_abstains() {
+        let mut data = fixture();
+        let case_index = data
+            .cases
+            .iter()
+            .position(|item| item.case_id == "DH_NOMINAL_ENVIRONMENT")
+            .unwrap();
+        data.cases[case_index].environmental_witnesses[0].probes[0]
+            .topology_evidence_sha256 = "bad".to_owned();
+        let case = data.cases[case_index].clone();
+        let result = evaluate_case(&data, &case);
+        assert_eq!(
+            result.disposition,
+            "ABSTAIN_UNQUALIFIED_ENVIRONMENTAL_WITNESS"
+        );
+
+        let mut data = fixture();
+        let case_index = data
+            .cases
+            .iter()
+            .position(|item| item.case_id == "DH_NOMINAL_ENVIRONMENT")
+            .unwrap();
+        data.cases[case_index].environmental_witnesses[0].probes[0]
+            .fault_domains
+            .pop();
+        let case = data.cases[case_index].clone();
+        let result = evaluate_case(&data, &case);
+        assert_eq!(
+            result.disposition,
+            "ABSTAIN_UNQUALIFIED_ENVIRONMENTAL_WITNESS"
+        );
+    }
+
+    #[test]
     fn expired_or_conflicting_environmental_probes_never_authorize_a_damage_call() {
         let report = evaluate(&fixture(), FIXTURE).unwrap();
         for (case_id, disposition) in [
