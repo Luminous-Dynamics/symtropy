@@ -121,7 +121,9 @@ impl UndirectedNetwork {
     }
 
     pub fn summarize(&self) -> NetworkSummary {
-        let degree_sequence: Vec<usize> = self.adjacency.iter().map(BTreeSet::len).collect();
+        let mut degree_sequence: Vec<usize> =
+            self.adjacency.iter().map(BTreeSet::len).collect();
+        degree_sequence.sort_unstable_by(|left, right| right.cmp(left));
         let mut degree_counts = BTreeMap::<usize, usize>::new();
         for &degree in &degree_sequence {
             *degree_counts.entry(degree).or_default() += 1;
@@ -245,7 +247,7 @@ impl UndirectedNetwork {
 pub struct NetworkSummary {
     pub node_count: usize,
     pub edge_count: usize,
-    /// Node-order degree vector; node labels are stable within a network unit.
+    /// Degree sequence in descending order, independent of node-label ordering.
     pub degree_sequence: Vec<usize>,
     /// Sorted (degree, node_count) pairs.
     pub degree_histogram: Vec<(usize, usize)>,
