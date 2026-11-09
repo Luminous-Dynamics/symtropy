@@ -205,3 +205,44 @@ This slice does not yet implement:
 7. Empirical data adapters or independent domain qualification.
 
 Run the model-adequacy-sweep binary using Cargo with the locked manifest at research/civdyn-self-correction/Cargo.toml. The existing CIVDYN workflow also runs this binary after formatting, strict Clippy, compilation and tests. These are engineering checks against frozen synthetic contracts only.
+
+
+## Scenario I: joint and trajectory adequacy
+
+The first vector-valued adequacy reference is in src/joint_adequacy.rs and the deterministic joint-adequacy-sweep binary. It advances [CIVDYN-ADEQUACY-JOINT-001 #4380](https://github.com/Luminous-Dynamics/symtropy/issues/4380).
+
+A joint statistic declares an ordered component vocabulary. Each component carries its own native unit plus a fixed reference center and positive scale. The normalization reference is part of the frozen statistic definition and must not be estimated from held-out observations. The evaluator checks the observation and every predictive draw against exact component order, identity and unit.
+
+The evaluator reports two independent metrics:
+
+- **Energy score:** a multivariate score over the standardized predictive vector draws. It measures overall joint forecast distance and is not combined with any scalar marginal statistic.
+- **Variogram score:** a weighted sum over predeclared component pairs. Each pair reports its observed standardized distance, predictive expected distance and weighted contribution. It is designed to expose dependence mismatch that can be concealed by correct marginals.
+
+It also emits component-wise standardized residuals. It does not collapse the component outputs into an overall adequacy percentage. The two proper scoring rules are complementary; energy score alone can have limited ability to discriminate dependence misspecification. Pair weights, the exponent, component order and normalizers therefore remain explicit and frozen.
+
+### Known-answer controls
+
+The synthetic sweep compares two model draw sets for a water-service/energy-service vector. Both candidates have exactly the same water marginal {0,1} and energy marginal {0,1}; only the coupling differs.
+
+- Positive coupling: (0,0), (1,1).
+- Negative coupling: (0,1), (1,0).
+- Held-out observation: (1,1).
+
+The reference calculation gives energy scores approximately 0.353553 and 0.646447, and variogram scores 0 and 1, respectively. These values are analytic fixture expectations, not empirical performance estimates.
+
+A second unit test treats three ordered time points as vector components. It preserves each time point's marginal values while changing their temporal coupling; the variogram score changes from 0 to 2. This demonstrates the first temporal-permutation negative control, not a general time-series adequacy test.
+
+### Claim ceiling and limitations
+
+The current scorer is a finite-draw, sample-size-matched reference. It does not:
+- fit or validate a posterior predictive sampler;
+- provide score sampling intervals or uncertainty across independent units;
+- handle censored or missing components beyond fail-closed vector validation;
+- estimate a dependence graph or causal mechanism;
+- implement event-sequence likelihoods, transition calibration, autocorrelation tests or dynamic time-warping;
+- establish the independence of regions, cohorts or sites;
+- provide a finite-sample SPC theorem or a global adequacy scalar.
+
+The energy/variogram values are comparable only under the declared ordered component vocabulary, normalization references, exponent and pair weights. Do not compare raw scores from different statistic definitions as if they were a common leaderboard metric.
+
+Run the joint-adequacy-sweep binary using Cargo with the locked manifest at research/civdyn-self-correction/Cargo.toml. The CIVDYN workflow checks the two known-answer candidates and their native identities. This is synthetic scorer evidence only.
