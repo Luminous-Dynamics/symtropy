@@ -6,7 +6,7 @@ on:
       - 'research/loco-capability-envelope-001/**'
       - '.github/workflows/loco-capability-envelope.yml'
   push:
-    branches: [main]
+    branches: [main, research/loco-capability-envelope-rust-v0]
     paths:
       - 'research/loco-capability-envelope-001/**'
       - '.github/workflows/loco-capability-envelope.yml'
