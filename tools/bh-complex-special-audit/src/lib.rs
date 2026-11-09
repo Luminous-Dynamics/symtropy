@@ -1646,5 +1646,4 @@ mod tests {
             Err(SpecialError::InvalidConfiguration)
         );
     }
-
 }
