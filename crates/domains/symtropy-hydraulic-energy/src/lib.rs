@@ -742,6 +742,13 @@ pub fn evaluate_hydraulic_generation(
         &baseline_service,
         &candidate_service,
     );
+    let evidence_assessment = assess_evidence(
+        &hydraulic,
+        &turbine,
+        &generator,
+        &baseline_service,
+        &candidate_service,
+    );
 
     Ok(HydraulicGenerationResult {
         hydraulic_input: hydraulic,
@@ -1266,7 +1273,7 @@ mod tests {
                 .violations()
                 .contains(&EvidenceViolation::HydraulicInputNotMeasured)
         );
-        assert!(result.credited_net_electrical_power().is_none());
+        assert!(result.service_eligible_net_electrical_power().is_none());
     }
 
     #[test]
@@ -1311,6 +1318,7 @@ mod tests {
     fn service_floor_pass_allows_credited_output() {
         let result = evaluate_default();
         assert!(result.water_service.is_feasible());
+        assert!(result.evidence_assessment.is_eligible_for_comparison());
         assert!(result.service_eligible_net_electrical_power().is_some());
     }
 
