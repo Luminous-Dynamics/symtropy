@@ -63,6 +63,8 @@ pub struct ModelWorld {
     pub id: String,
     pub family_id: String,
     pub model_digest: String,
+    /// Model identity named by the adequacy assessment being applied.
+    pub adequacy_model_digest: String,
     pub adequacy: ModelAdequacyState,
 }
 
@@ -172,6 +174,7 @@ pub enum PolicySensitivityError {
     InvalidMetric { metric_id: String },
     DuplicateIdentity { kind: &'static str, id: String },
     DuplicateModelDigest { digest: String },
+    AdequacyModelIdentityMismatch { model_id: String },
     UnknownModel { model_id: String },
     UnknownPolicy { policy_id: String },
     UnknownMetric { metric_id: String },
@@ -221,8 +224,14 @@ pub fn evaluate_policy_sensitivity(
         if model.id.trim().is_empty()
             || model.family_id.trim().is_empty()
             || model.model_digest.trim().is_empty()
+            || model.adequacy_model_digest.trim().is_empty()
         {
             return Err(PolicySensitivityError::InvalidPortfolio);
+        }
+        if model.adequacy_model_digest != model.model_digest {
+            return Err(PolicySensitivityError::AdequacyModelIdentityMismatch {
+                model_id: model.id.clone(),
+            });
         }
         if !model_digests.insert(model.model_digest.as_str()) {
             return Err(PolicySensitivityError::DuplicateModelDigest {
@@ -621,12 +630,14 @@ mod tests {
                 id: "world-a".to_string(),
                 family_id: "mechanism-family-a".to_string(),
                 model_digest: "sha256-model-a".to_string(),
+                adequacy_model_digest: "sha256-model-a".to_string(),
                 adequacy: ModelAdequacyState::NoPrimaryDiscrepancyDetected,
             },
             ModelWorld {
                 id: "world-b".to_string(),
                 family_id: "mechanism-family-b".to_string(),
                 model_digest: "sha256-model-b".to_string(),
+                adequacy_model_digest: "sha256-model-b".to_string(),
                 adequacy: ModelAdequacyState::NoPrimaryDiscrepancyDetected,
             },
         ]
@@ -841,6 +852,16 @@ mod tests {
         assert!(matches!(
             evaluate(&models(), &outcomes),
             Err(PolicySensitivityError::IncompleteOutcomeMatrix { .. })
+        ));
+    }
+
+    #[test]
+    fn rejects_adequacy_receipt_for_a_different_model_digest() {
+        let mut candidate = models();
+        candidate[1].adequacy_model_digest = "sha256-stale-model".to_string();
+        assert!(matches!(
+            evaluate(&candidate, &fixture_outcomes()),
+            Err(PolicySensitivityError::AdequacyModelIdentityMismatch { .. })
         ));
     }
 
