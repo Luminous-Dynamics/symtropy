@@ -6,6 +6,7 @@
 //! calling [validate_receipt].
 
 use std::collections::BTreeSet;
+use serde_json::{Map as JsonMap, Value as JsonValue};
 
 /// The nine required comparison dimensions in schema order.
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -345,6 +346,249 @@ fn issue(code: &'static str, path: &str) -> ValidationIssue {
     }
 }
 
+/// Parse a versioned JSON receipt into the typed semantic contract.
+///
+/// This adapter is intentionally stricter than permissive JSON object decoding:
+/// unknown fields are rejected, dimensions must contain exactly nine entries,
+/// and enum spellings must match the versioned wire contract.
+pub fn parse_receipt_json(input: &str) -> Result<MappingReceipt, String> {
+    let value: JsonValue = serde_json::from_str(input)
+        .map_err(|error| format!("invalid receipt JSON: {error}"))?;
+    let root = json_object(&value, "$")?;
+    json_check_keys(root, "$", &["schema", "scenario", "left_backend", "right_backend", "dimensions", "review"], &[])?;
+
+    let scenario_value = json_required(root, "scenario", "$")?;
+    let scenario = parse_scenario(scenario_value)?;
+    let left_backend = parse_backend(json_required(root, "left_backend", "$")?, "$.left_backend")?;
+    let right_backend = parse_backend(json_required(root, "right_backend", "$")?, "$.right_backend")?;
+    let review = parse_review(json_required(root, "review", "$")?)?;
+
+    let dimensions_value = json_required(root, "dimensions", "$")?;
+    let dimensions_array = dimensions_value
+        .as_array()
+        .ok_or_else(|| "$.dimensions must be an array".to_owned())?;
+    if dimensions_array.len() != Dimension::ALL.len() {
+        return Err(format!(
+            "$.dimensions must contain exactly {} entries",
+            Dimension::ALL.len()
+        ));
+    }
+    let dimensions = dimensions_array
+        .iter()
+        .enumerate()
+        .map(|(index, value)| parse_dimension_mapping(value, &format!("$.dimensions[{index}]")))
+        .collect::<Result<Vec<_>, _>>()?;
+
+    Ok(MappingReceipt {
+        schema: json_string(root, "schema", "$")?,
+        scenario,
+        left_backend,
+        right_backend,
+        dimensions,
+        review,
+    })
+}
+
+/// Parse and validate a JSON receipt in one operation.
+pub fn validate_json_receipt(input: &str) -> Result<ValidationReport, String> {
+    let receipt = parse_receipt_json(input)?;
+    Ok(validate_receipt(&receipt))
+}
+
+fn json_object<'a>(value: &'a JsonValue, path: &str) -> Result<&'a JsonMap<String, JsonValue>, String> {
+    value
+        .as_object()
+        .ok_or_else(|| format!("{path} must be an object"))
+}
+
+fn json_check_keys(
+    object: &JsonMap<String, JsonValue>,
+    path: &str,
+    required: &[&str],
+    optional: &[&str],
+) -> Result<(), String> {
+    for key in required {
+        if !object.contains_key(*key) {
+            return Err(format!("{path}.{key} is required"));
+        }
+    }
+    for key in object.keys() {
+        if !required.contains(&key.as_str()) && !optional.contains(&key.as_str()) {
+            return Err(format!("{path}.{key} is not permitted by this schema version"));
+        }
+    }
+    Ok(())
+}
+
+fn json_required<'a>(
+    object: &'a JsonMap<String, JsonValue>,
+    key: &str,
+    path: &str,
+) -> Result<&'a JsonValue, String> {
+    object
+        .get(key)
+        .ok_or_else(|| format!("{path}.{key} is required"))
+}
+
+fn json_string(
+    object: &JsonMap<String, JsonValue>,
+    key: &str,
+    path: &str,
+) -> Result<String, String> {
+    json_required(object, key, path)?
+        .as_str()
+        .map(str::to_owned)
+        .ok_or_else(|| format!("{path}.{key} must be a string"))
+}
+
+fn json_optional_string(
+    object: &JsonMap<String, JsonValue>,
+    key: &str,
+    path: &str,
+) -> Result<Option<String>, String> {
+    object
+        .get(key)
+        .map(|value| {
+            value
+                .as_str()
+                .map(str::to_owned)
+                .ok_or_else(|| format!("{path}.{key} must be a string"))
+        })
+        .transpose()
+}
+
+fn json_string_array(
+    value: &JsonValue,
+    path: &str,
+) -> Result<Vec<String>, String> {
+    value
+        .as_array()
+        .ok_or_else(|| format!("{path} must be an array"))?
+        .iter()
+        .enumerate()
+        .map(|(index, item)| {
+            item.as_str()
+                .map(str::to_owned)
+                .ok_or_else(|| format!("{path}[{index}] must be a string"))
+        })
+        .collect()
+}
+
+fn parse_scenario(value: &JsonValue) -> Result<ScenarioIdentity, String> {
+    let object = json_object(value, "$.scenario")?;
+    json_check_keys(object, "$.scenario", &["id", "digest"], &[])?;
+    Ok(ScenarioIdentity {
+        id: json_string(object, "id", "$.scenario")?,
+        digest: json_string(object, "digest", "$.scenario")?,
+    })
+}
+
+fn parse_backend(value: &JsonValue, path: &str) -> Result<BackendIdentity, String> {
+    let object = json_object(value, path)?;
+    json_check_keys(
+        object,
+        path,
+        &["engine_id", "version", "adapter_commit", "profile_id", "profile_digest"],
+        &[],
+    )?;
+    Ok(BackendIdentity {
+        engine_id: json_string(object, "engine_id", path)?,
+        version: json_string(object, "version", path)?,
+        adapter_commit: json_string(object, "adapter_commit", path)?,
+        profile_id: json_string(object, "profile_id", path)?,
+        profile_digest: json_string(object, "profile_digest", path)?,
+    })
+}
+
+fn parse_review(value: &JsonValue) -> Result<ReviewIdentity, String> {
+    let object = json_object(value, "$.review")?;
+    json_check_keys(object, "$.review", &["author_id", "reviewer_id"], &[])?;
+    Ok(ReviewIdentity {
+        author_id: json_string(object, "author_id", "$.review")?,
+        reviewer_id: json_string(object, "reviewer_id", "$.review")?,
+    })
+}
+
+fn parse_dimension_mapping(value: &JsonValue, path: &str) -> Result<DimensionMapping, String> {
+    let object = json_object(value, path)?;
+    json_check_keys(
+        object,
+        path,
+        &["dimension", "status", "rationale", "evidence_refs"],
+        &["transformation", "error_bounds"],
+    )?;
+
+    let dimension_text = json_string(object, "dimension", path)?;
+    let dimension = match dimension_text.as_str() {
+        "identity_geometry" => Dimension::IdentityGeometry,
+        "mass_properties" => Dimension::MassProperties,
+        "constraints" => Dimension::Constraints,
+        "contacts" => Dimension::Contacts,
+        "integration" => Dimension::Integration,
+        "ccd" => Dimension::Ccd,
+        "actuation" => Dimension::Actuation,
+        "observations" => Dimension::Observations,
+        "numerical_profile" => Dimension::NumericalProfile,
+        _ => return Err(format!("{path}.dimension has unknown value {dimension_text:?}")),
+    };
+
+    let status_text = json_string(object, "status", path)?;
+    let status = match status_text.as_str() {
+        "strictly_equivalent" => MappingStatus::StrictlyEquivalent,
+        "mapped_equivalent_with_bound" => MappingStatus::MappedEquivalentWithBound,
+        "not_applicable" => MappingStatus::NotApplicable,
+        "not_provided" => MappingStatus::NotProvided,
+        "non_equivalent" => MappingStatus::NonEquivalent,
+        "unsupported" => MappingStatus::Unsupported,
+        "unknown_unassessed" => MappingStatus::UnknownUnassessed,
+        _ => return Err(format!("{path}.status has unknown value {status_text:?}")),
+    };
+
+    let transformation = json_optional_string(object, "transformation", path)?;
+    let error_bounds = match object.get("error_bounds") {
+        Some(value) => value
+            .as_array()
+            .ok_or_else(|| format!("{path}.error_bounds must be an array"))?
+            .iter()
+            .enumerate()
+            .map(|(index, bound)| parse_error_bound(bound, &format!("{path}.error_bounds[{index}]")))
+            .collect::<Result<Vec<_>, _>>()?,
+        None => Vec::new(),
+    };
+    let evidence_refs = json_string_array(
+        json_required(object, "evidence_refs", path)?,
+        &format!("{path}.evidence_refs"),
+    )?;
+
+    Ok(DimensionMapping {
+        dimension,
+        status,
+        rationale: json_string(object, "rationale", path)?,
+        transformation,
+        error_bounds,
+        evidence_refs,
+    })
+}
+
+fn parse_error_bound(value: &JsonValue, path: &str) -> Result<ErrorBound, String> {
+    let object = json_object(value, path)?;
+    json_check_keys(
+        object,
+        path,
+        &["metric", "maximum_absolute_error", "unit", "source"],
+        &[],
+    )?;
+    let maximum_absolute_error = json_required(object, "maximum_absolute_error", path)?
+        .as_f64()
+        .ok_or_else(|| format!("{path}.maximum_absolute_error must be a JSON number"))?;
+    Ok(ErrorBound {
+        metric: json_string(object, "metric", path)?,
+        maximum_absolute_error,
+        unit: json_string(object, "unit", path)?,
+        source: json_string(object, "source", path)?,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -581,6 +825,57 @@ mod tests {
                 .iter()
                 .any(|issue| issue.code == "invalid_error_bound")
         );
+    }
+
+    #[test]
+    fn json_strict_fixture_is_admitted() {
+        let report = validate_json_receipt(include_str!("../fixtures/strict-equivalent.example.json"))
+            .expect("strict fixture parses");
+        assert!(report.score_eligible, "{:?}", report);
+    }
+
+    #[test]
+    fn json_mapped_fixture_is_admitted() {
+        let report = validate_json_receipt(include_str!("../fixtures/mapped-equivalent.example.json"))
+            .expect("mapped fixture parses");
+        assert!(report.score_eligible, "{:?}", report);
+    }
+
+    #[test]
+    fn json_non_equivalent_friction_fixture_is_not_score_eligible() {
+        let report = validate_json_receipt(include_str!("../fixtures/non-equivalent-friction.example.json"))
+            .expect("non-equivalent fixture parses");
+        assert!(!report.score_eligible);
+        assert_eq!(report.inadmissible_dimensions, vec![Dimension::Contacts]);
+    }
+
+    #[test]
+    fn json_unknown_ccd_fixture_fails_closed() {
+        let report = validate_json_receipt(include_str!("../fixtures/unknown-ccd.example.json"))
+            .expect("unknown CCD fixture parses");
+        assert!(!report.score_eligible);
+        assert_eq!(report.inadmissible_dimensions, vec![Dimension::Ccd]);
+    }
+
+    #[test]
+    fn json_duplicate_dimension_fixture_fails_closed() {
+        let report = validate_json_receipt(include_str!("../fixtures/duplicate-dimension.invalid.json"))
+            .expect("duplicate dimension fixture parses");
+        assert!(!report.score_eligible);
+        assert!(report.issues.iter().any(|issue| issue.code == "duplicate_dimension"));
+        assert!(report.issues.iter().any(|issue| issue.code == "missing_dimension"));
+    }
+
+    #[test]
+    fn json_adapter_rejects_unknown_fields() {
+        let source = include_str!("../fixtures/strict-equivalent.example.json");
+        let mutated = source.replacen("{", "{\n  \"unrecognized\": true,", 1);
+        assert!(validate_json_receipt(&mutated).is_err());
+    }
+
+    #[test]
+    fn json_adapter_rejects_malformed_input() {
+        assert!(validate_json_receipt("{ definitely not JSON").is_err());
     }
 
     #[test]
