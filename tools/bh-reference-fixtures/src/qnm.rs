@@ -736,8 +736,7 @@ impl KerrQnmSequenceFixture {
             && self.modes.iter().any(|mode| {
                 if self.spin_weight == 0 {
                     mode.solver_method != QnmSolverMethod::ExactExtremalWkb
-                        && mode.solver_method
-                            != QnmSolverMethod::ExactExtremalDoubleConfluentHeun
+                        && mode.solver_method != QnmSolverMethod::ExactExtremalDoubleConfluentHeun
                 } else {
                     mode.solver_method != QnmSolverMethod::ExactExtremalDoubleConfluentHeun
                 }
