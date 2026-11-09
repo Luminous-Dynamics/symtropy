@@ -30,9 +30,7 @@ pub fn canonical_payload_json_bytes<T: Serialize>(
 }
 
 /// SHA-256 digest of the deterministic JSON representation of a fixture.
-pub fn canonical_payload_sha256<T: Serialize>(
-    payload: &T,
-) -> Result<String, serde_json::Error> {
+pub fn canonical_payload_sha256<T: Serialize>(payload: &T) -> Result<String, serde_json::Error> {
     let bytes = canonical_payload_json_bytes(payload)?;
     let digest = Sha256::digest(bytes);
     const HEX: &[u8; 16] = b"0123456789abcdef";
