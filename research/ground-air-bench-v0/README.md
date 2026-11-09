@@ -90,3 +90,10 @@ These roles are required only where the declared bearer and mission phase make t
 A battery-exchange opportunity must account for the replacement pack's energy at the same declared source-side real-energy boundary used by other replenishment modes. A swap cannot be represented as free energy simply because it bypasses an onboard charger.
 
 The schema remains a composition vocabulary. It does not evaluate continuous physics, validate referenced artifact bytes, produce a site schedule, or issue a power/flight permit.
+
+
+## Contact-conditioned pose calibration vocabulary
+
+The schema includes a conditional POSE_CALIBRATION receipt role and a separate POSE_CALIBRATION metric lane for #4297 / PR #4300. It may be referenced when an opportunity depends on calibrated pose-set evidence. This receipt is not a universal prerequisite for every energy bearer, and a calibrated singleton prediction set retains only a marginal exchangeability-based coverage interpretation; it is not conditional correctness or an operating permit.
+
+Calibration policy baselines now name Standard split conformal, IUCA-style in-situ calibration, LCP-style learnable/contextual conformal prediction, CaPTURe-style contact-aware calibration, deterministic polytopic set-membership and Conformal Policy Control. These are comparison labels, not claims that GroundAirBench implements those methods.
