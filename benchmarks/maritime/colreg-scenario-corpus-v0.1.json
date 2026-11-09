@@ -197,7 +197,7 @@
       "expected_code": "SCENARIO_CONTRACT_VALID_SYNTHETIC_ONLY"
     },
     {
-      "id": "crossing_give_way_label",
+      "id": "crossing_give_way_label_conflicts_with_headon_tracks",
       "base": "valid_head_on",
       "mutations": [
         {
@@ -216,10 +216,10 @@
           "value": "give_way"
         }
       ],
-      "expected_code": "SCENARIO_CONTRACT_VALID_SYNTHETIC_ONLY"
+      "expected_code": "ENCOUNTER_LABEL_GEOMETRY_MISMATCH"
     },
     {
-      "id": "crossing_stand_on_label",
+      "id": "crossing_stand_on_label_conflicts_with_headon_tracks",
       "base": "valid_head_on",
       "mutations": [
         {
@@ -238,10 +238,10 @@
           "value": "stand_on"
         }
       ],
-      "expected_code": "SCENARIO_CONTRACT_VALID_SYNTHETIC_ONLY"
+      "expected_code": "ENCOUNTER_LABEL_GEOMETRY_MISMATCH"
     },
     {
-      "id": "overtaking_label",
+      "id": "overtaking_label_conflicts_with_headon_tracks",
       "base": "valid_head_on",
       "mutations": [
         {
@@ -255,7 +255,7 @@
           "value": "rule_13_overtaking"
         }
       ],
-      "expected_code": "SCENARIO_CONTRACT_VALID_SYNTHETIC_ONLY"
+      "expected_code": "ENCOUNTER_LABEL_GEOMETRY_MISMATCH"
     },
     {
       "id": "restricted_channel_context",
@@ -274,11 +274,6 @@
       "base": "valid_head_on",
       "mutations": [
         {
-          "path": "expected.encounter_class",
-          "op": "set",
-          "value": "ambiguous"
-        },
-        {
           "path": "expected.rule_context",
           "op": "set",
           "value": "unknown"
@@ -287,6 +282,13 @@
           "path": "expected.ownship_role",
           "op": "set",
           "value": "unknown"
+        },
+        {
+          "path": "expected.contact_roles",
+          "op": "set",
+          "value": [
+            "unknown"
+          ]
         }
       ],
       "expected_code": "SCENARIO_CONTRACT_VALID_SYNTHETIC_ONLY"
@@ -440,16 +442,27 @@
       "mutations": [
         {
           "path": "contacts",
-          "op": "insert",
-          "value": {
-            "vessel_id": "SYNTH-TGT-002",
-            "vessel_class": "tanker",
-            "length_m": 160,
-            "beam_m": 27,
-            "speed_mps": 4,
-            "course_deg": 190,
-            "source_track_id": "TRACK-TGT-002"
-          }
+          "op": "set",
+          "value": [
+            {
+              "vessel_id": "SYNTH-TGT-001",
+              "vessel_class": "cargo",
+              "length_m": 170,
+              "beam_m": 28,
+              "speed_mps": 5.14,
+              "course_deg": 270,
+              "source_track_id": "TRACK-TGT-001"
+            },
+            {
+              "vessel_id": "SYNTH-TGT-002",
+              "vessel_class": "tanker",
+              "length_m": 160,
+              "beam_m": 27,
+              "speed_mps": 4,
+              "course_deg": 190,
+              "source_track_id": "TRACK-TGT-002"
+            }
+          ]
         }
       ],
       "expected_code": "INCOMPLETE_INTERACTION_GRAPH"
