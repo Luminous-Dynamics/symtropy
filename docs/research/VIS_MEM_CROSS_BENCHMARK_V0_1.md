@@ -623,3 +623,65 @@ These sources should route into existing ownership rather than create another me
 ### Non-claims
 
 These public papers and challenge definitions are research inputs, not reproduced results. They establish no Symtropy SOTA rank, no physical qualification, and no proof that a particular memory architecture is generally superior. Preserve native protocols, rights and claim ceilings.
+
+
+---
+
+## Mobile-spatial benchmark and benchmark-validity update — 2026-11-09
+
+### RMMBench: navigation and manipulation are one composed capability
+
+**Paper:** https://arxiv.org/abs/2610.05414  
+**Project:** https://mxxq-stack.github.io/rmmbench-project/  
+**Code:** https://github.com/mxxq-stack/RMMBench
+
+RMMBench evaluates language-instructed mobile manipulation in continuous spaces, combining localized manipulation with long-horizon composite navigation. It is complementary to RoboCasa-Mem: RMMBench is primarily about spatial grounding and navigation/manipulation composition; RoboCasa-Mem isolates history-dependent decisions.
+
+**Protocol discrepancy that must be frozen:** the arXiv abstract says 70 canonical scenarios; the current project page says 90. The public GitHub README lists Python 3.10, dm_control/MuJoCo, GraspNet, downloaded checkpoints and a configurable VLM server. The project page describes head/wrist camera views, optional BEV, a Hanan-grid navigation interface, GraspNet candidate generation and a human-verified manipulation fallback. These are part of the benchmark's execution context. A score with those aids enabled is not interchangeable with an unassisted end-to-end policy score.
+
+**VIS-MEM use:** add RMMBench as a *spatial/mobile transfer test*, not as a memory benchmark. Keep independent results for navigation, manipulation, end-to-end composition, modality/geometry aids and history length. Record the exact scenario count and release after resolving the 70/90 discrepancy. Keep its Python simulator as an external adapter; do not port the runtime into Symtropy's production Rust core.
+
+### Benchmark-validity gate: do not optimize an invalid proxy
+
+Jiang et al. (2026), *What Are We Actually Benchmarking in Robot Manipulation?* identifies four failure modes in manipulation benchmarks and provides public diagnostics:
+- shortcut solvability;
+- statistically insignificant SOTA claims;
+- creeping overfitting to fixed instances or narrow test distributions;
+- dependence on training data close to the evaluation source.
+
+Paper: https://arxiv.org/abs/2606.04233  
+Diagnostics: https://ripl.github.io/manipulation_benchmark_audit/  
+Code: https://github.com/ripl/ManipulationBenchmarkAudit
+
+The audit reports that only 19.8% of LIBERO and 19.7% of SimplerEnv SOTA claims were provably significant in the paper's analysis, compared with 53.3% for RoboCasa and 73.7% for RoboTwin 2.0. It also gives examples where simple probes approach LIBERO SOTA and within-training-distribution pose resampling degrades CALVIN results. These are paper-specific findings, not automatic verdicts on every later release.
+
+**VIS-MEM benchmark admission requirements:**
+
+1. **History necessity / shortcut diagnostic:** include paired episodes with the same or observationally aliased current state but different valid next actions due to different permitted histories. A current-observation-only baseline must fail the history-dependent distinction for the correct reason.
+2. **Evaluator leakage control:** behavior-conditioned future constraints remain hidden from the acting policy. It receives only observations and history it actually acquired.
+3. **Memory representation controls:** no memory, raw visual history, current-state snapshot, task-state history, subtask trajectory, object-state trajectory, combined task-state trajectory, and structured environment/process memory.
+4. **Relevant sensitivity:** corrupt/remove one historically necessary fact and measure whether the decision changes appropriately.
+5. **Irrelevant invariance:** alter history that should not affect the decision and verify output stability.
+6. **Currentness and contradiction:** stale observations, superseded state, same-entity contradictory evidence, clock/timebase conflict and calibration expiry should trigger re-observation, hold or abstention rather than silent overwrite.
+7. **Statistical validity:** paired episodes/seeds where possible, raw numerators/denominators, confidence intervals, effect sizes, task-level distributions and multiplicity/stopping policy.
+8. **Creeping-overfit / source-dependence tests:** resample object instances, initial poses, layouts and allowed perturbations within the declared distribution; disclose training-data origin/overlap and include matched-data or data-proximity controls.
+9. **Operational accounting:** memory size, retrieval/write latency, token/compute budget, energy proxy where measurable, intervention/abstention rate and recovery must be reported separately from task success.
+
+A benchmark failing one of these diagnostics may remain a useful debugging suite; reduce its claim ceiling rather than silently using it as proof of general capability.
+
+### Research pivot: memory should preserve decision-relevant state, not maximize history volume
+
+RoboCasa-Mem's task design formalizes a useful criterion: different feasible histories can lead to indistinguishable current observations while requiring disjoint sets of acceptable actions. MOST shows that object-state and subtask trajectories can outperform visual history and a current-state snapshot on its own matched protocol.
+
+The Luminous experiment should therefore measure a **causal memory advantage**:
+- Does the exact historical fact change the decision when it should?
+- Does unrelated history leave the decision unchanged?
+- Is uncertainty preserved when the source becomes stale or contradictory?
+- Can the agent resume after interruption without claiming an action happened merely because it was dispatched?
+- Does the gain transfer to the mobile spatial context of RMMBench?
+
+The target is not a bigger context window. It is minimum sufficient, uncertainty-aware, time-indexed state whose decision relevance can be falsified with paired interventions.
+
+### Non-claims
+
+RMMBench's current published artifact count discrepancy is unresolved; Luminous has not executed the benchmark. The validity audit's reported significance percentages are not Symtropy measurements. These additions do not establish SOTA, hardware transfer or production readiness.
