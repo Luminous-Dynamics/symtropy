@@ -372,6 +372,22 @@ def main() -> int:
                 "MuViS-C grid must contain 10x3x20=600 entries")
         require(expected["bootstrap_replicates"] == 200,
                 "bootstrap replicate count changed")
+        frozen = data["expected_metrics"]
+        for key in ("clean_rmse", "naive_rmse", "mpc", "rpc", "npc"):
+            require(math.isclose(expected[key], frozen[key],
+                                 rel_tol=1.0e-9, abs_tol=1.0e-12),
+                    f"frozen MuViS-C metric changed: {key}")
+        require(expected["s_cross"] == frozen["s_cross"],
+                "frozen s_cross changed")
+        require(expected["worst_case"]["failure_mode"]
+                == frozen["worst_case"]["failure_mode"]
+                and expected["worst_case"]["channel_id"] == frozen["worst_case"]["channel_id"]
+                and expected["worst_case"]["severity"] == frozen["worst_case"]["severity"],
+                "frozen worst-case identity changed")
+        require(math.isclose(expected["worst_case"]["rmse"],
+                             frozen["worst_case"]["rmse"],
+                             rel_tol=1.0e-9, abs_tol=1.0e-12),
+                "frozen worst-case RMSE changed")
         actual = json.loads(args.rust_output.read_text(encoding="utf-8"))
         compare(actual, expected)
         hostile_controls(data)
