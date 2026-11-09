@@ -177,7 +177,14 @@ pub fn validate_receipt(receipt: &MappingReceipt) -> ValidationReport {
         );
 
         match mapping.status {
-            MappingStatus::StrictlyEquivalent => {}
+            MappingStatus::StrictlyEquivalent => {
+                if mapping.evidence_refs.is_empty() {
+                    issues.push(issue(
+                        "missing_equivalence_evidence",
+                        &format!("{path}.evidence_refs"),
+                    ));
+                }
+            }
             MappingStatus::NotApplicable => {
                 if mapping.evidence_refs.is_empty() {
                     issues.push(issue(
@@ -418,18 +425,27 @@ mod tests {
     #[test]
     fn not_applicable_dimension_is_admissible_only_with_evidence() {
         let mut candidate = receipt(MappingStatus::StrictlyEquivalent);
-        let contact = candidate
-            .dimensions
-            .iter_mut()
-            .find(|mapping| mapping.dimension == Dimension::Contacts)
-            .expect("contact dimension exists");
-        contact.status = MappingStatus::NotApplicable;
-        contact.evidence_refs = vec!["scenario:no-contact-001".to_owned()];
+        {
+            let contact = candidate
+                .dimensions
+                .iter_mut()
+                .find(|mapping| mapping.dimension == Dimension::Contacts)
+                .expect("contact dimension exists");
+            contact.status = MappingStatus::NotApplicable;
+            contact.evidence_refs = vec!["scenario:no-contact-001".to_owned()];
+        }
 
         let report = validate_receipt(&candidate);
         assert!(report.score_eligible, "{:?}", report.issues);
 
-        contact.evidence_refs.clear();
+        {
+            let contact = candidate
+                .dimensions
+                .iter_mut()
+                .find(|mapping| mapping.dimension == Dimension::Contacts)
+                .expect("contact dimension exists");
+            contact.evidence_refs.clear();
+        }
         let report = validate_receipt(&candidate);
         assert!(!report.score_eligible);
         assert!(report.issues.iter().any(|issue| issue.code == "missing_not_applicable_evidence"));
