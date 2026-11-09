@@ -67,6 +67,8 @@ A capable scene detector is not a safe driving policy, and open-loop trajectory 
 
 Symtropy [VEHICLE-USER-FIT-001 #1801](https://github.com/Luminous-Dynamics/symtropy/issues/1801) owns the user-fit/HMI and personalization contract. EV-REF-01 consumes it rather than creating a separate profile manager. Evaluate task completion, errors, glance/workload, accessibility by user subgroup, profile switching, guest privacy, offline capability, export/reset/recovery and repairability of user-facing modules. Keep safety-critical controls and ADAS thresholds non-overridable; profile changes affecting operating contexts must be limited to approved parked-state procedures. Personalization is a usability hypothesis to measure, not an assumed improvement.
 
+### 2.9 Treat the digital thread as a product capability
+
 The configuration of a physical vehicle includes design revision, parts, materials, process substitutions, tolerances, software/firmware, inspection state, repairs and operational restrictions. “Same model name” is not enough to establish engineering equivalence. Reuse Mycelix #3708/#3709 rather than creating a separate vehicle passport or identity system.
 
 ## 3. System ownership
