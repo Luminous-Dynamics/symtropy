@@ -79,7 +79,7 @@ fn render(kind: PredictiveKind, assessment: &AdequacyAssessment) {
             .iter()
             .find(|summary| summary.statistic_id == result.statistic_id);
         println!(
-            "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
+            "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
             kind.name(),
             result.statistic_id,
             result.independent_unit_id,
@@ -111,6 +111,26 @@ fn render(kind: PredictiveKind, assessment: &AdequacyAssessment) {
             result.observation_digest.as_deref().unwrap_or_default(),
             result.model_digest.as_deref().unwrap_or_default(),
             result.draw_set_digest.as_deref().unwrap_or_default(),
+            result
+                .draw_dependence
+                .map(|dependence| dependence.name())
+                .unwrap_or_default(),
+            result
+                .single_spc_upper_tail_estimate
+                .map(|value| format!("{value:.6}"))
+                .unwrap_or_default(),
+            result
+                .single_spc_exceedance_count
+                .map(|value| value.to_string())
+                .unwrap_or_default(),
+            result
+                .single_spc_mc_wilson_lower_95
+                .map(|value| format!("{value:.6}"))
+                .unwrap_or_default(),
+            result
+                .single_spc_mc_wilson_upper_95
+                .map(|value| format!("{value:.6}"))
+                .unwrap_or_default(),
             coverage
                 .map(|summary| summary.independent_unit.name())
                 .unwrap_or_default(),
@@ -216,7 +236,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     ));
 
     println!(
-        "kind,statistic_id,unit_id,status,observed,measurement_se,lower,upper,rank,n_draws,measurement_unit,domain_status,source_digest,observation_digest,model_digest,draw_set_digest,independent_unit,expected_units,assessed_units,covered_units,empirical_coverage,wilson_lower_95,wilson_upper_95,required_evidence_complete"
+        "kind,statistic_id,unit_id,status,observed,measurement_se,lower,upper,rank,n_draws,measurement_unit,domain_status,source_digest,observation_digest,model_digest,draw_set_digest,draw_dependence,single_spc_upper_tail_estimate,single_spc_exceedance_count,single_spc_mc_wilson_lower_95,single_spc_mc_wilson_upper_95,independent_unit,expected_units,assessed_units,covered_units,empirical_coverage,wilson_lower_95,wilson_upper_95,required_evidence_complete"
     );
 
     let prior = assess_predictive_partition(
