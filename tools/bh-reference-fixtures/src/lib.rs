@@ -163,12 +163,18 @@ impl fmt::Display for FixtureValidationError {
             }
             Self::NonFiniteFrequency => write!(f, "dimensionless frequency must be finite"),
             Self::AngularBranchMetadataIncomplete => {
-                write!(f, "angular eigenvalue and branch ID must be supplied together")
+                write!(
+                    f,
+                    "angular eigenvalue and branch ID must be supplied together"
+                )
             }
             Self::NonFiniteAngularEigenvalue => write!(f, "angular eigenvalue must be finite"),
             Self::NoRadialSamples => write!(f, "at least one radial sample is required"),
             Self::InvalidRadialSample(index) => {
-                write!(f, "radial sample {index} has invalid radius or no solution data")
+                write!(
+                    f,
+                    "radial sample {index} has invalid radius or no solution data"
+                )
             }
             Self::RadialSamplesNotStrictlyIncreasing(index) => write!(
                 f,
@@ -208,9 +214,7 @@ impl ReferenceFixture {
         if !self.problem.mass_kg.is_finite() || self.problem.mass_kg <= 0.0 {
             return Err(FixtureValidationError::InvalidMass);
         }
-        if !self.problem.spin_over_mass.is_finite()
-            || self.problem.spin_over_mass.abs() >= 1.0
-        {
+        if !self.problem.spin_over_mass.is_finite() || self.problem.spin_over_mass.abs() >= 1.0 {
             return Err(FixtureValidationError::InvalidSpin);
         }
         if self.problem.ell < self.problem.spin_weight.unsigned_abs()
@@ -262,7 +266,9 @@ impl ReferenceFixture {
                 return Err(FixtureValidationError::InvalidRadialSample(index));
             }
             if sample.r_over_m <= previous_radius {
-                return Err(FixtureValidationError::RadialSamplesNotStrictlyIncreasing(index));
+                return Err(FixtureValidationError::RadialSamplesNotStrictlyIncreasing(
+                    index,
+                ));
             }
             previous_radius = sample.r_over_m;
         }
@@ -271,7 +277,10 @@ impl ReferenceFixture {
             validate_optional_complex(diagnostics.wronskian, "wronskian")?;
             validate_optional_complex(diagnostics.incident_amplitude, "incident_amplitude")?;
             validate_optional_complex(diagnostics.reflection_amplitude, "reflection_amplitude")?;
-            validate_optional_complex(diagnostics.transmission_amplitude, "transmission_amplitude")?;
+            validate_optional_complex(
+                diagnostics.transmission_amplitude,
+                "transmission_amplitude",
+            )?;
             validate_optional_complex(diagnostics.phase_shift, "phase_shift")?;
         }
 
@@ -456,7 +465,10 @@ mod tests {
                         in_value: None,
                         in_derivative: None,
                         up_value: Some(ComplexValue { re: 0.8, im: 0.1 }),
-                        up_derivative: Some(ComplexValue { re: -0.02, im: 0.01 }),
+                        up_derivative: Some(ComplexValue {
+                            re: -0.02,
+                            im: 0.01,
+                        }),
                     },
                 ],
                 diagnostics: Some(ReferenceDiagnostics {
@@ -501,7 +513,9 @@ mod tests {
         value.data.radial_samples.swap(0, 1);
         assert_eq!(
             value.validate(),
-            Err(FixtureValidationError::RadialSamplesNotStrictlyIncreasing(1))
+            Err(FixtureValidationError::RadialSamplesNotStrictlyIncreasing(
+                1
+            ))
         );
     }
 
