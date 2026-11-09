@@ -143,7 +143,7 @@ The standalone dependency-free Rust crate in this directory consumes a declared 
 The reference:
 - canonicalizes axis order by stable ID and reorders sample coordinates accordingly;
 - validates axis levels, coordinate membership, family identity, result digests and required nonviability witnesses;
-- bounds Cartesian grid enumeration at 65,536 points and fails explicitly above that bound;
+- bounds Cartesian grid enumeration at 4,096 points and axis count at 16, failing explicitly above either bound;
 - reports every missing grid vector;
 - calculates maximal-sampled-safe and minimal-sampled-unsafe antichains separately for viability and recovery;
 - flags a lower-severity Nonviable sample dominated by a higher-severity Viable sample as a monotonicity contradiction;
