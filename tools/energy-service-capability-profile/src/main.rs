@@ -776,7 +776,8 @@ mod tests {
 
     #[test]
     fn incomplete_declared_profile_is_not_promoted_to_evidence_backed_match() {
-        let report = evaluate(&offers(OFFERS), &request(REQUEST));
+        let cpt_request = REQUEST.replace("CONDUCTIVE;IPT", "CPT").replace("CONTACT;NEAR_FIELD", "NEAR_FIELD");
+        let report = evaluate(&offers(OFFERS), &request(&cpt_request));
         assert_eq!(
             by_id(&report.results, "cpt_dock_001").disposition,
             "NO_MATCH"
