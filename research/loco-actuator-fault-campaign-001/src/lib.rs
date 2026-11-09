@@ -335,6 +335,73 @@ fn validate_family_set(families: &[FaultFamily]) -> Result<(), FaultBenchmarkErr
     Ok(())
 }
 
+fn validate_fault_distribution(
+    probabilities: &[FaultProbability],
+    unknown_probability_ppm: u32,
+    plausible_families: &[FaultFamily],
+) -> Result<(FaultFamily, u32), FaultBenchmarkError> {
+    if unknown_probability_ppm > PPM_SCALE || probabilities.len() != FaultFamily::ALL.len() {
+        return Err(FaultBenchmarkError::InvalidFaultDistribution);
+    }
+    let plausible: BTreeSet<FaultFamily> = plausible_families.iter().copied().collect();
+    let mut values = BTreeMap::new();
+    let mut total = u64::from(unknown_probability_ppm);
+    for entry in probabilities {
+        if entry.probability_ppm > PPM_SCALE
+            || values.insert(entry.family, entry.probability_ppm).is_some()
+        {
+            return Err(FaultBenchmarkError::InvalidFaultDistribution);
+        }
+        if entry.probability_ppm > 0 && !plausible.contains(&entry.family) {
+            return Err(FaultBenchmarkError::ProbabilityOutsideHypothesisSet);
+        }
+        total = total
+            .checked_add(u64::from(entry.probability_ppm))
+            .ok_or(FaultBenchmarkError::ArithmeticOverflow)?;
+    }
+    if FaultFamily::ALL.iter().any(|family| !values.contains_key(family))
+        || total != u64::from(PPM_SCALE)
+    {
+        return Err(FaultBenchmarkError::InvalidFaultDistribution);
+    }
+
+    let mut top_family = FaultFamily::ALL[0];
+    let mut top_probability = values[&top_family];
+    for family in FaultFamily::ALL.iter().copied().skip(1) {
+        let probability = values[&family];
+        if probability > top_probability {
+            top_family = family;
+            top_probability = probability;
+        }
+    }
+    Ok((top_family, top_probability))
+}
+
+fn multiclass_brier_numerator(
+    probabilities: &[FaultProbability],
+    unknown_probability_ppm: u32,
+    truth: FaultFamily,
+) -> Result<u128, FaultBenchmarkError> {
+    let mut numerator = 0_u128;
+    for entry in probabilities {
+        let target = if entry.family == truth { PPM_SCALE } else { 0 };
+        let difference = u128::from(entry.probability_ppm.abs_diff(target));
+        let squared = difference
+            .checked_mul(difference)
+            .ok_or(FaultBenchmarkError::ArithmeticOverflow)?;
+        numerator = numerator
+            .checked_add(squared)
+            .ok_or(FaultBenchmarkError::ArithmeticOverflow)?;
+    }
+    let unknown_difference = u128::from(unknown_probability_ppm);
+    let unknown_squared = unknown_difference
+        .checked_mul(unknown_difference)
+        .ok_or(FaultBenchmarkError::ArithmeticOverflow)?;
+    numerator
+        .checked_add(unknown_squared)
+        .ok_or(FaultBenchmarkError::ArithmeticOverflow)
+}
+
 fn validate_unique_ids<'a, I>(values: I) -> Result<BTreeSet<&'a str>, FaultBenchmarkError>
 where
     I: IntoIterator<Item = &'a str>,
