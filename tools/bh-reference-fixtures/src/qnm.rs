@@ -140,7 +140,6 @@ pub enum QnmSequenceValidationError {
     InvalidFamilyEvidence,
     MissingFamilyEvidence,
     MissingWkbMetadata(usize),
-    ProlateOscillatorLevelMissing,
     ExtremalFixtureRequiresScalarExactWkb,
 }
 
@@ -201,12 +200,6 @@ impl core::fmt::Display for QnmSequenceValidationError {
                 write!(
                     f,
                     "QNM mode {index} requires WKB index, truncation order and cycle metadata"
-                )
-            }
-            Self::ProlateOscillatorLevelMissing => {
-                write!(
-                    f,
-                    "normal prolate sequence requires an explicit equatorial oscillator level"
                 )
             }
             Self::ExtremalFixtureRequiresScalarExactWkb => {
@@ -302,12 +295,6 @@ impl KerrQnmSequenceFixture {
             {
                 return Err(QnmSequenceValidationError::MissingWkbMetadata(index));
             }
-        }
-
-        if self.family_classification == QnmFamilyClassification::Prolate
-            && self.normal_prolate_oscillator_level.is_none()
-        {
-            return Err(QnmSequenceValidationError::ProlateOscillatorLevelMissing);
         }
 
         match self.family_classification {
@@ -478,6 +465,8 @@ mod tests {
     #[test]
     fn genus_one_prolate_wkb_preserves_quantization_index_separately_from_overtone() {
         let mut value = sequence(QnmFamilyClassification::Prolate);
+        value.spin_weight = 0;
+        value.normal_prolate_oscillator_level = Some(0);
         let mode = &mut value.modes[0];
         mode.solver_method = QnmSolverMethod::KerrNormalProlateGenusOneWkb;
         mode.overtone_index = Some(7);
