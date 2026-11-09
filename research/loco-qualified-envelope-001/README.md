@@ -38,7 +38,7 @@ Every consumed evidence record binds to the same canonical cell key:
 - platform and physics/simulator digest;
 - controller/policy and task/route/command digests;
 - terrain/perturbation cell ID plus coordinate vector, units and axis-constructor digests;
-- sensor-health signature and mode, calibration set and detector digest;
+- sensor-health signature, operating mode, calibration set, adverse-event taxonomy and event-detector digests;
 - actuator operating/thermal/voltage/response-map digest;
 - initial state, payload and centre-of-mass digest;
 - energy measurement boundary and remaining energy reserve;
@@ -55,7 +55,7 @@ For an operating cell c:
 
 - **V(c), robust viability/recovery:** upstream robust oracle is Valid for the exact physical successors, action/mode and declared operating uncertainty. Required recovery remains admitted.
 - **P(c), empirical task performance:** held-out task-success lower confidence bound meets its preregistered threshold; cross-fitted lower-tail requirement is met. Use seed-clustered inference and report held-out families.
-- **S(c), adverse-outcome safety:** every required adverse category is fully measured; each category's upper confidence bound is within its preregistered limit; no required category regression is hidden by a target proxy.
+- **S(c), adverse-outcome safety:** every required adverse category is fully measured; each category's upper confidence bound is within its preregistered limit; no required category regression is hidden by a target proxy, established against an exactly matched baseline.
 - **E(c), energy/actuator reserve:** current actuator/thermal/voltage model is valid, hard limits hold, and remaining energy reserve covers the source-qualified conservative recovery-energy upper bound.
 - **A(c), assurance:** state/model/domain/sensor/actuator/clock/certificate validity is fresh and exact for the cell.
 
