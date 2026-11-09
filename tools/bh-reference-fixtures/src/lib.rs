@@ -7,11 +7,70 @@
 
 use core::fmt;
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 
 pub mod qnm;
 pub use qnm::KerrQnmSequenceFixture;
 
 pub const FIXTURE_SCHEMA_VERSION: u32 = 1;
+
+/// Serialize a typed fixture into deterministic schema-order JSON bytes.
+///
+/// Object keys are sorted recursively and negative zero is normalized to
+/// positive zero. Arrays retain their declared order. The serde_json version
+/// is pinned by this crate so a payload digest can be reproduced exactly.
+/// This is the crate's deterministic JSON profile; it is not advertised as
+/// a general-purpose RFC 8785 implementation.
+pub fn canonical_payload_json_bytes<T: Serialize>(
+    payload: &T,
+) -> Result<Vec<u8>, serde_json::Error> {
+    let mut value = serde_json::to_value(payload)?;
+    normalize_canonical_json_value(&mut value);
+    serde_json::to_vec(&value)
+}
+
+/// SHA-256 digest of the deterministic JSON representation of a fixture.
+pub fn canonical_payload_sha256<T: Serialize>(
+    payload: &T,
+) -> Result<String, serde_json::Error> {
+    let bytes = canonical_payload_json_bytes(payload)?;
+    let digest = Sha256::digest(bytes);
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let mut encoded = String::with_capacity(64);
+    for byte in digest {
+        encoded.push(HEX[(byte >> 4) as usize] as char);
+        encoded.push(HEX[(byte & 0x0f) as usize] as char);
+    }
+    Ok(encoded)
+}
+
+fn normalize_canonical_json_value(value: &mut serde_json::Value) {
+    match value {
+        serde_json::Value::Object(object) => {
+            let mut entries: Vec<_> = std::mem::take(object).into_iter().collect();
+            entries.sort_unstable_by(|left, right| left.0.cmp(&right.0));
+            for (_, nested) in &mut entries {
+                normalize_canonical_json_value(nested);
+            }
+            for (key, nested) in entries {
+                object.insert(key, nested);
+            }
+        }
+        serde_json::Value::Array(values) => {
+            for nested in values {
+                normalize_canonical_json_value(nested);
+            }
+        }
+        serde_json::Value::Number(number)
+            if !number.is_i64()
+                && !number.is_u64()
+                && number.as_f64().is_some_and(|value| value == 0.0) =>
+        {
+            *number = serde_json::Number::from(0);
+        }
+        _ => {}
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -954,6 +1013,41 @@ mod tests {
             },
         );
         assert_eq!(error, Err(RadialComparisonError::InvalidTolerance));
+    }
+
+    #[test]
+    fn canonical_payload_digest_is_stable_and_sensitive_to_fixture_changes() {
+        let original = fixture();
+        let first = canonical_payload_sha256(&original).unwrap();
+        let second = canonical_payload_sha256(&original).unwrap();
+        assert_eq!(first, second);
+        assert_eq!(first.len(), 64);
+
+        let mut changed = original;
+        changed.problem.spin_over_mass = 0.31;
+        assert_ne!(first, canonical_payload_sha256(&changed).unwrap());
+    }
+
+    #[test]
+    fn canonical_json_normalizes_object_key_order_and_negative_zero() {
+        let first = serde_json::json!({
+            "zeta": -0.0,
+            "nested": { "b": 2, "a": 1 },
+            "alpha": 3
+        });
+        let second = serde_json::json!({
+            "alpha": 3,
+            "nested": { "a": 1, "b": 2 },
+            "zeta": 0.0
+        });
+        assert_eq!(
+            canonical_payload_json_bytes(&first).unwrap(),
+            canonical_payload_json_bytes(&second).unwrap()
+        );
+        assert_eq!(
+            canonical_payload_sha256(&first).unwrap(),
+            canonical_payload_sha256(&second).unwrap()
+        );
     }
 
     #[test]
