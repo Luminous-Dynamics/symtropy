@@ -57,6 +57,7 @@ struct Constraints {
     robust_e_opt_sensor_count: usize,
     sensor_dropout_budget: usize,
     common_cause_group_dropout: bool,
+    minimum_robust_minimum_eigenvalue: f64,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -81,6 +82,11 @@ struct Expected {
     robust_d_opt_worst_case_log_determinant: f64,
     robust_e_opt_sensor_ids: Vec<String>,
     robust_e_opt_worst_case_minimum_eigenvalue: f64,
+    minimum_cost_robust_sensor_ids: Vec<String>,
+    minimum_cost_robust_worst_case_minimum_eigenvalue: f64,
+    minimum_cost_robust_total_deployment_cost_units: f64,
+    minimum_cost_robust_total_mass_g: f64,
+    minimum_cost_robust_total_power_mw: f64,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -147,6 +153,18 @@ struct RobustDSelection {
 }
 
 #[derive(Clone, Debug, Serialize, PartialEq)]
+struct MinimumCostRobustSelection {
+    sensor_ids: Vec<String>,
+    objective: String,
+    required_minimum_eigenvalue: f64,
+    achieved_worst_case_minimum_eigenvalue: f64,
+    total_deployment_cost_units: f64,
+    total_mass_g: f64,
+    total_power_mw: f64,
+    scenarios: Vec<FailureScenario>,
+}
+
+#[derive(Clone, Debug, Serialize, PartialEq)]
 struct Audit {
     schema_version: &'static str,
     problem_id: String,
@@ -161,6 +179,7 @@ struct Audit {
     correlated_e_opt: Selection,
     robust_correlated_d_opt: RobustDSelection,
     robust_correlated_e_opt: RobustSelection,
+    cost_constrained_robust: Option<MinimumCostRobustSelection>,
     diagonal_to_correlated_e_opt_changed: bool,
     model_claim_ceiling: &'static str,
     aircraft_feasibility: &'static str,
@@ -294,6 +313,7 @@ fn validate_fixture(fixture: &Fixture) -> AuditResult<()> {
         || !(3..=sensor_count).contains(&constraints.robust_e_opt_sensor_count)
         || constraints.sensor_dropout_budget != 1
         || !constraints.common_cause_group_dropout
+        || !finite_positive(constraints.minimum_robust_minimum_eigenvalue)
     {
         return fail("fixture selection constraints are outside v0.1");
     }
@@ -750,6 +770,68 @@ fn select_robust_e_opt(fixture: &Fixture) -> AuditResult<RobustSelection> {
     })
 }
 
+fn select_minimum_cost_robust(
+    fixture: &Fixture,
+) -> AuditResult<Option<MinimumCostRobustSelection>> {
+    let required_information = fixture.constraints.minimum_robust_minimum_eigenvalue;
+    let minimum_sensor_count = (fixture.constraints.sensor_dropout_budget + 2).max(3);
+    let mut best: Option<(
+        f64,
+        f64,
+        f64,
+        Vec<usize>,
+        f64,
+        Vec<FailureScenario>,
+    )> = None;
+
+    for count in minimum_sensor_count..=fixture.sensors.len() {
+        for indices in enumerate_combinations(fixture.sensors.len(), count) {
+            let (worst_case_eigenvalue, _worst_case_log_determinant, scenarios) =
+                robust_score(fixture, &indices)?;
+            if worst_case_eigenvalue + SCORE_TOLERANCE < required_information {
+                continue;
+            }
+            let (cost, mass, power) = totals(fixture, &indices);
+            let is_better = best.as_ref().is_none_or(
+                |(best_cost, best_mass, best_power, best_indices, _, _)| {
+                    cost < *best_cost - SCORE_TOLERANCE
+                        || ((cost - *best_cost).abs() <= SCORE_TOLERANCE
+                            && (mass < *best_mass - SCORE_TOLERANCE
+                                || ((mass - *best_mass).abs() <= SCORE_TOLERANCE
+                                    && (power < *best_power - SCORE_TOLERANCE
+                                        || ((power - *best_power).abs() <= SCORE_TOLERANCE
+                                            && sensor_ids(fixture, &indices)
+                                                < sensor_ids(fixture, best_indices))))))
+                },
+            );
+            if is_better {
+                best = Some((
+                    cost,
+                    mass,
+                    power,
+                    indices,
+                    worst_case_eigenvalue,
+                    scenarios,
+                ));
+            }
+        }
+    }
+
+    let Some((cost, mass, power, indices, achieved, scenarios)) = best else {
+        return Ok(None);
+    };
+    Ok(Some(MinimumCostRobustSelection {
+        sensor_ids: sensor_ids(fixture, &indices),
+        objective: "MINIMIZE_DEPLOYMENT_COST_SUBJECT_TO_ROBUST_EIGENVALUE_FLOOR".to_owned(),
+        required_minimum_eigenvalue: required_information,
+        achieved_worst_case_minimum_eigenvalue: achieved,
+        total_deployment_cost_units: cost,
+        total_mass_g: mass,
+        total_power_mw: power,
+        scenarios,
+    }))
+}
+
 fn audit(fixture: &Fixture, source: &[u8]) -> AuditResult<Audit> {
     validate_fixture(fixture)?;
     let diagonal_e_opt = select_e_opt(fixture, true)?;
@@ -757,6 +839,7 @@ fn audit(fixture: &Fixture, source: &[u8]) -> AuditResult<Audit> {
     let correlated_e_opt = select_e_opt(fixture, false)?;
     let robust_correlated_d_opt = select_robust_d_opt(fixture)?;
     let robust_correlated_e_opt = select_robust_e_opt(fixture)?;
+    let cost_constrained_robust = select_minimum_cost_robust(fixture)?;
 
     Ok(Audit {
         schema_version: "aero-correlated-sensor-information-result/0.1.0",
@@ -775,6 +858,7 @@ fn audit(fixture: &Fixture, source: &[u8]) -> AuditResult<Audit> {
         correlated_e_opt,
         robust_correlated_d_opt,
         robust_correlated_e_opt,
+        cost_constrained_robust,
         diagonal_to_correlated_e_opt_changed: select_e_opt(fixture, true)?.sensor_ids
             != select_e_opt(fixture, false)?.sensor_ids,
         model_claim_ceiling: CLAIM_CEILING,
