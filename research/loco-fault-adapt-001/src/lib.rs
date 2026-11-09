@@ -633,9 +633,9 @@ pub fn audit_fault_benchmark(
                             row.missed_diagnosis_count += 1;
                         }
                     }
-                    if let AdaptationResult::Stable { latency_ms } = trial.adaptation {
+                    if let AdaptationResult::Stable { latency_ms } = &trial.adaptation {
                         row.stable_adaptation_count += 1;
-                        if latency_ms > scenario.adaptation_deadline_ms {
+                        if *latency_ms > scenario.adaptation_deadline_ms {
                             row.late_adaptation_count += 1;
                         }
                     }
