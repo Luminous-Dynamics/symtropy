@@ -284,9 +284,15 @@ fn encode_signature(states: &[ComponentState]) -> String {
     encoding
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct CanonicalFaultSpace {
+    groups: Vec<FaultGroup>,
+    relations: BTreeMap<String, Vec<Vec<ComponentState>>>,
+}
+
 fn canonicalize_problem(
     problem: &FaultSpaceProblem,
-) -> Result<(Vec<FaultGroup>, BTreeMap<String, Vec<Vec<ComponentState>>>), FaultSpaceError> {
+) -> Result<CanonicalFaultSpace, FaultSpaceError> {
     if !context_identifiers_valid(&problem.context) {
         return Err(FaultSpaceError::EmptyIdentifier);
     }
@@ -402,7 +408,10 @@ fn canonicalize_problem(
     }
 
     groups.sort_by(|left, right| left.group_id.cmp(&right.group_id));
-    Ok((groups, canonical_relations))
+    Ok(CanonicalFaultSpace {
+        groups,
+        relations: canonical_relations,
+    })
 }
 
 /// Enumerates the conservative set product of complete source-qualified
@@ -411,7 +420,9 @@ fn canonicalize_problem(
 pub fn enumerate_fault_envelope(
     problem: &FaultSpaceProblem,
 ) -> Result<FaultEnvelopeReport, FaultSpaceError> {
-    let (groups, relations) = canonicalize_problem(problem)?;
+    let canonical = canonicalize_problem(problem)?;
+    let groups = canonical.groups;
+    let relations = canonical.relations;
     let mut product_size = 1_usize;
     let mut group_counts = Vec::with_capacity(groups.len());
     for group in &groups {
@@ -631,7 +642,7 @@ mod tests {
                 .iter()
                 .all(|state| state.health_state == HealthState::Valid)
         }));
-        assert_eq!(report.conservative_cross_group_overapproximation, false);
+        assert!(!report.conservative_cross_group_overapproximation);
     }
 
     #[test]
