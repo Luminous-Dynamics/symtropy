@@ -9,8 +9,8 @@
 //! Financial obligations, physical obligations and resource stocks remain
 //! separate records with separate units.
 
-use std::collections::{BTreeMap, BTreeSet};
 use core::fmt;
+use std::collections::{BTreeMap, BTreeSet};
 
 use civdyn_resource_ledger::{Resource, ResourceVector, StepReport};
 
@@ -930,7 +930,10 @@ mod tests {
         let present = CohortAssignment::assigned("working-age-2026").unwrap();
         let young = CohortAssignment::assigned("future-born-2040").unwrap();
         let unknown = CohortAssignment::unassigned(UnassignedReason::SharedPublicAsset);
-        let ledger = assembled(service_rows(present, young.clone()), stock_rows(young, unknown));
+        let ledger = assembled(
+            service_rows(present, young.clone()),
+            stock_rows(young, unknown),
+        );
 
         let report = ledger.last().unwrap();
         assert_eq!(report.regional_reconciliations.len(), 3);
@@ -944,7 +947,10 @@ mod tests {
         let present = CohortAssignment::assigned("working-age-2026").unwrap();
         let future = CohortAssignment::assigned("future-born-2040").unwrap();
         let unknown = CohortAssignment::unassigned(UnassignedReason::SharedPublicAsset);
-        let ledger = assembled(service_rows(present, future.clone()), stock_rows(future.clone(), unknown));
+        let ledger = assembled(
+            service_rows(present, future.clone()),
+            stock_rows(future.clone(), unknown),
+        );
         let summary = ledger
             .cohort_summaries(1)
             .unwrap()
@@ -969,7 +975,10 @@ mod tests {
             .cohort_summaries(1)
             .unwrap()
             .into_iter()
-            .find(|row| row.assignment == CohortAssignment::unassigned(UnassignedReason::SharedPublicAsset))
+            .find(|row| {
+                row.assignment
+                    == CohortAssignment::unassigned(UnassignedReason::SharedPublicAsset)
+            })
             .unwrap();
         assert_eq!(summary.inherited_stock.water_m3, 40.0);
     }
@@ -979,7 +988,10 @@ mod tests {
         let single = CohortAssignment::assigned("working-age-2026").unwrap();
         let future = CohortAssignment::assigned("future-born-2040").unwrap();
         let shared = CohortAssignment::unassigned(UnassignedReason::SharedPublicAsset);
-        let original = assembled(service_rows(single.clone(), future.clone()), stock_rows(future.clone(), shared.clone()));
+        let original = assembled(
+            service_rows(single.clone(), future.clone()),
+            stock_rows(future.clone(), shared.clone()),
+        );
 
         let split_a = CohortAssignment::assigned("working-age-a").unwrap();
         let split_b = CohortAssignment::assigned("working-age-b").unwrap();
@@ -1020,7 +1032,10 @@ mod tests {
         let future = CohortAssignment::assigned("future-born-2040").unwrap();
         let shared = CohortAssignment::unassigned(UnassignedReason::SharedPublicAsset);
 
-        let before = assembled(service_rows(a, future.clone()), stock_rows(future.clone(), shared.clone()));
+        let before = assembled(
+            service_rows(a, future.clone()),
+            stock_rows(future.clone(), shared.clone()),
+        );
         let after = assembled(service_rows(b, future.clone()), stock_rows(future, shared));
 
         assert_eq!(
