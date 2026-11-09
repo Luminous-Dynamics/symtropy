@@ -189,7 +189,6 @@ pub enum FailoverError {
     StalePossibilityReceipt,
     PossibilitySetIncomplete,
     PossibilityContextMismatch,
-    UnknownHealthReceipt,
     DuplicateTransitionReceipt,
     MissingTransitionReceipt,
     ReceiptIdentityMismatch,
@@ -205,22 +204,6 @@ pub enum FailoverError {
 
 fn nonempty(value: &str) -> bool {
     !value.trim().is_empty()
-}
-
-fn validate_unique_ids<'a, I>(ids: I) -> Result<(), FailoverError>
-where
-    I: IntoIterator<Item = &'a str>,
-{
-    let mut seen = BTreeSet::new();
-    for id in ids {
-        if !nonempty(id) {
-            return Err(FailoverError::EmptyIdentifier);
-        }
-        if !seen.insert(id) {
-            return Err(FailoverError::DuplicateHealthEvidence);
-        }
-    }
-    Ok(())
 }
 
 fn signature_digest(signature: &PossibleHealthSignature) -> Result<String, FailoverError> {
@@ -1035,6 +1018,31 @@ mod tests {
         assert_eq!(
             evaluate_failover(&problem),
             Err(FailoverError::MissingTransitionReceipt)
+        );
+    }
+
+    #[test]
+    fn duplicate_upstream_signature_digest_is_rejected() {
+        let mut problem = base_problem();
+        let mut second = signature(
+            "second-signature",
+            vec![
+                ("depth-camera", ChannelHealth::Ood),
+                ("joint-encoders", ChannelHealth::Valid),
+                ("foot-wrench", ChannelHealth::Valid),
+            ],
+        );
+        second.signature_digest = problem.possible_signatures[0].signature_digest.clone();
+        problem.transition_receipts.push(receipt(
+            &problem,
+            &second,
+            &["hold"],
+            TransitionGateStatus::Admitted,
+        ));
+        problem.possible_signatures.push(second);
+        assert_eq!(
+            evaluate_failover(&problem),
+            Err(FailoverError::DuplicateSignatureDigest)
         );
     }
 
