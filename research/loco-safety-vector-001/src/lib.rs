@@ -422,7 +422,7 @@ pub fn audit_safety_vector(
             == problem.baseline.exposure.value
             && candidate_coverage.observed_exposure == problem.candidate.exposure.value;
 
-        if category.required && !measurement_complete {
+        if category.adverse && !measurement_complete {
             complete_required_coverage = false;
             measurement_coverage_gaps.push(category.id.clone());
         }
@@ -470,7 +470,9 @@ pub fn audit_safety_vector(
                 target_improved = true;
             }
             if !primary_ids.contains(category.id.as_str())
-                && event_rate_direction == Direction::Worsened
+                && (event_rate_direction == Direction::Worsened
+                    || severity_load_direction == Direction::Worsened
+                    || maximum_severity_direction == Direction::Worsened)
             {
                 non_target_adverse_worsened = true;
             }
@@ -506,23 +508,13 @@ pub fn audit_safety_vector(
 
     let unknown_event_increase =
         problem.candidate.unknown_event_count > problem.baseline.unknown_event_count;
-    let all_required_categories_nonregressing = category_comparisons.iter().all(|comparison| {
-        !comparison.adverse
-            || !problem.taxonomy.categories.iter().any(|category| {
-                category.id == comparison.category_id && category.required
-            })
-            || (comparison.event_rate_direction != Direction::Worsened
-                && comparison.severity_load_direction != Direction::Worsened
-                && comparison.maximum_severity_direction != Direction::Worsened)
-    });
-
     let complete_safety_improvement_claim = comparable
         && complete_required_coverage
         && objective_coverage_gaps.is_empty()
         && measurement_coverage_gaps.is_empty()
         && problem.baseline.unknown_event_count == 0
         && problem.candidate.unknown_event_count == 0
-        && all_required_categories_nonregressing
+        && adverse_category_regressions.is_empty()
         && target_improved;
 
     Ok(SafetyVectorReport {
@@ -789,6 +781,25 @@ mod tests {
         let report = audit_safety_vector(&input).expect("mismatched detector");
         assert!(!report.comparable);
         assert!(!report.complete_safety_improvement_claim);
+    }
+
+    #[test]
+    fn objective_omission_for_adverse_category_suppresses_complete_claim() {
+        let mut input = problem(Vec::new(), Vec::new());
+        input.candidate.category_coverage[1].objective_included = false;
+        let report = audit_safety_vector(&input).expect("objective gap report");
+        assert_eq!(report.objective_coverage_gaps, vec!["foot_scuff".to_owned()]);
+        assert!(!report.complete_safety_improvement_claim);
+    }
+
+    #[test]
+    fn taxonomy_digest_mismatch_is_rejected() {
+        let mut input = problem(Vec::new(), Vec::new());
+        input.candidate.taxonomy_digest = "taxonomy-v2".to_owned();
+        assert_eq!(
+            audit_safety_vector(&input),
+            Err(SafetyVectorError::TaxonomyIdentityMismatch)
+        );
     }
 
     #[test]
