@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/research/oli-m0-validator-v0/tools/oli-m0-validator/schema/oli-m0-fixture-v0.1.schema.json",
+  "$id": "urn:luminous-dynamics:oli-m0-fixture-v0.1",
   "title": "OLI M0 benchmark fixture v0.1",
   "description": "Property-profile fixture for open-world life and intelligence benchmark tasks. It intentionally has no global alive/intelligent/consciousness score.",
   "type": "object",
