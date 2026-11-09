@@ -774,7 +774,7 @@ pub fn poschl_teller_wronskian_winding_number(
         return Err(SpecialError::InvalidConfiguration);
     }
 
-    let mut previous = None;
+    let mut previous: Option<Complex64> = None;
     let mut total_phase = 0.0;
     let mut max_phase_step: f64 = 0.0;
 
