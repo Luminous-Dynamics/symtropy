@@ -461,7 +461,8 @@ fn validate_trial(
             if let Some((lower, upper)) = severity_interval_ppm {
                 if lower > upper
                     || *upper > PPM_SCALE
-                    || severity_estimate_ppm.is_some_and(|estimate| estimate < *lower || estimate > *upper)
+                    || severity_estimate_ppm
+                        .is_some_and(|estimate| estimate < *lower || estimate > *upper)
                 {
                     return Err(FaultBenchmarkError::InvalidSeverityInterval);
                 }
@@ -720,8 +721,7 @@ pub fn audit_fault_benchmark(
                             }
                         }
                         DetectionResult::Unknown {
-                            plausible_families,
-                            ..
+                            plausible_families, ..
                         } => {
                             row.unknown_diagnosis_count += 1;
                             if plausible_families.contains(&scenario.fault_family) {
@@ -1096,10 +1096,7 @@ mod tests {
         let mut input = problem();
         input.trials[0].detected = DetectionResult::Detected {
             inferred_family: FaultFamily::TorqueDerating,
-            plausible_families: vec![
-                FaultFamily::JointLocked,
-                FaultFamily::TorqueDerating,
-            ],
+            plausible_families: vec![FaultFamily::JointLocked, FaultFamily::TorqueDerating],
             latency_ms: 10,
             confidence_ppm: 800_000,
             severity_estimate_ppm: None,
@@ -1157,10 +1154,7 @@ mod tests {
         let mut input = problem();
         input.trials[0].detected = DetectionResult::Detected {
             inferred_family: FaultFamily::JointLocked,
-            plausible_families: vec![
-                FaultFamily::JointLocked,
-                FaultFamily::JointLocked,
-            ],
+            plausible_families: vec![FaultFamily::JointLocked, FaultFamily::JointLocked],
             latency_ms: 10,
             confidence_ppm: 900_000,
             severity_estimate_ppm: None,
