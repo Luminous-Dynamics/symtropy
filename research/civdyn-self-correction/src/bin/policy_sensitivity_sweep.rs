@@ -7,8 +7,8 @@ use civdyn_self_correction::model_adequacy::{
 };
 use civdyn_self_correction::policy_sensitivity::{
     ConstraintRelation, MetricKind, MetricSpec, ModelWorld, ObjectiveDirection,
-    ObjectivePolicySummary, PairwisePolicyOrdering, PolicyFeasibility, PolicyMetricOutcome, PolicySensitivityReport,
-    PolicySpec, evaluate_policy_sensitivity,
+    ObjectivePolicySummary, PairwisePolicyOrdering, PolicyFeasibility, PolicyMetricOutcome,
+    PolicySensitivityReport, PolicySpec, evaluate_policy_sensitivity,
 };
 
 const CSV_COLUMNS: usize = 29;
@@ -61,10 +61,7 @@ fn model_outcome_row(
         String::new(),
     ]
 }
-fn summary_row(
-    summary: &ObjectivePolicySummary,
-    report: &PolicySensitivityReport,
-) -> Vec<String> {
+fn summary_row(summary: &ObjectivePolicySummary, report: &PolicySensitivityReport) -> Vec<String> {
     vec![
         "objective_summary".to_string(),
         String::new(),
@@ -85,7 +82,10 @@ fn summary_row(
             .worst_case_regret
             .map(|value| format!("{value:.6}"))
             .unwrap_or_default(),
-        summary.best_rank.map(|value| value.to_string()).unwrap_or_default(),
+        summary
+            .best_rank
+            .map(|value| value.to_string())
+            .unwrap_or_default(),
         summary
             .worst_rank
             .map(|value| value.to_string())
