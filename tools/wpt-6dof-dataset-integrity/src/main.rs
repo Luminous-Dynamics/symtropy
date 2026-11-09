@@ -696,8 +696,9 @@ mod tests {
             "RECEIVER_HARDWARE_REVISION",
             1,
         );
+        assert!(parse_dataset(&input).is_ok());
         let leaked = input.replace(
-            "RX_TEST_01\t9999999999999999999999999999999999999999999999999999999999999999",
+            "RX_TEST_01\tcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
             "RX_TEST_01\taaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         );
         assert!(parse_dataset(&leaked).is_err());
