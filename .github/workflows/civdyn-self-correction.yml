@@ -192,11 +192,11 @@ jobs:
         run: |
           cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin model-adequacy-sweep > /tmp/civdyn-model-adequacy.csv
           awk -F, '
-            NR == 1 { if (NF != 12) exit 80; next }
-            NF != 12 { exit 81 }
+            NR == 1 { if (NF != 13) exit 80; next }
+            NF != 13 { exit 81 }
             {
               rows++
-              if ($12 != "primary_discrepancy_detected") exit 82
+              if ($12 != "primary_discrepancy_detected" || $13 == "") exit 82
               if ($1 == "prior" && $2 == "household-water-mean" && $4 == "within_reference_interval") prior_water++
               if ($1 == "prior" && $2 == "health-income-joint" && $4 == "outside_reference_interval") prior_joint++
               if ($1 == "prior" && $2 == "rare-service-failure-rate" && $4 == "within_reference_interval") prior_tail++
