@@ -29,6 +29,7 @@ pub enum OutcomeLedgerError {
     TicketNotBound,
     EmptyTicket,
     TicketAlreadyBound,
+    ControllerTicketAlreadyBound,
     ControllerTicketMismatch,
     InvalidOutcome,
     OutOfOrder,
@@ -114,14 +115,24 @@ impl ControlOutcomeLedger {
         if controller_ticket.trim().is_empty() {
             return Err(OutcomeLedgerError::EmptyTicket);
         }
+        let key = (session_id, request_id);
         let tracked = self
             .requests
-            .get_mut(&(session_id, request_id))
+            .get(&key)
             .ok_or(OutcomeLedgerError::UnknownRequest)?;
         if tracked.controller_ticket.is_some() {
             return Err(OutcomeLedgerError::TicketAlreadyBound);
         }
-        tracked.controller_ticket = Some(controller_ticket.to_owned());
+        if self.requests.iter().any(|(other_key, other)| {
+            *other_key != key && other_key.0 == session_id
+                && other.controller_ticket.as_deref() == Some(controller_ticket)
+        }) {
+            return Err(OutcomeLedgerError::ControllerTicketAlreadyBound);
+        }
+        self.requests
+            .get_mut(&key)
+            .expect("request presence was checked above")
+            .controller_ticket = Some(controller_ticket.to_owned());
         Ok(())
     }
 
@@ -375,6 +386,19 @@ mod tests {
         assert!(ledger.release_unsubmitted(7, 106));
         assert_eq!(ledger.tracked_requests(), 0);
         ledger.reserve(7, 107).unwrap();
+    }
+
+    #[test]
+    fn one_controller_ticket_cannot_be_bound_to_two_requests_in_a_session() {
+        let mut ledger = ControlOutcomeLedger::with_capacity(2).unwrap();
+        ledger.reserve(7, 108).unwrap();
+        ledger.reserve(7, 109).unwrap();
+        ledger.bind_ticket(7, 108, "controller-shared").unwrap();
+        assert_eq!(
+            ledger.bind_ticket(7, 109, "controller-shared"),
+            Err(OutcomeLedgerError::ControllerTicketAlreadyBound)
+        );
+        assert_eq!(ledger.is_ticket_bound(7, 109), false);
     }
 
     #[test]
