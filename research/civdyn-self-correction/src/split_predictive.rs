@@ -21,8 +21,8 @@ use std::collections::BTreeSet;
 use std::fmt;
 
 use crate::model_adequacy::{
-    assess_predictive_partition, AdequacyError, IndependentUnitKind, ObservedStatistic,
-    PredictiveDraw, PredictiveKind, SplitManifest, SplitRole, StatisticRegistry,
+    AdequacyError, IndependentUnitKind, ObservedStatistic, PredictiveDraw, PredictiveKind,
+    SplitManifest, SplitRole, StatisticRegistry, assess_predictive_partition,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -89,19 +89,35 @@ pub struct DividedSpcResult {
 pub enum SplitPredictiveError {
     Adequacy(AdequacyError),
     CalibrationRoleNotAllowed,
-    UnknownStatistic { statistic_id: String },
-    UnknownIndependentUnit { unit_id: String },
-    MissingObservation { statistic_id: String, unit_id: String },
+    UnknownStatistic {
+        statistic_id: String,
+    },
+    UnknownIndependentUnit {
+        unit_id: String,
+    },
+    MissingObservation {
+        statistic_id: String,
+        unit_id: String,
+    },
     InsufficientPredictiveDraws {
         statistic_id: String,
         unit_id: String,
         required: usize,
         actual: usize,
     },
-    InvalidSingleSpcReceipt { unit_id: String },
-    TooFewIndependentUnits { actual: usize },
-    MissingDeclaredIndependentUnits { expected: usize, actual: usize },
-    DuplicateIndependentUnit { unit_id: String },
+    InvalidSingleSpcReceipt {
+        unit_id: String,
+    },
+    TooFewIndependentUnits {
+        actual: usize,
+    },
+    MissingDeclaredIndependentUnits {
+        expected: usize,
+        actual: usize,
+    },
+    DuplicateIndependentUnit {
+        unit_id: String,
+    },
     MixedStatisticIdentities,
     MixedModelIdentities,
     MixedTailDirections,
@@ -159,11 +175,12 @@ pub fn single_split_predictive_check(
         return Err(SplitPredictiveError::CalibrationRoleNotAllowed);
     }
 
-    let statistic = registry.get(statistic_id).ok_or_else(|| {
-        SplitPredictiveError::UnknownStatistic {
-            statistic_id: statistic_id.to_string(),
-        }
-    })?;
+    let statistic =
+        registry
+            .get(statistic_id)
+            .ok_or_else(|| SplitPredictiveError::UnknownStatistic {
+                statistic_id: statistic_id.to_string(),
+            })?;
 
     let expected_units = units_for(manifest, role);
     if !expected_units
@@ -178,8 +195,7 @@ pub fn single_split_predictive_check(
     let observation = observations
         .iter()
         .find(|row| {
-            row.statistic_id == statistic_id
-                && row.independent_unit_id == independent_unit_id
+            row.statistic_id == statistic_id && row.independent_unit_id == independent_unit_id
         })
         .ok_or_else(|| SplitPredictiveError::MissingObservation {
             statistic_id: statistic_id.to_string(),
@@ -203,8 +219,7 @@ pub fn single_split_predictive_check(
         .statistics
         .iter()
         .find(|row| {
-            row.statistic_id == statistic_id
-                && row.independent_unit_id == independent_unit_id
+            row.statistic_id == statistic_id && row.independent_unit_id == independent_unit_id
         })
         .ok_or_else(|| SplitPredictiveError::MissingObservation {
             statistic_id: statistic_id.to_string(),
@@ -259,14 +274,12 @@ pub fn single_split_predictive_check(
 
     // Randomized rank among the held-out observation and predictive
     // replicates. An open-interval U avoids exact 0/1 p-values.
-    let unit_seed = seed
-        ^ stable_hash(statistic_id.as_bytes())
-        ^ stable_hash(independent_unit_id.as_bytes());
+    let unit_seed =
+        seed ^ stable_hash(statistic_id.as_bytes()) ^ stable_hash(independent_unit_id.as_bytes());
     let mut rng = SplitMix64::new(unit_seed);
     let tie_break = rng.next_open_unit();
     let randomized_lower_tail_rank =
-        (less as f64 + tie_break * (equal as f64 + 1.0))
-            / (predictive_values.len() as f64 + 1.0);
+        (less as f64 + tie_break * (equal as f64 + 1.0)) / (predictive_values.len() as f64 + 1.0);
     let predictive_p_value = match tail {
         SpcTail::Lower => randomized_lower_tail_rank,
         SpcTail::Upper => 1.0 - randomized_lower_tail_rank,
@@ -397,25 +410,20 @@ pub fn divided_split_predictive_check(
             p_value: check.predictive_p_value,
         })
         .collect();
-    unit_p_values.sort_by(|left, right| {
-        left.independent_unit_id.cmp(&right.independent_unit_id)
-    });
+    unit_p_values.sort_by(|left, right| left.independent_unit_id.cmp(&right.independent_unit_id));
 
     let values: Vec<f64> = unit_p_values.iter().map(|row| row.p_value).collect();
     let ks_statistic = ks_uniform_statistic(&values);
     let mut rng = SplitMix64::new(seed ^ stable_hash(first.statistic_id.as_bytes()));
     let mut exceedances = 0usize;
     for _ in 0..monte_carlo_replicates {
-        let reference: Vec<f64> = (0..values.len())
-            .map(|_| rng.next_open_unit())
-            .collect();
+        let reference: Vec<f64> = (0..values.len()).map(|_| rng.next_open_unit()).collect();
         let reference_ks = ks_uniform_statistic(&reference);
         if reference_ks >= ks_statistic {
             exceedances += 1;
         }
     }
-    let uniformity_p_value =
-        (exceedances as f64 + 1.0) / (monte_carlo_replicates as f64 + 1.0);
+    let uniformity_p_value = (exceedances as f64 + 1.0) / (monte_carlo_replicates as f64 + 1.0);
 
     Ok(DividedSpcResult {
         statistic_id: first.statistic_id.clone(),
@@ -614,8 +622,16 @@ mod tests {
         assert!(first.iter().all(|row| row.predictive_p_value > 0.0));
         assert!(first.iter().all(|row| row.predictive_p_value < 1.0));
         assert!(first.iter().all(|row| row.predictive_draw_count == 5));
-        assert!(first.iter().all(|row| row.calibration_data_digest == "sha256-calibration"));
-        assert!(first.iter().all(|row| row.split_manifest_digest == "sha256-manifest"));
+        assert!(
+            first
+                .iter()
+                .all(|row| row.calibration_data_digest == "sha256-calibration")
+        );
+        assert!(
+            first
+                .iter()
+                .all(|row| row.split_manifest_digest == "sha256-manifest")
+        );
     }
 
     #[test]
@@ -704,9 +720,7 @@ mod tests {
     #[test]
     fn rejects_insufficient_split_predictive_draws() {
         let mut short_draws = draws();
-        short_draws.retain(|row| {
-            row.independent_unit_id != "region-a" || row.draw_index < 2
-        });
+        short_draws.retain(|row| row.independent_unit_id != "region-a" || row.draw_index < 2);
         assert!(matches!(
             single_split_predictive_check(
                 &registry(),
@@ -733,12 +747,12 @@ mod tests {
     #[test]
     fn divided_spc_uses_all_manifest_units_and_is_reproducible() {
         let checks = checks();
-        let first = divided_split_predictive_check(
-            &manifest(), SplitRole::Validation, &checks, 999, 2026
-        ).expect("valid divided SPC");
-        let second = divided_split_predictive_check(
-            &manifest(), SplitRole::Validation, &checks, 999, 2026
-        ).expect("replayed divided SPC");
+        let first =
+            divided_split_predictive_check(&manifest(), SplitRole::Validation, &checks, 999, 2026)
+                .expect("valid divided SPC");
+        let second =
+            divided_split_predictive_check(&manifest(), SplitRole::Validation, &checks, 999, 2026)
+                .expect("replayed divided SPC");
         assert_eq!(first, second);
         assert_eq!(first.unit_count, 3);
         assert_eq!(first.sample_size, 10);
@@ -844,7 +858,11 @@ mod tests {
         let one_check = vec![checks()[0].clone()];
         assert!(matches!(
             divided_split_predictive_check(
-                &one_unit_manifest, SplitRole::Validation, &one_check, 999, 1
+                &one_unit_manifest,
+                SplitRole::Validation,
+                &one_check,
+                999,
+                1
             ),
             Err(SplitPredictiveError::TooFewIndependentUnits { .. })
         ));

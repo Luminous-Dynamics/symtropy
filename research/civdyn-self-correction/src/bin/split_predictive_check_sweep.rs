@@ -6,8 +6,8 @@ use civdyn_self_correction::model_adequacy::{
     SplitRole, StatisticRegistry, StatisticSpec,
 };
 use civdyn_self_correction::split_predictive::{
-    divided_split_predictive_check, single_split_predictive_check, DividedSpcResult,
-    SingleSpcRequest, SingleSpcResult, SpcTail,
+    DividedSpcResult, SingleSpcRequest, SingleSpcResult, SpcTail, divided_split_predictive_check,
+    single_split_predictive_check,
 };
 
 const CSV_COLUMNS: usize = 23;
