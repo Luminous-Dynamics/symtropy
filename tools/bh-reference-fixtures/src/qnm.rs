@@ -1234,8 +1234,7 @@ mod tests {
         let mut value = synthetic_asymptotic_sequence(QnmFamilyClassification::Prolate);
         let targets = synthetic_family_targets();
         let result =
-            analyze_qnm_family_sequence(&value, targets, synthetic_analysis_config())
-                .unwrap();
+            analyze_qnm_family_sequence(&value, targets, synthetic_analysis_config()).unwrap();
         assert_eq!(result.classification, QnmFamilyClassification::Prolate);
         assert!(result.prolate.is_some());
         assert!(result.oblate.is_none());
@@ -1246,8 +1245,7 @@ mod tests {
             mode.overtone_index = None;
         }
         let without_overtone_labels =
-            analyze_qnm_family_sequence(&value, targets, synthetic_analysis_config())
-                .unwrap();
+            analyze_qnm_family_sequence(&value, targets, synthetic_analysis_config()).unwrap();
         assert_eq!(
             without_overtone_labels.classification,
             QnmFamilyClassification::Prolate
@@ -1274,8 +1272,7 @@ mod tests {
         let mut wrong_target = synthetic_family_targets();
         wrong_target.prolate_spacing_m = ComplexValue { re: 0.0, im: -0.3 };
         let wrong_spacing =
-            analyze_qnm_family_sequence(&value, wrong_target, synthetic_analysis_config())
-                .unwrap();
+            analyze_qnm_family_sequence(&value, wrong_target, synthetic_analysis_config()).unwrap();
         assert_eq!(
             wrong_spacing.classification,
             QnmFamilyClassification::Unresolved
