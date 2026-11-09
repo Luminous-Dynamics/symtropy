@@ -1,0 +1,34 @@
+name: Aero Energy-Information Dual Control
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "research/aero-energy-information-dual-control-v0/**"
+      - "tools/aero-energy-information-dual-control/**"
+      - ".github/workflows/aero-energy-information-dual-control.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "research/aero-energy-information-dual-control-v0/**"
+      - "tools/aero-energy-information-dual-control/**"
+      - ".github/workflows/aero-energy-information-dual-control.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate (cross-platform)
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Test probe-cost and non-anticipative service composition
+        run: cargo test --locked --manifest-path tools/aero-energy-information-dual-control/Cargo.toml
+      - name: Evaluate synthetic probe-to-service alternatives
+        run: cargo run --locked --manifest-path tools/aero-energy-information-dual-control/Cargo.toml -- research/aero-energy-information-dual-control-v0/synthetic-probe-service-scenarios.tsv
