@@ -16,6 +16,7 @@ use civdyn_resilience_uq::{
 };
 use core::fmt;
 use std::collections::{BTreeMap, BTreeSet};
+pub mod model_set_robustness;
 
 pub const DEFAULT_LHS_POINTS: usize = 30;
 pub const DEFAULT_SERVICE_FLOOR: f64 = 0.95;
