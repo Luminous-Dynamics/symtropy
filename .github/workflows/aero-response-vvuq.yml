@@ -16,6 +16,17 @@ jobs:
     steps:
       - name: Check out exact pull-request head
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Assert exact subject revision
+        env:
+          EXPECTED_SUBJECT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          actual_subject_sha="$(git rev-parse HEAD)"
+          test "$actual_subject_sha" = "$EXPECTED_SUBJECT_SHA"
+          printf 'subject_commit=%s\n' "$actual_subject_sha"
+          printf 'event_commit=%s\n' "$GITHUB_SHA"
+          printf 'workflow_ref=%s\n' "$GITHUB_WORKFLOW_REF"
 
       - name: Install stable Rust with rustfmt
         uses: dtolnay/rust-toolchain@stable
@@ -52,7 +63,7 @@ jobs:
       - name: Retain exact fixture, result and digest receipts
         uses: actions/upload-artifact@v4
         with:
-          name: aero-response-vvuq-${{ github.sha }}
+          name: aero-response-vvuq-${{ github.event.pull_request.head.sha || github.sha }}
           path: |
             tools/civil-aero-benchmark/response-vvuq/data/known-answer-response-vector-v0.1.json
             response-vvuq-result.json
