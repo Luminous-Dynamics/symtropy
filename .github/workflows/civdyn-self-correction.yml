@@ -232,3 +232,69 @@ jobs:
           assert actual == expected, f"unexpected reachability/adequacy classifications: {actual}"
           print("Model-adequacy CSV valid: prior reachability and split-predictive controls preserve marginal, joint and rare-tail discrepancies as separate results.")
           PY
+
+
+      - name: Verify policy feasibility, regret and model-ranking reversals
+        run: |
+          set -euo pipefail
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin policy-sensitivity-sweep > /tmp/civdyn-policy-sensitivity.csv
+          python3 - <<'PY'
+          import csv
+          from pathlib import Path
+
+          path = Path("/tmp/civdyn-policy-sensitivity.csv")
+          with path.open(newline="", encoding="utf-8") as handle:
+              reader = csv.DictReader(handle)
+              rows = list(reader)
+              fields = reader.fieldnames
+
+          assert fields is not None and len(fields) == 27, f"expected 27 columns, got {len(fields or [])}"
+          grouped = {}
+          for row in rows:
+              grouped.setdefault(row["record_type"], []).append(row)
+
+          assert len(grouped.get("model_outcome", [])) == 18
+          assert len(grouped.get("objective_summary", [])) == 6
+          assert len(grouped.get("pairwise_ordering", [])) == 6
+
+          world_a_expand_water = [
+              row for row in grouped["model_outcome"]
+              if row["model_id"] == "world-a"
+              and row["policy_id"] == "expand"
+              and row["metric_id"] == "water-withdrawal"
+          ]
+          assert len(world_a_expand_water) == 1
+          assert world_a_expand_water[0]["feasible"] == "false"
+          assert world_a_expand_water[0]["violated_constraints"] == "water-withdrawal"
+
+          summaries = {
+              (row["policy_id"], row["metric_id"]): row
+              for row in grouped["objective_summary"]
+          }
+          service_conserve = summaries[("conserve", "essential-service")]
+          ecology_conserve = summaries[("conserve", "ecological-integrity")]
+          service_expand = summaries[("expand", "essential-service")]
+          assert service_conserve["policy_feasibility"] == "robustly_feasible"
+          assert service_conserve["worst_case_regret"] == "5.000000"
+          assert ecology_conserve["worst_case_regret"] == "20.000000"
+          assert service_expand["policy_feasibility"] == "feasible_in_some_models"
+          assert service_expand["worst_case_regret"] == ""
+
+          reversal = [
+              row for row in grouped["pairwise_ordering"]
+              if row["metric_id"] == "essential-service"
+              and row["policy_a"] == "baseline"
+              and row["policy_b"] == "conserve"
+          ]
+          assert len(reversal) == 1
+          assert reversal[0]["models_where_a_better"] == "1"
+          assert reversal[0]["models_where_b_better"] == "1"
+          assert reversal[0]["discordant_model_pairs"] == "1"
+
+          for row in rows:
+              assert row["claim_ceiling"] == "exploratory_only"
+              assert row["any_model_without_feasible_policy"] == "false"
+              if row["record_type"] == "model_outcome":
+                  assert row["model_digest"] and row["source_digest"]
+          print("Policy-sensitivity CSV valid: constraint-first feasibility, native-unit regret, structural ranking reversal and exploratory claim ceiling.")
+          PY
