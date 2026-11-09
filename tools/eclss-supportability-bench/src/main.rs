@@ -943,7 +943,6 @@ struct MaintenanceTask {
     end: u64,
     worker_id: String,
     tool_ids: Vec<String>,
-    spare_id: Option<String>,
     dependencies: Vec<String>,
 }
 
@@ -1237,7 +1236,6 @@ fn validate_maintenance_plan_admissibility(value: &Value) -> Check<Value> {
                 end,
                 worker_id,
                 tool_ids,
-                spare_id,
                 dependencies,
             });
         }
