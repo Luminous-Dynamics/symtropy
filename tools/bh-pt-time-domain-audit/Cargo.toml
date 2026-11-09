@@ -1,0 +1,11 @@
+[package]
+name = "bh-pt-time-domain-audit"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+publish = false
+description = "Independent finite-difference time-domain reference for the Pöschl–Teller barrier"
+
+[dependencies]
+
+[workspace]
