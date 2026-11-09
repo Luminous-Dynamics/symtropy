@@ -906,8 +906,9 @@ pub fn derive_surface_visibility(
 #[cfg(test)]
 mod tests {
     use super::{
-        OccluderKind, OccluderTriangle, VisibilityProbe, VisibilityProfile, VisibilityView,
-        ViewVisibilityStatus, derive_surface_visibility,
+        OccluderCoverage, OccluderKind, OccluderTriangle, VisibilityEvaluation,
+        VisibilityProbe, VisibilityProfile, VisibilityView, ViewVisibilityStatus,
+        derive_surface_visibility,
     };
     use crate::metrics::Point3;
     use crate::sampling::SurfaceVisibility;
@@ -934,6 +935,7 @@ mod tests {
             surface_id: "TARGET".to_owned(),
             triangle_id: "TARGET-TRI-1".to_owned(),
             point: Point3::new(point[0], point[1], point[2]),
+            normal: Point3::new(-1.0, 0.0, 0.0),
             represented_area_m2: 2.0,
         }
     }
@@ -954,18 +956,35 @@ mod tests {
         views: &[VisibilityView],
         occluders: &[OccluderTriangle],
     ) -> Result<super::VisibilityReceipt, String> {
-        derive_surface_visibility(
-            "SCENE-1",
-            "BUILDING-LOCAL",
-            &"1".repeat(64),
-            &"2".repeat(64),
+        evaluate_with_coverage(
             probes,
             views,
             occluders,
-            VisibilityProfile {
-                max_ray_tests: 10_000,
-            },
+            OccluderCoverage::Complete,
         )
+    }
+
+    fn evaluate_with_coverage(
+        probes: &[VisibilityProbe],
+        views: &[VisibilityView],
+        occluders: &[OccluderTriangle],
+        occluder_coverage: OccluderCoverage,
+    ) -> Result<super::VisibilityReceipt, String> {
+        derive_surface_visibility(VisibilityEvaluation {
+            scene_id: "SCENE-1",
+            frame_id: "BUILDING-LOCAL",
+            reference_model_sha256: &"1".repeat(64),
+            probe_set_sha256: &"3".repeat(64),
+            occluder_manifest_sha256: &"2".repeat(64),
+            occluder_coverage,
+            probes,
+            views,
+            occluders,
+            profile: VisibilityProfile {
+                max_ray_tests: 10_000,
+                min_incidence_cosine: 0.0,
+            },
+        })
     }
 
     #[test]
@@ -1082,16 +1101,21 @@ mod tests {
 
     #[test]
     fn insufficient_ray_budget_fails_closed() {
-        let error = derive_surface_visibility(
-            "SCENE-1",
-            "BUILDING-LOCAL",
-            &"1".repeat(64),
-            &"2".repeat(64),
-            &[probe([5.0, 0.0, 0.0])],
-            &[view("VIEW-1", [0.0, 0.0, 0.0])],
-            &[blocker(OccluderKind::SameBuilding)],
-            VisibilityProfile { max_ray_tests: 0 },
-        )
+        let error = derive_surface_visibility(VisibilityEvaluation {
+            scene_id: "SCENE-1",
+            frame_id: "BUILDING-LOCAL",
+            reference_model_sha256: &"1".repeat(64),
+            probe_set_sha256: &"3".repeat(64),
+            occluder_manifest_sha256: &"2".repeat(64),
+            occluder_coverage: OccluderCoverage::Complete,
+            probes: &[probe([5.0, 0.0, 0.0])],
+            views: &[view("VIEW-1", [0.0, 0.0, 0.0])],
+            occluders: &[blocker(OccluderKind::SameBuilding)],
+            profile: VisibilityProfile {
+                max_ray_tests: 0,
+                min_incidence_cosine: 0.0,
+            },
+        })
         .expect_err("zero budget must fail");
         assert!(error.contains("max_ray_tests"));
     }
@@ -1137,16 +1161,21 @@ mod tests {
             &[],
         )
         .expect("initial receipt");
-        let changed = derive_surface_visibility(
-            "SCENE-1",
-            "BUILDING-LOCAL",
-            &"3".repeat(64),
-            &"2".repeat(64),
-            &[probe([5.0, 0.0, 0.0])],
-            &[view("VIEW-1", [0.0, 0.0, 0.0])],
-            &[],
-            VisibilityProfile { max_ray_tests: 100 },
-        )
+        let changed = derive_surface_visibility(VisibilityEvaluation {
+            scene_id: "SCENE-1",
+            frame_id: "BUILDING-LOCAL",
+            reference_model_sha256: &"3".repeat(64),
+            probe_set_sha256: &"3".repeat(64),
+            occluder_manifest_sha256: &"2".repeat(64),
+            occluder_coverage: OccluderCoverage::Complete,
+            probes: &[probe([5.0, 0.0, 0.0])],
+            views: &[view("VIEW-1", [0.0, 0.0, 0.0])],
+            occluders: &[],
+            profile: VisibilityProfile {
+                max_ray_tests: 100,
+                min_incidence_cosine: 0.0,
+            },
+        })
         .expect("changed reference");
         assert_ne!(left.visibility_sha256, changed.visibility_sha256);
     }
