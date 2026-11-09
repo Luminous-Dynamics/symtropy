@@ -190,26 +190,45 @@ jobs:
 
       - name: Verify prior reachability and split-predictive adequacy contract
         run: |
+          set -euo pipefail
           cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin model-adequacy-sweep > /tmp/civdyn-model-adequacy.csv
-          echo "Model-adequacy reference CSV:"
-          cat /tmp/civdyn-model-adequacy.csv
-          awk -F, '
-            NR == 1 { if (NF != 24) exit 80; next }
-            NF != 24 { exit 81 }
-            {
-              rows++
-              if ($12 != "primary_discrepancy_detected" || $13 == "" || $14 == "" || $15 == "" || $16 == "" || $17 != "region" || $18 != 1 || $19 != 1 || $20 !~ /^[01]$/ || $21 == "" || $22 == "" || $23 == "" || $24 != "true") exit 82
-              if ($1 == "prior" && $2 == "household-water-mean" && $4 == "within_reference_interval") prior_water++
-              if ($1 == "prior" && $2 == "health-income-joint" && $4 == "outside_reference_interval") prior_joint++
-              if ($1 == "prior" && $2 == "rare-service-failure-rate" && $4 == "within_reference_interval") prior_tail++
-              if ($1 == "split_predictive" && $2 == "household-water-mean" && $4 == "within_reference_interval") split_water++
-              if ($1 == "split_predictive" && $2 == "health-income-joint" && $4 == "outside_reference_interval") split_joint++
-              if ($1 == "split_predictive" && $2 == "rare-service-failure-rate" && $4 == "outside_reference_interval") split_tail++
-              if ($10 != 20) exit 83
-            }
-            END {
-              print "adequacy counts: rows=" rows " prior=" prior_water "," prior_joint "," prior_tail " split=" split_water "," split_joint "," split_tail > "/dev/stderr"
-              if (rows != 6 || prior_water != 1 || prior_joint != 1 || prior_tail != 1 || split_water != 1 || split_joint != 1 || split_tail != 1) exit 84
-              print "Model-adequacy CSV valid: prior reachability and split-predictive controls preserve marginal, joint and rare-tail discrepancies as separate results"
-            }
-          '
+          python3 - <<'PY'
+          import csv
+          from pathlib import Path
+
+          path = Path("/tmp/civdyn-model-adequacy.csv")
+          with path.open(newline="", encoding="utf-8") as handle:
+              reader = csv.DictReader(handle)
+              rows = list(reader)
+              fields = reader.fieldnames
+
+          assert fields is not None and len(fields) == 24, f"expected 24 columns, got {len(fields or [])}"
+          assert len(rows) == 6, f"expected six statistic assessments, got {len(rows)}"
+
+          expected = {
+              ("prior", "household-water-mean"): "within_reference_interval",
+              ("prior", "health-income-joint"): "outside_reference_interval",
+              ("prior", "rare-service-failure-rate"): "within_reference_interval",
+              ("split_predictive", "household-water-mean"): "within_reference_interval",
+              ("split_predictive", "health-income-joint"): "outside_reference_interval",
+              ("split_predictive", "rare-service-failure-rate"): "outside_reference_interval",
+          }
+          actual = {}
+          for row in rows:
+              key = (row["kind"], row["statistic_id"])
+              assert key not in actual, f"duplicate statistic receipt: {key}"
+              actual[key] = row["status"]
+              assert row["domain_status"] == "primary_discrepancy_detected"
+              assert row["source_digest"] and row["observation_digest"]
+              assert row["model_digest"] and row["draw_set_digest"]
+              assert row["independent_unit"] == "region"
+              assert row["expected_units"] == "1" and row["assessed_units"] == "1"
+              assert row["covered_units"] in {"0", "1"}
+              assert row["empirical_coverage"] in {"0.000000", "1.000000"}
+              assert row["wilson_lower_95"] and row["wilson_upper_95"]
+              assert row["required_evidence_complete"] == "true"
+              assert row["n_draws"] == "20"
+
+          assert actual == expected, f"unexpected reachability/adequacy classifications: {actual}"
+          print("Model-adequacy CSV valid: prior reachability and split-predictive controls preserve marginal, joint and rare-tail discrepancies as separate results.")
+          PY
