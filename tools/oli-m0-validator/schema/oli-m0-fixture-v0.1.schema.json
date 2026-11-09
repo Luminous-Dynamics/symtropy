@@ -87,7 +87,7 @@
         },
         "units": {
           "type": "array",
-          "minItems": 1,
+          "minItems": 0,
           "items": {
             "type": "string",
             "minLength": 1
@@ -177,7 +177,47 @@
             }
           }
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "unit_status": {
+                "const": "DECLARED"
+              }
+            },
+            "required": [
+              "unit_status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "units": {
+                "minItems": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "unit_status": {
+                "const": "UNKNOWN"
+              }
+            },
+            "required": [
+              "unit_status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "units": {
+                "maxItems": 0
+              }
+            }
+          }
+        }
+      ]
     },
     "property_assessments": {
       "type": "object",
