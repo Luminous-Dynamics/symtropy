@@ -131,29 +131,50 @@ impl core::fmt::Display for QnmSequenceValidationError {
             }
             Self::EmptyField(name) => write!(f, "required QNM sequence field {name} is empty"),
             Self::InvalidPrecision => write!(f, "all QNM modes require precision_bits >= 53"),
-            Self::InvalidSha256 => write!(f, "producer artifact SHA-256 must contain 64 hex characters"),
+            Self::InvalidSha256 => write!(
+                f,
+                "producer artifact SHA-256 must contain 64 hex characters"
+            ),
             Self::InvalidSpin => write!(f, "spin_over_mass must be finite and satisfy |a/M| < 1"),
             Self::InvalidModeNumbers => {
                 write!(f, "mode numbers must satisfy ell >= |s| and |m| <= ell")
             }
             Self::EmptySequence => write!(f, "at least one QNM mode is required"),
             Self::SequencePositionsNotStrictlyIncreasing(index) => {
-                write!(f, "sequence position at mode {index} is not strictly increasing")
+                write!(
+                    f,
+                    "sequence position at mode {index} is not strictly increasing"
+                )
             }
             Self::DuplicateOvertoneIndex(index) => {
-                write!(f, "overtone index {index} occurs more than once in the sequence")
+                write!(
+                    f,
+                    "overtone index {index} occurs more than once in the sequence"
+                )
             }
             Self::NonFiniteModeValue(index) => {
-                write!(f, "QNM mode {index} has a non-finite frequency/eigenvalue/guess")
+                write!(
+                    f,
+                    "QNM mode {index} has a non-finite frequency/eigenvalue/guess"
+                )
             }
             Self::InvalidModeResiduals(index) => {
-                write!(f, "QNM mode {index} has invalid or absent residual metadata")
+                write!(
+                    f,
+                    "QNM mode {index} has invalid or absent residual metadata"
+                )
             }
             Self::InvalidFamilyEvidence => {
-                write!(f, "family evidence contains invalid ratios, spacings, or residuals")
+                write!(
+                    f,
+                    "family evidence contains invalid ratios, spacings, or residuals"
+                )
             }
             Self::MissingFamilyEvidence => {
-                write!(f, "prolate/oblate classification requires multi-mode asymptotic evidence")
+                write!(
+                    f,
+                    "prolate/oblate classification requires multi-mode asymptotic evidence"
+                )
             }
         }
     }
@@ -201,9 +222,9 @@ impl KerrQnmSequenceFixture {
         let mut overtone_indices = std::collections::BTreeSet::new();
         for (index, mode) in self.modes.iter().enumerate() {
             if previous_position.is_some_and(|previous| mode.sequence_position <= previous) {
-                return Err(QnmSequenceValidationError::SequencePositionsNotStrictlyIncreasing(
-                    index,
-                ));
+                return Err(
+                    QnmSequenceValidationError::SequencePositionsNotStrictlyIncreasing(index),
+                );
             }
             previous_position = Some(mode.sequence_position);
 
@@ -285,7 +306,10 @@ mod tests {
             || classification == QnmFamilyClassification::Oblate)
             .then_some(QnmFamilyEvidence {
                 angular_scaling_ratio: ComplexValue { re: 0.99, im: 0.01 },
-                observed_frequency_spacing_m: ComplexValue { re: 0.25, im: -0.01 },
+                observed_frequency_spacing_m: ComplexValue {
+                    re: 0.25,
+                    im: -0.01,
+                },
                 predicted_frequency_spacing_m: ComplexValue { re: 0.25, im: 0.0 },
                 angular_scaling_relative_residual: 0.02,
                 frequency_spacing_relative_residual: 0.03,
@@ -342,7 +366,10 @@ mod tests {
 
     #[test]
     fn prolate_and_oblate_labels_require_multi_mode_evidence() {
-        assert_eq!(sequence(QnmFamilyClassification::Prolate).validate(), Ok(()));
+        assert_eq!(
+            sequence(QnmFamilyClassification::Prolate).validate(),
+            Ok(())
+        );
         assert_eq!(sequence(QnmFamilyClassification::Oblate).validate(), Ok(()));
 
         let mut missing = sequence(QnmFamilyClassification::Prolate);
