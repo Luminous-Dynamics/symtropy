@@ -248,7 +248,7 @@ jobs:
               rows = list(reader)
               fields = reader.fieldnames
 
-          assert fields is not None and len(fields) == 29
+          assert fields is not None and len(fields) == 33
           assert len(rows) == 5
           identified = [row for row in rows if row["scenario"] == "full-support-standardization"]
           partial = [row for row in rows if row["scenario"] == "target-support-failure"]
@@ -263,6 +263,9 @@ jobs:
               assert row["target_ate_upper"] == ""
               assert math.isclose(float(row["supported_target_mass"]), 1.0, abs_tol=1e-8)
               assert math.isclose(float(row["unsupported_target_mass"]), 0.0, abs_tol=1e-8)
+              assert row["source_population_total"] == row["target_population_total"] == "100"
+              assert row["supported_target_population_count"] == "100"
+              assert row["unsupported_target_population_count"] == "0"
 
           for row in partial:
               assert row["identification_status"] == "partially_identified"
@@ -273,6 +276,9 @@ jobs:
               assert math.isclose(float(row["target_ate_upper"]), 0.42, abs_tol=1e-8)
               assert math.isclose(float(row["supported_target_mass"]), 0.8, abs_tol=1e-8)
               assert math.isclose(float(row["unsupported_target_mass"]), 0.2, abs_tol=1e-8)
+              assert row["source_population_total"] == row["target_population_total"] == "100"
+              assert row["supported_target_population_count"] == "80"
+              assert row["unsupported_target_population_count"] == "20"
 
           missing = next(row for row in partial if row["modifier_id"] == "remote-isolated")
           assert missing["source_support"] == "false"
