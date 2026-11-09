@@ -80,6 +80,31 @@ fn in_set(value: &str, allowed: &[&str]) -> bool {
     allowed.contains(&value)
 }
 
+fn validate_object_keys(
+    value: &Value,
+    path: &str,
+    allowed: &[&str],
+    required: &[&str],
+    errors: &mut Vec<String>,
+) {
+    let Some(object) = value.as_object() else {
+        errors.push(format!("{path} must be an object"));
+        return;
+    };
+
+    for key in required {
+        if !object.contains_key(*key) {
+            errors.push(format!("{path}.{key} is required"));
+        }
+    }
+
+    for key in object.keys() {
+        if !allowed.contains(&key.as_str()) {
+            errors.push(format!("{path}.{key} is not permitted by the closed schema"));
+        }
+    }
+}
+
 fn validate_fraction(value: Option<f64>, name: &str, errors: &mut Vec<String>) {
     match value {
         Some(number) if (0.0..=1.0).contains(&number) => {}
@@ -96,6 +121,104 @@ fn validate_fixture(value: &Value) -> Vec<String> {
 
     if get_str(value, &["schema_version"]) != Some("oli-m0-fixture-v0.1") {
         errors.push("schema_version must equal oli-m0-fixture-v0.1".to_owned());
+    }
+
+    validate_object_keys(
+        value,
+        "root",
+        &[
+            "schema_version",
+            "fixture_id",
+            "scenario_family",
+            "evidence_class",
+            "physical_substrate",
+            "system_boundary",
+            "measurement",
+            "property_assessments",
+            "expected_result",
+            "source",
+            "limitations",
+        ],
+        &[
+            "schema_version",
+            "fixture_id",
+            "scenario_family",
+            "evidence_class",
+            "physical_substrate",
+            "system_boundary",
+            "measurement",
+            "property_assessments",
+            "expected_result",
+            "source",
+            "limitations",
+        ],
+        &mut errors,
+    );
+    validate_object_keys(
+        value.get("system_boundary").unwrap_or(&Value::Null),
+        "system_boundary",
+        &["status", "description"],
+        &["status", "description"],
+        &mut errors,
+    );
+    validate_object_keys(
+        value.get("measurement").unwrap_or(&Value::Null),
+        "measurement",
+        &["modality", "units", "unit_status", "calibration_status", "temporal", "spatial"],
+        &["modality", "units", "unit_status", "calibration_status", "temporal", "spatial"],
+        &mut errors,
+    );
+    validate_object_keys(
+        value.get("measurement").and_then(|v| v.get("temporal")).unwrap_or(&Value::Null),
+        "measurement.temporal",
+        &["window_seconds", "sampling_interval_seconds", "target_process_timescale_seconds", "coverage_fraction"],
+        &["window_seconds", "sampling_interval_seconds", "target_process_timescale_seconds", "coverage_fraction"],
+        &mut errors,
+    );
+    validate_object_keys(
+        value.get("measurement").and_then(|v| v.get("spatial")).unwrap_or(&Value::Null),
+        "measurement.spatial",
+        &["coordinate_frame", "footprint_fraction", "resolution_m"],
+        &["coordinate_frame", "footprint_fraction"],
+        &mut errors,
+    );
+    validate_object_keys(
+        value.get("property_assessments").unwrap_or(&Value::Null),
+        "property_assessments",
+        PROPERTY_NAMES,
+        PROPERTY_NAMES,
+        &mut errors,
+    );
+    validate_object_keys(
+        value.get("expected_result").unwrap_or(&Value::Null),
+        "expected_result",
+        &["disposition", "absence_inference_allowed", "reason"],
+        &["disposition", "absence_inference_allowed", "reason"],
+        &mut errors,
+    );
+    validate_object_keys(
+        value.get("source").unwrap_or(&Value::Null),
+        "source",
+        &["reference", "data_status", "note"],
+        &["reference", "data_status"],
+        &mut errors,
+    );
+    let limitations_valid = value.get("limitations").and_then(Value::as_array).is_some_and(|items| {
+        !items.is_empty() && items.iter().all(|item| item.as_str().is_some_and(|text| !text.trim().is_empty()))
+    });
+    if !limitations_valid {
+        errors.push("limitations must be a non-empty array of non-empty strings".to_owned());
+    }
+
+    if let Some(resolution) = value.get("measurement")
+        .and_then(|measurement| measurement.get("spatial"))
+        .and_then(|spatial| spatial.get("resolution_m"))
+    {
+        if !resolution.is_null()
+            && resolution.as_f64().is_none_or(|number| !number.is_finite() || number <= 0.0)
+        {
+            errors.push("measurement.spatial.resolution_m must be null or positive and finite".to_owned());
+        }
     }
 
     let fixture_id = get_str(value, &["fixture_id"]).unwrap_or_default();
@@ -234,10 +357,18 @@ fn validate_fixture(value: &Value) -> Vec<String> {
         errors.push("expected_result.reason must be a non-empty string".to_owned());
     }
 
-    if get_str(value, &["source", "reference"]).is_none()
-        || get_str(value, &["source", "data_status"]).is_none()
+    if get_str(value, &["source", "reference"])
+        .is_none_or(|text| text.trim().is_empty())
+        || get_str(value, &["source", "data_status"])
+            .is_none_or(|text| text.trim().is_empty())
     {
-        errors.push("source.reference and source.data_status are required strings".to_owned());
+        errors.push("source.reference and source.data_status must be non-empty strings".to_owned());
+    }
+    if value.get("source")
+        .and_then(|source| source.get("note"))
+        .is_some_and(|note| !note.is_string())
+    {
+        errors.push("source.note must be a string when present".to_owned());
     }
 
     let absence_allowed =
@@ -485,6 +616,16 @@ mod tests {
         let duplicate_id = fixtures[0].1["fixture_id"].clone();
         fixtures[1].1["fixture_id"] = duplicate_id;
         assert!(validate_collection(&fixtures).iter().any(|error| error.contains("duplicate fixture_id")));
+    }
+
+    #[test]
+    fn unknown_fields_are_rejected_by_the_closed_contract() {
+        let mut value: Value =
+            serde_json::from_str(include_str!("../fixtures/oli-m0-bio-001.json")).unwrap();
+        value["unreviewed_extra_field"] = Value::Bool(true);
+        assert!(validate_fixture(&value)
+            .iter()
+            .any(|error| error.contains("not permitted by the closed schema")));
     }
 
     #[test]
