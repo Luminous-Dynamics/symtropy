@@ -338,7 +338,7 @@ fn monotonicity_violations(
             let Some(higher_result) = result_for(higher, predicate) else {
                 continue;
             };
-            if matches!(higher_result.status, OracleStatus::Viable) {
+            if matches!(&higher_result.status, OracleStatus::Viable) {
                 violations.push(MonotonicityViolation {
                     predicate,
                     lower_theta: lower.theta.clone(),
@@ -380,7 +380,7 @@ fn compute_predicate_frontier(
         let Some(result) = result_for(sample, predicate) else {
             continue;
         };
-        match result.status {
+        match &result.status {
             OracleStatus::Viable => viable.push(sample.theta.clone()),
             OracleStatus::Nonviable { .. } => nonviable.push(sample.theta.clone()),
             OracleStatus::Unknown { .. } => unknown_count += 1,
@@ -456,11 +456,11 @@ pub fn audit_frontier(family: &FrontierFamily) -> Result<FrontierReport, Frontie
     );
 
     let invalid_results = samples.iter().any(|sample| {
-        matches!(sample.viability.status, OracleStatus::Invalid { .. })
+        matches!(&sample.viability.status, OracleStatus::Invalid { .. })
             || sample
                 .recovery
                 .as_ref()
-                .is_some_and(|result| matches!(result.status, OracleStatus::Invalid { .. }))
+                .is_some_and(|result| matches!(&result.status, OracleStatus::Invalid { .. }))
     });
 
     let mut unqualified_reasons = Vec::new();
