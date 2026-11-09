@@ -1,0 +1,81 @@
+name: Maritime Data Receipt Verification
+
+on:
+  pull_request:
+    paths:
+      - 'crates/tools/maritime-data-receipt/**'
+      - 'docs/tech/MARITIME_DATA_RECEIPT_V0_1.schema.json'
+      - 'docs/tech/MARITIME_DATA_RECEIPT_V0_1.md'
+      - 'docs/tech/MARITIME_S100_PROFILE_V0_1.schema.json'
+      - 'docs/tech/MARITIME_PORT_CROSSWALK_V0_1.schema.json'
+      - 'docs/tech/MARITIME_SOURCE_CAPTURE_RUNBOOK_V0_1.md'
+      - 'docs/tech/MARITIME_PLSCI_PROFILE_V0_1.schema.json'
+      - 'docs/tech/MARITIME_SCENARIO_MANIFEST_V0_1.schema.json'
+      - 'docs/tech/MARITIME_EVIDENCE_GATED_RESILIENCE_V0_1.md'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - '.gitignore'
+      - '.github/workflows/maritime-data-receipt.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  MARITIME_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+
+jobs:
+  verify:
+    name: Verify receipt metadata and exact bytes
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@e2a55d2ffb04f378e9626c28d38b36d230d1e12f # master snapshot
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Run receipt hostile/reference tests
+        run: cargo test --locked -p maritime-data-receipt
+
+      - name: Verify synthetic receipt and exact payload bytes
+        run: cargo run --locked -p maritime-data-receipt -- crates/tools/maritime-data-receipt/tests/fixtures/synthetic-water-level-receipt.json
+
+      - name: Verify synthetic S-100 profile against receipt and exact artifact bytes
+        run: cargo run --locked -p maritime-data-receipt -- --validate-s100-profile crates/tools/maritime-data-receipt/tests/fixtures/synthetic-s104-profile.json crates/tools/maritime-data-receipt/tests/fixtures/synthetic-water-level-receipt.json
+
+      - name: Verify synthetic PLSCI metadata profile against receipt and exact artifact bytes
+        run: cargo run --locked -p maritime-data-receipt -- --validate-macro-connectivity-profile crates/tools/maritime-data-receipt/tests/fixtures/synthetic-plsci-profile.json crates/tools/maritime-data-receipt/tests/fixtures/synthetic-plsci-receipt.json
+
+      - name: Verify source-bound synthetic scenario manifest and exact source bytes
+        run: cargo run --locked -p maritime-data-receipt -- --validate-scenario-manifest crates/tools/maritime-data-receipt/tests/fixtures/synthetic-scenario-manifest.json
+
+      - name: Verify synthetic port identity crosswalk metadata
+        run: cargo run --locked -p maritime-data-receipt -- --validate-port-crosswalk crates/tools/maritime-data-receipt/tests/fixtures/synthetic-port-crosswalk.json
+
+      - name: Verify crosswalk snapshot digests against exact synthetic fixture bytes
+        run: cargo run --locked -p maritime-data-receipt -- --verify-port-crosswalk-snapshots crates/tools/maritime-data-receipt/tests/fixtures/synthetic-port-crosswalk.json crates/tools/maritime-data-receipt/tests/fixtures/synthetic-source-snapshot.json crates/tools/maritime-data-receipt/tests/fixtures/synthetic-locode-registry-snapshot.json
+
+      - name: Clippy receipt verifier
+        run: cargo clippy --locked -p maritime-data-receipt --all-targets -- -D warnings
+
+      - name: Clean postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code
+          status="$(git status --porcelain --untracked-files=all)"
+          if [[ -n "$status" ]]; then
+            printf '%s\n' "$status"
+            exit 1
+          fi

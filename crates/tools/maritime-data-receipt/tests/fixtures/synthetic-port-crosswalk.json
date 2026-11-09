@@ -1,0 +1,45 @@
+{
+  "schema_id": "luminous.symtropy.maritime-port-crosswalk",
+  "schema_version": "0.1.0",
+  "crosswalk_id": "synthetic-resolved-crosswalk-v0",
+  "fixture_kind": "synthetic_fixture",
+  "source_snapshot": {
+    "source_system": "SYNTHETIC-TEST-ONLY",
+    "series_or_table_id": "synthetic-series-v0",
+    "source_revision": "synthetic-revision-v0",
+    "artifact_sha256": "853e9639988bd96dead635195dc37390fd4d48b30ec29b062a7b1dfe43dbf73c",
+    "retrieved_at_utc": null,
+    "source_uri": null,
+    "terms_review_status": "not_applicable_synthetic"
+  },
+  "locode_registry": {
+    "release": "2025-1",
+    "release_kind": "production",
+    "artifact_sha256": "06432a56a5d354570bb431215af2e8637cb2d18fb05b93ccda26b09c7b8d79de",
+    "terms_review_status": "not_applicable_synthetic"
+  },
+  "mapping_policy": {
+    "policy_id": "maritime-port-identity-policy",
+    "version": "0.1.0",
+    "name_match_can_resolve": false,
+    "port_statistics_can_target_terminal": false,
+    "unresolved_is_zero": false
+  },
+  "records": [
+    {
+      "source_entity_id": "synthetic-source-port-001",
+      "source_level": "port",
+      "candidate_locode": "ZACPT",
+      "locode_function": "12345---",
+      "locode_status": "AF",
+      "target_feature_id": "synthetic-atlas-port-area-001",
+      "target_level": "port_area",
+      "relationship": "same_entity",
+      "mapping_state": "resolved",
+      "match_method": "manual_review",
+      "evidence_refs": [
+        "fixture-only:synthetic-review-record-not-a-real-mapping"
+      ]
+    }
+  ]
+}

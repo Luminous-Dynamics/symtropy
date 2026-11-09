@@ -1,0 +1,64 @@
+{
+  "schema_id": "luminous.symtropy.maritime-data-receipt",
+  "schema_version": "0.1.0",
+  "receipt_id": "synthetic-water-level-example-v0",
+  "source": {
+    "kind": "synthetic_fixture",
+    "publisher": "Luminous Dynamics",
+    "dataset_id": "synthetic-water-level-example-v0",
+    "product": "water_level",
+    "source_uri": null,
+    "dataset_revision": "v0.1.0"
+  },
+  "retrieval": {
+    "method": "local_fixture",
+    "retrieved_at_utc": null,
+    "request_uri": null,
+    "http_status": null,
+    "reported_content_type": "application/json",
+    "collector_version": "maritime-data-receipt/0.1.0"
+  },
+  "artifact": {
+    "relative_path": "crates/tools/maritime-data-receipt/tests/fixtures/synthetic-water-level-payload.json",
+    "media_type": "application/json",
+    "byte_length": 293,
+    "hash_algorithm": "sha-256",
+    "sha256": "3bdbe51ac1f41bd8a837e04ce6ea6ef3925dacd2e8ead3086b6c5a8632993844",
+    "bytes_scope": "exact_file_bytes"
+  },
+  "data_context": {
+    "domain": "water_level",
+    "coordinate_reference_system": "EPSG:4326",
+    "vertical_datum": "MLLW",
+    "units": [
+      "m"
+    ],
+    "time_coverage_start_utc": "2026-10-14T12:00:00Z",
+    "time_coverage_end_utc": "2026-10-14T12:00:00Z",
+    "survey_or_observation_time_utc": "2026-10-14T12:00:00Z",
+    "verification_state": "synthetic",
+    "uncertainty_statement": "Not applicable: this value is an invented test datum, not a physical observation.",
+    "freshness_policy": "not_applicable_synthetic",
+    "freshness_policy_description": "Not applicable to an invented fixture; public datasets require an explicit policy statement and source-specific age limits."
+  },
+  "terms": {
+    "review_status": "not_applicable_synthetic",
+    "license_name": "not_applicable_synthetic_fixture",
+    "license_uri": null,
+    "reviewer": null,
+    "reviewed_at_utc": null,
+    "terms_sha256": null,
+    "permitted_use_statement": "Synthetic verifier test only; do not represent this payload as a sourced measurement."
+  },
+  "intended_use": {
+    "scope": "provenance_test_only",
+    "navigation_use_authorized": false,
+    "physical_truth_claim_authorized": false,
+    "independent_review_required": true
+  },
+  "claim_ceiling": [
+    "Receipt schema and exact-byte digest behavior only for this synthetic fixture.",
+    "No physical observation, hydrographic accuracy, under-keel clearance, seaworthiness, or navigation claim.",
+    "No license determination or permission to operate physical equipment."
+  ]
+}
