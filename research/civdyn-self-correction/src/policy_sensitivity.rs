@@ -15,7 +15,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
 use crate::model_adequacy::{
-    AdequacyAssessment, AdequacyError, DomainStatus, SplitManifest, SplitRole,
+    AdequacyAssessment, AdequacyError, DomainStatus, PredictiveKind, SplitManifest, SplitRole,
     StatisticRegistry, StatisticStatus,
 };
 
@@ -121,6 +121,9 @@ impl ModelWorld {
         }
         if assessment.role == SplitRole::Calibration {
             return Err(PolicySensitivityError::AdequacyCalibrationRoleNotAllowed);
+        }
+        if assessment.predictive_kind != PredictiveKind::Split {
+            return Err(PolicySensitivityError::AdequacySplitPredictiveCheckRequired);
         }
 
         let expected_units = match assessment.role {
@@ -466,6 +469,7 @@ pub enum PolicySensitivityError {
     AdequacyRegistryIdentityMismatch,
     AdequacyManifestIdentityMismatch,
     AdequacyCalibrationRoleNotAllowed,
+    AdequacySplitPredictiveCheckRequired,
     AdequacyStatisticIdentityMismatch { statistic_id: String, unit_id: String },
     AdequacyReceiptHasNoModelIdentity,
     AdequacyEvidenceCompletenessMismatch,
