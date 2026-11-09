@@ -29,12 +29,12 @@
       "mtbf_hours": 61182,
       "operational_mttr_hours": 1.18,
       "operational_k_factor": 1.09,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T2-MICROBIAL-CHECK-VALVE",
@@ -46,12 +46,12 @@
       "mtbf_hours": 178447,
       "operational_mttr_hours": 0.63,
       "operational_k_factor": 1.18,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T2-MULTIFILTRATION-BED",
@@ -63,12 +63,12 @@
       "mtbf_hours": 349650,
       "operational_mttr_hours": 0.62,
       "operational_k_factor": 1.2,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T2-PARTICULATE-FILTER",
@@ -80,12 +80,12 @@
       "mtbf_hours": 560695,
       "operational_mttr_hours": 1.5,
       "operational_k_factor": 1.38,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T2-PROCESSOR-CONTROLLER",
@@ -97,12 +97,12 @@
       "mtbf_hours": 70745,
       "operational_mttr_hours": 1.61,
       "operational_k_factor": 1.1,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T2-REACTOR-HEALTH-SENSOR",
@@ -114,12 +114,12 @@
       "mtbf_hours": 134077,
       "operational_mttr_hours": 1.13,
       "operational_k_factor": 1.15,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T2-SENSOR",
@@ -131,12 +131,12 @@
       "mtbf_hours": 184618,
       "operational_mttr_hours": 1.12,
       "operational_k_factor": 1.18,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T2-SEPARATOR-FILTER",
@@ -148,12 +148,12 @@
       "mtbf_hours": 641342,
       "operational_mttr_hours": 0.31,
       "operational_k_factor": 1.38,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T2-START-UP-FILTER",
@@ -165,12 +165,12 @@
       "mtbf_hours": 226850,
       "operational_mttr_hours": 0.01,
       "operational_k_factor": 1.38,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T2-WASTEWATER",
@@ -182,12 +182,12 @@
       "mtbf_hours": 43669,
       "operational_mttr_hours": 1.14,
       "operational_k_factor": 2.17,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T2-WATER-DELIVERY",
@@ -199,12 +199,12 @@
       "mtbf_hours": 61797,
       "operational_mttr_hours": 1.13,
       "operational_k_factor": 1.09,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T2-WATER-STORAGE",
@@ -216,12 +216,12 @@
       "mtbf_hours": 40463,
       "operational_mttr_hours": 1.13,
       "operational_k_factor": 1.06,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T3-FIRMWARE-CONTROLLER-ASSEMBLY",
@@ -233,12 +233,12 @@
       "mtbf_hours": 13453,
       "operational_mttr_hours": 1.54,
       "operational_k_factor": 1.02,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T3-FLUIDS-CONTROL-AND-PUMP-ASSEMBLY",
@@ -250,12 +250,12 @@
       "mtbf_hours": 22759,
       "operational_mttr_hours": 1.93,
       "operational_k_factor": 1.19,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T3-PRESSURE-CONTROL-AND-PUMP-ASSEMBLY",
@@ -267,12 +267,12 @@
       "mtbf_hours": 59221,
       "operational_mttr_hours": 1.19,
       "operational_k_factor": 1.28,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T3-ADVANCED-RECYCLE-FILTER-TANK-ASSEMBLY",
@@ -284,12 +284,12 @@
       "mtbf_hours": 1321000,
       "operational_mttr_hours": 1,
       "operational_k_factor": 1.38,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T3-SEPARATOR-PLUMBING-ASSEMBLY",
@@ -301,12 +301,12 @@
       "mtbf_hours": 88993,
       "operational_mttr_hours": 1.04,
       "operational_k_factor": 2.63,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T3-WASTEWATER-STORAGE-TANK-ASSEMBLY",
@@ -318,12 +318,12 @@
       "mtbf_hours": 82200,
       "operational_mttr_hours": 1.48,
       "operational_k_factor": 1.11,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T3-DISTILLATE-FILTER",
@@ -335,12 +335,12 @@
       "mtbf_hours": null,
       "operational_mttr_hours": null,
       "operational_k_factor": null,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": 545,
       "preventive_r_and_r_duration_hours": 0.17,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Preventive-maintenance-limited row; MTBPMRR=545 days and MTTPMRR=0.17 h. Not a stochastic MTBF value."
+      "notes": "Preventive-maintenance-limited row; MTBPMRR=545 days and MTTPMRR=0.17 h. Not a stochastic MTBF value.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T5-WATER-STORAGE-TANK-ASSEMBLY",
@@ -352,12 +352,12 @@
       "mtbf_hours": 279558,
       "operational_mttr_hours": null,
       "operational_k_factor": 1.21,
-      "crew_r_and_r_hours": 0.33,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null. This Table 5 component R&R value is distinct from Table 1 major-ORU crew R&R task time.",
+      "component_r_and_r_hours": 0.33
     },
     {
       "record_id": "ICES2025-127-T5-POTABLE-WATER-MANIFOLD",
@@ -369,12 +369,12 @@
       "mtbf_hours": 49733,
       "operational_mttr_hours": null,
       "operational_k_factor": 1.14,
-      "crew_r_and_r_hours": 0.67,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null. This Table 5 component R&R value is distinct from Table 1 major-ORU crew R&R task time.",
+      "component_r_and_r_hours": 0.67
     },
     {
       "record_id": "ICES2025-127-T5-DOUBLE-ISOLATION-VALVE-ASSEMBLY",
@@ -386,12 +386,12 @@
       "mtbf_hours": 94066,
       "operational_mttr_hours": null,
       "operational_k_factor": 1.32,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T5-MICROBIAL-CHECK-VALVE",
@@ -403,12 +403,12 @@
       "mtbf_hours": 178447,
       "operational_mttr_hours": null,
       "operational_k_factor": 1.38,
-      "crew_r_and_r_hours": 0.5,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null. This Table 5 component R&R value is distinct from Table 1 major-ORU crew R&R task time.",
+      "component_r_and_r_hours": 0.5
     },
     {
       "record_id": "ICES2025-127-T5-CONTROLLER-SHELF-ASSEMBLY",
@@ -420,12 +420,12 @@
       "mtbf_hours": 26320,
       "operational_mttr_hours": null,
       "operational_k_factor": 1.07,
-      "crew_r_and_r_hours": 0.67,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null. This Table 5 component R&R value is distinct from Table 1 major-ORU crew R&R task time.",
+      "component_r_and_r_hours": 0.67
     },
     {
       "record_id": "ICES2025-127-T5-RESUPPLY-AIR-MANIFOLD",
@@ -437,12 +437,12 @@
       "mtbf_hours": 99570,
       "operational_mttr_hours": null,
       "operational_k_factor": 1.32,
-      "crew_r_and_r_hours": 0.33,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null. This Table 5 component R&R value is distinct from Table 1 major-ORU crew R&R task time.",
+      "component_r_and_r_hours": 0.33
     },
     {
       "record_id": "ICES2025-127-T5-RESUPPLY-WATER-TANK-MANIFOLD",
@@ -454,12 +454,12 @@
       "mtbf_hours": 49733,
       "operational_mttr_hours": null,
       "operational_k_factor": 1.14,
-      "crew_r_and_r_hours": 0.67,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null. This Table 5 component R&R value is distinct from Table 1 major-ORU crew R&R task time.",
+      "component_r_and_r_hours": 0.67
     },
     {
       "record_id": "ICES2025-127-T5-CONTROLLER",
@@ -471,12 +471,12 @@
       "mtbf_hours": 130000,
       "operational_mttr_hours": null,
       "operational_k_factor": 1.17,
-      "crew_r_and_r_hours": 0.67,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null. This Table 5 component R&R value is distinct from Table 1 major-ORU crew R&R task time.",
+      "component_r_and_r_hours": 0.67
     },
     {
       "record_id": "ICES2025-127-T5-NITROGEN-MANIFOLD",
@@ -488,12 +488,12 @@
       "mtbf_hours": 58708,
       "operational_mttr_hours": null,
       "operational_k_factor": 1.16,
-      "crew_r_and_r_hours": 0.67,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null. This Table 5 component R&R value is distinct from Table 1 major-ORU crew R&R task time.",
+      "component_r_and_r_hours": 0.67
     },
     {
       "record_id": "ICES2025-127-T5-SINGLE-ISOLATION-VALVE",
@@ -505,12 +505,12 @@
       "mtbf_hours": 204184,
       "operational_mttr_hours": null,
       "operational_k_factor": 1.32,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T5-N2-ISOLATION-MANIFOLD",
@@ -522,12 +522,12 @@
       "mtbf_hours": 259905,
       "operational_mttr_hours": null,
       "operational_k_factor": 1.32,
-      "crew_r_and_r_hours": 0.67,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null. This Table 5 component R&R value is distinct from Table 1 major-ORU crew R&R task time.",
+      "component_r_and_r_hours": 0.67
     },
     {
       "record_id": "ICES2025-127-T5-POWER-SUPPLY",
@@ -539,12 +539,12 @@
       "mtbf_hours": 1089998,
       "operational_mttr_hours": null,
       "operational_k_factor": 1.38,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T6-PRETREAT-TANK-WITH-HOSE",
@@ -556,12 +556,12 @@
       "mtbf_hours": null,
       "operational_mttr_hours": null,
       "operational_k_factor": null,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": 71,
       "preventive_r_and_r_duration_hours": 2.167,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR."
+      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T6-WATER-SENSOR-UNIT",
@@ -573,12 +573,12 @@
       "mtbf_hours": null,
       "operational_mttr_hours": null,
       "operational_k_factor": null,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": 1095,
       "preventive_r_and_r_duration_hours": 0.58,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR."
+      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T6-URINE-SENSOR-UNIT",
@@ -590,12 +590,12 @@
       "mtbf_hours": null,
       "operational_mttr_hours": null,
       "operational_k_factor": null,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": 365,
       "preventive_r_and_r_duration_hours": 0.83,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR."
+      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T6-FLUSH-H2O-TANK-FULL-PRESSURE-SENSOR",
@@ -607,12 +607,12 @@
       "mtbf_hours": null,
       "operational_mttr_hours": null,
       "operational_k_factor": null,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": 1095,
       "preventive_r_and_r_duration_hours": 0.58,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR."
+      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T6-URINE-INTERFACE-SENSOR-UNIT",
@@ -624,12 +624,12 @@
       "mtbf_hours": null,
       "operational_mttr_hours": null,
       "operational_k_factor": null,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": 365,
       "preventive_r_and_r_duration_hours": 0.83,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR."
+      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T6-H2O-HIGH-PRESSURE-SENSOR-UNIT",
@@ -641,12 +641,12 @@
       "mtbf_hours": null,
       "operational_mttr_hours": null,
       "operational_k_factor": null,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": 1095,
       "preventive_r_and_r_duration_hours": 0.58,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR."
+      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T6-PIPELINE",
@@ -658,12 +658,12 @@
       "mtbf_hours": null,
       "operational_mttr_hours": null,
       "operational_k_factor": null,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": 180,
       "preventive_r_and_r_duration_hours": 1.42,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR."
+      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T6-FILTER-INSERT",
@@ -675,12 +675,12 @@
       "mtbf_hours": null,
       "operational_mttr_hours": null,
       "operational_k_factor": null,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": 42,
       "preventive_r_and_r_duration_hours": 0.33,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR."
+      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T6-T-JOINT-HOSE",
@@ -692,12 +692,12 @@
       "mtbf_hours": null,
       "operational_mttr_hours": null,
       "operational_k_factor": null,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": 365,
       "preventive_r_and_r_duration_hours": 0.83,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR."
+      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T6-URINE-VALVE-TANK-HOSE",
@@ -709,12 +709,12 @@
       "mtbf_hours": null,
       "operational_mttr_hours": null,
       "operational_k_factor": null,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": 365,
       "preventive_r_and_r_duration_hours": 0.83,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR."
+      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T6-ACY-URINE-FILTER-HOSE-ASSEMBLY",
@@ -726,12 +726,12 @@
       "mtbf_hours": null,
       "operational_mttr_hours": null,
       "operational_k_factor": null,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": 180,
       "preventive_r_and_r_duration_hours": 2,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR."
+      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T6-HOSE-DOSE-PUMP-FLUSH-WATER",
@@ -743,12 +743,12 @@
       "mtbf_hours": null,
       "operational_mttr_hours": null,
       "operational_k_factor": null,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": 1095,
       "preventive_r_and_r_duration_hours": 0.58,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR."
+      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T6-WATER-INTERFACE-VALVE-UNIT",
@@ -760,12 +760,12 @@
       "mtbf_hours": null,
       "operational_mttr_hours": null,
       "operational_k_factor": null,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": 1095,
       "preventive_r_and_r_duration_hours": 0.58,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR."
+      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T6-WIRING-COLLECTOR-WHC",
@@ -777,12 +777,12 @@
       "mtbf_hours": null,
       "operational_mttr_hours": null,
       "operational_k_factor": null,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": 365,
       "preventive_r_and_r_duration_hours": 0.75,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR."
+      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T6-FLUSH-WATER-T-HOSE",
@@ -794,12 +794,12 @@
       "mtbf_hours": null,
       "operational_mttr_hours": null,
       "operational_k_factor": null,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": 1095,
       "preventive_r_and_r_duration_hours": 0.58,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR."
+      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T6-AIR-FILTER",
@@ -811,12 +811,12 @@
       "mtbf_hours": null,
       "operational_mttr_hours": null,
       "operational_k_factor": null,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": 730,
       "preventive_r_and_r_duration_hours": 0.66,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR."
+      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T6-URINE-RECEPTACLE",
@@ -828,12 +828,12 @@
       "mtbf_hours": null,
       "operational_mttr_hours": null,
       "operational_k_factor": null,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": 42,
       "preventive_r_and_r_duration_hours": 1,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR."
+      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T6-LIQUID-INDICATOR",
@@ -845,12 +845,12 @@
       "mtbf_hours": null,
       "operational_mttr_hours": null,
       "operational_k_factor": null,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": 540,
       "preventive_r_and_r_duration_hours": 0.18,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR."
+      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T6-ACTEX",
@@ -862,7 +862,6 @@
       "mtbf_hours": null,
       "operational_mttr_hours": null,
       "operational_k_factor": null,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": 1460,
       "preventive_r_and_r_duration_hours": 0.33,
       "throughput_limited_life": {
@@ -870,7 +869,8 @@
         "unit": "lb processed"
       },
       "calendar_limited_life": null,
-      "notes": "Table 6 prints 1,460 days or 6,750 lb throughput; Table 5 separately states a four-year wetted-life limit for the ACTEX filter. These source-specific limits are preserved without assuming identical component context."
+      "notes": "Table 6 prints 1,460 days or 6,750 lb throughput; Table 5 separately states a four-year wetted-life limit for the ACTEX filter. These source-specific limits are preserved without assuming identical component context.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T6-URINE-VALVE-BLOCK-INTERFACE",
@@ -882,12 +882,12 @@
       "mtbf_hours": null,
       "operational_mttr_hours": null,
       "operational_k_factor": null,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": 365,
       "preventive_r_and_r_duration_hours": 0.83,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR."
+      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T6-FLEXIBLE-HOSE",
@@ -899,12 +899,12 @@
       "mtbf_hours": null,
       "operational_mttr_hours": null,
       "operational_k_factor": null,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": 540,
       "preventive_r_and_r_duration_hours": 0.18,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR."
+      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T6-HOSE-A1-A8T",
@@ -916,12 +916,12 @@
       "mtbf_hours": null,
       "operational_mttr_hours": null,
       "operational_k_factor": null,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": 540,
       "preventive_r_and_r_duration_hours": 0.18,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR."
+      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T6-HOSE-A7-A9",
@@ -933,12 +933,12 @@
       "mtbf_hours": null,
       "operational_mttr_hours": null,
       "operational_k_factor": null,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": 540,
       "preventive_r_and_r_duration_hours": 0.18,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR."
+      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T6-HOSE-A10-A11",
@@ -950,12 +950,12 @@
       "mtbf_hours": null,
       "operational_mttr_hours": null,
       "operational_k_factor": null,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": 540,
       "preventive_r_and_r_duration_hours": 0.18,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR."
+      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T6-CORNER-FITTING",
@@ -967,12 +967,12 @@
       "mtbf_hours": null,
       "operational_mttr_hours": null,
       "operational_k_factor": null,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": 540,
       "preventive_r_and_r_duration_hours": 0.18,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR."
+      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T6-T-ADAPTER",
@@ -984,12 +984,12 @@
       "mtbf_hours": null,
       "operational_mttr_hours": null,
       "operational_k_factor": null,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": 540,
       "preventive_r_and_r_duration_hours": 0.18,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR."
+      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T6-LIQUID-PRESSURE-REGULATOR-HOSE",
@@ -1001,12 +1001,12 @@
       "mtbf_hours": null,
       "operational_mttr_hours": null,
       "operational_k_factor": null,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": 1095,
       "preventive_r_and_r_duration_hours": 0.58,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR."
+      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T6-PRETREAT-TANK-WITH-CAP",
@@ -1018,12 +1018,12 @@
       "mtbf_hours": null,
       "operational_mttr_hours": null,
       "operational_k_factor": null,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": 71,
       "preventive_r_and_r_duration_hours": 0.5,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR."
+      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T6-E-K-HOSE",
@@ -1035,12 +1035,12 @@
       "mtbf_hours": null,
       "operational_mttr_hours": null,
       "operational_k_factor": null,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": 240,
       "preventive_r_and_r_duration_hours": 0.1,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR."
+      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T6-EDV-COVER",
@@ -1052,12 +1052,12 @@
       "mtbf_hours": null,
       "operational_mttr_hours": null,
       "operational_k_factor": null,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": 2440,
       "preventive_r_and_r_duration_hours": 0.33,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR."
+      "notes": "Preventive-maintenance-only row from Table 6; MTBPMRR and MTTPMRR are distinct from stochastic MTBF/MTTR.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T7-VALVE-MANUAL-PRESSURE-EQUALIZATION",
@@ -1069,12 +1069,12 @@
       "mtbf_hours": 4291000,
       "operational_mttr_hours": 0.5,
       "operational_k_factor": 1.4,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T7-TANK-ASSY-OXYGEN",
@@ -1086,12 +1086,12 @@
       "mtbf_hours": 300000,
       "operational_mttr_hours": 14,
       "operational_k_factor": 1.04,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T7-ELECTRONICS-UNIT",
@@ -1103,12 +1103,12 @@
       "mtbf_hours": 21832,
       "operational_mttr_hours": 1.2,
       "operational_k_factor": 1.31,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T7-TANK-ASSY-NITROGEN",
@@ -1120,12 +1120,12 @@
       "mtbf_hours": 300000,
       "operational_mttr_hours": 14,
       "operational_k_factor": 1.04,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T7-PRESSURE-SENSOR-3500-PSIA",
@@ -1137,12 +1137,12 @@
       "mtbf_hours": 5000000,
       "operational_mttr_hours": null,
       "operational_k_factor": 1.31,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T7-O2-MANUAL-ISO-VALVE",
@@ -1154,12 +1154,12 @@
       "mtbf_hours": 1000000,
       "operational_mttr_hours": 1.5,
       "operational_k_factor": 1.18,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T7-N2-MANUAL-ISO-VALVE",
@@ -1171,12 +1171,12 @@
       "mtbf_hours": 1000000,
       "operational_mttr_hours": 1,
       "operational_k_factor": 1.18,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T7-O2-RELIEF-VALVE-ASSY",
@@ -1188,12 +1188,12 @@
       "mtbf_hours": 400000,
       "operational_mttr_hours": 1.5,
       "operational_k_factor": 1.4,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T7-REGULATOR-RELIEF-VALVE-ASSY-LOW-PRESSURE-O2",
@@ -1205,12 +1205,12 @@
       "mtbf_hours": 300000,
       "operational_mttr_hours": 8,
       "operational_k_factor": 1.1,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T7-REGULATOR-RELIEF-VALVE-ASSY-MEDIUM-PRESSURE-O2",
@@ -1222,12 +1222,12 @@
       "mtbf_hours": 300000,
       "operational_mttr_hours": 8,
       "operational_k_factor": 1.1,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T7-REGULATOR-RELIEF-VALVE-ASSY-LOW-PRESSURE",
@@ -1239,12 +1239,12 @@
       "mtbf_hours": 300000,
       "operational_mttr_hours": 2,
       "operational_k_factor": 1.1,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T7-O2-LATCHING-MOTOR-VALVE",
@@ -1256,12 +1256,12 @@
       "mtbf_hours": 500000,
       "operational_mttr_hours": 2,
       "operational_k_factor": 1.12,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T7-N2-LATCHING-MOTOR-VALVE",
@@ -1273,12 +1273,12 @@
       "mtbf_hours": 500000,
       "operational_mttr_hours": 2,
       "operational_k_factor": 1.12,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T7-VALVE-VENT-RELIEF",
@@ -1290,12 +1290,12 @@
       "mtbf_hours": 79100,
       "operational_mttr_hours": 1.4,
       "operational_k_factor": 2.17,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T7-CONTROL-PANEL-PRESSURE",
@@ -1307,12 +1307,12 @@
       "mtbf_hours": 107000,
       "operational_mttr_hours": 0.77,
       "operational_k_factor": 1.04,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T7-NON-PROPULSIVE-VENT-ASSY-VACUUM-SYSTEM",
@@ -1324,12 +1324,12 @@
       "mtbf_hours": 200000000,
       "operational_mttr_hours": null,
       "operational_k_factor": 1.2,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T8-LOW-VOLTAGE-POWER-SUPPLY-ASSY-MCA-ORU-04",
@@ -1341,12 +1341,12 @@
       "mtbf_hours": 199000,
       "operational_mttr_hours": 0.75,
       "operational_k_factor": 1.15,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from Table 8."
+      "notes": "Transcribed from Table 8.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T8-VERIFICATION-GAS-ASSEMBLY-MCA-ORU-08",
@@ -1358,12 +1358,12 @@
       "mtbf_hours": 52100,
       "operational_mttr_hours": 2.5,
       "operational_k_factor": 2.16,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from Table 8."
+      "notes": "Transcribed from Table 8.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T8-EMI-FILTER-ASSY-MCA-ORU-07",
@@ -1375,12 +1375,12 @@
       "mtbf_hours": 1160000,
       "operational_mttr_hours": 0.5,
       "operational_k_factor": 1.31,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from Table 8."
+      "notes": "Transcribed from Table 8.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T8-SAMPLE-DISTRIBUTION-ASSY-MCA-ORU-06",
@@ -1392,12 +1392,12 @@
       "mtbf_hours": 70900,
       "operational_mttr_hours": 0.75,
       "operational_k_factor": 1.08,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from Table 8."
+      "notes": "Transcribed from Table 8.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T8-MAJOR-CONSTITUENT-ANALYZER-ASSY-MCA",
@@ -1409,12 +1409,12 @@
       "mtbf_hours": 8180,
       "operational_mttr_hours": 5,
       "operational_k_factor": 1.1,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from Table 8."
+      "notes": "Transcribed from Table 8.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T8-DATA-AND-CONTROL-ASSEMBLY-MCA-ORU-01",
@@ -1426,12 +1426,12 @@
       "mtbf_hours": 43500,
       "operational_mttr_hours": 3.73,
       "operational_k_factor": 2.12,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from Table 8."
+      "notes": "Transcribed from Table 8.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T8-SAMPLE-PUMP-ASSY-SERIES-MCA-ORU-05",
@@ -1443,12 +1443,12 @@
       "mtbf_hours": 11900,
       "operational_mttr_hours": 0.75,
       "operational_k_factor": 1.02,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from Table 8."
+      "notes": "Transcribed from Table 8.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T8-BLOWER-ASSY-TCCS",
@@ -1460,12 +1460,12 @@
       "mtbf_hours": 121500,
       "operational_mttr_hours": 0.38,
       "operational_k_factor": 1.1,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from Table 8."
+      "notes": "Transcribed from Table 8.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T8-SORBENT-BED-ASSEMBLY",
@@ -1477,12 +1477,12 @@
       "mtbf_hours": 241000,
       "operational_mttr_hours": 4,
       "operational_k_factor": 1.63,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from Table 8."
+      "notes": "Transcribed from Table 8.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T8-CHARCOAL-BED-ASSY-ORU",
@@ -1494,12 +1494,12 @@
       "mtbf_hours": 215000,
       "operational_mttr_hours": 1.2,
       "operational_k_factor": 1.07,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from Table 8."
+      "notes": "Transcribed from Table 8.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T8-CATALYTIC-OXIDIZER-ASSY",
@@ -1511,12 +1511,12 @@
       "mtbf_hours": 89500,
       "operational_mttr_hours": 1.5,
       "operational_k_factor": 2.19,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from Table 8."
+      "notes": "Transcribed from Table 8.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T8-BLOWER-PRECOOLER-ASSY-CDRA",
@@ -1528,12 +1528,12 @@
       "mtbf_hours": 129700,
       "operational_mttr_hours": 12,
       "operational_k_factor": 1.68,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from Table 8."
+      "notes": "Transcribed from Table 8.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T8-TRANSDUCER-PRESSURE",
@@ -1545,12 +1545,12 @@
       "mtbf_hours": 493000,
       "operational_mttr_hours": 0.62,
       "operational_k_factor": 1.17,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from Table 8."
+      "notes": "Transcribed from Table 8.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T8-SENSOR-IMMERSION-TEMPERATURE",
@@ -1562,12 +1562,12 @@
       "mtbf_hours": 2542000,
       "operational_mttr_hours": 1.5,
       "operational_k_factor": 1.29,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from Table 8."
+      "notes": "Transcribed from Table 8.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T8-SENSOR-PRESSURE-20-PSIA",
@@ -1579,12 +1579,12 @@
       "mtbf_hours": 1250000,
       "operational_mttr_hours": 1.5,
       "operational_k_factor": 1.32,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from Table 8."
+      "notes": "Transcribed from Table 8.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T8-SENSOR-PRESSURE-DIFFERENTIAL",
@@ -1596,12 +1596,12 @@
       "mtbf_hours": 1250000,
       "operational_mttr_hours": 1.5,
       "operational_k_factor": 1.32,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from Table 8."
+      "notes": "Transcribed from Table 8.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T8-DESICCANT-ADSORBENT-ASSY",
@@ -1613,12 +1613,12 @@
       "mtbf_hours": 77100,
       "operational_mttr_hours": 17.7,
       "operational_k_factor": 1.19,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from Table 8."
+      "notes": "Transcribed from Table 8.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T8-COLDPLATE-ASSY",
@@ -1630,12 +1630,12 @@
       "mtbf_hours": 3600000,
       "operational_mttr_hours": 2.5,
       "operational_k_factor": 1.4,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from Table 8."
+      "notes": "Transcribed from Table 8.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T8-VALVE-SELECTOR-ASSY",
@@ -1647,12 +1647,12 @@
       "mtbf_hours": 117000,
       "operational_mttr_hours": 2.5,
       "operational_k_factor": 1.09,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from Table 8."
+      "notes": "Transcribed from Table 8.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T8-PUMP-ASSY-TWO-STAGE",
@@ -1664,12 +1664,12 @@
       "mtbf_hours": 156200,
       "operational_mttr_hours": 3,
       "operational_k_factor": 2.29,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from Table 8."
+      "notes": "Transcribed from Table 8.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T8-CONTROLLER-PUMP-MOTOR",
@@ -1681,12 +1681,12 @@
       "mtbf_hours": 2272000,
       "operational_mttr_hours": 3,
       "operational_k_factor": 1.9,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from Table 8."
+      "notes": "Transcribed from Table 8.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T8-CONTROLLER-HEATER",
@@ -1698,12 +1698,12 @@
       "mtbf_hours": 242700,
       "operational_mttr_hours": 1,
       "operational_k_factor": 1.49,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from Table 8."
+      "notes": "Transcribed from Table 8.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T8-ELECTRICAL-INTERFACE-ASSY",
@@ -1715,12 +1715,12 @@
       "mtbf_hours": 483000,
       "operational_mttr_hours": 0.59,
       "operational_k_factor": 1.31,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Table 8 continuation row printed on page 13."
+      "notes": "Table 8 continuation row printed on page 13.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T8-ELEMENT-FILTER",
@@ -1732,12 +1732,12 @@
       "mtbf_hours": 200000000,
       "operational_mttr_hours": 0.25,
       "operational_k_factor": 1.16,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Table 8 continuation row printed on page 13."
+      "notes": "Table 8 continuation row printed on page 13.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T9-VALVE-ASSY-2-5-INCH-INTERNAL-VACUUM",
@@ -1749,12 +1749,12 @@
       "mtbf_hours": 347425,
       "operational_mttr_hours": 0.91,
       "operational_k_factor": 1.12,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from Table 9; preventive-maintenance-only items are not assigned MTBF."
+      "notes": "Transcribed from Table 9; preventive-maintenance-only items are not assigned MTBF.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T9-VALVE-INTERMODULE-VENTILATION",
@@ -1766,12 +1766,12 @@
       "mtbf_hours": 139000,
       "operational_mttr_hours": 3.6,
       "operational_k_factor": 1.01,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from Table 9; preventive-maintenance-only items are not assigned MTBF."
+      "notes": "Transcribed from Table 9; preventive-maintenance-only items are not assigned MTBF.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T9-FLOW-METER-ASSY",
@@ -1783,12 +1783,12 @@
       "mtbf_hours": 936000,
       "operational_mttr_hours": 0.35,
       "operational_k_factor": 1.32,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from Table 9; preventive-maintenance-only items are not assigned MTBF."
+      "notes": "Transcribed from Table 9; preventive-maintenance-only items are not assigned MTBF.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T9-SUPPLY-DIFFUSER-CABIN-AIR",
@@ -1800,12 +1800,12 @@
       "mtbf_hours": 200000000,
       "operational_mttr_hours": 0.63,
       "operational_k_factor": 1.4,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from Table 9; preventive-maintenance-only items are not assigned MTBF."
+      "notes": "Transcribed from Table 9; preventive-maintenance-only items are not assigned MTBF.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T9-DAMPER-ASSY-CABIN-AIR",
@@ -1817,12 +1817,12 @@
       "mtbf_hours": 200000000,
       "operational_mttr_hours": 0.43,
       "operational_k_factor": 1.4,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from Table 9; preventive-maintenance-only items are not assigned MTBF."
+      "notes": "Transcribed from Table 9; preventive-maintenance-only items are not assigned MTBF.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T9-DAMPER-ASSY-PERFORATED-CABIN-AIR",
@@ -1834,12 +1834,12 @@
       "mtbf_hours": 200000000,
       "operational_mttr_hours": 0.43,
       "operational_k_factor": 1.4,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from Table 9; preventive-maintenance-only items are not assigned MTBF."
+      "notes": "Transcribed from Table 9; preventive-maintenance-only items are not assigned MTBF.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T9-DAMPER-ASSY-ACTUATOR-CABIN-AIR",
@@ -1851,12 +1851,12 @@
       "mtbf_hours": 200000000,
       "operational_mttr_hours": 0.34,
       "operational_k_factor": 1.4,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from Table 9; preventive-maintenance-only items are not assigned MTBF."
+      "notes": "Transcribed from Table 9; preventive-maintenance-only items are not assigned MTBF.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T9-CHECK-VALVE-ASSY-TEMPERATURE-CONTROL",
@@ -1868,12 +1868,12 @@
       "mtbf_hours": 92600,
       "operational_mttr_hours": 2.3,
       "operational_k_factor": 2.1,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from Table 9; preventive-maintenance-only items are not assigned MTBF."
+      "notes": "Transcribed from Table 9; preventive-maintenance-only items are not assigned MTBF.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T9-ELECTRICAL-INTERFACE-BOX-EIB",
@@ -1885,12 +1885,12 @@
       "mtbf_hours": 2350600,
       "operational_mttr_hours": 2.3,
       "operational_k_factor": 1.23,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from Table 9; preventive-maintenance-only items are not assigned MTBF."
+      "notes": "Transcribed from Table 9; preventive-maintenance-only items are not assigned MTBF.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T9-LIQUID-SENSOR-HEAT-EXCHANGER",
@@ -1902,12 +1902,12 @@
       "mtbf_hours": 1136300,
       "operational_mttr_hours": 1.9,
       "operational_k_factor": 1.17,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from Table 9; preventive-maintenance-only items are not assigned MTBF."
+      "notes": "Transcribed from Table 9; preventive-maintenance-only items are not assigned MTBF.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T9-FAN-ASSEMBLY-AIR-IMV",
@@ -1919,12 +1919,12 @@
       "mtbf_hours": 429737,
       "operational_mttr_hours": 2.4,
       "operational_k_factor": 2.13,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from Table 9; preventive-maintenance-only items are not assigned MTBF."
+      "notes": "Transcribed from Table 9; preventive-maintenance-only items are not assigned MTBF.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T9-AVIONICS-AIR-ASSY",
@@ -1936,12 +1936,12 @@
       "mtbf_hours": 429700,
       "operational_mttr_hours": 8,
       "operational_k_factor": 3.2,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from Table 9; preventive-maintenance-only items are not assigned MTBF."
+      "notes": "Transcribed from Table 9; preventive-maintenance-only items are not assigned MTBF.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T9-INLET-CABIN-AIR",
@@ -1953,12 +1953,12 @@
       "mtbf_hours": 332900,
       "operational_mttr_hours": 2.6,
       "operational_k_factor": 1.06,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from Table 9; preventive-maintenance-only items are not assigned MTBF."
+      "notes": "Transcribed from Table 9; preventive-maintenance-only items are not assigned MTBF.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T9-HEAT-EXCHANGER-CABIN-AIR-ORU",
@@ -1970,12 +1970,12 @@
       "mtbf_hours": 832600,
       "operational_mttr_hours": 6,
       "operational_k_factor": 1.19,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from Table 9; preventive-maintenance-only items are not assigned MTBF."
+      "notes": "Transcribed from Table 9; preventive-maintenance-only items are not assigned MTBF.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T9-SEPARATOR-WATER-ORU",
@@ -1987,12 +1987,12 @@
       "mtbf_hours": 130800,
       "operational_mttr_hours": 3.3,
       "operational_k_factor": 1.57,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from Table 9; preventive-maintenance-only items are not assigned MTBF."
+      "notes": "Transcribed from Table 9; preventive-maintenance-only items are not assigned MTBF.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T9-SENSOR-TEMPERATURE",
@@ -2004,12 +2004,12 @@
       "mtbf_hours": 37593900,
       "operational_mttr_hours": 1.3,
       "operational_k_factor": 1.31,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from Table 9; preventive-maintenance-only items are not assigned MTBF."
+      "notes": "Transcribed from Table 9; preventive-maintenance-only items are not assigned MTBF.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T9-FAN-ASSEMBLY-AIR-IMV-DUPLICATE-SOURCE-ROW",
@@ -2021,12 +2021,12 @@
       "mtbf_hours": 429737,
       "operational_mttr_hours": 2.4,
       "operational_k_factor": 2.13,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "The source table repeats the Air - IMV fan row; preserved as a second source row, not treated as an installed quantity."
+      "notes": "The source table repeats the Air - IMV fan row; preserved as a second source row, not treated as an installed quantity.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T9-VELOCICALC-PROBE",
@@ -2038,12 +2038,12 @@
       "mtbf_hours": null,
       "operational_mttr_hours": null,
       "operational_k_factor": null,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": 670,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from Table 9; preventive-maintenance-only items are not assigned MTBF."
+      "notes": "Transcribed from Table 9; preventive-maintenance-only items are not assigned MTBF.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T9-VELOCICALC",
@@ -2055,12 +2055,12 @@
       "mtbf_hours": null,
       "operational_mttr_hours": null,
       "operational_k_factor": null,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": 1643,
       "preventive_r_and_r_duration_hours": 0.08,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from Table 9; preventive-maintenance-only items are not assigned MTBF."
+      "notes": "Transcribed from Table 9; preventive-maintenance-only items are not assigned MTBF.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T9-HEGA-FILTER",
@@ -2072,12 +2072,12 @@
       "mtbf_hours": null,
       "operational_mttr_hours": null,
       "operational_k_factor": null,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": 2190,
       "preventive_r_and_r_duration_hours": 1,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from Table 9; preventive-maintenance-only items are not assigned MTBF."
+      "notes": "Transcribed from Table 9; preventive-maintenance-only items are not assigned MTBF.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T9-HEPA-FILTER",
@@ -2089,12 +2089,12 @@
       "mtbf_hours": null,
       "operational_mttr_hours": null,
       "operational_k_factor": null,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": 913,
       "preventive_r_and_r_duration_hours": 1,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from Table 9; preventive-maintenance-only items are not assigned MTBF."
+      "notes": "Transcribed from Table 9; preventive-maintenance-only items are not assigned MTBF.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T10-AVIONICS-AIR-ASSY",
@@ -2106,12 +2106,12 @@
       "mtbf_hours": 429700,
       "operational_mttr_hours": 8,
       "operational_k_factor": 3.2,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T10-SENSOR-HYDROGEN-ORU",
@@ -2123,12 +2123,12 @@
       "mtbf_hours": 57803,
       "operational_mttr_hours": 0.98,
       "operational_k_factor": 2.24,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": 201,
       "preventive_r_and_r_duration_hours": 0.75,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T10-ACTEX-UNIT-ASSEMBLY-ISS-SILVER-REMOVAL-CARTRIDGE",
@@ -2140,12 +2140,12 @@
       "mtbf_hours": 469469,
       "operational_mttr_hours": null,
       "operational_k_factor": 1.15,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": 675,
       "preventive_r_and_r_duration_hours": 3.5,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T10-POWER-SUPPLY-MODULE",
@@ -2157,12 +2157,12 @@
       "mtbf_hours": 49202,
       "operational_mttr_hours": 1.65,
       "operational_k_factor": 1.08,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T10-PUMP-ORU-OGA",
@@ -2174,12 +2174,12 @@
       "mtbf_hours": 189433,
       "operational_mttr_hours": 1.01,
       "operational_k_factor": 1.21,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T10-INLET-DEIONIZING-BED",
@@ -2191,12 +2191,12 @@
       "mtbf_hours": 442478,
       "operational_mttr_hours": 1.03,
       "operational_k_factor": 1.38,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": 2569,
       "preventive_r_and_r_duration_hours": 0.75,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T10-OXYGEN-OUTLET",
@@ -2208,12 +2208,12 @@
       "mtbf_hours": 99252,
       "operational_mttr_hours": 1.26,
       "operational_k_factor": 1.14,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T10-PROCESS-CONTROLLER",
@@ -2225,12 +2225,12 @@
       "mtbf_hours": 75677,
       "operational_mttr_hours": 1.61,
       "operational_k_factor": 1.11,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T10-HYDROGEN-DOME-ASSEMBLY-ORU",
@@ -2242,12 +2242,12 @@
       "mtbf_hours": 29551,
       "operational_mttr_hours": 1.59,
       "operational_k_factor": 1.06,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T10-WATER-ASSEMBLY-ORU",
@@ -2259,12 +2259,12 @@
       "mtbf_hours": 37885,
       "operational_mttr_hours": 4.19,
       "operational_k_factor": 1.07,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null.",
+      "component_r_and_r_hours": null
     },
     {
       "record_id": "ICES2025-127-T10-NITROGEN-PURGE-ORU",
@@ -2276,12 +2276,12 @@
       "mtbf_hours": 140195,
       "operational_mttr_hours": 1.02,
       "operational_k_factor": 1.18,
-      "crew_r_and_r_hours": null,
       "preventive_r_and_r_interval_days": null,
       "preventive_r_and_r_duration_hours": null,
       "throughput_limited_life": null,
       "calendar_limited_life": null,
-      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null."
+      "notes": "Transcribed from ICES-2025-127 appendix; blank source cells are null.",
+      "component_r_and_r_hours": null
     }
   ],
   "crew_task_records": [

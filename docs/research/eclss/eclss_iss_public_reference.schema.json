@@ -10,7 +10,8 @@
     "evidence_class",
     "claim_status",
     "source",
-    "records"
+    "component_records",
+    "crew_task_records"
   ],
   "properties": {
     "benchmark_id": {
@@ -60,9 +61,10 @@
         }
       }
     },
-    "records": {
+    "component_records": {
       "type": "array",
-      "minItems": 1,
+      "minItems": 9,
+      "maxItems": 9,
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -76,12 +78,12 @@
           "mtbf_hours",
           "operational_mttr_hours",
           "operational_k_factor",
-          "crew_r_and_r_hours",
           "preventive_r_and_r_interval_days",
           "preventive_r_and_r_duration_hours",
           "throughput_limited_life",
           "calendar_limited_life",
-          "notes"
+          "notes",
+          "component_r_and_r_hours"
         ],
         "properties": {
           "record_id": {
@@ -134,13 +136,6 @@
               "null"
             ],
             "exclusiveMinimum": 0
-          },
-          "crew_r_and_r_hours": {
-            "type": [
-              "number",
-              "null"
-            ],
-            "minimum": 0
           },
           "preventive_r_and_r_interval_days": {
             "type": [
@@ -195,6 +190,56 @@
               "unit"
             ],
             "additionalProperties": false
+          },
+          "notes": {
+            "type": "string"
+          },
+          "component_r_and_r_hours": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "crew_task_records": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "record_id",
+          "table",
+          "printed_page",
+          "subsystem",
+          "oru",
+          "crew_time_minutes",
+          "notes"
+        ],
+        "properties": {
+          "record_id": {
+            "type": "string",
+            "pattern": "^ICES2025-127-CREW-[A-Z0-9-]+$"
+          },
+          "table": {
+            "const": "Table 1"
+          },
+          "printed_page": {
+            "const": 9
+          },
+          "subsystem": {
+            "type": "string"
+          },
+          "oru": {
+            "type": "string"
+          },
+          "crew_time_minutes": {
+            "type": "integer",
+            "exclusiveMinimum": 0
           },
           "notes": {
             "type": "string"

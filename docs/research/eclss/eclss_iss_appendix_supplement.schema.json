@@ -78,7 +78,7 @@
           "mtbf_hours",
           "operational_mttr_hours",
           "operational_k_factor",
-          "crew_r_and_r_hours",
+          "component_r_and_r_hours",
           "preventive_r_and_r_interval_days",
           "preventive_r_and_r_duration_hours",
           "throughput_limited_life",
@@ -142,13 +142,6 @@
             ],
             "exclusiveMinimum": 0
           },
-          "crew_r_and_r_hours": {
-            "type": [
-              "number",
-              "null"
-            ],
-            "minimum": 0
-          },
           "preventive_r_and_r_interval_days": {
             "type": [
               "number",
@@ -208,6 +201,13 @@
           "notes": {
             "type": "string",
             "minLength": 1
+          },
+          "component_r_and_r_hours": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
           }
         }
       }
