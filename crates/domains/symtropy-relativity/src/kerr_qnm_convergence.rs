@@ -15,7 +15,7 @@
 use super::{KerrBlackHole, SPEED_OF_LIGHT_M_S};
 use core::fmt;
 
-const SCHWARZSCHILD_BOUNCE_OVER_RG: f64 = 2.556_929_085_522_147_6;
+const SCHWARZSCHILD_BOUNCE_OVER_RG: f64 = 2.556_929_085_522_148;
 const SQRT_3_OVER_2: f64 = 0.866_025_403_784_438_6;
 const REAL_QUADRATURE_TOLERANCE: f64 = 2.0e-14;
 const COMPLEX_QUADRATURE_TOLERANCE: f64 = 2.0e-13;
@@ -237,8 +237,7 @@ impl KerrOpticalReference {
         let (prolate_coordinate, quadrature_segments, quadrature_error) =
             prolate_complex_bounce_coordinate(spin, turning_point, x_plus, x_minus, horizon_gap)?;
 
-        let oblate_bounce =
-            solve_oblate_bounce(spin, x_plus, x_minus, horizon_gap, oblate_coordinate)?;
+        let oblate_bounce = solve_oblate_bounce(x_plus, x_minus, horizon_gap, oblate_coordinate)?;
         let prolate_bounce =
             solve_prolate_bounce(spin, x_plus, x_minus, horizon_gap, prolate_coordinate.re)?;
 
@@ -540,10 +539,10 @@ fn integrate_complex_simpson(
             .add(y2.scale(alpha2))
             .add(y3.scale(2.0 * alpha2));
         let mut root = polynomial.sqrt();
-        if let Some(previous) = previous_sqrt {
-            if root.sub(previous).norm() > root.neg().sub(previous).norm() {
-                root = root.neg();
-            }
+        if let Some(previous) = previous_sqrt
+            && root.sub(previous).norm() > root.neg().sub(previous).norm()
+        {
+            root = root.neg();
         }
         previous_sqrt = Some(root);
 
@@ -616,7 +615,6 @@ fn prolate_complex_bounce_coordinate(
 }
 
 fn solve_oblate_bounce(
-    spin: f64,
     x_plus: f64,
     x_minus: f64,
     gap: f64,
@@ -796,7 +794,7 @@ mod tests {
             .unwrap();
         // Set dt to the published boundary plus the tolerance, so both
         // margins should be positive and numerically match the reference.
-        let expected_oblate = 5.481_912_223_034_182_5;
+        let expected_oblate = 5.481_912_223_034_183;
         let expected_prolate = 5.352_306_440_780_024_5;
         let actual = reference
             .convergence_margins(
@@ -912,12 +910,12 @@ mod tests {
         let rg = at_point_seven.gravitational_radius_m;
         relative_close(
             at_point_seven.prolate_asymptotic_frequency_spacing_s_inv * rg / SPEED_OF_LIGHT_M_S,
-            0.255_363_536_519_921_47,
+            0.255_363_536_519_921_5,
             2.0e-9,
         );
         relative_close(
             at_point_seven.oblate_asymptotic_frequency_spacing_s_inv * rg / SPEED_OF_LIGHT_M_S,
-            0.208_309_023_320_699_0,
+            0.208_309_023_320_699,
             2.0e-9,
         );
     }
