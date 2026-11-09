@@ -421,9 +421,9 @@ fn evaluate_case(fixture: &Fixture, case: &CaseInput) -> CaseResult {
     let structural_state = explanation.structural_state;
     let disposition = match (structural_state, faulty_sensor_ids.is_empty()) {
         ("HEALTHY", true) => "HEALTHY_WITHIN_DECLARED_SYNTHETIC_SUPPORT",
-        ("HEALTHY", false) => "SENSOR_FAULT_SUSPECTED",
+        ("HEALTHY", false) => "SENSOR_FAULT_WITNESS_CONFIRMED",
         ("DAMAGED", true) => "STRUCTURAL_DAMAGE_SUSPECTED",
-        ("DAMAGED", false) => "DAMAGE_AND_SENSOR_FAULT_SUSPECTED",
+        ("DAMAGED", false) => "DAMAGE_AND_SENSOR_FAULT_WITNESS_CONFIRMED",
         _ => unreachable!("only the two admitted structural states exist"),
     };
 
@@ -510,7 +510,7 @@ mod tests {
     fn all_joint_health_states_and_abstention_cases_match_frozen_answers() {
         let data = fixture();
         let report = evaluate(&data, FIXTURE).expect("fixture evaluates");
-        assert_eq!(report.case_count, 7);
+        assert_eq!(report.case_count, 8);
         for (actual, expected) in report.cases.iter().zip(&data.cases) {
             assert_eq!(actual.disposition, expected.expected.disposition, "{}", actual.case_id);
             assert_eq!(actual.structural_state, expected.expected.structural_state, "{}", actual.case_id);
@@ -541,7 +541,15 @@ mod tests {
             Some("DAMAGED")
         );
         assert_eq!(df.damage_preserved, Some(true));
-        assert_eq!(df.corrected_values.as_ref().unwrap()[1], Some(1.0));
+        assert_eq!(df.observed_values[1], Some(1.8));
+        assert_eq!(
+            df.model_imputed_values.as_ref().unwrap()[1],
+            Some(1.0)
+        );
+        assert_eq!(
+            df.reconstruction_status,
+            "CONDITIONAL_MODEL_ESTIMATE_NOT_MEASUREMENT"
+        );
     }
 
     #[test]
@@ -579,6 +587,40 @@ mod tests {
             .unwrap();
         assert_eq!(hf.disposition, "ABSTAIN_UNQUALIFIED_MEASUREMENT_CHAIN");
         assert!(hf.corrected_values.is_none());
+    }
+
+    #[test]
+    fn unconfirmed_single_channel_residual_abstains_without_reconstruction() {
+        let data = fixture();
+        let report = evaluate(&data, FIXTURE).unwrap();
+        let case = report
+            .cases
+            .iter()
+            .find(|case| case.case_id == "UNWITNESSED_LOCALIZED_ANOMALY")
+            .unwrap();
+        assert_eq!(case.disposition, "ABSTAIN_SENSOR_FAULT_UNCONFIRMED");
+        assert_eq!(case.sensor_fault_confirmation, "NOT_CONFIRMED");
+        assert_eq!(case.observed_values[0], Some(0.8));
+        assert!(case.model_imputed_values.is_none());
+        assert!(case.structural_state.is_none());
+    }
+
+    #[test]
+    fn raw_measurement_is_never_overwritten_by_model_imputation() {
+        let data = fixture();
+        let report = evaluate(&data, FIXTURE).unwrap();
+        let hf = report
+            .cases
+            .iter()
+            .find(|case| case.case_id == "HF_HEALTHY_STRUCTURE_FAULTY_SENSOR")
+            .unwrap();
+        assert_eq!(hf.observed_values[1], Some(0.8));
+        assert_eq!(hf.model_imputed_values.as_ref().unwrap()[1], Some(0.0));
+        assert_eq!(hf.reconstructed_sensor_ids, vec!["S2"]);
+        assert_eq!(
+            hf.sensor_fault_confirmation,
+            "INDEPENDENT_WITNESS_CONFIRMED"
+        );
     }
 
     #[test]
