@@ -37,7 +37,7 @@ Receipt implications:
 
 ## Separate S-100 profile layer
 
-The generic receipt remains deliberately product-agnostic. Product-specific metadata and receipt cross-checks live in the separate [S-100 profile envelope](./MARITIME_S100_PROFILE_V0_1.schema.json), with synthetic S-102/S-104/S-111 cases in `crates/tools/maritime-data-receipt/tests/fixtures/s100-profile-corpus-v0.1.json`.
+The generic receipt remains deliberately product-agnostic. Product-specific metadata and receipt cross-checks live in the separate [S-100 profile envelope](./MARITIME_S100_PROFILE_V0_1.schema.json), with synthetic S-102/S-104/S-111/S-131 cases in `crates/tools/maritime-data-receipt/tests/fixtures/s100-profile-corpus-v0.1.json`. See [the S-131 adapter boundary](./MARITIME_S131_PROFILE_V0_1.md) for the Edition 2.0.0 metadata mapping and catalogue caveats.
 
 The offline profile verification mode is:
 
