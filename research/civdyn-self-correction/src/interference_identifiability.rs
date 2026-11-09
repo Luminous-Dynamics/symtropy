@@ -175,7 +175,11 @@ pub fn expected_information_gain_bits(
 
     let prior = [no_spillover_prior, 1.0 - no_spillover_prior];
     let outcomes = InterferenceWorld::ALL.map(|world| {
-        f64::from(interventional_neighbor_outcome(world, experiment))
+        if interventional_neighbor_outcome(world, experiment) {
+            1.0
+        } else {
+            0.0
+        }
     });
     let marginal_one = prior[0] * outcomes[0] + prior[1] * outcomes[1];
 
@@ -231,7 +235,11 @@ pub fn select_spillover_experiment(
             interventional_neighbor_outcome(InterferenceWorld::NoSpillover, option.experiment);
         let positive_spillover =
             interventional_neighbor_outcome(InterferenceWorld::PositiveSpillover, option.experiment);
-        let total_variation = f64::from(no_spillover != positive_spillover);
+        let total_variation = if no_spillover != positive_spillover {
+            1.0
+        } else {
+            0.0
+        };
         if total_variation == 0.0 {
             continue;
         }
