@@ -423,7 +423,28 @@ fn evaluate_case(fixture: &Fixture, case: &CaseInput) -> CaseResult {
     if case.environmental_witnesses.is_empty() {
         admitted_profiles.extend(fixture.model.environmental_model.profiles.clone());
     } else {
+        let mut witness_ids = BTreeSet::new();
+        let mut probe_ids = BTreeSet::new();
+        let mut common_cause_groups = BTreeSet::new();
         for witness in &case.environmental_witnesses {
+            if !witness_ids.insert(witness.witness_id.as_str()) {
+                return abstain(
+                    case,
+                    "ABSTAIN_ENVIRONMENTAL_WITNESS_NOT_INDEPENDENT",
+                    "REJECTED",
+                );
+            }
+            for probe in &witness.probes {
+                if !probe_ids.insert(probe.sensor_id.as_str())
+                    || !common_cause_groups.insert(probe.common_cause_group.as_str())
+                {
+                    return abstain(
+                        case,
+                        "ABSTAIN_ENVIRONMENTAL_WITNESS_NOT_INDEPENDENT",
+                        "REJECTED",
+                    );
+                }
+            }
             match admit_witness(fixture, case, witness) {
                 Ok(profile) => {
                     if admitted_profiles
@@ -436,9 +457,10 @@ fn evaluate_case(fixture: &Fixture, case: &CaseInput) -> CaseResult {
                             "CONFLICTING",
                         );
                     }
-                    if !admitted_profiles.iter().any(|existing| {
-                        existing.profile_id == profile.profile_id
-                    }) {
+                    if !admitted_profiles
+                        .iter()
+                        .any(|existing| existing.profile_id == profile.profile_id)
+                    {
                         admitted_profiles.push(profile);
                     }
                 }
@@ -578,6 +600,21 @@ mod tests {
             case.candidate_hypotheses.iter().map(|item| item.structural_state.as_str()).collect::<Vec<_>>(),
             vec!["HEALTHY", "DAMAGED"]
         );
+    }
+
+    #[test]
+    fn separate_witnesses_sharing_a_common_cause_group_are_not_independent() {
+        let report = evaluate(&fixture(), FIXTURE).unwrap();
+        let result = report
+            .cases
+            .iter()
+            .find(|item| item.case_id == "DUPLICATE_COMMON_CAUSE_ENVIRONMENTAL_WITNESSES")
+            .unwrap();
+        assert_eq!(
+            result.disposition,
+            "ABSTAIN_ENVIRONMENTAL_WITNESS_NOT_INDEPENDENT"
+        );
+        assert!(result.structural_state.is_none());
     }
 
     #[test]
