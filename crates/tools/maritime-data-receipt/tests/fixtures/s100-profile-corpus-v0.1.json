@@ -182,6 +182,69 @@
         "physical_truth_claim_authorized": false,
         "independent_review_required": true
       }
+    },
+    "s131": {
+      "schema_id": "luminous.symtropy.maritime-s100-profile",
+      "schema_version": "0.1.0",
+      "profile_id": "synthetic-s-131-profile-4",
+      "source_kind": "synthetic_fixture",
+      "receipt_binding": {
+        "receipt_id": "synthetic-s131-receipt-4",
+        "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "artifact_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+      },
+      "product": {
+        "code": "S-131",
+        "s100_edition": "5.2.0",
+        "specification_edition": "2.0.0",
+        "producer_code": "SYNTHETIC-TEST-ONLY",
+        "dataset_id": "synthetic-dataset-s-131-4",
+        "revision": "synthetic-s131-revision-001",
+        "native_encoding": "synthetic-metadata-only",
+        "feature_catalogue_revision": "Signed_131_FC_2.0.0",
+        "portrayal_catalogue_revision": "Signed_131_PC_2.0.0"
+      },
+      "coverage": {
+        "coverage_id": "synthetic-coverage-4",
+        "horizontal_crs": "EPSG:4326",
+        "vertical_reference": null,
+        "measurement_units": [
+          "m",
+          "count"
+        ]
+      },
+      "temporal": {
+        "data_epoch_start_utc": "2026-10-02T00:00:00Z",
+        "data_epoch_end_utc": "2026-10-09T00:00:00Z",
+        "valid_from_utc": null,
+        "valid_until_utc": null,
+        "assessment_time_utc": "2026-10-10T08:00:00Z",
+        "freshness_policy_id": "synthetic-s131-profile-window-only-no-operational-freshness"
+      },
+      "quality": {
+        "uncertainty_state": "provided",
+        "uncertainty_ref": "synthetic-uncertainty-3",
+        "quality_metadata_ref": "synthetic-quality-3",
+        "statement": "Invented S-131-like port-facility metadata used only for contract testing; no real port service or berth state is asserted."
+      },
+      "terms": {
+        "review_status": "not_applicable_synthetic",
+        "terms_sha256": null,
+        "reviewed_at_utc": null
+      },
+      "transform": {
+        "kind": "source_native",
+        "transform_receipt_id": null,
+        "input_crs": null,
+        "output_crs": null,
+        "input_vertical_reference": null,
+        "output_vertical_reference": null
+      },
+      "intended_use": {
+        "navigation_authorized": false,
+        "physical_truth_claim_authorized": false,
+        "independent_review_required": true
+      }
     }
   },
   "cases": [
@@ -474,6 +537,91 @@
         }
       ],
       "expected_code": "TRANSFORM_VERTICAL_REFERENCE_MISSING"
+    },
+    {
+      "id": "valid_s131_harbour_infrastructure_metadata_only",
+      "base": "s131",
+      "mutations": [],
+      "expected_code": "METADATA_CONTRACT_VALID_NOT_ADMITTED"
+    },
+    {
+      "id": "s131_feature_catalogue_revision_must_be_pinned",
+      "base": "s131",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "product.feature_catalogue_revision",
+          "value": "latest"
+        }
+      ],
+      "expected_code": "MUTABLE_CATALOGUE_REVISION"
+    },
+    {
+      "id": "s131_rejects_current_velocity_units",
+      "base": "s131",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "coverage.measurement_units",
+          "value": [
+            "m/s"
+          ]
+        }
+      ],
+      "expected_code": "DOMAIN_INCOMPATIBLE_UNITS"
+    },
+    {
+      "id": "s131_requires_horizontal_crs",
+      "base": "s131",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "coverage.horizontal_crs",
+          "value": ""
+        }
+      ],
+      "expected_code": "MISSING_CRS"
+    },
+    {
+      "id": "s131_public_dataset_requires_terms_review",
+      "base": "s131",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "source_kind",
+          "value": "public_dataset"
+        },
+        {
+          "op": "set",
+          "path": "terms.review_status",
+          "value": "review_required"
+        }
+      ],
+      "expected_code": "TERMS_NOT_REVIEWED"
+    },
+    {
+      "id": "s131_cannot_promote_navigation_authority",
+      "base": "s131",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "intended_use.navigation_authorized",
+          "value": true
+        }
+      ],
+      "expected_code": "AUTHORITY_ESCALATION_ATTEMPT"
+    },
+    {
+      "id": "s131_portrayal_catalogue_revision_must_be_pinned",
+      "base": "s131",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "product.portrayal_catalogue_revision",
+          "value": "latest"
+        }
+      ],
+      "expected_code": "MUTABLE_CATALOGUE_REVISION"
     }
   ]
 }
