@@ -223,6 +223,22 @@ The 13 cases include one admissible plan and 12 negative controls. The validator
 
 The receipt must report `execution_authorized=false`. This is a synthetic evidence-contract check only: an admissible plan is not a maintenance authorization, command, safety case or hardware-control capability. Approval and execution remain with the responsible authority/operator; measured post-repair evidence must independently requalify service.
 
+### Condition monitoring is not automatically safer than scheduled maintenance
+
+NASA maintenance-management guidance supports a shift away from blanket interval-based tasks where justified condition monitoring can reduce unnecessary work. But the monitoring channel can fail too: the 2026 ISS status paper documents airflow sensor heads blocked by unfiltered debris and H2 sensor failures/drift. A condition-based policy must therefore be evaluated against at least three arms:
+
+1. conservative approved interval-based baseline;
+2. condition-based policy with qualified sensors and validated thresholds;
+3. hybrid policy with independent cross-checks, conservative life limits, sensor-health monitoring and explicit escalation.
+
+Seed sensor blockage, drift, bias, common-mode dependence, missing telemetry, false-normal and delayed observation. Measure false maintenance deferral, unnecessary PM, maintenance-induced damage, detection/diagnosis delay and service-floor exposure. Do not use condition monitoring to exceed an approved life limit without separate authority and qualification.
+
+NASA's guidance also calls for traceable maintenance procedures/status, critical-step completion, restored-function evidence, replacement-unit history and procedure execution records. These requirements reinforce the proof-carrying maintenance plan contract; they are existing industry expectations, not a novelty claim.
+
+Sources:
+- NASA hardware/condition-monitoring and maintenance management guidance: https://sma.nasa.gov/sma-disciplines/hardware-and-equipment
+- NASA ISS ECLSS testbed status with sensor fouling and drift cases: https://ntrs.nasa.gov/citations/20260003280
+
 ## 5. Benchmark design
 
 ### 5.1 Frozen scenario registry
