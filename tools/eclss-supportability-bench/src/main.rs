@@ -10,9 +10,8 @@ const ISS_REFERENCE: &str = include_str!(
 const ISS_OPERATIONAL: &str = include_str!(
     "../../../docs/research/eclss/fixtures/eclss-2026-iss-operational-cases-v0_1.json"
 );
-const ISS_APPENDIX_SUPPLEMENT: &str = include_str!(
-    "../../../docs/research/eclss/fixtures/eclss-iss-appendix-supplement-v0_1.json"
-);
+const ISS_APPENDIX_SUPPLEMENT: &str =
+    include_str!("../../../docs/research/eclss/fixtures/eclss-iss-appendix-supplement-v0_1.json");
 const AOGA_SCHEDULE: &str =
     include_str!("../../../docs/research/eclss/fixtures/eclss-aoga-schedule-snapshots-v0_1.json");
 
@@ -442,11 +441,23 @@ fn validate_public_reference(value: &Value) -> Check<Value> {
 
     let selected_crew_task_records = records
         .iter()
-        .filter(|record| record["record_id"].as_str().is_some_and(|id| id.starts_with("ICES2025-127-CREW-")))
+        .filter(|record| {
+            record["record_id"]
+                .as_str()
+                .is_some_and(|id| id.starts_with("ICES2025-127-CREW-"))
+        })
         .count();
     let selected_component_records = records.len() - selected_crew_task_records;
-    require_eq(selected_component_records, 9usize, "selected component record count")?;
-    require_eq(selected_crew_task_records, 2usize, "selected crew task record count")?;
+    require_eq(
+        selected_component_records,
+        9usize,
+        "selected component record count",
+    )?;
+    require_eq(
+        selected_crew_task_records,
+        2usize,
+        "selected crew task record count",
+    )?;
 
     Ok(json!({
         "selected_register_records": records.len(),
@@ -617,8 +628,7 @@ fn validate_appendix_supplement(value: &Value) -> Check<Value> {
     let records = array(field(value, "records", at)?, "records")?;
     require_eq(records.len(), 133usize, "supplement component record count")?;
     let allowed_tables = [
-        "Table 2", "Table 3", "Table 5", "Table 6",
-        "Table 7", "Table 8", "Table 9", "Table 10",
+        "Table 2", "Table 3", "Table 5", "Table 6", "Table 7", "Table 8", "Table 9", "Table 10",
     ];
     let mut ids = std::collections::BTreeSet::new();
     let mut counts = std::collections::BTreeMap::<String, usize>::new();
@@ -687,7 +697,11 @@ fn validate_appendix_supplement(value: &Value) -> Check<Value> {
         for limit in ["throughput_limited_life", "calendar_limited_life"] {
             let limit_value = field(record, limit, &record_at)?;
             if !limit_value.is_null() {
-                exact_keys(limit_value, &["value", "unit"], &format!("{record_at}.{limit}"))?;
+                exact_keys(
+                    limit_value,
+                    &["value", "unit"],
+                    &format!("{record_at}.{limit}"),
+                )?;
                 if number(field(limit_value, "value", limit)?, "limit.value")? < 0.0
                     || text(field(limit_value, "unit", limit)?, "limit.unit")?.is_empty()
                 {
@@ -718,27 +732,41 @@ fn validate_appendix_supplement(value: &Value) -> Check<Value> {
         .find(|record| record["table"] == "Table 6" && record["component"] == "ACTEX")
         .ok_or_else(|| format!("{at}: missing Table 6 ACTEX row"))?;
     require_eq(
-        integer(&actex["preventive_r_and_r_interval_days"], "ACTEX PM interval")?,
+        integer(
+            &actex["preventive_r_and_r_interval_days"],
+            "ACTEX PM interval",
+        )?,
         1460,
         "Table 6 ACTEX PM interval",
     )?;
     require_eq(
-        number(&actex["preventive_r_and_r_duration_hours"], "ACTEX PM duration")?,
+        number(
+            &actex["preventive_r_and_r_duration_hours"],
+            "ACTEX PM duration",
+        )?,
         0.33,
         "Table 6 ACTEX PM duration",
     )?;
     require_eq(
-        number(&actex["throughput_limited_life"]["value"], "ACTEX throughput")?,
+        number(
+            &actex["throughput_limited_life"]["value"],
+            "ACTEX throughput",
+        )?,
         6750.0,
         "Table 6 ACTEX throughput limit",
     )?;
 
     let hydrogen_sensor = records
         .iter()
-        .find(|record| record["table"] == "Table 10" && record["component"] == "Sensor, Hydrogen ORU")
+.find(|record| {
+            record["table"] == "Table 10" && record["component"] == "Sensor, Hydrogen ORU"
+        })
         .ok_or_else(|| format!("{at}: missing OGA hydrogen sensor row"))?;
     require_eq(
-        integer(&hydrogen_sensor["preventive_r_and_r_interval_days"], "H2 sensor PM interval")?,
+        integer(
+            &hydrogen_sensor["preventive_r_and_r_interval_days"],
+            "H2 sensor PM interval",
+        )?,
         201,
         "H2 sensor PM interval",
     )?;
@@ -765,13 +793,21 @@ fn validate_appendix_supplement(value: &Value) -> Check<Value> {
         if !id.starts_with("ICES2025-127-CREW-") || !crew_ids.insert(id) {
             return Err(format!("{task_at}: invalid or duplicate crew task id {id}"));
         }
-        require_eq(text(field(task, "table", &task_at)?, "table")?, "Table 1", &task_at)?;
+        require_eq(
+            text(field(task, "table", &task_at)?, "table")?,
+            "Table 1",
+            &task_at,
+        )?;
         require_eq(
             integer(field(task, "printed_page", &task_at)?, "printed_page")?,
             9,
             &task_at,
         )?;
-        if integer(field(task, "crew_time_minutes", &task_at)?, "crew_time_minutes")? == 0 {
+        if integer(
+            field(task, "crew_time_minutes", &task_at)?,
+            "crew_time_minutes",
+        )? == 0
+        {
             return Err(format!("{task_at}: crew time must be positive"));
         }
         for key in ["subsystem", "oru", "notes"] {
@@ -785,7 +821,10 @@ fn validate_appendix_supplement(value: &Value) -> Check<Value> {
         .find(|task| task["oru"] == "Lab CCAA — Heat Exchanger")
         .ok_or_else(|| format!("{at}: missing CCAA heat exchanger crew task"))?;
     require_eq(
-        integer(&heat_exchanger_task["crew_time_minutes"], "crew task minutes")?,
+        integer(
+            &heat_exchanger_task["crew_time_minutes"],
+            "crew task minutes",
+        )?,
         330,
         "CCAA heat exchanger crew R&R",
     )?;
@@ -812,7 +851,11 @@ fn validate_appendix_supplement(value: &Value) -> Check<Value> {
         ("supplementary_crew_task_records", 39u64),
         ("combined_crew_task_records", 41u64),
     ] {
-        require_eq(integer(field(reconciliation, key, at)?, key)?, expected, key)?;
+        require_eq(
+            integer(field(reconciliation, key, at)?, key)?,
+            expected,
+            key,
+        )?;
     }
 
     Ok(json!({
