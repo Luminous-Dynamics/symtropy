@@ -70,7 +70,7 @@ The exact-extremal WKB method is a distinct method record and the current fixtur
 
 ## Solver independence and initial-guess provenance
 
-QNM records keep `solver_method` separate from `initial_guess_source`. The source enum distinguishes an explicit independent guess, BHPT interpolation-table seed, Python `qnm` cache, asymptotic fallback, previous-spin continuation, previous-overtone continuation, and unknown provenance. A numerical initial guess without provenance is rejected.
+QNM records keep `solver_method` separate from the mandatory `initial_guess_source`. Sources distinguish an explicit independent guess, BHPT interpolation-table seed, Python `qnm` cache, asymptotic fallback, previous-spin continuation, previous-overtone continuation, `NoInitialGuessRequired`, and explicit `Unknown`. A numeric initial guess cannot be tagged as `NoInitialGuessRequired`; an unknown source remains visible rather than being treated as independent.
 
 This matters for BHPT: its current documentation says `SpheroidalEigenvalue` and `IncidenceAmplitude` use the `Interpolation` result as the default initial guess, falling back to asymptotic expansions where tables are absent. Those methods are algorithmically different but may share seed data. `InterpolationFromPythonQnmCache` is an explicit method label, not an independent numerical confirmation.
 
