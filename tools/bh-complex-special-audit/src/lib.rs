@@ -1009,13 +1009,8 @@ pub fn poschl_teller_wronskian_winding_number(
     let mut refinements = 0_usize;
 
     for _ in 0..8 {
-        let (winding_number, max_phase_step) = sample_poschl_teller_wronskian_winding(
-            width,
-            lambda,
-            center,
-            radius,
-            current_samples,
-        )?;
+        let (winding_number, max_phase_step) =
+            sample_poschl_teller_wronskian_winding(width, lambda, center, radius, current_samples)?;
         if max_phase_step >= core::f64::consts::FRAC_PI_8 {
             stable_refinements = 0;
         } else if previous_winding == Some(winding_number) {
@@ -2024,14 +2019,8 @@ mod tests {
         assert!(simple.stable_refinements >= 3);
         assert!(simple.max_phase_step < core::f64::consts::FRAC_PI_8);
 
-        let double = poschl_teller_wronskian_winding_number(
-            1.0,
-            0.25,
-            z(0.0, -0.5),
-            0.05,
-            32,
-        )
-        .unwrap();
+        let double =
+            poschl_teller_wronskian_winding_number(1.0, 0.25, z(0.0, -0.5), 0.05, 32).unwrap();
         assert_eq!(double.winding_number, 2);
         assert!(double.samples >= 128);
         assert!(double.refinements >= 2);
