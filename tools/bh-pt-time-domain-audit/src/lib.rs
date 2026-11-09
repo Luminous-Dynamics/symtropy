@@ -108,9 +108,7 @@ impl SimulationConfig {
         }
         let time_steps = self.final_time / self.dt;
         let output_steps = self.output_interval / self.dt;
-        if !is_integer_within_roundoff(time_steps)
-            || !is_integer_within_roundoff(output_steps)
-        {
+        if !is_integer_within_roundoff(time_steps) || !is_integer_within_roundoff(output_steps) {
             return Err(WaveError::TimeGridDoesNotTileInterval);
         }
         if !is_integer_within_roundoff(time_steps / output_steps) {
@@ -120,8 +118,7 @@ impl SimulationConfig {
         // Conservative RK4 stability guard for the largest eigenfrequency of
         // the centered 1-D Laplacian plus the maximum barrier height.
         if self.dt / self.dx > 0.4
-            || self.dt * (4.0 / self.dx.powi(2) + self.lambda / self.width.powi(2)).sqrt()
-                > 2.5
+            || self.dt * (4.0 / self.dx.powi(2) + self.lambda / self.width.powi(2)).sqrt() > 2.5
         {
             return Err(WaveError::UnstableTimeStep);
         }
@@ -230,8 +227,7 @@ impl Waveform {
         let lower = (position.floor() as usize).min(self.samples.len() - 1);
         let upper = (lower + 1).min(self.samples.len() - 1);
         let fraction = position - lower as f64;
-        Ok(self.samples[lower].value * (1.0 - fraction)
-            + self.samples[upper].value * fraction)
+        Ok(self.samples[lower].value * (1.0 - fraction) + self.samples[upper].value * fraction)
     }
 }
 
@@ -272,7 +268,10 @@ impl fmt::Display for WaveError {
             Self::InvalidSampleTime => write!(f, "sample time must be finite"),
             Self::SampleTimeOutsideWaveform => write!(f, "sample time is outside the waveform"),
             Self::FreeReferenceNotAfterFullPulse => {
-                write!(f, "requested time is before the complete free-wave pulse has arrived")
+                write!(
+                    f,
+                    "requested time is before the complete free-wave pulse has arrived"
+                )
             }
         }
     }
@@ -297,8 +296,7 @@ pub fn evolve(config: SimulationConfig) -> Result<Waveform, WaveError> {
     let potential: Vec<f64> = x
         .iter()
         .map(|position| {
-            config.lambda / config.width.powi(2)
-                / (position / config.width).cosh().powi(2)
+            config.lambda / config.width.powi(2) / (position / config.width).cosh().powi(2)
         })
         .collect();
     let observer_grid_position = (config.observer_x - config.x_min) / config.dx;
@@ -317,34 +315,13 @@ pub fn evolve(config: SimulationConfig) -> Result<Waveform, WaveError> {
         let (k1_u, k1_v) = rhs(&u, &velocity, time, &x, &potential, config);
         let u2 = add_scaled(&u, &k1_u, 0.5 * config.dt);
         let v2 = add_scaled(&velocity, &k1_v, 0.5 * config.dt);
-        let (k2_u, k2_v) = rhs(
-            &u2,
-            &v2,
-            time + 0.5 * config.dt,
-            &x,
-            &potential,
-            config,
-        );
+        let (k2_u, k2_v) = rhs(&u2, &v2, time + 0.5 * config.dt, &x, &potential, config);
         let u3 = add_scaled(&u, &k2_u, 0.5 * config.dt);
         let v3 = add_scaled(&velocity, &k2_v, 0.5 * config.dt);
-        let (k3_u, k3_v) = rhs(
-            &u3,
-            &v3,
-            time + 0.5 * config.dt,
-            &x,
-            &potential,
-            config,
-        );
+        let (k3_u, k3_v) = rhs(&u3, &v3, time + 0.5 * config.dt, &x, &potential, config);
         let u4 = add_scaled(&u, &k3_u, config.dt);
         let v4 = add_scaled(&velocity, &k3_v, config.dt);
-        let (k4_u, k4_v) = rhs(
-            &u4,
-            &v4,
-            time + config.dt,
-            &x,
-            &potential,
-            config,
-        );
+        let (k4_u, k4_v) = rhs(&u4, &v4, time + config.dt, &x, &potential, config);
 
         source_work += config.dt / 6.0
             * (source_power(&velocity, time, &x, config)
@@ -354,10 +331,10 @@ pub fn evolve(config: SimulationConfig) -> Result<Waveform, WaveError> {
 
         let sixth_dt = config.dt / 6.0;
         for index in 1..cell_count - 1 {
-            u[index] += sixth_dt
-                * (k1_u[index] + 2.0 * k2_u[index] + 2.0 * k3_u[index] + k4_u[index]);
-            velocity[index] += sixth_dt
-                * (k1_v[index] + 2.0 * k2_v[index] + 2.0 * k3_v[index] + k4_v[index]);
+            u[index] +=
+                sixth_dt * (k1_u[index] + 2.0 * k2_u[index] + 2.0 * k3_u[index] + k4_u[index]);
+            velocity[index] +=
+                sixth_dt * (k1_v[index] + 2.0 * k2_v[index] + 2.0 * k3_v[index] + k4_v[index]);
         }
 
         if (step + 1).is_multiple_of(output_stride) {
@@ -405,8 +382,7 @@ fn rhs(
     for index in 1..u.len() - 1 {
         du[index] = velocity[index];
         let laplacian = (u[index - 1] - 2.0 * u[index] + u[index + 1]) * inv_dx2;
-        dv[index] =
-            laplacian - potential[index] * u[index] + config.source.value(time, x[index]);
+        dv[index] = laplacian - potential[index] * u[index] + config.source.value(time, x[index]);
     }
     (du, dv)
 }
@@ -482,8 +458,8 @@ pub fn free_full_pulse_reference(
     {
         return Err(WaveError::InvalidConfiguration);
     }
-    let maximum_distance = (config.observer_x - config.source.center_x).abs()
-        + config.source.spatial_half_width;
+    let maximum_distance =
+        (config.observer_x - config.source.center_x).abs() + config.source.spatial_half_width;
     if time < config.source.end_time() + maximum_distance {
         return Err(WaveError::FreeReferenceNotAfterFullPulse);
     }
