@@ -129,6 +129,7 @@ pub struct TransferAssessment {
     pub registry_version: String,
     pub model_digest: String,
     pub calibration_data_digest: String,
+    pub evidence_complete: bool,
     pub source_validation_domain_count: usize,
     pub held_out_challenge_domain_count: usize,
     pub claim_ceiling: TransferClaimCeiling,
@@ -163,7 +164,6 @@ pub enum TransferAdequacyError {
     AssessmentManifestMismatch { domain_id: String },
     AssessmentRegistryMismatch { domain_id: String },
     AssessmentRoleMismatch { domain_id: String },
-    AssessmentModelIdentityMissing { domain_id: String },
     MixedModelIdentityWithinDomain { domain_id: String },
     ModelIdentityMismatchAcrossDomains { domain_id: String },
     DuplicateAssessmentRow { domain_id: String, statistic_id: String, unit_id: String },
@@ -296,17 +296,20 @@ fn evaluate_domain(
             domain_id: domain_id.clone(),
         });
     }
-    if domain.registry.statistics.iter().any(|spec| {
-        spec.role != domain.assessment.role || spec.independent_unit != domain.manifest.independent_unit
+    if let Some(spec) = domain.registry.statistics.iter().find(|spec| {
+        spec.role != domain.assessment.role
     }) {
-        let statistic_id = domain.registry.statistics.iter()
-            .find(|spec| spec.role != domain.assessment.role
-                || spec.independent_unit != domain.manifest.independent_unit)
-            .map(|spec| spec.id.clone())
-            .unwrap_or_default();
         return Err(TransferAdequacyError::StatisticRoleMismatch {
             domain_id: domain_id.clone(),
-            statistic_id,
+            statistic_id: spec.id.clone(),
+        });
+    }
+    if let Some(spec) = domain.registry.statistics.iter().find(|spec| {
+        spec.independent_unit != domain.manifest.independent_unit
+    }) {
+        return Err(TransferAdequacyError::StatisticUnitKindMismatch {
+            domain_id: domain_id.clone(),
+            statistic_id: spec.id.clone(),
         });
     }
 
@@ -606,8 +609,8 @@ pub fn assess_zero_shot_transfer(
         return Err(TransferAdequacyError::MissingHeldOutChallengeDomain);
     }
 
-    let has_required_not_assessed = results.iter().any(|domain| {
-        domain.status == DomainStatus::NotAssessed || !domain.required_evidence_complete
+    let evidence_complete = results.iter().all(|domain| {
+        domain.required_evidence_complete && domain.status != DomainStatus::NotAssessed
     });
     let source_domain_not_qualified = results.iter().any(|domain| {
         domain.role == SplitRole::Validation
@@ -617,10 +620,14 @@ pub fn assess_zero_shot_transfer(
         domain.role == SplitRole::Challenge
             && domain.status == DomainStatus::PrimaryDiscrepancyDetected
     });
-    let claim_ceiling = if has_required_not_assessed || source_domain_not_qualified {
-        TransferClaimCeiling::NotAssessed
-    } else if has_challenge_discrepancy {
+    // A known target discrepancy remains visible even when a different
+    // declared target is under-assessed. However, target failures cannot be
+    // called transfer discrepancies unless the in-domain source baseline
+    // itself is qualified.
+    let claim_ceiling = if !source_domain_not_qualified && has_challenge_discrepancy {
         TransferClaimCeiling::TransferDiscrepancyDetected
+    } else if !evidence_complete || source_domain_not_qualified {
+        TransferClaimCeiling::NotAssessed
     } else {
         TransferClaimCeiling::NoPrimaryDiscrepancyDetectedAcrossDeclaredTransferDomains
     };
@@ -629,6 +636,7 @@ pub fn assess_zero_shot_transfer(
         registry_version: expected_registry_version.to_string(),
         model_digest: model_digest.unwrap_or_default(),
         calibration_data_digest: expected_calibration_digest.to_string(),
+        evidence_complete,
         source_validation_domain_count,
         held_out_challenge_domain_count,
         claim_ceiling,
@@ -946,6 +954,64 @@ mod tests {
     }
 
     #[test]
+    fn known_target_failure_is_not_hidden_by_another_unassessed_target() {
+        let mut domains = standard_domains();
+        let spec = domains[2].registry.statistics[0].clone();
+        let manifest = domains[2].manifest.clone();
+        let observation = ObservedStatistic {
+            statistic_id: spec.id.clone(),
+            independent_unit_id: "time-block-c".to_string(),
+            measurement_unit: spec.measurement_unit.clone(),
+            source_digest: spec.source_digest.clone(),
+            sample_size: 100,
+            value: 0.5,
+            measurement_standard_error: None,
+            observation_digest: "sha256-time-block-observation".to_string(),
+        };
+        domains[2].assessment = assess_predictive_partition(
+            &domains[2].registry,
+            &manifest,
+            &[observation],
+            &[],
+            SplitRole::Challenge,
+            PredictiveKind::Split,
+            0.9,
+        )
+        .expect("underpowered target is explicit");
+
+        let report = assess_zero_shot_transfer(&domains).expect("partially assessed transfer report");
+        assert_eq!(report.claim_ceiling, TransferClaimCeiling::TransferDiscrepancyDetected);
+        assert!(!report.evidence_complete);
+        assert_eq!(report.domains[1].status, DomainStatus::PrimaryDiscrepancyDetected);
+        assert_eq!(report.domains[2].status, DomainStatus::NotAssessed);
+    }
+
+    #[test]
+    fn source_validation_failure_prevents_a_transfer_claim() {
+        let mut domains = standard_domains();
+        domains[0] = domain(
+            "source-region",
+            TransferAxis::Region,
+            SplitRole::Validation,
+            IndependentUnitKind::Region,
+            "source-households",
+            "source-period",
+            "survey-source",
+            "sha256-source-region",
+            "region-a",
+            0.9,
+            MODEL,
+            CALIBRATION,
+            PredictiveKind::Split,
+            &[0.45, 0.48, 0.50, 0.52, 0.55],
+        );
+
+        let report = assess_zero_shot_transfer(&domains).expect("source discrepancy report");
+        assert_eq!(report.domains[0].status, DomainStatus::PrimaryDiscrepancyDetected);
+        assert_eq!(report.claim_ceiling, TransferClaimCeiling::NotAssessed);
+    }
+
+    #[test]
     fn incomplete_required_target_evidence_is_not_a_transfer_pass() {
         let mut domains = standard_domains();
         let spec = domains[1].registry.statistics[0].clone();
@@ -976,5 +1042,6 @@ mod tests {
         assert_eq!(domains[1].assessment.domain_status, DomainStatus::NotAssessed);
         assert_eq!(report.domains[1].status, DomainStatus::NotAssessed);
         assert_eq!(report.claim_ceiling, TransferClaimCeiling::NotAssessed);
+        assert!(!report.evidence_complete);
     }
 }
