@@ -607,8 +607,11 @@ fn validate_and_compute(problem: &ViableVoiProblem) -> Result<ViableVoiReport, V
             return Err(ViableVoiError::DuplicateBranchId);
         }
     }
-    let input_branch_ids: BTreeSet<&str> =
-        problem.branches.iter().map(|branch| branch.id.as_str()).collect();
+    let input_branch_ids: BTreeSet<&str> = problem
+        .branches
+        .iter()
+        .map(|branch| branch.id.as_str())
+        .collect();
     if declared_branch_ids != input_branch_ids {
         return Err(ViableVoiError::BranchSetMismatch);
     }
