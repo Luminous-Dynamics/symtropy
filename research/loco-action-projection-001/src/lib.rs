@@ -16,6 +16,7 @@ pub struct PolicyProposal {
     pub abstraction_digest: String,
     pub domain_digest: String,
     pub actuator_digest: String,
+    pub constraint_inventory_digest: String,
     pub submitted_at_ns: u64,
     pub intended_apply_at_ns: u64,
     pub deadline_ns: u64,
@@ -52,6 +53,7 @@ pub struct ConstraintRequirement {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConstraintEvidence {
     pub id: String,
+    pub residual_unit_id: String,
     pub residual: u64,
     pub residual_tolerance: u64,
     /// Non-negative is feasible; negative is a hard/contact violation.
@@ -73,6 +75,7 @@ pub struct ProjectionResult {
     pub abstraction_digest: String,
     pub domain_digest: String,
     pub actuator_digest: String,
+    pub constraint_inventory_digest: String,
     pub started_at_ns: u64,
     pub completed_at_ns: u64,
     pub deadline_ns: u64,
@@ -104,6 +107,7 @@ pub struct ViabilityReceipt {
     pub abstraction_digest: String,
     pub domain_digest: String,
     pub actuator_digest: String,
+    pub constraint_inventory_digest: String,
     pub status: AuthorityStatus,
     pub witness_or_reason: Option<String>,
     pub valid_from_ns: u64,
@@ -143,6 +147,8 @@ pub struct AdmittedFallback {
 pub struct ProjectionGateProblem {
     pub now_ns: u64,
     pub proposal: PolicyProposal,
+    /// Independent frozen inventory bound by constraint_inventory_digest.
+    pub required_constraint_inventory: Vec<ConstraintRequirement>,
     pub result: ProjectionResult,
     pub viability: ViabilityReceipt,
     pub assurance: AssuranceReceipt,
@@ -193,6 +199,8 @@ pub enum ProjectionError {
     ActuatorIdentityMismatch,
     ResultDeadlineMismatch,
     InvalidResidualTolerance,
+    ConstraintInventoryMismatch,
+    PhysicalConstraintCannotBeOptional,
     TooManyConstraints,
     NoConstraintRequirements,
     DuplicateConstraintRequirement,
@@ -269,6 +277,7 @@ fn identity_gate(problem: &ProjectionGateProblem) -> Result<(), ProjectionError>
         proposal.abstraction_digest.as_str(),
         proposal.domain_digest.as_str(),
         proposal.actuator_digest.as_str(),
+        proposal.constraint_inventory_digest.as_str(),
         result.solver_id.as_str(),
         result.solver_version.as_str(),
         result.projected_command_digest.as_str(),
@@ -304,6 +313,9 @@ fn identity_gate(problem: &ProjectionGateProblem) -> Result<(), ProjectionError>
     if result.actuator_digest != proposal.actuator_digest {
         return Err(ProjectionError::ActuatorIdentityMismatch);
     }
+    if result.constraint_inventory_digest != proposal.constraint_inventory_digest {
+        return Err(ProjectionError::ConstraintInventoryMismatch);
+    }
     if result.deadline_ns != proposal.deadline_ns
         || result.completed_at_ns > proposal.deadline_ns
         || result.completed_at_ns > proposal.intended_apply_at_ns
@@ -321,6 +333,7 @@ fn identity_gate(problem: &ProjectionGateProblem) -> Result<(), ProjectionError>
 
 fn constraint_gate(
     result: &ProjectionResult,
+    frozen_inventory: &[ConstraintRequirement],
 ) -> Result<
     (
         Vec<ConstraintFinding>,
@@ -332,8 +345,22 @@ fn constraint_gate(
     if result.declared_constraints.is_empty() {
         return Err(ProjectionError::NoConstraintRequirements);
     }
-    if result.declared_constraints.len() > MAX_CONSTRAINTS {
+    if result.declared_constraints.len() > MAX_CONSTRAINTS
+        || frozen_inventory.len() > MAX_CONSTRAINTS
+    {
         return Err(ProjectionError::TooManyConstraints);
+    }
+    let mut frozen_by_id = BTreeMap::new();
+    for requirement in frozen_inventory {
+        if !nonempty(&requirement.id) {
+            return Err(ProjectionError::EmptyIdentifier);
+        }
+        if frozen_by_id.insert(requirement.id.as_str(), requirement).is_some() {
+            return Err(ProjectionError::DuplicateConstraintRequirement);
+        }
+    }
+    if frozen_by_id.is_empty() {
+        return Err(ProjectionError::NoConstraintRequirements);
     }
     let mut requirements = BTreeMap::new();
     for requirement in &result.declared_constraints {
@@ -343,13 +370,33 @@ fn constraint_gate(
         {
             return Err(ProjectionError::EmptyIdentifier);
         }
+        if matches!(
+            requirement.class,
+            ConstraintClass::HardPhysical | ConstraintClass::RobustContact
+        ) && !requirement.required
+        {
+            return Err(ProjectionError::PhysicalConstraintCannotBeOptional);
+        }
         if requirements.insert(requirement.id.as_str(), requirement).is_some() {
             return Err(ProjectionError::DuplicateConstraintRequirement);
         }
     }
+    if requirements.len() != frozen_by_id.len()
+        || requirements.iter().any(|(id, requirement)| {
+            frozen_by_id
+                .get(id)
+                .is_none_or(|frozen| *frozen != *requirement)
+        })
+    {
+        return Err(ProjectionError::ConstraintInventoryMismatch);
+    }
+
     let mut evidence_by_id = BTreeMap::new();
     for evidence in &result.constraint_evidence {
-        if !nonempty(&evidence.id) || !nonempty(&evidence.margin_unit_id) {
+        if !nonempty(&evidence.id)
+            || !nonempty(&evidence.residual_unit_id)
+            || !nonempty(&evidence.margin_unit_id)
+        {
             return Err(ProjectionError::EmptyIdentifier);
         }
         if evidence_by_id.insert(evidence.id.as_str(), evidence).is_some() {
@@ -367,7 +414,9 @@ fn constraint_gate(
         let evidence = evidence_by_id
             .get(id)
             .ok_or(ProjectionError::MissingConstraintEvidence)?;
-        if evidence.margin_unit_id != requirement.margin_unit_id {
+        if evidence.residual_unit_id != requirement.residual_unit_id
+            || evidence.margin_unit_id != requirement.margin_unit_id
+        {
             return Err(ProjectionError::ConstraintUnitMismatch);
         }
         let passed = evidence.residual <= evidence.residual_tolerance && evidence.margin >= 0;
@@ -438,6 +487,12 @@ fn validate_independent_receipts(
         || assurance.actuator_digest != proposal.actuator_digest
     {
         return Err(ProjectionError::ActuatorIdentityMismatch);
+    }
+    if viability.constraint_inventory_digest != proposal.constraint_inventory_digest {
+        return Err(ProjectionError::ConstraintInventoryMismatch);
+    }
+    if viability.horizon_steps == 0 {
+        return Err(ProjectionError::InvalidReceipt);
     }
     validate_receipt_interval(
         viability.valid_from_ns,
@@ -546,7 +601,7 @@ pub fn qualify_projected_action(
     }
 
     let (findings, hard_failures, contact_failures) =
-        constraint_gate(&problem.result)?;
+        constraint_gate(&problem.result, &problem.required_constraint_inventory)?;
     report.constraint_findings = findings;
     report.hard_constraint_failures = hard_failures;
     report.robust_contact_failures = contact_failures;
@@ -619,6 +674,7 @@ mod tests {
             abstraction_digest: "abstraction-v1".to_owned(),
             domain_digest: "domain-v1".to_owned(),
             actuator_digest: "actuator-v1".to_owned(),
+            constraint_inventory_digest: "constraints-v1".to_owned(),
             submitted_at_ns: 100,
             intended_apply_at_ns: 200,
             deadline_ns: 200,
@@ -640,6 +696,8 @@ mod tests {
             id: id.to_owned(),
             residual,
             residual_tolerance: 10,
+            residual_unit_id: "residual_nano".to_owned(),
+            residual_tolerance: 10,
             margin,
             margin_unit_id: "margin_ppm".to_owned(),
         }
@@ -647,8 +705,13 @@ mod tests {
 
     fn problem() -> ProjectionGateProblem {
         ProjectionGateProblem {
-            now_ns: 150,
+            now_ns: 190,
             proposal: proposal(),
+            required_constraint_inventory: vec![
+                requirement("torque-limit", ConstraintClass::HardPhysical),
+                requirement("friction-cone", ConstraintClass::RobustContact),
+                requirement("tracking", ConstraintClass::TaskTracking),
+            ],
             result: ProjectionResult {
                 solver_id: "qp-solver".to_owned(),
                 solver_version: "1.0".to_owned(),
@@ -662,6 +725,7 @@ mod tests {
                 abstraction_digest: "abstraction-v1".to_owned(),
                 domain_digest: "domain-v1".to_owned(),
                 actuator_digest: "actuator-v1".to_owned(),
+                constraint_inventory_digest: "constraints-v1".to_owned(),
                 started_at_ns: 110,
                 completed_at_ns: 180,
                 deadline_ns: 200,
@@ -691,6 +755,7 @@ mod tests {
                 abstraction_digest: "abstraction-v1".to_owned(),
                 domain_digest: "domain-v1".to_owned(),
                 actuator_digest: "actuator-v1".to_owned(),
+                constraint_inventory_digest: "constraints-v1".to_owned(),
                 status: AuthorityStatus::Admitted,
                 witness_or_reason: None,
                 valid_from_ns: 150,
@@ -832,11 +897,35 @@ mod tests {
     #[test]
     fn deadline_missed_projection_never_executes_stale_command() {
         let mut input = problem();
+        input.now_ns = 205;
+        input.proposal.intended_apply_at_ns = 205;
+        input.proposal.deadline_ns = 205;
+        input.result.deadline_ns = 205;
         input.result.disposition = SolverDisposition::DeadlineMiss;
         input.result.completed_at_ns = 201;
         input.fallback = Some(admitted_fallback());
         let report = qualify_projected_action(&input).expect("deadline fallback");
         assert!(matches!(report.disposition, GateDisposition::ExecuteFallback { .. }));
+    }
+
+    #[test]
+    fn solver_cannot_omit_independently_required_constraint_family() {
+        let mut input = problem();
+        input.result.declared_constraints.pop();
+        assert_eq!(
+            qualify_projected_action(&input),
+            Err(ProjectionError::ConstraintInventoryMismatch)
+        );
+    }
+
+    #[test]
+    fn residual_unit_mismatch_is_invalid() {
+        let mut input = problem();
+        input.result.constraint_evidence[0].residual_unit_id = "wrong_unit".to_owned();
+        assert_eq!(
+            qualify_projected_action(&input),
+            Err(ProjectionError::ConstraintUnitMismatch)
+        );
     }
 
     #[test]
