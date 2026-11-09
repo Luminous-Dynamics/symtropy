@@ -52,7 +52,7 @@ def validate(data: dict[str, Any]) -> None:
     require(ds["domain"] == "synthetic_aerospace_sensor_windows",
             "fixture must remain synthetic")
     require(ds["input_layout"] == "N_T_C", "input layout mismatch")
-    require(ds["normalization"] == "per_channel_zscore_assumed_preapplied",
+    require(ds["normalization"] == "per_channel_zscore_frozen_fixture_statistics",
             "normalization protocol mismatch")
     require(ds["source_status"] == "synthetic_known_answer_only",
             "source status mismatch")
@@ -111,6 +111,30 @@ def validate(data: dict[str, Any]) -> None:
         for step in sample:
             require(len(step) == c and all(math.isfinite(x) for x in step),
                     "windows channel dimension/value mismatch")
+    raw_windows = data["raw_windows"]
+    require(len(raw_windows) == n, "raw_windows sample dimension mismatch")
+    for sample in raw_windows:
+        require(len(sample) == t, "raw_windows time dimension mismatch")
+        for step in sample:
+            require(len(step) == c and all(math.isfinite(x) for x in step),
+                    "raw_windows channel dimension/value mismatch")
+    stats = data["normalization_statistics"]
+    require(stats["method"] == "population_zscore_over_frozen_synthetic_window_corpus",
+            "normalization method changed")
+    require(len(stats["mean"]) == c and len(stats["std"]) == c,
+            "normalization statistics dimension mismatch")
+    require(all(math.isfinite(x) for x in stats["mean"])
+            and all(math.isfinite(x) and x > 0.0 for x in stats["std"]),
+            "normalization statistics invalid")
+    for sample in range(n):
+        for time in range(t):
+            for channel in range(c):
+                normalized = (
+                    raw_windows[sample][time][channel] - stats["mean"][channel]
+                ) / stats["std"][channel]
+                require(math.isclose(normalized, windows[sample][time][channel],
+                                     rel_tol=0.0, abs_tol=1.0e-10),
+                        "standardized window differs from frozen raw value/statistics")
     for name in ("noise_standard_normal", "outlier_uniform", "outlier_delta_unit"):
         cube = data[name]
         require(len(cube) == n, f"{name}: sample dimension mismatch")
