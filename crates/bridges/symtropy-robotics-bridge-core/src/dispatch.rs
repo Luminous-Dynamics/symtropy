@@ -301,7 +301,7 @@ mod tests {
         AxisAlignedWorkspace, EmbodimentEnvelope, IntentKind, RuntimeAssuranceGate,
         RuntimeAssurancePolicy,
     };
-    use crate::control::Pose3;
+    use crate::control::{EmbodiedIntent, Pose3};
     use crate::sequence_guard::RequestSequenceGuard;
     use std::sync::{Arc, Mutex};
 
