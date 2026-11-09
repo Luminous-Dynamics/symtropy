@@ -103,7 +103,7 @@
         -0.01
       ],
       "expected": {
-        "disposition": "SENSOR_FAULT_SUSPECTED",
+        "disposition": "SENSOR_FAULT_WITNESS_CONFIRMED",
         "structural_state": "HEALTHY",
         "faulty_sensor_ids": [
           "S2"
@@ -164,7 +164,7 @@
         0.98
       ],
       "expected": {
-        "disposition": "DAMAGE_AND_SENSOR_FAULT_SUSPECTED",
+        "disposition": "DAMAGE_AND_SENSOR_FAULT_WITNESS_CONFIRMED",
         "structural_state": "DAMAGED",
         "faulty_sensor_ids": [
           "S2"
