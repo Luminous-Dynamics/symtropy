@@ -3,9 +3,8 @@
 
 use civdyn_generational_ledger::{
     CapitalClass, CohortAssignment, CohortIncidenceLedger, FinancialObligation,
-    FinancialObligationKind, InheritedCapitalRecord, InheritedStockAllocation,
-    PhysicalObligation, QuantityUncertainty, Resource,
-    ServiceAllocation, UnassignedReason,
+    FinancialObligationKind, InheritedCapitalRecord, InheritedStockAllocation, PhysicalObligation,
+    QuantityUncertainty, Resource, ServiceAllocation, UnassignedReason,
 };
 use civdyn_resource_ledger::{
     Production, Region, ResourceVector, StepInput, TransferPolicy, World,
@@ -58,10 +57,10 @@ fn main() {
         )
         .expect("source ledger step is valid");
 
-    let present = CohortAssignment::assigned("working-age-2026")
-        .expect("cohort identity is non-empty");
-    let future = CohortAssignment::assigned("future-born-2040")
-        .expect("cohort identity is non-empty");
+    let present =
+        CohortAssignment::assigned("working-age-2026").expect("cohort identity is non-empty");
+    let future =
+        CohortAssignment::assigned("future-born-2040").expect("cohort identity is non-empty");
     let shared = CohortAssignment::unassigned(UnassignedReason::SharedPublicAsset);
     let source_ref = "ledger:tick-1:district-a";
     let action_id = "policy:baseline";
@@ -247,14 +246,12 @@ fn main() {
         )
         .expect("cohort incidence reconciles with source ledger");
 
-    println!(
-        concat!(
-            "record_type,tick,region_id,resource,assignment,demand,served,unmet,inherited_stock,",
-            "ledger_demand,allocated_demand,ledger_served,allocated_served,ledger_unmet,",
-            "allocated_unmet,ledger_closing_stock,allocated_closing_stock,record_id,",
-            "measure_id,unit,quantity,currency_code,amount,price_base_year"
-        )
-    );
+    println!(concat!(
+        "record_type,tick,region_id,resource,assignment,demand,served,unmet,inherited_stock,",
+        "ledger_demand,allocated_demand,ledger_served,allocated_served,ledger_unmet,",
+        "allocated_unmet,ledger_closing_stock,allocated_closing_stock,record_id,",
+        "measure_id,unit,quantity,currency_code,amount,price_base_year"
+    ));
 
     let report = ledger.last().expect("one incidence report exists");
     for row in &report.regional_reconciliations {
