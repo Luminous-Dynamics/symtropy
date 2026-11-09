@@ -492,24 +492,16 @@ fn oblate_complex_tortoise(
     gap: f64,
 ) -> ComplexCoordinate {
     let z = radius.sub(ComplexCoordinate::new(x_minus, 0.0));
-    radius.add(
-        z.scale(0.5).ln()
-            .add(z.div(ComplexCoordinate::new(gap, 0.0)).neg().ln_1p().scale(-x_plus)),
-    )
-    .add(ComplexCoordinate::new(0.0, 0.0))
-    .add(
-        z.scale(0.0),
-    )
-    .add(
-        z.div(ComplexCoordinate::new(2.0, 0.0)).ln()
-            .add(
-                ComplexCoordinate::new(-gap, 0.0)
-                    .div(z)
-                    .ln_1p()
-                    .scale(x_plus / gap),
-            )
-            .scale(2.0),
-    )
+    let logarithmic_terms = z
+        .div(ComplexCoordinate::new(2.0, 0.0))
+        .ln()
+        .add(
+            ComplexCoordinate::new(-gap, 0.0)
+                .div(z)
+                .ln_1p()
+                .scale(x_plus / gap),
+        );
+    radius.add(logarithmic_terms.scale(2.0))
 }
 
 fn integrate_real_simpson(spin: f64, endpoint: f64, segments: usize) -> f64 {
@@ -533,23 +525,15 @@ fn prolate_real_correction(spin: f64, endpoint: f64) -> Result<f64, KerrOpticalE
     if spin == 0.0 {
         return Ok(0.0);
     }
-    let coarse = integrate_real_simpson(spin, endpoint, 64);
-    for segments in [128_usize, 256, 512, 1024, 2048] {
-        let fine = integrate_real_simpson(spin, endpoint, segments);
-        if (fine - coarse).abs() <= REAL_QUADRATURE_TOLERANCE * (1.0 + fine.abs()) {
-            return Ok(fine);
+    let mut previous = integrate_real_simpson(spin, endpoint, 64);
+    for segments in [128_usize, 256, 512, 1024, 2048, 4096] {
+        let current = integrate_real_simpson(spin, endpoint, segments);
+        if (current - previous).abs()
+            <= REAL_QUADRATURE_TOLERANCE * (1.0 + current.abs())
+        {
+            return Ok(current);
         }
-        if segments == 2048 {
-            break;
-        }
-        // Composite Simpson is nested at these doublings; retaining the
-        // latest value is more useful than reusing an unrefined interval sum.
-        let _ = segments;
-        let refined = integrate_real_simpson(spin, endpoint, segments * 2);
-        if (refined - fine).abs() <= REAL_QUADRATURE_TOLERANCE * (1.0 + refined.abs()) {
-            return Ok(refined);
-        }
-        return Ok(refined);
+        previous = current;
     }
     Err(KerrOpticalError::QuadratureNotConverged)
 }
@@ -878,17 +862,19 @@ mod tests {
         assert_eq!(both.region, KerrQnmConvergenceRegion::BothFamiliesConvergent);
         assert!(both.complete_qnm_contribution_convergent());
 
-        let oblate_only = reference
-            .convergence_margins(5.4 * rg / SPEED_OF_LIGHT_M_S, 4.0 * rg, 3.0 * rg, 1.0e-8 * rg)
-            .unwrap();
-        assert_eq!(oblate_only.region, KerrQnmConvergenceRegion::OblateFamilyOnlyConvergent);
-        assert!(!oblate_only.complete_qnm_contribution_convergent());
-
+        // At the outer source/observer pair, prolate converges before oblate.
         let prolate_only = reference
-            .convergence_margins(5.35 * rg / SPEED_OF_LIGHT_M_S, 2.4 * rg, 2.3 * rg, 1.0e-8 * rg)
+            .convergence_margins(5.4 * rg / SPEED_OF_LIGHT_M_S, 4.0 * rg, 3.0 * rg, 1.0e-8 * rg)
             .unwrap();
         assert_eq!(prolate_only.region, KerrQnmConvergenceRegion::ProlateFamilyOnlyConvergent);
         assert!(!prolate_only.complete_qnm_contribution_convergent());
+
+        // At the inner pair, oblate converges before prolate.
+        let oblate_only = reference
+            .convergence_margins(1.28 * rg / SPEED_OF_LIGHT_M_S, 2.4 * rg, 2.3 * rg, 1.0e-8 * rg)
+            .unwrap();
+        assert_eq!(oblate_only.region, KerrQnmConvergenceRegion::OblateFamilyOnlyConvergent);
+        assert!(!oblate_only.complete_qnm_contribution_convergent());
 
         let neither = reference
             .convergence_margins(0.0, 4.0 * rg, 3.0 * rg, 1.0e-8 * rg)
