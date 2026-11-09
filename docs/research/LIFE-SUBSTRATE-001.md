@@ -526,3 +526,46 @@ The strongest successful outcome is not a high score on one classifier. It is a 
 7. Dolson et al. (2019), *The MODES Toolbox: Measurements of Open-Ended Dynamics in Evolving Systems*, Artificial Life 25(1): https://doi.org/10.1162/artl_a_00280
 8. *On the Open-Endedness of Detecting Open-Endedness*, Artificial Life: https://doi.org/10.1162/artl_a_00399
 9. Yu et al. (2025), *Physics-tailored machine learning reveals unexpected physics in dusty plasmas*, PNAS 122(31): https://doi.org/10.1073/pnas.2505725122
+
+
+## 16. Existing cross-project work discovered during repository audit (9 November 2026)
+
+The following work already exists and should be composed rather than duplicated.
+
+### Symthaea plasma research
+
+- [PLASMA-ENG-000 #5669](https://github.com/Luminous-Dynamics/symthaea/issues/5669) defines a regime-explicit plasma engineering architecture.
+- [PLASMA-VV-001 #7588](https://github.com/Luminous-Dynamics/symthaea/issues/7588) benchmarks a low-temperature RF capacitively coupled plasma (CCP) reference case and model credibility.
+- [PLASMA-CRED-001 #7600](https://github.com/Luminous-Dynamics/symthaea/issues/7600) owns a source census, unit audit, and claim boundaries for existing plasma modules.
+- [FIELD-005 #3594](https://github.com/Luminous-Dynamics/symthaea/issues/3594) owns calibrated plasma diagnostic observations and measured/inferred separation.
+- [PLASMA-ACT-001 #7685](https://github.com/Luminous-Dynamics/symthaea/issues/7685) owns decision-aware multi-fidelity plasma experiment selection.
+
+**Important regime distinction:** the PNAS dusty-plasma particle-interaction study is not the same problem as an RF-CCP discharge, ideal MHD, kinetic PIC, or fusion plasma. Treat dusty/complex plasma as a separately declared, source-qualified profile. Do not route its particle-force inference through Zapdos or an RF-CCP adapter merely because both systems contain plasma.
+
+The PNAS 2025 comparator trained a physics-tailored model on 3D trajectories from real laboratory dusty plasma, reported \(R^2 > 0.99\) for the stated force-inference task, and independently inferred particle masses in two consistent ways. The paper's demonstrated result is physical interaction-law inference, not life detection or intelligence. Reproduce the physical result before using it as any substrate-life hypothesis input: https://doi.org/10.1073/pnas.2505725122
+
+### Symtropy biological and physical simulation
+
+- [Living World Cell #252](https://github.com/Luminous-Dynamics/symtropy/issues/252) remains the biological/ecological vertical slice.
+- [Ecological model-structure uncertainty #2244](https://github.com/Luminous-Dynamics/symtropy/issues/2244) owns uncertainty in ecological model structure.
+- [Planet-neutral bootstrap #1618](https://github.com/Luminous-Dynamics/symtropy/issues/1618) owns unknown-environment bootstrap semantics.
+- [Plasma twin #1685](https://github.com/Luminous-Dynamics/symtropy/issues/1685) is the relevant Symtropy plasma-twin integration seam.
+- [Permissive evidence boundary #1265](https://github.com/Luminous-Dynamics/symtropy/issues/1265) constrains dependency and identity boundaries.
+
+Do not treat the biological LifeSim \`Metabolism\` defaults (oxygen/hydration/temperature) as universal life variables. Do not replace the existing ecological authority with a new OLI simulator.
+
+### Mycelix provenance and rights
+
+Compose [CIVOS-EVIDENCE-001 #5709](https://github.com/Luminous-Dynamics/mycelix/issues/5709) for claim/source/derivation/rights receipts, append-only correction/dispute/supersession, consent, restricted knowledge, and multi-agent provenance validation. OLI must map into those existing identity/claim/rights primitives instead of creating a parallel evidence ledger.
+
+A Mycelix signature authenticates an attestation by its signer; it does not establish the truth of an underlying measurement or scientific claim. Preserve that distinction in every adapter.
+
+### Sol-Atlas spatial non-detection and evidence acquisition
+
+Compose [IEAC-VOI-001 #357](https://github.com/Luminous-Dynamics/sol-atlas-leptos/issues/357) for actionable evidence obligations, cost/freshness/source-independence constraints, and safe abstention. Reuse the spatial evidence foundations [#65](https://github.com/Luminous-Dynamics/sol-atlas-leptos/issues/65), [maritime atlas #115](https://github.com/Luminous-Dynamics/sol-atlas-leptos/issues/115), and [CCZ Commons Atlas #165](https://github.com/Luminous-Dynamics/sol-atlas-leptos/issues/165).
+
+The existing [HERITAGE-ABSENCE-001 #542](https://github.com/Luminous-Dynamics/sol-atlas-leptos/issues/542) is a useful methodological comparator: it decomposes non-detection into survival, exposure, observability, actual footprint coverage, and conditional detection. Its archaeological target model is not a biosignature model; only the conditional reasoning pattern is relevant. The OLI spatial adapter must define its own target persistence, environmental availability, instrument observability, sampled footprint, and conditional detector terms.
+
+### Integration rule
+
+Do not turn this RFC into an umbrella that replaces the existing owners. OLI owns the benchmark task definitions and cross-substrate acceptance criteria. Domain repositories retain their respective physical, cognitive, provenance/rights, and spatial authorities.
