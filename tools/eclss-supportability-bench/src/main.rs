@@ -14,6 +14,8 @@ const ISS_APPENDIX_SUPPLEMENT: &str =
     include_str!("../../../docs/research/eclss/fixtures/eclss-iss-appendix-supplement-v0_1.json");
 const AOGA_SCHEDULE: &str =
     include_str!("../../../docs/research/eclss/fixtures/eclss-aoga-schedule-snapshots-v0_1.json");
+const MAINTENANCE_PLAN_ADMISSIBILITY: &str =
+    include_str!("../../../docs/research/eclss/fixtures/eclss-maintenance-plan-admissibility-v0_1.json");
 
 type Check<T> = Result<T, String>;
 
@@ -870,6 +872,399 @@ fn validate_appendix_supplement(value: &Value) -> Check<Value> {
     }))
 }
 
+#[derive(Clone)]
+struct MaintenanceTask {
+    task_id: String,
+    start: u64,
+    end: u64,
+    worker_id: String,
+    tool_ids: Vec<String>,
+    spare_id: Option<String>,
+    dependencies: Vec<String>,
+}
+
+fn validate_maintenance_plan_admissibility(value: &Value) -> Check<Value> {
+    let at = "maintenance_plan_admissibility";
+    exact_keys(
+        value,
+        &[
+            "benchmark_id",
+            "contract_id",
+            "version",
+            "claim_status",
+            "unit_basis",
+            "cases",
+        ],
+        at,
+    )?;
+    require_eq(
+        text(field(value, "benchmark_id", at)?, "benchmark_id")?,
+        "ECLSS-SUPPORTABILITY-001",
+        at,
+    )?;
+    require_eq(
+        text(field(value, "contract_id", at)?, "contract_id")?,
+        "ECLSS-MAINTENANCE-PLAN-ADMISSIBILITY-001",
+        at,
+    )?;
+    require_eq(text(field(value, "version", at)?, "version")?, "0.1.0", at)?;
+    require_eq(
+        text(field(value, "claim_status", at)?, "claim_status")?,
+        "SYNTHETIC_ONLY",
+        at,
+    )?;
+    if !text(field(value, "unit_basis", at)?, "unit_basis")?.contains("integer") {
+        return Err(format!("{at}: unit basis must declare integer time/resource units"));
+    }
+
+    let cases = array(field(value, "cases", at)?, "cases")?;
+    require_eq(cases.len(), 13usize, "maintenance plan case count")?;
+    let expected_reasons = [
+        "NONE",
+        "SPARE_CONFIGURATION_MISMATCH",
+        "SPARE_EXPIRED",
+        "ISOLATION_NOT_VERIFIED",
+        "SERVICE_FLOOR_BREACH",
+        "WORKER_NOT_QUALIFIED",
+        "POST_REPAIR_TEST_MISSING_OR_STALE",
+        "WORKER_OR_TOOL_OVERLAP",
+        "SPARE_OVERALLOCATED",
+        "AUTHORITY_EXPIRED_OR_REVOKED",
+        "DEPENDENCY_ORDER_INVALID",
+        "TASK_OUTSIDE_MAINTENANCE_WINDOW",
+        "PROCEDURE_NOT_APPROVED",
+    ];
+    let mut accepted = 0usize;
+    let mut rejected = 0usize;
+    let mut reports = Vec::new();
+    let mut ids = std::collections::BTreeSet::new();
+
+    for (case_index, case) in cases.iter().enumerate() {
+        let case_at = format!("cases[{case_index}]");
+        exact_keys(
+            case,
+            &["case_id", "plan", "expected_disposition", "expected_reason"],
+            &case_at,
+        )?;
+        let case_id = text(field(case, "case_id", &case_at)?, "case_id")?;
+        let expected_id = format!("MPA-{:03}", case_index + 1);
+        require_eq(case_id, expected_id.as_str(), &case_at)?;
+        if !ids.insert(case_id) {
+            return Err(format!("{case_at}: duplicate case id"));
+        }
+        let expected_disposition =
+            text(field(case, "expected_disposition", &case_at)?, "expected_disposition")?;
+        let expected_reason = text(field(case, "expected_reason", &case_at)?, "expected_reason")?;
+        if !["ADMISSIBLE", "REJECTED"].contains(&expected_disposition)
+            || !expected_reasons.contains(&expected_reason)
+        {
+            return Err(format!("{case_at}: unknown expected disposition/reason"));
+        }
+
+        let plan = field(case, "plan", &case_at)?;
+        exact_keys(
+            plan,
+            &[
+                "plan_id",
+                "mission_window_end_minute",
+                "assets",
+                "workers",
+                "tools",
+                "procedures",
+                "spares",
+                "isolation_records",
+                "authorizations",
+                "tasks",
+            ],
+            &format!("{case_at}.plan"),
+        )?;
+        let plan_id = text(field(plan, "plan_id", &case_at)?, "plan_id")?.to_owned();
+        let window_end = integer(
+            field(plan, "mission_window_end_minute", &case_at)?,
+            "mission_window_end_minute",
+        )?;
+        let assets = array(field(plan, "assets", &case_at)?, "assets")?;
+        let workers = array(field(plan, "workers", &case_at)?, "workers")?;
+        let tools = array(field(plan, "tools", &case_at)?, "tools")?;
+        let procedures = array(field(plan, "procedures", &case_at)?, "procedures")?;
+        let spares = array(field(plan, "spares", &case_at)?, "spares")?;
+        let isolations = array(field(plan, "isolation_records", &case_at)?, "isolation_records")?;
+        let authorizations = array(field(plan, "authorizations", &case_at)?, "authorizations")?;
+        let tasks = array(field(plan, "tasks", &case_at)?, "tasks")?;
+        if tasks.is_empty() {
+            return Err(format!("{case_at}: at least one maintenance task is required"));
+        }
+
+        let mut computed_reason: Option<&'static str> = None;
+        macro_rules! reject {
+            ($condition:expr, $reason:expr) => {
+                if $condition && computed_reason.is_none() {
+                    computed_reason = Some($reason);
+                }
+            };
+        }
+        let mut task_records = Vec::<MaintenanceTask>::new();
+        let mut spare_demand = std::collections::BTreeMap::<String, usize>::new();
+
+        for (task_index, task) in tasks.iter().enumerate() {
+            let task_at = format!("{case_at}.plan.tasks[{task_index}]");
+            exact_keys(
+                task,
+                &[
+                    "task_id",
+                    "asset_id",
+                    "asset_revision",
+                    "procedure_id",
+                    "procedure_revision",
+                    "start_minute",
+                    "duration_minutes",
+                    "worker_id",
+                    "required_skill",
+                    "tool_ids",
+                    "spare_id",
+                    "isolation_evidence_id",
+                    "required_service_floor_bp",
+                    "service_capacity_during_bp",
+                    "authority_id",
+                    "post_test_id",
+                    "post_test_asset_revision",
+                    "post_test_status",
+                    "dependencies",
+                ],
+                &task_at,
+            )?;
+
+            let task_id = text(field(task, "task_id", &task_at)?, "task_id")?.to_owned();
+            let asset_id = text(field(task, "asset_id", &task_at)?, "asset_id")?;
+            let asset_revision = text(field(task, "asset_revision", &task_at)?, "asset_revision")?;
+            let procedure_id = text(field(task, "procedure_id", &task_at)?, "procedure_id")?;
+            let procedure_revision =
+                text(field(task, "procedure_revision", &task_at)?, "procedure_revision")?;
+            let start = integer(field(task, "start_minute", &task_at)?, "start_minute")?;
+            let duration = integer(
+                field(task, "duration_minutes", &task_at)?,
+                "duration_minutes",
+            )?;
+            if duration == 0 {
+                return Err(format!("{task_at}: duration must be positive"));
+            }
+            let end = start
+                .checked_add(duration)
+                .ok_or_else(|| format!("{task_at}: task end overflow"))?;
+            let worker_id = text(field(task, "worker_id", &task_at)?, "worker_id")?.to_owned();
+            let required_skill = text(field(task, "required_skill", &task_at)?, "required_skill")?;
+            let tool_ids = array(field(task, "tool_ids", &task_at)?, "tool_ids")?
+                .iter()
+                .map(|tool| text(tool, "tool_id").map(str::to_owned))
+                .collect::<Check<Vec<_>>>()?;
+            let spare_value = field(task, "spare_id", &task_at)?;
+            let spare_id = if spare_value.is_null() {
+                None
+            } else {
+                Some(text(spare_value, "spare_id")?.to_owned())
+            };
+            let isolation_id =
+                text(field(task, "isolation_evidence_id", &task_at)?, "isolation_evidence_id")?;
+            let floor = integer(
+                field(task, "required_service_floor_bp", &task_at)?,
+                "required_service_floor_bp",
+            )?;
+            let during_capacity = integer(
+                field(task, "service_capacity_during_bp", &task_at)?,
+                "service_capacity_during_bp",
+            )?;
+            let authority_id = text(field(task, "authority_id", &task_at)?, "authority_id")?;
+            let post_test_status =
+                text(field(task, "post_test_status", &task_at)?, "post_test_status")?;
+            let post_test_revision =
+                text(field(task, "post_test_asset_revision", &task_at)?, "post_test_asset_revision")?;
+            let dependencies = array(field(task, "dependencies", &task_at)?, "dependencies")?
+                .iter()
+                .map(|dep| text(dep, "dependency").map(str::to_owned))
+                .collect::<Check<Vec<_>>>()?;
+
+            let asset = assets
+                .iter()
+                .find(|asset| asset["asset_id"] == asset_id)
+                .ok_or_else(|| format!("{task_at}: referenced asset is missing"))?;
+            let installed_revision =
+                text(field(asset, "installed_revision", "asset")?, "installed_revision")?;
+            if installed_revision != asset_revision {
+                return Err(format!("{task_at}: task asset revision does not match installed asset"));
+            }
+
+            let procedure = procedures
+                .iter()
+                .find(|record| record["procedure_id"] == procedure_id)
+                .ok_or_else(|| format!("{task_at}: referenced procedure is missing"))?;
+            let procedure_is_valid = procedure["revision"] == procedure_revision
+                && procedure["approved"].as_bool() == Some(true)
+                && integer(&procedure["valid_through_minute"], "procedure.valid_through_minute")? >= end;
+            reject!(!procedure_is_valid, "PROCEDURE_NOT_APPROVED");
+
+            let worker = workers
+                .iter()
+                .find(|record| record["worker_id"] == worker_id)
+                .ok_or_else(|| format!("{task_at}: referenced worker is missing"))?;
+            let worker_has_skill = array(&worker["skills"], "worker.skills")?
+                .iter()
+                .any(|skill| skill.as_str() == Some(required_skill));
+            let worker_is_valid = worker["status"] == "CURRENT"
+                && worker_has_skill
+                && integer(&worker["valid_through_minute"], "worker.valid_through_minute")? >= end;
+            reject!(!worker_is_valid, "WORKER_NOT_QUALIFIED");
+
+            for tool_id in &tool_ids {
+                let tool = tools
+                    .iter()
+                    .find(|record| record["tool_id"] == tool_id.as_str())
+                    .ok_or_else(|| format!("{task_at}: referenced tool {tool_id} is missing"))?;
+                reject!(tool["status"] != "AVAILABLE", "WORKER_OR_TOOL_OVERLAP");
+            }
+
+            if let Some(spare_id) = &spare_id {
+                let spare = spares
+                    .iter()
+                    .find(|record| record["spare_id"] == spare_id.as_str())
+                    .ok_or_else(|| format!("{task_at}: referenced spare {spare_id} is missing"))?;
+                let compatible_assets = array(&spare["compatible_asset_ids"], "spare.compatible_asset_ids")?;
+                let config_matches = spare["qualified"].as_bool() == Some(true)
+                    && spare["compatible_revision"] == asset_revision
+                    && compatible_assets.iter().any(|id| id.as_str() == Some(asset_id));
+                reject!(!config_matches, "SPARE_CONFIGURATION_MISMATCH");
+                reject!(
+                    integer(&spare["expiry_minute"], "spare.expiry_minute")? < end,
+                    "SPARE_EXPIRED"
+                );
+                *spare_demand.entry(spare_id.clone()).or_default() += 1;
+            }
+
+            let isolation = isolations
+                .iter()
+                .find(|record| record["evidence_id"] == isolation_id)
+                .ok_or_else(|| format!("{task_at}: isolation evidence is missing"))?;
+            let isolation_is_valid = isolation["asset_id"] == asset_id
+                && isolation["asset_revision"] == asset_revision
+                && isolation["status"] == "VERIFIED"
+                && integer(&isolation["valid_through_minute"], "isolation.valid_through_minute")? >= end;
+            reject!(!isolation_is_valid, "ISOLATION_NOT_VERIFIED");
+
+            reject!(during_capacity < floor, "SERVICE_FLOOR_BREACH");
+
+            let authority = authorizations
+                .iter()
+                .find(|record| record["authority_id"] == authority_id)
+                .ok_or_else(|| format!("{task_at}: responsible authority record is missing"))?;
+            let authority_is_valid = authority["asset_id"] == asset_id
+                && authority["asset_revision"] == asset_revision
+                && authority["status"] == "APPROVED"
+                && integer(&authority["valid_through_minute"], "authority.valid_through_minute")? >= end;
+            reject!(!authority_is_valid, "AUTHORITY_EXPIRED_OR_REVOKED");
+
+            reject!(
+                post_test_status != "PASS" || post_test_revision != asset_revision,
+                "POST_REPAIR_TEST_MISSING_OR_STALE"
+            );
+            reject!(end > window_end, "TASK_OUTSIDE_MAINTENANCE_WINDOW");
+
+            task_records.push(MaintenanceTask {
+                task_id,
+                start,
+                end,
+                worker_id,
+                tool_ids,
+                spare_id,
+                dependencies,
+            });
+        }
+
+        for task in &task_records {
+            for dependency_id in &task.dependencies {
+                let dependency = task_records
+                    .iter()
+                    .find(|candidate| candidate.task_id == *dependency_id);
+                match dependency {
+                    Some(dependency) if dependency.end <= task.start => {}
+                    _ => reject!(true, "DEPENDENCY_ORDER_INVALID"),
+                }
+            }
+        }
+
+        for left_index in 0..task_records.len() {
+            for right_index in (left_index + 1)..task_records.len() {
+                let left = &task_records[left_index];
+                let right = &task_records[right_index];
+                let overlaps = left.start < right.end && right.start < left.end;
+                if !overlaps {
+                    continue;
+                }
+                reject!(left.worker_id == right.worker_id, "WORKER_OR_TOOL_OVERLAP");
+                for tool_id in &left.tool_ids {
+                    let is_exclusive = tools
+                        .iter()
+                        .find(|tool| tool["tool_id"] == tool_id.as_str())
+                        .map(|tool| tool["exclusive"].as_bool() == Some(true))
+                        .unwrap_or(false);
+                    if is_exclusive && right.tool_ids.contains(tool_id) {
+                        reject!(true, "WORKER_OR_TOOL_OVERLAP");
+                    }
+                }
+            }
+        }
+
+        for (spare_id, count) in spare_demand {
+            let spare = spares
+                .iter()
+                .find(|record| record["spare_id"] == spare_id.as_str())
+                .ok_or_else(|| format!("{case_at}: internal spare lookup failure"))?;
+            let available = integer(&spare["available_quantity"], "spare.available_quantity")?;
+            reject!(count as u64 > available, "SPARE_OVERALLOCATED");
+        }
+
+        let computed_reason = computed_reason.unwrap_or("NONE");
+        let computed_disposition = if computed_reason == "NONE" {
+            "ADMISSIBLE"
+        } else {
+            "REJECTED"
+        };
+        require_eq(
+            computed_disposition,
+            expected_disposition,
+            &format!("{case_at}.expected_disposition"),
+        )?;
+        require_eq(
+            computed_reason,
+            expected_reason,
+            &format!("{case_at}.expected_reason"),
+        )?;
+        if computed_disposition == "ADMISSIBLE" {
+            accepted += 1;
+        } else {
+            rejected += 1;
+        }
+        reports.push(json!({
+            "case_id": case_id,
+            "plan_id": plan_id,
+            "computed_disposition": computed_disposition,
+            "computed_reason": computed_reason,
+            "task_count": tasks.len(),
+            "note": "ADMISSIBLE is a structural evidence-contract result, not execution authorization."
+        }));
+    }
+
+    require_eq(accepted, 1usize, "maintenance plan admissible case count")?;
+    require_eq(rejected, 12usize, "maintenance plan rejected case count")?;
+    Ok(json!({
+        "contract_id": "ECLSS-MAINTENANCE-PLAN-ADMISSIBILITY-001",
+        "case_count": cases.len(),
+        "admissible": accepted,
+        "rejected": rejected,
+        "execution_authorized": false,
+        "claim_status": "SYNTHETIC_ONLY",
+        "case_results": reports
+    }))
+}
+
 fn validate_schedule(value: &Value) -> Check<Value> {
     let at = "aoga_schedule";
     exact_keys(
@@ -962,12 +1357,18 @@ fn validate_all() -> Check<Value> {
     let operational = parse_embedded("ISS operational cases", ISS_OPERATIONAL)?;
     let appendix_supplement = parse_embedded("ISS appendix supplement", ISS_APPENDIX_SUPPLEMENT)?;
     let schedule = parse_embedded("AOGA schedule", AOGA_SCHEDULE)?;
+    let maintenance_plan_admissibility = parse_embedded(
+        "maintenance plan admissibility",
+        MAINTENANCE_PLAN_ADMISSIBILITY,
+    )?;
 
     let synthetic_report = validate_synthetic(&synthetic)?;
     let reference_report = validate_public_reference(&public_reference)?;
     let operational_report = validate_operational_cases(&operational)?;
     let appendix_supplement_report = validate_appendix_supplement(&appendix_supplement)?;
     let schedule_report = validate_schedule(&schedule)?;
+    let maintenance_plan_report =
+        validate_maintenance_plan_admissibility(&maintenance_plan_admissibility)?;
 
     Ok(json!({
         "benchmark_id": "ECLSS-SUPPORTABILITY-001",
@@ -979,7 +1380,8 @@ fn validate_all() -> Check<Value> {
         "published_reference": reference_report,
         "published_operational_cases": operational_report,
         "published_appendix_supplement": appendix_supplement_report,
-        "programme_schedule": schedule_report
+        "programme_schedule": schedule_report,
+        "maintenance_plan_admissibility": maintenance_plan_report
     }))
 }
 
@@ -1040,6 +1442,27 @@ mod tests {
         assert_eq!(
             report["published_appendix_supplement"]["combined_crew_task_records"],
             41
+        );
+    }
+
+    #[test]
+    fn maintenance_plan_admissibility_rejects_all_seeded_negative_controls() {
+        let report = validate_all().expect("maintenance plan cases must independently validate");
+        assert_eq!(
+            report["maintenance_plan_admissibility"]["case_count"],
+            13
+        );
+        assert_eq!(
+            report["maintenance_plan_admissibility"]["admissible"],
+            1
+        );
+        assert_eq!(
+            report["maintenance_plan_admissibility"]["rejected"],
+            12
+        );
+        assert_eq!(
+            report["maintenance_plan_admissibility"]["execution_authorized"],
+            false
         );
     }
 
