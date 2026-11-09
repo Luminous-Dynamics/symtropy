@@ -32,23 +32,21 @@ jobs:
           rustc --version --verbose
           cargo --version
 
-      - name: Generate initial dependency lock for source capture
-        run: cargo generate-lockfile --manifest-path tools/civil-aero-benchmark/inspection-observability/Cargo.toml
-
       - name: Check Rust formatting
         run: cargo fmt --manifest-path tools/civil-aero-benchmark/inspection-observability/Cargo.toml -- --check
 
       - name: Run known-answer and hostile tests
-        run: cargo test --manifest-path tools/civil-aero-benchmark/inspection-observability/Cargo.toml
+        run: cargo test --locked --manifest-path tools/civil-aero-benchmark/inspection-observability/Cargo.toml
 
       - name: Run Rust observability evaluator
-        run: cargo run --quiet --manifest-path tools/civil-aero-benchmark/inspection-observability/Cargo.toml > inspection-observability-result.json
+        run: cargo run --locked --quiet --manifest-path tools/civil-aero-benchmark/inspection-observability/Cargo.toml > inspection-observability-result.json
 
       - name: Independently recompute rank, Fisher information and selections in Python
         run: python3 tools/civil-aero-benchmark/inspection-observability/verify_independent.py --rust-output inspection-observability-result.json
 
       - name: Create source and output digest receipts
         run: |
+          sha256sum tools/civil-aero-benchmark/inspection-observability/Cargo.lock > inspection-observability-lock.sha256
           sha256sum tools/civil-aero-benchmark/inspection-observability/fixtures/known-answer-observability-v0.1.json > inspection-observability-source.sha256
           sha256sum inspection-observability-result.json > inspection-observability-result.sha256
 
@@ -60,6 +58,7 @@ jobs:
             tools/civil-aero-benchmark/inspection-observability/Cargo.lock
             tools/civil-aero-benchmark/inspection-observability/fixtures/known-answer-observability-v0.1.json
             inspection-observability-result.json
+            inspection-observability-lock.sha256
             inspection-observability-source.sha256
             inspection-observability-result.sha256
           if-no-files-found: error
