@@ -302,30 +302,64 @@ pub struct ModelSetDecisionReport {
 #[derive(Debug, Clone, PartialEq)]
 pub enum ModelSetError {
     InvalidManifest,
-    DuplicateModel { model_id: String },
-    DuplicateCase { case_id: String },
-    DuplicatePolicy { policy_id: String },
-    DuplicateMetric { metric_id: String },
+    DuplicateModel {
+        model_id: String,
+    },
+    DuplicateCase {
+        case_id: String,
+    },
+    DuplicatePolicy {
+        policy_id: String,
+    },
+    DuplicateMetric {
+        metric_id: String,
+    },
     MissingObjective,
     MissingHardConstraint,
-    InvalidMetric { metric_id: String },
-    InvalidConstraintThreshold { metric_id: String, threshold: f64 },
-    UnknownModel { model_id: String },
-    UnknownCase { case_id: String },
-    UnknownPolicy { policy_id: String },
+    InvalidMetric {
+        metric_id: String,
+    },
+    InvalidConstraintThreshold {
+        metric_id: String,
+        threshold: f64,
+    },
+    UnknownModel {
+        model_id: String,
+    },
+    UnknownCase {
+        case_id: String,
+    },
+    UnknownPolicy {
+        policy_id: String,
+    },
     DuplicateOutcome {
         model_id: String,
         case_id: String,
         policy_id: String,
     },
-    ModelDigestMismatch { model_id: String },
-    CaseDigestMismatch { case_id: String },
-    PolicyDigestMismatch { policy_id: String },
+    ModelDigestMismatch {
+        model_id: String,
+    },
+    CaseDigestMismatch {
+        case_id: String,
+    },
+    PolicyDigestMismatch {
+        policy_id: String,
+    },
     EmptyOutcomeDigest,
-    UnknownMetric { metric_id: String },
-    DuplicateMetricValue { metric_id: String },
-    MetricUnitMismatch { metric_id: String },
-    NonFiniteMetricValue { metric_id: String, value: f64 },
+    UnknownMetric {
+        metric_id: String,
+    },
+    DuplicateMetricValue {
+        metric_id: String,
+    },
+    MetricUnitMismatch {
+        metric_id: String,
+    },
+    NonFiniteMetricValue {
+        metric_id: String,
+        value: f64,
+    },
 }
 
 impl fmt::Display for ModelSetError {
@@ -466,21 +500,23 @@ pub fn analyze_model_set_decisions(
 
     let mut rows = BTreeMap::<(String, String, String), &ModelPolicyOutcome>::new();
     for outcome in outcomes {
-        let model = models
-            .get(outcome.model_id.as_str())
-            .ok_or_else(|| ModelSetError::UnknownModel {
-                model_id: outcome.model_id.clone(),
-            })?;
-        let case = cases
-            .get(outcome.case_id.as_str())
-            .ok_or_else(|| ModelSetError::UnknownCase {
-                case_id: outcome.case_id.clone(),
-            })?;
-        let policy = policies
-            .get(outcome.policy_id.as_str())
-            .ok_or_else(|| ModelSetError::UnknownPolicy {
+        let model =
+            models
+                .get(outcome.model_id.as_str())
+                .ok_or_else(|| ModelSetError::UnknownModel {
+                    model_id: outcome.model_id.clone(),
+                })?;
+        let case =
+            cases
+                .get(outcome.case_id.as_str())
+                .ok_or_else(|| ModelSetError::UnknownCase {
+                    case_id: outcome.case_id.clone(),
+                })?;
+        let policy = policies.get(outcome.policy_id.as_str()).ok_or_else(|| {
+            ModelSetError::UnknownPolicy {
                 policy_id: outcome.policy_id.clone(),
-            })?;
+            }
+        })?;
 
         if outcome.model_digest != model.model_digest {
             return Err(ModelSetError::ModelDigestMismatch {
@@ -503,11 +539,11 @@ pub fn analyze_model_set_decisions(
 
         let mut seen_metrics = BTreeSet::new();
         for value in &outcome.values {
-            let spec = metrics
-                .get(value.metric_id.as_str())
-                .ok_or_else(|| ModelSetError::UnknownMetric {
+            let spec = metrics.get(value.metric_id.as_str()).ok_or_else(|| {
+                ModelSetError::UnknownMetric {
                     metric_id: value.metric_id.clone(),
-                })?;
+                }
+            })?;
             if !seen_metrics.insert(value.metric_id.as_str()) {
                 return Err(ModelSetError::DuplicateMetricValue {
                     metric_id: value.metric_id.clone(),
@@ -657,8 +693,9 @@ pub fn analyze_model_set_decisions(
                 .iter()
                 .map(|(_, outcome)| constraint_status(*outcome, &manifest.metrics))
                 .collect::<Vec<_>>();
-            let constraint_unknown =
-                statuses.iter().any(|status| *status == FeasibilityStatus::Unknown);
+            let constraint_unknown = statuses
+                .iter()
+                .any(|status| *status == FeasibilityStatus::Unknown);
             let feasible_policy_indices = statuses
                 .iter()
                 .enumerate()
@@ -795,8 +832,7 @@ pub fn analyze_model_set_decisions(
             current.unwrap_or_default()
         };
         let expected_model_case_count = eligible_models.len() * manifest.cases.len();
-        let complete = expected_model_case_count > 0
-            && assessed == expected_model_case_count;
+        let complete = expected_model_case_count > 0 && assessed == expected_model_case_count;
         let best_policy_stable_across_all_model_cases =
             complete.then_some(!intersection.is_empty());
 
@@ -830,11 +866,13 @@ pub fn analyze_model_set_decisions(
                         unknown_count += 1;
                         continue;
                     }
-                    let outcome = rows.get(&(
-                        assessment.model_id.clone(),
-                        assessment.case_id.clone(),
-                        policy.policy_id.clone(),
-                    )).copied();
+                    let outcome = rows
+                        .get(&(
+                            assessment.model_id.clone(),
+                            assessment.case_id.clone(),
+                            policy.policy_id.clone(),
+                        ))
+                        .copied();
                     let value = metric_value(outcome, &objective.metric_id);
                     let Some(value) = value else {
                         unknown_count += 1;
@@ -866,9 +904,8 @@ pub fn analyze_model_set_decisions(
                 expected_model_case_count,
                 assessed_model_case_count: regrets.len(),
                 unknown_model_case_count: unknown_count,
-                mean_regret: complete_regret.then(|| {
-                    regrets.iter().sum::<f64>() / regrets.len() as f64
-                }),
+                mean_regret: complete_regret
+                    .then(|| regrets.iter().sum::<f64>() / regrets.len() as f64),
                 worst_case_regret: complete_regret.then_some(worst_value),
                 worst_case_model_id: complete_regret.then_some(worst_model_id).flatten(),
             });
@@ -1170,7 +1207,10 @@ mod tests {
         let report = analyze_model_set_decisions(&manifest(), &complete_outcomes()).unwrap();
         let stability = &report.objective_stability[0];
         assert_eq!(stability.distinct_winner_policy_count, 2);
-        assert_eq!(stability.best_policy_stable_across_all_model_cases, Some(false));
+        assert_eq!(
+            stability.best_policy_stable_across_all_model_cases,
+            Some(false)
+        );
         assert!(stability.best_policy_intersection.is_empty());
 
         let reserve = report
@@ -1200,7 +1240,11 @@ mod tests {
                 && row.policy_id == "reserve")
         });
         let report = analyze_model_set_decisions(&manifest(), &rows).unwrap();
-        assert!(report.objective_stability[0].best_policy_stable_across_all_model_cases.is_none());
+        assert!(
+            report.objective_stability[0]
+                .best_policy_stable_across_all_model_cases
+                .is_none()
+        );
         assert!(report.minimax_regret[0].minimum_worst_case_regret.is_none());
         assert!(report.policy_robust_feasibility.iter().any(|row| {
             row.policy_id == "reserve" && row.feasible_across_qualified_models.is_none()
@@ -1216,12 +1260,18 @@ mod tests {
         let report = analyze_model_set_decisions(&candidate, &complete_outcomes()).unwrap();
         assert_eq!(report.coverage, ModelSetCoverage::NoQualifiedModels);
         assert_eq!(report.qualified_model_count, 0);
-        assert!(report.policy_robust_feasibility.iter().all(|row| {
-            row.feasible_across_qualified_models.is_none()
-        }));
-        assert!(report.minimax_regret.iter().all(|row| {
-            row.minimum_worst_case_regret.is_none()
-        }));
+        assert!(
+            report
+                .policy_robust_feasibility
+                .iter()
+                .all(|row| { row.feasible_across_qualified_models.is_none() })
+        );
+        assert!(
+            report
+                .minimax_regret
+                .iter()
+                .all(|row| { row.minimum_worst_case_regret.is_none() })
+        );
     }
 
     #[test]
