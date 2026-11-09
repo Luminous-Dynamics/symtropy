@@ -47,6 +47,10 @@ The locked answer is:
 
 This fixture is constructed solely to test known-answer arithmetic and deterministic selection. Its sensor sensitivities, variances and parameter scales are not physical CRM or AER-01 values.
 
+## Reproducible toolchain inputs
+
+Direct Rust dependencies are pinned in Cargo.toml and the complete resolved dependency graph is committed in Cargo.lock. CI uses Cargo's --locked mode for tests and execution, so dependency resolution may not silently mutate the lockfile. The lockfile SHA-256 is included in the retained evidence bundle.
+
 ## Deliberate v0.1 boundaries
 
 - Only a synthetic local linear observation model is admitted.
@@ -63,8 +67,8 @@ This fixture is constructed solely to test known-answer arithmetic and determini
 From the repository root:
 
     cargo fmt --manifest-path tools/civil-aero-benchmark/inspection-observability/Cargo.toml -- --check
-    cargo test --manifest-path tools/civil-aero-benchmark/inspection-observability/Cargo.toml
-    cargo run --quiet --manifest-path tools/civil-aero-benchmark/inspection-observability/Cargo.toml > /tmp/observability-result.json
+    cargo test --locked --manifest-path tools/civil-aero-benchmark/inspection-observability/Cargo.toml
+    cargo run --locked --quiet --manifest-path tools/civil-aero-benchmark/inspection-observability/Cargo.toml > /tmp/observability-result.json
     python3 tools/civil-aero-benchmark/inspection-observability/verify_independent.py --rust-output /tmp/observability-result.json
 
 The Python verifier uses only the standard library and independently recomputes all six subsets, ranks, Fisher matrices, eigenvalues and selection results. It does not import Rust output-generation code.
