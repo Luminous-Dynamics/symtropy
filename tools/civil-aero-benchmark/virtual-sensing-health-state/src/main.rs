@@ -638,6 +638,34 @@ mod tests {
     }
 
     #[test]
+    fn witness_must_bind_the_suspected_channel_and_independent_evidence_digest() {
+        let mut data = fixture();
+        let hf = data
+            .cases
+            .iter_mut()
+            .find(|case| case.case_id == "HF_HEALTHY_STRUCTURE_FAULTY_SENSOR")
+            .unwrap();
+        hf.sensor_fault_witnesses[0].sensor_id = "S1".to_owned();
+        let report = evaluate(&data, FIXTURE).unwrap();
+        let result = report
+            .cases
+            .iter()
+            .find(|case| case.case_id == "HF_HEALTHY_STRUCTURE_FAULTY_SENSOR")
+            .unwrap();
+        assert_eq!(result.disposition, "ABSTAIN_SENSOR_FAULT_UNCONFIRMED");
+        assert!(result.model_imputed_values.is_none());
+
+        let mut data = fixture();
+        let hf = data
+            .cases
+            .iter_mut()
+            .find(|case| case.case_id == "HF_HEALTHY_STRUCTURE_FAULTY_SENSOR")
+            .unwrap();
+        hf.sensor_fault_witnesses[0].evidence_sha256 = Some("bad".to_owned());
+        assert!(validate_fixture(&data).is_err());
+    }
+
+    #[test]
     fn invalid_operator_digest_or_weakened_damage_guard_rejects_fixture() {
         let mut data = fixture();
         data.channels[0].operator_sha256 = "invalid".to_owned();
