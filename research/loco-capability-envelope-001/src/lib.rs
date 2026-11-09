@@ -175,14 +175,8 @@ fn success_rate_increases(
     lower: &LevelSuccess,
     higher: &LevelSuccess,
 ) -> Result<bool, CapabilityError> {
-    let left = checked_mul_u128(
-        u128::from(lower.successes),
-        u128::from(higher.trials),
-    )?;
-    let right = checked_mul_u128(
-        u128::from(higher.successes),
-        u128::from(lower.trials),
-    )?;
+    let left = checked_mul_u128(u128::from(lower.successes), u128::from(higher.trials))?;
+    let right = checked_mul_u128(u128::from(higher.successes), u128::from(lower.trials))?;
     Ok(right > left)
 }
 
@@ -337,13 +331,12 @@ fn average_rank_by_level(
             episode.level_id.as_str(),
             checked_add_i128(sum, i128::from(episode.reward_units))?,
         );
-        let count = counts
-            .get(episode.level_id.as_str())
-            .copied()
-            .unwrap_or(0);
+        let count = counts.get(episode.level_id.as_str()).copied().unwrap_or(0);
         counts.insert(
             episode.level_id.as_str(),
-            count.checked_add(1).ok_or(CapabilityError::ArithmeticOverflow)?,
+            count
+                .checked_add(1)
+                .ok_or(CapabilityError::ArithmeticOverflow)?,
         );
     }
 
@@ -398,7 +391,10 @@ fn lower_tail_report(
         .iter()
         .map(|episode| episode.level_id.as_str())
         .collect();
-    if selected.iter().any(|level| !score_levels.contains(level.as_str())) {
+    if selected
+        .iter()
+        .any(|level| !score_levels.contains(level.as_str()))
+    {
         return Err(CapabilityError::MissingScoreLevel);
     }
 
@@ -410,15 +406,12 @@ fn lower_tail_report(
 
     let scoring_episode_count = score_values.len();
     let numerator = checked_mul_u128(
-        u128::try_from(scoring_episode_count)
-            .map_err(|_| CapabilityError::ArithmeticOverflow)?,
+        u128::try_from(scoring_episode_count).map_err(|_| CapabilityError::ArithmeticOverflow)?,
         u128::from(tail_fraction_ppm),
     )?;
-    let tail_episode_count = usize::try_from(
-        numerator.div_ceil(u128::from(PPM_SCALE)),
-    )
-    .map_err(|_| CapabilityError::ArithmeticOverflow)?
-    .max(1);
+    let tail_episode_count = usize::try_from(numerator.div_ceil(u128::from(PPM_SCALE)))
+        .map_err(|_| CapabilityError::ArithmeticOverflow)?
+        .max(1);
 
     let mut tail_sum = 0_i128;
     for episode in score_values.iter().take(tail_episode_count) {
@@ -441,9 +434,7 @@ fn lower_tail_report(
 
 /// Cross-fitted lower-tail score: the level ranking pass and tail-scoring pass
 /// are disjoint, and the two roles are reversed for the second fold.
-pub fn cross_fitted_cvar25(
-    problem: &CrossFitProblem,
-) -> Result<CrossFitReport, CapabilityError> {
+pub fn cross_fitted_cvar25(problem: &CrossFitProblem) -> Result<CrossFitReport, CapabilityError> {
     let identifiers = [
         problem.manifest_digest.as_str(),
         problem.morphology_digest.as_str(),
@@ -493,9 +484,11 @@ pub fn cross_fitted_cvar25(
     }
 
     let rank_a_ids = validate_episode_split(&problem.rank_a_split_id, &problem.rank_a, &heldout)?;
-    let score_a_ids = validate_episode_split(&problem.score_a_split_id, &problem.score_a, &heldout)?;
+    let score_a_ids =
+        validate_episode_split(&problem.score_a_split_id, &problem.score_a, &heldout)?;
     let rank_b_ids = validate_episode_split(&problem.rank_b_split_id, &problem.rank_b, &heldout)?;
-    let score_b_ids = validate_episode_split(&problem.score_b_split_id, &problem.score_b, &heldout)?;
+    let score_b_ids =
+        validate_episode_split(&problem.score_b_split_id, &problem.score_b, &heldout)?;
 
     if !rank_a_ids.is_disjoint(&score_b_ids)
         || !rank_b_ids.is_disjoint(&score_a_ids)
@@ -684,7 +677,10 @@ mod tests {
             levels: vec![level(5, 9, 10), level(10, 8, 10)],
         })
         .expect("right censored");
-        assert_eq!(report.censoring, Some(EnvelopeCensoring::AllTestedLevelsPass));
+        assert_eq!(
+            report.censoring,
+            Some(EnvelopeCensoring::AllTestedLevelsPass)
+        );
         assert_eq!(report.largest_tested_passing_level, Some(10));
         assert_eq!(report.smallest_tested_failing_level, None);
     }
@@ -697,7 +693,10 @@ mod tests {
             levels: vec![level(5, 3, 10), level(10, 1, 10)],
         })
         .expect("left censored");
-        assert_eq!(report.censoring, Some(EnvelopeCensoring::AllTestedLevelsFail));
+        assert_eq!(
+            report.censoring,
+            Some(EnvelopeCensoring::AllTestedLevelsFail)
+        );
         assert_eq!(report.largest_tested_passing_level, None);
         assert_eq!(report.smallest_tested_failing_level, Some(5));
     }
@@ -709,14 +708,11 @@ mod tests {
             report.fold_rank_a_score_b.selected_level_ids,
             vec!["level-c".to_owned(), "level-d".to_owned()]
         );
+        assert_eq!(report.fold_rank_a_score_b.tail_reward_sum, 10);
         assert_eq!(
-            report.fold_rank_a_score_b.tail_reward_sum,
-            10
+            report.fold_rank_b_score_a.selected_level_ids,
+            vec!["level-a".to_owned(), "level-b".to_owned()]
         );
-        assert_eq!(report.fold_rank_b_score_a.selected_level_ids, vec![
-            "level-a".to_owned(),
-            "level-b".to_owned()
-        ]);
         assert_eq!(report.fold_rank_b_score_a.tail_reward_sum, -20);
         assert_eq!(report.combined_cvar_numerator, -10);
         assert_eq!(report.combined_cvar_denominator, 2);
