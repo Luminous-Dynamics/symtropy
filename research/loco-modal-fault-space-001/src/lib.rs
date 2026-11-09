@@ -324,7 +324,7 @@ fn canonicalize_problem(
 
     let mut group_ids = BTreeSet::new();
     let mut receipt_ids = BTreeSet::new();
-    let mut membership = BTreeMap::<&str, usize>::new();
+    let mut membership = BTreeMap::<String, usize>::new();
     let mut groups = problem.groups.clone();
     let mut canonical_relations = BTreeMap::new();
 
@@ -363,9 +363,9 @@ fn canonicalize_problem(
             if component.common_cause_group_id != group.group_id {
                 return Err(FaultSpaceError::ComponentGroupMismatch);
             }
-            let count = membership.get(component_id.as_str()).copied().unwrap_or(0);
+            let count = membership.get(component_id).copied().unwrap_or(0);
             membership.insert(
-                component_id.as_str(),
+                component_id.clone(),
                 count
                     .checked_add(1)
                     .ok_or(FaultSpaceError::ProductOverflow)?,
@@ -394,7 +394,7 @@ fn canonicalize_problem(
     }
 
     for component_id in components.keys() {
-        match membership.get(component_id).copied().unwrap_or(0) {
+        match membership.get(*component_id).copied().unwrap_or(0) {
             0 => return Err(FaultSpaceError::ComponentMissingFromGroups),
             1 => {}
             _ => return Err(FaultSpaceError::ComponentInMultipleGroups),
@@ -784,9 +784,8 @@ mod tests {
     #[test]
     fn duplicate_joint_tuple_is_rejected() {
         let mut problem = camera_pair_problem();
-        problem.groups[0]
-            .allowed_joint_tuples
-            .push(problem.groups[0].allowed_joint_tuples[0].clone());
+        let duplicate = problem.groups[0].allowed_joint_tuples[0].clone();
+        problem.groups[0].allowed_joint_tuples.push(duplicate);
         assert_eq!(
             enumerate_fault_envelope(&problem),
             Err(FaultSpaceError::DuplicateJointTuple)
