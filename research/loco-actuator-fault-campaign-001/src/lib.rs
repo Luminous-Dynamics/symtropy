@@ -991,6 +991,20 @@ mod tests {
         }
     }
 
+    fn family_distribution(entries: &[(FaultFamily, u32)]) -> Vec<FaultProbability> {
+        FaultFamily::ALL
+            .iter()
+            .map(|family| FaultProbability {
+                family: *family,
+                probability_ppm: entries
+                    .iter()
+                    .find(|(entry_family, _)| entry_family == family)
+                    .map(|(_, probability)| *probability)
+                    .unwrap_or(0),
+            })
+            .collect()
+    }
+
     fn policy(id: &str, oracle: bool, deployment_truth: bool) -> PolicyDescriptor {
         PolicyDescriptor {
             policy_id: id.to_owned(),
@@ -1045,6 +1059,8 @@ mod tests {
             detected: DetectionResult::Detected {
                 inferred_family: family,
                 plausible_families: vec![family],
+                family_probabilities: family_distribution(&[(family, 900_000)]),
+                unknown_probability_ppm: 100_000,
                 latency_ms: 10,
                 confidence_ppm: 900_000,
                 severity_estimate_ppm: Some(500_000),
@@ -1222,6 +1238,8 @@ mod tests {
         input.trials[0].detected = DetectionResult::Unknown {
             reason: "slip and torque-loss hypotheses overlap".to_owned(),
             plausible_families: vec![FaultFamily::JointLocked],
+            family_probabilities: family_distribution(&[(FaultFamily::JointLocked, 600_000)]),
+            unknown_probability_ppm: 400_000,
         };
         let report = audit_fault_benchmark(&input).expect("unknown diagnosis preserved");
         let locked = report
@@ -1241,6 +1259,11 @@ mod tests {
         input.trials[0].detected = DetectionResult::Detected {
             inferred_family: FaultFamily::TorqueDerating,
             plausible_families: vec![FaultFamily::JointLocked, FaultFamily::TorqueDerating],
+            family_probabilities: family_distribution(&[
+                (FaultFamily::TorqueDerating, 800_000),
+                (FaultFamily::JointLocked, 200_000),
+            ]),
+            unknown_probability_ppm: 0,
             latency_ms: 10,
             confidence_ppm: 800_000,
             severity_estimate_ppm: None,
@@ -1296,6 +1319,8 @@ mod tests {
         input.trials[0].detected = DetectionResult::Detected {
             inferred_family: FaultFamily::JointLocked,
             plausible_families: vec![FaultFamily::JointLocked, FaultFamily::JointLocked],
+            family_probabilities: family_distribution(&[(FaultFamily::JointLocked, 900_000)]),
+            unknown_probability_ppm: 100_000,
             latency_ms: 10,
             confidence_ppm: 900_000,
             severity_estimate_ppm: None,
@@ -1313,6 +1338,8 @@ mod tests {
         input.trials[0].detected = DetectionResult::Detected {
             inferred_family: FaultFamily::JointLocked,
             plausible_families: vec![FaultFamily::JointLocked],
+            family_probabilities: family_distribution(&[(FaultFamily::JointLocked, 900_000)]),
+            unknown_probability_ppm: 100_000,
             latency_ms: 25,
             confidence_ppm: 900_000,
             severity_estimate_ppm: Some(500_000),
@@ -1383,6 +1410,8 @@ mod tests {
         input.trials[0].detected = DetectionResult::Detected {
             inferred_family: FaultFamily::JointLocked,
             plausible_families: vec![FaultFamily::JointLocked],
+            family_probabilities: family_distribution(&[(FaultFamily::JointLocked, 900_000)]),
+            unknown_probability_ppm: 100_000,
             latency_ms: 10,
             confidence_ppm: 900_000,
             severity_estimate_ppm: Some(800_000),
