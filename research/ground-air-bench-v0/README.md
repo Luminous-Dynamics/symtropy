@@ -111,3 +111,13 @@ Do not pool accelerated, bench and field exposures. A right-censored component i
 The schema includes a conditional CAPABILITY_PROFILE receipt role, an INTEROPERABILITY metric lane and a CAPABILITY_PROFILE_MATCHER policy baseline for #4307 / PR #4309. This reference describes static, issuer-authored support for a specific receiver revision, geometry, frame, motion state, environment and session mode.
 
 ESCP matching does not prove physical compatibility, receipt-byte authenticity or operational permission. GroundAirBench remains responsible for composing the profile digest with episode-specific observability, protection, authorization, metrology, site and session receipts. Capability profiles are declarations; the evidence references carry the qualification scope and validity.
+
+
+## Non-anticipative mission replenishment policies
+
+The schema now includes a conditional MISSION_RECOURSE_POLICY receipt role and MISSION_RECOURSE metric lane for #4317 / PR #4318. The baseline policy names distinguish:
+- OPEN_LOOP_ROBUST_REPLENISHMENT: one common action regardless of observations;
+- OBSERVATION_CONDITIONED_RECOURSE: actions may differ only after declared, actually observable distinctions;
+- PERFECT_INFORMATION_UPPER_BOUND_NON_DEPLOYABLE: optimistic hidden-scenario oracle, never an admissible operational policy.
+
+A GroundAirBench result must preserve the scenario-set digest, observation partition, non-anticipativity rule, stage action mapping, per-scenario constraints and explicit scenario coverage limitations. Scenario counts are not probabilities. The perfect-information benchmark must never be promoted to a policy receipt that grants authority.
