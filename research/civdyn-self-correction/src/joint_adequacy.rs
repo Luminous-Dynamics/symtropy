@@ -758,6 +758,7 @@ mod tests {
                 model_digest: format!("model-{set}"),
                 draw_set_digest: set.to_string(),
                 calibration_data_digest: Some("sha256-calibration".to_string()),
+                split_manifest_digest: "sha256-manifest".to_string(),
                 components: (0..3)
                     .map(|position| JointComponentValue {
                         component_id: format!("tick-{position}"),
