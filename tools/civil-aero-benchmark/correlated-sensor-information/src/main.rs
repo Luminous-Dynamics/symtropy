@@ -1062,6 +1062,14 @@ mod tests {
     }
 
     #[test]
+    fn minimum_cost_selector_abstains_when_information_floor_is_unreachable() {
+        let mut fixture = fixture_value();
+        fixture.constraints.minimum_robust_minimum_eigenvalue = 1.0e9;
+        let result = audit(&fixture, FIXTURE).expect("otherwise valid fixture must audit");
+        assert!(result.cost_constrained_robust.is_none());
+    }
+
+    #[test]
     fn full_covariance_changes_e_optimal_sensor_pair() {
         let fixture = fixture_value();
         let diagonal = select_e_opt(&fixture, true).unwrap();
