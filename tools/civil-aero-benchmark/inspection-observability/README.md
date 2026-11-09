@@ -104,6 +104,44 @@ From the repository root:
 
 The Python verifiers use only the standard library and independently recompute their respective finite corpora. They do not import Rust output-generation code.
 
+
+## Correlated observation follow-on v0.1
+
+The Rust binary src/bin/correlated_observability.rs adds a separate exact Tier-0 evaluator for a full channel covariance matrix. It computes the selected-subset Fisher information without explicitly forming the covariance inverse:
+
+    F = H_normalized^T R^-1 H_normalized
+
+The implementation factors each selected covariance principal submatrix with Cholesky and solves the two right-hand sides. It does not add diagonal loading, jitter, or another regularizer to make a singular covariance pass.
+
+The covariance contract binds:
+- a covariance ID and explicit provenance status;
+- an exact channel_ids vector that must match the sensor records and matrix row/column ordering;
+- an explicit covariance unit;
+- a finite, symmetric, positive-definite covariance matrix;
+- canonical sorted sensor/channel IDs and exact input SHA-256.
+
+Unknown, duplicated, missing or reordered channel identities are rejected. Symmetry and positive definiteness are independently validated before subset evaluation.
+
+### Frozen synthetic known answer
+
+Six channels and four selected sensors produce 15 exhaustive candidate subsets. The full covariance contains within-pair and cross-pair correlations. The correct full-covariance selections are:
+- D-optimum: S_A + S_C + S_E + S_F, log determinant approximately 4.70110192279;
+- E-optimum: S_A + S_B + S_E + S_F, minimum eigenvalue approximately 8.54291148344.
+
+The diagonal-only assumption baseline deliberately discards the off-diagonal covariance entries:
+- diagonal-assumption D-optimum: S_A + S_B + S_C + S_D;
+- diagonal-assumption E-optimum: S_A + S_B + S_C + S_D.
+
+The different answers are the frozen negative control: when measurement channels are correlated, treating them as independent can overvalue redundant channels and alter sensor-placement choices. D- and E-optimality also differ under the full covariance. These are fixture-specific synthetic results, not measured AER-01 values.
+
+The independent Python verifier recomputes every subset from the selected covariance principal submatrix, checks the full Fisher matrices and D/E selections, and compares the entire Rust report. Hostile controls include covariance channel-order mismatch, nonsymmetry, non-positive-definiteness, dimension mismatch and rank deficiency.
+
+### Exact scope and limitations
+
+This is a local linear, two-parameter, synthetic covariance oracle. It does not estimate covariance from physical data, address nonstationarity, temporal correlation, frequency-dependent noise, missingness, calibration uncertainty, covariance estimation error, or covariance shift. The declared covariance provenance is deliberately limited to synthetic_fixture_known_answer; changing it to an experimental source is rejected by v0.1. A future source-admitted covariance must bind the acquisition campaign, channel calibration, preprocessing, sampling, units, time interval, estimator, sample count, missing-data policy and uncertainty in the covariance estimate.
+
+Full-rank Fisher information still does not establish physical defect detectability, POD, sensor reliability or aircraft safety.
+
 ## Next qualification steps
 
 1. Add full covariance only with exact channel identity/order, calibration, units and source-bound covariance provenance.
