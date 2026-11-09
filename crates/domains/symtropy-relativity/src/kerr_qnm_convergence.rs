@@ -1187,6 +1187,101 @@ mod tests {
     }
 
     #[test]
+    fn kerr_source_history_rejects_reversed_and_duplicate_event_times() {
+        let reference = KerrOpticalReference::new(hole(0.7)).unwrap();
+        let rg = reference.gravitational_radius_m;
+        let reversed = [
+            KerrQnmSourceEvent {
+                coordinate_time_s: 1.0,
+                radius_m: 3.0 * rg,
+            },
+            KerrQnmSourceEvent {
+                coordinate_time_s: 0.5,
+                radius_m: 3.1 * rg,
+            },
+        ];
+        assert!(matches!(
+            reference.classify_source_events(2.0, 4.0 * rg, &reversed, 1.0e-8 * rg),
+            Err(KerrOpticalError::SourceEventsNotStrictlyChronological {
+                index: 1,
+                previous_time_s: 1.0,
+                source_time_s: 0.5,
+            })
+        ));
+
+        let duplicate = [
+            KerrQnmSourceEvent {
+                coordinate_time_s: 1.0,
+                radius_m: 3.0 * rg,
+            },
+            KerrQnmSourceEvent {
+                coordinate_time_s: 1.0,
+                radius_m: 3.1 * rg,
+            },
+        ];
+        assert!(matches!(
+            reference.classify_source_events(2.0, 4.0 * rg, &duplicate, 1.0e-8 * rg),
+            Err(KerrOpticalError::SourceEventsNotStrictlyChronological {
+                index: 1,
+                previous_time_s: 1.0,
+                source_time_s: 1.0,
+            })
+        ));
+    }
+
+    #[test]
+    fn kerr_source_history_classification_is_invariant_under_time_translation() {
+        let reference = KerrOpticalReference::new(hole(0.7)).unwrap();
+        let rg = reference.gravitational_radius_m;
+        let events = [
+            KerrQnmSourceEvent {
+                coordinate_time_s: 10.0,
+                radius_m: 3.0 * rg,
+            },
+            KerrQnmSourceEvent {
+                coordinate_time_s: 10.0 + 0.25 * rg / SPEED_OF_LIGHT_M_S,
+                radius_m: 3.1 * rg,
+            },
+        ];
+        let observation_time_s = 10.0 + 6.0 * rg / SPEED_OF_LIGHT_M_S;
+        let original = reference
+            .classify_source_events(
+                observation_time_s,
+                4.0 * rg,
+                &events,
+                1.0e-8 * rg,
+            )
+            .unwrap();
+
+        let shift_s = 1.0;
+        let shifted_events = events.map(|event| KerrQnmSourceEvent {
+            coordinate_time_s: event.coordinate_time_s + shift_s,
+            radius_m: event.radius_m,
+        });
+        let shifted = reference
+            .classify_source_events(
+                observation_time_s + shift_s,
+                4.0 * rg,
+                &shifted_events,
+                1.0e-8 * rg,
+            )
+            .unwrap();
+
+        assert_eq!(original.len(), shifted.len());
+        for (before, after) in original.iter().zip(&shifted) {
+            assert_eq!(before.convergence.region, after.convergence.region);
+            assert!(
+                (before.convergence.oblate_margin_m - after.convergence.oblate_margin_m).abs()
+                    < 1.0e-7 * rg
+            );
+            assert!(
+                (before.convergence.prolate_margin_m - after.convergence.prolate_margin_m).abs()
+                    < 1.0e-7 * rg
+            );
+        }
+    }
+
+    #[test]
     fn kerr_optical_coordinates_reject_horizon_and_nonfinite_radii() {
         let reference = KerrOpticalReference::new(hole(0.7)).unwrap();
         assert!(matches!(
