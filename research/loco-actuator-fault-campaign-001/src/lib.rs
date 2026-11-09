@@ -26,6 +26,28 @@ pub enum FaultFamily {
     CommonPowerRail,
 }
 
+impl FaultFamily {
+    pub const ALL: [Self; 11] = [
+        Self::TorqueDerating,
+        Self::CompletePowerLoss,
+        Self::JointLocked,
+        Self::FreeSwinging,
+        Self::IntermittentActuation,
+        Self::ThermalDerating,
+        Self::EncoderDrift,
+        Self::ImuDelay,
+        Self::ContactSensorDropout,
+        Self::CommandDelay,
+        Self::CommonPowerRail,
+    ];
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct FaultProbability {
+    pub family: FaultFamily,
+    pub probability_ppm: u32,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum FaultPhase {
     Stance,
@@ -133,6 +155,8 @@ pub enum DetectionResult {
     Detected {
         inferred_family: FaultFamily,
         plausible_families: Vec<FaultFamily>,
+        family_probabilities: Vec<FaultProbability>,
+        unknown_probability_ppm: u32,
         latency_ms: u64,
         confidence_ppm: u32,
         severity_estimate_ppm: Option<u32>,
@@ -141,6 +165,8 @@ pub enum DetectionResult {
     Unknown {
         reason: String,
         plausible_families: Vec<FaultFamily>,
+        family_probabilities: Vec<FaultProbability>,
+        unknown_probability_ppm: u32,
     },
     Missed,
 }
@@ -205,6 +231,8 @@ pub struct FamilyCoverage {
     pub severity_estimate_count: usize,
     pub severity_absolute_error_sum_ppm: u64,
     pub severity_interval_coverage_count: usize,
+    pub brier_score_numerator_ppm_squared: u128,
+    pub brier_score_count: usize,
     pub late_detection_count: usize,
     pub stable_adaptation_count: usize,
     pub late_adaptation_count: usize,
@@ -261,6 +289,8 @@ pub enum FaultBenchmarkError {
     InvalidPpmValue,
     InvalidSeverityEstimate,
     InvalidSeverityInterval,
+    InvalidFaultDistribution,
+    ProbabilityOutsideHypothesisSet,
     InvalidDeadline,
     InvalidMatchedContext,
     PolicyContextMismatch,
