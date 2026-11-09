@@ -13,7 +13,7 @@
 //!
 //! Energy is creditable only when an explicit water-service contract passes.
 //! A failed service gate retains the calculated candidate output for
-//! diagnostics but exposes no credited electrical energy.
+//! diagnostics but exposes no service-eligible candidate electrical energy.
 
 use core::fmt;
 
@@ -538,8 +538,8 @@ pub struct HydraulicGenerationResult {
 }
 
 impl HydraulicGenerationResult {
-    /// Candidate net output is not credited when the water-service gate fails.
-    pub fn credited_net_electrical_power(&self) -> Option<PowerWatts> {
+    /// Candidate net output is not service-eligible when the water-service gate fails.
+    pub fn service_eligible_net_electrical_power(&self) -> Option<PowerWatts> {
         self.water_service
             .is_feasible()
             .then_some(self.net_candidate_electrical_power)
@@ -554,7 +554,7 @@ pub struct HydraulicEnergyResult {
     pub generator_loss_energy_j: f64,
     pub auxiliary_energy_j: f64,
     pub candidate_net_electrical_energy_j: f64,
-    pub credited_net_electrical_energy_j: Option<f64>,
+    pub service_eligible_net_electrical_energy_j: Option<f64>,
 }
 
 /// Evaluate one steady hydraulic operating point against a single declared
@@ -666,7 +666,7 @@ pub fn integrate_constant_interval(
         generator_loss_energy_j,
         auxiliary_energy_j,
         candidate_net_electrical_energy_j,
-        credited_net_electrical_energy_j: result
+        service_eligible_net_electrical_energy_j: result
             .water_service
             .is_feasible()
             .then_some(candidate_net_electrical_energy_j),
@@ -853,7 +853,7 @@ mod tests {
         assert!((result.generator_loss_power.get() - 784.532).abs() < 1e-9);
         assert!((result.net_candidate_electrical_power.get() - 6_960.788).abs() < 1e-9);
         assert!(result.water_service.is_feasible());
-        assert!((result.credited_net_electrical_power().unwrap().get() - 6_960.788).abs() < 1e-9);
+        assert!((result.service_eligible_net_electrical_power().unwrap().get() - 6_960.788).abs() < 1e-9);
     }
 
     #[test]
@@ -882,7 +882,7 @@ mod tests {
 
         assert_eq!(result.hydraulic_input_power.get(), 0.0);
         assert_eq!(result.net_candidate_electrical_power.get(), 0.0);
-        assert_eq!(result.credited_net_electrical_power().unwrap().get(), 0.0);
+        assert_eq!(result.service_eligible_net_electrical_power().unwrap().get(), 0.0);
     }
 
     #[test]
@@ -962,7 +962,7 @@ mod tests {
         .expect("candidate output retained for diagnostics");
 
         assert!(!result.water_service.is_feasible());
-        assert!(result.credited_net_electrical_power().is_none());
+        assert!(result.service_eligible_net_electrical_power().is_none());
         assert!(result.water_service.violations().contains(
             &ServiceViolation::DownstreamPressureBelowMinimum
         ));
@@ -997,14 +997,14 @@ mod tests {
         assert!(result.water_service.violations().contains(
             &ServiceViolation::EcologicalFlowRegressionExceeded
         ));
-        assert!(result.credited_net_electrical_power().is_none());
+        assert!(result.service_eligible_net_electrical_power().is_none());
     }
 
     #[test]
     fn service_floor_pass_allows_credited_output() {
         let result = evaluate_default();
         assert!(result.water_service.is_feasible());
-        assert!(result.credited_net_electrical_power().is_some());
+        assert!(result.service_eligible_net_electrical_power().is_some());
     }
 
     #[test]
@@ -1018,7 +1018,7 @@ mod tests {
 
         assert_eq!(interval.duration.get(), 3_600.0);
         assert!(
-            (interval.credited_net_electrical_energy_j.unwrap()
+            (interval.service_eligible_net_electrical_energy_j.unwrap()
                 - 6_960.788 * 3_600.0)
                 .abs()
                 < 1e-6
@@ -1043,7 +1043,7 @@ mod tests {
         )
         .unwrap();
 
-        assert!(interval.credited_net_electrical_energy_j.is_none());
+        assert!(interval.service_eligible_net_electrical_energy_j.is_none());
         assert!(interval.candidate_net_electrical_energy_j > 0.0);
     }
 
