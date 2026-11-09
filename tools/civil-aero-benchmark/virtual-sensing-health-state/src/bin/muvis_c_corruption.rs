@@ -68,6 +68,13 @@ struct Protocol {
 }
 
 #[derive(Clone, Debug, Deserialize)]
+struct NormalizationStatistics {
+    method: String,
+    mean: Vec<f64>,
+    std: Vec<f64>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
 struct ExpectedWorstCase {
     failure_mode: String,
     channel_id: String,
@@ -102,6 +109,8 @@ struct Fixture {
     outlier_uniform: Vec<Vec<Vec<f64>>>,
     outlier_delta_unit: Vec<Vec<Vec<f64>>>,
     bootstrap_resample_indices: Vec<Vec<usize>>,
+    raw_windows: Vec<Vec<Vec<f64>>>,
+    normalization_statistics: NormalizationStatistics,
     expected_metrics: ExpectedMetrics,
 }
 
@@ -191,7 +200,7 @@ fn validate(fixture: &Fixture) -> Result<(), String> {
         return fail("v0.1 requires N>=2, T>=2 and 1..=64 channels");
     }
     if fixture.dataset.input_layout != "N_T_C"
-        || fixture.dataset.normalization != "per_channel_zscore_assumed_preapplied"
+        || fixture.dataset.normalization != "per_channel_zscore_frozen_fixture_statistics"
         || fixture.dataset.source_status != "synthetic_known_answer_only"
         || fixture.dataset.domain != "synthetic_aerospace_sensor_windows"
     {
@@ -242,6 +251,28 @@ fn validate(fixture: &Fixture) -> Result<(), String> {
         return fail("target_noise vector dimension/value invalid");
     }
     validate_cube(&fixture.windows, n, t, c, "windows")?;
+    validate_cube(&fixture.raw_windows, n, t, c, "raw_windows")?;
+    let normalization = &fixture.normalization_statistics;
+    if normalization.method != "population_zscore_over_frozen_synthetic_window_corpus"
+        || normalization.mean.len() != c
+        || normalization.std.len() != c
+        || normalization.mean.iter().any(|value| !value.is_finite())
+        || normalization.std.iter().any(|value| !value.is_finite() || *value <= 0.0)
+    {
+        return fail("frozen per-channel z-score statistics are invalid");
+    }
+    for sample in 0..n {
+        for time in 0..t {
+            for channel in 0..c {
+                let normalized = (fixture.raw_windows[sample][time][channel]
+                    - normalization.mean[channel])
+                    / normalization.std[channel];
+                if (normalized - fixture.windows[sample][time][channel]).abs() > 1.0e-10 {
+                    return fail("standardized window differs from raw value and frozen channel statistics");
+                }
+            }
+        }
+    }
     validate_cube(
         &fixture.noise_standard_normal,
         n,
