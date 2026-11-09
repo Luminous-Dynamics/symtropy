@@ -51,6 +51,7 @@ Bind policy/model digest, exact input state digest, action-space convention, int
 
 A projection result binds:
 - exact proposal digest and exact projected-command digest;
+- a separately frozen, independently supplied physical/contact constraint inventory digest (the optimizer cannot define its own completeness);
 - dynamics/abstraction/domain and actuator-model digests;
 - solver implementation/version and termination reason;
 - primal, dual and KKT residuals, explicit units and frozen tolerances;
@@ -77,7 +78,7 @@ No single weighted penalty may let task reward buy through a hard physical const
 
 After projection:
 1. validate proposal, state, model, abstraction, actuator, domain and clock identities;
-2. require Feasible solver disposition, complete constraint coverage and all residuals within frozen tolerances;
+2. require Feasible solver disposition, exact equality to the independently frozen constraint inventory, complete residual/margin unit coverage and all residuals within frozen tolerances;
 3. require every hard physical and robust-contact constraint to pass with declared margins;
 4. pass the exact projected-command digest and successor/uncertainty set to #4061/#4083;
 5. require a fresh #4119 assurance result at the intended application time;
@@ -94,7 +95,7 @@ It will check:
 - immutable proposal and projected-command identities;
 - model/abstraction/domain/actuator/clock binding;
 - solver disposition and exact residual/tolerance units;
-- complete expected hard/contact constraint inventory;
+- exact equality between optimizer-declared constraints and the independently frozen hard/contact constraint inventory;
 - residuals, margins and per-constraint pass status;
 - independent viability receipt bound to the exact projected-command digest;
 - independent assurance receipt freshness and action/state identity;
@@ -143,6 +144,7 @@ Report independently:
 - contact/dynamics/actuator possibility-set completeness;
 - robust feasibility fraction and downstream viability/recovery witness;
 - application-time age, end-to-end latency and deadline misses;
+- fallback receipt identity, freshness and exact fallback-command binding;
 - command-to-delivered torque/motion residual and actuator derating;
 - task tracking, recovery and held-out capability;
 - energy at battery, DC bus, actuator and mechanical boundaries;
