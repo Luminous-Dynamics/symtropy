@@ -83,7 +83,9 @@ jobs:
           sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/verify_independent.py > virtual-sensing-python-source.sha256
           sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/README.md > virtual-sensing-readme.sha256
           sha256sum .github/workflows/aero-virtual-sensing-health-state.yml > virtual-sensing-workflow.sha256
-          sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/data/hh-hf-dh-df-v0.1.json > virtual-sensing-source.sha256
+          sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/data/hh-hf-dh-df-v0.1.json
+          tools/civil-aero-benchmark/virtual-sensing-health-state/data/external-benchmark-register-v0.1.json > virtual-sensing-source.sha256
+          sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/data/external-benchmark-register-v0.1.json > virtual-sensing-external-register.sha256
           sha256sum virtual-sensing-environment.txt > virtual-sensing-environment.sha256
           sha256sum virtual-sensing-health-state-result.json > virtual-sensing-result.sha256
           sha256sum virtual-sensing-run-manifest.txt > virtual-sensing-run-manifest.sha256
@@ -112,6 +114,7 @@ jobs:
             virtual-sensing-readme.sha256
             virtual-sensing-workflow.sha256
             virtual-sensing-source.sha256
+            virtual-sensing-external-register.sha256
             virtual-sensing-environment.sha256
             virtual-sensing-result.sha256
             virtual-sensing-run-manifest.sha256
