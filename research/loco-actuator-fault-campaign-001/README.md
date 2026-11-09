@@ -52,7 +52,7 @@ A confident but wrong top-1 diagnosis is not allowed to shrink the robust possib
 
 ## Frozen fault scenario format
 
-Machine-readable synthetic manifests are in [fixtures/fault_scenarios_v0_1.json](fixtures/fault_scenarios_v0_1.json).
+Machine-readable synthetic manifests are in [fixtures/fault_scenarios_v0_1.json](fixtures/fault_scenarios_v0_1.json). The current pack contains 21 synthetic scenarios, including passive overload-clutch slip, nuisance slip under nominal load and failed re-engagement.
 
 Each scenario includes:
 - source/model and injection-method identity;
@@ -76,6 +76,7 @@ Runtime inputs must not expose scenario IDs, truth labels, future onset or privi
 - Command-response lag and dynamic tracking loss (#4206 model).
 - Position/velocity bias, stuck encoder, quantization, delayed timestamp and dropout.
 - Thermal derating and supply/driver/common-bus faults.
+- Mechanical transmission and overload-coupler faults: backlash, stiction, seizure, torque-threshold slip, nuisance slip under nominal load, delayed/failed re-engagement and repeated-cycle wear. Parameterize torque-slip threshold, hysteresis, re-engagement latency and phase error; do not collapse these into generic torque loss.
 - Multi-joint and common-cause combinations, with no marginal-probability multiplication.
 
 ### Cross-factors
