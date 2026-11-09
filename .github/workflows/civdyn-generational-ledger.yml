@@ -1,0 +1,87 @@
+name: CIVDYN generational incidence ledger
+
+on:
+  pull_request:
+    paths:
+      - "research/civdyn-generational-ledger/**"
+      - "research/civdyn-resource-ledger/**"
+      - ".github/workflows/civdyn-generational-ledger.yml"
+  push:
+    paths:
+      - "research/civdyn-generational-ledger/**"
+      - "research/civdyn-resource-ledger/**"
+      - ".github/workflows/civdyn-generational-ledger.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Format, lint, check, test and replay cohort incidence
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy,rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/civdyn-generational-ledger/Cargo.toml --all -- --check
+
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path research/civdyn-generational-ledger/Cargo.toml --all-targets -- -D warnings
+
+      - name: Compile all targets
+        run: cargo check --locked --manifest-path research/civdyn-generational-ledger/Cargo.toml --all-targets
+
+      - name: Run all tests
+        run: cargo test --locked --manifest-path research/civdyn-generational-ledger/Cargo.toml --all-targets
+
+      - name: Execute cohort incidence replay twice
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p target/civdyn-generational-ledger
+          cargo run --quiet --locked --manifest-path research/civdyn-generational-ledger/Cargo.toml --bin generational-incidence-sweep \
+            > target/civdyn-generational-ledger/incidence-a.csv
+          cargo run --quiet --locked --manifest-path research/civdyn-generational-ledger/Cargo.toml --bin generational-incidence-sweep \
+            > target/civdyn-generational-ledger/incidence-b.csv
+          cmp target/civdyn-generational-ledger/incidence-a.csv target/civdyn-generational-ledger/incidence-b.csv
+
+      - name: Verify schema, unit reconciliation and explicit inheritance
+        shell: bash
+        run: |
+          set -euo pipefail
+          output=target/civdyn-generational-ledger/incidence-a.csv
+          awk -F, '
+            NR == 1 { if (NF != 24) exit 10; next }
+            NF != 24 { exit 11 }
+            $1 == "reconciliation" {
+              reconciliations++
+              for (i = 10; i <= 17; i += 2) {
+                if (($i - $(i + 1)) > 0.000001 || ($(i + 1) - $i) > 0.000001) exit 12
+              }
+            }
+            $1 == "cohort_service" {
+              cohort_rows++
+              if ($5 == "future-born-2040" && $9 > 0) future_stock++
+              if ($5 == "unassigned:SharedPublicAsset" && $9 > 0) unassigned_stock++
+            }
+            $1 == "physical_obligation" {
+              physical++
+              if ($19 != "m3" || ($20 - 12.0) > 0.000001 || (12.0 - $20) > 0.000001) exit 13
+            }
+            $1 == "financial_obligation" {
+              financial++
+              if ($21 != "USD" || ($22 - 500.0) > 0.000001 || (500.0 - $22) > 0.000001 || $23 != "2026") exit 14
+            }
+            END {
+              if (NR != 15 || reconciliations != 3 || cohort_rows != 9) exit 15
+              if (physical != 1 || financial != 1) exit 16
+              if (future_stock < 3 || unassigned_stock < 3) exit 17
+              print "Cohort incidence replay valid: 3 native-resource reconciliations, 9 cohort/resource rows, future and unassigned stocks retained, physical and financial obligations separate."
+            }
+          ' "$output"
+          echo "CSV SHA-256: $(sha256sum "$output" | cut -d' ' -f1)" >> "$GITHUB_STEP_SUMMARY"
+          echo "Manifest SHA-256: $(sha256sum research/civdyn-generational-ledger/data/CIVDYN_GENERATIONAL_INCIDENCE_MANIFEST_V0_1.json | cut -d' ' -f1)" >> "$GITHUB_STEP_SUMMARY"
