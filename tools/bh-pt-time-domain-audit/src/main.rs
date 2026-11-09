@@ -58,7 +58,9 @@ fn main() {
     });
 
     let config_bytes = serde_json::to_vec(&config).unwrap_or_else(|error| {
-        write_error(&format!("cannot serialize simulation configuration: {error}"));
+        write_error(&format!(
+            "cannot serialize simulation configuration: {error}"
+        ));
     });
     let config_sha256 = sha256_hex(&config_bytes);
     let csv_sha256 = sha256_hex(csv.as_bytes());
@@ -169,7 +171,9 @@ fn main() {
         write_error(&format!("cannot serialize run manifest: {error}"));
     });
     fs::write(&manifest_path, &manifest_bytes).unwrap_or_else(|error| {
-        write_error(&format!("cannot write run manifest {manifest_path}: {error}"));
+        write_error(&format!(
+            "cannot write run manifest {manifest_path}: {error}"
+        ));
     });
 
     println!(
