@@ -1,0 +1,47 @@
+name: BH reference fixture schema audit
+
+on:
+  push:
+    branches:
+      - research/bh-teukolsky-reference-fixtures-v0.1
+    paths:
+      - tools/bh-reference-fixtures/**
+      - .github/workflows/bh-reference-fixtures-audit.yml
+  pull_request:
+    branches:
+      - research/bh-complex-special-audit-v0.1
+    paths:
+      - tools/bh-reference-fixtures/**
+      - .github/workflows/bh-reference-fixtures-audit.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bh-reference-fixtures-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Fixture schema (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/bh-reference-fixtures/Cargo.toml -- --check
+      - name: Run Clippy
+        run: cargo clippy --manifest-path tools/bh-reference-fixtures/Cargo.toml --all-targets -- -D warnings
+      - name: Run tests
+        run: cargo test --manifest-path tools/bh-reference-fixtures/Cargo.toml --all-targets

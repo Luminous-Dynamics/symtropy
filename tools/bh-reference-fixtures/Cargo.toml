@@ -1,0 +1,14 @@
+[package]
+name = "bh-reference-fixtures"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+publish = false
+description = "Strict, convention-safe reference fixture schema for black-hole perturbation engines"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "=1.0.154", features = ["float_roundtrip"] }
+sha2 = "=0.10.9"
+
+[workspace]
