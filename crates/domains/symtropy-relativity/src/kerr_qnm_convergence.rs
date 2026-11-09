@@ -543,13 +543,18 @@ fn integrate_complex_simpson(
     endpoint: ComplexCoordinate,
     segments: usize,
 ) -> ComplexCoordinate {
+    // The direct t parameter has a square-root endpoint at t=1. Use
+    // t=1-s^2 so the Jacobian 2s regularizes the integrand at the turning
+    // point. Track the square-root sheet from s=1 (infinity, root=+1)
+    // backwards to s=0 (the complex turning point).
     let h = 1.0 / segments as f64;
     let alpha2 = spin * spin;
+    let mut values = vec![ComplexCoordinate::new(0.0, 0.0); segments + 1];
     let mut previous_sqrt: Option<ComplexCoordinate> = None;
-    let mut sum = ComplexCoordinate::new(0.0, 0.0);
 
-    for index in 0..=segments {
-        let t = index as f64 * h;
+    for index in (0..=segments).rev() {
+        let s = index as f64 * h;
+        let t = 1.0 - s * s;
         let y = endpoint.scale(t);
         let y2 = y.mul(y);
         let y3 = y2.mul(y);
@@ -567,14 +572,12 @@ fn integrate_complex_simpson(
         let denominator = root
             .add(ComplexCoordinate::new(1.0, 0.0))
             .add(y2.scale(alpha2));
-        let value = ComplexCoordinate::new(alpha2, 0.0).div(denominator);
-        let weight = if index == 0 || index == segments {
-            1.0
-        } else if index % 2 == 0 {
-            2.0
-        } else {
-            4.0
-        };
+        values[index] = ComplexCoordinate::new(2.0 * s * alpha2, 0.0).div(denominator);
+    }
+
+    let mut sum = values[0].add(values[segments]);
+    for (index, value) in values.iter().enumerate().take(segments).skip(1) {
+        let weight = if index % 2 == 0 { 2.0 } else { 4.0 };
         sum = sum.add(value.scale(weight));
     }
 
