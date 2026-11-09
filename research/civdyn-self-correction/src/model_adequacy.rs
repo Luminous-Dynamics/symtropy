@@ -101,6 +101,11 @@ impl StatisticRegistry {
                     statistic_id: statistic.id.clone(),
                 });
             }
+            if statistic.primary && !statistic.required {
+                return Err(AdequacyError::PrimaryStatisticMustBeRequired {
+                    statistic_id: statistic.id.clone(),
+                });
+            }
             if !ids.insert(statistic.id.as_str()) {
                 return Err(AdequacyError::DuplicateStatistic {
                     statistic_id: statistic.id.clone(),
@@ -279,6 +284,7 @@ pub struct AdequacyAssessment {
     pub predictive_kind: PredictiveKind,
     pub central_mass: f64,
     pub domain_status: DomainStatus,
+    pub required_evidence_complete: bool,
     pub statistics: Vec<StatisticAssessment>,
     /// Coverage is calculated across independent units, separately per statistic.
     pub coverage: Vec<CoverageSummary>,
@@ -289,6 +295,7 @@ pub enum AdequacyError {
     InvalidRegistry,
     InvalidStatistic { statistic_id: String },
     DuplicateStatistic { statistic_id: String },
+    PrimaryStatisticMustBeRequired { statistic_id: String },
     InvalidSplitManifest,
     SplitUnitOverlap { unit_id: String },
     InvalidIntervalMass,
@@ -576,16 +583,34 @@ pub fn assess_predictive_partition(
                 .is_some_and(|spec| spec.primary)
         })
         .collect();
-    let domain_status = if primary.is_empty() {
-        DomainStatus::NotAssessed
-    } else if primary
+    let required_statistics: Vec<&StatisticSpec> = registry
+        .statistics
+        .iter()
+        .filter(|spec| spec.role == role && spec.required)
+        .collect();
+    let required_evidence_complete = !required_statistics.is_empty()
+        && !expected_units.is_empty()
+        && required_statistics.iter().all(|statistic| {
+            let statistic_results: Vec<&StatisticAssessment> = results
+                .iter()
+                .filter(|result| result.statistic_id == statistic.id)
+                .collect();
+            statistic_results.len() == expected_units.len()
+                && statistic_results
+                    .iter()
+                    .all(|result| result.status != StatisticStatus::NotAssessed)
+        });
+
+    let domain_status = if primary
         .iter()
         .any(|result| result.status == StatisticStatus::OutsideReferenceInterval)
     {
         DomainStatus::PrimaryDiscrepancyDetected
-    } else if primary
-        .iter()
-        .any(|result| result.status == StatisticStatus::NotAssessed)
+    } else if primary.is_empty()
+        || !required_evidence_complete
+        || primary
+            .iter()
+            .any(|result| result.status == StatisticStatus::NotAssessed)
     {
         DomainStatus::NotAssessed
     } else {
@@ -646,6 +671,7 @@ pub fn assess_predictive_partition(
         predictive_kind: kind,
         central_mass,
         domain_status,
+        required_evidence_complete,
         statistics: results,
         coverage,
     })
@@ -784,6 +810,16 @@ mod tests {
         assert!(matches!(
             candidate.validate(),
             Err(AdequacyError::DuplicateStatistic { .. })
+        ));
+    }
+
+    #[test]
+    fn registry_rejects_optional_primary_statistic() {
+        let mut candidate = registry();
+        candidate.statistics[0].required = false;
+        assert!(matches!(
+            candidate.validate(),
+            Err(AdequacyError::PrimaryStatisticMustBeRequired { .. })
         ));
     }
 
@@ -1041,6 +1077,32 @@ mod tests {
         assert!(assessment.statistics.iter().all(|result| {
             result.status == StatisticStatus::NotAssessed
         }));
+        assert!(!assessment.required_evidence_complete);
+        assert_eq!(assessment.domain_status, DomainStatus::NotAssessed);
+    }
+
+    #[test]
+    fn missing_required_non_primary_statistic_blocks_domain_qualification() {
+        let mut candidate = registry();
+        candidate.statistics[1].primary = false;
+        let observations = vec![observation("service-rate", "region-val", 0.5)];
+        let split_draws = draws(
+            PredictiveKind::Split,
+            "service-rate",
+            "region-val",
+            &[0.1, 0.2, 0.3, 0.4, 0.5],
+        );
+        let assessment = assess_predictive_partition(
+            &candidate,
+            &manifest(),
+            &observations,
+            &split_draws,
+            SplitRole::Validation,
+            PredictiveKind::Split,
+            0.8,
+        )
+        .expect("missing diagnostic evidence remains an assessment result");
+        assert!(!assessment.required_evidence_complete);
         assert_eq!(assessment.domain_status, DomainStatus::NotAssessed);
     }
 
