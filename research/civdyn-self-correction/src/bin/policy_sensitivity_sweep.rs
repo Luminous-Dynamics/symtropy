@@ -6,7 +6,7 @@ use civdyn_self_correction::model_adequacy::{
     SplitRole, StatisticRegistry, StatisticSpec, assess_predictive_partition,
 };
 use civdyn_self_correction::policy_sensitivity::{
-    ConstraintRelation, MetricKind, MetricSpec, ModelWorld, ObjectiveDirection,
+    ConstraintRelation, MetricKind, MetricSpec, ModelPolicyFeasibility, ModelWorld, ObjectiveDirection,
     ObjectivePolicySummary, PairwisePolicyOrdering, PolicyMetricOutcome, PolicySensitivityReport,
     PolicySpec, evaluate_policy_sensitivity,
 };
@@ -25,9 +25,8 @@ fn emit(fields: Vec<String>) {
 fn model_outcome_row(
     outcome: &PolicyMetricOutcome,
     model: &ModelWorld,
-    feasible: bool,
-    violations: &[String],
-    ceiling: &str,
+    feasibility: &ModelPolicyFeasibility,
+    report: &PolicySensitivityReport,
 ) -> Vec<String> {
     vec![
         "model_outcome".to_string(),
@@ -36,8 +35,8 @@ fn model_outcome_row(
         outcome.metric_id.clone(),
         outcome.measurement_unit.clone(),
         format!("{value:.6}", value = outcome.value),
-        feasible.to_string(),
-        violations.join(";"),
+        feasibility.feasible.to_string(),
+        feasibility.violated_constraints.join(";"),
         model.model_digest().to_string(),
         model.model_digest().to_string(),
         model.adequacy_receipt_digest().to_string(),
@@ -56,11 +55,12 @@ fn model_outcome_row(
         String::new(),
         String::new(),
         String::new(),
-        ceiling.to_string(),
-        String::new(),
-        String::new(),
+        report.claim_ceiling.name().to_string(),
+        report.models_with_unqualified_adequacy.join(";"),
+        report.any_model_without_feasible_policy.to_string(),
     ]
 }
+
 fn summary_row(summary: &ObjectivePolicySummary, report: &PolicySensitivityReport) -> Vec<String> {
     vec![
         "objective_summary".to_string(),
@@ -338,13 +338,7 @@ fn emit_report(
             .iter()
             .find(|model| model.id() == outcome.model_id)
             .expect("model identity exists");
-        let fields = model_outcome_row(
-            outcome,
-            model,
-            feasibility.feasible,
-            &feasibility.violated_constraints,
-            ceiling,
-        );
+        let fields = model_outcome_row(outcome, model, feasibility, report);
         emit(fields);
     }
 
