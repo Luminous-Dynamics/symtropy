@@ -2,8 +2,10 @@
 
 **Status:** Research architecture; not a vehicle design release, homologation dossier, safety case, or build authorization.  
 **Date:** 2026-11-09  
-**Parent benchmark:** [ROAD-EV-REFERENCE-001 #4346](https://github.com/Luminous-Dynamics/symtropy/issues/4346)  
-**Related work:** [Symthaea EV-HEALTH-ADVISORY-001 #11239](https://github.com/Luminous-Dynamics/symthaea/issues/11239) · [Sol-Atlas EV-ROUTE-ENERGY-001 #664](https://github.com/Luminous-Dynamics/sol-atlas-leptos/issues/664) · [Mycelix Mobility Commons #3708](https://github.com/Luminous-Dynamics/mycelix/issues/3708) · [Mycelix Mobility Configuration #3709](https://github.com/Luminous-Dynamics/mycelix/issues/3709)
+**Reference configuration / integration:** [ROAD-EV-REFERENCE-001 #4346](https://github.com/Luminous-Dynamics/symtropy/issues/4346)  
+**Benchmark owner:** [EV-BENCH-001 #2164](https://github.com/Luminous-Dynamics/symtropy/issues/2164)  
+**Battery circularity owner:** [EV-BATTERY-CIRCULARITY-001 #2155](https://github.com/Luminous-Dynamics/symtropy/issues/2155)  
+**Related work:** [GLOBAL-MOBILITY-001 #1832](https://github.com/Luminous-Dynamics/symtropy/issues/1832) · [Symthaea family-vehicle engineering PR #7751](https://github.com/Luminous-Dynamics/symthaea/pull/7751) · [Symthaea EV-HEALTH-ADVISORY-001 #11239](https://github.com/Luminous-Dynamics/symthaea/issues/11239) · [Sol-Atlas EV-ROUTE-ENERGY-001 #664](https://github.com/Luminous-Dynamics/sol-atlas-leptos/issues/664) · [Mycelix vehicle dossier PR #5131](https://github.com/Luminous-Dynamics/mycelix/pull/5131) · [Mycelix Mobility Commons #3708](https://github.com/Luminous-Dynamics/mycelix/issues/3708) · [Mycelix Mobility Configuration #3709](https://github.com/Luminous-Dynamics/mycelix/issues/3709)
 
 ## 1. Purpose and strategy
 
@@ -43,11 +45,11 @@ Conductive charging is the reference baseline. Bidirectional charging is an opti
 
 Cell-to-pack and structural integration may improve packaging, mass and manufacturing economics, but removing a module boundary also removes functions that must be accounted for: inspection, isolation, thermal management, crash load paths, electrical protection, repair, diagnostics and end-of-life separation.
 
-Do not select an integrated or modular pack architecture by ideology. Compare multiple architectures against the same safety, mass, cost, thermal, service and recovery requirements. Every removed interface must have an explicit replacement function and validation obligation.
+Do not select an integrated or modular pack architecture by ideology. The quantitative pack-integration, repair-granularity and recovery comparison belongs to [EV-BATTERY-CIRCULARITY-001 #2155](https://github.com/Luminous-Dynamics/symtropy/issues/2155); the reference configuration records which candidate and evidence state it consumes. Every removed interface must have an explicit replacement function and validation obligation.
 
 ### 2.4 Make repairability an objective at concept stage
 
-Model time-to-diagnose, time-to-repair, required tools, access, part availability, replaceable subassemblies, calibration, post-repair verification, disassembly effort and material recovery. A lower-cost pack that requires replacement of a much larger assembly may be worse over the vehicle lifetime.
+Model time-to-diagnose, time-to-repair, required tools, access, part availability, replaceable subassemblies, calibration, post-repair verification, disassembly effort and material recovery. A lower-cost pack that requires replacement of a much larger assembly may be worse over the vehicle lifetime. Use #2155 for the quantitative battery comparison and #2164 for cross-track benchmark composition.
 
 ### 2.5 Replace opaque “smartness” with evidence-qualified assistance
 
@@ -55,17 +57,17 @@ Symthaea can estimate, predict, explain uncertainty, identify anomalies and reco
 
 ### 2.6 Optimize the fleet and charging network as a service system
 
-Vehicle routing, charger queues, charger/site capacity, grid constraints, energy tariffs, maintenance, route closures and reserve requirements should be planned together. The network remains federated and interoperable; owners should not be locked into one operator or one vehicle brand.
+Vehicle routing, charger queues, charger/site capacity, grid constraints, energy tariffs, maintenance, route closures and reserve requirements should be planned together. The network remains federated and interoperable; owners should not be locked into one operator or one vehicle brand. Use Symtropy #2164 and #3472/#3473 for fleet/charging benchmark semantics; Sol-Atlas #664 consumes vehicle configuration and route evidence for route-energy planning.
 
 ### 2.7 Treat the digital thread as a product capability
 
-The configuration of a physical vehicle includes design revision, parts, materials, process substitutions, tolerances, software/firmware, inspection state, repairs and operational restrictions. “Same model name” is not enough to establish engineering equivalence.
+The configuration of a physical vehicle includes design revision, parts, materials, process substitutions, tolerances, software/firmware, inspection state, repairs and operational restrictions. “Same model name” is not enough to establish engineering equivalence. Reuse Mycelix #3708/#3709 rather than creating a separate vehicle passport or identity system.
 
 ## 3. System ownership
 
 | System | EV programme responsibility | Explicit boundary |
 |---|---|---|
-| **Symtropy** | Declared physical/energy model execution, road-load and vehicle-system dynamics, thermal/energy trajectories where qualified, scenario and fault replay, benchmark composition | A general rigid-body engine is not automatically a validated tyre, motor, electrochemical or thermal solver. Use typed adapters and specialist models. |
+| **Symtropy** | Declared physical/energy model execution, road-load and vehicle-system dynamics, thermal/energy trajectories where qualified, scenario and fault replay, reference configuration integration | A general rigid-body engine is not automatically a validated tyre, motor, electrochemical or thermal solver. Use typed adapters and specialist models. |
 | **Symthaea** | Candidate architecture exploration, experiment selection, energy/route/maintenance reasoning, battery and traction health advisory, driver interaction and autonomy research | No sole authority over BMS protection, contactors, inverter torque, steering, braking or emergency actions. |
 | **Sol-Atlas** | Spatial geometry, road and infrastructure graphs, terrain/elevation, route feasibility, charger geography/capacity evidence, read-only operational projection | The renderer is not a solver; map/advisory display is not physical truth or vehicle control. |
 | **Mycelix** | Configuration/lifecycle lineage, identity and provenance references, supplier/repair records, permissions, attestations and transaction coordination | A cryptographic receipt binds evidence to an issuer/bytes; it does not prove physical truth or grant certification/operating authority. |
@@ -103,7 +105,7 @@ Compare pack architectures and chemistries under common requirements:
 
 Evaluate usable/gross energy, voltage, peak/continuous power, resistance, thermal gradients, cooling demand, charge curve, degradation, crash protection, isolation, serviceability, supply-chain concentration, second-life eligibility and material recovery.
 
-The BMS and hardware protections remain independent safety functions. Research models are advisory unless separately engineered and qualified.
+The BMS and hardware protections remain independent safety functions. Research models are advisory unless separately engineered and qualified. The quantitative battery pack architecture/repair/recovery evaluator is [#2155](https://github.com/Luminous-Dynamics/symtropy/issues/2155).
 
 ### 4.3 Propulsion and energy conversion
 
@@ -126,7 +128,7 @@ Treat battery, motor/inverter and cabin thermal loads as a coupled but separatel
 
 Conductive AC/DC charging first; evaluate connector/protocol compatibility, complete power curves, station uptime, queueing, site/feeder constraints, thermal conditioning and payment/access interoperability.
 
-V2L/V2H/V2B/V2G should be separate capability profiles with measured energy boundaries and explicit commercial/utility permissions. Solar and stationary storage can improve site resilience, but do not assume islanding or grid export is automatically legal or economically justified.
+V2L/V2H/V2B/V2G should be separate capability profiles with measured energy boundaries and explicit commercial/utility permissions. Solar and stationary storage can improve site resilience, but do not assume islanding or grid export is automatically legal or economically justified. Existing multi-receiver and source-to-load charging owners are #3472 and #3473; EV-BENCH #2164 owns the wider fleet and charging comparison.
 
 ### 4.7 Manufacturing, inspection and supply chain
 
@@ -136,18 +138,19 @@ V2L/V2H/V2B/V2G should be separate capability profiles with measured energy boun
 - Measure first-pass yield, scrap, energy, water, rework and station bottlenecks.
 - Include component substitution impact and revalidation.
 - Localize based on quality, volume, logistics, skills, cost and resilience evidence—not a blanket local-content assumption.
+- Reuse Symtropy's manufacturing digital-thread and conformity tournament in #2164 where it genuinely matches the EV process; do not create a vehicle-only MES/QMS.
 
 ### 4.8 Maintenance and circularity
 
 Create diagnostic procedures, component replacement instructions, torque/calibration requirements, isolation steps, software configuration requirements, inspection criteria, repair verification and parts supersession rules.
 
-Track refurbishment, remanufacture, quarantine, second-life qualification and end-of-life disassembly. Never infer a battery's second-life suitability from SOH alone.
+Track refurbishment, remanufacture, quarantine, second-life qualification and end-of-life disassembly. Never infer a battery's second-life suitability from SOH alone. Battery pack repair granularity and end-of-life recovery are owned by #2155; the generic physical-artifact and maintenance lineage is owned by Mycelix #3709.
 
 ### 4.9 Driving automation
 
 Progress through driver assistance and restricted ODD pilots. Use camera/radar/lidar choices based on cost, operating conditions, safety performance and evidence—not sensor ideology. Local sensor observations, map priors, simulator oracle, V2X advisories and derived predictions remain separate evidence classes.
 
-Begin autonomy research in simulation and closed/controlled environments. A driverless deployment claim requires a defined ODD, independently justified safety case, scenario coverage, physical testing, cybersecurity and regulatory approval. “L4” without an ODD and evidence dossier is not a meaningful programme acceptance criterion.
+Begin autonomy research in simulation and closed/controlled environments. A driverless deployment claim requires a defined ODD, independently justified safety case, scenario coverage, physical testing, cybersecurity and regulatory approval. “L4” without an ODD and evidence dossier is not a meaningful programme acceptance criterion. Reuse Symthaea's existing road-autonomy benchmark/scenario work, Symtropy replay and Mycelix V2X provenance; this architecture does not create a parallel autonomy evaluation stack.
 
 ## 5. Shared measurement and evidence contract
 
@@ -166,7 +169,9 @@ Keep these evidence classes separate:
 
 Missing evidence is `UNKNOWN`, not zero. Conflicting measurements remain visible. An incomplete search cannot be called exact. A passing schema/CI check proves only the checked property.
 
-## 6. Benchmark programme
+## 6. Benchmark programme and ownership
+
+The authoritative cross-track EV benchmark is [EV-BENCH-001 #2164](https://github.com/Luminous-Dynamics/symtropy/issues/2164). This document defines EV-REF-01 configuration and measurement needs; it does not fork that harness. The battery integration / repair / recovery comparison is [EV-BATTERY-CIRCULARITY-001 #2155](https://github.com/Luminous-Dynamics/symtropy/issues/2155).
 
 ### Vehicle energy and performance
 
@@ -264,21 +269,21 @@ Build a compliance applicability matrix, not a claim of compliance. At minimum i
 
 An issue, simulation, test report or digital passport cannot certify a vehicle. Professional engineering and regulatory review are necessary before physical release or road use.
 
-## 9. Immediate execution sequence
+## 9. Execution sequence and work ownership
 
-1. **EV-REF-01 benchmark contract** — [Symtropy #4346](https://github.com/Luminous-Dynamics/symtropy/issues/4346).
-2. **Battery and traction health advisory** — [Symthaea #11239](https://github.com/Luminous-Dynamics/symthaea/issues/11239).
-3. **Route-energy planner** — [Sol-Atlas #664](https://github.com/Luminous-Dynamics/sol-atlas-leptos/issues/664).
-4. **Engineering configuration lineage** — [Mycelix #3709](https://github.com/Luminous-Dynamics/mycelix/issues/3709) and [Mobility Commons #3708](https://github.com/Luminous-Dynamics/mycelix/issues/3708).
-5. Audit existing battery model and digital twin before new estimation algorithms.
-6. Create a Rust-first longitudinal evaluator with exact known-answer fixtures and independent audit.
-7. Freeze the N3 route evidence manifest and public vehicle/cycle comparison inputs.
-8. Only then expand into pack architecture optimization, factory simulation and physical demonstrators.
+1. **EV-REF-01 integration/configuration:** [Symtropy #4346](https://github.com/Luminous-Dynamics/symtropy/issues/4346).
+2. **Industry comparison:** [Symtropy #2164](https://github.com/Luminous-Dynamics/symtropy/issues/2164).
+3. **Battery integration and circularity:** [Symtropy #2155](https://github.com/Luminous-Dynamics/symtropy/issues/2155).
+4. **Battery and traction health advisory:** [Symthaea #11239](https://github.com/Luminous-Dynamics/symthaea/issues/11239).
+5. **Route-energy planner:** [Sol-Atlas #664](https://github.com/Luminous-Dynamics/sol-atlas-leptos/issues/664).
+6. **Mobility configuration lineage:** [Mycelix #3709](https://github.com/Luminous-Dynamics/mycelix/issues/3709) and [Mobility Commons #3708](https://github.com/Luminous-Dynamics/mycelix/issues/3708).
+7. Audit existing family-vehicle work (#1762 / #7751 / #5131), battery model and digital twin before any new implementation.
+8. Freeze mission, packaging and vehicle-level requirements; create the component/interface graph and candidate BOM; link exact configs into existing benchmark owners.
+9. Run public-data and analytical comparisons before committing to a physical demonstrator.
 
 ## 10. Qualification gates
 
 No single weighted score can compensate for a hard failure. Each design candidate must pass:
-
 - physical/energy feasibility;
 - uncertainty and sensitivity disclosure;
 - electrical/thermal/crash safety obligations;
