@@ -282,7 +282,13 @@ def select_best(subsets: list[dict[str, Any]], robust: bool,
     for subset in subsets:
         if robust and not subset["robustly_feasible"]:
             continue
-        if robust:
+        if robust and diagonal:
+            value = (
+                subset["worst_case_diagonal_assumption_log_determinant"]
+                if objective_is_d
+                else subset["worst_case_diagonal_assumption_minimum_eigenvalue"]
+            )
+        elif robust:
             value = (subset["worst_case_log_determinant"] if objective_is_d
                      else subset["worst_case_minimum_eigenvalue"])
         elif diagonal:
@@ -331,6 +337,14 @@ def evaluate(data: dict[str, Any], raw: bytes) -> dict[str, Any]:
             min(metric["log_determinant"] for metric in metrics)
             if robustly_feasible else None
         )
+        worst_case_diagonal_logdet = (
+            min(metric["diagonal_assumption_log_determinant"] for metric in metrics)
+            if robustly_feasible else None
+        )
+        worst_case_diagonal_min_eigenvalue = (
+            min(metric["diagonal_assumption_minimum_eigenvalue"] for metric in metrics)
+            if robustly_feasible else None
+        )
         subsets.append({
             "sensor_ids": ids,
             "nominal_rank": nominal["rank"],
@@ -344,6 +358,10 @@ def evaluate(data: dict[str, Any], raw: bytes) -> dict[str, Any]:
             "worst_case_minimum_eigenvalue":
                 limiting["minimum_eigenvalue"] if robustly_feasible else None,
             "worst_case_log_determinant": worst_case_logdet,
+            "worst_case_diagonal_assumption_minimum_eigenvalue":
+                worst_case_diagonal_min_eigenvalue,
+            "worst_case_diagonal_assumption_log_determinant":
+                worst_case_diagonal_logdet,
             "limiting_scenario_id": limiting["scenario_id"],
             "scenario_metrics": metrics,
         })
