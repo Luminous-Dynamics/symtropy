@@ -707,9 +707,12 @@ pub fn analyze_model_set_decisions(
                                 None,
                             )
                         } else {
-                            let direction = match objective.role {
-                                DecisionMetricRole::Objective { direction } => direction,
-                                DecisionMetricRole::HardConstraint { .. } => unreachable!(),
+                            let direction = if let DecisionMetricRole::Objective { direction } =
+                                objective.role
+                            {
+                                direction
+                            } else {
+                                continue;
                             };
                             let best = best_metric_value(
                                 direction,
@@ -1200,7 +1203,7 @@ mod tests {
         rows.retain(|row| {
             !(row.model_id == "model-b"
                 && row.case_id == "energy-shock"
-                && row.policy_id == "growth-first")
+                && row.policy_id == "reserve")
         });
         let report = analyze_model_set_decisions(&manifest(), &rows).unwrap();
         assert!(report.objective_stability[0].ranking_sensitive.is_none());
@@ -1319,12 +1322,10 @@ mod tests {
     fn tied_winners_are_preserved_as_a_set() {
         let mut rows = complete_outcomes();
         for row in &mut rows {
-            if row.policy_id == "demand-first" {
-                row.values[0].value = Some(10.0);
-            }
-            if row.policy_id == "reserve" {
-                row.values[0].value = Some(10.0);
-            }
+            row.values[0].value = Some(match row.policy_id.as_str() {
+                "reserve" | "demand-first" => 10.0,
+                _ => 12.0,
+            });
         }
         let report = analyze_model_set_decisions(&manifest(), &rows).unwrap();
         assert!(report.case_objectives.iter().any(|item| {
