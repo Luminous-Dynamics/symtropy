@@ -296,23 +296,58 @@ pub struct AdequacyAssessment {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AdequacyError {
     InvalidRegistry,
-    InvalidStatistic { statistic_id: String },
-    DuplicateStatistic { statistic_id: String },
-    PrimaryStatisticMustBeRequired { statistic_id: String },
+    InvalidStatistic {
+        statistic_id: String,
+    },
+    DuplicateStatistic {
+        statistic_id: String,
+    },
+    PrimaryStatisticMustBeRequired {
+        statistic_id: String,
+    },
     InvalidSplitManifest,
-    SplitUnitOverlap { unit_id: String },
+    SplitUnitOverlap {
+        unit_id: String,
+    },
     InvalidIntervalMass,
     CalibrationPartitionCannotBeEvaluated,
-    UnknownStatistic { statistic_id: String },
-    StatisticRoleMismatch { statistic_id: String },
-    UnitKindMismatch { statistic_id: String },
-    UnknownIndependentUnit { unit_id: String },
-    DuplicateObservation { statistic_id: String, unit_id: String },
-    InvalidObservation { statistic_id: String, unit_id: String },
-    InvalidDraw { statistic_id: String, unit_id: String },
-    DuplicateDraw { statistic_id: String, unit_id: String, draw_index: u64 },
-    CalibrationDigestMismatch { statistic_id: String, unit_id: String },
-    MixedModelDrawSet { statistic_id: String, unit_id: String },
+    UnknownStatistic {
+        statistic_id: String,
+    },
+    StatisticRoleMismatch {
+        statistic_id: String,
+    },
+    UnitKindMismatch {
+        statistic_id: String,
+    },
+    UnknownIndependentUnit {
+        unit_id: String,
+    },
+    DuplicateObservation {
+        statistic_id: String,
+        unit_id: String,
+    },
+    InvalidObservation {
+        statistic_id: String,
+        unit_id: String,
+    },
+    InvalidDraw {
+        statistic_id: String,
+        unit_id: String,
+    },
+    DuplicateDraw {
+        statistic_id: String,
+        unit_id: String,
+        draw_index: u64,
+    },
+    CalibrationDigestMismatch {
+        statistic_id: String,
+        unit_id: String,
+    },
+    MixedModelDrawSet {
+        statistic_id: String,
+        unit_id: String,
+    },
 }
 
 impl fmt::Display for AdequacyError {
@@ -352,8 +387,7 @@ pub fn assess_predictive_partition(
     }
 
     let expected_units = manifest.units_for(role);
-    let expected_unit_set: BTreeSet<&str> =
-        expected_units.iter().map(String::as_str).collect();
+    let expected_unit_set: BTreeSet<&str> = expected_units.iter().map(String::as_str).collect();
 
     let mut observed_by_key: BTreeMap<(String, String), &ObservedStatistic> = BTreeMap::new();
     for observation in observations {
@@ -404,13 +438,15 @@ pub fn assess_predictive_partition(
     }
 
     let mut draw_indices = BTreeSet::new();
-    let mut draw_set_identities: BTreeMap<(String, String, usize), (String, String)> = BTreeMap::new();
+    let mut draw_set_identities: BTreeMap<(String, String, usize), (String, String)> =
+        BTreeMap::new();
     for draw in draws.iter().filter(|draw| draw.kind == kind) {
-        let statistic = registry.get(&draw.statistic_id).ok_or_else(|| {
-            AdequacyError::UnknownStatistic {
-                statistic_id: draw.statistic_id.clone(),
-            }
-        })?;
+        let statistic =
+            registry
+                .get(&draw.statistic_id)
+                .ok_or_else(|| AdequacyError::UnknownStatistic {
+                    statistic_id: draw.statistic_id.clone(),
+                })?;
         if statistic.role != role {
             return Err(AdequacyError::StatisticRoleMismatch {
                 statistic_id: draw.statistic_id.clone(),
@@ -532,9 +568,7 @@ pub fn assess_predictive_partition(
                         && draw.sample_size == observation.sample_size
                 })
                 .collect();
-            let model_digest = matching_draws
-                .first()
-                .map(|draw| draw.model_digest.clone());
+            let model_digest = matching_draws.first().map(|draw| draw.model_digest.clone());
             let draw_set_digest = matching_draws
                 .first()
                 .map(|draw| draw.draw_set_digest.clone());
@@ -660,8 +694,8 @@ pub fn assess_predictive_partition(
             .iter()
             .filter(|result| result.status == StatisticStatus::WithinReferenceInterval)
             .count();
-        let empirical_coverage = (assessed_units > 0)
-            .then_some(covered_units as f64 / assessed_units as f64);
+        let empirical_coverage =
+            (assessed_units > 0).then_some(covered_units as f64 / assessed_units as f64);
         let (wilson_lower_95, wilson_upper_95) = if assessed_units > 0 {
             let (lower, upper) = wilson_interval_95(covered_units, assessed_units);
             (Some(lower), Some(upper))
@@ -717,10 +751,12 @@ fn wilson_interval_95(successes: usize, total: usize) -> (f64, f64) {
     let z_squared = z * z;
     let denominator = 1.0 + z_squared / n;
     let center = (proportion + z_squared / (2.0 * n)) / denominator;
-    let half_width = z
-        * (proportion * (1.0 - proportion) / n + z_squared / (4.0 * n * n)).sqrt()
-        / denominator;
-    ((center - half_width).max(0.0), (center + half_width).min(1.0))
+    let half_width =
+        z * (proportion * (1.0 - proportion) / n + z_squared / (4.0 * n * n)).sqrt() / denominator;
+    (
+        (center - half_width).max(0.0),
+        (center + half_width).min(1.0),
+    )
 }
 
 fn mid_rank(sorted_values: &[f64], observed: f64) -> f64 {
@@ -779,11 +815,7 @@ mod tests {
         }
     }
 
-    fn observation(
-        statistic_id: &str,
-        independent_unit_id: &str,
-        value: f64,
-    ) -> ObservedStatistic {
+    fn observation(statistic_id: &str, independent_unit_id: &str, value: f64) -> ObservedStatistic {
         ObservedStatistic {
             statistic_id: statistic_id.to_string(),
             independent_unit_id: independent_unit_id.to_string(),
@@ -825,7 +857,9 @@ mod tests {
     #[test]
     fn registry_rejects_duplicate_statistic_identity() {
         let mut candidate = registry();
-        candidate.statistics.push(spec("service-rate", SplitRole::Validation, true));
+        candidate
+            .statistics
+            .push(spec("service-rate", SplitRole::Validation, true));
         assert!(matches!(
             candidate.validate(),
             Err(AdequacyError::DuplicateStatistic { .. })
@@ -934,7 +968,10 @@ mod tests {
             assessment.statistics[0].observation_digest.as_deref(),
             Some("sha256-observation-service-rate-region-val")
         );
-        assert_eq!(assessment.statistics[0].model_digest.as_deref(), Some("sha256-model"));
+        assert_eq!(
+            assessment.statistics[0].model_digest.as_deref(),
+            Some("sha256-model")
+        );
         assert_eq!(
             assessment.statistics[0].draw_set_digest.as_deref(),
             Some("sha256-draw-set-prior")
@@ -1102,9 +1139,12 @@ mod tests {
         )
         .expect("missing required evidence is a result, not a panic");
         assert_eq!(assessment.statistics.len(), 2);
-        assert!(assessment.statistics.iter().all(|result| {
-            result.status == StatisticStatus::NotAssessed
-        }));
+        assert!(
+            assessment
+                .statistics
+                .iter()
+                .all(|result| { result.status == StatisticStatus::NotAssessed })
+        );
         assert!(!assessment.required_evidence_complete);
         assert_eq!(assessment.domain_status, DomainStatus::NotAssessed);
     }
@@ -1286,9 +1326,7 @@ mod tests {
     #[test]
     fn coverage_summary_uses_independent_units_and_reports_wilson_uncertainty() {
         let mut manifest = manifest();
-        manifest.validation_units = (0..10)
-            .map(|index| format!("region-{index}"))
-            .collect();
+        manifest.validation_units = (0..10).map(|index| format!("region-{index}")).collect();
 
         let registry = StatisticRegistry {
             version: "coverage-v1".to_string(),
@@ -1362,7 +1400,9 @@ mod tests {
     fn empty_challenge_partition_is_valid_but_has_no_evidence_to_assess() {
         let mut candidate = manifest();
         candidate.challenge_units.clear();
-        candidate.validate().expect("empty challenge set is permitted");
+        candidate
+            .validate()
+            .expect("empty challenge set is permitted");
         let assessment = assess_predictive_partition(
             &registry(),
             &candidate,
