@@ -167,6 +167,15 @@ fn sha256_hex(bytes: &[u8]) -> String {
     format!("{:x}", Sha256::digest(bytes))
 }
 
+fn lcg_next(state: &mut u32) -> f64 {
+    *state = state.wrapping_mul(1_664_525).wrapping_add(1_013_904_223);
+    *state as f64 / 4_294_967_296.0
+}
+
+fn round_12(value: f64) -> f64 {
+    (value * 1.0e12).round() / 1.0e12
+}
+
 fn validate_cube(
     cube: &[Vec<Vec<f64>>],
     samples: usize,
@@ -201,8 +210,8 @@ fn validate(fixture: &Fixture) -> Result<(), String> {
     let n = fixture.dataset.sample_count;
     let t = fixture.dataset.time_steps;
     let c = fixture.dataset.channel_ids.len();
-    if n < 2 || t < 2 || c < 1 || c > 64 {
-        return fail("v0.1 requires N>=2, T>=2 and 1..=64 channels");
+    if n < 2 || t < 2 || c != 3 {
+        return fail("v0.1 requires N>=2, T>=2 and exactly three channels");
     }
     if fixture.dataset.input_layout != "N_T_C"
         || fixture.dataset.normalization != "per_channel_zscore_frozen_fixture_statistics"
@@ -271,6 +280,25 @@ fn validate(fixture: &Fixture) -> Result<(), String> {
     {
         return fail("frozen per-channel z-score statistics are invalid");
     }
+    for channel in 0..c {
+        let values: Vec<f64> = fixture
+            .raw_windows
+            .iter()
+            .flat_map(|sample| sample.iter().map(move |step| step[channel]))
+            .collect();
+        let mean = values.iter().sum::<f64>() / values.len() as f64;
+        let variance = values
+            .iter()
+            .map(|value| (value - mean).powi(2))
+            .sum::<f64>()
+            / values.len() as f64;
+        let std = variance.sqrt();
+        if (normalization.mean[channel] - mean).abs() > 1.0e-10
+            || (normalization.std[channel] - std).abs() > 1.0e-10
+        {
+            return fail("z-score statistics do not match raw synthetic channel values");
+        }
+    }
     for sample in 0..n {
         for time in 0..t {
             for channel in 0..c {
@@ -317,6 +345,58 @@ fn validate(fixture: &Fixture) -> Result<(), String> {
             .any(|row| row.len() != n || row.iter().any(|index| *index >= n))
     {
         return fail("bootstrap index matrix must be B×N with indices in 0..N");
+    }
+    let mut bootstrap_state = protocol.bootstrap_index_seed as u32;
+    for row in 0..protocol.bootstrap_replicates {
+        for column in 0..n {
+            let expected = (lcg_next(&mut bootstrap_state) * 4_294_967_296.0) as usize % n;
+            if fixture.bootstrap_resample_indices[row][column] != expected {
+                return fail("bootstrap resample indices do not match declared seed/method");
+            }
+        }
+    }
+
+    let mut noise_state = protocol.noise_draw_seed as u32;
+    let mut spare_normal: Option<f64> = None;
+    for sample in 0..n {
+        for time in 0..t {
+            for channel in 0..c {
+                let expected = if let Some(value) = spare_normal.take() {
+                    value
+                } else {
+                    let u1 = lcg_next(&mut noise_state).max(1.0e-12);
+                    let u2 = lcg_next(&mut noise_state);
+                    let radius = (-2.0 * u1.ln()).sqrt();
+                    let angle = 2.0 * std::f64::consts::PI * u2;
+                    spare_normal = Some(round_12(radius * angle.sin()));
+                    radius * angle.cos()
+                };
+                let expected = round_12(expected);
+                if (fixture.noise_standard_normal[sample][time][channel] - expected).abs()
+                    > 1.0e-10
+                {
+                    return fail("normal noise draw does not match declared seed/method");
+                }
+            }
+        }
+    }
+
+    let mut outlier_uniform_state = protocol.outlier_uniform_seed as u32;
+    let mut outlier_delta_state = protocol.outlier_delta_seed as u32;
+    for sample in 0..n {
+        for time in 0..t {
+            for channel in 0..c {
+                let expected_uniform = round_12(lcg_next(&mut outlier_uniform_state));
+                let expected_delta = round_12(2.0 * lcg_next(&mut outlier_delta_state) - 1.0);
+                if (fixture.outlier_uniform[sample][time][channel] - expected_uniform).abs()
+                    > 1.0e-12
+                    || (fixture.outlier_delta_unit[sample][time][channel] - expected_delta).abs()
+                        > 1.0e-12
+                {
+                    return fail("outlier draws do not match declared uniform seeds/method");
+                }
+            }
+        }
     }
     if protocol.metric_definitions.mpc
         != "mean bootstrapped RMSE over failure_mode x channel x severity"
