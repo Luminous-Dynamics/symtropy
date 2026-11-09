@@ -638,6 +638,49 @@ pub fn poschl_teller_jost_wronskian(
     }
 }
 
+/// Evaluate the analytic connection-formula Wronskian for the unit-normalized
+/// Pöschl–Teller left/right Jost pair.
+///
+/// With ell = -1/2 + sqrt(1/4-lambda) and mu = i*width*omega,
+///
+/// W[f_left,f_right] = -(2/width) * Gamma(1-mu)^2
+///                     / (Gamma(1-mu+ell) Gamma(-ell-mu)).
+///
+/// This connection coefficient is independent of tortoise position and is
+/// intentionally separate from the direct Jost/Wronskian evaluation above.
+/// It provides an analytic cross-check and a pole locator. Points where the
+/// Gamma representation itself is singular outside its removable domain
+/// return a typed error rather than being regularized heuristically.
+pub fn poschl_teller_jost_wronskian_connection(
+    width: f64,
+    lambda: f64,
+    omega: Complex64,
+) -> Result<Complex64, SpecialError> {
+    validate_complex(&[omega])?;
+    if !width.is_finite() || !lambda.is_finite() || width <= 0.0 || lambda < 0.0 {
+        return Err(SpecialError::InvalidPoschlTellerParameters);
+    }
+
+    let one = Complex64::new(1.0, 0.0);
+    let degree = Complex64::new(-0.5, 0.0)
+        + Complex64::new(0.25 - lambda, 0.0).sqrt();
+    let order = Complex64::new(0.0, 1.0) * width * omega;
+    let gamma_factor = gamma(one - order)?;
+    let inverse_left_connection = reciprocal_gamma(one - order + degree)?;
+    let inverse_right_connection = reciprocal_gamma(-degree - order)?;
+    let value = (-2.0 / width)
+        * gamma_factor
+        * gamma_factor
+        * inverse_left_connection
+        * inverse_right_connection;
+
+    if finite(value) {
+        Ok(value)
+    } else {
+        Err(SpecialError::NonFiniteResult)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1050,4 +1093,117 @@ mod tests {
             }
         }
     }
+
+    #[test]
+    fn connection_wronskian_matches_direct_jost_wronskian() {
+        let config = SeriesConfig::default();
+        let cases = [
+            (1.3, 0.75, z(0.9, -0.12)),
+            (0.8, 0.1, z(0.47, 0.19)),
+            (1.7, 1.4, z(1.1, 0.08)),
+            (1.0, 0.75, z(0.0, 0.0)),
+        ];
+        for (width, lambda, omega) in cases {
+            let analytic =
+                poschl_teller_jost_wronskian_connection(width, lambda, omega).unwrap();
+            for x in [-1.1, -0.2, 0.0, 0.65, 1.3] {
+                let direct =
+                    poschl_teller_jost_wronskian(width, lambda, omega, x, config).unwrap();
+                close(
+                    direct,
+                    analytic,
+                    2.0e-9 * (1.0 + analytic.norm()),
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn connection_wronskian_free_limit_is_two_i_omega() {
+        for (width, omega) in [
+            (0.7, z(0.9, -0.12)),
+            (1.3, z(0.0, 0.0)),
+            (2.1, z(0.3, 0.2)),
+        ] {
+            let actual =
+                poschl_teller_jost_wronskian_connection(width, 0.0, omega).unwrap();
+            close(actual, z(0.0, 2.0) * omega, 5.0e-13);
+        }
+    }
+
+    #[test]
+    fn connection_wronskian_reproduces_principal_root_poles_on_both_sides_of_threshold() {
+        let width = 1.0;
+        for (lambda, expected_plus_sign) in [(0.75, 1.0), (0.1, 0.0)] {
+            for n in [0_u32, 1, 2, 5] {
+                let damping = f64::from(n) + 0.5;
+                let split = Complex64::new(lambda - 0.25, 0.0).sqrt();
+                let plus = z(0.0, -damping) + split;
+                let minus = z(0.0, -damping) - split;
+                let plus_w =
+                    poschl_teller_jost_wronskian_connection(width, lambda, plus).unwrap();
+                let minus_w =
+                    poschl_teller_jost_wronskian_connection(width, lambda, minus).unwrap();
+                assert!(
+                    plus_w.norm() < 2.0e-10,
+                    "plus branch lambda={lambda}, n={n}, W={plus_w:?}"
+                );
+                assert!(
+                    minus_w.norm() < 2.0e-10,
+                    "minus branch lambda={lambda}, n={n}, W={minus_w:?}"
+                );
+
+                if expected_plus_sign == 1.0 {
+                    assert!(plus.re > 0.0 && minus.re < 0.0);
+                } else {
+                    assert!(plus.re == 0.0 && minus.re == 0.0);
+                    assert!(plus.im > minus.im, "plus branch must be less damped");
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn threshold_coalescence_is_a_second_order_wronskian_zero() {
+        let lambda = 0.25;
+        let n = 0_u32;
+        let pole = z(0.0, -(f64::from(n) + 0.5));
+        let exact = poschl_teller_jost_wronskian_connection(1.0, lambda, pole).unwrap();
+        close(exact, z(0.0, 0.0), 0.0);
+
+        let h = 1.0e-3;
+        let at_h =
+            poschl_teller_jost_wronskian_connection(1.0, lambda, pole + z(h, 0.0)).unwrap();
+        let at_half =
+            poschl_teller_jost_wronskian_connection(1.0, lambda, pole + z(h / 2.0, 0.0))
+                .unwrap();
+        let scaled_h = at_h.norm() / h.powi(2);
+        let scaled_half = at_half.norm() / (h / 2.0).powi(2);
+        assert!(scaled_h.is_finite() && scaled_half.is_finite());
+        assert!(
+            (scaled_h - scaled_half).abs() / scaled_h < 2.0e-3,
+            "scaled second-order zero did not stabilize: h={scaled_h:e}, h/2={scaled_half:e}"
+        );
+        assert!(
+            (at_h.norm() / at_half.norm() - 4.0).abs() < 8.0e-3,
+            "threshold local scaling is not quadratic"
+        );
+    }
+
+    #[test]
+    fn connection_wronskian_rejects_invalid_parameters() {
+        assert_eq!(
+            poschl_teller_jost_wronskian_connection(0.0, 0.75, z(0.9, -0.1)),
+            Err(SpecialError::InvalidPoschlTellerParameters)
+        );
+        assert_eq!(
+            poschl_teller_jost_wronskian_connection(1.0, -0.1, z(0.9, -0.1)),
+            Err(SpecialError::InvalidPoschlTellerParameters)
+        );
+        assert_eq!(
+            poschl_teller_jost_wronskian_connection(1.0, 0.75, z(f64::NAN, 0.0)),
+            Err(SpecialError::NonFiniteInput)
+        );
+    }
+
 }
