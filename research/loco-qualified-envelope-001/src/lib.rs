@@ -417,11 +417,7 @@ fn evaluate_viability(
         return ViabilityClass::Missing;
     };
     if !check_header(&evidence.header, cell, now_ns, blockers, witnesses) {
-        return if blockers.contains(&Blocker::EvidenceIdentityMismatch) {
-            ViabilityClass::Unknown
-        } else {
-            ViabilityClass::Unknown
-        };
+        return ViabilityClass::Unknown;
     }
 
     match &evidence.status {
