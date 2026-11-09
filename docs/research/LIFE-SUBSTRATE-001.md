@@ -569,3 +569,11 @@ The existing [HERITAGE-ABSENCE-001 #542](https://github.com/Luminous-Dynamics/so
 ### Integration rule
 
 Do not turn this RFC into an umbrella that replaces the existing owners. OLI owns the benchmark task definitions and cross-substrate acceptance criteria. Domain repositories retain their respective physical, cognitive, provenance/rights, and spatial authorities.
+
+
+### First implementation trackers opened on 9 November 2026
+
+- Symtropy [OLI-M0-001 #4427](https://github.com/Luminous-Dynamics/symtropy/issues/4427): six deterministic fixtures and a dependency-light Rust semantic validator.
+- Symthaea [DUSTY-PLASMA-IDENTIFY-001 #11317](https://github.com/Luminous-Dynamics/symthaea/issues/11317): reproduce the published experimental dusty-plasma particle-force inference and add whole-experiment holdouts. This is a physics benchmark, not a life benchmark.
+- Sol-Atlas [OLI-SPATIAL-001 #691](https://github.com/Luminous-Dynamics/sol-atlas-leptos/issues/691): spatiotemporal observability and false-negative accounting, composing #357 and the methodological pattern in #542.
+- Mycelix composition recorded in [CIVOS-EVIDENCE-001 #5709](https://github.com/Luminous-Dynamics/mycelix/issues/5709): OLI claims and observations map to existing provenance/rights primitives; no second evidence ledger is planned.
