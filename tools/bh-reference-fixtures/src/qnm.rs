@@ -492,10 +492,10 @@ mod tests {
 
         KerrQnmSequenceFixture {
             schema_version: QNM_SEQUENCE_SCHEMA_VERSION,
-            sequence_id: "kerr-a03-s-2-l2-m2".to_owned(),
+            sequence_id: "kerr-a03-s0-l2-m2".to_owned(),
             provenance,
             spin_over_mass: 0.3,
-            spin_weight: -2,
+            spin_weight: 0,
             ell: 2,
             m: 2,
             angular_eigenvalue_convention: AngularEigenvalueConvention::SpinWeightedSpheroidalA,
@@ -552,6 +552,14 @@ mod tests {
             sequence(QnmFamilyClassification::Unresolved).validate(),
             Ok(())
         );
+    }
+
+    #[test]
+    fn nonzero_spin_weight_does_not_force_an_unverified_prolate_oscillator_label() {
+        let mut value = sequence(QnmFamilyClassification::Ambiguous);
+        value.spin_weight = -2;
+        assert_eq!(value.normal_prolate_oscillator_level, None);
+        assert_eq!(value.validate(), Ok(()));
     }
 
     #[test]
