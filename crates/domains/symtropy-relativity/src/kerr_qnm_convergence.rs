@@ -34,6 +34,11 @@ pub enum KerrOpticalError {
         source_time_s: f64,
         observation_time_s: f64,
     },
+    SourceEventsNotStrictlyChronological {
+        index: usize,
+        previous_time_s: f64,
+        source_time_s: f64,
+    },
     RootNotBracketed,
     RootNotConverged,
     QuadratureNotConverged,
@@ -61,6 +66,14 @@ impl fmt::Display for KerrOpticalError {
             } => write!(
                 f,
                 "source event at t={source_time_s} s is later than observation at t={observation_time_s} s"
+            ),
+            Self::SourceEventsNotStrictlyChronological {
+                index,
+                previous_time_s,
+                source_time_s,
+            } => write!(
+                f,
+                "source event {index} at t={source_time_s} s is not later than preceding event at t={previous_time_s} s"
             ),
             Self::RootNotBracketed => write!(f, "Kerr optical bounce root was not bracketed"),
             Self::RootNotConverged => write!(f, "Kerr optical bounce root did not converge"),
@@ -413,7 +426,8 @@ impl KerrOpticalReference {
         }
 
         let mut qualifications = Vec::with_capacity(source_events.len());
-        for event in source_events {
+        let mut previous_source_time_s: Option<f64> = None;
+        for (index, event) in source_events.iter().enumerate() {
             if !event.coordinate_time_s.is_finite() {
                 return Err(KerrOpticalError::NonFiniteInput(
                     "source_event.coordinate_time_s",
@@ -425,6 +439,16 @@ impl KerrOpticalReference {
                     observation_time_s,
                 });
             }
+            if let Some(previous_time_s) = previous_source_time_s
+                && event.coordinate_time_s <= previous_time_s
+            {
+                return Err(KerrOpticalError::SourceEventsNotStrictlyChronological {
+                    index,
+                    previous_time_s,
+                    source_time_s: event.coordinate_time_s,
+                });
+            }
+            previous_source_time_s = Some(event.coordinate_time_s);
 
             let convergence = self.convergence_margins(
                 observation_time_s - event.coordinate_time_s,
