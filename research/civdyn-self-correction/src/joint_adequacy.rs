@@ -216,6 +216,7 @@ pub enum JointAdequacyError {
     MixedModelIdentities { statistic_id: String, unit_id: String },
     MixedDrawSetIdentities { statistic_id: String, unit_id: String },
     CalibrationDigestMismatch { statistic_id: String, unit_id: String },
+    NonFiniteScore { statistic_id: String, unit_id: String },
 }
 
 impl fmt::Display for JointAdequacyError {
@@ -329,13 +330,13 @@ pub fn assess_joint_predictive_draws(
                 draw_index: draw.draw_index,
             });
         }
-        if model_digest.is_some_and(|previous| previous != draw.model_digest) {
+        if model_digest.is_some_and(|previous| previous != draw.model_digest.as_str()) {
             return Err(JointAdequacyError::MixedModelIdentities {
                 statistic_id: statistic.id.clone(),
                 unit_id: observation.independent_unit_id.clone(),
             });
         }
-        if draw_set_digest.is_some_and(|previous| previous != draw.draw_set_digest) {
+        if draw_set_digest.is_some_and(|previous| previous != draw.draw_set_digest.as_str()) {
             return Err(JointAdequacyError::MixedDrawSetIdentities {
                 statistic_id: statistic.id.clone(),
                 unit_id: observation.independent_unit_id.clone(),
@@ -350,15 +351,11 @@ pub fn assess_joint_predictive_draws(
             &draw.components,
         )?;
 
-        vectors.push(
-            draw.components
-                .iter()
-                .zip(&statistic.components)
-                .map(|(value, spec)| {
-                    (value.value - spec.reference_center) / spec.reference_scale
-                })
-                .collect::<Vec<f64>>(),
-        );
+        vectors.push(standardize_component_values(
+            statistic,
+            &observation.independent_unit_id,
+            &draw.components,
+        )?);
     }
 
     if vectors.len() < statistic.minimum_draws {
@@ -370,16 +367,21 @@ pub fn assess_joint_predictive_draws(
         });
     }
 
-    let observed: Vec<f64> = observation
-        .components
-        .iter()
-        .zip(&statistic.components)
-        .map(|(value, spec)| (value.value - spec.reference_center) / spec.reference_scale)
-        .collect();
+    let observed = standardize_component_values(
+        statistic,
+        &observation.independent_unit_id,
+        &observation.components,
+    )?;
 
     let energy = energy_score(&vectors, &observed, config.energy_beta);
     let (variogram, pair_results) =
         variogram_score(&vectors, &observed, statistic, config);
+    if !energy.is_finite() || !variogram.is_finite() {
+        return Err(JointAdequacyError::NonFiniteScore {
+            statistic_id: statistic.id.clone(),
+            unit_id: observation.independent_unit_id.clone(),
+        });
+    }
 
     let component_residuals_standardized = statistic
         .components
@@ -394,6 +396,16 @@ pub fn assess_joint_predictive_draws(
             (spec.id.clone(), observed[index] - predictive_mean)
         })
         .collect();
+
+    if component_residuals_standardized
+        .iter()
+        .any(|(_, residual)| !residual.is_finite())
+    {
+        return Err(JointAdequacyError::NonFiniteScore {
+            statistic_id: statistic.id.clone(),
+            unit_id: observation.independent_unit_id.clone(),
+        });
+    }
 
     Ok(JointAdequacyResult {
         statistic_id: statistic.id.clone(),
@@ -414,6 +426,26 @@ pub fn assess_joint_predictive_draws(
         calibration_data_digest: manifest.calibration_data_digest.clone(),
         split_manifest_digest: manifest.manifest_digest.clone(),
     })
+}
+
+fn standardize_component_values(
+    statistic: &JointStatisticSpec,
+    unit_id: &str,
+    values: &[JointComponentValue],
+) -> Result<Vec<f64>, JointAdequacyError> {
+    validate_component_vector(statistic, unit_id, values)?;
+    let standardized: Vec<f64> = values
+        .iter()
+        .zip(&statistic.components)
+        .map(|(value, spec)| (value.value - spec.reference_center) / spec.reference_scale)
+        .collect();
+    if standardized.iter().any(|value| !value.is_finite()) {
+        return Err(JointAdequacyError::InvalidComponentVector {
+            statistic_id: statistic.id.clone(),
+            unit_id: unit_id.to_string(),
+        });
+    }
+    Ok(standardized)
 }
 
 fn validate_component_vector(
@@ -647,6 +679,23 @@ mod tests {
         assert!((negative_result.energy_score - 0.646_446_609_406_726_3).abs() < 1e-12);
         assert_eq!(positive_result.variogram_score, 0.0);
         assert_eq!(negative_result.variogram_score, 1.0);
+    }
+
+    #[test]
+    fn overflowed_standardization_fails_closed() {
+        let mut spec = statistic();
+        spec.components[0].reference_scale = f64::MIN_POSITIVE;
+        assert!(matches!(
+            assess_joint_predictive_draws(
+                &spec,
+                &manifest(),
+                SplitRole::Validation,
+                &observation([f64::MAX, 1.0]),
+                &[draw(0, [0.0, 0.0], "d"), draw(1, [1.0, 1.0], "d")],
+                &config()
+            ),
+            Err(JointAdequacyError::InvalidComponentVector { .. })
+        ));
     }
 
     #[test]
