@@ -373,7 +373,7 @@ def minimum_cost_robust_selection(data: dict[str, Any]) -> dict[str, Any] | None
     for count in range(minimum_count, len(sensors) + 1):
         for indices in combinations(len(sensors), count):
             worst_e, _worst_d, records = robust_score(data, indices)
-            if worst_e + SCORE_TOLERANCE < required:
+            if worst_e + SCORE_TOL < required:
                 continue
             cost = sum(sensors[i]["deployment_cost_units"] for i in indices)
             mass = sum(sensors[i]["mass_g"] for i in indices)
