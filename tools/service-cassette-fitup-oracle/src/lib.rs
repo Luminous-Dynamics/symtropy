@@ -684,25 +684,41 @@ pub fn evaluate_case(case: &Value) -> Value {
         }
     };
 
-    let installed_allowance = allowance_intervals(input, &unit, &mut BTreeSet::new());
-    let (installed_acceptance, installed_axes) =
-        evaluate_installed(input, &unit, &installed_allowance, &mut reasons);
-
-    let final_fit_up = if input_state == "invalid_input" {
+    let final_input_state = if reasons.iter().any(|reason| is_invalid_reason(reason)) {
+        "invalid_input"
+    } else if reasons.iter().any(|reason| {
+        reason.contains("INCOMPLETE")
+            || reason.contains("NOT_VERIFIED")
+            || reason.contains("NOT_VALID")
+    }) {
+        "insufficient_evidence"
+    } else {
+        input_state
+    };
+    let final_fit_up = if final_input_state == "invalid_input" {
         "invalid_input"
     } else {
         fit_up
     };
+    let fit_up_reasons = reasons.clone();
+
+    let installed_allowance = allowance_intervals(input, &unit, &mut BTreeSet::new());
+    let mut installed_reasons = BTreeSet::new();
+    let (installed_acceptance, installed_axes) =
+        evaluate_installed(input, &unit, &installed_allowance, &mut installed_reasons);
+    let mut all_reasons = reasons;
+    all_reasons.extend(installed_reasons.iter().cloned());
 
     json!({
         "case_id": case_id,
-        "input_state": input_state,
+        "input_state": final_input_state,
         "fit_up_disposition": final_fit_up,
         "installed_acceptance": installed_acceptance,
         "canonical_length_unit": unit,
         "stack_bounds_nm": stack_json,
         "installed_axis_results": installed_axes,
-        "reason_codes": reasons.into_iter().collect::<Vec<_>>(),
+        "reason_codes": all_reasons.into_iter().collect::<Vec<_>>(),
+        "fit_up_reason_codes": fit_up_reasons.into_iter().collect::<Vec<_>>(),
         "factory_acceptance_implies_installation": false,
         "fit_up_implies_installed_acceptance": false,
         "action_authority": "none",
