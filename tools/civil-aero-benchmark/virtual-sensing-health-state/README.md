@@ -4,7 +4,7 @@ This crate is a deliberately small, exact synthetic benchmark for the joint stru
 
 **Claim ceiling:** synthetic joint-state hypotheses, witness gating, raw-data preservation and abstention only. It is not an SHM detector, NDE system, aircraft model, POD assessment, airworthiness analysis or flight-safety function.
 
-## Paradigm shift: correction is not diagnosis
+## Paradigm shift: reconstruction is not diagnosis
 
 A measured anomaly can arise from a structural change, a sensor fault, an environmental/operational change, an invalid measurement chain, or multiple causes. A residual on one channel does not establish which cause occurred.
 
@@ -15,7 +15,7 @@ This oracle applies four hard rules:
 3. Multiple plausible explanations, unqualified operators, expired calibration, insufficient observations and out-of-model responses abstain.
 4. Raw observations are immutable. An optional model-imputed value is emitted in a separate field with status CONDITIONAL_MODEL_ESTIMATE_NOT_MEASUREMENT. It is never written back as a measurement and is not independent evidence.
 
-This is intentionally more conservative than “reconstruct first, classify later.” A localized defect or unmodeled boundary condition can generate the same one-channel residual pattern as a faulty sensor. Without independent sensor-health evidence, the correct outcome is uncertainty, not automatic correction.
+This is intentionally more conservative than “reconstruct first, classify later.” A localized defect or unmodeled boundary condition can generate the same one-channel residual pattern as a faulty sensor. Without independent sensor-health evidence, the correct outcome is uncertainty, not automatic reconstruction.
 
 ## Frozen synthetic corpus
 
@@ -39,7 +39,7 @@ Every case report preserves:
 - faulty_sensor_ids only when the channel-matched independent witness is present;
 - model_imputed_values separately from observed_values;
 - reconstructed_sensor_ids and the literal status CONDITIONAL_MODEL_ESTIMATE_NOT_MEASUREMENT;
-- post-correction structural state, which is required to remain the pre-reconstruction structural hypothesis;
+- post-reconstruction structural state, which is required to remain the pre-reconstruction structural hypothesis;
 - damage_preserved as a synthetic invariant, not physical damage-detection evidence.
 
 For a case with no sensor fault, model_imputed_values is null. For an abstained case, no model imputation is emitted. Unwitnessed single-channel residuals return ABSTAIN_SENSOR_FAULT_UNCONFIRMED. If the healthy/damaged template hypotheses are both consistent, the result is ABSTAIN_AMBIGUOUS_HYPOTHESES.
