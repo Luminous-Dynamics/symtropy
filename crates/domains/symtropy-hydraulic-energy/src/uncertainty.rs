@@ -11,9 +11,7 @@
 
 use core::fmt;
 
-use crate::{
-    EvidenceReference, HydraulicGenerationResult, STANDARD_GRAVITY_M_PER_S2,
-};
+use crate::{EvidenceReference, HydraulicGenerationResult, STANDARD_GRAVITY_M_PER_S2};
 
 /// A non-negative standard uncertainty expressed in the unit of its paired
 /// physical quantity.
@@ -132,10 +130,16 @@ impl fmt::Display for UncertaintyError {
                 write!(formatter, "sensitivity {field} is non-finite: {value}")
             }
             Self::NonFiniteContribution { field, value } => {
-                write!(formatter, "uncertainty contribution {field} is non-finite: {value}")
+                write!(
+                    formatter,
+                    "uncertainty contribution {field} is non-finite: {value}"
+                )
             }
             Self::NonFiniteCombinedUncertainty { value } => {
-                write!(formatter, "combined standard uncertainty is non-finite: {value}")
+                write!(
+                    formatter,
+                    "combined standard uncertainty is non-finite: {value}"
+                )
             }
         }
     }
@@ -219,8 +223,14 @@ pub fn propagate_net_power_standard_uncertainty(
         ("water_density", sensitivity.water_density_w_per_kg_m3),
         ("turbine_flow", sensitivity.turbine_flow_w_per_m3_per_s),
         ("net_head", sensitivity.net_head_w_per_m),
-        ("turbine_efficiency", sensitivity.turbine_efficiency_w_per_unit),
-        ("generator_efficiency", sensitivity.generator_efficiency_w_per_unit),
+        (
+            "turbine_efficiency",
+            sensitivity.turbine_efficiency_w_per_unit,
+        ),
+        (
+            "generator_efficiency",
+            sensitivity.generator_efficiency_w_per_unit,
+        ),
         ("auxiliary_power", sensitivity.auxiliary_power_w_per_w),
     ] {
         if !value.is_finite() {
@@ -280,9 +290,9 @@ pub fn propagate_net_power_standard_uncertainty(
 mod tests {
     use super::*;
     use crate::{
-        Efficiency, EvidenceClass, FlowRateM3PerSecond, GeneratorModel, HeadMetres,
-        HydraulicInput, PressurePascals, TurbineMapCell, WaterDensityKgPerM3,
-        WaterServiceContract, WaterServiceState,
+        Efficiency, EvidenceClass, FlowRateM3PerSecond, GeneratorModel, HeadMetres, HydraulicInput,
+        PressurePascals, TurbineMapCell, WaterDensityKgPerM3, WaterServiceContract,
+        WaterServiceState,
     };
 
     fn complete_uncertainties() -> HydraulicPowerStandardUncertainties {
@@ -339,7 +349,10 @@ mod tests {
         .unwrap();
         let contract = WaterServiceContract::new(
             "WATER-SERVICE-TEST",
-            evidence("WATER-CONTRACT-001", EvidenceClass::OperatorApprovedContract),
+            evidence(
+                "WATER-CONTRACT-001",
+                EvidenceClass::OperatorApprovedContract,
+            ),
             PressurePascals::new(400_000.0).unwrap(),
             FlowRateM3PerSecond::new(0.09).unwrap(),
             FlowRateM3PerSecond::new(0.015).unwrap(),
@@ -362,12 +375,7 @@ mod tests {
         );
 
         crate::evaluate_hydraulic_generation(
-            hydraulic,
-            turbine,
-            generator,
-            contract,
-            baseline,
-            candidate,
+            hydraulic, turbine, generator, contract, baseline, candidate,
         )
         .unwrap()
     }
@@ -436,12 +444,11 @@ mod tests {
             let mut minus = params;
             plus[index] += epsilon;
             minus[index] -= epsilon;
-            let finite_difference =
-                (power(plus[0], plus[1], plus[2], plus[3], plus[4], plus[5])
-                    - power(minus[0], minus[1], minus[2], minus[3], minus[4], minus[5]))
-                    / (2.0 * epsilon);
-            let relative_error =
-                (finite_difference - sensitivities[index]).abs() / sensitivities[index].abs().max(1e-12);
+            let finite_difference = (power(plus[0], plus[1], plus[2], plus[3], plus[4], plus[5])
+                - power(minus[0], minus[1], minus[2], minus[3], minus[4], minus[5]))
+                / (2.0 * epsilon);
+            let relative_error = (finite_difference - sensitivities[index]).abs()
+                / sensitivities[index].abs().max(1e-12);
             assert!(
                 relative_error < 1e-6,
                 "{} derivative relative error {relative_error}",
