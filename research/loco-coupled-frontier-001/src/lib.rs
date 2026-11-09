@@ -206,7 +206,8 @@ fn validate_and_canonicalize(
     let mut axis_ids = BTreeSet::new();
     for index in &axis_indices {
         let axis = &family.axes[*index];
-        if !nonempty(&axis.axis_id) || !nonempty(&axis.unit) || !nonempty(&axis.constructor_digest) {
+        if !nonempty(&axis.axis_id) || !nonempty(&axis.unit) || !nonempty(&axis.constructor_digest)
+        {
             return Err(FrontierError::EmptyIdentifier);
         }
         if !axis_ids.insert(axis.axis_id.as_str()) {
