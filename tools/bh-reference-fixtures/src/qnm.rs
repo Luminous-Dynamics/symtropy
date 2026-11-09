@@ -85,6 +85,15 @@ pub struct QnmFamilyEvidence {
 /// continuation/analysis sequence. overtone_index is optional because a
 /// unique traditional n label may be unavailable near crossings or in
 /// nonstandard high-overtone sectors.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum QnmMethodApplicability {
+    WithinDocumentedRegime,
+    Extrapolated,
+    KnownBreakdown,
+    Unresolved,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct QnmModeRecord {
@@ -93,7 +102,10 @@ pub struct QnmModeRecord {
     pub omega_m: ComplexValue,
     pub angular_eigenvalue: ComplexValue,
     pub angular_branch_id: String,
+    /// Producer-defined ID for the path used to continue the angular branch.
+    pub angular_continuation_path_id: Option<String>,
     pub solver_method: QnmSolverMethod,
+    pub method_applicability: QnmMethodApplicability,
     pub initial_guess: Option<ComplexValue>,
     pub precision_bits: u16,
     pub residuals: Option<QnmModeResiduals>,
@@ -102,6 +114,11 @@ pub struct QnmModeRecord {
     pub wkb_quantization_index: Option<u32>,
     pub wkb_truncation_order: Option<u32>,
     pub wkb_optimal_truncation_order: Option<u32>,
+    /// Higher quantum periods in the selected genus-one cycle basis.
+    pub wkb_cycle_period_j0: Option<ComplexValue>,
+    pub wkb_cycle_period_j1: Option<ComplexValue>,
+    pub wkb_quantization_residual: Option<f64>,
+    pub wkb_truncation_error_estimate: Option<f64>,
     /// Explicit cycle label; the spectral curve alone does not select it.
     pub wkb_cycle_id: Option<String>,
 }
@@ -146,6 +163,8 @@ pub enum QnmSequenceValidationError {
     InvalidFamilyEvidence,
     MissingFamilyEvidence,
     MissingWkbMetadata(usize),
+    InvalidWkbMetadata(usize),
+    InvalidWkbSpinDomain(usize),
     ExtremalFixtureRequiresScalarExactWkb,
 }
 
@@ -208,7 +227,19 @@ impl core::fmt::Display for QnmSequenceValidationError {
             Self::MissingWkbMetadata(index) => {
                 write!(
                     f,
-                    "QNM mode {index} requires WKB index, truncation order and cycle metadata"
+                    "QNM mode {index} requires WKB index, truncation order, branch path and cycle metadata"
+                )
+            }
+            Self::InvalidWkbMetadata(index) => {
+                write!(
+                    f,
+                    "QNM mode {index} has non-finite or negative WKB periods/residual/error estimate"
+                )
+            }
+            Self::InvalidWkbSpinDomain(index) => {
+                write!(
+                    f,
+                    "QNM mode {index} uses the fixed-spin normal-prolate WKB method outside 0 < a/M < 1"
                 )
             }
             Self::ExtremalFixtureRequiresScalarExactWkb => {
@@ -304,14 +335,35 @@ impl KerrQnmSequenceFixture {
             {
                 return Err(QnmSequenceValidationError::InvalidModeResiduals(index));
             }
-            if mode.solver_method == QnmSolverMethod::KerrNormalProlateGenusOneWkb
-                && (mode.wkb_quantization_index.is_none()
+            if mode.solver_method == QnmSolverMethod::KerrNormalProlateGenusOneWkb {
+                if self.spin_over_mass <= 0.0
+                    || self.spin_over_mass >= 1.0
+                {
+                    return Err(QnmSequenceValidationError::InvalidWkbSpinDomain(index));
+                }
+                if mode.wkb_quantization_index.is_none()
                     || mode.wkb_truncation_order.is_none()
                     || mode.wkb_cycle_id.as_deref().is_none_or(str::is_empty)
+                    || mode
+                        .angular_continuation_path_id
+                        .as_deref()
+                        .is_none_or(str::is_empty)
                     || self.family_classification != QnmFamilyClassification::Prolate
-                    || self.normal_prolate_oscillator_level.is_none())
-            {
-                return Err(QnmSequenceValidationError::MissingWkbMetadata(index));
+                    || self.normal_prolate_oscillator_level.is_none()
+                {
+                    return Err(QnmSequenceValidationError::MissingWkbMetadata(index));
+                }
+                if mode.wkb_cycle_period_j0.is_none_or(|value| !value.is_finite())
+                    || mode.wkb_cycle_period_j1.is_none_or(|value| !value.is_finite())
+                    || mode
+                        .wkb_quantization_residual
+                        .is_none_or(|value| !value.is_finite() || value < 0.0)
+                    || mode
+                        .wkb_truncation_error_estimate
+                        .is_none_or(|value| !value.is_finite() || value < 0.0)
+                {
+                    return Err(QnmSequenceValidationError::InvalidWkbMetadata(index));
+                }
             }
         }
 
@@ -395,7 +447,9 @@ mod tests {
                     im: -0.1,
                 },
                 angular_branch_id: "continued-angular-branch".to_owned(),
+                angular_continuation_path_id: None,
                 solver_method: QnmSolverMethod::Leaver,
+                method_applicability: QnmMethodApplicability::WithinDocumentedRegime,
                 initial_guess: Some(ComplexValue { re: 0.5, im: -0.1 }),
                 precision_bits: 128,
                 residuals: Some(QnmModeResiduals {
@@ -407,6 +461,10 @@ mod tests {
                 wkb_quantization_index: None,
                 wkb_truncation_order: None,
                 wkb_optimal_truncation_order: None,
+                wkb_cycle_period_j0: None,
+                wkb_cycle_period_j1: None,
+                wkb_quantization_residual: None,
+                wkb_truncation_error_estimate: None,
                 wkb_cycle_id: None,
             })
             .collect();
@@ -501,11 +559,17 @@ mod tests {
         value.spin_weight = 0;
         value.normal_prolate_oscillator_level = Some(0);
         let mode = &mut value.modes[0];
+        mode.angular_continuation_path_id =
+            Some("schwarzschild-to-negative-imaginary-c-one-sided".to_owned());
         mode.solver_method = QnmSolverMethod::KerrNormalProlateGenusOneWkb;
         mode.overtone_index = Some(7);
         mode.wkb_quantization_index = Some(120);
         mode.wkb_truncation_order = Some(47);
         mode.wkb_optimal_truncation_order = Some(47);
+        mode.wkb_cycle_period_j0 = Some(ComplexValue { re: 1.2, im: -0.3 });
+        mode.wkb_cycle_period_j1 = Some(ComplexValue { re: 0.7, im: 0.1 });
+        mode.wkb_quantization_residual = Some(1.0e-12);
+        mode.wkb_truncation_error_estimate = Some(1.0e-8);
         mode.wkb_cycle_id = Some("outer-scattering-cycle".to_owned());
         assert_eq!(mode.overtone_index, Some(7));
         assert_eq!(mode.wkb_quantization_index, Some(120));
@@ -518,6 +582,13 @@ mod tests {
         wrong_family.modes[0].solver_method = QnmSolverMethod::KerrNormalProlateGenusOneWkb;
         wrong_family.modes[0].wkb_quantization_index = Some(120);
         wrong_family.modes[0].wkb_truncation_order = Some(47);
+        wrong_family.modes[0].angular_continuation_path_id = Some("path".to_owned());
+        wrong_family.modes[0].wkb_cycle_period_j0 =
+            Some(ComplexValue { re: 1.0, im: 0.0 });
+        wrong_family.modes[0].wkb_cycle_period_j1 =
+            Some(ComplexValue { re: 1.0, im: 0.0 });
+        wrong_family.modes[0].wkb_quantization_residual = Some(1.0e-12);
+        wrong_family.modes[0].wkb_truncation_error_estimate = Some(1.0e-8);
         wrong_family.modes[0].wkb_cycle_id = Some("outer".to_owned());
         assert_eq!(
             wrong_family.validate(),
@@ -528,9 +599,56 @@ mod tests {
         missing_cycle.modes[0].solver_method = QnmSolverMethod::KerrNormalProlateGenusOneWkb;
         missing_cycle.modes[0].wkb_quantization_index = Some(120);
         missing_cycle.modes[0].wkb_truncation_order = Some(47);
+        missing_cycle.modes[0].angular_continuation_path_id = Some("path".to_owned());
+        missing_cycle.modes[0].wkb_cycle_period_j0 =
+            Some(ComplexValue { re: 1.0, im: 0.0 });
+        missing_cycle.modes[0].wkb_cycle_period_j1 =
+            Some(ComplexValue { re: 1.0, im: 0.0 });
+        missing_cycle.modes[0].wkb_quantization_residual = Some(1.0e-12);
+        missing_cycle.modes[0].wkb_truncation_error_estimate = Some(1.0e-8);
         assert_eq!(
             missing_cycle.validate(),
             Err(QnmSequenceValidationError::MissingWkbMetadata(0))
+        );
+    }
+
+    #[test]
+    fn genus_one_wkb_rejects_zero_or_negative_spin_domain() {
+        let mut zero_spin = sequence(QnmFamilyClassification::Prolate);
+        zero_spin.spin_weight = 0;
+        zero_spin.normal_prolate_oscillator_level = Some(0);
+        zero_spin.modes[0].solver_method = QnmSolverMethod::KerrNormalProlateGenusOneWkb;
+        assert_eq!(
+            zero_spin.validate(),
+            Err(QnmSequenceValidationError::InvalidWkbSpinDomain(0))
+        );
+
+        let mut negative_spin = zero_spin;
+        negative_spin.spin_over_mass = -0.7;
+        assert_eq!(
+            negative_spin.validate(),
+            Err(QnmSequenceValidationError::InvalidWkbSpinDomain(0))
+        );
+    }
+
+    #[test]
+    fn genus_one_wkb_requires_finite_periods_and_error_metadata() {
+        let mut value = sequence(QnmFamilyClassification::Prolate);
+        value.spin_weight = 0;
+        value.normal_prolate_oscillator_level = Some(0);
+        let mode = &mut value.modes[0];
+        mode.solver_method = QnmSolverMethod::KerrNormalProlateGenusOneWkb;
+        mode.angular_continuation_path_id = Some("branch-path".to_owned());
+        mode.wkb_quantization_index = Some(120);
+        mode.wkb_truncation_order = Some(47);
+        mode.wkb_cycle_id = Some("outer".to_owned());
+        mode.wkb_cycle_period_j0 = Some(ComplexValue { re: f64::NAN, im: 0.0 });
+        mode.wkb_cycle_period_j1 = Some(ComplexValue { re: 1.0, im: 0.0 });
+        mode.wkb_quantization_residual = Some(1.0e-12);
+        mode.wkb_truncation_error_estimate = Some(1.0e-8);
+        assert_eq!(
+            value.validate(),
+            Err(QnmSequenceValidationError::InvalidWkbMetadata(0))
         );
     }
 
