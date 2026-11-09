@@ -94,6 +94,7 @@ pub struct JointObservation {
     pub sample_size: usize,
     pub source_digest: String,
     pub observation_digest: String,
+    pub split_manifest_digest: String,
     pub components: Vec<JointComponentValue>,
 }
 
@@ -106,6 +107,7 @@ pub struct JointPredictiveDraw {
     pub model_digest: String,
     pub draw_set_digest: String,
     pub calibration_data_digest: Option<String>,
+    pub split_manifest_digest: String,
     pub components: Vec<JointComponentValue>,
 }
 
@@ -216,6 +218,7 @@ pub enum JointAdequacyError {
     MixedModelIdentities { statistic_id: String, unit_id: String },
     MixedDrawSetIdentities { statistic_id: String, unit_id: String },
     CalibrationDigestMismatch { statistic_id: String, unit_id: String },
+    SplitManifestDigestMismatch { statistic_id: String, unit_id: String },
     NonFiniteScore { statistic_id: String, unit_id: String },
 }
 
@@ -280,6 +283,12 @@ pub fn assess_joint_predictive_draws(
             unit_id: observation.independent_unit_id.clone(),
         });
     }
+    if observation.split_manifest_digest != manifest.manifest_digest {
+        return Err(JointAdequacyError::SplitManifestDigestMismatch {
+            statistic_id: statistic.id.clone(),
+            unit_id: observation.independent_unit_id.clone(),
+        });
+    }
     validate_component_vector(
         statistic,
         &observation.independent_unit_id,
@@ -323,6 +332,12 @@ pub fn assess_joint_predictive_draws(
                 unit_id: observation.independent_unit_id.clone(),
             });
         }
+        if draw.split_manifest_digest != manifest.manifest_digest {
+            return Err(JointAdequacyError::SplitManifestDigestMismatch {
+                statistic_id: statistic.id.clone(),
+                unit_id: observation.independent_unit_id.clone(),
+            });
+        }
         if !seen_draws.insert(draw.draw_index) {
             return Err(JointAdequacyError::DuplicatePredictiveDraw {
                 statistic_id: statistic.id.clone(),
@@ -342,8 +357,8 @@ pub fn assess_joint_predictive_draws(
                 unit_id: observation.independent_unit_id.clone(),
             });
         }
-        model_digest = Some(&draw.model_digest);
-        draw_set_digest = Some(&draw.draw_set_digest);
+        model_digest = Some(draw.model_digest.as_str());
+        draw_set_digest = Some(draw.draw_set_digest.as_str());
 
         validate_component_vector(
             statistic,
@@ -616,6 +631,7 @@ mod tests {
             sample_size: 10,
             source_digest: "sha256-source".to_string(),
             observation_digest: "sha256-observation".to_string(),
+            split_manifest_digest: "sha256-manifest".to_string(),
             components: vec![
                 JointComponentValue {
                     component_id: "water".to_string(),
@@ -640,6 +656,7 @@ mod tests {
             model_digest: "sha256-model".to_string(),
             draw_set_digest: draw_set.to_string(),
             calibration_data_digest: Some("sha256-calibration".to_string()),
+            split_manifest_digest: "sha256-manifest".to_string(),
             components: vec![
                 JointComponentValue {
                     component_id: "water".to_string(),
@@ -847,6 +864,34 @@ mod tests {
                 &observation([1.0, 1.0]), &draw_sets, &config()
             ),
             Err(JointAdequacyError::MixedDrawSetIdentities { .. })
+        ));
+    }
+
+    #[test]
+    fn wrong_split_manifest_identity_is_rejected_for_observation_and_draw() {
+        let mut observed = observation([1.0, 1.0]);
+        observed.split_manifest_digest = "sha256-foreign-manifest".to_string();
+        let valid_draws = vec![
+            draw(0, [0.0, 0.0], "d"),
+            draw(1, [1.0, 1.0], "d"),
+        ];
+        assert!(matches!(
+            assess_joint_predictive_draws(
+                &statistic(), &manifest(), SplitRole::Validation,
+                &observed, &valid_draws, &config()
+            ),
+            Err(JointAdequacyError::SplitManifestDigestMismatch { .. })
+        ));
+
+        let observed = observation([1.0, 1.0]);
+        let mut foreign_draws = valid_draws;
+        foreign_draws[0].split_manifest_digest = "sha256-foreign-manifest".to_string();
+        assert!(matches!(
+            assess_joint_predictive_draws(
+                &statistic(), &manifest(), SplitRole::Validation,
+                &observed, &foreign_draws, &config()
+            ),
+            Err(JointAdequacyError::SplitManifestDigestMismatch { .. })
         ));
     }
 
