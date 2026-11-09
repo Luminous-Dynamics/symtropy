@@ -183,23 +183,23 @@ impl HydraulicInput {
         })
     }
 
-    pub const fn water_density(self) -> WaterDensityKgPerM3 {
+    pub const fn water_density(&self) -> WaterDensityKgPerM3 {
         self.water_density
     }
 
-    pub const fn flow_rate(self) -> FlowRateM3PerSecond {
+    pub const fn flow_rate(&self) -> FlowRateM3PerSecond {
         self.flow_rate
     }
 
-    pub const fn gross_head(self) -> HeadMetres {
+    pub const fn gross_head(&self) -> HeadMetres {
         self.gross_head
     }
 
-    pub const fn conveyance_head_loss(self) -> HeadMetres {
+    pub const fn conveyance_head_loss(&self) -> HeadMetres {
         self.conveyance_head_loss
     }
 
-    pub const fn net_head(self) -> HeadMetres {
+    pub const fn net_head(&self) -> HeadMetres {
         self.net_head
     }
 }
