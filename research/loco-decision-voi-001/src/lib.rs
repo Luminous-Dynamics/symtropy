@@ -877,7 +877,7 @@ mod tests {
     }
 
     #[test]
-    fn unadmitted_decision_is_excluded_not_used {
+    fn unadmitted_decision_is_excluded_not_used() {
         let mut excluded = decision("action-B", &[0, 1_000_000_000], false);
         excluded.admission.status = AdmissionStatus::Unknown;
         let report = evaluate(
