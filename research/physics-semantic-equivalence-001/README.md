@@ -4,12 +4,11 @@ This crate implements the initial fail-closed admission rules for pairwise cross
 
 It deliberately does not:
 - execute physics;
-- parse JSON;
 - certify a solver or physical model;
 - declare one backend to be ground truth;
 - replace #443, #460, #1172 or #1472.
 
-The transport contract is [semantic_mapping_receipt_v0_1.schema.json](../../../schemas/physics/semantic_mapping_receipt_v0_1.schema.json). Adapters deserialize validated records into the typed Rust structs in this crate and call `validate_receipt`.
+The transport contract is [semantic_mapping_receipt_v0_1.schema.json](../../../schemas/physics/semantic_mapping_receipt_v0_1.schema.json). `parse_receipt_json` rejects unknown fields and malformed values before the parsed receipt reaches `validate_receipt`; `validate_json_receipt` combines both operations. Positive and negative JSON fixtures exercise this transport path.
 
 ## Run
 
@@ -21,4 +20,4 @@ cargo clippy --manifest-path research/physics-semantic-equivalence-001/Cargo.tom
 
 The validator accepts a comparison only when all nine required dimensions appear exactly once, every required identity is well-formed, every bounded mapping supplies a transformation and finite non-negative bound, and the author differs from the reviewer. Any non-equivalent, unsupported or unassessed dimension blocks a matched score without pretending the schema itself is invalid.
 
-This first slice validates typed Rust values; JSON decoding and full schema-validator integration remain a separate adapter concern. The V0.1 JSON Schema also requires exactly one occurrence of each of the nine dimensions (not merely an array of length nine). `fixtures/duplicate-dimension.invalid.json` is a negative schema fixture: it repeats `identity_geometry` and omits `numerical_profile`. The typed validator has a corresponding duplicate/missing-dimension test; schema execution against all fixtures is still pending.
+The Rust transport adapter and typed validator are exercised against the checked-in positive and negative JSON fixtures. The V0.1 JSON Schema independently requires exactly one occurrence of each of the nine dimensions (not merely an array of length nine). `fixtures/duplicate-dimension.invalid.json` repeats `identity_geometry` and omits `numerical_profile`. The current workflow does **not** yet execute the JSON Schema with a standards-compliant Draft 2020-12 engine; the Rust adapter enforces the receipt’s current transport constraints and the typed validator enforces semantic admission. Schema-engine execution and formal schema/adapter parity remain explicit follow-up work.
