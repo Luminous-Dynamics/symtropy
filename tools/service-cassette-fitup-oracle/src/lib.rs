@@ -570,12 +570,20 @@ fn evaluate_installed(
     if installed.is_null() {
         return ("not_measured".to_owned(), Value::Null);
     }
-    if text(installed, "reference_frame_id")
-        != text(input.get("scope").unwrap_or(&Value::Null), "reference_frame_id")
-        || text(installed, "datum_revision")
-            != text(input.get("scope").unwrap_or(&Value::Null), "datum_revision")
+    let scope = input.get("scope").unwrap_or(&Value::Null);
+    if text(installed, "reference_frame_id").is_empty()
+        || text(installed, "datum_revision").is_empty()
+        || text(installed, "design_revision").is_empty()
     {
-        add_invalid(reasons, "FINAL_INSTALLED_REFERENCE_FRAME_OR_DATUM_MISMATCH");
+        add_incomplete(reasons, "FINAL_INSTALLED_SCOPE_BINDING_INCOMPLETE");
+        return ("insufficient_evidence".to_owned(), Value::Null);
+    }
+    if text(installed, "reference_frame_id") != text(scope, "reference_frame_id")
+        || text(installed, "datum_revision") != text(scope, "datum_revision")
+        || text(installed, "design_revision") != text(scope, "design_revision")
+    {
+        add_invalid(reasons, "FINAL_INSTALLED_REFERENCE_OR_DESIGN_REVISION_MISMATCH");
+        return ("invalid_input".to_owned(), Value::Null);
     }
     let calibration_ok = calibration_state(installed, "FINAL_INSTALLED", reasons);
     let residuals = installed
@@ -610,7 +618,14 @@ fn evaluate_installed(
         );
     }
     if !calibration_ok {
-        return ("insufficient_evidence".to_owned(), Value::Null);
+        return (
+            if reasons.iter().any(|reason| is_invalid_reason(reason)) {
+                "invalid_input".to_owned()
+            } else {
+                "insufficient_evidence".to_owned()
+            },
+            Value::Null,
+        );
     }
     let state = if all_inside {
         "accepted"
