@@ -79,6 +79,12 @@ jobs:
       - name: Independently recompute every failure scenario in Python
         run: python3 tools/civil-aero-benchmark/inspection-observability/verify_fault_tolerant_independent.py --rust-output fault-tolerant-observability-result.json
 
+      - name: Run Rust correlated-observation evaluator
+        run: cargo run --locked --quiet --manifest-path tools/civil-aero-benchmark/inspection-observability/Cargo.toml --bin correlated_observability > correlated-observability-result.json
+
+      - name: Independently recompute correlated-covariance results in Python
+        run: python3 tools/civil-aero-benchmark/inspection-observability/verify_correlated_independent.py --rust-output correlated-observability-result.json
+
       - name: Create exact source, execution and output digest receipts
         run: |
           subject_sha="${{ github.event.pull_request.head.sha || github.sha }}"
@@ -98,6 +104,10 @@ jobs:
           sha256sum tools/civil-aero-benchmark/inspection-observability/verify_fault_tolerant_independent.py > fault-tolerant-observability-python-source.sha256
           sha256sum tools/civil-aero-benchmark/inspection-observability/fixtures/fault-tolerant-observability-v0.1.json > fault-tolerant-observability-source.sha256
           sha256sum fault-tolerant-observability-result.json > fault-tolerant-observability-result.sha256
+          sha256sum tools/civil-aero-benchmark/inspection-observability/src/bin/correlated_observability.rs > correlated-observability-rust-source.sha256
+          sha256sum tools/civil-aero-benchmark/inspection-observability/verify_correlated_independent.py > correlated-observability-python-source.sha256
+          sha256sum tools/civil-aero-benchmark/inspection-observability/fixtures/correlated-observability-v0.1.json > correlated-observability-source.sha256
+          sha256sum correlated-observability-result.json > correlated-observability-result.sha256
           sha256sum inspection-observability-environment.txt > inspection-observability-environment.sha256
           sha256sum inspection-observability-result.json > inspection-observability-result.sha256
           sha256sum inspection-observability-run-manifest.txt > inspection-observability-run-manifest.sha256
@@ -120,6 +130,10 @@ jobs:
             tools/civil-aero-benchmark/inspection-observability/fixtures/fault-tolerant-observability-v0.1.json
             inspection-observability-result.json
             fault-tolerant-observability-result.json
+            tools/civil-aero-benchmark/inspection-observability/src/bin/correlated_observability.rs
+            tools/civil-aero-benchmark/inspection-observability/verify_correlated_independent.py
+            tools/civil-aero-benchmark/inspection-observability/fixtures/correlated-observability-v0.1.json
+            correlated-observability-result.json
             inspection-observability-environment.txt
             inspection-observability-run-manifest.txt
             inspection-observability-toolchain.sha256
@@ -137,5 +151,9 @@ jobs:
             fault-tolerant-observability-python-source.sha256
             fault-tolerant-observability-source.sha256
             fault-tolerant-observability-result.sha256
+            correlated-observability-rust-source.sha256
+            correlated-observability-python-source.sha256
+            correlated-observability-source.sha256
+            correlated-observability-result.sha256
           if-no-files-found: error
           retention-days: 90
