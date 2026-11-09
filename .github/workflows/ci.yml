@@ -58,6 +58,12 @@ jobs:
     - name: Independently recompute in Python
       run: python3 tools/civil-aero-benchmark/virtual-sensing-health-state/verify_independent.py --rust-output virtual-sensing-health-state-result.json
 
+    - name: Run Rust MuViS-C corruption evaluator
+      run: cargo run --locked --quiet --manifest-path tools/civil-aero-benchmark/virtual-sensing-health-state/Cargo.toml --bin muvis_c_corruption > muvis-c-corruption-result.json
+
+    - name: Independently recompute MuViS-C corruption grid
+      run: python3 tools/civil-aero-benchmark/virtual-sensing-health-state/verify_muvis_c_independent.py --rust-output muvis-c-corruption-result.json
+
     - name: Create exact subject and digest receipts
       run: |
         set -euo pipefail
@@ -70,7 +76,11 @@ jobs:
         sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/src/main.rs > virtual-sensing-rust-source.sha256
         sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/verify_independent.py > virtual-sensing-python-source.sha256
         sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/data/hh-hf-dh-df-v0.1.json > virtual-sensing-source.sha256
-          sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/data/external-benchmark-register-v0.1.json > virtual-sensing-external-register.sha256
+        sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/data/external-benchmark-register-v0.1.json > virtual-sensing-external-register.sha256
+        sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/src/bin/muvis_c_corruption.rs > muvis-c-rust-source.sha256
+        sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/verify_muvis_c_independent.py > muvis-c-python-source.sha256
+        sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/data/muvis-c-corruption-v0.1.json > muvis-c-source.sha256
+        sha256sum muvis-c-corruption-result.json > muvis-c-result.sha256
         sha256sum virtual-sensing-health-state-result.json > virtual-sensing-result.sha256
         sha256sum virtual-sensing-exact-head-manifest.txt > virtual-sensing-manifest.sha256
 
@@ -88,6 +98,10 @@ jobs:
           tools/civil-aero-benchmark/virtual-sensing-health-state/verify_independent.py
           tools/civil-aero-benchmark/virtual-sensing-health-state/data/hh-hf-dh-df-v0.1.json
           tools/civil-aero-benchmark/virtual-sensing-health-state/data/external-benchmark-register-v0.1.json
+          tools/civil-aero-benchmark/virtual-sensing-health-state/src/bin/muvis_c_corruption.rs
+          tools/civil-aero-benchmark/virtual-sensing-health-state/verify_muvis_c_independent.py
+          tools/civil-aero-benchmark/virtual-sensing-health-state/data/muvis-c-corruption-v0.1.json
+          muvis-c-corruption-result.json
           virtual-sensing-health-state-result.json
           virtual-sensing-exact-head-manifest.txt
           virtual-sensing-toolchain.sha256
@@ -97,6 +111,10 @@ jobs:
           virtual-sensing-python-source.sha256
           virtual-sensing-source.sha256
           virtual-sensing-external-register.sha256
+          muvis-c-rust-source.sha256
+          muvis-c-python-source.sha256
+          muvis-c-source.sha256
+          muvis-c-result.sha256
           virtual-sensing-result.sha256
           virtual-sensing-manifest.sha256
         if-no-files-found: error
