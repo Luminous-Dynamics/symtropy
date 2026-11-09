@@ -180,6 +180,24 @@
         }
       ],
       "claim_ceiling": "Published programme approach; exact detailed certification artefacts and acceptance data are outside this paper."
+    },
+    {
+      "record_id": "NASA-ICES-2026-TAS-SPARES-DEPENDENT-OPERATIONS",
+      "evidence_status": "OBSERVED_OPERATIONAL_FAILURE_SEQUENCE",
+      "date_or_period": "Started ISS operation May 2019; status described in 2026 paper",
+      "subsystem": "Thermal Amine Scrubber",
+      "event": "The scrubber experienced multiple failures requiring replacement of the desiccant wheel, system controller and bulk-water-save valve. The 2026 paper states it was no longer being actively sustained with a logistics plan and would continue operating as long as existing spares lasted.",
+      "service_consequence": "Continued operating time became dependent on finite existing spares rather than an active replenishment plan.",
+      "response": "Existing spares continued to support operation; the 2026 paper reports an operational-runtime goal of three years in Fall 2026.",
+      "benchmark_challenge": "Model finite spare exhaustion and support-plan termination separately from component reliability; do not treat a currently operating demo as indefinitely maintainable or assume replenishment.",
+      "source_locations": [
+        {
+          "pdf_page": 4,
+          "printed_page": 5,
+          "section": "CO2 Removal System"
+        }
+      ],
+      "claim_ceiling": "Published programme status at the paper's date; not a quantitative spare-exhaustion forecast or failure probability."
     }
   ]
 }
