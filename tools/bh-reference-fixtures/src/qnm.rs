@@ -1172,7 +1172,11 @@ mod tests {
     fn synthetic_analysis_config() -> QnmFamilyAnalysisConfig {
         QnmFamilyAnalysisConfig {
             minimum_consecutive_modes: 3,
-            ..synthetic_analysis_config()
+            maximum_angular_residual: 5.0e-2,
+            maximum_frequency_spacing_residual: 5.0e-2,
+            maximum_angular_drift: 5.0e-2,
+            maximum_frequency_spacing_drift: 5.0e-2,
+            maximum_solver_residual: 1.0e-8,
         }
     }
 
