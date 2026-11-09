@@ -8,7 +8,12 @@ use std::collections::BTreeSet;
 
 pub const SCALE_PPB: u64 = 1_000_000_000;
 const SCALE: u128 = SCALE_PPB as u128;
-pub const MAX_JOINT_CELLS: usize = 1_000_000;
+pub const MAX_JOINT_CELLS: usize = 65_536;
+
+type PassiveLossIndex<'a> = BTreeMap<(&'a str, &'a str), u64>;
+type JointMassIndex<'a> = BTreeMap<(&'a str, &'a str, &'a str), u64>;
+type JointOutcomeMassIndex<'a> = BTreeMap<&'a str, u128>;
+type ContinuationLossIndex<'a> = BTreeMap<(&'a str, &'a str, &'a str, &'a str), u64>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EvidenceReceipt {
@@ -329,7 +334,10 @@ fn resource_exceeded(
     Ok(None)
 }
 
-fn passive_risk(problem: &ViableVoiProblem) -> Result<(String, u128), ViableVoiError> {
+fn passive_risk(
+    problem: &ViableVoiProblem,
+    loss_index: &PassiveLossIndex<'_>,
+) -> Result<(String, u128), ViableVoiError> {
     if problem.passive_admitted_action_ids.is_empty() {
         return Err(ViableVoiError::NoPassiveActions);
     }
@@ -344,22 +352,10 @@ fn passive_risk(problem: &ViableVoiProblem) -> Result<(String, u128), ViableVoiE
     for action_id in &problem.passive_admitted_action_ids {
         let mut risk = 0_u128;
         for hypothesis in &problem.hypotheses {
-            let matches: Vec<&PassiveLossCell> = problem
-                .passive_loss_cells
-                .iter()
-                .filter(|cell| cell.action_id == *action_id && cell.hypothesis_id == hypothesis.id)
-                .collect();
-            if matches.len() != 1 {
-                return Err(if matches.is_empty() {
-                    ViableVoiError::MissingPassiveLossCell
-                } else {
-                    ViableVoiError::DuplicatePassiveLossCell
-                });
-            }
-            let loss = matches[0].loss_ppb;
-            if loss > SCALE_PPB {
-                return Err(ViableVoiError::InvalidLoss);
-            }
+            let loss = loss_index
+                .get(&(action_id.as_str(), hypothesis.id.as_str()))
+                .copied()
+                .ok_or(ViableVoiError::MissingPassiveLossCell)?;
             risk = add_u128(
                 risk,
                 mul_u128(
@@ -385,51 +381,32 @@ fn continuation_risk_for_action(
     problem: &ViableVoiProblem,
     action_id: &str,
     outcome_id: &str,
+    joint_mass_index: &JointMassIndex<'_>,
+    loss_index: &ContinuationLossIndex<'_>,
 ) -> Result<u128, ViableVoiError> {
     let mut total = 0_u128;
     for hypothesis in &problem.hypotheses {
         for branch in &problem.branches {
-            let masses: Vec<&JointMassCell> = problem
-                .joint_mass_cells
-                .iter()
-                .filter(|cell| {
-                    cell.hypothesis_id == hypothesis.id
-                        && cell.branch_id == branch.id
-                        && cell.outcome_id == outcome_id
-                })
-                .collect();
-            if masses.len() != 1 {
-                return Err(if masses.is_empty() {
-                    ViableVoiError::MissingJointMassCell
-                } else {
-                    ViableVoiError::DuplicateJointMassCell
-                });
-            }
-
-            let losses: Vec<&DecisionLossCell> = problem
-                .continuation_loss_cells
-                .iter()
-                .filter(|cell| {
-                    cell.action_id == action_id
-                        && cell.hypothesis_id == hypothesis.id
-                        && cell.branch_id == branch.id
-                        && cell.outcome_id == outcome_id
-                })
-                .collect();
-            if losses.len() != 1 {
-                return Err(if losses.is_empty() {
-                    ViableVoiError::MissingContinuationLossCell
-                } else {
-                    ViableVoiError::DuplicateContinuationLossCell
-                });
-            }
-            let loss = losses[0].loss_ppb;
-            if loss > SCALE_PPB {
-                return Err(ViableVoiError::InvalidLoss);
-            }
+            let mass = joint_mass_index
+                .get(&(
+                    hypothesis.id.as_str(),
+                    branch.id.as_str(),
+                    outcome_id,
+                ))
+                .copied()
+                .ok_or(ViableVoiError::MissingJointMassCell)?;
+            let loss = loss_index
+                .get(&(
+                    action_id,
+                    hypothesis.id.as_str(),
+                    branch.id.as_str(),
+                    outcome_id,
+                ))
+                .copied()
+                .ok_or(ViableVoiError::MissingContinuationLossCell)?;
             total = add_u128(
                 total,
-                mul_u128(u128::from(masses[0].mass_ppb), u128::from(loss))?,
+                mul_u128(u128::from(mass), u128::from(loss))?,
             )?;
         }
     }
