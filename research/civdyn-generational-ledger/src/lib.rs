@@ -991,6 +991,90 @@ mod tests {
     }
 
     #[test]
+    fn multi_tick_inheritance_follows_the_prior_world_closing_state() {
+        let region = Region {
+            id: "district-a".into(),
+            population: 4.0,
+            opening_stock: ResourceVector::new(100.0, 200.0, 80.0),
+            essential_demand_per_capita: ResourceVector::new(5.0, 10.0, 4.0),
+        };
+        let mut world = World::new(vec![region]).expect("valid source world");
+        let input = StepInput {
+            production: vec![Production::default()],
+            transfers: vec![],
+        };
+        let first_source = world
+            .step(&input, TransferPolicy::Unrestricted)
+            .expect("first source step");
+        let second_source = world
+            .step(&input, TransferPolicy::Unrestricted)
+            .expect("second source step");
+
+        assert_eq!(
+            second_source.regions[0].ledger.beginning,
+            first_source.regions[0].ledger.ending
+        );
+        assert_eq!(
+            second_source.regions[0].ledger.ending,
+            ResourceVector::new(60.0, 120.0, 48.0)
+        );
+
+        let present = CohortAssignment::assigned("working-age-2026").unwrap();
+        let future = CohortAssignment::assigned("future-born-2040").unwrap();
+        let shared = CohortAssignment::unassigned(UnassignedReason::SharedPublicAsset);
+        let mut ledger = CohortIncidenceLedger::new();
+
+        ledger
+            .assemble_tick(
+                &first_source,
+                service_rows(present.clone(), future.clone()),
+                stock_rows(future.clone(), shared.clone()),
+                vec![],
+                vec![],
+                vec![],
+            )
+            .expect("first tick incidence reconciles");
+
+        let mut second_service = service_rows(present, future.clone());
+        for row in &mut second_service {
+            row.allocation_id = format!("tick-2-{}", row.allocation_id);
+            row.source_evidence_ref = "ledger:tick-2:district-a".into();
+        }
+
+        let mut second_stocks = stock_rows(future.clone(), shared);
+        for row in &mut second_stocks {
+            row.allocation_id = format!("tick-2-{}", row.allocation_id);
+            row.source_evidence_ref = "ledger:tick-2:district-a".into();
+            row.closing_stock *= 0.75;
+        }
+
+        ledger
+            .assemble_tick(
+                &second_source,
+                second_service,
+                second_stocks,
+                vec![],
+                vec![],
+                vec![],
+            )
+            .expect("second tick incidence reconciles");
+
+        let inherited = ledger
+            .cohort_summaries(2)
+            .unwrap()
+            .into_iter()
+            .find(|row| row.assignment == future)
+            .unwrap();
+        assert_eq!(inherited.inherited_stock.water_m3, 30.0);
+        assert_eq!(inherited.inherited_stock.energy_kwh, 60.0);
+        assert_eq!(inherited.inherited_stock.food_kg, 24.0);
+        assert_ne!(
+            inherited.inherited_stock.water_m3,
+            ledger.cohort_summaries(1).unwrap()[1].inherited_stock.water_m3
+        );
+    }
+
+    #[test]
     fn unassigned_incidence_is_visible_and_never_silently_prorated() {
         let present = CohortAssignment::assigned("working-age-2026").unwrap();
         let future = CohortAssignment::assigned("future-born-2040").unwrap();
