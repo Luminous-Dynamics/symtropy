@@ -680,6 +680,72 @@ pub fn poschl_teller_jost_wronskian_connection(
     }
 }
 
+/// Frequency-domain retarded Green-kernel evaluation for the time-domain
+/// equation (d_t^2 - d_x^2 + V) Psi = S with inverse Fourier factor e^{-i omega t}.
+///
+/// The homogeneous radial operator is L_omega = d_x^2 + omega^2 - V.
+/// The stated time-domain PDE transforms to -L_omega Psi_hat = S_hat, so
+/// this kernel includes the required overall minus sign.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct PoschlTellerRetardedGreenEvaluation {
+    /// Green kernel of the Fourier-transformed time-domain PDE.
+    pub value: Complex64,
+    /// W[f_left, f_right] = f_left f_right' - f_left' f_right.
+    pub wronskian: Complex64,
+    /// Left Jost value evaluated at min(observer_x, source_x).
+    pub left_jost_value: Complex64,
+    /// Right Jost value evaluated at max(observer_x, source_x).
+    pub right_jost_value: Complex64,
+}
+
+/// Evaluate the outgoing frequency-domain Green kernel for
+///
+///     (d_t^2 - d_x^2 + V(x)) G_R(t,x;x') = delta(t) delta(x-x')
+///
+/// under the e^{-i omega t} convention, with
+/// V(x) = lambda / width^2 * sech^2(x/width).
+///
+/// The returned value is -f_left(x_<) f_right(x_>) / W. It therefore
+/// inverts -L_omega, not L_omega, and has the source derivative jump -1.
+/// The retarded Fourier transform is selected by analyticity for Im(omega)>0;
+/// evaluations below the real axis are its meromorphic continuation for
+/// resonance calculations, not themselves a retarded time-domain transform.
+/// The Jost functions use unit asymptotic normalizations. A small finite
+/// Wronskian is exposed rather than hidden behind an arbitrary pole threshold.
+pub fn poschl_teller_retarded_green(
+    width: f64,
+    lambda: f64,
+    omega: Complex64,
+    observer_x: f64,
+    source_x: f64,
+    config: SeriesConfig,
+) -> Result<PoschlTellerRetardedGreenEvaluation, SpecialError> {
+    if !observer_x.is_finite() || !source_x.is_finite() {
+        return Err(SpecialError::InvalidPoschlTellerParameters);
+    }
+
+    let x_left = observer_x.min(source_x);
+    let x_right = observer_x.max(source_x);
+    let left = poschl_teller_jost(width, lambda, omega, x_left, JostSide::Left, config)?;
+    let right = poschl_teller_jost(width, lambda, omega, x_right, JostSide::Right, config)?;
+    let wronskian = poschl_teller_jost_wronskian(width, lambda, omega, 0.0, config)?;
+    if !finite(wronskian) || wronskian == Complex64::new(0.0, 0.0) {
+        return Err(SpecialError::NonFiniteResult);
+    }
+    let value = -(left.value * right.value) / wronskian;
+
+    if !finite(value) {
+        return Err(SpecialError::NonFiniteResult);
+    }
+
+    Ok(PoschlTellerRetardedGreenEvaluation {
+        value,
+        wronskian,
+        left_jost_value: left.value,
+        right_jost_value: right.value,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1188,6 +1254,178 @@ mod tests {
         assert_eq!(
             poschl_teller_jost_wronskian_connection(1.0, 0.75, z(f64::NAN, 0.0)),
             Err(SpecialError::NonFiniteInput)
+        );
+    }
+    #[test]
+    fn retarded_green_free_limit_matches_outgoing_kernel() {
+        let omega = z(0.9, -0.12);
+        let config = SeriesConfig::default();
+        for (observer_x, source_x) in [(-0.8, 0.3), (0.0, 0.0), (1.1, -0.4)] {
+            let actual =
+                poschl_teller_retarded_green(1.3, 0.0, omega, observer_x, source_x, config)
+                    .unwrap();
+            let distance = (observer_x - source_x).abs();
+            let expected =
+                z(0.0, 1.0) / (z(2.0, 0.0) * omega) * (z(0.0, 1.0) * omega * distance).exp();
+            close(actual.value, expected, 5.0e-13);
+        }
+    }
+
+    #[test]
+    fn retarded_green_has_the_signed_source_derivative_jump() {
+        let width = 1.3;
+        let lambda = 0.75;
+        let omega = z(0.9, -0.12);
+        let source_x = 0.27;
+        let config = SeriesConfig::default();
+        let left =
+            poschl_teller_jost(width, lambda, omega, source_x, JostSide::Left, config).unwrap();
+        let right =
+            poschl_teller_jost(width, lambda, omega, source_x, JostSide::Right, config).unwrap();
+        let wronskian = poschl_teller_jost_wronskian(width, lambda, omega, 0.0, config).unwrap();
+
+        let derivative_from_left = -(left.first_x_derivative * right.value) / wronskian;
+        let derivative_from_right = -(left.value * right.first_x_derivative) / wronskian;
+
+        close(
+            derivative_from_right - derivative_from_left,
+            z(-1.0, 0.0),
+            2.0e-12,
+        );
+
+        let at_source =
+            poschl_teller_retarded_green(width, lambda, omega, source_x, source_x, config).unwrap();
+        let epsilon = 1.0e-7;
+        let from_left = poschl_teller_retarded_green(
+            width,
+            lambda,
+            omega,
+            source_x - epsilon,
+            source_x,
+            config,
+        )
+        .unwrap();
+        let from_right = poschl_teller_retarded_green(
+            width,
+            lambda,
+            omega,
+            source_x + epsilon,
+            source_x,
+            config,
+        )
+        .unwrap();
+        assert!(
+            (from_left.value - at_source.value).norm() < 2.0e-7,
+            "left-limit continuity residual: {:?}",
+            from_left.value - at_source.value
+        );
+        assert!(
+            (from_right.value - at_source.value).norm() < 2.0e-7,
+            "right-limit continuity residual: {:?}",
+            from_right.value - at_source.value
+        );
+    }
+
+    #[test]
+    fn retarded_green_is_reciprocal_for_the_real_scalar_barrier() {
+        let config = SeriesConfig::default();
+        let omega = z(1.1, 0.08);
+        let forward = poschl_teller_retarded_green(1.0, 0.75, omega, 0.8, -0.4, config).unwrap();
+        let reverse = poschl_teller_retarded_green(1.0, 0.75, omega, -0.4, 0.8, config).unwrap();
+        close(forward.value, reverse.value, 2.0e-12);
+        close(forward.wronskian, reverse.wronskian, 2.0e-12);
+    }
+
+    #[test]
+    fn retarded_green_exposes_the_wronskian_and_source_sign() {
+        let config = SeriesConfig::default();
+        let omega = z(0.9, -0.12);
+        let observer_x = 0.73;
+        let source_x = -0.21;
+        let actual =
+            poschl_teller_retarded_green(1.4, 0.0, omega, observer_x, source_x, config).unwrap();
+        close(actual.wronskian, z(0.0, 2.0) * omega, 5.0e-13);
+
+        let radial_operator_inverse =
+            actual.left_jost_value * actual.right_jost_value / actual.wronskian;
+        close(actual.value, -radial_operator_inverse, 1.0e-14);
+        let reversed_wronskian_value =
+            -(actual.left_jost_value * actual.right_jost_value) / -actual.wronskian;
+        close(reversed_wronskian_value, -actual.value, 1.0e-14);
+    }
+
+    #[test]
+    fn retarded_green_rejects_nonfinite_coordinates_and_invalid_width() {
+        let config = SeriesConfig::default();
+        let omega = z(0.9, -0.12);
+        assert_eq!(
+            poschl_teller_retarded_green(1.0, 0.75, omega, f64::NAN, 0.0, config,),
+            Err(SpecialError::InvalidPoschlTellerParameters)
+        );
+        assert_eq!(
+            poschl_teller_retarded_green(0.0, 0.75, omega, 0.2, 0.0, config,),
+            Err(SpecialError::InvalidPoschlTellerParameters)
+        );
+    }
+
+    #[test]
+    fn retarded_green_matches_independent_100_digit_jost_fixture() {
+        // mpmath 1.3.0, 100 decimal digits:
+        // width=1.3, lambda=0.75, omega=0.9-0.12i,
+        // left Jost at x=-0.21, right Jost at x=0.73.
+        let config = SeriesConfig::default();
+        let omega = z(0.9, -0.12);
+        let left = poschl_teller_jost(1.3, 0.75, omega, -0.21, JostSide::Left, config).unwrap();
+        let right = poschl_teller_jost(1.3, 0.75, omega, 0.73, JostSide::Right, config).unwrap();
+        close(
+            left.value,
+            z(1.077_691_453_714_667_6, 0.475_573_043_669_987_6),
+            5.0e-11,
+        );
+        close(
+            right.value,
+            z(0.843_603_430_198_184_2, 0.826_004_257_644_994_8),
+            5.0e-11,
+        );
+
+        let green = poschl_teller_retarded_green(1.3, 0.75, omega, 0.73, -0.21, config).unwrap();
+        close(
+            green.wronskian,
+            z(-0.924_255_829_850_433_7, 1.347_984_031_935_372_3),
+            5.0e-11,
+        );
+        close(
+            green.value,
+            z(-0.473_003_612_861_573_6, 0.707_349_028_100_136_9),
+            5.0e-11,
+        );
+    }
+
+    #[test]
+    fn retarded_green_obeys_real_potential_frequency_conjugation_symmetry() {
+        let config = SeriesConfig::default();
+        let omega = z(0.83, 0.17);
+        let conjugate_frequency = -omega.conj();
+        let value = poschl_teller_retarded_green(1.0, 0.75, omega, -0.8, 0.7, config).unwrap();
+        let conjugate =
+            poschl_teller_retarded_green(1.0, 0.75, conjugate_frequency, -0.8, 0.7, config)
+                .unwrap();
+
+        close(conjugate.value, value.value.conj(), 5.0e-11);
+        close(conjugate.wronskian, value.wronskian.conj(), 5.0e-11);
+    }
+
+    #[test]
+    fn source_observer_interventions_change_response_not_homogeneous_wronskian() {
+        let config = SeriesConfig::default();
+        let omega = z(0.83, 0.17);
+        let first = poschl_teller_retarded_green(1.0, 0.75, omega, -0.8, 0.7, config).unwrap();
+        let second = poschl_teller_retarded_green(1.0, 0.75, omega, 0.9, -0.15, config).unwrap();
+
+        close(first.wronskian, second.wronskian, 2.0e-13);
+        assert!(
+            (first.value - second.value).norm() > 1.0e-3,
+            "moving source/observer positions should alter the response"
         );
     }
 }
