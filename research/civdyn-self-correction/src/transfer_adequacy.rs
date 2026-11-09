@@ -113,6 +113,7 @@ pub struct TransferStatisticResult {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TransferDomainResult {
     pub domain_id: String,
+    pub model_digest: String,
     pub axis: TransferAxis,
     pub role: SplitRole,
     pub independent_unit_kind: crate::model_adequacy::IndependentUnitKind,
@@ -405,7 +406,27 @@ fn evaluate_domain(
                     && row.draw_count >= spec.minimum_draws
                     && row.measurement_standard_error.is_none_or(|value| {
                         value.is_finite() && value >= 0.0
-                    });
+                    })
+                    && match (
+                        row.status,
+                        row.observed_value,
+                        row.lower_reference,
+                        row.upper_reference,
+                    ) {
+                        (
+                            StatisticStatus::WithinReferenceInterval,
+                            Some(observed),
+                            Some(lower),
+                            Some(upper),
+                        ) => observed >= lower && observed <= upper,
+                        (
+                            StatisticStatus::OutsideReferenceInterval,
+                            Some(observed),
+                            Some(lower),
+                            Some(upper),
+                        ) => observed < lower || observed > upper,
+                        _ => false,
+                    };
                 if !valid_assessed_row {
                     return Err(TransferAdequacyError::AssessmentStatisticIdentityMismatch {
                         domain_id: domain_id.clone(),
@@ -491,6 +512,7 @@ fn evaluate_domain(
     Ok((
         TransferDomainResult {
             domain_id: domain_id.clone(),
+            model_digest: domain.model_digest.clone(),
             axis: domain.axis,
             role: domain.assessment.role,
             independent_unit_kind: domain.manifest.independent_unit,
@@ -811,8 +833,22 @@ mod tests {
     #[test]
     fn model_identity_change_is_rejected_as_target_adaptation() {
         let mut domains = standard_domains();
-        domains[1].assessment.statistics[0].model_digest =
-            Some("sha256-adapted-model".to_string());
+        domains[1] = domain(
+            "target-site",
+            TransferAxis::Institution,
+            SplitRole::Challenge,
+            IndependentUnitKind::Site,
+            "target-households",
+            "target-institution-period",
+            "administrative-source",
+            "sha256-target-site",
+            "site-b",
+            0.9,
+            "sha256-adapted-model",
+            CALIBRATION,
+            PredictiveKind::Split,
+            &[0.45, 0.48, 0.50, 0.52, 0.55],
+        );
         assert!(matches!(
             assess_zero_shot_transfer(&domains),
             Err(TransferAdequacyError::ModelIdentityMismatchAcrossDomains { .. })
