@@ -26,9 +26,23 @@ struct EnvironmentalModel {
 }
 
 #[derive(Clone, Debug, Deserialize)]
+struct FaultDomain {
+    domain_type: String,
+    domain_id: String,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+struct StructuralFaultDomainRecord {
+    sensor_id: String,
+    fault_domains: Vec<FaultDomain>,
+    topology_evidence_sha256: String,
+}
+
+#[derive(Clone, Debug, Deserialize)]
 struct Model {
     structural_channel_ids: Vec<String>,
     structural_channel_common_cause_groups: Vec<String>,
+    structural_channel_fault_domains: Vec<StructuralFaultDomainRecord>,
     structural_sensor_response_units: String,
     healthy_signature: [f64; 3],
     damage_signature: [f64; 3],
@@ -58,6 +72,8 @@ struct EnvironmentalProbe {
     calibration_status: String,
     operator_status: String,
     evidence_sha256: String,
+    topology_evidence_sha256: String,
+    fault_domains: Vec<FaultDomain>,
     common_cause_group: String,
     acquisition_window_id: String,
     spatial_support: String,
@@ -154,6 +170,47 @@ fn close(left: f64, right: f64, tolerance: f64) -> bool {
     (left - right).abs() <= tolerance
 }
 
+const REQUIRED_FAULT_DOMAIN_TYPES: [&str; 5] = [
+    "power",
+    "daq",
+    "clock",
+    "calibration_chain",
+    "wiring_harness",
+];
+
+fn validated_domain_keys(domains: &[FaultDomain]) -> Result<BTreeSet<(String, String)>, String> {
+    if domains.len() != REQUIRED_FAULT_DOMAIN_TYPES.len() {
+        return fail("fault-domain manifest must name power, daq, clock, calibration_chain and wiring_harness");
+    }
+    let mut types = BTreeSet::new();
+    let mut keys = BTreeSet::new();
+    for domain in domains {
+        if !REQUIRED_FAULT_DOMAIN_TYPES.contains(&domain.domain_type.as_str())
+            || domain.domain_id.trim().is_empty()
+            || !types.insert(domain.domain_type.as_str())
+            || !keys.insert((domain.domain_type.clone(), domain.domain_id.clone()))
+        {
+            return fail("fault-domain manifest contains an unknown type, empty ID or duplicate type");
+        }
+    }
+    if types.len() != REQUIRED_FAULT_DOMAIN_TYPES.len() {
+        return fail("fault-domain manifest is incomplete");
+    }
+    Ok(keys)
+}
+
+fn structural_fault_domain_keys(fixture: &Fixture) -> Result<BTreeSet<(String, String)>, String> {
+    let mut keys = BTreeSet::new();
+    for record in &fixture.model.structural_channel_fault_domains {
+        if !is_sha256(&record.topology_evidence_sha256) {
+            return fail("structural topology evidence digest is invalid");
+        }
+        let domains = validated_domain_keys(&record.fault_domains)?;
+        keys.extend(domains);
+    }
+    Ok(keys)
+}
+
 fn validate_fixture(fixture: &Fixture) -> Result<(), String> {
     if fixture.schema_version != "aero-causal-environment-damage-confounding/0.1.0" {
         return fail("unsupported environment/damage-confounding schema");
@@ -167,6 +224,22 @@ fn validate_fixture(fixture: &Fixture) -> Result<(), String> {
     {
         return fail("v0.1 requires three registered normalized structural channels");
     }
+    if fixture.model.structural_channel_fault_domains.len() != 3 {
+        return fail("v0.1 requires topology fault-domain records for all three structural channels");
+    }
+    let mut topology_sensor_ids = BTreeSet::new();
+    for record in &fixture.model.structural_channel_fault_domains {
+        if !topology_sensor_ids.insert(record.sensor_id.as_str())
+            || !fixture.model.structural_channel_ids.iter().any(|id| id == &record.sensor_id)
+        {
+            return fail("structural topology manifest has an unknown or duplicate sensor ID");
+        }
+        if !is_sha256(&record.topology_evidence_sha256) {
+            return fail("structural topology evidence digest is invalid");
+        }
+        validated_domain_keys(&record.fault_domains)?;
+    }
+    let structural_domains = structural_fault_domain_keys(fixture)?;
     let mut structural_ids = BTreeSet::new();
     let mut structural_groups = BTreeSet::new();
     for (id, group) in fixture
@@ -275,8 +348,10 @@ fn admit_witness(
         return fail("ABSTAIN_INSUFFICIENT_ENVIRONMENTAL_OBSERVABILITY");
     }
 
+    let structural_domains = structural_fault_domain_keys(fixture)?;
     let mut seen_ids = BTreeSet::new();
     let mut seen_groups = BTreeSet::new();
+    let mut seen_failure_domains = BTreeSet::new();
     let mut mean_probe: Option<&EnvironmentalProbe> = None;
     let mut gradient_probes: Vec<&EnvironmentalProbe> = Vec::new();
     for probe in &witness.probes {
@@ -297,6 +372,18 @@ fn admit_witness(
                 .structural_channel_common_cause_groups
                 .iter()
                 .any(|group| group == &probe.common_cause_group)
+        {
+            return fail("ABSTAIN_ENVIRONMENTAL_WITNESS_NOT_INDEPENDENT");
+        }
+        if !is_sha256(&probe.topology_evidence_sha256) {
+            return fail("ABSTAIN_UNQUALIFIED_ENVIRONMENTAL_WITNESS");
+        }
+        let domain_keys = validated_domain_keys(&probe.fault_domains)
+            .map_err(|_| "ABSTAIN_UNQUALIFIED_ENVIRONMENTAL_WITNESS".to_owned())?;
+        if !domain_keys.is_disjoint(&structural_domains)
+            || domain_keys
+                .iter()
+                .any(|key| !seen_failure_domains.insert(key.clone()))
         {
             return fail("ABSTAIN_ENVIRONMENTAL_WITNESS_NOT_INDEPENDENT");
         }
@@ -426,6 +513,7 @@ fn evaluate_case(fixture: &Fixture, case: &CaseInput) -> CaseResult {
         let mut witness_ids = BTreeSet::new();
         let mut probe_ids = BTreeSet::new();
         let mut common_cause_groups = BTreeSet::new();
+        let mut failure_domain_keys = BTreeSet::new();
         for witness in &case.environmental_witnesses {
             if !witness_ids.insert(witness.witness_id.as_str()) {
                 return abstain(
@@ -435,8 +523,19 @@ fn evaluate_case(fixture: &Fixture, case: &CaseInput) -> CaseResult {
                 );
             }
             for probe in &witness.probes {
+                let domains = match validated_domain_keys(&probe.fault_domains) {
+                    Ok(value) => value,
+                    Err(_) => {
+                        return abstain(
+                            case,
+                            "ABSTAIN_UNQUALIFIED_ENVIRONMENTAL_WITNESS",
+                            "REJECTED",
+                        );
+                    }
+                };
                 if !probe_ids.insert(probe.sensor_id.as_str())
                     || !common_cause_groups.insert(probe.common_cause_group.as_str())
+                    || domains.iter().any(|domain| !failure_domain_keys.insert(domain.clone()))
                 {
                     return abstain(
                         case,
@@ -568,7 +667,7 @@ mod tests {
     fn frozen_joint_environment_damage_cases_match_expected_labels() {
         let data = fixture();
         let report = evaluate(&data, FIXTURE).expect("environment/damage fixture evaluates");
-        assert_eq!(report.case_count, 16);
+        assert_eq!(report.case_count, 17);
         for (actual, expected) in report.cases.iter().zip(&data.cases) {
             assert_eq!(actual.disposition, expected.expected.disposition, "{}", actual.case_id);
             assert_eq!(actual.structural_state, expected.expected.structural_state, "{}", actual.case_id);
@@ -609,6 +708,21 @@ mod tests {
             .cases
             .iter()
             .find(|item| item.case_id == "DUPLICATE_COMMON_CAUSE_ENVIRONMENTAL_WITNESSES")
+            .unwrap();
+        assert_eq!(
+            result.disposition,
+            "ABSTAIN_ENVIRONMENTAL_WITNESS_NOT_INDEPENDENT"
+        );
+        assert!(result.structural_state.is_none());
+    }
+
+    #[test]
+    fn environmental_probe_sharing_structural_daq_domain_is_rejected() {
+        let report = evaluate(&fixture(), FIXTURE).unwrap();
+        let result = report
+            .cases
+            .iter()
+            .find(|item| item.case_id == "ENVIRONMENTAL_WITNESS_SHARES_DAQ_WITH_STRUCTURAL_SENSOR")
             .unwrap();
         assert_eq!(
             result.disposition,
