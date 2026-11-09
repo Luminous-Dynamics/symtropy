@@ -1,0 +1,465 @@
+{
+  "schema_version": "loco-modal-fault-space-known-answers-v0.1",
+  "bounds": {
+    "max_components": 16,
+    "max_group_tuples": 4096,
+    "max_global_signatures": 65536
+  },
+  "state_vocabulary": [
+    "valid",
+    "degraded",
+    "ood",
+    "unavailable",
+    "unknown",
+    "thermal_derated",
+    "voltage_sag"
+  ],
+  "cases": [
+    {
+      "id": "A-vision-stereo-shared-camera",
+      "components": [
+        {
+          "id": "rgb",
+          "domain": [
+            "valid",
+            "ood",
+            "unavailable"
+          ]
+        },
+        {
+          "id": "depth",
+          "domain": [
+            "valid",
+            "ood",
+            "unavailable"
+          ]
+        }
+      ],
+      "groups": [
+        {
+          "id": "camera-unit",
+          "members": [
+            "rgb",
+            "depth"
+          ],
+          "tuples": [
+            {
+              "rgb": "valid",
+              "depth": "valid"
+            },
+            {
+              "rgb": "ood",
+              "depth": "ood"
+            },
+            {
+              "rgb": "unavailable",
+              "depth": "unavailable"
+            }
+          ],
+          "complete": true
+        }
+      ],
+      "expected": {
+        "global_signatures": 3,
+        "correlation_preserved": true
+      }
+    },
+    {
+      "id": "B-encoder-position-derived-velocity",
+      "components": [
+        {
+          "id": "joint-position",
+          "domain": [
+            "valid",
+            "degraded",
+            "unavailable"
+          ]
+        },
+        {
+          "id": "joint-velocity-derived",
+          "domain": [
+            "valid",
+            "degraded",
+            "unavailable"
+          ]
+        }
+      ],
+      "groups": [
+        {
+          "id": "encoder-bus",
+          "members": [
+            "joint-position",
+            "joint-velocity-derived"
+          ],
+          "tuples": [
+            {
+              "joint-position": "valid",
+              "joint-velocity-derived": "valid"
+            },
+            {
+              "joint-position": "degraded",
+              "joint-velocity-derived": "degraded"
+            },
+            {
+              "joint-position": "unavailable",
+              "joint-velocity-derived": "unavailable"
+            }
+          ],
+          "complete": true
+        }
+      ],
+      "expected": {
+        "global_signatures": 3,
+        "common_cause_preserved": true
+      }
+    },
+    {
+      "id": "C-d1-d2-shared-power",
+      "components": [
+        {
+          "id": "foot-pressure",
+          "domain": [
+            "valid",
+            "degraded",
+            "unavailable"
+          ]
+        },
+        {
+          "id": "foot-wrench",
+          "domain": [
+            "valid",
+            "degraded",
+            "unavailable"
+          ]
+        }
+      ],
+      "groups": [
+        {
+          "id": "foot-sensor-power",
+          "members": [
+            "foot-pressure",
+            "foot-wrench"
+          ],
+          "tuples": [
+            {
+              "foot-pressure": "valid",
+              "foot-wrench": "valid"
+            },
+            {
+              "foot-pressure": "degraded",
+              "foot-wrench": "degraded"
+            },
+            {
+              "foot-pressure": "unavailable",
+              "foot-wrench": "unavailable"
+            }
+          ],
+          "complete": true
+        }
+      ],
+      "expected": {
+        "global_signatures": 3,
+        "shared_power_fault_preserved": true
+      }
+    },
+    {
+      "id": "D-invalid-state-outside-domain",
+      "components": [
+        {
+          "id": "cam",
+          "domain": [
+            "valid",
+            "ood"
+          ]
+        }
+      ],
+      "groups": [
+        {
+          "id": "camera",
+          "members": [
+            "cam"
+          ],
+          "tuples": [
+            {
+              "cam": "unavailable"
+            }
+          ],
+          "complete": true
+        }
+      ],
+      "expected": {
+        "status": "invalid",
+        "reason": "tuple state not in component domain"
+      }
+    },
+    {
+      "id": "E-duplicate-component",
+      "components": [
+        {
+          "id": "cam",
+          "domain": [
+            "valid"
+          ]
+        },
+        {
+          "id": "cam",
+          "domain": [
+            "ood"
+          ]
+        }
+      ],
+      "expected": {
+        "status": "invalid",
+        "reason": "duplicate component ID"
+      }
+    },
+    {
+      "id": "F-component-in-two-groups",
+      "components": [
+        {
+          "id": "cam",
+          "domain": [
+            "valid",
+            "ood"
+          ]
+        }
+      ],
+      "groups": [
+        {
+          "id": "g1",
+          "members": [
+            "cam"
+          ],
+          "tuples": [
+            {
+              "cam": "valid"
+            },
+            {
+              "cam": "ood"
+            }
+          ],
+          "complete": true
+        },
+        {
+          "id": "g2",
+          "members": [
+            "cam"
+          ],
+          "tuples": [
+            {
+              "cam": "valid"
+            },
+            {
+              "cam": "ood"
+            }
+          ],
+          "complete": true
+        }
+      ],
+      "expected": {
+        "status": "invalid",
+        "reason": "component does not belong to exactly one group"
+      }
+    },
+    {
+      "id": "G-component-uncovered",
+      "components": [
+        {
+          "id": "cam",
+          "domain": [
+            "valid",
+            "ood"
+          ]
+        },
+        {
+          "id": "imu",
+          "domain": [
+            "valid",
+            "unavailable"
+          ]
+        }
+      ],
+      "groups": [
+        {
+          "id": "camera",
+          "members": [
+            "cam"
+          ],
+          "tuples": [
+            {
+              "cam": "valid"
+            },
+            {
+              "cam": "ood"
+            }
+          ],
+          "complete": true
+        }
+      ],
+      "expected": {
+        "status": "invalid",
+        "reason": "component missing from group partition"
+      }
+    },
+    {
+      "id": "H-duplicate-joint-tuple",
+      "components": [
+        {
+          "id": "cam",
+          "domain": [
+            "valid",
+            "ood"
+          ]
+        }
+      ],
+      "groups": [
+        {
+          "id": "camera",
+          "members": [
+            "cam"
+          ],
+          "tuples": [
+            {
+              "cam": "valid"
+            },
+            {
+              "cam": "valid"
+            }
+          ],
+          "complete": true
+        }
+      ],
+      "expected": {
+        "status": "invalid",
+        "reason": "duplicate group tuple"
+      }
+    },
+    {
+      "id": "I-stale-group-receipt",
+      "group_receipt": {
+        "valid_from_ns": 0,
+        "valid_until_ns": 400,
+        "now_ns": 500,
+        "complete": true
+      },
+      "expected": {
+        "status": "unknown",
+        "reason": "stale group relation evidence"
+      }
+    },
+    {
+      "id": "J-model-or-actuator-digest-mismatch",
+      "group_receipt": {
+        "model_digest": "m1",
+        "expected_model_digest": "m2",
+        "actuator_digest": "a1",
+        "expected_actuator_digest": "a1",
+        "complete": true
+      },
+      "expected": {
+        "status": "identity_mismatch"
+      }
+    },
+    {
+      "id": "K-incomplete-relation",
+      "group_receipt": {
+        "complete": false
+      },
+      "expected": {
+        "status": "unknown",
+        "reason": "joint relation completeness not established"
+      }
+    },
+    {
+      "id": "L-exactly-at-global-cap",
+      "group_sizes": [
+        8,
+        8,
+        8,
+        8
+      ],
+      "max_global_signatures": 65536,
+      "expected": {
+        "status": "enumerated",
+        "signature_count": 65536
+      }
+    },
+    {
+      "id": "M-one-over-global-cap",
+      "group_sizes": [
+        8,
+        8,
+        8,
+        9
+      ],
+      "max_global_signatures": 65536,
+      "expected": {
+        "status": "resource_exhausted",
+        "partial_output_forbidden": true
+      }
+    },
+    {
+      "id": "N-component-and-tuple-permutation",
+      "components": [
+        "a",
+        "b"
+      ],
+      "group_tuples": [
+        [
+          "valid",
+          "ood"
+        ],
+        [
+          "ood",
+          "valid"
+        ]
+      ],
+      "permuted_input": true,
+      "expected": {
+        "canonical_output_identical": true
+      }
+    },
+    {
+      "id": "O-cross-group-product-is-set-overapproximation",
+      "groups": [
+        {
+          "id": "camera",
+          "tuples": [
+            {
+              "rgb": "valid"
+            },
+            {
+              "rgb": "ood"
+            }
+          ]
+        },
+        {
+          "id": "imu",
+          "tuples": [
+            {
+              "imu": "valid"
+            },
+            {
+              "imu": "degraded"
+            }
+          ]
+        }
+      ],
+      "expected": {
+        "signature_count": 4,
+        "probability_independence_claim": false,
+        "cartesian_combinations_preserved": true
+      }
+    },
+    {
+      "id": "P-no-marginal-probability-factorization",
+      "input": {
+        "marginal_probabilities_supplied": true
+      },
+      "expected": {
+        "status": "invalid",
+        "reason": "V0 is a possibility set, not a probability model"
+      }
+    }
+  ]
+}
