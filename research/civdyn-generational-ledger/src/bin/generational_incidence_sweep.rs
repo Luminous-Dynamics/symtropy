@@ -248,7 +248,12 @@ fn main() {
         .expect("cohort incidence reconciles with source ledger");
 
     println!(
-        "record_type,tick,region_id,resource,assignment,demand,served,unmet,inherited_stock,ledger_demand,allocated_demand,ledger_served,allocated_served,ledger_unmet,allocated_unmet,ledger_closing_stock,allocated_closing_stock,record_id,measure_id,unit,quantity,currency_code,amount,price_base_year"
+        concat!(
+            "record_type,tick,region_id,resource,assignment,demand,served,unmet,inherited_stock,",
+            "ledger_demand,allocated_demand,ledger_served,allocated_served,ledger_unmet,",
+            "allocated_unmet,ledger_closing_stock,allocated_closing_stock,record_id,",
+            "measure_id,unit,quantity,currency_code,amount,price_base_year"
+        )
     );
 
     let report = ledger.last().expect("one incidence report exists");
