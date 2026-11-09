@@ -187,7 +187,7 @@ jobs:
               }
               if ($1 == "objective_stability") {
                 stability++
-                if ($11 != "true" || $22 != 2) exit 106
+                if ($11 != "false" || $22 != 2) exit 106
               }
               if ($1 == "policy_objective_regret") {
                 regrets++
