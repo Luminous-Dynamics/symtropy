@@ -186,3 +186,27 @@ jobs:
               print "Sequential portfolio valid: 7,680 receipts; identical stream digests; 256 seeds per regime; false directional actions <=12/256 at both zero-effect and minimum-benefit boundaries; no false harmful stop on positive/confounder-shift regimes; at least one method saves >=30% samples on alternatives"
             }
           ' /tmp/civdyn-sequential-methods.csv
+
+
+      - name: Verify prior reachability and split-predictive adequacy contract
+        run: |
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin model-adequacy-sweep > /tmp/civdyn-model-adequacy.csv
+          awk -F, '
+            NR == 1 { if (NF != 12) exit 80; next }
+            NF != 12 { exit 81 }
+            {
+              rows++
+              if ($12 != "primary_discrepancy_detected") exit 82
+              if ($1 == "prior" && $2 == "household-water-mean" && $4 == "within_reference_interval") prior_water++
+              if ($1 == "prior" && $2 == "health-income-joint" && $4 == "outside_reference_interval") prior_joint++
+              if ($1 == "prior" && $2 == "rare-service-failure-rate" && $4 == "within_reference_interval") prior_tail++
+              if ($1 == "split_predictive" && $2 == "household-water-mean" && $4 == "within_reference_interval") split_water++
+              if ($1 == "split_predictive" && $2 == "health-income-joint" && $4 == "outside_reference_interval") split_joint++
+              if ($1 == "split_predictive" && $2 == "rare-service-failure-rate" && $4 == "outside_reference_interval") split_tail++
+              if ($10 != 20) exit 83
+            }
+            END {
+              if (rows != 6 || prior_water != 1 || prior_joint != 1 || prior_tail != 1 || split_water != 1 || split_joint != 1 || split_tail != 1) exit 84
+              print "Model-adequacy CSV valid: prior reachability and split-predictive controls preserve marginal, joint and rare-tail discrepancies as separate results"
+            }
+          '
