@@ -5,8 +5,8 @@
 //! Transport adapters deserialize the versioned receipt into these types before
 //! calling [validate_receipt].
 
-use std::collections::BTreeSet;
 use serde_json::{Map as JsonMap, Value as JsonValue};
+use std::collections::BTreeSet;
 
 /// The nine required comparison dimensions in schema order.
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -352,15 +352,30 @@ fn issue(code: &'static str, path: &str) -> ValidationIssue {
 /// unknown fields are rejected, dimensions must contain exactly nine entries,
 /// and enum spellings must match the versioned wire contract.
 pub fn parse_receipt_json(input: &str) -> Result<MappingReceipt, String> {
-    let value: JsonValue = serde_json::from_str(input)
-        .map_err(|error| format!("invalid receipt JSON: {error}"))?;
+    let value: JsonValue =
+        serde_json::from_str(input).map_err(|error| format!("invalid receipt JSON: {error}"))?;
     let root = json_object(&value, "$")?;
-    json_check_keys(root, "$", &["schema", "scenario", "left_backend", "right_backend", "dimensions", "review"], &[])?;
+    json_check_keys(
+        root,
+        "$",
+        &[
+            "schema",
+            "scenario",
+            "left_backend",
+            "right_backend",
+            "dimensions",
+            "review",
+        ],
+        &[],
+    )?;
 
     let scenario_value = json_required(root, "scenario", "$")?;
     let scenario = parse_scenario(scenario_value)?;
     let left_backend = parse_backend(json_required(root, "left_backend", "$")?, "$.left_backend")?;
-    let right_backend = parse_backend(json_required(root, "right_backend", "$")?, "$.right_backend")?;
+    let right_backend = parse_backend(
+        json_required(root, "right_backend", "$")?,
+        "$.right_backend",
+    )?;
     let review = parse_review(json_required(root, "review", "$")?)?;
 
     let dimensions_value = json_required(root, "dimensions", "$")?;
@@ -395,7 +410,10 @@ pub fn validate_json_receipt(input: &str) -> Result<ValidationReport, String> {
     Ok(validate_receipt(&receipt))
 }
 
-fn json_object<'a>(value: &'a JsonValue, path: &str) -> Result<&'a JsonMap<String, JsonValue>, String> {
+fn json_object<'a>(
+    value: &'a JsonValue,
+    path: &str,
+) -> Result<&'a JsonMap<String, JsonValue>, String> {
     value
         .as_object()
         .ok_or_else(|| format!("{path} must be an object"))
@@ -414,7 +432,9 @@ fn json_check_keys(
     }
     for key in object.keys() {
         if !required.contains(&key.as_str()) && !optional.contains(&key.as_str()) {
-            return Err(format!("{path}.{key} is not permitted by this schema version"));
+            return Err(format!(
+                "{path}.{key} is not permitted by this schema version"
+            ));
         }
     }
     Ok(())
@@ -457,10 +477,7 @@ fn json_optional_string(
         .transpose()
 }
 
-fn json_string_array(
-    value: &JsonValue,
-    path: &str,
-) -> Result<Vec<String>, String> {
+fn json_string_array(value: &JsonValue, path: &str) -> Result<Vec<String>, String> {
     value
         .as_array()
         .ok_or_else(|| format!("{path} must be an array"))?
@@ -488,7 +505,13 @@ fn parse_backend(value: &JsonValue, path: &str) -> Result<BackendIdentity, Strin
     json_check_keys(
         object,
         path,
-        &["engine_id", "version", "adapter_commit", "profile_id", "profile_digest"],
+        &[
+            "engine_id",
+            "version",
+            "adapter_commit",
+            "profile_id",
+            "profile_digest",
+        ],
         &[],
     )?;
     Ok(BackendIdentity {
@@ -529,7 +552,11 @@ fn parse_dimension_mapping(value: &JsonValue, path: &str) -> Result<DimensionMap
         "actuation" => Dimension::Actuation,
         "observations" => Dimension::Observations,
         "numerical_profile" => Dimension::NumericalProfile,
-        _ => return Err(format!("{path}.dimension has unknown value {dimension_text:?}")),
+        _ => {
+            return Err(format!(
+                "{path}.dimension has unknown value {dimension_text:?}"
+            ));
+        }
     };
 
     let status_text = json_string(object, "status", path)?;
@@ -551,7 +578,9 @@ fn parse_dimension_mapping(value: &JsonValue, path: &str) -> Result<DimensionMap
             .ok_or_else(|| format!("{path}.error_bounds must be an array"))?
             .iter()
             .enumerate()
-            .map(|(index, bound)| parse_error_bound(bound, &format!("{path}.error_bounds[{index}]")))
+            .map(|(index, bound)| {
+                parse_error_bound(bound, &format!("{path}.error_bounds[{index}]"))
+            })
             .collect::<Result<Vec<_>, _>>()?,
         None => Vec::new(),
     };
@@ -829,22 +858,26 @@ mod tests {
 
     #[test]
     fn json_strict_fixture_is_admitted() {
-        let report = validate_json_receipt(include_str!("../fixtures/strict-equivalent.example.json"))
-            .expect("strict fixture parses");
+        let report =
+            validate_json_receipt(include_str!("../fixtures/strict-equivalent.example.json"))
+                .expect("strict fixture parses");
         assert!(report.score_eligible, "{:?}", report);
     }
 
     #[test]
     fn json_mapped_fixture_is_admitted() {
-        let report = validate_json_receipt(include_str!("../fixtures/mapped-equivalent.example.json"))
-            .expect("mapped fixture parses");
+        let report =
+            validate_json_receipt(include_str!("../fixtures/mapped-equivalent.example.json"))
+                .expect("mapped fixture parses");
         assert!(report.score_eligible, "{:?}", report);
     }
 
     #[test]
     fn json_non_equivalent_friction_fixture_is_not_score_eligible() {
-        let report = validate_json_receipt(include_str!("../fixtures/non-equivalent-friction.example.json"))
-            .expect("non-equivalent fixture parses");
+        let report = validate_json_receipt(include_str!(
+            "../fixtures/non-equivalent-friction.example.json"
+        ))
+        .expect("non-equivalent fixture parses");
         assert!(!report.score_eligible);
         assert_eq!(report.inadmissible_dimensions, vec![Dimension::Contacts]);
     }
@@ -859,11 +892,22 @@ mod tests {
 
     #[test]
     fn json_duplicate_dimension_fixture_fails_closed() {
-        let report = validate_json_receipt(include_str!("../fixtures/duplicate-dimension.invalid.json"))
-            .expect("duplicate dimension fixture parses");
+        let report =
+            validate_json_receipt(include_str!("../fixtures/duplicate-dimension.invalid.json"))
+                .expect("duplicate dimension fixture parses");
         assert!(!report.score_eligible);
-        assert!(report.issues.iter().any(|issue| issue.code == "duplicate_dimension"));
-        assert!(report.issues.iter().any(|issue| issue.code == "missing_dimension"));
+        assert!(
+            report
+                .issues
+                .iter()
+                .any(|issue| issue.code == "duplicate_dimension")
+        );
+        assert!(
+            report
+                .issues
+                .iter()
+                .any(|issue| issue.code == "missing_dimension")
+        );
     }
 
     #[test]
