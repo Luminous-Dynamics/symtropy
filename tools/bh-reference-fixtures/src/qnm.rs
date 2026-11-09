@@ -268,10 +268,9 @@ impl KerrQnmSequenceFixture {
             return None;
         }
         let quantization_index = mode.wkb_quantization_index?;
-        Some(
-            self.spin_over_mass.powf(-4.0 / 3.0)
-                / (f64::from(quantization_index) + 0.5),
-        )
+        let parameter = self.spin_over_mass.powf(-4.0 / 3.0)
+            / (f64::from(quantization_index) + 0.5);
+        parameter.is_finite().then_some(parameter)
     }
 
     /// Validate sequence structure and evidence presence. This does not prove
@@ -521,6 +520,19 @@ mod tests {
         value.angular_eigenvalue_definition =
             Some("producer-defined angular separation constant".to_owned());
         assert_eq!(value.validate(), Ok(()));
+    }
+
+    #[test]
+    fn method_breakdown_is_preserved_as_metadata_not_silently_relabelled() {
+        let mut value = sequence(QnmFamilyClassification::Unresolved);
+        value.spin_over_mass = 0.999;
+        value.modes[0].solver_method = QnmSolverMethod::PotentialPeakPadeWkb;
+        value.modes[0].method_applicability = QnmMethodApplicability::KnownBreakdown;
+        assert_eq!(value.validate(), Ok(()));
+        assert_eq!(
+            value.modes[0].method_applicability,
+            QnmMethodApplicability::KnownBreakdown
+        );
     }
 
     #[test]
