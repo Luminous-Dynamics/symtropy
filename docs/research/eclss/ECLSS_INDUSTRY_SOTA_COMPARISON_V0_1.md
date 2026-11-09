@@ -39,6 +39,10 @@ The proposed contribution is an **evidence-qualified service-and-sustainment eva
 
 This is a compositional interoperability and assurance contribution. It succeeds only if it can reproduce existing baseline outcomes on matched scopes, reveal their known limitations and provide more complete service/sustainment outcomes without changing their assumptions invisibly.
 
+### Proof-carrying operations as an assurance contribution
+
+The benchmark's proposed differentiator is not a new optimizer. It is to wrap schedule proposals (including EMAT/RELISSA/SmartHab/DRCC outputs) in an independently checkable **maintenance-plan envelope**: exact asset/configuration, procedure, isolation, staff/tool qualification, parts compatibility and reservation, service-floor margin, resource vector, authorization scope, and post-repair requalification. The plan must be rejectable or deferred when evidence is missing or stale. Execution receipts and after-tests are separate objects from plans. This complements existing reliability and optimization methods; it is not a claim that their tools lack all assurance features.
+
 ## 3. Mandatory paired-comparison protocol
 
 Every method receives the same frozen:
