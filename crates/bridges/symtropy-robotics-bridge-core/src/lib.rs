@@ -10,6 +10,7 @@ pub mod differential_drive;
 pub mod dispatch;
 pub mod haptic;
 pub mod motor;
+pub mod outcome_ledger;
 pub mod platform;
 pub mod safety;
 pub mod sequence_guard;
@@ -34,6 +35,9 @@ pub use dispatch::{
 };
 pub use haptic::{HapticAttestation, HapticOracle};
 pub use motor::{MotorPlanner, UniformGainPlanner};
+pub use outcome_ledger::{
+    ControlOutcomeLedger, OutcomeLedgerError, OutcomeUpdate, DEFAULT_TRACKED_OUTCOME_CAPACITY,
+};
 pub use platform::PlatformType;
 pub use safety::JointSafetyAuthority;
 pub use sequence_guard::{RequestSequenceGuard, SequenceGuardError, SequencedRuntimeAssurance};
