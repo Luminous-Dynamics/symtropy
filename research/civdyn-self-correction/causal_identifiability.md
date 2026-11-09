@@ -1,0 +1,127 @@
+# CIVDYN exact observational-equivalence control v0.1
+
+## Purpose
+
+This is a small, exact structural-causal-model control for a central failure mode in social and civilizational simulation: two causal worlds can generate the same observational distribution while implying different intervention effects.
+
+It is deliberately separate from the larger simulation engine. Its job is to verify that the scientific instrument does not infer a unique causal mechanism from evidence that cannot identify one.
+
+## Twin models
+
+Let A be a binary treatment, Y a binary outcome, and U an unobserved common cause.
+
+### World C: common-cause only
+
+- U is Bernoulli(1/2).
+- A = U.
+- Y = U.
+- Intervening on A does not alter U or Y.
+
+The causal effect is:
+
+tau_C = E[Y | do(A=1)] - E[Y | do(A=0)] = 1/2 - 1/2 = 0.
+
+### World T: direct treatment effect
+
+- A is Bernoulli(1/2).
+- Y = A.
+
+The causal effect is:
+
+tau_T = E[Y | do(A=1)] - E[Y | do(A=0)] = 1 - 0 = 1.
+
+## Observational equivalence
+
+In both models the observed joint distribution is exactly:
+
+| A | Y | Probability |
+|---:|---:|---:|
+| 0 | 0 | 1/2 |
+| 0 | 1 | 0 |
+| 1 | 0 | 0 |
+| 1 | 1 | 1/2 |
+
+The two candidate models therefore cannot be separated by passive observations of A and Y, even with an arbitrarily large observational sample under these exact assumptions.
+
+## Discriminating experiments
+
+Under intervention do(A=0):
+
+- World C predicts Y ~ Bernoulli(1/2).
+- World T predicts Y = 0.
+
+Under intervention do(A=1):
+
+- World C predicts Y ~ Bernoulli(1/2).
+- World T predicts Y = 1.
+
+Each candidate intervention produces total-variation distance 0.5 between the two predicted outcome distributions. The reference selector chooses the permitted intervention with the largest total-variation separation per declared cost unit.
+
+This is a deliberately simple discrimination baseline. It is not Bayesian expected information gain and does not yet account for sampling noise, unequal priors, intervention interference or delayed consequences.
+
+## Active experiment selection: total variation and information gain
+
+The exact twin models support two complementary experiment-selection baselines.
+
+- **Total-variation separation per cost** measures the worst-case distributional separation available between candidate worlds.
+- **Expected information gain per cost** computes the mutual information, in bits, between the candidate-world identity and the binary outcome under an explicit prior over the two worlds.
+
+The information-gain API accepts the prior probability of the common-cause world. With equal prior probabilities, either treatment intervention yields approximately 0.311278 bits of expected information gain. With a degenerate prior that assigns probability 1 to one world, expected information gain is zero: there is no uncertainty about the candidate identity left to resolve.
+
+The selector evaluates only permitted experiments within the declared budget and returns no selection when no intervention yields positive information gain. Its result is not evidence that the selected world is true; the experiment still has to be performed and its outcome observed.
+
+## Decision identifiability versus mechanism identifiability
+
+A causal effect can remain set-identified while the preferred policy is identified across every candidate model. These are separate scientific questions.
+
+The executable policy control uses the explicit synthetic utility:
+
+`expected outcome success probability - intervention cost`
+
+It evaluates the two permitted actions in each candidate SCM, computes each action's regret against the best action in that SCM, and selects the action minimizing maximum regret. It also reports worst-case utility and whether the selected action is optimal (ties allowed) in every candidate world.
+
+In the zero-cost fixture:
+- The common-cause world gives both interventions expected success 0.5.
+- The direct-effect world gives do(A=0) success 0 and do(A=1) success 1.
+- The minimax-regret choice is do(A=1), with zero regret in both worlds.
+- The causal effect is still not point identified: the candidate set remains {0, 1}.
+
+This is the central distinction: **uncertainty about why an intervention works does not always imply uncertainty about what to do.** Conversely, if costs, externalities, or safety constraints change, the robust policy can change even when the model set does not. The implementation uses normalized toy reward units only; it is not a welfare model.
+
+## Abstention contract
+
+If no discriminating intervention is permitted or the available budget cannot cover one, the reference must report:
+
+- observational equivalence = true;
+- candidate causal effect set = {0, 1};
+- conservative interval envelope = [0, 1];
+- no selected experiment;
+- status = no permitted discriminating experiment.
+
+The interval is the convex hull of the exact two-point candidate set; it is not a claim that every value inside the interval is generated by one of these two models.
+
+A feasible discriminating experiment does not itself identify the true world. The outcome still has to be collected and evaluated under an appropriate sampling protocol.
+
+## Run and tests
+
+The module is part of the existing civdyn-self-correction crate and is included in its all-target test suite.
+
+Tests verify:
+1. Exact equality of the two observational joint distributions.
+2. Different causal effects under intervention.
+3. Exact total-variation separation for both interventions.
+4. Abstention and effect-set retention when no experiment is allowed.
+5. Budget constraints and discrimination-per-cost selection.
+6. Fail-closed handling of invalid costs, budgets and probability distributions.\n7. Minimax-regret policy choice while causal mechanism identification remains unresolved, including worst-case utility, maximum regret and whether one policy is optimal in every candidate world.
+
+## Claim ceiling
+
+Passing these tests demonstrates the exact intended logic for this two-model binary fixture. It does not establish general causal discovery, finite-sample identification, real-world policy validity, ethical permissibility of any intervention, or superiority over causal active-learning methods.
+
+## Research basis
+
+- Matiasz et al., Experiment Selection in Meta-Analytic Piecemeal Causal Discovery, IEEE Access (2021): https://doi.org/10.1109/ACCESS.2021.3093524
+- Zhang et al., Active Learning for Optimal Intervention Design in Causal Models, Nature Machine Intelligence (2023): https://doi.org/10.1038/s42256-023-00719-0
+- Yan et al., Causal Bandits with General Causal Models and Interventions, AISTATS/PMLR (2024): https://proceedings.mlr.press/v238/yan24a.html
+- Joshi, Zhang and Bareinboim, Towards Safe Policy Learning under Partial Identifiability, AAAI (2024): https://doi.org/10.1609/aaai.v38i12.29198
+- Aradillas Fernández et al., Robust Bayes Treatment Choice with Partial Identification, Econometric Theory (published online 23 July 2026): https://doi.org/10.1017/S0266466626100486
