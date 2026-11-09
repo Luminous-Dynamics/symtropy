@@ -103,6 +103,8 @@ pub enum SplitPredictiveError {
     MixedModelIdentities,
     MixedTailDirections,
     MixedCalibrationIdentities,
+    MixedSourceIdentities,
+    MixedMeasurementUnits,
     InvalidMonteCarloReplicates,
 }
 
@@ -316,6 +318,12 @@ pub fn divided_split_predictive_check(
         }
         if check.tail != first.tail {
             return Err(SplitPredictiveError::MixedTailDirections);
+        }
+        if check.source_digest != first.source_digest {
+            return Err(SplitPredictiveError::MixedSourceIdentities);
+        }
+        if check.measurement_unit != first.measurement_unit {
+            return Err(SplitPredictiveError::MixedMeasurementUnits);
         }
         if check.calibration_data_digest != manifest.calibration_data_digest {
             return Err(SplitPredictiveError::MixedCalibrationIdentities);
@@ -686,6 +694,23 @@ mod tests {
         assert!(matches!(
             divided_split_predictive_check(&manifest(), SplitRole::Validation, &checks, 999, 1),
             Err(SplitPredictiveError::MixedTailDirections)
+        ));
+    }
+
+    #[test]
+    fn divided_spc_rejects_mixed_source_and_measurement_identities() {
+        let mut checks = checks();
+        checks[1].source_digest = "sha256-other-source".to_string();
+        assert!(matches!(
+            divided_split_predictive_check(&manifest(), SplitRole::Validation, &checks, 999, 1),
+            Err(SplitPredictiveError::MixedSourceIdentities)
+        ));
+
+        let mut checks = checks();
+        checks[1].measurement_unit = "kWh".to_string();
+        assert!(matches!(
+            divided_split_predictive_check(&manifest(), SplitRole::Validation, &checks, 999, 1),
+            Err(SplitPredictiveError::MixedMeasurementUnits)
         ));
     }
 
