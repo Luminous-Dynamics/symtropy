@@ -80,6 +80,21 @@ fn add_incomplete(reasons: &mut BTreeSet<String>, code: &str) {
     reasons.insert(code.to_owned());
 }
 
+fn is_invalid_reason(reason: &str) -> bool {
+    [
+        "MISMATCH",
+        "INVALID",
+        "OVERFLOW",
+        "DUPLICATED",
+        "UNDECLARED",
+        "UNSUPPORTED",
+        "EXCEEDS",
+        "NOT_INTEGER",
+    ]
+    .iter()
+    .any(|token| reason.contains(token))
+}
+
 fn checked_add(
     left: i128,
     right: i128,
@@ -226,7 +241,9 @@ fn validate_common_bindings(
         add_incomplete(reasons, "COMMON_SCOPE_BINDING_INCOMPLETE");
     }
     let unit = text(scope, "canonical_length_unit").to_owned();
-    if scale_to_nm(&unit).is_none() {
+    if unit.is_empty() {
+        add_incomplete(reasons, "CANONICAL_LENGTH_UNIT_MISSING");
+    } else if scale_to_nm(&unit).is_none() {
         add_invalid(reasons, "CANONICAL_LENGTH_UNIT_UNSUPPORTED");
     }
     if !canonical_utc(text(scope, "evaluation_at")) {
@@ -240,23 +257,36 @@ fn validate_common_bindings(
     {
         add_incomplete(reasons, "CASSETTE_IDENTITY_INCOMPLETE");
     }
-    if text(cassette, "target_design_revision") != text(scope, "design_revision") {
+    if !text(cassette, "target_design_revision").is_empty()
+        && !text(scope, "design_revision").is_empty()
+        && text(cassette, "target_design_revision") != text(scope, "design_revision")
+    {
         add_invalid(reasons, "CASSETTE_TARGET_DESIGN_REVISION_MISMATCH");
     }
     for (measurement, label) in [(host, "HOST"), (module, "CASSETTE")] {
-        if text(measurement, "reference_frame_id") != text(scope, "reference_frame_id")
+        if text(measurement, "reference_frame_id").is_empty()
+            || text(measurement, "datum_revision").is_empty()
+        {
+            add_incomplete(reasons, &format!("{label}_REFERENCE_FRAME_OR_DATUM_INCOMPLETE"));
+        } else if text(measurement, "reference_frame_id") != text(scope, "reference_frame_id")
             || text(measurement, "datum_revision") != text(scope, "datum_revision")
         {
             add_invalid(reasons, &format!("{label}_REFERENCE_FRAME_OR_DATUM_MISMATCH"));
         }
     }
-    if text(host, "as_built_revision") != text(scope, "required_host_as_built_revision") {
+    if text(host, "as_built_revision").is_empty() {
+        add_incomplete(reasons, "HOST_AS_BUILT_REVISION_MISSING");
+    } else if text(host, "as_built_revision") != text(scope, "required_host_as_built_revision") {
         add_invalid(reasons, "HOST_AS_BUILT_REVISION_MISMATCH");
     }
-    if text(host, "design_revision") != text(scope, "design_revision") {
+    if text(host, "design_revision").is_empty() {
+        add_incomplete(reasons, "HOST_DESIGN_REVISION_MISSING");
+    } else if text(host, "design_revision") != text(scope, "design_revision") {
         add_invalid(reasons, "HOST_DESIGN_REVISION_MISMATCH");
     }
-    if text(module, "manufacturing_revision") != text(cassette, "manufacturing_revision") {
+    if text(module, "manufacturing_revision").is_empty() {
+        add_incomplete(reasons, "CASSETTE_MEASUREMENT_REVISION_MISSING");
+    } else if text(module, "manufacturing_revision") != text(cassette, "manufacturing_revision") {
         add_invalid(reasons, "CASSETTE_MANUFACTURING_REVISION_MISMATCH");
     }
 
@@ -283,11 +313,17 @@ fn build_stack(
     let required = array(scope, "required_tolerance_term_ids");
     let terms = array(model, "stack_terms");
 
-    if text(model, "method_id") != text(scope, "tolerance_method_id")
-        || text(model, "method_revision") != text(scope, "tolerance_method_revision")
-        || text(model, "method") != "worst_case_interval_v0.1"
+    if text(model, "method_id").is_empty()
+        || text(model, "method_revision").is_empty()
+        || text(model, "method").is_empty()
     {
-        add_invalid(reasons, "TOLERANCE_METHOD_BINDING_MISMATCH_OR_UNSUPPORTED");
+        add_incomplete(reasons, "TOLERANCE_METHOD_BINDING_INCOMPLETE");
+    } else if text(model, "method_id") != text(scope, "tolerance_method_id")
+        || text(model, "method_revision") != text(scope, "tolerance_method_revision")
+    {
+        add_invalid(reasons, "TOLERANCE_METHOD_BINDING_MISMATCH");
+    } else if text(model, "method") != "worst_case_interval_v0.1" {
+        add_invalid(reasons, "TOLERANCE_METHOD_UNSUPPORTED");
     }
 
     let axes = declared_axes(allowance);
@@ -299,8 +335,13 @@ fn build_stack(
         .filter_map(Value::as_str)
         .map(str::to_owned)
         .collect::<BTreeSet<_>>();
-    if required_ids.is_empty() || required_ids.len() != required.len() {
+    if scope.get("required_tolerance_term_ids").is_none() {
+        add_incomplete(reasons, "REQUIRED_TOLERANCE_TERM_INVENTORY_MISSING");
+    } else if required_ids.is_empty() || required_ids.len() != required.len() {
         add_invalid(reasons, "REQUIRED_TOLERANCE_TERM_INVENTORY_INVALID");
+    }
+    if terms.is_empty() {
+        add_incomplete(reasons, "TOLERANCE_STACK_TERMS_MISSING");
     }
 
     let host = input.get("host_measurement").unwrap_or(&Value::Null);
@@ -342,7 +383,9 @@ fn build_stack(
                 continue;
             }
         };
-        if text(term, "measurement_receipt_id") != expected_receipt {
+        if expected_receipt.is_empty() || text(term, "measurement_receipt_id").is_empty() {
+            add_incomplete(reasons, "TOLERANCE_TERM_MEASUREMENT_RECEIPT_INCOMPLETE");
+        } else if text(term, "measurement_receipt_id") != expected_receipt {
             add_invalid(reasons, "TOLERANCE_TERM_MEASUREMENT_RECEIPT_MISMATCH");
         }
 
@@ -381,8 +424,11 @@ fn build_stack(
         );
     }
 
-    if seen != required_ids {
-        add_incomplete(reasons, "TOLERANCE_TERM_INVENTORY_DOES_NOT_MATCH_REQUIRED_SCOPE");
+    if !required_ids.is_subset(&seen) {
+        add_incomplete(reasons, "TOLERANCE_REQUIRED_TERM_MISSING");
+    }
+    if !seen.is_subset(&required_ids) {
+        add_invalid(reasons, "TOLERANCE_UNEXPECTED_TERM_PRESENT");
     }
     for axis in &axes {
         if !sums.contains_key(axis) {
@@ -578,13 +624,7 @@ pub fn evaluate_case(case: &Value) -> Value {
         );
     }
 
-    let input_state = if reasons.iter().any(|reason| {
-        reason.contains("MISMATCH")
-            || reason.contains("INVALID")
-            || reason.contains("OVERFLOW")
-            || reason.contains("DUPLICATED")
-            || reason.contains("UNDECLARED")
-    }) {
+    let input_state = if reasons.iter().any(|reason| is_invalid_reason(reason)) {
         "invalid_input"
     } else if reasons.iter().any(|reason| {
         reason.contains("INCOMPLETE")
@@ -596,11 +636,10 @@ pub fn evaluate_case(case: &Value) -> Value {
         "valid"
     };
 
-    let mut fit_up = "unknown";
-    if input_state == "invalid_input" {
-        fit_up = "invalid_input";
+    let fit_up = if input_state == "invalid_input" {
+        "invalid_input"
     } else if input_state == "insufficient_evidence" || !stack_available {
-        fit_up = "unknown";
+        "unknown"
     } else {
         let mut all_inside = true;
         let mut any_disjoint = false;
@@ -613,50 +652,29 @@ pub fn evaluate_case(case: &Value) -> Value {
             any_disjoint |= !overlaps(stack_interval, *limit);
         }
         if all_inside {
-            fit_up = "fit";
+            "fit"
         } else if buffer_covers_required_correction(input, &stack, &unit, &mut reasons) {
-            fit_up = "fit_with_qualified_adjustment";
+            "fit_with_qualified_adjustment"
         } else if any_disjoint {
-            fit_up = "blocked";
+            "blocked"
         } else {
-            fit_up = "unknown";
+            "unknown"
         }
-    }
+    };
 
     let installed_allowance = allowance_intervals(input, &unit, &mut BTreeSet::new());
     let (installed_acceptance, installed_axes) =
         evaluate_installed(input, &unit, &installed_allowance, &mut reasons);
 
-    let invalid = reasons.iter().any(|reason| {
-        reason.contains("MISMATCH")
-            || reason.contains("INVALID")
-            || reason.contains("OVERFLOW")
-            || reason.contains("DUPLICATED")
-            || reason.contains("UNDECLARED")
-    });
-    let incomplete = reasons.iter().any(|reason| {
-        reason.contains("INCOMPLETE")
-            || reason.contains("NOT_VERIFIED")
-            || reason.contains("NOT_VALID")
-    });
-    let final_input_state = if invalid {
+    let final_fit_up = if input_state == "invalid_input" {
         "invalid_input"
-    } else if incomplete {
-        "insufficient_evidence"
-    } else {
-        input_state
-    };
-    let final_fit_up = if invalid {
-        "invalid_input"
-    } else if incomplete && fit_up != "blocked" {
-        "unknown"
     } else {
         fit_up
     };
 
     json!({
         "case_id": case_id,
-        "input_state": final_input_state,
+        "input_state": input_state,
         "fit_up_disposition": final_fit_up,
         "installed_acceptance": installed_acceptance,
         "canonical_length_unit": unit,
@@ -694,6 +712,7 @@ pub fn matches_expected(actual: &Value, expected: &Value) -> bool {
 mod tests {
     use super::{evaluate_case, matches_expected};
     use serde_json::Value;
+    use std::collections::BTreeSet;
     use std::path::PathBuf;
 
     fn corpus() -> Value {
