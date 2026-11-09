@@ -874,6 +874,7 @@ mod tests {
     fn rejects_duplicate_model_digest_to_prevent_implicit_model_weighting() {
         let mut candidate = models();
         candidate[1].model_digest = candidate[0].model_digest.clone();
+        candidate[1].adequacy_model_digest = candidate[0].adequacy_model_digest.clone();
         assert!(matches!(
             evaluate(&candidate, &fixture_outcomes()),
             Err(PolicySensitivityError::DuplicateModelDigest { .. })
@@ -939,6 +940,37 @@ mod tests {
             evaluate(&models(), &outcomes),
             Err(PolicySensitivityError::InvalidOutcome { .. })
         ));
+    }
+
+    #[test]
+    fn supports_at_least_constraints_without_changing_objective_units() {
+        let mut metric_set = metrics();
+        metric_set[2].kind = MetricKind::Constraint {
+            relation: ConstraintRelation::AtLeast(10.0),
+        };
+        let report = evaluate_policy_sensitivity(
+            &models(),
+            &policies(),
+            &metric_set,
+            &fixture_outcomes(),
+        )
+        .expect("valid lower-bound constraint fixture");
+        let baseline = report
+            .model_policy_feasibility
+            .iter()
+            .find(|row| row.model_id == "world-a" && row.policy_id == "baseline")
+            .expect("baseline feasibility row");
+        let conserve = report
+            .model_policy_feasibility
+            .iter()
+            .find(|row| row.model_id == "world-a" && row.policy_id == "conserve")
+            .expect("conserve feasibility row");
+        assert!(!baseline.feasible);
+        assert!(conserve.feasible);
+        assert_eq!(
+            summary(&report, "conserve", "essential-service").measurement_unit,
+            "households_served"
+        );
     }
 
     #[test]
