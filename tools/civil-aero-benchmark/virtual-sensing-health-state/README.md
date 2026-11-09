@@ -176,6 +176,66 @@ The register records each source URL, reported metadata, dataset role, claim cei
 This ladder creates a defensible way to compare the industry baselines on comparable real signals before attempting Wren 2 / Wayfarer 4 candidate validation. It does not turn a bridge, coupon or demonstrator into an aircraft certification article.
 
 
+
+## Benchmark partition integrity: specimen, environment, installation and time
+
+The executable \`src/bin/benchmark_split_contract.rs\` and independent verifier \`verify_benchmark_split_contract.py\` implement a split-integrity contract. The fixture is synthetic metadata only. Four distinct evaluation tracks are validated:
+
+- **Specimen holdout:** validation and test specimen IDs cannot appear in training.
+- **Thermal extrapolation:** train, validation and test occupy disjoint thermal-regime groups.
+- **Installation shift:** each split uses a distinct sensor installation/re-bond generation.
+- **Forward time:** the physical article, campaign, configuration and installation remain fixed while acquisition time advances; the purge gap must be at least the feature-window length plus preprocessing/filter memory.
+
+All tracks reject duplicate sample IDs, source-record IDs and acquisition-window IDs. Negative controls deliberately introduce a cross-split specimen leak, duplicate acquisition window and insufficient temporal purge. The Rust result is independently recomputed in Python and retained with the exact subject commit and source digests.
+
+This is a partition-integrity check, not a model-performance benchmark. Real datasets must first be admitted and mapped to these fields. Use specimen/campaign-level uncertainty intervals rather than treating adjacent signal windows as independent experimental replicates. Do not report a random-window split as evidence of specimen, campaign, temperature or installation transfer.
+
+## SOTA comparison: what is already published, and where to compete
+
+Three relevant 2026 comparators materially raise the bar:
+
+- **MuViS-C (September 2026)** benchmarks ten sensor-failure corruptions over nine datasets and six domains, across six model families. The authors report that all models degrade under at least one corruption setting, gradient-boosted trees are robust baselines, and model rankings change across datasets. Our local MuViS-C adapter currently checks its equations on a tiny synthetic fixed linear predictor; it does not reproduce the nine datasets, model families, training protocols or leaderboard. Compare to the upstream benchmark only after exact upstream code/data/versions and split semantics are admitted.
+- **Causal Bayesian optimization for SHM sensor placement (1 October 2026)** uses a structural causal model for environment, structural properties, damage, sensor placement and measured responses; it reports numerical, experimental and full-scale bridge evaluations and counterfactual sensor-layout reasoning. That work is a substantive comparator. Our environment/damage oracle is a transparent identifiability/abstention contract, not a competing causal optimizer or a reproduction of its results.
+- **Real-time sensing digital twin for aerospace SHM (8 June 2026)** combines reduced-order structural models, optimal sensor placement, sensor-fault mechanisms, physics-aware classification, signal correction and probabilistic sensor reliability on a progressively damaged composite wing panel. This is close to the target application. Our distinction is the explicit refusal to promote model imputation to measurement, independent-witness preconditions, common-cause checks and preservation of damage hypotheses through correction. We still need matched physical comparisons before claiming any advantage.
+
+References: MuViS-C, https://arxiv.org/abs/2609.18396; causal Bayesian optimisation, https://doi.org/10.1016/j.ymssp.2026.114895; aerospace sensing digital twin, https://doi.org/10.1007/s00158-026-04324-8.
+
+### Fair comparison protocol
+
+Use identical raw source bytes, admission records, channel mappings, feature windows, train/validation/test partitions, target definitions and compute budgets for every baseline. Compare at least:
+1. MuViS-C model families (gradient-boosted trees, convolutional, recurrent, attention, and MLP-mixing sequence models) under the same corruption grid;
+2. guided-wave signal-processing baselines (baseline signal stretch, optimal baseline selection, PCA/SVD/ICA, wavelet/feature pipelines and delay-and-sum imaging where appropriate);
+3. structural model/ROM observers and physics-informed hybrid predictors;
+4. causal EOV deconfounding and Pareto sensor-placement methods;
+5. the aerospace sensing-digital-twin architecture with separate damage, sensor-fault and reliability outputs.
+
+No result is comparable if its data split, feature/normalization pipeline, target quantity, or compute budget differs without explicit stratification. Report every model by dataset, specimen, layup, temperature range, installation generation and fault family; do not collapse these into one headline number.
+
+### Metrics that matter
+
+| Evaluation axis | Required report |
+|---|---|
+| Virtual sensing | RMSE/MAE and normalized error on clean data; \(mPC\), \(rPC\), \(nPC\), \(s_{cross}\), full mode × channel × severity curves, worst-case degradation |
+| Damage detection | POD versus damage size/severity, missed-detection rate, false alarms per interrogation or operating hour, localization error, sizing error and confidence intervals |
+| Sensor health | per-fault precision/recall, detection latency, false isolation, sensor/bond-health calibration, common-cause fault detection |
+| EOV robustness | false alarm rate by temperature/humidity/load regime, residual after compensation, unseen-regime error and OOD/abstention coverage |
+| Decision quality | damage-clearance false-negative count, damage preservation after sensor correction, selective risk versus coverage, uncertainty calibration |
+| Instrumentation economics | sensor count, mass, power, cabling, DAQ, installation, calibration, replacement, maintenance and audit cost; Pareto frontier rather than information score alone |
+
+Bootstrap at the specimen or independent campaign level. A million adjacent windows from one panel are not a million independent specimens. For periodically inspected fatigue data, report interval-censored damage onset/size uncertainty rather than assigning a fictitious exact timestamp between X-rays.
+
+### Research targets (aspirational, not achieved)
+
+- 100% exact replay and digest verification on frozen synthetic and admitted real-data tasks.
+- Zero split leakage under all declared holdout axes and mutation/negative controls.
+- Zero damage-state downgrade in the declared joint sensor/structure synthetic suite, including simultaneous damage plus sensor faults; this is a software invariant, not a physical probability-of-detection claim.
+- Publish false alarms, missed detections, localization/sizing error and uncertainty coverage with specimen-level confidence intervals across every held-out domain.
+- Beat the strongest matched baseline on a preregistered Pareto frontier: equal or better detection and localization at lower total lifecycle instrumentation cost, while not worsening false alarms or missed-detection risk.
+- Require an independent physical campaign and external reproduction before claiming a field/SOTA advantage.
+
+The first four targets are contract-level goals; the last two are research objectives. None is yet demonstrated on Wren 2 or Wayfarer 4.
+
+
 ## Advancement ladder
 
 **Tier 0 — this crate:** frozen synthetic HH/HF/DH/DF + abstention; independent fault witness; immutable raw data; independent Rust/Python replay.
