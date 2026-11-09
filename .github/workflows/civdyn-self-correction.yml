@@ -248,7 +248,7 @@ jobs:
               rows = list(reader)
               fields = reader.fieldnames
 
-          assert fields is not None and len(fields) == 28, f"expected 28 columns, got {len(fields or [])}"
+          assert fields is not None and len(fields) == 29, f"expected 29 columns, got {len(fields or [])}"
           grouped = {}
           for row in rows:
               grouped.setdefault(row["record_type"], []).append(row)
@@ -295,6 +295,7 @@ jobs:
               assert row["claim_ceiling"] == "exploratory_only"
               assert row["any_model_without_feasible_policy"] == "false"
               if row["record_type"] == "model_outcome":
-                  assert row["model_digest"] and row["adequacy_model_digest"] == row["model_digest"] and row["source_digest"]
+                  assert row["model_digest"] and row["adequacy_model_digest"] == row["model_digest"]
+                  assert row["adequacy_receipt_digest"] and row["source_digest"]
           print("Policy-sensitivity CSV valid: constraint-first feasibility, native-unit regret, structural ranking reversal and exploratory claim ceiling.")
           PY
