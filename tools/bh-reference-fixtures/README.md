@@ -75,3 +75,39 @@ QNM records keep `solver_method` separate from the mandatory `initial_guess_sour
 This matters for BHPT: its current documentation says `SpheroidalEigenvalue` and `IncidenceAmplitude` use the `Interpolation` result as the default initial guess, falling back to asymptotic expansions where tables are absent. Those methods are algorithmically different but may share seed data. `InterpolationFromPythonQnmCache` is an explicit method label, not an independent numerical confirmation.
 
 The method enum also preserves BHPT's Schwarzschild-only `Spectral1D`, `Large-l Asymptotic`, and `Large-n Asymptotic` routes separately. Their limited background/regime validity should remain visible in each comparison.
+## Branch-aware QNM family analysis
+
+`analyze-qnm` independently recomputes asymptotic family diagnostics from a validated sequence. It does not trust the producer's `family_classification`, overtone labels, or prefilled `family_evidence`.
+
+```sh
+cargo run --manifest-path tools/bh-reference-fixtures/Cargo.toml -- analyze-qnm qnm-sequence.json family-targets.json
+```
+
+The `family-targets.json` file supplies **independent** optical/WKB frequency-spacing predictions and optional acceptance tolerances:
+
+```json
+{
+  "targets": {
+    "prolate_spacing_m": { "re": 0.0, "im": -0.255364 },
+    "oblate_spacing_m": { "re": 0.0, "im": -0.208309 }
+  },
+  "config": {
+    "minimum_consecutive_modes": 4,
+    "maximum_angular_residual": 0.05,
+    "maximum_frequency_spacing_residual": 0.05,
+    "maximum_angular_drift": 0.05,
+    "maximum_frequency_spacing_drift": 0.05,
+    "maximum_solver_residual": 1e-8
+  }
+}
+```
+
+The example spacing values are the published asymptotic Kerr references for `a/M = 0.7`; they are not universal constants. Supply targets for the exact spin and convention being tested.
+
+The prolate diagnostic compares `A/(i (a/M) M omega)` with `2 Lbar + 1` for the declared normal angular branch. The oblate diagnostic compares `A/(-(a/M)^2 (M omega)^2)` with 1. Both are checked across the final consecutive-mode window; complex frequency differences are independently compared with the supplied spacings.
+
+The analyzer requires a continuous angular branch, angular ODE residuals, and at least one radial/continued-fraction/incidence residual per mode. It returns `Unresolved` if a mode is marked `KnownBreakdown` or `Unresolved`, branch identity changes, or neither family satisfies both angular and frequency tests. `Ambiguous` is returned when both candidate models pass the caller's declared tolerances. It uses sequence position, not the optional conventional overtone index `n`.
+
+These are asymptotic diagnostics over the supplied window, not a proof that all modes belong to a family, a completeness theorem, or a finite-overtone remainder bound. Report the chosen window, targets, residuals and tolerances with every family claim.
+
+Exit codes: `0` qualified Prolate/Oblate result, `6` Ambiguous/Unresolved, `2` invalid input or unsupported convention.
