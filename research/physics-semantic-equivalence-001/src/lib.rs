@@ -376,10 +376,12 @@ mod tests {
             } else {
                 Vec::new()
             },
-            evidence_refs: if mapped {
-                vec!["sha256:fixture-evidence".to_owned()]
-            } else {
+            evidence_refs: if status == MappingStatus::UnknownUnassessed
+                || status == MappingStatus::NotProvided
+            {
                 Vec::new()
+            } else {
+                vec![format!("fixture:{}", dimension.as_str())]
             },
         }
     }
