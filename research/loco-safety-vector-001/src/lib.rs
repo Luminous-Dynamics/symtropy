@@ -128,7 +128,6 @@ pub enum SafetyVectorError {
     UnknownCoverageCategory,
     CoverageExceedsExposure,
     DuplicateEventId,
-    DuplicatePhysicalEventCategory,
     UnknownEventCategory,
     EventSeverityUnitMismatch,
     MissingPolicyCategory,
@@ -242,7 +241,6 @@ fn validate_and_aggregate_policy(
     }
 
     let mut event_ids = BTreeSet::new();
-    let mut incident_categories = BTreeSet::new();
     let mut aggregates = BTreeMap::new();
     for category in &taxonomy.categories {
         aggregates.insert(
@@ -265,11 +263,6 @@ fn validate_and_aggregate_policy(
         }
         if !event_ids.insert(event.event_id.as_str()) {
             return Err(SafetyVectorError::DuplicateEventId);
-        }
-        if !incident_categories
-            .insert((event.physical_event_id.as_str(), event.category_id.as_str()))
-        {
-            return Err(SafetyVectorError::DuplicatePhysicalEventCategory);
         }
         let category = taxonomy_categories
             .get(event.category_id.as_str())
@@ -766,17 +759,33 @@ mod tests {
     }
 
     #[test]
-    fn duplicate_sensor_records_for_same_physical_event_category_are_rejected() {
+    fn distinct_same_category_events_within_one_incident_are_preserved() {
         let input = problem(
             Vec::new(),
             vec![
-                event("channel-a", "incident-1", "shank_collision", 300),
-                event("channel-b", "incident-1", "shank_collision", 300),
+                event("shank-event-1", "incident-1", "shank_collision", 200),
+                event("shank-event-2", "incident-1", "shank_collision", 300),
+            ],
+        );
+        let report = audit_safety_vector(&input).expect("two distinct shank contacts");
+        assert_eq!(
+            comparison(&report, "shank_collision").candidate_event_count,
+            2
+        );
+    }
+
+    #[test]
+    fn duplicate_canonical_event_ids_are_rejected() {
+        let input = problem(
+            Vec::new(),
+            vec![
+                event("same-canonical-event", "incident-1", "shank_collision", 300),
+                event("same-canonical-event", "incident-1", "shank_collision", 300),
             ],
         );
         assert_eq!(
             audit_safety_vector(&input),
-            Err(SafetyVectorError::DuplicatePhysicalEventCategory)
+            Err(SafetyVectorError::DuplicateEventId)
         );
     }
 
