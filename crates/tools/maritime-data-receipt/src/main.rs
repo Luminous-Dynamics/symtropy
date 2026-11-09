@@ -730,10 +730,10 @@ fn validate_receipt(root: &JsonValue) -> Result<ReceiptFacts, String> {
         "data_context.survey_or_observation_time_utc",
         false,
     )?;
-    if let (Some(start), Some(end)) = (coverage_start, coverage_end) {
-        if start > end {
-            return Err("data_context time coverage start must not be after end".to_owned());
-        }
+    if let (Some(start), Some(end)) = (coverage_start, coverage_end)
+        && start > end
+    {
+        return Err("data_context time coverage start must not be after end".to_owned());
     }
     if kind == "public_dataset" {
         match domain {
