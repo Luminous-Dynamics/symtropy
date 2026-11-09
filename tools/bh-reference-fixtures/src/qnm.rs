@@ -734,6 +734,7 @@ mod tests {
     #[test]
     fn genus_one_wkb_rejects_zero_or_negative_spin_domain() {
         let mut zero_spin = sequence(QnmFamilyClassification::Prolate);
+        zero_spin.spin_over_mass = 0.0;
         zero_spin.spin_weight = 0;
         zero_spin.normal_prolate_oscillator_level = Some(0);
         zero_spin.modes[0].solver_method = QnmSolverMethod::KerrNormalProlateGenusOneWkb;
