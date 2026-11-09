@@ -376,7 +376,26 @@ def hostile_controls(data: dict[str, Any]) -> None:
     result = evaluate_case(data, df)
     require(result["post_correction_structural_state"] == "DAMAGED"
             and result["damage_preserved"] is True,
-            "sensor correction erased a damage hypothesis")
+            "sensor reconstruction erased a damage hypothesis")
+    require(result["observed_values"][1] == 1.8
+            and result["model_imputed_values"][1] == 1.0,
+            "raw observation was overwritten or imputation mislabeled")
+
+    unwitnessed = next(case for case in data["cases"]
+                       if case["case_id"] == "UNWITNESSED_LOCALIZED_ANOMALY")
+    result = evaluate_case(data, unwitnessed)
+    require(result["disposition"] == "ABSTAIN_SENSOR_FAULT_UNCONFIRMED"
+            and result["model_imputed_values"] is None,
+            "single-channel residual was treated as proof of sensor failure")
+
+    wrong_witness = copy.deepcopy(data)
+    hf = next(case for case in wrong_witness["cases"]
+              if case["case_id"] == "HF_HEALTHY_STRUCTURE_FAULTY_SENSOR")
+    hf["sensor_fault_witnesses"][0]["sensor_id"] = "S1"
+    result = evaluate_case(wrong_witness, hf)
+    require(result["disposition"] == "ABSTAIN_SENSOR_FAULT_UNCONFIRMED"
+            and result["model_imputed_values"] is None,
+            "a witness for the wrong channel confirmed a sensor fault")
     print("negative_control=pass case=ambiguous_damage_sensor")
     print("negative_control=pass case=unqualified_operator_and_calibration")
     print("negative_control=pass case=insufficient_observability")
@@ -418,7 +437,7 @@ def main() -> int:
         actual = json.loads(args.rust_output.read_text(encoding="utf-8"))
         compare(actual, expected)
         hostile_controls(data)
-        print("aero_virtual_sensing_health_state=pass cases=7 "
+        print("aero_virtual_sensing_health_state=pass cases=8 "
               "HH=healthy HF=sensor_fault DH=damage DF=damage_plus_sensor_fault "
               "ambiguous=abstain out_of_model=abstain rust_python=pass")
         return 0
