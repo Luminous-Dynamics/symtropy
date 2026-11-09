@@ -318,6 +318,9 @@ pub fn assess_compatibility(
     if left.problem.m != right.problem.m {
         differing_fields.push("m");
     }
+    if left.problem.source_id != right.problem.source_id {
+        differing_fields.push("source_id");
+    }
     if !close(left.problem.mass_kg, right.problem.mass_kg, 1.0e-13) {
         differing_fields.push("mass_kg");
     }
@@ -537,6 +540,16 @@ mod tests {
         let result = assess_compatibility(&left, &right);
         assert_eq!(result.status, CompatibilityStatus::Unmatched);
         assert_eq!(result.differing_fields, vec!["fourier_convention"]);
+    }
+
+    #[test]
+    fn source_identity_mismatch_is_unmatched() {
+        let left = fixture();
+        let mut right = fixture();
+        right.problem.source_id = Some("different-orbit".to_owned());
+        let result = assess_compatibility(&left, &right);
+        assert_eq!(result.status, CompatibilityStatus::Unmatched);
+        assert_eq!(result.differing_fields, vec!["source_id"]);
     }
 
     #[test]
