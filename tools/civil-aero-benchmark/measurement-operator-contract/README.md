@@ -75,12 +75,12 @@ From the repository root:
 
 ~~~sh
 cargo fmt --manifest-path tools/civil-aero-benchmark/measurement-operator-contract/Cargo.toml -- --check
-cargo test --manifest-path tools/civil-aero-benchmark/measurement-operator-contract/Cargo.toml
-cargo run --quiet --manifest-path tools/civil-aero-benchmark/measurement-operator-contract/Cargo.toml > /tmp/measurement-operator-result.json
+cargo test --locked --manifest-path tools/civil-aero-benchmark/measurement-operator-contract/Cargo.toml
+cargo run --locked --quiet --manifest-path tools/civil-aero-benchmark/measurement-operator-contract/Cargo.toml > /tmp/measurement-operator-result.json
 python3 tools/civil-aero-benchmark/measurement-operator-contract/verify_independent.py --rust-output /tmp/measurement-operator-result.json
 ~~~
 
-The Python standard-library oracle does not import the Rust implementation. It independently validates source/operator identity and recomputes all compatibility dispositions. The focused Actions workflow retains the source fixture, result JSON and SHA-256 receipts.
+The Python standard-library oracle does not import the Rust implementation. It independently validates source/operator identity and recomputes all compatibility dispositions. The focused exact-head Actions workflow asserts the checked-out subject SHA, uses the pinned Cargo.lock with --locked, and retains the fixture, toolchain/environment, result JSON and source/result SHA-256 receipts.
 
 ## Claim ceiling
 
