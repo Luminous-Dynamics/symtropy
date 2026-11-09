@@ -290,7 +290,7 @@ fn fixture() -> Result<PolicySensitivityFixture, Box<dyn std::error::Error>> {
             [
                 ("baseline", 75.0, 80.0, 8.0),
                 ("conserve", 70.0, 95.0, 11.0),
-                ("expand", 95.0, 85.0, 10.0),
+                ("expand", 65.0, 85.0, 10.0),
             ],
         ),
     ] {
