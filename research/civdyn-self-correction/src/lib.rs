@@ -14,6 +14,7 @@ pub mod causal_drift;
 pub mod causal_identifiability;
 pub mod interference_identifiability;
 pub mod model_adequacy;
+pub mod joint_adequacy;
 pub mod noisy_causal_drift;
 pub mod sequential_methods;
 
