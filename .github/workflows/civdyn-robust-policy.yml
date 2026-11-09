@@ -148,3 +148,69 @@ jobs:
           path: target/civdyn-robust-policy-evidence/robust-policy-sweep.csv
           if-no-files-found: error
           retention-days: 30
+
+
+      - name: Execute structural model-set decision stability reference
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p target/civdyn-model-set-evidence
+          cargo run --locked --manifest-path research/civdyn-robust-policy/Cargo.toml --bin model-set-decision-sweep \
+            | tee target/civdyn-model-set-evidence/model-set-decision.csv
+
+      - name: Verify qualified-model coverage, ranking reversals and minimax regret
+        shell: bash
+        run: |
+          set -euo pipefail
+          awk -F, '
+            NR == 1 { if (NF != 22) exit 100; next }
+            NF != 22 { exit 101 }
+            {
+              rows++
+              if ($21 != "partial_qualified_model_set") exit 102
+              if ($1 == "qualification") {
+                qualifications++
+                if ($6 == "true") eligible++
+                if ($5 == "primary_discrepancy_detected" && $6 == "false") excluded++
+              }
+              if ($1 == "policy_robust_feasibility") {
+                feasibility++
+                if ($8 == "reserve" && $12 == "true" && $13 == 4 && $14 == 4 && $15 == 0 && $16 == 0) reserve_robust++
+                if ($8 == "demand-first" && $12 == "false") demand_not_robust++
+                if ($8 == "growth-first" && $12 == "false") growth_not_robust++
+              }
+              if ($1 == "case_objective") {
+                cases++
+                if ($11 != "assessed") exit 103
+                if ($3 == "model-a" && $17 != "demand-first") exit 104
+                if ($3 == "model-b" && $17 != "growth-first") exit 105
+              }
+              if ($1 == "objective_stability") {
+                stability++
+                if ($11 != "false" || $22 != 2) exit 106
+              }
+              if ($1 == "policy_objective_regret") {
+                regrets++
+                if ($8 == "reserve" && ($12 != "true" || $19 != "3.000000")) exit 107
+                if (($8 == "demand-first" || $8 == "growth-first") && $12 != "false") exit 108
+              }
+              if ($1 == "minimax_regret") {
+                minimax++
+                if ($20 != "reserve" || $19 != "3.000000") exit 109
+              }
+            }
+            END {
+              if (rows != 15 || qualifications != 3 || eligible != 2 || excluded != 1) exit 110
+              if (feasibility != 3 || reserve_robust != 1 || demand_not_robust != 1 || growth_not_robust != 1) exit 111
+              if (cases != 4 || stability != 1 || regrets != 3 || minimax != 1) exit 112
+              print "CIVDYN model-set decision controls passed: partial model coverage disclosed; policy winner reversal retained; robust-feasible minimax-regret policy verified without cross-objective aggregation."
+            }
+          '
+
+      - name: Upload structural model-set evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: civdyn-model-set-decision
+          path: target/civdyn-model-set-evidence/model-set-decision.csv
+          if-no-files-found: error
+          retention-days: 30

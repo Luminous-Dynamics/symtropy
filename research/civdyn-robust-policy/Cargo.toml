@@ -18,3 +18,7 @@ path = "src/bin/robust_policy_sweep.rs"
 [dependencies]
 civdyn-cross-scale-resilience = { path = "../civdyn-cross-scale-resilience" }
 civdyn-resilience-uq = { path = "../civdyn-resilience-uq" }
+
+[[bin]]
+name = "model-set-decision-sweep"
+path = "src/bin/model_set_decision_sweep.rs"
