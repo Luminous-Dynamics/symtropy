@@ -170,12 +170,13 @@ The split contract is explicit:
 - Challenge units are a third, optional partition and can only be evaluated by an explicit challenge call.
 - Independent units cannot appear in more than one partition.
 - Split-predictive draws must carry the exact calibration-data digest pinned by the manifest.
+- Each observed statistic must carry the exact source digest registered for that statistic; a substituted source fails closed.
 - Prior-predictive and split-predictive draws are separate kinds.
 - Draws are matched to the observed sample size; unmatched draws do not get pooled.
 - Model and draw-set identities must remain constant within each statistic/unit draw set.
 - Units, source identity, finite values, unique draw indices and required-statistic coverage are checked fail-closed.
 
-The output is one record per statistic and independent unit. It retains native units, the observed value, measurement standard error, reference interval, empirical mid-rank and draw count. Measurement uncertainty is exposed separately from structural model discrepancy; this first slice does not combine them into one width or score.
+The output is one record per statistic and independent unit. It retains native units, the registered source digest, the observed value, measurement standard error, reference interval, empirical mid-rank and draw count. Measurement uncertainty is exposed separately from structural model discrepancy; this first slice does not combine them into one width or score.
 
 The reference interval is an empirical central interval of the supplied finite draws. Its mid-rank is descriptive. Neither output is claimed to be a calibrated frequentist p-value or a full implementation of the JASA split predictive check theory. In particular, this v0.1 does not yet implement the single/divided SPC test statistic calibration, power guarantees, joint trajectory discrepancy, or multiplicity control. It also does not verify that caller-supplied digest strings are cryptographically correct; upstream ingestion must hash and independently verify the bytes.
 
