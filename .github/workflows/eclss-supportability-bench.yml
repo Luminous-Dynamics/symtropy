@@ -55,6 +55,10 @@ jobs:
             and .synthetic.reference_ledger.total_makeup_units == 60
             and .synthetic.reference_ledger.unserved_units == 20
             and .published_reference.component_reference_records == 11
+            and .published_appendix_supplement.additional_component_records == 133
+            and .published_appendix_supplement.additional_crew_task_records == 39
+            and .published_appendix_supplement.combined_component_records == 142
+            and .published_appendix_supplement.combined_crew_task_records == 41
             and .published_operational_cases.operational_records == 10
             and .programme_schedule.schedule_snapshots == 5
             and (.source_commit | test("^[0-9a-f]{40}$"))
