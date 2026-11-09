@@ -39,11 +39,11 @@ A fair benchmark freezes the physical problem, geometry, units, material paramet
 |---|---|---|
 | MuJoCo | **4.0.0**, released 2026-11-06; **3.17.0** batch API introduced 2026-10-22 | 4.0.0 adds speculative convex contacts intended to prevent tunnelling within a timestep, and stateful elasto-plasticity for joint/tendon springs and 2D/3D flexes. The 3.17.0 batch API runs many simulations of one model on a thread pool and documents bit-identical results to a plain loop across thread counts. Benchmark CCD/contact capability and CPU batch scaling as separate profiles; preserve historical 3.x receipts. |
 | Isaac Lab | **3.0.0 GA**, released 2026-10-20 | A single task API spans multiple physics/rendering backends, including kit-less Newton workflows. Pin Isaac Lab plus the exact physics backend, renderer, task and solver path. |
-| Newton | **1.6.0** release line | Expands GPU collision/scheduling, deformable and particle workflows, compliant mechanics, rods and robot controllers. Pin the exact solver path and Warp/CUDA configuration; do not compare headline GPU throughput with CPU-only Rust measurements. |
+| Newton | **1.7.0**, released 2026-10-14 | Adds composable solver diagnostics, expanded rigid/deformable coupling, mimic-joint support across several solver paths, collision/scene optimizations and controller improvements. It also changes or clarifies imported damping, angular units, joint-coordinate references and MPM material scaling. Pin solver, importer flags, Warp/CUDA, precision, schedule and material migration settings; do not compare headline GPU throughput with CPU-only Rust measurements. |
 | Project Chrono | **10.0.0**, released 2026-03-27 | Adds/updates FSI solver paths, peridynamics, checkpointing, implicit-integrator Jacobian strategies and sensor functionality. Use domain-specific modules only where the physical problem overlaps. |
 | Rapier | **0.18.0** in Symtropy's current bridge manifest | Preserve 0.18 receipts as historical evidence. A newer Rapier baseline must be a separate, matched migration lane, not an in-place replacement. |
 
-Sources: [MuJoCo 4.0.0 changelog](https://mujoco.readthedocs.io/en/4.0.0/changelog.html), [Isaac Lab releases](https://github.com/isaac-sim/IsaacLab/releases), [Newton releases](https://github.com/newton-physics/newton/releases), [Project Chrono release announcement](https://projectchrono.org/news/), and the repository's `crates/bridges/symtropy-rapier3d-bridge/Cargo.toml`.
+Sources: [MuJoCo 4.0.0 changelog](https://mujoco.readthedocs.io/en/4.0.0/changelog.html), [Isaac Lab releases](https://github.com/isaac-sim/IsaacLab/releases), [Newton 1.7.0 release](https://github.com/newton-physics/newton/releases/tag/v1.7.0), [Project Chrono 10.0.0 release](https://github.com/projectchrono/chrono/releases/tag/10.0.0), and the repository's `crates/bridges/symtropy-rapier3d-bridge/Cargo.toml`.
 
 **New benchmark admission requirement:** the same asset and timestep do not establish the same physical model. A pairwise mapping must explicitly compare contact law, friction cone, restitution, solver/regularization, integration, damping, inertia, joint constraints, CCD coverage, actuation and observable conventions. See [Cross-Simulator Semantic Equivalence V0.1](CROSS_SIMULATOR_SEMANTIC_EQUIVALENCE_V0_1.md) and [issue #4366](https://github.com/Luminous-Dynamics/symtropy). Unknown and known-non-equivalent cases are not eligible for matched solver-accuracy scores.
 
@@ -80,6 +80,64 @@ References:
 - ASME VVUQ 10.2: https://www.asme.org/codes-standards/find-codes-standards/the-role-of-uncertainty-quantification-in-verification-and-validation-of-computational-solid-mechanics-models
 - NASA-STD-7009B: https://standards.nasa.gov/node/263
 - FMI: https://fmi-standard.org/
+
+## 3.5 How to outperform established simulators
+
+The competitive unit should be a **credible engineering decision**, not a raw step, frame or simulation count. A system that runs 10 million steps quickly but cannot establish which physical problem those steps represent has not demonstrated a better engineering result.
+
+Use a quality-constrained performance frontier:
+
+- Fix the scenario, model, precision, hardware class and required accuracy/uncertainty envelope.
+- Compare wall-clock time, CPU/GPU time, peak memory and energy only after semantic admission.
+- Count a run as useful throughput only when it satisfies the predeclared oracle, stability and evidence gates.
+- Plot accuracy, robustness, uncertainty and resource cost as separate Pareto axes. Do not collapse them into a weighted score that can hide a critical failure.
+
+The first competitive scorecard should report:
+
+| Axis | Measure | Hard interpretation |
+|---|---|---|
+| Semantic admission | Fraction of proposed backend/scenario pairs with complete, reviewed mappings; count of rejected mismatches | Zero known non-equivalent or unknown mappings may enter a matched score |
+| Oracle accuracy | Per-observable error against analytical/manufactured references, in physical units | Each case uses its own predeclared tolerance; no cross-unit aggregate |
+| Numerical robustness | Convergence, constraint residual, penetration, energy/momentum drift, failure and timeout rate | Any hard-gate failure remains visible; no averaging away |
+| Physical prediction | Held-out prediction error and prediction-interval coverage by observable and operating cell | Calibration and validation records must be disjoint |
+| Operating envelope | Fraction of required load/temperature/speed/environment/fault cells supported by evidence | Unassessed cells remain unqualified, not implicitly interpolated |
+| Reproducibility | Exact replay rate under named environment; independent reproduction rate | Report bitwise and tolerance-based reproducibility separately |
+| Performance | p50/p95/p99 latency, throughput at fixed quality, peak memory and energy per accepted case | CPU, GPU and mixed execution are separate lanes |
+| Evidence portability | Ability to verify the manifest, mapping receipt, raw trace digest and report outside the producing engine | A report that requires trusting an opaque engine database is not portable |
+| Decision efficiency | Time and compute required to resolve a named engineering question to a predeclared evidence level | This is the most meaningful product-level comparison; disclose human review and test-lab time too |
+
+Proposed programme targets (internal research goals, not measured results or universal certification limits):
+
+1. Freeze 30 canonical scenarios with units, frames, initial/boundary conditions, material and solver profiles, reference outputs, tolerances and at least one negative control per hard gate.
+2. Require 100% exact input/configuration/source digests for published runs and 100% explicit status for each semantic dimension.
+3. Require zero invalid or unknown semantic mappings to reach a matched score; mutate every dimension to prove that admission fails when a consequential property changes.
+4. Use at least four refinements for cases where a convergence study is mathematically meaningful; report observed order rather than forcing a universal order on nonsmooth contact events.
+5. Start with two engines for the first executable differential lane; extend selected scenarios to three or more only when each adapter's exact model path is independently inspected.
+6. Reserve entire conditions/configurations for held-out physical validation. Do not randomly split time samples from one physical test into calibration and validation sets.
+7. Publish failures, non-convergence, out-of-domain cases and inconclusive measurements alongside successful cases.
+
+### Mutation-driven semantic testing
+
+A semantic gate needs an adversarial test suite, not only well-formed examples. For each canonical scenario, produce controlled mutations such as:
+
+- change unit scale or gravity while retaining the same numeric fields;
+- permute a quaternion or transform convention;
+- replace the full inertia tensor with an isotropic approximation;
+- change friction-cone/contact formulation or restitution;
+- disable/alter CCD for the exact shape pair under test;
+- change integrator, timestep policy, damping, substeps or solver regularization;
+- change actuator mode, transmission, saturation or delay;
+- change importer flags or model-reference conventions while keeping the source asset bytes unchanged.
+
+Expected outcome must be one of: explicit rejection, a reviewed bounded mapping with propagated uncertainty, or a separate non-matched profile. A digest change alone is not enough: the gate must explain which semantic dimension changed and why admission was blocked.
+
+### Current release-specific trap: importer semantics
+
+Newton 1.7.0's release notes document changes affecting imported damping interpretation, angular-unit conversion, joint-coordinate references and MPM material scaling. A backend version string and original USD/URDF digest therefore do not fully identify the interpreted model. The run identity must also bind importer version, importer options, compatibility flags, post-import model digest and the selected solver profile. The same principle applies to every backend: hash and inspect the **effective model after import**, not only the authored source file.
+
+### How Symtropy can win
+
+The attainable differentiation is not "faster than every incumbent". It is to show, on a narrow high-value engineering vertical, that Symtropy can produce a lower-cost, independently reproducible and better-bounded decision. The rotary-joint demonstrator is a credible first vertical because it joins mechanics, actuation losses, thermal response, measurement uncertainty, service history and an exact product configuration. The performance question becomes: how much time and test effort does it take to reach a decision whose limits and evidence can be independently reviewed?
 
 ## 4. Benchmark architecture
 
