@@ -1,0 +1,25 @@
+{
+  "schema_version": "aero-inspection-fault-tolerant-observability/0.1.0",
+  "model_id": "aer01-synthetic-common-cause-layout-001",
+  "model_scope": "synthetic_local_linear_observation",
+  "noise_model": "independent_variance_per_sensor",
+  "parameters": [
+    { "id": "theta_x", "scale": 1.0 },
+    { "id": "theta_y", "scale": 1.0 }
+  ],
+  "sensors": [
+    { "id": "S_A", "observation_row": [1.0, 0.0], "variance": 0.2 },
+    { "id": "S_B", "observation_row": [1.0, 0.0], "variance": 0.2 },
+    { "id": "S_C", "observation_row": [0.0, 1.0], "variance": 0.2 },
+    { "id": "S_D", "observation_row": [0.0, 1.0], "variance": 0.2 },
+    { "id": "S_E", "observation_row": [0.82, 0.82], "variance": 0.3 },
+    { "id": "S_F", "observation_row": [0.82, -0.82], "variance": 0.3 }
+  ],
+  "common_cause_groups": [
+    { "id": "PWR_X", "sensor_ids": ["S_A", "S_B"] },
+    { "id": "PWR_Y", "sensor_ids": ["S_C", "S_D"] },
+    { "id": "PWR_Z", "sensor_ids": ["S_E", "S_F"] }
+  ],
+  "select_count": 4,
+  "maximum_simultaneous_failure_domains": 1
+}
