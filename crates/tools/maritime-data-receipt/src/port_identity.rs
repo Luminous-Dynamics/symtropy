@@ -8,7 +8,9 @@
 //! It does not authenticate source snapshots, resolve a real port/terminal, or
 //! grant operational authority. Valid output is always NOT ADMITTED.
 
-use serde_json::{Map, Value};
+use serde_json::Value;
+#[cfg(test)]
+use serde_json::Map;
 use std::collections::{BTreeMap, BTreeSet};
 
 const ROOT_KEYS: &[&str] = &[
@@ -232,10 +234,10 @@ fn validate_crosswalk(crosswalk: &Value) -> Result<usize, &'static str> {
     {
         return Err("INVALID_TERMS_REVIEW_STATE");
     }
-    if let Some(timestamp) = retrieved_at {
-        if !utc_timestamp(timestamp) {
-            return Err("INVALID_UTC_TIMESTAMP");
-        }
+    if let Some(timestamp) = retrieved_at
+        && !utc_timestamp(timestamp)
+    {
+        return Err("INVALID_UTC_TIMESTAMP");
     }
 
     let registry = member(crosswalk, "locode_registry")?;
@@ -437,13 +439,12 @@ fn validate_crosswalk(crosswalk: &Value) -> Result<usize, &'static str> {
 
     for record in records {
         let source_id = text(record, "source_entity_id")?;
-        if candidate_counts.get(source_id).copied().unwrap_or(0) > 1 {
-            if text(record, "mapping_state")? != "ambiguous"
+        if candidate_counts.get(source_id).copied().unwrap_or(0) > 1
+            && (text(record, "mapping_state")? != "ambiguous"
                 || nullable_text(record, "target_feature_id")?.is_some()
-                || text(record, "relationship")? != "none"
-            {
-                return Err("MULTIPLE_CANDIDATES_MUST_BE_AMBIGUOUS");
-            }
+                || text(record, "relationship")? != "none")
+        {
+            return Err("MULTIPLE_CANDIDATES_MUST_BE_AMBIGUOUS");
         }
     }
 
