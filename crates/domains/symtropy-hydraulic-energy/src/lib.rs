@@ -150,7 +150,10 @@ impl Efficiency {
 pub struct HydraulicInput {
     pub evidence: EvidenceReference,
     water_density: WaterDensityKgPerM3,
+    upstream_flow: FlowRateM3PerSecond,
     flow_rate: FlowRateM3PerSecond,
+    bypass_flow: FlowRateM3PerSecond,
+    flow_balance_tolerance: FlowRateM3PerSecond,
     gross_head: HeadMetres,
     conveyance_head_loss: HeadMetres,
     net_head: HeadMetres,
@@ -164,10 +167,55 @@ impl HydraulicInput {
         gross_head: HeadMetres,
         conveyance_head_loss: HeadMetres,
     ) -> Result<Self, HydraulicError> {
+        Self::new_with_flow_allocation(
+            evidence,
+            water_density,
+            flow_rate,
+            flow_rate,
+            FlowRateM3PerSecond(0.0),
+            FlowRateM3PerSecond(0.0),
+            gross_head,
+            conveyance_head_loss,
+        )
+    }
+
+    /// Construct a turbine/bypass split from a measured upstream conduit flow.
+    ///
+    /// The source flow must equal turbine flow plus bypass flow within the
+    /// declared meter/measurement tolerance. This is an allocation check, not
+    /// a hydraulic transient or leak-detection model.
+    #[allow(clippy::too_many_arguments)]
+    pub fn new_with_flow_allocation(
+        evidence: EvidenceReference,
+        water_density: WaterDensityKgPerM3,
+        upstream_flow: FlowRateM3PerSecond,
+        turbine_flow: FlowRateM3PerSecond,
+        bypass_flow: FlowRateM3PerSecond,
+        flow_balance_tolerance: FlowRateM3PerSecond,
+        gross_head: HeadMetres,
+        conveyance_head_loss: HeadMetres,
+    ) -> Result<Self, HydraulicError> {
         if conveyance_head_loss.get() > gross_head.get() {
             return Err(HydraulicError::HeadLossExceedsGrossHead {
                 gross_head_m: gross_head.get(),
                 head_loss_m: conveyance_head_loss.get(),
+            });
+        }
+
+        let allocated_flow = turbine_flow.get() + bypass_flow.get();
+        if !allocated_flow.is_finite() {
+            return Err(HydraulicError::FlowAllocationDoesNotClose {
+                upstream_flow_m3_per_s: upstream_flow.get(),
+                allocated_flow_m3_per_s: allocated_flow,
+                tolerance_m3_per_s: flow_balance_tolerance.get(),
+            });
+        }
+        let flow_residual = upstream_flow.get() - allocated_flow;
+        if flow_residual.abs() > flow_balance_tolerance.get() {
+            return Err(HydraulicError::FlowAllocationDoesNotClose {
+                upstream_flow_m3_per_s: upstream_flow.get(),
+                allocated_flow_m3_per_s: allocated_flow,
+                tolerance_m3_per_s: flow_balance_tolerance.get(),
             });
         }
 
@@ -176,7 +224,10 @@ impl HydraulicInput {
         Ok(Self {
             evidence,
             water_density,
-            flow_rate,
+            upstream_flow,
+            flow_rate: turbine_flow,
+            bypass_flow,
+            flow_balance_tolerance,
             gross_head,
             conveyance_head_loss,
             net_head,
@@ -458,6 +509,7 @@ pub enum ServiceViolation {
     DownstreamPressureBelowMinimum,
     DeliveryFlowBelowMinimum,
     EcologicalFlowBelowMinimum,
+    WaterAllocationExceedsUpstreamFlow,
     PressureRegressionExceeded,
     DeliveryFlowRegressionExceeded,
     EcologicalFlowRegressionExceeded,
@@ -480,6 +532,7 @@ impl WaterServiceAssessment {
 
 fn assess_water_service(
     contract: &WaterServiceContract,
+    upstream_flow: FlowRateM3PerSecond,
     baseline: &WaterServiceState,
     candidate: &WaterServiceState,
 ) -> WaterServiceAssessment {
@@ -495,6 +548,13 @@ fn assess_water_service(
     }
     if candidate.ecological_flow.get() < contract.minimum_ecological_flow.get() {
         violations.push(ServiceViolation::EcologicalFlowBelowMinimum);
+    }
+    let candidate_service_flow =
+        candidate.delivered_flow.get() + candidate.ecological_flow.get();
+    if !candidate_service_flow.is_finite()
+        || candidate_service_flow > upstream_flow.get()
+    {
+        violations.push(ServiceViolation::WaterAllocationExceedsUpstreamFlow);
     }
 
     let pressure_drop =
@@ -610,6 +670,7 @@ pub fn evaluate_hydraulic_generation(
 
     let water_service = assess_water_service(
         &service_contract,
+        hydraulic.upstream_flow(),
         &baseline_service,
         &candidate_service,
     );
@@ -687,6 +748,11 @@ pub enum HydraulicError {
         gross_head_m: f64,
         head_loss_m: f64,
     },
+    FlowAllocationDoesNotClose {
+        upstream_flow_m3_per_s: f64,
+        allocated_flow_m3_per_s: f64,
+        tolerance_m3_per_s: f64,
+    },
     InvalidOperatingMapRange(&'static str),
     InvalidServiceContractEvidence,
     TurbineMapOutOfDomain {
@@ -717,6 +783,14 @@ impl fmt::Display for HydraulicError {
             } => write!(
                 formatter,
                 "conveyance head loss ({head_loss_m} m) exceeds gross head ({gross_head_m} m)"
+            ),
+            Self::FlowAllocationDoesNotClose {
+                upstream_flow_m3_per_s,
+                allocated_flow_m3_per_s,
+                tolerance_m3_per_s,
+            } => write!(
+                formatter,
+                "upstream flow ({upstream_flow_m3_per_s} m3/s) does not equal turbine plus bypass allocation ({allocated_flow_m3_per_s} m3/s) within tolerance ({tolerance_m3_per_s} m3/s)"
             ),
             Self::InvalidOperatingMapRange(message) => {
                 write!(formatter, "invalid turbine operating-map range: {message}")
@@ -753,10 +827,13 @@ mod tests {
     }
 
     fn hydraulic_input(flow: f64, gross_head: f64, head_loss: f64) -> HydraulicInput {
-        HydraulicInput::new(
+        HydraulicInput::new_with_flow_allocation(
             evidence("FIELD-HYDRO-001", EvidenceClass::FieldMeasurement),
             WaterDensityKgPerM3::new(1_000.0).expect("density"),
-            FlowRateM3PerSecond::new(flow).expect("flow"),
+            FlowRateM3PerSecond::new(flow + 0.05).expect("upstream flow"),
+            FlowRateM3PerSecond::new(flow).expect("turbine flow"),
+            FlowRateM3PerSecond::new(0.05).expect("bypass flow"),
+            FlowRateM3PerSecond::new(1e-9).expect("flow balance tolerance"),
             HeadMetres::new(gross_head).expect("gross head"),
             HeadMetres::new(head_loss).expect("head loss"),
         )
@@ -914,6 +991,43 @@ mod tests {
             input,
             Err(HydraulicError::HeadLossExceedsGrossHead { .. })
         ));
+    }
+
+    #[test]
+    fn turbine_and_bypass_flow_must_close_to_upstream_measurement() {
+        let result = HydraulicInput::new_with_flow_allocation(
+            evidence("FLOW-ALLOCATION-001", EvidenceClass::OperatorTelemetry),
+            WaterDensityKgPerM3::new(1_000.0).unwrap(),
+            FlowRateM3PerSecond::new(0.15).unwrap(),
+            FlowRateM3PerSecond::new(0.10).unwrap(),
+            FlowRateM3PerSecond::new(0.04).unwrap(),
+            FlowRateM3PerSecond::new(0.001).unwrap(),
+            HeadMetres::new(12.0).unwrap(),
+            HeadMetres::new(2.0).unwrap(),
+        );
+        assert!(matches!(
+            result,
+            Err(HydraulicError::FlowAllocationDoesNotClose { .. })
+        ));
+    }
+
+    #[test]
+    fn water_service_flow_cannot_exceed_upstream_source_flow() {
+        let candidate = service_state("WATER-CANDIDATE-OVERALLOCATED", 480_000.0, 0.14, 0.02);
+        let result = evaluate_hydraulic_generation(
+            hydraulic_input(0.1, 12.0, 2.0),
+            turbine(),
+            generator(100.0),
+            service_contract(),
+            baseline_service(),
+            candidate,
+        )
+        .expect("candidate remains available for diagnostic assessment");
+        assert!(result
+            .water_service
+            .violations()
+            .contains(&ServiceViolation::WaterAllocationExceedsUpstreamFlow));
+        assert!(result.credited_net_electrical_power().is_none());
     }
 
     #[test]
