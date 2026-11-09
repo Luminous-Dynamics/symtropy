@@ -7,7 +7,6 @@
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
-use std::fs;
 
 const FIXTURE: &[u8] = include_bytes!("../../data/muvis-c-corruption-v0.1.json");
 const CLAIM_CEILING: &str = "synthetic_single_channel_corruption_virtual_sensing_protocol_only";
@@ -47,9 +46,12 @@ struct Predictor {
 
 #[derive(Clone, Debug, Deserialize)]
 struct MetricDefinitions {
+    #[serde(rename = "mPC")]
     mpc: String,
+    #[serde(rename = "rPC")]
     rpc: String,
     s_cross: String,
+    #[serde(rename = "nPC")]
     npc: String,
 }
 
