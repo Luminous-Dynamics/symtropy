@@ -154,7 +154,7 @@ fn parse_u32(value: &str, field: &str) -> Result<u32, String> {
 }
 
 fn specific_identifier(value: &str) -> bool {
-    valid_id(value) && !matches!(value, "ANY" | "UNKNOWN" | "*")
+    valid_id(value) && !matches!(value, "ANY" | "UNKNOWN" | "UNSPECIFIED" | "*")
 }
 
 fn parse_set(value: &str, field: &str) -> Result<BTreeSet<String>, String> {
@@ -289,9 +289,9 @@ fn parse_offers(input: &str) -> Result<Vec<Offer>, Vec<String>> {
 
         let profile_id = fields[0];
         let profile_version = match parse_u32(fields[2], "profile_version") {
-            Ok(value) if value > 0 => value,
+            Ok(value) if value == 1 => value,
             Ok(_) => {
-                errors.push(format!("offer line {line_no}: profile_version must be positive"));
+                errors.push(format!("offer line {line_no}: unsupported profile_version; v0 accepts exactly 1"));
                 continue;
             }
             Err(error) => {
@@ -807,7 +807,7 @@ mod tests {
 
     #[test]
     fn declared_only_evidence_does_not_meet_simulated_minimum() {
-        let declared = OFFERS.replace("SIMULATED\tQUALIFIED_FOR_DECLARED_SCOPE", "DECLARED\tDECLARED_ONLY");
+        let declared = OFFERS.replace("SIMULATED\tNOT_REVIEWED\tQUALIFIED_FOR_DECLARED_SCOPE", "DECLARED\tNOT_REVIEWED\tDECLARED_ONLY");
         let report = evaluate(&offers(&declared), &request(REQUEST));
         assert_eq!(
             by_id(&report.results, "contact_pad_001").disposition,
@@ -869,8 +869,8 @@ mod tests {
     #[test]
     fn blocking_evidence_dispositions_never_match() {
         let blocked = OFFERS.replace(
-            "contact_pose\t3333333333333333333333333333333333333333333333333333333333333333\tSIMULATED\tQUALIFIED_FOR_DECLARED_SCOPE",
-            "contact_pose\t3333333333333333333333333333333333333333333333333333333333333333\tSIMULATED\tAMBIGUOUS",
+            "contact_pose\t3333333333333333333333333333333333333333333333333333333333333333\tSIMULATED\tNOT_REVIEWED\tQUALIFIED_FOR_DECLARED_SCOPE",
+            "contact_pose\t3333333333333333333333333333333333333333333333333333333333333333\tSIMULATED\tNOT_REVIEWED\tAMBIGUOUS",
         );
         let report = evaluate(&offers(&blocked), &request(REQUEST));
         assert_eq!(
