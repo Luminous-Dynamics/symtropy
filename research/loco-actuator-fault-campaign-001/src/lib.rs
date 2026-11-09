@@ -540,6 +540,8 @@ fn validate_trial(
         DetectionResult::Detected {
             inferred_family,
             plausible_families,
+            family_probabilities,
+            unknown_probability_ppm,
             confidence_ppm,
             severity_estimate_ppm,
             severity_interval_ppm,
@@ -550,6 +552,17 @@ fn validate_trial(
             }
             validate_family_set(plausible_families)?;
             if !plausible_families.contains(inferred_family) {
+                return Err(FaultBenchmarkError::InvalidDetectionResult);
+            }
+            let (top_family, top_probability) = validate_fault_distribution(
+                family_probabilities,
+                *unknown_probability_ppm,
+                plausible_families,
+            )?;
+            if top_family != *inferred_family
+                || top_probability != *confidence_ppm
+                || top_probability <= *unknown_probability_ppm
+            {
                 return Err(FaultBenchmarkError::InvalidDetectionResult);
             }
             if severity_estimate_ppm.is_some_and(|estimate| estimate > PPM_SCALE) {
@@ -568,11 +581,18 @@ fn validate_trial(
         DetectionResult::Unknown {
             reason,
             plausible_families,
+            family_probabilities,
+            unknown_probability_ppm,
         } => {
             if !nonempty(reason) {
                 return Err(FaultBenchmarkError::InvalidDetectionResult);
             }
             validate_family_set(plausible_families)?;
+            validate_fault_distribution(
+                family_probabilities,
+                *unknown_probability_ppm,
+                plausible_families,
+            )?;
         }
         DetectionResult::Missed => {}
     }
