@@ -205,3 +205,46 @@ This slice does not yet implement:
 7. Empirical data adapters or independent domain qualification.
 
 Run the model-adequacy-sweep binary using Cargo with the locked manifest at research/civdyn-self-correction/Cargo.toml. The existing CIVDYN workflow also runs this binary after formatting, strict Clippy, compilation and tests. These are engineering checks against frozen synthetic contracts only.
+
+
+## Scenario H: single and divided split-predictive checks
+
+The next executable research slice is in src/split_predictive.rs and the deterministic split-predictive-check-sweep binary. Its method boundary is informed by Li and Huggins, Calibrated Model Criticism Using Split Predictive Checks (JASA, published online 11 June 2026), and the authors' reproduction repository at https://github.com/TARPS-group/split-predictive-checks.
+
+### Single split-predictive check
+
+The frozen split manifest distinguishes calibration units from held-out validation or challenge units. For a requested held-out statistic and independent unit, the evaluator:
+
+1. Requires an observation in the declared held-out partition.
+2. Requires predictive replicates generated from the model conditioned on the exact calibration-data digest.
+3. Requires identical statistic, unit, measurement unit, sample size, source identity, model identity and draw-set identity.
+4. Calculates a randomized rank of the observed statistic among the predictive replicates. Ties are randomized using a deterministic seed; no arbitrary numerical jitter is added.
+5. Emits the p-value and the observation, source, model, draw-set, calibration and split-manifest identities.
+
+The upstream model-fitting and predictive-draw generation are deliberately not duplicated here. The evaluator consumes the registered predictive draws. It does not fit a posterior, select a discrepancy function, or establish that the supplied predictive sampler is valid.
+
+### Divided split-predictive check
+
+A divided check consumes one single-SPC receipt for every declared independent unit in the chosen validation/challenge partition. It rejects missing or duplicated units, and rejects mixed statistic, model, tail, source, measurement unit, sample size, calibration digest or split-manifest identity.
+
+It calculates the two-sided one-sample Kolmogorov-Smirnov distance from the resulting unit p-values to Uniform(0, 1). Its reference p-value is computed by deterministic Monte Carlo from iid continuous Uniform(0, 1) samples, with a plus-one correction. The seed and Monte Carlo replicate count are retained in the receipt. No unit remainder is silently dropped.
+
+This is distinct from simply pooling all predictive draws or looking at their aggregate interval coverage. The divided check tests the behaviour of single-check p-values across independent units.
+
+### Exact claim boundary
+
+The Monte Carlo KS reference is calibrated for the simulated iid continuous Uniform null up to Monte Carlo error. It does not establish that CIVDYN's single-check p-values are iid Uniform under an arbitrary real-world model. That depends on the SPC predictive assumptions, the validity of the upstream predictive draws, and independence of the declared units.
+
+The current implementation is a randomized rank-based split-predictive reference, not yet a verified port of every single/divided SPC algorithm, asymptotic result or hierarchical extension in the JASA paper. It does not fit parameters, implement the paper's full model-specific discrepancy constructions, choose an optimal training fraction, establish finite-sample validity under dependence, or provide a formal guarantee for network/time-series data.
+
+In particular:
+- The independent-unit type is declared by the caller; the evaluator does not prove statistical independence.
+- Group-held-out versus within-group item-held-out procedures for hierarchical models are not yet implemented.
+- Network interference, spatial dependence, serial dependence, multiple-statistic calibration and family-wise error control remain separate research problems.
+- A divided-SPC failure is evidence against the tested predictive adequacy contract, not a causal diagnosis or policy-effect estimate.
+
+### Frozen known-answer fixture
+
+The deterministic sweep uses one synthetic basin-water-flow statistic, ten declared region units, 100 posterior-predictive replicates per unit, a common model/calibration/source identity, and 1,999 Monte Carlo reference replicates for the divided KS check. It emits ten single-check receipts plus one divided-check receipt. The fixture validates reproducibility and schema/identity invariants; its values are not empirical coverage or adequacy evidence for any actual basin.
+
+Run the split-predictive-check-sweep binary using Cargo with the locked manifest at research/civdyn-self-correction/Cargo.toml. The CIVDYN workflow verifies the 23-column receipt schema, all ten unit identities, source/model/split provenance, sample-size matching and divided-check output. These are software-contract checks only.

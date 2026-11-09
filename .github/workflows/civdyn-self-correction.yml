@@ -232,3 +232,54 @@ jobs:
           assert actual == expected, f"unexpected reachability/adequacy classifications: {actual}"
           print("Model-adequacy CSV valid: prior reachability and split-predictive controls preserve marginal, joint and rare-tail discrepancies as separate results.")
           PY
+
+
+      - name: Verify single and divided split-predictive checks
+        run: |
+          set -euo pipefail
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin split-predictive-check-sweep > /tmp/civdyn-split-predictive.csv
+          python3 - <<'PY'
+          import csv
+          from pathlib import Path
+
+          path = Path("/tmp/civdyn-split-predictive.csv")
+          with path.open(newline="", encoding="utf-8") as handle:
+              reader = csv.DictReader(handle)
+              rows = list(reader)
+              fields = reader.fieldnames
+
+          assert fields is not None and len(fields) == 23, f"expected 23 columns, got {len(fields or [])}"
+          single = [row for row in rows if row["record_type"] == "single_spc"]
+          divided = [row for row in rows if row["record_type"] == "divided_spc"]
+          assert len(single) == 10, f"expected 10 single-SPC rows, got {len(single)}"
+          assert len(divided) == 1, f"expected one divided-SPC row, got {len(divided)}"
+
+          expected_units = {f"region-{index:02d}" for index in range(10)}
+          actual_units = {row["unit_id"] for row in single}
+          assert actual_units == expected_units, f"held-out units do not match manifest: {actual_units}"
+
+          model_ids = {row["model_digest"] for row in single}
+          source_ids = {row["source_digest"] for row in single}
+          calibration_ids = {row["calibration_digest"] for row in single}
+          split_ids = {row["split_manifest_digest"] for row in single}
+          assert len(model_ids) == len(source_ids) == len(calibration_ids) == len(split_ids) == 1
+          assert all(row["draw_set_digest"] and row["observation_digest"] for row in single)
+          assert all(row["sample_size"] == "200" for row in single)
+          assert all(row["predictive_draws"] == "100" for row in single)
+          assert all(0.0 < float(row["predictive_p_value"]) < 1.0 for row in single)
+          assert all(row["tail"] == "lower" for row in single)
+
+          summary = divided[0]
+          assert summary["statistic_id"] == "basin-water-flow"
+          assert summary["model_digest"] == next(iter(model_ids))
+          assert summary["source_digest"] == next(iter(source_ids))
+          assert summary["calibration_digest"] == next(iter(calibration_ids))
+          assert summary["split_manifest_digest"] == next(iter(split_ids))
+          assert summary["unit_count"] == "10"
+          assert summary["sample_size_across_units"] == "200"
+          assert summary["mc_replicates"] == "1999"
+          assert summary["mc_seed"]
+          assert 0.0 <= float(summary["ks_statistic"]) <= 1.0
+          assert 0.0 < float(summary["uniformity_p_value"]) <= 1.0
+          print("SPC CSV valid: ten source/model/split-pinned single checks and one all-unit divided KS check.")
+          PY
