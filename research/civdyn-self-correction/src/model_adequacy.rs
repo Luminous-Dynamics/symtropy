@@ -260,6 +260,7 @@ pub struct StatisticAssessment {
 #[derive(Debug, Clone, PartialEq)]
 pub struct CoverageSummary {
     pub statistic_id: String,
+    pub independent_unit: IndependentUnitKind,
     pub expected_independent_units: usize,
     pub assessed_independent_units: usize,
     pub not_assessed_independent_units: usize,
@@ -626,6 +627,7 @@ pub fn assess_predictive_partition(
 
         coverage.push(CoverageSummary {
             statistic_id: statistic.id.clone(),
+            independent_unit: statistic.independent_unit,
             expected_independent_units: expected_units,
             assessed_independent_units: assessed_units,
             not_assessed_independent_units: not_assessed_units,
@@ -1171,9 +1173,7 @@ mod tests {
         let mut predictive = Vec::new();
         for (index, unit_id) in manifest.validation_units.iter().enumerate() {
             let observed_value = if index < 8 { 0.3 } else { 0.9 };
-            let mut row = observation("service-rate", "region-val", observed_value);
-            row.independent_unit_id = unit_id.clone();
-            observations.push(row);
+            observations.push(observation("service-rate", unit_id, observed_value));
 
             let mut unit_draws = draws(
                 PredictiveKind::Split,
