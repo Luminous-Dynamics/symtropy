@@ -8,7 +8,7 @@ The physical experiment in #4320 needs synchronized six-axis ground truth, senso
 
 ## TSV contract
 
-The exact 41-column header is provided in `synthetic-episode-manifest.tsv`. The first seven fields are dataset metadata repeated on every row:
+The exact 40-column header is provided in `synthetic-episode-manifest.tsv`. The first seven fields are dataset metadata repeated on every row:
 
 - dataset_id and protocol_version;
 - evidence class;
