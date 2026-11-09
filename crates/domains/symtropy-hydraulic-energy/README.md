@@ -5,7 +5,8 @@ A small, dependency-free Rust workspace package for analytically checking steady
 ## Scope
 
 The model consumes:
-- water density, flow, gross head and declared conveyance head loss;
+- water density, upstream source flow, turbine-branch flow, bypass flow, gross head and declared conveyance head loss;
+- an explicit water-flow allocation check: upstream flow must equal turbine flow plus bypass flow within a declared measurement tolerance;
 - one evidence-bound turbine/PAT map cell with an explicit in-domain head/flow rectangle;
 - an evidence-bound generator efficiency and auxiliary load;
 - paired baseline/candidate water-service observations;
@@ -20,7 +21,8 @@ then:
 - generator gross output and conversion loss;
 - auxiliary consumption and candidate net output;
 - hydraulic/electrical balance residual;
-- pressure, delivered-flow and ecological-flow service violations.
+- pressure, delivered-flow and ecological-flow service violations;
+- a downstream allocation gate: delivered service flow plus reserved ecological flow cannot exceed measured upstream supply.
 
 A candidate's calculated output is **not credited** when the protected water-service gate fails.
 
@@ -47,7 +49,7 @@ cargo test --locked -p symtropy-hydraulic-energy
 cargo clippy --locked -p symtropy-hydraulic-energy --all-targets -- -D warnings
 ```
 
-The crate contains analytical known-answer fixtures and adversarial controls for invalid physical values, head-loss inversion, turbine-map extrapolation, auxiliary load greater than gross output, and water-service / ecological-floor regressions.
+The crate contains 20 analytical and adversarial tests, including exact steady-state power, flow-split closure, bypass-only service preservation with zero generation, downstream over-allocation rejection, head-loss inversion, turbine-map extrapolation, auxiliary-load bounds, and water-service / ecological-flow regression gates.
 
 ## Evidence and claim ceiling
 
