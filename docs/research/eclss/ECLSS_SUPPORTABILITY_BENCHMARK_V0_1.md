@@ -161,6 +161,25 @@ A loop is not closed merely because a product is recycled once. Evaluate residua
 
 Report a vector of service, quality, resupply, energy, heat, maintenance, crew time, reliability evidence and uncertainty. A critical floor breach is a gate—not a cost that can be offset by better efficiency elsewhere.
 
+### From maintenance schedules to proof-carrying maintenance plans
+
+A schedule is not yet an admissible maintenance operation. Each proposed task should carry an independently checkable plan envelope before it is offered to an operator or sent to any execution authority:
+
+- **Asset scope:** immutable asset/component identity, installed revision, configuration digest, affected service(s), and current evidence/freshness state.
+- **Procedure scope:** approved procedure revision, hazard/isolation steps, prerequisites, task dependencies, abort criteria and a declared completion test.
+- **People and tools:** named qualified worker/robot capability, current training/authorization evidence, required tools, access and operating environment.
+- **Parts and consumables:** exact spare/consumable identities, revision and compatibility evidence; stock reservation; shelf-life, storage and throughput constraints; no implicit substitution.
+- **System state:** isolation and bypass evidence, affected dependency graph, remaining service floor/reserve, common-cause exposure and safe degraded configuration.
+- **Resource budget:** task duration, crew/robot time, tool occupancy, energy, consumables, spare mass and expected service interruption as separate dimensions.
+- **Requalification:** post-repair inspection / test method, calibration and acceptance criteria bound to the exact repaired configuration; downstream availability is recomputed only after acceptance.
+- **Authority and expiry:** responsible decision authority, accepted/rejected/deferred status, scope, validity window and the exact evidence digest set used to admit the task.
+
+The independent verifier should reject or return NEEDS_EVIDENCE for a plan with a missing prerequisite, overlapping use of a non-shareable worker/tool, an unqualified or wrong-revision spare, expired credentials, unsupported maintenance window, missing isolation, a predicted hard service-floor breach, or a missing post-repair acceptance result.
+
+A plan receipt is **not execution authorization**. A scheduler proposes; a verifier checks; a responsible authority approves; the operator executes; measurements and a post-repair test determine whether the service can be requalified. Planned duration is not actual duration, and a completed work order is not proof of restored service.
+
+This creates a distinct benchmark target: compare not only which maintenance sequence is cheapest, but which plans are admissible under exact evidence and constraints, how often they are safely deferred/abstained, whether any invalid plan is falsely admitted, and what service/sustainment cost results after accepted execution. Keep this as a consumer of #1625 evidence and repair receipts and #1752 paired policy evaluation; do not add a second safety/authority engine.
+
 ## 4. System boundaries and composition
 
 This adapter consumes existing project owners:
