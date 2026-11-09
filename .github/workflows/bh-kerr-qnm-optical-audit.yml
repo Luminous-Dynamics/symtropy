@@ -1,0 +1,47 @@
+name: Kerr QNM optical convergence audit
+
+on:
+  push:
+    branches:
+      - research/bh-kerr-qnm-optical-v0.1
+    paths:
+      - crates/domains/symtropy-relativity/**
+      - .github/workflows/bh-kerr-qnm-optical-audit.yml
+  pull_request:
+    branches:
+      - research/black-hole-physics-program-current
+    paths:
+      - crates/domains/symtropy-relativity/**
+      - .github/workflows/bh-kerr-qnm-optical-audit.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bh-kerr-qnm-optical-audit-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Kerr optical convergence (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path crates/domains/symtropy-relativity/Cargo.toml -- --check
+      - name: Run Clippy
+        run: cargo clippy --manifest-path crates/domains/symtropy-relativity/Cargo.toml --all-targets -- -D warnings
+      - name: Run tests
+        run: cargo test --manifest-path crates/domains/symtropy-relativity/Cargo.toml --all-targets
