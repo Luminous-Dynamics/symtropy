@@ -514,7 +514,12 @@ mod tests {
         assert_eq!(SequentialRegime::ALL.len(), expected.len());
         for (regime, expected_digest) in SequentialRegime::ALL.into_iter().zip(expected) {
             let (_, stream, digest) = generate_paired_stream(regime, 0);
-            assert_eq!(digest, expected_digest, "stream digest for {}", regime.name());
+            assert_eq!(
+                digest,
+                expected_digest,
+                "stream digest for {}",
+                regime.name()
+            );
             assert_eq!(digest, stream_hash(&stream));
         }
     }
