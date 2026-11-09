@@ -119,6 +119,8 @@ fn holdout_value<'a>(record: &'a SampleRecord, axis: &str) -> Option<&'a str> {
         "specimen_id" => Some(&record.specimen_id),
         "thermal_regime_id" => Some(&record.thermal_regime_id),
         "installation_generation" => Some(&record.installation_generation),
+        "campaign_id" => Some(&record.campaign_id),
+        "configuration_id" => Some(&record.configuration_id),
         _ => None,
     }
 }
@@ -140,52 +142,69 @@ fn validate_policy(policy: &Policy) -> AuditResult<()> {
 }
 
 fn validate_group_holdout(track: &Track) -> AuditResult<Vec<String>> {
-    let axis = track
+    let axis_specification = track
         .holdout_axis
         .as_deref()
         .ok_or_else(|| "group holdout requires a declared holdout axis".to_owned())?;
-    if !["specimen_id", "thermal_regime_id", "installation_generation"].contains(&axis) {
-        return fail("unsupported group holdout axis");
+    let axes: Vec<&str> = axis_specification.split('+').collect();
+    let mut unique_axes = BTreeSet::new();
+    if axes.is_empty()
+        || axes.iter().any(|axis| {
+            ![
+                "specimen_id",
+                "thermal_regime_id",
+                "installation_generation",
+                "campaign_id",
+                "configuration_id",
+            ]
+            .contains(axis)
+                || !unique_axes.insert(*axis)
+        })
+    {
+        return fail("unsupported, empty or duplicate group holdout axis");
     }
     if track.purge_policy.is_some() {
         return fail("group-holdout track must not carry a temporal purge policy");
     }
 
-    let mut values_by_split = BTreeMap::<&str, BTreeSet<&str>>::new();
-    for record in &track.records {
-        let value = holdout_value(record, axis)
-            .ok_or_else(|| "holdout axis has no record value".to_owned())?;
-        if !nonempty(value) {
-            return fail("holdout axis values must be non-empty");
-        }
-        values_by_split
-            .entry(record.split.as_str())
-            .or_default()
-            .insert(value);
-    }
-    for left_index in 0..REQUIRED_SPLITS.len() {
-        for right_index in (left_index + 1)..REQUIRED_SPLITS.len() {
-            let left = values_by_split
-                .get(REQUIRED_SPLITS[left_index])
-                .ok_or_else(|| "required split missing from group-holdout track".to_owned())?;
-            let right = values_by_split
-                .get(REQUIRED_SPLITS[right_index])
-                .ok_or_else(|| "required split missing from group-holdout track".to_owned())?;
-            if !left.is_disjoint(right) {
-                return fail(format!(
-                    "holdout leakage on axis {axis} between {} and {}",
-                    REQUIRED_SPLITS[left_index],
-                    REQUIRED_SPLITS[right_index]
-                ));
-            }
-        }
-    }
-    Ok(vec![
+    let mut leakage_checks = vec![
         "SAMPLE_ID_UNIQUE".to_owned(),
         "SOURCE_RECORD_ID_UNIQUE".to_owned(),
         "ACQUISITION_WINDOW_ID_UNIQUE".to_owned(),
-        format!("GROUP_DISJOINT:{axis}"),
-    ])
+    ];
+    for axis in axes {
+        let mut values_by_split = BTreeMap::<&str, BTreeSet<&str>>::new();
+        for record in &track.records {
+            let value = holdout_value(record, axis)
+                .ok_or_else(|| "holdout axis has no record value".to_owned())?;
+            if !nonempty(value) {
+                return fail("holdout axis values must be non-empty");
+            }
+            values_by_split
+                .entry(record.split.as_str())
+                .or_default()
+                .insert(value);
+        }
+        for left_index in 0..REQUIRED_SPLITS.len() {
+            for right_index in (left_index + 1)..REQUIRED_SPLITS.len() {
+                let left = values_by_split
+                    .get(REQUIRED_SPLITS[left_index])
+                    .ok_or_else(|| "required split missing from group-holdout track".to_owned())?;
+                let right = values_by_split
+                    .get(REQUIRED_SPLITS[right_index])
+                    .ok_or_else(|| "required split missing from group-holdout track".to_owned())?;
+                if !left.is_disjoint(right) {
+                    return fail(format!(
+                        "holdout leakage on axis {axis} between {} and {}",
+                        REQUIRED_SPLITS[left_index],
+                        REQUIRED_SPLITS[right_index]
+                    ));
+                }
+            }
+        }
+        leakage_checks.push(format!("GROUP_DISJOINT:{axis}"));
+    }
+    Ok(leakage_checks)
 }
 
 fn validate_temporal_forward(track: &Track) -> AuditResult<Vec<String>> {
@@ -387,8 +406,8 @@ mod tests {
     #[test]
     fn all_four_split_tracks_pass_frozen_contract() {
         let report = evaluate(&fixture(), FIXTURE).unwrap();
-        assert_eq!(report.track_count, 4);
-        assert_eq!(report.sample_record_count, 14);
+        assert_eq!(report.track_count, 5);
+        assert_eq!(report.sample_record_count, 17);
         assert!(report.tracks.iter().all(|track| {
             track.status == "PASS_SYNTHETIC_PARTITION_INTEGRITY"
                 && track.split_counts.len() == 3
@@ -407,6 +426,26 @@ mod tests {
             .unwrap()
             .specimen_id = train_specimen;
         assert!(validate_fixture(&data).unwrap_err().contains("holdout leakage"));
+    }
+
+    #[test]
+    fn compound_holdout_rejects_leakage_on_any_declared_axis() {
+        let mut data = fixture();
+        let track = data
+            .tracks
+            .iter_mut()
+            .find(|item| item.track_id == "COMPOUND_ARTICLE_CAMPAIGN_HOLDOUT")
+            .unwrap();
+        let train_configuration = track.records[0].configuration_id.clone();
+        track
+            .records
+            .iter_mut()
+            .find(|record| record.split == "test")
+            .unwrap()
+            .configuration_id = train_configuration;
+        assert!(validate_fixture(&data)
+            .unwrap_err()
+            .contains("holdout leakage on axis configuration_id"));
     }
 
     #[test]
