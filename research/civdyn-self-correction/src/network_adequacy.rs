@@ -121,8 +121,7 @@ impl UndirectedNetwork {
     }
 
     pub fn summarize(&self) -> NetworkSummary {
-        let mut degree_sequence: Vec<usize> =
-            self.adjacency.iter().map(BTreeSet::len).collect();
+        let mut degree_sequence: Vec<usize> = self.adjacency.iter().map(BTreeSet::len).collect();
         degree_sequence.sort_unstable_by(|left, right| right.cmp(left));
         let mut degree_counts = BTreeMap::<usize, usize>::new();
         for &degree in &degree_sequence {
