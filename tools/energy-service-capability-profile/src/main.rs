@@ -106,6 +106,8 @@ struct MatchResult {
     reason: &'static str,
     bearer: String,
     matched_roles: BTreeSet<String>,
+    matched_receipt_ids: BTreeSet<String>,
+    matched_receipt_digests: BTreeSet<String>,
     weakest_evidence_class: Option<String>,
     independently_reviewed: bool,
 }
@@ -547,6 +549,8 @@ fn no_match(offer: &Offer, reason: &'static str) -> MatchResult {
         reason,
         bearer: offer.metadata.bearer.clone(),
         matched_roles: BTreeSet::new(),
+        matched_receipt_ids: BTreeSet::new(),
+        matched_receipt_digests: BTreeSet::new(),
         weakest_evidence_class: None,
         independently_reviewed: false,
     }
@@ -586,6 +590,8 @@ fn match_offer(offer: &Offer, request: &Request) -> MatchResult {
     }
 
     let mut matched_roles = BTreeSet::new();
+    let mut matched_receipt_ids = BTreeSet::new();
+    let mut matched_receipt_digests = BTreeSet::new();
     let mut evidence_tiers = Vec::new();
     let mut declared_only = false;
     let mut independently_reviewed = false;
@@ -600,6 +606,8 @@ fn match_offer(offer: &Offer, request: &Request) -> MatchResult {
         if receipt.valid_until_us < request.decision_time_us {
             return no_match(offer, "REQUIRED_EVIDENCE_EXPIRED");
         }
+        matched_receipt_ids.insert(receipt.receipt_id.clone());
+        matched_receipt_digests.insert(receipt.receipt_sha256.clone());
         if receipt.disposition == "DECLARED_ONLY" || receipt.evidence_class == "DECLARED" {
             declared_only = true;
             matched_roles.insert(role.clone());
@@ -613,6 +621,8 @@ fn match_offer(offer: &Offer, request: &Request) -> MatchResult {
     }
 
     if let Some(review) = offer.receipts.get("INDEPENDENT_REVIEW") {
+        matched_receipt_ids.insert(review.receipt_id.clone());
+        matched_receipt_digests.insert(review.receipt_sha256.clone());
         if BLOCKING_DISPOSITIONS.contains(&review.disposition.as_str()) {
             return no_match(offer, "INDEPENDENT_REVIEW_BLOCKED");
         }
@@ -635,6 +645,8 @@ fn match_offer(offer: &Offer, request: &Request) -> MatchResult {
             reason: "DECLARATION_OR_EVIDENCE_TIER_INSUFFICIENT",
             bearer: metadata.bearer.clone(),
             matched_roles,
+            matched_receipt_ids,
+            matched_receipt_digests,
             weakest_evidence_class: evidence_tiers
                 .iter()
                 .min_by_key(|(tier, _)| *tier)
@@ -657,6 +669,8 @@ fn match_offer(offer: &Offer, request: &Request) -> MatchResult {
             reason: "EVIDENCE_BELOW_REQUESTED_MINIMUM",
             bearer: metadata.bearer.clone(),
             matched_roles,
+            matched_receipt_ids,
+            matched_receipt_digests,
             weakest_evidence_class: Some(weakest_class.clone()),
             independently_reviewed,
         };
@@ -676,6 +690,8 @@ fn match_offer(offer: &Offer, request: &Request) -> MatchResult {
         reason: "ALL_DECLARED_COMPATIBILITY_AND_EVIDENCE_PREDICATES_MATCH",
         bearer: metadata.bearer.clone(),
         matched_roles,
+        matched_receipt_ids,
+        matched_receipt_digests,
         weakest_evidence_class: Some(weakest_class.clone()),
         independently_reviewed,
     }
@@ -706,7 +722,7 @@ fn run(offers_path: &str, request_path: &str) -> Result<(), String> {
     println!("offer_count={}", report.results.len());
     for result in &report.results {
         println!(
-            "profile={}|provider={}|bearer={}|disposition={}|reason={}|weakest_evidence={}|independently_reviewed={}|matched_roles={}|claim_ceiling={}",
+            "profile={}|provider={}|bearer={}|disposition={}|reason={}|weakest_evidence={}|independently_reviewed={}|matched_roles={}|matched_receipt_ids={}|matched_receipt_digests={}|claim_ceiling={}",
             result.profile_id,
             result.provider_id,
             result.bearer,
@@ -715,6 +731,8 @@ fn run(offers_path: &str, request_path: &str) -> Result<(), String> {
             result.weakest_evidence_class.as_deref().unwrap_or("NONE"),
             result.independently_reviewed,
             result.matched_roles.iter().cloned().collect::<Vec<_>>().join(";"),
+            result.matched_receipt_ids.iter().cloned().collect::<Vec<_>>().join(";"),
+            result.matched_receipt_digests.iter().cloned().collect::<Vec<_>>().join(";"),
             offers.iter().find(|offer| offer.metadata.profile_id == result.profile_id).map(|offer| offer.metadata.claim_ceiling.as_str()).unwrap_or("MISSING")
         );
     }
@@ -833,6 +851,25 @@ mod tests {
             "DECLARED_ONLY"
         );
         assert!(!by_id(&report.results, "contact_pad_001").independently_reviewed);
+    }
+
+
+    #[test]
+    fn independent_review_receipt_satisfies_review_requirement_without_changing_measurement_tier() {
+        let first_contact = OFFERS.lines().nth(1).expect("contact physical receipt")
+            .replace("PHYSICAL_ENVELOPE", "INDEPENDENT_REVIEW")
+            .replace("contact_physical", "contact_review")
+            .replace("2222222222222222222222222222222222222222222222222222222222222222", "8888888888888888888888888888888888888888888888888888888888888888")
+            .replace("NOT_REVIEWED", "INDEPENDENTLY_REVIEWED");
+        let reviewed_offers = format!("{OFFERS}{first_contact}\n");
+        let request_text = REQUEST.replace("\tfalse\t100", "\ttrue\t100");
+        let report = evaluate(&offers(&reviewed_offers), &request(&request_text));
+        let contact = by_id(&report.results, "contact_pad_001");
+        assert_eq!(contact.disposition, "MATCH_SIMULATED");
+        assert!(contact.independently_reviewed);
+        assert!(contact.matched_receipt_ids.contains("contact_review"));
+        assert_eq!(contact.matched_receipt_ids.len(), 4);
+        assert_eq!(contact.matched_receipt_digests.len(), 4);
     }
 
     #[test]
