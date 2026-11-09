@@ -666,12 +666,9 @@ mod tests {
 
     #[test]
     fn evidence_is_preserved_per_uncertainty_input() {
-        let report = propagate_net_power_standard_uncertainty(
-            &result(),
-            &complete_uncertainties(),
-        )
-        .unwrap()
-        .unwrap();
+        let report = propagate_net_power_standard_uncertainty(&result(), &complete_uncertainties())
+            .unwrap()
+            .unwrap();
         let density = report
             .input_uncertainties
             .water_density_kg_per_m3
@@ -718,12 +715,9 @@ mod tests {
         base.evidence_assessment = crate::EvidenceAssessment {
             violations: vec![crate::EvidenceViolation::HydraulicInputNotMeasured],
         };
-        let report = propagate_net_power_standard_uncertainty(
-            &base,
-            &complete_uncertainties(),
-        )
-        .unwrap()
-        .unwrap();
+        let report = propagate_net_power_standard_uncertainty(&base, &complete_uncertainties())
+            .unwrap()
+            .unwrap();
         assert!(!report.comparison_eligible);
     }
 }
