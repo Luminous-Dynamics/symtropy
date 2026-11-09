@@ -508,7 +508,6 @@ fn variogram_score(
     config: &JointMetricConfig,
 ) -> (f64, Vec<VariogramPairResult>) {
     let mut results = Vec::with_capacity(config.pair_weights.len());
-    let mut pair_index = 0;
     let mut total = 0.0;
 
     let component_pairs = statistic.components.iter().enumerate().flat_map(
@@ -524,13 +523,8 @@ fn variogram_score(
         },
     );
 
-    for (left, right, left_spec, right_spec) in
-        component_pairs.zip(config.pair_weights.iter().copied().map(|weight| {
-            weight
-        })).map(|(pair, weight)| {
-            let (left, right, left_spec, right_spec) = pair;
-            (left, right, left_spec, right_spec, weight)
-        })
+    for ((left, right, left_spec, right_spec), weight) in
+        component_pairs.zip(config.pair_weights.iter().copied())
     {
         let observed_distance =
             (observation[left] - observation[right]).abs().powf(config.variogram_power);
@@ -555,7 +549,6 @@ fn variogram_score(
             predictive_pair_distance: predictive_distance,
             weighted_contribution: contribution,
         });
-        pair_index += 1;
     }
     (total, results)
 }
