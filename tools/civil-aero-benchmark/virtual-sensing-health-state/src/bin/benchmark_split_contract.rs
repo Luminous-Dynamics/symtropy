@@ -342,7 +342,14 @@ fn validate_track(track: &Track) -> AuditResult<TrackResult> {
         split_mode: track.split_mode.clone(),
         holdout_axis: track.holdout_axis.clone(),
         sample_count: track.records.len(),
-        split_counts: counts.into_iter().collect(),
+        split_counts: REQUIRED_SPLITS
+            .iter()
+            .filter_map(|split| {
+                counts
+                    .get(*split)
+                    .map(|count| ((*split).to_owned(), *count))
+            })
+            .collect(),
         leakage_checks,
         status: "PASS_SYNTHETIC_PARTITION_INTEGRITY".to_owned(),
     })
