@@ -1048,47 +1048,27 @@ pub struct PoschlTellerGreenContourConfig {
     pub samples: usize,
 }
 
-/// Laurent coefficients of the retarded Green kernel about a circularly
-/// enclosed pole cluster. The trapezoidal contour identities are
-///
-///   C_-1 = (1/2πi) ∮ G(ω) dω
-///   C_-2 = (1/2πi) ∮ (ω-center) G(ω) dω.
-///
-/// For a simple pole C_-1 is the residue and C_-2 should vanish. For a
-/// second-order pole C_-2 is the leading Laurent coefficient. The reported
-/// winding number is the adaptively refined argument-principle estimate for
-/// zeros minus poles of the meromorphic connection Wronskian inside the contour.
-/// The refinement stability is numerical evidence, not an interval proof.
+const GREEN_LAURENT_QUADRATURE_TOLERANCE: f64 = 2.0e-9;
+const MAX_GREEN_LAURENT_REFINEMENTS: usize = 6;
+
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct PoschlTellerGreenLaurentEvaluation {
-    pub center: Complex64,
-    pub radius: f64,
-    pub samples: usize,
-    pub winding_number: i32,
-    pub max_phase_step: f64,
-    pub c_minus_one: Complex64,
-    pub c_minus_two: Complex64,
-    pub max_relative_wronskian_disagreement: f64,
+struct GreenLaurentGridEvaluation {
+    c_minus_one: Complex64,
+    c_minus_two: Complex64,
+    max_relative_wronskian_disagreement: f64,
 }
 
-pub fn poschl_teller_retarded_green_laurent(
+/// Evaluate both Laurent contour integrals on one periodic trapezoidal grid.
+fn sample_retarded_green_laurent_grid(
     width: f64,
     lambda: f64,
     center: Complex64,
-    contour: PoschlTellerGreenContourConfig,
+    radius: f64,
+    samples: usize,
+    observer_x: f64,
+    source_x: f64,
     config: SeriesConfig,
-) -> Result<PoschlTellerGreenLaurentEvaluation, SpecialError> {
-    if !contour.observer_x.is_finite() || !contour.source_x.is_finite() {
-        return Err(SpecialError::InvalidPoschlTellerParameters);
-    }
-    let radius = contour.radius;
-    let requested_samples = contour.samples;
-    let winding =
-        poschl_teller_wronskian_winding_number(width, lambda, center, radius, requested_samples)?;
-    // Use at least the refined winding grid for Laurent quadrature, so the
-    // pole count and contour coefficients are not qualified at unrelated
-    // resolution levels.
-    let samples = winding.samples;
+) -> Result<GreenLaurentGridEvaluation, SpecialError> {
     let mut c_minus_one = Complex64::new(0.0, 0.0);
     let mut c_minus_two = Complex64::new(0.0, 0.0);
     let mut max_relative_wronskian_disagreement: f64 = 0.0;
@@ -1101,8 +1081,8 @@ pub fn poschl_teller_retarded_green_laurent(
             width,
             lambda,
             omega,
-            contour.observer_x,
-            contour.source_x,
+            observer_x,
+            source_x,
             config,
         )?;
         let denominator = evaluation
@@ -1114,7 +1094,8 @@ pub fn poschl_teller_retarded_green_laurent(
         }
         let disagreement =
             (evaluation.wronskian - evaluation.connection_wronskian).norm() / denominator;
-        max_relative_wronskian_disagreement = max_relative_wronskian_disagreement.max(disagreement);
+        max_relative_wronskian_disagreement =
+            max_relative_wronskian_disagreement.max(disagreement);
         c_minus_one += displacement * evaluation.value;
         c_minus_two += displacement * displacement * evaluation.value;
     }
@@ -1128,16 +1109,125 @@ pub fn poschl_teller_retarded_green_laurent(
         return Err(SpecialError::NonFiniteResult);
     }
 
-    Ok(PoschlTellerGreenLaurentEvaluation {
-        center,
-        radius,
-        samples,
-        winding_number: winding.winding_number,
-        max_phase_step: winding.max_phase_step,
+    Ok(GreenLaurentGridEvaluation {
         c_minus_one,
         c_minus_two,
         max_relative_wronskian_disagreement,
     })
+}
+
+/// Laurent coefficients of the retarded Green kernel about a circularly
+/// enclosed pole cluster. The periodic trapezoidal identities are
+///
+///   C_-1 = (1/2πi) ∮ G(ω) dω
+///   C_-2 = (1/2πi) ∮ (ω-center) G(ω) dω.
+///
+/// For a simple pole C_-1 is the residue and C_-2 should vanish. For a
+/// second-order pole C_-2 is the leading Laurent coefficient. The Wronskian
+/// winding and the Laurent quadrature are refined independently: winding
+/// stability does not certify the coefficient integrals. The reported
+/// coefficient discrepancy is an a-posteriori nested-grid diagnostic, not
+/// an interval-arithmetic remainder proof.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct PoschlTellerGreenLaurentEvaluation {
+    pub center: Complex64,
+    pub radius: f64,
+    /// Final accepted contour grid for the Laurent integrals.
+    pub samples: usize,
+    pub winding_number: i32,
+    pub max_phase_step: f64,
+    pub c_minus_one: Complex64,
+    pub c_minus_two: Complex64,
+    pub max_relative_wronskian_disagreement: f64,
+    /// Number of contour-grid doublings used after the initial Laurent grid.
+    pub quadrature_refinements: usize,
+    /// Consecutive nested-grid comparisons satisfying the coefficient tolerance.
+    pub stable_quadrature_refinements: usize,
+    /// Maximum scaled difference between the last two Laurent coefficient grids.
+    pub scaled_quadrature_difference: f64,
+}
+
+pub fn poschl_teller_retarded_green_laurent(
+    width: f64,
+    lambda: f64,
+    center: Complex64,
+    contour: PoschlTellerGreenContourConfig,
+    config: SeriesConfig,
+) -> Result<PoschlTellerGreenLaurentEvaluation, SpecialError> {
+    if !contour.observer_x.is_finite() || !contour.source_x.is_finite() {
+        return Err(SpecialError::InvalidPoschlTellerParameters);
+    }
+    let winding = poschl_teller_wronskian_winding_number(
+        width,
+        lambda,
+        center,
+        contour.radius,
+        contour.samples,
+    )?;
+
+    // Winding and Laurent integrations both start from the refined winding
+    // grid, but the coefficient quadrature has its own nested-grid acceptance.
+    let mut samples = winding.samples.max(contour.samples);
+    let mut previous = sample_retarded_green_laurent_grid(
+        width,
+        lambda,
+        center,
+        contour.radius,
+        samples,
+        contour.observer_x,
+        contour.source_x,
+        config,
+    )?;
+    let mut stable_quadrature_refinements = 0_usize;
+    let mut scaled_quadrature_difference = f64::INFINITY;
+
+    for quadrature_refinements in 1..=MAX_GREEN_LAURENT_REFINEMENTS {
+        samples = samples
+            .checked_mul(2)
+            .ok_or(SpecialError::InvalidConfiguration)?;
+        let current = sample_retarded_green_laurent_grid(
+            width,
+            lambda,
+            center,
+            contour.radius,
+            samples,
+            contour.observer_x,
+            contour.source_x,
+            config,
+        )?;
+        let c1_scale = current.c_minus_one.norm().max(1.0);
+        let c2_scale = current.c_minus_two.norm().max(1.0);
+        scaled_quadrature_difference = ((current.c_minus_one - previous.c_minus_one).norm()
+            / c1_scale)
+            .max((current.c_minus_two - previous.c_minus_two).norm() / c2_scale);
+
+        if scaled_quadrature_difference <= GREEN_LAURENT_QUADRATURE_TOLERANCE {
+            stable_quadrature_refinements += 1;
+        } else {
+            stable_quadrature_refinements = 0;
+        }
+
+        if stable_quadrature_refinements >= 2 {
+            return Ok(PoschlTellerGreenLaurentEvaluation {
+                center,
+                radius: contour.radius,
+                samples,
+                winding_number: winding.winding_number,
+                max_phase_step: winding.max_phase_step,
+                c_minus_one: current.c_minus_one,
+                c_minus_two: current.c_minus_two,
+                max_relative_wronskian_disagreement: current
+                    .max_relative_wronskian_disagreement,
+                quadrature_refinements,
+                stable_quadrature_refinements,
+                scaled_quadrature_difference,
+            });
+        }
+
+        previous = current;
+    }
+
+    Err(SpecialError::NoConvergence)
 }
 
 #[cfg(test)]
