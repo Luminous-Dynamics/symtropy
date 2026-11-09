@@ -22,5 +22,8 @@ The fixtures are embedded with `include_str!` so the validator checks exactly th
 - Component MTBF, operational MTTR, crew R&R, preventive R&R interval/duration, throughput limits and calendar/shelf-life limits remain distinct nullable fields. Blank published fields remain null.
 - 10 source-bounded ICES-2026-379 operational / planned / applicability records with source locations and claim ceilings.
 - Five source-bounded AOGA schedule snapshots; milestone variance remains unresolved rather than treating forecasts as achieved results.
+- 13 proof-carrying maintenance-plan cases: one admissible and 12 fail-closed controls for configuration, shelf-life, isolation, service floors, worker skills, post-tests, worker/tool conflicts, spare over-allocation, authority expiry, dependency order, time windows and approved procedures.
+
+Maintenance-plan `ADMISSIBLE` means only that the declared evidence contract is internally satisfied. It is not authority to execute work or control hardware.
 
 The executable checks JSON structure, key sets, selected values, table/record counts and synthetic known answers. It does not validate the files with a general-purpose JSON Schema engine, estimate failure probabilities, extract raw MADS events, execute EMAT/RELISSA, reproduce a stochastic/DRCC optimizer, simulate physical processes, or qualify hardware.

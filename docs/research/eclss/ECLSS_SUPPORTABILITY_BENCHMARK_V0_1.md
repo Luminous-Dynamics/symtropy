@@ -212,6 +212,17 @@ A profile identifies:
 
 Unknown lifetime, replacement rate, failure rate or maintenance duration remains unknown. Do not substitute a convenient distribution or zero.
 
+### Proof-carrying maintenance plan fixture (synthetic only)
+
+The executable reference now includes a second frozen corpus:
+- Schema: `docs/research/eclss/eclss_maintenance_plan_admissibility.schema.json`
+- Fixture: `docs/research/eclss/fixtures/eclss-maintenance-plan-admissibility-v0_1.json`
+- Rust validator: `tools/eclss-supportability-bench/src/main.rs`
+
+The 13 cases include one admissible plan and 12 negative controls. The validator independently resolves exact asset revision, approved procedure, qualified worker/skill, tool availability and exclusive time windows, spare compatibility/expiry/quantity, verified isolation, service-floor margin, authority scope/freshness, post-test revision/status, task-window and dependency order. It checks the computed result against the frozen known answer rather than trusting the expected disposition field.
+
+The receipt must report `execution_authorized=false`. This is a synthetic evidence-contract check only: an admissible plan is not a maintenance authorization, command, safety case or hardware-control capability. Approval and execution remain with the responsible authority/operator; measured post-repair evidence must independently requalify service.
+
 ## 5. Benchmark design
 
 ### 5.1 Frozen scenario registry

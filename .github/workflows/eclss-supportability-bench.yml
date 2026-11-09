@@ -63,6 +63,10 @@ jobs:
             and .published_appendix_supplement.combined_crew_task_records == 41
             and .published_operational_cases.operational_records == 10
             and .programme_schedule.schedule_snapshots == 5
+            and .maintenance_plan_admissibility.case_count == 13
+            and .maintenance_plan_admissibility.admissible == 1
+            and .maintenance_plan_admissibility.rejected == 12
+            and (.maintenance_plan_admissibility.execution_authorized == false)
             and (.source_commit | test("^[0-9a-f]{40}$"))
           ' eclss-supportability-receipt.json
 
