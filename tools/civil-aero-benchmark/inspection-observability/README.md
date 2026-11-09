@@ -62,6 +62,32 @@ Direct Rust dependencies are pinned in Cargo.toml and the complete resolved depe
 - No diagonal loading, ridge term or other regularization is applied to make a singular information matrix look observable.
 - No probability-of-detection (POD) or false-alarm claim can be inferred from this synthetic model.
 
+## Fault-tolerant follow-on v0.1
+
+The new Rust binary fault_tolerant_observability.rs is a separate exact Tier-0 experiment built on the same synthetic linear observation contract. It enumerates every fixed-cardinality sensor subset and evaluates it against:
+1. no failure;
+2. each individual sensor dropped in turn;
+3. each declared common-cause group dropped in turn.
+
+For every subset and scenario it records surviving sensor identities, observation rank/nullity, the minimum eigenvalue of the two-parameter Fisher information matrix, and log determinant when full-rank. A subset is robustly feasible only when **every declared scenario remains full rank**. Among robustly feasible subsets, the exact maximin E-optimal policy chooses the subset maximizing:
+
+    max_S min_f lambda_min(F(S minus failed(f)))
+
+The finite fixture has six candidates, four selected sensors, six single-sensor outage scenarios, three common-cause group outages and the no-failure baseline: 15 exact subsets × 10 scenarios. Its known answer is deliberately adversarial:
+- nominal E-optimum: S_A + S_B + S_C + S_D, with minimum eigenvalue 10.0;
+- that nominal optimum is rejected because loss of PWR_X or PWR_Y leaves a rank-one observation;
+- robust maximin E-optimum: S_A + S_C + S_E + S_F;
+- 12 of 15 candidate subsets satisfy all 10 full-rank constraints;
+- robust objective: minimum eigenvalue approximately 4.4826666667 across the declared scenarios.
+
+The Python verifier independently recomputes every subset/scenario result and compares the complete report produced by Rust. Hostile controls include duplicate/unknown group members, duplicate sensor IDs, non-positive variance and a rank-deficient corpus for which no robust selection may be emitted.
+
+### Exact scope and limitations
+
+This is a deterministic, adversarial, single-failure contract, not a probabilistic reliability model. It assumes exactly one sensor OR one declared common-cause group fails at a time. It does not combine simultaneous faults, assign outage probabilities, model sensor bias/drift/stuck-at/saturation/detachment, distinguish sensor faults from damage signatures, represent spatially correlated noise, or account for sensor mass, wiring, power, calibration and inspection cost. Those must be introduced as explicit evidence-bearing inputs in later versions. A common-cause group is only as complete as its declared membership; unknown physical dependencies remain unknown.
+
+The result is an observability and identifiability proxy under the synthetic local linear model. Full rank is necessary for the modeled two-parameter identification problem, but does not prove adequate physical sensitivity, defect POD, diagnosability, or safe aircraft operation.
+
 ## Local execution
 
 From the repository root:
@@ -70,8 +96,10 @@ From the repository root:
     cargo test --locked --manifest-path tools/civil-aero-benchmark/inspection-observability/Cargo.toml
     cargo run --locked --quiet --manifest-path tools/civil-aero-benchmark/inspection-observability/Cargo.toml > /tmp/observability-result.json
     python3 tools/civil-aero-benchmark/inspection-observability/verify_independent.py --rust-output /tmp/observability-result.json
+    cargo run --locked --quiet --manifest-path tools/civil-aero-benchmark/inspection-observability/Cargo.toml --bin fault_tolerant_observability > /tmp/fault-tolerant-result.json
+    python3 tools/civil-aero-benchmark/inspection-observability/verify_fault_tolerant_independent.py --rust-output /tmp/fault-tolerant-result.json
 
-The Python verifier uses only the standard library and independently recomputes all six subsets, ranks, Fisher matrices, eigenvalues and selection results. It does not import Rust output-generation code.
+The Python verifiers use only the standard library and independently recompute their respective finite corpora. They do not import Rust output-generation code.
 
 ## Next qualification steps
 
@@ -84,4 +112,4 @@ The Python verifier uses only the standard library and independently recomputes 
 
 ## Claim ceiling
 
-The only positive claim is synthetic_local_observability_only. The output is not structural adequacy, damage detection, damage tolerance, fatigue, flutter, airworthiness, SHM safety or maintenance-release evidence.
+The original oracle's only positive claim is synthetic_local_observability_only. The fault-tolerant follow-on's claim ceiling is synthetic_single_sensor_dropout_and_single_common_cause_group_only. Neither output is structural adequacy, damage detection, damage tolerance, fatigue, flutter, airworthiness, SHM safety or maintenance-release evidence.
