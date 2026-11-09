@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 pub mod qnm;
+pub mod continuation;
 pub use qnm::KerrQnmSequenceFixture;
 
 pub const FIXTURE_SCHEMA_VERSION: u32 = 1;
