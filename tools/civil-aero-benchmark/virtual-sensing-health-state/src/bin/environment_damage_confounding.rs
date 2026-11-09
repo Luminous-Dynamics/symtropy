@@ -568,7 +568,7 @@ mod tests {
     fn frozen_joint_environment_damage_cases_match_expected_labels() {
         let data = fixture();
         let report = evaluate(&data, FIXTURE).expect("environment/damage fixture evaluates");
-        assert_eq!(report.case_count, 15);
+        assert_eq!(report.case_count, 16);
         for (actual, expected) in report.cases.iter().zip(&data.cases) {
             assert_eq!(actual.disposition, expected.expected.disposition, "{}", actual.case_id);
             assert_eq!(actual.structural_state, expected.expected.structural_state, "{}", actual.case_id);
