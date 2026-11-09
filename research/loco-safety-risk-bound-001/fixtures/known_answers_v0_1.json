@@ -1,0 +1,268 @@
+{
+  "schema_version": "loco-safety-risk-bound-known-answers-v0.1",
+  "scales": {
+    "probability_ppm": 1000000,
+    "alpha_ppm": 1000000,
+    "numeric_outward_guard_ppm": 2
+  },
+  "cases": [
+    {
+      "id": "A-zero-events-n1",
+      "n": 1,
+      "k": 0,
+      "alpha_ppm": 50000,
+      "expected": {
+        "method": "exact-zero-binomial",
+        "upper_ppm": 950002,
+        "approximately_95_percent": true
+      }
+    },
+    {
+      "id": "B-zero-events-n299",
+      "n": 299,
+      "k": 0,
+      "alpha_ppm": 50000,
+      "expected": {
+        "method": "exact-zero-binomial",
+        "upper_ppm_below": 10000
+      }
+    },
+    {
+      "id": "C-zero-events-n2995",
+      "n": 2995,
+      "k": 0,
+      "alpha_ppm": 50000,
+      "expected": {
+        "method": "exact-zero-binomial",
+        "upper_ppm_below": 1000
+      }
+    },
+    {
+      "id": "D-nonzero-events",
+      "n": 10,
+      "k": 1,
+      "alpha_ppm": 50000,
+      "expected": {
+        "method": "hoeffding",
+        "upper_at_least_observed_rate": true,
+        "upper_at_most_ppm": 1000000
+      }
+    },
+    {
+      "id": "E-five-category-bonferroni",
+      "categories": [
+        "fall",
+        "foot_scuff",
+        "slip",
+        "shank_collision",
+        "emergency_recovery"
+      ],
+      "family_alpha_ppm": 50000,
+      "expected": {
+        "allocation_sum_ppm": 50000,
+        "each_positive": true
+      }
+    },
+    {
+      "id": "F-alpha-too-small",
+      "category_count": 5,
+      "family_alpha_ppm": 4,
+      "expected": {
+        "status": "invalid",
+        "reason": "cannot allocate positive absolute and paired alpha"
+      }
+    },
+    {
+      "id": "G-control-ticks-are-not-trials",
+      "trials": [
+        {
+          "trial_id": "traversal-1",
+          "independent_unit_id": "traversal-1",
+          "control_ticks": 10000,
+          "event": false
+        }
+      ],
+      "expected": {
+        "n_independent_units": 1,
+        "n_control_ticks": 10000
+      }
+    },
+    {
+      "id": "H-duplicate-independent-unit",
+      "trials": [
+        {
+          "trial_id": "ep-1",
+          "independent_unit_id": "session-1"
+        },
+        {
+          "trial_id": "ep-2",
+          "independent_unit_id": "session-1"
+        }
+      ],
+      "expected": {
+        "status": "invalid",
+        "reason": "duplicate independent unit"
+      }
+    },
+    {
+      "id": "I-unknown-category-observation",
+      "trials": [
+        {
+          "trial_id": "ep-1",
+          "independent_unit_id": "ep-1",
+          "outcome": {
+            "fall": null
+          }
+        }
+      ],
+      "expected": {
+        "status": "unknown",
+        "event_free_recode_forbidden": true
+      }
+    },
+    {
+      "id": "J-pair-ids-mismatch",
+      "candidate_unit_ids": [
+        "u1",
+        "u2"
+      ],
+      "baseline_unit_ids": [
+        "u1",
+        "u3"
+      ],
+      "expected": {
+        "paired_comparison": "withheld"
+      }
+    },
+    {
+      "id": "K-noninferiority-fails",
+      "paired": {
+        "both": 10,
+        "candidate_only": 8,
+        "baseline_only": 0,
+        "neither": 82
+      },
+      "n": 100,
+      "alpha_pair_ppm": 25000,
+      "margin_ppm": 0,
+      "expected": {
+        "noninferiority_pass": false
+      }
+    },
+    {
+      "id": "L-noninferior-but-absolute-limit-fails",
+      "candidate": {
+        "n": 100,
+        "k": 10
+      },
+      "absolute_limit_ppm": 50000,
+      "paired_upper_difference_ppm": 1000,
+      "margin_ppm": 5000,
+      "expected": {
+        "paired_noninferiority": true,
+        "absolute_risk_pass": false
+      }
+    },
+    {
+      "id": "M-taxonomy-detector-mismatch",
+      "candidate": {
+        "taxonomy": "t2",
+        "detector": "d2"
+      },
+      "baseline": {
+        "taxonomy": "t1",
+        "detector": "d1"
+      },
+      "expected": {
+        "status": "identity_mismatch"
+      }
+    },
+    {
+      "id": "N-repeated-events-one-trial",
+      "trial": {
+        "unit_id": "traversal-1",
+        "raw_events": 5,
+        "category_event": true
+      },
+      "expected": {
+        "independent_event_clusters": 1,
+        "raw_event_count": 5
+      }
+    },
+    {
+      "id": "O-session-is-independent-unit",
+      "trials": [
+        {
+          "trial_id": "ep1",
+          "independent_unit_id": "session-a"
+        },
+        {
+          "trial_id": "ep2",
+          "independent_unit_id": "session-a"
+        }
+      ],
+      "expected": {
+        "status": "invalid",
+        "reason": "one session cannot count twice when session declared as independent unit"
+      }
+    },
+    {
+      "id": "P-trial-design-mismatch",
+      "candidate": {
+        "cluster_definition": "episode-v1",
+        "sampling_frame": "frame-a"
+      },
+      "baseline": {
+        "cluster_definition": "traversal-v1",
+        "sampling_frame": "frame-a"
+      },
+      "expected": {
+        "paired_comparison": "withheld"
+      }
+    },
+    {
+      "id": "Q-optional-stopping",
+      "fixed_sample_stop_rule": false,
+      "expected": {
+        "status": "invalid",
+        "reason": "use anytime-valid e-process in issue 3588"
+      }
+    },
+    {
+      "id": "R-zero-events-low-exposure",
+      "n": 2,
+      "k": 0,
+      "alpha_ppm": 50000,
+      "expected": {
+        "upper_ppm_above": 700000
+      }
+    },
+    {
+      "id": "S-sensor-missingness",
+      "trial": {
+        "unit_id": "u1",
+        "category_observed": false
+      },
+      "expected": {
+        "status": "unknown",
+        "not_event_free": true
+      }
+    },
+    {
+      "id": "T-input-permutation",
+      "input_order": [
+        "u3",
+        "u1",
+        "u2"
+      ],
+      "permuted_order": [
+        "u1",
+        "u2",
+        "u3"
+      ],
+      "expected": {
+        "canonical_report_identical": true
+      }
+    }
+  ]
+}
