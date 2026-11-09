@@ -3,7 +3,7 @@
 //! The source event logs and candidate actions are separate inputs: a candidate
 //! cannot rewrite the observation history against which its actions are judged.
 
-use std::collections::{btree_map::Entry, BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, btree_map::Entry};
 
 pub type Tick = u64;
 
@@ -400,11 +400,13 @@ pub fn audit_policy_replay(suite: &ReplaySuite) -> PolicyReplayReport {
                     event.visibility == ObservationVisibility::PolicyVisible
                         && event.observed_at_tick <= *tick
                 })
-                .map(|event| (
-                    event.id.clone(),
-                    event.observed_at_tick,
-                    event.observation_key.clone(),
-                ))
+                .map(|event| {
+                    (
+                        event.id.clone(),
+                        event.observed_at_tick,
+                        event.observation_key.clone(),
+                    )
+                })
                 .collect();
             visible_history.sort();
 
@@ -505,8 +507,8 @@ fn push_diagnostic(
 #[cfg(test)]
 mod tests {
     use super::{
-        audit_policy_replay, ObservationVisibility, PolicyAction, PolicyReplayStatus, ReplayEvent,
-        ReplaySuite, ScenarioEventLog, ScenarioTrace, Tick,
+        ObservationVisibility, PolicyAction, PolicyReplayStatus, ReplayEvent, ReplaySuite,
+        ScenarioEventLog, ScenarioTrace, Tick, audit_policy_replay,
     };
 
     #[derive(Clone)]
@@ -585,12 +587,20 @@ mod tests {
                 scenario(
                     "vehicle-a-fails",
                     vec![event("shared-start", 0), event("vehicle-a-fault", 4)],
-                    vec![action(0, "initial-plan"), action(2, "hold"), action(5, "reroute-a")],
+                    vec![
+                        action(0, "initial-plan"),
+                        action(2, "hold"),
+                        action(5, "reroute-a"),
+                    ],
                 ),
                 scenario(
                     "vehicle-b-fails",
                     vec![event("shared-start", 0), event("vehicle-b-fault", 4)],
-                    vec![action(0, "initial-plan"), action(2, "hold"), action(5, "reroute-b")],
+                    vec![
+                        action(0, "initial-plan"),
+                        action(2, "hold"),
+                        action(5, "reroute-b"),
+                    ],
                 ),
             ],
         );
@@ -613,12 +623,20 @@ mod tests {
                 scenario(
                     "vehicle-a-fails",
                     vec![event("shared-start", 0), event("vehicle-a-fault", 4)],
-                    vec![action(0, "initial-plan"), action(2, "reroute-a"), action(5, "reroute-a")],
+                    vec![
+                        action(0, "initial-plan"),
+                        action(2, "reroute-a"),
+                        action(5, "reroute-a"),
+                    ],
                 ),
                 scenario(
                     "vehicle-b-fails",
                     vec![event("shared-start", 0), event("vehicle-b-fault", 4)],
-                    vec![action(0, "initial-plan"), action(2, "reroute-b"), action(5, "reroute-b")],
+                    vec![
+                        action(0, "initial-plan"),
+                        action(2, "reroute-b"),
+                        action(5, "reroute-b"),
+                    ],
                 ),
             ],
         );
@@ -626,8 +644,7 @@ mod tests {
         let report = audit_policy_replay(&replay);
         assert_eq!(report.status, PolicyReplayStatus::AnticipativityViolation);
         assert!(report.diagnostics.iter().any(|diagnostic| {
-            diagnostic.code == "NON_ANTICIPATIVE_ACTION_MISMATCH"
-                && diagnostic.tick == Some(2)
+            diagnostic.code == "NON_ANTICIPATIVE_ACTION_MISMATCH" && diagnostic.tick == Some(2)
         }));
     }
 
@@ -690,8 +707,7 @@ mod tests {
         let report = audit_policy_replay(&replay);
         assert_eq!(report.status, PolicyReplayStatus::AnticipativityViolation);
         assert!(report.diagnostics.iter().any(|diagnostic| {
-            diagnostic.code == "NON_ANTICIPATIVE_ACTION_MISMATCH"
-                && diagnostic.tick == Some(0)
+            diagnostic.code == "NON_ANTICIPATIVE_ACTION_MISMATCH" && diagnostic.tick == Some(0)
         }));
     }
 
@@ -811,8 +827,7 @@ mod tests {
         let report = audit_policy_replay(&replay);
         assert_eq!(report.status, PolicyReplayStatus::Incomplete);
         assert!(report.diagnostics.iter().any(|diagnostic| {
-            diagnostic.code == "INCOMPLETE_MISSING_DECISION"
-                && diagnostic.tick == Some(1)
+            diagnostic.code == "INCOMPLETE_MISSING_DECISION" && diagnostic.tick == Some(1)
         }));
     }
 
@@ -830,10 +845,12 @@ mod tests {
 
         let report = audit_policy_replay(&replay);
         assert_eq!(report.status, PolicyReplayStatus::Incomplete);
-        assert!(report
-            .diagnostics
-            .iter()
-            .any(|diagnostic| diagnostic.code == "INCOMPLETE_DUPLICATE_EVENT_ID"));
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|diagnostic| diagnostic.code == "INCOMPLETE_DUPLICATE_EVENT_ID")
+        );
     }
 
     #[test]
@@ -842,10 +859,13 @@ mod tests {
         let missing_candidate = ReplaySuite {
             expected_scenario_ids: vec!["a".to_owned(), "b".to_owned()],
             decision_ticks: vec![0],
-            source_scenarios: vec![a.source(), ScenarioEventLog {
-                scenario_id: "b".to_owned(),
-                events: vec![],
-            }],
+            source_scenarios: vec![
+                a.source(),
+                ScenarioEventLog {
+                    scenario_id: "b".to_owned(),
+                    events: vec![],
+                },
+            ],
             candidate_traces: vec![a.candidate()],
         };
         let unexpected_candidate = ReplaySuite {
@@ -885,22 +905,30 @@ mod tests {
             candidate_traces: vec![a.candidate()],
         };
 
-        assert!(audit_policy_replay(&missing_candidate)
-            .diagnostics
-            .iter()
-            .any(|d| d.code == "INCOMPLETE_MISSING_DECLARED_SCENARIO"));
-        assert!(audit_policy_replay(&unexpected_candidate)
-            .diagnostics
-            .iter()
-            .any(|d| d.code == "INCOMPLETE_UNEXPECTED_SCENARIO_TRACE"));
-        assert!(audit_policy_replay(&missing_source)
-            .diagnostics
-            .iter()
-            .any(|d| d.code == "INCOMPLETE_MISSING_SOURCE_SCENARIO"));
-        assert!(audit_policy_replay(&unexpected_source)
-            .diagnostics
-            .iter()
-            .any(|d| d.code == "INCOMPLETE_UNEXPECTED_SOURCE_SCENARIO"));
+        assert!(
+            audit_policy_replay(&missing_candidate)
+                .diagnostics
+                .iter()
+                .any(|diagnostic| diagnostic.code == "INCOMPLETE_MISSING_DECLARED_SCENARIO")
+        );
+        assert!(
+            audit_policy_replay(&unexpected_candidate)
+                .diagnostics
+                .iter()
+                .any(|diagnostic| diagnostic.code == "INCOMPLETE_UNEXPECTED_SCENARIO_TRACE")
+        );
+        assert!(
+            audit_policy_replay(&missing_source)
+                .diagnostics
+                .iter()
+                .any(|diagnostic| diagnostic.code == "INCOMPLETE_MISSING_SOURCE_SCENARIO")
+        );
+        assert!(
+            audit_policy_replay(&unexpected_source)
+                .diagnostics
+                .iter()
+                .any(|diagnostic| diagnostic.code == "INCOMPLETE_UNEXPECTED_SOURCE_SCENARIO")
+        );
         assert_eq!(
             audit_policy_replay(&missing_candidate).status,
             PolicyReplayStatus::Incomplete
@@ -975,9 +1003,6 @@ mod tests {
         let forward = suite(&["a", "b"], vec![0, 4], vec![a.clone(), b.clone()]);
         let reverse = suite(&["a", "b"], vec![0, 4], vec![b, a]);
 
-        assert_eq!(
-            audit_policy_replay(&forward),
-            audit_policy_replay(&reverse)
-        );
+        assert_eq!(audit_policy_replay(&forward), audit_policy_replay(&reverse));
     }
 }
