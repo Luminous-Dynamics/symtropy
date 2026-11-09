@@ -134,6 +134,14 @@ struct CanonicalSample {
     recovery: Option<OracleResult>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct CanonicalizedFamily {
+    axes: Vec<Axis>,
+    samples: Vec<CanonicalSample>,
+    expected_grid_point_count: usize,
+    missing_grid_points: Vec<Vec<u32>>,
+}
+
 fn nonempty(value: &str) -> bool {
     !value.trim().is_empty()
 }
@@ -186,7 +194,7 @@ fn validate_identity(identity: &FamilyIdentity) -> Result<(), FrontierError> {
 
 fn validate_and_canonicalize(
     family: &FrontierFamily,
-) -> Result<(Vec<Axis>, Vec<CanonicalSample>, usize, Vec<Vec<u32>>), FrontierError> {
+) -> Result<CanonicalizedFamily, FrontierError> {
     if !nonempty(&family.family_id) {
         return Err(FrontierError::EmptyIdentifier);
     }
@@ -279,7 +287,12 @@ fn validate_and_canonicalize(
         .filter(|theta| !coordinates.contains(theta))
         .collect();
 
-    Ok((axes, samples, expected_grid_point_count, missing))
+    Ok(CanonicalizedFamily {
+        axes,
+        samples,
+        expected_grid_point_count,
+        missing_grid_points: missing,
+    })
 }
 
 fn enumerate_grid(axes: &[Axis], index: usize, current: &mut Vec<u32>, output: &mut Vec<Vec<u32>>) {
@@ -418,8 +431,11 @@ fn compute_predicate_frontier(
 /// as safe or unsafe. A nonviable lower point dominated by a viable higher
 /// point is a monotonicity contradiction and suppresses family qualification.
 pub fn audit_frontier(family: &FrontierFamily) -> Result<FrontierReport, FrontierError> {
-    let (axes, samples, expected_grid_point_count, missing_grid_points) =
-        validate_and_canonicalize(family)?;
+    let canonical = validate_and_canonicalize(family)?;
+    let axes = canonical.axes;
+    let samples = canonical.samples;
+    let expected_grid_point_count = canonical.expected_grid_point_count;
+    let missing_grid_points = canonical.missing_grid_points;
 
     let all_axes_nested = axes.iter().all(|axis| axis.nested);
     let mut violations = Vec::new();
@@ -549,10 +565,7 @@ mod tests {
         for x in 0..=2 {
             for y in 0..=2 {
                 let safe = x + y <= 2;
-                let recovery_safe = match (x, y) {
-                    (0, 0) | (0, 1) | (0, 2) | (1, 0) => true,
-                    _ => false,
-                };
+                let recovery_safe = matches!((x, y), (0, 0) | (0, 1) | (0, 2) | (1, 0));
                 let mut item = sample(&[x, y], safe);
                 item.recovery = Some(if recovery_safe {
                     viable("recovery-result")
