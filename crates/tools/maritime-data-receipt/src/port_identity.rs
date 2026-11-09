@@ -57,6 +57,7 @@ const RECORD_KEYS: &[&str] = &[
     "evidence_refs",
 ];
 const VALID_STATUS: &str = "CROSSWALK_METADATA_VALID_NOT_ADMITTED";
+const VALID: &str = VALID_STATUS;
 
 fn exact_keys(value: &Value, expected: &[&str]) -> Result<(), &'static str> {
     let object = value.as_object().ok_or("INVALID_OBJECT")?;
@@ -595,7 +596,13 @@ fn run_cli_inner(path: &str, snapshot_paths: Option<(&str, &str)>) -> Result<(),
     if bytes.len() > super::MAX_RECEIPT_BYTES {
         return Err("crosswalk exceeds the bounded file-size limit".to_owned());
     }
-    let value = super::parse_strict(&bytes)?;
+    // First reject duplicate keys and trailing data with the shared strict parser.
+    // Only after that check, deserialize into serde_json::Value for this module's
+    // typed metadata validator; the second parse cannot hide duplicate keys
+    // because the exact same bytes already passed the strict pass.
+    let _strict_value = super::parse_strict(&bytes)?;
+    let value: Value = serde_json::from_slice(&bytes)
+        .map_err(|error| format!("invalid crosswalk JSON after strict duplicate-key check: {error}"))?;
     let count = validate_crosswalk(&value).map_err(str::to_owned)?;
     let source = member(&value, "source_snapshot").map_err(str::to_owned)?;
     let registry = member(&value, "locode_registry").map_err(str::to_owned)?;
@@ -646,18 +653,22 @@ fn mutate_path(value: &mut Value, path: &str, mutation: &Value) -> Result<(), &'
     }
     let mut current = value;
     for part in &parts[..parts.len() - 1] {
-        current = if let Some(array) = current.as_array_mut() {
+        if current.is_array() {
             let index = part
                 .parse::<usize>()
                 .map_err(|_| "INVALID_CORPUS_MUTATION")?;
-            array.get_mut(index).ok_or("INVALID_CORPUS_MUTATION")?
+            let array = current
+                .as_array_mut()
+                .ok_or("INVALID_CORPUS_MUTATION")?;
+            current = array.get_mut(index).ok_or("INVALID_CORPUS_MUTATION")?;
         } else {
-            current
+            let object = current
                 .as_object_mut()
-                .ok_or("INVALID_CORPUS_MUTATION")?
+                .ok_or("INVALID_CORPUS_MUTATION")?;
+            current = object
                 .get_mut(*part)
-                .ok_or("INVALID_CORPUS_MUTATION")?
-        };
+                .ok_or("INVALID_CORPUS_MUTATION")?;
+        }
     }
     let leaf = parts[parts.len() - 1];
     if let Some(array) = current.as_array_mut() {
@@ -712,7 +723,10 @@ fn mutate_path(value: &mut Value, path: &str, mutation: &Value) -> Result<(), &'
 
 #[cfg(test)]
 mod tests {
-    use super::{VALID, mutate_path, utc_timestamp, validate_crosswalk, verify_snapshot_digest};
+    use super::{
+        VALID, build_crosswalk_report, member, mutate_path, text, utc_timestamp,
+        validate_crosswalk, verify_snapshot_digest,
+    };
     use serde_json::Value;
 
     #[test]
@@ -835,8 +849,6 @@ mod tests {
 
     #[test]
     fn matching_snapshot_hashes_never_admit_port_identity_or_operation() {
-        use super::build_crosswalk_report;
-
         let bytes = include_bytes!("../tests/fixtures/synthetic-port-crosswalk.json");
         let crosswalk: Value = serde_json::from_slice(bytes).expect("synthetic crosswalk fixture");
         let record_count = validate_crosswalk(&crosswalk).expect("metadata is valid");
@@ -886,8 +898,6 @@ mod tests {
 
     #[test]
     fn report_builder_rejects_unbacked_snapshot_match_claim() {
-        use super::{build_crosswalk_report, member, text};
-
         let bytes = include_bytes!("../tests/fixtures/synthetic-port-crosswalk.json");
         let crosswalk: Value = serde_json::from_slice(bytes).expect("synthetic crosswalk fixture");
         let record_count = validate_crosswalk(&crosswalk).expect("metadata is valid");
