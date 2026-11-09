@@ -8,9 +8,9 @@
 //! It does not authenticate source snapshots, resolve a real port/terminal, or
 //! grant operational authority. Valid output is always NOT ADMITTED.
 
-use serde_json::Value;
 #[cfg(test)]
 use serde_json::Map;
+use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 
 const ROOT_KEYS: &[&str] = &[
