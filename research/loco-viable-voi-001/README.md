@@ -222,3 +222,15 @@ Qualification commands:
     cargo clippy --manifest-path research/loco-viable-voi-001/Cargo.toml --locked --all-targets -- -D warnings
 
 The exact-head workflow is authoritative for Rust 1.96. A green result qualifies finite arithmetic and supplied evidence-composition semantics only; it does not authenticate upstream receipts, prove robust viability or validate physical likelihoods, losses or resource measurements.
+
+
+### Additional evidence and mass invariants added after first CI inspection
+
+The Rust reference now additionally requires:
+- a separate fresh, state/model/domain/horizon-bound receipt for the passive/no-probe comparator;
+- exact equality between the upstream probe receipt's branch inventory and the branch inventory being evaluated;
+- the hypothesis marginal of the full joint mass cube to equal the declared passive prior for every hypothesis (the probe cannot silently change the prior);
+- every passive and continuation loss row to reference a known key and an admitted action, with duplicate and foreign keys rejected;
+- a physically rejected probe to short-circuit before mass/decision computation even when a physical branch has zero probability mass; the branch remains in the upstream physical possibility inventory.
+
+For joint mass and loss both scaled by (S=10^9), the unnormalized risk numerator and VOI numerator are on scale (S^2), not (S^3). Normalized loss/VOI is obtained by division by (S^2). The reference uses checked integer arithmetic.
