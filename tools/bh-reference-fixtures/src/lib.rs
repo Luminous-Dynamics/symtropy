@@ -8,6 +8,8 @@
 use core::fmt;
 use serde::{Deserialize, Serialize};
 
+pub mod qnm;
+
 pub const FIXTURE_SCHEMA_VERSION: u32 = 1;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
