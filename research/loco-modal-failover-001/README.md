@@ -191,3 +191,12 @@ Qualification commands:
     cargo clippy --manifest-path research/loco-modal-failover-001/Cargo.toml --locked --all-targets -- -D warnings
 
 The exact-head workflow is authoritative for Rust 1.96. The crate qualifies only finite evidence-mode composition and receipt identity fields supplied by upstream authorities. It does not authenticate receipts, validate health classifiers, prove continuous-time safety or qualify physical mode-switch transitions.
+
+
+### Receipt and digest semantics
+
+The per-signature digest is an **opaque source-issued digest** from the upstream health-signature interpreter. The Rust reference checks exact identity equality and duplicate-digest rejection; it does not compute a cryptographic hash or authenticate the upstream issuer. The complete-set receipt is likewise consumed as evidence, not authenticated by this crate.
+
+Receipt action semantics are status-specific: an Admitted receipt must contain at least one admitted action; Rejected and Unknown receipts must not contain admitted actions. Their rejection witness or Unknown reason is preserved rather than being hidden by an empty action-set validation error.
+
+The current Rust module has 20 deterministic tests, including duplicate source digest, possibility-set completeness/context, foreign receipt, missing receipt, and the original channel-health/mode-intersection/hysteresis cases.
