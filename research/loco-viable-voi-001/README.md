@@ -238,7 +238,7 @@ For joint mass and loss both scaled by (S=10^9), the unnormalized risk numerator
 
 ### Exact-head compile corrections and current test inventory
 
-The standalone crate's current Rust module contains 16 deterministic tests. In addition to the initial composition cases, it explicitly checks:
+The standalone crate's current Rust module contains 18 deterministic tests. In addition to the initial composition cases, it explicitly checks:
 - probe-receipt branch inventory equality;
 - a fresh context-bound passive/no-probe receipt;
 - rejection of loss rows for unadmitted actions;
