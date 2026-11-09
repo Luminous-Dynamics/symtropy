@@ -13,7 +13,7 @@
 
 #![forbid(unsafe_code)]
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 use std::fmt;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -214,12 +214,6 @@ impl fmt::Display for CausalTransportError {
 
 impl std::error::Error for CausalTransportError {}
 
-fn checked_total<T>(values: impl IntoIterator<Item = T>, project: impl Fn(T) -> u64) -> Result<u64, CausalTransportError> {
-    values.into_iter().try_fold(0_u64, |sum, value| {
-        sum.checked_add(project(value))
-            .ok_or(CausalTransportError::CountOverflow)
-    })
-}
 
 fn validate_source_strata(
     strata: &[SourceEffectStratum],
@@ -587,6 +581,25 @@ mod tests {
             .expect("invalid source study remains a nonidentified report");
         assert_eq!(result.identification_status, TransportIdentificationStatus::NotIdentified);
         assert_eq!(result.target_ate_point, None);
+    }
+
+    #[test]
+    fn rejects_population_count_overflow() {
+        let mut source_overflow = input(full_support_target());
+        source_overflow.source_strata[0].source_population_count = u64::MAX;
+        source_overflow.source_strata[1].source_population_count = 1;
+        assert_eq!(
+            assess_risk_difference_transport(&source_overflow).unwrap_err(),
+            CausalTransportError::CountOverflow
+        );
+
+        let mut target_overflow = input(full_support_target());
+        target_overflow.target_strata[0].target_population_count = u64::MAX;
+        target_overflow.target_strata[1].target_population_count = 1;
+        assert_eq!(
+            assess_risk_difference_transport(&target_overflow).unwrap_err(),
+            CausalTransportError::CountOverflow
+        );
     }
 
     #[test]
