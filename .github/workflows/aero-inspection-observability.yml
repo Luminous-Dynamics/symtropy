@@ -79,6 +79,7 @@ jobs:
           sha256sum inspection-observability-environment.txt > inspection-observability-environment.sha256
           sha256sum inspection-observability-result.json > inspection-observability-result.sha256
           sha256sum inspection-observability-run-manifest.txt > inspection-observability-run-manifest.sha256
+
       - name: Retain source-complete execution and digest receipts
         uses: actions/upload-artifact@v4
         with:
@@ -106,25 +107,5 @@ jobs:
             inspection-observability-environment.sha256
             inspection-observability-result.sha256
             inspection-observability-run-manifest.sha256
-          if-no-files-found: error
-          retention-days: 90
-          sha256sum tools/civil-aero-benchmark/inspection-observability/Cargo.lock > inspection-observability-lock.sha256
-          sha256sum inspection-observability-environment.txt > inspection-observability-environment.sha256
-          sha256sum tools/civil-aero-benchmark/inspection-observability/fixtures/known-answer-observability-v0.1.json > inspection-observability-source.sha256
-          sha256sum inspection-observability-result.json > inspection-observability-result.sha256
-
-      - name: Retain exact fixture, result and digest receipts
-        uses: actions/upload-artifact@v4
-        with:
-          name: aero-inspection-observability
-          path: |
-            tools/civil-aero-benchmark/inspection-observability/Cargo.lock
-            tools/civil-aero-benchmark/inspection-observability/fixtures/known-answer-observability-v0.1.json
-            inspection-observability-result.json
-            inspection-observability-lock.sha256
-            inspection-observability-environment.txt
-            inspection-observability-environment.sha256
-            inspection-observability-source.sha256
-            inspection-observability-result.sha256
           if-no-files-found: error
           retention-days: 90
