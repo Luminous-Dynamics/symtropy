@@ -19,11 +19,16 @@ pub struct EvidenceIdentity {
     pub morphology_digest: String,
     pub evidence_tier: EvidenceTier,
     pub platform_physics_digest: String,
+    pub dynamics_model_digest: String,
+    pub transition_abstraction_digest: String,
     pub controller_digest: String,
+    pub operating_mode_id: String,
     pub task_digest: String,
     pub terrain_cell_id: String,
     pub terrain_axis_digest: String,
     pub sensor_health_digest: String,
+    pub safety_taxonomy_digest: String,
+    pub event_detector_digest: String,
     pub calibration_digest: String,
     pub actuator_digest: String,
     pub initial_state_digest: String,
@@ -40,11 +45,16 @@ impl EvidenceIdentity {
             self.scenario_digest.as_str(),
             self.morphology_digest.as_str(),
             self.platform_physics_digest.as_str(),
+            self.dynamics_model_digest.as_str(),
+            self.transition_abstraction_digest.as_str(),
             self.controller_digest.as_str(),
+            self.operating_mode_id.as_str(),
             self.task_digest.as_str(),
             self.terrain_cell_id.as_str(),
             self.terrain_axis_digest.as_str(),
             self.sensor_health_digest.as_str(),
+            self.safety_taxonomy_digest.as_str(),
+            self.event_detector_digest.as_str(),
             self.calibration_digest.as_str(),
             self.actuator_digest.as_str(),
             self.initial_state_digest.as_str(),
@@ -68,10 +78,15 @@ impl EvidenceIdentity {
             && self.morphology_digest == other.morphology_digest
             && self.evidence_tier == other.evidence_tier
             && self.platform_physics_digest == other.platform_physics_digest
+            && self.dynamics_model_digest == other.dynamics_model_digest
+            && self.transition_abstraction_digest == other.transition_abstraction_digest
+            && self.operating_mode_id == other.operating_mode_id
             && self.task_digest == other.task_digest
             && self.terrain_cell_id == other.terrain_cell_id
             && self.terrain_axis_digest == other.terrain_axis_digest
             && self.sensor_health_digest == other.sensor_health_digest
+            && self.safety_taxonomy_digest == other.safety_taxonomy_digest
+            && self.event_detector_digest == other.event_detector_digest
             && self.calibration_digest == other.calibration_digest
             && self.actuator_digest == other.actuator_digest
             && self.initial_state_digest == other.initial_state_digest
@@ -182,6 +197,9 @@ pub struct QualificationRequirements {
     pub minimum_success_lower_bound_ppm: u32,
     pub minimum_cross_fitted_cvar_lower_bound: i64,
     pub required_safety_category_ids: Vec<String>,
+    /// Whether "no adverse category regression" must be established against a
+    /// matched baseline rather than inferred from absolute category limits.
+    pub require_matched_baseline_for_safety: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -456,6 +474,7 @@ fn evaluate_performance(
     evidence: Option<&PerformanceEvidence>,
     cell: &EvidenceIdentity,
     requirements: &QualificationRequirements,
+    matched_baseline_eligible: bool,
     now_ns: u64,
     blockers: &mut BTreeSet<Blocker>,
     witnesses: &mut Vec<LimitingWitness>,
@@ -551,6 +570,16 @@ fn evaluate_safety(
             return Err(QualificationError::SafetyExposureMismatch);
         }
         category_map.insert(category.category_id.as_str(), category);
+    }
+
+    if requirements.require_matched_baseline_for_safety && !matched_baseline_eligible {
+        incomplete = true;
+        push_witness(
+            witnesses,
+            "safety_baseline",
+            Some(&evidence.header.receipt_id),
+            "a matched baseline is required to establish non-regression across adverse categories",
+        );
     }
 
     let mut required = BTreeSet::new();
@@ -778,6 +807,14 @@ pub fn qualify_operating_cell(
     let mut blockers = BTreeSet::new();
     let mut witnesses = Vec::new();
 
+    let baseline_comparison = problem.baseline.as_ref().map(|baseline| {
+        baseline.measurement_complete
+            && nonempty(&baseline.identity.controller_digest)
+            && baseline.identity.controller_digest != problem.cell.controller_digest
+            && baseline.identity.same_scenario_except_controller(&problem.cell)
+    });
+    let baseline_comparison_eligible = baseline_comparison.unwrap_or(false);
+
     let viability = evaluate_viability(
         problem.viability.as_ref(),
         &problem.cell,
@@ -789,6 +826,7 @@ pub fn qualify_operating_cell(
         problem.performance.as_ref(),
         &problem.cell,
         &problem.requirements,
+        baseline_comparison_eligible,
         problem.now_ns,
         &mut blockers,
         &mut witnesses,
@@ -816,16 +854,15 @@ pub fn qualify_operating_cell(
         &mut witnesses,
     );
 
-    let baseline_comparison = problem.baseline.as_ref().map(|baseline| {
-        baseline.measurement_complete
-            && nonempty(&baseline.identity.controller_digest)
-            && baseline.identity.same_scenario_except_controller(&problem.cell)
-    });
-    let baseline_comparison_eligible = baseline_comparison.unwrap_or(false);
     let baseline_comparison_reason = match &problem.baseline {
         None => Some("no matched baseline evidence supplied".to_owned()),
         Some(baseline) if !baseline.measurement_complete => {
             Some("baseline measurement is incomplete".to_owned())
+        }
+        Some(baseline)
+            if baseline.identity.controller_digest == problem.cell.controller_digest =>
+        {
+            Some("baseline controller digest is not distinct from candidate controller".to_owned())
         }
         Some(baseline)
             if !baseline
@@ -866,11 +903,16 @@ mod tests {
             morphology_digest: "go2-morph-v1".to_owned(),
             evidence_tier: EvidenceTier::Hardware,
             platform_physics_digest: "go2-physics-v1".to_owned(),
+            dynamics_model_digest: "go2-dynamics-v1".to_owned(),
+            transition_abstraction_digest: "go2-hybrid-abstraction-v1".to_owned(),
             controller_digest: "symtropy-policy-v1".to_owned(),
+            operating_mode_id: "full-perception-v1".to_owned(),
             task_digest: "stairs-task-v1".to_owned(),
             terrain_cell_id: "stairs-20cm".to_owned(),
             terrain_axis_digest: "terrain-axes-v1".to_owned(),
             sensor_health_digest: "health-mode-v1".to_owned(),
+            safety_taxonomy_digest: "safety-taxonomy-v1".to_owned(),
+            event_detector_digest: "event-detector-v1".to_owned(),
             calibration_digest: "cal-v1".to_owned(),
             actuator_digest: "actuator-v1".to_owned(),
             initial_state_digest: "state-v1".to_owned(),
@@ -904,6 +946,7 @@ mod tests {
                     "foot_scuff".to_owned(),
                     "shank_collision".to_owned(),
                 ],
+                require_matched_baseline_for_safety: true,
             },
             viability: Some(ViabilityEvidence {
                 header: header("viability-r1", &cell),
@@ -1150,9 +1193,13 @@ mod tests {
     fn baseline_mismatch_blocks_comparison_not_cell_qualification() {
         let mut problem = base_problem();
         problem.baseline.as_mut().expect("baseline").identity.exposure_value = 80;
-        let report = qualify_operating_cell(&problem).expect("cell still qualifies");
-        assert!(report.qualified);
+        let report = qualify_operating_cell(&problem).expect("baseline mismatch");
+        assert!(!report.qualified);
         assert!(!report.baseline_comparison_eligible);
+        assert_eq!(
+            report.primary_disposition,
+            PrimaryDisposition::EvidenceIncompleteOrUnknown
+        );
         assert!(report.baseline_comparison_reason.is_some());
     }
 
