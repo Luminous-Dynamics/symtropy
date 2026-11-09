@@ -6,7 +6,10 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::{ComplexValue, FixtureProvenance, FourierConvention, FrequencyNormalization};
+use crate::{
+    AngularEigenvalueConvention, ComplexValue, FixtureProvenance, FourierConvention,
+    FrequencyNormalization,
+};
 
 pub const QNM_SEQUENCE_SCHEMA_VERSION: u32 = 1;
 
@@ -113,6 +116,8 @@ pub struct KerrQnmSequenceFixture {
     pub spin_weight: i32,
     pub ell: u32,
     pub m: i32,
+    pub angular_eigenvalue_convention: AngularEigenvalueConvention,
+    pub angular_eigenvalue_definition: Option<String>,
     pub fourier_convention: FourierConvention,
     pub frequency_normalization: FrequencyNormalization,
     pub family_classification: QnmFamilyClassification,
@@ -132,6 +137,7 @@ pub enum QnmSequenceValidationError {
     InvalidSha256,
     InvalidSpin,
     InvalidModeNumbers,
+    AngularEigenvalueConventionIncomplete,
     EmptySequence,
     SequencePositionsNotStrictlyIncreasing(usize),
     DuplicateOvertoneIndex(u32),
@@ -158,6 +164,9 @@ impl core::fmt::Display for QnmSequenceValidationError {
             Self::InvalidSpin => write!(f, "spin_over_mass must be finite and satisfy |a/M| < 1"),
             Self::InvalidModeNumbers => {
                 write!(f, "mode numbers must satisfy ell >= |s| and |m| <= ell")
+            }
+            Self::AngularEigenvalueConventionIncomplete => {
+                write!(f, "producer-defined angular eigenvalue convention requires a definition")
             }
             Self::EmptySequence => write!(f, "at least one QNM mode is required"),
             Self::SequencePositionsNotStrictlyIncreasing(index) => {
@@ -252,6 +261,15 @@ impl KerrQnmSequenceFixture {
         if self.ell < self.spin_weight.unsigned_abs() || self.m.unsigned_abs() > self.ell {
             return Err(QnmSequenceValidationError::InvalidModeNumbers);
         }
+        if self.angular_eigenvalue_convention == AngularEigenvalueConvention::Other
+            && self
+                .angular_eigenvalue_definition
+                .as_deref()
+                .is_none_or(str::is_empty)
+        {
+            return Err(QnmSequenceValidationError::AngularEigenvalueConventionIncomplete);
+        }
+
         if self.modes.is_empty() {
             return Err(QnmSequenceValidationError::EmptySequence);
         }
@@ -401,6 +419,8 @@ mod tests {
             spin_weight: -2,
             ell: 2,
             m: 2,
+            angular_eigenvalue_convention: AngularEigenvalueConvention::SpinWeightedSpheroidalA,
+            angular_eigenvalue_definition: None,
             fourier_convention: FourierConvention::EMinusIOmegaT,
             frequency_normalization: FrequencyNormalization::DimensionlessMOmega,
             family_classification: classification,
@@ -408,6 +428,19 @@ mod tests {
             family_evidence: evidence,
             modes,
         }
+    }
+
+    #[test]
+    fn producer_defined_qnm_angular_eigenvalue_requires_a_definition() {
+        let mut value = sequence(QnmFamilyClassification::Unresolved);
+        value.angular_eigenvalue_convention = AngularEigenvalueConvention::Other;
+        assert_eq!(
+            value.validate(),
+            Err(QnmSequenceValidationError::AngularEigenvalueConventionIncomplete)
+        );
+        value.angular_eigenvalue_definition =
+            Some("producer-defined angular separation constant".to_owned());
+        assert_eq!(value.validate(), Ok(()));
     }
 
     #[test]
