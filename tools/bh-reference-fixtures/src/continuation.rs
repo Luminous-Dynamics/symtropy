@@ -9,8 +9,8 @@ use serde::{Deserialize, Serialize};
 use crate::{
     ComplexValue, FixtureProvenance, FourierConvention,
     qnm::{
-        QnmContinuationClass, QnmFrequencyCutRelation, QnmMethodApplicability,
-        QnmModeResiduals, QnmRiemannSheetKind, QnmSolverMethod,
+        QnmContinuationClass, QnmFrequencyCutRelation, QnmMethodApplicability, QnmModeResiduals,
+        QnmRiemannSheetKind, QnmSolverMethod,
     },
 };
 
@@ -106,7 +106,10 @@ impl core::fmt::Display for QnmContinuationValidationError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             Self::UnsupportedSchemaVersion(version) => {
-                write!(f, "unsupported Kerr QNM continuation schema version {version}")
+                write!(
+                    f,
+                    "unsupported Kerr QNM continuation schema version {version}"
+                )
             }
             Self::EmptyField(name) => write!(f, "required continuation field {name} is empty"),
             Self::InvalidSha256 => write!(
@@ -114,14 +117,20 @@ impl core::fmt::Display for QnmContinuationValidationError {
                 "producer artifact SHA-256 must contain 64 hex characters"
             ),
             Self::InvalidPrecision => {
-                write!(f, "continuation and sample precision must be at least 53 bits")
+                write!(
+                    f,
+                    "continuation and sample precision must be at least 53 bits"
+                )
             }
             Self::InvalidModeNumbers => {
                 write!(f, "mode numbers must satisfy ell >= |s| and |m| <= ell")
             }
             Self::EmptySamples => write!(f, "at least two spin-continuation samples are required"),
             Self::InvalidSpinSample(index) => {
-                write!(f, "spin-continuation sample {index} has invalid values or residuals")
+                write!(
+                    f,
+                    "spin-continuation sample {index} has invalid values or residuals"
+                )
             }
             Self::ExactExtremalSampleRequiresHeunD => write!(
                 f,
@@ -140,7 +149,10 @@ impl core::fmt::Display for QnmContinuationValidationError {
                 )
             }
             Self::InvalidSpectralIdentity => {
-                write!(f, "Riemann-sheet or continuation-class identity is incomplete")
+                write!(
+                    f,
+                    "Riemann-sheet or continuation-class identity is incomplete"
+                )
             }
             Self::MissingExactExtremalSample => {
                 write!(
@@ -198,8 +210,14 @@ impl KerrQnmSpinContinuationTrace {
             (self.trace_id.as_str(), "trace_id"),
             (self.mode_lineage_id.as_str(), "mode_lineage_id"),
             (self.provenance.engine.as_str(), "provenance.engine"),
-            (self.provenance.engine_version.as_str(), "provenance.engine_version"),
-            (self.provenance.generated_at_utc.as_str(), "provenance.generated_at_utc"),
+            (
+                self.provenance.engine_version.as_str(),
+                "provenance.engine_version",
+            ),
+            (
+                self.provenance.generated_at_utc.as_str(),
+                "provenance.generated_at_utc",
+            ),
             (self.riemann_sheet_id.as_str(), "riemann_sheet_id"),
         ] {
             if value.trim().is_empty() {
@@ -258,8 +276,7 @@ impl KerrQnmSpinContinuationTrace {
             }
             if sample.spin_over_mass.abs() == 1.0
                 && self.spin_weight != 0
-                && sample.solver_method
-                    != QnmSolverMethod::ExactExtremalDoubleConfluentHeun
+                && sample.solver_method != QnmSolverMethod::ExactExtremalDoubleConfluentHeun
             {
                 return Err(QnmContinuationValidationError::ExactExtremalSampleRequiresHeunD);
             }
@@ -271,9 +288,9 @@ impl KerrQnmSpinContinuationTrace {
             if index > 0 {
                 let difference = sample.spin_over_mass - self.samples[index - 1].spin_over_mass;
                 if difference == 0.0 || (direction != 0.0 && difference.signum() != direction) {
-                    return Err(QnmContinuationValidationError::SpinSamplesNotStrictlyMonotonic(
-                        index,
-                    ));
+                    return Err(
+                        QnmContinuationValidationError::SpinSamplesNotStrictlyMonotonic(index),
+                    );
                 }
                 direction = difference.signum();
             }
@@ -284,8 +301,7 @@ impl KerrQnmSpinContinuationTrace {
             .iter()
             .any(|sample| sample.spin_over_mass.abs() == 1.0);
         match self.extremal_damping_behavior {
-            QnmExtremalDampingBehavior::FiniteDamping
-            | QnmExtremalDampingBehavior::ZeroDamping => {
+            QnmExtremalDampingBehavior::FiniteDamping | QnmExtremalDampingBehavior::ZeroDamping => {
                 if !has_exact_extremal {
                     return Err(QnmContinuationValidationError::MissingExactExtremalSample);
                 }
@@ -316,7 +332,8 @@ impl KerrQnmSpinContinuationTrace {
                     re: evidence.exact_extremal_superradiant_detuning.re - expected_detuning.re,
                     im: evidence.exact_extremal_superradiant_detuning.im - expected_detuning.im,
                 };
-                let detuning_tolerance = 1.0e-12 * (1.0 + expected_detuning.re.hypot(expected_detuning.im));
+                let detuning_tolerance =
+                    1.0e-12 * (1.0 + expected_detuning.re.hypot(expected_detuning.im));
                 if !evidence.fit_window_min_abs_spin.is_finite()
                     || !evidence.fit_window_max_abs_spin.is_finite()
                     || evidence.fit_window_min_abs_spin < 0.0
