@@ -1,0 +1,252 @@
+{
+  "schema_version": "loco-qualified-envelope-known-answers-v0.1",
+  "gates": [
+    "viability_recovery",
+    "performance",
+    "safety_vector",
+    "energy_recovery_reserve",
+    "assurance"
+  ],
+  "dispositions": [
+    "qualified",
+    "empirically_capable_not_robustly_certified",
+    "robustly_admitted_performance_insufficient",
+    "safety_constraint_exceeded",
+    "recovery_reserve_insufficient",
+    "assurance_invalid_or_stale",
+    "evidence_incomplete_or_unknown",
+    "evidence_identity_mismatch",
+    "unmatched_baseline"
+  ],
+  "shared_cell_key": {
+    "morphology_digest": "morph-v1",
+    "evidence_tier": "hardware",
+    "platform_physics_digest": "go2-physics-v1",
+    "controller_digest": "policy-v1",
+    "task_digest": "stairs-task-v1",
+    "terrain_cell_id": "stair-20cm-v1",
+    "terrain_axis_digest": "terrain-axes-v1",
+    "sensor_health_digest": "health-mode-v1",
+    "calibration_digest": "cal-v1",
+    "actuator_digest": "actuator-v1",
+    "initial_state_digest": "state-v1",
+    "payload_digest": "payload-v1",
+    "energy_boundary_id": "battery-terminal-v1",
+    "heldout_manifest_digest": "heldout-v1",
+    "exposure_unit_id": "crossings",
+    "exposure_value": 100
+  },
+  "cells": [
+    {
+      "id": "A-empirical-pass-viability-reject",
+      "inputs": {
+        "viability": "rejected",
+        "performance_lcb_ppm": 950000,
+        "performance_threshold_ppm": 900000,
+        "safety": "pass",
+        "energy_reserve": "pass",
+        "assurance": "valid"
+      },
+      "expected": {
+        "disposition": "empirically_capable_not_robustly_certified",
+        "qualified": false
+      }
+    },
+    {
+      "id": "B-viability-pass-performance-fail",
+      "inputs": {
+        "viability": "valid",
+        "performance_lcb_ppm": 420000,
+        "performance_threshold_ppm": 800000,
+        "safety": "pass",
+        "energy_reserve": "pass",
+        "assurance": "valid"
+      },
+      "expected": {
+        "disposition": "robustly_admitted_performance_insufficient",
+        "qualified": false
+      }
+    },
+    {
+      "id": "C-fall-upper-bound-exceeds",
+      "inputs": {
+        "viability": "valid",
+        "performance_lcb_ppm": 950000,
+        "performance_threshold_ppm": 900000,
+        "safety": "fail",
+        "safety_reasons": [
+          "fall_upper_bound_exceeds"
+        ],
+        "energy_reserve": "pass",
+        "assurance": "valid"
+      },
+      "expected": {
+        "disposition": "safety_constraint_exceeded",
+        "qualified": false
+      }
+    },
+    {
+      "id": "D-shank-improves-scuff-worsens",
+      "inputs": {
+        "viability": "valid",
+        "performance_lcb_ppm": 950000,
+        "performance_threshold_ppm": 900000,
+        "safety": "fail",
+        "safety_reasons": [
+          "foot_scuff_regression"
+        ],
+        "energy_reserve": "pass",
+        "assurance": "valid"
+      },
+      "expected": {
+        "disposition": "safety_constraint_exceeded",
+        "qualified": false
+      }
+    },
+    {
+      "id": "E-recovery-reserve-insufficient",
+      "inputs": {
+        "viability": "valid",
+        "performance_lcb_ppm": 950000,
+        "performance_threshold_ppm": 900000,
+        "safety": "pass",
+        "remaining_recovery_energy_mj": 80000,
+        "recovery_energy_upper_bound_mj": 100000,
+        "energy_reserve": "fail",
+        "assurance": "valid"
+      },
+      "expected": {
+        "disposition": "recovery_reserve_insufficient",
+        "qualified": false
+      }
+    },
+    {
+      "id": "F-stale-assurance",
+      "inputs": {
+        "viability": "valid",
+        "performance_lcb_ppm": 950000,
+        "performance_threshold_ppm": 900000,
+        "safety": "pass",
+        "energy_reserve": "pass",
+        "assurance": "stale"
+      },
+      "expected": {
+        "disposition": "assurance_invalid_or_stale",
+        "qualified": false
+      }
+    },
+    {
+      "id": "G-simulation-hardware-join",
+      "inputs": {
+        "viability_evidence_tier": "simulation",
+        "performance_evidence_tier": "hardware",
+        "safety_evidence_tier": "hardware",
+        "energy_evidence_tier": "hardware",
+        "assurance_evidence_tier": "hardware"
+      },
+      "expected": {
+        "disposition": "evidence_identity_mismatch",
+        "qualified": false
+      }
+    },
+    {
+      "id": "H-morphology-digest-differs",
+      "inputs": {
+        "cell_morphology_digest": "morph-go1",
+        "viability_morphology_digest": "morph-go2"
+      },
+      "expected": {
+        "disposition": "evidence_identity_mismatch",
+        "qualified": false
+      }
+    },
+    {
+      "id": "I-missing-frontier-cell",
+      "inputs": {
+        "viability": "missing",
+        "performance_lcb_ppm": 950000,
+        "performance_threshold_ppm": 900000,
+        "safety": "pass",
+        "energy_reserve": "pass",
+        "assurance": "valid"
+      },
+      "expected": {
+        "disposition": "evidence_incomplete_or_unknown",
+        "qualified": false,
+        "no_interpolation": true
+      }
+    },
+    {
+      "id": "J-point-estimate-passes-lcb-fails",
+      "inputs": {
+        "performance_point_ppm": 940000,
+        "performance_lcb_ppm": 790000,
+        "performance_threshold_ppm": 800000
+      },
+      "expected": {
+        "disposition": "robustly_admitted_performance_insufficient",
+        "qualified": false
+      }
+    },
+    {
+      "id": "K-zero-falls-low-exposure",
+      "inputs": {
+        "fall_count": 0,
+        "fall_exposure": 8,
+        "fall_upper_bound_ppm": 300000,
+        "fall_limit_ppm": 100000
+      },
+      "expected": {
+        "disposition": "safety_constraint_exceeded",
+        "qualified": false,
+        "zero_count_is_not_zero_risk": true
+      }
+    },
+    {
+      "id": "L-fallback-not-admitted-for-all-health-signatures",
+      "inputs": {
+        "health_signature_count": 3,
+        "admitted_health_signature_count": 2,
+        "viability": "valid"
+      },
+      "expected": {
+        "disposition": "evidence_incomplete_or_unknown",
+        "qualified": false
+      }
+    },
+    {
+      "id": "M-adjacent-cell-not-qualified",
+      "inputs": {
+        "cell_a_all_gates_pass": true,
+        "cell_b_viability": "rejected"
+      },
+      "expected": {
+        "cell_a_qualified": true,
+        "cell_b_qualified": false,
+        "no_propagation": true
+      }
+    },
+    {
+      "id": "N-energy-boundary-mismatch",
+      "inputs": {
+        "task_energy_boundary": "battery-terminal-v1",
+        "recovery_energy_boundary": "joint-mechanical-v1"
+      },
+      "expected": {
+        "disposition": "evidence_identity_mismatch",
+        "qualified": false
+      }
+    },
+    {
+      "id": "O-unmatched-baseline",
+      "inputs": {
+        "candidate_matched": true,
+        "baseline_matched": false
+      },
+      "expected": {
+        "disposition": "unmatched_baseline",
+        "formal_ranking": false
+      }
+    }
+  ]
+}
