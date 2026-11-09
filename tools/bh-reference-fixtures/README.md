@@ -23,3 +23,17 @@ The first schema covers radial reference fixtures and a separate Kerr QNM-sequen
 QNM sequence records preserve sequence position independently of an optional overtone index. A prolate/oblate family label requires a multi-mode asymptotic evidence record, but the schema only checks that evidence is present and finite. It does not prove the family classification or assess whether the measured residuals are small enough. Unresolved and Ambiguous remain first-class outcomes.
 
 Reference fixtures are data, not executable instructions. Do not load untrusted notebooks or code from a fixture payload.
+
+## CLI
+
+The crate builds a small command-line validator:
+
+```sh
+cargo run --manifest-path tools/bh-reference-fixtures/Cargo.toml -- validate-radial fixture.json
+cargo run --manifest-path tools/bh-reference-fixtures/Cargo.toml -- validate-qnm qnm-sequence.json
+cargo run --manifest-path tools/bh-reference-fixtures/Cargo.toml -- compare-radial reference-a.json reference-b.json
+```
+
+`compare-radial` validates both inputs before comparing identity/convention metadata. It prints `matched` or `unmatched` and the differing fields. It deliberately does not calculate numerical errors: a later comparison layer must first define interpolation, common sample nodes, derivative normalization and uncertainty propagation.
+
+Exit codes: `0` valid/matched, `2` malformed input or invalid fixture, `4` valid but convention-incompatible fixtures.
