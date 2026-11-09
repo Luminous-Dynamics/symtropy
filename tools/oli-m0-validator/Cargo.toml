@@ -1,0 +1,11 @@
+[package]
+name = "oli-m0-validator"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "Dependency-light semantic validator for OLI M0 benchmark fixtures"
+
+[dependencies]
+serde_json = "1.0"
+
+[workspace]
