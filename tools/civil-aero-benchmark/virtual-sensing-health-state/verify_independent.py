@@ -311,7 +311,7 @@ def evaluate(data: dict[str, Any], raw: bytes) -> dict[str, Any]:
         "source_bytes": len(raw),
         "channel_count": len(data["channels"]),
         "case_count": len(results),
-        "disposition_counts": sorted(counts.items()),
+        "disposition_counts": [list(item) for item in sorted(counts.items())],
         "cases": results,
         "claim_ceiling": CLAIM_CEILING,
     }
