@@ -97,7 +97,7 @@ Viability-conditioned decision value:
 }
 \]
 
-V0 should use integer fixed-point probabilities and losses with checked wide-integer arithmetic. The exact numerator denominator is (S^2) for probability×loss when loss is in integer units; no floating-point normalization or rounding may enter the reference decision. EIG/Fisher comparators are computed and reported separately; they do not enter this result.
+V0 uses integer fixed-point joint probability mass and loss units, both on scale S = 10^9, with checked wide-integer arithmetic. Each unnormalized expected-loss numerator is sum(J_ppb * L_ppb), on scale S²; divide by S to obtain expected loss in ppb units. The difference between passive and post-probe numerators is the exact viable-VOI numerator; divide by S² for normalized loss units. No floating-point normalization or rounding may enter the reference decision. EIG/Fisher comparators are computed and reported separately; they do not enter this result.
 
 The probe is evaluated only when every physical branch and every intermediate latency state passes the upstream robust gate and all observation outcomes have an admitted continuation/fallback. If an outcome has no admitted action, the probe is rejected/Unknown before ranking; do not assign an arbitrarily huge loss to make an unsafe action merely unattractive.
 
@@ -204,6 +204,8 @@ Unknown outcomes require an explicit fallback, and the fallback must be the only
 
 The V0 Rust tests cover:
 - exact passive risk 0.5, post-probe risk 0.1 and gross viability-conditioned VOI 0.4;
+- exact probe-receipt branch inventory binding and a fresh passive/no-probe receipt;
+- rejection of loss rows for actions not admitted by upstream continuation evidence;
 - physical rejection short-circuit before decision ranking;
 - retention of Unknown outcome mass and explicit fallback;
 - energy hard-limit rejection before ranking;
