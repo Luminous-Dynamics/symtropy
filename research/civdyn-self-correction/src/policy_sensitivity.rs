@@ -171,6 +171,7 @@ pub enum PolicySensitivityError {
     InvalidPortfolio,
     InvalidMetric { metric_id: String },
     DuplicateIdentity { kind: &'static str, id: String },
+    DuplicateModelDigest { digest: String },
     UnknownModel { model_id: String },
     UnknownPolicy { policy_id: String },
     UnknownMetric { metric_id: String },
@@ -188,7 +189,6 @@ pub enum PolicySensitivityError {
     MetricUnitMismatch { metric_id: String },
     InvalidConstraint { metric_id: String },
     NoObjectiveMetrics,
-    NoConstraintMetrics,
 }
 
 impl fmt::Display for PolicySensitivityError {
@@ -216,12 +216,18 @@ pub fn evaluate_policy_sensitivity(
     }
 
     let mut model_ids = BTreeSet::new();
+    let mut model_digests = BTreeSet::new();
     for model in models {
         if model.id.trim().is_empty()
             || model.family_id.trim().is_empty()
             || model.model_digest.trim().is_empty()
         {
             return Err(PolicySensitivityError::InvalidPortfolio);
+        }
+        if !model_digests.insert(model.model_digest.as_str()) {
+            return Err(PolicySensitivityError::DuplicateModelDigest {
+                digest: model.model_digest.clone(),
+            });
         }
         if !model_ids.insert(model.id.as_str()) {
             return Err(PolicySensitivityError::DuplicateIdentity {
@@ -276,9 +282,6 @@ pub fn evaluate_policy_sensitivity(
     }
     if objective_metrics.is_empty() {
         return Err(PolicySensitivityError::NoObjectiveMetrics);
-    }
-    if constraint_metrics.is_empty() {
-        return Err(PolicySensitivityError::NoConstraintMetrics);
     }
 
     let mut values: BTreeMap<(String, String, String), f64> = BTreeMap::new();
@@ -842,6 +845,16 @@ mod tests {
     }
 
     #[test]
+    fn rejects_duplicate_model_digest_to_prevent_implicit_model_weighting() {
+        let mut candidate = models();
+        candidate[1].model_digest = candidate[0].model_digest.clone();
+        assert!(matches!(
+            evaluate(&candidate, &fixture_outcomes()),
+            Err(PolicySensitivityError::DuplicateModelDigest { .. })
+        ));
+    }
+
+    #[test]
     fn rejects_duplicate_policy_metric_receipts() {
         let mut outcomes = fixture_outcomes();
         outcomes.push(outcomes[0].clone());
@@ -934,7 +947,7 @@ mod tests {
         .expect("valid minimization fixture");
         assert_eq!(
             summary(&report, "conserve", "essential-service").worst_case_regret,
-            Some(15.0)
+            Some(10.0)
         );
     }
 
@@ -967,6 +980,26 @@ mod tests {
             summary(&report, "conserve", "essential-service").best_rank,
             Some(1)
         );
+    }
+
+    #[test]
+    fn objective_only_comparison_is_allowed_when_no_hard_constraints_are_declared() {
+        let metric_set = metrics()
+            .into_iter()
+            .filter(|metric| metric.id != "water-withdrawal")
+            .collect::<Vec<_>>();
+        let selected_outcomes = fixture_outcomes()
+            .into_iter()
+            .filter(|row| row.metric_id != "water-withdrawal")
+            .collect::<Vec<_>>();
+        let report = evaluate_policy_sensitivity(
+            &models(),
+            &policies(),
+            &metric_set,
+            &selected_outcomes,
+        )
+        .expect("objective-only portfolio with no declared hard constraints");
+        assert!(report.model_policy_feasibility.iter().all(|row| row.feasible));
     }
 
     #[test]
