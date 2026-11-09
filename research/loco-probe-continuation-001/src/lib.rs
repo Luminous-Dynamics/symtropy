@@ -109,7 +109,10 @@ pub struct ProbeProblem {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ProbeViolation {
-    CurrentStateOutsideViableOrRecoverySet { state_id: String, remaining_steps: u32 },
+    CurrentStateOutsideViableOrRecoverySet {
+        state_id: String,
+        remaining_steps: u32,
+    },
     IntermediateStateOutsideViableOrRecoverySet {
         branch_id: String,
         state_id: String,
@@ -120,8 +123,12 @@ pub enum ProbeViolation {
         state_id: String,
         remaining_steps: u32,
     },
-    NoRobustContinuation { outcome_id: String },
-    MissingUnknownFallback { outcome_id: String },
+    NoRobustContinuation {
+        outcome_id: String,
+    },
+    MissingUnknownFallback {
+        outcome_id: String,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -202,14 +209,13 @@ fn contains_viable_state(
         .iter()
         .find(|set| set.remaining_steps == remaining_steps)
         .ok_or(ProbeContinuationError::MissingViabilityHorizon)?;
-    Ok(set.state_ids.iter().any(|candidate| candidate.as_str() == state_id))
+    Ok(set
+        .state_ids
+        .iter()
+        .any(|candidate| candidate.as_str() == state_id))
 }
 
-fn contains_recovery_state(
-    sets: &[HorizonStateSet],
-    remaining_steps: u32,
-    state_id: &str,
-) -> bool {
+fn contains_recovery_state(sets: &[HorizonStateSet], remaining_steps: u32, state_id: &str) -> bool {
     sets.iter()
         .find(|set| set.remaining_steps == remaining_steps)
         .is_some_and(|set| set.state_ids.iter().any(|candidate| candidate == state_id))
@@ -221,15 +227,15 @@ fn contains_viable_or_recovery_state(
     remaining_steps: u32,
     state_id: &str,
 ) -> Result<bool, ProbeContinuationError> {
-    Ok(contains_viable_state(viable_sets, remaining_steps, state_id)?
-        || contains_recovery_state(recovery_sets, remaining_steps, state_id))
+    Ok(
+        contains_viable_state(viable_sets, remaining_steps, state_id)?
+            || contains_recovery_state(recovery_sets, remaining_steps, state_id),
+    )
 }
 
-fn has_viability_horizon(
-    sets: &[HorizonStateSet],
-    remaining_steps: u32,
-) -> bool {
-    sets.iter().any(|set| set.remaining_steps == remaining_steps)
+fn has_viability_horizon(sets: &[HorizonStateSet], remaining_steps: u32) -> bool {
+    sets.iter()
+        .any(|set| set.remaining_steps == remaining_steps)
 }
 
 fn validate_problem(problem: &ProbeProblem) -> Result<(), ProbeContinuationError> {
@@ -315,11 +321,16 @@ fn validate_problem(problem: &ProbeProblem) -> Result<(), ProbeContinuationError
                 return Err(ProbeContinuationError::DuplicateRecoveryState);
             }
         }
-        if let Some(viable) = problem.viable_states_by_remaining_horizon
+        if let Some(viable) = problem
+            .viable_states_by_remaining_horizon
             .iter()
             .find(|viable| viable.remaining_steps == set.remaining_steps)
         {
-            if set.state_ids.iter().any(|state| viable.state_ids.contains(state)) {
+            if set
+                .state_ids
+                .iter()
+                .any(|state| viable.state_ids.contains(state))
+            {
                 return Err(ProbeContinuationError::StateInBothViableAndRecoverySet);
             }
         }
@@ -344,8 +355,11 @@ fn validate_problem(problem: &ProbeProblem) -> Result<(), ProbeContinuationError
     let mut branch_ids = BTreeSet::new();
     let mut branch_probability_total = 0_u64;
     let mut joint_probability_total = 0_u64;
-    let outcome_id_set: BTreeSet<&str> =
-        problem.outcomes.iter().map(|item| item.id.as_str()).collect();
+    let outcome_id_set: BTreeSet<&str> = problem
+        .outcomes
+        .iter()
+        .map(|item| item.id.as_str())
+        .collect();
 
     for branch in &problem.branches {
         if !nonempty(&branch.id) || !nonempty(&branch.terminal_state_id) {
@@ -380,9 +394,7 @@ fn validate_problem(problem: &ProbeProblem) -> Result<(), ProbeContinuationError
             if *mass > PROBABILITY_SCALE_PPB {
                 return Err(ProbeContinuationError::InvalidJointProbability);
             }
-            if *mass > 0
-                && !physical_outcomes.contains(problem.outcomes[index].id.as_str())
-            {
+            if *mass > 0 && !physical_outcomes.contains(problem.outcomes[index].id.as_str()) {
                 return Err(ProbeContinuationError::UnknownOutcomeNotPhysicallyRepresented);
             }
             branch_joint_total = add_u64(branch_joint_total, *mass)?;
@@ -392,9 +404,8 @@ fn validate_problem(problem: &ProbeProblem) -> Result<(), ProbeContinuationError
         }
         joint_probability_total = add_u64(joint_probability_total, branch_joint_total)?;
 
-        let expected_intermediate_count =
-            usize::try_from(problem.probe_duration_steps - 1)
-                .map_err(|_| ProbeContinuationError::InvalidIntermediateStateTime)?;
+        let expected_intermediate_count = usize::try_from(problem.probe_duration_steps - 1)
+            .map_err(|_| ProbeContinuationError::InvalidIntermediateStateTime)?;
         if branch.intermediate_states.len() != expected_intermediate_count {
             return Err(ProbeContinuationError::InvalidIntermediateStateTime);
         }
@@ -461,10 +472,16 @@ fn validate_problem(problem: &ProbeProblem) -> Result<(), ProbeContinuationError
     // Require all horizon-indexed sets inspected by this evaluator.
     let terminal_remaining = problem.horizon_steps - problem.probe_duration_steps;
     let action_remaining = terminal_remaining - 1;
-    if !has_viability_horizon(&problem.viable_states_by_remaining_horizon, problem.horizon_steps)
-        || !has_viability_horizon(&problem.viable_states_by_remaining_horizon, terminal_remaining)
-        || !has_viability_horizon(&problem.viable_states_by_remaining_horizon, action_remaining)
-    {
+    if !has_viability_horizon(
+        &problem.viable_states_by_remaining_horizon,
+        problem.horizon_steps,
+    ) || !has_viability_horizon(
+        &problem.viable_states_by_remaining_horizon,
+        terminal_remaining,
+    ) || !has_viability_horizon(
+        &problem.viable_states_by_remaining_horizon,
+        action_remaining,
+    ) {
         return Err(ProbeContinuationError::MissingViabilityHorizon);
     }
     for branch in &problem.branches {
@@ -513,11 +530,13 @@ pub fn evaluate_probe_continuation(
                 remaining,
                 &state.state_id,
             )? {
-                violations.push(ProbeViolation::IntermediateStateOutsideViableOrRecoverySet {
-                    branch_id: branch.id.clone(),
-                    state_id: state.state_id.clone(),
-                    remaining_steps: remaining,
-                });
+                violations.push(
+                    ProbeViolation::IntermediateStateOutsideViableOrRecoverySet {
+                        branch_id: branch.id.clone(),
+                        state_id: state.state_id.clone(),
+                        remaining_steps: remaining,
+                    },
+                );
             }
         }
         if !contains_viable_or_recovery_state(
@@ -639,8 +658,12 @@ pub fn evaluate_probe_continuation(
             probability_ppb,
             possible_branch_ids: possible_branch_ids.into_iter().collect(),
             possible_terminal_state_ids: possible_terminal_state_ids.into_iter().collect(),
-            possible_terminal_viable_state_ids: possible_terminal_viable_state_ids.into_iter().collect(),
-            possible_terminal_recovery_state_ids: possible_terminal_recovery_state_ids.into_iter().collect(),
+            possible_terminal_viable_state_ids: possible_terminal_viable_state_ids
+                .into_iter()
+                .collect(),
+            possible_terminal_recovery_state_ids: possible_terminal_recovery_state_ids
+                .into_iter()
+                .collect(),
             robust_admissible_action_ids,
         });
     }
@@ -731,8 +754,14 @@ mod tests {
             ],
             recovery_states_by_remaining_horizon: vec![],
             outcomes: vec![
-                ObservationOutcome { id: "grip-confirmed".to_owned(), kind: ObservationKind::Known },
-                ObservationOutcome { id: "grip-degraded".to_owned(), kind: ObservationKind::Known },
+                ObservationOutcome {
+                    id: "grip-confirmed".to_owned(),
+                    kind: ObservationKind::Known,
+                },
+                ObservationOutcome {
+                    id: "grip-degraded".to_owned(),
+                    kind: ObservationKind::Known,
+                },
             ],
             branches: vec![
                 ProbeBranch {
@@ -780,14 +809,20 @@ mod tests {
         assert_eq!(report.branch_probability_total_ppb, PROBABILITY_SCALE_PPB);
         assert_eq!(report.joint_probability_total_ppb, PROBABILITY_SCALE_PPB);
         assert_eq!(
-            report.outcome_continuations.iter()
-                .find(|item| item.outcome_id == "grip-confirmed").unwrap()
+            report
+                .outcome_continuations
+                .iter()
+                .find(|item| item.outcome_id == "grip-confirmed")
+                .unwrap()
                 .robust_admissible_action_ids,
             vec!["advance".to_owned(), "retreat".to_owned()]
         );
         assert_eq!(
-            report.outcome_continuations.iter()
-                .find(|item| item.outcome_id == "grip-degraded").unwrap()
+            report
+                .outcome_continuations
+                .iter()
+                .find(|item| item.outcome_id == "grip-degraded")
+                .unwrap()
                 .robust_admissible_action_ids,
             vec!["retreat".to_owned()]
         );
@@ -849,10 +884,16 @@ mod tests {
         problem.viable_states_by_remaining_horizon = vec![
             horizon(3, &["s0"]),
             horizon(2, &[]),
-            horizon(1, &[
-                "grip-good", "grip-degraded", "advance-good",
-                "retreat-good", "retreat-degraded"
-            ]),
+            horizon(
+                1,
+                &[
+                    "grip-good",
+                    "grip-degraded",
+                    "advance-good",
+                    "retreat-good",
+                    "retreat-degraded",
+                ],
+            ),
         ];
         for branch in &mut problem.branches {
             branch.intermediate_states = vec![TimedState {
@@ -864,10 +905,14 @@ mod tests {
         let report = evaluate_probe_continuation(&problem).expect("valid branch timing");
         assert!(!report.admitted);
         assert_eq!(
-            report.violations.iter().filter(|violation| matches!(
-                violation,
-                ProbeViolation::IntermediateStateOutsideViableOrRecoverySet { .. }
-            )).count(),
+            report
+                .violations
+                .iter()
+                .filter(|violation| matches!(
+                    violation,
+                    ProbeViolation::IntermediateStateOutsideViableOrRecoverySet { .. }
+                ))
+                .count(),
             2
         );
     }
@@ -880,20 +925,30 @@ mod tests {
             kind: ObservationKind::Unknown,
         });
         for branch in &mut problem.branches {
-            branch.physically_possible_observation_ids.push("unknown".to_owned());
+            branch
+                .physically_possible_observation_ids
+                .push("unknown".to_owned());
             branch.joint_probability_ppb_by_outcome.push(0);
         }
 
         let report = evaluate_probe_continuation(&problem).expect("unknown outcome fixture");
         assert!(report.admitted);
-        let unknown = report.outcome_continuations.iter()
-            .find(|item| item.outcome_id == "unknown").unwrap();
+        let unknown = report
+            .outcome_continuations
+            .iter()
+            .find(|item| item.outcome_id == "unknown")
+            .unwrap();
         assert!(unknown.is_unknown);
         assert_eq!(unknown.probability_ppb, 0);
-        assert_eq!(unknown.robust_admissible_action_ids, vec!["retreat".to_owned()]);
+        assert_eq!(
+            unknown.robust_admissible_action_ids,
+            vec!["retreat".to_owned()]
+        );
 
         let mut no_fallback = problem;
-        no_fallback.continuation_actions.retain(|action| !action.fallback_only);
+        no_fallback
+            .continuation_actions
+            .retain(|action| !action.fallback_only);
         let report = evaluate_probe_continuation(&no_fallback).expect("well-formed no fallback");
         assert!(!report.admitted);
         assert!(report.violations.iter().any(|violation| matches!(
@@ -937,8 +992,7 @@ mod tests {
     #[test]
     fn state_cannot_be_classified_as_both_viable_and_recovery() {
         let mut problem = safe_problem();
-        problem.recovery_states_by_remaining_horizon =
-            vec![horizon(2, &["grip-good"])];
+        problem.recovery_states_by_remaining_horizon = vec![horizon(2, &["grip-good"])];
         assert_eq!(
             evaluate_probe_continuation(&problem),
             Err(ProbeContinuationError::StateInBothViableAndRecoverySet)
@@ -967,9 +1021,11 @@ mod tests {
         let base = evaluate_probe_continuation(&safe_problem()).expect("base result");
         let mut expanded = safe_problem();
         expanded.viable_states_by_remaining_horizon[1]
-            .state_ids.push("retreat-weak".to_owned());
+            .state_ids
+            .push("retreat-weak".to_owned());
         expanded.viable_states_by_remaining_horizon[2]
-            .state_ids.push("grip-weak".to_owned());
+            .state_ids
+            .push("grip-weak".to_owned());
         expanded.branches.push(ProbeBranch {
             id: "b-extra-zero-mass".to_owned(),
             probability_ppb: 0,
@@ -978,21 +1034,33 @@ mod tests {
             physically_possible_observation_ids: vec!["grip-confirmed".to_owned()],
             joint_probability_ppb_by_outcome: vec![0, 0],
         });
-        expanded.continuation_actions[0].successors_by_state.push(
-            row("grip-weak", &["dead-end"])
-        );
-        expanded.continuation_actions[1].successors_by_state.push(
-            row("grip-weak", &["retreat-weak"])
-        );
+        expanded.continuation_actions[0]
+            .successors_by_state
+            .push(row("grip-weak", &["dead-end"]));
+        expanded.continuation_actions[1]
+            .successors_by_state
+            .push(row("grip-weak", &["retreat-weak"]));
 
         let after = evaluate_probe_continuation(&expanded).expect("expanded result");
         assert!(after.admitted);
-        let before_good = base.outcome_continuations.iter()
-            .find(|item| item.outcome_id == "grip-confirmed").unwrap();
-        let after_good = after.outcome_continuations.iter()
-            .find(|item| item.outcome_id == "grip-confirmed").unwrap();
-        assert_eq!(before_good.robust_admissible_action_ids, vec!["advance".to_owned(), "retreat".to_owned()]);
-        assert_eq!(after_good.robust_admissible_action_ids, vec!["retreat".to_owned()]);
+        let before_good = base
+            .outcome_continuations
+            .iter()
+            .find(|item| item.outcome_id == "grip-confirmed")
+            .unwrap();
+        let after_good = after
+            .outcome_continuations
+            .iter()
+            .find(|item| item.outcome_id == "grip-confirmed")
+            .unwrap();
+        assert_eq!(
+            before_good.robust_admissible_action_ids,
+            vec!["advance".to_owned(), "retreat".to_owned()]
+        );
+        assert_eq!(
+            after_good.robust_admissible_action_ids,
+            vec!["retreat".to_owned()]
+        );
     }
 
     #[test]
@@ -1019,8 +1087,11 @@ mod tests {
         let report = evaluate_probe_continuation(&problem).expect("partial action map");
         assert!(report.admitted);
         assert_eq!(
-            report.outcome_continuations.iter()
-                .find(|item| item.outcome_id == "grip-degraded").unwrap()
+            report
+                .outcome_continuations
+                .iter()
+                .find(|item| item.outcome_id == "grip-degraded")
+                .unwrap()
                 .robust_admissible_action_ids,
             vec!["retreat".to_owned()]
         );
