@@ -254,9 +254,9 @@ fn validate_fixture(fixture: &Fixture) -> Result<(), String> {
         if !matches!(
             case.expected.disposition.as_str(),
             "HEALTHY_WITHIN_DECLARED_SYNTHETIC_SUPPORT"
-                | "SENSOR_FAULT_SUSPECTED"
+                | "SENSOR_FAULT_WITNESS_CONFIRMED"
                 | "STRUCTURAL_DAMAGE_SUSPECTED"
-                | "DAMAGE_AND_SENSOR_FAULT_SUSPECTED"
+                | "DAMAGE_AND_SENSOR_FAULT_WITNESS_CONFIRMED"
                 | "ABSTAIN_AMBIGUOUS_HYPOTHESES"
                 | "ABSTAIN_OUT_OF_MODEL"
                 | "ABSTAIN_INSUFFICIENT_OBSERVABILITY"
@@ -563,7 +563,7 @@ mod tests {
             .unwrap();
         assert_eq!(ambiguous.disposition, "ABSTAIN_AMBIGUOUS_HYPOTHESES");
         assert_eq!(ambiguous.explanation_count, 2);
-        assert!(ambiguous.corrected_values.is_none());
+        assert!(ambiguous.model_imputed_values.is_none());
         assert!(ambiguous.structural_state.is_none());
     }
 
@@ -586,7 +586,7 @@ mod tests {
             .find(|case| case.case_id == "HF_HEALTHY_STRUCTURE_FAULTY_SENSOR")
             .unwrap();
         assert_eq!(hf.disposition, "ABSTAIN_UNQUALIFIED_MEASUREMENT_CHAIN");
-        assert!(hf.corrected_values.is_none());
+        assert!(hf.model_imputed_values.is_none());
     }
 
     #[test]
@@ -633,7 +633,7 @@ mod tests {
             let case = report.cases.iter().find(|case| case.case_id == id).unwrap();
             assert_eq!(case.disposition, disposition);
             assert!(case.structural_state.is_none());
-            assert!(case.corrected_values.is_none());
+            assert!(case.model_imputed_values.is_none());
         }
     }
 
