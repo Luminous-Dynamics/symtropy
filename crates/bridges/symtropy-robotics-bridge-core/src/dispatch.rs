@@ -14,7 +14,10 @@
 //! needs an external transactional authority and is not implemented here.
 
 use crate::assurance::{RuntimeSafetyState, VetoReason};
-use crate::control::ControlRequest;
+use crate::control::{ControlOutcome, ControlRequest};
+use crate::outcome_ledger::{
+    ControlOutcomeLedger, OutcomeLedgerError, OutcomeUpdate,
+};
 use crate::sequence_guard::{SequenceGuardError, SequencedRuntimeAssurance};
 use serde::{Deserialize, Serialize};
 
@@ -116,6 +119,7 @@ pub enum DispatchRejection {
     Runtime(VetoReason),
     Controller(ControllerSubmitError),
     EmptyControllerTicket,
+    OutcomeLedger(OutcomeLedgerError),
 }
 
 /// Status at the adapter submission boundary. Submitted means a controller
@@ -126,6 +130,9 @@ pub enum DispatchStatus {
     Rejected,
     Submitted,
     ControllerFailed,
+    /// The controller accepted the goal, but the local outcome ledger could not bind its ticket.
+    /// The task must be reconciled; this is never equivalent to a successful completion.
+    SubmittedUntracked,
 }
 
 /// Audit receipt for one attempted dispatch. Authentication failures do not
@@ -148,6 +155,7 @@ pub struct DispatchBoundary<A, C> {
     authenticator: A,
     runtime: SequencedRuntimeAssurance,
     controller: C,
+    outcomes: ControlOutcomeLedger,
 }
 
 impl<A, C> DispatchBoundary<A, C>
@@ -160,7 +168,47 @@ where
             authenticator,
             runtime,
             controller,
+            outcomes: ControlOutcomeLedger::default(),
         }
+    }
+
+    /// Construct a boundary with an explicit bound on retained request outcomes.
+    /// Terminal outcomes are not evicted; capacity exhaustion therefore fails closed.
+    pub fn with_outcome_capacity(
+        authenticator: A,
+        runtime: SequencedRuntimeAssurance,
+        controller: C,
+        max_tracked_outcomes: usize,
+    ) -> Result<Self, OutcomeLedgerError> {
+        Ok(Self {
+            authenticator,
+            runtime,
+            controller,
+            outcomes: ControlOutcomeLedger::with_capacity(max_tracked_outcomes)?,
+        })
+    }
+
+    /// Accept a controller outcome only when its session, request ID and ticket
+    /// match a successful submission recorded by this same boundary instance.
+    pub fn record_controller_outcome(
+        &mut self,
+        session_id: u64,
+        controller_ticket: &str,
+        outcome: ControlOutcome,
+    ) -> Result<OutcomeUpdate, OutcomeLedgerError> {
+        self.outcomes.record(session_id, controller_ticket, outcome)
+    }
+
+    pub fn latest_controller_outcome(
+        &self,
+        session_id: u64,
+        request_id: u64,
+    ) -> Option<&ControlOutcome> {
+        self.outcomes.latest(session_id, request_id)
+    }
+
+    pub fn tracked_outcomes(&self) -> usize {
+        self.outcomes.tracked_requests()
     }
 
     /// Authenticate, sequence-check, evaluate safety admission and only then
@@ -225,47 +273,84 @@ where
             };
         }
 
+        // Reserve request identity before the controller side effect. The exclusive
+        // &mut borrow serializes this reservation with ticket binding and outcomes.
+        if let Err(error) = self.outcomes.reserve(session_id, request.request_id) {
+            return DispatchReceipt {
+                request_id: request.request_id,
+                session_id: Some(session_id),
+                sequence,
+                observed_at_s: valid_time(now_s),
+                status: DispatchStatus::Rejected,
+                rejections: vec![DispatchRejection::OutcomeLedger(error)],
+                controller_ticket: None,
+            };
+        }
+
         let dispatch_context = ControllerDispatchContext {
             session_id,
             sequence,
             request,
         };
         match self.controller.submit(&dispatch_context) {
-            Ok(receipt) if !receipt.ticket.trim().is_empty() => DispatchReceipt {
-                request_id: request.request_id,
-                session_id: Some(session_id),
-                sequence,
-                observed_at_s: valid_time(now_s),
-                status: DispatchStatus::Submitted,
-                rejections: Vec::new(),
-                controller_ticket: Some(receipt.ticket),
-            },
-            Ok(_) => DispatchReceipt {
-                request_id: request.request_id,
-                session_id: Some(session_id),
-                sequence,
-                observed_at_s: valid_time(now_s),
-                status: DispatchStatus::ControllerFailed,
-                rejections: vec![DispatchRejection::EmptyControllerTicket],
-                controller_ticket: None,
-            },
-            Err(error) => DispatchReceipt {
-                request_id: request.request_id,
-                session_id: Some(session_id),
-                sequence,
-                observed_at_s: valid_time(now_s),
-                status: match error {
-                    ControllerSubmitError::RejectedByController
-                    | ControllerSubmitError::DeadlineMissed
-                    | ControllerSubmitError::InvalidRequest
-                    | ControllerSubmitError::UnsupportedIntent
-                    | ControllerSubmitError::CapabilityMismatch => DispatchStatus::Rejected,
-                    ControllerSubmitError::ControllerUnavailable
-                    | ControllerSubmitError::InternalFailure => DispatchStatus::ControllerFailed,
-                },
-                rejections: vec![DispatchRejection::Controller(error)],
-                controller_ticket: None,
-            },
+            Ok(receipt) if !receipt.ticket.trim().is_empty() => {
+                let ticket = receipt.ticket;
+                match self
+                    .outcomes
+                    .bind_ticket(session_id, request.request_id, &ticket)
+                {
+                    Ok(()) => DispatchReceipt {
+                        request_id: request.request_id,
+                        session_id: Some(session_id),
+                        sequence,
+                        observed_at_s: valid_time(now_s),
+                        status: DispatchStatus::Submitted,
+                        rejections: Vec::new(),
+                        controller_ticket: Some(ticket),
+                    },
+                    Err(error) => DispatchReceipt {
+                        request_id: request.request_id,
+                        session_id: Some(session_id),
+                        sequence,
+                        observed_at_s: valid_time(now_s),
+                        status: DispatchStatus::SubmittedUntracked,
+                        rejections: vec![DispatchRejection::OutcomeLedger(error)],
+                        controller_ticket: Some(ticket),
+                    },
+                }
+            }
+            Ok(_) => {
+                self.outcomes.release_unsubmitted(session_id, request.request_id);
+                DispatchReceipt {
+                    request_id: request.request_id,
+                    session_id: Some(session_id),
+                    sequence,
+                    observed_at_s: valid_time(now_s),
+                    status: DispatchStatus::ControllerFailed,
+                    rejections: vec![DispatchRejection::EmptyControllerTicket],
+                    controller_ticket: None,
+                }
+            }
+            Err(error) => {
+                self.outcomes.release_unsubmitted(session_id, request.request_id);
+                DispatchReceipt {
+                    request_id: request.request_id,
+                    session_id: Some(session_id),
+                    sequence,
+                    observed_at_s: valid_time(now_s),
+                    status: match error {
+                        ControllerSubmitError::RejectedByController
+                        | ControllerSubmitError::DeadlineMissed
+                        | ControllerSubmitError::InvalidRequest
+                        | ControllerSubmitError::UnsupportedIntent
+                        | ControllerSubmitError::CapabilityMismatch => DispatchStatus::Rejected,
+                        ControllerSubmitError::ControllerUnavailable
+                        | ControllerSubmitError::InternalFailure => DispatchStatus::ControllerFailed,
+                    },
+                    rejections: vec![DispatchRejection::Controller(error)],
+                    controller_ticket: None,
+                }
+            }
         }
     }
 
@@ -301,7 +386,7 @@ mod tests {
         AxisAlignedWorkspace, EmbodimentEnvelope, IntentKind, RuntimeAssuranceGate,
         RuntimeAssurancePolicy,
     };
-    use crate::control::{EmbodiedIntent, Pose3};
+    use crate::control::{ControlOutcome, ControlOutcomeStatus, EmbodiedIntent, Pose3};
     use crate::sequence_guard::RequestSequenceGuard;
     use std::sync::{Arc, Mutex};
 
@@ -757,4 +842,113 @@ mod tests {
         assert_eq!(receipt.status, DispatchStatus::Rejected);
         assert!(boundary.controller().calls.is_empty());
     }
+
+    #[test]
+    fn submitted_is_not_completed_until_ticket_matched_outcome_arrives() {
+        let mut boundary = make_boundary();
+        let receipt = dispatch(
+            &mut boundary,
+            "verified-test-credential",
+            1,
+            &request(119, 11.0, [1.0, 1.0, 2.0], 1.0),
+            10.5,
+            &state(),
+        );
+        assert_eq!(receipt.status, DispatchStatus::Submitted);
+        assert_eq!(receipt.controller_ticket.as_deref(), Some("controller-119"));
+        assert_eq!(boundary.latest_controller_outcome(7, 119), None);
+        assert_eq!(boundary.tracked_outcomes(), 1);
+
+        let accepted = ControlOutcome {
+            request_id: 119,
+            status: ControlOutcomeStatus::Accepted,
+            observed_at_s: 10.6,
+            tick: 1,
+            applied_fraction: 1.0,
+            constraint_codes: Vec::new(),
+            telemetry_refs: vec!["accepted-observation".into()],
+        };
+        assert_eq!(
+            boundary.record_controller_outcome(7, "controller-119", accepted),
+            Ok(OutcomeUpdate::Applied)
+        );
+        let completed = ControlOutcome {
+            request_id: 119,
+            status: ControlOutcomeStatus::Completed,
+            observed_at_s: 10.8,
+            tick: 2,
+            applied_fraction: 1.0,
+            constraint_codes: Vec::new(),
+            telemetry_refs: vec!["independent-completion-evidence".into()],
+        };
+        assert_eq!(
+            boundary.record_controller_outcome(7, "controller-119", completed.clone()),
+            Ok(OutcomeUpdate::Applied)
+        );
+        assert_eq!(
+            boundary.latest_controller_outcome(7, 119),
+            Some(&completed)
+        );
+    }
+
+    #[test]
+    fn duplicate_request_id_cannot_reach_controller_twice_with_new_sequence() {
+        let mut boundary = make_boundary();
+        let first = dispatch(
+            &mut boundary,
+            "verified-test-credential",
+            1,
+            &request(120, 11.0, [1.0, 1.0, 2.0], 1.0),
+            10.5,
+            &state(),
+        );
+        assert_eq!(first.status, DispatchStatus::Submitted);
+
+        let replay = dispatch(
+            &mut boundary,
+            "verified-test-credential",
+            2,
+            &request(120, 11.0, [1.0, 1.0, 2.0], 1.0),
+            10.5,
+            &state(),
+        );
+        assert_eq!(replay.status, DispatchStatus::Rejected);
+        assert_eq!(
+            replay.rejections,
+            vec![DispatchRejection::OutcomeLedger(
+                OutcomeLedgerError::DuplicateRequest
+            )]
+        );
+        assert_eq!(boundary.controller().calls, vec![120]);
+    }
+
+    #[test]
+    fn controller_outcomes_require_the_registered_ticket() {
+        let mut boundary = make_boundary();
+        let receipt = dispatch(
+            &mut boundary,
+            "verified-test-credential",
+            1,
+            &request(121, 11.0, [1.0, 1.0, 2.0], 1.0),
+            10.5,
+            &state(),
+        );
+        assert_eq!(receipt.status, DispatchStatus::Submitted);
+
+        let outcome = ControlOutcome {
+            request_id: 121,
+            status: ControlOutcomeStatus::Completed,
+            observed_at_s: 10.8,
+            tick: 1,
+            applied_fraction: 1.0,
+            constraint_codes: Vec::new(),
+            telemetry_refs: Vec::new(),
+        };
+        assert_eq!(
+            boundary.record_controller_outcome(7, "wrong-ticket", outcome),
+            Err(OutcomeLedgerError::ControllerTicketMismatch)
+        );
+        assert_eq!(boundary.latest_controller_outcome(7, 121), None);
+    }
+
 }
