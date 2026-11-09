@@ -233,8 +233,10 @@ pub fn select_spillover_experiment(
 
         let no_spillover =
             interventional_neighbor_outcome(InterferenceWorld::NoSpillover, option.experiment);
-        let positive_spillover =
-            interventional_neighbor_outcome(InterferenceWorld::PositiveSpillover, option.experiment);
+        let positive_spillover = interventional_neighbor_outcome(
+            InterferenceWorld::PositiveSpillover,
+            option.experiment,
+        );
         let total_variation = if no_spillover != positive_spillover {
             1.0
         } else {
@@ -276,18 +278,13 @@ pub fn assess_interference_identifiability(
     budget_units: f64,
     no_spillover_prior: f64,
 ) -> Result<InterferenceIdentifiabilityAssessment, InterferenceError> {
-    let no_spillover_observations =
-        observational_neighbor_outcomes(InterferenceWorld::NoSpillover);
+    let no_spillover_observations = observational_neighbor_outcomes(InterferenceWorld::NoSpillover);
     let positive_spillover_observations =
         observational_neighbor_outcomes(InterferenceWorld::PositiveSpillover);
-    let observationally_equivalent =
-        no_spillover_observations == positive_spillover_observations;
+    let observationally_equivalent = no_spillover_observations == positive_spillover_observations;
 
-    let selected_experiment = select_spillover_experiment(
-        allowed_experiments,
-        budget_units,
-        no_spillover_prior,
-    )?;
+    let selected_experiment =
+        select_spillover_experiment(allowed_experiments, budget_units, no_spillover_prior)?;
     let status = if selected_experiment.is_some() {
         InterferenceAssessmentStatus::DiscriminatingExperimentAvailable
     } else {
@@ -346,10 +343,7 @@ mod tests {
         ] {
             assert_eq!(
                 interventional_neighbor_outcome(InterferenceWorld::NoSpillover, experiment),
-                interventional_neighbor_outcome(
-                    InterferenceWorld::PositiveSpillover,
-                    experiment
-                )
+                interventional_neighbor_outcome(InterferenceWorld::PositiveSpillover, experiment)
             );
             assert_eq!(expected_information_gain_bits(experiment, 0.5), Ok(0.0));
         }
@@ -390,7 +384,10 @@ mod tests {
         let selected = select_spillover_experiment(&options, 1.0, 0.5)
             .unwrap()
             .unwrap();
-        assert_eq!(selected.experiment, InterferenceExperiment::TreatNeighborOnly);
+        assert_eq!(
+            selected.experiment,
+            InterferenceExperiment::TreatNeighborOnly
+        );
         assert_eq!(selected.total_variation, 1.0);
         assert_eq!(selected.expected_information_gain_bits, 1.0);
         assert_eq!(selected.information_gain_bits_per_cost, 1.0);
@@ -425,10 +422,7 @@ mod tests {
             experiment: InterferenceExperiment::TreatNeighborOnly,
             cost_units: 1.0,
         }];
-        assert_eq!(
-            select_spillover_experiment(&probe, 0.5, 0.5).unwrap(),
-            None
-        );
+        assert_eq!(select_spillover_experiment(&probe, 0.5, 0.5).unwrap(), None);
         assert_eq!(
             expected_information_gain_bits(InterferenceExperiment::TreatNeighborOnly, f64::NAN),
             Err(InterferenceError::InvalidPrior)
