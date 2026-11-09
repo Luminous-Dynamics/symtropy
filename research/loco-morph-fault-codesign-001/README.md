@@ -243,3 +243,36 @@ The machine-readable corpus is [fixtures/design_candidates_v0_1.json](fixtures/d
 ## Claim ceiling
 
 This is a design and validation protocol, not a morphology performance result. A microrobot perturbation recovery rate, simulation optimization, single-leg mechanism prototype or short hardware demo does not establish whole-quadruped arbitrary-fault tolerance. Only directly measured, exact hardware cells supported by #4358 and the #4340 conjunction may be called qualified.
+
+## 11. Executable finite Rust V0 reference
+
+The standalone dependency-free Rust crate validates one frozen design campaign and computes a **non-dominated candidate set** without weighted aggregation.
+
+Input binds:
+- exact campaign, mission, fault manifest, terrain manifest, metric schema, comparison stratum and evidence tier;
+- each candidate's morphology, categorical topology, actuator/transmission/power/sensing architecture identities;
+- categorical design axes as explicit labels (never interpolated);
+- a complete vector of fixed integer metric values;
+- five independent gate statuses: robust viability, recovery, adverse-outcome safety, energy/thermal reserve and runtime assurance;
+- explicit hard metric constraints such as maximum mass or minimum faulted-task success.
+
+A candidate is eligible only when every gate is exactly Valid and every hard constraint passes. Rejected, Unknown or Invalid evidence never receives a Pareto rank. Eligible candidates are compared using exact direction-aware componentwise dominance across the declared metric vector. A candidate is removed only if another eligible candidate is no worse on every declared metric and strictly better on at least one.
+
+The report retains all ineligible candidates and their gate/constraint reasons, eligible IDs, Pareto IDs, pairwise dominance relations and categorical design-axis metadata. It does not invent a scalar score, compare evidence tiers, infer topology mappings or compute physical viability.
+
+Seven deterministic Rust tests cover:
+- nominal-specialist vs degraded-robust design trade-off remains non-dominated;
+- strict all-metric domination removes a candidate;
+- superior metrics cannot bypass Unknown viability;
+- different support topologies remain categorical metadata;
+- simulation/hardware context mismatch is rejected;
+- missing/duplicate metric rows are rejected;
+- mass hard limit removes a candidate before Pareto comparison.
+
+Qualification commands:
+
+    cargo fmt --manifest-path research/loco-morph-fault-codesign-001/Cargo.toml -- --check
+    cargo test --manifest-path research/loco-morph-fault-codesign-001/Cargo.toml --locked
+    cargo clippy --manifest-path research/loco-morph-fault-codesign-001/Cargo.toml --locked --all-targets -- -D warnings
+
+The exact-head Rust 1.96 workflow is authoritative. It qualifies finite comparison and hard-gate semantics over supplied measurements only; it does not validate the CAD model, fault physics, actuator maps, labels, upstream evidence authenticity or physical safety.
