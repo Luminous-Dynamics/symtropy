@@ -1327,7 +1327,8 @@ mod tests {
     #[test]
     fn model_family_count_does_not_treat_duplicate_family_as_independent_evidence() {
         let mut candidate = manifest();
-        candidate.models[1].model_family_id = candidate.models[0].model_family_id.clone();
+        let shared_family_id = candidate.models[0].model_family_id.clone();
+        candidate.models[1].model_family_id = shared_family_id;
         let report = analyze_model_set_decisions(&candidate, &complete_outcomes()).unwrap();
         assert_eq!(report.qualified_model_count, 2);
         assert_eq!(report.distinct_qualified_model_family_count, 1);
