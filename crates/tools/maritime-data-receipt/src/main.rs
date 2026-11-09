@@ -1321,8 +1321,9 @@ mod tests {
     fn synthetic_non_observation_domain_delegates_time_semantics_to_its_profile() {
         let bytes = include_bytes!("../tests/fixtures/synthetic-plsci-receipt.json");
         let parsed = parse_strict(bytes).expect("synthetic PLSCI receipt JSON");
-        let facts = validate_receipt(&parsed)
-            .expect("non-observation synthetic series may define its period in its product profile");
+        let facts = validate_receipt(&parsed).expect(
+            "non-observation synthetic series may define its period in its product profile",
+        );
         assert_eq!(facts.domain, "other");
     }
 
