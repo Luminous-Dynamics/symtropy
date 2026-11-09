@@ -122,6 +122,7 @@ pub struct VisibilityProbeResult {
     pub surface_id: String,
     pub triangle_id: String,
     pub point: Point3,
+    pub normal: Point3,
     pub represented_area_m2: f64,
     pub visibility: SurfaceVisibility,
     pub views: Vec<ViewObservation>,
@@ -378,6 +379,8 @@ fn observe_from_view(
     view: &VisibilityView,
     probe: &VisibilityProbe,
     occluders: &[OccluderTriangle],
+    occluder_coverage: OccluderCoverage,
+    profile: VisibilityProfile,
 ) -> Result<ViewObservation, String> {
     let Some((direction, target_distance)) = view_covers_probe(view, probe.point)? else {
         return Ok(ViewObservation {
@@ -388,6 +391,27 @@ fn observe_from_view(
             blocker_distance_m: None,
         });
     };
+
+    let normal = Vec3::from_point(probe.normal);
+    let normal_length = normal.norm();
+    if !normal_length.is_finite() || normal_length <= VECTOR_EPSILON {
+        return Err(format!("probe {} has a zero or invalid normal", probe.probe_id));
+    }
+    let incidence_cosine = normal
+        .scale(1.0 / normal_length)
+        .dot(direction.scale(-1.0));
+    if !incidence_cosine.is_finite() {
+        return Err(format!("probe {} incidence became non-finite", probe.probe_id));
+    }
+    if incidence_cosine <= profile.min_incidence_cosine {
+        return Ok(ViewObservation {
+            view_id: view.view_id.clone(),
+            status: ViewVisibilityStatus::Backface,
+            blocker_kind: None,
+            blocker_triangle_ids: Vec::new(),
+            blocker_distance_m: None,
+        });
+    }
 
     let origin = Vec3::from_point(view.origin);
     let mut nearest_distance: Option<f64> = None;
@@ -415,6 +439,16 @@ fn observe_from_view(
                 Some(_) => {}
             }
         }
+    }
+
+    if occluder_coverage == OccluderCoverage::Incomplete {
+        return Ok(ViewObservation {
+            view_id: view.view_id.clone(),
+            status: ViewVisibilityStatus::Unknown,
+            blocker_kind: None,
+            blocker_triangle_ids: Vec::new(),
+            blocker_distance_m: None,
+        });
     }
 
     if nearest.is_empty() {
@@ -490,6 +524,12 @@ fn aggregate_probe_visibility(views: &[ViewObservation]) -> SurfaceVisibility {
     {
         return SurfaceVisibility::Unknown;
     }
+    if views
+        .iter()
+        .any(|view| view.status == ViewVisibilityStatus::Backface)
+    {
+        return SurfaceVisibility::Backface;
+    }
     let has_self = views
         .iter()
         .any(|view| view.status == ViewVisibilityStatus::SelfOccluded);
@@ -509,6 +549,7 @@ fn visibility_label(value: SurfaceVisibility) -> &'static str {
         SurfaceVisibility::Observable => "observable",
         SurfaceVisibility::SelfOccluded => "self_occluded",
         SurfaceVisibility::ExternallyOccluded => "externally_occluded",
+        SurfaceVisibility::Backface => "backface",
         SurfaceVisibility::OutsideSensorCoverage => "outside_sensor_coverage",
         SurfaceVisibility::Unknown => "unknown",
         SurfaceVisibility::Contradictory => "contradictory",
@@ -581,6 +622,7 @@ fn receipt_digest(
         update_string(&mut hasher, &probe.surface_id);
         update_string(&mut hasher, &probe.triangle_id);
         update_point(&mut hasher, probe.point);
+        update_point(&mut hasher, probe.normal);
         update_f64(&mut hasher, probe.represented_area_m2);
         update_string(&mut hasher, visibility_label(probe.visibility));
         for view in &probe.views {
@@ -589,6 +631,7 @@ fn receipt_digest(
                 &mut hasher,
                 match view.status {
                     ViewVisibilityStatus::Observable => "observable",
+                    ViewVisibilityStatus::Backface => "backface",
                     ViewVisibilityStatus::OutsideSensorCoverage => "outside_sensor_coverage",
                     ViewVisibilityStatus::SelfOccluded => "self_occluded",
                     ViewVisibilityStatus::ExternallyOccluded => "externally_occluded",
