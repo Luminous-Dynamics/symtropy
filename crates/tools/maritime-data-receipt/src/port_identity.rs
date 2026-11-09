@@ -601,8 +601,9 @@ fn run_cli_inner(path: &str, snapshot_paths: Option<(&str, &str)>) -> Result<(),
     // typed metadata validator; the second parse cannot hide duplicate keys
     // because the exact same bytes already passed the strict pass.
     let _strict_value = super::parse_strict(&bytes)?;
-    let value: Value = serde_json::from_slice(&bytes)
-        .map_err(|error| format!("invalid crosswalk JSON after strict duplicate-key check: {error}"))?;
+    let value: Value = serde_json::from_slice(&bytes).map_err(|error| {
+        format!("invalid crosswalk JSON after strict duplicate-key check: {error}")
+    })?;
     let count = validate_crosswalk(&value).map_err(str::to_owned)?;
     let source = member(&value, "source_snapshot").map_err(str::to_owned)?;
     let registry = member(&value, "locode_registry").map_err(str::to_owned)?;
@@ -657,17 +658,11 @@ fn mutate_path(value: &mut Value, path: &str, mutation: &Value) -> Result<(), &'
             let index = part
                 .parse::<usize>()
                 .map_err(|_| "INVALID_CORPUS_MUTATION")?;
-            let array = current
-                .as_array_mut()
-                .ok_or("INVALID_CORPUS_MUTATION")?;
+            let array = current.as_array_mut().ok_or("INVALID_CORPUS_MUTATION")?;
             current = array.get_mut(index).ok_or("INVALID_CORPUS_MUTATION")?;
         } else {
-            let object = current
-                .as_object_mut()
-                .ok_or("INVALID_CORPUS_MUTATION")?;
-            current = object
-                .get_mut(*part)
-                .ok_or("INVALID_CORPUS_MUTATION")?;
+            let object = current.as_object_mut().ok_or("INVALID_CORPUS_MUTATION")?;
+            current = object.get_mut(*part).ok_or("INVALID_CORPUS_MUTATION")?;
         }
     }
     let leaf = parts[parts.len() - 1];
