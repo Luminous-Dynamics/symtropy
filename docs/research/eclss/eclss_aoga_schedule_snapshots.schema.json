@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/eclss-aoga-schedule-snapshots-v0.1.json",
+  "title": "ECLSS AOGA programme schedule evidence snapshots",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "benchmark_id",
+    "version",
+    "evidence_class",
+    "claim_status",
+    "research_cutoff",
+    "records",
+    "interpretation"
+  ],
+  "properties": {
+    "benchmark_id": {
+      "const": "ECLSS-SUPPORTABILITY-001"
+    },
+    "version": {
+      "const": "0.1.0"
+    },
+    "evidence_class": {
+      "const": "PUBLISHED_PROGRAMME_SCHEDULE_SNAPSHOTS"
+    },
+    "claim_status": {
+      "const": "SCHEDULE_VARIANCE_UNRESOLVED"
+    },
+    "research_cutoff": {
+      "type": "string",
+      "format": "date"
+    },
+    "records": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "record_id",
+          "source",
+          "source_url",
+          "published",
+          "source_type",
+          "milestone",
+          "forecast",
+          "precision",
+          "statement",
+          "status",
+          "notes"
+        ],
+        "properties": {
+          "record_id": {
+            "type": "string",
+            "pattern": "^AOGA-SCHED-[A-Z0-9-]+$"
+          },
+          "source": {
+            "type": "string"
+          },
+          "source_url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "published": {
+            "type": "string"
+          },
+          "source_type": {
+            "enum": [
+              "conference_paper",
+              "conference_paper_abstract_and_metadata",
+              "programme_project_page",
+              "agency_performance_plan"
+            ]
+          },
+          "milestone": {
+            "type": "string"
+          },
+          "forecast": {
+            "type": "string"
+          },
+          "precision": {
+            "enum": [
+              "calendar_year",
+              "calendar_part",
+              "fiscal_year"
+            ]
+          },
+          "statement": {
+            "type": "string"
+          },
+          "status": {
+            "const": "PLANNED"
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "interpretation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "explanation",
+        "required_follow_up"
+      ],
+      "properties": {
+        "status": {
+          "const": "UNRESOLVED_SCHEDULE_VARIANCE"
+        },
+        "explanation": {
+          "type": "string"
+        },
+        "required_follow_up": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}
