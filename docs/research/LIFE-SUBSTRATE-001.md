@@ -577,3 +577,5 @@ Do not turn this RFC into an umbrella that replaces the existing owners. OLI own
 - Symthaea [DUSTY-PLASMA-IDENTIFY-001 #11317](https://github.com/Luminous-Dynamics/symthaea/issues/11317): reproduce the published experimental dusty-plasma particle-force inference and add whole-experiment holdouts. This is a physics benchmark, not a life benchmark.
 - Sol-Atlas [OLI-SPATIAL-001 #691](https://github.com/Luminous-Dynamics/sol-atlas-leptos/issues/691): spatiotemporal observability and false-negative accounting, composing #357 and the methodological pattern in #542.
 - Mycelix composition recorded in [CIVOS-EVIDENCE-001 #5709](https://github.com/Luminous-Dynamics/mycelix/issues/5709): OLI claims and observations map to existing provenance/rights primitives; no second evidence ledger is planned.
+
+- Symtropy [OLI-M0 executable slice draft PR #4428](https://github.com/Luminous-Dynamics/symtropy/pull/4428): six fixtures, v0.1 JSON Schema, Rust semantic validator, root workspace/lockfile registration, and a targeted CI test step. Its CI state must be checked on the exact PR head; a queued run is not qualification evidence.
