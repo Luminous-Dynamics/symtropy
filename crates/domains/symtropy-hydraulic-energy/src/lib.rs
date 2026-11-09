@@ -242,6 +242,14 @@ impl HydraulicInput {
         self.flow_rate
     }
 
+    pub const fn bypass_flow(&self) -> FlowRateM3PerSecond {
+        self.bypass_flow
+    }
+
+    pub const fn flow_balance_tolerance(&self) -> FlowRateM3PerSecond {
+        self.flow_balance_tolerance
+    }
+
     pub const fn gross_head(&self) -> HeadMetres {
         self.gross_head
     }
@@ -946,19 +954,32 @@ mod tests {
     }
 
     #[test]
-    fn zero_flow_produces_zero_power_without_inventing_output() {
+    fn zero_turbine_flow_can_preserve_service_through_the_bypass_without_generation() {
+        let bypass_only = HydraulicInput::new_with_flow_allocation(
+            evidence("FIELD-BYPASS-ONLY-001", EvidenceClass::FieldMeasurement),
+            WaterDensityKgPerM3::new(1_000.0).unwrap(),
+            FlowRateM3PerSecond::new(0.15).unwrap(),
+            FlowRateM3PerSecond::new(0.0).unwrap(),
+            FlowRateM3PerSecond::new(0.15).unwrap(),
+            FlowRateM3PerSecond::new(1e-9).unwrap(),
+            HeadMetres::new(12.0).unwrap(),
+            HeadMetres::new(2.0).unwrap(),
+        )
+        .expect("bypass carries all available water");
+
         let result = evaluate_hydraulic_generation(
-            hydraulic_input(0.0, 12.0, 2.0),
+            bypass_only,
             turbine(),
             generator(0.0),
             service_contract(),
             baseline_service(),
             feasible_candidate_service(),
         )
-        .expect("zero flow is a valid no-generation state");
+        .expect("bypass-only operation is a valid no-generation state");
 
         assert_eq!(result.hydraulic_input_power.get(), 0.0);
         assert_eq!(result.net_candidate_electrical_power.get(), 0.0);
+        assert!(result.water_service.is_feasible());
         assert_eq!(result.service_eligible_net_electrical_power().unwrap().get(), 0.0);
     }
 
