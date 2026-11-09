@@ -1,0 +1,32 @@
+name: Physics Semantic Equivalence
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'research/physics-semantic-equivalence-001/**'
+      - 'schemas/physics/semantic_mapping_receipt_v0_1.schema.json'
+      - '.github/workflows/physics-semantic-equivalence.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'research/physics-semantic-equivalence-001/**'
+      - 'schemas/physics/semantic_mapping_receipt_v0_1.schema.json'
+      - '.github/workflows/physics-semantic-equivalence.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust toolchain
+        run: rustup toolchain install 1.96.0 --profile minimal --component rustfmt --component clippy
+      - name: Check formatting
+        run: cargo +1.96.0 fmt --manifest-path research/physics-semantic-equivalence-001/Cargo.toml -- --check
+      - name: Run semantic admission tests
+        run: cargo +1.96.0 test --manifest-path research/physics-semantic-equivalence-001/Cargo.toml --locked
+      - name: Run strict Clippy
+        run: cargo +1.96.0 clippy --manifest-path research/physics-semantic-equivalence-001/Cargo.toml --locked --all-targets -- -D warnings
