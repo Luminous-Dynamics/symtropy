@@ -66,8 +66,8 @@ None implies the next automatically.
 
 Use the least-cost model that can answer the engineering question, then escalate uncertainty or risk:
 - Symtropy for its validated rigid-body, geometry, custom-dimension and deterministic-scenario use cases.
-- MuJoCo for articulated dynamics, contact-rich control, inverse dynamics and system identification.
-- Newton/Isaac Lab where GPU throughput, differentiable physics, multiphysics or robot-learning infrastructure is appropriate.
+- [MuJoCo](https://mujoco.readthedocs.io/en/stable/overview.html) for articulated dynamics, contact-rich control, inverse dynamics and system identification.
+- [Newton](https://developer.nvidia.com/newton-physics) and Isaac Lab where GPU throughput, differentiable physics, multiphysics or robot-learning infrastructure is appropriate.
 - Rapier/Jolt/other independent engines for differential rigid-body references.
 - Domain-specific FEA/CFD/thermal/electrical tools for specialist analyses.
 
@@ -144,15 +144,15 @@ Track at least:
 - Execution success, wrong-target action rate and recoverability.
 - Map/geometry uncertainty calibration and provenance completeness.
 
-The BEHAVIOR-Spatial October 2026 preprint reports 41.6% held-out configuration success and 16.1% when instructions change while the layout is held fixed. These are benchmark-specific simulated baselines, not universal robot capability numbers. The proposed 70% held-out and 50% changed-instruction milestones are stretch research targets; establish exact task splits, success definitions and confidence intervals before comparing. See [the paper](https://arxiv.org/abs/2610.34051).
+The [BEHAVIOR-Spatial October 2026 preprint](https://arxiv.org/abs/2610.34051) reports 41.6% held-out configuration success and 16.1% when instructions change while the layout is held fixed. These are benchmark-specific simulated baselines, not universal robot capability numbers. The proposed 70% held-out and 50% changed-instruction milestones are stretch research targets; establish exact task splits, success definitions and confidence intervals before comparing.
 
 ### 5.5 Humanoid application readiness
 
-Use NIST's [Humanoid Robot Baseline Performance Benchmark](https://www.nist.gov/el/intelligent-systems-division-73500/humanoid-robot-baseline-performance-benchmark) as a developing baseline proposal, not as a completed certification scheme. Commission independent assessment against Fraunhofer IPA's six areas: capability, complex tasks, cleanroom suitability, functional safety, cybersecurity and energy efficiency.
+Use NIST's [Humanoid Robot Baseline Performance Benchmark](https://www.nist.gov/el/intelligent-systems-division-73500/humanoid-robot-baseline-performance-benchmark) as a developing baseline proposal, not as a completed certification scheme. Commission independent assessment against [Fraunhofer IPA's humanoid benchmark](https://www.ipa.fraunhofer.de/en/press-media/press_releases/benchmark-for-humanoid-robots.html), which divides application readiness into six areas: capability, complex tasks, cleanroom suitability, functional safety, cybersecurity and energy efficiency.
 
 The Fraunhofer G1 evaluation provides a useful duty-cycle reference: the tested EDU-4 configuration reported 2 h 49 min standing and 1 h 49 min for a typical standing/walking scenario. Those values are meaningful only when payload, hands, firmware, gait, speed, floor, temperature and test profile are matched.
 
-DEEP Robotics advertises DR02 full-body IP66 and an operating range of -20°C to +55°C. Treat these as **manufacturer claims and competitive targets**, not independently verified facts about our own design. A Luminous claim requires a complete assembled configuration, a defined test profile and independent test evidence.
+[DEEP Robotics advertises](https://en.deeprobotics.cn/en/index/dr02.html) DR02 full-body IP66 and an operating range of -20°C to +55°C. Treat these as **manufacturer claims and competitive targets**, not independently verified facts about our own design. A Luminous claim requires a complete assembled configuration, a defined test profile and independent test evidence.
 
 ## 6. First physical work package: the rotary-joint cartridge
 
@@ -198,11 +198,11 @@ The first deliverable is a reviewed requirements and interface baseline—not an
 
 ## 8. Standards and interoperability posture
 
-- **ISO 10303-242:2025 (STEP AP242):** managed model-based 3D engineering and product-data exchange. Use it as a CAD/PMI/configuration exchange format where supported; it does not replace the PLM configuration authority. The 2025 edition is published; successor revision work is underway.
-- **IEC 81346-14:2026:** structuring and reference designations for manufacturing/processing systems and their technical documentation. It does not assign the serial identity of individual manufactured products; keep product-instance IDs in Luminous PLM.
-- **ISO 23247-6:2026:** digital-twin composition patterns (integrated, unified and federated). This supports composing specialist twins rather than forcing all tools into one simulator.
-- **ISO 10007:2017:** current published configuration-management guidance; a revision is under development. Apply change control, configuration identification, status accounting and audit practices without claiming certification.
-- **ISO/FDIS 13482, Edition 2:** at approval stage 50.20 on 2026-11-09 and intended to replace ISO 13482:2014. It addresses service robots and physical human contact; its scope does not cover industrial or medical robots. Determine the compliance route from intended use and classification rather than assuming one robot standard covers all deployments.
+- **[ISO 10303-242:2025 (STEP AP242)](https://www.iso.org/standard/84300.html):** managed model-based 3D engineering and product-data exchange. Use it as a CAD/PMI/configuration exchange format where supported; it does not replace the PLM configuration authority. The 2025 edition is published; successor revision work is underway.
+- **[IEC 81346-14:2026](https://webstore.iec.ch/en/publication/81613):** structuring and reference designations for manufacturing/processing systems and their technical documentation. It does not assign the serial identity of individual manufactured products; keep product-instance IDs in Luminous PLM.
+- **[ISO 23247-6:2026](https://www.iso.org/standard/87426.html):** digital-twin composition patterns (integrated, unified and federated). This supports composing specialist twins rather than forcing all tools into one simulator.
+- **[ISO 10007:2017](https://www.iso.org/standard/70400.html):** current published configuration-management guidance; a revision is under development. Apply change control, configuration identification, status accounting and audit practices without claiming certification.
+- **[ISO/FDIS 13482, Edition 2](https://www.iso.org/standard/83498.html):** at approval stage 50.20 on 2026-11-09 and intended to replace ISO 13482:2014. It addresses service robots and physical human contact; its scope does not cover industrial or medical robots. Determine the compliance route from intended use and classification rather than assuming one robot standard covers all deployments.
 
 Standards are design inputs. They do not certify the robot or substitute for a competent conformity assessment.
 
