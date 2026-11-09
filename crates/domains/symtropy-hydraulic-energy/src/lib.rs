@@ -673,8 +673,7 @@ pub struct HydraulicGenerationResult {
 impl HydraulicGenerationResult {
     /// Candidate net output is not service-eligible when the water-service gate fails.
     pub fn service_eligible_net_electrical_power(&self) -> Option<PowerWatts> {
-        (self.water_service.is_feasible()
-            && self.evidence_assessment.is_eligible_for_comparison())
+        (self.water_service.is_feasible() && self.evidence_assessment.is_eligible_for_comparison())
             .then_some(self.net_candidate_electrical_power)
     }
 }
@@ -1261,10 +1260,12 @@ mod tests {
 
         assert!(result.water_service.is_feasible());
         assert!(!result.evidence_assessment.is_eligible_for_comparison());
-        assert!(result
-            .evidence_assessment
-            .violations()
-            .contains(&EvidenceViolation::HydraulicInputNotMeasured));
+        assert!(
+            result
+                .evidence_assessment
+                .violations()
+                .contains(&EvidenceViolation::HydraulicInputNotMeasured)
+        );
         assert!(result.credited_net_electrical_power().is_none());
     }
 
@@ -1274,7 +1275,10 @@ mod tests {
             "PAT-REFERENCE-001",
             "rev-a",
             "map-cell-10m-0.1m3s",
-            evidence("PAT-MAP-PUBLISHED-001", EvidenceClass::ManufacturerPublishedMap),
+            evidence(
+                "PAT-MAP-PUBLISHED-001",
+                EvidenceClass::ManufacturerPublishedMap,
+            ),
             HeadMetres::new(5.0).unwrap(),
             HeadMetres::new(15.0).unwrap(),
             FlowRateM3PerSecond::new(0.05).unwrap(),
@@ -1294,9 +1298,12 @@ mod tests {
 
         assert!(result.water_service.is_feasible());
         assert!(!result.evidence_assessment.is_eligible_for_comparison());
-        assert!(result.evidence_assessment.violations().contains(
-            &EvidenceViolation::TurbineMapNotIndependentlyTestedOrGuaranteed
-        ));
+        assert!(
+            result
+                .evidence_assessment
+                .violations()
+                .contains(&EvidenceViolation::TurbineMapNotIndependentlyTestedOrGuaranteed)
+        );
         assert!(result.credited_net_electrical_power().is_none());
     }
 
