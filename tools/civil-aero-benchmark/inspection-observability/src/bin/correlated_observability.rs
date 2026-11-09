@@ -1,7 +1,7 @@
 // Copyright (C) 2026 Luminous Dynamics
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //
-// Tier-0 synthetic correlated-observation observability oracle.
+// Tier-0 synthetic correlated and fault-tolerant observability oracle.
 // This is not a structural solver, SHM detector, or aircraft safety tool.
 
 use serde::{Deserialize, Serialize};
@@ -9,8 +9,7 @@ use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 use std::fs;
 
-const FIXTURE: &[u8] =
-    include_bytes!("../../fixtures/correlated-observability-v0.1.json");
+const FIXTURE: &[u8] = include_bytes!("../../fixtures/correlated-observability-v0.1.json");
 const RANK_REL_TOL: f64 = 1.0e-12;
 const SYMMETRY_REL_TOL: f64 = 1.0e-12;
 const CHOLESKY_REL_TOL: f64 = 1.0e-14;
@@ -26,6 +25,12 @@ struct Parameter {
 struct Sensor {
     id: String,
     observation_row: Vec<f64>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+struct FailureGroup {
+    id: String,
+    sensor_ids: Vec<String>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -45,20 +50,37 @@ struct ModelInput {
     parameters: Vec<Parameter>,
     sensors: Vec<Sensor>,
     noise_covariance: NoiseCovariance,
+    common_cause_groups: Vec<FailureGroup>,
     select_count: usize,
+    maximum_simultaneous_failure_domains: usize,
+}
+
+#[derive(Clone, Debug, Serialize, PartialEq)]
+struct ScenarioMetrics {
+    scenario_id: String,
+    failed_sensor_ids: Vec<String>,
+    retained_sensor_ids: Vec<String>,
+    rank: usize,
+    fisher_information: Vec<Vec<f64>>,
+    minimum_eigenvalue: f64,
+    log_determinant: Option<f64>,
+    diagonal_assumption_minimum_eigenvalue: f64,
+    diagonal_assumption_log_determinant: Option<f64>,
 }
 
 #[derive(Clone, Debug, Serialize, PartialEq)]
 struct SubsetMetrics {
     sensor_ids: Vec<String>,
-    rank: usize,
-    nullity: usize,
-    fisher_information: Vec<Vec<f64>>,
-    eigenvalues_ascending: Vec<f64>,
-    minimum_eigenvalue: f64,
-    log_determinant: Option<f64>,
+    nominal_rank: usize,
+    nominal_minimum_eigenvalue: f64,
+    nominal_log_determinant: Option<f64>,
     diagonal_assumption_minimum_eigenvalue: f64,
     diagonal_assumption_log_determinant: Option<f64>,
+    robustly_feasible: bool,
+    worst_case_minimum_eigenvalue: Option<f64>,
+    worst_case_log_determinant: Option<f64>,
+    limiting_scenario_id: String,
+    scenario_metrics: Vec<ScenarioMetrics>,
 }
 
 #[derive(Clone, Debug, Serialize, PartialEq)]
@@ -78,14 +100,25 @@ struct Report {
     channel_ids: Vec<String>,
     candidate_sensor_count: usize,
     select_count: usize,
+    failure_scenario_count: usize,
     subset_count: usize,
-    full_rank_subset_count: usize,
-    full_covariance_d_optimal_selection: Option<Selection>,
-    full_covariance_e_optimal_selection: Option<Selection>,
-    diagonal_assumption_d_optimal_selection: Option<Selection>,
-    diagonal_assumption_e_optimal_selection: Option<Selection>,
+    robustly_feasible_subset_count: usize,
+    nominal_full_covariance_d_optimal_selection: Option<Selection>,
+    nominal_full_covariance_e_optimal_selection: Option<Selection>,
+    nominal_diagonal_assumption_d_optimal_selection: Option<Selection>,
+    nominal_diagonal_assumption_e_optimal_selection: Option<Selection>,
+    robust_full_covariance_d_optimal_selection: Option<Selection>,
+    robust_full_covariance_e_optimal_selection: Option<Selection>,
+    robust_diagonal_assumption_d_optimal_selection: Option<Selection>,
+    robust_diagonal_assumption_e_optimal_selection: Option<Selection>,
     subsets: Vec<SubsetMetrics>,
     claim_ceiling: String,
+}
+
+#[derive(Clone, Debug)]
+struct FailureScenario {
+    id: String,
+    failed_sensor_ids: BTreeSet<String>,
 }
 
 fn sha256_hex(data: &[u8]) -> String {
@@ -217,7 +250,10 @@ fn information(
     rows: &[Vec<f64>],
     covariance: &[Vec<f64>],
 ) -> Result<Vec<Vec<f64>>, String> {
-    if rows.is_empty() || rows.len() != covariance.len() {
+    if rows.is_empty() {
+        return Ok(vec![vec![0.0, 0.0], vec![0.0, 0.0]]);
+    }
+    if rows.len() != covariance.len() {
         return Err("observation/covariance dimension mismatch".to_owned());
     }
     let lower = cholesky(covariance)?;
@@ -276,6 +312,13 @@ fn validate(input: &ModelInput) -> Result<(), String> {
     if input.select_count < 2 || input.select_count > input.sensors.len() {
         return Err("select_count must be in 2..=candidate sensor count".to_owned());
     }
+    if input.common_cause_groups.len() > 32 {
+        return Err("common-cause group count exceeds 32".to_owned());
+    }
+    if input.maximum_simultaneous_failure_domains != 1 {
+        return Err("v0.1 admits exactly one failed sensor or one common-cause group".to_owned());
+    }
+
     let mut parameter_ids = BTreeSet::new();
     for parameter in &input.parameters {
         if parameter.id.trim().is_empty() || !parameter_ids.insert(parameter.id.as_str()) {
@@ -340,7 +383,124 @@ fn validate(input: &ModelInput) -> Result<(), String> {
         }
     }
     cholesky(&covariance.matrix)?;
+
+    let mut group_ids = BTreeSet::new();
+    for group in &input.common_cause_groups {
+        if group.id.trim().is_empty() || !group_ids.insert(group.id.as_str()) {
+            return Err("common-cause group IDs must be non-empty and unique".to_owned());
+        }
+        if group.sensor_ids.len() < 2 {
+            return Err(format!(
+                "common-cause group {} must contain at least two sensors",
+                group.id
+            ));
+        }
+        let mut members = BTreeSet::new();
+        for sensor_id in &group.sensor_ids {
+            if !sensor_ids.iter().any(|known| known == sensor_id) {
+                return Err(format!(
+                    "group {} references unknown sensor {}",
+                    group.id, sensor_id
+                ));
+            }
+            if !members.insert(sensor_id.as_str()) {
+                return Err(format!(
+                    "group {} contains duplicate sensor {}",
+                    group.id, sensor_id
+                ));
+            }
+        }
+    }
     Ok(())
+}
+
+fn failure_scenarios(input: &ModelInput) -> Vec<FailureScenario> {
+    let mut sensors: Vec<String> = input.sensors.iter().map(|sensor| sensor.id.clone()).collect();
+    sensors.sort();
+    let mut groups = input.common_cause_groups.clone();
+    groups.sort_by(|a, b| a.id.cmp(&b.id));
+    let mut result = vec![FailureScenario {
+        id: "none".to_owned(),
+        failed_sensor_ids: BTreeSet::new(),
+    }];
+    for sensor_id in sensors {
+        result.push(FailureScenario {
+            id: format!("single_sensor:{sensor_id}"),
+            failed_sensor_ids: BTreeSet::from([sensor_id]),
+        });
+    }
+    for group in groups {
+        result.push(FailureScenario {
+            id: format!("common_cause:{}", group.id),
+            failed_sensor_ids: group.sensor_ids.into_iter().collect(),
+        });
+    }
+    result
+}
+
+fn scenario_metrics(
+    input: &ModelInput,
+    chosen_indices: &[usize],
+    scenario: &FailureScenario,
+    scales: &[f64; 2],
+) -> Result<ScenarioMetrics, String> {
+    let retained_indices: Vec<usize> = chosen_indices
+        .iter()
+        .copied()
+        .filter(|index| !scenario.failed_sensor_ids.contains(&input.sensors[*index].id))
+        .collect();
+    let retained_sensor_ids: Vec<String> = retained_indices
+        .iter()
+        .map(|index| input.sensors[*index].id.clone())
+        .collect();
+    let rows: Vec<Vec<f64>> = retained_indices
+        .iter()
+        .map(|index| {
+            vec![
+                input.sensors[*index].observation_row[0] * scales[0],
+                input.sensors[*index].observation_row[1] * scales[1],
+            ]
+        })
+        .collect();
+    if rows.iter().flatten().any(|value| !value.is_finite()) {
+        return Err("scaled observation row overflowed".to_owned());
+    }
+    let covariance: Vec<Vec<f64>> = retained_indices
+        .iter()
+        .map(|i| {
+            retained_indices
+                .iter()
+                .map(|j| input.noise_covariance.matrix[*i][*j])
+                .collect()
+        })
+        .collect();
+    let diagonal_covariance: Vec<Vec<f64>> = (0..retained_indices.len())
+        .map(|i| {
+            (0..retained_indices.len())
+                .map(|j| if i == j { covariance[i][i] } else { 0.0 })
+                .collect()
+        })
+        .collect();
+
+    let rank = rank_of(&rows);
+    let fisher = information(&rows, &covariance)?;
+    let diagonal_fisher = information(&rows, &diagonal_covariance)?;
+    let eigenvalues = symmetric_eigenvalues_2x2(&fisher)?;
+    let diagonal_eigenvalues = symmetric_eigenvalues_2x2(&diagonal_fisher)?;
+    let mut failed_sensor_ids: Vec<String> = scenario.failed_sensor_ids.iter().cloned().collect();
+    failed_sensor_ids.sort();
+
+    Ok(ScenarioMetrics {
+        scenario_id: scenario.id.clone(),
+        failed_sensor_ids,
+        retained_sensor_ids,
+        rank,
+        fisher_information: fisher.clone(),
+        minimum_eigenvalue: eigenvalues[0],
+        log_determinant: log_determinant(&fisher, rank),
+        diagonal_assumption_minimum_eigenvalue: diagonal_eigenvalues[0],
+        diagonal_assumption_log_determinant: log_determinant(&diagonal_fisher, rank),
+    })
 }
 
 fn combinations(
@@ -370,120 +530,129 @@ fn selection_better(candidate: &Selection, previous: &Selection) -> bool {
             && candidate.sensor_ids < previous.sensor_ids)
 }
 
+fn select_best(
+    subsets: &[SubsetMetrics],
+    robust: bool,
+    objective_is_d: bool,
+    diagonal: bool,
+) -> Option<Selection> {
+    let mut best: Option<Selection> = None;
+    for subset in subsets {
+        if robust && !subset.robustly_feasible {
+            continue;
+        }
+        let value = if robust {
+            if objective_is_d {
+                subset.worst_case_log_determinant?
+            } else {
+                subset.worst_case_minimum_eigenvalue?
+            }
+        } else if diagonal {
+            if objective_is_d {
+                subset.diagonal_assumption_log_determinant?
+            } else if subset.nominal_rank == 2 {
+                subset.diagonal_assumption_minimum_eigenvalue
+            } else {
+                continue;
+            }
+        } else if objective_is_d {
+            match subset.nominal_log_determinant {
+                Some(value) => value,
+                None => continue,
+            }
+        } else if subset.nominal_rank == 2 {
+            subset.nominal_minimum_eigenvalue
+        } else {
+            continue;
+        };
+
+        let candidate = Selection {
+            sensor_ids: subset.sensor_ids.clone(),
+            objective_value: value,
+        };
+        if best
+            .as_ref()
+            .is_none_or(|previous| selection_better(&candidate, previous))
+        {
+            best = Some(candidate);
+        }
+    }
+    best
+}
+
 fn evaluate(input: &ModelInput, source_sha256: &str) -> Result<Report, String> {
     validate(input)?;
     let scales = [input.parameters[0].scale, input.parameters[1].scale];
-    let sensors = &input.sensors;
+    let scenarios = failure_scenarios(input);
     let mut index_sets = Vec::new();
     combinations(
         0,
         input.select_count,
-        sensors.len(),
+        input.sensors.len(),
         &mut Vec::new(),
         &mut index_sets,
     );
 
     let mut subsets = Vec::with_capacity(index_sets.len());
     for indices in index_sets {
-        let sensor_ids: Vec<String> = indices.iter().map(|index| sensors[*index].id.clone()).collect();
-        let rows: Vec<Vec<f64>> = indices
+        let sensor_ids: Vec<String> = indices
             .iter()
-            .map(|index| {
-                vec![
-                    sensors[*index].observation_row[0] * scales[0],
-                    sensors[*index].observation_row[1] * scales[1],
-                ]
-            })
+            .map(|index| input.sensors[*index].id.clone())
             .collect();
-        if rows.iter().flatten().any(|value| !value.is_finite()) {
-            return Err("scaled observation row overflowed".to_owned());
+        let mut metrics = Vec::with_capacity(scenarios.len());
+        for scenario in &scenarios {
+            metrics.push(scenario_metrics(input, &indices, scenario, &scales)?);
         }
-
-        let covariance: Vec<Vec<f64>> = indices
+        let nominal = metrics
             .iter()
-            .map(|i| {
-                indices
-                    .iter()
-                    .map(|j| input.noise_covariance.matrix[*i][*j])
-                    .collect()
-            })
-            .collect();
-        let diagonal_covariance: Vec<Vec<f64>> = (0..indices.len())
-            .map(|i| {
-                (0..indices.len())
-                    .map(|j| if i == j { covariance[i][i] } else { 0.0 })
-                    .collect()
-            })
-            .collect();
-
-        let rank = rank_of(&rows);
-        let fisher = information(&rows, &covariance)?;
-        let diagonal_fisher = information(&rows, &diagonal_covariance)?;
-        let eigenvalues = symmetric_eigenvalues_2x2(&fisher)?;
-        let diagonal_eigenvalues = symmetric_eigenvalues_2x2(&diagonal_fisher)?;
+            .find(|metric| metric.scenario_id == "none")
+            .ok_or_else(|| "nominal failure scenario missing".to_owned())?;
+        let robustly_feasible = metrics.iter().all(|metric| metric.rank == 2);
+        let mut limiting = metrics
+            .first()
+            .cloned()
+            .ok_or_else(|| "failure scenario set must not be empty".to_owned())?;
+        for metric in metrics.iter().skip(1) {
+            if metric.minimum_eigenvalue < limiting.minimum_eigenvalue - TIE_TOL
+                || ((metric.minimum_eigenvalue - limiting.minimum_eigenvalue).abs() <= TIE_TOL
+                    && metric.scenario_id < limiting.scenario_id)
+            {
+                limiting = metric.clone();
+            }
+        }
+        let worst_case_log_determinant = if robustly_feasible {
+            metrics
+                .iter()
+                .map(|metric| metric.log_determinant)
+                .collect::<Option<Vec<f64>>>()
+                .and_then(|values| values.into_iter().reduce(f64::min))
+        } else {
+            None
+        };
         subsets.push(SubsetMetrics {
             sensor_ids,
-            rank,
-            nullity: 2 - rank,
-            fisher_information: fisher.clone(),
-            eigenvalues_ascending: eigenvalues.to_vec(),
-            minimum_eigenvalue: eigenvalues[0],
-            log_determinant: log_determinant(&fisher, rank),
-            diagonal_assumption_minimum_eigenvalue: diagonal_eigenvalues[0],
-            diagonal_assumption_log_determinant: log_determinant(&diagonal_fisher, rank),
+            nominal_rank: nominal.rank,
+            nominal_minimum_eigenvalue: nominal.minimum_eigenvalue,
+            nominal_log_determinant: nominal.log_determinant,
+            diagonal_assumption_minimum_eigenvalue: nominal.diagonal_assumption_minimum_eigenvalue,
+            diagonal_assumption_log_determinant: nominal.diagonal_assumption_log_determinant,
+            robustly_feasible,
+            worst_case_minimum_eigenvalue: if robustly_feasible {
+                Some(limiting.minimum_eigenvalue)
+            } else {
+                None
+            },
+            worst_case_log_determinant,
+            limiting_scenario_id: limiting.scenario_id,
+            scenario_metrics: metrics,
         });
     }
 
-    let mut full_d: Option<Selection> = None;
-    let mut full_e: Option<Selection> = None;
-    let mut diagonal_d: Option<Selection> = None;
-    let mut diagonal_e: Option<Selection> = None;
-    for subset in &subsets {
-        if let Some(value) = subset.log_determinant {
-            let candidate = Selection {
-                sensor_ids: subset.sensor_ids.clone(),
-                objective_value: value,
-            };
-            if full_d.as_ref().is_none_or(|previous| selection_better(&candidate, previous)) {
-                full_d = Some(candidate);
-            }
-        }
-        if subset.rank == 2 {
-            let candidate = Selection {
-                sensor_ids: subset.sensor_ids.clone(),
-                objective_value: subset.minimum_eigenvalue,
-            };
-            if full_e.as_ref().is_none_or(|previous| selection_better(&candidate, previous)) {
-                full_e = Some(candidate);
-            }
-        }
-        if let Some(value) = subset.diagonal_assumption_log_determinant {
-            let candidate = Selection {
-                sensor_ids: subset.sensor_ids.clone(),
-                objective_value: value,
-            };
-            if diagonal_d
-                .as_ref()
-                .is_none_or(|previous| selection_better(&candidate, previous))
-            {
-                diagonal_d = Some(candidate);
-            }
-        }
-        if subset.rank == 2 {
-            let candidate = Selection {
-                sensor_ids: subset.sensor_ids.clone(),
-                objective_value: subset.diagonal_assumption_minimum_eigenvalue,
-            };
-            if diagonal_e
-                .as_ref()
-                .is_none_or(|previous| selection_better(&candidate, previous))
-            {
-                diagonal_e = Some(candidate);
-            }
-        }
-    }
+    let robustly_feasible_subset_count = subsets
+        .iter()
+        .filter(|subset| subset.robustly_feasible)
+        .count();
 
-    let full_rank_subset_count = subsets.iter().filter(|subset| subset.rank == 2).count();
     Ok(Report {
         schema_version: input.schema_version.clone(),
         model_id: input.model_id.clone(),
@@ -492,16 +661,22 @@ fn evaluate(input: &ModelInput, source_sha256: &str) -> Result<Report, String> {
         covariance_provenance: input.covariance_provenance.clone(),
         covariance_unit: input.noise_covariance.unit.clone(),
         channel_ids: input.noise_covariance.channel_ids.clone(),
-        candidate_sensor_count: sensors.len(),
+        candidate_sensor_count: input.sensors.len(),
         select_count: input.select_count,
+        failure_scenario_count: scenarios.len(),
         subset_count: subsets.len(),
-        full_rank_subset_count,
-        full_covariance_d_optimal_selection: full_d,
-        full_covariance_e_optimal_selection: full_e,
-        diagonal_assumption_d_optimal_selection: diagonal_d,
-        diagonal_assumption_e_optimal_selection: diagonal_e,
+        robustly_feasible_subset_count,
+        nominal_full_covariance_d_optimal_selection: select_best(&subsets, false, true, false),
+        nominal_full_covariance_e_optimal_selection: select_best(&subsets, false, false, false),
+        nominal_diagonal_assumption_d_optimal_selection: select_best(&subsets, false, true, true),
+        nominal_diagonal_assumption_e_optimal_selection: select_best(&subsets, false, false, true),
+        robust_full_covariance_d_optimal_selection: select_best(&subsets, true, true, false),
+        robust_full_covariance_e_optimal_selection: select_best(&subsets, true, false, false),
+        robust_diagonal_assumption_d_optimal_selection: select_best(&subsets, true, true, true),
+        robust_diagonal_assumption_e_optimal_selection: select_best(&subsets, true, false, true),
         subsets,
-        claim_ceiling: "synthetic_full_covariance_local_observability_only".to_owned(),
+        claim_ceiling: "synthetic_full_covariance_single_failure_domain_observability_only"
+            .to_owned(),
     })
 }
 
@@ -528,44 +703,32 @@ mod tests {
     }
 
     #[test]
-    fn full_covariance_changes_the_known_answer() {
+    fn joint_covariance_and_failure_known_answer() {
         let result = evaluate_bytes(FIXTURE).expect("fixture must evaluate");
         assert_eq!(result.subset_count, 15);
-        assert_eq!(result.full_rank_subset_count, 15);
-        let d = result.full_covariance_d_optimal_selection.unwrap();
-        assert_eq!(d.sensor_ids, vec!["S_A", "S_C", "S_E", "S_F"]);
-        assert!((d.objective_value - 4.7011019227948365).abs() < 1.0e-9);
-        let e = result.full_covariance_e_optimal_selection.unwrap();
-        assert_eq!(e.sensor_ids, vec!["S_A", "S_B", "S_E", "S_F"]);
-        assert!((e.objective_value - 8.542911483435994).abs() < 1.0e-9);
+        assert_eq!(result.failure_scenario_count, 10);
+        assert_eq!(result.robustly_feasible_subset_count, 12);
+        let nominal_d = result.nominal_full_covariance_d_optimal_selection.unwrap();
+        assert_eq!(nominal_d.sensor_ids, vec!["S_A", "S_C", "S_E", "S_F"]);
+        let nominal_e = result.nominal_full_covariance_e_optimal_selection.unwrap();
+        assert_eq!(nominal_e.sensor_ids, vec!["S_A", "S_B", "S_E", "S_F"]);
+        let robust_d = result.robust_full_covariance_d_optimal_selection.unwrap();
+        assert_eq!(robust_d.sensor_ids, vec!["S_A", "S_C", "S_E", "S_F"]);
+        assert!((robust_d.objective_value - 3.2252963926711233).abs() < 1.0e-9);
+        let robust_e = result.robust_full_covariance_e_optimal_selection.unwrap();
+        assert_eq!(robust_e.sensor_ids, vec!["S_A", "S_C", "S_E", "S_F"]);
+        assert!((robust_e.objective_value - 2.906088177643904).abs() < 1.0e-9);
+        let naive_nominal_d = result.nominal_diagonal_assumption_d_optimal_selection.unwrap();
+        assert_eq!(naive_nominal_d.sensor_ids, vec!["S_A", "S_B", "S_C", "S_D"]);
+        let naive_robust_d = result.robust_diagonal_assumption_d_optimal_selection.unwrap();
+        assert_eq!(naive_robust_d.sensor_ids, vec!["S_A", "S_C", "S_E", "S_F"]);
     }
 
     #[test]
-    fn diagonal_independence_assumption_changes_the_placement() {
-        let result = evaluate_bytes(FIXTURE).expect("fixture must evaluate");
-        let d = result.diagonal_assumption_d_optimal_selection.unwrap();
-        assert_eq!(d.sensor_ids, vec!["S_A", "S_B", "S_C", "S_D"]);
-        let e = result.diagonal_assumption_e_optimal_selection.unwrap();
-        assert_eq!(e.sensor_ids, vec!["S_A", "S_B", "S_C", "S_D"]);
-        assert_ne!(
-            d.sensor_ids,
-            result.full_covariance_d_optimal_selection.unwrap().sensor_ids
-        );
-        assert_ne!(
-            e.sensor_ids,
-            result.full_covariance_e_optimal_selection.unwrap().sensor_ids
-        );
-    }
-
-    #[test]
-    fn covariance_identity_order_must_match_sensor_order() {
+    fn covariance_channel_order_and_matrix_contract_fail_closed() {
         let mut value = input();
         value.noise_covariance.channel_ids.swap(0, 1);
         assert!(validate(&value).is_err());
-    }
-
-    #[test]
-    fn non_symmetric_or_non_positive_definite_covariance_rejects() {
         let mut value = input();
         value.noise_covariance.matrix[0][1] += 0.01;
         assert!(validate(&value).is_err());
@@ -576,18 +739,39 @@ mod tests {
     }
 
     #[test]
-    fn rank_deficiency_never_yields_a_full_rank_selection() {
+    fn malformed_common_cause_groups_reject() {
+        let mut value = input();
+        value.common_cause_groups[0].sensor_ids.push("UNKNOWN".to_owned());
+        assert!(validate(&value).is_err());
+        let mut value = input();
+        value.common_cause_groups[0]
+            .sensor_ids
+            .push(value.common_cause_groups[0].sensor_ids[0].clone());
+        assert!(validate(&value).is_err());
+    }
+
+    #[test]
+    fn diagonal_noise_is_not_equivalent_to_full_covariance() {
+        let result = evaluate_bytes(FIXTURE).unwrap();
+        assert_ne!(
+            result.nominal_full_covariance_d_optimal_selection.unwrap().sensor_ids,
+            result.nominal_diagonal_assumption_d_optimal_selection.unwrap().sensor_ids
+        );
+        assert_ne!(
+            result.nominal_full_covariance_e_optimal_selection.unwrap().sensor_ids,
+            result.nominal_diagonal_assumption_e_optimal_selection.unwrap().sensor_ids
+        );
+    }
+
+    #[test]
+    fn rank_deficiency_prevents_robust_selection() {
         let mut value = input();
         for sensor in &mut value.sensors {
             sensor.observation_row = vec![1.0, 0.0];
         }
         let result = evaluate(&value, &sha256_hex(b"rank-deficient")).unwrap();
-        assert_eq!(result.full_rank_subset_count, 0);
-        assert!(result.full_covariance_d_optimal_selection.is_none());
-        assert!(result.full_covariance_e_optimal_selection.is_some());
-        assert_eq!(
-            result.full_covariance_e_optimal_selection.unwrap().objective_value,
-            0.0
-        );
+        assert_eq!(result.robustly_feasible_subset_count, 0);
+        assert!(result.robust_full_covariance_d_optimal_selection.is_none());
+        assert!(result.robust_full_covariance_e_optimal_selection.is_none());
     }
 }
