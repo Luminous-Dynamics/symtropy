@@ -153,3 +153,25 @@ cargo run --manifest-path tools/bh-reference-fixtures/Cargo.toml -- analyze-cont
 The JSON report includes the fitted exponent `p`, log-fit RMS, span in `log(M kappa)`, slope standard error, exact-extremal damping, nearest-subextremal damping, sample count, and whether the independently computed class matches the producer label.
 
 The default classifier requires four subextremal points over at least one natural-log unit of surface-gravity span. It calls zero damping only when the fitted exponent is at least 0.7 and the exact-extremal damping is at or below `1e-5`; it calls finite damping only when the exponent is at most 0.25 and the exact damping exceeds `1e-5`. The middle region or a poorly fitting trend remains `Ambiguous`; missing or invalid data remains `Unresolved`. These are declared initial engineering thresholds, not universal theoretical boundaries. Always report the full config, fit interval, sample values, residuals and uncertainty with any physical conclusion.
+
+## Sheet-scoped argument-principle contour counts
+
+`QnmContourCountFixture` preserves a bounded complex-frequency contour together with the complex characteristic-function samples used to count its zeros. Every contour is tied to a fixed `(s, ell, m, a/M)`, angular eigenvalue convention/branch, Riemann sheet, Fourier convention and characteristic-function ID. A contour on or crossing an unresolved frequency cut is rejected; split it into separate sheet-specific contours.
+
+The fixture carries two independently sampled counter-clockwise grids. For each grid the analyzer checks:
+
+- all frequency samples lie on the declared circle and make exactly one counter-clockwise traversal;
+- the frequency and characteristic-function phase steps stay below configured anti-aliasing limits;
+- the characteristic function does not approach zero on the contour;
+- the total characteristic phase closes to an integer winding number;
+- coarse and fine grids yield the same winding;
+- all enumerated roots and known poles lie safely inside the declared domain and satisfy their residual limits;
+- the argument-principle identity `N_zeros = winding + N_poles` reconciles with the enumerated root multiplicities.
+
+```sh
+cargo run --manifest-path tools/bh-reference-fixtures/Cargo.toml -- analyze-contour-count qnm-contour-count.json
+```
+
+Exit code `0` means the enumerated roots reconcile with the two-resolution winding count **within that bounded circular domain, angular branch and Riemann sheet**. Exit code `5` means the stable count and enumerated roots disagree; exit code `6` means sampling, phase closure, boundary proximity or another numerical condition is unresolved.
+
+This is a reproducible numerical argument-principle check, not an interval-arithmetic certificate and not a global spectral completeness claim. A valid report must preserve the contour domain, sheet, angular branch, resolution IDs, sample arrays, known poles, roots, characteristic-function identity and tolerances. The exact-extremal HeunD spectral reproduction and contour-count references are tracked in #4415.
