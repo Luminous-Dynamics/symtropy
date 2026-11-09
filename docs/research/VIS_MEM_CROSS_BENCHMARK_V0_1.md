@@ -494,3 +494,95 @@ Release policy: no heuristic should be promoted because it wins this constructed
 
 
 **Evaluation validity correction (VIS-MEM-021):** a source review found that the first experiment draft placed the online query's evaluator `truth_revision` inside the event passed to memory replay, affecting its historical-value score. That mechanism was removed before qualification: online query events now contain only the key; the historical-label-based policies were removed; and a cost-aware source-metadata policy replaced them. One future query trace is sampled only after all matched policy snapshots are frozen. The exact-head Rust workflow checks those semantics through typed interfaces, tests, schema counts, and deterministic replay. The queued workflow has not qualified the result yet.
+
+
+---
+
+## External robotics memory benchmark update — 2026-11-09
+
+This addendum updates the research-source landscape after the original 2026-10-22 snapshot. It does not replace the native protocols above, and no result below is a Symtropy result.
+
+### New source: MOST — object-state and task-progress memory
+
+**Paper date:** 2026-10-31.  
+**Source:** https://arxiv.org/abs/2611.00734
+
+MOST supervises policy-internal temporal memory using object-state changes and subtask progress, then directly conditions action generation. It compares against Xiaomi-Robotics-1 and a matched visual-history variant.
+
+Paper-reported results:
+- RoboCasa365 average success: 65.9% for Xiaomi-Robotics-1 to 72.1% for MOST.
+- RoboCasa-Long average maximum task progress: 20.83% to 42.22%.
+- Real-world success: 6.66% for Xiaomi-Robotics-1, 36.66% for MOST-Raw visual history, and 43.33% for MOST.
+
+**Physical-evaluation limitation:** the paper reports 10 trials per method per task on three count-conditioned banana-transfer variants using a Galbot G1 in a fixed-base configuration. The base did not navigate between rooms; the robot rotated its waist between pickup and placement tables. These results are strong motivation for progress-aware memory, but are not evidence of mobile navigation, diverse-object transfer, multi-site reliability, or production readiness.
+
+**Comparability limitation:** the paper's RoboCasa365 average is not the same evaluation protocol as the public RoboCasa365 50-task leaderboard snapshot. Do not compare MOST's 72.1% directly with that board's 85.6% top score. Freeze exact tasks, checkpoints, seeds, evaluators and training data before any matched claim.
+
+### New benchmark: RoboCasa-Mem — environment and process memory
+
+**Paper date:** 2026-11-04.  
+**Paper:** https://arxiv.org/abs/2611.06475  
+**Code:** https://github.com/SiHhangChen/RoboCasa-Mem  
+**Project:** https://sihhangchen.github.io/RoboCasa-Mem/
+
+The paper introduces nine mobile-manipulation tasks split across:
+- **Environment memory:** spatial locations, object attributes and object relationships.
+- **Process memory:** single-task progress and multi-task scheduling.
+
+Its behavior-conditioned evaluation derives later task constraints from the robot's own earlier actions in tasks with multiple valid execution paths. The paper reports 1,800 successful demonstrations and a Hierarchical Memory-Augmented Policy baseline.
+
+This is a particularly strong fit for the Symtropy VIS-MEM programme because it distinguishes genuine history dependence from simply making a task longer. Before execution, pin the exact code/data revisions and audit dataset, asset, simulator and checkpoint rights. The paper and project pages are not by themselves a license grant for every dependency or training artifact.
+
+### BEHAVIOR-1K 2026 challenge update
+
+**Official challenge page:** https://behavior.stanford.edu/challenge/index.html
+
+The 2026 challenge specifies 100 full-length household tasks across seven scenes, including four new scenes, using RGB, depth and proprioception. The page lists 20,000 teleoperation demonstrations (1,950 hours), with pi0.5 and GR00T N1.7 baselines. Submissions closed 2026-10-16; winners were announced 2026-11-04; CoRL 2026 runs 2026-11-09 through 2026-11-12.
+
+This is a long-horizon task benchmark, not a memory-isolation benchmark. Use it for full-task robustness and transfer only after pinning the official leaderboard artifacts and evaluation version. Do not infer the winner or score from the challenge announcement page alone.
+
+### Integration into the existing VIS-MEM PR train
+
+These sources should route into existing ownership rather than create another memory subsystem:
+
+| Existing owner | New connection |
+|---|---|
+| VIS-MEM-008 #2572 / PR #2574 | Storage, update, compression, freshness, provenance and bounded-memory lifecycle |
+| VIS-MEM-009 #2583 / PR #2592 | Paired history interventions: relevant sensitivity, irrelevant invariance, stale rejection, memory knockout and lookalike histories |
+| VIS-MEM-010 #2590 / PR #2591 | Cross-benchmark routing, exact benchmark manifests and claim-preserving result import |
+| VIS-MEM-015 PR #2633 | Causal benefit/harm admission and memory-required vs memory-irrelevant task separation |
+| VIS-MEM-016 PR #2637 | Fixed-budget interference and memory-cost accounting |
+| Symthaea #11231 / PR #11240 | External benchmark audit and machine-readable source snapshot |
+| Mycelix #5985 / PR #5990 | Exact physical asset/configuration and lifecycle event provenance |
+
+### Proposed RoboCasa-Mem adapter plan
+
+1. Freeze upstream code commit, asset/data revision, task registry, demonstration manifest, evaluation wrapper, HMAP baseline and all applicable licenses.
+2. Preserve the native nine-task split and native scoring. Do not synthesize a cross-benchmark aggregate.
+3. Add two task-state projections as candidate Luminous policies:
+   - Environment state: object identity, attributes, relations, map/location/frame, last observation, uncertainty and source provenance.
+   - Process state: subtask graph, prior actions and observed outcomes, completed/reversed milestones, resource state and scheduling constraints.
+4. Compare, under matched model/backbone, training data, inference budget and seeds:
+   - memoryless/reactive policy;
+   - raw visual-history baseline;
+   - fixed-window/recurrent baseline;
+   - source-time-aware episodic memory;
+   - task-state memory (MOST-like ablation);
+   - environment + process memory (HMAP-like comparison);
+   - a bounded hybrid with explicit evidence/currentness and abstention.
+5. Keep hidden evaluator state and future behavior-conditioned constraints outside the acting policy. The policy may only consume observations and valid history it actually acquired.
+6. Add paired intervention cases: relevant memory changed, irrelevant memory changed, stale revision, contradictory same-entity evidence, history reset/restart, and alternate valid action sequences.
+7. Report task success, milestone progress, correct decision under history intervention, stale/contradiction handling, recovery/abstention, memory size, query/write latency, inference cost and failure taxonomy separately.
+
+### Research questions worth testing
+
+- Does explicit object-state and subtask-progress memory beat unstructured visual history at the same compute and memory budget?
+- Does a spatial map help when the object is out of view, the robot changes room, or multiple similar objects exist?
+- Does the policy correctly distinguish action-commanded, action-dispatched, action-completed and physical-effect-observed states?
+- Can the same memory preserve progress across interruption and restart without accepting stale or contradictory state?
+- Does memory help only where historical information is causally necessary, while leaving fully observable/reactive controls invariant?
+- Does environment/process memory transfer to different robot embodiments, tools and scenes, or is the gain tied to the paper's training setup?
+
+### Non-claims
+
+These public papers and challenge definitions are research inputs, not reproduced results. They establish no Symtropy SOTA rank, no physical qualification, and no proof that a particular memory architecture is generally superior. Preserve native protocols, rights and claim ceilings.
