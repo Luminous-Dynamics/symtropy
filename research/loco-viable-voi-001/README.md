@@ -97,7 +97,7 @@ Viability-conditioned decision value:
 }
 \]
 
-V0 should use integer fixed-point probabilities and losses with checked wide-integer arithmetic. The exact numerator denominator is (S^2) for probability×loss when loss is in integer units; no floating-point normalization or rounding may enter the reference decision. EIG/Fisher comparators are computed and reported separately; they do not enter this result.
+V0 uses integer fixed-point joint probability mass and loss units, both on scale S = 10^9, with checked wide-integer arithmetic. Each unnormalized expected-loss numerator is sum(J_ppb * L_ppb), on scale S²; divide by S to obtain expected loss in ppb units. The difference between passive and post-probe numerators is the exact viable-VOI numerator; divide by S² for normalized loss units. No floating-point normalization or rounding may enter the reference decision. EIG/Fisher comparators are computed and reported separately; they do not enter this result.
 
 The probe is evaluated only when every physical branch and every intermediate latency state passes the upstream robust gate and all observation outcomes have an admitted continuation/fallback. If an outcome has no admitted action, the probe is rejected/Unknown before ranking; do not assign an arbitrarily huge loss to make an unsafe action merely unattractive.
 
@@ -131,18 +131,10 @@ All methods get the same priors, physical branches, observations, calibration, l
 4. Fisher-information ranking after identical hard gates.
 5. Fixed-state VOI #4272 followed by the #4293 continuation gate (critical ablation).
 6. Viability-conditioned VOI using outcome-specific (S_y) and (A_R(y)).
-7. Short-rollout context inference / meta-RL adaptation (e.g. ARER-MetaRL-style fault-context embedding and policy reconfiguration), with identical probe duration, energy, actuator/risk budget and post-probe horizon; compare its adapted action only after the same upstream viability/continuation admission.
-8. Robust viability-only selection without information objective.
-9. EIG-only without post-probe viability as a negative control only; never a deployment controller.
+7. Robust viability-only selection without information objective.
+8. EIG-only without post-probe viability as a negative control only; never a deployment controller.
 
 Selectors cannot access hidden truth, evaluator-only fields, true branch IDs or future observations.
-
-
-
-### Current SOTA comparators added in 2026
-
-- **ARER-MetaRL under locked-joint faults** (Wu et al., PLOS One 21(10), e0361099, published 16 Oct 2026): context encoding from a short rollout, modular policy routing and regularized fast adaptation. In Isaac Sim only, 12-DoF quadruped, 1000 Hz physics/50 Hz control; meta-training covers 0–3 locked joints, severity tests up to six. Paper-reported MELV/MERP are 0.86/0.84 at one locked joint and 0.55/0.54 at six, versus single-task RL 0.21/0.18 and 0.05/0.03. This paper explicitly defers hardware, reduced-torque, intermittent-fault and freely-swinging-joint tests. Use it as a short-context adaptation baseline; its context inference does not certify that the chosen probe or adapted action remains viable. https://doi.org/10.1371/journal.pone.0361099
-- **Quadruped UED curriculum benchmark** (Gilewicz et al., arXiv:2610.40364, 29 Oct 2026): 14 curricula across five quadruped morphologies with an eight-dimensional terrain space, matched PPO environment steps and five seeds. Its evaluation adds held-out structured terrain, cross-fitted CVaR25, per-feature 50%-success capability envelopes and level-wise domination. The in-distribution random-terrain leader differs from the held-out leader on Go1, Go2 and Barkour. Use its method matrix and held-out protocol when evaluating where probes/adaptive curricula should collect information, but do not conflate a success envelope with a robust viability/recovery certificate. https://arxiv.org/abs/2610.40364
 
 ## 7. Frozen known-answer and falsification corpus
 
@@ -189,6 +181,73 @@ Do not collapse viability, recovery, calibration, decision value, energy and com
 ## 10. Claim ceiling
 
 V0 qualifies exact composition arithmetic and evidence/admission semantics for supplied finite inputs. It does not validate physical likelihoods/losses, prove upstream viability soundness, authenticate receipts, establish continuous-time safety or demonstrate real-world locomotion superiority. Simulation, biological and hardware results remain separate evidence tiers.
+
+
+## 11. Executable finite Rust V0 reference
+
+The standalone dependency-free Rust crate in this directory consumes:
+- an upstream probe-admission receipt and status from the robust probe-continuation layer;
+- complete physical branch/outcome possibility pairs and hypothesis/branch support pairs;
+- one complete joint mass cube over hypothesis × branch × outcome;
+- upstream outcome-specific robust continuation action sets and their evidence receipts;
+- passive/no-probe action losses and post-probe action/hypothesis/branch/outcome losses;
+- explicit energy, time, actuator and risk resource usage/limits.
+
+It returns one of three gate dispositions before any probability ranking:
+- physical rejected (with upstream witness);
+- physical Unknown (with reason);
+- resource rejected (with the hard-limit dimension).
+
+Only when those gates pass does it evaluate the passive baseline and the outcome-specific admitted continuation choices. The joint mass cube must be complete and sum exactly to the fixed-point scale. A positive joint cell must be supported by both the declared hypothesis/branch support and physical branch/outcome possibility relation. Zero-mass physical branches remain in the upstream robust gate.
+
+Unknown outcomes require an explicit fallback, and the fallback must be the only action exposed for that unknown outcome. Decision losses are evaluated only for the upstream admitted action IDs. No fallback or action set is synthesized by this crate.
+
+The V0 Rust tests cover:
+- exact passive risk 0.5, post-probe risk 0.1 and gross viability-conditioned VOI 0.4;
+- exact probe-receipt branch inventory binding and a fresh passive/no-probe receipt;
+- rejection of loss rows for actions not admitted by upstream continuation evidence;
+- physical rejection short-circuit before decision ranking;
+- retention of Unknown outcome mass and explicit fallback;
+- energy hard-limit rejection before ranking;
+- positive mass assigned to a physically impossible cell;
+- missing outcome continuation evidence;
+- invalid Unknown fallback action set;
+- permutation invariance;
+- stale continuation receipt rejection.
+
+Qualification commands:
+
+    cargo fmt --manifest-path research/loco-viable-voi-001/Cargo.toml -- --check
+    cargo test --manifest-path research/loco-viable-voi-001/Cargo.toml --locked
+    cargo clippy --manifest-path research/loco-viable-voi-001/Cargo.toml --locked --all-targets -- -D warnings
+
+The exact-head workflow is authoritative for Rust 1.96. A green result qualifies finite arithmetic and supplied evidence-composition semantics only; it does not authenticate upstream receipts, prove robust viability or validate physical likelihoods, losses or resource measurements.
+
+
+### Additional evidence and mass invariants added after first CI inspection
+
+The Rust reference now additionally requires:
+- a separate fresh, state/model/domain/horizon-bound receipt for the passive/no-probe comparator;
+- exact equality between the upstream probe receipt's branch inventory and the branch inventory being evaluated;
+- the hypothesis marginal of the full joint mass cube to equal the declared passive prior for every hypothesis (the probe cannot silently change the prior);
+- every passive and continuation loss row to reference a known key and an admitted action, with duplicate and foreign keys rejected;
+- a physically rejected probe to short-circuit before mass/decision computation even when a physical branch has zero probability mass; the branch remains in the upstream physical possibility inventory.
+
+For joint mass and loss both scaled by (S=10^9), the unnormalized risk numerator and VOI numerator are on scale (S^2), not (S^3). Normalized loss/VOI is obtained by division by (S^2). The reference uses checked integer arithmetic.
+
+
+### Exact-head compile corrections and current test inventory
+
+The standalone crate's current Rust module contains 16 deterministic tests. In addition to the initial composition cases, it explicitly checks:
+- probe-receipt branch inventory equality;
+- a fresh context-bound passive/no-probe receipt;
+- rejection of loss rows for unadmitted actions;
+- equality of every joint-mass hypothesis marginal to the passive prior;
+- rejection of unknown hypothesis/branch/outcome loss keys;
+- zero-probability branches still being retained by the physical rejection gate;
+- rejection of foreign passive-loss rows.
+
+The finite joint mass and loss scale are each (S=10^9), so the expected-loss and VOI numerators are (S^2)-scaled. The Rust report field is named accordingly. These tests qualify only the composition contract over supplied finite evidence.
 
 
 ### Exact joint possibility support
