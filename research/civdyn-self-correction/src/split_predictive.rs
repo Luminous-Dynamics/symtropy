@@ -127,6 +127,15 @@ impl From<AdequacyError> for SplitPredictiveError {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct SingleSpcRequest<'a> {
+    pub role: SplitRole,
+    pub statistic_id: &'a str,
+    pub independent_unit_id: &'a str,
+    pub tail: SpcTail,
+    pub seed: u64,
+}
+
 /// Compute one randomized single-SPC rank for a declared held-out statistic.
 ///
 /// Predictive replicates must be conditioned on the exact calibration digest
@@ -137,12 +146,15 @@ pub fn single_split_predictive_check(
     manifest: &SplitManifest,
     observations: &[ObservedStatistic],
     draws: &[PredictiveDraw],
-    role: SplitRole,
-    statistic_id: &str,
-    independent_unit_id: &str,
-    tail: SpcTail,
-    seed: u64,
+    request: SingleSpcRequest<'_>,
 ) -> Result<SingleSpcResult, SplitPredictiveError> {
+    let SingleSpcRequest {
+        role,
+        statistic_id,
+        independent_unit_id,
+        tail,
+        seed,
+    } = request;
     if role == SplitRole::Calibration {
         return Err(SplitPredictiveError::CalibrationRoleNotAllowed);
     }
@@ -581,11 +593,13 @@ mod tests {
                     &manifest,
                     &observations,
                     &draws,
-                    SplitRole::Validation,
-                    "basin-water-flow",
-                    unit,
-                    SpcTail::Lower,
-                    42,
+                    SingleSpcRequest {
+                        role: SplitRole::Validation,
+                        statistic_id: "basin-water-flow",
+                        independent_unit_id: unit,
+                        tail: SpcTail::Lower,
+                        seed: 42,
+                    },
                 )
                 .expect("valid single SPC")
             })
@@ -611,13 +625,33 @@ mod tests {
         let observations = observations();
         let draws = draws();
         let lower = single_split_predictive_check(
-            &registry, &manifest, &observations, &draws, SplitRole::Validation,
-            "basin-water-flow", "region-a", SpcTail::Lower, 42
-        ).expect("lower tail SPC");
+            &registry,
+            &manifest,
+            &observations,
+            &draws,
+            SingleSpcRequest {
+                role: SplitRole::Validation,
+                statistic_id: "basin-water-flow",
+                independent_unit_id: "region-a",
+                tail: SpcTail::Lower,
+                seed: 42,
+            },
+        )
+        .expect("lower tail SPC");
         let upper = single_split_predictive_check(
-            &registry, &manifest, &observations, &draws, SplitRole::Validation,
-            "basin-water-flow", "region-a", SpcTail::Upper, 42
-        ).expect("upper tail SPC");
+            &registry,
+            &manifest,
+            &observations,
+            &draws,
+            SingleSpcRequest {
+                role: SplitRole::Validation,
+                statistic_id: "basin-water-flow",
+                independent_unit_id: "region-a",
+                tail: SpcTail::Upper,
+                seed: 42,
+            },
+        )
+        .expect("upper tail SPC");
         assert!((lower.predictive_p_value + upper.predictive_p_value - 1.0).abs() < 1e-12);
     }
 
@@ -625,8 +659,17 @@ mod tests {
     fn rejects_calibration_partition_for_a_predictive_check() {
         assert!(matches!(
             single_split_predictive_check(
-                &registry(), &manifest(), &observations(), &draws(), SplitRole::Calibration,
-                "basin-water-flow", "region-a", SpcTail::Lower, 42
+                &registry(),
+                &manifest(),
+                &observations(),
+                &draws(),
+                SingleSpcRequest {
+                    role: SplitRole::Calibration,
+                    statistic_id: "basin-water-flow",
+                    independent_unit_id: "region-a",
+                    tail: SpcTail::Lower,
+                    seed: 42,
+                },
             ),
             Err(SplitPredictiveError::CalibrationRoleNotAllowed)
         ));
@@ -640,8 +683,17 @@ mod tests {
         }
         assert!(matches!(
             single_split_predictive_check(
-                &registry(), &manifest(), &observations(), &foreign_draws,
-                SplitRole::Validation, "basin-water-flow", "region-a", SpcTail::Lower, 42
+                &registry(),
+                &manifest(),
+                &observations(),
+                &foreign_draws,
+                SingleSpcRequest {
+                    role: SplitRole::Validation,
+                    statistic_id: "basin-water-flow",
+                    independent_unit_id: "region-a",
+                    tail: SpcTail::Lower,
+                    seed: 42,
+                },
             ),
             Err(SplitPredictiveError::Adequacy(
                 AdequacyError::CalibrationDigestMismatch { .. }
@@ -657,8 +709,17 @@ mod tests {
         });
         assert!(matches!(
             single_split_predictive_check(
-                &registry(), &manifest(), &observations(), &short_draws, SplitRole::Validation,
-                "basin-water-flow", "region-a", SpcTail::Lower, 42
+                &registry(),
+                &manifest(),
+                &observations(),
+                &short_draws,
+                SingleSpcRequest {
+                    role: SplitRole::Validation,
+                    statistic_id: "basin-water-flow",
+                    independent_unit_id: "region-a",
+                    tail: SpcTail::Lower,
+                    seed: 42,
+                },
             ),
             Err(SplitPredictiveError::InsufficientPredictiveDraws { .. })
         ));
@@ -709,24 +770,24 @@ mod tests {
 
     #[test]
     fn divided_spc_rejects_mixed_model_statistic_or_tail() {
-        let mut checks = checks();
-        checks[1].model_digest = "sha256-other-model".to_string();
+        let mut receipts = checks();
+        receipts[1].model_digest = "sha256-other-model".to_string();
         assert!(matches!(
-            divided_split_predictive_check(&manifest(), SplitRole::Validation, &checks, 999, 1),
+            divided_split_predictive_check(&manifest(), SplitRole::Validation, &receipts, 999, 1),
             Err(SplitPredictiveError::MixedModelIdentities)
         ));
 
-        let mut checks = checks();
-        checks[1].statistic_id = "other-statistic".to_string();
+        let mut receipts = checks();
+        receipts[1].statistic_id = "other-statistic".to_string();
         assert!(matches!(
-            divided_split_predictive_check(&manifest(), SplitRole::Validation, &checks, 999, 1),
+            divided_split_predictive_check(&manifest(), SplitRole::Validation, &receipts, 999, 1),
             Err(SplitPredictiveError::MixedStatisticIdentities)
         ));
 
-        let mut checks = checks();
-        checks[1].tail = SpcTail::Upper;
+        let mut receipts = checks();
+        receipts[1].tail = SpcTail::Upper;
         assert!(matches!(
-            divided_split_predictive_check(&manifest(), SplitRole::Validation, &checks, 999, 1),
+            divided_split_predictive_check(&manifest(), SplitRole::Validation, &receipts, 999, 1),
             Err(SplitPredictiveError::MixedTailDirections)
         ));
     }
@@ -743,17 +804,17 @@ mod tests {
 
     #[test]
     fn divided_spc_rejects_mixed_source_and_measurement_identities() {
-        let mut checks = checks();
-        checks[1].source_digest = "sha256-other-source".to_string();
+        let mut receipts = checks();
+        receipts[1].source_digest = "sha256-other-source".to_string();
         assert!(matches!(
-            divided_split_predictive_check(&manifest(), SplitRole::Validation, &checks, 999, 1),
+            divided_split_predictive_check(&manifest(), SplitRole::Validation, &receipts, 999, 1),
             Err(SplitPredictiveError::MixedSourceIdentities)
         ));
 
-        let mut checks = checks();
-        checks[1].measurement_unit = "kWh".to_string();
+        let mut receipts = checks();
+        receipts[1].measurement_unit = "kWh".to_string();
         assert!(matches!(
-            divided_split_predictive_check(&manifest(), SplitRole::Validation, &checks, 999, 1),
+            divided_split_predictive_check(&manifest(), SplitRole::Validation, &receipts, 999, 1),
             Err(SplitPredictiveError::MixedMeasurementUnits)
         ));
     }
