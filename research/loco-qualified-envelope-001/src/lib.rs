@@ -408,7 +408,12 @@ fn evaluate_viability(
 ) -> ViabilityClass {
     let Some(evidence) = evidence else {
         blockers.insert(Blocker::EvidenceIncompleteOrUnknown);
-        push_witness(witnesses, "viability", None, "robust viability/recovery evidence is missing");
+        push_witness(
+            witnesses,
+            "viability",
+            None,
+            "robust viability/recovery evidence is missing",
+        );
         return ViabilityClass::Missing;
     };
     if !check_header(&evidence.header, cell, now_ns, blockers, witnesses) {
@@ -480,7 +485,12 @@ fn evaluate_performance(
 ) -> PerformanceClass {
     let Some(evidence) = evidence else {
         blockers.insert(Blocker::EvidenceIncompleteOrUnknown);
-        push_witness(witnesses, "performance", None, "held-out performance evidence is missing");
+        push_witness(
+            witnesses,
+            "performance",
+            None,
+            "held-out performance evidence is missing",
+        );
         return PerformanceClass::Missing;
     };
     if !check_header(&evidence.header, cell, now_ns, blockers, witnesses) {
@@ -542,7 +552,12 @@ fn evaluate_safety(
     let Some(evidence) = evidence else {
         blockers.insert(Blocker::EvidenceIncompleteOrUnknown);
         blockers.insert(Blocker::SafetyMeasurementIncomplete);
-        push_witness(witnesses, "safety", None, "adverse-outcome evidence is missing");
+        push_witness(
+            witnesses,
+            "safety",
+            None,
+            "adverse-outcome evidence is missing",
+        );
         return Ok(SafetyClass::Missing);
     };
     if !check_header(&evidence.header, cell, now_ns, blockers, witnesses) {
@@ -660,7 +675,12 @@ fn evaluate_energy(
 ) -> ResourceClass {
     let Some(evidence) = evidence else {
         blockers.insert(Blocker::EvidenceIncompleteOrUnknown);
-        push_witness(witnesses, "energy", None, "recovery reserve evidence is missing");
+        push_witness(
+            witnesses,
+            "energy",
+            None,
+            "recovery reserve evidence is missing",
+        );
         return ResourceClass::Missing;
     };
     if !check_header(&evidence.header, cell, now_ns, blockers, witnesses) {
@@ -773,13 +793,11 @@ fn primary_disposition(
     if viability == ViabilityClass::Rejected && performance == PerformanceClass::Pass {
         return PrimaryDisposition::EmpiricallyCapableButNotRobustlyCertified;
     }
-    if viability == ViabilityClass::AdmittedAndRecoverable
-        && performance == PerformanceClass::Fail
+    if viability == ViabilityClass::AdmittedAndRecoverable && performance == PerformanceClass::Fail
     {
         return PrimaryDisposition::RobustlyAdmittedButPerformanceInsufficient;
     }
-    if viability != ViabilityClass::AdmittedAndRecoverable
-        && performance != PerformanceClass::Pass
+    if viability != ViabilityClass::AdmittedAndRecoverable && performance != PerformanceClass::Pass
     {
         return PrimaryDisposition::MultipleHardRequirementsFailed;
     }
@@ -811,7 +829,9 @@ pub fn qualify_operating_cell(
         baseline.measurement_complete
             && nonempty(&baseline.identity.controller_digest)
             && baseline.identity.controller_digest != problem.cell.controller_digest
-            && baseline.identity.same_scenario_except_controller(&problem.cell)
+            && baseline
+                .identity
+                .same_scenario_except_controller(&problem.cell)
     });
     let baseline_comparison_eligible = baseline_comparison.unwrap_or(false);
 
@@ -859,9 +879,7 @@ pub fn qualify_operating_cell(
         Some(baseline) if !baseline.measurement_complete => {
             Some("baseline measurement is incomplete".to_owned())
         }
-        Some(baseline)
-            if baseline.identity.controller_digest == problem.cell.controller_digest =>
-        {
+        Some(baseline) if baseline.identity.controller_digest == problem.cell.controller_digest => {
             Some("baseline controller digest is not distinct from candidate controller".to_owned())
         }
         Some(baseline)
@@ -869,7 +887,10 @@ pub fn qualify_operating_cell(
                 .identity
                 .same_scenario_except_controller(&problem.cell) =>
         {
-            Some("baseline does not match the exact scenario, morphology, physics and exposure".to_owned())
+            Some(
+                "baseline does not match the exact scenario, morphology, physics and exposure"
+                    .to_owned(),
+            )
         }
         Some(_) => None,
     };
@@ -1037,10 +1058,9 @@ mod tests {
     #[test]
     fn empirical_capability_does_not_override_rejected_viability() {
         let mut problem = base_problem();
-        problem.viability.as_mut().expect("viability").status =
-            ViabilityStatus::Rejected {
-                witness_id: "no-recoverable-stance".to_owned(),
-            };
+        problem.viability.as_mut().expect("viability").status = ViabilityStatus::Rejected {
+            witness_id: "no-recoverable-stance".to_owned(),
+        };
         let report = qualify_operating_cell(&problem).expect("not qualified");
         assert_eq!(
             report.primary_disposition,
@@ -1053,24 +1073,26 @@ mod tests {
     #[test]
     fn robust_admission_does_not_override_performance_failure() {
         let mut problem = base_problem();
-        problem.performance.as_mut().expect("performance").status =
-            PerformanceStatus::Measured {
-                success_lower_bound_ppm: 700_000,
-                cross_fitted_cvar_lower_bound: 10,
-            };
+        problem.performance.as_mut().expect("performance").status = PerformanceStatus::Measured {
+            success_lower_bound_ppm: 700_000,
+            cross_fitted_cvar_lower_bound: 10,
+        };
         let report = qualify_operating_cell(&problem).expect("not qualified");
         assert_eq!(
             report.primary_disposition,
             PrimaryDisposition::RobustlyAdmittedButPerformanceInsufficient
         );
-        assert!(report.blockers.contains(&Blocker::PerformanceBelowThreshold));
+        assert!(
+            report
+                .blockers
+                .contains(&Blocker::PerformanceBelowThreshold)
+        );
     }
 
     #[test]
     fn safety_category_regression_blocks_qualification() {
         let mut problem = base_problem();
-        problem.safety.as_mut().expect("safety").categories[1]
-            .regressed_vs_matched_baseline = true;
+        problem.safety.as_mut().expect("safety").categories[1].regressed_vs_matched_baseline = true;
         let report = qualify_operating_cell(&problem).expect("safety blocked");
         assert_eq!(
             report.primary_disposition,
@@ -1088,13 +1110,21 @@ mod tests {
             report.primary_disposition,
             PrimaryDisposition::EvidenceIncompleteOrUnknown
         );
-        assert!(report.blockers.contains(&Blocker::SafetyMeasurementIncomplete));
+        assert!(
+            report
+                .blockers
+                .contains(&Blocker::SafetyMeasurementIncomplete)
+        );
     }
 
     #[test]
     fn insufficient_recovery_reserve_blocks_qualification() {
         let mut problem = base_problem();
-        problem.energy.as_mut().expect("energy").remaining_recovery_reserve_mj = 99_999;
+        problem
+            .energy
+            .as_mut()
+            .expect("energy")
+            .remaining_recovery_reserve_mj = 99_999;
         let report = qualify_operating_cell(&problem).expect("reserve blocked");
         assert_eq!(
             report.primary_disposition,
@@ -1105,7 +1135,12 @@ mod tests {
     #[test]
     fn stale_assurance_blocks_otherwise_passing_cell() {
         let mut problem = base_problem();
-        problem.assurance.as_mut().expect("assurance").header.valid_until_ns = 499;
+        problem
+            .assurance
+            .as_mut()
+            .expect("assurance")
+            .header
+            .valid_until_ns = 499;
         let report = qualify_operating_cell(&problem).expect("stale assurance");
         assert_eq!(
             report.primary_disposition,
@@ -1116,8 +1151,13 @@ mod tests {
     #[test]
     fn simulator_and_hardware_evidence_cannot_be_joined() {
         let mut problem = base_problem();
-        problem.performance.as_mut().expect("performance")
-            .header.identity.evidence_tier = EvidenceTier::Simulation;
+        problem
+            .performance
+            .as_mut()
+            .expect("performance")
+            .header
+            .identity
+            .evidence_tier = EvidenceTier::Simulation;
         let report = qualify_operating_cell(&problem).expect("identity mismatch");
         assert_eq!(
             report.primary_disposition,
@@ -1141,11 +1181,10 @@ mod tests {
     #[test]
     fn point_estimate_is_not_used_when_lower_bound_misses() {
         let mut problem = base_problem();
-        problem.performance.as_mut().expect("performance").status =
-            PerformanceStatus::Measured {
-                success_lower_bound_ppm: 899_999,
-                cross_fitted_cvar_lower_bound: 75,
-            };
+        problem.performance.as_mut().expect("performance").status = PerformanceStatus::Measured {
+            success_lower_bound_ppm: 899_999,
+            cross_fitted_cvar_lower_bound: 75,
+        };
         let report = qualify_operating_cell(&problem).expect("LCB fails");
         assert_eq!(
             report.primary_disposition,
@@ -1169,7 +1208,11 @@ mod tests {
     #[test]
     fn actuator_limit_invalid_blocks_qualification() {
         let mut problem = base_problem();
-        problem.energy.as_mut().expect("energy").actuator_limits_valid = false;
+        problem
+            .energy
+            .as_mut()
+            .expect("energy")
+            .actuator_limits_valid = false;
         let report = qualify_operating_cell(&problem).expect("actuator limit");
         assert_eq!(report.resource_class, ResourceClass::ActuatorLimitInvalid);
         assert!(report.blockers.contains(&Blocker::ActuatorLimitInvalid));
@@ -1192,7 +1235,12 @@ mod tests {
     #[test]
     fn baseline_mismatch_blocks_comparison_not_cell_qualification() {
         let mut problem = base_problem();
-        problem.baseline.as_mut().expect("baseline").identity.exposure_value = 80;
+        problem
+            .baseline
+            .as_mut()
+            .expect("baseline")
+            .identity
+            .exposure_value = 80;
         let report = qualify_operating_cell(&problem).expect("baseline mismatch");
         assert!(!report.qualified);
         assert!(!report.baseline_comparison_eligible);
@@ -1206,8 +1254,12 @@ mod tests {
     #[test]
     fn duplicate_evidence_receipt_ids_are_rejected() {
         let mut problem = base_problem();
-        problem.performance.as_mut().expect("performance").header.receipt_id =
-            "viability-r1".to_owned();
+        problem
+            .performance
+            .as_mut()
+            .expect("performance")
+            .header
+            .receipt_id = "viability-r1".to_owned();
         assert_eq!(
             qualify_operating_cell(&problem),
             Err(QualificationError::DuplicateReceiptId)
