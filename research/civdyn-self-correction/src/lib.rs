@@ -11,6 +11,7 @@
 //! sensor error and correction evidence as separate quantities.
 
 pub mod causal_drift;
+pub mod causal_identifiability;
 pub mod noisy_causal_drift;
 pub mod sequential_methods;
 
