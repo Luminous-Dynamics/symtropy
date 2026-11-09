@@ -290,9 +290,7 @@ fn referenced_stage<'a>(
         ));
     }
     if index >= command_index {
-        return Err(format!(
-            "command references future stage {stage_id}"
-        ));
+        return Err(format!("command references future stage {stage_id}"));
     }
     if !stage_is_ancestor(stage_id, command_stage, by_id, stages) {
         return Err(format!(
@@ -386,9 +384,15 @@ fn validate_commands(
         }
         previous_command_sequence = Some(command_sequence);
 
-        let command_stage_id = text(command, "command_stage_id", &format!("command[{command_id}]"))?;
+        let command_stage_id = text(
+            command,
+            "command_stage_id",
+            &format!("command[{command_id}]"),
+        )?;
         if !used_command_stages.insert(command_stage_id.to_owned()) {
-            return Err(format!("multiple command attempts reference stage {command_stage_id}"));
+            return Err(format!(
+                "multiple command attempts reference stage {command_stage_id}"
+            ));
         }
         let command_index = *by_id
             .get(command_stage_id)
@@ -419,17 +423,11 @@ fn validate_commands(
             "epoch_stage_id",
             &format!("command[{command_id}]"),
         )?;
-        let latest_observation = latest_stage_before(
-            stages,
-            "observation_evaluation",
-            command_index,
-        )
+        let latest_observation =
+            latest_stage_before(stages, "observation_evaluation", command_index)
         .ok_or_else(|| format!("command {command_id} has no prior observation stage"))?;
-        let latest_epoch = latest_stage_before(
-            stages,
-            "worksite_epoch_transition",
-            command_index,
-        )
+        let latest_epoch =
+            latest_stage_before(stages, "worksite_epoch_transition", command_index)
         .ok_or_else(|| format!("command {command_id} has no prior epoch stage"))?;
         let latest_observation_id = text(latest_observation.1, "stage_id", "observation stage")?;
         let latest_epoch_id = text(latest_epoch.1, "stage_id", "epoch stage")?;
@@ -473,11 +471,8 @@ fn validate_commands(
             command_stage_id,
         )?;
 
-        let latest_qualification = latest_stage_before(
-            stages,
-            "qualification_lease",
-            command_index,
-        );
+        let latest_qualification =
+            latest_stage_before(stages, "qualification_lease", command_index);
         let command_qualification_id = command
             .get("qualification_stage_id")
             .and_then(Value::as_str);
@@ -497,12 +492,7 @@ fn validate_commands(
                     by_id,
                     stages,
                 )?;
-                require_stage_outputs_consumed(
-                    stage,
-                    command_stage,
-                    reference,
-                    command_stage_id,
-                )?;
+                require_stage_outputs_consumed(stage, command_stage, reference, command_stage_id)?;
                 Some((index, stage))
             }
             (None, None) => None,
@@ -595,10 +585,8 @@ fn validate_commands(
         blockers.dedup();
 
         let mut attempt_reasons = sorted_reason_codes(command, &format!("command[{command_id}]"))?;
-        let mut stage_reasons = sorted_reason_codes(
-            command_stage,
-            &format!("stage[{command_stage_id}]"),
-        )?;
+        let mut stage_reasons =
+            sorted_reason_codes(command_stage, &format!("stage[{command_stage_id}]"))?;
         attempt_reasons.dedup();
         stage_reasons.dedup();
         if attempt_reasons != stage_reasons {
@@ -628,7 +616,9 @@ fn validate_commands(
     }
 
     if used_command_stages.len() != command_stages.len() {
-        return Err("one or more command-authorization stages have no command attempt binding".to_owned());
+        return Err(
+            "one or more command-authorization stages have no command attempt binding".to_owned(),
+        );
     }
     Ok(())
 }
