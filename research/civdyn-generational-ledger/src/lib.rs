@@ -423,12 +423,17 @@ impl CohortIncidenceLedger {
         if source.regions.is_empty() {
             return Err(IncidenceError::EmptySourceReport);
         }
-        if self
-            .reports
-            .last()
-            .is_some_and(|last| source.tick <= last.tick)
-        {
-            return Err(IncidenceError::NonIncreasingTick);
+        if let Some(previous) = self.reports.last() {
+            let expected_tick = previous
+                .tick
+                .checked_add(1)
+                .ok_or(IncidenceError::TickOverflow)?;
+            if source.tick != expected_tick {
+                return Err(IncidenceError::NonContiguousTick {
+                    expected: expected_tick,
+                    actual: source.tick,
+                });
+            }
         }
 
         let mut region_ids = BTreeSet::new();
@@ -440,6 +445,25 @@ impl CohortIncidenceLedger {
                 return Err(IncidenceError::SourceLedgerNotConserved(
                     region.region_id.clone(),
                 ));
+            }
+        }
+
+        if let Some(previous) = self.reports.last() {
+            for prior in &previous.regional_reconciliations {
+                let current = source
+                    .regions
+                    .iter()
+                    .find(|region| region.region_id == prior.region_id)
+                    .ok_or_else(|| IncidenceError::UnknownRegion(prior.region_id.clone()))?;
+                if !close(
+                    prior.ledger_closing_stock,
+                    current.ledger.beginning.get(prior.resource),
+                ) {
+                    return Err(IncidenceError::StockContinuityMismatch {
+                        region: prior.region_id.clone(),
+                        resource: prior.resource,
+                    });
+                }
             }
         }
 
@@ -697,7 +721,9 @@ pub struct DiscountedServiceView {
 #[derive(Debug, Clone, PartialEq)]
 pub enum IncidenceError {
     EmptySourceReport,
-    NonIncreasingTick,
+    NonContiguousTick { expected: u64, actual: u64 },
+    TickOverflow,
+    StockContinuityMismatch { region: String, resource: Resource },
     DuplicateRegionId(String),
     SourceLedgerNotConserved(String),
     InvalidText(&'static str),
@@ -720,7 +746,15 @@ impl fmt::Display for IncidenceError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::EmptySourceReport => write!(f, "source step report must contain a region"),
-            Self::NonIncreasingTick => write!(f, "incidence ticks must be strictly increasing"),
+            Self::NonContiguousTick { expected, actual } => write!(
+                f,
+                "expected consecutive incidence tick {expected}, got {actual}"
+            ),
+            Self::TickOverflow => write!(f, "incidence tick counter overflow"),
+            Self::StockContinuityMismatch { region, resource } => write!(
+                f,
+                "previous closing stock does not match next opening stock for {region}/{resource:?}"
+            ),
             Self::DuplicateRegionId(region) => write!(f, "duplicate source region id: {region}"),
             Self::SourceLedgerNotConserved(region) => {
                 write!(f, "source resource ledger is not conserved for {region}")
@@ -789,14 +823,17 @@ mod tests {
         Production, Region, ResourceVector, StepInput, TransferPolicy, World,
     };
 
-    fn source_step() -> StepReport {
+    fn source_world() -> World {
         let region = Region {
             id: "district-a".into(),
             population: 4.0,
             opening_stock: ResourceVector::new(100.0, 200.0, 80.0),
             essential_demand_per_capita: ResourceVector::new(5.0, 10.0, 4.0),
         };
-        let mut world = World::new(vec![region]).expect("valid source world");
+        World::new(vec![region]).expect("valid source world")
+    }
+
+    fn step_world(world: &mut World) -> StepReport {
         world
             .step(
                 &StepInput {
@@ -808,8 +845,20 @@ mod tests {
             .expect("valid source step")
     }
 
+    fn source_step() -> StepReport {
+        step_world(&mut source_world())
+    }
+
     fn service_rows(first: CohortAssignment, second: CohortAssignment) -> Vec<ServiceAllocation> {
-        let source_ref = "ledger:tick-1:district-a";
+        service_rows_at(1, first, second)
+    }
+
+    fn service_rows_at(
+        tick: u64,
+        first: CohortAssignment,
+        second: CohortAssignment,
+    ) -> Vec<ServiceAllocation> {
+        let source_ref = format!("ledger:tick-{tick}:district-a");
         let action = "policy:baseline";
         vec![
             ServiceAllocation {
@@ -820,7 +869,7 @@ mod tests {
                 demand: 5.0,
                 served: 5.0,
                 originating_action_id: action.into(),
-                source_evidence_ref: source_ref.into(),
+                source_evidence_ref: source_ref.clone(),
             },
             ServiceAllocation {
                 allocation_id: "service-water-b".into(),
@@ -830,7 +879,7 @@ mod tests {
                 demand: 15.0,
                 served: 15.0,
                 originating_action_id: action.into(),
-                source_evidence_ref: source_ref.into(),
+                source_evidence_ref: source_ref.clone(),
             },
             ServiceAllocation {
                 allocation_id: "service-energy-a".into(),
@@ -840,7 +889,7 @@ mod tests {
                 demand: 10.0,
                 served: 10.0,
                 originating_action_id: action.into(),
-                source_evidence_ref: source_ref.into(),
+                source_evidence_ref: source_ref.clone(),
             },
             ServiceAllocation {
                 allocation_id: "service-energy-b".into(),
@@ -850,7 +899,7 @@ mod tests {
                 demand: 30.0,
                 served: 30.0,
                 originating_action_id: action.into(),
-                source_evidence_ref: source_ref.into(),
+                source_evidence_ref: source_ref.clone(),
             },
             ServiceAllocation {
                 allocation_id: "service-food-a".into(),
@@ -860,7 +909,7 @@ mod tests {
                 demand: 4.0,
                 served: 4.0,
                 originating_action_id: action.into(),
-                source_evidence_ref: source_ref.into(),
+                source_evidence_ref: source_ref.clone(),
             },
             ServiceAllocation {
                 allocation_id: "service-food-b".into(),
@@ -870,7 +919,7 @@ mod tests {
                 demand: 12.0,
                 served: 12.0,
                 originating_action_id: action.into(),
-                source_evidence_ref: source_ref.into(),
+                source_evidence_ref: source_ref.clone(),
             },
         ]
     }
@@ -879,7 +928,21 @@ mod tests {
         future: CohortAssignment,
         unassigned: CohortAssignment,
     ) -> Vec<InheritedStockAllocation> {
-        let source_ref = "ledger:tick-1:district-a";
+        stock_rows_at(
+            1,
+            future,
+            unassigned,
+            ResourceVector::new(80.0, 160.0, 64.0),
+        )
+    }
+
+    fn stock_rows_at(
+        tick: u64,
+        future: CohortAssignment,
+        unassigned: CohortAssignment,
+        closing: ResourceVector,
+    ) -> Vec<InheritedStockAllocation> {
+        let source_ref = format!("ledger:tick-{tick}:district-a");
         vec![
             InheritedStockAllocation {
                 allocation_id: "stock-water-future".into(),
@@ -887,8 +950,8 @@ mod tests {
                 region_id: "district-a".into(),
                 asset_id: "reservoir-a".into(),
                 resource: Resource::Water,
-                closing_stock: 40.0,
-                source_evidence_ref: source_ref.into(),
+                closing_stock: closing.water_m3 / 2.0,
+                source_evidence_ref: source_ref.clone(),
             },
             InheritedStockAllocation {
                 allocation_id: "stock-water-shared".into(),
@@ -897,7 +960,7 @@ mod tests {
                 asset_id: "reservoir-a".into(),
                 resource: Resource::Water,
                 closing_stock: 40.0,
-                source_evidence_ref: source_ref.into(),
+                source_evidence_ref: source_ref.clone(),
             },
             InheritedStockAllocation {
                 allocation_id: "stock-energy-future".into(),
@@ -905,8 +968,8 @@ mod tests {
                 region_id: "district-a".into(),
                 asset_id: "grid-storage-a".into(),
                 resource: Resource::Energy,
-                closing_stock: 80.0,
-                source_evidence_ref: source_ref.into(),
+                closing_stock: closing.energy_kwh / 2.0,
+                source_evidence_ref: source_ref.clone(),
             },
             InheritedStockAllocation {
                 allocation_id: "stock-energy-shared".into(),
@@ -915,7 +978,7 @@ mod tests {
                 asset_id: "grid-storage-a".into(),
                 resource: Resource::Energy,
                 closing_stock: 80.0,
-                source_evidence_ref: source_ref.into(),
+                source_evidence_ref: source_ref.clone(),
             },
             InheritedStockAllocation {
                 allocation_id: "stock-food-future".into(),
@@ -923,8 +986,8 @@ mod tests {
                 region_id: "district-a".into(),
                 asset_id: "food-reserve-a".into(),
                 resource: Resource::Food,
-                closing_stock: 32.0,
-                source_evidence_ref: source_ref.into(),
+                closing_stock: closing.food_kg / 2.0,
+                source_evidence_ref: source_ref.clone(),
             },
             InheritedStockAllocation {
                 allocation_id: "stock-food-shared".into(),
@@ -933,7 +996,7 @@ mod tests {
                 asset_id: "food-reserve-a".into(),
                 resource: Resource::Food,
                 closing_stock: 32.0,
-                source_evidence_ref: source_ref.into(),
+                source_evidence_ref: source_ref.clone(),
             },
         ]
     }
@@ -947,6 +1010,138 @@ mod tests {
             .assemble_tick(&source_step(), service, stock, vec![], vec![], vec![])
             .expect("cohort allocations reconcile with the resource ledger");
         ledger
+    }
+
+    #[test]
+    fn consecutive_ticks_preserve_region_resource_stock_continuity() {
+        let mut world = source_world();
+        let first_source = step_world(&mut world);
+        let future = CohortAssignment::assigned("future-born-2040").unwrap();
+        let shared = CohortAssignment::unassigned(UnassignedReason::SharedPublicAsset);
+        let mut ledger = CohortIncidenceLedger::new();
+
+        ledger
+            .assemble_tick(
+                &first_source,
+                service_rows_at(1, CohortAssignment::assigned("working-age-2026").unwrap(), future.clone()),
+                stock_rows_at(
+                    1,
+                    future.clone(),
+                    shared.clone(),
+                    ResourceVector::new(80.0, 160.0, 64.0),
+                ),
+                vec![],
+                vec![],
+                vec![],
+            )
+            .unwrap();
+
+        let second_source = step_world(&mut world);
+        assert_eq!(
+            second_source.regions[0].ledger.beginning,
+            ResourceVector::new(80.0, 160.0, 64.0)
+        );
+        ledger
+            .assemble_tick(
+                &second_source,
+                service_rows_at(2, CohortAssignment::assigned("working-age-2026").unwrap(), future.clone()),
+                stock_rows_at(
+                    2,
+                    future,
+                    shared,
+                    ResourceVector::new(60.0, 120.0, 48.0),
+                ),
+                vec![],
+                vec![],
+                vec![],
+            )
+            .unwrap();
+
+        assert_eq!(ledger.reports().len(), 2);
+        assert_eq!(ledger.last().unwrap().tick, 2);
+    }
+
+    #[test]
+    fn stock_continuity_mismatch_fails_closed_even_when_each_step_conserves() {
+        let mut ledger = CohortIncidenceLedger::new();
+        let mut world = source_world();
+        let first_source = step_world(&mut world);
+        let future = CohortAssignment::assigned("future-born-2040").unwrap();
+        let shared = CohortAssignment::unassigned(UnassignedReason::SharedPublicAsset);
+        ledger
+            .assemble_tick(
+                &first_source,
+                service_rows_at(1, CohortAssignment::assigned("working-age-2026").unwrap(), future.clone()),
+                stock_rows_at(1, future.clone(), shared.clone(), ResourceVector::new(80.0, 160.0, 64.0)),
+                vec![],
+                vec![],
+                vec![],
+            )
+            .unwrap();
+
+        let mismatched_region = Region {
+            id: "district-a".into(),
+            population: 4.0,
+            opening_stock: ResourceVector::new(90.0, 160.0, 64.0),
+            essential_demand_per_capita: ResourceVector::new(5.0, 10.0, 4.0),
+        };
+        let mut mismatched_world = World::new(vec![mismatched_region]).unwrap();
+        let mut mismatched_source = step_world(&mut mismatched_world);
+        mismatched_source.tick = 2;
+        let result = ledger.assemble_tick(
+            &mismatched_source,
+            service_rows_at(2, CohortAssignment::assigned("working-age-2026").unwrap(), future.clone()),
+            stock_rows_at(2, future, shared, ResourceVector::new(70.0, 120.0, 48.0)),
+            vec![],
+            vec![],
+            vec![],
+        );
+
+        assert!(matches!(
+            result,
+            Err(IncidenceError::StockContinuityMismatch {
+                region,
+                resource: Resource::Water
+            }) if region == "district-a"
+        ));
+        assert_eq!(ledger.reports().len(), 1);
+    }
+
+    #[test]
+    fn skipped_incidence_tick_fails_closed() {
+        let mut world = source_world();
+        let first_source = step_world(&mut world);
+        let future = CohortAssignment::assigned("future-born-2040").unwrap();
+        let shared = CohortAssignment::unassigned(UnassignedReason::SharedPublicAsset);
+        let mut ledger = CohortIncidenceLedger::new();
+        ledger
+            .assemble_tick(
+                &first_source,
+                service_rows_at(1, CohortAssignment::assigned("working-age-2026").unwrap(), future.clone()),
+                stock_rows_at(1, future.clone(), shared.clone(), ResourceVector::new(80.0, 160.0, 64.0)),
+                vec![],
+                vec![],
+                vec![],
+            )
+            .unwrap();
+        let mut second_source = step_world(&mut world);
+        second_source.tick = 3;
+        let result = ledger.assemble_tick(
+            &second_source,
+            service_rows_at(3, CohortAssignment::assigned("working-age-2026").unwrap(), future.clone()),
+            stock_rows_at(3, future, shared, ResourceVector::new(60.0, 120.0, 48.0)),
+            vec![],
+            vec![],
+            vec![],
+        );
+        assert_eq!(
+            result,
+            Err(IncidenceError::NonContiguousTick {
+                expected: 2,
+                actual: 3
+            })
+        );
+        assert_eq!(ledger.reports().len(), 1);
     }
 
     #[test]
