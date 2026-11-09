@@ -6,7 +6,7 @@ use bh_reference_fixtures::qnm::{
 };
 use bh_reference_fixtures::{
     KerrQnmSequenceFixture, RadialComparisonConfig, RadialComparisonStatus, ReferenceFixture,
-    compare_radial_fixtures,
+    canonical_payload_sha256, compare_radial_fixtures,
 };
 use serde::Deserialize;
 use serde_json::json;
@@ -61,12 +61,15 @@ fn run(args: &[String]) -> Result<i32, String> {
     match args {
         [command, path] if command == "validate-radial" => {
             let fixture = read_radial_fixture(path)?;
+            let payload_sha256 = canonical_payload_sha256(&fixture)
+                .map_err(|error| format!("cannot canonicalize radial fixture {path}: {error}"))?;
             println!(
                 "{}",
                 json!({
                     "status": "valid",
                     "schema_version": fixture.schema_version,
                     "fixture_id": fixture.fixture_id,
+                    "payload_sha256": payload_sha256,
                     "radial_samples": fixture.data.radial_samples.len()
                 })
             );
@@ -74,6 +77,8 @@ fn run(args: &[String]) -> Result<i32, String> {
         }
         [command, path] if command == "validate-qnm" => {
             let sequence = read_qnm_sequence(path)?;
+            let payload_sha256 = canonical_payload_sha256(&sequence)
+                .map_err(|error| format!("cannot canonicalize QNM sequence {path}: {error}"))?;
             let mode_summaries = sequence
                 .modes
                 .iter()
@@ -97,6 +102,7 @@ fn run(args: &[String]) -> Result<i32, String> {
                     "status": "valid",
                     "schema_version": sequence.schema_version,
                     "sequence_id": sequence.sequence_id,
+                    "payload_sha256": payload_sha256,
                     "family_classification": sequence.family_classification,
                     "spin_over_mass": sequence.spin_over_mass,
                     "angular_eigenvalue_convention": sequence.angular_eigenvalue_convention,
@@ -108,6 +114,8 @@ fn run(args: &[String]) -> Result<i32, String> {
         }
         [command, sequence_path, analysis_path] if command == "analyze-qnm" => {
             let sequence = read_qnm_sequence(sequence_path)?;
+            let payload_sha256 = canonical_payload_sha256(&sequence)
+                .map_err(|error| format!("cannot canonicalize QNM sequence {sequence_path}: {error}"))?;
             let request = read_qnm_analysis_request(analysis_path)?;
             let analysis = analyze_qnm_family_sequence(&sequence, request.targets, request.config)
                 .map_err(|error| error.to_string())?;
@@ -118,6 +126,7 @@ fn run(args: &[String]) -> Result<i32, String> {
                 json!({
                     "status": "analyzed",
                     "sequence_id": sequence.sequence_id,
+                    "payload_sha256": payload_sha256,
                     "producer_family_label": sequence.family_classification,
                     "computed_family_classification": analysis.classification,
                     "producer_label_matches_computed": producer_label_matches_computed,
@@ -132,6 +141,10 @@ fn run(args: &[String]) -> Result<i32, String> {
         [command, left_path, right_path, abs_tol, rel_tol] if command == "compare-radial" => {
             let left = read_radial_fixture(left_path)?;
             let right = read_radial_fixture(right_path)?;
+            let left_payload_sha256 = canonical_payload_sha256(&left)
+                .map_err(|error| format!("cannot canonicalize left fixture {left_path}: {error}"))?;
+            let right_payload_sha256 = canonical_payload_sha256(&right)
+                .map_err(|error| format!("cannot canonicalize right fixture {right_path}: {error}"))?;
             let absolute_tolerance = abs_tol
                 .parse::<f64>()
                 .map_err(|error| format!("invalid absolute tolerance {abs_tol}: {error}"))?;
@@ -157,6 +170,8 @@ fn run(args: &[String]) -> Result<i32, String> {
                 "{}",
                 json!({
                     "status": status,
+                    "left_payload_sha256": left_payload_sha256,
+                    "right_payload_sha256": right_payload_sha256,
                     "comparison": comparison,
                     "interpolation_performed": false
                 })
