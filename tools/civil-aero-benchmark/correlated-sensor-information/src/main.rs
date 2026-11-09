@@ -775,14 +775,7 @@ fn select_minimum_cost_robust(
 ) -> AuditResult<Option<MinimumCostRobustSelection>> {
     let required_information = fixture.constraints.minimum_robust_minimum_eigenvalue;
     let minimum_sensor_count = (fixture.constraints.sensor_dropout_budget + 2).max(3);
-    let mut best: Option<(
-        f64,
-        f64,
-        f64,
-        Vec<usize>,
-        f64,
-        Vec<FailureScenario>,
-    )> = None;
+    let mut best: Option<(f64, f64, f64, Vec<usize>, f64, Vec<FailureScenario>)> = None;
 
     for count in minimum_sensor_count..=fixture.sensors.len() {
         for indices in enumerate_combinations(fixture.sensors.len(), count) {
@@ -805,14 +798,7 @@ fn select_minimum_cost_robust(
                 },
             );
             if is_better {
-                best = Some((
-                    cost,
-                    mass,
-                    power,
-                    indices,
-                    worst_case_eigenvalue,
-                    scenarios,
-                ));
+                best = Some((cost, mass, power, indices, worst_case_eigenvalue, scenarios));
             }
         }
     }
@@ -977,13 +963,17 @@ mod tests {
         );
         assert!(
             (minimum_cost.achieved_worst_case_minimum_eigenvalue
-                - fixture.expected.minimum_cost_robust_worst_case_minimum_eigenvalue)
+                - fixture
+                    .expected
+                    .minimum_cost_robust_worst_case_minimum_eigenvalue)
                 .abs()
                 < 1.0e-9
         );
         assert!(
             (minimum_cost.total_deployment_cost_units
-                - fixture.expected.minimum_cost_robust_total_deployment_cost_units)
+                - fixture
+                    .expected
+                    .minimum_cost_robust_total_deployment_cost_units)
                 .abs()
                 < 1.0e-9
         );
@@ -1014,9 +1004,7 @@ mod tests {
             vec!["S_A", "S_C", "S_E", "S_F"]
         );
         assert!(
-            (result.robust_correlated_d_opt.worst_case_log_determinant
-                - 3.2252963926711233)
-                .abs()
+            (result.robust_correlated_d_opt.worst_case_log_determinant - 3.2252963926711233).abs()
                 < 1.0e-9
         );
         assert_eq!(
@@ -1024,31 +1012,30 @@ mod tests {
             vec!["S_A", "S_C", "S_E", "S_F"]
         );
         assert!(
-            (result.robust_correlated_e_opt.worst_case_minimum_eigenvalue
-                - 2.9060881776439027)
+            (result.robust_correlated_e_opt.worst_case_minimum_eigenvalue - 2.9060881776439027)
                 .abs()
                 < 1.0e-9
         );
         assert_eq!(result.robust_correlated_e_opt.scenarios.len(), 7);
-        assert!(result.robust_correlated_e_opt.scenarios.iter().all(|scenario| {
-            scenario.effective_rank == 2 && scenario.minimum_eigenvalue > RANK_TOLERANCE
-        }));
+        assert!(
+            result
+                .robust_correlated_e_opt
+                .scenarios
+                .iter()
+                .all(|scenario| {
+                    scenario.effective_rank == 2 && scenario.minimum_eigenvalue > RANK_TOLERANCE
+                })
+        );
         let minimum_cost = result
             .cost_constrained_robust
             .expect("joint fixture must have a minimum-cost robust design");
         assert_eq!(minimum_cost.sensor_ids, vec!["S_A", "S_C", "S_E"]);
+        assert!((minimum_cost.required_minimum_eigenvalue - 1.5).abs() < 1.0e-12);
         assert!(
-            (minimum_cost.required_minimum_eigenvalue - 1.5).abs() < 1.0e-12
-        );
-        assert!(
-            (minimum_cost.achieved_worst_case_minimum_eigenvalue
-                - 1.5036392172580708)
-                .abs()
+            (minimum_cost.achieved_worst_case_minimum_eigenvalue - 1.5036392172580708).abs()
                 < 1.0e-9
         );
-        assert!(
-            (minimum_cost.total_deployment_cost_units - 4.2).abs() < 1.0e-9
-        );
+        assert!((minimum_cost.total_deployment_cost_units - 4.2).abs() < 1.0e-9);
         assert_eq!(minimum_cost.total_mass_g, 48.0);
         assert_eq!(minimum_cost.total_power_mw, 12.0);
         assert_eq!(minimum_cost.scenarios.len(), 6);
