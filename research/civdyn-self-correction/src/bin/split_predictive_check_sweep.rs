@@ -10,7 +10,7 @@ use civdyn_self_correction::split_predictive::{
     SingleSpcResult, SpcTail,
 };
 
-const CSV_COLUMNS: usize = 22;
+const CSV_COLUMNS: usize = 23;
 const UNIT_COUNT: usize = 10;
 const DRAW_COUNT: usize = 100;
 const MONTE_CARLO_REPLICATES: usize = 1_999;
@@ -39,6 +39,7 @@ fn single_row(result: &SingleSpcResult) -> Vec<String> {
         result.source_digest.clone(),
         result.observation_digest.clone(),
         result.calibration_data_digest.clone(),
+        result.split_manifest_digest.clone(),
         result.randomization_seed.to_string(),
         String::new(),
         String::new(),
@@ -66,6 +67,7 @@ fn divided_row(result: &DividedSpcResult, source_digest: &str) -> Vec<String> {
         source_digest.to_string(),
         String::new(),
         result.calibration_data_digest.clone(),
+        result.split_manifest_digest.clone(),
         String::new(),
         format!("{:.8}", result.ks_statistic),
         format!("{:.8}", result.uniformity_p_value),
@@ -184,7 +186,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     )?;
 
     println!(
-        "record_type,statistic_id,unit_id,tail,predictive_p_value,randomized_lower_rank,observed_value,sample_size,predictive_draws,model_digest,draw_set_digest,source_digest,observation_digest,calibration_digest,randomization_seed,ks_statistic,uniformity_p_value,unit_count,sample_size_across_units,mc_replicates,mc_seed,independent_unit_kind"
+        "record_type,statistic_id,unit_id,tail,predictive_p_value,randomized_lower_rank,observed_value,sample_size,predictive_draws,model_digest,draw_set_digest,source_digest,observation_digest,calibration_digest,split_manifest_digest,randomization_seed,ks_statistic,uniformity_p_value,unit_count,sample_size_across_units,mc_replicates,mc_seed,independent_unit_kind"
     );
     for check in &checks {
         emit(single_row(check));
