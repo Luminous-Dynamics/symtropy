@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - main
+      - research/hydro-conduit-reference-v0.1
     paths:
       - "Cargo.toml"
       - "Cargo.lock"
@@ -11,7 +12,7 @@ on:
       - ".github/workflows/hydraulic-energy-reference.yml"
   push:
     branches:
-      - research/hydro-conduit-reference-v0.1
+      - "research/hydro-*-v0.1"
     paths:
       - "Cargo.toml"
       - "Cargo.lock"

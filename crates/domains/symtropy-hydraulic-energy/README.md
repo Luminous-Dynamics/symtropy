@@ -56,3 +56,21 @@ The crate contains 20 analytical and adversarial tests, including exact steady-s
 An `EvidenceReference` records the source ID and declared evidence class; it does not authenticate a publisher or prove measurement quality. A service contract requires the caller to declare an `OperatorApprovedContract` evidence class, but this does not verify the underlying operator approval or legal authorization.
 
 A passing analytic fixture proves only that the declared steady-state equations and checks are implemented consistently for that fixture. It does not establish project feasibility, field performance, pressure-surge safety, environmental compliance, grid connection or bankability.
+
+
+## First-order component uncertainty (V0.1)
+
+The crate also exposes a first-order uncertainty reference for the net electrical boundary:
+
+`P_net = rho * g * Q_turbine * H_net * eta_turbine * eta_generator - P_aux`
+
+All six input standard uncertainties are required: water density, turbine branch flow, net head, turbine efficiency, generator efficiency and auxiliary power. Missing any one returns `Ok(None)`; it is never treated as zero. Each uncertainty is individually bound to a source/evidence class, method, observation or assessment window, instrument or map identity, revision and calibration-validity statement. The report retains all six provenance records with the analytic Jacobian, signed per-input contributions, combined standard uncertainty and declared independence assumption.
+
+Important limits:
+- V0.1 assumes mutually independent standard uncertainties. It does not infer independence from sensor IDs or shared calibration systems.
+- It does not produce an expanded uncertainty or confidence interval, and does not make a probabilistic service guarantee.
+- The uncertainty report cannot override the water-service or evidence-eligibility gates; its `comparison_eligible` field reflects the existing hydraulic result gates.
+- Net-head uncertainty must already account for the caller's gross-head / conveyance-loss method; covariance between those inputs belongs in the later covariance-aware extension.
+- V0.2 will add explicit covariance with PSD checks and (u^2(P)=J\Sigma J^T). V0.3 will handle bounded/nonlinear maps and asymmetric distributions.
+
+Additional tests check the analytic known-answer uncertainty, finite-difference Jacobian agreement, missing uncertainty, zero uncertainty, invalid uncertainty values, retained provenance and the rule that an uncertainty calculation cannot lift an ineligible hydraulic result.
