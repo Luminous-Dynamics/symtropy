@@ -172,7 +172,7 @@ The auditor:
 - identifies target-category improvements masked by another adverse outcome regression;
 - suppresses complete safety-improvement claims on any adverse-category regression, missing/partial adverse coverage, objective omission or nonzero Unknown events.
 
-Fourteen deterministic tests exercise proxy shift, all-category improvement, fall regression, severity-load regression, missing coverage, Unknown events, exposure mismatch, duplicate channel/event identity, multiple typed outcomes from one incident, detector/taxonomy mismatch, zero exposure and undeclared categories.
+Fifteen deterministic tests exercise proxy shift, all-category improvement, fall regression, severity-load regression, missing coverage, Unknown events, exposure mismatch, duplicate canonical event IDs, repeated same-category contacts within one incident, multiple typed outcomes from one incident, detector/taxonomy mismatch, zero exposure and undeclared categories.
 
 Qualification commands:
 
