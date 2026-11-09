@@ -341,8 +341,7 @@ impl TurbineMapCell {
     }
 
     fn contains(&self, net_head: HeadMetres, flow: FlowRateM3PerSecond) -> bool {
-        (self.minimum_net_head.get()..=self.maximum_net_head.get())
-            .contains(&net_head.get())
+        (self.minimum_net_head.get()..=self.maximum_net_head.get()).contains(&net_head.get())
             && (self.minimum_flow.get()..=self.maximum_flow.get()).contains(&flow.get())
     }
 
@@ -391,9 +390,7 @@ impl GeneratorModel {
             return Err(HydraulicError::MissingEvidence("generator_model_id"));
         }
         if revision.trim().is_empty() {
-            return Err(HydraulicError::MissingEvidence(
-                "generator_model_revision",
-            ));
+            return Err(HydraulicError::MissingEvidence("generator_model_revision"));
         }
 
         Ok(Self {
@@ -491,9 +488,7 @@ impl WaterServiceContract {
     ) -> Result<Self, HydraulicError> {
         let contract_id = contract_id.into();
         if contract_id.trim().is_empty() {
-            return Err(HydraulicError::MissingEvidence(
-                "water_service_contract_id",
-            ));
+            return Err(HydraulicError::MissingEvidence("water_service_contract_id"));
         }
         if evidence.evidence_class() != EvidenceClass::OperatorApprovedContract {
             return Err(HydraulicError::InvalidServiceContractEvidence);
@@ -554,9 +549,7 @@ fn assess_water_service(
 ) -> WaterServiceAssessment {
     let mut violations = Vec::new();
 
-    if candidate.downstream_pressure.get()
-        < contract.minimum_downstream_pressure.get()
-    {
+    if candidate.downstream_pressure.get() < contract.minimum_downstream_pressure.get() {
         violations.push(ServiceViolation::DownstreamPressureBelowMinimum);
     }
     if candidate.delivered_flow.get() < contract.minimum_delivered_flow.get() {
@@ -565,11 +558,8 @@ fn assess_water_service(
     if candidate.ecological_flow.get() < contract.minimum_ecological_flow.get() {
         violations.push(ServiceViolation::EcologicalFlowBelowMinimum);
     }
-    let candidate_service_flow =
-        candidate.delivered_flow.get() + candidate.ecological_flow.get();
-    if !candidate_service_flow.is_finite()
-        || candidate_service_flow > upstream_flow.get()
-    {
+    let candidate_service_flow = candidate.delivered_flow.get() + candidate.ecological_flow.get();
+    if !candidate_service_flow.is_finite() || candidate_service_flow > upstream_flow.get() {
         violations.push(ServiceViolation::WaterAllocationExceedsUpstreamFlow);
     }
 
@@ -656,10 +646,8 @@ pub fn evaluate_hydraulic_generation(
         });
     }
 
-    let hydraulic_input_w = hydraulic.water_density().get()
-        * STANDARD_GRAVITY_M_PER_S2
-        * flow.get()
-        * net_head.get();
+    let hydraulic_input_w =
+        hydraulic.water_density().get() * STANDARD_GRAVITY_M_PER_S2 * flow.get() * net_head.get();
     let hydraulic_input_power = PowerWatts::new(hydraulic_input_w)?;
 
     let turbine_shaft_w = hydraulic_input_power.get() * turbine.efficiency().get();
@@ -678,10 +666,8 @@ pub fn evaluate_hydraulic_generation(
     let net_electrical_w = gross_electrical_w - generator.auxiliary_load().get();
     let net_candidate_electrical_power = PowerWatts::new(net_electrical_w)?;
 
-    let accounted_power_w = turbine_loss_w
-        + generator_loss_w
-        + generator.auxiliary_load().get()
-        + net_electrical_w;
+    let accounted_power_w =
+        turbine_loss_w + generator_loss_w + generator.auxiliary_load().get() + net_electrical_w;
     let balance_residual_power = hydraulic_input_w - accounted_power_w;
 
     let water_service = assess_water_service(
@@ -721,15 +707,17 @@ pub fn integrate_constant_interval(
     let turbine_loss_energy_j = result.turbine_loss_power.get() * seconds;
     let generator_loss_energy_j = result.generator_loss_power.get() * seconds;
     let auxiliary_energy_j = result.auxiliary_power.get() * seconds;
-    let candidate_net_electrical_energy_j =
-        result.net_candidate_electrical_power.get() * seconds;
+    let candidate_net_electrical_energy_j = result.net_candidate_electrical_power.get() * seconds;
 
     for (field, value) in [
         ("hydraulic_input_energy_j", hydraulic_input_energy_j),
         ("turbine_loss_energy_j", turbine_loss_energy_j),
         ("generator_loss_energy_j", generator_loss_energy_j),
         ("auxiliary_energy_j", auxiliary_energy_j),
-        ("candidate_net_electrical_energy_j", candidate_net_electrical_energy_j),
+        (
+            "candidate_net_electrical_energy_j",
+            candidate_net_electrical_energy_j,
+        ),
     ] {
         if !value.is_finite() || value < 0.0 {
             return Err(HydraulicError::InvalidQuantity { field, value });
@@ -785,10 +773,16 @@ impl fmt::Display for HydraulicError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::InvalidQuantity { field, value } => {
-                write!(formatter, "{field} must be finite and within its declared physical domain; got {value}")
+                write!(
+                    formatter,
+                    "{field} must be finite and within its declared physical domain; got {value}"
+                )
             }
             Self::InvalidEfficiency { value } => {
-                write!(formatter, "efficiency must be finite and in [0, 1]; got {value}")
+                write!(
+                    formatter,
+                    "efficiency must be finite and in [0, 1]; got {value}"
+                )
             }
             Self::MissingEvidence(field) => {
                 write!(formatter, "{field} must be present and non-empty")
@@ -812,7 +806,10 @@ impl fmt::Display for HydraulicError {
                 write!(formatter, "invalid turbine operating-map range: {message}")
             }
             Self::InvalidServiceContractEvidence => {
-                write!(formatter, "water-service limits require operator-approved contract evidence")
+                write!(
+                    formatter,
+                    "water-service limits require operator-approved contract evidence"
+                )
             }
             Self::TurbineMapOutOfDomain {
                 net_head_m,
@@ -875,10 +872,7 @@ mod tests {
         GeneratorModel::new(
             "GEN-REFERENCE-001",
             "rev-a",
-            evidence(
-                "GEN-MAP-001",
-                EvidenceClass::ManufacturerPublishedMap,
-            ),
+            evidence("GEN-MAP-001", EvidenceClass::ManufacturerPublishedMap),
             Efficiency::new(0.9).expect("generator efficiency"),
             PowerWatts::new(auxiliary_w).expect("auxiliary load"),
         )
@@ -946,7 +940,15 @@ mod tests {
         assert!((result.generator_loss_power.get() - 784.532).abs() < 1e-9);
         assert!((result.net_candidate_electrical_power.get() - 6_960.788).abs() < 1e-9);
         assert!(result.water_service.is_feasible());
-        assert!((result.service_eligible_net_electrical_power().unwrap().get() - 6_960.788).abs() < 1e-9);
+        assert!(
+            (result
+                .service_eligible_net_electrical_power()
+                .unwrap()
+                .get()
+                - 6_960.788)
+                .abs()
+                < 1e-9
+        );
     }
 
     #[test]
@@ -988,7 +990,13 @@ mod tests {
         assert_eq!(result.hydraulic_input_power.get(), 0.0);
         assert_eq!(result.net_candidate_electrical_power.get(), 0.0);
         assert!(result.water_service.is_feasible());
-        assert_eq!(result.service_eligible_net_electrical_power().unwrap().get(), 0.0);
+        assert_eq!(
+            result
+                .service_eligible_net_electrical_power()
+                .unwrap()
+                .get(),
+            0.0
+        );
     }
 
     #[test]
@@ -1052,10 +1060,12 @@ mod tests {
             candidate,
         )
         .expect("candidate remains available for diagnostic assessment");
-        assert!(result
-            .water_service
-            .violations()
-            .contains(&ServiceViolation::WaterAllocationExceedsUpstreamFlow));
+        assert!(
+            result
+                .water_service
+                .violations()
+                .contains(&ServiceViolation::WaterAllocationExceedsUpstreamFlow)
+        );
         assert!(result.credited_net_electrical_power().is_none());
     }
 
@@ -1106,15 +1116,24 @@ mod tests {
 
         assert!(!result.water_service.is_feasible());
         assert!(result.service_eligible_net_electrical_power().is_none());
-        assert!(result.water_service.violations().contains(
-            &ServiceViolation::DownstreamPressureBelowMinimum
-        ));
-        assert!(result.water_service.violations().contains(
-            &ServiceViolation::DeliveryFlowBelowMinimum
-        ));
-        assert!(result.water_service.violations().contains(
-            &ServiceViolation::EcologicalFlowBelowMinimum
-        ));
+        assert!(
+            result
+                .water_service
+                .violations()
+                .contains(&ServiceViolation::DownstreamPressureBelowMinimum)
+        );
+        assert!(
+            result
+                .water_service
+                .violations()
+                .contains(&ServiceViolation::DeliveryFlowBelowMinimum)
+        );
+        assert!(
+            result
+                .water_service
+                .violations()
+                .contains(&ServiceViolation::EcologicalFlowBelowMinimum)
+        );
     }
 
     #[test]
@@ -1131,15 +1150,24 @@ mod tests {
         .expect("candidate output retained for diagnostics");
 
         assert!(!result.water_service.is_feasible());
-        assert!(result.water_service.violations().contains(
-            &ServiceViolation::PressureRegressionExceeded
-        ));
-        assert!(result.water_service.violations().contains(
-            &ServiceViolation::DeliveryFlowRegressionExceeded
-        ));
-        assert!(result.water_service.violations().contains(
-            &ServiceViolation::EcologicalFlowRegressionExceeded
-        ));
+        assert!(
+            result
+                .water_service
+                .violations()
+                .contains(&ServiceViolation::PressureRegressionExceeded)
+        );
+        assert!(
+            result
+                .water_service
+                .violations()
+                .contains(&ServiceViolation::DeliveryFlowRegressionExceeded)
+        );
+        assert!(
+            result
+                .water_service
+                .violations()
+                .contains(&ServiceViolation::EcologicalFlowRegressionExceeded)
+        );
         assert!(result.service_eligible_net_electrical_power().is_none());
     }
 
@@ -1153,16 +1181,13 @@ mod tests {
     #[test]
     fn interval_energy_uses_explicit_duration() {
         let result = evaluate_default();
-        let interval = integrate_constant_interval(
-            &result,
-            DurationSeconds::new(3_600.0).expect("duration"),
-        )
-        .expect("interval energy");
+        let interval =
+            integrate_constant_interval(&result, DurationSeconds::new(3_600.0).expect("duration"))
+                .expect("interval energy");
 
         assert_eq!(interval.duration.get(), 3_600.0);
         assert!(
-            (interval.service_eligible_net_electrical_energy_j.unwrap()
-                - 6_960.788 * 3_600.0)
+            (interval.service_eligible_net_electrical_energy_j.unwrap() - 6_960.788 * 3_600.0)
                 .abs()
                 < 1e-6
         );
@@ -1180,11 +1205,8 @@ mod tests {
             candidate,
         )
         .unwrap();
-        let interval = integrate_constant_interval(
-            &result,
-            DurationSeconds::new(900.0).unwrap(),
-        )
-        .unwrap();
+        let interval =
+            integrate_constant_interval(&result, DurationSeconds::new(900.0).unwrap()).unwrap();
 
         assert!(interval.service_eligible_net_electrical_energy_j.is_none());
         assert!(interval.candidate_net_electrical_energy_j > 0.0);
@@ -1211,18 +1233,20 @@ mod tests {
     #[test]
     fn evidence_and_model_identifiers_are_required() {
         assert!(EvidenceReference::new(" ", EvidenceClass::FieldMeasurement).is_err());
-        assert!(TurbineMapCell::new(
-            "",
-            "rev-a",
-            "point",
-            evidence("map", EvidenceClass::LaboratoryModelTest),
-            HeadMetres::new(1.0).unwrap(),
-            HeadMetres::new(2.0).unwrap(),
-            FlowRateM3PerSecond::new(0.1).unwrap(),
-            FlowRateM3PerSecond::new(0.2).unwrap(),
-            Efficiency::new(0.8).unwrap(),
-        )
-        .is_err());
+        assert!(
+            TurbineMapCell::new(
+                "",
+                "rev-a",
+                "point",
+                evidence("map", EvidenceClass::LaboratoryModelTest),
+                HeadMetres::new(1.0).unwrap(),
+                HeadMetres::new(2.0).unwrap(),
+                FlowRateM3PerSecond::new(0.1).unwrap(),
+                FlowRateM3PerSecond::new(0.2).unwrap(),
+                Efficiency::new(0.8).unwrap(),
+            )
+            .is_err()
+        );
     }
 
     #[test]
