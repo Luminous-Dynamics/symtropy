@@ -243,3 +243,19 @@ All values are synthetic and chosen to test the decision contract, not to repres
 This v0.1 evaluator compares a finite supplied model set; it does not establish that the set contains the true world, optimize over a continuous ambiguity set, calculate distributionally robust bounds, or prove that a policy is safe outside the listed candidate models. It also does not propagate uncertainty intervals on each policy outcome, model discrepancy distributions, or metric measurement error.
 
 Next work should add source-pinned coupling to the CIVDYN adequacy receipts, confidence/uncertainty intervals for policy metrics, Pareto-dominance diagnostics without scalarization, and a held-out model-family benchmark. Real applications still require empirical calibration and domain review.
+
+
+### Pareto frontiers across competing policy models
+
+The policy-sensitivity library now exposes \`evaluate_pareto_frontiers\`. It reuses the full policy-sensitivity validator and emits a model-local Pareto membership for every policy/model pair.
+
+- Hard constraints are applied first. Infeasible policies are never included in a model's frontier.
+- Objectives retain their declared maximize/minimize direction and native units. No cross-metric scalarization or model weighting is performed.
+- Each objective requires an explicit finite, non-negative absolute dominance tolerance in its own native unit. A difference within tolerance is treated as a tie; strict dominance requires an improvement larger than tolerance on at least one objective and no degradation larger than tolerance on any objective.
+- Each membership records whether the policy is feasible, whether it is Pareto-efficient, and all feasible policies that dominate it.
+- A policy is marked robustly Pareto-efficient only when it is feasible and nondominated in every declared model world.
+- The frontier inherits the adequacy claim ceiling and exact model set from the policy-sensitivity evaluator.
+
+The synthetic known-answer fixture keeps baseline and conservation on the frontier in both structural worlds because they trade service against ecological integrity. Expansion is infeasible in one world and dominated by conservation in the other, so it is not robustly Pareto-efficient.
+
+The current Pareto comparison is deterministic over point outcomes. It does not yet construct uncertainty-aware Pareto sets, account for stochastic dominance, estimate the probability of frontier membership, or certify an unbounded/continuous ambiguity set. Tolerances are modelling declarations and must be frozen before looking at held-out policy results. A finite-model Pareto result is not a deployment recommendation or a global guarantee.
