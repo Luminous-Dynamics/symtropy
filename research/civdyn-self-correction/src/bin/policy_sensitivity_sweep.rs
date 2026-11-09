@@ -7,7 +7,7 @@ use civdyn_self_correction::policy_sensitivity::{
     PolicyFeasibility, PolicyMetricOutcome, PolicySensitivityReport, PolicySpec,
 };
 
-const CSV_COLUMNS: usize = 28;
+const CSV_COLUMNS: usize = 29;
 
 fn emit(fields: Vec<String>) {
     assert_eq!(fields.len(), CSV_COLUMNS, "CSV receipt must match the frozen schema");
@@ -32,6 +32,7 @@ fn model_outcome_row(
         violations.join(";"),
         model.model_digest.clone(),
         model.adequacy_model_digest.clone(),
+        model.adequacy_receipt_digest.clone(),
         outcome.source_digest.clone(),
         model.adequacy.name().to_string(),
         String::new(),
@@ -149,6 +150,7 @@ fn fixture() -> (
             family_id: "mechanism-family-a".to_string(),
             model_digest: "sha256-model-a".to_string(),
             adequacy_model_digest: "sha256-model-a".to_string(),
+            adequacy_receipt_digest: "sha256-adequacy-a".to_string(),
             adequacy: ModelAdequacyState::NoPrimaryDiscrepancyDetected,
         },
         ModelWorld {
@@ -156,6 +158,7 @@ fn fixture() -> (
             family_id: "mechanism-family-b".to_string(),
             model_digest: "sha256-model-b".to_string(),
             adequacy_model_digest: "sha256-model-b".to_string(),
+            adequacy_receipt_digest: "sha256-adequacy-b".to_string(),
             adequacy: ModelAdequacyState::PrimaryDiscrepancyDetected,
         },
     ];
@@ -292,7 +295,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let report = evaluate_policy_sensitivity(&models, &policies, &metrics, &outcomes)?;
 
     println!(
-        "record_type,model_id,policy_id,metric_id,measurement_unit,value,feasible,violated_constraints,model_digest,adequacy_model_digest,source_digest,adequacy_state,policy_feasibility,feasible_model_count,total_model_count,worst_case_regret,best_rank,worst_rank,models_where_best,policy_a,policy_b,models_where_a_better,models_where_b_better,tied_models,discordant_model_pairs,claim_ceiling,models_with_unqualified_adequacy,any_model_without_feasible_policy"
+        "record_type,model_id,policy_id,metric_id,measurement_unit,value,feasible,violated_constraints,model_digest,adequacy_model_digest,adequacy_receipt_digest,source_digest,adequacy_state,policy_feasibility,feasible_model_count,total_model_count,worst_case_regret,best_rank,worst_rank,models_where_best,policy_a,policy_b,models_where_a_better,models_where_b_better,tied_models,discordant_model_pairs,claim_ceiling,models_with_unqualified_adequacy,any_model_without_feasible_policy"
     );
     emit_report(&models, &outcomes, &report);
     Ok(())
