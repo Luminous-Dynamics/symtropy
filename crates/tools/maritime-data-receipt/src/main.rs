@@ -359,6 +359,22 @@ fn validate_relative_artifact_path(value: &str) -> Result<(), String> {
     Ok(())
 }
 
+fn intended_use_scope_allowed(source_kind: &str, scope: &str) -> bool {
+    match source_kind {
+        "synthetic_fixture" => [
+            "provenance_test_only",
+            "synthetic_test_only",
+            "offline_research",
+            "planning_only",
+        ]
+        .contains(&scope),
+        "public_dataset" => {
+            ["provenance_test_only", "offline_research", "planning_only"].contains(&scope)
+        }
+        _ => false,
+    }
+}
+
 fn validate_receipt(root: &JsonValue) -> Result<ReceiptFacts, String> {
     exact_keys(
         root,
@@ -928,8 +944,11 @@ fn validate_receipt(root: &JsonValue) -> Result<ReceiptFacts, String> {
         field(intended, "scope", "intended_use")?,
         "intended_use.scope",
     )?;
-    if !["provenance_test_only", "offline_research", "planning_only"].contains(&scope) {
-        return Err(format!("intended_use.scope: unsupported value {scope:?}"));
+    if !intended_use_scope_allowed(&kind, scope) {
+        return Err(format!(
+            "intended_use.scope: unsupported for source kind {:?}: {scope:?}",
+            kind
+        ));
     }
     if bool_value(
         field(intended, "navigation_use_authorized", "intended_use")?,
@@ -1325,6 +1344,23 @@ mod tests {
             "non-observation synthetic series may define its period in its product profile",
         );
         assert_eq!(facts.domain, "other");
+    }
+
+    #[test]
+    fn synthetic_only_intended_scope_is_not_allowed_for_public_data() {
+        assert!(intended_use_scope_allowed(
+            "synthetic_fixture",
+            "synthetic_test_only"
+        ));
+        assert!(!intended_use_scope_allowed(
+            "public_dataset",
+            "synthetic_test_only"
+        ));
+        assert!(intended_use_scope_allowed(
+            "public_dataset",
+            "offline_research"
+        ));
+        assert!(!intended_use_scope_allowed("unknown_source_kind", "offline_research"));
     }
 
     #[test]
