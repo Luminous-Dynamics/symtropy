@@ -9,8 +9,7 @@ use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 use std::fs;
 
-const FIXTURE: &[u8] =
-    include_bytes!("../../fixtures/fault-tolerant-observability-v0.1.json");
+const FIXTURE: &[u8] = include_bytes!("../../fixtures/fault-tolerant-observability-v0.1.json");
 const RANK_REL_TOL: f64 = 1.0e-12;
 const TIE_TOL: f64 = 1.0e-12;
 
@@ -129,7 +128,9 @@ fn validate_input(input: &ModelInput) -> Result<(), String> {
         return Err("common-cause group count exceeds 32".to_owned());
     }
     if input.maximum_simultaneous_failure_domains != 1 {
-        return Err("v0.1 admits exactly one failed sensor or one failed common-cause domain".to_owned());
+        return Err(
+            "v0.1 admits exactly one failed sensor or one failed common-cause domain".to_owned(),
+        );
     }
 
     let mut parameter_ids = BTreeSet::new();
@@ -148,12 +149,21 @@ fn validate_input(input: &ModelInput) -> Result<(), String> {
             return Err("sensor IDs must be non-empty and unique".to_owned());
         }
         if sensor.observation_row.len() != 2
-            || sensor.observation_row.iter().any(|value| !value.is_finite())
+            || sensor
+                .observation_row
+                .iter()
+                .any(|value| !value.is_finite())
         {
-            return Err(format!("sensor {} must have two finite sensitivities", sensor.id));
+            return Err(format!(
+                "sensor {} must have two finite sensitivities",
+                sensor.id
+            ));
         }
         if !sensor.variance.is_finite() || sensor.variance <= 0.0 {
-            return Err(format!("sensor {} variance must be finite and positive", sensor.id));
+            return Err(format!(
+                "sensor {} variance must be finite and positive",
+                sensor.id
+            ));
         }
     }
 
@@ -163,15 +173,24 @@ fn validate_input(input: &ModelInput) -> Result<(), String> {
             return Err("common-cause group IDs must be non-empty and unique".to_owned());
         }
         if group.sensor_ids.len() < 2 {
-            return Err(format!("common-cause group {} must contain at least two sensors", group.id));
+            return Err(format!(
+                "common-cause group {} must contain at least two sensors",
+                group.id
+            ));
         }
         let mut members = BTreeSet::new();
         for sensor_id in &group.sensor_ids {
             if !sensor_ids.contains(sensor_id.as_str()) {
-                return Err(format!("group {} references unknown sensor {}", group.id, sensor_id));
+                return Err(format!(
+                    "group {} references unknown sensor {}",
+                    group.id, sensor_id
+                ));
             }
             if !members.insert(sensor_id.as_str()) {
-                return Err(format!("group {} contains duplicate sensor {}", group.id, sensor_id));
+                return Err(format!(
+                    "group {} contains duplicate sensor {}",
+                    group.id, sensor_id
+                ));
             }
         }
     }
@@ -415,7 +434,10 @@ fn evaluate(input: &ModelInput, source_sha256: &str) -> Result<Report, String> {
                 sensor_ids: subset.sensor_ids.clone(),
                 objective_value: value,
             };
-            if nominal_d_best.as_ref().is_none_or(|previous| better(&candidate, previous)) {
+            if nominal_d_best
+                .as_ref()
+                .is_none_or(|previous| better(&candidate, previous))
+            {
                 nominal_d_best = Some(candidate);
             }
         }
@@ -424,7 +446,10 @@ fn evaluate(input: &ModelInput, source_sha256: &str) -> Result<Report, String> {
                 sensor_ids: subset.sensor_ids.clone(),
                 objective_value: subset.nominal_minimum_eigenvalue,
             };
-            if nominal_e_best.as_ref().is_none_or(|previous| better(&candidate, previous)) {
+            if nominal_e_best
+                .as_ref()
+                .is_none_or(|previous| better(&candidate, previous))
+            {
                 nominal_e_best = Some(candidate);
             }
         }
@@ -440,7 +465,10 @@ fn evaluate(input: &ModelInput, source_sha256: &str) -> Result<Report, String> {
                     sensor_ids: subset.sensor_ids.clone(),
                     objective_value: value,
                 };
-                if robust_d_best.as_ref().is_none_or(|previous| better(&candidate, previous)) {
+                if robust_d_best
+                    .as_ref()
+                    .is_none_or(|previous| better(&candidate, previous))
+                {
                     robust_d_best = Some(candidate);
                 }
             }
@@ -448,13 +476,19 @@ fn evaluate(input: &ModelInput, source_sha256: &str) -> Result<Report, String> {
                 sensor_ids: subset.sensor_ids.clone(),
                 objective_value: subset.worst_case_minimum_eigenvalue.unwrap_or(0.0),
             };
-            if robust_e_best.as_ref().is_none_or(|previous| better(&candidate, previous)) {
+            if robust_e_best
+                .as_ref()
+                .is_none_or(|previous| better(&candidate, previous))
+            {
                 robust_e_best = Some(candidate);
             }
         }
     }
 
-    let robustly_feasible_subset_count = subsets.iter().filter(|subset| subset.robustly_feasible).count();
+    let robustly_feasible_subset_count = subsets
+        .iter()
+        .filter(|subset| subset.robustly_feasible)
+        .count();
     Ok(Report {
         schema_version: input.schema_version.clone(),
         model_id: input.model_id.clone(),
@@ -469,13 +503,14 @@ fn evaluate(input: &ModelInput, source_sha256: &str) -> Result<Report, String> {
         robust_d_optimal_selection: robust_d_best,
         robust_e_optimal_selection: robust_e_best,
         subsets,
-        claim_ceiling: "synthetic_single_sensor_dropout_and_single_common_cause_group_only".to_owned(),
+        claim_ceiling: "synthetic_single_sensor_dropout_and_single_common_cause_group_only"
+            .to_owned(),
     })
 }
 
 fn evaluate_bytes(bytes: &[u8]) -> Result<Report, String> {
-    let input: ModelInput =
-        serde_json::from_slice(bytes).map_err(|error| format!("input JSON parse failed: {error}"))?;
+    let input: ModelInput = serde_json::from_slice(bytes)
+        .map_err(|error| format!("input JSON parse failed: {error}"))?;
     evaluate(&input, &sha256_hex(bytes))
 }
 
@@ -513,9 +548,12 @@ mod tests {
             .find(|subset| subset.sensor_ids == vec!["S_A", "S_B", "S_C", "S_D"])
             .unwrap();
         assert!(!nominal_metrics.robustly_feasible);
-        assert!(nominal_metrics.scenario_metrics.iter().any(|metric| {
-            metric.scenario_id == "common_cause:PWR_X" && metric.rank == 1
-        }));
+        assert!(
+            nominal_metrics
+                .scenario_metrics
+                .iter()
+                .any(|metric| { metric.scenario_id == "common_cause:PWR_X" && metric.rank == 1 })
+        );
     }
 
     #[test]
@@ -533,7 +571,12 @@ mod tests {
             .find(|subset| subset.sensor_ids == robust.sensor_ids)
             .unwrap();
         assert!(selected.robustly_feasible);
-        assert!(selected.scenario_metrics.iter().all(|metric| metric.rank == 2));
+        assert!(
+            selected
+                .scenario_metrics
+                .iter()
+                .all(|metric| metric.rank == 2)
+        );
     }
 
     #[test]
@@ -550,7 +593,9 @@ mod tests {
     #[test]
     fn malformed_groups_and_variances_reject() {
         let mut value = input();
-        value.common_cause_groups[0].sensor_ids.push("S_A".to_owned());
+        value.common_cause_groups[0]
+            .sensor_ids
+            .push("S_A".to_owned());
         assert!(validate_input(&value).is_err());
         let mut value = input();
         value.common_cause_groups[0].sensor_ids[0] = "UNKNOWN".to_owned();
