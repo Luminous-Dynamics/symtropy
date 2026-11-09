@@ -838,6 +838,22 @@ mod tests {
         );
     }
 
+    fn legendre_value_and_derivative(order: usize, z: f64) -> (f64, f64) {
+        let mut p_previous = 1.0;
+        let mut p_current = z;
+        for degree in 2..=order {
+            let degree_f64 = degree as f64;
+            let next = ((2.0 * degree_f64 - 1.0) * z * p_current
+                - (degree_f64 - 1.0) * p_previous)
+                / degree_f64;
+            p_previous = p_current;
+            p_current = next;
+        }
+        let derivative =
+            order as f64 * (z * p_current - p_previous) / (z * z - 1.0);
+        (p_current, derivative)
+    }
+
     fn integrate_complex_gauss_legendre(
         spin: f64,
         endpoint: ComplexCoordinate,
@@ -856,27 +872,15 @@ mod tests {
             let mut z = (core::f64::consts::PI * (index as f64 + 0.75)
                 / (order as f64 + 0.5))
                 .cos();
-            let mut derivative = 0.0;
             for _ in 0..16 {
-                let mut p_previous = 1.0;
-                let mut p_current = z;
-                for degree in 2..=order {
-                    let degree_f64 = degree as f64;
-                    let next = ((2.0 * degree_f64 - 1.0) * z * p_current
-                        - (degree_f64 - 1.0) * p_previous)
-                        / degree_f64;
-                    p_previous = p_current;
-                    p_current = next;
-                }
-                derivative =
-                    order as f64 * (z * p_current - p_previous) / (z * z - 1.0);
-                let delta = p_current / derivative;
+                let (polynomial, derivative) = legendre_value_and_derivative(order, z);
+                let delta = polynomial / derivative;
                 z -= delta;
                 if delta.abs() <= 2.0 * f64::EPSILON {
                     break;
                 }
             }
-
+            let (_, derivative) = legendre_value_and_derivative(order, z);
             let weight = 1.0 / ((1.0 - z * z) * derivative * derivative);
             let s = 0.5 * (z + 1.0);
             let y = endpoint.scale(1.0 - s * s);
