@@ -1838,15 +1838,11 @@ mod tests {
             previous_right_error = right_error;
         }
 
-        let w_left =
-            integrate_jost_rk4(width, lambda, omega, -0.5, JostSide::Left, 0.01);
-        let w_right =
-            integrate_jost_rk4(width, lambda, omega, -0.5, JostSide::Right, 0.01);
+        let w_left = integrate_jost_rk4(width, lambda, omega, -0.5, JostSide::Left, 0.01);
+        let w_right = integrate_jost_rk4(width, lambda, omega, -0.5, JostSide::Right, 0.01);
         let w_at_minus_half = w_left.0 * w_right.1 - w_left.1 * w_right.0;
-        let w_left =
-            integrate_jost_rk4(width, lambda, omega, 0.65, JostSide::Left, 0.01);
-        let w_right =
-            integrate_jost_rk4(width, lambda, omega, 0.65, JostSide::Right, 0.01);
+        let w_left = integrate_jost_rk4(width, lambda, omega, 0.65, JostSide::Left, 0.01);
+        let w_right = integrate_jost_rk4(width, lambda, omega, 0.65, JostSide::Right, 0.01);
         let w_at_plus_point = w_left.0 * w_right.1 - w_left.1 * w_right.0;
         close(w_at_minus_half, w_at_plus_point, 1.0e-9);
     }
