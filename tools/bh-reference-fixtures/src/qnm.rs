@@ -20,6 +20,10 @@ pub enum QnmSolverMethod {
     IncidenceAmplitude,
     SpheroidalEigenvalue,
     SpectralTwoDimensional,
+    SpectralOneDimensionalSchwarzschild,
+    InterpolationFromPythonQnmCache,
+    LargeLAsymptoticSchwarzschild,
+    LargeNAsymptoticSchwarzschild,
     KerrNormalProlateGenusOneWkb,
     PotentialPeakPadeWkb,
     PotentialPeakBorelPadeWkb,
@@ -87,6 +91,18 @@ pub struct QnmFamilyEvidence {
 /// nonstandard high-overtone sectors.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+pub enum QnmInitialGuessSource {
+    ExplicitIndependent,
+    BhptInterpolationTable,
+    PythonQnmCache,
+    AsymptoticFallback,
+    PreviousSpinContinuation,
+    PreviousOvertoneContinuation,
+    Unknown,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum QnmMethodApplicability {
     WithinDocumentedRegime,
     Extrapolated,
@@ -107,6 +123,8 @@ pub struct QnmModeRecord {
     pub solver_method: QnmSolverMethod,
     pub method_applicability: QnmMethodApplicability,
     pub initial_guess: Option<ComplexValue>,
+    /// Records shared seed-table or continuation dependencies between methods.
+    pub initial_guess_source: Option<QnmInitialGuessSource>,
     pub precision_bits: u16,
     pub residuals: Option<QnmModeResiduals>,
     /// Hatsuda's normal-prolate WKB integer N. It is not generally the
@@ -159,6 +177,7 @@ pub enum QnmSequenceValidationError {
     SequencePositionsNotStrictlyIncreasing(usize),
     DuplicateOvertoneIndex(u32),
     NonFiniteModeValue(usize),
+    InvalidInitialGuessMetadata(usize),
     InvalidModeResiduals(usize),
     InvalidFamilyEvidence,
     MissingFamilyEvidence,
@@ -204,6 +223,12 @@ impl core::fmt::Display for QnmSequenceValidationError {
                 write!(
                     f,
                     "QNM mode {index} has a non-finite frequency/eigenvalue/guess"
+                )
+            }
+            Self::InvalidInitialGuessMetadata(index) => {
+                write!(
+                    f,
+                    "QNM mode {index} supplies an initial guess without provenance"
                 )
             }
             Self::InvalidModeResiduals(index) => {
@@ -348,6 +373,9 @@ impl KerrQnmSequenceFixture {
             {
                 return Err(QnmSequenceValidationError::NonFiniteModeValue(index));
             }
+            if mode.initial_guess.is_some() && mode.initial_guess_source.is_none() {
+                return Err(QnmSequenceValidationError::InvalidInitialGuessMetadata(index));
+            }
             if mode.precision_bits < 53
                 || mode
                     .residuals
@@ -472,6 +500,7 @@ mod tests {
                 solver_method: QnmSolverMethod::Leaver,
                 method_applicability: QnmMethodApplicability::WithinDocumentedRegime,
                 initial_guess: Some(ComplexValue { re: 0.5, im: -0.1 }),
+                initial_guess_source: Some(QnmInitialGuessSource::ExplicitIndependent),
                 precision_bits: 128,
                 residuals: Some(QnmModeResiduals {
                     angular_ode_relative: Some(1.0e-14),
@@ -597,6 +626,36 @@ mod tests {
             invalid_residual.validate(),
             Err(QnmSequenceValidationError::InvalidModeResiduals(0))
         );
+    }
+
+    #[test]
+    fn initial_guess_requires_provenance_and_shared_seed_source_is_explicit() {
+        let mut missing = sequence(QnmFamilyClassification::Unresolved);
+        missing.modes[0].initial_guess_source = None;
+        assert_eq!(
+            missing.validate(),
+            Err(QnmSequenceValidationError::InvalidInitialGuessMetadata(0))
+        );
+
+        let mut shared = sequence(QnmFamilyClassification::Unresolved);
+        shared.modes[0].initial_guess_source =
+            Some(QnmInitialGuessSource::BhptInterpolationTable);
+        assert_eq!(shared.validate(), Ok(()));
+    }
+
+    #[test]
+    fn qnm_solver_methods_preserve_interpolation_and_schwarzschild_only_methods() {
+        let mut interpolation = sequence(QnmFamilyClassification::Unresolved);
+        interpolation.modes[0].solver_method =
+            QnmSolverMethod::InterpolationFromPythonQnmCache;
+        interpolation.modes[0].initial_guess = None;
+        interpolation.modes[0].initial_guess_source =
+            Some(QnmInitialGuessSource::PythonQnmCache);
+        assert_eq!(interpolation.validate(), Ok(()));
+
+        let mut asymptotic = sequence(QnmFamilyClassification::Unresolved);
+        asymptotic.modes[0].solver_method = QnmSolverMethod::LargeNAsymptoticSchwarzschild;
+        assert_eq!(asymptotic.validate(), Ok(()));
     }
 
     #[test]
