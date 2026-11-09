@@ -10,8 +10,16 @@ use serde_json::Value;
 use std::collections::BTreeSet;
 
 const ROOT_KEYS: &[&str] = &[
-    "schema_id", "schema_version", "profile_id", "source_kind", "receipt_binding",
-    "series", "selection", "missingness", "terms", "intended_use",
+    "schema_id",
+    "schema_version",
+    "profile_id",
+    "source_kind",
+    "receipt_binding",
+    "series",
+    "selection",
+    "missingness",
+    "terms",
+    "intended_use",
 ];
 const BINDING_KEYS: &[&str] = &["receipt_id", "receipt_sha256", "artifact_sha256"];
 const SERIES_KEYS: &[&str] = &[
@@ -30,12 +38,20 @@ const SERIES_KEYS: &[&str] = &[
     "components",
 ];
 const SELECTION_KEYS: &[&str] = &[
-    "geographic_scope", "period_start", "period_end", "source_port_ids",
+    "geographic_scope",
+    "period_start",
+    "period_end",
+    "source_port_ids",
     "selection_specification",
 ];
 const MISSINGNESS_KEYS: &[&str] = &[
-    "availability", "missing_value_policy", "missing_is_zero", "estimate_policy",
-    "suppressed_policy", "forward_fill", "interpolation",
+    "availability",
+    "missing_value_policy",
+    "missing_is_zero",
+    "estimate_policy",
+    "suppressed_policy",
+    "forward_fill",
+    "interpolation",
 ];
 const TERMS_KEYS: &[&str] = &[
     "review_status",
@@ -52,9 +68,14 @@ const TERMS_KEYS: &[&str] = &[
     "snapshot_sha256",
 ];
 const INTENDED_USE_KEYS: &[&str] = &[
-    "analysis_scope", "scenario_only", "live_operational_feed", "navigation_authorized",
-    "physical_truth_claim_authorized", "berth_availability_inference_authorized",
-    "port_call_inference_authorized", "custody_or_delivery_inference_authorized",
+    "analysis_scope",
+    "scenario_only",
+    "live_operational_feed",
+    "navigation_authorized",
+    "physical_truth_claim_authorized",
+    "berth_availability_inference_authorized",
+    "port_call_inference_authorized",
+    "custody_or_delivery_inference_authorized",
     "independent_review_required",
 ];
 const COMPONENTS: &[&str] = &[
@@ -79,7 +100,11 @@ fn exact_keys(value: &Value, expected: &[&str]) -> Result<(), &'static str> {
 }
 
 fn member<'a>(value: &'a Value, key: &str) -> Result<&'a Value, &'static str> {
-    value.as_object().ok_or("INVALID_OBJECT")?.get(key).ok_or("MISSING_REQUIRED_FIELD")
+    value
+        .as_object()
+        .ok_or("INVALID_OBJECT")?
+        .get(key)
+        .ok_or("MISSING_REQUIRED_FIELD")
 }
 
 fn text<'a>(value: &'a Value, key: &str) -> Result<&'a str, &'static str> {
@@ -144,8 +169,12 @@ fn verify_terms_snapshot(
 fn utc_timestamp(value: &str) -> bool {
     let bytes = value.as_bytes();
     if bytes.len() != 20
-        || bytes[4] != b'-' || bytes[7] != b'-' || bytes[10] != b'T'
-        || bytes[13] != b':' || bytes[16] != b':' || bytes[19] != b'Z'
+        || bytes[4] != b'-'
+        || bytes[7] != b'-'
+        || bytes[10] != b'T'
+        || bytes[13] != b':'
+        || bytes[16] != b':'
+        || bytes[19] != b'Z'
     {
         return false;
     }
@@ -156,8 +185,12 @@ fn utc_timestamp(value: &str) -> bool {
     }
     let number = |start: usize, end: usize| value[start..end].parse::<u32>().ok();
     let (Some(year), Some(month), Some(day), Some(hour), Some(minute), Some(second)) = (
-        number(0, 4), number(5, 7), number(8, 10),
-        number(11, 13), number(14, 16), number(17, 19),
+        number(0, 4),
+        number(5, 7),
+        number(8, 10),
+        number(11, 13),
+        number(14, 16),
+        number(17, 19),
     ) else {
         return false;
     };
@@ -185,7 +218,9 @@ fn quarter_ordinal(value: &str) -> Result<u32, &'static str> {
     if year == 0 || !(1..=4).contains(&quarter) {
         return Err("INVALID_QUARTER");
     }
-    year.checked_mul(4).and_then(|base| base.checked_add(quarter)).ok_or("INVALID_QUARTER")
+    year.checked_mul(4)
+        .and_then(|base| base.checked_add(quarter))
+        .ok_or("INVALID_QUARTER")
 }
 
 fn validate_profile(profile: &Value) -> Result<(), &'static str> {
@@ -242,7 +277,9 @@ fn validate_profile(profile: &Value) -> Result<(), &'static str> {
     {
         return Err("UNSUPPORTED_NORMALIZATION_METHOD");
     }
-    let components = member(series, "components")?.as_array().ok_or("INVALID_FIELD_TYPE")?;
+    let components = member(series, "components")?
+        .as_array()
+        .ok_or("INVALID_FIELD_TYPE")?;
     let component_set: BTreeSet<&str> = components
         .iter()
         .map(|item| {
@@ -268,13 +305,18 @@ fn validate_profile(profile: &Value) -> Result<(), &'static str> {
     if start > end {
         return Err("PERIOD_RANGE_INVALID");
     }
-    let port_ids = member(selection, "source_port_ids")?.as_array().ok_or("INVALID_FIELD_TYPE")?;
+    let port_ids = member(selection, "source_port_ids")?
+        .as_array()
+        .ok_or("INVALID_FIELD_TYPE")?;
     if port_ids.is_empty() {
         return Err("EMPTY_PORT_SELECTION");
     }
     let mut unique_ports = BTreeSet::new();
     for item in port_ids {
-        let id = item.as_str().filter(|id| !id.trim().is_empty()).ok_or("INVALID_FIELD_TYPE")?;
+        let id = item
+            .as_str()
+            .filter(|id| !id.trim().is_empty())
+            .ok_or("INVALID_FIELD_TYPE")?;
         if !unique_ports.insert(id) {
             return Err("DUPLICATE_SOURCE_PORT_ID");
         }
@@ -346,8 +388,7 @@ fn validate_profile(profile: &Value) -> Result<(), &'static str> {
                 || reviewer.is_none()
                 || !reviewed_at.is_some_and(utc_timestamp)
                 || !terms_digest.is_some_and(sha256)
-                || review_evidence_uri
-                    != Some("https://unctadstat.unctad.org/EN/About.html")
+                || review_evidence_uri != Some("https://unctadstat.unctad.org/EN/About.html")
                 || !snapshot_retrieved_at.is_some_and(utc_timestamp)
                 || terms_digest != Some(terms_snapshot_sha256)
                 || !attribution.contains("United Nations Trade and Development Data Hub")
@@ -527,8 +568,7 @@ pub(crate) fn run_cli(
         .map_err(str::to_owned)?
         .as_u64()
         .ok_or_else(|| "terms snapshot byte length is not an integer".to_owned())?;
-    let expected_terms_sha256 =
-        text(terms, "snapshot_sha256").map_err(str::to_owned)?;
+    let expected_terms_sha256 = text(terms, "snapshot_sha256").map_err(str::to_owned)?;
     let (terms_snapshot_byte_length, terms_snapshot_sha256) = verify_terms_snapshot(
         &terms_snapshot_path,
         expected_terms_length,
@@ -557,39 +597,65 @@ pub(crate) fn run_cli(
         .map(str::to_owned);
     let report = ProfileReport {
         status: "PLSCI_PROFILE_AND_BOUND_BYTES_MATCH_NOT_ADMITTED",
-        profile_id: text(&profile, "profile_id").map_err(str::to_owned)?.to_owned(),
+        profile_id: text(&profile, "profile_id")
+            .map_err(str::to_owned)?
+            .to_owned(),
         profile_sha256: super::sha256_bytes(&profile_bytes),
         profile_byte_length: profile_bytes.len() as u64,
-        source_kind: text(&profile, "source_kind").map_err(str::to_owned)?.to_owned(),
+        source_kind: text(&profile, "source_kind")
+            .map_err(str::to_owned)?
+            .to_owned(),
         table_id: text(series, "table_id").map_err(str::to_owned)?.to_owned(),
-        indicator_id: text(series, "indicator_id").map_err(str::to_owned)?.to_owned(),
-        spatial_level: text(series, "spatial_level").map_err(str::to_owned)?.to_owned(),
-        temporal_frequency: text(series, "temporal_frequency").map_err(str::to_owned)?.to_owned(),
-        unit_semantics: text(series, "unit_semantics").map_err(str::to_owned)?.to_owned(),
-        benchmark_period: text(series, "benchmark_period").map_err(str::to_owned)?.to_owned(),
-        benchmark_scope: text(series, "benchmark_scope").map_err(str::to_owned)?.to_owned(),
+        indicator_id: text(series, "indicator_id")
+            .map_err(str::to_owned)?
+            .to_owned(),
+        spatial_level: text(series, "spatial_level")
+            .map_err(str::to_owned)?
+            .to_owned(),
+        temporal_frequency: text(series, "temporal_frequency")
+            .map_err(str::to_owned)?
+            .to_owned(),
+        unit_semantics: text(series, "unit_semantics")
+            .map_err(str::to_owned)?
+            .to_owned(),
+        benchmark_period: text(series, "benchmark_period")
+            .map_err(str::to_owned)?
+            .to_owned(),
+        benchmark_scope: text(series, "benchmark_scope")
+            .map_err(str::to_owned)?
+            .to_owned(),
         benchmark_value: member(series, "benchmark_value")
             .map_err(str::to_owned)?
             .as_u64()
             .ok_or_else(|| "benchmark_value must be a non-negative integer".to_owned())?,
-        methodology_vintage: text(series, "methodology_vintage").map_err(str::to_owned)?.to_owned(),
+        methodology_vintage: text(series, "methodology_vintage")
+            .map_err(str::to_owned)?
+            .to_owned(),
         normalization_method: text(series, "normalization_method")
             .map_err(str::to_owned)?
             .to_owned(),
         selected_geographic_scope: text(selection, "geographic_scope")
-            .map_err(str::to_owned)?.to_owned(),
+            .map_err(str::to_owned)?
+            .to_owned(),
         selected_period_start: text(selection, "period_start")
-            .map_err(str::to_owned)?.to_owned(),
+            .map_err(str::to_owned)?
+            .to_owned(),
         selected_period_end: text(selection, "period_end")
-            .map_err(str::to_owned)?.to_owned(),
+            .map_err(str::to_owned)?
+            .to_owned(),
         selected_source_port_count: selected_port_ids.len(),
         missing_value_policy: text(missingness, "missing_value_policy")
-            .map_err(str::to_owned)?.to_owned(),
+            .map_err(str::to_owned)?
+            .to_owned(),
         estimate_policy: text(missingness, "estimate_policy")
-            .map_err(str::to_owned)?.to_owned(),
+            .map_err(str::to_owned)?
+            .to_owned(),
         suppressed_policy: text(missingness, "suppressed_policy")
-            .map_err(str::to_owned)?.to_owned(),
-        terms_review_status: text(terms, "review_status").map_err(str::to_owned)?.to_owned(),
+            .map_err(str::to_owned)?
+            .to_owned(),
+        terms_review_status: text(terms, "review_status")
+            .map_err(str::to_owned)?
+            .to_owned(),
         license_name: nullable_text(terms, "license_name")
             .map_err(str::to_owned)?
             .map(str::to_owned),
@@ -640,9 +706,7 @@ fn mutate_path(value: &mut Value, path: &str, mutation: &Value) -> Result<(), &'
             .ok_or("INVALID_CORPUS_MUTATION")?;
     }
     let leaf = parts[parts.len() - 1];
-    let object = current
-        .as_object_mut()
-        .ok_or("INVALID_CORPUS_MUTATION")?;
+    let object = current.as_object_mut().ok_or("INVALID_CORPUS_MUTATION")?;
     match mutation["op"].as_str().ok_or("INVALID_CORPUS_MUTATION")? {
         "set" => {
             if !object.contains_key(leaf) {
@@ -678,9 +742,9 @@ fn mutate_path(value: &mut Value, path: &str, mutation: &Value) -> Result<(), &'
 #[cfg(test)]
 mod tests {
     use super::{
-        mutate_path, safe_relative_path, validate_profile, verify_terms_snapshot, BINDING_KEYS,
-        INTENDED_USE_KEYS, MISSINGNESS_KEYS, ROOT_KEYS, SELECTION_KEYS, SERIES_KEYS, TERMS_KEYS,
-        VALID,
+        BINDING_KEYS, INTENDED_USE_KEYS, MISSINGNESS_KEYS, ROOT_KEYS, SELECTION_KEYS, SERIES_KEYS,
+        TERMS_KEYS, VALID, mutate_path, safe_relative_path, validate_profile,
+        verify_terms_snapshot,
     };
     use serde_json::Value;
 
@@ -702,10 +766,7 @@ mod tests {
         for case in cases {
             let id = case["id"].as_str().expect("case id");
             let base = case["base"].as_str().expect("base profile");
-            let mut candidate = bases
-                .get(base)
-                .expect("declared base profile")
-                .clone();
+            let mut candidate = bases.get(base).expect("declared base profile").clone();
             for mutation in case["mutations"].as_array().expect("mutation list") {
                 mutate_path(
                     &mut candidate,
@@ -764,8 +825,7 @@ mod tests {
     fn terms_snapshot_one_byte_drift_fails_digest_when_length_is_updated() {
         use std::fs;
 
-        let original =
-            include_bytes!("../tests/fixtures/synthetic-plsci-terms-snapshot.txt");
+        let original = include_bytes!("../tests/fixtures/synthetic-plsci-terms-snapshot.txt");
         let mut changed = original.to_vec();
         changed.push(b' ');
         let path = std::env::temp_dir().join(format!(
@@ -804,10 +864,8 @@ mod tests {
         profile["terms"]["license_name"] = Value::String("CC BY 3.0 IGO".to_owned());
         profile["terms"]["license_uri"] =
             Value::String("https://creativecommons.org/licenses/by/3.0/igo/".to_owned());
-        profile["terms"]["reviewer"] =
-            Value::String("fixture-only-simulated-reviewer".to_owned());
-        profile["terms"]["reviewed_at_utc"] =
-            Value::String("2026-10-15T16:00:00Z".to_owned());
+        profile["terms"]["reviewer"] = Value::String("fixture-only-simulated-reviewer".to_owned());
+        profile["terms"]["reviewed_at_utc"] = Value::String("2026-10-15T16:00:00Z".to_owned());
         profile["terms"]["terms_sha256"] = Value::String(snapshot_digest);
         profile["terms"]["attribution_statement"] = Value::String(
             "United Nations Trade and Development Data Hub; simulated metadata test only"
@@ -831,17 +889,15 @@ mod tests {
             "a separately declared, valid UTC capture time satisfies this metadata rule",
         );
         assert_ne!(
-            profile["terms"]["snapshot_retrieved_at_utc"],
-            profile["terms"]["reviewed_at_utc"],
+            profile["terms"]["snapshot_retrieved_at_utc"], profile["terms"]["reviewed_at_utc"],
             "capture and review timestamps are distinct fields",
         );
     }
 
     #[test]
     fn profile_schema_is_valid_json_and_pins_the_same_identity() {
-        let schema_text = include_str!(
-            "../../../../docs/tech/MARITIME_PLSCI_PROFILE_V0_1.schema.json"
-        );
+        let schema_text =
+            include_str!("../../../../docs/tech/MARITIME_PLSCI_PROFILE_V0_1.schema.json");
         let schema: Value =
             serde_json::from_str(schema_text).expect("PLSCI profile schema must be valid JSON");
         assert_eq!(
@@ -873,9 +929,8 @@ mod tests {
 
     #[test]
     fn schema_required_keys_match_the_rust_exact_key_contracts() {
-        let schema_text = include_str!(
-            "../../../../docs/tech/MARITIME_PLSCI_PROFILE_V0_1.schema.json"
-        );
+        let schema_text =
+            include_str!("../../../../docs/tech/MARITIME_PLSCI_PROFILE_V0_1.schema.json");
         let schema: Value =
             serde_json::from_str(schema_text).expect("PLSCI profile schema must be valid JSON");
         let contracts = [
@@ -949,12 +1004,15 @@ mod tests {
                 .iter()
                 .map(|item| item.as_str().expect("schema type string"))
                 .collect::<Vec<_>>();
-            assert_eq!(kinds, vec!["string", "null"], "timestamp nullability changed for {key}");
+            assert_eq!(
+                kinds,
+                vec!["string", "null"],
+                "timestamp nullability changed for {key}"
+            );
         }
 
         assert!(
-            !schema["properties"]["missingness"]["properties"]["missing_is_zero"]
-                ["const"]
+            !schema["properties"]["missingness"]["properties"]["missing_is_zero"]["const"]
                 .as_bool()
                 .expect("boolean")
         );
@@ -963,8 +1021,7 @@ mod tests {
             "forbidden"
         );
         assert!(
-            !schema["properties"]["intended_use"]["properties"]["navigation_authorized"]
-                ["const"]
+            !schema["properties"]["intended_use"]["properties"]["navigation_authorized"]["const"]
                 .as_bool()
                 .expect("boolean")
         );
@@ -973,8 +1030,7 @@ mod tests {
     #[test]
     fn source_port_ids_are_not_treated_as_locodes_or_terminal_ids() {
         let profile_text = include_str!("../tests/fixtures/synthetic-plsci-profile.json");
-        let profile: Value =
-            serde_json::from_str(profile_text).expect("synthetic profile");
+        let profile: Value = serde_json::from_str(profile_text).expect("synthetic profile");
         assert!(validate_profile(&profile).is_ok());
         assert_eq!(profile["selection"]["source_port_ids"][0], "SYNTH-001");
         assert!(profile["selection"].get("candidate_locode").is_none());
@@ -985,15 +1041,10 @@ mod tests {
         let profile_bytes = include_bytes!("../tests/fixtures/synthetic-plsci-profile.json");
         let receipt_bytes = include_bytes!("../tests/fixtures/synthetic-plsci-receipt.json");
         let profile: Value = serde_json::from_slice(profile_bytes).expect("profile JSON");
-        let strict_receipt =
-            super::super::parse_strict(receipt_bytes).expect("strict receipt");
-        let facts =
-            super::super::validate_receipt(&strict_receipt).expect("receipt contract");
-        let receipt: Value =
-            serde_json::from_slice(receipt_bytes).expect("receipt JSON");
-        assert!(
-            super::verify_receipt_semantics(&profile, &receipt, receipt_bytes, &facts).is_ok()
-        );
+        let strict_receipt = super::super::parse_strict(receipt_bytes).expect("strict receipt");
+        let facts = super::super::validate_receipt(&strict_receipt).expect("receipt contract");
+        let receipt: Value = serde_json::from_slice(receipt_bytes).expect("receipt JSON");
+        assert!(super::verify_receipt_semantics(&profile, &receipt, receipt_bytes, &facts).is_ok());
 
         let mut changed = profile.clone();
         changed["receipt_binding"]["receipt_sha256"] = Value::String(
@@ -1023,8 +1074,7 @@ mod tests {
     #[test]
     fn profile_is_only_a_metadata_claim() {
         let profile_text = include_str!("../tests/fixtures/synthetic-plsci-profile.json");
-        let profile: Value =
-            serde_json::from_str(profile_text).expect("synthetic profile");
+        let profile: Value = serde_json::from_str(profile_text).expect("synthetic profile");
         assert!(validate_profile(&profile).is_ok());
         assert!(
             !profile["intended_use"]["navigation_authorized"]
