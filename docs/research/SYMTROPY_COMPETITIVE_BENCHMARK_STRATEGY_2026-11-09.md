@@ -31,6 +31,20 @@ Official references:
 
 A fair benchmark freezes the physical problem, geometry, units, material parameters, boundary conditions, initial conditions, actuator models, controller, solver tolerances, time step, hardware and measurement method. If a backend cannot represent the same physical model, report the mismatch rather than silently changing the problem.
 
+### 2.1 Version-pinned comparison baselines (checked 2026-11-09)
+
+| System | Current reference | What changed / why it matters |
+|---|---|---|
+| MuJoCo | **4.0.0**, released 2026-11-06 | Adds speculative convex contacts intended to prevent tunnelling within a timestep, and stateful elasto-plasticity for joint/tendon springs and 2D/3D flexes. CCD/contact comparisons must add this as a distinct profile; old 3.x results remain historical. |
+| Isaac Lab | **3.0.0 GA**, released 2026-10-20 | A single task API spans multiple physics/rendering backends, including kit-less Newton workflows. Pin Isaac Lab plus the exact physics backend, renderer, task and solver path. |
+| Newton | **1.6.0** release line | Expands GPU collision/scheduling, deformable and particle workflows, compliant mechanics, rods and robot controllers. Pin the exact solver path and Warp/CUDA configuration; do not compare headline GPU throughput with CPU-only Rust measurements. |
+| Project Chrono | **10.0.0**, released 2026-03-27 | Adds/updates FSI solver paths, peridynamics, checkpointing, implicit-integrator Jacobian strategies and sensor functionality. Use domain-specific modules only where the physical problem overlaps. |
+| Rapier | **0.18.0** in Symtropy's current bridge manifest | Preserve 0.18 receipts as historical evidence. A newer Rapier baseline must be a separate, matched migration lane, not an in-place replacement. |
+
+Sources: [MuJoCo 4.0.0 changelog](https://mujoco.readthedocs.io/en/4.0.0/changelog.html), [Isaac Lab releases](https://github.com/isaac-sim/IsaacLab/releases), [Newton releases](https://github.com/newton-physics/newton/releases), [Project Chrono release announcement](https://projectchrono.org/news/), and the repository's `crates/bridges/symtropy-rapier3d-bridge/Cargo.toml`.
+
+**New benchmark admission requirement:** the same asset and timestep do not establish the same physical model. A pairwise mapping must explicitly compare contact law, friction cone, restitution, solver/regularization, integration, damping, inertia, joint constraints, CCD coverage, actuation and observable conventions. See [Cross-Simulator Semantic Equivalence V0.1](CROSS_SIMULATOR_SEMANTIC_EQUIVALENCE_V0_1.md) and [issue #4366](https://github.com/Luminous-Dynamics/symtropy). Unknown and known-non-equivalent cases are not eligible for matched solver-accuracy scores.
+
 ## 3. Where the field is moving
 
 ### 3.1 Multi-backend and composable simulation
