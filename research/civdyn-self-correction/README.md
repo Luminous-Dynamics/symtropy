@@ -156,3 +156,50 @@ Three exact interventions demonstrate why a full rollout is not automatically th
 The selector respects a declared intervention budget, excludes non-discriminating probes, and returns no selected experiment when the permitted set cannot separate the candidate worlds. It keeps observational ambiguity and the identified spillover-effect set `{0,1}` explicit.
 
 This is an exact two-node protocol control, not a general network causal estimator. It does not cover partial-interference assumptions, weighted/directed networks, exposure mappings beyond the OR rule, treatment compliance, endogenous network formation, heterogeneous spillover effects, equilibrium feedback, or empirical social-network data. Those are the next benchmark families in #4251.
+
+
+## Scenario F: adequacy before policy interpretation
+
+The first executable slice of CIVDYN-ADEQUACY-001 is in src/model_adequacy.rs and the deterministic model-adequacy-sweep binary.
+
+The evaluator consumes an explicit statistic registry, a split manifest, source-identified observations and source-identified predictive draws. It does not create another simulator or fit parameters. Each statistic carries its construct, native measurement unit, population/context, source family and digest identity, independent sampling unit, split role, primary/required status and minimum draw count.
+
+The split contract is explicit:
+
+- Calibration units are named separately from validation units.
+- Challenge units are a third, optional partition and can only be evaluated by an explicit challenge call.
+- Independent units cannot appear in more than one partition.
+- Split-predictive draws must carry the exact calibration-data digest pinned by the manifest.
+- Prior-predictive and split-predictive draws are separate kinds.
+- Draws are matched to the observed sample size; unmatched draws do not get pooled.
+- Model and draw-set identities must remain constant within each statistic/unit draw set.
+- Units, source identity, finite values, unique draw indices and required-statistic coverage are checked fail-closed.
+
+The output is one record per statistic and independent unit. It retains native units, the observed value, measurement standard error, reference interval, empirical mid-rank and draw count. Measurement uncertainty is exposed separately from structural model discrepancy; this first slice does not combine them into one width or score.
+
+The reference interval is an empirical central interval of the supplied finite draws. Its mid-rank is descriptive. Neither output is claimed to be a calibrated frequentist p-value or a full implementation of the JASA split predictive check theory. In particular, this v0.1 does not yet implement the single/divided SPC test statistic calibration, power guarantees, joint trajectory discrepancy, or multiplicity control. It also does not verify that caller-supplied digest strings are cryptographically correct; upstream ingestion must hash and independently verify the bytes.
+
+### Frozen known-answer fixture
+
+The model-adequacy-sweep binary emits six rows: prior reachability and split-predictive diagnostics for three independent target statistics.
+
+- Household water mean: inside both the prior and split-predictive references.
+- Health-income dependence: outside both references despite a plausible marginal service statistic.
+- Rare service-failure rate: inside the prior reference but outside the split-predictive reference.
+
+This deliberately shows that passing a marginal statistic cannot mask a failed joint or long-tail target, and that prior reachability and held-out predictive adequacy answer different questions. It is a software contract fixture, not empirical CIVDYN model validation.
+
+### Current claim ceiling and next steps
+
+A no_primary_discrepancy_detected result means only that no discrepancy was detected for the registered primary statistics, units, sample size, data split and finite predictive draw set. It is not a declaration that the model is true or universally adequate. not_assessed remains distinct from a pass; detected failures remain visible even when a different primary statistic is missing.
+
+This slice does not yet implement:
+1. Joint and trajectory discrepancies with dependence-aware reference distributions.
+2. Coverage uncertainty across independent units, including sample-size/power planning.
+3. Explicit treatment of measurement-error distributions rather than retaining the supplied measurement SE.
+4. Multiple source-family, site, cohort and temporal transfer tests.
+5. A diagnosis/repair lineage with fresh challenge sets and leakage receipts.
+6. Policy-rank, feasibility and native-resource sensitivity under alternative discrepancy models.
+7. Empirical data adapters or independent domain qualification.
+
+Run the model-adequacy-sweep binary using Cargo with the locked manifest at research/civdyn-self-correction/Cargo.toml. The existing CIVDYN workflow also runs this binary after formatting, strict Clippy, compilation and tests. These are engineering checks against frozen synthetic contracts only.
