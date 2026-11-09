@@ -167,12 +167,17 @@ impl core::fmt::Display for QnmContinuationValidationError {
 
 impl std::error::Error for QnmContinuationValidationError {}
 
-/// Compute the dimensionless superradiant-bound detuning M omega - m/2.
-/// This is especially important for negative-m unconventional sequences:
-/// their relevant bound is negative and must not be replaced by |m|/2.
-pub fn superradiant_bound_detuning(omega_m: ComplexValue, m: i32) -> ComplexValue {
+/// Compute dimensionless detuning from the signed extremal superradiant
+/// bound M omega_SR = sign(a) m/2. For a/M=+1 this is m/2; for a/M=-1
+/// it is -m/2. The signed convention matters for counterrotating modes.
+pub fn superradiant_bound_detuning(
+    omega_m: ComplexValue,
+    m: i32,
+    extremal_spin_over_mass: f64,
+) -> ComplexValue {
+    let spin_orientation = extremal_spin_over_mass.signum();
     ComplexValue {
-        re: omega_m.re - 0.5 * f64::from(m),
+        re: omega_m.re - 0.5 * spin_orientation * f64::from(m),
         im: omega_m.im,
     }
 }
@@ -276,12 +281,37 @@ impl KerrQnmSpinContinuationTrace {
                     .extremal_limit_evidence
                     .as_ref()
                     .ok_or(QnmContinuationValidationError::MissingExtremalLimitEvidence)?;
+                let fit_samples = self
+                    .samples
+                    .iter()
+                    .filter(|sample| {
+                        let spin = sample.spin_over_mass.abs();
+                        spin >= evidence.fit_window_min_abs_spin
+                            && spin <= evidence.fit_window_max_abs_spin
+                    })
+                    .count();
+                let exact_sample = self
+                    .samples
+                    .iter()
+                    .find(|sample| sample.spin_over_mass.abs() == 1.0)
+                    .expect("exact extremal sample checked above");
+                let expected_detuning = superradiant_bound_detuning(
+                    exact_sample.omega_m,
+                    self.m,
+                    exact_sample.spin_over_mass,
+                );
+                let detuning_error = ComplexValue {
+                    re: evidence.exact_extremal_superradiant_detuning.re - expected_detuning.re,
+                    im: evidence.exact_extremal_superradiant_detuning.im - expected_detuning.im,
+                };
+                let detuning_tolerance = 1.0e-12 * (1.0 + expected_detuning.re.hypot(expected_detuning.im));
                 if !evidence.fit_window_min_abs_spin.is_finite()
                     || !evidence.fit_window_max_abs_spin.is_finite()
                     || evidence.fit_window_min_abs_spin < 0.0
                     || evidence.fit_window_max_abs_spin <= evidence.fit_window_min_abs_spin
                     || evidence.fit_window_max_abs_spin >= 1.0
                     || evidence.fit_sample_count < 3
+                    || fit_samples < evidence.fit_sample_count as usize
                     || !evidence.estimated_damping_limit.is_finite()
                     || evidence.estimated_damping_limit < 0.0
                     || !evidence.damping_limit_uncertainty.is_finite()
@@ -290,8 +320,9 @@ impl KerrQnmSpinContinuationTrace {
                     || evidence.damping_fit_residual < 0.0
                     || evidence
                         .damping_vs_surface_gravity_exponent
-                        .is_some_and(|value| !value.is_finite())
+                        .is_some_and(|value| !value.is_finite() || value < 0.0)
                     || !evidence.exact_extremal_superradiant_detuning.is_finite()
+                    || detuning_error.re.hypot(detuning_error.im) > detuning_tolerance
                 {
                     return Err(QnmContinuationValidationError::InvalidExtremalLimitEvidence);
                 }
@@ -395,7 +426,7 @@ mod tests {
         assert_eq!(value.validate(), Ok(()));
         let exact = value.samples.last().unwrap().omega_m;
         assert_eq!(
-            superradiant_bound_detuning(exact, value.m),
+            superradiant_bound_detuning(exact, value.m, 1.0),
             ComplexValue { re: 0.0, im: 0.0 }
         );
     }
@@ -429,15 +460,32 @@ mod tests {
 
     #[test]
     fn superradiant_bound_uses_signed_m() {
-        let detuning = superradiant_bound_detuning(
+        let positive_spin_detuning = superradiant_bound_detuning(
             ComplexValue {
                 re: -1.0,
                 im: -1.0e-12,
             },
             -2,
+            1.0,
         );
         assert_eq!(
-            detuning,
+            positive_spin_detuning,
+            ComplexValue {
+                re: 0.0,
+                im: -1.0e-12,
+            }
+        );
+
+        let negative_spin_detuning = superradiant_bound_detuning(
+            ComplexValue {
+                re: 1.0,
+                im: -1.0e-12,
+            },
+            -2,
+            -1.0,
+        );
+        assert_eq!(
+            negative_spin_detuning,
             ComplexValue {
                 re: 0.0,
                 im: -1.0e-12,
