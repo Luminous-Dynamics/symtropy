@@ -884,11 +884,10 @@ mod tests {
         problem.viable_states_by_remaining_horizon = vec![
             horizon(3, &["s0"]),
             horizon(2, &[]),
+            horizon(1, &["grip-good", "grip-degraded"]),
             horizon(
-                1,
+                0,
                 &[
-                    "grip-good",
-                    "grip-degraded",
                     "advance-good",
                     "retreat-good",
                     "retreat-degraded",
@@ -1022,10 +1021,10 @@ mod tests {
         let mut expanded = safe_problem();
         expanded.viable_states_by_remaining_horizon[1]
             .state_ids
-            .push("retreat-weak".to_owned());
+            .push("grip-weak".to_owned());
         expanded.viable_states_by_remaining_horizon[2]
             .state_ids
-            .push("grip-weak".to_owned());
+            .push("retreat-weak".to_owned());
         expanded.branches.push(ProbeBranch {
             id: "b-extra-zero-mass".to_owned(),
             probability_ppb: 0,
