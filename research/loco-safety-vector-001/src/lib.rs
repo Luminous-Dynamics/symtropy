@@ -363,16 +363,10 @@ pub fn audit_safety_vector(
     problem: &SafetyVectorProblem,
 ) -> Result<SafetyVectorReport, SafetyVectorError> {
     let taxonomy_categories = validate_taxonomy(&problem.taxonomy)?;
-    let baseline_aggregates = validate_and_aggregate_policy(
-        &problem.taxonomy,
-        &taxonomy_categories,
-        &problem.baseline,
-    )?;
-    let candidate_aggregates = validate_and_aggregate_policy(
-        &problem.taxonomy,
-        &taxonomy_categories,
-        &problem.candidate,
-    )?;
+    let baseline_aggregates =
+        validate_and_aggregate_policy(&problem.taxonomy, &taxonomy_categories, &problem.baseline)?;
+    let candidate_aggregates =
+        validate_and_aggregate_policy(&problem.taxonomy, &taxonomy_categories, &problem.candidate)?;
 
     if problem.primary_claim_category_ids.is_empty() {
         return Err(SafetyVectorError::NoPrimaryClaimCategories);
