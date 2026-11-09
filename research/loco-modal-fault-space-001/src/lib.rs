@@ -366,7 +366,9 @@ fn canonicalize_problem(
             let count = membership.get(component_id.as_str()).copied().unwrap_or(0);
             membership.insert(
                 component_id.as_str(),
-                count.checked_add(1).ok_or(FaultSpaceError::ProductOverflow)?,
+                count
+                    .checked_add(1)
+                    .ok_or(FaultSpaceError::ProductOverflow)?,
             );
         }
         group.member_component_ids.sort();
@@ -553,8 +555,24 @@ mod tests {
         FaultSpaceProblem {
             context: context(),
             components: vec![
-                component("rgb", "camera-unit", &[HealthState::Valid, HealthState::Ood, HealthState::Unavailable]),
-                component("depth", "camera-unit", &[HealthState::Valid, HealthState::Ood, HealthState::Unavailable]),
+                component(
+                    "rgb",
+                    "camera-unit",
+                    &[
+                        HealthState::Valid,
+                        HealthState::Ood,
+                        HealthState::Unavailable,
+                    ],
+                ),
+                component(
+                    "depth",
+                    "camera-unit",
+                    &[
+                        HealthState::Valid,
+                        HealthState::Ood,
+                        HealthState::Unavailable,
+                    ],
+                ),
             ],
             groups: vec![group(
                 "camera-unit",
@@ -562,7 +580,10 @@ mod tests {
                 vec![
                     tuple(&[("rgb", HealthState::Valid), ("depth", HealthState::Valid)]),
                     tuple(&[("rgb", HealthState::Ood), ("depth", HealthState::Ood)]),
-                    tuple(&[("rgb", HealthState::Unavailable), ("depth", HealthState::Unavailable)]),
+                    tuple(&[
+                        ("rgb", HealthState::Unavailable),
+                        ("depth", HealthState::Unavailable),
+                    ]),
                 ],
             )],
         }
@@ -604,11 +625,11 @@ mod tests {
         let report = enumerate_fault_envelope(&camera_pair_problem()).expect("camera group");
         assert_eq!(report.global_signature_count, 3);
         assert_eq!(report.signatures[0].states.len(), 2);
-        assert_eq!(report.signatures[0].states[0].health_state, HealthState::Valid);
         assert_eq!(
-            report.conservative_cross_group_overapproximation,
-            false
+            report.signatures[0].states[0].health_state,
+            HealthState::Valid
         );
+        assert_eq!(report.conservative_cross_group_overapproximation, false);
     }
 
     #[test]
@@ -616,16 +637,41 @@ mod tests {
         let problem = FaultSpaceProblem {
             context: context(),
             components: vec![
-                component("encoder-position", "encoder-bus", &[HealthState::Valid, HealthState::Degraded, HealthState::Unavailable]),
-                component("derived-velocity", "encoder-bus", &[HealthState::Valid, HealthState::Degraded, HealthState::Unavailable]),
+                component(
+                    "encoder-position",
+                    "encoder-bus",
+                    &[
+                        HealthState::Valid,
+                        HealthState::Degraded,
+                        HealthState::Unavailable,
+                    ],
+                ),
+                component(
+                    "derived-velocity",
+                    "encoder-bus",
+                    &[
+                        HealthState::Valid,
+                        HealthState::Degraded,
+                        HealthState::Unavailable,
+                    ],
+                ),
             ],
             groups: vec![group(
                 "encoder-bus",
                 &["encoder-position", "derived-velocity"],
                 vec![
-                    tuple(&[("encoder-position", HealthState::Valid), ("derived-velocity", HealthState::Valid)]),
-                    tuple(&[("encoder-position", HealthState::Degraded), ("derived-velocity", HealthState::Degraded)]),
-                    tuple(&[("encoder-position", HealthState::Unavailable), ("derived-velocity", HealthState::Unavailable)]),
+                    tuple(&[
+                        ("encoder-position", HealthState::Valid),
+                        ("derived-velocity", HealthState::Valid),
+                    ]),
+                    tuple(&[
+                        ("encoder-position", HealthState::Degraded),
+                        ("derived-velocity", HealthState::Degraded),
+                    ]),
+                    tuple(&[
+                        ("encoder-position", HealthState::Unavailable),
+                        ("derived-velocity", HealthState::Unavailable),
+                    ]),
                 ],
             )],
         };
@@ -638,16 +684,41 @@ mod tests {
         let problem = FaultSpaceProblem {
             context: context(),
             components: vec![
-                component("foot-pressure", "foot-bus", &[HealthState::Valid, HealthState::Degraded, HealthState::Unavailable]),
-                component("foot-wrench", "foot-bus", &[HealthState::Valid, HealthState::Degraded, HealthState::Unavailable]),
+                component(
+                    "foot-pressure",
+                    "foot-bus",
+                    &[
+                        HealthState::Valid,
+                        HealthState::Degraded,
+                        HealthState::Unavailable,
+                    ],
+                ),
+                component(
+                    "foot-wrench",
+                    "foot-bus",
+                    &[
+                        HealthState::Valid,
+                        HealthState::Degraded,
+                        HealthState::Unavailable,
+                    ],
+                ),
             ],
             groups: vec![group(
                 "foot-bus",
                 &["foot-pressure", "foot-wrench"],
                 vec![
-                    tuple(&[("foot-pressure", HealthState::Valid), ("foot-wrench", HealthState::Valid)]),
-                    tuple(&[("foot-pressure", HealthState::Degraded), ("foot-wrench", HealthState::Degraded)]),
-                    tuple(&[("foot-pressure", HealthState::Unavailable), ("foot-wrench", HealthState::Unavailable)]),
+                    tuple(&[
+                        ("foot-pressure", HealthState::Valid),
+                        ("foot-wrench", HealthState::Valid),
+                    ]),
+                    tuple(&[
+                        ("foot-pressure", HealthState::Degraded),
+                        ("foot-wrench", HealthState::Degraded),
+                    ]),
+                    tuple(&[
+                        ("foot-pressure", HealthState::Unavailable),
+                        ("foot-wrench", HealthState::Unavailable),
+                    ]),
                 ],
             )],
         };
@@ -658,8 +729,10 @@ mod tests {
     #[test]
     fn state_outside_component_domain_is_rejected() {
         let mut problem = camera_pair_problem();
-        problem.groups[0].allowed_joint_tuples[0] =
-            tuple(&[("rgb", HealthState::Valid), ("depth", HealthState::Degraded)]);
+        problem.groups[0].allowed_joint_tuples[0] = tuple(&[
+            ("rgb", HealthState::Valid),
+            ("depth", HealthState::Degraded),
+        ]);
         assert_eq!(
             enumerate_fault_envelope(&problem),
             Err(FaultSpaceError::TupleStateOutsideDomain)
@@ -679,11 +752,9 @@ mod tests {
     #[test]
     fn component_in_two_groups_is_rejected() {
         let mut problem = camera_pair_problem();
-        problem.components.push(component(
-            "other",
-            "camera-unit",
-            &[HealthState::Valid],
-        ));
+        problem
+            .components
+            .push(component("other", "camera-unit", &[HealthState::Valid]));
         problem.groups.push(group(
             "second-group",
             &["rgb", "other"],
@@ -701,11 +772,9 @@ mod tests {
     #[test]
     fn component_missing_from_group_partition_is_rejected() {
         let mut problem = camera_pair_problem();
-        problem.components.push(component(
-            "imu",
-            "imu-group",
-            &[HealthState::Valid],
-        ));
+        problem
+            .components
+            .push(component("imu", "imu-group", &[HealthState::Valid]));
         assert_eq!(
             enumerate_fault_envelope(&problem),
             Err(FaultSpaceError::ComponentMissingFromGroups)
@@ -715,9 +784,9 @@ mod tests {
     #[test]
     fn duplicate_joint_tuple_is_rejected() {
         let mut problem = camera_pair_problem();
-        problem.groups[0].allowed_joint_tuples.push(
-            problem.groups[0].allowed_joint_tuples[0].clone(),
-        );
+        problem.groups[0]
+            .allowed_joint_tuples
+            .push(problem.groups[0].allowed_joint_tuples[0].clone());
         assert_eq!(
             enumerate_fault_envelope(&problem),
             Err(FaultSpaceError::DuplicateJointTuple)
@@ -792,7 +861,11 @@ mod tests {
             context: context(),
             components: vec![
                 component("rgb", "camera", &[HealthState::Valid, HealthState::Ood]),
-                component("imu", "inertial", &[HealthState::Valid, HealthState::Degraded]),
+                component(
+                    "imu",
+                    "inertial",
+                    &[HealthState::Valid, HealthState::Degraded],
+                ),
             ],
             groups: vec![
                 group(
