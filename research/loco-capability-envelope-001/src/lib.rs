@@ -267,9 +267,9 @@ pub fn estimate_capability_envelope(
     })
 }
 
-fn validate_level_partition<'a>(
-    values: &'a [String],
-) -> Result<BTreeSet<&'a str>, CapabilityError> {
+fn validate_level_partition(
+    values: &[String],
+) -> Result<BTreeSet<&str>, CapabilityError> {
     if values.is_empty() {
         return Err(CapabilityError::EmptySplitManifest);
     }
