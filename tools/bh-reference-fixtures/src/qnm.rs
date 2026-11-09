@@ -346,7 +346,7 @@ impl KerrQnmSequenceFixture {
             && self
                 .angular_eigenvalue_definition
                 .as_deref()
-                .is_none_or(|definition| definition.trim().is_empty)
+                .is_none_or(|definition| definition.trim().is_empty())
         {
             return Err(QnmSequenceValidationError::AngularEigenvalueConventionIncomplete);
         }
