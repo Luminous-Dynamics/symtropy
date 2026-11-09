@@ -690,8 +690,10 @@ pub fn poschl_teller_jost_wronskian_connection(
 pub struct PoschlTellerRetardedGreenEvaluation {
     /// Green kernel of the Fourier-transformed time-domain PDE.
     pub value: Complex64,
-    /// W[f_left, f_right] = f_left f_right' - f_left' f_right.
+    /// Direct W[f_left, f_right] = f_left f_right' - f_left' f_right.
     pub wronskian: Complex64,
+    /// Independent analytic connection-formula Wronskian.
+    pub connection_wronskian: Complex64,
     /// Left Jost value evaluated at min(observer_x, source_x).
     pub left_jost_value: Complex64,
     /// Right Jost value evaluated at max(observer_x, source_x).
@@ -729,7 +731,12 @@ pub fn poschl_teller_retarded_green(
     let left = poschl_teller_jost(width, lambda, omega, x_left, JostSide::Left, config)?;
     let right = poschl_teller_jost(width, lambda, omega, x_right, JostSide::Right, config)?;
     let wronskian = poschl_teller_jost_wronskian(width, lambda, omega, 0.0, config)?;
-    if !finite(wronskian) || wronskian == Complex64::new(0.0, 0.0) {
+    let connection_wronskian =
+        poschl_teller_jost_wronskian_connection(width, lambda, omega)?;
+    if !finite(wronskian)
+        || wronskian == Complex64::new(0.0, 0.0)
+        || !finite(connection_wronskian)
+    {
         return Err(SpecialError::NonFiniteResult);
     }
     let value = -(left.value * right.value) / wronskian;
@@ -741,8 +748,162 @@ pub fn poschl_teller_retarded_green(
     Ok(PoschlTellerRetardedGreenEvaluation {
         value,
         wronskian,
+        connection_wronskian,
         left_jost_value: left.value,
         right_jost_value: right.value,
+    })
+}
+
+
+/// Winding-number result for the analytic Pöschl–Teller connection Wronskian.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct PoschlTellerWindingEvaluation {
+    pub winding_number: i32,
+    pub samples: usize,
+    pub max_phase_step: f64,
+}
+
+/// Evaluate the argument-principle winding number of W around a circular
+/// frequency contour. The function abstains if the contour intersects a zero
+/// or the sampled phase advance is too large to certify the winding.
+pub fn poschl_teller_wronskian_winding_number(
+    width: f64,
+    lambda: f64,
+    center: Complex64,
+    radius: f64,
+    samples: usize,
+) -> Result<PoschlTellerWindingEvaluation, SpecialError> {
+    validate_complex(&[center])?;
+    if !radius.is_finite() || radius <= 0.0 || samples < 16 {
+        return Err(SpecialError::InvalidConfiguration);
+    }
+
+    let mut previous = None;
+    let mut first = Complex64::new(0.0, 0.0);
+    let mut total_phase = 0.0;
+    let mut max_phase_step: f64 = 0.0;
+
+    for index in 0..=samples {
+        let angle = core::f64::consts::TAU * index as f64 / samples as f64;
+        let point = center
+            + Complex64::new(radius * angle.cos(), radius * angle.sin());
+        let value = poschl_teller_jost_wronskian_connection(width, lambda, point)?;
+        if !finite(value) || value == Complex64::new(0.0, 0.0) {
+            return Err(SpecialError::NoConvergence);
+        }
+
+        if index == 0 {
+            first = value;
+        }
+        if let Some(previous_value) = previous {
+            let phase_step = (value * previous_value.conj()).arg();
+            max_phase_step = max_phase_step.max(phase_step.abs());
+            if phase_step.abs() >= core::f64::consts::FRAC_PI_2 {
+                return Err(SpecialError::NoConvergence);
+            }
+            total_phase += phase_step;
+        }
+        previous = Some(value);
+    }
+
+    let turns = total_phase / core::f64::consts::TAU;
+    let rounded = turns.round();
+    if !turns.is_finite() || (turns - rounded).abs() > 0.05 {
+        return Err(SpecialError::NoConvergence);
+    }
+
+    let _ = first; // The final sample closes the contour against the initial sample.
+    Ok(PoschlTellerWindingEvaluation {
+        winding_number: rounded as i32,
+        samples,
+        max_phase_step,
+    })
+}
+
+/// Laurent coefficients of the retarded Green kernel about a circularly
+/// enclosed pole cluster. The trapezoidal contour identities are
+///
+///   C_-1 = (1/2πi) ∮ G(ω) dω
+///   C_-2 = (1/2πi) ∮ (ω-center) G(ω) dω.
+///
+/// For a simple pole C_-1 is the residue and C_-2 should vanish. For a
+/// second-order pole C_-2 is the leading Laurent coefficient. The reported
+/// winding number counts zeros minus poles of the analytic connection
+/// Wronskian inside the contour.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct PoschlTellerGreenLaurentEvaluation {
+    pub center: Complex64,
+    pub radius: f64,
+    pub samples: usize,
+    pub winding_number: i32,
+    pub max_phase_step: f64,
+    pub c_minus_one: Complex64,
+    pub c_minus_two: Complex64,
+    pub max_relative_wronskian_disagreement: f64,
+}
+
+pub fn poschl_teller_retarded_green_laurent(
+    width: f64,
+    lambda: f64,
+    center: Complex64,
+    radius: f64,
+    observer_x: f64,
+    source_x: f64,
+    samples: usize,
+    config: SeriesConfig,
+) -> Result<PoschlTellerGreenLaurentEvaluation, SpecialError> {
+    if !observer_x.is_finite() || !source_x.is_finite() {
+        return Err(SpecialError::InvalidPoschlTellerParameters);
+    }
+    let winding =
+        poschl_teller_wronskian_winding_number(width, lambda, center, radius, samples)?;
+    let mut c_minus_one = Complex64::new(0.0, 0.0);
+    let mut c_minus_two = Complex64::new(0.0, 0.0);
+    let mut max_relative_wronskian_disagreement: f64 = 0.0;
+
+    for index in 0..samples {
+        let angle = core::f64::consts::TAU * index as f64 / samples as f64;
+        let displacement =
+            Complex64::new(radius * angle.cos(), radius * angle.sin());
+        let omega = center + displacement;
+        let evaluation = poschl_teller_retarded_green(
+            width,
+            lambda,
+            omega,
+            observer_x,
+            source_x,
+            config,
+        )?;
+        let denominator = evaluation.wronskian.norm().max(evaluation.connection_wronskian.norm());
+        if !denominator.is_finite() || denominator == 0.0 {
+            return Err(SpecialError::NoConvergence);
+        }
+        let disagreement =
+            (evaluation.wronskian - evaluation.connection_wronskian).norm() / denominator;
+        max_relative_wronskian_disagreement =
+            max_relative_wronskian_disagreement.max(disagreement);
+        c_minus_one += displacement * evaluation.value;
+        c_minus_two += displacement * displacement * evaluation.value;
+    }
+
+    c_minus_one /= samples as f64;
+    c_minus_two /= samples as f64;
+    if !finite(c_minus_one)
+        || !finite(c_minus_two)
+        || !max_relative_wronskian_disagreement.is_finite()
+    {
+        return Err(SpecialError::NonFiniteResult);
+    }
+
+    Ok(PoschlTellerGreenLaurentEvaluation {
+        center,
+        radius,
+        samples,
+        winding_number: winding.winding_number,
+        max_phase_step: winding.max_phase_step,
+        c_minus_one,
+        c_minus_two,
+        max_relative_wronskian_disagreement,
     })
 }
 
@@ -1428,4 +1589,157 @@ mod tests {
             "moving source/observer positions should alter the response"
         );
     }
+
+    #[test]
+    fn green_exposes_direct_and_connection_wronskians() {
+        let config = SeriesConfig::default();
+        let omega = z(0.9, -0.12);
+        let result =
+            poschl_teller_retarded_green(1.3, 0.75, omega, 0.73, -0.21, config).unwrap();
+        close(
+            result.wronskian,
+            result.connection_wronskian,
+            2.0e-9,
+        );
+    }
+
+    #[test]
+    fn argument_principle_counts_simple_and_threshold_double_zeros() {
+        let q = (0.75_f64 - 0.25).sqrt();
+        let simple_center = z(q, -0.5);
+        let simple = poschl_teller_wronskian_winding_number(
+            1.0,
+            0.75,
+            simple_center,
+            0.05,
+            128,
+        )
+        .unwrap();
+        assert_eq!(simple.winding_number, 1);
+
+        let threshold = poschl_teller_wronskian_winding_number(
+            1.0,
+            0.25,
+            z(0.0, -0.5),
+            0.05,
+            128,
+        )
+        .unwrap();
+        assert_eq!(threshold.winding_number, 2);
+    }
+
+    #[test]
+    fn contour_residue_matches_simple_pole_derivative_formula() {
+        let config = SeriesConfig::default();
+        let q = (0.75_f64 - 0.25).sqrt();
+        let pole = z(q, -0.5);
+        let contour = poschl_teller_retarded_green_laurent(
+            1.0,
+            0.75,
+            pole,
+            0.03,
+            0.4,
+            -0.3,
+            128,
+            config,
+        )
+        .unwrap();
+        assert_eq!(contour.winding_number, 1);
+        assert!(contour.c_minus_two.norm() < 1.0e-8);
+        assert!(contour.max_relative_wronskian_disagreement < 2.0e-8);
+
+        let left = poschl_teller_jost(
+            1.0,
+            0.75,
+            pole,
+            -0.3,
+            JostSide::Left,
+            config,
+        )
+        .unwrap();
+        let right = poschl_teller_jost(
+            1.0,
+            0.75,
+            pole,
+            0.4,
+            JostSide::Right,
+            config,
+        )
+        .unwrap();
+        let h = 1.0e-4;
+        let upper = poschl_teller_jost_wronskian_connection(
+            1.0,
+            0.75,
+            pole + z(h, 0.0),
+        )
+        .unwrap();
+        let lower = poschl_teller_jost_wronskian_connection(
+            1.0,
+            0.75,
+            pole - z(h, 0.0),
+        )
+        .unwrap();
+        let derivative = (upper - lower) / (2.0 * h);
+        let expected_residue = -(left.value * right.value) / derivative;
+        close(contour.c_minus_one, expected_residue, 2.0e-5);
+    }
+
+    #[test]
+    fn threshold_contour_extracts_second_order_laurent_coefficient() {
+        let config = SeriesConfig::default();
+        let center = z(0.0, -0.5);
+        let coarse = poschl_teller_retarded_green_laurent(
+            1.0,
+            0.25,
+            center,
+            0.05,
+            0.4,
+            -0.3,
+            128,
+            config,
+        )
+        .unwrap();
+        let fine = poschl_teller_retarded_green_laurent(
+            1.0,
+            0.25,
+            center,
+            0.025,
+            0.4,
+            -0.3,
+            256,
+            config,
+        )
+        .unwrap();
+        assert_eq!(coarse.winding_number, 2);
+        assert_eq!(fine.winding_number, 2);
+        close(coarse.c_minus_two, fine.c_minus_two, 2.0e-7);
+        close(coarse.c_minus_one, fine.c_minus_one, 2.0e-7);
+        assert!(fine.c_minus_two.norm() > 1.0e-3);
+        assert!(fine.max_relative_wronskian_disagreement < 2.0e-8);
+    }
+
+    #[test]
+    fn winding_number_rejects_invalid_contours() {
+        assert_eq!(
+            poschl_teller_wronskian_winding_number(
+                1.0,
+                0.75,
+                z(0.5, -0.5),
+                0.0,
+                128,
+            ),
+            Err(SpecialError::InvalidConfiguration)
+        );
+        assert_eq!(
+            poschl_teller_wronskian_winding_number(
+                1.0,
+                0.75,
+                z(0.5, -0.5),
+                0.05,
+                8,
+            ),
+            Err(SpecialError::InvalidConfiguration)
+        );
+    }
+
 }
