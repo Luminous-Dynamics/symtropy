@@ -31,9 +31,11 @@ The crate builds a small command-line validator:
 ```sh
 cargo run --manifest-path tools/bh-reference-fixtures/Cargo.toml -- validate-radial fixture.json
 cargo run --manifest-path tools/bh-reference-fixtures/Cargo.toml -- validate-qnm qnm-sequence.json
-cargo run --manifest-path tools/bh-reference-fixtures/Cargo.toml -- compare-radial reference-a.json reference-b.json
+cargo run --manifest-path tools/bh-reference-fixtures/Cargo.toml -- compare-radial reference-a.json reference-b.json 1e-14 1e-9
 ```
 
-`compare-radial` validates both inputs before comparing identity/convention metadata. It prints `matched` or `unmatched` and the differing fields. It deliberately does not calculate numerical errors: a later comparison layer must first define interpolation, common sample nodes, derivative normalization and uncertainty propagation.
+`compare-radial` validates both inputs, then compares only when problem identity, conventions, radial sample nodes and per-channel coverage match. It performs no interpolation or normalization fitting. It reports per-channel maximum absolute error, maximum tolerance-scaled error, sample count and count of out-of-tolerance values. The explicit absolute and relative tolerances are required CLI arguments.
 
-Exit codes: `0` valid/matched, `2` malformed input or invalid fixture, `4` valid but convention-incompatible fixtures.
+Statuses are `unmatched` (problem/convention mismatch), `unresolved` (different radial nodes or data coverage), `numerically_agreeing`, and `numerically_disagreeing`.
+
+Exit codes: `0` numerical agreement, `2` malformed input/invalid fixture or tolerance, `4` problem or convention mismatch, `5` numerical disagreement, `6` comparison unresolved.
