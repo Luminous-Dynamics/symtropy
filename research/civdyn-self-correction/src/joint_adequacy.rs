@@ -511,34 +511,51 @@ fn variogram_score(
     let mut pair_index = 0;
     let mut total = 0.0;
 
-    for left in 0..statistic.components.len() {
-        for right in (left + 1)..statistic.components.len() {
-            let weight = config.pair_weights[pair_index];
-            let observed_distance =
-                (observation[left] - observation[right]).abs().powf(config.variogram_power);
-            let predictive_distance = vectors
+    let component_pairs = statistic.components.iter().enumerate().flat_map(
+        |(left_index, left_spec)| {
+            statistic
+                .components
                 .iter()
-                .map(|vector| {
-                    (vector[left] - vector[right])
-                        .abs()
-                        .powf(config.variogram_power)
+                .enumerate()
+                .skip(left_index + 1)
+                .map(move |(right_index, right_spec)| {
+                    (left_index, right_index, left_spec, right_spec)
                 })
-                .sum::<f64>()
-                / vectors.len() as f64;
-            let difference = observed_distance - predictive_distance;
-            let contribution = weight * difference * difference;
-            total += contribution;
+        },
+    );
 
-            results.push(VariogramPairResult {
-                component_a: statistic.components[left].id.clone(),
-                component_b: statistic.components[right].id.clone(),
-                weight,
-                observed_pair_distance: observed_distance,
-                predictive_pair_distance: predictive_distance,
-                weighted_contribution: contribution,
-            });
-            pair_index += 1;
-        }
+    for (left, right, left_spec, right_spec) in
+        component_pairs.zip(config.pair_weights.iter().copied().map(|weight| {
+            weight
+        })).map(|(pair, weight)| {
+            let (left, right, left_spec, right_spec) = pair;
+            (left, right, left_spec, right_spec, weight)
+        })
+    {
+        let observed_distance =
+            (observation[left] - observation[right]).abs().powf(config.variogram_power);
+        let predictive_distance = vectors
+            .iter()
+            .map(|vector| {
+                (vector[left] - vector[right])
+                    .abs()
+                    .powf(config.variogram_power)
+            })
+            .sum::<f64>()
+            / vectors.len() as f64;
+        let difference = observed_distance - predictive_distance;
+        let contribution = weight * difference * difference;
+        total += contribution;
+
+        results.push(VariogramPairResult {
+            component_a: left_spec.id.clone(),
+            component_b: right_spec.id.clone(),
+            weight,
+            observed_pair_distance: observed_distance,
+            predictive_pair_distance: predictive_distance,
+            weighted_contribution: contribution,
+        });
+        pair_index += 1;
     }
     (total, results)
 }
