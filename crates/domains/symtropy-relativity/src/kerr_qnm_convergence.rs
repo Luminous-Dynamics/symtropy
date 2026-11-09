@@ -37,7 +37,10 @@ impl fmt::Display for KerrOpticalError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::NonFiniteInput(name) => write!(f, "{name} must be finite"),
-            Self::RadiusAtOrInsideHorizon { radius_m, horizon_m } => write!(
+            Self::RadiusAtOrInsideHorizon {
+                radius_m,
+                horizon_m,
+            } => write!(
                 f,
                 "Boyer-Lindquist radius {radius_m} m must exceed outer horizon {horizon_m} m"
             ),
@@ -48,7 +51,10 @@ impl fmt::Display for KerrOpticalError {
             Self::RootNotBracketed => write!(f, "Kerr optical bounce root was not bracketed"),
             Self::RootNotConverged => write!(f, "Kerr optical bounce root did not converge"),
             Self::QuadratureNotConverged => {
-                write!(f, "Kerr prolate optical-coordinate quadrature did not converge")
+                write!(
+                    f,
+                    "Kerr prolate optical-coordinate quadrature did not converge"
+                )
             }
             Self::NonFiniteResult(name) => {
                 write!(f, "computed {name} is non-finite or outside the f64 range")
@@ -215,9 +221,7 @@ impl KerrOpticalReference {
                 turning_point_im_m: 0.0,
                 oblate_bounce_coordinate_m: 0.0,
                 prolate_bounce_coordinate_m: 0.0,
-                prolate_turning_point_im_coordinate_m: 2.0
-                    * core::f64::consts::PI
-                    * rg,
+                prolate_turning_point_im_coordinate_m: 2.0 * core::f64::consts::PI * rg,
                 oblate_asymptotic_frequency_spacing_s_inv: black_hole.surface_gravity_rate_s_inv(),
                 prolate_asymptotic_frequency_spacing_s_inv: SPEED_OF_LIGHT_M_S / (4.0 * rg),
                 oblate_bounce_radius_m: bounce,
@@ -228,35 +232,15 @@ impl KerrOpticalReference {
         }
 
         let turning_point = prolate_turning_point(spin);
-        let oblate_coordinate = oblate_complex_bounce_coordinate(
-            spin,
-            x_plus,
-            x_minus,
-            horizon_gap,
-        );
+        let oblate_coordinate =
+            oblate_complex_bounce_coordinate(spin, x_plus, x_minus, horizon_gap);
         let (prolate_coordinate, quadrature_segments, quadrature_error) =
-            prolate_complex_bounce_coordinate(
-                spin,
-                turning_point,
-                x_plus,
-                x_minus,
-                horizon_gap,
-            )?;
+            prolate_complex_bounce_coordinate(spin, turning_point, x_plus, x_minus, horizon_gap)?;
 
-        let oblate_bounce = solve_oblate_bounce(
-            spin,
-            x_plus,
-            x_minus,
-            horizon_gap,
-            oblate_coordinate,
-        )?;
-        let prolate_bounce = solve_prolate_bounce(
-            spin,
-            x_plus,
-            x_minus,
-            horizon_gap,
-            prolate_coordinate.re,
-        )?;
+        let oblate_bounce =
+            solve_oblate_bounce(spin, x_plus, x_minus, horizon_gap, oblate_coordinate)?;
+        let prolate_bounce =
+            solve_prolate_bounce(spin, x_plus, x_minus, horizon_gap, prolate_coordinate.re)?;
 
         let result = Self {
             mass_kg,
@@ -306,12 +290,8 @@ impl KerrOpticalReference {
     pub fn oblate_coordinate_m(self, radius_m: f64) -> Result<f64, KerrOpticalError> {
         let r = self.validate_exterior_radius(radius_m)?;
         let (x_plus, x_minus, gap) = self.dimensionless_horizons();
-        Ok(self.gravitational_radius_m * oblate_tortoise_dimensionless(
-            r / self.gravitational_radius_m,
-            x_plus,
-            x_minus,
-            gap,
-        ))
+        Ok(self.gravitational_radius_m
+            * oblate_tortoise_dimensionless(r / self.gravitational_radius_m, x_plus, x_minus, gap))
     }
 
     /// Prolate optical tortoise coordinate x(r), in metres, normalized by
@@ -320,9 +300,9 @@ impl KerrOpticalReference {
         let r = self.validate_exterior_radius(radius_m)?;
         let (x_plus, x_minus, gap) = self.dimensionless_horizons();
         let dimensionless_radius = r / self.gravitational_radius_m;
-        let r_star =
-            oblate_tortoise_dimensionless(dimensionless_radius, x_plus, x_minus, gap);
-        let correction = prolate_real_correction(self.dimensionless_spin_abs, 1.0 / dimensionless_radius)?;
+        let r_star = oblate_tortoise_dimensionless(dimensionless_radius, x_plus, x_minus, gap);
+        let correction =
+            prolate_real_correction(self.dimensionless_spin_abs, 1.0 / dimensionless_radius)?;
         let value = self.gravitational_radius_m * (r_star + correction);
         if value.is_finite() {
             Ok(value)
@@ -375,9 +355,7 @@ impl KerrOpticalReference {
         let prolate_margin = elapsed_length - prolate_distance;
 
         if !oblate_margin.is_finite() || !prolate_margin.is_finite() {
-            return Err(KerrOpticalError::NonFiniteResult(
-                "QNM convergence margin",
-            ));
+            return Err(KerrOpticalError::NonFiniteResult("QNM convergence margin"));
         }
 
         let near_oblate = oblate_margin.abs() <= boundary_tolerance_m;
@@ -404,9 +382,7 @@ impl KerrOpticalReference {
     }
 
     fn dimensionless_horizons(self) -> (f64, f64, f64) {
-        let d = ((1.0 - self.dimensionless_spin_abs)
-            * (1.0 + self.dimensionless_spin_abs))
-            .sqrt();
+        let d = ((1.0 - self.dimensionless_spin_abs) * (1.0 + self.dimensionless_spin_abs)).sqrt();
         let plus = 1.0 + d;
         let minus = self.dimensionless_spin_abs.powi(2) / plus;
         (plus, minus, plus - minus)
@@ -465,12 +441,7 @@ fn oblate_tortoise_dimensionless(radius: f64, x_plus: f64, x_minus: f64, gap: f6
                 + (x_plus / gap) * (-gap / (radius - x_minus)).ln_1p())
 }
 
-fn oblate_complex_bounce_coordinate(
-    spin: f64,
-    x_plus: f64,
-    x_minus: f64,
-    gap: f64,
-) -> f64 {
+fn oblate_complex_bounce_coordinate(spin: f64, x_plus: f64, x_minus: f64, gap: f64) -> f64 {
     // The exact Schwarzschild limit is r_*(0)=0 in the standard convention.
     if spin <= 1.0e-8 {
         return 0.0;
@@ -503,15 +474,12 @@ fn oblate_complex_tortoise(
     gap: f64,
 ) -> ComplexCoordinate {
     let z = radius.sub(ComplexCoordinate::new(x_minus, 0.0));
-    let logarithmic_terms = z
-        .div(ComplexCoordinate::new(2.0, 0.0))
-        .ln()
-        .add(
-            ComplexCoordinate::new(-gap, 0.0)
-                .div(z)
-                .ln_1p()
-                .scale(x_plus / gap),
-        );
+    let logarithmic_terms = z.div(ComplexCoordinate::new(2.0, 0.0)).ln().add(
+        ComplexCoordinate::new(-gap, 0.0)
+            .div(z)
+            .ln_1p()
+            .scale(x_plus / gap),
+    );
     radius.add(logarithmic_terms.scale(2.0))
 }
 
@@ -519,15 +487,16 @@ fn integrate_real_simpson(spin: f64, endpoint: f64, segments: usize) -> f64 {
     let h = endpoint / segments as f64;
     let integrand = |y: f64| {
         let alpha2 = spin * spin;
-        alpha2
-            / ((1.0 + alpha2 * y * y + 2.0 * alpha2 * y * y * y).sqrt()
-                + 1.0
-                + alpha2 * y * y)
+        alpha2 / ((1.0 + alpha2 * y * y + 2.0 * alpha2 * y * y * y).sqrt() + 1.0 + alpha2 * y * y)
     };
     let mut sum = integrand(0.0) + integrand(endpoint);
     for index in 1..segments {
         let value = integrand(index as f64 * h);
-        sum += if index % 2 == 0 { 2.0 * value } else { 4.0 * value };
+        sum += if index % 2 == 0 {
+            2.0 * value
+        } else {
+            4.0 * value
+        };
     }
     sum * h / 3.0
 }
@@ -539,9 +508,7 @@ fn prolate_real_correction(spin: f64, endpoint: f64) -> Result<f64, KerrOpticalE
     let mut previous = integrate_real_simpson(spin, endpoint, 64);
     for segments in [128_usize, 256, 512, 1024, 2048, 4096] {
         let current = integrate_real_simpson(spin, endpoint, segments);
-        if (current - previous).abs()
-            <= REAL_QUADRATURE_TOLERANCE * (1.0 + current.abs())
-        {
+        if (current - previous).abs() <= REAL_QUADRATURE_TOLERANCE * (1.0 + current.abs()) {
             return Ok(current);
         }
         previous = current;
@@ -638,8 +605,7 @@ fn prolate_complex_bounce_coordinate(
         ));
     }
     let r_star = oblate_complex_tortoise(turning_point, x_plus, x_minus, gap);
-    let (correction, segments, error) =
-        prolate_complex_correction(spin, turning_point)?;
+    let (correction, segments, error) = prolate_complex_correction(spin, turning_point)?;
     let value = r_star.add(correction);
     if !value.finite() {
         return Err(KerrOpticalError::NonFiniteResult(
@@ -659,9 +625,8 @@ fn solve_oblate_bounce(
     let low_offset = (gap * 1.0e-10).max(64.0 * f64::EPSILON * x_plus);
     let mut low = x_plus + low_offset;
     let mut high = 4.0;
-    let function = |radius: f64| {
-        oblate_tortoise_dimensionless(radius, x_plus, x_minus, gap) - target
-    };
+    let function =
+        |radius: f64| oblate_tortoise_dimensionless(radius, x_plus, x_minus, gap) - target;
     let f_low = function(low);
     let mut f_high = function(high);
     if !f_low.is_finite() || !f_high.is_finite() {
@@ -684,9 +649,7 @@ fn solve_oblate_bounce(
         let middle = 0.5 * (low + high);
         let f_middle = function(middle);
         if !f_middle.is_finite() {
-            return Err(KerrOpticalError::NonFiniteResult(
-                "oblate bounce residual",
-            ));
+            return Err(KerrOpticalError::NonFiniteResult("oblate bounce residual"));
         }
         if f_middle > 0.0 {
             high = middle;
@@ -738,9 +701,7 @@ fn solve_prolate_bounce(
         let middle = 0.5 * (low + high);
         let f_middle = function(middle)?;
         if !f_middle.is_finite() {
-            return Err(KerrOpticalError::NonFiniteResult(
-                "prolate bounce residual",
-            ));
+            return Err(KerrOpticalError::NonFiniteResult("prolate bounce residual"));
         }
         if f_middle > 0.0 {
             high = middle;
@@ -777,10 +738,26 @@ mod tests {
     fn kerr_optical_bounces_reproduce_reference_spin_zero_point_seven() {
         let reference = KerrOpticalReference::new(hole(0.7)).unwrap();
         let rg = reference.gravitational_radius_m;
-        relative_close(reference.oblate_bounce_radius_m / rg, 2.496_684_247_950_247_5, 2.0e-9);
-        relative_close(reference.prolate_bounce_radius_m / rg, 2.506_982_739_799_383_2, 2.0e-9);
-        relative_close(reference.prolate_bounce_coordinate_m / rg, 0.339_627_686_616_607_2, 2.0e-9);
-        relative_close(reference.prolate_turning_point_im_coordinate_m / rg, 6.151_216_215_915_6, 2.0e-9);
+        relative_close(
+            reference.oblate_bounce_radius_m / rg,
+            2.496_684_247_950_247_5,
+            2.0e-9,
+        );
+        relative_close(
+            reference.prolate_bounce_radius_m / rg,
+            2.506_982_739_799_383_2,
+            2.0e-9,
+        );
+        relative_close(
+            reference.prolate_bounce_coordinate_m / rg,
+            0.339_627_686_616_607_2,
+            2.0e-9,
+        );
+        relative_close(
+            reference.prolate_turning_point_im_coordinate_m / rg,
+            6.151_216_215_915_6,
+            2.0e-9,
+        );
     }
 
     #[test]
@@ -855,10 +832,7 @@ mod tests {
             1.249_527_693_832_751 - 1.316_980_558_590_982_6,
             2.0e-8,
         );
-        assert_eq!(
-            inner.region,
-            KerrQnmConvergenceRegion::TransitionUnresolved
-        );
+        assert_eq!(inner.region, KerrQnmConvergenceRegion::TransitionUnresolved);
     }
 
     #[test]
@@ -867,29 +841,56 @@ mod tests {
         let rg = reference.gravitational_radius_m;
 
         let both = reference
-            .convergence_margins(8.0 * rg / SPEED_OF_LIGHT_M_S, 4.0 * rg, 3.0 * rg, 1.0e-8 * rg)
+            .convergence_margins(
+                8.0 * rg / SPEED_OF_LIGHT_M_S,
+                4.0 * rg,
+                3.0 * rg,
+                1.0e-8 * rg,
+            )
             .unwrap();
-        assert_eq!(both.region, KerrQnmConvergenceRegion::BothFamiliesConvergent);
+        assert_eq!(
+            both.region,
+            KerrQnmConvergenceRegion::BothFamiliesConvergent
+        );
         assert!(both.complete_qnm_contribution_convergent());
 
         // At the outer source/observer pair, prolate converges before oblate.
         let prolate_only = reference
-            .convergence_margins(5.4 * rg / SPEED_OF_LIGHT_M_S, 4.0 * rg, 3.0 * rg, 1.0e-8 * rg)
+            .convergence_margins(
+                5.4 * rg / SPEED_OF_LIGHT_M_S,
+                4.0 * rg,
+                3.0 * rg,
+                1.0e-8 * rg,
+            )
             .unwrap();
-        assert_eq!(prolate_only.region, KerrQnmConvergenceRegion::ProlateFamilyOnlyConvergent);
+        assert_eq!(
+            prolate_only.region,
+            KerrQnmConvergenceRegion::ProlateFamilyOnlyConvergent
+        );
         assert!(!prolate_only.complete_qnm_contribution_convergent());
 
         // At the inner pair, oblate converges before prolate.
         let oblate_only = reference
-            .convergence_margins(1.28 * rg / SPEED_OF_LIGHT_M_S, 2.4 * rg, 2.3 * rg, 1.0e-8 * rg)
+            .convergence_margins(
+                1.28 * rg / SPEED_OF_LIGHT_M_S,
+                2.4 * rg,
+                2.3 * rg,
+                1.0e-8 * rg,
+            )
             .unwrap();
-        assert_eq!(oblate_only.region, KerrQnmConvergenceRegion::OblateFamilyOnlyConvergent);
+        assert_eq!(
+            oblate_only.region,
+            KerrQnmConvergenceRegion::OblateFamilyOnlyConvergent
+        );
         assert!(!oblate_only.complete_qnm_contribution_convergent());
 
         let neither = reference
             .convergence_margins(0.0, 4.0 * rg, 3.0 * rg, 1.0e-8 * rg)
             .unwrap();
-        assert_eq!(neither.region, KerrQnmConvergenceRegion::NeitherFamilyConvergent);
+        assert_eq!(
+            neither.region,
+            KerrQnmConvergenceRegion::NeitherFamilyConvergent
+        );
     }
 
     #[test]
@@ -897,14 +898,12 @@ mod tests {
         let at_point_three = KerrOpticalReference::new(hole(0.3)).unwrap();
         let rg = at_point_three.gravitational_radius_m;
         relative_close(
-            at_point_three.prolate_asymptotic_frequency_spacing_s_inv * rg
-                / SPEED_OF_LIGHT_M_S,
+            at_point_three.prolate_asymptotic_frequency_spacing_s_inv * rg / SPEED_OF_LIGHT_M_S,
             0.252_920_435_361_936_1,
             2.0e-9,
         );
         relative_close(
-            at_point_three.oblate_asymptotic_frequency_spacing_s_inv * rg
-                / SPEED_OF_LIGHT_M_S,
+            at_point_three.oblate_asymptotic_frequency_spacing_s_inv * rg / SPEED_OF_LIGHT_M_S,
             0.244_106_674_538_586_94,
             2.0e-9,
         );
@@ -912,14 +911,12 @@ mod tests {
         let at_point_seven = KerrOpticalReference::new(hole(0.7)).unwrap();
         let rg = at_point_seven.gravitational_radius_m;
         relative_close(
-            at_point_seven.prolate_asymptotic_frequency_spacing_s_inv * rg
-                / SPEED_OF_LIGHT_M_S,
+            at_point_seven.prolate_asymptotic_frequency_spacing_s_inv * rg / SPEED_OF_LIGHT_M_S,
             0.255_363_536_519_921_47,
             2.0e-9,
         );
         relative_close(
-            at_point_seven.oblate_asymptotic_frequency_spacing_s_inv * rg
-                / SPEED_OF_LIGHT_M_S,
+            at_point_seven.oblate_asymptotic_frequency_spacing_s_inv * rg / SPEED_OF_LIGHT_M_S,
             0.208_309_023_320_699_0,
             2.0e-9,
         );
