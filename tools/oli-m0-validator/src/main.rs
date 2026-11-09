@@ -4,7 +4,7 @@ use serde_json::Value;
 use std::collections::HashSet;
 use std::env;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 const PROPERTY_NAMES: &[&str] = &[
     "organization",
@@ -373,9 +373,11 @@ fn load_json(path: &Path) -> Result<Value, String> {
 }
 
 fn run() -> Result<(), String> {
-    let directory = env::args().nth(1).unwrap_or_else(|| "fixtures".to_owned());
-    let root = Path::new(&directory);
-    let entries = fs::read_dir(root).map_err(|error| format!("{}: {error}", root.display()))?;
+    let root = env::args()
+        .nth(1)
+        .map(PathBuf::from)
+        .unwrap_or_else(|| Path::new(env!("CARGO_MANIFEST_DIR")).join("fixtures"));
+    let entries = fs::read_dir(&root).map_err(|error| format!("{}: {error}", root.display()))?;
     let mut paths = Vec::new();
 
     for entry in entries {
