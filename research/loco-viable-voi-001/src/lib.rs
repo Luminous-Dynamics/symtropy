@@ -213,6 +213,7 @@ pub enum ViableVoiError {
     JointMassNotNormalized,
     PositiveMassForImpossibleCell,
     PriorMassNotNormalized,
+    HypothesisMarginalMismatch,
     DuplicateContinuationOutcome,
     MissingContinuationOutcome,
     ContinuationContextMismatch,
@@ -229,6 +230,9 @@ pub enum ViableVoiError {
     DuplicateContinuationLossCell,
     MissingContinuationLossCell,
     LossForUnadmittedAction,
+    PassiveLossForUnadmittedAction,
+    UnknownPassiveLossKey,
+    UnknownContinuationLossKey,
     ArithmeticOverflow,
     ResourceLimitInvalid,
 }
@@ -727,7 +731,46 @@ fn validate_and_compute(problem: &ViableVoiProblem) -> Result<ViableVoiReport, V
         return Err(ViableVoiError::JointMassNotNormalized);
     }
 
-    let admitted_by_outcome: Vec<(&str, BTreeSet<&str>)> = problem
+    for hypothesis in &problem.hypotheses {
+        let marginal = problem
+            .joint_mass_cells
+            .iter()
+            .filter(|cell| cell.hypothesis_id == hypothesis.id)
+            .try_fold(0_u128, |total, cell| {
+                add_u128(total, u128::from(cell.mass_ppb))
+            })?;
+        if marginal != u128::from(hypothesis.passive_prior_mass_ppb) {
+            return Err(ViableVoiError::HypothesisMarginalMismatch);
+        }
+    }
+
+    let passive_action_ids: BTreeSet<&str> = problem
+        .passive_admitted_action_ids
+        .iter()
+        .map(String::as_str)
+        .collect();
+    let hypothesis_ids: BTreeSet<&str> = problem
+        .hypotheses
+        .iter()
+        .map(|item| item.id.as_str())
+        .collect();
+    let mut passive_loss_keys = BTreeSet::new();
+    for cell in &problem.passive_loss_cells {
+        if !hypothesis_ids.contains(cell.hypothesis_id.as_str()) {
+            return Err(ViableVoiError::UnknownPassiveLossKey);
+        }
+        if !passive_action_ids.contains(cell.action_id.as_str()) {
+            return Err(ViableVoiError::PassiveLossForUnadmittedAction);
+        }
+        if cell.loss_ppb > SCALE_PPB {
+            return Err(ViableVoiError::InvalidLoss);
+        }
+        if !passive_loss_keys.insert((cell.action_id.as_str(), cell.hypothesis_id.as_str())) {
+            return Err(ViableVoiError::DuplicatePassiveLossCell);
+        }
+    }
+
+    let admitted_by_outcome: BTreeMap<&str, BTreeSet<&str>> = problem
         .continuation_evidence
         .iter()
         .map(|evidence| {
@@ -741,15 +784,40 @@ fn validate_and_compute(problem: &ViableVoiProblem) -> Result<ViableVoiReport, V
             )
         })
         .collect();
+    let branch_ids: BTreeSet<&str> = problem
+        .branches
+        .iter()
+        .map(|item| item.id.as_str())
+        .collect();
+    let outcome_ids: BTreeSet<&str> = problem
+        .outcomes
+        .iter()
+        .map(|item| item.id.as_str())
+        .collect();
+    let mut continuation_loss_keys = BTreeSet::new();
     for cell in &problem.continuation_loss_cells {
-        let Some((_, admitted_actions)) = admitted_by_outcome
-            .iter()
-            .find(|(outcome_id, _)| *outcome_id == cell.outcome_id)
-        else {
-            return Err(ViableVoiError::MissingContinuationOutcome);
-        };
+        if !hypothesis_ids.contains(cell.hypothesis_id.as_str())
+            || !branch_ids.contains(cell.branch_id.as_str())
+            || !outcome_ids.contains(cell.outcome_id.as_str())
+        {
+            return Err(ViableVoiError::UnknownContinuationLossKey);
+        }
+        let admitted_actions = admitted_by_outcome
+            .get(cell.outcome_id.as_str())
+            .ok_or(ViableVoiError::MissingContinuationOutcome)?;
         if !admitted_actions.contains(cell.action_id.as_str()) {
             return Err(ViableVoiError::LossForUnadmittedAction);
+        }
+        if cell.loss_ppb > SCALE_PPB {
+            return Err(ViableVoiError::InvalidLoss);
+        }
+        if !continuation_loss_keys.insert((
+            cell.action_id.as_str(),
+            cell.hypothesis_id.as_str(),
+            cell.branch_id.as_str(),
+            cell.outcome_id.as_str(),
+        )) {
+            return Err(ViableVoiError::DuplicateContinuationLossCell);
         }
     }
 
@@ -1196,6 +1264,87 @@ mod tests {
         assert_eq!(
             evaluate_viable_voi(&problem),
             Err(ViableVoiError::LossForUnadmittedAction)
+        );
+    }
+
+    #[test]
+    fn joint_mass_must_preserve_declared_passive_hypothesis_prior() {
+        let mut problem = safe_problem();
+        let good = problem
+            .joint_mass_cells
+            .iter_mut()
+            .find(|cell| {
+                cell.hypothesis_id == "h-good"
+                    && cell.branch_id == "b-good"
+                    && cell.outcome_id == "good-contact"
+            })
+            .expect("good cell");
+        good.mass_ppb = 500_000_001;
+        let bad = problem
+            .joint_mass_cells
+            .iter_mut()
+            .find(|cell| {
+                cell.hypothesis_id == "h-bad"
+                    && cell.branch_id == "b-degraded"
+                    && cell.outcome_id == "degraded-contact"
+            })
+            .expect("bad cell");
+        bad.mass_ppb = 499_999_999;
+        assert_eq!(
+            evaluate_viable_voi(&problem),
+            Err(ViableVoiError::HypothesisMarginalMismatch)
+        );
+    }
+
+    #[test]
+    fn loss_rows_for_unknown_hypothesis_branch_or_outcome_are_rejected() {
+        let mut problem = safe_problem();
+        problem.continuation_loss_cells.push(DecisionLossCell {
+            action_id: "retreat".to_owned(),
+            hypothesis_id: "unlisted-hypothesis".to_owned(),
+            branch_id: "b-good".to_owned(),
+            outcome_id: "good-contact".to_owned(),
+            loss_ppb: 0,
+        });
+        assert_eq!(
+            evaluate_viable_voi(&problem),
+            Err(ViableVoiError::UnknownContinuationLossKey)
+        );
+    }
+
+    #[test]
+    fn zero_mass_physical_branch_still_remains_in_upstream_rejection_gate() {
+        let mut problem = safe_problem();
+        problem.probe.status = ProbeGateStatus::Rejected {
+            witness_id: "zero-mass-branch-loses-recovery".to_owned(),
+        };
+        for cell in &mut problem.joint_mass_cells {
+            if cell.branch_id == "b-degraded" {
+                cell.mass_ppb = 0;
+            }
+        }
+        assert!(problem.probe.branch_ids.contains(&"b-degraded".to_owned()));
+        let report = evaluate_viable_voi(&problem).expect("physical rejection");
+        assert_eq!(
+            report.disposition,
+            GateDisposition::PhysicalRejected {
+                witness_id: "zero-mass-branch-loses-recovery".to_owned()
+            }
+        );
+        assert_eq!(report.viable_voi_numerator_ppb_squared, None);
+    }
+
+    #[test]
+    fn passive_loss_row_for_unadmitted_action_is_rejected() {
+        let mut problem = safe_problem();
+        problem.passive_loss_cells.push(PassiveLossCell {
+            action_id: "unadmitted-passive".to_owned(),
+            hypothesis_id: "h-good".to_owned(),
+            loss_ppb: 0,
+        });
+        assert_eq!(
+            evaluate_viable_voi(&problem),
+            Err(ViableVoiError::PassiveLossForUnadmittedAction)
         );
     }
 
