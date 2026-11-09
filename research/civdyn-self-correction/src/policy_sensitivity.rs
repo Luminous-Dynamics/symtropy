@@ -14,6 +14,11 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
+use crate::model_adequacy::{
+    AdequacyAssessment, AdequacyError, DomainStatus, SplitManifest, SplitRole,
+    StatisticRegistry, StatisticStatus,
+};
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ObjectiveDirection {
     Maximize,
@@ -60,14 +65,219 @@ impl ModelAdequacyState {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ModelWorld {
-    pub id: String,
-    pub family_id: String,
-    pub model_digest: String,
-    /// Model identity named by the adequacy assessment being applied.
-    pub adequacy_model_digest: String,
-    /// Identity of the model-adequacy assessment receipt for this model.
-    pub adequacy_receipt_digest: String,
-    pub adequacy: ModelAdequacyState,
+    id: String,
+    family_id: String,
+    model_digest: String,
+    /// Exact model identity verified against every assessment draw receipt.
+    adequacy_model_digest: String,
+    /// Content identity supplied by the receipt producer. This module checks
+    /// presence and lineage but does not cryptographically authenticate bytes.
+    adequacy_receipt_digest: String,
+    adequacy: ModelAdequacyState,
+    adequacy_reason: Option<String>,
+}
+
+impl ModelWorld {
+    /// Construct a policy-comparison world from the actual adequacy assessment.
+    /// The qualification state is derived from the registry, split manifest,
+    /// required per-unit evidence and primary discrepancy results; it cannot
+    /// be supplied as a caller-controlled boolean.
+    pub fn from_adequacy_assessment(
+        id: impl Into<String>,
+        family_id: impl Into<String>,
+        model_digest: impl Into<String>,
+        adequacy_receipt_digest: impl Into<String>,
+        registry: &StatisticRegistry,
+        manifest: &SplitManifest,
+        assessment: &AdequacyAssessment,
+    ) -> Result<Self, PolicySensitivityError> {
+        let id = id.into();
+        let family_id = family_id.into();
+        let model_digest = model_digest.into();
+        let adequacy_receipt_digest = adequacy_receipt_digest.into();
+
+        registry.validate().map_err(PolicySensitivityError::Adequacy)?;
+        manifest.validate().map_err(PolicySensitivityError::Adequacy)?;
+
+        if id.trim().is_empty()
+            || family_id.trim().is_empty()
+            || model_digest.trim().is_empty()
+            || adequacy_receipt_digest.trim().is_empty()
+        {
+            return Err(PolicySensitivityError::InvalidPortfolio);
+        }
+        if assessment.registry_version != registry.version {
+            return Err(PolicySensitivityError::AdequacyRegistryIdentityMismatch);
+        }
+        if assessment.split_manifest_id != manifest.id
+            || assessment.split_manifest_digest != manifest.manifest_digest
+        {
+            return Err(PolicySensitivityError::AdequacyManifestIdentityMismatch);
+        }
+        if assessment.role == SplitRole::Calibration {
+            return Err(PolicySensitivityError::AdequacyCalibrationRoleNotAllowed);
+        }
+
+        let expected_units = match assessment.role {
+            SplitRole::Calibration => &manifest.calibration_units,
+            SplitRole::Validation => &manifest.validation_units,
+            SplitRole::Challenge => &manifest.challenge_units,
+        };
+        let required_specs: Vec<_> = registry
+            .statistics
+            .iter()
+            .filter(|spec| spec.role == assessment.role && spec.required)
+            .collect();
+
+        let mut required_evidence_complete =
+            !required_specs.is_empty() && !expected_units.is_empty();
+        for spec in &required_specs {
+            for unit_id in expected_units {
+                let matching: Vec<_> = assessment
+                    .statistics
+                    .iter()
+                    .filter(|row| {
+                        row.statistic_id == spec.id && row.independent_unit_id == *unit_id
+                    })
+                    .collect();
+                if matching.len() != 1 {
+                    required_evidence_complete = false;
+                    continue;
+                }
+
+                let row = matching[0];
+                if row.source_digest != spec.source_digest
+                    || row.source_family != spec.source_family
+                    || row.measurement_unit != spec.measurement_unit
+                {
+                    return Err(PolicySensitivityError::AdequacyStatisticIdentityMismatch {
+                        statistic_id: spec.id.clone(),
+                        unit_id: unit_id.clone(),
+                    });
+                }
+                if row.model_digest.as_deref().is_some_and(|digest| digest != model_digest) {
+                    return Err(PolicySensitivityError::AdequacyModelIdentityMismatch {
+                        model_id: id.clone(),
+                    });
+                }
+                if row.status == StatisticStatus::NotAssessed
+                    || row.draw_count == 0
+                    || row.model_digest.as_deref() != Some(model_digest.as_str())
+                    || row.draw_set_digest.as_deref().is_none_or(str::is_empty)
+                    || row.observation_digest.as_deref().is_none_or(str::is_empty)
+                {
+                    required_evidence_complete = false;
+                }
+            }
+        }
+
+        // Optional statistics may inform diagnostics, but any attached draw
+        // identity must still refer to this exact model.
+        let mut has_model_identity = false;
+        for row in &assessment.statistics {
+            if row.model_digest.as_deref().is_some_and(|digest| digest != model_digest) {
+                return Err(PolicySensitivityError::AdequacyModelIdentityMismatch {
+                    model_id: id.clone(),
+                });
+            }
+            has_model_identity |= row.model_digest.as_deref() == Some(model_digest.as_str());
+        }
+        if !has_model_identity {
+            return Err(PolicySensitivityError::AdequacyReceiptHasNoModelIdentity);
+        }
+        if assessment.required_evidence_complete != required_evidence_complete {
+            return Err(PolicySensitivityError::AdequacyEvidenceCompletenessMismatch);
+        }
+
+        let primary_rows: Vec<_> = assessment
+            .statistics
+            .iter()
+            .filter(|row| {
+                registry
+                    .get(&row.statistic_id)
+                    .is_some_and(|spec| spec.role == assessment.role && spec.primary)
+            })
+            .collect();
+        let derived_state = if primary_rows
+            .iter()
+            .any(|row| row.status == StatisticStatus::OutsideReferenceInterval)
+        {
+            ModelAdequacyState::PrimaryDiscrepancyDetected
+        } else if !primary_rows.is_empty()
+            && required_evidence_complete
+            && primary_rows
+                .iter()
+                .all(|row| row.status != StatisticStatus::NotAssessed)
+            && assessment.domain_status == DomainStatus::NoPrimaryDiscrepancyDetected
+        {
+            ModelAdequacyState::NoPrimaryDiscrepancyDetected
+        } else {
+            ModelAdequacyState::NotAssessed
+        };
+
+        Ok(Self {
+            id,
+            family_id,
+            model_digest: model_digest.clone(),
+            adequacy_model_digest: model_digest,
+            adequacy_receipt_digest,
+            adequacy: derived_state,
+            adequacy_reason: None,
+        })
+    }
+
+    /// Explicitly represent an unsupported applicability domain. This is a
+    /// conservative negative qualification, never an adequacy pass.
+    pub fn out_of_domain(
+        id: impl Into<String>,
+        family_id: impl Into<String>,
+        model_digest: impl Into<String>,
+        adequacy_receipt_digest: impl Into<String>,
+        reason: impl Into<String>,
+    ) -> Result<Self, PolicySensitivityError> {
+        let id = id.into();
+        let family_id = family_id.into();
+        let model_digest = model_digest.into();
+        let adequacy_receipt_digest = adequacy_receipt_digest.into();
+        let reason = reason.into();
+        if id.trim().is_empty()
+            || family_id.trim().is_empty()
+            || model_digest.trim().is_empty()
+            || adequacy_receipt_digest.trim().is_empty()
+            || reason.trim().is_empty()
+        {
+            return Err(PolicySensitivityError::InvalidPortfolio);
+        }
+        Ok(Self {
+            id,
+            family_id,
+            model_digest: model_digest.clone(),
+            adequacy_model_digest: model_digest,
+            adequacy_receipt_digest,
+            adequacy: ModelAdequacyState::OutOfDomain,
+            adequacy_reason: Some(reason),
+        })
+    }
+
+    pub fn id(&self) -> &str {
+        &self.id
+    }
+
+    pub fn model_digest(&self) -> &str {
+        &self.model_digest
+    }
+
+    pub fn adequacy_state(&self) -> ModelAdequacyState {
+        self.adequacy
+    }
+
+    pub fn adequacy_receipt_digest(&self) -> &str {
+        &self.adequacy_receipt_digest
+    }
+
+    pub fn adequacy_reason(&self) -> Option<&str> {
+        self.adequacy_reason.as_deref()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -173,6 +383,13 @@ pub struct PolicySensitivityReport {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PolicySensitivityError {
     InvalidPortfolio,
+    Adequacy(AdequacyError),
+    AdequacyRegistryIdentityMismatch,
+    AdequacyManifestIdentityMismatch,
+    AdequacyCalibrationRoleNotAllowed,
+    AdequacyStatisticIdentityMismatch { statistic_id: String, unit_id: String },
+    AdequacyReceiptHasNoModelIdentity,
+    AdequacyEvidenceCompletenessMismatch,
     InvalidMetric { metric_id: String },
     DuplicateIdentity { kind: &'static str, id: String },
     DuplicateModelDigest { digest: String },
