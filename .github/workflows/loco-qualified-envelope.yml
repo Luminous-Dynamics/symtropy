@@ -6,7 +6,7 @@ on:
       - 'research/loco-qualified-envelope-001/**'
       - '.github/workflows/loco-qualified-envelope.yml'
   push:
-    branches: [main]
+    branches: [main, research/loco-qualified-envelope-rust-v0]
     paths:
       - 'research/loco-qualified-envelope-001/**'
       - '.github/workflows/loco-qualified-envelope.yml'
