@@ -101,3 +101,34 @@ See [fixtures/known_answers_v0_1.json](fixtures/known_answers_v0_1.json). The fi
 ## Claim ceiling
 
 V0 qualifies finite enumeration and group-relation composition over supplied source-qualified relations. It does not prove those relations cover every real fault, estimate probabilities, authenticate receipts, classify sensor health or establish robot safety.
+
+
+## 11. Executable finite Rust V0 reference
+
+The standalone, dependency-free crate consumes:
+- a finite set of typed sensor/actuator/resource components with permitted health-state domains;
+- a partition of those components into common-cause groups;
+- a source-qualified complete joint tuple relation for each group;
+- a group receipt bound to scenario, model, platform physics, actuator, calibration, diagnostic model and validity interval.
+
+The enumerator:
+- validates that every component belongs to exactly one group;
+- validates all member IDs, component/group identity, tuple cardinality and domain membership;
+- rejects duplicate components, group IDs, receipts, tuple components and joint tuples;
+- requires each group receipt to be fresh and its complete-relation flag true;
+- canonicalizes component, tuple, group and final signature ordering;
+- computes the Cartesian product with checked arithmetic before allocation;
+- enforces caps of 16 components, 4,096 joint tuples per group and 65,536 global signatures;
+- returns ResourceExhausted with no partial output when the product exceeds the bound;
+- emits canonical sorted signatures and a canonical text encoding for an upstream cryptographic hasher;
+- marks the cross-group set product as a conservative over-approximation and makes no probability/independence claim.
+
+The 16 deterministic tests cover camera RGB/depth, encoder/derived-velocity, D1/D2 shared-power, actuator thermal/voltage states, invalid/duplicate/missing components and tuples, stale/mismatched/incomplete group receipts, exact and over-cap global products, permutation invariance, and cross-group product semantics.
+
+Qualification commands:
+
+    cargo fmt --manifest-path research/loco-modal-fault-space-001/Cargo.toml -- --check
+    cargo test --manifest-path research/loco-modal-fault-space-001/Cargo.toml --locked
+    cargo clippy --manifest-path research/loco-modal-fault-space-001/Cargo.toml --locked --all-targets -- -D warnings
+
+The exact-head workflow is authoritative for Rust 1.96. A green run qualifies only finite enumeration over supplied joint relations; it does not prove upstream relations physically complete, authenticate receipts, estimate failure probabilities, or prove robot safety.
