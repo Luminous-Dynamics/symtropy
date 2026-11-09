@@ -205,3 +205,40 @@ This slice does not yet implement:
 7. Empirical data adapters or independent domain qualification.
 
 Run the model-adequacy-sweep binary using Cargo with the locked manifest at research/civdyn-self-correction/Cargo.toml. The existing CIVDYN workflow also runs this binary after formatting, strict Clippy, compilation and tests. These are engineering checks against frozen synthetic contracts only.
+
+
+## Scenario K: causal effect transport across source and target populations
+
+The first causal-transport reference is in src/causal_transport.rs and the causal-transport-sweep binary. It advances [CIVDYN-CAUSAL-TRANSPORT-001 #4419](https://github.com/Luminous-Dynamics/symtropy/issues/4419).
+
+Version 0.1 transports a binary-outcome risk difference from a source randomized experiment to a target population with a different distribution of a measured effect modifier. It reports the source ATE and the target ATE obtained by standardizing source conditional effects to the target modifier distribution.
+
+Four assumption receipts must be present and explicitly supported before a point or partial transport claim is returned:
+- source internal validity (e.g. randomization);
+- selection exchangeability / S-admissibility conditional on the registered modifier;
+- no relevant interference under the declared exposure design;
+- treatment-version invariance between source and target.
+
+An assumption disposition of Violated or Unknown blocks both point transport and the positivity-only partial bounds. Evidence digests are provenance references; they are not independent proof that an assumption is true.
+
+### Known-answer fixtures
+
+The source trial has two modifier strata:
+- Low infrastructure: control risk 0.10, treatment risk 0.30, conditional risk difference 0.20.
+- High infrastructure: control risk 0.50, treatment risk 0.80, conditional risk difference 0.30.
+
+The source population weights are 0.8 / 0.2, so its ATE is 0.22. The fully supported target population weights are 0.2 / 0.8, yielding a target ATE of 0.28. This is a known-answer standardization fixture, not a fitted empirical estimate.
+
+A second target contains 20% population mass in a modifier stratum absent from the source trial. The evaluator returns no point estimate. Under the binary-outcome risk-difference range [-1, 1], and only when the other assumptions are supported, it returns worst-case identification bounds [0.02, 0.42]. These bounds are conditional on the observed supported-stratum effects and do not include sampling uncertainty.
+
+### Claim boundaries
+
+- This is not a general selection-diagram or Bayesian s-admissibility-set learner.
+- It does not implement the AISTATS 2026 graph-free Bayesian method or the CLeaR 2026 likelihood-ratio sensitivity method.
+- It does not estimate sampling confidence intervals or uncertainty in conditional source effects.
+- It refuses to impute an effect for target-only modifier strata.
+- It does not model target-specific outcome mechanisms beyond the explicit assumption statuses.
+- It does not infer absence of interference; that remains an explicit assumption/evidence item.
+- A synthetic known-answer pass validates the code path, not real-world causal transportability.
+
+Run causal-transport-sweep with the locked workspace manifest. CI checks exact source/target effects, positivity bounds, assumption dispositions, provenance and deterministic replay.
