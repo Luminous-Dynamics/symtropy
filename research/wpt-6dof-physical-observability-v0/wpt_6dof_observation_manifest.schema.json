@@ -1,0 +1,226 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/wpt-6dof-observation-manifest-v0.schema.json",
+  "title": "WPT 6-DOF Observation Manifest v0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "dataset_id",
+    "protocol_version",
+    "evidence_class",
+    "sampling_unit",
+    "holdout_axis",
+    "max_time_skew_ns",
+    "claim_ceiling",
+    "samples"
+  ],
+  "properties": {
+    "dataset_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "protocol_version": {
+      "const": 1
+    },
+    "evidence_class": {
+      "enum": [
+        "SYNTHETIC_KNOWN_TRUTH",
+        "BENCH_MEASURED",
+        "FIELD_MEASURED"
+      ]
+    },
+    "sampling_unit": {
+      "const": "EPISODE"
+    },
+    "holdout_axis": {
+      "enum": [
+        "EPISODE",
+        "RECEIVER_SERIAL",
+        "RECEIVER_HARDWARE_REVISION",
+        "TRANSMITTER_HARDWARE_REVISION",
+        "SITE",
+        "ENVIRONMENT",
+        "TRAJECTORY"
+      ]
+    },
+    "max_time_skew_ns": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024
+    },
+    "samples": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "sample_id",
+          "episode_id",
+          "independent_unit_id",
+          "split",
+          "receiver_serial",
+          "receiver_hardware_sha256",
+          "transmitter_hardware_sha256",
+          "site_id",
+          "environment_sha256",
+          "trajectory_id",
+          "modality",
+          "field_configuration_sha256",
+          "coordinate_frame_sha256",
+          "ground_truth_contract_sha256",
+          "ground_truth_receipt_id",
+          "ground_truth_receipt_sha256",
+          "sensor_calibration_sha256",
+          "measurement_contract_sha256",
+          "observation_payload_id",
+          "observation_payload_sha256",
+          "pose_covariance_receipt_sha256",
+          "ground_truth_time_ns",
+          "observation_time_ns",
+          "valid_until_ns",
+          "position_um",
+          "quaternion_q1e9",
+          "energy_receipt_id",
+          "energy_receipt_sha256"
+        ],
+        "properties": {
+          "sample_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "episode_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "independent_unit_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "split": {
+            "enum": [
+              "CALIBRATION",
+              "VALIDATION",
+              "TEST"
+            ]
+          },
+          "receiver_serial": {
+            "type": "string",
+            "minLength": 1
+          },
+          "receiver_hardware_sha256": {
+            "$ref": "#/$defs/digest"
+          },
+          "transmitter_hardware_sha256": {
+            "$ref": "#/$defs/digest"
+          },
+          "site_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "environment_sha256": {
+            "$ref": "#/$defs/digest"
+          },
+          "trajectory_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "modality": {
+            "enum": [
+              "IPT",
+              "CPT",
+              "RF_MICROWAVE",
+              "OPTICAL",
+              "CONDUCTIVE",
+              "POWER_LINE"
+            ]
+          },
+          "field_configuration_sha256": {
+            "$ref": "#/$defs/digest"
+          },
+          "coordinate_frame_sha256": {
+            "$ref": "#/$defs/digest"
+          },
+          "ground_truth_contract_sha256": {
+            "$ref": "#/$defs/digest"
+          },
+          "ground_truth_receipt_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "ground_truth_receipt_sha256": {
+            "$ref": "#/$defs/digest"
+          },
+          "sensor_calibration_sha256": {
+            "$ref": "#/$defs/digest"
+          },
+          "measurement_contract_sha256": {
+            "$ref": "#/$defs/digest"
+          },
+          "observation_payload_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "observation_payload_sha256": {
+            "$ref": "#/$defs/digest"
+          },
+          "pose_covariance_receipt_sha256": {
+            "$ref": "#/$defs/digest"
+          },
+          "ground_truth_time_ns": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "observation_time_ns": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "valid_until_ns": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "position_um": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "minItems": 3,
+            "maxItems": 3
+          },
+          "quaternion_q1e9": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "minItems": 4,
+            "maxItems": 4
+          },
+          "energy_receipt_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "energy_receipt_sha256": {
+            "oneOf": [
+              {
+                "const": "NONE"
+              },
+              {
+                "$ref": "#/$defs/digest"
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    }
+  }
+}
