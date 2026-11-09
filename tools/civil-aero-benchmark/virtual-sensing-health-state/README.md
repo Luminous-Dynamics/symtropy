@@ -179,14 +179,15 @@ This ladder creates a defensible way to compare the industry baselines on compar
 
 ## Benchmark partition integrity: specimen, environment, installation and time
 
-The executable \`src/bin/benchmark_split_contract.rs\` and independent verifier \`verify_benchmark_split_contract.py\` implement a split-integrity contract. The fixture is synthetic metadata only. Four distinct evaluation tracks are validated:
+The executable \`src/bin/benchmark_split_contract.rs\` and independent verifier \`verify_benchmark_split_contract.py\` implement a split-integrity contract. The fixture is synthetic metadata only. Five distinct evaluation tracks are validated:
 
 - **Specimen holdout:** validation and test specimen IDs cannot appear in training.
 - **Thermal extrapolation:** train, validation and test occupy disjoint thermal-regime groups.
 - **Installation shift:** each split uses a distinct sensor installation/re-bond generation.
+- **Compound article/campaign holdout:** specimen, campaign and configuration/layup must all be disjoint across train, validation and test. A leak in any one axis rejects the entire track.
 - **Forward time:** the physical article, campaign, configuration and installation remain fixed while acquisition time advances; the purge gap must be at least the feature-window length plus preprocessing/filter memory.
 
-All tracks reject duplicate sample IDs, source-record IDs and acquisition-window IDs. Negative controls deliberately introduce a cross-split specimen leak, duplicate acquisition window and insufficient temporal purge. The Rust result is independently recomputed in Python and retained with the exact subject commit and source digests.
+All tracks reject duplicate sample IDs, source-record IDs and acquisition-window IDs. Negative controls deliberately introduce a cross-split specimen leak, a compound configuration leak, a duplicate acquisition window and an insufficient temporal purge. The Rust result is independently recomputed in Python and retained with the exact subject commit and source digests.
 
 This is a partition-integrity check, not a model-performance benchmark. Real datasets must first be admitted and mapped to these fields. Use specimen/campaign-level uncertainty intervals rather than treating adjacent signal windows as independent experimental replicates. Do not report a random-window split as evidence of specimen, campaign, temperature or installation transfer.
 
