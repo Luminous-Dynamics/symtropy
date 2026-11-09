@@ -49,11 +49,24 @@ jobs:
             > target/civdyn-generational-ledger/incidence-b.csv
           cmp target/civdyn-generational-ledger/incidence-a.csv target/civdyn-generational-ledger/incidence-b.csv
 
+      - name: Preserve deterministic cohort incidence receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: civdyn-generational-incidence-${{ github.sha }}
+          path: target/civdyn-generational-ledger/incidence-a.csv
+          if-no-files-found: error
+          retention-days: 14
+
       - name: Verify schema, unit reconciliation and explicit inheritance
         shell: bash
         run: |
           set -euo pipefail
           output=target/civdyn-generational-ledger/incidence-a.csv
+          echo "--- Deterministic cohort incidence CSV (synthetic) ---"
+          cat "$output"
+          echo "--- Record-type counts ---"
+          cut -d, -f1 "$output" | sort | uniq -c
+          echo "--- End CSV diagnostics ---"
           awk -F, '
             NR == 1 { if (NF != 24) exit 10; next }
             NF != 24 { exit 11 }
@@ -77,6 +90,7 @@ jobs:
               if ($21 != "USD" || ($22 - 500.0) > 0.000001 || (500.0 - $22) > 0.000001 || $23 != "2026") exit 14
             }
             END {
+              printf "Verifier counts: rows=%d reconciliations=%d cohort_rows=%d physical=%d financial=%d future_stock=%d unassigned_stock=%d\n", NR, reconciliations, cohort_rows, physical, financial, future_stock, unassigned_stock
               if (NR != 15 || reconciliations != 3 || cohort_rows != 9) exit 15
               if (physical != 1 || financial != 1) exit 16
               if (future_stock < 3 || unassigned_stock < 3) exit 17
