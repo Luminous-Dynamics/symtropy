@@ -21,7 +21,7 @@ No network request is made. The caller is responsible for preserving exactly the
 
 ## S-100 product-profile metadata mode
 
-A separate metadata-only profile schema is defined in `docs/tech/MARITIME_S100_PROFILE_V0_1.schema.json`. It currently models only the metadata envelope for S-102 bathymetry, S-104 water-level information and S-111 surface currents. The positive/negative synthetic corpus is `crates/tools/maritime-data-receipt/tests/fixtures/s100-profile-corpus-v0.1.json`.
+A separate metadata-only profile schema is defined in `docs/tech/MARITIME_S100_PROFILE_V0_1.schema.json`. It models the metadata envelope for S-102 bathymetry, S-104 water-level information, S-111 surface currents, and S-131 harbour infrastructure. S-131 requires pinned Feature Catalogue and Portrayal Catalogue revision identifiers, but its raw catalogue artifacts are not yet independently receipted. The 30-case positive/negative synthetic corpus is `crates/tools/maritime-data-receipt/tests/fixtures/s100-profile-corpus-v0.1.json`. See `docs/tech/MARITIME_S131_PROFILE_V0_1.md` for the S-131 claim boundary.
 
 Validate a profile against its exact generic receipt and artifact:
 
