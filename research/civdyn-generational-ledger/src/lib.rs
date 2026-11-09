@@ -1023,7 +1023,11 @@ mod tests {
         ledger
             .assemble_tick(
                 &first_source,
-                service_rows_at(1, CohortAssignment::assigned("working-age-2026").unwrap(), future.clone()),
+                service_rows_at(
+                    1,
+                    CohortAssignment::assigned("working-age-2026").unwrap(),
+                    future.clone(),
+                ),
                 stock_rows_at(
                     1,
                     future.clone(),
@@ -1044,13 +1048,12 @@ mod tests {
         ledger
             .assemble_tick(
                 &second_source,
-                service_rows_at(2, CohortAssignment::assigned("working-age-2026").unwrap(), future.clone()),
-                stock_rows_at(
+                service_rows_at(
                     2,
-                    future,
-                    shared,
-                    ResourceVector::new(60.0, 120.0, 48.0),
+                    CohortAssignment::assigned("working-age-2026").unwrap(),
+                    future.clone(),
                 ),
+                stock_rows_at(2, future, shared, ResourceVector::new(60.0, 120.0, 48.0)),
                 vec![],
                 vec![],
                 vec![],
@@ -1071,8 +1074,17 @@ mod tests {
         ledger
             .assemble_tick(
                 &first_source,
-                service_rows_at(1, CohortAssignment::assigned("working-age-2026").unwrap(), future.clone()),
-                stock_rows_at(1, future.clone(), shared.clone(), ResourceVector::new(80.0, 160.0, 64.0)),
+                service_rows_at(
+                    1,
+                    CohortAssignment::assigned("working-age-2026").unwrap(),
+                    future.clone(),
+                ),
+                stock_rows_at(
+                    1,
+                    future.clone(),
+                    shared.clone(),
+                    ResourceVector::new(80.0, 160.0, 64.0),
+                ),
                 vec![],
                 vec![],
                 vec![],
@@ -1090,7 +1102,11 @@ mod tests {
         mismatched_source.tick = 2;
         let result = ledger.assemble_tick(
             &mismatched_source,
-            service_rows_at(2, CohortAssignment::assigned("working-age-2026").unwrap(), future.clone()),
+            service_rows_at(
+                    2,
+                    CohortAssignment::assigned("working-age-2026").unwrap(),
+                    future.clone(),
+                ),
             stock_rows_at(2, future, shared, ResourceVector::new(70.0, 120.0, 48.0)),
             vec![],
             vec![],
@@ -1117,8 +1133,17 @@ mod tests {
         ledger
             .assemble_tick(
                 &first_source,
-                service_rows_at(1, CohortAssignment::assigned("working-age-2026").unwrap(), future.clone()),
-                stock_rows_at(1, future.clone(), shared.clone(), ResourceVector::new(80.0, 160.0, 64.0)),
+                service_rows_at(
+                    1,
+                    CohortAssignment::assigned("working-age-2026").unwrap(),
+                    future.clone(),
+                ),
+                stock_rows_at(
+                    1,
+                    future.clone(),
+                    shared.clone(),
+                    ResourceVector::new(80.0, 160.0, 64.0),
+                ),
                 vec![],
                 vec![],
                 vec![],
@@ -1128,7 +1153,11 @@ mod tests {
         second_source.tick = 3;
         let result = ledger.assemble_tick(
             &second_source,
-            service_rows_at(3, CohortAssignment::assigned("working-age-2026").unwrap(), future.clone()),
+            service_rows_at(
+                    3,
+                    CohortAssignment::assigned("working-age-2026").unwrap(),
+                    future.clone(),
+                ),
             stock_rows_at(3, future, shared, ResourceVector::new(60.0, 120.0, 48.0)),
             vec![],
             vec![],
