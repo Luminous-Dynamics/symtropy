@@ -138,10 +138,11 @@ fn fixture() -> (
     let draws: Vec<PredictiveDraw> = validation_units
         .iter()
         .flat_map(|unit_id| {
-            base_values
+            let unit_draw_values = &base_values;
+            unit_draw_values
                 .iter()
                 .enumerate()
-                .map(|(index, value)| PredictiveDraw {
+                .map(move |(index, value)| PredictiveDraw {
                     kind: PredictiveKind::Split,
                     statistic_id: "basin-water-flow".to_string(),
                     independent_unit_id: unit_id.clone(),
