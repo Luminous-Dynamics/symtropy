@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 pub mod continuation;
+pub mod contour;
 pub mod qnm;
 pub use qnm::KerrQnmSequenceFixture;
 
