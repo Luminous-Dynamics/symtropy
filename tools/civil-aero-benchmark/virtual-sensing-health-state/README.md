@@ -96,6 +96,38 @@ A high-pass filter and per-channel z-score can be legitimate for a particular da
 Z24 is a civil-infrastructure transfer benchmark, not an aerospace validation article. The My Thuan comparison in the register is an FEM-derived simulation dataset, not physical bridge measurements. Neither replaces an admitted composite aerospace article, a validated damage morphology or an NDE/POD study.
 
 
+
+## MuViS-C: faithful corruption protocol, synthetic adapter only
+
+The additional executable \`src/bin/muvis_c_corruption.rs\` implements the ten single-channel corruption equations and three principal robustness measures from Brandt et al., *Reliable Virtual Sensing: A Multi-Domain Benchmark for Robustness Under Sensor Failures* (arXiv:2609.18396, 16 September 2026). The original benchmark evaluates nine datasets across six domains and six model families; it finds model rankings vary by dataset/failure and no single architecture is robust across all settings. It also probes input-sensor dropout, adversarial training and self-supervised fault pretraining. The protocol is the comparator; this tiny synthetic fixture does not reproduce those datasets, training runs or rankings.
+
+**Main protocol copied into the adapter:** one corrupted channel at a time; 20 severities from 0.05 to 1.00; \(k=3\), \(p_{\max}=0.3\), \(\alpha=0.4\); 200 fixed bootstrap resamples per RMSE. The ten modes are bias, additive Gaussian noise, scaling, time-varying scaling, linear drift, quadratic drift, outliers, variable trimming/soft clipping, constant trimming/hard clipping, and stuck-at hard fault. \(mPC\) averages RMSE across mode × channel × severity; \(rPC=mPC/RMSE_{clean}\); \(s_{cross}\) is the earliest severity at which any mode/channel RMSE reaches the naïve training-mean predictor. The implementation retains the full 600-entry severity grid, not just aggregate metrics. Sources: https://arxiv.org/abs/2609.18396 and https://github.com/brandtjens/MuViS-C (upstream package; check source release/commit before claiming exact code parity).
+
+**Frozen synthetic fixture:** 6 windows × 8 time steps × 3 channels; per-channel population z-score statistics and raw pre-normalized values are retained; stochastic normal and uniform inputs are precomputed from declared seeds and verified from those seeds; bootstrap indices are also regenerated and checked from the declared seed/method. The linear virtual sensor is fixed and all targets are derived from a declared synthetic equation. This is a deterministic conformance fixture, not a trained model evaluation.
+
+Frozen adapter answers:
+- clean RMSE ≈ 0.0931334; naïve mean-predictor RMSE ≈ 0.3198549;
+- \(mPC\) ≈ 0.2056479; \(rPC\) ≈ 2.2081014; \(nPC\) ≈ 0.6429413;
+- \(s_{cross}=0.05\);
+- worst individual setting: hard fault on wing-root strain proxy at severity 1.0, RMSE ≈ 1.3473686;
+- 10 × 3 × 20 = 600 corruption-grid entries.
+
+These scores say only that the frozen linear toy model degrades according to the declared corruption protocol. They do not compare with any paper model and are not a statement of AER-01 performance.
+
+**Important boundary:** the published MuViS-C main grid excludes severity \(s=0\), although \(D_0\) is identity for most corruptions and zero/stuck-at for hard fault; the paper also reports a separate hard-fault-at-zero practical scenario. Our severity-zero unit test checks the corruption operator's boundary, but the \(mPC/rPC/s_{cross}\) aggregate uses only \(s=0.05,\ldots,1.00\). The aircraft-specific HH/HF/DH/DF joint-state corpus is a separate evaluation and must not be folded into the atomic single-channel MuViS-C score.
+
+### What the reference benchmark says about beating SOTA
+
+The paper's reported best model varies by failure family: F2F-led TST variants lead some drift/bias cases; TST-ISensD leads trimming; TST-PGD leads scaling; XGBoost leads noise and outliers. The paper explicitly warns that single-domain model rankings are incomplete. Therefore the target is not “beat one architecture with one aggregate score.” The AER programme should report:
+1. a faithful single-channel atomic-corruption leaderboard (mPC, rPC, \(s_{cross}\), per-mode curves, clean RMSE);
+2. a separate multi-channel/common-cause robustness track (bus, power, reference-clock, thermal, data-acquisition and shared-calibration groups);
+3. joint structural/environment/sensor-state diagnosis (HH/HF/DH/DF and unknown conditions);
+4. damage-decision preservation, false-clear risk and abstention under missingness/model mismatch;
+5. total instrumentation + calibration + maintenance + compute + independent audit cost.
+
+For fair architecture comparison, reproduce the paper's own baseline families (XGBoost, CatBoost, xLSTM-M, Transformer/TST, PatchTSMixer, ModernTCN) on the admitted dataset/split. Then add physics-informed observer/ROM baselines, wavelet/TCN models, graph/multisensor fusion, F2F-style pretraining, input sensor dropout and adversarial training. Evaluate every model on identical data splits and total budgets. Averages are insufficient: keep per-mode and per-channel severity curves plus earliest baseline crossing.
+
+
 ## Advancement ladder
 
 **Tier 0 — this crate:** frozen synthetic HH/HF/DH/DF + abstention; independent fault witness; immutable raw data; independent Rust/Python replay.
