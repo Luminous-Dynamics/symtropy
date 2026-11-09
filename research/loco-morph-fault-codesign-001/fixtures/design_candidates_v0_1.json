@@ -119,6 +119,17 @@
       "power": "fault_contained",
       "sensing": "independent_common_cause_aware",
       "intended_role": "combine only mechanisms with measured Pareto contribution"
+    },
+    {
+      "id": "M9-self-sufficient-modules",
+      "family": "distributed_autonomous_submachines",
+      "comparison_stratum_id": "reconfigurable-modular-submachines",
+      "topology": "combinatorial_module_graph_two_to_five_autonomous_modules",
+      "appendages": "each_module_can_be_leg_arm_tail_or_spine",
+      "transmission": "module_internal_single_dof_actuation_with_bolted_multi_dock_interfaces",
+      "power": "per_module_battery_and_drive",
+      "sensing": "per_module_imu_encoder_and_processing",
+      "intended_role": "survive structural damage and continue locomotion using remaining self-sufficient modules; manual field reconfiguration is a separate capability"
     }
   ],
   "fault_axes": [
@@ -241,6 +252,22 @@
     {
       "id": "H-no-valid-physical-abstraction",
       "expected": "no morphology is qualified when physical successors or fault signatures are incomplete"
+    }
+  ],
+  "literature_baselines": [
+    {
+      "id": "pnas-2026-autonomous-modular-legs",
+      "citation": "Yu et al., Agile legged locomotion in reconfigurable modular robots, PNAS 123(10), e2519129123 (10 March 2026)",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC12974426/",
+      "platform_stratum": "reconfigurable-modular-submachines",
+      "evidence": "simulation plus hardware; three previously unseen physical amputation locations tested",
+      "results": "reported amputation-agnostic policy retained forward locomotion for one hindlimb removed, both hindlimbs removed, and all but one module remaining; undamaged policy speed 105.3% of original expert",
+      "limits": [
+        "five-module design; three physical unseen damage locations",
+        "most broader damage coverage is simulated",
+        "modules are not autonomously reabsorbed or reconfigured; manual assembly/reconfiguration remains",
+        "latent decoder may fail to reconstruct an exact topology; decoded designs require physical topology validation"
+      ]
     }
   ]
 }
