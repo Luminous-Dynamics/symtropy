@@ -85,6 +85,373 @@ pub struct QnmFamilyEvidence {
     pub consecutive_modes_used: u32,
 }
 
+/// Independently predicted asymptotic frequency spacings. These are inputs
+/// from the relevant optical/WKB reference, not estimates fitted from the
+/// mode sequence being classified.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct QnmFamilyAsymptoticTargets {
+    pub prolate_spacing_m: ComplexValue,
+    pub oblate_spacing_m: ComplexValue,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct QnmFamilyAnalysisConfig {
+    /// Number of consecutive sequence modes used in the asymptotic window.
+    /// At least three are required so angular scaling and adjacent spacings
+    /// are not inferred from one isolated mode.
+    pub minimum_consecutive_modes: usize,
+    pub maximum_angular_residual: f64,
+    pub maximum_frequency_spacing_residual: f64,
+    pub maximum_angular_drift: f64,
+    pub maximum_frequency_spacing_drift: f64,
+    pub maximum_solver_residual: f64,
+}
+
+impl Default for QnmFamilyAnalysisConfig {
+    fn default() -> Self {
+        Self {
+            minimum_consecutive_modes: 4,
+            maximum_angular_residual: 5.0e-2,
+            maximum_frequency_spacing_residual: 5.0e-2,
+            maximum_angular_drift: 5.0e-2,
+            maximum_frequency_spacing_drift: 5.0e-2,
+            maximum_solver_residual: 1.0e-8,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct QnmFamilyCandidateDiagnostics {
+    pub expected_angular_scaling_limit: ComplexValue,
+    pub observed_angular_scaling_limit: ComplexValue,
+    pub expected_frequency_spacing_m: ComplexValue,
+    pub observed_frequency_spacing_m: ComplexValue,
+    pub maximum_angular_residual: f64,
+    pub maximum_frequency_spacing_residual: f64,
+    pub maximum_angular_drift: f64,
+    pub maximum_frequency_spacing_drift: f64,
+    pub consecutive_modes_used: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct QnmFamilyAnalysis {
+    pub classification: QnmFamilyClassification,
+    pub prolate: Option<QnmFamilyCandidateDiagnostics>,
+    pub oblate: Option<QnmFamilyCandidateDiagnostics>,
+    pub reason: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum QnmFamilyAnalysisError {
+    InvalidSequence(QnmSequenceValidationError),
+    UnsupportedAngularEigenvalueConvention,
+    InvalidConfiguration,
+}
+
+impl core::fmt::Display for QnmFamilyAnalysisError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::InvalidSequence(error) => write!(f, "invalid QNM sequence: {error}"),
+            Self::UnsupportedAngularEigenvalueConvention => write!(
+                f,
+                "family analysis requires the spin-weighted spheroidal A eigenvalue convention"
+            ),
+            Self::InvalidConfiguration => write!(
+                f,
+                "family analysis targets and tolerances must be finite, positive where required, and use at least three modes"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for QnmFamilyAnalysisError {}
+
+fn complex_add(left: ComplexValue, right: ComplexValue) -> ComplexValue {
+    ComplexValue {
+        re: left.re + right.re,
+        im: left.im + right.im,
+    }
+}
+
+fn complex_sub(left: ComplexValue, right: ComplexValue) -> ComplexValue {
+    ComplexValue {
+        re: left.re - right.re,
+        im: left.im - right.im,
+    }
+}
+
+fn complex_mul(left: ComplexValue, right: ComplexValue) -> ComplexValue {
+    ComplexValue {
+        re: left.re * right.re - left.im * right.im,
+        im: left.re * right.im + left.im * right.re,
+    }
+}
+
+fn complex_div(left: ComplexValue, right: ComplexValue) -> Option<ComplexValue> {
+    let denominator = right.re * right.re + right.im * right.im;
+    if !denominator.is_finite() || denominator <= f64::MIN_POSITIVE {
+        return None;
+    }
+    let value = ComplexValue {
+        re: (left.re * right.re + left.im * right.im) / denominator,
+        im: (left.im * right.re - left.re * right.im) / denominator,
+    };
+    value.is_finite().then_some(value)
+}
+
+fn complex_norm(value: ComplexValue) -> f64 {
+    value.re.hypot(value.im)
+}
+
+fn complex_mean(values: &[ComplexValue]) -> Option<ComplexValue> {
+    if values.is_empty() {
+        return None;
+    }
+    let sum = values
+        .iter()
+        .copied()
+        .fold(ComplexValue { re: 0.0, im: 0.0 }, complex_add);
+    let divisor = values.len() as f64;
+    Some(ComplexValue {
+        re: sum.re / divisor,
+        im: sum.im / divisor,
+    })
+}
+
+fn scaled_complex_error(value: ComplexValue, expected: ComplexValue) -> f64 {
+    complex_norm(complex_sub(value, expected))
+        / complex_norm(expected).max(f64::MIN_POSITIVE)
+}
+
+fn mode_has_qualified_residuals(
+    mode: &QnmModeRecord,
+    maximum_solver_residual: f64,
+) -> bool {
+    let Some(residuals) = &mode.residuals else {
+        return false;
+    };
+    let Some(angular) = residuals.angular_ode_relative else {
+        return false;
+    };
+    let radial_or_root = residuals.radial_ode_relative
+        .or(residuals.continued_fraction_relative)
+        .or(residuals.incidence_amplitude_relative);
+    angular <= maximum_solver_residual
+        && radial_or_root.is_some_and(|value| value <= maximum_solver_residual)
+        && mode.method_applicability != QnmMethodApplicability::KnownBreakdown
+        && mode.method_applicability != QnmMethodApplicability::Unresolved
+}
+
+/// Compute family diagnostics from the mode sequence itself.
+///
+/// This routine does not trust the producer's family label, overtone index,
+/// or stored family evidence. It uses sequence position, angular eigenvalues,
+/// complex frequency spacings, branch continuity and per-mode residuals.
+/// Predicted spacings are supplied independently by the corresponding
+/// optical/WKB reference. A candidate passes only if both its angular
+/// asymptotic scaling and frequency spacing satisfy the caller's tolerances
+/// throughout the final consecutive-mode window.
+///
+/// For the prolate normal angular branch, A/(i chi M omega) tends to
+/// eta = 2 Lbar + 1. For the oblate branch, A/(-chi^2 (M omega)^2) tends to
+/// one. Only the typed spin-weighted spheroidal A convention is accepted;
+/// a radial Teukolsky lambda is not silently substituted.
+pub fn analyze_qnm_family_sequence(
+    sequence: &KerrQnmSequenceFixture,
+    targets: QnmFamilyAsymptoticTargets,
+    config: QnmFamilyAnalysisConfig,
+) -> Result<QnmFamilyAnalysis, QnmFamilyAnalysisError> {
+    sequence
+        .validate()
+        .map_err(QnmFamilyAnalysisError::InvalidSequence)?;
+
+    let tolerances = [
+        config.maximum_angular_residual,
+        config.maximum_frequency_spacing_residual,
+        config.maximum_angular_drift,
+        config.maximum_frequency_spacing_drift,
+        config.maximum_solver_residual,
+    ];
+    if config.minimum_consecutive_modes < 3
+        || sequence.modes.len() < config.minimum_consecutive_modes
+        || tolerances
+            .iter()
+            .any(|value| !value.is_finite() || *value < 0.0)
+        || !targets.prolate_spacing_m.is_finite()
+        || !targets.oblate_spacing_m.is_finite()
+        || complex_norm(targets.prolate_spacing_m) <= f64::MIN_POSITIVE
+        || complex_norm(targets.oblate_spacing_m) <= f64::MIN_POSITIVE
+    {
+        return Err(QnmFamilyAnalysisError::InvalidConfiguration);
+    }
+    if sequence.angular_eigenvalue_convention
+        != AngularEigenvalueConvention::SpinWeightedSpheroidalA
+    {
+        return Err(QnmFamilyAnalysisError::UnsupportedAngularEigenvalueConvention);
+    }
+
+    let window = &sequence.modes[sequence.modes.len() - config.minimum_consecutive_modes..];
+    let first_branch = &window[0].angular_branch_id;
+    let first_path = &window[0].angular_continuation_path_id;
+    let branch_is_continuous = window.iter().all(|mode| {
+        mode.angular_branch_id == *first_branch
+            && mode.angular_continuation_path_id == *first_path
+            && mode_has_qualified_residuals(mode, config.maximum_solver_residual)
+    });
+
+    if !branch_is_continuous {
+        return Ok(QnmFamilyAnalysis {
+            classification: QnmFamilyClassification::Unresolved,
+            prolate: None,
+            oblate: None,
+            reason: Some(
+                "angular branch/continuation path changed, method is outside its declared regime, or a mode lacks qualified angular and radial/root residuals"
+                    .to_owned(),
+            ),
+        });
+    }
+
+    let spin = sequence.spin_over_mass;
+    let oscillator_level = sequence.normal_prolate_oscillator_level;
+    let expected_prolate_angular = oscillator_level.map(|level| {
+        ComplexValue {
+            re: 2.0 * f64::from(level) + 1.0,
+            im: 0.0,
+        }
+    });
+    let expected_oblate_angular = ComplexValue { re: 1.0, im: 0.0 };
+
+    let prolate = expected_prolate_angular.and_then(|expected| {
+        let ratios = window
+            .iter()
+            .map(|mode| {
+                let denominator = complex_mul(
+                    ComplexValue {
+                        re: 0.0,
+                        im: spin,
+                    },
+                    mode.omega_m,
+                );
+                complex_div(mode.angular_eigenvalue, denominator)
+            })
+            .collect::<Option<Vec<_>>>()?;
+        let spacings = window
+            .windows(2)
+            .map(|pair| complex_sub(pair[1].omega_m, pair[0].omega_m))
+            .collect::<Vec<_>>();
+        candidate_diagnostics(
+            &ratios,
+            &spacings,
+            expected,
+            targets.prolate_spacing_m,
+            config,
+        )
+    });
+
+    let oblate = (spin > 0.0).then(|| {
+        let ratios = window
+            .iter()
+            .map(|mode| {
+                let omega_squared = complex_mul(mode.omega_m, mode.omega_m);
+                let denominator = ComplexValue {
+                    re: -spin * spin * omega_squared.re,
+                    im: -spin * spin * omega_squared.im,
+                };
+                complex_div(mode.angular_eigenvalue, denominator)
+            })
+            .collect::<Option<Vec<_>>>()?;
+        let spacings = window
+            .windows(2)
+            .map(|pair| complex_sub(pair[1].omega_m, pair[0].omega_m))
+            .collect::<Vec<_>>();
+        candidate_diagnostics(
+            &ratios,
+            &spacings,
+            expected_oblate_angular,
+            targets.oblate_spacing_m,
+            config,
+        )
+    }).flatten();
+
+    let classification = match (prolate.is_some(), oblate.is_some()) {
+        (true, false) => QnmFamilyClassification::Prolate,
+        (false, true) => QnmFamilyClassification::Oblate,
+        (true, true) => QnmFamilyClassification::Ambiguous,
+        (false, false) => QnmFamilyClassification::Unresolved,
+    };
+    let reason = match classification {
+        QnmFamilyClassification::Prolate => None,
+        QnmFamilyClassification::Oblate => None,
+        QnmFamilyClassification::Ambiguous => Some(
+            "both asymptotic family models satisfy the supplied tolerances; narrow the regime or report ambiguity"
+                .to_owned(),
+        ),
+        QnmFamilyClassification::Unresolved => Some(
+            "neither family satisfies both angular-scaling and frequency-spacing tolerances"
+                .to_owned(),
+        ),
+    };
+
+    Ok(QnmFamilyAnalysis {
+        classification,
+        prolate,
+        oblate,
+        reason,
+    })
+}
+
+fn candidate_diagnostics(
+    angular_ratios: &[ComplexValue],
+    frequency_spacings: &[ComplexValue],
+    expected_angular: ComplexValue,
+    expected_spacing: ComplexValue,
+    config: QnmFamilyAnalysisConfig,
+) -> Option<QnmFamilyCandidateDiagnostics> {
+    if angular_ratios.len() < config.minimum_consecutive_modes
+        || frequency_spacings.len() + 1 < config.minimum_consecutive_modes
+    {
+        return None;
+    }
+    let observed_angular = complex_mean(angular_ratios)?;
+    let observed_spacing = complex_mean(frequency_spacings)?;
+    let maximum_angular_residual = angular_ratios
+        .iter()
+        .map(|value| scaled_complex_error(*value, expected_angular))
+        .fold(0.0, f64::max);
+    let maximum_spacing_residual = frequency_spacings
+        .iter()
+        .map(|value| scaled_complex_error(*value, expected_spacing))
+        .fold(0.0, f64::max);
+    let maximum_angular_drift = angular_ratios
+        .windows(2)
+        .map(|pair| scaled_complex_error(pair[1], pair[0]))
+        .fold(0.0, f64::max);
+    let maximum_frequency_spacing_drift = frequency_spacings
+        .windows(2)
+        .map(|pair| scaled_complex_error(pair[1], pair[0]))
+        .fold(0.0, f64::max);
+
+    let accepted = maximum_angular_residual <= config.maximum_angular_residual
+        && maximum_spacing_residual <= config.maximum_frequency_spacing_residual
+        && maximum_angular_drift <= config.maximum_angular_drift
+        && maximum_frequency_spacing_drift <= config.maximum_frequency_spacing_drift;
+    accepted.then_some(QnmFamilyCandidateDiagnostics {
+        expected_angular_scaling_limit: expected_angular,
+        observed_angular_scaling_limit: observed_angular,
+        expected_frequency_spacing_m: expected_spacing,
+        observed_frequency_spacing_m: observed_spacing,
+        maximum_angular_residual,
+        maximum_frequency_spacing_residual: maximum_spacing_residual,
+        maximum_angular_drift,
+        maximum_frequency_spacing_drift,
+        consecutive_modes_used: angular_ratios.len(),
+    })
+}
+
 /// One computed mode. sequence_position preserves the order in the
 /// continuation/analysis sequence. overtone_index is optional because a
 /// unique traditional n label may be unavailable near crossings or in
