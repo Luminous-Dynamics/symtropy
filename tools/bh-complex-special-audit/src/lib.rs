@@ -1077,14 +1077,8 @@ fn sample_retarded_green_laurent_grid(
         let angle = core::f64::consts::TAU * index as f64 / samples as f64;
         let displacement = Complex64::new(radius * angle.cos(), radius * angle.sin());
         let omega = center + displacement;
-        let evaluation = poschl_teller_retarded_green(
-            width,
-            lambda,
-            omega,
-            observer_x,
-            source_x,
-            config,
-        )?;
+        let evaluation =
+            poschl_teller_retarded_green(width, lambda, omega, observer_x, source_x, config)?;
         let denominator = evaluation
             .wronskian
             .norm()
@@ -1094,8 +1088,7 @@ fn sample_retarded_green_laurent_grid(
         }
         let disagreement =
             (evaluation.wronskian - evaluation.connection_wronskian).norm() / denominator;
-        max_relative_wronskian_disagreement =
-            max_relative_wronskian_disagreement.max(disagreement);
+        max_relative_wronskian_disagreement = max_relative_wronskian_disagreement.max(disagreement);
         c_minus_one += displacement * evaluation.value;
         c_minus_two += displacement * displacement * evaluation.value;
     }
@@ -1216,8 +1209,7 @@ pub fn poschl_teller_retarded_green_laurent(
                 max_phase_step: winding.max_phase_step,
                 c_minus_one: current.c_minus_one,
                 c_minus_two: current.c_minus_two,
-                max_relative_wronskian_disagreement: current
-                    .max_relative_wronskian_disagreement,
+                max_relative_wronskian_disagreement: current.max_relative_wronskian_disagreement,
                 quadrature_refinements,
                 stable_quadrature_refinements,
                 scaled_quadrature_difference,
@@ -2046,9 +2038,7 @@ mod tests {
         assert!(contour.max_relative_wronskian_disagreement < 2.0e-8);
         assert!(contour.quadrature_refinements >= 3);
         assert!(contour.stable_quadrature_refinements >= 2);
-        assert!(
-            contour.scaled_quadrature_difference <= GREEN_LAURENT_QUADRATURE_TOLERANCE
-        );
+        assert!(contour.scaled_quadrature_difference <= GREEN_LAURENT_QUADRATURE_TOLERANCE);
 
         let left = poschl_teller_jost(1.0, 0.75, pole, -0.3, JostSide::Left, config).unwrap();
         let right = poschl_teller_jost(1.0, 0.75, pole, 0.4, JostSide::Right, config).unwrap();
@@ -2096,12 +2086,8 @@ mod tests {
         close(coarse.c_minus_one, fine.c_minus_one, 2.0e-7);
         assert!(coarse.stable_quadrature_refinements >= 2);
         assert!(fine.stable_quadrature_refinements >= 2);
-        assert!(
-            coarse.scaled_quadrature_difference <= GREEN_LAURENT_QUADRATURE_TOLERANCE
-        );
-        assert!(
-            fine.scaled_quadrature_difference <= GREEN_LAURENT_QUADRATURE_TOLERANCE
-        );
+        assert!(coarse.scaled_quadrature_difference <= GREEN_LAURENT_QUADRATURE_TOLERANCE);
+        assert!(fine.scaled_quadrature_difference <= GREEN_LAURENT_QUADRATURE_TOLERANCE);
         assert!(fine.c_minus_two.norm() > 1.0e-3);
         assert!(fine.max_relative_wronskian_disagreement < 2.0e-8);
     }
