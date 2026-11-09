@@ -715,6 +715,7 @@ mod tests {
             vec![
                 ("depth-camera", ChannelHealth::Ood),
                 ("joint-encoders", ChannelHealth::Valid),
+                ("foot-wrench", ChannelHealth::Valid),
             ],
         );
         problem.transition_receipts = vec![receipt(
@@ -756,6 +757,7 @@ mod tests {
             vec![
                 ("depth-camera", ChannelHealth::Ood),
                 ("joint-encoders", ChannelHealth::Degraded),
+                ("foot-wrench", ChannelHealth::Valid),
             ],
         );
         problem.transition_receipts.push(receipt(
@@ -835,6 +837,7 @@ mod tests {
             vec![
                 ("depth-camera", ChannelHealth::Ood),
                 ("joint-encoders", ChannelHealth::Unavailable),
+                ("foot-wrench", ChannelHealth::Valid),
             ],
         );
         problem.transition_receipts.push(receipt(
@@ -861,6 +864,7 @@ mod tests {
             vec![
                 ("depth-camera", ChannelHealth::Ood),
                 ("joint-encoders", ChannelHealth::Unknown),
+                ("foot-wrench", ChannelHealth::Valid),
             ],
         );
         problem.transition_receipts.push(receipt(
@@ -987,6 +991,50 @@ mod tests {
         problem.transition_receipts.reverse();
         let permuted = evaluate_failover(&problem).expect("permuted");
         assert_eq!(original, permuted);
+    }
+
+    #[test]
+    fn possibility_set_must_be_declared_complete() {
+        let mut problem = base_problem();
+        problem.possibility_receipt.enumeration_complete = false;
+        assert_eq!(
+            evaluate_failover(&problem),
+            Err(FailoverError::PossibilitySetIncomplete)
+        );
+    }
+
+    #[test]
+    fn possibility_receipt_must_match_actuator_and_state_context() {
+        let mut problem = base_problem();
+        problem.possibility_receipt.actuator_digest = "actuator-nominal-v0".to_owned();
+        assert_eq!(
+            evaluate_failover(&problem),
+            Err(FailoverError::PossibilityContextMismatch)
+        );
+    }
+
+    #[test]
+    fn unknown_or_extra_transition_receipt_is_rejected() {
+        let mut problem = base_problem();
+        let extra = ModeTransitionReceipt {
+            signature_id: "unlisted-signature".to_owned(),
+            ..problem.transition_receipts[0].clone()
+        };
+        problem.transition_receipts.push(extra);
+        assert_eq!(
+            evaluate_failover(&problem),
+            Err(FailoverError::DuplicateReceiptSignature)
+        );
+    }
+
+    #[test]
+    fn every_possible_signature_must_have_one_receipt() {
+        let mut problem = base_problem();
+        problem.transition_receipts.clear();
+        assert_eq!(
+            evaluate_failover(&problem),
+            Err(FailoverError::MissingTransitionReceipt)
+        );
     }
 
     #[test]
