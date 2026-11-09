@@ -171,6 +171,7 @@ The split contract is explicit:
 - Independent units cannot appear in more than one partition.
 - Split-predictive draws must carry the exact calibration-data digest pinned by the manifest.
 - Each observed statistic must carry the exact source digest registered for that statistic; a substituted source fails closed.
+- A primary statistic cannot be optional. Missing or insufficient required checks block domain qualification, while a detected primary discrepancy remains visible even if another check is missing.
 - Prior-predictive and split-predictive draws are separate kinds.
 - Draws are matched to the observed sample size; unmatched draws do not get pooled.
 - Model and draw-set identities must remain constant within each statistic/unit draw set.
@@ -192,7 +193,7 @@ This deliberately shows that passing a marginal statistic cannot mask a failed j
 
 ### Current claim ceiling and next steps
 
-A no_primary_discrepancy_detected result means only that no discrepancy was detected for the registered primary statistics, units, sample size, data split and finite predictive draw set. It is not a declaration that the model is true or universally adequate. not_assessed remains distinct from a pass; detected failures remain visible even when a different primary statistic is missing.
+A no_primary_discrepancy_detected result is emitted only when all required checks are assessed; it means only that no discrepancy was detected for the registered primary statistics, units, sample size, data split and finite predictive draw set. It is not a declaration that the model is true or universally adequate. not_assessed remains distinct from a pass; detected failures remain visible even when a different primary statistic is missing.
 
 This slice does not yet implement:
 1. Joint and trajectory discrepancies with dependence-aware reference distributions.
