@@ -1,0 +1,164 @@
+{
+  "schema_version": "aero-virtual-sensing-external-benchmark-register/0.1.0",
+  "claim_ceiling": "public_metadata_reference_only_no_dataset_bytes_admitted",
+  "entries": [
+    {
+      "benchmark_id": "Z24_LONG_TERM_EOV_AND_SENSOR_HEALTH",
+      "structure": "post_tensioned_concrete_highway_bridge",
+      "role": "non_aerospace_environmental_variability_and_sensor_health_benchmark",
+      "official_source": "https://bwk.kuleuven.be/bwm/z24",
+      "publisher": "KU Leuven Structural Mechanics Section",
+      "official_metadata": {
+        "monitoring_period": "one year before demolition",
+        "long_term_acceleration_measurements": 16,
+        "environmental_sensors": 48,
+        "environmental_scans_per_hour": 10,
+        "acceleration_averages_per_hour": 8,
+        "samples_per_acceleration_average": 8192,
+        "known_sensor_events": [
+          "six temperature sensors lost during construction",
+          "one accelerometer damaged",
+          "considerable drift on some accelerometers",
+          "a few accelerometers failed"
+        ]
+      },
+      "access_terms": {
+        "registration_required": true,
+        "stated_use": "non-commercial research only",
+        "third_party_transfer_permitted": false,
+        "commercial_use_eligibility": "NEEDS_WRITTEN_PERMISSION",
+        "redistribution": "PROHIBITED_UNLESS_SEPARATELY_AUTHORIZED",
+        "terms_source": "https://bwk.kuleuven.be/bwm/z24"
+      },
+      "admission": {
+        "status": "REFERENCE_ONLY_NOT_ADMITTED",
+        "retrieval_status": "NOT_RETRIEVED",
+        "exact_source_sha256": null,
+        "exact_source_bytes": null,
+        "retrieval_timestamp_utc": null,
+        "terms_review_status": "PENDING",
+        "channel_inventory_status": "NOT_RECONCILED",
+        "notes": [
+          "No source bytes have been downloaded or redistributed by this work.",
+          "Do not use for a commercial Luminous campaign without written permission from the data owner.",
+          "Do not infer exact per-channel timebases, units or channel maps from the overview page."
+        ]
+      }
+    },
+    {
+      "benchmark_id": "Z24_PROGRESSIVE_DAMAGE_TEST",
+      "structure": "post_tensioned_concrete_highway_bridge",
+      "role": "non_aerospace_controlled_progressive_damage_and_modal_test_benchmark",
+      "official_source": "https://bwk.kuleuven.be/bwm/z24",
+      "official_metadata": {
+        "progressive_damage_campaign": "August-September 1998",
+        "damage_states_in_official_table": 17,
+        "measured_degrees_of_freedom": 291,
+        "measurement_setups": 9,
+        "reference_channels": 5,
+        "shakers": [
+          {
+            "force_kN": 1,
+            "location": "middle_span"
+          },
+          {
+            "force_kN": 0.5,
+            "location": "Koppigen_side_span"
+          }
+        ],
+        "nominal_force_band_Hz": [
+          3,
+          30
+        ],
+        "samples_per_record": 65536,
+        "sampling_rate_Hz": 100,
+        "antialias_cutoff_Hz": 30,
+        "test_events": [
+          "pier settlements 20/40/80/95 mm",
+          "foundation tilt",
+          "concrete soffit spalling 12/24 m2",
+          "abutment landslide 1 m",
+          "concrete hinge failure",
+          "anchor-head failures",
+          "rupture of 2/4/6 of 16 tendons"
+        ]
+      },
+      "admission": {
+        "status": "REFERENCE_ONLY_NOT_ADMITTED",
+        "retrieval_status": "NOT_RETRIEVED",
+        "exact_source_sha256": null,
+        "exact_source_bytes": null,
+        "retrieval_timestamp_utc": null,
+        "terms_review_status": "PENDING",
+        "notes": [
+          "The progressive damage measurement grid and long-term acceleration campaign are separate acquisition designs."
+        ]
+      }
+    },
+    {
+      "benchmark_id": "SPECTRALTCN_Z24_PUBLISHED_COMPARISON",
+      "role": "published_classifier_baseline_metadata",
+      "source": "https://doi.org/10.1371/journal.pone.0358224",
+      "publication_date": "2026-09-21",
+      "published_protocol": {
+        "reported_sensor_channels": 27,
+        "reported_structural_states": 17,
+        "window_count": 15300,
+        "window_shape": [
+          27,
+          1024
+        ],
+        "sample_rate_Hz": 100,
+        "bandpass_Hz": [
+          0.5,
+          40
+        ],
+        "filter": "fourth_order_zero_phase_Butterworth",
+        "normalization": "per_channel_z_score",
+        "window": "Hann_1024_samples",
+        "split": "stratified_5_fold_cross_validation",
+        "reported_accuracy": 0.922,
+        "strongest_baseline": "ResNet1D",
+        "strongest_baseline_accuracy": 0.904,
+        "baseline_count": 10
+      },
+      "comparison_caveats": [
+        "The published protocol is a reproduction target, not an aircraft SHM result.",
+        "Stratified window-level folds are not evidence of generalization to a held-out acquisition period, specimen, configuration, environment or sensor installation.",
+        "The 0.5 Hz high-pass and per-channel z-score preprocessing may suppress low-frequency drift and channel gain signatures; evaluate the published pipeline as-is for fair replication, then separately evaluate fault-preserving preprocessing.",
+        "The paper's 27 reported channels differ from KU Leuven's official long-term overview count of 16 acceleration measurements. These may represent different channel subsets/acquisition configurations; reconcile against exact registered files before claiming reproduction.",
+        "The reported 92.2% is classification accuracy, not fault-isolation precision, damage POD, false-clear probability, decision preservation or aircraft safety."
+      ],
+      "admission": {
+        "status": "PUBLISHED_PROTOCOL_REFERENCE_ONLY",
+        "source_bytes_retrieved": false,
+        "exact_dataset_sha256": null,
+        "terms_review_status": "UPSTREAM_Z24_ACCESS_TERMS_APPLY"
+      }
+    },
+    {
+      "benchmark_id": "MY_THUAN_BRIDGE_FEM",
+      "role": "simulation_only_cross_structure_model_mismatch_benchmark",
+      "source": "https://doi.org/10.5281/zenodo.21415490",
+      "metadata": {
+        "type": "FEM_derived_bridge_dataset",
+        "physical_measurement_status": "NOT_A_PHYSICAL_BRIDGE_MEASUREMENT_CAMPAIGN",
+        "reported_damage_scenarios": 10
+      },
+      "admission": {
+        "status": "REFERENCE_ONLY_NOT_ADMITTED",
+        "retrieval_status": "NOT_RETRIEVED",
+        "exact_source_sha256": null,
+        "terms_review_status": "PENDING",
+        "license_review_status": "PENDING"
+      }
+    }
+  ],
+  "evaluation_plan": {
+    "track_A": "reproduce_the_published_SpectralTCN_preprocessing_and_stratified_5_fold_protocol_exactly_after_permission_and_exact_byte_admission",
+    "track_B": "time_block_environment_sensor_and_damage_regime_grouped_holdouts_with_no_window_leakage",
+    "track_C": "fault_preserving_pipeline_variant_that_does_not_normalize_away_bias_drift_gain_or_channel_health",
+    "track_D": "joint_HH_HF_DH_DF_and_unknown_fault_evaluation_with_raw_measurement_immutability",
+    "claim_boundary": "Z24_is_a_civil_infrastructure_transfer_benchmark_not_an_aerospace_validation_article"
+  }
+}
