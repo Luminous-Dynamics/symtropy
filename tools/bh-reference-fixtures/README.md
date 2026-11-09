@@ -123,3 +123,21 @@ The analyzer requires a continuous angular branch, angular ODE residuals, and at
 These are asymptotic diagnostics over the supplied window, not a proof that all modes belong to a family, a completeness theorem, or a finite-overtone remainder bound. Report the chosen window, targets, residuals and tolerances with every family claim.
 
 Exit codes: `0` qualified Prolate/Oblate result, `6` Ambiguous/Unresolved, `2` invalid input or unsupported convention.
+
+## QNM analytic sheets and extremal spin traces
+
+The Kerr QNM sequence schema is now version 2. Each mode records a stable `mode_lineage_id`, `riemann_sheet_kind`, `riemann_sheet_id`, `continuation_class`, and `frequency_cut_relation`. These fields are independent of `family_classification`: prolate/oblate is an angular asymptotic family, while conventional/unconventional and Class I/II identify analytic continuation structure.
+
+A separate `KerrQnmSpinContinuationTrace` follows one mode lineage along a strictly monotonic signed `a/M` path on one declared sheet. A branch-cut crossing must start a new trace linked to its parent. Exact extremality is stored as a sample with `|a/M| == 1`; it is never inferred from a near-extremal extrapolation.
+
+Finite-damping and zero-damping classifications require both an exact-extremal sample and a subextremal fit-evidence record. The record includes the fitting interval, number of fit samples, estimated damping limit, uncertainty, fit residual, optional damping-versus-surface-gravity exponent, and the exact-extremal detuning from the signed superradiant bound.
+
+The dimensionless extremal bound is `M omega_SR = sign(a) m/2`. Therefore the detuning is `M omega - sign(a) m/2`; for negative `m` and positive spin the bound itself is negative. The validator recomputes this detuning from the exact sample and rejects an inconsistent producer value. For gravitational (`s != 0`) exact-extremal samples, the explicit double-confluent Heun method is required; a nonextremal solver result cannot stand in for a direct extremal solve.
+
+Validate a spin trace with:
+
+```sh
+cargo run --manifest-path tools/bh-reference-fixtures/Cargo.toml -- validate-continuation qnm-spin-trace.json
+```
+
+The trace validator checks identity, monotonic spin order, angular-branch continuity, per-sample residuals, exact-extremal method selection and superradiant detuning consistency. It does not itself prove that the damping-limit fit is physically correct; that requires the numerical reproduction and uncertainty analysis tracked by #4415.
