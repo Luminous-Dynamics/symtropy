@@ -5,7 +5,7 @@
   "source_kind": "synthetic_fixture",
   "receipt_binding": {
     "receipt_id": "synthetic-plsci-profile-receipt-v0",
-    "receipt_sha256": "e444c08031eb809e88c2c7d69bcb975c0970cd171974b947f7bc6c038a80f293",
+    "receipt_sha256": "3baa6f56d1935a0881a5a4a02ec95fa46fcf072684c761d216a431c88af8e708",
     "artifact_sha256": "22bd62deff79fbffabdbe4f26e035e5b5fb698b4c6149eab4620d37e695a9c14"
   },
   "series": {
