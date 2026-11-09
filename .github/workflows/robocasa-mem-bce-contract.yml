@@ -1,0 +1,45 @@
+name: RoboCasa-Mem BCE Contract
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "experiments/robocasa-mem-bce-contract/**"
+      - ".github/workflows/robocasa-mem-bce-contract.yml"
+  push:
+    branches: [main]
+    paths:
+      - "experiments/robocasa-mem-bce-contract/**"
+      - ".github/workflows/robocasa-mem-bce-contract.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: robocasa-mem-bce-contract-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  contract:
+    name: behavior-conditioned evaluator semantics
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path experiments/robocasa-mem-bce-contract/Cargo.toml -- --check
+
+      - name: Run synthetic BCE conformance tests
+        run: cargo test --locked --manifest-path experiments/robocasa-mem-bce-contract/Cargo.toml
+
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path experiments/robocasa-mem-bce-contract/Cargo.toml --all-targets -- -D warnings
