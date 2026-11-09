@@ -1169,9 +1169,18 @@ mod tests {
         );
     }
 
+    fn synthetic_analysis_config() -> QnmFamilyAnalysisConfig {
+        QnmFamilyAnalysisConfig {
+            minimum_consecutive_modes: 3,
+            ..synthetic_analysis_config()
+        }
+    }
+
     fn synthetic_asymptotic_sequence(family: QnmFamilyClassification) -> KerrQnmSequenceFixture {
         let mut value = sequence(QnmFamilyClassification::Unresolved);
         value.spin_over_mass = 0.7;
+        value.sequence_id = "synthetic-kerr-a07-s0-l2-m1".to_owned();
+        value.m = 1;
         value.normal_prolate_oscillator_level = Some(1);
         for (index, mode) in value.modes.iter_mut().enumerate() {
             mode.overtone_index = None;
@@ -1225,7 +1234,7 @@ mod tests {
         let mut value = synthetic_asymptotic_sequence(QnmFamilyClassification::Prolate);
         let targets = synthetic_family_targets();
         let result =
-            analyze_qnm_family_sequence(&value, targets, QnmFamilyAnalysisConfig::default())
+            analyze_qnm_family_sequence(&value, targets, synthetic_analysis_config())
                 .unwrap();
         assert_eq!(result.classification, QnmFamilyClassification::Prolate);
         assert!(result.prolate.is_some());
@@ -1237,7 +1246,7 @@ mod tests {
             mode.overtone_index = None;
         }
         let without_overtone_labels =
-            analyze_qnm_family_sequence(&value, targets, QnmFamilyAnalysisConfig::default())
+            analyze_qnm_family_sequence(&value, targets, synthetic_analysis_config())
                 .unwrap();
         assert_eq!(
             without_overtone_labels.classification,
@@ -1251,7 +1260,7 @@ mod tests {
         let result = analyze_qnm_family_sequence(
             &value,
             synthetic_family_targets(),
-            QnmFamilyAnalysisConfig::default(),
+            synthetic_analysis_config(),
         )
         .unwrap();
         assert_eq!(result.classification, QnmFamilyClassification::Oblate);
@@ -1265,7 +1274,7 @@ mod tests {
         let mut wrong_target = synthetic_family_targets();
         wrong_target.prolate_spacing_m = ComplexValue { re: 0.0, im: -0.3 };
         let wrong_spacing =
-            analyze_qnm_family_sequence(&value, wrong_target, QnmFamilyAnalysisConfig::default())
+            analyze_qnm_family_sequence(&value, wrong_target, synthetic_analysis_config())
                 .unwrap();
         assert_eq!(
             wrong_spacing.classification,
@@ -1276,7 +1285,7 @@ mod tests {
         let changed_branch = analyze_qnm_family_sequence(
             &value,
             synthetic_family_targets(),
-            QnmFamilyAnalysisConfig::default(),
+            synthetic_analysis_config(),
         )
         .unwrap();
         assert_eq!(
@@ -1293,7 +1302,7 @@ mod tests {
         let result = analyze_qnm_family_sequence(
             &breakdown,
             synthetic_family_targets(),
-            QnmFamilyAnalysisConfig::default(),
+            synthetic_analysis_config(),
         )
         .unwrap();
         assert_eq!(result.classification, QnmFamilyClassification::Unresolved);
@@ -1305,7 +1314,7 @@ mod tests {
             analyze_qnm_family_sequence(
                 &unsupported,
                 synthetic_family_targets(),
-                QnmFamilyAnalysisConfig::default()
+                synthetic_analysis_config()
             ),
             Err(QnmFamilyAnalysisError::UnsupportedAngularEigenvalueConvention)
         );
@@ -1319,7 +1328,7 @@ mod tests {
             maximum_frequency_spacing_residual: 1.0e6,
             maximum_angular_drift: 1.0e6,
             maximum_frequency_spacing_drift: 1.0e6,
-            ..QnmFamilyAnalysisConfig::default()
+            ..synthetic_analysis_config()
         };
         let result =
             analyze_qnm_family_sequence(&value, synthetic_family_targets(), config).unwrap();
