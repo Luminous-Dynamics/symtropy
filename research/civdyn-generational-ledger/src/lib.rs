@@ -101,7 +101,6 @@ impl ResourceAmounts {
             Resource::Food => self.food_kg += amount,
         }
     }
-
 }
 
 fn close(left: f64, right: f64) -> bool {
