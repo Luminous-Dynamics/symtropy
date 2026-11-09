@@ -148,7 +148,12 @@ Track at least:
 - Execution success, wrong-target action rate and recoverability.
 - Map/geometry uncertainty calibration and provenance completeness.
 
-The [BEHAVIOR-Spatial October 2026 preprint](https://arxiv.org/abs/2610.34051) reports 41.6% held-out configuration success and 16.1% when instructions change while the layout is held fixed. These are benchmark-specific simulated baselines, not universal robot capability numbers. The proposed 70% held-out and 50% changed-instruction milestones are stretch research targets; establish exact task splits, success definitions and confidence intervals before comparing.
+Use three complementary benchmarks, without pooling their scores:
+- [ESI-Bench](https://arxiv.org/abs/2605.18746) evaluates action-conditioned spatial evidence acquisition across 10 task categories and 29 subcategories. Its authors report that active exploration can outperform passive views and that random multi-view capture can add noise; action blindness is a central failure mode.
+- The [BEHAVIOR-Spatial October 2026 preprint](https://arxiv.org/abs/2610.34051) reports 41.6% held-out configuration success and 16.1% when the requested target changes while the layout is held fixed. These are benchmark-specific simulated baselines, not universal robot capability numbers.
+- [VA-Bench (September 2026)](https://arxiv.org/abs/2609.19554) evaluates visual demonstration, active camera selection, metric spatial control and feedback-driven revision. Its authors report a three-run macro-average task success of 53.93 ± 3.17% for their best model condition, a matched active-camera comparison improving from 27.86% to 57.50%, and significant degradation under held-out geometry. No strict long-horizon episode was completed in the reported evaluation.
+
+Research milestones: first establish fully versioned splits and reproducible baselines; then aim for 70% held-out configuration and 50% changed-instruction success on BEHAVIOR-Spatial as stretch targets; separately aim for ≥30% fewer observation actions at equal-or-better task success on ESI-Bench/VA-Bench versus passive or random-view baselines. These are proposed internal milestones, not achieved performance. Publish confidence intervals, task success definitions, false-free/wrong-target rates, action/observation budgets and abstention/recovery outcomes.
 
 ### 5.5 Humanoid application readiness
 
