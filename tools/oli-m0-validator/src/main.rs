@@ -385,8 +385,12 @@ fn run() -> Result<(), String> {
     }
     paths.sort();
 
-    if paths.is_empty() {
-        return Err(format!("no .json fixtures found in {}", root.display()));
+    if paths.len() != 6 {
+        return Err(format!(
+            "expected exactly 6 frozen M0 fixtures in {}, found {}",
+            root.display(),
+            paths.len()
+        ));
     }
 
     let mut fixtures = Vec::new();
@@ -474,7 +478,8 @@ mod tests {
     #[test]
     fn duplicate_fixture_ids_are_rejected() {
         let mut fixtures = fixtures();
-        fixtures[1].1["fixture_id"] = fixtures[0].1["fixture_id"].clone();
+        let duplicate_id = fixtures[0].1["fixture_id"].clone();
+        fixtures[1].1["fixture_id"] = duplicate_id;
         assert!(validate_collection(&fixtures).iter().any(|error| error.contains("duplicate fixture_id")));
     }
 
