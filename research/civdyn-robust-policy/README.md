@@ -62,3 +62,33 @@ cargo run --locked --manifest-path research/civdyn-robust-policy/Cargo.toml --bi
 V0 assesses a finite deterministic parameter design with synthetic scenarios. It does not estimate real-world event probabilities, prove continuous robust feasibility, establish causal intervention effects or identify a globally optimal policy.
 
 V1 should add source-grounded correlated parameter/structural uncertainty, held-out regional/historical shocks, independent stochastic replications, repeated-shock reserve-capital constraints and adaptive signpost policies under nonanticipativity (no use of future information).
+
+
+## Structural model-set decision robustness (v0.2 research slice)
+
+The model_set_robustness module adds a second uncertainty axis alongside the V0 parameter design: disagreement between structurally distinct candidate models.
+
+It does not duplicate the simulator, parameter UQ design or resource ledger. It consumes per-model policy outcomes and explicit model-qualification receipts. A candidate with no_primary_discrepancy_detected is eligible for a bounded comparison. Candidates marked primary-discrepancy-detected, not-assessed or out-of-domain are retained in the qualification report but excluded from the qualified-model comparison. If no candidate qualifies, the result is not assessed.
+
+A model with no detected discrepancy is not thereby proven true. A policy stable across the qualified set is stable only within that declared set; the report also exposes whether model-set coverage is partial.
+
+### Decision contract
+
+- Every candidate model, case, policy and metric has a declared identity/digest.
+- Outcomes must match the model, case and policy digests in the manifest.
+- Objective metrics retain their own direction and native unit.
+- Hard constraints are evaluated separately and cannot be traded against another objective.
+- Missing outcomes or missing metric values remain unknown; there is no partial oracle.
+- A policy is robust-feasible only if it passes every hard constraint in every qualified model and matched case.
+- Objective-wise winners and ties are calculated separately for each model/case.
+- Rank reversals, winner-set intersection and model-family counts are reported explicitly.
+- Worst-case regret and minimax policy are reported per objective, only for policies feasible across the entire qualified set and with complete comparisons.
+- No model probabilities are inferred and no universal cross-objective score is emitted.
+
+The initial reference fixture has two qualified structural models and one model excluded for a detected primary discrepancy. Both qualified models share the same three policies and two matched shock cases. The preferred policy reverses between models, only the reserve-protected policy remains feasible in all qualified model/case combinations, and its worst-case unmet-water regret is 3 m3. The excluded candidate is reported, so this result cannot be mistaken for a complete model-set guarantee.
+
+Run the model-set-decision-sweep binary with the locked manifest at research/civdyn-robust-policy/Cargo.toml. The existing civdyn-robust-policy workflow runs this known-answer sweep and checks the qualification coverage, ranking reversal, robust feasibility and metric-specific minimax regret outputs.
+
+### Claim ceiling
+
+This is a finite, synthetic decision-set reference. It does not demonstrate that the candidate model set is complete, that model families are independent, that an adequacy-qualified model is true, or that a policy is optimal in reality. It does not assign equal probabilities to models. The minimax-regret result is conditional on the declared models, matched cases, constraints and objective definitions. A partial model set must remain labelled partial.
