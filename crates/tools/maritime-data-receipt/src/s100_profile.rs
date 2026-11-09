@@ -32,6 +32,17 @@ const PRODUCT_KEYS: &[&str] = &[
     "revision",
     "native_encoding",
 ];
+const S131_PRODUCT_KEYS: &[&str] = &[
+    "code",
+    "s100_edition",
+    "specification_edition",
+    "producer_code",
+    "dataset_id",
+    "revision",
+    "native_encoding",
+    "feature_catalogue_revision",
+    "portrayal_catalogue_revision",
+];
 const COVERAGE_KEYS: &[&str] = &[
     "coverage_id",
     "horizontal_crs",
@@ -205,9 +216,13 @@ fn validate_profile(profile: &Value) -> Result<(), &'static str> {
     }
 
     let product = member(profile, "product")?;
-    exact_keys(product, PRODUCT_KEYS)?;
     let code = text(product, "code")?;
-    if !["S-102", "S-104", "S-111"].contains(&code) {
+    if code == "S-131" {
+        exact_keys(product, S131_PRODUCT_KEYS)?;
+    } else {
+        exact_keys(product, PRODUCT_KEYS)?;
+    }
+    if !["S-102", "S-104", "S-111", "S-131"].contains(&code) {
         return Err("UNSUPPORTED_PRODUCT");
     }
     let s100_edition = text(product, "s100_edition")?;
@@ -224,6 +239,14 @@ fn validate_profile(profile: &Value) -> Result<(), &'static str> {
         return Err("MUTABLE_REVISION");
     }
     text(product, "native_encoding")?;
+    if code == "S-131" {
+        for catalogue_key in ["feature_catalogue_revision", "portrayal_catalogue_revision"] {
+            if !pinned_revision(text(product, catalogue_key)?) {
+                return Err("MUTABLE_CATALOGUE_REVISION");
+            }
+        }
+    }
+
     let coverage = member(profile, "coverage")?;
     exact_keys(coverage, COVERAGE_KEYS)?;
     text(coverage, "coverage_id")?;
@@ -251,6 +274,7 @@ fn validate_profile(profile: &Value) -> Result<(), &'static str> {
             "S-102" => ["m", "cm", "mm", "ft", "in"].contains(&unit),
             "S-104" => ["m", "cm", "mm", "ft", "in"].contains(&unit),
             "S-111" => ["m/s", "cm/s", "kn", "knot", "knots"].contains(&unit),
+            "S-131" => ["m", "cm", "mm", "ft", "in", "count"].contains(&unit),
             _ => false,
         };
         if !allowed {
@@ -409,6 +433,7 @@ fn verify_receipt_semantics(
             ("water_level_prediction", "water_level_prediction")
         }
         "S-111" => ("currents", "currents"),
+        "S-131" => ("port_facility", "port_facility"),
         _ => return Err("RECEIPT_PRODUCT_MISMATCH"),
     };
     if facts.product != expected.0 || facts.domain != expected.1 {
@@ -631,7 +656,7 @@ mod tests {
         let cases = corpus["cases"].as_array().expect("case array");
         assert_eq!(
             cases.len(),
-            23,
+            30,
             "the frozen corpus count is part of the test contract"
         );
         for case in cases {
@@ -722,6 +747,74 @@ mod tests {
             schema["properties"]["product"]["properties"]["specification_edition"]["pattern"],
             r"^[0-9]+\.[0-9]+\.[0-9]+$"
         );
+        assert!(
+            schema["properties"]["product"]["properties"]["feature_catalogue_revision"].is_object()
+        );
+        assert!(
+            schema["properties"]["product"]["properties"]["portrayal_catalogue_revision"]
+                .is_object()
+        );
+        assert!(
+            schema["properties"]["product"]["properties"]["code"]["enum"]
+                .as_array()
+                .unwrap()
+                .contains(&Value::String("S-131".to_owned()))
+        );
+    }
+
+    #[test]
+    fn s131_profile_matches_port_facility_receipt_semantics() {
+        let corpus: Value = serde_json::from_str(include_str!(
+            "../tests/fixtures/s100-profile-corpus-v0.1.json"
+        ))
+        .expect("S-100 profile corpus");
+        let profile = &corpus["base_profiles"]["s131"];
+        assert_eq!(validate_profile(profile), Ok(()));
+
+        let product = &profile["product"];
+        let coverage = &profile["coverage"];
+        let temporal = &profile["temporal"];
+        let quality = &profile["quality"];
+        let facts = super::super::ReceiptFacts {
+            receipt_id: profile["receipt_binding"]["receipt_id"]
+                .as_str()
+                .unwrap()
+                .to_owned(),
+            source_kind: "synthetic_fixture".to_owned(),
+            product: "port_facility".to_owned(),
+            dataset_id: product["dataset_id"].as_str().unwrap().to_owned(),
+            dataset_revision: product["revision"].as_str().unwrap().to_owned(),
+            domain: "port_facility".to_owned(),
+            coordinate_reference_system: Some(
+                coverage["horizontal_crs"].as_str().unwrap().to_owned(),
+            ),
+            vertical_datum: None,
+            units: vec!["m".to_owned(), "count".to_owned()],
+            time_coverage_start_utc: Some(
+                temporal["data_epoch_start_utc"]
+                    .as_str()
+                    .unwrap()
+                    .to_owned(),
+            ),
+            time_coverage_end_utc: Some(
+                temporal["data_epoch_end_utc"].as_str().unwrap().to_owned(),
+            ),
+            survey_or_observation_time_utc: None,
+            uncertainty_statement: quality["statement"].as_str().unwrap().to_owned(),
+            artifact: super::super::ArtifactExpectation {
+                relative_path: "synthetic-s131-port-facility.json".to_owned(),
+                byte_length: 1,
+                sha256: "0".repeat(64),
+            },
+        };
+        assert_eq!(verify_receipt_semantics(profile, &facts), Ok(()));
+
+        let mut mismatched = facts;
+        mismatched.product = "hydrography".to_owned();
+        assert_eq!(
+            verify_receipt_semantics(profile, &mismatched),
+            Err("RECEIPT_PRODUCT_MISMATCH")
+        );
     }
 
     #[test]
@@ -730,7 +823,7 @@ mod tests {
             "../tests/fixtures/s100-profile-corpus-v0.1.json"
         ))
         .unwrap();
-        for name in ["s102", "s104", "s111"] {
+        for name in ["s102", "s104", "s111", "s131"] {
             assert_eq!(
                 validate_profile(&corpus["base_profiles"][name]),
                 Ok(()),
