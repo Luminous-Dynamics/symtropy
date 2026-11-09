@@ -68,7 +68,7 @@ jobs:
         run: cargo test --locked --manifest-path tools/civil-aero-benchmark/inspection-observability/Cargo.toml
 
       - name: Run Rust baseline observability evaluator
-        run: cargo run --locked --quiet --manifest-path tools/civil-aero-benchmark/inspection-observability/Cargo.toml > inspection-observability-result.json
+        run: cargo run --locked --quiet --manifest-path tools/civil-aero-benchmark/inspection-observability/Cargo.toml --bin aero-inspection-observability > inspection-observability-result.json
 
       - name: Independently recompute baseline results in Python
         run: python3 tools/civil-aero-benchmark/inspection-observability/verify_independent.py --rust-output inspection-observability-result.json
