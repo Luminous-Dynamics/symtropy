@@ -54,7 +54,9 @@ jobs:
             and .synthetic.case_count == 30
             and .synthetic.reference_ledger.total_makeup_units == 60
             and .synthetic.reference_ledger.unserved_units == 20
-            and .published_reference.component_reference_records == 11
+            and .published_reference.selected_register_records == 11
+            and .published_reference.selected_component_records == 9
+            and .published_reference.selected_crew_task_records == 2
             and .published_appendix_supplement.additional_component_records == 133
             and .published_appendix_supplement.additional_crew_task_records == 39
             and .published_appendix_supplement.combined_component_records == 142
