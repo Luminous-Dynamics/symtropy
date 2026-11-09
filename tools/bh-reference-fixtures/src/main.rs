@@ -1,7 +1,8 @@
 use std::{env, fs, process};
 
 use bh_reference_fixtures::continuation::{
-    KerrQnmSpinContinuationTrace, QnmExtremalDampingBehavior,
+    KerrQnmSpinContinuationTrace, QnmExtremalDampingAnalysisConfig,
+    QnmExtremalDampingBehavior, analyze_extremal_damping,
 };
 use bh_reference_fixtures::qnm::{
     QnmFamilyAnalysisConfig, QnmFamilyAsymptoticTargets, QnmFamilyClassification,
@@ -67,6 +68,7 @@ fn print_usage() {
         "Usage:\n  bh-reference-fixtures validate-radial <fixture.json>\n  \
          bh-reference-fixtures validate-qnm <sequence.json>\n  \
          bh-reference-fixtures validate-continuation <trace.json>\n  \
+         bh-reference-fixtures analyze-continuation <trace.json>\n  \
          bh-reference-fixtures analyze-qnm <sequence.json> <analysis.json>\n  \
          bh-reference-fixtures compare-radial <left.json> <right.json> <abs-tol> <rel-tol>"
     );
@@ -170,6 +172,35 @@ fn run(args: &[String]) -> Result<i32, String> {
                 QnmExtremalDampingBehavior::Unresolved | QnmExtremalDampingBehavior::Ambiguous => {
                     Ok(6)
                 }
+            }
+        }
+        [command, path] if command == "analyze-continuation" => {
+            let trace = read_qnm_continuation(path)?;
+            let payload_sha256 = canonical_payload_sha256(&trace)
+                .map_err(|error| format!("cannot canonicalize QNM continuation {path}: {error}"))?;
+            let analysis = analyze_extremal_damping(
+                &trace,
+                QnmExtremalDampingAnalysisConfig::default(),
+            )
+            .map_err(|error| error.to_string())?;
+            println!(
+                "{}",
+                json!({
+                    "status": "analyzed",
+                    "trace_id": trace.trace_id,
+                    "mode_lineage_id": trace.mode_lineage_id,
+                    "payload_sha256": payload_sha256,
+                    "producer_damping_label": trace.extremal_damping_behavior,
+                    "computed_damping_classification": analysis.classification,
+                    "producer_label_matches_computed": analysis.producer_label_matches_analysis,
+                    "analysis": analysis
+                })
+            );
+            match analysis.classification {
+                QnmExtremalDampingBehavior::FiniteDamping
+                | QnmExtremalDampingBehavior::ZeroDamping => Ok(0),
+                QnmExtremalDampingBehavior::Unresolved
+                | QnmExtremalDampingBehavior::Ambiguous => Ok(6),
             }
         }
         [command, sequence_path, analysis_path] if command == "analyze-qnm" => {
