@@ -215,10 +215,10 @@ fn gate_failures(gates: &GateEvidence) -> Vec<GateFailure> {
     failures
 }
 
-fn validate_metric_values(
-    candidate: &DesignCandidate,
+fn validate_metric_values<'a>(
+    candidate: &'a DesignCandidate,
     definitions: &[MetricDefinition],
-) -> Result<BTreeMap<&str, i64>, MorphologyDesignError> {
+) -> Result<BTreeMap<&'a str, i64>, MorphologyDesignError> {
     let definition_ids: BTreeSet<&str> =
         definitions.iter().map(|item| item.metric_id.as_str()).collect();
     let mut values = BTreeMap::new();
