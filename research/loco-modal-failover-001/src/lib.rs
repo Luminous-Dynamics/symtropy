@@ -52,6 +52,8 @@ pub struct HealthPossibilityReceipt {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PossibleHealthSignature {
     pub signature_id: String,
+    /// Opaque digest issued by the upstream health-signature interpreter.
+    pub signature_digest: String,
     pub health_evidence_digest: String,
     pub actuator_digest: String,
     pub states: Vec<HealthState>,
@@ -172,13 +174,14 @@ pub enum FailoverError {
     DuplicateHealthEvidence,
     DuplicateChannelHealth,
     DuplicateSignature,
+    DuplicateSignatureDigest,
     DuplicateReceiptSignature,
     DuplicateAdmittedAction,
+    ActionsOnNonAdmittedReceipt,
     InvalidHealthEvidenceInterval,
     StaleHealthEvidence,
     FutureHealthEvidence,
     NoPossibleSignatures,
-    DuplicateSignature,
     EmptySignature,
     DuplicateChannelInSignature,
     SignatureChannelSetMismatch,
@@ -222,6 +225,7 @@ where
 
 fn signature_digest(signature: &PossibleHealthSignature) -> Result<String, FailoverError> {
     if !nonempty(&signature.signature_id)
+        || !nonempty(&signature.signature_digest)
         || !nonempty(&signature.health_evidence_digest)
         || !nonempty(&signature.actuator_digest)
     {
@@ -239,23 +243,7 @@ fn signature_digest(signature: &PossibleHealthSignature) -> Result<String, Failo
     if states.is_empty() {
         return Err(FailoverError::EmptySignature);
     }
-    let mut canonical = String::new();
-    canonical.push_str(&signature.health_evidence_digest);
-    canonical.push('|');
-    canonical.push_str(&signature.actuator_digest);
-    for (channel_id, health) in states {
-        canonical.push('|');
-        canonical.push_str(channel_id);
-        canonical.push('=');
-        canonical.push_str(match health {
-            ChannelHealth::Valid => "valid",
-            ChannelHealth::Degraded => "degraded",
-            ChannelHealth::Ood => "ood",
-            ChannelHealth::Unavailable => "unavailable",
-            ChannelHealth::Unknown => "unknown",
-        });
-    }
-    Ok(canonical)
+    Ok(signature.signature_digest.clone())
 }
 
 fn validate_health_evidence(problem: &FailoverProblem) -> Result<(), FailoverError> {
@@ -377,8 +365,16 @@ fn validate_receipt(
             return Err(FailoverError::DuplicateAdmittedAction);
         }
     }
-    if receipt.admitted_action_ids.is_empty() {
-        return Err(FailoverError::EmptyAdmittedActionSet);
+    match &receipt.status {
+        TransitionGateStatus::Admitted if receipt.admitted_action_ids.is_empty() => {
+            return Err(FailoverError::EmptyAdmittedActionSet);
+        }
+        TransitionGateStatus::Rejected { .. } | TransitionGateStatus::Unknown { .. }
+            if !receipt.admitted_action_ids.is_empty() =>
+        {
+            return Err(FailoverError::ActionsOnNonAdmittedReceipt);
+        }
+        _ => {}
     }
     Ok(())
 }
@@ -448,11 +444,15 @@ pub fn evaluate_failover(
         return Err(FailoverError::NoPossibleSignatures);
     }
     let mut signature_ids = BTreeSet::new();
+    let mut signature_digests = BTreeSet::new();
     for signature in &problem.possible_signatures {
         if !signature_ids.insert(signature.signature_id.as_str()) {
             return Err(FailoverError::DuplicateSignature);
         }
-        let _ = signature_digest(signature)?;
+        let digest = signature_digest(signature)?;
+        if !signature_digests.insert(digest) {
+            return Err(FailoverError::DuplicateSignatureDigest);
+        }
         let channels = signature
             .states
             .iter()
@@ -594,6 +594,7 @@ mod tests {
     fn signature(id: &str, states: Vec<(&str, ChannelHealth)>) -> PossibleHealthSignature {
         PossibleHealthSignature {
             signature_id: id.to_owned(),
+            signature_digest: format!("signature-digest-{id}"),
             health_evidence_digest: format!("health-{id}"),
             actuator_digest: "actuator-v1".to_owned(),
             states: states
@@ -615,7 +616,7 @@ mod tests {
         ModeTransitionReceipt {
             receipt_id: format!("receipt-{}", signature.signature_id),
             signature_id: signature.signature_id.clone(),
-            signature_digest: signature_digest(signature).expect("signature digest"),
+            signature_digest: signature.signature_digest.clone(),
             current_mode_id: problem.current_mode.mode_id.clone(),
             target_mode_id: problem.target_mode.mode_id.clone(),
             transition_action_id: problem.transition_action_id.clone(),
