@@ -239,7 +239,7 @@ fn validate_fixture(fixture: &Fixture) -> Result<(), String> {
         }
         validated_domain_keys(&record.fault_domains)?;
     }
-    let structural_domains = structural_fault_domain_keys(fixture)?;
+    structural_fault_domain_keys(fixture)?;
     let mut structural_ids = BTreeSet::new();
     let mut structural_groups = BTreeSet::new();
     for (id, group) in fixture
