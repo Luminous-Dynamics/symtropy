@@ -1,7 +1,8 @@
 use std::{env, fs, process};
 
 use bh_reference_fixtures::{
-    CompatibilityStatus, KerrQnmSequenceFixture, ReferenceFixture, assess_compatibility,
+    KerrQnmSequenceFixture, RadialComparisonConfig, RadialComparisonStatus,
+    ReferenceFixture, compare_radial_fixtures,
 };
 use serde_json::json;
 
@@ -31,7 +32,7 @@ fn print_usage() {
     eprintln!(
         "Usage:\n  bh-reference-fixtures validate-radial <fixture.json>\n  \
          bh-reference-fixtures validate-qnm <sequence.json>\n  \
-         bh-reference-fixtures compare-radial <left.json> <right.json>"
+         bh-reference-fixtures compare-radial <left.json> <right.json> <abs-tol> <rel-tol>"
     );
 }
 
@@ -64,25 +65,45 @@ fn run(args: &[String]) -> Result<i32, String> {
             );
             Ok(0)
         }
-        [command, left_path, right_path] if command == "compare-radial" => {
+        [command, left_path, right_path, abs_tol, rel_tol]
+            if command == "compare-radial" =>
+        {
             let left = read_radial_fixture(left_path)?;
             let right = read_radial_fixture(right_path)?;
-            let compatibility = assess_compatibility(&left, &right);
-            let status = match compatibility.status {
-                CompatibilityStatus::Matched => "matched",
-                CompatibilityStatus::Unmatched => "unmatched",
+            let absolute_tolerance = abs_tol
+                .parse::<f64>()
+                .map_err(|error| format!("invalid absolute tolerance {abs_tol}: {error}"))?;
+            let relative_tolerance = rel_tol
+                .parse::<f64>()
+                .map_err(|error| format!("invalid relative tolerance {rel_tol}: {error}"))?;
+            let comparison = compare_radial_fixtures(
+                &left,
+                &right,
+                RadialComparisonConfig {
+                    absolute_tolerance,
+                    relative_tolerance,
+                },
+            )
+            .map_err(|error| error.to_string())?;
+            let status = match comparison.status {
+                RadialComparisonStatus::Unmatched => "unmatched",
+                RadialComparisonStatus::Unresolved => "unresolved",
+                RadialComparisonStatus::NumericallyAgreeing => "numerically_agreeing",
+                RadialComparisonStatus::NumericallyDisagreeing => "numerically_disagreeing",
             };
             println!(
                 "{}",
                 json!({
                     "status": status,
-                    "differing_fields": compatibility.differing_fields,
-                    "numerical_comparison_performed": false
+                    "comparison": comparison,
+                    "interpolation_performed": false
                 })
             );
-            match compatibility.status {
-                CompatibilityStatus::Matched => Ok(0),
-                CompatibilityStatus::Unmatched => Ok(4),
+            match comparison.status {
+                RadialComparisonStatus::NumericallyAgreeing => Ok(0),
+                RadialComparisonStatus::Unmatched => Ok(4),
+                RadialComparisonStatus::NumericallyDisagreeing => Ok(5),
+                RadialComparisonStatus::Unresolved => Ok(6),
             }
         }
         _ => {
