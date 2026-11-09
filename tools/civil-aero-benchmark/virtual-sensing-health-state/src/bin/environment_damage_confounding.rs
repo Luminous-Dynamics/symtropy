@@ -600,11 +600,15 @@ mod tests {
     #[test]
     fn environment_witness_must_be_independent_of_structural_sensing_common_causes() {
         let mut data = fixture();
-        let case = data.cases.iter_mut()
-            .find(|item| item.case_id == "DH_NOMINAL_ENVIRONMENT")
+        let case_index = data
+            .cases
+            .iter()
+            .position(|item| item.case_id == "DH_NOMINAL_ENVIRONMENT")
             .unwrap();
-        case.environmental_witnesses[0].probes[0].common_cause_group = "STRAIN-BUS-A".to_owned();
-        let result = evaluate_case(&data, case);
+        data.cases[case_index].environmental_witnesses[0].probes[0].common_cause_group =
+            "STRAIN-BUS-A".to_owned();
+        let case = data.cases[case_index].clone();
+        let result = evaluate_case(&data, &case);
         assert_eq!(result.disposition, "ABSTAIN_ENVIRONMENTAL_WITNESS_NOT_INDEPENDENT");
         assert!(result.structural_state.is_none());
     }
