@@ -28,7 +28,12 @@ const ROOT_KEYS: &[&str] = &[
     "intended_use",
 ];
 const ANALYSIS_KEYS: &[&str] = &["start_utc", "end_utc", "geographic_scope"];
-const MODEL_KEYS: &[&str] = &["model_id", "revision", "config_relative_path", "config_sha256"];
+const MODEL_KEYS: &[&str] = &[
+    "model_id",
+    "revision",
+    "config_relative_path",
+    "config_sha256",
+];
 const POLICY_KEYS: &[&str] = &[
     "missing_value_policy",
     "zero_fill_allowed",
@@ -92,7 +97,11 @@ fn exact_keys(value: &Value, expected: &[&str]) -> Result<(), &'static str> {
 }
 
 fn member<'a>(value: &'a Value, key: &str) -> Result<&'a Value, &'static str> {
-    value.as_object().ok_or("INVALID_OBJECT")?.get(key).ok_or("MISSING_REQUIRED_FIELD")
+    value
+        .as_object()
+        .ok_or("INVALID_OBJECT")?
+        .get(key)
+        .ok_or("MISSING_REQUIRED_FIELD")
 }
 
 fn text<'a>(value: &'a Value, key: &str) -> Result<&'a str, &'static str> {
@@ -126,16 +135,18 @@ fn valid_relative_path(value: &str) -> bool {
         && !value.starts_with('/')
         && !value.contains('\\')
         && !value.contains(':')
-        && value.bytes().all(|byte| {
-            byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b'-' | b'/')
-        })
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b'-' | b'/'))
         && value
             .split('/')
             .all(|part| !part.is_empty() && part != "." && part != "..")
 }
 
 fn parents(value: &Value) -> Result<Vec<String>, &'static str> {
-    let items = member(value, "parents")?.as_array().ok_or("INVALID_FIELD_TYPE")?;
+    let items = member(value, "parents")?
+        .as_array()
+        .ok_or("INVALID_FIELD_TYPE")?;
     if items.len() > 256 {
         return Err("TOO_MANY_DEPENDENCY_EDGES");
     }
@@ -385,7 +396,9 @@ fn validate_manifest(value: &Value) -> Result<ManifestFacts, &'static str> {
         return Err("AUTHORITY_OR_POLICY_ESCALATION");
     }
 
-    let nodes = member(value, "nodes")?.as_array().ok_or("INVALID_FIELD_TYPE")?;
+    let nodes = member(value, "nodes")?
+        .as_array()
+        .ok_or("INVALID_FIELD_TYPE")?;
     if nodes.is_empty() || nodes.len() > 256 {
         return Err("INVALID_NODE_COUNT");
     }
@@ -471,7 +484,10 @@ fn validate_manifest(value: &Value) -> Result<ManifestFacts, &'static str> {
             if dependency_edge_count > 2048 {
                 return Err("TOO_MANY_DEPENDENCY_EDGES");
             }
-            children.get_mut(parent).ok_or("DANGLING_PARENT")?.push(node.id.clone());
+            children
+                .get_mut(parent)
+                .ok_or("DANGLING_PARENT")?
+                .push(node.id.clone());
         }
     }
 
@@ -497,8 +513,10 @@ fn validate_manifest(value: &Value) -> Result<ManifestFacts, &'static str> {
         return Err("DEPENDENCY_CYCLE");
     }
 
-    let by_id: BTreeMap<&str, &NodeFacts> =
-        node_facts.iter().map(|node| (node.id.as_str(), node)).collect();
+    let by_id: BTreeMap<&str, &NodeFacts> = node_facts
+        .iter()
+        .map(|node| (node.id.as_str(), node))
+        .collect();
     let mut reachable = BTreeSet::new();
     let mut stack: Vec<String> = node_facts
         .iter()
@@ -542,7 +560,9 @@ fn checked_workspace_path(root: &Path, relative: &str) -> Result<PathBuf, String
     let resolved = fs::canonicalize(canonical_root.join(relative))
         .map_err(|error| format!("cannot resolve referenced file {relative}: {error}"))?;
     if !resolved.starts_with(&canonical_root) || !resolved.is_file() {
-        return Err(format!("referenced file escapes workspace or is not a file: {relative}"));
+        return Err(format!(
+            "referenced file escapes workspace or is not a file: {relative}"
+        ));
     }
     Ok(resolved)
 }
@@ -556,16 +576,22 @@ fn verify_configuration_file(
     let metadata = fs::metadata(&path)
         .map_err(|error| format!("cannot stat configuration {relative_path}: {error}"))?;
     if metadata.len() > super::MAX_RECEIPT_BYTES as u64 {
-        return Err(format!("configuration exceeds bounded size: {relative_path}"));
+        return Err(format!(
+            "configuration exceeds bounded size: {relative_path}"
+        ));
     }
     let bytes = fs::read(&path)
         .map_err(|error| format!("cannot read configuration {relative_path}: {error}"))?;
     if bytes.len() > super::MAX_RECEIPT_BYTES {
-        return Err(format!("configuration exceeds bounded size: {relative_path}"));
+        return Err(format!(
+            "configuration exceeds bounded size: {relative_path}"
+        ));
     }
     let actual_sha256 = super::sha256_bytes(&bytes);
     if actual_sha256 != expected_sha256 {
-        return Err(format!("scenario configuration SHA-256 mismatch: {relative_path}"));
+        return Err(format!(
+            "scenario configuration SHA-256 mismatch: {relative_path}"
+        ));
     }
     Ok(())
 }
@@ -606,7 +632,10 @@ fn verify_source_receipts(manifest: &Value, workspace_root: &Path) -> Result<usi
         .ok_or_else(|| "manifest nodes must be an array".to_owned())?;
     let mut checked = 0_usize;
 
-    for node in nodes.iter().filter(|node| node["node_kind"] == "source_evidence") {
+    for node in nodes
+        .iter()
+        .filter(|node| node["node_kind"] == "source_evidence")
+    {
         let receipt_relative = node["receipt_relative_path"]
             .as_str()
             .ok_or_else(|| "source node has no receipt path".to_owned())?;
@@ -618,12 +647,16 @@ fn verify_source_receipts(manifest: &Value, workspace_root: &Path) -> Result<usi
         let metadata = fs::metadata(&receipt_path)
             .map_err(|error| format!("cannot stat source receipt {receipt_relative}: {error}"))?;
         if metadata.len() > super::MAX_RECEIPT_BYTES as u64 {
-            return Err(format!("source receipt exceeds bounded size: {receipt_relative}"));
+            return Err(format!(
+                "source receipt exceeds bounded size: {receipt_relative}"
+            ));
         }
         let receipt_bytes = fs::read(&receipt_path)
             .map_err(|error| format!("cannot read source receipt {receipt_relative}: {error}"))?;
         if receipt_bytes.len() > super::MAX_RECEIPT_BYTES {
-            return Err(format!("source receipt exceeds bounded size: {receipt_relative}"));
+            return Err(format!(
+                "source receipt exceeds bounded size: {receipt_relative}"
+            ));
         }
         super::parse_strict(&receipt_bytes)
             .map_err(|error| format!("invalid source receipt {receipt_relative}: {error}"))?;
@@ -635,18 +668,26 @@ fn verify_source_receipts(manifest: &Value, workspace_root: &Path) -> Result<usi
             .ok_or_else(|| format!("source node has no receipt digest: {receipt_relative}"))?;
         let actual_receipt_hash = super::sha256_bytes(&receipt_bytes);
         if actual_receipt_hash != expected_receipt_hash {
-            return Err(format!("scenario manifest receipt SHA-256 mismatch: {receipt_relative}"));
+            return Err(format!(
+                "scenario manifest receipt SHA-256 mismatch: {receipt_relative}"
+            ));
         }
         if receipt["artifact"]["relative_path"].as_str() != Some(artifact_relative) {
-            return Err(format!("scenario/receipt artifact path mismatch: {receipt_relative}"));
+            return Err(format!(
+                "scenario/receipt artifact path mismatch: {receipt_relative}"
+            ));
         }
         if receipt["source"]["kind"].as_str() != node["source_kind"].as_str() {
-            return Err(format!("scenario/receipt source kind mismatch: {receipt_relative}"));
+            return Err(format!(
+                "scenario/receipt source kind mismatch: {receipt_relative}"
+            ));
         }
         if receipt["data_context"]["time_coverage_start_utc"] != node["data_time_start_utc"]
             || receipt["data_context"]["time_coverage_end_utc"] != node["data_time_end_utc"]
         {
-            return Err(format!("scenario/receipt data-time scope mismatch: {receipt_relative}"));
+            return Err(format!(
+                "scenario/receipt data-time scope mismatch: {receipt_relative}"
+            ));
         }
 
         let receipt_path_display = receipt_path.to_string_lossy().into_owned();
@@ -657,13 +698,19 @@ fn verify_source_receipts(manifest: &Value, workspace_root: &Path) -> Result<usi
             "SCENARIO_MANIFEST_VALIDATOR",
         )?;
         if report.source_kind != node["source_kind"].as_str().unwrap_or_default() {
-            return Err(format!("verified receipt source kind mismatch: {receipt_relative}"));
+            return Err(format!(
+                "verified receipt source kind mismatch: {receipt_relative}"
+            ));
         }
         if report.receipt_sha256 != expected_receipt_hash {
-            return Err(format!("verified receipt SHA-256 mismatch: {receipt_relative}"));
+            return Err(format!(
+                "verified receipt SHA-256 mismatch: {receipt_relative}"
+            ));
         }
         if report.artifact_sha256 != node["artifact_sha256"].as_str().unwrap_or_default() {
-            return Err(format!("scenario manifest artifact SHA-256 mismatch: {artifact_relative}"));
+            return Err(format!(
+                "scenario manifest artifact SHA-256 mismatch: {artifact_relative}"
+            ));
         }
         checked += 1;
     }
@@ -769,7 +816,9 @@ fn descend_mut<'a>(value: &'a mut Value, part: &str) -> Result<&'a mut Value, &'
     match value {
         Value::Object(object) => object.get_mut(part).ok_or("INVALID_CORPUS_MUTATION"),
         Value::Array(items) => {
-            let index = part.parse::<usize>().map_err(|_| "INVALID_CORPUS_MUTATION")?;
+            let index = part
+                .parse::<usize>()
+                .map_err(|_| "INVALID_CORPUS_MUTATION")?;
             items.get_mut(index).ok_or("INVALID_CORPUS_MUTATION")
         }
         _ => Err("INVALID_CORPUS_MUTATION"),
@@ -788,25 +837,31 @@ fn mutate_path(value: &mut Value, path: &str, mutation: &Value) -> Result<(), &'
     }
     let leaf = parts[parts.len() - 1];
     match mutation["op"].as_str().ok_or("INVALID_CORPUS_MUTATION")? {
-        "set" => {
-            match parent {
-                Value::Object(object) => {
-                    if !object.contains_key(leaf) {
-                        return Err("INVALID_CORPUS_MUTATION");
-                    }
-                    object.insert(
-                        leaf.to_owned(),
-                        mutation.get("value").cloned().ok_or("INVALID_CORPUS_MUTATION")?,
-                    );
+        "set" => match parent {
+            Value::Object(object) => {
+                if !object.contains_key(leaf) {
+                    return Err("INVALID_CORPUS_MUTATION");
                 }
-                Value::Array(items) => {
-                    let index = leaf.parse::<usize>().map_err(|_| "INVALID_CORPUS_MUTATION")?;
-                    let target = items.get_mut(index).ok_or("INVALID_CORPUS_MUTATION")?;
-                    *target = mutation.get("value").cloned().ok_or("INVALID_CORPUS_MUTATION")?;
-                }
-                _ => return Err("INVALID_CORPUS_MUTATION"),
+                object.insert(
+                    leaf.to_owned(),
+                    mutation
+                        .get("value")
+                        .cloned()
+                        .ok_or("INVALID_CORPUS_MUTATION")?,
+                );
             }
-        }
+            Value::Array(items) => {
+                let index = leaf
+                    .parse::<usize>()
+                    .map_err(|_| "INVALID_CORPUS_MUTATION")?;
+                let target = items.get_mut(index).ok_or("INVALID_CORPUS_MUTATION")?;
+                *target = mutation
+                    .get("value")
+                    .cloned()
+                    .ok_or("INVALID_CORPUS_MUTATION")?;
+            }
+            _ => return Err("INVALID_CORPUS_MUTATION"),
+        },
         "insert" => {
             let object = parent.as_object_mut().ok_or("INVALID_CORPUS_MUTATION")?;
             if object.contains_key(leaf) {
@@ -814,26 +869,29 @@ fn mutate_path(value: &mut Value, path: &str, mutation: &Value) -> Result<(), &'
             }
             object.insert(
                 leaf.to_owned(),
-                mutation.get("value").cloned().ok_or("INVALID_CORPUS_MUTATION")?,
+                mutation
+                    .get("value")
+                    .cloned()
+                    .ok_or("INVALID_CORPUS_MUTATION")?,
             );
         }
-        "remove" => {
-            match parent {
-                Value::Object(object) => {
-                    if object.remove(leaf).is_none() {
-                        return Err("INVALID_CORPUS_MUTATION");
-                    }
+        "remove" => match parent {
+            Value::Object(object) => {
+                if object.remove(leaf).is_none() {
+                    return Err("INVALID_CORPUS_MUTATION");
                 }
-                Value::Array(items) => {
-                    let index = leaf.parse::<usize>().map_err(|_| "INVALID_CORPUS_MUTATION")?;
-                    if index >= items.len() {
-                        return Err("INVALID_CORPUS_MUTATION");
-                    }
-                    items.remove(index);
-                }
-                _ => return Err("INVALID_CORPUS_MUTATION"),
             }
-        }
+            Value::Array(items) => {
+                let index = leaf
+                    .parse::<usize>()
+                    .map_err(|_| "INVALID_CORPUS_MUTATION")?;
+                if index >= items.len() {
+                    return Err("INVALID_CORPUS_MUTATION");
+                }
+                items.remove(index);
+            }
+            _ => return Err("INVALID_CORPUS_MUTATION"),
+        },
         _ => return Err("INVALID_CORPUS_MUTATION"),
     }
     Ok(())
@@ -849,11 +907,20 @@ mod tests {
         let corpus_text = include_str!("../tests/fixtures/scenario-manifest-corpus-v0.1.json");
         let corpus: Value =
             serde_json::from_str(corpus_text).expect("scenario manifest corpus must be valid JSON");
-        assert_eq!(corpus["corpus_id"], "luminous.symtropy.maritime-scenario-manifest-corpus");
+        assert_eq!(
+            corpus["corpus_id"],
+            "luminous.symtropy.maritime-scenario-manifest-corpus"
+        );
         assert_eq!(corpus["corpus_version"], "0.1.0");
-        let bases = corpus["base_manifests"].as_object().expect("base manifest map");
+        let bases = corpus["base_manifests"]
+            .as_object()
+            .expect("base manifest map");
         let cases = corpus["cases"].as_array().expect("corpus cases");
-        assert_eq!(cases.len(), 29, "scenario-manifest corpus count is a contract");
+        assert_eq!(
+            cases.len(),
+            29,
+            "scenario-manifest corpus count is a contract"
+        );
         for case in cases {
             let id = case["id"].as_str().expect("case id");
             let base = case["base"].as_str().expect("base manifest id");
@@ -1017,16 +1084,14 @@ mod tests {
         let mut manifest: Value = serde_json::from_slice(fixture).expect("manifest fixture JSON");
         let workspace = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../..");
 
-        manifest["nodes"][0]["receipt_sha256"] =
-            Value::String("0".repeat(64));
+        manifest["nodes"][0]["receipt_sha256"] = Value::String("0".repeat(64));
         let error = verify_source_receipts(&manifest, &workspace)
             .expect_err("a changed receipt digest must fail");
         assert!(error.contains("receipt SHA-256 mismatch"));
 
         let fixture = include_bytes!("../tests/fixtures/synthetic-scenario-manifest.json");
         let mut manifest: Value = serde_json::from_slice(fixture).expect("manifest fixture JSON");
-        manifest["nodes"][0]["artifact_sha256"] =
-            Value::String("0".repeat(64));
+        manifest["nodes"][0]["artifact_sha256"] = Value::String("0".repeat(64));
         let error = verify_source_receipts(&manifest, &workspace)
             .expect_err("a changed manifest artifact digest must fail");
         assert!(error.contains("artifact SHA-256 mismatch"));
