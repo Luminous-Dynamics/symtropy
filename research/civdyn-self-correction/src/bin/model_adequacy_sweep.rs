@@ -2,8 +2,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use civdyn_self_correction::model_adequacy::{
-    AdequacyAssessment, IndependentUnitKind, ObservedStatistic, PredictiveDraw, PredictiveKind,
-    SplitManifest, SplitRole, StatisticRegistry, StatisticSpec, assess_predictive_partition,
+    AdequacyAssessment, IndependentUnitKind, ObservedStatistic, PredictiveDraw,
+    PredictiveDrawDependence, PredictiveKind, SplitManifest, SplitRole, StatisticRegistry,
+    StatisticSpec, assess_predictive_partition,
 };
 
 const UNIT_ID: &str = "region-west";
@@ -58,6 +59,7 @@ fn predictive_draws(
             value: *value,
             model_digest: "fixture-model-v1".to_string(),
             draw_set_digest: format!("fixture-draw-set-{}-{statistic_id}-v1", kind.name()),
+            dependence: PredictiveDrawDependence::Independent,
             calibration_data_digest: match kind {
                 PredictiveKind::Prior => None,
                 PredictiveKind::Split => Some(CALIBRATION_DIGEST.to_string()),
