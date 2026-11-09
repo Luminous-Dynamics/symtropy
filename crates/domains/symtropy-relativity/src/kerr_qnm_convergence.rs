@@ -843,14 +843,12 @@ mod tests {
         let mut p_current = z;
         for degree in 2..=order {
             let degree_f64 = degree as f64;
-            let next = ((2.0 * degree_f64 - 1.0) * z * p_current
-                - (degree_f64 - 1.0) * p_previous)
+            let next = ((2.0 * degree_f64 - 1.0) * z * p_current - (degree_f64 - 1.0) * p_previous)
                 / degree_f64;
             p_previous = p_current;
             p_current = next;
         }
-        let derivative =
-            order as f64 * (z * p_current - p_previous) / (z * z - 1.0);
+        let derivative = order as f64 * (z * p_current - p_previous) / (z * z - 1.0);
         (p_current, derivative)
     }
 
@@ -869,9 +867,8 @@ mod tests {
         // the complex turning point and keeps square-root sheet tracking
         // directional and deterministic.
         for index in 0..order {
-            let mut z = (core::f64::consts::PI * (index as f64 + 0.75)
-                / (order as f64 + 0.5))
-                .cos();
+            let mut z =
+                (core::f64::consts::PI * (index as f64 + 0.75) / (order as f64 + 0.5)).cos();
             for _ in 0..16 {
                 let (polynomial, derivative) = legendre_value_and_derivative(order, z);
                 let delta = polynomial / derivative;
@@ -1143,9 +1140,7 @@ mod tests {
         for spin in [0.3_f64, 0.7, 0.99] {
             let turning_point = prolate_turning_point(spin);
             let endpoint = ComplexCoordinate::new(1.0, 0.0).div(turning_point);
-            let simpson = prolate_complex_correction(spin, turning_point)
-                .unwrap()
-                .0;
+            let simpson = prolate_complex_correction(spin, turning_point).unwrap().0;
             let gauss = integrate_complex_gauss_legendre(spin, endpoint, 192);
             let discrepancy = simpson.sub(gauss).norm();
             assert!(
@@ -1333,12 +1328,7 @@ mod tests {
         ];
         let observation_time_s = 10.0 + 6.0 * rg / SPEED_OF_LIGHT_M_S;
         let original = reference
-            .classify_source_events(
-                observation_time_s,
-                4.0 * rg,
-                &events,
-                1.0e-8 * rg,
-            )
+            .classify_source_events(observation_time_s, 4.0 * rg, &events, 1.0e-8 * rg)
             .unwrap();
 
         let shift_s = 1.0;
