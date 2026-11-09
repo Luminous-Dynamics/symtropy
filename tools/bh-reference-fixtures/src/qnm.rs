@@ -17,6 +17,10 @@ pub enum QnmSolverMethod {
     IncidenceAmplitude,
     SpheroidalEigenvalue,
     SpectralTwoDimensional,
+    KerrNormalProlateGenusOneWkb,
+    PotentialPeakPadeWkb,
+    PotentialPeakBorelPadeWkb,
+    ExactExtremalWkb,
     Other,
 }
 
@@ -56,14 +60,17 @@ impl QnmModeResiduals {
 
 /// Multi-mode asymptotic summary used to justify a prolate or oblate label.
 ///
-/// For a prolate sequence, angular_scaling_ratio is A/(i a omega); for an
-/// oblate sequence it is A/(-a^2 omega^2). The corresponding ratio should
-/// approach 1 in the declared convention. Frequency spacings are expressed
-/// as dimensionless M delta-omega.
+/// angular_scaling_ratio is compared with the explicitly recorded
+/// expected_angular_scaling_limit. For the normal prolate branch in Hatsuda
+/// (2026), that limit is eta = 2 Lbar + 1, not universally 1; Lbar is the
+/// equatorial oscillator level. An oblate-family convention may use a
+/// different limit and must state it explicitly. Frequency spacings are
+/// expressed as dimensionless M delta-omega.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct QnmFamilyEvidence {
     pub angular_scaling_ratio: ComplexValue,
+    pub expected_angular_scaling_limit: ComplexValue,
     pub observed_frequency_spacing_m: ComplexValue,
     pub predicted_frequency_spacing_m: ComplexValue,
     pub angular_scaling_relative_residual: f64,
@@ -87,6 +94,13 @@ pub struct QnmModeRecord {
     pub initial_guess: Option<ComplexValue>,
     pub precision_bits: u16,
     pub residuals: Option<QnmModeResiduals>,
+    /// Hatsuda's normal-prolate WKB integer N. It is not generally the
+    /// conventional overtone index n.
+    pub wkb_quantization_index: Option<u32>,
+    pub wkb_truncation_order: Option<u32>,
+    pub wkb_optimal_truncation_order: Option<u32>,
+    /// Explicit cycle label; the spectral curve alone does not select it.
+    pub wkb_cycle_id: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -102,6 +116,10 @@ pub struct KerrQnmSequenceFixture {
     pub fourier_convention: FourierConvention,
     pub frequency_normalization: FrequencyNormalization,
     pub family_classification: QnmFamilyClassification,
+    /// Equatorial oscillator level Lbar for the normal prolate angular branch.
+    /// For scalar fields Lbar = ell - |m|; for nonzero spin weight the mapping
+    /// must be established by branch continuation and is not inferred here.
+    pub normal_prolate_oscillator_level: Option<u32>,
     pub family_evidence: Option<QnmFamilyEvidence>,
     pub modes: Vec<QnmModeRecord>,
 }
@@ -121,6 +139,9 @@ pub enum QnmSequenceValidationError {
     InvalidModeResiduals(usize),
     InvalidFamilyEvidence,
     MissingFamilyEvidence,
+    MissingWkbMetadata(usize),
+    ProlateOscillatorLevelMissing,
+    ExtremalFixtureRequiresScalarExactWkb,
 }
 
 impl core::fmt::Display for QnmSequenceValidationError {
@@ -176,6 +197,21 @@ impl core::fmt::Display for QnmSequenceValidationError {
                     "prolate/oblate classification requires multi-mode asymptotic evidence"
                 )
             }
+            Self::MissingWkbMetadata(index) => {
+                write!(
+                    f,
+                    "QNM mode {index} requires WKB index, truncation order and cycle metadata"
+                )
+            }
+            Self::ProlateOscillatorLevelMissing => {
+                write!(
+                    f,
+                    "normal prolate sequence requires an explicit equatorial oscillator level"
+                )
+            }
+            Self::ExtremalFixtureRequiresScalarExactWkb => {
+                write!(f, "exact extremality is represented only by a scalar exact-WKB fixture")
+            }
         }
     }
 }
@@ -208,8 +244,17 @@ impl KerrQnmSequenceFixture {
         {
             return Err(QnmSequenceValidationError::InvalidSha256);
         }
-        if !self.spin_over_mass.is_finite() || self.spin_over_mass.abs() >= 1.0 {
+        if !self.spin_over_mass.is_finite() || self.spin_over_mass.abs() > 1.0 {
             return Err(QnmSequenceValidationError::InvalidSpin);
+        }
+        if self.spin_over_mass.abs() == 1.0
+            && (self.spin_weight != 0
+                || self
+                    .modes
+                    .iter()
+                    .any(|mode| mode.solver_method != QnmSolverMethod::ExactExtremalWkb))
+        {
+            return Err(QnmSequenceValidationError::ExtremalFixtureRequiresScalarExactWkb);
         }
         if self.ell < self.spin_weight.unsigned_abs() || self.m.unsigned_abs() > self.ell {
             return Err(QnmSequenceValidationError::InvalidModeNumbers);
@@ -248,6 +293,21 @@ impl KerrQnmSequenceFixture {
             {
                 return Err(QnmSequenceValidationError::InvalidModeResiduals(index));
             }
+            if mode.solver_method == QnmSolverMethod::KerrNormalProlateGenusOneWkb
+                && (mode.wkb_quantization_index.is_none()
+                    || mode.wkb_truncation_order.is_none()
+                    || mode.wkb_cycle_id.as_deref().is_none_or(str::is_empty)
+                    || self.family_classification != QnmFamilyClassification::Prolate
+                    || self.normal_prolate_oscillator_level.is_none())
+            {
+                return Err(QnmSequenceValidationError::MissingWkbMetadata(index));
+            }
+        }
+
+        if self.family_classification == QnmFamilyClassification::Prolate
+            && self.normal_prolate_oscillator_level.is_none()
+        {
+            return Err(QnmSequenceValidationError::ProlateOscillatorLevelMissing);
         }
 
         match self.family_classification {
@@ -257,6 +317,7 @@ impl KerrQnmSequenceFixture {
                     .as_ref()
                     .ok_or(QnmSequenceValidationError::MissingFamilyEvidence)?;
                 if !evidence.angular_scaling_ratio.is_finite()
+                    || !evidence.expected_angular_scaling_limit.is_finite()
                     || !evidence.observed_frequency_spacing_m.is_finite()
                     || !evidence.predicted_frequency_spacing_m.is_finite()
                     || !evidence.angular_scaling_relative_residual.is_finite()
@@ -272,6 +333,7 @@ impl KerrQnmSequenceFixture {
             QnmFamilyClassification::Unresolved | QnmFamilyClassification::Ambiguous => {
                 if let Some(evidence) = &self.family_evidence
                     && (!evidence.angular_scaling_ratio.is_finite()
+                        || !evidence.expected_angular_scaling_limit.is_finite()
                         || !evidence.observed_frequency_spacing_m.is_finite()
                         || !evidence.predicted_frequency_spacing_m.is_finite()
                         || !evidence.angular_scaling_relative_residual.is_finite()
@@ -305,6 +367,7 @@ mod tests {
             || classification == QnmFamilyClassification::Oblate)
             .then_some(QnmFamilyEvidence {
                 angular_scaling_ratio: ComplexValue { re: 0.99, im: 0.01 },
+                expected_angular_scaling_limit: ComplexValue { re: 1.0, im: 0.0 },
                 observed_frequency_spacing_m: ComplexValue {
                     re: 0.25,
                     im: -0.01,
@@ -336,6 +399,10 @@ mod tests {
                     continued_fraction_relative: Some(1.0e-15),
                     incidence_amplitude_relative: None,
                 }),
+                wkb_quantization_index: None,
+                wkb_truncation_order: None,
+                wkb_optimal_truncation_order: None,
+                wkb_cycle_id: None,
             })
             .collect();
 
@@ -350,6 +417,7 @@ mod tests {
             fourier_convention: FourierConvention::EMinusIOmegaT,
             frequency_normalization: FrequencyNormalization::DimensionlessMOmega,
             family_classification: classification,
+            normal_prolate_oscillator_level: (classification == QnmFamilyClassification::Prolate).then_some(0),
             family_evidence: evidence,
             modes,
         }
@@ -405,6 +473,60 @@ mod tests {
         let mut value = sequence(QnmFamilyClassification::Ambiguous);
         value.modes[1].overtone_index = None;
         assert_eq!(value.validate(), Ok(()));
+    }
+
+    #[test]
+    fn genus_one_prolate_wkb_preserves_quantization_index_separately_from_overtone() {
+        let mut value = sequence(QnmFamilyClassification::Prolate);
+        let mode = &mut value.modes[0];
+        mode.solver_method = QnmSolverMethod::KerrNormalProlateGenusOneWkb;
+        mode.overtone_index = Some(7);
+        mode.wkb_quantization_index = Some(120);
+        mode.wkb_truncation_order = Some(47);
+        mode.wkb_optimal_truncation_order = Some(47);
+        mode.wkb_cycle_id = Some("outer-scattering-cycle".to_owned());
+        assert_eq!(mode.overtone_index, Some(7));
+        assert_eq!(mode.wkb_quantization_index, Some(120));
+        assert_eq!(value.validate(), Ok(()));
+    }
+
+    #[test]
+    fn genus_one_wkb_rejects_oblate_or_missing_cycle_metadata() {
+        let mut wrong_family = sequence(QnmFamilyClassification::Oblate);
+        wrong_family.modes[0].solver_method = QnmSolverMethod::KerrNormalProlateGenusOneWkb;
+        wrong_family.modes[0].wkb_quantization_index = Some(120);
+        wrong_family.modes[0].wkb_truncation_order = Some(47);
+        wrong_family.modes[0].wkb_cycle_id = Some("outer".to_owned());
+        assert_eq!(
+            wrong_family.validate(),
+            Err(QnmSequenceValidationError::MissingWkbMetadata(0))
+        );
+
+        let mut missing_cycle = sequence(QnmFamilyClassification::Prolate);
+        missing_cycle.modes[0].solver_method = QnmSolverMethod::KerrNormalProlateGenusOneWkb;
+        missing_cycle.modes[0].wkb_quantization_index = Some(120);
+        missing_cycle.modes[0].wkb_truncation_order = Some(47);
+        assert_eq!(
+            missing_cycle.validate(),
+            Err(QnmSequenceValidationError::MissingWkbMetadata(0))
+        );
+    }
+
+    #[test]
+    fn exact_extremal_wkb_fixture_is_scalar_only() {
+        let mut scalar = sequence(QnmFamilyClassification::Unresolved);
+        scalar.spin_over_mass = 1.0;
+        for mode in &mut scalar.modes {
+            mode.solver_method = QnmSolverMethod::ExactExtremalWkb;
+        }
+        assert_eq!(scalar.validate(), Ok(()));
+
+        let mut gravitational = scalar.clone();
+        gravitational.spin_weight = -2;
+        assert_eq!(
+            gravitational.validate(),
+            Err(QnmSequenceValidationError::ExtremalFixtureRequiresScalarExactWkb)
+        );
     }
 
     #[test]
