@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use civdyn_self_correction::joint_adequacy::{
-    assess_joint_predictive_draws, JointComponentSpec, JointComponentValue, JointMetricConfig,
-    JointObservation, JointPredictiveDraw, JointStatisticSpec,
+    JointComponentSpec, JointComponentValue, JointMetricConfig, JointObservation,
+    JointPredictiveDraw, JointStatisticSpec, assess_joint_predictive_draws,
 };
 use civdyn_self_correction::model_adequacy::{IndependentUnitKind, SplitManifest, SplitRole};
 
@@ -12,15 +12,15 @@ const SOURCE_DIGEST: &str = "fixture-joint-water-energy-source-v1";
 const CALIBRATION_DIGEST: &str = "fixture-joint-calibration-v1";
 
 fn emit(fields: Vec<String>) {
-    assert_eq!(fields.len(), CSV_COLUMNS, "joint adequacy receipt schema mismatch");
+    assert_eq!(
+        fields.len(),
+        CSV_COLUMNS,
+        "joint adequacy receipt schema mismatch"
+    );
     println!("{}", fields.join(","));
 }
 
-fn component(
-    id: &str,
-    unit: &str,
-    value: f64,
-) -> JointComponentValue {
+fn component(id: &str, unit: &str, value: f64) -> JointComponentValue {
     JointComponentValue {
         component_id: id.to_string(),
         measurement_unit: unit.to_string(),
@@ -164,14 +164,29 @@ fn emit_candidate(
             result.predictive_draw_count.to_string(),
             format!("{energy_beta:.6}", energy_beta = result.energy_beta),
             format!("{energy_score:.8}", energy_score = result.energy_score),
-            format!("{variogram_power:.6}", variogram_power = result.variogram_power),
-            format!("{variogram_score:.8}", variogram_score = result.variogram_score),
+            format!(
+                "{variogram_power:.6}",
+                variogram_power = result.variogram_power
+            ),
+            format!(
+                "{variogram_score:.8}",
+                variogram_score = result.variogram_score
+            ),
             pair.component_a.clone(),
             pair.component_b.clone(),
             format!("{pair_weight:.6}", pair_weight = pair.weight),
-            format!("{observed_pair_distance:.8}", observed_pair_distance = pair.observed_pair_distance),
-            format!("{predictive_pair_distance:.8}", predictive_pair_distance = pair.predictive_pair_distance),
-            format!("{weighted_contribution:.8}", weighted_contribution = pair.weighted_contribution),
+            format!(
+                "{observed_pair_distance:.8}",
+                observed_pair_distance = pair.observed_pair_distance
+            ),
+            format!(
+                "{predictive_pair_distance:.8}",
+                predictive_pair_distance = pair.predictive_pair_distance
+            ),
+            format!(
+                "{weighted_contribution:.8}",
+                weighted_contribution = pair.weighted_contribution
+            ),
             result.model_digest.clone(),
             result.draw_set_digest.clone(),
             result.source_digest.clone(),

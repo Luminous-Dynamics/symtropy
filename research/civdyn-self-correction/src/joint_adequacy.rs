@@ -183,8 +183,13 @@ pub struct JointAdequacyResult {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum JointAdequacyError {
-    InvalidStatistic { statistic_id: String },
-    InvalidComponent { statistic_id: String, component_id: String },
+    InvalidStatistic {
+        statistic_id: String,
+    },
+    InvalidComponent {
+        statistic_id: String,
+        component_id: String,
+    },
     InvalidMetricConfig {
         dimensions: usize,
         expected_pair_weights: usize,
@@ -192,11 +197,23 @@ pub enum JointAdequacyError {
     },
     InvalidSplitManifest,
     CalibrationRoleNotAllowed,
-    StatisticRoleMismatch { statistic_id: String },
-    UnitKindMismatch { statistic_id: String },
-    UnknownIndependentUnit { unit_id: String },
-    InvalidObservation { statistic_id: String, unit_id: String },
-    InvalidComponentVector { statistic_id: String, unit_id: String },
+    StatisticRoleMismatch {
+        statistic_id: String,
+    },
+    UnitKindMismatch {
+        statistic_id: String,
+    },
+    UnknownIndependentUnit {
+        unit_id: String,
+    },
+    InvalidObservation {
+        statistic_id: String,
+        unit_id: String,
+    },
+    InvalidComponentVector {
+        statistic_id: String,
+        unit_id: String,
+    },
     ComponentOrderMismatch {
         statistic_id: String,
         expected: String,
@@ -206,20 +223,45 @@ pub enum JointAdequacyError {
         statistic_id: String,
         component_id: String,
     },
-    MissingPredictiveDraws { statistic_id: String, unit_id: String },
+    MissingPredictiveDraws {
+        statistic_id: String,
+        unit_id: String,
+    },
     InsufficientPredictiveDraws {
         statistic_id: String,
         unit_id: String,
         required: usize,
         actual: usize,
     },
-    InvalidPredictiveDraw { statistic_id: String, unit_id: String },
-    DuplicatePredictiveDraw { statistic_id: String, unit_id: String, draw_index: u64 },
-    MixedModelIdentities { statistic_id: String, unit_id: String },
-    MixedDrawSetIdentities { statistic_id: String, unit_id: String },
-    CalibrationDigestMismatch { statistic_id: String, unit_id: String },
-    SplitManifestDigestMismatch { statistic_id: String, unit_id: String },
-    NonFiniteScore { statistic_id: String, unit_id: String },
+    InvalidPredictiveDraw {
+        statistic_id: String,
+        unit_id: String,
+    },
+    DuplicatePredictiveDraw {
+        statistic_id: String,
+        unit_id: String,
+        draw_index: u64,
+    },
+    MixedModelIdentities {
+        statistic_id: String,
+        unit_id: String,
+    },
+    MixedDrawSetIdentities {
+        statistic_id: String,
+        unit_id: String,
+    },
+    CalibrationDigestMismatch {
+        statistic_id: String,
+        unit_id: String,
+    },
+    SplitManifestDigestMismatch {
+        statistic_id: String,
+        unit_id: String,
+    },
+    NonFiniteScore {
+        statistic_id: String,
+        unit_id: String,
+    },
 }
 
 impl fmt::Display for JointAdequacyError {
@@ -389,8 +431,7 @@ pub fn assess_joint_predictive_draws(
     )?;
 
     let energy = energy_score(&vectors, &observed, config.energy_beta);
-    let (variogram, pair_results) =
-        variogram_score(&vectors, &observed, statistic, config);
+    let (variogram, pair_results) = variogram_score(&vectors, &observed, statistic, config);
     if !energy.is_finite() || !variogram.is_finite() {
         return Err(JointAdequacyError::NonFiniteScore {
             statistic_id: statistic.id.clone(),
@@ -403,11 +444,8 @@ pub fn assess_joint_predictive_draws(
         .iter()
         .enumerate()
         .map(|(index, spec)| {
-            let predictive_mean = vectors
-                .iter()
-                .map(|vector| vector[index])
-                .sum::<f64>()
-                / vectors.len() as f64;
+            let predictive_mean =
+                vectors.iter().map(|vector| vector[index]).sum::<f64>() / vectors.len() as f64;
             (spec.id.clone(), observed[index] - predictive_mean)
         })
         .collect();
@@ -525,24 +563,28 @@ fn variogram_score(
     let mut results = Vec::with_capacity(config.pair_weights.len());
     let mut total = 0.0;
 
-    let component_pairs = statistic.components.iter().enumerate().flat_map(
-        |(left_index, left_spec)| {
-            statistic
-                .components
-                .iter()
-                .enumerate()
-                .skip(left_index + 1)
-                .map(move |(right_index, right_spec)| {
-                    (left_index, right_index, left_spec, right_spec)
-                })
-        },
-    );
+    let component_pairs =
+        statistic
+            .components
+            .iter()
+            .enumerate()
+            .flat_map(|(left_index, left_spec)| {
+                statistic
+                    .components
+                    .iter()
+                    .enumerate()
+                    .skip(left_index + 1)
+                    .map(move |(right_index, right_spec)| {
+                        (left_index, right_index, left_spec, right_spec)
+                    })
+            });
 
     for ((left, right, left_spec, right_spec), weight) in
         component_pairs.zip(config.pair_weights.iter().copied())
     {
-        let observed_distance =
-            (observation[left] - observation[right]).abs().powf(config.variogram_power);
+        let observed_distance = (observation[left] - observation[right])
+            .abs()
+            .powf(config.variogram_power);
         let predictive_distance = vectors
             .iter()
             .map(|vector| {
@@ -696,11 +738,23 @@ mod tests {
 
         // Both draws have the same marginal values {0,1}; only coupling differs.
         let positive_result = assess_joint_predictive_draws(
-            &spec, &manifest, SplitRole::Validation, &observed, &positive, &config()
-        ).expect("positive dependence reference");
+            &spec,
+            &manifest,
+            SplitRole::Validation,
+            &observed,
+            &positive,
+            &config(),
+        )
+        .expect("positive dependence reference");
         let negative_result = assess_joint_predictive_draws(
-            &spec, &manifest, SplitRole::Validation, &observed, &negative, &config()
-        ).expect("negative dependence reference");
+            &spec,
+            &manifest,
+            SplitRole::Validation,
+            &observed,
+            &negative,
+            &config(),
+        )
+        .expect("negative dependence reference");
 
         assert!((positive_result.energy_score - 0.353_553_390_593_273_8).abs() < 1e-12);
         assert!((negative_result.energy_score - 0.646_446_609_406_726_3).abs() < 1e-12);
@@ -749,24 +803,22 @@ mod tests {
             })
             .collect();
 
-        let make_path_draw = |index: u64, values: [f64; 3], set: &str| {
-            JointPredictiveDraw {
-                statistic_id: spec.id.clone(),
-                independent_unit_id: "region-a".to_string(),
-                sample_size: 10,
-                draw_index: index,
-                model_digest: format!("model-{set}"),
-                draw_set_digest: set.to_string(),
-                calibration_data_digest: Some("sha256-calibration".to_string()),
-                split_manifest_digest: "sha256-manifest".to_string(),
-                components: (0..3)
-                    .map(|position| JointComponentValue {
-                        component_id: format!("tick-{position}"),
-                        measurement_unit: "service_fraction".to_string(),
-                        value: values[position],
-                    })
-                    .collect(),
-            }
+        let make_path_draw = |index: u64, values: [f64; 3], set: &str| JointPredictiveDraw {
+            statistic_id: spec.id.clone(),
+            independent_unit_id: "region-a".to_string(),
+            sample_size: 10,
+            draw_index: index,
+            model_digest: format!("model-{set}"),
+            draw_set_digest: set.to_string(),
+            calibration_data_digest: Some("sha256-calibration".to_string()),
+            split_manifest_digest: "sha256-manifest".to_string(),
+            components: (0..3)
+                .map(|position| JointComponentValue {
+                    component_id: format!("tick-{position}"),
+                    measurement_unit: "service_fraction".to_string(),
+                    value: values[position],
+                })
+                .collect(),
         };
 
         let positive_path = vec![
@@ -784,13 +836,23 @@ mod tests {
         };
 
         let positive = assess_joint_predictive_draws(
-            &spec, &manifest(), SplitRole::Validation, &observed,
-            &positive_path, &path_config
-        ).expect("positive temporal coupling");
+            &spec,
+            &manifest(),
+            SplitRole::Validation,
+            &observed,
+            &positive_path,
+            &path_config,
+        )
+        .expect("positive temporal coupling");
         let reordered = assess_joint_predictive_draws(
-            &spec, &manifest(), SplitRole::Validation, &observed,
-            &reordered_path, &path_config
-        ).expect("reordered temporal coupling");
+            &spec,
+            &manifest(),
+            SplitRole::Validation,
+            &observed,
+            &reordered_path,
+            &path_config,
+        )
+        .expect("reordered temporal coupling");
 
         assert_eq!(positive.variogram_score, 0.0);
         assert_eq!(reordered.variogram_score, 2.0);
@@ -803,8 +865,12 @@ mod tests {
         observed.components.swap(0, 1);
         assert!(matches!(
             assess_joint_predictive_draws(
-                &statistic(), &manifest(), SplitRole::Validation, &observed,
-                &[draw(0, [0.0, 0.0], "d"), draw(1, [1.0, 1.0], "d")], &config()
+                &statistic(),
+                &manifest(),
+                SplitRole::Validation,
+                &observed,
+                &[draw(0, [0.0, 0.0], "d"), draw(1, [1.0, 1.0], "d")],
+                &config()
             ),
             Err(JointAdequacyError::ComponentOrderMismatch { .. })
         ));
@@ -816,8 +882,12 @@ mod tests {
         observed.components[1].measurement_unit = "m3".to_string();
         assert!(matches!(
             assess_joint_predictive_draws(
-                &statistic(), &manifest(), SplitRole::Validation, &observed,
-                &[draw(0, [0.0, 0.0], "d"), draw(1, [1.0, 1.0], "d")], &config()
+                &statistic(),
+                &manifest(),
+                SplitRole::Validation,
+                &observed,
+                &[draw(0, [0.0, 0.0], "d"), draw(1, [1.0, 1.0], "d")],
+                &config()
             ),
             Err(JointAdequacyError::ComponentUnitMismatch { .. })
         ));
@@ -842,27 +912,29 @@ mod tests {
 
     #[test]
     fn mixed_model_and_draw_set_identities_are_rejected() {
-        let mut model_draws = vec![
-            draw(0, [0.0, 0.0], "same"),
-            draw(1, [1.0, 1.0], "same"),
-        ];
+        let mut model_draws = vec![draw(0, [0.0, 0.0], "same"), draw(1, [1.0, 1.0], "same")];
         model_draws[1].model_digest = "sha256-other-model".to_string();
         assert!(matches!(
             assess_joint_predictive_draws(
-                &statistic(), &manifest(), SplitRole::Validation,
-                &observation([1.0, 1.0]), &model_draws, &config()
+                &statistic(),
+                &manifest(),
+                SplitRole::Validation,
+                &observation([1.0, 1.0]),
+                &model_draws,
+                &config()
             ),
             Err(JointAdequacyError::MixedModelIdentities { .. })
         ));
 
-        let draw_sets = vec![
-            draw(0, [0.0, 0.0], "first"),
-            draw(1, [1.0, 1.0], "second"),
-        ];
+        let draw_sets = vec![draw(0, [0.0, 0.0], "first"), draw(1, [1.0, 1.0], "second")];
         assert!(matches!(
             assess_joint_predictive_draws(
-                &statistic(), &manifest(), SplitRole::Validation,
-                &observation([1.0, 1.0]), &draw_sets, &config()
+                &statistic(),
+                &manifest(),
+                SplitRole::Validation,
+                &observation([1.0, 1.0]),
+                &draw_sets,
+                &config()
             ),
             Err(JointAdequacyError::MixedDrawSetIdentities { .. })
         ));
@@ -872,14 +944,15 @@ mod tests {
     fn wrong_split_manifest_identity_is_rejected_for_observation_and_draw() {
         let mut observed = observation([1.0, 1.0]);
         observed.split_manifest_digest = "sha256-foreign-manifest".to_string();
-        let valid_draws = vec![
-            draw(0, [0.0, 0.0], "d"),
-            draw(1, [1.0, 1.0], "d"),
-        ];
+        let valid_draws = vec![draw(0, [0.0, 0.0], "d"), draw(1, [1.0, 1.0], "d")];
         assert!(matches!(
             assess_joint_predictive_draws(
-                &statistic(), &manifest(), SplitRole::Validation,
-                &observed, &valid_draws, &config()
+                &statistic(),
+                &manifest(),
+                SplitRole::Validation,
+                &observed,
+                &valid_draws,
+                &config()
             ),
             Err(JointAdequacyError::SplitManifestDigestMismatch { .. })
         ));
@@ -889,8 +962,12 @@ mod tests {
         foreign_draws[0].split_manifest_digest = "sha256-foreign-manifest".to_string();
         assert!(matches!(
             assess_joint_predictive_draws(
-                &statistic(), &manifest(), SplitRole::Validation,
-                &observed, &foreign_draws, &config()
+                &statistic(),
+                &manifest(),
+                SplitRole::Validation,
+                &observed,
+                &foreign_draws,
+                &config()
             ),
             Err(JointAdequacyError::SplitManifestDigestMismatch { .. })
         ));
@@ -898,15 +975,16 @@ mod tests {
 
     #[test]
     fn wrong_calibration_digest_is_rejected() {
-        let mut draws = vec![
-            draw(0, [0.0, 0.0], "d"),
-            draw(1, [1.0, 1.0], "d"),
-        ];
+        let mut draws = vec![draw(0, [0.0, 0.0], "d"), draw(1, [1.0, 1.0], "d")];
         draws[0].calibration_data_digest = Some("sha256-foreign".to_string());
         assert!(matches!(
             assess_joint_predictive_draws(
-                &statistic(), &manifest(), SplitRole::Validation,
-                &observation([1.0, 1.0]), &draws, &config()
+                &statistic(),
+                &manifest(),
+                SplitRole::Validation,
+                &observation([1.0, 1.0]),
+                &draws,
+                &config()
             ),
             Err(JointAdequacyError::CalibrationDigestMismatch { .. })
         ));
@@ -916,14 +994,15 @@ mod tests {
     fn wrong_source_sample_size_and_duplicate_draws_fail_closed() {
         let mut observed = observation([1.0, 1.0]);
         observed.source_digest = "sha256-foreign".to_string();
-        let valid_draws = vec![
-            draw(0, [0.0, 0.0], "d"),
-            draw(1, [1.0, 1.0], "d"),
-        ];
+        let valid_draws = vec![draw(0, [0.0, 0.0], "d"), draw(1, [1.0, 1.0], "d")];
         assert!(matches!(
             assess_joint_predictive_draws(
-                &statistic(), &manifest(), SplitRole::Validation,
-                &observed, &valid_draws, &config()
+                &statistic(),
+                &manifest(),
+                SplitRole::Validation,
+                &observed,
+                &valid_draws,
+                &config()
             ),
             Err(JointAdequacyError::InvalidObservation { .. })
         ));
@@ -932,8 +1011,12 @@ mod tests {
         wrong_size[1].sample_size = 11;
         assert!(matches!(
             assess_joint_predictive_draws(
-                &statistic(), &manifest(), SplitRole::Validation,
-                &observation([1.0, 1.0]), &wrong_size, &config()
+                &statistic(),
+                &manifest(),
+                SplitRole::Validation,
+                &observation([1.0, 1.0]),
+                &wrong_size,
+                &config()
             ),
             Err(JointAdequacyError::InvalidPredictiveDraw { .. })
         ));
@@ -942,8 +1025,12 @@ mod tests {
         duplicate[1].draw_index = duplicate[0].draw_index;
         assert!(matches!(
             assess_joint_predictive_draws(
-                &statistic(), &manifest(), SplitRole::Validation,
-                &observation([1.0, 1.0]), &duplicate, &config()
+                &statistic(),
+                &manifest(),
+                SplitRole::Validation,
+                &observation([1.0, 1.0]),
+                &duplicate,
+                &config()
             ),
             Err(JointAdequacyError::DuplicatePredictiveDraw { .. })
         ));
@@ -953,8 +1040,12 @@ mod tests {
     fn missing_or_insufficient_draws_are_not_a_pass() {
         assert!(matches!(
             assess_joint_predictive_draws(
-                &statistic(), &manifest(), SplitRole::Validation,
-                &observation([1.0, 1.0]), &[], &config()
+                &statistic(),
+                &manifest(),
+                SplitRole::Validation,
+                &observation([1.0, 1.0]),
+                &[],
+                &config()
             ),
             Err(JointAdequacyError::MissingPredictiveDraws { .. })
         ));
@@ -962,8 +1053,12 @@ mod tests {
         let draws = vec![draw(0, [0.0, 0.0], "d")];
         assert!(matches!(
             assess_joint_predictive_draws(
-                &statistic(), &manifest(), SplitRole::Validation,
-                &observation([1.0, 1.0]), &draws, &config()
+                &statistic(),
+                &manifest(),
+                SplitRole::Validation,
+                &observation([1.0, 1.0]),
+                &draws,
+                &config()
             ),
             Err(JointAdequacyError::InsufficientPredictiveDraws { .. })
         ));
@@ -975,17 +1070,22 @@ mod tests {
         manifest.challenge_units = vec!["region-challenge".to_string()];
         let mut observed = observation([1.0, 1.0]);
         observed.independent_unit_id = "region-challenge".to_string();
-        let mut draws = vec![
-            draw(0, [0.0, 0.0], "d"),
-            draw(1, [1.0, 1.0], "d"),
-        ];
+        let mut draws = vec![draw(0, [0.0, 0.0], "d"), draw(1, [1.0, 1.0], "d")];
         for row in &mut draws {
             row.independent_unit_id = "region-challenge".to_string();
         }
         let mut spec = statistic();
         spec.role = SplitRole::Challenge;
-        assert!(assess_joint_predictive_draws(
-            &spec, &manifest, SplitRole::Challenge, &observed, &draws, &config()
-        ).is_ok());
+        assert!(
+            assess_joint_predictive_draws(
+                &spec,
+                &manifest,
+                SplitRole::Challenge,
+                &observed,
+                &draws,
+                &config()
+            )
+            .is_ok()
+        );
     }
 }
