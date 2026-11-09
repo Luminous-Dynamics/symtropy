@@ -940,7 +940,7 @@ mod tests {
         GeneratorModel::new(
             "GEN-REFERENCE-001",
             "rev-a",
-            evidence("GEN-MAP-001", EvidenceClass::ManufacturerPublishedMap),
+            evidence("GEN-MAP-001", EvidenceClass::LaboratoryModelTest),
             Efficiency::new(0.9).expect("generator efficiency"),
             PowerWatts::new(auxiliary_w).expect("auxiliary load"),
         )
