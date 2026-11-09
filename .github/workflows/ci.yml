@@ -53,7 +53,7 @@ jobs:
       run: cargo test --locked --manifest-path tools/civil-aero-benchmark/virtual-sensing-health-state/Cargo.toml
 
     - name: Run Rust joint-state evaluator
-      run: cargo run --locked --quiet --manifest-path tools/civil-aero-benchmark/virtual-sensing-health-state/Cargo.toml > virtual-sensing-health-state-result.json
+      run: cargo run --locked --quiet --manifest-path tools/civil-aero-benchmark/virtual-sensing-health-state/Cargo.toml --bin aero-virtual-sensing-health-state > virtual-sensing-health-state-result.json
 
     - name: Independently recompute in Python
       run: python3 tools/civil-aero-benchmark/virtual-sensing-health-state/verify_independent.py --rust-output virtual-sensing-health-state-result.json
