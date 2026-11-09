@@ -6,7 +6,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::{env, fs, process::ExitCode};
 
-const OFFER_HEADER: [&str; 18] = [
+const OFFER_HEADER: [&str; 20] = [
     "profile_id",
     "provider_id",
     "profile_version",
@@ -25,6 +25,8 @@ const OFFER_HEADER: [&str; 18] = [
     "review_status",
     "disposition",
     "valid_until_us",
+    "claim_ceiling",
+    "schema_version",
 ];
 
 const REQUEST_HEADER: [&str; 13] = [
@@ -56,6 +58,7 @@ struct OfferMetadata {
     receiver_hardware_sha256: String,
     receiver_geometry_sha256: String,
     coordinate_frame_sha256: String,
+    claim_ceiling: String,
     supported_motion_states: BTreeSet<String>,
     supported_environment_strata: BTreeSet<String>,
     session_modes: BTreeSet<String>,
@@ -331,6 +334,7 @@ fn parse_offers(input: &str) -> Result<Vec<Offer>, Vec<String>> {
             receiver_hardware_sha256: fields[5].to_string(),
             receiver_geometry_sha256: fields[6].to_string(),
             coordinate_frame_sha256: fields[7].to_string(),
+            claim_ceiling: fields[18].to_string(),
             supported_motion_states: motion_states,
             supported_environment_strata: environments,
             session_modes,
@@ -343,6 +347,10 @@ fn parse_offers(input: &str) -> Result<Vec<Offer>, Vec<String>> {
             || !digest_valid(&metadata.receiver_hardware_sha256)
             || !digest_valid(&metadata.receiver_geometry_sha256)
             || !digest_valid(&metadata.coordinate_frame_sha256)
+            || metadata.claim_ceiling.trim().is_empty()
+            || metadata.claim_ceiling.len() > 1024
+            || metadata.claim_ceiling.trim() != metadata.claim_ceiling
+            || fields[19] != "1"
             || metadata
                 .supported_motion_states
                 .iter()
@@ -698,7 +706,7 @@ fn run(offers_path: &str, request_path: &str) -> Result<(), String> {
     println!("offer_count={}", report.results.len());
     for result in &report.results {
         println!(
-            "profile={}|provider={}|bearer={}|disposition={}|reason={}|weakest_evidence={}|independently_reviewed={}|matched_roles={}",
+            "profile={}|provider={}|bearer={}|disposition={}|reason={}|weakest_evidence={}|independently_reviewed={}|matched_roles={}|claim_ceiling={}",
             result.profile_id,
             result.provider_id,
             result.bearer,
@@ -706,7 +714,8 @@ fn run(offers_path: &str, request_path: &str) -> Result<(), String> {
             result.reason,
             result.weakest_evidence_class.as_deref().unwrap_or("NONE"),
             result.independently_reviewed,
-            result.matched_roles.iter().cloned().collect::<Vec<_>>().join(";")
+            result.matched_roles.iter().cloned().collect::<Vec<_>>().join(";"),
+            offers.iter().find(|offer| offer.metadata.profile_id == result.profile_id).map(|offer| offer.metadata.claim_ceiling.as_str()).unwrap_or("MISSING")
         );
     }
     println!("compatibility_is_not_authorization=true");
