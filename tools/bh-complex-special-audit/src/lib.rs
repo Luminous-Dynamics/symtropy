@@ -919,25 +919,25 @@ pub fn poschl_teller_mode_sum_asymptotic_ratios(
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct PoschlTellerWindingEvaluation {
     pub winding_number: i32,
+    /// Number of contour intervals in the final accepted refinement.
     pub samples: usize,
+    /// Largest adjacent sampled phase increment on the final contour.
     pub max_phase_step: f64,
+    /// Number of nested contour refinements performed after the requested grid.
+    pub refinements: usize,
+    /// Number of consecutive equal winding estimates at the end of refinement.
+    pub stable_refinements: usize,
 }
 
-/// Evaluate the argument-principle winding number of W around a circular
-/// frequency contour. The function abstains if the contour intersects a zero
-/// or the sampled phase advance is too large to certify the winding.
-pub fn poschl_teller_wronskian_winding_number(
+/// Sample the analytic connection Wronskian along a circular contour and
+/// estimate its argument-principle winding from adjacent phase increments.
+fn sample_poschl_teller_wronskian_winding(
     width: f64,
     lambda: f64,
     center: Complex64,
     radius: f64,
     samples: usize,
-) -> Result<PoschlTellerWindingEvaluation, SpecialError> {
-    validate_complex(&[center])?;
-    if !radius.is_finite() || radius <= 0.0 || samples < 16 {
-        return Err(SpecialError::InvalidConfiguration);
-    }
-
+) -> Result<(i32, f64), SpecialError> {
     let mut previous: Option<Complex64> = None;
     let mut total_phase = 0.0;
     let mut max_phase_step: f64 = 0.0;
@@ -953,7 +953,9 @@ pub fn poschl_teller_wronskian_winding_number(
         if let Some(previous_value) = previous {
             let phase_step = (value * previous_value.conj()).arg();
             max_phase_step = max_phase_step.max(phase_step.abs());
-            if phase_step.abs() >= core::f64::consts::FRAC_PI_2 {
+            // Keep each sampled increment comfortably away from the branch
+            // ambiguity at +/-pi. Refinement below is still required.
+            if phase_step.abs() >= core::f64::consts::FRAC_PI_4 {
                 return Err(SpecialError::NoConvergence);
             }
             total_phase += phase_step;
@@ -963,15 +965,83 @@ pub fn poschl_teller_wronskian_winding_number(
 
     let turns = total_phase / core::f64::consts::TAU;
     let rounded = turns.round();
-    if !turns.is_finite() || (turns - rounded).abs() > 0.05 {
+    if !turns.is_finite() || (turns - rounded).abs() > 0.02 {
         return Err(SpecialError::NoConvergence);
     }
+    Ok((rounded as i32, max_phase_step))
+}
 
-    Ok(PoschlTellerWindingEvaluation {
-        winding_number: rounded as i32,
-        samples,
-        max_phase_step,
-    })
+/// Evaluate the argument-principle winding number of W around a circular
+/// frequency contour using nested trapezoidal phase sampling.
+///
+/// The requested grid is doubled until the winding estimate is stable across
+/// three consecutive grids and the final adjacent phase increment is below
+/// pi/8. A sampled zero, phase jump, winding disagreement or exhausted
+/// refinement budget returns NoConvergence.
+///
+/// This is a numerical refinement qualification, not a rigorous interval
+/// proof that the phase curve cannot oscillate between samples. It counts
+/// zeros minus poles of the meromorphic connection Wronskian; it is not
+/// automatically the number of Green-function poles if W has poles inside
+/// the contour.
+pub fn poschl_teller_wronskian_winding_number(
+    width: f64,
+    lambda: f64,
+    center: Complex64,
+    radius: f64,
+    samples: usize,
+) -> Result<PoschlTellerWindingEvaluation, SpecialError> {
+    validate_complex(&[center])?;
+    if !width.is_finite()
+        || !lambda.is_finite()
+        || !radius.is_finite()
+        || radius <= 0.0
+        || width <= 0.0
+        || lambda < 0.0
+        || samples < 16
+    {
+        return Err(SpecialError::InvalidConfiguration);
+    }
+
+    let mut current_samples = samples;
+    let mut previous_winding: Option<i32> = None;
+    let mut stable_refinements = 0_usize;
+    let mut refinements = 0_usize;
+
+    for _ in 0..8 {
+        let (winding_number, max_phase_step) = sample_poschl_teller_wronskian_winding(
+            width,
+            lambda,
+            center,
+            radius,
+            current_samples,
+        )?;
+        if max_phase_step >= core::f64::consts::FRAC_PI_8 {
+            stable_refinements = 0;
+        } else if previous_winding == Some(winding_number) {
+            stable_refinements += 1;
+        } else {
+            stable_refinements = 0;
+        }
+
+        if stable_refinements >= 2 {
+            return Ok(PoschlTellerWindingEvaluation {
+                winding_number,
+                samples: current_samples,
+                max_phase_step,
+                refinements,
+                stable_refinements: stable_refinements + 1,
+            });
+        }
+
+        previous_winding = Some(winding_number);
+        current_samples = current_samples
+            .checked_mul(2)
+            .ok_or(SpecialError::InvalidConfiguration)?;
+        refinements += 1;
+    }
+
+    Err(SpecialError::NoConvergence)
 }
 
 /// Inputs that define a Green-function frequency contour and its source/observer.
@@ -991,8 +1061,9 @@ pub struct PoschlTellerGreenContourConfig {
 ///
 /// For a simple pole C_-1 is the residue and C_-2 should vanish. For a
 /// second-order pole C_-2 is the leading Laurent coefficient. The reported
-/// winding number counts zeros minus poles of the analytic connection
-/// Wronskian inside the contour.
+/// winding number is the adaptively refined argument-principle estimate for
+/// zeros minus poles of the meromorphic connection Wronskian inside the contour.
+/// The refinement stability is numerical evidence, not an interval proof.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct PoschlTellerGreenLaurentEvaluation {
     pub center: Complex64,
@@ -1930,6 +2001,37 @@ mod tests {
         close(coarse.c_minus_one, fine.c_minus_one, 2.0e-7);
         assert!(fine.c_minus_two.norm() > 1.0e-3);
         assert!(fine.max_relative_wronskian_disagreement < 2.0e-8);
+    }
+
+    #[test]
+    fn argument_principle_winding_is_stable_under_nested_refinement() {
+        let simple = poschl_teller_wronskian_winding_number(
+            1.0,
+            0.75,
+            z((0.75_f64 - 0.25).sqrt(), -0.5),
+            0.05,
+            32,
+        )
+        .unwrap();
+        assert_eq!(simple.winding_number, 1);
+        assert!(simple.samples >= 128);
+        assert!(simple.refinements >= 2);
+        assert!(simple.stable_refinements >= 3);
+        assert!(simple.max_phase_step < core::f64::consts::FRAC_PI_8);
+
+        let double = poschl_teller_wronskian_winding_number(
+            1.0,
+            0.25,
+            z(0.0, -0.5),
+            0.05,
+            32,
+        )
+        .unwrap();
+        assert_eq!(double.winding_number, 2);
+        assert!(double.samples >= 128);
+        assert!(double.refinements >= 2);
+        assert!(double.stable_refinements >= 3);
+        assert!(double.max_phase_step < core::f64::consts::FRAC_PI_8);
     }
 
     #[test]
