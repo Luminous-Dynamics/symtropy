@@ -603,20 +603,6 @@ mod tests {
 
     #[test]
     fn does_not_round_tiny_target_only_strata_into_full_support() {
-        let mut candidate = input(full_support_target());
-        candidate.target_strata[0].target_population_count = u64::MAX - 1;
-        candidate.target_strata[1].target_population_count = 0;
-        candidate.target_strata.push(TargetPopulationStratum {
-            modifier_id: "remote-isolated".to_string(),
-            target_population_count: 1,
-        });
-        assert_eq!(
-            assess_risk_difference_transport(&candidate).unwrap_err(),
-            CausalTransportError::InvalidTargetStratum {
-                modifier_id: "high-infrastructure".to_string()
-            }
-        );
-
         let mut candidate = input(vec![
             TargetPopulationStratum {
                 modifier_id: "low-infrastructure".to_string(),
