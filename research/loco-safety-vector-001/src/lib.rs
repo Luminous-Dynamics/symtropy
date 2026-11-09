@@ -154,16 +154,18 @@ fn direction_from_cross_products(
     baseline_denominator: u128,
     baseline_numerator: u128,
     candidate_denominator: u128,
-) -> Direction {
-    match candidate_numerator
+) -> Result<Direction, SafetyVectorError> {
+    let candidate_product = candidate_numerator
         .checked_mul(baseline_denominator)
-        .cmp(&baseline_numerator.checked_mul(candidate_denominator))
-    {
-        Some(std::cmp::Ordering::Less) => Direction::Improved,
-        Some(std::cmp::Ordering::Equal) => Direction::Equal,
-        Some(std::cmp::Ordering::Greater) => Direction::Worsened,
-        None => Direction::Withheld,
-    }
+        .ok_or(SafetyVectorError::ArithmeticOverflow)?;
+    let baseline_product = baseline_numerator
+        .checked_mul(candidate_denominator)
+        .ok_or(SafetyVectorError::ArithmeticOverflow)?;
+    Ok(match candidate_product.cmp(&baseline_product) {
+        std::cmp::Ordering::Less => Direction::Improved,
+        std::cmp::Ordering::Equal => Direction::Equal,
+        std::cmp::Ordering::Greater => Direction::Worsened,
+    })
 }
 
 fn validate_taxonomy(taxonomy: &Taxonomy) -> Result<BTreeMap<&str, &TaxonomyCategory>, SafetyVectorError> {
@@ -204,7 +206,6 @@ fn validate_policy_identity(policy: &PolicyResult) -> Result<(), SafetyVectorErr
 }
 
 fn validate_and_aggregate_policy(
-    taxonomy: &Taxonomy,
     taxonomy_categories: &BTreeMap<&str, &TaxonomyCategory>,
     policy: &PolicyResult,
 ) -> Result<BTreeMap<String, CategoryAggregate>, SafetyVectorError> {
@@ -286,7 +287,6 @@ fn validate_and_aggregate_policy(
         aggregate.maximum_severity = aggregate.maximum_severity.max(event.severity);
     }
 
-    let _ = taxonomy;
     Ok(aggregates)
 }
 
@@ -324,9 +324,9 @@ fn rate_direction(
     baseline_count: u64,
     baseline_exposure: u64,
     eligible: bool,
-) -> Direction {
+) -> Result<Direction, SafetyVectorError> {
     if !eligible {
-        return Direction::Withheld;
+        return Ok(Direction::Withheld);
     }
     direction_from_cross_products(
         u128::from(candidate_count),
@@ -342,9 +342,9 @@ fn severity_direction(
     baseline_sum: u128,
     baseline_exposure: u64,
     eligible: bool,
-) -> Direction {
+) -> Result<Direction, SafetyVectorError> {
     if !eligible {
-        return Direction::Withheld;
+        return Ok(Direction::Withheld);
     }
     direction_from_cross_products(
         candidate_sum,
@@ -359,12 +359,10 @@ pub fn audit_safety_vector(
 ) -> Result<SafetyVectorReport, SafetyVectorError> {
     let taxonomy_categories = validate_taxonomy(&problem.taxonomy)?;
     let baseline_aggregates = validate_and_aggregate_policy(
-        &problem.taxonomy,
         &taxonomy_categories,
         &problem.baseline,
     )?;
     let candidate_aggregates = validate_and_aggregate_policy(
-        &problem.taxonomy,
         &taxonomy_categories,
         &problem.candidate,
     )?;
@@ -447,14 +445,14 @@ pub fn audit_safety_vector(
             baseline.event_count,
             problem.baseline.exposure.value,
             comparison_eligible,
-        );
+        )?;
         let severity_load_direction = severity_direction(
             candidate.severity_sum,
             problem.candidate.exposure.value,
             baseline.severity_sum,
             problem.baseline.exposure.value,
             comparison_eligible,
-        );
+        )?;
         let maximum_severity_direction = if !comparison_eligible {
             Direction::Withheld
         } else {
