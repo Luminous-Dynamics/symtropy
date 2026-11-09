@@ -151,9 +151,13 @@ fn parse_u32(value: &str, field: &str) -> Result<u32, String> {
         .map_err(|_| format!("{field}: integer exceeds u32"))
 }
 
+fn specific_identifier(value: &str) -> bool {
+    valid_id(value) && !matches!(value, "ANY" | "UNKNOWN" | "*")
+}
+
 fn parse_set(value: &str, field: &str) -> Result<BTreeSet<String>, String> {
     let items: Vec<&str> = value.split(';').collect();
-    if items.is_empty() || items.iter().any(|item| !valid_id(item)) {
+    if items.is_empty() || items.iter().any(|item| !specific_identifier(item)) {
         return Err(format!("{field}: empty, untrimmed or invalid set member"));
     }
     let parsed: BTreeSet<String> = items.iter().map(|item| (*item).to_string()).collect();
@@ -282,8 +286,6 @@ fn parse_offers(input: &str) -> Result<Vec<Offer>, Vec<String>> {
             continue;
         }
 
-        let metadata_fields: Vec<String> =
-            fields[..11].iter().map(|field| (*field).to_string()).collect();
         let profile_id = fields[0];
         let profile_version = match parse_u32(fields[2], "profile_version") {
             Ok(value) if value > 0 => value,
@@ -501,7 +503,7 @@ fn parse_request(input: &str) -> Result<Request, Vec<String>> {
         || !digest_valid(&request.receiver_geometry_sha256)
         || !digest_valid(&request.coordinate_frame_sha256)
         || !allowed_motion_state(&request.motion_state)
-        || !valid_id(&request.environment_stratum)
+        || !specific_identifier(&request.environment_stratum)
         || !allowed_session_mode(&request.session_mode)
         || request
             .required_evidence_roles
