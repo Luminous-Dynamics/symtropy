@@ -72,6 +72,7 @@ fn fixture() -> (JointStatisticSpec, SplitManifest, JointObservation, JointMetri
         sample_size: 10,
         source_digest: SOURCE_DIGEST.to_string(),
         observation_digest: "fixture-joint-observation-v1".to_string(),
+        split_manifest_digest: "fixture-joint-split-manifest-v1".to_string(),
         components: vec![
             component("water-service", "fraction", 1.0),
             component("energy-service", "fraction", 1.0),
@@ -103,6 +104,7 @@ fn predictive_draws(
             model_digest: model_digest.to_string(),
             draw_set_digest: draw_set_digest.to_string(),
             calibration_data_digest: Some(CALIBRATION_DIGEST.to_string()),
+            split_manifest_digest: "fixture-joint-split-manifest-v1".to_string(),
             components: vec![
                 component("water-service", "fraction", value[0]),
                 component("energy-service", "fraction", value[1]),
