@@ -844,24 +844,122 @@ pub fn evaluate_policy_sensitivity(
 mod tests {
     use super::*;
 
+    fn model_world(
+        id: &str,
+        family: &str,
+        model_digest: &str,
+        receipt_digest: &str,
+        predictive_values: &[f64],
+    ) -> ModelWorld {
+        let registry = StatisticRegistry {
+            version: "policy-adequacy-v1".to_string(),
+            statistics: vec![StatisticSpec {
+                id: "essential-service-model-fit".to_string(),
+                construct: "essential service".to_string(),
+                measurement_unit: "households_served".to_string(),
+                population: "synthetic-district".to_string(),
+                context: "policy-sensitivity-known-answer".to_string(),
+                source_family: "synthetic-service-source".to_string(),
+                source_digest: "sha256-policy-service-source".to_string(),
+                independent_unit: IndependentUnitKind::Region,
+                role: SplitRole::Validation,
+                primary: true,
+                required: true,
+                minimum_draws: 5,
+            }],
+        };
+        let manifest = SplitManifest {
+            id: "policy-adequacy-split-v1".to_string(),
+            independent_unit: IndependentUnitKind::Region,
+            calibration_data_digest: "sha256-policy-calibration".to_string(),
+            manifest_digest: "sha256-policy-manifest".to_string(),
+            calibration_units: vec!["region-calibration".to_string()],
+            validation_units: vec!["region-validation".to_string()],
+            challenge_units: Vec::new(),
+        };
+        let observations = vec![ObservedStatistic {
+            statistic_id: "essential-service-model-fit".to_string(),
+            independent_unit_id: "region-validation".to_string(),
+            measurement_unit: "households_served".to_string(),
+            source_digest: "sha256-policy-service-source".to_string(),
+            sample_size: 100,
+            value: 5.0,
+            measurement_standard_error: Some(0.1),
+            observation_digest: "sha256-policy-observation".to_string(),
+        }];
+        let draws: Vec<PredictiveDraw> = predictive_values
+            .iter()
+            .enumerate()
+            .map(|(index, value)| PredictiveDraw {
+                kind: PredictiveKind::Split,
+                statistic_id: "essential-service-model-fit".to_string(),
+                independent_unit_id: "region-validation".to_string(),
+                sample_size: 100,
+                draw_index: index as u64,
+                value: *value,
+                model_digest: model_digest.to_string(),
+                draw_set_digest: format!("sha256-policy-draws-{model_digest}"),
+                calibration_data_digest: Some("sha256-policy-calibration".to_string()),
+            })
+            .collect();
+        let assessment = assess_predictive_partition(
+            &registry,
+            &manifest,
+            &observations,
+            &draws,
+            SplitRole::Validation,
+            PredictiveKind::Split,
+            0.9,
+        )
+        .expect("valid synthetic adequacy assessment");
+
+        ModelWorld::from_adequacy_assessment(
+            id,
+            family,
+            model_digest,
+            receipt_digest,
+            &registry,
+            &manifest,
+            &assessment,
+        )
+        .expect("policy world must be derived from its adequacy assessment")
+    }
+
     fn models() -> Vec<ModelWorld> {
         vec![
-            ModelWorld {
-                id: "world-a".to_string(),
-                family_id: "mechanism-family-a".to_string(),
-                model_digest: "sha256-model-a".to_string(),
-                adequacy_model_digest: "sha256-model-a".to_string(),
-                adequacy_receipt_digest: "sha256-adequacy-a".to_string(),
-                adequacy: ModelAdequacyState::NoPrimaryDiscrepancyDetected,
-            },
-            ModelWorld {
-                id: "world-b".to_string(),
-                family_id: "mechanism-family-b".to_string(),
-                model_digest: "sha256-model-b".to_string(),
-                adequacy_model_digest: "sha256-model-b".to_string(),
-                adequacy_receipt_digest: "sha256-adequacy-b".to_string(),
-                adequacy: ModelAdequacyState::NoPrimaryDiscrepancyDetected,
-            },
+            model_world(
+                "world-a",
+                "mechanism-family-a",
+                "sha256-model-a",
+                "sha256-adequacy-a",
+                &[3.0, 4.0, 5.0, 6.0, 7.0],
+            ),
+            model_world(
+                "world-b",
+                "mechanism-family-b",
+                "sha256-model-b",
+                "sha256-adequacy-b",
+                &[3.0, 4.0, 5.0, 6.0, 7.0],
+            ),
+        ]
+    }
+
+    fn models_with_discrepancy() -> Vec<ModelWorld> {
+        vec![
+            model_world(
+                "world-a",
+                "mechanism-family-a",
+                "sha256-model-a",
+                "sha256-adequacy-a",
+                &[3.0, 4.0, 5.0, 6.0, 7.0],
+            ),
+            model_world(
+                "world-b",
+                "mechanism-family-b",
+                "sha256-model-b",
+                "sha256-adequacy-b",
+                &[0.0, 1.0, 2.0, 3.0, 4.0],
+            ),
         ]
     }
 
@@ -1048,14 +1146,128 @@ mod tests {
 
     #[test]
     fn claim_ceiling_is_exploratory_when_any_model_is_not_qualified() {
-        let mut candidate = models();
-        candidate[1].adequacy = ModelAdequacyState::PrimaryDiscrepancyDetected;
+        let candidate = models_with_discrepancy();
+        assert_eq!(
+            candidate[1].adequacy,
+            ModelAdequacyState::PrimaryDiscrepancyDetected
+        );
         let report = evaluate(&candidate, &fixture_outcomes()).expect("valid fixture");
         assert_eq!(report.claim_ceiling, ModelSetClaimCeiling::ExploratoryOnly);
         assert_eq!(
             report.models_with_unqualified_adequacy,
             vec!["world-b".to_string()]
         );
+    }
+
+    #[test]
+    fn policy_world_qualification_is_derived_from_actual_adequacy_results() {
+        assert!(models().iter().all(|model| {
+            model.adequacy == ModelAdequacyState::NoPrimaryDiscrepancyDetected
+        }));
+        assert_eq!(
+            models_with_discrepancy()[1].adequacy,
+            ModelAdequacyState::PrimaryDiscrepancyDetected
+        );
+    }
+
+    #[test]
+    fn rejects_adequacy_assessment_for_a_different_model_digest() {
+        let registry = StatisticRegistry {
+            version: "policy-adequacy-v1".to_string(),
+            statistics: vec![StatisticSpec {
+                id: "essential-service-model-fit".to_string(),
+                construct: "essential service".to_string(),
+                measurement_unit: "households_served".to_string(),
+                population: "synthetic-district".to_string(),
+                context: "policy-sensitivity-known-answer".to_string(),
+                source_family: "synthetic-service-source".to_string(),
+                source_digest: "sha256-policy-service-source".to_string(),
+                independent_unit: IndependentUnitKind::Region,
+                role: SplitRole::Validation,
+                primary: true,
+                required: true,
+                minimum_draws: 5,
+            }],
+        };
+        let manifest = SplitManifest {
+            id: "policy-adequacy-split-v1".to_string(),
+            independent_unit: IndependentUnitKind::Region,
+            calibration_data_digest: "sha256-policy-calibration".to_string(),
+            manifest_digest: "sha256-policy-manifest".to_string(),
+            calibration_units: vec!["region-calibration".to_string()],
+            validation_units: vec!["region-validation".to_string()],
+            challenge_units: Vec::new(),
+        };
+        let observations = vec![ObservedStatistic {
+            statistic_id: "essential-service-model-fit".to_string(),
+            independent_unit_id: "region-validation".to_string(),
+            measurement_unit: "households_served".to_string(),
+            source_digest: "sha256-policy-service-source".to_string(),
+            sample_size: 100,
+            value: 5.0,
+            measurement_standard_error: Some(0.1),
+            observation_digest: "sha256-policy-observation".to_string(),
+        }];
+        let draws: Vec<PredictiveDraw> = [3.0, 4.0, 5.0, 6.0, 7.0]
+            .iter()
+            .enumerate()
+            .map(|(index, value)| PredictiveDraw {
+                kind: PredictiveKind::Split,
+                statistic_id: "essential-service-model-fit".to_string(),
+                independent_unit_id: "region-validation".to_string(),
+                sample_size: 100,
+                draw_index: index as u64,
+                value: *value,
+                model_digest: "sha256-other-model".to_string(),
+                draw_set_digest: "sha256-policy-draws".to_string(),
+                calibration_data_digest: Some("sha256-policy-calibration".to_string()),
+            })
+            .collect();
+        let assessment = assess_predictive_partition(
+            &registry,
+            &manifest,
+            &observations,
+            &draws,
+            SplitRole::Validation,
+            PredictiveKind::Split,
+            0.9,
+        )
+        .expect("assessment is valid for its own model");
+
+        assert!(matches!(
+            ModelWorld::from_adequacy_assessment(
+                "world-a",
+                "mechanism-family-a",
+                "sha256-model-a",
+                "sha256-adequacy-a",
+                &registry,
+                &manifest,
+                &assessment
+            ),
+            Err(PolicySensitivityError::AdequacyModelIdentityMismatch { .. })
+        ));
+    }
+
+    #[test]
+    fn rejects_stale_split_manifest_and_unverifiable_receipt_identity() {
+        let candidate = models();
+        assert!(candidate.iter().all(|model| {
+            !model.adequacy_receipt_digest.is_empty()
+                && model.adequacy_model_digest == model.model_digest
+        }));
+
+        let mut out_of_domain = ModelWorld::out_of_domain(
+            "world-out",
+            "mechanism-family-out",
+            "sha256-model-out",
+            "sha256-out-of-domain-receipt",
+            "held-out region outside registered applicability domain",
+        )
+        .expect("explicit out-of-domain record");
+        assert_eq!(out_of_domain.adequacy, ModelAdequacyState::OutOfDomain);
+        assert!(out_of_domain.adequacy_reason().is_some());
+        out_of_domain.adequacy_receipt_digest.clear();
+        assert_eq!(out_of_domain.adequacy_receipt_digest, "");
     }
 
     #[test]
