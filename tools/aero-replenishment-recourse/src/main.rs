@@ -1054,6 +1054,46 @@ mod tests {
         assert!(report.policies[&InformationStructure::ObservationRecourse].is_empty());
     }
 
+
+    #[test]
+    fn observation_partition_is_bound_to_one_upstream_receipt_and_digest() {
+        let changed = FIXTURE.replacen(
+            "obs_partition_synthetic_v0",
+            "obs_partition_alternate",
+            1,
+        );
+        assert!(parse_case(&changed).is_err());
+    }
+
+    #[test]
+    fn malformed_observation_receipt_or_partition_digest_is_rejected() {
+        let bad_receipt = FIXTURE.replacen(
+            "1111111111111111111111111111111111111111111111111111111111111111",
+            "not-a-digest",
+            1,
+        );
+        assert!(parse_case(&bad_receipt).is_err());
+        let bad_partition = FIXTURE.replacen(
+            "2222222222222222222222222222222222222222222222222222222222222222",
+            "invalid",
+            1,
+        );
+        assert!(parse_case(&bad_partition).is_err());
+    }
+
+    #[test]
+    fn observation_partition_fields_are_preserved_in_case_metadata() {
+        let case = parsed(FIXTURE);
+        assert_eq!(
+            case.meta.observation_source_receipt_id,
+            "obs_partition_synthetic_v0"
+        );
+        assert_eq!(
+            case.meta.observation_partition_sha256,
+            "2222222222222222222222222222222222222222222222222222222222222222"
+        );
+    }
+
     #[test]
     fn scenario_counts_are_not_used_as_probabilities() {
         let case = parsed(FIXTURE);
