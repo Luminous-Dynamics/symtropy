@@ -1055,7 +1055,8 @@ mod tests {
                 .prolate_coordinate_m(reference.prolate_bounce_radius_m)
                 .unwrap();
             let oblate_residual = (oblate_value - reference.oblate_bounce_coordinate_m).abs() / rg;
-            let prolate_residual = (prolate_value - reference.prolate_bounce_coordinate_m).abs() / rg;
+            let prolate_residual =
+                (prolate_value - reference.prolate_bounce_coordinate_m).abs() / rg;
 
             assert!(
                 oblate_residual < 2.0e-9,
