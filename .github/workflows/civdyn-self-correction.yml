@@ -232,3 +232,66 @@ jobs:
           assert actual == expected, f"unexpected reachability/adequacy classifications: {actual}"
           print("Model-adequacy CSV valid: prior reachability and split-predictive controls preserve marginal, joint and rare-tail discrepancies as separate results.")
           PY
+      - name: Verify zero-shot cross-domain transfer adequacy
+        run: |
+          set -euo pipefail
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin transfer-adequacy-sweep > /tmp/civdyn-transfer-adequacy.csv
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin transfer-adequacy-sweep > /tmp/civdyn-transfer-adequacy-replay.csv
+          cmp /tmp/civdyn-transfer-adequacy.csv /tmp/civdyn-transfer-adequacy-replay.csv
+          python3 - <<'PY'
+          import csv
+          from pathlib import Path
+
+          with Path("/tmp/civdyn-transfer-adequacy.csv").open(newline="", encoding="utf-8") as handle:
+              reader = csv.DictReader(handle)
+              rows = list(reader)
+              fields = reader.fieldnames
+
+          assert fields is not None and len(fields) == 29, f"expected 29 columns, got {len(fields or [])}"
+          assert len(rows) == 3, f"expected three domain-statistic receipts, got {len(rows)}"
+          by_domain = {row["domain_id"]: row for row in rows}
+          assert set(by_domain) == {"source-region", "target-institution", "target-time-period"}
+
+          source = by_domain["source-region"]
+          institution = by_domain["target-institution"]
+          time_period = by_domain["target-time-period"]
+
+          assert source["axis"] == "region"
+          assert source["role"] == "validation"
+          assert source["independent_unit_kind"] == "region"
+          assert source["domain_status"] == "no_primary_discrepancy_detected"
+          assert source["statistic_status"] == "no_discrepancy_detected"
+
+          assert institution["axis"] == "institution"
+          assert institution["role"] == "challenge"
+          assert institution["independent_unit_kind"] == "site"
+          assert institution["domain_status"] == "primary_discrepancy_detected"
+          assert institution["statistic_status"] == "discrepancy_detected"
+          assert institution["outside_reference_units"] == "1"
+          assert institution["within_reference_units"] == "0"
+
+          assert time_period["axis"] == "time_period"
+          assert time_period["role"] == "challenge"
+          assert time_period["independent_unit_kind"] == "time_block"
+          assert time_period["domain_status"] == "no_primary_discrepancy_detected"
+          assert time_period["statistic_status"] == "no_discrepancy_detected"
+
+          assert all(row["required_evidence_complete"] == "true" for row in rows)
+          assert all(row["expected_units"] == row["assessed_units"] == "1" for row in rows)
+          assert all(row["not_assessed_units"] == "0" for row in rows)
+          assert all(row["statistic_id"] == "essential-service-coverage" for row in rows)
+          assert all(row["measurement_unit"] == "coverage_fraction" for row in rows)
+
+          assert len({row["model_digest"] for row in rows}) == 1
+          assert rows[0]["model_digest"] == "sha256-frozen-civdyn-transfer-model"
+          assert len({row["calibration_data_digest"] for row in rows}) == 1
+          assert rows[0]["calibration_data_digest"] == "sha256-frozen-civdyn-transfer-calibration"
+          assert len({row["source_digest"] for row in rows}) == 3
+          assert len({row["split_manifest_id"] for row in rows}) == 3
+          assert len({row["split_manifest_digest"] for row in rows}) == 3
+          assert all(row["claim_ceiling"] == "transfer_discrepancy_detected" for row in rows)
+          assert all(row["source_validation_domain_count"] == "1" for row in rows)
+          assert all(row["held_out_challenge_domain_count"] == "2" for row in rows)
+          assert all(row["registry_version"] == "civdyn-transfer-registry-v0.1" for row in rows)
+          print("Transfer CSV valid: one frozen model/calibration lineage across distinct source and challenge domains; institution failure retained; no pooled transfer pass.")
+          PY
