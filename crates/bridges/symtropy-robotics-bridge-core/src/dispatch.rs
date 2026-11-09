@@ -14,7 +14,7 @@
 //! needs an external transactional authority and is not implemented here.
 
 use crate::assurance::{RuntimeSafetyState, VetoReason};
-use crate::control::{ControlRequest, EmbodiedIntent};
+use crate::control::ControlRequest;
 use crate::sequence_guard::{SequenceGuardError, SequencedRuntimeAssurance};
 use serde::{Deserialize, Serialize};
 
