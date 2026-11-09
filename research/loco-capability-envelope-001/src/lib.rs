@@ -77,6 +77,8 @@ pub struct CrossFitProblem {
     pub physics_digest: String,
     pub controller_digest: String,
     pub reward_unit_id: String,
+    /// One independently trained policy/run; aggregation across seeds is external.
+    pub training_seed_id: String,
     pub evidence_tier: EvidenceTier,
     pub training_level_ids: Vec<String>,
     pub validation_level_ids: Vec<String>,
@@ -100,9 +102,13 @@ pub struct FoldReport {
     /// Worst levels selected using only the ranking split.
     pub selected_level_ids: Vec<String>,
     pub scoring_episode_count: usize,
+    /// Number of sorted scoring episodes with non-zero (possibly fractional) tail weight.
     pub tail_episode_count: usize,
-    pub tail_reward_sum: i128,
-    /// Exact tail mean = numerator / denominator.
+    /// Exact weighted reward sum with per-episode weights scaled by PPM_SCALE.
+    pub tail_weighted_reward_numerator: i128,
+    /// Exact total tail mass in PPM episode units.
+    pub tail_mass_ppm: u128,
+    /// CVaR = tail_weighted_reward_numerator / tail_mass_ppm.
     pub tail_mean_numerator: i128,
     pub tail_mean_denominator: u128,
 }
@@ -114,6 +120,7 @@ pub struct CrossFitReport {
     pub physics_digest: String,
     pub controller_digest: String,
     pub reward_unit_id: String,
+    pub training_seed_id: String,
     pub evidence_tier: EvidenceTier,
     pub fold_rank_a_score_b: FoldReport,
     pub fold_rank_b_score_a: FoldReport,
@@ -407,16 +414,30 @@ fn lower_tail_report(
         u128::try_from(scoring_episode_count).map_err(|_| CapabilityError::ArithmeticOverflow)?,
         u128::from(tail_fraction_ppm),
     )?;
-    let tail_episode_count = usize::try_from(numerator.div_ceil(u128::from(PPM_SCALE)))
-        .map_err(|_| CapabilityError::ArithmeticOverflow)?
-        .max(1);
-
-    let mut tail_sum = 0_i128;
-    for episode in score_values.iter().take(tail_episode_count) {
-        tail_sum = checked_add_i128(tail_sum, i128::from(episode.reward_units))?;
+    let tail_mass_ppm = numerator;
+    let mut remaining_tail_mass_ppm = tail_mass_ppm;
+    let mut tail_episode_count = 0_usize;
+    let mut tail_weighted_reward_numerator = 0_i128;
+    for episode in &score_values {
+        if remaining_tail_mass_ppm == 0 {
+            break;
+        }
+        let weight_ppm = remaining_tail_mass_ppm.min(u128::from(PPM_SCALE));
+        let weighted_reward = checked_mul_i128(
+            i128::from(episode.reward_units),
+            i128::try_from(weight_ppm).map_err(|_| CapabilityError::ArithmeticOverflow)?,
+        )?;
+        tail_weighted_reward_numerator =
+            checked_add_i128(tail_weighted_reward_numerator, weighted_reward)?;
+        remaining_tail_mass_ppm -= weight_ppm;
+        tail_episode_count = tail_episode_count
+            .checked_add(1)
+            .ok_or(CapabilityError::ArithmeticOverflow)?;
     }
-    let tail_mean_denominator =
-        u128::try_from(tail_episode_count).map_err(|_| CapabilityError::ArithmeticOverflow)?;
+    if remaining_tail_mass_ppm != 0 || tail_episode_count == 0 {
+        return Err(CapabilityError::MissingScoreLevel);
+    }
+    let tail_mean_denominator = tail_mass_ppm;
 
     Ok(FoldReport {
         ranking_split_id: ranking_split_id.to_owned(),
@@ -424,8 +445,9 @@ fn lower_tail_report(
         selected_level_ids,
         scoring_episode_count,
         tail_episode_count,
-        tail_reward_sum: tail_sum,
-        tail_mean_numerator: tail_sum,
+        tail_weighted_reward_numerator,
+        tail_mass_ppm,
+        tail_mean_numerator: tail_weighted_reward_numerator,
         tail_mean_denominator,
     })
 }
@@ -439,6 +461,7 @@ pub fn cross_fitted_cvar25(problem: &CrossFitProblem) -> Result<CrossFitReport, 
         problem.physics_digest.as_str(),
         problem.controller_digest.as_str(),
         problem.reward_unit_id.as_str(),
+        problem.training_seed_id.as_str(),
         problem.rank_a_split_id.as_str(),
         problem.score_a_split_id.as_str(),
         problem.rank_b_split_id.as_str(),
@@ -542,6 +565,7 @@ pub fn cross_fitted_cvar25(problem: &CrossFitProblem) -> Result<CrossFitReport, 
         physics_digest: problem.physics_digest.clone(),
         controller_digest: problem.controller_digest.clone(),
         reward_unit_id: problem.reward_unit_id.clone(),
+        training_seed_id: problem.training_seed_id.clone(),
         evidence_tier: problem.evidence_tier,
         fold_rank_a_score_b,
         fold_rank_b_score_a,
@@ -577,6 +601,7 @@ mod tests {
             physics_digest: "mjx-physics-v1".to_owned(),
             controller_digest: "controller-v1".to_owned(),
             reward_unit_id: "reward_milli".to_owned(),
+            training_seed_id: "training-seed-001".to_owned(),
             evidence_tier: EvidenceTier::Simulation,
             training_level_ids: vec!["train-a".to_owned()],
             validation_level_ids: vec!["validation-a".to_owned()],
@@ -706,14 +731,40 @@ mod tests {
             report.fold_rank_a_score_b.selected_level_ids,
             vec!["level-c".to_owned(), "level-d".to_owned()]
         );
-        assert_eq!(report.fold_rank_a_score_b.tail_reward_sum, 10);
+        assert_eq!(
+            report.fold_rank_a_score_b.tail_weighted_reward_numerator,
+            10_000_000
+        );
+        assert_eq!(report.fold_rank_a_score_b.tail_mass_ppm, 1_000_000);
         assert_eq!(
             report.fold_rank_b_score_a.selected_level_ids,
             vec!["level-a".to_owned(), "level-b".to_owned()]
         );
-        assert_eq!(report.fold_rank_b_score_a.tail_reward_sum, -20);
-        assert_eq!(report.combined_cvar_numerator, -10);
-        assert_eq!(report.combined_cvar_denominator, 2);
+        assert_eq!(
+            report.fold_rank_b_score_a.tail_weighted_reward_numerator,
+            -20_000_000
+        );
+        assert_eq!(report.fold_rank_b_score_a.tail_mass_ppm, 1_000_000);
+        assert_eq!(report.combined_cvar_numerator, -10_000_000_000_000);
+        assert_eq!(report.combined_cvar_denominator, 2_000_000_000_000);
+    }
+
+    #[test]
+    fn fractional_tail_mass_weights_boundary_episode_exactly() {
+        let mut problem = crossfit_problem();
+        problem.tail_fraction_ppm = 375_000;
+        let report = cross_fitted_cvar25(&problem).expect("fractional tail mass");
+        assert_eq!(
+            report.fold_rank_a_score_b.tail_weighted_reward_numerator,
+            20_000_000
+        );
+        assert_eq!(report.fold_rank_a_score_b.tail_mass_ppm, 1_500_000);
+        assert_eq!(report.fold_rank_a_score_b.tail_episode_count, 2);
+        assert_eq!(
+            report.fold_rank_b_score_a.tail_weighted_reward_numerator,
+            -20_000_000
+        );
+        assert_eq!(report.fold_rank_b_score_a.tail_mass_ppm, 1_500_000);
     }
 
     #[test]
@@ -742,6 +793,7 @@ mod tests {
         problem.evidence_tier = EvidenceTier::Hardware;
         let report = cross_fitted_cvar25(&problem).expect("hardware-tier report");
         assert_eq!(report.evidence_tier, EvidenceTier::Hardware);
+        assert_eq!(report.training_seed_id, "training-seed-001");
         assert_eq!(report.morphology_digest, "go2-morphology");
         assert_eq!(report.physics_digest, "mjx-physics-v1");
     }
