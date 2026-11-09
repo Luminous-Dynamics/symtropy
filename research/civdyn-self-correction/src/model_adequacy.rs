@@ -248,6 +248,9 @@ pub struct StatisticAssessment {
     pub statistic_id: String,
     pub source_family: String,
     pub source_digest: String,
+    pub observation_digest: Option<String>,
+    pub model_digest: Option<String>,
+    pub draw_set_digest: Option<String>,
     pub independent_unit_id: String,
     pub measurement_unit: String,
     pub sample_size: usize,
@@ -503,6 +506,9 @@ pub fn assess_predictive_partition(
                     statistic_id: statistic.id.clone(),
                     source_family: statistic.source_family.clone(),
                     source_digest: statistic.source_digest.clone(),
+                    observation_digest: None,
+                    model_digest: None,
+                    draw_set_digest: None,
                     independent_unit_id: unit_id.to_string(),
                     measurement_unit: statistic.measurement_unit.clone(),
                     sample_size: 0,
@@ -517,7 +523,7 @@ pub fn assess_predictive_partition(
                 continue;
             };
 
-            let mut values: Vec<f64> = draws
+            let matching_draws: Vec<&PredictiveDraw> = draws
                 .iter()
                 .filter(|draw| {
                     draw.kind == kind
@@ -525,8 +531,14 @@ pub fn assess_predictive_partition(
                         && draw.independent_unit_id == unit_id
                         && draw.sample_size == observation.sample_size
                 })
-                .map(|draw| draw.value)
                 .collect();
+            let model_digest = matching_draws
+                .first()
+                .map(|draw| draw.model_digest.clone());
+            let draw_set_digest = matching_draws
+                .first()
+                .map(|draw| draw.draw_set_digest.clone());
+            let mut values: Vec<f64> = matching_draws.iter().map(|draw| draw.value).collect();
             values.sort_by(f64::total_cmp);
 
             if values.len() < statistic.minimum_draws {
@@ -534,6 +546,9 @@ pub fn assess_predictive_partition(
                     statistic_id: statistic.id.clone(),
                     source_family: statistic.source_family.clone(),
                     source_digest: statistic.source_digest.clone(),
+                    observation_digest: Some(observation.observation_digest.clone()),
+                    model_digest: model_digest.clone(),
+                    draw_set_digest: draw_set_digest.clone(),
                     independent_unit_id: unit_id.to_string(),
                     measurement_unit: statistic.measurement_unit.clone(),
                     sample_size: observation.sample_size,
@@ -562,6 +577,9 @@ pub fn assess_predictive_partition(
                 statistic_id: statistic.id.clone(),
                 source_family: statistic.source_family.clone(),
                 source_digest: statistic.source_digest.clone(),
+                observation_digest: Some(observation.observation_digest.clone()),
+                model_digest,
+                draw_set_digest,
                 independent_unit_id: unit_id.to_string(),
                 measurement_unit: statistic.measurement_unit.clone(),
                 sample_size: observation.sample_size,
@@ -911,6 +929,15 @@ mod tests {
         assert_eq!(
             assessment.statistics[0].status,
             StatisticStatus::WithinReferenceInterval
+        );
+        assert_eq!(
+            assessment.statistics[0].observation_digest.as_deref(),
+            Some("sha256-observation-service-rate-region-val")
+        );
+        assert_eq!(assessment.statistics[0].model_digest.as_deref(), Some("sha256-model"));
+        assert_eq!(
+            assessment.statistics[0].draw_set_digest.as_deref(),
+            Some("sha256-draw-set-prior")
         );
     }
 
