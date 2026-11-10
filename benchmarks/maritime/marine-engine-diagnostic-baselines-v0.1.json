@@ -1,0 +1,204 @@
+{
+  "registry_id": "luminous.symtropy.marine-engine-diagnostic-baselines",
+  "registry_version": "0.1.0",
+  "claim_ceiling": "Literature-reported metrics and public dataset metadata only. None of the model results below has been independently reproduced by this project. Results on different engines, datasets, label sets, source domains and split protocols are not directly comparable.",
+  "baselines": [
+    {
+      "id": "cdaf-xie-2026",
+      "title": "CDAF: co-evolutionary decoupled attention framework for explainable weak thermal fault diagnosis of marine diesel engines",
+      "source_type": "peer_reviewed_article",
+      "publication_date": "2026-04-14",
+      "source_url": "https://doi.org/10.1038/s41598-026-46425-w",
+      "data_domain": "Hybrid dataset derived from empirical Liushawan vessel telemetry and a calibrated one-dimensional thermodynamic marine diesel engine model; labels/faults expanded through the model.",
+      "task": "Multi-class weak thermal fault diagnosis of marine diesel engine operating/fault conditions.",
+      "reported_metrics": [
+        {
+          "metric": "accuracy",
+          "value": 99.71,
+          "unit": "%",
+          "context": "Main reported test result; the article reports precision 99.75%, recall 99.68% and F1 99.71%.",
+          "source_location": "Abstract and main results"
+        },
+        {
+          "metric": "precision",
+          "value": 99.75,
+          "unit": "%",
+          "context": "Main reported test result.",
+          "source_location": "Abstract and main results"
+        },
+        {
+          "metric": "recall",
+          "value": 99.68,
+          "unit": "%",
+          "context": "Main reported test result.",
+          "source_location": "Abstract and main results"
+        },
+        {
+          "metric": "f1",
+          "value": 99.71,
+          "unit": "%",
+          "context": "Main reported test result.",
+          "source_location": "Abstract and main results"
+        },
+        {
+          "metric": "accuracy_under_15_percent_gaussian_noise_table",
+          "value": 95.85,
+          "unit": "%",
+          "context": "Table 5 reports this value for 15% Gaussian noise.",
+          "source_location": "Table 5"
+        },
+        {
+          "metric": "accuracy_under_15_percent_gaussian_noise_conclusion",
+          "value": 94.85,
+          "unit": "%",
+          "context": "The conclusion reports a different value for the same noise setting.",
+          "source_location": "Conclusion"
+        }
+      ],
+      "split_protocol": "Randomized 70/15/15 train/validation/test split described after preprocessing; this is not a whole-run/whole-load/whole-vessel holdout.",
+      "reported_limitations": [
+        "Authors identify class imbalance and rare weak faults in real operational conditions as future work.",
+        "The paper's table and conclusion disagree: 95.85% versus 94.85% accuracy at 15% Gaussian noise.",
+        "A high random-split score on the hybrid dataset does not establish unseen vessel or engine generalization."
+      ],
+      "reproducibility_status": "source_code_found_payload_not_audited",
+      "direct_comparison_to_aalto": "not_comparable",
+      "audit_notes": [
+        "Article states original code and part of the real-vessel data are public at https://github.com/xiezaimi-png/Marine-diesel-engine-explainable-weak-thermal-fault-diagnosis.",
+        "Repository existence is confirmed; repository file inventory, exact commit, code execution, shared data license and data digests have not been audited."
+      ]
+    },
+    {
+      "id": "multi-source-thermal-descriptor-2026",
+      "title": "Multi-source thermal and performance data for thermal fault diagnosis in marine diesel engines",
+      "source_type": "data_descriptor",
+      "publication_date": "2026-08-22",
+      "source_url": "https://doi.org/10.1038/s41597-026-07924-7",
+      "data_domain": "Calibrated simulation, noisy bench measurements, real-vessel telemetry and a virtual-real fault-fusion dataset.",
+      "task": "Cross-domain thermal fault diagnosis; the descriptor reports one healthy state and ten fault modes.",
+      "reported_metrics": [
+        {
+          "metric": "zero_shot_virtual_to_real_accuracy",
+          "value": 70.18,
+          "unit": "%",
+          "context": "Reported under the descriptor's own zero-shot virtual-to-real protocol.",
+          "source_location": "Abstract"
+        }
+      ],
+      "split_protocol": "Zero-shot virtual-to-real transfer; precise data partitioning and label provenance must be audited from the released repository before replication.",
+      "reported_limitations": [
+        "This is a distinct dataset and engine/data protocol from the Aalto MU323DGSC fault archive.",
+        "No direct comparison should be made without aligned label taxonomy, channels, preprocessing, source domains and test splits."
+      ],
+      "reproducibility_status": "reported_not_reproduced",
+      "direct_comparison_to_aalto": "not_comparable",
+      "audit_notes": [
+        "Repository, file inventory, licensing, real-vessel label provenance and exact split manifest not yet audited."
+      ]
+    },
+    {
+      "id": "proactive-fault-prediction-2026",
+      "title": "Proactive fault prediction in marine diesel engines using multivariate machine learning",
+      "source_type": "peer_reviewed_article",
+      "publication_date": "2026-03-20",
+      "source_url": "https://doi.org/10.1038/s41598-026-40979-5",
+      "data_domain": "Study-specific marine diesel engine dataset; the paper's exact physical domain and file-level independence require separate review before cross-study comparison.",
+      "task": "Marine diesel engine fault prediction/classification using multivariate machine learning.",
+      "reported_metrics": [
+        {
+          "metric": "random_forest_accuracy",
+          "value": 82.681,
+          "unit": "%",
+          "context": "Reported model accuracy; same-study comparisons include 1-D CNN and MLP.",
+          "source_location": "Results"
+        }
+      ],
+      "split_protocol": "Study-specific split; preserve the paper's split and grouping semantics when reproducing. Do not assume comparability with Aalto files.",
+      "reported_limitations": [
+        "Data provenance, label taxonomy and recording-level split independence must be checked before direct comparison.",
+        "Reported result has not been reproduced by this project."
+      ],
+      "reproducibility_status": "reported_not_reproduced",
+      "direct_comparison_to_aalto": "not_comparable",
+      "audit_notes": []
+    },
+    {
+      "id": "aalto-marine-engine-fault-v1",
+      "title": "Marine Engine Fault Dataset: Open-Access Data under Controlled Reference and Fault Scenario Conditions",
+      "source_type": "public_dataset",
+      "publication_date": "2026-07-27",
+      "source_url": "https://doi.org/10.5281/zenodo.19857425",
+      "data_domain": "Controlled Matsui Iron Works MU323DGSC turbocharged/intercooled three-cylinder marine diesel engine test bench.",
+      "task": "Physical fault detection and fault-family evaluation across load conditions; task labels and channel mapping remain subject to payload audit.",
+      "reported_metrics": [
+        {
+          "metric": "recording_files",
+          "value": 16,
+          "unit": "files",
+          "context": "One baseline reference and 15 fault-scenario recordings.",
+          "source_location": "Zenodo record metadata"
+        },
+        {
+          "metric": "timestamped_samples_approximate",
+          "value": 115000,
+          "unit": "samples",
+          "context": "Approximate record-level sample count.",
+          "source_location": "Zenodo record description"
+        },
+        {
+          "metric": "measured_and_derived_channels_approximate",
+          "value": 70,
+          "unit": "channels",
+          "context": "Approximately 70 channels; scenario and baseline CSV layouts differ.",
+          "source_location": "Zenodo record description"
+        }
+      ],
+      "split_protocol": "Project protocol: indivisible recording/file groups for primary evaluation; load-held-out analysis only where supported; chronological blocked windows for the single baseline recording; no row/window random split.",
+      "reported_limitations": [
+        "One controlled test bench and one engine model do not establish shipboard fleet transfer.",
+        "Two injection-nozzle files are anomaly-only and must not be used for event-onset detection.",
+        "Five runs have documented missing channels.",
+        "Payload, variable dictionary and file index have not yet been downloaded/audited by this project."
+      ],
+      "reproducibility_status": "metadata_verified_payload_not_audited",
+      "direct_comparison_to_aalto": "same_dataset",
+      "audit_notes": [
+        "CC BY 4.0; attribute dataset authors and retain license notices when redistributing derived material.",
+        "Published archive MD5 is recorded in the separate dataset manifest but has not been checked against downloaded bytes; no SHA-256 is claimed."
+      ]
+    },
+    {
+      "id": "multisource-fusion-simulation-2026",
+      "title": "Multi-source fusion marine diesel engine fault diagnosis study",
+      "source_type": "peer_reviewed_article",
+      "publication_date": "2026-01-01",
+      "source_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC12811478/",
+      "data_domain": "Simulation-generated samples from a one-dimensional thermodynamic engine model.",
+      "task": "Multi-source fusion classification for marine diesel engine fault diagnosis.",
+      "reported_metrics": [
+        {
+          "metric": "accuracy",
+          "value": 99.45,
+          "unit": "%",
+          "context": "Study reports this value on its own simulated dataset.",
+          "source_location": "Abstract/results"
+        },
+        {
+          "metric": "sample_count",
+          "value": 2567,
+          "unit": "samples",
+          "context": "Simulation-generated dataset size described in the methods.",
+          "source_location": "Methods"
+        }
+      ],
+      "split_protocol": "70/30 stratified split with cross-validation reported by the study.",
+      "reported_limitations": [
+        "Simulation-generated examples are not a physical test-bench or real-vessel score.",
+        "No direct comparison to the Aalto physical fault dataset."
+      ],
+      "reproducibility_status": "reported_not_reproduced",
+      "direct_comparison_to_aalto": "not_comparable",
+      "audit_notes": []
+    }
+  ]
+}
