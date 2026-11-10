@@ -422,6 +422,7 @@ pub fn assess_binary_outcome_shift_sensitivity(
     }
     if !tipping_search_max.is_finite()
         || tipping_search_max < 1.0
+        || tipping_search_max < *lambda_values.last().unwrap_or(&1.0)
         || !tipping_tolerance.is_finite()
         || tipping_tolerance <= 0.0
         || tipping_tolerance >= tipping_search_max.max(1.0)
@@ -732,6 +733,21 @@ mod tests {
         assert_eq!(
             bernoulli_target_risk_bounds(0.5, 0.5).unwrap_err(),
             OutcomeShiftSensitivityError::InvalidLambdaGrid
+        );
+        assert_eq!(
+            assess_binary_outcome_shift_sensitivity(
+                "source",
+                "target",
+                "protocol",
+                &supported_assumptions(),
+                &source_strata(),
+                &full_support_target(),
+                &[1.0, 4.0],
+                2.0,
+                1e-8,
+            )
+            .unwrap_err(),
+            OutcomeShiftSensitivityError::InvalidTippingSearch
         );
     }
 
