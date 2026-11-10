@@ -269,6 +269,82 @@
         "The paper claims no model-capacity expansion and no retention/replay of historical data.",
         "Compare with naive fine-tuning, SI, EWC and MAS under the paper's exact task protocol; re-evaluate all prior domains after each update."
       ]
+    },
+    {
+      "id": "adaptive-multisource-transfer-2026",
+      "title": "Multi-source data fusion for marine four-stroke diesel engine fault diagnosis: An adaptive weight transfer learning framework",
+      "source_type": "peer_reviewed_article",
+      "publication_date": "2026-04-01",
+      "source_url": "https://doi.org/10.1016/j.enconman.2026.121194",
+      "data_domain": "Instrumented 8V396 four-stroke marine-diesel engine testbed at 25%, 50% and 75% load, with complementary simulated source domains.",
+      "task": "Multi-source domain adaptation for lubrication-system fault diagnosis across operating conditions and measured/simulated domains.",
+      "reported_metrics": [
+        {
+          "metric": "average_accuracy_pure_real_measured_scenarios",
+          "value": 83.64,
+          "unit": "%",
+          "context": "Reported average diagnostic accuracy for pure real measured scenarios on the 8V396 testbed.",
+          "source_location": "Abstract and experimental verification"
+        },
+        {
+          "metric": "average_accuracy_real_simulation_hybrid_scenarios",
+          "value": 82.37,
+          "unit": "%",
+          "context": "Reported average diagnostic accuracy for hybrid real/simulation scenarios.",
+          "source_location": "Abstract and experimental verification"
+        }
+      ],
+      "split_protocol": "Cross-working-condition measured-data tasks and real/simulation hybrid transfer; exact train/validation/test partition and per-task load pairings must be recovered from the full methods and tables before reproduction.",
+      "reported_limitations": [
+        "Focused on lubrication-system diagnosis and a specific 8V396 testbed; not directly comparable to Aalto MU323DGSC fault families.",
+        "The average scores do not replace per-task, per-fault and worst-domain analysis.",
+        "Exact data access, labels, run grouping, repository and split manifests have not been audited by this project."
+      ],
+      "reproducibility_status": "reported_not_reproduced",
+      "direct_comparison_to_aalto": "not_comparable",
+      "audit_notes": [
+        "Proposes shared-specialized collaborative cross-domain features, dynamic entropy weighting of source-target domains, and semi-supervised target-domain regularization.",
+        "Key negative-transfer question: does dynamic source weighting improve over uniform source fusion and strongest single-source baseline under matched target data and compute?",
+        "No model code or dataset payload has been independently audited by this project."
+      ]
+    },
+    {
+      "id": "localized-anomaly-recovery-vessel-data-2026",
+      "title": "Localized anomaly detection and recovery of marine engine data to support digital twin development in shipping",
+      "source_type": "peer_reviewed_article",
+      "publication_date": "2026-04-01",
+      "source_url": "https://doi.org/10.1016/j.oceaneng.2026.124356",
+      "data_domain": "Operational dataset from an ocean-going vessel; the accessible abstract describes seven operating regions and steady/transient operating modes.",
+      "task": "Data quality qualification: localized anomaly identification, missing-value recovery and operating-region separation for marine-engine digital-twin development.",
+      "reported_metrics": [
+        {
+          "metric": "operating_regions",
+          "value": 7,
+          "unit": "regions",
+          "context": "The paper reports capturing seven operating regions using a GMM-EM approach; this is a dataset/model configuration fact, not a diagnostic accuracy score.",
+          "source_location": "Highlights and abstract"
+        },
+        {
+          "metric": "numeric_performance_metrics",
+          "value": "not_transcribed",
+          "unit": "not_available_from_accessible_abstract",
+          "context": "No numerical detection or recovery metric is transcribed from the accessible abstract. Full paper and data protocol must be audited.",
+          "source_location": "Accessible abstract"
+        }
+      ],
+      "split_protocol": "Selected-vessel operating regions are modeled using GMM-EM, with localized SVD-based anomaly detection and missing-value recovery. Exact vessel identity, campaign split, data availability, labels and validation protocol require full-paper audit.",
+      "reported_limitations": [
+        "Accessible abstract does not provide numerical anomaly-detection or imputation metrics.",
+        "Missing-value recovery can erase sensor-failure or anomaly evidence if imputed values are not separately typed and attributed.",
+        "Data rights, exact dataset, vessel/engine identity and independent validation have not been audited by this project."
+      ],
+      "reproducibility_status": "reported_not_reproduced",
+      "direct_comparison_to_aalto": "not_comparable",
+      "audit_notes": [
+        "Reports steady-state and transient operating-mode identification alongside GMM-EM partitioning and SVD-based recovery.",
+        "Important comparator for data-quality handling, not a directly comparable fault classifier.",
+        "Use missingness mask, imputation lineage and uncertainty as first-class benchmark outputs."
+      ]
     }
   ]
 }
