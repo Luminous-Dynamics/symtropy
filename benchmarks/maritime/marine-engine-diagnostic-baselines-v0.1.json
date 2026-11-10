@@ -345,6 +345,125 @@
         "Important comparator for data-quality handling, not a directly comparable fault classifier.",
         "Use missingness mask, imputation lineage and uncertainty as first-class benchmark outputs."
       ]
+    },
+    {
+      "id": "cross-condition-finetuning-18-tasks-2025",
+      "title": "A universal transfer learning framework for cross-working-condition marine diesel engine fault diagnosis based on fine-tuning strategy",
+      "source_type": "peer_reviewed_article",
+      "publication_date": "2025-08-15",
+      "source_url": "https://doi.org/10.1016/j.apenergy.2025.125962",
+      "data_domain": "Two marine diesel engine case studies: an 8V396SE engine (500 kW) and a 620 V16 engine (2336 kW); lubrication-system fault data include experimental bench evidence and intake/exhaust fault data include virtual simulation.",
+      "task": "Cross-working-condition fault diagnosis using data-tiered fusion augmentation and combined fine-tuning across 18 transfer tasks.",
+      "reported_metrics": [
+        {
+          "metric": "cross_working_condition_transfer_tasks",
+          "value": 18,
+          "unit": "tasks",
+          "context": "The article reports validation over 18 cross-working-condition tasks; this is a protocol coverage count, not a performance score.",
+          "source_location": "Highlights and abstract"
+        }
+      ],
+      "split_protocol": "Cross-working-condition transfer across two engine types and two subsystem task families; exact source/target task definitions, per-task sample grouping and split manifests require full-methods audit.",
+      "reported_limitations": [
+        "The two engine types, subsystems and mixture of experimental/virtual evidence must be kept distinct.",
+        "The accessible abstract reports the task count but no single aggregate metric suitable for direct comparison.",
+        "Not directly comparable to Aalto MU323DGSC without fault taxonomy and sensor protocol alignment."
+      ],
+      "reproducibility_status": "reported_not_reproduced",
+      "direct_comparison_to_aalto": "not_comparable",
+      "audit_notes": [
+        "Methods include data-tiered fusion (DTF) for augmentation and a combined fine-tuning strategy (CFTS).",
+        "Use as a reproduction baseline for cross-working-condition methodology and task coverage, not as a leaderboard entry."
+      ]
+    },
+    {
+      "id": "two-stroke-rul-multifault-2026",
+      "title": "Hybrid AI-driven condition monitoring and RUL forecasting for multi-fault diagnosis in two-stroke marine diesel engines",
+      "source_type": "peer_reviewed_article",
+      "publication_date": "2026-06-01",
+      "source_url": "https://doi.org/10.1016/j.joes.2025.12.002",
+      "data_domain": "Low-speed two-stroke marine diesel engine testbed; the article reports load-aware experimental validation.",
+      "task": "Integrated anomaly detection, unsupervised fault clustering, context-aware fault classification and calibrated remaining-useful-life (RUL) forecasting.",
+      "reported_metrics": [
+        {
+          "metric": "representative_rul_rmse",
+          "value": 0.215,
+          "unit": "normalized_or_paper_defined_units",
+          "context": "The abstract reports representative RUL predictions with RMSE 0.215; the exact target scaling and horizon must be extracted from full methods before replication.",
+          "source_location": "Abstract"
+        },
+        {
+          "metric": "representative_rul_r_squared",
+          "value": 0.413,
+          "unit": "score",
+          "context": "The abstract reports representative RUL predictions with R² 0.413.",
+          "source_location": "Abstract"
+        },
+        {
+          "metric": "consensus_anomaly_false_positive_claim",
+          "value": "below 1",
+          "unit": "%",
+          "context": "The paper highlights consensus-based anomaly voting with false positives below 1%; denominator, operating exposure, thresholding, and confidence interval require full-protocol audit.",
+          "source_location": "Highlights"
+        }
+      ],
+      "split_protocol": "Low-speed two-stroke testbed; ensemble consensus anomaly detection; unsupervised fault clustering and labeling; load-aware supervised classification; PCA/autoencoder health-index RUL forecasting with Monte Carlo dropout. Full run-level split and RUL ground-truth construction require audit.",
+      "reported_limitations": [
+        "The below-1% false-positive highlight is not interpretable as a fleet false-alarm rate without denominator and engine-hour exposure.",
+        "RUL RMSE 0.215 is paper-scale dependent; target normalization and forecast horizon are not transcribed from accessible abstract.",
+        "RUL validation without run-to-failure data must be assessed for pseudo-label/health-index leakage and calibration.",
+        "A two-stroke low-speed engine protocol is not directly comparable to the Aalto MU323DGSC three-cylinder four-stroke testbench."
+      ],
+      "reproducibility_status": "reported_not_reproduced",
+      "direct_comparison_to_aalto": "not_comparable",
+      "audit_notes": [
+        "The architecture combines detection, clustering, classification and prognostics instead of reporting only accuracy.",
+        "Important benchmark comparator for separating detection false positives, fault classification, RUL error and predictive uncertainty."
+      ]
+    },
+    {
+      "id": "marine-engine-diagnostics-review-2026",
+      "title": "Literature Review Analysis: Fault Diagnostics of Marine Engines",
+      "source_type": "peer_reviewed_article",
+      "publication_date": "2026-10-22",
+      "source_url": "https://doi.org/10.3390/jmse14211988",
+      "data_domain": "Scopus literature corpus covering 2015-2026, including marine diesel engines, marine gas turbines and closely related combustion-engine subsystems.",
+      "task": "Systematic synthesis of diagnostic methods, monitored subsystems, data sources, validation practices and research gaps.",
+      "reported_metrics": [
+        {
+          "metric": "screened_records_initial",
+          "value": 2114,
+          "unit": "records",
+          "context": "Initial title extraction reported by the review.",
+          "source_location": "Search strategy and data extraction"
+        },
+        {
+          "metric": "core_engine_diagnostic_papers",
+          "value": 253,
+          "unit": "papers",
+          "context": "Final refined corpus of papers directly related to marine-engine diagnostics.",
+          "source_location": "Bibliometric overview"
+        },
+        {
+          "metric": "scope_adjacent_records",
+          "value": 23,
+          "unit": "records",
+          "context": "Additional scope-adjacent papers retained separately from the core corpus.",
+          "source_location": "Bibliometric overview"
+        }
+      ],
+      "split_protocol": "Scopus-based literature search and title/abstract/keyword screening; the review organizes literature into seven methodological areas including model/simulation, signal processing, transferability, predictive diagnosis, reliability/maintenance, lubrication/wear and combustion/emissions.",
+      "reported_limitations": [
+        "Literature screening is not a controlled model benchmark and its paper counts are not model-performance scores.",
+        "The review identifies limited long-term shipboard validation and lack of reusable public benchmark datasets as persistent gaps.",
+        "Paper counts must not be interpreted as a prevalence or fleet-failure distribution."
+      ],
+      "reproducibility_status": "reported_not_reproduced",
+      "direct_comparison_to_aalto": "not_comparable",
+      "audit_notes": [
+        "Review reports that diagnostic research advances faster than operational validation and calls for multi-engine/multi-vessel data, interpretable hybrid models and standardized benchmarks.",
+        "Use as a landscape and gap-analysis source rather than an experimental classifier baseline."
+      ]
     }
   ]
 }
