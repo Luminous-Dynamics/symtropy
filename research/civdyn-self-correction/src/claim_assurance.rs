@@ -12,7 +12,7 @@
 
 #![forbid(unsafe_code)]
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
 pub const ASSURANCE_POLICY_VERSION: &str = "civdyn-claim-assurance-v0.1";
@@ -453,15 +453,24 @@ pub fn required_obligations(
         }
     }
 
-    let mut seen = BTreeSet::new();
-    for requirement in &requirements {
-        if !seen.insert(requirement.evidence_type) {
-            return Err(ClaimAssuranceError::DuplicateObligation {
-                evidence_type: requirement.evidence_type,
-            });
-        }
+    // Tier and claim rules intentionally overlap. Merge them into one
+    // obligation per evidence type, taking the stricter minimum tier and
+    // preserving every scope/independence constraint.
+    let mut merged = BTreeMap::<EvidenceType, EvidenceObligation>::new();
+    for requirement in requirements {
+        merged
+            .entry(requirement.evidence_type)
+            .and_modify(|existing| {
+                existing.minimum_tier = existing.minimum_tier.max(requirement.minimum_tier);
+                existing.requires_independent_review |= requirement.requires_independent_review;
+                existing.requires_source_digest |= requirement.requires_source_digest;
+                existing.requires_calibration_digest |= requirement.requires_calibration_digest;
+                existing.requires_split_manifest_digest |=
+                    requirement.requires_split_manifest_digest;
+            })
+            .or_insert(requirement);
     }
-    Ok(requirements)
+    Ok(merged.into_values().collect())
 }
 
 fn validate_context(context: &AssuranceContext) -> Result<(), ClaimAssuranceError> {
