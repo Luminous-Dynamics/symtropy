@@ -156,11 +156,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     let frames_per_second = if mean_us > 0.0 {
         1_000_000.0 / mean_us
     } else {
-        f64::INFINITY
+        0.0
     };
-    let frame_bytes = usize::try_from(WIDTH).unwrap()
-        * usize::try_from(HEIGHT).unwrap()
-        * 3;
+    let frame_bytes = WIDTH as usize * HEIGHT as usize * 3;
 
     println!(
         concat!(
