@@ -135,6 +135,27 @@ fn validate(value: &Value) -> Result<(), String> {
     }
 
     contains_all(array(value, "view_variants")?, &REQUIRED_VIEWS, "view_variants")?;
+
+    // Renderer availability and measured qualification are distinct. Keep
+    // Solari opt-in and hardware-unqualified until a receipt proves a run.
+    let renderers = array(value, "renderer_paths")?;
+    if renderers.len() != 3 {
+        return Err("expected raster, optional Solari and Unreal reference paths".to_owned());
+    }
+    let expected_renderers = [
+        ("bevy_0_20_1_raster", "profile_defined_not_render_measured"),
+        ("bevy_0_20_1_solari", "preview_seeded_not_hardware_qualified"),
+        ("unreal_engine_5_8", "comparison_protocol_defined_not_measured"),
+    ];
+    for (id, status) in expected_renderers {
+        let matches: Vec<&Value> = renderers
+            .iter()
+            .filter(|renderer| renderer.get("id").and_then(Value::as_str) == Some(id))
+            .collect();
+        if matches.len() != 1 || string(matches[0], "status")? != status {
+            return Err(format!("renderer path {id} is missing, duplicated or over-claimed"));
+        }
+    }
     contains_all(
         array(value, "required_invariants")?,
         &REQUIRED_INVARIANTS,
@@ -245,6 +266,33 @@ mod tests {
     fn duplicate_fixture_identity_is_rejected() {
         let mut value = fixture();
         value["fixtures"][1]["id"] = Value::String("SCENE-LIGHT-01".to_owned());
+        assert!(validate(&value).is_err());
+    }
+
+    #[test]
+    fn removing_the_solari_path_from_the_comparison_is_rejected() {
+        let mut value = fixture();
+        let renderers = value["renderer_paths"]
+            .as_array_mut()
+            .expect("renderer paths must be an array");
+        renderers.retain(|renderer| {
+            renderer.get("id").and_then(Value::as_str) != Some("bevy_0_20_1_solari")
+        });
+        assert!(validate(&value).is_err());
+    }
+
+    #[test]
+    fn solari_cannot_be_claimed_as_hardware_qualified_by_a_manifest_only() {
+        let mut value = fixture();
+        let solari = value["renderer_paths"]
+            .as_array_mut()
+            .expect("renderer paths must be an array")
+            .iter_mut()
+            .find(|renderer| {
+                renderer.get("id").and_then(Value::as_str) == Some("bevy_0_20_1_solari")
+            })
+            .expect("Solari path exists");
+        solari["status"] = Value::String("measured_pass".to_owned());
         assert!(validate(&value).is_err());
     }
 
