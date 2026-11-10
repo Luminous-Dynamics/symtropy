@@ -1,0 +1,876 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "SHIPYARD-TANDEM-GMAW-DATA-ADMISSION-001",
+  "source_record": {
+    "doi": "10.5281/zenodo.21824586",
+    "record_url": "https://zenodo.org/records/21824586",
+    "version": "2.0.0",
+    "published_on": "2026-08-07",
+    "modified_on": "2026-08-10",
+    "publisher": "Bundesanstalt für Materialforschung und -prüfung",
+    "dataset_open_badge": true,
+    "license_field": null,
+    "rights_notice": "Copyright (C) 2026 The Authors.",
+    "reported_archive_size_gb": 4.5,
+    "raw_files_downloaded": false,
+    "raw_files_vendored": false
+  },
+  "rights_gate": {
+    "status": "RIGHTS_PENDING",
+    "permission_text_recorded": false,
+    "redistribution_allowed": false,
+    "derivative_publication_allowed": false,
+    "model_training_allowed": false,
+    "raw_data_scoring_allowed": false
+  },
+  "experiment_design": {
+    "workpiece_count": 5,
+    "layers_per_workpiece": 6,
+    "layer_row_count": 30,
+    "independent_unit": "workpiece",
+    "split_group": "workpiece_id",
+    "random_layer_split_allowed": false,
+    "mode_causal_claim_allowed": false,
+    "material": "S355J2+N",
+    "wire": "ER70S-6",
+    "plate_thickness_mm": 30,
+    "groove_opening_deg_approx": 50,
+    "root_layer": "L1 single_wire",
+    "tandem_layers": "L2-L6",
+    "mode_groups": {
+      "PMC+CMT": [
+        "WID615",
+        "WID632"
+      ],
+      "PMC+PMC": [
+        "WID617",
+        "WID631"
+      ],
+      "CMT+CMT": [
+        "WID630"
+      ]
+    }
+  },
+  "claim_ceiling": "Metadata-only contract PASS. No raw file reuse, stream parsing, process superiority, physical weld quality, NDT, thermal history, residual stress, released-state distortion or production readiness is established.",
+  "workpieces": [
+    {
+      "workpiece_id": "WID615",
+      "tandem_mode": "PMC+CMT",
+      "layers": [
+        {
+          "layer_id": "L1",
+          "layer_order": 1,
+          "layer_class": "single_wire_root",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "scan_pre",
+            "video"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "UNRESOLVED"
+          }
+        },
+        {
+          "layer_id": "L2",
+          "layer_order": 2,
+          "layer_class": "tandem",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "scan_pre",
+            "video",
+            "power_source_trailing"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "UNRESOLVED"
+          }
+        },
+        {
+          "layer_id": "L3",
+          "layer_order": 3,
+          "layer_class": "tandem",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "scan_pre",
+            "video",
+            "power_source_trailing"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "UNRESOLVED"
+          }
+        },
+        {
+          "layer_id": "L4",
+          "layer_order": 4,
+          "layer_class": "tandem",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "scan_pre",
+            "video",
+            "power_source_trailing"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "UNRESOLVED"
+          }
+        },
+        {
+          "layer_id": "L5",
+          "layer_order": 5,
+          "layer_class": "tandem",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "scan_pre",
+            "video",
+            "power_source_trailing"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "UNRESOLVED"
+          }
+        },
+        {
+          "layer_id": "L6",
+          "layer_order": 6,
+          "layer_class": "tandem",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "scan_pre",
+            "video",
+            "power_source_trailing",
+            "scan_post"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "UNRESOLVED"
+          }
+        }
+      ]
+    },
+    {
+      "workpiece_id": "WID617",
+      "tandem_mode": "PMC+PMC",
+      "layers": [
+        {
+          "layer_id": "L1",
+          "layer_order": 1,
+          "layer_class": "single_wire_root",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "scan_pre",
+            "video"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "UNRESOLVED"
+          }
+        },
+        {
+          "layer_id": "L2",
+          "layer_order": 2,
+          "layer_class": "tandem",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "scan_pre",
+            "video",
+            "power_source_trailing"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "UNRESOLVED"
+          }
+        },
+        {
+          "layer_id": "L3",
+          "layer_order": 3,
+          "layer_class": "tandem",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "scan_pre",
+            "video",
+            "power_source_trailing"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "UNRESOLVED"
+          }
+        },
+        {
+          "layer_id": "L4",
+          "layer_order": 4,
+          "layer_class": "tandem",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "scan_pre",
+            "video",
+            "power_source_trailing"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "UNRESOLVED"
+          }
+        },
+        {
+          "layer_id": "L5",
+          "layer_order": 5,
+          "layer_class": "tandem",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "scan_pre",
+            "video",
+            "power_source_trailing"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "UNRESOLVED"
+          }
+        },
+        {
+          "layer_id": "L6",
+          "layer_order": 6,
+          "layer_class": "tandem",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "scan_pre",
+            "video",
+            "power_source_trailing",
+            "scan_post"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "UNRESOLVED"
+          }
+        }
+      ]
+    },
+    {
+      "workpiece_id": "WID630",
+      "tandem_mode": "CMT+CMT",
+      "layers": [
+        {
+          "layer_id": "L1",
+          "layer_order": 1,
+          "layer_class": "single_wire_root",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "scan_pre",
+            "video"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "UNRESOLVED"
+          }
+        },
+        {
+          "layer_id": "L2",
+          "layer_order": 2,
+          "layer_class": "tandem",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "scan_pre",
+            "video",
+            "power_source_trailing"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "UNRESOLVED"
+          }
+        },
+        {
+          "layer_id": "L3",
+          "layer_order": 3,
+          "layer_class": "tandem",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "scan_pre",
+            "video",
+            "power_source_trailing"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "UNRESOLVED"
+          }
+        },
+        {
+          "layer_id": "L4",
+          "layer_order": 4,
+          "layer_class": "tandem",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "scan_pre",
+            "video",
+            "power_source_trailing"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "UNRESOLVED"
+          }
+        },
+        {
+          "layer_id": "L5",
+          "layer_order": 5,
+          "layer_class": "tandem",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "scan_pre",
+            "video",
+            "power_source_trailing"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "UNRESOLVED"
+          }
+        },
+        {
+          "layer_id": "L6",
+          "layer_order": 6,
+          "layer_class": "tandem",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "scan_pre",
+            "video",
+            "power_source_trailing",
+            "scan_post"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "UNRESOLVED"
+          }
+        }
+      ]
+    },
+    {
+      "workpiece_id": "WID631",
+      "tandem_mode": "PMC+PMC",
+      "layers": [
+        {
+          "layer_id": "L1",
+          "layer_order": 1,
+          "layer_class": "single_wire_root",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "scan_pre",
+            "video"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "UNRESOLVED"
+          }
+        },
+        {
+          "layer_id": "L2",
+          "layer_order": 2,
+          "layer_class": "tandem",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "scan_pre",
+            "video",
+            "power_source_trailing"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "UNRESOLVED"
+          }
+        },
+        {
+          "layer_id": "L3",
+          "layer_order": 3,
+          "layer_class": "tandem",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "scan_pre",
+            "video",
+            "power_source_trailing"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "UNRESOLVED"
+          }
+        },
+        {
+          "layer_id": "L4",
+          "layer_order": 4,
+          "layer_class": "tandem",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "scan_pre",
+            "video",
+            "power_source_trailing"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "UNRESOLVED"
+          }
+        },
+        {
+          "layer_id": "L5",
+          "layer_order": 5,
+          "layer_class": "tandem",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "scan_pre",
+            "video",
+            "power_source_trailing"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "UNRESOLVED"
+          }
+        },
+        {
+          "layer_id": "L6",
+          "layer_order": 6,
+          "layer_class": "tandem",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "scan_pre",
+            "video",
+            "power_source_trailing",
+            "scan_post"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "UNRESOLVED"
+          }
+        }
+      ]
+    },
+    {
+      "workpiece_id": "WID632",
+      "tandem_mode": "PMC+CMT",
+      "layers": [
+        {
+          "layer_id": "L1",
+          "layer_order": 1,
+          "layer_class": "single_wire_root",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "scan_pre",
+            "video"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "UNRESOLVED"
+          }
+        },
+        {
+          "layer_id": "L2",
+          "layer_order": 2,
+          "layer_class": "tandem",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "scan_pre",
+            "video",
+            "power_source_trailing"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "UNRESOLVED"
+          }
+        },
+        {
+          "layer_id": "L3",
+          "layer_order": 3,
+          "layer_class": "tandem",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "scan_pre",
+            "video",
+            "power_source_trailing"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "UNRESOLVED"
+          }
+        },
+        {
+          "layer_id": "L4",
+          "layer_order": 4,
+          "layer_class": "tandem",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "scan_pre",
+            "video",
+            "power_source_trailing"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "UNRESOLVED"
+          }
+        },
+        {
+          "layer_id": "L5",
+          "layer_order": 5,
+          "layer_class": "tandem",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "scan_pre",
+            "video",
+            "power_source_trailing"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "UNRESOLVED"
+          }
+        },
+        {
+          "layer_id": "L6",
+          "layer_order": 6,
+          "layer_class": "tandem",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "scan_pre",
+            "video",
+            "power_source_trailing",
+            "scan_post"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "UNRESOLVED"
+          }
+        }
+      ]
+    }
+  ],
+  "controls": [
+    {
+      "control_id": "TGMAW-001",
+      "class": "positive_contract_control",
+      "expected_disposition": "METADATA_ONLY_ADMISSION_VALID",
+      "mutation": "Represent the public Zenodo v2.0.0 record with rights unresolved, no raw downloads, five WIDs and six-layer metadata topology.",
+      "rationale": "Positive baseline accepts only the metadata-only source representation."
+    },
+    {
+      "control_id": "TGMAW-002",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_RIGHTS",
+      "mutation": "Zenodo license field is blank but manifest promotes raw files to CC BY 4.0.",
+      "rationale": "No licence is stated on the record."
+    },
+    {
+      "control_id": "TGMAW-003",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_RIGHTS",
+      "mutation": "The Dataset Open badge is treated as an explicit grant of redistribution and derivative-work rights.",
+      "rationale": "Availability is not an explicit reuse licence."
+    },
+    {
+      "control_id": "TGMAW-004",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_RIGHTS",
+      "mutation": "Raw 4.5 GB archives are mirrored into this public repository before permission is established.",
+      "rationale": "Raw files remain outside the repository pending rights review."
+    },
+    {
+      "control_id": "TGMAW-005",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_RIGHTS",
+      "mutation": "A public model is trained on the raw recordings while rights are unresolved.",
+      "rationale": "Training and public model-release rights are not established."
+    },
+    {
+      "control_id": "TGMAW-006",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_SOURCE_IDENTITY",
+      "mutation": "A later or earlier Zenodo version is substituted for record v2.0.0 without a new manifest revision.",
+      "rationale": "Source version is part of the reproducibility identity."
+    },
+    {
+      "control_id": "TGMAW-007",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_SOURCE_IDENTITY",
+      "mutation": "A third-party mirror is used as the authoritative raw source.",
+      "rationale": "Source identity must resolve to the official record or authorized custody."
+    },
+    {
+      "control_id": "TGMAW-008",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_SOURCE_INTEGRITY",
+      "mutation": "Downloaded bytes disagree with the source-record artifact checksum.",
+      "rationale": "A file inventory must not admit digest drift."
+    },
+    {
+      "control_id": "TGMAW-009",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_LAYER_TOPOLOGY",
+      "mutation": "A workpiece has fewer or more than six declared layer records.",
+      "rationale": "The published topology is six layers per WID."
+    },
+    {
+      "control_id": "TGMAW-010",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_LAYER_TOPOLOGY",
+      "mutation": "Duplicate WID/layer/track identities are admitted.",
+      "rationale": "Layer identity must be unique within the WID."
+    },
+    {
+      "control_id": "TGMAW-011",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_LAYER_SEMANTICS",
+      "mutation": "L1 is incorrectly classified as a tandem two-wire pass.",
+      "rationale": "The dataset describes L1 as a single-wire root pass."
+    },
+    {
+      "control_id": "TGMAW-012",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_LAYER_SEMANTICS",
+      "mutation": "L2-L6 are classified as single-wire root passes.",
+      "rationale": "The dataset describes L2-L6 as tandem passes."
+    },
+    {
+      "control_id": "TGMAW-013",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_ARTIFACT_ROLES",
+      "mutation": "A tandem layer lacks the trailing power-source recording reference.",
+      "rationale": "The source description specifies leading and trailing recordings for tandem passes."
+    },
+    {
+      "control_id": "TGMAW-014",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_ARTIFACT_ROLES",
+      "mutation": "The single-wire root pass is required to have a trailing power-source file.",
+      "rationale": "Root-pass artifact roles differ from tandem pass roles."
+    },
+    {
+      "control_id": "TGMAW-015",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_ARTIFACT_ROLES",
+      "mutation": "A post-weld scan is assumed for every layer.",
+      "rationale": "The record specifies pre-pass scans and a post-weld scan on final L6."
+    },
+    {
+      "control_id": "TGMAW-016",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_ARTIFACT_ROLES",
+      "mutation": "The final L6 post-weld scan is omitted from the artifact-role contract.",
+      "rationale": "Final L6 is explicitly described as including a post-weld scan."
+    },
+    {
+      "control_id": "TGMAW-017",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_T85_MISSINGNESS",
+      "mutation": "An un-ingested or blank t85 value is replaced with numeric zero.",
+      "rationale": "Unknown/missing is not zero."
+    },
+    {
+      "control_id": "TGMAW-018",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_T85_SEMANTICS",
+      "mutation": "The t85 field is interpreted as a metallurgical t8/5 measurement without its definition and derivation being documented.",
+      "rationale": "The field meaning and provenance need independent definition."
+    },
+    {
+      "control_id": "TGMAW-019",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_TIMEBASE",
+      "mutation": "Robot, process, power-source and video streams are aligned by row number without timestamp evidence.",
+      "rationale": "Cross-stream clock mapping must be demonstrated."
+    },
+    {
+      "control_id": "TGMAW-020",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_TIMEBASE",
+      "mutation": "The two synchronized welding sources are assumed to prove common time alignment for every sensor/video stream.",
+      "rationale": "Synchronization of welding sources does not prove all acquisition clocks align."
+    },
+    {
+      "control_id": "TGMAW-021",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_VIDEO_COMPARABILITY",
+      "mutation": "Video frames are scored as directly comparable despite different recording settings/camera arrangements.",
+      "rationale": "Video capture comparability is explicitly variable."
+    },
+    {
+      "control_id": "TGMAW-022",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_SCAN_SEMANTICS",
+      "mutation": "A pre-pass surface scan is relabelled as a post-pass measurement.",
+      "rationale": "Scan timing/role must preserve source semantics."
+    },
+    {
+      "control_id": "TGMAW-023",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_SCAN_GEOMETRY",
+      "mutation": "Surface scans are compared without datum, frame, registration and uncertainty metadata.",
+      "rationale": "Geometry metrics require a qualified measurement frame and uncertainty."
+    },
+    {
+      "control_id": "TGMAW-024",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_SPLIT_LEAKAGE",
+      "mutation": "Layers or sensor windows from one WID are split across training and test.",
+      "rationale": "All observations from a workpiece must remain in one split."
+    },
+    {
+      "control_id": "TGMAW-025",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_SAMPLE_INDEPENDENCE",
+      "mutation": "Thirty layer records are treated as thirty independent physical workpieces.",
+      "rationale": "The independent workpiece count is five, not thirty."
+    },
+    {
+      "control_id": "TGMAW-026",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_CAUSAL_CLAIM",
+      "mutation": "PMC/CMT superiority is claimed from the five WID configurations without accounting for WID and parameter confounding.",
+      "rationale": "Mode is not independently randomized across comparable repeated workpieces."
+    },
+    {
+      "control_id": "TGMAW-027",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_CLAIM_PROMOTION",
+      "mutation": "Process-trace completeness is promoted to weld acceptance, NDT adequacy or structural integrity.",
+      "rationale": "Process trace is not physical quality evidence."
+    },
+    {
+      "control_id": "TGMAW-028",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_CLAIM_PROMOTION",
+      "mutation": "Pre-scan/final scan differences are promoted to fixture-release distortion without a documented release history and free-state measurement.",
+      "rationale": "The dataset record does not establish restraint-release history."
+    },
+    {
+      "control_id": "TGMAW-029",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_DERIVATION_PROVENANCE",
+      "mutation": "A derived feature is stored without exact source-file digest, transform revision, units and timebase.",
+      "rationale": "Derived features must be reproducible and lineage-bound."
+    },
+    {
+      "control_id": "TGMAW-030",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_EVIDENCE_CLASS",
+      "mutation": "Synthetic or simulated streams are labelled as raw experimental observations.",
+      "rationale": "Evidence class must not be laundered."
+    },
+    {
+      "control_id": "TGMAW-031",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_STATISTICAL_SCOPE",
+      "mutation": "A five-WID result is described as broad SOTA generalization without per-WID holdout uncertainty and sample-size disclosure.",
+      "rationale": "The available independent cluster count is small."
+    }
+  ]
+}
