@@ -158,18 +158,39 @@ impl<const D: usize> Constraint<D> for PrismaticJoint<D> {
             // PD controller: impulse = (kp * (target - pos) + kd * (target_vel - vel)) * dt
             let impulse = motor.calculate_impulse(displacement, rel_vel, dt);
 
-            // METABOLIC HEARTBEAT: Calculate Work and Energy Recovery
-            // Work = Impulse * Velocity
-            let work_joules = impulse * rel_vel;
-            if let Some(ref mut cb) = callback {
-                cb.record_work(self.body_b, work_joules);
-            }
+            // Capture endpoint velocities before applying equal-and-opposite
+            // generalized impulses. Midpoint velocity makes the signed work
+            // ledger equal the kinetic-energy change for this discrete impulse
+            // under the solver's point-mass model.
+            let velocity_a_before = body_a.linear_velocity[self.axis];
+            let velocity_b_before = body_b.linear_velocity[self.axis];
+            let delta_velocity_a = if body_a.is_dynamic() {
+                -impulse * body_a.inv_mass
+            } else {
+                0.0
+            };
+            let delta_velocity_b = if body_b.is_dynamic() {
+                impulse * body_b.inv_mass
+            } else {
+                0.0
+            };
 
             if body_a.is_dynamic() {
-                body_a.linear_velocity[self.axis] -= impulse * body_a.inv_mass;
+                body_a.linear_velocity[self.axis] += delta_velocity_a;
             }
             if body_b.is_dynamic() {
-                body_b.linear_velocity[self.axis] += impulse * body_b.inv_mass;
+                body_b.linear_velocity[self.axis] += delta_velocity_b;
+            }
+
+            if let Some(ref mut cb) = callback {
+                if body_a.is_dynamic() {
+                    let midpoint_velocity_a = velocity_a_before + 0.5 * delta_velocity_a;
+                    cb.record_work(self.body_a, -impulse * midpoint_velocity_a);
+                }
+                if body_b.is_dynamic() {
+                    let midpoint_velocity_b = velocity_b_before + 0.5 * delta_velocity_b;
+                    cb.record_work(self.body_b, impulse * midpoint_velocity_b);
+                }
             }
         }
 
@@ -274,6 +295,147 @@ mod tests {
             "Y velocity should be damped, got {}",
             b.linear_velocity[1]
         );
+    }
+
+    #[test]
+    fn prismatic_motor_midpoint_work_matches_dynamic_endpoint_energy_change() {
+        use std::collections::HashMap;
+
+        struct WorkRecorder {
+            by_body: HashMap<BodyHandle, f64>,
+        }
+
+        impl crate::world::PhysicsCallback<3> for WorkRecorder {
+            fn modulate_force(
+                &self,
+                _body: BodyHandle,
+                force: &SVector<f64, 3>,
+            ) -> SVector<f64, 3> {
+                *force
+            }
+            fn modulate_impulse(&self, impulse: f64, _contact: &SVector<f64, 3>) -> f64 {
+                impulse
+            }
+            fn friction_multiplier(&self, _contact: &SVector<f64, 3>, _body: BodyHandle) -> f64 {
+                1.0
+            }
+            fn on_collision(&mut self, _event: &crate::contact::CollisionEvent<3>) {}
+            fn record_dissipation(&mut self, _energy: f64) {}
+            fn record_work(&mut self, body: BodyHandle, work_joules: f64) {
+                *self.by_body.entry(body).or_default() += work_joules;
+            }
+            fn apply_trauma(&mut self, _event: &crate::contact::CollisionEvent<3>) {}
+        }
+
+        let mut a = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(0),
+            Point::origin(),
+            0.5,
+            1.0,
+        );
+        let mut b = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(1),
+            Point::origin(),
+            0.5,
+            2.0,
+        );
+        a.linear_velocity[0] = 0.3;
+        b.linear_velocity[0] = 0.8;
+
+        let motor = super::super::MotorDrive {
+            target_pos: 0.0,
+            target_vel: 1.0,
+            kp: 0.0,
+            kd: 10.0,
+            max_force: 100.0,
+        };
+        let joint = PrismaticJoint::new(BodyHandle(0), BodyHandle(1), 0)
+            .with_motor(motor);
+        let dt = 0.1;
+        let inv_mass_a = a.inv_mass;
+        let inv_mass_b = b.inv_mass;
+        let velocity_a_before = a.linear_velocity[0];
+        let velocity_b_before = b.linear_velocity[0];
+        let relative_velocity = velocity_b_before - velocity_a_before;
+        let impulse = 10.0 * (1.0 - relative_velocity) * dt;
+        let expected_work_a = -impulse * (velocity_a_before - 0.5 * impulse * inv_mass_a);
+        let expected_work_b = impulse * (velocity_b_before + 0.5 * impulse * inv_mass_b);
+        let mut recorder = WorkRecorder {
+            by_body: HashMap::new(),
+        };
+
+        joint.solve_velocity(&mut a, &mut b, dt, Some(&mut recorder));
+
+        let work_a = *recorder.by_body.get(&BodyHandle(0)).unwrap();
+        let work_b = *recorder.by_body.get(&BodyHandle(1)).unwrap();
+        let delta_kinetic_energy = 0.5 * a.mass
+            * (a.linear_velocity[0].powi(2) - velocity_a_before.powi(2))
+            + 0.5 * b.mass
+                * (b.linear_velocity[0].powi(2) - velocity_b_before.powi(2));
+
+        assert!((work_a - expected_work_a).abs() < 1e-12);
+        assert!((work_b - expected_work_b).abs() < 1e-12);
+        assert!((work_a + work_b - delta_kinetic_energy).abs() < 1e-12);
+    }
+
+    #[test]
+    fn prismatic_motor_work_matches_dynamic_body_with_static_base() {
+        struct WorkRecorder {
+            work_joules: f64,
+        }
+
+        impl crate::world::PhysicsCallback<3> for WorkRecorder {
+            fn modulate_force(
+                &self,
+                _body: BodyHandle,
+                force: &SVector<f64, 3>,
+            ) -> SVector<f64, 3> {
+                *force
+            }
+            fn modulate_impulse(&self, impulse: f64, _contact: &SVector<f64, 3>) -> f64 {
+                impulse
+            }
+            fn friction_multiplier(&self, _contact: &SVector<f64, 3>, _body: BodyHandle) -> f64 {
+                1.0
+            }
+            fn on_collision(&mut self, _event: &crate::contact::CollisionEvent<3>) {}
+            fn record_dissipation(&mut self, _energy: f64) {}
+            fn record_work(&mut self, _body: BodyHandle, work_joules: f64) {
+                self.work_joules += work_joules;
+            }
+            fn apply_trauma(&mut self, _event: &crate::contact::CollisionEvent<3>) {}
+        }
+
+        let mut a = RigidBody::<3>::static_body(
+            BodyHandle(0),
+            Point::origin(),
+            Box::new(symtropy_math::Sphere::new(Point::origin(), 0.1)),
+        );
+        let mut b = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(1),
+            Point::origin(),
+            1.0,
+            2.0,
+        );
+        let motor = super::super::MotorDrive {
+            target_pos: 1.0,
+            target_vel: 0.0,
+            kp: 10.0,
+            kd: 0.0,
+            max_force: 100.0,
+        };
+        let joint = PrismaticJoint::new(BodyHandle(0), BodyHandle(1), 0)
+            .with_motor(motor);
+        let dt = 0.1;
+        let inv_mass = b.inv_mass;
+        let mut recorder = WorkRecorder { work_joules: 0.0 };
+
+        joint.solve_velocity(&mut a, &mut b, dt, Some(&mut recorder));
+
+        let delta_kinetic_energy = 0.5 * b.mass * b.linear_velocity[0].powi(2);
+        assert!((recorder.work_joules - delta_kinetic_energy).abs() < 1e-12);
+        assert!(recorder.work_joules > 0.0);
+        assert!((b.linear_velocity[0] - 10.0 * dt * inv_mass).abs() < 1e-12);
     }
 
     #[test]
