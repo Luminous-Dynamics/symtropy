@@ -48,8 +48,14 @@ pub struct ScanBimDecisionReport {
     pub input_sha256: String,
     pub schema_sha256: String,
     pub action_count: usize,
-    pub qualified_action_count: usize,
-    pub rejected_action_count: usize,
+    /// Actions with sufficient declared sensor/pose/visibility bindings.
+    pub evidence_qualified_action_count: usize,
+    /// Actions that the shared finite-state engine accepted after partition/revision checks.
+    pub decision_accepted_action_count: usize,
+    /// Accepted actions that change critical unknowns, hard feasibility or Pareto choices.
+    pub decision_relevant_action_count: usize,
+    /// Actions rejected by the shared finite-state engine.
+    pub decision_rejected_action_count: usize,
     pub decision: DecisionCaseResult,
     pub action_qualifications: Vec<ScanBimActionQualification>,
     pub claim_ceiling: String,
@@ -401,9 +407,24 @@ pub fn evaluate_scan_bim_decision_bytes(
             })
             .collect::<Vec<_>>()
     })?;
-    let qualified_action_count = qualifications
+    let evidence_qualified_action_count = qualifications
         .iter()
         .filter(|qualification| qualification.evidence_state == "valid")
+        .count();
+    let decision_accepted_action_count = decision
+        .actions
+        .iter()
+        .filter(|action| action.status == "evaluated")
+        .count();
+    let decision_relevant_action_count = decision
+        .actions
+        .iter()
+        .filter(|action| action.decision_relevant)
+        .count();
+    let decision_rejected_action_count = decision
+        .actions
+        .iter()
+        .filter(|action| action.status == "reject_action")
         .count();
     Ok(ScanBimDecisionReport {
         schema_version: case.schema_version,
@@ -415,8 +436,10 @@ pub fn evaluate_scan_bim_decision_bytes(
         input_sha256: sha256_hex(input_bytes),
         schema_sha256: sha256_hex(schema_bytes),
         action_count: qualifications.len(),
-        qualified_action_count,
-        rejected_action_count: qualifications.len() - qualified_action_count,
+        evidence_qualified_action_count,
+        decision_accepted_action_count,
+        decision_relevant_action_count,
+        decision_rejected_action_count,
         decision,
         action_qualifications: qualifications,
         claim_ceiling: "FINITE_STATE_SYNTHETIC_DECISION_ADAPTER_ONLY: declared visibility, pose, sensor, hypothesis and cost evidence are not authenticated or calibrated by this adapter; no probability, physical survey accuracy, or real building decision claim is made.".to_owned(),
@@ -582,8 +605,10 @@ mod tests {
             ]
         );
         assert_eq!(report.decision.case_id, "SCAN-BIM-DOOR-CLEARANCE-001");
-        assert_eq!(report.qualified_action_count, 3);
-        assert_eq!(report.rejected_action_count, 1);
+        assert_eq!(report.evidence_qualified_action_count, 3);
+        assert_eq!(report.decision_accepted_action_count, 3);
+        assert_eq!(report.decision_relevant_action_count, 2);
+        assert_eq!(report.decision_rejected_action_count, 1);
     }
 
     #[test]
