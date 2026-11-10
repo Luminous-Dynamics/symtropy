@@ -981,7 +981,7 @@ mod tests {
                     role,
                     primary: true,
                     required: true,
-                    minimum_draws: metric.draws.len(),
+                    minimum_draws: metric.draws.len().max(1),
                 })
                 .collect(),
         };
@@ -1242,6 +1242,51 @@ mod tests {
     }
 
     #[test]
+    fn improvement_outside_diagnostic_scope_does_not_qualify_repair_restoration() {
+        let diagnostic = vec![
+            metric("essential-service", 0.9, &[0.45, 0.48, 0.50, 0.52, 0.55]),
+            metric("network-connectivity", 0.5, &[0.45, 0.48, 0.50, 0.52, 0.55]),
+        ];
+        let baseline = vec![
+            metric("essential-service", 0.9, &[0.45, 0.48, 0.50, 0.52, 0.55]),
+            metric("network-connectivity", 0.9, &[0.45, 0.48, 0.50, 0.52, 0.55]),
+        ];
+        let repaired = vec![
+            metric("essential-service", 0.9, &[0.50, 0.52, 0.54, 0.56, 0.58]),
+            metric("network-connectivity", 0.9, &[0.85, 0.88, 0.90, 0.92, 0.95]),
+        ];
+        let scenario = scenario(&diagnostic, &baseline, &repaired);
+        let report = qualify(&scenario, 1.0).expect("unlinked improvement report");
+
+        assert_eq!(report.claim_ceiling, RepairClaimCeiling::ResidualDiscrepancy);
+        assert_eq!(report.corrected_primary_statistics, 0);
+        assert_eq!(report.residual_primary_discrepancies, 1);
+        let unlinked = report
+            .results
+            .iter()
+            .find(|row| row.statistic_id == "network-connectivity")
+            .expect("unlinked statistic result");
+        assert!(!unlinked.diagnostic_primary_discrepancy);
+        assert_eq!(unlinked.outcome, RepairRowOutcome::UnlinkedImprovement);
+    }
+
+    #[test]
+    fn missing_repaired_challenge_draws_remain_not_assessed() {
+        let diagnostic = vec![metric(
+            "essential-service",
+            0.9,
+            &[0.45, 0.48, 0.50, 0.52, 0.55],
+        )];
+        let baseline = diagnostic.clone();
+        let repaired = vec![metric("essential-service", 0.9, &[])];
+        let scenario = scenario(&diagnostic, &baseline, &repaired);
+        let report = qualify(&scenario, 1.0).expect("not-assessed repair report");
+        assert_eq!(report.claim_ceiling, RepairClaimCeiling::NotAssessed);
+        assert!(!report.required_evidence_complete);
+        assert_eq!(report.results[0].outcome, RepairRowOutcome::NotAssessed);
+    }
+
+    #[test]
     fn no_fresh_challenge_improvement_is_not_attributed_to_the_repair() {
         let diagnostic = vec![metric(
             "essential-service",
@@ -1306,6 +1351,19 @@ mod tests {
             report,
             Err(RepairQualificationError::ChallengeObservationMismatch { .. })
         ));
+    }
+
+    #[test]
+    fn any_widening_of_a_zero_width_baseline_exceeds_the_budget() {
+        let diagnostic = vec![metric("essential-service", 0.5, &[0.5, 0.5, 0.5, 0.5, 0.5])];
+        let baseline = vec![metric("essential-service", 0.5, &[0.5, 0.5, 0.5, 0.5, 0.5])];
+        let repaired = vec![metric("essential-service", 0.5, &[0.45, 0.48, 0.50, 0.52, 0.55])];
+        let scenario = scenario(&diagnostic, &baseline, &repaired);
+        let report = qualify(&scenario, 1.0).expect("zero-width baseline budget report");
+        assert_eq!(report.claim_ceiling, RepairClaimCeiling::WidthBudgetExceeded);
+        assert_eq!(report.results[0].baseline_interval_width, Some(0.0));
+        assert!(report.results[0].repaired_interval_width.unwrap_or(0.0) > 0.0);
+        assert_eq!(report.results[0].interval_width_ratio, None);
     }
 
     #[test]
