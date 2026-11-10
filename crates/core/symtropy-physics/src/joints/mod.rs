@@ -17,10 +17,17 @@ pub use fixed::FixedJoint;
 pub use hinge::HingeJoint;
 pub use prismatic::PrismaticJoint;
 
-/// Motor drive for actuated joints (hinge + prismatic).
+/// Motor-drive parameters shared by actuated joint types.
 ///
-/// Uses a PD (Proportional-Derivative) controller to reach a target:
-/// `force = kp * (target - current_pos) + kd * (target_vel - current_vel)`
+/// **Control semantics are joint-specific.** In symtropy-physics 0.2.1,
+/// `PrismaticJoint` uses `target_pos` and `target_vel` through
+/// `calculate_impulse`. `HingeJoint` currently uses `target_vel` only;
+/// its solver does not consume `target_pos`. The hinge's stored angle limits
+/// are also not enforced by the current solver. Do not infer position-control
+/// or hard-limit support for a hinge from the presence of these fields.
+///
+/// See PHYS-HINGE-MOTOR-001 for the required implementation and qualification:
+/// https://github.com/Luminous-Dynamics/symtropy/issues/4516.
 #[derive(Clone, Debug)]
 pub struct MotorDrive {
     /// Target position (units) or angle (radians).
