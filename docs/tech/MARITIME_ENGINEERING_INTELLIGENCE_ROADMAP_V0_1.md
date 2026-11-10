@@ -142,3 +142,21 @@ A pass at one level does not imply any higher level. A synthetic pass is not phy
 ## Claim ceiling
 
 This programme currently establishes research artifacts, synthetic evidence-contract semantics, literature and vendor analysis, and an authored dataset-audit tool. It does not establish physical diagnostic accuracy, fleet reliability, safe remaining life, shipboard effectiveness, class approval, MASS Code compliance, maintenance authority, ODD clearance or permission to operate.
+
+## Literature update — transfer baselines (10 November 2026)
+
+The diagnostic baseline registry now contains **14 unique IDs and 14 unique source DOIs** after removal of a duplicate alias for the 2025 18-task Applied Energy paper and addition of a separate 2025 dual-transfer publication.
+
+- The 2025 Applied Energy cross-working-condition paper reports **95% accuracy** in its abstract and describes **18 transfer tasks** across two engine case studies (8V396SE, 500 kW, and 620 V16, 2,336 kW). Its evidence mix includes experimental bench lubrication-system data and virtual intake/exhaust task data. Keep each subsystem and source type separate. The exact per-task aggregation, sample grouping and split manifest must be recovered before reproduction. This is not a common-protocol or physical fleet-transfer score.
+- The 2025 Energy mean-value-model-assisted dual-transfer paper reports **more than 97.70% average accuracy** for cross-domain lubricating-oil diagnosis. It describes a simulation-to-measured transfer between a 16V396 simulation domain and an 8V396 experimental bench domain, nine transfer tasks, and 70%, 85% and 100% load points. The exact source/target assignments, run grouping, task-level scores and leakage controls need methods/table audit. It is a separate paper from the 18-task Applied Energy study and is not comparable to the Aalto MU323DGSC data.
+- A 2026 adaptive multi-source study on an 8V396 testbed reports 83.64% average accuracy on pure-real measured scenarios and 82.37% on real/simulation hybrid scenarios. Do not compare this average directly with either 2025 result without aligning task taxonomy, target exposure, class balance and held-out physical groups.
+
+### Consequence for benchmarking
+
+The reported 95%, >97.70%, 83.64% and hybrid/simulation headline scores are **separate reproduction targets, not a single ranking**. Each study has its own task definition, engine, evidence domain, split semantics and metrics. A fair comparison needs two stages:
+
+1. Reproduce each paper under its own documented protocol, with a frozen environment, raw-data/license audit, exact split manifest, source code commit and per-task table.
+2. Re-run selected methods in a shared evaluation harness with whole-recording/run separation, load-held-out tests, source-domain holdouts, no target-label leakage, calibration and OOD controls. Report per-task and worst-domain performance, event recall at fixed false-alarm rate, false alarms per engine-hour, latency, uncertainty/calibration, compute/latency and prior-domain forgetting.
+
+Do not treat random-window or random-row splits as evidence of cross-run or cross-engine generalization. Do not silently merge measured, simulated and hybrid source domains. A high headline accuracy cannot compensate for a hard-gate failure in provenance, split leakage, unknown-state handling or false-alarm burden.
+
