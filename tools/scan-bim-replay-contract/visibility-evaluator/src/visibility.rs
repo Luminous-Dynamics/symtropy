@@ -10,7 +10,9 @@
 //! candidate-visible inputs.
 
 use scan_bim_replay_contract::metrics::Point3;
-use scan_bim_replay_contract::sampling::{SurfaceSample, SurfaceSamplingReceipt, SurfaceVisibility};
+use scan_bim_replay_contract::sampling::{
+    SurfaceSample, SurfaceSamplingReceipt, SurfaceVisibility, verify_surface_sampling_receipt,
+};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
@@ -123,10 +125,9 @@ pub struct VisibilityRequest {
     pub scene_id: String,
     pub frame_id: String,
     pub reference_model_sha256: String,
-    pub probe_set_sha256: String,
+    pub reference_sampling: SurfaceSamplingReceipt,
     pub occluder_manifest_sha256: String,
     pub occluder_coverage: OccluderCoverage,
-    pub probes: Vec<VisibilityProbe>,
     pub views: Vec<VisibilityView>,
     pub occluders: Vec<OccluderTriangle>,
     pub profile: VisibilityProfile,
@@ -134,14 +135,15 @@ pub struct VisibilityRequest {
 
 impl VisibilityRequest {
     pub fn evaluate(&self) -> Result<VisibilityReceipt, String> {
+        let probes = probes_from_reference_sampling(&self.reference_sampling)?;
         derive_surface_visibility(VisibilityEvaluation {
             scene_id: &self.scene_id,
             frame_id: &self.frame_id,
             reference_model_sha256: &self.reference_model_sha256,
-            probe_set_sha256: &self.probe_set_sha256,
+            probe_set_sha256: &self.reference_sampling.sample_set_sha256,
             occluder_manifest_sha256: &self.occluder_manifest_sha256,
             occluder_coverage: self.occluder_coverage,
-            probes: &self.probes,
+            probes: &probes,
             views: &self.views,
             occluders: &self.occluders,
             profile: self.profile,
@@ -762,8 +764,9 @@ fn receipt_digest(
 /// receive the reference model or the resulting visibility labels.
 pub fn probes_from_reference_sampling(
     receipt: &SurfaceSamplingReceipt,
-) -> Vec<VisibilityProbe> {
-    receipt
+) -> Result<Vec<VisibilityProbe>, String> {
+    verify_surface_sampling_receipt(receipt)?;
+    let probes: Vec<VisibilityProbe> = receipt
         .samples
         .iter()
         .map(|sample: &SurfaceSample| VisibilityProbe {
@@ -774,7 +777,11 @@ pub fn probes_from_reference_sampling(
             normal: sample.normal,
             represented_area_m2: sample.represented_area_m2,
         })
-        .collect()
+        .collect();
+    if probes.is_empty() {
+        return Err("reference sampling receipt contains no visibility probes".to_owned());
+    }
+    Ok(probes)
 }
 
 /// Derive evaluator-only visibility labels for area-weighted probes.
