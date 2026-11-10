@@ -382,7 +382,7 @@
     }
   },
   "x-invariants": [
-    "status=not_run requires null outcomes and no claim of performance",
+    "status=not_run requires zero episode outcomes and empty metric maps; it is a template, not a performance result.",
     "expected_episode_count must equal completed+failed+incomplete+censored+otherwise explicitly dispositioned episodes",
     "training and inference measurements must identify the actual host/hardware/power profile",
     "teacher/generated labels and all privileged inputs must be counted and declared",
