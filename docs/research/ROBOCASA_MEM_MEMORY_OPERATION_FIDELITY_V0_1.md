@@ -123,11 +123,15 @@ Do not claim that a larger memory or higher storage rate is better unless it imp
 
 ## 7. Claim boundary and next steps
 
-The 18 current unit tests are synthetic accounting/identity fixtures. They do not run MEMOBench, RoboMME, RoboCasa-Mem, HMAP, π0.5 or Symthaea; they do not demonstrate better memory performance or physical robotics capability.
+The 22 tests in `memory_operations.rs` and 14 tests in `memobench_adapter.rs` are synthetic accounting/identity fixtures. They do not run MEMOBench, RoboMME, RoboCasa-Mem, HMAP, π0.5 or Symthaea; they do not demonstrate better memory performance or physical robotics capability.
+
+The native MEMOBench typed schema bridge is now implemented in `memobench_adapter.rs`. It selects the upstream `operating_type[row][memory_level]` code, preserves the checkpoint/predicate/annotation digests, validates the complete task/checkpoint/episode roster, requires receipt-bound outcomes, and reports operation-stratified predicate completion separately from terminal task success. The bridge still needs a real JSON/HDF5 acquisition loader and a native simulator run; no benchmark results are claimed. Its license gate records the CC BY-NC 4.0 boundary and requires separate commercial permission plus a verification receipt for any commercial-development use.
 
 Next:
-1. implement a native MEMOBench checkpoint/operation manifest importer;
-2. map upstream Storage/Update/Compression annotations to the typed evaluator roster;
-3. preserve policy-visible inputs separately from evaluator-private expected-effect digests;
-4. run the matched memory ablations on held-out checkpoint instances;
-5. relate operation fidelity to RoboCasa-Mem SR/SCR without merging denominators.
+1. implement a pinned Rust loader for the 30 public task metadata records and HDF5/rollout artifact identities without copying benchmark annotation text into this repository;
+2. reproduce the published replan-step-5 contrastive-memory baseline before changing the model;
+3. add one Symthaea memory mechanism per ablation (provenance-aware storage, contradiction-aware update, query-preserving compression, value-of-information retrieval);
+4. run matched held-out checkpoint/task/seed comparisons and report SR/MSR/MUR/MCR separately;
+5. correlate native predicate completion with instrumented semantic memory readback and RoboCasa-Mem SR/SCR without merging denominators.
+
+The published contrastive-memory row at replan interval 5 reports 34.7% average SR, 59.8% MSR, 21.4% MUR and 11.1% MCR. The next preregistered Luminous target is +5 percentage points on each under the same protocol (39.7/64.8/26.4/16.1), with no task-family regression beyond 2 pp. The stronger MemER results are treated as privileged-supervision reference values, not matched SOTA. Full source and targets: [MEMOBENCH_NATIVE_ADAPTER_V0_1.md](MEMOBENCH_NATIVE_ADAPTER_V0_1.md).
