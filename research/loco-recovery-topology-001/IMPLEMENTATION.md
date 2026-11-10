@@ -22,7 +22,7 @@ The minimal cut sets are all inclusion-minimal hitting sets \`C\` satisfying:
 
 \`C ∩ D(r) ≠ ∅ for every qualifying physical route r\`
 
-The minimum cut-set size is the cardinality of the smallest returned hitting set.
+The minimum cut-set size is the cardinality of the smallest returned hitting set. The auditor reports every inclusion-minimal hitting set, which can include larger minimal sets as well as globally minimum-cardinality sets.
 
 These are graph/domain-manifest properties, not physical safety probabilities or universal fault-tolerance guarantees.
 
