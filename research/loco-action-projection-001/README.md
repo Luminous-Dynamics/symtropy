@@ -183,3 +183,42 @@ No aggregate weighted score can hide a hard constraint, adverse event or deadlin
 ## Claim ceiling
 
 V0 qualifies evidence composition and execution-gate semantics over supplied optimizer outcomes. It does not validate a continuous optimizer, physical contact abstraction, actuator model, receipt authentication or real-world safety. PADP and FAWBC are external baselines; Symtropy superiority requires matched source-pinned simulation and hardware trials.
+
+
+## Executable Rust V0 reference
+
+The dependency-free Rust crate consumes the optimizer's supplied projection result, a separately frozen constraint inventory, the complete physical possibility IDs from #4083, independently issued viability/assurance receipts, and—after execution—an actuator-realization receipt from #4206.
+
+V0 enforces:
+- proposal/result/receipt identity and application-time freshness;
+- a source-issued physical possibility-set digest across the proposal, solver result, viability, assurance and fallback records;
+- exact solver-vs-frozen constraint inventory equality, including units, residual tolerances and minimum margins;
+- complete Cartesian coverage of every required constraint for every physical possibility ID (bounded to 256 possibilities, 4,096 constraints and 1,000,000 evidence rows);
+- separate outcomes for physical margin failure (Rejected), numerical residual failure (Unknown), and a separately admitted fallback;
+- independent viability and assurance status/reason requirements;
+- post-execution reconciliation of the exact authorized command against measured actuator response and resulting-state evidence;
+- a matched delivery closes the current execution transaction but never recycles the old state certificate: the next action requires a new proposal and fresh viability/assurance evidence;
+- mismatch is retained as a measured deviation; Unknown/Invalid delivery returns no trusted post-state and blocks state-changing continuation.
+
+The reference does **not** solve the continuous QP, compute contact physics, authenticate receipts or infer actuator delivery. Those remain the responsibility of the optimizer, #4083/#4061, #4119 and #4206 respectively.
+
+Additional Rust tests cover:
+- two physical contact possibilities with complete per-possibility constraint evidence;
+- one omitted possibility/constraint row;
+- a robust friction failure in only one possible contact mode;
+- explicit minimum-margin reserve;
+- numerical residual failure remaining Unknown rather than being called physically infeasible;
+- duplicated possibility IDs;
+- matched actuator realization permitting continuation;
+- actuator mismatch and Unknown inhibiting the next command;
+- an execution receipt presented without an authorized command;
+- exact command-digest binding for actuator realization;
+- a matched delivery returns a new post-state but still requires fresh viability before the next action;
+- Unknown delivery never exposes a trusted post-state.
+
+
+- source-issued possibility receipt with exact inventory equality and freshness at intended application time;
+- incomplete, stale or context-mismatched possibility sets cannot authorize projection;
+- test coverage for incomplete-set refusal, exact possibility-ID mismatch and stale possibility receipt.
+
+The Rust 1.96 workflow is authoritative for formatting, locked tests and strict Clippy.
