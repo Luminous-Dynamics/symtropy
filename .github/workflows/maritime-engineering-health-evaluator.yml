@@ -50,7 +50,7 @@ jobs:
         run: cargo fmt --manifest-path benchmarks/maritime-engineering-health/Cargo.toml -- --check
 
       - name: Run evaluator tests
-        run: cargo test --locked --manifest-path benchmarks/maritime-engineering-health/Cargo.toml
+        run: cargo test --locked --all-targets --manifest-path benchmarks/maritime-engineering-health/Cargo.toml
 
       - name: Run Clippy
         run: cargo clippy --locked --manifest-path benchmarks/maritime-engineering-health/Cargo.toml --all-targets -- -D warnings
