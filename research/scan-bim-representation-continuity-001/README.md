@@ -1,6 +1,6 @@
 # SCAN-BIM-REPRESENTATION-CONTINUITY-001 — evidence continuity across representation changes
 
-**Status:** P0 typed audit and synthetic fixtures started; exact-head validation pending.  
+**Status:** P0 typed audit, artifact-bound claims, CLI and synthetic fixtures implemented; exact-head validation pending.  
 **Issue:** [#4471](https://github.com/Luminous-Dynamics/symtropy/issues/4471)  
 **Parent delivery work:** [#4271 / PR #4273](https://github.com/Luminous-Dynamics/symtropy/pull/4273)  
 **Branch:** research/scan-bim-representation-continuity-v0-1
@@ -85,6 +85,23 @@ fixtures/known_answers_v0_1.json contains one canonical raw-observation → surf
 - a 2.5 mm output bound.
 
 Negative controls mutate the fixture to cover derived-geometry-only measured claims, unjustified uncertainty shrinkage, unknown-to-known promotion, unsupported conditioned updates, reused source evidence, invalid split cardinality, orphaned claim evidence, duplicate target identity and unknown numeric values.
+
+## Executable P0 audit
+
+The replay-contract workspace now exposes the thin audit as a CLI:
+
+```sh
+cargo run --locked \
+  --manifest-path tools/scan-bim-replay-contract/Cargo.toml \
+  --bin scan_bim_continuity_audit -- \
+  research/scan-bim-representation-continuity-001/fixtures/known_answers_v0_1.json
+```
+
+The CLI reads the receipt bytes, rejects unknown JSON fields through the typed `deny_unknown_fields` contract, runs the continuity audit and emits a machine-readable report. It does not open or authenticate the referenced scan/mesh artifacts; it checks only the artifact identities/digests declared inside the receipt.
+
+P0 now additionally binds every claim to the exact transition output artifact that contains its target entity. When a later transition reuses an artifact ID previously emitted by an earlier transition, the SHA-256 and evidence role must match exactly. Reusing an ID with changed bytes or role is rejected.
+
+Current test inventory: 18 representation-continuity tests. The replay-contract workflow now runs the CLI against the canonical fixture and checks the one-transition/one-measured-claim/one-correspondence report. These tests remain synthetic contract checks, not IFC or physical-building validation.
 
 ## Metrics and targets
 
