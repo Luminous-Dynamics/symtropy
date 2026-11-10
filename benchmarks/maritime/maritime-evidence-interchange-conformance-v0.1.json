@@ -2,7 +2,7 @@
   "corpus_id": "luminous.symtropy.maritime-evidence-interchange-conformance",
   "corpus_version": "0.1.0",
   "claim_ceiling": "Synthetic conformance fixtures only; not physical diagnostic validation.",
-  "fixture_count": 12,
+  "fixture_count": 13,
   "fixtures": [
     {
       "fixture_id": "obs-001-measured-exact",
@@ -558,7 +558,7 @@
             "obs-001"
           ],
           "contradicts": [
-            "obs-009"
+            "obs-013"
           ],
           "derived_from": []
         },
@@ -828,7 +828,137 @@
         },
         "lineage": [],
         "value": 82.5
+      },
+      "companion_records": [
+        {
+          "schema_version": "0.1.0",
+          "record_id": "obs-012-collision",
+          "asset_ref": {
+            "vessel_id": "fixture-vessel-01",
+            "asset_path": [
+              "machinery",
+              "main-engine",
+              "cylinder-1",
+              "bearing"
+            ],
+            "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "provenance": {
+            "source_id": "fixture-source-01",
+            "source_class": "sensor",
+            "native_record_id": "obs-012-collision-native",
+            "adapter_id": "fixture-adapter",
+            "adapter_version": "0.1.0",
+            "mapping_catalogue_version": "fixture-map-0.1",
+            "received_at": "2026-01-01T12:00:02Z",
+            "source_payload": {
+              "sha256": "281a790c52136d39fb06b2064cb65e158a6c2184cbe4dfd991d2cda152423d67",
+              "byte_length": 27,
+              "media_type": "application/json",
+              "inline_base64": "eyJ2YWx1ZSI6ODIuNSwidW5pdCI6IkNlbCJ9"
+            }
+          },
+          "time": {
+            "event_time": "2026-01-01T12:00:00Z",
+            "time_basis": "synchronized_utc",
+            "clock_id": "fixture-clock-01",
+            "clock_quality": "locked",
+            "synchronization_uncertainty_ms": 2,
+            "monotonic_counter_ns": 1000000,
+            "sequence_number": 1
+          },
+          "record_type": "observation",
+          "mapping": {
+            "status": "exact",
+            "native_channel_id": "OEM_TEMP_001",
+            "native_channel_name": "Bearing temperature",
+            "normalized_concept_id": "iso19848:MainEngine.BearingTemperature",
+            "mapping_method": "deterministic_catalogue",
+            "mapping_confidence": 1
+          },
+          "quantity_kind": "temperature",
+          "unit_ucum": "Cel",
+          "value_state": "measured",
+          "quality": {
+            "calibration_state": "valid",
+            "calibration_ref": "cal-01",
+            "freshness_state": "current",
+            "measurement_quality": "valid",
+            "quality_flags": []
+          },
+          "lineage": [],
+          "value": 82.5
+        }
+      ]
+    },
+    {
+      "fixture_id": "obs-013-independent-reference",
+      "expected_disposition": "accept",
+      "expected_invariants": [
+        "independent_source_retained",
+        "native_id_retained",
+        "payload_digest_verified"
+      ],
+      "record": {
+        "schema_version": "0.1.0",
+        "record_id": "obs-013",
+        "asset_ref": {
+          "vessel_id": "fixture-vessel-01",
+          "asset_path": [
+            "machinery",
+            "main-engine",
+            "cylinder-1",
+            "bearing"
+          ],
+          "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "provenance": {
+          "source_id": "fixture-source-02",
+          "source_class": "sensor",
+          "native_record_id": "obs-013-native",
+          "adapter_id": "fixture-adapter",
+          "adapter_version": "0.1.0",
+          "mapping_catalogue_version": "fixture-map-0.1",
+          "received_at": "2026-01-01T12:00:02Z",
+          "source_payload": {
+            "sha256": "281a790c52136d39fb06b2064cb65e158a6c2184cbe4dfd991d2cda152423d67",
+            "byte_length": 27,
+            "media_type": "application/json",
+            "inline_base64": "eyJ2YWx1ZSI6ODIuNSwidW5pdCI6IkNlbCJ9"
+          }
+        },
+        "time": {
+          "event_time": "2026-01-01T12:00:00Z",
+          "time_basis": "synchronized_utc",
+          "clock_id": "fixture-clock-01",
+          "clock_quality": "locked",
+          "synchronization_uncertainty_ms": 2,
+          "monotonic_counter_ns": 1000000,
+          "sequence_number": 1
+        },
+        "record_type": "observation",
+        "mapping": {
+          "status": "exact",
+          "native_channel_id": "OEM_TEMP_002",
+          "native_channel_name": "Independent bearing RTD",
+          "normalized_concept_id": "iso19848:MainEngine.BearingTemperature",
+          "mapping_method": "deterministic_catalogue",
+          "mapping_confidence": 1
+        },
+        "quantity_kind": "temperature",
+        "unit_ucum": "Cel",
+        "value_state": "measured",
+        "quality": {
+          "calibration_state": "valid",
+          "calibration_ref": "cal-01",
+          "freshness_state": "current",
+          "measurement_quality": "valid",
+          "quality_flags": []
+        },
+        "lineage": [],
+        "value": 77.4
       }
     }
-  ]
+  ],
+  "evaluation_time": "2026-01-01T12:01:00Z"
 }
