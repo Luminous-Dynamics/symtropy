@@ -37,6 +37,35 @@ pub struct QuantityRequirement {
     pub reference_frame: String,
     pub max_residual_upper_bound: f64,
     pub max_uncertainty_upper_bound: f64,
+    /// Optional engineering decision threshold. Candidates must provide an
+    /// output interval separated from this threshold by the declared margin.
+    pub decision_boundary: Option<DecisionBoundary>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct DecisionBoundary {
+    pub threshold: f64,
+    pub minimum_separation: f64,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct DecisionEstimate {
+    pub quantity_id: String,
+    pub unit: String,
+    pub reference_frame: String,
+    pub value: f64,
+    /// Conservative symmetric bound radius; not automatically a statistical interval.
+    pub uncertainty_upper_bound: f64,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum DecisionClass {
+    AboveBoundary,
+    BelowBoundary,
+    Unresolved,
 }
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -69,6 +98,8 @@ pub struct ModelCandidate {
     pub analytic_anchor_sha256: Option<String>,
     /// Distinct independent validation receipts; syntax and uniqueness are checked here.
     pub independent_validation_receipt_sha256s: Vec<String>,
+    /// Optional model-predicted interval for the required engineering quantity.
+    pub decision_estimate: Option<DecisionEstimate>,
     pub validity: ValidityDisposition,
     pub horizon_covered: bool,
     pub hard_constraints: HardConstraintDisposition,
@@ -120,6 +151,9 @@ pub enum RejectionReason {
     AnalyticAnchorMissing,
     IndependentValidationReceiptMissing,
     InsufficientIndependentValidationPaths,
+    DecisionEstimateMissing,
+    DecisionEstimateQuantityMismatch,
+    DecisionBoundaryUnresolved,
     EvidenceSyntheticOnly,
     EvidenceUnqualified,
     ValidityOutsideEnvelope,
@@ -139,6 +173,7 @@ pub struct CandidateEvaluation {
     pub model_id: String,
     pub admissible: bool,
     pub rejection_reasons: Vec<RejectionReason>,
+    pub decision_class: Option<DecisionClass>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -232,6 +267,7 @@ pub enum PolicyError {
     EmptyField(&'static str),
     InvalidSha256(&'static str),
     NonFiniteOrNegative(&'static str),
+    NonFinite(&'static str),
     ZeroResourceBudget(&'static str),
     DuplicateModelId(String),
     ReceiptInputMismatch,
@@ -256,6 +292,7 @@ impl std::fmt::Display for PolicyError {
             Self::NonFiniteOrNegative(name) => {
                 write!(f, "value must be finite and non-negative: {name}")
             }
+            Self::NonFinite(name) => write!(f, "value must be finite: {name}"),
             Self::ZeroResourceBudget(name) => write!(f, "resource budget must be non-zero: {name}"),
             Self::DuplicateModelId(id) => write!(f, "duplicate model id: {id}"),
             Self::ReceiptInputMismatch => write!(f, "receipt does not bind the supplied input"),
@@ -292,7 +329,8 @@ pub fn evaluate(input: &PolicyInputV1) -> Result<PolicyReceiptV1, PolicyError> {
     let mut admissible: Vec<&ModelCandidate> = Vec::new();
 
     for candidate in &candidates {
-        let reasons = rejection_reasons(input, candidate);
+        let decision_class = decision_class(input, candidate);
+        let reasons = rejection_reasons(input, candidate, decision_class);
         let accepted = reasons.is_empty();
         if accepted {
             admissible.push(candidate);
@@ -301,6 +339,7 @@ pub fn evaluate(input: &PolicyInputV1) -> Result<PolicyReceiptV1, PolicyError> {
             model_id: candidate.model_id.clone(),
             admissible: accepted,
             rejection_reasons: reasons,
+            decision_class,
         });
     }
 
@@ -502,6 +541,20 @@ fn validate_input(input: &PolicyInputV1) -> Result<(), PolicyError> {
         input.requirement.max_uncertainty_upper_bound,
         "max_uncertainty_upper_bound",
     )?;
+    if let Some(boundary) = &input.requirement.decision_boundary {
+        if !boundary.threshold.is_finite() {
+            return Err(PolicyError::NonFinite("requirement.decision_boundary.threshold"));
+        }
+        validate_nonnegative_finite(
+            boundary.minimum_separation,
+            "requirement.decision_boundary.minimum_separation",
+        )?;
+        if !(boundary.threshold + boundary.minimum_separation).is_finite()
+            || !(boundary.threshold - boundary.minimum_separation).is_finite()
+        {
+            return Err(PolicyError::NonFinite("requirement.decision_boundary limits"));
+        }
+    }
     if input.budget.max_p95_wall_time_us == 0 {
         return Err(PolicyError::ZeroResourceBudget("max_p95_wall_time_us"));
     }
@@ -534,6 +587,21 @@ fn validate_input(input: &PolicyInputV1) -> Result<(), PolicyError> {
             candidate.uncertainty_upper_bound,
             "uncertainty_upper_bound",
         )?;
+        if let Some(estimate) = &candidate.decision_estimate {
+            validate_nonempty(&estimate.quantity_id, "candidate.decision_estimate.quantity_id")?;
+            validate_nonempty(&estimate.unit, "candidate.decision_estimate.unit")?;
+            validate_nonempty(
+                &estimate.reference_frame,
+                "candidate.decision_estimate.reference_frame",
+            )?;
+            if !estimate.value.is_finite() {
+                return Err(PolicyError::NonFinite("candidate.decision_estimate.value"));
+            }
+            validate_nonnegative_finite(
+                estimate.uncertainty_upper_bound,
+                "candidate.decision_estimate.uncertainty_upper_bound",
+            )?;
+        }
         if candidate.p95_wall_time_us == 0 {
             return Err(PolicyError::ZeroResourceBudget("candidate.p95_wall_time_us"));
         }
@@ -547,11 +615,59 @@ fn validate_input(input: &PolicyInputV1) -> Result<(), PolicyError> {
     Ok(())
 }
 
+fn decision_class(
+    input: &PolicyInputV1,
+    candidate: &ModelCandidate,
+) -> Option<DecisionClass> {
+    let boundary = input.requirement.decision_boundary.as_ref()?;
+    let estimate = candidate.decision_estimate.as_ref()?;
+
+    if estimate.quantity_id != input.requirement.quantity_id
+        || estimate.unit != input.requirement.unit
+        || estimate.reference_frame != input.requirement.reference_frame
+    {
+        return Some(DecisionClass::Unresolved);
+    }
+
+    let lower = estimate.value - estimate.uncertainty_upper_bound;
+    let upper = estimate.value + estimate.uncertainty_upper_bound;
+    let above_limit = boundary.threshold + boundary.minimum_separation;
+    let below_limit = boundary.threshold - boundary.minimum_separation;
+    if !lower.is_finite() || !upper.is_finite() || !above_limit.is_finite() || !below_limit.is_finite() {
+        return Some(DecisionClass::Unresolved);
+    }
+
+    if lower > above_limit {
+        Some(DecisionClass::AboveBoundary)
+    } else if upper < below_limit {
+        Some(DecisionClass::BelowBoundary)
+    } else {
+        Some(DecisionClass::Unresolved)
+    }
+}
+
 fn rejection_reasons(
     input: &PolicyInputV1,
     candidate: &ModelCandidate,
+    decision_class: Option<DecisionClass>,
 ) -> Vec<RejectionReason> {
     let mut reasons = Vec::new();
+
+    if input.requirement.decision_boundary.is_some() {
+        match &candidate.decision_estimate {
+            None => reasons.push(RejectionReason::DecisionEstimateMissing),
+            Some(estimate) => {
+                if estimate.quantity_id != input.requirement.quantity_id
+                    || estimate.unit != input.requirement.unit
+                    || estimate.reference_frame != input.requirement.reference_frame
+                {
+                    reasons.push(RejectionReason::DecisionEstimateQuantityMismatch);
+                } else if decision_class == Some(DecisionClass::Unresolved) {
+                    reasons.push(RejectionReason::DecisionBoundaryUnresolved);
+                }
+            }
+        }
+    }
 
     match candidate.semantic_equivalence {
         SemanticEquivalence::Matched => {}
@@ -708,6 +824,7 @@ mod tests {
             evidence_class: EvidenceClass::IndependentlyValidated,
             analytic_anchor_sha256: None,
             independent_validation_receipt_sha256s: vec![H2.to_owned()],
+            decision_estimate: None,
             validity: ValidityDisposition::InsideDeclaredEnvelope,
             horizon_covered: true,
             hard_constraints: HardConstraintDisposition::WithinBounds,
@@ -730,6 +847,7 @@ mod tests {
                 reference_frame: "world".to_owned(),
                 max_residual_upper_bound: 0.1,
                 max_uncertainty_upper_bound: 0.1,
+                decision_boundary: None,
             },
             budget: ResourceBudget {
                 max_p95_wall_time_us: 10_000,
