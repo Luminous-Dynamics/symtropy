@@ -555,6 +555,11 @@ fn validate_input(input: &PolicyInputV1) -> Result<(), PolicyError> {
                 measurement.integrated_gpu_energy_uj,
                 "profile.energy_measurement.integrated_gpu_energy_uj",
             )?;
+            if measurement.integrated_gpu_energy_uj == 0.0 {
+                return Err(PolicyError::ZeroResourceBudget(
+                    "profile.energy_measurement.integrated_gpu_energy_uj",
+                ));
+            }
             if measurement.measurement_window_us == 0 {
                 return Err(PolicyError::ZeroResourceBudget(
                     "profile.energy_measurement.measurement_window_us",
@@ -879,6 +884,7 @@ mod tests {
     fn energy_is_not_used_as_a_hidden_objective_when_not_requested() {
         let mut data = input();
         data.budget.max_gpu_energy_uj_per_frame = None;
+        data.budget.max_energy_sample_gap_us = None;
         data.profiles[0].frame_time_p95_us = 9_000;
         data.profiles[1].frame_time_p95_us = 12_000;
         data.profiles[0].energy_measurement = Some(EnergyMeasurement {
@@ -906,6 +912,76 @@ mod tests {
                 profile_id: "high-quality".to_owned(),
                 measurement_receipt_sha256: "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc".to_owned(),
             }
+        );
+    }
+
+    #[test]
+    fn energy_per_frame_is_derived_from_integrated_energy_and_frame_count() {
+        let mut data = input();
+        let balanced = data.profiles.iter_mut().find(|p| p.profile_id == "balanced").expect("balanced");
+        let measurement = balanced.energy_measurement.as_mut().expect("energy measurement");
+        // Same 5,000,000 uJ over half the frames means 10,000 uJ/frame,
+        // which exceeds the 8,000 uJ/frame cap.
+        measurement.rendered_frame_count = 500;
+        let receipt = evaluate(&data).expect("well-formed sample receipt");
+        assert_eq!(
+            receipt.decision,
+            PolicyDecision::Selected {
+                profile_id: "high-quality".to_owned(),
+                measurement_receipt_sha256: "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc".to_owned(),
+            }
+        );
+        let balanced_eval = receipt.evaluations.iter().find(|e| e.profile_id == "balanced").expect("balanced evaluation");
+        assert!(balanced_eval.rejection_reasons.contains(&RejectionReason::EnergyBudgetExceeded));
+    }
+
+    #[test]
+    fn too_few_power_samples_reject_energy_profile() {
+        let mut data = input();
+        data.profiles[0]
+            .energy_measurement
+            .as_mut()
+            .expect("energy")
+            .power_sample_count = 1;
+        let receipt = evaluate(&data).expect("well-formed but sparse receipt");
+        let high = receipt.evaluations.iter().find(|e| e.profile_id == "high-quality").expect("high");
+        assert!(high.rejection_reasons.contains(&RejectionReason::EnergySamplesInsufficient));
+    }
+
+    #[test]
+    fn excessive_power_sample_gap_rejects_energy_profile() {
+        let mut data = input();
+        data.profiles[0]
+            .energy_measurement
+            .as_mut()
+            .expect("energy")
+            .max_sample_gap_us = 2_000_000;
+        let receipt = evaluate(&data).expect("well-formed but sparse receipt");
+        let high = receipt.evaluations.iter().find(|e| e.profile_id == "high-quality").expect("high");
+        assert!(high.rejection_reasons.contains(&RejectionReason::EnergySampleGapExceeded));
+    }
+
+    #[test]
+    fn requested_energy_cap_requires_a_maximum_sample_gap() {
+        let mut data = input();
+        data.budget.max_energy_sample_gap_us = None;
+        assert_eq!(
+            evaluate(&data).unwrap_err(),
+            PolicyError::EmptyField("budget.max_energy_sample_gap_us required with energy budget")
+        );
+    }
+
+    #[test]
+    fn energy_sample_series_digest_is_required() {
+        let mut data = input();
+        data.profiles[0]
+            .energy_measurement
+            .as_mut()
+            .expect("energy")
+            .sample_series_sha256 = "invalid".to_owned();
+        assert_eq!(
+            evaluate(&data).unwrap_err(),
+            PolicyError::InvalidSha256("profile.energy_measurement.sample_series_sha256")
         );
     }
 
