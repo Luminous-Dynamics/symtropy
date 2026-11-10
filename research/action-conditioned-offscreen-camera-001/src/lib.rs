@@ -1432,6 +1432,63 @@ mod tests {
     }
 
     #[test]
+    fn twenty_tick_serialized_episode_replays_exact_frames_and_receipts() {
+        let mut guard = ObservationStreamGuard::new(timing_policy());
+        let mut episode_frame_digests = Vec::new();
+
+        for tick in 1_u64..=20 {
+            let capture = 20_000 + tick * 20_000;
+            let mut world = snapshot();
+            world.tick = tick;
+            world.world_timestamp_us = capture;
+            world.applied_action = Some(AppliedActionRef {
+                receipt_id: format!("action-receipt-{tick}"),
+                receipt_sha256: sha256_hex(&tick.to_le_bytes()),
+                command_id: format!("command-{tick}"),
+                applied_tick: tick,
+            });
+            world.actors[0].center_world_mm[0] = (tick as i64 - 10) * 40;
+
+            let clocks = RenderClocks {
+                capture_timestamp_us: capture,
+                render_completed_timestamp_us: capture + 800,
+                delivered_timestamp_us: capture + 1_000,
+            };
+            assert_eq!(
+                guard.admit(
+                    &world.clock_id,
+                    tick,
+                    clocks.capture_timestamp_us,
+                    clocks.render_completed_timestamp_us,
+                    clocks.delivered_timestamp_us,
+                ),
+                Ok(ObservationDisposition::Fresh)
+            );
+
+            let first = SoftwareCameraRenderer::render(&world, tick, clocks).unwrap();
+            let encoded_world = serde_json::to_vec(&world).unwrap();
+            let decoded_world: WorldRenderSnapshot = serde_json::from_slice(&encoded_world).unwrap();
+            let replay = SoftwareCameraRenderer::render(&decoded_world, tick, clocks).unwrap();
+
+            assert_eq!(first.pixels_rgb, replay.pixels_rgb, "pixel mismatch at tick {tick}");
+            assert_eq!(
+                first.policy_receipt,
+                replay.policy_receipt,
+                "policy receipt mismatch at tick {tick}"
+            );
+            assert_eq!(
+                SoftwareCameraRenderer::audit_snapshot(&world).unwrap(),
+                SoftwareCameraRenderer::audit_snapshot(&decoded_world).unwrap(),
+                "evaluator audit mismatch at tick {tick}"
+            );
+            episode_frame_digests.push(first.policy_receipt.frame_sha256);
+        }
+
+        assert_eq!(episode_frame_digests.len(), 20);
+        assert!(episode_frame_digests.windows(2).all(|pair| pair[0] != pair[1]));
+    }
+
+    #[test]
     fn frame_contains_road_and_actor_geometry() {
         let result = SoftwareCameraRenderer::render(&snapshot(), 1, clocks()).unwrap();
         assert!(result
