@@ -787,6 +787,125 @@ pub fn probes_from_reference_sampling(
     Ok(probes)
 }
 
+fn validate_reference_probe_set(
+    probes: &[&VisibilityProbe],
+    occluders: &[OccluderTriangle],
+) -> Result<(), String> {
+    let mut target_triangles: BTreeMap<(&str, &str), &OccluderTriangle> = BTreeMap::new();
+    let mut reference_area_by_surface: BTreeMap<&str, f64> = BTreeMap::new();
+
+    for triangle in occluders {
+        if triangle.kind != OccluderKind::SameBuilding {
+            continue;
+        }
+        let key = (triangle.surface_id.as_str(), triangle.triangle_id.as_str());
+        if target_triangles.insert(key, triangle).is_some() {
+            return Err("reference geometry contains duplicate target triangle identities".to_owned());
+        }
+        let area = triangle_area_m2(triangle.a, triangle.b, triangle.c)?;
+        let total = reference_area_by_surface
+            .entry(triangle.surface_id.as_str())
+            .or_insert(0.0);
+        *total += area;
+        if !total.is_finite() {
+            return Err("reference surface area overflowed".to_owned());
+        }
+    }
+
+    let mut represented_area_by_surface: BTreeMap<&str, f64> = BTreeMap::new();
+    for probe in probes {
+        let triangle = target_triangles
+            .get(&(probe.surface_id.as_str(), probe.triangle_id.as_str()))
+            .ok_or("visibility probe does not reference a triangle in the declared BIM reference geometry")?;
+        if probe
+            .barycentric
+            .iter()
+            .any(|weight| !weight.is_finite() || *weight < -1.0e-12 || *weight > 1.0 + 1.0e-12)
+            || (probe.barycentric.iter().sum::<f64>() - 1.0).abs() > 1.0e-10
+        {
+            return Err(format!(
+                "probe {} has invalid source-triangle barycentric coordinates",
+                probe.probe_id
+            ));
+        }
+
+        let [wa, wb, wc] = probe.barycentric;
+        let expected_point = Point3::new(
+            wa * triangle.a.x + wb * triangle.b.x + wc * triangle.c.x,
+            wa * triangle.a.y + wb * triangle.b.y + wc * triangle.c.y,
+            wa * triangle.a.z + wb * triangle.b.z + wc * triangle.c.z,
+        );
+        let point_error = Vec3::from_point(probe.point)
+            .sub(Vec3::from_point(expected_point))
+            .norm();
+        let coordinate_scale = [
+            triangle.a.x.abs(),
+            triangle.a.y.abs(),
+            triangle.a.z.abs(),
+            triangle.b.x.abs(),
+            triangle.b.y.abs(),
+            triangle.b.z.abs(),
+            triangle.c.x.abs(),
+            triangle.c.y.abs(),
+            triangle.c.z.abs(),
+        ]
+        .into_iter()
+        .fold(1.0f64, f64::max);
+        if !point_error.is_finite() || point_error > coordinate_scale * 1.0e-9 {
+            return Err(format!(
+                "probe {} point does not match its source-triangle barycentric coordinates",
+                probe.probe_id
+            ));
+        }
+
+        let edge_a = Vec3::from_point(triangle.b).sub(Vec3::from_point(triangle.a));
+        let edge_b = Vec3::from_point(triangle.c).sub(Vec3::from_point(triangle.a));
+        let cross = edge_a.cross(edge_b);
+        let normal_length = cross.norm();
+        if !normal_length.is_finite() || normal_length <= DEGENERATE_TWICE_AREA_EPSILON {
+            return Err("reference target triangle has a degenerate normal".to_owned());
+        }
+        let expected_normal = cross.scale(1.0 / normal_length);
+        let actual_normal = Vec3::from_point(probe.normal);
+        if !finite_point(probe.normal)
+            || (actual_normal.norm() - 1.0).abs() > 1.0e-8
+            || actual_normal.sub(expected_normal).norm() > 1.0e-8
+        {
+            return Err(format!(
+                "probe {} normal does not match source-triangle winding",
+                probe.probe_id
+            ));
+        }
+
+        let total = represented_area_by_surface
+            .entry(probe.surface_id.as_str())
+            .or_insert(0.0);
+        *total += probe.represented_area_m2;
+        if !total.is_finite() {
+            return Err("represented reference surface area overflowed".to_owned());
+        }
+    }
+
+    if represented_area_by_surface.len() != reference_area_by_surface.len() {
+        return Err(
+            "reference sampling surface inventory does not match reference geometry".to_owned(),
+        );
+    }
+    for (surface_id, reference_area) in reference_area_by_surface {
+        let represented_area = represented_area_by_surface
+            .get(surface_id)
+            .ok_or("reference geometry surface has no area-weighted visibility probes")?;
+        if (represented_area - reference_area).abs()
+            > reference_area.abs().max(1.0) * 1.0e-9
+        {
+            return Err(format!(
+                "reference sampling weights do not conserve geometry area for surface {surface_id}"
+            ));
+        }
+    }
+    Ok(())
+}
+
 /// Derive evaluator-only visibility labels for area-weighted probes.
 ///
 /// Coordinates are metres in one declared frame. A probe is observable when
@@ -874,6 +993,8 @@ pub fn derive_surface_visibility(
 
     let owned_views: Vec<VisibilityView> =
         ordered_views.iter().map(|value| (**value).clone()).collect();
+    validate_reference_probe_set(&ordered_probes, &ordered_occluders)?;
+
     let mut results = Vec::with_capacity(evaluation.probes.len());
     let mut ray_test_count = 0usize;
     let mut surface_totals: BTreeMap<String, [f64; 8]> = BTreeMap::new();
