@@ -61,7 +61,7 @@ Run them after the build:
 ctest --test-dir build/scan-bim-embree --output-on-failure
 ```
 
-A fixture mismatch causes the adapter to exit non-zero; CTest therefore fails rather than accepting a partial or softened result. The tests exercise the float32 Embree adapter against the f64 fixture expectations. A float32 disagreement is recorded as a mismatch and is not normalized away.
+The executable emits its full JSON receipt to stdout and returns non-zero when `qualification=rejected`. A fixture mismatch therefore makes CTest fail rather than accepting a partial or softened result. The tests exercise the float32 Embree adapter against the f64 fixture expectations. A float32 disagreement is recorded as a mismatch and is not normalized away.
 
 ## Run the same fixtures as the f64 oracle
 
@@ -90,8 +90,8 @@ Use the **same fixture bytes** and build configuration for every engine. Run low
 ## Precision and interpretation
 
 - Embree's public `RTCRay` and triangle vertex buffers use **float32**. The reference oracle uses f64. This adapter refuses values that cannot be represented as finite f32 but does not silently widen fixture tolerances to hide precision differences.
-- The fixture's metric distance epsilon and nearest-hit tie epsilon are still applied to Embree's f32 distances. Differences near a clipping/edge/tie boundary should appear as categorized mismatches and cause a `rejected` qualification.
-- Build latency includes scene/geometry allocation, vertex/index population, geometry commit and scene commit.
+- The fixture's metric distance epsilon and nearest-hit tie epsilon are still applied to Embree's f32-derived metric distances. The adapter converts the f64 unit direction to float32, computes that float32 vector's actual norm, converts metric near/far limits into Embree's ray-parameter space, and converts every captured `ray->tfar` back to metres by multiplying by that norm. It also expands the segment by the declared metric epsilon so clipping-boundary semantics match the f64 oracle. Differences near an edge/tie boundary remain categorized mismatches and cause a `rejected` qualification.
+- Build latency includes scene/geometry allocation, vertex/index population, geometry commit and scene commit. The receipt records the selected CMake build type and the adapter's declared target compile flags; toolchain-injected/global flags must also be recorded externally when they differ from the documented CMake configuration.
 - Per-ray p50/p95/p99 latency measures the `rtcIntersect1` invocation with the all-hit filter enabled, including callback work; the aggregate throughput wall clock also includes per-query adapter setup.
 - Primitive-test and BVH-node-visit counters are **null**. Embree does not expose those internal counts through this adapter's public API; do not estimate them from hits, callbacks or timing.
 - Peak and steady memory are **null** until measured with a pinned external process-memory profiler. They are not inferred from triangle count.
