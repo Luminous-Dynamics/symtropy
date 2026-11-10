@@ -596,10 +596,10 @@ impl TriangleBvh {
         &self,
         origin: Vec3,
         direction: Vec3,
+        minimum_distance: f64,
         target_distance: f64,
         triangles: &[OccluderTriangle],
-        target_surface_id: &str,
-        target_triangle_id: &str,
+        excluded_target: Option<(&str, &str)>,
         remaining_ray_tests: usize,
         remaining_node_visits: usize,
     ) -> Result<(Vec<(usize, f64)>, usize, usize), String> {
@@ -638,9 +638,10 @@ impl TriangleBvh {
                 BvhNodeKind::Leaf { triangle_indices } => {
                     for triangle_index in triangle_indices {
                         let triangle = &triangles[*triangle_index];
-                        if triangle.surface_id == target_surface_id
-                            && triangle.triangle_id == target_triangle_id
-                        {
+                        if excluded_target.is_some_and(|(surface_id, triangle_id)| {
+                            triangle.surface_id == surface_id
+                                && triangle.triangle_id == triangle_id
+                        }) {
                             continue;
                         }
                         if ray_tests >= remaining_ray_tests {
@@ -648,9 +649,13 @@ impl TriangleBvh {
                                 .to_owned());
                         }
                         ray_tests += 1;
-                        if let Some(distance) =
-                            ray_triangle_distance(origin, direction, target_distance, triangle)
-                        {
+                        if let Some(distance) = ray_triangle_distance(
+                            origin,
+                            direction,
+                            minimum_distance,
+                            target_distance,
+                            triangle,
+                        ) {
                             match nearest_distance {
                                 None => {
                                     nearest_distance = Some(distance);
@@ -843,6 +848,7 @@ fn view_covers_probe(view: &VisibilityView, point: Point3) -> Result<Option<(Vec
 fn ray_triangle_distance(
     origin: Vec3,
     direction: Vec3,
+    minimum_distance: f64,
     max_distance: f64,
     triangle: &OccluderTriangle,
 ) -> Option<f64> {
@@ -867,7 +873,7 @@ fn ray_triangle_distance(
     }
     let distance = edge_b.dot(q_vector) * inverse_determinant;
     if !distance.is_finite()
-        || distance <= INTERSECTION_EPSILON_M
+        || distance <= minimum_distance + INTERSECTION_EPSILON_M
         || distance >= max_distance - INTERSECTION_EPSILON_M
     {
         return None;
@@ -935,10 +941,10 @@ fn observe_from_view(
     let (nearest, ray_tests, node_visits) = bvh.nearest_hits(
         origin,
         direction,
+        0.0,
         target_distance,
         occluders,
-        &probe.surface_id,
-        &probe.triangle_id,
+        Some((&probe.surface_id, &probe.triangle_id)),
         remaining_ray_tests,
         remaining_node_visits,
     )?;
