@@ -2283,6 +2283,152 @@ mod tests {
     }
 
     #[test]
+    fn bvh_matches_brute_force_across_many_deterministic_rays() {
+        const PROBE_COUNT: usize = 32;
+        let target = target_triangle();
+        let mut probes = Vec::with_capacity(PROBE_COUNT);
+        for index in 0..PROBE_COUNT {
+            let wa = 0.1 + index as f64 * 0.005;
+            let wb = 0.25;
+            let wc = 1.0 - wa - wb;
+            let point = Point3::new(
+                wa * target.a.x + wb * target.b.x + wc * target.c.x,
+                wa * target.a.y + wb * target.b.y + wc * target.c.y,
+                wa * target.a.z + wb * target.b.z + wc * target.c.z,
+            );
+            probes.push(VisibilityProbe {
+                probe_id: format!("TARGET-SAMPLE-{index:03}"),
+                surface_id: "TARGET".to_owned(),
+                triangle_id: "TARGET-TRI-1".to_owned(),
+                point,
+                barycentric: [wa, wb, wc],
+                normal: Point3::new(-1.0, 0.0, 0.0),
+                represented_area_m2: 2.0 / PROBE_COUNT as f64,
+            });
+        }
+
+        let mut occluders = vec![target.clone()];
+        for index in 0..257 {
+            let y = 10.0 + index as f64 * 3.0;
+            let z = 10.0 + (index % 7) as f64 * 2.0;
+            occluders.push(OccluderTriangle {
+                surface_id: format!("DECOY-{index:04}"),
+                triangle_id: format!("DECOY-TRI-{index:04}"),
+                a: Point3::new(2.5, y - 0.01, z - 0.01),
+                b: Point3::new(2.5, y + 0.01, z - 0.01),
+                c: Point3::new(2.5, y, z + 0.01),
+                kind: OccluderKind::SameBuilding,
+            });
+        }
+        // Eight rays have one known blocker. The small blocker footprints leave
+        // the other deterministic sample rays unobstructed.
+        for index in (0..PROBE_COUNT).step_by(4) {
+            let probe = &probes[index];
+            let y = probe.point.y * 0.5;
+            let z = probe.point.z * 0.5;
+            occluders.push(OccluderTriangle {
+                surface_id: format!("KNOWN-BLOCKER-{index:03}"),
+                triangle_id: format!("KNOWN-BLOCKER-TRI-{index:03}"),
+                a: Point3::new(2.5, y - 0.002, z - 0.002),
+                b: Point3::new(2.5, y + 0.002, z - 0.002),
+                c: Point3::new(2.5, y, z + 0.002),
+                kind: OccluderKind::SameBuilding,
+            });
+        }
+
+        let reference_surface_ids = vec!["TARGET".to_owned()];
+        let occluder_manifest_sha256 = canonical_occluder_manifest_sha256(&occluders);
+        let view = view("VIEW-1", [0.0, 0.0, 0.0]);
+        let receipt = derive_surface_visibility(VisibilityEvaluation {
+            scene_id: "SCENE-MULTI-RAY",
+            frame_id: "BUILDING-LOCAL",
+            linear_unit: LinearUnit::Metre,
+            axis_order: AxisOrder::Xyz,
+            handedness: CoordinateHandedness::RightHanded,
+            reference_model_sha256: &"1".repeat(64),
+            probe_set_sha256: &"3".repeat(64),
+            reference_surface_ids: &reference_surface_ids,
+            occluder_manifest_sha256: &occluder_manifest_sha256,
+            occluder_coverage: OccluderCoverage::Complete,
+            probes: &probes,
+            views: &[view],
+            occluders: &occluders,
+            profile: VisibilityProfile {
+                max_probe_count: 100,
+                max_view_count: 8,
+                max_occluder_triangles: 1_000,
+                max_probe_view_evaluations: 1_000,
+                max_ray_tests: 100_000,
+                max_bvh_node_visits: 100_000,
+                min_incidence_cosine: 0.0,
+            },
+        })
+        .expect("multi-ray evaluator should accept the analytic scene");
+
+        let mut brute_force_tests = 0usize;
+        for (probe_index, probe) in probes.iter().enumerate() {
+            let delta = Vec3::from_point(probe.point);
+            let distance = delta.norm();
+            let direction = delta.scale(1.0 / distance);
+            let expected = occluders
+                .iter()
+                .enumerate()
+                .filter(|(_, triangle)| {
+                    !(triangle.surface_id == probe.surface_id
+                        && triangle.triangle_id == probe.triangle_id)
+                })
+                .filter_map(|(triangle_index, triangle)| {
+                    ray_triangle_distance(
+                        Vec3 { x: 0.0, y: 0.0, z: 0.0 },
+                        direction,
+                        distance,
+                        triangle,
+                    )
+                    .map(|hit_distance| (triangle_index, hit_distance))
+                })
+                .min_by(|left, right| left.1.total_cmp(&right.1))
+                .map(|(triangle_index, _)| {
+                    format!(
+                        "{}/{}",
+                        occluders[triangle_index].surface_id,
+                        occluders[triangle_index].triangle_id
+                    )
+                });
+            brute_force_tests += occluders.len() - 1;
+            let actual = &receipt.probes[probe_index].views[0].blocker_triangle_ids;
+            match expected {
+                Some(expected_id) => {
+                    assert_eq!(actual, &vec![expected_id]);
+                    assert_eq!(
+                        receipt.probes[probe_index].visibility,
+                        SurfaceVisibility::SelfOccluded
+                    );
+                }
+                None => {
+                    assert!(actual.is_empty());
+                    assert_eq!(
+                        receipt.probes[probe_index].visibility,
+                        SurfaceVisibility::Observable
+                    );
+                }
+            }
+        }
+
+        assert_eq!(receipt.probe_count, PROBE_COUNT);
+        assert_eq!(receipt.self_occluded_area_m2, 2.0 / 4.0);
+        assert_eq!(receipt.observable_area_m2, 2.0 - 2.0 / 4.0);
+        assert!(receipt.bvh_node_count > 1);
+        assert!(receipt.bvh_leaf_count > 1);
+        assert!(receipt.bvh_node_visit_count > 0);
+        assert!(
+            receipt.ray_test_count * 10 < brute_force_tests,
+            "BVH must perform at least 90% fewer primitive tests: {} vs {}",
+            receipt.ray_test_count,
+            brute_force_tests
+        );
+    }
+
+    #[test]
     fn bvh_node_visit_budget_fails_closed() {
         let mut blockers = Vec::new();
         for index in 0..64 {
