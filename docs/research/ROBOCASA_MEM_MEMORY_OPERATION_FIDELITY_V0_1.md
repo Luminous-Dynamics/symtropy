@@ -74,7 +74,7 @@ For Compression, the audit also reports:
 
 A zero-byte baseline does not produce a ratio. Missing byte measurements reduce the compression-measurement denominator but do not alter the operation's correctness score. Latency has its own explicit measurement count and mean. Query identity is part of the evaluation contract: an observed readback for a different query cannot pass, and a missing query readback remains unresolved.
 
-The module reports Storage, Update and Compression separately. It emits operation-wide micro rates and per-task rows, plus an equal-task macro fidelity/evidence-coverage rate over tasks with applicable cases. This exposes Simpson's-paradox-style masking when easy tasks are overrepresented. It does not produce a single weighted “memory score”; any aggregate must be preregistered with explicit weights and should not hide a weak operation dimension.
+The module reports Storage, Update and Compression separately. It emits operation-wide micro rates and per-task rows, plus an equal-task macro fidelity/evidence-coverage rate over tasks with applicable cases. This exposes Simpson's-paradox-style masking when easy tasks are overrepresented. It also emits one summary per task × independence unit × operation, so repeated checkpoints inside one scene/seed remain grouped for paired analysis and cluster-aware resampling. It does not produce a single weighted “memory score”; any aggregate must be preregistered with explicit weights and should not hide a weak operation dimension.
 
 Compression correctness is semantic: the evaluator specifies required information and checks an independent readback projection. The compressed bytes may differ from the source representation and still pass if the required facts are preserved. Byte reduction is measured separately by the compression ratio; latency is also separate. A compact but semantically lossy memory is incorrect, while a semantically faithful representation that happens to grow is correct but inefficient.
 
@@ -89,6 +89,7 @@ The auditor:
 - binds every observation to the exact evaluator query and frozen query-roster digest;
 - preserves the independent-unit identity; multiple operation cases from one scene/seed cluster may share that unit;
 - reports distinct independent-unit counts so many checkpoints from one scene/seed cannot be presented as many independent samples;
+- emits per-unit/per-task/per-operation summaries to support matched paired deltas and cluster-aware bootstrap analysis without pretending each checkpoint is an independent draw;
 - requires an explicit complete task roster so omitted easy/hard tasks cannot silently change the population;
 - derives operation outcomes from evaluator-owned and observed semantic-effect digests;
 - returns each case's source/effect/snapshot/evaluator lineage alongside the derived outcome;
@@ -125,7 +126,7 @@ Do not claim that a larger memory or higher storage rate is better unless it imp
 
 ## 7. Claim boundary and next steps
 
-The 26 tests in `memory_operations.rs` and 14 tests in `memobench_adapter.rs` are synthetic accounting/identity fixtures. They do not run MEMOBench, RoboMME, RoboCasa-Mem, HMAP, π0.5 or Symthaea; they do not demonstrate better memory performance or physical robotics capability.
+The 27 tests in `memory_operations.rs` and 14 tests in `memobench_adapter.rs` are synthetic accounting/identity fixtures. They do not run MEMOBench, RoboMME, RoboCasa-Mem, HMAP, π0.5 or Symthaea; they do not demonstrate better memory performance or physical robotics capability.
 
 The native MEMOBench typed schema bridge is now implemented in `memobench_adapter.rs`. It selects the upstream `operating_type[row][memory_level]` code, preserves the checkpoint/predicate/annotation digests, validates the complete task/checkpoint/episode roster, requires receipt-bound outcomes, and reports operation-stratified predicate completion separately from terminal task success. The bridge still needs a real JSON/HDF5 acquisition loader and a native simulator run; no benchmark results are claimed. Its license gate records the CC BY-NC 4.0 boundary and requires separate commercial permission plus a verification receipt for any commercial-development use.
 
