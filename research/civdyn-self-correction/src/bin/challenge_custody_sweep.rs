@@ -151,6 +151,16 @@ fn main() {
         ),
     );
     emit_case(
+        "historical-idempotent-replay-after-successor",
+        &model_1,
+        &receipts,
+        &request(
+            "sha256-model-0",
+            "sha256-challenge-c0",
+            "sha256-manifest-c0",
+        ),
+    );
+    emit_case(
         "retired-disclosed-challenge-after-repair",
         &model_1,
         &receipts,
