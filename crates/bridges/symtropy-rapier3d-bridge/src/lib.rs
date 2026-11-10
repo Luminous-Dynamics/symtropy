@@ -342,7 +342,7 @@ impl<C: PhysicsCallback<3>> RapierPhysicsBridge<C> {
 
     /// Read back the latest body state after `step`; no cached/stale copy is used.
     pub fn post_step(&self, bodies: &RigidBodySet) -> Vec<RapierBodyState> {
-        bodies
+        let mut observations = bodies
             .iter()
             .map(|(handle, body)| {
                 let translation = body.translation();
@@ -358,7 +358,12 @@ impl<C: PhysicsCallback<3>> RapierPhysicsBridge<C> {
                     is_sleeping: body.is_sleeping(),
                 }
             })
-            .collect()
+            .collect::<Vec<_>>();
+        // Keep engine-local readback independent of arena traversal order. The
+        // full generational handle is used here; cross-engine semantic ordering
+        // remains the responsibility of the observation adapter.
+        observations.sort_by_key(|state| state.handle.into_raw_parts());
+        observations
     }
 }
 
