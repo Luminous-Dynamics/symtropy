@@ -137,7 +137,7 @@ fn decode_base64(input: &str) -> Result<Vec<u8>, &'static str> {
 }
 
 fn days_from_civil(year: i64, month: i64, day: i64) -> i64 {
-    let year = year - i64::from(month <= 2);
+    let year = year - if month <= 2 { 1 } else { 0 };
     let era = if year >= 0 { year } else { year - 399 } / 400;
     let year_of_era = year - era * 400;
     let adjusted_month = month + if month > 2 { -3 } else { 9 };
@@ -159,7 +159,7 @@ fn civil_from_days(days_since_epoch: i64) -> (i64, i64, i64) {
     let month_prime = (5 * day_of_year + 2) / 153;
     let day = day_of_year - (153 * month_prime + 2) / 5 + 1;
     let month = month_prime + if month_prime < 10 { 3 } else { -9 };
-    year += i64::from(month <= 2);
+    year += if month <= 2 { 1 } else { 0 };
     (year, month, day)
 }
 
@@ -1016,6 +1016,19 @@ mod tests {
         assert_eq!(report["summary"]["accepted"], 7);
         assert_eq!(report["summary"]["abstained"], 2);
         assert_eq!(report["summary"]["rejected"], 4);
+    }
+
+    #[test]
+    fn all_profile_schemas_parse_and_corpus_ref_targets_record_schema() {
+        let record_schema: Value = serde_json::from_str(include_str!("../../../../docs/tech/MARITIME_EVIDENCE_INTERCHANGE_V0_1.schema.json")).unwrap();
+        let report_schema: Value = serde_json::from_str(include_str!("../../../../docs/tech/MARITIME_EVIDENCE_INTERCHANGE_CONFORMANCE_REPORT_V0_1.schema.json")).unwrap();
+        let corpus_schema: Value = serde_json::from_str(include_str!("../../../../docs/tech/MARITIME_EVIDENCE_INTERCHANGE_CORPUS_V0_1.schema.json")).unwrap();
+        assert_eq!(
+            corpus_schema["$defs"]["record"]["$ref"],
+            record_schema["$id"]
+        );
+        assert!(report_schema["properties"]["global_errors"].is_object());
+        assert!(report_schema["properties"]["notes"].is_object());
     }
 
     #[test]
