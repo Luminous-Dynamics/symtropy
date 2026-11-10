@@ -18,7 +18,7 @@ symtropy-robotics-bridge-core = { path = "../../bridges/symtropy-robotics-bridge
 symtropy-consciousness-physics = { path = "../../domains/symtropy-consciousness-physics" }
 symthaea-muse = { path = "../../../stubs/symthaea-muse" }
 symtropy-devconsole = { version = "0.1.0", path = "../../domains/symtropy-devconsole", features = ["phi-panel"] }
-bevy = { version = "0.19", default-features = false, features = [
+bevy = { version = "0.20", default-features = false, features = [
     "png",
     "bevy_ui", "bevy_ui_render", "bevy_text", "default_font",
 ] }
