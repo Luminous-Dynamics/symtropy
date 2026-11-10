@@ -76,7 +76,8 @@
         "acquisition",
         "indication",
         "acceptance",
-        "dataset"
+        "dataset",
+        "provider"
       ],
       "properties": {
         "inspection_id": {
@@ -146,7 +147,9 @@
             "full_penetration",
             "geometry",
             "object_temperature_c",
-            "ultrasonic_attenuation"
+            "ultrasonic_attenuation",
+            "coarse_grained_or_austenitic",
+            "additional_standard_ref"
           ],
           "properties": {
             "material_family": {
@@ -178,6 +181,12 @@
                 "unknown",
                 "not_applicable"
               ]
+            },
+            "coarse_grained_or_austenitic": {
+              "type": "boolean"
+            },
+            "additional_standard_ref": {
+              "$ref": "#/$defs/nullableString"
             }
           }
         },
@@ -662,6 +671,9 @@
               "type": "boolean"
             }
           }
+        },
+        "provider": {
+          "$ref": "#/$defs/provider"
         }
       }
     },
@@ -704,6 +716,102 @@
           }
         },
         "expected_code": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "provider": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider_id",
+        "provider_type",
+        "approval_ref",
+        "approval_standard",
+        "approval_revision",
+        "approval_maturity",
+        "approval_scope",
+        "authorized_method_families",
+        "approval_status",
+        "valid_from_utc",
+        "valid_until_utc",
+        "source_retrieved_at_utc",
+        "source_revision",
+        "authority_scope",
+        "source_ref"
+      ],
+      "properties": {
+        "provider_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "provider_type": {
+          "enum": [
+            "external_supplier",
+            "internal_shipyard_department"
+          ]
+        },
+        "approval_ref": {
+          "$ref": "#/$defs/nullableString"
+        },
+        "approval_standard": {
+          "type": "string",
+          "minLength": 1
+        },
+        "approval_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "approval_maturity": {
+          "enum": [
+            "published_current",
+            "draft_cd",
+            "draft_dis",
+            "future_effective",
+            "unknown"
+          ]
+        },
+        "approval_scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "authorized_method_families": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "approval_status": {
+          "enum": [
+            "current",
+            "expired",
+            "revoked",
+            "pending",
+            "unknown"
+          ]
+        },
+        "valid_from_utc": {
+          "$ref": "#/$defs/nullableDate"
+        },
+        "valid_until_utc": {
+          "$ref": "#/$defs/nullableDate"
+        },
+        "source_retrieved_at_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "source_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "authority_scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_ref": {
           "type": "string",
           "minLength": 1
         }
