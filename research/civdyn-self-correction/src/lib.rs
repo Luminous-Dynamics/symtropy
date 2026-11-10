@@ -938,3 +938,4 @@ mod tests {
 }
 
 pub mod challenge_custody;
+pub mod feedback_budget;
