@@ -19,7 +19,7 @@ const CLAIM_CEILING: &str =
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(deny_unknown_fields)]
-pub struct PolicyInputV1 {
+pub struct PolicyInputV2 {
     pub schema_version: u32,
     pub decision_risk: DecisionRisk,
     pub scenario_id: String,
@@ -201,7 +201,7 @@ pub enum AbstentionReason {
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
-pub struct PolicyReceiptV1 {
+pub struct PolicyReceiptV2 {
     pub schema_version: u32,
     pub input_sha256: String,
     pub scenario_id: String,
@@ -319,7 +319,7 @@ impl std::error::Error for PolicyError {}
 /// Selection is lexicographic: p95 wall time, peak memory, then model id.
 /// No weighted score can compensate for a failed semantic, evidence,
 /// applicability, hard-constraint, error-bound, or resource gate.
-pub fn evaluate(input: &PolicyInputV1) -> Result<PolicyReceiptV1, PolicyError> {
+pub fn evaluate(input: &PolicyInputV2) -> Result<PolicyReceiptV2, PolicyError> {
     validate_input(input)?;
     let input_sha256 = canonical_input_sha256(input)?;
     let mut candidates = input.candidates.clone();
@@ -363,7 +363,7 @@ pub fn evaluate(input: &PolicyInputV1) -> Result<PolicyReceiptV1, PolicyError> {
             },
         });
 
-    Ok(PolicyReceiptV1 {
+    Ok(PolicyReceiptV2 {
         schema_version: SCHEMA_VERSION,
         input_sha256,
         scenario_id: input.scenario_id.clone(),
@@ -378,8 +378,8 @@ pub fn evaluate(input: &PolicyInputV1) -> Result<PolicyReceiptV1, PolicyError> {
 /// independently admissible candidate, or abstention. Tolerances are never
 /// relaxed during escalation.
 pub fn monitor(
-    input: &PolicyInputV1,
-    receipt: &PolicyReceiptV1,
+    input: &PolicyInputV2,
+    receipt: &PolicyReceiptV2,
     observation: &RunObservation,
 ) -> Result<MonitoringDecision, PolicyError> {
     validate_input(input)?;
@@ -525,7 +525,7 @@ pub fn monitor(
     }
 }
 
-fn validate_input(input: &PolicyInputV1) -> Result<(), PolicyError> {
+fn validate_input(input: &PolicyInputV2) -> Result<(), PolicyError> {
     if input.schema_version != SCHEMA_VERSION {
         return Err(PolicyError::UnsupportedSchema(input.schema_version));
     }
@@ -617,7 +617,7 @@ fn validate_input(input: &PolicyInputV1) -> Result<(), PolicyError> {
 }
 
 fn decision_class(
-    input: &PolicyInputV1,
+    input: &PolicyInputV2,
     candidate: &ModelCandidate,
 ) -> Option<DecisionClass> {
     let boundary = input.requirement.decision_boundary.as_ref()?;
@@ -648,7 +648,7 @@ fn decision_class(
 }
 
 fn rejection_reasons(
-    input: &PolicyInputV1,
+    input: &PolicyInputV2,
     candidate: &ModelCandidate,
     decision_class: Option<DecisionClass>,
 ) -> Vec<RejectionReason> {
@@ -759,7 +759,7 @@ fn rejection_reasons(
     reasons
 }
 
-fn canonical_input_sha256(input: &PolicyInputV1) -> Result<String, PolicyError> {
+fn canonical_input_sha256(input: &PolicyInputV2) -> Result<String, PolicyError> {
     let mut canonical = input.clone();
     canonical
         .candidates
@@ -836,8 +836,8 @@ mod tests {
         }
     }
 
-    fn input() -> PolicyInputV1 {
-        PolicyInputV1 {
+    fn input() -> PolicyInputV2 {
+        PolicyInputV2 {
             schema_version: SCHEMA_VERSION,
             decision_risk: DecisionRisk::EngineeringDecision,
             scenario_id: "rigid-contact-known-answer-01".to_owned(),
@@ -1236,7 +1236,7 @@ mod tests {
                 to_model_id: "slow-qualified".to_owned(),
                 trigger: MonitorTrigger::ResidualExceeded,
                 observation_receipt_sha256: H3.to_owned(),
-                next_input_sha256: evaluate(&PolicyInputV1 {
+                next_input_sha256: evaluate(&PolicyInputV2 {
                     candidates: vec![candidate("slow-qualified", 900, 2_000)],
                     ..data.clone()
                 })
@@ -1431,7 +1431,7 @@ mod tests {
                 to_model_id: "slow-qualified".to_owned(),
                 trigger: MonitorTrigger::ResidualExceeded,
                 observation_receipt_sha256: H3.to_owned(),
-                next_input_sha256: evaluate(&PolicyInputV1 {
+                next_input_sha256: evaluate(&PolicyInputV2 {
                     candidates: vec![candidate("slow-qualified", 900, 2_000)],
                     ..data.clone()
                 })
