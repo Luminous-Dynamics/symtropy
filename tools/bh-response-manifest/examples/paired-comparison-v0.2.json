@@ -27,7 +27,8 @@
     ],
     "reproduction_command": "cargo run --release -- --study pt-response-example-v0.2",
     "environment": "rustc-1.96.0; binary64; linux-x86_64",
-    "canonical_input_set_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    "canonical_input_set_sha256": "46697b288f82a2660f571957eb394c59c99718e03bb7c5a1293aca7341468666",
+    "canonical_input_set_format": "utf8_bytewise_name_tab_lowercase_sha256_lf_v1"
   },
   "numerical": {
     "solver_id": "analytic-example-not-an-executed-run",
@@ -45,14 +46,14 @@
       "method_id": "direct-pde",
       "implementation_id": "independent-fdtd-method",
       "implementation_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-      "input_set_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "input_set_sha256": "46697b288f82a2660f571957eb394c59c99718e03bb7c5a1293aca7341468666",
       "response_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
     },
     {
       "method_id": "frequency-green",
       "implementation_id": "frequency-domain-green-method",
       "implementation_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
-      "input_set_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "input_set_sha256": "46697b288f82a2660f571957eb394c59c99718e03bb7c5a1293aca7341468666",
       "response_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
     }
   ],
