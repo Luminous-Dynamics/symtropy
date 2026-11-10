@@ -124,6 +124,11 @@ pub enum GrayScottError {
         grid_height: usize,
     },
     PatchValueOutOfRange { name: &'static str, value: f64 },
+    PatchNoiseOutOfRange {
+        name: &'static str,
+        center: f64,
+        amplitude: f64,
+    },
     InvalidObservationThreshold(f64),
     TickOverflow,
 }
@@ -163,6 +168,14 @@ impl fmt::Display for GrayScottError {
             Self::PatchValueOutOfRange { name, value } => {
                 write!(f, "patch value {name}={value} must be finite and in [0, 1]")
             }
+            Self::PatchNoiseOutOfRange {
+                name,
+                center,
+                amplitude,
+            } => write!(
+                f,
+                "patch noise for {name} is out of range: center={center}, amplitude={amplitude}; center ± amplitude/2 must remain in [0, 1]"
+            ),
             Self::InvalidObservationThreshold(value) => {
                 write!(f, "observation threshold must be finite and in [0, 1], got {value}")
             }
@@ -324,6 +337,72 @@ impl GrayScottField {
         Ok(())
     }
 
+    /// Set a rectangular patch with deterministic, explicitly seeded perturbations.
+    ///
+    /// Noise amplitudes specify the full peak-to-peak interval: values are drawn from
+    /// `center - amplitude/2` through `center + amplitude/2`. The amplitudes and resulting
+    /// ranges must remain within [0, 1]. This is useful for reproducible reaction–diffusion
+    /// pattern seeding; the seed is an explicit experiment input, not hidden solver state.
+    pub fn set_seeded_patch(
+        &mut self,
+        x: usize,
+        y: usize,
+        patch_width: usize,
+        patch_height: usize,
+        u_center: f64,
+        v_center: f64,
+        u_noise_amplitude: f64,
+        v_noise_amplitude: f64,
+        seed: u64,
+    ) -> Result<(), GrayScottError> {
+        if patch_width == 0
+            || patch_height == 0
+            || x.checked_add(patch_width).is_none_or(|end| end > self.width)
+            || y.checked_add(patch_height).is_none_or(|end| end > self.height)
+        {
+            return Err(GrayScottError::PatchOutOfBounds {
+                x,
+                y,
+                patch_width,
+                patch_height,
+                grid_width: self.width,
+                grid_height: self.height,
+            });
+        }
+
+        for (name, center) in [("u_center", u_center), ("v_center", v_center)] {
+            if !center.is_finite() || !(0.0..=1.0).contains(&center) {
+                return Err(GrayScottError::PatchValueOutOfRange { name, value: center });
+            }
+        }
+        for (name, center, amplitude) in [
+            ("u", u_center, u_noise_amplitude),
+            ("v", v_center, v_noise_amplitude),
+        ] {
+            if !amplitude.is_finite()
+                || amplitude < 0.0
+                || center - amplitude * 0.5 < 0.0
+                || center + amplitude * 0.5 > 1.0
+            {
+                return Err(GrayScottError::PatchNoiseOutOfRange {
+                    name,
+                    center,
+                    amplitude,
+                });
+            }
+        }
+
+        let mut rng = SeededPatchRng::new(seed);
+        for patch_y in y..(y + patch_height) {
+            for patch_x in x..(x + patch_width) {
+                let idx = self.index(patch_x, patch_y);
+                self.u[idx] = u_center + u_noise_amplitude * (rng.next_unit() - 0.5);
+                self.v[idx] = v_center + v_noise_amplitude * (rng.next_unit() - 0.5);
+            }
+        }
+        Ok(())
+    }
+
     /// Advance one fixed timestep using an explicit nine-point Laplacian.
     ///
     /// The boundaries use a no-flux approximation by clamping neighbour coordinates to
@@ -478,6 +557,38 @@ impl GrayScottField {
     }
 }
 
+/// Local deterministic PRNG for explicit patch initialization.
+/// The algorithm and seed are part of the simulation input and replay contract.
+#[derive(Debug, Clone, Copy)]
+struct SeededPatchRng {
+    state: u64,
+}
+
+impl SeededPatchRng {
+    fn new(seed: u64) -> Self {
+        Self {
+            state: if seed == 0 {
+                0x9E37_79B9_7F4A_7C15
+            } else {
+                seed
+            },
+        }
+    }
+
+    fn next_u64(&mut self) -> u64 {
+        let mut value = self.state;
+        value ^= value << 13;
+        value ^= value >> 7;
+        value ^= value << 17;
+        self.state = value;
+        value
+    }
+
+    fn next_unit(&mut self) -> f64 {
+        ((self.next_u64() >> 11) as f64) / ((1u64 << 53) as f64)
+    }
+}
+
 fn sum(values: &[f64]) -> f64 {
     values.iter().sum()
 }
@@ -540,15 +651,72 @@ mod tests {
     }
 
     #[test]
-    fn localized_patch_creates_a_nonuniform_simulated_field() {
-        let mut field = GrayScottField::new(64, 64, GrayScottParameters::default()).unwrap();
-        field.set_patch(29, 29, 6, 6, 0.5, 0.25).unwrap();
-        field.run_steps(40).unwrap();
+    fn seeded_patch_produces_multiple_reaction_diffusion_domains() {
+        let mut first = GrayScottField::new(80, 80, GrayScottParameters::default()).unwrap();
+        let mut second = GrayScottField::new(80, 80, GrayScottParameters::default()).unwrap();
+        for field in [&mut first, &mut second] {
+            field
+                .set_seeded_patch(24, 24, 32, 32, 0.5, 0.25, 0.2, 0.2, 42)
+                .unwrap();
+        }
 
-        let metrics = field.metrics(0.1).unwrap();
+        first.run_steps(3_000).unwrap();
+        second.run_steps(3_000).unwrap();
+        assert_eq!(first.u(), second.u());
+        assert_eq!(first.v(), second.v());
+
+        let metrics = first.metrics(0.1).unwrap();
         assert!(metrics.variance_v > 0.0);
         assert!(metrics.gradient_energy_v > 0.0);
         assert!(metrics.high_v_fraction > 0.0);
+
+        // Count four-connected components above the pre-registered V threshold.
+        // Multiple separated domains are stronger evidence of pattern formation than
+        // a merely non-uniform residual from the initial perturbation.
+        let mask: Vec<bool> = first.v().iter().map(|value| *value > 0.1).collect();
+        let mut visited = vec![false; mask.len()];
+        let mut components = 0usize;
+        for start in 0..mask.len() {
+            if !mask[start] || visited[start] {
+                continue;
+            }
+            components += 1;
+            let mut stack = vec![start];
+            visited[start] = true;
+            while let Some(index) = stack.pop() {
+                let x = index % first.width();
+                let y = index / first.width();
+                let neighbors = [
+                    (x.checked_sub(1), Some(y)),
+                    ((x + 1 < first.width()).then_some(x + 1), Some(y)),
+                    (Some(x), y.checked_sub(1)),
+                    (Some(x), (y + 1 < first.height()).then_some(y + 1)),
+                ];
+                for (nx, ny) in neighbors {
+                    let (Some(nx), Some(ny)) = (nx, ny) else {
+                        continue;
+                    };
+                    let neighbor = ny * first.width() + nx;
+                    if mask[neighbor] && !visited[neighbor] {
+                        visited[neighbor] = true;
+                        stack.push(neighbor);
+                    }
+                }
+            }
+        }
+        assert!(
+            components >= 2,
+            "seeded reaction-diffusion control should produce separated V domains; got {components}"
+        );
+    }
+
+    #[test]
+    fn seeded_patch_rejects_noise_ranges_outside_unit_interval() {
+        let mut field = GrayScottField::new(16, 16, GrayScottParameters::default()).unwrap();
+        assert!(matches!(
+            field.set_seeded_patch(2, 2, 4, 4, 0.5, 0.25, 1.2, 0.2, 1),
+            Err(GrayScottError::PatchNoiseOutOfRange { .. })
+        ));
     }
 
     #[test]
