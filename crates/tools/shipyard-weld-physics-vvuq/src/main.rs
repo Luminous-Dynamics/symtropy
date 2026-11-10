@@ -37,7 +37,12 @@ fn valid_source_id(value: &str) -> bool {
     !value.is_empty()
         && value
             .split('-')
-            .all(|part| !part.is_empty() && part.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit()))
+            .all(|part| {
+                !part.is_empty()
+                    && part
+                        .bytes()
+                        .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit())
+            })
 }
 
 fn valid_case_id(value: &str) -> bool {
@@ -124,22 +129,23 @@ fn validate_manifest(schema_text: &str, corpus_text: &str) -> Result<Summary, Ve
                 errors.push(format!("{context}.{field} must be a non-empty string"));
             }
         }
-        if !string_at(source, "citation_uri")
-            .is_some_and(|uri| uri.starts_with("https://") || uri.starts_with("http://"))
+        if string_at(source, "citation_uri").is_none_or(|uri| {
+            !uri.starts_with("https://") && !uri.starts_with("http://")
+        })
         {
             errors.push(format!("{context}.citation_uri must be an HTTP(S) URI"));
         }
-        if !string_at(source, "retrieved_on").is_some_and(is_date) {
+        if string_at(source, "retrieved_on").is_none_or(|value| !is_date(value)) {
             errors.push(format!("{context}.retrieved_on must use YYYY-MM-DD"));
         }
-        if !string_at(source, "admission_status")
-            .is_some_and(|status| allowed_admission.contains(&status))
+        if string_at(source, "admission_status")
+            .is_none_or(|status| !allowed_admission.contains(&status))
         {
             errors.push(format!("{context}.admission_status is unknown"));
         }
         if source.get("numerical_scoring_eligible").and_then(Value::as_bool) != Some(false) {
             errors.push(format!(
-                "{context} is not eligible for v0.1 numerical scoring; admission requires a separately reviewed corpus revision"
+                "v0.1 sources cannot score numerical data; revise the admission contract first"
             ));
         }
         if source.get("raw_data_bytes_available").and_then(Value::as_bool) != Some(false) {
@@ -147,9 +153,11 @@ fn validate_manifest(schema_text: &str, corpus_text: &str) -> Result<Summary, Ve
                 "{context} must not claim raw measurement bytes in the metadata-only v0.1 inventory"
             ));
         }
-        if !source.get("source_bytes_sha256").is_some_and(Value::is_null) {
+        if source
+            .get("source_bytes_sha256")
+            .is_none_or(|value| !value.is_null()) {
             errors.push(format!(
-                "{context}.source_bytes_sha256 must remain null until the exact source artifact is admitted"
+                "source digest must be null until exact source bytes are admitted"
             ));
         }
         if source.get("measurement_modalities").and_then(Value::as_array).is_none() {
@@ -189,7 +197,7 @@ fn validate_manifest(schema_text: &str, corpus_text: &str) -> Result<Summary, Ve
             Some("negative_control") => negative_count += 1,
             _ => errors.push(format!("{context}.case_class is unknown")),
         }
-        if !class.is_some_and(|value| allowed_classes.contains(&value)) {
+        if class.is_none_or(|value| !allowed_classes.contains(&value)) {
             errors.push(format!("{context}.case_class is not in the frozen vocabulary"));
         }
         for field in ["target", "mutation", "rationale"] {
@@ -197,8 +205,8 @@ fn validate_manifest(schema_text: &str, corpus_text: &str) -> Result<Summary, Ve
                 errors.push(format!("{context}.{field} must be a non-empty string"));
             }
         }
-        if !string_at(case, "expected_disposition")
-            .is_some_and(|value| allowed_dispositions.contains(&value))
+        if string_at(case, "expected_disposition")
+            .is_none_or(|value| !allowed_dispositions.contains(&value))
         {
             errors.push(format!("{context}.expected_disposition is unknown"));
         }
@@ -217,14 +225,14 @@ fn validate_manifest(schema_text: &str, corpus_text: &str) -> Result<Summary, Ve
     }
 
     if sources.len() != 8 {
-        errors.push(format!("v0.1 frozen source inventory must contain 8 entries, found {}", sources.len()));
+        errors.push(format!("expected 8 v0.1 sources, found {}", sources.len()));
     }
     if cases.len() != 26 {
         errors.push(format!("v0.1 frozen corpus must contain 26 cases, found {}", cases.len()));
     }
     if positive_count != 1 || negative_count != 25 {
         errors.push(format!(
-            "v0.1 corpus requires 1 positive and 25 negative controls; found {positive_count} positive / {negative_count} negative"
+            "expected 1 positive and 25 negative controls; got {positive_count}/{negative_count}"
         ));
     }
 
@@ -267,8 +275,11 @@ fn main() -> ExitCode {
     match validate_manifest(&schema_text, &corpus_text) {
         Ok(summary) => {
             println!(
-                "PASS: {} sources, {} cases ({} positive, {} negative); all v0.1 sources remain non-scoring",
-                summary.source_count, summary.case_count, summary.positive_count, summary.negative_count
+                "PASS: {sources} sources, {cases} cases ({positive} positive / {negative} negative); v0.1 inventory non-scoring",
+                sources = summary.source_count,
+                cases = summary.case_count,
+                positive = summary.positive_count,
+                negative = summary.negative_count
             );
             ExitCode::SUCCESS
         }
@@ -346,7 +357,7 @@ mod tests {
     fn missing_negative_control_is_rejected() {
         let mut corpus = corpus_value();
         let cases = corpus["cases"].as_array_mut().expect("cases array");
-        cases.pop();
+        assert!(cases.pop().is_some());
         let serialized = serde_json::to_string(&corpus).expect("serialize mutation");
         assert!(validate_manifest(SCHEMA_TEXT, &serialized).is_err());
     }
