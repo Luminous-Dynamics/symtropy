@@ -1,0 +1,71 @@
+name: Bevy 0.20 Lockfile Bootstrap
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches: ["main"]
+    paths:
+      - "Cargo.toml"
+      - "**/Cargo.toml"
+      - "rust-toolchain.toml"
+      - ".github/workflows/bevy-020-lockfile.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bevy-020-lockfile-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  generate:
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository
+      && github.event.pull_request.head.ref == 'upgrade/bevy-0.20.1-workspace'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact pull-request head
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Install Bevy 0.20 MSRV toolchain
+        run: |
+          rustup toolchain install 1.97.1 --profile minimal --component rustfmt --component clippy
+          rustc +1.97.1 --version
+          cargo +1.97.1 --version
+
+      - name: Generate Cargo.lock from the exact manifests
+        run: cargo +1.97.1 generate-lockfile
+
+      - name: Verify the single-Bevy invariant and dependency metadata
+        run: |
+          set -euo pipefail
+          bash scripts/check-workspace.sh
+          cargo +1.97.1 metadata --locked --no-deps --format-version 1 > /tmp/symtropy-metadata.json
+          locked="$(awk '
+            $0 == "name = \"bevy\"" { in_bevy = 1; next }
+            in_bevy && /^version = / { gsub(/version = \"|\"/, ""); print; exit }
+          ' Cargo.lock)"
+          case "$locked" in
+            0.20.*) echo "Single locked Bevy version: $locked" ;;
+            *) echo "Expected Bevy 0.20.x in lockfile, found: $locked" >&2; exit 1 ;;
+          esac
+
+      - name: Commit generated lockfile to the migration branch
+        env:
+          TARGET_BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- Cargo.lock; then
+            echo "Cargo.lock already matches the current manifests."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Cargo.lock
+          git commit -m "build(bevy): commit Cargo 1.97.1-resolved Bevy 0.20 lockfile"
+          git push origin "HEAD:refs/heads/${TARGET_BRANCH}"
