@@ -234,7 +234,7 @@ External scores are not pooled. Report native score names and evaluation protoco
 
 ### Bench2Drive v0.0.4 reference snapshot
 
-The Bench2Drive repository marks v0.0.4 as the version currently in use. Its tagged update describes a 220-route evaluation set (44 scenarios × 5 routes). The repository's v0.0.4 results table lists:
+The Bench2Drive repository marks v0.0.4 (released 6 August 2026) as the version currently in use. It adds a strictly uniform 1,100-route training set (44 scenarios × 25 routes) and a separate 220-route evaluation set (44 scenarios × 5 routes), plus 3D occupancy and dataset/sensor bug fixes. This makes it a particularly useful uniform-sampling reference for the apprenticeship programme. The repository's v0.0.4 results table lists:
 - LEAD: 95.59 Driving Score, 87.28% Success Rate, 201.55 Efficiency, 20.56 Comfort.
 - Simlingo: 86.55 Driving Score, 70.45% Success Rate, 251.72 Efficiency, 35.47 Comfort.
 
@@ -282,13 +282,15 @@ No second safety authority or duplicate option evaluator is introduced.
 
 ## 11. Current implementation boundary
 
-This pull request adds a protocol document, a machine-readable manifest and a JSON Schema. It does not add:
-- a simulator, renderer or camera driver;
-- a model, trainer, active sampler or query service;
-- an executable benchmark evaluator;
-- a trained checkpoint or a human demonstration dataset.
+This PR adds the protocol document, machine-readable manifest and JSON Schema. It does not add a simulator, renderer, camera driver, trained model, training run, human demonstration dataset or driving result.
 
-The next executable slice is a small, finite evaluator over synthetic branch records: validate branch identity, intervention pairing, exogenous-event correspondence, denominator completeness and known-answer sampler rankings. It should be implemented in Rust and tested before being connected to the driving environment.
+Two independent executable research PRs now cover the first finite-record layer:
+- [Symtropy #4556 — recoverable driving branch evidence auditor](https://github.com/Luminous-Dynamics/symtropy/pull/4556): validates branch lineage, actor response provenance, explicit exogenous-randomness pairing, query-time privilege and episode/branch denominators. It cannot prove the truth of upstream causal declarations.
+- [Symtropy #4575 — deadline-aware decision-value experience selector](https://github.com/Luminous-Dynamics/symtropy/pull/4575): deterministically compares seven sampling strategies and rejects SAM-guided queries that lack qualified evidence, positive expected decision value or sufficient time before the decision deadline.
+
+Both are draft PRs. Their exact-head Rust checks have not yet completed; neither is represented as compiled/tested or scientifically validated.
+
+The next environment deliverable remains a minimal offscreen camera-to-control episode with the #4536 observation/action/transition receipts, fresh-process replay and a documented vehicle/renderer fidelity boundary. The selector and branch auditor must be integrated only after their schemas and tests are reviewed.
 
 ## References
 
