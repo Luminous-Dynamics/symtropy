@@ -289,7 +289,8 @@
     {
       "id": "valid_context_bundle_no_authority_claim",
       "mutations": [],
-      "expected_code": "CONTEXT_BUNDLE_VALID_NOT_OPERATIONAL_AUTHORITY"
+      "expected_code": "CONTEXT_BUNDLE_VALID_NOT_OPERATIONAL_AUTHORITY",
+      "expected_layer": "semantic"
     },
     {
       "id": "s131_berth_feature_claimed_available",
@@ -300,7 +301,8 @@
           "value": "proven_in_declared_scope"
         }
       ],
-      "expected_code": "S131_CONTEXT_NOT_AVAILABILITY"
+      "expected_code": "S131_CONTEXT_NOT_AVAILABILITY",
+      "expected_layer": "semantic"
     },
     {
       "id": "s131_live_inventory_absent_but_claim_proven",
@@ -311,7 +313,8 @@
           "value": "provider_confirmed_available"
         }
       ],
-      "expected_code": "BERTH_AVAILABILITY_SOURCE_MISSING"
+      "expected_code": "BERTH_AVAILABILITY_SOURCE_MISSING",
+      "expected_layer": "semantic"
     },
     {
       "id": "s127_pilot_service_area_claimed_as_assignment",
@@ -327,7 +330,8 @@
           "value": "proven_in_declared_scope"
         }
       ],
-      "expected_code": "PILOT_ASSIGNMENT_AUTHORITY_MISSING"
+      "expected_code": "PILOT_ASSIGNMENT_AUTHORITY_MISSING",
+      "expected_layer": "semantic"
     },
     {
       "id": "s127_descriptive_area_claimed_as_clearance",
@@ -338,7 +342,8 @@
           "value": "provider_confirmed"
         }
       ],
-      "expected_code": "VTS_CLEARANCE_SOURCE_MISSING"
+      "expected_code": "VTS_CLEARANCE_SOURCE_MISSING",
+      "expected_layer": "semantic"
     },
     {
       "id": "s123_coverage_claimed_as_live_radio",
@@ -354,7 +359,8 @@
           "value": "proven_in_declared_scope"
         }
       ],
-      "expected_code": "RADIO_LINK_MEASUREMENT_MISSING"
+      "expected_code": "RADIO_LINK_MEASUREMENT_MISSING",
+      "expected_layer": "semantic"
     },
     {
       "id": "s123_service_map_claimed_as_warning_delivery",
@@ -365,7 +371,8 @@
           "value": "received_with_device_receipt"
         }
       ],
-      "expected_code": "RADIO_DELIVERY_RECEIPT_MISSING"
+      "expected_code": "RADIO_DELIVERY_RECEIPT_MISSING",
+      "expected_layer": "semantic"
     },
     {
       "id": "s124_warning_receipt_claim_without_device_record",
@@ -381,7 +388,8 @@
           "value": "proven_in_declared_scope"
         }
       ],
-      "expected_code": "WARNING_RECEIPT_EVIDENCE_MISSING"
+      "expected_code": "WARNING_RECEIPT_EVIDENCE_MISSING",
+      "expected_layer": "semantic"
     },
     {
       "id": "s124_warning_bulletin_stale",
@@ -392,7 +400,8 @@
           "value": "2026-11-10T10:00:00Z"
         }
       ],
-      "expected_code": "WARNING_CURRENTNESS_UNKNOWN"
+      "expected_code": "WARNING_CURRENTNESS_UNKNOWN",
+      "expected_layer": "semantic"
     },
     {
       "id": "s124_incomplete_bulletin_used_to_prove_absence",
@@ -408,7 +417,8 @@
           "value": "proven_in_declared_scope"
         }
       ],
-      "expected_code": "WARNING_COMPLETENESS_UNKNOWN"
+      "expected_code": "WARNING_COMPLETENESS_UNKNOWN",
+      "expected_layer": "semantic"
     },
     {
       "id": "s124_cancelled_warning_shown_active",
@@ -424,7 +434,8 @@
           "value": "proven_in_declared_scope"
         }
       ],
-      "expected_code": "CANCELLED_WARNING_NOT_CURRENT"
+      "expected_code": "CANCELLED_WARNING_NOT_CURRENT",
+      "expected_layer": "semantic"
     },
     {
       "id": "s129_preplan_claimed_as_actual_plan",
@@ -440,7 +451,8 @@
           "value": "proven_in_declared_scope"
         }
       ],
-      "expected_code": "PREPLAN_NOT_ACTUAL_PLAN"
+      "expected_code": "PREPLAN_NOT_ACTUAL_PLAN",
+      "expected_layer": "semantic"
     },
     {
       "id": "s129_wrong_vessel_plan",
@@ -456,7 +468,8 @@
           "value": "proven_in_declared_scope"
         }
       ],
-      "expected_code": "UKC_PLAN_VESSEL_MISMATCH"
+      "expected_code": "UKC_PLAN_VESSEL_MISMATCH",
+      "expected_layer": "semantic"
     },
     {
       "id": "s129_wrong_route_revision",
@@ -472,7 +485,8 @@
           "value": "proven_in_declared_scope"
         }
       ],
-      "expected_code": "UKC_PLAN_ROUTE_MISMATCH"
+      "expected_code": "UKC_PLAN_ROUTE_MISMATCH",
+      "expected_layer": "semantic"
     },
     {
       "id": "s129_partial_update_claimed_current",
@@ -495,7 +509,8 @@
           ]
         }
       ],
-      "expected_code": "UKC_PARTIAL_REPLACEMENT_FORBIDDEN"
+      "expected_code": "UKC_PARTIAL_REPLACEMENT_FORBIDDEN",
+      "expected_layer": "semantic"
     },
     {
       "id": "s129_plan_expired",
@@ -511,7 +526,8 @@
           "value": "proven_in_declared_scope"
         }
       ],
-      "expected_code": "UKC_PLAN_EXPIRED"
+      "expected_code": "UKC_PLAN_EXPIRED",
+      "expected_layer": "semantic"
     },
     {
       "id": "s129_visual_plan_claimed_as_alarm",
@@ -527,7 +543,8 @@
           "value": "unsupported_alarm_claim"
         }
       ],
-      "expected_code": "UKC_ALARM_NOT_PROVIDED"
+      "expected_code": "UKC_ALARM_NOT_PROVIDED",
+      "expected_layer": "semantic"
     },
     {
       "id": "s129_plan_claimed_physical_clearance",
@@ -543,7 +560,8 @@
           "value": "proven_in_declared_scope"
         }
       ],
-      "expected_code": "UKC_PHYSICAL_QUALIFICATION_MISSING"
+      "expected_code": "UKC_PHYSICAL_QUALIFICATION_MISSING",
+      "expected_layer": "semantic"
     },
     {
       "id": "dcsa_get_conformance_claimed_as_subscriber_post",
@@ -559,7 +577,8 @@
           "value": "conformant_to_declared_scenario"
         }
       ],
-      "expected_code": "DCSA_DIRECTIONAL_CONFORMANCE_UNPROVEN"
+      "expected_code": "DCSA_DIRECTIONAL_CONFORMANCE_UNPROVEN",
+      "expected_layer": "semantic"
     },
     {
       "id": "dcsa_api_conformance_claimed_eta_accuracy",
@@ -570,7 +589,8 @@
           "value": "proven_in_declared_scope"
         }
       ],
-      "expected_code": "ETA_CALIBRATION_NOT_ESTABLISHED"
+      "expected_code": "ETA_CALIBRATION_NOT_ESTABLISHED",
+      "expected_layer": "semantic"
     },
     {
       "id": "dcsa_event_time_after_retrieval",
@@ -581,7 +601,8 @@
           "value": "2026-11-10T12:05:00Z"
         }
       ],
-      "expected_code": "DCSA_TEMPORAL_ORDER_INVALID"
+      "expected_code": "DCSA_TEMPORAL_ORDER_INVALID",
+      "expected_layer": "semantic"
     },
     {
       "id": "dcsa_semantic_validation_failed_but_conformant",
@@ -597,7 +618,8 @@
           "value": "proven_in_declared_scope"
         }
       ],
-      "expected_code": "DCSA_EVENT_SEMANTICS_INVALID"
+      "expected_code": "DCSA_EVENT_SEMANTICS_INVALID",
+      "expected_layer": "semantic"
     },
     {
       "id": "provider_offer_claimed_commitment",
@@ -613,7 +635,8 @@
           "value": "proven_in_declared_scope"
         }
       ],
-      "expected_code": "PROVIDER_COMMITMENT_NOT_CONFIRMED"
+      "expected_code": "PROVIDER_COMMITMENT_NOT_CONFIRMED",
+      "expected_layer": "semantic"
     },
     {
       "id": "provider_commitment_revoked",
@@ -634,7 +657,8 @@
           "value": "proven_in_declared_scope"
         }
       ],
-      "expected_code": "PROVIDER_COMMITMENT_REVOKED"
+      "expected_code": "PROVIDER_COMMITMENT_REVOKED",
+      "expected_layer": "semantic"
     },
     {
       "id": "provider_commitment_expired",
@@ -650,7 +674,8 @@
           "value": "proven_in_declared_scope"
         }
       ],
-      "expected_code": "PROVIDER_COMMITMENT_EXPIRED"
+      "expected_code": "PROVIDER_COMMITMENT_EXPIRED",
+      "expected_layer": "semantic"
     },
     {
       "id": "context_bundle_attempts_to_grant_booking_authority",
@@ -666,7 +691,8 @@
           "value": null
         }
       ],
-      "expected_code": "BOOKING_AUTHORITY_OWNER_BOUNDARY"
+      "expected_code": "BOOKING_AUTHORITY_OWNER_BOUNDARY",
+      "expected_layer": "semantic"
     },
     {
       "id": "synthetic_run_claimed_physical_feasible",
@@ -682,7 +708,8 @@
           "value": "proven_in_declared_scope"
         }
       ],
-      "expected_code": "SYNTHETIC_RUN_NOT_PHYSICAL_QUALIFICATION"
+      "expected_code": "SYNTHETIC_RUN_NOT_PHYSICAL_QUALIFICATION",
+      "expected_layer": "semantic"
     },
     {
       "id": "nondeterministic_run_claimed_verified",
@@ -698,7 +725,8 @@
           "value": "proven_in_declared_scope"
         }
       ],
-      "expected_code": "RUN_REPLAY_NOT_VERIFIED"
+      "expected_code": "RUN_REPLAY_NOT_VERIFIED",
+      "expected_layer": "semantic"
     },
     {
       "id": "scenario_run_attempts_source_writeback",
@@ -709,7 +737,8 @@
           "value": "writeback_enabled"
         }
       ],
-      "expected_code": "SOURCE_WRITEBACK_FORBIDDEN"
+      "expected_code": "SOURCE_WRITEBACK_FORBIDDEN",
+      "expected_layer": "semantic"
     },
     {
       "id": "product_dependency_silently_upgraded",
@@ -720,7 +749,8 @@
           "value": "5.2.1"
         }
       ],
-      "expected_code": "PRODUCT_DEPENDENCY_MISMATCH"
+      "expected_code": "PRODUCT_DEPENDENCY_MISMATCH",
+      "expected_layer": "schema"
     },
     {
       "id": "source_artifact_digest_malformed",
@@ -731,7 +761,8 @@
           "value": "not-a-digest"
         }
       ],
-      "expected_code": "SOURCE_ARTIFACT_DIGEST_INVALID"
+      "expected_code": "SOURCE_ARTIFACT_DIGEST_INVALID",
+      "expected_layer": "schema"
     },
     {
       "id": "s129_actual_plan_stale_at_decision_cutoff",
@@ -742,7 +773,8 @@
           "value": "2026-11-10T11:40:00Z"
         }
       ],
-      "expected_code": "UKC_PLAN_STALE_UNKNOWN"
+      "expected_code": "UKC_PLAN_STALE_UNKNOWN",
+      "expected_layer": "semantic"
     }
   ]
 }
