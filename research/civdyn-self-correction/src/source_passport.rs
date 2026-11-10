@@ -755,8 +755,8 @@ pub fn assess_observation_compatibility(
         purpose,
         status,
         reasons,
-        left_artifact_digest: left.artifact_digest.clone(),
-        right_artifact_digest: right.artifact_digest.clone(),
+        left_artifact_digest: left_source.artifact_digest.clone().unwrap_or_default(),
+        right_artifact_digest: right_source.artifact_digest.clone().unwrap_or_default(),
         explicit_transform_digests: used_transform_digests,
     }
 }
@@ -918,6 +918,66 @@ mod tests {
             RegisteredPurpose::EmpiricalValidation, &plan()
         );
         assert_eq!(report.status, CompatibilityStatus::NotAssessed);
+    }
+
+    #[test]
+    fn known_rights_block_is_not_masked_by_pending_acquisition() {
+        let prohibited_candidate = passport(
+            "prohibited-candidate",
+            "not-acquired",
+            RightsStatus::Prohibited,
+            AcquisitionStatus::CandidateAvailable,
+        );
+        let report = qualify_source(
+            &prohibited_candidate,
+            RegisteredPurpose::EmpiricalValidation,
+        );
+        assert_eq!(report.status, SourceQualificationStatus::RightsBlocked);
+        assert_eq!(
+            report.reason,
+            Some(CompatibilityReason::RightsProhibited)
+        );
+    }
+
+    #[test]
+    fn survey_observation_must_match_the_exact_passport_weight_and_design_digests() {
+        let left_source = passport(
+            "survey-a",
+            "sha256-survey-a",
+            RightsStatus::Permitted,
+            AcquisitionStatus::Acquired,
+        );
+        let right_source = passport(
+            "survey-b",
+            "sha256-survey-b",
+            RightsStatus::Permitted,
+            AcquisitionStatus::Acquired,
+        );
+        let mut left = observation(
+            "left",
+            "survey-a",
+            "sha256-survey-a",
+            ObservationOrigin::SurveyEstimate,
+        );
+        left.weights_digest = Some("sha256-other-weighting".to_string());
+        let right = observation(
+            "right",
+            "survey-b",
+            "sha256-survey-b",
+            ObservationOrigin::SurveyEstimate,
+        );
+        let report = assess_observation_compatibility(
+            &left,
+            &left_source,
+            &right,
+            &right_source,
+            RegisteredPurpose::EmpiricalValidation,
+            &plan(),
+        );
+        assert_eq!(report.status, CompatibilityStatus::NotAssessed);
+        assert!(report
+            .reasons
+            .contains(&CompatibilityReason::SurveyDesignOrWeightsMissing));
     }
 
     #[test]
