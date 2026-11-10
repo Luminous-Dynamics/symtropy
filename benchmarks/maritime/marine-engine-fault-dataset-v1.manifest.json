@@ -48,7 +48,8 @@
         "0": "pre_anomaly",
         "1": "anomaly"
       },
-      "applies_to": "scenario_files_except_the_two_injection_nozzle_files_with_anomaly_only"
+      "applies_to": "scenario_files_except_the_two_injection_nozzle_files_with_anomaly_only",
+      "interpretation": "Binary per-row anomaly-state target only; fault-family identity is supplied by scenario/recording metadata, not a per-row multi-class label. Do not claim row-level root-cause or severity ground truth from this field."
     },
     "missing_channel_notes": [
       "Compressor Filter Loss",
