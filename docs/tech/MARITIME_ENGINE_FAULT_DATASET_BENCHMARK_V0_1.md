@@ -139,6 +139,8 @@ This improves the inventory boundary but does **not** upgrade the payload-audit 
 - SHA-256, CSV row counts, per-file timestamp monotonicity, three-row header parse, label-transition positions, channel units/presence and normalization-script behavior: not audited.
 - Split assignments and benchmark scores: not produced.
 
+The row-level target is a **binary anomaly-state label**, while fault-family identity is represented by the scenario/recording metadata. Do not score row-level multi-class root-cause classification from this binary field, and do not treat it as an independently adjudicated severity label without auditing the README and annotation protocol. The two injector recordings contain anomalous operation only, so they cannot support pre-anomaly-to-anomaly onset scoring.
+
 The archive record itself identifies the controlled MU323DGSC platform, the 16 CSV recordings, the 73-column scenario schema, the 70-column reference schema, the two anomaly-only injector files and five runs with two missing channels. Those are publisher metadata, not independently re-parsed measurements. [Zenodo record](https://zenodo.org/records/19857425) · [Zenodo archive preview](https://zenodo.org/records/19857425/preview/Marine_Engine_Fault_Data_v1.zip?include_deleted=0).
 
 ### A harder SOTA protocol
