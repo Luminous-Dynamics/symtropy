@@ -62,7 +62,9 @@
         "retrieved_at_utc": "2026-11-10T07:02:00Z",
         "source_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
         "sample_count": 500,
-        "minimum_samples": 100
+        "minimum_samples": 100,
+        "survey_sequence": 4,
+        "latest_survey_sequence": 4
       },
       "sensors": [
         {
