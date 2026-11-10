@@ -39,3 +39,27 @@ cargo clippy --locked --manifest-path experiments/robocasa-mem-bce-contract/Carg
 ## Nonclaims
 
 Passing these tests means only that this small Rust fixture implements the declared synthetic evaluator semantics. It does not qualify the upstream RoboCasa-Mem release, prove that the upstream evaluator is implemented correctly, demonstrate policy memory capability, establish any benchmark improvement, or establish physical truth/safety.
+
+
+## Result-import and qualification envelope
+
+The additive Rust module `result_envelope.rs` defines a per-episode result contract for later native benchmark adapters. It deliberately keeps these statements independent:
+
+- terminal task outcome (Succeeded / Failed / Unresolved);
+- each preregistered stage result (Succeeded / Failed / Unresolved / NotApplicable);
+- Behavior-Conditioned Evaluation decision receipts;
+- policy-visible inputs versus evaluator-private fields;
+- policy/checkpoint/deployment/training-data identity;
+- assistance track (policy-only, agent, tool, human, mixed, unknown);
+- run disposition (completed, policy abort, safety abort, operator abort, infrastructure indeterminate, invalid protocol);
+- evidence class (synthetic, simulator, HIL, supervised physical, autonomous physical, independently reviewed physical).
+
+The importer requires exactly one ordered stage record for every stage in the frozen task roster. Missing, duplicate, extra or reordered stages reject rather than silently changing the denominator. Unresolved applicable stages remain in the denominator; NotApplicable is retained separately. Terminal success is never inferred from stage completion, and successful stages are not erased when the terminal task later fails.
+
+The protocol envelope pins the task manifest, evaluator, dataset manifest, observation schema and action schema digests. Dataset-rights status and training-overlap disclosure are explicit. Unknown rights or unknown training overlap block a qualified comparison while preserving the raw measurements. The task record can declare whether BCE receipts are required; missing required receipts block qualification. BCE receipts keep evaluator-private decision evidence separate from the policy input digest.
+
+Assistance disclosure is not a cosmetic label: a PolicyOnly record cannot contain tools, agent wrappers, oracle channels or human interventions; a ToolAssisted/HumanAssisted/AgentAssisted label must have the corresponding disclosed evidence. Unknown or contradictory assistance blocks comparison rather than being silently treated as autonomous.
+
+The paired-control check requires identical protocol, task/scene/seed/split/stage roster, embodiment, action executor, environment, resource budget, evidence class and policy-visible observation manifest. Only the declared policy variant/checkpoint/assistance may differ. This is an identity check, not a statistical significance test.
+
+This module is a typed Rust validation contract only. It does not yet parse the upstream RoboCasa-Mem HDF5/Python export, run policies, compute the official macro aggregation, authenticate evidence digests, or verify that the upstream task/evaluator/dataset release has been pinned. See [VIS-MEM-029 #4414](https://github.com/Luminous-Dynamics/symtropy/issues/4414).
