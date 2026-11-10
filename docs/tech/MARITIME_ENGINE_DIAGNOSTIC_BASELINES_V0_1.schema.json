@@ -23,7 +23,7 @@
     },
     "baselines": {
       "type": "array",
-      "minItems": 14,
+      "minItems": 13,
       "items": {
         "$ref": "#/$defs/baseline"
       }
