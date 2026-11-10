@@ -30,9 +30,9 @@ jobs:
         run: |
           cargo run --manifest-path tools/ev-test-protocol-evidence-audit/Cargo.toml -- --schema schemas/transport/ev_test_protocol_evidence_v0_1.schema.json --corpus fixtures/ev_battery/test_protocol_evidence_scenarios_v0_1.json > "$RUNNER_TEMP/ev-test-protocol-evidence-report.json"
           jq -e '
-            .case_count == 14 and
-            .accepted_count == 6 and
-            .rejected_count == 8 and
+            .case_count == 18 and
+            .accepted_count == 8 and
+            .rejected_count == 10 and
             .non_physical_count == 1 and
             (.report_sha256 | test("^[a-f0-9]{64}$"))
           ' "$RUNNER_TEMP/ev-test-protocol-evidence-report.json"
