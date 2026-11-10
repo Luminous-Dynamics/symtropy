@@ -30,7 +30,8 @@
         "required_asset_feature_id": "SYNTH-WALL-PANEL-17",
         "survey_revision": "SURVEY-REV-01",
         "source_group": "SYNTH-MISSION-SOURCE-A",
-        "rights_review_status": "synthetic_not_applicable"
+        "rights_review_status": "synthetic_not_applicable",
+        "max_observation_age_s": 3600
       },
       "environment": {
         "optical_visibility_state": "nominal_synthetic",
