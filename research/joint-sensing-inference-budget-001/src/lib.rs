@@ -65,6 +65,8 @@ pub enum DecisionReason {
     StaleObservationRequiresRefresh,
     SensorValuePerResourceUnitHigher,
     InferenceValuePerResourceUnitHigher,
+    SensorOnlyEligible,
+    InferenceOnlyEligible,
     EqualRatioPrefersInference,
     NoEligiblePositiveResource,
     NoFreshObservationCanArriveBeforeDeadline,
@@ -532,7 +534,7 @@ pub fn schedule(
                     let grant = make_sensor_grant(valid);
                     (
                         DecisionAction::RequestObservation,
-                        DecisionReason::SensorValuePerResourceUnitHigher,
+                        DecisionReason::SensorOnlyEligible,
                         Some(grant.clone()),
                         None,
                         grant.resource_cost_units,
@@ -542,7 +544,7 @@ pub fn schedule(
                 }
                 (None, Some(inference)) => (
                     DecisionAction::AllocateInference,
-                    DecisionReason::InferenceValuePerResourceUnitHigher,
+                    DecisionReason::InferenceOnlyEligible,
                     None,
                     Some(inference.clone()),
                     inference.resource_cost_units,
@@ -829,6 +831,37 @@ mod tests {
             schedule(&budget, &inference(), "measured_uj_v1", None),
             Err(SchedulerError::InvalidBudget(_))
         ));
+    }
+
+    #[test]
+    fn sensor_only_eligible_is_not_reported_as_a_ratio_win() {
+        let mut inference = inference();
+        inference.maximum_rollout_count = 0;
+        let result = schedule(&budget(), &inference, "measured_uj_v1", Some(&sensor())).unwrap();
+        assert_eq!(result.action, DecisionAction::RequestObservation);
+        assert_eq!(result.reason, DecisionReason::SensorOnlyEligible);
+    }
+
+    #[test]
+    fn inference_only_eligible_is_not_reported_as_a_ratio_win() {
+        let mut sensor = sensor();
+        sensor.evidence_disposition = EvidenceDisposition::Rejected;
+        let result = schedule(&budget(), &inference(), "measured_uj_v1", Some(&sensor)).unwrap();
+        assert_eq!(result.action, DecisionAction::AllocateInference);
+        assert_eq!(result.reason, DecisionReason::InferenceOnlyEligible);
+    }
+
+    #[test]
+    fn decision_schema_is_valid_json_and_lists_privilege_safe_fields() {
+        let schema: serde_json::Value = serde_json::from_str(include_str!(
+            "../schemas/joint-sensing-inference-decision-v1.schema.json"
+        ))
+        .unwrap();
+        assert_eq!(schema["properties"]["schema_version"]["const"], 1);
+        let required = schema["required"].as_array().unwrap();
+        assert!(required.iter().any(|field| field == "resource_unit_id"));
+        assert!(required.iter().any(|field| field == "fallback_policy_id"));
+        assert!(schema["properties"].get("world_snapshot_sha256").is_none());
     }
 
     #[test]
