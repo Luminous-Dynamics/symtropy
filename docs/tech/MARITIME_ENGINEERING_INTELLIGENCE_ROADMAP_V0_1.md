@@ -23,6 +23,7 @@ The architecture has independent task owners. It does not create a second ODD ev
 | Mode, authority and fallback | Symthaea #11185 | Human/remote/autonomous mode authority and contingencies |
 | Cross-stack provenance | Mycelix #5974 | Issuer scope, exact artifacts, revocation and owner-to-owner handoffs |
 | Cross-engine transfer and continual learning | Symtropy #4510 | Domain generalization, negative transfer and forgetting |
+| Control-aware diagnosis | Symtropy #4628 | Typed control intent, actuator/controller state and physical response; maneuvering-regime conditional diagnosis and dropout tests |
 | Data trust and reconstruction | Symtropy #4535 | Missingness, drift, reconstructed values and sensor integrity |
 | RUL and maintenance utility | Symtropy #4545 | Censored event-time forecasts, calibration and maintenance-policy replay |
 | Narrative causal risk | Symtropy #4548 | Source-grounded incident/maintenance extraction and time-varying causal risk |
@@ -63,6 +64,17 @@ Each inference family has task-specific metrics and independent calibration. Do 
 - Frozen inputs, exact code/model/corpus digests, independent evaluator and immutable reports.
 - Negative controls and mutation campaigns for every hard gate.
 - Unknown outcome or unavailable evidence means no promotion to a permissive state.
+
+### Control-aware inference
+
+A control-aware diagnosis track is separately owned by [MARITIME-CONTROL-AWARE-DIAGNOSIS-001 #4628](https://github.com/Luminous-Dynamics/symtropy/issues/4628) and contributes typed signals and matched experiments to #4510. It distinguishes:
+- control intent (setpoints and requested commands);
+- controller/actuator state (outputs, feedback, saturation, mode and interlocks);
+- measured physical plant response.
+
+A 24 September 2026 simulation-only paper proposes control-aware feature fusion and multi-class maneuvering-regime discrimination for marine-engine injector diagnosis. It reports improved robustness under control-sensor dropout but explicitly lacks real-engine validation. This is now a fifteenth literature registry baseline and a simulation reproduction lead, not a physical performance comparator.
+
+Command-conditioned residuals must account for actuator lag, load/ambient disturbances, controller mode, sensor bias, clock skew and shared dependencies. Commands are not physical measurements or independent corroboration. If a candidate dataset lacks verified control-signal semantics, this track remains NOT_EVALUATED for that dataset.
 
 ## Benchmark matrix
 
