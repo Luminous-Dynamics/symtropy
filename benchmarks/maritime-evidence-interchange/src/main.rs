@@ -205,26 +205,21 @@ fn days_from_civil(year: i64, month: i64, day: i64) -> i64 {
 }
 
 /// v0.1 canonical time encoding is UTC RFC3339 without fractional seconds.
-fn parse_utc_timestamp(value: &str) -> Result<i64, String> {
-    let bytes = value.as_bytes();
-    if bytes.len() != 20
-        || bytes[4] != b'-'
-        || bytes[7] != b'-'
-        || bytes[10] != b'T'
-        || bytes[13] != b':'
-        || bytes[16] != b':'
-        || bytes[19] != b'Z'
+fn parse_rfc3339_ns(value: &str) -> Result<i128, String> {
+    let (date, rest) = value.split_once('T')
+        .ok_or_else(|| "timestamp_missing_separator".to_owned())?;
+    if date.len() != 10 || date.as_bytes().get(4) != Some(&b'-')
+        || date.as_bytes().get(7) != Some(&b'-')
     {
-        return Err("timestamp_not_canonical_utc".into());
+        return Err("timestamp_date_not_rfc3339".into());
     }
-
+    let bytes = date.as_bytes();
     let year = parse_fixed_u32(bytes, 0, 4).ok_or("timestamp_invalid_year")?;
     let month = parse_fixed_u32(bytes, 5, 7).ok_or("timestamp_invalid_month")?;
     let day = parse_fixed_u32(bytes, 8, 10).ok_or("timestamp_invalid_day")?;
-    let hour = parse_fixed_u32(bytes, 11, 13).ok_or("timestamp_invalid_hour")?;
-    let minute = parse_fixed_u32(bytes, 14, 16).ok_or("timestamp_invalid_minute")?;
-    let second = parse_fixed_u32(bytes, 17, 19).ok_or("timestamp_invalid_second")?;
-
+    if year < 1 || !(1..=12).contains(&month) || day < 1 {
+        return Err("timestamp_date_component_out_of_range".into());
+    }
     let leap = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
     let days_in_month = match month {
         1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
@@ -233,14 +228,67 @@ fn parse_utc_timestamp(value: &str) -> Result<i64, String> {
         2 => 28,
         _ => return Err("timestamp_month_out_of_range".into()),
     };
-    if day < 1 || day > days_in_month || hour > 23 || minute > 59 || second > 59 {
-        return Err("timestamp_component_out_of_range".into());
+    if day > days_in_month {
+        return Err("timestamp_day_out_of_range".into());
     }
 
+    let timezone_index = rest.char_indices()
+        .find(|(index, character)| *index > 0 && (*character == '+' || *character == '-'))
+        .map(|(index, _)| index);
+    let (time_part, zone) = if let Some(index) = timezone_index {
+        (&rest[..index], &rest[index..])
+    } else if let Some(time) = rest.strip_suffix('Z') {
+        (time, "Z")
+    } else {
+        return Err("timestamp_timezone_missing".into());
+    };
+    if time_part.len() < 8 || time_part.as_bytes().get(2) != Some(&b':')
+        || time_part.as_bytes().get(5) != Some(&b':')
+    {
+        return Err("timestamp_time_not_rfc3339".into());
+    }
+    let time_bytes = time_part.as_bytes();
+    let hour = parse_fixed_u32(time_bytes, 0, 2).ok_or("timestamp_invalid_hour")?;
+    let minute = parse_fixed_u32(time_bytes, 3, 5).ok_or("timestamp_invalid_minute")?;
+    let seconds_part = time_part.get(6..).ok_or("timestamp_invalid_second")?;
+    let (second_text, fraction) = match seconds_part.split_once('.') {
+        Some((whole, fractional)) => (whole, Some(fractional)),
+        None => (seconds_part, None),
+    };
+    let second: i64 = second_text.parse().map_err(|_| "timestamp_invalid_second")?;
+    if hour > 23 || minute > 59 || !(0..=59).contains(&second) {
+        return Err("timestamp_time_component_out_of_range".into());
+    }
+    let fraction_ns = if let Some(fraction) = fraction {
+        if fraction.is_empty() || fraction.len() > 9 || !fraction.bytes().all(|b| b.is_ascii_digit()) {
+            return Err("timestamp_fraction_precision_or_syntax_invalid".into());
+        }
+        let parsed: i128 = fraction.parse().map_err(|_| "timestamp_fraction_invalid")?;
+        parsed * 10_i128.pow((9 - fraction.len()) as u32)
+    } else {
+        0
+    };
+
+    let offset_seconds: i64 = if zone == "Z" {
+        0
+    } else {
+        if zone.len() != 6 || zone.as_bytes().get(3) != Some(&b':') {
+            return Err("timestamp_offset_not_rfc3339".into());
+        }
+        let offset_hour = parse_fixed_u32(zone.as_bytes(), 1, 3)
+            .ok_or("timestamp_offset_hour_invalid")?;
+        let offset_minute = parse_fixed_u32(zone.as_bytes(), 4, 6)
+            .ok_or("timestamp_offset_minute_invalid")?;
+        if offset_hour > 23 || offset_minute > 59 {
+            return Err("timestamp_offset_out_of_range".into());
+        }
+        let magnitude = offset_hour * 3_600 + offset_minute * 60;
+        if zone.starts_with('+') { magnitude } else { -magnitude }
+    };
+
     let days = days_from_civil(year, month, day);
-    days.checked_mul(86_400)
-        .and_then(|value| value.checked_add(hour * 3_600 + minute * 60 + second))
-        .ok_or_else(|| "timestamp_overflow".into())
+    let whole_seconds = days * 86_400 + hour * 3_600 + minute * 60 + second - offset_seconds;
+    Ok(i128::from(whole_seconds) * 1_000_000_000 + fraction_ns)
 }
 
 fn civil_from_days(days_since_epoch: i64) -> (i64, i64, i64) {
@@ -267,7 +315,13 @@ fn format_utc_timestamp(epoch_seconds: u64) -> String {
     format!("{year:04}-{month:02}-{day:02}T{hour:02}:{minute:02}:{second:02}Z")
 }
 
-fn validate_record(record: &Value, evaluation_time: i64) -> RecordAudit {
+fn has_only_fields(value: &Value, allowed: &[&str]) -> bool {
+    value.as_object().is_some_and(|object| {
+        object.keys().all(|key| allowed.iter().any(|field| *field == key))
+    })
+}
+
+fn validate_record(record: &Value, evaluation_time: i128) -> RecordAudit {
     let mut audit = RecordAudit {
         provenance_complete: true,
         ..RecordAudit::default()
@@ -286,6 +340,46 @@ fn validate_record(record: &Value, evaluation_time: i64) -> RecordAudit {
     }
     if string_at(record, &["record_id"]).is_none_or(str::is_empty) {
         audit.reject("record_id_missing");
+    }
+
+    let observation_fields = [
+        "schema_version", "record_type", "record_id", "asset_ref", "provenance", "time",
+        "mapping", "quantity_kind", "unit_ucum", "value_state", "value", "uncertainty",
+        "quality", "dependency_group", "lineage", "context",
+    ];
+    let assertion_fields = [
+        "schema_version", "record_type", "record_id", "asset_ref", "provenance", "time",
+        "assertion", "method", "operating_context", "evidence_links", "uncertainty",
+        "authority_granted", "claim_ceiling",
+    ];
+    let record_shape_valid = match record_type {
+        Some("observation") => has_only_fields(record, &observation_fields),
+        Some("diagnostic_assertion") => has_only_fields(record, &assertion_fields),
+        _ => false,
+    };
+    if !record_shape_valid {
+        audit.reject("record_unknown_or_type_incompatible_field");
+    }
+    if !has_only_fields(
+        value_at(record, &["asset_ref"]).unwrap_or(&Value::Null),
+        &["vessel_id", "asset_path", "serial_number", "manufacturer", "model", "configuration_sha256"],
+    ) {
+        audit.reject("asset_ref_unknown_field_or_shape");
+    }
+    if !has_only_fields(
+        value_at(record, &["provenance"]).unwrap_or(&Value::Null),
+        &["source_id", "source_class", "native_record_id", "native_message_type", "adapter_id",
+          "adapter_version", "mapping_catalogue_version", "received_at", "source_payload",
+          "upstream_record_refs"],
+    ) {
+        audit.reject("provenance_unknown_field_or_shape");
+    }
+    if !has_only_fields(
+        value_at(record, &["time"]).unwrap_or(&Value::Null),
+        &["event_time", "time_basis", "clock_id", "clock_quality", "synchronization_uncertainty_ms",
+          "monotonic_counter_ns", "sequence_number"],
+    ) {
+        audit.reject("time_unknown_field_or_shape");
     }
 
     if string_at(record, &["asset_ref", "vessel_id"]).is_none_or(str::is_empty)
@@ -314,7 +408,7 @@ fn validate_record(record: &Value, evaluation_time: i64) -> RecordAudit {
     }
 
     let received_at = string_at(record, &["provenance", "received_at"]);
-    match received_at.and_then(|value| parse_utc_timestamp(value).ok()) {
+    match received_at.and_then(|value| parse_rfc3339_ns(value).ok()) {
         Some(received) if received <= evaluation_time => {}
         Some(_) => audit.reject("receipt_time_after_evaluation_time"),
         None => {
@@ -326,6 +420,13 @@ fn validate_record(record: &Value, evaluation_time: i64) -> RecordAudit {
     let payload = value_at(record, &["provenance", "source_payload"]);
     match payload {
         Some(payload) => {
+            if !has_only_fields(
+                payload,
+                &["sha256", "byte_length", "media_type", "inline_base64", "content_ref",
+                  "signature_state", "signature_key_id"],
+            ) {
+                audit.reject("source_payload_unknown_field_or_shape");
+            }
             let inline = payload.get("inline_base64");
             let reference = payload.get("content_ref");
             if inline.is_some() == reference.is_some() {
@@ -350,8 +451,13 @@ fn validate_record(record: &Value, evaluation_time: i64) -> RecordAudit {
                         if payload.get("media_type").and_then(Value::as_str).is_none_or(str::is_empty) {
                             audit.reject("payload_media_type_missing");
                         }
-                        if payload.get("signature_state").and_then(Value::as_str) == Some("invalid") {
-                            audit.reject("payload_signature_invalid");
+                        match payload.get("signature_state").and_then(Value::as_str) {
+                            Some("invalid") => audit.reject("payload_signature_invalid"),
+                            Some("unverified") => audit.abstain("payload_signature_unverified"),
+                            Some(value) if !["verified", "not_present"].contains(&value) => {
+                                audit.reject("payload_signature_state_invalid");
+                            }
+                            _ => {}
                         }
                     }
                     Err(reason) => {
@@ -376,6 +482,11 @@ fn validate_record(record: &Value, evaluation_time: i64) -> RecordAudit {
 
     let time_basis = string_at(record, &["time", "time_basis"]);
     let clock_quality = string_at(record, &["time", "clock_quality"]);
+    if time_basis == Some("unknown") || clock_quality == Some("unknown")
+        || clock_quality == Some("unsynchronized")
+    {
+        audit.abstain("clock_not_qualified_for_temporal_decision");
+    }
     if string_at(record, &["time", "clock_id"]).is_none_or(str::is_empty)
         || !matches!(time_basis, Some("synchronized_utc" | "source_wall_clock" | "relative_monotonic" | "unknown"))
         || !matches!(clock_quality, Some("locked" | "holdover" | "unsynchronized" | "unknown"))
@@ -385,7 +496,7 @@ fn validate_record(record: &Value, evaluation_time: i64) -> RecordAudit {
     }
 
     match value_at(record, &["time", "event_time"]) {
-        Some(Value::String(value)) => match parse_utc_timestamp(value) {
+        Some(Value::String(value)) => match parse_rfc3339_ns(value) {
             Ok(timestamp) if timestamp > evaluation_time => audit.reject("event_time_after_evaluation_time"),
             Ok(_) => {}
             Err(reason) => audit.reject(&reason),
@@ -397,6 +508,19 @@ fn validate_record(record: &Value, evaluation_time: i64) -> RecordAudit {
 
     match record_type {
         Some("observation") => {
+            if !has_only_fields(
+                value_at(record, &["mapping"]).unwrap_or(&Value::Null),
+                &["status", "native_channel_id", "native_channel_name", "normalized_concept_id",
+                  "mapping_method", "mapping_confidence", "candidate_concept_ids", "reviewer_ref"],
+            ) {
+                audit.reject("mapping_unknown_field_or_shape");
+            }
+            if !has_only_fields(
+                value_at(record, &["quality"]).unwrap_or(&Value::Null),
+                &["calibration_state", "calibration_ref", "freshness_state", "measurement_quality", "quality_flags"],
+            ) {
+                audit.reject("quality_unknown_field_or_shape");
+            }
             let mapping_status = string_at(record, &["mapping", "status"]);
             let native_id = string_at(record, &["mapping", "native_channel_id"]);
             let native_name = string_at(record, &["mapping", "native_channel_name"]);
@@ -407,9 +531,18 @@ fn validate_record(record: &Value, evaluation_time: i64) -> RecordAudit {
                 audit.reject("native_channel_identity_missing");
             }
             match mapping_status {
-                Some("exact" | "reviewed") => {
-                    if string_at(record, &["mapping", "normalized_concept_id"]).is_none_or(str::is_empty) {
-                        audit.reject("normalized_concept_missing_for_accepted_mapping");
+                Some("exact") => {
+                    if string_at(record, &["mapping", "normalized_concept_id"]).is_none_or(str::is_empty)
+                        || string_at(record, &["mapping", "mapping_method"]).is_none_or(str::is_empty)
+                    {
+                        audit.reject("exact_mapping_incomplete");
+                    }
+                }
+                Some("reviewed") => {
+                    if string_at(record, &["mapping", "normalized_concept_id"]).is_none_or(str::is_empty)
+                        || string_at(record, &["mapping", "reviewer_ref"]).is_none_or(str::is_empty)
+                    {
+                        audit.reject("reviewed_mapping_missing_reviewer_or_concept");
                     }
                 }
                 Some("ambiguous" | "unmapped") => {
@@ -448,10 +581,16 @@ fn validate_record(record: &Value, evaluation_time: i64) -> RecordAudit {
                         audit.reject("transformed_value_without_lineage");
                     } else if lineage.is_some_and(|items| {
                         items.iter().any(|item| {
-                            string_at(item, &["transform_id"]).is_none_or(str::is_empty)
+                            !has_only_fields(
+                                item,
+                                &["transform_id", "implementation", "version", "input_record_refs",
+                                  "output_state", "parameters_sha256"],
+                            )
+                                || string_at(item, &["transform_id"]).is_none_or(str::is_empty)
                                 || string_at(item, &["implementation"]).is_none_or(str::is_empty)
                                 || string_at(item, &["version"]).is_none_or(str::is_empty)
-                                || value_at(item, &["input_record_refs"]).and_then(Value::as_array).is_none_or(Vec::is_empty)
+                                || value_at(item, &["input_record_refs"]).and_then(Value::as_array)
+                                    .is_none_or(|refs| refs.is_empty() || refs.iter().any(|r| r.as_str().is_none_or(str::is_empty)))
                                 || string_at(item, &["output_state"]) != state
                         })
                     }) {
@@ -461,7 +600,13 @@ fn validate_record(record: &Value, evaluation_time: i64) -> RecordAudit {
                 Some("measured") if lineage.is_some_and(|items| !items.is_empty()) => {
                     audit.reject("measured_value_must_not_claim_transform_lineage");
                 }
-                Some("measured" | "stale" | "conflicted") => {}
+                Some("stale" | "conflicted") => {
+                    audit.abstain("observation_stale_or_conflicted");
+                }
+                Some("rejected" | "invalid") => {
+                    audit.abstain("observation_explicitly_rejected_or_invalid");
+                }
+                Some("measured") => {}
                 _ => audit.reject("value_state_invalid"),
             }
 
@@ -474,11 +619,34 @@ fn validate_record(record: &Value, evaluation_time: i64) -> RecordAudit {
                     audit.reject("quality_context_incomplete");
                 }
             }
-            if string_at(record, &["unit_ucum"]).is_none_or(str::is_empty) {
-                audit.reject("unit_missing");
+            if record.get("value").is_some() && string_at(record, &["unit_ucum"]).is_none_or(str::is_empty) {
+                audit.reject("unit_missing_for_value");
+            }
+            let calibration = string_at(record, &["quality", "calibration_state"]);
+            let freshness = string_at(record, &["quality", "freshness_state"]);
+            let measurement = string_at(record, &["quality", "measurement_quality"]);
+            if calibration == Some("expired") || measurement == Some("invalid") {
+                audit.reject("measurement_quality_invalid");
+            } else if matches!(calibration, Some("not_calibrated" | "unknown"))
+                || matches!(freshness, Some("stale" | "unknown"))
+                || matches!(measurement, Some("degraded" | "suspect" | "unknown"))
+            {
+                audit.abstain("measurement_quality_not_qualified");
             }
         }
         Some("diagnostic_assertion") => {
+            if !has_only_fields(
+                value_at(record, &["assertion"]).unwrap_or(&Value::Null),
+                &["kind", "code", "statement", "status", "confidence", "severity", "claim_scope"],
+            ) || !has_only_fields(
+                value_at(record, &["method"]).unwrap_or(&Value::Null),
+                &["provider", "name", "version", "algorithm_sha256"],
+            ) || !has_only_fields(
+                value_at(record, &["evidence_links"]).unwrap_or(&Value::Null),
+                &["supports", "contradicts", "derived_from"],
+            ) {
+                audit.reject("assertion_unknown_field_or_shape");
+            }
             if bool_at(record, &["authority_granted"]) != Some(false)
                 || string_at(record, &["claim_ceiling"]) != Some("not_ground_truth")
             {
@@ -503,6 +671,23 @@ fn validate_record(record: &Value, evaluation_time: i64) -> RecordAudit {
             audit.conflict_links_valid = Some(valid_links);
             if !valid_links {
                 audit.reject("assertion_evidence_links_incomplete");
+            }
+            if string_at(record, &["assertion", "status"]) == Some("withdrawn") {
+                audit.abstain("assertion_withdrawn");
+            }
+            if string_at(record, &["assertion", "status"]).is_some_and(|status| {
+                !["source_reported", "reviewed", "disputed", "withdrawn"].contains(&status)
+            }) {
+                audit.reject("assertion_status_invalid");
+            }
+            if let (Some(supports), Some(contradicts)) = (
+                value_at(record, &["evidence_links", "supports"]).and_then(Value::as_array),
+                value_at(record, &["evidence_links", "contradicts"]).and_then(Value::as_array),
+            ) {
+                if supports.iter().any(|item| contradicts.contains(item)) {
+                    audit.reject("assertion_same_evidence_supports_and_contradicts");
+                    audit.conflict_links_valid = Some(false);
+                }
             }
         }
         _ => {}
@@ -578,7 +763,7 @@ fn evaluate_corpus(bytes: &[u8]) -> Result<(Value, usize), String> {
 
     let evaluation_time = string_at(&corpus, &["evaluation_time"])
         .ok_or_else(|| "corpus_evaluation_time_missing".to_string())?;
-    let evaluation_epoch = parse_utc_timestamp(evaluation_time)
+    let evaluation_epoch = parse_rfc3339_ns(evaluation_time)
         .map_err(|reason| format!("corpus_evaluation_time_invalid:{reason}"))?;
     let fixtures = corpus.get("fixtures").and_then(Value::as_array)
         .ok_or_else(|| "corpus_fixtures_missing".to_string())?;
@@ -869,9 +1054,9 @@ mod tests {
 
     #[test]
     fn utc_parser_checks_calendar_and_timezone() {
-        assert!(parse_utc_timestamp("2024-02-29T23:59:59Z").is_ok());
-        assert!(parse_utc_timestamp("2025-02-29T23:59:59Z").is_err());
-        assert!(parse_utc_timestamp("2025-01-01T00:00:00+02:00").is_err());
+        assert!(parse_rfc3339_ns("2024-02-29T23:59:59Z").is_ok());
+        assert!(parse_rfc3339_ns("2025-02-29T23:59:59Z").is_err());
+        assert!(parse_rfc3339_ns("2025-01-01T00:00:00+02:00").is_err());
     }
 
     #[test]
