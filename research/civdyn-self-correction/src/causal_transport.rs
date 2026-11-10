@@ -389,33 +389,33 @@ pub fn assess_risk_difference_transport(
         target_ate_lower,
         target_ate_upper,
     ) = if !assumptions_supported {
-            (
-                TransportIdentificationStatus::NotIdentified,
-                TransportIdentificationReason::AssumptionViolationOrUnknown,
-                None,
-                None,
-                None,
-            )
-        } else if target_support_complete {
-            (
-                TransportIdentificationStatus::Identified,
-                TransportIdentificationReason::FullSupportAndAssumptionsSupported,
-                Some(target_weighted_effect),
-                None,
-                None,
-            )
-        } else {
-            // For binary outcomes, each unsupported conditional risk difference
-            // lies in [-1, 1]. These are identification bounds, not confidence
-            // intervals and do not include sampling uncertainty.
-            (
-                TransportIdentificationStatus::PartiallyIdentified,
-                TransportIdentificationReason::TargetSupportViolation,
-                None,
-                Some(target_weighted_effect - unsupported_target_mass),
-                Some(target_weighted_effect + unsupported_target_mass),
-            )
-        };
+        (
+            TransportIdentificationStatus::NotIdentified,
+            TransportIdentificationReason::AssumptionViolationOrUnknown,
+            None,
+            None,
+            None,
+        )
+    } else if target_support_complete {
+        (
+            TransportIdentificationStatus::Identified,
+            TransportIdentificationReason::FullSupportAndAssumptionsSupported,
+            Some(target_weighted_effect),
+            None,
+            None,
+        )
+    } else {
+        // For binary outcomes, each unsupported conditional risk difference
+        // lies in [-1, 1]. These are identification bounds, not confidence
+        // intervals and do not include sampling uncertainty.
+        (
+            TransportIdentificationStatus::PartiallyIdentified,
+            TransportIdentificationReason::TargetSupportViolation,
+            None,
+            Some(target_weighted_effect - unsupported_target_mass),
+            Some(target_weighted_effect + unsupported_target_mass),
+        )
+    };
 
     if !source_ate.is_finite()
         || !supported_target_mass.is_finite()
@@ -594,7 +594,10 @@ mod tests {
         unknown.assumptions.no_interference.disposition = AssumptionDisposition::Unknown;
         let result = assess_risk_difference_transport(&unknown)
             .expect("unknown interference assumption blocks transport");
-        assert_eq!(result.identification_status, TransportIdentificationStatus::NotIdentified);
+        assert_eq!(
+            result.identification_status,
+            TransportIdentificationStatus::NotIdentified
+        );
     }
 
     #[test]
