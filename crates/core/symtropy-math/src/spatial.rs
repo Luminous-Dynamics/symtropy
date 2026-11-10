@@ -7,7 +7,9 @@
 //! A Transform<3> maps body/local coordinates into spatial/world coordinates:
 //! p_world = R * p_body + translation. Twists use the [linear, angular]
 //! ordering, with angular coordinates represented by Symtropy's bivector
-//! basis [e01, e02, e12]. Wrenches use the dual [force, torque] ordering.
+//! basis [e01, e02, e12]. The spatial linear component is the translational
+//! se(3) coordinate (p_dot - omega cross p), not simply p_dot. Wrenches use
+//! the dual [force, torque] ordering, with torque taken about each frame origin.
 //!
 //! The body-to-spatial twist map is Ad_T. The matching body-to-spatial wrench
 //! map is Ad_T^(-T), so their dual power pairing is invariant. These typed
@@ -101,7 +103,7 @@ impl SpatialTwist3 {
     }
 }
 
-/// Body-frame wrench, ordered as force then torque.
+/// Body-frame wrench, ordered as force then torque, with moment about the body origin.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct BodyWrench3 {
     pub force: SVector<f64, 3>,
@@ -118,7 +120,7 @@ impl BodyWrench3 {
     }
 }
 
-/// Spatial/world-frame wrench, ordered as force then torque.
+/// Spatial/world-frame wrench, ordered as force then torque, with moment about the world origin.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct SpatialWrench3 {
     pub force: SVector<f64, 3>,
