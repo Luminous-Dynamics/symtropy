@@ -357,7 +357,9 @@
         "service_kind",
         "service_area_state",
         "pilot_assignment_state",
-        "clearance_state"
+        "clearance_state",
+        "pilot_assignment_ref",
+        "clearance_ref"
       ],
       "properties": {
         "service_feature_id": {
@@ -389,6 +391,18 @@
             "not_provided",
             "provider_confirmed"
           ]
+        },
+        "pilot_assignment_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "clearance_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
         }
       }
     },
@@ -400,7 +414,9 @@
         "service_kind",
         "coverage_state",
         "live_link_state",
-        "vessel_delivery_state"
+        "vessel_delivery_state",
+        "link_measurement_ref",
+        "delivery_receipt_ref"
       ],
       "properties": {
         "service_area_id": {
@@ -432,6 +448,18 @@
           "enum": [
             "unknown",
             "received_with_device_receipt"
+          ]
+        },
+        "link_measurement_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "delivery_receipt_ref": {
+          "type": [
+            "string",
+            "null"
           ]
         }
       }
