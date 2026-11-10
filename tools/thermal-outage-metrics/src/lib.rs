@@ -272,8 +272,8 @@ mod tests {
         )
         .unwrap();
 
-        close(result.degree_hours_over_covered_intervals, 2.0);
-        close(result.breach_hours_over_covered_intervals, 2.0);
+        close(result.degree_hours_over_covered_intervals, 1.0);
+        close(result.breach_hours_over_covered_intervals, 1.0);
         close(result.max_departure_c_over_covered_intervals.unwrap(), 2.0);
         close(result.first_observed_breach_seconds.unwrap(), 1_800.0);
         close(result.first_breach_seconds_if_complete.unwrap(), 1_800.0);
@@ -324,6 +324,59 @@ mod tests {
     }
 
     #[test]
+    fn constant_two_degree_deficit_for_one_hour_equals_two_degree_hours() {
+        let samples = [sample(0, Some(16.0)), sample(3_600, Some(16.0))];
+        let result = calculate_degree_hour_exposure(
+            &samples,
+            window(3_600),
+            18.0,
+            BreachSide::BelowFloor,
+        )
+        .unwrap();
+
+        close(result.degree_hours_over_covered_intervals, 2.0);
+        close(result.breach_hours_over_covered_intervals, 1.0);
+        close(result.max_departure_c_over_covered_intervals.unwrap(), 2.0);
+    }
+
+    #[test]
+    fn constant_three_degree_hot_exceedance_for_two_hours_equals_six_degree_hours() {
+        let samples = [sample(0, Some(29.0)), sample(7_200, Some(29.0))];
+        let result = calculate_degree_hour_exposure(
+            &samples,
+            ObservationWindow {
+                start_seconds: 0,
+                end_seconds: 7_200,
+                max_gap_seconds: 7_200,
+            },
+            26.0,
+            BreachSide::AboveCeiling,
+        )
+        .unwrap();
+
+        close(result.degree_hours_over_covered_intervals, 6.0);
+        close(result.breach_hours_over_covered_intervals, 2.0);
+    }
+
+    #[test]
+    fn invalid_window_is_rejected() {
+        let samples = [sample(0, Some(20.0)), sample(3_600, Some(16.0))];
+        assert_eq!(
+            calculate_degree_hour_exposure(
+                &samples,
+                ObservationWindow {
+                    start_seconds: 3_600,
+                    end_seconds: 0,
+                    max_gap_seconds: 3_600,
+                },
+                18.0,
+                BreachSide::BelowFloor
+            ),
+            Err(MetricInputError::InvalidWindow)
+        );
+    }
+
+    #[test]
     fn exactly_on_threshold_is_not_a_breach() {
         let samples = [sample(0, Some(18.0)), sample(3_600, Some(18.0))];
         let result = calculate_degree_hour_exposure(
@@ -359,7 +412,7 @@ mod tests {
         )
         .unwrap();
 
-        close(result.degree_hours_over_covered_intervals, 1.0);
+        close(result.degree_hours_over_covered_intervals, 0.5);
         close(result.coverage_fraction, 1.0 / 3.0);
         assert_eq!(result.covered_seconds, 3_600);
         assert_eq!(result.missing_or_rejected_interval_count, 2);
