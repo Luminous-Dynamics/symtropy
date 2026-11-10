@@ -746,7 +746,6 @@ fn aggregate_engines(reports: &[CampaignReport]) -> Vec<EngineAggregateReport> {
                 .iter()
                 .map(|campaign| campaign.peak_memory_bytes as f64)
                 .collect::<Vec<_>>();
-            let all_have_error = campaigns.iter().all(|campaign| campaign.max_qualified_error_ratio.is_some());
             let errors = campaigns
                 .iter()
                 .filter_map(|campaign| campaign.max_qualified_error_ratio)
@@ -780,10 +779,10 @@ fn aggregate_engines(reports: &[CampaignReport]) -> Vec<EngineAggregateReport> {
                 p95_step_latency_us_median: quantile(p95, 0.5).unwrap_or(0.0),
                 p99_step_latency_us_median: quantile(p99, 0.5).unwrap_or(0.0),
                 peak_memory_bytes_median: quantile(memory, 0.5).unwrap_or(0.0),
-                max_qualified_error_ratio_median: if all_have_error {
-                    quantile(errors, 0.5)
-                } else {
+                max_qualified_error_ratio_median: if errors.is_empty() {
                     None
+                } else {
+                    quantile(errors, 0.5)
                 },
                 energy_scope,
                 energy_per_qualified_tick_uj_median: if all_have_energy {
@@ -820,9 +819,13 @@ fn pareto_frontier(
     reports: &[EngineAggregateReport],
     include_energy: bool,
 ) -> Vec<String> {
+    let eligible = reports
+        .iter()
+        .filter(|report| report.max_qualified_error_ratio_median.is_some())
+        .collect::<Vec<_>>();
     let mut frontier = Vec::new();
-    for candidate in reports {
-        let dominated = reports.iter().any(|other| {
+    for candidate in &eligible {
+        let dominated = eligible.iter().any(|other| {
             candidate.engine_id != other.engine_id && dominates(other, candidate, include_energy)
         });
         if !dominated {
@@ -1350,5 +1353,6 @@ mod tests {
         let fast = report.campaigns.iter().find(|c| c.engine_id == "engine-fast-low-coverage").unwrap();
         assert_eq!(fast.qualified_simulated_ticks_per_second, 0.0);
         assert_eq!(fast.case_coverage, 0.0);
+        assert!(!report.pareto_frontier_engine_ids.contains(&fast.engine_id));
     }
 }
