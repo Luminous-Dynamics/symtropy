@@ -571,8 +571,8 @@ impl TriangleBvh {
         let maxima = [centroid_max.x, centroid_max.y, centroid_max.z];
         let mut best_split: Option<(f64, usize, usize)> = None;
 
-        for axis in 0..3 {
-            let extent = maxima[axis] - minima[axis];
+        for (axis, (minimum, maximum)) in minima.iter().zip(maxima.iter()).enumerate() {
+            let extent = maximum - minimum;
             if !extent.is_finite() || extent <= f64::EPSILON {
                 continue;
             }
@@ -582,7 +582,7 @@ impl TriangleBvh {
 
             for index in &indices {
                 let triangle_bounds = Aabb::from_triangle(&triangles[*index]);
-                let position = (triangle_bounds.centroid_axis(axis) - minima[axis]) / extent;
+                let position = (triangle_bounds.centroid_axis(axis) - minimum) / extent;
                 if !position.is_finite() {
                     continue;
                 }
@@ -606,9 +606,11 @@ impl TriangleBvh {
 
             let mut count = 0usize;
             let mut accumulated: Option<Aabb> = None;
-            for bin in 0..(BVH_SAH_BIN_COUNT - 1) {
-                count += bin_counts[bin];
-                if let Some(value) = bin_bounds[bin] {
+            for (bin, (bin_count, bounds_for_bin)) in
+                bin_counts.iter().zip(bin_bounds.iter()).enumerate().take(BVH_SAH_BIN_COUNT - 1)
+            {
+                count += *bin_count;
+                if let Some(value) = *bounds_for_bin {
                     accumulated = Some(match accumulated {
                         Some(previous) => previous.union(value),
                         None => value,
@@ -620,9 +622,11 @@ impl TriangleBvh {
 
             count = 0;
             accumulated = None;
-            for bin in (1..BVH_SAH_BIN_COUNT).rev() {
-                count += bin_counts[bin];
-                if let Some(value) = bin_bounds[bin] {
+            for (bin, (bin_count, bounds_for_bin)) in
+                bin_counts.iter().zip(bin_bounds.iter()).enumerate().skip(1).rev()
+            {
+                count += *bin_count;
+                if let Some(value) = *bounds_for_bin {
                     accumulated = Some(match accumulated {
                         Some(previous) => previous.union(value),
                         None => value,
