@@ -327,6 +327,66 @@ jobs:
           assert correct["draw_set_digest"] != wrong["draw_set_digest"]
           print("Network-adequacy CSV valid: identical degree sequences, distinct held-out topology, positive multivariate penalty, exact provenance and deterministic replay.")
           PY
+      - name: Verify same-union different-event-order temporal adequacy
+        run: |
+          set -euo pipefail
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin temporal-network-sweep > /tmp/civdyn-temporal-network.csv
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin temporal-network-sweep > /tmp/civdyn-temporal-network-replay.csv
+          cmp /tmp/civdyn-temporal-network.csv /tmp/civdyn-temporal-network-replay.csv
+          python3 - <<'PY'
+          import csv
+          import math
+          from pathlib import Path
+
+          with Path("/tmp/civdyn-temporal-network.csv").open(newline="", encoding="utf-8") as handle:
+              reader = csv.DictReader(handle)
+              rows = list(reader)
+              fields = reader.fieldnames
+
+          assert fields is not None and len(fields) == 30, f"expected 30 columns, got {len(fields or [])}"
+          assert len(rows) == 2
+          candidates = {row["candidate"]: row for row in rows}
+          correct = candidates["temporal_order_correct"]
+          wrong = candidates["same_union_wrong_order"]
+
+          assert correct["contact_semantics"] == wrong["contact_semantics"] == "undirected_unweighted_instantaneous_contacts"
+          assert correct["node_count"] == wrong["node_count"] == "4"
+          assert correct["event_count"] == wrong["event_count"] == "3"
+          assert correct["unique_edge_count"] == wrong["unique_edge_count"] == "3"
+          assert correct["active_tick_count"] == wrong["active_tick_count"] == "3"
+
+          # Static union graph properties are identical.
+          for field in (
+              "degree_sequence", "mean_degree", "degree_variance", "component_count",
+              "largest_component_share", "global_transitivity", "mean_finite_shortest_path",
+              "static_reachable_unordered_pairs",
+          ):
+              assert correct[field] == wrong[field], f"static union graph differs at {field}"
+          assert correct["degree_sequence"] == "2;2;1;1"
+          assert correct["static_reachable_unordered_pairs"] == "6"
+
+          # Temporal event order changes reachability and earliest-arrival delay.
+          assert correct["temporal_reachable_ordered_pairs"] == "9"
+          assert wrong["temporal_reachable_ordered_pairs"] == "8"
+          assert correct["temporal_reachability_fraction"] == "0.75000000"
+          assert wrong["temporal_reachability_fraction"] == "0.66666667"
+          assert math.isclose(float(correct["mean_earliest_arrival_delay"]), 11.0 / 9.0, abs_tol=1e-8)
+          assert math.isclose(float(wrong["mean_earliest_arrival_delay"]), 1.25, abs_tol=1e-8)
+          assert correct["temporal_pair_receipt"] != wrong["temporal_pair_receipt"]
+
+          assert correct["energy_score"] == "0.0000000000000000"
+          assert correct["variogram_score"] == "0.0000000000000000"
+          assert float(wrong["energy_score"]) > 0.0
+          assert float(wrong["variogram_score"]) > 0.0
+          assert correct["draw_count"] == wrong["draw_count"] == "20"
+          assert correct["source_digest"] == wrong["source_digest"]
+          assert correct["observation_digest"] == wrong["observation_digest"]
+          assert correct["calibration_digest"] == wrong["calibration_digest"]
+          assert correct["split_manifest_digest"] == wrong["split_manifest_digest"]
+          assert correct["model_digest"] != wrong["model_digest"]
+          assert correct["draw_set_digest"] != wrong["draw_set_digest"]
+          print("Temporal-network CSV valid: same static union graph, distinct time-respecting reachability, joint scores, strict event chronology and deterministic replay.")
+          PY
 
 
       - name: Verify same-marginal joint and trajectory adequacy controls
