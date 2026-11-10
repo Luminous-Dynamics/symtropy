@@ -205,3 +205,33 @@ This slice does not yet implement:
 7. Empirical data adapters or independent domain qualification.
 
 Run the model-adequacy-sweep binary using Cargo with the locked manifest at research/civdyn-self-correction/Cargo.toml. The existing CIVDYN workflow also runs this binary after formatting, strict Clippy, compilation and tests. These are engineering checks against frozen synthetic contracts only.
+
+
+## Scenario M: challenge-set custody through model repair
+
+The challenge custody evaluator is in src/challenge_custody.rs with a challenge-custody-sweep binary. It advances [CIVDYN-REPAIR-001 #4480](https://github.com/Luminous-Dynamics/symtropy/issues/4480).
+
+Every model revision records its parent, exact model digest, update-event digest and the complete set of data/evidence digests consumed for training, calibration, diagnostics, model selection, tuning or repair.
+
+A challenge request is eligible only when:
+- the revision chain is a valid linear ancestry ending at the exact candidate model;
+- model, revision and update identities are unique and non-empty;
+- no revision in the chain has consumed the exact challenge data digest;
+- challenge data, split manifest and evaluator protocol identities are explicit;
+- a previously disclosed challenge receipt has not retired the same data/manifest for a changed model or evaluator protocol.
+
+An exact same-model, same-data, same-manifest, same-protocol replay is marked idempotent rather than treated as fresh evidence.
+
+### Known-answer lifecycle
+
+1. Model M0 is trained/calibrated from development data D0. Challenge C0 is eligible.
+2. M0 is evaluated on C0, and the result is disclosed to developers.
+3. Model M1 is repaired using D0 and the diagnostic receipt derived from C0.
+4. C0 is rejected for M1 because it has been disclosed; it is not fresh evidence.
+5. A fresh challenge C1 is eligible for M1.
+6. Replaying the exact M0/C0/protocol receipt is idempotent.
+7. If the raw C2 challenge digest appears in a model revision's consumed evidence, C2 is rejected.
+
+### Claim ceiling
+
+This ledger validates recorded custody declarations; it cannot prove that a human or external process did not access data outside the declared ledger. Real challenge-set secrecy still needs access controls, independent evaluators, rights/provenance management and audit logs. The synthetic fixture validates the gate, not the trustworthiness of an unobserved operational process.
