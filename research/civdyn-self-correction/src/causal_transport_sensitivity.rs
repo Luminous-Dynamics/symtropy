@@ -106,6 +106,9 @@ pub struct OutcomeShiftSensitivityReport {
     pub target_population_digest: String,
     pub protocol_digest: String,
     pub assumptions: CausalTransportAssumptions,
+    /// True only when exact conditional outcome invariance has independent support.
+    /// When false, Lambda>1 bounds the permitted departure; Lambda=1 is only a reference row.
+    pub exact_transportability_supported: bool,
     pub frontier: Vec<LambdaSensitivityPoint>,
     pub null_tipping_point: Option<NullTippingPoint>,
 }
@@ -125,7 +128,17 @@ fn validate_assumptions(
     {
         return Err(OutcomeShiftSensitivityError::MissingAssumptionEvidenceDigest);
     }
-    if evidence.iter().any(|item| {
+    // Source internal validity, no interference and treatment-version
+    // invariance remain identifying assumptions. Conditional outcome
+    // exchangeability is the assumption deliberately relaxed by the
+    // likelihood-ratio sensitivity envelope indexed by Lambda.
+    if [
+        &assumptions.source_internal_validity,
+        &assumptions.no_interference,
+        &assumptions.treatment_version_invariance,
+    ]
+    .iter()
+    .any(|item| {
         !matches!(
             item.disposition,
             AssumptionDisposition::SupportedByDesign | AssumptionDisposition::SupportedByEvidence
@@ -473,6 +486,10 @@ pub fn assess_binary_outcome_shift_sensitivity(
         target_population_digest: target_population_digest.to_string(),
         protocol_digest: protocol_digest.to_string(),
         assumptions: assumptions.clone(),
+        exact_transportability_supported: matches!(
+            assumptions.selection_exchangeability.disposition,
+            AssumptionDisposition::SupportedByDesign | AssumptionDisposition::SupportedByEvidence
+        ),
         frontier,
         null_tipping_point,
     })
@@ -691,6 +708,67 @@ mod tests {
         )
         .expect("valid no-tipping fixture");
         assert_eq!(report.null_tipping_point, None);
+    }
+
+    #[test]
+    fn selection_exchangeability_is_explicitly_relaxed_by_the_lambda_envelope() {
+        for disposition in [
+            AssumptionDisposition::Unknown,
+            AssumptionDisposition::Violated,
+        ] {
+            let mut assumptions = supported_assumptions();
+            assumptions.selection_exchangeability.disposition = disposition;
+            let report = assess_binary_outcome_shift_sensitivity(
+                "source",
+                "target",
+                "protocol",
+                &assumptions,
+                &source_strata(),
+                &full_support_target(),
+                &[1.0, 1.5, 2.0],
+                8.0,
+                1e-8,
+            )
+            .expect("outcome-shift sensitivity must permit unknown/violated exact invariance");
+            assert!(!report.exact_transportability_supported);
+            assert_eq!(report.frontier[0].target_ate_lower, 0.28);
+            assert_eq!(report.frontier[0].target_ate_upper, 0.28);
+            assert!(report.frontier[1].target_ate_lower < 0.28);
+            assert!(report.frontier[1].target_ate_upper > 0.28);
+            assert_eq!(
+                report.assumptions.selection_exchangeability.disposition,
+                disposition
+            );
+        }
+    }
+
+    #[test]
+    fn source_internal_validity_no_interference_and_treatment_version_remain_required() {
+        for mutate in [
+            0_u8, 1_u8, 2_u8,
+        ] {
+            let mut assumptions = supported_assumptions();
+            match mutate {
+                0 => assumptions.source_internal_validity.disposition = AssumptionDisposition::Unknown,
+                1 => assumptions.no_interference.disposition = AssumptionDisposition::Violated,
+                _ => assumptions.treatment_version_invariance.disposition = AssumptionDisposition::Unknown,
+            }
+            assert_eq!(
+                assess_binary_outcome_shift_sensitivity(
+                    "source",
+                    "target",
+                    "protocol",
+                    &assumptions,
+                    &source_strata(),
+                    &full_support_target(),
+                    &[1.0, 2.0],
+                    4.0,
+                    1e-8,
+                )
+                .unwrap_err(),
+                OutcomeShiftSensitivityError::AssumptionsNotSupported
+            );
+        }
     }
 
     #[test]
