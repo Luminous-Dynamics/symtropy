@@ -45,7 +45,6 @@ impl std::error::Error for HeterogeneityError {}
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StratumDefinition {
     pub id: String,
-    pub required: bool,
     pub minimum_observations: usize,
 }
 
@@ -399,7 +398,6 @@ mod tests {
         vec![
             StratumDefinition {
                 id: "group-a".to_string(),
-                required: true,
                 minimum_observations: 2,
             },
             StratumDefinition {
@@ -621,7 +619,15 @@ mod tests {
             source_digest: schema.source_digest.clone(),
             observation_digest: "sha256-heterogeneity-observation".to_string(),
             split_manifest_digest: manifest.manifest_digest.clone(),
-            components: schema.reference_components(),
+            components: schema
+                .components
+                .iter()
+                .map(|spec| JointComponentValue {
+                    component_id: spec.id.clone(),
+                    measurement_unit: spec.measurement_unit.clone(),
+                    value: spec.reference_center,
+                })
+                .collect(),
         };
         let components = profile
             .joint_component_values()
