@@ -1,0 +1,707 @@
+{
+  "corpus_id": "luminous.symtropy.port-asset-inspection",
+  "corpus_version": "0.1.0",
+  "claim_ceiling": "Synthetic inspection-contract validity is not physical defect detection, structural capacity, qualified NDT, maintenance authorization, berth closure/reopening or permission to operate.",
+  "base_cases": {
+    "valid_quay_inspection": {
+      "case_id": "SYNTH-PORT-INSPECTION-001",
+      "fixture_kind": "synthetic_fixture",
+      "corpus_version": "0.1.0",
+      "evaluation_cutoff_utc": "2026-11-10T08:00:00Z",
+      "asset": {
+        "asset_id": "SYNTH-PORT-001",
+        "component_id": "SYNTH-QUAY-WALL-001",
+        "feature_id": "SYNTH-WALL-PANEL-17",
+        "asset_type": "reinforced_concrete_quay_wall",
+        "asset_revision": "ASSET-REV-03",
+        "geometry_revision": "GEOM-REV-04",
+        "horizontal_crs": "EPSG:4326",
+        "vertical_datum": "SYNTH-VERTICAL-DATUM-A",
+        "state_class": "as_built",
+        "asset_status": "in_service"
+      },
+      "mission": {
+        "mission_id": "SYNTH-MISSION-ROV-001",
+        "platform_id": "SYNTH-ROV-01",
+        "platform_type": "rov",
+        "status": "completed_synthetic",
+        "started_at_utc": "2026-11-10T07:00:00Z",
+        "completed_at_utc": "2026-11-10T07:40:00Z",
+        "required_asset_feature_id": "SYNTH-WALL-PANEL-17",
+        "survey_revision": "SURVEY-REV-01",
+        "source_group": "SYNTH-MISSION-SOURCE-A",
+        "rights_review_status": "synthetic_not_applicable"
+      },
+      "environment": {
+        "optical_visibility_state": "nominal_synthetic",
+        "turbidity_state": "nominal_synthetic",
+        "current_state": "within_synthetic_envelope",
+        "sea_state": "nominal_synthetic",
+        "observed_at_utc": "2026-11-10T07:00:00Z",
+        "valid_until_utc": "2026-11-10T09:00:00Z"
+      },
+      "spatial_reference": {
+        "horizontal_crs": "EPSG:4326",
+        "vertical_datum": "SYNTH-VERTICAL-DATUM-A",
+        "localization_status": "qualified_synthetic",
+        "pose_error_m": 0.05,
+        "max_pose_error_m": 0.2,
+        "geometry_registration_status": "registered_synthetic",
+        "transform_revision": "TRANSFORM-REV-01",
+        "transform_parent_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "bathymetry": {
+        "product": "S-102",
+        "edition": "3.0.0",
+        "survey_order": "IHO-S44-SYNTHETIC-ORDER-1A",
+        "vertical_datum": "SYNTH-VERTICAL-DATUM-A",
+        "coverage_status": "complete_synthetic",
+        "coverage_fraction": 1,
+        "uncertainty_m": 0.08,
+        "source_time_utc": "2026-11-10T06:30:00Z",
+        "retrieved_at_utc": "2026-11-10T07:02:00Z",
+        "source_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "sample_count": 500,
+        "minimum_samples": 100
+      },
+      "sensors": [
+        {
+          "sensor_id": "SYNTH-OPTICAL-01",
+          "platform_id": "SYNTH-ROV-01",
+          "modality": "optical_imaging",
+          "calibration_state": "current",
+          "calibration_valid_until_utc": "2027-01-01T00:00:00Z",
+          "resolution_m": 0.002,
+          "max_range_m": 3,
+          "health_state": "nominal_synthetic",
+          "model_revision": "OPTICAL-MODEL-REV-01",
+          "source_group": "SYNTH-SENSOR-GROUP-A",
+          "output_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "sensor_id": "SYNTH-SONAR-01",
+          "platform_id": "SYNTH-ROV-01",
+          "modality": "imaging_sonar",
+          "calibration_state": "current",
+          "calibration_valid_until_utc": "2027-01-01T00:00:00Z",
+          "resolution_m": 0.01,
+          "max_range_m": 15,
+          "health_state": "nominal_synthetic",
+          "model_revision": "SONAR-MODEL-REV-01",
+          "source_group": "SYNTH-SENSOR-GROUP-B",
+          "output_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        }
+      ],
+      "observations": [
+        {
+          "observation_id": "SYNTH-OBS-OPT-001",
+          "mission_id": "SYNTH-MISSION-ROV-001",
+          "sensor_id": "SYNTH-OPTICAL-01",
+          "asset_id": "SYNTH-PORT-001",
+          "asset_feature_id": "SYNTH-WALL-PANEL-17",
+          "asset_revision": "ASSET-REV-03",
+          "geometry_revision": "GEOM-REV-04",
+          "position_reference": "structure_relative_pose",
+          "source_time_utc": "2026-11-10T07:20:00Z",
+          "retrieved_at_utc": "2026-11-10T07:20:02Z",
+          "pose_error_m": 0.05,
+          "coverage_fraction": 0.95,
+          "occlusion_state": "clear_synthetic",
+          "result_class": "indication_synthetic",
+          "indication_type": "surface_spall",
+          "measured_value": 0.04,
+          "measurement_unit": "m",
+          "uncertainty": 0.005,
+          "evidence_class": "synthetic_sensor_observation",
+          "independence_group": "SYNTH-SENSOR-GROUP-A"
+        },
+        {
+          "observation_id": "SYNTH-OBS-SON-001",
+          "mission_id": "SYNTH-MISSION-ROV-001",
+          "sensor_id": "SYNTH-SONAR-01",
+          "asset_id": "SYNTH-PORT-001",
+          "asset_feature_id": "SYNTH-WALL-PANEL-17",
+          "asset_revision": "ASSET-REV-03",
+          "geometry_revision": "GEOM-REV-04",
+          "position_reference": "structure_relative_pose",
+          "source_time_utc": "2026-11-10T07:21:00Z",
+          "retrieved_at_utc": "2026-11-10T07:21:02Z",
+          "pose_error_m": 0.06,
+          "coverage_fraction": 0.92,
+          "occlusion_state": "clear_synthetic",
+          "result_class": "indication_synthetic",
+          "indication_type": "surface_anomaly",
+          "measured_value": 0.03,
+          "measurement_unit": "m",
+          "uncertainty": 0.01,
+          "evidence_class": "synthetic_sensor_observation",
+          "independence_group": "SYNTH-SENSOR-GROUP-B"
+        }
+      ],
+      "coverage": {
+        "required_fraction": 0.9,
+        "observed_fraction": 0.93,
+        "coverage_status": "complete_synthetic",
+        "inaccessible_fraction": 0.02,
+        "occluded_fraction": 0.01,
+        "blind_zone_declared": true,
+        "registered_geometry_revision": "GEOM-REV-04"
+      },
+      "independent_reference": {
+        "available": true,
+        "blind": true,
+        "method": "independent_metrology_synthetic",
+        "asset_feature_id": "SYNTH-WALL-PANEL-17",
+        "asset_revision": "ASSET-REV-03",
+        "disposition": "indication_confirmed_synthetic",
+        "indication_type": "surface_spall",
+        "source_group": "SYNTH-REFERENCE-GROUP-Z",
+        "source_time_utc": "2026-11-10T07:30:00Z",
+        "reference_digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "assessment": {
+        "assessment_id": "SYNTH-ASSESS-001",
+        "assessor_id": "SYNTH-ENGINEER-01",
+        "disposition": "indication_confirmed_synthetic",
+        "indication_type": "surface_spall",
+        "severity": "moderate_synthetic",
+        "confidence": 0.91,
+        "confidence_status": "calibrated_synthetic",
+        "claim_type": "observed_condition_indication",
+        "reference_link": "SYNTH-REFERENCE-GROUP-Z",
+        "source_time_utc": "2026-11-10T07:35:00Z",
+        "state_age_s": 300,
+        "max_state_age_s": 3600,
+        "fusion_method": "independent_evidence_preserved",
+        "claims_independent_corroboration": true
+      },
+      "maintenance": {
+        "recommendation": "targeted_reinspection",
+        "maintenance_state": "not_authorized",
+        "maintenance_authorized": false,
+        "approval_status": "not_requested",
+        "approval_ref": null,
+        "work_order_ref": null,
+        "repair_required": false,
+        "repair_completed": false,
+        "post_action_verification": "not_applicable",
+        "source_writeback": false
+      },
+      "commissioning": {
+        "max_latency_ms": 5000,
+        "observed_latency_ms": 1200,
+        "expected_update_interval_s": 60,
+        "observed_update_interval_s": 55,
+        "required_fidelity": "identity_coverage_uncertainty",
+        "observed_fidelity": "complete_synthetic",
+        "projection_write_mode": "read_only",
+        "source_time_role": "source_observation",
+        "retrieval_time_role": "ingestion"
+      }
+    }
+  },
+  "cases": [
+    {
+      "id": "valid_quay_wall_rov_inspection",
+      "base": "valid_quay_inspection",
+      "mutations": [],
+      "expected_code": "INSPECTION_CONTRACT_VALID_SYNTHETIC_ONLY"
+    },
+    {
+      "id": "wrong_asset_identity",
+      "base": "valid_quay_inspection",
+      "mutations": [
+        {
+          "path": "observations.0.asset_id",
+          "op": "set",
+          "value": "SYNTH-PORT-999"
+        }
+      ],
+      "expected_code": "ASSET_IDENTITY_MISMATCH"
+    },
+    {
+      "id": "wrong_feature_identity",
+      "base": "valid_quay_inspection",
+      "mutations": [
+        {
+          "path": "observations.1.asset_feature_id",
+          "op": "set",
+          "value": "SYNTH-WALL-PANEL-99"
+        }
+      ],
+      "expected_code": "FEATURE_IDENTITY_MISMATCH"
+    },
+    {
+      "id": "wrong_asset_revision",
+      "base": "valid_quay_inspection",
+      "mutations": [
+        {
+          "path": "observations.0.asset_revision",
+          "op": "set",
+          "value": "ASSET-REV-02"
+        }
+      ],
+      "expected_code": "ASSET_REVISION_MISMATCH"
+    },
+    {
+      "id": "missing_geometry_revision",
+      "base": "valid_quay_inspection",
+      "mutations": [
+        {
+          "path": "asset.geometry_revision",
+          "op": "set",
+          "value": null
+        }
+      ],
+      "expected_code": "GEOMETRY_REVISION_MISSING"
+    },
+    {
+      "id": "missing_horizontal_crs",
+      "base": "valid_quay_inspection",
+      "mutations": [
+        {
+          "path": "spatial_reference.horizontal_crs",
+          "op": "set",
+          "value": null
+        }
+      ],
+      "expected_code": "SPATIAL_REFERENCE_MISSING"
+    },
+    {
+      "id": "pose_error_exceeds_tolerance",
+      "base": "valid_quay_inspection",
+      "mutations": [
+        {
+          "path": "spatial_reference.pose_error_m",
+          "op": "set",
+          "value": 1.5
+        }
+      ],
+      "expected_code": "LOCALIZATION_OUT_OF_TOLERANCE"
+    },
+    {
+      "id": "ambiguous_repetitive_wall_slam",
+      "base": "valid_quay_inspection",
+      "mutations": [
+        {
+          "path": "spatial_reference.localization_status",
+          "op": "set",
+          "value": "ambiguous"
+        }
+      ],
+      "expected_code": "LOCALIZATION_UNQUALIFIED"
+    },
+    {
+      "id": "optical_sensor_calibration_expired",
+      "base": "valid_quay_inspection",
+      "mutations": [
+        {
+          "path": "sensors.0.calibration_valid_until_utc",
+          "op": "set",
+          "value": "2026-11-01T00:00:00Z"
+        }
+      ],
+      "expected_code": "SENSOR_CALIBRATION_EXPIRED"
+    },
+    {
+      "id": "sonar_range_metadata_missing",
+      "base": "valid_quay_inspection",
+      "mutations": [
+        {
+          "path": "sensors.1.max_range_m",
+          "op": "set",
+          "value": null
+        }
+      ],
+      "expected_code": "SENSOR_METADATA_INCOMPLETE"
+    },
+    {
+      "id": "optical_visibility_outside_envelope",
+      "base": "valid_quay_inspection",
+      "mutations": [
+        {
+          "path": "environment.optical_visibility_state",
+          "op": "set",
+          "value": "outside_validated_envelope"
+        }
+      ],
+      "expected_code": "SENSOR_ENVIRONMENT_OUT_OF_DOMAIN"
+    },
+    {
+      "id": "acoustic_shadow_promoted_to_clear",
+      "base": "valid_quay_inspection",
+      "mutations": [
+        {
+          "path": "observations.1.occlusion_state",
+          "op": "set",
+          "value": "acoustic_shadow"
+        },
+        {
+          "path": "observations.1.result_class",
+          "op": "set",
+          "value": "no_indication"
+        }
+      ],
+      "expected_code": "OCCLUDED_REGION_NOT_CLEAR"
+    },
+    {
+      "id": "coverage_reported_complete_with_gap",
+      "base": "valid_quay_inspection",
+      "mutations": [
+        {
+          "path": "coverage.observed_fraction",
+          "op": "set",
+          "value": 0.45
+        }
+      ],
+      "expected_code": "INSPECTION_COVERAGE_INCOMPLETE"
+    },
+    {
+      "id": "retrieval_precedes_observation_time",
+      "base": "valid_quay_inspection",
+      "mutations": [
+        {
+          "path": "observations.0.retrieved_at_utc",
+          "op": "set",
+          "value": "2026-11-10T07:00:00Z"
+        }
+      ],
+      "expected_code": "TEMPORAL_ROLE_INCONSISTENCY"
+    },
+    {
+      "id": "vertical_datum_mismatch",
+      "base": "valid_quay_inspection",
+      "mutations": [
+        {
+          "path": "bathymetry.vertical_datum",
+          "op": "set",
+          "value": "SYNTH-DATUM-B"
+        }
+      ],
+      "expected_code": "VERTICAL_DATUM_MISMATCH"
+    },
+    {
+      "id": "s102_surface_missing_survey_coverage",
+      "base": "valid_quay_inspection",
+      "mutations": [
+        {
+          "path": "bathymetry.coverage_status",
+          "op": "set",
+          "value": "incomplete"
+        }
+      ],
+      "expected_code": "BATHYMETRY_COVERAGE_INSUFFICIENT"
+    },
+    {
+      "id": "scour_inference_from_sparse_soundings",
+      "base": "valid_quay_inspection",
+      "mutations": [
+        {
+          "path": "bathymetry.sample_count",
+          "op": "set",
+          "value": 1
+        }
+      ],
+      "expected_code": "BATHYMETRY_SAMPLE_SUPPORT_INSUFFICIENT"
+    },
+    {
+      "id": "corrosion_claim_without_thickness_measurement",
+      "base": "valid_quay_inspection",
+      "mutations": [
+        {
+          "path": "assessment.indication_type",
+          "op": "set",
+          "value": "corrosion_thickness_loss"
+        },
+        {
+          "path": "observations.1.measured_value",
+          "op": "set",
+          "value": null
+        }
+      ],
+      "expected_code": "THICKNESS_EVIDENCE_MISSING"
+    },
+    {
+      "id": "observation_promoted_to_structural_capacity",
+      "base": "valid_quay_inspection",
+      "mutations": [
+        {
+          "path": "assessment.claim_type",
+          "op": "set",
+          "value": "structural_capacity"
+        }
+      ],
+      "expected_code": "STRUCTURAL_CLAIM_UNSUPPORTED"
+    },
+    {
+      "id": "uncalibrated_confidence_presented_as_calibrated",
+      "base": "valid_quay_inspection",
+      "mutations": [
+        {
+          "path": "assessment.confidence_status",
+          "op": "set",
+          "value": "uncalibrated"
+        }
+      ],
+      "expected_code": "CONFIDENCE_NOT_CALIBRATED"
+    },
+    {
+      "id": "independent_reference_missing",
+      "base": "valid_quay_inspection",
+      "mutations": [
+        {
+          "path": "independent_reference.available",
+          "op": "set",
+          "value": false
+        }
+      ],
+      "expected_code": "INDEPENDENT_REFERENCE_MISSING"
+    },
+    {
+      "id": "critical_reference_conflicts_with_no_indication",
+      "base": "valid_quay_inspection",
+      "mutations": [
+        {
+          "path": "assessment.disposition",
+          "op": "set",
+          "value": "no_indication"
+        }
+      ],
+      "expected_code": "REFERENCE_ASSESSMENT_CONFLICT"
+    },
+    {
+      "id": "unsupported_positive_indication_creates_work_order",
+      "base": "valid_quay_inspection",
+      "mutations": [
+        {
+          "path": "independent_reference.disposition",
+          "op": "set",
+          "value": "no_indication"
+        },
+        {
+          "path": "maintenance.recommendation",
+          "op": "set",
+          "value": "create_work_order"
+        }
+      ],
+      "expected_code": "UNSUPPORTED_WORK_ORDER_RECOMMENDATION"
+    },
+    {
+      "id": "conflicting_sensor_evidence_collapsed",
+      "base": "valid_quay_inspection",
+      "mutations": [
+        {
+          "path": "observations.1.result_class",
+          "op": "set",
+          "value": "no_indication"
+        },
+        {
+          "path": "assessment.fusion_method",
+          "op": "set",
+          "value": "naive_average"
+        }
+      ],
+      "expected_code": "CONFLICTING_OBSERVATIONS_COLLAPSED"
+    },
+    {
+      "id": "recent_retrieval_masks_stale_source",
+      "base": "valid_quay_inspection",
+      "mutations": [
+        {
+          "path": "observations.0.source_time_utc",
+          "op": "set",
+          "value": "2026-11-01T07:20:00Z"
+        }
+      ],
+      "expected_code": "OBSERVATION_STALE"
+    },
+    {
+      "id": "stale_assessment_reused_as_current",
+      "base": "valid_quay_inspection",
+      "mutations": [
+        {
+          "path": "assessment.state_age_s",
+          "op": "set",
+          "value": 86400
+        }
+      ],
+      "expected_code": "ASSESSMENT_STALE"
+    },
+    {
+      "id": "out_of_order_survey_revision_resurrected",
+      "base": "valid_quay_inspection",
+      "mutations": [
+        {
+          "path": "bathymetry.survey_sequence",
+          "op": "set",
+          "value": 2
+        },
+        {
+          "path": "bathymetry.latest_survey_sequence",
+          "op": "set",
+          "value": 3
+        }
+      ],
+      "expected_code": "SURVEY_REVISION_OUT_OF_ORDER"
+    },
+    {
+      "id": "rov_output_mislabeled_as_qualified_ndt",
+      "base": "valid_quay_inspection",
+      "mutations": [
+        {
+          "path": "observations.0.evidence_class",
+          "op": "set",
+          "value": "qualified_ndt"
+        }
+      ],
+      "expected_code": "EVIDENCE_CLASS_MISMATCH"
+    },
+    {
+      "id": "maintenance_approval_bypassed",
+      "base": "valid_quay_inspection",
+      "mutations": [
+        {
+          "path": "maintenance.maintenance_authorized",
+          "op": "set",
+          "value": true
+        },
+        {
+          "path": "maintenance.approval_status",
+          "op": "set",
+          "value": "not_requested"
+        }
+      ],
+      "expected_code": "MAINTENANCE_AUTHORITY_MISSING"
+    },
+    {
+      "id": "repair_completed_without_post_repair_verification",
+      "base": "valid_quay_inspection",
+      "mutations": [
+        {
+          "path": "maintenance.repair_required",
+          "op": "set",
+          "value": true
+        },
+        {
+          "path": "maintenance.repair_completed",
+          "op": "set",
+          "value": true
+        },
+        {
+          "path": "maintenance.post_action_verification",
+          "op": "set",
+          "value": "missing"
+        }
+      ],
+      "expected_code": "POST_REPAIR_VERIFICATION_MISSING"
+    },
+    {
+      "id": "interrupted_mission_reported_complete",
+      "base": "valid_quay_inspection",
+      "mutations": [
+        {
+          "path": "mission.status",
+          "op": "set",
+          "value": "interrupted"
+        }
+      ],
+      "expected_code": "MISSION_NOT_COMPLETE"
+    },
+    {
+      "id": "observation_references_wrong_sensor",
+      "base": "valid_quay_inspection",
+      "mutations": [
+        {
+          "path": "observations.0.sensor_id",
+          "op": "set",
+          "value": "SYNTH-UNKNOWN-SENSOR"
+        }
+      ],
+      "expected_code": "OBSERVATION_SENSOR_UNBOUND"
+    },
+    {
+      "id": "data_rights_not_reviewed",
+      "base": "valid_quay_inspection",
+      "mutations": [
+        {
+          "path": "mission.rights_review_status",
+          "op": "set",
+          "value": "review_required"
+        }
+      ],
+      "expected_code": "DATA_RIGHTS_NOT_REVIEWED"
+    },
+    {
+      "id": "geometry_changed_without_registration",
+      "base": "valid_quay_inspection",
+      "mutations": [
+        {
+          "path": "coverage.registered_geometry_revision",
+          "op": "set",
+          "value": "GEOM-REV-02"
+        }
+      ],
+      "expected_code": "GEOMETRY_REGISTRATION_MISMATCH"
+    },
+    {
+      "id": "multi_platform_blind_spot_claimed_independent",
+      "base": "valid_quay_inspection",
+      "mutations": [
+        {
+          "path": "observations.1.independence_group",
+          "op": "set",
+          "value": "SYNTH-SENSOR-GROUP-A"
+        }
+      ],
+      "expected_code": "FALSE_INDEPENDENCE_CLAIM"
+    },
+    {
+      "id": "twin_latency_exceeded",
+      "base": "valid_quay_inspection",
+      "mutations": [
+        {
+          "path": "commissioning.observed_latency_ms",
+          "op": "set",
+          "value": 12000
+        }
+      ],
+      "expected_code": "TWIN_LATENCY_EXCEEDED"
+    },
+    {
+      "id": "projection_writes_to_canonical_asset",
+      "base": "valid_quay_inspection",
+      "mutations": [
+        {
+          "path": "maintenance.source_writeback",
+          "op": "set",
+          "value": true
+        }
+      ],
+      "expected_code": "SOURCE_WRITEBACK_FORBIDDEN"
+    },
+    {
+      "id": "sensor_health_unknown",
+      "base": "valid_quay_inspection",
+      "mutations": [
+        {
+          "path": "sensors.0.health_state",
+          "op": "set",
+          "value": "unknown"
+        }
+      ],
+      "expected_code": "SENSOR_HEALTH_UNKNOWN"
+    },
+    {
+      "id": "duplicate_observation_identity",
+      "base": "valid_quay_inspection",
+      "mutations": [
+        {
+          "path": "observations.1.observation_id",
+          "op": "set",
+          "value": "SYNTH-OBS-OPT-001"
+        }
+      ],
+      "expected_code": "DUPLICATE_OBSERVATION_ID"
+    }
+  ]
+}
