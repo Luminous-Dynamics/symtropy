@@ -1582,7 +1582,9 @@ mod tests {
         input.proposal.deadline_ns = 200;
         input.result.deadline_ns = 200;
         input.result.completed_at_ns = 201;
-        input.fallback = Some(admitted_fallback());
+        let mut fallback = admitted_fallback();
+        fallback.intended_apply_at_ns = 210;
+        input.fallback = Some(fallback);
         let report = qualify_projected_action(&input).expect("late projected result");
         assert_eq!(
             report.disposition,
