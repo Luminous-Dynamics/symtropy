@@ -492,48 +492,28 @@ mod tests {
         )
         .unwrap();
 
-        let mut missing_id = event(
-            "follow-up",
-            8,
-            InteractionKind::FollowUpChoice,
-            "cup-a",
-        );
+        let mut missing_id = event("follow-up", 8, InteractionKind::FollowUpChoice, "cup-a");
         missing_id.interaction_id.clear();
         assert_eq!(
             evaluate_follow_up(&constraint, &missing_id),
             Err(BceError::EmptyInteractionId)
         );
 
-        let mut missing_entity = event(
-            "follow-up",
-            8,
-            InteractionKind::FollowUpChoice,
-            "cup-a",
-        );
+        let mut missing_entity = event("follow-up", 8, InteractionKind::FollowUpChoice, "cup-a");
         missing_entity.entity_id.clear();
         assert_eq!(
             evaluate_follow_up(&constraint, &missing_entity),
             Err(BceError::EmptyEntityId)
         );
 
-        let mut missing_receipt = event(
-            "follow-up",
-            8,
-            InteractionKind::FollowUpChoice,
-            "cup-a",
-        );
+        let mut missing_receipt = event("follow-up", 8, InteractionKind::FollowUpChoice, "cup-a");
         missing_receipt.observed_event_ref.clear();
         assert_eq!(
             evaluate_follow_up(&constraint, &missing_receipt),
             Err(BceError::MissingObservedEventRef)
         );
 
-        let reused_source = event(
-            "prior",
-            8,
-            InteractionKind::FollowUpChoice,
-            "cup-a",
-        );
+        let reused_source = event("prior", 8, InteractionKind::FollowUpChoice, "cup-a");
         assert_eq!(
             evaluate_follow_up(&constraint, &reused_source),
             Err(BceError::DuplicateInteractionId("prior".into()))
