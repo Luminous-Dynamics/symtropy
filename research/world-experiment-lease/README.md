@@ -6,8 +6,13 @@ This package does not select a physics solver, select a renderer, run a simulati
 
 ## Run
 
-    cargo test
-    cargo run -- fixtures/machine-test-01.json
+From this directory:
+
+    cargo test --locked
+    cargo clippy --locked --all-targets -- -D warnings
+    cargo run --locked -- fixtures/machine-test-01.json
+
+The isolated package carries its own Cargo.lock, reusing the currently resolved transitive package versions from the repository root lockfile. The exact-head workflow checks the package with Cargo's `--locked` mode.
 
 The CLI emits a deterministic lease receipt. The fixture is synthetic software test data; its digest-shaped strings are not claims about real source artifacts, measurements, models, or hardware.
 
