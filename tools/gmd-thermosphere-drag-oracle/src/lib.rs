@@ -410,5 +410,17 @@ mod tests {
             evaluate_drag_envelope(input),
             Err(DragError::InvalidEnvelopeOrdering)
         );
+
+        let invalid_coefficient = DragEnvelopeInput {
+            density_min_kg_m3: 1.0e-12,
+            density_max_kg_m3: 2.0e-12,
+            ballistic_coefficient_min_kg_m2: 0.0,
+            ballistic_coefficient_max_kg_m2: 5.0,
+            relative_velocity_m_s: [KNOWN_SPEED, 0.0, 0.0],
+        };
+        assert_eq!(
+            evaluate_drag_envelope(invalid_coefficient),
+            Err(DragError::NonPositiveBallisticCoefficient)
+        );
     }
 }
