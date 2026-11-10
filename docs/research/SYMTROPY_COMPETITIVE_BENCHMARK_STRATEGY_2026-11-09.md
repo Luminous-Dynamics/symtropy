@@ -232,7 +232,7 @@ The first implementation should use the analytical 1D impact/repeated-bounce ora
 Symtropy should invest in differential geometry, but the goal is **not** to add more abstract algebra or replace its existing geometric-algebra representation. The goal is to make every rotational/rigid-body computation use the correct configuration manifold, tangent space, dual space, frame and local derivative.
 
 The existing code already has Bivector<D> for so(D), Rotor<D> for SO(D), Transform<D> for rigid transforms and a validated SO(D) matrix-admission path in draft PR #4412. The principal gaps are:
-- main now contains branch-aware SO(3) logarithm, cut-locus metadata, tangent plus/minus and geodesic interpolation. Draft PR #4494 exports that module and adds checked Transform<3> interpolation plus analytic left/right exponential Jacobians and inverse Jacobians; its exact-head CI is queued, so the submitted implementation is not yet CI-qualified. Full SO(D) logarithms, SO(4) multiple-plane branch decomposition and tangent transport are still missing;
+- main contains branch-aware SO(3) logarithm, cut-locus metadata, tangent plus/minus and geodesic interpolation. Draft PR #4494 exports that module, adds checked Transform<3> interpolation and analytic left/right exponential Jacobians, and now adds a checked SO(4) multi-plane logarithm/interpolator. Its SO(4) algorithm separates unequal invariant planes, keeps equal-angle rank-four skew blocks, canonicalizes exact-π eigenspaces and verifies reconstruction. Exact-head CI is queued; full SO(D) real-Schur logs and tangent transport remain missing;
 - draft PR #4494 adds SO(3) left/right exponential Jacobians and inverse Jacobians with finite-difference tests; a generic SO(D) typed tangent API and tangent transport remain missing;
 - draft PR #4494 now includes typed 3D body/spatial twists and wrenches, plus body-to-spatial Ad_T and Ad_T^(-T) transformations. Production RigidBody angular velocity, momentum and torque storage still need an explicit frame/trivialization contract;
 - PR #4494 consolidates an SE(3) adjoint/coadjoint P0 and tests dual power invariance, inverse round trips and matrix duality; exact-head CI is queued, not yet qualified. Generic SE(D), articulated spatial inertia and production dynamics integration remain open;
@@ -262,18 +262,47 @@ Primary documentation:
 #### Proposed geometry benchmark ladder
 
 1. **SO(3) exp/log:** identity and small-angle series; generic axis-angle; exact and near-π rotations; branch/cut-locus typing. Check round-trip and reconstructed matrix independently.
-2. **SO(4) multi-plane:** simultaneous independent rotations with unequal angles; preserve each principal-plane action and group composition. Do not reduce to one axis/plane.
+2. **SO(4) multi-plane:** simultaneous independent rotations with unequal angles; equal-angle rank-four blocks; same-cosine/opposite-signed planes; one exact-π plane plus a generic plane; and -identity with two π planes. Preserve each principal-plane action, group composition and reconstruction. Treat exact-π plane identity as non-unique: canonicalize deterministically but retain the cut-locus metadata; do not claim the chosen plane basis is physically unique.
 3. **Retraction and tangent difference:** minus(R, plus(R, δ)) returns δ within the declared injectivity region; use tangent-space finite differences, not raw matrix/quaternion coefficient perturbations.
 4. **Differential of exp:** check left/right Jacobians and inverse maps against independent high-precision central differences, across a step-size ladder, on well-conditioned charts; verify inverse products and typed singular/ill-conditioned results near nonzero 2π singularities.
 5. **Adjoint/coadjoint:** frame changes of twists and wrenches preserve their dual power pairing; test 6x6 matrix duality (Ad_T^T Ad_T^(-T) = I), typed conversion round trips, translated moment arms, frame-origin changes and non-commuting transforms. Frame identities and points of application must be explicit in the caller's evidence.
 6. **Rigid-body dynamics:** torque-free asymmetric top, same inertia re-expressed in rotated body frames, and agreement between body- and spatial-trivialized formulations; report energy and world angular momentum independently.
 7. **Hybrid/contact derivatives:** compose tangent transport with event saltation and branch-local contact derivatives; never conflate smooth manifold derivatives with nonsmooth event sensitivities.
 
-Initial internal targets (not current measurements or universal standards): SO(3) exp/log relative error ≤1e-12 away from the cut locus in f64; exact-π reconstruction ≤1e-10; left/right Jacobian relative discrepancy ≤1e-8 against independent references on well-conditioned cases; forward/inverse Jacobian product defect ≤1e-12; twist–wrench power-pairing defect ≤1e-12; zero silent identity fallbacks for ambiguous logs; 100% derivative receipts bind chart, basis order, tangent coordinates, parameter point, frame, left/right convention, branch and conditioning.
+Initial internal targets (not current measurements or universal standards): SO(3) exp/log relative error ≤1e-12 away from the cut locus in f64; SO(4) reconstruction ≤1e-10 on well-conditioned cases; exact-π reconstruction ≤1e-10; left/right Jacobian relative discrepancy ≤1e-8 against independent references on well-conditioned cases; forward/inverse Jacobian product defect ≤1e-12; twist–wrench power-pairing defect ≤1e-12; zero silent identity fallbacks for ambiguous logs; every SO(4) equal-angle/π case reports non-unique plane identity; 100% derivative receipts bind chart, basis order, tangent coordinates, parameter point, frame, left/right convention, branch and conditioning.
+
+#### 3.2.5 Discrete step-map dynamics: compare the physical update, not just the integrator label
+
+A current and important competitor development is MuJoCo's new `discrete` integrator (added in September 2026). It fuses the implicit velocity update and constraint solve into one step-map problem in an effective metric:
+
+```
+M_hat = M + h D + h^2 K
+M_hat a = f(q, v) - h K v + J^T f_c
+v_next = v + h a
+q_next = q + h v_next
+```
+
+Here `a = (v_next - v)/h` is the discrete step acceleration, not the instantaneous continuous-time acceleration. The important shift is that stiff smooth-force terms and constraints participate in the same effective metric, so derivatives of forward dynamics are derivatives of the actual discrete transition rather than an acceleration followed by an independent integration stage. The released documentation also states the positive-definiteness restrictions, excluded gyroscopic/Coriolis derivative terms, and unsupported model combinations; these boundaries must be part of any fair comparison.
+
+Primary references:
+- [MuJoCo computation and discrete integrator documentation](https://mujoco.readthedocs.io/en/latest/computation/)
+- [MuJoCo release notes](https://github.com/google-deepmind/mujoco/releases)
+
+**Symtropy response:** add a separately identified discrete-step-map lane without silently replacing the continuous-time dynamics contract. The benchmark must bind the integrator, timestep, solver, stiffness/damping treatment, constraint law, contact semantics and state/actuation model. For each step, publish both the transition and its derivative contract.
+
+Required matched tests:
+1. Stiff spring and position-servo sweeps with contact; sweep the dimensionless stiffness parameter across, below and above the explicit stability range.
+2. Compare continuous-acceleration-plus-integrator and fused discrete step-map formulations on the same physical model. Do not equate `qacc` values when one is instantaneous acceleration and the other is a finite-difference step.
+3. Validate the discrete Jacobian against finite differences of the complete transition map, including constraints and contact, not just the unconstrained acceleration function.
+4. Report contact/complementarity residual, penetration, constraint work, spring-energy change, damping dissipation, momentum defect and step-map derivative error.
+5. Measure cost per accepted physically admissible step at matched trajectory/observable error, not only raw steps per second.
+6. Disclose terms excluded from the effective metric, positivity clamps, unsupported model forms and all solver fallbacks.
+
+**Research opportunity:** use an evidence-qualified step map as the primary optimization object for contact-rich robot control, while retaining an independently checkable continuous-time model for physical interpretation. The critical metric is not raw gradient speed; it is the cost per accepted optimization update whose forward transition, derivative class, constraint residual and branch assumptions are independently reproducible.
 
 #### Existing ownership — do not fork the geometry stack
 
-- [#4452](https://github.com/Luminous-Dynamics/symtropy/issues/4452) owns shared SO(D) log, tangent calculus, Jacobian and SE(D) adjoint/coadjoint primitives; [draft PR #4494](https://github.com/Luminous-Dynamics/symtropy/pull/4494) integrates the SO(3) public API, checked transform interpolation, left/right exponential Jacobians, and SE(3) body/spatial twist/wrench dual transforms.
+- [#4452](https://github.com/Luminous-Dynamics/symtropy/issues/4452) owns shared SO(D) log, tangent calculus, Jacobian and SE(D) adjoint/coadjoint primitives; [draft PR #4494](https://github.com/Luminous-Dynamics/symtropy/pull/4494) integrates the SO(3) public API, checked SO(3)/SO(4) transform interpolation, left/right SO(3) exponential Jacobians, and SE(3) body/spatial twist/wrench dual transforms.
 - [#1613 / PR #1641](https://github.com/Luminous-Dynamics/symtropy/issues/1613) owns frame-labelled rigid transforms and pose composition.
 - [#3753 / PR #3920](https://github.com/Luminous-Dynamics/symtropy/issues/3753) owns physically realizable mass properties and the bivector inertia operator.
 - [#3132 / #3119](https://github.com/Luminous-Dynamics/symtropy/issues/3132) own SO(3) equivariance and momentum-map physics evidence.
