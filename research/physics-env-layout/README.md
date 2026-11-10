@@ -37,12 +37,12 @@ The scalar operation sequence is shared, and no cross-environment floating-point
 
 ## Benchmark matrix
 
-- 1K, 100K and 1M independent environments.
+- 1K, 10K, 100K and 1M independent environments.
 - 20 repeated steps per timed batch at 120 Hz.
 - Scalar AoS, SoA and AoSoA-4/8/16.
 - Persistent Rayon worker pools at 1, 2, 4 and 8 workers for AoS, SoA and AoSoA-8.
 
-The benchmark reports environments-steps/second via Criterion element throughput. It does not yet report hardware cache counters or GPU metrics; those require a supported profiling environment. Record compiler, target CPU features, OS, worker count and power/thermal state alongside any published result.
+The benchmark applies one environment-level parallel dispatch per step in every layout, uses persistent Rayon pools, and passes the mutated state through the same optimization barrier. Initialization/cloning is outside the timed operation. It reports environments-steps/second via Criterion element throughput. It does not yet report hardware cache counters or GPU metrics; those require a supported profiling environment. Record compiler, target CPU features, OS, worker count and power/thermal state alongside any published result.
 
 ## Correctness gates
 
