@@ -419,6 +419,32 @@
         "status": "invalid",
         "reason": "cross-channel timestamp skew exceeds bound"
       }
+    },
+    {
+      "id": "R-feature-before-diagnostic-receipt-window",
+      "observation": {
+        "observed_at_ns": 450,
+        "features": [
+          {
+            "feature_id": "joint_velocity_residual",
+            "source_id": "joint-encoder-source-1",
+            "unit_id": "mrad_per_s",
+            "observed_at_ns": 99,
+            "value": 0
+          },
+          {
+            "feature_id": "motor_current_residual",
+            "source_id": "motor-current-source-1",
+            "unit_id": "milliamp",
+            "observed_at_ns": 445,
+            "value": 10
+          }
+        ]
+      },
+      "expected": {
+        "status": "invalid",
+        "reason": "feature timestamp predates diagnostic action receipt validity"
+      }
     }
   ]
 }
