@@ -57,6 +57,10 @@ pub struct OracleReference {
 #[serde(deny_unknown_fields)]
 pub struct MethodEvidence {
     pub method_id: String,
+    /// Stable reference to the exact per-method execution-envelope artifact.
+    pub execution_manifest_id: String,
+    /// Digest of the command, build, dependencies, runtime, hardware/precision and method settings.
+    pub execution_manifest_sha256: String,
     pub implementation_id: String,
     pub implementation_sha256: String,
     /// Digest of the canonical, ordered input bundle actually consumed by this method.
@@ -327,6 +331,12 @@ impl ResponseManifest {
             &mut e,
         );
         for x in &self.methods {
+            if !non_empty(&x.execution_manifest_id) {
+                e.push(format!("method '{}' execution manifest identity missing", x.method_id));
+            }
+            if !hex(&x.execution_manifest_sha256, &[64]) {
+                e.push(format!("method '{}' execution manifest digest invalid", x.method_id));
+            }
             if self.provenance.canonical_input_set_sha256.as_deref().is_some_and(|expected| x.input_set_sha256.to_ascii_lowercase() != expected.to_ascii_lowercase()) {
                 e.push(format!(
                     "method '{}' input-set digest differs from manifest canonical input set",
@@ -771,6 +781,8 @@ mod tests {
     fn method(id: &str, i: char, r: char) -> MethodEvidence {
         MethodEvidence {
             method_id: id.into(),
+            execution_manifest_id: format!("execution-{id}"),
+            execution_manifest_sha256: d('7'),
             implementation_id: format!("impl-{id}"),
             implementation_sha256: d(i),
             input_set_sha256: canonical_input_set_sha256(&[NamedDigest {
@@ -1063,6 +1075,18 @@ mod tests {
         m.methods[0].input_set_sha256 = d('9');
         let errors = m.validate().unwrap_err();
         assert!(errors.iter().any(|e| e.contains("differs from manifest canonical input set")));
+    }
+
+    #[test]
+    fn method_execution_manifest_identity_and_digest_are_required() {
+        let mut m = base();
+        let mut evidence = method("fd", 'f', '1');
+        evidence.execution_manifest_id.clear();
+        evidence.execution_manifest_sha256 = "not-a-digest".into();
+        m.methods.push(evidence);
+        let errors = m.validate().unwrap_err();
+        assert!(errors.iter().any(|e| e.contains("execution manifest identity missing")));
+        assert!(errors.iter().any(|e| e.contains("execution manifest digest invalid")));
     }
 
     #[test]
