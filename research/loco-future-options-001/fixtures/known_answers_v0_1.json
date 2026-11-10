@@ -164,17 +164,23 @@
         {
           "node_id": "motor-a",
           "temperature_c": 85,
-          "hard_limit_c": 110
+          "hard_limit_c": 110,
+          "source_class": "synthetic_fixture",
+          "uncertainty_c": 0
         },
         {
           "node_id": "motor-b",
           "temperature_c": 101,
-          "hard_limit_c": 100
+          "hard_limit_c": 100,
+          "source_class": "synthetic_fixture",
+          "uncertainty_c": 0
         },
         {
           "node_id": "compute",
           "temperature_c": 45,
-          "hard_limit_c": 105
+          "hard_limit_c": 105,
+          "source_class": "synthetic_fixture",
+          "uncertainty_c": 0
         }
       ],
       "branches": [
