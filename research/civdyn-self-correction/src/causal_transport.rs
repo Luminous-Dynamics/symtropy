@@ -314,7 +314,7 @@ pub fn assess_risk_difference_transport(
     input.assumptions.validate()?;
 
     let (source_by_modifier, source_total) = validate_source_strata(&input.source_strata)?;
-    let (target_by_modifier, target_total) = validate_target_strata(&input.target_strata)?;
+    let (_target_by_modifier, target_total) = validate_target_strata(&input.target_strata)?;
 
     let mut source_ate = 0.0;
     for source in &input.source_strata {
