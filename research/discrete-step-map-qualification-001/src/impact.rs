@@ -762,6 +762,45 @@ mod tests {
     }
 
     #[test]
+    fn plastic_impact_releases_under_outward_acceleration() {
+        let model = ImpactModel1D::try_new(1.0, 1.0, 0.0).unwrap();
+        let initial = ImpactState1D {
+            gap_m: 0.2,
+            velocity_m_s: -2.0,
+        };
+        let outcome = model.step(initial, 0.5, ImpactTolerances::default()).unwrap();
+        assert_eq!(outcome.branch, ImpactBranch::PlasticImpactThenFreeFlight);
+        assert_eq!(outcome.derivative_class, ImpactDerivativeClass::BranchLocalSingleImpact);
+        assert!(outcome.event_time_s.unwrap() > 0.0);
+        assert!(outcome.state.gap_m > 0.0);
+        assert!(outcome.state.velocity_m_s > 0.0);
+        assert_eq!(outcome.support_impulse_ns, 0.0);
+        assert!(outcome.step_jacobian.is_some());
+    }
+
+    #[test]
+    fn active_resting_contact_reports_support_impulse_and_withholds_derivative() {
+        let model = ImpactModel1D::try_new(3.0, -9.81, 0.0).unwrap();
+        let outcome = model
+            .step(
+                ImpactState1D {
+                    gap_m: 0.0,
+                    velocity_m_s: 0.0,
+                },
+                0.4,
+                ImpactTolerances::default(),
+            )
+            .unwrap();
+        assert_eq!(outcome.branch, ImpactBranch::RestingSupport);
+        assert_eq!(
+            outcome.derivative_class,
+            ImpactDerivativeClass::ActiveSupportUnavailable
+        );
+        close(outcome.support_impulse_ns, 3.0 * 9.81 * 0.4, 1.0e-12);
+        assert!(outcome.step_jacobian.is_none());
+    }
+
+    #[test]
     fn invalid_dimensional_tolerances_fail_closed() {
         let model = ImpactModel1D::try_new(1.0, -9.81, 0.0).unwrap();
         assert_eq!(
