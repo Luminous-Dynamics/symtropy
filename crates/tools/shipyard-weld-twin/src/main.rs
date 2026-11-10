@@ -331,7 +331,7 @@ fn evaluate(weld: &Value, workspace_root: &Path) -> &'static str {
         {
             return "PROCESS_ENVELOPE_EXCEEDED";
         }
-        if pass.get("evidence_class").and_then(Value::as_str) != Some("measured_synthetic") {
+        if pass.get("evidence_class").and_then(Value::as_str) != Some("synthetic_fixture") {
             return "EVIDENCE_CLASS_MISMATCH";
         }
     }
