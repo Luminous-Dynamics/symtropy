@@ -45,7 +45,7 @@ fn array<'a>(value: &'a Value, key: &str) -> Result<&'a [Value], String> {
 fn contains_all(values: &[Value], required: &[&str], field: &str) -> Result<(), String> {
     let strings: Vec<&str> = values.iter().filter_map(Value::as_str).collect();
     for item in required {
-        if !strings.contains(item) {
+        if !strings.contains(&item) {
             return Err(format!("{field} is missing required item: {item}"));
         }
     }
@@ -129,7 +129,7 @@ fn validate(value: &Value) -> Result<(), String> {
         let _ = string(fixture, "purpose")?;
     }
     for expected in EXPECTED_FIXTURES {
-        if observed_fixtures.iter().filter(|id| *id == &expected).count() != 1 {
+        if observed_fixtures.iter().filter(|id| **id == expected).count() != 1 {
             return Err(format!("fixture {expected} must occur exactly once"));
         }
     }
