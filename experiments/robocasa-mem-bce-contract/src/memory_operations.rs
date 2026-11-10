@@ -692,10 +692,12 @@ pub fn compare_memory_operation_arms(
         let mut baseline_wins = 0;
         let mut ties = 0;
         for row in &contributing {
-            match row.fidelity_delta.expect("contributing rows have a delta").total_cmp(&0.0) {
-                std::cmp::Ordering::Greater => candidate_wins += 1,
-                std::cmp::Ordering::Less => baseline_wins += 1,
-                std::cmp::Ordering::Equal => ties += 1,
+            if let Some(delta) = row.fidelity_delta {
+                match delta.total_cmp(&0.0) {
+                    std::cmp::Ordering::Greater => candidate_wins += 1,
+                    std::cmp::Ordering::Less => baseline_wins += 1,
+                    std::cmp::Ordering::Equal => ties += 1,
+                }
             }
         }
         let mean = |values: Vec<f64>| {
@@ -788,7 +790,7 @@ fn validate_manifest(
         observed_tasks.insert(case.task_id.as_str());
         let episode_key = (case.task_id.as_str(), case.episode_id.as_str());
         if episode_units.insert(episode_key, case.independence_unit_id.as_str())
-            .is_some_and(|unit| unit != case.independence_unit_id)
+            .is_some_and(|unit| unit != case.independence_unit_id.as_str())
         {
             return Err(MemoryOperationError::EpisodeIndependenceUnitMismatch);
         }
