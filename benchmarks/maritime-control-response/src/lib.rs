@@ -519,6 +519,8 @@ pub enum ResponseStatus {
     NotEvaluableMissingCommand,
     NotEvaluableMissingResponse,
     NotEvaluableFutureCommand,
+    NotEvaluableResponseBeforePrediction,
+    NotEvaluableResponseOutsideHorizon,
     NotEvaluableStaleCommand,
     NotEvaluableCommandQuality,
     NotEvaluableResponseQuality,
@@ -541,6 +543,7 @@ pub enum CauseClaim {
 pub struct CommandResponsePair {
     pub recording_id: String,
     pub sample_index: u64,
+    pub prediction_time_seconds: f64,
     pub command_signal: String,
     pub response_signal: String,
     pub regime_id: String,
@@ -548,9 +551,14 @@ pub struct CommandResponsePair {
     pub training_recordings_manifest_sha256: String,
     pub split_manifest_sha256: String,
     pub command_value: Option<f64>,
+    /// Time at which the requested command became available to the predictor.
     pub command_time_seconds: Option<f64>,
+    /// Time at which the frozen model issued expected_response.
+    pub prediction_time_seconds: f64,
     pub response_value: Option<f64>,
+    /// Time at which the independent physical response was observed.
     pub response_time_seconds: Option<f64>,
+    pub maximum_response_horizon_seconds: f64,
     pub expected_response: Option<f64>,
     /// Training-only residual standard deviation of the frozen response model.
     pub model_residual_std: f64,
@@ -603,6 +611,10 @@ pub fn evaluate_command_response(
         || pair.measurement_std < 0.0
         || !pair.maximum_command_age_seconds.is_finite()
         || pair.maximum_command_age_seconds < 0.0
+        || !pair.prediction_time_seconds.is_finite()
+        || pair.prediction_time_seconds < 0.0
+        || !pair.maximum_response_horizon_seconds.is_finite()
+        || pair.maximum_response_horizon_seconds <= 0.0
     {
         return Err(EvalError::InvalidCommandResponsePair);
     }
@@ -610,6 +622,7 @@ pub fn evaluate_command_response(
     let mut result = ResponseEvaluation {
         recording_id: pair.recording_id.clone(),
         sample_index: pair.sample_index,
+        prediction_time_seconds: pair.prediction_time_seconds,
         command_signal: pair.command_signal.clone(),
         response_signal: pair.response_signal.clone(),
         regime_id: pair.regime_id.clone(),
@@ -662,12 +675,20 @@ pub fn evaluate_command_response(
             return Ok(result);
         }
     };
-    if command_time > response_time {
+    if command_time > pair.prediction_time_seconds {
         result.status = ResponseStatus::NotEvaluableFutureCommand;
         return Ok(result);
     }
-    if response_time - command_time > pair.maximum_command_age_seconds {
+    if response_time <= pair.prediction_time_seconds {
+        result.status = ResponseStatus::NotEvaluableResponseBeforePrediction;
+        return Ok(result);
+    }
+    if pair.prediction_time_seconds - command_time > pair.maximum_command_age_seconds {
         result.status = ResponseStatus::NotEvaluableStaleCommand;
+        return Ok(result);
+    }
+    if response_time - pair.prediction_time_seconds > pair.maximum_response_horizon_seconds {
+        result.status = ResponseStatus::NotEvaluableResponseOutsideHorizon;
         return Ok(result);
     }
 
@@ -1151,8 +1172,10 @@ mod tests {
             split_manifest_sha256: digest('c'),
             command_value: Some(0.6),
             command_time_seconds: Some(0.45),
+            prediction_time_seconds: 0.45,
             response_value: Some(1.4),
             response_time_seconds: Some(0.5),
+            maximum_response_horizon_seconds: 0.1,
             expected_response: Some(1.0),
             model_residual_std: 0.1,
             measurement_std: 0.1,
@@ -1237,10 +1260,26 @@ mod tests {
     #[test]
     fn future_command_is_not_used_to_explain_past_response() {
         let mut pair = response_pair();
-        pair.command_time_seconds = Some(0.51);
+        pair.command_time_seconds = Some(0.46);
         let result = evaluate_command_response(&pair, Some(&threshold())).unwrap();
         assert_eq!(result.status, ResponseStatus::NotEvaluableFutureCommand);
         assert!(result.observed_residual.is_none());
+    }
+
+    #[test]
+    fn prediction_time_is_between_command_and_physical_response() {
+        let mut pair = response_pair();
+        pair.response_time_seconds = Some(0.44);
+        assert_eq!(
+            evaluate_command_response(&pair, Some(&threshold())).unwrap().status,
+            ResponseStatus::NotEvaluableResponseBeforePrediction
+        );
+        pair = response_pair();
+        pair.response_time_seconds = Some(0.61);
+        assert_eq!(
+            evaluate_command_response(&pair, Some(&threshold())).unwrap().status,
+            ResponseStatus::NotEvaluableResponseOutsideHorizon
+        );
     }
 
     #[test]
