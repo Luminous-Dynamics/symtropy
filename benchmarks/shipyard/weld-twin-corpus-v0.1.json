@@ -23,7 +23,9 @@
         "joint_type": "single_v_groove",
         "weld_position": "synthetic-position-01",
         "effectivity_start_utc": "2026-01-01T00:00:00Z",
-        "effectivity_end_utc": null
+        "effectivity_end_utc": null,
+        "material_record_lot": "SYNTH-HEAT-017",
+        "required_procedure_scope": "SYNTH-SCOPE-THICK-PLATE-FAMILY-01"
       },
       "procedure": {
         "wps_ref": "SYNTH-WPS-017",
@@ -100,7 +102,8 @@
           "process_trace_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
           "evidence_class": "measured_synthetic",
           "observed_envelope_status": "within_declared_envelope",
-          "source_time_utc": "2026-11-10T03:00:00Z"
+          "source_time_utc": "2026-11-10T03:00:00Z",
+          "serial_id": "SYNTH-SERIAL-017"
         },
         {
           "pass_id": "SYNTH-PASS-FILL-02",
@@ -116,7 +119,8 @@
           "process_trace_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
           "evidence_class": "measured_synthetic",
           "observed_envelope_status": "within_declared_envelope",
-          "source_time_utc": "2026-11-10T03:10:00Z"
+          "source_time_utc": "2026-11-10T03:10:00Z",
+          "serial_id": "SYNTH-SERIAL-017"
         },
         {
           "pass_id": "SYNTH-PASS-CAP-03",
@@ -132,7 +136,8 @@
           "process_trace_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
           "evidence_class": "measured_synthetic",
           "observed_envelope_status": "within_declared_envelope",
-          "source_time_utc": "2026-11-10T03:20:00Z"
+          "source_time_utc": "2026-11-10T03:20:00Z",
+          "serial_id": "SYNTH-SERIAL-017"
         }
       ],
       "inspections": {
