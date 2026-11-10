@@ -10,6 +10,13 @@
 use std::error::Error;
 use std::fmt;
 
+pub mod oscillator;
+
+pub use oscillator::{
+    MAX_PHASE_INCREMENT_RAD, OSCILLATOR_EVIDENCE_CLASS, OSCILLATOR_GENERATOR_ID,
+    OscillatorError, OscillatorSummary, PhaseOscillatorConfig, PhaseOscillatorSystem,
+};
+
 pub const GENERATOR_ID: &str = "OLI-ABIOTIC-GRAY-SCOTT-001";
 pub const EVIDENCE_CLASS: &str = "SYNTHETIC_KNOWN_TRUTH";
 pub const DIFFUSION_COURANT_LIMIT_2D: f64 = 0.25;
