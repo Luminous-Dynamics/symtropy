@@ -244,17 +244,17 @@ impl PolicyInputManifest {
     pub fn validate(&self) -> Result<(), ImportError> {
         let mut visible = BTreeSet::new();
         for field in &self.policy_visible_fields {
-            if field.trim().is_empty() || !visible.insert(field.as_str()) {
+            if field.trim().is_empty() || !visible.insert(field.clone()) {
                 return Err(ImportError::InvalidPolicyInputManifest);
             }
         }
 
         let mut private = BTreeSet::new();
         for field in &self.evaluator_private_fields {
-            if field.trim().is_empty() || !private.insert(field.as_str()) {
+            if field.trim().is_empty() || !private.insert(field.clone()) {
                 return Err(ImportError::InvalidPolicyInputManifest);
             }
-            if visible.contains(field.as_str()) {
+            if visible.contains(field) {
                 return Err(ImportError::EvaluatorFieldLeakedToPolicy(
                     field.clone(),
                 ));
@@ -493,7 +493,7 @@ impl MemoryEvaluationRecord {
 
         for stage in &self.stages {
             stage.validate()?;
-            if !seen.insert(stage.stage_id.as_str()) {
+            if !seen.insert(stage.stage_id.clone()) {
                 return Err(ImportError::DuplicateStageId(stage.stage_id.clone()));
             }
             match stage.disposition {
@@ -505,18 +505,13 @@ impl MemoryEvaluationRecord {
         }
 
         for expected in &self.task.expected_stage_ids {
-            if !seen.iter().any(|actual| *actual == expected.as_str()) {
+            if !seen.contains(expected) {
                 return Err(ImportError::MissingStageResult(expected.clone()));
             }
         }
         for actual in &seen {
-            if !self
-                .task
-                .expected_stage_ids
-                .iter()
-                .any(|expected| expected.as_str() == *actual)
-            {
-                return Err(ImportError::UnexpectedStageResult((*actual).to_owned()));
+            if !self.task.expected_stage_ids.contains(actual) {
+                return Err(ImportError::UnexpectedStageResult(actual.clone()));
             }
         }
         let actual_stage_order: Vec<&str> =
