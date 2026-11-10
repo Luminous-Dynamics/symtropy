@@ -183,6 +183,12 @@
           "role": "metadata"
         }
       ]
+    },
+    "record_statistics": {
+      "reported_data_volume": "37.7 GB",
+      "displayed_context": "Zenodo record statistics block alongside view/download counts",
+      "interpretation": "not_assumed_to_be_archive_payload_size",
+      "note": "The individual ZIP file card reports 26.5 MB. The separate 37.7 GB statistics value is retained verbatim but its aggregation semantics are unresolved; do not use it as the archive byte count."
     }
   },
   "fault_scenarios": [
