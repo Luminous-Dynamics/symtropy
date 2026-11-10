@@ -16,11 +16,16 @@ const DEGENERATE_TWICE_AREA_EPSILON: f64 = 1.0e-15;
 const FNV_OFFSET_BASIS: u64 = 0xcbf2_9ce4_8422_2325;
 const FNV_PRIME: u64 = 0x0000_0100_0000_01b3;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+)]
+#[serde(rename_all = "snake_case")]
 pub enum SurfaceVisibility {
     Observable,
     SelfOccluded,
     ExternallyOccluded,
+    Grazing,
+    MixedOcclusion,
     OutsideSensorCoverage,
     Unknown,
     Contradictory,
@@ -68,7 +73,8 @@ pub struct AreaWeightedSamplingProfile {
     pub max_samples: usize,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct SurfaceSample {
     /// Stable identity is the tuple (surface_id, sample_ordinal).
     pub surface_id: String,
@@ -77,17 +83,22 @@ pub struct SurfaceSample {
     /// Barycentric weights in vertex order (a, b, c).
     pub barycentric: [f64; 3],
     pub point: Point3,
+    /// Unit normal following source triangle winding. This does not assert
+    /// outward orientation; incidence consumers must be sign-invariant.
+    pub normal: Point3,
     /// Equal per-surface area represented by this sample.
     pub represented_area_m2: f64,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct VisibilityArea {
     pub visibility: SurfaceVisibility,
     pub area_m2: f64,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct SurfaceSamplingSummary {
     pub surface_id: String,
     pub observable_area_m2: f64,
@@ -97,7 +108,8 @@ pub struct SurfaceSamplingSummary {
     pub represented_area_m2: f64,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct SurfaceSamplingReceipt {
     pub algorithm_id: String,
     pub target_spacing_m: f64,
@@ -117,6 +129,7 @@ struct PreparedTriangle {
     a: Point3,
     b: Point3,
     c: Point3,
+    normal: Point3,
     cumulative_area_m2: f64,
 }
 
@@ -147,6 +160,25 @@ fn triangle_area_m2(a: Point3, b: Point3, c: Point3) -> Result<f64, String> {
         return Err("surface triangle area is not finite and positive".to_owned());
     }
     Ok(area)
+}
+
+fn triangle_unit_normal(a: Point3, b: Point3, c: Point3) -> Result<Point3, String> {
+    let ab = Point3::new(b.x - a.x, b.y - a.y, b.z - a.z);
+    let ac = Point3::new(c.x - a.x, c.y - a.y, c.z - a.z);
+    let cross = Point3::new(
+        ab.y * ac.z - ab.z * ac.y,
+        ab.z * ac.x - ab.x * ac.z,
+        ab.x * ac.y - ab.y * ac.x,
+    );
+    let length = cross.x.hypot(cross.y).hypot(cross.z);
+    if !length.is_finite() || length <= DEGENERATE_TWICE_AREA_EPSILON {
+        return Err("surface triangle normal is degenerate".to_owned());
+    }
+    Ok(Point3::new(
+        cross.x / length,
+        cross.y / length,
+        cross.z / length,
+    ))
 }
 
 fn validate_profile(profile: AreaWeightedSamplingProfile) -> Result<f64, String> {
@@ -242,6 +274,8 @@ fn visibility_label(value: SurfaceVisibility) -> &'static str {
         SurfaceVisibility::Observable => "observable",
         SurfaceVisibility::SelfOccluded => "self_occluded",
         SurfaceVisibility::ExternallyOccluded => "externally_occluded",
+        SurfaceVisibility::Grazing => "grazing",
+        SurfaceVisibility::MixedOcclusion => "mixed_occlusion",
         SurfaceVisibility::OutsideSensorCoverage => "outside_sensor_coverage",
         SurfaceVisibility::Unknown => "unknown",
         SurfaceVisibility::Contradictory => "contradictory",
@@ -288,11 +322,271 @@ fn sampling_receipt_digest(
         update_f64(&mut hasher, sample.point.x);
         update_f64(&mut hasher, sample.point.y);
         update_f64(&mut hasher, sample.point.z);
+        update_f64(&mut hasher, sample.normal.x);
+        update_f64(&mut hasher, sample.normal.y);
+        update_f64(&mut hasher, sample.normal.z);
         update_f64(&mut hasher, sample.represented_area_m2);
     }
 
     let digest = hasher.finalize();
     digest.iter().map(|byte| format!("{byte:02x}")).collect()
+}
+
+/// Verify a sampling receipt's internal accounting and canonical digest.
+///
+/// This does not verify the source mesh file itself. The caller must separately
+/// bind the receipt to the exact reference geometry artifact and evaluator
+/// dataset manifest.
+pub fn verify_complete_reference_sampling_receipt(
+    receipt: &SurfaceSamplingReceipt,
+) -> Result<(), String> {
+    if receipt.algorithm_id != SAMPLING_ALGORITHM_ID {
+        return Err("unsupported surface sampling algorithm_id".to_owned());
+    }
+    let profile = AreaWeightedSamplingProfile {
+        target_spacing_m: receipt.target_spacing_m,
+        seed: receipt.seed,
+        max_samples: receipt.max_samples,
+    };
+    let spacing_squared = validate_profile(profile)?;
+    let _ = spacing_squared;
+    if !receipt.observable_area_m2.is_finite()
+        || receipt.observable_area_m2 < 0.0
+        || !receipt.excluded_area_m2.is_finite()
+        || receipt.excluded_area_m2 < 0.0
+    {
+        return Err("sampling receipt contains invalid top-level area totals".to_owned());
+    }
+    if receipt.sample_count != receipt.samples.len() {
+        return Err("sampling receipt sample_count does not match samples length".to_owned());
+    }
+    if receipt.sample_count > receipt.max_samples {
+        return Err("sampling receipt exceeds its declared max_samples".to_owned());
+    }
+    if receipt.surfaces.is_empty() {
+        return Err("sampling receipt must contain at least one surface summary".to_owned());
+    }
+    if receipt.sample_set_sha256.len() != 64
+        || !receipt
+            .sample_set_sha256
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    {
+        return Err("sample_set_sha256 must be 64 lowercase hexadecimal characters".to_owned());
+    }
+
+    let mut summaries = BTreeMap::new();
+    let mut observable_area_m2 = 0.0;
+    let mut excluded_area_m2 = 0.0;
+    let mut previous_surface: Option<&str> = None;
+    for summary in &receipt.surfaces {
+        if summary.surface_id.trim().is_empty() {
+            return Err("sampling receipt contains an empty surface_id".to_owned());
+        }
+        if previous_surface.is_some_and(|previous| previous >= summary.surface_id.as_str()) {
+            return Err("sampling receipt surface summaries are not uniquely sorted".to_owned());
+        }
+        previous_surface = Some(&summary.surface_id);
+        if [
+            summary.observable_area_m2,
+            summary.excluded_area_m2,
+            summary.represented_area_m2,
+        ]
+        .iter()
+        .any(|value| !value.is_finite() || *value < 0.0)
+        {
+            return Err("sampling surface summary contains invalid area".to_owned());
+        }
+        if summary.sample_count > receipt.max_samples {
+            return Err("surface summary exceeds the declared sample budget".to_owned());
+        }
+        if summary.excluded_area_m2 != 0.0 || !summary.excluded_by_visibility.is_empty() {
+            return Err(
+                "reference sampling receipt must include all source area before visibility"
+                    .to_owned(),
+            );
+        }
+        let excluded_sum: f64 = summary
+            .excluded_by_visibility
+            .iter()
+            .map(|entry| entry.area_m2)
+            .sum();
+        if !excluded_sum.is_finite()
+            || (excluded_sum - summary.excluded_area_m2).abs()
+                > summary.excluded_area_m2.abs().max(1.0) * 1.0e-10
+        {
+            return Err("excluded_by_visibility does not conserve surface area".to_owned());
+        }
+        for excluded in &summary.excluded_by_visibility {
+            if excluded.visibility == SurfaceVisibility::Observable
+                || !excluded.area_m2.is_finite()
+                || excluded.area_m2 <= 0.0
+            {
+                return Err(
+                    "excluded visibility accounting contains an invalid class or area".to_owned(),
+                );
+            }
+        }
+        if (summary.represented_area_m2 - summary.observable_area_m2).abs()
+            > summary.observable_area_m2.abs().max(1.0) * 1.0e-10
+        {
+            return Err("represented area does not equal observable area".to_owned());
+        }
+        if (summary.sample_count == 0 && summary.observable_area_m2 != 0.0)
+            || (summary.sample_count > 0 && summary.observable_area_m2 <= 0.0)
+        {
+            return Err("surface sample count is inconsistent with observable area".to_owned());
+        }
+        observable_area_m2 += summary.observable_area_m2;
+        excluded_area_m2 += summary.excluded_area_m2;
+        summaries.insert(summary.surface_id.as_str(), summary);
+    }
+
+    if !observable_area_m2.is_finite() || !excluded_area_m2.is_finite() {
+        return Err("sampling receipt total area overflowed".to_owned());
+    }
+    if (observable_area_m2 - receipt.observable_area_m2).abs()
+        > receipt.observable_area_m2.abs().max(1.0) * 1.0e-10
+        || (excluded_area_m2 - receipt.excluded_area_m2).abs()
+            > receipt.excluded_area_m2.abs().max(1.0) * 1.0e-10
+    {
+        return Err("sampling receipt top-level areas do not match surface summaries".to_owned());
+    }
+
+    let mut per_surface_counts: BTreeMap<&str, usize> = BTreeMap::new();
+    let mut per_surface_weights: BTreeMap<&str, f64> = BTreeMap::new();
+    let mut per_surface_ordinals: BTreeMap<&str, BTreeSet<u64>> = BTreeMap::new();
+    let mut previous_sample: Option<(&str, u64)> = None;
+    for sample in &receipt.samples {
+        if sample.surface_id.trim().is_empty() || sample.triangle_id.trim().is_empty() {
+            return Err("sampling receipt contains an empty sample identity".to_owned());
+        }
+        if let Some((surface_id, ordinal)) = previous_sample {
+            if (surface_id, ordinal) >= (sample.surface_id.as_str(), sample.sample_ordinal) {
+                return Err("sampling receipt samples are not uniquely sorted".to_owned());
+            }
+        }
+        previous_sample = Some((&sample.surface_id, sample.sample_ordinal));
+        let summary = summaries
+            .get(sample.surface_id.as_str())
+            .ok_or("sample references a surface without a summary")?;
+        if !sample.point.x.is_finite()
+            || !sample.point.y.is_finite()
+            || !sample.point.z.is_finite()
+            || !sample.normal.x.is_finite()
+            || !sample.normal.y.is_finite()
+            || !sample.normal.z.is_finite()
+            || !sample.represented_area_m2.is_finite()
+            || sample.represented_area_m2 <= 0.0
+        {
+            return Err(
+                "sampling receipt contains a non-finite point/normal or invalid weight".to_owned(),
+            );
+        }
+        let normal_length = sample
+            .normal
+            .x
+            .hypot(sample.normal.y)
+            .hypot(sample.normal.z);
+        if (normal_length - 1.0).abs() > 1.0e-8 {
+            return Err("sample normal is not unit length".to_owned());
+        }
+        if sample
+            .barycentric
+            .iter()
+            .any(|weight| !weight.is_finite() || *weight < -1.0e-12 || *weight > 1.0 + 1.0e-12)
+            || (sample.barycentric.iter().sum::<f64>() - 1.0).abs() > 1.0e-10
+        {
+            return Err("sample barycentric coordinates are invalid".to_owned());
+        }
+        if sample.sample_ordinal >= summary.sample_count as u64 {
+            return Err("sample ordinal exceeds its surface sample count".to_owned());
+        }
+        let expected_weight = summary.represented_area_m2 / summary.sample_count as f64;
+        if (sample.represented_area_m2 - expected_weight).abs()
+            > expected_weight.abs().max(1.0) * 1.0e-10
+        {
+            return Err("sample weights are not equal within the surface".to_owned());
+        }
+        *per_surface_counts
+            .entry(sample.surface_id.as_str())
+            .or_insert(0) += 1;
+        *per_surface_weights
+            .entry(sample.surface_id.as_str())
+            .or_insert(0.0) += sample.represented_area_m2;
+        if !per_surface_weights[sample.surface_id.as_str()].is_finite() {
+            return Err("sample represented area overflowed".to_owned());
+        }
+        if !per_surface_ordinals
+            .entry(sample.surface_id.as_str())
+            .or_default()
+            .insert(sample.sample_ordinal)
+        {
+            return Err("duplicate sample ordinal within a surface".to_owned());
+        }
+    }
+
+    for summary in &receipt.surfaces {
+        let count = per_surface_counts
+            .get(summary.surface_id.as_str())
+            .copied()
+            .unwrap_or(0);
+        if count != summary.sample_count {
+            return Err("surface summary sample_count does not match sample rows".to_owned());
+        }
+        if count > 0 {
+            let weight_sum = per_surface_weights
+                .get(summary.surface_id.as_str())
+                .copied()
+                .unwrap_or(0.0);
+            if (weight_sum - summary.represented_area_m2).abs()
+                > summary.represented_area_m2.abs().max(1.0) * 1.0e-10
+            {
+                return Err("surface sample weights do not conserve represented area".to_owned());
+            }
+            let ordinals = per_surface_ordinals
+                .get(summary.surface_id.as_str())
+                .ok_or("surface sample ordinals are missing")?;
+            if ordinals.len() != count
+                || (0..count as u64).any(|ordinal| !ordinals.contains(&ordinal))
+            {
+                return Err("surface sample ordinals are not contiguous from zero".to_owned());
+            }
+        }
+    }
+
+    let digest = sampling_receipt_digest(
+        profile,
+        receipt.observable_area_m2,
+        receipt.excluded_area_m2,
+        &receipt.surfaces,
+        &receipt.samples,
+    );
+    if digest != receipt.sample_set_sha256 {
+        return Err("sampling receipt canonical SHA-256 does not match".to_owned());
+    }
+    Ok(())
+}
+
+/// Sample the entire evaluator reference surface before visibility is known.
+///
+/// This function intentionally ignores any pre-existing visibility annotations
+/// and treats every reference triangle as a sampling target. Its output and
+/// source geometry must remain evaluator-only; it must never be run over or
+/// shared with candidate inputs.
+pub fn sample_reference_surfaces_for_visibility(
+    input: &[SurfaceTriangleInput],
+    profile: AreaWeightedSamplingProfile,
+) -> Result<SurfaceSamplingReceipt, String> {
+    let reference_triangles: Vec<SurfaceTriangleInput> = input
+        .iter()
+        .cloned()
+        .map(|mut triangle| {
+            triangle.visibility = SurfaceVisibility::Observable;
+            triangle
+        })
+        .collect();
+    sample_observable_surfaces(&reference_triangles, profile)
 }
 
 /// Generate an ordered, deterministic area-uniform sample receipt.
@@ -418,6 +712,7 @@ pub fn sample_observable_surfaces(
                 a,
                 b,
                 c,
+                normal: triangle_unit_normal(a, b, c)?,
                 cumulative_area_m2: cumulative,
             });
         }
@@ -444,6 +739,7 @@ pub fn sample_observable_surfaces(
                 triangle_id: target.triangle_id.clone(),
                 barycentric,
                 point,
+                normal: target.normal,
                 represented_area_m2,
             });
         }
@@ -492,7 +788,8 @@ pub fn sample_observable_surfaces(
 mod tests {
     use super::{
         AreaWeightedSamplingProfile, SurfaceTriangleInput, SurfaceVisibility,
-        sample_observable_surfaces,
+        sample_observable_surfaces, sample_reference_surfaces_for_visibility,
+        verify_complete_reference_sampling_receipt,
     };
     use crate::metrics::Point3;
 
@@ -642,6 +939,87 @@ mod tests {
         assert!(receipt.samples.is_empty());
         assert_eq!(receipt.observable_area_m2, 0.0);
         assert!((receipt.excluded_area_m2 - 1.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn verifies_reference_sampling_receipt_and_rejects_digest_tampering() {
+        let input = square(
+            "REFERENCE-WALL",
+            "wall",
+            1.0,
+            SurfaceVisibility::SelfOccluded,
+        );
+        let receipt = sample_reference_surfaces_for_visibility(&input, profile(0.1, 31))
+            .expect("reference sampling ignores prior observation labels");
+        verify_complete_reference_sampling_receipt(&receipt).expect("valid reference receipt");
+
+        let mut tampered = receipt.clone();
+        tampered.samples[0].point.x += 0.001;
+        let error = verify_complete_reference_sampling_receipt(&tampered)
+            .expect_err("modified sample points must change the canonical digest");
+        assert!(error.contains("canonical SHA-256"));
+    }
+
+    #[test]
+    fn rejects_sampling_receipt_area_or_weight_inconsistency() {
+        let input = square("REFERENCE-WALL", "wall", 1.0, SurfaceVisibility::Observable);
+        let receipt =
+            sample_observable_surfaces(&input, profile(0.1, 37)).expect("valid sample receipt");
+        let mut area_tampered = receipt.clone();
+        area_tampered.surfaces[0].observable_area_m2 += 0.25;
+        let error = verify_complete_reference_sampling_receipt(&area_tampered)
+            .expect_err("surface area totals must conserve");
+        assert!(error.contains("represented area"));
+
+        let mut weight_tampered = receipt.clone();
+        weight_tampered.samples[0].represented_area_m2 *= 2.0;
+        let error = verify_complete_reference_sampling_receipt(&weight_tampered)
+            .expect_err("sample weights must be equal and conserve area");
+        assert!(error.contains("sample weights are not equal"));
+    }
+
+    #[test]
+    fn samples_preserve_outward_normal_from_reference_triangle_winding() {
+        let input = square("WALL", "wall", 1.0, SurfaceVisibility::Observable);
+        let receipt = sample_observable_surfaces(&input, profile(0.1, 17))
+            .expect("valid oriented reference surface");
+        assert!(
+            receipt
+                .samples
+                .iter()
+                .all(|sample| sample.normal.x.abs() < 1e-12
+                    && sample.normal.y.abs() < 1e-12
+                    && (sample.normal.z - 1.0).abs() < 1e-12)
+        );
+    }
+
+    #[test]
+    fn reference_visibility_probes_cover_hidden_reference_triangles() {
+        let mut input = square("WALL", "visible", 1.0, SurfaceVisibility::Observable);
+        input.extend(square(
+            "WALL",
+            "previously-hidden",
+            2.0,
+            SurfaceVisibility::SelfOccluded,
+        ));
+        let receipt = sample_reference_surfaces_for_visibility(&input, profile(0.1, 23))
+            .expect("reference probes sample the entire reference mesh");
+        assert!((receipt.observable_area_m2 - 3.0).abs() < 1e-12);
+        assert_eq!(receipt.excluded_area_m2, 0.0);
+        assert!(
+            receipt
+                .samples
+                .iter()
+                .any(|sample| { sample.triangle_id.starts_with("previously-hidden-") })
+        );
+        assert_eq!(
+            receipt.sample_count,
+            receipt
+                .samples
+                .iter()
+                .filter(|sample| sample.normal.z > 0.99)
+                .count()
+        );
     }
 
     #[test]
