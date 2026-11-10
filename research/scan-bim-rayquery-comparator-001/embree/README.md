@@ -47,6 +47,22 @@ The CMake project requires `embree 4.4.1 EXACT` and checks `EMBREE_VERSION`. The
 export SCAN_BIM_ADAPTER_REVISION="$(git rev-parse HEAD)"
 ```
 
+## Smoke tests
+
+The standalone CMake project registers three CTest tests when `BUILD_TESTING=ON` (the default):
+
+- `embree_known_answers`
+- `embree_scale_metamorphism`
+- `embree_overlap_stress`
+
+Run them after the build:
+
+```sh
+ctest --test-dir build/scan-bim-embree --output-on-failure
+```
+
+A fixture mismatch causes the adapter to exit non-zero; CTest therefore fails rather than accepting a partial or softened result. The tests exercise the float32 Embree adapter against the f64 fixture expectations. A float32 disagreement is recorded as a mismatch and is not normalized away.
+
 ## Run the same fixtures as the f64 oracle
 
 ```sh
