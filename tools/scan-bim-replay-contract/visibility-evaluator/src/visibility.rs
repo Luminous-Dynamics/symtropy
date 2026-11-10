@@ -42,7 +42,7 @@ pub enum OccluderCoverage {
 #[serde(rename_all = "snake_case")]
 pub enum ViewVisibilityStatus {
     Observable,
-    Backface,
+    Grazing,
     OutsideSensorCoverage,
     SelfOccluded,
     ExternallyOccluded,
@@ -59,8 +59,9 @@ pub struct VisibilityProbe {
     pub point: Point3,
     /// Barycentric coordinates on the exact reference triangle (a, b, c).
     pub barycentric: [f64; 3],
-    /// Outward normal in the same declared frame as point. The evaluator
-    /// validates and normalizes it before the sensor-incidence test.
+    /// Unit normal in the same declared frame as point, derived from the
+    /// exact source-triangle winding. Its sign is not assumed to be outward;
+    /// incidence is therefore evaluated with an absolute dot product.
     pub normal: Point3,
     /// Area represented by this probe, in square metres. Probe generation
     /// and area conservation are caller-owned and must be receipt-bound.
@@ -101,8 +102,9 @@ pub struct VisibilityProfile {
     /// Maximum number of probe × view × occluder ray/triangle tests. Exceeding
     /// this budget is an error; the evaluator never silently truncates.
     pub max_ray_tests: usize,
-    /// Minimum cosine between the outward surface normal and the direction
-    /// from the probe toward the sensor. Zero accepts only front-facing views.
+    /// Minimum absolute cosine between the source-winding normal and the
+    /// direction from the probe toward the sensor. Values near zero flag
+    /// grazing incidence without assuming globally consistent outward winding.
     pub min_incidence_cosine: f64,
 }
 
@@ -468,7 +470,8 @@ fn observe_from_view(
     }
     let incidence_cosine = normal
         .scale(1.0 / normal_length)
-        .dot(direction.scale(-1.0));
+        .dot(direction.scale(-1.0))
+        .abs();
     if !incidence_cosine.is_finite() {
         return Err(format!(
             "probe {} incidence became non-finite",
@@ -479,7 +482,7 @@ fn observe_from_view(
         return Ok((
             ViewObservation {
                 view_id: view.view_id.clone(),
-                status: ViewVisibilityStatus::Backface,
+                status: ViewVisibilityStatus::Grazing,
                 blocker_kind: None,
                 blocker_triangle_ids: Vec::new(),
                 blocker_distance_m: None,
@@ -633,9 +636,9 @@ fn aggregate_probe_visibility(views: &[ViewObservation]) -> SurfaceVisibility {
         (false, false)
             if views
                 .iter()
-                .any(|view| view.status == ViewVisibilityStatus::Backface) =>
+                .any(|view| view.status == ViewVisibilityStatus::Grazing) =>
         {
-            SurfaceVisibility::Backface
+            SurfaceVisibility::Grazing
         }
         (false, false)
             if views
@@ -653,7 +656,7 @@ fn visibility_label(value: SurfaceVisibility) -> &'static str {
         SurfaceVisibility::Observable => "observable",
         SurfaceVisibility::SelfOccluded => "self_occluded",
         SurfaceVisibility::ExternallyOccluded => "externally_occluded",
-        SurfaceVisibility::Backface => "backface",
+        SurfaceVisibility::Grazing => "grazing",
         SurfaceVisibility::MixedOcclusion => "mixed_occlusion",
         SurfaceVisibility::OutsideSensorCoverage => "outside_sensor_coverage",
         SurfaceVisibility::Unknown => "unknown",
@@ -741,7 +744,7 @@ fn receipt_digest(
                 &mut hasher,
                 match view.status {
                     ViewVisibilityStatus::Observable => "observable",
-                    ViewVisibilityStatus::Backface => "backface",
+                    ViewVisibilityStatus::Grazing => "grazing",
                     ViewVisibilityStatus::OutsideSensorCoverage => "outside_sensor_coverage",
                     ViewVisibilityStatus::SelfOccluded => "self_occluded",
                     ViewVisibilityStatus::ExternallyOccluded => "externally_occluded",
@@ -1063,7 +1066,7 @@ pub fn derive_surface_visibility(
             .or_insert([0.0; 8]);
         let index = match visibility {
             SurfaceVisibility::Observable => 0,
-            SurfaceVisibility::Backface => 1,
+            SurfaceVisibility::Grazing => 1,
             SurfaceVisibility::SelfOccluded => 2,
             SurfaceVisibility::ExternallyOccluded => 3,
             SurfaceVisibility::OutsideSensorCoverage => 4,
@@ -1378,7 +1381,7 @@ mod tests {
         back_view.right = Point3::new(0.0, -1.0, 0.0);
         let receipt = evaluate(&[probe([5.0, 0.0, 0.0])], &[back_view], &[])
             .expect("back face classification");
-        assert_eq!(receipt.probes[0].visibility, SurfaceVisibility::Backface);
+        assert_eq!(receipt.probes[0].visibility, SurfaceVisibility::Grazing);
         assert_eq!(receipt.backface_area_m2, 2.0);
         assert_eq!(receipt.observable_area_m2, 0.0);
     }
