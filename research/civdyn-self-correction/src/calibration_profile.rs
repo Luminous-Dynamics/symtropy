@@ -865,7 +865,7 @@ mod tests {
                         kind: PredictiveKind::Split,
                         statistic_id: (*statistic_id).to_string(),
                         independent_unit_id: unit_id.clone(),
-                        sample_size: 101,
+                        sample_size: 5,
                         draw_index: draw_index as u64,
                         value: *draw_value,
                         model_digest: MODEL.to_string(),
