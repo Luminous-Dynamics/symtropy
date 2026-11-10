@@ -4,7 +4,7 @@ use std::{
     process::ExitCode,
 };
 
-use symtropy_physics_fidelity_policy::{PolicyInputV1, evaluate};
+use symtropy_physics_fidelity_policy::{PolicyInputV2, evaluate};
 
 fn main() -> ExitCode {
     match run() {
@@ -31,7 +31,7 @@ fn run() -> Result<(), String> {
         contents
     };
 
-    let policy: PolicyInputV1 =
+    let policy: PolicyInputV2 =
         serde_json::from_str(&input).map_err(|error| format!("parse input: {error}"))?;
     let receipt = evaluate(&policy).map_err(|error| error.to_string())?;
     let output = serde_json::to_string_pretty(&receipt)
