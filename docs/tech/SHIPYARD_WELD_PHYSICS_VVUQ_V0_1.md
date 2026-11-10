@@ -77,6 +77,49 @@ Keep these evidence classes distinct:
 
 A Stage 0–1 pass cannot be represented as Stage 2–5 qualification.
 
+## Industry comparator and fair comparison rules
+
+Publicly visible shipyard automation is advancing, but public announcements should be treated as maturity/context evidence rather than independently measured performance:
+
+- HII and HD Hyundai's 2026 Ingalls pilot describes intelligent mechanized welding for unit-fabrication areas, including workpiece/weld-condition recognition, real-time weld-position correction and process-data capture. HII's Q3 2026 report says the pilot was launched. The public material does not provide a matched, independently audited first-pass yield, accepted weld length per labour-hour or quality-adjusted cost comparison. References: https://www.hii.com/news/hii-expands-welding-automation-at-ingalls-shipbuilding-through-partnership-with-hd-hhi and https://www.hii.com/news/hii-reports-third-quarter-2026-results
+- Fincantieri's October 2026 BOOST² update reports 450+ employees engaged across 13 shipyards and almost €100 million in programme investment. The programme includes deployed, under-validation and future applications; this demonstrates organizational scale, not independently measured weld productivity or quality. Reference: https://www.fincantieri.com/en/newsroom/press-releases/2026/fincantieri-accelerates-robotics-and-physical-ai-to-build-the-shipyard-of-the-future
+- ISO/TR 23247-101:2026 supplies a published digital-twin use case for robotic multilayer/multipass GMAW, but it is not itself a production outcome benchmark or physical welding acceptance code.
+
+The evaluation arms must be selected per genuinely comparable joint family:
+1. manual welding under the same project procedure and inspection;
+2. mechanized welding, including adaptive workpiece/position correction where actually available;
+3. fixed industrial robotic multipass welding cell;
+4. local/global or inherent-strain thermal-mechanical model for assembly-scale prediction;
+5. detailed pass-by-pass thermo-elasto-plastic FE as a higher-cost model comparator;
+6. surrogate or hybrid model only with held-out physical specimen evidence.
+
+Humanoid assistance is included only when joint, material, WPS/PQR scope, welding position, access, inspection, staffing assumptions and operating context match the other arms. Robot count, arc-on time, gross weld length, simulation speed and announcement scale are not accepted-output metrics.
+
+For production comparisons, report first-pass acceptance and final acceptance separately; accepted weld length/joints per labour-hour and cell-hour; setup/programming/fit-up/arc-on/inspection/repair/reinspection time; defects and repair hours under the same inspection coverage; material/consumable/energy per accepted output where actually measured; and schedule/disruption recovery. Normalize by the same joint population and inspection denominator. No industry superiority claim is made without matched permissioned data.
+
+## Paradigm shift: optimize the experimental campaign
+
+Treat the physical experiment plan as an optimization problem, not merely as a fixed prerequisite to modelling. Welding tests are expensive; sensor locations, specimen selection, restraint conditions and measurement modalities should be chosen to reduce uncertainty in specified engineering outputs.
+
+Compare at least:
+- fixed one-factor-at-a-time and conventional factorial/fractional-factorial plans;
+- space-filling designs such as Latin hypercube or Sobol sequences;
+- sensitivity-driven parameter identification;
+- Bayesian/active-learning selection using expected information gain or expected value of sample information;
+- robust designs that preserve coverage of rare but important material, joint, restraint and process strata.
+
+The experiment-design benchmark must report:
+- number and cost of physical specimens and measurements;
+- identifiability of heat-source, thermal-boundary and mechanical-restraint parameters;
+- reduction in predictive uncertainty for temperature, distortion and residual-stress outputs per unit campaign cost;
+- coverage of the declared material/joint/thickness/process/restraint domain;
+- worst-stratum held-out prediction and uncertainty calibration;
+- sensor-placement robustness when a sensor is lost, delayed or has correlated error.
+
+**Leakage boundary:** an active campaign may adapt its next calibration specimen based on prior calibration observations, but cannot inspect or use the held-out validation specimens or their outcomes for candidate selection, hyperparameter tuning, model choice or stopping decisions. The holdout is sealed at the specimen/campaign level before model development. Report adaptive acquisition separately from frozen final validation.
+
+The target is not the fewest experiments at any cost. It is the lowest defensible evidence-acquisition cost for a predeclared prediction/decision envelope, without sacrificing holdout integrity or rare-regime coverage.
+
 ## Metrics
 
 **Thermal:** time-history MAE/RMSE/bias, peak-temperature error, heating/cooling-rate error, spatial isotherm error, energy-balance residual and predictive-interval coverage.
