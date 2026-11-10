@@ -1695,33 +1695,48 @@ mod tests {
 
     #[test]
     fn occluder_inventory_digest_mismatch_fails_closed() {
-        let mut occluders = vec![target_triangle()];
-        let mut evaluation = VisibilityEvaluation {
+        let original_occluders = vec![target_triangle()];
+        let original_digest =
+            canonical_occluder_manifest_sha256(&original_occluders);
+        let original = VisibilityEvaluation {
             scene_id: "SCENE-1",
             frame_id: "BUILDING-LOCAL",
             reference_model_sha256: &"1".repeat(64),
             probe_set_sha256: &"3".repeat(64),
             reference_surface_ids: &["TARGET".to_owned()],
-            occluder_manifest_sha256: &"2".repeat(64),
+            occluder_manifest_sha256: &original_digest,
             occluder_coverage: OccluderCoverage::Complete,
             probes: &[probe([5.0, 0.0, 0.0])],
             views: &[view("VIEW-1", [0.0, 0.0, 0.0])],
-            occluders: &occluders,
+            occluders: &original_occluders,
             profile: VisibilityProfile {
                 max_ray_tests: 100,
                 min_incidence_cosine: 0.0,
             },
         };
-        evaluation.occluder_manifest_sha256 =
-            &canonical_occluder_manifest_sha256(&occluders);
-        let receipt = derive_surface_visibility(evaluation.clone())
+        let receipt = derive_surface_visibility(original)
             .expect("matching manifest digest");
-        assert_eq!(receipt.occluder_manifest_sha256, canonical_occluder_manifest_sha256(&occluders));
+        assert_eq!(receipt.occluder_manifest_sha256, original_digest);
 
-        occluders.push(blocker(OccluderKind::External));
-        let mut mismatch = evaluation;
-        mismatch.occluders = &occluders;
-        let error = derive_surface_visibility(mismatch)
+        let mut changed_occluders = original_occluders.clone();
+        changed_occluders.push(blocker(OccluderKind::External));
+        let mismatched = VisibilityEvaluation {
+            scene_id: "SCENE-1",
+            frame_id: "BUILDING-LOCAL",
+            reference_model_sha256: &"1".repeat(64),
+            probe_set_sha256: &"3".repeat(64),
+            reference_surface_ids: &["TARGET".to_owned()],
+            occluder_manifest_sha256: &original_digest,
+            occluder_coverage: OccluderCoverage::Complete,
+            probes: &[probe([5.0, 0.0, 0.0])],
+            views: &[view("VIEW-1", [0.0, 0.0, 0.0])],
+            occluders: &changed_occluders,
+            profile: VisibilityProfile {
+                max_ray_tests: 100,
+                min_incidence_cosine: 0.0,
+            },
+        };
+        let error = derive_surface_visibility(mismatched)
             .expect_err("changed occluder inventory must invalidate the supplied digest");
         assert!(error.contains("does not match the supplied occluder inventory"));
     }
