@@ -1023,8 +1023,16 @@ pub fn reconcile_delivery(
     };
     Ok(DeliveryReconciliation {
         disposition,
-        measured_response_digest: receipt.measured_response_digest.clone(),
-        resulting_state_digest: receipt.resulting_state_digest.clone(),
+        measured_response_digest: if state_reconciled {
+            receipt.measured_response_digest.clone()
+        } else {
+            None
+        },
+        resulting_state_digest: if state_reconciled {
+            receipt.resulting_state_digest.clone()
+        } else {
+            None
+        },
         state_reconciled,
         command_realized_as_expected,
         fresh_proposal_and_viability_required: true,
@@ -1665,14 +1673,18 @@ mod tests {
         status: RealizationStatus,
         witness_or_reason: Option<&str>,
     ) -> ActuatorRealizationReceipt {
+        let measured = matches!(
+            status,
+            RealizationStatus::Matched | RealizationStatus::Mismatch
+        );
         ActuatorRealizationReceipt {
             receipt_id: "delivery-receipt".to_owned(),
             result_digest: "delivery-result".to_owned(),
             executed_command_digest: "command-v1".to_owned(),
             input_state_digest: "state-v1".to_owned(),
-            measured_response_digest: Some("measured-response-v1".to_owned()),
-            resulting_state_digest: Some("post-state-v1".to_owned()),
-            state_observation_digest: Some("post-state-observation-v1".to_owned()),
+            measured_response_digest: measured.then(|| "measured-response-v1".to_owned()),
+            resulting_state_digest: measured.then(|| "post-state-v1".to_owned()),
+            state_observation_digest: measured.then(|| "post-state-observation-v1".to_owned()),
             model_digest: "model-v1".to_owned(),
             abstraction_digest: "abstraction-v1".to_owned(),
             domain_digest: "domain-v1".to_owned(),
@@ -1823,7 +1835,7 @@ mod tests {
     }
 
     #[test]
-    fn delivered_actuator_receipt_allows_next_command() {
+    fn matched_delivery_closes_cycle_but_requires_fresh_viability_for_next_action() {
         let report = qualify_projected_action(&problem()).expect("projection admission");
         let reconciliation = reconcile_delivery(
             &report.disposition,
