@@ -51,7 +51,7 @@ z_{k+1}=F(z_k,e_k,a_k,o_k,r_k)
 
 where \(e_k\) is the next disturbance, \(a_k\) is the chosen action, \(o_k\) is the observation and \(r_k\) is the recovery/repair/cooldown transition. This is an interface abstraction, not a claim that one universal state equation is known.
 
-Every state component preserves its own units, calibration, uncertainty, provenance, age and update authority. Unqualified updates remain Unknown or conservative intervals. No implicit health reset is permitted. Event energy costs debit both the declared battery/mission budget and any explicitly allocated recovery/diagnostic budget; current actuator authority is checked against each event's required authority before that event is admitted. The terminal safe-stop energy requirement is checked against remaining state of charge.
+Every state component preserves its own units, calibration, uncertainty, provenance, age and update authority. Unqualified updates remain Unknown or conservative intervals. No implicit health reset is permitted. Mission energy costs debit state of charge, while the separately declared recovery/diagnostic costs debit the recovery reserve; current actuator authority is checked against each event's required authority before that event is admitted. The terminal safe-stop energy requirement is checked against remaining state of charge.
 
 ### 3.1 Recovery debt
 
