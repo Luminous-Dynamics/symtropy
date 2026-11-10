@@ -32,6 +32,7 @@ pub struct RepairEvidence {
 pub enum RepairRowOutcome {
     Maintained,
     CorrectedOnFreshChallenge,
+    UnlinkedImprovement,
     ResidualDiscrepancy,
     Regression,
     WidthBudgetExceeded,
@@ -43,6 +44,7 @@ impl RepairRowOutcome {
         match self {
             Self::Maintained => "maintained",
             Self::CorrectedOnFreshChallenge => "corrected_on_fresh_challenge",
+            Self::UnlinkedImprovement => "unlinked_improvement",
             Self::ResidualDiscrepancy => "residual_discrepancy",
             Self::Regression => "regression",
             Self::WidthBudgetExceeded => "width_budget_exceeded",
@@ -84,6 +86,7 @@ pub struct RepairUnitResult {
     pub independent_unit_id: String,
     pub primary: bool,
     pub required: bool,
+    pub diagnostic_primary_discrepancy: bool,
     pub baseline_status: StatisticStatus,
     pub repaired_status: StatisticStatus,
     pub baseline_interval_width: Option<f64>,
@@ -144,6 +147,7 @@ struct ValidatedEvidence {
     rows: BTreeMap<(String, String), crate::model_adequacy::StatisticAssessment>,
     required_evidence_complete: bool,
     primary_discrepancies: usize,
+    primary_discrepancy_statistic_ids: BTreeSet<String>,
     central_mass: f64,
 }
 
@@ -190,8 +194,15 @@ pub enum RepairQualificationError {
         statistic_id: String,
         unit_id: String,
     },
+    DiagnosticSourceMissingFromRepairData {
+        source_digest: String,
+    },
     DiagnosticChallengeSourceOverlap {
         source_digest: String,
+    },
+    DiagnosticChallengeSplitIdentityMismatch,
+    ChallengeStatisticDefinitionMismatch {
+        statistic_id: String,
     },
     ChallengeRepairDataLeakage {
         digest: String,
@@ -414,6 +425,9 @@ fn validate_evidence(
                 && row.lower_reference.is_some_and(f64::is_finite)
                 && row.upper_reference.is_some_and(f64::is_finite)
                 && row.lower_reference <= row.upper_reference
+                && row.upper_reference.zip(row.lower_reference).is_some_and(|(upper, lower)| {
+                    (upper - lower).is_finite() && upper - lower >= 0.0
+                })
                 && row
                     .predictive_rank
                     .is_some_and(|rank| rank.is_finite() && (0.0..=1.0).contains(&rank))
@@ -495,10 +509,12 @@ fn validate_evidence(
         .filter(|((statistic_id, _), _)| primary_specs.contains(statistic_id.as_str()))
         .map(|(_, row)| row)
         .collect();
-    let primary_discrepancies = primary_rows
+    let primary_discrepancy_statistic_ids: BTreeSet<String> = primary_rows
         .iter()
         .filter(|row| row.status == StatisticStatus::OutsideReferenceInterval)
-        .count();
+        .map(|row| row.statistic_id.clone())
+        .collect();
+    let primary_discrepancies = primary_discrepancy_statistic_ids.len();
     let primary_fully_assessed = !primary_specs.is_empty()
         && primary_rows.len() == primary_specs.len() * units.len()
         && primary_rows
@@ -522,6 +538,7 @@ fn validate_evidence(
         rows,
         required_evidence_complete: required_complete,
         primary_discrepancies,
+        primary_discrepancy_statistic_ids,
         central_mass: evidence.assessment.central_mass,
     })
 }
@@ -655,6 +672,45 @@ pub fn qualify_repair(
         .filter(|spec| spec.required)
         .map(|spec| spec.source_digest.as_str())
         .collect();
+    let baseline_manifest_is_distinct_from_diagnostic =
+        diagnostic.manifest.id != baseline_challenge.manifest.id
+            && diagnostic.manifest.manifest_digest != baseline_challenge.manifest.manifest_digest;
+    let repaired_manifest_is_distinct_from_diagnostic =
+        diagnostic.manifest.id != repaired_challenge.manifest.id
+            && diagnostic.manifest.manifest_digest != repaired_challenge.manifest.manifest_digest;
+    if !baseline_manifest_is_distinct_from_diagnostic
+        || !repaired_manifest_is_distinct_from_diagnostic
+    {
+        return Err(RepairQualificationError::DiagnosticChallengeSplitIdentityMismatch);
+    }
+    if let Some(source_digest) = diagnostic_sources.intersection(&challenge_sources).next() {
+        return Err(RepairQualificationError::DiagnosticChallengeSourceOverlap {
+            source_digest: (*source_digest).to_string(),
+        });
+    }
+    for baseline_spec in &baseline_challenge.registry.statistics {
+        let repaired_spec = repaired_challenge.registry.get(&baseline_spec.id).ok_or_else(|| {
+            RepairQualificationError::ChallengeStatisticDefinitionMismatch {
+                statistic_id: baseline_spec.id.clone(),
+            }
+        })?;
+        if baseline_spec.construct != repaired_spec.construct
+            || baseline_spec.measurement_unit != repaired_spec.measurement_unit
+            || baseline_spec.population != repaired_spec.population
+            || baseline_spec.context != repaired_spec.context
+            || baseline_spec.source_family != repaired_spec.source_family
+            || baseline_spec.source_digest != repaired_spec.source_digest
+            || baseline_spec.independent_unit != repaired_spec.independent_unit
+            || baseline_spec.role != repaired_spec.role
+            || baseline_spec.primary != repaired_spec.primary
+            || baseline_spec.required != repaired_spec.required
+            || baseline_spec.minimum_draws != repaired_spec.minimum_draws
+        {
+            return Err(RepairQualificationError::ChallengeStatisticDefinitionMismatch {
+                statistic_id: baseline_spec.id.clone(),
+            });
+        }
+    }
     let challenge_observations: BTreeSet<&str> = baseline_result
         .rows
         .values()
@@ -723,6 +779,9 @@ pub fn qualify_repair(
                     independent_unit_id: unit_id.clone(),
                     primary: spec.primary,
                     required: spec.required,
+                    diagnostic_primary_discrepancy: diagnostic_result
+                        .primary_discrepancy_statistic_ids
+                        .contains(&spec.id),
                     baseline_status: StatisticStatus::NotAssessed,
                     repaired_status: StatisticStatus::NotAssessed,
                     baseline_interval_width: None,
@@ -749,13 +808,22 @@ pub fn qualify_repair(
 
             let baseline_width = interval_width(baseline_row);
             let repaired_width = interval_width(repaired_row);
-            let interval_width_ratio = baseline_width
-                .filter(|width| *width > 0.0)
-                .zip(repaired_width)
-                .map(|(baseline, repaired)| repaired / baseline);
+            let interval_width_ratio = baseline_width.zip(repaired_width).and_then(
+                |(baseline, repaired)| {
+                    if baseline > 0.0 {
+                        Some(repaired / baseline)
+                    } else if repaired == 0.0 {
+                        Some(1.0)
+                    } else {
+                        None
+                    }
+                },
+            );
             let width_exceeded = match (baseline_width, repaired_width) {
+                (Some(baseline), Some(repaired)) if baseline == 0.0 => repaired > 0.0,
                 (Some(baseline), Some(repaired)) => {
-                    repaired > baseline * maximum_interval_width_ratio + f64::EPSILON
+                    let ratio = repaired / baseline;
+                    !ratio.is_finite() || ratio > maximum_interval_width_ratio
                 }
                 _ => false,
             };
@@ -775,10 +843,17 @@ pub fn qualify_repair(
                     (
                         StatisticStatus::OutsideReferenceInterval,
                         StatisticStatus::WithinReferenceInterval,
-                    ) => {
+                    ) if diagnostic_result
+                        .primary_discrepancy_statistic_ids
+                        .contains(&spec.id) =>
+                    {
                         corrected_primary_statistics += if spec.primary { 1 } else { 0 };
                         RepairRowOutcome::CorrectedOnFreshChallenge
                     }
+                    (
+                        StatisticStatus::OutsideReferenceInterval,
+                        StatisticStatus::WithinReferenceInterval,
+                    ) => RepairRowOutcome::UnlinkedImprovement,
                     (
                         StatisticStatus::WithinReferenceInterval,
                         StatisticStatus::OutsideReferenceInterval,
