@@ -1,7 +1,7 @@
 # Extreme Spacetime Physics: Black-Hole Research Program
 
 **Status:** research charter; implementation work is tracked in the four linked repository issues.  
-**Last researched:** 2026-11-07.  
+**Last researched:** 2026-11-10.  
 **Scope:** black-hole physics as a cross-system proving ground for scientific reasoning, validated computation, evidence provenance, and astronomical observation.
 
 ## North-star objective
@@ -566,3 +566,125 @@ These independent numerical calculations are formula checks, not compilation or 
 The ingoing Kerr chart avoids the Boyer-Lindquist horizon coordinate singularity. Its metric includes the expected (dv,dr), (dr,d\phi), and (dv,d\phi) couplings; its determinant is (-\Sigma^2\sin^2\theta). AD-generated curvature tests check the vacuum and Kretschmann identities at the horizon and inside it, and compare the scalar invariant against Boyer-Lindquist coordinates outside the horizon.
 
 This is a significant coordinate-invariance check, but it is not yet a general coordinate-transform engine or a full regularity proof for every component / tetrad at all limiting points.
+
+---
+
+## Research and engineering update — 2026-11-10
+
+This update records new work since the November 7 charter. It is deliberately additive: the existing specialist owners remain authoritative for their respective solvers, evidence stores, waveform analyses and formal mathematics.
+
+### 1. The strategic shift: time-to-verified-scientific-conclusion
+
+The strongest differentiator is not another general-purpose black-hole solver. It is an **evidence execution layer** that can establish which scientific conclusions survive independent formulations, external reference implementations, numerical refinement, adversarial controls and uncertainty calibration.
+
+The evidence chain is:
+
+`claim → mathematical model and conventions → implementation identity → frozen inputs → execution → observation → independent comparison → uncertainty and counterfactual tests → qualified conclusion`
+
+Five design consequences follow:
+
+1. A theorem, an exact rational certificate, a converged numerical solution, an observed waveform feature, and a physical attribution are different evidence types.
+2. A source-to-observer waveform must retain the chain from source history through propagation, boundary response, mode/residue representation, extraction operator and detector projection.
+3. Numerical agreement only counts when the implementations consume the same canonical input set, and their outputs are aligned and scored under a pinned comparison procedure.
+4. A representation selector must know its mathematical convergence domain. It must return a typed transition or unresolved status outside that domain rather than forcing a convenient sum.
+5. The system should optimize **time-to-verified-accuracy** and the information gained per unit of compute—not raw throughput or number of completed simulations.
+
+### 2. New mathematical and physical research constraints
+
+#### Complete mode decompositions and curved-background transfer
+
+Arnaudo, Carballo and Withers' *Beyond quasinormal modes* was published in Physical Review D on July 9, 2026. It establishes a convergent mode representation of the retarded Green function using a late-time QNM sum and an early-time Matsubara/Euclidean sum, separated by a potential-scattered light cone. The paper illustrates the construction for Pöschl–Teller, BTZ and Schwarzschild, and treats the Schwarzschild branch-cut contribution through a de Sitter-QNM representation. See [PRD 114, 024025](https://doi.org/10.1103/1bcl-q79x) and [arXiv:2510.18956](https://arxiv.org/abs/2510.18956).
+
+The Kerr extension is not a trivial reuse of the Schwarzschild selector. Arnaudo and Withers' November 2 preprint, [*Bouncing and QNM convergence in Kerr*](https://arxiv.org/abs/2611.03791), identifies distinct prolate and oblate QNM families with different optical metrics and complex-time bounce/convergence boundaries. The complete QNM representation is absolutely convergent only in the intersection of the two family domains for the declared source and observer. The existing owners are [#4316](https://github.com/Luminous-Dynamics/symtropy/issues/4316) for family-specific optical convergence and [#4356](https://github.com/Luminous-Dynamics/symtropy/issues/4356) for branch-aware family identification.
+
+**Research rule:** the Pöschl–Teller pilot validates its exact representation transition. Schwarzschild validates a first curved background. Kerr must then track `(omega, A_slm)` jointly, retain separate prolate/oblate convergence margins, and abstain outside the proven intersection. A QNM sum, a Matsubara sum, a branch-cut term and a direct time-domain solution are not interchangeable without their individual convergence and remainder arguments.
+
+#### Direct-wave interpretation and source attribution
+
+GW250114 has become a useful test of the difference between detecting a waveform component and identifying its physical source.
+
+- The June 24 Nature paper reports a direct-wave component and a horizon-linked interpretation: [doi:10.1038/s41586-026-10696-0](https://doi.org/10.1038/s41586-026-10696-0).
+- Cheung's PRD-accepted paper (October 6) finds that, in its point-particle Kerr/Teukolsky setup, radiation sourced inside the prograde light ring contributes at most approximately 10% of the full-trajectory amplitude; its GW250114 post-peak estimate is SNR no greater than about 1: [arXiv:2608.29466](https://arxiv.org/abs/2608.29466).
+- Dyer, Chung and Moore's PRL-accepted paper (October 27) extracts direct waves over multiple ringdown start times but finds the direct-wave frequency deviates from the horizon value: [doi:10.1103/xftt-2n6t](https://doi.org/10.1103/xftt-2n6t).
+- Prasad, Sarkar and Sarkar's October 8 preprint proposes a separate delayed-echo null test using the observed direct wave as a common-source normalization and reports a model-dependent 90% bound `|R_s|<0.06`: [arXiv:2610.12429](https://arxiv.org/abs/2610.12429).
+
+Keep five claim types separate: component existence, source-region contribution, frequency/damping predictor, extraction/filter robustness, and delayed-echo/reflectivity inference. The direct-wave amplitude is not automatically the amplitude incident on a hypothetical inner surface; source excitation and transfer through the exterior barrier must be represented separately. The current ownership is [Symthaea #10841](https://github.com/Luminous-Dynamics/symthaea/issues/10841) for model discrimination and [Symtropy #4109](https://github.com/Luminous-Dynamics/symtropy/issues/4109) for causal boundary-to-observer response.
+
+#### Laughlin exact-certificate frontier
+
+Qiang Gao's October 8 preprint reports an exact-rational SDP certificate for the spherical fermionic (V_1) model with Fock-space coefficient (gamma_*=0.2190037845063196ldots), implying a spherical gap lower bound of (1/5) for sufficiently large systems: [arXiv:2610.12700](https://arxiv.org/abs/2610.12700).
+
+Keep this distinct from:
+- OpenAI Family 269's selected Lean formalization, which proves the earlier coefficient near 0.0461673 and spherical bound (1/25);
+- Scheer–Khalaf's independent exact thermodynamic certificate of at least 0.01 and their separate numerical SDP estimate near 0.0693;
+- finite-size exact-diagonalization observations near 0.4, which are not a proven thermodynamic lower bound.
+
+The next benchmark is source/checksum reproduction, two distributed exact verifiers, an independently written third checker from the mathematical definitions, mutation rejection, the thermodynamic-limit/rank-stability obligation, and then Lean formalization. The active owner is [Symthaea #11422](https://github.com/Luminous-Dynamics/symthaea/issues/11422). A larger exact bound is a research target, not a promised result.
+
+### 3. Industry reference map — compare solver classes fairly
+
+| Reference | What it actually supplies | Luminous comparison strategy |
+|---|---|---|
+| [BHPT Teukolsky](https://bhptoolkit.org/modules/teukolsky/) | Kerr perturbation radial `In`/`Up` solutions, amplitudes, MST quantities, source modes and horizon/infinity fluxes | Convention-safe radial, Wronskian, amplitude and flux cross-checks; do not reimplement its specialist solver prematurely |
+| [GRACE](https://arxiv.org/abs/2607.09854), PRD accepted November 2 | GPU-portable Einstein–GRMHD evolution using Kokkos, p4est AMR and Z4c | Independent nonlinear-evolution reference in matched physical regimes; compare accuracy at declared error and compute |
+| [Einstein Toolkit / CarpetX](https://www.einsteintoolkit.org/thornguide/CarpetX/CarpetX/documentation.html) | Community numerical-relativity infrastructure with AMReX block-structured AMR and GPU support | Use as an external evolution / horizon / waveform source; preserve formulation, resolution and extraction identities |
+| [SXS waveform catalogue](https://data.black-holes.org/waveforms/index.html) | Multi-resolution SpEC waveforms and extrapolation orders N=2,3,4 | Use resolution and extraction ladders; do not assume higher extrapolation order is always better in ringdown |
+| [SXS Ext-CCE catalogue](https://data.black-holes.org/waveforms/extcce_catalog.html) | Independent Cauchy-characteristic extraction data intended for comparison with extrapolated waveforms | Use as an extraction-uncertainty reference and a bridge between NR evolvers and perturbation theory |
+
+These systems do not solve one identical problem. BHPT is a linear/separable perturbation solver; GRACE and Einstein Toolkit evolve nonlinear spacetime/matter systems; SXS and Ext-CCE provide waveform/extraction data. Do not compare them by raw throughput alone. Compare them at matched physical assumptions, output definition, accuracy, precision, hardware and provenance.
+
+The detailed adapters remain with [BHPT interoperability #4352](https://github.com/Luminous-Dynamics/symtropy/issues/4352), [time-domain Teukolsky #4052](https://github.com/Luminous-Dynamics/symtropy/issues/4052), and [surrogate certification #3998](https://github.com/Luminous-Dynamics/symtropy/issues/3998).
+
+### 4. New evidence-contract capability
+
+The original [response manifest #4237](https://github.com/Luminous-Dynamics/symtropy/pull/4237) passed its exact-head Ubuntu/macOS/Windows workflow. Its successor [#4621](https://github.com/Luminous-Dynamics/symtropy/pull/4621) is a draft schema v0.2 branch.
+
+The v0.2 comparison object binds:
+- two method identities with distinct implementation digests;
+- the same canonical input-set digest;
+- a named response-window ID and norm;
+- alignment-procedure and metric-definition digests;
+- aligned-sample and comparison-artifact digests;
+- observed error and its declared limit.
+
+Every listed method must participate in an accepted pair. Cross-check and convergence states cannot rely on an unlinked scalar error beside two implementation hashes. This is still a validation contract: digests must be recomputed from preserved bytes and the comparison metric independently replayed. Its exact-head CI is pending; no Rust test pass is claimed.
+
+### 5. New Schwarzschild and Kerr engineering increments
+
+- [#4485](https://github.com/Luminous-Dynamics/symtropy/pull/4485) extended the Pöschl–Teller precursor qualification through the physical first arrival (t=3.05). Exact head `ff82e8224d87614c89d855700d7f0e05aca95f69) passed Ubuntu, macOS and Windows. This verifies the code gates, not exact continuum finite-grid causality.
+- [#4607](https://github.com/Luminous-Dynamics/symtropy/pull/4607) adds a machine-readable massless-scalar Schwarzschild fixture. It records the radial potential and finite-(ell) peak equation (Lr^2-3(L-1)r-8=0), with (L=\ell(\ell+1)). This prevents conflating the geometric photon sphere (r=3M) with the finite-(ell) scalar-potential maximum (e.g. (r=8M/3) for (ell=0), (r\approx2.9517148214M) for (ell=2)). It is an analytic fixture, not a wave evolution result.
+- [#4626](https://github.com/Luminous-Dynamics/symtropy/pull/4626) adds a Kerr horizon-event localizer using a cubic-Hermite interpolant and safeguarded bisection over accepted ingoing-Mino steps. It reports root-bracket precision for the interpolant only; true geodesic interpolation error still requires step-refinement and independent-formulation comparison. Its targeted Rust workflow is queued.
+
+### 6. Formal proof-fidelity update
+
+[Symthaea #11373](https://github.com/Luminous-Dynamics/symthaea/pull/11373) now carries a machine-readable source-level Family 079 crosswalk for OpenAI's October 25 Euclidean local-smoothing release. It identifies the exact source commit, main theorem and comparator statement/solution separation, and expands the declaration-level inventory across Bochner–Riesz, Stein square-function, spherical restriction, cone, Kakeya, Nikodym, logarithmic tube-volume and other consequences.
+
+The compact-paraboloid / Schrödinger corollary is pinned to its TeX source, but a dedicated Lean declaration or exact derivation has not yet been located. That is an open crosswalk item, not evidence that the result is absent or unformalized. No Lean rebuild, dependency/axiom closure or specialist proof review is claimed.
+
+### 7. Benchmark ladder and proposed targets
+
+| Layer | Required benchmark | Initial target / qualification rule |
+|---|---|---|
+| Mathematical | Exact paper-to-theorem identity, quantifiers, norms, assumptions, dependency closure, axiom report and proof replay | Every material claim gets a theorem/declaration identity or explicit paper-only status; adversarial statement mutations must be rejected |
+| Pöschl–Teller | Direct PDE, frequency-domain Green response, QNM and Matsubara representations | Same frozen inputs; paired comparison in each causal window; at least three refinement levels; 12 negative controls; separate solver and representation error |
+| Schwarzschild scalar | Analytic potential peaks, photon-sphere controls, wave packets, flux balance, dwell time and theorem-native integrated-local-energy observable | Recover analytic peak locations; compare at least three radial and time refinements; separate fixed-radius, horizon and null-infinity tail fits |
+| Kerr geodesics | Separated Mino versus canonical Hamiltonian formulation, chart crossing, horizon-event localization and constraint drift | Event root bracket for the interpolant plus independent event convergence under step refinement; refuse non-monotone/ill-conditioned brackets |
+| Kerr QNM | Prolate/oblate continuation and two separate optical convergence domains | Family assignment stable under two continuation paths and two solvers; no global QNM sum outside both-domain intersection |
+| Exact SDP | Upstream exact verifier replay, independent Rust checker, mutations, rank stability and formal theorem | Reproduce (gamma_*=0.2190037845ldots) exactly before any improvement claim; a new bound above 0.22 requires a new exact certificate and valid thermodynamic argument |
+| GW250114 | Direct-wave existence, source-region contribution, horizon/News/BOB predictor discrimination, filter nulls and echo injections | Blinded coverage and false-attribution calibration; report each physical attribution separately |
+| NR / extraction | BHPT, GRACE/Einstein Toolkit and SXS/Ext-CCE in their correct solver classes | Compare physical error at matched compute; retain resolution, extraction, calibration and waveform provenance |
+
+For statistical outputs, pre-register the null suite, report confidence/credible interval coverage and false-attribution rates, and measure abstention accuracy on cases where the competing explanations are observationally equivalent. Do not optimize only the accuracy of positive detections.
+
+### 8. Execution snapshot and claim ceiling — 2026-11-10
+
+- Pöschl–Teller component PRs #4278, #4411 and #4485 each have exact-head three-platform workflow success; they remain open/draft and stacked rather than merged.
+- #4237 is an open, non-draft PR with exact-head workflow success on three platforms.
+- #4607, #4621 and #4626 remain drafts; their latest relevant Actions were queued at the time of this update.
+- The Family 079 crosswalk is documentation/source inspection only.
+- The Laughlin improved certificate has not yet been independently reproduced by Luminous.
+- The Schwarzschild scalar fixture is analytic, not a PDE solution.
+- The Kerr event localizer is authored with tests, but no compiler/test result is claimed until its targeted workflow completes.
+
+A queued workflow is not a pass. A parsed JSON file is not a physical validation. A source-level theorem crosswalk is not a Lean proof replay. A converged waveform is not a causal attribution. These boundaries are part of the result, not caveats to hide.
+
