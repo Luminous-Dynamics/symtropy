@@ -1107,6 +1107,13 @@ mod tests {
     }
 
     #[test]
+    fn draft_2020_12_schema_rejects_unknown_fields() {
+        let source = include_str!("../fixtures/strict-equivalent.example.json");
+        let mutated = source.replacen("{", "{\n  \"unrecognized\": true,", 1);
+        assert!(validate_receipt_schema_json(&mutated).is_err());
+    }
+
+    #[test]
     fn draft_2020_12_schema_rejects_duplicate_dimension_fixture() {
         assert!(
             validate_receipt_schema_json(include_str!(
