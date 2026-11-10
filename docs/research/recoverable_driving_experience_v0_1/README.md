@@ -240,6 +240,17 @@ The Bench2Drive repository marks v0.0.4 (released 6 August 2026) as the version 
 
 These are upstream-reported results for the named benchmark revision, not independent Symtropy reproductions. The earlier 89.07 AlignDrive snapshot belongs to a different hosted-board snapshot/version context and must not be carried forward as the current v0.0.4 reference. Pin the exact evaluator, route XML, code tag, model/checkpoint, sensor profile, training data and compute/privilege budget before attempting reproduction. See the [v0.0.4 release results](https://github.com/Thinklab-SJTU/Bench2Drive/blob/0.0.4/docs/v004_update.md) and [tagged repository README](https://github.com/Thinklab-SJTU/Bench2Drive/blob/0.0.4/README.md).
 
+### NAVSIM v2: keep leaderboard tracks separate
+
+The current third-party NAVSIM v2 snapshots show why the board and task variant must accompany every score:
+- The **End-to-end Driving on NAVSIM v2 (test)** board lists NTR (2026.05) at 90.9 EPDMS.
+- The separate **Autonomous Driving Planning on NAVSIM v2 (test)** board lists Human Agent at 90.3; another planning-board snapshot lists LWDrive (2026.06) at 89.6.
+- These are distinct task/leaderboard tracks, third-party indexed snapshots updated roughly four to seven months ago, and not one interchangeable ranking. Treat them as reference points until the official evaluator, submission track, dataset release and metric implementation are pinned.
+
+**Protocol requirement:** record the board/task identifier, NAVSIM code/data commit, evaluator version, sensor/history privileges, checkpoint, compute and submission date alongside every EPDMS result. Never pool end-to-end driving with planning-only results.
+
+Sources: [NAVSIM v2 end-to-end driving test board](https://www.sota2.com/research/sota/end-to-end-driving-on-navsim-v2-test), [NAVSIM v2 autonomous-driving planning test board](https://www.sota2.com/research/sota/autonomous-driving-planning-on-navsim-v2-test), [NAVSIM v2 metric definitions](https://github.com/autonomousvision/navsim/blob/main/docs/metrics.md).
+
 ### Deployed-industry comparison is a separate evidence class
 
 A simulation benchmark and an operating driverless service do not measure the same thing. For calibration, Waymo's public safety-impact dashboard reports 271.3 million rider-only miles through June 2026 and compares crash rates against location-adjusted human benchmarks. Waymo reports 95% fewer serious-injury-or-worse crashes and 82% fewer injury-causing crashes in the operating locations covered by that analysis. The same materials distinguish retrospective safety-impact analysis from pre-deployment release readiness, which Waymo evaluates through its Safety Framework and Safety Case. These are company-published operational results, not results Symthaea can meaningfully claim to match through simulation alone. See [Waymo Safety Impact and methodology](https://waymo.com/safety/impact/).
