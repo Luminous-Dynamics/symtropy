@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "experiment": {
+    "experiment_id": "machine-test-01-experiment-a",
+    "run_id": "machine-test-01-run-0001",
+    "scenario_manifest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "source_revision": "3e84a37c95a010af196852b74d5f03d13fe58635",
+    "initial_state_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "simulation_state_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "event_order_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "observation_frame_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "simulation_tick": 120
+  },
+  "physics": {
+    "policy_input_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "policy_receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+    "selected_model_id": "symtropy-qualified-rigid-body-profile",
+    "model_passport_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+  },
+  "views": [
+    {
+      "view_id": "engineering-inspection",
+      "task_mode": "engineering_inspection",
+      "observation_frame_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "policy_input_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "policy_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+      "selected_profile_id": "balanced-engineering",
+      "measurement_receipt_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+      "max_p95_frame_time_us": 16700,
+      "max_p99_frame_time_us": 25000,
+      "max_peak_vram_bytes": 5200000000,
+      "max_gpu_energy_uj_per_frame": 10000
+    },
+    {
+      "view_id": "accessibility-inspection",
+      "task_mode": "accessibility",
+      "observation_frame_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "policy_input_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+      "policy_receipt_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+      "selected_profile_id": "high-contrast-accessible",
+      "measurement_receipt_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+      "max_p95_frame_time_us": 20000,
+      "max_p99_frame_time_us": 30000,
+      "max_peak_vram_bytes": 4800000000,
+      "max_gpu_energy_uj_per_frame": 8000
+    }
+  ],
+  "budget": {
+    "valid_from_tick": 120,
+    "valid_through_tick": 120,
+    "max_distinct_views": 2,
+    "max_view_events": 8,
+    "max_rendered_frames": 300,
+    "max_peak_system_memory_bytes": 4000000000,
+    "max_peak_vram_bytes": 4500000000,
+    "max_gpu_energy_uj_total": 2000000
+  }
+}
