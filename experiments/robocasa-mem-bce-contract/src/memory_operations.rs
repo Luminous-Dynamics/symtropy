@@ -56,6 +56,8 @@ pub struct MemoryOperationManifest {
     pub memory_system_sha256: String,
     pub evaluator_sha256: String,
     pub expected_case_count: usize,
+    /// Complete task roster for this operation-level evaluation cohort.
+    pub expected_task_ids: Vec<String>,
     /// Ordered by episode then strictly increasing event sequence within episode.
     pub cases: Vec<ExpectedMemoryOperation>,
 }
@@ -89,6 +91,10 @@ pub enum MemoryOperationError {
     EmptyIdentity,
     InvalidDigest,
     ExpectedCaseCountMismatch,
+    EmptyTaskRoster,
+    DuplicateTask,
+    TaskSetMismatch,
+    UnexpectedTask,
     DuplicateCase,
     DuplicateSequence,
     NonMonotonicSequence,
@@ -123,6 +129,8 @@ pub struct MemoryOperationCaseResult {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct MemoryOperationSummary {
+    /// None for the operation-wide aggregate; Some for task-stratified rows.
+    pub task_id: Option<String>,
     pub operation: MemoryOperationKind,
     pub applicable_count: usize,
     pub not_applicable_count: usize,
@@ -139,6 +147,11 @@ pub struct MemoryOperationSummary {
     pub compression_measurement_count: usize,
     pub mean_latency_ms: Option<f64>,
     pub latency_measurement_count: usize,
+    /// Equal-task macro means over task rows with at least one applicable case.
+    /// These are populated on operation-wide rows, not task rows.
+    pub applicable_task_count: usize,
+    pub task_macro_fidelity_rate: Option<f64>,
+    pub task_macro_evidence_coverage: Option<f64>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -151,7 +164,10 @@ pub struct MemoryOperationAudit {
     pub expected_case_count: usize,
     pub receipt_count: usize,
     pub results: Vec<MemoryOperationCaseResult>,
+    /// Operation-wide micro summaries.
     pub summaries: Vec<MemoryOperationSummary>,
+    /// Task-stratified summaries to expose easy-task / hard-task masking.
+    pub task_summaries: Vec<MemoryOperationSummary>,
 }
 
 #[derive(Debug, Default)]
@@ -207,7 +223,11 @@ impl OperationAccumulator {
         }
     }
 
-    fn finish(self, operation: MemoryOperationKind) -> MemoryOperationSummary {
+    fn finish(
+        self,
+        operation: MemoryOperationKind,
+        task_id: Option<String>,
+    ) -> MemoryOperationSummary {
         let fidelity_rate = (self.applicable_count > 0).then(|| {
             self.correct_count as f64 / self.applicable_count as f64
         });
@@ -225,6 +245,7 @@ impl OperationAccumulator {
         });
 
         MemoryOperationSummary {
+            task_id,
             operation,
             applicable_count: self.applicable_count,
             not_applicable_count: self.not_applicable_count,
@@ -237,6 +258,9 @@ impl OperationAccumulator {
             compression_measurement_count: self.compression_measurement_count,
             mean_latency_ms,
             latency_measurement_count: self.latency_measurement_count,
+            applicable_task_count: 0,
+            task_macro_fidelity_rate: None,
+            task_macro_evidence_coverage: None,
         }
     }
 }
@@ -272,6 +296,8 @@ pub fn audit_memory_operations(
 
     let mut results = Vec::with_capacity(manifest.cases.len());
     let mut accumulators = BTreeMap::<MemoryOperationKind, OperationAccumulator>::new();
+    let mut task_accumulators =
+        BTreeMap::<(MemoryOperationKind, String), OperationAccumulator>::new();
 
     for case in &manifest.cases {
         let outcome = match case.applicability {
@@ -320,10 +346,19 @@ pub fn audit_memory_operations(
             .entry(case.operation)
             .or_default()
             .observe(&result);
+        task_accumulators
+            .entry((case.operation, case.task_id.clone()))
+            .or_default()
+            .observe(&result);
         results.push(result);
     }
 
-    let summaries = [
+    let mut task_summaries = task_accumulators
+        .into_iter()
+        .map(|((operation, task_id), accumulator)| accumulator.finish(operation, Some(task_id)))
+        .collect::<Vec<_>>();
+
+    let mut summaries = [
         MemoryOperationKind::Storage,
         MemoryOperationKind::Update,
         MemoryOperationKind::Compression,
@@ -332,9 +367,30 @@ pub fn audit_memory_operations(
     .filter_map(|operation| {
         accumulators
             .remove(&operation)
-            .map(|accumulator| accumulator.finish(operation))
+            .map(|accumulator| accumulator.finish(operation, None))
     })
-    .collect();
+    .collect::<Vec<_>>();
+
+    for summary in &mut summaries {
+        let rows = task_summaries
+            .iter()
+            .filter(|row| row.operation == summary.operation && row.applicable_count > 0)
+            .collect::<Vec<_>>();
+        summary.applicable_task_count = rows.len();
+        if !rows.is_empty() {
+            summary.task_macro_fidelity_rate = Some(
+                rows.iter()
+                    .filter_map(|row| row.fidelity_rate)
+                    .sum::<f64>() / rows.len() as f64,
+            );
+            summary.task_macro_evidence_coverage = Some(
+                rows.iter()
+                    .filter_map(|row| row.evidence_coverage)
+                    .sum::<f64>() / rows.len() as f64,
+            );
+        }
+    }
+    task_summaries.shrink_to_fit();
 
     Ok(MemoryOperationAudit {
         protocol_sha256: manifest.protocol_sha256.clone(),
@@ -346,6 +402,7 @@ pub fn audit_memory_operations(
         receipt_count: receipts.len(),
         results,
         summaries,
+        task_summaries,
     })
 }
 
@@ -370,6 +427,20 @@ fn validate_manifest(
         }
     }
 
+    if manifest.expected_task_ids.is_empty() {
+        return Err(MemoryOperationError::EmptyTaskRoster);
+    }
+    let mut expected_tasks = BTreeSet::new();
+    for task_id in &manifest.expected_task_ids {
+        if task_id.trim().is_empty() {
+            return Err(MemoryOperationError::EmptyIdentity);
+        }
+        if !expected_tasks.insert(task_id.as_str()) {
+            return Err(MemoryOperationError::DuplicateTask);
+        }
+    }
+
+    let mut observed_tasks = BTreeSet::new();
     let mut seen_cases = BTreeSet::new();
     let mut last_sequence = BTreeMap::<&str, u64>::new();
     let mut seen_sequences = BTreeMap::<&str, BTreeSet<u64>>::new();
@@ -382,6 +453,10 @@ fn validate_manifest(
         {
             return Err(MemoryOperationError::EmptyIdentity);
         }
+        if !expected_tasks.contains(case.task_id.as_str()) {
+            return Err(MemoryOperationError::UnexpectedTask);
+        }
+        observed_tasks.insert(case.task_id.as_str());
         if !seen_cases.insert(case.case_id.as_str()) {
             return Err(MemoryOperationError::DuplicateCase);
         }
@@ -412,6 +487,9 @@ fn validate_manifest(
             }
         }
         last_sequence.insert(case.episode_id.as_str(), case.sequence);
+    }
+    if observed_tasks != expected_tasks {
+        return Err(MemoryOperationError::TaskSetMismatch);
     }
     Ok(())
 }
@@ -526,6 +604,10 @@ mod tests {
             memory_system_sha256: digest("5"),
             evaluator_sha256: digest("6"),
             expected_case_count: cases.len(),
+            expected_task_ids: {
+                let mut tasks = cases.iter().map(|case| case.task_id.clone()).collect::<BTreeSet<_>>();
+                tasks.into_iter().collect()
+            },
             cases,
         }
     }
@@ -562,6 +644,9 @@ mod tests {
 
         assert_eq!(audit.results.len(), 3);
         assert_eq!(audit.summaries.len(), 3);
+        assert_eq!(audit.task_summaries.len(), 3);
+        assert!(audit.summaries.iter().all(|summary| summary.applicable_task_count == 1));
+        assert!(audit.summaries.iter().all(|summary| summary.task_macro_fidelity_rate == Some(1.0)));
         for summary in &audit.summaries {
             assert_eq!(summary.applicable_count, 1);
             assert_eq!(summary.correct_count, 1);
@@ -783,6 +868,50 @@ mod tests {
         assert_eq!(audit.summaries[0].latency_measurement_count, 0);
         assert_eq!(audit.summaries[0].compression_measurement_count, 0);
         assert_eq!(audit.summaries[0].compression_ratio, None);
+    }
+
+    #[test]
+    fn task_stratification_prevents_easy_task_from_hiding_memory_failures() {
+        let easy = case("store-easy", 1, MemoryOperationKind::Storage, MemoryOperationApplicability::Applicable, Some(digest("a")));
+        let hard = case("store-hard", 1, MemoryOperationKind::Storage, MemoryOperationApplicability::Applicable, Some(digest("b")));
+        let mut hard_receipt = receipt(&hard);
+        hard_receipt.observed_effect_sha256 = Some(digest("x"));
+        let audit = audit_memory_operations(
+            &manifest(vec![easy.clone(), hard.clone()]),
+            &[receipt(&easy), hard_receipt],
+        ).unwrap();
+
+        assert_eq!(audit.summaries[0].fidelity_rate, Some(0.5));
+        assert_eq!(audit.summaries[0].task_macro_fidelity_rate, Some(0.5));
+        assert_eq!(audit.task_summaries.len(), 2);
+        assert_eq!(audit.task_summaries[0].fidelity_rate, Some(1.0));
+        assert_eq!(audit.task_summaries[1].fidelity_rate, Some(0.0));
+    }
+
+    #[test]
+    fn manifest_rejects_missing_duplicate_and_unexpected_task_roster_entries() {
+        let item = case("store", 1, MemoryOperationKind::Storage, MemoryOperationApplicability::Applicable, Some(digest("a")));
+
+        let mut missing = manifest(vec![item.clone()]);
+        missing.expected_task_ids.clear();
+        assert_eq!(
+            audit_memory_operations(&missing, &[]),
+            Err(MemoryOperationError::EmptyTaskRoster)
+        );
+
+        let mut duplicate = manifest(vec![item.clone()]);
+        duplicate.expected_task_ids.push("WA-01".to_owned());
+        assert_eq!(
+            audit_memory_operations(&duplicate, &[]),
+            Err(MemoryOperationError::DuplicateTask)
+        );
+
+        let mut unexpected = manifest(vec![item.clone()]);
+        unexpected.expected_task_ids = vec!["TM-02".to_owned()];
+        assert_eq!(
+            audit_memory_operations(&unexpected, &[]),
+            Err(MemoryOperationError::UnexpectedTask)
+        );
     }
 
     #[test]
