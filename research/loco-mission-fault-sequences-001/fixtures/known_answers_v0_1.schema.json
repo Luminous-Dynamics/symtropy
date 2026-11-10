@@ -85,7 +85,8 @@
         "thermal_cost_mj",
         "authority_loss_ppm",
         "qualified",
-        "minimum_authority_required_ppm"
+        "minimum_authority_required_ppm",
+        "recovery_budget_cost_mwh"
       ],
       "additionalProperties": false,
       "properties": {
@@ -111,6 +112,10 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 1000000
+        },
+        "recovery_budget_cost_mwh": {
+          "type": "integer",
+          "minimum": 0
         }
       }
     },
