@@ -164,6 +164,15 @@ Initial pilot targets:
 
 These are proposed gates, not measured results or claims that Symtropy currently meets them.
 
+### Concrete Bevy 0.20 render paths
+
+The benchmark manifest now distinguishes three renderer paths:
+- Bevy 0.20.1 raster: primary baseline, not yet render-measured in this corpus.
+- Bevy 0.20.1 Solari: opt-in experimental realtime path tracing; preview code exists in migration PR #4472, but target-adapter support and image/performance results are not qualified.
+- Unreal Engine 5.8: external high-end comparison reference; protocol defined, not yet measured.
+
+The Solari pilot must record whether the GPU/backend exposes the required experimental ray-query features, plus adapter, driver, API, frame-time percentiles, VRAM and rendered image receipt. A platform that cannot run Solari is reported as unsupported for that profile, not silently substituted with raster.
+
 ## Industry reference lanes
 
 ### Visual
