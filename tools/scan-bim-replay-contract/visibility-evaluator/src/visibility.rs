@@ -327,6 +327,364 @@ impl Vec3 {
 
 }
 
+#[derive(Debug, Clone, Copy)]
+struct Aabb {
+    minimum: Vec3,
+    maximum: Vec3,
+}
+
+impl Aabb {
+    fn from_triangle(triangle: &OccluderTriangle) -> Self {
+        let a = Vec3::from_point(triangle.a);
+        let b = Vec3::from_point(triangle.b);
+        let c = Vec3::from_point(triangle.c);
+        Self {
+            minimum: Vec3 {
+                x: a.x.min(b.x).min(c.x),
+                y: a.y.min(b.y).min(c.y),
+                z: a.z.min(b.z).min(c.z),
+            },
+            maximum: Vec3 {
+                x: a.x.max(b.x).max(c.x),
+                y: a.y.max(b.y).max(c.y),
+                z: a.z.max(b.z).max(c.z),
+            },
+        }
+    }
+
+    fn union(self, other: Self) -> Self {
+        Self {
+            minimum: Vec3 {
+                x: self.minimum.x.min(other.minimum.x),
+                y: self.minimum.y.min(other.minimum.y),
+                z: self.minimum.z.min(other.minimum.z),
+            },
+            maximum: Vec3 {
+                x: self.maximum.x.max(other.maximum.x),
+                y: self.maximum.y.max(other.maximum.y),
+                z: self.maximum.z.max(other.maximum.z),
+            },
+        }
+    }
+
+    fn centroid_axis(self, axis: usize) -> f64 {
+        let (minimum, maximum) = match axis {
+            0 => (self.minimum.x, self.maximum.x),
+            1 => (self.minimum.y, self.maximum.y),
+            _ => (self.minimum.z, self.maximum.z),
+        };
+        minimum * 0.5 + maximum * 0.5
+    }
+
+    fn centroid_extent(self, axis: usize) -> f64 {
+        let (minimum, maximum) = match axis {
+            0 => (self.minimum.x, self.maximum.x),
+            1 => (self.minimum.y, self.maximum.y),
+            _ => (self.minimum.z, self.maximum.z),
+        };
+        maximum * 0.5 - minimum * 0.5
+    }
+
+    /// Slab intersection; bounds are expanded by the declared numeric epsilon
+    /// so shared edges and near-boundary rays are not lost by the broad phase.
+    fn ray_entry(self, origin: Vec3, direction: Vec3, max_distance: f64) -> Option<f64> {
+        let origin_values = [origin.x, origin.y, origin.z];
+        let direction_values = [direction.x, direction.y, direction.z];
+        let minimum_values = [
+            self.minimum.x - INTERSECTION_EPSILON_M,
+            self.minimum.y - INTERSECTION_EPSILON_M,
+            self.minimum.z - INTERSECTION_EPSILON_M,
+        ];
+        let maximum_values = [
+            self.maximum.x + INTERSECTION_EPSILON_M,
+            self.maximum.y + INTERSECTION_EPSILON_M,
+            self.maximum.z + INTERSECTION_EPSILON_M,
+        ];
+        let mut near = 0.0f64;
+        let mut far = max_distance - INTERSECTION_EPSILON_M;
+        for axis in 0..3 {
+            let ray_origin = origin_values[axis];
+            let ray_direction = direction_values[axis];
+            if ray_direction.abs() <= VECTOR_EPSILON {
+                if ray_origin < minimum_values[axis] || ray_origin > maximum_values[axis] {
+                    return None;
+                }
+                continue;
+            }
+            let inverse = 1.0 / ray_direction;
+            let first = (minimum_values[axis] - ray_origin) * inverse;
+            let second = (maximum_values[axis] - ray_origin) * inverse;
+            near = near.max(first.min(second));
+            far = far.min(first.max(second));
+            if far < near {
+                return None;
+            }
+        }
+        if far < 0.0 {
+            None
+        } else {
+            Some(near.max(0.0))
+        }
+    }
+}
+
+#[derive(Debug)]
+enum BvhNodeKind {
+    Leaf { triangle_indices: Vec<usize> },
+    Branch {
+        left: Box<BvhNode>,
+        right: Box<BvhNode>,
+    },
+}
+
+#[derive(Debug)]
+struct BvhNode {
+    bounds: Aabb,
+    kind: BvhNodeKind,
+}
+
+#[derive(Debug)]
+struct TriangleBvh {
+    root: Option<Box<BvhNode>>,
+    node_count: usize,
+    leaf_count: usize,
+}
+
+impl TriangleBvh {
+    fn build(triangles: &[OccluderTriangle]) -> Self {
+        if triangles.is_empty() {
+            return Self {
+                root: None,
+                node_count: 0,
+                leaf_count: 0,
+            };
+        }
+        let mut node_count = 0usize;
+        let mut leaf_count = 0usize;
+        let indices: Vec<usize> = (0..triangles.len()).collect();
+        let root = Self::build_node(
+            indices,
+            triangles,
+            &mut node_count,
+            &mut leaf_count,
+        );
+        Self {
+            root: Some(Box::new(root)),
+            node_count,
+            leaf_count,
+        }
+    }
+
+    fn build_node(
+        mut indices: Vec<usize>,
+        triangles: &[OccluderTriangle],
+        node_count: &mut usize,
+        leaf_count: &mut usize,
+    ) -> BvhNode {
+        *node_count += 1;
+        let mut bounds = Aabb::from_triangle(&triangles[indices[0]]);
+        let mut centroid_min = Vec3 {
+            x: f64::INFINITY,
+            y: f64::INFINITY,
+            z: f64::INFINITY,
+        };
+        let mut centroid_max = Vec3 {
+            x: f64::NEG_INFINITY,
+            y: f64::NEG_INFINITY,
+            z: f64::NEG_INFINITY,
+        };
+        for index in &indices {
+            let triangle_bounds = Aabb::from_triangle(&triangles[*index]);
+            bounds = bounds.union(triangle_bounds);
+            let centroid = Vec3 {
+                x: triangle_bounds.centroid_axis(0),
+                y: triangle_bounds.centroid_axis(1),
+                z: triangle_bounds.centroid_axis(2),
+            };
+            centroid_min.x = centroid_min.x.min(centroid.x);
+            centroid_min.y = centroid_min.y.min(centroid.y);
+            centroid_min.z = centroid_min.z.min(centroid.z);
+            centroid_max.x = centroid_max.x.max(centroid.x);
+            centroid_max.y = centroid_max.y.max(centroid.y);
+            centroid_max.z = centroid_max.z.max(centroid.z);
+        }
+
+        if indices.len() <= BVH_LEAF_TRIANGLE_LIMIT {
+            *leaf_count += 1;
+            indices.sort_by(|left, right| {
+                triangles[*left]
+                    .surface_id
+                    .cmp(&triangles[*right].surface_id)
+                    .then_with(|| {
+                        triangles[*left]
+                            .triangle_id
+                            .cmp(&triangles[*right].triangle_id)
+                    })
+            });
+            return BvhNode {
+                bounds,
+                kind: BvhNodeKind::Leaf {
+                    triangle_indices: indices,
+                },
+            };
+        }
+
+        let extents = [
+            centroid_max.x - centroid_min.x,
+            centroid_max.y - centroid_min.y,
+            centroid_max.z - centroid_min.z,
+        ];
+        let axis = if extents[0] >= extents[1] && extents[0] >= extents[2] {
+            0
+        } else if extents[1] >= extents[2] {
+            1
+        } else {
+            2
+        };
+
+        // Input triangles are already sorted by stable (surface, triangle) IDs.
+        // A total comparator therefore makes the median partition deterministic.
+        indices.select_nth_unstable_by(indices.len() / 2, |left, right| {
+            let left_bounds = Aabb::from_triangle(&triangles[*left]);
+            let right_bounds = Aabb::from_triangle(&triangles[*right]);
+            left_bounds
+                .centroid_axis(axis)
+                .total_cmp(&right_bounds.centroid_axis(axis))
+                .then_with(|| {
+                    triangles[*left]
+                        .surface_id
+                        .cmp(&triangles[*right].surface_id)
+                })
+                .then_with(|| {
+                    triangles[*left]
+                        .triangle_id
+                        .cmp(&triangles[*right].triangle_id)
+                })
+        });
+        let right_indices = indices.split_off(indices.len() / 2);
+        let left = Self::build_node(indices, triangles, node_count, leaf_count);
+        let right = Self::build_node(right_indices, triangles, node_count, leaf_count);
+        BvhNode {
+            bounds,
+            kind: BvhNodeKind::Branch {
+                left: Box::new(left),
+                right: Box::new(right),
+            },
+        }
+    }
+
+    fn nearest_hits(
+        &self,
+        origin: Vec3,
+        direction: Vec3,
+        target_distance: f64,
+        triangles: &[OccluderTriangle],
+        target_surface_id: &str,
+        target_triangle_id: &str,
+        remaining_ray_tests: usize,
+        remaining_node_visits: usize,
+    ) -> Result<(Vec<(usize, f64)>, usize, usize), String> {
+        let Some(root) = &self.root else {
+            return Ok((Vec::new(), 0, 0));
+        };
+        let Some(root_entry) = root.bounds.ray_entry(origin, direction, target_distance) else {
+            return Ok((Vec::new(), 0, 0));
+        };
+
+        let mut stack: Vec<(&BvhNode, f64)> = vec![(root, root_entry)];
+        let mut nearest_distance: Option<f64> = None;
+        let mut nearest_hits = Vec::new();
+        let mut ray_tests = 0usize;
+        let mut node_visits = 0usize;
+
+        while let Some((node, entry_distance)) = stack.pop() {
+            if nearest_distance.is_some_and(|nearest| {
+                entry_distance > nearest + INTERSECTION_EPSILON_M
+            }) {
+                continue;
+            }
+            if node_visits >= remaining_node_visits {
+                return Err("visibility BVH node-visit budget exceeded during traversal".to_owned());
+            }
+            node_visits += 1;
+
+            match &node.kind {
+                BvhNodeKind::Leaf { triangle_indices } => {
+                    for triangle_index in triangle_indices {
+                        let triangle = &triangles[*triangle_index];
+                        if triangle.surface_id == target_surface_id
+                            && triangle.triangle_id == target_triangle_id
+                        {
+                            continue;
+                        }
+                        if ray_tests >= remaining_ray_tests {
+                            return Err(
+                                "visibility ray-test budget exceeded during BVH traversal"
+                                    .to_owned(),
+                            );
+                        }
+                        ray_tests += 1;
+                        if let Some(distance) =
+                            ray_triangle_distance(origin, direction, target_distance, triangle)
+                        {
+                            match nearest_distance {
+                                None => {
+                                    nearest_distance = Some(distance);
+                                    nearest_hits.push((*triangle_index, distance));
+                                }
+                                Some(best) if distance < best - INTERSECTION_EPSILON_M => {
+                                    nearest_distance = Some(distance);
+                                    nearest_hits.clear();
+                                    nearest_hits.push((*triangle_index, distance));
+                                }
+                                Some(best)
+                                    if (distance - best).abs() <= INTERSECTION_EPSILON_M =>
+                                {
+                                    nearest_hits.push((*triangle_index, distance));
+                                }
+                                Some(_) => {}
+                            }
+                        }
+                    }
+                }
+                BvhNodeKind::Branch { left, right } => {
+                    let limit = nearest_distance
+                        .map(|nearest| (nearest + INTERSECTION_EPSILON_M).min(target_distance))
+                        .unwrap_or(target_distance);
+                    let left_entry = left.bounds.ray_entry(origin, direction, limit);
+                    let right_entry = right.bounds.ray_entry(origin, direction, limit);
+                    match (left_entry, right_entry) {
+                        (Some(left_distance), Some(right_distance)) => {
+                            if left_distance <= right_distance {
+                                stack.push((right, right_distance));
+                                stack.push((left, left_distance));
+                            } else {
+                                stack.push((left, left_distance));
+                                stack.push((right, right_distance));
+                            }
+                        }
+                        (Some(left_distance), None) => stack.push((left, left_distance)),
+                        (None, Some(right_distance)) => stack.push((right, right_distance)),
+                        (None, None) => {}
+                    }
+                }
+            }
+        }
+
+        nearest_hits.sort_by(|(left_index, _), (right_index, _)| {
+            triangles[*left_index]
+                .surface_id
+                .cmp(&triangles[*right_index].surface_id)
+                .then_with(|| {
+                    triangles[*left_index]
+                        .triangle_id
+                        .cmp(&triangles[*right_index].triangle_id)
+                })
+        });
+        Ok((nearest_hits, ray_tests, node_visits))
+    }
+}
+
 fn finite_point(point: Point3) -> bool {
     point.x.is_finite() && point.y.is_finite() && point.z.is_finite()
 }
