@@ -243,3 +243,28 @@ All values are synthetic and chosen to test the decision contract, not to repres
 This v0.1 evaluator compares a finite supplied model set; it does not establish that the set contains the true world, optimize over a continuous ambiguity set, calculate distributionally robust bounds, or prove that a policy is safe outside the listed candidate models. It also does not propagate uncertainty intervals on each policy outcome, model discrepancy distributions, or metric measurement error.
 
 Next work should add source-pinned coupling to the CIVDYN adequacy receipts, confidence/uncertainty intervals for policy metrics, Pareto-dominance diagnostics without scalarization, and a held-out model-family benchmark. Real applications still require empirical calibration and domain review.
+
+
+## Scenario L: decision-criticality of model discrepancy
+
+The decision-relative discrepancy evaluator is in src/decision_criticality.rs with a deterministic decision-criticality-sweep binary. It advances [CIVDYN-DECISION-CRITICALITY-001 #4613](https://github.com/Luminous-Dynamics/symtropy/issues/4613).
+
+A model discrepancy is not itself a decision consequence. This evaluator compares one evidence-qualified source Validation model to multiple held-out Challenge worlds and reports, in each world:
+- reference and alternative optimal feasible policy sets (ties are retained as sets);
+- feasibility reversals of reference-optimal actions;
+- per-policy alternative-world regret in the objective's native unit;
+- hard-constraint violations;
+- exact model and adequacy receipt identities;
+- a decision impact classification.
+
+The reference model must have complete split-predictive primary evidence and no primary discrepancy. Alternatives with primary discrepancies remain visible as challenge worlds, but their policy outputs are not described as validated truth. NotAssessed and OutOfDomain alternatives cannot create a stability claim.
+
+Known-answer alternatives:
+1. Stable: optimal action remains expand, all policies remain feasible, regret is below threshold.
+2. Ranking reversal: expand is replaced by maintain; the reference action incurs 25 service_units of regret.
+3. Feasibility reversal: expand violates the hard water-reserve floor; this is reported before objective regret.
+4. Out-of-domain: outcome is NotAssessed, never stable.
+
+The API retains exact source and per-policy outcome receipt digests. It does not combine objective units, convert model counts into probabilities, excuse any hard physical/rights failure, or turn decision stability into scientific adequacy. The report is bounded to the declared model worlds, policy set, objective, constraints, tie tolerance and materiality threshold.
+
+Run decision-criticality-sweep with the locked workspace manifest. CI checks the named 28-column receipt and deterministic replay.

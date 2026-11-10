@@ -347,6 +347,10 @@ impl ModelWorld {
         &self.model_digest
     }
 
+    pub fn adequacy_model_digest(&self) -> &str {
+        &self.adequacy_model_digest
+    }
+
     pub fn adequacy_state(&self) -> ModelAdequacyState {
         self.adequacy
     }
