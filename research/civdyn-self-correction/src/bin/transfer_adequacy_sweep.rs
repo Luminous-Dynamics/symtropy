@@ -38,18 +38,34 @@ fn emit(fields: Vec<String>) {
     );
 }
 
-fn build_domain(
-    domain_id: &str,
+struct TransferDomainFixture<'a> {
+    domain_id: &'a str,
     axis: TransferAxis,
     role: SplitRole,
     independent_unit: IndependentUnitKind,
-    population: &str,
-    context: &str,
-    source_family: &str,
-    source_digest: &str,
-    unit_id: &str,
+    population: &'a str,
+    context: &'a str,
+    source_family: &'a str,
+    source_digest: &'a str,
+    unit_id: &'a str,
     observed_value: f64,
+}
+
+fn build_domain(
+    fixture: TransferDomainFixture<'_>,
 ) -> Result<TransferDomainEvidence, Box<dyn std::error::Error>> {
+    let TransferDomainFixture {
+        domain_id,
+        axis,
+        role,
+        independent_unit,
+        population,
+        context,
+        source_family,
+        source_digest,
+        unit_id,
+        observed_value,
+    } = fixture;
     let registry = StatisticRegistry {
         version: "civdyn-transfer-registry-v0.1".to_string(),
         statistics: vec![StatisticSpec {
@@ -138,42 +154,42 @@ fn build_domain(
 
 fn fixture() -> Result<Vec<TransferDomainEvidence>, Box<dyn std::error::Error>> {
     Ok(vec![
-        build_domain(
-            "source-region",
-            TransferAxis::Region,
-            SplitRole::Validation,
-            IndependentUnitKind::Region,
-            "source-households",
-            "source-region-baseline-period",
-            "source-household-survey",
-            "sha256-source-region-data",
-            "region-source",
-            0.50,
-        )?,
-        build_domain(
-            "target-institution",
-            TransferAxis::Institution,
-            SplitRole::Challenge,
-            IndependentUnitKind::Site,
-            "target-households",
-            "target-institution-current-period",
-            "target-administrative-records",
-            "sha256-target-institution-data",
-            "institution-target",
-            0.90,
-        )?,
-        build_domain(
-            "target-time-period",
-            TransferAxis::TimePeriod,
-            SplitRole::Challenge,
-            IndependentUnitKind::TimeBlock,
-            "source-households",
-            "future-time-block",
-            "source-household-survey",
-            "sha256-target-time-data",
-            "time-block-target",
-            0.50,
-        )?,
+        build_domain(TransferDomainFixture {
+            domain_id: "source-region",
+            axis: TransferAxis::Region,
+            role: SplitRole::Validation,
+            independent_unit: IndependentUnitKind::Region,
+            population: "source-households",
+            context: "source-region-baseline-period",
+            source_family: "source-household-survey",
+            source_digest: "sha256-source-region-data",
+            unit_id: "region-source",
+            observed_value: 0.50,
+        })?,
+        build_domain(TransferDomainFixture {
+            domain_id: "target-institution",
+            axis: TransferAxis::Institution,
+            role: SplitRole::Challenge,
+            independent_unit: IndependentUnitKind::Site,
+            population: "target-households",
+            context: "target-institution-current-period",
+            source_family: "target-administrative-records",
+            source_digest: "sha256-target-institution-data",
+            unit_id: "institution-target",
+            observed_value: 0.90,
+        })?,
+        build_domain(TransferDomainFixture {
+            domain_id: "target-time-period",
+            axis: TransferAxis::TimePeriod,
+            role: SplitRole::Challenge,
+            independent_unit: IndependentUnitKind::TimeBlock,
+            population: "source-households",
+            context: "future-time-block",
+            source_family: "source-household-survey",
+            source_digest: "sha256-target-time-data",
+            unit_id: "time-block-target",
+            observed_value: 0.50,
+        })?,
     ])
 }
 
