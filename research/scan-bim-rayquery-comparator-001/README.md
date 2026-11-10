@@ -43,9 +43,9 @@ P0 now checks the fixture with both a strict JSON Schema (2020-12) and an execut
 ### In-repository references
 
 - **Brute-force triangle kernel:** retained as the small semantic oracle. Its simplicity is valuable for differential correctness tests.
-- **Median-split AABB BVH:** current deterministic production candidate in #4292. It uses a longest-centroid-axis median partition and max eight triangles per leaf.
-- **Binned SAH BVH:** proposed alternative. Compare build cost and traversal cost; do not assume SAH wins every query distribution.
-- **Spatial-split / two-level BVHs:** optional experiments only after correctness, licensing and rebuild/refit semantics are established.
+- **Median-split AABB BVH:** current deterministic visibility evaluator in #4292. It uses a longest-centroid-axis median partition and max eight triangles per leaf.
+- **Binned SAH AABB BVH:** now implemented as an in-repository comparison builder. It bins centroids on all three axes, evaluates surface-area-weighted split costs, breaks ties deterministically and falls back to the stable median split when a valid partition cannot be formed. The frozen 32-ray/266-triangle test requires identical nearest-hit identities from median and SAH against brute force; SAH leaves remain at or below eight triangles.
+- **Spatial-split / two-level BVHs:** optional external/next experiments after correctness, licensing and rebuild/refit semantics are established.
 
 ### Independent implementations
 
@@ -67,6 +67,8 @@ The common adapter must declare:
 - deterministic normalization/order of hit identities.
 
 Visibility policy (observable, unknown, self-occluded, etc.) belongs to #4292 and must not be reimplemented differently in every ray engine.
+
+The median and SAH builders are currently compared on deterministic hit identities and structural/work counters, not wall-clock latency. Both still need p50/p95/p99 measurements, memory profiling and comparison against the pinned Embree build before any speed claim.
 
 ## Workload matrix
 
