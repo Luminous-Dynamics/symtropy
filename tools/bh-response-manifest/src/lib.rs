@@ -806,7 +806,7 @@ mod tests {
             name: "initial-data".into(),
             sha256: d('e'),
         });
-        let mut left = method("fd", 'f', '1');
+        let left = method("fd", 'f', '1');
         let mut right = method("freq", '0', '2');
         right.input_set_sha256 = d('d');
         m.methods.extend([left, right]);
