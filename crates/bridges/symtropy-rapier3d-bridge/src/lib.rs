@@ -63,7 +63,10 @@ impl fmt::Display for RapierStepError {
                 write!(f, "force callback produced a non-finite force for {body:?}")
             }
             Self::DuplicateCallbackIdentity { body } => {
-                write!(f, "Symtropy body identity {body:?} is already bound to another Rapier body")
+                write!(
+                    f,
+                    "Symtropy body identity {body:?} is already bound to another Rapier body"
+                )
             }
         }
     }
@@ -152,10 +155,7 @@ impl<C: PhysicsCallback<3>> RapierPhysicsBridge<C> {
     }
 
     /// Remove a previously declared cross-engine callback identity binding.
-    pub fn unbind_callback_body(
-        &mut self,
-        rapier_handle: RigidBodyHandle,
-    ) -> Option<BodyHandle> {
+    pub fn unbind_callback_body(&mut self, rapier_handle: RigidBodyHandle) -> Option<BodyHandle> {
         self.callback_body_ids.remove(&rapier_handle)
     }
 
@@ -483,7 +483,9 @@ mod tests {
 
     fn y_after_one_step(dt: f32) -> (f32, f32) {
         let mut bridge = RapierPhysicsBridge::new(NoOpCallback);
-        bridge.set_gravity(vector![0.0, -9.81, 0.0]).expect("finite gravity");
+        bridge
+            .set_gravity(vector![0.0, -9.81, 0.0])
+            .expect("finite gravity");
         let mut world = TestWorld::new();
         let handle = world.bodies.insert(
             RigidBodyBuilder::dynamic()
@@ -521,9 +523,14 @@ mod tests {
         assert_eq!(bridge.callback_body(first), Some(BodyHandle(42)));
         assert_eq!(
             bridge.bind_callback_body(second, BodyHandle(42)),
-            Err(RapierStepError::DuplicateCallbackIdentity { body: BodyHandle(42) })
+            Err(RapierStepError::DuplicateCallbackIdentity {
+                body: BodyHandle(42)
+            })
         );
-        assert_eq!(bridge.bind_callback_body(first, BodyHandle(43)), Ok(Some(BodyHandle(42))));
+        assert_eq!(
+            bridge.bind_callback_body(first, BodyHandle(43)),
+            Ok(Some(BodyHandle(42)))
+        );
         assert_eq!(bridge.callback_body(first), Some(BodyHandle(43)));
         assert_eq!(bridge.unbind_callback_body(first), Some(BodyHandle(43)));
         assert_eq!(bridge.callback_body(first), None);
@@ -543,9 +550,16 @@ mod tests {
             .expect("body inserted")
             .add_force(vector![1.0, 0.0, 0.0], true);
 
-        world.step(&mut bridge, 0.1).expect("valid unmapped body step");
+        world
+            .step(&mut bridge, 0.1)
+            .expect("valid unmapped body step");
         assert!(
-            bridge.callback.0.lock().expect("callback recorder").is_empty(),
+            bridge
+                .callback
+                .0
+                .lock()
+                .expect("callback recorder")
+                .is_empty(),
             "the bridge must not invent a Symtropy BodyHandle for a Rapier body"
         );
         assert!(world.bodies.get(handle).expect("body retained").linvel().x > 0.0);
@@ -922,7 +936,11 @@ mod tests {
             "generation must change on reuse"
         );
 
-        assert_eq!(bridge.callback_body(first), None, "removed bindings are pruned");
+        assert_eq!(
+            bridge.callback_body(first),
+            None,
+            "removed bindings are pruned"
+        );
         bridge
             .bind_callback_body(second, BodyHandle(11))
             .expect("recycled slot receives a distinct declared identity");
