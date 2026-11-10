@@ -129,6 +129,10 @@ fn integer(root: &Value, path: &str) -> Option<u64> {
     at(root, path)?.as_u64()
 }
 
+fn boolean(root: &Value, path: &str) -> Option<bool> {
+    at(root, path)?.as_bool()
+}
+
 fn set_path(root: &mut Value, path: &str, replacement: Value) -> Result<(), String> {
     let parts: Vec<&str> = path.split('.').collect();
     if parts.is_empty() || parts.iter().any(|part| part.is_empty()) {
@@ -323,7 +327,7 @@ fn evaluate(bundle: &Value) -> &'static str {
     {
         return "CANCELLED_WARNING_NOT_CURRENT";
     }
-    if text(bundle, "s124.warning.bulletin_complete") == Some("false")
+    if boolean(bundle, "s124.warning.bulletin_complete") == Some(false)
         && is_proven_claim(bundle, 3)
     {
         return "WARNING_COMPLETENESS_UNKNOWN";
@@ -396,6 +400,11 @@ fn evaluate(bundle: &Value) -> &'static str {
     if text(bundle, "dcsa.api_direction") != text(bundle, "dcsa.tested_api_direction") {
         return "DCSA_DIRECTIONAL_CONFORMANCE_UNPROVEN";
     }
+    if text(bundle, "dcsa.semantic_validation_state") == Some("invalid")
+        && is_proven_claim(bundle, 6)
+    {
+        return "DCSA_EVENT_SEMANTICS_INVALID";
+    }
     if is_proven_claim(bundle, 6)
         && text(bundle, "dcsa.eta_accuracy_state")
             != Some("calibrated_in_declared_population")
@@ -417,12 +426,6 @@ fn evaluate(bundle: &Value) -> &'static str {
     } else {
         return "DCSA_TEMPORAL_ORDER_INVALID";
     }
-    if text(bundle, "dcsa.semantic_validation_state") == Some("invalid")
-        && is_proven_claim(bundle, 6)
-    {
-        return "DCSA_EVENT_SEMANTICS_INVALID";
-    }
-
     // Provider state and authority remain with the provider / Mycelix owner.
     if text(bundle, "provider.revocation_state") == Some("revoked")
         || text(bundle, "provider.status") == Some("revoked")
@@ -445,14 +448,14 @@ fn evaluate(bundle: &Value) -> &'static str {
 
     // A replay with synthetic-only physics is not physical qualification.
     if is_proven_claim(bundle, 8)
-        && text(bundle, "run_evidence.supported_physics_state") == Some("synthetic_only")
-    {
-        return "SYNTHETIC_RUN_NOT_PHYSICAL_QUALIFICATION";
-    }
-    if is_proven_claim(bundle, 8)
         && text(bundle, "run_evidence.replay_state") != Some("deterministic_replay_verified")
     {
         return "RUN_REPLAY_NOT_VERIFIED";
+    }
+    if is_proven_claim(bundle, 8)
+        && text(bundle, "run_evidence.supported_physics_state") == Some("synthetic_only")
+    {
+        return "SYNTHETIC_RUN_NOT_PHYSICAL_QUALIFICATION";
     }
 
     "CONTEXT_BUNDLE_VALID_NOT_OPERATIONAL_AUTHORITY"
