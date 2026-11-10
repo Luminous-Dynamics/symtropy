@@ -143,9 +143,11 @@ No method may use hidden specimen identity, evaluator labels, future observation
 
 **Assurance:** physical-branch completeness, robust viability/recovery disposition, evidence freshness/identity, model-domain status and abstention.
 
-## Known-answer and adversarial fixtures
+## Frozen external baseline manifest and known-answer fixtures
 
-Machine-readable fixtures are in [fixtures/known_answers_v0_1.json](fixtures/known_answers_v0_1.json). V0 includes:
+The external comparator inventory is machine-readable in [references_v0_1.json](references_v0_1.json). It pins the NeDM code branch to commit `18c9316ad831d5dc0196ad94a23224b6aa19df9d`, records dataset access/licensing conditions and its known limits, and explicitly leaves the Hugging Face dataset revision SHA as **unresolved until authorized acquisition**. Do not treat an unpinned data snapshot as a reproducible raw-data result.
+
+Machine-readable synthetic falsifiers are in [fixtures/known_answers_v0_1.json](fixtures/known_answers_v0_1.json). The 20 cases cover:
 - same first-contact output / different repeated-load future response;
 - rigid NoEffect and elastic recovery negative controls;
 - plastic sinkage with shear-model misspecification;
@@ -157,9 +159,14 @@ Machine-readable fixtures are in [fixtures/known_answers_v0_1.json](fixtures/kno
 - high-information probe with no recovery;
 - zero-mass physically possible dead-end branch;
 - held-out specimen/batch leakage;
-- adaptation that improves task success but worsens foot scuff/slip.
+- adaptation that improves task success but worsens foot scuff/slip;
+- NeDM surrogate's local base-policy occupancy and unsupported high-push extrapolation;
+- study-specific contact-channel ablation (extra force/sinkage dimensions did not help its transfer);
+- CRM replicate variance and single-run overconfidence;
+- particle/foot length-scale mismatch;
+- data-access, dataset-revision and implementation-license boundaries.
 
-These are synthetic semantic fixtures, not empirical physical observations.
+These are synthetic semantic fixtures, not empirical physical observations. Literature/data-card results remain external claims and are not represented as Symtropy measurements.
 
 ## Proposed qualification targets (not achieved)
 
