@@ -5,7 +5,7 @@
   "status": "planned_replication_manifest",
   "created_utc": "2026-11-10",
   "objective": "Qualify Kerr null-geodesic screen-to-source maps, ray-bundle Jacobi fields, caustic locations, image multiplicity, magnification, and time-delay distributions using independent formulations and external references.",
-  "claim_ceiling": "This file is a frozen benchmark specification. It contains no numerical ray results, no caustic detections, no magnification measurements, no EHT fit, and no Kerr local-smoothing theorem.",
+  "claim_ceiling": "This file is a frozen benchmark specification. It contains no numerical ray results, no caustic detections, no magnification measurements, no EHT fit, and no Kerr local-smoothing theorem. A formula audit on 2026-11-10 corrected the separated polar potential to the null-geodesic Carter convention; the prior draft's expression was the massive-particle form and must not be used for null rays.",
   "ownership": {
     "physics": "Symtropy #4519",
     "projection": "Sol-Atlas #701",
@@ -106,10 +106,11 @@
       "Sigma": "r^2 + a^2*cos(theta)^2",
       "P": "E*(r^2+a^2) - a*L_z",
       "xi": "L_z/E",
-      "eta": "Q/E^2"
+      "eta": "Q/E^2, where Q is the Carter separation constant in the convention used by Theta=Q+a^2*E^2*cos(theta)^2-L_z^2*cot(theta)^2",
+      "mu": "rest-mass parameter; mu=0 for null rays"
     },
-    "radial_potential": "R(r) = P^2 - Delta*(Q + (L_z - a*E)^2)",
-    "polar_potential": "Theta(theta) = Q - cos(theta)^2*(a^2*(1-E^2) + L_z^2/sin(theta)^2)",
+    "radial_potential": "R(r) = [E*(r^2+a^2)-a*L_z]^2 - Delta*[mu^2*r^2 + (L_z-a*E)^2 + Q]",
+    "polar_potential": "Theta(theta) = Q + a^2*E^2*cos(theta)^2 - L_z^2*cot(theta)^2 (null case mu=0)",
     "screen_mapping_asymptotic_observer": {
       "xi": "-alpha*sin(i)",
       "eta": "beta^2 + (alpha^2 - a^2)*cos(i)^2",
@@ -121,7 +122,14 @@
       "dphi_dgamma": "L_z/sin(theta)^2 - a*E + a*P/Delta",
       "dt_dgamma": "a*(L_z - a*E*sin(theta)^2) + (r^2+a^2)*P/Delta"
     },
-    "turning_points": "Detect and classify every radial/polar root; sign flips must be event-driven or otherwise convergence-qualified, never silently skipped."
+    "turning_points": "Detect and classify every radial/polar root; sign flips must be event-driven or otherwise convergence-qualified, never silently skipped.",
+    "null_specialization": {
+      "energy_normalization": "E=1",
+      "dimensionless": "M=1, a=a_star, xi=L_z/E, eta=Q/E^2",
+      "radial": "R(r)=[r^2+a_star^2-a_star*xi]^2-Delta*[eta+(xi-a_star)^2]",
+      "polar": "Theta(theta)=eta+a_star^2*cos(theta)^2-xi^2*cot(theta)^2",
+      "note": "This is the null-geodesic convention. Do not substitute the timelike mu=1 expression; the +a^2 E^2 cos^2 term is required."
+    }
   },
   "observer_fixtures": [
     {
@@ -234,6 +242,21 @@
     {
       "case_id": "strong_deflection_and_higher_images",
       "expected": "Image branch count, turning-point sequence and delay ordering agree with the pinned reference cases",
+      "status": "required"
+    },
+    {
+      "case_id": "equatorial_null_polar_potential",
+      "expected": "At theta=pi/2, Theta=Q (or eta when E=1); polar motion is admissible only when Theta>=0.",
+      "status": "required"
+    },
+    {
+      "case_id": "schwarzschild_null_polar_potential",
+      "expected": "At a=0, Theta=Q-L_z^2*cot(theta)^2; the Carter constant is the squared total angular momentum minus L_z^2.",
+      "status": "required"
+    },
+    {
+      "case_id": "null_vs_timelike_theta_negative_control",
+      "expected": "Reject use of the mu=1 timelike polar potential for null rays; for a!=0 and off-equatorial motion, the omitted +a^2*E^2*cos(theta)^2 term changes turning points.",
       "status": "required"
     }
   ],
