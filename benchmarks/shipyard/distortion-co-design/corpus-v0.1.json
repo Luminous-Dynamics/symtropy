@@ -1,0 +1,1446 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "SHIPYARD-DISTORTION-CO-DESIGN-001",
+  "claim_ceiling": "Synthetic contract only. No physical weld-distortion result, fixture qualification, or production authorization is established.",
+  "cases": [
+    {
+      "case_id": "SDC-001",
+      "case_class": "positive_contract_control",
+      "panel_revision": "PANEL-SYNTH-R1",
+      "weld_tasks": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "sequence": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "precedence": [
+        [
+          "W1",
+          "W3"
+        ]
+      ],
+      "fixture_reaction_limit_units": 100,
+      "predicted_fixture_reaction_units": 65,
+      "release_events": [
+        {
+          "event_id": "release-all",
+          "cooling_complete": true,
+          "all_restraints_removed": true
+        }
+      ],
+      "final_measurement": {
+        "phase": "final_free_state",
+        "cooling_complete": true,
+        "restraints_removed": true,
+        "datum_id": "SYNTH-DATUM-0",
+        "uncertainty_present": true,
+        "evidence_class": "synthetic_contract"
+      },
+      "model": {
+        "scope": "synthetic_toy",
+        "validation_state": "synthetic_contract_only",
+        "out_of_domain": false,
+        "physical_claim": false
+      },
+      "future_information_used": false,
+      "resource_conflict": false,
+      "objective_vector": [
+        "final_free_state_geometry",
+        "production_time",
+        "fixture_cost",
+        "worst_case_robustness"
+      ],
+      "as_built_writeback": false,
+      "expected_disposition": "SYNTHETIC_PLAN_CONTRACT_VALID"
+    },
+    {
+      "case_id": "SDC-002",
+      "case_class": "positive_contract_control",
+      "panel_revision": "PANEL-SYNTH-R1",
+      "weld_tasks": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "sequence": [
+        "W2",
+        "W1",
+        "W3"
+      ],
+      "precedence": [
+        [
+          "W2",
+          "W3"
+        ]
+      ],
+      "fixture_reaction_limit_units": 100,
+      "predicted_fixture_reaction_units": 65,
+      "release_events": [
+        {
+          "event_id": "release-all",
+          "cooling_complete": true,
+          "all_restraints_removed": true
+        }
+      ],
+      "final_measurement": {
+        "phase": "final_free_state",
+        "cooling_complete": true,
+        "restraints_removed": true,
+        "datum_id": "SYNTH-DATUM-0",
+        "uncertainty_present": true,
+        "evidence_class": "synthetic_contract"
+      },
+      "model": {
+        "scope": "synthetic_toy",
+        "validation_state": "synthetic_contract_only",
+        "out_of_domain": false,
+        "physical_claim": false
+      },
+      "future_information_used": false,
+      "resource_conflict": false,
+      "objective_vector": [
+        "final_free_state_geometry",
+        "production_time",
+        "fixture_cost",
+        "worst_case_robustness"
+      ],
+      "as_built_writeback": false,
+      "expected_disposition": "SYNTHETIC_PLAN_CONTRACT_VALID"
+    },
+    {
+      "case_id": "SDC-003",
+      "case_class": "negative_control",
+      "panel_revision": "PANEL-SYNTH-R1",
+      "weld_tasks": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "sequence": [
+        "W1",
+        "W1",
+        "W3"
+      ],
+      "precedence": [
+        [
+          "W1",
+          "W3"
+        ]
+      ],
+      "fixture_reaction_limit_units": 100,
+      "predicted_fixture_reaction_units": 65,
+      "release_events": [
+        {
+          "event_id": "release-all",
+          "cooling_complete": true,
+          "all_restraints_removed": true
+        }
+      ],
+      "final_measurement": {
+        "phase": "final_free_state",
+        "cooling_complete": true,
+        "restraints_removed": true,
+        "datum_id": "SYNTH-DATUM-0",
+        "uncertainty_present": true,
+        "evidence_class": "synthetic_contract"
+      },
+      "model": {
+        "scope": "synthetic_toy",
+        "validation_state": "synthetic_contract_only",
+        "out_of_domain": false,
+        "physical_claim": false
+      },
+      "future_information_used": false,
+      "resource_conflict": false,
+      "objective_vector": [
+        "final_free_state_geometry",
+        "production_time",
+        "fixture_cost",
+        "worst_case_robustness"
+      ],
+      "as_built_writeback": false,
+      "expected_disposition": "BLOCK_SEQUENCE"
+    },
+    {
+      "case_id": "SDC-004",
+      "case_class": "negative_control",
+      "panel_revision": "PANEL-SYNTH-R1",
+      "weld_tasks": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "sequence": [
+        "W3",
+        "W1",
+        "W2"
+      ],
+      "precedence": [
+        [
+          "W1",
+          "W3"
+        ]
+      ],
+      "fixture_reaction_limit_units": 100,
+      "predicted_fixture_reaction_units": 65,
+      "release_events": [
+        {
+          "event_id": "release-all",
+          "cooling_complete": true,
+          "all_restraints_removed": true
+        }
+      ],
+      "final_measurement": {
+        "phase": "final_free_state",
+        "cooling_complete": true,
+        "restraints_removed": true,
+        "datum_id": "SYNTH-DATUM-0",
+        "uncertainty_present": true,
+        "evidence_class": "synthetic_contract"
+      },
+      "model": {
+        "scope": "synthetic_toy",
+        "validation_state": "synthetic_contract_only",
+        "out_of_domain": false,
+        "physical_claim": false
+      },
+      "future_information_used": false,
+      "resource_conflict": false,
+      "objective_vector": [
+        "final_free_state_geometry",
+        "production_time",
+        "fixture_cost",
+        "worst_case_robustness"
+      ],
+      "as_built_writeback": false,
+      "expected_disposition": "BLOCK_SEQUENCE"
+    },
+    {
+      "case_id": "SDC-005",
+      "case_class": "negative_control",
+      "panel_revision": "PANEL-SYNTH-R1",
+      "weld_tasks": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "sequence": [
+        "W1",
+        "W2"
+      ],
+      "precedence": [
+        [
+          "W1",
+          "W3"
+        ]
+      ],
+      "fixture_reaction_limit_units": 100,
+      "predicted_fixture_reaction_units": 65,
+      "release_events": [
+        {
+          "event_id": "release-all",
+          "cooling_complete": true,
+          "all_restraints_removed": true
+        }
+      ],
+      "final_measurement": {
+        "phase": "final_free_state",
+        "cooling_complete": true,
+        "restraints_removed": true,
+        "datum_id": "SYNTH-DATUM-0",
+        "uncertainty_present": true,
+        "evidence_class": "synthetic_contract"
+      },
+      "model": {
+        "scope": "synthetic_toy",
+        "validation_state": "synthetic_contract_only",
+        "out_of_domain": false,
+        "physical_claim": false
+      },
+      "future_information_used": false,
+      "resource_conflict": false,
+      "objective_vector": [
+        "final_free_state_geometry",
+        "production_time",
+        "fixture_cost",
+        "worst_case_robustness"
+      ],
+      "as_built_writeback": false,
+      "expected_disposition": "BLOCK_SEQUENCE"
+    },
+    {
+      "case_id": "SDC-006",
+      "case_class": "negative_control",
+      "panel_revision": "PANEL-SYNTH-R1",
+      "weld_tasks": [
+        "W1",
+        "W2",
+        "W4"
+      ],
+      "sequence": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "precedence": [
+        [
+          "W1",
+          "W3"
+        ]
+      ],
+      "fixture_reaction_limit_units": 100,
+      "predicted_fixture_reaction_units": 65,
+      "release_events": [
+        {
+          "event_id": "release-all",
+          "cooling_complete": true,
+          "all_restraints_removed": true
+        }
+      ],
+      "final_measurement": {
+        "phase": "final_free_state",
+        "cooling_complete": true,
+        "restraints_removed": true,
+        "datum_id": "SYNTH-DATUM-0",
+        "uncertainty_present": true,
+        "evidence_class": "synthetic_contract"
+      },
+      "model": {
+        "scope": "synthetic_toy",
+        "validation_state": "synthetic_contract_only",
+        "out_of_domain": false,
+        "physical_claim": false
+      },
+      "future_information_used": false,
+      "resource_conflict": false,
+      "objective_vector": [
+        "final_free_state_geometry",
+        "production_time",
+        "fixture_cost",
+        "worst_case_robustness"
+      ],
+      "as_built_writeback": false,
+      "expected_disposition": "BLOCK_SEQUENCE"
+    },
+    {
+      "case_id": "SDC-007",
+      "case_class": "negative_control",
+      "panel_revision": "PANEL-SYNTH-R1",
+      "weld_tasks": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "sequence": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "precedence": [
+        [
+          "W1",
+          "W3"
+        ]
+      ],
+      "fixture_reaction_limit_units": 100,
+      "predicted_fixture_reaction_units": 101,
+      "release_events": [
+        {
+          "event_id": "release-all",
+          "cooling_complete": true,
+          "all_restraints_removed": true
+        }
+      ],
+      "final_measurement": {
+        "phase": "final_free_state",
+        "cooling_complete": true,
+        "restraints_removed": true,
+        "datum_id": "SYNTH-DATUM-0",
+        "uncertainty_present": true,
+        "evidence_class": "synthetic_contract"
+      },
+      "model": {
+        "scope": "synthetic_toy",
+        "validation_state": "synthetic_contract_only",
+        "out_of_domain": false,
+        "physical_claim": false
+      },
+      "future_information_used": false,
+      "resource_conflict": false,
+      "objective_vector": [
+        "final_free_state_geometry",
+        "production_time",
+        "fixture_cost",
+        "worst_case_robustness"
+      ],
+      "as_built_writeback": false,
+      "expected_disposition": "BLOCK_FIXTURE_LIMIT"
+    },
+    {
+      "case_id": "SDC-008",
+      "case_class": "negative_control",
+      "panel_revision": "PANEL-SYNTH-R1",
+      "weld_tasks": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "sequence": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "precedence": [
+        [
+          "W1",
+          "W3"
+        ]
+      ],
+      "fixture_reaction_limit_units": 100,
+      "predicted_fixture_reaction_units": 65,
+      "release_events": [
+        {
+          "event_id": "partial",
+          "cooling_complete": false,
+          "all_restraints_removed": false
+        }
+      ],
+      "final_measurement": {
+        "phase": "final_free_state",
+        "cooling_complete": true,
+        "restraints_removed": true,
+        "datum_id": "SYNTH-DATUM-0",
+        "uncertainty_present": true,
+        "evidence_class": "synthetic_contract"
+      },
+      "model": {
+        "scope": "synthetic_toy",
+        "validation_state": "synthetic_contract_only",
+        "out_of_domain": false,
+        "physical_claim": false
+      },
+      "future_information_used": false,
+      "resource_conflict": false,
+      "objective_vector": [
+        "final_free_state_geometry",
+        "production_time",
+        "fixture_cost",
+        "worst_case_robustness"
+      ],
+      "as_built_writeback": false,
+      "expected_disposition": "BLOCK_RELEASE_STATE"
+    },
+    {
+      "case_id": "SDC-009",
+      "case_class": "negative_control",
+      "panel_revision": "PANEL-SYNTH-R1",
+      "weld_tasks": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "sequence": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "precedence": [
+        [
+          "W1",
+          "W3"
+        ]
+      ],
+      "fixture_reaction_limit_units": 100,
+      "predicted_fixture_reaction_units": 65,
+      "release_events": [],
+      "final_measurement": {
+        "phase": "final_free_state",
+        "cooling_complete": true,
+        "restraints_removed": true,
+        "datum_id": "SYNTH-DATUM-0",
+        "uncertainty_present": true,
+        "evidence_class": "synthetic_contract"
+      },
+      "model": {
+        "scope": "synthetic_toy",
+        "validation_state": "synthetic_contract_only",
+        "out_of_domain": false,
+        "physical_claim": false
+      },
+      "future_information_used": false,
+      "resource_conflict": false,
+      "objective_vector": [
+        "final_free_state_geometry",
+        "production_time",
+        "fixture_cost",
+        "worst_case_robustness"
+      ],
+      "as_built_writeback": false,
+      "expected_disposition": "BLOCK_RELEASE_STATE"
+    },
+    {
+      "case_id": "SDC-010",
+      "case_class": "negative_control",
+      "panel_revision": "PANEL-SYNTH-R1",
+      "weld_tasks": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "sequence": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "precedence": [
+        [
+          "W1",
+          "W3"
+        ]
+      ],
+      "fixture_reaction_limit_units": 100,
+      "predicted_fixture_reaction_units": 65,
+      "release_events": [
+        {
+          "event_id": "release-all",
+          "cooling_complete": true,
+          "all_restraints_removed": true
+        }
+      ],
+      "final_measurement": {
+        "phase": "in_fixture",
+        "cooling_complete": true,
+        "restraints_removed": true,
+        "datum_id": "SYNTH-DATUM-0",
+        "uncertainty_present": true,
+        "evidence_class": "synthetic_contract"
+      },
+      "model": {
+        "scope": "synthetic_toy",
+        "validation_state": "synthetic_contract_only",
+        "out_of_domain": false,
+        "physical_claim": false
+      },
+      "future_information_used": false,
+      "resource_conflict": false,
+      "objective_vector": [
+        "final_free_state_geometry",
+        "production_time",
+        "fixture_cost",
+        "worst_case_robustness"
+      ],
+      "as_built_writeback": false,
+      "expected_disposition": "BLOCK_FINAL_MEASUREMENT"
+    },
+    {
+      "case_id": "SDC-011",
+      "case_class": "negative_control",
+      "panel_revision": "PANEL-SYNTH-R1",
+      "weld_tasks": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "sequence": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "precedence": [
+        [
+          "W1",
+          "W3"
+        ]
+      ],
+      "fixture_reaction_limit_units": 100,
+      "predicted_fixture_reaction_units": 65,
+      "release_events": [
+        {
+          "event_id": "release-all",
+          "cooling_complete": true,
+          "all_restraints_removed": true
+        }
+      ],
+      "final_measurement": {
+        "phase": "final_free_state",
+        "cooling_complete": false,
+        "restraints_removed": true,
+        "datum_id": "SYNTH-DATUM-0",
+        "uncertainty_present": true,
+        "evidence_class": "synthetic_contract"
+      },
+      "model": {
+        "scope": "synthetic_toy",
+        "validation_state": "synthetic_contract_only",
+        "out_of_domain": false,
+        "physical_claim": false
+      },
+      "future_information_used": false,
+      "resource_conflict": false,
+      "objective_vector": [
+        "final_free_state_geometry",
+        "production_time",
+        "fixture_cost",
+        "worst_case_robustness"
+      ],
+      "as_built_writeback": false,
+      "expected_disposition": "BLOCK_FINAL_MEASUREMENT"
+    },
+    {
+      "case_id": "SDC-012",
+      "case_class": "negative_control",
+      "panel_revision": "PANEL-SYNTH-R1",
+      "weld_tasks": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "sequence": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "precedence": [
+        [
+          "W1",
+          "W3"
+        ]
+      ],
+      "fixture_reaction_limit_units": 100,
+      "predicted_fixture_reaction_units": 65,
+      "release_events": [
+        {
+          "event_id": "release-all",
+          "cooling_complete": true,
+          "all_restraints_removed": true
+        }
+      ],
+      "final_measurement": {
+        "phase": "final_free_state",
+        "cooling_complete": true,
+        "restraints_removed": false,
+        "datum_id": "SYNTH-DATUM-0",
+        "uncertainty_present": true,
+        "evidence_class": "synthetic_contract"
+      },
+      "model": {
+        "scope": "synthetic_toy",
+        "validation_state": "synthetic_contract_only",
+        "out_of_domain": false,
+        "physical_claim": false
+      },
+      "future_information_used": false,
+      "resource_conflict": false,
+      "objective_vector": [
+        "final_free_state_geometry",
+        "production_time",
+        "fixture_cost",
+        "worst_case_robustness"
+      ],
+      "as_built_writeback": false,
+      "expected_disposition": "BLOCK_FINAL_MEASUREMENT"
+    },
+    {
+      "case_id": "SDC-013",
+      "case_class": "negative_control",
+      "panel_revision": "PANEL-SYNTH-R1",
+      "weld_tasks": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "sequence": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "precedence": [
+        [
+          "W1",
+          "W3"
+        ]
+      ],
+      "fixture_reaction_limit_units": 100,
+      "predicted_fixture_reaction_units": 65,
+      "release_events": [
+        {
+          "event_id": "release-all",
+          "cooling_complete": true,
+          "all_restraints_removed": true
+        }
+      ],
+      "final_measurement": {
+        "phase": "final_free_state",
+        "cooling_complete": true,
+        "restraints_removed": true,
+        "datum_id": "",
+        "uncertainty_present": true,
+        "evidence_class": "synthetic_contract"
+      },
+      "model": {
+        "scope": "synthetic_toy",
+        "validation_state": "synthetic_contract_only",
+        "out_of_domain": false,
+        "physical_claim": false
+      },
+      "future_information_used": false,
+      "resource_conflict": false,
+      "objective_vector": [
+        "final_free_state_geometry",
+        "production_time",
+        "fixture_cost",
+        "worst_case_robustness"
+      ],
+      "as_built_writeback": false,
+      "expected_disposition": "BLOCK_FINAL_MEASUREMENT"
+    },
+    {
+      "case_id": "SDC-014",
+      "case_class": "negative_control",
+      "panel_revision": "PANEL-SYNTH-R1",
+      "weld_tasks": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "sequence": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "precedence": [
+        [
+          "W1",
+          "W3"
+        ]
+      ],
+      "fixture_reaction_limit_units": 100,
+      "predicted_fixture_reaction_units": 65,
+      "release_events": [
+        {
+          "event_id": "release-all",
+          "cooling_complete": true,
+          "all_restraints_removed": true
+        }
+      ],
+      "final_measurement": {
+        "phase": "final_free_state",
+        "cooling_complete": true,
+        "restraints_removed": true,
+        "datum_id": "SYNTH-DATUM-0",
+        "uncertainty_present": false,
+        "evidence_class": "synthetic_contract"
+      },
+      "model": {
+        "scope": "synthetic_toy",
+        "validation_state": "synthetic_contract_only",
+        "out_of_domain": false,
+        "physical_claim": false
+      },
+      "future_information_used": false,
+      "resource_conflict": false,
+      "objective_vector": [
+        "final_free_state_geometry",
+        "production_time",
+        "fixture_cost",
+        "worst_case_robustness"
+      ],
+      "as_built_writeback": false,
+      "expected_disposition": "BLOCK_FINAL_MEASUREMENT"
+    },
+    {
+      "case_id": "SDC-015",
+      "case_class": "negative_control",
+      "panel_revision": "PANEL-SYNTH-R1",
+      "weld_tasks": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "sequence": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "precedence": [
+        [
+          "W1",
+          "W3"
+        ]
+      ],
+      "fixture_reaction_limit_units": 100,
+      "predicted_fixture_reaction_units": 65,
+      "release_events": [
+        {
+          "event_id": "release-all",
+          "cooling_complete": true,
+          "all_restraints_removed": true
+        }
+      ],
+      "final_measurement": null,
+      "model": {
+        "scope": "synthetic_toy",
+        "validation_state": "synthetic_contract_only",
+        "out_of_domain": false,
+        "physical_claim": false
+      },
+      "future_information_used": false,
+      "resource_conflict": false,
+      "objective_vector": [
+        "final_free_state_geometry",
+        "production_time",
+        "fixture_cost",
+        "worst_case_robustness"
+      ],
+      "as_built_writeback": false,
+      "expected_disposition": "BLOCK_FINAL_MEASUREMENT"
+    },
+    {
+      "case_id": "SDC-016",
+      "case_class": "negative_control",
+      "panel_revision": "PANEL-SYNTH-R1",
+      "weld_tasks": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "sequence": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "precedence": [
+        [
+          "W1",
+          "W3"
+        ]
+      ],
+      "fixture_reaction_limit_units": 100,
+      "predicted_fixture_reaction_units": 65,
+      "release_events": [
+        {
+          "event_id": "release-all",
+          "cooling_complete": true,
+          "all_restraints_removed": true
+        }
+      ],
+      "final_measurement": {
+        "phase": "final_free_state",
+        "cooling_complete": true,
+        "restraints_removed": true,
+        "datum_id": "SYNTH-DATUM-0",
+        "uncertainty_present": true,
+        "evidence_class": "synthetic_contract"
+      },
+      "model": {
+        "scope": "synthetic_toy",
+        "validation_state": "synthetic_contract_only",
+        "out_of_domain": true,
+        "physical_claim": false
+      },
+      "future_information_used": false,
+      "resource_conflict": false,
+      "objective_vector": [
+        "final_free_state_geometry",
+        "production_time",
+        "fixture_cost",
+        "worst_case_robustness"
+      ],
+      "as_built_writeback": false,
+      "expected_disposition": "BLOCK_MODEL_SCOPE"
+    },
+    {
+      "case_id": "SDC-017",
+      "case_class": "negative_control",
+      "panel_revision": "PANEL-SYNTH-R1",
+      "weld_tasks": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "sequence": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "precedence": [
+        [
+          "W1",
+          "W3"
+        ]
+      ],
+      "fixture_reaction_limit_units": 100,
+      "predicted_fixture_reaction_units": 65,
+      "release_events": [
+        {
+          "event_id": "release-all",
+          "cooling_complete": true,
+          "all_restraints_removed": true
+        }
+      ],
+      "final_measurement": {
+        "phase": "final_free_state",
+        "cooling_complete": true,
+        "restraints_removed": true,
+        "datum_id": "SYNTH-DATUM-0",
+        "uncertainty_present": true,
+        "evidence_class": "synthetic_contract"
+      },
+      "model": {
+        "scope": "synthetic_toy",
+        "validation_state": "unqualified",
+        "out_of_domain": false,
+        "physical_claim": false
+      },
+      "future_information_used": false,
+      "resource_conflict": false,
+      "objective_vector": [
+        "final_free_state_geometry",
+        "production_time",
+        "fixture_cost",
+        "worst_case_robustness"
+      ],
+      "as_built_writeback": false,
+      "expected_disposition": "BLOCK_MODEL_SCOPE"
+    },
+    {
+      "case_id": "SDC-018",
+      "case_class": "negative_control",
+      "panel_revision": "PANEL-SYNTH-R1",
+      "weld_tasks": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "sequence": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "precedence": [
+        [
+          "W1",
+          "W3"
+        ]
+      ],
+      "fixture_reaction_limit_units": 100,
+      "predicted_fixture_reaction_units": 65,
+      "release_events": [
+        {
+          "event_id": "release-all",
+          "cooling_complete": true,
+          "all_restraints_removed": true
+        }
+      ],
+      "final_measurement": {
+        "phase": "final_free_state",
+        "cooling_complete": true,
+        "restraints_removed": true,
+        "datum_id": "SYNTH-DATUM-0",
+        "uncertainty_present": true,
+        "evidence_class": "synthetic_contract"
+      },
+      "model": {
+        "scope": "synthetic_toy",
+        "validation_state": "synthetic_contract_only",
+        "out_of_domain": false,
+        "physical_claim": true
+      },
+      "future_information_used": false,
+      "resource_conflict": false,
+      "objective_vector": [
+        "final_free_state_geometry",
+        "production_time",
+        "fixture_cost",
+        "worst_case_robustness"
+      ],
+      "as_built_writeback": false,
+      "expected_disposition": "BLOCK_MODEL_SCOPE"
+    },
+    {
+      "case_id": "SDC-019",
+      "case_class": "negative_control",
+      "panel_revision": "PANEL-SYNTH-R1",
+      "weld_tasks": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "sequence": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "precedence": [
+        [
+          "W1",
+          "W3"
+        ]
+      ],
+      "fixture_reaction_limit_units": 100,
+      "predicted_fixture_reaction_units": 65,
+      "release_events": [
+        {
+          "event_id": "release-all",
+          "cooling_complete": true,
+          "all_restraints_removed": true
+        }
+      ],
+      "final_measurement": {
+        "phase": "final_free_state",
+        "cooling_complete": true,
+        "restraints_removed": true,
+        "datum_id": "SYNTH-DATUM-0",
+        "uncertainty_present": true,
+        "evidence_class": "synthetic_contract"
+      },
+      "model": {
+        "scope": "unsupported",
+        "validation_state": "synthetic_contract_only",
+        "out_of_domain": false,
+        "physical_claim": false
+      },
+      "future_information_used": false,
+      "resource_conflict": false,
+      "objective_vector": [
+        "final_free_state_geometry",
+        "production_time",
+        "fixture_cost",
+        "worst_case_robustness"
+      ],
+      "as_built_writeback": false,
+      "expected_disposition": "BLOCK_MODEL_SCOPE"
+    },
+    {
+      "case_id": "SDC-020",
+      "case_class": "negative_control",
+      "panel_revision": "PANEL-SYNTH-R1",
+      "weld_tasks": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "sequence": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "precedence": [
+        [
+          "W1",
+          "W3"
+        ]
+      ],
+      "fixture_reaction_limit_units": 100,
+      "predicted_fixture_reaction_units": 65,
+      "release_events": [
+        {
+          "event_id": "release-all",
+          "cooling_complete": true,
+          "all_restraints_removed": true
+        }
+      ],
+      "final_measurement": {
+        "phase": "final_free_state",
+        "cooling_complete": true,
+        "restraints_removed": true,
+        "datum_id": "SYNTH-DATUM-0",
+        "uncertainty_present": true,
+        "evidence_class": "synthetic_contract"
+      },
+      "model": {
+        "scope": "synthetic_toy",
+        "validation_state": "synthetic_contract_only",
+        "out_of_domain": false,
+        "physical_claim": false
+      },
+      "future_information_used": true,
+      "resource_conflict": false,
+      "objective_vector": [
+        "final_free_state_geometry",
+        "production_time",
+        "fixture_cost",
+        "worst_case_robustness"
+      ],
+      "as_built_writeback": false,
+      "expected_disposition": "BLOCK_SCHEDULE"
+    },
+    {
+      "case_id": "SDC-021",
+      "case_class": "negative_control",
+      "panel_revision": "PANEL-SYNTH-R1",
+      "weld_tasks": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "sequence": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "precedence": [
+        [
+          "W1",
+          "W3"
+        ]
+      ],
+      "fixture_reaction_limit_units": 100,
+      "predicted_fixture_reaction_units": 65,
+      "release_events": [
+        {
+          "event_id": "release-all",
+          "cooling_complete": true,
+          "all_restraints_removed": true
+        }
+      ],
+      "final_measurement": {
+        "phase": "final_free_state",
+        "cooling_complete": true,
+        "restraints_removed": true,
+        "datum_id": "SYNTH-DATUM-0",
+        "uncertainty_present": true,
+        "evidence_class": "synthetic_contract"
+      },
+      "model": {
+        "scope": "synthetic_toy",
+        "validation_state": "synthetic_contract_only",
+        "out_of_domain": false,
+        "physical_claim": false
+      },
+      "future_information_used": false,
+      "resource_conflict": true,
+      "objective_vector": [
+        "final_free_state_geometry",
+        "production_time",
+        "fixture_cost",
+        "worst_case_robustness"
+      ],
+      "as_built_writeback": false,
+      "expected_disposition": "BLOCK_SCHEDULE"
+    },
+    {
+      "case_id": "SDC-022",
+      "case_class": "negative_control",
+      "panel_revision": "PANEL-SYNTH-R1",
+      "weld_tasks": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "sequence": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "precedence": [
+        [
+          "W1",
+          "W3"
+        ]
+      ],
+      "fixture_reaction_limit_units": 100,
+      "predicted_fixture_reaction_units": 65,
+      "release_events": [
+        {
+          "event_id": "release-all",
+          "cooling_complete": true,
+          "all_restraints_removed": true
+        }
+      ],
+      "final_measurement": {
+        "phase": "final_free_state",
+        "cooling_complete": true,
+        "restraints_removed": true,
+        "datum_id": "SYNTH-DATUM-0",
+        "uncertainty_present": true,
+        "evidence_class": "synthetic_contract"
+      },
+      "model": {
+        "scope": "synthetic_toy",
+        "validation_state": "synthetic_contract_only",
+        "out_of_domain": false,
+        "physical_claim": false
+      },
+      "future_information_used": false,
+      "resource_conflict": false,
+      "objective_vector": [
+        "scalar_weighted_score"
+      ],
+      "as_built_writeback": false,
+      "expected_disposition": "BLOCK_OBJECTIVES"
+    },
+    {
+      "case_id": "SDC-023",
+      "case_class": "negative_control",
+      "panel_revision": "PANEL-SYNTH-R1",
+      "weld_tasks": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "sequence": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "precedence": [
+        [
+          "W1",
+          "W3"
+        ]
+      ],
+      "fixture_reaction_limit_units": 100,
+      "predicted_fixture_reaction_units": 65,
+      "release_events": [
+        {
+          "event_id": "release-all",
+          "cooling_complete": true,
+          "all_restraints_removed": true
+        }
+      ],
+      "final_measurement": {
+        "phase": "final_free_state",
+        "cooling_complete": true,
+        "restraints_removed": true,
+        "datum_id": "SYNTH-DATUM-0",
+        "uncertainty_present": true,
+        "evidence_class": "synthetic_contract"
+      },
+      "model": {
+        "scope": "synthetic_toy",
+        "validation_state": "synthetic_contract_only",
+        "out_of_domain": false,
+        "physical_claim": false
+      },
+      "future_information_used": false,
+      "resource_conflict": false,
+      "objective_vector": [
+        "production_time",
+        "fixture_cost"
+      ],
+      "as_built_writeback": false,
+      "expected_disposition": "BLOCK_OBJECTIVES"
+    },
+    {
+      "case_id": "SDC-024",
+      "case_class": "negative_control",
+      "panel_revision": "PANEL-SYNTH-R1",
+      "weld_tasks": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "sequence": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "precedence": [
+        [
+          "W1",
+          "W3"
+        ]
+      ],
+      "fixture_reaction_limit_units": 100,
+      "predicted_fixture_reaction_units": 65,
+      "release_events": [
+        {
+          "event_id": "release-all",
+          "cooling_complete": true,
+          "all_restraints_removed": true
+        }
+      ],
+      "final_measurement": {
+        "phase": "final_free_state",
+        "cooling_complete": true,
+        "restraints_removed": true,
+        "datum_id": "SYNTH-DATUM-0",
+        "uncertainty_present": true,
+        "evidence_class": "synthetic_contract"
+      },
+      "model": {
+        "scope": "synthetic_toy",
+        "validation_state": "synthetic_contract_only",
+        "out_of_domain": false,
+        "physical_claim": false
+      },
+      "future_information_used": false,
+      "resource_conflict": false,
+      "objective_vector": [
+        "final_free_state_geometry",
+        "production_time",
+        "fixture_cost",
+        "worst_case_robustness"
+      ],
+      "as_built_writeback": true,
+      "expected_disposition": "BLOCK_AUTHORITY"
+    },
+    {
+      "case_id": "SDC-025",
+      "case_class": "negative_control",
+      "panel_revision": "PANEL-SYNTH-R1",
+      "weld_tasks": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "sequence": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "precedence": [
+        [
+          "W1",
+          "W3"
+        ]
+      ],
+      "fixture_reaction_limit_units": 100,
+      "predicted_fixture_reaction_units": 65,
+      "release_events": [
+        {
+          "event_id": "release-all",
+          "cooling_complete": true,
+          "all_restraints_removed": true
+        }
+      ],
+      "final_measurement": {
+        "phase": "final_free_state",
+        "cooling_complete": true,
+        "restraints_removed": true,
+        "datum_id": "SYNTH-DATUM-0",
+        "uncertainty_present": true,
+        "evidence_class": "simulated"
+      },
+      "model": {
+        "scope": "synthetic_toy",
+        "validation_state": "synthetic_contract_only",
+        "out_of_domain": false,
+        "physical_claim": false
+      },
+      "future_information_used": false,
+      "resource_conflict": false,
+      "objective_vector": [
+        "final_free_state_geometry",
+        "production_time",
+        "fixture_cost",
+        "worst_case_robustness"
+      ],
+      "as_built_writeback": false,
+      "expected_disposition": "BLOCK_FINAL_MEASUREMENT"
+    },
+    {
+      "case_id": "SDC-026",
+      "case_class": "negative_control",
+      "panel_revision": "PANEL-SYNTH-R1",
+      "weld_tasks": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "sequence": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "precedence": [
+        [
+          "W1",
+          "W3"
+        ]
+      ],
+      "fixture_reaction_limit_units": 100,
+      "predicted_fixture_reaction_units": 65,
+      "release_events": [
+        {
+          "event_id": "release-before-cooling",
+          "cooling_complete": false,
+          "all_restraints_removed": true
+        }
+      ],
+      "final_measurement": {
+        "phase": "final_free_state",
+        "cooling_complete": true,
+        "restraints_removed": true,
+        "datum_id": "SYNTH-DATUM-0",
+        "uncertainty_present": true,
+        "evidence_class": "synthetic_contract"
+      },
+      "model": {
+        "scope": "synthetic_toy",
+        "validation_state": "synthetic_contract_only",
+        "out_of_domain": false,
+        "physical_claim": false
+      },
+      "future_information_used": false,
+      "resource_conflict": false,
+      "objective_vector": [
+        "final_free_state_geometry",
+        "production_time",
+        "fixture_cost",
+        "worst_case_robustness"
+      ],
+      "as_built_writeback": false,
+      "expected_disposition": "BLOCK_RELEASE_STATE"
+    },
+    {
+      "case_id": "SDC-027",
+      "case_class": "negative_control",
+      "panel_revision": "PANEL-SYNTH-R1",
+      "weld_tasks": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "sequence": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "precedence": [
+        [
+          "W1",
+          "W3"
+        ]
+      ],
+      "fixture_reaction_limit_units": 0,
+      "predicted_fixture_reaction_units": 65,
+      "release_events": [
+        {
+          "event_id": "release-all",
+          "cooling_complete": true,
+          "all_restraints_removed": true
+        }
+      ],
+      "final_measurement": {
+        "phase": "final_free_state",
+        "cooling_complete": true,
+        "restraints_removed": true,
+        "datum_id": "SYNTH-DATUM-0",
+        "uncertainty_present": true,
+        "evidence_class": "synthetic_contract"
+      },
+      "model": {
+        "scope": "synthetic_toy",
+        "validation_state": "synthetic_contract_only",
+        "out_of_domain": false,
+        "physical_claim": false
+      },
+      "future_information_used": false,
+      "resource_conflict": false,
+      "objective_vector": [
+        "final_free_state_geometry",
+        "production_time",
+        "fixture_cost",
+        "worst_case_robustness"
+      ],
+      "as_built_writeback": false,
+      "expected_disposition": "BLOCK_FIXTURE_LIMIT"
+    }
+  ]
+}
