@@ -1,11 +1,12 @@
 // Copyright (C) 2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-//! GPU Storage Buffer Object (SSBO) interface layouts for network telemetry visualization.
+//! Typed GPU storage-buffer records for telemetry visualization.
 //!
-//! Aligns the multi-scale network matrix metrics (transport, DHT ledger, WASM sandbox,
-//! active inference, and physics twin parameters) into WGSL/std430-compatible structures
-//! for high-performance GPU-driven rendering in `symthaea-bevy-dash`.
+//! These layouts are consumed by the Bevy 0.20 telemetry WESL material. The current
+//! shader reads node records for read-only colour/emission modulation; it does not
+//! implement compute-driven vertex deformation. Buffer builders return initialized
+//! ShaderBuffer assets, but callers own asset handles, update cadence and render binding.
 
 use bevy::asset::RenderAssetUsages;
 use bevy::prelude::*;
@@ -13,11 +14,11 @@ use bevy::render::render_resource::ShaderType;
 use bevy::render::storage::ShaderBuffer;
 use bytemuck::{Pod, Zeroable};
 
-/// Shared telemetry layout representing a single network node in the multi-scale observability matrix.
+/// Shared telemetry record consumed by the read-only telemetry visualization material.
 ///
-/// Designed to map directly into a WebGPU Storage Buffer (SSBO) in Bevy, allowing compute shaders
-/// to animate positions, scale emission spikes, or update containment rings with zero CPU overhead.
-/// Aligned to 16-byte boundaries to conform to std430 rules.
+/// Its exact 64-byte field order is pinned by offset tests and mirrored by
+/// `NodeTelemetryGpu` in `telemetry_visualization.wesl`. The current material uses
+/// position, variational free energy, coherence, circuit load and DHT completeness.
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Default, ShaderType, Reflect, Pod, Zeroable)]
 pub struct NodeTelemetryGpu {
@@ -25,7 +26,7 @@ pub struct NodeTelemetryGpu {
     /// Spatial 3D coordinates (position) derived from t-SNE/HDC projections or bioregional terrain.
     /// In std430, a vec3 occupies 12 bytes but is aligned to 16 bytes.
     pub position: Vec3,
-    /// Variational Free Energy surprise metric (drives geometric shape deformation spikes).
+    /// Variational Free Energy surprise metric (contributes to visual activity intensity).
     pub variational_free_energy: f32,
 
     // --- Layer 1: Crypto-Transport ---
@@ -83,9 +84,13 @@ pub struct LinkTelemetryGpu {
     pub link_color: Vec4,
 }
 
-/// Bevy Resource containing the CPU-side mirror of the telemetry storage buffers.
+/// CPU-side telemetry records used to build GPU ShaderBuffer assets.
 ///
-/// Systems update this resource, and Bevy's render extract phase pulls it into the GPU VRAM.
+/// This is a data carrier, not an automatic render-extraction system. Call
+/// `build_node_shader_buffer` / `build_link_shader_buffer` and add the returned
+/// assets to Bevy's `Assets<ShaderBuffer>`; callers own updating the asset and
+/// assigning its handle to the material. Empty vectors return `None`, because
+/// zero-sized storage buffers cannot be bound.
 #[derive(Resource, Default, Clone, Debug, Reflect)]
 #[reflect(Resource)]
 pub struct TelemetryBufferResource {
@@ -96,7 +101,35 @@ pub struct TelemetryBufferResource {
 }
 
 impl TelemetryBufferResource {
-    /// Clears all telemetry records.
+    /// Creates a typed node storage buffer from the current records.
+    ///
+    /// Returns `None` for an empty vector because a zero-sized storage buffer
+    /// cannot be used as a binding resource.
+    pub fn build_node_shader_buffer(&self) -> Option<ShaderBuffer> {
+        if self.nodes.is_empty() {
+            return None;
+        }
+        Some(ShaderBuffer::new(
+            self.nodes.clone(),
+            RenderAssetUsages::default(),
+        ))
+    }
+
+    /// Creates a typed link storage buffer from the current records.
+    ///
+    /// Returns `None` for an empty vector because a zero-sized storage buffer
+    /// cannot be used as a binding resource.
+    pub fn build_link_shader_buffer(&self) -> Option<ShaderBuffer> {
+        if self.links.is_empty() {
+            return None;
+        }
+        Some(ShaderBuffer::new(
+            self.links.clone(),
+            RenderAssetUsages::default(),
+        ))
+    }
+
+    /// Clears all CPU-side telemetry records.
     pub fn clear(&mut self) {
         self.nodes.clear();
         self.links.clear();
@@ -135,6 +168,33 @@ mod tests {
         assert_eq!(offset_of!(LinkTelemetryGpu, link_thickness), 8);
         assert_eq!(offset_of!(LinkTelemetryGpu, particle_velocity), 12);
         assert_eq!(offset_of!(LinkTelemetryGpu, link_color), 16);
+    }
+
+    #[test]
+    fn buffer_builders_return_none_for_empty_records() {
+        let telemetry = TelemetryBufferResource::default();
+        assert!(telemetry.build_node_shader_buffer().is_none());
+        assert!(telemetry.build_link_shader_buffer().is_none());
+    }
+
+    #[test]
+    fn buffer_builders_bind_exact_record_bytes() {
+        let telemetry = TelemetryBufferResource {
+            nodes: vec![NodeTelemetryGpu {
+                position: Vec3::new(1.0, 2.0, 3.0),
+                ..default()
+            }],
+            links: vec![LinkTelemetryGpu {
+                source_node_idx: 0,
+                target_node_idx: 1,
+                ..default()
+            }],
+        };
+
+        let nodes = telemetry.build_node_shader_buffer().expect("one node");
+        let links = telemetry.build_link_shader_buffer().expect("one link");
+        assert_eq!(nodes.buffer_size(), size_of::<NodeTelemetryGpu>() as u64);
+        assert_eq!(links.buffer_size(), size_of::<LinkTelemetryGpu>() as u64);
     }
 
     #[test]
