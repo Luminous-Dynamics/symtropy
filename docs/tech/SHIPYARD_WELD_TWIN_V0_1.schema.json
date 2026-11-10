@@ -1,0 +1,916 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/shipyard-weld-twin-v0.1.schema.json",
+  "title": "Shipyard Robotic Multipass Welding Twin Corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "corpus_id",
+    "corpus_version",
+    "claim_ceiling",
+    "base_cases",
+    "cases"
+  ],
+  "properties": {
+    "corpus_id": {
+      "const": "luminous.symtropy.shipyard-weld-twin"
+    },
+    "corpus_version": {
+      "const": "0.1.0"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "base_cases": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "valid_robotic_weld"
+      ],
+      "properties": {
+        "valid_robotic_weld": {
+          "$ref": "#/$defs/weldCase"
+        }
+      }
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 30,
+      "items": {
+        "$ref": "#/$defs/testCase"
+      }
+    }
+  },
+  "$defs": {
+    "nullableDate": {
+      "oneOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "workpiece": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "asset_id",
+        "component_id",
+        "serial_id",
+        "parent_assembly_id",
+        "joint_id",
+        "design_revision",
+        "material_spec_ref",
+        "material_heat_lot",
+        "geometry_sha256",
+        "groove_preparation_ref",
+        "thickness_class",
+        "joint_type",
+        "weld_position",
+        "effectivity_start_utc",
+        "effectivity_end_utc"
+      ],
+      "properties": {
+        "asset_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "component_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "serial_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "parent_assembly_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "joint_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "design_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "material_spec_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "material_heat_lot": {
+          "type": "string",
+          "minLength": 1
+        },
+        "geometry_sha256": {
+          "$ref": "#/$defs/hash"
+        },
+        "groove_preparation_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "thickness_class": {
+          "type": "string",
+          "minLength": 1
+        },
+        "joint_type": {
+          "enum": [
+            "single_v_groove",
+            "other_synthetic_joint"
+          ]
+        },
+        "weld_position": {
+          "type": "string",
+          "minLength": 1
+        },
+        "effectivity_start_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "effectivity_end_utc": {
+          "$ref": "#/$defs/nullableDate"
+        }
+      }
+    },
+    "procedure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "wps_ref",
+        "wps_revision",
+        "pqr_ref",
+        "qualified_scope",
+        "process_family",
+        "approval_status",
+        "approval_ref",
+        "valid_from_utc",
+        "valid_until_utc",
+        "parameter_envelope_ref",
+        "procedure_owner"
+      ],
+      "properties": {
+        "wps_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "wps_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pqr_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "qualified_scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "process_family": {
+          "const": "GMAW_MULTIPASS"
+        },
+        "approval_status": {
+          "enum": [
+            "approved",
+            "pending",
+            "revoked",
+            "expired",
+            "unknown"
+          ]
+        },
+        "approval_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "valid_from_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "valid_until_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "parameter_envelope_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "procedure_owner": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "equipment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "robot_id",
+        "robot_revision",
+        "welding_source_id",
+        "tool_id",
+        "fixture_id",
+        "controller_revision",
+        "program_revision",
+        "postprocessor_revision",
+        "calibration_ref",
+        "calibration_state",
+        "calibration_valid_until_utc",
+        "equipment_health_state",
+        "geometry_sha256"
+      ],
+      "properties": {
+        "robot_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "robot_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "welding_source_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tool_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fixture_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "controller_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "program_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "postprocessor_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_state": {
+          "enum": [
+            "current",
+            "stale",
+            "unknown"
+          ]
+        },
+        "calibration_valid_until_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "equipment_health_state": {
+          "enum": [
+            "nominal_synthetic",
+            "degraded",
+            "unknown"
+          ]
+        },
+        "geometry_sha256": {
+          "$ref": "#/$defs/hash"
+        }
+      }
+    },
+    "operator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operator_id",
+        "qualification_ref",
+        "role_scope",
+        "qualification_status",
+        "valid_until_utc"
+      ],
+      "properties": {
+        "operator_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "qualification_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "role_scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "qualification_status": {
+          "enum": [
+            "current",
+            "expired",
+            "unknown"
+          ]
+        },
+        "valid_until_utc": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "consumable": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "consumable_id",
+        "kind",
+        "specification_ref",
+        "lot_id",
+        "compatibility"
+      ],
+      "properties": {
+        "consumable_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "wire",
+            "shielding_gas",
+            "other"
+          ]
+        },
+        "specification_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "lot_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "compatibility": {
+          "enum": [
+            "qualified_synthetic",
+            "incompatible",
+            "unknown"
+          ]
+        }
+      }
+    },
+    "preprocessing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "joint_preparation_state",
+        "fit_up_record",
+        "jigging_record",
+        "cleaning_record",
+        "precondition_state",
+        "precondition_record",
+        "program_verification_record"
+      ],
+      "properties": {
+        "joint_preparation_state": {
+          "enum": [
+            "complete_synthetic",
+            "incomplete",
+            "unknown"
+          ]
+        },
+        "fit_up_record": {
+          "type": "string",
+          "minLength": 1
+        },
+        "jigging_record": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cleaning_record": {
+          "type": "string",
+          "minLength": 1
+        },
+        "precondition_state": {
+          "enum": [
+            "satisfied_synthetic",
+            "not_satisfied",
+            "unknown"
+          ]
+        },
+        "precondition_record": {
+          "type": "string",
+          "minLength": 1
+        },
+        "program_verification_record": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "pass": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pass_id",
+        "sequence_index",
+        "role",
+        "joint_id",
+        "workpiece_revision",
+        "wps_revision",
+        "equipment_revision",
+        "program_revision",
+        "parameter_envelope_ref",
+        "process_trace_ref",
+        "process_trace_sha256",
+        "evidence_class",
+        "observed_envelope_status",
+        "source_time_utc"
+      ],
+      "properties": {
+        "pass_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sequence_index": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "role": {
+          "enum": [
+            "root",
+            "fill",
+            "cap"
+          ]
+        },
+        "joint_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "workpiece_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "wps_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "equipment_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "program_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "parameter_envelope_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "process_trace_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "process_trace_sha256": {
+          "$ref": "#/$defs/hash"
+        },
+        "evidence_class": {
+          "enum": [
+            "measured_synthetic",
+            "simulated",
+            "inferred",
+            "unknown"
+          ]
+        },
+        "observed_envelope_status": {
+          "enum": [
+            "within_declared_envelope",
+            "outside_declared_envelope",
+            "unknown"
+          ]
+        },
+        "source_time_utc": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "inspection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "inspection_id",
+        "method_ref",
+        "coverage",
+        "disposition",
+        "joint_id"
+      ],
+      "properties": {
+        "inspection_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "method_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "coverage": {
+          "enum": [
+            "complete_synthetic",
+            "required",
+            "required_sampling",
+            "none",
+            "unknown"
+          ]
+        },
+        "disposition": {
+          "enum": [
+            "accepted_synthetic",
+            "rejected",
+            "inconclusive",
+            "not_performed",
+            "unknown"
+          ]
+        },
+        "joint_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "report_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "inProcessInspection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "inspection_id",
+        "hold_point",
+        "coverage",
+        "disposition",
+        "joint_id"
+      ],
+      "properties": {
+        "inspection_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "hold_point": {
+          "enum": [
+            "root",
+            "fill_sampling",
+            "cap"
+          ]
+        },
+        "coverage": {
+          "enum": [
+            "required",
+            "required_sampling",
+            "none",
+            "unknown"
+          ]
+        },
+        "disposition": {
+          "enum": [
+            "accepted_synthetic",
+            "rejected",
+            "inconclusive",
+            "not_performed",
+            "unknown"
+          ]
+        },
+        "joint_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "weldCase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_id",
+        "fixture_kind",
+        "contract_version",
+        "evaluation_cutoff_utc",
+        "workpiece",
+        "procedure",
+        "equipment",
+        "operator",
+        "consumables",
+        "preprocessing",
+        "passes",
+        "inspections",
+        "post_processing",
+        "document_package",
+        "twin_commissioning"
+      ],
+      "properties": {
+        "contract_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fixture_kind": {
+          "const": "synthetic_fixture"
+        },
+        "contract_version": {
+          "const": "0.1.0"
+        },
+        "evaluation_cutoff_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "workpiece": {
+          "$ref": "#/$defs/workpiece"
+        },
+        "procedure": {
+          "$ref": "#/$defs/procedure"
+        },
+        "equipment": {
+          "$ref": "#/$defs/equipment"
+        },
+        "operator": {
+          "$ref": "#/$defs/operator"
+        },
+        "consumables": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "$ref": "#/$defs/consumable"
+          }
+        },
+        "preprocessing": {
+          "$ref": "#/$defs/preprocessing"
+        },
+        "passes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/pass"
+          }
+        },
+        "inspections": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "in_process",
+            "visual",
+            "ndt"
+          ],
+          "properties": {
+            "in_process": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/inProcessInspection"
+              }
+            },
+            "visual": {
+              "$ref": "#/$defs/inspection"
+            },
+            "ndt": {
+              "$ref": "#/$defs/inspection"
+            }
+          }
+        },
+        "post_processing": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "straightening_required",
+            "straightening_state",
+            "straightening_record",
+            "dimensional_survey_ref",
+            "repair_required",
+            "repair_route_ref",
+            "repair_reinspection_ref"
+          ],
+          "properties": {
+            "straightening_required": {
+              "type": "boolean"
+            },
+            "straightening_state": {
+              "enum": [
+                "completed_synthetic",
+                "not_required",
+                "not_performed",
+                "unknown"
+              ]
+            },
+            "straightening_record": {
+              "type": "string",
+              "minLength": 1
+            },
+            "dimensional_survey_ref": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "repair_required": {
+              "type": "boolean"
+            },
+            "repair_route_ref": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "repair_reinspection_ref": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        "document_package": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "package_id",
+            "revision",
+            "status",
+            "required_references",
+            "included_references",
+            "package_sha256"
+          ],
+          "properties": {
+            "package_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "revision": {
+              "type": "string",
+              "minLength": 1
+            },
+            "status": {
+              "enum": [
+                "complete_synthetic",
+                "incomplete",
+                "unknown"
+              ]
+            },
+            "required_references": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "included_references": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "package_sha256": {
+              "$ref": "#/$defs/hash"
+            }
+          }
+        },
+        "twin_commissioning": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "process_twin_id",
+            "equipment_twin_id",
+            "workpiece_twin_id",
+            "composition_mode",
+            "mapping_state",
+            "max_latency_ms",
+            "observed_latency_ms",
+            "expected_update_interval_s",
+            "observed_update_interval_s",
+            "required_fidelity",
+            "observed_fidelity",
+            "source_writeback",
+            "source_time_role",
+            "retrieval_time_role"
+          ],
+          "properties": {
+            "process_twin_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "equipment_twin_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "workpiece_twin_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "composition_mode": {
+              "enum": [
+                "integrated",
+                "unified",
+                "federated"
+              ]
+            },
+            "mapping_state": {
+              "enum": [
+                "exact",
+                "normalized",
+                "lossy",
+                "unsupported"
+              ]
+            },
+            "max_latency_ms": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "observed_latency_ms": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "expected_update_interval_s": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "observed_update_interval_s": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "required_fidelity": {
+              "const": "exact_required_fields"
+            },
+            "observed_fidelity": {
+              "enum": [
+                "exact_required_fields",
+                "lossy",
+                "incomplete",
+                "unknown"
+              ]
+            },
+            "source_writeback": {
+              "type": "boolean"
+            },
+            "source_time_role": {
+              "const": "source_observation"
+            },
+            "retrieval_time_role": {
+              "const": "ingestion"
+            }
+          }
+        }
+      }
+    },
+    "mutation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "op"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "op": {
+          "enum": [
+            "set",
+            "remove"
+          ]
+        },
+        "value": {}
+      }
+    },
+    "testCase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "base",
+        "mutations",
+        "expected_code"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "base": {
+          "const": "valid_robotic_weld"
+        },
+        "mutations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/mutation"
+          }
+        },
+        "expected_code": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}
