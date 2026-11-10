@@ -247,6 +247,7 @@ pub enum EvaluationError {
     UnexpectedCaseResult(String),
     HardwareProfileMismatch(String),
     SimulatedTicksExceedCaseHorizon(String),
+    NotRunHasProgress(String),
     EnergySamplingPolicyMissing(String),
     EnergySampleGapExceeded(String),
     EnergyWindowMismatch(String),
@@ -279,6 +280,9 @@ impl std::fmt::Display for EvaluationError {
             }
             Self::SimulatedTicksExceedCaseHorizon(id) => {
                 write!(f, "campaign reports more simulated ticks than requested for case: {id}")
+            }
+            Self::NotRunHasProgress(id) => {
+                write!(f, "a not-run case reports simulated progress: {id}")
             }
             Self::EnergySamplingPolicyMissing(id) => {
                 write!(f, "energy receipt has no preregistered sample-gap policy: {id}")
@@ -601,6 +605,9 @@ fn validate_campaign_cases(
                 result.case_id.clone(),
             ));
         }
+        if result.outcome == CaseOutcome::NotRun && result.completed_simulated_ticks != 0 {
+            return Err(EvaluationError::NotRunHasProgress(result.case_id.clone()));
+        }
         if let Some(error) = result.error_upper_bound {
             validate_nonnegative_finite(error, "result.error_upper_bound")?;
         }
@@ -710,7 +717,10 @@ fn hex_sha256(bytes: &[u8]) -> String {
 fn aggregate_engines(reports: &[CampaignReport]) -> Vec<EngineAggregateReport> {
     let mut grouped: BTreeMap<&str, Vec<&CampaignReport>> = BTreeMap::new();
     for report in reports {
-        grouped.entry(&report.engine_id).or_default().push(report);
+        grouped
+            .entry(report.engine_id.as_str())
+            .or_default()
+            .push(report);
     }
 
     grouped
@@ -1246,6 +1256,41 @@ mod tests {
             evaluate(&data).unwrap_err(),
             EvaluationError::SimulatedTicksExceedCaseHorizon("case-a".to_owned())
         );
+    }
+
+    #[test]
+    fn not_run_case_cannot_report_simulated_progress() {
+        let mut data = input();
+        data.campaigns[0].results[0].outcome = CaseOutcome::NotRun;
+        assert_eq!(
+            evaluate(&data).unwrap_err(),
+            EvaluationError::NotRunHasProgress("case-a".to_owned())
+        );
+    }
+
+    #[test]
+    fn energy_frontier_is_disabled_when_any_campaign_has_zero_qualified_work() {
+        let mut data = input();
+        data.max_energy_sample_gap_us = Some(1_000);
+        for campaign in &mut data.campaigns {
+            let window = campaign.campaign_wall_time_us;
+            campaign.energy_measurement = Some(EnergyMeasurement {
+                scope: EnergyScope::GpuBoard,
+                source: EnergySource::NvmlPowerSamples,
+                source_api_version: "nvml".to_owned(),
+                sampling_semantics: EnergySamplingSemantics::WindowAverage,
+                sample_series_sha256: H3.to_owned(),
+                integrated_energy_uj: 10_000.0,
+                measurement_window_us: window,
+                sample_count: 4,
+                max_sample_gap_us: 500,
+            });
+        }
+        for result in &mut data.campaigns[0].results {
+            result.semantic_equivalence = SemanticEquivalence::Unknown;
+        }
+        let report = evaluate(&data).expect("zero-qualified campaign is reportable");
+        assert!(!report.energy_included_in_frontier);
     }
 
     #[test]
