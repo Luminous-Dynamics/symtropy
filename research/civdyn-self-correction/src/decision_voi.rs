@@ -93,7 +93,6 @@ pub struct ExperimentOutcomePartition {
 pub enum ExperimentAssessmentStatus {
     Evaluated,
     OverBudget,
-    NotAssessed,
 }
 
 impl ExperimentAssessmentStatus {
@@ -101,7 +100,6 @@ impl ExperimentAssessmentStatus {
         match self {
             Self::Evaluated => "evaluated",
             Self::OverBudget => "over_budget",
-            Self::NotAssessed => "not_assessed",
         }
     }
 }
@@ -379,13 +377,13 @@ pub fn assess_decision_value_of_information(
         .iter()
         .map(|world| (world.model.id(), world))
         .collect();
+    let world_refs: Vec<&DecisionModelWorld> = worlds.iter().collect();
     let current_minimax_decision = minimax_decision(
-        &worlds.iter().collect::<Vec<_>>(),
+        &world_refs,
         &policy_ids,
         config.direction,
         config.tie_tolerance,
-    )
-    .map_err(|error| error)?;
+    )?;
 
     let mut experiment_ids = BTreeSet::new();
     let mut assessments = Vec::with_capacity(experiments.len());
