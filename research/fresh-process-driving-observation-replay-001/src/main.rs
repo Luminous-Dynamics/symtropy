@@ -121,6 +121,9 @@ struct EpisodeReport {
     renderer_revision: String,
     simulator_backend: String,
     expected_ticks: u64,
+    applied_actions_recorded: usize,
+    world_snapshot_transition_records: usize,
+    counterfactual_branches: usize,
     delivered_observations: usize,
     missing_observations: usize,
     delayed_observations: usize,
@@ -379,8 +382,10 @@ fn validate_bridge_configuration(
         .ok_or("bridge_config.identity is required")?;
     for (field, expected) in [
         ("episode_id", EPISODE_ID),
+        ("scenario_id", SCENARIO_ID),
         ("agent_id", AGENT_ID),
         ("camera_id", CAMERA_ID),
+        ("simulator_revision", SIMULATOR_REVISION),
     ] {
         if identity.get(field).and_then(Value::as_str) != Some(expected) {
             return Err(format!(
@@ -926,6 +931,9 @@ fn run_parent(
         renderer_revision: RENDERER_REVISION.to_string(),
         simulator_backend: SIMULATOR_REVISION.to_string(),
         expected_ticks: EXPECTED_TICKS,
+        applied_actions_recorded: action_records.len(),
+        world_snapshot_transition_records: transition_records.len(),
+        counterfactual_branches: 1,
         delivered_observations: replay_records.len(),
         missing_observations: missing_events.len(),
         delayed_observations: delayed_count,
@@ -1070,6 +1078,50 @@ mod tests {
         assert_ne!(first.receipt_id, changed.receipt_id);
         assert_ne!(first.receipt_sha256, changed.receipt_sha256);
         assert_eq!(first.receipt_sha256.len(), 64);
+    }
+
+    #[test]
+    fn missing_and_delayed_events_survive_stream_ledger_replay() {
+        let records = (1..=EXPECTED_TICKS)
+            .filter(|tick| *tick != MISSING_TICK)
+            .map(|tick| ReplaySnapshotRecord {
+                sequence: tick,
+                snapshot: snapshot(tick, false),
+                clocks: clocks(tick),
+            })
+            .collect::<Vec<_>>();
+        let missing_events = vec![MissingObservationEvent {
+            episode_id: EPISODE_ID.to_string(),
+            agent_id: AGENT_ID.to_string(),
+            clock_id: CLOCK_ID.to_string(),
+            tick: MISSING_TICK,
+            sequence: MISSING_TICK,
+            capture_timestamp_us: world_timestamp(MISSING_TICK),
+            noticed_timestamp_us: world_timestamp(MISSING_TICK) + 1_200,
+            reason: MissingFrameReason::CameraDrop,
+        }];
+        let dispositions = records
+            .iter()
+            .map(|record| DispositionRecord {
+                sequence: record.sequence,
+                tick: record.snapshot.tick,
+                disposition: if record.sequence == DELAYED_TICK {
+                    ObservationDisposition::Delayed
+                } else {
+                    ObservationDisposition::Fresh
+                },
+                capture_timestamp_us: record.clocks.capture_timestamp_us,
+                render_completed_timestamp_us: record.clocks.render_completed_timestamp_us,
+                delivered_timestamp_us: record.clocks.delivered_timestamp_us,
+            })
+            .collect();
+        let input = ReplayInput {
+            records,
+            missing_events,
+            dispositions,
+        };
+        assert!(validate_stream_ledger(&input).is_ok());
+        assert!(replay_output(&input).is_ok());
     }
 
     #[test]
