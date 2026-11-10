@@ -1,0 +1,470 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/research/scan-bim-rayquery-comparator-v0-1/research/scan-bim-rayquery-comparator-001/schema/engine-benchmark-receipt-v0-1.schema.json",
+  "title": "Scan-to-BIM ray-query engine benchmark receipt v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "engine",
+    "input",
+    "environment",
+    "build",
+    "query",
+    "correctness",
+    "determinism",
+    "qualification",
+    "claim_scope"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "engine": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "engine_id",
+        "engine_version",
+        "source_revision",
+        "adapter_revision",
+        "license",
+        "precision",
+        "build_configuration"
+      ],
+      "properties": {
+        "engine_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "engine_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source_revision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "adapter_revision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "license": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "precision": {
+          "enum": [
+            "f64",
+            "f32",
+            "mixed",
+            "unknown"
+          ]
+        },
+        "build_configuration": {
+          "type": "object"
+        }
+      }
+    },
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fixture_id",
+        "fixture_sha256",
+        "geometry_sha256",
+        "ray_set_sha256",
+        "triangle_count",
+        "ray_count",
+        "workload_class",
+        "coordinate_unit"
+      ],
+      "properties": {
+        "fixture_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "fixture_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^([a-f0-9]{64})?$"
+        },
+        "geometry_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^([a-f0-9]{64})?$"
+        },
+        "ray_set_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^([a-f0-9]{64})?$"
+        },
+        "triangle_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "ray_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "workload_class": {
+          "enum": [
+            "analytic_known_answer",
+            "sparse_separated",
+            "dense_overlap",
+            "corridor_room",
+            "long_thin",
+            "high_tessellation",
+            "licensed_building",
+            "unknown"
+          ]
+        },
+        "coordinate_unit": {
+          "const": "metre"
+        }
+      }
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "os",
+        "kernel",
+        "architecture",
+        "cpu_model",
+        "cpu_count",
+        "thread_count",
+        "compiler",
+        "compiler_version",
+        "compiler_flags",
+        "build_profile"
+      ],
+      "properties": {
+        "os": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "kernel": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "architecture": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cpu_model": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cpu_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "thread_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "compiler": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "compiler_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "compiler_flags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "build_profile": {
+          "enum": [
+            "debug",
+            "release",
+            "relwithdebinfo",
+            "unknown"
+          ]
+        }
+      }
+    },
+    "build": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "build_time_ns",
+        "refit_time_ns",
+        "peak_build_memory_bytes",
+        "steady_memory_bytes"
+      ],
+      "properties": {
+        "build_time_ns": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "refit_time_ns": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "peak_build_memory_bytes": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "steady_memory_bytes": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "query": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "query_count",
+        "p50_latency_ns",
+        "p95_latency_ns",
+        "p99_latency_ns",
+        "queries_per_second",
+        "primitive_test_count",
+        "node_visit_count"
+      ],
+      "properties": {
+        "query_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "p50_latency_ns": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "p95_latency_ns": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "p99_latency_ns": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "queries_per_second": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "primitive_test_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "node_visit_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "correctness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "oracle_id",
+        "rays_checked",
+        "exact_nearest_identity_matches",
+        "misses",
+        "hits",
+        "mismatches"
+      ],
+      "properties": {
+        "oracle_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "rays_checked": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "exact_nearest_identity_matches": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "misses": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "hits": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "mismatches": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "ray_id",
+              "category",
+              "detail"
+            ],
+            "properties": {
+              "ray_id": {
+                "type": "string"
+              },
+              "category": {
+                "enum": [
+                  "missed_hit",
+                  "false_hit",
+                  "wrong_nearest",
+                  "tie_set_mismatch",
+                  "distance_mismatch",
+                  "unsupported_semantics",
+                  "other"
+                ]
+              },
+              "detail": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    "determinism": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repetitions",
+        "result_digest",
+        "all_repetitions_identical",
+        "input_permutation_invariant"
+      ],
+      "properties": {
+        "repetitions": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "result_digest": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^([a-f0-9]{64})?$"
+        },
+        "all_repetitions_identical": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "input_permutation_invariant": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      }
+    },
+    "qualification": {
+      "enum": [
+        "template_only",
+        "correctness_only",
+        "performance_measured",
+        "rejected"
+      ]
+    },
+    "claim_scope": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}
