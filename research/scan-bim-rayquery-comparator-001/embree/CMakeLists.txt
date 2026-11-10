@@ -24,7 +24,7 @@ target_link_libraries(scan_bim_embree_adapter
     OpenSSL::Crypto
 )
 target_compile_options(scan_bim_embree_adapter PRIVATE
-  $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall;-Wextra;-Wpedantic;-Wconversion;-Wshadow>
+  "$<$<CXX_COMPILER_ID:GNU,Clang>:-Wall;-Wextra;-Wpedantic;-Wconversion;-Wshadow>"
 )
 target_compile_definitions(scan_bim_embree_adapter PRIVATE
   SCAN_BIM_EMBREE_VERSION="4.4.1"
