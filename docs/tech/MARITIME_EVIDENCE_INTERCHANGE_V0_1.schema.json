@@ -87,7 +87,7 @@
           "minLength": 1
         }
       },
-      "anyOf": [
+      "oneOf": [
         {
           "required": [
             "inline_base64"
