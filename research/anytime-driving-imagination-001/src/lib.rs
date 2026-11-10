@@ -7,8 +7,8 @@
 use std::cmp::Ordering;
 use std::collections::BTreeSet;
 
-pub const MAX_OPPORTUNITIES: usize = 1_024;
-pub const MAX_MARGINAL_ROLLOUTS: usize = 4_096;
+pub const MAX_OPPORTUNITIES: usize = 64;
+pub const MAX_MARGINAL_ROLLOUTS: usize = 128;
 pub const MAX_ID_BYTES: usize = 256;
 pub const MAX_DIGEST_BYTES: usize = 256;
 
@@ -416,8 +416,13 @@ pub fn allocate(
         if choices.is_empty() {
             break;
         }
-        choices.sort_by(|a, b| compare_choices(a, b, &validated));
-        let choice = choices[0];
+        let Some(choice) = choices
+            .iter()
+            .min_by(|a, b| compare_choices(a, b, &validated))
+            .copied()
+        else {
+            break;
+        };
         let index = choice.opportunity_index;
         let item = &validated[index];
         allocated[index] += 1;
