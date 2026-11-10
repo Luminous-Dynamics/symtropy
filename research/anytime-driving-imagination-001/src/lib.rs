@@ -56,7 +56,9 @@ pub struct DecisionOpportunity {
     pub decision_deadline_tick: u64,
     pub actuation_recovery_reserve_ticks: u64,
     pub latency_bound_ticks_per_rollout: u64,
+    pub latency_bound_digest: String,
     pub compute_units_per_rollout: u64,
+    pub compute_cost_digest: String,
     /// Marginal expected decision-regret reduction for rollout 1, 2, ... .
     /// Values are in caller-defined micro-loss units and must be non-increasing.
     pub marginal_regret_reduction_microunits: Vec<u64>,
@@ -113,6 +115,8 @@ pub struct OpportunityAllocation {
     pub checkpoint_digest: String,
     pub observation_digest: String,
     pub model_digest: String,
+    pub latency_bound_digest: String,
+    pub compute_cost_digest: String,
     pub sam_evidence_digest: String,
     pub initial_rollout_count: u32,
     pub additional_rollout_count: u32,
@@ -188,6 +192,8 @@ fn validate_opportunity(
         || !valid_digest(&opportunity.checkpoint_digest)
         || !valid_digest(&opportunity.observation_digest)
         || !valid_digest(&opportunity.model_digest)
+        || !valid_digest(&opportunity.latency_bound_digest)
+        || !valid_digest(&opportunity.compute_cost_digest)
         || !valid_digest(&opportunity.selection_context_digest)
     {
         return Err(RejectionReason::MissingSourceDigest);
@@ -449,6 +455,8 @@ pub fn allocate(
             checkpoint_digest: source.checkpoint_digest.clone(),
             observation_digest: source.observation_digest.clone(),
             model_digest: source.model_digest.clone(),
+            latency_bound_digest: source.latency_bound_digest.clone(),
+            compute_cost_digest: source.compute_cost_digest.clone(),
             sam_evidence_digest: source.sam.as_ref().expect("validated SAM evidence").evidence_digest.clone(),
             initial_rollout_count: source.current_rollout_count,
             additional_rollout_count: additional,
@@ -512,7 +520,9 @@ mod tests {
             decision_deadline_tick: 120,
             actuation_recovery_reserve_ticks: 4,
             latency_bound_ticks_per_rollout: 2,
+            latency_bound_digest: "latency-bound-v1".to_string(),
             compute_units_per_rollout: 3,
+            compute_cost_digest: "compute-cost-v1".to_string(),
             marginal_regret_reduction_microunits: gains,
             sam: Some(sam()),
         }
@@ -639,6 +649,17 @@ mod tests {
         item.observation_available_tick = 90;
         let receipt = allocate(&[item], config(10)).unwrap();
         assert_eq!(receipt.rejected_opportunities[0].reason, RejectionReason::ObservationTooOld);
+    }
+
+    #[test]
+    fn rejects_missing_resource_measurement_identity() {
+        let mut latency = opportunity("missing-latency-proof", vec![10]);
+        latency.latency_bound_digest.clear();
+        let mut compute = opportunity("missing-compute-proof", vec![10]);
+        compute.compute_cost_digest.clear();
+        let receipt = allocate(&[latency, compute], config(10)).unwrap();
+        assert_eq!(receipt.rejected_opportunities.len(), 2);
+        assert!(receipt.rejected_opportunities.iter().all(|item| item.reason == RejectionReason::MissingSourceDigest));
     }
 
     #[test]
