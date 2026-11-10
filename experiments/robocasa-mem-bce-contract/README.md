@@ -14,7 +14,7 @@ It does not implement RoboCasa-Mem, reproduce its task evaluator, or run the Rob
 - Missing prior interactions fail closed; there is no fixed-target fallback.
 - Duplicate/replayed IDs, mixed episodes and reordered/duplicate sequence numbers are rejected rather than silently repaired.
 - A separate synthetic process-memory oracle preserves paused/open obligations across interleaved task threads.
-- A frozen evaluator-private expected-obligation manifest requires every declared obligation to appear in the observed history; an empty or incomplete event log cannot pass by vacuous truth.
+- A non-empty, frozen evaluator-private expected-obligation manifest requires every declared obligation to appear in the observed history; both an empty manifest and an empty/incomplete event log reject rather than pass by vacuous truth.
 - Submission remains blocked until every declared obligation is both present and satisfied. Undeclared obligations, task-owner mismatch, duplicate manifest entries, illegal transitions, cross-task satisfaction, duplicate openings, late resumption after completion and reordered/replayed events fail closed.
 
 The synthetic example models a prior choice of cup A or cup B followed by a later choice that must remain consistent with the earlier interaction. This is an intentionally minimal semantic fixture, not a copy of any RoboCasa-Mem task.

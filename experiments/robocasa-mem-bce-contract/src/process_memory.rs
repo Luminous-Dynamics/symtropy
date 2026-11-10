@@ -79,6 +79,7 @@ pub enum ProcessMemoryError {
         event: ObligationEventKind,
     },
     DuplicateExpectedObligation(String),
+    EmptyExpectedManifest,
     MissingDeclaredObligation(String),
     UndeclaredObligation(String),
     DeclaredTaskMismatch {
@@ -199,6 +200,10 @@ pub fn qualify_against_manifest(
     expected: &[ExpectedObligation],
     events: &[ObligationEvent],
 ) -> Result<ObligationQualification, ProcessMemoryError> {
+    if expected.is_empty() {
+        return Err(ProcessMemoryError::EmptyExpectedManifest);
+    }
+
     let mut manifest = BTreeMap::<String, String>::new();
     for item in expected {
         if item.task_id.trim().is_empty() || item.obligation_id.trim().is_empty() {
@@ -276,6 +281,14 @@ mod tests {
             obligation_id: obligation.into(),
             kind,
         }
+    }
+
+    #[test]
+    fn empty_expected_manifest_cannot_vacuously_qualify_submission() {
+        assert_eq!(
+            qualify_against_manifest(&[], &[]),
+            Err(ProcessMemoryError::EmptyExpectedManifest)
+        );
     }
 
     #[test]
