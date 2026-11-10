@@ -105,3 +105,20 @@ Symtropy owns the evidence envelope and replay; Mycelix owns provenance/attestat
 ## Claim ceiling
 
 This draft establishes a proposed interchange contract and conformance plan only. It does not establish ISO conformity, class approval, cybersecurity certification, vessel-specific validity, physical diagnostic performance, maintenance authority or safe operation.
+
+## Reference auditor status and claim discipline
+
+The Rust reference binary lives in benchmarks/maritime-evidence-interchange/. It is a bounded semantic corpus oracle, not a general Draft 2020-12 validator and not a third-party adapter round-trip test. Its 64 MiB corpus limit, 16 MiB inline-payload limit, SHA-256 and byte-length checks, RFC3339 instant parser, identity/provenance checks, quality/value-state semantics, lineage/reference checks, and exact-head report make the synthetic semantics testable offline.
+
+The report names metrics according to what the binary observes:
+- payload_digest_match_rate: byte digest and length verification for inline fixture payloads;
+- native_identifier_completeness_rate: whether input observation records contain native channel identifiers/names;
+- input_provenance_completeness_rate: whether required source/adapter and asset-configuration identity fields exist in input records;
+- assertion_evidence_link_resolution_rate: whether evidence references resolve to records in this corpus;
+- ambiguous_mapping_abstention_rate: whether the reference oracle abstains on ambiguous/unmapped fixture channels.
+
+None of these is a claim that an external adapter preserved source fields. Mapping precision/coverage and event-order preservation remain null until independent adapters are executed against round-trip fixtures. A future adapter benchmark must measure before/after field retention, exact payload digest continuity, semantic mapping loss, clock sequence/order preservation, conflict-edge survival and deterministic replay with separate source and adapter implementations.
+
+The timestamp evaluator accepts explicit RFC3339 offsets and fractional precision up to nanoseconds, converts offsets to an instant before comparison with the pinned corpus evaluation time, and rejects the RFC3339 -00:00 unknown-offset form. Relative-monotonic records require a monotonic counter. A clock marked unknown/unsynchronized or quality marked stale/unknown causes abstention rather than being treated as current.
+
+The current test source contains 23 authored Rust tests; this is not an execution claim. Exact-head CI is the required execution evidence.
