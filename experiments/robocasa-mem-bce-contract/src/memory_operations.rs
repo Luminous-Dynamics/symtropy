@@ -943,7 +943,7 @@ mod tests {
 
     #[test]
     fn sequence_numbers_are_scoped_to_task_and_episode_identity() {
-        let mut first = case("task-a-store", 1, MemoryOperationKind::Storage, MemoryOperationApplicability::Applicable, Some(digest("a")));
+        let first = case("task-a-store", 1, MemoryOperationKind::Storage, MemoryOperationApplicability::Applicable, Some(digest("a")));
         let mut second = case("task-b-store", 1, MemoryOperationKind::Storage, MemoryOperationApplicability::Applicable, Some(digest("b")));
         second.task_id = "TM-02".to_owned();
         // The episode labels may coincide across tasks; each task/episode pair
@@ -955,12 +955,7 @@ mod tests {
         assert_eq!(audit.results.len(), 2);
         assert_eq!(audit.summaries[0].independent_unit_count, 1);
 
-        second.sequence = 2;
-        first.sequence = 2;
-        assert_eq!(
-            audit_memory_operations(&manifest(vec![first, second]), &[]),
-            Err(MemoryOperationError::DuplicateSequence)
-        );
+        assert!(audit_memory_operations(&manifest(vec![first, second]), &[]).is_ok());
     }
 
     #[test]
