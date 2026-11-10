@@ -54,21 +54,17 @@ cargo build --locked \
   --bin camera-driving-bridge
 ```
 
-3. Build the existing recoverability auditor CLI from its PR branch (`research/recoverable-driving-evidence-rust-v0-1`) on the same Rust toolchain:
+3. Fetch and build the existing recoverability auditor CLI from its PR branch (`research/recoverable-driving-evidence-rust-v0-1`) in a separate worktree:
 
 ```sh
+git fetch origin research/recoverable-driving-evidence-rust-v0-1
+git worktree add --detach ../symtropy-auditor FETCH_HEAD
 cargo build --locked \
-  --manifest-path research/recoverable-driving-evidence-001/Cargo.toml \
+  --manifest-path ../symtropy-auditor/research/recoverable-driving-evidence-001/Cargo.toml \
   --bin recoverable-driving-evidence
 ```
 
-This is the CLI adapter owned by [Symtropy #4556](https://github.com/Luminous-Dynamics/symtropy/pull/4556). Use a separate worktree for the auditor branch:
-
-```sh
-git worktree add ../symtropy-auditor research/recoverable-driving-evidence-rust-v0-1
-```
-
-The harness calls the auditor twice: once with a valid recomputed-actor branch and once with the stale-actor replay negative control, and requires the finding `ReplayedActorInputChanged` in the rejected report.
+This is the CLI adapter owned by [Symtropy #4556](https://github.com/Luminous-Dynamics/symtropy/pull/4556). The harness calls the auditor twice: once with a valid recomputed-actor branch and once with the stale-actor replay negative control, and requires the finding `ReplayedActorInputChanged` in the rejected report.
 
 4. Use the generated `bridge-config.json`, `vision-config.json` and both built binary paths. The generator pins the fixture episode, scenario, agent and camera identities. The helper pins the fixture identity:
 - `episode_id = fresh-process-driving-episode-v0-1`;
@@ -111,7 +107,7 @@ The output directory must be empty or new. Reusing a non-empty directory is reje
 - `symthaea-bridge/fresh-process-replay/`: second independent bridge process receipts and HDC vectors; the harness requires receipt JSON and every HDC artifact byte to match the first process exactly.
 - `symthaea-bridge/fresh-process-replay-comparison.json`: exact bridge receipt/vector replay result;
 - `fresh-process-replay-comparison.json`: exact renderer frame, audit, missing-event and disposition-ledger replay result.
-- `fresh-process-replay-input.json`, `fresh-process-replay-output.json`, `fresh-process-replay-comparison.json`: serialized snapshots and OS-process replay results.
+- `fresh-process-replay-input.json`, `fresh-process-replay-output.json`: serialized snapshots and OS-process replay results.
 - `counterfactual-branch/` and `counterfactual-branch-record.json`: changed-action/changed-actor-pose branch fixture.
 - `branch-evidence-auditor/`: valid campaign audit plus stale actor replay negative-control report; the episode report requires the first to pass and the second to be rejected for `ReplayedActorInputChanged`.
 - `episode-report.json`: expected/observed counts and conformance result.
