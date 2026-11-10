@@ -51,6 +51,7 @@ fn blank(record_type: &str) -> Vec<String> {
     row[0] = record_type.to_string();
     row[1] = "municipal-service-preferences-v0.1".to_string();
     row[2] = "sha256-municipal-service-preferences-v0.1".to_string();
+    row[37] = "false".to_string();
     row
 }
 
