@@ -232,3 +232,64 @@ jobs:
           assert actual == expected, f"unexpected reachability/adequacy classifications: {actual}"
           print("Model-adequacy CSV valid: prior reachability and split-predictive controls preserve marginal, joint and rare-tail discrepancies as separate results.")
           PY
+      - name: Verify fresh-challenge repair qualification and leakage controls
+        run: |
+          set -euo pipefail
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin repair-qualification-sweep > /tmp/civdyn-repair-qualification.csv
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin repair-qualification-sweep > /tmp/civdyn-repair-qualification-replay.csv
+          cmp /tmp/civdyn-repair-qualification.csv /tmp/civdyn-repair-qualification-replay.csv
+          python3 - <<'PY'
+          import csv
+          from pathlib import Path
+
+          with Path("/tmp/civdyn-repair-qualification.csv").open(newline="", encoding="utf-8") as handle:
+              reader = csv.DictReader(handle)
+              rows = list(reader)
+              fields = reader.fieldnames
+
+          assert fields is not None and len(fields) == 27
+          assert len(rows) == 6
+          grouped = {}
+          for row in rows:
+              grouped.setdefault(row["scenario"], []).append(row)
+          assert set(grouped) == {
+              "improved_not_restored",
+              "restored_on_fresh_challenge",
+              "regression_detected",
+          }
+          assert all(len(group) == 2 for group in grouped.values())
+
+          partial = {row["independent_unit_id"]: row for row in grouped["improved_not_restored"]}
+          assert partial["network-a"]["transition"] == "improved"
+          assert partial["network-b"]["transition"] == "persistent_discrepancy"
+          assert all(row["overall_status"] == "improved_but_not_restored" for row in partial.values())
+          assert all(row["primary_improvement_count"] == "1" for row in partial.values())
+          assert all(row["primary_persistent_discrepancy_count"] == "1" for row in partial.values())
+          assert all(row["primary_repaired_discrepancy_count"] == "1" for row in partial.values())
+
+          restored = {row["independent_unit_id"]: row for row in grouped["restored_on_fresh_challenge"]}
+          assert all(row["transition"] == "improved" for row in restored.values())
+          assert all(row["overall_status"] == "restored_on_fresh_challenge" for row in restored.values())
+          assert all(row["primary_improvement_count"] == "2" for row in restored.values())
+          assert all(row["primary_repaired_discrepancy_count"] == "0" for row in restored.values())
+
+          regressed = {row["independent_unit_id"]: row for row in grouped["regression_detected"]}
+          assert regressed["network-a"]["transition"] == "regressed"
+          assert regressed["network-b"]["transition"] == "unchanged_within_reference"
+          assert all(row["overall_status"] == "regression_detected" for row in regressed.values())
+          assert all(row["primary_regression_count"] == "1" for row in regressed.values())
+
+          assert len({row["baseline_model_digest"] for row in rows}) == 1
+          assert len({row["repaired_model_digest"] for row in rows}) == 1
+          assert all(row["baseline_model_digest"] != row["repaired_model_digest"] for row in rows)
+          assert len({row["challenge_manifest_digest"] for row in rows}) == 1
+          assert len({row["calibration_data_digest"] for row in rows}) == 1
+          assert len({row["diagnostic_manifest_digest"] for row in rows}) == 1
+          assert all(row["central_mass"] == "0.900000" for row in rows)
+          assert all(row["evidence_complete"] == "true" for row in rows)
+          assert all(row["challenge_unit_count"] == "2" for row in rows)
+          assert all(row["observation_digest"] for row in rows)
+          assert all(row["source_digest"] == "sha256-civdyn-fresh-network-source" for row in rows)
+          assert all(row["sample_size"] == "1" for row in rows)
+          print("Repair-audit CSV valid: statistic/observation-held-out receipts; improvement, restoration and regression distinguished per network; exact challenge lineage and deterministic replay.")
+          PY
