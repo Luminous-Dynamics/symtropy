@@ -147,7 +147,6 @@
       "required": [
         "case_id",
         "initial_state",
-        "events",
         "expected"
       ],
       "additionalProperties": false,
@@ -179,7 +178,19 @@
         "expected": {
           "$ref": "#/$defs/expected"
         }
-      }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "events"
+          ]
+        },
+        {
+          "required": [
+            "event_sequences"
+          ]
+        }
+      ]
     }
   }
 }
