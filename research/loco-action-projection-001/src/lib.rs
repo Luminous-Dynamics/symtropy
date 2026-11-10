@@ -1300,10 +1300,16 @@ mod tests {
         let mut input = problem();
         input.result.constraint_evidence[0].margin = -1;
         let report = qualify_projected_action(&input).expect("hard constraint gate");
-        assert!(matches!(report.disposition, GateDisposition::Unknown { .. }));
+        assert_eq!(
+            report.disposition,
+            GateDisposition::Rejected {
+                reason: "hard physical constraint margin failed".to_owned(),
+                witness_id: Some("contact-mode-a:torque-limit".to_owned()),
+            }
+        );
         assert_eq!(
             report.hard_constraint_failures,
-            vec!["torque-limit".to_owned()]
+            vec!["contact-mode-a:torque-limit".to_owned()]
         );
     }
 
@@ -1312,10 +1318,16 @@ mod tests {
         let mut input = problem();
         input.result.constraint_evidence[1].margin = -1;
         let report = qualify_projected_action(&input).expect("contact gate");
-        assert!(matches!(report.disposition, GateDisposition::Unknown { .. }));
+        assert_eq!(
+            report.disposition,
+            GateDisposition::Rejected {
+                reason: "robust contact constraint margin failed".to_owned(),
+                witness_id: Some("contact-mode-a:friction-cone".to_owned()),
+            }
+        );
         assert_eq!(
             report.robust_contact_failures,
-            vec!["friction-cone".to_owned()]
+            vec!["contact-mode-a:friction-cone".to_owned()]
         );
     }
 
@@ -1365,7 +1377,13 @@ mod tests {
         input.viability.status = AuthorityStatus::Rejected;
         input.viability.witness_or_reason = Some("no-recovery-state".to_owned());
         let report = qualify_projected_action(&input).expect("viability rejection");
-        assert!(matches!(report.disposition, GateDisposition::Unknown { .. }));
+        assert_eq!(
+            report.disposition,
+            GateDisposition::Rejected {
+                reason: "independent viability gate rejected projected command".to_owned(),
+                witness_id: Some("no-recovery-state".to_owned()),
+            }
+        );
     }
 
     #[test]
@@ -1470,6 +1488,231 @@ mod tests {
         input.fallback = Some(fallback);
         let report = qualify_projected_action(&input).expect("fallback withheld");
         assert!(matches!(report.disposition, GateDisposition::Unknown { .. }));
+    }
+
+    fn evidence_for(
+        possibility_id: &str,
+        id: &str,
+        residual: u64,
+        margin: i64,
+    ) -> ConstraintEvidence {
+        ConstraintEvidence {
+            possibility_id: possibility_id.to_owned(),
+            id: id.to_owned(),
+            residual_unit_id: "residual_nano".to_owned(),
+            residual,
+            margin,
+            margin_unit_id: "margin_ppm".to_owned(),
+        }
+    }
+
+    fn delivery_receipt(
+        status: RealizationStatus,
+        witness_or_reason: Option<&str>,
+    ) -> ActuatorRealizationReceipt {
+        ActuatorRealizationReceipt {
+            receipt_id: "delivery-receipt".to_owned(),
+            result_digest: "delivery-result".to_owned(),
+            executed_command_digest: "command-v1".to_owned(),
+            input_state_digest: "state-v1".to_owned(),
+            model_digest: "model-v1".to_owned(),
+            abstraction_digest: "abstraction-v1".to_owned(),
+            domain_digest: "domain-v1".to_owned(),
+            actuator_digest: "actuator-v1".to_owned(),
+            status,
+            witness_or_reason: witness_or_reason.map(str::to_owned),
+            applied_at_ns: 200,
+            observed_at_ns: 210,
+            valid_from_ns: 200,
+            valid_until_ns: 300,
+        }
+    }
+
+    #[test]
+    fn all_constraints_are_checked_for_every_physical_possibility() {
+        let mut input = problem();
+        input.physical_possibility_ids.push("contact-mode-b".to_owned());
+        for (id, margin) in [
+            ("torque-limit", 90),
+            ("friction-cone", 40),
+            ("tracking", 0),
+        ] {
+            input
+                .result
+                .constraint_evidence
+                .push(evidence_for("contact-mode-b", id, 1, margin));
+        }
+        let report = qualify_projected_action(&input).expect("complete branch matrix");
+        assert!(matches!(
+            report.disposition,
+            GateDisposition::ExecuteProjected { .. }
+        ));
+        assert_eq!(report.constraint_findings.len(), 6);
+    }
+
+    #[test]
+    fn one_missing_physical_possibility_constraint_row_is_rejected() {
+        let mut input = problem();
+        input.physical_possibility_ids.push("contact-mode-b".to_owned());
+        input
+            .result
+            .constraint_evidence
+            .push(evidence_for("contact-mode-b", "torque-limit", 1, 90));
+        assert_eq!(
+            qualify_projected_action(&input),
+            Err(ProjectionError::MissingConstraintEvidence)
+        );
+    }
+
+    #[test]
+    fn robust_failure_in_one_possible_contact_mode_rejects_projection() {
+        let mut input = problem();
+        input.physical_possibility_ids.push("contact-mode-b".to_owned());
+        input
+            .result
+            .constraint_evidence
+            .push(evidence_for("contact-mode-b", "torque-limit", 1, 90));
+        input
+            .result
+            .constraint_evidence
+            .push(evidence_for("contact-mode-b", "friction-cone", 1, -1));
+        input
+            .result
+            .constraint_evidence
+            .push(evidence_for("contact-mode-b", "tracking", 20, 0));
+        let report = qualify_projected_action(&input).expect("branch-specific contact failure");
+        assert_eq!(
+            report.disposition,
+            GateDisposition::Rejected {
+                reason: "robust contact constraint margin failed".to_owned(),
+                witness_id: Some("contact-mode-b:friction-cone".to_owned()),
+            }
+        );
+    }
+
+    #[test]
+    fn hard_constraint_margin_reserve_is_explicit_and_enforced() {
+        let mut input = problem();
+        input.required_constraint_inventory[0].minimum_margin = 50;
+        input.result.declared_constraints[0].minimum_margin = 50;
+        input.result.constraint_evidence[0].margin = 20;
+        let report = qualify_projected_action(&input).expect("minimum reserve gate");
+        assert!(matches!(report.disposition, GateDisposition::Rejected { .. }));
+    }
+
+    #[test]
+    fn hard_constraint_residual_failure_is_unknown_not_physical_infeasibility() {
+        let mut input = problem();
+        input.result.constraint_evidence[0].residual = 11;
+        let report = qualify_projected_action(&input).expect("unqualified residual");
+        assert!(matches!(report.disposition, GateDisposition::Unknown { .. }));
+        assert_eq!(
+            report.numerically_unqualified,
+            vec!["contact-mode-a:torque-limit".to_owned()]
+        );
+    }
+
+    #[test]
+    fn duplicate_physical_possibility_id_is_invalid() {
+        let mut input = problem();
+        input
+            .physical_possibility_ids
+            .push("contact-mode-a".to_owned());
+        assert_eq!(
+            qualify_projected_action(&input),
+            Err(ProjectionError::DuplicatePhysicalPossibility)
+        );
+    }
+
+    #[test]
+    fn delivered_actuator_receipt_allows_next_command() {
+        let report = qualify_projected_action(&problem()).expect("projection admission");
+        let reconciliation = reconcile_delivery(
+            &report.disposition,
+            &problem().proposal,
+            &delivery_receipt(RealizationStatus::Matched, None),
+            220,
+        )
+        .expect("delivery reconciliation");
+        assert_eq!(
+            reconciliation.disposition,
+            RealizationDisposition::ConfirmedDelivered {
+                result_digest: "delivery-result".to_owned()
+            }
+        );
+        assert!(reconciliation.next_command_permitted);
+    }
+
+    #[test]
+    fn actuator_delivery_mismatch_inhibits_subsequent_command() {
+        let input = problem();
+        let report = qualify_projected_action(&input).expect("projection admission");
+        let reconciliation = reconcile_delivery(
+            &report.disposition,
+            &input.proposal,
+            &delivery_receipt(
+                RealizationStatus::Mismatch,
+                Some("delivered torque outside actuator envelope"),
+            ),
+            220,
+        )
+        .expect("delivery mismatch evidence");
+        assert!(matches!(
+            reconciliation.disposition,
+            RealizationDisposition::DeliveryMismatch { .. }
+        ));
+        assert!(!reconciliation.next_command_permitted);
+    }
+
+    #[test]
+    fn unknown_actuator_delivery_inhibits_subsequent_command() {
+        let input = problem();
+        let report = qualify_projected_action(&input).expect("projection admission");
+        let reconciliation = reconcile_delivery(
+            &report.disposition,
+            &input.proposal,
+            &delivery_receipt(
+                RealizationStatus::Unknown,
+                Some("actuator readback delayed"),
+            ),
+            220,
+        )
+        .expect("unknown delivery evidence");
+        assert!(matches!(
+            reconciliation.disposition,
+            RealizationDisposition::Unknown { .. }
+        ));
+        assert!(!reconciliation.next_command_permitted);
+    }
+
+    #[test]
+    fn execution_receipt_without_authorized_command_is_invalid() {
+        let mut input = problem();
+        input.viability.status = AuthorityStatus::Rejected;
+        input.viability.witness_or_reason = Some("not-viable".to_owned());
+        let report = qualify_projected_action(&input).expect("rejected projection");
+        assert!(matches!(report.disposition, GateDisposition::Rejected { .. }));
+        assert_eq!(
+            reconcile_delivery(
+                &report.disposition,
+                &input.proposal,
+                &delivery_receipt(RealizationStatus::Matched, None),
+                220,
+            ),
+            Err(ProjectionError::UnexpectedExecutionReceipt)
+        );
+    }
+
+    #[test]
+    fn execution_receipt_must_bind_exact_command_digest() {
+        let input = problem();
+        let report = qualify_projected_action(&input).expect("projection admission");
+        let mut receipt = delivery_receipt(RealizationStatus::Matched, None);
+        receipt.executed_command_digest = "different-command".to_owned();
+        assert_eq!(
+            reconcile_delivery(&report.disposition, &input.proposal, &receipt, 220),
+            Err(ProjectionError::ExecutionReceiptMismatch)
+        );
     }
 
     #[test]
