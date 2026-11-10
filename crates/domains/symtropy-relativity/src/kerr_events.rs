@@ -389,7 +389,7 @@ mod tests {
     }
 
     #[test]
-    fn fails_closed_when_iteration_budget_cannot_meet_requested_tolerance() {
+    fn fails_closed_when_binary64_spacing_prevents_requested_tolerance() {
         let black_hole = hole(0.9);
         let horizon = black_hole.outer_horizon_radius_m()
             / black_hole.gravitational_radius_m();
