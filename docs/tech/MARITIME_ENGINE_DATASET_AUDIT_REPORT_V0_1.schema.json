@@ -186,6 +186,7 @@
         "shorthand_symbols",
         "units",
         "anomaly_label_column",
+        "time_abs_column",
         "anomaly_zero_rows",
         "anomaly_one_rows",
         "anomaly_invalid_rows",
@@ -199,7 +200,10 @@
         "time_rel_duplicates",
         "first_time_rel",
         "last_time_rel",
-        "missing_columns"
+        "missing_columns",
+        "missing_header_names",
+        "missing_shorthand_symbols",
+        "missing_units"
       ],
       "properties": {
         "header_rows": {
@@ -302,6 +306,31 @@
           "type": "array",
           "items": {
             "$ref": "#/$defs/missingColumn"
+          }
+        },
+        "time_abs_column": {
+          "type": "integer",
+          "const": 0
+        },
+        "missing_header_names": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "missing_shorthand_symbols": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "missing_units": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0
           }
         }
       }
