@@ -562,11 +562,24 @@ fn inspect_csv(path: &str, role: &str, bytes: &[u8]) -> Result<CsvAudit, String>
     let anomaly_only_expected = path.to_ascii_lowercase().contains("nozzle2_loadprogram");
     let anomaly_only_observed = anomaly_label_column.map(|_| anomaly_zero_rows == 0 && anomaly_one_rows > 0 && anomaly_invalid_rows == 0);
 
+    let missing_header_names = header_names
+        .iter()
+        .enumerate()
+        .filter_map(|(index, value)| value.trim().is_empty().then_some(index))
+        .collect();
+    let missing_shorthand_symbols = shorthand_symbols
+        .iter()
+        .enumerate()
+        .filter_map(|(index, value)| value.trim().is_empty().then_some(index))
+        .collect();
+    let missing_units = units
+        .iter()
+        .enumerate()
+        .filter_map(|(index, value)| value.trim().is_empty().then_some(index))
+        .collect();
+
     if anomaly_invalid_rows > 0 {
         return Err(format!("{anomaly_invalid_rows} non-binary anomaly labels"));
-    }
-    if time_rel_column.is_none() {
-        return Err("Time_rel column was not found in the three header rows".into());
     }
     if time_rel_non_numeric_rows > 0 {
         return Err(format!("{time_rel_non_numeric_rows} non-numeric Time_rel values"));
@@ -594,21 +607,9 @@ fn inspect_csv(path: &str, role: &str, bytes: &[u8]) -> Result<CsvAudit, String>
         time_rel_duplicates,
         first_time_rel,
         last_time_rel,
-        missing_header_names: header_names
-            .iter()
-            .enumerate()
-            .filter_map(|(index, value)| value.trim().is_empty().then_some(index))
-            .collect(),
-        missing_shorthand_symbols: shorthand_symbols
-            .iter()
-            .enumerate()
-            .filter_map(|(index, value)| value.trim().is_empty().then_some(index))
-            .collect(),
-        missing_units: units
-            .iter()
-            .enumerate()
-            .filter_map(|(index, value)| value.trim().is_empty().then_some(index))
-            .collect(),
+        missing_header_names,
+        missing_shorthand_symbols,
+        missing_units,
         missing_columns,
     })
 }
