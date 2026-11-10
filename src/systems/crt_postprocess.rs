@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //! CRT consciousness post-processing pipeline.
 //!
-//! Wires the `crt_consciousness.wgsl` shader into Bevy 0.18's render graph
+//! Wires the `crt_consciousness.wgsl` shader into Bevy's render graph
 //! as a fullscreen post-process pass. Replaces the built-in ChromaticAberration
 //! with a consciousness-driven CRT effect that includes:
 //!
@@ -19,7 +19,7 @@
 //!
 //! # Architecture
 //!
-//! Follows the exact pattern of Bevy 0.18's `EffectStackPlugin`:
+//! Follows the exact pattern of Bevy's `EffectStackPlugin`:
 //! - `CrtNode` implements `ViewNode`
 //! - Registered in Core2d render graph after Bloom, before Tonemapping
 //! - Uses `ViewTarget::post_process_write()` for source/destination textures
@@ -47,7 +47,7 @@ impl Default for CrtSettings {
 }
 
 /// GPU-side uniform for the CRT consciousness shader.
-/// Ready for Bevy 0.19+ FullscreenMaterialPlugin wiring.
+/// Reserved for a future, separately qualified fullscreen-material integration.
 #[allow(dead_code)] // Infrastructure for future render node
 #[derive(ShaderType, Clone, Copy, Default)]
 pub struct CrtConsciousnessUniforms {
