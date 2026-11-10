@@ -1,0 +1,34 @@
+name: SAM Road Option Analytic Fixture
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "docs/research/road_option_experiment_v0_1/**"
+      - "tools/road-option-fixture-validator/**"
+      - ".github/workflows/road-option-fixture-validation.yml"
+  push:
+    branches: [main]
+    paths:
+      - "docs/research/road_option_experiment_v0_1/**"
+      - "tools/road-option-fixture-validator/**"
+      - ".github/workflows/road-option-fixture-validation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  semantic-fixture:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run semantic mutation tests
+        run: python -m unittest discover -s tools/road-option-fixture-validator/tests -v
+      - name: Validate committed analytic fixture
+        run: python tools/road-option-fixture-validator/validate_fixture.py
