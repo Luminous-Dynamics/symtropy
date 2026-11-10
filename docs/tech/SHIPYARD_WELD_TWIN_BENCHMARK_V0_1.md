@@ -68,9 +68,9 @@ Time is role-typed: process observation/source time, transaction/event time, ret
 
 ## Frozen synthetic corpus
 
-The v0.1 corpus includes 34 unique cases: one valid synthetic trace and 33 adversarial controls. The negative cases cover wrong component/joint/design identity, material lot, WPS/PQR scope and expiry, consumable incompatibility, equipment and calibration drift, program geometry mismatch, missing preprocessing, pass order/identity, missing process trace, out-of-envelope observations, synthetic-to-measured relabelling, in-process and final inspection gaps, NDT disposition escalation, repair/straightening lineage, incomplete document package, twin latency, projection writeback, operator qualification, and unlogged stop/restart.
+The v0.1 corpus includes 37 unique cases: one valid synthetic trace and 36 adversarial controls. The negative cases cover wrong component/joint/design identity, material lot, WPS/PQR scope and expiry, consumable incompatibility, equipment and calibration drift, program geometry mismatch, missing preprocessing, pass order/identity, missing process trace, out-of-envelope observations, synthetic-to-measured relabelling, in-process and final inspection gaps, NDT disposition escalation, repair/straightening lineage, incomplete document package, twin latency, projection writeback, operator qualification, and unlogged stop/restart.
 
-The corpus is a fixture/specification seed. It is not yet an independent Rust evaluator or physical welding benchmark.
+Each root/fill/cap pass now references an exact synthetic JSON trace file. The Rust verifier independently recomputes each file SHA-256, rejects unsafe relative paths, and verifies that the trace subject, serial, joint, pass role, revision, procedure and equipment match the pass record. The corpus remains synthetic and is not a physical welding benchmark.
 
 ## Metrics and fair industry comparison
 
@@ -95,7 +95,7 @@ Initial promotion targets (not achieved results):
 - 100% pass-order and mandatory inspection hold-point enforcement;
 - 100% process/inspection/repair events bind to exact joint and workpiece revision;
 - zero twin/simulation/AI writeback into source-owned manufacturing/as-built state;
-- deterministic replay of the frozen synthetic process history;
+- deterministic replay and exact-byte verification of the frozen synthetic process history;
 - no production-superiority claim until there is a matched, held-out industrial baseline and an independent acceptance denominator.
 
 ## Claim ceiling
