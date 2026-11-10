@@ -158,6 +158,7 @@ pub enum PolicyDecision {
 pub enum AbstentionReason {
     NoCandidates,
     NoAdmissibleCandidate,
+    NoStateEligiblePeer,
     ObservedValidityEnvelopeExit,
     ObservedHardConstraintViolation,
     ObservedHardConstraintUnknown,
@@ -239,6 +240,8 @@ pub enum PolicyError {
     ObservationReceiptInvalid,
     ObservationModelMismatch,
     ObservationPassportMismatch,
+    ObservationPeerNotInCandidateSet(String),
+    DuplicateObservationPeer(String),
     SelectedModelMissing,
     InvalidSelectedModel,
     Serialization(String),
@@ -455,6 +458,14 @@ pub fn monitor(
         candidate.model_id != *selected_id
             && eligible_peers.contains(&candidate.model_id)
     });
+    if remaining.candidates.is_empty() {
+        return Ok(MonitoringDecision::Abstain {
+            from_model_id: selected_id.clone(),
+            reason: AbstentionReason::NoStateEligiblePeer,
+            trigger,
+            observation_receipt_sha256: observation.observation_receipt_sha256.clone(),
+        });
+    }
     let next = evaluate(&remaining)?;
 
     match next.decision {
@@ -961,7 +972,7 @@ mod tests {
             monitor(&data, &receipt, &observation).expect("monitor"),
             MonitoringDecision::Abstain {
                 from_model_id: "fast-qualified".to_owned(),
-                reason: AbstentionReason::NoCandidates,
+                reason: AbstentionReason::NoStateEligiblePeer,
                 trigger: MonitorTrigger::ResidualExceeded,
                 observation_receipt_sha256: H3.to_owned(),
             }
