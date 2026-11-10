@@ -217,6 +217,8 @@ pub struct SourceArtifact {
     pub request_or_query_digest: Option<String>,
     pub artifact_digest: String,
     pub content_digest: String,
+    /// Required when revision_status is Revised; binds the superseded artifact.
+    pub supersedes_artifact_digest: Option<String>,
     pub acquisition_state: AcquisitionState,
     pub revision_status: RevisionStatus,
     pub rights: RightsAuthorization,
@@ -286,6 +288,7 @@ pub enum SourcePassportError {
     ArtifactIntegrityNotVerified,
     ArtifactSemanticVerificationRequired,
     ArtifactRevisionNotUsable { status: RevisionStatus, purpose: UsePurpose },
+    ArtifactRevisionLineageMissing,
     RightsNotAuthorized { status: RightsStatus, purpose: UsePurpose },
     EmptyObservationSet,
     DuplicateRecordId { record_id: String },
@@ -420,6 +423,14 @@ pub fn qualify_source_bundle(
 
     match artifact.revision_status {
         RevisionStatus::Final => {}
+        RevisionStatus::Revised
+            if artifact
+                .supersedes_artifact_digest
+                .as_deref()
+                .is_some_and(|digest| !digest.trim().is_empty()) => {}
+        RevisionStatus::Revised => {
+            return Err(SourcePassportError::ArtifactRevisionLineageMissing);
+        }
         RevisionStatus::Provisional if purpose == UsePurpose::Exploration => {}
         RevisionStatus::UnderReview if purpose == UsePurpose::Exploration => {}
         other => {
@@ -477,14 +488,14 @@ pub fn qualify_source_bundle(
             });
         }
 
-        if observation.class.requires_value()
-            != observation.value.is_some_and(f64::is_finite)
-        {
-            return Err(SourcePassportError::ObservationValueClassMismatch {
-                record_id: observation.record_id.clone(),
-            });
-        }
-        if observation.class.requires_value() && observation.value.is_none() {
+        let value_matches_class = match observation.class {
+            ObservationClass::Observed
+            | ObservationClass::Estimated
+            | ObservationClass::Defaulted
+            | ObservationClass::Imputed => observation.value.is_some_and(f64::is_finite),
+            ObservationClass::Missing | ObservationClass::Suppressed => observation.value.is_none(),
+        };
+        if !value_matches_class {
             return Err(SourcePassportError::ObservationValueClassMismatch {
                 record_id: observation.record_id.clone(),
             });
@@ -683,6 +694,7 @@ mod tests {
             request_or_query_digest: Some("sha256-query".to_string()),
             artifact_digest: "sha256-artifact".to_string(),
             content_digest: "sha256-content".to_string(),
+            supersedes_artifact_digest: None,
             acquisition_state: AcquisitionState::SemanticallyVerified,
             revision_status: RevisionStatus::Final,
             rights: rights(),
@@ -833,6 +845,37 @@ mod tests {
             qualify_source_bundle(&candidate, UsePurpose::Validation).unwrap_err(),
             SourcePassportError::ArtifactSemanticVerificationRequired
         );
+    }
+
+    #[test]
+    fn nan_cannot_be_attached_to_missing_or_suppressed_record() {
+        let mut missing = bundle(vec![observation("missing", ObservationClass::Missing, Some(f64::NAN))]);
+        missing.observations[0].missing_or_suppression_reason =
+            Some("not reported".to_string());
+        assert!(matches!(
+            qualify_source_bundle(&missing, UsePurpose::Validation),
+            Err(SourcePassportError::ObservationValueClassMismatch { .. })
+        ));
+
+        let mut suppressed = bundle(vec![observation("suppressed", ObservationClass::Suppressed, Some(f64::NAN))]);
+        suppressed.observations[0].missing_or_suppression_reason =
+            Some("privacy threshold".to_string());
+        assert!(matches!(
+            qualify_source_bundle(&suppressed, UsePurpose::Validation),
+            Err(SourcePassportError::ObservationValueClassMismatch { .. })
+        ));
+    }
+
+    #[test]
+    fn revised_artifact_requires_supersession_lineage() {
+        let mut revised = bundle(vec![observation("a", ObservationClass::Observed, Some(0.32))]);
+        revised.artifact.revision_status = RevisionStatus::Revised;
+        assert_eq!(
+            qualify_source_bundle(&revised, UsePurpose::Validation).unwrap_err(),
+            SourcePassportError::ArtifactRevisionLineageMissing
+        );
+        revised.artifact.supersedes_artifact_digest = Some("sha256-prior-version".to_string());
+        assert!(qualify_source_bundle(&revised, UsePurpose::Validation).is_ok());
     }
 
     #[test]
