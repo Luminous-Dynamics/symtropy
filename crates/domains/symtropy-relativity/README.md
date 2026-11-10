@@ -84,6 +84,8 @@ Six versioned machine-readable research manifests are maintained beside the crat
 - `benchmarks/analytic_reference_cases.json` and `benchmarks/geodesic_reference_cases.json` — exact SI Kerr/Schwarzschild and Schwarzschild geodesic reference fixtures.
 - `benchmarks/light_ring_reference_cases.json` — independently generated 20-case equatorial Kerr photon-orbit / Lyapunov reference grid.
 
+- `benchmarks/kerr_mino_trajectory_v1.json` — analytic Schwarzschild critical/double-root fixture, (b=6M) scattering trajectory through a turning point, independent Python/SciPy equation-level references, separated-vs-canonical Hamiltonian cross-check, horizon-regular ingoing evaluator and a G0–G8 qualification ladder. It explicitly marks Rust execution as pending.
+
 These files are literature / experiment specifications. They are not benchmark execution results, model certifications, or evidence that the reported paper metrics have been reproduced by Symtropy.
 
 ## Run
