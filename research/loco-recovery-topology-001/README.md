@@ -155,7 +155,7 @@ The frozen corpus covers:
 - routes that exceed the available recovery-energy or horizon budget;
 - bounded graph exhaustion and explicit Unknown/Invalid output.
 
-See fixtures/known_answers_v0_1.json. The fixture records are synthetic design tests, not robot measurements.
+See fixtures/known_answers_v0_1.json and validate its structure against fixtures/known_answers_v0_1.schema.json (JSON Schema Draft 2020-12). The fixture records are synthetic design tests, not robot measurements or physical safety evidence.
 
 ## 7. Experiment plan: compose with the canonical actuator-fault campaign
 
