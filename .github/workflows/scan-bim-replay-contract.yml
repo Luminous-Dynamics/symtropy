@@ -53,6 +53,24 @@ jobs:
         run: cargo fmt --all --manifest-path tools/scan-bim-replay-contract/Cargo.toml -- --check
       - name: Run contract tests
         run: cargo test --locked --workspace --manifest-path tools/scan-bim-replay-contract/Cargo.toml
+      - name: Run isolated visibility evaluator CLI
+        run: |
+          cargo run --locked --manifest-path tools/scan-bim-replay-contract/Cargo.toml -p scan-bim-visibility-evaluator --example generate_synthetic_visibility_request > /tmp/scan-bim-visibility-request.json
+          cargo run --locked --manifest-path tools/scan-bim-replay-contract/Cargo.toml -p scan-bim-visibility-evaluator < /tmp/scan-bim-visibility-request.json > /tmp/scan-bim-visibility-receipt.json
+          jq -e '
+            (.algorithm_id == "evaluator_bim_visibility_bvh_median_v1") and
+            (.scene_id == "SYNTHETIC-ROOM-001") and
+            (.probe_count > 0) and
+            (.view_count == 1) and
+            (.observable_area_m2 == 2.0) and
+            (.self_occluded_area_m2 == 0.0) and
+            (.externally_occluded_area_m2 == 0.0) and
+            (.unknown_area_m2 == 0.0) and
+            (.bvh_node_count == 1) and
+            (.bvh_leaf_count == 1) and
+            (.bvh_node_visit_count > 0) and
+            ((.visibility_sha256 | length) == 64)
+          ' /tmp/scan-bim-visibility-receipt.json
       - name: Run strict Clippy
         run: cargo clippy --locked --workspace --manifest-path tools/scan-bim-replay-contract/Cargo.toml --all-targets -- -D warnings
       - name: Audit synthetic fixture
