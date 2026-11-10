@@ -54,7 +54,7 @@ fn registry() -> StatisticRegistry {
                 role: SplitRole::Validation,
                 primary: true,
                 required: true,
-                minimum_draws: 101,
+                minimum_draws: 5,
             },
             StatisticSpec {
                 id: "service-coverage-group-b".to_string(),
@@ -126,7 +126,7 @@ fn evidence() -> CalibrationProfileEvidence {
         ("service-coverage-group-b", group_b_ranks()),
     ];
     let mut observations = Vec::with_capacity(400);
-    let mut draws = Vec::with_capacity(40_400);
+    let mut draws = Vec::with_capacity(2_000);
 
     for (statistic_id, statistic_ranks) in &ranks {
         for (index, rank) in statistic_ranks.iter().enumerate() {
@@ -136,12 +136,12 @@ fn evidence() -> CalibrationProfileEvidence {
                 independent_unit_id: unit_id.clone(),
                 measurement_unit: "coverage_fraction".to_string(),
                 source_digest: "sha256-calibration-observations".to_string(),
-                sample_size: 101,
+                sample_size: 5,
                 value: rank * 100.0,
                 measurement_standard_error: Some(0.01),
                 observation_digest: format!("sha256-observation-{statistic_id}-{unit_id}"),
             });
-            for draw_index in 0..=100_u64 {
+            for (draw_index, draw_value) in [0.0, 25.0, 50.0, 75.0, 100.0].iter().enumerate() {
                 draws.push(PredictiveDraw {
                     kind: PredictiveKind::Split,
                     statistic_id: (*statistic_id).to_string(),
