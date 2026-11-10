@@ -1266,7 +1266,8 @@ mod tests {
             &[receipt(&first), receipt(&second)],
         ).unwrap();
         assert_eq!(audit.results.len(), 2);
-        assert_eq!(audit.summaries[0].independent_unit_count, 1);
+        // Independence identity is scoped by task as well as scene/seed label.
+        assert_eq!(audit.summaries[0].independent_unit_count, 2);
 
         assert!(audit_memory_operations(&manifest(vec![first, second]), &[]).is_ok());
     }
@@ -1321,6 +1322,27 @@ mod tests {
         assert_eq!(
             audit_memory_operations(&manifest(vec![first, second]), &[]),
             Err(MemoryOperationError::EpisodeIndependenceUnitMismatch)
+        );
+    }
+
+    #[test]
+    fn paired_memory_comparison_rejects_different_task_populations() {
+        let first = case("store-a", 1, MemoryOperationKind::Storage, MemoryOperationApplicability::Applicable, Some(digest("a")));
+        let baseline = audit_memory_operations(
+            &manifest(vec![first.clone()]),
+            &[receipt(&first)],
+        ).unwrap();
+
+        let mut candidate_case = first.clone();
+        candidate_case.task_id = "TM-02".to_owned();
+        let candidate = audit_memory_operations(
+            &manifest(vec![candidate_case.clone()]),
+            &[receipt(&candidate_case)],
+        ).unwrap();
+
+        assert_eq!(
+            compare_memory_operation_arms(&baseline, &candidate),
+            Err(MemoryOperationError::ComparisonTaskRosterMismatch)
         );
     }
 
