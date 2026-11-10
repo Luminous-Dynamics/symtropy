@@ -227,6 +227,60 @@ Initial targets (research goals, not measured performance):
 
 The first implementation should use the analytical 1D impact/repeated-bounce oracle (#3394/#3407), then one small articulated/free-body family from #3749. Do not begin with humanoid locomotion or large mesh contact. Prove the generator cannot manufacture false comparisons before increasing complexity.
 
+### 3.2.4 Differential geometry: from valid rotations to valid derivatives and spatial mechanics
+
+Symtropy should invest in differential geometry, but the goal is **not** to add more abstract algebra or replace its existing geometric-algebra representation. The goal is to make every rotational/rigid-body computation use the correct configuration manifold, tangent space, dual space, frame and local derivative.
+
+The existing code already has Bivector<D> for so(D), Rotor<D> for SO(D), Transform<D> for rigid transforms and a validated SO(D) matrix-admission path in draft PR #4412. The principal gaps are:
+- no shared checked SO(D) logarithm / cut-locus and geodesic interpolation contract;
+- no paired, typed tangent plus/minus operations and left/right exponential Jacobians;
+- no unified distinction between body- and spatial-trivialized angular velocity/momentum;
+- no SE(D) spatial twist/wrench adjoint/coadjoint API with a power-pairing invariant;
+- production RigidBody inertia remains an axis SVector<D> and the integrator reduces it to a scalar mean for bivector acceleration/energy;
+- gradient receipts do not yet bind the manifold chart, trivialization or tangent-space transport convention.
+
+A concrete example already exists in the production math code: Rotor::slerp extracts one plane from (R-Rᵀ)/2. That skew part vanishes for an exact SO(3) half-turn, and the current implementation returns identity on that path. For generic SO(4) rotations with two independent planes and different angles, one plane/angle is also insufficient. Transform::interpolate uses this path for relative rotations. The replacement requires a checked logarithm and explicit branch policy; an ambiguous cut-locus case must not silently become identity.
+
+#### Industry baselines: the established pattern is tangent-space awareness
+
+| System | Existing geometric treatment | Symtropy response |
+|---|---|---|
+| **MuJoCo** | Explicitly distinguishes position dimension nq from velocity/tangent dimension nv for quaternion joints; exposes mj_differentiatePos to compute configuration differences in the tangent space. | Give manifold plus/minus and tangent Jacobians the same first-class status. |
+| **Pinocchio** | Supports SO(2), SO(3), SE(2), SE(3) Lie groups with integrate, difference, their Jacobians and tangent transport. | Make left/right trivialization and tangent transport explicit and reusable. |
+| **Ceres** | Provides QuaternionManifold; its docs warn that ambient-coordinate numerical perturbations can leave the unit-quaternion manifold. | Require derivative checks to perturb in the tangent space and retract. |
+| **Drake** | Uses spatial poses, 6D spatial vectors and a 6×6 spatial inertia to couple mass, COM and rotational inertia. | Build typed twist/wrench/spatial-inertia operations with frame/about-point identity and power invariance. |
+
+Primary documentation:
+- MuJoCo configuration/tangent dimensions: https://mujoco.readthedocs.io/en/latest/computation.html
+- Pinocchio Lie groups: https://gepettoweb.laas.fr/doc/stack-of-tasks/pinocchio/master/doxygen-html/md_doc_a-features_e-lie.html
+- Pinocchio integrate/difference Jacobians and tangent transport: https://gepettoweb.laas.fr/doc/stack-of-tasks/pinocchio/master/doxygen-html/structpinocchio_1_1LieGroupBase.html
+- Ceres QuaternionManifold and manifold-aware numeric differentiation: https://ceres-solver.readthedocs.io/latest/modeling_faqs.html and https://ceres-solver.readthedocs.io/latest/nnls_modeling.html
+- Drake spatial algebra: https://drake.mit.edu/doxygen_cxx/group__multibody__spatial__algebra.html
+
+#### Proposed geometry benchmark ladder
+
+1. **SO(3) exp/log:** identity and small-angle series; generic axis-angle; exact and near-π rotations; branch/cut-locus typing. Check round-trip and reconstructed matrix independently.
+2. **SO(4) multi-plane:** simultaneous independent rotations with unequal angles; preserve each principal-plane action and group composition. Do not reduce to one axis/plane.
+3. **Retraction and tangent difference:** minus(R, plus(R, δ)) returns δ within the declared injectivity region; use tangent-space finite differences, not raw matrix/quaternion coefficient perturbations.
+4. **Differential of exp:** check left/right Jacobians and inverses against high-precision central differences on well-conditioned charts; typed singular/ill-conditioned result near branch boundaries.
+5. **Adjoint/coadjoint:** frame changes of twists and wrenches preserve their dual power pairing; test body/world conversion and non-commuting transforms.
+6. **Rigid-body dynamics:** torque-free asymmetric top, same inertia re-expressed in rotated body frames, and agreement between body- and spatial-trivialized formulations; report energy and world angular momentum independently.
+7. **Hybrid/contact derivatives:** compose tangent transport with event saltation and branch-local contact derivatives; never conflate smooth manifold derivatives with nonsmooth event sensitivities.
+
+Initial internal targets (not current measurements or universal standards): SO(3) exp/log relative error ≤1e-12 away from the cut locus in f64; tangent Jacobian relative discrepancy ≤1e-8 against independent references on well-conditioned cases; twist–wrench power-pairing defect ≤1e-12; zero silent identity fallbacks for ambiguous logs; 100% derivative receipts bind their chart, tangent coordinates, frame and left/right convention.
+
+#### Existing ownership — do not fork the geometry stack
+
+- [#4452](https://github.com/Luminous-Dynamics/symtropy/issues/4452) owns shared SO(D) log, tangent calculus, Jacobian and SE(D) adjoint/coadjoint primitives.
+- [#1613 / PR #1641](https://github.com/Luminous-Dynamics/symtropy/issues/1613) owns frame-labelled rigid transforms and pose composition.
+- [#3753 / PR #3920](https://github.com/Luminous-Dynamics/symtropy/issues/3753) owns physically realizable mass properties and the bivector inertia operator.
+- [#3132 / #3119](https://github.com/Luminous-Dynamics/symtropy/issues/3132) own SO(3) equivariance and momentum-map physics evidence.
+- [#3439](https://github.com/Luminous-Dynamics/symtropy/issues/3439) must bind chart/trivialization and tangent-space provenance into derivative receipts.
+- [#3975](https://github.com/Luminous-Dynamics/symtropy/issues/3975) owns time-integrator selection and geometric stability/convergence.
+- [#460](https://github.com/Luminous-Dynamics/symtropy/issues/460) remains the sole shared qualification corpus.
+
+The competitive opportunity is not to claim that a Rotor is a complete Lie-group mechanics stack. It is to connect configuration geometry, dual spatial mechanics, inertia, numerical integration and qualified derivatives under one convention that can be independently tested.
+
 ### 3.3 Richer physical interactions
 
 The frontier includes articulated rigid bodies, contacts, tendons, cables, cloth, deformables, particles and coupled solvers. This is not a reason to immediately implement all of them. It is a reason to define extension boundaries and choose domain-specific solvers based on validated use cases.
