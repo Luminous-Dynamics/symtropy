@@ -726,14 +726,18 @@ mod tests {
 
     #[test]
     fn audit_unknown_and_qualified_or_worse_are_counted_separately() {
-        let report = validate_treasury_snapshot(&snapshot(
+        let mut candidate = snapshot(
             SnapshotVerification::Verified,
             AmountTypeClass::Actual,
             vec![
                 fact(TreasurySchemaGeneration::MscoaV2, 2025, "6001", Some(100), "AUD", AuditOpinionStatus::Unknown),
                 fact(TreasurySchemaGeneration::MscoaV2, 2025, "6002", Some(200), "AUD", AuditOpinionStatus::Qualified),
             ],
-        )).expect("valid source snapshot");
+        );
+        candidate.receipt.audit_opinion_source_digest =
+            Some("sha256-audit-opinion-join".to_string());
+        let report = validate_treasury_snapshot(&candidate)
+            .expect("valid source snapshot");
         assert_eq!(report.audit_opinion_unknown, 1);
         assert_eq!(report.audit_opinion_qualified_or_worse, 1);
         assert_eq!(report.confirmatory_eligible, 2);
