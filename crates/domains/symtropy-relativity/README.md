@@ -18,7 +18,7 @@ A bounded Rust research crate for analytic Lorentzian-spacetime reference calcul
 - Noise-weighted frequency-domain waveform comparison: one-sided PSD inner product, constant-phase-maximized mismatch, explicit best phase offset, separate amplitude L2 and frequency-dependent phase residual diagnostics, and strict grid/PSD/domain validation. The caller must pre-align waveforms; no hidden time maximization, interpolation, resampling, or PSD estimation.
 - Kerr equatorial prograde/retrograde circular-null-orbit reference observables: analytic photon-orbit radius and signed frequency, metric null/radial circularity residuals, normalized null radial-potential R/R-prime residuals, impact parameter, and coordinate-time radial Lyapunov exponent. Extremal prograde Boyer-Lindquist horizon limit returns explicit unavailable impact/Lyapunov values rather than a fabricated finite result.
 - A 20-case independently generated Kerr light-ring reference grid spanning zero, positive, negative, near-extremal, and extremal spin.
-- **100 authored Rust tests** across scalar physics, Kerr limits, metric matrices, connection compatibility, curvature, second-order automatic differentiation, horizon-regular charts, posterior transforms, geodesic integration, separated Kerr null-geodesic formulae, waveform metrics, and light-ring references.
+- **104 authored Rust tests** across scalar physics, Kerr limits, metric matrices, connection compatibility, curvature, second-order automatic differentiation, horizon-regular charts, posterior transforms, geodesic integration, separated Kerr null-geodesic formulae, waveform metrics, and light-ring references.
 
 ## Conventions
 
@@ -104,6 +104,8 @@ The second-order equations follow by differentiating the separated first integra
 - (d^2\theta/d\gamma^2 = \tfrac12 \Theta'(\theta)).
 
 The second-order state passes continuously through simple turning points because the corresponding coordinate velocity reaches zero while its acceleration determines the continuation. `mino_constraint_residuals` exposes (v_r^2-R) and (v_\theta^2-\Theta) for integration-drift monitoring. The first-order signed system remains useful for evaluating branch-local analytic derivatives and explicit sign controls.
+
+Finite-radius observer geometry is now explicit through `KerrFiniteRadiusObserver`, which constructs a zero-angular-momentum-observer (ZAMO) orthonormal tetrad in the Kerr exterior. `KerrLocalSkyDirection` requires a unit local 3-direction; `ray_seed` maps it to (E=1), (L_z), Carter (Q), and a Mino initial state. The API rejects non-unit directions, axis/horizon chart boundaries and non-positive Killing energy at infinity (negative-energy ergoregion rays are not represented by the current (E>0) constants type). The local observer map provides the finite-radius starting point; the Bardeen map remains the asymptotic limit.
 
 A second, independent formulation is also present: `KerrCanonicalHamiltonian` builds the dimensionless Boyer–Lindquist metric and its first derivatives from the existing Jet2 automatic-differentiation path, then evaluates (H=\\tfrac12 g^{\\mu\\nu}p_\\mu p_\\nu) and Hamilton's equations. `state_from_separated` maps Carter constants and branch choices into canonical momenta. The cross-check compares the Hamiltonian coordinate vector field to the separated Mino derivatives after multiplication by (\\Sigma), and checks recovered (E,L_z,Q) and the null Hamiltonian residual. This tests two different derivation routes against each other; they still share the underlying Kerr metric.
 
