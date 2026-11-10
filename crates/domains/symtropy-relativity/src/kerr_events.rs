@@ -51,6 +51,11 @@ pub enum KerrHorizonEventError {
         segment_index: usize,
         maximum_normalized_radial_derivative: f64,
     },
+    RootPrecisionExhausted {
+        segment_index: usize,
+        current_bracket_width: f64,
+        requested_tolerance: f64,
+    },
 }
 
 impl fmt::Display for KerrHorizonEventError {
@@ -81,6 +86,14 @@ impl fmt::Display for KerrHorizonEventError {
             } => write!(
                 f,
                 "accepted segment {segment_index} has a non-monotone horizon-crossing interpolant (maximum d(r/M)/d(theta)={maximum_normalized_radial_derivative:e})"
+            ),
+            Self::RootPrecisionExhausted {
+                segment_index,
+                current_bracket_width,
+                requested_tolerance,
+            } => write!(
+                f,
+                "horizon event root on segment {segment_index} reached floating-point resolution before requested tolerance (bracket={current_bracket_width:e}, requested={requested_tolerance:e})"
             ),
         }
     }
@@ -195,6 +208,13 @@ pub fn localize_first_outer_horizon_crossing(
                 break;
             }
             let middle = 0.5 * (lower + upper);
+            if middle == lower || middle == upper {
+                return Err(KerrHorizonEventError::RootPrecisionExhausted {
+                    segment_index,
+                    current_bracket_width: parameter_width,
+                    requested_tolerance: parameter_tolerance,
+                });
+            }
             if radial_residual(middle) > 0.0 {
                 lower = middle;
             } else {
@@ -338,6 +358,24 @@ mod tests {
         assert!(matches!(
             localize_first_outer_horizon_crossing(&ingoing, black_hole, 0.0),
             Err(KerrHorizonEventError::InvalidParameterTolerance(_))
+        ));
+    }
+
+    #[test]
+    fn reports_when_requested_root_tolerance_exceeds_float_resolution() {
+        let black_hole = hole(0.9);
+        let horizon = black_hole.outer_horizon_radius_m()
+            / black_hole.gravitational_radius_m();
+        let ray = trajectory(
+            KerrMinoCoordinateChart::IngoingKerr,
+            vec![
+                point(0.0, horizon + 0.5, -0.5),
+                point(2.0, horizon - 0.5, -0.5),
+            ],
+        );
+        assert!(matches!(
+            localize_first_outer_horizon_crossing(&ray, black_hole, f64::MIN_POSITIVE),
+            Err(KerrHorizonEventError::RootPrecisionExhausted { .. })
         ));
     }
 
