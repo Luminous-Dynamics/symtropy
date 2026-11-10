@@ -307,7 +307,7 @@ pub fn evaluate(input: &BenchmarkInputV1) -> Result<BenchmarkReportV1, Evaluatio
     validate_input(input)?;
     let canonical = canonicalize(input);
     let input_sha256 = canonical_sha256(&canonical)?;
-    let energy_included = energy_is_comparable(&canonical.campaigns);
+    let energy_sensors_comparable = energy_is_comparable(&canonical.campaigns);
     let requested_cases = canonical.cases.len() as u64;
     let requested_ticks = canonical.cases.iter().try_fold(0_u64, |total, case| {
         total
@@ -321,6 +321,10 @@ pub fn evaluate(input: &BenchmarkInputV1) -> Result<BenchmarkReportV1, Evaluatio
         .map(|campaign| evaluate_campaign(&canonical, campaign, requested_cases, requested_ticks))
         .collect::<Vec<_>>();
     reports.sort_by(|a, b| a.campaign_id.cmp(&b.campaign_id));
+    let energy_included = energy_sensors_comparable
+        && reports
+            .iter()
+            .all(|campaign| campaign.energy_per_qualified_tick_uj.is_some());
 
     let mut engine_aggregates = aggregate_engines(&reports);
     let frontier = pareto_frontier(&engine_aggregates, energy_included);
