@@ -274,6 +274,44 @@
             },
             "downloaded": {
               "type": "boolean"
+            },
+            "preview_url": {
+              "type": "string",
+              "format": "uri"
+            },
+            "preview_tree_verified": {
+              "type": "boolean"
+            },
+            "file_inventory": {
+              "type": "array",
+              "minItems": 22,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "path",
+                  "reported_size",
+                  "role"
+                ],
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "reported_size": {
+                    "type": "string",
+                    "pattern": "^[0-9.]+ (MB|kB)$"
+                  },
+                  "role": {
+                    "enum": [
+                      "scenario_csv",
+                      "baseline_csv",
+                      "metadata",
+                      "license"
+                    ]
+                  }
+                }
+              }
             }
           }
         }
