@@ -232,3 +232,61 @@ jobs:
           assert actual == expected, f"unexpected reachability/adequacy classifications: {actual}"
           print("Model-adequacy CSV valid: prior reachability and split-predictive controls preserve marginal, joint and rare-tail discrepancies as separate results.")
           PY
+      - name: Verify conditional calibration profiles across nominal levels
+        run: |
+          set -euo pipefail
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin calibration-profile-sweep > /tmp/civdyn-calibration-profile.csv
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin calibration-profile-sweep > /tmp/civdyn-calibration-profile-replay.csv
+          cmp /tmp/civdyn-calibration-profile.csv /tmp/civdyn-calibration-profile-replay.csv
+          python3 - <<'PY'
+          import csv
+          import math
+          from pathlib import Path
+
+          with Path("/tmp/civdyn-calibration-profile.csv").open(newline="", encoding="utf-8") as handle:
+              reader = csv.DictReader(handle)
+              rows = list(reader)
+              fields = reader.fieldnames
+
+          assert fields is not None and len(fields) == 30, f"expected 30 columns, got {len(fields or [])}"
+          assert len(rows) == 8, f"expected eight statistic/level points, got {len(rows)}"
+          by_key = {(row["statistic_id"], row["central_mass"]): row for row in rows}
+          assert len(by_key) == 8
+
+          expected_a = {"0.50": 80, "0.80": 120, "0.90": 140, "0.95": 160}
+          expected_b = {"0.50": 120, "0.80": 180, "0.90": 196, "0.95": 198}
+          for mass, covered in expected_a.items():
+              row = by_key[("service-coverage-group-a", mass)]
+              assert row["expected_units"] == row["assessed_units"] == "200"
+              assert row["covered_units"] == str(covered)
+              assert row["not_assessed_units"] == "0"
+              assert math.isclose(float(row["empirical_coverage"]), covered / 200, abs_tol=1e-8)
+              assert row["point_status"] == "undercoverage_detected"
+              assert row["wilson_lower_95"] and row["wilson_upper_95"]
+              assert row["mean_interval_width"] != ""
+          for mass, covered in expected_b.items():
+              row = by_key[("service-coverage-group-b", mass)]
+              assert row["expected_units"] == row["assessed_units"] == "200"
+              assert row["covered_units"] == str(covered)
+              assert row["not_assessed_units"] == "0"
+              assert math.isclose(float(row["empirical_coverage"]), covered / 200, abs_tol=1e-8)
+              assert row["point_status"] == "overcoverage_detected"
+              assert row["wilson_lower_95"] and row["wilson_upper_95"]
+              assert row["mean_interval_width"] != ""
+
+          expected_widths = {"0.50": 50.0, "0.80": 80.0, "0.90": 90.0, "0.95": 95.0}
+          for (statistic, mass), row in by_key.items():
+              assert row["registry_version"] == "calibration-profile-v1"
+              assert row["model_digest"] == "sha256-calibration-profile-model"
+              assert row["split_manifest_id"] == "calibration-profile-split-v1"
+              assert row["split_manifest_digest"] == "sha256-calibration-profile-manifest"
+              assert row["calibration_data_digest"] == "sha256-calibration-profile-calibration"
+              assert row["role"] == "validation"
+              assert row["predictive_kind"] == "split_predictive"
+              assert row["independent_unit"] == "region"
+              assert row["evidence_complete"] == "true"
+              assert row["claim_ceiling"] == "calibration_discrepancy_detected"
+              assert math.isclose(float(row["mean_interval_width"]), expected_widths[mass], abs_tol=1e-8)
+              assert math.isclose(float(row["nominal_coverage"]) if "nominal_coverage" in row else float(mass), float(mass), abs_tol=1e-8)
+          print("Calibration profile CSV valid: subgroup under/overcoverage retained at 50/80/90/95%, Wilson checks and native-unit sharpness separate, shared model/data/draw identities and deterministic replay verified.")
+          PY
