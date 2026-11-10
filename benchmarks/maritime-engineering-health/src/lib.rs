@@ -742,6 +742,30 @@ mod tests {
             CapabilityImpactStatus::RecoveryEvidenceReadyForIndependentReview
         );
         assert!(!recovery.capability_impact.may_clear_restriction);
+
+        let capabilities: BTreeSet<&str> = report
+            .results
+            .iter()
+            .map(|result| result.capability_impact.capability.as_str())
+            .collect();
+        assert!(
+            capabilities.len() >= 8,
+            "fixture corpus must retain function-specific capability identities"
+        );
+
+        let steering = report
+            .results
+            .iter()
+            .find(|result| result.case_id == "negative-steering-feedback")
+            .expect("steering fixture exists");
+        assert_eq!(
+            steering.capability_impact.capability,
+            "steering-control-service"
+        );
+        assert_eq!(
+            steering.capability_impact.component_id,
+            "component-steering-gear"
+        );
     }
 
     #[test]
