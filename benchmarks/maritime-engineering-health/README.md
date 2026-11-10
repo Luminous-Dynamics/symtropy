@@ -75,7 +75,7 @@ impute missing measurements, silently reorder time-series, or assign fault recor
 to train/validation/test partitions. The baseline file remains reference_only. The dataset-index and variable-dictionary semantics still require
 human reconciliation after payload inspection. An incomplete audit exits non-zero.
 The report schema is
-`docs/tech/MARITIME_ENGINE_DATASET_AUDIT_REPORT_V0_1.schema.json`.
+`docs/tech/MARITIME_ENGINE_DATASET_AUDIT_REPORT_V0_1.schema.json`. The report includes warnings for duplicate timestamps, incomplete header metadata and the fact that the auditor does not prove the extracted tree came from the supplied ZIP.
 
 The tool's `content_audited_pending_independent_review` state means all declared
 members were present, the archive had a recognized ZIP signature, its MD5 matched
