@@ -14,7 +14,7 @@ use core::fmt;
 
 use crate::{
     KerrBlackHole,
-    kerr_geodesic::{KerrMinoCoordinateChart, KerrMinoTrajectory},
+    kerr_geodesic::{KerrMinoCaptureStatus, KerrMinoCoordinateChart, KerrMinoTrajectory},
 };
 
 /// A localized outside-to-inside crossing of the future outer horizon.
@@ -56,6 +56,7 @@ pub enum KerrHorizonEventError {
         current_bracket_width: f64,
         requested_tolerance: f64,
     },
+    TrajectoryNotQualified(KerrMinoCaptureStatus),
 }
 
 impl fmt::Display for KerrHorizonEventError {
@@ -95,11 +96,39 @@ impl fmt::Display for KerrHorizonEventError {
                 f,
                 "horizon event root on segment {segment_index} reached floating-point resolution before requested tolerance (bracket={current_bracket_width:e}, requested={requested_tolerance:e})"
             ),
+            Self::TrajectoryNotQualified(status) => {
+                write!(f, "trajectory does not qualify for horizon-event localization: {status:?}")
+            },
         }
     }
 }
 
 impl std::error::Error for KerrHorizonEventError {}
+
+/// Localize an outer-horizon event only after the trajectory's capture
+/// and first-integral constraint qualification succeeds.
+///
+/// This is the safe composition API for callers making a capture/event claim:
+/// it first requires `capture_status` to return `CapturedByHorizon`, then
+/// localizes the first accepted-step Hermite crossing. The supplied residual
+/// ceiling is the same ceiling used by the capture classifier. The returned
+/// root bracket still bounds only the interpolant root, not exact-geodesic
+/// interpolation error.
+pub fn localize_qualified_first_outer_horizon_crossing(
+    trajectory: &KerrMinoTrajectory,
+    hole: KerrBlackHole,
+    maximum_constraint_residual: f64,
+    parameter_tolerance: f64,
+) -> Result<KerrHorizonEvent, KerrHorizonEventError> {
+    let status = trajectory.capture_status(hole, maximum_constraint_residual);
+    if status != KerrMinoCaptureStatus::CapturedByHorizon {
+        return Err(KerrHorizonEventError::TrajectoryNotQualified(status));
+    }
+    localize_first_outer_horizon_crossing(trajectory, hole, parameter_tolerance)?
+        .ok_or(KerrHorizonEventError::TrajectoryNotQualified(
+            KerrMinoCaptureStatus::NoCrossingWithinIntegratedInterval,
+        ))
+}
 
 /// Localize the first sampled future-horizon crossing in an ingoing Kerr
 /// trajectory using cubic-Hermite interpolation and safeguarded bisection.
@@ -327,6 +356,87 @@ mod tests {
         assert!(event.mino_parameter <= event.parameter_bracket[1]);
         assert!(event.root_solver_error_bound <= 5.0e-11);
         assert!(event.interpolant_radius_residual_over_m <= 1.0e-10);
+    }
+
+    #[test]
+    fn qualified_api_requires_capture_and_constraint_checks_before_localizing() {
+        let black_hole = hole(0.9);
+        let horizon = black_hole.outer_horizon_radius_m()
+            / black_hole.gravitational_radius_m();
+        let ray = trajectory(
+            KerrMinoCoordinateChart::IngoingKerr,
+            vec![
+                point(0.0, horizon + 0.5, -0.5),
+                point(2.0, horizon - 0.5, -0.5),
+            ],
+        );
+        let event = localize_qualified_first_outer_horizon_crossing(
+            &ray, black_hole, 1.0e-5, 1.0e-10,
+        ).unwrap();
+        assert!((event.mino_parameter - 1.0).abs() <= 1.0e-10);
+
+        let mut drifting = ray.clone();
+        drifting.maximum_normalized_radial_constraint_residual = 1.0e-3;
+        assert!(matches!(
+            localize_qualified_first_outer_horizon_crossing(
+                &drifting, black_hole, 1.0e-5, 1.0e-10,
+            ),
+            Err(KerrHorizonEventError::TrajectoryNotQualified(
+                KerrMinoCaptureStatus::ConstraintDriftExceeded
+            ))
+        ));
+
+        let non_crossing = trajectory(
+            KerrMinoCoordinateChart::IngoingKerr,
+            vec![
+                point(0.0, horizon + 2.0, -1.0),
+                point(1.0, horizon + 1.0, -1.0),
+            ],
+        );
+        assert!(matches!(
+            localize_qualified_first_outer_horizon_crossing(
+                &non_crossing, black_hole, 1.0e-5, 1.0e-10,
+            ),
+            Err(KerrHorizonEventError::TrajectoryNotQualified(
+                KerrMinoCaptureStatus::NoCrossingWithinIntegratedInterval
+            ))
+        ));
+    }
+
+    #[test]
+    fn cubic_hermite_event_is_stable_under_segment_refinement() {
+        let black_hole = hole(0.9);
+        let horizon = black_hole.outer_horizon_radius_m()
+            / black_hole.gravitational_radius_m();
+        // p(gamma) = r(gamma)-r_+ = 0.5 - gamma + 0.2*gamma^2.
+        // Its derivative is strictly negative on [0,1], and its first root is analytic.
+        let radial = |gamma: f64| horizon + 0.5 - gamma + 0.2 * gamma * gamma;
+        let velocity = |gamma: f64| -1.0 + 0.4 * gamma;
+        let coarse = trajectory(
+            KerrMinoCoordinateChart::IngoingKerr,
+            vec![
+                point(0.0, radial(0.0), velocity(0.0)),
+                point(1.0, radial(1.0), velocity(1.0)),
+            ],
+        );
+        let refined = trajectory(
+            KerrMinoCoordinateChart::IngoingKerr,
+            vec![
+                point(0.0, radial(0.0), velocity(0.0)),
+                point(0.5, radial(0.5), velocity(0.5)),
+                point(1.0, radial(1.0), velocity(1.0)),
+            ],
+        );
+        let expected = (1.0 - 0.6_f64.sqrt()) / 0.4;
+        let coarse_event = localize_first_outer_horizon_crossing(
+            &coarse, black_hole, 1.0e-12,
+        ).unwrap().unwrap();
+        let refined_event = localize_first_outer_horizon_crossing(
+            &refined, black_hole, 1.0e-12,
+        ).unwrap().unwrap();
+        assert!((coarse_event.mino_parameter - expected).abs() <= 1.0e-12);
+        assert!((refined_event.mino_parameter - expected).abs() <= 1.0e-12);
+        assert!((coarse_event.mino_parameter - refined_event.mino_parameter).abs() <= 1.0e-12);
     }
 
     #[test]
