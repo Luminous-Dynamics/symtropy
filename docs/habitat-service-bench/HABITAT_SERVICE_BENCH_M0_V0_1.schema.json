@@ -30,15 +30,43 @@
       "const": "requirements_and_interface_design_only"
     },
     "claim_ceiling": {
-      "const": {
-        "site_selected": false,
-        "design_approved": false,
-        "construction_authorized": false,
-        "energization_authorized": false,
-        "instrument_qualified": false,
-        "product_qualified": false,
-        "building_physics_validated": false,
-        "occupied_use_authorized": false
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "site_selected",
+        "design_approved",
+        "construction_authorized",
+        "energization_authorized",
+        "instrument_qualified",
+        "product_qualified",
+        "building_physics_validated",
+        "occupied_use_authorized"
+      ],
+      "properties": {
+        "site_selected": {
+          "const": false
+        },
+        "design_approved": {
+          "const": false
+        },
+        "construction_authorized": {
+          "const": false
+        },
+        "energization_authorized": {
+          "const": false
+        },
+        "instrument_qualified": {
+          "const": false
+        },
+        "product_qualified": {
+          "const": false
+        },
+        "building_physics_validated": {
+          "const": false
+        },
+        "occupied_use_authorized": {
+          "const": false
+        }
       }
     },
     "parent_issue": {
