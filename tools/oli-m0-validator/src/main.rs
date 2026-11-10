@@ -245,7 +245,7 @@ fn validate_fixture(value: &Value) -> Vec<String> {
         errors.push("limitations must be a non-empty array of non-empty strings".to_owned());
     }
 
-    validate_number(
+    let _ = validate_number(
         value,
         &["measurement", "spatial", "resolution_m"],
         "measurement.spatial.resolution_m",
@@ -375,7 +375,7 @@ fn validate_fixture(value: &Value) -> Vec<String> {
         None,
         &mut errors,
     );
-    validate_number(
+    let _ = validate_number(
         value,
         &["measurement", "temporal", "coverage_fraction"],
         "measurement.temporal.coverage_fraction",
@@ -384,7 +384,7 @@ fn validate_fixture(value: &Value) -> Vec<String> {
         Some(1.0),
         &mut errors,
     );
-    validate_number(
+    let _ = validate_number(
         value,
         &["measurement", "spatial", "footprint_fraction"],
         "measurement.spatial.footprint_fraction",
