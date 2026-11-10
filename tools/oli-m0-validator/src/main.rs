@@ -777,6 +777,7 @@ mod tests {
         value["measurement"]["units"] = Value::Array(Vec::new());
         assert!(!validate_fixture(&value).is_empty());
     }
+
     #[test]
     fn abiotic_pattern_cannot_be_promoted_to_life_or_intelligence() {
         for property in [
@@ -807,17 +808,21 @@ mod tests {
             serde_json::from_str(include_str!("../fixtures/oli-m0-temporal-fn-001.json")).unwrap();
         temporal["evidence_class"] =
             Value::String("SYNTHETIC_UNKNOWN_GENERATOR".to_owned());
-        assert!(validate_fixture(&temporal)
-            .iter()
-            .any(|error| error.contains("temporal false-negative fixture must use synthetic known-truth")));
+        assert!(
+            validate_fixture(&temporal).iter().any(|error| {
+                error.contains("temporal false-negative fixture must use synthetic known-truth")
+            })
+        );
 
         let mut ood: Value =
             serde_json::from_str(include_str!("../fixtures/oli-m0-ood-sensor-001.json")).unwrap();
         ood["evidence_class"] =
             Value::String("SYNTHETIC_UNKNOWN_GENERATOR".to_owned());
-        assert!(validate_fixture(&ood)
-            .iter()
-            .any(|error| error.contains("OOD sensor fixture must use synthetic known-truth")));
+        assert!(
+            validate_fixture(&ood).iter().any(|error| {
+                error.contains("OOD sensor fixture must use synthetic known-truth")
+            })
+        );
     }
 
 }
