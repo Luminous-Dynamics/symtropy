@@ -59,11 +59,14 @@ Typed input, timing, policy-receipt, evaluator-audit and missing-event metadata 
 
 From this directory:
 
-\`\`\`sh
+```sh
 cargo fmt -- --check
 cargo test --locked
 cargo clippy --locked --all-targets --all-features -- -D warnings
-\`\`\`
+cargo run --release --example renderer_benchmark -- 1000
+```
+
+The benchmark probe reports host render p50/p95/p99, mean latency, throughput, resolution, bytes per frame and a final frame digest. Its synthetic receipt timestamps remain separate from wall-clock render measurements. Record host CPU, compiler, power profile and build flags when comparing runs; never compare runner timings with local laptop timings as if they were controlled.
 
 The crate pins Rust 1.96.0. It uses `serde` for typed receipt serialization and `serde_json` in tests for JSON round-trip conformance.
 
