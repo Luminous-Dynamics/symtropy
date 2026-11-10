@@ -629,7 +629,10 @@ fn validate_snapshot(snapshot: &WorldRenderSnapshot) -> Result<(), RenderError> 
 }
 
 fn is_sha256_hex(value: &str) -> bool {
-    value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
+    value.len() == 64
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
 }
 
 fn validate_id(value: &str) -> Result<(), RenderError> {
@@ -1607,6 +1610,16 @@ mod tests {
         assert_ne!(
             first.policy_receipt.receipt_sha256,
             second.policy_receipt.receipt_sha256
+        );
+    }
+
+    #[test]
+    fn uppercase_action_receipt_digest_is_rejected_as_noncanonical() {
+        let mut world = snapshot();
+        world.applied_action.as_mut().unwrap().receipt_sha256 = "A".repeat(64);
+        assert_eq!(
+            SoftwareCameraRenderer::render(&world, 1, clocks()).err(),
+            Some(RenderError::InvalidActionReceiptDigest)
         );
     }
 
