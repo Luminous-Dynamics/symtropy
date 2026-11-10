@@ -223,24 +223,18 @@ impl<const D: usize> Constraint<D> for HingeJoint<D> {
             let rel_angular_vel =
                 body_b.angular_velocity.get(pa, pb) - body_a.angular_velocity.get(pa, pb);
 
-            // Velocity-only PD controller: this crate does not track a running
-            // joint angle for hinges, so true PD position control (as used by
-            // PrismaticJoint's `MotorDrive::calculate_impulse`, which needs a
-            // `current_pos`) isn't available here without integrating one —
-            // left as a future improvement (would need a persisted relative
-            // angle, e.g. extracted each step from the two bodies' rotors in
-            // the (pa, pb) plane).
+            // Velocity-only drive: HingeJoint does not yet maintain a
+            // continuous relative angle, so the position term (kp * position
+            // error) is unavailable and target_pos/kp are intentionally not
+            // consumed here. Use MotorDrive's velocity-error gain (kd) only.
+            // This makes zero torque the equilibrium at target_vel; adding an
+            // extra -kd*current_velocity term would incorrectly brake a joint
+            // even after it reached a nonzero target speed.
             //
-            // Bug fix: this previously read
-            // `motor.kp * (motor.target_pos - rel_angular_vel)`, subtracting
-            // an angular *velocity* from a position/angle *target* — a unit
-            // mismatch (the doc comment above already claimed this computed
-            // `kp*(target_vel - current_vel)`; the code just used the wrong
-            // field). Fixed to use `motor.target_vel`, matching the intent:
-            // impulse = kp*(target_vel - current_vel) * dt, plus an extra
-            // kd*current_vel damping term.
-            let torque = (motor.kp * (motor.target_vel - rel_angular_vel)
-                - rel_angular_vel * motor.kd)
+            // Position mode remains unsupported until an unwrapped relative
+            // angle, reference-frame convention and limit interaction are
+            // implemented. Keep this API claim ceiling explicit.
+            let torque = (motor.kd * (motor.target_vel - rel_angular_vel))
                 .clamp(-motor.max_force, motor.max_force);
 
             // Apply the motor's angular impulse through the integrator's
@@ -360,6 +354,72 @@ mod tests {
     }
 
     #[test]
+    fn hinge_velocity_motor_has_zero_effort_at_nonzero_target_velocity() {
+        let mut a = RigidBody::<3>::static_body(
+            BodyHandle(0),
+            Point::origin(),
+            Box::new(symtropy_math::Sphere::new(Point::origin(), 0.1)),
+        );
+        let mut b = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(1),
+            Point::origin(),
+            1.0,
+            1.0,
+        );
+        b.angular_velocity.set(0, 1, 1.0);
+        let before = b.angular_velocity.get(0, 1);
+        let motor = super::super::MotorDrive {
+            target_pos: -2.0,
+            target_vel: 1.0,
+            kp: 100.0,
+            kd: 10.0,
+            max_force: 100.0,
+        };
+        let joint = HingeJoint::new(BodyHandle(0), BodyHandle(1), 0, 1)
+            .with_motor(motor);
+
+        joint.solve_velocity(&mut a, &mut b, 0.1, None);
+
+        assert!(
+            (b.angular_velocity.get(0, 1) - before).abs() < 1e-12,
+            "a velocity drive must not brake or accelerate when target velocity is met"
+        );
+    }
+
+    #[test]
+    fn hinge_velocity_motor_respects_torque_saturation() {
+        let mut a = RigidBody::<3>::static_body(
+            BodyHandle(0),
+            Point::origin(),
+            Box::new(symtropy_math::Sphere::new(Point::origin(), 0.1)),
+        );
+        let mut b = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(1),
+            Point::origin(),
+            1.0,
+            1.0,
+        );
+        let motor = super::super::MotorDrive {
+            target_pos: 0.0,
+            target_vel: 100.0,
+            kp: 0.0,
+            kd: 10.0,
+            max_force: 3.0,
+        };
+        let joint = HingeJoint::new(BodyHandle(0), BodyHandle(1), 0, 1)
+            .with_motor(motor);
+        let dt = 0.1;
+        let expected_delta = 3.0 * dt * (b.inv_inertia.sum() / 3.0);
+
+        joint.solve_velocity(&mut a, &mut b, dt, None);
+
+        assert!(
+            (b.angular_velocity.get(0, 1) - expected_delta).abs() < 1e-12,
+            "velocity motor impulse must respect max_force"
+        );
+    }
+
+    #[test]
     fn hinge_motor_impulse_uses_inverse_inertia_with_static_base() {
         let mut a = RigidBody::<3>::static_body(
             BodyHandle(0),
@@ -375,8 +435,8 @@ mod tests {
         let motor = super::super::MotorDrive {
             target_pos: 0.0,
             target_vel: 1.0,
-            kp: 10.0,
-            kd: 0.0,
+            kp: 0.0,
+            kd: 10.0,
             max_force: 100.0,
         };
         let joint = HingeJoint::new(BodyHandle(0), BodyHandle(1), 0, 1)
@@ -413,8 +473,8 @@ mod tests {
         let motor = super::super::MotorDrive {
             target_pos: 0.0,
             target_vel: 1.0,
-            kp: 10.0,
-            kd: 0.0,
+            kp: 0.0,
+            kd: 10.0,
             max_force: 100.0,
         };
         let joint = HingeJoint::new(BodyHandle(0), BodyHandle(1), 0, 1)
@@ -484,8 +544,8 @@ mod tests {
         let motor = super::super::MotorDrive {
             target_pos: 0.0,
             target_vel: 1.0,
-            kp: 10.0,
-            kd: 0.0,
+            kp: 0.0,
+            kd: 10.0,
             max_force: 100.0,
         };
         let joint = HingeJoint::new(BodyHandle(0), BodyHandle(1), 0, 1)
@@ -563,8 +623,8 @@ mod tests {
         let motor = super::super::MotorDrive {
             target_pos: 0.0,
             target_vel: 1.0,
-            kp: 10.0,
-            kd: 0.0,
+            kp: 0.0,
+            kd: 10.0,
             max_force: 100.0,
         };
         let joint = HingeJoint::new(BodyHandle(0), BodyHandle(1), 0, 1)
@@ -652,8 +712,8 @@ mod tests {
         let motor = super::super::MotorDrive {
             target_pos: 0.0,
             target_vel: 1.0,
-            kp: 10.0,
-            kd: 0.0,
+            kp: 0.0,
+            kd: 10.0,
             max_force: 100.0,
         };
         let joint = HingeJoint::new(BodyHandle(0), BodyHandle(1), 0, 1)
