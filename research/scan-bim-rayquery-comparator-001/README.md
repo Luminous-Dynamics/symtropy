@@ -34,7 +34,12 @@ All coordinates are metres in a right-handed XYZ frame. Directions are unit leng
 
 A second fixture, `ray-query-known-answers-scale-1e3-v0-1.json`, applies a uniform 1,000× scale to coordinates, ray origins, near/far distances and metric tolerances while keeping unit directions and dimensionless parallel/barycentric tolerances unchanged. The same strict f64 oracle is run against both fixtures; nearest identities and hit/miss classifications must remain invariant while metric hit distances scale by 1,000×.
 
-This remains a small analytic corpus. It does not yet test arbitrary large/small coordinate ranges, degenerate-input rejection fixtures, highly overlapping/anisotropic geometry, randomized differential rays, or licensed real-building meshes.
+A third fixture, `ray-query-stress-overlap-v0-1.json`, adds 40 triangles and three queries:
+- 24 exactly coincident nearest blockers, requiring all 24 identities in the nearest tie set;
+- 16 long, thin triangles with strongly overlapping AABBs;
+- a near-clipped long-thin query that skips the first surface and returns the next surface at 4.25 m.
+
+The brute-force oracle runs all three fixtures (base, 1,000× scale and overlap stress) in the replay-contract workflow. This corpus now probes difficult synthetic spatial distributions, but it is not a substitute for licensed building meshes or physical scan data. It does not yet test arbitrary large/small coordinate ranges, degenerate-input rejection fixtures, randomized differential rays or real-building geometry.
 
 P0 now checks the fixture with both a strict JSON Schema (2020-12) and an executable, independent brute-force Möller–Trumbore f64 oracle. The oracle's parallel and barycentric thresholds are fields in the fixture contract rather than hidden hard-coded tolerances. The parallel threshold is relative to the triangle-normal magnitude and ray-direction norm, making it dimensionless and scale-consistent. A coplanar ray is explicitly a miss. The replay-contract workflow runs the oracle on both the base and 1,000× scale fixtures and asserts seven hit / four miss outcomes and eleven checked nearest-identity sets in each.
 
@@ -68,7 +73,7 @@ The common adapter must declare:
 
 Visibility policy (observable, unknown, self-occluded, etc.) belongs to #4292 and must not be reimplemented differently in every ray engine.
 
-The median BVH is the production evaluator path. The SAH prototype is compiled only for tests; it is not selected by requests or shipped as a production query option. The two builders are compared on deterministic hit identities and structural/work counters, not wall-clock latency. SAH tests include sparse multi-ray differential work and a coincident-centroid median-fallback path. A separately qualified runtime/benchmark API is still needed before p50/p95/p99 latency, memory or Embree comparisons can be made.
+The median BVH is the production evaluator path. The SAH prototype is compiled only for tests; it is not selected by requests or shipped as a production query option. The two builders are compared on deterministic hit identities and structural/work counters, not wall-clock latency. SAH tests include sparse multi-ray differential work, a coincident-centroid median-fallback path and input-permutation invariance. The corpus now adds a 24-way tie and 16 long-thin overlapping-AABB triangles. A separately qualified runtime/benchmark API is still needed before p50/p95/p99 latency, memory or Embree comparisons can be made.
 
 ## Workload matrix
 
