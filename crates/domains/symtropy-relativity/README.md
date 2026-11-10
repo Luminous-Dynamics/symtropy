@@ -103,6 +103,8 @@ The second-order equations follow by differentiating the separated first integra
 
 The second-order state passes continuously through simple turning points because the corresponding coordinate velocity reaches zero while its acceleration determines the continuation. `mino_constraint_residuals` exposes (v_r^2-R) and (v_\theta^2-\Theta) for integration-drift monitoring. The first-order signed system remains useful for evaluating branch-local analytic derivatives and explicit sign controls.
 
+A second, independent formulation is also present: `KerrCanonicalHamiltonian` builds the dimensionless Boyer–Lindquist metric and its first derivatives from the existing Jet2 automatic-differentiation path, then evaluates (H=\\tfrac12 g^{\\mu\\nu}p_\\mu p_\\nu) and Hamilton's equations. `state_from_separated` maps Carter constants and branch choices into canonical momenta. The cross-check compares the Hamiltonian coordinate vector field to the separated Mino derivatives after multiplication by (\\Sigma), and checks recovered (E,L_z,Q) and the null Hamiltonian residual. This tests two different derivation routes against each other; they still share the underlying Kerr metric.
+
 This remains a reference kernel, **not a complete ray integrator**. No adaptive stepper, turning-point root/event locator, independent Kerr canonical-Hamiltonian evolution, finite-radius observer tetrad, variational Jacobi transport or caustic detection is included yet. Boyer–Lindquist integration is restricted to the exterior and excludes the horizon and polar axis. Tests are authored but not executed in this environment.
 
 ## Schwarzschild geodesic scope
