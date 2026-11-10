@@ -150,3 +150,5 @@ The SHA-256 of the concatenated bytes is `canonical_input_set_sha256`. Names mus
 
 Each method's `input_set_sha256` must equal this recomputed provenance digest. This turns the shared-input identity into a deterministic, cross-language rule instead of a caller-supplied label. The canonicalization test includes ordering and hex-case invariance; the complete v0.2 fixture exercises the byte encoding end-to-end.
 
+Every `MethodEvidence` also links to an exact per-method execution manifest by `execution_manifest_id` and `execution_manifest_sha256`. That artifact should capture the reproduction command, implementation/build identity, dependency lock, runtime/toolchain, hardware and precision, solver settings, stopping criteria and relevant environment variables for that method. The study-level provenance environment remains useful for validating the manifest tool itself, but it no longer has to pretend that two different solver methods ran in one identical execution environment.
+
