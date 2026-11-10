@@ -240,7 +240,7 @@ This ledger validates recorded custody declarations; it cannot prove that a huma
 The challenge-custody evaluator treats exact replay of an already recorded (model, data, manifest, protocol) evaluation as an idempotent historical audit, even after a successor model becomes the current chain head. This does not reopen the challenge for a new candidate or permit additional development feedback. A fresh evaluation still requires the candidate to be the exact current chain head and the challenge evidence to be unused and unretired.
 
 
-## Scenario M: adaptive benchmark feedback budget
+## Scenario N: adaptive benchmark feedback budget
 
 The feedback-release evaluator is in src/feedback_budget.rs and the feedback-budget-sweep binary. It advances [CIVDYN-FEEDBACK-BUDGET-001 #4584](https://github.com/Luminous-Dynamics/symtropy/issues/4584).
 
