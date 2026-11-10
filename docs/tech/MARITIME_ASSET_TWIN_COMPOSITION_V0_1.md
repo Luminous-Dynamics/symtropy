@@ -62,7 +62,7 @@ No human label, tag, name or location alone is a claim-bearing identity key. No 
 
 ## Commissioning dimensions
 
-1. Identity and asset hierarchy: subject, part/serial, lot, parent assembly and installed-at links.
+1. Identity and asset hierarchy: asset, component, serial, lot, parent assembly and installed-at links must be repeated on each source federate and each lineage edge.
 2. Configuration/effectivity: design revision, part revision, drawing/specification revision and effective period.
 3. State semantics: as-designed vs as-manufactured vs as-inspected vs as-built vs as-operated vs inferred vs synthetic.
 4. Temporal semantics: source/observation, valid/effective, event/transaction, ingestion/retrieval and decision-cutoff times.
@@ -74,9 +74,9 @@ No human label, tag, name or location alone is a claim-bearing identity key. No 
 
 ## Frozen corpus v0.1
 
-The corpus contains 30 synthetic positive/negative cases:
+The corpus contains 32 synthetic positive/negative cases:
 - positive federated read-only composition;
-- wrong component/asset identity;
+- wrong asset, component, serial or parent-assembly identity across source federates and lineage edges;
 - wrong design/configuration revision;
 - duplicate serial and lot confusion;
 - effectivity mismatch;
@@ -96,7 +96,7 @@ The corpus contains 30 synthetic positive/negative cases:
 - snapshot freshness without fidelity;
 - frequency pass but latency/fidelity fail.
 
-The corpus is a frozen specification/fixture seed. It is not yet an executed evaluator. The follow-on Rust verifier must independently recompute dispositions; it must not trust a planner-provided status.
+Each federate and relationship carries `asset_id`, `subject_id` (component), `serial_id`, `parent_assembly_id` and `configuration_revision`; a top-level identity value is not sufficient unless every participating source record and lineage edge agrees. The corpus is a frozen specification/fixture seed. It is not yet an executed evaluator. The follow-on Rust verifier must independently recompute dispositions; it must not trust a planner-provided status.
 
 ## Benchmarks and industry baselines
 
