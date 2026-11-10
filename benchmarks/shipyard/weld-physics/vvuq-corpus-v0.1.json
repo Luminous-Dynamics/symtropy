@@ -193,6 +193,28 @@
       ],
       "known_scope_summary": "2026 study of residual-stress distributions in curved welded plates for shipbuilding and offshore contexts, including empirical stress-field representations.",
       "admission_notes": "Treat as literature metadata until actual experimental reference, measured profiles, geometry and model-input availability are confirmed."
+    },
+    {
+      "source_id": "s355j2n-buried-arc-pipe-2022",
+      "title": "Numerical Simulation and Experimental Measurement of Residual Stresses in a Thick-Walled Buried-Arc Welded Pipe Structure",
+      "citation_uri": "https://doi.org/10.3390/met12071102",
+      "doi": "10.3390/met12071102",
+      "publication_year": 2022,
+      "artifact_kind": "journal_article",
+      "evidence_class": "published_table_metadata",
+      "admission_status": "METADATA_ONLY",
+      "rights_status": "CC_BY_4_0_METADATA_ONLY",
+      "retrieved_on": "2026-11-10",
+      "source_bytes_sha256": null,
+      "raw_data_bytes_available": false,
+      "numerical_scoring_eligible": false,
+      "measurement_modalities": [
+        "XRD",
+        "published_figure",
+        "published_table"
+      ],
+      "known_scope_summary": "Single-pass buried-arc/MAG circumferential weld on two S355J2+N pipes of Ø168 × 12 mm. Article records six outer-surface XRD residual-stress locations, model mesh/cooling/source assumptions and a comparison of measured and predicted axial/hoop residual-stress profiles.",
+      "admission_notes": "The article is CC BY 4.0, but its Data Availability Statement says Not applicable and measured residual-stress results are published as figures rather than raw measurement files. Treat only as rights-cleared literature metadata until measurement values, graph-digitization error and XRD uncertainty are independently reconstructed. This is a single-pass buried-arc case, not a matched multipass GMAW comparator."
     }
   ],
   "cases": [
@@ -429,6 +451,15 @@
       "mutation": "Model result is promoted to WPS/PQR, weld acceptance, class approval or release authority",
       "expected_disposition": "BLOCK_CLAIM_PROMOTION",
       "rationale": "A model benchmark does not grant engineering or statutory authority."
+    },
+    {
+      "case_id": "WPHYS-027",
+      "case_class": "negative_control",
+      "source_id": "s355j2n-buried-arc-pipe-2022",
+      "target": "output-specific model validation scope",
+      "mutation": "A model's agreement with post-weld XRD residual-stress profiles is used to claim the predicted molten-pool peak temperature is physically validated, despite the source explicitly acknowledging omitted liquid-solid coupling and an unrealistic computed peak.",
+      "expected_disposition": "BLOCK_VALIDATION",
+      "rationale": "Validation of one output (post-weld residual stress) cannot be promoted to a different output domain (local weld-pool thermophysics) when the source model explicitly documents an important limitation."
     }
   ]
 }
