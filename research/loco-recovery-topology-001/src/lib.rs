@@ -109,9 +109,8 @@ pub enum RouteFinding {
     StepBudgetExceeded { route_id: String },
     EnergyBudgetExceeded { route_id: String },
     MissingFailureDomain { route_id: String, domain_id: String },
-    MissingFailureDomainProvenance { route_id: String, domain_id: String },
     EmptyFailureDomainSet { route_id: String },
-    StaleViabilityReceipt { route_id: String },
+    StaleUpstreamReceipt { route_id: String },
     MissingReceipt { route_id: String },
     UpstreamAdmissionUnknown { route_id: String },
 }
@@ -445,7 +444,7 @@ fn qualify_route(
     if route.viability_valid_through_tick < input.evaluation_tick
         || route.transition_valid_through_tick < input.evaluation_tick
     {
-        mark_unknown!(RouteFinding::StaleViabilityReceipt {
+        mark_unknown!(RouteFinding::StaleUpstreamReceipt {
             route_id: route.route_id.clone(),
         });
     }
@@ -881,7 +880,7 @@ mod tests {
         assert_eq!(report.independent_route_count, None);
         assert!(report.findings.iter().any(|finding| matches!(
             finding,
-            RouteFinding::StaleViabilityReceipt { .. }
+            RouteFinding::StaleUpstreamReceipt { .. }
         )));
     }
 
@@ -1005,7 +1004,7 @@ mod tests {
     #[test]
     fn r19_qualified_alias_dependencies_are_unioned_conservatively() {
         let domains = vec![domain("hip", "hip"), domain("bus", "bus")];
-        let mut a = route("a", &["e_same"], "safe", &["hip"]);
+        let a = route("a", &["e_same"], "safe", &["hip"]);
         let b = route("b", &["e_same"], "safe", &["bus"]);
         let report = audit(&input(domains, vec![a.clone(), b])).unwrap();
         assert_eq!(report.known_route_classes.len(), 1);
@@ -1015,7 +1014,6 @@ mod tests {
         );
         assert_eq!(report.independent_route_count, Some(1));
         assert_eq!(report.minimum_cut_set_size, Some(1));
-        a.action_ids.clear();
     }
 
     #[test]
