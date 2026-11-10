@@ -219,6 +219,10 @@
             },
             "applies_to": {
               "type": "string"
+            },
+            "interpretation": {
+              "type": "string",
+              "minLength": 20
             }
           }
         },
