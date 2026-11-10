@@ -3,7 +3,7 @@ name = "symtropy-physics-gpu"
 version = "0.1.0"
 edition = "2024"
 license = "Apache-2.0 OR MIT"
-description = "GPU-accelerated broadphase and spatial partitioning for Symtropy."
+description = "Experimental Bevy/WGPU compute and rendering scaffolding for Symtropy physics research."
 
 [dependencies]
 bevy = { version = "0.20", default-features = false, features = ["bevy_render", "bevy_asset", "bevy_gizmos", "bevy_pbr"] }
