@@ -20,7 +20,7 @@ license = "AGPL-3.0-or-later"
 # `[workspace]` table back only while nothing in `members` depends on it.
 
 [dependencies]
-bevy = { version = "0.19", default-features = false, features = ["bevy_core_pipeline", "bevy_render", "bevy_pbr", "bevy_asset", "bevy_winit", "x11", "bevy_log", "bevy_color", "bevy_state"] }
+bevy = { version = "0.20", default-features = false, features = ["bevy_core_pipeline", "bevy_render", "bevy_pbr", "bevy_asset", "bevy_winit", "x11", "bevy_log", "bevy_color", "bevy_state"] }
 symtropy-bevy-core = { path = "../../core/symtropy-bevy-core" }
 symthaea-bevy-brain = { path = "../symthaea-bevy-brain" }
 symthaea-fep = "0.1.0"
