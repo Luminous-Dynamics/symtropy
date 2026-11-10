@@ -328,7 +328,7 @@ fn sha256_hex(bytes: &[u8]) -> String {
     let mut output = String::with_capacity(64);
     for byte in digest {
         use std::fmt::Write as _;
-        let _ = write!(&mut output, "{byte:02x}");
+        write!(&mut output, "{byte:02x}").expect("writing to a String cannot fail");
     }
     output
 }
@@ -423,9 +423,9 @@ fn validate_usage_shape(
         if !seen.insert(view.view_id.as_str()) {
             return Err(LeaseError::DuplicateUsageView(view.view_id.clone()));
         }
-        let admission = allowed
-            .get(view.view_id.as_str())
-            .ok_or_else(|| LeaseError::UnknownView(view.view_id.clone()))?;
+        if !allowed.contains_key(view.view_id.as_str()) {
+            return Err(LeaseError::UnknownView(view.view_id.clone()));
+        }
         if view.view_events == 0
             || view.rendered_frames == 0
             || view.p95_frame_time_us == 0
