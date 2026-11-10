@@ -5,6 +5,7 @@
 //! certify safety.
 
 use std::collections::{BTreeMap, BTreeSet};
+use serde::Deserialize;
 
 pub const MAX_EPISODES: usize = 100_000;
 pub const MAX_BRANCHES: usize = 100_000;
@@ -12,7 +13,8 @@ pub const MAX_ACTORS_PER_BRANCH: usize = 1_024;
 pub const MAX_EVENTS_PER_BRANCH: usize = 4_096;
 pub const MAX_FIELDS_PER_BRANCH: usize = 4_096;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum EpisodeDisposition {
     Completed,
     Failed,
@@ -20,13 +22,15 @@ pub enum EpisodeDisposition {
     Censored,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct EpisodeRecord {
     pub episode_id: String,
     pub disposition: EpisodeDisposition,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum InformationSourceRole {
     PolicyVisible,
     TeacherOnly,
@@ -34,14 +38,16 @@ pub enum InformationSourceRole {
     Future,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct InformationField {
     pub field_id: String,
     pub source_role: InformationSourceRole,
     pub available_tick: u64,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct QueryRecord {
     pub query_id: String,
     pub issued_tick: u64,
@@ -50,13 +56,15 @@ pub struct QueryRecord {
     pub inputs: Vec<InformationField>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum ActorResponseOrigin {
     Recomputed,
     Replayed,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ActorResponse {
     pub actor_id: String,
     pub policy_revision_digest: String,
@@ -66,14 +74,16 @@ pub struct ActorResponse {
     pub origin: ActorResponseOrigin,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum RandomEventClass {
     Exogenous,
     Endogenous,
     Unknown,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct RandomEvent {
     pub event_id: String,
     pub shared_with_parent: bool,
@@ -83,7 +93,8 @@ pub struct RandomEvent {
     pub sampled_value_digest: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct BranchRecord {
     pub branch_id: String,
     pub episode_id: String,
@@ -103,7 +114,8 @@ pub struct BranchRecord {
     pub query: Option<QueryRecord>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct FrozenEvaluationControls {
     pub frozen: bool,
     pub teacher_blending_enabled: bool,
@@ -113,7 +125,8 @@ pub struct FrozenEvaluationControls {
     pub future_outcomes_visible: bool,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct CampaignRecord {
     pub expected_episode_ids: Vec<String>,
     pub expected_branch_ids: Vec<String>,
