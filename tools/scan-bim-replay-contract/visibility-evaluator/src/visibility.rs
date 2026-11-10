@@ -1653,12 +1653,14 @@ mod tests {
         assert_eq!(probes.len(), 1);
         assert_eq!(probes[0].triangle_id, "TARGET-TRI-1");
 
+        let occluder_manifest_sha256 =
+            canonical_occluder_manifest_sha256(&[target.clone()]);
         let request_json = serde_json::json!({
             "scene_id": "SCENE-1",
             "frame_id": "BUILDING-LOCAL",
             "reference_model_sha256": "1".repeat(64),
             "reference_sampling": serde_json::to_value(&reference_sampling).expect("sampling JSON"),
-            "occluder_manifest_sha256": "2".repeat(64),
+            "occluder_manifest_sha256": occluder_manifest_sha256,
             "occluder_coverage": "complete",
             "views": [serde_json::to_value(view("VIEW-1", [0.0, 0.0, 0.0])).expect("view JSON")],
             "occluders": [serde_json::to_value(target).expect("target JSON")],
@@ -1689,6 +1691,39 @@ mod tests {
             .evaluate()
             .expect_err("tampered sampling artifact must fail before visibility");
         assert!(error.contains("canonical SHA-256"));
+    }
+
+    #[test]
+    fn occluder_inventory_digest_mismatch_fails_closed() {
+        let mut occluders = vec![target_triangle()];
+        let mut evaluation = VisibilityEvaluation {
+            scene_id: "SCENE-1",
+            frame_id: "BUILDING-LOCAL",
+            reference_model_sha256: &"1".repeat(64),
+            probe_set_sha256: &"3".repeat(64),
+            reference_surface_ids: &["TARGET".to_owned()],
+            occluder_manifest_sha256: &"2".repeat(64),
+            occluder_coverage: OccluderCoverage::Complete,
+            probes: &[probe([5.0, 0.0, 0.0])],
+            views: &[view("VIEW-1", [0.0, 0.0, 0.0])],
+            occluders: &occluders,
+            profile: VisibilityProfile {
+                max_ray_tests: 100,
+                min_incidence_cosine: 0.0,
+            },
+        };
+        evaluation.occluder_manifest_sha256 =
+            &canonical_occluder_manifest_sha256(&occluders);
+        let receipt = derive_surface_visibility(evaluation.clone())
+            .expect("matching manifest digest");
+        assert_eq!(receipt.occluder_manifest_sha256, canonical_occluder_manifest_sha256(&occluders));
+
+        occluders.push(blocker(OccluderKind::External));
+        let mut mismatch = evaluation;
+        mismatch.occluders = &occluders;
+        let error = derive_surface_visibility(mismatch)
+            .expect_err("changed occluder inventory must invalidate the supplied digest");
+        assert!(error.contains("does not match the supplied occluder inventory"));
     }
 
     #[test]
