@@ -25,8 +25,16 @@ impl ArtifactDigest {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DatasetRightsStatus {
+    Verified,
+    RestrictedButAuthorized,
+    Unknown,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BenchmarkProtocolIdentity {
+    pub dataset_rights_status: DatasetRightsStatus,
     pub benchmark_id: String,
     pub release_revision: String,
     pub source_commit: String,
@@ -47,6 +55,11 @@ impl BenchmarkProtocolIdentity {
             if value.trim().is_empty() {
                 return Err(ImportError::MissingProtocolIdentity);
             }
+        }
+        if self.source_commit.len() != 40
+            || !self.source_commit.bytes().all(|byte| byte.is_ascii_hexdigit())
+        {
+            return Err(ImportError::MissingProtocolIdentity);
         }
         Ok(())
     }
@@ -106,11 +119,8 @@ pub struct OutcomeReceipt {
 }
 
 impl OutcomeReceipt {
-    pub fn validate(&self) -> Result<(), ImportError> {
-        if self.source == OutcomeEvidenceSource::Unknown {
-            return Err(ImportError::UnknownOutcomeEvidenceSource);
-        }
-        Ok(())
+    fn has_unknown_source(&self) -> bool {
+        self.source == OutcomeEvidenceSource::Unknown
     }
 }
 
@@ -290,6 +300,7 @@ impl BehaviorConditionedReceipt {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TaskInstanceIdentity {
+    pub bce_required: bool,
     pub task_id: String,
     pub task_instance_id: String,
     pub episode_id: String,
@@ -334,8 +345,17 @@ pub struct MatchedControlIdentity {
     pub resource_budget_digest: ArtifactDigest,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TrainingOverlapStatus {
+    AuditedNoKnownOverlap,
+    KnownOverlapDisclosed,
+    Unknown,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PolicyArtifactIdentity {
+    pub training_data_manifest_digest: ArtifactDigest,
+    pub training_overlap_status: TrainingOverlapStatus,
     pub variant_id: String,
     pub policy_id: String,
     pub checkpoint_digest: ArtifactDigest,
@@ -384,13 +404,13 @@ pub enum ImportError {
     UnexpectedStageResult(String),
     MissingStageReceipt(String),
     UnexpectedStageReceipt(String),
-    UnknownOutcomeEvidenceSource,
     MissingTerminalReceipt,
     UnexpectedTerminalReceipt,
     InvalidPolicyInputManifest,
     EvaluatorFieldLeakedToPolicy(String),
     InvalidBceReceipt,
     NonLaterBceTarget,
+    DuplicateBceReceipt,
     UnsetArtifactDigest,
     MatchedControlMismatch,
     NonComparableRunIdentity,
@@ -406,6 +426,9 @@ pub enum QualificationBlocker {
     StageOutcomeUnresolved,
     BceEvaluationMissing,
     PolicyInputDisclosureInvalid,
+    DatasetRightsUnresolved,
+    TrainingOverlapUnknown,
+    UnknownOutcomeEvidenceSource,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -571,6 +594,7 @@ mod tests {
 
     fn protocol() -> BenchmarkProtocolIdentity {
         BenchmarkProtocolIdentity {
+            dataset_rights_status: DatasetRightsStatus::Verified,
             benchmark_id: "robocasa-mem".into(),
             release_revision: "paper-v1-provisional".into(),
             source_commit: "0123456789abcdef0123456789abcdef01234567".into(),
@@ -652,6 +676,7 @@ mod tests {
         MemoryEvaluationRecord {
             protocol: protocol(),
             task: TaskInstanceIdentity {
+                bce_required: false,
                 task_id: "HeatAndInspect".into(),
                 task_instance_id: "task-instance-01".into(),
                 episode_id: "episode-01".into(),
@@ -663,6 +688,8 @@ mod tests {
             policy: PolicyArtifactIdentity {
                 variant_id: variant.into(),
                 policy_id: format!("policy-{variant}"),
+                training_data_manifest_digest: digest(23),
+                training_overlap_status: TrainingOverlapStatus::AuditedNoKnownOverlap,
                 checkpoint_digest: digest(7),
                 deployment_digest: digest(8),
                 assistance: assistance(track),
