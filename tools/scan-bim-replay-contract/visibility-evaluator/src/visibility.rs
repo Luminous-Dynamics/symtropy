@@ -11,7 +11,7 @@
 
 use scan_bim_replay_contract::metrics::Point3;
 use scan_bim_replay_contract::sampling::{
-    SurfaceSample, SurfaceSamplingReceipt, SurfaceVisibility, verify_surface_sampling_receipt,
+    SurfaceSample, SurfaceSamplingReceipt, SurfaceVisibility, verify_complete_reference_sampling_receipt,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -890,7 +890,7 @@ fn receipt_digest(
 pub fn probes_from_reference_sampling(
     receipt: &SurfaceSamplingReceipt,
 ) -> Result<Vec<VisibilityProbe>, String> {
-    verify_surface_sampling_receipt(receipt)?;
+    verify_complete_reference_sampling_receipt(receipt)?;
     let probes: Vec<VisibilityProbe> = receipt
         .samples
         .iter()
