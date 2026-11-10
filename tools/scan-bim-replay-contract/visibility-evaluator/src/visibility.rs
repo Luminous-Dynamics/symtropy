@@ -2270,6 +2270,7 @@ mod tests {
                         y: 0.0,
                         z: 0.0,
                     },
+                    0.0,
                     5.0,
                     triangle,
                 )
@@ -2413,6 +2414,7 @@ mod tests {
                             z: 0.0,
                         },
                         direction,
+                        0.0,
                         distance,
                         triangle,
                     )
