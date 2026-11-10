@@ -35,7 +35,7 @@ jobs:
       - name: Install pinned Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: 1.96.0
+          toolchain: 1.97.1
           components: rustfmt
 
       - name: Run unit and negative-control tests
