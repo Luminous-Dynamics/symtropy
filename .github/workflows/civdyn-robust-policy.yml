@@ -141,6 +141,109 @@ jobs:
             echo "- Claim ceiling: deterministic finite LHS design; not calibrated probabilities or continuous robust feasibility"
           } >> "$GITHUB_STEP_SUMMARY"
 
+
+      - name: Execute stakeholder preference-robust sweep
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p target/civdyn-robust-policy-evidence
+          cargo run --locked --manifest-path research/civdyn-robust-policy/Cargo.toml --bin preference-robust-sweep \
+            | tee target/civdyn-robust-policy-evidence/preference-robust-sweep.csv
+
+      - name: Verify preference vertices, hard floors and profile disagreement
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import csv
+          import math
+          from pathlib import Path
+
+          path = Path("target/civdyn-robust-policy-evidence/preference-robust-sweep.csv")
+          with path.open(newline="", encoding="utf-8") as handle:
+              rows = list(csv.DictReader(handle))
+
+          assert len(rows) == 1194, f"expected 1194 records, got {len(rows)}"
+          assert all(len(row) == 38 for row in rows)
+          by_type = {}
+          for row in rows:
+              by_type.setdefault(row["record_type"], []).append(row)
+          assert {key: len(value) for key, value in by_type.items()} == {
+              "scenario_profile_policy": 1080,
+              "profile_policy_summary": 12,
+              "policy_preference_summary": 4,
+              "scenario_preference_consensus": 90,
+          }
+
+          scenario_rows = by_type["scenario_profile_policy"]
+          profiles = {"water-priority", "energy-priority", "service-reliability-priority"}
+          policies = {"no_transfer", "proportional_solidarity", "deficit_first", "reserve_protected"}
+          shocks = {"water_supply", "energy_supply", "compound_water_energy"}
+          assert {row["profile_id"] for row in scenario_rows} == profiles
+          assert {row["policy"] for row in scenario_rows} == policies
+          assert {row["shock_kind"] for row in scenario_rows} == shocks
+          assert len({row["design_point_id"] for row in scenario_rows}) == 30
+
+          for row in scenario_rows:
+              assert row["contract_id"] == "municipal-service-preferences"
+              assert row["contract_digest"] == "sha256-municipal-service-preferences-v0.1"
+              assert row["profile_vertices_are_probabilities"] == "false"
+              criteria = row["criterion_order"].split(";")
+              directions = row["criterion_directions"].split(";")
+              scales = [float(value) for value in row["reference_scales"].split(";")]
+              weights = [float(value) for value in row["preference_weights"].split(";")]
+              assert len(criteria) == len(directions) == len(scales) == len(weights) == 5
+              assert math.isclose(sum(weights), 1.0, abs_tol=1e-9)
+              assert all(weight >= 0.0 for weight in weights)
+              assert all(scale > 0.0 and math.isfinite(scale) for scale in scales)
+              assert row["eligibility"] in {"feasible", "infeasible", "unknown"}
+              assert row["scenario_status"] in {"comparable", "no_feasible_policy", "incomplete_comparison"}
+              if row["eligibility"] != "feasible":
+                  assert row["regret"] == "" and row["tied_best"] == "false"
+              if row["eligibility"] == "feasible" and row["scenario_status"] == "comparable":
+                  assert math.isfinite(float(row["normalized_utility"]))
+                  assert math.isfinite(float(row["regret"])) and float(row["regret"]) >= 0.0
+                  assert row["pareto_nondominated"] in {"true", "false"}
+              assert row["total_unmet_water_m3"] and row["total_unmet_energy_kwh"]
+
+          profile_summaries = by_type["profile_policy_summary"]
+          assert {(row["profile_id"], row["policy"]) for row in profile_summaries} == {
+              (profile, policy) for profile in profiles for policy in policies
+          }
+          for row in profile_summaries:
+              assert row["scenario_count"] == "90"
+              assert int(row["feasible_count"]) + int(row["infeasible_count"]) + int(row["unknown_count"]) == 90
+              assert int(row["best_scenario_count"]) <= 90
+              for field in ("mean_regret", "p95_regret", "worst_regret"):
+                  if row[field]:
+                      assert math.isfinite(float(row[field])) and float(row[field]) >= 0.0
+
+          policy_summaries = by_type["policy_preference_summary"]
+          assert {row["policy"] for row in policy_summaries} == policies
+          assert all(row["scenario_count"] == "90" for row in policy_summaries)
+          assert all(row["finite_design_robust_feasible"] in {"true", "false", "unknown"} for row in policy_summaries)
+
+          consensus = by_type["scenario_preference_consensus"]
+          assert all(row["profile_count"] == "3" for row in consensus)
+          assert all(int(row["distinct_winner_policy_count"]) in range(0, 5) for row in consensus)
+          assert all(row["unanimous_single_winner"] in policies | {""} for row in consensus)
+          print("Preference-robust CSV valid: three declared vertices, five native-unit criteria, hard-feasibility separation, profile-level regret, disagreement and no probability interpretation.")
+          PY
+
+          {
+            echo "## CIVDYN preference-robust execution"
+            echo "- Source commit: $(git rev-parse HEAD)"
+            echo "- Output SHA-256: $(sha256sum target/civdyn-robust-policy-evidence/preference-robust-sweep.csv | cut -d' ' -f1)"
+            echo "- Claim ceiling: finite synthetic scenario design and declared preference vertices; no stakeholder probability or ethical legitimacy inference"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload preference robustness evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: civdyn-preference-robust-sweep
+          path: target/civdyn-robust-policy-evidence/preference-robust-sweep.csv
+          if-no-files-found: error
+          retention-days: 30
       - name: Upload robust policy evidence
         uses: actions/upload-artifact@v4
         with:
