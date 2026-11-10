@@ -2,7 +2,7 @@
 
 **Status:** in progress on `migration/bevy-0.20-workspace-v1`.  
 **Target:** Bevy 0.20.1, one Bevy version across the entire standalone workspace.  
-**Migration PR:** to be opened after dependency inventory and resolver setup.
+**Migration PR:** [#4472](https://github.com/Luminous-Dynamics/symtropy/pull/4472) (draft; exact-head qualification in progress).
 
 ## Why this is a coordinated change
 
