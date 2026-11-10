@@ -30,6 +30,10 @@ The P0 task bound is conservative (k u + b). We do not RSS-combine a bounded sys
 - Negative controls cover occlusion, visible-but-not-captured surfaces, missing/mixed/contradictory returns, invalid/stale/missing calibration, duplicate/correlated reference lineage, out-of-domain range/incidence/surface/environment, malformed sensor profile, missing systematic bound, missing bound evidence, negative bound, task-specific insufficiency and invalid uncertainty.
 - The fixture uses digest-shaped identifiers and synthetic numbers. Digests are not authenticated producer evidence.
 
+## Reproducible workflow
+
+The standalone workspace commits a pinned 23-package `Cargo.lock`. Its GitHub Actions workflow runs Cargo with `--locked`, then uploads the evaluator receipt, source/fixture/lock digests and exact commit identity. A queued/cancelled workflow is not a pass; only a completed successful run for the exact pull-request head qualifies the synthetic contract.
+
 ## Run
 
 ```sh
