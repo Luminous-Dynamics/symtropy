@@ -144,15 +144,18 @@ fn ray_triangle_distance(
 ) -> Option<f64> {
     let edge_a = sub(triangle.b, triangle.a);
     let edge_b = sub(triangle.c, triangle.a);
-    let edge_scale = norm(edge_a) * norm(edge_b);
-    let p = cross(direction, edge_b);
-    let determinant = dot(edge_a, p);
-    // The relative threshold is dimensionless because direction is required
-    // to be unit length. It remains meaningful under uniform unit scaling.
-    if !edge_scale.is_finite()
-        || edge_scale <= 0.0
+    let triangle_normal = cross(edge_a, edge_b);
+    let normal_scale = norm(triangle_normal);
+    let direction_scale = norm(direction);
+    let determinant = dot(direction, triangle_normal);
+    // The relative threshold is the cosine of the ray against the triangle
+    // normal. It is dimensionless and stable under uniform unit scaling.
+    if !normal_scale.is_finite()
+        || normal_scale <= 0.0
+        || !direction_scale.is_finite()
+        || direction_scale <= 0.0
         || !determinant.is_finite()
-        || determinant.abs() <= parallel_cosine_epsilon * edge_scale
+        || determinant.abs() <= parallel_cosine_epsilon * normal_scale * direction_scale
     {
         return None;
     }
