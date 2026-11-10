@@ -80,8 +80,11 @@ jobs:
             (.coordinate_system.linear_unit == "metre") and
             (.coordinate_system.axis_order == "xyz") and
             (.coordinate_system.handedness == "right_handed") and
+            (.query_contract.coplanar_policy == "miss") and
+            (.query_contract.parallel_cosine_epsilon == 1e-12) and
+            (.query_contract.barycentric_epsilon == 1e-12) and
             ((.triangles | length) == 4) and
-            ((.rays | length) == 5) and
+            ((.rays | length) == 11) and
             (.rays[0].expected.status == "hit") and
             (.rays[0].expected.nearest_distance_m == 2.0) and
             ((.rays[0].expected.nearest_hits | length) == 2) and
@@ -89,7 +92,15 @@ jobs:
             (.rays[2].expected.nearest_distance_m == 4.0) and
             (.rays[3].expected.status == "miss") and
             (.rays[4].exclude_target[0] == "WALL-NEAR-A") and
-            (.rays[4].expected.nearest_hits == [["WALL-NEAR-B", "TRI-NEAR-B"]])
+            (.rays[4].expected.nearest_hits == [["WALL-NEAR-B", "TRI-NEAR-B"]]) and
+            (.rays[5].ray_id == "RAY-SHARED-EDGE-HIT") and
+            ((.rays[5].expected.nearest_hits | length) == 2) and
+            (.rays[6].ray_id == "RAY-VERTEX-HIT") and
+            ((.rays[6].expected.nearest_hits | length) == 2) and
+            (.rays[7].expected.status == "miss") and
+            (.rays[8].expected.status == "miss") and
+            (.rays[9].expected.nearest_distance_m == 2.0) and
+            (.rays[10].expected.nearest_distance_m == 2.0)
           ' research/scan-bim-rayquery-comparator-001/fixtures/ray-query-known-answers-v0-1.json
       - name: Execute brute-force ray-query fixture oracle
         run: |
@@ -100,10 +111,10 @@ jobs:
           jq -e '
             (.fixture_id == "SCAN-BIM-RAYQUERY-KA-001") and
             (.triangle_count == 4) and
-            (.ray_count == 5) and
-            (.hit_count == 3) and
-            (.miss_count == 2) and
-            (.checked_nearest_identity_sets == 5) and
+            (.ray_count == 11) and
+            (.hit_count == 7) and
+            (.miss_count == 4) and
+            (.checked_nearest_identity_sets == 11) and
             (.oracle == "independent_bruteforce_moller_trumbore_f64_v1")
           ' /tmp/scan-bim-ray-query-fixture-report.json
       - name: Run strict Clippy
