@@ -1,0 +1,160 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.org/schemas/joint-sensing-inference-decision-v1.schema.json",
+  "title": "Joint sensing and inference schedule decision v1",
+  "description": "A resource-allocation decision only. It does not authorize an actuator command or execute the sensor, inference engine or fallback. The resource unit must be identical for sensor and inference costs.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "scheduler_revision",
+    "allocator_base_revision",
+    "action",
+    "reason",
+    "planning_tick",
+    "decision_deadline_tick",
+    "actuation_recovery_reserve_ticks",
+    "current_observation_age_ticks",
+    "current_observation_digest",
+    "context_digest",
+    "resource_unit_id",
+    "resource_budget_units",
+    "resource_units_committed",
+    "resource_units_remaining",
+    "completion_bound_tick",
+    "deadline_slack_after_reserve_ticks",
+    "sensor_rejection",
+    "sensor_grant",
+    "inference_grant",
+    "fallback_policy_id"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "scheduler_revision": { "const": "joint-sensing-inference-budget-v1" },
+    "allocator_base_revision": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "action": {
+      "enum": ["request_observation", "allocate_inference", "commit_now", "require_fallback"]
+    },
+    "reason": {
+      "enum": [
+        "stale_observation_requires_refresh",
+        "sensor_value_per_resource_unit_higher",
+        "inference_value_per_resource_unit_higher",
+        "equal_ratio_prefers_inference",
+        "no_eligible_positive_resource",
+        "no_fresh_observation_can_arrive_before_deadline"
+      ]
+    },
+    "planning_tick": { "type": "integer", "minimum": 0 },
+    "decision_deadline_tick": { "type": "integer", "minimum": 0 },
+    "actuation_recovery_reserve_ticks": { "type": "integer", "minimum": 0 },
+    "current_observation_age_ticks": { "type": "integer", "minimum": 0 },
+    "current_observation_digest": { "$ref": "#/$defs/sha256" },
+    "context_digest": { "$ref": "#/$defs/sha256" },
+    "resource_unit_id": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "resource_budget_units": { "type": "integer", "minimum": 0 },
+    "resource_units_committed": { "type": "integer", "minimum": 0 },
+    "resource_units_remaining": { "type": "integer", "minimum": 0 },
+    "completion_bound_tick": { "type": "integer", "minimum": 0 },
+    "deadline_slack_after_reserve_ticks": { "type": "integer", "minimum": 0 },
+    "sensor_rejection": {
+      "oneOf": [
+        { "type": "null" },
+        { "enum": [
+          "empty_identity",
+          "identity_too_long",
+          "missing_source_digest",
+          "observation_context_mismatch",
+          "sensor_evidence_not_admitted",
+          "sensor_not_policy_visible",
+          "sam_evidence_not_admitted",
+          "sam_context_mismatch",
+          "resource_unit_mismatch",
+          "zero_decision_value",
+          "zero_resource_cost",
+          "zero_latency_bound",
+          "deadline_infeasible",
+          "resource_budget_insufficient",
+          "arithmetic_overflow"
+        ]}
+      ]
+    },
+    "sensor_grant": { "oneOf": [{ "$ref": "#/$defs/sensor_grant" }, { "type": "null" }] },
+    "inference_grant": { "oneOf": [{ "$ref": "#/$defs/inference_grant" }, { "type": "null" }] },
+    "fallback_policy_id": { "type": ["string", "null"], "maxLength": 256 }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "sensor_grant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "request_id", "sensor_profile_id", "sensor_profile_digest",
+        "source_observation_digest", "sensor_value_evidence_digest",
+        "latency_bound_digest", "resource_cost_digest",
+        "expected_regret_reduction_microunits", "resource_cost_units",
+        "acquisition_to_delivery_bound_ticks", "completion_bound_tick"
+      ],
+      "properties": {
+        "request_id": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "sensor_profile_id": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "sensor_profile_digest": { "$ref": "#/$defs/sha256" },
+        "source_observation_digest": { "$ref": "#/$defs/sha256" },
+        "sensor_value_evidence_digest": { "$ref": "#/$defs/sha256" },
+        "latency_bound_digest": { "$ref": "#/$defs/sha256" },
+        "resource_cost_digest": { "$ref": "#/$defs/sha256" },
+        "expected_regret_reduction_microunits": { "type": "integer", "minimum": 1 },
+        "resource_cost_units": { "type": "integer", "minimum": 1 },
+        "acquisition_to_delivery_bound_ticks": { "type": "integer", "minimum": 1 },
+        "completion_bound_tick": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "inference_grant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "opportunity_id", "opportunity_digest", "context_digest",
+        "checkpoint_digest", "observation_digest", "model_digest",
+        "latency_bound_digest", "compute_cost_digest", "sam_evidence_digest",
+        "initial_rollout_count", "additional_rollout_count", "final_rollout_count",
+        "expected_regret_reduction_microunits", "resource_cost_units",
+        "completion_bound_tick", "stop_reason"
+      ],
+      "properties": {
+        "opportunity_id": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "opportunity_digest": { "$ref": "#/$defs/sha256" },
+        "context_digest": { "$ref": "#/$defs/sha256" },
+        "checkpoint_digest": { "$ref": "#/$defs/sha256" },
+        "observation_digest": { "$ref": "#/$defs/sha256" },
+        "model_digest": { "$ref": "#/$defs/sha256" },
+        "latency_bound_digest": { "$ref": "#/$defs/sha256" },
+        "compute_cost_digest": { "$ref": "#/$defs/sha256" },
+        "sam_evidence_digest": { "$ref": "#/$defs/sha256" },
+        "initial_rollout_count": { "type": "integer", "minimum": 0 },
+        "additional_rollout_count": { "const": 1 },
+        "final_rollout_count": { "type": "integer", "minimum": 1 },
+        "expected_regret_reduction_microunits": { "type": "integer", "minimum": 1 },
+        "resource_cost_units": { "type": "integer", "minimum": 1 },
+        "completion_bound_tick": { "type": "integer", "minimum": 0 },
+        "stop_reason": {
+          "enum": [
+            "max_rollouts_reached",
+            "marginal_schedule_exhausted",
+            "no_positive_marginal_value",
+            "deadline_reserve_preserved",
+            "shared_compute_budget_exhausted"
+          ]
+        }
+      }
+    }
+  },
+  "x-invariants": [
+    "resource_units_committed plus resource_units_remaining equals resource_budget_units.",
+    "resource_cost_units in either optional grant is expressed in resource_unit_id.",
+    "At most one of sensor_grant and inference_grant is non-null.",
+    "For request_observation, sensor_grant is non-null and its completion_bound_tick plus actuation_recovery_reserve_ticks does not exceed decision_deadline_tick.",
+    "For allocate_inference, inference_grant is non-null and its completion_bound_tick plus actuation_recovery_reserve_ticks does not exceed decision_deadline_tick.",
+    "For require_fallback, fallback_policy_id is non-null and no resource grant is present.",
+    "For commit_now, no resource grant is present; this is only a scheduler stop signal and not an actuator authorization."
+  ]
+}
