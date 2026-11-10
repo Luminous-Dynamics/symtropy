@@ -380,11 +380,35 @@ fn validate_manifest(
     }
     validate_license(&manifest.license)?;
 
-    if manifest.tasks.is_empty() {
+    if manifest.tasks.is_empty() || manifest.expected_task_ids.is_empty() {
         return Err(MemobenchAdapterError::EmptyTaskRoster);
     }
     if manifest.episodes.is_empty() {
         return Err(MemobenchAdapterError::EmptyEpisodeRoster);
+    }
+    if manifest.expected_episodes_per_task == 0 {
+        return Err(MemobenchAdapterError::EpisodeCountMismatch);
+    }
+
+    let mut expected_task_ids = BTreeSet::new();
+    for task_id in &manifest.expected_task_ids {
+        if task_id.trim().is_empty() {
+            return Err(MemobenchAdapterError::EmptyIdentity);
+        }
+        if !expected_task_ids.insert(task_id.as_str()) {
+            return Err(MemobenchAdapterError::DuplicateTask);
+        }
+    }
+
+    let expected_checkpoint_task_ids = manifest
+        .expected_checkpoint_count_by_task
+        .keys()
+        .map(String::as_str)
+        .collect::<BTreeSet<_>>();
+    if expected_checkpoint_task_ids != expected_task_ids
+        || manifest.expected_checkpoint_count_by_task.values().any(|count| *count == 0)
+    {
+        return Err(MemobenchAdapterError::CheckpointCountMismatch);
     }
 
     let mut tasks = BTreeMap::<&str, &MemobenchTaskAnnotation>::new();
@@ -403,9 +427,21 @@ fn validate_manifest(
         if tasks.insert(task.task_id.as_str(), task).is_some() {
             return Err(MemobenchAdapterError::DuplicateTask);
         }
+        let expected_count = manifest.expected_checkpoint_count_by_task
+            .get(&task.task_id)
+            .copied()
+            .ok_or(MemobenchAdapterError::TaskRosterMismatch)?;
+        if task.checkpoints.len() != expected_count {
+            return Err(MemobenchAdapterError::CheckpointCountMismatch);
+        }
+    }
+
+    if tasks.keys().copied().collect::<BTreeSet<_>>() != expected_task_ids {
+        return Err(MemobenchAdapterError::TaskRosterMismatch);
     }
 
     let mut episodes = BTreeSet::new();
+    let mut episode_counts = BTreeMap::<&str, usize>::new();
     for episode in &manifest.episodes {
         if episode.task_id.trim().is_empty()
             || episode.episode_id.trim().is_empty()
@@ -419,6 +455,15 @@ fn validate_manifest(
         if !episodes.insert((episode.task_id.as_str(), episode.episode_id.as_str())) {
             return Err(MemobenchAdapterError::DuplicateEpisode);
         }
+        *episode_counts.entry(episode.task_id.as_str()).or_default() += 1;
+    }
+    if episode_counts.len() != expected_task_ids.len()
+        || expected_task_ids.iter().any(|task_id| {
+            episode_counts.get(task_id).copied()
+                != Some(manifest.expected_episodes_per_task)
+        })
+    {
+        return Err(MemobenchAdapterError::EpisodeCountMismatch);
     }
 
     let mut selected = Vec::new();
