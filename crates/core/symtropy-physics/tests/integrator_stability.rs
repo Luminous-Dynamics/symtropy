@@ -91,7 +91,7 @@ fn free_fall_position_error_has_first_order_global_convergence() {
 
     assert!(
         (observed_ratio - 2.0).abs() < 1.0e-10,
-        "halving dt should halve the global position error for constant acceleration;          coarse={coarse_error:e}, fine={fine_error:e}, ratio={observed_ratio}"
+        "coarse={coarse_error:e}, fine={fine_error:e}, ratio={observed_ratio}"
     );
 }
 
