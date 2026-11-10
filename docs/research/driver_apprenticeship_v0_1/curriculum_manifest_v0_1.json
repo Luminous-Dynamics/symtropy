@@ -1,0 +1,470 @@
+{
+  "manifest_version": "0.1.0",
+  "program_id": "symthaea-driver-apprenticeship-v0.1",
+  "status": "research_specification_not_implemented",
+  "owner": {
+    "symthaea_issue": "https://github.com/Luminous-Dynamics/symthaea/issues/11414",
+    "symtropy_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4536"
+  },
+  "claim_ceiling": "Virtual-environment competence only for the exact simulator, sensor/control interface, vehicle model, scenario profile, training protocol and sealed evaluation split. No human-equivalence, real-road transfer, roadworthiness or SAE L4/L5 claim.",
+  "current_baseline": {
+    "vehicle_crate": "symthaea-vehicle",
+    "observation_encoder": "20 engineered simulator state/road/mesh channels -> 16384D ContinuousHV",
+    "temporal_model": "HdcLtcUnifiedNetwork; documented 3 layers x 8 neurons",
+    "action_head": [
+      "steering",
+      "throttle",
+      "brake"
+    ],
+    "dynamics_backend": "simplified single-track bicycle model",
+    "training_reference": "PD-teacher LaneKeep curriculum with FEP modulation",
+    "raw_camera_observation_supported": false,
+    "visual_world_model_supported": false,
+    "hardware_deployment_supported": false
+  },
+  "environment_contract": {
+    "mode": "partially_observed_closed_loop",
+    "hmd_required": false,
+    "hmd_role": "optional human instructor display/head-tracking path only",
+    "agent_observations_must_be_receipted": true,
+    "truth_role": "evaluator_only_unless_training_arm_declares_privileged_supervision",
+    "action_loop": "observation -> policy -> command proposal -> actuator application -> world transition -> next observation",
+    "timing_domains": [
+      "simulation_tick",
+      "sensor_acquisition_time",
+      "sensor_delivery_time",
+      "policy_time",
+      "command_latch_time",
+      "world_transition_time"
+    ],
+    "missingness": [
+      "missing",
+      "dropped",
+      "stale",
+      "occluded",
+      "censored",
+      "malformed",
+      "unsupported"
+    ],
+    "command_semantics": [
+      "per_tick_fifo",
+      "periodic_policy_sample_and_hold"
+    ],
+    "command_semantics_require_distinct_experiment_ids": true
+  },
+  "sensor_profiles": [
+    {
+      "id": "camera_front_rgb_v0",
+      "required": true,
+      "channels": [
+        "front_camera_rgb"
+      ],
+      "policy_visible": true,
+      "calibration_required": true,
+      "acquisition_delivery_receipts_required": true
+    },
+    {
+      "id": "minimal_proprioception_v0",
+      "required": true,
+      "channels": [
+        "wheel_speed",
+        "steering_feedback",
+        "yaw_rate",
+        "longitudinal_acceleration",
+        "lateral_acceleration"
+      ],
+      "policy_visible": true,
+      "source_role": "declared_vehicle_sensor"
+    },
+    {
+      "id": "instrument_cluster_v0",
+      "required": false,
+      "channels": [
+        "speedometer",
+        "indicator_state"
+      ],
+      "policy_visible_only_when_enabled": true
+    },
+    {
+      "id": "radar_lidar_optional_v0",
+      "required": false,
+      "channels": [
+        "radar",
+        "lidar"
+      ],
+      "policy_visible_only_when_enabled": true,
+      "independent_source_roles_required": true
+    },
+    {
+      "id": "simulator_truth_v0",
+      "required": false,
+      "channels": [
+        "exact_actor_state",
+        "exact_road_state",
+        "collision_oracle"
+      ],
+      "policy_visible": false,
+      "source_role": "evaluator_only"
+    }
+  ],
+  "action_profile": {
+    "id": "vehicle_control_v0",
+    "channels": [
+      "steering",
+      "throttle",
+      "brake"
+    ],
+    "units_and_bounds": "must bind exact actuator profile, units, saturation, dead-zone and rate limit",
+    "required_receipts": [
+      "policy_decision",
+      "action_proposal",
+      "command_submission",
+      "command_queue",
+      "command_latch",
+      "applied_action",
+      "resulting_transition"
+    ],
+    "invalid_or_missing_action": "explicit non-accelerating environment-defined fallback; never infer a missing command as throttle"
+  },
+  "curriculum_stages": [
+    {
+      "id": "stage_0_sensorimotor_calibration",
+      "order": 0,
+      "task_families": [
+        "steering_sign",
+        "steering_rate",
+        "throttle_response",
+        "braking_response",
+        "actuator_delay",
+        "vehicle_dimensions",
+        "low_speed_straight",
+        "low_speed_curve"
+      ],
+      "environment": "empty_low_speed_proving_ground",
+      "required_capabilities": [
+        "control_axis_identification",
+        "braking_distance_estimation",
+        "actuator_delay_estimation",
+        "coordinate_frame_consistency"
+      ],
+      "promotion_gate": "preregistered held-out calibration and metamorphic tests; all expected episodes accounted for"
+    },
+    {
+      "id": "stage_1_procedural_control",
+      "order": 1,
+      "task_families": [
+        "lane_centering",
+        "speed_regulation",
+        "curve_tracking",
+        "smooth_braking",
+        "stopping",
+        "turning",
+        "route_following"
+      ],
+      "environment": "controlled_track",
+      "required_capabilities": [
+        "task_progress",
+        "stable_path_tracking",
+        "comfort_constraints",
+        "repeatable_action_execution"
+      ],
+      "promotion_gate": "held-out route competence plus constraint, comfort and denominator gates"
+    },
+    {
+      "id": "stage_2_rules_and_route_semantics",
+      "order": 2,
+      "task_families": [
+        "traffic_signals",
+        "road_markings",
+        "stop_yield",
+        "lane_change",
+        "roundabout",
+        "turn_restriction",
+        "LHT_RHT_profile"
+      ],
+      "environment": "structured_junctions_and_routes",
+      "required_capabilities": [
+        "explicit_jurisdiction_profile",
+        "rule_conditioned_decision",
+        "route_semantics"
+      ],
+      "promotion_gate": "all profile-specific positive and negative controls; no convention inference from steering layout"
+    },
+    {
+      "id": "stage_3_interactive_traffic",
+      "order": 3,
+      "task_families": [
+        "car_following",
+        "gap_selection",
+        "merging",
+        "intersection_negotiation",
+        "unprotected_turn",
+        "pedestrian_crossing",
+        "cyclist_interaction",
+        "emergency_vehicle"
+      ],
+      "environment": "reciprocal_multi_agent_scenarios",
+      "required_capabilities": [
+        "policy_history_specific_observation",
+        "reciprocal_actor_response",
+        "multi_agent_option_accounting",
+        "task_progress"
+      ],
+      "promotion_gate": "ego and other-agent outcomes measured separately; avoidable option externalities exposed"
+    },
+    {
+      "id": "stage_4_uncertainty_and_adverse_conditions",
+      "order": 4,
+      "task_families": [
+        "occlusion",
+        "glare",
+        "rain",
+        "fog",
+        "night",
+        "stale_frames",
+        "frame_dropout",
+        "localization_drift",
+        "friction_change",
+        "actuator_delay",
+        "compute_deadline_miss",
+        "common_cause_fault"
+      ],
+      "environment": "fault_injected_closed_loop_scenarios",
+      "required_capabilities": [
+        "typed_missingness",
+        "uncertainty_calibration",
+        "option_fragility_reporting",
+        "fallback_availability"
+      ],
+      "promotion_gate": "matched fault-family evidence with no worst-family regressions hidden by aggregate score"
+    },
+    {
+      "id": "stage_5_active_apprenticeship",
+      "order": 5,
+      "task_families": [
+        "human_correction",
+        "DAgger_intervention",
+        "decision_sensitive_query",
+        "counterexample_replay",
+        "rare_event_practice"
+      ],
+      "environment": "interactive_training_with_separate_instructor_channel",
+      "required_capabilities": [
+        "outcome_blind_query_selection",
+        "privilege_separation",
+        "correction_lineage",
+        "decision_value_accounting"
+      ],
+      "promotion_gate": "human query and intervention value measured against fixed-rate and entropy-only baselines"
+    },
+    {
+      "id": "stage_6_consolidation_and_transfer",
+      "order": 6,
+      "task_families": [
+        "held_out_map",
+        "held_out_geometry",
+        "held_out_vehicle_profile",
+        "held_out_weather",
+        "held_out_actor_style",
+        "held_out_traffic_convention",
+        "held_out_fault_family"
+      ],
+      "environment": "sealed_evaluation_generation",
+      "required_capabilities": [
+        "frozen_checkpoint",
+        "frozen_recurrent_state_policy",
+        "fresh_process_replay",
+        "split_integrity",
+        "transfer_reporting"
+      ],
+      "promotion_gate": "no holdout tuning; any adaptation opens a new evaluation generation"
+    }
+  ],
+  "human_instructor_protocol": {
+    "enabled_for_training": true,
+    "consent_and_provenance_required": true,
+    "input_devices": [
+      "calibrated_steering_wheel",
+      "pedals",
+      "keyboard",
+      "gamepad",
+      "optional_HMD_head_tracking"
+    ],
+    "captured_fields": [
+      "policy_view_frame_digest",
+      "sensor_configuration",
+      "human_control_axes",
+      "control_timestamps",
+      "applied_actuator_timestamps",
+      "scenario_profile",
+      "explicit_correction",
+      "takeover_event",
+      "instructor_comment_optional"
+    ],
+    "separate_from_policy_observation": true,
+    "teacher_data_not_available_in_frozen_evaluation": true,
+    "future_outcomes_not_available_to_policy": true,
+    "teacher_blending_disabled_in_frozen_evaluation": true,
+    "online_updates_disabled_in_frozen_evaluation": true,
+    "exploration_noise_disabled_in_frozen_evaluation": true
+  },
+  "model_comparison_arms": [
+    {
+      "id": "A_existing_hdc_ltc_state",
+      "description": "Existing HDC-LTC plus engineered state and PD-teacher curriculum",
+      "status": "baseline_to_reproduce"
+    },
+    {
+      "id": "B_visual_hdc_ltc",
+      "description": "Same HDC-LTC with learned camera encoder and structured scene representation",
+      "status": "proposed"
+    },
+    {
+      "id": "C_visual_gru_lstm",
+      "description": "Compact GRU/LSTM with matched perception",
+      "status": "proposed_baseline"
+    },
+    {
+      "id": "D_visual_transformer",
+      "description": "Compact transformer temporal policy with matched perception",
+      "status": "proposed_baseline"
+    },
+    {
+      "id": "E_hdc_ltc_action_world_model",
+      "description": "HDC-LTC plus action-conditioned latent world model",
+      "status": "proposed"
+    },
+    {
+      "id": "F_world_model_sam",
+      "description": "World-model arm plus SAM decision-sensitive sensing and recoverability measurement",
+      "status": "proposed"
+    },
+    {
+      "id": "G_human_reference",
+      "description": "Human demonstrations and correction distribution; not a deployable autonomous policy",
+      "status": "reference_only"
+    }
+  ],
+  "required_ablation_axes": [
+    "HDC_scene_binding",
+    "LTC_temporal_dynamics",
+    "learned_visual_encoder",
+    "action_conditioned_world_model",
+    "human_demonstrations",
+    "corrective_intervention",
+    "active_query_selection",
+    "domain_randomization",
+    "SAM_recoverability_gating"
+  ],
+  "benchmark_ladder": [
+    {
+      "id": "analytic_vehicle_fixtures",
+      "role": "exact_conformance",
+      "status": "first"
+    },
+    {
+      "id": "internal_visual_closed_loop_curriculum",
+      "role": "training_and_evaluation",
+      "status": "new_environment_required"
+    },
+    {
+      "id": "CARLA_Bench2Drive",
+      "role": "external_closed_loop_driving",
+      "status": "protocol_rights_and_composition_gate_required"
+    },
+    {
+      "id": "Bench2Drive_Robust",
+      "role": "deployment_perturbation",
+      "status": "source_and_rights_gate_required"
+    },
+    {
+      "id": "nuPlan_R",
+      "role": "interactive_multi_agent",
+      "status": "preserve_selected_reactive_agent_scope"
+    },
+    {
+      "id": "NAVSIM_v2",
+      "role": "native_planning_metric",
+      "status": "not_a_reciprocal_online_driving_substitute"
+    },
+    {
+      "id": "DrivingGen",
+      "role": "generative_world_model_quality",
+      "status": "not_a_driving_competence_benchmark"
+    },
+    {
+      "id": "SAM_recoverability",
+      "role": "decision_assurance",
+      "status": "separate_metric_family"
+    }
+  ],
+  "required_metrics": [
+    "training_samples_and_intervention_hours_per_skill_gate",
+    "held_out_route_success_and_completion",
+    "simulator_defined_collisions_contacts_and_infractions",
+    "explicit_traffic_profile_compliance",
+    "comfort_jerk_lane_tracking_speed_control_efficiency",
+    "prediction_set_coverage_and_sharpness",
+    "actor_identity_and_track_continuity",
+    "action_conditioned_prediction_error",
+    "option_width_and_policy_tree_recoverability_depth",
+    "option_fragility_by_fault_family",
+    "decision_sensitive_query_rate_and_value",
+    "fallback_admissibility_and_residual_decision_time",
+    "worst_family_and_held_out_transfer",
+    "p50_p95_p99_inference_planning_sensing_replay_latency",
+    "memory_compute_energy_and_parameter_count",
+    "episode_denominator_completeness_and_fresh_process_replay"
+  ],
+  "evaluation_controls": {
+    "train_dev_holdout_split_by": [
+      "map",
+      "scenario_family",
+      "actor_policy_family",
+      "weather_lighting",
+      "vehicle_profile",
+      "traffic_convention",
+      "fault_generation_family"
+    ],
+    "freeze_checkpoint": true,
+    "freeze_recurrent_state_policy": true,
+    "disable_teacher_blending": true,
+    "disable_bptt_teacher_supervision": true,
+    "disable_online_updates": true,
+    "disable_exploration_noise": true,
+    "disable_future_observation_access": true,
+    "retain_failed_incomplete_censored_episodes": true,
+    "any_holdout_adaptation_opens_new_generation": true
+  },
+  "negative_controls": [
+    "simulator_truth_leakage_into_camera_only_policy",
+    "teacher_action_blending_in_frozen_evaluation",
+    "future_observation_or_future_command_leakage",
+    "stale_or_duplicate_frame_admitted_as_fresh",
+    "hidden_state_splits_identical_observation_history",
+    "traffic_side_inferred_from_steering_layout",
+    "visually_plausible_but_physically_impossible_world_prediction",
+    "planner_exploits_world_model_error",
+    "always_stop_without_task_progress",
+    "train_holdout_map_or_actor_overlap",
+    "reward_hacking_against_hard_constraints",
+    "checkpoint_or_recurrent_state_mutation_during_evaluation"
+  ],
+  "prospective_targets": {
+    "status": "not_measured",
+    "exact_analytic_fixture_agreement": "100%",
+    "hidden_state_or_teacher_leakage": "0 accepted",
+    "episode_and_branch_denominator_accounting": "100%",
+    "HDC_LTC_advantage": "demonstrate on at least one preregistered metric against matched GRU/LSTM and transformer baselines",
+    "transfer": "sealed maps/scenario families without holdout adaptation",
+    "caveat": "Targets are prospective, not achieved results."
+  },
+  "references": [
+    "https://proceedings.iclr.cc/paper_files/paper/2026/hash/5b4263be85820683d78675cc18d2efc7-Abstract-Conference.html",
+    "https://proceedings.iclr.cc/paper_files/paper/2026/hash/0d70423f59c5fdd24f0dd3fa52e34623-Abstract-Conference.html",
+    "https://proceedings.mlr.press/v306/jia26f.html",
+    "https://proceedings.iclr.cc/paper_files/paper/2026/hash/a940e52cc37f63cd067c52265d1701cd-Abstract-Conference.html",
+    "https://doi.org/10.1016/j.jsr.2024.08.002",
+    "https://www.nature.com/articles/s41467-026-77370-x"
+  ]
+}
