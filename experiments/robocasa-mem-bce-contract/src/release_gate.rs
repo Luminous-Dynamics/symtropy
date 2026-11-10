@@ -138,7 +138,9 @@ pub enum ReleaseGateBlocker {
     AssetReceiptCoverageUnverified,
     AssetCoverageCountMismatch,
     CleanCandidateInstallationUnverified,
+    CandidateWheelArtifactMissing,
     CandidateWheelDigestMismatch,
+    CandidateRuntimeArtifactMissing,
     CandidateRuntimeDigestMismatch,
     InstalledWheelWasNotReaccepted,
     InstalledWheelCaseCountMismatch,
@@ -213,9 +215,7 @@ pub fn qualify_release(
         evidence.dataset_manifest_sha256.as_str(),
         evidence.asset_manifest_sha256.as_str(),
         evidence.asset_archive_sha256.as_str(),
-        evidence.installed_wheel.candidate_wheel_sha256.as_str(),
         evidence.installed_wheel.tested_wheel_sha256.as_str(),
-        evidence.installed_wheel.candidate_runtime_sha256.as_str(),
         evidence.installed_wheel.tested_runtime_sha256.as_str(),
     ];
     for expected in &evidence.expected_policy_runs {
@@ -329,10 +329,19 @@ pub fn qualify_release(
     }
 
     let wheel = &evidence.installed_wheel;
-    if wheel.candidate_wheel_sha256 != wheel.tested_wheel_sha256 {
+    if wheel.candidate_wheel_sha256.trim().is_empty() {
+        blockers.insert(ReleaseGateBlocker::CandidateWheelArtifactMissing);
+    } else if !is_sha256_hex(&wheel.candidate_wheel_sha256) {
+        return Err(ReleaseGateBlocker::InvalidArtifactDigest);
+    } else if wheel.candidate_wheel_sha256 != wheel.tested_wheel_sha256 {
         blockers.insert(ReleaseGateBlocker::CandidateWheelDigestMismatch);
+        blockers.insert(ReleaseGateBlocker::InstalledWheelWasNotReaccepted);
     }
-    if wheel.candidate_runtime_sha256 != wheel.tested_runtime_sha256 {
+    if wheel.candidate_runtime_sha256.trim().is_empty() {
+        blockers.insert(ReleaseGateBlocker::CandidateRuntimeArtifactMissing);
+    } else if !is_sha256_hex(&wheel.candidate_runtime_sha256) {
+        return Err(ReleaseGateBlocker::InvalidArtifactDigest);
+    } else if wheel.candidate_runtime_sha256 != wheel.tested_runtime_sha256 {
         blockers.insert(ReleaseGateBlocker::CandidateRuntimeDigestMismatch);
         blockers.insert(ReleaseGateBlocker::InstalledWheelWasNotReaccepted);
     }
@@ -480,7 +489,9 @@ pub fn qualify_release(
     let current_wheel_accepted = !blockers.iter().any(|blocker| {
         matches!(
             blocker,
-            ReleaseGateBlocker::CandidateWheelDigestMismatch
+            ReleaseGateBlocker::CandidateWheelArtifactMissing
+                | ReleaseGateBlocker::CandidateWheelDigestMismatch
+                | ReleaseGateBlocker::CandidateRuntimeArtifactMissing
                 | ReleaseGateBlocker::CandidateRuntimeDigestMismatch
                 | ReleaseGateBlocker::InstalledWheelWasNotReaccepted
                 | ReleaseGateBlocker::InstalledWheelCaseCountMismatch
@@ -672,6 +683,7 @@ mod tests {
         assert!(!report.native_evaluation_ready);
         assert!(report.has_blocker(ReleaseGateBlocker::CandidateRuntimeDigestMismatch));
         assert!(report.has_blocker(ReleaseGateBlocker::InstalledWheelWasNotReaccepted));
+        assert!(report.has_blocker(ReleaseGateBlocker::CandidateWheelArtifactMissing));
     }
 
     #[test]
@@ -870,6 +882,7 @@ mod tests {
         candidate.suite_bytes_preserved = false;
         candidate.release_ready_attested = false;
         candidate.clean_candidate_installation_verified = false;
+        candidate.installed_wheel.candidate_wheel_sha256.clear();
         candidate.installed_wheel.tested_runtime_sha256 = "0".repeat(64);
 
         let report = qualify_release(&candidate).unwrap();
