@@ -297,6 +297,17 @@ impl SplitMix64 {
         value = (value ^ (value >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
         value ^ (value >> 31)
     }
+
+    fn index_below(&mut self, upper_bound: usize) -> usize {
+        let bound = upper_bound as u64;
+        let rejection_threshold = bound.wrapping_neg() % bound;
+        loop {
+            let value = self.next_u64();
+            if value >= rejection_threshold {
+                return (value % bound) as usize;
+            }
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -867,7 +878,7 @@ pub fn bootstrap_memory_operation_comparison(
             for (_, unit_deltas) in &task_groups {
                 let mut sum = 0.0;
                 for _ in 0..unit_deltas.len() {
-                    let index = (rng.next_u64() % unit_deltas.len() as u64) as usize;
+                    let index = rng.index_below(unit_deltas.len());
                     sum += unit_deltas[index];
                 }
                 resampled_task_means.push(sum / unit_deltas.len() as f64);
