@@ -79,7 +79,7 @@ fn validate_manifest(schema_text: &str, corpus_text: &str) -> Result<Summary, Ve
     if string_at(&corpus, "benchmark_id") != Some(EXPECTED_BENCHMARK_ID) {
         errors.push("corpus benchmark_id does not match the VVUQ owner".to_owned());
     }
-    if !string_at(&corpus, "snapshot_date").is_some_and(is_date) {
+    if string_at(&corpus, "snapshot_date").is_none_or(|value| !is_date(value)) {
         errors.push("snapshot_date must use YYYY-MM-DD".to_owned());
     }
     if string_at(&corpus, "claim_ceiling").is_none_or(str::is_empty) {
@@ -144,9 +144,10 @@ fn validate_manifest(schema_text: &str, corpus_text: &str) -> Result<Summary, Ve
             errors.push(format!("{context}.admission_status is unknown"));
         }
         if source.get("numerical_scoring_eligible").and_then(Value::as_bool) != Some(false) {
-            errors.push(format!(
+            errors.push(
                 "v0.1 sources cannot score numerical data; revise the admission contract first"
-            ));
+                    .to_owned(),
+            );
         }
         if source.get("raw_data_bytes_available").and_then(Value::as_bool) != Some(false) {
             errors.push(format!(
@@ -156,9 +157,7 @@ fn validate_manifest(schema_text: &str, corpus_text: &str) -> Result<Summary, Ve
         if source
             .get("source_bytes_sha256")
             .is_none_or(|value| !value.is_null()) {
-            errors.push(format!(
-                "source digest must be null until exact source bytes are admitted"
-            ));
+            errors.push("source digest must be null until exact source bytes are admitted".to_owned());
         }
         if source.get("measurement_modalities").and_then(Value::as_array).is_none() {
             errors.push(format!("{context}.measurement_modalities must be an array"));
