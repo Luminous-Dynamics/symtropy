@@ -2641,10 +2641,14 @@ mod tests {
         })
         .expect("multi-ray evaluator should accept the analytic scene");
 
+        let sah_bvh = TriangleBvh::build_sah(&occluders);
         let mut brute_force_tests = 0usize;
+        let mut sah_ray_tests = 0usize;
+        let mut sah_node_visits = 0usize;
         for (probe_index, probe) in probes.iter().enumerate() {
             let delta = Vec3::from_point(probe.point);
             let distance = delta.norm();
+            let origin = Vec3 { x: 0.0, y: 0.0, z: 0.0 };
             let direction = delta.scale(1.0 / distance);
             let expected = occluders
                 .iter()
@@ -2654,13 +2658,8 @@ mod tests {
                         && triangle.triangle_id == probe.triangle_id)
                 })
                 .filter_map(|(triangle_index, triangle)| {
-                    ray_triangle_distance(
-                        Vec3 { x: 0.0, y: 0.0, z: 0.0 },
-                        direction,
-                        distance,
-                        triangle,
-                    )
-                    .map(|hit_distance| (triangle_index, hit_distance))
+                    ray_triangle_distance(origin, direction, distance, triangle)
+                        .map(|hit_distance| (triangle_index, hit_distance))
                 })
                 .min_by(|left, right| left.1.total_cmp(&right.1))
                 .map(|(triangle_index, _)| {
@@ -2671,10 +2670,37 @@ mod tests {
                     )
                 });
             brute_force_tests += occluders.len() - 1;
+
+            let (sah_hits, tests, visits) = sah_bvh
+                .nearest_hits(
+                    origin,
+                    direction,
+                    distance,
+                    &occluders,
+                    &probe.surface_id,
+                    &probe.triangle_id,
+                    100_000,
+                    100_000,
+                )
+                .expect("SAH traversal should remain within the generous test budgets");
+            sah_ray_tests += tests;
+            sah_node_visits += visits;
+            let sah_hit_ids: Vec<String> = sah_hits
+                .iter()
+                .map(|(triangle_index, _)| {
+                    format!(
+                        "{}/{}",
+                        occluders[*triangle_index].surface_id,
+                        occluders[*triangle_index].triangle_id
+                    )
+                })
+                .collect();
+
             let actual = &receipt.probes[probe_index].views[0].blocker_triangle_ids;
-            match expected {
+            match expected.as_ref() {
                 Some(expected_id) => {
-                    assert_eq!(actual, &vec![expected_id]);
+                    assert_eq!(actual, &vec![expected_id.clone()]);
+                    assert_eq!(sah_hit_ids, vec![expected_id.clone()]);
                     assert_eq!(
                         receipt.probes[probe_index].visibility,
                         SurfaceVisibility::SelfOccluded
@@ -2682,6 +2708,7 @@ mod tests {
                 }
                 None => {
                     assert!(actual.is_empty());
+                    assert!(sah_hit_ids.is_empty());
                     assert_eq!(
                         receipt.probes[probe_index].visibility,
                         SurfaceVisibility::Observable
@@ -2690,6 +2717,10 @@ mod tests {
             }
         }
 
+        assert!(sah_bvh.node_count > 1);
+        assert!(sah_bvh.leaf_count > 1);
+        assert!(sah_node_visits > 0);
+        assert!(sah_ray_tests > 0);
         assert_eq!(receipt.probe_count, PROBE_COUNT);
         assert_eq!(receipt.self_occluded_area_m2, 2.0 / 4.0);
         assert_eq!(receipt.observable_area_m2, 2.0 - 2.0 / 4.0);
