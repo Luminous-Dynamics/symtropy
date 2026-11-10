@@ -78,7 +78,8 @@
         "effectivity_start_utc",
         "effectivity_end_utc",
         "material_record_lot",
-        "required_procedure_scope"
+        "required_procedure_scope",
+        "required_process_scope"
       ],
       "properties": {
         "asset_id": {
@@ -146,6 +147,10 @@
           "minLength": 1
         },
         "required_procedure_scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "required_process_scope": {
           "type": "string",
           "minLength": 1
         }
@@ -438,7 +443,8 @@
         "evidence_class",
         "observed_envelope_status",
         "source_time_utc",
-        "serial_id"
+        "serial_id",
+        "workpiece_serial_id"
       ],
       "properties": {
         "pass_id": {
@@ -509,6 +515,10 @@
           "format": "date-time"
         },
         "serial_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "workpiece_serial_id": {
           "type": "string",
           "minLength": 1
         }
@@ -626,7 +636,9 @@
         "inspections",
         "post_processing",
         "document_package",
-        "twin_commissioning"
+        "twin_commissioning",
+        "material_receiving",
+        "normative_context"
       ],
       "properties": {
         "contract_id": {
@@ -874,6 +886,12 @@
               "const": "ingestion"
             }
           }
+        },
+        "material_receiving": {
+          "$ref": "#/$defs/materialReceiving"
+        },
+        "normative_context": {
+          "$ref": "#/$defs/normativeContext"
         }
       }
     },
@@ -922,6 +940,157 @@
           }
         },
         "expected_code": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "materialReceiving": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "material_spec_ref",
+        "material_heat_lot",
+        "disposition",
+        "evidence_ref"
+      ],
+      "properties": {
+        "material_spec_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "material_heat_lot": {
+          "type": "string",
+          "minLength": 1
+        },
+        "disposition": {
+          "enum": [
+            "accepted_synthetic",
+            "rejected",
+            "unknown"
+          ]
+        },
+        "evidence_ref": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "normativeContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "applicability_basis",
+        "authority_scope",
+        "applicable_ruleset",
+        "future_ruleset"
+      ],
+      "properties": {
+        "applicability_basis": {
+          "enum": [
+            "synthetic_contract_assumption",
+            "source_authorized_context",
+            "unknown"
+          ]
+        },
+        "authority_scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "applicable_ruleset": {
+          "$ref": "#/$defs/ruleset"
+        },
+        "future_ruleset": {
+          "$ref": "#/$defs/futureRuleset"
+        }
+      }
+    },
+    "ruleset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "standard",
+        "revision",
+        "revision_date",
+        "effective_from_utc",
+        "effective_until_utc",
+        "status",
+        "source_ref"
+      ],
+      "properties": {
+        "standard": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision_date": {
+          "type": "string",
+          "minLength": 4
+        },
+        "effective_from_utc": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "effective_until_utc": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "status": {
+          "enum": [
+            "current_at_cutoff",
+            "future_not_effective",
+            "expired",
+            "unknown"
+          ]
+        },
+        "source_ref": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "futureRuleset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "standard",
+        "revision",
+        "revision_date",
+        "effective_from_utc",
+        "status",
+        "source_ref"
+      ],
+      "properties": {
+        "standard": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision_date": {
+          "type": "string",
+          "minLength": 4
+        },
+        "effective_from_utc": {
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "future_not_effective",
+            "current_at_cutoff",
+            "unknown"
+          ]
+        },
+        "source_ref": {
           "type": "string",
           "minLength": 1
         }
