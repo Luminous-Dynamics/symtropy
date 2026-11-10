@@ -114,6 +114,7 @@
       "required": [
         "git_commit",
         "dependency_lock_sha256",
+        "canonical_input_set_format",
         "canonical_input_set_sha256",
         "input_digests",
         "reproduction_command",
@@ -158,8 +159,14 @@
           "minLength": 1
         },
         "canonical_input_set_sha256": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "canonical_input_set_format": {
+          "const": "utf8_bytewise_name_tab_lowercase_sha256_lf_v1"
         }
       }
     },
