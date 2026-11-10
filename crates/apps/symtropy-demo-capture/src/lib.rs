@@ -68,7 +68,11 @@ impl Plugin for CapturePlugin {
             // Default path: env not set — plugin is a pure no-op.
             return;
         };
-        let configuration = capture_configuration_from_env();
+        let configuration = if dir.trim().is_empty() {
+            Err("SYMTROPY_DEMO_CAPTURE_DIR must not be empty".to_string())
+        } else {
+            capture_configuration_from_env()
+        };
         let (schedule, exit_at, configuration_error) = match configuration {
             Ok((schedule, exit_at)) => (schedule, exit_at, None),
             Err(error) => (Vec::new(), 0.0, Some(error)),
