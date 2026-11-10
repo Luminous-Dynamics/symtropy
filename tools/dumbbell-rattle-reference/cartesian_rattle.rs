@@ -51,6 +51,11 @@ pub struct StepReceipt {
     pub midpoint_velocity_constraint_residual: f64,
     pub relative_linear_momentum_residual: f64,
     pub relative_angular_momentum_residual: f64,
+    pub external_work: f64,
+    /// ΔH - external_work; includes the numerical constraint-energy defect.
+    /// This is not physical dissipation.
+    pub energy_balance_residual: f64,
+    pub relative_energy_balance_residual: f64,
 }
 
 fn add(a: Vec2, b: Vec2) -> Vec2 {
@@ -149,19 +154,33 @@ impl CartesianRattleDumbbell {
         Ok(())
     }
 
-    /// One Cartesian RATTLE step for a torque-free, force-free dumbbell.
-    ///
-    /// Position stage: solve the quadratic SHAKE/RATTLE multiplier so the
-    /// updated link vector has exactly length L.
-    ///
-    /// Velocity stage: solve the second multiplier so r1·(v2_1-v1_1)=0.
-    ///
-    /// This is the standard symplectic constrained baseline for the same
-    /// free dumbbell model as the pHDAE discrete-gradient implementation.
-    /// It enforces endpoint tangency but does not post-correct energy.
+    /// Force-free convenience step.
     pub fn step(&self, before: State, dt: f64) -> Result<StepReceipt, Error> {
+        self.step_with_accelerations(before, [0.0, 0.0], [0.0, 0.0], dt)
+    }
+
+    /// One Cartesian RATTLE step with constant mass-normalized accelerations
+    /// applied at the two mass centers over this step.
+    ///
+    /// Position stage includes one half of each external acceleration and
+    /// the position multiplier. The velocity stage adds the remaining half
+    /// external impulses and the endpoint multiplier. The force/work and
+    /// impulse/torque ledgers are reported separately from constraint energy
+    /// defect; energy error is never labelled as physical dissipation.
+    pub fn step_with_accelerations(
+        &self,
+        before: State,
+        acceleration1: Vec2,
+        acceleration2: Vec2,
+        dt: f64,
+    ) -> Result<StepReceipt, Error> {
         if !dt.is_finite() || dt <= 0.0 {
             return Err(Error::InvalidTimeStep);
+        }
+        if !acceleration1.iter().all(|x| x.is_finite())
+            || !acceleration2.iter().all(|x| x.is_finite())
+        {
+            return Err(Error::NonFiniteInput);
         }
         self.validate_initial(before)?;
         let energy_before = self.hamiltonian(before)?;
@@ -172,12 +191,17 @@ impl CartesianRattleDumbbell {
         let w0 = sub(before.v2, before.v1);
         let inverse_mass_sum = 1.0 / self.mass1 + 1.0 / self.mass2;
         let radius_squared = dot(r0, r0);
-        let drift = scale(w0, dt);
-        let linear_term = dot(r0, drift);
+        let relative_free_drift = add(
+            scale(w0, dt),
+            scale(sub(acceleration2, acceleration1), 0.5 * dt * dt),
+        );
+        let linear_term = dot(r0, relative_free_drift);
         let discriminant = linear_term * linear_term
-            - radius_squared * (dot(drift, drift) - self.length * self.length);
+            - radius_squared
+                * (dot(relative_free_drift, relative_free_drift)
+                    - self.length * self.length);
         let discriminant_scale = (linear_term * linear_term).abs()
-            + (radius_squared * (dot(drift, drift) - self.length * self.length)).abs()
+            + (radius_squared * (dot(relative_free_drift, relative_free_drift) - self.length * self.length)).abs()
             + radius_squared * self.length * self.length;
         if !discriminant.is_finite() {
             return Err(Error::NonFiniteResult);
@@ -198,21 +222,30 @@ impl CartesianRattleDumbbell {
         let after_q1 = add(
             before.q1,
             add(
-                scale(before.v1, dt),
+                add(
+                    scale(before.v1, dt),
+                    scale(acceleration1, 0.5 * dt * dt),
+                ),
                 scale(r0, 0.5 * dt * dt * position_multiplier / self.mass1),
             ),
         );
         let after_q2 = add(
             before.q2,
-            sub(
-                scale(before.v2, dt),
-                scale(r0, 0.5 * dt * dt * position_multiplier / self.mass2),
+            add(
+                add(
+                    scale(before.v2, dt),
+                    scale(acceleration2, 0.5 * dt * dt),
+                ),
+                scale(r0, -0.5 * dt * dt * position_multiplier / self.mass2),
             ),
         );
         let after_link = sub(after_q2, after_q1);
         let chord_v1 = scale(sub(after_q1, before.q1), 1.0 / dt);
         let chord_v2 = scale(sub(after_q2, before.q2), 1.0 / dt);
-        let chord_relative_velocity = sub(chord_v2, chord_v1);
+        let chord_relative_velocity = add(
+            sub(chord_v2, chord_v1),
+            scale(sub(acceleration2, acceleration1), 0.5 * dt),
+        );
         let after_link_squared = dot(after_link, after_link);
         if !after_link_squared.is_finite()
             || after_link_squared <= f64::MIN_POSITIVE
@@ -224,12 +257,18 @@ impl CartesianRattleDumbbell {
         let velocity_multiplier = 2.0 * dot(after_link, chord_relative_velocity)
             / (dt * inverse_mass_sum * after_link_squared);
         let after_v1 = add(
-            chord_v1,
+            add(
+                chord_v1,
+                scale(acceleration1, 0.5 * dt),
+            ),
             scale(after_link, 0.5 * dt * velocity_multiplier / self.mass1),
         );
-        let after_v2 = sub(
-            chord_v2,
-            scale(after_link, 0.5 * dt * velocity_multiplier / self.mass2),
+        let after_v2 = add(
+            add(
+                chord_v2,
+                scale(acceleration2, 0.5 * dt),
+            ),
+            scale(after_link, -0.5 * dt * velocity_multiplier / self.mass2),
         );
         if !velocity_multiplier.is_finite()
             || !after_v1.iter().all(|x| x.is_finite())
@@ -263,19 +302,49 @@ impl CartesianRattleDumbbell {
         let energy_after = self.hamiltonian(after)?;
         let relative_energy_change = (energy_after - energy_before).abs()
             / (energy_before.abs() + energy_after.abs()).max(f64::MIN_POSITIVE);
+        let external_force1 = scale(acceleration1, self.mass1);
+        let external_force2 = scale(acceleration2, self.mass2);
+        let external_work = dot(
+            external_force1,
+            sub(after.q1, before.q1),
+        ) + dot(
+            external_force2,
+            sub(after.q2, before.q2),
+        );
+        let energy_balance_residual = energy_after - energy_before - external_work;
+        let relative_energy_balance_residual = energy_balance_residual.abs()
+            / (1.0
+                + energy_before.abs()
+                + energy_after.abs()
+                + external_work.abs());
 
         let momentum_after = self.linear_momentum(after);
-        let relative_linear_momentum_residual = norm(sub(momentum_after, momentum_before))
-            / (1.0 + norm(momentum_before) + norm(momentum_after));
+        let expected_momentum = add(
+            momentum_before,
+            scale(add(external_force1, external_force2), dt),
+        );
+        let relative_linear_momentum_residual = norm(sub(momentum_after, expected_momentum))
+            / (1.0 + norm(momentum_before) + norm(expected_momentum));
         let angular_after = self.angular_momentum(after);
-        let relative_angular_momentum_residual = (angular_after - angular_before).abs()
-            / (1.0 + angular_before.abs() + angular_after.abs());
+        let midpoint_q1 = scale(add(before.q1, after.q1), 0.5);
+        let midpoint_q2 = scale(add(before.q2, after.q2), 0.5);
+        let expected_torque_impulse = dt
+            * (cross(midpoint_q1, external_force1) + cross(midpoint_q2, external_force2));
+        let relative_angular_momentum_residual =
+            (angular_after - angular_before - expected_torque_impulse).abs()
+                / (1.0
+                    + angular_before.abs()
+                    + angular_after.abs()
+                    + expected_torque_impulse.abs());
 
         if !link_residual.is_finite()
             || !endpoint_tangent.is_finite()
             || !endpoint_tangent_relative.is_finite()
             || !midpoint_constraint.is_finite()
             || !relative_energy_change.is_finite()
+            || !external_work.is_finite()
+            || !energy_balance_residual.is_finite()
+            || !relative_energy_balance_residual.is_finite()
             || !relative_linear_momentum_residual.is_finite()
             || !relative_angular_momentum_residual.is_finite()
         {
@@ -301,6 +370,9 @@ impl CartesianRattleDumbbell {
             midpoint_velocity_constraint_residual: midpoint_constraint,
             relative_linear_momentum_residual,
             relative_angular_momentum_residual,
+            external_work,
+            energy_balance_residual,
+            relative_energy_balance_residual,
         })
     }
 }
@@ -425,6 +497,124 @@ mod tests {
         let rotated = model.step(rotate_state(initial, angle), 0.01).unwrap();
         assert!(
             state_error(rotated.after, rotate_state(normal.after, angle)) < 3.0e-12
+        );
+    }
+
+    #[test]
+    fn common_acceleration_matches_exact_center_of_mass_trajectory() {
+        let model = model();
+        let initial = initial_state();
+        let acceleration = [0.18, -0.07];
+        let reference_free = exact_state(initial, 1.3, 2.1, 1.2, 1.0);
+        let reference = State {
+            q1: add(reference_free.q1, scale(acceleration, 0.5)),
+            q2: add(reference_free.q2, scale(acceleration, 0.5)),
+            v1: add(reference_free.v1, acceleration),
+            v2: add(reference_free.v2, acceleration),
+        };
+        let mut errors = Vec::new();
+        for dt in [0.04, 0.02, 0.01, 0.005] {
+            let mut state = initial;
+            for _ in 0..(1.0 / dt).round() as usize {
+                state = model
+                    .step_with_accelerations(state, acceleration, acceleration, dt)
+                    .unwrap()
+                    .after;
+            }
+            errors.push(state_error(state, reference));
+        }
+        for pair in errors.windows(2) {
+            let ratio = pair[0] / pair[1];
+            assert!(
+                (3.6..4.4).contains(&ratio),
+                "forced common-acceleration RATTLE should remain second order: {errors:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn external_force_work_linear_impulse_and_torque_impulse_are_separate() {
+        let model = model();
+        let initial = initial_state();
+        let acceleration1 = [0.18, -0.07];
+        let acceleration2 = acceleration1;
+        let receipt = model
+            .step_with_accelerations(initial, acceleration1, acceleration2, 0.01)
+            .unwrap();
+        let force1 = scale(acceleration1, 1.3);
+        let force2 = scale(acceleration2, 2.1);
+        let expected_work = dot(force1, sub(receipt.after.q1, initial.q1))
+            + dot(force2, sub(receipt.after.q2, initial.q2));
+        assert!((receipt.external_work - expected_work).abs() < 2.0e-14);
+        assert!(
+            receipt.relative_linear_momentum_residual < 2.0e-12,
+            "impulse residual={:e}",
+            receipt.relative_linear_momentum_residual
+        );
+        assert!(
+            receipt.relative_angular_momentum_residual < 2.0e-12,
+            "torque residual={:e}",
+            receipt.relative_angular_momentum_residual
+        );
+        assert!(receipt.energy_balance_residual.is_finite());
+        assert!(receipt.relative_energy_balance_residual.is_finite());
+    }
+
+    #[test]
+    fn unequal_external_accelerations_match_signed_work_impulse_and_torque() {
+        let model = model();
+        let initial = initial_state();
+        let acceleration1 = [0.18, -0.07];
+        let acceleration2 = [-0.03, 0.11];
+        let dt = 0.01;
+        let receipt = model
+            .step_with_accelerations(initial, acceleration1, acceleration2, dt)
+            .unwrap();
+        let force1 = scale(acceleration1, 1.3);
+        let force2 = scale(acceleration2, 2.1);
+        let expected_work = dot(force1, sub(receipt.after.q1, initial.q1))
+            + dot(force2, sub(receipt.after.q2, initial.q2));
+        assert!((receipt.external_work - expected_work).abs() < 2.0e-14);
+        assert!(receipt.relative_linear_momentum_residual < 2.0e-12);
+        assert!(receipt.relative_angular_momentum_residual < 2.0e-12);
+        assert!(receipt.relative_link_constraint_residual < 1.0e-12);
+        assert!(receipt.relative_endpoint_velocity_constraint_residual < 1.0e-12);
+    }
+
+    #[test]
+    fn rotated_external_accelerations_commute_with_rattle_step() {
+        let model = model();
+        let initial = initial_state();
+        let angle = 0.731_f64;
+        let acceleration1 = [0.18, -0.07];
+        let acceleration2 = [-0.03, 0.11];
+        let normal = model
+            .step_with_accelerations(initial, acceleration1, acceleration2, 0.01)
+            .unwrap();
+        let rotated = model
+            .step_with_accelerations(
+                rotate_state(initial, angle),
+                rotate(acceleration1, angle),
+                rotate(acceleration2, angle),
+                0.01,
+            )
+            .unwrap();
+        assert!(state_error(rotated.after, rotate_state(normal.after, angle)) < 3.0e-12);
+    }
+
+    #[test]
+    fn non_finite_external_acceleration_fails_closed() {
+        let model = model();
+        assert_eq!(
+            model
+                .step_with_accelerations(
+                    initial_state(),
+                    [f64::NAN, 0.0],
+                    [0.0, 0.0],
+                    0.01,
+                )
+                .unwrap_err(),
+            Error::NonFiniteInput
         );
     }
 
