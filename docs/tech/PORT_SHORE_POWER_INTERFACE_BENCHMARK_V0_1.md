@@ -94,7 +94,7 @@ Unknown or contradictory evidence blocks promotion. State transitions require ex
 
 ## Frozen corpus v0.1
 
-The corpus contains 32 deterministic synthetic cases:
+The corpus contains 34 deterministic synthetic cases:
 - one valid synthetic interface contract;
 - missing live capacity, uncommitted/revoked/expired reservations;
 - wrong port/berth/connection/vessel/configuration identity;
