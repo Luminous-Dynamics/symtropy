@@ -220,7 +220,7 @@ The original and repaired models must have distinct model digests. Both challeng
 
 The repair record pins the repair action, protocol, initial calibration data, repair-training data and repair-training source/observation digests. Diagnostic observations must be represented in the declared repair-training lineage. Challenge sources and observations must be absent from the repair-training manifests.
 
-Per-statistic outcomes remain separate:
+Per-statistic outcomes remain separate. A fresh-challenge change is only called CorrectedOnFreshChallenge when its statistic ID was itself a primary discrepancy in the diagnostic assessment; a repaired metric outside that scope is emitted as UnlinkedImprovement and cannot qualify restoration:
 - maintained;
 - corrected on fresh challenge;
 - residual discrepancy;
