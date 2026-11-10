@@ -783,6 +783,7 @@ mod tests {
     use super::{
         AreaWeightedSamplingProfile, SurfaceTriangleInput, SurfaceVisibility,
         sample_observable_surfaces, sample_reference_surfaces_for_visibility,
+        verify_surface_sampling_receipt,
     };
     use crate::metrics::Point3;
 
@@ -932,6 +933,38 @@ mod tests {
         assert!(receipt.samples.is_empty());
         assert_eq!(receipt.observable_area_m2, 0.0);
         assert!((receipt.excluded_area_m2 - 1.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn verifies_reference_sampling_receipt_and_rejects_digest_tampering() {
+        let input = square("REFERENCE-WALL", "wall", 1.0, SurfaceVisibility::SelfOccluded);
+        let receipt = sample_reference_surfaces_for_visibility(&input, profile(0.1, 31))
+            .expect("reference sampling ignores prior observation labels");
+        verify_surface_sampling_receipt(&receipt).expect("valid reference receipt");
+
+        let mut tampered = receipt.clone();
+        tampered.samples[0].point.x += 0.001;
+        let error = verify_surface_sampling_receipt(&tampered)
+            .expect_err("modified sample points must change the canonical digest");
+        assert!(error.contains("canonical SHA-256"));
+    }
+
+    #[test]
+    fn rejects_sampling_receipt_area_or_weight_inconsistency() {
+        let input = square("REFERENCE-WALL", "wall", 1.0, SurfaceVisibility::Observable);
+        let receipt = sample_observable_surfaces(&input, profile(0.1, 37))
+            .expect("valid sample receipt");
+        let mut area_tampered = receipt.clone();
+        area_tampered.surfaces[0].observable_area_m2 += 0.25;
+        let error = verify_surface_sampling_receipt(&area_tampered)
+            .expect_err("surface area totals must conserve");
+        assert!(error.contains("represented area"));
+
+        let mut weight_tampered = receipt.clone();
+        weight_tampered.samples[0].represented_area_m2 *= 2.0;
+        let error = verify_surface_sampling_receipt(&weight_tampered)
+            .expect_err("sample weights must be equal and conserve area");
+        assert!(error.contains("sample weights are not equal"));
     }
 
     #[test]
