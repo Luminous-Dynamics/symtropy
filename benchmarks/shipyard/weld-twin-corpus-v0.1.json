@@ -927,6 +927,38 @@
         }
       ],
       "expected_code": "NORMATIVE_CONTEXT_RETRIEVED_AFTER_DECISION_CUTOFF"
+    },
+    {
+      "id": "valid_w28_rev3_for_future_ship_subject_date",
+      "base": "valid_robotic_weld",
+      "mutations": [
+        {
+          "path": "normative_context.subject_applicability_date_utc",
+          "op": "set",
+          "value": "2027-01-02T00:00:00Z"
+        },
+        {
+          "path": "normative_context.applicable_ruleset.revision",
+          "op": "set",
+          "value": "Rev.3"
+        },
+        {
+          "path": "normative_context.applicable_ruleset.effective_from_utc",
+          "op": "set",
+          "value": "2027-01-01T00:00:00Z"
+        },
+        {
+          "path": "normative_context.applicable_ruleset.effective_until_utc",
+          "op": "set",
+          "value": null
+        },
+        {
+          "path": "normative_context.future_ruleset.status",
+          "op": "set",
+          "value": "applicable_for_subject_effectivity"
+        }
+      ],
+      "expected_code": "WELD_TRACE_VALID_SYNTHETIC_ONLY"
     }
   ]
 }
