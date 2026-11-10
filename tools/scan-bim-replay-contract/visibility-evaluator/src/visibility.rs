@@ -31,6 +31,7 @@ const HARD_MAX_PROBE_VIEW_EVALUATIONS: usize = 1_000_000;
 const HARD_MAX_RAY_TESTS: usize = 100_000_000;
 const HARD_MAX_BVH_NODE_VISITS: usize = 250_000_000;
 const BVH_LEAF_TRIANGLE_LIMIT: usize = 8;
+const BVH_SAH_BIN_COUNT: usize = 16;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -376,6 +377,13 @@ impl Aabb {
         minimum * 0.5 + maximum * 0.5
     }
 
+    fn surface_area(self) -> f64 {
+        let dx = (self.maximum.x - self.minimum.x).max(0.0);
+        let dy = (self.maximum.y - self.minimum.y).max(0.0);
+        let dz = (self.maximum.z - self.minimum.z).max(0.0);
+        2.0 * (dx * dy + dy * dz + dz * dx)
+    }
+
     /// Slab intersection; bounds are expanded by the declared numeric epsilon
     /// so shared edges and near-boundary rays are not lost by the broad phase.
     fn ray_entry(self, origin: Vec3, direction: Vec3, max_distance: f64) -> Option<f64> {
@@ -463,6 +471,282 @@ impl TriangleBvh {
             root: Some(Box::new(root)),
             node_count,
             leaf_count,
+        }
+    }
+
+    /// Deterministic binned Surface Area Heuristic builder.
+    ///
+    /// The median builder remains the simple in-repository baseline. This
+    /// variant evaluates 16 bins on each centroid axis and chooses the lowest
+    /// finite SAH split. Empty/degenerate partitions fall back to the stable
+    /// median split so the leaf-size ceiling is never silently exceeded.
+    fn build_sah(triangles: &[OccluderTriangle]) -> Self {
+        if triangles.is_empty() {
+            return Self {
+                root: None,
+                node_count: 0,
+                leaf_count: 0,
+            };
+        }
+        let mut node_count = 0usize;
+        let mut leaf_count = 0usize;
+        let indices: Vec<usize> = (0..triangles.len()).collect();
+        let root = Self::build_node_sah(
+            indices,
+            triangles,
+            &mut node_count,
+            &mut leaf_count,
+        );
+        Self {
+            root: Some(Box::new(root)),
+            node_count,
+            leaf_count,
+        }
+    }
+
+    fn leaf_node(
+        mut indices: Vec<usize>,
+        triangles: &[OccluderTriangle],
+        bounds: Aabb,
+        leaf_count: &mut usize,
+    ) -> BvhNode {
+        *leaf_count += 1;
+        indices.sort_by(|left, right| {
+            triangles[*left]
+                .surface_id
+                .cmp(&triangles[*right].surface_id)
+                .then_with(|| {
+                    triangles[*left]
+                        .triangle_id
+                        .cmp(&triangles[*right].triangle_id)
+                })
+        });
+        BvhNode {
+            bounds,
+            kind: BvhNodeKind::Leaf {
+                triangle_indices: indices,
+            },
+        }
+    }
+
+    fn build_node_sah(
+        mut indices: Vec<usize>,
+        triangles: &[OccluderTriangle],
+        node_count: &mut usize,
+        leaf_count: &mut usize,
+    ) -> BvhNode {
+        *node_count += 1;
+        let mut bounds = Aabb::from_triangle(&triangles[indices[0]]);
+        let mut centroid_min = Vec3 {
+            x: f64::INFINITY,
+            y: f64::INFINITY,
+            z: f64::INFINITY,
+        };
+        let mut centroid_max = Vec3 {
+            x: f64::NEG_INFINITY,
+            y: f64::NEG_INFINITY,
+            z: f64::NEG_INFINITY,
+        };
+        for index in &indices {
+            let triangle_bounds = Aabb::from_triangle(&triangles[*index]);
+            bounds = bounds.union(triangle_bounds);
+            let centroid = Vec3 {
+                x: triangle_bounds.centroid_axis(0),
+                y: triangle_bounds.centroid_axis(1),
+                z: triangle_bounds.centroid_axis(2),
+            };
+            centroid_min.x = centroid_min.x.min(centroid.x);
+            centroid_min.y = centroid_min.y.min(centroid.y);
+            centroid_min.z = centroid_min.z.min(centroid.z);
+            centroid_max.x = centroid_max.x.max(centroid.x);
+            centroid_max.y = centroid_max.y.max(centroid.y);
+            centroid_max.z = centroid_max.z.max(centroid.z);
+        }
+
+        if indices.len() <= BVH_LEAF_TRIANGLE_LIMIT {
+            return Self::leaf_node(indices, triangles, bounds, leaf_count);
+        }
+
+        let minima = [centroid_min.x, centroid_min.y, centroid_min.z];
+        let maxima = [centroid_max.x, centroid_max.y, centroid_max.z];
+        let mut best_split: Option<(f64, usize, usize)> = None;
+
+        for (axis, (minimum, maximum)) in minima.iter().zip(maxima.iter()).enumerate() {
+            let extent = *maximum - *minimum;
+            if !extent.is_finite() || extent <= f64::EPSILON {
+                continue;
+            }
+            let mut bin_counts = [0usize; BVH_SAH_BIN_COUNT];
+            let mut bin_bounds: [Option<Aabb>; BVH_SAH_BIN_COUNT] =
+                [None; BVH_SAH_BIN_COUNT];
+
+            for index in &indices {
+                let triangle_bounds = Aabb::from_triangle(&triangles[*index]);
+                let position = (triangle_bounds.centroid_axis(axis) - *minimum) / extent;
+                if !position.is_finite() {
+                    continue;
+                }
+                let scaled = (position * BVH_SAH_BIN_COUNT as f64).floor();
+                let bin = scaled
+                    .max(0.0)
+                    .min((BVH_SAH_BIN_COUNT - 1) as f64) as usize;
+                bin_counts[bin] += 1;
+                bin_bounds[bin] = Some(match bin_bounds[bin] {
+                    Some(existing) => existing.union(triangle_bounds),
+                    None => triangle_bounds,
+                });
+            }
+
+            let mut prefix_counts = [0usize; BVH_SAH_BIN_COUNT - 1];
+            let mut suffix_counts = [0usize; BVH_SAH_BIN_COUNT - 1];
+            let mut prefix_bounds: [Option<Aabb>; BVH_SAH_BIN_COUNT - 1] =
+                [None; BVH_SAH_BIN_COUNT - 1];
+            let mut suffix_bounds: [Option<Aabb>; BVH_SAH_BIN_COUNT - 1] =
+                [None; BVH_SAH_BIN_COUNT - 1];
+
+            let mut count = 0usize;
+            let mut accumulated: Option<Aabb> = None;
+            for (bin, (bin_count, bounds_for_bin)) in
+                bin_counts.iter().zip(bin_bounds.iter()).enumerate().take(BVH_SAH_BIN_COUNT - 1)
+            {
+                count += *bin_count;
+                if let Some(value) = *bounds_for_bin {
+                    accumulated = Some(match accumulated {
+                        Some(previous) => previous.union(value),
+                        None => value,
+                    });
+                }
+                prefix_counts[bin] = count;
+                prefix_bounds[bin] = accumulated;
+            }
+
+            count = 0;
+            accumulated = None;
+            for (bin, (bin_count, bounds_for_bin)) in
+                bin_counts.iter().zip(bin_bounds.iter()).enumerate().skip(1).rev()
+            {
+                count += *bin_count;
+                if let Some(value) = *bounds_for_bin {
+                    accumulated = Some(match accumulated {
+                        Some(previous) => previous.union(value),
+                        None => value,
+                    });
+                }
+                suffix_counts[bin - 1] = count;
+                suffix_bounds[bin - 1] = accumulated;
+            }
+
+            for (
+                split_bin,
+                (((left_count, right_count), left_bounds), right_bounds),
+            ) in prefix_counts
+                .iter()
+                .zip(suffix_counts.iter())
+                .zip(prefix_bounds.iter())
+                .zip(suffix_bounds.iter())
+                .enumerate()
+            {
+                let (Some(left_bounds), Some(right_bounds)) = (*left_bounds, *right_bounds) else {
+                    continue;
+                };
+                if *left_count == 0 || *right_count == 0 {
+                    continue;
+                }
+                let cost = left_bounds.surface_area() * *left_count as f64
+                    + right_bounds.surface_area() * *right_count as f64;
+                if !cost.is_finite() {
+                    continue;
+                }
+                let replace = best_split.is_none_or(|(best_cost, best_axis, best_bin)| {
+                    cost.total_cmp(&best_cost).is_lt()
+                        || (cost.total_cmp(&best_cost).is_eq()
+                            && (axis, split_bin) < (best_axis, best_bin))
+                });
+                if replace {
+                    best_split = Some((cost, axis, split_bin));
+                }
+            }
+        }
+
+        if let Some((_, axis, split_bin)) = best_split {
+            let extent = maxima[axis] - minima[axis];
+            let mut left_indices = Vec::with_capacity(indices.len() / 2);
+            let mut right_indices = Vec::with_capacity(indices.len() / 2);
+            for index in indices.drain(..) {
+                let triangle_bounds = Aabb::from_triangle(&triangles[index]);
+                let position = (triangle_bounds.centroid_axis(axis) - minima[axis]) / extent;
+                let scaled = (position * BVH_SAH_BIN_COUNT as f64).floor();
+                let bin = scaled
+                    .max(0.0)
+                    .min((BVH_SAH_BIN_COUNT - 1) as f64) as usize;
+                if bin <= split_bin {
+                    left_indices.push(index);
+                } else {
+                    right_indices.push(index);
+                }
+            }
+            if !left_indices.is_empty() && !right_indices.is_empty() {
+                let left = Self::build_node_sah(
+                    left_indices,
+                    triangles,
+                    node_count,
+                    leaf_count,
+                );
+                let right = Self::build_node_sah(
+                    right_indices,
+                    triangles,
+                    node_count,
+                    leaf_count,
+                );
+                return BvhNode {
+                    bounds,
+                    kind: BvhNodeKind::Branch {
+                        left: Box::new(left),
+                        right: Box::new(right),
+                    },
+                };
+            }
+        }
+
+        // Deterministic longest-centroid-axis median fallback guarantees
+        // progress even when all centroids occupy one bin or have zero extent.
+        let extents = [
+            maxima[0] - minima[0],
+            maxima[1] - minima[1],
+            maxima[2] - minima[2],
+        ];
+        let axis = if extents[0] >= extents[1] && extents[0] >= extents[2] {
+            0
+        } else if extents[1] >= extents[2] {
+            1
+        } else {
+            2
+        };
+        let midpoint = indices.len() / 2;
+        indices.select_nth_unstable_by(midpoint, |left, right| {
+            Aabb::from_triangle(&triangles[*left])
+                .centroid_axis(axis)
+                .total_cmp(&Aabb::from_triangle(&triangles[*right]).centroid_axis(axis))
+                .then_with(|| {
+                    triangles[*left]
+                        .surface_id
+                        .cmp(&triangles[*right].surface_id)
+                })
+                .then_with(|| {
+                    triangles[*left]
+                        .triangle_id
+                        .cmp(&triangles[*right].triangle_id)
+                })
+        });
+        let right_indices = indices.split_off(midpoint);
+        let left = Self::build_node_sah(indices, triangles, node_count, leaf_count);
+        let right = Self::build_node_sah(right_indices, triangles, node_count, leaf_count);
+        BvhNode {
+            bounds,
+            kind: BvhNodeKind::Branch {
+                left: Box::new(left),
+                right: Box::new(right),
+            },
         }
     }
 
@@ -2220,6 +2504,14 @@ mod tests {
         assert!(error.contains("compiled hard ceiling"));
     }
 
+    fn maximum_leaf_triangle_count(node: &super::BvhNode) -> usize {
+        match &node.kind {
+            super::BvhNodeKind::Leaf { triangle_indices } => triangle_indices.len(),
+            super::BvhNodeKind::Branch { left, right } => maximum_leaf_triangle_count(left)
+                .max(maximum_leaf_triangle_count(right)),
+        }
+    }
+
     fn blocker_at_y(kind: OccluderKind, index: usize, y: f64) -> OccluderTriangle {
         OccluderTriangle {
             surface_id: format!("BLOCKER-{index:04}"),
@@ -2370,10 +2662,14 @@ mod tests {
         })
         .expect("multi-ray evaluator should accept the analytic scene");
 
+        let sah_bvh = TriangleBvh::build_sah(&occluders);
         let mut brute_force_tests = 0usize;
+        let mut sah_ray_tests = 0usize;
+        let mut sah_node_visits = 0usize;
         for (probe_index, probe) in probes.iter().enumerate() {
             let delta = Vec3::from_point(probe.point);
             let distance = delta.norm();
+            let origin = Vec3 { x: 0.0, y: 0.0, z: 0.0 };
             let direction = delta.scale(1.0 / distance);
             let expected = occluders
                 .iter()
@@ -2383,13 +2679,8 @@ mod tests {
                         && triangle.triangle_id == probe.triangle_id)
                 })
                 .filter_map(|(triangle_index, triangle)| {
-                    ray_triangle_distance(
-                        Vec3 { x: 0.0, y: 0.0, z: 0.0 },
-                        direction,
-                        distance,
-                        triangle,
-                    )
-                    .map(|hit_distance| (triangle_index, hit_distance))
+                    ray_triangle_distance(origin, direction, distance, triangle)
+                        .map(|hit_distance| (triangle_index, hit_distance))
                 })
                 .min_by(|left, right| left.1.total_cmp(&right.1))
                 .map(|(triangle_index, _)| {
@@ -2400,10 +2691,37 @@ mod tests {
                     )
                 });
             brute_force_tests += occluders.len() - 1;
+
+            let (sah_hits, tests, visits) = sah_bvh
+                .nearest_hits(
+                    origin,
+                    direction,
+                    distance,
+                    &occluders,
+                    &probe.surface_id,
+                    &probe.triangle_id,
+                    100_000,
+                    100_000,
+                )
+                .expect("SAH traversal should remain within the generous test budgets");
+            sah_ray_tests += tests;
+            sah_node_visits += visits;
+            let sah_hit_ids: Vec<String> = sah_hits
+                .iter()
+                .map(|(triangle_index, _)| {
+                    format!(
+                        "{}/{}",
+                        occluders[*triangle_index].surface_id,
+                        occluders[*triangle_index].triangle_id
+                    )
+                })
+                .collect();
+
             let actual = &receipt.probes[probe_index].views[0].blocker_triangle_ids;
-            match expected {
+            match expected.as_ref() {
                 Some(expected_id) => {
-                    assert_eq!(actual, &vec![expected_id]);
+                    assert_eq!(actual, &vec![expected_id.clone()]);
+                    assert_eq!(sah_hit_ids, vec![expected_id.clone()]);
                     assert_eq!(
                         receipt.probes[probe_index].visibility,
                         SurfaceVisibility::SelfOccluded
@@ -2411,6 +2729,7 @@ mod tests {
                 }
                 None => {
                     assert!(actual.is_empty());
+                    assert!(sah_hit_ids.is_empty());
                     assert_eq!(
                         receipt.probes[probe_index].visibility,
                         SurfaceVisibility::Observable
@@ -2419,6 +2738,21 @@ mod tests {
             }
         }
 
+        assert!(sah_bvh.node_count > 1);
+        assert!(sah_bvh.leaf_count > 1);
+        assert!(
+            sah_bvh
+                .root
+                .as_deref()
+                .is_some_and(|root| maximum_leaf_triangle_count(root) <= BVH_LEAF_TRIANGLE_LIMIT)
+        );
+        assert!(sah_node_visits > 0);
+        assert!(
+            sah_ray_tests < brute_force_tests,
+            "SAH must prune primitive tests relative to brute force: {} vs {}",
+            sah_ray_tests,
+            brute_force_tests
+        );
         assert_eq!(receipt.probe_count, PROBE_COUNT);
         assert_eq!(receipt.self_occluded_area_m2, 2.0 / 4.0);
         assert_eq!(receipt.observable_area_m2, 2.0 - 2.0 / 4.0);
