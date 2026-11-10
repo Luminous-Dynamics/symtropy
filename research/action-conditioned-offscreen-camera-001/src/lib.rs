@@ -132,6 +132,7 @@ pub struct TimingPolicy {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(u8)]
 pub enum ObservationDisposition {
     Fresh,
     Delayed,
@@ -199,8 +200,16 @@ impl std::fmt::Display for RenderError {
 impl std::error::Error for RenderError {}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(u8)]
+pub enum PixelFormat {
+    Rgb8Srgb,
+}
+
 pub struct PolicyObservationReceipt {
     pub schema_version: u32,
+    pub observation_id: String,
+    pub pixel_format: PixelFormat,
     pub episode_id: String,
     pub agent_id: String,
     pub clock_id: String,
@@ -405,6 +414,8 @@ impl SoftwareCameraRenderer {
         let action = snapshot.applied_action.as_ref();
         let mut receipt = PolicyObservationReceipt {
             schema_version: RENDERER_SCHEMA_VERSION,
+            observation_id: String::new(),
+            pixel_format: PixelFormat::Rgb8Srgb,
             episode_id: snapshot.episode_id.clone(),
             agent_id: snapshot.agent_id.clone(),
             clock_id: snapshot.clock_id.clone(),
@@ -426,6 +437,7 @@ impl SoftwareCameraRenderer {
             frame_sha256: frame_digest,
             receipt_sha256: String::new(),
         };
+        receipt.observation_id = observation_identity_digest(&receipt);
         receipt.receipt_sha256 = policy_receipt_digest(&receipt);
 
         let evaluator_audit = EvaluatorObservationAudit {
@@ -810,9 +822,23 @@ fn world_snapshot_digest(snapshot:&WorldRenderSnapshot)->String{
     sha256_hex(&bytes)
 }
 
+fn observation_identity_digest(receipt: &PolicyObservationReceipt) -> String {
+    let mut bytes = Vec::new();
+    append_string(&mut bytes, &receipt.episode_id);
+    append_string(&mut bytes, &receipt.agent_id);
+    append_string(&mut bytes, &receipt.clock_id);
+    bytes.extend_from_slice(&receipt.tick.to_le_bytes());
+    bytes.extend_from_slice(&receipt.sequence.to_le_bytes());
+    append_string(&mut bytes, receipt.applied_action_receipt_id.as_deref().unwrap_or(""));
+    append_string(&mut bytes, &receipt.frame_sha256);
+    sha256_hex(&bytes)
+}
+
 fn policy_receipt_digest(receipt:&PolicyObservationReceipt)->String{
     let mut bytes=Vec::new();
     bytes.extend_from_slice(&receipt.schema_version.to_le_bytes());
+    append_string(&mut bytes, &receipt.observation_id);
+    bytes.push(receipt.pixel_format as u8);
     for value in [&receipt.episode_id,&receipt.agent_id,&receipt.clock_id] {append_string(&mut bytes,value);}
     bytes.extend_from_slice(&receipt.tick.to_le_bytes());
     bytes.extend_from_slice(&receipt.sequence.to_le_bytes());
@@ -929,6 +955,22 @@ mod tests{
     #[test] fn intrinsics_change_changes_calibration_and_frame(){let a=snapshot();let mut b=snapshot();b.camera.focal_x_millipx=48_000;let x=SoftwareCameraRenderer::render(&a,1,clocks()).unwrap();let y=SoftwareCameraRenderer::render(&b,1,clocks()).unwrap();assert_ne!(x.policy_receipt.camera_calibration_sha256,y.policy_receipt.camera_calibration_sha256);assert_ne!(x.policy_receipt.frame_sha256,y.policy_receipt.frame_sha256);}
     #[test] fn actor_pose_change_changes_evaluator_digest_and_pixels(){let a=snapshot();let mut b=snapshot();b.actors[0].center_world_mm[0]=1_000;let x=SoftwareCameraRenderer::render(&a,1,clocks()).unwrap();let y=SoftwareCameraRenderer::render(&b,1,clocks()).unwrap();assert_ne!(x.evaluator_audit.world_snapshot_sha256,y.evaluator_audit.world_snapshot_sha256);assert_ne!(x.policy_receipt.frame_sha256,y.policy_receipt.frame_sha256);}
     #[test] fn road_geometry_change_changes_pixels(){let a=snapshot();let mut b=snapshot();b.road_markings[0].points_world_mm[0][0]-=1_000;let x=SoftwareCameraRenderer::render(&a,1,clocks()).unwrap();let y=SoftwareCameraRenderer::render(&b,1,clocks()).unwrap();assert_ne!(x.policy_receipt.frame_sha256,y.policy_receipt.frame_sha256);}
+    #[test]
+    fn changed_applied_action_identity_changes_observation_receipt_not_image() {
+        let mut first_snapshot = snapshot();
+        let mut second_snapshot = snapshot();
+        second_snapshot.applied_action = Some(AppliedActionRef {
+            receipt_id: "different-action".into(),
+            command_id: "command-1".into(),
+            applied_tick: 1,
+        });
+        let first = SoftwareCameraRenderer::render(&first_snapshot, 1, clocks()).unwrap();
+        let second = SoftwareCameraRenderer::render(&second_snapshot, 1, clocks()).unwrap();
+        assert_eq!(first.policy_receipt.frame_sha256, second.policy_receipt.frame_sha256);
+        assert_ne!(first.policy_receipt.observation_id, second.policy_receipt.observation_id);
+        assert_ne!(first.policy_receipt.receipt_sha256, second.policy_receipt.receipt_sha256);
+    }
+
     #[test] fn applied_action_tick_must_match_world_tick(){let mut s=snapshot();s.applied_action=Some(AppliedActionRef{receipt_id:"r".into(),command_id:"c".into(),applied_tick:0});assert_eq!(SoftwareCameraRenderer::render(&s,1,clocks()).err(),Some(RenderError::AppliedActionTickMismatch));}
     #[test] fn initial_tick_has_no_applied_action(){let mut s=snapshot();s.tick=0;s.applied_action=None;s.world_timestamp_us=20_000;assert!(SoftwareCameraRenderer::render(&s,1,clocks()).is_ok());}
     #[test] fn future_action_receipt_rejected(){let mut s=snapshot();s.applied_action=Some(AppliedActionRef{receipt_id:"r".into(),command_id:"c".into(),applied_tick:2});assert_eq!(SoftwareCameraRenderer::render(&s,1,clocks()).err(),Some(RenderError::AppliedActionTickMismatch));}
