@@ -30,9 +30,19 @@ Non-completed outcomes, mismatches, partial horizons, missing evidence and out-o
 
 ## Reported dimensions
 
-Raw completed ticks/s, qualified ticks/s, case and horizon coverage, every failure/timeout/abstention/not-run count, maximum error ratio among qualified cases, latency p50/p95/p99, peak memory, and energy per qualified tick when a compatible source-bound energy measurement exists.
+Raw simulated ticks/s (including partial work from timed-out runs), qualified ticks/s, case and horizon coverage, every failure/timeout/abstention/not-run count, maximum error ratio among qualified cases, latency p50/p95/p99, peak memory, and energy per qualified tick when a compatible source-bound energy measurement exists.
 
-The Pareto frontier is computed only across the declared single comparison group and uses qualified throughput, coverage, p95/p99 latency and memory. Energy is included only if every campaign in the group provides a measurement of the same scope; mixed or absent energy never becomes zero.
+The evaluator accepts repeated campaigns for one engine ID, but requires each replication to use the same version, executable and solver/configuration digests. It reports per-engine empirical p05/median/p95 qualified throughput and coverage/latency/memory medians; these are descriptive quantiles, not confidence intervals. A project publication target of at least 20 replications is flagged explicitly. The Pareto frontier compares engine aggregates and includes qualified throughput, case coverage, error ratio, p95/p99 latency and memory. Energy is included only if every campaign provides the same energy scope, telemetry source, API version and sampling semantics, with a measurement window exactly matching campaign wall time. Mixed or absent energy never becomes zero.
+
+
+## Replication and measurement discipline
+
+- A `campaign_id` identifies each repeated measurement; `engine_id` identifies a pinned implementation/profile across replications.
+- Keep build and configuration digests identical across replications for one engine ID. If the solver/contact/configuration changes, it is a different engine/profile identity.
+- Freeze the full requested case list and per-case simulated horizon. A missing record invalidates the campaign; timeout/failed/abstained/not-run must be explicit.
+- The 20-replication flag is a programme publication target, not a claim of statistical sufficiency for every workload. Report the raw campaign samples and use an appropriate predeclared statistical analysis before making inferential claims.
+- Empirical p05/p50/p95 are descriptive order statistics; they are not a 95% confidence interval.
+- Energy measurement must span the full exact campaign wall-time window. Use a consistent scope, sensor source, API version and sampling semantics across every campaign before including energy in a common frontier.
 
 ## Comparison discipline
 
