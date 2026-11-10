@@ -94,7 +94,7 @@ No real NDT threshold, WPS/PQR, acceptance table, or physical signal is included
 
 ## Frozen corpus v0.1
 
-The corpus contains **57 unique cases**: one contract-valid synthetic PAUT record and 56 adversarial controls. They cover:
+The corpus contains **62 unique cases**: one contract-valid synthetic PAUT record and 61 adversarial controls. They cover:
 - PAUT method/standard pairing and scope;
 - minimum thickness, full-penetration, geometry, steel family and exclusions;
 - future draft versus current published standard;
@@ -108,7 +108,7 @@ The corpus contains **57 unique cases**: one contract-valid synthetic PAUT recor
 - model score substituted for qualified examiner disposition;
 - synthetic fixture promoted to physical observation or release.
 
-The corpus is a specification fixture. It is not yet a Rust verifier or a physical POD/accuracy benchmark.
+The corpus is a specification fixture. Static validation on the branch parsed the schema/corpus, ran a lightweight structural schema-subset check, confirmed 62 unique case IDs and resolved all 61 negative-case mutation paths. It is not yet a Rust verifier or a physical POD/accuracy benchmark.
 
 ## Benchmarks and acceptance targets
 
@@ -143,3 +143,14 @@ Compare on the same modality, reference specimens, defect family, acquisition pr
 ## Claim ceiling
 
 A passing synthetic corpus establishes only the structure and expected handling of synthetic NDT evidence, method/standard applicability metadata and authority separation. It does not establish detection probability, method qualification, inspector competence, flaw truth, weld acceptance, repair adequacy, class/flag approval or authority to release a vessel/structure.
+
+
+## Provider qualification and frozen corpus update — 2026-11-10
+
+The source model now binds a separate provider record: provider type (external supplier vs internal shipyard department), approval reference, approval standard/revision/maturity, method-family scope, approval status, validity, source retrieval time/revision, authority scope and exact source reference.
+
+The positive corpus baseline uses a **synthetic project/provider approval**, not a real assertion that IACS UR W35 Rev.2 is current. An explicit negative control represents the IACS-vs-ClassNK W35 revision disagreement as Unknown/Conflict. Operational applicability requires the responsible class/project authority to resolve the source conflict.
+
+The raw fixture at `benchmarks/shipyard/ndt-evidence/raw/synthetic-paut-acquisition.json` is 503 bytes of synthetic metadata only; it contains no physical NDT signal. Its exact SHA-256 is `635ccce0bd8184026e464d656e2a01624f764389eb924c5ec8c1b9d6c80ec0aa`. The base record binds this raw digest and separately records the derived processing digest and parent raw digest.
+
+The frozen corpus is 62 cases (1 synthetic-positive contract record + 61 negative controls). Static checks are not Rust test, NDT signal processing, examiner qualification or physical probability-of-detection evidence.
