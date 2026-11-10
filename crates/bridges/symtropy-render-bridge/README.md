@@ -6,7 +6,8 @@ Project `symtropy-physics` N-dimensional physics worlds into Bevy 3D rendering.
 
 - **2D projection** — flatten `PhysicsWorld<2>` to Bevy sprites.
 - **3D projection** — `PhysicsWorld<3>` to Bevy 3D meshes.
-- **4D cross-section slicing** — `PhysicsWorld<4>` projected to 3D via a configurable hyperplane, Miegakure-style. First-class support for ND collider visualisation.
+- **4D cross-section slicing** — `PhysicsWorld<4>` projected to 3D via a configurable hyperplane, Miegakure-style. The Bevy 0.20 branch ports the PBR material shader to WESL.
+- **Telemetry material** — read-only node telemetry rendered through base-colour and emissive response. It does not claim vertex deformation.
 
 ## Licensing
 
@@ -47,7 +48,7 @@ Early — the core projection API is stable; the 4D shader pipeline lands in Pha
 
 - `symtropy-math` — N-dimensional geometry primitives.
 - `symtropy-physics` — `PhysicsWorld<D>` source data.
-- `bevy` 0.18 — target renderer.
+- `bevy` 0.20.1 — current migration target on the `upgrade/bevy-0.20.1-workspace` branch.
 - `nalgebra` 0.34 — vector math.
 
 ## References
