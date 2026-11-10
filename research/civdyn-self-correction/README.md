@@ -242,3 +242,38 @@ A second target contains 20% population mass in a modifier stratum absent from t
 - A synthetic known-answer pass validates the code path, not real-world causal transportability.
 
 Run causal-transport-sweep with the locked workspace manifest. CI checks exact source/target effects, positivity bounds, assumption dispositions, provenance and deterministic replay.
+
+
+## Scenario M: Bernoulli outcome-shift sensitivity and null tipping point
+
+The first outcome-distribution-shift sensitivity frontier is in src/causal_transport_sensitivity.rs, with the causal-transport-sensitivity-sweep binary. It advances [CIVDYN-CAUSAL-TRANSPORT-SENSITIVITY-001 #4499](https://github.com/Luminous-Dynamics/symtropy/issues/4499).
+
+This is a deliberately narrow, exact Bernoulli specialization of Asiaee et al., CLeaR 2026, *Sharp Bounds for Treatment Effect Generalization under Outcome Distribution Shift*. The paper places a pointwise likelihood-ratio envelope on the conditional target-versus-trial outcome distribution, bounded by [1/Lambda, Lambda], with a separate normalization constraint. It derives sharp bounds using threshold reweighting and defines a tipping-point Lambda at which the target ATE identified set first contains the null.
+
+For a binary source outcome with source risk p, the Bernoulli target risk q is bounded by:
+- q_lower = max(p/Lambda, 1 - (1-p)*Lambda, 0)
+- q_upper = min(p*Lambda, 1 - (1-p)/Lambda, 1)
+
+These inequalities jointly enforce the likelihood-ratio envelope for both outcomes and probability normalization. The bounds are exact for the Bernoulli specialization.
+
+For each supported modifier stratum:
+- lower target risk difference = lower treatment risk - upper control risk;
+- upper target risk difference = upper treatment risk - lower control risk.
+
+Those stratum bounds are standardized by exact target population counts. Target-only modifier strata remain in [-1, 1] and are not run through a likelihood-ratio model that has no source distribution for them. Therefore the overall interval combines bounded outcome shift on supported strata with explicit worst-case positivity bounds on unsupported mass.
+
+The sensitivity frontier requires Lambda=1 and a strictly increasing Lambda grid. Lambda=1 must reproduce the source-standardized target ATE under complete support and the positivity-only interval from Scenario K under incomplete support. As Lambda increases, the lower target ATE bound must not increase and the upper bound must not decrease.
+
+A continuous bisection independently estimates the null tipping point Lambda*: the smallest Lambda at which the identified interval includes zero. The report retains both final bracket endpoints, search maximum and tolerance. It is not a grid lookup.
+
+### Claim ceiling and limitations
+
+- This is a binary-outcome specialization. It does not implement the full continuous bounded-outcome algorithm in the CLeaR paper.
+- It does not estimate trial-to-target covariate density ratios; target stratum population counts are supplied directly.
+- It does not provide confidence intervals or sampling uncertainty. Lambda bounds are identification/sensitivity intervals, not confidence intervals.
+- Lambda is a declared sensitivity assumption, not estimated from the observed data.
+- Unknown/violated internal validity, selection exchangeability, no-interference or treatment-version invariance blocks the frontier.
+- Unsupported target strata remain worst-case [-1,1] for each Lambda. The outcome-shift envelope only applies where a source conditional distribution is observed.
+- This implementation is a matched methodological specialization, not a full replication of CLeaR 2026 and not an SOTA superiority claim.
+
+The deterministic sweep compares Lambda=1, 1.25, 1.5, 2 and 4 under both full and partial support, validates exact source/target/protocol and assumption evidence identities, checks the null tipping bracket and replays the CSV byte-for-byte.
