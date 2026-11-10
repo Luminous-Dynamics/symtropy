@@ -5841,7 +5841,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "maritime-control-response-evaluator"
+name = "liu-ice-control-response-evaluator"
 version = "0.1.0"
 dependencies = [
  "serde",
