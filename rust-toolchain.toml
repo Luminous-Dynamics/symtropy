@@ -3,7 +3,7 @@
 # Added 2026-07-28. Before this, `.github/workflows/ci.yml` used
 # `dtolnay/rust-toolchain@stable` with no pin anywhere in the repo, so CI
 # floated to whatever stable happened to be — it was on clippy 1.97.0 while
-# this project's development host was on 1.96.0.
+# this project's development host was on Rust 1.96.0; Bevy 0.20 requires >=1.97.1.
 #
 # Two concrete problems that caused:
 #   1. A clean local `cargo clippy` could not predict CI, because the two ran
