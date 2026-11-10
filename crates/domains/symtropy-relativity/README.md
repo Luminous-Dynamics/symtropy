@@ -18,7 +18,7 @@ A bounded Rust research crate for analytic Lorentzian-spacetime reference calcul
 - Noise-weighted frequency-domain waveform comparison: one-sided PSD inner product, constant-phase-maximized mismatch, explicit best phase offset, separate amplitude L2 and frequency-dependent phase residual diagnostics, and strict grid/PSD/domain validation. The caller must pre-align waveforms; no hidden time maximization, interpolation, resampling, or PSD estimation.
 - Kerr equatorial prograde/retrograde circular-null-orbit reference observables: analytic photon-orbit radius and signed frequency, metric null/radial circularity residuals, normalized null radial-potential R/R-prime residuals, impact parameter, and coordinate-time radial Lyapunov exponent. Extremal prograde Boyer-Lindquist horizon limit returns explicit unavailable impact/Lyapunov values rather than a fabricated finite result.
 - A 20-case independently generated Kerr light-ring reference grid spanning zero, positive, negative, near-extremal, and extremal spin.
-- **96 authored Rust tests** across scalar physics, Kerr limits, metric matrices, connection compatibility, curvature, second-order automatic differentiation, horizon-regular charts, posterior transforms, geodesic integration, separated Kerr null-geodesic formulae, waveform metrics, and light-ring references.
+- **98 authored Rust tests** across scalar physics, Kerr limits, metric matrices, connection compatibility, curvature, second-order automatic differentiation, horizon-regular charts, posterior transforms, geodesic integration, separated Kerr null-geodesic formulae, waveform metrics, and light-ring references.
 
 ## Conventions
 
@@ -105,7 +105,9 @@ The second-order state passes continuously through simple turning points because
 
 A second, independent formulation is also present: `KerrCanonicalHamiltonian` builds the dimensionless Boyer–Lindquist metric and its first derivatives from the existing Jet2 automatic-differentiation path, then evaluates (H=\\tfrac12 g^{\\mu\\nu}p_\\mu p_\\nu) and Hamilton's equations. `state_from_separated` maps Carter constants and branch choices into canonical momenta. The cross-check compares the Hamiltonian coordinate vector field to the separated Mino derivatives after multiplication by (\\Sigma), and checks recovered (E,L_z,Q) and the null Hamiltonian residual. This tests two different derivation routes against each other; they still share the underlying Kerr metric.
 
-This remains a reference kernel, **not a complete ray integrator**. No adaptive stepper, turning-point root/event locator, independent Kerr canonical-Hamiltonian evolution, finite-radius observer tetrad, variational Jacobi transport or caustic detection is included yet. Boyer–Lindquist integration is restricted to the exterior and excludes the horizon and polar axis. Tests are authored but not executed in this environment.
+The canonical evaluator also supports the horizon-regular ingoing Kerr chart. `ingoing_state_from_separated` transforms the future-inward Boyer–Lindquist radial momentum using the rationalized identity (p_r^{\\mathrm{in}}=[Q+(L-aE)^2]/[P+\\sqrt R]), avoiding cancellation in the (1/\\Delta) expression at the future horizon. The ingoing metric/AD path is tested just outside, at, and inside the outer horizon. An exterior chart-equivalence test checks (dv=dt+(r^2+a^2)dr/\\Delta) and (d\\tilde\\phi=d\\phi+a,dr/\\Delta), alongside shared radial/polar derivatives and invariants.
+
+This remains a reference/evaluation kernel, **not a complete ray integrator**. No adaptive stepper, turning-point root/event locator, finite-radius observer tetrad, variational Jacobi transport or caustic detection is included yet. The Hamiltonian paths evaluate vector fields but do not integrate trajectories. The Boyer–Lindquist evaluator is exterior-only; the ingoing evaluator is horizon-regular for the future-inward branch and positive radius, but does not claim a fully global interior chart through the ring singularity or polar axis. Tests are authored but not executed in this environment.
 
 ## Schwarzschild geodesic scope
 
@@ -118,4 +120,4 @@ The coordinate formulation also supports step-doubling adaptive integration. Its
 
 Timelike trajectories use `lambda = c*tau` and target (g(u,u)=-1). Null trajectories use an affine parameter and target (g(u,u)=0). Both formulations expose normalization, Killing energy, axial angular momentum, and Hamiltonian diagnostics. They reject the Schwarzschild horizon and polar-axis chart boundaries rather than crossing a coordinate singularity.
 
-The machine-readable fixtures are in `benchmarks/geodesic_reference_cases.json`. Kerr geodesics, Carter constant, horizon-crossing geodesics in ingoing charts, symplectic integration, and adaptive canonical-Hamiltonian stepping are not implemented yet.
+The machine-readable fixtures are in `benchmarks/geodesic_reference_cases.json`. A full Kerr ray stepper, adaptive canonical-Hamiltonian integration, finite-radius observer tetrads, variational Jacobi fields and caustic detection remain unimplemented.
