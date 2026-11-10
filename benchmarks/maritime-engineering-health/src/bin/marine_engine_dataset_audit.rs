@@ -61,6 +61,11 @@ struct CsvAudit {
     units: Vec<String>,
     anomaly_label_column: Option<usize>,
     time_abs_column: usize,
+    time_abs_nonempty_rows: u64,
+    time_abs_empty_rows: u64,
+    time_abs_duplicate_rows: u64,
+    first_time_abs: Option<String>,
+    last_time_abs: Option<String>,
     anomaly_zero_rows: u64,
     anomaly_one_rows: u64,
     anomaly_invalid_rows: u64,
@@ -172,6 +177,20 @@ fn parse_args() -> Result<Cli, String> {
 
 fn sha256_hex(bytes: &[u8]) -> String {
     format!("{:x}", Sha256::digest(bytes))
+}
+
+fn read_file_bounded(path: &Path) -> Result<Vec<u8>, String> {
+    let file = File::open(path)
+        .map_err(|error| format!("cannot open {}: {error}", path.display()))?;
+    let mut limited = file.take(MAX_FILE_BYTES + 1);
+    let mut bytes = Vec::new();
+    limited
+        .read_to_end(&mut bytes)
+        .map_err(|error| format!("cannot read {}: {error}", path.display()))?;
+    if bytes.len() as u64 > MAX_FILE_BYTES {
+        return Err(format!("file exceeds safety limit of {MAX_FILE_BYTES} bytes"));
+    }
+    Ok(bytes)
 }
 
 fn safe_relative_path(value: &str) -> Result<PathBuf, String> {
@@ -472,6 +491,12 @@ fn inspect_csv(path: &str, role: &str, bytes: &[u8]) -> Result<CsvAudit, String>
     let mut anomaly_invalid_rows = 0u64;
     let mut anomaly_onset_transitions = 0u64;
     let mut previous_label: Option<u8> = None;
+    let mut time_abs_nonempty_rows = 0u64;
+    let mut time_abs_empty_rows = 0u64;
+    let mut time_abs_duplicate_rows = 0u64;
+    let mut seen_time_abs = HashSet::new();
+    let mut first_time_abs = None;
+    let mut last_time_abs = None;
     let mut time_rel_numeric_rows = 0u64;
     let mut time_rel_non_numeric_rows = 0u64;
     let mut time_rel_backsteps = 0u64;
@@ -495,6 +520,20 @@ fn inspect_csv(path: &str, role: &str, bytes: &[u8]) -> Result<CsvAudit, String>
         for (column, value) in row.iter().enumerate() {
             if value.trim().is_empty() {
                 missing_counts[column] += 1;
+            }
+        }
+
+        let absolute_time = row[time_abs_column].trim();
+        if absolute_time.is_empty() {
+            time_abs_empty_rows += 1;
+        } else {
+            time_abs_nonempty_rows += 1;
+            if first_time_abs.is_none() {
+                first_time_abs = Some(absolute_time.to_string());
+            }
+            last_time_abs = Some(absolute_time.to_string());
+            if !seen_time_abs.insert(absolute_time.to_string()) {
+                time_abs_duplicate_rows += 1;
             }
         }
 
@@ -595,6 +634,11 @@ fn inspect_csv(path: &str, role: &str, bytes: &[u8]) -> Result<CsvAudit, String>
         units,
         anomaly_label_column,
         time_abs_column,
+        time_abs_nonempty_rows,
+        time_abs_empty_rows,
+        time_abs_duplicate_rows,
+        first_time_abs,
+        last_time_abs,
         anomaly_zero_rows,
         anomaly_one_rows,
         anomaly_invalid_rows,
@@ -694,8 +738,7 @@ fn build_split_template(entries: &[InventoryEntry]) -> SplitTemplate {
 }
 
 fn audit_dataset(cli: &Cli) -> Result<DatasetAuditReport, String> {
-    let manifest_bytes = fs::read(&cli.manifest_path)
-        .map_err(|error| format!("cannot read manifest {}: {error}", cli.manifest_path.display()))?;
+    let manifest_bytes = read_file_bounded(&cli.manifest_path)?;
     let manifest: Value = serde_json::from_slice(&manifest_bytes)
         .map_err(|error| format!("invalid dataset manifest JSON: {error}"))?;
     let inventory = inventory_from_manifest(&manifest)?;
@@ -749,7 +792,7 @@ fn audit_dataset(cli: &Cli) -> Result<DatasetAuditReport, String> {
             } else if size_bytes.is_some_and(|size| size > MAX_FILE_BYTES) {
                 file_errors.push(format!("file exceeds safety limit of {MAX_FILE_BYTES} bytes"));
             } else {
-                match fs::read(&path) {
+                match read_file_bounded(&path) {
                     Ok(bytes) => {
                         sha256 = Some(sha256_hex(&bytes));
                         utf8_valid = std::str::from_utf8(&bytes).is_ok();
@@ -765,6 +808,9 @@ fn audit_dataset(cli: &Cli) -> Result<DatasetAuditReport, String> {
                                     }
                                     if audit.time_rel_backsteps > 0 {
                                         file_errors.push(format!("Time_rel has {} backsteps", audit.time_rel_backsteps));
+                                    }
+                                    if audit.time_abs_empty_rows > 0 {
+                                        file_errors.push(format!("Time_abs has {} empty rows", audit.time_abs_empty_rows));
                                     }
                                     if audit.anomaly_only_expected && audit.anomaly_only_observed != Some(true) {
                                         file_errors.push("the anomaly-only nozzle recording contains pre-anomaly or invalid labels".into());
@@ -785,7 +831,7 @@ fn audit_dataset(cli: &Cli) -> Result<DatasetAuditReport, String> {
                             file_errors.push("metadata text is not valid UTF-8".into());
                         }
                     }
-                    Err(error) => file_errors.push(format!("cannot read {}: {error}", path.display())),
+                    Err(error) => file_errors.push(error),
                 }
             }
         }
