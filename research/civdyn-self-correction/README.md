@@ -205,3 +205,32 @@ This slice does not yet implement:
 7. Empirical data adapters or independent domain qualification.
 
 Run the model-adequacy-sweep binary using Cargo with the locked manifest at research/civdyn-self-correction/Cargo.toml. The existing CIVDYN workflow also runs this binary after formatting, strict Clippy, compilation and tests. These are engineering checks against frozen synthetic contracts only.
+
+
+## Scenario L: adaptive challenge-set governance
+
+The challenge-use lifecycle validator is in src/challenge_governance.rs with the challenge-governance-sweep binary. It advances [CIVDYN-CHALLENGE-GOVERNANCE-001 #4632](https://github.com/Luminous-Dynamics/symtropy/issues/4632).
+
+It treats confirmatory challenge evidence as a finite resource whose independence can be consumed by feedback. Every challenge manifest pins source, split, statistic-registry and evaluator identities. Every evaluation event binds a model-family revision, exact model digest, run receipt and feedback-disclosure level.
+
+Eligibility classes:
+- fresh_confirmatory: a complete sealed challenge ledger has no prior evaluations;
+- sealed_reuse_only: the same development family has prior evaluation history, but no feedback was released; any new evaluation must also release no feedback;
+- blocked_duplicate_model: the exact same model digest was already evaluated;
+- blocked_adaptive_reuse: aggregate/full feedback reached this model family, or was made public;
+- exploratory_only: the challenge itself is public and cannot support a fresh confirmatory claim;
+- not_assessed: the supplied ledger snapshot is incomplete.
+
+### Known-answer sweep
+
+The deterministic sweep exercises ten scenarios: fresh empty ledger; prior sealed/no-feedback evaluation; prior aggregate feedback; prior full-metric feedback; exact model duplicate; public feedback; public benchmark; incomplete ledger snapshot; new challenge generation; and private feedback to an unrelated development family.
+
+A new generation restores eligibility only when its challenge, source and split commitments are distinct and its own ledger snapshot is complete. A git branch or model digest change does not reset knowledge already disclosed to the same development family.
+
+### External trust boundary
+
+This Rust module validates the provided ledger snapshot and lineage. It does not authenticate the ledger authority, prove that the snapshot is complete, prove challenge bytes remained secret, or detect feedback leaks through unrecorded channels. The authority digest and completeness flag must be authenticated by Mycelix or an independent challenge custodian before relying on the result. A digest is not a signature.
+
+Public benchmark scores are exploratory. This v0.1 is not a differentially-private reusable holdout, does not manage a privacy budget, and does not promise adaptive statistical guarantees. A future reusable-holdout service would need a formally specified query interface, privacy accounting, composition rules, failure probabilities and a trusted evaluator boundary.
+
+Run challenge-governance-sweep with the locked workspace manifest. CI checks the frozen 17-column schema, all eligibility outcomes and deterministic replay.
