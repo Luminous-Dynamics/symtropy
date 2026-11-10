@@ -340,6 +340,215 @@ fn sampling_receipt_digest(
     digest.iter().map(|byte| format!("{byte:02x}")).collect()
 }
 
+/// Verify a sampling receipt's internal accounting and canonical digest.
+///
+/// This does not verify the source mesh file itself. The caller must separately
+/// bind the receipt to the exact reference geometry artifact and evaluator
+/// dataset manifest.
+pub fn verify_surface_sampling_receipt(
+    receipt: &SurfaceSamplingReceipt,
+) -> Result<(), String> {
+    if receipt.algorithm_id != SAMPLING_ALGORITHM_ID {
+        return Err("unsupported surface sampling algorithm_id".to_owned());
+    }
+    let profile = AreaWeightedSamplingProfile {
+        target_spacing_m: receipt.target_spacing_m,
+        seed: receipt.seed,
+        max_samples: receipt.max_samples,
+    };
+    let spacing_squared = validate_profile(profile)?;
+    let _ = spacing_squared;
+    if receipt.sample_count != receipt.samples.len() {
+        return Err("sampling receipt sample_count does not match samples length".to_owned());
+    }
+    if receipt.sample_count > receipt.max_samples {
+        return Err("sampling receipt exceeds its declared max_samples".to_owned());
+    }
+    if receipt.surfaces.is_empty() {
+        return Err("sampling receipt must contain at least one surface summary".to_owned());
+    }
+    if receipt.sample_set_sha256.len() != 64
+        || !receipt
+            .sample_set_sha256
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    {
+        return Err("sample_set_sha256 must be 64 lowercase hexadecimal characters".to_owned());
+    }
+
+    let mut summaries = BTreeMap::new();
+    let mut observable_area_m2 = 0.0;
+    let mut excluded_area_m2 = 0.0;
+    let mut previous_surface: Option<&str> = None;
+    for summary in &receipt.surfaces {
+        if summary.surface_id.trim().is_empty() {
+            return Err("sampling receipt contains an empty surface_id".to_owned());
+        }
+        if previous_surface.is_some_and(|previous| previous >= summary.surface_id.as_str()) {
+            return Err("sampling receipt surface summaries are not uniquely sorted".to_owned());
+        }
+        previous_surface = Some(&summary.surface_id);
+        if [
+            summary.observable_area_m2,
+            summary.excluded_area_m2,
+            summary.represented_area_m2,
+        ]
+        .iter()
+        .any(|value| !value.is_finite() || *value < 0.0)
+        {
+            return Err("sampling surface summary contains invalid area".to_owned());
+        }
+        if summary.sample_count > receipt.max_samples {
+            return Err("surface summary exceeds the declared sample budget".to_owned());
+        }
+        let excluded_sum: f64 = summary
+            .excluded_by_visibility
+            .iter()
+            .map(|entry| entry.area_m2)
+            .sum();
+        if !excluded_sum.is_finite()
+            || (excluded_sum - summary.excluded_area_m2).abs()
+                > summary.excluded_area_m2.abs().max(1.0) * 1.0e-10
+        {
+            return Err("excluded_by_visibility does not conserve surface area".to_owned());
+        }
+        for excluded in &summary.excluded_by_visibility {
+            if excluded.visibility == SurfaceVisibility::Observable
+                || !excluded.area_m2.is_finite()
+                || excluded.area_m2 <= 0.0
+            {
+                return Err("excluded visibility accounting contains an invalid class or area"
+                    .to_owned());
+            }
+        }
+        if (summary.represented_area_m2 - summary.observable_area_m2).abs()
+            > summary.observable_area_m2.abs().max(1.0) * 1.0e-10
+        {
+            return Err("represented area does not equal observable area".to_owned());
+        }
+        if (summary.sample_count == 0 && summary.observable_area_m2 != 0.0)
+            || (summary.sample_count > 0 && summary.observable_area_m2 <= 0.0)
+        {
+            return Err("surface sample count is inconsistent with observable area".to_owned());
+        }
+        observable_area_m2 += summary.observable_area_m2;
+        excluded_area_m2 += summary.excluded_area_m2;
+        summaries.insert(summary.surface_id.as_str(), summary);
+    }
+
+    if !observable_area_m2.is_finite() || !excluded_area_m2.is_finite() {
+        return Err("sampling receipt total area overflowed".to_owned());
+    }
+    if (observable_area_m2 - receipt.observable_area_m2).abs()
+        > receipt.observable_area_m2.abs().max(1.0) * 1.0e-10
+        || (excluded_area_m2 - receipt.excluded_area_m2).abs()
+            > receipt.excluded_area_m2.abs().max(1.0) * 1.0e-10
+    {
+        return Err("sampling receipt top-level areas do not match surface summaries".to_owned());
+    }
+
+    let mut per_surface_counts: BTreeMap<&str, usize> = BTreeMap::new();
+    let mut per_surface_weights: BTreeMap<&str, f64> = BTreeMap::new();
+    let mut per_surface_ordinals: BTreeMap<&str, BTreeSet<u64>> = BTreeMap::new();
+    let mut previous_sample: Option<(&str, u64)> = None;
+    for sample in &receipt.samples {
+        if sample.surface_id.trim().is_empty() || sample.triangle_id.trim().is_empty() {
+            return Err("sampling receipt contains an empty sample identity".to_owned());
+        }
+        if let Some((surface_id, ordinal)) = previous_sample {
+            if (surface_id, ordinal) >= (sample.surface_id.as_str(), sample.sample_ordinal) {
+                return Err("sampling receipt samples are not uniquely sorted".to_owned());
+            }
+        }
+        previous_sample = Some((&sample.surface_id, sample.sample_ordinal));
+        let summary = summaries
+            .get(sample.surface_id.as_str())
+            .ok_or("sample references a surface without a summary")?;
+        if !sample.point.x.is_finite()
+            || !sample.point.y.is_finite()
+            || !sample.point.z.is_finite()
+            || !sample.normal.x.is_finite()
+            || !sample.normal.y.is_finite()
+            || !sample.normal.z.is_finite()
+            || !sample.represented_area_m2.is_finite()
+            || sample.represented_area_m2 <= 0.0
+        {
+            return Err("sampling receipt contains a non-finite point/normal or invalid weight"
+                .to_owned());
+        }
+        let normal_length = sample
+            .normal
+            .x
+            .hypot(sample.normal.y)
+            .hypot(sample.normal.z);
+        if (normal_length - 1.0).abs() > 1.0e-8 {
+            return Err("sample normal is not unit length".to_owned());
+        }
+        if sample
+            .barycentric
+            .iter()
+            .any(|weight| !weight.is_finite() || *weight < -1.0e-12 || *weight > 1.0 + 1.0e-12)
+            || (sample.barycentric.iter().sum::<f64>() - 1.0).abs() > 1.0e-10
+        {
+            return Err("sample barycentric coordinates are invalid".to_owned());
+        }
+        if sample.sample_ordinal >= summary.sample_count as u64 {
+            return Err("sample ordinal exceeds its surface sample count".to_owned());
+        }
+        *per_surface_counts.entry(&sample.surface_id).or_insert(0) += 1;
+        *per_surface_weights.entry(&sample.surface_id).or_insert(0.0) +=
+            sample.represented_area_m2;
+        if !per_surface_weights[ sample.surface_id.as_str() ].is_finite() {
+            return Err("sample represented area overflowed".to_owned());
+        }
+        if !per_surface_ordinals
+            .entry(&sample.surface_id)
+            .or_default()
+            .insert(sample.sample_ordinal)
+        {
+            return Err("duplicate sample ordinal within a surface".to_owned());
+        }
+    }
+
+    for summary in &receipt.surfaces {
+        let count = per_surface_counts.get(summary.surface_id.as_str()).copied().unwrap_or(0);
+        if count != summary.sample_count {
+            return Err("surface summary sample_count does not match sample rows".to_owned());
+        }
+        if count > 0 {
+            let weight_sum = per_surface_weights
+                .get(summary.surface_id.as_str())
+                .copied()
+                .unwrap_or(0.0);
+            if (weight_sum - summary.represented_area_m2).abs()
+                > summary.represented_area_m2.abs().max(1.0) * 1.0e-10
+            {
+                return Err("surface sample weights do not conserve represented area".to_owned());
+            }
+            let ordinals = per_surface_ordinals
+                .get(summary.surface_id.as_str())
+                .ok_or("surface sample ordinals are missing")?;
+            if ordinals.len() != count
+                || (0..count as u64).any(|ordinal| !ordinals.contains(&ordinal))
+            {
+                return Err("surface sample ordinals are not contiguous from zero".to_owned());
+            }
+        }
+    }
+
+    let digest = sampling_receipt_digest(
+        profile,
+        receipt.observable_area_m2,
+        receipt.excluded_area_m2,
+        &receipt.surfaces,
+        &receipt.samples,
+    );
+    if digest != receipt.sample_set_sha256 {
+        return Err("sampling receipt canonical SHA-256 does not match".to_owned());
+    }
+    Ok(())
+}
+
 /// Sample the entire evaluator reference surface before visibility is known.
 ///
 /// This function intentionally ignores any pre-existing visibility annotations
