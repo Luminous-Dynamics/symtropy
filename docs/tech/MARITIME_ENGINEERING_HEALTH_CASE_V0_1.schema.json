@@ -70,10 +70,10 @@
         "calibration_ref",
         "clock_domain",
         "clock_quality",
-        "age_ms",
         "max_age_ms",
         "validity_profile_ref",
-        "uncertainty_ref"
+        "uncertainty_ref",
+        "observed_at_ms"
       ],
       "properties": {
         "observation_id": {
@@ -126,10 +126,6 @@
             "unknown"
           ]
         },
-        "age_ms": {
-          "type": "integer",
-          "minimum": 0
-        },
         "max_age_ms": {
           "type": "integer",
           "minimum": 1
@@ -141,6 +137,10 @@
         "uncertainty_ref": {
           "type": "string",
           "minLength": 4
+        },
+        "observed_at_ms": {
+          "type": "integer",
+          "minimum": 0
         }
       }
     },
@@ -156,7 +156,8 @@
         "fault_hypotheses",
         "unknown_domain",
         "recovery",
-        "expected"
+        "expected",
+        "decision_time_ms"
       ],
       "properties": {
         "case_id": {
@@ -300,6 +301,10 @@
               "type": "boolean"
             }
           }
+        },
+        "decision_time_ms": {
+          "type": "integer",
+          "minimum": 0
         }
       }
     }
