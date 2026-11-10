@@ -44,7 +44,13 @@
           "reference-a",
           "reference-b"
         ],
-        "minimum_independent_lineages": 2
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
       },
       "measurement": {
         "value_m": 2.5,
@@ -108,7 +114,13 @@
           "reference-a",
           "reference-b"
         ],
-        "minimum_independent_lineages": 2
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
       },
       "measurement": null,
       "task": {
@@ -163,7 +175,13 @@
           "reference-a",
           "reference-b"
         ],
-        "minimum_independent_lineages": 2
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
       },
       "measurement": null,
       "task": {
@@ -219,7 +237,13 @@
           "reference-a",
           "reference-b"
         ],
-        "minimum_independent_lineages": 2
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
       },
       "measurement": {
         "value_m": 1.25,
@@ -285,7 +309,13 @@
           "reference-a",
           "reference-b"
         ],
-        "minimum_independent_lineages": 2
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
       },
       "measurement": {
         "value_m": 3,
@@ -351,7 +381,13 @@
           "reference-a",
           "reference-a"
         ],
-        "minimum_independent_lineages": 2
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
       },
       "measurement": {
         "value_m": 2,
@@ -417,7 +453,13 @@
           "reference-a",
           "reference-b"
         ],
-        "minimum_independent_lineages": 2
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
       },
       "measurement": {
         "value_m": 4,
@@ -481,7 +523,13 @@
           "reference-a",
           "reference-b"
         ],
-        "minimum_independent_lineages": 2
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
       },
       "measurement": {
         "value_m": 4,
@@ -544,7 +592,13 @@
         "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
         "independence": "unknown",
         "independent_reference_lineage_ids": [],
-        "minimum_independent_lineages": 2
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
       },
       "measurement": null,
       "task": {
@@ -600,7 +654,13 @@
           "reference-a",
           "reference-b"
         ],
-        "minimum_independent_lineages": 2
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
       },
       "measurement": {
         "value_m": 1,
@@ -667,7 +727,13 @@
           "reference-a",
           "reference-b"
         ],
-        "minimum_independent_lineages": 2
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
       },
       "measurement": {
         "value_m": 1,
@@ -733,7 +799,13 @@
           "reference-a",
           "reference-b"
         ],
-        "minimum_independent_lineages": 2
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
       },
       "measurement": {
         "value_m": 1,
@@ -799,7 +871,13 @@
           "reference-a",
           "reference-b"
         ],
-        "minimum_independent_lineages": 2
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
       },
       "measurement": {
         "value_m": 1,
@@ -865,7 +943,13 @@
           "reference-a",
           "reference-b"
         ],
-        "minimum_independent_lineages": 2
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
       },
       "measurement": {
         "value_m": 2.5,
@@ -931,7 +1015,13 @@
           "reference-a",
           "reference-b"
         ],
-        "minimum_independent_lineages": 2
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
       },
       "measurement": null,
       "task": {
@@ -987,7 +1077,13 @@
           "reference-a",
           "reference-b"
         ],
-        "minimum_independent_lineages": 2
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
       },
       "measurement": null,
       "task": {
@@ -1042,7 +1138,13 @@
           "reference-a",
           "reference-b"
         ],
-        "minimum_independent_lineages": 2
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
       },
       "measurement": null,
       "task": {
@@ -1097,7 +1199,13 @@
           "reference-a",
           "reference-b"
         ],
-        "minimum_independent_lineages": 2
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
       },
       "measurement": null,
       "task": {
@@ -1153,7 +1261,13 @@
           "reference-a",
           "reference-b"
         ],
-        "minimum_independent_lineages": 2
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
       },
       "measurement": {
         "value_m": 2.5,
@@ -1219,7 +1333,13 @@
           "reference-a",
           "reference-b"
         ],
-        "minimum_independent_lineages": 2
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
       },
       "measurement": {
         "value_m": 2.5,
@@ -1272,7 +1392,13 @@
           "reference-a",
           "reference-b"
         ],
-        "minimum_independent_lineages": 2
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
       },
       "measurement": {
         "value_m": 2.5,
@@ -1333,7 +1459,13 @@
           "reference-a",
           "reference-b"
         ],
-        "minimum_independent_lineages": 2
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
       },
       "measurement": {
         "value_m": 2.5,
@@ -1399,7 +1531,13 @@
           "reference-a",
           "reference-b"
         ],
-        "minimum_independent_lineages": 2
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
       },
       "measurement": {
         "value_m": 2.5,
@@ -1465,7 +1603,13 @@
           "reference-a",
           "reference-b"
         ],
-        "minimum_independent_lineages": 2
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
       },
       "measurement": {
         "value_m": 2.5,
@@ -1531,7 +1675,13 @@
           "reference-a",
           "reference-b"
         ],
-        "minimum_independent_lineages": 2
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
       },
       "measurement": {
         "value_m": 2.5,
@@ -1597,7 +1747,13 @@
           "reference-a",
           "reference-b"
         ],
-        "minimum_independent_lineages": 2
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
       },
       "measurement": {
         "value_m": 2.5,
@@ -1663,7 +1819,13 @@
           "reference-a",
           "reference-b"
         ],
-        "minimum_independent_lineages": 2
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
       },
       "measurement": {
         "value_m": 2.5,
@@ -1729,7 +1891,13 @@
           "reference-a",
           "reference-b"
         ],
-        "minimum_independent_lineages": 2
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
       },
       "measurement": {
         "value_m": 2.5,
@@ -1751,6 +1919,222 @@
         "overall_disposition": "fail",
         "reason_codes": [
           "INVALID_SYSTEMATIC_ERROR_BOUND"
+        ]
+      }
+    },
+    {
+      "case_id": "calibration_holdout_lineage_overlap_fail",
+      "building_group_id": "synthetic-calibration_holdout_lineage_overlap_fail",
+      "capture_group_id": "capture-calibration_holdout_lineage_overlap_fail",
+      "visibility": "observable",
+      "observation": "captured",
+      "sensor": {
+        "sensor_id": "tls-synthetic-01",
+        "profile_id": "tls-profile-synthetic-v1",
+        "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "calibration_status": "qualified",
+        "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 3,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
+      },
+      "validation": {
+        "status": "qualified",
+        "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "independence": "independent",
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "reference-a"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
+      },
+      "measurement": {
+        "value_m": 2.5,
+        "standard_uncertainty_m": 0.003,
+        "coverage_factor": 2,
+        "coverage_probability": 0.95,
+        "uncertainty_method_id": "synthetic-known-answer-v1",
+        "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "unit": "metre",
+        "systematic_error_bound_m": 0.001,
+        "systematic_bound_method_id": "synthetic-interval-bound-v1",
+        "systematic_bound_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_total_error_bound_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "fail",
+        "reason_codes": [
+          "CALIBRATION_HOLDOUT_LINEAGE_OVERLAP"
+        ]
+      }
+    },
+    {
+      "case_id": "parameters_refit_on_holdout_fail",
+      "building_group_id": "synthetic-parameters_refit_on_holdout_fail",
+      "capture_group_id": "capture-parameters_refit_on_holdout_fail",
+      "visibility": "observable",
+      "observation": "captured",
+      "sensor": {
+        "sensor_id": "tls-synthetic-01",
+        "profile_id": "tls-profile-synthetic-v1",
+        "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "calibration_status": "qualified",
+        "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 3,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
+      },
+      "validation": {
+        "status": "qualified",
+        "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "independence": "independent",
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": false,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
+      },
+      "measurement": {
+        "value_m": 2.5,
+        "standard_uncertainty_m": 0.003,
+        "coverage_factor": 2,
+        "coverage_probability": 0.95,
+        "uncertainty_method_id": "synthetic-known-answer-v1",
+        "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "unit": "metre",
+        "systematic_error_bound_m": 0.001,
+        "systematic_bound_method_id": "synthetic-interval-bound-v1",
+        "systematic_bound_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_total_error_bound_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "fail",
+        "reason_codes": [
+          "HOLDOUT_PARAMETERS_NOT_FROZEN"
+        ]
+      }
+    },
+    {
+      "case_id": "calibration_fit_receipt_missing_unresolved",
+      "building_group_id": "synthetic-calibration_fit_receipt_missing_unresolved",
+      "capture_group_id": "capture-calibration_fit_receipt_missing_unresolved",
+      "visibility": "observable",
+      "observation": "captured",
+      "sensor": {
+        "sensor_id": "tls-synthetic-01",
+        "profile_id": "tls-profile-synthetic-v1",
+        "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "calibration_status": "qualified",
+        "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 3,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
+      },
+      "validation": {
+        "status": "qualified",
+        "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "independence": "independent",
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": null,
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
+      },
+      "measurement": {
+        "value_m": 2.5,
+        "standard_uncertainty_m": 0.003,
+        "coverage_factor": 2,
+        "coverage_probability": 0.95,
+        "uncertainty_method_id": "synthetic-known-answer-v1",
+        "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "unit": "metre",
+        "systematic_error_bound_m": 0.001,
+        "systematic_bound_method_id": "synthetic-interval-bound-v1",
+        "systematic_bound_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_total_error_bound_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "unresolved",
+        "reason_codes": [
+          "CALIBRATION_FIT_RECEIPT_MISSING_OR_INVALID"
         ]
       }
     }
