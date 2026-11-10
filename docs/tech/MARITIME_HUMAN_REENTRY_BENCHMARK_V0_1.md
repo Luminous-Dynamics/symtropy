@@ -38,7 +38,7 @@ AIS/V2X messages are not local sensor truth. Several derived views from one upst
 
 ## Scenario contract
 
-The machine-readable corpus is in [`benchmarks/maritime/human-reentry-corpus-v0.1.json`](../benchmarks/maritime/human-reentry-corpus-v0.1.json); its schema is [`MARITIME_HUMAN_REENTRY_CASE_V0_1.schema.json`](./MARITIME_HUMAN_REENTRY_CASE_V0_1.schema.json).
+The machine-readable corpus is in [`../../benchmarks/maritime/human-reentry-corpus-v0.1.json`](../benchmarks/maritime/human-reentry-corpus-v0.1.json); its schema is [`MARITIME_HUMAN_REENTRY_CASE_V0_1.schema.json`](./MARITIME_HUMAN_REENTRY_CASE_V0_1.schema.json).
 
 Each trace binds:
 - exact case ID and synthetic fixture class;
@@ -49,7 +49,7 @@ Each trace binds:
 - ordered events with monotonic offsets;
 - an expected disposition and hard invariants.
 
-The first corpus contains 30 unique cases: positive, negative, ambiguity, recovery and metamorphic controls. It is intentionally contract-focused; it does not model human cognition or ship physics.
+The first corpus contains 33 unique cases: positive, negative, ambiguity, recovery and metamorphic controls. It is intentionally contract-focused; it does not model human cognition or ship physics.
 
 ## Baseline arms
 
