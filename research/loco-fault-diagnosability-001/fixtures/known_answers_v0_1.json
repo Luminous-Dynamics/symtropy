@@ -1,0 +1,317 @@
+{
+  "schema_version": "loco-fault-diagnosability-known-answers-v0.1",
+  "interval_semantics": "Integer fixed-point closed intervals. Touching endpoints overlap. Unknown envelopes overlap all hypotheses.",
+  "context": {
+    "action_id": "diagnostic-squat-sway-v1",
+    "action_duration_ms": 400,
+    "physical_fault_set_digest": "fault-set-v1",
+    "model_digest": "model-v1",
+    "actuator_digest": "actuator-v1",
+    "domain_digest": "domain-v1",
+    "sensor_manifest_digest": "sensors-v1",
+    "calibration_digest": "calibration-v1",
+    "clock_map_digest": "clock-v1"
+  },
+  "feature_schema": [
+    {
+      "feature_id": "joint_velocity_residual",
+      "unit_id": "mrad_per_s",
+      "common_cause_group": "joint-encoder-1"
+    },
+    {
+      "feature_id": "motor_current_residual",
+      "unit_id": "milliamp",
+      "common_cause_group": "current-sensor-1"
+    }
+  ],
+  "cases": [
+    {
+      "id": "A-separable-lock-vs-derate",
+      "hypotheses": [
+        {
+          "id": "joint-locked",
+          "status": "bounded",
+          "features": [
+            {
+              "feature_id": "joint_velocity_residual",
+              "unit_id": "mrad_per_s",
+              "lower": -10,
+              "upper": 10
+            },
+            {
+              "feature_id": "motor_current_residual",
+              "unit_id": "milliamp",
+              "lower": 0,
+              "upper": 20
+            }
+          ]
+        },
+        {
+          "id": "torque-derated",
+          "status": "bounded",
+          "features": [
+            {
+              "feature_id": "joint_velocity_residual",
+              "unit_id": "mrad_per_s",
+              "lower": 40,
+              "upper": 60
+            },
+            {
+              "feature_id": "motor_current_residual",
+              "unit_id": "milliamp",
+              "lower": 10,
+              "upper": 30
+            }
+          ]
+        }
+      ],
+      "expected": {
+        "pair_status": "separable",
+        "separating_feature": "joint_velocity_residual"
+      }
+    },
+    {
+      "id": "B-low-load-alias",
+      "hypotheses": [
+        {
+          "id": "joint-locked",
+          "status": "bounded",
+          "features": [
+            {
+              "feature_id": "joint_velocity_residual",
+              "unit_id": "mrad_per_s",
+              "lower": -10,
+              "upper": 10
+            },
+            {
+              "feature_id": "motor_current_residual",
+              "unit_id": "milliamp",
+              "lower": 0,
+              "upper": 20
+            }
+          ]
+        },
+        {
+          "id": "friction-increase",
+          "status": "bounded",
+          "features": [
+            {
+              "feature_id": "joint_velocity_residual",
+              "unit_id": "mrad_per_s",
+              "lower": -5,
+              "upper": 15
+            },
+            {
+              "feature_id": "motor_current_residual",
+              "unit_id": "milliamp",
+              "lower": 10,
+              "upper": 35
+            }
+          ]
+        }
+      ],
+      "expected": {
+        "pair_status": "overlapping",
+        "unique_isolation_forbidden": true
+      }
+    },
+    {
+      "id": "C-touching-intervals",
+      "intervals": {
+        "left": [
+          -10,
+          10
+        ],
+        "right": [
+          10,
+          30
+        ]
+      },
+      "expected": {
+        "pair_status": "overlapping"
+      }
+    },
+    {
+      "id": "D-action-conditioned-separation",
+      "quiet_stance": {
+        "a": [
+          -10,
+          20
+        ],
+        "b": [
+          0,
+          30
+        ]
+      },
+      "diagnostic_squat_sway": {
+        "a": [
+          -10,
+          0
+        ],
+        "b": [
+          20,
+          30
+        ]
+      },
+      "expected": {
+        "quiet": "overlapping",
+        "diagnostic": "separable"
+      }
+    },
+    {
+      "id": "E-unknown-envelope",
+      "hypotheses": [
+        {
+          "id": "joint-locked",
+          "status": "bounded",
+          "features": [
+            {
+              "feature_id": "joint_velocity_residual",
+              "unit_id": "mrad_per_s",
+              "lower": -10,
+              "upper": 10
+            },
+            {
+              "feature_id": "motor_current_residual",
+              "unit_id": "milliamp",
+              "lower": 0,
+              "upper": 20
+            }
+          ]
+        },
+        {
+          "id": "unmodeled-fault",
+          "status": "unknown",
+          "reason": "outside-qualified-fault-model"
+        }
+      ],
+      "expected": {
+        "pair_status": "unknown-overlapping",
+        "singleton_component_forbidden": true
+      }
+    },
+    {
+      "id": "F-missing-sensor-feature",
+      "observation": {
+        "features": [
+          {
+            "feature_id": "joint_velocity_residual",
+            "unit_id": "mrad_per_s",
+            "value": 2
+          }
+        ]
+      },
+      "expected": {
+        "disposition": "invalid-or-unknown",
+        "unique_isolation": false
+      }
+    },
+    {
+      "id": "G-one-envelope-contains-observation",
+      "observation": {
+        "features": [
+          {
+            "feature_id": "joint_velocity_residual",
+            "unit_id": "mrad_per_s",
+            "value": 0
+          },
+          {
+            "feature_id": "motor_current_residual",
+            "unit_id": "milliamp",
+            "value": 10
+          }
+        ]
+      },
+      "expected": {
+        "candidate_ids": [
+          "joint-locked"
+        ],
+        "provided_other_envelope_is_disjoint": true
+      }
+    },
+    {
+      "id": "H-two-envelopes-contain-observation",
+      "expected": {
+        "disposition": "ambiguous",
+        "candidate_ids": [
+          "joint-locked",
+          "friction-increase"
+        ]
+      }
+    },
+    {
+      "id": "I-outside-all-envelopes",
+      "observation": {
+        "features": [
+          {
+            "feature_id": "joint_velocity_residual",
+            "unit_id": "mrad_per_s",
+            "value": 999
+          },
+          {
+            "feature_id": "motor_current_residual",
+            "unit_id": "milliamp",
+            "value": 999
+          }
+        ]
+      },
+      "expected": {
+        "disposition": "ood-unknown",
+        "forced_nearest_label": false
+      }
+    },
+    {
+      "id": "J-stale-calibration",
+      "receipt_calibration_digest": "calibration-old",
+      "expected": {
+        "status": "invalid"
+      }
+    },
+    {
+      "id": "K-changed-physical-fault-set",
+      "receipt_fault_set_digest": "different-fault-set",
+      "expected": {
+        "status": "invalid"
+      }
+    },
+    {
+      "id": "L-feature-unit-mismatch",
+      "feature": {
+        "feature_id": "joint_velocity_residual",
+        "unit_id": "degrees_per_s"
+      },
+      "expected": {
+        "status": "invalid"
+      }
+    },
+    {
+      "id": "M-permutation-invariance",
+      "permutations": [
+        "reverse-hypotheses",
+        "reverse-features"
+      ],
+      "expected": {
+        "canonical_report_equal": true
+      }
+    },
+    {
+      "id": "N-shared-encoder-common-cause",
+      "feature_schema": [
+        {
+          "feature_id": "joint_position_residual",
+          "unit_id": "mrad",
+          "common_cause_group": "encoder-1"
+        },
+        {
+          "feature_id": "joint_velocity_residual",
+          "unit_id": "mrad_per_s",
+          "common_cause_group": "encoder-1"
+        }
+      ],
+      "expected": {
+        "common_cause_preserved": true,
+        "independent_channel_claim_forbidden": true
+      }
+    }
+  ]
+}
