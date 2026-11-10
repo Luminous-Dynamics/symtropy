@@ -696,3 +696,90 @@ The next coordinated work packages are now open:
 The immediate sequence is: correct and qualify M0; freeze the first abiotic generator family and its positive controls; wire those fixtures into Symthaea's existing adequacy and experiment-selection seams; then connect actual coverage and provenance. No physical experiment, contact, sampling or actuation is authorized by these software milestones.
 
 - Mycelix [OLI-ENTITY-REPRESENTATION-001 #6038](https://github.com/Luminous-Dynamics/mycelix/issues/6038): plural candidate-entity / collective references, contested boundary and continuity claims, scoped stewardship mandates and consent boundaries. It composes CIVOS-EVIDENCE-001 and explicitly prevents scientific classification from being promoted into identity, consent, legal status or governance authority.
+
+
+## 19. Adversarial confidence-surface evaluation (10 November 2026)
+
+### 19.1 New literature trigger
+
+Gupta & Adami, *Can AI Detect Life? Lessons from Artificial Life*, arXiv:2604.11915v2 (22 June 2026; Proceedings of ALife 2026), https://arxiv.org/abs/2604.11915
+
+In their Avida digital-life experiment:
+- the known length-9 sequence space contains 36,171 catalogued replicators among \(26^9\) possible strings;
+- an MLP achieves 99.97% accuracy on the balanced sampled test split;
+- a greedy hill-climb that optimizes the classifier's predicted replicator confidence finds non-replicating strings at 100% model confidence within 150 queries;
+- across the reported spoofing endpoints, none are true replicators;
+- supplementary tests vary model architecture and classifier/search family, with the same broad vulnerability in the studied sequence-space setup.
+
+The paper's important boundary: it demonstrates a confidence-exploitation vulnerability in an Avida polymer/sequence task. It is not a direct spoofing test of py-GC-MS spectra or an extraterrestrial sample. The authors explicitly identify direct assay spoofing as future work. OLI should reproduce the demonstrated threat model, not inflate it into a universal empirical false-positive rate.
+
+### 19.2 New benchmark lane: OLI-CAS (Confidence Attack Surface)
+
+A high balanced test accuracy can coexist with catastrophic failure when a search process optimizes against the classifier's own confidence. OLI therefore needs a separate *adversarial candidate discovery* lane.
+
+For model \(f\), task-specific positive score \(s_f(x)\), known-truth generator \(G\), and query budget \(B\), the red-team objective is to find:
+\[
+x^* = \arg\max_{x \in \mathcal{X}_G,\;\mathrm{queries}(x)\le B} s_f(x)
+\]
+subject to independent generator truth \(G(x)=\text{negative}\) for a false-positive attack, or \(G(x)=\text{positive}\) for a false-negative attack against a classifier that is optimizing a negative score.
+
+The evaluator may see model queries and public generator interfaces; it must not expose hidden mechanism labels or test-oracle truth. Each candidate endpoint is verified by the benchmark generator or an independent qualified evaluator. The model must never be allowed to certify its own discovered endpoint.
+
+### 19.3 Search methods and comparison
+
+Compare at fixed budgets and seeds:
+- single-mutation greedy confidence ascent;
+- random walk / stochastic acceptance;
+- evolutionary search (tournament and truncation selection);
+- gradient-based optimization where input differentiability is meaningful;
+- constrained Bayesian optimization for expensive generator calls;
+- physics-validity-constrained search that rejects impossible candidate states before scoring;
+- model-disagreement search that targets the regions where independently trained systems disagree.
+
+For each family, freeze candidate domain, query budget, initialization distribution, candidate validity constraints, random seed manifest, and endpoint verifier. A 300-query Avida-style profile is a useful source-reproduction condition; cross-domain task budgets must be independently calibrated rather than assumed equivalent.
+
+### 19.4 Required attack results
+
+For every model/property/attack:
+- maximum false-positive confidence found;
+- query count to first false candidate above 0.5, 0.9, 0.99 and 0.999;
+- proportion of attack runs finding a false candidate;
+- proportion of high-confidence endpoints that are actually true positives;
+- true/false endpoint counts and exact confidence intervals;
+- false-negative attack success on known positive controls;
+- nearest positive example distance / motif similarity where meaningful;
+- generator validity and hidden truth for each endpoint;
+- cost, latency, memory and query count.
+
+Conventional accuracy, AUROC and proper predictive scores remain reported but do not substitute for this lane.
+
+### 19.5 Defense tournament
+
+Compare:
+- closed-set classifier;
+- in-domain calibrated classifier;
+- explicit OTHER/UNRESOLVED hypothesis;
+- density / support OOD detector;
+- conformal / selective prediction;
+- ensemble disagreement;
+- posterior predictive adequacy from Symthaea #11181;
+- robust ambiguity-envelope decisions;
+- fixed abstention;
+- active evidence acquisition where an additional measurement can discriminate the spoof from a real mechanism.
+
+Every defense receives the same attack budget. Also report whether the defense merely refuses all cases, and measure positive-control retention / false-negative inflation. No single method is assumed to solve adversarial OOD.
+
+### 19.6 Cross-project ownership
+
+- Symtropy OLI-ABIOTIC-001 #4572: deterministic generator families, counterfactuals, known-truth endpoints and independent validators.
+- Symthaea OLI-OOD-ATTACK-001 #11451: attack search, query budgets, adequacy/uncertainty/abstention defenses, and active discriminating-observation proposals.
+- Symthaea OLI-EXPERIMENT-001 #11446: broader property/mechanism/observable → experiment-selection integration.
+- Sol-Atlas OLI-SPATIAL-001 #691: spatial/temporal coverage and observability context.
+- Mycelix OLI-ENTITY-REPRESENTATION-001 #6038 and CIVOS-EVIDENCE-001 #5709: claim provenance, data rights and scoped entity/representation records; classifier scores do not confer status or authority.
+
+### 19.7 Research status and claim ceiling
+
+- The Avida paper has been read at the full HTML level and its reported query-budget / confidence results inspected.
+- A Symthaea red-team implementation issue is open as #11451.
+- No Avida reproduction, life-detection attack, py-GC-MS spoof test, or model defense result has yet been executed by Luminous.
+- A successful software benchmark demonstrates robustness only against its declared generators, attacks, query budgets and validators. It cannot establish universal OOD safety, detection of natural life, or consciousness.
