@@ -1,0 +1,23 @@
+[package]
+name = "symtropy-physics-fidelity-policy"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Deterministic evidence-gated multi-fidelity physics model selection policy"
+
+# This is intentionally an isolated research workspace. It does not add a
+# second Bevy version or dependencies to Symtropy's production workspace.
+[workspace]
+resolver = "2"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.10"
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+all = "warn"
