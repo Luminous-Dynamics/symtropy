@@ -464,6 +464,36 @@
         "Review reports that diagnostic research advances faster than operational validation and calls for multi-engine/multi-vessel data, interpretable hybrid models and standardized benchmarks.",
         "Use as a landscape and gap-analysis source rather than an experimental classifier baseline."
       ]
+    },
+    {
+      "id": "marine-fault-transfer-18-tasks-2025",
+      "title": "A universal transfer learning framework for cross-working-condition marine diesel engine fault diagnosis based on fine-tuning strategy",
+      "source_type": "peer_reviewed_article",
+      "publication_date": "2025-08-15",
+      "source_url": "https://doi.org/10.1016/j.apenergy.2025.125962",
+      "data_domain": "Two marine diesel engine case studies: an 8V396SE engine (500 kW) and a 620 V16 engine (2336 kW); lubrication-system fault data include experimental bench evidence and intake/exhaust fault data include virtual simulation.",
+      "task": "Cross-working-condition fault diagnosis using data-tiered fusion augmentation and combined fine-tuning across 18 transfer tasks.",
+      "reported_metrics": [
+        {
+          "metric": "cross_working_condition_transfer_tasks",
+          "value": 18,
+          "unit": "tasks",
+          "context": "The article reports validation over 18 cross-working-condition tasks; this is protocol coverage, not a performance score.",
+          "source_location": "Highlights and abstract"
+        }
+      ],
+      "split_protocol": "Cross-working-condition transfer across two engine types and subsystem task families; exact source/target task definitions, run grouping and split manifests require full-methods audit.",
+      "reported_limitations": [
+        "Two engine types, subsystems and experimental/virtual sources must remain distinct.",
+        "Accessible abstract reports task count but no single aggregate metric suitable for direct comparison.",
+        "Not directly comparable to Aalto MU323DGSC without taxonomy and sensor-protocol alignment."
+      ],
+      "reproducibility_status": "reported_not_reproduced",
+      "direct_comparison_to_aalto": "not_comparable",
+      "audit_notes": [
+        "Methods include data-tiered fusion augmentation and a combined fine-tuning strategy.",
+        "Use as a cross-working-condition methodology reproduction target, not a leaderboard score."
+      ]
     }
   ]
 }
