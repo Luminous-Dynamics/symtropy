@@ -28,8 +28,7 @@
       "measurement_receipt_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
       "max_p95_frame_time_us": 16700,
       "max_p99_frame_time_us": 25000,
-      "max_peak_vram_bytes": 5200000000,
-      "max_gpu_energy_uj_per_frame": 10000
+      "max_peak_vram_bytes": 5200000000
     },
     {
       "view_id": "accessibility-inspection",
@@ -41,8 +40,7 @@
       "measurement_receipt_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
       "max_p95_frame_time_us": 20000,
       "max_p99_frame_time_us": 30000,
-      "max_peak_vram_bytes": 4800000000,
-      "max_gpu_energy_uj_per_frame": 8000
+      "max_peak_vram_bytes": 4800000000
     }
   ],
   "budget": {
