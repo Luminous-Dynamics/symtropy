@@ -207,6 +207,8 @@
         "additionalProperties": false,
         "required": [
           "method_id",
+          "execution_manifest_id",
+          "execution_manifest_sha256",
           "implementation_id",
           "implementation_sha256",
           "response_sha256",
@@ -230,6 +232,14 @@
             "pattern": "^[a-fA-F0-9]{64}$"
           },
           "input_set_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "execution_manifest_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "execution_manifest_sha256": {
             "type": "string",
             "pattern": "^[a-fA-F0-9]{64}$"
           }
