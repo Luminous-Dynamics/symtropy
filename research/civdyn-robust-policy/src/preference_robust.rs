@@ -624,6 +624,7 @@ pub fn analyze_preference_robustness(
                 }
             }
             let unanimous_single_winner = if unanimous_single
+                && profiles_with_different_winners == 0
                 && profiles_with_winner == contract.vertices.len()
             {
                 first_winner_set.and_then(|winners| winners.into_iter().next())
