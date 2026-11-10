@@ -161,8 +161,8 @@ fn skew_from_axis(axis: &SVector<f64, 3>) -> SMatrix<f64, 3, 3> {
 fn axis_from_pi_matrix(matrix: &SMatrix<f64, 3, 3>) -> Result<SVector<f64, 3>, So3LogError> {
     let mut pivot = 0;
     let mut largest_diagonal = -1.0_f64;
-    for index in 0..3 {
-        let candidate = ((matrix[(index, index)] + 1.0) * 0.5).clamp(0.0, 1.0);
+    for (index, row) in matrix.row_iter().enumerate() {
+        let candidate = ((row[index] + 1.0) * 0.5).clamp(0.0, 1.0);
         if candidate > largest_diagonal {
             largest_diagonal = candidate;
             pivot = index;
@@ -203,7 +203,7 @@ pub fn so3_log_with_config(
     }
     validate_rotation(rotation, config.rotation_tolerance)?;
 
-    let matrix = rotation.to_matrix();
+    let matrix = *rotation.to_matrix();
     // With Symtropy's sign convention, -skew(R) is sin(theta) times
     // the bivector generator plane.
     let skew = (matrix - matrix.transpose()) * 0.5;
@@ -225,7 +225,7 @@ pub fn so3_log_with_config(
     }
 
     let (generator, branch) = if PI - angle <= config.pi_branch_tolerance {
-        let mut axis = axis_from_pi_matrix(matrix)?;
+        let mut axis = axis_from_pi_matrix(&matrix)?;
         let candidate_skew = skew_from_axis(&axis);
         let alignment = candidate_skew
             .iter()
@@ -403,10 +403,10 @@ mod tests {
             Err(So3LogError::InvalidRotation { .. })
         ));
         let identity = Rotor::<3>::identity();
-        assert_eq!(
+        assert!(matches!(
             so3_interpolate(&identity, &identity, f64::NAN),
             Err(So3LogError::NonFiniteParameter)
-        );
+        ));
     }
 
     #[test]
