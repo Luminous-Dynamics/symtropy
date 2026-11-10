@@ -2,11 +2,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use civdyn_self_correction::model_adequacy::{
-    assess_predictive_partition, IndependentUnitKind, ObservedStatistic, PredictiveDraw,
-    PredictiveKind, SplitManifest, SplitRole, StatisticRegistry, StatisticSpec,
+    IndependentUnitKind, ObservedStatistic, PredictiveDraw, PredictiveKind, SplitManifest,
+    SplitRole, StatisticRegistry, StatisticSpec, assess_predictive_partition,
 };
 use civdyn_self_correction::repair_qualification::{
-    qualify_repair, RepairEvidence, RepairQualificationInput, RepairQualificationReport,
+    RepairEvidence, RepairQualificationInput, RepairQualificationReport, qualify_repair,
 };
 
 const INITIAL_MODEL: &str = "sha256-repair-sweep-initial-model";
@@ -174,8 +174,7 @@ fn run_scenario(
     )?;
 
     let training_sources = vec!["sha256-repair-sweep-diagnostic-source".to_string()];
-    let training_observations =
-        vec!["sha256-repair-sweep-diagnostic-observation".to_string()];
+    let training_observations = vec!["sha256-repair-sweep-diagnostic-observation".to_string()];
     Ok(qualify_repair(&RepairQualificationInput {
         diagnostic: &diagnostic,
         baseline_challenge: &baseline,
@@ -216,9 +215,18 @@ fn emit_report(scenario: &str, report: &RepairQualificationReport) {
             result.independent_unit_id.clone(),
             result.baseline_status.name().to_string(),
             result.repaired_status.name().to_string(),
-            result.baseline_interval_width.map(|value| format!("{value:.8}")).unwrap_or_default(),
-            result.repaired_interval_width.map(|value| format!("{value:.8}")).unwrap_or_default(),
-            result.interval_width_ratio.map(|value| format!("{value:.8}")).unwrap_or_default(),
+            result
+                .baseline_interval_width
+                .map(|value| format!("{value:.8}"))
+                .unwrap_or_default(),
+            result
+                .repaired_interval_width
+                .map(|value| format!("{value:.8}"))
+                .unwrap_or_default(),
+            result
+                .interval_width_ratio
+                .map(|value| format!("{value:.8}"))
+                .unwrap_or_default(),
             result.outcome.name().to_string(),
         ]);
     }
@@ -229,20 +237,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         "scenario,claim_ceiling,diagnostic_primary_discrepancies,corrected_primary_statistics,residual_primary_discrepancies,regressed_primary_statistics,width_budget_failures,required_evidence_complete,initial_model_digest,repaired_model_digest,initial_calibration_data_digest,repair_training_data_digest,diagnostic_split_manifest_digest,baseline_challenge_manifest_digest,repaired_challenge_manifest_digest,repair_action_digest,protocol_digest,central_mass,maximum_interval_width_ratio,statistic_id,independent_unit_id,baseline_status,repaired_status,baseline_interval_width,repaired_interval_width,interval_width_ratio,row_outcome"
     );
 
-    let corrected = run_scenario(
-        "corrected",
-        &DRAWS,
-        &[0.85, 0.88, 0.90, 0.92, 0.95],
-        0.9,
-    )?;
+    let corrected = run_scenario("corrected", &DRAWS, &[0.85, 0.88, 0.90, 0.92, 0.95], 0.9)?;
     emit_report("corrected", &corrected);
 
-    let residual = run_scenario(
-        "residual",
-        &DRAWS,
-        &[0.50, 0.52, 0.54, 0.56, 0.58],
-        0.9,
-    )?;
+    let residual = run_scenario("residual", &DRAWS, &[0.50, 0.52, 0.54, 0.56, 0.58], 0.9)?;
     emit_report("residual", &residual);
 
     let width_exceeded = run_scenario(
