@@ -658,14 +658,29 @@ fn inventory_from_manifest(manifest: &Value) -> Result<Vec<InventoryEntry>, Stri
 fn build_split_template(entries: &[InventoryEntry]) -> SplitTemplate {
     let groups = entries
         .iter()
-        .filter(|entry| entry.role == "scenario_csv")
-        .map(|entry| SplitGroupTemplate {
-            group_id: entry.path.clone(),
-            source_file: entry.path.clone(),
-            group_type: "original_recording_file".into(),
-            assignment: None,
-            assignment_state: "unassigned_requires_review".into(),
-            note: "Keep the complete physical recording together. Assign only after dataset-index, intervention, load and label audit; never split adjacent rows/windows across partitions.".into(),
+        .filter(|entry| entry.role == "scenario_csv" || entry.role == "baseline_csv")
+        .map(|entry| {
+            let is_baseline = entry.role == "baseline_csv";
+            SplitGroupTemplate {
+                group_id: entry.path.clone(),
+                source_file: entry.path.clone(),
+                group_type: if is_baseline {
+                    "baseline_reference_recording".into()
+                } else {
+                    "original_recording_file".into()
+                },
+                assignment: is_baseline.then(|| "reference_only".into()),
+                assignment_state: if is_baseline {
+                    "preassigned_reference_only".into()
+                } else {
+                    "unassigned_requires_review".into()
+                },
+                note: if is_baseline {
+                    "Keep the single reference recording outside supervised train/validation/test partitions; use only for explicitly declared baseline false-alarm analysis and report its single-campaign limitation.".into()
+                } else {
+                    "Keep the complete physical fault recording together. Assign only after dataset-index, intervention, load and label audit; never split adjacent rows/windows across partitions.".into()
+                },
+            }
         })
         .collect();
 
@@ -953,8 +968,10 @@ mod tests {
             InventoryEntry { path: "b.csv".into(), reported_size: "1 MB".into(), role: "baseline_csv".into() },
         ];
         let template = build_split_template(&entries);
-        assert_eq!(template.groups.len(), 1);
+        assert_eq!(template.groups.len(), 2);
         assert_eq!(template.groups[0].assignment, None);
+        assert_eq!(template.groups[1].assignment.as_deref(), Some("reference_only"));
+        assert_eq!(template.groups[1].assignment_state, "preassigned_reference_only");
         assert!(!template.random_window_split_allowed);
     }
 
