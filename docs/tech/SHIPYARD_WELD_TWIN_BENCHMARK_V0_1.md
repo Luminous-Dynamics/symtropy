@@ -111,7 +111,7 @@ Four additional adversarial cases close gaps found during code review:
 - every pass's parameter-envelope reference must equal the approved procedure's envelope;
 - observed digital-twin update interval must not exceed the declared expected interval.
 
-The frozen corpus is now 48 cases (1 positive, 47 negative). The independent Rust evaluator and unit-test count are updated accordingly. These remain synthetic contract controls, not physical welding process qualifications.
+The frozen corpus is now 51 cases (1 positive, 47 negative). The independent Rust evaluator and unit-test count are updated accordingly. These remain synthetic contract controls, not physical welding process qualifications.
 
 
 ## Normative effectivity: decision time versus subject construction date — 2026-11-10
@@ -141,9 +141,16 @@ ISO/TR 23247-101:2026 is a published manufacturing digital-twin use-case report 
 
 ### New adversarial cases
 
-The 48-case corpus now includes:
+The 51-case corpus now includes:
 - W28 Rev.2 incorrectly selected for a ship with subject construction date on/after 1 January 2027;
 - a normative source snapshot retrieved after the decision cutoff;
 - existing negative case: Rev.3 incorrectly selected for a subject date before its effective date.
 
 The benchmark now distinguishes (a) rule knowledge available at a decision cutoff, (b) which ruleset applies to the subject based on its construction/effectivity date, and (c) when the actual weld procedure, equipment, operator and pass evidence were valid. This is necessary for long-lead shipbuilding programmes and avoids a future-effective standard being either applied too early or missed for a vessel built after the transition.
+
+
+## Material-lot and raw-trace integrity — 2026-11-10
+
+The independent verifier now checks that the workpiece heat/lot matches receiving evidence and the material record, that the approved procedure's qualified material-heat-lot set contains the exact heat/lot, and that every pass and its raw trace bind the same lot. It rejects duplicate JSON object keys at every nesting depth before evaluating trace semantics, checks corpus identity/version and exact fixed case count, and rejects duplicate case IDs or an unexpected base-fixture name.
+
+The frozen corpus is now **51 unique cases (1 synthetic positive, 50 negative controls)**. The three pass-trace SHA-256 values and the wrong-pass fixture digest were recomputed from the exact updated raw JSON bytes. These remain synthetic contract checks; they do not authenticate real material certificates or qualify a welding procedure.
