@@ -68,7 +68,9 @@
         "service_kind": "pilot_service",
         "service_area_state": "descriptive_context",
         "pilot_assignment_state": "unknown",
-        "clearance_state": "unknown"
+        "clearance_state": "unknown",
+        "pilot_assignment_ref": null,
+        "clearance_ref": null
       }
     },
     "s123": {
@@ -96,7 +98,9 @@
         "service_kind": "navtex",
         "coverage_state": "declared_coverage_only",
         "live_link_state": "not_measured",
-        "vessel_delivery_state": "unknown"
+        "vessel_delivery_state": "unknown",
+        "link_measurement_ref": null,
+        "delivery_receipt_ref": null
       }
     },
     "s124": {
