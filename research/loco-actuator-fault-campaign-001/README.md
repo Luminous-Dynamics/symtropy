@@ -157,3 +157,46 @@ Formal comparisons require the same platform/morphology, terrain/task, fault ons
 ## Claim ceiling
 
 This protocol and its synthetic scenario files do not establish arbitrary-fault tolerance, fault-model completeness, continuous-time safety or physical reliability. Any comparison must report its fault families, severity ranges, platform, terrain/task, exposure and evidence tier. The final operating claim is limited to directly tested condition cells whose upstream fault-space, actuator, diagnosis, viability, safety, capability, reserve and assurance evidence is valid.
+
+
+## 12. Executable finite Rust V0 reference
+
+The standalone, dependency-free Rust crate in this directory consumes the campaign's frozen scenario manifest, matched policy descriptors and policy × scenario × paired-block trial records.
+
+In addition to the protocol identities, the executable record binds:
+- actuator response-map and energy-boundary digests;
+- exact initial-state, payload, task and command-schedule identity per scenario;
+- fault onset profile (abrupt, ramped, intermittent or persistent), gait phase and physical severity interval;
+- per-trial fault-injection receipt, run-trace digest, event-vector receipt and robust-viability receipt;
+- explicit action-applied state, so a safe abstention/stop is measured separately from an applied command that lacks current assurance or admission.
+
+Diagnosis is **set-valued**, not only top-1:
+- retains the most likely family and the complete plausible family set;
+- reports top-1 misclassification separately from true-fault hypothesis-set coverage;
+- preserves Unknown and Missed as distinct outcomes;
+- validates confidence and severity units;
+- reports severity absolute error and the coverage of declared severity intervals.
+
+The auditor rejects:
+- mismatched morphology, actuator response, sensor, task/command, physics, terrain suite, taxonomy/detector, energy boundary, compute/interaction/exposure identities;
+- train/validation/held-out scenario leakage;
+- deployment access to privileged fault truth unless the policy is explicitly marked as an oracle upper bound;
+- missing/duplicate policy × held-out scenario × paired-block trials;
+- empty or mismatched fault injection/run/event/viability evidence digests;
+- a realized severity outside the frozen scenario interval;
+- duplicate plausible fault hypotheses or a top-1 family absent from the plausible set;
+- stale certificate or unadmitted command **when an action was actually applied**.
+
+A policy that abstains without applying an action remains a valid observed outcome. It is reported separately and is not incorrectly counted as an unsafe command.
+
+The report keeps diagnosis, family-set coverage, severity, adaptation deadlines, task outcomes, recoverable stop, falls, certificate validity and admission separate. It intentionally produces no aggregate fault-tolerance score.
+
+The Rust tests cover matched campaign completeness, missing/duplicate trials, split leakage, platform/actuator context mismatch, privileged fault truth, stale/unadmitted applied actions, safe abstention, Unknown diagnosis, top-1 vs set-valued coverage, severity estimate/interval coverage, duplicate hypothesis entries, late detection/adaptation, recovery evidence inconsistency and scenario task/model mismatches.
+
+Qualification commands:
+
+    cargo fmt --manifest-path research/loco-actuator-fault-campaign-001/Cargo.toml -- --check
+    cargo test --manifest-path research/loco-actuator-fault-campaign-001/Cargo.toml --locked
+    cargo clippy --manifest-path research/loco-actuator-fault-campaign-001/Cargo.toml --locked --all-targets -- -D warnings
+
+The exact-head workflow is authoritative for Rust 1.96. This crate audits benchmark identity, supplied diagnosis records and evidence composition only. It does not diagnose raw telemetry, validate actuator physics, authenticate external receipts, classify adverse physical events or prove robot safety.
