@@ -152,6 +152,7 @@ pub enum ReleaseGateBlocker {
     ModelFamilySetMismatch,
     CheckpointFamilySetMismatch,
     ModelCheckpointDigestMismatch,
+    PolicyRunIdentityEmpty,
     PolicyRunManifestMissing,
     PolicyRunSetMismatch,
     ExpectedPolicyRunCountMismatch,
@@ -359,6 +360,9 @@ pub fn qualify_release(
 
     let expected_families: BTreeSet<&str> =
         evidence.expected_model_families.iter().map(String::as_str).collect();
+    if evidence.expected_model_families.iter().any(|family| family.trim().is_empty()) {
+        blockers.insert(ReleaseGateBlocker::PolicyRunIdentityEmpty);
+    }
     let expected_policy_run_map: std::collections::BTreeMap<(&str, &str), &str> =
         evidence.expected_policy_runs.iter()
             .map(|item| (
@@ -370,6 +374,11 @@ pub fn qualify_release(
         || expected_policy_run_map.len() != evidence.expected_policy_runs.len()
     {
         blockers.insert(ReleaseGateBlocker::PolicyRunManifestMissing);
+    }
+    if evidence.expected_policy_runs.iter().any(|item| {
+        item.family_id.trim().is_empty() || item.task_id.trim().is_empty()
+    }) {
+        blockers.insert(ReleaseGateBlocker::PolicyRunIdentityEmpty);
     }
     if expected_policy_run_map.keys().map(|(family, _)| *family).collect::<BTreeSet<_>>()
         != expected_families
@@ -417,7 +426,10 @@ pub fn qualify_release(
             ReleaseGateBlocker::CheckpointRightsUnknown,
             ReleaseGateBlocker::CheckpointRightsRestricted,
         );
-        if smoke.family_id.trim().is_empty() || smoke.checkpoint_sha256.trim().is_empty() {
+        if smoke.family_id.trim().is_empty() || smoke.task_id.trim().is_empty() {
+            blockers.insert(ReleaseGateBlocker::PolicyRunIdentityEmpty);
+        }
+        if smoke.checkpoint_sha256.trim().is_empty() {
             blockers.insert(ReleaseGateBlocker::ModelCheckpointDigestMismatch);
         }
         if expected_policy_run_map.get(&policy_run).copied()
@@ -503,6 +515,7 @@ pub fn qualify_release(
         matches!(
             blocker,
             ReleaseGateBlocker::PolicyFamilyManifestMissing
+                | ReleaseGateBlocker::PolicyRunIdentityEmpty
                 | ReleaseGateBlocker::PolicyRunManifestMissing
                 | ReleaseGateBlocker::PolicyRunSetMismatch
                 | ReleaseGateBlocker::ExpectedPolicyRunCountMismatch
@@ -838,6 +851,16 @@ mod tests {
         let report = qualify_release(&duplicate).unwrap();
         assert!(report.has_blocker(ReleaseGateBlocker::DuplicatePolicyRunSmoke));
         assert!(report.has_blocker(ReleaseGateBlocker::PolicyRunSetMismatch));
+    }
+
+    #[test]
+    fn empty_task_or_family_identity_cannot_vacuously_match_policy_runs() {
+        let mut candidate = evidence();
+        candidate.expected_policy_runs[0].task_id.clear();
+
+        let report = qualify_release(&candidate).unwrap();
+        assert!(report.has_blocker(ReleaseGateBlocker::PolicyRunIdentityEmpty));
+        assert!(!report.native_evaluation_ready);
     }
 
     #[test]
