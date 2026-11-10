@@ -317,9 +317,6 @@ impl Vec3 {
         }
     }
 
-    fn to_point(self) -> Point3 {
-        Point3::new(self.x, self.y, self.z)
-    }
 }
 
 fn finite_point(point: Point3) -> bool {
@@ -363,7 +360,9 @@ fn validate_view(view: &VisibilityView, frame_id: &str) -> Result<(), String> {
         || view.sensor_frame_id.trim().is_empty()
         || view.pose_revision_id.trim().is_empty()
     {
-        return Err("view, sensor, sensor-frame and pose-revision identities must not be empty".to_owned());
+        return Err(
+            "view, sensor, sensor-frame and pose-revision identities must not be empty".to_owned(),
+        );
     }
     if view.frame_id != frame_id {
         return Err(format!(
@@ -928,7 +927,9 @@ fn validate_reference_probe_set(
 ) -> Result<(), String> {
     let expected_surface_ids: BTreeSet<&str> =
         reference_surface_ids.iter().map(String::as_str).collect();
-    if expected_surface_ids.is_empty() || expected_surface_ids.len() != reference_surface_ids.len() {
+    if expected_surface_ids.is_empty()
+        || expected_surface_ids.len() != reference_surface_ids.len()
+    {
         return Err("reference surface inventory is empty or contains duplicate IDs".to_owned());
     }
     let mut target_triangles: BTreeMap<(&str, &str), &OccluderTriangle> = BTreeMap::new();
@@ -940,7 +941,9 @@ fn validate_reference_probe_set(
         }
         let key = (triangle.surface_id.as_str(), triangle.triangle_id.as_str());
         if target_triangles.insert(key, triangle).is_some() {
-            return Err("reference geometry contains duplicate target triangle identities".to_owned());
+            return Err(
+                "reference geometry contains duplicate target triangle identities".to_owned(),
+            );
         }
         if expected_surface_ids.contains(triangle.surface_id.as_str()) {
             let area = triangle_area_m2(triangle.a, triangle.b, triangle.c)?;
@@ -957,11 +960,16 @@ fn validate_reference_probe_set(
     let mut represented_area_by_surface: BTreeMap<&str, f64> = BTreeMap::new();
     for probe in probes {
         if !expected_surface_ids.contains(probe.surface_id.as_str()) {
-            return Err("visibility probe references a surface outside the declared target inventory".to_owned());
+            return Err(
+                "visibility probe references a surface outside the declared target inventory"
+                    .to_owned(),
+            );
         }
         let triangle = target_triangles
             .get(&(probe.surface_id.as_str(), probe.triangle_id.as_str()))
-            .ok_or("visibility probe does not reference a triangle in the declared BIM reference geometry")?;
+            .ok_or(
+                "visibility probe does not reference a triangle in the declared BIM reference geometry",
+            )?;
         if probe
             .barycentric
             .iter()
@@ -1091,7 +1099,9 @@ pub fn derive_surface_visibility(
         || evaluation.profile.max_probe_view_evaluations > HARD_MAX_PROBE_VIEW_EVALUATIONS
         || evaluation.profile.max_ray_tests > HARD_MAX_RAY_TESTS
     {
-        return Err("visibility resource profile exceeds the evaluator's compiled hard ceiling".to_owned());
+        return Err(
+            "visibility resource profile exceeds the evaluator's compiled hard ceiling".to_owned(),
+        );
     }
     if evaluation.probes.len() > evaluation.profile.max_probe_count {
         return Err("visibility max_probe_count exceeded".to_owned());
