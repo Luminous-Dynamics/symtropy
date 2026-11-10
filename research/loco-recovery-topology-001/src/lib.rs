@@ -74,6 +74,7 @@ pub struct RecoveryRoute {
     pub viability_receipt_id: String,
     pub viability_valid_through_tick: u64,
     pub transition_receipt_id: String,
+    pub transition_valid_through_tick: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -400,50 +401,56 @@ fn qualify_route(
     let mut rejected = false;
     let mut unknown = false;
 
-    let mut reject = |finding| {
-        findings.push(finding);
-        rejected = true;
-    };
-    let mut mark_unknown = |finding| {
-        findings.push(finding);
-        unknown = true;
-    };
+    macro_rules! reject {
+        ($finding:expr) => {{
+            findings.push($finding);
+            rejected = true;
+        }};
+    }
+    macro_rules! mark_unknown {
+        ($finding:expr) => {{
+            findings.push($finding);
+            unknown = true;
+        }};
+    }
 
     match route.admission {
         GateDisposition::Admitted => {}
-        GateDisposition::Rejected => reject(RouteFinding::RejectedByUpstream {
+        GateDisposition::Rejected => reject!(RouteFinding::RejectedByUpstream {
             route_id: route.route_id.clone(),
         }),
-        GateDisposition::Unknown => mark_unknown(RouteFinding::UpstreamAdmissionUnknown {
+        GateDisposition::Unknown => mark_unknown!(RouteFinding::UpstreamAdmissionUnknown {
             route_id: route.route_id.clone(),
         }),
     }
 
     if !route.physical_branch_coverage_complete {
-        mark_unknown(RouteFinding::MissingBranchCoverage {
+        mark_unknown!(RouteFinding::MissingBranchCoverage {
             route_id: route.route_id.clone(),
         });
     }
     if !route.latency_prefix_complete {
-        mark_unknown(RouteFinding::IncompleteLatencyPrefix {
+        mark_unknown!(RouteFinding::IncompleteLatencyPrefix {
             route_id: route.route_id.clone(),
         });
     }
     if route.viability_receipt_id.trim().is_empty()
         || route.transition_receipt_id.trim().is_empty()
     {
-        mark_unknown(RouteFinding::MissingReceipt {
+        mark_unknown!(RouteFinding::MissingReceipt {
             route_id: route.route_id.clone(),
         });
     }
-    if route.viability_valid_through_tick < input.evaluation_tick {
-        mark_unknown(RouteFinding::StaleViabilityReceipt {
+    if route.viability_valid_through_tick < input.evaluation_tick
+        || route.transition_valid_through_tick < input.evaluation_tick
+    {
+        mark_unknown!(RouteFinding::StaleViabilityReceipt {
             route_id: route.route_id.clone(),
         });
     }
 
     if route.intermediate_states.is_empty() {
-        mark_unknown(RouteFinding::UnknownIntermediate {
+        mark_unknown!(RouteFinding::UnknownIntermediate {
             route_id: route.route_id.clone(),
             state_id: "<missing-intermediate-state-inventory>".to_owned(),
         });
@@ -452,13 +459,13 @@ fn qualify_route(
         match state.disposition {
             PhysicalStateDisposition::Viable => {}
             PhysicalStateDisposition::Nonviable => {
-                reject(RouteFinding::NonviableIntermediate {
+                reject!(RouteFinding::NonviableIntermediate {
                     route_id: route.route_id.clone(),
                     state_id: state.state_id.clone(),
                 });
             }
             PhysicalStateDisposition::Unknown => {
-                mark_unknown(RouteFinding::UnknownIntermediate {
+                mark_unknown!(RouteFinding::UnknownIntermediate {
                     route_id: route.route_id.clone(),
                     state_id: state.state_id.clone(),
                 });
@@ -472,7 +479,7 @@ fn qualify_route(
         .filter(|successor| successor.physically_possible)
         .collect::<Vec<_>>();
     if physically_possible.is_empty() {
-        mark_unknown(RouteFinding::MissingSuccessorInventory {
+        mark_unknown!(RouteFinding::MissingSuccessorInventory {
             route_id: route.route_id.clone(),
         });
     }
@@ -480,13 +487,13 @@ fn qualify_route(
         match successor.disposition {
             PhysicalStateDisposition::Viable => {}
             PhysicalStateDisposition::Nonviable => {
-                reject(RouteFinding::PossibleNonviableSuccessor {
+                reject!(RouteFinding::PossibleNonviableSuccessor {
                     route_id: route.route_id.clone(),
                     state_id: successor.state_id.clone(),
                 });
             }
             PhysicalStateDisposition::Unknown => {
-                mark_unknown(RouteFinding::UnknownSuccessor {
+                mark_unknown!(RouteFinding::UnknownSuccessor {
                     route_id: route.route_id.clone(),
                     state_id: successor.state_id.clone(),
                 });
@@ -497,7 +504,7 @@ fn qualify_route(
     let (steps, energy_mj) = match (route.worst_case_steps, route.worst_case_energy_mj) {
         (Some(steps), Some(energy)) => (steps, energy),
         _ => {
-            mark_unknown(RouteFinding::MissingRouteResourceMeasurement {
+            mark_unknown!(RouteFinding::MissingRouteResourceMeasurement {
                 route_id: route.route_id.clone(),
             });
             (0, 0)
@@ -506,7 +513,7 @@ fn qualify_route(
 
     if let Some(max_steps) = input.max_recovery_steps {
         if route.worst_case_steps.is_some_and(|steps| steps > max_steps) {
-            reject(RouteFinding::StepBudgetExceeded {
+            reject!(RouteFinding::StepBudgetExceeded {
                 route_id: route.route_id.clone(),
             });
         }
@@ -516,7 +523,7 @@ fn qualify_route(
             .worst_case_energy_mj
             .is_some_and(|energy| energy > available)
         {
-            reject(RouteFinding::EnergyBudgetExceeded {
+            reject!(RouteFinding::EnergyBudgetExceeded {
                 route_id: route.route_id.clone(),
             });
         }
@@ -524,7 +531,7 @@ fn qualify_route(
 
     let mut groups = BTreeSet::new();
     if route.failure_domain_ids.is_empty() {
-        mark_unknown(RouteFinding::EmptyFailureDomainSet {
+        mark_unknown!(RouteFinding::EmptyFailureDomainSet {
             route_id: route.route_id.clone(),
         });
     }
@@ -534,7 +541,7 @@ fn qualify_route(
                 groups.insert(domain.failure_group_id.clone());
             }
             None => {
-                mark_unknown(RouteFinding::MissingFailureDomain {
+                mark_unknown!(RouteFinding::MissingFailureDomain {
                     route_id: route.route_id.clone(),
                     domain_id: domain_id.clone(),
                 });
@@ -648,7 +655,7 @@ fn minimal_hitting_sets(routes: &[BTreeSet<String>]) -> Vec<BTreeSet<String>> {
         let selected = groups
             .iter()
             .enumerate()
-            .filter_map(|(index, group)| ((mask & (1usize << index)) != 0).then(|| group.clone()))
+            .filter_map(|(index, group)| ((mask & (1usize << index)) != 0).then_some(group.clone()))
             .collect::<BTreeSet<_>>();
         if routes
             .iter()
@@ -717,6 +724,7 @@ mod tests {
             viability_receipt_id: format!("viability:{id}"),
             viability_valid_through_tick: 100,
             transition_receipt_id: format!("transition:{id}"),
+            transition_valid_through_tick: 100,
         }
     }
 
