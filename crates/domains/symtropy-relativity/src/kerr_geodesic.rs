@@ -1007,6 +1007,393 @@ impl KerrCanonicalHamiltonian {
     }
 }
 
+
+/// Adaptive step-doubling integrator for the second-order Kerr Mino system.
+///
+/// This integrator is intended for exterior Boyer–Lindquist trajectories.
+/// It crosses simple radial and polar turning points through the smooth
+/// second-order system, but deliberately stops rather than crossing the
+/// Boyer–Lindquist horizon or polar-axis chart singularities.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct KerrMinoIntegrationConfig {
+    pub relative_tolerance: f64,
+    /// Absolute tolerances for [t/M, r/M, theta, phi, dr/dgamma, dtheta/dgamma].
+    pub absolute_tolerance: [f64; 6],
+    /// Maximum normalized radial/polar first-integral residual.
+    pub constraint_tolerance: f64,
+    pub initial_step: f64,
+    pub minimum_step: f64,
+    pub maximum_step: f64,
+    /// Maximum total attempted step-doubling cycles (accepted + rejected).
+    pub maximum_attempts: usize,
+}
+
+impl KerrMinoIntegrationConfig {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        relative_tolerance: f64,
+        absolute_tolerance: [f64; 6],
+        constraint_tolerance: f64,
+        initial_step: f64,
+        minimum_step: f64,
+        maximum_step: f64,
+        maximum_attempts: usize,
+    ) -> Result<Self, KerrMinoIntegrationError> {
+        if !relative_tolerance.is_finite() || relative_tolerance <= 0.0 {
+            return Err(KerrMinoIntegrationError::InvalidConfiguration("relative_tolerance"));
+        }
+        if absolute_tolerance.iter().any(|value| !value.is_finite() || *value <= 0.0) {
+            return Err(KerrMinoIntegrationError::InvalidConfiguration("absolute_tolerance"));
+        }
+        if !constraint_tolerance.is_finite() || constraint_tolerance <= 0.0 {
+            return Err(KerrMinoIntegrationError::InvalidConfiguration("constraint_tolerance"));
+        }
+        if !initial_step.is_finite() || initial_step <= 0.0 {
+            return Err(KerrMinoIntegrationError::InvalidConfiguration("initial_step"));
+        }
+        if !minimum_step.is_finite() || minimum_step <= 0.0 {
+            return Err(KerrMinoIntegrationError::InvalidConfiguration("minimum_step"));
+        }
+        if !maximum_step.is_finite() || maximum_step < minimum_step {
+            return Err(KerrMinoIntegrationError::InvalidConfiguration("maximum_step"));
+        }
+        if initial_step < minimum_step || initial_step > maximum_step {
+            return Err(KerrMinoIntegrationError::InvalidConfiguration("initial_step_bounds"));
+        }
+        if maximum_attempts == 0 {
+            return Err(KerrMinoIntegrationError::InvalidConfiguration("maximum_attempts"));
+        }
+        Ok(Self {
+            relative_tolerance,
+            absolute_tolerance,
+            constraint_tolerance,
+            initial_step,
+            minimum_step,
+            maximum_step,
+            maximum_attempts,
+        })
+    }
+
+    /// Conservative starter configuration for dimensionless research rays.
+    pub fn research_default() -> Self {
+        Self {
+            relative_tolerance: 1.0e-10,
+            absolute_tolerance: [1.0e-11; 6],
+            constraint_tolerance: 1.0e-8,
+            initial_step: 1.0e-3,
+            minimum_step: 1.0e-10,
+            maximum_step: 2.0e-2,
+            maximum_attempts: 200_000,
+        }
+    }
+}
+
+/// One accepted point on an adaptive Mino trajectory.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct KerrMinoTrajectoryPoint {
+    pub mino_parameter: f64,
+    pub state: KerrMinoDynamicState,
+    pub constraint_residuals: KerrMinoConstraintResiduals,
+}
+
+/// Completed exterior Kerr null trajectory and numerical diagnostics.
+#[derive(Debug, Clone, PartialEq)]
+pub struct KerrMinoTrajectory {
+    /// Initial state followed by every accepted step endpoint.
+    pub points: Vec<KerrMinoTrajectoryPoint>,
+    pub accepted_steps: usize,
+    pub rejected_steps: usize,
+    pub final_step: f64,
+    pub maximum_normalized_radial_constraint_residual: f64,
+    pub maximum_normalized_polar_constraint_residual: f64,
+    pub requested_final_parameter: f64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum KerrMinoIntegrationError {
+    Geodesic(KerrGeodesicError),
+    InvalidConfiguration(&'static str),
+    InvalidFinalParameter(f64),
+    InitialConstraintViolation {
+        radial_relative: f64,
+        polar_relative: f64,
+    },
+    StepSizeUnderflow {
+        mino_parameter: f64,
+        attempted_step: f64,
+        normalized_error: f64,
+    },
+    MaximumAttemptsExceeded {
+        mino_parameter: f64,
+        attempts: usize,
+    },
+    NonFiniteErrorEstimate,
+}
+
+impl From<KerrGeodesicError> for KerrMinoIntegrationError {
+    fn from(value: KerrGeodesicError) -> Self {
+        Self::Geodesic(value)
+    }
+}
+
+impl fmt::Display for KerrMinoIntegrationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Geodesic(error) => write!(f, "Kerr Mino integration geometry error: {error}"),
+            Self::InvalidConfiguration(name) => {
+                write!(f, "invalid Kerr Mino integration configuration: {name}")
+            }
+            Self::InvalidFinalParameter(value) => {
+                write!(f, "final Mino parameter must be finite and >= 0, got {value}")
+            }
+            Self::InitialConstraintViolation { radial_relative, polar_relative } => write!(
+                f,
+                "initial Kerr null first-integral residual exceeds tolerance: radial={radial_relative:e}, polar={polar_relative:e}"
+            ),
+            Self::StepSizeUnderflow { mino_parameter, attempted_step, normalized_error } => write!(
+                f,
+                "Kerr Mino step underflow at gamma={mino_parameter:e}, step={attempted_step:e}, error={normalized_error:e}"
+            ),
+            Self::MaximumAttemptsExceeded { mino_parameter, attempts } => write!(
+                f,
+                "Kerr Mino integrator exceeded {attempts} attempts at gamma={mino_parameter:e}"
+            ),
+            Self::NonFiniteErrorEstimate => {
+                write!(f, "Kerr Mino integrator produced a non-finite error estimate")
+            }
+        }
+    }
+}
+
+impl std::error::Error for KerrMinoIntegrationError {}
+
+#[derive(Debug, Clone, Copy)]
+struct MinoVector([f64; 6]);
+
+impl MinoVector {
+    fn from_state(state: KerrMinoDynamicState) -> Self {
+        Self([
+            state.coordinates.time_over_m,
+            state.coordinates.radius_over_m,
+            state.coordinates.theta_rad,
+            state.coordinates.azimuth_rad,
+            state.radial_velocity_over_m,
+            state.polar_velocity_rad,
+        ])
+    }
+
+    fn into_state(self) -> KerrMinoDynamicState {
+        KerrMinoDynamicState::new(
+            KerrMinoState::new(self.0[0], self.0[1], self.0[2], self.0[3]),
+            self.0[4],
+            self.0[5],
+        )
+    }
+
+    fn add_scaled(self, other: Self, scale: f64) -> Self {
+        let mut result = self.0;
+        for (index, value) in result.iter_mut().enumerate() {
+            *value += scale * other.0[index];
+        }
+        Self(result)
+    }
+}
+
+impl KerrSeparatedNullGeodesic {
+    fn mino_vector_field(self, state: MinoVector) -> Result<MinoVector, KerrGeodesicError> {
+        let derivative = self.mino_dynamic_derivative(state.into_state())?;
+        Ok(MinoVector([
+            derivative.d_time_over_m,
+            derivative.d_radius_over_m,
+            derivative.d_theta_rad,
+            derivative.d_azimuth_rad,
+            derivative.d_radial_velocity_over_m,
+            derivative.d_polar_velocity_rad,
+        ]))
+    }
+
+    fn rk4_mino_step(
+        self,
+        state: MinoVector,
+        step: f64,
+    ) -> Result<MinoVector, KerrGeodesicError> {
+        let k1 = self.mino_vector_field(state)?;
+        let k2 = self.mino_vector_field(state.add_scaled(k1, 0.5 * step))?;
+        let k3 = self.mino_vector_field(state.add_scaled(k2, 0.5 * step))?;
+        let k4 = self.mino_vector_field(state.add_scaled(k3, step))?;
+        let mut result = state;
+        for index in 0..6 {
+            result.0[index] += step
+                * (k1.0[index] + 2.0 * k2.0[index] + 2.0 * k3.0[index] + k4.0[index])
+                / 6.0;
+        }
+        if result.0.iter().any(|value| !value.is_finite()) {
+            return Err(KerrGeodesicError::NonFinite("rk4_mino_state"));
+        }
+        Ok(result)
+    }
+
+    /// Integrate from gamma=0 to `final_parameter` using adaptive RK4 step-doubling.
+    ///
+    /// The full-step vs two-half-step discrepancy estimates the local RK4
+    /// error (divided by 15). The two-half-step solution is accepted. Step
+    /// control also enforces a normalized bound on both separated first
+    /// integrals, so the solver cannot claim a qualified null ray merely
+    /// because the coordinate error estimate is small.
+    pub fn integrate_adaptive(
+        self,
+        initial: KerrMinoDynamicState,
+        final_parameter: f64,
+        config: KerrMinoIntegrationConfig,
+    ) -> Result<KerrMinoTrajectory, KerrMinoIntegrationError> {
+        if !final_parameter.is_finite() || final_parameter < 0.0 {
+            return Err(KerrMinoIntegrationError::InvalidFinalParameter(final_parameter));
+        }
+        let initial_residuals = self.mino_constraint_residuals(initial)?;
+        let initial_radial_relative = normalized_constraint_residual(
+            initial.radial_velocity_over_m.powi(2),
+            self.radial_potential(initial.coordinates.radius_over_m)?,
+            initial_residuals.radial,
+        );
+        let initial_polar_relative = normalized_constraint_residual(
+            initial.polar_velocity_rad.powi(2),
+            self.polar_potential(initial.coordinates.theta_rad)?,
+            initial_residuals.polar,
+        );
+        if initial_radial_relative > config.constraint_tolerance
+            || initial_polar_relative > config.constraint_tolerance
+        {
+            return Err(KerrMinoIntegrationError::InitialConstraintViolation {
+                radial_relative: initial_radial_relative,
+                polar_relative: initial_polar_relative,
+            });
+        }
+
+        let mut points = vec![KerrMinoTrajectoryPoint {
+            mino_parameter: 0.0,
+            state: initial,
+            constraint_residuals: initial_residuals,
+        }];
+        if final_parameter == 0.0 {
+            return Ok(KerrMinoTrajectory {
+                points,
+                accepted_steps: 0,
+                rejected_steps: 0,
+                final_step: 0.0,
+                maximum_normalized_radial_constraint_residual: initial_radial_relative,
+                maximum_normalized_polar_constraint_residual: initial_polar_relative,
+                requested_final_parameter: final_parameter,
+            });
+        }
+
+        let mut gamma = 0.0;
+        let mut vector = MinoVector::from_state(initial);
+        let mut step = config.initial_step.min(final_parameter);
+        let mut attempts = 0usize;
+        let mut accepted_steps = 0usize;
+        let mut rejected_steps = 0usize;
+        let mut max_radial_residual = initial_radial_relative;
+        let mut max_polar_residual = initial_polar_relative;
+
+        while gamma < final_parameter {
+            if attempts >= config.maximum_attempts {
+                return Err(KerrMinoIntegrationError::MaximumAttemptsExceeded {
+                    mino_parameter: gamma,
+                    attempts,
+                });
+            }
+            attempts += 1;
+            let remaining = final_parameter - gamma;
+            let trial_step = step.min(remaining);
+            if trial_step < config.minimum_step && remaining > config.minimum_step {
+                return Err(KerrMinoIntegrationError::StepSizeUnderflow {
+                    mino_parameter: gamma,
+                    attempted_step: trial_step,
+                    normalized_error: f64::INFINITY,
+                });
+            }
+
+            let full = self.rk4_mino_step(vector, trial_step)?;
+            let half = self.rk4_mino_step(vector, 0.5 * trial_step)?;
+            let two_half = self.rk4_mino_step(half, 0.5 * trial_step)?;
+            let mut error_norm: f64 = 0.0;
+            for index in 0..6 {
+                let scale = config.absolute_tolerance[index]
+                    + config.relative_tolerance * vector.0[index].abs().max(two_half.0[index].abs());
+                let component_error =
+                    (two_half.0[index] - full.0[index]).abs() / (15.0 * scale);
+                error_norm = error_norm.max(component_error);
+            }
+
+            let candidate = two_half.into_state();
+            let residuals = self.mino_constraint_residuals(candidate)?;
+            let radial_potential = self.radial_potential(candidate.coordinates.radius_over_m)?;
+            let polar_potential = self.polar_potential(candidate.coordinates.theta_rad)?;
+            let radial_relative = normalized_constraint_residual(
+                candidate.radial_velocity_over_m.powi(2),
+                radial_potential,
+                residuals.radial,
+            );
+            let polar_relative = normalized_constraint_residual(
+                candidate.polar_velocity_rad.powi(2),
+                polar_potential,
+                residuals.polar,
+            );
+            error_norm = error_norm
+                .max(radial_relative / config.constraint_tolerance)
+                .max(polar_relative / config.constraint_tolerance);
+            if !error_norm.is_finite() {
+                return Err(KerrMinoIntegrationError::NonFiniteErrorEstimate);
+            }
+
+            if error_norm <= 1.0 {
+                gamma += trial_step;
+                vector = two_half;
+                accepted_steps += 1;
+                max_radial_residual = max_radial_residual.max(radial_relative);
+                max_polar_residual = max_polar_residual.max(polar_relative);
+                points.push(KerrMinoTrajectoryPoint {
+                    mino_parameter: gamma,
+                    state: candidate,
+                    constraint_residuals: residuals,
+                });
+                let factor = if error_norm <= 1.0e-14 {
+                    5.0
+                } else {
+                    (0.9 * error_norm.powf(-0.2)).clamp(0.2, 5.0)
+                };
+                step = (trial_step * factor).clamp(config.minimum_step, config.maximum_step);
+            } else {
+                rejected_steps += 1;
+                let factor = (0.9 * error_norm.powf(-0.2)).clamp(0.1, 0.5);
+                let reduced = trial_step * factor;
+                if reduced < config.minimum_step {
+                    return Err(KerrMinoIntegrationError::StepSizeUnderflow {
+                        mino_parameter: gamma,
+                        attempted_step: reduced,
+                        normalized_error: error_norm,
+                    });
+                }
+                step = reduced;
+            }
+        }
+
+        Ok(KerrMinoTrajectory {
+            points,
+            accepted_steps,
+            rejected_steps,
+            final_step: step,
+            maximum_normalized_radial_constraint_residual: max_radial_residual,
+            maximum_normalized_polar_constraint_residual: max_polar_residual,
+            requested_final_parameter: final_parameter,
+        })
+    }
+}
+
+fn normalized_constraint_residual(first_term: f64, second_term: f64, residual: f64) -> f64 {
+    residual.abs() / (1.0 + first_term.abs() + second_term.abs())
+}
+
 fn validate_spin(spin: f64) -> Result<(), KerrGeodesicError> {
     if !spin.is_finite() || !(-1.0..=1.0).contains(&spin) {
         return Err(KerrGeodesicError::InvalidSpin(spin));
@@ -1425,6 +1812,63 @@ mod tests {
                 KerrMinoDirection::Increasing
             ),
             Err(KerrGeodesicError::ForbiddenRadialRegion { .. })
+        ));
+    }
+
+
+    #[test]
+    fn adaptive_mino_integrator_crosses_schwarzschild_scattering_turning_point() {
+        let constants = KerrNullConstants::new(1.0, 6.0, 0.0).unwrap();
+        let geodesic = KerrSeparatedNullGeodesic::new(hole(0.0), constants);
+        let radius = 10.0;
+        let radial = geodesic.radial_potential(radius).unwrap();
+        let initial = KerrMinoDynamicState::new(
+            KerrMinoState::new(0.0, radius, core::f64::consts::FRAC_PI_2, 0.0),
+            -radial.sqrt(),
+            0.0,
+        );
+        let config = KerrMinoIntegrationConfig::new(
+            1.0e-10,
+            [1.0e-10; 6],
+            2.0e-8,
+            1.0e-3,
+            1.0e-10,
+            2.0e-2,
+            200_000,
+        )
+        .unwrap();
+        let trajectory = geodesic.integrate_adaptive(initial, 0.6, config).unwrap();
+        let minimum_radius = trajectory
+            .points
+            .iter()
+            .map(|point| point.state.coordinates.radius_over_m)
+            .fold(f64::INFINITY, f64::min);
+        let final_radius = trajectory.points.last().unwrap().state.coordinates.radius_over_m;
+        close(minimum_radius, 4.453_363_193_811_354, 2.0e-4);
+        assert!(final_radius > radius);
+        assert!(trajectory.accepted_steps > 0);
+        assert!(trajectory.rejected_steps > 0);
+        assert!(trajectory.maximum_normalized_radial_constraint_residual <= 2.0e-8);
+        assert!(trajectory.maximum_normalized_polar_constraint_residual <= 2.0e-8);
+    }
+
+    #[test]
+    fn adaptive_mino_integrator_fails_closed_on_invalid_initial_null_constraints() {
+        let constants = KerrNullConstants::new(1.0, 6.0, 0.0).unwrap();
+        let geodesic = KerrSeparatedNullGeodesic::new(hole(0.0), constants);
+        let initial = KerrMinoDynamicState::new(
+            KerrMinoState::new(0.0, 10.0, core::f64::consts::FRAC_PI_2, 0.0),
+            0.0,
+            0.0,
+        );
+        let result = geodesic.integrate_adaptive(
+            initial,
+            0.1,
+            KerrMinoIntegrationConfig::research_default(),
+        );
+        assert!(matches!(
+            result,
+            Err(KerrMinoIntegrationError::InitialConstraintViolation { .. })
         ));
     }
 
