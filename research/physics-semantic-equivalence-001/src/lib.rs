@@ -1056,6 +1056,37 @@ mod tests {
     }
 
     #[test]
+    fn json_adapter_rejects_nested_duplicate_object_keys() {
+        let source = include_str!("../fixtures/strict-equivalent.example.json");
+        let mutated = source.replacen(
+            "\"engine_id\": \"symtropy\",",
+            "\"engine_id\": \"symtropy\",\n    \"engine_id\": \"symtropy\",",
+            1,
+        );
+        let error = parse_receipt_json(&mutated).expect_err("nested duplicate keys must fail");
+        assert!(error.contains("duplicate JSON object key"));
+    }
+
+    #[test]
+    fn draft_2020_12_schema_rejects_not_applicable_with_empty_error_bounds() {
+        let mut value: JsonValue =
+            serde_json::from_str(include_str!("../fixtures/strict-equivalent.example.json"))
+                .expect("strict fixture is valid JSON");
+        let dimensions = value["dimensions"]
+            .as_array_mut()
+            .expect("dimensions array");
+        let contacts = dimensions
+            .iter_mut()
+            .find(|item| item["dimension"] == "contacts")
+            .expect("contacts dimension");
+        contacts["status"] = JsonValue::String("not_applicable".to_owned());
+        contacts["error_bounds"] = JsonValue::Array(Vec::new());
+
+        let encoded = serde_json::to_string(&value).expect("serialize mutated receipt");
+        assert!(validate_receipt_schema_json(&encoded).is_err());
+    }
+
+    #[test]
     fn schema_gate_rejects_duplicate_object_keys() {
         let duplicate = r#"{"schema":"symtropy.semantic_mapping_receipt/0.1","schema":"symtropy.semantic_mapping_receipt/0.1"}"#;
         let error = validate_receipt_schema_json(duplicate)
