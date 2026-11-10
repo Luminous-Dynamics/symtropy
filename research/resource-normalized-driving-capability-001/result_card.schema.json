@@ -1,0 +1,370 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.org/schemas/resource-normalized-driving-result-card-v0.1.schema.json",
+  "title": "Resource-normalized driving experiment result card v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "status",
+    "model_arm_id",
+    "benchmark_id",
+    "protocol_revision",
+    "model",
+    "data",
+    "compute",
+    "outcomes",
+    "evidence"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "status": {
+      "enum": [
+        "not_run",
+        "running",
+        "complete",
+        "failed",
+        "incomplete",
+        "censored"
+      ]
+    },
+    "model_arm_id": {
+      "type": "string",
+      "enum": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F",
+        "G",
+        "H",
+        "HUMAN"
+      ]
+    },
+    "benchmark_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "protocol_revision": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "seed_manifest_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code_revision",
+        "checkpoint_revision",
+        "trainable_parameters",
+        "input_privileges"
+      ],
+      "properties": {
+        "code_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "checkpoint_revision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "trainable_parameters": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "input_privileges": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "precision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "teacher_privileges": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dataset_revision",
+        "train_episodes",
+        "train_frames",
+        "simulator_transitions",
+        "human_intervention_minutes",
+        "teacher_generated_labels"
+      ],
+      "properties": {
+        "dataset_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "train_episodes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "train_frames": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "simulator_transitions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "human_intervention_minutes": {
+          "type": "number",
+          "minimum": 0
+        },
+        "teacher_generated_labels": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "holdout_split_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "compute": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hardware_id",
+        "training_gpu_hours",
+        "training_energy_kwh",
+        "inference_energy_joules_per_frame",
+        "inference_p50_ms",
+        "inference_p95_ms",
+        "inference_p99_ms",
+        "deadline_miss_rate",
+        "peak_memory_bytes"
+      ],
+      "properties": {
+        "hardware_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "training_gpu_hours": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "training_energy_kwh": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "inference_energy_joules_per_frame": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "inference_p50_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "inference_p95_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "inference_p99_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "deadline_miss_rate": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "peak_memory_bytes": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "precision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "measurement_method": {
+          "type": "string"
+        }
+      }
+    },
+    "outcomes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "native_metrics",
+        "completed_episodes",
+        "failed_episodes",
+        "incomplete_episodes",
+        "censored_episodes",
+        "worst_family_metrics",
+        "calibration_metrics",
+        "robustness_metrics"
+      ],
+      "properties": {
+        "native_metrics": {
+          "type": "object",
+          "additionalProperties": {
+            "type": [
+              "number",
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "completed_episodes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failed_episodes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "incomplete_episodes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "censored_episodes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "worst_family_metrics": {
+          "type": "object",
+          "additionalProperties": {
+            "type": [
+              "number",
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "calibration_metrics": {
+          "type": "object",
+          "additionalProperties": {
+            "type": [
+              "number",
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "robustness_metrics": {
+          "type": "object",
+          "additionalProperties": {
+            "type": [
+              "number",
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "replay_exact_match_percent": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "raw_artifact_manifest_sha256",
+        "evaluator_revision",
+        "expected_episode_count",
+        "observed_episode_count",
+        "notes"
+      ],
+      "properties": {
+        "raw_artifact_manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "evaluator_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected_episode_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "observed_episode_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  },
+  "x-invariants": [
+    "status=not_run requires null outcomes and no claim of performance",
+    "expected_episode_count must equal completed+failed+incomplete+censored+otherwise explicitly dispositioned episodes",
+    "training and inference measurements must identify the actual host/hardware/power profile",
+    "teacher/generated labels and all privileged inputs must be counted and declared",
+    "metrics from different benchmark versions or task tracks must never be pooled"
+  ]
+}
