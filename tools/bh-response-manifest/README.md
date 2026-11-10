@@ -130,3 +130,5 @@ For qualification, **every listed method must participate in at least one accept
 
 `examples/paired-comparison-v0.2.json` is a complete serialization fixture for an independently cross-checked direct-PDE / frequency-Green comparison. Its hash strings and numerical error are illustrative placeholders, not execution receipts or scientific measurements. The Rust unit suite parses and validates this fixture end-to-end; real run manifests must replace every placeholder with digests recomputed from preserved bytes.
 
+The manifest provenance now carries `canonical_input_set_sha256`. Every method's `input_set_sha256` must match it exactly. This prevents a pair of methods from agreeing with each other on an input digest that is not bound to the study's own provenance record. Individual source/input files remain separately listed and hashed under `input_digests`.
+
