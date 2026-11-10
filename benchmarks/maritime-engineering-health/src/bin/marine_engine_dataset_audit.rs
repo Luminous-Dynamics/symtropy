@@ -709,6 +709,12 @@ fn inventory_from_manifest(manifest: &Value) -> Result<Vec<InventoryEntry>, Stri
     Ok(entries)
 }
 
+fn archive_integrity_verified(archive: Option<&ArchiveAudit>) -> bool {
+    archive.is_some_and(|item| {
+        item.zip_signature_valid && item.publisher_md5_matches == Some(true)
+    })
+}
+
 fn build_split_template(entries: &[InventoryEntry]) -> SplitTemplate {
     let groups = entries
         .iter()
@@ -888,9 +894,7 @@ fn audit_dataset(cli: &Cli) -> Result<DatasetAuditReport, String> {
     }
 
     let all_expected_csvs = scenario_csvs_audited == 15 && baseline_csvs_audited == 1;
-    let archive_integrity_verified = archive.as_ref().is_some_and(|item| {
-        item.zip_signature_valid && item.publisher_md5_matches == Some(true)
-    });
+    let archive_integrity_verified = archive_integrity_verified(archive.as_ref());
     let audit_state = if errors.is_empty()
         && files_found == inventory.len()
         && all_expected_csvs
@@ -1107,6 +1111,61 @@ mod tests {
         assert!(audit.anomaly_only_expected);
         assert_eq!(audit.anomaly_only_observed, Some(true));
         assert_eq!(audit.anomaly_onset_transitions, 0);
+    }
+
+    #[test]
+    fn tracks_duplicate_absolute_timestamps() {
+        let data = synthetic_scenario_csv(&[("100", "0", "0"), ("100", "1", "1")]);
+        let audit = inspect_csv("AC_Fouling_40_Load.csv", "scenario_csv", data.as_bytes()).unwrap();
+        assert_eq!(audit.time_abs_nonempty_rows, 2);
+        assert_eq!(audit.time_abs_empty_rows, 0);
+        assert_eq!(audit.time_abs_duplicate_rows, 1);
+        assert_eq!(audit.first_time_abs.as_deref(), Some("100"));
+        assert_eq!(audit.last_time_abs.as_deref(), Some("100"));
+    }
+
+    #[test]
+    fn counts_missing_absolute_timestamps_without_reordering() {
+        let data = synthetic_scenario_csv(&[("", "0", "0"), ("101", "1", "1")]);
+        let audit = inspect_csv("AC_Fouling_40_Load.csv", "scenario_csv", data.as_bytes()).unwrap();
+        assert_eq!(audit.time_abs_empty_rows, 1);
+        assert_eq!(audit.time_abs_nonempty_rows, 1);
+    }
+
+    #[test]
+    fn refuses_to_treat_missing_or_unverified_archive_as_a_pass() {
+        assert!(!archive_integrity_verified(None));
+        let archive = ArchiveAudit {
+            path: "dataset.zip".into(),
+            size_bytes: 1,
+            sha256: "0".repeat(64),
+            publisher_md5: Some("0".repeat(32)),
+            observed_md5: None,
+            publisher_md5_matches: None,
+            md5_tool_available: false,
+            zip_signature_valid: true,
+        };
+        assert!(!archive_integrity_verified(Some(&archive)));
+        let mut mismatch = archive.clone();
+        mismatch.publisher_md5_matches = Some(false);
+        assert!(!archive_integrity_verified(Some(&mismatch)));
+        let mut valid = archive;
+        valid.publisher_md5_matches = Some(true);
+        assert!(archive_integrity_verified(Some(&valid)));
+    }
+
+    #[test]
+    fn rejects_duplicate_paths_in_dataset_inventory() {
+        let item = serde_json::json!({
+            "path":"Marine_Engine_Fault_Data/Reference_Data.csv",
+            "reported_size":"14.8 MB",
+            "role":"baseline_csv"
+        });
+        let entries = vec![item; 22];
+        let manifest = serde_json::json!({
+            "public_record_metadata":{"archive":{"file_inventory":entries}}
+        });
+        assert!(inventory_from_manifest(&manifest).is_err());
     }
 
     #[test]
