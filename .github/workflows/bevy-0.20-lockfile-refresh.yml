@@ -69,3 +69,9 @@ jobs:
 
       - name: Check the complete workspace
         run: cargo +1.97.1 check --workspace --all-targets
+
+      - name: Compile the raster validation scene
+        run: cargo +1.97.1 check -p symtropy-bevy-validation-scene
+
+      - name: Compile the optional Solari preview
+        run: cargo +1.97.1 check -p symtropy-bevy-validation-scene --features solari-preview
