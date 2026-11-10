@@ -599,20 +599,20 @@ mod tests {
     }
 
     fn random_orthogonal_matrix(state: &mut u64) -> SMatrix<f64, 4, 4> {
-        let mut columns = [SVector::<f64, 4>::zeros(); 4];
-        for index in 0..4 {
+        let mut columns = Vec::with_capacity(4);
+        for _ in 0..4 {
             let mut candidate = SVector::<f64, 4>::new(
                 2.0 * next_random(state) - 1.0,
                 2.0 * next_random(state) - 1.0,
                 2.0 * next_random(state) - 1.0,
                 2.0 * next_random(state) - 1.0,
             );
-            for previous in columns.iter().take(index) {
+            for previous in &columns {
                 candidate -= previous * previous.dot(&candidate);
             }
             let norm = candidate.norm();
             assert!(norm > 1.0e-8, "deterministic QR fixture became degenerate");
-            columns[index] = candidate / norm;
+            columns.push(candidate / norm);
         }
 
         let mut orthogonal = SMatrix::<f64, 4, 4>::zeros();
