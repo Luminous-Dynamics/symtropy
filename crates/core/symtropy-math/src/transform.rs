@@ -75,6 +75,28 @@ impl<const D: usize> Transform<D> {
     }
 }
 
+impl Transform<3> {
+    /// Interpolate a 3D rigid transform using linear translation and a checked
+    /// principal SO(3) geodesic for rotation.
+    ///
+    /// Unlike the legacy dimension-generic `interpolate` method, this path
+    /// returns a typed error for invalid rotations, non-finite parameters, or
+    /// an unresolved logarithm branch instead of silently substituting a
+    /// fallback orientation.
+    pub fn try_interpolate(
+        &self,
+        other: &Self,
+        t: f64,
+    ) -> Result<Self, crate::lie::So3LogError> {
+        let rotation = crate::lie::so3_interpolate(&self.rotation, &other.rotation, t)?;
+        let translation = self.translation.lerp(&other.translation, t);
+        Ok(Self {
+            translation,
+            rotation,
+        })
+    }
+}
+
 impl<const D: usize> Default for Transform<D> {
     fn default() -> Self {
         Self::identity()
@@ -146,4 +168,41 @@ mod tests {
         assert!((q.coord(0) - 5.0).abs() < 1e-10);
         assert!((q.coord(1) - 1.0).abs() < 1e-10);
     }
+
+    #[test]
+    fn checked_so3_interpolation_handles_exact_pi_rotation() {
+        use std::f64::consts::PI;
+
+        let start = Transform::<3>::identity();
+        let end = Transform {
+            translation: Point::new([2.0, 0.0, 0.0]),
+            rotation: Rotor::from_plane_angle(&Bivector::<3>::unit_plane(0, 1), PI),
+        };
+
+        let midpoint = start.try_interpolate(&end, 0.5).expect("valid SO(3) interpolation");
+        assert!((midpoint.translation.coord(0) - 1.0).abs() < 1.0e-12);
+        assert!(midpoint.translation.coord(1).abs() < 1.0e-12);
+
+        let rotated = midpoint.transform_vector(&SVector::from([1.0, 0.0, 0.0]));
+        assert!(rotated[0].abs() < 1.0e-10);
+        assert!((rotated[1] - 1.0).abs() < 1.0e-10);
+    }
+
+    #[test]
+    fn checked_so3_interpolation_rejects_invalid_endpoint_rotation() {
+        let start = Transform::<3>::identity();
+        let invalid_rotation = Rotor::from_matrix(
+            nalgebra::SMatrix::<f64, 3, 3>::identity() * 2.0,
+        );
+        let end = Transform {
+            translation: Point::origin(),
+            rotation: invalid_rotation,
+        };
+
+        assert!(matches!(
+            start.try_interpolate(&end, 0.5),
+            Err(crate::lie::So3LogError::InvalidRotation { .. })
+        ));
+    }
+
 }
