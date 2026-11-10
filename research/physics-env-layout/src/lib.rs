@@ -8,7 +8,6 @@
 
 use rayon::prelude::*;
 use sha2::{Digest, Sha256};
-use std::collections::BTreeSet;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct EnvironmentState {
@@ -567,6 +566,10 @@ mod tests {
         let mut soa = SoaLayout::from_aos(&initial_aos(8));
         soa.velocity[1].pop();
         assert_eq!(soa.step_n(1, DT), Err(LayoutError::ShapeMismatch));
+        assert_eq!(
+            soa.step_n_parallel(1, DT),
+            Err(LayoutError::ShapeMismatch)
+        );
         assert_eq!(soa.digest(8).unwrap_err(), LayoutError::ShapeMismatch);
     }
 
