@@ -577,7 +577,7 @@ fn validate_observations(
         per_event_channel_counts.insert(key, checked_increment(count)?);
     }
 
-    let mut missing_count = 0;
+    let mut missing_count: usize = 0;
     for event in &sequence.events {
         let mut channel_counts = BTreeMap::new();
         for channel in required_channels {
