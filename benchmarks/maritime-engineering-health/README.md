@@ -14,8 +14,11 @@ cargo clippy --locked --manifest-path benchmarks/maritime-engineering-health/Car
 cargo run --locked --manifest-path benchmarks/maritime-engineering-health/Cargo.toml -- benchmarks/maritime/engineering-health-corpus-v0.1.json
 ~~~
 
-The CLI emits the SHA-256 of the exact input bytes and an expected-versus-actual
-result for each case. It exits non-zero for any mismatch.
+The CLI emits the SHA-256 of the exact input bytes, an expected-versus-actual
+result for each case, and an asset/configuration-bound capability-impact projection.
+The projection is read-only: it cannot authorize a transition or clear a restriction.
+"No restriction indicated" applies only to the tested engineering-health evidence;
+it is not a vessel-wide ODD pass. The CLI exits non-zero for any mismatch.
 
 ## Claim ceiling
 
