@@ -859,6 +859,74 @@ mod tests {
         assert!(!template.random_window_split_allowed);
     }
 
+    fn synthetic_scenario_csv(rows: &[(&str, &str, &str)]) -> String {
+        let mut names = vec!["channel".to_string(); SCENARIO_COLUMNS];
+        names[0] = "Time_abs".into();
+        names[1] = "Time_rel".into();
+        names[2] = "Anomaly State".into();
+        let symbols = names.iter().map(|name| format!("sym_{name}")).collect::<Vec<_>>();
+        let units = vec!["unit".to_string(); SCENARIO_COLUMNS];
+        let mut output = format!("{}\n{}\n{}\n", names.join(","), symbols.join(","), units.join(","));
+        for (absolute, relative, label) in rows {
+            let mut cells = vec!["value".to_string(); SCENARIO_COLUMNS];
+            cells[0] = (*absolute).into();
+            cells[1] = (*relative).into();
+            cells[2] = (*label).into();
+            cells[4] = String::new();
+            output.push_str(&cells.join(","));
+            output.push('\n');
+        }
+        output
+    }
+
+    #[test]
+    fn audits_scenario_label_transitions_missingness_and_time() {
+        let data = synthetic_scenario_csv(&[("100", "0", "0"), ("101", "1", "1")]);
+        let audit = inspect_csv(
+            "AC_Fouling_40_Load.csv",
+            "scenario_csv",
+            data.as_bytes(),
+        )
+        .unwrap();
+        assert_eq!(audit.column_count, SCENARIO_COLUMNS);
+        assert_eq!(audit.data_rows, 2);
+        assert_eq!(audit.anomaly_zero_rows, 1);
+        assert_eq!(audit.anomaly_one_rows, 1);
+        assert_eq!(audit.anomaly_onset_transitions, 1);
+        assert_eq!(audit.time_rel_backsteps, 0);
+        assert_eq!(audit.missing_columns.len(), 1);
+        assert_eq!(audit.missing_columns[0].index, 4);
+        assert_eq!(audit.missing_columns[0].missing_cells, 2);
+    }
+
+    #[test]
+    fn flags_non_monotonic_relative_time_without_reordering_samples() {
+        let data = synthetic_scenario_csv(&[("100", "2", "0"), ("101", "1", "1")]);
+        let audit = inspect_csv(
+            "AC_Fouling_40_Load.csv",
+            "scenario_csv",
+            data.as_bytes(),
+        )
+        .unwrap();
+        assert_eq!(audit.time_rel_backsteps, 1);
+        assert_eq!(audit.first_time_rel.as_deref(), Some("2"));
+        assert_eq!(audit.last_time_rel.as_deref(), Some("1"));
+    }
+
+    #[test]
+    fn anomaly_only_nozzle_file_is_checked_without_inventing_onset() {
+        let data = synthetic_scenario_csv(&[("100", "0", "1"), ("101", "1", "1")]);
+        let audit = inspect_csv(
+            "Injector_Nozzle/Clogged_Injector_Nozzle2_LoadProgram.csv",
+            "scenario_csv",
+            data.as_bytes(),
+        )
+        .unwrap();
+        assert!(audit.anomaly_only_expected);
+        assert_eq!(audit.anomaly_only_observed, Some(true));
+        assert_eq!(audit.anomaly_onset_transitions, 0);
+    }
+
     #[test]
     fn sha256_is_stable_for_known_input() {
         assert_eq!(
