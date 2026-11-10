@@ -60,6 +60,23 @@ The wider asset inventory is now tracked in [RENDER-SHADER-ASSET-QUAL-001 #4475]
 
 Do not create a replacement telemetry shader until its vertex/fragment contract, bind group and storage-buffer semantics are recovered.
 
+## First visual-quality implementation — shadows and Solari
+
+The existing `symtropy-bevy-scene` crate now exposes `sun_shadow_maps_enabled` in `SymtropySceneConfig`, enables sun shadows by default, and provides `fixed_light_with_shadows(..., enabled)` for secondary directional lights. Low-power scenes can disable maps explicitly. This is a controllable quality setting, not a claim that every scene benefits from shadows at any cost.
+
+The `symtropy-bevy-validation-scene` app has a feature-gated Solari preview:
+```sh
+cargo run -p symtropy-bevy-validation-scene
+cargo run -p symtropy-bevy-validation-scene --features solari-preview
+```
+The second path opts into Bevy 0.20's experimental `bevy_solari` feature and `SolariPlugins`. It adds `RaytracingMesh3d` and `SolariLighting` to a fixed procedural material scene and configures camera storage usage and MSAA as required by Bevy's reference example. Conventional shadow maps are disabled for this preview because Solari supplies ray-traced lighting.
+
+Solari is not a universal replacement for raster/PBR: the upstream example requires a backend with experimental ray-query support, and platform/adapter capability must be recorded. This path must remain optional until a target-GPU render receipt exists.
+
+References:
+- [Bevy 0.20 Solari example](https://github.com/bevyengine/bevy/blob/v0.20.1/examples/3d/solari.rs)
+- [Bevy Solari plugin group and required WGPU features](https://github.com/bevyengine/bevy/blob/v0.20.1/crates/bevy_solari/src/lib.rs)
+
 ## Required source/API migration
 
 Bevy's [0.19 → 0.20 migration guide](https://bevy.org/learn/migration-guides/0-19-to-0-20/) and [0.20 release notes](https://bevy.org/news/bevy-0-20/) call out several relevant changes:
