@@ -671,6 +671,78 @@
         "reason": "SOC_BELOW_TERMINAL_SAFE_STOP_REQUIREMENT",
         "remaining_soc_mwh": 150
       }
+    },
+    {
+      "case_id": "M07_SINGLE_HOT_MOTOR_HIDDEN_BY_ACCEPTABLE_MEAN",
+      "initial_state": {
+        "soc_mwh": 800,
+        "thermal_headroom_mj": 300,
+        "actuator_authority_ppm": 1000000,
+        "recovery_energy_mwh": 250,
+        "topology_independent_routes": 2,
+        "terminal_safe_stop_required_energy_mwh": 100,
+        "thermal_model_digest": "whole-body-thermal-model:v1",
+        "thermal_receipt_ref": "thermal-initial:M07",
+        "thermal_valid_through_tick": 100000,
+        "thermal_nodes": [
+          {
+            "node_id": "motor:hip_fl",
+            "temperature_milli_c": 60000,
+            "maximum_temperature_milli_c": 100000,
+            "source_ref": "thermal-source:hip_fl"
+          },
+          {
+            "node_id": "motor:hip_fr",
+            "temperature_milli_c": 60000,
+            "maximum_temperature_milli_c": 100000,
+            "source_ref": "thermal-source:hip_fr"
+          },
+          {
+            "node_id": "onboard-compute",
+            "temperature_milli_c": 40000,
+            "maximum_temperature_milli_c": 90000,
+            "source_ref": "thermal-source:compute"
+          }
+        ]
+      },
+      "events": [
+        {
+          "event_id": "localized-motor-overheat",
+          "energy_cost_mwh": 20,
+          "thermal_cost_mj": 80,
+          "authority_loss_ppm": 0,
+          "qualified": true,
+          "minimum_authority_required_ppm": 0,
+          "recovery_budget_cost_mwh": 0,
+          "thermal_update_receipt": {
+            "receipt_ref": "thermal-update:M07",
+            "context_digest": "mission-sequence-context-v1",
+            "model_digest": "whole-body-thermal-model:v1",
+            "manifest_digest": "thermal-node-manifest:v1",
+            "valid_through_tick": 100000
+          },
+          "thermal_node_updates": [
+            {
+              "node_id": "motor:hip_fl",
+              "temperature_milli_c": 85000
+            },
+            {
+              "node_id": "motor:hip_fr",
+              "temperature_milli_c": 101000
+            },
+            {
+              "node_id": "onboard-compute",
+              "temperature_milli_c": 45000
+            }
+          ]
+        }
+      ],
+      "expected": {
+        "qualification": "REJECTED",
+        "maximum_node_temperature_milli_c": 101000,
+        "mean_node_temperature_milli_c": 77000,
+        "reason": "ONE_MOTOR_EXCEEDS_LIMIT_DESPITE_ACCEPTABLE_MEAN"
+      }
     }
   ]
 }
