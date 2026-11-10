@@ -10,7 +10,7 @@
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 pub const SCHEMA_VERSION: u32 = 1;
 const CLAIM_CEILING: &str =
@@ -52,6 +52,7 @@ pub struct CaseRequirement {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct EngineCampaign {
+    pub campaign_id: String,
     pub engine_id: String,
     pub engine_version: String,
     pub executable_sha256: String,
@@ -72,6 +73,7 @@ pub struct EnergyMeasurement {
     pub scope: EnergyScope,
     pub source: EnergySource,
     pub source_api_version: String,
+    pub sampling_semantics: EnergySamplingSemantics,
     pub sample_series_sha256: String,
     pub integrated_energy_uj: f64,
     pub measurement_window_us: u64,
@@ -94,6 +96,14 @@ pub enum EnergySource {
     DcgmProfiling,
     RaplEnergyCounter,
     ExternalPowerMeter,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum EnergySamplingSemantics {
+    Instantaneous,
+    WindowAverage,
+    ExternalIntegrated,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
@@ -155,6 +165,7 @@ pub struct CaseEvaluation {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct CampaignReport {
+    pub campaign_id: String,
     pub engine_id: String,
     pub engine_version: String,
     pub executable_sha256: String,
@@ -187,6 +198,24 @@ pub struct CampaignReport {
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(deny_unknown_fields)]
+pub struct EngineAggregateReport {
+    pub engine_id: String,
+    pub replication_count: u64,
+    pub meets_20_replication_publication_target: bool,
+    pub qualified_ticks_per_second_p05: f64,
+    pub qualified_ticks_per_second_median: f64,
+    pub qualified_ticks_per_second_p95: f64,
+    pub case_coverage_median: f64,
+    pub p95_step_latency_us_median: f64,
+    pub p99_step_latency_us_median: f64,
+    pub peak_memory_bytes_median: f64,
+    pub max_qualified_error_ratio_median: Option<f64>,
+    pub energy_scope: Option<EnergyScope>,
+    pub energy_per_qualified_tick_uj_median: Option<f64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(deny_unknown_fields)]
 pub struct BenchmarkReportV1 {
     pub schema_version: u32,
     pub input_sha256: String,
@@ -197,6 +226,7 @@ pub struct BenchmarkReportV1 {
     pub workload_family: WorkloadFamily,
     pub energy_included_in_frontier: bool,
     pub campaigns: Vec<CampaignReport>,
+    pub engine_aggregates: Vec<EngineAggregateReport>,
     pub pareto_frontier_engine_ids: Vec<String>,
     pub claim_ceiling: String,
 }
@@ -209,7 +239,8 @@ pub enum EvaluationError {
     NonFiniteOrNegative(&'static str),
     ZeroValue(&'static str),
     DuplicateCaseId(String),
-    DuplicateEngineId(String),
+    DuplicateCampaignId(String),
+    EngineConfigurationMismatch(String),
     DuplicateResult(String),
     MissingCaseResult(String),
     UnexpectedCaseResult(String),
@@ -217,6 +248,8 @@ pub enum EvaluationError {
     SimulatedTicksExceedCaseHorizon(String),
     EnergySamplingPolicyMissing(String),
     EnergySampleGapExceeded(String),
+    EnergyWindowMismatch(String),
+    EnergyScopeSourceMismatch(String),
     InvalidLatencyOrder(String),
     Serialization(String),
 }
@@ -232,7 +265,10 @@ impl std::fmt::Display for EvaluationError {
             }
             Self::ZeroValue(name) => write!(f, "value must be non-zero: {name}"),
             Self::DuplicateCaseId(id) => write!(f, "duplicate case ID: {id}"),
-            Self::DuplicateEngineId(id) => write!(f, "duplicate engine ID: {id}"),
+            Self::DuplicateCampaignId(id) => write!(f, "duplicate campaign ID: {id}"),
+            Self::EngineConfigurationMismatch(id) => {
+                write!(f, "replications use different version/executable/configuration for engine ID: {id}")
+            }
             Self::DuplicateResult(id) => write!(f, "duplicate result for case: {id}"),
             Self::MissingCaseResult(id) => write!(f, "campaign omitted required case: {id}"),
             Self::UnexpectedCaseResult(id) => write!(f, "campaign contains an unknown case: {id}"),
@@ -247,6 +283,12 @@ impl std::fmt::Display for EvaluationError {
             }
             Self::EnergySampleGapExceeded(id) => {
                 write!(f, "energy receipt exceeds sample-gap policy: {id}")
+            }
+            Self::EnergyWindowMismatch(id) => {
+                write!(f, "energy measurement window does not equal the campaign wall-time window: {id}")
+            }
+            Self::EnergyScopeSourceMismatch(id) => {
+                write!(f, "energy source/scope/sampling semantics are incompatible: {id}")
             }
             Self::InvalidLatencyOrder(id) => {
                 write!(f, "latency percentiles are not ordered for campaign: {id}")
@@ -276,9 +318,11 @@ pub fn evaluate(input: &BenchmarkInputV1) -> Result<BenchmarkReportV1, Evaluatio
         .iter()
         .map(|campaign| evaluate_campaign(&canonical, campaign, requested_cases, requested_ticks))
         .collect::<Vec<_>>();
+    reports.sort_by(|a, b| a.campaign_id.cmp(&b.campaign_id));
 
-    let frontier = pareto_frontier(&reports, energy_included);
-    reports.sort_by(|a, b| a.engine_id.cmp(&b.engine_id));
+    let mut engine_aggregates = aggregate_engines(&reports);
+    let frontier = pareto_frontier(&engine_aggregates, energy_included);
+    engine_aggregates.sort_by(|a, b| a.engine_id.cmp(&b.engine_id));
 
     Ok(BenchmarkReportV1 {
         schema_version: SCHEMA_VERSION,
@@ -290,6 +334,7 @@ pub fn evaluate(input: &BenchmarkInputV1) -> Result<BenchmarkReportV1, Evaluatio
         workload_family: canonical.workload_family,
         energy_included_in_frontier: energy_included,
         campaigns: reports,
+        engine_aggregates,
         pareto_frontier_engine_ids: frontier,
         claim_ceiling: CLAIM_CEILING.to_owned(),
     })
@@ -369,6 +414,7 @@ fn evaluate_campaign(
     };
 
     CampaignReport {
+        campaign_id: campaign.campaign_id.clone(),
         engine_id: campaign.engine_id.clone(),
         engine_version: campaign.engine_version.clone(),
         executable_sha256: campaign.executable_sha256.clone(),
@@ -478,8 +524,13 @@ fn validate_input(input: &BenchmarkInputV1) -> Result<(), EvaluationError> {
         validate_positive_finite(case.max_error_upper_bound, "case.max_error_upper_bound")?;
     }
 
-    let mut engine_ids = BTreeSet::new();
+    let mut campaign_ids = BTreeSet::new();
+    let mut engine_configs: BTreeMap<String, (String, String, String)> = BTreeMap::new();
     for campaign in &input.campaigns {
+        validate_nonempty(&campaign.campaign_id, "campaign.campaign_id")?;
+        if !campaign_ids.insert(campaign.campaign_id.clone()) {
+            return Err(EvaluationError::DuplicateCampaignId(campaign.campaign_id.clone()));
+        }
         validate_nonempty(&campaign.engine_id, "campaign.engine_id")?;
         validate_nonempty(&campaign.engine_version, "campaign.engine_version")?;
         validate_sha256(&campaign.executable_sha256, "campaign.executable_sha256")?;
@@ -493,8 +544,19 @@ fn validate_input(input: &BenchmarkInputV1) -> Result<(), EvaluationError> {
                 campaign.engine_id.clone(),
             ));
         }
-        if !engine_ids.insert(campaign.engine_id.clone()) {
-            return Err(EvaluationError::DuplicateEngineId(campaign.engine_id.clone()));
+        let configuration = (
+            campaign.engine_version.clone(),
+            campaign.executable_sha256.clone(),
+            campaign.configuration_sha256.clone(),
+        );
+        if let Some(existing) = engine_configs.get(&campaign.engine_id) {
+            if existing != &configuration {
+                return Err(EvaluationError::EngineConfigurationMismatch(
+                    campaign.engine_id.clone(),
+                ));
+            }
+        } else {
+            engine_configs.insert(campaign.engine_id.clone(), configuration);
         }
         if campaign.campaign_wall_time_us == 0 {
             return Err(EvaluationError::ZeroValue("campaign.campaign_wall_time_us"));
@@ -570,6 +632,20 @@ fn validate_energy_measurement(
     {
         return Err(EvaluationError::ZeroValue("energy measurement coverage"));
     }
+    if energy.measurement_window_us != campaign.campaign_wall_time_us {
+        return Err(EvaluationError::EnergyWindowMismatch(campaign.campaign_id.clone()));
+    }
+    match (energy.source, energy.scope) {
+        (EnergySource::NvmlPowerSamples | EnergySource::DcgmProfiling, EnergyScope::GpuBoard) => {}
+        (EnergySource::RaplEnergyCounter, EnergyScope::CpuPackage) => {}
+        (EnergySource::ExternalPowerMeter, _) => {}
+        _ => return Err(EvaluationError::EnergyScopeSourceMismatch(campaign.campaign_id.clone())),
+    }
+    if energy.sampling_semantics == EnergySamplingSemantics::ExternalIntegrated
+        && energy.source != EnergySource::ExternalPowerMeter
+    {
+        return Err(EvaluationError::EnergyScopeSourceMismatch(campaign.campaign_id.clone()));
+    }
     if energy.max_sample_gap_us > max_gap {
         return Err(EvaluationError::EnergySampleGapExceeded(
             campaign.engine_id.clone(),
@@ -621,14 +697,113 @@ fn hex_sha256(bytes: &[u8]) -> String {
     output
 }
 
-fn pareto_frontier(reports: &[CampaignReport], include_energy: bool) -> Vec<String> {
+fn aggregate_engines(reports: &[CampaignReport]) -> Vec<EngineAggregateReport> {
+    let mut grouped: BTreeMap<&str, Vec<&CampaignReport>> = BTreeMap::new();
+    for report in reports {
+        grouped.entry(&report.engine_id).or_default().push(report);
+    }
+
+    grouped
+        .into_iter()
+        .map(|(engine_id, campaigns)| {
+            let throughputs = campaigns
+                .iter()
+                .map(|campaign| campaign.qualified_simulated_ticks_per_second)
+                .collect::<Vec<_>>();
+            let coverage = campaigns
+                .iter()
+                .map(|campaign| campaign.case_coverage)
+                .collect::<Vec<_>>();
+            let p95 = campaigns
+                .iter()
+                .map(|campaign| campaign.step_latency_p95_us as f64)
+                .collect::<Vec<_>>();
+            let p99 = campaigns
+                .iter()
+                .map(|campaign| campaign.step_latency_p99_us as f64)
+                .collect::<Vec<_>>();
+            let memory = campaigns
+                .iter()
+                .map(|campaign| campaign.peak_memory_bytes as f64)
+                .collect::<Vec<_>>();
+            let all_have_error = campaigns.iter().all(|campaign| campaign.max_qualified_error_ratio.is_some());
+            let errors = campaigns
+                .iter()
+                .filter_map(|campaign| campaign.max_qualified_error_ratio)
+                .collect::<Vec<_>>();
+            let all_have_energy = campaigns.iter().all(|campaign| campaign.energy_per_qualified_tick_uj.is_some());
+            let energy = campaigns
+                .iter()
+                .filter_map(|campaign| campaign.energy_per_qualified_tick_uj)
+                .collect::<Vec<_>>();
+            let energy_scope = if all_have_energy {
+                campaigns.first().and_then(|campaign| campaign.energy_scope)
+            } else {
+                None
+            };
+
+            EngineAggregateReport {
+                engine_id: engine_id.to_owned(),
+                replication_count: campaigns.len() as u64,
+                meets_20_replication_publication_target: campaigns.len() >= 20,
+                qualified_ticks_per_second_p05: quantile(throughputs.clone(), 0.05).unwrap_or(0.0),
+                qualified_ticks_per_second_median: quantile(throughputs, 0.5).unwrap_or(0.0),
+                qualified_ticks_per_second_p95: quantile(
+                    campaigns
+                        .iter()
+                        .map(|campaign| campaign.qualified_simulated_ticks_per_second)
+                        .collect(),
+                    0.95,
+                )
+                .unwrap_or(0.0),
+                case_coverage_median: quantile(coverage, 0.5).unwrap_or(0.0),
+                p95_step_latency_us_median: quantile(p95, 0.5).unwrap_or(0.0),
+                p99_step_latency_us_median: quantile(p99, 0.5).unwrap_or(0.0),
+                peak_memory_bytes_median: quantile(memory, 0.5).unwrap_or(0.0),
+                max_qualified_error_ratio_median: if all_have_error {
+                    quantile(errors, 0.5)
+                } else {
+                    None
+                },
+                energy_scope,
+                energy_per_qualified_tick_uj_median: if all_have_energy {
+                    quantile(energy, 0.5)
+                } else {
+                    None
+                },
+            }
+        })
+        .collect()
+}
+
+fn quantile(mut values: Vec<f64>, probability: f64) -> Option<f64> {
+    if values.is_empty() {
+        return None;
+    }
+    values.sort_by(f64::total_cmp);
+    if values.len() == 1 {
+        return values.first().copied();
+    }
+    let position = probability.clamp(0.0, 1.0) * (values.len() - 1) as f64;
+    let lower = position.floor() as usize;
+    let upper = position.ceil() as usize;
+    if lower == upper {
+        return values.get(lower).copied();
+    }
+    let lower_value = *values.get(lower)?;
+    let upper_value = *values.get(upper)?;
+    let fraction = position - lower as f64;
+    Some(lower_value + (upper_value - lower_value) * fraction)
+}
+
+fn pareto_frontier(
+    reports: &[EngineAggregateReport],
+    include_energy: bool,
+) -> Vec<String> {
     let mut frontier = Vec::new();
     for candidate in reports {
         let dominated = reports.iter().any(|other| {
-            if candidate.engine_id == other.engine_id {
-                return false;
-            }
-            dominates(other, candidate, include_energy)
+            candidate.engine_id != other.engine_id && dominates(other, candidate, include_energy)
         });
         if !dominated {
             frontier.push(candidate.engine_id.clone());
@@ -638,32 +813,36 @@ fn pareto_frontier(reports: &[CampaignReport], include_energy: bool) -> Vec<Stri
     frontier
 }
 
-fn dominates(a: &CampaignReport, b: &CampaignReport, include_energy: bool) -> bool {
-    let mut no_worse = a.qualified_simulated_ticks_per_second
-        >= b.qualified_simulated_ticks_per_second
-        && a.case_coverage >= b.case_coverage
-        && a.step_latency_p95_us <= b.step_latency_p95_us
-        && a.step_latency_p99_us <= b.step_latency_p99_us
-        && a.peak_memory_bytes <= b.peak_memory_bytes;
-    if let (Some(a_error), Some(b_error)) =
-        (a.max_qualified_error_ratio, b.max_qualified_error_ratio)
-    {
-        no_worse &= a_error <= b_error;
-    } else {
-        return false;
+fn dominates(a: &EngineAggregateReport, b: &EngineAggregateReport, include_energy: bool) -> bool {
+    let mut no_worse = a.qualified_ticks_per_second_median
+        >= b.qualified_ticks_per_second_median
+        && a.case_coverage_median >= b.case_coverage_median
+        && a.p95_step_latency_us_median <= b.p95_step_latency_us_median
+        && a.p99_step_latency_us_median <= b.p99_step_latency_us_median
+        && a.peak_memory_bytes_median <= b.peak_memory_bytes_median;
+
+    let mut strictly_better = a.qualified_ticks_per_second_median
+        > b.qualified_ticks_per_second_median
+        || a.case_coverage_median > b.case_coverage_median
+        || a.p95_step_latency_us_median < b.p95_step_latency_us_median
+        || a.p99_step_latency_us_median < b.p99_step_latency_us_median
+        || a.peak_memory_bytes_median < b.peak_memory_bytes_median;
+
+    match (
+        a.max_qualified_error_ratio_median,
+        b.max_qualified_error_ratio_median,
+    ) {
+        (Some(a_error), Some(b_error)) => {
+            no_worse &= a_error <= b_error;
+            strictly_better |= a_error < b_error;
+        }
+        _ => return false,
     }
-    let mut strictly_better = a.qualified_simulated_ticks_per_second
-        > b.qualified_simulated_ticks_per_second
-        || a.case_coverage > b.case_coverage
-        || a.step_latency_p95_us < b.step_latency_p95_us
-        || a.step_latency_p99_us < b.step_latency_p99_us
-        || a.peak_memory_bytes < b.peak_memory_bytes
-        || a.max_qualified_error_ratio < b.max_qualified_error_ratio;
 
     if include_energy {
         match (
-            a.energy_per_qualified_tick_uj,
-            b.energy_per_qualified_tick_uj,
+            a.energy_per_qualified_tick_uj_median,
+            b.energy_per_qualified_tick_uj_median,
         ) {
             (Some(a_energy), Some(b_energy)) => {
                 no_worse &= a_energy <= b_energy;
@@ -673,21 +852,6 @@ fn dominates(a: &CampaignReport, b: &CampaignReport, include_energy: bool) -> bo
         }
     }
     no_worse && strictly_better
-}
-
-fn energy_is_comparable(campaigns: &[EngineCampaign]) -> bool {
-    let Some(first_scope) = campaigns
-        .first()
-        .and_then(|campaign| campaign.energy_measurement.as_ref().map(|energy| energy.scope))
-    else {
-        return false;
-    };
-    campaigns.iter().all(|campaign| {
-        campaign
-            .energy_measurement
-            .as_ref()
-            .is_some_and(|energy| energy.scope == first_scope)
-    })
 }
 
 fn ratio_or_zero(numerator: u64, denominator: u64) -> f64 {
@@ -767,9 +931,10 @@ mod tests {
         }
     }
 
-    fn campaign(id: &str, wall_time: u64, results: Vec<CaseResult>) -> EngineCampaign {
+    fn campaign(campaign_id: &str, engine_id: &str, wall_time: u64, results: Vec<CaseResult>) -> EngineCampaign {
         EngineCampaign {
-            engine_id: id.to_owned(),
+            campaign_id: campaign_id.to_owned(),
+            engine_id: engine_id.to_owned(),
             engine_version: "test-version".to_owned(),
             executable_sha256: H1.to_owned(),
             configuration_sha256: H2.to_owned(),
@@ -795,12 +960,12 @@ mod tests {
             max_energy_sample_gap_us: None,
             cases: vec![case("case-a"), case("case-b")],
             campaigns: vec![
-                campaign("engine-fast-low-coverage", 2_000, vec![result("case-a"), {
+                campaign("fast-run-01", "engine-fast-low-coverage", 2_000, vec![result("case-a"), {
                     let mut invalid = result("case-b");
                     invalid.semantic_equivalence = SemanticEquivalence::Mismatch;
                     invalid
                 }]),
-                campaign("engine-slower-qualified", 8_000, vec![result("case-a"), result("case-b")]),
+                campaign("slow-run-01", "engine-slower-qualified", 8_000, vec![result("case-a"), result("case-b")]),
             ],
         }
     }
@@ -812,8 +977,8 @@ mod tests {
         let qualified = report.campaigns.iter().find(|c| c.engine_id == "engine-slower-qualified").expect("qualified");
         assert!(fast.raw_simulated_ticks_per_second > qualified.raw_simulated_ticks_per_second);
         assert!(fast.qualified_simulated_ticks_per_second > qualified.qualified_simulated_ticks_per_second);
-        assert!(fast.max_qualified_error_ratio.unwrap() == 0.5);
-        assert!(qualified.max_qualified_error_ratio.unwrap() == 0.5);
+        assert_eq!(fast.max_qualified_error_ratio, Some(0.5));
+        assert_eq!(qualified.max_qualified_error_ratio, Some(0.5));
         assert!(fast.case_coverage < qualified.case_coverage);
         assert_eq!(fast.qualified_simulated_ticks, 100);
         assert_eq!(qualified.qualified_simulated_ticks, 200);
@@ -920,6 +1085,7 @@ mod tests {
             scope: EnergyScope::GpuBoard,
             source: EnergySource::NvmlPowerSamples,
             source_api_version: "nvml".to_owned(),
+            sampling_semantics: EnergySamplingSemantics::WindowAverage,
             sample_series_sha256: H3.to_owned(),
             integrated_energy_uj: 10_000.0,
             measurement_window_us: 10_000,
@@ -1014,6 +1180,7 @@ mod tests {
             scope: EnergyScope::GpuBoard,
             source: EnergySource::NvmlPowerSamples,
             source_api_version: "nvml".to_owned(),
+            sampling_semantics: EnergySamplingSemantics::WindowAverage,
             sample_series_sha256: H3.to_owned(),
             integrated_energy_uj: 10_000.0,
             measurement_window_us: 10_000,
