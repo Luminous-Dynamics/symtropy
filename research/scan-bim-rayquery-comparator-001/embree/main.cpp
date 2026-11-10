@@ -739,6 +739,7 @@ json run(const Options& options) {
       {"precision", "f32"},
       {"build_configuration", {
         {"build_quality", options.build_quality},
+        {"cmake_build_type", SCAN_BIM_CMAKE_BUILD_TYPE},
         {"device_threads", options.threads},
         {"scene_flags", {"robust", "filter_function_in_arguments"}},
         {"ray_query_flags", {"invoke_argument_filter", "incoherent"}},
@@ -816,8 +817,10 @@ json run(const Options& options) {
 int main(int argc, char** argv) {
   try {
     const Options options = parse_options(argc, argv);
-    std::cout << run(options).dump(2) << '\n';
-    return EXIT_SUCCESS;
+    const json receipt = run(options);
+    std::cout << receipt.dump(2) << '\n';
+    return receipt.at("qualification") == "performance_measured"
+        ? EXIT_SUCCESS : EXIT_FAILURE;
   } catch (const std::exception& error) {
     std::cerr << "scan-bim Embree adapter: " << error.what() << '\n';
     return EXIT_FAILURE;
