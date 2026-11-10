@@ -92,6 +92,20 @@ No defensible numerical SOTA claim exists from this synthetic corpus. Numerical 
 - Mycelix #5974 records provenance, issuer authority, revocation and owner handoffs; it does not certify a physical fault.
 - A qualified engine-room or machinery-bench data partner and independent marine engineer must review any later physical benchmark.
 
+### ODD capability-impact handoff
+
+The evaluator emits a per-case, asset- and configuration-bound capability-impact projection for downstream owners:
+
+| Engineering-health result | Projection to the ODD/mode owner |
+|---|---|
+| RestrictCapability | RestrictionRecommended; may contribute to LimitExceeded / degraded mode review |
+| ContinueWithWatch | NoRestrictionIndicated for this evidence only; never upgrades the whole vessel to WithinDeclaredEnvelope |
+| UnknownEscalate | UnknownNeedsEvidence; maps to NeedsEvidence or Unsupported |
+| RestorationBlocked | RecoveryBlocked; restriction remains in force |
+| RestorationEvidenceComplete | RecoveryEvidenceReadyForIndependentReview; maps to HumanDecisionRequired, never automatic restoration |
+
+The output carries vessel, asset, component, exact configuration revision, capability, evidence counts and declared dependency-group count. It declares NoAuthorityGranted, may_authorize_transition=false and may_clear_restriction=false. Symtropy #3893 and Symthaea #11185 remain the decision-support/mode owners; Mycelix #5974 pins the exact report and provenance. This is an input projection, not a duplicate ODD evaluator or an authorization.
+
 ## Validation ladder
 
 - E0: schema, identity, corpus uniqueness and monotonicity.
