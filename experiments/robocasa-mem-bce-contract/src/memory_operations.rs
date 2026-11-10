@@ -208,7 +208,6 @@ struct OperationAccumulator {
 
 impl OperationAccumulator {
     fn observe(&mut self, result: &MemoryOperationCaseResult) {
-        self.independent_units.insert(result.independence_unit_id.clone());
         match result.outcome {
             MemoryOperationOutcome::NotApplicable => {
                 self.not_applicable_count += 1;
@@ -227,6 +226,7 @@ impl OperationAccumulator {
                 self.unresolved_count += 1;
             }
         }
+        self.independent_units.insert(result.independence_unit_id.clone());
 
         if result.operation == MemoryOperationKind::Compression {
             if let (Some(before), Some(after)) =
@@ -468,8 +468,8 @@ fn validate_manifest(
 
     let mut observed_tasks = BTreeSet::new();
     let mut seen_cases = BTreeSet::new();
-    let mut last_sequence = BTreeMap::<&str, u64>::new();
-    let mut seen_sequences = BTreeMap::<&str, BTreeSet<u64>>::new();
+    let mut last_sequence = BTreeMap::<(&str, &str), u64>::new();
+    let mut seen_sequences = BTreeMap::<(&str, &str), BTreeSet<u64>>::new();
 
     for case in &manifest.cases {
         if case.case_id.trim().is_empty()
@@ -505,16 +505,17 @@ fn validate_manifest(
             _ => {}
         }
 
-        let sequences = seen_sequences.entry(case.episode_id.as_str()).or_default();
+        let episode_key = (case.task_id.as_str(), case.episode_id.as_str());
+        let sequences = seen_sequences.entry(episode_key).or_default();
         if !sequences.insert(case.sequence) {
             return Err(MemoryOperationError::DuplicateSequence);
         }
-        if let Some(previous) = last_sequence.get(case.episode_id.as_str()) {
+        if let Some(previous) = last_sequence.get(&episode_key) {
             if case.sequence <= *previous {
                 return Err(MemoryOperationError::NonMonotonicSequence);
             }
         }
-        last_sequence.insert(case.episode_id.as_str(), case.sequence);
+        last_sequence.insert(episode_key, case.sequence);
     }
     if observed_tasks != expected_tasks {
         return Err(MemoryOperationError::TaskSetMismatch);
@@ -938,6 +939,37 @@ mod tests {
         let audit = audit_memory_operations(&manifest(vec![item]), &[observed]).unwrap();
         assert_eq!(audit.summaries[0].compression_ratio, None);
         assert_eq!(audit.summaries[0].compression_measurement_count, 0);
+    }
+
+    #[test]
+    fn sequence_numbers_are_scoped_to_task_and_episode_identity() {
+        let mut first = case("task-a-store", 1, MemoryOperationKind::Storage, MemoryOperationApplicability::Applicable, Some(digest("a")));
+        let mut second = case("task-b-store", 1, MemoryOperationKind::Storage, MemoryOperationApplicability::Applicable, Some(digest("b")));
+        second.task_id = "TM-02".to_owned();
+        // The episode labels may coincide across tasks; each task/episode pair
+        // is a distinct event stream.
+        let audit = audit_memory_operations(
+            &manifest(vec![first.clone(), second.clone()]),
+            &[receipt(&first), receipt(&second)],
+        ).unwrap();
+        assert_eq!(audit.results.len(), 2);
+        assert_eq!(audit.summaries[0].independent_unit_count, 1);
+
+        second.sequence = 2;
+        first.sequence = 2;
+        assert_eq!(
+            audit_memory_operations(&manifest(vec![first, second]), &[]),
+            Err(MemoryOperationError::DuplicateSequence)
+        );
+    }
+
+    #[test]
+    fn missing_evaluator_query_readback_remains_unresolved() {
+        let item = case("store", 1, MemoryOperationKind::Storage, MemoryOperationApplicability::Applicable, Some(digest("a")));
+        let mut observed = receipt(&item);
+        observed.observed_query_sha256 = None;
+        let audit = audit_memory_operations(&manifest(vec![item]), &[observed]).unwrap();
+        assert_eq!(audit.results[0].outcome, MemoryOperationOutcome::Unresolved);
     }
 
     #[test]
