@@ -121,16 +121,6 @@ fn setup(
     }
 
     commands.spawn((
-        DirectionalLight {
-            illuminance: 12_000.0,
-            color: Color::linear_rgb(1.0, 0.97, 0.91),
-            shadow_maps_enabled: false,
-            ..default()
-        },
-        Transform::from_rotation(Quat::from_euler(EulerRot::XYZ, -0.72, -0.62, 0.0)),
-    ));
-
-    commands.spawn((
         Camera3d::default(),
         Camera {
             clear_color: ClearColorConfig::Custom(Color::BLACK),
