@@ -546,17 +546,21 @@ fn upload_physics_to_gpu_sparse(
             300_000
         ];
         manager.instance_buffer = storage_buffers.add(ShaderBuffer::new(
-            bytemuck::cast_slice(&buffer),
+            buffer,
             bevy::asset::RenderAssetUsages::default(),
         ));
     }
 
     if storage_buffers.get(&manager.social_buffer).is_none() {
         manager.social_buffer = storage_buffers.add(ShaderBuffer::new(
-            bytemuck::cast_slice(&manager.social_states),
+            manager.social_states.clone(),
             bevy::asset::RenderAssetUsages::default(),
         ));
     } else if let Some(mut buffer) = storage_buffers.get_mut(&manager.social_buffer) {
-        buffer.set_data(&manager.social_states);
+        buffer.clear();
+        buffer.extend_from_slice(&manager.social_states);
+        if manager.social_states.is_empty() {
+            buffer.resize(std::mem::size_of::<GpuCitizenSocialState>() as u64);
+        }
     }
 }
