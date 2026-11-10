@@ -232,6 +232,17 @@ fn validate_manifest(schema_text: &str, corpus_text: &str) -> Result<Summary, Ve
             }
         }
 
+        if case_id == "WPHYS-028"
+            && (string_at(case, "source_id")
+                != Some("s460g2m-multipass-gmaw-distortion-2022")
+                || string_at(case, "expected_disposition")
+                    != Some("BLOCK_NUMERICAL_SCORING"))
+        {
+            errors.push(
+                "{context} must keep abstract-only S460 error percentages non-scoring".to_owned(),
+            );
+        }
+
         if let Some(source_id) = case.get("source_id").and_then(Value::as_str) {
             if !source_ids.contains(source_id) {
                 errors.push(format!("{context} references unknown source_id {source_id}"));
@@ -354,6 +365,20 @@ mod tests {
             .find(|case| case["case_id"] == "WPHYS-027")
             .expect("output-scope negative control");
         case["claim_scope"]["supports_claimed_output"] = Value::Bool(true);
+        let serialized = serde_json::to_string(&corpus).expect("serialize mutation");
+        assert!(validate_manifest(SCHEMA_TEXT, &serialized).is_err());
+    }
+
+    #[test]
+    fn abstract_error_percentages_cannot_be_promoted_to_leaderboard_scores() {
+        let mut corpus = corpus_value();
+        let case = corpus["cases"]
+            .as_array_mut()
+            .expect("cases array")
+            .iter_mut()
+            .find(|case| case["case_id"] == "WPHYS-028")
+            .expect("S460 metadata-only negative control");
+        case["expected_disposition"] = Value::String("BLOCK_VALIDATION".to_owned());
         let serialized = serde_json::to_string(&corpus).expect("serialize mutation");
         assert!(validate_manifest(SCHEMA_TEXT, &serialized).is_err());
     }
