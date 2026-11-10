@@ -202,6 +202,7 @@
         "anomaly_onset_transitions",
         "anomaly_only_expected",
         "anomaly_only_observed",
+        "anomaly_onset_evaluable",
         "time_rel_column",
         "time_rel_numeric_rows",
         "time_rel_non_numeric_rows",
@@ -363,6 +364,12 @@
         "last_time_abs": {
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "anomaly_onset_evaluable": {
+          "type": [
+            "boolean",
             "null"
           ]
         }
