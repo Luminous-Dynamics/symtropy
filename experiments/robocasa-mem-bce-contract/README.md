@@ -67,7 +67,7 @@ The paired-control check requires identical protocol, task/scene/seed/split/stag
 The task-level aggregator now:
 - rejects duplicate `(task_instance_id, episode_id)` records so replayed imports cannot inflate the episode denominator;
 - requires a single environment-configuration digest across an aggregate arm, in addition to the shared robot, action executor, backbone, resource budget and protocol identities;
-- unions qualification blockers from every episode into the aggregate result while preserving the terminal and per-stage raw counts.
+- unions qualification blockers from every episode into a deterministically ordered aggregate set while preserving terminal and per-stage raw counts; importing the same episodes in a different order cannot change the blocker manifest.
 
 A reported aggregate may therefore retain useful partial counts while still carrying blockers such as unknown dataset rights, unknown training overlap, unresolved outcomes, or unknown evidence source. Consumers must not publish it as a qualified benchmark result merely because all rows parsed. A blocked episode is retained; it is not silently converted into a zero or dropped from the denominator.
 
