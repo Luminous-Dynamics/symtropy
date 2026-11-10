@@ -147,7 +147,8 @@ fn ray_triangle_distance(
     let triangle_normal = cross(edge_a, edge_b);
     let normal_scale = norm(triangle_normal);
     let direction_scale = norm(direction);
-    let determinant = dot(direction, triangle_normal);
+    let p = cross(direction, edge_b);
+    let determinant = dot(edge_a, p);
     // The relative threshold is the cosine of the ray against the triangle
     // normal. It is dimensionless and stable under uniform unit scaling.
     if !normal_scale.is_finite()
