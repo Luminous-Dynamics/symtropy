@@ -85,6 +85,8 @@ pub struct MemobenchLicenseEvidence {
     pub purpose_attestation_sha256: String,
     /// Required for commercial development; the caller must obtain it separately.
     pub commercial_permission_sha256: Option<String>,
+    /// Independent verification receipt for the rightsholder permission.
+    pub commercial_permission_verification_receipt_sha256: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -125,6 +127,12 @@ pub struct MemobenchEvaluationManifest {
     pub evaluator_sha256: String,
     pub memory_level: MemobenchMemoryLevel,
     pub license: MemobenchLicenseEvidence,
+    /// Exact task IDs from the independently frozen public task-tree manifest.
+    pub expected_task_ids: Vec<String>,
+    /// Exact number of episodes expected for every task in this run.
+    pub expected_episodes_per_task: usize,
+    /// Exact checkpoint-row count for each task, pinned separately from imported rows.
+    pub expected_checkpoint_count_by_task: BTreeMap<String, usize>,
     pub tasks: Vec<MemobenchTaskAnnotation>,
     pub episodes: Vec<MemobenchEpisodeIdentity>,
 }
@@ -153,6 +161,7 @@ pub struct MemobenchCheckpointOutcome {
     pub task_id: String,
     pub episode_id: String,
     pub independence_unit_id: String,
+    pub seed: u64,
     pub task_metadata_sha256: String,
     pub task_definition_sha256: String,
     pub checkpoint_index: u32,
@@ -160,6 +169,10 @@ pub struct MemobenchCheckpointOutcome {
     pub memory_description_sha256: String,
     pub operation_code: i32,
     pub subtask_goal_sha256: String,
+    /// Digest of the independently preserved episode/video/trajectory artifact.
+    pub episode_artifact_sha256: Option<String>,
+    /// Digest of the evaluator's checkpoint-result receipt.
+    pub evaluator_receipt_sha256: Option<String>,
     /// Exact upstream checkpoint predicate result: true=completed, false=not completed.
     /// None means the outcome record is missing/unresolved, not an implicit failure.
     pub completed: Option<bool>,
@@ -175,6 +188,9 @@ pub struct MemobenchEpisodeOutcome {
     pub task_id: String,
     pub episode_id: String,
     pub independence_unit_id: String,
+    pub seed: u64,
+    pub episode_artifact_sha256: Option<String>,
+    pub evaluator_receipt_sha256: Option<String>,
     /// Official terminal task-success verdict, kept separate from checkpoint rates.
     pub task_success: Option<bool>,
 }
@@ -188,6 +204,8 @@ pub enum MemobenchAdapterError {
     InvalidLicenseIdentifier,
     InvalidUseAttestation,
     CommercialUseNotAuthorized,
+    TaskRosterMismatch,
+    CheckpointCountMismatch,
     EmptyTaskRoster,
     EmptyCheckpointRoster,
     EmptyEpisodeRoster,
@@ -235,6 +253,9 @@ pub struct MemobenchOperationRate {
     /// With incomplete imports this remains None rather than silently scoring
     /// missing artifacts as false.
     pub official_operation_rate: Option<f64>,
+    /// Equal-task macro mean over task rows with a complete official rate.
+    pub task_macro_operation_rate: Option<f64>,
+    pub contributing_task_count: usize,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -296,6 +317,8 @@ impl RateAccumulator {
             not_completed_count: self.not_completed,
             unresolved_count: self.unresolved,
             official_operation_rate,
+            task_macro_operation_rate: None,
+            contributing_task_count: 0,
         }
     }
 }
@@ -320,14 +343,18 @@ fn validate_license(evidence: &MemobenchLicenseEvidence) -> Result<(), Memobench
     }
     match evidence.purpose {
         MemobenchUsePurpose::NonCommercialScientificResearch => {
-            if evidence.commercial_permission_sha256.is_some() {
+            if evidence.commercial_permission_sha256.is_some()
+                || evidence.commercial_permission_verification_receipt_sha256.is_some()
+            {
                 return Err(MemobenchAdapterError::InvalidUseAttestation);
             }
         }
         MemobenchUsePurpose::CommercialDevelopment => {
             let permission = evidence.commercial_permission_sha256.as_deref()
                 .ok_or(MemobenchAdapterError::CommercialUseNotAuthorized)?;
-            if !is_sha256_hex(permission) {
+            let verification = evidence.commercial_permission_verification_receipt_sha256.as_deref()
+                .ok_or(MemobenchAdapterError::CommercialUseNotAuthorized)?;
+            if !is_sha256_hex(permission) || !is_sha256_hex(verification) {
                 return Err(MemobenchAdapterError::InvalidDigest);
             }
         }
