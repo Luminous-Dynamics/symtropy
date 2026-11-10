@@ -111,7 +111,7 @@ Four additional adversarial cases close gaps found during code review:
 - every pass's parameter-envelope reference must equal the approved procedure's envelope;
 - observed digital-twin update interval must not exceed the declared expected interval.
 
-The frozen corpus is now 51 cases (1 positive, 47 negative). The independent Rust evaluator and unit-test count are updated accordingly. These remain synthetic contract controls, not physical welding process qualifications.
+The frozen corpus is now 51 cases (2 positive, 49 negative). The independent Rust evaluator and unit-test count are updated accordingly. These remain synthetic contract controls, not physical welding process qualifications.
 
 
 ## Normative effectivity: decision time versus subject construction date — 2026-11-10
@@ -153,4 +153,13 @@ The benchmark now distinguishes (a) rule knowledge available at a decision cutof
 
 The independent verifier now checks that the workpiece heat/lot matches receiving evidence and the material record, that the approved procedure's qualified material-heat-lot set contains the exact heat/lot, and that every pass and its raw trace bind the same lot. It rejects duplicate JSON object keys at every nesting depth before evaluating trace semantics, checks corpus identity/version and exact fixed case count, and rejects duplicate case IDs or an unexpected base-fixture name.
 
-The frozen corpus is now **51 unique cases (1 synthetic positive, 50 negative controls)**. The three pass-trace SHA-256 values and the wrong-pass fixture digest were recomputed from the exact updated raw JSON bytes. These remain synthetic contract checks; they do not authenticate real material certificates or qualify a welding procedure.
+The frozen corpus is now **51 unique cases (2 synthetic positives, 49 negative controls)**. The three pass-trace SHA-256 values and the wrong-pass fixture digest were recomputed from the exact updated raw JSON bytes. These remain synthetic contract checks; they do not authenticate real material certificates or qualify a welding procedure.
+
+
+## Final v0.1 corpus accounting — 2026-11-10
+
+The authoritative frozen-corpus count is **51 unique cases: 2 valid synthetic contract cases and 49 negative controls**:
+- `valid_root_fill_cap_trace`: valid synthetic pass/process/inspection/evidence chain;
+- `valid_w28_rev3_for_future_ship_subject_date`: valid subject-specific future ruleset selection for a ship construction/effectivity date on or after 1 January 2027, using a source snapshot available before the decision cutoff.
+
+The Rust test uses the strict duplicate-key parser for both the raw process traces and the top-level frozen corpus. The CLI report includes the SHA-256 of the exact corpus bytes. Earlier 41-/46-case counts and 1-positive/50-negative interim notes are historical snapshots, superseded by this 51-case v0.1 baseline.
