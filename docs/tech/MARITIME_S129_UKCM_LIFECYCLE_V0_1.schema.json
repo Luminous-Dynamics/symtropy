@@ -1,0 +1,465 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/maritime/s129-ukcm-lifecycle-v0.1.json",
+  "title": "Synthetic S-129 UKCM plan lifecycle contract corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "corpus_id",
+    "corpus_version",
+    "source_profile",
+    "claim_ceiling",
+    "base_state",
+    "cases"
+  ],
+  "properties": {
+    "corpus_id": {
+      "const": "luminous.symtropy.s129-ukcm-lifecycle"
+    },
+    "corpus_version": {
+      "const": "0.1.0"
+    },
+    "source_profile": {
+      "$ref": "#/$defs/profile"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "base_state": {
+      "$ref": "#/$defs/state"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 18,
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    }
+  },
+  "$defs": {
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "product_id",
+        "product_edition",
+        "s100_edition",
+        "artifact_lock_state",
+        "s158_maturity"
+      ],
+      "properties": {
+        "product_id": {
+          "const": "S-129"
+        },
+        "product_edition": {
+          "const": "2.0.0"
+        },
+        "s100_edition": {
+          "const": "5.2.0"
+        },
+        "artifact_lock_state": {
+          "const": "pending_exact_artifact_lock"
+        },
+        "s158_maturity": {
+          "const": "implementation_testing_only"
+        }
+      }
+    },
+    "inputSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "product_id",
+        "edition",
+        "s100_edition",
+        "source_time_utc",
+        "retrieved_at_utc",
+        "vertical_datum_id",
+        "artifact_sha256"
+      ],
+      "properties": {
+        "product_id": {
+          "enum": [
+            "S-101",
+            "S-102",
+            "S-104",
+            "S-111",
+            "S-421"
+          ]
+        },
+        "edition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "s100_edition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_time_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "retrieved_at_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "vertical_datum_id": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "artifact_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "areaFeature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "feature_id",
+        "geometry_ref",
+        "valid_from_utc",
+        "valid_to_utc"
+      ],
+      "properties": {
+        "feature_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "geometry_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "valid_from_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "valid_to_utc": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "controlPoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "feature_id",
+        "geometry_ref",
+        "eta_window_start_utc",
+        "eta_window_end_utc",
+        "speed_mps",
+        "distance_above_limit_m"
+      ],
+      "properties": {
+        "feature_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "geometry_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "eta_window_start_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "eta_window_end_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "speed_mps": {
+          "type": "number",
+          "minimum": 0
+        },
+        "distance_above_limit_m": {
+          "type": "number"
+        }
+      }
+    },
+    "dataset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dataset_id",
+        "plan_id",
+        "purpose",
+        "vessel_id",
+        "route_id",
+        "route_version",
+        "edition_number",
+        "update_number",
+        "generated_at_utc",
+        "retrieved_at_utc",
+        "valid_from_utc",
+        "valid_until_utc",
+        "maximum_draught_m",
+        "actual_draught_m",
+        "vertical_datum_id",
+        "replacement_scope",
+        "supersedes_dataset_id",
+        "replaced_collections",
+        "retained_previous_feature_ids",
+        "feature_collections",
+        "input_sources"
+      ],
+      "properties": {
+        "dataset_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "plan_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "purpose": {
+          "enum": [
+            "pre_plan",
+            "actual_plan",
+            "actual_update"
+          ]
+        },
+        "vessel_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "route_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "route_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "edition_number": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "update_number": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "generated_at_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "retrieved_at_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "valid_from_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "valid_until_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "maximum_draught_m": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "actual_draught_m": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "vertical_datum_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "replacement_scope": {
+          "enum": [
+            "whole_dataset",
+            "partial"
+          ]
+        },
+        "supersedes_dataset_id": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "replaced_collections": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "plan_metadata",
+              "plan_areas",
+              "non_navigable_areas",
+              "almost_non_navigable_areas",
+              "control_points"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "retained_previous_feature_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "feature_collections": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "plan_areas",
+            "non_navigable_areas",
+            "almost_non_navigable_areas",
+            "control_points"
+          ],
+          "properties": {
+            "plan_areas": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/areaFeature"
+              }
+            },
+            "non_navigable_areas": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/areaFeature"
+              }
+            },
+            "almost_non_navigable_areas": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/areaFeature"
+              }
+            },
+            "control_points": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/controlPoint"
+              }
+            }
+          }
+        },
+        "input_sources": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/inputSource"
+          }
+        }
+      }
+    },
+    "state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fixture_kind",
+        "evaluation_cutoff_utc",
+        "max_actual_update_age_s",
+        "expected_replacement_collections",
+        "subject_vessel_id",
+        "subject_route_id",
+        "subject_route_version",
+        "dataset",
+        "display_semantics",
+        "alarm_authority"
+      ],
+      "properties": {
+        "fixture_kind": {
+          "const": "synthetic_fixture"
+        },
+        "evaluation_cutoff_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "max_actual_update_age_s": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "expected_replacement_collections": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "subject_vessel_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "subject_route_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "subject_route_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "dataset": {
+          "$ref": "#/$defs/dataset"
+        },
+        "display_semantics": {
+          "const": "visual_context_only"
+        },
+        "alarm_authority": {
+          "const": "none"
+        }
+      }
+    },
+    "mutation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "op",
+        "value"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "op": {
+          "const": "set"
+        },
+        "value": {}
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "mutations",
+        "expected_code"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mutations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/mutation"
+          }
+        },
+        "expected_code": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}
