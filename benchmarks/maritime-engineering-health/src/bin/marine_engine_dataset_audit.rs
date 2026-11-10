@@ -59,6 +59,7 @@ struct CsvAudit {
     shorthand_symbols: Vec<String>,
     units: Vec<String>,
     anomaly_label_column: Option<usize>,
+    time_abs_column: usize,
     anomaly_zero_rows: u64,
     anomaly_one_rows: u64,
     anomaly_invalid_rows: u64,
@@ -72,6 +73,9 @@ struct CsvAudit {
     time_rel_duplicates: u64,
     first_time_rel: Option<String>,
     last_time_rel: Option<String>,
+    missing_header_names: Vec<usize>,
+    missing_shorthand_symbols: Vec<usize>,
+    missing_units: Vec<usize>,
     missing_columns: Vec<MissingColumn>,
 }
 
@@ -449,7 +453,18 @@ fn inspect_csv(path: &str, role: &str, bytes: &[u8]) -> Result<CsvAudit, String>
         None
     };
 
+    let time_abs_column = header_index(headers, "Time_abs")
+        .ok_or_else(|| "Time_abs column was not found in the three header rows".to_string())?;
+    if time_abs_column != 0 {
+        return Err(format!("Time_abs is at column {}; expected first column", time_abs_column + 1));
+    }
     let time_rel_column = header_index(headers, "Time_rel");
+    if time_rel_column != Some(1) {
+        return Err(format!(
+            "Time_rel is at {:?}; expected second column",
+            time_rel_column.map(|index| index + 1)
+        ));
+    }
     let mut data_rows = 0u64;
     let mut anomaly_zero_rows = 0u64;
     let mut anomaly_one_rows = 0u64;
@@ -565,6 +580,7 @@ fn inspect_csv(path: &str, role: &str, bytes: &[u8]) -> Result<CsvAudit, String>
         shorthand_symbols,
         units,
         anomaly_label_column,
+        time_abs_column,
         anomaly_zero_rows,
         anomaly_one_rows,
         anomaly_invalid_rows,
@@ -578,6 +594,21 @@ fn inspect_csv(path: &str, role: &str, bytes: &[u8]) -> Result<CsvAudit, String>
         time_rel_duplicates,
         first_time_rel,
         last_time_rel,
+        missing_header_names: header_names
+            .iter()
+            .enumerate()
+            .filter_map(|(index, value)| value.trim().is_empty().then_some(index))
+            .collect(),
+        missing_shorthand_symbols: shorthand_symbols
+            .iter()
+            .enumerate()
+            .filter_map(|(index, value)| value.trim().is_empty().then_some(index))
+            .collect(),
+        missing_units: units
+            .iter()
+            .enumerate()
+            .filter_map(|(index, value)| value.trim().is_empty().then_some(index))
+            .collect(),
         missing_columns,
     })
 }
@@ -667,11 +698,11 @@ fn audit_dataset(cli: &Cli) -> Result<DatasetAuditReport, String> {
                 Err(error) => file_errors.push(format!("cannot stat {}: {error}", path.display())),
             }
 
-            match fs::read(&path) {
-                Ok(bytes) => {
-                    if bytes.len() as u64 > MAX_FILE_BYTES {
-                        file_errors.push(format!("file exceeds safety limit of {MAX_FILE_BYTES} bytes"));
-                    } else {
+            if size_bytes.is_some_and(|size| size > MAX_FILE_BYTES) {
+                file_errors.push(format!("file exceeds safety limit of {MAX_FILE_BYTES} bytes"));
+            } else {
+                match fs::read(&path) {
+                    Ok(bytes) => {
                         sha256 = Some(sha256_hex(&bytes));
                         utf8_valid = std::str::from_utf8(&bytes).is_ok();
 
@@ -706,8 +737,8 @@ fn audit_dataset(cli: &Cli) -> Result<DatasetAuditReport, String> {
                             file_errors.push("metadata text is not valid UTF-8".into());
                         }
                     }
+                    Err(error) => file_errors.push(format!("cannot read {}: {error}", path.display())),
                 }
-                Err(error) => file_errors.push(format!("cannot read {}: {error}", path.display())),
             }
         }
 
