@@ -40,29 +40,6 @@
     }
   },
   "$defs": {
-    "record_stub": {
-      "type": "object",
-      "required": [
-        "schema_version",
-        "record_type",
-        "record_id"
-      ],
-      "properties": {
-        "schema_version": {
-          "const": "0.1.0"
-        },
-        "record_type": {
-          "enum": [
-            "observation",
-            "diagnostic_assertion"
-          ]
-        },
-        "record_id": {
-          "type": "string",
-          "minLength": 1
-        }
-      }
-    },
     "fixture": {
       "type": "object",
       "additionalProperties": false,
@@ -94,16 +71,19 @@
           }
         },
         "record": {
-          "$ref": "#/$defs/record_stub"
+          "$ref": "#/$defs/record"
         },
         "companion_records": {
           "type": "array",
           "minItems": 1,
           "items": {
-            "$ref": "#/$defs/record_stub"
+            "$ref": "#/$defs/record"
           }
         }
       }
+    },
+    "record": {
+      "$ref": "https://luminousdynamics.io/schemas/maritime-evidence-interchange-v0.1.json"
     }
   }
 }
