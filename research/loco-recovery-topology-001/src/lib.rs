@@ -66,6 +66,7 @@ pub struct RecoveryRoute {
     pub admission: GateDisposition,
     pub physical_branch_coverage_complete: bool,
     pub latency_prefix_complete: bool,
+    pub intermediate_state_inventory_complete: bool,
     pub intermediate_states: Vec<IntermediateStateEvidence>,
     pub successors: Vec<SuccessorEvidence>,
     pub worst_case_steps: Option<u32>,
@@ -94,7 +95,7 @@ pub enum QualificationStatus {
     Unknown,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum RouteFinding {
     RejectedByUpstream { route_id: String },
     MissingBranchCoverage { route_id: String },
@@ -149,6 +150,7 @@ pub enum AuditError {
     EmptyDomainProvenance,
     DuplicateDomainId(String),
     EmptyRouteId,
+    EmptyActionId(String),
     DuplicateRouteId(String),
     EmptyRouteContext(String),
     RouteContextMismatch(String),
@@ -241,7 +243,7 @@ pub fn audit(input: &TopologyInput) -> Result<TopologyReport, AuditError> {
         })
         .collect::<Vec<_>>();
 
-    let mut distinct_terminal_regions = classes
+    let distinct_terminal_regions = classes
         .iter()
         .map(|class| class.key.terminal_region_id.clone())
         .collect::<BTreeSet<_>>()
@@ -280,10 +282,8 @@ pub fn audit(input: &TopologyInput) -> Result<TopologyReport, AuditError> {
             )
         };
 
-    findings.sort_by(|a, b| format!("{a:?}").cmp(&format!("{b:?}")));
+    findings.sort();
     findings.dedup();
-    distinct_terminal_regions.shrink_to_fit();
-
     Ok(TopologyReport {
         context_digest: input.context_digest.clone(),
         status,
@@ -343,9 +343,7 @@ fn validate_global_input(input: &TopologyInput) -> Result<(), AuditError> {
     Ok(())
 }
 
-fn build_domain_map<'a>(
-    domains: &'a [FailureDomain],
-) -> BTreeMap<&'a str, &'a FailureDomain> {
+fn build_domain_map(domains: &[FailureDomain]) -> BTreeMap<&str, &FailureDomain> {
     domains
         .iter()
         .map(|domain| (domain.domain_id.as_str(), domain))
@@ -356,6 +354,9 @@ fn validate_route_identity(
     route: &RecoveryRoute,
     context_digest: &str,
 ) -> Result<(), AuditError> {
+    if route.action_ids.is_empty() || route.action_ids.iter().any(|id| id.trim().is_empty()) {
+        return Err(AuditError::EmptyActionId(route.route_id.clone()));
+    }
     if route.context_digest.trim().is_empty() {
         return Err(AuditError::EmptyRouteContext(route.route_id.clone()));
     }
@@ -449,10 +450,10 @@ fn qualify_route(
         });
     }
 
-    if route.intermediate_states.is_empty() {
+    if !route.intermediate_state_inventory_complete {
         mark_unknown!(RouteFinding::UnknownIntermediate {
             route_id: route.route_id.clone(),
-            state_id: "<missing-intermediate-state-inventory>".to_owned(),
+            state_id: "<incomplete-intermediate-state-inventory>".to_owned(),
         });
     }
     for state in &route.intermediate_states {
@@ -709,6 +710,7 @@ mod tests {
             admission: GateDisposition::Admitted,
             physical_branch_coverage_complete: true,
             latency_prefix_complete: true,
+            intermediate_state_inventory_complete: true,
             intermediate_states: vec![IntermediateStateEvidence {
                 state_id: format!("intermediate:{id}"),
                 disposition: PhysicalStateDisposition::Viable,
@@ -745,7 +747,7 @@ mod tests {
             domain("hip_fl", "actuator_hip_fl"),
             domain("bus_a", "power_bus_a"),
         ];
-        let mut a = route("route_a", &["e_start", "e_recover"], "support_tripod_a", &["hip_fl", "bus_a"]);
+        let a = route("route_a", &["e_start", "e_recover"], "support_tripod_a", &["hip_fl", "bus_a"]);
         let mut b = a.clone();
         b.route_id = "route_b".to_owned();
         b.action_ids = vec!["renamed_policy_action".to_owned()];
@@ -762,7 +764,6 @@ mod tests {
                 vec!["power_bus_a".to_owned()]
             ]
         );
-        a.action_ids.push("extra-unused-label".to_owned());
     }
 
     #[test]
@@ -984,6 +985,37 @@ mod tests {
         let report = audit(&input(domains, vec![candidate])).unwrap();
         assert_eq!(report.status, QualificationStatus::Unknown);
         assert_eq!(report.independent_route_count, None);
+    }
+
+    #[test]
+    fn r18_two_domain_disjoint_routes_produce_two_route_reserve() {
+        let domains = vec![domain("left_leg", "left_leg"), domain("right_leg", "right_leg")];
+        let left = route("left", &["e_left"], "left_safe", &["left_leg"]);
+        let right = route("right", &["e_right"], "right_safe", &["right_leg"]);
+        let report = audit(&input(domains, vec![left, right])).unwrap();
+        assert_eq!(report.status, QualificationStatus::Qualified);
+        assert_eq!(report.independent_route_count, Some(2));
+        assert_eq!(report.minimum_cut_set_size, Some(2));
+        assert_eq!(report.all_minimum_cut_sets, vec![vec![
+            "left_leg".to_owned(),
+            "right_leg".to_owned()
+        ]]);
+    }
+
+    #[test]
+    fn r19_qualified_alias_dependencies_are_unioned_conservatively() {
+        let domains = vec![domain("hip", "hip"), domain("bus", "bus")];
+        let mut a = route("a", &["e_same"], "safe", &["hip"]);
+        let b = route("b", &["e_same"], "safe", &["bus"]);
+        let report = audit(&input(domains, vec![a.clone(), b])).unwrap();
+        assert_eq!(report.known_route_classes.len(), 1);
+        assert_eq!(
+            report.known_route_classes[0].common_cause_dependencies,
+            vec!["bus".to_owned(), "hip".to_owned()]
+        );
+        assert_eq!(report.independent_route_count, Some(1));
+        assert_eq!(report.minimum_cut_set_size, Some(1));
+        a.action_ids.clear();
     }
 
     #[test]
