@@ -497,7 +497,6 @@ pub fn analyze_preference_robustness(
             let scenario_key = (design_id.clone(), shock.name().to_string());
             scenario_keys.push(scenario_key.clone());
             let mut statuses = BTreeMap::new();
-            let mut utilities = BTreeMap::new();
             for policy in InterventionPolicy::ALL {
                 let run = records[&(
                     design_id.clone(),
@@ -1068,7 +1067,9 @@ mod tests {
             }
         }
         let mut scaled_contract = contract(two_preference_vertices());
+        scaled_contract.contract_digest = "sha256-preference-contract-rescaled".to_string();
         scaled_contract.criteria[0].reference_scale *= 10.0;
+        scaled_contract.criteria[0].scale_evidence_digest = "sha256-water-reference-scale-times-ten".to_string();
         let scaled_report = analyze_preference_robustness(&scaled_contract, &scaled_runs).unwrap();
         assert_eq!(
             first_report.results.iter().map(|row| (row.profile_id.clone(), row.policy.clone(), row.normalized_utility))
