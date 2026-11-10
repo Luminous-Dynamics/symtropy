@@ -210,7 +210,7 @@ The Rust auditor:
 
 The controller's posterior is deliberately not used as the authority for shrinking the physical fault set. An evaluator-only true fault label omitted from the upstream physical possibility set is itself recorded as a gate violation.
 
-Fifteen deterministic tests cover common-action admission, diagnosis-subset failure, high-confidence wrong diagnosis, zero-mass physical fault branches, missing admissions, stale/current-state receipts, late/unconfirmed application, physical-set omission, false alarms, safe-state evidence, Unknown terminals, timeline ordering and input-order invariance. The reference uses a preregistered 900,000 ppm (90%) threshold for a diagnosis to count as an isolated fault and bounds each diagnosis/admission set at 256 hypotheses and each episode timeline at 100,000 records.
+Eighteen deterministic tests cover common-action admission, diagnosis-subset failure, high-confidence wrong diagnosis, zero-mass physical fault branches, missing admissions, stale/current-state receipts, late/unconfirmed application, physical-set omission, false alarms, safe-state evidence, Unknown terminals, timeline ordering, input-order invariance, and receipt replay across different actions/fault sets. Every admission receipt is bound to the exact action ID, physical fault-set digest, current-state digest, model, abstraction, actuator and domain identity. The reference uses a preregistered 900,000 ppm (90%) threshold for a diagnosis to count as an isolated fault and bounds each diagnosis/admission set at 256 hypotheses and each episode timeline at 100,000 records.
 
 Qualification commands:
 
