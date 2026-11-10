@@ -9,6 +9,7 @@ description = "Independent synthetic contract verifier for shipyard robotic mult
 
 [dependencies]
 serde_json = "1.0"
+sha2 = "0.10"
 
 [lints.rust]
 unsafe_code = "forbid"
