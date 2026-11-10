@@ -232,3 +232,55 @@ jobs:
           assert actual == expected, f"unexpected reachability/adequacy classifications: {actual}"
           print("Model-adequacy CSV valid: prior reachability and split-predictive controls preserve marginal, joint and rare-tail discrepancies as separate results.")
           PY
+      - name: Verify South African Treasury missingness and schema intake
+        run: |
+          set -euo pipefail
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin sa-treasury-intake-sweep > /tmp/civdyn-sa-treasury.csv
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin sa-treasury-intake-sweep > /tmp/civdyn-sa-treasury-replay.csv
+          cmp /tmp/civdyn-sa-treasury.csv /tmp/civdyn-sa-treasury-replay.csv
+          python3 - <<'PY'
+          import csv
+          from pathlib import Path
+
+          with Path("/tmp/civdyn-sa-treasury.csv").open(newline="", encoding="utf-8") as handle:
+              reader = csv.DictReader(handle)
+              rows = list(reader)
+              fields = reader.fieldnames
+
+          assert fields is not None and len(fields) == 14, f"expected 14 columns, got {len(fields or [])}"
+          assert len(rows) == 5, f"expected five source-state receipts, got {len(rows)}"
+          by_code = {row["item_code"]: row for row in rows if row["row_kind"] == "fact"}
+          assert set(by_code) == {"6001", "6002", "6003"}
+
+          nonzero = by_code["6001"]
+          assert nonzero["raw_amount_zar"] == "120000"
+          assert nonzero["value_class"] == "nonzero_reported"
+          assert nonzero["evidence_grade"] == "eligible_for_registered_analysis"
+
+          zero = by_code["6002"]
+          assert zero["raw_amount_zar"] == "0"
+          assert zero["value_class"] == "zero_or_unfilled_ambiguous"
+          assert zero["evidence_grade"] == "ambiguous_value"
+          assert zero["audit_opinion"] == "qualified"
+
+          null = by_code["6003"]
+          assert null["raw_amount_zar"] == ""
+          assert null["value_class"] == "null_or_unfilled_ambiguous"
+          assert null["evidence_grade"] == "ambiguous_value"
+          assert null["audit_opinion"] == "unknown"
+
+          provisional = next(row for row in rows if row["row_kind"] == "fact" and row["snapshot_verification"] == "completeness_or_integrity_pending")
+          assert provisional["evidence_grade"] == "snapshot_not_verified"
+          assert provisional["raw_amount_zar"] == "250000"
+
+          absent = next(row for row in rows if row["row_kind"] == "query_result")
+          assert absent["item_code"] == "6004"
+          assert absent["value_class"] == "fact_not_returned"
+          assert absent["raw_amount_zar"] == ""
+          assert absent["evidence_grade"] == "not_present"
+
+          assert all(row["schema_generation"] == "mscoa_v2" for row in rows)
+          assert all(row["amount_type_code"] == "ACT" for row in rows)
+          assert all(row["terms_acknowledged"] == "true" for row in rows)
+          print("Treasury intake CSV valid: null, zero and absent facts remain distinct; provisional release is blocked; amount type, audit state and mSCOA schema are preserved.")
+          PY
