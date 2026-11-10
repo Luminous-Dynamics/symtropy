@@ -141,6 +141,9 @@ struct Measurement {
     coverage_probability: f64,
     uncertainty_method_id: String,
     uncertainty_evidence_sha256: String,
+    systematic_error_bound_m: Option<f64>,
+    systematic_bound_method_id: Option<String>,
+    systematic_bound_evidence_sha256: Option<String>,
     unit: MeasurementUnit,
 }
 
@@ -148,7 +151,7 @@ struct Measurement {
 #[serde(deny_unknown_fields)]
 struct TaskRequirement {
     task_id: String,
-    maximum_expanded_uncertainty_m: f64,
+    maximum_total_error_bound_m: f64,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -190,7 +193,7 @@ struct CaseResult {
     observation_gate: GateResult,
     metrology_gate: GateResult,
     task_sufficiency_gate: GateResult,
-    expanded_uncertainty_m: Option<f64>,
+    conservative_total_error_bound_m: Option<f64>,
     overall_disposition: OverallDisposition,
     reason_codes: Vec<String>,
     expected_disposition: OverallDisposition,
@@ -486,13 +489,32 @@ fn metrology_gate(case: &Case, observation: &GateResult) -> GateResult {
         reasons.insert("INVALID_MEASUREMENT_UNCERTAINTY");
     }
 
+    match measurement.systematic_error_bound_m {
+        None => {
+            reasons.insert("SYSTEMATIC_ERROR_BOUND_UNKNOWN");
+        }
+        Some(bound) if !bound.is_finite() || bound < 0.0 => {
+            reasons.insert("INVALID_SYSTEMATIC_ERROR_BOUND");
+        }
+        Some(_) => {
+            let method_id = measurement.systematic_bound_method_id.as_deref();
+            let evidence_digest = measurement.systematic_bound_evidence_sha256.as_deref();
+            if !method_id.is_some_and(|value| !value.trim().is_empty())
+                || !evidence_digest.is_some_and(is_sha256)
+            {
+                reasons.insert("SYSTEMATIC_ERROR_BOUND_EVIDENCE_MISSING_OR_INVALID");
+            }
+        }
+    }
+
     if !reasons.is_empty() {
         let fail = reasons.contains("CALIBRATION_INVALID")
             || reasons.contains("INDEPENDENT_VALIDATION_INVALID")
             || reasons.contains("INVALID_MEASUREMENT_UNCERTAINTY")
             || reasons.contains("SENSOR_PROFILE_BINDING_INVALID")
             || reasons.contains("SENSOR_PROFILE_DOMAIN_INVALID")
-            || reasons.contains("OBSERVED_SENSOR_CONDITIONS_INVALID");
+            || reasons.contains("OBSERVED_SENSOR_CONDITIONS_INVALID")
+            || reasons.contains("INVALID_SYSTEMATIC_ERROR_BOUND");
         let status = if fail {
             GateStatus::Fail
         } else {
@@ -518,8 +540,8 @@ fn task_gate(case: &Case, metrology: &GateResult) -> (GateResult, Option<f64>) {
     };
 
     if case.task.task_id.trim().is_empty()
-        || !case.task.maximum_expanded_uncertainty_m.is_finite()
-        || case.task.maximum_expanded_uncertainty_m <= 0.0
+        || !case.task.maximum_total_error_bound_m.is_finite()
+        || case.task.maximum_total_error_bound_m <= 0.0
     {
         return (
             gate(GateStatus::Fail, &["TASK_REQUIREMENT_INVALID"]),
@@ -527,21 +549,31 @@ fn task_gate(case: &Case, metrology: &GateResult) -> (GateResult, Option<f64>) {
         );
     }
 
-    let expanded = measurement.standard_uncertainty_m * measurement.coverage_factor;
-    if !expanded.is_finite() {
+    let Some(systematic_bound) = measurement.systematic_error_bound_m else {
+        return (gate(GateStatus::Unresolved, &["SYSTEMATIC_ERROR_BOUND_UNKNOWN"]), None);
+    };
+
+    // Keep stochastic dispersion and persistent systematic bounds separate.
+    // The task-facing conservative bound is k*u + b, never RSS-combined.
+    let conservative_total_error_bound_m =
+        measurement.standard_uncertainty_m * measurement.coverage_factor + systematic_bound;
+    if !conservative_total_error_bound_m.is_finite() {
         return (
-            gate(GateStatus::Fail, &["EXPANDED_UNCERTAINTY_NON_FINITE"]),
+            gate(GateStatus::Fail, &["TOTAL_ERROR_BOUND_NON_FINITE"]),
             None,
         );
     }
 
-    if expanded > case.task.maximum_expanded_uncertainty_m {
+    if conservative_total_error_bound_m > case.task.maximum_total_error_bound_m {
         (
-            gate(GateStatus::Fail, &["TASK_TOLERANCE_EXCEEDED"]),
-            Some(expanded),
+            gate(GateStatus::Fail, &["TASK_TOTAL_ERROR_BOUND_EXCEEDED"]),
+            Some(conservative_total_error_bound_m),
         )
     } else {
-        (gate(GateStatus::Pass, &[]), Some(expanded))
+        (
+            gate(GateStatus::Pass, &[]),
+            Some(conservative_total_error_bound_m),
+        )
     }
 }
 
@@ -559,7 +591,7 @@ fn evaluate_case(case: &Case) -> CaseResult {
     let visibility = visibility_gate(case.visibility);
     let observation = observation_gate(case);
     let metrology = metrology_gate(case, &observation);
-    let (task, expanded_uncertainty_m) = task_gate(case, &metrology);
+    let (task, conservative_total_error_bound_m) = task_gate(case, &metrology);
     let disposition = overall_disposition([&visibility, &observation, &metrology, &task]);
 
     let mut reasons = BTreeSet::new();
@@ -582,7 +614,7 @@ fn evaluate_case(case: &Case) -> CaseResult {
         observation_gate: observation,
         metrology_gate: metrology,
         task_sufficiency_gate: task,
-        expanded_uncertainty_m,
+        conservative_total_error_bound_m,
         overall_disposition: disposition,
         reason_codes,
         expected_disposition: case.expected.overall_disposition,
@@ -703,7 +735,7 @@ mod tests {
         let corpus = fixture();
         let receipt = evaluate_corpus(&corpus, FIXTURE.as_bytes()).expect("evaluate corpus");
         assert!(receipt.core.passed, "{:#?}", receipt.core.cases);
-        assert_eq!(receipt.core.case_count, 23);
+        assert_eq!(receipt.core.case_count, 28);
         assert_eq!(receipt.core.mismatch_count, 0);
     }
 
@@ -791,6 +823,38 @@ mod tests {
             );
         let encoded = serde_json::to_vec(&value).expect("mutated JSON serializes");
         assert!(serde_json::from_slice::<Corpus>(&encoded).is_err());
+    }
+
+    #[test]
+    fn systematic_error_bound_is_added_conservatively_to_stochastic_coverage() {
+        let corpus = fixture();
+        let case = corpus
+            .cases
+            .iter()
+            .find(|case| case.case_id == "systematic_error_bound_changes_task_acceptance")
+            .expect("systematic bound fixture");
+        let result = evaluate_case(case);
+        assert_eq!(result.overall_disposition, OverallDisposition::Fail);
+        assert_eq!(result.conservative_total_error_bound_m, Some(0.016));
+        assert!(result
+            .reason_codes
+            .contains(&"TASK_TOTAL_ERROR_BOUND_EXCEEDED".to_owned()));
+    }
+
+    #[test]
+    fn unknown_systematic_bound_never_defaults_to_zero() {
+        let corpus = fixture();
+        let case = corpus
+            .cases
+            .iter()
+            .find(|case| case.case_id == "systematic_error_bound_unknown_unresolved")
+            .expect("unknown systematic fixture");
+        let result = evaluate_case(case);
+        assert_eq!(result.metrology_gate.status, GateStatus::Unresolved);
+        assert_eq!(result.overall_disposition, OverallDisposition::Unresolved);
+        assert!(result
+            .reason_codes
+            .contains(&"SYSTEMATIC_ERROR_BOUND_UNKNOWN".to_owned()));
     }
 
     #[test]
