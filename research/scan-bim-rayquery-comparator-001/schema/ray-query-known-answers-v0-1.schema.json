@@ -67,7 +67,7 @@
       "additionalProperties": false,
       "required": [
         "clipping_policy",
-        "clip_endpoint_guard_epsilon_m",
+        "clip_endpoint_tolerance_m",
         "nearest_hit_tie_epsilon_m",
         "determinant_epsilon_m2",
         "barycentric_epsilon",
@@ -77,9 +77,9 @@
       ],
       "properties": {
         "clipping_policy": {
-          "const": "open_interval_with_epsilon_guard"
+          "const": "inclusive_interval_with_epsilon_tolerance"
         },
-        "clip_endpoint_guard_epsilon_m": {
+        "clip_endpoint_tolerance_m": {
           "type": "number",
           "exclusiveMinimum": 0
         },
