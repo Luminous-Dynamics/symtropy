@@ -2,11 +2,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use civdyn_self_correction::model_adequacy::{
-    assess_predictive_partition, IndependentUnitKind, ObservedStatistic, PredictiveDraw,
-    PredictiveKind, SplitManifest, SplitRole, StatisticRegistry, StatisticSpec,
+    IndependentUnitKind, ObservedStatistic, PredictiveDraw, PredictiveKind, SplitManifest,
+    SplitRole, StatisticRegistry, StatisticSpec, assess_predictive_partition,
 };
 use civdyn_self_correction::repair_qualification::{
-    qualify_repair_on_fresh_challenge, RepairQualificationInput, RepairQualificationReport,
+    RepairQualificationInput, RepairQualificationReport, qualify_repair_on_fresh_challenge,
 };
 
 const BASELINE_MODEL: &str = "sha256-civdyn-baseline-network-model";
@@ -76,7 +76,8 @@ fn assessment(
     model_digest: &str,
     values_a: [f64; DRAW_COUNT],
     values_b: [f64; DRAW_COUNT],
-) -> Result<civdyn_self_correction::model_adequacy::AdequacyAssessment, Box<dyn std::error::Error>> {
+) -> Result<civdyn_self_correction::model_adequacy::AdequacyAssessment, Box<dyn std::error::Error>>
+{
     let registry = registry();
     let manifest = manifest();
     let observations = vec![
@@ -105,17 +106,20 @@ fn assessment(
     let draws = [("network-a", values_a), ("network-b", values_b)]
         .into_iter()
         .flat_map(|(unit_id, values)| {
-            values.into_iter().enumerate().map(move |(draw_index, value)| PredictiveDraw {
-                kind: PredictiveKind::Split,
-                statistic_id: "held-out-transitivity".to_string(),
-                independent_unit_id: unit_id.to_string(),
-                sample_size: 1,
-                draw_index: draw_index as u64,
-                value,
-                model_digest: model_digest.to_string(),
-                draw_set_digest: format!("sha256-{model_digest}-{unit_id}-draws"),
-                calibration_data_digest: Some(CALIBRATION.to_string()),
-            })
+            values
+                .into_iter()
+                .enumerate()
+                .map(move |(draw_index, value)| PredictiveDraw {
+                    kind: PredictiveKind::Split,
+                    statistic_id: "held-out-transitivity".to_string(),
+                    independent_unit_id: unit_id.to_string(),
+                    sample_size: 1,
+                    draw_index: draw_index as u64,
+                    value,
+                    model_digest: model_digest.to_string(),
+                    draw_set_digest: format!("sha256-{model_digest}-{unit_id}-draws"),
+                    calibration_data_digest: Some(CALIBRATION.to_string()),
+                })
         })
         .collect::<Vec<_>>();
 
@@ -155,10 +159,7 @@ fn repair_input(
     }
 }
 
-fn emit_report(
-    scenario: &str,
-    report: &RepairQualificationReport,
-) {
+fn emit_report(scenario: &str, report: &RepairQualificationReport) {
     for transition in &report.transitions {
         emit(vec![
             scenario.to_string(),
