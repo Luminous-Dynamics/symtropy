@@ -44,6 +44,8 @@ struct CaptureSchedule {
     last_capture_at: Option<f32>,
     /// Expected capture files. The plugin exits only after these exist.
     pending_paths: Vec<String>,
+    /// Invalid capture configuration is a hard failure, never a silent fallback.
+    configuration_error: Option<String>,
 }
 
 /// Plugin that wires up headless capture when
@@ -66,11 +68,11 @@ impl Plugin for CapturePlugin {
             // Default path: env not set — plugin is a pure no-op.
             return;
         };
-        let schedule = capture_schedule_from_env().unwrap_or_else(|| vec![1.5, 4.0, 7.0]);
-        let exit_at = std::env::var("SYMTROPY_DEMO_CAPTURE_EXIT_AT")
-            .ok()
-            .and_then(|value| value.parse::<f32>().ok())
-            .unwrap_or_else(|| schedule.last().copied().unwrap_or(7.0) + 1.5);
+        let configuration = capture_configuration_from_env();
+        let (schedule, exit_at, configuration_error) = match configuration {
+            Ok((schedule, exit_at)) => (schedule, exit_at, None),
+            Err(error) => (Vec::new(), 0.0, Some(error)),
+        };
         app.insert_resource(CaptureSchedule {
             dir,
             stem: self.stem.clone(),
@@ -79,29 +81,97 @@ impl Plugin for CapturePlugin {
             exit_at,
             last_capture_at: None,
             pending_paths: Vec::new(),
+            configuration_error,
         });
         app.add_systems(Update, headless_capture);
     }
 }
 
-fn capture_schedule_from_env() -> Option<Vec<f32>> {
-    let raw = std::env::var("SYMTROPY_DEMO_CAPTURE_TIMES").ok()?;
+fn capture_configuration_from_env() -> Result<(Vec<f32>, f32), String> {
+    let schedule = match std::env::var("SYMTROPY_DEMO_CAPTURE_TIMES") {
+        Ok(raw) => parse_capture_schedule(&raw)?,
+        Err(std::env::VarError::NotPresent) => vec![1.5, 4.0, 7.0],
+        Err(error) => {
+            return Err(format!("could not read SYMTROPY_DEMO_CAPTURE_TIMES: {error}"));
+        }
+    };
+
+    let exit_at_raw = match std::env::var("SYMTROPY_DEMO_CAPTURE_EXIT_AT") {
+        Ok(raw) => Some(raw),
+        Err(std::env::VarError::NotPresent) => None,
+        Err(error) => {
+            return Err(format!("could not read SYMTROPY_DEMO_CAPTURE_EXIT_AT: {error}"));
+        }
+    };
+    let exit_at = parse_capture_exit_at(exit_at_raw.as_deref(), &schedule)?;
+    Ok((schedule, exit_at))
+}
+
+/// Parse a capture schedule without silently dropping malformed entries.
+/// Exact duplicates are removed after canonical sorting.
+fn parse_capture_schedule(raw: &str) -> Result<Vec<f32>, String> {
+    if raw.trim().is_empty() {
+        return Err("SYMTROPY_DEMO_CAPTURE_TIMES must not be empty".to_string());
+    }
+
     let mut schedule = Vec::new();
-    for part in raw.split(',') {
+    for (index, part) in raw.split(',').enumerate() {
         let value = part.trim();
         if value.is_empty() {
-            continue;
+            return Err(format!(
+                "SYMTROPY_DEMO_CAPTURE_TIMES entry {} is empty",
+                index + 1
+            ));
         }
-        match value.parse::<f32>() {
-            Ok(time) if time.is_finite() && time >= 0.0 => schedule.push(time),
-            _ => {
-                warn!("symtropy-demo-capture: ignoring invalid capture time `{value}`");
-            }
+
+        let time = value.parse::<f32>().map_err(|error| {
+            format!(
+                "SYMTROPY_DEMO_CAPTURE_TIMES entry {} ({value:?}) is invalid: {error}",
+                index + 1
+            )
+        })?;
+        if !time.is_finite() || time < 0.0 {
+            return Err(format!(
+                "SYMTROPY_DEMO_CAPTURE_TIMES entry {} must be finite and non-negative",
+                index + 1
+            ));
         }
+        schedule.push(time);
     }
+
     schedule.sort_by(f32::total_cmp);
-    schedule.dedup_by(|a, b| (*a - *b).abs() <= f32::EPSILON);
-    (!schedule.is_empty()).then_some(schedule)
+    schedule.dedup_by(|a, b| *a == *b);
+    if schedule.is_empty() {
+        return Err("SYMTROPY_DEMO_CAPTURE_TIMES contains no capture times".to_string());
+    }
+    Ok(schedule)
+}
+
+fn parse_capture_exit_at(raw: Option<&str>, schedule: &[f32]) -> Result<f32, String> {
+    let last_capture = schedule
+        .last()
+        .copied()
+        .ok_or_else(|| "capture schedule must contain at least one time".to_string())?;
+    let exit_at = match raw {
+        Some(value) => value.parse::<f32>().map_err(|error| {
+            format!("SYMTROPY_DEMO_CAPTURE_EXIT_AT ({value:?}) is invalid: {error}")
+        })?,
+        None => last_capture + 1.5,
+    };
+
+    if !exit_at.is_finite() || exit_at < last_capture {
+        return Err(format!(
+            "SYMTROPY_DEMO_CAPTURE_EXIT_AT must be finite and at least the final capture time ({last_capture})"
+        ));
+    }
+    Ok(exit_at)
+}
+
+fn capture_path(dir: &str, stem: &str, index: usize, time: f32) -> String {
+    std::path::Path::new(dir)
+        .join(format!("{stem}_capture_{index:03}_t{time:.3}.png"))
+        .to_string_lossy()
+        .into_owned()
 }
 
 fn headless_capture(
@@ -110,10 +180,16 @@ fn headless_capture(
     mut sched: ResMut<CaptureSchedule>,
     mut exit: MessageWriter<AppExit>,
 ) {
+    if let Some(error) = sched.configuration_error.take() {
+        error!("symtropy-demo-capture: invalid capture configuration: {error}");
+        exit.write(AppExit::error());
+        return;
+    }
+
     let now = time.elapsed_secs();
     if sched.fired < sched.schedule.len() && now >= sched.schedule[sched.fired] {
         let label = sched.schedule[sched.fired];
-        let path = format!("{}/{}_t{:.1}.png", sched.dir, sched.stem, label);
+        let path = capture_path(&sched.dir, &sched.stem, sched.fired, label);
         commands
             .spawn(Screenshot::primary_window())
             .observe(save_to_disk(path.clone()));
@@ -134,7 +210,7 @@ fn headless_capture(
         });
     let timed_out = now >= sched.exit_at + 15.0;
     if timed_out && !captures_on_disk {
-        warn!(
+        error!(
             "symtropy-demo-capture: timed out waiting for screenshots: {:?}",
             sched.pending_paths
         );
@@ -144,7 +220,63 @@ fn headless_capture(
         && captures_flushed
         && (captures_on_disk || timed_out)
     {
-        info!("symtropy-demo-capture: done — exiting");
-        exit.write(AppExit::Success);
+        if captures_on_disk {
+            info!("symtropy-demo-capture: all expected screenshots are present");
+            exit.write(AppExit::Success);
+        } else {
+            error!("symtropy-demo-capture: exiting with failure because one or more screenshots are missing");
+            exit.write(AppExit::error());
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn capture_schedule_is_sorted_and_exact_duplicates_are_removed() {
+        assert_eq!(
+            parse_capture_schedule("7.0,1.5,4.0,4.0").expect("valid schedule"),
+            vec![1.5, 4.0, 7.0]
+        );
+    }
+
+    #[test]
+    fn capture_schedule_rejects_empty_malformed_negative_and_non_finite_entries() {
+        for raw in ["", " ", "1.0,,2.0", "1.0,not-a-time", "-0.1", "NaN", "inf"] {
+            assert!(
+                parse_capture_schedule(raw).is_err(),
+                "schedule should be rejected: {raw:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn exit_time_defaults_after_the_last_capture() {
+        assert_eq!(
+            parse_capture_exit_at(None, &[1.5, 4.0, 7.0]).expect("default exit time"),
+            8.5
+        );
+    }
+
+    #[test]
+    fn exit_time_rejects_malformed_non_finite_or_early_values() {
+        for raw in ["not-a-time", "NaN", "inf", "6.99"] {
+            assert!(
+                parse_capture_exit_at(Some(raw), &[1.5, 4.0, 7.0]).is_err(),
+                "exit time should be rejected: {raw:?}"
+            );
+        }
+        assert!(parse_capture_exit_at(None, &[]).is_err());
+    }
+
+    #[test]
+    fn capture_paths_remain_unique_for_close_capture_times() {
+        let first = capture_path("/tmp/captures", "scene", 0, 1.51);
+        let second = capture_path("/tmp/captures", "scene", 1, 1.52);
+        assert_ne!(first, second);
+        assert!(first.ends_with("scene_capture_000_t1.510.png"));
+        assert!(second.ends_with("scene_capture_001_t1.520.png"));
     }
 }
