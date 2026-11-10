@@ -501,6 +501,9 @@ pub fn assess_calibration_profile(
         let central_mass = assessment.central_mass;
         for spec in &evidence.registry.statistics {
             let roster = &baseline_rosters[&spec.id];
+            if roster.is_empty() {
+                continue;
+            }
             let rows: Vec<_> = roster.iter()
                 .filter_map(|unit| {
                     assessment.statistics.iter().find(|row| {
@@ -605,14 +608,28 @@ pub fn assess_calibration_profile(
             } else {
                 Some(wilson_interval_95(covered_count, assessed_rows.len()))
             };
-            if !matches!(
-                (summary.empirical_coverage, empirical_coverage, summary.wilson_lower_95, summary.wilson_upper_95, wilson),
-                (None, None, None, None, None)
-                    | (Some(reported), Some(computed), Some(reported_lower), Some(reported_upper), Some((computed_lower, computed_upper)))
-                        if close_enough(reported, computed)
-                            && close_enough(reported_lower, computed_lower)
-                            && close_enough(reported_upper, computed_upper)
+            let coverage_summary_matches = match (
+                summary.empirical_coverage,
+                empirical_coverage,
+                summary.wilson_lower_95,
+                summary.wilson_upper_95,
+                wilson,
             ) {
+                (None, None, None, None, None) => true,
+                (
+                    Some(reported),
+                    Some(computed),
+                    Some(reported_lower),
+                    Some(reported_upper),
+                    Some((computed_lower, computed_upper)),
+                ) => {
+                    close_enough(reported, computed)
+                        && close_enough(reported_lower, computed_lower)
+                        && close_enough(reported_upper, computed_upper)
+                }
+                _ => false,
+            };
+            if !coverage_summary_matches {
                 return Err(CalibrationProfileError::CoverageSummaryMismatch {
                     statistic_id: spec.id.clone(),
                 });
@@ -635,7 +652,7 @@ pub fn assess_calibration_profile(
             let nominal = central_mass;
             let status = match wilson {
                 None => CalibrationPointStatus::NotAssessed,
-                Some((lower, upper)) if upper < nominal => {
+                Some((_, upper)) if upper < nominal => {
                     CalibrationPointStatus::UndercoverageDetected
                 }
                 Some((lower, _)) if lower > nominal => {
