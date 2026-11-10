@@ -264,15 +264,15 @@ impl<const D: usize> RotationalInertiaOperator<D> {
         }
 
         let mut result = vec![0.0; dof];
-        for row in 0..dof {
+        for (row, result_value) in result.iter_mut().enumerate() {
             let mut value = 0.0;
-            for column in 0..dof {
-                value += self.matrix_row_major[row * dof + column] * vector[column];
+            for (column, vector_value) in vector.iter().enumerate() {
+                value += self.matrix_row_major[row * dof + column] * vector_value;
             }
             if !value.is_finite() {
                 return Err(MassPropertiesError::NonFiniteValue);
             }
-            result[row] = value;
+            *result_value = value;
         }
         Ok(result)
     }
