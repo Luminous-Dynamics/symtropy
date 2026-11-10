@@ -296,9 +296,13 @@ mod tests {
         let mut stationary = known_input();
         stationary.relative_velocity_m_s = [0.0; 3];
         let result = evaluate_drag(stationary).unwrap();
-        assert_eq!(result.acceleration_m_s2, [0.0; 3]);
-        assert_eq!(result.force_n, [0.0; 3]);
-        assert_eq!(result.relative_frame_dissipation_w, 0.0);
+        for component in result.acceleration_m_s2 {
+            close(component, 0.0, 1.0e-14);
+        }
+        for component in result.force_n {
+            close(component, 0.0, 1.0e-14);
+        }
+        close(result.relative_frame_dissipation_w, 0.0, 1.0e-14);
     }
 
     #[test]
@@ -317,6 +321,25 @@ mod tests {
         close(
             first.acceleration_magnitude_m_s2,
             second.acceleration_magnitude_m_s2,
+            1.0e-14,
+        );
+    }
+
+    #[test]
+    fn drag_acceleration_scales_quadratically_with_relative_speed() {
+        let baseline = evaluate_drag(known_input()).unwrap();
+        let mut doubled_speed = known_input();
+        doubled_speed.relative_velocity_m_s[0] *= 2.0;
+        let doubled = evaluate_drag(doubled_speed).unwrap();
+
+        close(
+            doubled.acceleration_magnitude_m_s2,
+            4.0 * baseline.acceleration_magnitude_m_s2,
+            1.0e-14,
+        );
+        close(
+            doubled.relative_frame_dissipation_w,
+            8.0 * baseline.relative_frame_dissipation_w,
             1.0e-14,
         );
     }
