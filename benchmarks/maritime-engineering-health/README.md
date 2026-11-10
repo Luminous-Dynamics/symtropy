@@ -68,6 +68,8 @@ Marine_Engine_Fault_Data directory itself. The CLI:
 - hashes and UTF-8 checks the metadata files, and generically parses metadata CSVs;
 - emits a file-level split-manifest template that keeps every fault recording unassigned and marks the single baseline recording as reference_only.
 
+Absolute timestamp empties and duplicates are reported separately; the publisher MD5 and ZIP signature are hard integrity gates. Extracted member bytes are hashed individually, but the tool does not prove that a specific extracted directory was produced from the supplied archive unless the extraction process is independently recorded.
+
 The tool does not infer root-cause labels from the binary anomaly-state column,
 impute missing measurements, silently reorder time-series, or assign fault recordings
 to train/validation/test partitions. The baseline file remains reference_only. The dataset-index and variable-dictionary semantics still require
