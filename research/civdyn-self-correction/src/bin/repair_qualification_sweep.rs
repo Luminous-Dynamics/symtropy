@@ -193,8 +193,14 @@ fn emit_report(scenario: &str, report: &RepairQualificationReport) {
             report.primary_repaired_discrepancy_count.to_string(),
             report.challenge_unit_count.to_string(),
             format!("{:.6}", report.maximum_interval_width_ratio),
-            format!("{:.6}", transition.baseline_interval_width.unwrap_or_default()),
-            format!("{:.6}", transition.repaired_interval_width.unwrap_or_default()),
+            transition
+                .baseline_interval_width
+                .map(|width| format!("{width:.6}"))
+                .unwrap_or_default(),
+            transition
+                .repaired_interval_width
+                .map(|width| format!("{width:.6}"))
+                .unwrap_or_default(),
             transition
                 .interval_width_ratio
                 .map(|ratio| format!("{ratio:.6}"))
