@@ -19,17 +19,22 @@ A faster result that misses a nearest hit is not a performance improvement.
 
 ## First pinned fixture
 
-`fixtures/ray-query-known-answers-v0-1.json` contains a small, deterministic set of triangles and four rays:
+`fixtures/ray-query-known-answers-v0-1.json` contains four deterministic triangles and eleven rays:
 
-- two coincident nearest blockers to exercise exact tie-set reporting;
-- a farther triangle behind those blockers;
-- a ray whose far limit stops before the geometry;
-- a ray whose near limit skips the first surface and reaches the farther surface;
-- an off-axis ray that misses the complete scene.
+- coincident nearest blockers, including an exact nearest-hit tie set;
+- a farther blocker behind the nearest surfaces;
+- far clipping and near clipping that selects a farther hit;
+- exact self-triangle exclusion by stable identity;
+- shared-edge and shared-vertex hits;
+- parallel and coplanar misses under an explicit `coplanar_policy = miss`;
+- near/far clipping-boundary inclusion under the declared metric distance epsilon;
+- an off-axis miss.
 
-All coordinates are metres in a right-handed XYZ frame. Directions are unit length. The fixture freezes the hit distance tolerance and expected nearest identity sets.
+All coordinates are metres in a right-handed XYZ frame. Directions are unit length. The fixture freezes the metric intersection epsilon, nearest-hit tie epsilon, dimensionless parallel-cosine epsilon, barycentric epsilon and coplanar policy. The standalone f64 brute-force oracle verifies every expected nearest identity set before an engine adapter is compared.
 
-The fixture is only an initial lexical/numeric known-answer set. It does not yet test edge/vertex hits, coplanar/grazing rays, very large/small coordinates, degenerates, or a dense real-building mesh.
+This remains a small analytic known-answer corpus. It does not yet test large/small coordinate metamorphism, degenerate-input rejection fixtures, highly overlapping/anisotropic geometry, randomized differential rays, or licensed real-building meshes.
+
+P0 now checks the fixture with both a strict JSON Schema (2020-12) and an executable, independent brute-force Möller–Trumbore f64 oracle. The oracle's parallel and barycentric thresholds are fields in the fixture contract rather than hidden hard-coded tolerances. A coplanar ray is explicitly a miss. The replay-contract workflow runs the oracle and asserts seven hit / four miss outcomes for the eleven-ray corpus.
 
 ## Engines to compare
 
