@@ -81,7 +81,8 @@ pub struct AreaWeightedSamplingProfile {
     pub max_samples: usize,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct SurfaceSample {
     /// Stable identity is the tuple (surface_id, sample_ordinal).
     pub surface_id: String,
@@ -97,13 +98,15 @@ pub struct SurfaceSample {
     pub represented_area_m2: f64,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct VisibilityArea {
     pub visibility: SurfaceVisibility,
     pub area_m2: f64,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct SurfaceSamplingSummary {
     pub surface_id: String,
     pub observable_area_m2: f64,
@@ -113,7 +116,8 @@ pub struct SurfaceSamplingSummary {
     pub represented_area_m2: f64,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct SurfaceSamplingReceipt {
     pub algorithm_id: String,
     pub target_spacing_m: f64,
