@@ -195,4 +195,9 @@ Additional Rust tests cover:
 - an execution receipt presented without an authorized command;
 - exact command-digest binding for actuator realization.
 
+
+- source-issued possibility receipt with exact inventory equality and freshness at intended application time;
+- incomplete, stale or context-mismatched possibility sets cannot authorize projection;
+- test coverage for incomplete-set refusal, exact possibility-ID mismatch and stale possibility receipt.
+
 The Rust 1.96 workflow is authoritative for formatting, locked tests and strict Clippy.
