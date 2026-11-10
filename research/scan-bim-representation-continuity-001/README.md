@@ -101,7 +101,24 @@ The CLI reads the receipt bytes, rejects unknown JSON fields through the typed `
 
 P0 now additionally binds every claim to the exact transition output artifact that contains its target entity. When a later transition reuses an artifact ID previously emitted by an earlier transition, the SHA-256 and evidence role must match exactly. Reusing an ID with changed bytes or role is rejected.
 
-Current test inventory: 19 representation-continuity tests. Claim target artifacts must also carry the `geometry_output` or `representation_output` role; a transform/calibration artifact cannot satisfy a claim's representation target merely by sharing an ID. The replay-contract workflow now runs the CLI against the canonical fixture and checks the one-transition/one-measured-claim/one-correspondence report. These tests remain synthetic contract checks, not IFC or physical-building validation.
+Current test inventory: 31 representation-continuity tests. Claim target artifacts must also carry the `geometry_output` or `representation_output` role; a transform/calibration artifact cannot satisfy a claim's representation target merely by sharing an ID.
+
+### Relation and topology continuity (P0 extension)
+
+Each transition now carries a required relation audit bound to a source artifact with the `relation_inventory` evidence role. The inventory declares whether it is complete, partial or unknown. Every listed source relation has an explicit disposition:
+
+- **Preserved:** one or more target relations retain the same canonical semantic relation kind and their endpoints follow the existing entity correspondence map.
+- **Modified:** target relation(s) are present, but the receipt must explain the semantic modification.
+- **Lost:** no target relation is emitted; a reason is required and the overall transition is marked degraded.
+- **Unsupported:** the target representation cannot express the relation; it is reported and the overall transition remains unresolved.
+- **Unresolved:** no justified target mapping exists; uncertainty is retained rather than guessed.
+
+A relation record separates its canonical semantic kind (for example `host_opening`) from syntax-specific source/target relation types (for example a graph edge versus `IfcRelVoidsElement`). Directed relations preserve endpoint order; explicitly undirected relations permit reversal. Target relation identities must be unique and target endpoints must be valid members of the mapped entity sets.
+
+The CLI report now includes source, preserved, modified, lost, unsupported and unresolved relation counts, plus incomplete-inventory count. Its overall state distinguishes `continuity_preserved`, `continuity_degraded` and `continuity_unresolved`; an incomplete inventory, unsupported relation or unresolved relation cannot be reported as fully preserved.
+
+The canonical synthetic fixture now follows a wall and opening through a host–opening relation. Negative tests cover relation loss, modification, unsupported/partial inventories, mismatched endpoints, canonical-kind changes and duplicate relation identities. The audit checks declared receipt semantics only: it does not parse source graph/IFC bytes or prove the declared inventory is physically complete.
+
 
 ## Metrics and targets
 
@@ -114,6 +131,7 @@ These are research targets, not achieved results.
 | Uncertainty | Representation-only shrinkage and unknown-to-known promotion | Zero |
 | Approximation | Declared residual vs output absolute bound | 100% of analytic fixtures conserve the bound |
 | Identity | One-to-one/split/merge/replacement cardinality | 100% expected cases |
+| Relations/topology | Preserved/modified/lost/unsupported/unresolved relation counts; endpoint-map consistency; incomplete inventory rate | 100% expected outcomes on frozen controls |
 | Unresolved mapping | Ambiguous/unresolved correspondences | Explicitly reported; never PASS as preserved |
 | Reproducibility | Input-order-invariant receipt | 100% on pinned fixtures |
 | External calibration | Predicted interval coverage vs held-out metrology | Nominal 95% intervals target empirical 95% coverage, measured on independent buildings |
