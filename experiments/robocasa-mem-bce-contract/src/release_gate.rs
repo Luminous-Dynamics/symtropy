@@ -148,9 +148,7 @@ pub enum ReleaseGateBlocker {
     CheckpointRightsRestricted,
     PolicyFamilyManifestMissing,
     ModelFamilySetMismatch,
-    DuplicateModelFamilySmoke,
-    MissingModelFamilySmoke,
-    UnexpectedModelFamilySmoke,
+    CheckpointFamilySetMismatch,
     ModelCheckpointDigestMismatch,
     PolicyRunManifestMissing,
     PolicyRunSetMismatch,
@@ -170,6 +168,7 @@ pub enum ReleaseGateBlocker {
 pub enum ReleaseQualificationStage {
     SourceIdentityAudited,
     EvaluationInputsFrozen,
+    DatasetProvenanceQualified,
     AssetClosureQualified,
     CurrentWheelAccepted,
     ModelInferenceSmokeQualified,
@@ -449,6 +448,15 @@ pub fn qualify_release(
                 | ReleaseGateBlocker::EvaluationInputCountMismatch
         )
     });
+    let dataset_provenance_qualified = !blockers.iter().any(|blocker| {
+        matches!(
+            blocker,
+            ReleaseGateBlocker::DatasetRightsUnknown
+                | ReleaseGateBlocker::DatasetRightsRestricted
+                | ReleaseGateBlocker::DatasetRightsManifestMissing
+                | ReleaseGateBlocker::TrainingOverlapUnknown
+        )
+    });
     let asset_closure_qualified = !blockers.iter().any(|blocker| {
         matches!(
             blocker,
@@ -462,9 +470,6 @@ pub fn qualify_release(
                 | ReleaseGateBlocker::CleanCandidateInstallationUnverified
                 | ReleaseGateBlocker::AssetRightsUnknown
                 | ReleaseGateBlocker::AssetRightsRestricted
-                | ReleaseGateBlocker::DatasetRightsUnknown
-                | ReleaseGateBlocker::DatasetRightsRestricted
-                | ReleaseGateBlocker::TrainingOverlapUnknown
         )
     });
     let current_wheel_accepted = !blockers.iter().any(|blocker| {
@@ -508,6 +513,9 @@ pub fn qualify_release(
     }
     if evaluation_inputs_frozen {
         stages.push(ReleaseQualificationStage::EvaluationInputsFrozen);
+    }
+    if dataset_provenance_qualified {
+        stages.push(ReleaseQualificationStage::DatasetProvenanceQualified);
     }
     if asset_closure_qualified {
         stages.push(ReleaseQualificationStage::AssetClosureQualified);
