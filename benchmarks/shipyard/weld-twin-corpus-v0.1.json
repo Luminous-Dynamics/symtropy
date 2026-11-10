@@ -505,7 +505,7 @@
           "value": "DWG-REV-02"
         }
       ],
-      "expected_code": "PASS_WORKPIECE_REVISION_MISMATCH"
+      "expected_code": "DESIGN_REVISION_MISMATCH"
     },
     {
       "id": "process_trace_missing",
@@ -527,6 +527,16 @@
           "path": "passes.2.observed_envelope_status",
           "op": "set",
           "value": "outside_declared_envelope"
+        },
+        {
+          "path": "passes.2.process_trace_ref",
+          "op": "set",
+          "value": "benchmarks/shipyard/weld-twin-traces/cap-pass-outside.json"
+        },
+        {
+          "path": "passes.2.process_trace_sha256",
+          "op": "set",
+          "value": "2e3aa3a546398f9c02e92d2a3b664f0803abdc2cf91d5a8539d0151323489dd5"
         }
       ],
       "expected_code": "PROCESS_ENVELOPE_EXCEEDED"
@@ -538,7 +548,17 @@
         {
           "path": "passes.1.evidence_class",
           "op": "set",
-          "value": "measured"
+          "value": "simulated"
+        },
+        {
+          "path": "passes.1.process_trace_ref",
+          "op": "set",
+          "value": "benchmarks/shipyard/weld-twin-traces/fill-pass-simulated.json"
+        },
+        {
+          "path": "passes.1.process_trace_sha256",
+          "op": "set",
+          "value": "6d1d9f4bb39c4474d65bb3ba53c2f160722e5f9512d13f29c1a25667d2caa5a2"
         }
       ],
       "expected_code": "EVIDENCE_CLASS_MISMATCH"
