@@ -1661,6 +1661,7 @@ mod tests {
             frame_id: "BUILDING-LOCAL",
             reference_model_sha256: &"3".repeat(64),
             probe_set_sha256: &"3".repeat(64),
+            reference_surface_ids: &["TARGET".to_owned()],
             occluder_manifest_sha256: &"2".repeat(64),
             occluder_coverage: OccluderCoverage::Complete,
             probes: &[probe([5.0, 0.0, 0.0])],
