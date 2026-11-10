@@ -291,8 +291,8 @@ A standalone Rust oracle has now been added on the #4589 draft branch:
 - Overall PASS requires all four gates to pass. FAIL and UNRESOLVED remain distinct; downstream gates are NOT_RUN when prerequisites are unresolved or failed.
 - Measurement sufficiency is task-conditioned: the same synthetic observation can pass a coarse-layout tolerance and fail a tighter installation tolerance.
 - Duplicate or correlated reference lineages, stale/missing calibration, out-of-domain profiles, conflicting visibility/observation and invalid uncertainty are explicit negative controls.
-- The 13-case frozen fixture is at `tools/scan-bim-measurement-observability/fixtures/measurement-observability.json`.
-- Six Rust unit tests cover corpus agreement, visibility/observation separation, duplicate lineage, task-conditioned acceptance, case-order determinism and out-of-domain rejection.
+- The 18-case frozen fixture is at `tools/scan-bim-measurement-observability/fixtures/measurement-observability.json`.
+- Seven Rust unit tests cover corpus agreement, visibility/observation separation, duplicate lineage, task-conditioned acceptance, case-order determinism and out-of-domain rejection.
 - Exact-path workflow: `.github/workflows/scan-bim-measurement-observability.yml`, with format, test, strict Clippy and frozen-corpus receipt checks.
 
 **Validation status:** source, fixture, workflow and PR branch were inspected on GitHub. At the latest status check, the workflow attempts for the then-current branch head were pending/queued; no successful exact-head result had been observed. The source has not been compiled locally in this environment. Treat code qualification as pending until the final branch head's workflow completes successfully.
