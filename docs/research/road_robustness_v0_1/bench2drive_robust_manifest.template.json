@@ -1,0 +1,153 @@
+{
+  "manifest_version": "0.1.0",
+  "experiment_id": "sam-bench2drive-robust-reproduction-template-v0.1",
+  "status": "protocol_template_not_reproduced",
+  "claim_ceiling": "No benchmark reproduction, driving performance, physical safety, roadworthiness, or real-world failure-probability claim.",
+  "upstream": {
+    "repository": "https://github.com/Thinklab-SJTU/Bench2Drive-Robust",
+    "paper": "https://arxiv.org/abs/2605.18059",
+    "repository_commit": null,
+    "repository_commit_status": "unresolved",
+    "bench2drive_repository": "https://github.com/autonomousvision/carla_garage",
+    "bench2drive_revision": null,
+    "bench2drive_revision_status": "unresolved",
+    "simulator": "CARLA",
+    "simulator_version": "0.9.15",
+    "route_manifest_digest": null,
+    "model_checkpoint_digests": [],
+    "dependency_lock_digest": null,
+    "license_and_asset_rights_review": "pending"
+  },
+  "pairing": {
+    "mode": "paired_clean_perturbed",
+    "initial_state_digest": null,
+    "scenario_manifest_digest": null,
+    "common_randomness_policy": "Share only exogenous event draws that the declared causal model says are not affected by the intervention. Recompute all causal descendants.",
+    "paired_run_ids": [],
+    "pairing_validation": "not_run"
+  },
+  "clock_contract": {
+    "clock_domain_id": null,
+    "clock_transformation_digest": null,
+    "maximum_qualified_uncertainty_ns": null,
+    "same_tick_ordering_without_happens_before": "unresolved",
+    "required_event_times": [
+      "sensor_acquisition",
+      "sensor_delivery",
+      "policy_decision",
+      "action_proposal",
+      "action_buffer_enqueue",
+      "action_buffer_dequeue",
+      "command_latch",
+      "world_transition",
+      "monitor_detection",
+      "last_admissible_action_deadline"
+    ]
+  },
+  "perturbation_families": [
+    {
+      "id": "gps-localization-noise",
+      "enabled": false,
+      "published_settings": [
+        { "severity": "medium", "noise_m": 5.0 },
+        { "severity": "severe", "noise_m": 15.0 }
+      ],
+      "injection_point": "ego_localization_input",
+      "seed": null,
+      "upstream_environment_variables": ["GPS_DRIFT_ENABLE", "GPS_DRIFT_MODE", "GPS_DRIFT_SEED"],
+      "exact_upstream_semantics_verified": false
+    },
+    {
+      "id": "inference-control-fifo-delay",
+      "enabled": false,
+      "published_settings": [
+        { "latency_ms": 100 },
+        { "latency_ms": 200 },
+        { "latency_ms": 500 }
+      ],
+      "injection_point": "action_execution_fifo_buffer",
+      "semantics": "Delayed execution of earlier policy output; not measured wall-clock inference latency.",
+      "seed": null,
+      "upstream_environment_variables": ["INFERENCE_LATENCY_ENABLE", "INFERENCE_LATENCY_MS", "INFERENCE_LATENCY_MODE"],
+      "exact_upstream_semantics_verified": false
+    },
+    {
+      "id": "burst-camera-frame-drop",
+      "enabled": false,
+      "published_settings": [
+        { "maximum_ticks": 20 },
+        { "maximum_ticks": 60 }
+      ],
+      "default_example_trigger_probability": 0.01,
+      "injection_point": "camera_stream_delivery",
+      "semantics": "Cached/frozen frame behavior; repeated cached content must not be represented as a newly acquired observation.",
+      "seed": null,
+      "upstream_environment_variables": ["FRAME_DROP_ENABLE", "BURST_PROBABILITY", "BURST_MAX_TICKS"],
+      "exact_upstream_semantics_verified": false
+    },
+    {
+      "id": "partial-camera-occlusion",
+      "enabled": false,
+      "published_settings": [
+        { "occlusion_ratio": 0.5 },
+        { "occlusion_ratio": 0.8 }
+      ],
+      "injection_point": "camera_image",
+      "seed": null,
+      "upstream_environment_variables": ["PARTIAL_OBS_ENABLE", "PARTIAL_OBS_TYPE", "PARTIAL_OBS_RATIO"],
+      "exact_upstream_semantics_verified": false
+    },
+    {
+      "id": "multiplicative-speed-estimation-noise",
+      "enabled": false,
+      "published_settings": [
+        { "mean": 0.5, "standard_deviation": 0.2 },
+        { "mean": 0.2, "standard_deviation": 0.2 }
+      ],
+      "injection_point": "ego_speed_estimate",
+      "distribution": "Gaussian multiplicative noise, subject to exact pinned upstream implementation",
+      "seed": null,
+      "upstream_environment_variables": ["SPEED_BIAS_ENABLE", "SPEED_BIAS_MEAN", "SPEED_BIAS_STD"],
+      "exact_upstream_semantics_verified": false
+    }
+  ],
+  "native_upstream_metrics": {
+    "preserve_without_redefinition": true,
+    "metrics": ["Driving Score", "Success Rate", "Relative Degradation"],
+    "relative_degradation_definition": "(clean_driving_score - perturbed_driving_score) / clean_driving_score * 100",
+    "results": null,
+    "denominators": null,
+    "status": "not_run"
+  },
+  "sam_measurement_layers": {
+    "evidence_integrity": "not_run",
+    "option_preservation": "not_run",
+    "finite_horizon_policy_tree_recoverability": "not_run",
+    "option_fragility": "not_run",
+    "decision_boundary_lead_time": "not_run",
+    "runtime_assurance_fallback": "not_run",
+    "fresh_process_replay": "not_run"
+  },
+  "required_receipts": [
+    "perturbation_injection",
+    "sensor_acquisition",
+    "sensor_delivery",
+    "policy_decision",
+    "action_proposal",
+    "action_buffer_enqueue",
+    "action_buffer_dequeue",
+    "command_latch",
+    "world_transition",
+    "monitor_detection",
+    "expected_event_manifest",
+    "replay_root"
+  ],
+  "completeness": {
+    "expected_runs": [],
+    "observed_runs": [],
+    "missing_runs": [],
+    "unsupported_runs": [],
+    "censored_runs": [],
+    "status": "incomplete_template"
+  }
+}
