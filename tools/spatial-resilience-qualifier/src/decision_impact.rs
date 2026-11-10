@@ -1153,6 +1153,47 @@ fn compare_case_expected(
     }
 }
 
+/// Evaluate one unversioned finite-state scenario through the same reviewed
+/// hard-first/Pareto engine used by the frozen decision-impact corpus.
+///
+/// This entry point intentionally does not apply the frozen corpus schema or
+/// expected-answer registry. Callers must validate their own versioned adapter
+/// contract before mapping to this common scenario shape. The engine still
+/// enforces unique IDs, complete candidate state coverage, current-state
+/// membership, action evidence/revision semantics, and mutually exclusive,
+/// exhaustive action outcome partitions.
+pub fn evaluate_decision_case_value(
+    value: &Value,
+) -> Result<DecisionCaseResult, Vec<DecisionImpactFailure>> {
+    let bytes = serde_json::to_vec(value).unwrap_or_default();
+    let mut summary = DecisionImpactSummary::new(&bytes, &[]);
+    let scenario = match parse_scenario(value, 0, &mut summary) {
+        Some(scenario) => scenario,
+        None => {
+            if summary.failures.is_empty() {
+                summary.fail(
+                    "DECISION_SCENARIO_PARSE_FAILED",
+                    "$",
+                    "Scenario could not be converted to the finite-state decision model.",
+                );
+            }
+            summary.failures.sort_by(|left, right| {
+                (&left.path, &left.code, &left.detail)
+                    .cmp(&(&right.path, &right.code, &right.detail))
+            });
+            return Err(summary.failures);
+        }
+    };
+    if !summary.failures.is_empty() {
+        summary.failures.sort_by(|left, right| {
+            (&left.path, &left.code, &left.detail)
+                .cmp(&(&right.path, &right.code, &right.detail))
+        });
+        return Err(summary.failures);
+    }
+    Ok(evaluate_scenario(&scenario))
+}
+
 pub fn validate_decision_impact_bytes(
     corpus_bytes: &[u8],
     schema_bytes: &[u8],
