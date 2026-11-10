@@ -1274,9 +1274,12 @@ mod tests {
 
     #[test]
     fn target_outside_field_of_view_is_outside_coverage() {
+        let mut side_view = view("VIEW-1", [0.0, 0.0, 0.0]);
+        side_view.forward = Point3::new(0.0, 1.0, 0.0);
+        side_view.right = Point3::new(-1.0, 0.0, 0.0);
         let receipt = evaluate(
-            &[probe([5.0, 10.0, 0.0])],
-            &[view("VIEW-1", [0.0, 0.0, 0.0])],
+            &[probe([5.0, 0.0, 0.0])],
+            &[side_view],
             &[],
         )
         .expect("outside FOV");
@@ -1326,6 +1329,118 @@ mod tests {
             SurfaceVisibility::Contradictory
         );
         assert_eq!(receipt.contradictory_area_m2, 2.0);
+    }
+
+    #[test]
+    fn back_facing_reference_surface_is_not_credited_as_observable() {
+        let mut back_view = view("BACK-VIEW", [10.0, 0.0, 0.0]);
+        back_view.forward = Point3::new(-1.0, 0.0, 0.0);
+        back_view.right = Point3::new(0.0, -1.0, 0.0);
+        let receipt = evaluate(&[probe([5.0, 0.0, 0.0])], &[back_view], &[])
+            .expect("back face classification");
+        assert_eq!(receipt.probes[0].visibility, SurfaceVisibility::Backface);
+        assert_eq!(receipt.backface_area_m2, 2.0);
+        assert_eq!(receipt.observable_area_m2, 0.0);
+    }
+
+    #[test]
+    fn incomplete_occluder_inventory_forces_unknown_and_keeps_partial_blocker_evidence() {
+        let receipt = evaluate_with_coverage(
+            &[probe([5.0, 0.0, 0.0])],
+            &[view("VIEW-1", [0.0, 0.0, 0.0])],
+            &[blocker(OccluderKind::SameBuilding)],
+            OccluderCoverage::Incomplete,
+        )
+        .expect("incomplete inventory is an unresolved result, not an error");
+        assert_eq!(receipt.probes[0].visibility, SurfaceVisibility::Unknown);
+        assert_eq!(receipt.unknown_area_m2, 2.0);
+        assert_eq!(
+            receipt.probes[0].views[0].blocker_triangle_ids,
+            vec!["BLOCKER/BLOCKER-TRI-1".to_owned()]
+        );
+        assert_eq!(
+            receipt.probes[0].views[0].blocker_kind,
+            Some(OccluderKind::SameBuilding)
+        );
+    }
+
+    #[test]
+    fn self_and_external_occlusion_from_different_views_are_mixed_not_contradictory() {
+        let second_view = VisibilityView {
+            view_id: "VIEW-2".to_owned(),
+            frame_id: "BUILDING-LOCAL".to_owned(),
+            origin: Point3::new(0.0, -10.0, 0.0),
+            forward: Point3::new(5.0 / 125.0_f64.sqrt(), 10.0 / 125.0_f64.sqrt(), 0.0),
+            right: Point3::new(-10.0 / 125.0_f64.sqrt(), 5.0 / 125.0_f64.sqrt(), 0.0),
+            up: Point3::new(0.0, 0.0, 1.0),
+            horizontal_fov_rad: 1.2,
+            vertical_fov_rad: 1.2,
+            max_range_m: 20.0,
+            pose_evidence_sha256: "c".repeat(64),
+            configuration_sha256: "d".repeat(64),
+        };
+        let receipt = evaluate(
+            &[probe([5.0, 0.0, 0.0])],
+            &[view("VIEW-1", [0.0, 0.0, 0.0]), second_view],
+            &[
+                blocker(OccluderKind::SameBuilding),
+                external_blocker_for_second_view(),
+            ],
+        )
+        .expect("two views with distinct occlusion causes");
+        assert_eq!(receipt.probes[0].visibility, SurfaceVisibility::MixedOcclusion);
+        assert_eq!(receipt.mixed_occlusion_area_m2, 2.0);
+        assert_eq!(receipt.contradictory_area_m2, 0.0);
+        assert_eq!(receipt.probes[0].views[0].status, ViewVisibilityStatus::SelfOccluded);
+        assert_eq!(
+            receipt.probes[0].views[1].status,
+            ViewVisibilityStatus::ExternallyOccluded
+        );
+    }
+
+    #[test]
+    fn visibility_receipt_area_classes_conserve_probe_area() {
+        let receipt = evaluate(
+            &[probe([5.0, 0.0, 0.0])],
+            &[view("VIEW-1", [0.0, 0.0, 0.0])],
+            &[blocker(OccluderKind::SameBuilding)],
+        )
+        .expect("self occlusion");
+        let surface = &receipt.surfaces[0];
+        let accounted = surface.observable_area_m2
+            + surface.backface_area_m2
+            + surface.self_occluded_area_m2
+            + surface.externally_occluded_area_m2
+            + surface.outside_sensor_coverage_area_m2
+            + surface.unknown_area_m2
+            + surface.contradictory_area_m2
+            + surface.mixed_occlusion_area_m2;
+        assert!((accounted - 2.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn a_probe_at_the_sensor_origin_is_rejected_as_ill_defined() {
+        let error = evaluate(
+            &[probe([5.0, 0.0, 0.0])],
+            &[view("VIEW-1", [5.0, 0.0, 0.0])],
+            &[],
+        )
+        .expect_err("zero-length sensor ray must not be called outside coverage");
+        assert!(error.contains("origin coincides"));
+    }
+
+    #[test]
+    fn barycentric_point_and_normal_must_match_reference_triangle() {
+        let mut invalid = probe([5.0, 0.1, 0.0]);
+        let error = evaluate(&[invalid.clone()], &[view("VIEW-1", [0.0, 0.0, 0.0])], &[])
+            .expect_err("probe point must match its source-triangle barycentrics");
+        assert!(error.contains("does not match its source-triangle"));
+
+        invalid = probe([5.0, 0.0, 0.0]);
+        invalid.normal = Point3::new(1.0, 0.0, 0.0);
+        let error = evaluate(&[invalid], &[view("VIEW-1", [0.0, 0.0, 0.0])], &[])
+            .expect_err("probe normal must follow source triangle winding");
+        assert!(error.contains("does not match source-triangle winding"));
     }
 
     #[test]
