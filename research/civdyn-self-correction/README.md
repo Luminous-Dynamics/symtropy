@@ -205,3 +205,32 @@ This slice does not yet implement:
 7. Empirical data adapters or independent domain qualification.
 
 Run the model-adequacy-sweep binary using Cargo with the locked manifest at research/civdyn-self-correction/Cargo.toml. The existing CIVDYN workflow also runs this binary after formatting, strict Clippy, compilation and tests. These are engineering checks against frozen synthetic contracts only.
+
+
+## Scenario N: rights-aware empirical source passports
+
+The first source passport implementation is in src/empirical_source_passport.rs with the empirical-source-passport-sweep binary. It advances [CIVDYN-SA-EMPIRICAL-001 #4560](https://github.com/Luminous-Dynamics/symtropy/issues/4560).
+
+Each source bundle declares:
+- source specification, construct, native measurement unit, population, source family, geographic and temporal resolution;
+- exact artifact/dataset version, publisher, landing page, retrieval time, request digest, artifact digest and content digest;
+- acquisition state (not acquired, requested, received, integrity verified, semantically verified);
+- revision status (final, provisional, under review, revised with explicit supersession lineage, withdrawn, unknown);
+- rights status, policy identifier, permitted purposes and authorization evidence digest.
+
+Observation rows preserve six different classes: observed, estimated, defaulted, imputed, missing and suppressed. They are not pooled or silently converted into one another. Estimated/imputed/defaulted values require method/default-rule provenance; missing/suppressed rows require an explicit reason; missing and suppressed values must remain null, not zero. Non-finite values and invalid uncertainty metadata fail closed.
+
+A source bundle is only eligible for the declared purpose when its rights authorization explicitly permits that purpose and its artifact has reached the required acquisition/verification state. Provisional/under-review artifacts are exploration-only. A revised artifact requires an explicit predecessor digest. This does not authenticate rights or content on its own; upstream ingestion must verify the actual bytes and authorization evidence.
+
+### Cross-source panel rule
+
+The first panel-cell comparator requires an identical semantic construct, native unit, geographic resolution and code, boundary version, temporal resolution and exact period key. It performs no implicit temporal resampling, municipal-demarcation crosswalk or unit conversion. If one row is observed and another defaulted/estimated, that mismatch is separately flagged rather than hidden by an eligible key match.
+
+### Synthetic conformance sweep
+
+The deterministic runner contains three labelled synthetic fixtures only:
+1. A semantically verified annual water-balance-style fixture with one observed, one estimated, one defaulted, one missing and one suppressed record.
+2. A Treasury-style under-review quarterly fixture, eligible for exploration but not validation.
+3. An Eskom-style requested-but-not-received hourly fixture, which cannot qualify as empirical evidence.
+
+These rows are expressly synthetic placeholders. They do not assert that any official Stats SA, DWS, National Treasury or Eskom data files have been downloaded, licensed or reconciled. The CI gate checks the 17-column CSV schema, class counts, purpose/revision restrictions, ineligible unacquired data and byte-identical replay.
