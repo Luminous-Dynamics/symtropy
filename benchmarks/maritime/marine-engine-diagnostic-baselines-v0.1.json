@@ -238,6 +238,37 @@
       "reproducibility_status": "reported_not_reproduced",
       "direct_comparison_to_aalto": "not_comparable",
       "audit_notes": []
+    },
+    {
+      "id": "synaptic-regularization-continual-transfer-2026",
+      "title": "Synaptic regularization for continual transfer: A universal fault diagnosis framework for marine diesel engines under incremental operating conditions",
+      "source_type": "peer_reviewed_article",
+      "publication_date": "2026-07-15",
+      "source_url": "https://doi.org/10.1016/j.energy.2026.141124",
+      "data_domain": "Two marine diesel engine subsystems under incremental operating-condition tasks; the full dataset and task split require audit from the paper and any accessible supplementary materials.",
+      "task": "Continual transfer/fault diagnosis under incremental operating conditions with fixed model capacity and no historical-data replay.",
+      "reported_metrics": [
+        {
+          "metric": "average_accuracy_and_forgetting_rate_comparative_claim",
+          "value": "qualitative: authors report improved average accuracy and forgetting rate versus naive fine-tuning and mainstream regularization baselines; no numeric values transcribed from accessible abstract",
+          "unit": "qualitative_no_numeric_value",
+          "context": "Do not treat this as a numerical SOTA score. Extract exact tables, dataset provenance, task order and code only after full-paper/reproducibility audit.",
+          "source_location": "Abstract"
+        }
+      ],
+      "split_protocol": "Incremental operating-condition tasks; exact task sequence, train/test partition, data split independence and task-level evaluation protocol must be audited before reproduction.",
+      "reported_limitations": [
+        "Accessible abstract identifies experiments on two critical engine subsystems but does not provide numerical metric values.",
+        "No code, dataset, task order, exact splits or raw-data retention behavior has been audited by this project.",
+        "No cross-engine or shipboard transfer claim is established by the abstract alone."
+      ],
+      "reproducibility_status": "reported_not_reproduced",
+      "direct_comparison_to_aalto": "not_comparable",
+      "audit_notes": [
+        "STC-CL uses synaptic-inspired path-integral importance and dynamic binary parameter masking to protect prior knowledge.",
+        "The paper claims no model-capacity expansion and no retention/replay of historical data.",
+        "Compare with naive fine-tuning, SI, EWC and MAS under the paper's exact task protocol; re-evaluate all prior domains after each update."
+      ]
     }
   ]
 }
