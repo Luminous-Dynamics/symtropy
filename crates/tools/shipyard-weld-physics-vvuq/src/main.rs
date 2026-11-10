@@ -275,7 +275,9 @@ fn main() -> ExitCode {
     match validate_manifest(&schema_text, &corpus_text) {
         Ok(summary) => {
             println!(
-                "PASS: {sources} sources, {cases} cases ({positive} positive / {negative} negative); v0.1 inventory non-scoring",
+                "PASS: {sources} sources, {cases} cases \
+                 ({positive} positive / {negative} negative); \
+                 v0.1 inventory non-scoring",
                 sources = summary.source_count,
                 cases = summary.case_count,
                 positive = summary.positive_count,
