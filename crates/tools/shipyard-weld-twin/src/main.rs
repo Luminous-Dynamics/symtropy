@@ -806,10 +806,10 @@ fn main() -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
-    let corpus: Value = match serde_json::from_slice(&bytes) {
+    let corpus: Value = match parse_strict_json(&bytes) {
         Ok(value) => value,
         Err(error) => {
-            eprintln!("invalid corpus JSON: {error}");
+            eprintln!("invalid or ambiguous corpus JSON: {error}");
             return ExitCode::FAILURE;
         }
     };
@@ -820,13 +820,14 @@ fn main() -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
-    let report = match verify_corpus(&corpus, &workspace_root) {
+    let mut report = match verify_corpus(&corpus, &workspace_root) {
         Ok(value) => value,
         Err(error) => {
             eprintln!("corpus verification could not run: {error}");
             return ExitCode::FAILURE;
         }
     };
+    report["corpus_sha256"] = Value::String(format!("{:x}", Sha256::digest(&bytes)));
     println!("{}", serde_json::to_string_pretty(&report).expect("JSON report serializes"));
     if report["failed_count"].as_u64() == Some(0) {
         ExitCode::SUCCESS
