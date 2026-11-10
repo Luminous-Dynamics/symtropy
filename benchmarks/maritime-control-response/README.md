@@ -33,17 +33,18 @@ The small 26-recording training corpus cannot substantiate 99% calibration per f
 
 ## Required benchmark tournament
 
-The machine-readable protocol is frozen in [`tournament-v0.1.json`](tournament-v0.1.json). It enumerates the seven comparators, split protocols, metric definitions, non-compensatory evidence gates and research targets. It is marked `protocol_only_not_executed`; the targets are aspirations, not measured performance.
+The machine-readable protocol is frozen in [`tournament-v0.1.json`](tournament-v0.1.json). It enumerates the eight comparators, split protocols, metric definitions, non-compensatory evidence gates and research targets. It is marked `protocol_only_not_executed`; the targets are aspirations, not measured performance.
 
 Evaluate on common frozen recordings/splits, same channel availability, equivalent model capacity and disclosed compute:
 
 1. Official Fault Diagnosis Toolbox analytical/structural model, where its public configuration and outputs can be reproduced.
-2. State-only residual / statistical process-control baselines.
-3. Command-only baseline.
-4. Naive command + state concatenation.
-5. Command-conditioned response model with regime and disturbance context.
-6. Gated/control-aware fusion and multi-class regime discrimination.
-7. Calibrated selective / unknown-fault rejection baseline.
+2. Calibrated physics-informed inverse/digital-twin model, only where a model, parameter map and calibration data are available; preserve non-unique admissible hypotheses.
+3. State-only residual / statistical process-control baselines.
+4. Command-only baseline.
+5. Naive command + state concatenation.
+6. Command-conditioned response model with regime and disturbance context.
+7. Gated/control-aware fusion and multi-class regime discrimination.
+8. Calibrated selective / unknown-fault rejection baseline.
 
 The official page describes a MATLAB or Python competition interface. This Rust crate is an independent evaluator and evidence-verification component, not a submission-ready competition interface. A separate adapter or method reproduction is necessary for direct entry.
 
@@ -67,3 +68,5 @@ This benchmark lane does not write controllers, actuate equipment, authorize mai
 ### Prediction-time causality control
 
 The response evaluator records three distinct times: when the command became available to the diagnostic process, when the frozen model issued its expected response, and when the independent physical response was observed. It rejects a command that arrived after prediction, a response that predates or coincides with prediction, a response beyond the declared horizon, and a command that was already stale at prediction time. This is stricter than merely checking that the command precedes the measurement; it blocks an after-the-fact command from being used to explain an earlier prediction.
+
+The inverse-model comparator must report the cardinality of the admissible solution set and a false-unique-root-cause rate. A low residual at one optimizer-selected parameter vector is not enough: where multiple fault/degradation hypotheses fit inside the calibrated acceptance region, the diagnostic output must remain an ambiguity set. This comparator is conditional on obtaining a calibrated model and validated parameter map; it is not an assumed LiU-ICE dataset capability.
