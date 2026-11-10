@@ -774,9 +774,10 @@ mod tests {
             .step(&mut bridge, 1.0 / 60.0)
             .expect("valid fixed step");
 
+        bridge.post_step(&world.bodies);
         let state = bridge
-            .post_step(&world.bodies)
-            .into_iter()
+            .last_body_states()
+            .iter()
             .find(|state| state.handle == handle)
             .expect("body state readback");
         assert!(
