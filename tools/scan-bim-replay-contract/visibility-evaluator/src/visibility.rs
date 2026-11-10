@@ -44,6 +44,24 @@ pub enum OccluderCoverage {
     Incomplete,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum LinearUnit {
+    Metre,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AxisOrder {
+    Xyz,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CoordinateHandedness {
+    RightHanded,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ViewVisibilityStatus {
@@ -121,6 +139,9 @@ pub struct VisibilityProfile {
 pub struct VisibilityEvaluation<'a> {
     pub scene_id: &'a str,
     pub frame_id: &'a str,
+    pub linear_unit: LinearUnit,
+    pub axis_order: AxisOrder,
+    pub handedness: CoordinateHandedness,
     pub reference_model_sha256: &'a str,
     pub probe_set_sha256: &'a str,
     pub reference_surface_ids: &'a [String],
@@ -139,6 +160,9 @@ pub struct VisibilityEvaluation<'a> {
 pub struct VisibilityRequest {
     pub scene_id: String,
     pub frame_id: String,
+    pub linear_unit: LinearUnit,
+    pub axis_order: AxisOrder,
+    pub handedness: CoordinateHandedness,
     pub reference_model_sha256: String,
     pub reference_sampling: SurfaceSamplingReceipt,
     pub occluder_manifest_sha256: String,
@@ -160,6 +184,9 @@ impl VisibilityRequest {
         derive_surface_visibility(VisibilityEvaluation {
             scene_id: &self.scene_id,
             frame_id: &self.frame_id,
+            linear_unit: self.linear_unit,
+            axis_order: self.axis_order,
+            handedness: self.handedness,
             reference_model_sha256: &self.reference_model_sha256,
             probe_set_sha256: &self.reference_sampling.sample_set_sha256,
             reference_surface_ids: &reference_surface_ids,
@@ -212,6 +239,9 @@ pub struct VisibilityReceipt {
     pub algorithm_id: String,
     pub scene_id: String,
     pub frame_id: String,
+    pub linear_unit: LinearUnit,
+    pub axis_order: AxisOrder,
+    pub handedness: CoordinateHandedness,
     pub reference_model_sha256: String,
     pub probe_set_sha256: String,
     pub occluder_manifest_sha256: String,
@@ -737,6 +767,24 @@ fn receipt_digest(
     update_string(&mut hasher, "scan_bim_evaluator_visibility_ray_v1");
     update_string(&mut hasher, evaluation.scene_id);
     update_string(&mut hasher, evaluation.frame_id);
+    update_string(
+        &mut hasher,
+        match evaluation.linear_unit {
+            LinearUnit::Metre => "metre",
+        },
+    );
+    update_string(
+        &mut hasher,
+        match evaluation.axis_order {
+            AxisOrder::Xyz => "xyz",
+        },
+    );
+    update_string(
+        &mut hasher,
+        match evaluation.handedness {
+            CoordinateHandedness::RightHanded => "right_handed",
+        },
+    );
     update_string(&mut hasher, evaluation.reference_model_sha256);
     update_string(&mut hasher, evaluation.probe_set_sha256);
     update_string(&mut hasher, evaluation.occluder_manifest_sha256);
@@ -1214,6 +1262,9 @@ pub fn derive_surface_visibility(
         algorithm_id: "evaluator_bim_visibility_ray_v1".to_owned(),
         scene_id: evaluation.scene_id.to_owned(),
         frame_id: evaluation.frame_id.to_owned(),
+        linear_unit: evaluation.linear_unit,
+        axis_order: evaluation.axis_order,
+        handedness: evaluation.handedness,
         reference_model_sha256: evaluation.reference_model_sha256.to_owned(),
         probe_set_sha256: evaluation.probe_set_sha256.to_owned(),
         occluder_manifest_sha256: evaluation.occluder_manifest_sha256.to_owned(),
