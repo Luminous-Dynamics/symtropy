@@ -8,6 +8,7 @@ publish = false
 description = "Independent synthetic contract verifier for shipyard robotic multipass welding evidence"
 
 [dependencies]
+serde = "1.0"
 serde_json = "1.0"
 sha2 = "0.10"
 
