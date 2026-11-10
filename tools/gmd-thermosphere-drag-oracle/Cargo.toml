@@ -1,0 +1,11 @@
+[package]
+name = "gmd-thermosphere-drag-oracle"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Analytic drag-law oracle for the GMD thermosphere research programme"
+
+[dependencies]
+
+[workspace]
