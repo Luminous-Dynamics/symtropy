@@ -2154,6 +2154,56 @@
         "capability_remains_restricted": true,
         "restoration_evidence_complete": false
       }
+    },
+    {
+      "case_id": "metamorphic-age-boundary-inclusive",
+      "case_class": "metamorphic",
+      "description": "An observation exactly at its declared maximum age remains admissible; age above the bound is rejected.",
+      "asset": {
+        "vessel_id": "synthetic-vessel-01",
+        "asset_id": "asset-001",
+        "component_id": "component-001",
+        "config_revision": "vessel-config-r7",
+        "capability": "propulsion-service"
+      },
+      "observations": [
+        {
+          "observation_id": "o1",
+          "after_ms": 100,
+          "signal": "shaft-speed",
+          "source_role": "measured_sensor",
+          "quality": "current",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "shaft-pickup",
+          "source_ref": "synthetic-source:metamorphic-age-boundary-inclusive:o1",
+          "unit": "rev/min",
+          "calibration_ref": "synthetic-calibration:shaft-speed:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "age_ms": 5000,
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1"
+        }
+      ],
+      "fault_hypotheses": [],
+      "unknown_domain": false,
+      "recovery": {
+        "attempted": false,
+        "repair_record": false,
+        "inspection": false,
+        "proof_test": false,
+        "authorization": false,
+        "configuration_reconciled": false
+      },
+      "expected": {
+        "admitted_observations": 1,
+        "decision_evidence_observations": 1,
+        "distinct_declared_dependency_groups": 1,
+        "disposition": "continue_with_watch",
+        "capability_remains_restricted": false,
+        "restoration_evidence_complete": false
+      }
     }
   ]
 }
