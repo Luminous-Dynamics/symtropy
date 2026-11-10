@@ -438,8 +438,17 @@ pub fn validate_campaign(campaign: &CampaignRecord) -> ValidationReport {
     if duplicate(&campaign.expected_episode_ids) {
         findings.push(Finding::DuplicateExpectedEpisode);
     }
+    if campaign.expected_episode_ids.iter().any(|id| !nonempty(id)) {
+        findings.push(Finding::EmptyIdentity("expected_episode_id"));
+    }
+    if campaign.episodes.iter().any(|episode| !nonempty(&episode.episode_id)) {
+        findings.push(Finding::EmptyIdentity("episode_id"));
+    }
     if duplicate(&campaign.expected_branch_ids) {
         findings.push(Finding::DuplicateExpectedBranch);
+    }
+    if campaign.expected_branch_ids.iter().any(|id| !nonempty(id)) {
+        findings.push(Finding::EmptyIdentity("expected_branch_id"));
     }
     if duplicate(&campaign.episodes.iter().map(|episode| episode.episode_id.clone()).collect::<Vec<_>>()) {
         findings.push(Finding::DuplicateEpisode);
@@ -520,6 +529,9 @@ pub fn validate_campaign(campaign: &CampaignRecord) -> ValidationReport {
         if duplicate(&branch.expected_actor_ids) || duplicate(&branch.actor_responses.iter().map(|a| a.actor_id.clone()).collect::<Vec<_>>()) {
             findings.push(Finding::DuplicateActor);
         }
+        if branch.expected_actor_ids.iter().any(|id| !nonempty(id)) {
+            findings.push(Finding::EmptyIdentity("expected_actor_id"));
+        }
         let expected_actors = id_set(branch.expected_actor_ids.clone());
         let observed_actors = id_set(branch.actor_responses.iter().map(|a| a.actor_id.clone()));
         for _ in expected_actors.difference(&observed_actors) {
@@ -545,6 +557,9 @@ pub fn validate_campaign(campaign: &CampaignRecord) -> ValidationReport {
             || duplicate(&branch.random_events.iter().map(|event| event.event_id.clone()).collect::<Vec<_>>())
         {
             findings.push(Finding::DuplicateRandomEvent);
+        }
+        if branch.expected_random_event_ids.iter().any(|id| !nonempty(id)) {
+            findings.push(Finding::EmptyIdentity("expected_random_event_id"));
         }
         let expected_events = id_set(branch.expected_random_event_ids.clone());
         let observed_events = id_set(branch.random_events.iter().map(|event| event.event_id.clone()));
@@ -600,6 +615,9 @@ pub fn validate_campaign(campaign: &CampaignRecord) -> ValidationReport {
 
     for branch in &campaign.branches {
         if let Some(parent_id) = &branch.parent_branch_id {
+            if !nonempty(parent_id) {
+                findings.push(Finding::EmptyIdentity("parent_branch_id"));
+            }
             match branches_by_id.get(parent_id) {
                 None => findings.push(Finding::MissingParent),
                 Some(parent) => validate_branch_pair(branch, parent, &mut findings),
@@ -1046,6 +1064,20 @@ mod tests {
         });
         let report = validate_campaign(&campaign);
         assert!(has(&report, Finding::UnexpectedEpisode));
+    }
+
+    #[test]
+    fn rejects_empty_expected_manifest_identity() {
+        let mut campaign = valid_campaign();
+        campaign.expected_episode_ids.push(" ".to_string());
+        campaign.expected_branch_ids.push("".to_string());
+        campaign.branches[0].expected_actor_ids.push("".to_string());
+        campaign.branches[0].expected_random_event_ids.push(" ".to_string());
+        let report = validate_campaign(&campaign);
+        assert!(has(&report, Finding::EmptyIdentity("expected_episode_id")));
+        assert!(has(&report, Finding::EmptyIdentity("expected_branch_id")));
+        assert!(has(&report, Finding::EmptyIdentity("expected_actor_id")));
+        assert!(has(&report, Finding::EmptyIdentity("expected_random_event_id")));
     }
 
     #[test]
