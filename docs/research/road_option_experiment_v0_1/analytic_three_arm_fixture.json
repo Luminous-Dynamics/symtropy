@@ -28,7 +28,11 @@
         "myopic_immediate_score": 6
       }
     ],
-    "continuation_actions": ["brake", "accelerate", "hold"]
+    "continuation_actions": [
+      "brake",
+      "accelerate",
+      "hold"
+    ]
   },
   "hidden_hypotheses": [
     {
@@ -51,9 +55,24 @@
       "hypothesis_id": "A",
       "delivery_tick": 2,
       "outcomes": [
-        {"action_id": "brake", "disposition": "feasible", "witness_id": "analytic-A-brake", "terminal_utility_units": 8},
-        {"action_id": "accelerate", "disposition": "infeasible", "witness_id": "analytic-A-no-accelerate", "terminal_utility_units": 0},
-        {"action_id": "hold", "disposition": "infeasible", "witness_id": "analytic-A-no-hold", "terminal_utility_units": 0}
+        {
+          "action_id": "brake",
+          "disposition": "feasible",
+          "witness_id": "analytic-A-brake",
+          "terminal_utility_units": 8
+        },
+        {
+          "action_id": "accelerate",
+          "disposition": "infeasible",
+          "witness_id": "analytic-A-no-accelerate",
+          "terminal_utility_units": 0
+        },
+        {
+          "action_id": "hold",
+          "disposition": "infeasible",
+          "witness_id": "analytic-A-no-hold",
+          "terminal_utility_units": 0
+        }
       ]
     },
     {
@@ -64,9 +83,24 @@
       "hypothesis_id": "B",
       "delivery_tick": 2,
       "outcomes": [
-        {"action_id": "brake", "disposition": "infeasible", "witness_id": "analytic-B-no-brake", "terminal_utility_units": 0},
-        {"action_id": "accelerate", "disposition": "feasible", "witness_id": "analytic-B-accelerate", "terminal_utility_units": 8},
-        {"action_id": "hold", "disposition": "infeasible", "witness_id": "analytic-B-no-hold", "terminal_utility_units": 0}
+        {
+          "action_id": "brake",
+          "disposition": "infeasible",
+          "witness_id": "analytic-B-no-brake",
+          "terminal_utility_units": 0
+        },
+        {
+          "action_id": "accelerate",
+          "disposition": "feasible",
+          "witness_id": "analytic-B-accelerate",
+          "terminal_utility_units": 8
+        },
+        {
+          "action_id": "hold",
+          "disposition": "infeasible",
+          "witness_id": "analytic-B-no-hold",
+          "terminal_utility_units": 0
+        }
       ]
     },
     {
@@ -77,9 +111,24 @@
       "hypothesis_id": "A",
       "delivery_tick": 2,
       "outcomes": [
-        {"action_id": "brake", "disposition": "feasible", "witness_id": "analytic-yield-A-brake", "terminal_utility_units": 8},
-        {"action_id": "accelerate", "disposition": "infeasible", "witness_id": "analytic-yield-A-no-accelerate", "terminal_utility_units": 0},
-        {"action_id": "hold", "disposition": "feasible", "witness_id": "analytic-yield-A-hold", "terminal_utility_units": 4}
+        {
+          "action_id": "brake",
+          "disposition": "feasible",
+          "witness_id": "analytic-yield-A-brake",
+          "terminal_utility_units": 8
+        },
+        {
+          "action_id": "accelerate",
+          "disposition": "infeasible",
+          "witness_id": "analytic-yield-A-no-accelerate",
+          "terminal_utility_units": 0
+        },
+        {
+          "action_id": "hold",
+          "disposition": "feasible",
+          "witness_id": "analytic-yield-A-hold",
+          "terminal_utility_units": 4
+        }
       ]
     },
     {
@@ -90,9 +139,24 @@
       "hypothesis_id": "B",
       "delivery_tick": 2,
       "outcomes": [
-        {"action_id": "brake", "disposition": "infeasible", "witness_id": "analytic-yield-B-no-brake", "terminal_utility_units": 0},
-        {"action_id": "accelerate", "disposition": "feasible", "witness_id": "analytic-yield-B-accelerate", "terminal_utility_units": 8},
-        {"action_id": "hold", "disposition": "feasible", "witness_id": "analytic-yield-B-hold", "terminal_utility_units": 4}
+        {
+          "action_id": "brake",
+          "disposition": "infeasible",
+          "witness_id": "analytic-yield-B-no-brake",
+          "terminal_utility_units": 0
+        },
+        {
+          "action_id": "accelerate",
+          "disposition": "feasible",
+          "witness_id": "analytic-yield-B-accelerate",
+          "terminal_utility_units": 8
+        },
+        {
+          "action_id": "hold",
+          "disposition": "feasible",
+          "witness_id": "analytic-yield-B-hold",
+          "terminal_utility_units": 4
+        }
       ]
     },
     {
@@ -103,9 +167,24 @@
       "hypothesis_id": "A",
       "delivery_tick": 2,
       "outcomes": [
-        {"action_id": "brake", "disposition": "feasible", "witness_id": "analytic-query-A-brake", "terminal_utility_units": 8},
-        {"action_id": "accelerate", "disposition": "infeasible", "witness_id": "analytic-query-A-no-accelerate", "terminal_utility_units": 0},
-        {"action_id": "hold", "disposition": "feasible", "witness_id": "analytic-query-A-hold", "terminal_utility_units": 4}
+        {
+          "action_id": "brake",
+          "disposition": "feasible",
+          "witness_id": "analytic-query-A-brake",
+          "terminal_utility_units": 8
+        },
+        {
+          "action_id": "accelerate",
+          "disposition": "infeasible",
+          "witness_id": "analytic-query-A-no-accelerate",
+          "terminal_utility_units": 0
+        },
+        {
+          "action_id": "hold",
+          "disposition": "feasible",
+          "witness_id": "analytic-query-A-hold",
+          "terminal_utility_units": 4
+        }
       ]
     },
     {
@@ -116,9 +195,24 @@
       "hypothesis_id": "B",
       "delivery_tick": 2,
       "outcomes": [
-        {"action_id": "brake", "disposition": "infeasible", "witness_id": "analytic-query-B-no-brake", "terminal_utility_units": 0},
-        {"action_id": "accelerate", "disposition": "feasible", "witness_id": "analytic-query-B-accelerate", "terminal_utility_units": 8},
-        {"action_id": "hold", "disposition": "feasible", "witness_id": "analytic-query-B-hold", "terminal_utility_units": 4}
+        {
+          "action_id": "brake",
+          "disposition": "infeasible",
+          "witness_id": "analytic-query-B-no-brake",
+          "terminal_utility_units": 0
+        },
+        {
+          "action_id": "accelerate",
+          "disposition": "feasible",
+          "witness_id": "analytic-query-B-accelerate",
+          "terminal_utility_units": 8
+        },
+        {
+          "action_id": "hold",
+          "disposition": "feasible",
+          "witness_id": "analytic-query-B-hold",
+          "terminal_utility_units": 4
+        }
       ]
     }
   ],
@@ -130,9 +224,68 @@
     "timely_delivery_tick": 2,
     "late_delivery_tick": 3,
     "outcomes": [
-      {"hypothesis_id": "A", "delivery_status": "timely", "delivered_observation_class": "query-result-A", "delivered_observation_receipt_id": "fixture-observation-query-A-v1"},
-      {"hypothesis_id": "B", "delivery_status": "timely", "delivered_observation_class": "query-result-B", "delivered_observation_receipt_id": "fixture-observation-query-B-v1"}
-    ]
+      {
+        "hypothesis_id": "A",
+        "delivery_status": "timely",
+        "delivered_observation_class": "query-result-A",
+        "delivered_observation_receipt_id": "fixture-observation-query-A-v1"
+      },
+      {
+        "hypothesis_id": "B",
+        "delivery_status": "timely",
+        "delivered_observation_class": "query-result-B",
+        "delivered_observation_receipt_id": "fixture-observation-query-B-v1"
+      },
+      {
+        "hypothesis_id": "A",
+        "delivery_status": "late",
+        "delivered_observation_class": null,
+        "delivered_observation_receipt_id": null
+      },
+      {
+        "hypothesis_id": "A",
+        "delivery_status": "dropped",
+        "delivered_observation_class": null,
+        "delivered_observation_receipt_id": null
+      },
+      {
+        "hypothesis_id": "A",
+        "delivery_status": "stale",
+        "delivered_observation_class": null,
+        "delivered_observation_receipt_id": null
+      },
+      {
+        "hypothesis_id": "A",
+        "delivery_status": "unsupported",
+        "delivered_observation_class": null,
+        "delivered_observation_receipt_id": null
+      },
+      {
+        "hypothesis_id": "B",
+        "delivery_status": "late",
+        "delivered_observation_class": null,
+        "delivered_observation_receipt_id": null
+      },
+      {
+        "hypothesis_id": "B",
+        "delivery_status": "dropped",
+        "delivered_observation_class": null,
+        "delivered_observation_receipt_id": null
+      },
+      {
+        "hypothesis_id": "B",
+        "delivery_status": "stale",
+        "delivered_observation_class": null,
+        "delivered_observation_receipt_id": null
+      },
+      {
+        "hypothesis_id": "B",
+        "delivery_status": "unsupported",
+        "delivered_observation_class": null,
+        "delivered_observation_receipt_id": null
+      }
+    ],
+    "quality_assumption": "The analytic oracle assumes a deterministic, perfectly discriminative actor-clearance measurement when timely. This is a deliberately idealized information-value fixture, not a sensor-performance assumption."
   },
   "arms": [
     {
@@ -167,7 +320,10 @@
       "observation_class_id": "commit-shared-view",
       "expected_robust_option_set": [],
       "expected_possible_option_set": [],
-      "expected_clairvoyant_union": ["brake", "accelerate"],
+      "expected_clairvoyant_union": [
+        "brake",
+        "accelerate"
+      ],
       "expected_clairvoyance_gap": 2,
       "interpretation": "Each hidden cell has one feasible action, but the controller cannot choose different actions because both cells share one delivered observation."
     },
@@ -175,9 +331,17 @@
       "finding_id": "yield-no-query",
       "parent_action_id": "early_yield",
       "observation_class_id": "yield-shared-view",
-      "expected_robust_option_set": ["hold"],
-      "expected_possible_option_set": ["hold"],
-      "expected_clairvoyant_union": ["brake", "accelerate", "hold"],
+      "expected_robust_option_set": [
+        "hold"
+      ],
+      "expected_possible_option_set": [
+        "hold"
+      ],
+      "expected_clairvoyant_union": [
+        "brake",
+        "accelerate",
+        "hold"
+      ],
       "expected_clairvoyance_gap": 2,
       "interpretation": "The shared observation supports hold in both cells; brake and accelerate are state-specific and unavailable to the non-clairvoyant policy."
     },
@@ -185,9 +349,18 @@
       "finding_id": "yield-timely-query-A",
       "parent_action_id": "early_yield",
       "observation_class_id": "query-result-A",
-      "expected_robust_option_set": ["brake", "hold"],
-      "expected_possible_option_set": ["brake", "hold"],
-      "expected_clairvoyant_union": ["brake", "hold"],
+      "expected_robust_option_set": [
+        "brake",
+        "hold"
+      ],
+      "expected_possible_option_set": [
+        "brake",
+        "hold"
+      ],
+      "expected_clairvoyant_union": [
+        "brake",
+        "hold"
+      ],
       "expected_clairvoyance_gap": 0,
       "interpretation": "The delivered query result supports a distinct controller-visible class for A."
     },
@@ -195,9 +368,18 @@
       "finding_id": "yield-timely-query-B",
       "parent_action_id": "early_yield",
       "observation_class_id": "query-result-B",
-      "expected_robust_option_set": ["accelerate", "hold"],
-      "expected_possible_option_set": ["accelerate", "hold"],
-      "expected_clairvoyant_union": ["accelerate", "hold"],
+      "expected_robust_option_set": [
+        "accelerate",
+        "hold"
+      ],
+      "expected_possible_option_set": [
+        "accelerate",
+        "hold"
+      ],
+      "expected_clairvoyant_union": [
+        "accelerate",
+        "hold"
+      ],
       "expected_clairvoyance_gap": 0,
       "interpretation": "The delivered query result supports a distinct controller-visible class for B."
     }
