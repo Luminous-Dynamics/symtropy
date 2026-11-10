@@ -74,7 +74,7 @@ For Compression, the audit also reports:
 
 A zero-byte baseline does not produce a ratio. Missing byte measurements reduce the compression-measurement denominator but do not alter the operation's correctness score. Latency has its own explicit measurement count and mean. Query identity is part of the evaluation contract: an observed readback for a different query cannot pass, and a missing query readback remains unresolved.
 
-The module reports Storage, Update and Compression separately. It emits operation-wide micro rates and per-task rows, plus an equal-task macro fidelity/evidence-coverage rate over tasks with applicable cases. This exposes Simpson's-paradox-style masking when easy tasks are overrepresented. It also emits one summary per task × independence unit × operation, so repeated checkpoints inside one scene/seed remain grouped for paired analysis and cluster-aware resampling. It does not produce a single weighted “memory score”; any aggregate must be preregistered with explicit weights and should not hide a weak operation dimension.
+The module reports Storage, Update and Compression separately. It emits operation-wide micro rates and per-task rows, plus an equal-task macro fidelity/evidence-coverage rate over tasks with applicable cases. This exposes Simpson's-paradox-style masking when easy tasks are overrepresented. It also emits one summary per task × independence unit × operation, so repeated checkpoints inside one scene/seed remain grouped for paired analysis and cluster-aware resampling. It provides `compare_memory_operation_arms`, which only pairs arms with identical protocol, operation/query/task roster, evaluator, policy checkpoint and frozen control/resource manifest. It requires exact unit-roster and applicability equality, then emits per-unit deltas, average paired change and candidate/baseline win/tie counts. Only the memory-system identity may differ in this memory-only ablation. It does not calculate inferential confidence bounds or p-values; downstream analysis must resample the independent-unit rows, not the checkpoint rows. It does not produce a single weighted “memory score”; any aggregate must be preregistered with explicit weights and should not hide a weak operation dimension.
 
 Compression correctness is semantic: the evaluator specifies required information and checks an independent readback projection. The compressed bytes may differ from the source representation and still pass if the required facts are preserved. Byte reduction is measured separately by the compression ratio; latency is also separate. A compact but semantically lossy memory is incorrect, while a semantically faithful representation that happens to grow is correct but inefficient.
 
@@ -95,7 +95,7 @@ The auditor:
 - returns each case's source/effect/snapshot/evaluator lineage alongside the derived outcome;
 - reports operation-specific denominators, unresolved cases, compression ratio and latency measurement counts.
 
-The module checks digest shape and identity equality. It does not hash or authenticate files, prove that the evaluator is independent, validate the truth of a memory snapshot, or establish the benchmark's training/evaluation split. Those responsibilities belong to the native adapter and independent evidence process.
+The module checks digest shape and identity equality. Its paired comparison also checks that the control manifest pins the same task/scene/seed/split, embodiment, action executor and resource budget. It does not hash or authenticate files, prove that the evaluator is independent, validate the truth of a memory snapshot, or establish the benchmark's training/evaluation split. Those responsibilities belong to the native adapter and independent evidence process.
 
 ## 6. Benchmark experiment
 
@@ -126,7 +126,7 @@ Do not claim that a larger memory or higher storage rate is better unless it imp
 
 ## 7. Claim boundary and next steps
 
-The 27 tests in `memory_operations.rs` and 14 tests in `memobench_adapter.rs` are synthetic accounting/identity fixtures. They do not run MEMOBench, RoboMME, RoboCasa-Mem, HMAP, π0.5 or Symthaea; they do not demonstrate better memory performance or physical robotics capability.
+The 31 tests in `memory_operations.rs` and 14 tests in `memobench_adapter.rs` are synthetic accounting/identity fixtures. They do not run MEMOBench, RoboMME, RoboCasa-Mem, HMAP, π0.5 or Symthaea; they do not demonstrate better memory performance or physical robotics capability.
 
 The native MEMOBench typed schema bridge is now implemented in `memobench_adapter.rs`. It selects the upstream `operating_type[row][memory_level]` code, preserves the checkpoint/predicate/annotation digests, validates the complete task/checkpoint/episode roster, requires receipt-bound outcomes, and reports operation-stratified predicate completion separately from terminal task success. The bridge still needs a real JSON/HDF5 acquisition loader and a native simulator run; no benchmark results are claimed. Its license gate records the CC BY-NC 4.0 boundary and requires separate commercial permission plus a verification receipt for any commercial-development use.
 
