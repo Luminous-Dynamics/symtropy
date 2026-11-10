@@ -55,7 +55,7 @@ A vendor alert can be useful evidence without becoming a measurement or verified
 
 ## Conformance benchmark
 
-Each adapter is evaluated against a frozen, versioned corpus. Results are reported by dimension; there is no compensating aggregate score.
+Each adapter is evaluated against a frozen, versioned corpus. The current synthetic set contains 13 fixtures: seven accept, two abstain and four reject. Corpus-level temporal checks use the pinned evaluation_time; duplicate-sequence cases contain two records from the same source/asset/clock stream. Results are reported by dimension; there is no compensating aggregate score.
 
 | Track | Measurement | Hard negative control |
 |---|---|---|
