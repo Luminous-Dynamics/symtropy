@@ -198,11 +198,33 @@ Separate:
 - false, multipath, mixed-edge and invalid-return behaviour;
 - conditional measurement bias and dispersion when a return is valid;
 - completeness/point density and their spatial distribution;
+- stochastic measurement/registration covariance;
+- bounded systematic effects that persist after calibration or correction;
 - propagated uncertainty for an explicitly named geometric or change metric.
 
-Keep reference metrology uncertainty in the evaluation. Separate calibration/tuning captures from group-held-out test captures by target and survey session. Correlated points and views from one acquisition are not independent calibration samples. A profile that has not been tested on a material, range or condition is out-of-domain, not implicitly qualified.
+### Stochastic uncertainty and bounded systematic effects
 
-Use established instrument field-testing and metrology methods as references. Do not claim that this experiment replaces ISO 17123 procedures, an accredited calibration laboratory or competent survey practice.
+Do not represent all uncertainty as one covariance or one confidence scalar.
+
+Keep two complementary quantities:
+- **Stochastic component:** standard uncertainty/covariance with its distributional assumptions, coverage factor/probability and correlation structure. Consume #1607's qualified metrology and transform/covariance outputs.
+- **Systematic component:** an interval or conservative bound for persistent effects whose sign/distribution is not defensibly modeled as random. Bind the bound to its instrument/profile/condition and calibration evidence.
+
+For the one-dimensional synthetic P0 measurand, the conservative task bound is (k u + b), where (u) is standard uncertainty, (k) is the declared coverage factor and (b) is the separately evidenced systematic-error bound. Do not root-sum-square these terms unless a supported probabilistic model demonstrates the required independence and distribution assumptions. The P0 rule is intentionally simpler than a full interval-adjusted network or surface estimator.
+
+The 2026 Naeimaei–Schön ISPRS work is a strong P1 reference: it propagates bounded influence-parameter deviations to TLS observation-level interval radii, maps them through interval-extended least squares, and retains stochastic covariance alongside conservative parameter/residual bounds. Its two-face validation strategy estimates model parameters from Face 1, freezes them, then tests the corresponding Face 2 observations so persistent effects cannot be absorbed by refitting. It was demonstrated on the Bonn reference wall; the authors report interval bounds generally enclosing averaged face-combined residuals and identify geometry, registration and surface interactions as extensions to the instrument-only budget. [ISPRS Annals (3 July 2026)](https://doi.org/10.5194/isprs-annals-XI-1-2026-391-2026).
+
+Luminous P1 should reproduce this two-face idea where the instrument supports it: fit/adjust only on the calibration face/session, freeze parameters, evaluate held-out face/session residuals, and compare those residuals with independently propagated deterministic bounds. Then add geometry, registration and surface-interaction terms as separately qualified sources. A residual outside its claimed interval invalidates that bound/profile for the stratum; it must not be hidden by refitting on the evaluation observations.
+
+Keep reference metrology uncertainty in the evaluation. Separate calibration/tuning captures from group-held-out test captures by physical target and survey session. Correlated points and views from one acquisition are not independent calibration samples. A profile that has not been tested on a material, range, incidence or condition is out-of-domain, not implicitly qualified.
+
+### Standards boundary
+
+As of 10 November 2026, ISO 17123-9:2018 remains the published standard, but ISO/CD 17123-9 Edition 2 is under committee review (CD registered 11 August 2026) and is intended to replace it. Its stated purpose is field verification of TLS precision/repeatability for an immediate task; ISO explicitly says these procedures are not comprehensive instrument acceptance or performance evaluations. Use it as one repeatability component of P1, not the complete calibration/accuracy/uncertainty qualification. [ISO/CD 17123-9 project](https://www.iso.org/standard/91344.html) · [Published ISO 17123-9:2018](https://www.iso.org/standard/68382.html).
+
+NISTIR 6922 remains a useful experimental design anchor: its TLS/LADAR experiments considered distance, incidence angle and target characteristics, and reported reduced measurement accuracy at higher incidence angles plus reflectivity-dependent errors at different ranges. [NIST publication](https://www.nist.gov/publications/calibration-experiments-laser-scanner).
+
+Use established instrument field-testing and metrology methods as references. Do not claim that this experiment replaces an accredited calibration laboratory, a competent surveyor or project-specific acceptance procedures.
 
 ## 8. P2 task-conditioned qualification
 
@@ -227,7 +249,7 @@ Report these tracks independently:
 |---|---|
 | Visibility | Oracle agreement; false-observable rate; unknown/contradictory area |
 | Detection | Valid-return frequency; false/multipath/invalid return rates by stratum |
-| Metrology | Bias, repeatability, error distributions and independent-checkpoint residuals |
+| Metrology | Bias, repeatability, stochastic covariance and independent-checkpoint residuals |
 | Uncertainty | Empirical interval coverage, interval width and group-wise calibration |
 | Robustness | Out-of-domain detection, abstention and false qualification |
 | Decision | Task-specific pass/fail/unresolved; false acceptance and false rejection |
@@ -244,7 +266,7 @@ Report these tracks independently:
 
 First reproduce a sensor-specific baseline. Then pre-register calibration/test group splits, the nominal interval coverage (for example, 90% and 95% where appropriate), acceptable interval width per task, detection-rate strata, false-qualified rate and sample-size rationale.
 
-Report interval coverage and width together, confidence intervals, target/session counts, all exclusions and failures. Do not use one aggregate expected-calibration-error statistic as proof of metrological calibration. No numeric improvement claim is allowed until an equivalent baseline has been reproduced with matched hardware, settings, targets, environment, reference uncertainty and compute.
+Report stochastic interval coverage and width together, deterministic bound-containment rate and bound width separately, confidence intervals, target/session counts, all exclusions and failures. Do not use one aggregate expected-calibration-error statistic as proof of metrological calibration. A deterministic interval is not a probability interval; do not attach nominal 95% coverage language to it. No numeric improvement claim is allowed until an equivalent baseline has been reproduced with matched hardware, settings, targets, environment, reference uncertainty and compute.
 
 ## 10. Next-best-view research
 
@@ -259,7 +281,9 @@ The best next capture is the one that most efficiently resolves an important dec
 
 ## 11. External baselines and standards
 
-- **NISTIR 6922 (2002):** scanner calibration experiments identify incidence and reflectivity as error contributors. [NIST publication](https://www.nist.gov/publications/calibration-experiments-laser-scanner).
+- **NISTIR 6922 (2002):** scanner experiments identify range, incidence angle and target reflectivity as relevant variables; higher incidence and reflectivity/range interactions can contribute to error. [NIST publication](https://www.nist.gov/publications/calibration-experiments-laser-scanner).
+- **Naeimaei & Schön (ISPRS Annals, 3 July 2026):** complementary interval-based uncertainty propagation for TLS, retaining stochastic covariance and a two-face residual validation strategy. [Paper](https://doi.org/10.5194/isprs-annals-XI-1-2026-391-2026).
+- **ISO 17123-9:** published 2018 field repeatability procedure; Edition 2 is a 2026 committee draft under development and is not a final standard. These field tests are one component, not a comprehensive instrument acceptance/performance evaluation. [ISO/CD 17123-9](https://www.iso.org/standard/91344.html).
 - **Winiwarter et al. (2020):** empirical TLS ranging uncertainty model for change detection; surface response and geometry affect level-of-detection. [ISPRS Annals paper](https://doi.org/10.5194/isprs-annals-V-2-2020-789-2020).
 - **Malihi (2026):** uncertainty-aware digital twins link calibration and benchmark residuals to lifecycle/LoD and decision tolerance. [Accepted manuscript](https://www.repository.cam.ac.uk/items/544ba1bf-d49e-437a-98bf-e10610424346).
 - **Wang et al. (16 October 2026):** representation-centred Scan-to-BIM review highlights loss of measurement support, identity, relationships, uncertainty and edit history across transformations. [Buildings 16(20), 4095](https://doi.org/10.3390/buildings16204095).
