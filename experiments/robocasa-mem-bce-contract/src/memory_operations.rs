@@ -60,6 +60,8 @@ pub struct MemoryOperationManifest {
     pub memory_system_sha256: String,
     pub evaluator_sha256: String,
     pub query_roster_sha256: String,
+    /// Frozen task/scene/seed/split, embodiment, action executor and resource-budget identity.
+    pub control_manifest_sha256: String,
     pub expected_case_count: usize,
     /// Complete task roster for this operation-level evaluation cohort.
     pub expected_task_ids: Vec<String>,
@@ -85,6 +87,7 @@ pub struct MemoryOperationReceipt {
     pub memory_system_sha256: String,
     pub evaluator_sha256: String,
     pub query_roster_sha256: String,
+    pub control_manifest_sha256: String,
     pub observed_source_event_sha256: Option<String>,
     pub observed_query_sha256: Option<String>,
     /// Evaluator-derived semantic readback digest; for Compression this is
@@ -120,6 +123,14 @@ pub enum MemoryOperationError {
     ReceiptForNotApplicableCase,
     ReceiptIdentityMismatch,
     ReceiptContextMismatch,
+    ComparisonProtocolMismatch,
+    ComparisonOperationRosterMismatch,
+    ComparisonQueryRosterMismatch,
+    ComparisonControlManifestMismatch,
+    ComparisonPolicyArtifactMismatch,
+    ComparisonTaskRosterMismatch,
+    ComparisonApplicabilityMismatch,
+    ComparisonUnitRosterMismatch,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -196,6 +207,7 @@ pub struct MemoryOperationAudit {
     pub memory_system_sha256: String,
     pub evaluator_sha256: String,
     pub query_roster_sha256: String,
+    pub control_manifest_sha256: String,
     pub expected_case_count: usize,
     pub receipt_count: usize,
     pub results: Vec<MemoryOperationCaseResult>,
@@ -509,6 +521,7 @@ pub fn audit_memory_operations(
         memory_system_sha256: manifest.memory_system_sha256.clone(),
         evaluator_sha256: manifest.evaluator_sha256.clone(),
         query_roster_sha256: manifest.query_roster_sha256.clone(),
+        control_manifest_sha256: manifest.control_manifest_sha256.clone(),
         expected_case_count: manifest.expected_case_count,
         receipt_count: receipts.len(),
         results,
@@ -534,6 +547,7 @@ fn validate_manifest(
         manifest.memory_system_sha256.as_str(),
         manifest.evaluator_sha256.as_str(),
         manifest.query_roster_sha256.as_str(),
+        manifest.control_manifest_sha256.as_str(),
     ] {
         if !is_sha256_hex(digest) {
             return Err(MemoryOperationError::InvalidDigest);
@@ -628,6 +642,7 @@ fn validate_receipt_digests(
         Some(receipt.memory_system_sha256.as_str()),
         Some(receipt.evaluator_sha256.as_str()),
         Some(receipt.query_roster_sha256.as_str()),
+        Some(receipt.control_manifest_sha256.as_str()),
         receipt.observed_source_event_sha256.as_deref(),
         receipt.observed_query_sha256.as_deref(),
         receipt.observed_effect_sha256.as_deref(),
@@ -656,6 +671,7 @@ fn validate_receipt_identity(
         || receipt.memory_system_sha256 != manifest.memory_system_sha256
         || receipt.evaluator_sha256 != manifest.evaluator_sha256
         || receipt.query_roster_sha256 != manifest.query_roster_sha256
+        || receipt.control_manifest_sha256 != manifest.control_manifest_sha256
     {
         return Err(MemoryOperationError::ReceiptContextMismatch);
     }
@@ -743,6 +759,7 @@ mod tests {
             memory_system_sha256: digest("5"),
             evaluator_sha256: digest("6"),
             query_roster_sha256: digest("7"),
+            control_manifest_sha256: digest("8"),
             expected_case_count: cases.len(),
             expected_task_ids: {
                 let tasks = cases.iter().map(|case| case.task_id.clone()).collect::<BTreeSet<_>>();
@@ -766,6 +783,7 @@ mod tests {
             memory_system_sha256: digest("5"),
             evaluator_sha256: digest("6"),
             query_roster_sha256: digest("7"),
+            control_manifest_sha256: digest("8"),
             observed_source_event_sha256: Some(case.source_event_sha256.clone()),
             observed_query_sha256: Some(case.query_sha256.clone()),
             observed_effect_sha256: case.expected_effect_sha256.clone(),
