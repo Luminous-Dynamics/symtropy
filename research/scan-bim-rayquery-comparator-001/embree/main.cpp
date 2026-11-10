@@ -215,7 +215,7 @@ Fixture load_fixture(const std::string& path, const std::string& workload_overri
   const std::set<std::string> supported_workloads{
       "analytic_known_answer", "sparse_separated", "dense_overlap", "corridor_room",
       "long_thin", "high_tessellation", "licensed_building", "unknown"};
-  if (fixture.fixture_id.empty() || !supported_workloads.contains(fixture.workload_class)) {
+  if (fixture.fixture_id.empty() || supported_workloads.find(fixture.workload_class) == supported_workloads.end()) {
     throw std::runtime_error("fixture identity or workload class is unsupported");
   }
   fixture.intersection_epsilon = contract.at("intersection_epsilon_m").get<double>();
@@ -313,7 +313,7 @@ Fixture load_fixture(const std::string& path, const std::string& workload_overri
         item.at("exclude_target").at(0).get<std::string>(),
         item.at("exclude_target").at(1).get<std::string>()
       };
-      if (!identities.contains(*ray.exclude)) {
+      if (identities.find(*ray.exclude) == identities.end()) {
         throw std::runtime_error("ray exclusion identity is absent from the triangle inventory");
       }
     }
@@ -335,7 +335,7 @@ Fixture load_fixture(const std::string& path, const std::string& workload_overri
     std::set<Identity> expected_hit_ids;
     for (const auto& hit : expected.at("nearest_hits")) {
       Identity identity{hit.at(0).get<std::string>(), hit.at(1).get<std::string>()};
-      if (!identities.contains(identity) || !expected_hit_ids.insert(identity).second) {
+      if (identities.find(identity) == identities.end() || !expected_hit_ids.insert(identity).second) {
         throw std::runtime_error("expected hit identity is absent or duplicated");
       }
       ray.expected.nearest_hits.push_back(std::move(identity));
