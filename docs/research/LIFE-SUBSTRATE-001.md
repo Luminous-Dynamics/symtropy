@@ -783,3 +783,28 @@ Every defense receives the same attack budget. Also report whether the defense m
 - A Symthaea red-team implementation issue is open as #11451.
 - No Avida reproduction, life-detection attack, py-GC-MS spoof test, or model defense result has yet been executed by Luminous.
 - A successful software benchmark demonstrates robustness only against its declared generators, attacks, query budgets and validators. It cannot establish universal OOD safety, detection of natural life, or consciousness.
+
+
+## 20. Benchmark comparability manifest: target × protocol × metric × data
+
+A useful external methodology check is Zhang et al., *A Survey of World Model Benchmarks* (2026 manuscript snapshot; 130 representative benchmarks coded, corpus checked 18 October 2026 and finalized 8 November 2026): https://world-model-benchmarks.github.io/ and https://doi.org/10.20944/preprints202609.0665.v2.
+
+The survey argues that benchmark claims need at least four coordinates:
+1. **Evaluation target:** the capability/property being evaluated.
+2. **Evaluation protocol:** open-loop, closed-loop, or both.
+3. **Metric family:** direct output metrics vs downstream functional/reliability metrics.
+4. **Evaluation data:** real collection, simulation, curation, or hybrid.
+
+OLI should adopt this reporting discipline while adding an additional **evidence-class / source-rights** field required by the astrobiology domain.
+
+Every published result must therefore declare:
+- target property / mechanism / downstream decision;
+- protocol (offline/open-loop prediction, intervention/closed-loop response, or both);
+- metric family (discrimination, calibration, causal identification, decision value, coverage, safety, functional utility, etc.);
+- data origin (measured physical, known-truth simulation, curated literature, synthetic unknown generator, or hybrid);
+- source identity, rights / licence, and independent unit of replication;
+- generator, sensor, site, regime and time holdout policy.
+
+The current OLI M0 validator is a schema/semantic contract only. Later benchmark execution should produce manifests that bind these coordinates so no synthetic closed-loop score is compared as if it were measured planetary evidence.
+
+This is especially important because the 2026 world-model survey finds that the field is moving beyond visual/temporal plausibility toward long-horizon memory and persistence, control fidelity, interactive dynamics and functional utility. OLI's equivalent move is from a static signature classifier toward causal property discrimination and evidence-to-experiment utility, while retaining the physical and epistemic boundaries above.
