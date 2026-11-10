@@ -5,7 +5,7 @@ use rayon::{ThreadPool, ThreadPoolBuilder};
 use std::hint::black_box;
 use symtropy_physics_env_layout::{AosoaLayout, AosLayout, SoaLayout};
 
-const SIZES: &[usize] = &[1_000, 100_000, 1_000_000];
+const SIZES: &[usize] = &[1_000, 10_000, 100_000, 1_000_000];
 const STEPS: usize = 20;
 const DT: f64 = 1.0 / 120.0;
 
