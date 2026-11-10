@@ -694,3 +694,5 @@ The next coordinated work packages are now open:
 - Mycelix [CIVOS-EVIDENCE-001 #5709](https://github.com/Luminous-Dynamics/mycelix/issues/5709): provenance/rights/consent adapter composition without a second evidence ledger.
 
 The immediate sequence is: correct and qualify M0; freeze the first abiotic generator family and its positive controls; wire those fixtures into Symthaea's existing adequacy and experiment-selection seams; then connect actual coverage and provenance. No physical experiment, contact, sampling or actuation is authorized by these software milestones.
+
+- Mycelix [OLI-ENTITY-REPRESENTATION-001 #6038](https://github.com/Luminous-Dynamics/mycelix/issues/6038): plural candidate-entity / collective references, contested boundary and continuity claims, scoped stewardship mandates and consent boundaries. It composes CIVOS-EVIDENCE-001 and explicitly prevents scientific classification from being promoted into identity, consent, legal status or governance authority.
