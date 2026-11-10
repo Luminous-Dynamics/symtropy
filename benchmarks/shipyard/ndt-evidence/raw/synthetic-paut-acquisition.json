@@ -1,0 +1,15 @@
+{
+  "acquisition_id": "SYNTH-NDT-ACQ-001",
+  "fixture_kind": "synthetic_fixture",
+  "inspection_id": "SYNTH-NDT-INSPECT-001",
+  "asset_id": "SYNTH-VESSEL-001",
+  "component_id": "SYNTH-BLOCK-017",
+  "serial_id": "SYNTH-SERIAL-017",
+  "joint_id": "SYNTH-JOINT-017-A",
+  "weld_region_id": "SYNTH-WELD-REGION-001",
+  "modality": "synthetic_paut",
+  "sample_count": 16,
+  "channels": 4,
+  "source_time_utc": "2026-11-10T03:30:00Z",
+  "note": "Synthetic metadata fixture; contains no physical NDT signal."
+}
