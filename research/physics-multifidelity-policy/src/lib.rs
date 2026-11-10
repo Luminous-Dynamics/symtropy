@@ -21,6 +21,7 @@ const CLAIM_CEILING: &str =
 #[serde(deny_unknown_fields)]
 pub struct PolicyInputV1 {
     pub schema_version: u32,
+    pub decision_risk: DecisionRisk,
     pub scenario_id: String,
     pub scenario_manifest_sha256: String,
     pub requirement: QuantityRequirement,
@@ -36,9 +37,14 @@ pub struct QuantityRequirement {
     pub reference_frame: String,
     pub max_residual_upper_bound: f64,
     pub max_uncertainty_upper_bound: f64,
-    /// If true, synthetic-only and unqualified candidates cannot be selected.
-    /// Analytic or independently validated evidence is still required.
-    pub require_independent_evidence: bool,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum DecisionRisk {
+    Exploratory,
+    EngineeringDecision,
+    SafetyCritical,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
@@ -59,6 +65,10 @@ pub struct ModelCandidate {
     pub scenario_mapping_sha256: String,
     pub semantic_equivalence: SemanticEquivalence,
     pub evidence_class: EvidenceClass,
+    /// Optional analytic/manufactured-solution anchor bound to its evidence receipt.
+    pub analytic_anchor_sha256: Option<String>,
+    /// Distinct independent validation receipts; syntax and uniqueness are checked here.
+    pub independent_validation_receipt_sha256s: Vec<String>,
     pub validity: ValidityDisposition,
     pub horizon_covered: bool,
     pub hard_constraints: HardConstraintDisposition,
@@ -106,6 +116,9 @@ pub enum HardConstraintDisposition {
 pub enum RejectionReason {
     SemanticMismatch,
     SemanticEquivalenceUnknown,
+    EvidenceRiskFloorNotMet,
+    AnalyticAnchorMissing,
+    InsufficientIndependentValidationPaths,
     EvidenceSyntheticOnly,
     EvidenceUnqualified,
     ValidityOutsideEnvelope,
@@ -144,6 +157,9 @@ pub enum PolicyDecision {
 pub enum AbstentionReason {
     NoCandidates,
     NoAdmissibleCandidate,
+    ObservedValidityEnvelopeExit,
+    ObservedHardConstraintViolation,
+    ObservedHardConstraintUnknown,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -165,6 +181,8 @@ pub struct RunObservation {
     pub model_id: String,
     /// Exact model passport selected by the policy for this run.
     pub model_passport_sha256: String,
+    /// Digest of the observation record produced by the measurement/replay owner.
+    pub observation_receipt_sha256: String,
     pub observed_residual: f64,
     pub observed_uncertainty: f64,
     pub validity_inside_envelope: bool,
@@ -176,16 +194,19 @@ pub struct RunObservation {
 pub enum MonitoringDecision {
     Continue {
         model_id: String,
+        observation_receipt_sha256: String,
     },
     Escalate {
         from_model_id: String,
         to_model_id: String,
         next_input_sha256: String,
+        observation_receipt_sha256: String,
     },
     Abstain {
         from_model_id: String,
         reason: AbstentionReason,
         trigger: MonitorTrigger,
+        observation_receipt_sha256: String,
     },
 }
 
@@ -210,6 +231,7 @@ pub enum PolicyError {
     ReceiptInputMismatch,
     ReceiptMismatch,
     ObservationInputMismatch,
+    ObservationReceiptInvalid,
     ObservationModelMismatch,
     ObservationPassportMismatch,
     SelectedModelMissing,
@@ -231,6 +253,7 @@ impl std::fmt::Display for PolicyError {
             Self::ReceiptInputMismatch => write!(f, "receipt does not bind the supplied input"),
             Self::ReceiptMismatch => write!(f, "receipt differs from the canonical evaluation of the input"),
             Self::ObservationInputMismatch => write!(f, "observation does not bind the supplied policy input"),
+            Self::ObservationReceiptInvalid => write!(f, "observation receipt digest is invalid"),
             Self::ObservationModelMismatch => {
                 write!(f, "observation model does not match the selected model")
             }
@@ -326,6 +349,11 @@ pub fn monitor(
     if observation.input_sha256 != expected_digest {
         return Err(PolicyError::ObservationInputMismatch);
     }
+    validate_sha256(
+        &observation.observation_receipt_sha256,
+        "observation.observation_receipt_sha256",
+    )
+    .map_err(|_| PolicyError::ObservationReceiptInvalid)?;
 
     let selected_id = match &receipt.decision {
         PolicyDecision::Selected { model_id, .. } => model_id,
@@ -355,35 +383,52 @@ pub fn monitor(
     validate_nonnegative_finite(observation.observed_residual, "observed_residual")?;
     validate_nonnegative_finite(observation.observed_uncertainty, "observed_uncertainty")?;
 
-    let trigger = if !observation.validity_inside_envelope {
-        Some(MonitorTrigger::ValidityEnvelopeExited)
+    // These are stop conditions, not ordinary fidelity-escalation signals.
+    // A hard-constraint problem or validity-domain exit requires a fresh
+    // state-bound admission; the old scenario receipt cannot authorize another
+    // model for a changed or unsafe state.
+    let stop = match observation.hard_constraints {
+        HardConstraintDisposition::Violated => Some((
+            AbstentionReason::ObservedHardConstraintViolation,
+            MonitorTrigger::HardConstraintViolation,
+        )),
+        HardConstraintDisposition::Unknown => Some((
+            AbstentionReason::ObservedHardConstraintUnknown,
+            MonitorTrigger::HardConstraintUnknown,
+        )),
+        HardConstraintDisposition::WithinBounds if !observation.validity_inside_envelope => Some((
+            AbstentionReason::ObservedValidityEnvelopeExit,
+            MonitorTrigger::ValidityEnvelopeExited,
+        )),
+        HardConstraintDisposition::WithinBounds => None,
+    };
+    if let Some((reason, trigger)) = stop {
+        return Ok(MonitoringDecision::Abstain {
+            from_model_id: selected_id.clone(),
+            reason,
+            trigger,
+            observation_receipt_sha256: observation.observation_receipt_sha256.clone(),
+        });
+    }
+
+    // Only quantitative residual/uncertainty excursions inside the declared
+    // validity domain may request escalation to a pre-admitted peer.
+    let trigger = if observation.observed_residual > selected.residual_upper_bound
+        || observation.observed_residual > input.requirement.max_residual_upper_bound
+    {
+        Some(MonitorTrigger::ResidualExceeded)
+    } else if observation.observed_uncertainty > selected.uncertainty_upper_bound
+        || observation.observed_uncertainty > input.requirement.max_uncertainty_upper_bound
+    {
+        Some(MonitorTrigger::UncertaintyExceeded)
     } else {
-        match observation.hard_constraints {
-            HardConstraintDisposition::Violated => Some(MonitorTrigger::HardConstraintViolation),
-            HardConstraintDisposition::Unknown => Some(MonitorTrigger::HardConstraintUnknown),
-            HardConstraintDisposition::WithinBounds => {
-                // The observed value must remain inside both the request's
-                // acceptance bound and the selected model's own declared bound.
-                if observation.observed_residual > selected.residual_upper_bound
-                    || observation.observed_residual
-                        > input.requirement.max_residual_upper_bound
-                {
-                    Some(MonitorTrigger::ResidualExceeded)
-                } else if observation.observed_uncertainty > selected.uncertainty_upper_bound
-                    || observation.observed_uncertainty
-                        > input.requirement.max_uncertainty_upper_bound
-                {
-                    Some(MonitorTrigger::UncertaintyExceeded)
-                } else {
-                    None
-                }
-            }
-        }
+        None
     };
 
     let Some(trigger) = trigger else {
         return Ok(MonitoringDecision::Continue {
             model_id: selected_id.clone(),
+            observation_receipt_sha256: observation.observation_receipt_sha256.clone(),
         });
     };
 
@@ -398,11 +443,13 @@ pub fn monitor(
             from_model_id: selected_id.clone(),
             to_model_id: model_id,
             next_input_sha256: next.input_sha256,
+            observation_receipt_sha256: observation.observation_receipt_sha256.clone(),
         }),
         PolicyDecision::Abstain { reason } => Ok(MonitoringDecision::Abstain {
             from_model_id: selected_id.clone(),
             reason,
             trigger,
+            observation_receipt_sha256: observation.observation_receipt_sha256.clone(),
         }),
     }
 }
@@ -439,6 +486,18 @@ fn validate_input(input: &PolicyInputV1) -> Result<(), PolicyError> {
         validate_sha256(&candidate.model_passport_sha256, "model_passport_sha256")?;
         validate_sha256(&candidate.capability_census_sha256, "capability_census_sha256")?;
         validate_sha256(&candidate.scenario_mapping_sha256, "scenario_mapping_sha256")?;
+        if let Some(anchor) = &candidate.analytic_anchor_sha256 {
+            validate_sha256(anchor, "candidate.analytic_anchor_sha256")?;
+        }
+        let mut validation_receipts = BTreeSet::new();
+        for digest in &candidate.independent_validation_receipt_sha256s {
+            validate_sha256(digest, "candidate.independent_validation_receipt_sha256s[]")?;
+            if !validation_receipts.insert(digest) {
+                return Err(PolicyError::InvalidSha256(
+                    "duplicate candidate independent validation receipt",
+                ));
+            }
+        }
         validate_nonnegative_finite(candidate.residual_upper_bound, "residual_upper_bound")?;
         validate_nonnegative_finite(
             candidate.uncertainty_upper_bound,
@@ -471,13 +530,35 @@ fn rejection_reasons(
         }
     }
 
-    match candidate.evidence_class {
-        EvidenceClass::AnalyticOracle | EvidenceClass::IndependentlyValidated => {}
-        EvidenceClass::SyntheticOnly if input.requirement.require_independent_evidence => {
-            reasons.push(RejectionReason::EvidenceSyntheticOnly)
+    match input.decision_risk {
+        DecisionRisk::Exploratory => match candidate.evidence_class {
+            EvidenceClass::AnalyticOracle
+            | EvidenceClass::IndependentlyValidated
+            | EvidenceClass::SyntheticOnly => {}
+            EvidenceClass::Unqualified => {
+                reasons.push(RejectionReason::EvidenceUnqualified)
+            }
+        },
+        DecisionRisk::EngineeringDecision => match candidate.evidence_class {
+            EvidenceClass::AnalyticOracle | EvidenceClass::IndependentlyValidated => {}
+            EvidenceClass::SyntheticOnly => {
+                reasons.push(RejectionReason::EvidenceSyntheticOnly)
+            }
+            EvidenceClass::Unqualified => {
+                reasons.push(RejectionReason::EvidenceUnqualified)
+            }
+        },
+        DecisionRisk::SafetyCritical => {
+            if candidate.evidence_class != EvidenceClass::IndependentlyValidated {
+                reasons.push(RejectionReason::EvidenceRiskFloorNotMet);
+            }
+            if candidate.analytic_anchor_sha256.is_none() {
+                reasons.push(RejectionReason::AnalyticAnchorMissing);
+            }
+            if candidate.independent_validation_receipt_sha256s.len() < 2 {
+                reasons.push(RejectionReason::InsufficientIndependentValidationPaths);
+            }
         }
-        EvidenceClass::SyntheticOnly => {}
-        EvidenceClass::Unqualified => reasons.push(RejectionReason::EvidenceUnqualified),
     }
 
     match candidate.validity {
@@ -583,6 +664,8 @@ mod tests {
             scenario_mapping_sha256: H3.to_owned(),
             semantic_equivalence: SemanticEquivalence::Matched,
             evidence_class: EvidenceClass::IndependentlyValidated,
+            analytic_anchor_sha256: None,
+            independent_validation_receipt_sha256s: vec![],
             validity: ValidityDisposition::InsideDeclaredEnvelope,
             horizon_covered: true,
             hard_constraints: HardConstraintDisposition::WithinBounds,
@@ -596,6 +679,7 @@ mod tests {
     fn input() -> PolicyInputV1 {
         PolicyInputV1 {
             schema_version: SCHEMA_VERSION,
+            decision_risk: DecisionRisk::EngineeringDecision,
             scenario_id: "rigid-contact-known-answer-01".to_owned(),
             scenario_manifest_sha256: H1.to_owned(),
             requirement: QuantityRequirement {
@@ -604,7 +688,6 @@ mod tests {
                 reference_frame: "world".to_owned(),
                 max_residual_upper_bound: 0.1,
                 max_uncertainty_upper_bound: 0.1,
-                require_independent_evidence: true,
             },
             budget: ResourceBudget {
                 max_p95_wall_time_us: 10_000,
@@ -673,7 +756,7 @@ mod tests {
         let mut data = input();
         data.candidates.truncate(1);
         data.candidates[0].evidence_class = EvidenceClass::SyntheticOnly;
-        data.requirement.require_independent_evidence = false;
+        data.decision_risk = DecisionRisk::Exploratory;
         let receipt = evaluate(&data).expect("synthetic exploration input");
         assert!(matches!(
             receipt.decision,
@@ -738,6 +821,7 @@ mod tests {
             input_sha256: receipt.input_sha256.clone(),
             model_id: "fast-qualified".to_owned(),
             model_passport_sha256: H1.to_owned(),
+            observation_receipt_sha256: H3.to_owned(),
             observed_residual: 0.005,
             observed_uncertainty: 0.01,
             validity_inside_envelope: true,
@@ -746,7 +830,8 @@ mod tests {
         assert_eq!(
             monitor(&data, &receipt, &observation).expect("monitor"),
             MonitoringDecision::Continue {
-                model_id: "fast-qualified".to_owned()
+                model_id: "fast-qualified".to_owned(),
+                observation_receipt_sha256: H3.to_owned(),
             }
         );
     }
@@ -759,6 +844,7 @@ mod tests {
             input_sha256: receipt.input_sha256.clone(),
             model_id: "fast-qualified".to_owned(),
             model_passport_sha256: H1.to_owned(),
+            observation_receipt_sha256: H3.to_owned(),
             observed_residual: 0.5,
             observed_uncertainty: 0.05,
             validity_inside_envelope: true,
@@ -769,6 +855,7 @@ mod tests {
             MonitoringDecision::Escalate {
                 from_model_id: "fast-qualified".to_owned(),
                 to_model_id: "slow-qualified".to_owned(),
+                observation_receipt_sha256: H3.to_owned(),
                 next_input_sha256: evaluate(&PolicyInputV1 {
                     candidates: vec![candidate("slow-qualified", 900, 2_000)],
                     ..data.clone()
@@ -788,6 +875,7 @@ mod tests {
             input_sha256: receipt.input_sha256.clone(),
             model_id: "slow-qualified".to_owned(),
             model_passport_sha256: H1.to_owned(),
+            observation_receipt_sha256: H3.to_owned(),
             observed_residual: 0.5,
             observed_uncertainty: 0.05,
             validity_inside_envelope: true,
@@ -799,6 +887,7 @@ mod tests {
                 from_model_id: "slow-qualified".to_owned(),
                 reason: AbstentionReason::NoCandidates,
                 trigger: MonitorTrigger::ResidualExceeded,
+                observation_receipt_sha256: H3.to_owned(),
             }
         );
     }
@@ -811,6 +900,7 @@ mod tests {
             input_sha256: receipt.input_sha256.clone(),
             model_id: "fast-qualified".to_owned(),
             model_passport_sha256: H1.to_owned(),
+            observation_receipt_sha256: H3.to_owned(),
             observed_residual: 0.05,
             observed_uncertainty: 0.01,
             validity_inside_envelope: true,
@@ -823,6 +913,7 @@ mod tests {
             MonitoringDecision::Escalate {
                 from_model_id: "fast-qualified".to_owned(),
                 to_model_id: "slow-qualified".to_owned(),
+                observation_receipt_sha256: H3.to_owned(),
                 next_input_sha256: evaluate(&PolicyInputV1 {
                     candidates: vec![candidate("slow-qualified", 900, 2_000)],
                     ..data.clone()
@@ -841,6 +932,7 @@ mod tests {
             input_sha256: receipt.input_sha256.clone(),
             model_id: "fast-qualified".to_owned(),
             model_passport_sha256: H1.to_owned(),
+            observation_receipt_sha256: H3.to_owned(),
             observed_residual: 0.005,
             observed_uncertainty: 0.01,
             validity_inside_envelope: true,
@@ -872,6 +964,7 @@ mod tests {
             input_sha256: receipt.input_sha256.clone(),
             model_id: "slow-qualified".to_owned(),
             model_passport_sha256: H1.to_owned(),
+            observation_receipt_sha256: H3.to_owned(),
             observed_residual: 0.005,
             observed_uncertainty: 0.01,
             validity_inside_envelope: true,
@@ -911,6 +1004,7 @@ mod tests {
             input_sha256: receipt.input_sha256.clone(),
             model_id: "fast-qualified".to_owned(),
             model_passport_sha256: H1.to_owned(),
+            observation_receipt_sha256: H3.to_owned(),
             observed_residual: f64::NAN,
             observed_uncertainty: 0.01,
             validity_inside_envelope: true,
