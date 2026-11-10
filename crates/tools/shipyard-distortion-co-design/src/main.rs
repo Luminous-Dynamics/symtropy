@@ -8,9 +8,15 @@ const BENCHMARK_ID: &str = "SHIPYARD-DISTORTION-CO-DESIGN-001";
 const SCHEMA_VERSION: &str = "0.1.0";
 const DEFAULT_CORPUS: &str = "benchmarks/shipyard/distortion-co-design/corpus-v0.1.json";
 const DEFAULT_SCHEMA: &str = "docs/tech/SHIPYARD_DISTORTION_CO_DESIGN_V0_1.schema.json";
-const DEFAULT_ENUMERABLE_CORPUS: &str = "benchmarks/shipyard/distortion-co-design/enumerable-oracle-v0.1.json";
-const DEFAULT_ENUMERABLE_SCHEMA: &str = "docs/tech/SHIPYARD_DISTORTION_CO_DESIGN_ENUMERABLE_ORACLE_V0_1.schema.json";
-const EXPECTED_ORACLE_OBJECTIVE_POLICY: &str = "Minimize all four integer objectives lexicographically only for stable serialization; Pareto dominance is componentwise across final_geometry_units, production_time_units, fixture_cost_units and robustness_risk_units. Lower is better for each synthetic objective.";
+const DEFAULT_ENUMERABLE_CORPUS: &str =
+    "benchmarks/shipyard/distortion-co-design/enumerable-oracle-v0.1.json";
+const DEFAULT_ENUMERABLE_SCHEMA: &str =
+    "docs/tech/SHIPYARD_DISTORTION_CO_DESIGN_ENUMERABLE_ORACLE_V0_1.schema.json";
+const EXPECTED_ORACLE_OBJECTIVE_POLICY: &str = concat!(
+    "Minimize all four integer objectives lexicographically only for stable serialization; ",
+    "Pareto dominance is componentwise across final_geometry_units, production_time_units, ",
+    "fixture_cost_units and robustness_risk_units. Lower is better for each synthetic objective."
+);
 
 #[derive(Debug, PartialEq, Eq)]
 struct Summary {
@@ -416,7 +422,10 @@ fn enumerate_oracle_case(case: &Value) -> Result<(usize, Vec<String>), String> {
         let mut task_geometry = 0i64;
         let mut task_risk = 0i64;
         for task_id in &sequence {
-            let (duration, geometry, risk) = task_metrics[task_id];
+            let (duration, geometry, risk) = task_metrics
+                .get(task_id)
+                .copied()
+                .ok_or_else(|| format!("{case_id}: sequence references an unknown task"))?;
             task_duration = add_checked(task_duration, duration)?;
             task_geometry = add_checked(task_geometry, geometry)?;
             task_risk = add_checked(task_risk, risk)?;
@@ -505,7 +514,10 @@ fn validate_enumerable_oracle(
         errors.push("enumerable oracle schema must reject undeclared root fields".to_owned());
     }
     if str_at(&corpus, "objective_policy") != Some(EXPECTED_ORACLE_OBJECTIVE_POLICY) {
-        errors.push("enumerable oracle objective policy does not match the frozen lower-is-better vector".to_owned());
+        errors.push(
+            "enumerable oracle objective policy does not match the frozen lower-is-better vector"
+                .to_owned(),
+        );
     }
     if str_at(&corpus, "schema_version") != Some("0.1.0") {
         errors.push("enumerable oracle schema version must be 0.1.0".to_owned());
@@ -692,7 +704,10 @@ fn main() -> ExitCode {
     };
     if args.next().is_some() {
         eprintln!(
-            "usage: shipyard-distortion-co-design [CORPUS_PATH] [SCHEMA_PATH] | --oracle [ORACLE_CORPUS] [ORACLE_SCHEMA]"
+            concat!(
+                "usage: shipyard-distortion-co-design [CORPUS_PATH] [SCHEMA_PATH] | ",
+                "--oracle [ORACLE_CORPUS] [ORACLE_SCHEMA]"
+            )
         );
         return ExitCode::from(2);
     }
@@ -716,7 +731,10 @@ fn main() -> ExitCode {
         return match validate_enumerable_oracle(&schema_text, &corpus_text) {
             Ok(summary) => {
                 println!(
-                    "PASS: exhaustively enumerated {cases} toy cases, {feasible} feasible plans and {pareto} Pareto plans; symbolic objectives only",
+                    concat!(
+                        "PASS: exhaustively enumerated {cases} toy cases, {feasible} feasible plans ",
+                        "and {pareto} Pareto plans; symbolic objectives only"
+                    ),
                     cases = summary.cases,
                     feasible = summary.feasible_plans,
                     pareto = summary.pareto_plans
@@ -767,10 +785,12 @@ mod tests {
         serde_json::from_str(CORPUS_TEXT).expect("corpus must parse")
     }
 
-    const ORACLE_SCHEMA_TEXT: &str =
-        include_str!("../../../../docs/tech/SHIPYARD_DISTORTION_CO_DESIGN_ENUMERABLE_ORACLE_V0_1.schema.json");
-    const ORACLE_CORPUS_TEXT: &str =
-        include_str!("../../../../benchmarks/shipyard/distortion-co-design/enumerable-oracle-v0.1.json");
+    const ORACLE_SCHEMA_TEXT: &str = include_str!(
+        "../../../../docs/tech/SHIPYARD_DISTORTION_CO_DESIGN_ENUMERABLE_ORACLE_V0_1.schema.json"
+    );
+    const ORACLE_CORPUS_TEXT: &str = include_str!(
+        "../../../../benchmarks/shipyard/distortion-co-design/enumerable-oracle-v0.1.json"
+    );
 
     #[test]
     fn exhaustive_oracle_matches_frozen_counts_and_pareto_sets() {
@@ -784,6 +804,18 @@ mod tests {
                 pareto_plans: 15,
             }
         );
+    }
+
+    #[test]
+    fn exhaustive_oracle_rejects_missing_fixture_approval_state() {
+        let mut corpus: Value =
+            serde_json::from_str(ORACLE_CORPUS_TEXT).expect("oracle corpus must parse");
+        corpus["cases"][0]["fixtures"][0]
+            .as_object_mut()
+            .expect("fixture object")
+            .remove("approved");
+        let serialized = serde_json::to_string(&corpus).expect("serialize oracle mutation");
+        assert!(validate_enumerable_oracle(ORACLE_SCHEMA_TEXT, &serialized).is_err());
     }
 
     #[test]
