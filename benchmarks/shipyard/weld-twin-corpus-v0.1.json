@@ -105,7 +105,7 @@
           "program_revision": "PROGRAM-REV-07",
           "parameter_envelope_ref": "SYNTH-ENVELOPE-017",
           "process_trace_ref": "benchmarks/shipyard/weld-twin-traces/root-pass.json",
-          "process_trace_sha256": "7c71e5c673d4689c2e6e50d224aed4bef9016f3e7d6bf46191ab815b29268757",
+          "process_trace_sha256": "9a729447616ff0714809b64fe8798bfa73e73430cd338e1d067ed944dcf4a13d",
           "evidence_class": "synthetic_fixture",
           "observed_envelope_status": "within_declared_envelope",
           "source_time_utc": "2026-11-10T03:00:00Z",
@@ -124,7 +124,7 @@
           "program_revision": "PROGRAM-REV-07",
           "parameter_envelope_ref": "SYNTH-ENVELOPE-017",
           "process_trace_ref": "benchmarks/shipyard/weld-twin-traces/fill-pass.json",
-          "process_trace_sha256": "2cde43207c36d45a4c41665ea5cd1c5a886e53b64e77a128851ca274f928c449",
+          "process_trace_sha256": "98d21e63a120df16db7a130f5685925e2ef3e1f967f1aad45485befe5b556900",
           "evidence_class": "synthetic_fixture",
           "observed_envelope_status": "within_declared_envelope",
           "source_time_utc": "2026-11-10T03:10:00Z",
@@ -143,7 +143,7 @@
           "program_revision": "PROGRAM-REV-07",
           "parameter_envelope_ref": "SYNTH-ENVELOPE-017",
           "process_trace_ref": "benchmarks/shipyard/weld-twin-traces/cap-pass.json",
-          "process_trace_sha256": "faedff2b3ba982c9a8695126272d92bc8fb343fa4753ff1b3206f3d58389334b",
+          "process_trace_sha256": "b143b396f00a589e1d12773d984fea6c2a90ac6d95ddbccaec768b74fda31021",
           "evidence_class": "synthetic_fixture",
           "observed_envelope_status": "within_declared_envelope",
           "source_time_utc": "2026-11-10T03:20:00Z",
@@ -781,7 +781,7 @@
         {
           "path": "passes.1.process_trace_sha256",
           "op": "set",
-          "value": "a316e2fe095eb364989fb6a3b30ac23b4256d5e1b68c7b0dd953d23e9053651d"
+          "value": "9a729447616ff0714809b64fe8798bfa73e73430cd338e1d067ed944dcf4a13d"
         }
       ],
       "expected_code": "PROCESS_TRACE_SUBJECT_MISMATCH"
@@ -959,6 +959,32 @@
         }
       ],
       "expected_code": "WELD_TRACE_VALID_SYNTHETIC_ONLY"
+    },
+    {
+      "id": "pass_material_heat_lot_mismatch",
+      "base": "valid_robotic_weld",
+      "mutations": [
+        {
+          "path": "passes.1.material_heat_lot",
+          "op": "set",
+          "value": "SYNTH-HEAT-999"
+        }
+      ],
+      "expected_code": "MATERIAL_LOT_MISMATCH"
+    },
+    {
+      "id": "procedure_material_heat_lot_not_qualified",
+      "base": "valid_robotic_weld",
+      "mutations": [
+        {
+          "path": "procedure.qualified_material_heat_lots",
+          "op": "set",
+          "value": [
+            "SYNTH-HEAT-999"
+          ]
+        }
+      ],
+      "expected_code": "MATERIAL_LOT_NOT_QUALIFIED"
     }
   ]
 }
