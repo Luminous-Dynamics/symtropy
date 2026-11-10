@@ -1,0 +1,402 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BAM Tandem-GMAW metadata-only admission manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "source_record",
+    "rights_gate",
+    "experiment_design",
+    "claim_ceiling",
+    "workpieces",
+    "controls"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "benchmark_id": {
+      "const": "SHIPYARD-TANDEM-GMAW-DATA-ADMISSION-001"
+    },
+    "source_record": {
+      "$ref": "#/$defs/source_record"
+    },
+    "rights_gate": {
+      "$ref": "#/$defs/rights_gate"
+    },
+    "experiment_design": {
+      "$ref": "#/$defs/design"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 40
+    },
+    "workpieces": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "items": {
+        "$ref": "#/$defs/workpiece"
+      }
+    },
+    "controls": {
+      "type": "array",
+      "minItems": 31,
+      "maxItems": 31,
+      "items": {
+        "$ref": "#/$defs/control"
+      }
+    }
+  },
+  "$defs": {
+    "source_record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "doi",
+        "record_url",
+        "version",
+        "published_on",
+        "modified_on",
+        "publisher",
+        "dataset_open_badge",
+        "license_field",
+        "rights_notice",
+        "reported_archive_size_gb",
+        "raw_files_downloaded",
+        "raw_files_vendored"
+      ],
+      "properties": {
+        "doi": {
+          "const": "10.5281/zenodo.21824586"
+        },
+        "record_url": {
+          "const": "https://zenodo.org/records/21824586"
+        },
+        "version": {
+          "const": "2.0.0"
+        },
+        "published_on": {
+          "const": "2026-08-07"
+        },
+        "modified_on": {
+          "const": "2026-08-10"
+        },
+        "publisher": {
+          "const": "Bundesanstalt für Materialforschung und -prüfung"
+        },
+        "dataset_open_badge": {
+          "const": true
+        },
+        "license_field": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "rights_notice": {
+          "const": "Copyright (C) 2026 The Authors."
+        },
+        "reported_archive_size_gb": {
+          "type": "number",
+          "const": 4.5
+        },
+        "raw_files_downloaded": {
+          "const": false
+        },
+        "raw_files_vendored": {
+          "const": false
+        }
+      }
+    },
+    "rights_gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "permission_text_recorded",
+        "redistribution_allowed",
+        "derivative_publication_allowed",
+        "model_training_allowed",
+        "raw_data_scoring_allowed"
+      ],
+      "properties": {
+        "status": {
+          "const": "RIGHTS_PENDING"
+        },
+        "permission_text_recorded": {
+          "const": false
+        },
+        "redistribution_allowed": {
+          "const": false
+        },
+        "derivative_publication_allowed": {
+          "const": false
+        },
+        "model_training_allowed": {
+          "const": false
+        },
+        "raw_data_scoring_allowed": {
+          "const": false
+        }
+      }
+    },
+    "design": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workpiece_count",
+        "layers_per_workpiece",
+        "layer_row_count",
+        "independent_unit",
+        "split_group",
+        "random_layer_split_allowed",
+        "mode_causal_claim_allowed",
+        "material",
+        "wire",
+        "plate_thickness_mm",
+        "groove_opening_deg_approx",
+        "root_layer",
+        "tandem_layers",
+        "mode_groups"
+      ],
+      "properties": {
+        "workpiece_count": {
+          "const": 5
+        },
+        "layers_per_workpiece": {
+          "const": 6
+        },
+        "layer_row_count": {
+          "const": 30
+        },
+        "independent_unit": {
+          "const": "workpiece"
+        },
+        "split_group": {
+          "const": "workpiece_id"
+        },
+        "random_layer_split_allowed": {
+          "const": false
+        },
+        "mode_causal_claim_allowed": {
+          "const": false
+        },
+        "material": {
+          "const": "S355J2+N"
+        },
+        "wire": {
+          "const": "ER70S-6"
+        },
+        "plate_thickness_mm": {
+          "const": 30
+        },
+        "groove_opening_deg_approx": {
+          "const": 50
+        },
+        "root_layer": {
+          "const": "L1 single_wire"
+        },
+        "tandem_layers": {
+          "const": "L2-L6"
+        },
+        "mode_groups": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "PMC+CMT",
+            "PMC+PMC",
+            "CMT+CMT"
+          ],
+          "properties": {
+            "PMC+CMT": {
+              "const": [
+                "WID615",
+                "WID632"
+              ]
+            },
+            "PMC+PMC": {
+              "const": [
+                "WID617",
+                "WID631"
+              ]
+            },
+            "CMT+CMT": {
+              "const": [
+                "WID630"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "t85": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "value_ingestion_status",
+        "raw_value",
+        "source_declared_unit",
+        "semantic_definition_status"
+      ],
+      "properties": {
+        "value_ingestion_status": {
+          "const": "NOT_INGESTED"
+        },
+        "raw_value": {
+          "type": "null"
+        },
+        "source_declared_unit": {
+          "const": "s"
+        },
+        "semantic_definition_status": {
+          "const": "UNRESOLVED"
+        }
+      }
+    },
+    "workpiece": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workpiece_id",
+        "tandem_mode",
+        "layers"
+      ],
+      "properties": {
+        "workpiece_id": {
+          "enum": [
+            "WID615",
+            "WID617",
+            "WID630",
+            "WID631",
+            "WID632"
+          ]
+        },
+        "tandem_mode": {
+          "enum": [
+            "PMC+CMT",
+            "PMC+PMC",
+            "CMT+CMT"
+          ]
+        },
+        "layers": {
+          "type": "array",
+          "minItems": 6,
+          "maxItems": 6,
+          "items": {
+            "$ref": "#/$defs/layer"
+          }
+        }
+      }
+    },
+    "layer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "layer_id",
+        "layer_order",
+        "layer_class",
+        "expected_artifact_roles",
+        "t85_field"
+      ],
+      "properties": {
+        "layer_id": {
+          "enum": [
+            "L1",
+            "L2",
+            "L3",
+            "L4",
+            "L5",
+            "L6"
+          ]
+        },
+        "layer_order": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 6
+        },
+        "layer_class": {
+          "enum": [
+            "single_wire_root",
+            "tandem"
+          ]
+        },
+        "expected_artifact_roles": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "robot_motion",
+              "process_voltage_current",
+              "power_source_leading",
+              "power_source_trailing",
+              "scan_pre",
+              "scan_post",
+              "video"
+            ]
+          }
+        },
+        "t85_field": {
+          "$ref": "#/$defs/t85"
+        }
+      }
+    },
+    "control": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "control_id",
+        "class",
+        "expected_disposition",
+        "mutation",
+        "rationale"
+      ],
+      "properties": {
+        "control_id": {
+          "type": "string",
+          "pattern": "^TGMAW-[0-9]{3}$"
+        },
+        "class": {
+          "enum": [
+            "positive_contract_control",
+            "negative_control"
+          ]
+        },
+        "expected_disposition": {
+          "enum": [
+            "METADATA_ONLY_ADMISSION_VALID",
+            "BLOCK_RIGHTS",
+            "BLOCK_SOURCE_IDENTITY",
+            "BLOCK_SOURCE_INTEGRITY",
+            "BLOCK_LAYER_TOPOLOGY",
+            "BLOCK_LAYER_SEMANTICS",
+            "BLOCK_ARTIFACT_ROLES",
+            "BLOCK_T85_MISSINGNESS",
+            "BLOCK_T85_SEMANTICS",
+            "BLOCK_TIMEBASE",
+            "BLOCK_VIDEO_COMPARABILITY",
+            "BLOCK_SCAN_SEMANTICS",
+            "BLOCK_SCAN_GEOMETRY",
+            "BLOCK_SPLIT_LEAKAGE",
+            "BLOCK_SAMPLE_INDEPENDENCE",
+            "BLOCK_CAUSAL_CLAIM",
+            "BLOCK_CLAIM_PROMOTION",
+            "BLOCK_DERIVATION_PROVENANCE",
+            "BLOCK_EVIDENCE_CLASS",
+            "BLOCK_STATISTICAL_SCOPE"
+          ]
+        },
+        "mutation": {
+          "type": "string",
+          "minLength": 10
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 10
+        }
+      }
+    }
+  }
+}
