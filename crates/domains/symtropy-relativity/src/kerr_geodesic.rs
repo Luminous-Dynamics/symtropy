@@ -273,9 +273,11 @@ impl KerrNullConstants {
     }
 }
 
-/// Coordinates for the separated Kerr null-geodesic reference.
+/// Coordinates for a separated Kerr null-geodesic state.
 ///
-/// Coordinates are dimensionless: [ct/M, r/M, theta, phi].
+/// Coordinates are dimensionless. The coordinate-time and azimuth slots are
+/// [ct/M,phi] in Boyer-Lindquist mode and [v/M,phi_tilde] in ingoing Kerr mode;
+/// the trajectory's coordinate_chart records which interpretation applies.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct KerrMinoState {
     pub time_over_m: f64,
@@ -518,7 +520,7 @@ pub enum KerrGeodesicError {
     },
     NegativeKillingEnergy(f64),
     NoRegularIngoingBranch {
-        p_plus: f64,
+        radial_denominator: f64,
     },
 }
 
@@ -592,9 +594,9 @@ impl fmt::Display for KerrGeodesicError {
                 f,
                 "future-directed local photon has non-positive Killing energy at infinity: {value}"
             ),
-            Self::NoRegularIngoingBranch { p_plus } => write!(
+            Self::NoRegularIngoingBranch { radial_denominator } => write!(
                 f,
-                "future-ingoing Kerr chart requires P+sqrt(R)>0, got {p_plus}"
+                "Kerr ingoing chart requires a positive regularized radial denominator, got {radial_denominator}"
             ),
         }
     }
@@ -852,13 +854,13 @@ impl KerrSeparatedNullGeodesic {
         let ratio = if radial_velocity <= 0.0 {
             let denominator = p - radial_velocity;
             if !denominator.is_finite() || denominator <= 0.0 {
-                return Err(KerrGeodesicError::NoRegularIngoingBranch { p_plus: denominator });
+                return Err(KerrGeodesicError::NoRegularIngoingBranch { radial_denominator: denominator });
             }
             angular_term / denominator
         } else {
             if !delta.is_finite() || delta <= 0.0 {
                 return Err(KerrGeodesicError::NoRegularIngoingBranch {
-                    p_plus: p + radial_velocity,
+                    radial_denominator: p + radial_velocity,
                 });
             }
             (p + radial_velocity) / delta
@@ -1282,6 +1284,8 @@ pub struct KerrMinoTrajectoryPoint {
 /// Completed exterior Kerr null trajectory and numerical diagnostics.
 #[derive(Debug, Clone, PartialEq)]
 pub struct KerrMinoTrajectory {
+    /// Coordinate chart that gives meaning to the time/azimuth slots in every state.
+    pub coordinate_chart: KerrMinoCoordinateChart,
     /// Initial state followed by every accepted step endpoint.
     pub points: Vec<KerrMinoTrajectoryPoint>,
     pub accepted_steps: usize,
@@ -1360,10 +1364,13 @@ impl fmt::Display for KerrMinoIntegrationError {
 
 impl std::error::Error for KerrMinoIntegrationError {}
 
+/// Coordinate chart used by an integrated separated Kerr Mino trajectory.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum KerrMinoChart {
+pub enum KerrMinoCoordinateChart {
+    /// Exterior-only Boyer-Lindquist coordinates (ct/M,r/M,theta,phi).
     BoyerLindquist,
-    Ingoing,
+    /// Horizon-regular ingoing Kerr coordinates (v/M,r/M,theta,phi_tilde).
+    IngoingKerr,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -1402,12 +1409,12 @@ impl KerrSeparatedNullGeodesic {
     fn mino_vector_field(
         self,
         state: MinoVector,
-        chart: KerrMinoChart,
+        chart: KerrMinoCoordinateChart,
     ) -> Result<MinoVector, KerrGeodesicError> {
         let dynamic_state = state.into_state();
         let derivative = match chart {
-            KerrMinoChart::BoyerLindquist => self.mino_dynamic_derivative(dynamic_state)?,
-            KerrMinoChart::Ingoing => self.mino_dynamic_derivative_ingoing(dynamic_state)?,
+            KerrMinoCoordinateChart::BoyerLindquist => self.mino_dynamic_derivative(dynamic_state)?,
+            KerrMinoCoordinateChart::IngoingKerr => self.mino_dynamic_derivative_ingoing(dynamic_state)?,
         };
         Ok(MinoVector([
             derivative.d_time_over_m,
@@ -1517,6 +1524,7 @@ impl KerrSeparatedNullGeodesic {
         }];
         if final_parameter == 0.0 {
             return Ok(KerrMinoTrajectory {
+                coordinate_chart: chart,
                 points,
                 accepted_steps: 0,
                 rejected_steps: 0,
@@ -1628,6 +1636,7 @@ impl KerrSeparatedNullGeodesic {
         }
 
         Ok(KerrMinoTrajectory {
+            coordinate_chart: chart,
             points,
             accepted_steps,
             rejected_steps,
