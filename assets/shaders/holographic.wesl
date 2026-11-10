@@ -1,22 +1,18 @@
-import bevy_pbr::render::pbr_fragment::pbr_input_from_standard_material;
-import bevy_pbr::render::pbr_functions::alpha_discard;
+import bevy_pbr::render::{
+    pbr_fragment::pbr_input_from_standard_material,
+    pbr_functions::alpha_discard,
+};
 
-@if(!PREPASS_PIPELINE) {
-    import bevy_pbr::render::pbr_functions::{
-        apply_pbr_lighting,
-        main_pass_post_lighting_processing,
-    };
-}
-
-@if(PREPASS_PIPELINE) {
-    import bevy_pbr::prepass::io::{VertexOutput, FragmentOutput};
-    import bevy_pbr::deferred::functions::deferred_output;
-}
-@else {
-    import bevy_pbr::render::forward_io::{VertexOutput, FragmentOutput};
-}
-
-import bevy_pbr::render::mesh_view_bindings::view;
+@if(PREPASS_PIPELINE)
+import bevy_pbr::{
+    prepass::io::{VertexOutput, FragmentOutput},
+    deferred::functions::deferred_output,
+};
+@else
+import bevy_pbr::render::{
+    forward_io::{VertexOutput, FragmentOutput},
+    pbr_functions::{apply_pbr_lighting, main_pass_post_lighting_processing},
+};
 
 struct HolographicSettings {
     fresnel_color: vec4<f32>,
@@ -41,10 +37,11 @@ fn fragment(
     var pbr_input = pbr_input_from_standard_material(in, is_front);
 
     let world_pos = pbr_input.world_position.xyz;
-    let view_pos = view.world_position.xyz;
-    let view_dir = normalize(world_pos - view_pos);
+    // PbrInput::V is already the normalized direction from the fragment to the viewer.
+    // Using it avoids an extra camera binding and is valid in both forward and prepass paths.
+    let view_dir = pbr_input.V;
     let normal = pbr_input.world_normal;
-    let ndotv = abs(dot(normalize(normal), -view_dir));
+    let ndotv = abs(dot(normalize(normal), view_dir));
     let fresnel = pow(1.0 - ndotv, holographic.fresnel_power);
 
     if (holographic.enable_holographic > 0.5) {
