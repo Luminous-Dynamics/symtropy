@@ -25,7 +25,8 @@
         "effectivity_start_utc": "2026-01-01T00:00:00Z",
         "effectivity_end_utc": null,
         "material_record_lot": "SYNTH-HEAT-017",
-        "required_procedure_scope": "SYNTH-SCOPE-THICK-PLATE-FAMILY-01"
+        "required_procedure_scope": "SYNTH-SCOPE-THICK-PLATE-FAMILY-01",
+        "required_process_scope": "SYNTH-SCOPE-THICK-PLATE-FAMILY-01"
       },
       "procedure": {
         "wps_ref": "SYNTH-WPS-017",
@@ -103,7 +104,8 @@
           "evidence_class": "synthetic_fixture",
           "observed_envelope_status": "within_declared_envelope",
           "source_time_utc": "2026-11-10T03:00:00Z",
-          "serial_id": "SYNTH-SERIAL-017"
+          "serial_id": "SYNTH-SERIAL-017",
+          "workpiece_serial_id": "SYNTH-SERIAL-017"
         },
         {
           "pass_id": "SYNTH-PASS-FILL-02",
@@ -120,7 +122,8 @@
           "evidence_class": "synthetic_fixture",
           "observed_envelope_status": "within_declared_envelope",
           "source_time_utc": "2026-11-10T03:10:00Z",
-          "serial_id": "SYNTH-SERIAL-017"
+          "serial_id": "SYNTH-SERIAL-017",
+          "workpiece_serial_id": "SYNTH-SERIAL-017"
         },
         {
           "pass_id": "SYNTH-PASS-CAP-03",
@@ -137,7 +140,8 @@
           "evidence_class": "synthetic_fixture",
           "observed_envelope_status": "within_declared_envelope",
           "source_time_utc": "2026-11-10T03:20:00Z",
-          "serial_id": "SYNTH-SERIAL-017"
+          "serial_id": "SYNTH-SERIAL-017",
+          "workpiece_serial_id": "SYNTH-SERIAL-017"
         }
       ],
       "inspections": {
@@ -236,6 +240,33 @@
         "source_writeback": false,
         "source_time_role": "source_observation",
         "retrieval_time_role": "ingestion"
+      },
+      "material_receiving": {
+        "material_spec_ref": "SYNTH-MAT-SPEC-01",
+        "material_heat_lot": "SYNTH-HEAT-017",
+        "disposition": "accepted_synthetic",
+        "evidence_ref": "SYNTH-MATERIAL-RECEIVING-017"
+      },
+      "normative_context": {
+        "applicability_basis": "synthetic_contract_assumption",
+        "authority_scope": "synthetic_class_and_project_contract",
+        "applicable_ruleset": {
+          "standard": "IACS UR W28",
+          "revision": "Rev.2",
+          "revision_date": "2012-03",
+          "effective_from_utc": null,
+          "effective_until_utc": "2027-01-01T00:00:00Z",
+          "status": "current_at_cutoff",
+          "source_ref": "https://iacs.org.uk/resolutions/unified-requirements/ur-w/ur-w28-rev2-cln"
+        },
+        "future_ruleset": {
+          "standard": "IACS UR W28",
+          "revision": "Rev.3",
+          "revision_date": "2025-09",
+          "effective_from_utc": "2027-01-01T00:00:00Z",
+          "status": "future_not_effective",
+          "source_ref": "https://iacs.org.uk/resolutions/unified-requirements/ur-w/ur-w28-rev2-cln"
+        }
       }
     }
   },
@@ -792,6 +823,28 @@
         }
       ],
       "expected_code": "EVIDENCE_CLASS_MISMATCH"
+    },
+    {
+      "id": "future_w28_rev3_selected_before_effective_date",
+      "base": "valid_robotic_weld",
+      "mutations": [
+        {
+          "path": "normative_context.applicable_ruleset.revision",
+          "op": "set",
+          "value": "Rev.3"
+        },
+        {
+          "path": "normative_context.applicable_ruleset.effective_from_utc",
+          "op": "set",
+          "value": "2027-01-01T00:00:00Z"
+        },
+        {
+          "path": "normative_context.applicable_ruleset.status",
+          "op": "set",
+          "value": "future_not_effective"
+        }
+      ],
+      "expected_code": "FUTURE_RULESET_NOT_EFFECTIVE"
     }
   ]
 }
