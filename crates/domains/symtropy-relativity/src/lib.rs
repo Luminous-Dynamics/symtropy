@@ -34,6 +34,8 @@ pub mod curvature;
 pub mod geodesic;
 /// Kerr equatorial circular-null-orbit and light-ring observables.
 pub mod light_ring;
+/// Separated Kerr null-geodesic constants and radial/polar potentials.
+pub mod kerr_null_geodesic;
 /// Validated stationary black-hole metric components in a declared chart.
 pub mod metric;
 /// Posterior-preserving transforms for Kerr remnant horizon observables.
