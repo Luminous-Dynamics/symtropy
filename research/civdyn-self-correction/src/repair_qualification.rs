@@ -359,7 +359,8 @@ fn validate_evidence(
             .statistics
             .iter()
             .find(|spec| {
-                spec.role != expected_role || spec.independent_unit != evidence.manifest.independent_unit
+                spec.role != expected_role
+                    || spec.independent_unit != evidence.manifest.independent_unit
             })
             .expect("predicate found a mismatched statistic");
         return Err(
@@ -411,36 +412,37 @@ fn validate_evidence(
         }
 
         if row.status != StatisticStatus::NotAssessed {
-            let valid = row.model_digest.as_deref() == Some(expected_model_digest)
-                && row
-                    .draw_set_digest
-                    .as_deref()
-                    .is_some_and(|value| !value.trim().is_empty())
-                && row
-                    .observation_digest
-                    .as_deref()
-                    .is_some_and(|value| !value.trim().is_empty())
-                && row.sample_size > 0
-                && row.observed_value.is_some_and(f64::is_finite)
-                && row.lower_reference.is_some_and(f64::is_finite)
-                && row.upper_reference.is_some_and(f64::is_finite)
-                && row.lower_reference <= row.upper_reference
-                && row.upper_reference.zip(row.lower_reference).is_some_and(|(upper, lower)| {
-                    (upper - lower).is_finite() && upper - lower >= 0.0
-                })
-                && row
-                    .predictive_rank
-                    .is_some_and(|rank| rank.is_finite() && (0.0..=1.0).contains(&rank))
-                && row.draw_count >= spec.minimum_draws
-                && row
-                    .measurement_standard_error
-                    .is_none_or(|value| value.is_finite() && value >= 0.0)
-                && match (
-                    row.status,
-                    row.observed_value,
-                    row.lower_reference,
-                    row.upper_reference,
-                ) {
+            let valid =
+                row.model_digest.as_deref() == Some(expected_model_digest)
+                    && row
+                        .draw_set_digest
+                        .as_deref()
+                        .is_some_and(|value| !value.trim().is_empty())
+                    && row
+                        .observation_digest
+                        .as_deref()
+                        .is_some_and(|value| !value.trim().is_empty())
+                    && row.sample_size > 0
+                    && row.observed_value.is_some_and(f64::is_finite)
+                    && row.lower_reference.is_some_and(f64::is_finite)
+                    && row.upper_reference.is_some_and(f64::is_finite)
+                    && row.lower_reference <= row.upper_reference
+                    && row.upper_reference.zip(row.lower_reference).is_some_and(
+                        |(upper, lower)| (upper - lower).is_finite() && upper - lower >= 0.0,
+                    )
+                    && row
+                        .predictive_rank
+                        .is_some_and(|rank| rank.is_finite() && (0.0..=1.0).contains(&rank))
+                    && row.draw_count >= spec.minimum_draws
+                    && row
+                        .measurement_standard_error
+                        .is_none_or(|value| value.is_finite() && value >= 0.0)
+                    && match (
+                        row.status,
+                        row.observed_value,
+                        row.lower_reference,
+                        row.upper_reference,
+                    ) {
                     (
                         StatisticStatus::WithinReferenceInterval,
                         Some(observed),
@@ -672,12 +674,12 @@ pub fn qualify_repair(
         .filter(|spec| spec.required)
         .map(|spec| spec.source_digest.as_str())
         .collect();
-    let baseline_manifest_is_distinct_from_diagnostic =
-        diagnostic.manifest.id != baseline_challenge.manifest.id
-            && diagnostic.manifest.manifest_digest != baseline_challenge.manifest.manifest_digest;
-    let repaired_manifest_is_distinct_from_diagnostic =
-        diagnostic.manifest.id != repaired_challenge.manifest.id
-            && diagnostic.manifest.manifest_digest != repaired_challenge.manifest.manifest_digest;
+    let baseline_manifest_is_distinct_from_diagnostic = diagnostic.manifest.id
+        != baseline_challenge.manifest.id
+        && diagnostic.manifest.manifest_digest != baseline_challenge.manifest.manifest_digest;
+    let repaired_manifest_is_distinct_from_diagnostic = diagnostic.manifest.id
+        != repaired_challenge.manifest.id
+        && diagnostic.manifest.manifest_digest != repaired_challenge.manifest.manifest_digest;
     if !baseline_manifest_is_distinct_from_diagnostic
         || !repaired_manifest_is_distinct_from_diagnostic
     {
@@ -689,11 +691,14 @@ pub fn qualify_repair(
         });
     }
     for baseline_spec in &baseline_challenge.registry.statistics {
-        let repaired_spec = repaired_challenge.registry.get(&baseline_spec.id).ok_or_else(|| {
-            RepairQualificationError::ChallengeStatisticDefinitionMismatch {
-                statistic_id: baseline_spec.id.clone(),
-            }
-        })?;
+        let repaired_spec = repaired_challenge
+            .registry
+            .get(&baseline_spec.id)
+            .ok_or_else(
+                || RepairQualificationError::ChallengeStatisticDefinitionMismatch {
+                    statistic_id: baseline_spec.id.clone(),
+                },
+            )?;
         if baseline_spec.construct != repaired_spec.construct
             || baseline_spec.measurement_unit != repaired_spec.measurement_unit
             || baseline_spec.population != repaired_spec.population
@@ -706,9 +711,11 @@ pub fn qualify_repair(
             || baseline_spec.required != repaired_spec.required
             || baseline_spec.minimum_draws != repaired_spec.minimum_draws
         {
-            return Err(RepairQualificationError::ChallengeStatisticDefinitionMismatch {
-                statistic_id: baseline_spec.id.clone(),
-            });
+            return Err(
+                RepairQualificationError::ChallengeStatisticDefinitionMismatch {
+                    statistic_id: baseline_spec.id.clone(),
+                },
+            );
         }
     }
     let challenge_observations: BTreeSet<&str> = baseline_result
@@ -808,17 +815,18 @@ pub fn qualify_repair(
 
             let baseline_width = interval_width(baseline_row);
             let repaired_width = interval_width(repaired_row);
-            let interval_width_ratio = baseline_width.zip(repaired_width).and_then(
-                |(baseline, repaired)| {
-                    if baseline > 0.0 {
-                        Some(repaired / baseline)
-                    } else if repaired == 0.0 {
-                        Some(1.0)
-                    } else {
-                        None
-                    }
-                },
-            );
+            let interval_width_ratio =
+                baseline_width
+                    .zip(repaired_width)
+                    .and_then(|(baseline, repaired)| {
+                        if baseline > 0.0 {
+                            Some(repaired / baseline)
+                        } else if repaired == 0.0 {
+                            Some(1.0)
+                        } else {
+                            None
+                        }
+                    });
             let width_exceeded = match (baseline_width, repaired_width) {
                 (Some(baseline), Some(repaired)) if baseline == 0.0 => repaired > 0.0,
                 (Some(baseline), Some(repaired)) => {
@@ -1173,7 +1181,10 @@ mod tests {
         )];
         let scenario = scenario(&diagnostic, &baseline, &repaired);
         let report = qualify(&scenario, 1.0).expect("residual discrepancy report");
-        assert_eq!(report.claim_ceiling, RepairClaimCeiling::ResidualDiscrepancy);
+        assert_eq!(
+            report.claim_ceiling,
+            RepairClaimCeiling::ResidualDiscrepancy
+        );
         assert_eq!(report.residual_primary_discrepancies, 1);
     }
 
@@ -1215,7 +1226,10 @@ mod tests {
         )];
         let scenario = scenario(&diagnostic, &baseline, &repaired);
         let report = qualify(&scenario, 1.0).expect("width-budget report");
-        assert_eq!(report.claim_ceiling, RepairClaimCeiling::WidthBudgetExceeded);
+        assert_eq!(
+            report.claim_ceiling,
+            RepairClaimCeiling::WidthBudgetExceeded
+        );
         assert_eq!(report.width_budget_failures, 1);
         assert_eq!(
             report.results[0].repaired_status,
@@ -1238,7 +1252,10 @@ mod tests {
         let report = qualify(&scenario, 1.0).expect("multi-statistic repair report");
         assert_eq!(report.corrected_primary_statistics, 1);
         assert_eq!(report.residual_primary_discrepancies, 1);
-        assert_eq!(report.claim_ceiling, RepairClaimCeiling::ResidualDiscrepancy);
+        assert_eq!(
+            report.claim_ceiling,
+            RepairClaimCeiling::ResidualDiscrepancy
+        );
     }
 
     #[test]
@@ -1357,7 +1374,11 @@ mod tests {
     fn any_widening_of_a_zero_width_baseline_exceeds_the_budget() {
         let diagnostic = vec![metric("essential-service", 0.5, &[0.5, 0.5, 0.5, 0.5, 0.5])];
         let baseline = vec![metric("essential-service", 0.5, &[0.5, 0.5, 0.5, 0.5, 0.5])];
-        let repaired = vec![metric("essential-service", 0.5, &[0.45, 0.48, 0.50, 0.52, 0.55])];
+        let repaired = vec![metric(
+            "essential-service",
+            0.5,
+            &[0.45, 0.48, 0.50, 0.52, 0.55],
+        )];
         let scenario = scenario(&diagnostic, &baseline, &repaired);
         let report = qualify(&scenario, 1.0).expect("zero-width baseline budget report");
         assert_eq!(report.claim_ceiling, RepairClaimCeiling::WidthBudgetExceeded);
