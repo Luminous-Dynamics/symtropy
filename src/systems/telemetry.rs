@@ -287,7 +287,7 @@ pub fn setup_telemetry_gpu_buffer(
         return;
     };
     let nodes_buffer = storage_buffers.add(ShaderBuffer::new(
-        &[], // Starts empty
+        Vec::<NodeTelemetryGpu>::new(),
         bevy::asset::RenderAssetUsages::default(),
     ));
     commands.insert_resource(TelemetryGpuBuffer { nodes_buffer });
@@ -303,6 +303,14 @@ pub fn sync_telemetry_to_gpu_system(
         return;
     };
     if let Some(mut buffer) = storage_buffers.get_mut(&gpu_buffer.nodes_buffer) {
-        buffer.set_data(&telemetry.nodes);
+        buffer.clear();
+        buffer.extend_from_slice(&telemetry.nodes);
+
+        // wgpu does not allow a zero-byte storage-buffer binding. Keep a
+        // zero-filled element when there are no telemetry nodes so the
+        // material binding remains valid without inventing an observation.
+        if telemetry.nodes.is_empty() {
+            buffer.resize(std::mem::size_of::<NodeTelemetryGpu>() as u64);
+        }
     }
 }
