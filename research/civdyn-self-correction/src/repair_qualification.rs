@@ -25,6 +25,8 @@ pub struct RepairQualificationInput {
     pub diagnostic_manifest_digest: String,
     /// Every statistic identifier made available to diagnosis/repair.
     pub diagnostic_statistic_ids: Vec<String>,
+    /// Observation receipt digests made available to diagnosis/repair.
+    pub diagnostic_observation_digests: Vec<String>,
     pub challenge_registry: StatisticRegistry,
     pub challenge_manifest: SplitManifest,
     pub baseline_assessment: AdequacyAssessment,
@@ -128,6 +130,10 @@ pub enum RepairQualificationError {
     EmptyDiagnosticStatisticId,
     DuplicateDiagnosticStatisticId { statistic_id: String },
     ChallengeStatisticWasUsedForRepair { statistic_id: String },
+    EmptyDiagnosticObservationSet,
+    EmptyDiagnosticObservationDigest,
+    DuplicateDiagnosticObservationDigest { observation_digest: String },
+    ChallengeObservationWasUsedForRepair { observation_digest: String },
     ChallengeMustUseSplitPredictiveAssessment,
     ChallengeManifestMismatch,
     ChallengeRegistryMismatch,
@@ -418,6 +424,21 @@ pub fn qualify_repair_on_fresh_challenge(
         }
     }
 
+    if input.diagnostic_observation_digests.is_empty() {
+        return Err(RepairQualificationError::EmptyDiagnosticObservationSet);
+    }
+    let mut diagnostic_observations = BTreeSet::new();
+    for observation_digest in &input.diagnostic_observation_digests {
+        if observation_digest.trim().is_empty() {
+            return Err(RepairQualificationError::EmptyDiagnosticObservationDigest);
+        }
+        if !diagnostic_observations.insert(observation_digest.as_str()) {
+            return Err(RepairQualificationError::DuplicateDiagnosticObservationDigest {
+                observation_digest: observation_digest.clone(),
+            });
+        }
+    }
+
     let (baseline_rows, baseline_complete) = validate_assessment(
         &input.baseline_assessment,
         &input.baseline_model_digest,
@@ -463,6 +484,13 @@ pub fn qualify_repair_on_fresh_challenge(
             });
         }
 
+        if let Some(observation_digest) = baseline_row.observation_digest.as_deref() {
+            if diagnostic_observations.contains(observation_digest) {
+                return Err(RepairQualificationError::ChallengeObservationWasUsedForRepair {
+                    observation_digest: observation_digest.to_string(),
+                });
+            }
+        }
         let spec = input.challenge_registry
             .get(&key.statistic_id)
             .expect("assessment key already validated against registry");
@@ -669,6 +697,7 @@ mod tests {
             repair_plan_digest: "sha256-repair-plan".to_string(),
             diagnostic_manifest_digest: "sha256-diagnostic-manifest".to_string(),
             diagnostic_statistic_ids: vec!["calibration-water-mean".to_string()],
+            diagnostic_observation_digests: vec!["sha256-diagnostic-observation".to_string()],
             challenge_registry: registry(),
             challenge_manifest: manifest(),
             baseline_assessment: baseline,
@@ -747,6 +776,27 @@ mod tests {
         assert!(matches!(
             qualify_repair_on_fresh_challenge(&candidate),
             Err(RepairQualificationError::ChallengeStatisticWasUsedForRepair { .. })
+        ));
+    }
+
+    #[test]
+    fn rejects_reuse_of_fresh_challenge_observation_digest_in_repair() {
+        let baseline = assessment(
+            BASELINE_MODEL,
+            Some([0.1, 0.2, 0.2, 0.3, 0.4]),
+            Some([0.1, 0.2, 0.2, 0.3, 0.4]),
+        );
+        let repaired = assessment(
+            REPAIRED_MODEL,
+            Some([0.7, 0.75, 0.8, 0.85, 0.9]),
+            Some([0.7, 0.75, 0.8, 0.85, 0.9]),
+        );
+        let mut candidate = input(baseline, repaired);
+        candidate.diagnostic_observation_digests =
+            vec!["sha256-network-a-observation".to_string()];
+        assert!(matches!(
+            qualify_repair_on_fresh_challenge(&candidate),
+            Err(RepairQualificationError::ChallengeObservationWasUsedForRepair { .. })
         ));
     }
 
