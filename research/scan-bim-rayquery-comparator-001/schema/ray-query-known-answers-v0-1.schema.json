@@ -1,0 +1,282 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/research/scan-bim-rayquery-comparator-v0-1/research/scan-bim-rayquery-comparator-001/schema/ray-query-known-answers-v0-1.schema.json",
+  "title": "Scan-to-BIM ray-query known-answer fixture v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "fixture_version",
+    "fixture_id",
+    "coordinate_system",
+    "query_contract",
+    "triangles",
+    "rays"
+  ],
+  "properties": {
+    "fixture_version": {
+      "const": "0.1"
+    },
+    "fixture_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "coordinate_system": {
+      "$ref": "#/$defs/coordinateSystem"
+    },
+    "query_contract": {
+      "$ref": "#/$defs/queryContract"
+    },
+    "triangles": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/triangle"
+      }
+    },
+    "rays": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/ray"
+      }
+    }
+  },
+  "$defs": {
+    "coordinateSystem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "linear_unit",
+        "axis_order",
+        "handedness"
+      ],
+      "properties": {
+        "linear_unit": {
+          "const": "metre"
+        },
+        "axis_order": {
+          "const": "xyz"
+        },
+        "handedness": {
+          "const": "right_handed"
+        }
+      }
+    },
+    "queryContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "direction_normalization",
+        "intersection_epsilon_m",
+        "nearest_hit_tie_epsilon_m",
+        "triangle_sidedness",
+        "self_hit_exclusion",
+        "expected_hit_policy"
+      ],
+      "properties": {
+        "direction_normalization": {
+          "const": "unit_length_required"
+        },
+        "intersection_epsilon_m": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "nearest_hit_tie_epsilon_m": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "triangle_sidedness": {
+          "const": "two_sided"
+        },
+        "self_hit_exclusion": {
+          "const": "exact_surface_id_and_triangle_id"
+        },
+        "expected_hit_policy": {
+          "const": "all_hits_within_nearest_hit_tie_epsilon"
+        }
+      }
+    },
+    "vec3": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        }
+      ],
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "triangle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "surface_id",
+        "triangle_id",
+        "kind",
+        "a",
+        "b",
+        "c"
+      ],
+      "properties": {
+        "surface_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "triangle_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "same_building",
+            "external",
+            "unknown"
+          ]
+        },
+        "a": {
+          "$ref": "#/$defs/vec3"
+        },
+        "b": {
+          "$ref": "#/$defs/vec3"
+        },
+        "c": {
+          "$ref": "#/$defs/vec3"
+        }
+      }
+    },
+    "hit": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "type": "string",
+          "minLength": 1
+        }
+      ],
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "ray": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ray_id",
+        "origin",
+        "direction",
+        "tnear_m",
+        "tfar_m",
+        "exclude_target",
+        "expected"
+      ],
+      "properties": {
+        "ray_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "origin": {
+          "$ref": "#/$defs/vec3"
+        },
+        "direction": {
+          "$ref": "#/$defs/vec3"
+        },
+        "tnear_m": {
+          "type": "number",
+          "minimum": 0
+        },
+        "tfar_m": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "exclude_target": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/hit"
+            }
+          ]
+        },
+        "expected": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "nearest_distance_m",
+            "nearest_hits"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "hit",
+                "miss"
+              ]
+            },
+            "nearest_distance_m": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "nearest_hits": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/hit"
+              }
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "status": {
+                    "const": "hit"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "nearest_distance_m": {
+                    "type": "number"
+                  },
+                  "nearest_hits": {
+                    "minItems": 1
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "status": {
+                    "const": "miss"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "nearest_distance_m": {
+                    "type": "null"
+                  },
+                  "nearest_hits": {
+                    "maxItems": 0
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}
