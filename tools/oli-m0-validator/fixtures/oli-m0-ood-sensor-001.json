@@ -10,18 +10,18 @@
   },
   "measurement": {
     "modality": "unseen_spectral_sensor_v9",
-    "units": ["unknown_signal_unit"],
+    "units": [],
     "unit_status": "UNKNOWN",
     "calibration_status": "UNQUALIFIED",
     "temporal": {
-      "window_seconds": 300.0,
-      "sampling_interval_seconds": 1.0,
-      "target_process_timescale_seconds": 3.0,
-      "coverage_fraction": 1.0
+      "window_seconds": 300,
+      "sampling_interval_seconds": 1,
+      "target_process_timescale_seconds": 3,
+      "coverage_fraction": 1
     },
     "spatial": {
       "coordinate_frame": "unqualified_sensor_frame",
-      "footprint_fraction": 1.0,
+      "footprint_fraction": 1,
       "resolution_m": null
     }
   },
