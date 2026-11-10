@@ -90,6 +90,9 @@ pub struct SurfaceSample {
     /// Barycentric weights in vertex order (a, b, c).
     pub barycentric: [f64; 3],
     pub point: Point3,
+    /// Unit normal following source triangle winding; source mesh orientation
+    /// must be validated before this value is used for backface visibility.
+    pub normal: Point3,
     /// Equal per-surface area represented by this sample.
     pub represented_area_m2: f64,
 }
@@ -130,6 +133,7 @@ struct PreparedTriangle {
     a: Point3,
     b: Point3,
     c: Point3,
+    normal: Point3,
     cumulative_area_m2: f64,
 }
 
@@ -160,6 +164,25 @@ fn triangle_area_m2(a: Point3, b: Point3, c: Point3) -> Result<f64, String> {
         return Err("surface triangle area is not finite and positive".to_owned());
     }
     Ok(area)
+}
+
+fn triangle_unit_normal(a: Point3, b: Point3, c: Point3) -> Result<Point3, String> {
+    let ab = Point3::new(b.x - a.x, b.y - a.y, b.z - a.z);
+    let ac = Point3::new(c.x - a.x, c.y - a.y, c.z - a.z);
+    let cross = Point3::new(
+        ab.y * ac.z - ab.z * ac.y,
+        ab.z * ac.x - ab.x * ac.z,
+        ab.x * ac.y - ab.y * ac.x,
+    );
+    let length = cross.x.hypot(cross.y).hypot(cross.z);
+    if !length.is_finite() || length <= DEGENERATE_TWICE_AREA_EPSILON {
+        return Err("surface triangle normal is degenerate".to_owned());
+    }
+    Ok(Point3::new(
+        cross.x / length,
+        cross.y / length,
+        cross.z / length,
+    ))
 }
 
 fn validate_profile(profile: AreaWeightedSamplingProfile) -> Result<f64, String> {
@@ -303,11 +326,35 @@ fn sampling_receipt_digest(
         update_f64(&mut hasher, sample.point.x);
         update_f64(&mut hasher, sample.point.y);
         update_f64(&mut hasher, sample.point.z);
+        update_f64(&mut hasher, sample.normal.x);
+        update_f64(&mut hasher, sample.normal.y);
+        update_f64(&mut hasher, sample.normal.z);
         update_f64(&mut hasher, sample.represented_area_m2);
     }
 
     let digest = hasher.finalize();
     digest.iter().map(|byte| format!("{byte:02x}")).collect()
+}
+
+/// Sample the entire evaluator reference surface before visibility is known.
+///
+/// This function intentionally ignores any pre-existing visibility annotations
+/// and treats every reference triangle as a sampling target. Its output and
+/// source geometry must remain evaluator-only; it must never be run over or
+/// shared with candidate inputs.
+pub fn sample_reference_surfaces_for_visibility(
+    input: &[SurfaceTriangleInput],
+    profile: AreaWeightedSamplingProfile,
+) -> Result<SurfaceSamplingReceipt, String> {
+    let reference_triangles: Vec<SurfaceTriangleInput> = input
+        .iter()
+        .cloned()
+        .map(|mut triangle| {
+            triangle.visibility = SurfaceVisibility::Observable;
+            triangle
+        })
+        .collect();
+    sample_observable_surfaces(&reference_triangles, profile)
 }
 
 /// Generate an ordered, deterministic area-uniform sample receipt.
@@ -433,6 +480,7 @@ pub fn sample_observable_surfaces(
                 a,
                 b,
                 c,
+                normal: triangle_unit_normal(a, b, c)?,
                 cumulative_area_m2: cumulative,
             });
         }
@@ -459,6 +507,7 @@ pub fn sample_observable_surfaces(
                 triangle_id: target.triangle_id.clone(),
                 barycentric,
                 point,
+                normal: target.normal,
                 represented_area_m2,
             });
         }
