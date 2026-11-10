@@ -306,7 +306,13 @@ pub fn solve_discrete_step(input: &DiscreteStepInput) -> Result<DiscreteStepResu
             continue;
         }
 
-        let residual = metric_equation_residual(&metric, &next_velocity, &rhs, &metric_inverse_jt, &impulse);
+        let residual = metric_equation_residual(
+        &metric,
+        &next_velocity,
+        &rhs,
+        &input.contact_jacobian,
+        &impulse,
+    );
         let active = impulse.iter().map(|value| *value > SOLVE_TOLERANCE).collect::<Vec<_>>();
         selected = Some((next_velocity, impulse, slack, active, residual));
         break;
@@ -392,7 +398,6 @@ fn validate_input(input: &DiscreteStepInput) -> Result<(), StepError> {
     validate_symmetric("mass", &input.mass)?;
     validate_symmetric("damping", &input.damping)?;
     validate_symmetric("stiffness", &input.stiffness)?;
-    validate_symmetric("contact Delassus input", &input.contact_jacobian_gram_placeholder())?;
     if !input.contact_jacobian.values.iter().all(|value| value.is_finite()) {
         return Err(StepError::NonFiniteInput);
     }
@@ -402,13 +407,6 @@ fn validate_input(input: &DiscreteStepInput) -> Result<(), StepError> {
     Ok(())
 }
 
-impl DiscreteStepInput {
-    // Used only to make contact-Jacobian finiteness validation share the same
-    // matrix iterator path. It is a zero-sized symmetric matrix when m=0.
-    fn contact_jacobian_gram_placeholder(&self) -> Matrix {
-        Matrix::zeros(0, 0)
-    }
-}
 
 fn validate_symmetric(name: &'static str, matrix: &Matrix) -> Result<(), StepError> {
     if matrix.rows != matrix.cols {
@@ -509,23 +507,17 @@ fn metric_equation_residual(
     metric: &Matrix,
     velocity: &[f64],
     rhs: &[f64],
-    metric_inverse_jt: &Matrix,
+    contact_jacobian: &Matrix,
     impulse: &[f64],
 ) -> f64 {
     let lhs = mat_vec(metric, velocity);
     let mut max_residual = 0.0_f64;
     for row in 0..lhs.len() {
         let contact_term = (0..impulse.len())
-            .map(|contact| {
-                // M_hat * (M_hat^-1 J^T p) = J^T p; recover it directly from
-                // the original contact Jacobian using the solved identity.
-                metric_inverse_jt[(row, contact)] * impulse[contact]
-            })
+            .map(|contact| contact_jacobian[(contact, row)] * impulse[contact])
             .sum::<f64>();
         max_residual = max_residual.max((lhs[row] - rhs[row] - contact_term).abs());
     }
-    // The metric identity is checked more accurately by multiplying
-    // M_hat * M_hat^-1 J^T; this value is reported as a scale-aware residual.
     max_residual
 }
 
