@@ -108,11 +108,44 @@ The latest public work strengthens the case for a taxonomy of gradients, not a s
 | **NablaEngine 0.2.0** (released 2026-11-07) | Fused CUDA simulation and analytic adjoints with MuJoCo contact dynamics; extends beyond the Unitree G1 to Go1, Go2, A1, H1, ANYmal C, Spot, Booster T1, ROBOTIS OP3 and Berkeley Humanoid; adds static boxes/heightfields, runtime terrain upload and an exact box–box adjoint | Release notes say the additional robot models were validated against MuJoCo Warp and float64 MuJoCo; the G1 0.1.0 results are bitwise unchanged | Pin release/commit, exact robot model, solver, terrain and GPU. Record its capacity/overflow policy: the 0.1.0 release notes specify 64 contacts and 192 constraint rows per world, with excess rows dropped but counted/flagged. An overflowed world is **not** a successful matched result. |
 | **Bundled Contact Gradients (BCG)** (2026 preprint) | Contact-local randomized smoothing: when stiff contact is detected, evaluate a bundle of perturbed local rollouts and aggregate gradient signals | Authors report reduced gradient variance and zero-shot transfer of dynamic motions to a real Unitree G1 | This is a stochastic/local smoothed gradient estimator, not the exact point derivative of the original contact transition. Measure bias, variance, bundle size, perturbation scale, random-seed sensitivity, compute cost and real-hardware transfer. |
 | **DiffGIPC** (2026 preprint) | GPU differentiable Incremental Potential Contact (IPC) with CCD/geometric barriers and coupled FEM + affine-body adjoints; each affine body has 12 motion DoFs independent of its surface vertex count; retains collision, friction and joint coupling | Authors report peak combined forward/backward speedups over DiffIPC of about 150× in full-space FEM and 4,133× with affine bodies | This is a rigid–deformable / nearly-rigid mixed-coordinate inverse-design lane, not a direct rigid-body simulator contest. Measure non-penetration, CCD validity, friction/contact residuals, adjoint error, shape/placement gradients, memory and model-form differences. |
+| **Newton 1.7 differentiable rigid contacts** | Reconstructs signed contact distance and world-space support points through differentiable body poses, while the narrow phase, contact-set selection and world-space contact normal remain frozen | Cheap first-order tangent-plane approximation with an explicitly documented implementation boundary | Newton labels the feature experimental. This is not full geometry/narrow-phase differentiation and does not differentiate contact-set changes. Benchmark pose gradients within a fixed contact feature separately from feature-switch/creation/deletion cases; report those as frozen/uncovered or surrogate, never full exact contact gradients. |
+| **DiffContact** (2026 preprint, 26 Oct) | Hard-contact forward solve is retained; a central-path relaxation of the de Saxcé-corrected second-order-cone complementarity law supplies a smooth backward contact sensitivity across separating, clamping and sliding transitions | Authors report a single analytic central-path sensitivity and hardware-transferred trotting policy after 100,000 samples and under two minutes of desktop training; trajectory optimization reached solutions missed by exact and Signorini-relaxed gradients | This is a **backward-only relaxed sensitivity**, not the derivative of the exact hard-contact map at a mode transition. Sweep central-path parameter toward zero, measure bias to branch-local exact sensitivities, transition continuity, conditioning, feasibility of the unchanged forward rollout, and held-out hardware transfer. |
 
 Primary sources:
 - [NablaEngine 0.2.0 release](https://github.com/sailab-ai/NablaEngine/releases/tag/v0.2.0) and [0.1.0 release / capacity notes](https://github.com/sailab-ai/NablaEngine/releases/tag/v0.1.0)
 - [Bundled Contact Gradients, arXiv:2609.30951](https://arxiv.org/abs/2609.30951)
 - [DiffGIPC, arXiv:2610.19091](https://arxiv.org/abs/2610.19091)
+
+#### New benchmark contract — derivative-path coverage, not just gradient type
+
+A method can return an analytic-looking gradient while freezing collision branches, omitting a reset-time term, or differentiating only a tangent-plane reconstruction. In addition to #3439's derivative classification, every estimator should publish a **derivative-path coverage vector** tied to the exact forward map.
+
+Proposed stages:
+1. authored parameters → import/normalization/lowering;
+2. geometry, signed-distance and closest-feature queries;
+3. broadphase/narrowphase candidate generation and contact-feature selection;
+4. active contact set, event ordering and discrete mode selection;
+5. contact law, KKT/complementarity solve and impulse allocation;
+6. integration, time-of-impact, reset and event-time/saltation transport;
+7. actuator/transmission and controller realization;
+8. objective/observation extraction.
+
+For each stage and differentiated variable group, record one of:
+- `DIFFERENTIATED` — a derivative of the declared operation is actually propagated;
+- `BRANCH_LOCAL` — differentiated conditional on an exact, identified branch/feature/active set;
+- `FROZEN` — the forward value is held constant in the backward pass;
+- `SURROGATE` — a different estimator/approximation supplies the backward signal;
+- `DETACHED` — no gradient is propagated through this stage;
+- `UNSUPPORTED` — requested derivative path is not implemented;
+- `NOT_APPLICABLE` — stage is absent from this declared model.
+
+Bind stage implementation, input/output identities, exact branch/feature, validity region, units/coordinates, and an independent derivative check where a derivative is claimed. This vector is separate from the overall gradient classification: a `BRANCH_LOCAL` receipt may contain several branch-local stages and frozen branch selection; a `SURROGATE` receipt must show exactly where the surrogate enters.
+
+**Critical claim rule:** never label a result “full exact gradient of the forward simulation” when an objective-relevant path is frozen, detached or replaced with a surrogate. It may still be a valid *conditional* or *useful* estimator—state the scope precisely. For a fixed-mode derivative, freezing the discrete mode is legitimate only when the result is explicitly conditioned on that mode and its validity region. At transitions, the estimator must switch to a qualified directional/set-valued result, a labelled backward surrogate, or typed abstention.
+
+Newton 1.7 is a useful comparator example: its official documentation explicitly keeps the narrow phase frozen (`enable_backward=False`), differentiates reconstructed contact distance/points with respect to body poses, and does not propagate through the frozen normal or contact-feature selection. Its documentation labels the feature experimental. Do not compare that tangent-plane path with a full narrow-phase or hard-contact adjoint as if they had the same scope.
+
+Sources: [Newton 1.7 collision/differentiable-contact documentation](https://newton-physics.github.io/newton/1.7.0/concepts/collisions.html); [DiffContact arXiv:2610.35852](https://arxiv.org/abs/2610.35852); [Bundled Contact Gradients arXiv:2609.30951](https://arxiv.org/abs/2609.30951); [DiffGIPC arXiv:2610.19091](https://arxiv.org/abs/2610.19091).
 
 #### Additional benchmark strata
 
