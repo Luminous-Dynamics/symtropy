@@ -55,3 +55,9 @@ Early — the core projection API is stable; the 4D shader pipeline lands in Pha
 
 - [The Symtropy Book](https://github.com/luminous-dynamics/symtropy/tree/main/book) — overview and tutorials.
 - [ten Bosch, M. (2020). *N-Dimensional Rigid Body Dynamics*, SIGGRAPH](https://marctenbosch.com/) — theoretical foundation for 4D rotation.
+
+### 4D slicing material pass boundary
+
+The current WESL slice material is a **forward-colour-pass V0**. It explicitly disables depth/normal/motion-vector prepasses and shadow casting because slice-aware versions of those passes are not yet implemented. Keep the base StandardMaterial on the forward renderer for this V0. Do not treat the current slice as a complete deferred, shadow-casting engineering visualisation.
+
+The complete pass family is tracked in [ND-SLICE-PASS-001](https://github.com/Luminous-Dynamics/symtropy/issues/4498): colour, depth/normal, motion vectors, deferred G-buffer and shadow-map clipping must agree on the same slice predicate and settings digest.
