@@ -391,8 +391,8 @@ impl<'de> Visitor<'de> for StrictJsonVisitor {
     }
 
     fn visit_f64<E: de::Error>(self, value: f64) -> Result<Self::Value, E> {
-        let number = JsonNumber::from_f64(value)
-            .ok_or_else(|| E::custom("JSON number is not finite"))?;
+        let number =
+            JsonNumber::from_f64(value).ok_or_else(|| E::custom("JSON number is not finite"))?;
         Ok(StrictJsonValue(JsonValue::Number(number)))
     }
 
@@ -1058,8 +1058,8 @@ mod tests {
     #[test]
     fn schema_gate_rejects_duplicate_object_keys() {
         let duplicate = r#"{"schema":"symtropy.semantic_mapping_receipt/0.1","schema":"symtropy.semantic_mapping_receipt/0.1"}"#;
-        let error =
-            validate_receipt_schema_json(duplicate).expect_err("duplicate keys must fail schema gate");
+        let error = validate_receipt_schema_json(duplicate)
+            .expect_err("duplicate keys must fail schema gate");
         assert!(error.contains("duplicate JSON object key"));
     }
 
