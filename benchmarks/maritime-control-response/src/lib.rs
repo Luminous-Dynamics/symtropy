@@ -1175,9 +1175,7 @@ mod tests {
         .unwrap()
     }
 
-    #[test]
-    fn calibration_receipt_must_match_the_exact_frozen_split_manifest() {
-        let threshold = threshold();
+    fn split_bound_calibration() -> (ConformalThreshold, RecordingSplitManifest) {
         let manifest = RecordingSplitManifest {
             format_version: 1,
             mode: SplitMode::WholeRecording,
@@ -1187,20 +1185,43 @@ mod tests {
                     driving_cycle: "WLTP".into(),
                     split: DatasetSplit::Calibration,
                 })
-                .chain(std::iter::once(RecordingAssignment {
-                    recording_id: "train-00".into(),
+                .chain((0..2).map(|index| RecordingAssignment {
+                    recording_id: format!("train-{index:02}"),
                     driving_cycle: "WLTP".into(),
                     split: DatasetSplit::Train,
                 }))
-                .chain(std::iter::once(RecordingAssignment {
-                    recording_id: "test-00".into(),
+                .chain((0..2).map(|index| RecordingAssignment {
+                    recording_id: format!("test-{index:02}"),
                     driving_cycle: "Artemis".into(),
                     split: DatasetSplit::Test,
                 }))
                 .collect(),
         };
+        let training_digest = manifest
+            .recording_manifest_digest(DatasetSplit::Train)
+            .unwrap();
+        let split_digest = manifest.digest().unwrap();
+        let threshold = fit_episode_conformal_threshold(
+            &calibration_scores(9),
+            900_000,
+            &digest('a'),
+            &training_digest,
+            &split_digest,
+            "wltp",
+        )
+        .unwrap();
+        (threshold, manifest)
+    }
+
+    #[test]
+    fn calibration_receipt_must_match_the_exact_frozen_split_manifest() {
+        let (threshold, manifest) = split_bound_calibration();
+        assert!(validate_conformal_threshold_against_split(&threshold, &manifest).is_ok());
+
+        let mut altered = manifest;
+        altered.assignments[0].split = DatasetSplit::Train;
         assert_eq!(
-            validate_conformal_threshold_against_split(&threshold, &manifest),
+            validate_conformal_threshold_against_split(&threshold, &altered),
             Err(EvalError::CalibrationBindingMismatch)
         );
     }
