@@ -4,12 +4,12 @@
   "artifact_id": "symtropy.relativity.kerr_mino_trajectory.v1",
   "created_utc": "2026-11-10",
   "status": "implementation_and_reference_benchmark",
-  "claim_ceiling": "This file specifies exact reference cases and qualification checks for the adaptive separated Kerr Mino integrator. The Rust implementation is not compiled or executed in this editing environment. Python/SciPy values are independent equation-level references, not Luminous Rust run results.",
+  "claim_ceiling": "This file specifies exact reference cases and qualification checks for the adaptive separated Kerr Mino integrator, finite-radius ZAMO tetrad and canonical Hamiltonian evaluator. The Rust implementation is not compiled or executed in this editing environment. Python/SciPy values are independent equation-level references, not Luminous Rust run results.",
   "owner": "Symtropy #4519",
   "implementation": {
     "pull_request": "https://github.com/Luminous-Dynamics/symtropy/pull/4543",
     "source_path": "crates/domains/symtropy-relativity/src/kerr_geodesic.rs",
-    "source_revision": "c631aac2bab875b3263545994589fd1d5f79f064",
+    "source_revision": "81a4d7388c5672f7cb77f0f0692d09a730852990",
     "api": "KerrSeparatedNullGeodesic::integrate_adaptive",
     "integrator": "RK4 step-doubling on the smooth second-order Mino equations",
     "local_error_estimate": "(two_half_steps - one_full_step)/15",
@@ -193,6 +193,61 @@
         "v=t+integral((r^2+a^2)/Delta)dr",
         "phi_tilde=phi+integral(a/Delta)dr"
       ],
+      "test_status": "authored_in_Rust_not_executed"
+    },
+    {
+      "id": "finite_radius_zamo_tetrad_and_local_sky_mapping",
+      "observer": {
+        "kind": "zero_angular_momentum_observer",
+        "radius_over_m": 10,
+        "theta_rad": 0.8,
+        "spins": [
+          0,
+          0.5,
+          0.9,
+          -0.9
+        ]
+      },
+      "direction": {
+        "radial": -0.8,
+        "polar": 0.6,
+        "azimuthal": 0
+      },
+      "acceptance": {
+        "tetrad_orthonormality": "max_abs(e_(a).g.e_(b)-eta_ab) below 1e-12",
+        "null_local_photon": "g_mu_nu p^mu p^nu below 1e-12 times declared scale",
+        "positive_killing_energy": "ray seed returns E_inf > 0 or typed NegativeKillingEnergy",
+        "radial_polar_constraints": "initial Mino first-integral residuals below 1e-10"
+      },
+      "independent_python_reference": {
+        "method": "direct numerical ZAMO tetrad construction and metric contractions",
+        "maximum_tetrad_orthonormality_residual": 2.220446049250313e-16,
+        "maximum_null_contraction_residual": 3.9431878052092103e-16,
+        "result_kind": "equation_level_reference_not_Rust_output"
+      },
+      "asymptotic_limit": {
+        "observer_radius_over_m": 100000,
+        "spin": 0.7,
+        "inclination_rad": "pi/2",
+        "local_direction": {
+          "radial": "-sqrt(1-0.006^2-0.008^2)",
+          "polar": 0.006,
+          "azimuthal": -0.008
+        },
+        "expected_screen_coordinates_over_radius": {
+          "alpha_over_r_over_m": 0.008,
+          "beta_over_r_over_m": 0.006
+        },
+        "independent_python_screen": {
+          "alpha_over_m": 800.0080001404986,
+          "beta_over_m": 600.0060000906736
+        },
+        "leading_asymptotic_limit": {
+          "alpha_over_m": 800,
+          "beta_over_m": 600
+        },
+        "result_kind": "finite_radius_to_asymptotic_limit_check_not_Rust_output"
+      },
       "test_status": "authored_in_Rust_not_executed"
     }
   ],
