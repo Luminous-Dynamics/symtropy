@@ -21,7 +21,7 @@
         },
         "standard": {
           "standard_id": "IEC 62660-1",
-          "edition": "2018",
+          "edition": "Edition 2.0 (2018)",
           "publication_date": "2018-12-12",
           "recorded_status": "published",
           "lifecycle_stage": "60.60",
@@ -31,7 +31,7 @@
             "7.3"
           ],
           "normative_or_practice": "international_standard",
-          "source_url": "https://example.org/standard-record",
+          "source_url": "https://webstore.iec.ch/en/publication/28965",
           "source_digest": "0000000000000000000000000000000000000000000000000000000000000002"
         },
         "specimen": {
@@ -139,8 +139,8 @@
         },
         "standard": {
           "standard_id": "ISO 12405-4",
-          "edition": "2018",
-          "publication_date": "2018-12-12",
+          "edition": "Edition 1 (2018)",
+          "publication_date": "2018-07-25",
           "recorded_status": "to_be_revised",
           "lifecycle_stage": "90.92",
           "status_checked_at": "2026-11-09T00:00:00Z",
@@ -149,7 +149,7 @@
             "7.3"
           ],
           "normative_or_practice": "international_standard",
-          "source_url": "https://example.org/standard-record",
+          "source_url": "https://www.iso.org/standard/71407.html",
           "source_digest": "0000000000000000000000000000000000000000000000000000000000000002"
         },
         "specimen": {
@@ -257,7 +257,7 @@
         },
         "standard": {
           "standard_id": "IEC 62660-2",
-          "edition": "2018",
+          "edition": "Edition 2.0 (2018)",
           "publication_date": "2018-12-12",
           "recorded_status": "published",
           "lifecycle_stage": "60.60",
@@ -267,7 +267,7 @@
             "7.3"
           ],
           "normative_or_practice": "international_standard",
-          "source_url": "https://example.org/standard-record",
+          "source_url": "https://webstore.iec.ch/en/publication/27387",
           "source_digest": "0000000000000000000000000000000000000000000000000000000000000002"
         },
         "specimen": {
@@ -375,8 +375,8 @@
         },
         "standard": {
           "standard_id": "SAE J2464",
-          "edition": "2021",
-          "publication_date": "2018-12-12",
+          "edition": "J2464_202108",
+          "publication_date": "2021-08-23",
           "recorded_status": "recommended_practice",
           "lifecycle_stage": "60.60",
           "status_checked_at": "2026-11-09T00:00:00Z",
@@ -385,7 +385,7 @@
             "7.3"
           ],
           "normative_or_practice": "recommended_practice",
-          "source_url": "https://example.org/standard-record",
+          "source_url": "https://saemobilus.sae.org/standards/j2464_202108-electric-hybrid-electric-vehicle-rechargeable-energy-storage-system-ress-safety-abuse-testing",
           "source_digest": "0000000000000000000000000000000000000000000000000000000000000002"
         },
         "specimen": {
@@ -493,8 +493,8 @@
         },
         "standard": {
           "standard_id": "SAE J2929",
-          "edition": "2013",
-          "publication_date": "2018-12-12",
+          "edition": "J2929_201302",
+          "publication_date": "2013-02-11",
           "recorded_status": "published",
           "lifecycle_stage": "60.60",
           "status_checked_at": "2026-11-09T00:00:00Z",
@@ -503,7 +503,7 @@
             "7.3"
           ],
           "normative_or_practice": "international_standard",
-          "source_url": "https://example.org/standard-record",
+          "source_url": "https://saemobilus.sae.org/standards/j2929_201302-safety-standard-electric-hybrid-vehicle-propulsion-battery-systems-utilizing-lithium-based-rechargeable-cells",
           "source_digest": "0000000000000000000000000000000000000000000000000000000000000002"
         },
         "specimen": {
@@ -621,7 +621,7 @@
             "7.3"
           ],
           "normative_or_practice": "international_standard",
-          "source_url": "https://example.org/standard-record",
+          "source_url": "https://example.invalid/synthetic-standard-record",
           "source_digest": "0000000000000000000000000000000000000000000000000000000000000002"
         },
         "specimen": {
@@ -729,7 +729,7 @@
         },
         "standard": {
           "standard_id": "IEC 62660-1",
-          "edition": "2018",
+          "edition": "Edition 2.0 (2018)",
           "publication_date": "2018-12-12",
           "recorded_status": "published",
           "lifecycle_stage": "60.60",
@@ -739,7 +739,7 @@
             "7.3"
           ],
           "normative_or_practice": "international_standard",
-          "source_url": "https://example.org/standard-record",
+          "source_url": "https://webstore.iec.ch/en/publication/28965",
           "source_digest": "0000000000000000000000000000000000000000000000000000000000000002"
         },
         "specimen": {
@@ -847,8 +847,8 @@
         },
         "standard": {
           "standard_id": "ISO 12405-4",
-          "edition": "2018",
-          "publication_date": "2018-12-12",
+          "edition": "Edition 1 (2018)",
+          "publication_date": "2018-07-25",
           "recorded_status": "published",
           "lifecycle_stage": "60.60",
           "status_checked_at": "2026-11-09T00:00:00Z",
@@ -857,7 +857,7 @@
             "7.3"
           ],
           "normative_or_practice": "international_standard",
-          "source_url": "https://example.org/standard-record",
+          "source_url": "https://www.iso.org/standard/71407.html",
           "source_digest": "0000000000000000000000000000000000000000000000000000000000000002"
         },
         "specimen": {
@@ -965,8 +965,8 @@
         },
         "standard": {
           "standard_id": "SAE J2464",
-          "edition": "2021",
-          "publication_date": "2018-12-12",
+          "edition": "J2464_202108",
+          "publication_date": "2021-08-23",
           "recorded_status": "recommended_practice",
           "lifecycle_stage": "60.60",
           "status_checked_at": "2026-11-09T00:00:00Z",
@@ -975,7 +975,7 @@
             "7.3"
           ],
           "normative_or_practice": "recommended_practice",
-          "source_url": "https://example.org/standard-record",
+          "source_url": "https://saemobilus.sae.org/standards/j2464_202108-electric-hybrid-electric-vehicle-rechargeable-energy-storage-system-ress-safety-abuse-testing",
           "source_digest": "0000000000000000000000000000000000000000000000000000000000000002"
         },
         "specimen": {
@@ -1083,7 +1083,7 @@
         },
         "standard": {
           "standard_id": "IEC 62660-1",
-          "edition": "2018",
+          "edition": "Edition 2.0 (2018)",
           "publication_date": "2018-12-12",
           "recorded_status": "published",
           "lifecycle_stage": "60.60",
@@ -1093,7 +1093,7 @@
             "7.3"
           ],
           "normative_or_practice": "international_standard",
-          "source_url": "https://example.org/standard-record",
+          "source_url": "https://webstore.iec.ch/en/publication/28965",
           "source_digest": "0000000000000000000000000000000000000000000000000000000000000002"
         },
         "specimen": {
@@ -1201,7 +1201,7 @@
         },
         "standard": {
           "standard_id": "IEC 62660-1",
-          "edition": "2018",
+          "edition": "Edition 2.0 (2018)",
           "publication_date": "2018-12-12",
           "recorded_status": "published",
           "lifecycle_stage": "60.60",
@@ -1211,7 +1211,7 @@
             "7.3"
           ],
           "normative_or_practice": "international_standard",
-          "source_url": "https://example.org/standard-record",
+          "source_url": "https://webstore.iec.ch/en/publication/28965",
           "source_digest": "0000000000000000000000000000000000000000000000000000000000000002"
         },
         "specimen": {
@@ -1328,7 +1328,7 @@
         },
         "standard": {
           "standard_id": "IEC 62660-1",
-          "edition": "2018",
+          "edition": "Edition 2.0 (2018)",
           "publication_date": "2018-12-12",
           "recorded_status": "published",
           "lifecycle_stage": "60.60",
@@ -1338,7 +1338,7 @@
             "7.3"
           ],
           "normative_or_practice": "international_standard",
-          "source_url": "https://example.org/standard-record",
+          "source_url": "https://webstore.iec.ch/en/publication/28965",
           "source_digest": "0000000000000000000000000000000000000000000000000000000000000002"
         },
         "specimen": {
@@ -1437,7 +1437,7 @@
         },
         "standard": {
           "standard_id": "IEC 62660-1",
-          "edition": "2018",
+          "edition": "Edition 2.0 (2018)",
           "publication_date": "2018-12-12",
           "recorded_status": "published",
           "lifecycle_stage": "60.60",
@@ -1447,7 +1447,7 @@
             "7.3"
           ],
           "normative_or_practice": "international_standard",
-          "source_url": "https://example.org/standard-record",
+          "source_url": "https://webstore.iec.ch/en/publication/28965",
           "source_digest": "0000000000000000000000000000000000000000000000000000000000000002"
         },
         "specimen": {
@@ -1555,7 +1555,7 @@
         },
         "standard": {
           "standard_id": "IEC 62660-1",
-          "edition": "2018",
+          "edition": "Edition 2.0 (2018)",
           "publication_date": "2018-12-12",
           "recorded_status": "published",
           "lifecycle_stage": "60.60",
@@ -1565,7 +1565,7 @@
             "7.3"
           ],
           "normative_or_practice": "international_standard",
-          "source_url": "https://example.org/standard-record",
+          "source_url": "https://webstore.iec.ch/en/publication/28965",
           "source_digest": "0000000000000000000000000000000000000000000000000000000000000002"
         },
         "specimen": {
