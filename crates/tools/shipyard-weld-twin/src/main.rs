@@ -93,7 +93,48 @@ fn is_canonical_utc(timestamp: &str) -> bool {
 }
 
 fn is_current_until(root: &Value, path: &str, cutoff: &str) -> bool {
-    text_at(root, path).is_some_and(|until| is_canonical_utc(until) && until >= cutoff)
+    text_at(root, path).is_some_and(|until| is_canonical_utc(until) && until > cutoff)
+}
+
+fn validate_ruleset_effectivity(weld: &Value, cutoff: &str) -> &'static str {
+    let Some(applicable) = value_at(weld, "normative_context.applicable_ruleset") else {
+        return "NORMATIVE_CONTEXT_MISSING";
+    };
+    if text_at(applicable, "status") == Some("future_not_effective") {
+        return "FUTURE_RULESET_NOT_EFFECTIVE";
+    }
+    if text_at(applicable, "status") != Some("current_at_cutoff") {
+        return "RULESET_NOT_CURRENT_AT_CUTOFF";
+    }
+    if let Some(start) = text_at(applicable, "effective_from_utc") {
+        if !is_canonical_utc(start) {
+            return "INVALID_RULESET_EFFECTIVITY";
+        }
+        if start > cutoff {
+            return "FUTURE_RULESET_NOT_EFFECTIVE";
+        }
+    }
+    if let Some(end) = text_at(applicable, "effective_until_utc") {
+        if !is_canonical_utc(end) {
+            return "INVALID_RULESET_EFFECTIVITY";
+        }
+        if end <= cutoff {
+            return "RULESET_EXPIRED";
+        }
+    }
+
+    let Some(future) = value_at(weld, "normative_context.future_ruleset") else {
+        return "FUTURE_RULESET_CONTEXT_MISSING";
+    };
+    if text_at(future, "status") == Some("future_not_effective") {
+        let Some(start) = text_at(future, "effective_from_utc") else {
+            return "FUTURE_RULESET_CONTEXT_MISSING";
+        };
+        if !is_canonical_utc(start) || start <= cutoff {
+            return "FUTURE_RULESET_EFFECTIVITY_CONFLICT";
+        }
+    }
+    "RULESET_CURRENT_AT_CUTOFF"
 }
 
 fn resolve_trace_path(workspace_root: &Path, relative: &str) -> Result<PathBuf, &'static str> {
@@ -178,6 +219,11 @@ fn evaluate(weld: &Value, workspace_root: &Path) -> &'static str {
         _ => return "INVALID_DECISION_CUTOFF",
     };
 
+    let ruleset_disposition = validate_ruleset_effectivity(weld, cutoff);
+    if ruleset_disposition != "RULESET_CURRENT_AT_CUTOFF" {
+        return ruleset_disposition;
+    }
+
     let serial = match text_at(weld, "workpiece.serial_id") {
         Some(value) => value,
         None => return "WORKPIECE_IDENTITY_MISSING",
@@ -192,13 +238,16 @@ fn evaluate(weld: &Value, workspace_root: &Path) -> &'static str {
     };
 
     if text_at(weld, "workpiece.material_heat_lot")
-        != text_at(weld, "workpiece.material_record_lot")
+        != text_at(weld, "material_receiving.material_heat_lot")
+        || text_at(weld, "workpiece.material_spec_ref")
+            != text_at(weld, "material_receiving.material_spec_ref")
+        || text_at(weld, "material_receiving.disposition") != Some("accepted_synthetic")
     {
         return "MATERIAL_LOT_MISMATCH";
     }
 
     if text_at(weld, "procedure.qualified_scope")
-        != text_at(weld, "workpiece.required_procedure_scope")
+        != text_at(weld, "workpiece.required_process_scope")
     {
         return "PQR_SCOPE_MISMATCH";
     }
@@ -298,7 +347,7 @@ fn evaluate(weld: &Value, workspace_root: &Path) -> &'static str {
         if pass_time > cutoff {
             return "PROCESS_TRACE_AFTER_DECISION_CUTOFF";
         }
-        if pass.get("serial_id").and_then(Value::as_str) != Some(serial) {
+        if pass.get("workpiece_serial_id").and_then(Value::as_str) != Some(serial) {
             return "WORKPIECE_IDENTITY_MISMATCH";
         }
         if pass.get("joint_id").and_then(Value::as_str) != Some(joint) {
@@ -351,11 +400,15 @@ fn evaluate(weld: &Value, workspace_root: &Path) -> &'static str {
         let Some(record) = record else {
             return code;
         };
+        let expected_coverage = if hold_point == "fill_sampling" {
+            Some("required_sampling")
+        } else {
+            Some("required")
+        };
         if record.get("joint_id").and_then(Value::as_str) != Some(joint)
             || record.get("disposition").and_then(Value::as_str)
                 != Some("accepted_synthetic")
-            || record.get("coverage").and_then(Value::as_str)
-                == Some("none")
+            || record.get("coverage").and_then(Value::as_str) != expected_coverage
         {
             return code;
         }
@@ -375,6 +428,7 @@ fn evaluate(weld: &Value, workspace_root: &Path) -> &'static str {
     }
     if text_at(weld, "inspections.visual.disposition") != Some("accepted_synthetic")
         || text_at(weld, "inspections.visual.joint_id") != Some(joint)
+        || text_at(weld, "inspections.visual.coverage") != Some("complete_synthetic")
     {
         return "VISUAL_INSPECTION_NOT_ACCEPTED";
     }
@@ -624,8 +678,8 @@ mod tests {
         let corpus: Value = serde_json::from_str(CORPUS).expect("frozen corpus parses");
         let root = workspace_root();
         let report = verify_corpus(&corpus, &root).expect("frozen corpus evaluates");
-        assert_eq!(report["case_count"].as_u64(), Some(41));
-        assert_eq!(report["passed_count"].as_u64(), Some(37));
+        assert_eq!(report["case_count"].as_u64(), Some(42));
+        assert_eq!(report["passed_count"].as_u64(), Some(42));
         assert_eq!(report["failed_count"].as_u64(), Some(0));
     }
 
