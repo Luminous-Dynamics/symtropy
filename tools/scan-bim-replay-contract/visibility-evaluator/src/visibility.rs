@@ -795,6 +795,16 @@ pub fn probes_from_reference_sampling(
     Ok(probes)
 }
 
+fn triangle_area_m2(a: Point3, b: Point3, c: Point3) -> Result<f64, String> {
+    let edge_a = Vec3::from_point(b).sub(Vec3::from_point(a));
+    let edge_b = Vec3::from_point(c).sub(Vec3::from_point(a));
+    let area = edge_a.cross(edge_b).norm() * 0.5;
+    if !area.is_finite() || area <= DEGENERATE_TWICE_AREA_EPSILON {
+        return Err("reference triangle area is degenerate or non-finite".to_owned());
+    }
+    Ok(area)
+}
+
 fn validate_reference_probe_set(
     probes: &[&VisibilityProbe],
     reference_surface_ids: &[String],
