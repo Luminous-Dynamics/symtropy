@@ -42,8 +42,11 @@ pub struct HingeJoint<const D: usize> {
     /// Optional hinge motor configuration.
     ///
     /// In 0.2.1, the hinge solver uses `target_vel` only; `target_pos` is not
-    /// consumed because no running relative hinge angle is tracked. See
-    /// PHYS-HINGE-MOTOR-001:
+    /// consumed because no running relative hinge angle is tracked. Its motor
+    /// impulse is also split as fixed half-increments to endpoint angular
+    /// velocities rather than being mapped through each endpoint's inverse
+    /// inertia. Do not interpret this path as a generally inertia-correct
+    /// torque actuator model. See PHYS-HINGE-MOTOR-001:
     /// https://github.com/Luminous-Dynamics/symtropy/issues/4516.
     pub motor: Option<super::MotorDrive>,
 }
