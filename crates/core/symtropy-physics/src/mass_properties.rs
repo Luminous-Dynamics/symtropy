@@ -16,7 +16,7 @@
 
 use nalgebra::DMatrix;
 use nalgebra::SVector;
-use symtropy_math::Bivector;
+use symtropy_math::{Bivector, Rotor};
 
 /// Maximum bivector dimension supported by symtropy-math (D <= 9).
 const MAX_ROTATIONAL_DOF: usize = 36;
@@ -49,6 +49,8 @@ pub enum MassPropertiesError {
     InvalidCenterOfMass,
     /// A plane index is out of range or not ordered with i < j.
     InvalidPlaneIndex,
+    /// A frame transform is not a finite proper rotation.
+    InvalidRotation,
 }
 
 /// Validated symmetric positive-definite inertia operator in body-frame
@@ -257,6 +259,24 @@ impl<const D: usize> RotationalInertiaOperator<D> {
             matrix[index * dof + index] = moment_per_plane;
         }
         Self::try_from_row_major(matrix)
+    }
+
+    /// Borrow this body-frame inertia as a spatial-frame inertia at the
+    /// supplied body-to-spatial orientation. The returned view applies the
+    /// induced SO(D) adjoint to vectors and the corresponding congruence to
+    /// the inertia operator without constructing or allocating a transformed
+    /// dense matrix.
+    pub fn in_spatial_frame<'a>(
+        &'a self,
+        body_to_spatial: &'a Rotor<D>,
+    ) -> Result<SpatialRotationalInertiaView<'a, D>, MassPropertiesError> {
+        if !body_to_spatial.is_proper_rotation(1.0e-8) {
+            return Err(MassPropertiesError::InvalidRotation);
+        }
+        Ok(SpatialRotationalInertiaView {
+            body_inertia: self,
+            body_to_spatial,
+        })
     }
 
     /// Number of independent bivector coordinates.
@@ -572,6 +592,122 @@ impl<const D: usize> MassProperties<D> {
     }
 }
 
+
+/// A zero-allocation spatial-frame view of a body-frame rotational inertia.
+///
+/// The view binds the inertia to the current body-to-spatial orientation. It
+/// implements the spatial operator I_S = Ad_R I_B Ad_R^T by transporting
+/// bivectors to body coordinates, applying the validated body operator, and
+/// transporting the result back. This avoids rebuilding/factorizing a dense
+/// matrix each physics tick and keeps the body/spatial convention explicit.
+#[derive(Clone, Copy, Debug)]
+pub struct SpatialRotationalInertiaView<'a, const D: usize> {
+    body_inertia: &'a RotationalInertiaOperator<D>,
+    body_to_spatial: &'a Rotor<D>,
+}
+
+impl<const D: usize> SpatialRotationalInertiaView<'_, D> {
+    /// Apply spatial inertia to a spatial angular velocity or acceleration.
+    pub fn apply_bivector(
+        &self,
+        spatial_vector: &Bivector<D>,
+    ) -> Result<Bivector<D>, MassPropertiesError> {
+        if !spatial_vector.is_finite() {
+            return Err(MassPropertiesError::NonFiniteValue);
+        }
+        let body_vector = self
+            .body_to_spatial
+            .reverse()
+            .rotate_bivector(spatial_vector);
+        let body_result = self.body_inertia.apply_bivector(&body_vector)?;
+        let spatial_result = self.body_to_spatial.rotate_bivector(&body_result);
+        if !spatial_result.is_finite() {
+            return Err(MassPropertiesError::NonFiniteValue);
+        }
+        Ok(spatial_result)
+    }
+
+    /// Solve I_spatial * omega_spatial = angular_momentum_spatial.
+    pub fn solve_bivector(
+        &self,
+        spatial_momentum: &Bivector<D>,
+    ) -> Result<Bivector<D>, MassPropertiesError> {
+        if !spatial_momentum.is_finite() {
+            return Err(MassPropertiesError::NonFiniteValue);
+        }
+        let body_momentum = self
+            .body_to_spatial
+            .reverse()
+            .rotate_bivector(spatial_momentum);
+        let body_velocity = self.body_inertia.solve_bivector(&body_momentum)?;
+        let spatial_velocity = self.body_to_spatial.rotate_bivector(&body_velocity);
+        if !spatial_velocity.is_finite() {
+            return Err(MassPropertiesError::NonFiniteValue);
+        }
+        Ok(spatial_velocity)
+    }
+
+    /// Rotational kinetic energy in joules for a spatial angular velocity.
+    pub fn kinetic_energy_joules(
+        &self,
+        spatial_angular_velocity: &Bivector<D>,
+    ) -> Result<f64, MassPropertiesError> {
+        let momentum = self.apply_bivector(spatial_angular_velocity)?;
+        let mut pairing = 0.0;
+        for i in 0..D {
+            for j in (i + 1)..D {
+                pairing += spatial_angular_velocity.get(i, j) * momentum.get(i, j);
+            }
+        }
+        let energy = 0.5 * pairing;
+        if !energy.is_finite() || energy < 0.0 {
+            return Err(MassPropertiesError::NonFiniteValue);
+        }
+        Ok(energy)
+    }
+
+    /// Angular acceleration in spatial coordinates from the spatial Euler
+    /// equation:
+    ///
+    ///     I_S * dot(omega_S) + [omega_S, I_S * omega_S] = torque_S
+    ///
+    /// The commutator is computed in so(D), so this works for 3D and the
+    /// higher-dimensional bivector algebra without a 3D-only cross product.
+    pub fn angular_acceleration(
+        &self,
+        spatial_angular_velocity: &Bivector<D>,
+        spatial_torque: &Bivector<D>,
+    ) -> Result<Bivector<D>, MassPropertiesError> {
+        if !spatial_angular_velocity.is_finite() || !spatial_torque.is_finite() {
+            return Err(MassPropertiesError::NonFiniteValue);
+        }
+        let spatial_momentum = self.apply_bivector(spatial_angular_velocity)?;
+        // Rotor::from_bivector exponentiates -B.to_matrix(); use that same
+        // Lie-algebra matrix representation for the commutator.
+        let omega_matrix = -spatial_angular_velocity.to_matrix();
+        let momentum_matrix = -spatial_momentum.to_matrix();
+        let commutator = omega_matrix * momentum_matrix - momentum_matrix * omega_matrix;
+        let ad_omega_momentum = Bivector::<D>::from_matrix(&(-commutator));
+        let right_hand_side = spatial_torque.add(&ad_omega_momentum.scale(-1.0));
+        self.solve_bivector(&right_hand_side)
+    }
+
+    /// Apply a spatial angular impulse exactly in momentum coordinates:
+    /// I_S * omega_after = I_S * omega_before + impulse_S.
+    pub fn apply_angular_impulse(
+        &self,
+        spatial_angular_velocity: &Bivector<D>,
+        spatial_impulse: &Bivector<D>,
+    ) -> Result<Bivector<D>, MassPropertiesError> {
+        if !spatial_angular_velocity.is_finite() || !spatial_impulse.is_finite() {
+            return Err(MassPropertiesError::NonFiniteValue);
+        }
+        let momentum_before = self.apply_bivector(spatial_angular_velocity)?;
+        let momentum_after = momentum_before.add(spatial_impulse);
+        self.solve_bivector(&momentum_after)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -833,4 +969,132 @@ mod tests {
             Err(MassPropertiesError::NonFiniteValue)
         );
     }
+    #[test]
+    fn spatial_inertia_view_is_adjoint_covariant_and_zero_allocation_api() {
+        use nalgebra::SMatrix;
+        use symtropy_math::Rotor;
+
+        let second_moment = SMatrix::<f64, 3, 3>::new(
+            2.0, 0.3, -0.2,
+            0.3, 3.0, 0.4,
+            -0.2, 0.4, 1.7,
+        );
+        let mut row_major = Vec::with_capacity(9);
+        for row in 0..3 {
+            for column in 0..3 {
+                row_major.push(second_moment[(row, column)]);
+            }
+        }
+        let inertia = RotationalInertiaOperator::<3>::from_body_second_moment_matrix(row_major)
+            .unwrap();
+        let pose_rotation =
+            Rotor::<3>::from_bivector(&Bivector::<3>::unit_plane(0, 2).scale(0.73));
+        let spatial = inertia.in_spatial_frame(&pose_rotation).unwrap();
+
+        let mut omega_body = Bivector::<3>::zero();
+        omega_body.set(0, 1, 0.31);
+        omega_body.set(0, 2, -0.47);
+        omega_body.set(1, 2, 0.83);
+        let omega_spatial = pose_rotation.rotate_bivector(&omega_body);
+
+        let momentum_body = inertia.apply_bivector(&omega_body).unwrap();
+        let expected_spatial_momentum = pose_rotation.rotate_bivector(&momentum_body);
+        let actual_spatial_momentum = spatial.apply_bivector(&omega_spatial).unwrap();
+        assert!(
+            actual_spatial_momentum
+                .add(&expected_spatial_momentum.scale(-1.0))
+                .norm()
+                < 1.0e-12
+        );
+
+        let body_energy = inertia.kinetic_energy_bivector_joules(&omega_body).unwrap();
+        let spatial_energy = spatial.kinetic_energy_joules(&omega_spatial).unwrap();
+        assert!((body_energy - spatial_energy).abs() < 1.0e-12);
+
+        let recovered_spatial = spatial.solve_bivector(&actual_spatial_momentum).unwrap();
+        assert!(recovered_spatial.add(&omega_spatial.scale(-1.0)).norm() < 1.0e-12);
+    }
+
+    #[test]
+    fn spatial_angular_impulse_changes_momentum_by_exact_impulse() {
+        let inertia = RotationalInertiaOperator::<3>::from_body_second_moment_matrix(vec![
+            2.0, 0.2, 0.1, 0.2, 3.0, -0.3, 0.1, -0.3, 4.0,
+        ])
+        .unwrap();
+        let rotation =
+            Rotor::<3>::from_bivector(&Bivector::<3>::unit_plane(1, 2).scale(-0.52));
+        let spatial = inertia.in_spatial_frame(&rotation).unwrap();
+
+        let mut omega = Bivector::<3>::zero();
+        omega.set(0, 1, 0.4);
+        omega.set(0, 2, -0.7);
+        omega.set(1, 2, 0.2);
+        let mut impulse = Bivector::<3>::zero();
+        impulse.set(0, 1, -0.8);
+        impulse.set(0, 2, 0.3);
+        impulse.set(1, 2, 0.5);
+
+        let momentum_before = spatial.apply_bivector(&omega).unwrap();
+        let omega_after = spatial.apply_angular_impulse(&omega, &impulse).unwrap();
+        let momentum_after = spatial.apply_bivector(&omega_after).unwrap();
+        assert!(
+            momentum_after
+                .add(&momentum_before.scale(-1.0))
+                .add(&impulse.scale(-1.0))
+                .norm()
+                < 2.0e-12
+        );
+    }
+
+    #[test]
+    fn spatial_euler_equation_preserves_world_momentum_to_first_order() {
+        use symtropy_math::Rotor;
+
+        let inertia = RotationalInertiaOperator::<3>::from_body_second_moment_matrix(vec![
+            2.0, 0.2, 0.1, 0.2, 3.0, -0.3, 0.1, -0.3, 4.0,
+        ])
+        .unwrap();
+        let mut body_rotation =
+            Rotor::<3>::from_bivector(&Bivector::<3>::unit_plane(0, 2).scale(0.61));
+        let spatial_inertia = inertia.in_spatial_frame(&body_rotation).unwrap();
+        let mut omega = Bivector::<3>::zero();
+        omega.set(0, 1, 0.41);
+        omega.set(0, 2, -0.29);
+        omega.set(1, 2, 0.76);
+
+        let torque_free = Bivector::<3>::zero();
+        let momentum_before = spatial_inertia.apply_bivector(&omega).unwrap();
+        let acceleration = spatial_inertia.angular_acceleration(&omega, &torque_free).unwrap();
+
+        let dt = 1.0e-7;
+        let omega_next = omega.add(&acceleration.scale(dt));
+        let delta = Rotor::<3>::from_bivector(&omega_next.scale(dt));
+        body_rotation = delta.compose(&body_rotation);
+        let next_spatial_inertia = inertia.in_spatial_frame(&body_rotation).unwrap();
+        let momentum_after = next_spatial_inertia.apply_bivector(&omega_next);
+
+        let residual = momentum_after
+            .unwrap()
+            .add(&momentum_before.scale(-1.0))
+            .norm();
+        assert!(
+            residual < 2.0e-7,
+            "torque-free spatial momentum drift {residual:e}"
+        );
+    }
+
+    #[test]
+    fn spatial_inertia_rejects_improper_or_non_finite_rotations() {
+        use nalgebra::SMatrix;
+        use symtropy_math::Rotor;
+
+        let inertia = RotationalInertiaOperator::<3>::isotropic(1.0).unwrap();
+        let improper = Rotor::from_matrix(SMatrix::<f64, 3, 3>::identity() * 2.0);
+        assert_eq!(
+            inertia.in_spatial_frame(&improper).err(),
+            Some(MassPropertiesError::InvalidRotation)
+        );
+    }
+
+
 }
