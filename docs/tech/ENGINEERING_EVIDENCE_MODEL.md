@@ -127,6 +127,45 @@ Where a probability model is justified, report its assumptions, calibration and 
 
 Report sensitivity to influential parameters and identify when uncertainty changes the engineering decision. A design whose nominal prediction passes but whose credible uncertainty interval crosses a hard limit should not be reported as an unconditional pass.
 
+## 5.1 Risk-scaled evidence depth
+
+VVUQ effort should be proportionate to both **model influence** and **decision consequence**. This follows the risk-based direction in NIST's 2026 report harmonizing computational-model UQ with JCGM metrology practice. It is not permission to weaken a physics or semantic gate.
+
+For every context of use, record:
+
+- **Model influence:** how strongly does this model affect the decision, requirement margin, controller action or release criterion? Could an error reverse the decision?
+- **Decision consequence:** what happens if the prediction is wrong? Consider human exposure, equipment damage, environmental impact, financial loss, recovery/reversibility and scale of deployment.
+- **Uncertainty leverage:** which uncertain inputs or model assumptions dominate the decision? Can a feasible test or independent model resolve them?
+- **Applicability exposure:** how far is the proposed use from tested geometry, materials, load, temperature, speed, wear, environment and configuration?
+
+Use the following evidence-depth classes as a planning baseline:
+
+| Class | Typical context | Minimum evidence package | Claim boundary |
+|---|---|---|---|
+| **E1 — Exploratory** | Low model influence and low decision consequence; idea generation, visualization or early trade study | Exact run/configuration identity; declared units/frames and assumptions; basic code tests; analytical sanity checks where available; explicit synthetic/assumed/simulated evidence classes | Supports exploration only. Cannot be promoted to product acceptance or safe-operation evidence. |
+| **E2 — Engineering development** | Model influences design choices or requirement margins, but consequences are bounded/reversible and the operating envelope is not yet release-critical | E1 plus numerical verification/refinement; sensitivity and uncertainty analysis; an independent reference or solver for decision-critical paths; calibrated parameter provenance; at least one disconfirming/negative control; reviewer approval of applicability | Supports bounded design decisions inside a declared envelope. Extrapolation and unresolved model discrepancy remain visible. |
+| **E3 — Consequential / qualification** | High model influence **or** high decision consequence: human proximity, safety-relevant actuation, structural/environmental limits, major financial exposure or operational release | E2 plus independent algorithm/model review; risk-appropriate VVUQ and metrology traceability; disjoint calibration and held-out validation conditions; physical correlation for consequential physical claims; explicit uncertainty budget and acceptance margins; failure/out-of-domain challenge; configuration-specific review and change-triggered reassessment | Supports only the named requirement, configuration and operating domain accepted by competent engineering authority. It is not universal certification. |
+
+If either influence or consequence is high, use E3 until a documented assessment justifies otherwise. When the context of use is unknown, default to the more demanding class rather than assuming low risk. A class is a planning aid, not an automated safety score.
+
+### Non-negotiable gates at every evidence class
+
+- Invalid units, frames, identities, non-finite inputs or missing decision-critical semantics are rejected or marked indeterminate.
+- Unknown, unsupported, non-equivalent or unbounded model paths never enter a matched score or an unconditional pass.
+- A numerical residual, solver failure, capacity overflow, non-convergence or out-of-domain condition remains visible; recovery must not erase the original failure.
+- Synthetic or assumed data are never relabelled as measured, correlated or qualified.
+- A lower VVUQ class cannot authorize a decision whose consequence or model influence places it in E3.
+
+### Choose uncertainty propagation honestly
+
+Do not choose a probabilistic method merely because it produces a confidence interval. Use variance propagation when the assumptions and dependence structure justify a second-moment description and the decision is adequately described by it. Use distribution propagation, sampling or a validated surrogate when nonlinearity, tails, multimodality, threshold crossings or nonlinear dependencies materially affect the decision. When distributions cannot be justified, preserve bounded intervals, sensitivity envelopes and explicit unknowns.
+
+Keep measurement uncertainty, parameter uncertainty, numerical uncertainty and model-form discrepancy separate. A narrow measurement uncertainty does not imply a credible model; a well-correlated nominal trajectory does not establish tail behaviour or out-of-domain prediction.
+
+**Example — rotary-joint cartridge:** early architecture sketches can start at E1. Selecting gear ratio or thermal architecture against requirements normally raises the work to E2. Any model result used to accept torque/temperature margins, actuator derating, failure response or human-proximity operation is E3 until the hardware configuration, calibrated measurement method, independent model evidence and held-out validation are established.
+
+Reference: NIST, *On Methods of Uncertainty Quantification in Computational Modeling and Simulation: Harmonizing Modeling and Metrology Practices* (published 2026-10-05), https://www.nist.gov/publications/methods-uncertainty-quantification-computational-modeling-and-simulation-harmonizing.
+
 ## 6. Simulation-to-physical correlation
 
 Correlation requires matched conditions and configuration identity.
