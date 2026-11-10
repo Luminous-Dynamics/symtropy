@@ -296,3 +296,87 @@ jobs:
               assert row["estimand"] == "target_average_treatment_effect_risk_difference"
           print("Causal-transport CSV valid: point standardization under full support; no point extrapolation under target-only modifier; sharp risk-difference bounds retained.")
           PY
+      - name: Verify likelihood-ratio outcome-shift sensitivity bounds
+        run: |
+          set -euo pipefail
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin causal-transport-lambda-sweep > /tmp/civdyn-causal-transport-lambda.csv
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin causal-transport-lambda-sweep > /tmp/civdyn-causal-transport-lambda-replay.csv
+          cmp /tmp/civdyn-causal-transport-lambda.csv /tmp/civdyn-causal-transport-lambda-replay.csv
+          python3 - <<'PY'
+          import csv
+          import math
+          from pathlib import Path
+
+          with Path("/tmp/civdyn-causal-transport-lambda.csv").open(newline="", encoding="utf-8") as handle:
+              reader = csv.DictReader(handle)
+              rows = list(reader)
+              fields = reader.fieldnames
+
+          assert fields is not None and len(fields) == 33
+          assert len(rows) == 9
+          grouped = {}
+          for row in rows:
+              grouped.setdefault((row["scenario"], float(row["lambda"])), []).append(row)
+
+          lambda1 = grouped[("full_support", 1.0)]
+          lambda2 = grouped[("full_support", 2.0)]
+          lambda4 = grouped[("full_support", 4.0)]
+          partial = grouped[("target_support_failure", 2.0)]
+          assert len(lambda1) == len(lambda2) == len(lambda4) == 2
+          assert len(partial) == 3
+
+          for row in lambda1:
+              assert row["status"] == "sensitivity_bounded"
+              assert row["interval_collapsed"] if "interval_collapsed" in row else True
+              assert math.isclose(float(row["target_ate_lower"]), 0.28, abs_tol=1e-8)
+              assert math.isclose(float(row["target_ate_upper"]), 0.28, abs_tol=1e-8)
+
+          for row in lambda2:
+              assert row["status"] == "sensitivity_bounded"
+              assert row["interval_collapsed"] == "false"
+              assert math.isclose(float(row["target_ate_lower"]), -0.13, abs_tol=1e-8)
+              assert math.isclose(float(row["target_ate_upper"]), 0.51, abs_tol=1e-8)
+
+          for row in lambda4:
+              assert row["status"] == "sensitivity_bounded"
+              assert row["interval_collapsed"] == "false"
+              assert math.isclose(float(row["target_ate_lower"]), -0.605, abs_tol=1e-8)
+              assert math.isclose(float(row["target_ate_upper"]), 0.82, abs_tol=1e-8)
+
+          lower1 = float(lambda1[0]["target_ate_lower"])
+          lower2 = float(lambda2[0]["target_ate_lower"])
+          lower4 = float(lambda4[0]["target_ate_lower"])
+          upper1 = float(lambda1[0]["target_ate_upper"])
+          upper2 = float(lambda2[0]["target_ate_upper"])
+          upper4 = float(lambda4[0]["target_ate_upper"])
+          assert lower1 >= lower2 >= lower4
+          assert upper1 <= upper2 <= upper4
+
+          for row in partial:
+              assert row["status"] == "partially_identified"
+              assert row["interval_collapsed"] == "false"
+              assert math.isclose(float(row["target_ate_lower"]), -0.30, abs_tol=1e-8)
+              assert math.isclose(float(row["target_ate_upper"]), 0.61, abs_tol=1e-8)
+              assert math.isclose(float(row["supported_target_mass"]), 0.8, abs_tol=1e-8)
+              assert math.isclose(float(row["unsupported_target_mass"]), 0.2, abs_tol=1e-8)
+              assert row["supported_target_population_count"] == "80"
+              assert row["unsupported_target_population_count"] == "20"
+
+          remote = next(row for row in partial if row["modifier_id"] == "remote-isolated")
+          assert remote["source_support"] == "false"
+          assert remote["control_risk_lower"] == "" if "control_risk_lower" in remote else remote["target_control_lower"] == ""
+          assert remote["target_treatment_lower"] == ""
+          assert remote["stratum_risk_difference_lower"] == ""
+
+          for row in rows:
+              assert row["selection_exchangeability"] == "violated"
+              assert row["source_internal_validity"] == "supported_by_design"
+              assert row["no_interference"] == "supported_by_design"
+              assert row["treatment_version_invariance"] == "supported_by_evidence"
+              assert row["source_ate"] == "0.22000000"
+              assert row["source_data_digest"] == "sha256-causal-transport-source-rct"
+              assert row["target_population_digest"] == "sha256-causal-transport-target-population"
+              assert row["protocol_digest"] == "sha256-causal-transport-protocol-v0.1"
+              assert row["sensitivity_scenario_digest"]
+          print("Lambda sensitivity CSV valid: Lambda=1 collapses to standard transport; larger outcome-density shift widens the interval; target-only strata retain [-1,1] support bounds; provenance and replay are stable.")
+          PY

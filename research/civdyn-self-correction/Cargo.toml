@@ -37,3 +37,7 @@ path = "src/bin/model_adequacy_sweep.rs"
 [[bin]]
 name = "causal-transport-sweep"
 path = "src/bin/causal_transport_sweep.rs"
+
+[[bin]]
+name = "causal-transport-lambda-sweep"
+path = "src/bin/causal_transport_lambda_sweep.rs"

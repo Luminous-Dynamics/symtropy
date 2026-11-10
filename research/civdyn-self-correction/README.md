@@ -242,3 +242,17 @@ A second target contains 20% population mass in a modifier stratum absent from t
 - A synthetic known-answer pass validates the code path, not real-world causal transportability.
 
 Run causal-transport-sweep with the locked workspace manifest. CI checks exact source/target effects, positivity bounds, assumption dispositions, provenance and deterministic replay.
+
+## Scenario N: likelihood-ratio sensitivity for causal transport
+
+The binary-outcome sensitivity extension is in src/causal_transport.rs and causal-transport-lambda-sweep. It advances [CIVDYN-TRANSPORT-LAMBDA-001 #4463](https://github.com/Luminous-Dynamics/symtropy/issues/4463), informed by Asiaee et al., CLeaR 2026, Sharp Bounds for Treatment Effect Generalization under Outcome Distribution Shift (https://proceedings.mlr.press/v323/asiaee26a.html).
+
+For each binary outcome arm and modifier stratum, a declared two-sided density-ratio constraint Lambda produces target risk bounds:
+- lower = max(p/Lambda, 1 - Lambda*(1-p));
+- upper = min(Lambda*p, 1 - (1-p)/Lambda).
+
+The evaluator standardizes treatment-minus-control bounds to target modifier shares. Target-only modifier strata retain the full risk-difference range [-1, 1]; no source effect is imputed. Lambda is an explicit sensitivity scenario, never learned from the observations.
+
+Lambda=1 collapses to the existing exact conditional-invariance target estimate under full support. Larger Lambda widens the supported-stratum sensitivity interval. The selection-exchangeability disposition is retained as a declared assumption status; Lambda replaces exact conditional outcome invariance with an explicit outcome-density ratio envelope. Source internal validity, no-interference and treatment-version invariance remain required.
+
+The output is an identification/sensitivity interval conditional on observed source arm risks and the chosen Lambda. It is not a confidence interval and does not include sampling uncertainty. This is the binary-outcome reduction only, not the full continuous-outcome CLeaR estimator or a graph-free Bayesian s-admissibility learner.
