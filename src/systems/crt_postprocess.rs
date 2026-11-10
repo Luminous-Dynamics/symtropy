@@ -4,7 +4,7 @@
 //!
 //! This module currently defines the camera marker and uniform shape only. It
 //! does not register a render-graph node or load the CRT shader. The legacy
-//! `crt_consciousness.wesl` asset is tracked for WESL migration in issue #4475.
+//! `crt_consciousness.wesl` asset is migrated but remains unwired; see issue #4475.
 //! Replaces the built-in ChromaticAberration
 //! with a consciousness-driven CRT effect that includes:
 //!
