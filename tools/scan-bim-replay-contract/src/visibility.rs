@@ -138,6 +138,7 @@ pub struct VisibilitySurfaceArea {
     pub outside_sensor_coverage_area_m2: f64,
     pub unknown_area_m2: f64,
     pub contradictory_area_m2: f64,
+    pub mixed_occlusion_area_m2: f64,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -160,6 +161,7 @@ pub struct VisibilityReceipt {
     pub outside_sensor_coverage_area_m2: f64,
     pub unknown_area_m2: f64,
     pub contradictory_area_m2: f64,
+    pub mixed_occlusion_area_m2: f64,
     pub surfaces: Vec<VisibilitySurfaceArea>,
     pub probes: Vec<VisibilityProbeResult>,
     pub visibility_sha256: String,
@@ -314,7 +316,13 @@ fn view_covers_probe(view: &VisibilityView, point: Point3) -> Result<Option<(Vec
     if !distance.is_finite() {
         return Err("probe-to-view distance became non-finite".to_owned());
     }
-    if distance <= INTERSECTION_EPSILON_M || distance > view.max_range_m {
+    if distance <= INTERSECTION_EPSILON_M {
+        return Err(format!(
+            "view {} origin coincides with visibility probe {}",
+            view.view_id, point.x
+        ));
+    }
+    if distance > view.max_range_m {
         return Ok(None);
     }
 
@@ -458,13 +466,24 @@ fn observe_from_view(
     }
 
     if occluder_coverage == OccluderCoverage::Incomplete {
+        let mut blocker_ids: Vec<String> = nearest
+            .iter()
+            .map(|(occluder, _)| format!("{}/{}", occluder.surface_id, occluder.triangle_id))
+            .collect();
+        blocker_ids.sort();
+        let blocker_kinds: BTreeSet<OccluderKind> =
+            nearest.iter().map(|(occluder, _)| occluder.kind).collect();
         return Ok((
             ViewObservation {
                 view_id: view.view_id.clone(),
                 status: ViewVisibilityStatus::Unknown,
-                blocker_kind: None,
-                blocker_triangle_ids: Vec::new(),
-                blocker_distance_m: None,
+                blocker_kind: if blocker_kinds.len() == 1 {
+                    blocker_kinds.iter().next().copied()
+                } else {
+                    None
+                },
+                blocker_triangle_ids: blocker_ids,
+                blocker_distance_m: nearest_distance,
             },
             ray_tests,
         ));
@@ -552,7 +571,7 @@ fn aggregate_probe_visibility(views: &[ViewObservation]) -> SurfaceVisibility {
     match (has_self, has_external) {
         (true, false) => SurfaceVisibility::SelfOccluded,
         (false, true) => SurfaceVisibility::ExternallyOccluded,
-        (true, true) => SurfaceVisibility::Contradictory,
+        (true, true) => SurfaceVisibility::MixedOcclusion,
         (false, false)
             if views
                 .iter()
@@ -577,6 +596,7 @@ fn visibility_label(value: SurfaceVisibility) -> &'static str {
         SurfaceVisibility::SelfOccluded => "self_occluded",
         SurfaceVisibility::ExternallyOccluded => "externally_occluded",
         SurfaceVisibility::Backface => "backface",
+        SurfaceVisibility::MixedOcclusion => "mixed_occlusion",
         SurfaceVisibility::OutsideSensorCoverage => "outside_sensor_coverage",
         SurfaceVisibility::Unknown => "unknown",
         SurfaceVisibility::Contradictory => "contradictory",
@@ -721,19 +741,6 @@ pub fn derive_surface_visibility(
         return Err("min_incidence_cosine must be finite and within [0, 1]".to_owned());
     }
 
-    let maximum_ray_tests = evaluation
-        .probes
-        .len()
-        .checked_mul(evaluation.views.len())
-        .and_then(|value| value.checked_mul(evaluation.occluders.len()))
-        .ok_or("visibility ray-test count overflowed")?;
-    if maximum_ray_tests > evaluation.profile.max_ray_tests {
-        return Err(format!(
-            "visibility ray-test budget exceeded: {maximum_ray_tests} > {}",
-            evaluation.profile.max_ray_tests
-        ));
-    }
-
     let mut ordered_views: Vec<&VisibilityView> = evaluation.views.iter().collect();
     ordered_views.sort_by(|left, right| left.view_id.cmp(&right.view_id));
     let mut view_ids = BTreeSet::new();
@@ -793,7 +800,7 @@ pub fn derive_surface_visibility(
         ordered_views.iter().map(|value| (**value).clone()).collect();
     let mut results = Vec::with_capacity(evaluation.probes.len());
     let mut ray_test_count = 0usize;
-    let mut surface_totals: BTreeMap<String, [f64; 7]> = BTreeMap::new();
+    let mut surface_totals: BTreeMap<String, [f64; 8]> = BTreeMap::new();
 
     for probe in ordered_probes {
         let mut per_view = Vec::with_capacity(owned_views.len());
@@ -826,6 +833,7 @@ pub fn derive_surface_visibility(
             SurfaceVisibility::OutsideSensorCoverage => 4,
             SurfaceVisibility::Unknown => 5,
             SurfaceVisibility::Contradictory => 6,
+            SurfaceVisibility::MixedOcclusion => 7,
         };
         totals[index] += probe.represented_area_m2;
         if !totals[index].is_finite() {
@@ -854,10 +862,11 @@ pub fn derive_surface_visibility(
             outside_sensor_coverage_area_m2: areas[4],
             unknown_area_m2: areas[5],
             contradictory_area_m2: areas[6],
+            mixed_occlusion_area_m2: areas[7],
         });
     }
 
-    let totals = surfaces.iter().fold([0.0f64; 7], |mut acc, surface| {
+    let totals = surfaces.iter().fold([0.0f64; 8], |mut acc, surface| {
         acc[0] += surface.observable_area_m2;
         acc[1] += surface.backface_area_m2;
         acc[2] += surface.self_occluded_area_m2;
@@ -865,6 +874,7 @@ pub fn derive_surface_visibility(
         acc[4] += surface.outside_sensor_coverage_area_m2;
         acc[5] += surface.unknown_area_m2;
         acc[6] += surface.contradictory_area_m2;
+        acc[7] += surface.mixed_occlusion_area_m2;
         acc
     });
     if totals.iter().any(|value| !value.is_finite()) {
@@ -897,6 +907,7 @@ pub fn derive_surface_visibility(
         outside_sensor_coverage_area_m2: totals[4],
         unknown_area_m2: totals[5],
         contradictory_area_m2: totals[6],
+        mixed_occlusion_area_m2: totals[7],
         surfaces,
         probes: results,
         visibility_sha256,
