@@ -31,15 +31,21 @@ impl<'de> Deserialize<'de> for StrictJson {
                 formatter.write_str("a JSON value with unique object keys")
             }
 
-            fn visit_bool<E>(self, value: bool) -> Result<Self::Value, E> {
+            fn visit_bool<E>(self, value: bool) -> Result<Self::Value, E>
+            where E: serde::de::Error,
+            {
                 Ok(Value::Bool(value))
             }
 
-            fn visit_i64<E>(self, value: i64) -> Result<Self::Value, E> {
+            fn visit_i64<E>(self, value: i64) -> Result<Self::Value, E>
+            where E: serde::de::Error,
+            {
                 Ok(Value::Number(Number::from(value)))
             }
 
-            fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E> {
+            fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E>
+            where E: serde::de::Error,
+            {
                 Ok(Value::Number(Number::from(value)))
             }
 
@@ -52,19 +58,27 @@ impl<'de> Deserialize<'de> for StrictJson {
                     .ok_or_else(|| E::custom("non-finite JSON number"))
             }
 
-            fn visit_str<E>(self, value: &str) -> Result<Self::Value, E> {
+            fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+            where E: serde::de::Error,
+            {
                 Ok(Value::String(value.to_owned()))
             }
 
-            fn visit_string<E>(self, value: String) -> Result<Self::Value, E> {
+            fn visit_string<E>(self, value: String) -> Result<Self::Value, E>
+            where E: serde::de::Error,
+            {
                 Ok(Value::String(value))
             }
 
-            fn visit_unit<E>(self) -> Result<Self::Value, E> {
+            fn visit_unit<E>(self) -> Result<Self::Value, E>
+            where E: serde::de::Error,
+            {
                 Ok(Value::Null)
             }
 
-            fn visit_none<E>(self) -> Result<Self::Value, E> {
+            fn visit_none<E>(self) -> Result<Self::Value, E>
+            where E: serde::de::Error,
+            {
                 Ok(Value::Null)
             }
 
@@ -120,12 +134,11 @@ fn parse_strict_json(bytes: &[u8]) -> Result<Value, serde_json::Error> {
 fn value_at<'a>(root: &'a Value, path: &str) -> Option<&'a Value> {
     let mut current = root;
     for segment in path.split('.') {
-        current = if let Some(array) = current.as_array() {
+        if let Some(array) = current.as_array() {
             current = array.get(segment.parse::<usize>().ok()?)?;
-            current
         } else {
-            current.get(segment)?
-        };
+            current = current.get(segment)?;
+        }
     }
     Some(current)
 }
@@ -342,7 +355,6 @@ fn evaluate(case_value: &Value) -> &'static str {
     if text_at(case_value, "protection.commissioning_state") != Some("commissioned")
         || text_at(case_value, "protection.protective_tests_state") != Some("current")
         || text_at(case_value, "protection.earthing_state") != Some("verified")
-        || text_at(case_value, "protection.emergency_safety_independent") != Some("true")
         || bool_at(case_value, "protection.emergency_safety_independent") != Some(true)
     {
         return "PROTECTION_NOT_COMMISSIONED";
