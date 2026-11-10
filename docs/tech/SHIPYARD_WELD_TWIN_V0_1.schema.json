@@ -1008,7 +1008,9 @@
         "applicability_basis",
         "authority_scope",
         "applicable_ruleset",
-        "future_ruleset"
+        "future_ruleset",
+        "subject_applicability_date_utc",
+        "source_retrieved_at_utc"
       ],
       "properties": {
         "applicability_basis": {
@@ -1027,6 +1029,14 @@
         },
         "future_ruleset": {
           "$ref": "#/$defs/futureRuleset"
+        },
+        "subject_applicability_date_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "source_retrieved_at_utc": {
+          "type": "string",
+          "format": "date-time"
         }
       }
     },
@@ -1069,8 +1079,8 @@
         },
         "status": {
           "enum": [
-            "current_at_cutoff",
-            "future_not_effective",
+            "applicable_for_subject_effectivity",
+            "future_for_subject_effectivity",
             "expired",
             "unknown"
           ]
@@ -1110,8 +1120,8 @@
         },
         "status": {
           "enum": [
-            "future_not_effective",
-            "current_at_cutoff",
+            "future_for_subject_effectivity",
+            "applicable_for_subject_effectivity",
             "unknown"
           ]
         },
