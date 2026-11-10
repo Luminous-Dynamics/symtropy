@@ -232,3 +232,58 @@ jobs:
           assert actual == expected, f"unexpected reachability/adequacy classifications: {actual}"
           print("Model-adequacy CSV valid: prior reachability and split-predictive controls preserve marginal, joint and rare-tail discrepancies as separate results.")
           PY
+      - name: Verify paired fresh-challenge model repair qualification
+        run: |
+          set -euo pipefail
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin repair-qualification-sweep > /tmp/civdyn-repair-qualification.csv
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin repair-qualification-sweep > /tmp/civdyn-repair-qualification-replay.csv
+          cmp /tmp/civdyn-repair-qualification.csv /tmp/civdyn-repair-qualification-replay.csv
+          python3 - <<'PY'
+          import csv
+          from pathlib import Path
+
+          with Path("/tmp/civdyn-repair-qualification.csv").open(newline="", encoding="utf-8") as handle:
+              reader = csv.DictReader(handle)
+              rows = list(reader)
+              fields = reader.fieldnames
+
+          assert fields is not None and len(fields) == 27, f"expected 27 columns, got {len(fields or [])}"
+          assert len(rows) == 4, f"expected four repair cases, got {len(rows)}"
+          by_case = {row["scenario"]: row for row in rows}
+          assert set(by_case) == {"corrected", "residual", "width_exceeded", "regression"}
+
+          assert by_case["corrected"]["claim_ceiling"] == "repair_restored_adequacy_on_fresh_challenge"
+          assert by_case["corrected"]["baseline_status"] == "outside_reference_interval"
+          assert by_case["corrected"]["repaired_status"] == "within_reference_interval"
+          assert by_case["corrected"]["row_outcome"] == "corrected_on_fresh_challenge"
+          assert by_case["corrected"]["required_evidence_complete"] == "true"
+
+          assert by_case["residual"]["claim_ceiling"] == "residual_discrepancy"
+          assert by_case["residual"]["repaired_status"] == "outside_reference_interval"
+          assert by_case["residual"]["row_outcome"] == "residual_discrepancy"
+
+          assert by_case["width_exceeded"]["claim_ceiling"] == "width_budget_exceeded"
+          assert by_case["width_exceeded"]["repaired_status"] == "within_reference_interval"
+          assert by_case["width_exceeded"]["row_outcome"] == "width_budget_exceeded"
+          assert float(by_case["width_exceeded"]["interval_width_ratio"]) > 1.0
+
+          assert by_case["regression"]["claim_ceiling"] == "regression_detected"
+          assert by_case["regression"]["baseline_status"] == "within_reference_interval"
+          assert by_case["regression"]["repaired_status"] == "outside_reference_interval"
+          assert by_case["regression"]["row_outcome"] == "regression"
+
+          for row in rows:
+              assert row["required_evidence_complete"] == "true"
+              assert row["initial_model_digest"] != row["repaired_model_digest"]
+              assert row["initial_calibration_data_digest"] == "sha256-repair-sweep-initial-training"
+              assert row["repair_training_data_digest"] == "sha256-repair-sweep-repair-training"
+              assert row["repair_action_digest"] == "sha256-repair-action-known-answer"
+              assert row["protocol_digest"] == "sha256-repair-protocol-v0.1"
+              assert row["central_mass"] == "0.900000"
+              assert row["maximum_interval_width_ratio"] == "1.000000"
+              assert row["statistic_id"] == "essential-service-coverage"
+              assert row["independent_unit_id"] == "sealed-challenge-region"
+              assert row["baseline_challenge_manifest_digest"] != row["repaired_challenge_manifest_digest"]
+          assert by_case["corrected"]["interval_width_ratio"] == "1.000000"
+          print("Repair qualification CSV valid: paired fresh challenge, repair lineage, residual, regression and interval-inflation controls.")
+          PY
