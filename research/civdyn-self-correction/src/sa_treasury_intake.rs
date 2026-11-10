@@ -309,6 +309,13 @@ fn validate_receipt(receipt: &TreasurySnapshotReceipt) -> Result<(), TreasuryInt
     if receipt.dataset_name != receipt.schema_generation.dataset_name() {
         return Err(TreasuryIntakeError::InvalidSchemaDatasetPair);
     }
+    let expected_url = format!(
+        "https://municipaldata.treasury.gov.za/api/cubes/{}/facts",
+        receipt.dataset_name
+    );
+    if receipt.source_url != expected_url {
+        return Err(TreasuryIntakeError::InvalidSchemaDatasetPair);
+    }
     if receipt.amount_type_class == AmountTypeClass::AuditedActual
         && receipt.audit_opinion_source_digest.as_deref().is_none_or(|value| !nonempty(value))
     {
@@ -332,14 +339,14 @@ fn validate_pagination(
     ordered.sort_by_key(|page| page.page_number);
 
     for (index, page) in ordered.iter().enumerate() {
-        let expected_number = u32::try_from(index + 1).unwrap_or(u32::MAX);
-        if page.page_number != expected_number || page.page_number == 0 {
-            return Err(TreasuryIntakeError::InvalidPageSequence);
-        }
         if !seen_numbers.insert(page.page_number) {
             return Err(TreasuryIntakeError::DuplicatePageNumber {
                 page_number: page.page_number,
             });
+        }
+        let expected_number = u32::try_from(index + 1).unwrap_or(u32::MAX);
+        if page.page_number != expected_number || page.page_number == 0 {
+            return Err(TreasuryIntakeError::InvalidPageSequence);
         }
         if !nonempty(&page.page_digest) {
             return Err(TreasuryIntakeError::MissingReceiptIdentity);
@@ -502,7 +509,10 @@ mod tests {
         TreasurySnapshotReceipt {
             dataset_name: generation.dataset_name().to_string(),
             schema_generation: generation,
-            source_url: "https://municipaldata.treasury.gov.za/api/cubes/repmaint_v2/facts".to_string(),
+            source_url: format!(
+                "https://municipaldata.treasury.gov.za/api/cubes/{}/facts",
+                generation.dataset_name()
+            ),
             request_digest: "sha256-request".to_string(),
             response_digest: "sha256-response".to_string(),
             response_bytes: 512,
@@ -641,6 +651,28 @@ mod tests {
             facts: vec![fact(TreasurySchemaGeneration::PreMscoaV1, 2019, "5005", Some(100), "AUD", AuditOpinionStatus::Unknown)],
         };
         assert!(validate_treasury_snapshot(&v1).is_ok());
+    }
+
+    #[test]
+    fn declared_dataset_must_match_exact_api_cube_endpoint() {
+        let mut candidate = snapshot(
+            SnapshotVerification::Verified,
+            AmountTypeClass::Actual,
+            vec![fact(
+                TreasurySchemaGeneration::MscoaV2,
+                2025,
+                "6001",
+                Some(100),
+                "AUD",
+                AuditOpinionStatus::Unknown,
+            )],
+        );
+        candidate.receipt.source_url =
+            "https://example.com/api/cubes/repmaint_v2/facts".to_string();
+        assert_eq!(
+            validate_treasury_snapshot(&candidate).unwrap_err(),
+            TreasuryIntakeError::InvalidSchemaDatasetPair
+        );
     }
 
     #[test]
