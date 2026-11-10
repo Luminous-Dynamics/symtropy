@@ -928,12 +928,16 @@ mod tests {
             acceptance_limit: 1e-8,
         });
         let mut comparison = pair_comparison("late", "fd", "freq", '1', '2', 1e-9, 1e-8);
+        comparison.left_response_sha256 = "bad".into();
+        comparison.right_response_sha256 = "bad".into();
         comparison.alignment_definition_sha256 = "bad".into();
         comparison.metric_definition_sha256 = "bad".into();
         comparison.aligned_samples_sha256 = "bad".into();
         comparison.norm_id = "wrong-norm".into();
         m.comparisons.push(comparison);
         let errors = m.validate().unwrap_err();
+        assert!(errors.iter().any(|e| e.contains("left-response digest invalid")));
+        assert!(errors.iter().any(|e| e.contains("right-response digest invalid")));
         assert!(errors.iter().any(|e| e.contains("alignment-definition digest invalid")));
         assert!(errors.iter().any(|e| e.contains("metric-definition digest invalid")));
         assert!(errors.iter().any(|e| e.contains("aligned-sample digest invalid")));
