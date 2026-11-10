@@ -253,9 +253,9 @@ impl GrayScottGrid {
         initial.validate(self.width, self.height)?;
         let mut rng = DeterministicLcg::new(initial.seed);
 
-        for index in 0..self.u.len() {
-            self.u[index] = 1.0 - rng.next_f64() * initial.noise_amplitude;
-            self.v[index] = rng.next_f64() * initial.noise_amplitude;
+        for (u, v) in self.u.iter_mut().zip(self.v.iter_mut()) {
+            *u = 1.0 - rng.next_f64() * initial.noise_amplitude;
+            *v = rng.next_f64() * initial.noise_amplitude;
         }
 
         let center_x = self.width / 2;
@@ -392,7 +392,7 @@ fn validate_concentration(
         return Err(SimulationError::NonFiniteState { field, index });
     }
     let tolerance = 1.0e-12;
-    if value < -tolerance || value > 1.0 + tolerance {
+    if !(-tolerance..=1.0 + tolerance).contains(&value) {
         return Err(SimulationError::ConcentrationOutOfRange {
             field,
             index,
