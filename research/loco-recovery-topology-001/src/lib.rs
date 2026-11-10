@@ -1084,6 +1084,79 @@ mod tests {
         assert_eq!(report.minimum_cut_set_size, Some(1));
     }
 
+
+    #[test]
+    fn r20_report_binds_start_state_edge_namespace_and_transition_abstraction() {
+        let domains = vec![domain("hip", "hip")];
+        let candidate = route("r", &["edge:0"], "safe", &["hip"]);
+        let report = audit(&input(domains, vec![candidate])).unwrap();
+        let class = &report.known_route_classes[0];
+        assert_eq!(class.start_state_id, "state:start");
+        assert_eq!(class.edge_namespace_digest, "edge-namespace:v1");
+        assert_eq!(
+            class.transition_abstraction_digest,
+            "transition-abstraction:v1"
+        );
+    }
+
+    #[test]
+    fn r21_duplicate_successor_identity_is_invalid() {
+        let domains = vec![domain("hip", "hip")];
+        let mut candidate = route("r", &["edge:0"], "safe", &["hip"]);
+        candidate.successors.push(candidate.successors[0].clone());
+        let result = audit(&input(domains, vec![candidate]));
+        assert_eq!(
+            result,
+            Err(AuditError::DuplicateSuccessorId {
+                route_id: "r".to_owned(),
+                state_id: "successor:r".to_owned()
+            })
+        );
+    }
+
+    #[test]
+    fn r22_duplicate_intermediate_identity_is_invalid() {
+        let domains = vec![domain("hip", "hip")];
+        let mut candidate = route("r", &["edge:0"], "safe", &["hip"]);
+        candidate
+            .intermediate_states
+            .push(candidate.intermediate_states[0].clone());
+        let result = audit(&input(domains, vec![candidate]));
+        assert_eq!(
+            result,
+            Err(AuditError::DuplicateIntermediateStateId {
+                route_id: "r".to_owned(),
+                state_id: "intermediate:r".to_owned()
+            })
+        );
+    }
+
+    #[test]
+    fn r23_missing_branch_manifest_suppresses_global_metrics() {
+        let domains = vec![domain("hip", "hip")];
+        let mut candidate = route("r", &["edge:0"], "safe", &["hip"]);
+        candidate.branch_manifest_digest.clear();
+        let report = audit(&input(domains, vec![candidate])).unwrap();
+        assert_eq!(report.status, QualificationStatus::Unknown);
+        assert_eq!(report.independent_route_count, None);
+        assert!(report.findings.contains(&RouteFinding::MissingBranchCoverage {
+            route_id: "r".to_owned()
+        }));
+    }
+
+    #[test]
+    fn r24_missing_latency_manifest_suppresses_global_metrics() {
+        let domains = vec![domain("hip", "hip")];
+        let mut candidate = route("r", &["edge:0"], "safe", &["hip"]);
+        candidate.latency_prefix_manifest_digest.clear();
+        let report = audit(&input(domains, vec![candidate])).unwrap();
+        assert_eq!(report.status, QualificationStatus::Unknown);
+        assert_eq!(report.independent_route_count, None);
+        assert!(report.findings.contains(&RouteFinding::IncompleteLatencyPrefix {
+            route_id: "r".to_owned()
+        }));
+    }
+
     #[test]
     fn r17_resource_bounds_fail_explicitly() {
         let mut domains = vec![domain("d0", "g0")];
