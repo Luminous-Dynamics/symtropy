@@ -36,7 +36,7 @@ Four actions are evaluated:
 3. **Dense frontal wall scan:** geometrically observable at the target, but both hypotheses remain compatible and it resolves no critical unknown. It is not decision-relevant.
 4. **Blocked backside scan:** self-occluded; it is rejected and cannot resolve the doorway unknown.
 
-The expected recommendation is targeted oblique scan before the full-room sweep. The dense scan remains visible in the report but is not recommended. The blocked scan is rejected before the decision engine.
+The expected recommendation is targeted oblique scan before the full-room sweep. The dense scan remains visible in the report but is not recommended. The blocked scan is rejected before the decision engine. The CLI reports four counts separately: evidence-qualified actions, decision-engine-accepted actions, decision-relevant actions, and decision-rejected actions. In this fixture those counts are 3, 3, 2 and 1 respectively. The dense frontal scan is valid evidence but is not decision-relevant.
 
 This is a deliberately small known-answer experiment. It does not imply that the scan actually measures the doorway, that the pose or visibility receipt is authentic, or that the synthetic cost/time values reflect field operations.
 
