@@ -224,7 +224,9 @@ fn headless_capture(
             info!("symtropy-demo-capture: all expected screenshots are present");
             exit.write(AppExit::Success);
         } else {
-            error!("symtropy-demo-capture: exiting with failure because one or more screenshots are missing");
+            error!(
+                "symtropy-demo-capture: exiting with failure because one or more screenshots are missing"
+            );
             exit.write(AppExit::error());
         }
     }
