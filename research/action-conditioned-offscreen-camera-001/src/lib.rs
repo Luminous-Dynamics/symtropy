@@ -1349,6 +1349,22 @@ mod tests {
     }
 
     #[test]
+    fn applied_action_receipt_digest_is_bound_to_observation_identity() {
+        let first_snapshot = snapshot();
+        let mut second_snapshot = snapshot();
+        second_snapshot
+            .applied_action
+            .as_mut()
+            .unwrap()
+            .receipt_sha256 = "b".repeat(64);
+        let first = SoftwareCameraRenderer::render(&first_snapshot, 1, clocks()).unwrap();
+        let second = SoftwareCameraRenderer::render(&second_snapshot, 1, clocks()).unwrap();
+        assert_eq!(first.policy_receipt.frame_sha256, second.policy_receipt.frame_sha256);
+        assert_ne!(first.policy_receipt.observation_id, second.policy_receipt.observation_id);
+        assert_ne!(first.policy_receipt.receipt_sha256, second.policy_receipt.receipt_sha256);
+    }
+
+    #[test]
     fn applied_action_tick_must_match_world_tick() {
         let mut world = snapshot();
         world.applied_action = Some(AppliedActionRef {
@@ -1479,15 +1495,15 @@ mod tests {
     fn stream_guard_distinguishes_fresh_delayed_and_stale() {
         let mut guard = ObservationStreamGuard::new(timing_policy());
         assert_eq!(
-            guard.admit(1, 1_000, 1_500, 2_000),
+            guard.admit("clock-1", 1, 1_000, 1_500, 2_000),
             Ok(ObservationDisposition::Fresh)
         );
         assert_eq!(
-            guard.admit(2, 2_000, 3_500, 4_000),
+            guard.admit("clock-1", 2, 2_000, 3_500, 4_000),
             Ok(ObservationDisposition::Delayed)
         );
         assert_eq!(
-            guard.admit(3, 3_000, 4_000, 7_000),
+            guard.admit("clock-1", 3, 3_000, 4_000, 7_000),
             Ok(ObservationDisposition::Stale)
         );
     }
@@ -1495,25 +1511,39 @@ mod tests {
     #[test]
     fn stream_guard_rejects_duplicate_sequence_without_mutation() {
         let mut guard = ObservationStreamGuard::new(timing_policy());
-        assert!(guard.admit(2, 2_000, 2_500, 3_000).is_ok());
+        assert!(guard.admit("clock-1", 2, 2_000, 2_500, 3_000).is_ok());
         assert_eq!(
-            guard.admit(2, 3_000, 3_100, 3_200),
+            guard.admit("clock-1", 2, 3_000, 3_100, 3_200),
             Err(RenderError::SequenceRegression)
         );
-        assert!(guard.admit(3, 3_000, 3_100, 3_200).is_ok());
+        assert!(guard.admit("clock-1", 3, 3_000, 3_100, 3_200).is_ok());
     }
 
     #[test]
     fn stream_guard_rejects_capture_and_delivery_clock_regression() {
         let mut guard = ObservationStreamGuard::new(timing_policy());
-        guard.admit(1, 2_000, 2_200, 2_500).unwrap();
+        guard.admit("clock-1", 1, 2_000, 2_200, 2_500).unwrap();
         assert_eq!(
-            guard.admit(2, 1_900, 2_200, 2_600),
+            guard.admit("clock-1", 2, 1_900, 2_200, 2_600),
             Err(RenderError::CaptureClockRegression)
         );
         assert_eq!(
-            guard.admit(2, 3_000, 3_200, 2_400),
+            guard.admit("clock-1", 2, 3_000, 3_200, 2_400),
             Err(RenderError::DeliveryClockRegression)
+        );
+    }
+
+    #[test]
+    fn stream_guard_rejects_clock_identity_switch_without_mutation() {
+        let mut guard = ObservationStreamGuard::new(timing_policy());
+        assert!(guard.admit("sim-clock-a", 1, 1_000, 1_200, 1_500).is_ok());
+        assert_eq!(
+            guard.admit("sim-clock-b", 2, 2_000, 2_200, 2_500),
+            Err(RenderError::ClockIdentityChanged)
+        );
+        assert_eq!(
+            guard.admit("sim-clock-a", 2, 2_000, 2_200, 2_500),
+            Ok(ObservationDisposition::Fresh)
         );
     }
 
@@ -1536,11 +1566,11 @@ mod tests {
         assert_eq!(event.tick, 2);
         assert_eq!(event.sequence, 2);
         assert_eq!(
-            guard.admit(2, 50_000, 50_500, 50_800),
+            guard.admit("clock-1", 2, 50_000, 50_500, 50_800),
             Err(RenderError::SequenceRegression)
         );
         assert_eq!(
-            guard.admit(3, 50_000, 50_500, 50_800),
+            guard.admit("clock-1", 3, 50_000, 50_500, 50_800),
             Ok(ObservationDisposition::Fresh)
         );
     }
