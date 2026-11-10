@@ -64,8 +64,10 @@ jobs:
             (.schema_version == "0.1") and
             (.case_id == "SCAN-BIM-DOOR-CLEARANCE-001") and
             (.action_count == 4) and
-            (.qualified_action_count == 3) and
-            (.rejected_action_count == 1) and
+            (.evidence_qualified_action_count == 3) and
+            (.decision_accepted_action_count == 3) and
+            (.decision_relevant_action_count == 2) and
+            (.decision_rejected_action_count == 1) and
             (.decision.recommended_action_order == ["targeted-oblique-clearance-scan", "full-room-tls-sweep"]) and
             ([.decision.actions[] | select(.action_id == "dense-frontal-wall-scan")][0].decision_relevant == false) and
             ([.decision.actions[] | select(.action_id == "blocked-backside-scan")][0].status == "reject_action") and
