@@ -67,12 +67,23 @@ enum CalibrationStatus {
     Invalid,
 }
 
-#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "snake_case")]
-enum ApplicabilityStatus {
-    InDomain,
-    OutOfDomain,
-    Unknown,
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+struct QualifiedSensorDomain {
+    min_range_m: f64,
+    max_range_m: f64,
+    max_incidence_angle_rad: f64,
+    surface_response_classes: Vec<String>,
+    environment_classes: Vec<String>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+struct ObservedSensorConditions {
+    range_m: f64,
+    incidence_angle_rad: f64,
+    surface_response_class: String,
+    environment_class: String,
 }
 
 #[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq, Serialize)]
@@ -107,7 +118,8 @@ struct SensorEvidence {
     profile_sha256: String,
     calibration_status: CalibrationStatus,
     calibration_evidence_sha256: Option<String>,
-    applicability: ApplicabilityStatus,
+    qualified_domain: Option<QualifiedSensorDomain>,
+    observed_conditions: Option<ObservedSensorConditions>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -291,6 +303,79 @@ fn observation_gate(case: &Case) -> GateResult {
     }
 }
 
+fn check_sensor_domain(sensor: &SensorEvidence, reasons: &mut BTreeSet<&'static str>) {
+    let Some(domain) = &sensor.qualified_domain else {
+        reasons.insert("SENSOR_QUALIFIED_DOMAIN_UNKNOWN");
+        return;
+    };
+    let Some(conditions) = &sensor.observed_conditions else {
+        reasons.insert("SENSOR_OBSERVED_CONDITIONS_UNKNOWN");
+        return;
+    };
+
+    let surface_classes: BTreeSet<&str> = domain
+        .surface_response_classes
+        .iter()
+        .map(String::as_str)
+        .collect();
+    let environment_classes: BTreeSet<&str> = domain
+        .environment_classes
+        .iter()
+        .map(String::as_str)
+        .collect();
+
+    let invalid_domain = !domain.min_range_m.is_finite()
+        || !domain.max_range_m.is_finite()
+        || domain.min_range_m < 0.0
+        || domain.max_range_m <= domain.min_range_m
+        || !domain.max_incidence_angle_rad.is_finite()
+        || domain.max_incidence_angle_rad <= 0.0
+        || domain.max_incidence_angle_rad > std::f64::consts::FRAC_PI_2
+        || domain.surface_response_classes.is_empty()
+        || domain.environment_classes.is_empty()
+        || domain
+            .surface_response_classes
+            .iter()
+            .any(|class| class.trim().is_empty())
+        || domain
+            .environment_classes
+            .iter()
+            .any(|class| class.trim().is_empty())
+        || surface_classes.len() != domain.surface_response_classes.len()
+        || environment_classes.len() != domain.environment_classes.len();
+
+    if invalid_domain {
+        reasons.insert("SENSOR_PROFILE_DOMAIN_INVALID");
+        return;
+    }
+
+    let invalid_conditions = !conditions.range_m.is_finite()
+        || conditions.range_m < 0.0
+        || !conditions.incidence_angle_rad.is_finite()
+        || conditions.incidence_angle_rad < 0.0
+        || conditions.incidence_angle_rad > std::f64::consts::FRAC_PI_2
+        || conditions.surface_response_class.trim().is_empty()
+        || conditions.environment_class.trim().is_empty();
+
+    if invalid_conditions {
+        reasons.insert("OBSERVED_SENSOR_CONDITIONS_INVALID");
+        return;
+    }
+
+    if conditions.range_m < domain.min_range_m || conditions.range_m > domain.max_range_m {
+        reasons.insert("SENSOR_OPERATING_DOMAIN_OUT_OF_DOMAIN");
+    }
+    if conditions.incidence_angle_rad > domain.max_incidence_angle_rad {
+        reasons.insert("SENSOR_INCIDENCE_OUT_OF_DOMAIN");
+    }
+    if !surface_classes.contains(conditions.surface_response_class.as_str()) {
+        reasons.insert("SENSOR_SURFACE_RESPONSE_OUT_OF_DOMAIN");
+    }
+    if !environment_classes.contains(conditions.environment_class.as_str()) {
+        reasons.insert("SENSOR_ENVIRONMENT_OUT_OF_DOMAIN");
+    }
+}
+
 fn metrology_gate(case: &Case, observation: &GateResult) -> GateResult {
     if observation.status != GateStatus::Pass {
         return not_run();
@@ -332,15 +417,7 @@ fn metrology_gate(case: &Case, observation: &GateResult) -> GateResult {
         }
     }
 
-    match sensor.applicability {
-        ApplicabilityStatus::InDomain => {}
-        ApplicabilityStatus::OutOfDomain => {
-            reasons.insert("SENSOR_OPERATING_DOMAIN_OUT_OF_DOMAIN");
-        }
-        ApplicabilityStatus::Unknown => {
-            reasons.insert("SENSOR_OPERATING_DOMAIN_UNKNOWN");
-        }
-    }
+    check_sensor_domain(sensor, &mut reasons);
 
     match validation.status {
         ValidationStatus::Qualified => {
@@ -413,7 +490,9 @@ fn metrology_gate(case: &Case, observation: &GateResult) -> GateResult {
         let fail = reasons.contains("CALIBRATION_INVALID")
             || reasons.contains("INDEPENDENT_VALIDATION_INVALID")
             || reasons.contains("INVALID_MEASUREMENT_UNCERTAINTY")
-            || reasons.contains("SENSOR_PROFILE_BINDING_INVALID");
+            || reasons.contains("SENSOR_PROFILE_BINDING_INVALID")
+            || reasons.contains("SENSOR_PROFILE_DOMAIN_INVALID")
+            || reasons.contains("OBSERVED_SENSOR_CONDITIONS_INVALID");
         let status = if fail {
             GateStatus::Fail
         } else {
@@ -624,7 +703,7 @@ mod tests {
         let corpus = fixture();
         let receipt = evaluate_corpus(&corpus, FIXTURE.as_bytes()).expect("evaluate corpus");
         assert!(receipt.core.passed, "{:#?}", receipt.core.cases);
-        assert_eq!(receipt.core.case_count, 18);
+        assert_eq!(receipt.core.case_count, 23);
         assert_eq!(receipt.core.mismatch_count, 0);
     }
 
@@ -715,6 +794,42 @@ mod tests {
     }
 
     #[test]
+    fn grazing_incidence_and_unsupported_surface_are_out_of_domain() {
+        let mut corpus = fixture();
+        let grazing = corpus
+            .cases
+            .iter_mut()
+            .find(|case| case.case_id == "grazing_incidence_out_of_domain")
+            .expect("grazing fixture");
+        let result = evaluate_case(grazing);
+        assert_eq!(result.metrology_gate.status, GateStatus::Unresolved);
+        assert!(result
+            .reason_codes
+            .contains(&"SENSOR_INCIDENCE_OUT_OF_DOMAIN".to_owned()));
+
+        let unsupported = corpus
+            .cases
+            .iter()
+            .find(|case| case.case_id == "unsupported_surface_response_out_of_domain")
+            .expect("surface fixture");
+        let result = evaluate_case(unsupported);
+        assert_eq!(result.metrology_gate.status, GateStatus::Unresolved);
+        assert!(result
+            .reason_codes
+            .contains(&"SENSOR_SURFACE_RESPONSE_OUT_OF_DOMAIN".to_owned()));
+    }
+
+    #[test]
+    fn sensor_applicability_boolean_is_rejected_as_an_unknown_field() {
+        let mut value: serde_json::Value =
+            serde_json::from_str(FIXTURE).expect("fixture JSON parses");
+        value["cases"][0]["sensor"]["applicability"] =
+            serde_json::Value::String("in_domain".to_owned());
+        let encoded = serde_json::to_vec(&value).expect("mutated JSON serializes");
+        assert!(serde_json::from_slice::<Corpus>(&encoded).is_err());
+    }
+
+    #[test]
     fn unsupported_sensor_domain_cannot_pass() {
         let mut corpus = fixture();
         let case = corpus
@@ -722,7 +837,11 @@ mod tests {
             .iter_mut()
             .find(|case| case.case_id == "out_of_domain_unresolved")
             .expect("known fixture case");
-        case.sensor.applicability = ApplicabilityStatus::OutOfDomain;
+        case.sensor
+            .observed_conditions
+            .as_mut()
+            .expect("sensor conditions")
+            .range_m = 25.0;
         let result = evaluate_case(case);
         assert_eq!(result.metrology_gate.status, GateStatus::Unresolved);
         assert!(!result.reason_codes.is_empty());
