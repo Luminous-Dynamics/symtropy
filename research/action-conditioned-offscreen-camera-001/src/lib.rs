@@ -263,9 +263,11 @@ pub struct EvaluatorObservationAudit {
     pub renderer_revision: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RenderedObservation {
-    /// RGB8 sRGB pixel buffer. No evaluator-only world metadata is included.
+    /// Raw RGB8 sRGB artifact. Persist as bytes and verify against frame_sha256;
+    /// do not serialize a multi-megabyte image as a JSON integer array.
+    /// No evaluator-only world metadata is included.
     pub pixels_rgb: Vec<u8>,
     pub policy_receipt: PolicyObservationReceipt,
 }
