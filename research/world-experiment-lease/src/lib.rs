@@ -632,6 +632,60 @@ mod tests {
     }
 
     #[test]
+    fn run_source_state_and_event_order_are_part_of_lease_identity() {
+        let baseline = compile_fixture();
+        let mut changed_inputs = Vec::new();
+
+        let mut changed = fixture();
+        changed.experiment.run_id.push_str("-fork");
+        changed_inputs.push(changed);
+
+        let mut changed = fixture();
+        changed.experiment.source_revision = "f".repeat(40);
+        changed_inputs.push(changed);
+
+        let mut changed = fixture();
+        changed.experiment.initial_state_sha256 = "f".repeat(64);
+        changed_inputs.push(changed);
+
+        let mut changed = fixture();
+        changed.experiment.simulation_state_sha256 = "f".repeat(64);
+        changed_inputs.push(changed);
+
+        let mut changed = fixture();
+        changed.experiment.event_order_sha256 = "f".repeat(64);
+        changed_inputs.push(changed);
+
+        for input in changed_inputs {
+            let fork = compile_lease(input).expect("identity fork compiles");
+            assert_ne!(baseline.lease_sha256, fork.lease_sha256);
+        }
+    }
+
+    #[test]
+    fn lease_wide_energy_overrun_stops() {
+        let lease = compile_fixture();
+        let mut usage = valid_usage(&lease);
+        usage.gpu_energy_uj_total = Some(lease.budget.max_gpu_energy_uj_total.unwrap() + 1);
+        usage.gpu_energy_receipt_sha256 = Some("c".repeat(64));
+        assert_eq!(
+            evaluate_usage(&lease, &usage, None).expect("energy cap stops"),
+            UsageDecision::Stop { reason: StopReason::GpuEnergyBudgetExceeded }
+        );
+    }
+
+    #[test]
+    fn missing_view_measurement_receipt_is_rejected() {
+        let lease = compile_fixture();
+        let mut usage = valid_usage(&lease);
+        usage.views[0].measurement_receipt_sha256 = "not-a-digest".to_string();
+        assert_eq!(
+            evaluate_usage(&lease, &usage, None).unwrap_err(),
+            LeaseError::InvalidSha256("view.measurement_receipt_sha256")
+        );
+    }
+
+    #[test]
     fn view_cannot_reference_a_different_observation() {
         let mut input = fixture();
         input.views[0].observation_frame_sha256 = "a".repeat(64);
