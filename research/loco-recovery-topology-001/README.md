@@ -178,11 +178,31 @@ Compare nominal, passive-mechanical, controller-only and combined mechanical-plu
 
 Evaluate whether the reserve vector predicts measured recovery success, latency, energy and adverse outcomes on held-out fault/terrain combinations. The independent experimental unit is the fault episode/run, not the control tick.
 
+### Cross-embodiment × fault holdout (new experimental stratum)
+
+QWM shows that morphology-conditioned dynamics can generalize to selected unseen quadruped configurations, but its physical evaluation is flat-ground velocity tracking. The next comparison must therefore test whether model generalization survives *joint* morphology and fault shift rather than treating these axes independently.
+
+Freeze three disjoint axes:
+- morphology: training-cohort, held-out-within-feature-support, and joint-combination-out-of-support;
+- fault: training-known family, held-out severity/profile, and held-out mechanism;
+- context: nominal terrain/payload and held-out terrain × payload × fault interactions.
+
+Compare a morphology-conditioned model (QWM-style), morphology-conditioned model-free policy, per-robot specialist, and a controller-independent robust baseline. Then put each behind the same Symtropy action-admission/recovery layer. Keep the exact morphology vector, actuator map, fault injection, model digest, training split and hardware stratum bound to every run.
+
+Measure, separately:
+- predictive residual coverage and detection delay under actuator backlash, torque attenuation, payload shift and thermal drift;
+- robust-admission false-safe/false-reject behavior against independent physical transition witnesses;
+- held-out fault-qualified capability, recovery path/cut-set reserve, adverse-event vector, energy and deadline performance;
+- zero-shot versus few-shot adaptation cost and the number of real fault-injection episodes required.
+
+A candidate world model may propose trajectories and predictions, but it cannot author its own ground truth or certify its own viability. Out-of-support morphology/fault combinations must return Unknown or escalate to independent physical measurement; never extrapolate a safety certificate from a smooth latent embedding.
+
 ## 8. Research comparators and industry context
 
 - **INSECTRON (npj Robotics, 5 Nov 2026):** centimeter-scale hexapod with magnetic overload couplings, modular replacement and 91–95% recovery across its controlled vertical-perturbation conditions (360 trials). It motivates passive mechanical protection and repairability. Its scale, two-module actuation and perturbation protocol are not directly comparable to a quadruped actuator-fault campaign. DOI: https://doi.org/10.1038/s44182-026-00106-y
 - **RAIBO2 (Nature, 2026):** integrated mechanics, motor-driver losses and locomotion-policy design; completed 42.195 km in 4 h 19 min 52 s with reported total CoT 0.25. This is an energy/endurance comparator, not a fault-tolerance result. Reproduction requires compatible mass, speed, energy boundary, terrain and payload. DOI: https://doi.org/10.1038/s41586-026-11102-5
 - **LoComposition (arXiv:2606.15896v2, 12 Oct 2026):** separates task reward, hard operational constraints, energy minimization and exteroceptive terrain adaptation; reports 56% lower CoT and 96% fewer operational-limit violations against its own conventional complex-reward baseline, with zero-shot Go2 transfer. These percentages are not transferable leaderboard scores. https://arxiv.org/abs/2606.15896
+- **QWM (CoRL 2026; arXiv:2604.08780):** a morphology-conditioned generative dynamics model trained across multiple quadruped families, with zero-shot held-out morphology evaluation and frozen-policy deployment on ANYmal-D and Unitree Go1. The paper reports zero falls across 20 physical trials and tracking errors within roughly 10–13% of specialist controllers. Its claim boundary matters: fixed three-segment, 12-DoF quadruped template and blind flat-ground velocity tracking, without exteroception or contact-rich terrain. Treat QWM as a model-generalization baseline, not a physical viability oracle. https://arxiv.org/abs/2604.08780
 - **Anticipatory Gait Switching (arXiv:2610.24895, 17 Oct 2026):** look-ahead MDP gait supervision with indoor/outdoor Go2 experiments; compare against reactive and viability-conditioned switching. https://arxiv.org/abs/2610.24895
 - **Predictive Safety Curricula (arXiv:2609.37070, 29 Sep 2026):** on ANYmal-D, it reports 63.2% fewer shank-positive crossings than learning-progress sampling across three matched training seeds and 300 crossings per method, but foot scuffs rise from 14.3 ± 1.5 to 29.0 ± 9.6 per 100 crossings because foot contacts are excluded from the targeted safety cost. On a separate production stair-climbing platform, PSC records zero shank-positive trials versus 33/50 for baseline and foot scuffs fall from 14 to 7. Keep these hardware strata distinct and preserve the complete #4326 adverse-event vector. https://arxiv.org/abs/2609.37070
 - **Quadruped UED benchmark (arXiv:2610.40364, 29 Oct 2026):** compares 14 curricula on five morphologies and finds no universal winner; in-distribution leaders can differ from held-out-terrain leaders. Use its lesson for independent terrain/fault holdouts, not as a hardware safety baseline. https://arxiv.org/abs/2610.40364
