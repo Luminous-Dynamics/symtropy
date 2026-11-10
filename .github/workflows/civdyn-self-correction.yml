@@ -232,3 +232,53 @@ jobs:
           assert actual == expected, f"unexpected reachability/adequacy classifications: {actual}"
           print("Model-adequacy CSV valid: prior reachability and split-predictive controls preserve marginal, joint and rare-tail discrepancies as separate results.")
           PY
+      - name: Verify challenge-set custody and post-repair holdout lifecycle
+        run: |
+          set -euo pipefail
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin challenge-custody-sweep > /tmp/civdyn-challenge-custody.csv
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin challenge-custody-sweep > /tmp/civdyn-challenge-custody-replay.csv
+          cmp /tmp/civdyn-challenge-custody.csv /tmp/civdyn-challenge-custody-replay.csv
+          python3 - <<'PY'
+          import csv
+          from pathlib import Path
+
+          with Path("/tmp/civdyn-challenge-custody.csv").open(newline="", encoding="utf-8") as handle:
+              reader = csv.DictReader(handle)
+              rows = list(reader)
+              fields = reader.fieldnames
+
+          assert fields is not None and len(fields) == 10
+          assert len(rows) == 5
+          by_scenario = {row["scenario"]: row for row in rows}
+          assert set(by_scenario) == {
+              "fresh-first-challenge",
+              "exact-idempotent-replay",
+              "retired-disclosed-challenge-after-repair",
+              "fresh-post-repair-challenge",
+              "challenge-consumed-by-repair",
+          }
+
+          fresh = by_scenario["fresh-first-challenge"]
+          assert fresh["eligibility"] == "eligible"
+          assert fresh["decision"] == "eligible_for_sealed_challenge"
+          assert fresh["challenge_data_digest"] == "sha256-challenge-c0"
+
+          replay = by_scenario["exact-idempotent-replay"]
+          assert replay["eligibility"] == "eligible"
+          assert replay["decision"] == "exact_idempotent_replay"
+
+          retired = by_scenario["retired-disclosed-challenge-after-repair"]
+          assert retired["eligibility"] == "rejected"
+          assert retired["rejection_reason"] == "DisclosedChallengeRetired"
+
+          post_repair = by_scenario["fresh-post-repair-challenge"]
+          assert post_repair["eligibility"] == "eligible"
+          assert post_repair["decision"] == "eligible_for_sealed_challenge"
+          assert post_repair["candidate_model_digest"] == "sha256-model-1"
+          assert post_repair["challenge_data_digest"] == "sha256-challenge-c1"
+
+          consumed = by_scenario["challenge-consumed-by-repair"]
+          assert consumed["eligibility"] == "rejected"
+          assert consumed["rejection_reason"].startswith("ChallengeDataConsumedByRevision")
+          print("Challenge custody CSV valid: fresh holdout eligible, exact replay idempotent, disclosed holdout retired after repair, fresh successor holdout eligible, consumed challenge rejected.")
+          PY
