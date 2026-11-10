@@ -85,6 +85,20 @@ The median BVH is the production evaluator path. The SAH prototype is compiled o
 
 Scale: 10^3, 10^4, 10^5 and 10^6 triangles where memory allows. Report each workload separately.
 
+## Common benchmark receipt
+
+Use the closed v0.1 receipt schema at `schema/engine-benchmark-receipt-v0-1.schema.json`. It binds:
+- engine source/version, adapter revision, licence, precision mode and build configuration;
+- exact fixture, geometry and ray-set digests;
+- OS/kernel/CPU/thread count/compiler/flags/build profile;
+- build and refit time, peak and steady memory;
+- p50/p95/p99 query latency, throughput, primitive tests and node visits where exposed;
+- brute-force known-answer agreement, exact nearest-identity matches and categorized mismatches;
+- repeated-run and input-permutation determinism;
+- an explicit qualification state and claim scope.
+
+The checked-in `receipts/benchmark-run-template-v0-1.json` is intentionally `template_only`: its timing, memory and correctness-measurement fields are null. It is not a benchmark result. Never replace missing engine telemetry with an estimate or a proxy field from another library.
+
 ## Measurements
 
 Every run must bind exact engine/build identifiers and input digests and report:
