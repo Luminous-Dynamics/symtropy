@@ -666,6 +666,9 @@ fn validate_independent_receipts(problem: &ProjectionGateProblem) -> Result<(), 
     let viability = &problem.viability;
     let assurance = &problem.assurance;
 
+    validate_authority_witness(viability.status, &viability.witness_or_reason)?;
+    validate_authority_witness(assurance.status, &assurance.witness_or_reason)?;
+
     for id in [
         viability.receipt_id.as_str(),
         viability.result_digest.as_str(),
