@@ -78,7 +78,7 @@ It also pins 640×360 RGB geometry, an initial 33,333 µs frame interval, a 66,6
 
 ## Run
 
-From the Symtropy repository root:
+From the Symtropy repository root, assuming the Symtropy and Symthaea working trees are sibling directories named `symtropy` and `symthaea`:
 
 ```sh
 cargo run --release --locked \
