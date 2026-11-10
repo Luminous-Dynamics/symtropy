@@ -428,6 +428,9 @@ pub enum KerrGeodesicError {
         actual_theta_potential: f64,
         expected_beta_squared: f64,
     },
+    NoRegularIngoingBranch {
+        p_plus: f64,
+    },
 }
 
 impl From<PhysicsDomainError> for KerrGeodesicError {
@@ -491,6 +494,10 @@ impl fmt::Display for KerrGeodesicError {
             Self::ScreenMapInconsistent { actual_theta_potential, expected_beta_squared } => write!(
                 f,
                 "screen map gives Theta={actual_theta_potential}, expected beta^2={expected_beta_squared}"
+            ),
+            Self::NoRegularIngoingBranch { p_plus } => write!(
+                f,
+                "future-ingoing Kerr chart requires P+sqrt(R)>0, got {p_plus}"
             ),
         }
     }
@@ -795,42 +802,105 @@ impl KerrCanonicalHamiltonian {
         })
     }
 
+    /// Construct canonical momenta for a future-directed inward ray in
+    /// ingoing Kerr coordinates (v/M,r/M,theta,phi_tilde).
+    ///
+    /// The radial momentum is transformed from the inward Boyer-Lindquist
+    /// branch using
+    ///
+    /// p_r^(in) = (P - sqrt(R))/Delta
+    ///           = [Q+(L-aE)^2] / [P+sqrt(R)].
+    ///
+    /// The rationalized expression remains finite at the future horizon when
+    /// P>0. This method is intended for future-directed rays that fall inward;
+    /// it does not initialize the outgoing branch at the future horizon.
+    pub fn ingoing_state_from_separated(
+        self,
+        coordinates: KerrMinoState,
+        constants: KerrNullConstants,
+        polar_direction: KerrMinoDirection,
+    ) -> Result<KerrCanonicalState, KerrGeodesicError> {
+        let r = coordinates.radius_over_m;
+        if !r.is_finite() || r <= 0.0 {
+            return Err(KerrGeodesicError::InvalidRadius(r));
+        }
+        validate_polar_angle(coordinates.theta_rad)?;
+        let a = self.hole.spin().get();
+        let energy = constants.energy;
+        let angular_momentum = constants.angular_momentum_z_over_m;
+        let radial_potential = constants.radial_potential(a, r)?;
+        if radial_potential < 0.0 {
+            return Err(KerrGeodesicError::ForbiddenRadialRegion {
+                radius_over_m: r,
+                radial_potential,
+            });
+        }
+        let polar_potential = constants.polar_potential(a, coordinates.theta_rad)?;
+        if polar_potential < 0.0 {
+            return Err(KerrGeodesicError::ForbiddenPolarRegion {
+                theta_rad: coordinates.theta_rad,
+                polar_potential,
+            });
+        }
+        let p = energy * (r * r + a * a) - a * angular_momentum;
+        let root = radial_potential.sqrt();
+        let p_plus = p + root;
+        if !p_plus.is_finite() || p_plus <= 0.0 {
+            return Err(KerrGeodesicError::NoRegularIngoingBranch { p_plus });
+        }
+        let angular_term =
+            constants.carter_constant_over_m2 + (angular_momentum - a * energy).powi(2);
+        let radial_momentum = angular_term / p_plus;
+        let momenta = [
+            -energy,
+            radial_momentum,
+            polar_direction.sign() * polar_potential.sqrt(),
+            angular_momentum,
+        ];
+        if momenta.iter().any(|value| !value.is_finite()) {
+            return Err(KerrGeodesicError::NonFinite("ingoing_canonical_initial_momenta"));
+        }
+        Ok(KerrCanonicalState {
+            coordinates,
+            momenta,
+        })
+    }
+
     /// Evaluate H, its canonical vector field, and the recovered invariants.
     ///
     /// The physical SI metric is transformed to dimensionless coordinates
     /// [ct/M,r/M,theta,phi] and dimensionless line element ds^2/M^2.
     /// Metric derivatives use the same transformation. This keeps the
     /// canonical Hamiltonian well-scaled and avoids mixing m and m^2 entries.
+    /// Evaluate H and Hamilton's equations in the exterior Boyer-Lindquist chart.
     pub fn evaluate(
         self,
         state: KerrCanonicalState,
     ) -> Result<KerrCanonicalEvaluation, KerrGeodesicError> {
-        let coordinates = state.coordinates;
-        for (name, value) in [
-            ("canonical_time_over_m", coordinates.time_over_m),
-            ("canonical_radius_over_m", coordinates.radius_over_m),
-            ("canonical_theta_rad", coordinates.theta_rad),
-            ("canonical_azimuth_rad", coordinates.azimuth_rad),
-        ] {
-            if !value.is_finite() {
-                return Err(KerrGeodesicError::NonFinite(name));
-            }
-        }
-        for (index, value) in state.momenta.iter().enumerate() {
-            if !value.is_finite() {
-                return Err(KerrGeodesicError::NonFinite(match index {
-                    0 => "canonical_p_t",
-                    1 => "canonical_p_r",
-                    2 => "canonical_p_theta",
-                    _ => "canonical_p_phi",
-                }));
-            }
-        }
-        validate_polar_angle(coordinates.theta_rad)?;
-        let mass_length = self.hole.gravitational_radius_m();
-        let radius_m = coordinates.radius_over_m * mass_length;
+        let radius_m = state.coordinates.radius_over_m * self.hole.gravitational_radius_m();
         let differentiated =
-            DifferentiatedMetric4::kerr_exterior(self.hole, radius_m, coordinates.theta_rad)?;
+            DifferentiatedMetric4::kerr_exterior(self.hole, radius_m, state.coordinates.theta_rad)?;
+        self.evaluate_differentiated(state, differentiated)
+    }
+
+    /// Evaluate H and Hamilton's equations in horizon-regular ingoing Kerr
+    /// coordinates (v/M,r/M,theta,phi_tilde). This chart is regular at and
+    /// through the future outer horizon for future-ingoing rays.
+    pub fn evaluate_ingoing(
+        self,
+        state: KerrCanonicalState,
+    ) -> Result<KerrCanonicalEvaluation, KerrGeodesicError> {
+        let radius_m = state.coordinates.radius_over_m * self.hole.gravitational_radius_m();
+        let differentiated =
+            DifferentiatedMetric4::kerr_ingoing(self.hole, radius_m, state.coordinates.theta_rad)?;
+        self.evaluate_differentiated(state, differentiated)
+    }
+
+    fn evaluate_differentiated(
+        self,
+        state: KerrCanonicalState,
+        differentiated: DifferentiatedMetric4,
+    ) -> Result<KerrCanonicalEvaluation, KerrGeodesicError> {
 
         // If x_SI = M*[tbar,rbar,theta/M,phi/M], then
         // gbar = diag(1,1,1/M,1/M) * g_SI * diag(1,1,1/M,1/M).
@@ -918,6 +988,7 @@ impl KerrCanonicalHamiltonian {
             carter_constant_over_m2: carter,
         })
     }
+
 }
 
 fn validate_spin(spin: f64) -> Result<(), KerrGeodesicError> {
@@ -1220,6 +1291,88 @@ mod tests {
             close(hamiltonian.derivative.coordinates[3] * sigma, mino.d_azimuth_rad, 2e-11);
             close(hamiltonian.derivative.momenta[0], 0.0, 2e-14);
             close(hamiltonian.derivative.momenta[3], 0.0, 2e-14);
+        }
+    }
+
+    #[test]
+    fn bl_and_ingoing_hamiltonian_vector_fields_match_outside_horizon() {
+        for spin in [0.0, 0.5, 0.9] {
+            let black_hole = hole(spin);
+            let constants = KerrNullConstants::new(1.0, 2.0, 3.0).unwrap();
+            let coordinates = KerrMinoState::new(0.0, 10.0, 1.0, 0.0);
+            let canonical = KerrCanonicalHamiltonian::new(black_hole);
+            let bl_state = canonical
+                .state_from_separated(
+                    coordinates,
+                    constants,
+                    KerrMinoDirection::Decreasing,
+                    KerrMinoDirection::Increasing,
+                )
+                .unwrap();
+            let ingoing_state = canonical
+                .ingoing_state_from_separated(
+                    coordinates,
+                    constants,
+                    KerrMinoDirection::Increasing,
+                )
+                .unwrap();
+            let bl = canonical.evaluate(bl_state).unwrap();
+            let ingoing = canonical.evaluate_ingoing(ingoing_state).unwrap();
+            let r = coordinates.radius_over_m;
+            let theta = coordinates.theta_rad;
+            let delta = r * r - 2.0 * r + spin * spin;
+            let p = r * r + spin * spin - spin * constants.angular_momentum_z_over_m;
+            let _ = (delta, p, theta);
+            close(ingoing.hamiltonian, 0.0, 2e-11);
+            close(bl.hamiltonian, ingoing.hamiltonian, 2e-11);
+            close(bl.energy, ingoing.energy, 2e-14);
+            close(
+                bl.angular_momentum_z_over_m,
+                ingoing.angular_momentum_z_over_m,
+                2e-14,
+            );
+            close(
+                bl.carter_constant_over_m2,
+                ingoing.carter_constant_over_m2,
+                2e-11,
+            );
+            close(
+                ingoing.derivative.coordinates[1],
+                bl.derivative.coordinates[1],
+                2e-11,
+            );
+            close(
+                ingoing.derivative.coordinates[2],
+                bl.derivative.coordinates[2],
+                2e-11,
+            );
+        }
+    }
+
+    #[test]
+    fn ingoing_hamiltonian_remains_finite_at_and_inside_outer_horizon() {
+        let spin = 0.9;
+        let black_hole = hole(spin);
+        let canonical = KerrCanonicalHamiltonian::new(black_hole);
+        let constants = KerrNullConstants::new(1.0, 2.0, 3.0).unwrap();
+        let horizon = 1.0 + (1.0 - spin * spin).sqrt();
+        for radius in [horizon + 0.1, horizon, 0.9 * horizon, 0.5 * horizon] {
+            let coordinates = KerrMinoState::new(0.0, radius, 1.0, 0.0);
+            let state = canonical
+                .ingoing_state_from_separated(
+                    coordinates,
+                    constants,
+                    KerrMinoDirection::Increasing,
+                )
+                .unwrap();
+            let evaluation = canonical.evaluate_ingoing(state).unwrap();
+            assert!(evaluation.hamiltonian.is_finite());
+            assert!(evaluation.derivative.coordinates.iter().all(|v| v.is_finite()));
+            assert!(evaluation.derivative.momenta.iter().all(|v| v.is_finite()));
+            close(evaluation.hamiltonian, 0.0, 2e-10);
+            close(evaluation.energy, 1.0, 2e-14);
+            close(evaluation.angular_momentum_z_over_m, 2.0, 2e-14);
+            close(evaluation.carter_constant_over_m2, 3.0, 2e-10);
         }
     }
 
