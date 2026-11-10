@@ -326,6 +326,8 @@ fn evaluate_action_decision(
         &decision.physically_possible_fault_ids,
         FaultEpisodeError::DuplicatePhysicalHypothesis,
     )?;
+    let mut physical_fault_ids = decision.physically_possible_fault_ids.clone();
+    physical_fault_ids.sort();
     if decision.deadline_ns < decision.observed_at_ns {
         return Err(FaultEpisodeError::ActionDeadlineBeforeDecision);
     }
@@ -398,7 +400,7 @@ fn evaluate_action_decision(
         }
     }
 
-    for fault_id in &decision.physically_possible_fault_ids {
+    for fault_id in &physical_fault_ids {
         match admission_map.get(fault_id.as_str()) {
             None => violations.push(GateViolation::MissingAdmissionForPhysicalFault {
                 at_ns: decision.observed_at_ns,
@@ -931,6 +933,15 @@ mod tests {
     #[test]
     fn physical_fault_and_admission_input_order_does_not_change_report() {
         let mut original = base_episode();
+        original.action_decisions[0]
+            .physically_possible_fault_ids
+            .push("free-swing".to_owned());
+        original.action_decisions[0].admissions.push(FaultAdmission {
+            fault_hypothesis_id: "free-swing".to_owned(),
+            status: AdmissionStatus::Rejected,
+            result_digest: "result-free-swing".to_owned(),
+        });
+        original.action_decisions[0].admissions[1].status = AdmissionStatus::Rejected;
         let baseline = audit_fault_episode(&original).expect("baseline");
         original.action_decisions[0]
             .physically_possible_fault_ids
