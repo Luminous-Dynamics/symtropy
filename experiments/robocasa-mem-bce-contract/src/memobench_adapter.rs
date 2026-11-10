@@ -487,7 +487,7 @@ fn validate_manifest(
     }
     if episode_counts.len() != expected_task_ids.len()
         || expected_task_ids.iter().any(|task_id| {
-            episode_counts.get(task_id).copied()
+            episode_counts.get(*task_id).copied()
                 != Some(manifest.expected_episodes_per_task)
         })
     {
@@ -1132,6 +1132,49 @@ mod tests {
         );
         input.license.commercial_permission_verification_receipt_sha256 = Some(digest('a'));
         assert!(select_memobench_checkpoints(&input).is_ok());
+    }
+
+    #[test]
+    fn checkpoint_indices_must_be_contiguous_and_source_ordered() {
+        let mut input = manifest();
+        input.tasks[0].checkpoints[1].checkpoint_index = 3;
+        assert_eq!(
+            select_memobench_checkpoints(&input),
+            Err(MemobenchAdapterError::CheckpointIndexMismatch)
+        );
+    }
+
+    #[test]
+    fn checkpoint_results_preserve_artifact_lineage_and_missing_artifacts_stay_unresolved() {
+        let input = manifest();
+        let mut outcomes = vec![
+            checkpoint_outcome(&input, 0, "episode-1", Some(true)),
+            checkpoint_outcome(&input, 1, "episode-1", Some(true)),
+            checkpoint_outcome(&input, 0, "episode-2", Some(true)),
+            checkpoint_outcome(&input, 1, "episode-2", Some(true)),
+        ];
+        outcomes[0].episode_artifact_sha256 = None;
+        let audit = audit_memobench_operations(&input, &outcomes, &[]).unwrap();
+        assert_eq!(audit.checkpoint_results[0].status, MemobenchCheckpointStatus::Unresolved);
+        assert_eq!(audit.checkpoint_results[0].episode_artifact_sha256, None);
+        assert_eq!(audit.checkpoint_results[1].episode_artifact_sha256, Some(digest('f')));
+        assert_eq!(audit.checkpoint_results[1].seed, 1);
+        assert_eq!(audit.checkpoint_results[1].task_metadata_sha256, input.tasks[0].task_metadata_sha256);
+        assert!(audit.operation_rates.iter().any(|rate| rate.official_operation_rate.is_none()));
+    }
+
+    #[test]
+    fn episode_results_preserve_seed_and_evaluator_artifact_lineage() {
+        let input = manifest();
+        let episodes = vec![
+            episode_outcome(&input, "episode-1", Some(true)),
+            episode_outcome(&input, "episode-2", Some(false)),
+        ];
+        let audit = audit_memobench_operations(&input, &[], &episodes).unwrap();
+        assert_eq!(audit.episode_results[0].status, MemobenchEpisodeStatus::Succeeded);
+        assert_eq!(audit.episode_results[1].status, MemobenchEpisodeStatus::NotSucceeded);
+        assert_eq!(audit.episode_results[0].seed, 1);
+        assert_eq!(audit.episode_results[0].evaluator_receipt_sha256, Some(digest('a')));
     }
 
     #[test]
