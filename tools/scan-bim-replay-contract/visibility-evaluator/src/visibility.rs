@@ -1236,11 +1236,13 @@ mod tests {
     ) -> Result<super::VisibilityReceipt, String> {
         let mut full_reference_and_occluders = vec![target_triangle()];
         full_reference_and_occluders.extend_from_slice(occluders);
+        let reference_surface_ids = vec!["TARGET".to_owned()];
         derive_surface_visibility(VisibilityEvaluation {
             scene_id: "SCENE-1",
             frame_id: "BUILDING-LOCAL",
             reference_model_sha256: &"1".repeat(64),
             probe_set_sha256: &"3".repeat(64),
+            reference_surface_ids: &reference_surface_ids,
             occluder_manifest_sha256: &"2".repeat(64),
             occluder_coverage,
             probes,
@@ -1487,6 +1489,7 @@ mod tests {
             frame_id: "BUILDING-LOCAL",
             reference_model_sha256: &"1".repeat(64),
             probe_set_sha256: &"3".repeat(64),
+            reference_surface_ids: &["TARGET".to_owned()],
             occluder_manifest_sha256: &"2".repeat(64),
             occluder_coverage: OccluderCoverage::Complete,
             probes: &[probe([5.0, 0.0, 0.0])],
