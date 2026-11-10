@@ -59,3 +59,10 @@ Metric bundles do not mix perceived quality with performance:
 - spatial/temporal perceptual errors and human judgments are separate quality evidence.
 
 An improvement claim is made at a matched resource budget or on a disclosed multi-objective Pareto frontier. Lower energy does not compensate for an unmet perceptual or semantic gate.
+
+## Primary references
+
+- HDR-VDP-3 paper: https://arxiv.org/abs/2304.13625
+- FLIP perceptual-difference paper: https://doi.org/10.1145/3450626.3459787
+- Netflix VMAF, including the 26 Oct 2026 HDR VMAF-v1 model note: https://github.com/Netflix/vmaf
+- 10 Oct 2026 systematic review of HDR-VDP-2, LPIPS, DISTS and SSIM in computer-generated rendering: https://doi.org/10.3390/jimaging12100500
