@@ -18,8 +18,10 @@ It demonstrates one continuous pipeline and one process boundary:
 6. verify every bridge receipt points back to the exact upstream observation, action and frame;
 7. verify each binary fused-HDC artifact against the receipt digest;
 8. invoke the Symthaea bridge a second time in a new OS process and compare complete receipt JSON plus every HDC artifact byte-for-byte;
-9. spawn a fresh OS process to replay the immutable snapshots and compare frame, observation, policy-receipt, world-audit, missing-event and disposition-ledger digests;
-9. produce an alternate-action branch fixture whose action receipt and actor/world snapshot differ from the base fixture.
+9. invoke the existing #4556 branch evidence auditor on a valid recomputed-actor campaign and on an intentionally stale actor-replay negative control;
+10. spawn a fresh OS process to replay immutable snapshots and compare frame, observation, policy-receipt, world-audit, missing-event and disposition-ledger digests.
+
+The alternate-action branch fixture changes action identity and actor/world snapshot; the branch auditor checks that changed actor input requires a recomputed response.
 
 ## Fixture contract
 
@@ -60,9 +62,15 @@ cargo build --locked \
   --bin recoverable-driving-evidence
 ```
 
-This is the CLI adapter owned by [Symtropy #4556](https://github.com/Luminous-Dynamics/symtropy/pull/4556). The harness calls that binary twice: once with a valid recomputed-actor branch and once with the stale-actor replay negative control.
+This is the CLI adapter owned by [Symtropy #4556](https://github.com/Luminous-Dynamics/symtropy/pull/4556). Use a separate worktree for the auditor branch:
 
-4. Use the generated `bridge-config.json`, `vision-config.json` and both built binary paths. The helper pins the fixture identity:
+```sh
+git worktree add ../symtropy-auditor research/recoverable-driving-evidence-rust-v0-1
+```
+
+The harness calls the auditor twice: once with a valid recomputed-actor branch and once with the stale-actor replay negative control, and requires the finding `ReplayedActorInputChanged` in the rejected report.
+
+4. Use the generated `bridge-config.json`, `vision-config.json` and both built binary paths. The generator pins the fixture episode, scenario, agent and camera identities. The helper pins the fixture identity:
 - `episode_id = fresh-process-driving-episode-v0-1`;
 - `scenario_id = straight-to-curved-road-two-actors-v0-1`;
 - `agent_id = ego`;
@@ -70,7 +78,7 @@ This is the CLI adapter owned by [Symtropy #4556](https://github.com/Luminous-Dy
 
 It also pins 640×360 RGB geometry, an initial 33,333 µs frame interval, a 66,666 µs maximum gap (to cover the explicit missing tick), and the default 16,384D no-depth VisionConfig. Its seed phrase is public fixture data, not a production secret.
 
-4. Create a dedicated empty output directory. The harness rejects non-empty directories to avoid stale artifacts.
+5. Create a dedicated empty output directory. The harness rejects non-empty directories to avoid stale artifacts.
 
 ## Run
 
@@ -82,7 +90,8 @@ cargo run --release --locked \
   ./out/fresh-driving-episode \
   ./bridge-config.json \
   ./vision-config.json \
-  ../symthaea/target/debug/camera-driving-bridge
+  ../symthaea/target/debug/camera-driving-bridge \\
+  ../symtropy-auditor/target/debug/recoverable-driving-evidence
 ```
 
 The output directory must be empty or new. Reusing a non-empty directory is rejected to prevent stale frames or receipts being mistaken for the current run.
