@@ -10,17 +10,23 @@
     "domain_digest": "domain-v1",
     "sensor_manifest_digest": "sensors-v1",
     "calibration_digest": "calibration-v1",
-    "clock_map_digest": "clock-v1"
+    "clock_map_digest": "clock-v1",
+    "max_cross_channel_skew_ns": 20,
+    "feature_schema_source_policy": "Each feature binds its own source ID, mapped monotonic timestamp and maximum age."
   },
   "feature_schema": [
     {
       "feature_id": "joint_velocity_residual",
+      "source_id": "joint-encoder-source-1",
       "unit_id": "mrad_per_s",
+      "max_age_ns": 100,
       "common_cause_group": "joint-encoder-1"
     },
     {
       "feature_id": "motor_current_residual",
+      "source_id": "motor-current-source-1",
       "unit_id": "milliamp",
+      "max_age_ns": 100,
       "common_cause_group": "current-sensor-1"
     }
   ],
@@ -197,9 +203,15 @@
           {
             "feature_id": "joint_velocity_residual",
             "unit_id": "mrad_per_s",
-            "value": 2
+            "value": 2,
+            "source_id": "joint-encoder-source-1",
+            "observed_at_ns": 440
           }
-        ]
+        ],
+        "observed_at_ns": 450,
+        "sensor_manifest_digest": "sensors-v1",
+        "calibration_digest": "calibration-v1",
+        "clock_map_digest": "clock-v1"
       },
       "expected": {
         "disposition": "invalid-or-unknown",
@@ -213,14 +225,22 @@
           {
             "feature_id": "joint_velocity_residual",
             "unit_id": "mrad_per_s",
-            "value": 0
+            "value": 0,
+            "source_id": "joint-encoder-source-1",
+            "observed_at_ns": 440
           },
           {
             "feature_id": "motor_current_residual",
             "unit_id": "milliamp",
-            "value": 10
+            "value": 10,
+            "source_id": "motor-current-source-1",
+            "observed_at_ns": 445
           }
-        ]
+        ],
+        "observed_at_ns": 450,
+        "sensor_manifest_digest": "sensors-v1",
+        "calibration_digest": "calibration-v1",
+        "clock_map_digest": "clock-v1"
       },
       "expected": {
         "candidate_ids": [
@@ -246,14 +266,22 @@
           {
             "feature_id": "joint_velocity_residual",
             "unit_id": "mrad_per_s",
-            "value": 999
+            "value": 999,
+            "source_id": "joint-encoder-source-1",
+            "observed_at_ns": 440
           },
           {
             "feature_id": "motor_current_residual",
             "unit_id": "milliamp",
-            "value": 999
+            "value": 999,
+            "source_id": "motor-current-source-1",
+            "observed_at_ns": 445
           }
-        ]
+        ],
+        "observed_at_ns": 450,
+        "sensor_manifest_digest": "sensors-v1",
+        "calibration_digest": "calibration-v1",
+        "clock_map_digest": "clock-v1"
       },
       "expected": {
         "disposition": "ood-unknown",
@@ -311,6 +339,85 @@
       "expected": {
         "common_cause_preserved": true,
         "independent_channel_claim_forbidden": true
+      }
+    },
+    {
+      "id": "O-feature-source-mismatch",
+      "observation": {
+        "observed_at_ns": 450,
+        "features": [
+          {
+            "feature_id": "joint_velocity_residual",
+            "source_id": "different-encoder",
+            "unit_id": "mrad_per_s",
+            "observed_at_ns": 440,
+            "value": 0
+          },
+          {
+            "feature_id": "motor_current_residual",
+            "source_id": "motor-current-source-1",
+            "unit_id": "milliamp",
+            "observed_at_ns": 445,
+            "value": 10
+          }
+        ]
+      },
+      "expected": {
+        "status": "invalid",
+        "reason": "source ID differs from feature schema"
+      }
+    },
+    {
+      "id": "P-feature-staleness",
+      "observation": {
+        "observed_at_ns": 450,
+        "features": [
+          {
+            "feature_id": "joint_velocity_residual",
+            "source_id": "joint-encoder-source-1",
+            "unit_id": "mrad_per_s",
+            "observed_at_ns": 300,
+            "value": 0
+          },
+          {
+            "feature_id": "motor_current_residual",
+            "source_id": "motor-current-source-1",
+            "unit_id": "milliamp",
+            "observed_at_ns": 445,
+            "value": 10
+          }
+        ]
+      },
+      "expected": {
+        "status": "unknown-or-invalid",
+        "reason": "per-feature maximum age exceeded"
+      }
+    },
+    {
+      "id": "Q-cross-channel-skew",
+      "max_cross_channel_skew_ns": 20,
+      "observation": {
+        "observed_at_ns": 450,
+        "features": [
+          {
+            "feature_id": "joint_velocity_residual",
+            "source_id": "joint-encoder-source-1",
+            "unit_id": "mrad_per_s",
+            "observed_at_ns": 400,
+            "value": 0
+          },
+          {
+            "feature_id": "motor_current_residual",
+            "source_id": "motor-current-source-1",
+            "unit_id": "milliamp",
+            "observed_at_ns": 445,
+            "value": 10
+          }
+        ]
+      },
+      "expected": {
+        "status": "invalid",
+        "reason": "cross-channel timestamp skew exceeds bound"
       }
     }
   ]
