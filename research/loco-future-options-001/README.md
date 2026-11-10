@@ -40,7 +40,7 @@ Unknown never contributes a positive continuation. Physically possible branches 
 
 ## Thermal and mission coupling
 
-Thermal state is a vector indexed by an embodiment-specific node manifest, not an average. Keep motor, driver, battery, structure and compute nodes distinct where modeled. Bind every successor snapshot to the exact thermal model, context, node manifest, predecessor-state digest and resulting-state digest. A hot motor may invalidate an action even when the whole-body mean is below every other limit.
+Thermal state is a vector indexed by an embodiment-specific node manifest, not an average. Keep motor, driver, battery, structure and compute nodes distinct where modeled. Bind every successor snapshot to the exact thermal model, context, node manifest, predecessor-state digest and resulting-state digest. A hot motor may invalidate an action even when the whole-body mean is below every other limit. Also distinguish **measured sensor channels** from **model-estimated internal nodes** and **environmental boundary conditions**: each needs its own source class, identity, timestamp/clock and uncertainty. The 2026 residual-policy study describes a 14-node A1 thermal network (12 motors, onboard computer and ambient environment), while its residual-policy observation uses a 12-element motor-temperature vector. A 14-state thermal model therefore must not be misrepresented as 14 directly instrumented temperature channels.
 
 Compose the existing mission-reserve and recovery-topology records rather than creating new thermal or graph models:
 
