@@ -697,7 +697,7 @@ mod tests {
 
     #[test]
     fn sensor_wins_when_its_exact_ratio_is_higher() {
-        let result = schedule(&budget(), &inference(), "measured_uj_v1", Some(&sensor())).unwrap();
+        let result = schedule(&budget(), &inference(), "measured_uj_v1", "micro_loss_v1", "sim_tick_200hz_v1", Some(&sensor())).unwrap();
         assert_eq!(result.action, DecisionAction::RequestObservation);
         assert_eq!(result.reason, DecisionReason::SensorValuePerResourceUnitHigher);
         assert_eq!(result.sensor_grant.unwrap().resource_cost_units, 15);
@@ -708,7 +708,7 @@ mod tests {
     fn inference_wins_when_its_exact_ratio_is_higher() {
         let mut sensor = sensor();
         sensor.expected_regret_reduction_microunits = 20;
-        let result = schedule(&budget(), &inference(), "measured_uj_v1", Some(&sensor)).unwrap();
+        let result = schedule(&budget(), &inference(), "measured_uj_v1", "micro_loss_v1", "sim_tick_200hz_v1", Some(&sensor)).unwrap();
         assert_eq!(result.action, DecisionAction::AllocateInference);
         assert_eq!(result.reason, DecisionReason::InferenceValuePerResourceUnitHigher);
         assert_eq!(result.inference_grant.unwrap().additional_rollout_count, 1);
@@ -719,7 +719,7 @@ mod tests {
     fn exact_ratio_tie_prefers_existing_inference_allocator() {
         let mut sensor = sensor();
         sensor.expected_regret_reduction_microunits = 75;
-        let result = schedule(&budget(), &inference(), "measured_uj_v1", Some(&sensor)).unwrap();
+        let result = schedule(&budget(), &inference(), "measured_uj_v1", "micro_loss_v1", "sim_tick_200hz_v1", Some(&sensor)).unwrap();
         assert_eq!(result.action, DecisionAction::AllocateInference);
         assert_eq!(result.reason, DecisionReason::EqualRatioPrefersInference);
     }
@@ -728,7 +728,7 @@ mod tests {
     fn stale_observation_requires_refresh_before_more_inference() {
         let mut inference = inference();
         inference.observation_available_tick = 90;
-        let result = schedule(&budget(), &inference, "measured_uj_v1", Some(&sensor())).unwrap();
+        let result = schedule(&budget(), &inference, "measured_uj_v1", "micro_loss_v1", "sim_tick_200hz_v1", Some(&sensor())).unwrap();
         assert_eq!(result.action, DecisionAction::RequestObservation);
         assert_eq!(result.reason, DecisionReason::StaleObservationRequiresRefresh);
         assert!(result.inference_grant.is_none());
@@ -738,7 +738,7 @@ mod tests {
     fn policy_visible_missing_frame_event_can_request_a_replacement() {
         let mut inference = inference();
         inference.observation_evidence = EvidenceDisposition::Missing;
-        let result = schedule(&budget(), &inference, "measured_uj_v1", Some(&sensor())).unwrap();
+        let result = schedule(&budget(), &inference, "measured_uj_v1", "micro_loss_v1", "sim_tick_200hz_v1", Some(&sensor())).unwrap();
         assert_eq!(result.action, DecisionAction::RequestObservation);
         assert_eq!(result.reason, DecisionReason::StaleObservationRequiresRefresh);
     }
@@ -749,7 +749,7 @@ mod tests {
         inference.observation_available_tick = 90;
         let mut sensor = sensor();
         sensor.sam.disposition = EvidenceDisposition::Rejected;
-        let result = schedule(&budget(), &inference, "measured_uj_v1", Some(&sensor)).unwrap();
+        let result = schedule(&budget(), &inference, "measured_uj_v1", "micro_loss_v1", "sim_tick_200hz_v1", Some(&sensor)).unwrap();
         assert_eq!(result.action, DecisionAction::RequireFallback);
         assert_eq!(result.fallback_policy_id.as_deref(), Some("fallback-v1"));
     }
@@ -758,7 +758,7 @@ mod tests {
     fn sensor_request_that_misses_deadline_is_rejected() {
         let mut sensor = sensor();
         sensor.acquisition_to_delivery_bound_ticks = 26;
-        let result = schedule(&budget(), &inference(), "measured_uj_v1", Some(&sensor)).unwrap();
+        let result = schedule(&budget(), &inference(), "measured_uj_v1", "micro_loss_v1", "sim_tick_200hz_v1", Some(&sensor)).unwrap();
         assert_eq!(result.action, DecisionAction::AllocateInference);
         assert_eq!(result.sensor_rejection, Some(SensorRejection::DeadlineInfeasible));
     }
@@ -767,7 +767,7 @@ mod tests {
     fn stale_observation_with_unavailable_sensor_cannot_commit() {
         let mut inference = inference();
         inference.observation_available_tick = 90;
-        let result = schedule(&budget(), &inference, "measured_uj_v1", None).unwrap();
+        let result = schedule(&budget(), &inference, "measured_uj_v1", "micro_loss_v1", "sim_tick_200hz_v1", None).unwrap();
         assert_eq!(result.action, DecisionAction::RequireFallback);
         assert_eq!(result.reason, DecisionReason::NoFreshObservationCanArriveBeforeDeadline);
     }
@@ -776,7 +776,7 @@ mod tests {
     fn no_positive_resource_value_commits_without_consuming_budget() {
         let mut inference = inference();
         inference.marginal_regret_reduction_microunits = vec![0];
-        let result = schedule(&budget(), &inference, "measured_uj_v1", None).unwrap();
+        let result = schedule(&budget(), &inference, "measured_uj_v1", "micro_loss_v1", "sim_tick_200hz_v1", None).unwrap();
         assert_eq!(result.action, DecisionAction::CommitNow);
         assert_eq!(result.resource_units_committed, 0);
         assert_eq!(result.resource_units_remaining, 100);
@@ -786,7 +786,7 @@ mod tests {
     fn insufficient_sensor_resource_budget_rejects_sensor_option() {
         let mut budget = budget();
         budget.remaining_resource_units = 10;
-        let result = schedule(&budget, &inference(), "measured_uj_v1", Some(&sensor())).unwrap();
+        let result = schedule(&budget, &inference(), "measured_uj_v1", "micro_loss_v1", "sim_tick_200hz_v1", Some(&sensor())).unwrap();
         assert_eq!(result.action, DecisionAction::AllocateInference);
         assert_eq!(
             result.sensor_rejection,
@@ -798,7 +798,7 @@ mod tests {
     fn sensor_resource_unit_mismatch_is_rejected() {
         let mut sensor = sensor();
         sensor.resource_unit_id = "image_bytes_v1".into();
-        let result = schedule(&budget(), &inference(), "measured_uj_v1", Some(&sensor)).unwrap();
+        let result = schedule(&budget(), &inference(), "measured_uj_v1", "micro_loss_v1", "sim_tick_200hz_v1", Some(&sensor)).unwrap();
         assert_eq!(result.action, DecisionAction::AllocateInference);
         assert_eq!(result.sensor_rejection, Some(SensorRejection::ResourceUnitMismatch));
     }
@@ -806,7 +806,7 @@ mod tests {
     #[test]
     fn inference_resource_unit_mismatch_is_a_hard_error() {
         assert_eq!(
-            schedule(&budget(), &inference(), "flops_v1", Some(&sensor())).err(),
+            schedule(&budget(), &inference(), "flops_v1", "micro_loss_v1", "sim_tick_200hz_v1", Some(&sensor())).err(),
             Some(SchedulerError::ResourceUnitMismatch)
         );
     }
@@ -815,7 +815,7 @@ mod tests {
     fn sensor_sam_context_mismatch_is_rejected() {
         let mut sensor = sensor();
         sensor.sam.context_digest = digest(20);
-        let result = schedule(&budget(), &inference(), "measured_uj_v1", Some(&sensor)).unwrap();
+        let result = schedule(&budget(), &inference(), "measured_uj_v1", "micro_loss_v1", "sim_tick_200hz_v1", Some(&sensor)).unwrap();
         assert_eq!(result.action, DecisionAction::AllocateInference);
         assert_eq!(result.sensor_rejection, Some(SensorRejection::SamContextMismatch));
     }
@@ -824,7 +824,7 @@ mod tests {
     fn future_sensor_evidence_is_not_admitted_by_role() {
         let mut sensor = sensor();
         sensor.source_role = SourceRole::EvaluatorOnly;
-        let result = schedule(&budget(), &inference(), "measured_uj_v1", Some(&sensor)).unwrap();
+        let result = schedule(&budget(), &inference(), "measured_uj_v1", "micro_loss_v1", "sim_tick_200hz_v1", Some(&sensor)).unwrap();
         assert_eq!(result.action, DecisionAction::AllocateInference);
         assert_eq!(result.sensor_rejection, Some(SensorRejection::SensorNotPolicyVisible));
     }
@@ -833,7 +833,7 @@ mod tests {
     fn inference_allocator_rejects_non_policy_observation() {
         let mut inference = inference();
         inference.observation_source_role = SourceRole::EvaluatorOnly;
-        let result = schedule(&budget(), &inference, "measured_uj_v1", None).unwrap();
+        let result = schedule(&budget(), &inference, "measured_uj_v1", "micro_loss_v1", "sim_tick_200hz_v1", None).unwrap();
         assert_eq!(result.action, DecisionAction::RequireFallback);
     }
 
@@ -841,7 +841,7 @@ mod tests {
     fn inference_allocator_rejects_missing_sam_evidence() {
         let mut inference = inference();
         inference.sam = None;
-        let result = schedule(&budget(), &inference, "measured_uj_v1", None).unwrap();
+        let result = schedule(&budget(), &inference, "measured_uj_v1", "micro_loss_v1", "sim_tick_200hz_v1", None).unwrap();
         assert_eq!(result.action, DecisionAction::CommitNow);
         assert_eq!(result.inference_grant, None);
     }
@@ -850,7 +850,7 @@ mod tests {
     fn sensor_refresh_preserves_actuation_reserve() {
         let mut sensor = sensor();
         sensor.acquisition_to_delivery_bound_ticks = 25;
-        let result = schedule(&budget(), &inference(), "measured_uj_v1", Some(&sensor)).unwrap();
+        let result = schedule(&budget(), &inference(), "measured_uj_v1", "micro_loss_v1", "sim_tick_200hz_v1", Some(&sensor)).unwrap();
         assert_eq!(result.action, DecisionAction::RequestObservation);
         assert_eq!(result.deadline_slack_after_reserve_ticks, 0);
         assert_eq!(result.completion_bound_tick + 5, 130);
@@ -861,7 +861,7 @@ mod tests {
         let mut budget = budget();
         budget.decision_deadline_tick = 99;
         assert!(matches!(
-            schedule(&budget, &inference(), "measured_uj_v1", None),
+            schedule(&budget, &inference(), "measured_uj_v1", "micro_loss_v1", "sim_tick_200hz_v1", None),
             Err(SchedulerError::InvalidBudget(_))
         ));
     }
@@ -870,7 +870,7 @@ mod tests {
     fn sensor_only_eligible_is_not_reported_as_a_ratio_win() {
         let mut inference = inference();
         inference.maximum_rollout_count = 0;
-        let result = schedule(&budget(), &inference, "measured_uj_v1", Some(&sensor())).unwrap();
+        let result = schedule(&budget(), &inference, "measured_uj_v1", "micro_loss_v1", "sim_tick_200hz_v1", Some(&sensor())).unwrap();
         assert_eq!(result.action, DecisionAction::RequestObservation);
         assert_eq!(result.reason, DecisionReason::SensorOnlyEligible);
     }
@@ -879,7 +879,7 @@ mod tests {
     fn inference_only_eligible_is_not_reported_as_a_ratio_win() {
         let mut sensor = sensor();
         sensor.evidence_disposition = EvidenceDisposition::Rejected;
-        let result = schedule(&budget(), &inference(), "measured_uj_v1", Some(&sensor)).unwrap();
+        let result = schedule(&budget(), &inference(), "measured_uj_v1", "micro_loss_v1", "sim_tick_200hz_v1", Some(&sensor)).unwrap();
         assert_eq!(result.action, DecisionAction::AllocateInference);
         assert_eq!(result.reason, DecisionReason::InferenceOnlyEligible);
     }
@@ -899,7 +899,7 @@ mod tests {
 
     #[test]
     fn decision_receipt_round_trips_as_json() {
-        let result = schedule(&budget(), &inference(), "measured_uj_v1", Some(&sensor())).unwrap();
+        let result = schedule(&budget(), &inference(), "measured_uj_v1", "micro_loss_v1", "sim_tick_200hz_v1", Some(&sensor())).unwrap();
         let json = serde_json::to_string(&result).unwrap();
         let decoded: JointDecisionReceipt = serde_json::from_str(&json).unwrap();
         assert_eq!(decoded, result);
@@ -907,7 +907,7 @@ mod tests {
 
     #[test]
     fn decision_receipt_binds_parent_allocator_revision() {
-        let result = schedule(&budget(), &inference(), "measured_uj_v1", None).unwrap();
+        let result = schedule(&budget(), &inference(), "measured_uj_v1", "micro_loss_v1", "sim_tick_200hz_v1", None).unwrap();
         assert_eq!(result.allocator_base_revision, ALLOCATOR_BASE_REVISION);
     }
 
@@ -915,7 +915,7 @@ mod tests {
     fn sensor_option_must_reference_the_current_policy_observation() {
         let mut sensor = sensor();
         sensor.source_observation_digest = digest(21);
-        let result = schedule(&budget(), &inference(), "measured_uj_v1", Some(&sensor)).unwrap();
+        let result = schedule(&budget(), &inference(), "measured_uj_v1", "micro_loss_v1", "sim_tick_200hz_v1", Some(&sensor)).unwrap();
         assert_eq!(result.action, DecisionAction::AllocateInference);
         assert_eq!(
             result.sensor_rejection,
@@ -927,7 +927,7 @@ mod tests {
     fn future_observation_cannot_be_refreshed_from_future_evidence() {
         let mut inference = inference();
         inference.observation_available_tick = 101;
-        let result = schedule(&budget(), &inference, "measured_uj_v1", Some(&sensor())).unwrap();
+        let result = schedule(&budget(), &inference, "measured_uj_v1", "micro_loss_v1", "sim_tick_200hz_v1", Some(&sensor())).unwrap();
         assert_eq!(result.action, DecisionAction::RequireFallback);
         assert_eq!(
             result.sensor_rejection,
