@@ -10,6 +10,7 @@ const DEFAULT_CORPUS: &str = "benchmarks/shipyard/distortion-co-design/corpus-v0
 const DEFAULT_SCHEMA: &str = "docs/tech/SHIPYARD_DISTORTION_CO_DESIGN_V0_1.schema.json";
 const DEFAULT_ENUMERABLE_CORPUS: &str = "benchmarks/shipyard/distortion-co-design/enumerable-oracle-v0.1.json";
 const DEFAULT_ENUMERABLE_SCHEMA: &str = "docs/tech/SHIPYARD_DISTORTION_CO_DESIGN_ENUMERABLE_ORACLE_V0_1.schema.json";
+const EXPECTED_ORACLE_OBJECTIVE_POLICY: &str = "Minimize all four integer objectives lexicographically only for stable serialization; Pareto dominance is componentwise across final_geometry_units, production_time_units, fixture_cost_units and robustness_risk_units. Lower is better for each synthetic objective.";
 
 #[derive(Debug, PartialEq, Eq)]
 struct Summary {
@@ -358,7 +359,8 @@ fn enumerate_oracle_case(case: &Value) -> Result<(usize, Vec<String>), String> {
         }
         let reaction = nonnegative_number(fixture, "reaction_units")?;
         let limit = nonnegative_number(fixture, "reaction_limit_units")?;
-        let approved = bool_at(fixture, "approved") == Some(true);
+        let approved = bool_at(fixture, "approved")
+            .ok_or_else(|| format!("{case_id}: fixture approved must be a boolean"))?;
         let geometry = nonnegative_number(fixture, "geometry_bias_units")?;
         let setup = nonnegative_number(fixture, "setup_time_units")?;
         let cost = nonnegative_number(fixture, "lifecycle_cost_units")?;
@@ -380,8 +382,10 @@ fn enumerate_oracle_case(case: &Value) -> Result<(usize, Vec<String>), String> {
         if !release_ids.insert(release_id.clone()) {
             return Err(format!("{case_id}: duplicate release_id {release_id}"));
         }
-        let cooling_complete = bool_at(release, "cooling_complete") == Some(true);
-        let fully_released = bool_at(release, "all_restraints_removed") == Some(true);
+        let cooling_complete = bool_at(release, "cooling_complete")
+            .ok_or_else(|| format!("{case_id}: release cooling_complete must be a boolean"))?;
+        let fully_released = bool_at(release, "all_restraints_removed")
+            .ok_or_else(|| format!("{case_id}: release all_restraints_removed must be a boolean"))?;
         let geometry = nonnegative_number(release, "geometry_penalty_units")?;
         let time = nonnegative_number(release, "time_units")?;
         let risk = nonnegative_number(release, "risk_units")?;
@@ -499,6 +503,9 @@ fn validate_enumerable_oracle(
     }
     if schema.get("additionalProperties").and_then(Value::as_bool) != Some(false) {
         errors.push("enumerable oracle schema must reject undeclared root fields".to_owned());
+    }
+    if str_at(&corpus, "objective_policy") != Some(EXPECTED_ORACLE_OBJECTIVE_POLICY) {
+        errors.push("enumerable oracle objective policy does not match the frozen lower-is-better vector".to_owned());
     }
     if str_at(&corpus, "schema_version") != Some("0.1.0") {
         errors.push("enumerable oracle schema version must be 0.1.0".to_owned());
