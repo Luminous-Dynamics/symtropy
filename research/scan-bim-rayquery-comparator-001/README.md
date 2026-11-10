@@ -75,6 +75,21 @@ Visibility policy (observable, unknown, self-occluded, etc.) belongs to #4292 an
 
 The median BVH is the production evaluator path. The SAH prototype is compiled only for tests; it is not selected by requests or shipped as a production query option. The two builders are compared on deterministic hit identities and structural/work counters, not wall-clock latency. SAH tests include sparse multi-ray differential work, a coincident-centroid median-fallback path and input-permutation invariance. The corpus now adds a 24-way tie and 16 long-thin overlapping-AABB triangles. A separately qualified runtime/benchmark API is still needed before p50/p95/p99 latency, memory or Embree comparisons can be made.
 
+## Independent Intel Embree adapter (source added; build not yet qualified)
+
+A standalone benchmark-only C++ adapter now exists at `embree/`:
+- Exact upstream pin: Intel Embree 4.4.1, tag `v4.4.1`, commit `f590db83ef6559387df7f6d8725c34fb7acf851d`, Apache-2.0.
+- Uses Embree 4's argument intersection filter, rejecting every candidate hit while collecting `ray->tfar` and primitive identity. This follows the upstream `tutorials/next_hit/next_hit_device.cpp` pattern and preserves nearest-hit tie sets rather than relying on one arbitrary first hit.
+- Builds the exact fixture triangles as float32 vertex/index buffers; output explicitly reports `precision=f32`.
+- Exposes low/medium/high build quality and device thread configuration; each receipt records that ray calls are serial single-ray invocations.
+- Applies the fixture's metric intersection epsilon symmetrically to Embree `tnear`/`tfar` so its segment semantics match the f64 oracle's inclusive clipping contract; it does not widen the expected-distance or tie tolerances.
+- Uses CMake with exact Embree 4.4.1 and nlohmann-json 3.11.3 packages plus OpenSSL 3 Crypto.
+- Registers CTest smoke runs for base, 1,000× scale and overlap-stress fixtures.
+
+The adapter source has been reviewed against the pinned Embree headers and upstream all-hits tutorial, but it is **not yet compiled or executed**. The authoring environment lacks Embree and nlohmann-json development headers/libraries. CTest results, runtime correctness, build/query latency and memory are not yet available. Do not treat the existence of `main.cpp` as an engine comparison result. Detailed build/run instructions and remaining qualification limits are in [`embree/README.md`](embree/README.md).
+
+Embree's public API does not expose its internal primitive-test or BVH-node-visit counters through this adapter; those receipt fields remain null. Memory fields remain null until a separate pinned profiler is used. Float32 boundary mismatches remain visible and are not hidden by changing the fixture's f64 oracle thresholds.
+
 ## Workload matrix
 
 | Geometry distribution | Primary stress |
