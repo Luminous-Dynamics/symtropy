@@ -866,13 +866,7 @@ impl KerrCanonicalHamiltonian {
         })
     }
 
-    /// Evaluate H, its canonical vector field, and the recovered invariants.
-    ///
-    /// The physical SI metric is transformed to dimensionless coordinates
-    /// [ct/M,r/M,theta,phi] and dimensionless line element ds^2/M^2.
-    /// Metric derivatives use the same transformation. This keeps the
-    /// canonical Hamiltonian well-scaled and avoids mixing m and m^2 entries.
-    /// Evaluate H and Hamilton's equations in the exterior Boyer-Lindquist chart.
+    /// Evaluate H and Hamilton's equations in the exterior Boyer–Lindquist chart.
     pub fn evaluate(
         self,
         state: KerrCanonicalState,
@@ -901,6 +895,29 @@ impl KerrCanonicalHamiltonian {
         state: KerrCanonicalState,
         differentiated: DifferentiatedMetric4,
     ) -> Result<KerrCanonicalEvaluation, KerrGeodesicError> {
+        let coordinates = state.coordinates;
+        for (name, value) in [
+            ("canonical_time_over_m", coordinates.time_over_m),
+            ("canonical_radius_over_m", coordinates.radius_over_m),
+            ("canonical_theta_rad", coordinates.theta_rad),
+            ("canonical_azimuth_rad", coordinates.azimuth_rad),
+        ] {
+            if !value.is_finite() {
+                return Err(KerrGeodesicError::NonFinite(name));
+            }
+        }
+        for (index, value) in state.momenta.iter().enumerate() {
+            if !value.is_finite() {
+                return Err(KerrGeodesicError::NonFinite(match index {
+                    0 => "canonical_p_t",
+                    1 => "canonical_p_r",
+                    2 => "canonical_p_theta",
+                    _ => "canonical_p_phi",
+                }));
+            }
+        }
+        validate_polar_angle(coordinates.theta_rad)?;
+        let mass_length = self.hole.gravitational_radius_m();
 
         // If x_SI = M*[tbar,rbar,theta/M,phi/M], then
         // gbar = diag(1,1,1/M,1/M) * g_SI * diag(1,1,1/M,1/M).
@@ -988,7 +1005,6 @@ impl KerrCanonicalHamiltonian {
             carter_constant_over_m2: carter,
         })
     }
-
 }
 
 fn validate_spin(spin: f64) -> Result<(), KerrGeodesicError> {
@@ -1321,8 +1337,13 @@ mod tests {
             let r = coordinates.radius_over_m;
             let theta = coordinates.theta_rad;
             let delta = r * r - 2.0 * r + spin * spin;
-            let p = r * r + spin * spin - spin * constants.angular_momentum_z_over_m;
-            let _ = (delta, p, theta);
+            let expected_v = bl.derivative.coordinates[0]
+                + (r * r + spin * spin) / delta * bl.derivative.coordinates[1];
+            let expected_phi = bl.derivative.coordinates[3]
+                + spin / delta * bl.derivative.coordinates[1];
+            close(ingoing.derivative.coordinates[0], expected_v, 2e-11);
+            close(ingoing.derivative.coordinates[3], expected_phi, 2e-11);
+            let _ = theta;
             close(ingoing.hamiltonian, 0.0, 2e-11);
             close(bl.hamiltonian, ingoing.hamiltonian, 2e-11);
             close(bl.energy, ingoing.energy, 2e-14);
