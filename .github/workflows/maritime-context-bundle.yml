@@ -1,0 +1,42 @@
+name: Maritime Operational Context Bundle Verification
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "crates/tools/maritime-context-bundle/**"
+      - "docs/tech/MARITIME_OPERATIONAL_CONTEXT_BUNDLE_V0_1.schema.json"
+      - "benchmarks/maritime/operational-context-bundle-corpus-v0.1.json"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/maritime-context-bundle.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: maritime-context-bundle-verification
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify federated maritime context claims
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@e2a55d2ffb04f378e9626c28d38b36d230d1e12f
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Run independent MOCB oracle tests
+        run: cargo test --locked -p maritime-context-bundle
+      - name: Run Clippy with warnings denied
+        run: cargo clippy --locked -p maritime-context-bundle --all-targets -- -D warnings
+      - name: Execute frozen MOCB corpus
+        run: cargo run --locked -p maritime-context-bundle -- docs/tech/MARITIME_OPERATIONAL_CONTEXT_BUNDLE_V0_1.schema.json benchmarks/maritime/operational-context-bundle-corpus-v0.1.json
+      - name: Confirm verifier did not modify tracked inputs
+        run: git diff --exit-code
