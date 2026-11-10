@@ -242,6 +242,25 @@ impl KerrNullConstants {
         }
         Ok(value)
     }
+
+    /// Derivative dTheta/dtheta of the separated polar potential.
+    pub fn polar_potential_derivative(
+        self,
+        spin: f64,
+        theta_rad: f64,
+    ) -> Result<f64, KerrGeodesicError> {
+        validate_spin(spin)?;
+        validate_polar_angle(theta_rad)?;
+        let sin_theta = theta_rad.sin();
+        let cos_theta = theta_rad.cos();
+        let value = -2.0 * spin * spin * self.energy * self.energy * cos_theta * sin_theta
+            + 2.0 * self.angular_momentum_z_over_m.powi(2) * cos_theta
+                / (sin_theta * sin_theta * sin_theta);
+        if !value.is_finite() {
+            return Err(KerrGeodesicError::NonFinite("polar_potential_derivative"));
+        }
+        Ok(value)
+    }
 }
 
 /// Coordinates for the separated Kerr null-geodesic reference.
@@ -278,6 +297,56 @@ pub struct KerrMinoDerivative {
     pub d_radius_over_m: f64,
     pub d_theta_rad: f64,
     pub d_azimuth_rad: f64,
+}
+
+
+/// Second-order state for turning-point-regular Mino evolution.
+///
+/// The first integrals impose
+/// `radial_velocity_over_m^2 = R(r/M)` and
+/// `polar_velocity_rad^2 = Theta(theta)`. Unlike the signed square-root
+/// first-order form, this state evolves continuously through a simple
+/// radial/polar turning point.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct KerrMinoDynamicState {
+    pub coordinates: KerrMinoState,
+    pub radial_velocity_over_m: f64,
+    pub polar_velocity_rad: f64,
+}
+
+impl KerrMinoDynamicState {
+    pub const fn new(
+        coordinates: KerrMinoState,
+        radial_velocity_over_m: f64,
+        polar_velocity_rad: f64,
+    ) -> Self {
+        Self {
+            coordinates,
+            radial_velocity_over_m,
+            polar_velocity_rad,
+        }
+    }
+}
+
+/// Derivative of the second-order Mino state with respect to dimensionless gamma.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct KerrMinoDynamicDerivative {
+    pub d_time_over_m: f64,
+    pub d_radius_over_m: f64,
+    pub d_radial_velocity_over_m: f64,
+    pub d_theta_rad: f64,
+    pub d_polar_velocity_rad: f64,
+    pub d_azimuth_rad: f64,
+}
+
+/// Residuals of the separated first-integral constraints.
+///
+/// A physical state satisfies both residuals equal to zero. During numerical
+/// integration they provide independent diagnostics for constraint drift.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct KerrMinoConstraintResiduals {
+    pub radial: f64,
+    pub polar: f64,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -490,7 +559,109 @@ impl KerrSeparatedNullGeodesic {
         }
         Ok(derivative)
     }
-}
+
+
+    /// Evaluate the smooth second-order separated Mino equations.
+    ///
+    /// Differentiating the first integrals gives
+    /// `d2(r/M)/dgamma2 = (1/2) dR/d(r/M)` and
+    /// `d2(theta)/dgamma2 = (1/2) dTheta/dtheta`.
+    /// This form remains regular at simple radial and polar turning points:
+    /// the corresponding velocity passes through zero while its acceleration
+    /// determines the continuation. It does not need an explicit square-root
+    /// sign flip. The Boyer-Lindquist chart still excludes the horizon.
+    pub fn mino_dynamic_derivative(
+        self,
+        state: KerrMinoDynamicState,
+    ) -> Result<KerrMinoDynamicDerivative, KerrGeodesicError> {
+        let coordinates = state.coordinates;
+        for (name, value) in [
+            ("time_over_m", coordinates.time_over_m),
+            ("radius_over_m", coordinates.radius_over_m),
+            ("theta_rad", coordinates.theta_rad),
+            ("azimuth_rad", coordinates.azimuth_rad),
+            ("radial_velocity_over_m", state.radial_velocity_over_m),
+            ("polar_velocity_rad", state.polar_velocity_rad),
+        ] {
+            if !value.is_finite() {
+                return Err(KerrGeodesicError::NonFinite(name));
+            }
+        }
+        validate_polar_angle(coordinates.theta_rad)?;
+        let r = coordinates.radius_over_m;
+        let theta = coordinates.theta_rad;
+        let a = self.hole.spin().get();
+        let horizon = self.hole.outer_horizon_radius_m() / self.hole.gravitational_radius_m();
+        if r <= horizon {
+            return Err(KerrGeodesicError::RadiusAtOrInsideHorizon {
+                radius_over_m: r,
+                horizon_over_m: horizon,
+            });
+        }
+        let delta = r * r - 2.0 * r + a * a;
+        if !delta.is_finite() || delta <= 0.0 {
+            return Err(KerrGeodesicError::BoyerLindquistTurningSingularity { delta });
+        }
+
+        let radial_acceleration = 0.5 * self.radial_potential_derivative(r)?;
+        let polar_acceleration =
+            0.5 * self.constants.polar_potential_derivative(a, theta)?;
+        let energy = self.constants.energy;
+        let angular_momentum = self.constants.angular_momentum_z_over_m;
+        let sin_theta = theta.sin();
+        let sin_squared = sin_theta * sin_theta;
+        let p = energy * (r * r + a * a) - a * angular_momentum;
+        let d_time = a * (angular_momentum - a * energy * sin_squared)
+            + (r * r + a * a) * p / delta;
+        let d_azimuth = angular_momentum / sin_squared - a * energy + a * p / delta;
+        let derivative = KerrMinoDynamicDerivative {
+            d_time_over_m: d_time,
+            d_radius_over_m: state.radial_velocity_over_m,
+            d_radial_velocity_over_m: radial_acceleration,
+            d_theta_rad: state.polar_velocity_rad,
+            d_polar_velocity_rad: polar_acceleration,
+            d_azimuth_rad: d_azimuth,
+        };
+        if [
+            derivative.d_time_over_m,
+            derivative.d_radius_over_m,
+            derivative.d_radial_velocity_over_m,
+            derivative.d_theta_rad,
+            derivative.d_polar_velocity_rad,
+            derivative.d_azimuth_rad,
+        ]
+        .iter()
+        .any(|value| !value.is_finite())
+        {
+            return Err(KerrGeodesicError::NonFinite("mino_dynamic_derivative"));
+        }
+        Ok(derivative)
+    }
+
+    /// Evaluate the radial/polar first-integral residuals for a dynamic state.
+    pub fn mino_constraint_residuals(
+        self,
+        state: KerrMinoDynamicState,
+    ) -> Result<KerrMinoConstraintResiduals, KerrGeodesicError> {
+        for (name, value) in [
+            ("radial_velocity_over_m", state.radial_velocity_over_m),
+            ("polar_velocity_rad", state.polar_velocity_rad),
+        ] {
+            if !value.is_finite() {
+                return Err(KerrGeodesicError::NonFinite(name));
+            }
+        }
+        let r = state.coordinates.radius_over_m;
+        let theta = state.coordinates.theta_rad;
+        let radial = state.radial_velocity_over_m.powi(2) - self.radial_potential(r)?;
+        let polar =
+            state.polar_velocity_rad.powi(2) - self.polar_potential(theta)?;
+        if !radial.is_finite() || !polar.is_finite() {
+            return Err(KerrGeodesicError::NonFinite("mino_constraint_residual"));
+        }
+        Ok(KerrMinoConstraintResiduals { radial, polar })
+    }
+ }
 
 fn validate_spin(spin: f64) -> Result<(), KerrGeodesicError> {
     if !spin.is_finite() || !(-1.0..=1.0).contains(&spin) {
@@ -689,6 +860,68 @@ mod tests {
             constants.polar_potential(0.8, 0.0),
             Err(KerrGeodesicError::InvalidPolarAngle(_))
         ));
+    }
+
+
+    #[test]
+    fn second_order_mino_system_is_regular_at_radial_turning_point() {
+        let constants = KerrNullConstants::new(1.0, 6.0, 0.0).unwrap();
+        let geodesic = KerrSeparatedNullGeodesic::new(hole(0.0), constants);
+        // Outer turning point for Schwarzschild L_z/M=6, Q=0.
+        let r_turn = 4.453_363_193_811_354;
+        let state = KerrMinoDynamicState::new(
+            KerrMinoState::new(0.0, r_turn, core::f64::consts::FRAC_PI_2, 0.0),
+            0.0,
+            0.0,
+        );
+        let residuals = geodesic.mino_constraint_residuals(state).unwrap();
+        close(residuals.radial, 0.0, 2e-12);
+        close(residuals.polar, 0.0, 2e-14);
+        let derivative = geodesic.mino_dynamic_derivative(state).unwrap();
+        assert!(derivative.d_radial_velocity_over_m > 0.0);
+        assert_eq!(derivative.d_radius_over_m, 0.0);
+    }
+
+    #[test]
+    fn second_order_mino_system_is_regular_at_polar_turning_point() {
+        let theta_turn = core::f64::consts::FRAC_PI_4;
+        let spin = 0.5;
+        let angular_momentum = 4.0;
+        let carter = angular_momentum * angular_momentum
+            * theta_turn.cos().powi(2) / theta_turn.sin().powi(2)
+            - spin * spin * theta_turn.cos().powi(2);
+        let geodesic = KerrSeparatedNullGeodesic::new(
+            hole(spin),
+            KerrNullConstants::new(1.0, angular_momentum, carter).unwrap(),
+        );
+        let state = KerrMinoDynamicState::new(
+            KerrMinoState::new(0.0, 10.0, theta_turn, 0.0),
+            0.0,
+            0.0,
+        );
+        let residuals = geodesic.mino_constraint_residuals(state).unwrap();
+        close(residuals.polar, 0.0, 2e-14);
+        let derivative = geodesic.mino_dynamic_derivative(state).unwrap();
+        assert!(derivative.d_polar_velocity_rad > 0.0);
+        assert_eq!(derivative.d_theta_rad, 0.0);
+    }
+
+    #[test]
+    fn second_order_mino_system_recovers_schwarzschild_circular_photon_orbit() {
+        let constants =
+            KerrNullConstants::new(1.0, 3.0 * 3.0_f64.sqrt(), 0.0).unwrap();
+        let geodesic = KerrSeparatedNullGeodesic::new(hole(0.0), constants);
+        let state = KerrMinoDynamicState::new(
+            KerrMinoState::new(0.0, 3.0, core::f64::consts::FRAC_PI_2, 0.0),
+            0.0,
+            0.0,
+        );
+        let residuals = geodesic.mino_constraint_residuals(state).unwrap();
+        close(residuals.radial, 0.0, 2e-14);
+        close(residuals.polar, 0.0, 2e-14);
+        let derivative = geodesic.mino_dynamic_derivative(state).unwrap();
+        close(derivative.d_radial_velocity_over_m, 0.0, 2e-14);
+        close(derivative.d_polar_velocity_rad, 0.0, 2e-14);
     }
 
     #[test]
