@@ -561,6 +561,7 @@ pub fn audit_memobench_operations(
             episode.task_id == outcome.task_id && episode.episode_id == outcome.episode_id
         }).ok_or(MemobenchAdapterError::CheckpointOutcomeIdentityMismatch)?;
         if outcome.independence_unit_id != episode.independence_unit_id
+            || outcome.seed != episode.seed
             || outcome.task_metadata_sha256 != expected_checkpoint.task_metadata_sha256
             || outcome.task_definition_sha256 != expected_checkpoint.task_definition_sha256
             || outcome.memory_level != manifest.memory_level
@@ -569,6 +570,14 @@ pub fn audit_memobench_operations(
             || outcome.subtask_goal_sha256 != expected_checkpoint.subtask_goal_sha256
         {
             return Err(MemobenchAdapterError::CheckpointOutcomeIdentityMismatch);
+        }
+        for digest in [
+            outcome.episode_artifact_sha256.as_deref(),
+            outcome.evaluator_receipt_sha256.as_deref(),
+        ].into_iter().flatten() {
+            if !is_sha256_hex(digest) {
+                return Err(MemobenchAdapterError::InvalidDigest);
+            }
         }
         if observed.insert(key, outcome).is_some() {
             return Err(MemobenchAdapterError::DuplicateCheckpointOutcome);
@@ -580,7 +589,15 @@ pub fn audit_memobench_operations(
     let mut task_operation_rates =
         BTreeMap::<(String, MemoryOperationKind), RateAccumulator>::new();
     for (key, checkpoint) in &expected {
-        let outcome = observed.get(key).copied().and_then(|row| row.completed);
+        let outcome = observed.get(key).copied().and_then(|row| {
+            if row.episode_artifact_sha256.is_some()
+                && row.evaluator_receipt_sha256.is_some()
+            {
+                row.completed
+            } else {
+                None
+            }
+        });
         let status = match outcome {
             Some(true) => MemobenchCheckpointStatus::Completed,
             Some(false) => MemobenchCheckpointStatus::NotCompleted,
@@ -624,6 +641,20 @@ pub fn audit_memobench_operations(
         if !exists {
             return Err(MemobenchAdapterError::UnknownEpisodeOutcome);
         }
+        let expected_episode = manifest.episodes.iter().find(|episode| {
+            episode.task_id == outcome.task_id && episode.episode_id == outcome.episode_id
+        }).expect("episode existence checked");
+        if outcome.seed != expected_episode.seed {
+            return Err(MemobenchAdapterError::EpisodeOutcomeIdentityMismatch);
+        }
+        for digest in [
+            outcome.episode_artifact_sha256.as_deref(),
+            outcome.evaluator_receipt_sha256.as_deref(),
+        ].into_iter().flatten() {
+            if !is_sha256_hex(digest) {
+                return Err(MemobenchAdapterError::InvalidDigest);
+            }
+        }
         if episode_observed.insert((outcome.task_id.clone(), outcome.episode_id.clone()), outcome).is_some() {
             return Err(MemobenchAdapterError::DuplicateEpisodeOutcome);
         }
@@ -641,7 +672,12 @@ pub fn audit_memobench_operations(
         let mut unresolved = 0usize;
         for episode in task_episodes {
             total += 1;
-            match episode_observed.get(&(episode.task_id.clone(), episode.episode_id.clone())).and_then(|row| row.task_success) {
+            match episode_observed
+                .get(&(episode.task_id.clone(), episode.episode_id.clone()))
+                .filter(|row| row.episode_artifact_sha256.is_some()
+                    && row.evaluator_receipt_sha256.is_some())
+                .and_then(|row| row.task_success)
+            {
                 Some(true) => success += 1,
                 Some(false) => failed += 1,
                 None => unresolved += 1,
@@ -670,15 +706,27 @@ pub fn audit_memobench_operations(
             .then(|| success_count as f64 / success_total as f64),
     };
 
-    let operation_rates = operation_rates
-        .into_iter()
-        .map(|(operation, accumulator)| accumulator.finish(None, operation))
-        .collect::<Vec<_>>();
     let task_operation_rates = task_operation_rates
         .into_iter()
         .map(|((task_id, operation), accumulator)| accumulator.finish(Some(task_id), operation))
         .collect::<Vec<_>>();
-
+    let mut operation_rates = operation_rates
+        .into_iter()
+        .map(|(operation, accumulator)| accumulator.finish(None, operation))
+        .collect::<Vec<_>>();
+    for rate in &mut operation_rates {
+        let task_rows = task_operation_rates.iter()
+            .filter(|row| row.operation == rate.operation)
+            .collect::<Vec<_>>();
+        rate.contributing_task_count = task_rows.len();
+        if !task_rows.is_empty() && task_rows.iter().all(|row| row.official_operation_rate.is_some()) {
+            rate.task_macro_operation_rate = Some(
+                task_rows.iter()
+                    .filter_map(|row| row.official_operation_rate)
+                    .sum::<f64>() / task_rows.len() as f64,
+            );
+        }
+    }
     Ok(MemobenchEvaluationAudit {
         benchmark_source_commit: manifest.benchmark_source_commit.clone(),
         evaluation_protocol_sha256: manifest.evaluation_protocol_sha256.clone(),
