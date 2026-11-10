@@ -33,7 +33,7 @@ dependencies = ["generic-array", "typenum"]
 name = "digest"
 version = "0.10.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9ed9a281f7bc9b7576e61468ba615a66a5c8fdff42420a70aa82701a3b1e292"
+checksum = "9ed9a281f7bc9b7576e61468ba615a66a5c8cfdff42420a70aa82701a3b1e292"
 dependencies = ["block-buffer", "crypto-common"]
 
 [[package]]
