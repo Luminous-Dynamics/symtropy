@@ -81,6 +81,7 @@ Command-conditioned residuals must account for actuator lag, load/ambient distur
 | Benchmark family | Primary metrics | Critical holdout / falsification |
 |---|---|---|
 | Fault detection and diagnosis | Macro-F1, balanced accuracy, event recall, false alarms per engine-hour, duration, detection latency, worst-fault recall | Entire runs, loads, engines and vessels; no overlapping-window leakage |
+| Control-to-response consistency | Conditional residual coverage/sharpness, response-mismatch event recall, false mismatches per engine-hour, regime-wise calibration, prediction-to-response latency residual | Command available by prediction time; response strictly after prediction; future-command and future-model controls; held-out regimes; control/feedback dropout; common-cause removal; no actuation |
 | Multi-source / cross-domain transfer | Target-domain delta, per-source contribution, negative-transfer rate, calibration and OOD false-known | Hold out whole operating conditions/engines; target fault labels sealed in zero-shot |
 | Continual adaptation | Average accuracy, backward transfer, forgetting, prior-domain calibration, update compute/memory | Re-evaluate every previous domain after each update |
 | Data trust / reconstruction | Missingness detection, anomaly recall, reconstruction error, interval coverage, false-safe reconstruction | Dropout correlated with faults, stuck sensors, drift, missing-not-at-random, reconstruction leakage |
@@ -93,6 +94,9 @@ Command-conditioned residuals must account for actuator lag, load/ambient distur
 
 - Zero stale/wrong-configuration/unauthenticated/simulator-only evidence promoted as current measured state.
 - Zero false independence across copied, derived or common-cause sources.
+- Zero promotion of control intent or controller output into measured physical response; actuator feedback requires verified signal semantics and never proves delivered fuel or torque by itself.
+- Zero use of commands, model updates or measurements that were unavailable at prediction time; unsupported regimes and configuration changes withdraw the affected qualification.
+- A response mismatch alone never names a root cause or authorizes maintenance, mode transition, restriction clearance or actuation.
 - Zero imputed/reconstructed-to-measured promotion.
 - Zero target-label, future-data, temporal-window or intervention/censoring leakage.
 - Zero false-safe restoration or mode-transition claims from partial evidence.
@@ -178,3 +182,10 @@ Do not treat random-window or random-row splits as evidence of cross-run or cros
 
 - **Minchev et al., 10 October 2026 — Weichai WP4 digital twin.** A calibrated 0D–1D model is compared with physical test-bench measurements, including a controlled intake restriction. The paper is especially valuable because it explicitly reports non-unique inverse solutions: different physical-factor combinations can produce similar observable responses. It is not a continuously synchronized real-time twin; model runs are initiated through the diagnostic workflow. Our benchmark should therefore measure inverse-problem identifiability and ambiguity, not just whether an optimizer returns its preferred parameter vector.
 - **Luo et al., 29 September 2026 — few-shot Wärtsilä 6L20 combustion diagnosis.** Its cycle-level leakage-free, twin-generated benchmark reports 87.05% ± 5.14 pp for a joint triplet–center method at K=20, but a triplet-only ablation reports 90.91% in the same setting. Accuracy under combined noise/speed fluctuation is reported at 84.43% across 25–100% MCR. This is a useful matched few-shot baseline, but it is simulation-based rather than real-vessel fault validation, and the stronger ablation must be reproduced rather than ignored.
+
+
+### Control-response benchmark principle
+
+For each response model, preserve three distinct temporal records: command availability to the diagnostic process, model prediction issue time, and independently observed plant-response time. Require command availability no later than prediction, response strictly later than prediction and inside a predeclared horizon, and command freshness measured at prediction time. A post-hoc command/measurement correlation is not a causal prediction test.
+
+The scored output is a calibrated residual/evidence status, not a fault name. Out-of-envelope response means only that the conditioned expectation was not met. Fault isolation requires independently discriminating evidence; when fault hypotheses remain observationally equivalent, report the equivalence class and the missing measurement needed to separate them. Any observation-selection proposal must be read-only and must not imply permission to change operating conditions.
