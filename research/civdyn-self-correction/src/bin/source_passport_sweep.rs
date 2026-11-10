@@ -3,7 +3,7 @@
 
 use civdyn_self_correction::model_adequacy::IndependentUnitKind;
 use civdyn_self_correction::source_passport::{
-    AcquisitionStatus, CompatibilityReport, CompatibilityStatus, GeographySupport,
+    AcquisitionStatus, CompatibilityReport, GeographySupport,
     JoinAlignmentPlan, ObservationOrigin, ObservationPassport, RegisteredPurpose,
     RightsStatus, SourceArtifactPassport, TemporalResolution, TemporalSupport, qualify_source,
     TransformKind, TransformReceipt, assess_observation_compatibility,
