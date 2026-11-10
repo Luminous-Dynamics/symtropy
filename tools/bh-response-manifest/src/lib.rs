@@ -1205,6 +1205,63 @@ mod tests {
         ));
     }
     #[test]
+    fn canonical_input_set_is_order_independent_and_lowercases_hashes() {
+        let left = vec![
+            NamedDigest { name: "b".into(), sha256: "B".repeat(64) },
+            NamedDigest { name: "a".into(), sha256: "A".repeat(64) },
+        ];
+        let right = vec![
+            NamedDigest { name: "a".into(), sha256: "a".repeat(64) },
+            NamedDigest { name: "b".into(), sha256: "b".repeat(64) },
+        ];
+        assert_eq!(
+            canonical_input_set_sha256(&left),
+            canonical_input_set_sha256(&right)
+        );
+    }
+
+    #[test]
+    fn canonical_input_set_digest_is_recomputed_from_declared_inputs() {
+        let mut m = base();
+        m.provenance.input_digests.push(NamedDigest {
+            name: "initial-data".into(),
+            sha256: d('e'),
+        });
+        bind_canonical_input_set(&mut m);
+        assert!(m.validate().is_ok());
+        m.provenance.canonical_input_set_sha256 = Some(d('9'));
+        assert!(m.validate().unwrap_err().iter().any(|e| e.contains("does not match the declared input_digests")));
+    }
+
+    #[test]
+    fn canonical_input_set_requires_a_digest_when_inputs_are_declared() {
+        let mut m = base();
+        m.provenance.input_digests.push(NamedDigest {
+            name: "initial-data".into(),
+            sha256: d('e'),
+        });
+        assert!(m.validate().unwrap_err().iter().any(|e| e.contains("is required when named inputs are declared")));
+    }
+
+    #[test]
+    fn canonical_input_set_must_be_null_when_no_inputs_are_declared() {
+        let mut m = base();
+        m.provenance.canonical_input_set_sha256 = Some(d('e'));
+        assert!(m.validate().unwrap_err().iter().any(|e| e.contains("must be null when no named inputs are declared")));
+    }
+
+    #[test]
+    fn canonical_input_names_reject_line_and_tab_delimiters() {
+        let mut m = base();
+        m.provenance.input_digests.push(NamedDigest {
+            name: "unsafe\tname".into(),
+            sha256: d('e'),
+        });
+        bind_canonical_input_set(&mut m);
+        assert!(m.validate().unwrap_err().iter().any(|e| e.contains("forbidden canonicalization delimiter")));
+    }
+
+    #[test]
     fn sha256_helper_matches_empty_input() {
         assert_eq!(
             sha256_hex(b""),
