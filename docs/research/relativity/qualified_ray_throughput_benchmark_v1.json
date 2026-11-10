@@ -1,0 +1,392 @@
+{
+  "schema": "luminous.relativity.qualified-ray-throughput-benchmark",
+  "schema_version": "1.0.0",
+  "artifact_id": "symtropy.relativity.qualified_ray_throughput_v1",
+  "created_utc": "2026-11-10",
+  "status": "planned_benchmark_manifest",
+  "objective": "Compare relativistic ray-tracing throughput at matched physical-accuracy and qualification tiers, including analytic geodesics, image branches, time delays, Jacobi/caustics, radiative transfer and wave optics.",
+  "claim_ceiling": "This is a benchmark plan and external-source registry. Luminous has not run the SIBGRAPI baseline, AART, ipole, grtrans or a Symtropy performance test. No ray/s, FPS, joules/ray or accuracy result is claimed.",
+  "owner": "Symtropy #4574",
+  "linked_implementation": "Symtropy PR #4543",
+  "external_sources": [
+    {
+      "id": "sibgrapi_2026_multiengine",
+      "title": "A Multi-Engine Benchmark for Relativistic Raytracing",
+      "authors": [
+        "Artur Raffael Cavalcanti",
+        "Lucas Silva Figueiredo"
+      ],
+      "year": 2026,
+      "url": "https://tucoff.github.io/relativistic-raytracer-page/",
+      "coverage": {
+        "timed_renders": 16656,
+        "metrics": [
+          "Newton",
+          "Schwarzschild",
+          "Kerr"
+        ],
+        "integrators": 4,
+        "scenes": 6,
+        "platforms": [
+          "Unity",
+          "Vulkan"
+        ]
+      },
+      "reported_performance": {
+        "resolution_144p": {
+          "newton_euler_fps": 1200,
+          "schwarzschild_rk4_fps": 400,
+          "kerr_rk4_fps": 300
+        },
+        "resolution_480p": {
+          "newton_euler_fps": 400,
+          "schwarzschild_rk4_fps": 100,
+          "kerr_rk4_fps": 75
+        },
+        "resolution_1080p": {
+          "newton_euler_fps": 120,
+          "schwarzschild_rk4_fps": 30,
+          "kerr_rk4_fps": 20
+        },
+        "euler_medium": {
+          "reported_speedup_over_rk4": 66,
+          "psnr_db": 15.1,
+          "ssim_mean": 0.57,
+          "ssim_std": 0.26
+        },
+        "euler_small": {
+          "reported_speedup_over_rk4": 2.5,
+          "psnr_db": 25.8,
+          "ssim_mean": 0.78,
+          "ssim_std": 0.29
+        },
+        "note": "Values are graphics-rendering metrics from the paper's setup. They are not physical geodesic, image-branch, caustic or wave-optics error results."
+      },
+      "local_reproduction": "not_run",
+      "comparison_class": "real_time_graphics_performance_and_perceptual_image_similarity"
+    },
+    {
+      "id": "aart",
+      "title": "Adaptive Analytical Ray Tracing of Black Hole Photon Rings",
+      "url": "https://github.com/iAART/aart",
+      "coverage": [
+        "Kerr lensing bands",
+        "photon-ring subimages",
+        "adaptive image-plane sampling",
+        "long-baseline visibility calculations"
+      ],
+      "local_reproduction": "not_run",
+      "comparison_class": "specialist_geometric_optics"
+    },
+    {
+      "id": "ipole_grtrans",
+      "title": "Horizon Collaboration public codes",
+      "url": "https://horizon.astro.illinois.edu/codes/",
+      "coverage": [
+        "polarized general-relativistic radiative transfer",
+        "Stokes transfer",
+        "image formation under specified emission/plasma assumptions"
+      ],
+      "local_reproduction": "not_run",
+      "comparison_class": "specialist_polarized_radiative_transfer",
+      "comparability_rule": "Compare only identical emission, plasma, observer, screen, polarization and transfer assumptions."
+    },
+    {
+      "id": "strong_field_wave_optics",
+      "title": "Strong-Field Gravitational-Wave Lensing from Ray-Traced Arrival-Time Surfaces",
+      "arxiv": "2610.18984",
+      "url": "https://arxiv.org/abs/2610.18984",
+      "reported_comparison": {
+        "configuration": "stationary source at 10M in the paper's stated Schwarzschild strong-field setup",
+        "peak_amplification_discrepancy_percent": 6.5,
+        "first_diffractive_fringe_discrepancy_percent": 0.3
+      },
+      "comparison_class": "strong_field_wave_optics",
+      "local_reproduction": "not_run",
+      "note": "Percentages belong to the exact paper configuration and are not universal accuracy targets."
+    },
+    {
+      "id": "symtropy_current",
+      "title": "Symtropy separated Kerr Mino trajectory kernel",
+      "url": "https://github.com/Luminous-Dynamics/symtropy/pull/4543",
+      "capabilities": [
+        "Carter-separated radial and polar potentials",
+        "Bardeen asymptotic screen map",
+        "second-order turning-point-regular Mino equations",
+        "adaptive step-doubling BL and ingoing Kerr trajectories",
+        "canonical Hamiltonian vector-field cross-check via Jet2 AD",
+        "finite-radius ZAMO tetrad and local sky to Carter constants",
+        "conservative horizon-crossing capture classifier"
+      ],
+      "not_yet_implemented": [
+        "integrated canonical Hamiltonian trajectory",
+        "symplectic trajectory integration",
+        "variational Jacobi fields",
+        "caustic topology / magnification",
+        "image-branch adaptive screen tessellation",
+        "GPU ray kernel",
+        "polarized radiative transfer",
+        "wave-optics amplification"
+      ],
+      "local_reproduction": "authored_tests_not_compiled_or_executed"
+    }
+  ],
+  "qualification_tiers": [
+    {
+      "id": "R0",
+      "name": "local metric / screen validity",
+      "required_metrics": [
+        "tetrad_orthonormality",
+        "local_null_contraction",
+        "screen_mapping_error",
+        "chart_identity"
+      ],
+      "gate": "declared local metric and observer-frame residuals meet the case tolerance"
+    },
+    {
+      "id": "R1",
+      "name": "geodesic trajectory",
+      "required_metrics": [
+        "null_Hamiltonian_residual",
+        "E_drift",
+        "Lz_drift",
+        "Q_drift",
+        "radial_constraint_residual",
+        "polar_constraint_residual"
+      ],
+      "gate": "all normalized invariants below the case ceiling"
+    },
+    {
+      "id": "R2",
+      "name": "endpoint qualification",
+      "required_metrics": [
+        "endpoint_classification",
+        "horizon_crossing",
+        "turning_points",
+        "asymptotic_escape_radius",
+        "chart_boundary_status"
+      ],
+      "gate": "capture requires actual ingoing-chart crossing; escape requires a declared asymptotic criterion; incomplete interval remains unresolved"
+    },
+    {
+      "id": "R3",
+      "name": "image branch / observable",
+      "required_metrics": [
+        "image_branch_identity",
+        "image_order",
+        "parity",
+        "arrival_time",
+        "redshift",
+        "screen_position"
+      ],
+      "gate": "matched branch sets and observables converge under screen and integration refinement"
+    },
+    {
+      "id": "R4",
+      "name": "Jacobi / caustic",
+      "required_metrics": [
+        "Jacobi_matrix",
+        "singular_values",
+        "determinant",
+        "parity_change",
+        "caustic_location",
+        "finite_difference_discrepancy"
+      ],
+      "gate": "variational and independently differenced neighboring-ray estimates agree within declared error; singular magnification is never clamped"
+    },
+    {
+      "id": "R5",
+      "name": "polarized transfer",
+      "required_metrics": [
+        "Stokes_IQUV",
+        "polarization_basis",
+        "transport_error",
+        "emission_model_digest",
+        "plasma_model_digest"
+      ],
+      "gate": "matched transfer assumptions and independent reference agreement"
+    },
+    {
+      "id": "R6",
+      "name": "wave optics",
+      "required_metrics": [
+        "complex_amplification",
+        "phase_error",
+        "fringe_error",
+        "frequency_domain",
+        "full_wave_reference_digest"
+      ],
+      "gate": "matched source/observer/geometry/frequency and independent full-wave comparison"
+    }
+  ],
+  "analytic_cases": [
+    {
+      "id": "minkowski_straight_ray",
+      "metric": "Minkowski",
+      "exact_control": "straight coordinate ray and exact screen mapping",
+      "tier": "R1"
+    },
+    {
+      "id": "schwarzschild_critical_impact",
+      "metric": "Schwarzschild",
+      "impact_parameter": "3*sqrt(3)*M",
+      "exact_control": "R(3M)=0 and R'(3M)=0",
+      "tier": "R1"
+    },
+    {
+      "id": "schwarzschild_b6_scatter",
+      "metric": "Schwarzschild",
+      "impact_parameter": "6*M",
+      "initial_radius": "10*M",
+      "expected_turning_radius": "4.4533631938113549316233*M",
+      "tier": "R1"
+    },
+    {
+      "id": "kerr_equatorial_light_ring",
+      "metric": "Kerr",
+      "spins": [
+        -0.9,
+        -0.5,
+        0,
+        0.5,
+        0.9
+      ],
+      "exact_control": "R(r_ph)=0 and R'(r_ph)=0 for prograde and retrograde branches",
+      "tier": "R1"
+    },
+    {
+      "id": "kerr_separated_hamiltonian_match",
+      "metric": "Kerr",
+      "spins": [
+        0,
+        0.5,
+        0.9
+      ],
+      "exact_control": "compare separated Mino derivatives with canonical Hamiltonian vector field under Sigma conversion",
+      "tier": "R1"
+    },
+    {
+      "id": "kerr_finite_zamo_seed",
+      "metric": "Kerr",
+      "spins": [
+        0,
+        0.5,
+        0.9,
+        -0.9
+      ],
+      "exact_control": "ZAMO orthonormality, local nullness, Carter constants and asymptotic-screen limit",
+      "tier": "R0"
+    },
+    {
+      "id": "kerr_future_capture",
+      "metric": "Kerr",
+      "spin": 0.9,
+      "constants": {
+        "energy": 1,
+        "angular_momentum_z_over_m": 2,
+        "carter_constant_over_m2": 0
+      },
+      "exact_control": "ingoing-chart trajectory records outside-to-inside outer-horizon crossing with residual ceiling",
+      "tier": "R2"
+    }
+  ],
+  "metrics": [
+    "qualified_rays_per_second_by_tier",
+    "rays_per_joule_when_energy_telemetry_available",
+    "cpu_wall_time",
+    "gpu_wall_time",
+    "peak_memory",
+    "data_transfer_overhead",
+    "accepted_steps_per_ray",
+    "rejected_steps_per_ray",
+    "adaptive_step_distribution",
+    "local_error_estimate",
+    "first_integral_drift",
+    "branch_recovery_rate",
+    "arrival_time_error",
+    "caustic_location_error",
+    "finite_difference_jacobi_discrepancy",
+    "polarization_transport_error",
+    "complex_wave_amplitude_and_phase_error"
+  ],
+  "fair_comparison_rules": [
+    "Only compare throughput for cases that meet the same physics qualification tier.",
+    "Match metric, mass/spin, observer, source, screen, integration endpoint, branch coverage and reference data.",
+    "Keep numerical step size, precision, error tolerance and rejected-step accounting visible.",
+    "PSNR/SSIM are secondary rendering measures, never a substitute for geodesic invariants or caustic accuracy.",
+    "A low-order fast renderer cannot be ranked against a high-accuracy caustic solver unless both pass the same tier gates.",
+    "Do not infer global escape from a finite interval with no horizon crossing.",
+    "Do not promote a Boyer-Lindquist horizon boundary termination to capture.",
+    "Do not average away analytic-control failures in an aggregate score."
+  ],
+  "benchmark_ladder": [
+    {
+      "level": "P0",
+      "name": "Pinned source/build environment",
+      "acceptance": "reproducible hardware/compiler/driver/source identities"
+    },
+    {
+      "level": "P1",
+      "name": "Analytic R0/R1 controls",
+      "acceptance": "all metric/screen/geodesic controls pass"
+    },
+    {
+      "level": "P2",
+      "name": "Independent solver agreement",
+      "acceptance": "separated and canonical formulations agree at matched states"
+    },
+    {
+      "level": "P3",
+      "name": "Trajectory cost at matched error",
+      "acceptance": "throughput compared at matched invariant residual and endpoint"
+    },
+    {
+      "level": "P4",
+      "name": "Branch and time-delay convergence",
+      "acceptance": "branch multiplicity, parity, delay and redshift stable under refinement"
+    },
+    {
+      "level": "P5",
+      "name": "Jacobi and caustic qualification",
+      "acceptance": "variational / finite-difference maps agree, caustic location stable"
+    },
+    {
+      "level": "P6",
+      "name": "Specialist-code comparison",
+      "acceptance": "matched AART, ipole/grtrans physical cases reproduce"
+    },
+    {
+      "level": "P7",
+      "name": "GPU / mixed precision",
+      "acceptance": "GPU throughput gains preserve tier qualification; fallback/refinement behavior disclosed"
+    },
+    {
+      "level": "P8",
+      "name": "Full wave comparison",
+      "acceptance": "matched ray-derived diffraction and full strong-field wave reference"
+    }
+  ],
+  "prospective_targets": {
+    "first_release": [
+      "Exact analytic controls pass.",
+      "Independent Hamiltonian and separated derivative agree within the declared numerical tolerance.",
+      "Capture/turning/escape/unresolved endpoints are typed and fail-closed.",
+      "Report throughput at R1 with complete invariant error vectors."
+    ],
+    "beyond_sota": [
+      "Cost per R3-qualified branch and cost per R5-converged caustic element are lower than matched specialist baselines.",
+      "Branch topology and delay maps remain stable through caustic-adjacent refinement.",
+      "Adaptive screen sampling concentrates work based on branch topology / Jacobi conditioning, not just pixel curvature.",
+      "Mixed-precision / GPU implementation uses a posteriori physical error estimates and high-precision fallback."
+    ],
+    "caution": "Targets are prospective; no current Symtropy speed or error measurement is claimed."
+  },
+  "execution": {
+    "external_source_intake": "references_pinned_from_public_pages",
+    "baseline_benchmarks_reproduced": false,
+    "symtropy_rust_benchmark_run": false,
+    "gpu_benchmark": false,
+    "Jacobi_caustic_benchmark": false,
+    "exact_head_ci": "not_verified"
+  }
+}
