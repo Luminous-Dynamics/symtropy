@@ -48,8 +48,8 @@ jobs:
           jq -e '
             .schema_version == "liu-ice-tournament-v0.1" and
             .status == "protocol_only_not_executed" and
-            (.comparators | length == 7) and
-            ([.comparators[].id] | unique | length == 7) and
+            (.comparators | length == 8) and
+            ([.comparators[].id] | unique | length == 8) and
             (.hard_evidence_gates | length >= 9) and
             ([.research_targets_not_achieved[].status] | all(. == "aspirational")) and
             ([.split_protocols[].row_randomization_allowed] | all(. == false)) and
