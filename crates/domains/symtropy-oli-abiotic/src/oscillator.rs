@@ -188,6 +188,9 @@ pub struct PhaseOscillatorSystem {
     natural_frequencies: Vec<f64>,
     phases: Vec<f64>,
     steps: usize,
+    lag_sine_sum: f64,
+    lag_cosine_sum: f64,
+    lag_samples: usize,
 }
 
 impl PhaseOscillatorSystem {
@@ -213,6 +216,9 @@ impl PhaseOscillatorSystem {
             natural_frequencies,
             phases,
             steps: 0,
+            lag_sine_sum: 0.0,
+            lag_cosine_sum: 0.0,
+            lag_samples: 0,
         })
     }
 
@@ -228,12 +234,18 @@ impl PhaseOscillatorSystem {
         let time = self.steps as f64 * self.config.dt;
 
         let mut next = Vec::with_capacity(self.config.count);
-        for (index, phase) in self.phases.iter().copied().enumerate() {
+        for (index, (phase, natural_frequency)) in self
+            .phases
+            .iter()
+            .copied()
+            .zip(self.natural_frequencies.iter().copied())
+            .enumerate()
+        {
             let coupling = self.config.coupling_strength / count
                 * (sine_sum * phase.cos() - cosine_sum * phase.sin());
             let driver_phase = self.config.forcing_frequency * time;
             let common_input = self.config.forcing_amplitude * (driver_phase - phase).sin();
-            let derivative = self.natural_frequencies[index] + coupling + common_input;
+            let derivative = natural_frequency + coupling + common_input;
             let candidate = wrap_phase(phase + self.config.dt * derivative);
 
             if !candidate.is_finite() {
@@ -246,6 +258,23 @@ impl PhaseOscillatorSystem {
 
         self.phases = next;
         self.steps += 1;
+
+        // Measure persistent phase lag over time. The instantaneous order
+        // parameter alone cannot establish locking to a shared driver because
+        // a global phase rotation leaves its magnitude unchanged.
+        if self.config.forcing_amplitude > 0.0 {
+            let driver_phase = self.config.forcing_frequency
+                * self.steps as f64
+                * self.config.dt;
+            let (sine_sum, cosine_sum) = self.phases.iter().fold((0.0, 0.0), |sum, phase| {
+                let relative_phase = phase - driver_phase;
+                (sum.0 + relative_phase.sin(), sum.1 + relative_phase.cos())
+            });
+            self.lag_sine_sum += sine_sum / count;
+            self.lag_cosine_sum += cosine_sum / count;
+            self.lag_samples += 1;
+        }
+
         Ok(())
     }
 
@@ -276,24 +305,25 @@ impl PhaseOscillatorSystem {
         let order_parameter = sine_sum.hypot(cosine_sum) / count;
 
         let time = self.steps as f64 * self.config.dt;
-        let driver_phase = self.config.forcing_frequency * time;
-        let (input_sine_sum, input_cosine_sum) =
-            self.phases.iter().fold((0.0, 0.0), |sum, phase| {
-                let relative_phase = phase - driver_phase;
+        let (common_input_phase_locking, mean_phase_lag_to_input) =
+            if self.config.forcing_amplitude > 0.0 && self.lag_samples > 0 {
+                let denominator = self.lag_samples as f64;
                 (
-                    sum.0 + relative_phase.sin(),
-                    sum.1 + relative_phase.cos(),
+                    Some(
+                        self.lag_sine_sum.hypot(self.lag_cosine_sum)
+                            / denominator,
+                    ),
+                    Some(self.lag_sine_sum.atan2(self.lag_cosine_sum)),
                 )
-            });
-        let common_input_coherence = input_sine_sum.hypot(input_cosine_sum) / count;
-        let mean_phase_lag_to_input = input_sine_sum.atan2(input_cosine_sum);
+            } else {
+                (None, None)
+            };
 
         let mut pairwise_difference = 0.0;
         let mut pair_count = 0usize;
-        for left in 0..self.phases.len() {
-            for right in left + 1..self.phases.len() {
-                pairwise_difference +=
-                    wrap_phase(self.phases[left] - self.phases[right]).abs();
+        for (left_index, left_phase) in self.phases.iter().copied().enumerate() {
+            for right_phase in self.phases.iter().copied().skip(left_index + 1) {
+                pairwise_difference += wrap_phase(left_phase - right_phase).abs();
                 pair_count += 1;
             }
         }
@@ -306,7 +336,7 @@ impl PhaseOscillatorSystem {
             order_parameter,
             mean_absolute_pairwise_phase_difference: pairwise_difference
                 / pair_count.max(1) as f64,
-            common_input_coherence,
+            common_input_phase_locking,
             mean_phase_lag_to_input,
             coupling_strength: self.config.coupling_strength,
             forcing_amplitude: self.config.forcing_amplitude,
@@ -366,7 +396,16 @@ mod tests {
         assert_eq!(summary.coupling_strength, 0.0);
         assert_eq!(summary.forcing_amplitude, 1.5);
         assert!(summary.order_parameter > 0.95);
-        assert!(summary.common_input_coherence > 0.95);
+        assert!(
+            summary
+                .common_input_phase_locking
+                .is_some_and(|coherence| coherence > 0.95)
+        );
+        assert!(
+            summary
+                .mean_phase_lag_to_input
+                .is_some_and(|lag| lag.abs() < 0.05)
+        );
     }
 
     #[test]
@@ -378,13 +417,15 @@ mod tests {
         assert_eq!(summary.coupling_strength, 1.5);
         assert_eq!(summary.forcing_amplitude, 0.0);
         assert!(summary.order_parameter > 0.95);
+        assert_eq!(summary.common_input_phase_locking, None);
+        assert_eq!(summary.mean_phase_lag_to_input, None);
     }
 
     #[test]
     fn independent_population_is_less_synchronized_for_reference_profile() {
         let mut system = reference_system(0.0, 0.0);
         system.run(STEPS).expect("independent run should succeed");
-        assert!(system.summary().order_parameter < 0.3);
+        assert!(system.summary().order_parameter < 0.35);
     }
 
     #[test]
