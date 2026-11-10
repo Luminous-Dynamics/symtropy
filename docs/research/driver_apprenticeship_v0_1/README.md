@@ -185,14 +185,15 @@ The following are upstream-reported reference points, not SAM or Symthaea result
 | **DriveWorld-VLA (ICML 2026)** | Paper reports 91.3 PDMS on NAVSIM v1 and 86.8 EPDMS on NAVSIM v2; it unifies latent world modeling and VLA planning. | Can HDC-LTC improve temporal robustness, sample efficiency, compute/energy or recoverability when visual encoder and compute budgets are matched? |
 | **DriveVLA-W0 (ICLR 2026)** | Adds action-conditioned future-image prediction as dense self-supervision and a lightweight action expert; evaluates NAVSIM v1/v2 and reports a 680× larger in-house dataset. | Does action-conditioned world learning improve decision utility and held-out closed-loop interaction, rather than only future-frame metrics? |
 | **World-In-World (ICLR 2026)** | Evaluates world models in four closed-loop embodied environments; its authors report that visual quality alone does not guarantee task success and controllability/post-training matter. | Evaluate Symthaea's learned world model through actual closed-loop action consequences and task success. |
-| **Bench2Drive (current hosted board snapshot)** | The hosted 220-route closed-loop leaderboard displays AlignDrive 89.07 Driving Score, BridgeDrive 86.87 and HiP-AD 86.77. | Reproduce a pinned protocol and compare route-level success, Driving Score and worst-scenario performance separately. |
+| **Bench2Drive v0.0.4 (repository's current version)** | Its 220-route (44 scenarios × 5) evaluation set lists LEAD at 95.59 Driving Score / 87.28% success and Simlingo at 86.55 / 70.45%. | Reproduce the pinned v0.0.4 route XML, code, sensors, training data and compute; compare route success, score and worst-scenario performance separately. |
 
 **Do not compare NAVSIM EPDMS/PDMS with Bench2Drive Driving Score.** Do not treat DriveVLA-W0's 680× in-house dataset as a directly matched training budget. Reproduce the relevant upstream baselines with exact splits, revisions, inputs, model checkpoints and compute budgets before claiming superiority.
 
-The competitive target is not simply to exceed a score. It is to show a measurable advantage on a predeclared dimension—such as irregular-time sensor handling, data efficiency, memory, energy, action-conditioned prediction, decision recoverability or worst-family robustness—without regressing native benchmark performance.
+The older 89.07 AlignDrive hosted-board snapshot should not be used as the current v0.0.4 reference; the official tagged v0.0.4 README and release note are the version-pinned source of truth for the figures above. The competitive target is not simply to exceed a score. It is to show a measurable advantage on a predeclared dimension—such as irregular-time sensor handling, data efficiency, memory, energy, action-conditioned prediction, decision recoverability or worst-family robustness—without regressing native benchmark performance.
 
 Sources:
 - DriveWorld-VLA, PMLR ICML 2026: https://proceedings.mlr.press/v306/jia26f.html
 - DriveVLA-W0, ICLR 2026: https://proceedings.iclr.cc/paper_files/paper/2026/hash/0d70423f59c5fdd24f0dd3fa52e34623-Abstract-Conference.html
 - World-In-World, ICLR 2026: https://proceedings.iclr.cc/paper_files/paper/2026/hash/5b4263be85820683d78675cc18d2efc7-Abstract-Conference.html
-- Bench2Drive hosted leaderboard snapshot: https://carlaleaderboard-bench2drive.hf.space/
+- Bench2Drive v0.0.4 repository results: https://github.com/Thinklab-SJTU/Bench2Drive/blob/0.0.4/README.md
+- Bench2Drive v0.0.4 220-route update: https://github.com/Thinklab-SJTU/Bench2Drive/blob/0.0.4/docs/v004_update.md
