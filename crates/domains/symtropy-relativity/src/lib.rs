@@ -40,6 +40,8 @@ pub mod curvature;
 pub mod geodesic;
 /// Separated Kerr null-geodesic potentials, asymptotic screen mapping and Mino derivatives.
 pub mod kerr_geodesic;
+/// Adaptive canonical Hamiltonian integration of Kerr null trajectories.
+pub mod kerr_integrator;
 /// Kerr equatorial circular-null-orbit and light-ring observables.
 pub mod light_ring;
 /// Validated stationary black-hole metric components in a declared chart.
