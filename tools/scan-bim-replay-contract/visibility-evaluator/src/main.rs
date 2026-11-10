@@ -46,7 +46,10 @@ fn main() -> ExitCode {
 
     let stdout = io::stdout();
     let mut writer = stdout.lock();
-    if let Err(error) = writer.write_all(&output).and_then(|_| writer.write_all(b"\n")) {
+    if let Err(error) = writer
+        .write_all(&output)
+        .and_then(|_| writer.write_all(b"\n"))
+    {
         eprintln!("visibility evaluator: failed to write receipt: {error}");
         return ExitCode::FAILURE;
     }
