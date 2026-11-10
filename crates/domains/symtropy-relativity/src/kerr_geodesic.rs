@@ -1301,6 +1301,65 @@ pub struct KerrMinoTrajectory {
     pub requested_final_parameter: f64,
 }
 
+
+/// Conservative horizon-capture classification derived from an integrated trajectory.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum KerrMinoCaptureStatus {
+    /// An ingoing-chart trajectory contains an outside-to-inside outer-horizon crossing.
+    CapturedByHorizon,
+    /// No crossing appears in the integrated interval; this does not establish escape.
+    NoCrossingWithinIntegratedInterval,
+    /// Boyer–Lindquist coordinates cannot qualify a future-horizon crossing.
+    NotQualifiableInBoyerLindquist,
+    /// The trajectory's first-integral residuals exceed the requested ceiling.
+    ConstraintDriftExceeded,
+    /// No complete trajectory points are available.
+    IncompleteTrajectory,
+}
+
+impl KerrMinoTrajectory {
+    /// Qualify whether this trajectory crossed the future outer horizon.
+    ///
+    /// A capture is returned only for an explicitly ingoing Kerr trajectory
+    /// whose sampled points include a transition from r>r_+ to r<r_+, and
+    /// whose recorded radial/polar first-integral residuals satisfy the caller's
+    /// ceiling. A trajectory that ends outside the horizon is never labelled
+    /// as escaped; its interval may simply be too short.
+    pub fn capture_status(
+        &self,
+        hole: KerrBlackHole,
+        maximum_constraint_residual: f64,
+    ) -> KerrMinoCaptureStatus {
+        if self.points.len() < 2 {
+            return KerrMinoCaptureStatus::IncompleteTrajectory;
+        }
+        if self.coordinate_chart != KerrMinoCoordinateChart::IngoingKerr {
+            return KerrMinoCaptureStatus::NotQualifiableInBoyerLindquist;
+        }
+        if !maximum_constraint_residual.is_finite()
+            || maximum_constraint_residual <= 0.0
+            || self.maximum_normalized_radial_constraint_residual > maximum_constraint_residual
+            || self.maximum_normalized_polar_constraint_residual > maximum_constraint_residual
+        {
+            return KerrMinoCaptureStatus::ConstraintDriftExceeded;
+        }
+        let horizon = hole.outer_horizon_radius_m() / hole.gravitational_radius_m();
+        let mut previous_radius = self.points[0].state.coordinates.radius_over_m;
+        if previous_radius <= horizon {
+            return KerrMinoCaptureStatus::NoCrossingWithinIntegratedInterval;
+        }
+        for point in self.points.iter().skip(1) {
+            let radius = point.state.coordinates.radius_over_m;
+            if previous_radius > horizon && radius < horizon {
+                return KerrMinoCaptureStatus::CapturedByHorizon;
+            }
+            previous_radius = radius;
+        }
+        KerrMinoCaptureStatus::NoCrossingWithinIntegratedInterval
+    }
+}
+
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum KerrMinoIntegrationError {
     Geodesic(KerrGeodesicError),
@@ -2494,6 +2553,57 @@ mod tests {
         close(final_state.coordinates.radius_over_m, 1.0, 1.0e-6);
         assert!(trajectory.maximum_normalized_radial_constraint_residual < 1.0e-5);
         assert!(trajectory.maximum_normalized_polar_constraint_residual < 1.0e-5);
+    }
+
+
+    #[test]
+    fn capture_classifier_requires_ingoing_chart_and_actual_horizon_crossing() {
+        let spin = 0.9;
+        let black_hole = hole(spin);
+        let constants = KerrNullConstants::new(1.0, 2.0, 0.0).unwrap();
+        let geodesic = KerrSeparatedNullGeodesic::new(black_hole, constants);
+        let radius = 10.0;
+        let radial = geodesic.radial_potential(radius).unwrap();
+        let initial = KerrMinoDynamicState::new(
+            KerrMinoState::new(0.0, radius, core::f64::consts::FRAC_PI_2, 0.0),
+            -radial.sqrt(),
+            0.0,
+        );
+        let config = KerrMinoIntegrationConfig::new(
+            1.0e-12,
+            [1.0e-12; 6],
+            1.0e-5,
+            1.0e-3,
+            1.0e-12,
+            2.0e-2,
+            200_000,
+        )
+        .unwrap();
+        let captured = geodesic
+            .integrate_adaptive_ingoing(initial, 1.460_728_111_791_428, config)
+            .unwrap();
+        assert_eq!(
+            captured.capture_status(black_hole, 1.0e-5),
+            KerrMinoCaptureStatus::CapturedByHorizon
+        );
+        assert_eq!(
+            captured.capture_status(black_hole, 1.0e-8),
+            KerrMinoCaptureStatus::ConstraintDriftExceeded
+        );
+        let incomplete_interval = geodesic
+            .integrate_adaptive_ingoing(initial, 0.1, config)
+            .unwrap();
+        assert_eq!(
+            incomplete_interval.capture_status(black_hole, 1.0e-5),
+            KerrMinoCaptureStatus::NoCrossingWithinIntegratedInterval
+        );
+        let boyer_lindquist = geodesic
+            .integrate_adaptive(initial, 0.1, config)
+            .unwrap();
+        assert_eq!(
+            boyer_lindquist.capture_status(black_hole, 1.0e-5),
+            KerrMinoCaptureStatus::NotQualifiableInBoyerLindquist
+        );
     }
 
     #[test]
