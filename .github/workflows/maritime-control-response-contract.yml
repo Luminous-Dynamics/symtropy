@@ -1,0 +1,52 @@
+name: Maritime Control-Response Contract
+
+on:
+  pull_request:
+    branches: [research/maritime-control-response-v0-1]
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "benchmarks/maritime-control-response/**"
+      - ".github/workflows/maritime-control-response-contract.yml"
+  push:
+    branches: [research/maritime-liu-ice-response-evaluator-v0-1]
+    paths:
+      - "benchmarks/maritime-control-response/**"
+      - ".github/workflows/maritime-control-response-contract.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: maritime-control-response-${{ github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  contract:
+    name: Rust evaluator contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CARGO_TERM_COLOR: always
+      RUST_BACKTRACE: 1
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Validate formatting
+        run: cargo fmt --manifest-path benchmarks/maritime-control-response/Cargo.toml --all -- --check
+
+      - name: Run contract tests
+        run: cargo test --manifest-path benchmarks/maritime-control-response/Cargo.toml --locked --all-targets
+
+      - name: Run Clippy
+        run: cargo clippy --manifest-path benchmarks/maritime-control-response/Cargo.toml --locked --all-targets -- -D warnings
