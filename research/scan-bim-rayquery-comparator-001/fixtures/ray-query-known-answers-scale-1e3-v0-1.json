@@ -1,0 +1,393 @@
+{
+  "fixture_version": "0.1",
+  "fixture_id": "SCAN-BIM-RAYQUERY-KA-001-SCALE-1E3",
+  "coordinate_system": {
+    "linear_unit": "metre",
+    "axis_order": "xyz",
+    "handedness": "right_handed"
+  },
+  "query_contract": {
+    "direction_normalization": "unit_length_required",
+    "intersection_epsilon_m": 0.00001,
+    "nearest_hit_tie_epsilon_m": 0.00001,
+    "triangle_sidedness": "two_sided",
+    "self_hit_exclusion": "exact_surface_id_and_triangle_id",
+    "expected_hit_policy": "all_hits_within_nearest_hit_tie_epsilon",
+    "parallel_cosine_epsilon": 1e-12,
+    "barycentric_epsilon": 1e-12,
+    "coplanar_policy": "miss"
+  },
+  "triangles": [
+    {
+      "surface_id": "WALL-NEAR-A",
+      "triangle_id": "TRI-NEAR-A",
+      "kind": "same_building",
+      "a": [
+        2000,
+        -1000,
+        -1000
+      ],
+      "b": [
+        2000,
+        1000,
+        -1000
+      ],
+      "c": [
+        2000,
+        0,
+        1000
+      ]
+    },
+    {
+      "surface_id": "WALL-NEAR-B",
+      "triangle_id": "TRI-NEAR-B",
+      "kind": "external",
+      "a": [
+        2000,
+        -1000,
+        -1000
+      ],
+      "b": [
+        2000,
+        1000,
+        -1000
+      ],
+      "c": [
+        2000,
+        0,
+        1000
+      ]
+    },
+    {
+      "surface_id": "WALL-FAR",
+      "triangle_id": "TRI-FAR",
+      "kind": "same_building",
+      "a": [
+        4000,
+        -1000,
+        -1000
+      ],
+      "b": [
+        4000,
+        1000,
+        -1000
+      ],
+      "c": [
+        4000,
+        0,
+        1000
+      ]
+    },
+    {
+      "surface_id": "WALL-NEAR-OUTSIDE-TIE",
+      "triangle_id": "TRI-NEAR-OUTSIDE-TIE",
+      "kind": "same_building",
+      "a": [
+        2000.00002,
+        -1000,
+        -1000
+      ],
+      "b": [
+        2000.00002,
+        1000,
+        -1000
+      ],
+      "c": [
+        2000.00002,
+        0,
+        1000
+      ]
+    }
+  ],
+  "rays": [
+    {
+      "ray_id": "RAY-NEAREST-TIE",
+      "origin": [
+        0,
+        0,
+        0
+      ],
+      "direction": [
+        1,
+        0,
+        0
+      ],
+      "tnear_m": 0,
+      "tfar_m": 5000,
+      "exclude_target": null,
+      "expected": {
+        "status": "hit",
+        "nearest_distance_m": 2000,
+        "nearest_hits": [
+          [
+            "WALL-NEAR-A",
+            "TRI-NEAR-A"
+          ],
+          [
+            "WALL-NEAR-B",
+            "TRI-NEAR-B"
+          ]
+        ]
+      }
+    },
+    {
+      "ray_id": "RAY-FAR-CLIPPED",
+      "origin": [
+        0,
+        0,
+        0
+      ],
+      "direction": [
+        1,
+        0,
+        0
+      ],
+      "tnear_m": 0,
+      "tfar_m": 1500,
+      "exclude_target": null,
+      "expected": {
+        "status": "miss",
+        "nearest_distance_m": null,
+        "nearest_hits": []
+      }
+    },
+    {
+      "ray_id": "RAY-NEAR-CLIPPED",
+      "origin": [
+        0,
+        0,
+        0
+      ],
+      "direction": [
+        1,
+        0,
+        0
+      ],
+      "tnear_m": 2500,
+      "tfar_m": 5000,
+      "exclude_target": null,
+      "expected": {
+        "status": "hit",
+        "nearest_distance_m": 4000,
+        "nearest_hits": [
+          [
+            "WALL-FAR",
+            "TRI-FAR"
+          ]
+        ]
+      }
+    },
+    {
+      "ray_id": "RAY-OFF-AXIS-MISS",
+      "origin": [
+        0,
+        5000,
+        0
+      ],
+      "direction": [
+        1,
+        0,
+        0
+      ],
+      "tnear_m": 0,
+      "tfar_m": 5000,
+      "exclude_target": null,
+      "expected": {
+        "status": "miss",
+        "nearest_distance_m": null,
+        "nearest_hits": []
+      }
+    },
+    {
+      "ray_id": "RAY-SELF-EXCLUSION",
+      "origin": [
+        0,
+        0,
+        0
+      ],
+      "direction": [
+        1,
+        0,
+        0
+      ],
+      "tnear_m": 0,
+      "tfar_m": 5000,
+      "exclude_target": [
+        "WALL-NEAR-A",
+        "TRI-NEAR-A"
+      ],
+      "expected": {
+        "status": "hit",
+        "nearest_distance_m": 2000,
+        "nearest_hits": [
+          [
+            "WALL-NEAR-B",
+            "TRI-NEAR-B"
+          ]
+        ]
+      }
+    },
+    {
+      "ray_id": "RAY-SHARED-EDGE-HIT",
+      "origin": [
+        0,
+        0,
+        -1000
+      ],
+      "direction": [
+        1,
+        0,
+        0
+      ],
+      "tnear_m": 0,
+      "tfar_m": 5000,
+      "exclude_target": null,
+      "expected": {
+        "status": "hit",
+        "nearest_distance_m": 2000,
+        "nearest_hits": [
+          [
+            "WALL-NEAR-A",
+            "TRI-NEAR-A"
+          ],
+          [
+            "WALL-NEAR-B",
+            "TRI-NEAR-B"
+          ]
+        ]
+      }
+    },
+    {
+      "ray_id": "RAY-VERTEX-HIT",
+      "origin": [
+        0,
+        0,
+        1000
+      ],
+      "direction": [
+        1,
+        0,
+        0
+      ],
+      "tnear_m": 0,
+      "tfar_m": 5000,
+      "exclude_target": null,
+      "expected": {
+        "status": "hit",
+        "nearest_distance_m": 2000,
+        "nearest_hits": [
+          [
+            "WALL-NEAR-A",
+            "TRI-NEAR-A"
+          ],
+          [
+            "WALL-NEAR-B",
+            "TRI-NEAR-B"
+          ]
+        ]
+      }
+    },
+    {
+      "ray_id": "RAY-PARALLEL-MISS",
+      "origin": [
+        0,
+        0,
+        0
+      ],
+      "direction": [
+        0,
+        1,
+        0
+      ],
+      "tnear_m": 0,
+      "tfar_m": 5000,
+      "exclude_target": null,
+      "expected": {
+        "status": "miss",
+        "nearest_distance_m": null,
+        "nearest_hits": []
+      }
+    },
+    {
+      "ray_id": "RAY-COPLANAR-MISS",
+      "origin": [
+        2000,
+        -2000,
+        -1000
+      ],
+      "direction": [
+        0,
+        1,
+        0
+      ],
+      "tnear_m": 0,
+      "tfar_m": 5000,
+      "exclude_target": null,
+      "expected": {
+        "status": "miss",
+        "nearest_distance_m": null,
+        "nearest_hits": []
+      }
+    },
+    {
+      "ray_id": "RAY-TNEAR-EPSILON-BOUNDARY",
+      "origin": [
+        0,
+        0,
+        0
+      ],
+      "direction": [
+        1,
+        0,
+        0
+      ],
+      "tnear_m": 2000.0000049999999,
+      "tfar_m": 5000,
+      "exclude_target": null,
+      "expected": {
+        "status": "hit",
+        "nearest_distance_m": 2000,
+        "nearest_hits": [
+          [
+            "WALL-NEAR-A",
+            "TRI-NEAR-A"
+          ],
+          [
+            "WALL-NEAR-B",
+            "TRI-NEAR-B"
+          ]
+        ]
+      }
+    },
+    {
+      "ray_id": "RAY-TFAR-EPSILON-BOUNDARY",
+      "origin": [
+        0,
+        0,
+        0
+      ],
+      "direction": [
+        1,
+        0,
+        0
+      ],
+      "tnear_m": 0,
+      "tfar_m": 2000.0000049999999,
+      "exclude_target": null,
+      "expected": {
+        "status": "hit",
+        "nearest_distance_m": 2000,
+        "nearest_hits": [
+          [
+            "WALL-NEAR-A",
+            "TRI-NEAR-A"
+          ],
+          [
+            "WALL-NEAR-B",
+            "TRI-NEAR-B"
+          ]
+        ]
+      }
+    }
+  ]
+}
