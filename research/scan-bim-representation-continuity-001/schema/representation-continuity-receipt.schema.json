@@ -452,6 +452,7 @@
       "additionalProperties": false,
       "required": [
         "relation_id",
+        "relation_kind",
         "relation_type",
         "subject_entity_id",
         "object_entity_id"
@@ -467,6 +468,9 @@
           "$ref": "#/$defs/id"
         },
         "object_entity_id": {
+          "$ref": "#/$defs/id"
+        },
+        "relation_kind": {
           "$ref": "#/$defs/id"
         }
       }
