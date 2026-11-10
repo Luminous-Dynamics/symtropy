@@ -72,6 +72,9 @@ pub struct ResourceBudget {
 #[serde(deny_unknown_fields)]
 pub struct EnergyMeasurement {
     pub source: EnergyTelemetrySource,
+    /// API/driver/firmware version string, bound to the upstream measurement receipt.
+    pub source_api_version: String,
+    pub sampling_semantics: EnergySamplingSemantics,
     /// Digest of the original monotonic power-sample series used for integration.
     pub sample_series_sha256: String,
     /// Trapezoid-integrated GPU board energy over the measurement window.
@@ -88,6 +91,14 @@ pub enum EnergyTelemetrySource {
     NvmlPowerSamples,
     DcgmProfiling,
     ExternalGpuPowerMeter,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum EnergySamplingSemantics {
+    Instantaneous,
+    WindowAverage,
+    ExternalIntegrated,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
@@ -547,6 +558,10 @@ fn validate_input(input: &PolicyInputV1) -> Result<(), PolicyError> {
             return Err(PolicyError::ZeroResourceBudget("profile.peak_vram_bytes"));
         }
         if let Some(measurement) = &profile.energy_measurement {
+            validate_nonempty(
+                &measurement.source_api_version,
+                "profile.energy_measurement.source_api_version",
+            )?;
             validate_sha256(
                 &measurement.sample_series_sha256,
                 "profile.energy_measurement.sample_series_sha256",
@@ -741,6 +756,8 @@ mod tests {
             peak_vram_bytes: 4_000_000_000,
             energy_measurement: energy.map(|energy_per_frame| EnergyMeasurement {
                 source: EnergyTelemetrySource::NvmlPowerSamples,
+                source_api_version: "nvml-api-version-bound-by-capture".to_owned(),
+                sampling_semantics: EnergySamplingSemantics::WindowAverage,
                 sample_series_sha256: H4.to_owned(),
                 integrated_gpu_energy_uj: energy_per_frame * 1_000.0,
                 measurement_window_us: 16_000_000,
@@ -889,6 +906,8 @@ mod tests {
         data.profiles[1].frame_time_p95_us = 12_000;
         data.profiles[0].energy_measurement = Some(EnergyMeasurement {
             source: EnergyTelemetrySource::NvmlPowerSamples,
+            source_api_version: "nvml-api-version-bound-by-capture".to_owned(),
+            sampling_semantics: EnergySamplingSemantics::WindowAverage,
             sample_series_sha256: H4.to_owned(),
             integrated_gpu_energy_uj: 7_500_000.0,
             measurement_window_us: 16_000_000,
@@ -898,6 +917,8 @@ mod tests {
         });
         data.profiles[1].energy_measurement = Some(EnergyMeasurement {
             source: EnergyTelemetrySource::NvmlPowerSamples,
+            source_api_version: "nvml-api-version-bound-by-capture".to_owned(),
+            sampling_semantics: EnergySamplingSemantics::WindowAverage,
             sample_series_sha256: H3.to_owned(),
             integrated_gpu_energy_uj: 5_000_000.0,
             measurement_window_us: 16_000_000,
@@ -1037,6 +1058,8 @@ mod tests {
         let mut data = input();
         data.profiles[0].energy_measurement = Some(EnergyMeasurement {
             source: EnergyTelemetrySource::NvmlPowerSamples,
+            source_api_version: "nvml-api-version-bound-by-capture".to_owned(),
+            sampling_semantics: EnergySamplingSemantics::WindowAverage,
             sample_series_sha256: H4.to_owned(),
             integrated_gpu_energy_uj: 9_000_000.0,
             measurement_window_us: 16_000_000,
