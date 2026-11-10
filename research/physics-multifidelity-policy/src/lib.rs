@@ -439,7 +439,10 @@ fn rejection_reasons(
 
     match candidate.evidence_class {
         EvidenceClass::AnalyticOracle | EvidenceClass::IndependentlyValidated => {}
-        EvidenceClass::SyntheticOnly => reasons.push(RejectionReason::EvidenceSyntheticOnly),
+        EvidenceClass::SyntheticOnly if input.requirement.require_independent_evidence => {
+            reasons.push(RejectionReason::EvidenceSyntheticOnly)
+        }
+        EvidenceClass::SyntheticOnly => {}
         EvidenceClass::Unqualified => reasons.push(RejectionReason::EvidenceUnqualified),
     }
 
@@ -478,14 +481,6 @@ fn rejection_reasons(
         reasons.push(RejectionReason::MemoryBudgetExceeded);
     }
 
-    if input.requirement.require_independent_evidence
-        && candidate.evidence_class != EvidenceClass::AnalyticOracle
-        && candidate.evidence_class != EvidenceClass::IndependentlyValidated
-        && !reasons.contains(&RejectionReason::EvidenceUnqualified)
-        && !reasons.contains(&RejectionReason::EvidenceSyntheticOnly)
-    {
-        reasons.push(RejectionReason::EvidenceUnqualified);
-    }
 
     reasons
 }
@@ -637,6 +632,19 @@ mod tests {
                     .rejection_reasons
                     .contains(&RejectionReason::EvidenceSyntheticOnly)
         }));
+    }
+
+    #[test]
+    fn synthetic_candidate_is_usable_only_when_request_explicitly_allows_it() {
+        let mut data = input();
+        data.candidates.truncate(1);
+        data.candidates[0].evidence_class = EvidenceClass::SyntheticOnly;
+        data.requirement.require_independent_evidence = false;
+        let receipt = evaluate(&data).expect("synthetic exploration input");
+        assert!(matches!(
+            receipt.decision,
+            PolicyDecision::Selected { ref model_id, .. } if model_id == "slow-qualified"
+        ));
     }
 
     #[test]
