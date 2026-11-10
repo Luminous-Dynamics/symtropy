@@ -165,11 +165,23 @@ pub struct ProjectionGateProblem {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum GateDisposition {
-    ExecuteProjected { command_digest: String },
-    ExecuteFallback { command_digest: String, reason: String },
-    Rejected { reason: String, witness_id: Option<String> },
-    Unknown { reason: String },
-    Invalid { reason: String },
+    ExecuteProjected {
+        command_digest: String,
+    },
+    ExecuteFallback {
+        command_digest: String,
+        reason: String,
+    },
+    Rejected {
+        reason: String,
+        witness_id: Option<String>,
+    },
+    Unknown {
+        reason: String,
+    },
+    Invalid {
+        reason: String,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -358,14 +370,7 @@ fn identity_gate(problem: &ProjectionGateProblem) -> Result<(), ProjectionError>
 fn constraint_gate(
     result: &ProjectionResult,
     frozen_inventory: &[ConstraintRequirement],
-) -> Result<
-    (
-        Vec<ConstraintFinding>,
-        Vec<String>,
-        Vec<String>,
-    ),
-    ProjectionError,
-> {
+) -> Result<(Vec<ConstraintFinding>, Vec<String>, Vec<String>), ProjectionError> {
     if result.declared_constraints.is_empty() {
         return Err(ProjectionError::NoConstraintRequirements);
     }
@@ -379,7 +384,10 @@ fn constraint_gate(
         if !nonempty(&requirement.id) {
             return Err(ProjectionError::EmptyIdentifier);
         }
-        if frozen_by_id.insert(requirement.id.as_str(), requirement).is_some() {
+        if frozen_by_id
+            .insert(requirement.id.as_str(), requirement)
+            .is_some()
+        {
             return Err(ProjectionError::DuplicateConstraintRequirement);
         }
     }
@@ -401,7 +409,10 @@ fn constraint_gate(
         {
             return Err(ProjectionError::PhysicalConstraintCannotBeOptional);
         }
-        if requirements.insert(requirement.id.as_str(), requirement).is_some() {
+        if requirements
+            .insert(requirement.id.as_str(), requirement)
+            .is_some()
+        {
             return Err(ProjectionError::DuplicateConstraintRequirement);
         }
     }
@@ -423,7 +434,10 @@ fn constraint_gate(
         {
             return Err(ProjectionError::EmptyIdentifier);
         }
-        if evidence_by_id.insert(evidence.id.as_str(), evidence).is_some() {
+        if evidence_by_id
+            .insert(evidence.id.as_str(), evidence)
+            .is_some()
+        {
             return Err(ProjectionError::DuplicateConstraintEvidence);
         }
         if !requirements.contains_key(evidence.id.as_str()) {
@@ -468,9 +482,7 @@ fn constraint_gate(
     Ok((findings, hard_failures, contact_failures))
 }
 
-fn validate_independent_receipts(
-    problem: &ProjectionGateProblem,
-) -> Result<(), ProjectionError> {
+fn validate_independent_receipts(problem: &ProjectionGateProblem) -> Result<(), ProjectionError> {
     let proposal = &problem.proposal;
     let result = &problem.result;
     let viability = &problem.viability;
@@ -562,11 +574,8 @@ pub fn qualify_projected_action(
             {
                 return Err(ProjectionError::MissingInfeasibilityWitness);
             }
-            report.disposition = fallback_disposition(
-                &problem.fallback,
-                problem,
-                "projection infeasible",
-            );
+            report.disposition =
+                fallback_disposition(&problem.fallback, problem, "projection infeasible");
             return Ok(report);
         }
         SolverDisposition::Unknown => {
@@ -578,19 +587,13 @@ pub fn qualify_projected_action(
             {
                 return Err(ProjectionError::MissingStatusReason);
             }
-            report.disposition = fallback_disposition(
-                &problem.fallback,
-                problem,
-                "projection unknown",
-            );
+            report.disposition =
+                fallback_disposition(&problem.fallback, problem, "projection unknown");
             return Ok(report);
         }
         SolverDisposition::DeadlineMiss => {
-            report.disposition = fallback_disposition(
-                &problem.fallback,
-                problem,
-                "projection deadline missed",
-            );
+            report.disposition =
+                fallback_disposition(&problem.fallback, problem, "projection deadline missed");
             return Ok(report);
         }
         SolverDisposition::Invalid => {
@@ -602,11 +605,8 @@ pub fn qualify_projected_action(
             {
                 return Err(ProjectionError::MissingStatusReason);
             }
-            report.disposition = fallback_disposition(
-                &problem.fallback,
-                problem,
-                "projection invalid",
-            );
+            report.disposition =
+                fallback_disposition(&problem.fallback, problem, "projection invalid");
             return Ok(report);
         }
         SolverDisposition::Feasible => {}
@@ -857,7 +857,10 @@ mod tests {
         input.result.disposition = SolverDisposition::Unknown;
         input.result.status_reason = Some("mode enumeration incomplete".to_owned());
         let report = qualify_projected_action(&input).expect("unknown disposition");
-        assert!(matches!(report.disposition, GateDisposition::Unknown { .. }));
+        assert!(matches!(
+            report.disposition,
+            GateDisposition::Unknown { .. }
+        ));
     }
 
     #[test]
@@ -874,7 +877,10 @@ mod tests {
         input.result.constraint_evidence[0].margin = -1;
         let report = qualify_projected_action(&input).expect("hard constraint gate");
         assert!(matches!(report.disposition, GateDisposition::Unknown { .. }));
-        assert_eq!(report.hard_constraint_failures, vec!["torque-limit".to_owned()]);
+        assert_eq!(
+            report.hard_constraint_failures,
+            vec!["torque-limit".to_owned()]
+        );
     }
 
     #[test]
@@ -883,7 +889,10 @@ mod tests {
         input.result.constraint_evidence[1].margin = -1;
         let report = qualify_projected_action(&input).expect("contact gate");
         assert!(matches!(report.disposition, GateDisposition::Unknown { .. }));
-        assert_eq!(report.robust_contact_failures, vec!["friction-cone".to_owned()]);
+        assert_eq!(
+            report.robust_contact_failures,
+            vec!["friction-cone".to_owned()]
+        );
     }
 
     #[test]
@@ -1005,7 +1014,10 @@ mod tests {
     #[test]
     fn duplicate_constraint_evidence_is_invalid() {
         let mut input = problem();
-        input.result.constraint_evidence.push(evidence("friction-cone", 1, 50));
+        input
+            .result
+            .constraint_evidence
+            .push(evidence("friction-cone", 1, 50));
         assert_eq!(
             qualify_projected_action(&input),
             Err(ProjectionError::DuplicateConstraintEvidence)
