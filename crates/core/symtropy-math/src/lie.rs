@@ -387,11 +387,11 @@ pub fn so3_interpolate_with_config(
     let partial = Rotor::<3>::from_bivector(&logarithm.generator.scale(t));
     let result = partial.compose(start);
 
-    if result.to_matrix().iter().all(|value| value.is_finite()) {
-        Ok(result)
-    } else {
-        Err(So3LogError::NonFiniteResult)
+    if !result.to_matrix().iter().all(|value| value.is_finite()) {
+        return Err(So3LogError::NonFiniteResult);
     }
+    validate_rotation(&result, config.rotation_tolerance)?;
+    Ok(result)
 }
 
 /// Interpolate on SO(3) with the default numerical policy.
@@ -420,6 +420,18 @@ mod tests {
         Bivector::from_matrix(&(-skew_from_axis(&axis.normalize()) * angle))
     }
 
+    /// Independent closed-form Rodrigues construction used as a reference input.
+    /// It does not call Rotor::from_bivector or the logarithm implementation.
+    fn rodrigues_rotation(axis: SVector<f64, 3>, angle: f64) -> Rotor<3> {
+        let axis = axis.normalize();
+        let cross = skew_from_axis(&axis);
+        let identity = SMatrix::<f64, 3, 3>::identity();
+        let matrix = identity * angle.cos()
+            + axis * axis.transpose() * (1.0 - angle.cos())
+            + cross * angle.sin();
+        Rotor::from_matrix(matrix)
+    }
+
     #[test]
     fn round_trips_identity_and_small_angles() {
         for angle in [0.0, 1.0e-12, 1.0e-8, 1.0e-4] {
@@ -439,6 +451,22 @@ mod tests {
         assert_eq!(recovered.branch, So3LogBranch::Principal);
         let reconstructed = Rotor::from_bivector(&recovered.generator);
         assert!(matrix_error(&rotation, &reconstructed) < 2.0e-10);
+    }
+
+
+    #[test]
+    fn log_reconstructs_independent_rodrigues_reference_including_cut_locus() {
+        let axis = SVector::<f64, 3>::new(-1.0, 2.0, -3.0).normalize();
+        for angle in [1.0e-8, 0.7, std::f64::consts::PI - 1.0e-8, PI] {
+            let reference = rodrigues_rotation(axis, angle);
+            let logarithm = so3_log(&reference).expect("Rodrigues matrix is a valid rotation");
+            let reconstructed = Rotor::from_bivector(&logarithm.generator);
+            assert!(
+                matrix_error(&reference, &reconstructed) < 5.0e-10,
+                "Rodrigues reconstruction failed at angle {angle}: branch={:?}",
+                logarithm.branch
+            );
+        }
     }
 
     #[test]
