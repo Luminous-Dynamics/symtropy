@@ -226,7 +226,9 @@ fn nonempty(value: &str) -> bool {
 }
 
 fn checked_increment(value: usize) -> Result<usize, ManifestError> {
-    value.checked_add(1).ok_or(ManifestError::ArithmeticOverflow)
+    value
+        .checked_add(1)
+        .ok_or(ManifestError::ArithmeticOverflow)
 }
 
 fn validate_manifest_identity(manifest: &ExperimentManifest) -> Result<(), ManifestError> {
@@ -284,10 +286,7 @@ fn validate_specimens(
                 return Err(ManifestError::SplitLeakage);
             }
         } else {
-            batches.insert(
-                assignment.preparation_batch_id.as_str(),
-                assignment.split,
-            );
+            batches.insert(assignment.preparation_batch_id.as_str(), assignment.split);
         }
         if let Some(previous) = clusters.get(assignment.independence_cluster_id.as_str()) {
             if *previous != assignment.split {
@@ -499,8 +498,7 @@ fn validate_observations(
         .iter()
         .map(|event| event.event_id.as_str())
         .collect();
-    let mut per_event_channel_counts =
-        BTreeMap::<(&str, SensorChannel), usize>::new();
+    let mut per_event_channel_counts = BTreeMap::<(&str, SensorChannel), usize>::new();
     let mut last_source_raw = BTreeMap::<&str, u64>::new();
     let mut last_source_corrected = BTreeMap::<&str, u64>::new();
 
@@ -558,10 +556,9 @@ fn validate_observations(
             return Err(ManifestError::ArrivalPredatesCorrectedObservation);
         }
 
-        if let Some(previous) = last_source_raw.insert(
-            observation.source_id.as_str(),
-            observation.raw_timestamp_ns,
-        ) {
+        if let Some(previous) =
+            last_source_raw.insert(observation.source_id.as_str(), observation.raw_timestamp_ns)
+        {
             if observation.raw_timestamp_ns <= previous {
                 return Err(ManifestError::SourceTimestampNotIncreasing);
             }
@@ -591,7 +588,11 @@ fn validate_observations(
             channel_counts.insert(*channel, count);
         }
         missing_count = missing_count
-            .checked_add(validate_coverage(event, required_channels, &channel_counts)?)
+            .checked_add(validate_coverage(
+                event,
+                required_channels,
+                &channel_counts,
+            )?)
             .ok_or(ManifestError::ArithmeticOverflow)?;
     }
     Ok((sequence.observations.len(), missing_count))
@@ -612,8 +613,7 @@ pub fn validate_experiment_manifest(
     }
 
     let specimen_splits = validate_specimens(&manifest.specimen_assignments)?;
-    let (sources, mappings) =
-        validate_sources(&manifest.sensor_sources, &manifest.clock_mappings)?;
+    let (sources, mappings) = validate_sources(&manifest.sensor_sources, &manifest.clock_mappings)?;
 
     let total_contacts = manifest
         .sequences
@@ -692,10 +692,7 @@ pub fn validate_experiment_manifest(
             .get(sequence.specimen_id.as_str())
             .copied()
             .unwrap_or(0);
-        sequence_count_by_specimen.insert(
-            sequence.specimen_id.as_str(),
-            checked_increment(count)?,
-        );
+        sequence_count_by_specimen.insert(sequence.specimen_id.as_str(), checked_increment(count)?);
 
         for event in &sequence.events {
             if !event_ids.insert(event.event_id.as_str()) {
@@ -782,12 +779,7 @@ pub fn validate_experiment_manifest(
 mod tests {
     use super::*;
 
-    fn specimen(
-        id: &str,
-        batch: &str,
-        cluster: &str,
-        split: DataSplit,
-    ) -> SpecimenAssignment {
+    fn specimen(id: &str, batch: &str, cluster: &str, split: DataSplit) -> SpecimenAssignment {
         SpecimenAssignment {
             specimen_id: id.to_owned(),
             preparation_batch_id: batch.to_owned(),
@@ -987,9 +979,24 @@ mod tests {
                 SensorChannel::D3Proprioception,
             ],
             specimen_assignments: vec![
-                specimen("specimen-cal", "batch-cal", "cluster-cal", DataSplit::Calibration),
-                specimen("specimen-val", "batch-val", "cluster-val", DataSplit::Validation),
-                specimen("specimen-test", "batch-test", "cluster-test", DataSplit::Test),
+                specimen(
+                    "specimen-cal",
+                    "batch-cal",
+                    "cluster-cal",
+                    DataSplit::Calibration,
+                ),
+                specimen(
+                    "specimen-val",
+                    "batch-val",
+                    "cluster-val",
+                    DataSplit::Validation,
+                ),
+                specimen(
+                    "specimen-test",
+                    "batch-test",
+                    "cluster-test",
+                    DataSplit::Test,
+                ),
             ],
             sensor_sources: vec![
                 source("d1", SensorChannel::D1Interface, "kpa"),
@@ -1044,9 +1051,7 @@ mod tests {
             "cluster-cal",
             DataSplit::Calibration,
         ));
-        manifest
-            .sequences
-            .push(sequence("specimen-cal-2"));
+        manifest.sequences.push(sequence("specimen-cal-2"));
         assert!(validate_experiment_manifest(&manifest).is_ok());
     }
 
@@ -1088,8 +1093,7 @@ mod tests {
     #[test]
     fn terrain_revision_cannot_advance_without_owner_settlement_receipt() {
         let mut manifest = valid_manifest();
-        manifest.sequences[0].events[0].ground_disposition =
-            GroundDisposition::NoEffect;
+        manifest.sequences[0].events[0].ground_disposition = GroundDisposition::NoEffect;
         manifest.sequences[0].events[1].ground_revision_before = 9;
         assert_eq!(
             validate_experiment_manifest(&manifest),
@@ -1100,22 +1104,20 @@ mod tests {
     #[test]
     fn settlement_must_advance_revision_and_have_unique_receipt() {
         let mut manifest = valid_manifest();
-        manifest.sequences[0].events[1].ground_disposition =
-            GroundDisposition::Settled {
-                settlement_receipt_id: String::new(),
-                resulting_revision: 8,
-            };
+        manifest.sequences[0].events[1].ground_disposition = GroundDisposition::Settled {
+            settlement_receipt_id: String::new(),
+            resulting_revision: 8,
+        };
         assert_eq!(
             validate_experiment_manifest(&manifest),
             Err(ManifestError::MissingSettlementReceipt)
         );
 
         let mut duplicate = valid_manifest();
-        duplicate.sequences[1].events[1].ground_disposition =
-            GroundDisposition::Settled {
-                settlement_receipt_id: "terrain-settlement-specimen-cal".to_owned(),
-                resulting_revision: 8,
-            };
+        duplicate.sequences[1].events[1].ground_disposition = GroundDisposition::Settled {
+            settlement_receipt_id: "terrain-settlement-specimen-cal".to_owned(),
+            resulting_revision: 8,
+        };
         assert_eq!(
             validate_experiment_manifest(&duplicate),
             Err(ManifestError::DuplicateSettlementReceipt)
@@ -1125,10 +1127,9 @@ mod tests {
     #[test]
     fn unknown_and_out_of_domain_effects_cannot_mutate_revision() {
         let mut manifest = valid_manifest();
-        manifest.sequences[0].events[0].ground_disposition =
-            GroundDisposition::Unknown {
-                reason_id: "insufficient-ground-evidence".to_owned(),
-            };
+        manifest.sequences[0].events[0].ground_disposition = GroundDisposition::Unknown {
+            reason_id: "insufficient-ground-evidence".to_owned(),
+        };
         manifest.sequences[0].events[1].ground_revision_before = 8;
         assert_eq!(
             validate_experiment_manifest(&manifest),
@@ -1139,10 +1140,9 @@ mod tests {
     #[test]
     fn missing_sensor_channel_requires_explicit_reason() {
         let mut manifest = valid_manifest();
-        manifest.sequences[0].events[0].channel_coverage[1].status =
-            ChannelStatus::Missing {
-                reason_id: String::new(),
-            };
+        manifest.sequences[0].events[0].channel_coverage[1].status = ChannelStatus::Missing {
+            reason_id: String::new(),
+        };
         assert_eq!(
             validate_experiment_manifest(&manifest),
             Err(ManifestError::MissingReason)
@@ -1164,10 +1164,9 @@ mod tests {
     #[test]
     fn missing_channel_must_not_have_observation_rows() {
         let mut manifest = valid_manifest();
-        manifest.sequences[0].events[0].channel_coverage[1].status =
-            ChannelStatus::Missing {
-                reason_id: "force-transducer-disconnected".to_owned(),
-            };
+        manifest.sequences[0].events[0].channel_coverage[1].status = ChannelStatus::Missing {
+            reason_id: "force-transducer-disconnected".to_owned(),
+        };
         assert_eq!(
             validate_experiment_manifest(&manifest),
             Err(ManifestError::ChannelMarkedMissingWithObservation)
@@ -1184,7 +1183,9 @@ mod tests {
                 status: ChannelStatus::Present,
             }];
         }
-        manifest.sequences[0].observations.retain(|item| item.source_id == "d1");
+        manifest.sequences[0]
+            .observations
+            .retain(|item| item.source_id == "d1");
         manifest.sequences[0].observations.push(observation(
             "extra-d2",
             "event-specimen-cal-1",
@@ -1205,8 +1206,7 @@ mod tests {
     #[test]
     fn clock_mapping_and_sensor_calibration_must_match() {
         let mut manifest = valid_manifest();
-        manifest.sequences[0].observations[0].mapping_digest =
-            "wrong-mapping".to_owned();
+        manifest.sequences[0].observations[0].mapping_digest = "wrong-mapping".to_owned();
         assert_eq!(
             validate_experiment_manifest(&manifest),
             Err(ManifestError::ObservationIdentityMismatch)
@@ -1231,19 +1231,18 @@ mod tests {
             validate_experiment_manifest(&manifest),
             Err(ManifestError::CorrectedTimestampNotIncreasing)
         );
-        let valid = validate_experiment_manifest(&valid_manifest()).expect("asynchronous sources valid");
+        let valid =
+            validate_experiment_manifest(&valid_manifest()).expect("asynchronous sources valid");
         assert_eq!(valid.calibration.observations, 6);
     }
 
     #[test]
     fn out_of_domain_disposition_is_retained_as_unknown_not_success() {
         let mut manifest = valid_manifest();
-        manifest.sequences[0].events[0].ground_disposition =
-            GroundDisposition::OutOfDomain {
-                reason_id: "outside-granular-profile".to_owned(),
-            };
-        let report =
-            validate_experiment_manifest(&manifest).expect("out-of-domain observation");
+        manifest.sequences[0].events[0].ground_disposition = GroundDisposition::OutOfDomain {
+            reason_id: "outside-granular-profile".to_owned(),
+        };
+        let report = validate_experiment_manifest(&manifest).expect("out-of-domain observation");
         assert_eq!(report.unknown_or_out_of_domain_contacts, 1);
     }
 }
