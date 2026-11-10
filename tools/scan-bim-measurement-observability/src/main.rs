@@ -128,8 +128,12 @@ struct ValidationEvidence {
     status: ValidationStatus,
     evidence_sha256: Option<String>,
     independence: IndependenceStatus,
+    calibration_reference_group_ids: Vec<String>,
     independent_reference_lineage_ids: Vec<String>,
     minimum_independent_lineages: usize,
+    parameters_frozen_before_holdout: bool,
+    calibration_fit_receipt_sha256: Option<String>,
+    frozen_parameter_digest_sha256: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -475,6 +479,51 @@ fn metrology_gate(case: &Case, observation: &GateResult) -> GateResult {
         reasons.insert("INSUFFICIENT_INDEPENDENT_REFERENCE_LINEAGES");
     }
 
+    // P1 interval validation uses distinct calibration and holdout
+    // groups. Freeze parameters fitted on the calibration groups before
+    // evaluating independent holdout observations; never refit on them.
+    if validation.status == ValidationStatus::Qualified {
+        let calibration_ids: BTreeSet<&str> = validation
+            .calibration_reference_group_ids
+            .iter()
+            .map(String::as_str)
+            .collect();
+
+        if validation.calibration_reference_group_ids.is_empty() {
+            reasons.insert("CALIBRATION_REFERENCE_GROUPS_MISSING");
+        }
+        if validation
+            .calibration_reference_group_ids
+            .iter()
+            .any(|group| group.trim().is_empty())
+        {
+            reasons.insert("CALIBRATION_REFERENCE_GROUP_ID_INVALID");
+        }
+        if calibration_ids.len() != validation.calibration_reference_group_ids.len() {
+            reasons.insert("CALIBRATION_REFERENCE_GROUP_ID_DUPLICATE");
+        }
+        if !calibration_ids.is_disjoint(&lineage_ids) {
+            reasons.insert("CALIBRATION_HOLDOUT_LINEAGE_OVERLAP");
+        }
+        if !validation.parameters_frozen_before_holdout {
+            reasons.insert("HOLDOUT_PARAMETERS_NOT_FROZEN");
+        }
+        if !validation
+            .calibration_fit_receipt_sha256
+            .as_deref()
+            .is_some_and(is_sha256)
+        {
+            reasons.insert("CALIBRATION_FIT_RECEIPT_MISSING_OR_INVALID");
+        }
+        if !validation
+            .frozen_parameter_digest_sha256
+            .as_deref()
+            .is_some_and(is_sha256)
+        {
+            reasons.insert("FROZEN_PARAMETER_DIGEST_MISSING_OR_INVALID");
+        }
+    }
+
     if !measurement.value_m.is_finite()
         || !measurement.standard_uncertainty_m.is_finite()
         || measurement.standard_uncertainty_m < 0.0
@@ -514,7 +563,11 @@ fn metrology_gate(case: &Case, observation: &GateResult) -> GateResult {
             || reasons.contains("SENSOR_PROFILE_BINDING_INVALID")
             || reasons.contains("SENSOR_PROFILE_DOMAIN_INVALID")
             || reasons.contains("OBSERVED_SENSOR_CONDITIONS_INVALID")
-            || reasons.contains("INVALID_SYSTEMATIC_ERROR_BOUND");
+            || reasons.contains("INVALID_SYSTEMATIC_ERROR_BOUND")
+            || reasons.contains("CALIBRATION_REFERENCE_GROUP_ID_INVALID")
+            || reasons.contains("CALIBRATION_REFERENCE_GROUP_ID_DUPLICATE")
+            || reasons.contains("CALIBRATION_HOLDOUT_LINEAGE_OVERLAP")
+            || reasons.contains("HOLDOUT_PARAMETERS_NOT_FROZEN");
         let status = if fail {
             GateStatus::Fail
         } else {
@@ -823,6 +876,36 @@ mod tests {
             );
         let encoded = serde_json::to_vec(&value).expect("mutated JSON serializes");
         assert!(serde_json::from_slice::<Corpus>(&encoded).is_err());
+    }
+
+    #[test]
+    fn calibration_and_holdout_reference_groups_must_be_disjoint() {
+        let mut corpus = fixture();
+        let case = corpus
+            .cases
+            .iter_mut()
+            .find(|case| case.case_id == "calibration_holdout_lineage_overlap_fail")
+            .expect("lineage overlap fixture");
+        let result = evaluate_case(case);
+        assert_eq!(result.metrology_gate.status, GateStatus::Fail);
+        assert!(result
+            .reason_codes
+            .contains(&"CALIBRATION_HOLDOUT_LINEAGE_OVERLAP".to_owned()));
+    }
+
+    #[test]
+    fn holdout_parameters_must_be_frozen_before_validation() {
+        let corpus = fixture();
+        let case = corpus
+            .cases
+            .iter()
+            .find(|case| case.case_id == "parameters_refit_on_holdout_fail")
+            .expect("refit fixture");
+        let result = evaluate_case(case);
+        assert_eq!(result.metrology_gate.status, GateStatus::Fail);
+        assert!(result
+            .reason_codes
+            .contains(&"HOLDOUT_PARAMETERS_NOT_FROZEN".to_owned()));
     }
 
     #[test]
