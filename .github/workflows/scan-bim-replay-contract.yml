@@ -129,6 +129,18 @@ jobs:
             (.miss_count == 4) and
             (.checked_nearest_identity_sets == 11)
           ' /tmp/scan-bim-ray-query-scale-report.json
+          cargo run --locked --manifest-path tools/scan-bim-replay-contract/Cargo.toml \
+            -p scan-bim-visibility-evaluator --example validate_ray_query_fixture -- \
+            research/scan-bim-rayquery-comparator-001/fixtures/ray-query-stress-overlap-v0-1.json \
+            > /tmp/scan-bim-ray-query-stress-report.json
+          jq -e '
+            (.fixture_id == "SCAN-BIM-RAYQUERY-STRESS-OVERLAP-001") and
+            (.triangle_count == 40) and
+            (.ray_count == 3) and
+            (.hit_count == 3) and
+            (.miss_count == 0) and
+            (.checked_nearest_identity_sets == 3)
+          ' /tmp/scan-bim-ray-query-stress-report.json
       - name: Check benchmark receipt template is explicitly unmeasured
         run: |
           jq -e '
