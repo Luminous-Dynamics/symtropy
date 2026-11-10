@@ -44,7 +44,10 @@
         },
         "field_ownership": "owner_writable",
         "projection_write_mode": "read_only",
-        "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "asset_id": "SYNTH-VESSEL-001",
+        "parent_assembly_id": "SYNTH-ENGINE-ROOM-001",
+        "serial_id": "SYNTH-SERIAL-001"
       },
       {
         "federate_id": "mes",
@@ -56,10 +59,10 @@
         "configuration_revision": "cfg-03",
         "schema_revision": "mes-0.1",
         "state_class": "as_manufactured",
-        "source_time_utc": "2026-11-08T08:00:00Z",
+        "source_time_utc": "2026-11-08T12:01:00Z",
         "valid_from_utc": "2026-11-08T08:00:00Z",
         "valid_to_utc": null,
-        "transaction_time_utc": "2026-11-08T08:10:00Z",
+        "transaction_time_utc": "2026-11-09T11:57:30Z",
         "retrieved_at_utc": "2026-11-09T11:58:00Z",
         "update_interval_s": 86400,
         "approval": {
@@ -72,7 +75,10 @@
         },
         "field_ownership": "owner_writable",
         "projection_write_mode": "read_only",
-        "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "asset_id": "SYNTH-VESSEL-001",
+        "parent_assembly_id": "SYNTH-ENGINE-ROOM-001",
+        "serial_id": "SYNTH-SERIAL-001"
       },
       {
         "federate_id": "qms",
@@ -87,7 +93,7 @@
         "source_time_utc": "2026-11-08T12:00:00Z",
         "valid_from_utc": "2026-11-08T12:00:00Z",
         "valid_to_utc": null,
-        "transaction_time_utc": "2026-11-08T12:05:00Z",
+        "transaction_time_utc": "2026-11-09T11:58:30Z",
         "retrieved_at_utc": "2026-11-09T11:59:00Z",
         "update_interval_s": 86400,
         "approval": {
@@ -100,7 +106,10 @@
         },
         "field_ownership": "owner_writable",
         "projection_write_mode": "read_only",
-        "artifact_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        "artifact_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "asset_id": "SYNTH-VESSEL-001",
+        "parent_assembly_id": "SYNTH-ENGINE-ROOM-001",
+        "serial_id": "SYNTH-SERIAL-001"
       },
       {
         "federate_id": "eam",
@@ -115,7 +124,7 @@
         "source_time_utc": "2026-11-09T09:00:00Z",
         "valid_from_utc": "2026-11-09T09:00:00Z",
         "valid_to_utc": null,
-        "transaction_time_utc": "2026-11-09T09:01:00Z",
+        "transaction_time_utc": "2026-11-09T11:59:00Z",
         "retrieved_at_utc": "2026-11-09T11:59:30Z",
         "update_interval_s": 86400,
         "approval": {
@@ -128,7 +137,10 @@
         },
         "field_ownership": "owner_writable",
         "projection_write_mode": "read_only",
-        "artifact_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        "artifact_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "asset_id": "SYNTH-VESSEL-001",
+        "parent_assembly_id": "SYNTH-ENGINE-ROOM-001",
+        "serial_id": "SYNTH-SERIAL-001"
       }
     ],
     "relationships": [
@@ -138,7 +150,10 @@
         "to_federate": "mes",
         "kind": "manufactured_from_design",
         "subject_id": "SYNTH-PUMP-001",
-        "configuration_revision": "cfg-03"
+        "configuration_revision": "cfg-03",
+        "asset_id": "SYNTH-VESSEL-001",
+        "parent_assembly_id": "SYNTH-ENGINE-ROOM-001",
+        "serial_id": "SYNTH-SERIAL-001"
       },
       {
         "relationship_id": "r2",
@@ -146,7 +161,10 @@
         "to_federate": "qms",
         "kind": "inspected_manufactured_item",
         "subject_id": "SYNTH-PUMP-001",
-        "configuration_revision": "cfg-03"
+        "configuration_revision": "cfg-03",
+        "asset_id": "SYNTH-VESSEL-001",
+        "parent_assembly_id": "SYNTH-ENGINE-ROOM-001",
+        "serial_id": "SYNTH-SERIAL-001"
       },
       {
         "relationship_id": "r3",
@@ -154,7 +172,10 @@
         "to_federate": "eam",
         "kind": "accepted_for_installation",
         "subject_id": "SYNTH-PUMP-001",
-        "configuration_revision": "cfg-03"
+        "configuration_revision": "cfg-03",
+        "asset_id": "SYNTH-VESSEL-001",
+        "parent_assembly_id": "SYNTH-ENGINE-ROOM-001",
+        "serial_id": "SYNTH-SERIAL-001"
       }
     ],
     "mappings": [
@@ -221,9 +242,9 @@
       "base": "valid_federated_read_only",
       "mutations": [
         {
-          "path": "federates.2.subject_id",
+          "path": "federates.2.asset_id",
           "op": "set",
-          "value": "SYNTH-PUMP-OTHER"
+          "value": "SYNTH-VESSEL-OTHER"
         }
       ],
       "expected_code": "IDENTITY_MISMATCH"
@@ -530,9 +551,9 @@
       "base": "valid_federated_read_only",
       "mutations": [
         {
-          "path": "federates.1.retrieved_at_utc",
+          "path": "federates.1.transaction_time_utc",
           "op": "set",
-          "value": "2026-11-09T11:00:00Z"
+          "value": "2026-11-09T10:00:00Z"
         }
       ],
       "expected_code": "UPDATE_LATENCY_EXCEEDED"
@@ -589,6 +610,30 @@
         }
       ],
       "expected_code": "SYNTHETIC_WRITEBACK_FORBIDDEN"
+    },
+    {
+      "id": "wrong_federate_serial",
+      "base": "valid_federated_read_only",
+      "mutations": [
+        {
+          "path": "federates.2.serial_id",
+          "op": "set",
+          "value": "SYNTH-SERIAL-OTHER"
+        }
+      ],
+      "expected_code": "IDENTITY_MISMATCH"
+    },
+    {
+      "id": "wrong_parent_assembly_lineage",
+      "base": "valid_federated_read_only",
+      "mutations": [
+        {
+          "path": "relationships.1.parent_assembly_id",
+          "op": "set",
+          "value": "SYNTH-ENGINE-ROOM-OTHER"
+        }
+      ],
+      "expected_code": "RELATIONSHIP_SUBJECT_MISMATCH"
     }
   ]
 }
