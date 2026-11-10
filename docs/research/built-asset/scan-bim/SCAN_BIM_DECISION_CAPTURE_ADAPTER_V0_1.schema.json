@@ -114,6 +114,9 @@
                 "visibility_status",
                 "visibility_receipt_sha256",
                 "measurement_qualification",
+                "model_revision",
+                "requirement_revision",
+                "measurement_receipt_sha256",
                 "task_profile_id"
               ],
               "properties": {
@@ -183,6 +186,18 @@
                 "task_profile_id": {
                   "type": "string",
                   "minLength": 1
+                },
+                "model_revision": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "requirement_revision": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "measurement_receipt_sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
                 }
               }
             }
