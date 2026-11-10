@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "scenario_id": "rigid-contact-known-answer-01",
+  "scenario_manifest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "requirement": {
+    "quantity_id": "contact_impulse",
+    "unit": "N*s",
+    "reference_frame": "world",
+    "max_residual_upper_bound": 0.1,
+    "max_uncertainty_upper_bound": 0.1,
+    "require_independent_evidence": true
+  },
+  "budget": {
+    "max_p95_wall_time_us": 10000,
+    "max_peak_memory_bytes": 10000000
+  },
+  "candidates": [
+    {
+      "model_id": "native-fast-profile",
+      "backend": "symtropy-native",
+      "backend_version": "source-pinned",
+      "model_passport_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "capability_census_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "scenario_mapping_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "semantic_equivalence": "matched",
+      "evidence_class": "independently_validated",
+      "validity": "inside_declared_envelope",
+      "horizon_covered": true,
+      "hard_constraints": "within_bounds",
+      "residual_upper_bound": 0.03,
+      "uncertainty_upper_bound": 0.04,
+      "p95_wall_time_us": 400,
+      "peak_memory_bytes": 4000000
+    },
+    {
+      "model_id": "reference-solver-profile",
+      "backend": "external-reference",
+      "backend_version": "source-pinned",
+      "model_passport_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "capability_census_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "scenario_mapping_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "semantic_equivalence": "matched",
+      "evidence_class": "analytic_oracle",
+      "validity": "inside_declared_envelope",
+      "horizon_covered": true,
+      "hard_constraints": "within_bounds",
+      "residual_upper_bound": 0.001,
+      "uncertainty_upper_bound": 0.001,
+      "p95_wall_time_us": 1200,
+      "peak_memory_bytes": 8000000
+    }
+  ]
+}
