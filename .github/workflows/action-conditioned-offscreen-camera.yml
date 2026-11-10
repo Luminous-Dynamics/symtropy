@@ -1,0 +1,37 @@
+name: action-conditioned-offscreen-camera
+
+on:
+  pull_request:
+    paths:
+      - "research/action-conditioned-offscreen-camera-001/**"
+      - ".github/workflows/action-conditioned-offscreen-camera.yml"
+  push:
+    paths:
+      - "research/action-conditioned-offscreen-camera-001/**"
+      - ".github/workflows/action-conditioned-offscreen-camera.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  conformance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact commit
+        uses: actions/checkout@v4
+
+      - name: Install Rust 1.96.0
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/action-conditioned-offscreen-camera-001/Cargo.toml -- --check
+
+      - name: Run renderer and receipt tests
+        run: cargo test --locked --manifest-path research/action-conditioned-offscreen-camera-001/Cargo.toml
+
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path research/action-conditioned-offscreen-camera-001/Cargo.toml --all-targets --all-features -- -D warnings
