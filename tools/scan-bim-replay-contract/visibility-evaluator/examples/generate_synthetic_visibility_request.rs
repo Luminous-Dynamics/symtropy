@@ -9,9 +9,8 @@ use scan_bim_replay_contract::sampling::{
     sample_reference_surfaces_for_visibility,
 };
 use scan_bim_visibility_evaluator::visibility::{
-    AxisOrder, CoordinateHandedness, LinearUnit, OccluderCoverage, OccluderKind,
-    OccluderTriangle, VisibilityProfile, VisibilityRequest, VisibilityView,
-    canonical_occluder_manifest_sha256,
+    AxisOrder, CoordinateHandedness, LinearUnit, OccluderCoverage, OccluderKind, OccluderTriangle,
+    VisibilityProfile, VisibilityRequest, VisibilityView, canonical_occluder_manifest_sha256,
 };
 use std::process::ExitCode;
 
