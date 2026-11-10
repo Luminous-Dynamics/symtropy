@@ -46,6 +46,10 @@ impl MaterialExtension for NdSlicingExtension {
     fn fragment_shader() -> ShaderRef {
         "shaders/nd_slicing.wesl".into()
     }
+
+    fn deferred_fragment_shader() -> ShaderRef {
+        "shaders/nd_slicing.wesl".into()
+    }
 }
 
 impl Default for NdSlicingExtension {
@@ -92,6 +96,10 @@ pub struct TelemetrySettings {
 
 impl MaterialExtension for TelemetryExtension {
     fn fragment_shader() -> ShaderRef {
+        "shaders/telemetry_deform.wesl".into()
+    }
+
+    fn deferred_fragment_shader() -> ShaderRef {
         "shaders/telemetry_deform.wesl".into()
     }
 }
