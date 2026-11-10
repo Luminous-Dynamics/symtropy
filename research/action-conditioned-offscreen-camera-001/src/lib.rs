@@ -126,14 +126,14 @@ pub struct WorldRenderSnapshot {
     pub actors: Vec<ActorCuboid>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RenderClocks {
     pub capture_timestamp_us: u64,
     pub render_completed_timestamp_us: u64,
     pub delivered_timestamp_us: u64,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TimingPolicy {
     pub maximum_render_latency_us: u64,
     pub maximum_delivery_age_us: u64,
@@ -1308,6 +1308,15 @@ mod tests {
         assert_eq!(
             sha256_hex(b""),
             "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        );
+    }
+
+    #[test]
+    fn sha256_multiblock_nist_known_answer() {
+        let input = b"abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq";
+        assert_eq!(
+            sha256_hex(input),
+            "248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1"
         );
     }
 
