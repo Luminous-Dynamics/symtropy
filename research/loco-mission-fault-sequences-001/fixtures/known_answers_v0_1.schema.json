@@ -48,7 +48,11 @@
         "recovery_energy_mwh",
         "topology_independent_routes",
         "recovery_energy_mwh",
-        "terminal_safe_stop_required_energy_mwh"
+        "terminal_safe_stop_required_energy_mwh",
+        "thermal_model_digest",
+        "thermal_receipt_ref",
+        "thermal_valid_through_tick",
+        "thermal_nodes"
       ],
       "additionalProperties": false,
       "properties": {
@@ -74,6 +78,23 @@
         "terminal_safe_stop_required_energy_mwh": {
           "type": "integer",
           "minimum": 0
+        },
+        "thermal_model_digest": {
+          "$ref": "#/$defs/str"
+        },
+        "thermal_receipt_ref": {
+          "$ref": "#/$defs/str"
+        },
+        "thermal_valid_through_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "thermal_nodes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/thermalNode"
+          }
         }
       }
     },
@@ -86,7 +107,9 @@
         "authority_loss_ppm",
         "qualified",
         "minimum_authority_required_ppm",
-        "recovery_budget_cost_mwh"
+        "recovery_budget_cost_mwh",
+        "thermal_update_receipt",
+        "thermal_node_updates"
       ],
       "additionalProperties": false,
       "properties": {
@@ -116,6 +139,42 @@
         "recovery_budget_cost_mwh": {
           "type": "integer",
           "minimum": 0
+        },
+        "thermal_update_receipt": {
+          "type": "object",
+          "required": [
+            "receipt_ref",
+            "context_digest",
+            "model_digest",
+            "manifest_digest",
+            "valid_through_tick"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "receipt_ref": {
+              "$ref": "#/$defs/str"
+            },
+            "context_digest": {
+              "$ref": "#/$defs/str"
+            },
+            "model_digest": {
+              "$ref": "#/$defs/str"
+            },
+            "manifest_digest": {
+              "$ref": "#/$defs/str"
+            },
+            "valid_through_tick": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "thermal_node_updates": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/thermalNodeUpdate"
+          }
         }
       }
     },
@@ -191,6 +250,49 @@
           ]
         }
       ]
+    },
+    "thermalNode": {
+      "type": "object",
+      "required": [
+        "node_id",
+        "temperature_milli_c",
+        "maximum_temperature_milli_c",
+        "source_ref"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "node_id": {
+          "$ref": "#/$defs/str"
+        },
+        "temperature_milli_c": {
+          "type": "integer",
+          "minimum": -273150
+        },
+        "maximum_temperature_milli_c": {
+          "type": "integer",
+          "minimum": -273149
+        },
+        "source_ref": {
+          "$ref": "#/$defs/str"
+        }
+      }
+    },
+    "thermalNodeUpdate": {
+      "type": "object",
+      "required": [
+        "node_id",
+        "temperature_milli_c"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "node_id": {
+          "$ref": "#/$defs/str"
+        },
+        "temperature_milli_c": {
+          "type": "integer",
+          "minimum": -273150
+        }
+      }
     }
   }
 }
