@@ -25,6 +25,7 @@ pub const MAX_FAR_PLANE_MM: u32 = 1_000_000;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AppliedActionRef {
     pub receipt_id: String,
+    pub receipt_sha256: String,
     pub command_id: String,
     pub applied_tick: u64,
 }
@@ -171,6 +172,7 @@ pub enum RenderError {
     InitialActionMustBeAbsent,
     AppliedActionMissing,
     AppliedActionTickMismatch,
+    InvalidActionReceiptDigest,
     InvalidFrameGeometry,
     InvalidFocalLength,
     InvalidNearFarPlane,
@@ -186,6 +188,7 @@ pub enum RenderError {
     ClockCaptureMismatch,
     RenderBeforeCapture,
     DeliveryBeforeRender,
+    ClockIdentityChanged,
     MissingEventBeforeCapture,
     SequenceRegression,
     CaptureClockRegression,
@@ -219,6 +222,7 @@ pub struct PolicyObservationReceipt {
     pub tick: u64,
     pub sequence: u64,
     pub applied_action_receipt_id: Option<String>,
+    pub applied_action_receipt_sha256: Option<String>,
     pub applied_action_command_id: Option<String>,
     pub applied_action_tick: Option<u64>,
     pub camera_id: String,
@@ -259,6 +263,7 @@ pub struct RenderedObservation {
 
 pub struct ObservationStreamGuard {
     timing: TimingPolicy,
+    clock_id: Option<String>,
     last_sequence: Option<u64>,
     last_capture_timestamp_us: Option<u64>,
     last_delivery_timestamp_us: Option<u64>,
@@ -268,6 +273,7 @@ impl ObservationStreamGuard {
     pub fn new(timing: TimingPolicy) -> Self {
         Self {
             timing,
+            clock_id: None,
             last_sequence: None,
             last_capture_timestamp_us: None,
             last_delivery_timestamp_us: None,
@@ -279,11 +285,16 @@ impl ObservationStreamGuard {
     /// replaying them later cannot silently promote them to fresh observations.
     pub fn admit(
         &mut self,
+        clock_id: &str,
         sequence: u64,
         capture_timestamp_us: u64,
         render_completed_timestamp_us: u64,
         delivered_timestamp_us: u64,
     ) -> Result<ObservationDisposition, RenderError> {
+        validate_id(clock_id)?;
+        if self.clock_id.as_deref().is_some_and(|expected| expected != clock_id) {
+            return Err(RenderError::ClockIdentityChanged);
+        }
         if self.last_sequence.is_some_and(|last| sequence <= last) {
             return Err(RenderError::SequenceRegression);
         }
@@ -314,6 +325,7 @@ impl ObservationStreamGuard {
         } else {
             ObservationDisposition::Fresh
         };
+        self.clock_id = Some(clock_id.to_string());
         self.last_sequence = Some(sequence);
         self.last_capture_timestamp_us = Some(capture_timestamp_us);
         self.last_delivery_timestamp_us = Some(delivered_timestamp_us);
@@ -336,6 +348,9 @@ impl ObservationStreamGuard {
         validate_id(episode_id)?;
         validate_id(agent_id)?;
         validate_id(clock_id)?;
+        if self.clock_id.as_deref().is_some_and(|expected| expected != clock_id) {
+            return Err(RenderError::ClockIdentityChanged);
+        }
         if self.last_sequence.is_some_and(|last| sequence <= last) {
             return Err(RenderError::SequenceRegression);
         }
@@ -354,6 +369,7 @@ impl ObservationStreamGuard {
         {
             return Err(RenderError::DeliveryClockRegression);
         }
+        self.clock_id = Some(clock_id.to_string());
         self.last_sequence = Some(sequence);
         self.last_capture_timestamp_us = Some(capture_timestamp_us);
         self.last_delivery_timestamp_us = Some(noticed_timestamp_us);
@@ -425,6 +441,7 @@ impl SoftwareCameraRenderer {
             tick: snapshot.tick,
             sequence,
             applied_action_receipt_id: action.map(|a| a.receipt_id.to_string()),
+            applied_action_receipt_sha256: action.map(|a| a.receipt_sha256.to_string()),
             applied_action_command_id: action.map(|a| a.command_id.to_string()),
             applied_action_tick: action.map(|a| a.applied_tick),
             camera_id: snapshot.camera.camera_id.clone(),
@@ -483,6 +500,9 @@ fn validate_snapshot(snapshot: &WorldRenderSnapshot) -> Result<(), RenderError> 
         let action = snapshot.applied_action.as_ref().ok_or(RenderError::AppliedActionMissing)?;
         if action.receipt_id.trim().is_empty() || action.command_id.trim().is_empty() {
             return Err(RenderError::EmptyIdentity);
+        }
+        if !is_sha256_hex(&action.receipt_sha256) {
+            return Err(RenderError::InvalidActionReceiptDigest);
         }
         if action.receipt_id.len() > MAX_ID_BYTES || action.command_id.len() > MAX_ID_BYTES {
             return Err(RenderError::IdentityTooLong);
@@ -565,6 +585,10 @@ fn validate_snapshot(snapshot: &WorldRenderSnapshot) -> Result<(), RenderError> 
         }
     }
     Ok(())
+}
+
+fn is_sha256_hex(value: &str) -> bool {
+    value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
 
 fn validate_id(value: &str) -> Result<(), RenderError> {
@@ -897,6 +921,7 @@ fn world_snapshot_digest(snapshot: &WorldRenderSnapshot) -> String {
     if let Some(action) = snapshot.applied_action.as_ref() {
         bytes.push(1);
         append_string(&mut bytes, &action.receipt_id);
+        append_string(&mut bytes, &action.receipt_sha256);
         append_string(&mut bytes, &action.command_id);
         bytes.extend_from_slice(&action.applied_tick.to_le_bytes());
     } else {
@@ -952,6 +977,10 @@ fn observation_identity_digest(receipt: &PolicyObservationReceipt) -> String {
         &mut bytes,
         receipt.applied_action_receipt_id.as_deref().unwrap_or(""),
     );
+    append_string(
+        &mut bytes,
+        receipt.applied_action_receipt_sha256.as_deref().unwrap_or(""),
+    );
     append_string(&mut bytes, &receipt.frame_sha256);
     sha256_hex(&bytes)
 }
@@ -968,6 +997,7 @@ fn policy_receipt_digest(receipt: &PolicyObservationReceipt) -> String {
     bytes.extend_from_slice(&receipt.sequence.to_le_bytes());
     for value in [
         receipt.applied_action_receipt_id.as_deref().unwrap_or(""),
+        receipt.applied_action_receipt_sha256.as_deref().unwrap_or(""),
         receipt.applied_action_command_id.as_deref().unwrap_or(""),
         receipt.camera_id.as_str(),
         receipt.camera_calibration_sha256.as_str(),
@@ -1130,6 +1160,7 @@ mod tests {
             simulator_revision: "sim-fixture-v1".into(),
             applied_action: Some(AppliedActionRef {
                 receipt_id: "action-receipt-1".into(),
+                receipt_sha256: "a".repeat(64),
                 command_id: "command-1".into(),
                 applied_tick: 1,
             }),
@@ -1297,6 +1328,7 @@ mod tests {
         let mut second_snapshot = snapshot();
         second_snapshot.applied_action = Some(AppliedActionRef {
             receipt_id: "different-action".into(),
+            receipt_sha256: "a".repeat(64),
             command_id: "command-1".into(),
             applied_tick: 1,
         });
@@ -1321,6 +1353,7 @@ mod tests {
         let mut world = snapshot();
         world.applied_action = Some(AppliedActionRef {
             receipt_id: "r".into(),
+            receipt_sha256: "b".repeat(64),
             command_id: "c".into(),
             applied_tick: 0,
         });
