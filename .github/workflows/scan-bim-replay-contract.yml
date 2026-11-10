@@ -78,6 +78,11 @@ jobs:
             (.canonical_receipt.transitions[0].from_representation == "raw_observations") and
             (.canonical_receipt.transitions[0].to_representation == "surface_mesh") and
             (.canonical_receipt.transitions[0].claims[0].origin == "measured") and
+            (.canonical_receipt.transitions[0].correspondences | length == 2) and
+            (.canonical_receipt.transitions[0].relation_audit.completeness == "complete") and
+            (.canonical_receipt.transitions[0].relation_audit.relations | length == 1) and
+            (.canonical_receipt.transitions[0].relation_audit.relations[0].relation_kind == "host_opening") and
+            (.canonical_receipt.transitions[0].relation_audit.relations[0].disposition == "preserved") and
             (.canonical_receipt.transitions[0].uncertainty.update_basis == "representation_only") and
             (.canonical_receipt.transitions[0].uncertainty.before.absolute_bound_m == 0.002) and
             (.canonical_receipt.transitions[0].uncertainty.after.absolute_bound_m == 0.0025) and
@@ -96,8 +101,15 @@ jobs:
             (.transition_count == 1) and
             (.claim_count == 1) and
             (.measured_claim_count == 1) and
-            (.correspondence_event_count == 1) and
+            (.correspondence_event_count == 2) and
             (.unresolved_correspondence_count == 0) and
+            (.source_relation_count == 1) and
+            (.preserved_relation_count == 1) and
+            (.modified_relation_count == 0) and
+            (.lost_relation_count == 0) and
+            (.unsupported_relation_count == 0) and
+            (.unresolved_relation_count == 0) and
+            (.incomplete_relation_inventory_count == 0) and
             (.continuity_state == "continuity_preserved")
           ' /tmp/scan-bim-continuity-report.json
       - name: Run strict Clippy
