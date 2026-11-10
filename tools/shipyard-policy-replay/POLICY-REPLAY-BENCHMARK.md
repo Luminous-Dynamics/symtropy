@@ -77,3 +77,25 @@ The benchmark is considered defective if it accepts: a suite whose scenarios dif
 ## Implementation boundary
 
 This benchmark document plus `shipyard-policy-replay` tests whether declared observable histories constrain action selection. It does not implement rolling-horizon optimization. That should be a separate policy engine whose outputs are replayed through this independent gate and the existing independent feasibility audit.
+
+
+## Weld-quality and reinspection event family — 2026-11-10
+
+Compose the replay auditor with:
+- Symtropy #4433 weld pass/process/equipment/workpiece trace;
+- Symtropy #4443 NDT procedure/provider/personnel/equipment/coverage/indication/disposition and repair/reinspection chain;
+- Symtropy #2402 observed production/rework cost receipts.
+
+The policy-visible sequence is deliberately staged:
+1. root/fill/cap execution is observed, but the work package enters `AwaitingInspection`, not Accepted/Completed;
+2. the NDT disposition is not visible to the policy until its declared observation/delivery tick;
+3. on acceptance, downstream work may be released;
+4. on rejection/inconclusive, a repair route is not schedulable until an authorized repair-route event is observed and the route is compatible with the workpiece/procedure;
+5. post-repair reinspection is a new source event; old accepted/failed evidence is not overwritten.
+
+New Rust conformance tests:
+- valid accepted-vs-rejected branch divergence only after NDT visibility;
+- anticipative downstream release / repair branching before NDT observation is rejected;
+- repair scheduling changes only after the authorized repair-route event becomes visible.
+
+These tests extend R1 non-anticipativity, not R2 independent feasibility or NDT acceptance. R2 still requires independent geometry/resource/precedence verification. They do not prove that an NDT report is authentic or that a repair procedure is qualified.
