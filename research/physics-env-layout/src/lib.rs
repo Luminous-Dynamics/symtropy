@@ -466,11 +466,11 @@ mod tests {
         aosoa4.step_n(STEPS, DT).expect("AoSoA4");
         aosoa8.step_n(STEPS, DT).expect("AoSoA8");
         aosoa16.step_n(STEPS, DT).expect("AoSoA16");
-        let expected = aos.digest(1031).expect("AoS digest");
-        assert_eq!(soa.digest(1031).expect("SoA digest"), expected);
-        assert_eq!(aosoa4.digest(1031).expect("AoSoA4 digest"), expected);
-        assert_eq!(aosoa8.digest(1031).expect("AoSoA8 digest"), expected);
-        assert_eq!(aosoa16.digest(1031).expect("AoSoA16 digest"), expected);
+        let expected = aos.canonical_snapshot(1031).expect("AoS snapshot");
+        assert_eq!(soa.canonical_snapshot(1031).expect("SoA snapshot"), expected);
+        assert_eq!(aosoa4.canonical_snapshot(1031).expect("AoSoA4 snapshot"), expected);
+        assert_eq!(aosoa8.canonical_snapshot(1031).expect("AoSoA8 snapshot"), expected);
+        assert_eq!(aosoa16.canonical_snapshot(1031).expect("AoSoA16 snapshot"), expected);
     }
 
     #[test]
@@ -487,7 +487,7 @@ mod tests {
         aosoa4_scalar.step_n(STEPS, DT).expect("AoSoA4 scalar");
         aosoa8_scalar.step_n(STEPS, DT).expect("AoSoA8 scalar");
         aosoa16_scalar.step_n(STEPS, DT).expect("AoSoA16 scalar");
-        let expected = aos_scalar.digest(1003).expect("AoS scalar digest");
+        let expected = aos_scalar.canonical_snapshot(1003).expect("AoS scalar snapshot");
 
         let (
             mut aos_parallel,
@@ -502,15 +502,15 @@ mod tests {
         aosoa8_parallel.step_n_parallel(STEPS, DT).expect("AoSoA8 parallel");
         aosoa16_parallel.step_n_parallel(STEPS, DT).expect("AoSoA16 parallel");
 
-        assert_eq!(soa_scalar.digest(1003).expect("SoA scalar"), expected);
-        assert_eq!(aosoa4_scalar.digest(1003).expect("AoSoA4 scalar"), expected);
-        assert_eq!(aosoa8_scalar.digest(1003).expect("AoSoA8 scalar"), expected);
-        assert_eq!(aosoa16_scalar.digest(1003).expect("AoSoA16 scalar"), expected);
-        assert_eq!(aos_parallel.digest(1003).expect("AoS parallel digest"), expected);
-        assert_eq!(soa_parallel.digest(1003).expect("SoA parallel digest"), expected);
-        assert_eq!(aosoa4_parallel.digest(1003).expect("AoSoA4 parallel digest"), expected);
-        assert_eq!(aosoa8_parallel.digest(1003).expect("AoSoA8 parallel digest"), expected);
-        assert_eq!(aosoa16_parallel.digest(1003).expect("AoSoA16 parallel digest"), expected);
+        assert_eq!(soa_scalar.canonical_snapshot(1003).expect("SoA scalar snapshot"), expected);
+        assert_eq!(aosoa4_scalar.canonical_snapshot(1003).expect("AoSoA4 scalar snapshot"), expected);
+        assert_eq!(aosoa8_scalar.canonical_snapshot(1003).expect("AoSoA8 scalar snapshot"), expected);
+        assert_eq!(aosoa16_scalar.canonical_snapshot(1003).expect("AoSoA16 scalar snapshot"), expected);
+        assert_eq!(aos_parallel.canonical_snapshot(1003).expect("AoS parallel snapshot"), expected);
+        assert_eq!(soa_parallel.canonical_snapshot(1003).expect("SoA parallel snapshot"), expected);
+        assert_eq!(aosoa4_parallel.canonical_snapshot(1003).expect("AoSoA4 parallel snapshot"), expected);
+        assert_eq!(aosoa8_parallel.canonical_snapshot(1003).expect("AoSoA8 parallel snapshot"), expected);
+        assert_eq!(aosoa16_parallel.canonical_snapshot(1003).expect("AoSoA16 parallel snapshot"), expected);
     }
 
     #[test]
@@ -523,6 +523,26 @@ mod tests {
             reversed.digest(257).expect("reversed digest"),
             canonical.digest(257).expect("canonical digest")
         );
+    }
+
+    #[test]
+    fn input_permutation_is_canonical_for_all_layouts() {
+        let base = initial_aos(259);
+        let expected = base.canonical_snapshot(259).expect("base snapshot");
+
+        let mut reversed = base.clone();
+        reversed.states.reverse();
+        let reversed_aos = AosLayout::from_states(reversed.states.clone());
+        let reversed_soa = SoaLayout::from_aos(&reversed_aos);
+        let reversed_aosoa4 = AosoaLayout::<4>::from_aos(&reversed_aos).expect("AoSoA4");
+        let reversed_aosoa8 = AosoaLayout::<8>::from_aos(&reversed_aos).expect("AoSoA8");
+        let reversed_aosoa16 = AosoaLayout::<16>::from_aos(&reversed_aos).expect("AoSoA16");
+
+        assert_eq!(reversed_aos.canonical_snapshot(259).expect("AoS"), expected);
+        assert_eq!(reversed_soa.canonical_snapshot(259).expect("SoA"), expected);
+        assert_eq!(reversed_aosoa4.canonical_snapshot(259).expect("AoSoA4"), expected);
+        assert_eq!(reversed_aosoa8.canonical_snapshot(259).expect("AoSoA8"), expected);
+        assert_eq!(reversed_aosoa16.canonical_snapshot(259).expect("AoSoA16"), expected);
     }
 
     #[test]
