@@ -256,6 +256,85 @@
         "evidence_tier": "high-fidelity-numerical-comparator",
         "physical_truth_claim": false
       }
+    },
+    {
+      "id": "P-NEDM-local-surrogate-ood-guard",
+      "model": "NeDM-36D-Go2-CRM",
+      "reported_ood_visitation_percent_range": [
+        0,
+        0.1
+      ],
+      "training_push_max_n": 140,
+      "evaluation_push_n": [
+        240,
+        300
+      ],
+      "expected": {
+        "claim": "in-distribution tracking only",
+        "high_push_robustness": "not-established",
+        "OOD_generalization": "not-established",
+        "guard": "warning-not-certificate"
+      }
+    },
+    {
+      "id": "Q-contact-channel-ablation-not-universally-beneficial",
+      "baseline_state_dim": 36,
+      "variants": [
+        {
+          "dim": 40,
+          "channel": "foot-normal-force"
+        },
+        {
+          "dim": 40,
+          "channel": "foot-sinkage"
+        },
+        {
+          "dim": 44,
+          "channel": "normal-force-plus-sinkage"
+        },
+        {
+          "dim": 48,
+          "channel": "full-3d-foot-force"
+        }
+      ],
+      "surrogate_seeds_per_variant": 3,
+      "baseline_seeds": 10,
+      "expected": {
+        "universal_contact_channel_benefit": "not-demonstrated",
+        "interpretation": "study-specific negative result; repeat conditional target/horizon/sensor-health ablations"
+      }
+    },
+    {
+      "id": "R-CRM-underdispersed-replicates",
+      "terrain": "CRM",
+      "spawn_variation_m": 1,
+      "reported_tracking_sd_percentage_points": 5.7,
+      "rigid_reported_sd_percentage_points": 0.1,
+      "observed_single_run": true,
+      "expected": {
+        "single_run_claim": "diagnostic-only",
+        "required": "broad preregistered replicates and paired per-seed differences"
+      }
+    },
+    {
+      "id": "S-soil-resolution-relative-to-foot",
+      "go2_foot_particle_span": 2.2,
+      "hmmwv_tire_particle_span": 11.8,
+      "expected": {
+        "quantitative_terramechanics_claim": "requires particle-spacing/smoothing-length/foot-geometry convergence",
+        "model_family_match_implies_physical_match": false
+      }
+    },
+    {
+      "id": "T-dataset-access-and-license-provenance",
+      "dataset_license": "CC-BY-4.0",
+      "access_agreement_required": true,
+      "dataset_revision_sha_pinned": false,
+      "code_repository_license_metadata": null,
+      "expected": {
+        "raw_use": "withhold until accepted access and manifest SHA verification",
+        "code_vendoring": "withhold pending repository rights review"
+      }
     }
   ]
 }
