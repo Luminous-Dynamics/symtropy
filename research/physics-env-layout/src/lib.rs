@@ -475,17 +475,42 @@ mod tests {
 
     #[test]
     fn all_parallel_layouts_match_scalar_output() {
-        let (mut aos, mut soa, mut aosoa4, mut aosoa8, mut aosoa16) = equivalent_layouts(1003);
-        aos.step_n(STEPS, DT).expect("AoS scalar");
-        soa.step_n(STEPS, DT).expect("SoA scalar");
-        aosoa4.step_n_parallel(STEPS, DT).expect("AoSoA4 parallel");
-        aosoa8.step_n_parallel(STEPS, DT).expect("AoSoA8 parallel");
-        aosoa16.step_n_parallel(STEPS, DT).expect("AoSoA16 parallel");
-        let expected = aos.digest(1003).expect("AoS digest");
-        assert_eq!(soa.digest(1003).expect("SoA digest"), expected);
-        assert_eq!(aosoa4.digest(1003).expect("AoSoA4 digest"), expected);
-        assert_eq!(aosoa8.digest(1003).expect("AoSoA8 digest"), expected);
-        assert_eq!(aosoa16.digest(1003).expect("AoSoA16 digest"), expected);
+        let (
+            mut aos_scalar,
+            mut soa_scalar,
+            mut aosoa4_scalar,
+            mut aosoa8_scalar,
+            mut aosoa16_scalar,
+        ) = equivalent_layouts(1003);
+        aos_scalar.step_n(STEPS, DT).expect("AoS scalar");
+        soa_scalar.step_n(STEPS, DT).expect("SoA scalar");
+        aosoa4_scalar.step_n(STEPS, DT).expect("AoSoA4 scalar");
+        aosoa8_scalar.step_n(STEPS, DT).expect("AoSoA8 scalar");
+        aosoa16_scalar.step_n(STEPS, DT).expect("AoSoA16 scalar");
+        let expected = aos_scalar.digest(1003).expect("AoS scalar digest");
+
+        let (
+            mut aos_parallel,
+            mut soa_parallel,
+            mut aosoa4_parallel,
+            mut aosoa8_parallel,
+            mut aosoa16_parallel,
+        ) = equivalent_layouts(1003);
+        aos_parallel.step_n_parallel(STEPS, DT).expect("AoS parallel");
+        soa_parallel.step_n_parallel(STEPS, DT).expect("SoA parallel");
+        aosoa4_parallel.step_n_parallel(STEPS, DT).expect("AoSoA4 parallel");
+        aosoa8_parallel.step_n_parallel(STEPS, DT).expect("AoSoA8 parallel");
+        aosoa16_parallel.step_n_parallel(STEPS, DT).expect("AoSoA16 parallel");
+
+        assert_eq!(soa_scalar.digest(1003).expect("SoA scalar"), expected);
+        assert_eq!(aosoa4_scalar.digest(1003).expect("AoSoA4 scalar"), expected);
+        assert_eq!(aosoa8_scalar.digest(1003).expect("AoSoA8 scalar"), expected);
+        assert_eq!(aosoa16_scalar.digest(1003).expect("AoSoA16 scalar"), expected);
+        assert_eq!(aos_parallel.digest(1003).expect("AoS parallel digest"), expected);
+        assert_eq!(soa_parallel.digest(1003).expect("SoA parallel digest"), expected);
+        assert_eq!(aosoa4_parallel.digest(1003).expect("AoSoA4 parallel digest"), expected);
+        assert_eq!(aosoa8_parallel.digest(1003).expect("AoSoA8 parallel digest"), expected);
+        assert_eq!(aosoa16_parallel.digest(1003).expect("AoSoA16 parallel digest"), expected);
     }
 
     #[test]
