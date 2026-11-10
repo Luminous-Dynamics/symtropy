@@ -1285,6 +1285,20 @@ mod tests {
     }
 
     #[test]
+    fn branch_audit_payload_changes_actor_input_and_marks_stale_replay_negative_control() {
+        let base = branch_audit_campaign(false);
+        let stale = branch_audit_campaign(true);
+        let parent = &base["branches"][0]["actor_responses"][0];
+        let recomputed = &base["branches"][1]["actor_responses"][0];
+        let stale_replayed = &stale["branches"][1]["actor_responses"][0];
+        assert_ne!(parent["policy_input_digest"], recomputed["policy_input_digest"]);
+        assert_eq!(recomputed["origin"], "recomputed");
+        assert_eq!(stale_replayed["policy_input_digest"], recomputed["policy_input_digest"]);
+        assert_eq!(stale_replayed["origin"], "replayed");
+        assert_eq!(base["expected_branch_ids"].as_array().unwrap().len(), 2);
+    }
+
+    #[test]
     fn bridge_configuration_requires_the_declared_camera_episode() {
         let bridge_config = json!({
             "identity": {
