@@ -26,50 +26,50 @@
     {
       "name": "code.tar.gz",
       "role": "source_code",
-      "size_bytes": 9300000,
       "upstream_md5": "da04187f141abad4b7e22f46e1a17fcc",
       "local_sha256": null,
-      "sha256_status": "not_computed"
+      "sha256_status": "not_computed",
+      "size_label": "9.3 MB"
     },
     {
       "name": "data.tar",
       "role": "reduced_production_data",
-      "size_bytes": 314800000,
       "upstream_md5": "f267a5afe05b033f3695e46edf2a3130",
       "local_sha256": null,
-      "sha256_status": "not_computed"
+      "sha256_status": "not_computed",
+      "size_label": "314.8 MB"
     },
     {
       "name": "data_paper.tar",
       "role": "paper_waveform_and_mask_ablation_data",
-      "size_bytes": 251200000,
       "upstream_md5": "a65237e4f7e9f69d85abcfcb6d1394f0",
       "local_sha256": null,
-      "sha256_status": "not_computed"
+      "sha256_status": "not_computed",
+      "size_label": "251.2 MB"
     },
     {
       "name": "data_raw.tar",
       "role": "unreduced_production_records",
-      "size_bytes": 2100000000,
       "upstream_md5": "89cdabed4828fbea5a76861f3b1e7b04",
       "local_sha256": null,
-      "sha256_status": "not_computed"
+      "sha256_status": "not_computed",
+      "size_label": "2.1 GB"
     },
     {
       "name": "figures.tar.gz",
       "role": "published_figures",
-      "size_bytes": 8900000,
       "upstream_md5": "359152af13e8c63ee3e4cd5ed760ef27",
       "local_sha256": null,
-      "sha256_status": "not_computed"
+      "sha256_status": "not_computed",
+      "size_label": "8.9 MB"
     },
     {
       "name": "README",
       "role": "reproduction_and_convention_documentation",
-      "size_bytes": null,
       "upstream_md5": "2a11417c61c371db4251b99ad5e7456d",
       "local_sha256": null,
-      "sha256_status": "not_computed"
+      "sha256_status": "not_computed",
+      "size_label": null
     }
   ],
   "reproduction_tiers": [
@@ -99,7 +99,7 @@
     "field_spin_weight": -2,
     "azimuthal_mode_m": 2,
     "angular_modes_l_max": 11,
-    "observable": "Bondi/news or strain mode at future null infinity; the paper readout is retarded time u and projection onto the (2,2,0) spheroidal harmonic.",
+    "observable": "Asymptotic waveform readout at future null infinity, parameterized by retarded time u; the paper projects onto the (2,2,0) spheroidal harmonic.",
     "mass_units": {
       "production_solver": "Most production code uses 2M=1 (therefore M=0.5).",
       "geodesic_and_plotting_scripts": "M=1.",
