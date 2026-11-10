@@ -27,7 +27,8 @@
         "material_record_lot": "SYNTH-HEAT-017",
         "required_procedure_scope": "SYNTH-SCOPE-THICK-PLATE-FAMILY-01",
         "required_process_scope": "SYNTH-SCOPE-THICK-PLATE-FAMILY-01",
-        "required_operator_scope": "welding_operator:process_family:GMAW_MULTIPASS"
+        "required_operator_scope": "welding_operator:process_family:GMAW_MULTIPASS",
+        "required_procedure_scope_ref": "SYNTH-SCOPE-THICK-PLATE-FAMILY-01"
       },
       "procedure": {
         "wps_ref": "SYNTH-WPS-017",
@@ -40,7 +41,10 @@
         "valid_from_utc": "2026-01-01T00:00:00Z",
         "valid_until_utc": "2027-01-01T00:00:00Z",
         "parameter_envelope_ref": "SYNTH-ENVELOPE-017",
-        "procedure_owner": "synthetic-welding-engineer"
+        "procedure_owner": "synthetic-welding-engineer",
+        "qualified_material_heat_lots": [
+          "SYNTH-HEAT-017"
+        ]
       },
       "equipment": {
         "robot_id": "SYNTH-ROBOT-017",
@@ -106,7 +110,8 @@
           "observed_envelope_status": "within_declared_envelope",
           "source_time_utc": "2026-11-10T03:00:00Z",
           "serial_id": "SYNTH-SERIAL-017",
-          "workpiece_serial_id": "SYNTH-SERIAL-017"
+          "workpiece_serial_id": "SYNTH-SERIAL-017",
+          "material_heat_lot": "SYNTH-HEAT-017"
         },
         {
           "pass_id": "SYNTH-PASS-FILL-02",
@@ -124,7 +129,8 @@
           "observed_envelope_status": "within_declared_envelope",
           "source_time_utc": "2026-11-10T03:10:00Z",
           "serial_id": "SYNTH-SERIAL-017",
-          "workpiece_serial_id": "SYNTH-SERIAL-017"
+          "workpiece_serial_id": "SYNTH-SERIAL-017",
+          "material_heat_lot": "SYNTH-HEAT-017"
         },
         {
           "pass_id": "SYNTH-PASS-CAP-03",
@@ -142,7 +148,8 @@
           "observed_envelope_status": "within_declared_envelope",
           "source_time_utc": "2026-11-10T03:20:00Z",
           "serial_id": "SYNTH-SERIAL-017",
-          "workpiece_serial_id": "SYNTH-SERIAL-017"
+          "workpiece_serial_id": "SYNTH-SERIAL-017",
+          "material_heat_lot": "SYNTH-HEAT-017"
         }
       ],
       "inspections": {
