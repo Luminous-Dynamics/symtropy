@@ -199,7 +199,10 @@ pub fn validate_challenge_eligibility(
                 receipt_id: receipt.receipt_id.clone(),
             });
         }
-        if !model_is_in_chain && !revisions.iter().any(|revision| revision.model_digest == receipt.model_digest) {
+        if !revisions
+            .iter()
+            .any(|revision| revision.model_digest == receipt.model_digest)
+        {
             return Err(ChallengeCustodyError::ReceiptModelOutsideRevisionChain {
                 model_digest: receipt.model_digest.clone(),
             });
