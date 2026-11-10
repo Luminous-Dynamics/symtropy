@@ -744,6 +744,42 @@
         }
       ],
       "expected_code": "PROCESS_TRACE_SUBJECT_MISMATCH"
+    },
+    {
+      "id": "impossible_decision_cutoff_date",
+      "base": "valid_robotic_weld",
+      "mutations": [
+        {
+          "path": "evaluation_cutoff_utc",
+          "op": "set",
+          "value": "2026-02-30T04:00:00Z"
+        }
+      ],
+      "expected_code": "INVALID_DECISION_CUTOFF"
+    },
+    {
+      "id": "procedure_not_yet_effective_at_cutoff",
+      "base": "valid_robotic_weld",
+      "mutations": [
+        {
+          "path": "procedure.valid_from_utc",
+          "op": "set",
+          "value": "2027-01-01T00:00:00Z"
+        }
+      ],
+      "expected_code": "PROCEDURE_NOT_YET_EFFECTIVE"
+    },
+    {
+      "id": "pass_evidence_occurs_after_decision_cutoff",
+      "base": "valid_robotic_weld",
+      "mutations": [
+        {
+          "path": "passes.1.source_time_utc",
+          "op": "set",
+          "value": "2026-11-10T04:30:00Z"
+        }
+      ],
+      "expected_code": "PROCESS_TRACE_AFTER_DECISION_CUTOFF"
     }
   ]
 }
