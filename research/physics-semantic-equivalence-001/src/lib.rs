@@ -5,6 +5,7 @@
 //! Transport adapters deserialize the versioned receipt into these types before
 //! calling [validate_receipt].
 
+use jsonschema::validator_for;
 use serde_json::{Map as JsonMap, Value as JsonValue};
 use std::collections::BTreeSet;
 
@@ -344,6 +345,36 @@ fn issue(code: &'static str, path: &str) -> ValidationIssue {
         code,
         path: path.to_owned(),
     }
+}
+
+/// Validate raw receipt JSON against the checked-in Draft 2020-12 schema.
+///
+/// This is deliberately separate from the typed semantic admission validator:
+/// schema validity establishes transport conformance, not physical equivalence.
+pub fn validate_receipt_schema_json(input: &str) -> Result<(), String> {
+    let instance: JsonValue = serde_json::from_str(input)
+        .map_err(|error| format!("invalid receipt JSON: {error}"))?;
+    let schema: JsonValue = serde_json::from_str(include_str!(
+        "../../../schemas/physics/semantic_mapping_receipt_v0_1.schema.json"
+    ))
+    .map_err(|error| format!("checked-in receipt schema is invalid JSON: {error}"))?;
+    let validator = validator_for(&schema)
+        .map_err(|error| format!("cannot compile receipt JSON Schema: {error}"))?;
+    let errors = validator
+        .iter_errors(&instance)
+        .map(|error| format!("{} at {}", error, error.instance_path()))
+        .collect::<Vec<_>>();
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(errors.join("; "))
+    }
+}
+
+/// Validate JSON Schema conformance first, then run typed semantic admission.
+pub fn validate_schema_and_json_receipt(input: &str) -> Result<ValidationReport, String> {
+    validate_receipt_schema_json(input)?;
+    validate_json_receipt(input)
 }
 
 /// Parse a versioned JSON receipt into the typed semantic contract.
@@ -920,6 +951,38 @@ mod tests {
                 .iter()
                 .any(|issue| issue.code == "missing_dimension")
         );
+    }
+
+    #[test]
+    fn draft_2020_12_schema_admits_positive_fixtures() {
+        for fixture in [
+            include_str!("../fixtures/strict-equivalent.example.json"),
+            include_str!("../fixtures/mapped-equivalent.example.json"),
+            include_str!("../fixtures/non-equivalent-friction.example.json"),
+            include_str!("../fixtures/unknown-ccd.example.json"),
+        ] {
+            validate_receipt_schema_json(fixture).expect("schema accepts fixture");
+        }
+    }
+
+    #[test]
+    fn draft_2020_12_schema_rejects_duplicate_dimension_fixture() {
+        assert!(
+            validate_receipt_schema_json(include_str!(
+                "../fixtures/duplicate-dimension.invalid.json"
+            ))
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn schema_gate_precedes_semantic_admission() {
+        let report = validate_schema_and_json_receipt(include_str!(
+            "../fixtures/non-equivalent-friction.example.json"
+        ))
+        .expect("schema-valid exploratory receipt is structurally valid");
+        assert!(!report.score_eligible);
+        assert_eq!(report.inadmissible_dimensions, vec![Dimension::Contacts]);
     }
 
     #[test]
