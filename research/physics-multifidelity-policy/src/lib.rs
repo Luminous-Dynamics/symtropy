@@ -160,7 +160,11 @@ pub struct PolicyReceiptV1 {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct RunObservation {
+    /// Digest of the exact policy input/run configuration this observation belongs to.
+    pub input_sha256: String,
     pub model_id: String,
+    /// Exact model passport selected by the policy for this run.
+    pub model_passport_sha256: String,
     pub observed_residual: f64,
     pub observed_uncertainty: f64,
     pub validity_inside_envelope: bool,
@@ -204,7 +208,10 @@ pub enum PolicyError {
     ZeroResourceBudget(&'static str),
     DuplicateModelId(String),
     ReceiptInputMismatch,
+    ReceiptMismatch,
+    ObservationInputMismatch,
     ObservationModelMismatch,
+    ObservationPassportMismatch,
     SelectedModelMissing,
     InvalidSelectedModel,
     Serialization(String),
@@ -222,9 +229,12 @@ impl std::fmt::Display for PolicyError {
             Self::ZeroResourceBudget(name) => write!(f, "resource budget must be non-zero: {name}"),
             Self::DuplicateModelId(id) => write!(f, "duplicate model id: {id}"),
             Self::ReceiptInputMismatch => write!(f, "receipt does not bind the supplied input"),
+            Self::ReceiptMismatch => write!(f, "receipt differs from the canonical evaluation of the input"),
+            Self::ObservationInputMismatch => write!(f, "observation does not bind the supplied policy input"),
             Self::ObservationModelMismatch => {
                 write!(f, "observation model does not match the selected model")
             }
+            Self::ObservationPassportMismatch => write!(f, "observation model passport does not match the selected candidate"),
             Self::SelectedModelMissing => write!(f, "selected model is absent from the input"),
             Self::InvalidSelectedModel => write!(f, "receipt does not select an admissible model"),
             Self::Serialization(message) => write!(f, "serialization failure: {message}"),
@@ -301,9 +311,20 @@ pub fn monitor(
     observation: &RunObservation,
 ) -> Result<MonitoringDecision, PolicyError> {
     validate_input(input)?;
-    let expected_digest = canonical_input_sha256(input)?;
+    let expected_receipt = evaluate(input)?;
+    let expected_digest = expected_receipt.input_sha256.clone();
+
     if receipt.input_sha256 != expected_digest {
         return Err(PolicyError::ReceiptInputMismatch);
+    }
+    // A matching input digest alone is insufficient: the selected candidate,
+    // evaluation dispositions and claim ceiling must also be canonical.
+    if receipt != &expected_receipt {
+        return Err(PolicyError::ReceiptMismatch);
+    }
+    validate_sha256(&observation.input_sha256, "observation.input_sha256")?;
+    if observation.input_sha256 != expected_digest {
+        return Err(PolicyError::ObservationInputMismatch);
     }
 
     let selected_id = match &receipt.decision {
@@ -323,6 +344,13 @@ pub fn monitor(
     if !rejection_reasons(input, selected).is_empty() {
         return Err(PolicyError::InvalidSelectedModel);
     }
+    validate_sha256(
+        &observation.model_passport_sha256,
+        "observation.model_passport_sha256",
+    )?;
+    if observation.model_passport_sha256 != selected.model_passport_sha256 {
+        return Err(PolicyError::ObservationPassportMismatch);
+    }
 
     validate_nonnegative_finite(observation.observed_residual, "observed_residual")?;
     validate_nonnegative_finite(observation.observed_uncertainty, "observed_uncertainty")?;
@@ -334,10 +362,16 @@ pub fn monitor(
             HardConstraintDisposition::Violated => Some(MonitorTrigger::HardConstraintViolation),
             HardConstraintDisposition::Unknown => Some(MonitorTrigger::HardConstraintUnknown),
             HardConstraintDisposition::WithinBounds => {
-                if observation.observed_residual > input.requirement.max_residual_upper_bound {
+                // The observed value must remain inside both the request's
+                // acceptance bound and the selected model's own declared bound.
+                if observation.observed_residual > selected.residual_upper_bound
+                    || observation.observed_residual
+                        > input.requirement.max_residual_upper_bound
+                {
                     Some(MonitorTrigger::ResidualExceeded)
-                } else if observation.observed_uncertainty
-                    > input.requirement.max_uncertainty_upper_bound
+                } else if observation.observed_uncertainty > selected.uncertainty_upper_bound
+                    || observation.observed_uncertainty
+                        > input.requirement.max_uncertainty_upper_bound
                 {
                     Some(MonitorTrigger::UncertaintyExceeded)
                 } else {
@@ -701,9 +735,11 @@ mod tests {
         let data = input();
         let receipt = evaluate(&data).expect("input");
         let observation = RunObservation {
+            input_sha256: receipt.input_sha256.clone(),
             model_id: "fast-qualified".to_owned(),
-            observed_residual: 0.05,
-            observed_uncertainty: 0.05,
+            model_passport_sha256: H1.to_owned(),
+            observed_residual: 0.005,
+            observed_uncertainty: 0.01,
             validity_inside_envelope: true,
             hard_constraints: HardConstraintDisposition::WithinBounds,
         };
@@ -720,7 +756,9 @@ mod tests {
         let data = input();
         let receipt = evaluate(&data).expect("input");
         let observation = RunObservation {
+            input_sha256: receipt.input_sha256.clone(),
             model_id: "fast-qualified".to_owned(),
+            model_passport_sha256: H1.to_owned(),
             observed_residual: 0.5,
             observed_uncertainty: 0.05,
             validity_inside_envelope: true,
@@ -747,7 +785,9 @@ mod tests {
         data.candidates.truncate(1);
         let receipt = evaluate(&data).expect("input");
         let observation = RunObservation {
+            input_sha256: receipt.input_sha256.clone(),
             model_id: "slow-qualified".to_owned(),
+            model_passport_sha256: H1.to_owned(),
             observed_residual: 0.5,
             observed_uncertainty: 0.05,
             validity_inside_envelope: true,
@@ -760,6 +800,86 @@ mod tests {
                 reason: AbstentionReason::NoCandidates,
                 trigger: MonitorTrigger::ResidualExceeded,
             }
+        );
+    }
+
+    #[test]
+    fn exceeding_model_residual_bound_escalates_even_below_request_limit() {
+        let data = input();
+        let receipt = evaluate(&data).expect("input");
+        let observation = RunObservation {
+            input_sha256: receipt.input_sha256.clone(),
+            model_id: "fast-qualified".to_owned(),
+            model_passport_sha256: H1.to_owned(),
+            observed_residual: 0.05,
+            observed_uncertainty: 0.01,
+            validity_inside_envelope: true,
+            hard_constraints: HardConstraintDisposition::WithinBounds,
+        };
+        // The global request permits 0.1, but the selected model declared 0.01.
+        assert!(observation.observed_residual < data.requirement.max_residual_upper_bound);
+        assert_eq!(
+            monitor(&data, &receipt, &observation).expect("monitor"),
+            MonitoringDecision::Escalate {
+                from_model_id: "fast-qualified".to_owned(),
+                to_model_id: "slow-qualified".to_owned(),
+                next_input_sha256: evaluate(&PolicyInputV1 {
+                    candidates: vec![candidate("slow-qualified", 900, 2_000)],
+                    ..data.clone()
+                })
+                .expect("remaining candidate")
+                .input_sha256,
+            }
+        );
+    }
+
+    #[test]
+    fn observation_must_bind_exact_input_and_model_passport() {
+        let data = input();
+        let receipt = evaluate(&data).expect("input");
+        let mut observation = RunObservation {
+            input_sha256: receipt.input_sha256.clone(),
+            model_id: "fast-qualified".to_owned(),
+            model_passport_sha256: H1.to_owned(),
+            observed_residual: 0.005,
+            observed_uncertainty: 0.01,
+            validity_inside_envelope: true,
+            hard_constraints: HardConstraintDisposition::WithinBounds,
+        };
+        observation.input_sha256 = "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd".to_owned();
+        assert_eq!(
+            monitor(&data, &receipt, &observation).unwrap_err(),
+            PolicyError::ObservationInputMismatch
+        );
+
+        observation.input_sha256 = receipt.input_sha256.clone();
+        observation.model_passport_sha256 = H2.to_owned();
+        assert_eq!(
+            monitor(&data, &receipt, &observation).unwrap_err(),
+            PolicyError::ObservationPassportMismatch
+        );
+    }
+
+    #[test]
+    fn mutated_receipt_is_rejected_even_when_input_digest_matches() {
+        let data = input();
+        let mut receipt = evaluate(&data).expect("input");
+        receipt.decision = PolicyDecision::Selected {
+            model_id: "slow-qualified".to_owned(),
+            model_passport_sha256: H1.to_owned(),
+        };
+        let observation = RunObservation {
+            input_sha256: receipt.input_sha256.clone(),
+            model_id: "slow-qualified".to_owned(),
+            model_passport_sha256: H1.to_owned(),
+            observed_residual: 0.005,
+            observed_uncertainty: 0.01,
+            validity_inside_envelope: true,
+            hard_constraints: HardConstraintDisposition::WithinBounds,
+        };
+        assert_eq!(
+            monitor(&data, &receipt, &observation).unwrap_err(),
+            PolicyError::ReceiptMismatch
         );
     }
 
@@ -788,7 +908,9 @@ mod tests {
         let data = input();
         let receipt = evaluate(&data).expect("input");
         let observation = RunObservation {
+            input_sha256: receipt.input_sha256.clone(),
             model_id: "fast-qualified".to_owned(),
+            model_passport_sha256: H1.to_owned(),
             observed_residual: f64::NAN,
             observed_uncertainty: 0.01,
             validity_inside_envelope: true,
