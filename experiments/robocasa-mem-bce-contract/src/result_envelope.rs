@@ -415,6 +415,7 @@ pub enum ImportError {
     UnsetArtifactDigest,
     MatchedControlMismatch,
     EmptyAggregate,
+    DuplicateEpisodeRecord(String),
     MixedAggregateGroup,
     NonComparableRunIdentity,
 }
@@ -531,6 +532,10 @@ impl TerminalOutcomeCounts {
 pub struct MemoryEvaluationAggregate {
     pub terminal_counts: TerminalOutcomeCounts,
     pub stage_counts: StageCompletionCounts,
+    /// Union of every per-episode qualification blocker in this aggregate.
+    /// Counts remain available for diagnostics, but a blocked aggregate must
+    /// not be mistaken for a qualified benchmark result.
+    pub qualification_blockers: Vec<QualificationBlocker>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -719,10 +724,26 @@ impl MemoryEvaluationRecord {
                     })
                     .collect(),
             },
+            qualification_blockers: Vec::new(),
         };
+        let mut seen_episodes = BTreeSet::new();
 
         for record in records {
-            record.validate()?;
+            let audit = record.validate()?;
+            let episode_key = (
+                record.task.task_instance_id.as_str(),
+                record.task.episode_id.as_str(),
+            );
+            if !seen_episodes.insert(episode_key) {
+                return Err(ImportError::DuplicateEpisodeRecord(
+                    record.task.episode_id.clone(),
+                ));
+            }
+            for blocker in audit.qualification_blockers {
+                if !aggregate.qualification_blockers.contains(&blocker) {
+                    aggregate.qualification_blockers.push(blocker);
+                }
+            }
             if record.protocol != first.protocol
                 || record.task.task_id != first.task.task_id
                 || record.task.split != first.task.split
@@ -742,6 +763,8 @@ impl MemoryEvaluationRecord {
                     != first.matched_control.action_executor_digest
                 || record.matched_control.robot_or_embodiment_digest
                     != first.matched_control.robot_or_embodiment_digest
+                || record.matched_control.environment_config_digest
+                    != first.matched_control.environment_config_digest
                 || record.matched_control.resource_budget_digest
                     != first.matched_control.resource_budget_digest
                 || record.evidence_class != first.evidence_class
@@ -977,6 +1000,71 @@ mod tests {
             },
             bce_receipts: vec![],
         }
+    }
+
+    #[test]
+    fn aggregate_rejects_duplicate_episode_records() {
+        let episode = record("policy-only", AssistanceTrack::PolicyOnly);
+        assert_eq!(
+            MemoryEvaluationRecord::aggregate_task_records(&[episode.clone(), episode]),
+            Err(ImportError::DuplicateEpisodeRecord("episode-01".into()))
+        );
+    }
+
+    #[test]
+    fn aggregate_rejects_environment_configuration_mismatch() {
+        let first = record("policy-only", AssistanceTrack::PolicyOnly);
+        let mut second = first.clone();
+        second.task.task_instance_id = "task-instance-02".into();
+        second.task.episode_id = "episode-02".into();
+        second.task.scene_id = "scene-02".into();
+        second.task.scene_seed = 52;
+        second.matched_control.environment_config_digest = digest(99);
+
+        assert_eq!(
+            MemoryEvaluationRecord::aggregate_task_records(&[first, second]),
+            Err(ImportError::MixedAggregateGroup)
+        );
+    }
+
+    #[test]
+    fn aggregate_preserves_qualification_blockers_and_raw_counts() {
+        let mut first = record("policy-only", AssistanceTrack::PolicyOnly);
+        first.protocol.dataset_rights_status = DatasetRightsStatus::Unknown;
+        first.policy.training_overlap_status = TrainingOverlapStatus::Unknown;
+        first.task.split = EvaluationSplit::Unknown;
+        first.terminal_outcome = TerminalOutcome::Unresolved;
+        first.terminal_receipt = None;
+        first.stages[2].disposition = StageDisposition::Unresolved;
+        first.stages[2].evidence = None;
+
+        let mut second = first.clone();
+        second.task.task_instance_id = "task-instance-02".into();
+        second.task.episode_id = "episode-02".into();
+        second.task.scene_id = "scene-02".into();
+        second.task.scene_seed = 52;
+
+        let aggregate =
+            MemoryEvaluationRecord::aggregate_task_records(&[first, second]).unwrap();
+
+        assert_eq!(aggregate.terminal_counts.unresolved, 2);
+        assert_eq!(aggregate.stage_counts.succeeded, 4);
+        assert_eq!(aggregate.stage_counts.unresolved, 2);
+        assert!(aggregate
+            .qualification_blockers
+            .contains(&QualificationBlocker::DatasetRightsUnresolved));
+        assert!(aggregate
+            .qualification_blockers
+            .contains(&QualificationBlocker::TrainingOverlapUnknown));
+        assert!(aggregate
+            .qualification_blockers
+            .contains(&QualificationBlocker::UnknownSplit));
+        assert!(aggregate
+            .qualification_blockers
+            .contains(&QualificationBlocker::TerminalOutcomeUnresolved));
+        assert!(aggregate
+            .qualification_blockers
+            .contains(&QualificationBlocker::StageOutcomeUnresolved));
     }
 
     #[test]
