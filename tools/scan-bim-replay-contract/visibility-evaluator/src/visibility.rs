@@ -2215,6 +2215,85 @@ mod tests {
         assert!(error.contains("compiled hard ceiling"));
     }
 
+    fn blocker_at_y(kind: OccluderKind, index: usize, y: f64) -> OccluderTriangle {
+        OccluderTriangle {
+            surface_id: format!("BLOCKER-{index:04}"),
+            triangle_id: format!("TRI-{index:04}"),
+            a: Point3::new(2.0, y - 0.2, -0.2),
+            b: Point3::new(2.0, y + 0.2, -0.2),
+            c: Point3::new(2.0, y, 0.2),
+            kind,
+        }
+    }
+
+    #[test]
+    fn bvh_prunes_irrelevant_triangles_without_changing_nearest_blocker() {
+        let mut blockers = Vec::new();
+        for index in 0..257 {
+            let y = (index as f64 - 128.0) * 2.0;
+            blockers.push(blocker_at_y(OccluderKind::SameBuilding, index, y));
+        }
+        let receipt = evaluate(
+            &[probe([5.0, 0.0, 0.0])],
+            &[view("VIEW-1", [0.0, 0.0, 0.0])],
+            &blockers,
+        )
+        .expect("large analytic scene should be queryable");
+        assert_eq!(receipt.probes[0].visibility, SurfaceVisibility::SelfOccluded);
+        assert_eq!(
+            receipt.probes[0].views[0].blocker_triangle_ids,
+            vec!["BLOCKER-0128/TRI-0128".to_owned()]
+        );
+        assert!(receipt.bvh_node_count > 1);
+        assert!(receipt.bvh_leaf_count > 1);
+        assert!(receipt.bvh_node_visit_count > 0);
+        assert!(
+            receipt.ray_test_count < blockers.len(),
+            "BVH should test fewer triangles than brute force: {} vs {}",
+            receipt.ray_test_count,
+            blockers.len()
+        );
+    }
+
+    #[test]
+    fn bvh_node_visit_budget_fails_closed() {
+        let mut blockers = Vec::new();
+        for index in 0..64 {
+            let y = (index as f64 - 32.0) * 2.0;
+            blockers.push(blocker_at_y(OccluderKind::SameBuilding, index, y));
+        }
+        let mut full_reference_and_occluders = vec![target_triangle()];
+        full_reference_and_occluders.extend_from_slice(&blockers);
+        let error = derive_surface_visibility(VisibilityEvaluation {
+            scene_id: "SCENE-1",
+            frame_id: "BUILDING-LOCAL",
+            linear_unit: LinearUnit::Metre,
+            axis_order: AxisOrder::Xyz,
+            handedness: CoordinateHandedness::RightHanded,
+            reference_model_sha256: &"1".repeat(64),
+            probe_set_sha256: &"3".repeat(64),
+            reference_surface_ids: &["TARGET".to_owned()],
+            occluder_manifest_sha256: &canonical_occluder_manifest_sha256(
+                &full_reference_and_occluders,
+            ),
+            occluder_coverage: OccluderCoverage::Complete,
+            probes: &[probe([5.0, 0.0, 0.0])],
+            views: &[view("VIEW-1", [0.0, 0.0, 0.0])],
+            occluders: &full_reference_and_occluders,
+            profile: VisibilityProfile {
+                max_probe_count: 1_000,
+                max_view_count: 32,
+                max_occluder_triangles: 10_000,
+                max_probe_view_evaluations: 10_000,
+                max_ray_tests: 10_000,
+                max_bvh_node_visits: 1,
+                min_incidence_cosine: 0.0,
+            },
+        })
+        .expect_err("the second visited BVH node must exceed a one-node budget");
+        assert!(error.contains("BVH node-visit budget exceeded"));
+    }
+
     #[test]
     fn input_permutation_preserves_visibility_receipt() {
         let mut second_probe = probe([5.0, 0.5, -0.25]);
@@ -2296,6 +2375,7 @@ mod tests {
                 "max_occluder_triangles": 10000,
                 "max_probe_view_evaluations": 10000,
                 "max_ray_tests": 100,
+                "max_bvh_node_visits": 100_000,
                 "min_incidence_cosine": 0.0
             }
         });
