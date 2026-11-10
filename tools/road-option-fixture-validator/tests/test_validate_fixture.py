@@ -78,5 +78,26 @@ class FixtureSemanticTests(unittest.TestCase):
         self.assertTrue(any("missing required negative controls" in e for e in validate_fixture(mutant)))
 
 
+    def test_hypotheses_must_share_the_initial_observation(self):
+        mutant = copy.deepcopy(self.fixture)
+        mutant["hidden_hypotheses"][1]["initial_observation_class"] = "hidden-only-class"
+        self.assertTrue(any("does not share the declared initial observation" in e for e in validate_fixture(mutant)))
+
+    def test_sensing_arm_must_charge_query_cost(self):
+        mutant = copy.deepcopy(self.fixture)
+        mutant["arms"][2]["measurement_cost_charged"] = False
+        self.assertTrue(any("must charge query cost" in e for e in validate_fixture(mutant)))
+
+    def test_query_request_latency_must_match_delivery_tick(self):
+        mutant = copy.deepcopy(self.fixture)
+        mutant["measurement"]["expected_latency_ticks"] += 1
+        self.assertTrue(any("nominal query latency does not match" in e for e in validate_fixture(mutant)))
+
+    def test_non_finite_terminal_utility_is_rejected(self):
+        mutant = copy.deepcopy(self.fixture)
+        mutant["continuation_cases"][0]["outcomes"][0]["terminal_utility_units"] = float("nan")
+        self.assertTrue(any("non-finite utility" in e for e in validate_fixture(mutant)))
+
+
 if __name__ == "__main__":
     unittest.main()
