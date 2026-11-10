@@ -26,7 +26,8 @@
         "effectivity_end_utc": null,
         "material_record_lot": "SYNTH-HEAT-017",
         "required_procedure_scope": "SYNTH-SCOPE-THICK-PLATE-FAMILY-01",
-        "required_process_scope": "SYNTH-SCOPE-THICK-PLATE-FAMILY-01"
+        "required_process_scope": "SYNTH-SCOPE-THICK-PLATE-FAMILY-01",
+        "required_operator_scope": "welding_operator:process_family:GMAW_MULTIPASS"
       },
       "procedure": {
         "wps_ref": "SYNTH-WPS-017",
@@ -845,6 +846,54 @@
         }
       ],
       "expected_code": "FUTURE_RULESET_NOT_EFFECTIVE"
+    },
+    {
+      "id": "equipment_health_degraded",
+      "base": "valid_robotic_weld",
+      "mutations": [
+        {
+          "path": "equipment.equipment_health_state",
+          "op": "set",
+          "value": "degraded"
+        }
+      ],
+      "expected_code": "EQUIPMENT_HEALTH_NOT_QUALIFIED"
+    },
+    {
+      "id": "operator_scope_mismatch",
+      "base": "valid_robotic_weld",
+      "mutations": [
+        {
+          "path": "operator.role_scope",
+          "op": "set",
+          "value": "welding_operator:process_family:OTHER"
+        }
+      ],
+      "expected_code": "OPERATOR_SCOPE_MISMATCH"
+    },
+    {
+      "id": "pass_parameter_envelope_mismatch",
+      "base": "valid_robotic_weld",
+      "mutations": [
+        {
+          "path": "passes.1.parameter_envelope_ref",
+          "op": "set",
+          "value": "SYNTH-ENVELOPE-OTHER"
+        }
+      ],
+      "expected_code": "PARAMETER_ENVELOPE_MISMATCH"
+    },
+    {
+      "id": "twin_update_frequency_exceeded",
+      "base": "valid_robotic_weld",
+      "mutations": [
+        {
+          "path": "twin_commissioning.observed_update_interval_s",
+          "op": "set",
+          "value": 12
+        }
+      ],
+      "expected_code": "TWIN_UPDATE_FREQUENCY_EXCEEDED"
     }
   ]
 }
