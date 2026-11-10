@@ -52,6 +52,8 @@ Construct a bounded, time-expanded graph from the upstream transition abstractio
 
 An action transition is usable only if the upstream authority admits it for every physically possible outcome under the declared fault/uncertainty set. A probability of zero does not remove a physically possible branch from robust admission.
 
+Every successor record is bound to an exact ordered physical-edge index and edge identity. For each route edge, at least one physically possible successor must be present; branch coverage is not satisfied by a route-level boolean or a successor attached to a different edge. Every non-terminal edge also requires a complete intermediate-prefix state inventory. Missing per-edge successors or intermediate prefixes return Unknown; out-of-range indices, duplicate branch identities and mismatched edge IDs are Invalid.
+
 Every route must:
 1. Start at the exact evaluated state and context.
 2. Use only upstream-admitted actions.
