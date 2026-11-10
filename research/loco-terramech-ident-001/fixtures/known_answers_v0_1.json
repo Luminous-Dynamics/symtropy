@@ -1,0 +1,261 @@
+{
+  "schema_version": "loco-terramech-ident-known-answers-v0.1",
+  "fixture_data": "synthetic only",
+  "cases": [
+    {
+      "id": "A-stateless-first-contact-confounding",
+      "profiles": [
+        "granular-a",
+        "granular-b"
+      ],
+      "first_contact_observation": {
+        "normal_impulse_mn_s": 100000,
+        "foot_sinkage_um": 12000
+      },
+      "history_sequences": {
+        "a": [
+          {
+            "normal_load_n": 100,
+            "dwell_ms": 10
+          },
+          {
+            "normal_load_n": 100,
+            "dwell_ms": 10
+          },
+          {
+            "normal_load_n": 100,
+            "dwell_ms": 10
+          }
+        ],
+        "b": [
+          {
+            "normal_load_n": 100,
+            "dwell_ms": 10
+          },
+          {
+            "normal_load_n": 220,
+            "dwell_ms": 10
+          },
+          {
+            "normal_load_n": 220,
+            "dwell_ms": 10
+          }
+        ]
+      },
+      "later_observation": {
+        "a": {
+          "sinkage_um": 30000,
+          "shear_limit_n": 40
+        },
+        "b": {
+          "sinkage_um": 50000,
+          "shear_limit_n": 22
+        }
+      },
+      "expected": {
+        "first_contact_indistinguishable": true,
+        "later_response_distinct": true,
+        "stateless_model_falsified": true
+      }
+    },
+    {
+      "id": "B-rigid-no-effect",
+      "profile": "rigid-reference",
+      "history": [
+        {
+          "impulse_mn_s": 100000,
+          "normal_load_n": 200
+        }
+      ],
+      "expected": {
+        "permanent_disturbance_units": 0,
+        "disposition": "NoEffect"
+      }
+    },
+    {
+      "id": "C-elastic-recovery",
+      "profile": "elastic-reference",
+      "loading": {
+        "displacement_um": 20000
+      },
+      "recovery": {
+        "elapsed_s": 5
+      },
+      "expected": {
+        "residual_displacement_um": 0,
+        "permanent_state_change": false
+      }
+    },
+    {
+      "id": "D-plastic-model-shear-misspecification",
+      "profile": "plastic-yield-candidate",
+      "normal_prediction_error_ppm": 40000,
+      "shear_prediction_error_ppm": 800000,
+      "expected": {
+        "model_adequacy": "rejected-for-shear",
+        "normal_fit_does_not_rescue_model": true
+      }
+    },
+    {
+      "id": "E-same-impulse-different-substrate",
+      "contact_impulse_mn_s": 250000,
+      "surfaces": [
+        {
+          "id": "hard-rock",
+          "sinkage_um": 0,
+          "shear_force_n": 300
+        },
+        {
+          "id": "loose-sand",
+          "sinkage_um": 18000,
+          "shear_force_n": 90
+        }
+      ],
+      "expected": {
+        "shared_contact_cause": true,
+        "distinct_owner_ground_responses": true
+      }
+    },
+    {
+      "id": "F-body-and-foot-profile-matters",
+      "surface_profile": "same-granular-batch",
+      "profiles": [
+        {
+          "body": "go2",
+          "foot_area_mm2": 2500,
+          "normal_load_n": 150
+        },
+        {
+          "body": "hexapod",
+          "foot_area_mm2": 600,
+          "normal_load_n": 35
+        }
+      ],
+      "expected": {
+        "same_surface_does_not_imply_same_interaction_estimate": true
+      }
+    },
+    {
+      "id": "G-nonidentifiable-parameter-family",
+      "parameter_pairs": [
+        {
+          "cohesion_pa": 10000,
+          "friction_angle_mdeg": 28000
+        },
+        {
+          "cohesion_pa": 18000,
+          "friction_angle_mdeg": 25000
+        }
+      ],
+      "observations_indistinguishable": true,
+      "expected": {
+        "point_estimate": "abstain",
+        "report_equivalence_set": true
+      }
+    },
+    {
+      "id": "H-correlated-sensor-information",
+      "channels": [
+        "D1-pressure",
+        "D2-near-foot-wrench"
+      ],
+      "shared_calibration_cause": "same-force-reference",
+      "expected": {
+        "independent_marginal_product_forbidden": true,
+        "correlation_identity_required": true
+      }
+    },
+    {
+      "id": "I-missing-D2-force-is-not-zero",
+      "available_channels": [
+        "D1-pressure",
+        "D3-proprioception"
+      ],
+      "missing_channels": [
+        "D2-near-foot-wrench"
+      ],
+      "expected": {
+        "d2_force": "Unknown",
+        "zero_substitution_forbidden": true
+      }
+    },
+    {
+      "id": "J-stale-terrain-settlement",
+      "observed_ground_revision": 12,
+      "proposal_expected_revision": 11,
+      "expected": {
+        "settlement": "rejected",
+        "ground_state_mutation": false
+      }
+    },
+    {
+      "id": "K-high-eig-no-recovery",
+      "information_gain_ppm": 990000,
+      "physically_possible_branches": [
+        "branch-safe",
+        "branch-dead-end"
+      ],
+      "robust_continuation_actions": {
+        "branch_safe": [
+          "advance",
+          "retreat"
+        ],
+        "branch_dead_end": []
+      },
+      "expected": {
+        "probe_admission": "rejected-before-information-ranking"
+      }
+    },
+    {
+      "id": "L-zero-mass-physical-branch",
+      "branch_probability_ppb": 0,
+      "physical_branch_possible": true,
+      "robust_recovery": false,
+      "expected": {
+        "probe_admission": "rejected",
+        "probability_does_not_erase_physical_branch": true
+      }
+    },
+    {
+      "id": "M-heldout-batch-leakage",
+      "calibration_batches": [
+        "batch-a",
+        "batch-b"
+      ],
+      "test_batches": [
+        "batch-b",
+        "batch-c"
+      ],
+      "expected": {
+        "heldout_claim": "invalid"
+      }
+    },
+    {
+      "id": "N-adaptation-proxy-shift",
+      "baseline": {
+        "task_success_ppm": 700000,
+        "foot_scuff_rate_ppm": 10000,
+        "slip_rate_ppm": 12000
+      },
+      "candidate": {
+        "task_success_ppm": 800000,
+        "foot_scuff_rate_ppm": 30000,
+        "slip_rate_ppm": 15000
+      },
+      "expected": {
+        "task_performance": "improved",
+        "complete_safety_improvement_claim": false,
+        "proxy_shift": true
+      }
+    },
+    {
+      "id": "O-mpm-is-not-ground-truth",
+      "reference_model": "mpm-newton",
+      "independent_measurements_present": false,
+      "expected": {
+        "evidence_tier": "high-fidelity-numerical-comparator",
+        "physical_truth_claim": false
+      }
+    }
+  ]
+}
