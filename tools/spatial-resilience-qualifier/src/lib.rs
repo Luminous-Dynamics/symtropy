@@ -1053,3 +1053,10 @@ pub use adaptive_policy::{
     AdaptivePolicyFailure, AdaptivePolicySummary, EMBEDDED_ADAPTIVE_POLICY_CORPUS,
     EMBEDDED_ADAPTIVE_POLICY_SCHEMA, validate_adaptive_policy_bytes,
 };
+
+pub mod scan_bim;
+pub use scan_bim::{
+    EMBEDDED_SCAN_BIM_DECISION_CASE, EMBEDDED_SCAN_BIM_DECISION_SCHEMA,
+    ScanBimActionQualification, ScanBimAdapterFailure, ScanBimDecisionReport,
+    evaluate_scan_bim_decision_bytes,
+};
