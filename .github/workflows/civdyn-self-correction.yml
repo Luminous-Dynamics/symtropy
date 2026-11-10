@@ -247,7 +247,7 @@ jobs:
               rows = list(reader)
               fields = reader.fieldnames
 
-          assert fields is not None and len(fields) == 27, f"expected 27 columns, got {len(fields or [])}"
+          assert fields is not None and len(fields) == 28, f"expected 28 columns, got {len(fields or [])}"
           assert len(rows) == 4, f"expected four repair cases, got {len(rows)}"
           by_case = {row["scenario"]: row for row in rows}
           assert set(by_case) == {"corrected", "residual", "width_exceeded", "regression"}
@@ -255,6 +255,7 @@ jobs:
           assert by_case["corrected"]["claim_ceiling"] == "repair_restored_adequacy_on_fresh_challenge"
           assert by_case["corrected"]["baseline_status"] == "outside_reference_interval"
           assert by_case["corrected"]["repaired_status"] == "within_reference_interval"
+          assert by_case["corrected"]["diagnostic_primary_discrepancy"] == "true"
           assert by_case["corrected"]["row_outcome"] == "corrected_on_fresh_challenge"
           assert by_case["corrected"]["required_evidence_complete"] == "true"
 
