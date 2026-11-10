@@ -18,7 +18,9 @@
     "summary",
     "hard_gates",
     "case_results",
-    "claim_ceiling"
+    "claim_ceiling",
+    "validator_scope_note",
+    "elapsed_ms"
   ],
   "properties": {
     "report_version": {
@@ -256,6 +258,13 @@
     },
     "claim_ceiling": {
       "const": "adapter_conformance_only"
+    },
+    "validator_scope_note": {
+      "type": "string"
+    },
+    "elapsed_ms": {
+      "type": "number",
+      "minimum": 0
     }
   }
 }
