@@ -16,6 +16,10 @@
 
 use nalgebra::DMatrix;
 use nalgebra::SVector;
+use symtropy_math::Bivector;
+
+/// Maximum bivector dimension supported by symtropy-math (D <= 9).
+const MAX_ROTATIONAL_DOF: usize = 36;
 
 /// Number of independent bivector coordinates in so(D).
 pub const fn rotational_dof_count<const D: usize>() -> usize {
@@ -60,6 +64,9 @@ pub enum MassPropertiesError {
 #[derive(Clone, Debug, PartialEq)]
 pub struct RotationalInertiaOperator<const D: usize> {
     matrix_row_major: Vec<f64>,
+    /// Cached lower Cholesky factor in row-major order. Construction is the
+    /// only factorization; real-time solves reuse this validated factor.
+    cholesky_lower_row_major: Vec<f64>,
 }
 
 impl<const D: usize> RotationalInertiaOperator<D> {
@@ -105,12 +112,25 @@ impl<const D: usize> RotationalInertiaOperator<D> {
             }
         }
 
+        if dof > MAX_ROTATIONAL_DOF {
+            return Err(MassPropertiesError::InvalidDimension);
+        }
         let matrix = DMatrix::from_row_slice(dof, dof, &matrix_row_major);
-        if matrix.cholesky().is_none() {
+        let Some(cholesky) = matrix.cholesky() else {
             return Err(MassPropertiesError::NotPositiveDefinite);
+        };
+        let lower = cholesky.l();
+        let mut cholesky_lower_row_major = vec![0.0; expected];
+        for row in 0..dof {
+            for column in 0..=row {
+                cholesky_lower_row_major[row * dof + column] = lower[(row, column)];
+            }
         }
 
-        Ok(Self { matrix_row_major })
+        Ok(Self {
+            matrix_row_major,
+            cholesky_lower_row_major,
+        })
     }
 
     /// Derive the body-frame inertia operator from the central second-moment
@@ -278,6 +298,9 @@ impl<const D: usize> RotationalInertiaOperator<D> {
     }
 
     /// Solve I_body * omega = angular_momentum for omega.
+    /// Solve I_body * omega = angular_momentum using the cached Cholesky
+    /// factor. This allocating slice API is retained for compatibility;
+    /// hot-loop callers should use solve_bivector.
     pub fn solve(&self, angular_momentum: &[f64]) -> Result<Vec<f64>, MassPropertiesError> {
         let dof = self.dof();
         if angular_momentum.len() != dof {
@@ -289,20 +312,136 @@ impl<const D: usize> RotationalInertiaOperator<D> {
         if !angular_momentum.iter().all(|value| value.is_finite()) {
             return Err(MassPropertiesError::NonFiniteValue);
         }
+        if dof > MAX_ROTATIONAL_DOF {
+            return Err(MassPropertiesError::InvalidDimension);
+        }
 
-        let matrix = DMatrix::from_row_slice(dof, dof, &self.matrix_row_major);
-        let Some(cholesky) = matrix.cholesky() else {
-            // Construction validates positive definiteness; this is defensive
-            // against a corrupted deserialized value.
-            return Err(MassPropertiesError::NotPositiveDefinite);
-        };
-        let rhs = nalgebra::DVector::from_column_slice(angular_momentum);
-        let solution = cholesky.solve(&rhs);
-        let result: Vec<f64> = solution.iter().copied().collect();
-        if !result.iter().all(|value| value.is_finite()) {
+        let mut rhs = [0.0_f64; MAX_ROTATIONAL_DOF];
+        rhs[..dof].copy_from_slice(angular_momentum);
+        let solution = self.solve_fixed(&rhs)?;
+        Ok(solution[..dof].to_vec())
+    }
+
+    /// Apply the validated inertia operator directly to a bivector without
+    /// allocating. Coordinates use the canonical lexicographic plane order.
+    pub fn apply_bivector(
+        &self,
+        vector: &Bivector<D>,
+    ) -> Result<Bivector<D>, MassPropertiesError> {
+        if !vector.is_finite() {
             return Err(MassPropertiesError::NonFiniteValue);
         }
+        let dof = self.dof();
+        if dof > MAX_ROTATIONAL_DOF {
+            return Err(MassPropertiesError::InvalidDimension);
+        }
+
+        let mut input = [0.0_f64; MAX_ROTATIONAL_DOF];
+        for index in 0..dof {
+            let (i, j) = Self::plane_pair(index)?;
+            input[index] = vector.get(i, j);
+        }
+
+        let mut result = Bivector::<D>::zero();
+        for row in 0..dof {
+            let mut value = 0.0_f64;
+            for column in 0..dof {
+                value += self.matrix_row_major[row * dof + column] * input[column];
+            }
+            if !value.is_finite() {
+                return Err(MassPropertiesError::NonFiniteValue);
+            }
+            let (i, j) = Self::plane_pair(row)?;
+            result.set(i, j, value);
+        }
         Ok(result)
+    }
+
+    /// Solve I_body * omega = angular_momentum directly in bivector
+    /// coordinates without heap allocation or refactorization.
+    pub fn solve_bivector(
+        &self,
+        angular_momentum: &Bivector<D>,
+    ) -> Result<Bivector<D>, MassPropertiesError> {
+        if !angular_momentum.is_finite() {
+            return Err(MassPropertiesError::NonFiniteValue);
+        }
+        let dof = self.dof();
+        if dof > MAX_ROTATIONAL_DOF {
+            return Err(MassPropertiesError::InvalidDimension);
+        }
+
+        let mut rhs = [0.0_f64; MAX_ROTATIONAL_DOF];
+        for index in 0..dof {
+            let (i, j) = Self::plane_pair(index)?;
+            rhs[index] = angular_momentum.get(i, j);
+        }
+        let solution = self.solve_fixed(&rhs)?;
+        let mut result = Bivector::<D>::zero();
+        for index in 0..dof {
+            let (i, j) = Self::plane_pair(index)?;
+            result.set(i, j, solution[index]);
+        }
+        Ok(result)
+    }
+
+    /// Rotational kinetic energy for a bivector angular velocity without
+    /// heap allocation. Units are joules for SI inertia and radians/second.
+    pub fn kinetic_energy_bivector_joules(
+        &self,
+        angular_velocity: &Bivector<D>,
+    ) -> Result<f64, MassPropertiesError> {
+        let momentum = self.apply_bivector(angular_velocity)?;
+        let mut pairing = 0.0_f64;
+        for i in 0..D {
+            for j in (i + 1)..D {
+                pairing += angular_velocity.get(i, j) * momentum.get(i, j);
+            }
+        }
+        let energy = 0.5 * pairing;
+        if !energy.is_finite() || energy < 0.0 {
+            return Err(MassPropertiesError::NonFiniteValue);
+        }
+        Ok(energy)
+    }
+
+    /// Solve using the cached lower Cholesky factor and fixed stack arrays.
+    fn solve_fixed(
+        &self,
+        rhs: &[f64; MAX_ROTATIONAL_DOF],
+    ) -> Result<[f64; MAX_ROTATIONAL_DOF], MassPropertiesError> {
+        let dof = self.dof();
+        if dof > MAX_ROTATIONAL_DOF {
+            return Err(MassPropertiesError::InvalidDimension);
+        }
+        let mut forward = [0.0_f64; MAX_ROTATIONAL_DOF];
+        let mut solution = [0.0_f64; MAX_ROTATIONAL_DOF];
+
+        for row in 0..dof {
+            let mut value = rhs[row];
+            for column in 0..row {
+                value -= self.cholesky_lower_row_major[row * dof + column] * forward[column];
+            }
+            let diagonal = self.cholesky_lower_row_major[row * dof + row];
+            if !diagonal.is_finite() || diagonal <= f64::MIN_POSITIVE {
+                return Err(MassPropertiesError::NotPositiveDefinite);
+            }
+            forward[row] = value / diagonal;
+        }
+
+        for row in (0..dof).rev() {
+            let mut value = forward[row];
+            for column in (row + 1)..dof {
+                value -= self.cholesky_lower_row_major[column * dof + row] * solution[column];
+            }
+            let diagonal = self.cholesky_lower_row_major[row * dof + row];
+            solution[row] = value / diagonal;
+        }
+
+        if !solution[..dof].iter().all(|value| value.is_finite()) {
+            return Err(MassPropertiesError::NonFiniteValue);
+        }
+        Ok(solution)
     }
 
     /// Rotational kinetic energy in joules for body-frame angular velocity
@@ -504,6 +643,42 @@ mod tests {
             assert!((actual - expected).abs() < 1e-12);
         }
         assert!(inertia.kinetic_energy_joules(&omega).unwrap() > 0.0);
+    }
+
+    #[test]
+    fn bivector_apply_and_cached_solve_match_allocating_reference() {
+        let matrix = vec![4.0, 0.5, 0.0, 0.5, 3.0, 0.25, 0.0, 0.25, 2.0];
+        let inertia = RotationalInertiaOperator::<3>::try_from_row_major(matrix).unwrap();
+        let mut omega = Bivector::<3>::zero();
+        omega.set(0, 1, 0.5);
+        omega.set(0, 2, -1.0);
+        omega.set(1, 2, 2.0);
+
+        let applied = inertia.apply_bivector(&omega).unwrap();
+        let coordinates = [omega.get(0, 1), omega.get(0, 2), omega.get(1, 2)];
+        let allocating = inertia.apply(&coordinates).unwrap();
+        assert!((applied.get(0, 1) - allocating[0]).abs() < 1.0e-12);
+        assert!((applied.get(0, 2) - allocating[1]).abs() < 1.0e-12);
+        assert!((applied.get(1, 2) - allocating[2]).abs() < 1.0e-12);
+
+        let solved = inertia.solve_bivector(&applied).unwrap();
+        assert!((solved.get(0, 1) - omega.get(0, 1)).abs() < 1.0e-12);
+        assert!((solved.get(0, 2) - omega.get(0, 2)).abs() < 1.0e-12);
+        assert!((solved.get(1, 2) - omega.get(1, 2)).abs() < 1.0e-12);
+
+        let energy = inertia.kinetic_energy_bivector_joules(&omega).unwrap();
+        assert!((energy - inertia.kinetic_energy_joules(&coordinates).unwrap()).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn cached_cholesky_solve_handles_four_dimensional_double_rotation() {
+        let inertia = RotationalInertiaOperator::<4>::isotropic(2.5).unwrap();
+        let mut momentum = Bivector::<4>::zero();
+        momentum.set(0, 1, 2.5 * 0.7);
+        momentum.set(2, 3, 2.5 * -1.1);
+        let omega = inertia.solve_bivector(&momentum).unwrap();
+        assert!((omega.get(0, 1) - 0.7).abs() < 1.0e-12);
+        assert!((omega.get(2, 3) + 1.1).abs() < 1.0e-12);
     }
 
     #[test]
