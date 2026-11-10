@@ -679,6 +679,7 @@ fn audit_dataset(cli: &Cli) -> Result<DatasetAuditReport, String> {
                 None
             }
         };
+        let exists = resolved.is_some();
 
         let mut size_bytes = None;
         let mut sha256 = None;
@@ -750,7 +751,7 @@ fn audit_dataset(cli: &Cli) -> Result<DatasetAuditReport, String> {
         file_audits.push(FileAudit {
             path: entry.path.clone(),
             role: entry.role.clone(),
-            exists: resolved.is_some(),
+            exists,
             size_bytes,
             preview_reported_size: entry.reported_size.clone(),
             preview_size_delta_bytes,
