@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 
-pub const SCHEMA_VERSION: &str = "0.1.0";
+pub const SCHEMA_VERSION: &str = "0.2.0";
 pub const REQUIRED_NEGATIVE_CONTROLS: [&str; 12] = [
     "wrong_fourier_sign",
     "swapped_boundary_conditions",
@@ -58,6 +58,8 @@ pub struct MethodEvidence {
     pub method_id: String,
     pub implementation_id: String,
     pub implementation_sha256: String,
+    /// Digest of the canonical, ordered input bundle actually consumed by this method.
+    pub input_set_sha256: String,
     pub response_sha256: String,
 }
 
@@ -116,6 +118,27 @@ pub struct ResponseWindow {
     pub acceptance_limit: f64,
 }
 
+/// A paired, same-input comparison between two independently implemented methods.
+///
+/// The alignment digest identifies the canonical sample/time/frequency grid and
+/// weighting used for the comparison. The comparison artifact digest binds the
+/// actual aligned values and metric computation. The validator checks identities
+/// and internal consistency; it does not recompute either digest.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ComparisonEvidence {
+    pub comparison_id: String,
+    pub window_id: String,
+    pub left_method_id: String,
+    pub right_method_id: String,
+    pub aligned_samples_sha256: String,
+    pub comparison_artifact_sha256: String,
+    pub norm_id: String,
+    pub observed_error: f64,
+    pub acceptance_limit: f64,
+    pub accepted: bool,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct RefinementPoint {
@@ -153,6 +176,7 @@ pub struct ResponseManifest {
     pub methods: Vec<MethodEvidence>,
     pub error_budget: Vec<ErrorBudgetComponent>,
     pub response_windows: Vec<ResponseWindow>,
+    pub comparisons: Vec<ComparisonEvidence>,
     pub convergence: Vec<ConvergenceSeries>,
     pub negative_controls: Vec<NegativeControl>,
 }
@@ -267,6 +291,9 @@ impl ResponseManifest {
                     x.method_id
                 ));
             }
+            if !hex(&x.input_set_sha256, &[64]) {
+                e.push(format!("method '{}' input-set digest invalid", x.method_id));
+            }
             if !hex(&x.response_sha256, &[64]) {
                 e.push(format!("method '{}' response digest invalid", x.method_id));
             }
@@ -334,6 +361,66 @@ impl ResponseManifest {
                 && x.observed_error > x.acceptance_limit
             {
                 e.push(format!("window '{}' exceeds acceptance", x.window_id));
+            }
+        }
+
+        unique(
+            self.comparisons.iter().map(|x| x.comparison_id.as_str()),
+            "comparison",
+            &mut e,
+        );
+        let method_by_id = |id: &str| self.methods.iter().find(|m| m.method_id == id);
+        let window_by_id = |id: &str| self.response_windows.iter().find(|w| w.window_id == id);
+        unique(
+            self.comparisons.iter().map(|x| x.window_id.as_str()),
+            "comparison window",
+            &mut e,
+        );
+        for comparison in &self.comparisons {
+            if !non_empty(&comparison.norm_id) {
+                e.push(format!("comparison '{}' norm is missing", comparison.comparison_id));
+            }
+            if !hex(&comparison.aligned_samples_sha256, &[64]) {
+                e.push(format!("comparison '{}' aligned-sample digest invalid", comparison.comparison_id));
+            }
+            if !hex(&comparison.comparison_artifact_sha256, &[64]) {
+                e.push(format!("comparison '{}' artifact digest invalid", comparison.comparison_id));
+            }
+            if !comparison.observed_error.is_finite()
+                || comparison.observed_error < 0.0
+                || !comparison.acceptance_limit.is_finite()
+                || comparison.acceptance_limit < 0.0
+            {
+                e.push(format!("comparison '{}' has invalid error/limit", comparison.comparison_id));
+            } else if comparison.accepted != (comparison.observed_error <= comparison.acceptance_limit) {
+                e.push(format!("comparison '{}' accepted flag disagrees with error/limit", comparison.comparison_id));
+            }
+            if comparison.left_method_id == comparison.right_method_id {
+                e.push(format!("comparison '{}' must name two different methods", comparison.comparison_id));
+            }
+            match (method_by_id(&comparison.left_method_id), method_by_id(&comparison.right_method_id)) {
+                (Some(left), Some(right)) => {
+                    if left.implementation_sha256 == right.implementation_sha256 {
+                        e.push(format!("comparison '{}' methods do not have distinct implementation digests", comparison.comparison_id));
+                    }
+                    if left.input_set_sha256 != right.input_set_sha256 {
+                        e.push(format!("comparison '{}' methods did not consume the same canonical input set", comparison.comparison_id));
+                    }
+                }
+                _ => e.push(format!("comparison '{}' references an unknown method", comparison.comparison_id)),
+            }
+            match window_by_id(&comparison.window_id) {
+                Some(window) => {
+                    if comparison.norm_id != window.norm_id {
+                        e.push(format!("comparison '{}' norm differs from response window", comparison.comparison_id));
+                    }
+                    if comparison.observed_error != window.observed_error
+                        || comparison.acceptance_limit != window.acceptance_limit
+                    {
+                        e.push(format!("comparison '{}' error/limit differs from response window summary", comparison.comparison_id));
+                    }
+                }
+                None => e.push(format!("comparison '{}' references an unknown response window", comparison.comparison_id)),
             }
         }
 
@@ -427,6 +514,9 @@ impl ResponseManifest {
             }
             Qualification::IndependentlyCrossChecked | Qualification::Converged => {
                 self.require_oracle_and_input(e);
+                if self.response_windows.is_empty() {
+                    e.push("cross-check requires at least one named response window".into());
+                }
                 if self.methods.len() < 2 {
                     e.push("cross-check requires >=2 methods".into());
                 }
@@ -437,6 +527,16 @@ impl ResponseManifest {
                     .collect();
                 if distinct.len() < 2 {
                     e.push("cross-check requires distinct implementation digests".into());
+                }
+
+                for window in &self.response_windows {
+                    match self.comparisons.iter().find(|comparison| comparison.window_id == window.window_id) {
+                        None => e.push(format!("cross-check missing paired comparison for window '{}'", window.window_id)),
+                        Some(comparison) if !comparison.accepted => {
+                            e.push(format!("cross-check comparison for window '{}' is outside its declared limit", window.window_id));
+                        }
+                        _ => {}
+                    }
                 }
             }
         }
@@ -531,6 +631,7 @@ mod tests {
             methods: vec![],
             error_budget: vec![],
             response_windows: vec![],
+            comparisons: vec![],
             convergence: vec![],
             negative_controls: vec![],
         }
@@ -548,7 +649,23 @@ mod tests {
             method_id: id.into(),
             implementation_id: format!("impl-{id}"),
             implementation_sha256: d(i),
+            input_set_sha256: d('e'),
             response_sha256: d(r),
+        }
+    }
+
+    fn pair_comparison(window_id: &str, left: &str, right: &str, error: f64, limit: f64) -> ComparisonEvidence {
+        ComparisonEvidence {
+            comparison_id: format!("cmp-{window_id}"),
+            window_id: window_id.into(),
+            left_method_id: left.into(),
+            right_method_id: right.into(),
+            aligned_samples_sha256: d('a'),
+            comparison_artifact_sha256: d('c'),
+            norm_id: "complex-l2-relative".into(),
+            observed_error: error,
+            acceptance_limit: limit,
+            accepted: error <= limit,
         }
     }
 
@@ -610,6 +727,7 @@ mod tests {
             observed_error: 1e-9,
             acceptance_limit: 1e-8,
         });
+        m.comparisons.push(pair_comparison("late", "fd", "freq", 1e-9, 1e-8));
         m.convergence.push(ConvergenceSeries {
             quantity_id: "late-error".into(),
             norm_id: "complex-l2-relative".into(),
@@ -656,6 +774,103 @@ mod tests {
         }
         assert!(m.validate().is_ok());
     }
+
+    #[test]
+    fn independent_cross_check_requires_a_window_bound_paired_comparison() {
+        let mut m = base();
+        m.qualification = Qualification::IndependentlyCrossChecked;
+        oracle(&mut m);
+        m.provenance.input_digests.push(NamedDigest {
+            name: "initial-data".into(),
+            sha256: d('e'),
+        });
+        m.methods.push(method("fd", 'f', '1'));
+        m.methods.push(method("freq", '0', '2'));
+        m.response_windows.push(ResponseWindow {
+            window_id: "pre-front".into(),
+            causal_region: "before-first-arrival".into(),
+            norm_id: "complex-l2-relative".into(),
+            observed_error: 0.0,
+            acceptance_limit: 1e-8,
+        });
+        let errors = m.validate().unwrap_err();
+        assert!(errors.iter().any(|e| e.contains("missing paired comparison")));
+    }
+
+    #[test]
+    fn paired_comparison_rejects_different_input_sets() {
+        let mut m = base();
+        m.qualification = Qualification::IndependentlyCrossChecked;
+        oracle(&mut m);
+        m.provenance.input_digests.push(NamedDigest {
+            name: "initial-data".into(),
+            sha256: d('e'),
+        });
+        let mut left = method("fd", 'f', '1');
+        let mut right = method("freq", '0', '2');
+        right.input_set_sha256 = d('d');
+        m.methods.extend([left, right]);
+        m.response_windows.push(ResponseWindow {
+            window_id: "late".into(),
+            causal_region: "late-time".into(),
+            norm_id: "complex-l2-relative".into(),
+            observed_error: 1e-9,
+            acceptance_limit: 1e-8,
+        });
+        m.comparisons.push(pair_comparison("late", "fd", "freq", 1e-9, 1e-8));
+        assert!(m.validate().unwrap_err().iter().any(|e| e.contains("same canonical input set")));
+    }
+
+    #[test]
+    fn paired_comparison_rejects_wrong_window_norm_or_digest() {
+        let mut m = base();
+        m.qualification = Qualification::IndependentlyCrossChecked;
+        oracle(&mut m);
+        m.provenance.input_digests.push(NamedDigest {
+            name: "initial-data".into(),
+            sha256: d('e'),
+        });
+        m.methods.push(method("fd", 'f', '1'));
+        m.methods.push(method("freq", '0', '2'));
+        m.response_windows.push(ResponseWindow {
+            window_id: "late".into(),
+            causal_region: "late-time".into(),
+            norm_id: "complex-l2-relative".into(),
+            observed_error: 1e-9,
+            acceptance_limit: 1e-8,
+        });
+        let mut comparison = pair_comparison("late", "fd", "freq", 1e-9, 1e-8);
+        comparison.aligned_samples_sha256 = "bad".into();
+        comparison.norm_id = "wrong-norm".into();
+        m.comparisons.push(comparison);
+        let errors = m.validate().unwrap_err();
+        assert!(errors.iter().any(|e| e.contains("aligned-sample digest invalid")));
+        assert!(errors.iter().any(|e| e.contains("norm differs")));
+    }
+
+    #[test]
+    fn paired_comparison_rejects_unaccepted_error() {
+        let mut m = base();
+        m.qualification = Qualification::IndependentlyCrossChecked;
+        oracle(&mut m);
+        m.provenance.input_digests.push(NamedDigest {
+            name: "initial-data".into(),
+            sha256: d('e'),
+        });
+        m.methods.push(method("fd", 'f', '1'));
+        m.methods.push(method("freq", '0', '2'));
+        m.response_windows.push(ResponseWindow {
+            window_id: "late".into(),
+            causal_region: "late-time".into(),
+            norm_id: "complex-l2-relative".into(),
+            observed_error: 1e-3,
+            acceptance_limit: 1e-8,
+        });
+        m.comparisons.push(pair_comparison("late", "fd", "freq", 1e-3, 1e-8));
+        let errors = m.validate().unwrap_err();
+        assert!(errors.iter().any(|e| e.contains("outside its declared limit")));
+    }
+
     #[test]
     fn unknown_error_blocks_convergence() {
         let mut m = base();
