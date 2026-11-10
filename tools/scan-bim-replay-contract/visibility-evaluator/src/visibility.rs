@@ -664,6 +664,12 @@ fn aggregate_probe_visibility(views: &[ViewObservation]) -> SurfaceVisibility {
     }
     if views
         .iter()
+        .any(|view| view.status == ViewVisibilityStatus::Grazing)
+    {
+        return SurfaceVisibility::Grazing;
+    }
+    if views
+        .iter()
         .any(|view| view.status == ViewVisibilityStatus::Contradictory)
     {
         return SurfaceVisibility::Contradictory;
@@ -1588,6 +1594,22 @@ mod tests {
             &[],
         )
         .expect("grazing incidence is a valid low-quality view");
+        assert_eq!(receipt.probes[0].visibility, SurfaceVisibility::Grazing);
+        assert_eq!(receipt.grazing_area_m2, 2.0);
+        assert_eq!(receipt.self_occluded_area_m2, 0.0);
+    }
+
+    #[test]
+    fn grazing_line_of_sight_is_not_overruled_by_a_blocked_view() {
+        let mut grazing_view = view("GRAZING", [5.0, 10.0, 0.0]);
+        grazing_view.forward = Point3::new(0.0, -1.0, 0.0);
+        grazing_view.right = Point3::new(1.0, 0.0, 0.0);
+        let receipt = evaluate(
+            &[probe([5.0, 0.0, 0.0])],
+            &[view("BLOCKED", [0.0, 0.0, 0.0]), grazing_view],
+            &[blocker(OccluderKind::SameBuilding)],
+        )
+        .expect("one grazing line of sight and one blocked view");
         assert_eq!(receipt.probes[0].visibility, SurfaceVisibility::Grazing);
         assert_eq!(receipt.grazing_area_m2, 2.0);
         assert_eq!(receipt.self_occluded_area_m2, 0.0);
