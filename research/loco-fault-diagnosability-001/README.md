@@ -145,3 +145,36 @@ Do not optimize top-1 accuracy alone. Prefer a broad correct ambiguity set to an
 ## Claim ceiling
 
 V0 qualifies finite interval geometry and identity/schema composition only. It does not prove that supplied envelopes cover real robot observations or that a fault is physically identifiable. Hardware claims require measured source envelopes, independent calibration/coverage validation and upstream viability receipts.
+
+
+## 11. Executable finite Rust V0 reference
+
+The standalone dependency-free Rust crate consumes:
+- a complete authoritative physical fault-hypothesis set;
+- one bounded interval box or explicit Unknown envelope per hypothesis;
+- an exact feature/channel/unit schema with common-cause group IDs;
+- source/model/actuator/domain/sensor/calibration/clock identities;
+- a fresh diagnostic-action receipt carrying the upstream #4313/#4293 viable-continuation receipt digest;
+- an optional timestamped actual observation.
+
+It:
+- validates that the diagnostic action was independently admitted and is current;
+- requires envelope coverage for every still-possible physical hypothesis;
+- computes pairwise separability using closed integer intervals;
+- reports the strongest separating feature/margin for each separable pair;
+- builds canonical connected components for the ambiguity graph;
+- returns a model-conditional unique candidate, full ambiguity set, Unknown candidate or OOD disposition for a measured observation;
+- refuses missing/mismatched features, units, clocks, calibration and physical-fault-set identities;
+- makes Unknown envelopes overlap all hypotheses;
+- preserves common-cause group identifiers in the result;
+- canonicalizes hypothesis/feature order.
+
+Fifteen deterministic tests cover separable and overlapping fault signatures, touching intervals, Unknown hypotheses, unique and ambiguous observations, OOD observations, missing sensor features, stale/mismatched receipts, non-admitted probes, feature schema/unit mismatch, permutation invariance, invalid intervals and common-cause metadata.
+
+Qualification commands:
+
+    cargo fmt --manifest-path research/loco-fault-diagnosability-001/Cargo.toml -- --check
+    cargo test --manifest-path research/loco-fault-diagnosability-001/Cargo.toml --locked
+    cargo clippy --manifest-path research/loco-fault-diagnosability-001/Cargo.toml --locked --all-targets -- -D warnings
+
+A green exact-head workflow qualifies finite interval geometry and evidence-schema composition only. It does not prove that source envelopes cover physical sensor distributions or that a fault is physically diagnosable.
