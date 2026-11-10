@@ -27,7 +27,11 @@
 
 use core::fmt;
 
-use super::{KerrBlackHole, PhysicsDomainError};
+use super::{
+    KerrBlackHole, PhysicsDomainError,
+    autodiff::{DifferentiatedMetric4, JetError},
+    metric::{MetricComponents4, MetricError},
+};
 
 /// Direction of motion in a separated radial or polar coordinate.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -349,9 +353,53 @@ pub struct KerrMinoConstraintResiduals {
     pub polar: f64,
 }
 
+
+/// Canonical state for Kerr Hamiltonian evolution in dimensionless variables.
+///
+/// Coordinates are [ct/M, r/M, theta, phi]. Covariant momenta are
+/// [-E, M*p_r, p_theta/M, L_z/M], with the geodesic action divided by M.
+/// The Hamiltonian is H = 1/2 g_bar^(mu nu) p_bar_mu p_bar_nu.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct KerrCanonicalState {
+    pub coordinates: KerrMinoState,
+    pub momenta: [f64; 4],
+}
+
+/// Canonical Hamiltonian vector field (dx^mu/dlambda_bar, dp_mu/dlambda_bar).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct KerrCanonicalDerivative {
+    pub coordinates: [f64; 4],
+    pub momenta: [f64; 4],
+}
+
+/// Hamiltonian and recovered Killing/Carter invariants at a canonical state.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct KerrCanonicalEvaluation {
+    pub derivative: KerrCanonicalDerivative,
+    pub hamiltonian: f64,
+    pub energy: f64,
+    pub angular_momentum_z_over_m: f64,
+    pub carter_constant_over_m2: f64,
+}
+
+/// Independent canonical Hamiltonian evaluator for exterior Kerr rays.
+///
+/// The metric and its first derivatives are generated through the existing
+/// second-order Jet2 AD path. The geodesic equations are then evaluated from
+/// H=1/2*g^{mu nu}p_mu p_nu. This is independent of the separated Carter
+/// radial/polar potential implementation, although both describe the same
+/// Kerr metric and are intended to be cross-checked rather than treated as
+/// independent physical models.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct KerrCanonicalHamiltonian {
+    hole: KerrBlackHole,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum KerrGeodesicError {
     PhysicsDomain(PhysicsDomainError),
+    Metric(MetricError),
+    Autodiff(JetError),
     NonFinite(&'static str),
     InvalidEnergy(f64),
     InvalidSpin(f64),
@@ -388,10 +436,24 @@ impl From<PhysicsDomainError> for KerrGeodesicError {
     }
 }
 
+impl From<MetricError> for KerrGeodesicError {
+    fn from(value: MetricError) -> Self {
+        Self::Metric(value)
+    }
+}
+
+impl From<JetError> for KerrGeodesicError {
+    fn from(value: JetError) -> Self {
+        Self::Autodiff(value)
+    }
+}
+
 impl fmt::Display for KerrGeodesicError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::PhysicsDomain(error) => write!(f, "{error}"),
+            Self::Metric(error) => write!(f, "{error}"),
+            Self::Autodiff(error) => write!(f, "{error}"),
             Self::NonFinite(name) => write!(f, "derived Kerr geodesic {name} is non-finite"),
             Self::InvalidEnergy(value) => {
                 write!(f, "Kerr null-ray energy must be finite and positive, got {value}")
@@ -663,6 +725,201 @@ impl KerrSeparatedNullGeodesic {
     }
  }
 
+
+impl KerrCanonicalHamiltonian {
+    pub const fn new(hole: KerrBlackHole) -> Self {
+        Self { hole }
+    }
+
+    pub const fn black_hole(self) -> KerrBlackHole {
+        self.hole
+    }
+
+    /// Construct canonical momenta from separated constants and explicit
+    /// radial/polar branch signs at one exterior event.
+    ///
+    /// For the declared normalization:
+    /// p_t=-E, p_r=sign_r*sqrt(R)/Delta,
+    /// p_theta=sign_theta*sqrt(Theta), p_phi=L_z/M.
+    pub fn state_from_separated(
+        self,
+        coordinates: KerrMinoState,
+        constants: KerrNullConstants,
+        radial_direction: KerrMinoDirection,
+        polar_direction: KerrMinoDirection,
+    ) -> Result<KerrCanonicalState, KerrGeodesicError> {
+        let geodesic = KerrSeparatedNullGeodesic::new(self.hole, constants);
+        let r = coordinates.radius_over_m;
+        let theta = coordinates.theta_rad;
+        if !r.is_finite() || r <= 0.0 {
+            return Err(KerrGeodesicError::InvalidRadius(r));
+        }
+        let horizon = self.hole.outer_horizon_radius_m()
+            / self.hole.gravitational_radius_m();
+        if r <= horizon {
+            return Err(KerrGeodesicError::RadiusAtOrInsideHorizon {
+                radius_over_m: r,
+                horizon_over_m: horizon,
+            });
+        }
+        let delta = r * r - 2.0 * r + self.hole.spin().get().powi(2);
+        if !delta.is_finite() || delta <= 0.0 {
+            return Err(KerrGeodesicError::BoyerLindquistTurningSingularity { delta });
+        }
+        let radial = geodesic.radial_potential(r)?;
+        if radial < 0.0 {
+            return Err(KerrGeodesicError::ForbiddenRadialRegion {
+                radius_over_m: r,
+                radial_potential: radial,
+            });
+        }
+        let polar = geodesic.polar_potential(theta)?;
+        if polar < 0.0 {
+            return Err(KerrGeodesicError::ForbiddenPolarRegion {
+                theta_rad: theta,
+                polar_potential: polar,
+            });
+        }
+        let momenta = [
+            -constants.energy,
+            radial_direction.sign() * radial.sqrt() / delta,
+            polar_direction.sign() * polar.sqrt(),
+            constants.angular_momentum_z_over_m,
+        ];
+        if momenta.iter().any(|value| !value.is_finite()) {
+            return Err(KerrGeodesicError::NonFinite("canonical_initial_momenta"));
+        }
+        Ok(KerrCanonicalState {
+            coordinates,
+            momenta,
+        })
+    }
+
+    /// Evaluate H, its canonical vector field, and the recovered invariants.
+    ///
+    /// The physical SI metric is transformed to dimensionless coordinates
+    /// [ct/M,r/M,theta,phi] and dimensionless line element ds^2/M^2.
+    /// Metric derivatives use the same transformation. This keeps the
+    /// canonical Hamiltonian well-scaled and avoids mixing m and m^2 entries.
+    pub fn evaluate(
+        self,
+        state: KerrCanonicalState,
+    ) -> Result<KerrCanonicalEvaluation, KerrGeodesicError> {
+        let coordinates = state.coordinates;
+        for (name, value) in [
+            ("canonical_time_over_m", coordinates.time_over_m),
+            ("canonical_radius_over_m", coordinates.radius_over_m),
+            ("canonical_theta_rad", coordinates.theta_rad),
+            ("canonical_azimuth_rad", coordinates.azimuth_rad),
+        ] {
+            if !value.is_finite() {
+                return Err(KerrGeodesicError::NonFinite(name));
+            }
+        }
+        for (index, value) in state.momenta.iter().enumerate() {
+            if !value.is_finite() {
+                return Err(KerrGeodesicError::NonFinite(match index {
+                    0 => "canonical_p_t",
+                    1 => "canonical_p_r",
+                    2 => "canonical_p_theta",
+                    _ => "canonical_p_phi",
+                }));
+            }
+        }
+        validate_polar_angle(coordinates.theta_rad)?;
+        let mass_length = self.hole.gravitational_radius_m();
+        let radius_m = coordinates.radius_over_m * mass_length;
+        let differentiated =
+            DifferentiatedMetric4::kerr_exterior(self.hole, radius_m, coordinates.theta_rad)?;
+
+        // If x_SI = M*[tbar,rbar,theta/M,phi/M], then
+        // gbar = diag(1,1,1/M,1/M) * g_SI * diag(1,1,1/M,1/M).
+        let factors = [1.0, 1.0, 1.0 / mass_length, 1.0 / mass_length];
+        let mut covariant = [[0.0; 4]; 4];
+        let mut radial_derivative = [[0.0; 4]; 4];
+        let mut polar_derivative = [[0.0; 4]; 4];
+        let source_metric = differentiated.metric.covariant();
+        let source_first = differentiated.first.components();
+        for mu in 0..4 {
+            for nu in 0..4 {
+                let scale = factors[mu] * factors[nu];
+                covariant[mu][nu] = source_metric[mu][nu] * scale;
+                radial_derivative[mu][nu] =
+                    source_first[1][mu][nu] * mass_length * scale;
+                polar_derivative[mu][nu] = source_first[2][mu][nu] * scale;
+            }
+        }
+        let metric = MetricComponents4::new(covariant)?;
+        let inverse = metric.inverse()?;
+
+        let mut velocity = [0.0; 4];
+        for mu in 0..4 {
+            for nu in 0..4 {
+                velocity[mu] += inverse[mu][nu] * state.momenta[nu];
+            }
+        }
+
+        let mut momentum_derivative = [0.0; 4];
+        // Stationarity and axisymmetry make dp_t/dlambda = dp_phi/dlambda = 0.
+        for (coordinate, derivative) in [
+            (1usize, &radial_derivative),
+            (2usize, &polar_derivative),
+        ] {
+            let mut value = 0.0;
+            for mu in 0..4 {
+                for nu in 0..4 {
+                    value += velocity[mu] * derivative[mu][nu] * velocity[nu];
+                }
+            }
+            momentum_derivative[coordinate] = 0.5 * value;
+        }
+
+        let mut hamiltonian = 0.0;
+        for mu in 0..4 {
+            hamiltonian += state.momenta[mu] * velocity[mu];
+        }
+        hamiltonian *= 0.5;
+
+        let energy = -state.momenta[0];
+        let angular_momentum = state.momenta[3];
+        let sin_theta = coordinates.theta_rad.sin();
+        let cos_theta = coordinates.theta_rad.cos();
+        let carter = state.momenta[2].powi(2)
+            + cos_theta.powi(2)
+                * (angular_momentum.powi(2) / sin_theta.powi(2)
+                    - self.hole.spin().get().powi(2) * energy.powi(2));
+
+        let values = [
+            hamiltonian,
+            energy,
+            angular_momentum,
+            carter,
+            velocity[0],
+            velocity[1],
+            velocity[2],
+            velocity[3],
+            momentum_derivative[0],
+            momentum_derivative[1],
+            momentum_derivative[2],
+            momentum_derivative[3],
+        ];
+        if values.iter().any(|value| !value.is_finite()) {
+            return Err(KerrGeodesicError::NonFinite("canonical_hamiltonian_evaluation"));
+        }
+
+        Ok(KerrCanonicalEvaluation {
+            derivative: KerrCanonicalDerivative {
+                coordinates: velocity,
+                momenta: momentum_derivative,
+            },
+            hamiltonian,
+            energy,
+            angular_momentum_z_over_m: angular_momentum,
+            carter_constant_over_m2: carter,
+        })
+    }
+}
+
 fn validate_spin(spin: f64) -> Result<(), KerrGeodesicError> {
     if !spin.is_finite() || !(-1.0..=1.0).contains(&spin) {
         return Err(KerrGeodesicError::InvalidSpin(spin));
@@ -922,6 +1179,79 @@ mod tests {
         let derivative = geodesic.mino_dynamic_derivative(state).unwrap();
         close(derivative.d_radial_velocity_over_m, 0.0, 2e-14);
         close(derivative.d_polar_velocity_rad, 0.0, 2e-14);
+    }
+
+
+    #[test]
+    fn separated_and_independent_canonical_hamiltonian_paths_agree() {
+        for spin in [0.0, 0.5, 0.9] {
+            let black_hole = hole(spin);
+            let constants = KerrNullConstants::new(1.0, 2.0, 3.0).unwrap();
+            let coordinates =
+                KerrMinoState::new(0.0, 10.0, 1.0, 0.0);
+            let separated = KerrSeparatedNullGeodesic::new(black_hole, constants);
+            let canonical = KerrCanonicalHamiltonian::new(black_hole);
+            let state = canonical
+                .state_from_separated(
+                    coordinates,
+                    constants,
+                    KerrMinoDirection::Increasing,
+                    KerrMinoDirection::Increasing,
+                )
+                .unwrap();
+            let hamiltonian = canonical.evaluate(state).unwrap();
+            let mino = separated
+                .mino_derivative(
+                    coordinates,
+                    KerrMinoDirection::Increasing,
+                    KerrMinoDirection::Increasing,
+                )
+                .unwrap();
+            let r = coordinates.radius_over_m;
+            let theta = coordinates.theta_rad;
+            let sigma = r * r + spin * spin * theta.cos().powi(2);
+            close(hamiltonian.hamiltonian, 0.0, 2e-11);
+            close(hamiltonian.energy, 1.0, 2e-14);
+            close(hamiltonian.angular_momentum_z_over_m, 2.0, 2e-14);
+            close(hamiltonian.carter_constant_over_m2, 3.0, 2e-12);
+            close(hamiltonian.derivative.coordinates[0] * sigma, mino.d_time_over_m, 2e-11);
+            close(hamiltonian.derivative.coordinates[1] * sigma, mino.d_radius_over_m, 2e-11);
+            close(hamiltonian.derivative.coordinates[2] * sigma, mino.d_theta_rad, 2e-11);
+            close(hamiltonian.derivative.coordinates[3] * sigma, mino.d_azimuth_rad, 2e-11);
+            close(hamiltonian.derivative.momenta[0], 0.0, 2e-14);
+            close(hamiltonian.derivative.momenta[3], 0.0, 2e-14);
+        }
+    }
+
+    #[test]
+    fn canonical_hamiltonian_reports_constraint_drift_not_a_fake_null_state() {
+        let black_hole = hole(0.7);
+        let canonical = KerrCanonicalHamiltonian::new(black_hole);
+        let state = KerrCanonicalState {
+            coordinates: KerrMinoState::new(0.0, 10.0, 1.0, 0.0),
+            momenta: [-1.0, 0.0, 0.0, 0.0],
+        };
+        let evaluation = canonical.evaluate(state).unwrap();
+        assert!(evaluation.hamiltonian.is_finite());
+        assert!(evaluation.hamiltonian.abs() > 1e-8);
+    }
+
+    #[test]
+    fn canonical_initialization_rejects_forbidden_turning_regions() {
+        let black_hole = hole(0.0);
+        let canonical = KerrCanonicalHamiltonian::new(black_hole);
+        let coordinates =
+            KerrMinoState::new(0.0, 2.5, core::f64::consts::FRAC_PI_2, 0.0);
+        let constants = KerrNullConstants::new(1.0, 3.0 * 3.0_f64.sqrt(), 0.0).unwrap();
+        assert!(matches!(
+            canonical.state_from_separated(
+                coordinates,
+                constants,
+                KerrMinoDirection::Increasing,
+                KerrMinoDirection::Increasing
+            ),
+            Err(KerrGeodesicError::ForbiddenRadialRegion { .. })
+        ));
     }
 
     #[test]
