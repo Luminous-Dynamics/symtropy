@@ -78,7 +78,10 @@ The report schema is
 `docs/tech/MARITIME_ENGINE_DATASET_AUDIT_REPORT_V0_1.schema.json`.
 
 The tool's `content_audited_pending_independent_review` state means all declared
-members were present and the specified structural checks completed. It does not
+members were present, the archive had a recognized ZIP signature, its MD5 matched
+the publisher's value, and the specified structural checks completed. It still
+does not cryptographically bind the extracted directory to that archive; preserve
+the controlled extraction record separately. It does not
 mean that the archive is an operationally representative fleet dataset, that
 the published labels are physically adjudicated, or that an independent marine
 engineer has accepted the interpretation.
