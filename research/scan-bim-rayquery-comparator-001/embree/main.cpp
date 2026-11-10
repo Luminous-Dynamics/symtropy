@@ -88,6 +88,8 @@ struct Fixture {
   std::string workload_class;
   double intersection_epsilon{};
   double tie_epsilon{};
+  double determinant_epsilon_m2{};
+  double barycentric_epsilon{};
   std::vector<Triangle> triangles;
   std::vector<Ray> rays;
   std::string fixture_sha256;
@@ -203,11 +205,10 @@ Fixture load_fixture(const std::string& path, const std::string& workload_overri
     throw std::runtime_error("only metre / XYZ / right-handed fixtures are supported");
   }
   const auto& contract = root.at("query_contract");
-  if (contract.at("direction_normalization") != "unit_length_required" ||
+  if (contract.at("clipping_policy") != "inclusive_interval_with_epsilon_tolerance" ||
       contract.at("triangle_sidedness") != "two_sided" ||
       contract.at("self_hit_exclusion") != "exact_surface_id_and_triangle_id" ||
-      contract.at("expected_hit_policy") != "all_hits_within_nearest_hit_tie_epsilon" ||
-      contract.at("coplanar_policy") != "miss") {
+      contract.at("expected_hit_policy") != "all_hits_within_nearest_hit_tie_epsilon") {
     throw std::runtime_error("fixture query contract is unsupported");
   }
 
@@ -220,17 +221,15 @@ Fixture load_fixture(const std::string& path, const std::string& workload_overri
   if (fixture.fixture_id.empty() || supported_workloads.find(fixture.workload_class) == supported_workloads.end()) {
     throw std::runtime_error("fixture identity or workload class is unsupported");
   }
-  fixture.intersection_epsilon = contract.at("intersection_epsilon_m").get<double>();
+  fixture.intersection_epsilon = contract.at("clip_endpoint_tolerance_m").get<double>();
   fixture.tie_epsilon = contract.at("nearest_hit_tie_epsilon_m").get<double>();
-  const double parallel_cosine_epsilon = contract.at("parallel_cosine_epsilon").get<double>();
-  const double barycentric_epsilon = contract.at("barycentric_epsilon").get<double>();
-  if (!std::isfinite(fixture.intersection_epsilon) || fixture.intersection_epsilon <= 0.0 ||
-      !std::isfinite(fixture.tie_epsilon) || fixture.tie_epsilon <= 0.0 ||
-      !std::isfinite(parallel_cosine_epsilon) || parallel_cosine_epsilon <= 0.0 ||
-      parallel_cosine_epsilon >= 1.0 ||
-      !std::isfinite(barycentric_epsilon) || barycentric_epsilon <= 0.0 ||
-      barycentric_epsilon >= 0.1) {
-    throw std::runtime_error("fixture metric/dimensionless tolerances are invalid");
+  fixture.determinant_epsilon_m2 = contract.at("determinant_epsilon_m2").get<double>();
+  fixture.barycentric_epsilon = contract.at("barycentric_epsilon").get<double>();
+  if (!std::isfinite(fixture.intersection_epsilon) || fixture.intersection_epsilon != 1.0e-8 ||
+      !std::isfinite(fixture.tie_epsilon) || fixture.tie_epsilon != 1.0e-8 ||
+      !std::isfinite(fixture.determinant_epsilon_m2) || fixture.determinant_epsilon_m2 != 1.0e-12 ||
+      !std::isfinite(fixture.barycentric_epsilon) || fixture.barycentric_epsilon != 1.0e-12) {
+    throw std::runtime_error("fixture metric/primitive tolerances do not match the pinned v1 contract");
   }
   fixture.fixture_sha256 = sha256(raw);
 
