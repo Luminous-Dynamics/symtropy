@@ -902,7 +902,8 @@ mod tests {
             previous_lower = result.target_ate_lower;
             previous_upper = result.target_ate_upper;
         }
-        assert!((previous_lower - (-0.605)).abs() > 0.0);
+        assert!(previous_lower < -0.9);
+        assert!(previous_upper > 0.95);
     }
 
     #[test]
