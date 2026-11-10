@@ -1,0 +1,247 @@
+{
+  "schema_version": "0.1",
+  "case_id": "SCAN-BIM-DOOR-CLEARANCE-001",
+  "building_group_id": "BUILDING-GROUP-A",
+  "scene_id": "ROOM-A",
+  "model_revision": "MODEL-REV-001",
+  "frame_id": "ROOM-A-LOCAL",
+  "task": {
+    "task_id": "DOOR-CLEAR-WIDTH-ACCEPTANCE",
+    "requirement_revision": "ACCESS-CLEAR-WIDTH-0.90M-REV1",
+    "property_id": "door.clear_width_m",
+    "comparison": "greater_than_or_equal",
+    "threshold_m": 0.9,
+    "target_entity_ids": [
+      "DOOR-001"
+    ],
+    "minimum_observable_area_fraction": 0.9,
+    "unresolved_critical_unknown_ids": [
+      "door-clear-width"
+    ]
+  },
+  "possible_states": [
+    {
+      "state_id": "door-clear-width-compliant",
+      "interpretation": "Clear width is at or above the approved 0.90 m minimum.",
+      "property_value_m": 0.94,
+      "requirement_satisfied": true
+    },
+    {
+      "state_id": "door-clear-width-noncompliant",
+      "interpretation": "Clear width is below the approved 0.90 m minimum.",
+      "property_value_m": 0.82,
+      "requirement_satisfied": false
+    }
+  ],
+  "current_possible_state_ids": [
+    "door-clear-width-compliant",
+    "door-clear-width-noncompliant"
+  ],
+  "candidates": [
+    {
+      "candidate_id": "standard-layout",
+      "state_results": [
+        {
+          "state_id": "door-clear-width-compliant",
+          "feasible": true,
+          "objectives": {
+            "service_hours": 10,
+            "energy_units": 5,
+            "repair_ticks": 3,
+            "cost_units": 4
+          }
+        },
+        {
+          "state_id": "door-clear-width-noncompliant",
+          "feasible": false,
+          "objectives": {
+            "service_hours": 10,
+            "energy_units": 5,
+            "repair_ticks": 3,
+            "cost_units": 4
+          }
+        }
+      ]
+    },
+    {
+      "candidate_id": "accessible-adaptive-layout",
+      "state_results": [
+        {
+          "state_id": "door-clear-width-compliant",
+          "feasible": true,
+          "objectives": {
+            "service_hours": 8,
+            "energy_units": 7,
+            "repair_ticks": 2,
+            "cost_units": 6
+          }
+        },
+        {
+          "state_id": "door-clear-width-noncompliant",
+          "feasible": true,
+          "objectives": {
+            "service_hours": 8,
+            "energy_units": 7,
+            "repair_ticks": 2,
+            "cost_units": 6
+          }
+        }
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "action_id": "targeted-oblique-clearance-scan",
+      "sensor_id": "MOBILE-LIDAR-001",
+      "frame_id": "ROOM-A-LOCAL",
+      "model_revision": "MODEL-REV-001",
+      "pose_revision_id": "POSE-targeted-oblique-clearance-scan",
+      "pose_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "sensor_profile_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "visibility_profile_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "visibility_receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "target_visibility": [
+        {
+          "target_entity_id": "DOOR-001",
+          "status": "observable",
+          "observable_area_m2": 0.98,
+          "theoretical_area_m2": 1
+        }
+      ],
+      "estimated_cost_units": 2,
+      "estimated_duration_ticks": 1,
+      "cost_basis_id": "SYNTHETIC-CAPTURE-COST-V1",
+      "duration_basis_id": "SYNTHETIC-CAPTURE-TIME-V1",
+      "resolves_unknown_ids": [
+        "door-clear-width"
+      ],
+      "outcomes": [
+        {
+          "outcome_id": "measured-compliant",
+          "compatible_state_ids": [
+            "door-clear-width-compliant"
+          ]
+        },
+        {
+          "outcome_id": "measured-noncompliant",
+          "compatible_state_ids": [
+            "door-clear-width-noncompliant"
+          ]
+        }
+      ]
+    },
+    {
+      "action_id": "full-room-tls-sweep",
+      "sensor_id": "MOBILE-LIDAR-001",
+      "frame_id": "ROOM-A-LOCAL",
+      "model_revision": "MODEL-REV-001",
+      "pose_revision_id": "POSE-full-room-tls-sweep",
+      "pose_evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "sensor_profile_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "visibility_profile_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "visibility_receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "target_visibility": [
+        {
+          "target_entity_id": "DOOR-001",
+          "status": "observable",
+          "observable_area_m2": 0.96,
+          "theoretical_area_m2": 1
+        }
+      ],
+      "estimated_cost_units": 25,
+      "estimated_duration_ticks": 8,
+      "cost_basis_id": "SYNTHETIC-CAPTURE-COST-V1",
+      "duration_basis_id": "SYNTHETIC-CAPTURE-TIME-V1",
+      "resolves_unknown_ids": [
+        "door-clear-width"
+      ],
+      "outcomes": [
+        {
+          "outcome_id": "measured-compliant",
+          "compatible_state_ids": [
+            "door-clear-width-compliant"
+          ]
+        },
+        {
+          "outcome_id": "measured-noncompliant",
+          "compatible_state_ids": [
+            "door-clear-width-noncompliant"
+          ]
+        }
+      ]
+    },
+    {
+      "action_id": "dense-frontal-wall-scan",
+      "sensor_id": "MOBILE-LIDAR-001",
+      "frame_id": "ROOM-A-LOCAL",
+      "model_revision": "MODEL-REV-001",
+      "pose_revision_id": "POSE-dense-frontal-wall-scan",
+      "pose_evidence_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "sensor_profile_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "visibility_profile_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "visibility_receipt_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "target_visibility": [
+        {
+          "target_entity_id": "DOOR-001",
+          "status": "observable",
+          "observable_area_m2": 0.99,
+          "theoretical_area_m2": 1
+        }
+      ],
+      "estimated_cost_units": 9,
+      "estimated_duration_ticks": 3,
+      "cost_basis_id": "SYNTHETIC-CAPTURE-COST-V1",
+      "duration_basis_id": "SYNTHETIC-CAPTURE-TIME-V1",
+      "resolves_unknown_ids": [],
+      "outcomes": [
+        {
+          "outcome_id": "door-remains-ambiguous",
+          "compatible_state_ids": [
+            "door-clear-width-compliant",
+            "door-clear-width-noncompliant"
+          ]
+        }
+      ]
+    },
+    {
+      "action_id": "blocked-backside-scan",
+      "sensor_id": "MOBILE-LIDAR-001",
+      "frame_id": "ROOM-A-LOCAL",
+      "model_revision": "MODEL-REV-001",
+      "pose_revision_id": "POSE-blocked-backside-scan",
+      "pose_evidence_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "sensor_profile_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "visibility_profile_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "visibility_receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "target_visibility": [
+        {
+          "target_entity_id": "DOOR-001",
+          "status": "self_occluded",
+          "observable_area_m2": 0,
+          "theoretical_area_m2": 1
+        }
+      ],
+      "estimated_cost_units": 3,
+      "estimated_duration_ticks": 2,
+      "cost_basis_id": "SYNTHETIC-CAPTURE-COST-V1",
+      "duration_basis_id": "SYNTHETIC-CAPTURE-TIME-V1",
+      "resolves_unknown_ids": [
+        "door-clear-width"
+      ],
+      "outcomes": [
+        {
+          "outcome_id": "measured-compliant",
+          "compatible_state_ids": [
+            "door-clear-width-compliant"
+          ]
+        },
+        {
+          "outcome_id": "measured-noncompliant",
+          "compatible_state_ids": [
+            "door-clear-width-noncompliant"
+          ]
+        }
+      ]
+    }
+  ]
+}
