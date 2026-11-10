@@ -796,10 +796,10 @@ mod tests {
     }
 
     #[test]
-    fn every_policy_family_requires_a_loaded_checkpoint_and_inference_smoke() {
+    fn every_task_family_suite_requires_a_loaded_checkpoint_and_inference_smoke() {
         let mut candidate = evidence();
-        candidate.model_smokes[1].checkpoint_loaded = false;
-        candidate.model_smokes[2].inference_requests = 0;
+        candidate.model_smokes[9].checkpoint_loaded = false;
+        candidate.model_smokes[18].inference_requests = 0;
 
         let report = qualify_release(&candidate).unwrap();
         assert!(report.has_blocker(ReleaseGateBlocker::ModelSmokeCheckpointNotLoaded));
