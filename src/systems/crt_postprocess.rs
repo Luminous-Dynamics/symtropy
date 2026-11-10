@@ -4,7 +4,7 @@
 //!
 //! This module currently defines the camera marker and uniform shape only. It
 //! does not register a render-graph node or load the CRT shader. The legacy
-//! `crt_consciousness.wgsl` asset is tracked for WESL migration in issue #4475.
+//! `crt_consciousness.wesl` asset is tracked for WESL migration in issue #4475.
 //! Replaces the built-in ChromaticAberration
 //! with a consciousness-driven CRT effect that includes:
 //!
@@ -104,7 +104,7 @@ pub fn crt_settings_sync_system(
 //
 // This is ~300 lines of render-world boilerplate that mirrors the
 // EffectStackPlugin in bevy_post_process. The WGSL shader is ready
-// (assets/shaders/crt_consciousness.wgsl) — only the Rust wiring is needed.
+// (assets/shaders/crt_consciousness.wesl) — only the Rust wiring is needed.
 //
 // For Bevy 0.19+: use FullscreenMaterialPlugin<CrtConsciousnessMaterial>
 // which eliminates all this boilerplate.
