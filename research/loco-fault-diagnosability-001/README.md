@@ -169,7 +169,7 @@ It:
 - preserves common-cause group identifiers in the result;
 - canonicalizes hypothesis/feature order.
 
-Fifteen deterministic tests cover separable and overlapping fault signatures, touching intervals, Unknown hypotheses, unique and ambiguous observations, OOD observations, missing sensor features, stale/mismatched receipts, non-admitted probes, feature schema/unit mismatch, permutation invariance, invalid intervals and common-cause metadata.
+Seventeen deterministic tests cover separable and overlapping fault signatures, touching intervals, Unknown hypotheses, unique and ambiguous observations, OOD observations, missing sensor features, stale/mismatched receipts, non-admitted probes, feature schema/unit mismatch, permutation invariance, invalid intervals and common-cause metadata.
 
 Qualification commands:
 
