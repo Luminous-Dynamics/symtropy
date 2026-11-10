@@ -908,3 +908,90 @@ Both PRs are draft. Exact-head Actions qualification is not yet claimed. The aut
 Once the parent Gray–Scott PR is reviewed, the oscillator follow-up can be reviewed as its dependent mechanism control. These two generators are a first executable tranche only; subsequent abiotic families still include hysteresis/memory, reaction-oscillator controls, coherent fluid structures, crystals, granular systems, magnetic-field structures and other mechanism-specific generators.
 
 No synthetic generator result is evidence that a natural sample is living or non-living outside the declared model, regime and intervention scope.
+
+
+## 23. Molecular biosignature frontier: property estimation is not life detection (10 November 2026)
+
+A major new 2026 result makes molecular mass spectrometry a high-priority OLI benchmark lane, but also forces a crucial separation of scientific tasks.
+
+### 23.1 Rutter et al. (2026): machine estimation of molecular assembly from MS
+
+Rutter et al., *Molecular assembly as a universal biosignature measurable by mass spectrometry*, PNAS 123(33), e2619198123, DOI: https://doi.org/10.1073/pnas.2619198123.
+
+The study trains XGBoost on NIST Chemistry WebBook SRD 69 single-stage EI-MS spectra to predict a structure-derived molecular assembly (MA) score. It reports:
+- random 70/30 train/test split stratified by true MA;
+- relative MSE of 0.04 versus 0.12 for the best reported baseline;
+- external MassBank EI-B result of 0.07 after removing compounds overlapping with NIST training, versus 0.12 for the best molecular-weight power-law baseline;
+- CFM-ID simulated ESI-MS2 models at 10/20/40 eV with relative MSE about 0.031–0.033;
+- mixed-energy and integrated-energy profiles of 0.035 and 0.029;
+- substantial cross-energy degradation, including nearly double error for a 40 eV-trained model tested at 10 eV and over 2.3-fold error for the integrated-energy model tested at 10 eV.
+
+**Critical semantic distinction:** this is a spectrum-to-MA regression study. Its model predicts a molecular property from spectral data; it is not itself a direct life/non-life classifier, and it does not establish that a particular high MA molecule must have been produced by life.
+
+The authors identify NIST SRD 69 as the experimental source and MassBank EI-B as a separate external source. The primary split is still random at the molecule level, not a sealed chemical-family / instrument / laboratory / environmental-context challenge. The external MassBank result is a meaningful step beyond a random split, but it does not establish transfer to a planetary instrument or a mixed extraterrestrial sample.
+
+Source dataset:
+- Exact Zenodo v1 DOI: https://doi.org/10.5281/zenodo.20586263
+- Record: https://zenodo.org/records/20586263
+- Visible files: Code.zip (13.4 MB) and Data.zip (4.3 GB).
+- NIST SRD 69: https://webbook.nist.gov/chemistry/
+
+The Zenodo record is marked open, but its visible license field was not populated in the inspected page. Do not assume the Code.zip/Data.zip inherit the PNAS article's CC BY 4.0 licence. The public AssemblyCPP v5 implementation repository contains a License.md identifying CC BY-NC 4.0. That is not suitable for direct inclusion in commercial Luminous production without separate authorization. Treat it as a rights-scoped external comparator or conduct a separate legal and mathematical clean-room implementation review before any independent implementation.
+
+### 23.2 Slaughter et al. (2026): mixture detection is a different benchmark
+
+Slaughter et al., *Detecting signs of life in biotic–abiotic mixtures using pyrolysis–gas chromatography–mass spectrometry and machine learning*, Frontiers in Astronomy and Space Sciences 13:1695325, DOI: https://doi.org/10.3389/fspas.2026.1695325, is the most useful direct challenge for mixture-level life detection.
+
+The study examines 60 constructed mixtures spanning living organisms, fossilized organics, carbonaceous meteorites and laboratory-synthesized organics, with biological:abiotic mass ratios including 90:10 through 10:90 and additional mixtures containing roughly 2–5 wt% biological material. It reports:
+- 87% identification of mixtures containing contemporary/modern biological components, with a reported detection limit between about 1% and 10% biotic material;
+- 60% identification among the ancient/old-biotic mixture subset, with a reported detection limit between about 33% and 50%;
+- the old-biotic mixture subset contains only 10 cases; its uncertainty and small-sample limitations must be visible.
+
+This is not merely another pure-sample classification benchmark. It measures a real operational challenge: biological signals can be diluted, degraded, obscured or compositionally altered by abiotic backgrounds. Its paper is CC BY 4.0; raw data, supplementary files, attribution and redistribution permissions must still be checked at the artifact level before ingestion.
+
+### 23.3 Wong et al. (2025): geology and physiological categories
+
+Wong et al., *Organic geochemical evidence for life in Archean rocks identified by pyrolysis–GC–MS and supervised machine learning*, PNAS 122(47), e2514534122, DOI: https://doi.org/10.1073/pnas.2514534122, reports a 406-sample panel spanning fossil, modern biological, meteoritic and synthetic material, with biogenic/abiogenic and photosynthetic/non-photosynthetic category tasks.
+
+The paper's headline evaluations include random 75/25 stratified splits and repeated 10-fold cross-validation. OLI should faithfully reproduce those as source profiles, then add stronger geological-source, instrument, preparation-batch, compound-family and site holdouts.
+
+Data DOI: https://doi.org/10.17605/OSF.IO/G93CS
+Code: https://github.com/PrabhuLab/PyGCMS-Biosign-ML
+
+The article's licence is CC BY-NC-ND 4.0. Its Data Availability text says data and code are available for research reproduction/extension but notes that repository licences and attribution information would be updated. The paper licence does not automatically license separate code/data repositories; rights must be resolved before redistribution, adaptation or derivative releases.
+
+### 23.4 The assembly-index methodological dispute must become a benchmark, not a belief
+
+Uthamacumaran et al. (2024), *On the salient limitations of the methods of assembly theory and their classification of molecular biosignatures*, npj Systems Biology and Applications 10:82, DOI: https://doi.org/10.1038/s41540-024-00403-y, argues that the assembly pathway behaves like a compression scheme, that other indexes can match or outperform it on tested molecular data, and that it can miss nonlinear modularity or generate false-positive interpretations for complex abiotic chemistry.
+
+Cronin's response/preprint, https://arxiv.org/abs/2403.12452, challenges the critique's methodological comparison and interpretation.
+
+OLI must not decide this dispute by choosing a preferred author. The benchmark should compare the methods under matched data, source-controlled splits, independently checked implementations, fair baselines and known-truth abiotic controls. The central question is whether a descriptor is useful for a specified task, under which inputs and costs, not whether it is universally unique.
+
+### 23.5 Two molecular leaderboards, never one mixed score
+
+**Task A — spectrum-to-property regression**
+- Reproduce Rutter et al.'s source split and relative MSE before claiming reproduction.
+- Add conventional MAE, RMSE, R2, median absolute error, signed bias, per-MA-bin calibration and uncertainty/coverage.
+- Audit exact molecular duplicates, near-duplicate structures, compound families, source overlap and acquisition replicates.
+- Use compound/scaffold, instrument, laboratory, database, ionization-energy, resolution and preprocessing holdouts.
+- Track the documented high-MA underprediction and low-MA overprediction.
+- Compare molecular weight, atom/bond count, peak count, maximum peak, spectral entropy, run-length/LZ-family compression, Bertz, Böttcher and other reproducible complexity baselines.
+
+**Task B — mixture-level biological-origin assessment**
+- Reproduce pure-sample baseline and mixed-sample challenge separately.
+- Publish detection curves by biological mass fraction, separately for modern and ancient/aged material.
+- Report false-positive and false-negative rates, calibration, one-sided confidence bounds, and sample counts.
+- Include abiotic mineral-catalysed, meteorite, kerogen/petroleum, synthetic polymer and crystal-like chemical backgrounds.
+- Include sparse/degraded/dormant or low-abundance biological positives.
+- Treat matrix, pyrolysis yield, ionization, preparation batch and instrument configuration as potential confounders.
+
+No single MA threshold, spectral classifier, or complexity statistic is allowed to declare a sample alive without context, known-truth validation and explicit false-positive controls.
+
+### 23.6 OLI implementation tracker
+
+Symthaea [OLI-MOLECULAR-001 #11487](https://github.com/Luminous-Dynamics/symthaea/issues/11487) now owns source admission, MA regression reproduction, mixture detection, instrumentation robustness, abiotic false-positive controls, adversarial attacks and evidence-acquisition proposals.
+
+It composes OLI-OOD-ATTACK-001 #11451 and OLI-EXPERIMENT-001 #11446. Symtropy OLI-ABIOTIC-001 #4572 supplies synthetic abiotic controls; Sol-Atlas #691 owns spatial/temporal coverage and mission observation context; Mycelix #5709/#6038 owns source rights, provenance, chain-of-custody attestations and contestable claims.
+
+No external molecular archive or non-commercial algorithm implementation is to be copied into Luminous production until rights are admitted. No molecule's assembly score is a life, agency, intelligence or consciousness status.
