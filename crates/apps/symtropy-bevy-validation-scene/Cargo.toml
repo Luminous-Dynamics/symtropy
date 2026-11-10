@@ -6,6 +6,11 @@ publish = false
 license = "Apache-2.0 OR MIT"
 description = "Executable smoke scene for the permissive Symtropy Bevy distribution."
 
+[features]
+default = []
+# Optional Bevy 0.20 realtime ray-traced lighting preview. Requires a GPU/backend with ray-query support.
+solari-preview = ["bevy/bevy_solari"]
+
 [dependencies]
 # default-features = false + this curated list matches every other bevy-using
 # crate in the workspace (e.g. symtropy-auv-demo, symtropy-humanoid-demo).
