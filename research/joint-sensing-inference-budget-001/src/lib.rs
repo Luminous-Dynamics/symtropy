@@ -297,7 +297,7 @@ fn validate_sensor_option(
         }
     }
     if opportunity.observation_available_tick > budget.planning_tick
-        || opportunity.observation_evidence != EvidenceDisposition::Admitted
+        || opportunity.observation_evidence == EvidenceDisposition::Rejected
         || opportunity.observation_source_role != SourceRole::PolicyVisible
         || option.source_observation_digest != opportunity.observation_digest
     {
@@ -708,6 +708,15 @@ mod tests {
         assert_eq!(result.action, DecisionAction::RequestObservation);
         assert_eq!(result.reason, DecisionReason::StaleObservationRequiresRefresh);
         assert!(result.inference_grant.is_none());
+    }
+
+    #[test]
+    fn policy_visible_missing_frame_event_can_request_a_replacement() {
+        let mut inference = inference();
+        inference.observation_evidence = EvidenceDisposition::Missing;
+        let result = schedule(&budget(), &inference, "measured_uj_v1", Some(&sensor())).unwrap();
+        assert_eq!(result.action, DecisionAction::RequestObservation);
+        assert_eq!(result.reason, DecisionReason::StaleObservationRequiresRefresh);
     }
 
     #[test]
