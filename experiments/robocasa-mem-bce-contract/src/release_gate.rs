@@ -186,9 +186,6 @@ pub fn qualify_release(
         evidence.evaluation_input_lock_sha256.as_str(),
         evidence.simulator_source_lock_sha256.as_str(),
         evidence.dataset_manifest_sha256.as_str(),
-        evidence.dataset_rights_manifest_sha256.as_str(),
-        evidence.asset_rights_manifest_sha256.as_str(),
-        evidence.asset_verification_receipt_sha256.as_str(),
         evidence.policy_family_manifest_sha256.as_str(),
         evidence.asset_manifest_sha256.as_str(),
         evidence.asset_archive_sha256.as_str(),
@@ -208,6 +205,27 @@ pub fn qualify_release(
 
     let mut blockers = BTreeSet::new();
 
+    for (digest, missing_blocker) in [
+        (
+            evidence.dataset_rights_manifest_sha256.as_str(),
+            ReleaseGateBlocker::DatasetRightsManifestMissing,
+        ),
+        (
+            evidence.asset_rights_manifest_sha256.as_str(),
+            ReleaseGateBlocker::AssetRightsManifestMissing,
+        ),
+        (
+            evidence.asset_verification_receipt_sha256.as_str(),
+            ReleaseGateBlocker::AssetVerificationReceiptMissing,
+        ),
+    ] {
+        if digest.trim().is_empty() {
+            blockers.insert(missing_blocker);
+        } else if !is_sha256_hex(digest) {
+            return Err(ReleaseGateBlocker::InvalidArtifactDigest);
+        }
+    }
+
     if evidence.candidate_source_commit != evidence.manifest_source_commit {
         blockers.insert(ReleaseGateBlocker::SourceRevisionMismatch);
     }
@@ -220,7 +238,9 @@ pub fn qualify_release(
     if !evidence.release_ready_attested {
         blockers.insert(ReleaseGateBlocker::ReleaseNotMarkedReady);
     }
-    if evidence.manifest_task_count != evidence.expected_task_count {
+    if evidence.expected_task_count == 0
+        || evidence.manifest_task_count != evidence.expected_task_count
+    {
         blockers.insert(ReleaseGateBlocker::TaskCountMismatch);
     }
     if evidence.asset_verified_task_count != evidence.expected_task_count {
@@ -346,7 +366,9 @@ pub fn qualify_release(
         }
     }
 
-    let source_audited = evidence.candidate_source_commit == evidence.manifest_source_commit;
+    let source_audited = evidence.candidate_source_commit == evidence.manifest_source_commit
+        && evidence.source_file_manifest_verified
+        && !blockers.contains(&ReleaseGateBlocker::SourceManifestUnverified);
     let evaluation_inputs_frozen = !blockers.iter().any(|blocker| {
         matches!(
             blocker,
@@ -369,6 +391,8 @@ pub fn qualify_release(
                 | ReleaseGateBlocker::CleanCandidateInstallationUnverified
                 | ReleaseGateBlocker::AssetRightsUnknown
                 | ReleaseGateBlocker::AssetRightsRestricted
+                | ReleaseGateBlocker::DatasetRightsUnknown
+                | ReleaseGateBlocker::DatasetRightsRestricted
         )
     });
     let current_wheel_accepted = !blockers.iter().any(|blocker| {
