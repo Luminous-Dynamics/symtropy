@@ -35,7 +35,7 @@ The planning objective is the free-state geometry after full cooling and full re
 
 ## v0.1 synthetic contract
 
-Each case binds panel identity/configuration, weld-line sequence/precedence, fixture reaction limit and symbolic predicted reaction, release events, final free-state measurement/datum/uncertainty, model scope/status, online information boundary, resource feasibility, objective vector and no-writeback boundary.
+Each case binds panel identity/configuration, weld-line sequence/precedence, fixture identity/revision and reaction limit, ordered release events, final free-state measurement bound to the same panel revision/fixture/datum/coordinate frame, model identity/revision/scope/status, online information boundary, resource feasibility, objective vector and no-writeback boundary.
 
 The first evaluator only checks the contract and declared synthetic toy-envelope facts. Its units are **symbolic synthetic units**, not millimetres, MPa, clamp force or physical measurements.
 
@@ -45,7 +45,7 @@ A case is valid only if:
 1. all weld tasks are present and unique;
 2. every precedence edge is respected;
 3. declared fixture reaction does not exceed the synthetic contract limit;
-4. release history contains a final event after cooling with all restraints removed;
+4. release history has strictly increasing event order and a final state after cooling with all restraints removed;
 5. final measurement is at final free state, uses an explicit datum and carries uncertainty metadata;
 6. model is explicitly synthetic-contract-only, in declared scope and makes no physical qualification claim;
 7. schedule uses no future information and contains no resource conflict;
@@ -76,7 +76,7 @@ Aspirational target: at least 5% improvement on one preregistered held-out quali
 
 ## Frozen controls
 
-The 27-case corpus contains two positive contract controls and 25 negative controls covering invalid sequences, precedence errors, fixture over-limit, missing cooling/release, in-fixture substitution for final measurement, missing datum/uncertainty, OOD or unqualified physical model claims, future leakage, resource conflict, objective collapse/omission, and synthetic-to-as-built writeback.
+The 31-case corpus contains two positive contract controls and 29 negative controls covering invalid sequences, precedence errors, fixture over-limit, missing cooling/release, in-fixture substitution for final measurement, missing datum/uncertainty, OOD or unqualified physical model claims, future leakage, resource conflict, objective collapse/omission, and synthetic-to-as-built writeback.
 
 ## Claim ceiling
 
