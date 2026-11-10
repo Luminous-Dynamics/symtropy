@@ -73,7 +73,8 @@
             "value_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
             "derivation_method": null,
             "assumptions": [],
-            "unknown_reason": null
+            "unknown_reason": null,
+            "target_artifact_id": "MESH-001"
           }
         ],
         "uncertainty": {
