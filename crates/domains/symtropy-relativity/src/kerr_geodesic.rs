@@ -381,6 +381,11 @@ pub struct KerrFiniteRadiusObserver {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct KerrObserverRaySeed {
     pub constants: KerrNullConstants,
+    /// Coordinate chart for the initial state's time/azimuth coordinates and
+    /// the preferred matching Mino integration entry point.
+    pub coordinate_chart: KerrMinoCoordinateChart,
+    pub observer_radius_over_m: f64,
+    pub observer_theta_rad: f64,
     pub initial_state: KerrMinoDynamicState,
     /// Killing energy at infinity per unit local ZAMO photon energy.
     pub infinity_energy_per_unit_local_energy: f64,
@@ -1816,6 +1821,13 @@ impl KerrFiniteRadiusObserver {
         }
         Ok(KerrObserverRaySeed {
             constants,
+            coordinate_chart: if direction.radial < 0.0 {
+                KerrMinoCoordinateChart::IngoingKerr
+            } else {
+                KerrMinoCoordinateChart::BoyerLindquist
+            },
+            observer_radius_over_m: self.radius_over_m,
+            observer_theta_rad: self.theta_rad,
             initial_state: state,
             infinity_energy_per_unit_local_energy: energy_at_infinity,
             local_direction: direction,
