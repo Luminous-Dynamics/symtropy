@@ -36,7 +36,3 @@ jobs:
       - name: Run strict Clippy
         run: cargo clippy --locked --manifest-path research/resource-normalized-driving-capability-001/evaluator/Cargo.toml --all-targets --all-features -- -D warnings
 
-      - name: Validate not-run template with evaluator
-        run: |
-          cargo run --locked --manifest-path research/resource-normalized-driving-capability-001/evaluator/Cargo.toml --bin capability-frontier -- driving_score maximize research/resource-normalized-driving-capability-001/result_card.template.json research/resource-normalized-driving-capability-001/result_card.template.json
-        continue-on-error: true
