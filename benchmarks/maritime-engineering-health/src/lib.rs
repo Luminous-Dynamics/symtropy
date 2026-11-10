@@ -67,6 +67,15 @@ pub struct Observation {
     pub quality: Quality,
     pub config_revision: String,
     pub dependency_group: String,
+    pub source_ref: String,
+    pub unit: String,
+    pub calibration_ref: String,
+    pub clock_domain: String,
+    pub clock_quality: ClockQuality,
+    pub age_ms: u64,
+    pub max_age_ms: u64,
+    pub validity_profile_ref: String,
+    pub uncertainty_ref: String,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
@@ -79,6 +88,15 @@ pub enum SourceRole {
     ModelResidual,
     ExternalDiagnostic,
     SimulatorOnly,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ClockQuality {
+    MonotonicAndUtcBound,
+    UtcOnly,
+    Conflicted,
+    Unknown,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
@@ -216,6 +234,8 @@ fn is_admitted(observation: &Observation, asset: &Asset) -> bool {
     observation.quality == Quality::Current
         && observation.config_revision == asset.config_revision
         && observation.source_role != SourceRole::SimulatorOnly
+        && observation.clock_quality == ClockQuality::MonotonicAndUtcBound
+        && observation.age_ms <= observation.max_age_ms
 }
 
 pub fn validate_case(case: &Case) -> Result<(), EvalError> {
@@ -244,6 +264,13 @@ pub fn validate_case(case: &Case) -> Result<(), EvalError> {
             || !nonempty(&observation.signal)
             || !nonempty(&observation.config_revision)
             || !nonempty(&observation.dependency_group)
+            || !nonempty(&observation.source_ref)
+            || !nonempty(&observation.unit)
+            || !nonempty(&observation.calibration_ref)
+            || !nonempty(&observation.clock_domain)
+            || !nonempty(&observation.validity_profile_ref)
+            || !nonempty(&observation.uncertainty_ref)
+            || observation.max_age_ms == 0
         {
             return Err(EvalError::Invalid(format!(
                 "observation identity/lineage is empty in {}",
@@ -443,8 +470,8 @@ mod tests {
     #[test]
     fn frozen_corpus_matches_all_declared_outcomes() {
         let report = evaluate_bytes(CORPUS).expect("corpus evaluates");
-        assert_eq!(report.total_cases, 36);
-        assert_eq!(report.passed_cases, 36);
+        assert_eq!(report.total_cases, 38);
+        assert_eq!(report.passed_cases, 38);
         assert_eq!(report.failed_cases, 0);
         assert_eq!(report.corpus_sha256.len(), 64);
     }
@@ -508,6 +535,41 @@ mod tests {
                 "{id}"
             );
         }
+    }
+
+    #[test]
+    fn declared_current_quality_cannot_override_expired_age() {
+        let corpus = corpus();
+        let case = corpus
+            .cases
+            .iter()
+            .find(|case| case.case_id == "negative-age-exceeds-validity")
+            .expect("expired-age fixture exists");
+        let observation = &case.observations[0];
+        assert_eq!(observation.quality, Quality::Current);
+        assert!(observation.age_ms > observation.max_age_ms);
+        assert_eq!(evaluate_case(case).decision_evidence_observations, 0);
+        assert_eq!(
+            evaluate_case(case).disposition,
+            Disposition::UnknownEscalate
+        );
+    }
+
+    #[test]
+    fn conflicted_clock_cannot_support_current_decision_evidence() {
+        let corpus = corpus();
+        let case = corpus
+            .cases
+            .iter()
+            .find(|case| case.case_id == "negative-clock-unqualified")
+            .expect("clock-quality fixture exists");
+        assert_eq!(case.observations[0].quality, Quality::Current);
+        assert_eq!(case.observations[0].clock_quality, ClockQuality::Conflicted);
+        assert_eq!(evaluate_case(case).decision_evidence_observations, 0);
+        assert_eq!(
+            evaluate_case(case).disposition,
+            Disposition::UnknownEscalate
+        );
     }
 
     #[test]
