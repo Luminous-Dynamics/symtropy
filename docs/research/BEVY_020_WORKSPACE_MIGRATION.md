@@ -77,6 +77,17 @@ References:
 - [Bevy 0.20 Solari example](https://github.com/bevyengine/bevy/blob/v0.20.1/examples/3d/solari.rs)
 - [Bevy Solari plugin group and required WGPU features](https://github.com/bevyengine/bevy/blob/v0.20.1/crates/bevy_solari/src/lib.rs)
 
+## GPU-domain storage migration and capability disclosure
+
+The Bevy 0.20 manifest sweep also includes `symtropy-physics-gpu`. Its Bevy 0.19 `ShaderBuffer` usage was migrated in `crates/domains/symtropy-physics-gpu/src/lib.rs`:
+- initialize the instance/social buffers with typed `Vec<GpuInstanceData>` and `Vec<GpuCitizenSocialState>`;
+- replace the removed `set_data` update with `clear` + `extend_from_slice`;
+- retain a zero-filled minimum-size binding when the social-state list is empty.
+
+The audit also exposed a separate capability issue. The GPU crate queues compute pipeline descriptors but does not dispatch them; its spatial-hash `broadphase` entry point is a stub, the bind group uses dummy scratch buffers, and readback does not return collision candidates. The crate/module/Cargo descriptions and README are now explicit about that boundary. See [PHYS-GPU-DISPATCH-001 #4482](https://github.com/Luminous-Dynamics/symtropy/issues/4482), parent [PHYS-GPU-001 #3866](https://github.com/Luminous-Dynamics/symtropy/issues/3866).
+
+The Bevy 0.20 storage-buffer update is API migration only. It does not establish an executable GPU compute pass, collision candidate correctness, a GPU solver, or GPU performance superiority.
+
 ## Required source/API migration
 
 Bevy's [0.19 → 0.20 migration guide](https://bevy.org/learn/migration-guides/0-19-to-0-20/) and [0.20 release notes](https://bevy.org/news/bevy-0-20/) call out several relevant changes:
