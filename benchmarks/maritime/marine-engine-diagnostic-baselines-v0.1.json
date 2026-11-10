@@ -4,6 +4,212 @@
   "claim_ceiling": "Literature-reported metrics and public dataset metadata only. None of the model results below has been independently reproduced by this project. Results on different engines, datasets, label sets, source domains and split protocols are not directly comparable.",
   "baselines": [
     {
+      "id": "cross-condition-finetuning-18-tasks-2025",
+      "title": "A universal transfer learning framework for cross-working-condition marine diesel engine fault diagnosis based on fine-tuning strategy",
+      "source_type": "peer_reviewed_article",
+      "publication_date": "2025-08-15",
+      "source_url": "https://doi.org/10.1016/j.apenergy.2025.125962",
+      "data_domain": "Two marine diesel engine case studies: an 8V396SE engine (500 kW) and a 620 V16 engine (2336 kW); lubrication-system fault data include experimental bench evidence and intake/exhaust fault data include virtual simulation.",
+      "task": "Cross-working-condition fault diagnosis using data-tiered fusion augmentation and combined fine-tuning across 18 transfer tasks.",
+      "reported_metrics": [
+        {
+          "metric": "cross_working_condition_transfer_tasks",
+          "value": 18,
+          "unit": "tasks",
+          "context": "The article reports validation over 18 cross-working-condition tasks; this is a protocol coverage count, not a performance score.",
+          "source_location": "Highlights and abstract"
+        },
+        {
+          "metric": "cross_working_condition_accuracy",
+          "value": 95,
+          "unit": "%",
+          "context": "Abstract-reported accuracy for the paper's own cross-working-condition marine-engine task. Not reproduced here; do not treat as a common-protocol or physical fleet-transfer score. Recover the exact per-task table, class balance and split manifest before reproduction.",
+          "source_location": "Abstract"
+        }
+      ],
+      "split_protocol": "Cross-working-condition transfer across two engine types and two subsystem task families; exact source/target task definitions, per-task sample grouping and split manifests require full-methods audit.",
+      "reported_limitations": [
+        "The two engine types, subsystems and mixture of experimental/virtual evidence must be kept distinct.",
+        "The accessible abstract reports the task count but no single aggregate metric suitable for direct comparison.",
+        "Not directly comparable to Aalto MU323DGSC without fault taxonomy and sensor protocol alignment.",
+        "The accessible abstract reports 95% accuracy but this is not an independently reproduced result; determine which of the 18 transfer tasks and source/target groups the score aggregates."
+      ],
+      "reproducibility_status": "reported_not_reproduced",
+      "direct_comparison_to_aalto": "not_comparable",
+      "audit_notes": [
+        "Methods include data-tiered fusion (DTF) for augmentation and a combined fine-tuning strategy (CFTS).",
+        "Use as a reproduction baseline for cross-working-condition methodology and task coverage, not as a leaderboard entry."
+      ]
+    },
+    {
+      "id": "dual-transfer-simulation-to-experimental-2025",
+      "title": "Mean value model-assisted dual transfer: a cross-domain fault diagnosis framework in diesel engines from simulation domains to experimental domains",
+      "source_type": "peer_reviewed_article",
+      "publication_date": "2025-10-30",
+      "source_url": "https://doi.org/10.1016/j.energy.2025.138126",
+      "data_domain": "Simulation-assisted and experimental diesel-engine lubrication-system data; the methods describe a 16V396 simulation domain and measured 8V396 bench domain, with operating points at 70%, 85% and 100% load. This is not the Aalto MU323DGSC dataset.",
+      "task": "Cross-domain lubricating-oil fault diagnosis using a mean-value-engine-model-assisted dual-transfer approach that combines data-level transfer and neural model-level transfer.",
+      "reported_metrics": [
+        {
+          "metric": "average_cross_domain_accuracy",
+          "value": ">97.70",
+          "unit": "%",
+          "context": "Authors report average accuracy above 97.70% for their own cross-domain lubrication fault-diagnosis evaluation. This is literature-reported, not reproduced here; per-task composition and exact grouping must be audited before comparison.",
+          "source_location": "Abstract and results"
+        }
+      ],
+      "split_protocol": "Cross-domain simulation-to-experimental evaluation between 16V396 simulation and 8V396 measured bench data; the paper describes nine transfer tasks and load points 70%, 85% and 100%. Exact source/target task assignments, sample grouping, split boundaries and whether any task shares engine-specific operating trajectories require full-methods/table audit.",
+      "reported_limitations": [
+        "The task is lubrication-system fault diagnosis, not the five Aalto fault families; direct score comparison is invalid.",
+        "The evaluation is cross-domain simulation-to-bench, not multi-vessel shipboard validation.",
+        "The reported >97.70% average accuracy must be decomposed by task, engine, fault class and direction; do not compare it with an aggregate from a different paper.",
+        "Code, training data, preprocessing, exact split manifests and leakage controls have not been independently audited by this project."
+      ],
+      "reproducibility_status": "reported_not_reproduced",
+      "direct_comparison_to_aalto": "not_comparable",
+      "audit_notes": [
+        "Method combines mean-value model-assisted data-level transfer with a neural model-level transfer stage.",
+        "A useful reproduction baseline for simulation-to-measured transfer and model-assisted domain adaptation.",
+        "Benchmark against source-only, target-only, fine-tuning, DANN, adaptive multi-source weighting and a calibrated non-neural baseline under exactly matched task groups."
+      ]
+    },
+    {
+      "id": "multisource-fusion-simulation-2026",
+      "title": "Multi-source fusion marine diesel engine fault diagnosis study",
+      "source_type": "peer_reviewed_article",
+      "publication_date": "2026-01-16",
+      "source_url": "https://doi.org/10.1016/j.isci.2025.114345",
+      "data_domain": "Simulation-generated samples from a one-dimensional thermodynamic engine model.",
+      "task": "Multi-source fusion classification for marine diesel engine fault diagnosis.",
+      "reported_metrics": [
+        {
+          "metric": "accuracy",
+          "value": 99.45,
+          "unit": "%",
+          "context": "Study reports this value on its own simulated dataset.",
+          "source_location": "Abstract/results"
+        },
+        {
+          "metric": "sample_count",
+          "value": 2567,
+          "unit": "samples",
+          "context": "Simulation-generated dataset size described in the methods.",
+          "source_location": "Methods"
+        }
+      ],
+      "split_protocol": "2,567 samples generated from a one-dimensional GT-Power thermodynamic simulation model; randomized 70/30 stratified train/test split and five-fold cross-validation reported.",
+      "reported_limitations": [
+        "Simulation-generated examples are not a physical test-bench or real-vessel score.",
+        "No direct comparison to the Aalto physical fault dataset.",
+        "The article's publication date is 16 January 2026 (article date: 5 December 2025); source metadata must distinguish online article date from issue date."
+      ],
+      "reproducibility_status": "reported_not_reproduced",
+      "direct_comparison_to_aalto": "not_comparable",
+      "audit_notes": []
+    },
+    {
+      "id": "proactive-fault-prediction-2026",
+      "title": "Proactive fault prediction in marine diesel engines using multivariate machine learning",
+      "source_type": "peer_reviewed_article",
+      "publication_date": "2026-03-20",
+      "source_url": "https://doi.org/10.1038/s41598-026-40979-5",
+      "data_domain": "Study-specific marine diesel engine dataset; the paper's exact physical domain and file-level independence require separate review before cross-study comparison.",
+      "task": "Marine diesel engine fault prediction/classification using multivariate machine learning.",
+      "reported_metrics": [
+        {
+          "metric": "random_forest_accuracy",
+          "value": 82.681,
+          "unit": "%",
+          "context": "Reported model accuracy; same-study comparisons include 1-D CNN and MLP.",
+          "source_location": "Results"
+        }
+      ],
+      "split_protocol": "Study-specific split; preserve the paper's split and grouping semantics when reproducing. Do not assume comparability with Aalto files.",
+      "reported_limitations": [
+        "Data provenance, label taxonomy and recording-level split independence must be checked before direct comparison.",
+        "Reported result has not been reproduced by this project."
+      ],
+      "reproducibility_status": "reported_not_reproduced",
+      "direct_comparison_to_aalto": "not_comparable",
+      "audit_notes": []
+    },
+    {
+      "id": "adaptive-multisource-transfer-2026",
+      "title": "Multi-source data fusion for marine four-stroke diesel engine fault diagnosis: An adaptive weight transfer learning framework",
+      "source_type": "peer_reviewed_article",
+      "publication_date": "2026-04-01",
+      "source_url": "https://doi.org/10.1016/j.enconman.2026.121194",
+      "data_domain": "Instrumented 8V396 four-stroke marine-diesel engine testbed at 25%, 50% and 75% load, with complementary simulated source domains.",
+      "task": "Multi-source domain adaptation for lubrication-system fault diagnosis across operating conditions and measured/simulated domains.",
+      "reported_metrics": [
+        {
+          "metric": "average_accuracy_pure_real_measured_scenarios",
+          "value": 83.64,
+          "unit": "%",
+          "context": "Reported average diagnostic accuracy for pure real measured scenarios on the 8V396 testbed.",
+          "source_location": "Abstract and experimental verification"
+        },
+        {
+          "metric": "average_accuracy_real_simulation_hybrid_scenarios",
+          "value": 82.37,
+          "unit": "%",
+          "context": "Reported average diagnostic accuracy for hybrid real/simulation scenarios.",
+          "source_location": "Abstract and experimental verification"
+        }
+      ],
+      "split_protocol": "Cross-working-condition measured-data tasks and real/simulation hybrid transfer; exact train/validation/test partition and per-task load pairings must be recovered from the full methods and tables before reproduction.",
+      "reported_limitations": [
+        "Focused on lubrication-system diagnosis and a specific 8V396 testbed; not directly comparable to Aalto MU323DGSC fault families.",
+        "The average scores do not replace per-task, per-fault and worst-domain analysis.",
+        "Exact data access, labels, run grouping, repository and split manifests have not been audited by this project."
+      ],
+      "reproducibility_status": "reported_not_reproduced",
+      "direct_comparison_to_aalto": "not_comparable",
+      "audit_notes": [
+        "Proposes shared-specialized collaborative cross-domain features, dynamic entropy weighting of source-target domains, and semi-supervised target-domain regularization.",
+        "Key negative-transfer question: does dynamic source weighting improve over uniform source fusion and strongest single-source baseline under matched target data and compute?",
+        "No model code or dataset payload has been independently audited by this project."
+      ]
+    },
+    {
+      "id": "localized-anomaly-recovery-vessel-data-2026",
+      "title": "Localized anomaly detection and recovery of marine engine data to support digital twin development in shipping",
+      "source_type": "peer_reviewed_article",
+      "publication_date": "2026-04-01",
+      "source_url": "https://doi.org/10.1016/j.oceaneng.2026.124356",
+      "data_domain": "Operational dataset from an ocean-going vessel; the accessible abstract describes seven operating regions and steady/transient operating modes.",
+      "task": "Data quality qualification: localized anomaly identification, missing-value recovery and operating-region separation for marine-engine digital-twin development.",
+      "reported_metrics": [
+        {
+          "metric": "operating_regions",
+          "value": 7,
+          "unit": "regions",
+          "context": "The paper reports capturing seven operating regions using a GMM-EM approach; this is a dataset/model configuration fact, not a diagnostic accuracy score.",
+          "source_location": "Highlights and abstract"
+        },
+        {
+          "metric": "numeric_performance_metrics",
+          "value": "not_transcribed",
+          "unit": "not_available_from_accessible_abstract",
+          "context": "No numerical detection or recovery metric is transcribed from the accessible abstract. Full paper and data protocol must be audited.",
+          "source_location": "Accessible abstract"
+        }
+      ],
+      "split_protocol": "Selected-vessel operating regions are modeled using GMM-EM, with localized SVD-based anomaly detection and missing-value recovery. Exact vessel identity, campaign split, data availability, labels and validation protocol require full-paper audit.",
+      "reported_limitations": [
+        "Accessible abstract does not provide numerical anomaly-detection or imputation metrics.",
+        "Missing-value recovery can erase sensor-failure or anomaly evidence if imputed values are not separately typed and attributed.",
+        "Data rights, exact dataset, vessel/engine identity and independent validation have not been audited by this project."
+      ],
+      "reproducibility_status": "reported_not_reproduced",
+      "direct_comparison_to_aalto": "not_comparable",
+      "audit_notes": [
+        "Reports steady-state and transient operating-mode identification alongside GMM-EM partitioning and SVD-based recovery.",
+        "Important comparator for data-quality handling, not a directly comparable fault classifier.",
+        "Use missingness mask, imputation lineage and uncertainty as first-class benchmark outputs."
+      ]
+    },
+    {
       "id": "cdaf-xie-2026",
       "title": "CDAF: co-evolutionary decoupled attention framework for explainable weak thermal fault diagnosis of marine diesel engines",
       "source_type": "peer_reviewed_article",
@@ -69,58 +275,81 @@
       ]
     },
     {
-      "id": "multi-source-thermal-descriptor-2026",
-      "title": "Multi-source thermal and performance data for thermal fault diagnosis in marine diesel engines",
-      "source_type": "data_descriptor",
-      "publication_date": "2026-08-22",
-      "source_url": "https://doi.org/10.1038/s41597-026-07924-7",
-      "data_domain": "Calibrated simulation, noisy bench measurements, real-vessel telemetry and a virtual-real fault-fusion dataset.",
-      "task": "Cross-domain thermal fault diagnosis; the descriptor reports one healthy state and ten fault modes.",
+      "id": "two-stroke-rul-multifault-2026",
+      "title": "Hybrid AI-driven condition monitoring and RUL forecasting for multi-fault diagnosis in two-stroke marine diesel engines",
+      "source_type": "peer_reviewed_article",
+      "publication_date": "2026-06",
+      "source_url": "https://doi.org/10.1016/j.joes.2025.12.002",
+      "data_domain": "Low-speed two-stroke marine diesel engine testbed; the article reports load-aware experimental validation.",
+      "task": "Integrated anomaly detection, unsupervised fault clustering, context-aware fault classification and calibrated remaining-useful-life (RUL) forecasting.",
       "reported_metrics": [
         {
-          "metric": "zero_shot_virtual_to_real_accuracy",
-          "value": 70.18,
-          "unit": "%",
-          "context": "Reported under the descriptor's own zero-shot virtual-to-real protocol.",
+          "metric": "representative_rul_rmse",
+          "value": 0.215,
+          "unit": "normalized_or_paper_defined_units",
+          "context": "The abstract reports representative RUL predictions with RMSE 0.215; the exact target scaling and horizon must be extracted from full methods before replication.",
           "source_location": "Abstract"
+        },
+        {
+          "metric": "representative_rul_r_squared",
+          "value": 0.413,
+          "unit": "score",
+          "context": "The abstract reports representative RUL predictions with R² 0.413.",
+          "source_location": "Abstract"
+        },
+        {
+          "metric": "consensus_anomaly_false_positive_claim",
+          "value": "below 1",
+          "unit": "%",
+          "context": "The paper highlights consensus-based anomaly voting with false positives below 1%; denominator, operating exposure, thresholding, and confidence interval require full-protocol audit.",
+          "source_location": "Highlights"
         }
       ],
-      "split_protocol": "Zero-shot virtual-to-real transfer; precise data partitioning and label provenance must be audited from the released repository before replication.",
+      "split_protocol": "Low-speed two-stroke testbed; ensemble consensus anomaly detection; unsupervised fault clustering and labeling; load-aware supervised classification; PCA/autoencoder health-index RUL forecasting with Monte Carlo dropout. Full run-level split and RUL ground-truth construction require audit.",
       "reported_limitations": [
-        "This is a distinct dataset and engine/data protocol from the Aalto MU323DGSC fault archive.",
-        "No direct comparison should be made without aligned label taxonomy, channels, preprocessing, source domains and test splits."
+        "The below-1% false-positive highlight is not interpretable as a fleet false-alarm rate without denominator and engine-hour exposure.",
+        "RUL RMSE 0.215 is paper-scale dependent; target normalization and forecast horizon are not transcribed from accessible abstract.",
+        "RUL validation without run-to-failure data must be assessed for pseudo-label/health-index leakage and calibration.",
+        "A two-stroke low-speed engine protocol is not directly comparable to the Aalto MU323DGSC three-cylinder four-stroke testbench."
       ],
       "reproducibility_status": "reported_not_reproduced",
       "direct_comparison_to_aalto": "not_comparable",
       "audit_notes": [
-        "Repository, file inventory, licensing, real-vessel label provenance and exact split manifest not yet audited."
-      ]
+        "The architecture combines detection, clustering, classification and prognostics instead of reporting only accuracy.",
+        "Important benchmark comparator for separating detection false positives, fault classification, RUL error and predictive uncertainty."
+      ],
+      "publication_date_precision": "month"
     },
     {
-      "id": "proactive-fault-prediction-2026",
-      "title": "Proactive fault prediction in marine diesel engines using multivariate machine learning",
+      "id": "synaptic-regularization-continual-transfer-2026",
+      "title": "Synaptic regularization for continual transfer: A universal fault diagnosis framework for marine diesel engines under incremental operating conditions",
       "source_type": "peer_reviewed_article",
-      "publication_date": "2026-03-20",
-      "source_url": "https://doi.org/10.1038/s41598-026-40979-5",
-      "data_domain": "Study-specific marine diesel engine dataset; the paper's exact physical domain and file-level independence require separate review before cross-study comparison.",
-      "task": "Marine diesel engine fault prediction/classification using multivariate machine learning.",
+      "publication_date": "2026-07-15",
+      "source_url": "https://doi.org/10.1016/j.energy.2026.141124",
+      "data_domain": "Two marine diesel engine subsystems under incremental operating-condition tasks; the full dataset and task split require audit from the paper and any accessible supplementary materials.",
+      "task": "Continual transfer/fault diagnosis under incremental operating conditions with fixed model capacity and no historical-data replay.",
       "reported_metrics": [
         {
-          "metric": "random_forest_accuracy",
-          "value": 82.681,
-          "unit": "%",
-          "context": "Reported model accuracy; same-study comparisons include 1-D CNN and MLP.",
-          "source_location": "Results"
+          "metric": "average_accuracy_and_forgetting_rate_comparative_claim",
+          "value": "qualitative: authors report improved average accuracy and forgetting rate versus naive fine-tuning and mainstream regularization baselines; no numeric values transcribed from accessible abstract",
+          "unit": "qualitative_no_numeric_value",
+          "context": "Do not treat this as a numerical SOTA score. Extract exact tables, dataset provenance, task order and code only after full-paper/reproducibility audit.",
+          "source_location": "Abstract"
         }
       ],
-      "split_protocol": "Study-specific split; preserve the paper's split and grouping semantics when reproducing. Do not assume comparability with Aalto files.",
+      "split_protocol": "Incremental operating-condition tasks; exact task sequence, train/test partition, data split independence and task-level evaluation protocol must be audited before reproduction.",
       "reported_limitations": [
-        "Data provenance, label taxonomy and recording-level split independence must be checked before direct comparison.",
-        "Reported result has not been reproduced by this project."
+        "Accessible abstract identifies experiments on two critical engine subsystems but does not provide numerical metric values.",
+        "No code, dataset, task order, exact splits or raw-data retention behavior has been audited by this project.",
+        "No cross-engine or shipboard transfer claim is established by the abstract alone."
       ],
       "reproducibility_status": "reported_not_reproduced",
       "direct_comparison_to_aalto": "not_comparable",
-      "audit_notes": []
+      "audit_notes": [
+        "STC-CL uses synaptic-inspired path-integral importance and dynamic binary parameter masking to protect prior knowledge.",
+        "The paper claims no model-capacity expansion and no retention/replay of historical data.",
+        "Compare with naive fine-tuning, SI, EWC and MAS under the paper's exact task protocol; re-evaluate all prior domains after each update."
+      ]
     },
     {
       "id": "cross-individual-dt-dann-2026",
@@ -206,264 +435,31 @@
       ]
     },
     {
-      "id": "multisource-fusion-simulation-2026",
-      "title": "Multi-source fusion marine diesel engine fault diagnosis study",
-      "source_type": "peer_reviewed_article",
-      "publication_date": "2026-01-16",
-      "source_url": "https://doi.org/10.1016/j.isci.2025.114345",
-      "data_domain": "Simulation-generated samples from a one-dimensional thermodynamic engine model.",
-      "task": "Multi-source fusion classification for marine diesel engine fault diagnosis.",
+      "id": "multi-source-thermal-descriptor-2026",
+      "title": "Multi-source thermal and performance data for thermal fault diagnosis in marine diesel engines",
+      "source_type": "data_descriptor",
+      "publication_date": "2026-08-22",
+      "source_url": "https://doi.org/10.1038/s41597-026-07924-7",
+      "data_domain": "Calibrated simulation, noisy bench measurements, real-vessel telemetry and a virtual-real fault-fusion dataset.",
+      "task": "Cross-domain thermal fault diagnosis; the descriptor reports one healthy state and ten fault modes.",
       "reported_metrics": [
         {
-          "metric": "accuracy",
-          "value": 99.45,
+          "metric": "zero_shot_virtual_to_real_accuracy",
+          "value": 70.18,
           "unit": "%",
-          "context": "Study reports this value on its own simulated dataset.",
-          "source_location": "Abstract/results"
-        },
-        {
-          "metric": "sample_count",
-          "value": 2567,
-          "unit": "samples",
-          "context": "Simulation-generated dataset size described in the methods.",
-          "source_location": "Methods"
-        }
-      ],
-      "split_protocol": "2,567 samples generated from a one-dimensional GT-Power thermodynamic simulation model; randomized 70/30 stratified train/test split and five-fold cross-validation reported.",
-      "reported_limitations": [
-        "Simulation-generated examples are not a physical test-bench or real-vessel score.",
-        "No direct comparison to the Aalto physical fault dataset.",
-        "The article's publication date is 16 January 2026 (article date: 5 December 2025); source metadata must distinguish online article date from issue date."
-      ],
-      "reproducibility_status": "reported_not_reproduced",
-      "direct_comparison_to_aalto": "not_comparable",
-      "audit_notes": []
-    },
-    {
-      "id": "synaptic-regularization-continual-transfer-2026",
-      "title": "Synaptic regularization for continual transfer: A universal fault diagnosis framework for marine diesel engines under incremental operating conditions",
-      "source_type": "peer_reviewed_article",
-      "publication_date": "2026-07-15",
-      "source_url": "https://doi.org/10.1016/j.energy.2026.141124",
-      "data_domain": "Two marine diesel engine subsystems under incremental operating-condition tasks; the full dataset and task split require audit from the paper and any accessible supplementary materials.",
-      "task": "Continual transfer/fault diagnosis under incremental operating conditions with fixed model capacity and no historical-data replay.",
-      "reported_metrics": [
-        {
-          "metric": "average_accuracy_and_forgetting_rate_comparative_claim",
-          "value": "qualitative: authors report improved average accuracy and forgetting rate versus naive fine-tuning and mainstream regularization baselines; no numeric values transcribed from accessible abstract",
-          "unit": "qualitative_no_numeric_value",
-          "context": "Do not treat this as a numerical SOTA score. Extract exact tables, dataset provenance, task order and code only after full-paper/reproducibility audit.",
+          "context": "Reported under the descriptor's own zero-shot virtual-to-real protocol.",
           "source_location": "Abstract"
         }
       ],
-      "split_protocol": "Incremental operating-condition tasks; exact task sequence, train/test partition, data split independence and task-level evaluation protocol must be audited before reproduction.",
+      "split_protocol": "Zero-shot virtual-to-real transfer; precise data partitioning and label provenance must be audited from the released repository before replication.",
       "reported_limitations": [
-        "Accessible abstract identifies experiments on two critical engine subsystems but does not provide numerical metric values.",
-        "No code, dataset, task order, exact splits or raw-data retention behavior has been audited by this project.",
-        "No cross-engine or shipboard transfer claim is established by the abstract alone."
+        "This is a distinct dataset and engine/data protocol from the Aalto MU323DGSC fault archive.",
+        "No direct comparison should be made without aligned label taxonomy, channels, preprocessing, source domains and test splits."
       ],
       "reproducibility_status": "reported_not_reproduced",
       "direct_comparison_to_aalto": "not_comparable",
       "audit_notes": [
-        "STC-CL uses synaptic-inspired path-integral importance and dynamic binary parameter masking to protect prior knowledge.",
-        "The paper claims no model-capacity expansion and no retention/replay of historical data.",
-        "Compare with naive fine-tuning, SI, EWC and MAS under the paper's exact task protocol; re-evaluate all prior domains after each update."
-      ]
-    },
-    {
-      "id": "adaptive-multisource-transfer-2026",
-      "title": "Multi-source data fusion for marine four-stroke diesel engine fault diagnosis: An adaptive weight transfer learning framework",
-      "source_type": "peer_reviewed_article",
-      "publication_date": "2026-04-01",
-      "source_url": "https://doi.org/10.1016/j.enconman.2026.121194",
-      "data_domain": "Instrumented 8V396 four-stroke marine-diesel engine testbed at 25%, 50% and 75% load, with complementary simulated source domains.",
-      "task": "Multi-source domain adaptation for lubrication-system fault diagnosis across operating conditions and measured/simulated domains.",
-      "reported_metrics": [
-        {
-          "metric": "average_accuracy_pure_real_measured_scenarios",
-          "value": 83.64,
-          "unit": "%",
-          "context": "Reported average diagnostic accuracy for pure real measured scenarios on the 8V396 testbed.",
-          "source_location": "Abstract and experimental verification"
-        },
-        {
-          "metric": "average_accuracy_real_simulation_hybrid_scenarios",
-          "value": 82.37,
-          "unit": "%",
-          "context": "Reported average diagnostic accuracy for hybrid real/simulation scenarios.",
-          "source_location": "Abstract and experimental verification"
-        }
-      ],
-      "split_protocol": "Cross-working-condition measured-data tasks and real/simulation hybrid transfer; exact train/validation/test partition and per-task load pairings must be recovered from the full methods and tables before reproduction.",
-      "reported_limitations": [
-        "Focused on lubrication-system diagnosis and a specific 8V396 testbed; not directly comparable to Aalto MU323DGSC fault families.",
-        "The average scores do not replace per-task, per-fault and worst-domain analysis.",
-        "Exact data access, labels, run grouping, repository and split manifests have not been audited by this project."
-      ],
-      "reproducibility_status": "reported_not_reproduced",
-      "direct_comparison_to_aalto": "not_comparable",
-      "audit_notes": [
-        "Proposes shared-specialized collaborative cross-domain features, dynamic entropy weighting of source-target domains, and semi-supervised target-domain regularization.",
-        "Key negative-transfer question: does dynamic source weighting improve over uniform source fusion and strongest single-source baseline under matched target data and compute?",
-        "No model code or dataset payload has been independently audited by this project."
-      ]
-    },
-    {
-      "id": "localized-anomaly-recovery-vessel-data-2026",
-      "title": "Localized anomaly detection and recovery of marine engine data to support digital twin development in shipping",
-      "source_type": "peer_reviewed_article",
-      "publication_date": "2026-04-01",
-      "source_url": "https://doi.org/10.1016/j.oceaneng.2026.124356",
-      "data_domain": "Operational dataset from an ocean-going vessel; the accessible abstract describes seven operating regions and steady/transient operating modes.",
-      "task": "Data quality qualification: localized anomaly identification, missing-value recovery and operating-region separation for marine-engine digital-twin development.",
-      "reported_metrics": [
-        {
-          "metric": "operating_regions",
-          "value": 7,
-          "unit": "regions",
-          "context": "The paper reports capturing seven operating regions using a GMM-EM approach; this is a dataset/model configuration fact, not a diagnostic accuracy score.",
-          "source_location": "Highlights and abstract"
-        },
-        {
-          "metric": "numeric_performance_metrics",
-          "value": "not_transcribed",
-          "unit": "not_available_from_accessible_abstract",
-          "context": "No numerical detection or recovery metric is transcribed from the accessible abstract. Full paper and data protocol must be audited.",
-          "source_location": "Accessible abstract"
-        }
-      ],
-      "split_protocol": "Selected-vessel operating regions are modeled using GMM-EM, with localized SVD-based anomaly detection and missing-value recovery. Exact vessel identity, campaign split, data availability, labels and validation protocol require full-paper audit.",
-      "reported_limitations": [
-        "Accessible abstract does not provide numerical anomaly-detection or imputation metrics.",
-        "Missing-value recovery can erase sensor-failure or anomaly evidence if imputed values are not separately typed and attributed.",
-        "Data rights, exact dataset, vessel/engine identity and independent validation have not been audited by this project."
-      ],
-      "reproducibility_status": "reported_not_reproduced",
-      "direct_comparison_to_aalto": "not_comparable",
-      "audit_notes": [
-        "Reports steady-state and transient operating-mode identification alongside GMM-EM partitioning and SVD-based recovery.",
-        "Important comparator for data-quality handling, not a directly comparable fault classifier.",
-        "Use missingness mask, imputation lineage and uncertainty as first-class benchmark outputs."
-      ]
-    },
-    {
-      "id": "cross-condition-finetuning-18-tasks-2025",
-      "title": "A universal transfer learning framework for cross-working-condition marine diesel engine fault diagnosis based on fine-tuning strategy",
-      "source_type": "peer_reviewed_article",
-      "publication_date": "2025-08-15",
-      "source_url": "https://doi.org/10.1016/j.apenergy.2025.125962",
-      "data_domain": "Two marine diesel engine case studies: an 8V396SE engine (500 kW) and a 620 V16 engine (2336 kW); lubrication-system fault data include experimental bench evidence and intake/exhaust fault data include virtual simulation.",
-      "task": "Cross-working-condition fault diagnosis using data-tiered fusion augmentation and combined fine-tuning across 18 transfer tasks.",
-      "reported_metrics": [
-        {
-          "metric": "cross_working_condition_transfer_tasks",
-          "value": 18,
-          "unit": "tasks",
-          "context": "The article reports validation over 18 cross-working-condition tasks; this is a protocol coverage count, not a performance score.",
-          "source_location": "Highlights and abstract"
-        }
-      ],
-      "split_protocol": "Cross-working-condition transfer across two engine types and two subsystem task families; exact source/target task definitions, per-task sample grouping and split manifests require full-methods audit.",
-      "reported_limitations": [
-        "The two engine types, subsystems and mixture of experimental/virtual evidence must be kept distinct.",
-        "The accessible abstract reports the task count but no single aggregate metric suitable for direct comparison.",
-        "Not directly comparable to Aalto MU323DGSC without fault taxonomy and sensor protocol alignment."
-      ],
-      "reproducibility_status": "reported_not_reproduced",
-      "direct_comparison_to_aalto": "not_comparable",
-      "audit_notes": [
-        "Methods include data-tiered fusion (DTF) for augmentation and a combined fine-tuning strategy (CFTS).",
-        "Use as a reproduction baseline for cross-working-condition methodology and task coverage, not as a leaderboard entry."
-      ]
-    },
-    {
-      "id": "two-stroke-rul-multifault-2026",
-      "title": "Hybrid AI-driven condition monitoring and RUL forecasting for multi-fault diagnosis in two-stroke marine diesel engines",
-      "source_type": "peer_reviewed_article",
-      "publication_date": "2026-06",
-      "source_url": "https://doi.org/10.1016/j.joes.2025.12.002",
-      "data_domain": "Low-speed two-stroke marine diesel engine testbed; the article reports load-aware experimental validation.",
-      "task": "Integrated anomaly detection, unsupervised fault clustering, context-aware fault classification and calibrated remaining-useful-life (RUL) forecasting.",
-      "reported_metrics": [
-        {
-          "metric": "representative_rul_rmse",
-          "value": 0.215,
-          "unit": "normalized_or_paper_defined_units",
-          "context": "The abstract reports representative RUL predictions with RMSE 0.215; the exact target scaling and horizon must be extracted from full methods before replication.",
-          "source_location": "Abstract"
-        },
-        {
-          "metric": "representative_rul_r_squared",
-          "value": 0.413,
-          "unit": "score",
-          "context": "The abstract reports representative RUL predictions with R² 0.413.",
-          "source_location": "Abstract"
-        },
-        {
-          "metric": "consensus_anomaly_false_positive_claim",
-          "value": "below 1",
-          "unit": "%",
-          "context": "The paper highlights consensus-based anomaly voting with false positives below 1%; denominator, operating exposure, thresholding, and confidence interval require full-protocol audit.",
-          "source_location": "Highlights"
-        }
-      ],
-      "split_protocol": "Low-speed two-stroke testbed; ensemble consensus anomaly detection; unsupervised fault clustering and labeling; load-aware supervised classification; PCA/autoencoder health-index RUL forecasting with Monte Carlo dropout. Full run-level split and RUL ground-truth construction require audit.",
-      "reported_limitations": [
-        "The below-1% false-positive highlight is not interpretable as a fleet false-alarm rate without denominator and engine-hour exposure.",
-        "RUL RMSE 0.215 is paper-scale dependent; target normalization and forecast horizon are not transcribed from accessible abstract.",
-        "RUL validation without run-to-failure data must be assessed for pseudo-label/health-index leakage and calibration.",
-        "A two-stroke low-speed engine protocol is not directly comparable to the Aalto MU323DGSC three-cylinder four-stroke testbench."
-      ],
-      "reproducibility_status": "reported_not_reproduced",
-      "direct_comparison_to_aalto": "not_comparable",
-      "audit_notes": [
-        "The architecture combines detection, clustering, classification and prognostics instead of reporting only accuracy.",
-        "Important benchmark comparator for separating detection false positives, fault classification, RUL error and predictive uncertainty."
-      ],
-      "publication_date_precision": "month"
-    },
-    {
-      "id": "marine-engine-diagnostics-review-2026",
-      "title": "Literature Review Analysis: Fault Diagnostics of Marine Engines",
-      "source_type": "peer_reviewed_article",
-      "publication_date": "2026-10-22",
-      "source_url": "https://doi.org/10.3390/jmse14211988",
-      "data_domain": "Scopus literature corpus covering 2015-2026, including marine diesel engines, marine gas turbines and closely related combustion-engine subsystems.",
-      "task": "Systematic synthesis of diagnostic methods, monitored subsystems, data sources, validation practices and research gaps.",
-      "reported_metrics": [
-        {
-          "metric": "screened_records_initial",
-          "value": 2114,
-          "unit": "records",
-          "context": "Initial title extraction reported by the review.",
-          "source_location": "Search strategy and data extraction"
-        },
-        {
-          "metric": "core_engine_diagnostic_papers",
-          "value": 253,
-          "unit": "papers",
-          "context": "Final refined corpus of papers directly related to marine-engine diagnostics.",
-          "source_location": "Bibliometric overview"
-        },
-        {
-          "metric": "scope_adjacent_records",
-          "value": 23,
-          "unit": "records",
-          "context": "Additional scope-adjacent papers retained separately from the core corpus.",
-          "source_location": "Bibliometric overview"
-        }
-      ],
-      "split_protocol": "Scopus-based literature search and title/abstract/keyword screening; the review organizes literature into seven methodological areas including model/simulation, signal processing, transferability, predictive diagnosis, reliability/maintenance, lubrication/wear and combustion/emissions.",
-      "reported_limitations": [
-        "Literature screening is not a controlled model benchmark and its paper counts are not model-performance scores.",
-        "The review identifies limited long-term shipboard validation and lack of reusable public benchmark datasets as persistent gaps.",
-        "Paper counts must not be interpreted as a prevalence or fleet-failure distribution."
-      ],
-      "reproducibility_status": "reported_not_reproduced",
-      "direct_comparison_to_aalto": "not_comparable",
-      "audit_notes": [
-        "Review reports that diagnostic research advances faster than operational validation and calls for multi-engine/multi-vessel data, interpretable hybrid models and standardized benchmarks.",
-        "Use as a landscape and gap-analysis source rather than an experimental classifier baseline."
+        "Repository, file inventory, licensing, real-vessel label provenance and exact split manifest not yet audited."
       ]
     },
     {
@@ -546,6 +542,50 @@
         "Combines LLM information extraction from accident/maintenance records with expert consolidation, rough-fuzzy DEMATEL/ISM causal structure and Weibull-derived time-varying Bayesian priors.",
         "Useful baseline for narrative-to-causal-risk and reliability reasoning, not a sensor-based fault-classification score.",
         "Benchmark source-span precision/recall, causal edge fidelity, expert agreement, probability calibration and time-dependent Brier score separately."
+      ]
+    },
+    {
+      "id": "marine-engine-diagnostics-review-2026",
+      "title": "Literature Review Analysis: Fault Diagnostics of Marine Engines",
+      "source_type": "peer_reviewed_article",
+      "publication_date": "2026-10-22",
+      "source_url": "https://doi.org/10.3390/jmse14211988",
+      "data_domain": "Scopus literature corpus covering 2015-2026, including marine diesel engines, marine gas turbines and closely related combustion-engine subsystems.",
+      "task": "Systematic synthesis of diagnostic methods, monitored subsystems, data sources, validation practices and research gaps.",
+      "reported_metrics": [
+        {
+          "metric": "screened_records_initial",
+          "value": 2114,
+          "unit": "records",
+          "context": "Initial title extraction reported by the review.",
+          "source_location": "Search strategy and data extraction"
+        },
+        {
+          "metric": "core_engine_diagnostic_papers",
+          "value": 253,
+          "unit": "papers",
+          "context": "Final refined corpus of papers directly related to marine-engine diagnostics.",
+          "source_location": "Bibliometric overview"
+        },
+        {
+          "metric": "scope_adjacent_records",
+          "value": 23,
+          "unit": "records",
+          "context": "Additional scope-adjacent papers retained separately from the core corpus.",
+          "source_location": "Bibliometric overview"
+        }
+      ],
+      "split_protocol": "Scopus-based literature search and title/abstract/keyword screening; the review organizes literature into seven methodological areas including model/simulation, signal processing, transferability, predictive diagnosis, reliability/maintenance, lubrication/wear and combustion/emissions.",
+      "reported_limitations": [
+        "Literature screening is not a controlled model benchmark and its paper counts are not model-performance scores.",
+        "The review identifies limited long-term shipboard validation and lack of reusable public benchmark datasets as persistent gaps.",
+        "Paper counts must not be interpreted as a prevalence or fleet-failure distribution."
+      ],
+      "reproducibility_status": "reported_not_reproduced",
+      "direct_comparison_to_aalto": "not_comparable",
+      "audit_notes": [
+        "Review reports that diagnostic research advances faster than operational validation and calls for multi-engine/multi-vessel data, interpretable hybrid models and standardized benchmarks.",
+        "Use as a landscape and gap-analysis source rather than an experimental classifier baseline."
       ]
     }
   ]
