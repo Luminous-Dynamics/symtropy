@@ -111,55 +111,63 @@ Four additional adversarial cases close gaps found during code review:
 - every pass's parameter-envelope reference must equal the approved procedure's envelope;
 - observed digital-twin update interval must not exceed the declared expected interval.
 
-The frozen corpus is now 51 cases (2 positive, 49 negative). The independent Rust evaluator and unit-test count are updated accordingly. These remain synthetic contract controls, not physical welding process qualifications.
+The frozen corpus is now 54 cases (2 positive, 52 negative). The independent Rust evaluator and unit-test count are updated accordingly. These remain synthetic contract controls, not physical welding process qualifications.
 
 
-## Normative effectivity: decision time versus subject construction date — 2026-11-10
+## Normative effectivity: WPQ test date versus ship contract date — 2026-11-10
 
-The first verifier version compared IACS rule effective dates only with the evaluation cutoff. That is insufficient for shipbuilding because IACS UR W28 Rev.3 applies to ships **constructed on or after 1 January 2027**, even when the engineering decision or procedure review happens before that date.
+A single `subject_applicability_date_utc` is not enough to select and accept welding procedure evidence under IACS UR W28 Rev.3. The normative model now separates:
 
-The verifier now binds four distinct temporal roles:
-- `evaluation_cutoff_utc`: when the engineering decision/replay is evaluated;
-- `normative_context.source_retrieved_at_utc`: when the normative source snapshot was actually retrieved (must not be later than the decision cutoff);
-- `normative_context.subject_applicability_date_utc`: the ship construction/effectivity date used to select the ruleset;
-- each ruleset's effective-from/effective-until interval.
+- **Evaluation cutoff** — when the engineering decision/replay is evaluated.
+- **Normative source retrieval time** — when the source snapshot was retrieved; it cannot be later than the decision cutoff.
+- **Ship contracted-for-construction date** — the owner/shipbuilder contract-signing date used by IACS implementation note 2 to identify the ship's applicable revision.
+- **WPQ test date** — the date the welding procedure qualification test was carried out.
+- **WPQR qualification revision** — the revision (or separately reviewed recognized standard) under which the test/record was made.
+- **Prior-revision class acceptance and approved range** — explicit evidence that a previous WPS/WPQR was accepted and still covers the actual application.
 
-As of 10 November 2026, the IACS page identifies UR W28 Rev.2 as current and Rev.3 as the future version; Rev.3 enters into force on 1 January 2027. It is not enough to say "Rev.2 was current when we reviewed this procedure." A vessel constructed on/after the transition date must be evaluated against Rev.3's subject applicability, even if the decision snapshot predates its effective date. Conversely, a Rev.3-only assumption cannot be treated as currently effective for a subject whose applicability date precedes the transition.
+IACS UR W28 Rev.3 clause 1.5 requires all **new welding procedure qualification tests** to use Rev.3 from **1 January 2027**. Implementation note 4 says Rev.3 is uniformly implemented by IACS Societies on ships contracted for construction from **1 January 2027**; note 2 defines the contract date as the date the owner and shipbuilder sign the build contract. Clause 1.7 expressly says Rev.3 does not invalidate WPS/WPQR records made and accepted by the Classification Society under previous revisions.
+
+Consequences for the verifier:
+1. A new WPQ test dated on/after 1 January 2027 cannot be silently admitted as a Rev.2 qualification.
+2. A ship contracted for construction on/after 1 January 2027 must select Rev.3 as the applicable ship ruleset.
+3. A pre-transition Rev.2 WPQR is not automatically invalidated for that ship, but acceptance by the applicable Classification Society and the approved range/conditions must be evidenced. Missing acceptance is not PASS; a non-matching range is not PASS.
+4. A source snapshot retrieved after the decision cutoff cannot be used to justify what was known at that earlier decision time.
+5. The applicable ship ruleset and the procedure's qualification revision are separate fields. Never infer one from the other.
 
 Sources:
-- IACS UR W28 current/future version and 1 January 2027 effective date: https://iacs.org.uk/resolutions/unified-requirements/ur-w/ur-w28-rev2-cln
-- IACS Rev.3 complete revision PDF; clause 3 states ships constructed on/after 1 January 2027: https://www.classnk.or.jp/hp/pdf/info_service/iacs_ur_and_ui/ur_w28_rev.3_sep_2025_complete_revision.pdf
-- IACS explanation of Unified Requirements and member-society implementation: https://iacs.org.uk/resolutions/unified-requirements
+- IACS UR W28 current/future revision page and effective date: https://iacs.org.uk/resolutions/unified-requirements/ur-w/ur-w28-rev2-cln
+- IACS UR W28 Rev.3, clauses 1.5–1.7 and implementation notes 2–4 (ClassNK-hosted PDF): https://www.classnk.or.jp/hp/pdf/info_service/iacs_ur_and_ui/ur_w28_rev.3_sep_2025_complete_revision.pdf
+- Lloyd's Register Class News 14/2026 (3 September 2026), which confirms new WPQ from 1 January 2027 and preserves previous accepted WPS/WPQ records subject to range and conditions: https://www.lr.org/en/knowledge/class-news/14-26/
 
 ### ISO 15614-1 transition watch
 
-ISO 15614-1:2017 with Amendment 1:2019 remains the published standard currently identified by ISO. The third edition is ISO/FDIS 15614-1, at FDIS formal approval stage (50.00) on 21 October 2026; it is **not yet a published International Standard**. Keep its draft text/version separate from the current published edition and do not pre-empt the final publication:
+ISO 15614-1:2017 with Amendment 1:2019 remains the published standard currently identified by ISO. The third edition is ISO/FDIS 15614-1, at FDIS formal approval stage (50.00) on 21 October 2026; it is not yet a published International Standard. Keep its draft text/version separate from the current published edition:
 - Current published edition: https://www.iso.org/standard/51792.html
 - Third-edition FDIS stage: https://committee.iso.org/standard/86026.html
 
-ISO/TR 23247-101:2026 is a published manufacturing digital-twin use-case report for robotic multilayer/multipass GMAW, not a welding procedure qualification or weld acceptance code. The process twin must always refer to the applicable project/class/flag procedure and acceptance authority; standards metadata does not create a valid WPS/PQR.
+### New W28 adversarial cases
 
-### New adversarial cases
+The updated corpus distinguishes:
+- new WPQ test on/after 1 January 2027 but still labeled Rev.2 → Rev.3 required;
+- a Rev.2 WPQR carried into a Rev.3-governed newbuild with explicit Class Society acceptance and matching approved range → historical qualification may remain usable within that scope;
+- the same legacy WPQR without Class Society acceptance → acceptance not established;
+- the same legacy WPQR where its approved range does not cover the subject → scope not confirmed;
+- Rev.3 selected before its effective date → future ruleset not yet applicable;
+- a normative source retrieved after the evaluation cutoff → cannot be used for that decision.
 
-The 51-case corpus now includes:
-- W28 Rev.2 incorrectly selected for a ship with subject construction date on/after 1 January 2027;
-- a normative source snapshot retrieved after the decision cutoff;
-- existing negative case: Rev.3 incorrectly selected for a subject date before its effective date.
-
-The benchmark now distinguishes (a) rule knowledge available at a decision cutoff, (b) which ruleset applies to the subject based on its construction/effectivity date, and (c) when the actual weld procedure, equipment, operator and pass evidence were valid. This is necessary for long-lead shipbuilding programmes and avoids a future-effective standard being either applied too early or missed for a vessel built after the transition.
-
+The standard's applicability is not a date-only lookup. It is a claim about the ship, qualification event, approval authority and approved scope, each with its own source evidence.
 
 ## Material-lot and raw-trace integrity — 2026-11-10
 
 The independent verifier now checks that the workpiece heat/lot matches receiving evidence and the material record, that the approved procedure's qualified material-heat-lot set contains the exact heat/lot, and that every pass and its raw trace bind the same lot. It rejects duplicate JSON object keys at every nesting depth before evaluating trace semantics, checks corpus identity/version and exact fixed case count, and rejects duplicate case IDs or an unexpected base-fixture name.
 
-The frozen corpus is now **51 unique cases (2 synthetic positives, 49 negative controls)**. The three pass-trace SHA-256 values and the wrong-pass fixture digest were recomputed from the exact updated raw JSON bytes. These remain synthetic contract checks; they do not authenticate real material certificates or qualify a welding procedure.
+The frozen corpus is now **54 unique cases (2 synthetic positives, 52 negative controls)**. The three pass-trace SHA-256 values and the wrong-pass fixture digest were recomputed from the exact updated raw JSON bytes. These remain synthetic contract checks; they do not authenticate real material certificates or qualify a welding procedure.
 
 
 ## Final v0.1 corpus accounting — 2026-11-10
 
-The authoritative frozen-corpus count is **51 unique cases: 2 valid synthetic contract cases and 49 negative controls**:
+The authoritative frozen-corpus count is **54 unique cases: 2 valid synthetic contract cases and 52 negative controls**:
 - `valid_root_fill_cap_trace`: valid synthetic pass/process/inspection/evidence chain;
-- `valid_w28_rev3_for_future_ship_subject_date`: valid subject-specific future ruleset selection for a ship construction/effectivity date on or after 1 January 2027, using a source snapshot available before the decision cutoff.
+- `legacy_rev2_wpqr_preserved_for_rev3_ship_when_class_accepted`: a previously qualified Rev.2 record is not rejected solely because the ship is governed by Rev.3; explicit Class Society acceptance and matching range are required.
 
-The Rust test uses the strict duplicate-key parser for both the raw process traces and the top-level frozen corpus. The CLI report includes the SHA-256 of the exact corpus bytes. Earlier 41-/46-case counts and 1-positive/50-negative interim notes are historical snapshots, superseded by this 51-case v0.1 baseline.
+The Rust test uses the strict duplicate-key parser for both the raw process traces and the top-level frozen corpus. The CLI report includes the SHA-256 of the exact corpus bytes. Earlier 41-/46-/51-case counts and 1-positive/50-negative interim notes are historical snapshots, superseded by this 54-case v0.1 baseline.
