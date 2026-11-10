@@ -1,0 +1,376 @@
+{
+  "schema_version": "luminous.habitat-service-bench.m0/0.1",
+  "package_id": "HABITAT-SERVICE-BENCH-M0-SYNTHETIC-001",
+  "classification": "requirements_and_interface_design_only",
+  "claim_ceiling": {
+    "site_selected": false,
+    "design_approved": false,
+    "construction_authorized": false,
+    "energization_authorized": false,
+    "instrument_qualified": false,
+    "product_qualified": false,
+    "building_physics_validated": false,
+    "occupied_use_authorized": false
+  },
+  "parent_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4531",
+  "research_cut": "2026-11-10",
+  "facility": {
+    "facility_id": "UNSELECTED_UNOCCUPIED_TEST_CELL",
+    "occupancy": "UNOCCUPIED_ONLY",
+    "site": "NOT_SELECTED",
+    "geometry": "NOT_SELECTED",
+    "envelope": "NOT_SELECTED",
+    "dimensions": "NOT_SELECTED_PENDING_ENGINEERING",
+    "structural_system": "NOT_SELECTED_PENDING_PROFESSIONAL_REVIEW",
+    "pressure_rating": "NONE_ASSUMED",
+    "environmental_control_range": "NOT_SELECTED_PENDING_HAZARD_AND_METROLOGY_REVIEW",
+    "construction_status": "NOT_AUTHORIZED"
+  },
+  "modules": [
+    {
+      "id": "CELL_ENVELOPE",
+      "role": "unoccupied environmental test boundary",
+      "scope": "room geometry, envelope, openings, service access, containment and maintainability",
+      "status": "REQUIREMENTS_ONLY",
+      "selected_design": false
+    },
+    {
+      "id": "WATERLOOP_SKID",
+      "role": "source-identified, segregated non-potable test loop",
+      "scope": "storage, metered source/use flows, leak detection, isolation, sample points, media access and declared residual route",
+      "owner_issue": "https://github.com/Luminous-Dynamics/symthaea/issues/10323",
+      "status": "REQUIREMENTS_ONLY",
+      "potable_use_authorized": false
+    },
+    {
+      "id": "HEATBANK_SKID",
+      "role": "isolated hot-water and thermal-service test loop",
+      "scope": "draw emulator, thermal source/sink, storage, subsystem electricity, useful thermal service, losses and safe isolation",
+      "owner_issue": "https://github.com/Luminous-Dynamics/symthaea/issues/10329",
+      "status": "REQUIREMENTS_ONLY",
+      "pressure_vessel_design_selected": false
+    },
+    {
+      "id": "AIRCARE_SKID",
+      "role": "room ventilation, filtration and humidity test interface",
+      "scope": "outdoor-air delivery, supply/exhaust balance, pollutant-specific observation points, filter access, condensate management and acoustics",
+      "owner_issue": "https://github.com/Luminous-Dynamics/symthaea/issues/10330",
+      "status": "REQUIREMENTS_ONLY",
+      "hazardous_aerosol_challenge_authorized": false
+    },
+    {
+      "id": "ELECTRICAL_AND_THERMAL_METERING",
+      "role": "separate source-to-load measurement boundary",
+      "scope": "subsystem energy, instantaneous power where supported, useful thermal output and backup contribution without double counting",
+      "status": "REQUIREMENTS_ONLY",
+      "electrical_design_selected": false
+    },
+    {
+      "id": "METROLOGY_AND_LOCAL_ACQUISITION",
+      "role": "read-only measurement acquisition and evidence path",
+      "scope": "instrument identity, local acquisition, calibration, placement, uncertainty, response, timebase, raw/derived status, faults and access control",
+      "owner_issue": "https://github.com/Luminous-Dynamics/mycelix/issues/6025",
+      "owner_profile_pr": "https://github.com/Luminous-Dynamics/mycelix/pull/6028",
+      "status": "REQUIREMENTS_ONLY",
+      "write_or_actuation_authority": "NONE"
+    }
+  ],
+  "architecture_arms": [
+    {
+      "id": "INDEPENDENT_SERVICES",
+      "description": "separate water, thermal and air systems; no shared resource credit unless metered at a defined boundary",
+      "rank": "NOT_RANKED"
+    },
+    {
+      "id": "SHARED_UTILITY",
+      "description": "only explicitly reviewed, physically defined and separately metered shared utilities; common-mode and contamination paths must be tested",
+      "rank": "NOT_RANKED"
+    },
+    {
+      "id": "HYBRID_LOCAL_AUTONOMY",
+      "description": "passive-first room boundary plus bounded local utility reserve and locally operable fallback; no assumed cloud dependency or autonomy duration",
+      "rank": "NOT_RANKED"
+    }
+  ],
+  "physical_interfaces": [
+    {
+      "id": "WATER-SRC-01",
+      "description": "source water into WaterLoop skid",
+      "interface_kind": "LIQUID_INPUT",
+      "admission_state": "OWNER_PROFILE_REQUIRED",
+      "sizing": "NOT_SELECTED",
+      "material_or_protocol": "NOT_SELECTED",
+      "connection_detail": "NOT_DESIGNED",
+      "acceptance_criteria": "NOT_SET"
+    },
+    {
+      "id": "WATER-USE-01",
+      "description": "permitted non-potable water delivered to a named test load",
+      "interface_kind": "LIQUID_OUTPUT",
+      "admission_state": "OWNER_PROFILE_REQUIRED",
+      "sizing": "NOT_SELECTED",
+      "material_or_protocol": "NOT_SELECTED",
+      "connection_detail": "NOT_DESIGNED",
+      "acceptance_criteria": "NOT_SET"
+    },
+    {
+      "id": "WATER-RES-01",
+      "description": "reject, purge and residual stream to a declared isolated route",
+      "interface_kind": "LIQUID_RESIDUAL",
+      "admission_state": "OWNER_PROFILE_REQUIRED",
+      "sizing": "NOT_SELECTED",
+      "material_or_protocol": "NOT_SELECTED",
+      "connection_detail": "NOT_DESIGNED",
+      "acceptance_criteria": "NOT_SET"
+    },
+    {
+      "id": "WATER-ISO-01",
+      "description": "physical isolation boundary between potable, non-potable and test fluids",
+      "interface_kind": "SAFETY_BOUNDARY",
+      "admission_state": "PROFESSIONAL_REVIEW_REQUIRED",
+      "sizing": "NOT_SELECTED",
+      "material_or_protocol": "NOT_SELECTED",
+      "connection_detail": "NOT_DESIGNED",
+      "acceptance_criteria": "NOT_SET"
+    },
+    {
+      "id": "THERM-SRC-01",
+      "description": "thermal input to HeatBank system boundary",
+      "interface_kind": "THERMAL_INPUT",
+      "admission_state": "OWNER_PROFILE_REQUIRED",
+      "sizing": "NOT_SELECTED",
+      "material_or_protocol": "NOT_SELECTED",
+      "connection_detail": "NOT_DESIGNED",
+      "acceptance_criteria": "NOT_SET"
+    },
+    {
+      "id": "THERM-SVC-01",
+      "description": "useful hot-water/thermal service to controlled draw emulator",
+      "interface_kind": "THERMAL_OUTPUT",
+      "admission_state": "OWNER_PROFILE_REQUIRED",
+      "sizing": "NOT_SELECTED",
+      "material_or_protocol": "NOT_SELECTED",
+      "connection_detail": "NOT_DESIGNED",
+      "acceptance_criteria": "NOT_SET"
+    },
+    {
+      "id": "THERM-LOSS-01",
+      "description": "storage and distribution loss boundary",
+      "interface_kind": "THERMAL_LOSS",
+      "admission_state": "OWNER_PROFILE_REQUIRED",
+      "sizing": "NOT_SELECTED",
+      "material_or_protocol": "NOT_SELECTED",
+      "connection_detail": "NOT_DESIGNED",
+      "acceptance_criteria": "NOT_SET"
+    },
+    {
+      "id": "AIR-OUT-01",
+      "description": "outdoor-air inlet to AirCare/cell",
+      "interface_kind": "AIR_INPUT",
+      "admission_state": "OWNER_PROFILE_REQUIRED",
+      "sizing": "NOT_SELECTED",
+      "material_or_protocol": "NOT_SELECTED",
+      "connection_detail": "NOT_DESIGNED",
+      "acceptance_criteria": "NOT_SET"
+    },
+    {
+      "id": "AIR-SUP-01",
+      "description": "supply-air delivery to declared room positions",
+      "interface_kind": "AIR_OUTPUT",
+      "admission_state": "OWNER_PROFILE_REQUIRED",
+      "sizing": "NOT_SELECTED",
+      "material_or_protocol": "NOT_SELECTED",
+      "connection_detail": "NOT_DESIGNED",
+      "acceptance_criteria": "NOT_SET"
+    },
+    {
+      "id": "AIR-EXH-01",
+      "description": "exhaust/return-air boundary",
+      "interface_kind": "AIR_RESIDUAL",
+      "admission_state": "OWNER_PROFILE_REQUIRED",
+      "sizing": "NOT_SELECTED",
+      "material_or_protocol": "NOT_SELECTED",
+      "connection_detail": "NOT_DESIGNED",
+      "acceptance_criteria": "NOT_SET"
+    },
+    {
+      "id": "ELEC-MAIN-01",
+      "description": "electrical source to test-cell distribution boundary",
+      "interface_kind": "ELECTRICAL_INPUT",
+      "admission_state": "PROFESSIONAL_REVIEW_REQUIRED",
+      "sizing": "NOT_SELECTED",
+      "material_or_protocol": "NOT_SELECTED",
+      "connection_detail": "NOT_DESIGNED",
+      "acceptance_criteria": "NOT_SET"
+    },
+    {
+      "id": "ELEC-SUB-01",
+      "description": "separate metered subsystem branches",
+      "interface_kind": "ELECTRICAL_BRANCH",
+      "admission_state": "METROLOGY_PROFILE_REQUIRED",
+      "sizing": "NOT_SELECTED",
+      "material_or_protocol": "NOT_SELECTED",
+      "connection_detail": "NOT_DESIGNED",
+      "acceptance_criteria": "NOT_SET"
+    },
+    {
+      "id": "DATA-RO-01",
+      "description": "read-only sensor acquisition to local recorder",
+      "interface_kind": "DATA_READ_ONLY",
+      "admission_state": "METROLOGY_PROFILE_REQUIRED",
+      "sizing": "NOT_SELECTED",
+      "material_or_protocol": "NOT_SELECTED",
+      "connection_detail": "NOT_DESIGNED",
+      "acceptance_criteria": "NOT_SET"
+    },
+    {
+      "id": "AUTH-NONE-01",
+      "description": "device command/actuation authority boundary",
+      "interface_kind": "AUTHORITY_BOUNDARY",
+      "admission_state": "NONE",
+      "sizing": "NOT_SELECTED",
+      "material_or_protocol": "NOT_SELECTED",
+      "connection_detail": "NOT_DESIGNED",
+      "acceptance_criteria": "NOT_SET"
+    }
+  ],
+  "measurement_profile_binding": {
+    "mycelix_profile_id": "MYC-BUILD-METROLOGY-PROFILE-V0.1",
+    "mycelix_profile_issue": "https://github.com/Luminous-Dynamics/mycelix/issues/6025",
+    "profile_status": "DRAFT_REQUIREMENTS_ONLY",
+    "currently_defined_channels": [
+      "air_temperature",
+      "mean_radiant_temperature",
+      "relative_humidity",
+      "air_speed",
+      "co2_concentration",
+      "pm25_mass_concentration",
+      "outdoor_air_volume_flow",
+      "water_volume_flow",
+      "water_volume",
+      "water_ph",
+      "water_conductivity",
+      "electrical_power",
+      "electrical_energy",
+      "useful_thermal_energy"
+    ],
+    "additional_channel_gaps": [
+      {
+        "proposed_measurand": "water pressure",
+        "profile_state": "NOT_DEFINED_IN_V0_1",
+        "requirement": "do not invent a channel ID or accept a value until Mycelix profile is versioned"
+      },
+      {
+        "proposed_measurand": "differential filter/duct pressure",
+        "profile_state": "NOT_DEFINED_IN_V0_1",
+        "requirement": "do not infer filter loading from fan command or airflow alone"
+      },
+      {
+        "proposed_measurand": "water temperature",
+        "profile_state": "NOT_DEFINED_AS_A_DEDICATED_CHANNEL_IN_V0_1",
+        "requirement": "do not substitute air temperature or an undocumented derived field"
+      },
+      {
+        "proposed_measurand": "tank level",
+        "profile_state": "NOT_DEFINED_IN_V0_1",
+        "requirement": "level-to-volume conversion requires a verified geometry/calibration curve"
+      },
+      {
+        "proposed_measurand": "sound pressure level at occupied position",
+        "profile_state": "NOT_DEFINED_IN_V0_1",
+        "requirement": "no acoustic result until method, bandwidth, weighting and instrument profile are admitted"
+      },
+      {
+        "proposed_measurand": "supply voltage/current/power quality",
+        "profile_state": "PARTIALLY_OUTSIDE_V0_1",
+        "requirement": "power/energy channels do not automatically imply voltage, current, harmonics or power-quality admission"
+      },
+      {
+        "proposed_measurand": "filter loading/pressure drop and named gas contaminant",
+        "profile_state": "NOT_DEFINED_IN_V0_1",
+        "requirement": "no gas-cleaning claim or filter-life claim without suitable method and owner profile"
+      }
+    ]
+  },
+  "control_and_authority": {
+    "phase": "READ_ONLY_FIRST",
+    "symthaea_can_dispatch_device_commands": false,
+    "symtropy_can_dispatch_device_commands": false,
+    "local_controller_authority": "NOT_GRANTED",
+    "mycelix_hearth_authority": "NOT_CONFIGURED_FOR_THIS_BENCH",
+    "manual_safe_isolation": "REQUIRED_DESIGN_ITEM_NOT_VERIFIED",
+    "cloud_dependency_for_observation": false,
+    "cloud_dependency_for_essential_service": false
+  },
+  "stage_gates": [
+    {
+      "id": "M0",
+      "name": "design and safety preflight",
+      "required": true,
+      "status": "NOT_STARTED",
+      "required_evidence": [
+        "site/landowner permission and site suitability",
+        "cell geometry and envelope design reviewed by competent professionals",
+        "structural/anchorage and load review",
+        "electrical and earthing/protection design review",
+        "fluid separation, backflow, residual and water hygiene review",
+        "thermal, pressure and burn/scald hazard review",
+        "airflow, condensation and materials exposure review",
+        "fire, egress, emergency isolation and emergency response review",
+        "hazard analysis and safe-state review",
+        "metrology plan and uncertainty budgets",
+        "data rights, privacy, retention and access plan"
+      ]
+    },
+    {
+      "id": "M1",
+      "name": "metrology and single-service qualification",
+      "required": true,
+      "status": "BLOCKED_ON_M0",
+      "required_evidence": [
+        "exact instruments and firmware identities",
+        "calibration/reference evidence within range",
+        "verified installation and measurement location",
+        "local read-only acquisition and clock synchronization",
+        "single-service resource boundary closure",
+        "independent reference or assay where required"
+      ]
+    },
+    {
+      "id": "M2",
+      "name": "ordinary concurrency and cross-service integration",
+      "required": true,
+      "status": "BLOCKED_ON_M1",
+      "required_evidence": [
+        "identical exogenous task traces across architecture arms",
+        "resource attribution without double counting",
+        "service delivery and unmet service by product",
+        "coupled failure and common-mode review"
+      ]
+    },
+    {
+      "id": "M3",
+      "name": "controlled unoccupied disruption and recovery",
+      "required": true,
+      "status": "BLOCKED_ON_M2",
+      "required_evidence": [
+        "reviewed safe test envelopes",
+        "controlled grid/water/air/service interruption plan",
+        "isolation and abort controls",
+        "repair/re-verification and stable recovery record"
+      ]
+    },
+    {
+      "id": "M4",
+      "name": "repeatability, reproducibility and transfer evidence",
+      "required": true,
+      "status": "BLOCKED_ON_M3",
+      "required_evidence": [
+        "within-unit repeatability",
+        "between-lab reproducibility where feasible",
+        "between-unit production variation only with production-representative units",
+        "household ecological validity only in a separate consented field protocol"
+      ]
+    }
+  ]
+}
