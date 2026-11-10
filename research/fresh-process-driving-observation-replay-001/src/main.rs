@@ -40,6 +40,8 @@ const MAX_DELIVERY_AGE_US: u64 = 5_000;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct ReplayInput {
     records: Vec<ReplaySnapshotRecord>,
+    missing_events: Vec<MissingObservationEvent>,
+    dispositions: Vec<DispositionRecord>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -47,6 +49,13 @@ struct ReplaySnapshotRecord {
     sequence: u64,
     snapshot: WorldRenderSnapshot,
     clocks: RenderClocks,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+struct ReplayOutput {
+    rendered_frames: Vec<ReplaySummary>,
+    missing_events_sha256: String,
+    dispositions_sha256: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -60,7 +69,7 @@ struct ReplaySummary {
     world_snapshot_sha256: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct DispositionRecord {
     sequence: u64,
     tick: u64,
@@ -299,6 +308,54 @@ fn render_summary(record: &ReplaySnapshotRecord) -> Result<ReplaySummary, Box<dy
 
 fn replay_records(records: &[ReplaySnapshotRecord]) -> Result<Vec<ReplaySummary>, Box<dyn Error>> {
     records.iter().map(render_summary).collect()
+}
+
+fn validate_stream_ledger(input: &ReplayInput) -> Result<(), Box<dyn Error>> {
+    let mut seen = std::collections::BTreeSet::new();
+    for record in &input.records {
+        if record.sequence != record.snapshot.tick || !seen.insert(record.sequence) {
+            return Err("rendered observation sequence/tick identity is invalid or duplicated".into());
+        }
+    }
+    for missing in &input.missing_events {
+        if missing.sequence != missing.tick || !seen.insert(missing.sequence) {
+            return Err("missing observation sequence/tick identity is invalid or duplicated".into());
+        }
+    }
+    if seen.len() != EXPECTED_TICKS as usize
+        || seen.iter().copied().ne(1..=EXPECTED_TICKS)
+        || input.dispositions.len() != input.records.len()
+    {
+        return Err("expected/observed stream denominator is incomplete".into());
+    }
+    let disposition_sequences = input
+        .dispositions
+        .iter()
+        .map(|record| record.sequence)
+        .collect::<std::collections::BTreeSet<_>>();
+    let rendered_sequences = input.records.iter().map(|record| record.sequence).collect::<std::collections::BTreeSet<_>>();
+    if disposition_sequences != rendered_sequences
+        || input.missing_events.iter().any(|event| disposition_sequences.contains(&event.sequence))
+    {
+        return Err("missing and delivered observations overlap or lack dispositions".into());
+    }
+    if input.missing_events.len() != 1
+        || input.missing_events[0].sequence != MISSING_TICK
+        || input.dispositions.iter().filter(|item| item.disposition == ObservationDisposition::Delayed).count() != 1
+        || !input.dispositions.iter().any(|item| item.sequence == DELAYED_TICK && item.disposition == ObservationDisposition::Delayed)
+    {
+        return Err("fixture missing/delayed event contract is not satisfied".into());
+    }
+    Ok(())
+}
+
+fn replay_output(input: &ReplayInput) -> Result<ReplayOutput, Box<dyn Error>> {
+    validate_stream_ledger(input)?;
+    Ok(ReplayOutput {
+        rendered_frames: replay_records(&input.records)?,
+        missing_events_sha256: sha256_hex(&serde_json::to_vec(&input.missing_events)?),
+        dispositions_sha256: sha256_hex(&serde_json::to_vec(&input.dispositions)?),
+    })
 }
 
 fn write_json(path: &Path, value: &impl Serialize) -> Result<(), Box<dyn Error>> {
@@ -807,10 +864,12 @@ fn run_parent(
     )?;
 
     // First-process expected render summaries.
-    let expected_replay = replay_records(&replay_records)?;
     let replay_input = ReplayInput {
         records: replay_records.clone(),
+        missing_events: missing_events.clone(),
+        dispositions: dispositions.clone(),
     };
+    let expected_replay = replay_output(&replay_input)?;
     let replay_input_path = episode_dir.join("fresh-process-replay-input.json");
     let replay_output_path = episode_dir.join("fresh-process-replay-output.json");
     write_json(&replay_input_path, &replay_input)?;
@@ -826,7 +885,7 @@ fn run_parent(
     if !status.success() {
         return Err("fresh-process renderer child failed".into());
     }
-    let actual_replay: Vec<ReplaySummary> =
+    let actual_replay: ReplayOutput =
         serde_json::from_slice(&fs::read(&replay_output_path)?)?;
     let replay_exact = actual_replay == expected_replay;
     if !replay_exact {
@@ -835,10 +894,12 @@ fn run_parent(
     write_json(
         &episode_dir.join("fresh-process-replay-comparison.json"),
         &json!({
-            "expected_count": expected_replay.len(),
-            "actual_count": actual_replay.len(),
+            "expected_count": expected_replay.rendered_frames.len(),
+            "actual_count": actual_replay.rendered_frames.len(),
+            "missing_events_sha256": actual_replay.missing_events_sha256,
+            "dispositions_sha256": actual_replay.dispositions_sha256,
             "exact_match": replay_exact,
-            "summaries": actual_replay
+            "replay": actual_replay
         }),
     )?;
 
@@ -888,8 +949,8 @@ fn run_parent(
 
 fn run_replay_child(input_path: &Path, output_path: &Path) -> Result<(), Box<dyn Error>> {
     let input: ReplayInput = serde_json::from_slice(&fs::read(input_path)?)?;
-    let summaries = replay_records(&input.records)?;
-    write_json(output_path, &summaries)?;
+    let replay = replay_output(&input)?;
+    write_json(output_path, &replay)?;
     Ok(())
 }
 
