@@ -426,7 +426,7 @@ impl Aabb {
             self.maximum.z + INTERSECTION_EPSILON_M,
         ];
         let mut near = 0.0f64;
-        let mut far = max_distance - INTERSECTION_EPSILON_M;
+        let mut far = max_distance + INTERSECTION_EPSILON_M;
         for axis in 0..3 {
             let ray_origin = origin_values[axis];
             let ray_direction = direction_values[axis];
@@ -873,8 +873,9 @@ fn ray_triangle_distance(
     }
     let distance = edge_b.dot(q_vector) * inverse_determinant;
     if !distance.is_finite()
-        || distance <= minimum_distance + INTERSECTION_EPSILON_M
-        || distance >= max_distance - INTERSECTION_EPSILON_M
+        || distance <= INTERSECTION_EPSILON_M
+        || distance < minimum_distance - INTERSECTION_EPSILON_M
+        || distance > max_distance + INTERSECTION_EPSILON_M
     {
         return None;
     }
@@ -942,7 +943,7 @@ fn observe_from_view(
         origin,
         direction,
         0.0,
-        target_distance,
+        (target_distance - 2.0 * INTERSECTION_EPSILON_M).max(0.0),
         occluders,
         Some((&probe.surface_id, &probe.triangle_id)),
         remaining_ray_tests,
@@ -1140,9 +1141,10 @@ pub fn canonical_occluder_manifest_sha256(occluders: &[OccluderTriangle]) -> Str
 ///
 /// The index is built once and may service many rays. Geometry is canonicalized
 /// by stable surface/triangle identity before the deterministic median BVH is
-/// built. The query contract uses open clipping boundaries with a 10 nm guard:
-/// a hit must satisfy t > tnear + epsilon and t < tfar - epsilon. Nearest-hit
-/// ties within the same epsilon are all returned.
+/// built. Query clipping is inclusive with a 10 nm tolerance around both
+/// tnear and tfar; a primitive at the sensor origin is still rejected by the
+/// separate origin self-hit guard. Nearest-hit ties within the same epsilon
+/// are all returned.
 pub struct RayQueryIndexV1 {
     triangles: Vec<OccluderTriangle>,
     bvh: TriangleBvh,
