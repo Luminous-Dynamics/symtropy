@@ -80,15 +80,32 @@ jobs:
             (.coordinate_system.linear_unit == "metre") and
             (.coordinate_system.axis_order == "xyz") and
             (.coordinate_system.handedness == "right_handed") and
-            ((.triangles | length) == 3) and
-            ((.rays | length) == 4) and
+            ((.triangles | length) == 4) and
+            ((.rays | length) == 5) and
             (.rays[0].expected.status == "hit") and
             (.rays[0].expected.nearest_distance_m == 2.0) and
             ((.rays[0].expected.nearest_hits | length) == 2) and
             (.rays[1].expected.status == "miss") and
             (.rays[2].expected.nearest_distance_m == 4.0) and
-            (.rays[3].expected.status == "miss")
+            (.rays[3].expected.status == "miss") and
+            (.rays[4].exclude_target[0] == "WALL-NEAR-A") and
+            (.rays[4].expected.nearest_hits == [["WALL-NEAR-B", "TRI-NEAR-B"]])
           ' research/scan-bim-rayquery-comparator-001/fixtures/ray-query-known-answers-v0-1.json
+      - name: Execute brute-force ray-query fixture oracle
+        run: |
+          cargo run --locked --manifest-path tools/scan-bim-replay-contract/Cargo.toml \
+            -p scan-bim-visibility-evaluator --example validate_ray_query_fixture -- \
+            research/scan-bim-rayquery-comparator-001/fixtures/ray-query-known-answers-v0-1.json \
+            > /tmp/scan-bim-ray-query-fixture-report.json
+          jq -e '
+            (.fixture_id == "SCAN-BIM-RAYQUERY-KA-001") and
+            (.triangle_count == 4) and
+            (.ray_count == 5) and
+            (.hit_count == 3) and
+            (.miss_count == 2) and
+            (.checked_nearest_identity_sets == 5) and
+            (.oracle == "independent_bruteforce_moller_trumbore_f64_v1")
+          ' /tmp/scan-bim-ray-query-fixture-report.json
       - name: Run strict Clippy
         run: cargo clippy --locked --workspace --manifest-path tools/scan-bim-replay-contract/Cargo.toml --all-targets -- -D warnings
       - name: Audit synthetic fixture
