@@ -63,7 +63,9 @@
         "measurement_window_us": 16000000,
         "rendered_frame_count": 1000,
         "power_sample_count": 17,
-        "max_sample_gap_us": 1000000
+        "max_sample_gap_us": 1000000,
+        "source_api_version": "nvml-api-version-bound-by-synthetic-fixture",
+        "sampling_semantics": "window_average"
       }
     },
     {
@@ -97,7 +99,9 @@
         "measurement_window_us": 16000000,
         "rendered_frame_count": 1000,
         "power_sample_count": 17,
-        "max_sample_gap_us": 1000000
+        "max_sample_gap_us": 1000000,
+        "source_api_version": "nvml-api-version-bound-by-synthetic-fixture",
+        "sampling_semantics": "window_average"
       }
     }
   ]
