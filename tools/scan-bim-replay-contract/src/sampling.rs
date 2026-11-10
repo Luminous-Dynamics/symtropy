@@ -408,6 +408,12 @@ pub fn verify_surface_sampling_receipt(
         if summary.sample_count > receipt.max_samples {
             return Err("surface summary exceeds the declared sample budget".to_owned());
         }
+        if summary.excluded_area_m2 != 0.0 || !summary.excluded_by_visibility.is_empty() {
+            return Err(
+                "reference sampling receipt must include all source area before visibility classification"
+                    .to_owned(),
+            );
+        }
         let excluded_sum: f64 = summary
             .excluded_by_visibility
             .iter()
