@@ -689,11 +689,7 @@ mod tests {
             expected_actor_ids: vec!["lead-vehicle".to_string()],
             actor_responses: vec![actor(ActorResponseOrigin::Recomputed, "actor-input-1", "actor-action-1")],
             expected_random_event_ids: vec!["weather-noise".to_string()],
-            random_events: vec![{
-                let mut event = exogenous_event();
-                event.shared_with_parent = true;
-                event
-            }],
+            random_events: vec![exogenous_event()],
             policy_input_fields: vec![InformationField {
                 field_id: "camera-front".to_string(),
                 source_role: InformationSourceRole::PolicyVisible,
@@ -718,7 +714,11 @@ mod tests {
             expected_actor_ids: vec!["lead-vehicle".to_string()],
             actor_responses: vec![actor(ActorResponseOrigin::Recomputed, actor_input, "actor-action-child")],
             expected_random_event_ids: vec!["weather-noise".to_string()],
-            random_events: vec![exogenous_event()],
+            random_events: vec![{
+                let mut event = exogenous_event();
+                event.shared_with_parent = true;
+                event
+            }],
             policy_input_fields: vec![InformationField {
                 field_id: "camera-front".to_string(),
                 source_role: InformationSourceRole::PolicyVisible,
