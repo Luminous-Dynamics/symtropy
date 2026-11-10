@@ -54,6 +54,23 @@ Therefore:
 - Report the POMDAR score alongside raw correctness, speed, completion/failure state, per-task variation and uncertainty.
 - Keep independent-user prosthetic outcomes and direct-teleoperation mechanical dexterity as distinct evidence classes.
 
+## Attribution across benchmark levels
+
+HAND ERC's Multi-Level Hand Benchmarks v1 alpha (August 2026) separates application, system, hand and component levels to connect design decisions to practical outcomes: https://hand-erc.github.io/benchmarking/benchmarks.html . Reuse this attribution structure rather than creating a competing hand-benchmark taxonomy.
+
+| Level | What it establishes | Luminous owner / evidence |
+|---|---|---|
+| Component | Finger, actuator, transmission and sensor properties: force, repeatability, bandwidth, sensing accuracy, thermal and fatigue behavior | Symtropy mechanics and instrumented component tests |
+| Hand | Whole-hand mass, grasp strength, force control, impedance, repeatability, durability and grasp resilience | Symtropy hand/article configuration; POMDAR plus component evidence |
+| System | Integrated hand, arm, controller, vision and teleoperation performance on standardized tasks | POMDAR and its exact operator/interface/mounting context |
+| Application | Whether people can use the system for meaningful activities, with acceptable burden, independence, repair cost and adoption | Symthaea #11403/#11504, SHAP/context-selected wearer measures, Mycelix #5985 lifecycle evidence |
+
+POMDAR primarily supplies system-task evidence for its tested teleoperation configuration. It does not independently isolate every component, establish wearer-level benefit, or qualify application-level acceptance. Never attribute a system-level result solely to the hand design when operator, controller, arm, perception or teleoperation interface differ.
+
+## Related prosthetic-hand standards
+
+ISO/AWI 26209 was approved as a work item in April 2026 and remains **under development**, not a published International Standard. Its stated scope covers test methods for grasping force and repetitive grasp durability of externally powered prosthetic hands (cylindrical grasp, pinch and lateral pinch); it does not cover the myoelectric sensor. Track the work item as a developing external reference, not as a conformity claim: https://www.iso.org/standard/92838.html .
+
 ## Intended qualification sequence
 
 1. Freeze and review the paper, task inventory, upstream revision, CAD revision, simulation model and scoring definitions.
