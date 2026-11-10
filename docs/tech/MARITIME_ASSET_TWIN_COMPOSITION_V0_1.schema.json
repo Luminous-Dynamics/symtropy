@@ -27,7 +27,7 @@
     },
     "cases": {
       "type": "array",
-      "minItems": 30,
+      "minItems": 32,
       "items": {
         "$ref": "#/$defs/case"
       }
@@ -67,7 +67,10 @@
         "approval",
         "field_ownership",
         "projection_write_mode",
-        "artifact_sha256"
+        "artifact_sha256",
+        "asset_id",
+        "parent_assembly_id",
+        "serial_id"
       ],
       "properties": {
         "federate_id": {
@@ -206,6 +209,18 @@
         "artifact_sha256": {
           "type": "string",
           "pattern": "^[a-f0-9]{64}$"
+        },
+        "asset_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "parent_assembly_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "serial_id": {
+          "type": "string",
+          "minLength": 1
         }
       }
     },
@@ -218,7 +233,10 @@
         "to_federate",
         "kind",
         "subject_id",
-        "configuration_revision"
+        "configuration_revision",
+        "asset_id",
+        "parent_assembly_id",
+        "serial_id"
       ],
       "properties": {
         "relationship_id": {
@@ -250,6 +268,18 @@
           "minLength": 1
         },
         "configuration_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "asset_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "parent_assembly_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "serial_id": {
           "type": "string",
           "minLength": 1
         }
