@@ -599,7 +599,10 @@ mod tests {
 
         let residual = *conjugated.to_matrix() - *exponential_after_adjoint.to_matrix();
         let max_error = residual.iter().fold(0.0_f64, |m, x| m.max(x.abs()));
-        assert!(max_error < 1e-8, "SO({D}) adjoint-equivariance residual={max_error:e}");
+        assert!(
+            max_error < 1e-8,
+            "SO({D}) adjoint-equivariance residual={max_error:e}"
+        );
         assert!(conjugated.is_proper_rotation(1e-8));
         assert!(exponential_after_adjoint.is_proper_rotation(1e-8));
     }
