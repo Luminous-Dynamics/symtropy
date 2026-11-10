@@ -380,7 +380,7 @@
       "id": "two-stroke-rul-multifault-2026",
       "title": "Hybrid AI-driven condition monitoring and RUL forecasting for multi-fault diagnosis in two-stroke marine diesel engines",
       "source_type": "peer_reviewed_article",
-      "publication_date": "2026-06-01",
+      "publication_date": "2026-06",
       "source_url": "https://doi.org/10.1016/j.joes.2025.12.002",
       "data_domain": "Low-speed two-stroke marine diesel engine testbed; the article reports load-aware experimental validation.",
       "task": "Integrated anomaly detection, unsupervised fault clustering, context-aware fault classification and calibrated remaining-useful-life (RUL) forecasting.",
@@ -419,7 +419,8 @@
       "audit_notes": [
         "The architecture combines detection, clustering, classification and prognostics instead of reporting only accuracy.",
         "Important benchmark comparator for separating detection false positives, fault classification, RUL error and predictive uncertainty."
-      ]
+      ],
+      "publication_date_precision": "month"
     },
     {
       "id": "marine-engine-diagnostics-review-2026",
@@ -493,6 +494,88 @@
       "audit_notes": [
         "Methods include data-tiered fusion augmentation and a combined fine-tuning strategy.",
         "Use as a cross-working-condition methodology reproduction target, not a leaderboard score."
+      ]
+    },
+    {
+      "id": "llm-bayesian-time-varying-failure-risk-2026",
+      "title": "A Novel Time-Varying Failure Risk Assessment Framework for Marine Diesel Engines Integrating Large Language Models and Bayesian Networks",
+      "source_type": "peer_reviewed_article",
+      "publication_date": "2026-08-27",
+      "publication_date_precision": "day",
+      "source_url": "https://doi.org/10.3390/jmse14171586",
+      "data_domain": "Hard-starting case study using 338 cause descriptions drawn from 35 accident/maintenance records; expert-consolidated risk-influencing factors and service-time-dependent Weibull priors.",
+      "task": "Causal risk-factor extraction and time-varying probabilistic failure-risk assessment using LLMs, rough-fuzzy DEMATEL, interpretive structural modeling and Bayesian networks.",
+      "reported_metrics": [
+        {
+          "metric": "cause_descriptions",
+          "value": 338,
+          "unit": "descriptions",
+          "context": "Cause descriptions extracted from 35 records.",
+          "source_location": "Abstract"
+        },
+        {
+          "metric": "source_records",
+          "value": 35,
+          "unit": "records",
+          "context": "Accident/maintenance records used for the hard-starting case study.",
+          "source_location": "Abstract"
+        },
+        {
+          "metric": "risk_influencing_factors",
+          "value": 12,
+          "unit": "factors",
+          "context": "Twelve risk-influencing factors are reported after extraction and expert consolidation.",
+          "source_location": "Abstract"
+        },
+        {
+          "metric": "semantic_coverage_across_models",
+          "value": 93,
+          "unit": "% minimum",
+          "context": "Coverage is reported above 93% across four evaluation models; it is an extraction coverage result, not causal accuracy.",
+          "source_location": "Abstract"
+        },
+        {
+          "metric": "fuel_injection_failure_posterior_given_hard_start",
+          "value": 60.92,
+          "unit": "%",
+          "context": "Model posterior in the hard-starting case; conditional model inference, not a measured empirical failure rate.",
+          "source_location": "Abstract"
+        },
+        {
+          "metric": "governor_actuation_failure_posterior_given_hard_start",
+          "value": 36.91,
+          "unit": "%",
+          "context": "Model posterior in the hard-starting case; conditional model inference, not a measured empirical failure rate.",
+          "source_location": "Abstract"
+        },
+        {
+          "metric": "hard_start_probability_at_0_service_hours",
+          "value": 38.09,
+          "unit": "%",
+          "context": "Model-inferred probability for a single starting attempt under the study's parameterization.",
+          "source_location": "Abstract"
+        },
+        {
+          "metric": "hard_start_probability_at_10000_service_hours",
+          "value": 75.23,
+          "unit": "%",
+          "context": "Model-inferred probability for a single starting attempt under the study's parameterization.",
+          "source_location": "Abstract"
+        }
+      ],
+      "split_protocol": "Accident/maintenance narrative and service-time risk model; exact train/test split, record independence, expert adjudication and temporal validation protocol require full-paper audit.",
+      "reported_limitations": [
+        "Posterior probabilities are model-derived conditional inferences, not empirical fleet failure frequencies.",
+        "Only a hard-starting case study is reported in the accessible abstract; external validity across engines, subsystems and vessels requires independent validation.",
+        "LLM extraction requires source-span traceability, expert adjudication and hallucination/omission testing.",
+        "The exact record selection, overlap between reports and service-time prior calibration must be audited."
+      ],
+      "reproducibility_status": "reported_not_reproduced",
+      "direct_comparison_to_aalto": "not_comparable",
+      "audit_notes": [
+        "Combines LLM information extraction from accident/maintenance records with expert consolidation, rough-fuzzy DEMATEL/ISM causal structure and Weibull-derived time-varying Bayesian priors.",
+        "Useful baseline for narrative-to-causal-risk and reliability reasoning, not a sensor-based fault-classification score.",
+        "Benchmark source-span precision/recall, causal edge fidelity, expert agreement, probability calibration and time-dependent Brier score separately."
       ]
     }
   ]
