@@ -1,7 +1,21 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-//! GPU-accelerated spatial hash broadphase + XPBD integrator + Governance Coupling.
+//! Experimental Bevy/WGPU compute and rendering scaffolding for physics research.
+//!
+//! # Current capability boundary
+//!
+//! This crate is **not yet a dispatched or qualified GPU physics backend**.
+//! It currently uploads selected state, builds compute-pipeline descriptors,
+//! and exposes rendering/telemetry scaffolding. The queued compute pipelines
+//! are not dispatched; the spatial-hash `broadphase` entry point is a stub,
+//! and the readback path copies the nociception buffer rather than collision
+//! candidates. See PHYS-GPU-DISPATCH-001 (#4482) for the first candidate-pair
+//! equivalence milestone.
+//!
+//! Until that work is independently qualified, do not claim GPU broadphase,
+//! XPBD integration, contact resolution, or general GPU rigid-body dynamics
+//! from this crate.
 
 pub mod fluid;
 pub mod render;
@@ -116,6 +130,11 @@ impl Default for NociceptionResults {
     }
 }
 
+/// Experimental GPU resource/pipeline scaffold.
+///
+/// This plugin does not currently dispatch a physics compute pass or publish
+/// qualified collision candidates. It must not be used as a canonical physics
+/// backend; see PHYS-GPU-DISPATCH-001 (#4482).
 pub struct GpuPhysicsPlugin;
 
 impl Plugin for GpuPhysicsPlugin {
