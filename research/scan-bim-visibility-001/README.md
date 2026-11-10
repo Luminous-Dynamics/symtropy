@@ -50,13 +50,18 @@ The Rust evaluator provides:
 - Self, external and unknown blocker provenance.
 - Multiple-view aggregation and distinct mixed/contradictory states.
 - Incomplete-occluder abstention.
-- Hard ray-test budget; the traversal stops and returns an error rather than truncating.
+- Hard ray-test and BVH-node-visit budgets; traversal stops and returns an error rather than truncating.
+- A deterministic longest-centroid-axis median-split AABB BVH, built once for the canonical occluder inventory, with at most eight triangles per leaf, near-first traversal and nearest-hit pruning.
 - Per-surface and total area accounting, including grazing and mixed-occlusion area.
-- Canonically ordered probe/view/occluder inputs and SHA-256 receipt.
-- A strict JSON stdin/stdout executable.
-- 24 evaluator tests cover FOV, frame mismatch, grazing incidence, reversed winding, blockers, unknown inventory, mixed causes, conflicting ties, malformed probes, resource ceilings, permutation stability, digest tampering and request/receipt round trip. The sampler has a separate 14-test suite.
+- Canonically ordered probe/view/occluder inputs and SHA-256 receipt; the receipt binds BVH node/leaf counts, node visits and triangle-intersection count.
+- A strict JSON stdin/stdout executable with a 64 MiB request cap.
+- 26 evaluator tests cover FOV, frame mismatch, grazing incidence, reversed winding, blockers, unknown inventory, mixed causes, conflicting ties, malformed probes, resource ceilings, permutation stability, digest tampering, CLI request/receipt semantics and a BVH-versus-brute-force nearest-blocker check. The sampler has a separate 14-test suite.
 
-The visibility kernel currently performs a bounded brute-force probe × view × triangle traversal. It is intentionally a small correctness oracle, **not a throughput-competitive scene-scale renderer**. The next performance phase should add a deterministic BVH and differential-test it against this brute-force oracle before comparing throughput.
+### BVH performance experiment (new in this branch)
+
+The previous brute-force traversal has been replaced by a deterministic median-split BVH. The frozen 257-triangle separated-scene test computes the expected nearest blocker with the brute-force triangle kernel, requires exact blocker identity agreement, and requires at least a 90% reduction in triangle-intersection tests. This test is a synthetic work-count control, not a measured latency result or a real-building benchmark.
+
+The BVH is not yet compared against a production reference such as Embree, nor has its memory/build/query latency been measured on real scan meshes. Next, publish p50/p95/p99 query latency, build time, memory and node/triangle work for fixed 10^3–10^6-triangle workloads, then compare with brute force and an independently implemented ray-query library.
 
 ## Research and industry baseline (2026-11-10)
 
@@ -72,12 +77,31 @@ This work must be compared against, not marketed as a replacement for:
 Commercial baselines:
 - **Leica Cyclone 3DR 2026.1.6 (29 October 2026)** includes the established Scan-to-Steel and Scan-to-Pipe workflows; Scan-to-Steel supports point-cloud-driven profile extraction, review/alignment and export, while 2026.1.6 adds building/storey structure to Scan-to-Pipe IFC export. We must not claim point-cloud extraction or basic IFC export as new: https://rcdocs.leica-geosystems.com/docs/cyclone-3dr-2026-1-0-cyclone-3dr-release-notes and https://rcdocs.leica-geosystems.com/v1/docs/cyclone-3dr-release-notes-cyclone-3dr
 - **Autodesk ReCap Pro 2026** supports classified mesh editing, IFC4 export and Revit/RCMR handoff. The differentiator must be independently verified identity, information preservation, evidence lineage and uncertainty across tools—not simply IFC export: https://help.autodesk.com/cloudhelp/ENU/Reality-Capture/files/Scan_to_Mesh_Options/Scan_to_Mesh_Local/scan_to_mesh_export_model.html
-- **Trimble RealWorks 2026.10** includes registration refinement and point-cloud workflows. Pin versions, modules and data paths in comparisons: https://help.fieldsystems.trimble.com/realworks/2026.10.htm
+- **Trimble RealWorks 2026.11** includes point-cloud registration and export fixes; 2026.10 added registration refinement and annotation/BCF workflows. Pin exact versions, modules and data paths in comparisons: https://help.fieldsystems.trimble.com/realworks/2026.11.htm
 
 Standards:
 - IFC 4.3.2.0 / IFC4X3_ADD2 is the official published baseline; IFC 4.4 is still a working draft as of this snapshot. Use the exact schema/profile and do not silently convert versions: https://standards.buildingsmart.org/IFC/RELEASE/IFC4_3/index.html and https://standards.buildingsmart.org/IFC/DEV/IFC4_4/HTML/
 - IDS 1.0 is an official buildingSMART standard for alphanumeric IFC information requirements. IDS does not establish geometric accuracy: https://www.buildingsmart.org/standards/bsi-standards/information-delivery-specification-ids/
+- **OGC CityGML 3.0** supplies a city-scale semantic model with multiple LODs, indoor spaces, dynamic sensor/simulation data and application-domain extensions; it complements rather than replaces IFC: https://www.ogc.org/standards/citygml/
+- **OGC 3D Tiles 1.1** is the approved streaming standard for massive heterogeneous 3D geospatial data, including 3D buildings, BIM/CAD and point clouds. Use it for visualization delivery, not as the canonical semantic/evidence store: https://www.ogc.org/standards/3dtiles/
 - BOPTEST is a useful downstream operational-control benchmark for digital-building use cases, but it is not a Scan-to-BIM geometry benchmark: https://www.energy.gov/cmei/buildings/boptest-building-operations-testing-framework
+
+## Evidence-native built-environment direction
+
+The answer to "can we do better than BIM?" is not to create a proprietary BIM replacement. IFC is already a mature, open representation for buildings and infrastructure. The more valuable programme is an evidence-native building-state graph that can publish IFC, CityGML and 3D Tiles views without losing the provenance, uncertainty or identity that connects them to the physical asset.
+
+The canonical state graph should distinguish:
+- physical assets and persistent element identities;
+- raw observations, sensor/transform evidence and measured geometry;
+- geometric/semantic hypotheses, topology and alternative explanations;
+- observability, uncertainty and explicit unknowns;
+- requirements, intended decisions and acceptance authority;
+- change events, causal attribution, before/after state and rollback;
+- re-verification receipts and downstream operational outcomes.
+
+An IFC model is one interoperable projection of that graph, not the sole authority for every physical claim. Mycelix remains the provenance/approval authority; Symtropy owns reconstruction, physical verification and simulation; Sol-Atlas supplies geospatial/asset context; Symthaea evaluates hypotheses and selects consequential next measurements.
+
+This is not yet implemented as one integrated product. Existing identity, approval, evidence and spatial threads must be composed rather than duplicated.
 
 ## Benchmarks and targets
 
@@ -109,3 +133,10 @@ A passing synthetic oracle establishes only the finite semantics of this declare
 - SOTA superiority, commercial superiority or safe construction/maintenance decisions.
 
 Those require independently sourced datasets, external metrology, pinned third-party comparators and independent toolchains.
+
+## Current exact-head validation
+
+The evaluator and sampler changes have been committed to the branch, and the replay-contract workflow has been extended to build and run a deterministic synthetic visibility request through the actual CLI, then check the emitted receipt with `jq`. The latest branch commit and Actions conclusion must still be checked at the exact head. A queued run is not a pass.
+
+**Claim boundary remains unchanged:** the oracle verifies a typed, declared geometry/query contract. The `reference_model_sha256`, pose/configuration digest strings and `occluder_coverage` declaration are not authenticated by this crate. The evaluator does not parse IFC or prove that the supplied triangle inventory is a complete, correct extraction from the physical building. It also does not provide an OS sandbox; production must enforce separate evaluator inputs/mounts, resource limits and process isolation as described above.
+
