@@ -1088,7 +1088,7 @@ mod tests {
             sampling_semantics: EnergySamplingSemantics::WindowAverage,
             sample_series_sha256: H3.to_owned(),
             integrated_energy_uj: 10_000.0,
-            measurement_window_us: 10_000,
+            measurement_window_us: data.campaigns[0].campaign_wall_time_us,
             sample_count: 4,
             max_sample_gap_us: 500,
         });
@@ -1116,6 +1116,60 @@ mod tests {
         assert!(report.energy_included_in_frontier);
         let slower = report.campaigns.iter().find(|c| c.engine_id == "engine-slower-qualified").unwrap();
         assert_eq!(slower.energy_per_qualified_tick_uj, Some(100.0));
+    }
+
+    #[test]
+    fn repeated_campaigns_produce_engine_medians_and_publication_gate() {
+        let mut data = input();
+        let template = data.campaigns[1].clone();
+        for index in 2..=20 {
+            let mut replication = template.clone();
+            replication.campaign_id = format!("slow-run-{index:02}");
+            data.campaigns.push(replication);
+        }
+        let report = evaluate(&data).expect("twenty campaigns");
+        let aggregate = report
+            .engine_aggregates
+            .iter()
+            .find(|item| item.engine_id == "engine-slower-qualified")
+            .expect("engine aggregate");
+        assert_eq!(aggregate.replication_count, 20);
+        assert!(aggregate.meets_20_replication_publication_target);
+        assert_eq!(aggregate.qualified_ticks_per_second_median, 25_000.0);
+    }
+
+    #[test]
+    fn same_engine_id_cannot_mix_builds_or_solver_configurations() {
+        let mut data = input();
+        let mut replication = data.campaigns[1].clone();
+        replication.campaign_id = "slow-run-02".to_owned();
+        replication.configuration_sha256 = H3.to_owned();
+        data.campaigns.push(replication);
+        assert_eq!(
+            evaluate(&data).unwrap_err(),
+            EvaluationError::EngineConfigurationMismatch("engine-slower-qualified".to_owned())
+        );
+    }
+
+    #[test]
+    fn energy_window_must_cover_the_exact_campaign_wall_time() {
+        let mut data = input();
+        data.max_energy_sample_gap_us = Some(1_000);
+        data.campaigns[0].energy_measurement = Some(EnergyMeasurement {
+            scope: EnergyScope::GpuBoard,
+            source: EnergySource::NvmlPowerSamples,
+            source_api_version: "nvml".to_owned(),
+            sampling_semantics: EnergySamplingSemantics::WindowAverage,
+            sample_series_sha256: H3.to_owned(),
+            integrated_energy_uj: 10_000.0,
+            measurement_window_us: 1_999,
+            sample_count: 4,
+            max_sample_gap_us: 500,
+        });
+        assert_eq!(
+            evaluate(&data).unwrap_err(),
+            EvaluationError::EnergyWindowMismatch("fast-run-01".to_owned())
+        );
     }
 
     #[test]
