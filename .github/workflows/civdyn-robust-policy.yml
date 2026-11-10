@@ -163,8 +163,8 @@ jobs:
           with path.open(newline="", encoding="utf-8") as handle:
               rows = list(csv.DictReader(handle))
 
-          assert len(rows) == 1194, f"expected 1194 records, got {len(rows)}"
-          assert all(len(row) == 38 for row in rows)
+          assert len(rows) == 1186, f"expected 1186 records, got {len(rows)}"
+          assert all(len(row) == 44 for row in rows)
           by_type = {}
           for row in rows:
               by_type.setdefault(row["record_type"], []).append(row)
@@ -191,8 +191,18 @@ jobs:
               criteria = row["criterion_order"].split(";")
               directions = row["criterion_directions"].split(";")
               scales = [float(value) for value in row["reference_scales"].split(";")]
+              scale_digests = row["scale_evidence_digests"].split(";")
               weights = [float(value) for value in row["preference_weights"].split(";")]
-              assert len(criteria) == len(directions) == len(scales) == len(weights) == 5
+              assert len(criteria) == len(directions) == len(scales) == len(scale_digests) == len(weights) == 5
+              assert all(digest for digest in scale_digests)
+              assert row["preference_set_kind"] == "complete_polytope_vertices"
+              assert row["claim_ceiling"] in {
+                  "robust_across_declared_preference_polytope",
+                  "finite_panel_sensitivity_only",
+                  "no_robust_feasible_policy",
+                  "incomplete_decision_evidence",
+              }
+              assert row["profile_vertices_are_probabilities"] == "false"
               assert math.isclose(sum(weights), 1.0, abs_tol=1e-9)
               assert all(weight >= 0.0 for weight in weights)
               assert all(scale > 0.0 and math.isfinite(scale) for scale in scales)
@@ -222,12 +232,27 @@ jobs:
           assert {row["policy"] for row in policy_summaries} == policies
           assert all(row["scenario_count"] == "90" for row in policy_summaries)
           assert all(row["finite_design_robust_feasible"] in {"true", "false", "unknown"} for row in policy_summaries)
+          for row in policy_summaries:
+              if row["worst_case_regret_over_preference_polytope"]:
+                  assert row["finite_design_robust_feasible"] == "true"
+                  assert math.isfinite(float(row["worst_case_regret_over_preference_polytope"]))
+                  assert float(row["worst_case_regret_over_preference_polytope"]) >= 0.0
+              if row["finite_design_robust_feasible"] != "true":
+                  assert row["worst_case_regret_over_preference_polytope"] == ""
+          assert all(row["preference_set_kind"] == "complete_polytope_vertices" for row in policy_summaries)
 
           consensus = by_type["scenario_preference_consensus"]
           assert all(row["profile_count"] == "3" for row in consensus)
           assert all(int(row["distinct_winner_policy_count"]) in range(0, 5) for row in consensus)
           assert all(row["unanimous_single_winner"] in policies | {""} for row in consensus)
-          print("Preference-robust CSV valid: three declared vertices, five native-unit criteria, hard-feasibility separation, profile-level regret, disagreement and no probability interpretation.")
+          assert all(row["preference_set_kind"] == "complete_polytope_vertices" for row in consensus)
+          assert all(row["claim_ceiling"] in {
+              "robust_across_declared_preference_polytope",
+              "finite_panel_sensitivity_only",
+              "no_robust_feasible_policy",
+              "incomplete_decision_evidence",
+          } for row in consensus)
+          print("Preference-robust CSV valid: declared preference polytope, scale provenance, non-compensatory service constraints, profile-level regret, disagreement and explicit non-probabilistic semantics.")
           PY
 
           {
