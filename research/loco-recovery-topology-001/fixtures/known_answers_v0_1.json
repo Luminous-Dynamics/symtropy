@@ -69,15 +69,15 @@
         ],
         "independent_route_count": 1,
         "minimum_cut_size": 1,
-        "all_minimum_cut_sets": [
+        "distinct_terminal_regions": 1,
+        "all_minimal_cut_sets": [
           [
             "actuator_hip_fl"
           ],
           [
             "power_bus_a"
           ]
-        ],
-        "distinct_terminal_regions": 1
+        ]
       }
     },
     {
@@ -145,15 +145,19 @@
         ],
         "independent_route_count": 1,
         "minimum_cut_size": 1,
-        "all_minimum_cut_sets": [
+        "distinct_terminal_regions": 2,
+        "all_minimal_cut_sets": [
           [
             "imu_clock_shared"
           ],
           [
             "power_bus_shared"
+          ],
+          [
+            "actuator_hip_fl",
+            "actuator_hip_fr"
           ]
-        ],
-        "distinct_terminal_regions": 2
+        ]
       }
     },
     {
@@ -210,11 +214,11 @@
         "qualifying_route_ids": [],
         "independent_route_count": 0,
         "minimum_cut_size": null,
-        "all_minimum_cut_sets": [],
         "distinct_terminal_regions": 0,
         "rejection_reasons": [
           "POSSIBLE_SUCCESSOR_OUTSIDE_ROBUST_CONTINUATION"
-        ]
+        ],
+        "all_minimal_cut_sets": []
       }
     },
     {
@@ -265,11 +269,11 @@
         "qualifying_route_ids": [],
         "independent_route_count": 0,
         "minimum_cut_size": null,
-        "all_minimum_cut_sets": [],
         "distinct_terminal_regions": 0,
         "rejection_reasons": [
           "NONVIABLE_INTERMEDIATE_STATE"
-        ]
+        ],
+        "all_minimal_cut_sets": []
       }
     },
     {
@@ -334,11 +338,11 @@
         ],
         "independent_route_count": null,
         "minimum_cut_size": null,
-        "all_minimum_cut_sets": [],
         "distinct_terminal_regions": 1,
         "rejection_reasons": [
           "INCOMPLETE_FAILURE_DOMAIN_MANIFEST"
-        ]
+        ],
+        "all_minimal_cut_sets": []
       }
     },
     {
@@ -382,11 +386,11 @@
         "qualifying_route_ids": [],
         "independent_route_count": 0,
         "minimum_cut_size": null,
-        "all_minimum_cut_sets": [],
         "distinct_terminal_regions": 0,
         "rejection_reasons": [
           "RECOVERY_ENERGY_LIMIT_EXCEEDED"
-        ]
+        ],
+        "all_minimal_cut_sets": []
       }
     }
   ]
