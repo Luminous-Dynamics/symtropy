@@ -858,11 +858,13 @@ fn ray_triangle_distance(
 fn observe_from_view(
     view: &VisibilityView,
     probe: &VisibilityProbe,
+    bvh: &TriangleBvh,
     occluders: &[OccluderTriangle],
     occluder_coverage: OccluderCoverage,
     profile: VisibilityProfile,
     remaining_ray_tests: usize,
-) -> Result<(ViewObservation, usize), String> {
+    remaining_node_visits: usize,
+) -> Result<(ViewObservation, usize, usize), String> {
     let Some((direction, target_distance)) = view_covers_probe(view, probe.point)? else {
         return Ok((
             ViewObservation {
@@ -872,6 +874,7 @@ fn observe_from_view(
                 blocker_triangle_ids: Vec::new(),
                 blocker_distance_m: None,
             },
+            0,
             0,
         ));
     };
@@ -904,52 +907,35 @@ fn observe_from_view(
                 blocker_distance_m: None,
             },
             0,
+            0,
         ));
     }
 
     let origin = Vec3::from_point(view.origin);
-    let mut ray_tests = 0usize;
-    let mut nearest_distance: Option<f64> = None;
-    let mut nearest: Vec<(&OccluderTriangle, f64)> = Vec::new();
-    for occluder in occluders {
-        if occluder.surface_id == probe.surface_id
-            && occluder.triangle_id == probe.triangle_id
-        {
-            continue;
-        }
-        if ray_tests >= remaining_ray_tests {
-            return Err("visibility ray-test budget exceeded during ray traversal".to_owned());
-        }
-        ray_tests += 1;
-        if let Some(distance) =
-            ray_triangle_distance(origin, direction, target_distance, occluder)
-        {
-            match nearest_distance {
-                None => {
-                    nearest_distance = Some(distance);
-                    nearest.push((occluder, distance));
-                }
-                Some(best) if distance < best - INTERSECTION_EPSILON_M => {
-                    nearest_distance = Some(distance);
-                    nearest.clear();
-                    nearest.push((occluder, distance));
-                }
-                Some(best) if (distance - best).abs() <= INTERSECTION_EPSILON_M => {
-                    nearest.push((occluder, distance));
-                }
-                Some(_) => {}
-            }
-        }
-    }
+    let (nearest, ray_tests, node_visits) = bvh.nearest_hits(
+        origin,
+        direction,
+        target_distance,
+        occluders,
+        &probe.surface_id,
+        &probe.triangle_id,
+        remaining_ray_tests,
+        remaining_node_visits,
+    )?;
 
     if occluder_coverage == OccluderCoverage::Incomplete {
         let mut blocker_ids: Vec<String> = nearest
             .iter()
-            .map(|(occluder, _)| format!("{}/{}", occluder.surface_id, occluder.triangle_id))
+            .map(|(index, _)| {
+                let occluder = &occluders[*index];
+                format!("{}/{}", occluder.surface_id, occluder.triangle_id)
+            })
             .collect();
         blocker_ids.sort();
-        let blocker_kinds: BTreeSet<OccluderKind> =
-            nearest.iter().map(|(occluder, _)| occluder.kind).collect();
+        let blocker_kinds: BTreeSet<OccluderKind> = nearest
+            .iter()
+            .map(|(index, _)| occluders[*index].kind)
+            .collect();
         return Ok((
             ViewObservation {
                 view_id: view.view_id.clone(),
@@ -960,9 +946,10 @@ fn observe_from_view(
                     None
                 },
                 blocker_triangle_ids: blocker_ids,
-                blocker_distance_m: nearest_distance,
+                blocker_distance_m: nearest.first().map(|(_, distance)| *distance),
             },
             ray_tests,
+            node_visits,
         ));
     }
 
@@ -976,18 +963,14 @@ fn observe_from_view(
                 blocker_distance_m: None,
             },
             ray_tests,
+            node_visits,
         ));
     }
 
-    nearest.sort_by(|left, right| {
-        left.0
-            .surface_id
-            .cmp(&right.0.surface_id)
-            .then_with(|| left.0.triangle_id.cmp(&right.0.triangle_id))
-    });
     let mut kinds = BTreeSet::new();
     let mut blocker_triangle_ids = Vec::with_capacity(nearest.len());
-    for (occluder, _) in &nearest {
+    for (index, _) in &nearest {
+        let occluder = &occluders[*index];
         kinds.insert(occluder.kind);
         blocker_triangle_ids.push(format!(
             "{}/{}",
@@ -1014,9 +997,10 @@ fn observe_from_view(
                 kinds.iter().next().copied()
             },
             blocker_triangle_ids,
-            blocker_distance_m: nearest_distance,
+            blocker_distance_m: nearest.first().map(|(_, distance)| *distance),
         },
         ray_tests,
+        node_visits,
     ))
 }
 
@@ -1523,6 +1507,7 @@ pub fn derive_surface_visibility(
     }
     let ordered_occluders: Vec<OccluderTriangle> =
         ordered_occluders.into_iter().map(|value| (*value).clone()).collect();
+    let bvh = TriangleBvh::build(&ordered_occluders);
     if canonical_occluder_manifest_sha256(&ordered_occluders)
         != evaluation.occluder_manifest_sha256
     {
@@ -1566,24 +1551,35 @@ pub fn derive_surface_visibility(
 
     let mut results = Vec::with_capacity(evaluation.probes.len());
     let mut ray_test_count = 0usize;
+    let mut bvh_node_visit_count = 0usize;
     let mut surface_totals: BTreeMap<String, [f64; 8]> = BTreeMap::new();
 
     for probe in ordered_probes {
         let mut per_view = Vec::with_capacity(owned_views.len());
         for view in &owned_views {
-            let (observation, tests) = observe_from_view(
+            let (observation, tests, node_visits) = observe_from_view(
                 view,
                 probe,
+                &bvh,
                 &ordered_occluders,
                 evaluation.occluder_coverage,
                 evaluation.profile,
                 evaluation.profile.max_ray_tests.saturating_sub(ray_test_count),
+                evaluation
+                    .profile
+                    .max_bvh_node_visits
+                    .saturating_sub(bvh_node_visit_count),
             )?;
             ray_test_count = ray_test_count
                 .checked_add(tests)
                 .ok_or("visibility ray-test count overflowed")?;
-            if ray_test_count > evaluation.profile.max_ray_tests {
-                return Err("visibility ray-test budget exceeded during evaluation".to_owned());
+            bvh_node_visit_count = bvh_node_visit_count
+                .checked_add(node_visits)
+                .ok_or("visibility BVH node-visit count overflowed")?;
+            if ray_test_count > evaluation.profile.max_ray_tests
+                || bvh_node_visit_count > evaluation.profile.max_bvh_node_visits
+            {
+                return Err("visibility traversal budget exceeded during evaluation".to_owned());
             }
             per_view.push(observation);
         }
