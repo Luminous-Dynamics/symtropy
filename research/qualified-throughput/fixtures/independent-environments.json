@@ -73,7 +73,8 @@
           "replay_conformant": null,
           "evidence_receipt_sha256": null
         }
-      ]
+      ],
+      "campaign_id": "cpu-fast-partial-run-01"
     },
     {
       "engine_id": "cpu-slower-complete",
@@ -118,7 +119,8 @@
           "replay_conformant": true,
           "evidence_receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
         }
-      ]
+      ],
+      "campaign_id": "cpu-slower-complete-run-01"
     }
   ]
 }
