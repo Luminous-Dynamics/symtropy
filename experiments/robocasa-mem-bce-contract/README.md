@@ -72,16 +72,18 @@ The Rust module `release_gate.rs` adds a separate preflight contract for native 
 The gate requires:
 
 - exact equality between the checked-out source revision and the release manifest's declared revision;
+- independent verification that the source-file manifest corresponds to the checked-out source;
 - an independently verified source-file manifest, pinned release/suite/input-lock/simulator-source manifests, and preserved suite bytes;
 - exact task, suite and resolved official input counts;
 - separate dataset and asset rights statuses, plus digest-addressed rights manifests;
 - asset archive identity, asset-manifest task coverage, an independent task-coverage verification receipt, exact task count, and a clean candidate installation;
 - installed-wheel acceptance for the **current wheel digest and current runtime digest**, with every expected official input passed in a clean environment;
-- a pinned expected policy-family manifest and a checkpoint-loaded/inference smoke for every expected family (ACT, Diffusion Policy, Pi0.5 in the current nine-task release); each smoke must use the exact candidate runtime, produce inference requests, report no runtime errors and preserve its episode artifacts.
+- a pinned expected policy-family manifest and exact expected checkpoint digest for every (family, task) suite in the 27-suite matrix; every tuple must have a checkpoint-loaded/inference smoke using the exact candidate runtime, with inference requests, no runtime errors and complete episode artifacts;
+- explicit training-data overlap disclosure; unknown overlap blocks qualified comparative evaluation, while known overlap remains disclosed rather than being relabeled as no overlap.
 
 A historical wheel pass does not qualify a changed wheel or runtime. A smoke of one policy family does not unlock another family. A model inference smoke is not required to complete the benchmark task; task success and benchmark performance are measured later by the native evaluator. These stages remain distinct.
 
-The current upstream candidate inspected at source revision `2c7d498e589d1a5a62b5b30c9d786513fa86bfa2` still declares `release_ready=false` and `suite_bytes_preserved=false`. The 450-case installed-wheel evidence refers to an earlier wheel/runtime; its metadata says `runtime_files_match_accepted_wheel=false`. Nine-task asset coverage is marked verified for the official inputs, but clean candidate installation is unverified. Thus asset coverage being complete does not qualify the current release. The gate includes a synthetic regression fixture for this combination.
+The upstream candidate inspected at source revision `2c7d498e589d1a5a62b5b30c9d786513fa86bfa2` declares candidate source revision `b891bdf35fbe7b8390ea6cc663a870fb9ea7820c`, `release_ready=false`, and `suite_bytes_preserved=false`. The declared source revision and inspected source revision therefore need reconciliation. The release-candidate manifest contains a separate asset-verification receipt that reports coverage for all 450 official inputs, but the referenced distributed asset manifest itself still says `nine_task_coverage_verified=false` and describes an archive inventory rather than a verified minimal nine-task dependency closure. Both sources say clean installation of the current candidate is unverified. The historical 450-case installed-wheel pass used a previous wheel/runtime; metadata states `runtime_files_match_accepted_wheel=false`. The gate requires both the asset-manifest assertion and the independent receipt, plus clean candidate installation and current wheel/runtime acceptance. It includes regression fixtures for these contradictory and historical-evidence states.
 
 Use the typed API from an adapter which has already verified and hashed the evidence artifacts:
 
@@ -98,7 +100,7 @@ if !report.native_evaluation_ready {
 
 The crate validates digest shape and exact equality; it does not hash or authenticate files, establish the truth of an external receipt, adjudicate licensing, or verify the runtime itself. Those responsibilities belong to the acquisition/verification adapter and independent review. The synthetic release-gate tests establish only blocker logic, not that the upstream candidate is qualified.
 
-Run the complete nested contract suite:
+Run the complete nested contract suite (including release-gate regression cases):
 
 ~~~sh
 cargo fmt --manifest-path experiments/robocasa-mem-bce-contract/Cargo.toml -- --check
