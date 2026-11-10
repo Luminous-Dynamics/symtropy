@@ -38,6 +38,9 @@ struct QueryContract {
     direction_normalization: String,
     intersection_epsilon_m: f64,
     nearest_hit_tie_epsilon_m: f64,
+    parallel_cosine_epsilon: f64,
+    barycentric_epsilon: f64,
+    coplanar_policy: String,
     triangle_sidedness: String,
     self_hit_exclusion: String,
     expected_hit_policy: String,
@@ -132,28 +135,40 @@ fn valid_triangle(triangle: &Triangle) -> bool {
 /// This is intentionally a small brute-force reference, not a production
 /// acceleration structure. The query contract requires unit ray directions,
 /// so t is expressed in metres.
-fn ray_triangle_distance(origin: Vec3, direction: Vec3, triangle: &Triangle) -> Option<f64> {
+fn ray_triangle_distance(
+    origin: Vec3,
+    direction: Vec3,
+    triangle: &Triangle,
+    parallel_cosine_epsilon: f64,
+    barycentric_epsilon: f64,
+) -> Option<f64> {
     let edge_a = sub(triangle.b, triangle.a);
     let edge_b = sub(triangle.c, triangle.a);
+    let edge_scale = norm(edge_a) * norm(edge_b);
     let p = cross(direction, edge_b);
     let determinant = dot(edge_a, p);
-    if !determinant.is_finite() || determinant.abs() <= 1.0e-14 {
+    // The relative threshold is dimensionless because direction is required
+    // to be unit length. It remains meaningful under uniform unit scaling.
+    if !edge_scale.is_finite()
+        || edge_scale <= 0.0
+        || !determinant.is_finite()
+        || determinant.abs() <= parallel_cosine_epsilon * edge_scale
+    {
         return None;
     }
 
     let inverse = 1.0 / determinant;
     let offset = sub(origin, triangle.a);
     let u = dot(offset, p) * inverse;
-    const BARYCENTRIC_EPSILON: f64 = 1.0e-12;
-    if !u.is_finite() || u < -BARYCENTRIC_EPSILON || u > 1.0 + BARYCENTRIC_EPSILON {
+    if !u.is_finite() || u < -barycentric_epsilon || u > 1.0 + barycentric_epsilon {
         return None;
     }
 
     let q = cross(offset, edge_a);
     let v = dot(direction, q) * inverse;
     if !v.is_finite()
-        || v < -BARYCENTRIC_EPSILON
-        || u + v > 1.0 + BARYCENTRIC_EPSILON
+        || v < -barycentric_epsilon
+        || u + v > 1.0 + barycentric_epsilon
     {
         return None;
     }
@@ -177,10 +192,17 @@ fn validate_fixture(fixture: &Fixture) -> Result<FixtureReport<'_>, String> {
         || contract.triangle_sidedness != "two_sided"
         || contract.self_hit_exclusion != "exact_surface_id_and_triangle_id"
         || contract.expected_hit_policy != "all_hits_within_nearest_hit_tie_epsilon"
+        || contract.coplanar_policy != "miss"
         || !contract.intersection_epsilon_m.is_finite()
         || contract.intersection_epsilon_m <= 0.0
         || !contract.nearest_hit_tie_epsilon_m.is_finite()
         || contract.nearest_hit_tie_epsilon_m <= 0.0
+        || !contract.parallel_cosine_epsilon.is_finite()
+        || contract.parallel_cosine_epsilon <= 0.0
+        || contract.parallel_cosine_epsilon >= 1.0
+        || !contract.barycentric_epsilon.is_finite()
+        || contract.barycentric_epsilon <= 0.0
+        || contract.barycentric_epsilon >= 0.1
     {
         return Err("fixture query contract is unsupported or invalid".to_owned());
     }
@@ -236,7 +258,14 @@ fn validate_fixture(fixture: &Fixture) -> Result<FixtureReport<'_>, String> {
                 })
             })
             .filter_map(|triangle| {
-                ray_triangle_distance(ray.origin, ray.direction, triangle).and_then(|distance| {
+                ray_triangle_distance(
+                    ray.origin,
+                    ray.direction,
+                    triangle,
+                    contract.parallel_cosine_epsilon,
+                    contract.barycentric_epsilon,
+                )
+                .and_then(|distance| {
                     (distance >= ray.tnear_m - contract.intersection_epsilon_m
                         && distance <= ray.tfar_m + contract.intersection_epsilon_m)
                         .then(|| {
