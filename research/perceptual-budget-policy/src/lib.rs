@@ -781,6 +781,24 @@ mod tests {
     }
 
     #[test]
+    fn energy_is_not_used_as_a_hidden_objective_when_not_requested() {
+        let mut data = input();
+        data.budget.max_gpu_energy_uj_per_frame = None;
+        data.profiles[0].frame_time_p95_us = 9_000;
+        data.profiles[1].frame_time_p95_us = 12_000;
+        data.profiles[0].gpu_energy_uj_per_frame = Some(7_500.0);
+        data.profiles[1].gpu_energy_uj_per_frame = Some(5_000.0);
+        let receipt = evaluate(&data).expect("no energy cap requested");
+        assert_eq!(
+            receipt.decision,
+            PolicyDecision::Selected {
+                profile_id: "high-quality".to_owned(),
+                measurement_receipt_sha256: "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc".to_owned(),
+            }
+        );
+    }
+
+    #[test]
     fn requested_energy_measurement_cannot_be_missing() {
         let mut data = input();
         data.profiles[0].gpu_energy_uj_per_frame = None;
@@ -812,6 +830,27 @@ mod tests {
         let receipt = evaluate(&data).expect("profiles have no panel");
         assert!(receipt.evaluations.iter().all(|entry| {
             entry.rejection_reasons.contains(&RejectionReason::HumanPanelMissing)
+        }));
+    }
+
+    #[test]
+    fn panel_protocol_and_sample_set_must_match_contract() {
+        let mut data = input();
+        data.contract.min_panel_evaluators = 20;
+        data.contract.human_panel_protocol_sha256 = Some(H1.to_owned());
+        data.contract.human_panel_sample_set_sha256 = Some(H2.to_owned());
+        for candidate in &mut data.profiles {
+            candidate.human_preference = Some(HumanPreferenceEvidence {
+                evaluator_count: 24,
+                pairwise_preference_lower_95: 0.6,
+                protocol_sha256: H3.to_owned(),
+                sample_set_sha256: H4.to_owned(),
+            });
+        }
+        let receipt = evaluate(&data).expect("well-formed but mismatched study provenance");
+        assert!(receipt.evaluations.iter().all(|entry| {
+            entry.rejection_reasons.contains(&RejectionReason::HumanPanelProtocolMismatch)
+                && entry.rejection_reasons.contains(&RejectionReason::HumanPanelSampleSetMismatch)
         }));
     }
 
