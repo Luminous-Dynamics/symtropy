@@ -128,6 +128,19 @@ These are vendor/provider descriptions, not independent diagnostic-accuracy resu
 
 The CDAF paper states that original code and **part** of the real-vessel data are public at [the authors' GitHub repository](https://github.com/xiezaimi-png/Marine-diesel-engine-explainable-weak-thermal-fault-diagnosis). The repository exists, but its files, exact commit, license for shared data, runnable environment and payload have not yet been audited in this environment. The associated *Scientific Data* descriptor is a distinct source and must be pinned to its own dataset release and license. Do not infer that an open-access article license automatically covers its underlying data.
 
+### Archive preview inventory — metadata only
+
+The Zenodo archive preview is now inspectable even though the 26.5 MB ZIP payload could not be retrieved in this environment. Its preview tree lists **22 members**: 15 scenario CSVs, one baseline CSV, README, CITATION, LICENSE, dataset index, variable dictionary and the normalization script. The individual paths and preview-reported sizes are frozen in the dataset manifest.
+
+This improves the inventory boundary but does **not** upgrade the payload-audit status:
+- Preview tree confirmed: yes.
+- Archive bytes downloaded: no.
+- Publisher MD5 `f4d246c1bb46e05b26e56221acc2606c` independently checked: no.
+- SHA-256, CSV row counts, per-file timestamp monotonicity, three-row header parse, label-transition positions, channel units/presence and normalization-script behavior: not audited.
+- Split assignments and benchmark scores: not produced.
+
+The archive record itself identifies the controlled MU323DGSC platform, the 16 CSV recordings, the 73-column scenario schema, the 70-column reference schema, the two anomaly-only injector files and five runs with two missing channels. Those are publisher metadata, not independently re-parsed measurements. [Zenodo record](https://zenodo.org/records/19857425) · [Zenodo archive preview](https://zenodo.org/records/19857425/preview/Marine_Engine_Fault_Data_v1.zip?include_deleted=0).
+
 ### A harder SOTA protocol
 
 Use two gates. A same-paper random split is a reproduction target; independent recording/domain generalization is a separate achievement.
