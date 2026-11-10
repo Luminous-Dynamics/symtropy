@@ -10,6 +10,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
+use std::collections::HashSet;
 use std::env;
 use std::fs;
 use std::fs::File;
@@ -619,11 +620,39 @@ fn inventory_from_manifest(manifest: &Value) -> Result<Vec<InventoryEntry>, Stri
         .pointer("/public_record_metadata/archive/file_inventory")
         .and_then(Value::as_array)
         .ok_or_else(|| "manifest has no archive.file_inventory array".to_string())?;
-    values
+    let entries = values
         .iter()
         .cloned()
         .map(|value| serde_json::from_value(value).map_err(|error| error.to_string()))
-        .collect()
+        .collect::<Result<Vec<InventoryEntry>, String>>()?;
+
+    let mut seen = HashSet::new();
+    let mut counts = [0usize; 4];
+    for entry in &entries {
+        safe_relative_path(&entry.path)?;
+        if !seen.insert(entry.path.as_str()) {
+            return Err(format!("duplicate inventory path: {}", entry.path));
+        }
+        if parse_preview_size(&entry.reported_size).is_none() {
+            return Err(format!("invalid preview size for {}", entry.path));
+        }
+        let slot = match entry.role.as_str() {
+            "scenario_csv" => 0,
+            "baseline_csv" => 1,
+            "metadata" => 2,
+            "license" => 3,
+            other => return Err(format!("unsupported inventory role: {other}")),
+        };
+        counts[slot] += 1;
+    }
+    if entries.len() != 22 || counts != [15, 1, 5, 1] {
+        return Err(format!(
+            "unexpected v1 inventory: {} entries, role counts {:?}; expected 22 and [15, 1, 5, 1]",
+            entries.len(),
+            counts
+        ));
+    }
+    Ok(entries)
 }
 
 fn build_split_template(entries: &[InventoryEntry]) -> SplitTemplate {
@@ -700,7 +729,9 @@ fn audit_dataset(cli: &Cli) -> Result<DatasetAuditReport, String> {
                 Err(error) => file_errors.push(format!("cannot stat {}: {error}", path.display())),
             }
 
-            if size_bytes.is_some_and(|size| size > MAX_FILE_BYTES) {
+            if size_bytes.is_none() {
+                file_errors.push("could not determine file size; refusing unbounded read".into());
+            } else if size_bytes.is_some_and(|size| size > MAX_FILE_BYTES) {
                 file_errors.push(format!("file exceeds safety limit of {MAX_FILE_BYTES} bytes"));
             } else {
                 match fs::read(&path) {
