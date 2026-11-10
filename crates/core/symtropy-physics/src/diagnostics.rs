@@ -210,6 +210,70 @@ mod tests {
         assert!((drift.absolute_energy_drift - 12.5).abs() < 1e-12);
     }
 
+    fn free_fall_error(dt: f64) -> (f64, f64, f64) {
+        const GRAVITY: f64 = -9.81;
+        const INITIAL_HEIGHT: f64 = 100.0;
+        const INITIAL_VELOCITY: f64 = 3.0;
+        const DURATION: f64 = 1.0;
+
+        let steps = (DURATION / dt).round() as usize;
+        assert!((steps as f64 * dt - DURATION).abs() < 1e-12);
+
+        let mut world = PhysicsWorld::<3>::new(SVector::from([0.0, GRAVITY, 0.0]));
+        let handle = world.add_sphere(Point::new([0.0, INITIAL_HEIGHT, 0.0]), 0.25, 2.0);
+        let body = world.body_mut(handle).unwrap();
+        body.linear_velocity = SVector::from([0.0, INITIAL_VELOCITY, 0.0]);
+        body.linear_damping = 0.0;
+        body.angular_damping = 0.0;
+
+        for _ in 0..steps {
+            world.step(dt);
+        }
+
+        let body = &world.bodies[0];
+        let analytic_position =
+            INITIAL_HEIGHT + INITIAL_VELOCITY * DURATION + 0.5 * GRAVITY * DURATION * DURATION;
+        let analytic_velocity = INITIAL_VELOCITY + GRAVITY * DURATION;
+        let actual_position = body.transform.translation.0[1];
+        let actual_velocity = body.linear_velocity[1];
+        let position_error = (actual_position - analytic_position).abs();
+        let velocity_error = (actual_velocity - analytic_velocity).abs();
+
+        let health = world.invariant_snapshot();
+        assert_eq!(health.non_finite_body_count, 0);
+        assert!(health.is_numerically_healthy(1e-9));
+
+        (position_error, velocity_error, actual_position)
+    }
+
+    #[test]
+    fn free_fall_matches_analytic_velocity_and_first_order_position_convergence() {
+        let (coarse_error, coarse_velocity_error, _) = free_fall_error(0.04);
+        let (medium_error, medium_velocity_error, _) = free_fall_error(0.02);
+        let (fine_error, fine_velocity_error, _) = free_fall_error(0.01);
+
+        // Semi-implicit Euler integrates constant acceleration exactly in
+        // velocity. Its position update uses v_(n+1), so the global position
+        // error against the continuous trajectory is |g| * T * dt / 2.
+        assert!(coarse_velocity_error < 1e-10);
+        assert!(medium_velocity_error < 1e-10);
+        assert!(fine_velocity_error < 1e-10);
+
+        let coarse_medium_ratio = coarse_error / medium_error;
+        let medium_fine_ratio = medium_error / fine_error;
+        assert!(
+            (coarse_medium_ratio - 2.0).abs() < 1e-8,
+            "position error should halve with dt: ratio={coarse_medium_ratio}"
+        );
+        assert!(
+            (medium_fine_ratio - 2.0).abs() < 1e-8,
+            "position error should halve with dt: ratio={medium_fine_ratio}"
+        );
+
+        let expected_coarse_error = 0.5 * 9.81 * 1.0 * 0.04;
+        assert!((coarse_error - expected_coarse_error).abs() < 1e-9);
+    }
+
     #[test]
     fn detects_non_finite_body_state() {
         let mut world = PhysicsWorld::<3>::new(SVector::zeros());
