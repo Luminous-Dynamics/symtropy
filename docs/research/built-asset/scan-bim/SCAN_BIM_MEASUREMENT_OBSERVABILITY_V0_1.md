@@ -292,7 +292,7 @@ A standalone Rust oracle has now been added on the #4589 draft branch:
 - Measurement sufficiency is task-conditioned: the same synthetic observation can pass a coarse-layout tolerance and fail a tighter installation tolerance.
 - Sensor applicability is derived from a declared profile envelope (minimum/maximum range, maximum incidence angle, qualified surface-response classes and environment classes) and explicit observed conditions. A caller-provided in-domain boolean is not accepted.
 - Duplicate or correlated reference lineages, stale/missing calibration, out-of-domain range, grazing incidence, unsupported surface response, unknown domain/conditions, conflicting visibility/observation and invalid uncertainty are explicit negative controls.
-- The 23-case frozen fixture is at `tools/scan-bim-measurement-observability/fixtures/measurement-observability.json`.
+- The 24-case frozen fixture is at `tools/scan-bim-measurement-observability/fixtures/measurement-observability.json`.
 - Nine Rust unit tests cover corpus agreement, visibility/observation separation, duplicate lineage, task-conditioned acceptance, case-order determinism and out-of-domain rejection.
 - Exact-path workflow: `.github/workflows/scan-bim-measurement-observability.yml`, with format, test, strict Clippy and frozen-corpus receipt checks.
 
