@@ -424,6 +424,27 @@ mod tests {
     }
 
     #[test]
+    fn fused_discrete_step_remains_energy_bounded_across_stiffness_sweep() {
+        let model = fixture(0.0);
+        for rho in [0.1_f64, 0.5, 1.0, 2.0, 4.0, 10.0, 25.0, 50.0, 100.0] {
+            let mut state = State1D {
+                position_m: 1.0,
+                velocity_m_s: 0.0,
+            };
+            let initial_energy = model.energy_joules(state).unwrap();
+            for _ in 0..64 {
+                state = model.discrete_step(state, rho).unwrap();
+                let energy = model.energy_joules(state).unwrap();
+                assert!(
+                    energy <= initial_energy * (1.0 + 1.0e-12),
+                    "rho={rho}, energy={energy}, initial={initial_energy}"
+                );
+                assert!(energy.is_finite());
+            }
+        }
+    }
+
+    #[test]
     fn semi_implicit_euler_is_unstable_beyond_its_harmonic_oscillator_limit() {
         let model = fixture(0.0);
         let mut state = State1D {
