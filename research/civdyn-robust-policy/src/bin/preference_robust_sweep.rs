@@ -198,11 +198,18 @@ fn scenario_result_rows(
             row[23] = fmt(metrics.minimum_energy_coverage);
             row[24] = fmt(metrics.recovery_success);
         }
-        row[40] = report.claim_ceiling.name().to_string();
-        row[42] = report.no_feasible_scenario_profile_count.to_string();
-        row[43] = report.incomplete_scenario_profile_count.to_string();
+        report_fields(&mut row, report);
         emit(row);
     }
+}
+
+fn report_fields(
+    row: &mut [String],
+    report: &civdyn_robust_policy::preference_robust::PreferenceRobustReport,
+) {
+    row[40] = report.claim_ceiling.name().to_string();
+    row[42] = report.no_feasible_scenario_profile_count.to_string();
+    row[43] = report.incomplete_scenario_profile_count.to_string();
 }
 
 fn summary_rows(report: &civdyn_robust_policy::preference_robust::PreferenceRobustReport) {
@@ -243,6 +250,7 @@ fn summary_rows(report: &civdyn_robust_policy::preference_robust::PreferenceRobu
         row[35] = summary.worst_case_regret_over_preference_polytope.map_or_else(String::new, fmt);
         row[36] = summary.preference_vertices_best_count.to_string();
         row[37] = summary.preference_vertices_considered.to_string();
+        report_fields(&mut row, report);
         emit(row);
     }
 
@@ -255,6 +263,7 @@ fn summary_rows(report: &civdyn_robust_policy::preference_robust::PreferenceRobu
         row[27] = summary.distinct_winner_policy_count.to_string();
         row[28] = summary.profiles_with_different_winners.to_string();
         row[38] = summary.unanimous_single_winner.clone().unwrap_or_default();
+        report_fields(&mut row, report);
         emit(row);
     }
 }
