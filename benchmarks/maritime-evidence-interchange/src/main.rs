@@ -43,7 +43,7 @@ struct RecordAudit {
     provenance_complete: bool,
     native_identifier_present: bool,
     ambiguous_mapping: bool,
-    conflict_links_valid: Option<bool>,
+    evidence_links_resolved: Option<bool>,
 }
 
 
@@ -204,7 +204,7 @@ fn days_from_civil(year: i64, month: i64, day: i64) -> i64 {
     era * 146097 + day_of_era - 719468
 }
 
-/// v0.1 canonical time encoding is UTC RFC3339 without fractional seconds.
+/// Parse RFC3339 instants with explicit offsets and at most nanosecond precision.
 fn parse_rfc3339_ns(value: &str) -> Result<i128, String> {
     let (date, rest) = value.split_once('T')
         .ok_or_else(|| "timestamp_missing_separator".to_owned())?;
@@ -255,6 +255,9 @@ fn parse_rfc3339_ns(value: &str) -> Result<i128, String> {
         Some((whole, fractional)) => (whole, Some(fractional)),
         None => (seconds_part, None),
     };
+    if second_text.len() != 2 {
+        return Err("timestamp_second_must_have_two_digits".into());
+    }
     let second: i64 = second_text.parse().map_err(|_| "timestamp_invalid_second")?;
     if hour > 23 || minute > 59 || !(0..=59).contains(&second) {
         return Err("timestamp_time_component_out_of_range".into());
@@ -274,6 +277,9 @@ fn parse_rfc3339_ns(value: &str) -> Result<i128, String> {
     } else {
         if zone.len() != 6 || zone.as_bytes().get(3) != Some(&b':') {
             return Err("timestamp_offset_not_rfc3339".into());
+        }
+        if zone == "-00:00" {
+            return Err("timestamp_offset_unknown_minus_zero".into());
         }
         let offset_hour = parse_fixed_u32(zone.as_bytes(), 1, 3)
             .ok_or("timestamp_offset_hour_invalid")?;
@@ -619,8 +625,10 @@ fn validate_record(record: &Value, evaluation_time: i128) -> RecordAudit {
                     audit.reject("quality_context_incomplete");
                 }
             }
-            if record.get("value").is_some() && string_at(record, &["unit_ucum"]).is_none_or(str::is_empty) {
-                audit.reject("unit_missing_for_value");
+            if value_at(record, &["value"]).and_then(Value::as_f64).is_some()
+                && string_at(record, &["unit_ucum"]).is_none_or(str::is_empty)
+            {
+                audit.reject("unit_missing_for_numeric_value");
             }
             let calibration = string_at(record, &["quality", "calibration_state"]);
             let freshness = string_at(record, &["quality", "freshness_state"]);
@@ -668,7 +676,7 @@ fn validate_record(record: &Value, evaluation_time: i128) -> RecordAudit {
             let valid_links = ["supports", "contradicts", "derived_from"].iter().all(|key| {
                 links.and_then(|value| value.get(*key)).and_then(Value::as_array).is_some()
             });
-            audit.conflict_links_valid = Some(valid_links);
+            audit.evidence_links_resolved = Some(valid_links);
             if !valid_links {
                 audit.reject("assertion_evidence_links_incomplete");
             }
@@ -686,7 +694,7 @@ fn validate_record(record: &Value, evaluation_time: i128) -> RecordAudit {
             ) {
                 if supports.iter().any(|item| contradicts.contains(item)) {
                     audit.reject("assertion_same_evidence_supports_and_contradicts");
-                    audit.conflict_links_valid = Some(false);
+                    audit.evidence_links_resolved = Some(false);
                 }
             }
         }
@@ -816,8 +824,8 @@ fn evaluate_corpus(bytes: &[u8]) -> Result<(Value, usize), String> {
     let mut native_total = 0usize;
     let mut ambiguous_total = 0usize;
     let mut ambiguous_abstained = 0usize;
-    let mut conflict_total = 0usize;
-    let mut conflict_valid = 0usize;
+    let mut evidence_link_total = 0usize;
+    let mut evidence_link_resolved = 0usize;
     let mut duplicate_gate_ok = true;
     let mut duplicate_seen = false;
     let mut digest_negative_control_ok = true;
@@ -873,6 +881,7 @@ fn evaluate_corpus(bytes: &[u8]) -> Result<(Value, usize), String> {
                 && !validate_evidence_references(record, &corpus_ids)
             {
                 audit.reject("assertion_evidence_reference_unresolved");
+                audit.evidence_links_resolved = Some(false);
                 references_ok = false;
             }
             if let Some(digest_ok) = audit.payload_digest_match {
@@ -902,10 +911,10 @@ fn evaluate_corpus(bytes: &[u8]) -> Result<(Value, usize), String> {
                     ambiguous_abstained += 1;
                 }
             }
-            if audit.conflict_links_valid.is_some() {
-                conflict_total += 1;
-                if audit.conflict_links_valid == Some(true) {
-                    conflict_valid += 1;
+            if audit.evidence_links_resolved.is_some() {
+                evidence_link_total += 1;
+                if audit.evidence_links_resolved == Some(true) {
+                    evidence_link_resolved += 1;
                 }
             }
             audits.push(audit);
@@ -978,13 +987,13 @@ fn evaluate_corpus(bytes: &[u8]) -> Result<(Value, usize), String> {
 
     let disposition_gate = failed_cases == 0;
     let ambiguous_gate = ambiguous_total == ambiguous_abstained && ambiguous_total > 0;
-    let conflict_gate = conflict_total == conflict_valid;
+    let evidence_link_resolution_gate = evidence_link_total == evidence_link_resolved;
     let digest_gate = digest_negative_control_ok && digest_mismatch_seen;
     let duplicate_gate = duplicate_gate_ok && duplicate_seen;
     let native_gate = native_total == native_present && native_total > 0;
     let provenance_gate = provenance_total > 0 && provenance_complete == provenance_total;
     let all_gates = disposition_gate && digest_gate && ambiguous_gate
-        && conflict_gate && duplicate_gate && references_ok && native_gate && provenance_gate;
+        && evidence_link_resolution_gate && duplicate_gate && references_ok && native_gate && provenance_gate;
 
     let report = json!({
         "report_version": "0.1.0",
@@ -1003,12 +1012,12 @@ fn evaluate_corpus(bytes: &[u8]) -> Result<(Value, usize), String> {
             "rejected": rejected,
             "abstained": abstained,
             "payload_digest_match_rate": if digest_checked == 0 { Value::Null } else { json!(digest_matches as f64 / digest_checked as f64) },
-            "native_identifier_retention_rate": if native_total == 0 { Value::Null } else { json!(native_present as f64 / native_total as f64) },
+            "native_identifier_completeness_rate": if native_total == 0 { Value::Null } else { json!(native_present as f64 / native_total as f64) },
             "mapping_precision": Value::Null,
             "mapping_coverage": Value::Null,
             "ambiguous_mapping_abstention_rate": if ambiguous_total == 0 { Value::Null } else { json!(ambiguous_abstained as f64 / ambiguous_total as f64) },
-            "conflict_preservation_rate": if conflict_total == 0 { Value::Null } else { json!(conflict_valid as f64 / conflict_total as f64) },
-            "provenance_completeness_rate": if provenance_total == 0 { Value::Null } else { json!(provenance_complete as f64 / provenance_total as f64) },
+            "assertion_evidence_link_resolution_rate": if evidence_link_total == 0 { Value::Null } else { json!(evidence_link_resolved as f64 / evidence_link_total as f64) },
+            "input_provenance_completeness_rate": if provenance_total == 0 { Value::Null } else { json!(provenance_complete as f64 / provenance_total as f64) },
             "event_order_preservation_rate": Value::Null,
             "p95_processing_ms": p95,
             "peak_memory_bytes": Value::Null
@@ -1021,7 +1030,7 @@ fn evaluate_corpus(bytes: &[u8]) -> Result<(Value, usize), String> {
             {"gate_id":"assertion_evidence_references_resolve","passed":references_ok,"failure_count":if references_ok { 0usize } else { 1usize }},
             {"gate_id":"native_channel_identifiers_present","passed":native_gate,"failure_count":if native_gate { 0usize } else { 1usize }},
             {"gate_id":"provenance_completeness","passed":provenance_gate,"failure_count":provenance_total.saturating_sub(provenance_complete)},
-            {"gate_id":"assertion_conflict_links_well_formed","passed":conflict_gate,"failure_count":conflict_total.saturating_sub(conflict_valid)}
+            {"gate_id":"assertion_conflict_links_well_formed","passed":evidence_link_resolution_gate,"failure_count":evidence_link_total.saturating_sub(evidence_link_resolved)}
         ],
         "case_results": case_reports,
         "claim_ceiling": "synthetic_profile_semantics_only",
@@ -1100,8 +1109,8 @@ mod tests {
         assert_eq!(report["summary"]["accepted"], 7);
         assert_eq!(report["summary"]["abstained"], 2);
         assert_eq!(report["summary"]["rejected"], 4);
-        assert_eq!(report["summary"]["native_identifier_retention_rate"], 1.0);
-        assert_eq!(report["summary"]["conflict_preservation_rate"], 1.0);
+        assert_eq!(report["summary"]["native_identifier_completeness_rate"], 1.0);
+        assert_eq!(report["summary"]["assertion_evidence_link_resolution_rate"], 1.0);
     }
 
     #[test]
