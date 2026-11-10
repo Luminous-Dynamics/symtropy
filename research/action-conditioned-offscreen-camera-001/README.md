@@ -18,7 +18,7 @@ This crate renders a policy-visible RGB camera frame from an immutable, action-l
 - Bounded 1280 × 720 RGB frames, 256 road markings, 8,192 points per marking, 32,768 total road points and 128 actors.
 - Typed Rust records serialize through Serde; JSON Schema v1 files are included under `schemas/`.
 - SHA-256 reference implementation is checked against empty-string, `abc` and a multi-block NIST known-answer vector.
-- A 20-tick serialized episode fixture reloads each immutable snapshot and requires exact pixel, policy-receipt and evaluator-audit replay; this is serialization/reconstruction coverage, not yet a separate OS-process integration test.
+- A 20-tick serialized episode fixture reloads immutable snapshots and requires exact pixel, policy-receipt and evaluator-audit replay in a separately spawned operating-system process. The test compares SHA-256 commitments and frame byte lengths; it is a renderer replay test, not yet integration with the Symthaea policy bridge.
 
 This renderer is a software interface/test backend. It is not photorealistic, CARLA-equivalent, physically calibrated or a validated camera sensor model. It does not implement vehicle dynamics.
 
