@@ -535,6 +535,85 @@ mod tests {
         ));
     }
 
+    fn assert_simple_plane_rotations_are_proper<const D: usize>() {
+        let point = SVector::<f64, D>::from_fn(|i, _| (i as f64 + 1.0) / D as f64);
+        for i in 0..D {
+            for j in (i + 1)..D {
+                let plane = Bivector::<D>::unit_plane(i, j);
+                let angle = 0.11 + (i + j) as f64 * 0.071;
+                let rotation = Rotor::from_plane_angle(&plane, angle);
+                assert!(
+                    rotation.is_proper_rotation(1e-9),
+                    "SO({D}) plane ({i},{j}) failed: orthogonality={}, determinant={}",
+                    rotation.orthogonality_error(),
+                    rotation.determinant()
+                );
+
+                let rotated = rotation.rotate_vector(&point);
+                assert!((rotated.norm() - point.norm()).abs() < 1e-9);
+                let recovered = rotation.reverse().rotate_vector(&rotated);
+                assert!((recovered - point).norm() < 1e-9);
+
+                let admitted = Rotor::try_from_matrix(*rotation.to_matrix(), 1e-9)
+                    .expect("a constructed proper rotation must pass matrix admission");
+                assert!(admitted.is_proper_rotation(1e-9));
+            }
+        }
+    }
+
+    #[test]
+    fn every_supported_dimension_preserves_rotor_group_invariants() {
+        // Bivector currently supports D=2..=9. Exercise every coordinate plane,
+        // not only the common 2D/3D/4D specializations.
+        assert_simple_plane_rotations_are_proper::<2>();
+        assert_simple_plane_rotations_are_proper::<3>();
+        assert_simple_plane_rotations_are_proper::<4>();
+        assert_simple_plane_rotations_are_proper::<5>();
+        assert_simple_plane_rotations_are_proper::<6>();
+        assert_simple_plane_rotations_are_proper::<7>();
+        assert_simple_plane_rotations_are_proper::<8>();
+        assert_simple_plane_rotations_are_proper::<9>();
+    }
+
+    fn assert_adjoint_equivariance<const D: usize>() {
+        let mut frame_generator = Bivector::<D>::zero();
+        let mut body_generator = Bivector::<D>::zero();
+        for i in 0..D {
+            for j in (i + 1)..D {
+                let parity = if (i + j) % 2 == 0 { 1.0 } else { -1.0 };
+                frame_generator.set(i, j, parity * 0.009 * (i + 1) as f64 * (j + 2) as f64);
+                body_generator.set(i, j, -parity * 0.007 * (i + 2) as f64 * (j + 1) as f64);
+            }
+        }
+
+        let frame = Rotor::from_bivector(&frame_generator);
+        let original_exponential = Rotor::from_bivector(&body_generator);
+        let conjugated = frame
+            .compose(&original_exponential)
+            .compose(&frame.reverse());
+
+        let transformed_matrix =
+            frame.to_matrix() * body_generator.to_matrix() * frame.to_matrix().transpose();
+        let transformed_generator = Bivector::<D>::from_matrix(&transformed_matrix);
+        let exponential_after_adjoint = Rotor::from_bivector(&transformed_generator);
+
+        let residual = *conjugated.to_matrix() - *exponential_after_adjoint.to_matrix();
+        let max_error = residual.iter().fold(0.0_f64, |m, x| m.max(x.abs()));
+        assert!(max_error < 1e-8, "SO({D}) adjoint-equivariance residual={max_error:e}");
+        assert!(conjugated.is_proper_rotation(1e-8));
+        assert!(exponential_after_adjoint.is_proper_rotation(1e-8));
+    }
+
+    #[test]
+    fn bivector_exponential_is_adjoint_equivariant_in_dimensions_three_through_nine() {
+        assert_adjoint_equivariance::<3>();
+        assert_adjoint_equivariance::<4>();
+        assert_adjoint_equivariance::<5>();
+        assert_adjoint_equivariance::<6>();
+        assert_adjoint_equivariance::<7>();
+        assert_adjoint_equivariance::<8>();
+        assert_adjoint_equivariance::<9>();
+    }
     #[test]
     fn bivector_exponential_respects_adjoint_equivariance() {
         // The exponential map commutes with the adjoint action:
