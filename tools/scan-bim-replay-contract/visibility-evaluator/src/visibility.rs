@@ -376,15 +376,6 @@ impl Aabb {
         minimum * 0.5 + maximum * 0.5
     }
 
-    fn centroid_extent(self, axis: usize) -> f64 {
-        let (minimum, maximum) = match axis {
-            0 => (self.minimum.x, self.maximum.x),
-            1 => (self.minimum.y, self.maximum.y),
-            _ => (self.minimum.z, self.maximum.z),
-        };
-        maximum * 0.5 - minimum * 0.5
-    }
-
     /// Slab intersection; bounds are expanded by the declared numeric epsilon
     /// so shared edges and near-boundary rays are not lost by the broad phase.
     fn ray_entry(self, origin: Vec3, direction: Vec3, max_distance: f64) -> Option<f64> {
@@ -544,7 +535,8 @@ impl TriangleBvh {
 
         // Input triangles are already sorted by stable (surface, triangle) IDs.
         // A total comparator therefore makes the median partition deterministic.
-        indices.select_nth_unstable_by(indices.len() / 2, |left, right| {
+        let midpoint = indices.len() / 2;
+        indices.select_nth_unstable_by(midpoint, |left, right| {
             let left_bounds = Aabb::from_triangle(&triangles[*left]);
             let right_bounds = Aabb::from_triangle(&triangles[*right]);
             left_bounds
@@ -561,7 +553,7 @@ impl TriangleBvh {
                         .cmp(&triangles[*right].triangle_id)
                 })
         });
-        let right_indices = indices.split_off(indices.len() / 2);
+        let right_indices = indices.split_off(midpoint);
         let left = Self::build_node(indices, triangles, node_count, leaf_count);
         let right = Self::build_node(right_indices, triangles, node_count, leaf_count);
         BvhNode {
