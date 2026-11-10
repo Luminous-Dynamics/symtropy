@@ -98,7 +98,7 @@ pub struct TelemetryExtension {
 pub struct TelemetrySettings {
     pub node_index: u32,
     pub time: f32,
-    pub deformation_scale: f32,
+    pub visualization_gain: f32,
     pub noise_frequency: f32,
 }
 
