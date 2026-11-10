@@ -87,7 +87,7 @@ cargo run --release --locked \
   ./bridge-config.json \
   ./vision-config.json \
   ../symthaea/target/debug/camera-driving-bridge \
-  ../symtropy-auditor/target/debug/recoverable-driving-evidence
+  ../symtropy-auditor/research/recoverable-driving-evidence-001/target/debug/recoverable-driving-evidence
 ```
 
 The output directory must be empty or new. Reusing a non-empty directory is rejected to prevent stale frames or receipts being mistaken for the current run. The final argument is the #4556 branch-auditor executable.
