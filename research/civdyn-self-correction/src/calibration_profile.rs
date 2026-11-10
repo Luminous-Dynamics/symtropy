@@ -724,3 +724,280 @@ pub fn assess_calibration_profile(
         points,
     })
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::model_adequacy::{
+        assess_predictive_partition, IndependentUnitKind, ObservedStatistic, PredictiveDraw,
+        StatisticSpec,
+    };
+
+    const MODEL: &str = "sha256-calibration-profile-model";
+    const CALIBRATION: &str = "sha256-calibration-profile-calibration";
+    const MASSES: [f64; 4] = [0.50, 0.80, 0.90, 0.95];
+
+    fn registry() -> StatisticRegistry {
+        StatisticRegistry {
+            version: "calibration-profile-v1".to_string(),
+            statistics: vec![
+                StatisticSpec {
+                    id: "service-coverage-group-a".to_string(),
+                    construct: "essential service coverage group A".to_string(),
+                    measurement_unit: "coverage_fraction".to_string(),
+                    population: "group-a".to_string(),
+                    context: "synthetic-calibration-fixture".to_string(),
+                    source_family: "synthetic-service-measurements".to_string(),
+                    source_digest: "sha256-calibration-observations".to_string(),
+                    independent_unit: IndependentUnitKind::Region,
+                    role: SplitRole::Validation,
+                    primary: true,
+                    required: true,
+                    minimum_draws: 101,
+                },
+                StatisticSpec {
+                    id: "service-coverage-group-b".to_string(),
+                    construct: "essential service coverage group B".to_string(),
+                    measurement_unit: "coverage_fraction".to_string(),
+                    population: "group-b".to_string(),
+                    context: "synthetic-calibration-fixture".to_string(),
+                    source_family: "synthetic-service-measurements".to_string(),
+                    source_digest: "sha256-calibration-observations".to_string(),
+                    independent_unit: IndependentUnitKind::Region,
+                    role: SplitRole::Validation,
+                    primary: true,
+                    required: true,
+                    minimum_draws: 101,
+                },
+            ],
+        }
+    }
+
+    fn manifest() -> SplitManifest {
+        SplitManifest {
+            id: "calibration-profile-split-v1".to_string(),
+            independent_unit: IndependentUnitKind::Region,
+            calibration_data_digest: CALIBRATION.to_string(),
+            manifest_digest: "sha256-calibration-profile-manifest".to_string(),
+            calibration_units: vec!["calibration-region".to_string()],
+            validation_units: (0..200)
+                .map(|index| format!("region-{index:03}"))
+                .collect(),
+            challenge_units: Vec::new(),
+        }
+    }
+
+    fn group_a_ranks() -> Vec<f64> {
+        let mut ranks = Vec::with_capacity(200);
+        ranks.extend(std::iter::repeat_n(0.50, 80));
+        ranks.extend(std::iter::repeat_n(0.15, 20));
+        ranks.extend(std::iter::repeat_n(0.85, 20));
+        ranks.extend(std::iter::repeat_n(0.075, 10));
+        ranks.extend(std::iter::repeat_n(0.925, 10));
+        ranks.extend(std::iter::repeat_n(0.0375, 10));
+        ranks.extend(std::iter::repeat_n(0.9625, 10));
+        ranks.extend(std::iter::repeat_n(0.01, 20));
+        ranks.extend(std::iter::repeat_n(0.99, 20));
+        assert_eq!(ranks.len(), 200);
+        ranks
+    }
+
+    fn group_b_ranks() -> Vec<f64> {
+        let mut ranks = Vec::with_capacity(200);
+        ranks.extend(std::iter::repeat_n(0.50, 120));
+        ranks.extend(std::iter::repeat_n(0.15, 30));
+        ranks.extend(std::iter::repeat_n(0.85, 30));
+        ranks.extend(std::iter::repeat_n(0.075, 8));
+        ranks.extend(std::iter::repeat_n(0.925, 8));
+        ranks.extend(std::iter::repeat_n(0.0375, 1));
+        ranks.extend(std::iter::repeat_n(0.9625, 1));
+        ranks.extend(std::iter::repeat_n(0.01, 1));
+        ranks.extend(std::iter::repeat_n(0.99, 1));
+        assert_eq!(ranks.len(), 200);
+        ranks
+    }
+
+    fn evidence() -> CalibrationProfileEvidence {
+        let registry = registry();
+        let manifest = manifest();
+        let ranks = [
+            ("service-coverage-group-a", group_a_ranks()),
+            ("service-coverage-group-b", group_b_ranks()),
+        ];
+        let mut observations = Vec::with_capacity(400);
+        let mut draws = Vec::with_capacity(40_400);
+
+        for (statistic_id, statistic_ranks) in &ranks {
+            for (index, rank) in statistic_ranks.iter().enumerate() {
+                let unit_id = format!("region-{index:03}");
+                observations.push(ObservedStatistic {
+                    statistic_id: (*statistic_id).to_string(),
+                    independent_unit_id: unit_id.clone(),
+                    measurement_unit: "coverage_fraction".to_string(),
+                    source_digest: "sha256-calibration-observations".to_string(),
+                    sample_size: 101,
+                    value: rank * 100.0,
+                    measurement_standard_error: Some(0.01),
+                    observation_digest: format!("sha256-observation-{statistic_id}-{unit_id}"),
+                });
+                for draw_index in 0..=100_u64 {
+                    draws.push(PredictiveDraw {
+                        kind: PredictiveKind::Split,
+                        statistic_id: (*statistic_id).to_string(),
+                        independent_unit_id: unit_id.clone(),
+                        sample_size: 101,
+                        draw_index,
+                        value: draw_index as f64,
+                        model_digest: MODEL.to_string(),
+                        draw_set_digest: format!("sha256-draws-{statistic_id}-{unit_id}"),
+                        calibration_data_digest: Some(CALIBRATION.to_string()),
+                    });
+                }
+            }
+        }
+
+        let assessments = MASSES
+            .iter()
+            .map(|central_mass| {
+                assess_predictive_partition(
+                    &registry,
+                    &manifest,
+                    &observations,
+                    &draws,
+                    SplitRole::Validation,
+                    PredictiveKind::Split,
+                    *central_mass,
+                )
+                .expect("valid synthetic split-predictive calibration assessment")
+            })
+            .collect();
+
+        CalibrationProfileEvidence {
+            model_digest: MODEL.to_string(),
+            registry,
+            manifest,
+            assessments,
+        }
+    }
+
+    #[test]
+    fn detects_opposite_conditional_calibration_failures_at_all_nominal_levels() {
+        let report = assess_calibration_profile(&evidence()).expect("calibration profile");
+        assert_eq!(report.claim_ceiling, CalibrationClaimCeiling::CalibrationDiscrepancyDetected);
+        assert!(report.evidence_complete);
+        assert_eq!(report.points.len(), 8);
+        assert_eq!(report.central_masses, MASSES);
+
+        let group_a: Vec<_> = report.points.iter()
+            .filter(|point| point.statistic_id == "service-coverage-group-a")
+            .collect();
+        let group_b: Vec<_> = report.points.iter()
+            .filter(|point| point.statistic_id == "service-coverage-group-b")
+            .collect();
+        assert_eq!(group_a.len(), 4);
+        assert_eq!(group_b.len(), 4);
+
+        let expected_a = [0.40, 0.60, 0.70, 0.80];
+        let expected_b = [0.60, 0.90, 0.98, 0.99];
+        for (index, point) in group_a.iter().enumerate() {
+            assert_eq!(point.expected_independent_units, 200);
+            assert_eq!(point.assessed_independent_units, 200);
+            assert_eq!(point.not_assessed_independent_units, 0);
+            assert_eq!(point.status, CalibrationPointStatus::UndercoverageDetected);
+            assert!((point.empirical_coverage.expect("coverage") - expected_a[index]).abs() < 1e-12);
+            assert!(point.wilson_lower_95.is_some());
+            assert!(point.wilson_upper_95.is_some());
+        }
+        for (index, point) in group_b.iter().enumerate() {
+            assert_eq!(point.expected_independent_units, 200);
+            assert_eq!(point.assessed_independent_units, 200);
+            assert_eq!(point.not_assessed_independent_units, 0);
+            assert_eq!(point.status, CalibrationPointStatus::OvercoverageDetected);
+            assert!((point.empirical_coverage.expect("coverage") - expected_b[index]).abs() < 1e-12);
+            assert!(point.wilson_lower_95.is_some());
+            assert!(point.wilson_upper_95.is_some());
+        }
+
+        let widths: Vec<_> = group_a.iter()
+            .map(|point| point.mean_interval_width.expect("sharpness"))
+            .collect();
+        assert!((widths[0] - 50.0).abs() < 1e-10);
+        assert!((widths[1] - 80.0).abs() < 1e-10);
+        assert!((widths[2] - 90.0).abs() < 1e-10);
+        assert!((widths[3] - 95.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn rejects_changed_draw_set_between_nominal_levels() {
+        let mut candidate = evidence();
+        candidate.assessments[2].statistics[0].draw_set_digest =
+            Some("sha256-different-draws".to_string());
+        assert!(matches!(
+            assess_calibration_profile(&candidate),
+            Err(CalibrationProfileError::DrawSetDigestMismatch { .. })
+        ));
+    }
+
+    #[test]
+    fn rejects_changed_model_between_nominal_levels() {
+        let mut candidate = evidence();
+        candidate.assessments[1].statistics[0].model_digest =
+            Some("sha256-adapted-model".to_string());
+        assert!(matches!(
+            assess_calibration_profile(&candidate),
+            Err(CalibrationProfileError::ModelDigestMismatch { .. })
+        ));
+    }
+
+    #[test]
+    fn rejects_changed_observation_between_nominal_levels() {
+        let mut candidate = evidence();
+        candidate.assessments[1].statistics[0].observed_value = Some(42.0);
+        assert!(matches!(
+            assess_calibration_profile(&candidate),
+            Err(CalibrationProfileError::ObservationIdentityMismatch { .. })
+        ));
+    }
+
+    #[test]
+    fn rejects_tampered_coverage_summary() {
+        let mut candidate = evidence();
+        candidate.assessments[1].coverage[0].covered_independent_units += 1;
+        assert!(matches!(
+            assess_calibration_profile(&candidate),
+            Err(CalibrationProfileError::CoverageSummaryMismatch { .. })
+        ));
+    }
+
+    #[test]
+    fn rejects_prior_predictive_and_duplicate_central_masses() {
+        let mut prior = evidence();
+        prior.assessments[1].predictive_kind = PredictiveKind::Prior;
+        assert_eq!(
+            assess_calibration_profile(&prior).unwrap_err(),
+            CalibrationProfileError::PriorPredictiveNotAllowed
+        );
+
+        let mut duplicate = evidence();
+        duplicate.assessments[2].central_mass = duplicate.assessments[1].central_mass;
+        assert_eq!(
+            assess_calibration_profile(&duplicate).unwrap_err(),
+            CalibrationProfileError::CentralMassOrderOrDuplicate
+        );
+    }
+
+    #[test]
+    fn missing_required_unit_is_rejected() {
+        let mut candidate = evidence();
+        candidate.assessments[2].statistics.retain(|row| {
+            !(row.statistic_id == "service-coverage-group-a"
+                && row.independent_unit_id == "region-000")
+        });
+        assert!(matches!(
+            assess_calibration_profile(&candidate),
+            Err(CalibrationProfileError::RowRosterMismatch { .. })
+                | Err(CalibrationProfileError::MissingRequiredStatisticRow { .. })
+        ));
+    }
+}
