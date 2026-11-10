@@ -51,7 +51,7 @@ A process agent may identify a candidate plan revision; it must not mutate a qua
 
 ## Contract scope v0.1
 
-Each synthetic workpiece binds exact component, serial, joint, parent assembly, drawing/design revision, material reference/heat/lot and geometry digest. Each process binds WPS/PQR references, revisions, scope, process family, approval status and symbolic parameter-envelope reference. The corpus deliberately uses symbolic envelope identifiers, not usable welding recipes or parameter settings.
+Each synthetic workpiece binds exact component, serial, joint, parent assembly, drawing/design revision, material reference/heat/lot, separately bound material-record lot and geometry digest. Every pass repeats the exact workpiece serial, joint and revision so the verifier can detect cross-subject trace reuse. Each process binds WPS/PQR references, revisions, scope, process family, approval status and symbolic parameter-envelope reference. The corpus deliberately uses symbolic envelope identifiers, not usable welding recipes or parameter settings.
 
 Each equipment entity binds robot/welding-source/tool/fixture identities and revisions, program/postprocessor revision, calibration and health evidence. Each pass binds stable pass ID, pass sequence/role, exact joint and workpiece revision, exact WPS and equipment revision, symbolic process envelope, process-trace digest, source time and evidence class.
 
