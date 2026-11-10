@@ -151,30 +151,85 @@ struct StatisticSemanticSignature {
 pub enum TransferAdequacyError {
     Adequacy(AdequacyError),
     InvalidDomainId,
-    InvalidDomainRole { domain_id: String },
-    InvalidPredictiveKind { domain_id: String },
-    EmptyDomainUnits { domain_id: String },
-    DuplicateDomainId { domain_id: String },
-    DuplicateManifestId { manifest_id: String },
-    DuplicateManifestDigest { manifest_digest: String },
-    CalibrationDataDigestMismatch { domain_id: String },
-    RegistryVersionMismatch { domain_id: String },
-    StatisticSchemaMismatch { domain_id: String, statistic_id: String },
-    StatisticRoleMismatch { domain_id: String, statistic_id: String },
-    StatisticUnitKindMismatch { domain_id: String, statistic_id: String },
-    AssessmentManifestMismatch { domain_id: String },
+    InvalidDomainRole {
+        domain_id: String,
+    },
+    InvalidPredictiveKind {
+        domain_id: String,
+    },
+    EmptyDomainUnits {
+        domain_id: String,
+    },
+    DuplicateDomainId {
+        domain_id: String,
+    },
+    DuplicateManifestId {
+        manifest_id: String,
+    },
+    DuplicateManifestDigest {
+        manifest_digest: String,
+    },
+    CalibrationDataDigestMismatch {
+        domain_id: String,
+    },
+    RegistryVersionMismatch {
+        domain_id: String,
+    },
+    StatisticSchemaMismatch {
+        domain_id: String,
+        statistic_id: String,
+    },
+    StatisticRoleMismatch {
+        domain_id: String,
+        statistic_id: String,
+    },
+    StatisticUnitKindMismatch {
+        domain_id: String,
+        statistic_id: String,
+    },
+    AssessmentManifestMismatch {
+        domain_id: String,
+    },
     InvalidCentralMass,
-    AssessmentCentralMassMismatch { domain_id: String },
-    AssessmentRegistryMismatch { domain_id: String },
-    AssessmentRoleMismatch { domain_id: String },
-    MixedModelIdentityWithinDomain { domain_id: String },
-    ModelIdentityMismatchAcrossDomains { domain_id: String },
-    DuplicateAssessmentRow { domain_id: String, statistic_id: String, unit_id: String },
-    UnknownAssessmentStatistic { domain_id: String, statistic_id: String },
-    UnknownAssessmentUnit { domain_id: String, statistic_id: String, unit_id: String },
-    AssessmentStatisticIdentityMismatch { domain_id: String, statistic_id: String },
-    RequiredEvidenceCompletenessMismatch { domain_id: String },
-    DomainStatusMismatch { domain_id: String },
+    AssessmentCentralMassMismatch {
+        domain_id: String,
+    },
+    AssessmentRegistryMismatch {
+        domain_id: String,
+    },
+    AssessmentRoleMismatch {
+        domain_id: String,
+    },
+    MixedModelIdentityWithinDomain {
+        domain_id: String,
+    },
+    ModelIdentityMismatchAcrossDomains {
+        domain_id: String,
+    },
+    DuplicateAssessmentRow {
+        domain_id: String,
+        statistic_id: String,
+        unit_id: String,
+    },
+    UnknownAssessmentStatistic {
+        domain_id: String,
+        statistic_id: String,
+    },
+    UnknownAssessmentUnit {
+        domain_id: String,
+        statistic_id: String,
+        unit_id: String,
+    },
+    AssessmentStatisticIdentityMismatch {
+        domain_id: String,
+        statistic_id: String,
+    },
+    RequiredEvidenceCompletenessMismatch {
+        domain_id: String,
+    },
+    DomainStatusMismatch {
+        domain_id: String,
+    },
     MissingSourceValidationDomain,
     MissingHeldOutChallengeDomain,
 }
@@ -193,9 +248,7 @@ impl From<AdequacyError> for TransferAdequacyError {
     }
 }
 
-fn semantic_schema(
-    registry: &StatisticRegistry,
-) -> Vec<StatisticSemanticSignature> {
+fn semantic_schema(registry: &StatisticRegistry) -> Vec<StatisticSemanticSignature> {
     let mut schema: Vec<_> = registry
         .statistics
         .iter()
@@ -294,28 +347,35 @@ fn evaluate_domain(
             domain_id: domain_id.clone(),
         });
     }
-    if domain.assessment.role != domain
-        .registry
-        .statistics
-        .first()
-        .map(|spec| spec.role)
-        .unwrap_or(SplitRole::Calibration)
+    if domain.assessment.role
+        != domain
+            .registry
+            .statistics
+            .first()
+            .map(|spec| spec.role)
+            .unwrap_or(SplitRole::Calibration)
     {
         return Err(TransferAdequacyError::AssessmentRoleMismatch {
             domain_id: domain_id.clone(),
         });
     }
-    if let Some(spec) = domain.registry.statistics.iter().find(|spec| {
-        spec.role != domain.assessment.role
-    }) {
+    if let Some(spec) = domain
+        .registry
+        .statistics
+        .iter()
+        .find(|spec| spec.role != domain.assessment.role)
+    {
         return Err(TransferAdequacyError::StatisticRoleMismatch {
             domain_id: domain_id.clone(),
             statistic_id: spec.id.clone(),
         });
     }
-    if let Some(spec) = domain.registry.statistics.iter().find(|spec| {
-        spec.independent_unit != domain.manifest.independent_unit
-    }) {
+    if let Some(spec) = domain
+        .registry
+        .statistics
+        .iter()
+        .find(|spec| spec.independent_unit != domain.manifest.independent_unit)
+    {
         return Err(TransferAdequacyError::StatisticUnitKindMismatch {
             domain_id: domain_id.clone(),
             statistic_id: spec.id.clone(),
@@ -371,18 +431,21 @@ fn evaluate_domain(
         }
     }
 
-    let required_specs: Vec<_> = domain.registry.statistics.iter()
+    let required_specs: Vec<_> = domain
+        .registry
+        .statistics
+        .iter()
         .filter(|spec| spec.role == domain.assessment.role && spec.required)
         .collect();
-    let mut required_evidence_complete =
-        !required_specs.is_empty() && !units.is_empty();
+    let mut required_evidence_complete = !required_specs.is_empty() && !units.is_empty();
     let mut statistic_results = Vec::with_capacity(domain.registry.statistics.len());
 
     for spec in &domain.registry.statistics {
         let spec_units: Vec<&str> = if spec.required {
             units.iter().map(String::as_str).collect()
         } else {
-            rows_by_key.keys()
+            rows_by_key
+                .keys()
                 .filter(|(statistic_id, _)| statistic_id == &spec.id)
                 .map(|(_, unit_id)| unit_id.as_str())
                 .collect()
@@ -398,27 +461,37 @@ fn evaluate_domain(
                 not_assessed += 1;
                 continue;
             };
-            if row.model_digest.as_deref().is_some_and(|digest| digest != model_digest) {
+            if row
+                .model_digest
+                .as_deref()
+                .is_some_and(|digest| digest != model_digest)
+            {
                 return Err(TransferAdequacyError::MixedModelIdentityWithinDomain {
                     domain_id: domain_id.clone(),
                 });
             }
             if row.status != StatisticStatus::NotAssessed {
                 let valid_assessed_row = row.model_digest.as_deref() == Some(model_digest)
-                    && row.draw_set_digest.as_deref().is_some_and(|digest| !digest.trim().is_empty())
-                    && row.observation_digest.as_deref().is_some_and(|digest| !digest.trim().is_empty())
+                    && row
+                        .draw_set_digest
+                        .as_deref()
+                        .is_some_and(|digest| !digest.trim().is_empty())
+                    && row
+                        .observation_digest
+                        .as_deref()
+                        .is_some_and(|digest| !digest.trim().is_empty())
                     && row.sample_size > 0
                     && row.observed_value.is_some_and(f64::is_finite)
                     && row.lower_reference.is_some_and(f64::is_finite)
                     && row.upper_reference.is_some_and(f64::is_finite)
                     && row.lower_reference <= row.upper_reference
-                    && row.predictive_rank.is_some_and(|rank| {
-                        rank.is_finite() && (0.0..=1.0).contains(&rank)
-                    })
+                    && row
+                        .predictive_rank
+                        .is_some_and(|rank| rank.is_finite() && (0.0..=1.0).contains(&rank))
                     && row.draw_count >= spec.minimum_draws
-                    && row.measurement_standard_error.is_none_or(|value| {
-                        value.is_finite() && value >= 0.0
-                    })
+                    && row
+                        .measurement_standard_error
+                        .is_none_or(|value| value.is_finite() && value >= 0.0)
                     && match (
                         row.status,
                         row.observed_value,
@@ -490,12 +563,17 @@ fn evaluate_domain(
     }
 
     if domain.assessment.required_evidence_complete != required_evidence_complete {
-        return Err(TransferAdequacyError::RequiredEvidenceCompletenessMismatch {
-            domain_id: domain_id.clone(),
-        });
+        return Err(
+            TransferAdequacyError::RequiredEvidenceCompletenessMismatch {
+                domain_id: domain_id.clone(),
+            },
+        );
     }
 
-    let primary_specs: BTreeSet<&str> = domain.registry.statistics.iter()
+    let primary_specs: BTreeSet<&str> = domain
+        .registry
+        .statistics
+        .iter()
         .filter(|spec| spec.primary)
         .map(|spec| spec.id.as_str())
         .collect();
@@ -504,7 +582,8 @@ fn evaluate_domain(
             && result.status == TransferStatisticStatus::DiscrepancyDetected
     });
     let primary_fully_assessed = !primary_specs.is_empty()
-        && statistic_results.iter()
+        && statistic_results
+            .iter()
             .filter(|result| primary_specs.contains(result.statistic_id.as_str()))
             .all(|result| result.status != TransferStatisticStatus::NotAssessed);
 
@@ -562,7 +641,10 @@ pub fn assess_zero_shot_transfer(
     let expected_registry_version = first.registry.version.as_str();
     let expected_calibration_digest = first.manifest.calibration_data_digest.as_str();
     let expected_central_mass = first.assessment.central_mass;
-    if !expected_central_mass.is_finite() || expected_central_mass <= 0.0 || expected_central_mass >= 1.0 {
+    if !expected_central_mass.is_finite()
+        || expected_central_mass <= 0.0
+        || expected_central_mass >= 1.0
+    {
         return Err(TransferAdequacyError::InvalidCentralMass);
     }
 
@@ -663,8 +745,8 @@ pub fn assess_zero_shot_transfer(
 mod tests {
     use super::*;
     use crate::model_adequacy::{
-        assess_predictive_partition, IndependentUnitKind, ObservedStatistic, PredictiveDraw,
-        StatisticSpec,
+        IndependentUnitKind, ObservedStatistic, PredictiveDraw, StatisticSpec,
+        assess_predictive_partition,
     };
 
     const MODEL: &str = "sha256-frozen-transfer-model";
@@ -845,12 +927,30 @@ mod tests {
             report.claim_ceiling,
             TransferClaimCeiling::TransferDiscrepancyDetected
         );
-        assert_eq!(report.domains[0].status, DomainStatus::NoPrimaryDiscrepancyDetected);
-        assert_eq!(report.domains[1].status, DomainStatus::PrimaryDiscrepancyDetected);
-        assert_eq!(report.domains[2].status, DomainStatus::NoPrimaryDiscrepancyDetected);
-        assert_eq!(report.domains[0].independent_unit_kind, IndependentUnitKind::Region);
-        assert_eq!(report.domains[1].independent_unit_kind, IndependentUnitKind::Site);
-        assert_eq!(report.domains[2].independent_unit_kind, IndependentUnitKind::TimeBlock);
+        assert_eq!(
+            report.domains[0].status,
+            DomainStatus::NoPrimaryDiscrepancyDetected
+        );
+        assert_eq!(
+            report.domains[1].status,
+            DomainStatus::PrimaryDiscrepancyDetected
+        );
+        assert_eq!(
+            report.domains[2].status,
+            DomainStatus::NoPrimaryDiscrepancyDetected
+        );
+        assert_eq!(
+            report.domains[0].independent_unit_kind,
+            IndependentUnitKind::Region
+        );
+        assert_eq!(
+            report.domains[1].independent_unit_kind,
+            IndependentUnitKind::Site
+        );
+        assert_eq!(
+            report.domains[2].independent_unit_kind,
+            IndependentUnitKind::TimeBlock
+        );
     }
 
     #[test]
@@ -1004,10 +1104,17 @@ mod tests {
         )
         .expect("underpowered target is explicit");
 
-        let report = assess_zero_shot_transfer(&domains).expect("partially assessed transfer report");
-        assert_eq!(report.claim_ceiling, TransferClaimCeiling::TransferDiscrepancyDetected);
+        let report =
+            assess_zero_shot_transfer(&domains).expect("partially assessed transfer report");
+        assert_eq!(
+            report.claim_ceiling,
+            TransferClaimCeiling::TransferDiscrepancyDetected
+        );
         assert!(!report.evidence_complete);
-        assert_eq!(report.domains[1].status, DomainStatus::PrimaryDiscrepancyDetected);
+        assert_eq!(
+            report.domains[1].status,
+            DomainStatus::PrimaryDiscrepancyDetected
+        );
         assert_eq!(report.domains[2].status, DomainStatus::NotAssessed);
     }
 
@@ -1032,7 +1139,10 @@ mod tests {
         );
 
         let report = assess_zero_shot_transfer(&domains).expect("source discrepancy report");
-        assert_eq!(report.domains[0].status, DomainStatus::PrimaryDiscrepancyDetected);
+        assert_eq!(
+            report.domains[0].status,
+            DomainStatus::PrimaryDiscrepancyDetected
+        );
         assert_eq!(report.claim_ceiling, TransferClaimCeiling::NotAssessed);
     }
 
@@ -1064,7 +1174,10 @@ mod tests {
         domains[1].assessment = assessment;
 
         let report = assess_zero_shot_transfer(&domains).expect("not-assessed transfer report");
-        assert_eq!(domains[1].assessment.domain_status, DomainStatus::NotAssessed);
+        assert_eq!(
+            domains[1].assessment.domain_status,
+            DomainStatus::NotAssessed
+        );
         assert_eq!(report.domains[1].status, DomainStatus::NotAssessed);
         assert_eq!(report.claim_ceiling, TransferClaimCeiling::NotAssessed);
         assert!(!report.evidence_complete);
