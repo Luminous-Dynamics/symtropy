@@ -207,8 +207,11 @@ fn validate_record(record: &Value) -> Vec<String> {
     if record.get("results").and_then(Value::as_array).map_or(true, |rows| rows.is_empty()) {
         errors.push("test record contains no declared result rows".to_owned());
     }
-    if str_at(record, &["standard", "recorded_status"]) == Some("withdrawn") && disposition != "not_assessed" {
-        errors.push("withdrawn standards may be preserved historically but cannot support a current qualification disposition".to_owned());
+    if matches!(
+        str_at(record, &["standard", "recorded_status"]),
+        Some("draft" | "under_review" | "to_be_revised" | "withdrawn")
+    ) && disposition != "not_assessed" {
+        errors.push("draft, under-review, to-be-revised and withdrawn standards may be preserved as evidence references but cannot support a current qualification disposition".to_owned());
     }
     errors
 }
@@ -299,6 +302,25 @@ mod tests {
         assert_eq!(r.payload.rejected_count, 8);
         assert_eq!(r.payload.non_physical_count, 1);
     }
+    #[test]
+    fn draft_iec62660_editions_are_preserved_without_conformity_claims() {
+        let report = report();
+        for id in [
+            "draft-iec62660-1-preserved-as-nonconformity-reference",
+            "draft-iec62660-2-preserved-as-nonconformity-reference",
+        ] {
+            let row = report.payload.cases.iter().find(|case| case.case_id == id).unwrap();
+            assert!(row.accepted);
+            assert_eq!(row.qualification_disposition.as_deref(), Some("not_assessed"));
+        }
+        for id in [
+            "draft-iec62660-1-cannot-claim-qualification",
+            "draft-iec62660-2-cannot-claim-qualification",
+        ] {
+            assert!(!report.payload.cases.iter().find(|case| case.case_id == id).unwrap().accepted);
+        }
+    }
+
     #[test]
     fn cell_and_pack_protocols_are_not_interchangeable() {
         let r = report();
