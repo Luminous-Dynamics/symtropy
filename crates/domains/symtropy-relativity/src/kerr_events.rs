@@ -47,6 +47,7 @@ pub enum KerrHorizonEventError {
     InvalidParameterTolerance(f64),
     NonFiniteTrajectoryValue { point_index: usize },
     NonIncreasingMinoParameter { point_index: usize },
+    NonFiniteInterpolant { segment_index: usize },
     NonMonotoneCrossingBracket {
         segment_index: usize,
         maximum_normalized_radial_derivative: f64,
@@ -80,6 +81,10 @@ impl fmt::Display for KerrHorizonEventError {
             Self::NonIncreasingMinoParameter { point_index } => write!(
                 f,
                 "Mino parameter is not strictly increasing at trajectory point {point_index}"
+            ),
+            Self::NonFiniteInterpolant { segment_index } => write!(
+                f,
+                "accepted segment {segment_index} produced non-finite Hermite interpolation coefficients or diagnostics"
             ),
             Self::NonMonotoneCrossingBracket {
                 segment_index,
@@ -201,6 +206,9 @@ pub fn localize_first_outer_horizon_crossing(
         let a = 2.0 * d0 - 2.0 * d1 + step * (left_velocity + right_velocity);
         let b = -3.0 * d0 + 3.0 * d1 - step * (2.0 * left_velocity + right_velocity);
         let c = step * left_velocity;
+        if ![step, d0, d1, a, b, c].iter().all(|value| value.is_finite()) {
+            return Err(KerrHorizonEventError::NonFiniteInterpolant { segment_index });
+        }
 
         let radial_residual = |theta: f64| {
             ((a * theta + b) * theta + c) * theta + d0
@@ -220,7 +228,10 @@ pub fn localize_first_outer_horizon_crossing(
                     maximum_derivative.max(normalized_radial_derivative(vertex));
             }
         }
-        if !maximum_derivative.is_finite() || maximum_derivative >= 0.0 {
+        if !maximum_derivative.is_finite() {
+            return Err(KerrHorizonEventError::NonFiniteInterpolant { segment_index });
+        }
+        if maximum_derivative >= 0.0 {
             return Err(KerrHorizonEventError::NonMonotoneCrossingBracket {
                 segment_index,
                 maximum_normalized_radial_derivative: maximum_derivative,
@@ -262,6 +273,10 @@ pub fn localize_first_outer_horizon_crossing(
 
         let middle = 0.5 * (lower + upper);
         let mino_parameter = left.mino_parameter + step * middle;
+        let interpolant_residual = radial_residual(middle).abs();
+        if !mino_parameter.is_finite() || !interpolant_residual.is_finite() {
+            return Err(KerrHorizonEventError::NonFiniteInterpolant { segment_index });
+        }
         let lower_parameter = left.mino_parameter + step * lower;
         let upper_parameter = left.mino_parameter + step * upper;
 
@@ -270,7 +285,7 @@ pub fn localize_first_outer_horizon_crossing(
             mino_parameter,
             parameter_bracket: [lower_parameter, upper_parameter],
             root_solver_error_bound: 0.5 * (upper_parameter - lower_parameter),
-            interpolant_radius_residual_over_m: radial_residual(middle).abs(),
+            interpolant_radius_residual_over_m: interpolant_residual,
             horizon_radius_over_m,
         }));
     }
@@ -517,6 +532,24 @@ mod tests {
         assert!(matches!(
             localize_first_outer_horizon_crossing(&ray, black_hole, 1.0e150),
             Err(KerrHorizonEventError::RootPrecisionExhausted { .. })
+        ));
+    }
+
+    #[test]
+    fn refuses_nonfinite_hermite_coefficients_with_a_distinct_error() {
+        let black_hole = hole(0.9);
+        let horizon = black_hole.outer_horizon_radius_m()
+            / black_hole.gravitational_radius_m();
+        let ray = trajectory(
+            KerrMinoCoordinateChart::IngoingKerr,
+            vec![
+                point(-1.0e308, horizon + 0.5, -1.0),
+                point(1.0e308, horizon - 0.5, -1.0),
+            ],
+        );
+        assert!(matches!(
+            localize_first_outer_horizon_crossing(&ray, black_hole, 1.0e-10),
+            Err(KerrHorizonEventError::NonFiniteInterpolant { segment_index: 0 })
         ));
     }
 
