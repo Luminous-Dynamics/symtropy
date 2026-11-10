@@ -1,0 +1,333 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/research/habitat-service-bench-m0-v0.1/docs/habitat-service-bench/HABITAT_SERVICE_BENCH_M0_V0_1.schema.json",
+  "title": "Habitat service integration bench M0 package v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "package_id",
+    "classification",
+    "claim_ceiling",
+    "parent_issue",
+    "research_cut",
+    "facility",
+    "modules",
+    "architecture_arms",
+    "physical_interfaces",
+    "measurement_profile_binding",
+    "control_and_authority",
+    "stage_gates"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "luminous.habitat-service-bench.m0/0.1"
+    },
+    "package_id": {
+      "const": "HABITAT-SERVICE-BENCH-M0-SYNTHETIC-001"
+    },
+    "classification": {
+      "const": "requirements_and_interface_design_only"
+    },
+    "claim_ceiling": {
+      "const": "no_site_selection_no_build_authority_no_physical_qualification"
+    },
+    "parent_issue": {
+      "const": "https://github.com/Luminous-Dynamics/symtropy/issues/4531"
+    },
+    "research_cut": {
+      "const": "2026-11-10"
+    },
+    "facility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "facility_id",
+        "occupancy",
+        "site",
+        "geometry",
+        "envelope",
+        "dimensions",
+        "structural_system",
+        "pressure_rating",
+        "environmental_control_range",
+        "construction_status"
+      ],
+      "properties": {
+        "facility_id": {
+          "const": "UNSELECTED_UNOCCUPIED_TEST_CELL"
+        },
+        "occupancy": {
+          "const": "UNOCCUPIED_ONLY"
+        },
+        "site": {
+          "const": "NOT_SELECTED"
+        },
+        "geometry": {
+          "const": "NOT_SELECTED"
+        },
+        "envelope": {
+          "const": "NOT_SELECTED"
+        },
+        "dimensions": {
+          "const": "NOT_SELECTED_PENDING_ENGINEERING"
+        },
+        "structural_system": {
+          "const": "NOT_SELECTED_PENDING_PROFESSIONAL_REVIEW"
+        },
+        "pressure_rating": {
+          "const": "NONE_ASSUMED"
+        },
+        "environmental_control_range": {
+          "const": "NOT_SELECTED_PENDING_HAZARD_AND_METROLOGY_REVIEW"
+        },
+        "construction_status": {
+          "const": "NOT_AUTHORIZED"
+        }
+      }
+    },
+    "modules": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    "architecture_arms": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "description",
+          "rank"
+        ],
+        "properties": {
+          "id": {
+            "enum": [
+              "INDEPENDENT_SERVICES",
+              "SHARED_UTILITY",
+              "HYBRID_LOCAL_AUTONOMY"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "minLength": 20
+          },
+          "rank": {
+            "const": "NOT_RANKED"
+          }
+        }
+      }
+    },
+    "physical_interfaces": {
+      "type": "array",
+      "minItems": 14,
+      "maxItems": 14,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "description",
+          "interface_kind",
+          "admission_state",
+          "sizing",
+          "material_or_protocol",
+          "connection_detail",
+          "acceptance_criteria"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 5
+          },
+          "description": {
+            "type": "string",
+            "minLength": 10
+          },
+          "interface_kind": {
+            "enum": [
+              "LIQUID_INPUT",
+              "LIQUID_OUTPUT",
+              "LIQUID_RESIDUAL",
+              "SAFETY_BOUNDARY",
+              "THERMAL_INPUT",
+              "THERMAL_OUTPUT",
+              "THERMAL_LOSS",
+              "AIR_INPUT",
+              "AIR_OUTPUT",
+              "AIR_RESIDUAL",
+              "ELECTRICAL_INPUT",
+              "ELECTRICAL_BRANCH",
+              "DATA_READ_ONLY",
+              "AUTHORITY_BOUNDARY"
+            ]
+          },
+          "admission_state": {
+            "type": "string",
+            "minLength": 5
+          },
+          "sizing": {
+            "const": "NOT_SELECTED"
+          },
+          "material_or_protocol": {
+            "const": "NOT_SELECTED"
+          },
+          "connection_detail": {
+            "const": "NOT_DESIGNED"
+          },
+          "acceptance_criteria": {
+            "const": "NOT_SET"
+          }
+        }
+      }
+    },
+    "measurement_profile_binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mycelix_profile_id",
+        "mycelix_profile_issue",
+        "profile_status",
+        "currently_defined_channels",
+        "additional_channel_gaps"
+      ],
+      "properties": {
+        "mycelix_profile_id": {
+          "const": "MYC-BUILD-METROLOGY-PROFILE-V0.1"
+        },
+        "mycelix_profile_issue": {
+          "const": "https://github.com/Luminous-Dynamics/mycelix/issues/6025"
+        },
+        "profile_status": {
+          "const": "DRAFT_REQUIREMENTS_ONLY"
+        },
+        "currently_defined_channels": {
+          "type": "array",
+          "minItems": 14,
+          "maxItems": 14,
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "additional_channel_gaps": {
+          "type": "array",
+          "minItems": 7,
+          "maxItems": 7,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "proposed_measurand",
+              "profile_state",
+              "requirement"
+            ],
+            "properties": {
+              "proposed_measurand": {
+                "type": "string",
+                "minLength": 3
+              },
+              "profile_state": {
+                "type": "string",
+                "minLength": 3
+              },
+              "requirement": {
+                "type": "string",
+                "minLength": 20
+              }
+            }
+          }
+        }
+      }
+    },
+    "control_and_authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "phase",
+        "symthaea_can_dispatch_device_commands",
+        "symtropy_can_dispatch_device_commands",
+        "local_controller_authority",
+        "manual_safe_isolation",
+        "cloud_dependency_for_observation",
+        "cloud_dependency_for_essential_service"
+      ],
+      "properties": {
+        "phase": {
+          "const": "READ_ONLY_FIRST"
+        },
+        "symthaea_can_dispatch_device_commands": {
+          "const": false
+        },
+        "symtropy_can_dispatch_device_commands": {
+          "const": false
+        },
+        "local_controller_authority": {
+          "const": "NOT_GRANTED"
+        },
+        "manual_safe_isolation": {
+          "const": "REQUIRED_DESIGN_ITEM_NOT_VERIFIED"
+        },
+        "cloud_dependency_for_observation": {
+          "const": false
+        },
+        "cloud_dependency_for_essential_service": {
+          "const": false
+        }
+      }
+    },
+    "stage_gates": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "required",
+          "status",
+          "required_evidence"
+        ],
+        "properties": {
+          "id": {
+            "enum": [
+              "M0",
+              "M1",
+              "M2",
+              "M3",
+              "M4"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "minLength": 4
+          },
+          "required": {
+            "const": true
+          },
+          "status": {
+            "type": "string",
+            "minLength": 3
+          },
+          "required_evidence": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 5
+            }
+          }
+        }
+      }
+    }
+  }
+}
