@@ -2233,6 +2233,33 @@ mod tests {
             let y = (index as f64 - 128.0) * 2.0;
             blockers.push(blocker_at_y(OccluderKind::SameBuilding, index, y));
         }
+        let mut full_reference_and_occluders = vec![target_triangle()];
+        full_reference_and_occluders.extend_from_slice(&blockers);
+        let expected_nearest = full_reference_and_occluders
+            .iter()
+            .enumerate()
+            .filter(|(_, triangle)| {
+                !(triangle.surface_id == "TARGET" && triangle.triangle_id == "TARGET-TRI-1")
+            })
+            .filter_map(|(index, triangle)| {
+                ray_triangle_distance(
+                    Vec3 { x: 0.0, y: 0.0, z: 0.0 },
+                    Vec3 { x: 1.0, y: 0.0, z: 0.0 },
+                    5.0,
+                    triangle,
+                )
+                .map(|distance| (index, distance))
+            })
+            .min_by(|left, right| left.1.total_cmp(&right.1))
+            .map(|(index, _)| {
+                format!(
+                    "{}/{}",
+                    full_reference_and_occluders[index].surface_id,
+                    full_reference_and_occluders[index].triangle_id
+                )
+            })
+            .expect("brute-force oracle must find a blocker");
+
         let receipt = evaluate(
             &[probe([5.0, 0.0, 0.0])],
             &[view("VIEW-1", [0.0, 0.0, 0.0])],
@@ -2242,14 +2269,14 @@ mod tests {
         assert_eq!(receipt.probes[0].visibility, SurfaceVisibility::SelfOccluded);
         assert_eq!(
             receipt.probes[0].views[0].blocker_triangle_ids,
-            vec!["BLOCKER-0128/TRI-0128".to_owned()]
+            vec![expected_nearest]
         );
         assert!(receipt.bvh_node_count > 1);
         assert!(receipt.bvh_leaf_count > 1);
         assert!(receipt.bvh_node_visit_count > 0);
         assert!(
-            receipt.ray_test_count < blockers.len(),
-            "BVH should test fewer triangles than brute force: {} vs {}",
+            receipt.ray_test_count < blockers.len() / 10,
+            "BVH should prune at least 90% of triangle tests on this separated scene: {} vs {}",
             receipt.ray_test_count,
             blockers.len()
         );
