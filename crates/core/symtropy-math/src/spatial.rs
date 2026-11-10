@@ -493,3 +493,150 @@ mod tests {
         assert!((quarter_spatial.linear[1] - 1.0).abs() < 1.0e-12);
     }
 }
+
+
+
+#[cfg(test)]
+mod deterministic_sweep_tests {
+    use super::*;
+    use crate::{Point, Rotor};
+
+    fn next_signed(state: &mut u64) -> f64 {
+        *state = state.wrapping_add(0x9E37_79B9_7F4A_7C15);
+        let mut value = *state;
+        value = (value ^ (value >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+        value = (value ^ (value >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+        value ^= value >> 31;
+        (value as f64 / u64::MAX as f64) * 2.0 - 1.0
+    }
+
+    fn next_bivector(state: &mut u64, scale: f64) -> Bivector<3> {
+        let mut result = Bivector::<3>::zero();
+        result.set(0, 1, next_signed(state) * scale);
+        result.set(0, 2, next_signed(state) * scale);
+        result.set(1, 2, next_signed(state) * scale);
+        result
+    }
+
+    fn six_vector(linear: &SVector<f64, 3>, angular: &Bivector<3>) -> SVector<f64, 6> {
+        SVector::new(
+            linear[0],
+            linear[1],
+            linear[2],
+            angular.get(0, 1),
+            angular.get(0, 2),
+            angular.get(1, 2),
+        )
+    }
+
+    #[test]
+    fn deterministic_scale_sweep_preserves_dual_power_and_inverse_maps() {
+        let mut state = 0x5345_335F_4144_4A4F_u64;
+        let length_scales = [1.0e-6, 1.0, 1.0e6];
+
+        for case in 0..384 {
+            let length_scale = length_scales[case % length_scales.len()];
+            let translation = SVector::<f64, 3>::new(
+                next_signed(&mut state) * length_scale,
+                next_signed(&mut state) * length_scale,
+                next_signed(&mut state) * length_scale,
+            );
+            let rotation = Rotor::<3>::from_bivector(&next_bivector(&mut state, 0.45));
+            let transform = Transform {
+                translation: Point(translation),
+                rotation,
+            };
+
+            let body_twist = BodyTwist3::new(
+                SVector::new(
+                    next_signed(&mut state),
+                    next_signed(&mut state),
+                    next_signed(&mut state),
+                ),
+                next_bivector(&mut state, 0.8),
+            );
+            let body_wrench = BodyWrench3::new(
+                SVector::new(
+                    next_signed(&mut state),
+                    next_signed(&mut state),
+                    next_signed(&mut state),
+                ),
+                next_bivector(&mut state, length_scale),
+            );
+
+            let spatial_twist = transform.body_twist_to_spatial(&body_twist).unwrap();
+            let spatial_wrench = transform.body_wrench_to_spatial(&body_wrench).unwrap();
+            let body_power = body_twist.power_with(&body_wrench);
+            let spatial_power = spatial_twist.power_with(&spatial_wrench);
+            let power_tolerance = 2.0e-11 * (1.0 + body_power.abs() + spatial_power.abs());
+            assert!(
+                (body_power - spatial_power).abs() <= power_tolerance,
+                "power duality failed: case={case}, scale={length_scale:e}, body={body_power:e}, spatial={spatial_power:e}"
+            );
+
+            let recovered_twist = transform.spatial_twist_to_body(&spatial_twist).unwrap();
+            let twist_tolerance = 2.0e-9 * (1.0 + body_twist.linear.norm());
+            assert!(
+                (body_twist.linear - recovered_twist.linear).norm() <= twist_tolerance,
+                "twist round trip failed: case={case}, scale={length_scale:e}"
+            );
+            assert!(
+                body_twist
+                    .angular
+                    .add(&recovered_twist.angular.scale(-1.0))
+                    .norm()
+                    <= 2.0e-10
+            );
+
+            let recovered_wrench = transform.spatial_wrench_to_body(&spatial_wrench).unwrap();
+            assert!(
+                (body_wrench.force - recovered_wrench.force).norm() <= 2.0e-10,
+                "force round trip failed: case={case}"
+            );
+            let torque_tolerance = 2.0e-9 * (1.0 + body_wrench.torque.norm());
+            assert!(
+                body_wrench
+                    .torque
+                    .add(&recovered_wrench.torque.scale(-1.0))
+                    .norm()
+                    <= torque_tolerance,
+                "torque round trip failed: case={case}, scale={length_scale:e}"
+            );
+        }
+    }
+
+    #[test]
+    fn six_by_six_matrices_match_typed_adjoint_and_coadjoint_actions() {
+        let transform = Transform {
+            translation: Point::new([0.7, -1.2, 0.4]),
+            rotation: Rotor::from_bivector(&{
+                let mut value = Bivector::<3>::zero();
+                value.set(0, 1, 0.21);
+                value.set(0, 2, -0.33);
+                value.set(1, 2, 0.49);
+                value
+            }),
+        };
+        let mut angular = Bivector::<3>::zero();
+        angular.set(0, 1, -0.6);
+        angular.set(0, 2, 0.2);
+        angular.set(1, 2, 0.7);
+        let twist = BodyTwist3::new(SVector::new(0.2, -0.8, 1.1), angular);
+        let mut torque = Bivector::<3>::zero();
+        torque.set(0, 1, 0.1);
+        torque.set(0, 2, -0.4);
+        torque.set(1, 2, 0.9);
+        let wrench = BodyWrench3::new(SVector::new(1.2, 0.4, -0.5), torque);
+
+        let adjoint_action = transform.body_to_spatial_adjoint_matrix().unwrap()
+            * six_vector(&twist.linear, &twist.angular);
+        let typed_twist = transform.body_twist_to_spatial(&twist).unwrap();
+        assert!((adjoint_action - six_vector(&typed_twist.linear, &typed_twist.angular)).norm() < 1.0e-12);
+
+        let coadjoint_action = transform.body_to_spatial_coadjoint_matrix().unwrap()
+            * six_vector(&wrench.force, &wrench.torque);
+        let typed_wrench = transform.body_wrench_to_spatial(&wrench).unwrap();
+        assert!((coadjoint_action - six_vector(&typed_wrench.force, &typed_wrench.torque)).norm() < 1.0e-12);
+    }
+}
+
