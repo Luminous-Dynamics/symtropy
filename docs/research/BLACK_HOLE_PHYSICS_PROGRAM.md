@@ -645,15 +645,16 @@ The detailed adapters remain with [BHPT interoperability #4352](https://github.c
 The original [response manifest #4237](https://github.com/Luminous-Dynamics/symtropy/pull/4237) passed its exact-head Ubuntu/macOS/Windows workflow. Its successor [#4621](https://github.com/Luminous-Dynamics/symtropy/pull/4621) is a draft schema v0.2 branch.
 
 The v0.2 comparison object binds:
-- two method identities with distinct implementation digests and exact left/right response-artifact digests;
-- a canonical input-set digest recomputed from the named input digests using the versioned byte rule `utf8_bytewise_name_tab_lowercase_sha256_lf_v1` (UTF-8 bytewise name sort, TAB, lowercase SHA-256, LF);
+- two method identities, implementation digests, and per-method execution-manifest IDs/digests (command, build, dependencies, runtime, hardware/precision and method settings);
+- exact left/right response-artifact digests;
+- a canonical input-set digest recomputed from named input digests using `utf8_bytewise_name_tab_lowercase_sha256_lf_v1` (UTF-8 bytewise name sort, TAB, lowercase SHA-256, LF);
 - a connected accepted-comparison graph spanning every declared method;
 - a named response-window ID and norm;
 - alignment-procedure and metric-definition digests;
 - aligned-sample and comparison-artifact digests;
 - observed error and its declared limit.
 
-The validator rejects a method whose input-set digest differs from the recomputed study bundle, a comparison whose left/right response digest is stale, an unused method, or a disconnected method graph. A connected graph is not an all-pairs claim: require every pairwise edge when that stronger claim is needed. Cross-check and convergence states cannot rely on an unlinked scalar error beside two implementation hashes. The complete serialization fixture is parsed and its canonical byte digest independently checked. This remains a metadata/control contract: consumers must retrieve preserved bytes, recompute all artifacts, and replay each comparison. The 25-test Rust suite and exact-head Actions are pending; no Rust test pass is claimed.
+The validator rejects a method whose input-set digest differs from the recomputed study bundle, an incomplete per-method execution manifest, a comparison whose left/right response digest is stale, an unused method, or a disconnected method graph. A connected graph is not an all-pairs claim: require every pairwise edge when that stronger claim is needed. Cross-check and convergence states cannot rely on an unlinked scalar error beside two implementation hashes. The complete serialization fixture is parsed and its canonical byte digest independently checked. This remains a metadata/control contract: consumers must retrieve preserved bytes, recompute all artifacts, and replay each comparison. The 26-test Rust suite and exact-head Actions are pending; no Rust test pass is claimed.
 
 ### 5. New Schwarzschild and Kerr engineering increments
 
