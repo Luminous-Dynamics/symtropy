@@ -81,30 +81,84 @@ Use grouped bootstrap confidence intervals by recording, not by individual row. 
 - Preserve an explicit unknown/abstain path; do not trade false-known confidence for nominal accuracy.
 - No numerical "beats SOTA" target until the archive is independently audited and baseline results are reproduced on identical file-level splits.
 
-## Industry/SOTA positioning
+## Industry, standards and SOTA comparison
 
-This public test bench enables matched experiments against conventional condition-monitoring and ML workflows, but it is not a universal marine-engine SOTA leaderboard. ISO 17359 and ISO 13374-1 provide condition-monitoring programme and diagnostic-data process guidance, not a matched fault-detection score. DNV AROS separately recognizes engineering functions alongside navigation, operational and safety functions; the benchmark therefore feeds a bounded engineering-capability status rather than redefining vessel autonomy or mode authority.
+This test bench enables matched experiments against conventional condition-monitoring and machine-learning approaches. It is not a universal marine-engine leaderboard. Keep four evidence categories distinct: **normative/process standards**, **commercial product capabilities**, **published paper results**, and **independently reproduced performance**.
+
+### Standards baseline
+
+| Standard / framework | Current edition or status | Relevance | What it does not establish |
+|---|---|---|---|
+| ISO 17359 | ISO 17359:2018, Edition 3; confirmed current in 2023 | General procedures for establishing a machine condition-monitoring programme | Diagnostic accuracy or a marine fault leaderboard |
+| ISO 13374-1 | ISO 13374-1:2003; confirmed current in 2025 | Data processing, communication and presentation for condition-monitoring and diagnostic information | A fault classifier or machinery safety approval |
+| ISO 13379-1 | ISO 13379-1:2025, Edition 2 | Concepts and guidance for diagnostic interpretation and method selection | A vessel-specific operating-envelope decision |
+| ISO 13381-1 | ISO 13381-1:2025, Edition 3 | Prognostics process guidance | An independently validated remaining-useful-life result |
+| DNV AROS | DNV class-notation family | Separates navigation, engineering, operational and safety functions; distinguishes remote control, decision support, supervised autonomy and full autonomy | A public matched machinery-diagnostics score |
+| IACS UR E26/E27 | Rev.1 requirements for applicable newbuilds contracted from 1 July 2024 | Cyber resilience at ship and onboard-system/equipment level | Physical fault-diagnosis correctness |
+| IMO MASS Code | MSC.595(111), non-mandatory, effective 1 July 2026 | Goal-based MASS design/operation context including engineering, remote operations, risk, cyber and human oversight | Compliance or approval from this benchmark |
+
+These standards form a useful chain: **condition-monitoring programme → diagnostic data handling → diagnosis → prognosis**. The engineering-health evaluator is an evidence/assurance adapter in that chain, not a claim of standards conformance. DNV AROS and the IMO MASS Code reinforce that engineering capability must be considered alongside navigation, safety, operating modes and human responsibility. A health disposition can inform an ODD/mode owner; it cannot independently authorize a transition.
+
+Official references: [ISO 17359](https://www.iso.org/standard/71194.html), [ISO 13374-1](https://www.iso.org/standard/21832.html), [ISO 13379-1](https://www.iso.org/standard/88027.html), [ISO 13381-1](https://www.iso.org/standard/88029.html), [DNV AROS](https://www.dnv.com/maritime/autonomous-remotely-operated-ships/aros-class-notation/), [IACS UR E26/E27](https://iacs.org.uk/news/iacs-ur-e26-and-e27-press-release), [IMO MASS Code](https://www.imo.org/en/mediacentre/pressbriefings/pages/imo-adopts-mass-code.aspx).
 
 ### Commercial baseline
 
-Current OEM/service offerings already cover important parts of this problem:
+Commercial services already cover important portions of vessel/engine health management:
 
-| Provider/product | Publicly described capability | What it means for our comparison |
+| Provider/product | Publicly described capability | Comparison opportunity |
 |---|---|---|
-| Wärtsilä Expert Insight | Vessel-specific operating-profile analytics, AI anomaly detection, rule-based diagnostics and expert analysis; onboard and shore collaboration on recommendations and cases | The bar is not merely "detect anomalies"; compare false alarms, lead time, expert burden, evidence traceability and cross-OEM portability |
-| MAN CEON / PrimeServ Assist | Real-time data from hundreds of engine/turbine/compressor sensors, ML/AI analysis and global expert monitoring/advisory | Compare per-equipment configuration, fault isolation, calibrated uncertainty, maintainability and vendor-neutral evidence exports |
-| Kongsberg Vessel Insight / Health Management | Edge collection, aggregation, compression/caching, ship-system connectors and segmented network path; machinery-health analytics and experts-in-the-loop | Compare data lineage, offline/partition behavior, protocol interoperability, asset identity and exact replay across edge/cloud boundaries |
-| DNV Machinery Maintenance Connect / PMS-RCM | Remote machinery planned-maintenance survey using vessel maintenance data, algorithms and reliability-centred maintenance | Compare assurance-grade maintenance evidence, change history, auditability and the boundary between diagnostic advice and class/maintenance authority |
+| Wärtsilä Expert Insight | AI anomaly detection and rule-based diagnostics against vessel-specific operating profiles, expert analysis and crew/shore collaboration | Compare alert burden, lead time, evidence traceability, cross-OEM portability and maintenance handoff |
+| MAN CEON / PrimeServ Assist | Engine/turbine/compressor sensor monitoring, AI/ML analysis and global expert monitoring/advisory | Compare configuration identity, fault isolation, calibrated uncertainty, exportable evidence and independent replay |
+| Kongsberg Vessel Insight / Health Management | Edge collection, compression/caching and ship-system connectors, with machinery-health/RUL analysis and experts-in-the-loop | Compare data lineage, offline/partition behavior, protocol interoperability and exact replay across edge/cloud |
+| DNV Machinery Maintenance Connect / MPMS | Digital machinery planned-maintenance surveys using vessel maintenance data, fleet benchmarks and remote survey workflows | Compare auditability, change history, maintenance-evidence completeness and the boundary between advice and class/maintenance authority |
 
-These descriptions are vendor or provider material, not independent proof of diagnostic accuracy. No public, matched head-to-head dataset or universal performance score was identified for these proprietary service offerings. We therefore must not claim that Symthaea/Symtropy currently outperforms them. The useful strategic wedge is an open, vendor-neutral assurance and evidence layer that can consume OEM diagnostics without silently trusting them, reconcile the evidence to exact vessel configuration, and carry capability impacts into ODD/mode assurance.
+Sources: [Wärtsilä Expert Insight](https://www.wartsila.com/marine/services/lifecycle-agreements/expert-insight-service), [MAN PrimeServ Assist](https://www.man-es.com/services/strategic-expertise/digitalization/primeserv-assist/1), [Kongsberg Health Management brochure](https://www.kongsberg.com/contentassets/f07caba826f94c798d6ea4c93a7f16a1/201.global-customer-support-2p-16.12.21.pdf), [Kongsberg Vessel Insight data sheet](https://www.kongsberg.com/contentassets/1fcaa7b8c3ad44c1be76cfbd6d007673/vessel-insight-data-technical-sheet.pdf), [DNV Machinery Maintenance Connect](https://www.dnv.com/services/machinery-maintenance-connect-mmc--168870/).
 
-### Additional research dataset candidate
+These are vendor/provider descriptions, not independent diagnostic-accuracy results. No public, matched head-to-head dataset or universal performance score was identified for these proprietary services. We must not claim Symthaea/Symtropy already outperforms them. A credible differentiation is complementary: an **open, vendor-neutral evidence and assurance layer** that can consume OEM diagnostics as attributed inputs, independently check configuration/source/freshness/dependency claims, reconcile evidence to vessel capabilities and ODD constraints, and keep model recommendations separate from human, maintenance and class authority.
 
-A second, more demanding data descriptor appeared in *Scientific Data* on 22 August 2026: [Multi-source thermal and performance data for thermal fault diagnosis in marine diesel engines](https://doi.org/10.1038/s41597-026-07924-7). Its abstract describes calibrated simulation, noisy bench measurements, real-vessel telemetry and virtual-real fault fusion; 24-dimensional high-frequency gas-path and steady-state indicators; one healthy condition and ten thermal fault modes. It reports 70.18% zero-shot virtual-to-real accuracy under its own protocol. That score is not comparable to results on the MU323DGSC archive or to our future runs. Treat it as a **high-priority data-access and protocol-audit candidate**, not as an integrated benchmark: verify the data repository, licensing, real-vessel label provenance and exact train/test separation before use.
+### Published model results: what is comparable?
 
-A separate 2026 paper reports 99.45% accuracy for a multisource-fusion method, but its methods include simulation-generated samples and the paper itself notes limits on broader real-world validation. A headline accuracy is therefore not a defensible SOTA comparator unless we reproduce the same source domains, sample-level independence, class definitions and split protocol. We should compare methods on a common frozen test protocol and publish per-domain results instead.
+| Work | Publicly reported result/protocol | Interpretation |
+|---|---|---|
+| Xie, Mo & Jia, CDAF, *Scientific Reports* (14 April 2026), [DOI 10.1038/s41598-026-46425-w](https://doi.org/10.1038/s41598-026-46425-w) | Reports 99.71% accuracy, 99.75% precision, 99.68% recall and 99.71% F1 on a hybrid dataset. The paper describes empirical vessel telemetry used to calibrate a 1-D thermodynamic model and generate a hybrid fault dataset; its main split is randomized 70/15/15 after preprocessing. Table 5 reports 95.85% accuracy under 15% Gaussian noise, while the conclusion says 94.85%. | Priority replication baseline, not evidence of unseen-run, unseen-load or unseen-vessel performance. Resolve the 1 percentage-point table/conclusion discrepancy. The authors identify class imbalance and rare weak operational faults as future work. |
+| Xie, Mo & Jia, *Multi-source thermal and performance data for thermal fault diagnosis in marine diesel engines*, *Scientific Data* (22 August 2026), [DOI 10.1038/s41597-026-07924-7](https://doi.org/10.1038/s41597-026-07924-7) | Describes calibrated simulation, noisy bench measurements, real-vessel telemetry and virtual-real fault fusion across one healthy state and ten thermal fault modes; reports 70.18% zero-shot virtual-to-real accuracy under its own protocol. | High-value transfer baseline. It is not a score on the MU323DGSC archive. Audit the exact repository, data rights, label provenance and split before comparing. |
+| Michel et al., *Proactive fault prediction in marine diesel engines using multivariate machine learning*, *Scientific Reports* (20 March 2026), [DOI 10.1038/s41598-026-40979-5](https://doi.org/10.1038/s41598-026-40979-5) | Reports 82.681% accuracy for a Random Forest model with same-study comparisons to 1-D CNN and MLP. | Useful additional literature baseline. Its data provenance, task labels and split must be checked before a direct comparison. |
+| BahooToroody et al., *Marine Engine Fault Dataset*, Zenodo v1, [DOI 10.5281/zenodo.19857425](https://doi.org/10.5281/zenodo.19857425) | Five physically induced fault families on a controlled MU323DGSC engine test bench; 16 recordings, approximately 115,000 samples and about 70 channels. | Our first measured fault benchmark for file/run-held-out and load-transfer tests once the payload and channel dictionary are audited. No model score has yet been reproduced here. |
+| 2026 multisource-fusion study, [PMC full text](https://pmc.ncbi.nlm.nih.gov/articles/PMC12811478/) | Reports 99.45% accuracy; its described experiment uses 2,567 samples generated from a 1-D thermodynamic simulation model with a 70/30 stratified split and cross-validation. | Simulation-based result, not a physical test-bench or shipboard score. Keep separate from empirical comparisons. |
 
-Our potential differentiation is the assurance layer around diagnostics: configuration-bound evidence, source and calibration lineage, common-cause handling, clock/freshness qualification, calibrated unknown states, capability impact and review-gated recovery. We must still prove diagnostic quality on public measured data and later on independent engine models and shipboard data.
+The CDAF paper states that original code and **part** of the real-vessel data are public at [the authors' GitHub repository](https://github.com/xiezaimi-png/Marine-diesel-engine-explainable-weak-thermal-fault-diagnosis). The repository exists, but its files, exact commit, license for shared data, runnable environment and payload have not yet been audited in this environment. The associated *Scientific Data* descriptor is a distinct source and must be pinned to its own dataset release and license. Do not infer that an open-access article license automatically covers its underlying data.
+
+### A harder SOTA protocol
+
+Use two gates. A same-paper random split is a reproduction target; independent recording/domain generalization is a separate achievement.
+
+**Gate A — reproduce the published task.**
+1. Obtain the exact CDAF repository commit, shared data, channel dictionary, class definitions, preprocessing and split configuration.
+2. Verify code and data licenses separately. Pin the exact source revision, file inventory and SHA-256 digests.
+3. Reproduce the published 70/15/15 split, preprocessing and reported metrics, including the noise experiment. Record the 95.85% versus 94.85% reporting discrepancy rather than silently choosing one.
+4. Re-run the named paper baselines (CNN-LSTM, WCNN-LSTM, CNN-GRU-KAN and TSRF) with identical features, labels, compute budget and seeds.
+
+**Gate B — test generalization that the published split does not establish.**
+1. Hold out complete physical recordings/runs; never split adjacent windows from one run across training and test.
+2. Hold out whole load levels where a fault family has sufficient independent runs.
+3. For the hybrid source, separately test simulation→bench, simulation→real-vessel and mixed-source→real-vessel. The target domain stays unseen during normalization, feature selection, calibration and threshold choice.
+4. Hold out a second vessel/engine configuration when available. One vessel and one test-bench engine cannot establish fleet transfer.
+5. Test unseen fault severity, rare/weak faults, missing channels, sensor bias, calibration changes and noise regimes.
+6. Fit scaling, imputation, feature selection, calibration and thresholding on training/validation only. Preserve recording, engine, load, timestamp, source-domain and missing-channel identity in the split manifest.
+
+Report more than accuracy: macro-F1 and balanced accuracy by fault; event recall and missed-fault rate; false alarms per engine-hour and alarm duration; detection latency/lead time; domain/load transfer delta; calibration (Brier score/reliability/coverage); unknown/OOD false-known rate and abstention coverage; missing-channel robustness; worst-fault performance; inference latency, memory and edge-compute cost. Use grouped bootstrap confidence intervals by recording/engine, not row-level confidence intervals.
+
+### Competitive targets (targets, not claims)
+
+- Reproduce the published 99.71% CDAF result on its exact split as a replication check, not a competitive win.
+- Reproduce the reported 70.18% zero-shot virtual-to-real result on the exact dataset and protocol before claiming transfer improvement.
+- Then beat the strongest reproducible baseline on **held-out runs and held-out loads**, with fewer false alarms at matched recall. Publish the full recall/false-alarm Pareto frontier and grouped confidence intervals.
+- Improve the worst-performing fault family and unknown/OOD rejection, not only the average score.
+- Show improvement on an untouched real-vessel domain before making any shipboard-transfer claim.
+- Maintain zero evidence/authority-gate violations: no stale, wrong-configuration, wrong-unit, unauthenticated or simulator-only evidence promoted into current measured health; no false independence across common-cause sources; no automated maintenance authorization or ODD transition.
+- No "beats SOTA" headline until both the payload and matched baselines are independently audited and reproduced.
+
+The paradigm shift is **diagnostics that compile into evidence-qualified capability**: identify a fault hypothesis; expose source, calibration, configuration and uncertainty lineage; map affected services and dependency paths; project only a bounded capability impact to the ODD owner; require accountable inspection, proof-test, configuration and authorization evidence before a human-led recovery review. This is how Symtropy/Symthaea/Mycelix can complement OEM diagnostics without pretending to replace engine OEMs, chief engineers, class or flag authorities.
 
 ## Attribution and claim boundary
 
