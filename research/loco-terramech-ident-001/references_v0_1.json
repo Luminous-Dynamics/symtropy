@@ -1,0 +1,190 @@
+{
+  "schema_version": "loco-terramech-external-baselines-v0.1",
+  "captured_date": "2026-11-10",
+  "baselines": [
+    {
+      "id": "NEDM-GO2-CRM-STUDY4",
+      "role": "simulation learned reduced dynamics and offline policy-adaptation comparator",
+      "paper": {
+        "title": "Learning the Right Abstraction: Neural Reduced Dynamics for Complex Robot Control",
+        "authors": "Harry Zhang; Dan Negrut",
+        "preprint": "arXiv:2608.19375",
+        "published_date": "2026-08-19",
+        "url": "https://arxiv.org/abs/2608.19375"
+      },
+      "code": {
+        "repository": "https://github.com/uwsbel/NeDM",
+        "branch": "kyle/quadruped-pipeline",
+        "commit": "18c9316ad831d5dc0196ad94a23224b6aa19df9d",
+        "commit_date": "2026-10-02T17:32:06Z",
+        "repository_license_metadata": null,
+        "reuse_rule": "Do not vendor or copy code until a repository/license rights review establishes permission. Citing and reproducing the protocol is distinct from copying implementation."
+      },
+      "data": {
+        "repository": "https://huggingface.co/datasets/ksha23/nedm-study4-go2-crm",
+        "dataset_revision_sha256": "not yet pinned; must be recorded from the accepted dataset snapshot before raw-file use",
+        "license": "CC-BY-4.0 for corpora, surrogates, fine-tuned policies and scoring records, as declared by the dataset card",
+        "access_condition": "Hugging Face requires accepting the dataset access agreement and sharing account information to access files",
+        "third_party_components": [
+          {
+            "component": "base policy from rl_sar/robot_lab",
+            "license": "Apache-2.0"
+          },
+          {
+            "component": "Unitree Go2 robot model",
+            "license": "BSD-3-Clause"
+          }
+        ],
+        "manifest": "MANIFEST.tsv lists per-file SHA-256, size, original run and source machine; verify every consumed file against that manifest."
+      },
+      "corpus": {
+        "robot": "Unitree Go2",
+        "terrain": "Chrono CRM, SPH granular soil",
+        "nominal_rate_hz": 100,
+        "episode_count": 1150,
+        "train_episodes": 920,
+        "validation_episodes": 230,
+        "row_count": 2041752,
+        "walking_hours_approx": 5.7,
+        "primary_collection_build": "Chrono HIP build c716f05e",
+        "episode_split": "by episode",
+        "heldout_command_paths": 40,
+        "usable_heldout_paths": 37,
+        "skipped_paths": 3,
+        "skipped_reason": "command paths too wide for the finite soil bed; skipped consistently across arms",
+        "push_training_max_n": 140,
+        "evaluation_push_tests_n": [
+          120,
+          180,
+          240,
+          300
+        ],
+        "extended_corpus": {
+          "episode_count_added": 1174,
+          "assignment": "training only",
+          "validation_episodes_unchanged": 230
+        },
+        "rigid_control": {
+          "dataset": "go2_rigid_v2",
+          "design": "same 24 shards × 50 episodes, seeds, commands, pushes and split definitions as normal corpus",
+          "collection_build": "3b0bd530",
+          "rule": "Never pair records from different Chrono build folders. The sbel build folder contains both CRM eval_paths_sb and rigid eval_rigid_sb arms; verify exact same build/session before pairing."
+        }
+      },
+      "reduced_model": {
+        "type": "autoregressive transformer neural reduced-order dynamics",
+        "state_dimension": 36,
+        "action_dimension": 12,
+        "target": "10 ms next-state delta",
+        "sampling_period_ms": 10,
+        "layers": 6,
+        "attention_heads": 8,
+        "width": 256,
+        "context_rows": 128,
+        "context_duration_s": 1.28,
+        "parameter_count_approx": 4850000,
+        "training": "one-step training followed by 1.0 s rollout training",
+        "rollout_training_stage": "1.0 s",
+        "evaluation_branch_horizons_s": [
+          0.3,
+          0.5,
+          1,
+          2,
+          10
+        ],
+        "policy_finetuning": "PPO inside the frozen surrogate, 1024 parallel branches, 2 s per update, 1000 iterations, branch starts sampled from base-policy training states",
+        "final_scoring": "policy scored again in full Chrono; paired episode by episode against original base policy"
+      },
+      "control_interface_state_fields": [
+        "body velocities",
+        "attitude and angular rates",
+        "12 joint positions",
+        "12 joint velocities",
+        "gravity direction in body frame",
+        "base height and vertical velocity"
+      ],
+      "reported_results": {
+        "tracking_error_reduction_percent": {
+          "forward_mean": 52,
+          "yaw_rate_mean": 67,
+          "lateral_mean": 28
+        },
+        "surrogate_seeds": 10,
+        "falls_reported": "none in the headline ten-seed recipe table",
+        "rigid_ground_control": "reported no tracking regression",
+        "interpretation": "Local tracking improvement for one existing policy under the study's simulation and held-out command-path protocol; not evidence of robust physical safety, online terrain identification or hardware transfer."
+      },
+      "channel_ablation": {
+        "baseline": "36-D control-interface closure",
+        "variants": [
+          {
+            "id": "foot-normal-force",
+            "dimension": 40,
+            "reported_mean_forward_tracking_error_change_percent": -46
+          },
+          {
+            "id": "foot-sinkage",
+            "dimension": 40,
+            "reported_mean_forward_tracking_error_change_percent": -45
+          },
+          {
+            "id": "normal-force-plus-sinkage",
+            "dimension": 44,
+            "reported_mean_forward_tracking_error_change_percent": -53
+          },
+          {
+            "id": "full-3d-foot-force",
+            "dimension": 48,
+            "reported_mean_forward_tracking_error_change_percent": -47
+          }
+        ],
+        "sample_size": "three surrogate seeds per enriched-channel condition versus ten seeds for the 36-D headline recipe",
+        "interpretation": "Additional logged contact channels did not improve average transfer in this specific architecture/dataset/seed budget. This is not evidence that contact sensing has no value; it motivates task-, horizon-, sensor-health- and decision-conditional ablations."
+      },
+      "limitations": [
+        "Local one-round offline improvement of the existing base policy; not online policy learning or a general terrain estimator.",
+        "Fine-tuning directly inside Chrono was not run, so do not claim an equal-result compute saving against direct Chrono PPO.",
+        "PPO branch starts are drawn from base-policy training states.",
+        "The authors report only 0.0–0.1% of fine-tuned policy visitation outside the recorded corpus; surrogate accuracy is local to that data distribution.",
+        "Push training windows top out at 140 N while evaluation includes 240–300 N; the study does not establish improved robustness to those larger disturbances. Surrogate disturbance-training did not resolve the gap.",
+        "The surrogate guard is an early-warning heuristic, not a safety certificate; one collapse is reported in roughly 60 runs.",
+        "The study reports a 36-D control interface closure, not a terrain-history state estimator.",
+        "CRM is high-variance and seed/spawn dependent; the source evaluation note reports CRM tracking SD around 5.7 percentage points at ±1 m spawn variation, compared with about 0.1 on rigid ground. Preregister broad replicate distributions and paired per-seed changes; one trajectory is diagnostic only.",
+        "The dataset's CRM and rigid data were collected on different Chrono builds; use only score folders whose base and arms share the same exact build."
+      ],
+      "soil_resolution": {
+        "claim": "The study's soil notes describe the same CRM constitutive model family but deliberately different parameters for HMMWV and Go2.",
+        "reported_values": {
+          "young_modulus_pa": {
+            "hmmwv": 1000000,
+            "go2": 500000
+          },
+          "cohesion_pa": {
+            "hmmwv": 5000,
+            "go2": 2000
+          },
+          "initial_particle_spacing_m": {
+            "hmmwv": 0.08,
+            "go2": 0.02
+          },
+          "artificial_viscosity": {
+            "hmmwv": 0.5,
+            "go2": 2
+          },
+          "reported_foot_particle_span_ratio": {
+            "go2": 2.2
+          },
+          "reported_tire_particle_span_ratio": {
+            "hmmwv": 11.8
+          }
+        },
+        "benchmark_requirement": "Require convergence across particle spacing, smoothing length, foot geometry and solver settings before quantitative terramechanics claims. Matching a constitutive model family does not mean matching physical parameters or resolving the same length scales."
+      },
+      "sources": [
+        "https://huggingface.co/datasets/ksha23/nedm-study4-go2-crm",
+        "https://github.com/uwsbel/NeDM/tree/kyle/quadruped-pipeline",
+        "https://doi.org/10.1109/LRA.2026.3732903"
+      ]
+    }
+  ]
+}
