@@ -67,7 +67,7 @@ No benchmark output itself moves a case up this ladder.
 
 ## Frozen v0.1 corpus
 
-The corpus contains 36 unique synthetic cases: one valid inspection/repair chain and 35 adversarial controls. It covers method/technique applicability, project acceptance basis, ISO quality-level vs NDT-acceptance confusion, coverage and sampling denominator, calibration, examiner scope, artifact integrity, indication/joint/pass binding, ambiguous/rejected disposition, duplicate/out-of-order report delivery, repair authorization/scope, reinspection lineage, configuration release, coverage-shift confounding and leakage across welds/batches/campaigns/facilities.
+The corpus contains 37 unique synthetic cases: one valid inspection/repair chain and 36 adversarial controls. It covers method/technique applicability, project acceptance basis, ISO quality-level vs NDT-acceptance confusion, coverage and sampling denominator, calibration, examiner scope, artifact integrity, indication/joint/pass binding, ambiguous/rejected disposition, duplicate/out-of-order report delivery, repair authorization/scope, reinspection lineage, configuration release, coverage-shift confounding and leakage across welds/batches/campaigns/facilities.
 
 The corpus is a fixture seed; it is not a NDT evaluator or defect classifier.
 
