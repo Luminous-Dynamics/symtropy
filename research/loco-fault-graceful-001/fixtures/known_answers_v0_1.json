@@ -1,0 +1,252 @@
+{
+  "schema_version": "loco-fault-graceful-known-answers-v0.1",
+  "timing_unit": "monotonic nanoseconds",
+  "scenarios": [
+    {
+      "id": "A-healthy-contact-transient",
+      "actual_fault": "none",
+      "events": [
+        {
+          "t": 100,
+          "type": "contact_transient",
+          "sensor": "foot_force"
+        },
+        {
+          "t": 110,
+          "type": "diagnosis",
+          "status": "suspected",
+          "hypotheses": [
+            "joint_locked"
+          ]
+        },
+        {
+          "t": 130,
+          "type": "diagnosis",
+          "status": "cleared",
+          "hypotheses": []
+        }
+      ],
+      "expected": {
+        "false_confident_diagnosis": false,
+        "terminal_state": "nominal"
+      }
+    },
+    {
+      "id": "B-ambiguous-fault-common-action",
+      "actual_fault": "joint_locked_or_torque_derated",
+      "plausible_faults": [
+        "joint_locked",
+        "torque_derated"
+      ],
+      "gate_by_fault": {
+        "joint_locked": {
+          "safe_hold": "admitted",
+          "walk": "rejected"
+        },
+        "torque_derated": {
+          "safe_hold": "admitted",
+          "walk": "admitted"
+        }
+      },
+      "selected_action": "safe_hold",
+      "expected": {
+        "action_admitted": true
+      }
+    },
+    {
+      "id": "C-high-confidence-wrong-diagnosis",
+      "actual_fault": "power_loss",
+      "plausible_faults": [
+        "power_loss",
+        "joint_locked"
+      ],
+      "diagnosis": {
+        "label": "torque_derated",
+        "confidence_ppm": 990000
+      },
+      "gate_by_fault": {
+        "power_loss": {
+          "walk": "rejected"
+        },
+        "joint_locked": {
+          "walk": "admitted"
+        }
+      },
+      "selected_action": "walk",
+      "expected": {
+        "false_safe_action": true,
+        "confidence_does_not_override_gate": true
+      }
+    },
+    {
+      "id": "D-zero-mass-physical-fault",
+      "actual_fault": "free_swing",
+      "plausible_faults": [
+        "free_swing",
+        "healthy"
+      ],
+      "posterior_ppm": {
+        "free_swing": 0,
+        "healthy": 1000000
+      },
+      "gate_by_fault": {
+        "free_swing": {
+          "walk": "rejected",
+          "safe_hold": "admitted"
+        },
+        "healthy": {
+          "walk": "admitted",
+          "safe_hold": "admitted"
+        }
+      },
+      "selected_action": "safe_hold",
+      "expected": {
+        "zero_mass_fault_retained": true,
+        "action_admitted": true
+      }
+    },
+    {
+      "id": "E-unknown-ood",
+      "actual_fault": "unknown",
+      "plausible_faults": [
+        "unknown"
+      ],
+      "diagnosis": {
+        "label": "unknown",
+        "confidence_ppm": 0
+      },
+      "gate_by_fault": {
+        "unknown": {
+          "walk": "unknown",
+          "safe_hold": "admitted",
+          "retreat": "admitted"
+        }
+      },
+      "selected_action": "safe_hold",
+      "expected": {
+        "abstain": true,
+        "action_admitted": true
+      }
+    },
+    {
+      "id": "F-joint-sensor-actuator",
+      "actual_fault": "velocity_sensor_dropout_and_torque_derating",
+      "plausible_faults": [
+        "joint_sensor_actuator_fault"
+      ],
+      "evidence_channels": [
+        "joint_position",
+        "imu",
+        "motor_current"
+      ],
+      "unavailable_channels": [
+        "joint_velocity"
+      ],
+      "expected": {
+        "failed_velocity_channel_not_used_as_authority": true
+      }
+    },
+    {
+      "id": "G-stale-actuator-map",
+      "actual_fault": "torque_derated",
+      "receipt": {
+        "valid_until_ns": 90
+      },
+      "decision_time_ns": 100,
+      "expected": {
+        "receipt_valid": false,
+        "action_applied": false
+      }
+    },
+    {
+      "id": "H-intermittent-fault",
+      "actual_fault": "intermittent_torque_dropout",
+      "mode_sequence": [
+        "degraded",
+        "suspected_recovered",
+        "degraded",
+        "degraded",
+        "recovered"
+      ],
+      "minimum_dwell_steps": 3,
+      "expected": {
+        "mode_chatter_rejected": true,
+        "recovery_requires_hysteresis": true
+      }
+    },
+    {
+      "id": "I-probe-consumes-horizon",
+      "initial_horizon_steps": 40,
+      "probe_duration_steps": 8,
+      "expected": {
+        "post_probe_horizon_steps": 32
+      }
+    },
+    {
+      "id": "J-no-motion-safe-hold-exists",
+      "actual_fault": "multiple_actuator_failures",
+      "gate_by_fault": {
+        "f1": {
+          "walk": "rejected",
+          "safe_hold": "admitted"
+        }
+      },
+      "selected_action": "safe_hold",
+      "terminal": "aborted_safe",
+      "expected": {
+        "safe_abort": true,
+        "task_success": false
+      }
+    },
+    {
+      "id": "K-no-safe-action",
+      "actual_fault": "unrecoverable_multi_fault",
+      "gate_by_fault": {
+        "f1": {
+          "walk": "rejected",
+          "safe_hold": "rejected",
+          "retreat": "rejected"
+        }
+      },
+      "expected": {
+        "terminal": "unrecoverable",
+        "requires_counterexample": true
+      }
+    },
+    {
+      "id": "L-loco-manipulation-CoM-shift",
+      "actual_fault": "leg_torque_weakening",
+      "arm_action": "reach_forward",
+      "expected": {
+        "stability_and_arm_workspace_scored_separately": true,
+        "object_retention_scored": true
+      }
+    },
+    {
+      "id": "M-adverse-event-proxy-shift",
+      "baseline": {
+        "shank_collision": 10,
+        "foot_scuff": 5
+      },
+      "candidate": {
+        "shank_collision": 3,
+        "foot_scuff": 11
+      },
+      "expected": {
+        "shank_improved": true,
+        "foot_scuff_worsened": true,
+        "complete_safety_improvement": false
+      }
+    },
+    {
+      "id": "N-deadline-miss",
+      "actual_fault": "joint_locked",
+      "compute_deadline_ns": 100,
+      "command_application_ns": 120,
+      "expected": {
+        "command_applied": false,
+        "stale_action_not_counted_as_recovery": true
+      }
+    }
+  ]
+}
