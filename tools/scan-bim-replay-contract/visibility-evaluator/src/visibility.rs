@@ -1136,6 +1136,162 @@ pub fn canonical_occluder_manifest_sha256(occluders: &[OccluderTriangle]) -> Str
     format!("{:x}", hasher.finalize())
 }
 
+/// Immutable, evaluator-only triangle query index.
+///
+/// The index is built once and may service many rays. Geometry is canonicalized
+/// by stable surface/triangle identity before the deterministic median BVH is
+/// built. The query contract uses open clipping boundaries with a 10 nm guard:
+/// a hit must satisfy t > tnear + epsilon and t < tfar - epsilon. Nearest-hit
+/// ties within the same epsilon are all returned.
+pub struct RayQueryIndexV1 {
+    triangles: Vec<OccluderTriangle>,
+    bvh: TriangleBvh,
+    occluder_manifest_sha256: String,
+}
+
+impl RayQueryIndexV1 {
+    pub fn build(occluders: &[OccluderTriangle]) -> Result<Self, String> {
+        if occluders.len() > HARD_MAX_OCCLUDER_TRIANGLES {
+            return Err("ray-query index exceeds the compiled triangle ceiling".to_owned());
+        }
+        let mut triangles = occluders.to_vec();
+        triangles.sort_by(|left, right| {
+            left.surface_id
+                .cmp(&right.surface_id)
+                .then_with(|| left.triangle_id.cmp(&right.triangle_id))
+        });
+        let mut identities = BTreeSet::new();
+        for triangle in &triangles {
+            if triangle.surface_id.trim().is_empty() || triangle.triangle_id.trim().is_empty() {
+                return Err("ray-query triangle identity must not be empty".to_owned());
+            }
+            if !identities.insert((triangle.surface_id.as_str(), triangle.triangle_id.as_str())) {
+                return Err("ray-query index contains duplicate triangle identities".to_owned());
+            }
+            validate_triangle(
+                "ray-query triangle",
+                triangle.a,
+                triangle.b,
+                triangle.c,
+            )?;
+        }
+        let occluder_manifest_sha256 = canonical_occluder_manifest_sha256(&triangles);
+        let bvh = TriangleBvh::build(&triangles);
+        Ok(Self {
+            triangles,
+            bvh,
+            occluder_manifest_sha256,
+        })
+    }
+
+    pub fn triangle_count(&self) -> usize {
+        self.triangles.len()
+    }
+
+    pub fn build_stats(&self) -> (usize, usize) {
+        (self.bvh.node_count, self.bvh.leaf_count)
+    }
+
+    pub fn occluder_manifest_sha256(&self) -> &str {
+        &self.occluder_manifest_sha256
+    }
+
+    pub fn query(
+        &self,
+        query: &RayQueryV1,
+        max_ray_tests: usize,
+        max_bvh_node_visits: usize,
+    ) -> Result<RayQueryReceiptV1, String> {
+        if !finite_point(query.origin) || !finite_point(query.direction) {
+            return Err("ray query origin/direction must be finite".to_owned());
+        }
+        let direction = Vec3::from_point(query.direction);
+        let direction_length = direction.norm();
+        if !direction_length.is_finite()
+            || (direction_length - 1.0).abs() > 1.0e-10
+        {
+            return Err("ray query direction must be unit length within 1e-10".to_owned());
+        }
+        if !query.tnear_m.is_finite()
+            || !query.tfar_m.is_finite()
+            || query.tnear_m < 0.0
+            || query.tfar_m <= query.tnear_m
+        {
+            return Err("ray query clipping bounds must be finite with 0 <= tnear < tfar".to_owned());
+        }
+        if max_ray_tests == 0
+            || max_ray_tests > HARD_MAX_RAY_TESTS
+            || max_bvh_node_visits == 0
+            || max_bvh_node_visits > HARD_MAX_BVH_NODE_VISITS
+        {
+            return Err("ray query work budgets are zero or exceed compiled ceilings".to_owned());
+        }
+        let excluded_target = if let Some(identity) = &query.exclude_target {
+            if !self.triangles.iter().any(|triangle| {
+                triangle.surface_id == identity[0] && triangle.triangle_id == identity[1]
+            }) {
+                return Err("ray query excludes a target identity absent from the index".to_owned());
+            }
+            Some((identity[0].as_str(), identity[1].as_str()))
+        } else {
+            None
+        };
+
+        let (nearest, ray_test_count, bvh_node_visit_count) = self.bvh.nearest_hits(
+            Vec3::from_point(query.origin),
+            direction,
+            query.tnear_m,
+            query.tfar_m,
+            &self.triangles,
+            excluded_target,
+            max_ray_tests,
+            max_bvh_node_visits,
+        )?;
+        let nearest_hits: Vec<RayQueryHitV1> = nearest
+            .into_iter()
+            .map(|(index, distance_m)| RayQueryHitV1 {
+                surface_id: self.triangles[index].surface_id.clone(),
+                triangle_id: self.triangles[index].triangle_id.clone(),
+                distance_m,
+            })
+            .collect();
+
+        let mut hasher = Sha256::new();
+        update_string(&mut hasher, "scan_bim_ray_query_receipt_v1");
+        update_string(&mut hasher, &self.occluder_manifest_sha256);
+        update_point(&mut hasher, query.origin);
+        update_point(&mut hasher, query.direction);
+        update_f64(&mut hasher, query.tnear_m);
+        update_f64(&mut hasher, query.tfar_m);
+        if let Some((surface_id, triangle_id)) = excluded_target {
+            update_string(&mut hasher, surface_id);
+            update_string(&mut hasher, triangle_id);
+        } else {
+            update_string(&mut hasher, "no_excluded_target");
+        }
+        for hit in &nearest_hits {
+            update_string(&mut hasher, &hit.surface_id);
+            update_string(&mut hasher, &hit.triangle_id);
+            update_f64(&mut hasher, hit.distance_m);
+        }
+        hasher.update((self.bvh.node_count as u64).to_le_bytes());
+        hasher.update((self.bvh.leaf_count as u64).to_le_bytes());
+        hasher.update((ray_test_count as u64).to_le_bytes());
+        hasher.update((bvh_node_visit_count as u64).to_le_bytes());
+
+        Ok(RayQueryReceiptV1 {
+            algorithm_id: "evaluator_bvh_median_v1".to_owned(),
+            occluder_manifest_sha256: self.occluder_manifest_sha256.clone(),
+            nearest_hits,
+            bvh_node_count: self.bvh.node_count,
+            bvh_leaf_count: self.bvh.leaf_count,
+            ray_test_count,
+            bvh_node_visit_count,
+            query_sha256: format!("{:x}", hasher.finalize()),
+        })
+    }
+}
+
 fn receipt_digest(
     evaluation: &VisibilityEvaluation<'_>,
     probes: &[VisibilityProbeResult],
