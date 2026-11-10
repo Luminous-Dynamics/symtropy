@@ -680,3 +680,17 @@ Do not publish one cross-domain leaderboard mixing incompatible targets. Use a f
 - Where sample counts are small, publish exact uncertainty intervals and do not imply high confidence from correlated observations.
 
 The intended differentiator is **evidence-to-experiment continuity**: a system can state a property hypothesis, identify rival physical mechanisms, register quantitative predictions, select an admissible discriminating observation, account for what was actually observed, detect model inadequacy, and preserve the result's provenance and limitations across all four Luminous systems.
+
+
+## 18. Next research execution trackers (10 November 2026)
+
+The next coordinated work packages are now open:
+
+- Symtropy [OLI-M0 executable slice draft PR #4569](https://github.com/Luminous-Dynamics/symtropy/pull/4569): six fixtures, closed JSON Schema, Rust semantic validator, workspace registration and targeted CI step. The first PR draft was closed after its exact-head CI exposed a syntax defect; the replacement fixes that source defect. The corrected branch's CI is not yet qualified.
+- Symtropy [OLI-ABIOTIC-001 #4572](https://github.com/Luminous-Dynamics/symtropy/issues/4572): 12-family adversarial abiotic look-alike tournament, three variants per family, positive controls with matched signatures, counterfactuals and held-out generator families.
+- Symthaea [OLI-EXPERIMENT-001 #11446](https://github.com/Luminous-Dynamics/symthaea/issues/11446): connect property hypotheses and rival mechanisms to adequacy-gated, robust, cost-aware experiment selection using existing #11181 / #9796 / #11050 / #11068 primitives.
+- Symthaea [DUSTY-PLASMA-IDENTIFY-001 #11317](https://github.com/Luminous-Dynamics/symthaea/issues/11317): independent physics reproduction of the 2025 dusty-plasma many-body force inference. Upstream code/data rights, metric semantics and the limitations of its within-experiment time split have been recorded; no source/data admission or reproduction is yet claimed.
+- Sol-Atlas [OLI-SPATIAL-001 #691](https://github.com/Luminous-Dynamics/sol-atlas-leptos/issues/691): spatiotemporal observability and false-negative accounting.
+- Mycelix [CIVOS-EVIDENCE-001 #5709](https://github.com/Luminous-Dynamics/mycelix/issues/5709): provenance/rights/consent adapter composition without a second evidence ledger.
+
+The immediate sequence is: correct and qualify M0; freeze the first abiotic generator family and its positive controls; wire those fixtures into Symthaea's existing adequacy and experiment-selection seams; then connect actual coverage and provenance. No physical experiment, contact, sampling or actuation is authorized by these software milestones.
