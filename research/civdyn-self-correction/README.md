@@ -235,7 +235,7 @@ The benchmark's diagnostic statistic IDs and observation digests are distinct fr
 Run repair-qualification-sweep using the locked workspace manifest. CI checks the named CSV schema, per-network transition, report claim, exact challenge identities, and byte-identical replay.
 
 
-## Scenario L: fresh-challenge repair width budget
+## Scenario M: fresh-challenge repair width budget
 
 The repair qualification reference now also enforces a predeclared maximum ratio between repaired and baseline predictive interval widths. The default fixture budget is 1.0 (no widening). Every challenge statistic/unit reports its baseline width, repaired width, width ratio where defined, and an independent width-budget-exceeded flag.
 
