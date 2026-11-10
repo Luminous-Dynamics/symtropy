@@ -5,7 +5,7 @@
 
 pub mod manipulator;
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::fmt;
 
 use ::nalgebra::SVector;
@@ -499,6 +499,9 @@ mod tests {
 
     fn y_after_one_step(dt: f32) -> (f32, f32) {
         let mut bridge = RapierPhysicsBridge::new(NoOpCallback);
+        bridge
+            .set_gravity(vector![0.0, -9.81, 0.0])
+            .expect("finite scenario gravity");
         let mut world = TestWorld::new();
         let handle = world.bodies.insert(
             RigidBodyBuilder::dynamic()
@@ -510,8 +513,8 @@ mod tests {
 
         world.step(&mut bridge, dt).expect("valid fixed step");
         let position_y = bridge
-            .post_step(&world.bodies)
-            .into_iter()
+            .last_body_states()
+            .iter()
             .find(|state| state.handle == handle)
             .expect("body state readback")
             .translation[1];
@@ -522,6 +525,9 @@ mod tests {
     #[test]
     fn bridge_step_advances_a_falling_body_and_reads_back_current_state() {
         let mut bridge = RapierPhysicsBridge::new(NoOpCallback);
+        bridge
+            .set_gravity(vector![0.0, -9.81, 0.0])
+            .expect("finite scenario gravity");
         let mut world = TestWorld::new();
         let handle = world.bodies.insert(
             RigidBodyBuilder::dynamic()
@@ -534,8 +540,8 @@ mod tests {
             .step(&mut bridge, 1.0 / 60.0)
             .expect("valid fixed step");
         let state = bridge
-            .post_step(&world.bodies)
-            .into_iter()
+            .last_body_states()
+            .iter()
             .find(|state| state.handle == handle)
             .expect("body state readback");
 
@@ -712,8 +718,8 @@ mod tests {
             .step(&mut bridge, 1.0 / 60.0)
             .expect("valid fixed step");
         let state = bridge
-            .post_step(&world.bodies)
-            .into_iter()
+            .last_body_states()
+            .iter()
             .find(|state| state.handle == handle)
             .expect("body state readback");
 
@@ -740,7 +746,7 @@ mod tests {
             bridge.set_gravity(vector![0.0, f32::INFINITY, 0.0]),
             Err(RapierStepError::InvalidGravity)
         );
-        assert_eq!(*bridge.gravity(), vector![0.0, -9.81, 0.0]);
+        assert_eq!(*bridge.gravity(), vector![0.0, 0.0, 0.0]);
     }
 
     #[test]
@@ -791,6 +797,9 @@ mod tests {
                 .sleeping(true)
                 .build(),
         );
+        bridge
+            .bind_callback_body(handle, BodyHandle(5))
+            .expect("explicit callback identity");
         let body = world.bodies.get_mut(handle).expect("body inserted");
         body.add_force(vector![1.0, 0.0, 0.0], false);
         body.sleep();
@@ -814,6 +823,9 @@ mod tests {
         let handle = world
             .bodies
             .insert(RigidBodyBuilder::dynamic().additional_mass(1.0).build());
+        bridge
+            .bind_callback_body(handle, BodyHandle(5))
+            .expect("explicit callback identity");
         world
             .bodies
             .get_mut(handle)
@@ -839,6 +851,9 @@ mod tests {
                 .additional_mass(1.0)
                 .build(),
         );
+        bridge
+            .bind_callback_body(first, BodyHandle(7))
+            .expect("first semantic identity binding");
         world
             .bodies
             .get_mut(first)
@@ -876,6 +891,9 @@ mod tests {
             "generation must change on reuse"
         );
 
+        bridge
+            .bind_callback_body(second, BodyHandle(8))
+            .expect("second semantic identity binding");
         world
             .bodies
             .get_mut(second)
@@ -891,10 +909,65 @@ mod tests {
             .lock()
             .expect("callback handle recorder poisoned");
         assert_eq!(ids.len(), 2);
-        assert_ne!(
-            ids[0], ids[1],
-            "a recycled slot must not reuse callback identity"
+        assert_eq!(ids.as_slice(), &[BodyHandle(7), BodyHandle(8)]);
+    }
+
+    #[test]
+    fn new_bridge_defaults_to_zero_gravity_and_does_not_invent_world_conditions() {
+        let mut bridge = RapierPhysicsBridge::new(NoOpCallback);
+        assert_eq!(*bridge.gravity(), vector![0.0, 0.0, 0.0]);
+        let mut world = TestWorld::new();
+        let handle = world.bodies.insert(
+            RigidBodyBuilder::dynamic()
+                .translation(vector![0.0, 10.0, 0.0])
+                .additional_mass(1.0)
+                .build(),
         );
+        world.step(&mut bridge, 1.0 / 60.0).expect("zero-gravity step");
+        let body = world.bodies.get(handle).expect("body remains");
+        assert!((body.translation().y - 10.0).abs() < 1.0e-6);
+        assert_eq!(body.linvel(), &vector![0.0, 0.0, 0.0]);
+    }
+
+    #[test]
+    fn callbacks_require_explicit_generation_aware_body_identity() {
+        let mut bridge = RapierPhysicsBridge::new(RecordingCallback::default());
+        let mut world = TestWorld::new();
+        let handle = world.bodies.insert(
+            RigidBodyBuilder::dynamic().additional_mass(1.0).build(),
+        );
+        world
+            .bodies
+            .get_mut(handle)
+            .expect("body inserted")
+            .add_force(vector![1.0, 0.0, 0.0], true);
+        world.step(&mut bridge, 0.1).expect("unmapped body is still simulated");
+        assert!(bridge.callback.0.lock().expect("recorder").is_empty());
+
+        bridge
+            .bind_callback_body(handle, BodyHandle(41))
+            .expect("bind exact semantic body");
+        world.step(&mut bridge, 0.1).expect("mapped body step");
+        assert_eq!(
+            bridge.callback.0.lock().expect("recorder").as_slice(),
+            &[BodyHandle(41)]
+        );
+    }
+
+    #[test]
+    fn one_symtropy_body_cannot_be_bound_to_two_live_rapier_bodies() {
+        let mut bridge = RapierPhysicsBridge::new(NoOpCallback);
+        let first = RigidBodyHandle::from_raw_parts(1, 0);
+        let second = RigidBodyHandle::from_raw_parts(2, 0);
+        bridge
+            .bind_callback_body(first, BodyHandle(9))
+            .expect("first binding");
+        assert_eq!(
+            bridge.bind_callback_body(second, BodyHandle(9)),
+            Err(RapierStepError::DuplicateBodyBinding { body: BodyHandle(9) })
+        );
+        assert_eq!(bridge.callback_body(first), Some(BodyHandle(9)));
+        assert_eq!(bridge.callback_body(second), None);
     }
 
     #[test]
@@ -904,6 +977,9 @@ mod tests {
         let handle = world
             .bodies
             .insert(RigidBodyBuilder::dynamic().additional_mass(1.0).build());
+        bridge
+            .bind_callback_body(handle, BodyHandle(21))
+            .expect("explicit callback identity");
         world
             .bodies
             .get_mut(handle)
