@@ -12,7 +12,7 @@ use std::path::PathBuf;
 const MAX_CORPUS_BYTES: u64 = 8 * 1024 * 1024;
 const MAX_CASES: usize = 10_000;
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct Corpus {
     schema_version: String,
@@ -21,7 +21,7 @@ struct Corpus {
     cases: Vec<Case>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct Case {
     case_id: String,
@@ -58,7 +58,7 @@ enum ObservationStatus {
     Unknown,
 }
 
-#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
 enum CalibrationStatus {
     Qualified,
@@ -67,7 +67,7 @@ enum CalibrationStatus {
     Invalid,
 }
 
-#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
 enum ApplicabilityStatus {
     InDomain,
@@ -75,7 +75,7 @@ enum ApplicabilityStatus {
     Unknown,
 }
 
-#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
 enum ValidationStatus {
     Qualified,
@@ -85,7 +85,7 @@ enum ValidationStatus {
     Invalid,
 }
 
-#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
 enum IndependenceStatus {
     Independent,
@@ -93,13 +93,13 @@ enum IndependenceStatus {
     Unknown,
 }
 
-#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
 enum MeasurementUnit {
     Metre,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct SensorEvidence {
     sensor_id: String,
@@ -110,7 +110,7 @@ struct SensorEvidence {
     applicability: ApplicabilityStatus,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct ValidationEvidence {
     status: ValidationStatus,
@@ -120,7 +120,7 @@ struct ValidationEvidence {
     minimum_independent_lineages: usize,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct Measurement {
     value_m: f64,
@@ -132,14 +132,14 @@ struct Measurement {
     unit: MeasurementUnit,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct TaskRequirement {
     task_id: String,
     maximum_expanded_uncertainty_m: f64,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct Expected {
     overall_disposition: OverallDisposition,
