@@ -296,3 +296,97 @@ jobs:
               assert row["estimand"] == "target_average_treatment_effect_risk_difference"
           print("Causal-transport CSV valid: point standardization under full support; no point extrapolation under target-only modifier; sharp risk-difference bounds retained.")
           PY
+      - name: Verify Bernoulli outcome-shift sensitivity frontier and tipping point
+        run: |
+          set -euo pipefail
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin causal-transport-sensitivity-sweep > /tmp/civdyn-outcome-shift-sensitivity.csv
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin causal-transport-sensitivity-sweep > /tmp/civdyn-outcome-shift-sensitivity-replay.csv
+          cmp /tmp/civdyn-outcome-shift-sensitivity.csv /tmp/civdyn-outcome-shift-sensitivity-replay.csv
+          python3 - <<'PY'
+          import csv
+          import math
+          from pathlib import Path
+
+          with Path("/tmp/civdyn-outcome-shift-sensitivity.csv").open(newline="", encoding="utf-8") as handle:
+              reader = csv.DictReader(handle)
+              rows = list(reader)
+              fields = reader.fieldnames
+
+          assert fields is not None and len(fields) == 40, f"expected 40 columns, got {len(fields or [])}"
+          assert len(rows) == 25, f"expected 25 per-stratum Lambda receipts, got {len(rows)}"
+          by_key = {(row["scenario"], float(row["lambda"]), row["modifier_id"]): row for row in rows}
+          lambdas = [1.0, 1.25, 1.5, 2.0, 4.0]
+
+          for scenario in ("full-support", "partial-support"):
+              per_lambda = []
+              for lam in lambdas:
+                  matches = [row for row in rows if row["scenario"] == scenario and math.isclose(float(row["lambda"]), lam)]
+                  assert len(matches) == (2 if scenario == "full-support" else 3)
+                  lower_values = {float(row["target_ate_lower"]) for row in matches}
+                  upper_values = {float(row["target_ate_upper"]) for row in matches}
+                  assert len(lower_values) == len(upper_values) == 1
+                  per_lambda.append((next(iter(lower_values)), next(iter(upper_values))))
+              for previous, current in zip(per_lambda, per_lambda[1:]):
+                  assert current[0] <= previous[0] + 1e-10
+                  assert current[1] + 1e-10 >= previous[1]
+              for row in [row for row in rows if row["scenario"] == scenario]:
+                  assert row["source_ate"] == "0.2200000000"
+                  assert row["source_population_total"] == "100"
+                  assert row["target_population_total"] == "100"
+                  assert row["source_data_digest"] == "sha256-causal-transport-source-rct"
+                  assert row["protocol_digest"] == "sha256-causal-transport-sensitivity-v0.1"
+                  assert row["source_internal_validity"] == "supported_by_design"
+                  assert row["selection_exchangeability"] == "supported_by_evidence"
+                  assert row["no_interference"] == "supported_by_design"
+                  assert row["treatment_version_invariance"] == "supported_by_evidence"
+                  assert row["source_internal_validity_digest"] == row["selection_exchangeability_digest"]
+                  assert row["source_internal_validity_digest"] == row["no_interference_digest"]
+                  assert row["source_internal_validity_digest"] == row["treatment_version_invariance_digest"]
+
+          full_lambda_one = [row for row in rows if row["scenario"] == "full-support" and float(row["lambda"]) == 1.0]
+          assert len(full_lambda_one) == 2
+          for row in full_lambda_one:
+              assert math.isclose(float(row["target_ate_lower"]), 0.28, abs_tol=1e-10)
+              assert math.isclose(float(row["target_ate_upper"]), 0.28, abs_tol=1e-10)
+              assert math.isclose(float(row["interval_width"]), 0.0, abs_tol=1e-10)
+              assert row["supported_target_population_count"] == "100"
+              assert row["unsupported_target_population_count"] == "0"
+
+          full_lambda_two = [row for row in rows if row["scenario"] == "full-support" and float(row["lambda"]) == 2.0][0]
+          assert math.isclose(float(full_lambda_two["target_ate_lower"]), -0.13, abs_tol=1e-9)
+          assert math.isclose(float(full_lambda_two["target_ate_upper"]), 0.57, abs_tol=1e-9)
+
+          partial_lambda_one = [row for row in rows if row["scenario"] == "partial-support" and float(row["lambda"]) == 1.0]
+          assert len(partial_lambda_one) == 3
+          for row in partial_lambda_one:
+              assert math.isclose(float(row["target_ate_lower"]), 0.02, abs_tol=1e-10)
+              assert math.isclose(float(row["target_ate_upper"]), 0.42, abs_tol=1e-10)
+              assert row["supported_target_population_count"] == "80"
+              assert row["unsupported_target_population_count"] == "20"
+
+          partial_lambda_two = [row for row in rows if row["scenario"] == "partial-support" and float(row["lambda"]) == 2.0][0]
+          assert math.isclose(float(partial_lambda_two["target_ate_lower"]), -0.30, abs_tol=1e-9)
+          assert math.isclose(float(partial_lambda_two["target_ate_upper"]), 0.64, abs_tol=1e-9)
+
+          unsupported_rows = [row for row in partial_lambda_one if row["modifier_id"] == "remote-isolated"]
+          assert len(unsupported_rows) == 1
+          assert unsupported_rows[0]["source_support"] == "false"
+          assert unsupported_rows[0]["control_source_risk"] == ""
+          assert unsupported_rows[0]["treatment_source_risk"] == ""
+          assert unsupported_rows[0]["stratum_risk_difference_lower"] == "-1.0000000000"
+          assert unsupported_rows[0]["stratum_risk_difference_upper"] == "1.0000000000"
+
+          for scenario in ("full-support", "partial-support"):
+              scenario_rows = [row for row in rows if row["scenario"] == scenario]
+              tipping_values = {row["null_tipping_lambda"] for row in scenario_rows}
+              assert len(tipping_values) == 1
+              tipping_value = next(iter(tipping_values))
+              assert tipping_value != ""
+              tipping = float(tipping_value)
+              bracket_low = float(scenario_rows[0]["tipping_lower_bracket"])
+              bracket_high = float(scenario_rows[0]["tipping_upper_bracket"])
+              assert 1.0 <= bracket_low <= tipping <= bracket_high <= 16.0
+              assert bracket_high - bracket_low <= 1.1e-8
+              assert tipping <= 2.0
+          print("Outcome-shift sensitivity CSV valid: Lambda=1 reproduces #4422, bounds widen monotonically, unsupported mass remains worst-case, and continuous null tipping points are bracketed with exact provenance.")
+          PY
