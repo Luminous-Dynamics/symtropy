@@ -551,6 +551,19 @@ pub fn monitor(
         });
     };
 
+    let has_any_alternative = input
+        .candidates
+        .iter()
+        .any(|candidate| candidate.model_id != *selected_id);
+    if !has_any_alternative {
+        return Ok(MonitoringDecision::Abstain {
+            from_model_id: selected_id.clone(),
+            reason: AbstentionReason::NoCandidates,
+            trigger,
+            observation_receipt_sha256: observation.observation_receipt_sha256.clone(),
+        });
+    }
+
     let mut remaining = input.clone();
     remaining.candidates.retain(|candidate| {
         candidate.model_id != *selected_id
