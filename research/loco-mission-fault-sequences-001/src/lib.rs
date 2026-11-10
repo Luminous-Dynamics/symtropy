@@ -217,6 +217,30 @@ fn validate_initial(state: &MissionState) -> Result<(), MissionError> {
     if state.thermal_headroom_mj > state.thermal_capacity_mj {
         return Err(MissionError::InvalidInitialThermalEnvelope);
     }
+    if state.thermal_model_digest.trim().is_empty() {
+        return Err(MissionError::EmptyThermalModelDigest);
+    }
+    if state.thermal_receipt_ref.trim().is_empty() {
+        return Err(MissionError::EmptyInitialThermalReceipt);
+    }
+    if state.thermal_nodes.is_empty() {
+        return Err(MissionError::EmptyThermalNodeId);
+    }
+    let mut thermal_node_ids = BTreeSet::new();
+    for node in &state.thermal_nodes {
+        if node.node_id.trim().is_empty() {
+            return Err(MissionError::EmptyThermalNodeId);
+        }
+        if !thermal_node_ids.insert(node.node_id.clone()) {
+            return Err(MissionError::DuplicateThermalNodeId(node.node_id.clone()));
+        }
+        if node.source_ref.trim().is_empty() {
+            return Err(MissionError::EmptyThermalNodeSource(node.node_id.clone()));
+        }
+        if node.maximum_temperature_milli_c == i32::MIN {
+            return Err(MissionError::InvalidThermalNodeLimit(node.node_id.clone()));
+        }
+    }
     if state.actuator_authority_ppm > MAX_AUTHORITY_PPM {
         return Err(MissionError::InvalidInitialAuthority);
     }
@@ -244,6 +268,24 @@ pub fn replay(
     let mut snapshots = Vec::new();
     let mut seen_event_ids = BTreeSet::new();
 
+    if state.thermal_valid_through_tick < state.current_tick {
+        return Ok(stopped(
+            MissionStatus::Unknown,
+            StopReason::InitialThermalEvidenceStale,
+            None,
+            &state,
+            snapshots,
+        ));
+    }
+    if state.thermal_nodes.iter().any(|node| node.temperature_milli_c > node.maximum_temperature_milli_c) {
+        return Ok(stopped(
+            MissionStatus::Rejected,
+            StopReason::ThermalLimitExceeded,
+            None,
+            &state,
+            snapshots,
+        ));
+    }
     if state.topology_valid_through_tick < state.current_tick {
         return Ok(stopped(
             MissionStatus::Unknown,
