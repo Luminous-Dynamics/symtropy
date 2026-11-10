@@ -24,6 +24,7 @@
 
 use bevy::prelude::*;
 use bevy::render::view::screenshot::{Screenshot, save_to_disk};
+use std::ffi::OsString;
 
 /// Per-capture-run scheduling state. Present as a resource only when the
 /// env var was set at plugin-build time.
@@ -64,15 +65,15 @@ impl CapturePlugin {
 
 impl Plugin for CapturePlugin {
     fn build(&self, app: &mut App) {
-        let Ok(dir) = std::env::var("SYMTROPY_DEMO_CAPTURE_DIR") else {
-            // Default path: env not set — plugin is a pure no-op.
-            return;
-        };
-        let configuration = if dir.trim().is_empty() {
-            Err("SYMTROPY_DEMO_CAPTURE_DIR must not be empty".to_string())
-        } else {
-            capture_configuration_from_env()
-        };
+        let (dir, configuration) =
+            match parse_capture_directory(std::env::var_os("SYMTROPY_DEMO_CAPTURE_DIR")) {
+                Ok(Some(dir)) => (dir, capture_configuration_from_env()),
+                Ok(None) => {
+                    // Only a genuinely absent variable disables capture.
+                    return;
+                }
+                Err(error) => (String::new(), Err(error)),
+            };
         let (schedule, exit_at, configuration_error) = match configuration {
             Ok((schedule, exit_at)) => (schedule, exit_at, None),
             Err(error) => (Vec::new(), 0.0, Some(error)),
@@ -89,6 +90,20 @@ impl Plugin for CapturePlugin {
         });
         app.add_systems(Update, headless_capture);
     }
+}
+
+/// Distinguish an absent capture request from a present but invalid directory.
+fn parse_capture_directory(raw: Option<OsString>) -> Result<Option<String>, String> {
+    let Some(raw) = raw else {
+        return Ok(None);
+    };
+    let dir = raw.into_string().map_err(|_| {
+        "SYMTROPY_DEMO_CAPTURE_DIR must be valid UTF-8".to_string()
+    })?;
+    if dir.trim().is_empty() {
+        return Err("SYMTROPY_DEMO_CAPTURE_DIR must not be empty".to_string());
+    }
+    Ok(Some(dir))
 }
 
 fn capture_configuration_from_env() -> Result<(Vec<f32>, f32), String> {
@@ -239,6 +254,26 @@ fn headless_capture(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn capture_directory_is_noop_only_when_unset() {
+        assert_eq!(parse_capture_directory(None).expect("unset directory"), None);
+        assert_eq!(
+            parse_capture_directory(Some(OsString::from("/tmp/captures")))
+                .expect("valid directory"),
+            Some("/tmp/captures".to_string())
+        );
+        assert!(parse_capture_directory(Some(OsString::from("  "))).is_err());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn non_utf8_capture_directory_is_rejected_instead_of_disabling_capture() {
+        use std::os::unix::ffi::OsStringExt;
+
+        let non_utf8 = OsString::from_vec(vec![0xff, 0xfe]);
+        assert!(parse_capture_directory(Some(non_utf8)).is_err());
+    }
 
     #[test]
     fn capture_schedule_is_sorted_and_exact_duplicates_are_removed() {
