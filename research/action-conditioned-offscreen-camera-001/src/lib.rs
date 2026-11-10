@@ -1351,6 +1351,36 @@ mod tests {
     }
 
     #[test]
+    fn versioned_json_schemas_are_parseable_and_have_required_fields() {
+        let policy: serde_json::Value = serde_json::from_str(include_str!(
+            "../schemas/policy-observation-receipt-v1.schema.json"
+        ))
+        .unwrap();
+        let audit: serde_json::Value = serde_json::from_str(include_str!(
+            "../schemas/evaluator-observation-audit-v1.schema.json"
+        ))
+        .unwrap();
+        let missing: serde_json::Value = serde_json::from_str(include_str!(
+            "../schemas/missing-observation-event-v1.schema.json"
+        ))
+        .unwrap();
+
+        assert_eq!(policy["properties"]["schema_version"]["const"], 1);
+        assert!(policy["required"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|field| field == "frame_sha256"));
+        assert!(policy["properties"].get("world_snapshot_sha256").is_none());
+        assert!(audit["required"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|field| field == "world_snapshot_sha256"));
+        assert_eq!(missing["properties"]["reason"]["enum"][0], "camera_drop");
+    }
+
+    #[test]
     fn sha256_empty_known_answer() {
         assert_eq!(
             sha256_hex(b""),
@@ -1516,7 +1546,7 @@ mod tests {
             road_id: "near-road".into(),
             marking_id: "near-line".into(),
             kind: RoadMarkingKind::LaneWhite,
-            points_world_mm: vec![[-500, 50, 0], [-500, 1_000, 0]],
+            points_world_mm: vec![[-100, 50, 1_400], [-100, 1_000, 1_400]],
         }];
         let rendered = SoftwareCameraRenderer::render(&world, 1, clocks()).unwrap();
         assert!(rendered
