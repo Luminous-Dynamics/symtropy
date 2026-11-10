@@ -171,8 +171,8 @@
       "id": "multisource-fusion-simulation-2026",
       "title": "Multi-source fusion marine diesel engine fault diagnosis study",
       "source_type": "peer_reviewed_article",
-      "publication_date": "2026-01-01",
-      "source_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC12811478/",
+      "publication_date": "2026-01-16",
+      "source_url": "https://doi.org/10.1016/j.isci.2025.114345",
       "data_domain": "Simulation-generated samples from a one-dimensional thermodynamic engine model.",
       "task": "Multi-source fusion classification for marine diesel engine fault diagnosis.",
       "reported_metrics": [
@@ -191,10 +191,11 @@
           "source_location": "Methods"
         }
       ],
-      "split_protocol": "70/30 stratified split with cross-validation reported by the study.",
+      "split_protocol": "2,567 samples generated from a one-dimensional GT-Power thermodynamic simulation model; randomized 70/30 stratified train/test split and five-fold cross-validation reported.",
       "reported_limitations": [
         "Simulation-generated examples are not a physical test-bench or real-vessel score.",
-        "No direct comparison to the Aalto physical fault dataset."
+        "No direct comparison to the Aalto physical fault dataset.",
+        "The article's publication date is 16 January 2026 (article date: 5 December 2025); source metadata must distinguish online article date from issue date."
       ],
       "reproducibility_status": "reported_not_reproduced",
       "direct_comparison_to_aalto": "not_comparable",
