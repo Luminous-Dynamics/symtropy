@@ -9,13 +9,13 @@ use std::collections::BTreeMap;
 use civdyn_resilience_uq::OutcomeMetric;
 use civdyn_robust_policy::preference_robust::{
     ObjectiveDirection, PreferenceContract, PreferenceCriterion, PreferenceProfile,
-    PreferenceVertex, analyze_preference_robustness,
+    PreferenceSetKind, PreferenceVertex, analyze_preference_robustness,
 };
 use civdyn_robust_policy::{
     DEFAULT_LHS_POINTS, PolicyRun, ServiceConstraints, execute_policy_design,
 };
 
-const CSV_COLUMNS: usize = 38;
+const CSV_COLUMNS: usize = 44;
 const SEED: u64 = 0x4356_4459_4e50_5246;
 
 fn fmt(value: f64) -> String {
@@ -51,7 +51,8 @@ fn blank(record_type: &str) -> Vec<String> {
     row[0] = record_type.to_string();
     row[1] = "municipal-service-preferences-v0.1".to_string();
     row[2] = "sha256-municipal-service-preferences-v0.1".to_string();
-    row[37] = "false".to_string();
+    row[39] = PreferenceSetKind::CompletePolytopeVertices.name().to_string();
+    row[41] = "false".to_string();
     row
 }
 
@@ -109,6 +110,7 @@ fn contract() -> PreferenceContract {
         contract_id: "municipal-service-preferences".to_string(),
         version: "v0.1".to_string(),
         contract_digest: "sha256-municipal-service-preferences-v0.1".to_string(),
+        preference_set_kind: PreferenceSetKind::CompletePolytopeVertices,
         criteria,
         vertices,
         service_constraints: ServiceConstraints::default(),
@@ -182,14 +184,23 @@ fn scenario_result_rows(
         row[15] = criterion_order.clone();
         row[16] = directions.clone();
         row[17] = scales.clone();
-        row[18] = profile.weights.iter().map(|weight| fmt(*weight)).collect::<Vec<_>>().join(";");
+        row[18] = contract
+            .criteria
+            .iter()
+            .map(|criterion| criterion.scale_evidence_digest.clone())
+            .collect::<Vec<_>>()
+            .join(";");
+        row[19] = profile.weights.iter().map(|weight| fmt(*weight)).collect::<Vec<_>>().join(";");
         if let Some(metrics) = run.metrics {
-            row[19] = fmt(metrics.total_unmet_water_m3);
-            row[20] = fmt(metrics.total_unmet_energy_kwh);
-            row[21] = fmt(metrics.minimum_water_coverage);
-            row[22] = fmt(metrics.minimum_energy_coverage);
-            row[23] = fmt(metrics.recovery_success);
+            row[20] = fmt(metrics.total_unmet_water_m3);
+            row[21] = fmt(metrics.total_unmet_energy_kwh);
+            row[22] = fmt(metrics.minimum_water_coverage);
+            row[23] = fmt(metrics.minimum_energy_coverage);
+            row[24] = fmt(metrics.recovery_success);
         }
+        row[40] = report.claim_ceiling.name().to_string();
+        row[42] = report.no_feasible_scenario_profile_count.to_string();
+        row[43] = report.incomplete_scenario_profile_count.to_string();
         emit(row);
     }
 }
@@ -200,34 +211,38 @@ fn summary_rows(report: &civdyn_robust_policy::preference_robust::PreferenceRobu
         row[5] = summary.profile_id.clone();
         row[6] = summary.stakeholder_group_id.clone();
         row[7] = summary.policy.clone();
-        row[24] = summary.scenario_count.to_string();
-        row[25] = summary.feasible_count.to_string();
-        row[26] = summary.infeasible_count.to_string();
-        row[27] = summary.unknown_count.to_string();
-        row[28] = summary.best_scenario_count.to_string();
-        row[29] = opt(summary.mean_regret);
-        row[30] = opt(summary.p95_regret);
-        row[31] = opt(summary.worst_regret);
+        row[25] = summary.scenario_count.to_string();
+        row[26] = summary.feasible_count.to_string();
+        row[27] = summary.infeasible_count.to_string();
+        row[28] = summary.unknown_count.to_string();
+        row[29] = summary.best_scenario_count.to_string();
+        row[30] = opt(summary.mean_regret);
+        row[31] = opt(summary.p95_regret);
+        row[32] = opt(summary.worst_regret);
+        row[40] = report.claim_ceiling.name().to_string();
+        row[42] = report.no_feasible_scenario_profile_count.to_string();
+        row[43] = report.incomplete_scenario_profile_count.to_string();
         emit(row);
     }
 
     for summary in &report.policy_summaries {
         let mut row = blank("policy_preference_summary");
         row[7] = summary.policy.clone();
-        row[24] = summary.scenario_count.to_string();
-        row[25] = summary.pass_count.to_string();
-        row[26] = summary.fail_count.to_string();
-        row[27] = summary.unknown_count.to_string();
-        row[32] = summary.finite_design_robust_feasible.map_or_else(
+        row[25] = summary.scenario_count.to_string();
+        row[26] = summary.pass_count.to_string();
+        row[27] = summary.fail_count.to_string();
+        row[28] = summary.unknown_count.to_string();
+        row[33] = summary.finite_design_robust_feasible.map_or_else(
             || "unknown".to_string(),
             |value| value.to_string(),
         );
-        row[33] = summary.worst_case_regret_across_preference_vertices.map_or_else(
+        row[34] = summary.worst_regret_across_declared_profiles.map_or_else(
             String::new,
             fmt,
         );
-        row[34] = summary.preference_vertices_best_count.to_string();
-        row[35] = summary.preference_vertices_considered.to_string();
+        row[35] = summary.worst_case_regret_over_preference_polytope.map_or_else(String::new, fmt);
+        row[36] = summary.preference_vertices_best_count.to_string();
+        row[37] = summary.preference_vertices_considered.to_string();
         emit(row);
     }
 
@@ -235,18 +250,18 @@ fn summary_rows(report: &civdyn_robust_policy::preference_robust::PreferenceRobu
         let mut row = blank("scenario_preference_consensus");
         row[3] = summary.design_point_id.clone();
         row[4] = summary.shock_kind.clone();
-        row[24] = summary.profile_count.to_string();
-        row[25] = summary.profiles_with_winner.to_string();
-        row[26] = summary.distinct_winner_policy_count.to_string();
-        row[27] = summary.profiles_with_different_winners.to_string();
-        row[36] = summary.unanimous_single_winner.clone().unwrap_or_default();
+        row[25] = summary.profile_count.to_string();
+        row[26] = summary.profiles_with_winner.to_string();
+        row[27] = summary.distinct_winner_policy_count.to_string();
+        row[28] = summary.profiles_with_different_winners.to_string();
+        row[38] = summary.unanimous_single_winner.clone().unwrap_or_default();
         emit(row);
     }
 }
 
 fn main() {
     println!(
-        "record_type,contract_id,contract_digest,design_point_id,shock_kind,profile_id,stakeholder_group_id,policy,eligibility,scenario_status,feasible_policy_count,normalized_utility,regret,tied_best,pareto_nondominated,criterion_order,criterion_directions,reference_scales,preference_weights,total_unmet_water_m3,total_unmet_energy_kwh,minimum_water_coverage,minimum_energy_coverage,recovery_success,scenario_count,feasible_count,infeasible_count,unknown_count,best_scenario_count,mean_regret,p95_regret,worst_regret,finite_design_robust_feasible,worst_case_regret_across_preference_vertices,preference_vertices_best_count,preference_vertices_considered,unanimous_single_winner,profile_vertices_are_probabilities"
+        "record_type,contract_id,contract_digest,design_point_id,shock_kind,profile_id,stakeholder_group_id,policy,eligibility,scenario_status,feasible_policy_count,normalized_utility,regret,tied_best,pareto_nondominated,criterion_order,criterion_directions,reference_scales,scale_evidence_digests,preference_weights,total_unmet_water_m3,total_unmet_energy_kwh,minimum_water_coverage,minimum_energy_coverage,recovery_success,scenario_count,feasible_count,infeasible_count,unknown_count,best_scenario_count,mean_regret,p95_regret,worst_regret,finite_design_robust_feasible,worst_regret_across_declared_profiles,worst_case_regret_over_preference_polytope,preference_vertices_best_count,preference_vertices_considered,unanimous_single_winner,preference_set_kind,claim_ceiling,profile_vertices_are_probabilities,no_feasible_scenario_profile_count,incomplete_scenario_profile_count"
     );
     let contract = contract();
     let (runs, _) = execute_policy_design(SEED, DEFAULT_LHS_POINTS, contract.service_constraints)
