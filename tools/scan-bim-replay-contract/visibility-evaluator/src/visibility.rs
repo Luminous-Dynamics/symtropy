@@ -23,6 +23,12 @@ const INTERSECTION_EPSILON_M: f64 = 1.0e-8;
 const BASIS_TOLERANCE: f64 = 1.0e-8;
 const DEGENERATE_TWICE_AREA_EPSILON: f64 = 1.0e-15;
 
+const HARD_MAX_PROBES: usize = 250_000;
+const HARD_MAX_VIEWS: usize = 64;
+const HARD_MAX_OCCLUDER_TRIANGLES: usize = 1_000_000;
+const HARD_MAX_PROBE_VIEW_EVALUATIONS: usize = 1_000_000;
+const HARD_MAX_RAY_TESTS: usize = 100_000_000;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum OccluderKind {
@@ -1011,6 +1017,14 @@ pub fn derive_surface_visibility(
         || evaluation.profile.max_ray_tests == 0
     {
         return Err("all visibility resource limits must be positive".to_owned());
+    }
+    if evaluation.profile.max_probe_count > HARD_MAX_PROBES
+        || evaluation.profile.max_view_count > HARD_MAX_VIEWS
+        || evaluation.profile.max_occluder_triangles > HARD_MAX_OCCLUDER_TRIANGLES
+        || evaluation.profile.max_probe_view_evaluations > HARD_MAX_PROBE_VIEW_EVALUATIONS
+        || evaluation.profile.max_ray_tests > HARD_MAX_RAY_TESTS
+    {
+        return Err("visibility resource profile exceeds the evaluator's compiled hard ceiling".to_owned());
     }
     if evaluation.probes.len() > evaluation.profile.max_probe_count {
         return Err("visibility max_probe_count exceeded".to_owned());
