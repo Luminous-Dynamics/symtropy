@@ -459,7 +459,13 @@
       "target": "output-specific model validation scope",
       "mutation": "A model's agreement with post-weld XRD residual-stress profiles is used to claim the predicted molten-pool peak temperature is physically validated, despite the source explicitly acknowledging omitted liquid-solid coupling and an unrealistic computed peak.",
       "expected_disposition": "BLOCK_VALIDATION",
-      "rationale": "Validation of one output (post-weld residual stress) cannot be promoted to a different output domain (local weld-pool thermophysics) when the source model explicitly documents an important limitation."
+      "rationale": "Validation of one output (post-weld residual stress) cannot be promoted to a different output domain (local weld-pool thermophysics) when the source model explicitly documents an important limitation.",
+      "claim_scope": {
+        "validated_output": "post_weld_residual_stress",
+        "claimed_output": "molten_pool_peak_temperature",
+        "documented_limitation": "liquid_solid_coupling_omitted",
+        "supports_claimed_output": false
+      }
     }
   ]
 }
