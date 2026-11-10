@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 
-pub const SCHEMA_VERSION: u32 = 1;
+pub const SCHEMA_VERSION: u32 = 2;
 const CLAIM_CEILING: &str =
     "finite-input-policy-conformance-only;does-not-qualify-a-physical-model-or-authorize-actuation";
 
@@ -418,7 +418,8 @@ pub fn monitor(
         .find(|candidate| &candidate.model_id == selected_id)
         .ok_or(PolicyError::SelectedModelMissing)?;
 
-    if !rejection_reasons(input, selected).is_empty() {
+    let selected_decision_class = decision_class(input, selected);
+    if !rejection_reasons(input, selected, selected_decision_class).is_empty() {
         return Err(PolicyError::InvalidSelectedModel);
     }
     validate_sha256(
@@ -1012,6 +1013,180 @@ mod tests {
             PolicyDecision::Abstain {
                 reason: AbstentionReason::NoAdmissibleCandidate
             }
+        );
+    }
+
+    fn decision_estimate(value: f64, uncertainty: f64) -> DecisionEstimate {
+        DecisionEstimate {
+            quantity_id: "contact_impulse".to_owned(),
+            unit: "N*s".to_owned(),
+            reference_frame: "world".to_owned(),
+            value,
+            uncertainty_upper_bound: uncertainty,
+        }
+    }
+
+    #[test]
+    fn decision_margin_selects_costlier_model_when_fast_interval_overlaps_threshold() {
+        let mut data = input();
+        data.requirement.decision_boundary = Some(DecisionBoundary {
+            threshold: 10.0,
+            minimum_separation: 1.0,
+        });
+        for candidate in &mut data.candidates {
+            candidate.decision_estimate = Some(if candidate.model_id == "fast-qualified" {
+                // [9.6, 11.2] straddles the [9, 11] indeterminate band.
+                decision_estimate(10.4, 0.8)
+            } else {
+                // [11.5, 12.5] is clearly above the decision threshold + margin.
+                decision_estimate(12.0, 0.5)
+            });
+        }
+
+        let receipt = evaluate(&data).expect("valid decision-margin input");
+        assert_eq!(
+            receipt.decision,
+            PolicyDecision::Selected {
+                model_id: "slow-qualified".to_owned(),
+                model_passport_sha256: H1.to_owned(),
+            }
+        );
+        let fast = receipt
+            .evaluations
+            .iter()
+            .find(|entry| entry.model_id == "fast-qualified")
+            .expect("fast evaluation");
+        let slow = receipt
+            .evaluations
+            .iter()
+            .find(|entry| entry.model_id == "slow-qualified")
+            .expect("slow evaluation");
+        assert_eq!(fast.decision_class, Some(DecisionClass::Unresolved));
+        assert!(fast.rejection_reasons.contains(&RejectionReason::DecisionBoundaryUnresolved));
+        assert_eq!(slow.decision_class, Some(DecisionClass::AboveBoundary));
+        assert!(slow.admissible);
+    }
+
+    #[test]
+    fn decision_interval_below_boundary_is_classified_without_safety_claim() {
+        let mut data = input();
+        data.requirement.decision_boundary = Some(DecisionBoundary {
+            threshold: 10.0,
+            minimum_separation: 1.0,
+        });
+        data.candidates[0].decision_estimate = Some(decision_estimate(8.0, 0.5));
+        data.candidates[1].decision_estimate = Some(decision_estimate(8.0, 0.5));
+
+        let receipt = evaluate(&data).expect("valid decision input");
+        assert_eq!(
+            receipt.decision,
+            PolicyDecision::Selected {
+                model_id: "fast-qualified".to_owned(),
+                model_passport_sha256: H1.to_owned(),
+            }
+        );
+        assert!(receipt.evaluations.iter().all(|entry| {
+            entry.decision_class == Some(DecisionClass::BelowBoundary)
+                && entry.rejection_reasons.is_empty()
+        }));
+    }
+
+    #[test]
+    fn decision_margin_requires_clearance_beyond_threshold_not_only_one_side() {
+        let mut data = input();
+        data.requirement.decision_boundary = Some(DecisionBoundary {
+            threshold: 10.0,
+            minimum_separation: 1.0,
+        });
+        for candidate in &mut data.candidates {
+            // The interval is above threshold, but not separated from the threshold
+            // by the full one-unit decision margin.
+            candidate.decision_estimate = Some(decision_estimate(10.5, 0.1));
+        }
+
+        let receipt = evaluate(&data).expect("valid but unresolved estimates");
+        assert_eq!(
+            receipt.decision,
+            PolicyDecision::Abstain {
+                reason: AbstentionReason::NoAdmissibleCandidate
+            }
+        );
+        assert!(receipt.evaluations.iter().all(|entry| {
+            entry.decision_class == Some(DecisionClass::Unresolved)
+                && entry.rejection_reasons.contains(&RejectionReason::DecisionBoundaryUnresolved)
+        }));
+    }
+
+    #[test]
+    fn decision_estimate_must_match_quantity_unit_and_reference_frame() {
+        let mut data = input();
+        data.requirement.decision_boundary = Some(DecisionBoundary {
+            threshold: 10.0,
+            minimum_separation: 1.0,
+        });
+        for candidate in &mut data.candidates {
+            let mut estimate = decision_estimate(12.0, 0.1);
+            estimate.unit = "N".to_owned();
+            candidate.decision_estimate = Some(estimate);
+        }
+
+        let receipt = evaluate(&data).expect("mismatched output metadata is a well-formed record");
+        assert_eq!(
+            receipt.decision,
+            PolicyDecision::Abstain {
+                reason: AbstentionReason::NoAdmissibleCandidate
+            }
+        );
+        assert!(receipt.evaluations.iter().all(|entry| {
+            entry.rejection_reasons.contains(&RejectionReason::DecisionEstimateQuantityMismatch)
+        }));
+    }
+
+    #[test]
+    fn missing_decision_estimate_abstains_when_threshold_is_required() {
+        let mut data = input();
+        data.requirement.decision_boundary = Some(DecisionBoundary {
+            threshold: 10.0,
+            minimum_separation: 1.0,
+        });
+        let receipt = evaluate(&data).expect("missing estimate is a candidate rejection");
+        assert_eq!(
+            receipt.decision,
+            PolicyDecision::Abstain {
+                reason: AbstentionReason::NoAdmissibleCandidate
+            }
+        );
+        assert!(receipt.evaluations.iter().all(|entry| {
+            entry.rejection_reasons.contains(&RejectionReason::DecisionEstimateMissing)
+        }));
+    }
+
+    #[test]
+    fn decision_boundary_accepts_negative_threshold_but_rejects_non_finite_values() {
+        let mut data = input();
+        data.requirement.decision_boundary = Some(DecisionBoundary {
+            threshold: -2.0,
+            minimum_separation: 0.5,
+        });
+        for candidate in &mut data.candidates {
+            candidate.decision_estimate = Some(decision_estimate(-3.0, 0.1));
+        }
+        assert!(evaluate(&data).is_ok());
+
+        data.requirement.decision_boundary.as_mut().expect("boundary").threshold = f64::INFINITY;
+        assert_eq!(
+            evaluate(&data).unwrap_err(),
+            PolicyError::NonFinite("requirement.decision_boundary.threshold")
+        );
+    }
+
+    #[test]
+    fn decision_estimate_non_finite_value_fails_closed() {
+        let mut data = input();
+        data.candidates[0].decision_estimate = Some(decision_estimate(f64::NAN, 0.1));
+        assert_eq!(
+            evaluate(&data).unwrap_err(),
+            PolicyError::NonFinite("candidate.decision_estimate.value")
         );
     }
 
