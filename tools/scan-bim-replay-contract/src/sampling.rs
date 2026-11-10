@@ -17,15 +17,7 @@ const FNV_OFFSET_BASIS: u64 = 0xcbf2_9ce4_8422_2325;
 const FNV_PRIME: u64 = 0x0000_0100_0000_01b3;
 
 #[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    serde::Serialize,
-    serde::Deserialize,
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
 )]
 #[serde(rename_all = "snake_case")]
 pub enum SurfaceVisibility {
@@ -430,8 +422,9 @@ pub fn verify_complete_reference_sampling_receipt(
                 || !excluded.area_m2.is_finite()
                 || excluded.area_m2 <= 0.0
             {
-                return Err("excluded visibility accounting contains an invalid class or area"
-                    .to_owned());
+                return Err(
+                    "excluded visibility accounting contains an invalid class or area".to_owned(),
+                );
             }
         }
         if (summary.represented_area_m2 - summary.observable_area_m2).abs()
@@ -486,8 +479,9 @@ pub fn verify_complete_reference_sampling_receipt(
             || !sample.represented_area_m2.is_finite()
             || sample.represented_area_m2 <= 0.0
         {
-            return Err("sampling receipt contains a non-finite point/normal or invalid weight"
-                .to_owned());
+            return Err(
+                "sampling receipt contains a non-finite point/normal or invalid weight".to_owned(),
+            );
         }
         let normal_length = sample
             .normal
@@ -514,9 +508,12 @@ pub fn verify_complete_reference_sampling_receipt(
         {
             return Err("sample weights are not equal within the surface".to_owned());
         }
-        *per_surface_counts.entry(sample.surface_id.as_str()).or_insert(0) += 1;
-        *per_surface_weights.entry(sample.surface_id.as_str()).or_insert(0.0) +=
-            sample.represented_area_m2;
+        *per_surface_counts
+            .entry(sample.surface_id.as_str())
+            .or_insert(0) += 1;
+        *per_surface_weights
+            .entry(sample.surface_id.as_str())
+            .or_insert(0.0) += sample.represented_area_m2;
         if !per_surface_weights[sample.surface_id.as_str()].is_finite() {
             return Err("sample represented area overflowed".to_owned());
         }
@@ -530,7 +527,10 @@ pub fn verify_complete_reference_sampling_receipt(
     }
 
     for summary in &receipt.surfaces {
-        let count = per_surface_counts.get(summary.surface_id.as_str()).copied().unwrap_or(0);
+        let count = per_surface_counts
+            .get(summary.surface_id.as_str())
+            .copied()
+            .unwrap_or(0);
         if count != summary.sample_count {
             return Err("surface summary sample_count does not match sample rows".to_owned());
         }
@@ -943,7 +943,12 @@ mod tests {
 
     #[test]
     fn verifies_reference_sampling_receipt_and_rejects_digest_tampering() {
-        let input = square("REFERENCE-WALL", "wall", 1.0, SurfaceVisibility::SelfOccluded);
+        let input = square(
+            "REFERENCE-WALL",
+            "wall",
+            1.0,
+            SurfaceVisibility::SelfOccluded,
+        );
         let receipt = sample_reference_surfaces_for_visibility(&input, profile(0.1, 31))
             .expect("reference sampling ignores prior observation labels");
         verify_complete_reference_sampling_receipt(&receipt).expect("valid reference receipt");
@@ -958,8 +963,8 @@ mod tests {
     #[test]
     fn rejects_sampling_receipt_area_or_weight_inconsistency() {
         let input = square("REFERENCE-WALL", "wall", 1.0, SurfaceVisibility::Observable);
-        let receipt = sample_observable_surfaces(&input, profile(0.1, 37))
-            .expect("valid sample receipt");
+        let receipt =
+            sample_observable_surfaces(&input, profile(0.1, 37)).expect("valid sample receipt");
         let mut area_tampered = receipt.clone();
         area_tampered.surfaces[0].observable_area_m2 += 0.25;
         let error = verify_complete_reference_sampling_receipt(&area_tampered)
@@ -1001,12 +1006,19 @@ mod tests {
             .expect("reference probes sample the entire reference mesh");
         assert!((receipt.observable_area_m2 - 3.0).abs() < 1e-12);
         assert_eq!(receipt.excluded_area_m2, 0.0);
-        assert!(receipt.samples.iter().any(|sample| {
-            sample.triangle_id.starts_with("previously-hidden-")
-        }));
+        assert!(
+            receipt
+                .samples
+                .iter()
+                .any(|sample| { sample.triangle_id.starts_with("previously-hidden-") })
+        );
         assert_eq!(
             receipt.sample_count,
-            receipt.samples.iter().filter(|sample| sample.normal.z > 0.99).count()
+            receipt
+                .samples
+                .iter()
+                .filter(|sample| sample.normal.z > 0.99)
+                .count()
         );
     }
 
