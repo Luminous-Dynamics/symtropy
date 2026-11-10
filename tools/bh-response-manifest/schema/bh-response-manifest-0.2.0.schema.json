@@ -393,6 +393,8 @@
           "window_id",
           "left_method_id",
           "right_method_id",
+          "alignment_definition_sha256",
+          "metric_definition_sha256",
           "aligned_samples_sha256",
           "comparison_artifact_sha256",
           "norm_id",
@@ -439,6 +441,14 @@
           },
           "accepted": {
             "type": "boolean"
+          },
+          "alignment_definition_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "metric_definition_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
           }
         }
       }
