@@ -82,8 +82,8 @@ impl Default for NdSlicingExtension {
 pub type TelemetryMaterial = ExtendedMaterial<StandardMaterial, TelemetryExtension>;
 
 /// Material extension that tints surfaces from read-only telemetry buffers.
- ///
- /// V0 renders telemetry into the PBR material response. It does not claim
+///
+/// V0 renders telemetry into the PBR material response. It does not claim
  /// vertex deformation; that requires a separately qualified vertex path.
 #[derive(Asset, AsBindGroup, Debug, Clone, Reflect)]
 pub struct TelemetryExtension {
