@@ -97,6 +97,21 @@ impl Transform<3> {
     }
 }
 
+impl Transform<4> {
+    /// Interpolate a 4D rigid transform with a checked multi-plane SO(4)
+    /// principal geodesic. Unlike Rotor::slerp, this preserves two independent
+    /// rotation planes and returns typed errors for invalid inputs/branches.
+    pub fn try_interpolate(
+        &self,
+        other: &Self,
+        t: f64,
+    ) -> Result<Self, crate::so4::So4LogError> {
+        let rotation = crate::so4::so4_interpolate(&self.rotation, &other.rotation, t)?;
+        let translation = self.translation.lerp(&other.translation, t);
+        Ok(Self { translation, rotation })
+    }
+}
+
 impl<const D: usize> Default for Transform<D> {
     fn default() -> Self {
         Self::identity()
