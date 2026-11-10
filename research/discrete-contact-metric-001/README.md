@@ -55,6 +55,19 @@ the LCP feasibility and complementarity thresholds are still absolute and
 need a separate unit-/scale-normalized residual design before this crate can
 serve as a general numerical qualification oracle.
 
+## Comparator snapshot — 2026-11-10
+
+These are capability comparators, not interchangeable ground-truth solvers. Pin exact binaries/commits, precision, backend, contact law, integrator, timestep, and solver tolerances before comparing.
+
+- [MuJoCo 4.0.0](https://mujoco.readthedocs.io/en/4.0.0/changelog.html), released 2026-11-06: opt-in speculative contacts address fast convex-geometry tunnelling, and the release adds ideal and continuum elasto-plasticity. Its `discrete` integrator already merges constraints with the implicit velocity update in `M + hD + h^2K`; Symtropy must not claim that formulation itself as novel. The [upcoming changelog](https://mujoco.readthedocs.io/en/latest/changelog.html) records a sparse-Cholesky/Newton-solver bug introduced in 4.0.0, so keep affected sparse and dense profiles separate and do not use an unqualified sparse 4.0.0 run as an oracle.
+- [Newton 1.8.0rc1](https://github.com/newton-physics/newton/releases/tag/v1.8.0rc1), released 2026-11-04, introduces experimental [Steel](https://newton-physics.github.io/newton/latest/api/_generated/newton.solvers.SolverSteel.html): Featherstone articulated-body dynamics with projected Gauss-Seidel contact. Steel's project README reports 3.8x geometric-mean simulation throughput over PhysX across 20 robot-learning benchmarks and up to 13x on heterogeneous batches; treat these as vendor-reported workload-specific results, not independently reproduced physical-accuracy results. Steel is experimental and its API may change.
+- [Rapier / Dimforge Q3 2026 report](https://dimforge.com/blog/2026/10/25/dimforge-Q3-technical-report/): reports intra-island parallelism, persistent graph coloring, and parallel broad phase. The report says its engine-comparison charts used early-August builds, so repeat any performance comparison using pinned current builds on one host.
+- [Pinocchio 4.0/4.1](https://github.com/stack-of-tasks/pinocchio/blob/devel/CHANGELOG.md): 4.0 added constraint APIs, dense/sparse/Cholesky-expression/rigid-body Delassus operators, and ADMM/PGS constrained solvers; 4.1.0 followed on 2026-07-07. It is a strong articulated mechanics and Delassus reference, not a full collision-world throughput peer.
+- [Drake spatial inertia](https://drake.mit.edu/doxygen_cxx/group__multibody__spatial__inertia.html): use its explicit distinction between the point about which inertia is taken and the frame in which it is expressed as a COM/frame contract cross-check.
+- [Project Chrono 10.0.0](https://projectchrono.org/news/), released 2026-03-27: use for domain-specific multiphysics, FSI, peridynamics, checkpointing, and implicit-integrator comparisons. Do not rank it against game/robotics engines by generic rigid-body FPS.
+
+Every cross-engine lane needs a semantic-admission record. If collision geometry, restitution, friction cone, compliance, event handling, integrator, constraint target, or contact state differs materially, classify the comparison as approximate or non-equivalent rather than forcing a score.
+
 ## Benchmark extension
 
 The next matched comparison should add the same frozen matrix problem to Symtropy's native step, MuJoCo's discrete integrator, and an independently assembled KKT/LCP reference. Compare velocity and impulse, metric/KKT residual, complementarity, next-step gap, energy/work balance, transition derivative, cost, and memory. Only compare a lane after semantic admission confirms contact law, constraint target, integration and damping equivalence.
