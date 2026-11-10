@@ -5,7 +5,7 @@ use civdyn_self_correction::model_adequacy::IndependentUnitKind;
 use civdyn_self_correction::source_passport::{
     AcquisitionStatus, CompatibilityReport, CompatibilityStatus, GeographySupport,
     JoinAlignmentPlan, ObservationOrigin, ObservationPassport, RegisteredPurpose,
-    RightsStatus, SourceArtifactPassport, TemporalResolution, TemporalSupport,
+    RightsStatus, SourceArtifactPassport, TemporalResolution, TemporalSupport, qualify_source,
     TransformKind, TransformReceipt, assess_observation_compatibility,
 };
 
@@ -142,9 +142,11 @@ fn plan(
 fn emit_report(
     scenario: &str,
     report: &CompatibilityReport,
-    left_qualification: &str,
-    right_qualification: &str,
+    left_source: &SourceArtifactPassport,
+    right_source: &SourceArtifactPassport,
 ) {
+    let left_qualification = qualify_source(left_source, report.purpose).status.name();
+    let right_qualification = qualify_source(right_source, report.purpose).status.name();
     emit(vec![
         scenario.to_string(),
         report.status.name().to_string(),
@@ -223,7 +225,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         RegisteredPurpose::EmpiricalValidation,
         &plan(year.clone(), province.clone(), "percent"),
     );
-    emit_report("matched_provincial_survey", &report, "qualified_for_registered_use", "qualified_for_registered_use");
+    emit_report("matched_provincial_survey", &report, &ghs, &other_survey);
 
     // Treasury quarterly finance and DWS daily NRW cannot be treated as if
     // they were already aligned to an annual municipal service state.
@@ -275,7 +277,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         RegisteredPurpose::EmpiricalValidation,
         &plan(year.clone(), province.clone(), "percent"),
     );
-    emit_report("treasury_dws_temporal_mismatch", &report, "qualified_for_registered_use", "qualified_for_registered_use");
+    emit_report("treasury_dws_temporal_mismatch", &report, &treasury, &dws);
 
     // DWS category defaults may be retained as scenario assumptions but are
     // not direct empirical observations for measured-validation scoring.
@@ -325,7 +327,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         RegisteredPurpose::ScenarioAssumption,
         &plan(year.clone(), province.clone(), "percent"),
     );
-    emit_report("dws_default_scenario_assumption", &scenario_report, "qualified_for_registered_use", "qualified_for_registered_use");
+    emit_report("dws_default_scenario_assumption", &scenario_report, &dws_default, &admin_source);
     let measured_report = assess_observation_compatibility(
         &default_obs,
         &dws_default,
@@ -334,7 +336,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         RegisteredPurpose::EmpiricalValidation,
         &plan(year.clone(), province.clone(), "percent"),
     );
-    emit_report("dws_default_measured_validation", &measured_report, "qualified_for_registered_use", "qualified_for_registered_use");
+    emit_report("dws_default_measured_validation", &measured_report, &dws_default, &admin_source);
 
     // Eskom has a published request process, but no dataset has yet been
     // acquired into this synthetic fixture. It cannot be empirically scored.
@@ -388,7 +390,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             "MW",
         ),
     );
-    emit_report("eskom_acquisition_pending", &report, "acquisition_pending", "qualified_for_registered_use");
+    emit_report("eskom_acquisition_pending", &report, &eskom_pending, &other_grid);
 
     // Boundary changes require an explicit, source-bound MDB crosswalk.
     let old_geo = geography("municipality-001", "municipality", "MDB-2021", "sha256-mdb-2021");
@@ -452,7 +454,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         RegisteredPurpose::EmpiricalValidation,
         &crosswalk_plan,
     );
-    emit_report("municipal_boundary_crosswalk", &report, "qualified_for_registered_use", "qualified_for_registered_use");
+    emit_report("municipal_boundary_crosswalk", &report, &old_muni, &new_muni);
 
     // Unknown rights stop the join even when every statistical field matches.
     let unknown_rights = passport(
@@ -482,7 +484,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         RegisteredPurpose::EmpiricalValidation,
         &plan(year, province, "percent"),
     );
-    emit_report("unknown_rights_blocked", &report, "rights_blocked", "qualified_for_registered_use");
+    emit_report("unknown_rights_blocked", &report, &unknown_rights, &other_survey);
     Ok(())
 }
 
