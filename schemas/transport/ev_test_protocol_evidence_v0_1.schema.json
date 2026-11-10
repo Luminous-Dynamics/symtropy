@@ -1,0 +1,606 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/transport/ev-test-protocol-evidence/0.1",
+  "title": "EV battery test protocol and metrology evidence v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "protocol_version",
+    "record_id",
+    "evidence_class",
+    "test_event",
+    "standard",
+    "specimen",
+    "laboratory",
+    "measurement_chain",
+    "conditions",
+    "channels",
+    "deviations",
+    "results",
+    "raw_data_digest",
+    "report_digest",
+    "independent_review",
+    "qualification_disposition"
+  ],
+  "properties": {
+    "protocol_version": {
+      "const": "ev-test-protocol-evidence/0.1"
+    },
+    "record_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence_class": {
+      "enum": [
+        "physical_observation",
+        "derived_from_physical",
+        "simulation",
+        "synthetic_fixture",
+        "vendor_claim"
+      ]
+    },
+    "test_event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "executed_at",
+        "test_purpose",
+        "test_method_ref",
+        "test_method_digest",
+        "operator_ref",
+        "start_time_ms",
+        "end_time_ms"
+      ],
+      "properties": {
+        "event_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "executed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "test_purpose": {
+          "enum": [
+            "performance",
+            "capacity",
+            "power",
+            "energy",
+            "reliability",
+            "abuse",
+            "electrical_functionality",
+            "life_cycle",
+            "other"
+          ]
+        },
+        "test_method_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "test_method_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "operator_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "start_time_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "end_time_ms": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "standard": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "standard_id",
+        "edition",
+        "publication_date",
+        "recorded_status",
+        "lifecycle_stage",
+        "status_checked_at",
+        "scope_summary",
+        "clause_refs",
+        "normative_or_practice",
+        "source_url",
+        "source_digest"
+      ],
+      "properties": {
+        "standard_id": {
+          "enum": [
+            "IEC 62660-1",
+            "IEC 62660-2",
+            "ISO 12405-4",
+            "SAE J2464",
+            "SAE J2929",
+            "OTHER"
+          ]
+        },
+        "edition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "publication_date": {
+          "type": "string",
+          "format": "date"
+        },
+        "recorded_status": {
+          "enum": [
+            "published",
+            "under_review",
+            "to_be_revised",
+            "confirmed",
+            "withdrawn",
+            "recommended_practice",
+            "other"
+          ]
+        },
+        "lifecycle_stage": {
+          "type": "string",
+          "pattern": "^[0-9]{2}\\.[0-9]{2}$"
+        },
+        "status_checked_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "scope_summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "clause_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "normative_or_practice": {
+          "enum": [
+            "international_standard",
+            "recommended_practice",
+            "regulation",
+            "other"
+          ]
+        },
+        "source_url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "source_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "specimen": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "article_ref",
+        "article_identity_digest",
+        "article_scope",
+        "article_configuration_digest",
+        "parent_pack_ref",
+        "parent_pack_configuration_digest",
+        "chemistry",
+        "manufacturer_ref",
+        "specimen_condition_digest",
+        "preconditioning_digest"
+      ],
+      "properties": {
+        "article_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "article_identity_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "article_scope": {
+          "enum": [
+            "cell",
+            "cell_block",
+            "module",
+            "pack",
+            "system",
+            "vehicle"
+          ]
+        },
+        "article_configuration_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "parent_pack_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "parent_pack_configuration_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "chemistry": {
+          "type": "string",
+          "minLength": 1
+        },
+        "manufacturer_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "specimen_condition_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "preconditioning_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "laboratory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "facility_ref",
+        "facility_scope_ref",
+        "operator_ref",
+        "accreditation_status",
+        "accreditation_evidence_digest"
+      ],
+      "properties": {
+        "facility_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "facility_scope_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operator_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "accreditation_status": {
+          "enum": [
+            "accredited_scope_declared",
+            "not_accredited",
+            "unknown",
+            "not_applicable"
+          ]
+        },
+        "accreditation_evidence_digest": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "measurement_chain": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "instrument_ref",
+          "instrument_serial_digest",
+          "calibration_certificate_digest",
+          "calibration_traceability_digest",
+          "calibrated_at",
+          "valid_until",
+          "calibration_status"
+        ],
+        "properties": {
+          "instrument_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "instrument_serial_digest": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "calibration_certificate_digest": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "calibration_traceability_digest": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "calibrated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "valid_until": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "calibration_status": {
+            "enum": [
+              "valid",
+              "expired",
+              "out_of_tolerance",
+              "unknown"
+            ]
+          }
+        }
+      }
+    },
+    "conditions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "temperature_c",
+        "temperature_uncertainty_c",
+        "soc_fraction",
+        "soc_uncertainty",
+        "current_profile_digest",
+        "duration_s",
+        "rest_before_s",
+        "environment_digest"
+      ],
+      "properties": {
+        "temperature_c": {
+          "type": "number"
+        },
+        "temperature_uncertainty_c": {
+          "type": "number",
+          "minimum": 0
+        },
+        "soc_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "soc_uncertainty": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.5
+        },
+        "current_profile_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "duration_s": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "rest_before_s": {
+          "type": "number",
+          "minimum": 0
+        },
+        "environment_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "channels": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "channel_id",
+          "quantity",
+          "unit",
+          "sampling_hz",
+          "measurement_digest",
+          "measurement_uncertainty",
+          "instrument_ref"
+        ],
+        "properties": {
+          "channel_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "quantity": {
+            "enum": [
+              "voltage",
+              "current",
+              "temperature",
+              "capacity",
+              "energy",
+              "power",
+              "pressure",
+              "mass",
+              "time",
+              "other"
+            ]
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sampling_hz": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "measurement_digest": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "measurement_uncertainty": {
+            "type": "number",
+            "minimum": 0
+          },
+          "instrument_ref": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "deviations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "deviation_ref",
+          "description",
+          "impact_assessment_digest",
+          "approval_status",
+          "approval_authority_ref",
+          "approval_evidence_digest"
+        ],
+        "properties": {
+          "deviation_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "impact_assessment_digest": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "approval_status": {
+            "enum": [
+              "approved",
+              "rejected",
+              "pending",
+              "not_required"
+            ]
+          },
+          "approval_authority_ref": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "approval_evidence_digest": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      }
+    },
+    "results": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "result_id",
+          "quantity",
+          "value",
+          "unit",
+          "standard_uncertainty",
+          "coverage_factor",
+          "calculation_method_ref",
+          "calculation_method_digest",
+          "result_digest"
+        ],
+        "properties": {
+          "result_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "quantity": {
+            "type": "string",
+            "minLength": 1
+          },
+          "value": {
+            "type": "number"
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "standard_uncertainty": {
+            "type": "number",
+            "minimum": 0
+          },
+          "coverage_factor": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "calculation_method_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "calculation_method_digest": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "result_digest": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      }
+    },
+    "raw_data_digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "report_digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "independent_review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "review_status",
+        "reviewer_ref",
+        "review_scope_ref",
+        "reviewed_at",
+        "signature_or_attestation_digest"
+      ],
+      "properties": {
+        "review_status": {
+          "enum": [
+            "reviewed",
+            "not_reviewed",
+            "rejected",
+            "not_applicable"
+          ]
+        },
+        "reviewer_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "review_scope_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reviewed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "signature_or_attestation_digest": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "qualification_disposition": {
+      "enum": [
+        "not_assessed",
+        "within_declared_criteria",
+        "outside_declared_criteria"
+      ]
+    }
+  }
+}
