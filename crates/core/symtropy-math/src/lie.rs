@@ -392,7 +392,12 @@ mod tests {
         let midpoint = so3_interpolate(&start, &end, 0.5).expect("valid interpolation");
         assert!(midpoint.orthogonality_error() < 1.0e-12);
         assert!((midpoint.determinant() - 1.0).abs() < 1.0e-12);
-        assert!(matrix_error(&so3_interpolate(&start, &end, 0.5).unwrap(), &midpoint) < 1.0e-12);
+        let relative = end.compose(&start.reverse());
+        let midpoint_relative = midpoint.compose(&start.reverse());
+        assert!(matrix_error(
+            &midpoint_relative.compose(&midpoint_relative),
+            &relative
+        ) < 2.0e-10);
     }
 
     #[test]
