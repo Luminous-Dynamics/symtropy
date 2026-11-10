@@ -3,8 +3,8 @@
 
 use civdyn_self_correction::sa_treasury_intake::{
     assess_fact_evidence_grade, classify_amount_value, classify_requested_fact,
-    validate_treasury_snapshot, AmountTypeClass, AuditOpinionStatus, FactEvidenceGrade,
-    FactValueClass, RequestedFactState, SnapshotVerification, TreasuryFact,
+    validate_treasury_snapshot, AmountTypeClass, AuditOpinionStatus, RequestedFactState,
+    SnapshotVerification, TreasuryFact,
     TreasuryFactKey, TreasuryPageReceipt, TreasurySchemaGeneration, TreasurySnapshot,
     TreasurySnapshotReceipt,
 };
@@ -191,9 +191,5 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
     emit_not_returned(&verified, &absent_key);
 
-    // Keep the type imported in the executable so a future status extension
-    // cannot silently change the current value-class receipt contract.
-    let _: FactValueClass = FactValueClass::NonZeroReported;
-    let _: FactEvidenceGrade = FactEvidenceGrade::EligibleForRegisteredAnalysis;
     Ok(())
 }
