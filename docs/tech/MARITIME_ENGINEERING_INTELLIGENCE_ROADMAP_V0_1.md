@@ -72,7 +72,7 @@ A control-aware diagnosis track is separately owned by [MARITIME-CONTROL-AWARE-D
 - controller/actuator state (outputs, feedback, saturation, mode and interlocks);
 - measured physical plant response.
 
-A 24 September 2026 simulation-only paper proposes control-aware feature fusion and multi-class maneuvering-regime discrimination for marine-engine injector diagnosis. It reports improved robustness under control-sensor dropout but explicitly lacks real-engine validation. This is now a fifteenth literature registry baseline and a simulation reproduction lead, not a physical performance comparator.
+A 24 September 2026 simulation-only paper proposes control-aware feature fusion and multi-class maneuvering-regime discrimination for marine-engine injector diagnosis. It reports improved robustness under control-sensor dropout but explicitly lacks real-engine validation. This was the fifteenth literature baseline when first added. The registry has since been extended with an October 2026 physical WP4 digital-twin / inverse-identifiability baseline and a September 2026 few-shot combustion-diagnosis baseline; see the 17-entry registry for evidence scope and limitations.
 
 Command-conditioned residuals must account for actuator lag, load/ambient disturbances, controller mode, sensor bias, clock skew and shared dependencies. Commands are not physical measurements or independent corroboration. If a candidate dataset lacks verified control-signal semantics, this track remains NOT_EVALUATED for that dataset.
 
@@ -157,7 +157,7 @@ This programme currently establishes research artifacts, synthetic evidence-cont
 
 ## Literature update — transfer baselines (10 November 2026)
 
-The diagnostic baseline registry now contains **14 unique IDs and 14 unique source DOIs** after removal of a duplicate alias for the 2025 18-task Applied Energy paper and addition of a separate 2025 dual-transfer publication.
+The diagnostic baseline registry now contains **17 unique IDs and 17 unique source DOIs**. The update adds the October 2026 Weichai WP4 physical test-bench digital-twin study and the September 2026 Wärtsilä 6L20 few-shot combustion-diagnosis study. Each remains a separate protocol; neither headline result is ranked directly against Aalto, LiU-ICE or another study without protocol alignment.
 
 - The 2025 Applied Energy cross-working-condition paper reports **95% accuracy** in its abstract and describes **18 transfer tasks** across two engine case studies (8V396SE, 500 kW, and 620 V16, 2,336 kW). Its evidence mix includes experimental bench lubrication-system data and virtual intake/exhaust task data. Keep each subsystem and source type separate. The exact per-task aggregation, sample grouping and split manifest must be recovered before reproduction. This is not a common-protocol or physical fleet-transfer score.
 - The 2025 Energy mean-value-model-assisted dual-transfer paper reports **more than 97.70% average accuracy** for cross-domain lubricating-oil diagnosis. It describes a simulation-to-measured transfer between a 16V396 simulation domain and an 8V396 experimental bench domain, nine transfer tasks, and 70%, 85% and 100% load points. The exact source/target assignments, run grouping, task-level scores and leakage controls need methods/table audit. It is a separate paper from the 18-task Applied Energy study and is not comparable to the Aalto MU323DGSC data.
@@ -172,3 +172,9 @@ The reported 95%, >97.70%, 83.64% and hybrid/simulation headline scores are **se
 
 Do not treat random-window or random-row splits as evidence of cross-run or cross-engine generalization. Do not silently merge measured, simulated and hybrid source domains. A high headline accuracy cannot compensate for a hard-gate failure in provenance, split leakage, unknown-state handling or false-alarm burden.
 
+
+
+### Additional October/September 2026 baselines
+
+- **Minchev et al., 10 October 2026 — Weichai WP4 digital twin.** A calibrated 0D–1D model is compared with physical test-bench measurements, including a controlled intake restriction. The paper is especially valuable because it explicitly reports non-unique inverse solutions: different physical-factor combinations can produce similar observable responses. It is not a continuously synchronized real-time twin; model runs are initiated through the diagnostic workflow. Our benchmark should therefore measure inverse-problem identifiability and ambiguity, not just whether an optimizer returns its preferred parameter vector.
+- **Luo et al., 29 September 2026 — few-shot Wärtsilä 6L20 combustion diagnosis.** Its cycle-level leakage-free, twin-generated benchmark reports 87.05% ± 5.14 pp for a joint triplet–center method at K=20, but a triplet-only ablation reports 90.91% in the same setting. Accuracy under combined noise/speed fluctuation is reported at 84.43% across 25–100% MCR. This is a useful matched few-shot baseline, but it is simulation-based rather than real-vessel fault validation, and the stronger ablation must be reproduced rather than ignored.
