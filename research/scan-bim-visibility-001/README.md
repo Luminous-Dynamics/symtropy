@@ -17,7 +17,9 @@ This is not a replacement BIM authoring application, general-purpose ray tracer,
 - Reference geometry and its deterministic area-weighted sampling receipt are evaluator-side inputs. The request rejects unknown JSON fields and verifies the sampling receipt's canonical digest and numeric accounting before converting samples into visibility probes.
 - The evaluator checks that each probe's barycentric coordinates reconstruct its position on the exact declared reference triangle, that the normal follows that triangle's winding, and that represented weights conserve the declared target surface area.
 - The occluder manifest digest is recomputed from sorted stable triangle IDs, coordinates and provenance classes. A mismatch is rejected.
-- The visibility receipt binds reference-model digest, sampling digest, occluder manifest, sensor-view evidence, visibility profile, per-view blockers and the computed result.
+- The visibility request explicitly declares metres, XYZ axis order and right-handed coordinates. Every view binds sensor identity, sensor-local frame, common frame, pose revision, transform-chain digest, pose-evidence digest and sensor configuration digest.
+- The visibility receipt binds reference-model digest, sampling digest, occluder manifest, coordinate convention, sensor-view evidence, visibility profile, per-view blockers and the computed result.
+- Compiled ceilings bound probe count, view count, occluder count, probe×view evaluations and ray/triangle tests; the CLI rejects JSON requests larger than 64 MiB.
 
 **Package separation is not an OS security boundary.** The evaluator is a separate binary/package, but production evaluation still requires process isolation, resource limits, read-only evaluator inputs, restricted IPC and candidate/evaluator artifact-root separation from #4116. Do not call this sandboxed merely because Cargo has two packages.
 
@@ -52,7 +54,7 @@ The Rust evaluator provides:
 - Per-surface and total area accounting, including grazing and mixed-occlusion area.
 - Canonically ordered probe/view/occluder inputs and SHA-256 receipt.
 - A strict JSON stdin/stdout executable.
-- Adversarial tests for FOV, frame mismatch, grazing incidence, reversed winding, blockers, unknown inventory, mixed causes, conflicting ties, malformed probes, ray budget, permutation stability, digest tampering and request/receipt round trip.
+- 24 evaluator tests cover FOV, frame mismatch, grazing incidence, reversed winding, blockers, unknown inventory, mixed causes, conflicting ties, malformed probes, resource ceilings, permutation stability, digest tampering and request/receipt round trip. The sampler has a separate 14-test suite.
 
 The visibility kernel currently performs a bounded brute-force probe × view × triangle traversal. It is intentionally a small correctness oracle, **not a throughput-competitive scene-scale renderer**. The next performance phase should add a deterministic BVH and differential-test it against this brute-force oracle before comparing throughput.
 
