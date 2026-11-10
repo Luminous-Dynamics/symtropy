@@ -97,6 +97,7 @@ jobs:
             tools/spatial-resilience-qualifier/src/bin/scan_bim_decision_capture.rs \
             research/scan-bim-decision-capture-001/fixtures/door-clearance-v0_1.json \
             research/scan-bim-decision-capture-001/schema/scan-bim-decision-case-v0_1.schema.json \
+            research/scan-bim-decision-capture-001/README.md \
             scan-bim-decision-capture-receipt.json \
             tools/spatial-resilience-qualifier/Cargo.lock \
             spatial-resilience-qualifier-receipt.json \
