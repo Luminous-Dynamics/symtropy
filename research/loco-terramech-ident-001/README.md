@@ -85,6 +85,29 @@ Same raw evidence, training/calibration budget, interaction budget, robot and he
 7. Symtropy using Terrain-owned history state + LENV body-relative interaction + qualified contact evidence;
 8. model-adequacy/abstention baseline which returns Unknown when the selected profile is out of domain.
 
+### Learned reduced dynamics comparator: NeDM Go2 CRM Study 4
+
+A second direct baseline is the Go2 CRM granular-terrain study attached to Zhang & Negrut, *Learning the Right Abstraction: Neural Reduced Dynamics for Complex Robot Control* (arXiv:2608.19375, 19 Aug 2026).
+
+- Public dataset card: https://huggingface.co/datasets/ksha23/nedm-study4-go2-crm
+- Reproduction repository: https://github.com/uwsbel/NeDM/tree/kyle/quadruped-pipeline
+- Reproduction code pin inspected for this protocol: branch `kyle/quadruped-pipeline`, commit `18c9316ad831d5dc0196ad94a23224b6aa19df9d` (02 Oct 2026).
+- The dataset card identifies CC-BY-4.0 for the corpora, surrogates, fine-tuned policies and scoring records. The base policy is Apache-2.0 and the Go2 model BSD-3-Clause. The GitHub repository metadata currently has no declared repository license; do not vendor or copy its implementation without a separate rights review. Access to the Hugging Face files requires accepting the dataset access agreement. The dataset's revision SHA must be pinned at retrieval; the published MANIFEST.tsv supplies per-file SHA-256, sizes, source run and machine.
+
+**Published experimental baseline:** 1,150 CRM episodes (920 train / 230 validation, split by episode), 2,041,752 rows at 100 Hz, about 5.7 h. The base policy walks Chrono's CRM/SPH granular soil. Its NN reduced model uses a 36-D control-interface state and 12-D action to predict 10 ms state deltas; transformer 6 layers × 8 heads × 256 width, context 128 rows (1.28 s), approximately 4.85M parameters. Training is one-step followed by 1 s rollout training. PPO then fine-tunes the existing policy inside the frozen surrogate using 1,024 branches of 2 s, initialized from base-policy training states. Every candidate is scored again in full Chrono.
+
+The recipe at PPO iteration 1,000 uses ten independently trained surrogate seeds and full-Chrono paired scoring on 40 held-out command paths (37 usable; three are too wide for the finite bed and are skipped in every arm). The dataset card reports mean tracking-error reductions of 52% forward, 67% yaw and 28% lateral. These are per-study tracking metrics, not reductions in falls, physical risk or energy. The matched rigid-ground tests report no performance regression. The detailed reproduction README describes the metric as per-episode mean absolute velocity error after the first 0.5 s, with paired percent change calculated against the base policy.
+
+**Critical limits that must survive comparison:**
+- This is a local, one-round offline improvement to one existing policy; it is not a replacement for Chrono, an online controller, or a general terrain-identification result. Direct fine-tuning in Chrono was not run, so do not claim matched wall-clock savings against a full-Chrono PPO experiment.
+- Training/branch starts come from states visited by the base policy in the training corpus. The authors report only 0.0–0.1% policy visitation outside the corpus. This is local occupancy, not demonstrated distribution-free transfer.
+- The model is explicitly accurate near the corpus. The guard is an early warning, not a certificate; one collapse occurred in roughly 60 runs. Harder 240–300 N push tests exceed the corpus's 140 N push range; disturbance training inside the surrogate did not solve that coverage gap.
+- The 36-D control-interface closure was the strongest state preset in its channel ablation. Adding four foot-normal forces, four foot sinkages, both, or full 3-D foot forces (40/44/48-D) did not improve average transfer in this particular study. Treat this as a serious negative control against the assumption that adding contact channels always improves a learned model—not as proof that contact sensing is unhelpful. Test whether channel value depends on prediction horizon, physical target, sensor health and the decision being supported.
+- CRM trajectories are high-variance. The reproduction team's own evaluation note withdrew an earlier machine-effect claim after widening spawn variation; it reports CRM tracking SD around 5.7 percentage points at ±1 m spawn variation, versus about 0.1 on rigid ground. Use broad preregistered episode variation, paired per-seed differences and uncertainty intervals; a single CRM rollout is diagnostic only.
+- The original 36-D model uses a particular CRM discretization. Its soil notes state the Go2 foot spans about 2.2 particles while the HMMWV tire spans about 11.8; Go2's contact length scale is therefore near/below the soil smoothing-kernel scale. Require particle-spacing / smoothing-length / foot-geometry convergence before treating its numerical sinkage as quantitatively validated terramechanics.
+
+For Symtropy, reproduce the **frozen control-interface baseline first**, then test set-valued uncertainty, history-bearing ground-state inputs, contact-force/sinkage channels, D1/D2/D3 degradation, longer rollout horizons and held-out substrate/actuator shifts as explicit ablations. Do not improve the model by silently giving it more privileged state than a baseline receives. Preserve the evidence boundary: the NeDM dataset is simulation/Chrono data, not physical Go2 beach-surface ground truth.
+
 Controller tournament:
 - blind RL/fixed gait;
 - contact-history gait adaptation without active probing;
