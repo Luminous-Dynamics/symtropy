@@ -1954,6 +1954,9 @@ mod tests {
         let changed = derive_surface_visibility(VisibilityEvaluation {
             scene_id: "SCENE-1",
             frame_id: "BUILDING-LOCAL",
+            linear_unit: LinearUnit::Metre,
+            axis_order: AxisOrder::Xyz,
+            handedness: CoordinateHandedness::RightHanded,
             reference_model_sha256: &"3".repeat(64),
             probe_set_sha256: &"3".repeat(64),
             reference_surface_ids: &["TARGET".to_owned()],
