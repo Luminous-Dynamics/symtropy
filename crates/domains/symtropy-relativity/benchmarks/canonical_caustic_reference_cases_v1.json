@@ -1,0 +1,115 @@
+{
+  "schema": "luminous.black-hole-canonical-caustic-reference-cases",
+  "schema_version": "1.0.0",
+  "artifact_id": "symtropy.black_hole.canonical_caustic_references.v1",
+  "status": "analytic_reference_fixtures",
+  "created_utc": "2026-11-10",
+  "purpose": "Known-answer canonical fold/cusp oscillatory-integral fixtures for validating finite-frequency caustic kernels before connecting them to Kerr arrival-time surfaces.",
+  "claim_ceiling": "These are universal canonical catastrophe integrals, not Kerr lensing results. Their values do not validate a Kerr arrival-time surface, source normalization, polarization, or astrophysical amplification factor.",
+  "conventions": {
+    "phase": "exp(+i*phi)",
+    "integration_domain": "real line, interpreted as an oscillatory integral under the declared symmetric/contour prescription",
+    "precision": "reference decimals computed at 80 decimal digits; retain expression identities as the primary oracle",
+    "complex_representation": "real and imaginary components are recorded separately"
+  },
+  "fold": {
+    "canonical_phase": "phi(t;u) = t^3/3 + u*t",
+    "integral_identity": "integral_R exp(i*(t^3/3 + u*t)) dt = 2*pi*Ai(u)",
+    "reference_points": [
+      {
+        "u": -2,
+        "airy_ai": "0.2274074282016855759919244360378737994607722254171",
+        "integral_real": "1.428843011620327542563672380952086772717396407696",
+        "integral_imag": "0"
+      },
+      {
+        "u": -1,
+        "airy_ai": "0.53556088329235211879951656563887470746693089768362",
+        "integral_real": "3.365028273002628110520909156688682708120896187484",
+        "integral_imag": "0"
+      },
+      {
+        "u": 0,
+        "airy_ai": "0.35502805388781723926006318600418317639797917419918",
+        "integral_real": "2.2307070518244957414274865195434502397712938060305",
+        "integral_imag": "0"
+      },
+      {
+        "u": 1,
+        "airy_ai": "0.13529241631288141552414742351546630617494414298833",
+        "integral_real": "0.85006732234992031325502436438425844115634415351138",
+        "integral_imag": "0"
+      },
+      {
+        "u": 2,
+        "airy_ai": "0.034924130423274379135322080791807609761060213897583",
+        "integral_real": "0.21943478314154117135499813258798947099941797853656",
+        "integral_imag": "0"
+      }
+    ],
+    "required_checks": [
+      "complex integral agrees with 2*pi*Ai(u)",
+      "imaginary part is zero within the declared quadrature error for real u",
+      "oscillatory quadrature converges under domain/contour refinement",
+      "stationary-phase asymptotics are recovered far from the fold in their valid sectors"
+    ]
+  },
+  "cusp": {
+    "canonical_phase": "phi(t;X,Y) = t^4/4 + X*t^2/2 + Y*t",
+    "integral_identity": "Pearcey(0,0) = integral_R exp(i*t^4/4) dt = Gamma(1/4)/sqrt(2) * exp(i*pi/8)",
+    "origin_reference": {
+      "pearcey_real": "2.36854381558579195825127564445589117339436088374126185335669",
+      "pearcey_imag": "0.981082971490553974083135244267437872121885761454781524010898",
+      "magnitude": "2.5636933520408475729484202047379928948694054252791226771874",
+      "phase_rad": "0.392699081698724154807830422909937860524646174921888227621868",
+      "exact_expression": "Gamma(1/4)/sqrt(2) * exp(i*pi/8)"
+    },
+    "required_checks": [
+      "complex integral agrees with the gamma-function identity at (X,Y)=(0,0)",
+      "oscillatory quadrature converges under symmetric-domain and contour refinement",
+      "cusp response remains finite through the canonical caustic core",
+      "fold-locus asymptotics are recovered under the appropriate parameter scaling"
+    ]
+  },
+  "numerical_method_requirements": {
+    "do_not_use_single_method_as_its_own_oracle": true,
+    "recommended_independent_references": [
+      "closed-form Airy special-function implementation",
+      "gamma-function identity for the Pearcey origin",
+      "high-precision contour-deformed or oscillatory quadrature"
+    ],
+    "track_separately": [
+      "truncation error",
+      "quadrature error",
+      "contour/regulator sensitivity",
+      "floating-point/precision error",
+      "asymptotic approximation remainder"
+    ]
+  },
+  "negative_controls": [
+    {
+      "id": "wrong_fold_phase_sign",
+      "expected_failure": "PhaseConventionMismatch"
+    },
+    {
+      "id": "missing_2pi_fold_normalization",
+      "expected_failure": "NormalizationMismatch"
+    },
+    {
+      "id": "pearcey_quartic_coefficient_changed",
+      "expected_failure": "CanonicalFormMismatch"
+    },
+    {
+      "id": "integral_imaginary_part_discarded",
+      "expected_failure": "ComplexAmplitudeMismatch"
+    },
+    {
+      "id": "nonconvergent_truncation_reported_as_reference",
+      "expected_failure": "Unresolved"
+    },
+    {
+      "id": "geometric_magnification_substituted_for_wave_amplitude",
+      "expected_failure": "ModelKindMismatch"
+    }
+  ]
+}
