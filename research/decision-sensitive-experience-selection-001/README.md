@@ -75,11 +75,11 @@ Findings are deterministic and candidate ordering is invariant to the input vect
 
 From this directory:
 
-`sh
+```sh
 cargo fmt -- --check
 cargo test --locked
 cargo clippy --locked --all-targets --all-features -- -D warnings
-`
+```
 
 The repository workflow uses Rust 1.96.0.
 
