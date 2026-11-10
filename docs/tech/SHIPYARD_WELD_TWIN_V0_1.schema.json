@@ -464,7 +464,6 @@
         "source_time_utc",
         "serial_id",
         "workpiece_serial_id",
-        "workpiece_serial_id",
         "material_heat_lot"
       ],
       "properties": {
