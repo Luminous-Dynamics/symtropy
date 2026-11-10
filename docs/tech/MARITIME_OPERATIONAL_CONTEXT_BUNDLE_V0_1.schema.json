@@ -27,7 +27,7 @@
     },
     "cases": {
       "type": "array",
-      "minItems": 30,
+      "minItems": 32,
       "items": {
         "$ref": "#/$defs/case"
       }
@@ -479,7 +479,8 @@
         "retained_previous_feature_ids",
         "physical_qualification_state",
         "alarm_state",
-        "transit_authority_state"
+        "transit_authority_state",
+        "alarm_claim_state"
       ],
       "properties": {
         "dataset_id": {
@@ -541,6 +542,12 @@
             "not_provided",
             "authorized_by_competent_authority"
           ]
+        },
+        "alarm_claim_state": {
+          "enum": [
+            "not_claimed",
+            "unsupported_alarm_claim"
+          ]
         }
       }
     },
@@ -555,7 +562,8 @@
         "semantic_validation_state",
         "event_time_utc",
         "retrieved_at_utc",
-        "eta_accuracy_state"
+        "eta_accuracy_state",
+        "tested_api_direction"
       ],
       "properties": {
         "standard_version": {
@@ -602,6 +610,12 @@
             "not_evaluated",
             "calibrated_in_declared_population"
           ]
+        },
+        "tested_api_direction": {
+          "enum": [
+            "publisher_get",
+            "subscriber_post"
+          ]
         }
       }
     },
@@ -615,7 +629,8 @@
         "scope",
         "valid_until_utc",
         "revocation_state",
-        "booking_authority_state"
+        "booking_authority_state",
+        "booking_authority_evidence_ref"
       ],
       "properties": {
         "provider_ref": {
@@ -655,6 +670,12 @@
             "unknown",
             "not_granted",
             "granted_by_owner"
+          ]
+        },
+        "booking_authority_evidence_ref": {
+          "type": [
+            "string",
+            "null"
           ]
         }
       }
@@ -729,7 +750,8 @@
         "dcsa",
         "provider",
         "run_evidence",
-        "claims"
+        "claims",
+        "freshness_policy"
       ],
       "properties": {
         "bundle_id": {
@@ -819,6 +841,29 @@
           "minItems": 9,
           "items": {
             "$ref": "#/$defs/claim"
+          }
+        },
+        "freshness_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "max_warning_bulletin_age_s",
+            "max_ukc_plan_age_s",
+            "max_dcsa_event_age_s"
+          ],
+          "properties": {
+            "max_warning_bulletin_age_s": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "max_ukc_plan_age_s": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "max_dcsa_event_age_s": {
+              "type": "integer",
+              "minimum": 1
+            }
           }
         }
       }
