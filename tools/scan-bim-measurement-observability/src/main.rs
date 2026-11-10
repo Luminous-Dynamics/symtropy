@@ -713,6 +713,7 @@ mod tests {
         let encoded = serde_json::to_vec(&value).expect("mutated JSON serializes");
         assert!(serde_json::from_slice::<Corpus>(&encoded).is_err());
     }
+
     #[test]
     fn unsupported_sensor_domain_cannot_pass() {
         let mut corpus = fixture();
