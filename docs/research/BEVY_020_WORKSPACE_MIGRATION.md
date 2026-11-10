@@ -32,6 +32,24 @@ This release inventory proves that compatible published versions exist. The Symt
 
 The lockfile remains a Cargo-generated artifact. It must not be hand-edited.
 
+## First source migration slice — WESL 4D slicing
+
+The active 4D slicing material was migrated in this branch:
+- `assets/shaders/nd_slicing.wgsl` → `assets/shaders/nd_slicing.wesl`;
+- `NdSlicingExtension::fragment_shader()` now loads `shaders/nd_slicing.wesl`;
+- naga_oil `#import` / `#ifdef` / `#{MATERIAL_BIND_GROUP}` syntax was translated to WESL imports, `@if` conditionals and `constants::MATERIAL_BIND_GROUP`;
+- zero-thickness slicing now avoids an edge-fade 0/0 division.
+
+This change is source migration only until the Bevy 0.20 shader pipeline compiles and loads the asset on an exact-head runner. It does not prove shader rendering quality or physical correctness.
+
+The wider asset inventory is now tracked in [RENDER-SHADER-ASSET-QUAL-001 #4475](https://github.com/Luminous-Dynamics/symtropy/issues/4475). That audit found:
+- `holographic.wgsl` also uses legacy naga_oil preprocessor syntax; active callsites still need confirmation;
+- `crt_consciousness.wgsl` uses a legacy `#import` directive and needs a usage audit;
+- `TelemetryExtension` refers to `shaders/telemetry_deform.wgsl`, but no such asset exists in the repository tree;
+- `spatial_hash_broadphase.wgsl` is plain WGSL without preprocessor directives and should not be renamed just because it ends in `.wgsl`.
+
+Do not create a replacement telemetry shader until its vertex/fragment contract, bind group and storage-buffer semantics are recovered.
+
 ## Required source/API migration
 
 Bevy's [0.19 → 0.20 migration guide](https://bevy.org/learn/migration-guides/0-19-to-0-20/) and [0.20 release notes](https://bevy.org/news/bevy-0-20/) call out several relevant changes:
