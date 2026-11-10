@@ -604,6 +604,38 @@ mod tests {
     }
 
     #[test]
+    fn model_or_requirement_revision_mismatch_blocks_recommended_capture() {
+        let mut corpus = fixture();
+        corpus["cases"][0]["capture_bindings"][0]["model_revision"] =
+            Value::String("superseded-model".to_owned());
+        let report = validate_adapter_bytes(&bytes(&corpus), EMBEDDED_ADAPTER_SCHEMA.as_bytes());
+        assert!(!report.core.passed);
+        assert!(has_code(&report, "DECISION_RECOMMENDS_UNQUALIFIED_CAPTURE"));
+    }
+
+    #[test]
+    fn malformed_nested_decision_case_returns_failure_without_panicking() {
+        let mut corpus = fixture();
+        corpus["cases"][0]["decision_case"] = json!({
+            "id": "SPR-V-001",
+            "state_revision": "access-survey-v1"
+        });
+        let report = validate_adapter_bytes(&bytes(&corpus), EMBEDDED_ADAPTER_SCHEMA.as_bytes());
+        assert!(!report.core.passed);
+        assert!(has_code(&report, "DECISION_ACTIONS_MISSING"));
+    }
+
+    #[test]
+    fn measurement_receipt_digest_is_required_by_schema() {
+        let mut corpus = fixture();
+        corpus["cases"][0]["capture_bindings"][0]["measurement_receipt_sha256"] =
+            Value::String("not-a-digest".to_owned());
+        let report = validate_adapter_bytes(&bytes(&corpus), EMBEDDED_ADAPTER_SCHEMA.as_bytes());
+        assert!(!report.core.passed);
+        assert!(has_code(&report, "SCHEMA_VALIDATION_FAILED"));
+    }
+
+    #[test]
     fn closed_schema_rejects_unknown_fields() {
         let mut corpus = fixture();
         corpus["unexpected"] = Value::Bool(true);
