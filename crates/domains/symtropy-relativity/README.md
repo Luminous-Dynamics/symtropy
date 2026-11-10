@@ -117,3 +117,12 @@ The planned research corpus is recorded at `benchmarks/kerr_ray_bundle_v1.json`.
 - analytic Schwarzschild/Kerr controls, negative controls and prospective acceptance gates.
 
 This is a planned benchmark manifest, not numerical output. The associated implementation/research owner is Symtropy issue [#4519](https://github.com/Luminous-Dynamics/symtropy/issues/4519). Sol-Atlas projection is tracked at [#701](https://github.com/Luminous-Dynamics/sol-atlas-leptos/issues/701).
+
+
+### Null-geodesic Carter-potential convention correction — 2026-11-10
+
+A source-level formula audit corrected the ray-bundle benchmark's polar potential. The null Carter convention is
+`Theta(theta) = Q + a^2 E^2 cos(theta)^2 - L_z^2 cot(theta)^2`
+(or, for `E=1, M=1`, `eta + a_star^2 cos(theta)^2 - xi^2 cot(theta)^2`). The prior draft had the massive-particle expression and omitted the null `+a^2 E^2 cos^2(theta)` term. The benchmark now declares the rest-mass parameter and both general/null-specialized radial and polar potentials, with a negative control for accidental timelike/null substitution.
+
+This correction was checked against independent published null-Kerr equations; no geodesic implementation or numerical result is claimed.
