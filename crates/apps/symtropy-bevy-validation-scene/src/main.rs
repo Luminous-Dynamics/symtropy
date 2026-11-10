@@ -8,7 +8,9 @@
 //! using Bevy 0.20's experimental realtime ray-traced lighting.
 
 use bevy::prelude::*;
-use symtropy_bevy_scene::{SymtropySceneConfig, SymtropyScenePlugin};
+use symtropy_bevy_scene::SymtropyScenePlugin;
+#[cfg(feature = "solari-preview")]
+use symtropy_bevy_scene::SymtropySceneConfig;
 use symtropy_core::prelude::BevyPhysicsPlugin;
 
 #[cfg(feature = "solari-preview")]
