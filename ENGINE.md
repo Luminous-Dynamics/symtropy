@@ -68,6 +68,8 @@ Numerical correctness must be established with analytical or manufactured soluti
 
 The [physics validation protocol](crates/core/symtropy-physics/RESEARCH_VALIDATION.md) defines the validity ladder and known limitations. The [PHYS-VALID-06 corpus](https://github.com/Luminous-Dynamics/symtropy/issues/460) is the shared destination for machine-readable engine qualification evidence.
 
+The analytic and numerical oracle work is coordinated through [PHYS-VALID-07 #3749](https://github.com/Luminous-Dynamics/symtropy/issues/3749). Cross-backend matched comparisons additionally require [PHYS-SEMANTIC-EQUIVALENCE-001 #4366](https://github.com/Luminous-Dynamics/symtropy/issues/4366); its validator is a draft and is not yet a merged production gate.
+
 ## 4. Robotics and engineering use
 
 Symtropy can support robotics research and engineering by providing a physical-analysis runtime and adapters. It is not, by itself:
