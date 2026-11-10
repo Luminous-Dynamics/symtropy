@@ -789,6 +789,7 @@ mod tests {
             purpose: MemobenchUsePurpose::NonCommercialScientificResearch,
             purpose_attestation_sha256: digest('e'),
             commercial_permission_sha256: None,
+            commercial_permission_verification_receipt_sha256: None,
         }
     }
 
@@ -808,7 +809,7 @@ mod tests {
                 MemobenchCheckpointAnnotation {
                     checkpoint_index: 1,
                     memory_description_sha256_by_level: [digest('7'), digest('8'), digest('9')],
-                    operation_code_by_level: [2, 1, 0],
+                    operation_code_by_level: [2, 0, 1],
                     subtask_goal_sha256: digest('a'),
                 },
             ],
@@ -824,6 +825,9 @@ mod tests {
             evaluator_sha256: digest('e'),
             memory_level: MemobenchMemoryLevel::Level1,
             license: license(),
+            expected_task_ids: vec!["WA-01".to_owned()],
+            expected_episodes_per_task: 2,
+            expected_checkpoint_count_by_task: BTreeMap::from([("WA-01".to_owned(), 2)]),
             tasks: vec![task("WA-01", "temporal")],
             episodes: vec![
                 MemobenchEpisodeIdentity {
@@ -861,6 +865,7 @@ mod tests {
             task_id: task.task_id.clone(),
             episode_id: episode_id.to_owned(),
             independence_unit_id: episode.independence_unit_id.clone(),
+            seed: episode.seed,
             task_metadata_sha256: task.task_metadata_sha256.clone(),
             task_definition_sha256: task.task_definition_sha256.clone(),
             checkpoint_index,
@@ -868,6 +873,8 @@ mod tests {
             memory_description_sha256: checkpoint.memory_description_sha256_by_level[manifest.memory_level.index()].clone(),
             operation_code: selected,
             subtask_goal_sha256: checkpoint.subtask_goal_sha256.clone(),
+            episode_artifact_sha256: Some(digest('f')),
+            evaluator_receipt_sha256: Some(digest('a')),
             completed,
         }
     }
@@ -887,6 +894,9 @@ mod tests {
             task_id: episode.task_id.clone(),
             episode_id: episode_id.to_owned(),
             independence_unit_id: episode.independence_unit_id.clone(),
+            seed: episode.seed,
+            episode_artifact_sha256: Some(digest('f')),
+            evaluator_receipt_sha256: Some(digest('a')),
             task_success,
         }
     }
@@ -925,13 +935,17 @@ mod tests {
         let audit = audit_memobench_operations(&input, &outcomes, &episodes).unwrap();
         assert_eq!(audit.operation_rates.len(), 2);
         assert_eq!(audit.task_success.official_task_success_rate, Some(0.5));
-        let storage = audit.operation_rates.iter().find(|rate| rate.operation == MemoryOperationKind::Update).unwrap();
+        let update = audit.operation_rates.iter()
+            .find(|rate| rate.operation == MemoryOperationKind::Update).unwrap();
+        assert_eq!(update.total_checkpoints, 2);
+        assert_eq!(update.completed_count, 2);
+        assert_eq!(update.official_operation_rate, Some(1.0));
+        assert_eq!(update.task_macro_operation_rate, Some(1.0));
+        let storage = audit.operation_rates.iter()
+            .find(|rate| rate.operation == MemoryOperationKind::Storage).unwrap();
         assert_eq!(storage.total_checkpoints, 2);
-        assert_eq!(storage.completed_count, 2);
-        assert_eq!(storage.official_operation_rate, Some(1.0));
-        let compression = audit.operation_rates.iter().find(|rate| rate.operation == MemoryOperationKind::Update).unwrap();
-        assert_eq!(compression.total_checkpoints, 2);
-        assert_eq!(compression.not_completed_count, 1);
+        assert_eq!(storage.not_completed_count, 1);
+        assert_eq!(storage.official_operation_rate, Some(0.5));
     }
 
     #[test]
@@ -996,6 +1010,7 @@ mod tests {
             Err(MemobenchAdapterError::CommercialUseNotAuthorized)
         );
         input.license.commercial_permission_sha256 = Some(digest('f'));
+        input.license.commercial_permission_verification_receipt_sha256 = Some(digest('a'));
         assert!(select_memobench_checkpoints(&input).is_ok());
     }
 
@@ -1019,9 +1034,9 @@ mod tests {
         );
         input = manifest();
         input.tasks[0].checkpoints.pop();
-        // The manifest pins the actual row roster by the metadata digest; any
-        // truncation must be reflected by a different, independently verified
-        // metadata source and a correspondingly frozen checkpoint roster.
-        assert!(select_memobench_checkpoints(&input).is_ok());
+        assert_eq!(
+            select_memobench_checkpoints(&input),
+            Err(MemobenchAdapterError::CheckpointCountMismatch)
+        );
     }
 }
