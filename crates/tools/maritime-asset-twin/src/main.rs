@@ -466,13 +466,6 @@ fn evaluate(composition: &Value) -> &'static str {
         }
     }
 
-    let projected_state = text(composition, "projection.projected_state_class");
-    if projected_state.is_none()
-        || !federates.iter().any(|f| text(f, "state_class") == projected_state)
-    {
-        return "STATE_CLASS_PROMOTION_FORBIDDEN";
-    }
-
     let result = effectivity(composition, cutoff);
     if result != "EFFECTIVITY_VALID" {
         return result;
@@ -518,6 +511,13 @@ fn evaluate(composition: &Value) -> &'static str {
             .any(|r| text(r, "kind") == Some("inspection_after_maintenance"))
     {
         return "POST_MAINTENANCE_EVIDENCE_MISSING";
+    }
+
+    let projected_state = text(composition, "projection.projected_state_class");
+    if projected_state.is_none()
+        || !federates.iter().any(|f| text(f, "state_class") == projected_state)
+    {
+        return "STATE_CLASS_PROMOTION_FORBIDDEN";
     }
 
     "COMPOSITION_CONTRACT_VALID_NOT_COMMISSIONED"
