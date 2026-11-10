@@ -98,8 +98,8 @@
           "equipment_revision": "ROBOT-REV-02",
           "program_revision": "PROGRAM-REV-07",
           "parameter_envelope_ref": "SYNTH-ENVELOPE-017",
-          "process_trace_ref": "SYNTH-TRACE-ROOT-01",
-          "process_trace_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "process_trace_ref": "benchmarks/shipyard/weld-twin-traces/root-pass.json",
+          "process_trace_sha256": "a316e2fe095eb364989fb6a3b30ac23b4256d5e1b68c7b0dd953d23e9053651",
           "evidence_class": "measured_synthetic",
           "observed_envelope_status": "within_declared_envelope",
           "source_time_utc": "2026-11-10T03:00:00Z",
@@ -115,8 +115,8 @@
           "equipment_revision": "ROBOT-REV-02",
           "program_revision": "PROGRAM-REV-07",
           "parameter_envelope_ref": "SYNTH-ENVELOPE-017",
-          "process_trace_ref": "SYNTH-TRACE-FILL-02",
-          "process_trace_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "process_trace_ref": "benchmarks/shipyard/weld-twin-traces/fill-pass.json",
+          "process_trace_sha256": "b198e740401d0369cbc1d679521f319e826424228359badf1d84a42f987d4e09",
           "evidence_class": "measured_synthetic",
           "observed_envelope_status": "within_declared_envelope",
           "source_time_utc": "2026-11-10T03:10:00Z",
@@ -132,8 +132,8 @@
           "equipment_revision": "ROBOT-REV-02",
           "program_revision": "PROGRAM-REV-07",
           "parameter_envelope_ref": "SYNTH-ENVELOPE-017",
-          "process_trace_ref": "SYNTH-TRACE-CAP-03",
-          "process_trace_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "process_trace_ref": "benchmarks/shipyard/weld-twin-traces/cap-pass.json",
+          "process_trace_sha256": "9cd731fb95df8097aaed752c855cdffa99aa46acc237e961f92f06a013e80f96",
           "evidence_class": "measured_synthetic",
           "observed_envelope_status": "within_declared_envelope",
           "source_time_utc": "2026-11-10T03:20:00Z",
@@ -683,6 +683,47 @@
         }
       ],
       "expected_code": "OPERATOR_QUALIFICATION_EXPIRED"
+    },
+    {
+      "id": "process_trace_digest_mismatch",
+      "base": "valid_robotic_weld",
+      "mutations": [
+        {
+          "path": "passes.1.process_trace_sha256",
+          "op": "set",
+          "value": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ],
+      "expected_code": "PROCESS_TRACE_DIGEST_MISMATCH"
+    },
+    {
+      "id": "process_trace_path_traversal",
+      "base": "valid_robotic_weld",
+      "mutations": [
+        {
+          "path": "passes.0.process_trace_ref",
+          "op": "set",
+          "value": "../../etc/passwd"
+        }
+      ],
+      "expected_code": "UNSAFE_PROCESS_TRACE_PATH"
+    },
+    {
+      "id": "process_trace_bound_to_wrong_pass",
+      "base": "valid_robotic_weld",
+      "mutations": [
+        {
+          "path": "passes.1.process_trace_ref",
+          "op": "set",
+          "value": "benchmarks/shipyard/weld-twin-traces/root-pass.json"
+        },
+        {
+          "path": "passes.1.process_trace_sha256",
+          "op": "set",
+          "value": "a316e2fe095eb364989fb6a3b30ac23b4256d5e1b68c7b0dd953d23e9053651"
+        }
+      ],
+      "expected_code": "PROCESS_TRACE_SUBJECT_MISMATCH"
     }
   ]
 }
