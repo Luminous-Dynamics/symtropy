@@ -1,0 +1,119 @@
+{
+  "schema_version": "oli-generator-case-v0.1",
+  "case_id": "OLI-ABIOTIC-GRAY-SCOTT-PATTERN-001",
+  "evidence_class": "SIMULATION",
+  "status": "PROPOSED_FROZEN_CASE_AWAITING_RUST_VALIDATION",
+  "scientific_scope": {
+    "generator_family": "GRAY_SCOTT_REACTION_DIFFUSION",
+    "known_mechanism": true,
+    "substrate_claim": "synthetic_abiotic_mathematical_control",
+    "natural_observation": false,
+    "plasma_model": false,
+    "life_or_intelligence_verdict": false
+  },
+  "implementation": {
+    "crate": "symtropy-lifesim-core",
+    "module": "gray_scott",
+    "arithmetic": "IEEE754_f64",
+    "integrator": "explicit_euler_fixed_step",
+    "stencil": {
+      "type": "nine_point_laplacian",
+      "center_weight": -1,
+      "axial_neighbor_weight": 0.2,
+      "diagonal_neighbor_weight": 0.05
+    },
+    "boundary": "no_flux_clamped_neighbor_coordinates",
+    "concentration_clamp": [
+      0,
+      1
+    ],
+    "parameters": {
+      "diffusion_u": 0.16,
+      "diffusion_v": 0.08,
+      "feed": 0.035,
+      "kill": 0.065,
+      "dt": 1
+    }
+  },
+  "domain": {
+    "width": 80,
+    "height": 80,
+    "coordinate_frame": "nondimensional_local_cartesian_grid",
+    "initial_state": {
+      "u": 1,
+      "v": 0
+    }
+  },
+  "initialization": {
+    "intervention": "seeded_rectangular_patch",
+    "patch": {
+      "x": 24,
+      "y": 24,
+      "width": 32,
+      "height": 32
+    },
+    "centers": {
+      "u": 0.5,
+      "v": 0.25
+    },
+    "peak_to_peak_noise_amplitudes": {
+      "u": 0.2,
+      "v": 0.2
+    },
+    "rng": {
+      "algorithm": "xorshift64",
+      "seed": 42,
+      "zero_seed_substitute": "0x9E3779B97F4A7C15",
+      "unit_conversion": "top_53_bits_divided_by_2_pow_53",
+      "draw_order": "u_then_v_per_cell_in_row_major_order"
+    }
+  },
+  "execution": {
+    "steps": 3000,
+    "expected_final_tick": 3000
+  },
+  "observables": {
+    "field": "v",
+    "threshold": 0.1,
+    "connectivity": "four_neighbor",
+    "minimum_connected_components": 2,
+    "metrics": [
+      "mean_u",
+      "mean_v",
+      "variance_v",
+      "gradient_energy_v",
+      "high_v_fraction"
+    ]
+  },
+  "numerical_accounting": [
+    "u_total_before_after",
+    "v_total_before_after",
+    "reaction_transfer",
+    "feed_input",
+    "v_removal",
+    "u_diffusion_net",
+    "v_diffusion_net",
+    "u_clipping_adjustment",
+    "v_clipping_adjustment"
+  ],
+  "expected_result": {
+    "requirement": "At least two four-connected V domains above threshold 0.1 after 3000 steps",
+    "interpretation": "Known abiotic reaction-diffusion pattern formation under the declared driven equations",
+    "does_not_establish": [
+      "biological_life",
+      "self_maintenance",
+      "heredity",
+      "agency",
+      "intelligence",
+      "sentience",
+      "consciousness"
+    ]
+  },
+  "reproducibility": {
+    "model_source_revision": "research/oli-gray-scott-control-v0",
+    "output_digest_sha256": null,
+    "digest_status": "PENDING_EXACT_HEAD_RUST_EXECUTION",
+    "rust_validation_status": "NOT_RUN_IN_AUTHORING_ENVIRONMENT",
+    "cross_implementation_reference": "separately executed Python numerical analog; not a Rust test or physical validation"
+  }
+}
