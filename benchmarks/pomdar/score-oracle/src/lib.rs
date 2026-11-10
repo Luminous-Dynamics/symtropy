@@ -91,7 +91,7 @@ impl TaskCorrectness {
 pub struct TaskTiming {
     /// Human-reference completion time, in seconds.
     pub human_baseline_seconds: f64,
-    /// Evaluated system's completion/elapsed time, in seconds.
+    /// Protocol-admitted system trial time, in seconds. Eligibility and timing boundaries are external.
     pub system_seconds: f64,
 }
 
