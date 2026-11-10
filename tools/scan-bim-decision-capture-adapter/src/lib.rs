@@ -118,6 +118,13 @@ fn capture_gate(
     let frame_id = string_at(binding, "frame_id").unwrap_or("");
     let expected_frame_id = string_at(asset, "coordinate_frame_id").unwrap_or("");
     let task_profile = string_at(binding, "task_profile_id").unwrap_or("");
+    let model_revision = string_at(binding, "model_revision").unwrap_or("");
+    let expected_model_revision = string_at(asset, "model_revision").unwrap_or("");
+    let requirement_revision = string_at(binding, "requirement_revision").unwrap_or("");
+    let expected_requirement_revision =
+        string_at(asset, "requirement_revision").unwrap_or("");
+    let measurement_receipt_sha =
+        string_at(binding, "measurement_receipt_sha256").unwrap_or("");
 
     let sensor_profile_id = string_at(binding, "sensor_profile_id").unwrap_or("");
     let sensor_profile_sha = string_at(binding, "sensor_profile_sha256").unwrap_or("");
@@ -133,6 +140,15 @@ fn capture_gate(
     }
     if !is_sha256(visibility_sha) {
         reasons.insert("VISIBILITY_RECEIPT_BINDING_INVALID");
+    }
+    if !is_sha256(measurement_receipt_sha) {
+        reasons.insert("MEASUREMENT_RECEIPT_BINDING_INVALID");
+    }
+    if model_revision != expected_model_revision {
+        reasons.insert("CAPTURE_MODEL_REVISION_MISMATCH");
+    }
+    if requirement_revision != expected_requirement_revision {
+        reasons.insert("CAPTURE_REQUIREMENT_REVISION_MISMATCH");
     }
     if source_revision != action_revision || source_revision != survey_revision {
         reasons.insert("CAPTURE_SOURCE_REVISION_MISMATCH");
@@ -225,7 +241,15 @@ pub fn validate_adapter_bytes(corpus_bytes: &[u8], schema_bytes: &[u8]) -> Adapt
     };
     let corpus_id = string_at(&corpus_value, "corpus_id").map(ToOwned::to_owned);
     let schema_version = string_at(&corpus_value, "schema_version").map(ToOwned::to_owned);
-    let cases = root.get("cases").and_then(Value::as_array).expect("schema checked cases");
+    let Some(cases) = root.get("cases").and_then(Value::as_array) else {
+        fail(
+            &mut failures,
+            "CASES_MISSING",
+            "$.cases",
+            "Expected cases array.",
+        );
+        return empty_report(corpus_bytes, schema_bytes, failures);
+    };
     if cases.len() != EXPECTED_CASES {
         fail(
             &mut failures,
@@ -256,10 +280,15 @@ pub fn validate_adapter_bytes(corpus_bytes: &[u8], schema_bytes: &[u8]) -> Adapt
 
         let asset = case.get("asset_binding").unwrap_or(&Value::Null);
         let decision_case = case.get("decision_case").unwrap_or(&Value::Null);
-        let bindings = case
-            .get("capture_bindings")
-            .and_then(Value::as_array)
-            .expect("schema checked capture_bindings");
+        let Some(bindings) = case.get("capture_bindings").and_then(Value::as_array) else {
+            fail(
+                &mut failures,
+                "CAPTURE_BINDINGS_MISSING",
+                format!("{case_path}.capture_bindings"),
+                "Expected capture bindings array.",
+            );
+            continue;
+        };
         generic_cases.push(decision_case.clone());
 
         let generic_case_id = string_at(decision_case, "id").unwrap_or("");
@@ -293,10 +322,23 @@ pub fn validate_adapter_bytes(corpus_bytes: &[u8], schema_bytes: &[u8]) -> Adapt
             );
         }
 
-        let actions = decision_case
-            .get("actions")
-            .and_then(Value::as_array)
-            .expect("delegated decision schema checks actions");
+        let Some(actions) = decision_case.get("actions").and_then(Value::as_array) else {
+            fail(
+                &mut failures,
+                "DECISION_ACTIONS_MISSING",
+                format!("{case_path}.decision_case.actions"),
+                "Delegated decision case must contain an action array.",
+            );
+            adapter_cases.push(AdapterCaseResult {
+                case_id,
+                building_id: string_at(asset, "building_id").unwrap_or("").to_owned(),
+                scene_id: string_at(asset, "scene_id").unwrap_or("").to_owned(),
+                capture_bindings: Vec::new(),
+                eligible_capture_action_ids: Vec::new(),
+                recommended_action_order: Vec::new(),
+            });
+            continue;
+        };
         let mut actions_by_id = BTreeMap::new();
         for action in actions {
             if let Some(id) = string_at(action, "action_id") {
