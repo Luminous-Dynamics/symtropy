@@ -240,16 +240,17 @@ The Bench2Drive repository marks v0.0.4 (released 6 August 2026) as the version 
 
 These are upstream-reported results for the named benchmark revision, not independent Symtropy reproductions. The earlier 89.07 AlignDrive snapshot belongs to a different hosted-board snapshot/version context and must not be carried forward as the current v0.0.4 reference. Pin the exact evaluator, route XML, code tag, model/checkpoint, sensor profile, training data and compute/privilege budget before attempting reproduction. See the [v0.0.4 release results](https://github.com/Thinklab-SJTU/Bench2Drive/blob/0.0.4/docs/v004_update.md) and [tagged repository README](https://github.com/Thinklab-SJTU/Bench2Drive/blob/0.0.4/README.md).
 
-### NAVSIM v2: keep leaderboard tracks separate
+### NAVSIM v2: keep task tracks and evaluation snapshots separate
 
-The current third-party NAVSIM v2 snapshots show why the board and task variant must accompany every score:
-- The **End-to-end Driving on NAVSIM v2 (test)** board lists NTR (2026.05) at 90.9 EPDMS.
-- The separate **Autonomous Driving Planning on NAVSIM v2 (test)** board lists Human Agent at 90.3; another planning-board snapshot lists LWDrive (2026.06) at 89.6.
-- These are distinct task/leaderboard tracks, third-party indexed snapshots updated roughly four to seven months ago, and not one interchangeable ranking. Treat them as reference points until the official evaluator, submission track, dataset release and metric implementation are pinned.
+NAVSIM v2 results are not one universal ranking. Third-party indexed boards now expose separate end-to-end driving and end-to-end planning tracks; the exact board, metric variant and evaluator revision must accompany every comparison.
 
-**Protocol requirement:** record the board/task identifier, NAVSIM code/data commit, evaluator version, sensor/history privileges, checkpoint, compute and submission date alongside every EPDMS result. Never pool end-to-end driving with planning-only results.
+- The **End-to-end Driving on NAVSIM v2 (test)** SOTA2 snapshot lists NTR (2026.05) at **90.9 EPDMS**. The board is an external leaderboard snapshot, not a Symtropy reproduction.
+- The separate **End-to-end planning on NAVSIM v2 (test)** board has its own entries and EPDMS variants. Do not merge those rows into the end-to-end driving board.
+- The peer-reviewed DriveWorld-VLA ICML 2026 paper reports **86.8 EPDMS on NAVSIM v2** and 91.3 PDMS on NAVSIM v1 under its stated protocol. A paper-reported result and a later third-party leaderboard submission are not automatically comparable.
 
-Sources: [NAVSIM v2 end-to-end driving test board](https://www.sota2.com/research/sota/end-to-end-driving-on-navsim-v2-test), [NAVSIM v2 autonomous-driving planning test board](https://www.sota2.com/research/sota/autonomous-driving-planning-on-navsim-v2-test), [NAVSIM v2 metric definitions](https://github.com/autonomousvision/navsim/blob/main/docs/metrics.md).
+**Protocol requirement:** record the board/task identifier, NAVSIM code and data commit, metric implementation, evaluator version, sensor/history privileges, checkpoint, compute and submission date alongside every score. Keep EPDMS, PDMS and any starred/variant metric distinct.
+
+Sources: [NAVSIM v2 end-to-end driving test board](https://www.sota2.com/research/sota/end-to-end-driving-on-navsim-v2-test), [NAVSIM v2 end-to-end planning test board](https://www.sota2.com/research/sota/end-to-end-planning-on-navsim-v2-test), [DriveWorld-VLA, ICML 2026](https://proceedings.mlr.press/v306/jia26f.html), [NAVSIM v2 metric definitions](https://github.com/autonomousvision/navsim/blob/main/docs/metrics.md).
 
 ### Deployed-industry comparison is a separate evidence class
 
@@ -259,21 +260,55 @@ Tesla's public FSD (Supervised) safety report is another, different form of flee
 
 ### NVIDIA Alpamayo as a current platform comparator
 
-NVIDIA's current public product page describes Alpamayo as a platform rather than one model:
-- **Alpamayo 2 Edge:** 2B vision-language-action model intended for in-car reasoning. NVIDIA's developer page currently labels it "Coming Soon", so this is a product direction, not evidence of broad deployed availability.
-- **Alpamayo 2 Super:** 34B reasoning foundation model for planning, auto-labeling and evaluation. NVIDIA's release notes describe a 32B Cosmos-3 Super Reasoner plus a 2B diffusion Action Expert, with multi-camera driving coverage and trajectory outputs.
-- **AlpaSim / AlpaGym:** closed-loop simulation and reinforcement-learning frameworks.
-- **Physical AI driving datasets and Chain-of-Causation labels:** data and reasoning supervision for rare scenarios.
+NVIDIA is the most useful industry comparator for the teacher-to-edge-student strategy:
 
-This creates a useful competitive reference:
-- **Do not compete on parameter count.** Use Super as a teacher/reasoning comparator where accessible weights, data, licences and evaluation protocols permit; record model revision, sensor input, inference budget and teacher privileges.
-- **Compete on the student capability frontier.** Test whether a much smaller HDC/LTC student can retain task competence while improving adaptation cost, irregular-time sensor robustness, memory/energy use and recoverability.
-- **Make explanations evidence-grounded.** Generated causal text is useful for review, but a Symthaea decision claim should point to policy-visible observation identities, predicted consequences, uncertainty and independently qualified SAM evidence. Text alone is not an assurance artifact.
-- **Compare the full platform honestly.** NVIDIA already provides models, simulator, RL tooling, datasets and a teacher-to-student workflow. Symtropy must demonstrate closed-loop experiment discipline and baseline reproduction before architectural differentiation is persuasive.
+- **Alpamayo 2 Super:** marketed as a 34B-class VLA foundation model. The current NIM documentation describes roughly 35.8B total checkpoint parameters, comprising a 32B vision-language reasoner and approximately 2.3B diffusion action expert. It consumes multi-camera video, ego-motion and navigation context and emits trajectories, Chain-of-Causation reasoning, meta-actions, VQA and auto-labels. The published BF16 path requires at least 80 GB GPU memory; FP8/runtime profiles are also documented.
+- **Alpamayo 2 Edge:** a 2B in-vehicle reasoning VLA designed for DRIVE AGX Thor. NVIDIA's 10 November 2026 technical post describes adaptive reasoning, multi-camera video and ego-motion inputs, offline distillation from Super-generated causal labels, AlpaGym closed-loop RL post-training, multi-resolution inputs and speculative decoding. The NVIDIA developer hub still labels Edge **Coming Soon**; treat it as a newly announced target platform, not as a generally available product.
+- **AlpaSim / AlpaGym:** NVIDIA's closed-loop simulator and reinforcement-learning infrastructure, which raises the bar for simulator throughput, actor fidelity, rendering, compute scheduling and post-training.
+- **Physical AI datasets and CoC labels:** a high-capacity source of teacher supervision, rare-event labels and evaluation signals.
 
-Sources: [NVIDIA Alpamayo product overview](https://www.nvidia.com/en-us/solutions/autonomous-vehicles/alpamayo/), [developer resources and Edge availability status](https://developer.nvidia.com/drive), [Alpamayo 2 Super release notes](https://nvidianews.nvidia.com/news/nvidia-alpamayo-2-super-robotaxis).
+This creates a direct experimental question for Symthaea:
+
+1. **Teacher/student, not model-size theatre.** Use Alpamayo 2 Super as an offline teacher/critic where weights, dataset access, licences and compute permit. Compare the resulting compact HDC/LTC student to Edge-class deployment constraints—not to a 34B teacher running with an unconstrained compute budget.
+2. **Measure the Pareto frontier.** Plot closed-loop competence against p95/p99 decision latency, peak memory, measured joules per decision, model size, training transitions and human intervention minutes. Report the exact hardware, precision, batch, sensor set and teacher privilege.
+3. **Make temporal irregularity a first-class test.** Compare fixed-rate transformer/VLA policies and HDC/LTC under variable frame intervals, camera loss, stale observations, clock skew, delayed actions and recovery. This is a concrete way to exploit continuous-time state dynamics, if the ablation demonstrates a gain.
+4. **Ground explanations in evidence.** A Chain-of-Causation text or a generated explanation is not an assurance case. Link claims to policy-visible observation IDs, candidate-action consequences, uncertainty, and independently qualified SAM evidence.
+5. **Exploit closed-loop learning efficiency.** World-In-World reports that visual fidelity alone does not guarantee task success, action-observation post-training is more effective than upgrading the pretrained video generator, and additional inference compute can improve closed-loop task success. This supports measuring decision value per unit of inference compute—not just image quality.
+6. **Use deployment perturbations as core evaluation.** Bench2Drive-Robust studies camera frame drops/partial observations, ego-state estimation noise and compute-induced control delay. Those faults should be in the first robustness suite, not left for a future safety phase.
+
+Sources: [NVIDIA Alpamayo 2 Super NIM documentation](https://docs.nvidia.com/nim/alpamayo/2.0.0/overview), [Alpamayo 2 Super release and workflows](https://developer.nvidia.com/blog/generate-trajectories-reasoning-traces-and-auto-labels-with-nvidia-alpamayo-2-super), [NVIDIA Alpamayo 2 Edge technical post, 10 November 2026](https://developer.nvidia.com/blog/running-av-reasoning-models-within-onboard-compute-and-latency-limits/), [NVIDIA developer availability status](https://developer.nvidia.com/drive), [World-In-World, ICLR 2026](https://proceedings.iclr.cc/paper_files/paper/2026/hash/5b4263be85820683d78675cc18d2efc7-Abstract-Conference.html), [Bench2Drive-Robust](https://arxiv.org/abs/2605.18059).
 
 **Strategic implication:** Symthaea is currently a research architecture and specification programme, not an industry-level autonomous-driving product. The credible path is: reproduce public research baselines; show a predeclared architectural or learning-efficiency advantage under matched budgets; validate robustness and recovery independently; then build a separately governed, staged physical evidence case. Fleet mileage and safety-case evidence are a long-term validation destination, not a near-term leaderboard target.
+
+### What would count as a Symthaea advantage
+
+The target is not “beat every model on every leaderboard.” It is a **matched-budget capability frontier** with independently replayable evidence.
+
+Compare these arms under the same policy-visible sensors, action space, scenario seeds, training transitions and deployment hardware where possible:
+- existing engineered-state HDC/LTC vehicle controller;
+- camera encoder + structured HDC scene binding + CfC/LTC;
+- matched GRU/LSTM;
+- matched compact temporal transformer;
+- action-conditioned latent world-model + compact policy;
+- Alpamayo 2 Super teacher (offline) and Alpamayo 2 Edge when its reproducible weights/runtime become accessible;
+- human demonstrations/corrections as an instructor reference, not as an autonomous baseline.
+
+Predeclare a scorecard rather than collapsing outcomes into one weighted number:
+
+| Axis | Comparison / target |
+|---|---|
+| Closed-loop competence | Reproduce Bench2Drive v0.0.4 LEAD reference: 95.59 Driving Score / 87.28% success; then exceed it on the same locked route/evaluator split with confidence intervals and no worst-family regression |
+| NAVSIM planning | Match the exact NAVSIM v2 task/metric track; current external references include NTR 90.9 EPDMS on the end-to-end driving board and DriveWorld-VLA 86.8 EPDMS in its paper protocol |
+| Robustness | Compare degradation under frame drop, partial camera, stale frames, localization/speed/odometry noise and inference delay; retain per-fault severity curves and worst-family tails |
+| Action-conditioned model | Measure multi-step trajectory error, calibration/coverage, action-ranking regret, counterfactual sensitivity and actor-response consistency—not just next-frame similarity |
+| Apprenticeship efficiency | At matched starting checkpoint and compute, target at least 20% fewer simulator transitions or human-intervention minutes to the same frozen skill gate, subject to the #4550 non-regression constraints |
+| Runtime efficiency | Report p50/p95/p99 end-to-end policy latency, memory, model bytes and measured joules per decision/route on named hardware; only claim advantage on a matched platform |
+| Recoverability | Preserve feasible option count, minimum safe fallback quality, recovery time/depth, residual decision time and SAM-qualified uncertainty; an average-score win does not override a failed hard gate |
+| Evidence quality | Exact episode/branch denominators, fresh-process replay, source/teacher/evaluator privilege separation, all failed/censored runs retained |
+
+A result should be called “better than SOTA” only when the exact protocol and resource budget match, the improvement survives independent seeds and confidence intervals, and no critical worst-family, calibration, latency or recoverability gate regresses. A higher average score on a different data split is not a SOTA comparison.
+
+The strongest differentiator hypothesis is **competence per unit of scarce inference and learning resource under partial, asynchronous, faulted observation**. A smaller HDC/LTC student could win even if it does not beat the teacher's absolute score, provided it has a reproducible edge in data efficiency, event-time robustness, recovery, memory or energy at comparable competence. That hypothesis remains unproven until the matched ablations run.
 
 The 10 November 2026 literature snapshot includes:
 - DriveWorld-VLA (ICML 2026), which reports NAVSIMv1 PDMS 91.3 and NAVSIMv2 EPDMS 86.8 for its own protocol.
