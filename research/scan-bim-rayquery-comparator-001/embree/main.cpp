@@ -96,7 +96,7 @@ struct Fixture {
 };
 
 struct CapturedHit {
-  float distance{};
+  double distance_m{};
   unsigned int primitive_id{};
 };
 
@@ -106,6 +106,7 @@ struct ExtendedRayQueryContext {
   std::vector<CapturedHit>* hits{};
   std::vector<std::uint8_t>* seen_primitive{};
   const Identity* exclude{};
+  double direction_norm{1.0};
   bool invalid_primitive{};
   bool unexpected_packet_size{};
 };
@@ -396,7 +397,12 @@ void gather_all_hits(const RTCFilterFunctionNArguments* args) {
   if (context->exclude != nullptr && triangle.id == *context->exclude) return;
   if ((*context->seen_primitive)[hit->primID] == 0) {
     (*context->seen_primitive)[hit->primID] = 1;
-    context->hits->push_back(CapturedHit{ray->tfar, hit->primID});
+    const double distance_m = static_cast<double>(ray->tfar) * context->direction_norm;
+    if (!std::isfinite(distance_m)) {
+      context->invalid_primitive = true;
+      return;
+    }
+    context->hits->push_back(CapturedHit{distance_m, hit->primID});
   }
 }
 
@@ -428,13 +434,23 @@ QueryResult trace_one(RTCDevice device, RTCScene scene,
   rayhit.ray.dir_x = checked_float(ray.direction.x, "ray.direction.x");
   rayhit.ray.dir_y = checked_float(ray.direction.y, "ray.direction.y");
   rayhit.ray.dir_z = checked_float(ray.direction.z, "ray.direction.z");
-  // The f64 fixture oracle treats clipping boundaries as inclusive
-  // within intersection_epsilon_m. Expand the Embree segment by that same
-  // metric tolerance so Embree's strict traversal segment matches the oracle.
+  const double direction_norm = norm(Vec3d{
+      static_cast<double>(rayhit.ray.dir_x),
+      static_cast<double>(rayhit.ray.dir_y),
+      static_cast<double>(rayhit.ray.dir_z)});
+  if (!std::isfinite(direction_norm) || direction_norm <= 0.0) {
+    throw std::runtime_error("float32 ray direction has invalid norm");
+  }
+  context.direction_norm = direction_norm;
+  // RTCRay.tnear/tfar are ray parameters. Convert the metric fixture bounds
+  // using the actual norm of the float32 direction and include the declared
+  // metric epsilon on both ends.
   rayhit.ray.tnear = checked_float(
-      std::max(0.0, ray.tnear - intersection_epsilon), "expanded ray.tnear");
+      std::max(0.0, ray.tnear - intersection_epsilon) / direction_norm,
+      "expanded parameter tnear");
   rayhit.ray.tfar = checked_float(
-      ray.tfar + intersection_epsilon, "expanded ray.tfar");
+      (ray.tfar + intersection_epsilon) / direction_norm,
+      "expanded parameter tfar");
   rayhit.ray.time = 0.0f;
   rayhit.ray.mask = 0xffffffffU;
   rayhit.ray.id = 0;
@@ -463,9 +479,9 @@ QueryResult trace_one(RTCDevice device, RTCScene scene,
 
   const auto nearest = std::min_element(captured.begin(), captured.end(),
       [](const CapturedHit& a, const CapturedHit& b) { return a.distance < b.distance; });
-  result.nearest_distance = static_cast<double>(nearest->distance);
+  result.nearest_distance = nearest->distance_m;
   for (const CapturedHit& hit : captured) {
-    if (static_cast<double>(hit.distance) <= *result.nearest_distance + tie_epsilon) {
+    if (hit.distance_m <= *result.nearest_distance + tie_epsilon) {
       result.nearest_ids.push_back(triangles[hit.primitive_id].id);
     }
   }
