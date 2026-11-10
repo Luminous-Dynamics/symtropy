@@ -1,9 +1,11 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: AGPL-3.0-or-later
-//! CRT consciousness post-processing pipeline.
+//! CRT consciousness post-processing state and future render adapter.
 //!
-//! Wires the `crt_consciousness.wgsl` shader into Bevy 0.18's render graph
-//! as a fullscreen post-process pass. Replaces the built-in ChromaticAberration
+//! This module currently defines the camera marker and uniform shape only. It
+//! does not register a render-graph node or load the CRT shader. The legacy
+//! `crt_consciousness.wgsl` asset is tracked for WESL migration in issue #4475.
+//! Replaces the built-in ChromaticAberration
 //! with a consciousness-driven CRT effect that includes:
 //!
 //! - Chromatic aberration (allostatic_load × 0.008 + danger × 0.004)
@@ -17,14 +19,13 @@
 //! All effects are driven by the `ConsciousnessVisuals` resource which is
 //! updated each frame from biometric state + Leviathan phase.
 //!
-//! # Architecture
+//! # Future architecture
 //!
-//! Follows the exact pattern of Bevy 0.18's `EffectStackPlugin`:
-//! - `CrtNode` implements `ViewNode`
-//! - Registered in Core2d render graph after Bloom, before Tonemapping
-//! - Uses `ViewTarget::post_process_write()` for source/destination textures
-//! - `CrtSettings` component on Camera extracts to render world
-//! - Uniform buffer uploaded each frame from `ConsciousnessVisuals`
+//! A future adapter can use Bevy's fullscreen material/post-process path:
+//! - extract `CrtSettings` and `ConsciousnessVisuals` to render-world data;
+//! - bind the uniform and source texture to a WESL fullscreen shader;
+//! - schedule the pass with explicit tonemapping/transmission ordering;
+//! - capture a receipt-bound reference scene before enabling by default.
 
 use bevy::prelude::*;
 use bevy::render::render_resource::ShaderType;
@@ -47,7 +48,7 @@ impl Default for CrtSettings {
 }
 
 /// GPU-side uniform for the CRT consciousness shader.
-/// Ready for Bevy 0.19+ FullscreenMaterialPlugin wiring.
+/// Uniform layout for a future Bevy 0.20 fullscreen WESL adapter.
 #[allow(dead_code)] // Infrastructure for future render node
 #[derive(ShaderType, Clone, Copy, Default)]
 pub struct CrtConsciousnessUniforms {
@@ -68,8 +69,8 @@ pub struct CrtConsciousnessUniforms {
 /// CRT effects (vignette, scanlines, color grading) through sprite-based overlays
 /// that are specifically designed to work with the post-process pipeline.
 ///
-/// The actual WGSL shader will be wired when upgrading to Bevy 0.19+ which has
-/// FullscreenMaterialPlugin.
+/// The legacy shader asset is not currently wired. Before activation it must
+/// be migrated to WESL and exercised by the shader smoke test (#4475).
 ///
 /// For now, we maximize the built-in effects:
 /// - ChromaticAberration intensity: consciousness-driven (already wired in postprocess.rs)
