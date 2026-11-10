@@ -6,6 +6,7 @@ use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 
 pub const SCHEMA_VERSION: &str = "0.2.0";
+pub const INPUT_SET_CANONICALIZATION: &str = "utf8_bytewise_name_tab_lowercase_sha256_lf_v1";
 pub const REQUIRED_NEGATIVE_CONTROLS: [&str; 12] = [
     "wrong_fourier_sign",
     "swapped_boundary_conditions",
@@ -75,8 +76,10 @@ pub struct NamedDigest {
 pub struct Provenance {
     pub git_commit: String,
     pub dependency_lock_sha256: String,
-    /// Digest of the canonical, ordered input bundle declared for this study.
-    pub canonical_input_set_sha256: String,
+    /// Versioned byte-level canonicalization rule for the input bundle.
+    pub canonical_input_set_format: String,
+    /// SHA-256 of the canonical input bundle; null only when no inputs are declared.
+    pub canonical_input_set_sha256: Option<String>,
     pub input_digests: Vec<NamedDigest>,
     pub reproduction_command: String,
     pub environment: String,
@@ -211,6 +214,22 @@ impl std::error::Error for ManifestError {}
 pub fn sha256_hex(bytes: &[u8]) -> String {
     format!("{:x}", Sha256::digest(bytes))
 }
+
+/// Compute the deterministic v1 digest of a named input set.
+/// Entries are sorted by UTF-8 bytewise name order. Each line is
+/// name<TAB>lowercase_sha256<LF>.
+pub fn canonical_input_set_sha256(input_digests: &[NamedDigest]) -> String {
+    let mut entries: Vec<&NamedDigest> = input_digests.iter().collect();
+    entries.sort_by(|left, right| left.name.as_bytes().cmp(right.name.as_bytes()));
+    let mut canonical = Vec::new();
+    for entry in entries {
+        canonical.extend_from_slice(entry.name.as_bytes());
+        canonical.push(b'\t');
+        canonical.extend_from_slice(entry.sha256.to_ascii_lowercase().as_bytes());
+        canonical.push(b'\n');
+    }
+    sha256_hex(&canonical)
+}
 fn non_empty(value: &str) -> bool {
     !value.trim().is_empty()
 }
@@ -262,8 +281,8 @@ impl ResponseManifest {
         if !hex(&self.provenance.dependency_lock_sha256, &[64]) {
             e.push("dependency_lock_sha256 must be SHA-256".into());
         }
-        if !hex(&self.provenance.canonical_input_set_sha256, &[64]) {
-            e.push("canonical_input_set_sha256 must be SHA-256".into());
+        if self.provenance.canonical_input_set_format != INPUT_SET_CANONICALIZATION {
+            e.push(format!("canonical_input_set_format must be {INPUT_SET_CANONICALIZATION}"));
         }
         if self.numerical.precision_bits == 0 {
             e.push("precision_bits must be positive".into());
@@ -286,6 +305,21 @@ impl ResponseManifest {
             if !hex(&x.sha256, &[64]) {
                 e.push(format!("input '{}' has invalid SHA-256", x.name));
             }
+            if x.name.contains('\t') || x.name.contains('\r') || x.name.contains('\n') || x.name.contains('\0') {
+                e.push(format!("input '{}' name contains a forbidden canonicalization delimiter", x.name));
+            }
+        }
+        match (self.provenance.input_digests.is_empty(), self.provenance.canonical_input_set_sha256.as_deref()) {
+            (true, None) => {}
+            (true, Some(_)) => e.push("canonical_input_set_sha256 must be null when no named inputs are declared".into()),
+            (false, None) => e.push("canonical_input_set_sha256 is required when named inputs are declared".into()),
+            (false, Some(value)) => {
+                if !hex(value, &[64]) {
+                    e.push("canonical_input_set_sha256 must be SHA-256".into());
+                } else if value.to_ascii_lowercase() != canonical_input_set_sha256(&self.provenance.input_digests) {
+                    e.push("canonical_input_set_sha256 does not match the declared input_digests".into());
+                }
+            }
         }
         unique(
             self.methods.iter().map(|x| x.method_id.as_str()),
@@ -293,7 +327,7 @@ impl ResponseManifest {
             &mut e,
         );
         for x in &self.methods {
-            if x.input_set_sha256 != self.provenance.canonical_input_set_sha256 {
+            if self.provenance.canonical_input_set_sha256.as_deref().is_some_and(|expected| x.input_set_sha256.to_ascii_lowercase() != expected.to_ascii_lowercase()) {
                 e.push(format!(
                     "method '{}' input-set digest differs from manifest canonical input set",
                     x.method_id
@@ -664,8 +698,8 @@ impl ResponseManifest {
         if self.oracle_reference.is_none() {
             e.push("numerical result requires pinned oracle".into());
         }
-        if self.provenance.input_digests.is_empty() {
-            e.push("numerical result requires named input digests".into());
+        if self.provenance.input_digests.is_empty() || self.provenance.canonical_input_set_sha256.is_none() {
+            e.push("numerical result requires named inputs and a canonical input-set digest".into());
         }
     }
 }
@@ -699,7 +733,8 @@ mod tests {
             provenance: Provenance {
                 git_commit: "a".repeat(40),
                 dependency_lock_sha256: d('b'),
-                canonical_input_set_sha256: d('e'),
+                canonical_input_set_format: INPUT_SET_CANONICALIZATION.into(),
+            canonical_input_set_sha256: None,
                 input_digests: vec![],
                 reproduction_command: "cargo test".into(),
                 environment: "rust-1.96".into(),
@@ -720,6 +755,11 @@ mod tests {
             negative_controls: vec![],
         }
     }
+    fn bind_canonical_input_set(m: &mut ResponseManifest) {
+        m.provenance.canonical_input_set_sha256 =
+            Some(canonical_input_set_sha256(&m.provenance.input_digests));
+    }
+
     fn oracle(m: &mut ResponseManifest) {
         m.oracle_reference = Some(OracleReference {
             reference_id: "arxiv-2510.18956".into(),
@@ -733,7 +773,10 @@ mod tests {
             method_id: id.into(),
             implementation_id: format!("impl-{id}"),
             implementation_sha256: d(i),
-            input_set_sha256: d('e'),
+            input_set_sha256: canonical_input_set_sha256(&[NamedDigest {
+                name: "initial-data".into(),
+                sha256: d('e'),
+            }]),
             response_sha256: d(r),
         }
     }
@@ -788,6 +831,7 @@ mod tests {
             name: "initial-data".into(),
             sha256: d('e'),
         });
+        bind_canonical_input_set(&mut m);
         m.methods.push(method("fd", 'f', '1'));
         m.methods.push(method("freq", 'f', '2'));
         assert!(
@@ -806,6 +850,7 @@ mod tests {
             name: "initial-data".into(),
             sha256: d('e'),
         });
+        bind_canonical_input_set(&mut m);
         m.methods.push(method("fd", 'f', '1'));
         m.methods.push(method("freq", '0', '2'));
         m.response_windows.push(ResponseWindow {
@@ -872,6 +917,7 @@ mod tests {
             name: "initial-data".into(),
             sha256: d('e'),
         });
+        bind_canonical_input_set(&mut m);
         m.methods.push(method("fd", 'f', '1'));
         m.methods.push(method("freq", '0', '2'));
         m.response_windows.push(ResponseWindow {
@@ -894,6 +940,7 @@ mod tests {
             name: "initial-data".into(),
             sha256: d('e'),
         });
+        bind_canonical_input_set(&mut m);
         let left = method("fd", 'f', '1');
         let mut right = method("freq", '0', '2');
         right.input_set_sha256 = d('d');
@@ -918,6 +965,7 @@ mod tests {
             name: "initial-data".into(),
             sha256: d('e'),
         });
+        bind_canonical_input_set(&mut m);
         m.methods.push(method("fd", 'f', '1'));
         m.methods.push(method("freq", '0', '2'));
         m.response_windows.push(ResponseWindow {
@@ -953,6 +1001,7 @@ mod tests {
             name: "initial-data".into(),
             sha256: d('e'),
         });
+        bind_canonical_input_set(&mut m);
         m.methods.extend([
             method("fd", 'f', '1'),
             method("freq", '0', '2'),
@@ -992,6 +1041,7 @@ mod tests {
             name: "initial-data".into(),
             sha256: d('e'),
         });
+        bind_canonical_input_set(&mut m);
         m.methods.push(method("fd", 'f', '1'));
         m.methods.push(method("freq", '0', '2'));
         m.methods.push(method("unused-third-method", '9', '8'));
@@ -1032,6 +1082,7 @@ mod tests {
             name: "initial-data".into(),
             sha256: d('e'),
         });
+        bind_canonical_input_set(&mut m);
         m.methods.push(method("fd", 'f', '1'));
         m.methods.push(method("freq", '0', '2'));
         m.response_windows.push(ResponseWindow {
@@ -1059,6 +1110,7 @@ mod tests {
             name: "initial-data".into(),
             sha256: d('e'),
         });
+        bind_canonical_input_set(&mut m);
         m.methods.push(method("fd", 'f', '1'));
         m.methods.push(method("freq", '0', '2'));
         m.response_windows.push(ResponseWindow {
