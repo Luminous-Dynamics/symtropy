@@ -139,7 +139,7 @@ The tool:
 
 It reports native metric differences and resource ratios; it does not combine driving score, energy, latency, memory or safety into a fabricated single score. It is a result-card evaluator, not a statistical significance engine: confidence intervals and per-seed results must be reported separately before claiming statistical superiority.
 
-The workflow's final command is a smoke attempt using the deliberately not-run template; it is allowed to fail because the evaluator correctly rejects non-complete runs. The test suite is the required gate.
+The test suite parses the not-run template and confirms that it is valid metadata with no performance metrics or episode outcomes.
 
 ## Claim ceiling
 
