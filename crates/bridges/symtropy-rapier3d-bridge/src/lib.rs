@@ -573,7 +573,9 @@ mod tests {
     #[test]
     fn bridge_step_advances_a_falling_body_and_reads_back_current_state() {
         let mut bridge = RapierPhysicsBridge::new(NoOpCallback);
-        bridge.set_gravity(vector![0.0, -9.81, 0.0]).expect("finite gravity");
+        bridge
+            .set_gravity(vector![0.0, -9.81, 0.0])
+            .expect("finite gravity");
         let mut world = TestWorld::new();
         let handle = world.bodies.insert(
             RigidBodyBuilder::dynamic()
