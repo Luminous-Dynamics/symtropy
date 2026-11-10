@@ -106,6 +106,12 @@ These are prospective targets, not predictions or results. Guardrails:
 
 Only after the matched reproduction should Symthaea be described as outperforming the benchmark baseline. A gain on the privileged MemER row does not count as a matched SOTA improvement.
 
+### Paired inference and cluster bootstrap
+
+The instrumented-memory comparator in Symtropy PR #4566 requires both memory arms to use the same protocol, task/checkpoint/query roster, policy checkpoint, evaluator, embodiment/action/resource-control manifest and independent-unit roster. Only the memory-system identity changes. It reports per-unit paired deltas, then a deterministic task-stratified cluster bootstrap resamples independent scene/seed units within each task and equally weights task means. Repeated checkpoints from one scene/seed are never resampled as separate independent observations.
+
+Recommended first preregistration: at least 20 truly independent scene/seed units per contributing task, 10,000 replicates, 95% percentile interval and a fixed RNG seed. The published 50 episodes/task are not automatically 50 independent units; scene reuse, initial-state reuse, demonstrations, simulator resets and seed construction must be audited first. If any task falls below the declared minimum, the adapter reports Underpowered and withholds bounds. These percentile intervals are not p-values and do not guarantee nominal coverage.
+
 ## 7. Paradigm shifts for Symthaea
 
 The research opportunity is not to add an ever-larger text summary. It is to make memory a queryable, versioned and evidence-carrying state system:
