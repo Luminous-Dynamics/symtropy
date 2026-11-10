@@ -33,6 +33,23 @@ Among admissible candidates, the tool chooses lexicographically by p95 wall time
 
 If no candidate is admissible, it abstains. Runtime observations bind the original input, selected model passport and observation receipt. Residual/uncertainty breaches *inside the declared validity envelope* may escalate to a pre-admitted peer. A hard-constraint violation, unknown hard constraint or validity-envelope exit immediately abstains; the old scenario receipt cannot authorize a new model for a changed or unsafe state. A fresh state-bound input is required before another model can be admitted. Tolerances are never relaxed.
 
+
+## Decision-margin admission
+
+A caller may optionally supply a `decision_boundary` for the required quantity. Each candidate then supplies a `decision_estimate` that binds the same quantity ID, unit and reference frame, a predicted value and a conservative symmetric uncertainty radius.
+
+The policy constructs a bounded interval `[value - uncertainty, value + uncertainty]` and classifies it relative to the threshold and declared separation margin:
+
+- `above_boundary`: the entire interval is above `threshold + minimum_separation`;
+- `below_boundary`: the entire interval is below `threshold - minimum_separation`;
+- `unresolved`: the interval overlaps the indeterminate band or its arithmetic is non-finite.
+
+An unresolved candidate is rejected for this decision, allowing a more expensive/narrower model to be selected. If no candidate resolves the boundary, the policy abstains. This changes the optimization target from “always run the same fidelity” to “spend compute only until the decision is robustly classified.”
+
+This is **not** a safety classifier: above/below has no universal pass/fail meaning. The caller defines the engineering criterion, the threshold, the required separation margin, and the validity of the supplied interval. The interval radius is a declared conservative bound, not automatically a calibrated statistical confidence interval. The underlying evidence still needs independent qualification for the chosen risk tier.
+
+Schema version 2 adds `decision_boundary`, `decision_estimate` and per-candidate `decision_class` output. The bundled fixture remains an exploratory synthetic-only software test with no decision boundary or physical claim.
+
 ## Important limits
 
 This is a finite-input policy contract, not a physics solver, uncertainty estimator, credibility assessor, or physical truth oracle. Risk tiers are a declared prototype policy inspired by risk-proportional VVUQ practice; they do not claim to reproduce or certify compliance with an ASME or NIST standard. Its current model passport and capability digests are caller-supplied; V0 validates their syntax and binds them into the receipt, but does not authenticate or verify their external contents. The synthetic fixture is only a known-answer software test.
