@@ -428,6 +428,31 @@ mod tests {
     }
 
     #[test]
+    fn disclosed_challenge_from_another_model_branch_still_retires_the_dataset() {
+        let receipt = disclosed_receipt(
+            "receipt-other-branch",
+            "sha256-model-from-other-branch",
+            "sha256-challenge-c0",
+            "sha256-manifest-c0",
+            "sha256-evaluator-v1",
+        );
+        assert_eq!(
+            validate_challenge_eligibility(
+                &root_lineage(),
+                &[receipt],
+                &request(
+                    "sha256-model-0",
+                    "sha256-challenge-c0",
+                    "sha256-manifest-c0",
+                    "sha256-evaluator-v1"
+                )
+            )
+            .unwrap_err(),
+            ChallengeCustodyError::DisclosedChallengeRetired
+        );
+    }
+
+    #[test]
     fn disclosed_challenge_cannot_be_reused_under_changed_protocol_or_manifest() {
         let receipts = vec![disclosed_receipt(
             "receipt-c0-model-0",
