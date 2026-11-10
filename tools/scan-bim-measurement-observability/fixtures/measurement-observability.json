@@ -15,7 +15,26 @@
         "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "calibration_status": "qualified",
         "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-        "applicability": "in_domain"
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 3,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
       },
       "validation": {
         "status": "qualified",
@@ -57,7 +76,26 @@
         "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "calibration_status": "qualified",
         "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-        "applicability": "in_domain"
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 3,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
       },
       "validation": {
         "status": "qualified",
@@ -93,7 +131,26 @@
         "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "calibration_status": "qualified",
         "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-        "applicability": "in_domain"
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 3,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
       },
       "validation": {
         "status": "qualified",
@@ -130,7 +187,26 @@
         "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "calibration_status": "missing",
         "calibration_evidence_sha256": null,
-        "applicability": "in_domain"
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 3,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
       },
       "validation": {
         "status": "qualified",
@@ -174,7 +250,26 @@
         "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "calibration_status": "qualified",
         "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-        "applicability": "out_of_domain"
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 25,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
       },
       "validation": {
         "status": "qualified",
@@ -218,7 +313,26 @@
         "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "calibration_status": "qualified",
         "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-        "applicability": "in_domain"
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 3,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
       },
       "validation": {
         "status": "qualified",
@@ -262,7 +376,26 @@
         "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "calibration_status": "qualified",
         "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-        "applicability": "in_domain"
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 3,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
       },
       "validation": {
         "status": "qualified",
@@ -304,7 +437,26 @@
         "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "calibration_status": "qualified",
         "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-        "applicability": "in_domain"
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 3,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
       },
       "validation": {
         "status": "qualified",
@@ -348,7 +500,26 @@
         "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "calibration_status": "qualified",
         "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-        "applicability": "unknown"
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 3,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
       },
       "validation": {
         "status": "qualified",
@@ -382,7 +553,26 @@
         "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "calibration_status": "qualified",
         "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-        "applicability": "in_domain"
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 3,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
       },
       "validation": {
         "status": "qualified",
@@ -427,7 +617,26 @@
         "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "calibration_status": "qualified",
         "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-        "applicability": "in_domain"
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 3,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
       },
       "validation": {
         "status": "qualified",
@@ -471,7 +680,26 @@
         "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "calibration_status": "qualified",
         "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-        "applicability": "in_domain"
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 3,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
       },
       "validation": {
         "status": "qualified",
@@ -515,7 +743,26 @@
         "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "calibration_status": "stale",
         "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-        "applicability": "in_domain"
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 3,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
       },
       "validation": {
         "status": "qualified",
@@ -559,7 +806,26 @@
         "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "calibration_status": "invalid",
         "calibration_evidence_sha256": null,
-        "applicability": "in_domain"
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 3,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
       },
       "validation": {
         "status": "qualified",
@@ -603,7 +869,26 @@
         "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "calibration_status": "qualified",
         "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-        "applicability": "in_domain"
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 3,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
       },
       "validation": {
         "status": "qualified",
@@ -640,7 +925,26 @@
         "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "calibration_status": "qualified",
         "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-        "applicability": "in_domain"
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 3,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
       },
       "validation": {
         "status": "qualified",
@@ -676,7 +980,26 @@
         "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "calibration_status": "qualified",
         "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-        "applicability": "in_domain"
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 3,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
       },
       "validation": {
         "status": "qualified",
@@ -712,7 +1035,26 @@
         "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "calibration_status": "qualified",
         "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-        "applicability": "in_domain"
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 3,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
       },
       "validation": {
         "status": "qualified",
@@ -734,6 +1076,303 @@
         "reason_codes": [
           "OBSERVATION_UNKNOWN",
           "VISIBILITY_CONTRADICTORY"
+        ]
+      }
+    },
+    {
+      "case_id": "grazing_incidence_out_of_domain",
+      "building_group_id": "synthetic-grazing_incidence_out_of_domain",
+      "capture_group_id": "capture-grazing_incidence_out_of_domain",
+      "visibility": "observable",
+      "observation": "captured",
+      "sensor": {
+        "sensor_id": "tls-synthetic-01",
+        "profile_id": "tls-profile-synthetic-v1",
+        "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "calibration_status": "qualified",
+        "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 5,
+          "incidence_angle_rad": 1.5,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
+      },
+      "validation": {
+        "status": "qualified",
+        "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "independence": "independent",
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
+        "minimum_independent_lineages": 2
+      },
+      "measurement": {
+        "value_m": 2.5,
+        "standard_uncertainty_m": 0.003,
+        "coverage_factor": 2,
+        "coverage_probability": 0.95,
+        "uncertainty_method_id": "synthetic-known-answer-v1",
+        "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "unit": "metre"
+      },
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_expanded_uncertainty_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "unresolved",
+        "reason_codes": [
+          "SENSOR_INCIDENCE_OUT_OF_DOMAIN"
+        ]
+      }
+    },
+    {
+      "case_id": "unsupported_surface_response_out_of_domain",
+      "building_group_id": "synthetic-unsupported_surface_response_out_of_domain",
+      "capture_group_id": "capture-unsupported_surface_response_out_of_domain",
+      "visibility": "observable",
+      "observation": "captured",
+      "sensor": {
+        "sensor_id": "tls-synthetic-01",
+        "profile_id": "tls-profile-synthetic-v1",
+        "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "calibration_status": "qualified",
+        "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 5,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "mirror_glass",
+          "environment_class": "indoor_dry"
+        }
+      },
+      "validation": {
+        "status": "qualified",
+        "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "independence": "independent",
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
+        "minimum_independent_lineages": 2
+      },
+      "measurement": {
+        "value_m": 2.5,
+        "standard_uncertainty_m": 0.003,
+        "coverage_factor": 2,
+        "coverage_probability": 0.95,
+        "uncertainty_method_id": "synthetic-known-answer-v1",
+        "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "unit": "metre"
+      },
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_expanded_uncertainty_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "unresolved",
+        "reason_codes": [
+          "SENSOR_SURFACE_RESPONSE_OUT_OF_DOMAIN"
+        ]
+      }
+    },
+    {
+      "case_id": "sensor_profile_domain_missing_unresolved",
+      "building_group_id": "synthetic-sensor_profile_domain_missing_unresolved",
+      "capture_group_id": "capture-sensor_profile_domain_missing_unresolved",
+      "visibility": "observable",
+      "observation": "captured",
+      "sensor": {
+        "sensor_id": "tls-synthetic-01",
+        "profile_id": "tls-profile-synthetic-v1",
+        "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "calibration_status": "qualified",
+        "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "qualified_domain": null,
+        "observed_conditions": {
+          "range_m": 5,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
+      },
+      "validation": {
+        "status": "qualified",
+        "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "independence": "independent",
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
+        "minimum_independent_lineages": 2
+      },
+      "measurement": {
+        "value_m": 2.5,
+        "standard_uncertainty_m": 0.003,
+        "coverage_factor": 2,
+        "coverage_probability": 0.95,
+        "uncertainty_method_id": "synthetic-known-answer-v1",
+        "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "unit": "metre"
+      },
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_expanded_uncertainty_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "unresolved",
+        "reason_codes": [
+          "SENSOR_QUALIFIED_DOMAIN_UNKNOWN"
+        ]
+      }
+    },
+    {
+      "case_id": "sensor_conditions_missing_unresolved",
+      "building_group_id": "synthetic-sensor_conditions_missing_unresolved",
+      "capture_group_id": "capture-sensor_conditions_missing_unresolved",
+      "visibility": "observable",
+      "observation": "captured",
+      "sensor": {
+        "sensor_id": "tls-synthetic-01",
+        "profile_id": "tls-profile-synthetic-v1",
+        "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "calibration_status": "qualified",
+        "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": null
+      },
+      "validation": {
+        "status": "qualified",
+        "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "independence": "independent",
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
+        "minimum_independent_lineages": 2
+      },
+      "measurement": {
+        "value_m": 2.5,
+        "standard_uncertainty_m": 0.003,
+        "coverage_factor": 2,
+        "coverage_probability": 0.95,
+        "uncertainty_method_id": "synthetic-known-answer-v1",
+        "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "unit": "metre"
+      },
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_expanded_uncertainty_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "unresolved",
+        "reason_codes": [
+          "SENSOR_OBSERVED_CONDITIONS_UNKNOWN"
+        ]
+      }
+    },
+    {
+      "case_id": "invalid_sensor_profile_domain",
+      "building_group_id": "synthetic-invalid_sensor_profile_domain",
+      "capture_group_id": "capture-invalid_sensor_profile_domain",
+      "visibility": "observable",
+      "observation": "captured",
+      "sensor": {
+        "sensor_id": "tls-synthetic-01",
+        "profile_id": "tls-profile-synthetic-v1",
+        "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "calibration_status": "qualified",
+        "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 0.1,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 0.8,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
+      },
+      "validation": {
+        "status": "qualified",
+        "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "independence": "independent",
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
+        "minimum_independent_lineages": 2
+      },
+      "measurement": {
+        "value_m": 2.5,
+        "standard_uncertainty_m": 0.003,
+        "coverage_factor": 2,
+        "coverage_probability": 0.95,
+        "uncertainty_method_id": "synthetic-known-answer-v1",
+        "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "unit": "metre"
+      },
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_expanded_uncertainty_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "fail",
+        "reason_codes": [
+          "SENSOR_PROFILE_DOMAIN_INVALID"
         ]
       }
     }
