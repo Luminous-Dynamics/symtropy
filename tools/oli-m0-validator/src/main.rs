@@ -146,19 +146,6 @@ fn validate_number(
     Some(number)
 }
 
-fn validate_fraction(
-    value: Option<f64>,
-    name: &str,
-    allow_unknown: bool,
-    errors: &mut Vec<String>,
-) {
-    match value {
-        Some(number) if number.is_finite() && (0.0..=1.0).contains(&number) => {}
-        None if allow_unknown => {}
-        _ => errors.push(format!("{name} must be a finite fraction in [0, 1]")),
-    }
-}
-
 fn validate_fixture(value: &Value) -> Vec<String> {
     let mut errors = Vec::new();
 
@@ -314,7 +301,7 @@ fn validate_fixture(value: &Value) -> Vec<String> {
         .and_then(|measurement| measurement.get("units"))
         .and_then(Value::as_array);
     let unit_status = get_str(value, &["measurement", "unit_status"]).unwrap_or_default();
-    if !in_set(unit_status, &["DECLARED", "UNKNOWN"]) {
+    if !in_set(unit_status, &["DECLARED", "PARTIALLY_DECLARED", "UNKNOWN"]) {
         errors.push(format!("unsupported measurement.unit_status: {unit_status}"));
     }
     match (units, unit_status) {
@@ -325,15 +312,19 @@ fn validate_fixture(value: &Value) -> Vec<String> {
                 errors.push("measurement.units must contain only non-empty strings".to_owned());
             }
         }
-        (Some(values), "UNKNOWN") => {
+        (Some(values), "PARTIALLY_DECLARED") if !values.is_empty() => {
             if values.iter().any(|item| {
                 item.as_str().is_none_or(|text| text.trim().is_empty())
             }) {
-                errors.push("measurement.units must contain only non-empty known unit strings when unit_status is UNKNOWN".to_owned());
+                errors.push("measurement.units must contain only non-empty known unit strings when unit_status is PARTIALLY_DECLARED".to_owned());
             }
         }
-        (Some(_), "DECLARED") => {
-            errors.push("measurement.units must be non-empty when unit_status is DECLARED".to_owned());
+        (Some(values), "UNKNOWN") if values.is_empty() => {}
+        (Some(_), "UNKNOWN") => {
+            errors.push("measurement.units must be empty when unit_status is UNKNOWN".to_owned());
+        }
+        (Some(_), "DECLARED" | "PARTIALLY_DECLARED") => {
+            errors.push("measurement.units must be non-empty when unit_status is DECLARED or PARTIALLY_DECLARED".to_owned());
         }
         _ => errors.push("measurement.units must be an array".to_owned()),
     }
@@ -361,7 +352,7 @@ fn validate_fixture(value: &Value) -> Vec<String> {
         &["measurement", "temporal", "window_seconds"],
         "measurement.temporal.window_seconds",
         allow_unknown_measurement,
-        0.0,
+        f64::MIN_POSITIVE,
         None,
         &mut errors,
     );
@@ -370,7 +361,7 @@ fn validate_fixture(value: &Value) -> Vec<String> {
         &["measurement", "temporal", "sampling_interval_seconds"],
         "measurement.temporal.sampling_interval_seconds",
         allow_unknown_measurement,
-        0.0,
+        f64::MIN_POSITIVE,
         None,
         &mut errors,
     );
@@ -379,7 +370,7 @@ fn validate_fixture(value: &Value) -> Vec<String> {
         &["measurement", "temporal", "target_process_timescale_seconds"],
         "measurement.temporal.target_process_timescale_seconds",
         allow_unknown_measurement,
-        0.0,
+        f64::MIN_POSITIVE,
         None,
         &mut errors,
     );
@@ -748,8 +739,6 @@ mod tests {
         assert_eq!(value["measurement"]["units"].as_array().unwrap().len(), 0);
         assert!(validate_fixture(&value).is_empty());
         value["measurement"]["units"] = serde_json::json!(["s"]);
-        assert!(validate_fixture(&value).is_empty());
-        value["measurement"]["units"] = serde_json::json!([""]);
         assert!(!validate_fixture(&value).is_empty());
     }
 
