@@ -50,6 +50,9 @@ It does not implement another estimator, fault-state enumerator, controller, via
 
 The evidence roles must remain distinct: ARER is currently a locked-joint simulation baseline; gait-switching, LoComposition and sampling-MPC include Go2 hardware demonstrations within their own stated scopes; INSECTRON is a separate microhexapod mechanical system; PSC is a curriculum/data-allocation method. No headline result transfers across morphology, fault family, task, energy boundary or evidence tier without a matched trial.
 
+- **ISO 18646-5:2026 (published 24 Jul 2026):** use the complete-machine locomotion test conditions and test items as a common nominal-versus-degraded performance spine: rated speed, stopping distance, maximum climbing height, stair capacity, maximum slope, dragging force, crossing capacity, minimum pass-through height and minimum travel width. Bind the exact test conditions and configuration to every pre/post-fault pair. The standard explicitly does **not** verify or validate safety requirements, so ISO performance results must remain separate from robust viability, recovery and the #4326 adverse-outcome vector. Official ISO record: https://committee.iso.org/cms/live/live/en/sites/isoorg/contents/data/standard/08/68/86850.html
+
+
 ## Paradigm shift: fault-qualified graceful degradation
 
 Do not collapse the chain into “classifier says joint 3 failed, therefore switch to expert 3”. The deployable controller should preserve a *set of still-plausible fault hypotheses* while diagnosis is incomplete. Candidate actions and mode transitions are admitted only when the physical transition and required recovery remain valid under every currently plausible fault signature. Active diagnostic motions are evaluated only when their prefix, observation latency and post-probe continuations preserve a recoverable future.
