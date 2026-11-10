@@ -25,6 +25,8 @@ pub struct JointBudget {
     /// Must be identical for sensor acquisition and inference rollout costs.
     /// Prefer a measured target-hardware unit such as "microjoule-v1".
     pub resource_unit_id: String,
+    pub decision_value_unit_id: String,
+    pub clock_id: String,
     pub fallback_policy_id: String,
     pub context_digest: String,
 }
@@ -42,6 +44,8 @@ pub struct SensorRefreshOption {
     pub latency_bound_digest: String,
     pub resource_cost_digest: String,
     pub resource_unit_id: String,
+    pub decision_value_unit_id: String,
+    pub clock_id: String,
     pub expected_regret_reduction_microunits: u64,
     pub resource_cost_units: u64,
     pub acquisition_to_delivery_bound_ticks: u64,
@@ -72,27 +76,6 @@ pub enum DecisionReason {
     NoFreshObservationCanArriveBeforeDeadline,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum AllocatorStopReason {
-    MaxRolloutsReached,
-    MarginalScheduleExhausted,
-    NoPositiveMarginalValue,
-    DeadlineReservePreserved,
-    SharedComputeBudgetExhausted,
-}
-
-impl From<AllocationStopReason> for AllocatorStopReason {
-    fn from(value: AllocationStopReason) -> Self {
-        match value {
-            AllocationStopReason::MaxRolloutsReached => Self::MaxRolloutsReached,
-            AllocationStopReason::MarginalScheduleExhausted => Self::MarginalScheduleExhausted,
-            AllocationStopReason::NoPositiveMarginalValue => Self::NoPositiveMarginalValue,
-            AllocationStopReason::DeadlineReservePreserved => Self::DeadlineReservePreserved,
-            AllocationStopReason::SharedComputeBudgetExhausted => Self::SharedComputeBudgetExhausted,
-        }
-    }
-}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SensorGrant {
@@ -166,6 +149,8 @@ pub struct JointDecisionReceipt {
     pub resource_budget_units: u64,
     pub resource_units_committed: u64,
     pub resource_units_remaining: u64,
+    pub decision_value_unit_id: String,
+    pub clock_id: String,
     pub completion_bound_tick: u64,
     pub deadline_slack_after_reserve_ticks: u64,
     pub sensor_rejection: Option<SensorRejection>,
@@ -179,6 +164,8 @@ pub enum SchedulerError {
     InvalidBudget(&'static str),
     InvalidInferenceContext(&'static str),
     ResourceUnitMismatch,
+    DecisionValueUnitMismatch,
+    ClockDomainMismatch,
 }
 
 impl std::fmt::Display for SchedulerError {
@@ -216,6 +203,16 @@ fn validate_budget(budget: &JointBudget) -> Result<(), SchedulerError> {
             "resource unit identity is missing or too long",
         ));
     }
+    if !valid_id(&budget.decision_value_unit_id) {
+        return Err(SchedulerError::InvalidBudget(
+            "decision-value unit identity is missing or too long",
+        ));
+    }
+    if !valid_id(&budget.clock_id) {
+        return Err(SchedulerError::InvalidBudget(
+            "clock-domain identity is missing or too long",
+        ));
+    }
     if !valid_id(&budget.fallback_policy_id) {
         return Err(SchedulerError::InvalidBudget(
             "fallback policy identity is missing or too long",
@@ -244,9 +241,17 @@ fn validate_inference_context(
     budget: &JointBudget,
     opportunity: &DecisionOpportunity,
     resource_unit_id: &str,
+    decision_value_unit_id: &str,
+    clock_id: &str,
 ) -> Result<(), SchedulerError> {
     if resource_unit_id != budget.resource_unit_id {
         return Err(SchedulerError::ResourceUnitMismatch);
+    }
+    if decision_value_unit_id != budget.decision_value_unit_id {
+        return Err(SchedulerError::DecisionValueUnitMismatch);
+    }
+    if clock_id != budget.clock_id {
+        return Err(SchedulerError::ClockDomainMismatch);
     }
     if opportunity.context_digest != budget.context_digest {
         return Err(SchedulerError::InvalidInferenceContext(
@@ -324,6 +329,12 @@ fn validate_sensor_option(
     }
     if option.resource_unit_id != budget.resource_unit_id {
         return Err(SensorRejection::ResourceUnitMismatch);
+    }
+    if option.decision_value_unit_id != budget.decision_value_unit_id {
+        return Err(SensorRejection::DecisionValueUnitMismatch);
+    }
+    if option.clock_id != budget.clock_id {
+        return Err(SensorRejection::ClockDomainMismatch);
     }
     if option.expected_regret_reduction_microunits == 0 {
         return Err(SensorRejection::ZeroDecisionValue);
@@ -403,7 +414,6 @@ fn next_inference_grant(
         expected_regret_reduction_microunits: item.expected_regret_reduction_microunits,
         resource_cost_units: item.compute_units_allocated,
         completion_bound_tick: item.completion_bound_tick,
-        stop_reason: item.stop_reason.into(),
     })
 }
 
@@ -447,10 +457,18 @@ pub fn schedule(
     budget: &JointBudget,
     inference: &DecisionOpportunity,
     inference_resource_unit_id: &str,
+    inference_decision_value_unit_id: &str,
+    inference_clock_id: &str,
     sensor: Option<&SensorRefreshOption>,
 ) -> Result<JointDecisionReceipt, SchedulerError> {
     validate_budget(budget)?;
-    validate_inference_context(budget, inference, inference_resource_unit_id)?;
+    validate_inference_context(
+        budget,
+        inference,
+        inference_resource_unit_id,
+        inference_decision_value_unit_id,
+        inference_clock_id,
+    )?;
 
     let observation_available = inference.observation_available_tick <= budget.planning_tick;
     let observation_age = budget
@@ -577,6 +595,8 @@ pub fn schedule(
         context_digest: budget.context_digest.clone(),
         resource_unit_id: budget.resource_unit_id.clone(),
         resource_budget_units: budget.remaining_resource_units,
+        decision_value_unit_id: budget.decision_value_unit_id.clone(),
+        clock_id: budget.clock_id.clone(),
         resource_units_committed,
         resource_units_remaining: budget.remaining_resource_units - resource_units_committed,
         completion_bound_tick,
@@ -604,6 +624,8 @@ mod tests {
             maximum_observation_age_ticks: 3,
             remaining_resource_units: 100,
             resource_unit_id: "measured_uj_v1".into(),
+            decision_value_unit_id: "micro_loss_v1".into(),
+            clock_id: "sim_tick_200hz_v1".into(),
             fallback_policy_id: "fallback-v1".into(),
             context_digest: digest(1),
         }
@@ -655,6 +677,8 @@ mod tests {
             latency_bound_digest: digest(11),
             resource_cost_digest: digest(12),
             resource_unit_id: "measured_uj_v1".into(),
+            decision_value_unit_id: "micro_loss_v1".into(),
+            clock_id: "sim_tick_200hz_v1".into(),
             expected_regret_reduction_microunits: 150,
             resource_cost_units: 15,
             acquisition_to_delivery_bound_ticks: 5,
