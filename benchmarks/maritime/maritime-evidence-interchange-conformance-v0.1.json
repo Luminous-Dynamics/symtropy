@@ -1,0 +1,834 @@
+{
+  "corpus_id": "luminous.symtropy.maritime-evidence-interchange-conformance",
+  "corpus_version": "0.1.0",
+  "claim_ceiling": "Synthetic conformance fixtures only; not physical diagnostic validation.",
+  "fixture_count": 12,
+  "fixtures": [
+    {
+      "fixture_id": "obs-001-measured-exact",
+      "expected_disposition": "accept",
+      "expected_invariants": [
+        "native_id_retained",
+        "payload_digest_verified",
+        "mapping_exact"
+      ],
+      "record": {
+        "schema_version": "0.1.0",
+        "record_id": "obs-001",
+        "asset_ref": {
+          "vessel_id": "fixture-vessel-01",
+          "asset_path": [
+            "machinery",
+            "main-engine",
+            "cylinder-1",
+            "bearing"
+          ],
+          "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "provenance": {
+          "source_id": "fixture-source-01",
+          "source_class": "sensor",
+          "native_record_id": "obs-001-native",
+          "adapter_id": "fixture-adapter",
+          "adapter_version": "0.1.0",
+          "mapping_catalogue_version": "fixture-map-0.1",
+          "received_at": "2026-01-01T12:00:02Z",
+          "source_payload": {
+            "sha256": "281a790c52136d39fb06b2064cb65e158a6c2184cbe4dfd991d2cda152423d67",
+            "byte_length": 27,
+            "media_type": "application/json",
+            "inline_base64": "eyJ2YWx1ZSI6ODIuNSwidW5pdCI6IkNlbCJ9"
+          }
+        },
+        "time": {
+          "event_time": "2026-01-01T12:00:00Z",
+          "time_basis": "synchronized_utc",
+          "clock_id": "fixture-clock-01",
+          "clock_quality": "locked",
+          "synchronization_uncertainty_ms": 2,
+          "monotonic_counter_ns": 1000000,
+          "sequence_number": 1
+        },
+        "record_type": "observation",
+        "mapping": {
+          "status": "exact",
+          "native_channel_id": "OEM_TEMP_001",
+          "native_channel_name": "Bearing temperature",
+          "normalized_concept_id": "iso19848:MainEngine.BearingTemperature",
+          "mapping_method": "deterministic_catalogue",
+          "mapping_confidence": 1
+        },
+        "quantity_kind": "temperature",
+        "unit_ucum": "Cel",
+        "value_state": "measured",
+        "quality": {
+          "calibration_state": "valid",
+          "calibration_ref": "cal-01",
+          "freshness_state": "current",
+          "measurement_quality": "valid",
+          "quality_flags": []
+        },
+        "lineage": [],
+        "value": 82.5
+      }
+    },
+    {
+      "fixture_id": "obs-002-derived-with-lineage",
+      "expected_disposition": "accept",
+      "expected_invariants": [
+        "lineage_retained",
+        "value_state_derived"
+      ],
+      "record": {
+        "schema_version": "0.1.0",
+        "record_id": "obs-002",
+        "asset_ref": {
+          "vessel_id": "fixture-vessel-01",
+          "asset_path": [
+            "machinery",
+            "main-engine",
+            "cylinder-1",
+            "bearing"
+          ],
+          "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "provenance": {
+          "source_id": "fixture-source-01",
+          "source_class": "sensor",
+          "native_record_id": "obs-002-native",
+          "adapter_id": "fixture-adapter",
+          "adapter_version": "0.1.0",
+          "mapping_catalogue_version": "fixture-map-0.1",
+          "received_at": "2026-01-01T12:00:02Z",
+          "source_payload": {
+            "sha256": "45a740a91991ea5c4b80cc25d011f14d624e7b87ea8a203f3c307f657265bf62",
+            "byte_length": 26,
+            "media_type": "application/json",
+            "inline_base64": "eyJybXMiOjEuMjUsIndpbmRvd19zIjoxMH0="
+          }
+        },
+        "time": {
+          "event_time": "2026-01-01T12:00:00Z",
+          "time_basis": "synchronized_utc",
+          "clock_id": "fixture-clock-01",
+          "clock_quality": "locked",
+          "synchronization_uncertainty_ms": 2,
+          "monotonic_counter_ns": 1000000,
+          "sequence_number": 1
+        },
+        "record_type": "observation",
+        "mapping": {
+          "status": "exact",
+          "native_channel_id": "OEM_TEMP_001",
+          "native_channel_name": "Bearing temperature",
+          "normalized_concept_id": "iso19848:MainEngine.BearingTemperature",
+          "mapping_method": "deterministic_catalogue",
+          "mapping_confidence": 1
+        },
+        "quantity_kind": "vibration_velocity",
+        "unit_ucum": "mm/s",
+        "value_state": "derived",
+        "quality": {
+          "calibration_state": "valid",
+          "calibration_ref": "cal-01",
+          "freshness_state": "current",
+          "measurement_quality": "valid",
+          "quality_flags": []
+        },
+        "lineage": [
+          {
+            "transform_id": "rms-window",
+            "implementation": "fixture-transform",
+            "version": "1.0",
+            "input_record_refs": [
+              "obs-001"
+            ],
+            "output_state": "derived"
+          }
+        ],
+        "value": 1.25
+      }
+    },
+    {
+      "fixture_id": "obs-003-missing-no-value",
+      "expected_disposition": "accept",
+      "expected_invariants": [
+        "missing_not_healthy",
+        "no_value_present"
+      ],
+      "record": {
+        "schema_version": "0.1.0",
+        "record_id": "obs-003",
+        "asset_ref": {
+          "vessel_id": "fixture-vessel-01",
+          "asset_path": [
+            "machinery",
+            "main-engine",
+            "cylinder-1",
+            "bearing"
+          ],
+          "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "provenance": {
+          "source_id": "fixture-source-01",
+          "source_class": "sensor",
+          "native_record_id": "obs-003-native",
+          "adapter_id": "fixture-adapter",
+          "adapter_version": "0.1.0",
+          "mapping_catalogue_version": "fixture-map-0.1",
+          "received_at": "2026-01-01T12:00:02Z",
+          "source_payload": {
+            "sha256": "281a790c52136d39fb06b2064cb65e158a6c2184cbe4dfd991d2cda152423d67",
+            "byte_length": 27,
+            "media_type": "application/json",
+            "inline_base64": "eyJ2YWx1ZSI6ODIuNSwidW5pdCI6IkNlbCJ9"
+          }
+        },
+        "time": {
+          "event_time": "2026-01-01T12:00:00Z",
+          "time_basis": "synchronized_utc",
+          "clock_id": "fixture-clock-01",
+          "clock_quality": "locked",
+          "synchronization_uncertainty_ms": 2,
+          "monotonic_counter_ns": 1000000,
+          "sequence_number": 1
+        },
+        "record_type": "observation",
+        "mapping": {
+          "status": "exact",
+          "native_channel_id": "OEM_TEMP_001",
+          "native_channel_name": "Bearing temperature",
+          "normalized_concept_id": "iso19848:MainEngine.BearingTemperature",
+          "mapping_method": "deterministic_catalogue",
+          "mapping_confidence": 1
+        },
+        "quantity_kind": "temperature",
+        "unit_ucum": "Cel",
+        "value_state": "missing",
+        "quality": {
+          "calibration_state": "valid",
+          "calibration_ref": "cal-01",
+          "freshness_state": "current",
+          "measurement_quality": "valid",
+          "quality_flags": []
+        },
+        "lineage": []
+      }
+    },
+    {
+      "fixture_id": "obs-004-reconstructed-distinct",
+      "expected_disposition": "accept",
+      "expected_invariants": [
+        "reconstructed_not_measured",
+        "lineage_retained"
+      ],
+      "record": {
+        "schema_version": "0.1.0",
+        "record_id": "obs-004",
+        "asset_ref": {
+          "vessel_id": "fixture-vessel-01",
+          "asset_path": [
+            "machinery",
+            "main-engine",
+            "cylinder-1",
+            "bearing"
+          ],
+          "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "provenance": {
+          "source_id": "fixture-source-01",
+          "source_class": "sensor",
+          "native_record_id": "obs-004-native",
+          "adapter_id": "fixture-adapter",
+          "adapter_version": "0.1.0",
+          "mapping_catalogue_version": "fixture-map-0.1",
+          "received_at": "2026-01-01T12:00:02Z",
+          "source_payload": {
+            "sha256": "281a790c52136d39fb06b2064cb65e158a6c2184cbe4dfd991d2cda152423d67",
+            "byte_length": 27,
+            "media_type": "application/json",
+            "inline_base64": "eyJ2YWx1ZSI6ODIuNSwidW5pdCI6IkNlbCJ9"
+          }
+        },
+        "time": {
+          "event_time": "2026-01-01T12:00:00Z",
+          "time_basis": "synchronized_utc",
+          "clock_id": "fixture-clock-01",
+          "clock_quality": "locked",
+          "synchronization_uncertainty_ms": 2,
+          "monotonic_counter_ns": 1000000,
+          "sequence_number": 1
+        },
+        "record_type": "observation",
+        "mapping": {
+          "status": "exact",
+          "native_channel_id": "OEM_TEMP_001",
+          "native_channel_name": "Bearing temperature",
+          "normalized_concept_id": "iso19848:MainEngine.BearingTemperature",
+          "mapping_method": "deterministic_catalogue",
+          "mapping_confidence": 1
+        },
+        "quantity_kind": "temperature",
+        "unit_ucum": "Cel",
+        "value_state": "reconstructed",
+        "quality": {
+          "calibration_state": "valid",
+          "calibration_ref": "cal-01",
+          "freshness_state": "current",
+          "measurement_quality": "valid",
+          "quality_flags": []
+        },
+        "lineage": [
+          {
+            "transform_id": "gap-reconstruction",
+            "implementation": "fixture-repair",
+            "version": "1.0",
+            "input_record_refs": [
+              "obs-001"
+            ],
+            "output_state": "reconstructed"
+          }
+        ],
+        "value": 82.1
+      }
+    },
+    {
+      "fixture_id": "obs-005-ambiguous-map-abstains",
+      "expected_disposition": "abstain",
+      "expected_invariants": [
+        "native_id_retained",
+        "no_normalized_id"
+      ],
+      "record": {
+        "schema_version": "0.1.0",
+        "record_id": "obs-005",
+        "asset_ref": {
+          "vessel_id": "fixture-vessel-01",
+          "asset_path": [
+            "machinery",
+            "main-engine",
+            "cylinder-1",
+            "bearing"
+          ],
+          "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "provenance": {
+          "source_id": "fixture-source-01",
+          "source_class": "sensor",
+          "native_record_id": "obs-005-native",
+          "adapter_id": "fixture-adapter",
+          "adapter_version": "0.1.0",
+          "mapping_catalogue_version": "fixture-map-0.1",
+          "received_at": "2026-01-01T12:00:02Z",
+          "source_payload": {
+            "sha256": "281a790c52136d39fb06b2064cb65e158a6c2184cbe4dfd991d2cda152423d67",
+            "byte_length": 27,
+            "media_type": "application/json",
+            "inline_base64": "eyJ2YWx1ZSI6ODIuNSwidW5pdCI6IkNlbCJ9"
+          }
+        },
+        "time": {
+          "event_time": "2026-01-01T12:00:00Z",
+          "time_basis": "synchronized_utc",
+          "clock_id": "fixture-clock-01",
+          "clock_quality": "locked",
+          "synchronization_uncertainty_ms": 2,
+          "monotonic_counter_ns": 1000000,
+          "sequence_number": 1
+        },
+        "record_type": "observation",
+        "mapping": {
+          "status": "ambiguous",
+          "native_channel_id": "OEM_TEMP_001",
+          "native_channel_name": "Bearing temperature",
+          "candidate_concept_ids": [
+            "iso19848:MainEngine.BearingTemperature",
+            "vendor:BearingTemp"
+          ]
+        },
+        "quantity_kind": "temperature",
+        "unit_ucum": "Cel",
+        "value_state": "measured",
+        "quality": {
+          "calibration_state": "valid",
+          "calibration_ref": "cal-01",
+          "freshness_state": "current",
+          "measurement_quality": "valid",
+          "quality_flags": []
+        },
+        "lineage": [],
+        "value": 82.5
+      }
+    },
+    {
+      "fixture_id": "obs-006-unmapped-channel-abstains",
+      "expected_disposition": "abstain",
+      "expected_invariants": [
+        "native_id_retained",
+        "no_normalized_id"
+      ],
+      "record": {
+        "schema_version": "0.1.0",
+        "record_id": "obs-006",
+        "asset_ref": {
+          "vessel_id": "fixture-vessel-01",
+          "asset_path": [
+            "machinery",
+            "main-engine",
+            "cylinder-1",
+            "bearing"
+          ],
+          "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "provenance": {
+          "source_id": "fixture-source-01",
+          "source_class": "sensor",
+          "native_record_id": "obs-006-native",
+          "adapter_id": "fixture-adapter",
+          "adapter_version": "0.1.0",
+          "mapping_catalogue_version": "fixture-map-0.1",
+          "received_at": "2026-01-01T12:00:02Z",
+          "source_payload": {
+            "sha256": "281a790c52136d39fb06b2064cb65e158a6c2184cbe4dfd991d2cda152423d67",
+            "byte_length": 27,
+            "media_type": "application/json",
+            "inline_base64": "eyJ2YWx1ZSI6ODIuNSwidW5pdCI6IkNlbCJ9"
+          }
+        },
+        "time": {
+          "event_time": "2026-01-01T12:00:00Z",
+          "time_basis": "synchronized_utc",
+          "clock_id": "fixture-clock-01",
+          "clock_quality": "locked",
+          "synchronization_uncertainty_ms": 2,
+          "monotonic_counter_ns": 1000000,
+          "sequence_number": 1
+        },
+        "record_type": "observation",
+        "mapping": {
+          "status": "unmapped",
+          "native_channel_id": "X-99",
+          "native_channel_name": "unknown bearing signal"
+        },
+        "quantity_kind": "temperature",
+        "unit_ucum": "Cel",
+        "value_state": "measured",
+        "quality": {
+          "calibration_state": "valid",
+          "calibration_ref": "cal-01",
+          "freshness_state": "current",
+          "measurement_quality": "valid",
+          "quality_flags": []
+        },
+        "lineage": [],
+        "value": 82.5
+      }
+    },
+    {
+      "fixture_id": "assert-007-vendor-alarm-not-measurement",
+      "expected_disposition": "accept",
+      "expected_invariants": [
+        "record_type_assertion",
+        "claim_not_ground_truth",
+        "authority_false"
+      ],
+      "record": {
+        "schema_version": "0.1.0",
+        "record_id": "assert-007",
+        "asset_ref": {
+          "vessel_id": "fixture-vessel-01",
+          "asset_path": [
+            "machinery",
+            "main-engine",
+            "cylinder-1",
+            "bearing"
+          ],
+          "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "provenance": {
+          "source_id": "fixture-source-01",
+          "source_class": "oem_platform",
+          "native_record_id": "assert-007-native",
+          "adapter_id": "fixture-adapter",
+          "adapter_version": "0.1.0",
+          "mapping_catalogue_version": "fixture-map-0.1",
+          "received_at": "2026-01-01T12:00:02Z",
+          "source_payload": {
+            "sha256": "d92695a30710a402bec2630cef96af36df0a60591ece65c92362470571d3733d",
+            "byte_length": 57,
+            "media_type": "application/json",
+            "inline_base64": "eyJhbGFybSI6ImJlYXJpbmctdGVtcGVyYXR1cmUtaGlnaCIsInNldmVyaXR5Ijoid2FybmluZyJ9"
+          }
+        },
+        "time": {
+          "event_time": "2026-01-01T12:00:00Z",
+          "time_basis": "synchronized_utc",
+          "clock_id": "fixture-clock-01",
+          "clock_quality": "locked",
+          "synchronization_uncertainty_ms": 2,
+          "monotonic_counter_ns": 1000000,
+          "sequence_number": 1
+        },
+        "record_type": "diagnostic_assertion",
+        "assertion": {
+          "kind": "anomaly",
+          "code": "BRG-T-HI",
+          "statement": "Bearing temperature high",
+          "status": "source_reported",
+          "confidence": 0.74,
+          "severity": "high",
+          "claim_scope": "cylinder-1 bearing"
+        },
+        "method": {
+          "provider": "OEM example",
+          "name": "rule-based alarm",
+          "version": "5.2"
+        },
+        "evidence_links": {
+          "supports": [
+            "obs-001"
+          ],
+          "contradicts": [],
+          "derived_from": []
+        },
+        "authority_granted": false,
+        "claim_ceiling": "not_ground_truth"
+      }
+    },
+    {
+      "fixture_id": "assert-008-conflict-preserved",
+      "expected_disposition": "accept",
+      "expected_invariants": [
+        "support_link_retained",
+        "contradiction_link_retained",
+        "no_consensus_collapse"
+      ],
+      "record": {
+        "schema_version": "0.1.0",
+        "record_id": "assert-008",
+        "asset_ref": {
+          "vessel_id": "fixture-vessel-01",
+          "asset_path": [
+            "machinery",
+            "main-engine",
+            "cylinder-1",
+            "bearing"
+          ],
+          "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "provenance": {
+          "source_id": "fixture-source-01",
+          "source_class": "diagnostic_service",
+          "native_record_id": "assert-008-native",
+          "adapter_id": "fixture-adapter",
+          "adapter_version": "0.1.0",
+          "mapping_catalogue_version": "fixture-map-0.1",
+          "received_at": "2026-01-01T12:00:02Z",
+          "source_payload": {
+            "sha256": "d92695a30710a402bec2630cef96af36df0a60591ece65c92362470571d3733d",
+            "byte_length": 57,
+            "media_type": "application/json",
+            "inline_base64": "eyJhbGFybSI6ImJlYXJpbmctdGVtcGVyYXR1cmUtaGlnaCIsInNldmVyaXR5Ijoid2FybmluZyJ9"
+          }
+        },
+        "time": {
+          "event_time": "2026-01-01T12:00:00Z",
+          "time_basis": "synchronized_utc",
+          "clock_id": "fixture-clock-01",
+          "clock_quality": "locked",
+          "synchronization_uncertainty_ms": 2,
+          "monotonic_counter_ns": 1000000,
+          "sequence_number": 1
+        },
+        "record_type": "diagnostic_assertion",
+        "assertion": {
+          "kind": "fault_hypothesis",
+          "statement": "Bearing thermal fault likely",
+          "status": "disputed",
+          "confidence": 0.62,
+          "severity": "moderate"
+        },
+        "method": {
+          "provider": "independent evaluator",
+          "name": "multisensor residual model",
+          "version": "0.1.0"
+        },
+        "evidence_links": {
+          "supports": [
+            "obs-001"
+          ],
+          "contradicts": [
+            "obs-009"
+          ],
+          "derived_from": []
+        },
+        "authority_granted": false,
+        "claim_ceiling": "not_ground_truth"
+      }
+    },
+    {
+      "fixture_id": "obs-009-bad-payload-digest",
+      "expected_disposition": "reject",
+      "expected_invariants": [
+        "digest_mismatch_rejected"
+      ],
+      "record": {
+        "schema_version": "0.1.0",
+        "record_id": "obs-009",
+        "asset_ref": {
+          "vessel_id": "fixture-vessel-01",
+          "asset_path": [
+            "machinery",
+            "main-engine",
+            "cylinder-1",
+            "bearing"
+          ],
+          "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "provenance": {
+          "source_id": "fixture-source-01",
+          "source_class": "sensor",
+          "native_record_id": "obs-009-native",
+          "adapter_id": "fixture-adapter",
+          "adapter_version": "0.1.0",
+          "mapping_catalogue_version": "fixture-map-0.1",
+          "received_at": "2026-01-01T12:00:02Z",
+          "source_payload": {
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "byte_length": 27,
+            "media_type": "application/json",
+            "inline_base64": "eyJ2YWx1ZSI6ODIuNSwidW5pdCI6IkNlbCJ9"
+          }
+        },
+        "time": {
+          "event_time": "2026-01-01T12:00:00Z",
+          "time_basis": "synchronized_utc",
+          "clock_id": "fixture-clock-01",
+          "clock_quality": "locked",
+          "synchronization_uncertainty_ms": 2,
+          "monotonic_counter_ns": 1000000,
+          "sequence_number": 1
+        },
+        "record_type": "observation",
+        "mapping": {
+          "status": "exact",
+          "native_channel_id": "OEM_TEMP_001",
+          "native_channel_name": "Bearing temperature",
+          "normalized_concept_id": "iso19848:MainEngine.BearingTemperature",
+          "mapping_method": "deterministic_catalogue",
+          "mapping_confidence": 1
+        },
+        "quantity_kind": "temperature",
+        "unit_ucum": "Cel",
+        "value_state": "measured",
+        "quality": {
+          "calibration_state": "valid",
+          "calibration_ref": "cal-01",
+          "freshness_state": "current",
+          "measurement_quality": "valid",
+          "quality_flags": []
+        },
+        "lineage": [],
+        "value": 82.5
+      }
+    },
+    {
+      "fixture_id": "obs-010-future-event-time",
+      "expected_disposition": "reject",
+      "expected_invariants": [
+        "future_timestamp_not_silently_accepted"
+      ],
+      "record": {
+        "schema_version": "0.1.0",
+        "record_id": "obs-010",
+        "asset_ref": {
+          "vessel_id": "fixture-vessel-01",
+          "asset_path": [
+            "machinery",
+            "main-engine",
+            "cylinder-1",
+            "bearing"
+          ],
+          "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "provenance": {
+          "source_id": "fixture-source-01",
+          "source_class": "sensor",
+          "native_record_id": "obs-010-native",
+          "adapter_id": "fixture-adapter",
+          "adapter_version": "0.1.0",
+          "mapping_catalogue_version": "fixture-map-0.1",
+          "received_at": "2026-01-01T12:00:02Z",
+          "source_payload": {
+            "sha256": "281a790c52136d39fb06b2064cb65e158a6c2184cbe4dfd991d2cda152423d67",
+            "byte_length": 27,
+            "media_type": "application/json",
+            "inline_base64": "eyJ2YWx1ZSI6ODIuNSwidW5pdCI6IkNlbCJ9"
+          }
+        },
+        "time": {
+          "event_time": "2036-01-01T12:00:00Z",
+          "time_basis": "synchronized_utc",
+          "clock_id": "fixture-clock-01",
+          "clock_quality": "locked",
+          "synchronization_uncertainty_ms": 2,
+          "monotonic_counter_ns": 1000000,
+          "sequence_number": 1
+        },
+        "record_type": "observation",
+        "mapping": {
+          "status": "exact",
+          "native_channel_id": "OEM_TEMP_001",
+          "native_channel_name": "Bearing temperature",
+          "normalized_concept_id": "iso19848:MainEngine.BearingTemperature",
+          "mapping_method": "deterministic_catalogue",
+          "mapping_confidence": 1
+        },
+        "quantity_kind": "temperature",
+        "unit_ucum": "Cel",
+        "value_state": "measured",
+        "quality": {
+          "calibration_state": "valid",
+          "calibration_ref": "cal-01",
+          "freshness_state": "current",
+          "measurement_quality": "valid",
+          "quality_flags": []
+        },
+        "lineage": [],
+        "value": 82.5
+      }
+    },
+    {
+      "fixture_id": "obs-011-derived-without-lineage",
+      "expected_disposition": "reject",
+      "expected_invariants": [
+        "derived_without_lineage_rejected"
+      ],
+      "record": {
+        "schema_version": "0.1.0",
+        "record_id": "obs-011",
+        "asset_ref": {
+          "vessel_id": "fixture-vessel-01",
+          "asset_path": [
+            "machinery",
+            "main-engine",
+            "cylinder-1",
+            "bearing"
+          ],
+          "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "provenance": {
+          "source_id": "fixture-source-01",
+          "source_class": "sensor",
+          "native_record_id": "obs-011-native",
+          "adapter_id": "fixture-adapter",
+          "adapter_version": "0.1.0",
+          "mapping_catalogue_version": "fixture-map-0.1",
+          "received_at": "2026-01-01T12:00:02Z",
+          "source_payload": {
+            "sha256": "281a790c52136d39fb06b2064cb65e158a6c2184cbe4dfd991d2cda152423d67",
+            "byte_length": 27,
+            "media_type": "application/json",
+            "inline_base64": "eyJ2YWx1ZSI6ODIuNSwidW5pdCI6IkNlbCJ9"
+          }
+        },
+        "time": {
+          "event_time": "2026-01-01T12:00:00Z",
+          "time_basis": "synchronized_utc",
+          "clock_id": "fixture-clock-01",
+          "clock_quality": "locked",
+          "synchronization_uncertainty_ms": 2,
+          "monotonic_counter_ns": 1000000,
+          "sequence_number": 1
+        },
+        "record_type": "observation",
+        "mapping": {
+          "status": "exact",
+          "native_channel_id": "OEM_TEMP_001",
+          "native_channel_name": "Bearing temperature",
+          "normalized_concept_id": "iso19848:MainEngine.BearingTemperature",
+          "mapping_method": "deterministic_catalogue",
+          "mapping_confidence": 1
+        },
+        "quantity_kind": "temperature",
+        "unit_ucum": "Cel",
+        "value_state": "derived",
+        "quality": {
+          "calibration_state": "valid",
+          "calibration_ref": "cal-01",
+          "freshness_state": "current",
+          "measurement_quality": "valid",
+          "quality_flags": []
+        },
+        "lineage": [],
+        "value": 82.5
+      }
+    },
+    {
+      "fixture_id": "obs-012-duplicate-sequence",
+      "expected_disposition": "reject",
+      "expected_invariants": [
+        "duplicate_sequence_detected"
+      ],
+      "record": {
+        "schema_version": "0.1.0",
+        "record_id": "obs-012",
+        "asset_ref": {
+          "vessel_id": "fixture-vessel-01",
+          "asset_path": [
+            "machinery",
+            "main-engine",
+            "cylinder-1",
+            "bearing"
+          ],
+          "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "provenance": {
+          "source_id": "fixture-source-01",
+          "source_class": "sensor",
+          "native_record_id": "obs-012-native",
+          "adapter_id": "fixture-adapter",
+          "adapter_version": "0.1.0",
+          "mapping_catalogue_version": "fixture-map-0.1",
+          "received_at": "2026-01-01T12:00:02Z",
+          "source_payload": {
+            "sha256": "281a790c52136d39fb06b2064cb65e158a6c2184cbe4dfd991d2cda152423d67",
+            "byte_length": 27,
+            "media_type": "application/json",
+            "inline_base64": "eyJ2YWx1ZSI6ODIuNSwidW5pdCI6IkNlbCJ9"
+          }
+        },
+        "time": {
+          "event_time": "2026-01-01T12:00:00Z",
+          "time_basis": "synchronized_utc",
+          "clock_id": "fixture-clock-01",
+          "clock_quality": "locked",
+          "synchronization_uncertainty_ms": 2,
+          "monotonic_counter_ns": 1000000,
+          "sequence_number": 1
+        },
+        "record_type": "observation",
+        "mapping": {
+          "status": "exact",
+          "native_channel_id": "OEM_TEMP_001",
+          "native_channel_name": "Bearing temperature",
+          "normalized_concept_id": "iso19848:MainEngine.BearingTemperature",
+          "mapping_method": "deterministic_catalogue",
+          "mapping_confidence": 1
+        },
+        "quantity_kind": "temperature",
+        "unit_ucum": "Cel",
+        "value_state": "measured",
+        "quality": {
+          "calibration_state": "valid",
+          "calibration_ref": "cal-01",
+          "freshness_state": "current",
+          "measurement_quality": "valid",
+          "quality_flags": []
+        },
+        "lineage": [],
+        "value": 82.5
+      }
+    }
+  ]
+}
