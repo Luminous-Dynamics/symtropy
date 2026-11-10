@@ -726,6 +726,8 @@ mod tests {
         first.minimum_authority_required_ppm = 600_000;
 
         let mut second = event("slip-recovery", 2);
+        second.thermal_update_receipt.as_mut().unwrap().prior_thermal_state_digest =
+            "thermal-state:derate:1".to_owned();
         second.recovery_budget_cost_mwh = 210;
         second.minimum_authority_required_ppm = 600_000;
 
@@ -754,6 +756,8 @@ mod tests {
         high_load.minimum_authority_required_ppm = 900_000;
 
         let mut derate = event("torque-derate", 2);
+        derate.thermal_update_receipt.as_mut().unwrap().prior_thermal_state_digest =
+            "thermal-state:high-load-turn:1".to_owned();
         derate.battery_energy_cost_mwh = 100;
         derate.thermal_headroom_loss_mj = 180;
         derate.actuator_authority_loss_ppm = 250_000;
@@ -768,6 +772,8 @@ mod tests {
         derate_first.event_tick = 1;
         let mut high_load_second = high_load;
         high_load_second.event_tick = 2;
+        high_load_second.thermal_update_receipt.as_mut().unwrap().prior_thermal_state_digest =
+            "thermal-state:torque-derate:1".to_owned();
         let reversed = replay(&state, &[derate_first, high_load_second]).unwrap();
         assert_eq!(reversed.status, MissionStatus::Rejected);
         assert_eq!(
@@ -814,6 +820,8 @@ mod tests {
         derate.actuator_authority_loss_ppm = 300_000;
         derate.thermal_headroom_loss_mj = 100;
         let mut cooldown = event("cooldown", 2);
+        cooldown.thermal_update_receipt.as_mut().unwrap().prior_thermal_state_digest =
+            "thermal-state:derate:1".to_owned();
         cooldown.thermal_cooling_gain_mj = 100;
         let report = replay(&initial(), &[derate, cooldown]).unwrap();
         assert_eq!(report.status, MissionStatus::Complete);
@@ -1010,6 +1018,21 @@ mod tests {
         assert_eq!(report.stop_reason, Some(StopReason::ThermalHeadroomExhausted));
         assert_eq!(report.final_state.thermal_nodes[0].temperature_milli_c, 99_000);
         assert_eq!(report.final_state.current_tick, 1);
+    }
+
+    #[test]
+    fn thermal_snapshot_replay_from_wrong_predecessor_is_unknown() {
+        let mut first = event("first-thermal-transition", 1);
+        first.thermal_update_receipt.as_mut().unwrap().resulting_thermal_state_digest =
+            "thermal-state:after-first".to_owned();
+        let mut second = event("second-thermal-transition", 2);
+        second.thermal_update_receipt.as_mut().unwrap().prior_thermal_state_digest =
+            "thermal-state:some-other-history".to_owned();
+        let report = replay(&initial(), &[first, second]).unwrap();
+        assert_eq!(report.status, MissionStatus::Unknown);
+        assert_eq!(report.stop_reason, Some(StopReason::ThermalEvidenceUnknown));
+        assert_eq!(report.final_state.thermal_state_digest, "thermal-state:after-first");
+        assert_eq!(report.snapshots.len(), 1);
     }
 
     #[test]
