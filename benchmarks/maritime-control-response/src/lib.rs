@@ -493,6 +493,7 @@ pub enum ResponseStatus {
     NotEvaluableCommandQuality,
     NotEvaluableResponseQuality,
     NotEvaluableUnsupportedRegime,
+    NotEvaluableMissingModelPrediction,
     NotEvaluableUncalibrated,
 }
 
@@ -512,6 +513,10 @@ pub struct CommandResponsePair {
     pub sample_index: u64,
     pub command_signal: String,
     pub response_signal: String,
+    pub regime_id: String,
+    pub model_sha256: String,
+    pub training_recordings_manifest_sha256: String,
+    pub split_manifest_sha256: String,
     pub command_value: Option<f64>,
     pub command_time_seconds: Option<f64>,
     pub response_value: Option<f64>,
@@ -533,6 +538,11 @@ pub struct ResponseEvaluation {
     pub sample_index: u64,
     pub command_signal: String,
     pub response_signal: String,
+    pub regime_id: String,
+    pub model_sha256: String,
+    pub training_recordings_manifest_sha256: String,
+    pub split_manifest_sha256: String,
+    pub calibration_recordings_manifest_sha256: Option<String>,
     pub status: ResponseStatus,
     pub observed_residual: Option<f64>,
     pub standardized_absolute_residual: Option<f64>,
@@ -551,6 +561,12 @@ pub fn evaluate_command_response(
     if pair.recording_id.trim().is_empty()
         || pair.command_signal.trim().is_empty()
         || pair.response_signal.trim().is_empty()
+        || pair.regime_id.trim().is_empty()
+        || !is_sha256_hex(&pair.model_sha256)
+        || !is_sha256_hex(&pair.training_recordings_manifest_sha256)
+        || !is_sha256_hex(&pair.split_manifest_sha256)
+        || pair.training_recordings_manifest_sha256
+            == pair.split_manifest_sha256
         || !pair.model_residual_std.is_finite()
         || pair.model_residual_std < 0.0
         || !pair.measurement_std.is_finite()
@@ -566,6 +582,11 @@ pub fn evaluate_command_response(
         sample_index: pair.sample_index,
         command_signal: pair.command_signal.clone(),
         response_signal: pair.response_signal.clone(),
+        regime_id: pair.regime_id.clone(),
+        model_sha256: pair.model_sha256.clone(),
+        training_recordings_manifest_sha256: pair.training_recordings_manifest_sha256.clone(),
+        split_manifest_sha256: pair.split_manifest_sha256.clone(),
+        calibration_recordings_manifest_sha256: None,
         status: ResponseStatus::NotEvaluableUncalibrated,
         observed_residual: None,
         standardized_absolute_residual: None,
@@ -594,6 +615,9 @@ pub fn evaluate_command_response(
         return Ok(result);
     }
 
+    if pair.command_value.is_some_and(|value| !value.is_finite()) {
+        return Err(EvalError::InvalidCommandResponsePair);
+    }
     let command_time = match pair.command_time_seconds {
         Some(value) if value.is_finite() && value >= 0.0 => value,
         _ => {
@@ -618,7 +642,10 @@ pub fn evaluate_command_response(
     }
 
     let observed = pair.response_value.expect("checked above");
-    let expected = pair.expected_response.ok_or(EvalError::InvalidCommandResponsePair)?;
+    let Some(expected) = pair.expected_response else {
+        result.status = ResponseStatus::NotEvaluableMissingModelPrediction;
+        return Ok(result);
+    };
     if !observed.is_finite() || !expected.is_finite() {
         return Err(EvalError::InvalidCommandResponsePair);
     }
@@ -639,7 +666,17 @@ pub fn evaluate_command_response(
         return Ok(result);
     };
     threshold.validate()?;
+    if threshold.model_sha256 != pair.model_sha256
+        || threshold.training_recordings_manifest_sha256
+            != pair.training_recordings_manifest_sha256
+        || threshold.split_manifest_sha256 != pair.split_manifest_sha256
+        || threshold.regime_id != pair.regime_id
+    {
+        return Err(EvalError::CalibrationBindingMismatch);
+    }
     result.conformal_threshold = Some(threshold.threshold);
+    result.calibration_recordings_manifest_sha256 =
+        Some(threshold.calibration_recordings_manifest_sha256.clone());
     result.status = if standardized > threshold.threshold {
         ResponseStatus::MismatchOutsideCalibratedEnvelope
     } else {
@@ -652,6 +689,8 @@ pub fn evaluate_command_response(
 #[serde(deny_unknown_fields)]
 pub struct EpisodeCalibrationScore {
     pub recording_id: String,
+    pub model_sha256: String,
+    pub regime_id: String,
     /// Maximum absolute standardized residual over the frozen scored window
     /// for this independent recording/episode.
     pub maximum_absolute_standardized_residual: f64,
@@ -660,6 +699,11 @@ pub struct EpisodeCalibrationScore {
 #[derive(Clone, Debug, Serialize, PartialEq)]
 pub struct ConformalThreshold {
     pub target_coverage_ppm: u32,
+    pub model_sha256: String,
+    pub training_recordings_manifest_sha256: String,
+    pub split_manifest_sha256: String,
+    pub calibration_recordings_manifest_sha256: String,
+    pub regime_id: String,
     pub independent_calibration_episodes: usize,
     pub order_statistic_rank_1_based: usize,
     pub threshold: f64,
@@ -675,6 +719,13 @@ impl ConformalThreshold {
             || self.order_statistic_rank_1_based > self.independent_calibration_episodes
             || !self.threshold.is_finite()
             || self.threshold < 0.0
+            || self.regime_id.trim().is_empty()
+            || !is_sha256_hex(&self.model_sha256)
+            || !is_sha256_hex(&self.training_recordings_manifest_sha256)
+            || !is_sha256_hex(&self.split_manifest_sha256)
+            || !is_sha256_hex(&self.calibration_recordings_manifest_sha256)
+            || self.training_recordings_manifest_sha256 == self.calibration_recordings_manifest_sha256
+            || self.training_recordings_manifest_sha256 == self.split_manifest_sha256
             || !is_sha256_hex(&self.calibration_scores_sha256)
         {
             return Err(EvalError::InvalidConformalThreshold);
@@ -694,9 +745,21 @@ impl ConformalThreshold {
 pub fn fit_episode_conformal_threshold(
     scores: &[EpisodeCalibrationScore],
     target_coverage_ppm: u32,
+    model_sha256: &str,
+    training_recordings_manifest_sha256: &str,
+    split_manifest_sha256: &str,
+    regime_id: &str,
 ) -> Result<ConformalThreshold, EvalError> {
     if target_coverage_ppm == 0 || target_coverage_ppm >= 1_000_000 {
         return Err(EvalError::InvalidConformalCoverage);
+    }
+    if regime_id.trim().is_empty()
+        || !is_sha256_hex(model_sha256)
+        || !is_sha256_hex(training_recordings_manifest_sha256)
+        || !is_sha256_hex(split_manifest_sha256)
+        || training_recordings_manifest_sha256 == split_manifest_sha256
+    {
+        return Err(EvalError::InvalidCalibrationProvenance);
     }
     if scores.is_empty() {
         return Err(EvalError::InsufficientCalibrationEpisodes {
@@ -709,6 +772,8 @@ pub fn fit_episode_conformal_threshold(
     let mut values = Vec::with_capacity(scores.len());
     for score in scores {
         if score.recording_id.trim().is_empty()
+            || score.model_sha256 != model_sha256
+            || score.regime_id != regime_id
             || !score.maximum_absolute_standardized_residual.is_finite()
             || score.maximum_absolute_standardized_residual < 0.0
         {
@@ -730,12 +795,22 @@ pub fn fit_episode_conformal_threshold(
         });
     }
 
+    let calibration_recording_ids = identities.into_iter().collect::<Vec<_>>();
+    let calibration_recordings_manifest_sha256 = sha256_serializable(
+        b"symtropy-liu-ice-calibration-recording-manifest-v1\0",
+        &calibration_recording_ids,
+    )?;
     let digest = sha256_serializable(
         b"symtropy-liu-ice-episode-calibration-scores-v1\0",
-        &values,
+        &(model_sha256, regime_id, &calibration_recording_ids, &values),
     )?;
     let threshold = ConformalThreshold {
         target_coverage_ppm,
+        model_sha256: model_sha256.to_owned(),
+        training_recordings_manifest_sha256: training_recordings_manifest_sha256.to_owned(),
+        split_manifest_sha256: split_manifest_sha256.to_owned(),
+        calibration_recordings_manifest_sha256,
+        regime_id: regime_id.to_owned(),
         independent_calibration_episodes: scores.len(),
         order_statistic_rank_1_based: rank,
         threshold: values[rank - 1],
@@ -776,6 +851,8 @@ pub enum EvalError {
     InvalidCalibrationScore,
     InvalidConformalCoverage,
     InvalidConformalThreshold,
+    InvalidCalibrationProvenance,
+    CalibrationBindingMismatch,
     InsufficientCalibrationEpisodes { required: usize, available: usize },
     InvalidCommandResponsePair,
     Serialization,
