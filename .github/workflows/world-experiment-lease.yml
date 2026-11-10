@@ -51,7 +51,7 @@ jobs:
           cargo +1.96.0 run --quiet --locked --manifest-path "$package/Cargo.toml" -- \
             "$package/fixtures/machine-test-01.json" \
             > "$package/target/receipts/first.json"
-          cargo +1.96.0 run --quiet --manifest-path "$package/Cargo.toml" -- \
+          cargo +1.96.0 run --quiet --locked --manifest-path "$package/Cargo.toml" -- \
             "$package/fixtures/machine-test-01.json" \
             > "$package/target/receipts/second.json"
           cmp "$package/target/receipts/first.json" "$package/target/receipts/second.json"
