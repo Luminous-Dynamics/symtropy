@@ -32,16 +32,19 @@ pub struct So4LogConfig {
     pub pi_sign_tolerance: f64,
     /// Angles at or below this threshold are treated as identity.
     pub identity_tolerance: f64,
+    /// Maximum reconstruction error after exponentiating the recovered log.
+    pub reconstruction_tolerance: f64,
 }
 
 impl Default for So4LogConfig {
     fn default() -> Self {
         Self {
             rotation_tolerance: 1.0e-8,
-            eigenspace_tolerance: 1.0e-8,
+            eigenspace_tolerance: 1.0e-12,
             pi_branch_tolerance: 1.0e-7,
             pi_sign_tolerance: 1.0e-12,
             identity_tolerance: 1.0e-14,
+            reconstruction_tolerance: 1.0e-10,
         }
     }
 }
@@ -130,6 +133,8 @@ fn config_is_valid(config: So4LogConfig) -> bool {
         && config.identity_tolerance.is_finite()
         && config.identity_tolerance >= 0.0
         && config.identity_tolerance < PI
+        && config.reconstruction_tolerance.is_finite()
+        && config.reconstruction_tolerance > 0.0
 }
 
 fn validate_rotation(
@@ -332,8 +337,9 @@ pub fn so4_log_with_config(
         .zip(matrix.iter())
         .map(|(left, right)| (left - right).abs())
         .fold(0.0_f64, f64::max);
-    let reconstruction_tolerance = config.rotation_tolerance.max(1.0e-10) * 20.0;
-    if !max_matrix_error.is_finite() || max_matrix_error > reconstruction_tolerance {
+    if !max_matrix_error.is_finite()
+        || max_matrix_error > config.reconstruction_tolerance
+    {
         return Err(So4LogError::ReconstructionFailure { max_matrix_error });
     }
 
@@ -480,6 +486,52 @@ mod tests {
         let recovered = so4_log(&midpoint_relative).expect("midpoint relative is valid");
         assert!((recovered.principal_angles_rad[0] - 0.4).abs() < 2.0e-10);
         assert!((recovered.principal_angles_rad[1] - FRAC_PI_2 / 2.0).abs() < 2.0e-10);
+    }
+
+    #[test]
+    fn near_but_distinct_principal_angles_remain_separate_invariant_planes() {
+        let mut generator = Bivector::<4>::zero();
+        generator.set(0, 1, 0.7);
+        generator.set(2, 3, 0.700_000_01);
+        let rotation = Rotor::from_bivector(&generator);
+
+        let logarithm = so4_log(&rotation).expect("near-equal angles remain resolvable");
+        assert!((logarithm.principal_angles_rad[0] - 0.7).abs() < 2.0e-10);
+        assert!((logarithm.principal_angles_rad[1] - 0.700_000_01).abs() < 2.0e-10);
+        assert!(matrix_error(&rotation, &Rotor::from_bivector(&logarithm.generator)) <= 1.0e-10);
+    }
+
+    #[test]
+    fn deterministic_random_so4_logs_reconstruct_across_plane_combinations() {
+        let mut state = 0x7a31_5eed_d15c_a11e_u64;
+        let mut next_angle = || {
+            state ^= state >> 12;
+            state ^= state << 25;
+            state ^= state >> 27;
+            let bits = state.wrapping_mul(0x2545_f491_4f6c_dd1d);
+            let unit = (bits >> 11) as f64 / ((1_u64 << 53) as f64);
+            (2.0 * unit - 1.0) * 2.8
+        };
+
+        for case in 0..512 {
+            let mut generator = Bivector::<4>::zero();
+            generator.set(0, 1, next_angle());
+            generator.set(0, 2, next_angle());
+            generator.set(0, 3, next_angle());
+            generator.set(1, 2, next_angle());
+            generator.set(1, 3, next_angle());
+            generator.set(2, 3, next_angle());
+            let rotation = Rotor::from_bivector(&generator);
+            let logarithm = so4_log(&rotation)
+                .unwrap_or_else(|error| panic!("case {case} failed: {error}"));
+            let reconstructed = Rotor::from_bivector(&logarithm.generator);
+            assert!(
+                matrix_error(&rotation, &reconstructed)
+                    <= So4LogConfig::default().reconstruction_tolerance,
+                "case {case} reconstruction error {}",
+                matrix_error(&rotation, &reconstructed)
+            );
+        }
     }
 
     #[test]
