@@ -26,9 +26,18 @@ target_link_libraries(scan_bim_embree_adapter
 target_compile_options(scan_bim_embree_adapter PRIVATE
   "$<$<CXX_COMPILER_ID:GNU,Clang>:-Wall;-Wextra;-Wpedantic;-Wconversion;-Wshadow>"
 )
+if(CMAKE_CONFIGURATION_TYPES)
+  set(SCAN_BIM_CMAKE_BUILD_TYPE "multi-config")
+elseif(CMAKE_BUILD_TYPE)
+  set(SCAN_BIM_CMAKE_BUILD_TYPE "${CMAKE_BUILD_TYPE}")
+else()
+  set(SCAN_BIM_CMAKE_BUILD_TYPE "unspecified")
+endif()
+
 target_compile_definitions(scan_bim_embree_adapter PRIVATE
   SCAN_BIM_EMBREE_VERSION="4.4.1"
   SCAN_BIM_EMBREE_REVISION="f590db83ef6559387df7f6d8725c34fb7acf851d"
+  SCAN_BIM_CMAKE_BUILD_TYPE="${SCAN_BIM_CMAKE_BUILD_TYPE}"
 )
 
 if(BUILD_TESTING)
