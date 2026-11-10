@@ -9,7 +9,7 @@
   "workpiece_revision": "DWG-REV-03",
   "wps_revision": "WPS-REV-04",
   "equipment_revision": "ROBOT-REV-02",
-  "evidence_class": "measured_synthetic",
+  "evidence_class": "synthetic_fixture",
   "parameter_envelope_ref": "SYNTH-ENVELOPE-017",
   "observed_envelope_status": "within_declared_envelope",
   "source_time_utc": "2026-11-10T03:00:00Z"
