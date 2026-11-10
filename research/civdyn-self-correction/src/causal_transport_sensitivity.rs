@@ -20,8 +20,7 @@ use std::collections::BTreeMap;
 use std::fmt;
 
 use crate::causal_transport::{
-    AssumptionDisposition, CausalTransportAssumptions, SourceEffectStratum,
-    TargetPopulationStratum,
+    AssumptionDisposition, CausalTransportAssumptions, SourceEffectStratum, TargetPopulationStratum,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -120,14 +119,16 @@ fn validate_assumptions(
         &assumptions.no_interference,
         &assumptions.treatment_version_invariance,
     ];
-    if evidence.iter().any(|item| item.evidence_digest.trim().is_empty()) {
+    if evidence
+        .iter()
+        .any(|item| item.evidence_digest.trim().is_empty())
+    {
         return Err(OutcomeShiftSensitivityError::MissingAssumptionEvidenceDigest);
     }
     if evidence.iter().any(|item| {
         !matches!(
             item.disposition,
-            AssumptionDisposition::SupportedByDesign
-                | AssumptionDisposition::SupportedByEvidence
+            AssumptionDisposition::SupportedByDesign | AssumptionDisposition::SupportedByEvidence
         )
     }) {
         return Err(OutcomeShiftSensitivityError::AssumptionsNotSupported);
@@ -157,7 +158,10 @@ fn validate_source_strata(
                 modifier_id: stratum.modifier_id.clone(),
             });
         }
-        if indexed.insert(stratum.modifier_id.as_str(), stratum).is_some() {
+        if indexed
+            .insert(stratum.modifier_id.as_str(), stratum)
+            .is_some()
+        {
             return Err(OutcomeShiftSensitivityError::DuplicateSourceModifier {
                 modifier_id: stratum.modifier_id.clone(),
             });
@@ -228,10 +232,7 @@ pub fn bernoulli_target_risk_bounds(
     })
 }
 
-fn source_ate(
-    source_strata: &[SourceEffectStratum],
-    source_total: u64,
-) -> f64 {
+fn source_ate(source_strata: &[SourceEffectStratum], source_total: u64) -> f64 {
     source_strata
         .iter()
         .map(|stratum| {
@@ -309,15 +310,9 @@ fn evaluate_lambda(
     let supported_mass = supported_count as f64 / target_total as f64;
     let unsupported_mass = unsupported_count as f64 / target_total as f64;
     let width = upper - lower;
-    if [
-        lower,
-        upper,
-        width,
-        supported_mass,
-        unsupported_mass,
-    ]
-    .iter()
-    .any(|value| !value.is_finite())
+    if [lower, upper, width, supported_mass, unsupported_mass]
+        .iter()
+        .any(|value| !value.is_finite())
         || lower < -1.0 - 1e-12
         || upper > 1.0 + 1e-12
         || lower > upper + 1e-12
@@ -415,7 +410,9 @@ pub fn assess_binary_outcome_shift_sensitivity(
 
     if lambda_values.is_empty()
         || lambda_values[0] != 1.0
-        || lambda_values.iter().any(|value| !value.is_finite() || *value < 1.0)
+        || lambda_values
+            .iter()
+            .any(|value| !value.is_finite() || *value < 1.0)
         || lambda_values.windows(2).any(|pair| pair[0] >= pair[1])
     {
         return Err(OutcomeShiftSensitivityError::InvalidLambdaGrid);
@@ -550,8 +547,8 @@ mod tests {
     #[test]
     fn bernoulli_likelihood_ratio_bounds_reduce_to_source_risk_at_lambda_one() {
         for source_risk in [0.0, 0.1, 0.3, 0.5, 0.8, 1.0] {
-            let bounds = bernoulli_target_risk_bounds(source_risk, 1.0)
-                .expect("valid Lambda=1 risk bounds");
+            let bounds =
+                bernoulli_target_risk_bounds(source_risk, 1.0).expect("valid Lambda=1 risk bounds");
             assert_eq!(bounds.lower, source_risk);
             assert_eq!(bounds.upper, source_risk);
         }
