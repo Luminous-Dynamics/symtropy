@@ -72,8 +72,11 @@ fn is_canonical_utc(timestamp: &str) -> bool {
         return false;
     };
 
-    if year == 0 || !(1..=12).contains(&month) || !(0..=23).contains(&hour)
-        || !(0..=59).contains(&minute) || !(0..=59).contains(&second)
+    if year == 0
+        || !(1..=12).contains(&month)
+        || !(0..=23).contains(&hour)
+        || !(0..=59).contains(&minute)
+        || !(0..=59).contains(&second)
     {
         return false;
     }
