@@ -420,7 +420,7 @@ pub enum ImportError {
     NonComparableRunIdentity,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum QualificationBlocker {
     UnknownSplit,
     UnknownEvidenceClass,
@@ -700,6 +700,7 @@ impl MemoryEvaluationRecord {
         let first = records.first().ok_or(ImportError::EmptyAggregate)?;
         first.validate()?;
 
+        let mut aggregate_blockers = BTreeSet::new();
         let mut aggregate = MemoryEvaluationAggregate {
             terminal_counts: TerminalOutcomeCounts {
                 succeeded: 0,
@@ -740,9 +741,7 @@ impl MemoryEvaluationRecord {
                 ));
             }
             for blocker in audit.qualification_blockers {
-                if !aggregate.qualification_blockers.contains(&blocker) {
-                    aggregate.qualification_blockers.push(blocker);
-                }
+                aggregate_blockers.insert(blocker);
             }
             if record.protocol != first.protocol
                 || record.task.task_id != first.task.task_id
@@ -811,6 +810,7 @@ impl MemoryEvaluationRecord {
             }
         }
 
+        aggregate.qualification_blockers = aggregate_blockers.into_iter().collect();
         Ok(aggregate)
     }
 
@@ -1065,6 +1065,49 @@ mod tests {
         assert!(aggregate
             .qualification_blockers
             .contains(&QualificationBlocker::StageOutcomeUnresolved));
+    }
+
+    #[test]
+    fn aggregate_blockers_are_canonical_under_episode_order_permutation() {
+        let mut first = record("policy-only", AssistanceTrack::PolicyOnly);
+        first.protocol.dataset_rights_status = DatasetRightsStatus::Unknown;
+        first.terminal_receipt = Some(receipt(OutcomeEvidenceSource::Unknown, 30));
+
+        let mut second = record("policy-only", AssistanceTrack::PolicyOnly);
+        second.protocol.dataset_rights_status = DatasetRightsStatus::Unknown;
+        second.task.task_instance_id = "task-instance-02".into();
+        second.task.episode_id = "episode-02".into();
+        second.task.scene_id = "scene-02".into();
+        second.task.scene_seed = 52;
+        second.terminal_outcome = TerminalOutcome::Unresolved;
+        second.terminal_receipt = None;
+        second.run_disposition = RunDisposition::InfrastructureIndeterminate;
+        second.stages[2].disposition = StageDisposition::Unresolved;
+        second.stages[2].evidence = None;
+
+        let forward =
+            MemoryEvaluationRecord::aggregate_task_records(&[first.clone(), second.clone()])
+                .unwrap();
+        let reverse =
+            MemoryEvaluationRecord::aggregate_task_records(&[second, first]).unwrap();
+
+        assert_eq!(
+            forward.qualification_blockers,
+            reverse.qualification_blockers
+        );
+        assert_eq!(
+            forward.qualification_blockers,
+            vec![
+                QualificationBlocker::UnknownOutcomeEvidenceSource,
+                QualificationBlocker::DatasetRightsUnresolved,
+                QualificationBlocker::StageOutcomeUnresolved,
+                QualificationBlocker::TerminalOutcomeUnresolved,
+            ]
+            .into_iter()
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect::<Vec<_>>()
+        );
     }
 
     #[test]
