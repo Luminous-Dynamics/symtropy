@@ -27,6 +27,8 @@
 #include <string_view>
 #include <thread>
 #include <tuple>
+#include <type_traits>
+#include <iterator>
 #include <utility>
 #include <vector>
 
@@ -229,6 +231,10 @@ Fixture load_fixture(const std::string& path, const std::string& workload_overri
     if (triangle.id.surface.empty() || triangle.id.triangle.empty()) {
       throw std::runtime_error("triangle identities must not be empty");
     }
+    if (triangle.kind != "same_building" && triangle.kind != "external" &&
+        triangle.kind != "unknown") {
+      throw std::runtime_error("triangle kind is unsupported");
+    }
     if (!identities.insert(triangle.id).second) {
       throw std::runtime_error("fixture contains duplicate triangle identities");
     }
@@ -280,6 +286,16 @@ Fixture load_fixture(const std::string& path, const std::string& workload_overri
     ray.expected.status = expected.at("status").get<std::string>();
     if (!expected.at("nearest_distance_m").is_null()) {
       ray.expected.distance = expected.at("nearest_distance_m").get<double>();
+      if (!std::isfinite(*ray.expected.distance) || *ray.expected.distance < 0.0) {
+        throw std::runtime_error("expected nearest distance is invalid");
+      }
+    }
+    if ((ray.expected.status == "hit") != ray.expected.distance.has_value() ||
+        (ray.expected.status != "hit" && ray.expected.status != "miss")) {
+      throw std::runtime_error("expected ray status/distance contract is inconsistent");
+    }
+    if ((ray.expected.status == "hit") != !expected.at("nearest_hits").empty()) {
+      throw std::runtime_error("expected ray status/hit-identity contract is inconsistent");
     }
     for (const auto& hit : expected.at("nearest_hits")) {
       ray.expected.nearest_hits.push_back(Identity{hit.at(0).get<std::string>(), hit.at(1).get<std::string>()});
@@ -555,8 +571,6 @@ json run(const Options& options) {
 
   std::vector<double> latencies;
   latencies.reserve(fixture.rays.size() * options.repetitions);
-  std::vector<std::string> baseline_results;
-  baseline_results.reserve(fixture.rays.size());
   std::vector<std::string> first_results;
   first_results.reserve(fixture.rays.size());
   std::vector<json> mismatches;
@@ -646,8 +660,9 @@ json run(const Options& options) {
         {"build_quality", options.build_quality},
         {"device_threads", options.threads},
         {"scene_flags", {"robust", "filter_function_in_arguments"}},
-        {"ray_query_flags", {"invoke_argument_filter", "incoherent"},
-        {"collect_all_hits", true}
+        {"ray_query_flags", {"invoke_argument_filter", "incoherent"}},
+        {"collect_all_hits", true},
+        {"query_execution", "serial_single_ray_per_call"}
       }}
     }},
     {"input", {
@@ -670,7 +685,9 @@ json run(const Options& options) {
       {"thread_count", options.threads},
       {"compiler", compiler_name()},
       {"compiler_version", compiler_version()},
-      {"compiler_flags", json::array()},
+      {"compiler_flags", {
+        "-std=c++17", "-Wall", "-Wextra", "-Wpedantic", "-Wconversion", "-Wshadow"
+      }},
 #ifdef NDEBUG
       {"build_profile", "release"}
 #else
