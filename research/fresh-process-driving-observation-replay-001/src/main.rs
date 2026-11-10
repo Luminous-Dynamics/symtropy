@@ -585,7 +585,17 @@ fn run_parent(
     vision_config_path: &Path,
     bridge_binary: &Path,
 ) -> Result<EpisodeReport, Box<dyn Error>> {
-    fs::create_dir_all(episode_dir)?;
+    if episode_dir.exists() {
+        let mut existing = fs::read_dir(episode_dir)?;
+        if existing.next().is_some() {
+            return Err(
+                "episode output directory must be empty; use a new directory to prevent stale-artifact reuse"
+                    .into(),
+            );
+        }
+    } else {
+        fs::create_dir_all(episode_dir)?;
+    }
     let episode_dir = fs::canonicalize(episode_dir)?;
     let bridge_binary = fs::canonicalize(bridge_binary)?;
     if !bridge_binary.is_file() {
@@ -816,5 +826,113 @@ fn main() {
     if let Err(error) = result {
         eprintln!("fresh-process-driving-replay: {error}");
         std::process::exit(2);
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn fixture_has_twenty_monotonic_ticks() {
+        let timestamps = (1..=EXPECTED_TICKS)
+            .map(world_timestamp)
+            .collect::<Vec<_>>();
+        assert_eq!(timestamps.len(), 20);
+        assert!(timestamps.windows(2).all(|pair| pair[1] > pair[0]));
+    }
+
+    #[test]
+    fn tick_seven_is_delayed_but_not_stale() {
+        let clocks = clocks(DELAYED_TICK);
+        assert_eq!(
+            clocks.render_completed_timestamp_us - clocks.capture_timestamp_us,
+            2_500
+        );
+        assert_eq!(
+            clocks.delivered_timestamp_us - clocks.capture_timestamp_us,
+            3_500
+        );
+        assert!(clocks.delivered_timestamp_us - clocks.capture_timestamp_us
+            <= MAX_DELIVERY_AGE_US);
+        assert!(clocks.render_completed_timestamp_us - clocks.capture_timestamp_us
+            > MAX_RENDER_LATENCY_US);
+    }
+
+    #[test]
+    fn vehicle_state_clock_uses_same_episode_monotonic_origin() {
+        for tick in 1..=EXPECTED_TICKS {
+            let state = vehicle_state(tick);
+            let state_timestamp = state["timestamp"].as_f64().unwrap();
+            let expected = world_timestamp(tick) as f64 / 1_000_000.0;
+            assert!((state_timestamp - expected).abs() < 1e-9);
+        }
+    }
+
+    #[test]
+    fn alternate_action_branch_changes_action_world_and_render_digests() {
+        let base = snapshot(12, false);
+        let alternative = snapshot(12, true);
+        assert_ne!(
+            base.applied_action.as_ref().unwrap().receipt_id,
+            alternative.applied_action.as_ref().unwrap().receipt_id
+        );
+        let base_render = SoftwareCameraRenderer::render(&base, 12, clocks(12)).unwrap();
+        let branch_render =
+            SoftwareCameraRenderer::render(&alternative, 12, clocks(12)).unwrap();
+        let base_audit = SoftwareCameraRenderer::audit_snapshot(&base).unwrap();
+        let branch_audit = SoftwareCameraRenderer::audit_snapshot(&alternative).unwrap();
+        assert_ne!(
+            base_render.policy_receipt.frame_sha256,
+            branch_render.policy_receipt.frame_sha256
+        );
+        assert_ne!(
+            base_render.policy_receipt.observation_id,
+            branch_render.policy_receipt.observation_id
+        );
+        assert_ne!(
+            base_audit.world_snapshot_sha256,
+            branch_audit.world_snapshot_sha256
+        );
+    }
+
+    #[test]
+    fn action_receipts_are_deterministic_and_digest_bound() {
+        let first = action_ref(4, false);
+        let second = action_ref(4, false);
+        let changed = action_ref(4, true);
+        assert_eq!(first, second);
+        assert_ne!(first.receipt_id, changed.receipt_id);
+        assert_ne!(first.receipt_sha256, changed.receipt_sha256);
+        assert_eq!(first.receipt_sha256.len(), 64);
+    }
+
+    #[test]
+    fn bridge_configuration_requires_the_declared_camera_episode() {
+        let bridge_config = json!({
+            "identity": {
+                "run_id":"run-1",
+                "episode_id":EPISODE_ID,
+                "scenario_id":SCENARIO_ID,
+                "agent_id":AGENT_ID,
+                "camera_id":CAMERA_ID,
+                "simulator_revision":SIMULATOR_REVISION,
+                "policy_revision":"policy-v1"
+            },
+            "max_width":640,
+            "max_height":360,
+            "max_frame_bytes":691200,
+            "initial_dt_us":33333,
+            "maximum_frame_gap_us":66666,
+            "maximum_sensor_clock_skew_us":1000,
+            "visual_weight_ppm":500000,
+            "vehicle_encoder_seed_phrase":"fixture-seed"
+        });
+        let vision_config = json!({"hdc_dim":16384,"enable_depth":false});
+        assert!(validate_bridge_configuration(&bridge_config, &vision_config).is_ok());
+        let mut invalid = bridge_config;
+        invalid["identity"]["camera_id"] = json!("rear");
+        assert!(validate_bridge_configuration(&invalid, &vision_config).is_err());
     }
 }
