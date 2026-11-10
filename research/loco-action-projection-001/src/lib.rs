@@ -332,6 +332,50 @@ fn fallback_disposition(
     }
 }
 
+fn rejected_or_fallback(
+    fallback: &Option<AdmittedFallback>,
+    problem: &ProjectionGateProblem,
+    reason: &str,
+    witness_id: Option<String>,
+) -> GateDisposition {
+    if fallback.is_some() {
+        fallback_disposition(fallback, problem, reason)
+    } else {
+        GateDisposition::Rejected {
+            reason: reason.to_owned(),
+            witness_id,
+        }
+    }
+}
+
+fn invalid_or_fallback(
+    fallback: &Option<AdmittedFallback>,
+    problem: &ProjectionGateProblem,
+    reason: &str,
+) -> GateDisposition {
+    if fallback.is_some() {
+        fallback_disposition(fallback, problem, reason)
+    } else {
+        GateDisposition::Invalid {
+            reason: reason.to_owned(),
+        }
+    }
+}
+
+fn validate_authority_witness(
+    status: AuthorityStatus,
+    witness_or_reason: &Option<String>,
+) -> Result<(), ProjectionError> {
+    if status != AuthorityStatus::Admitted
+        && witness_or_reason
+            .as_deref()
+            .is_none_or(|value| !nonempty(value))
+    {
+        return Err(ProjectionError::MissingStatusReason);
+    }
+    Ok(())
+}
+
 fn identity_gate(problem: &ProjectionGateProblem) -> Result<(), ProjectionError> {
     let proposal = &problem.proposal;
     let result = &problem.result;
@@ -713,20 +757,23 @@ pub fn qualify_projected_action(
         constraint_findings: Vec::new(),
         hard_constraint_failures: Vec::new(),
         robust_contact_failures: Vec::new(),
+        numerically_unqualified: Vec::new(),
     };
 
     match problem.result.disposition {
         SolverDisposition::Infeasible => {
-            if problem
+            let witness = problem
                 .result
                 .infeasibility_witness_id
                 .as_deref()
-                .is_none_or(|value| !nonempty(value))
-            {
-                return Err(ProjectionError::MissingInfeasibilityWitness);
-            }
-            report.disposition =
-                fallback_disposition(&problem.fallback, problem, "projection infeasible");
+                .filter(|value| nonempty(value))
+                .ok_or(ProjectionError::MissingInfeasibilityWitness)?;
+            report.disposition = rejected_or_fallback(
+                &problem.fallback,
+                problem,
+                "projection infeasible",
+                Some(witness.to_owned()),
+            );
             return Ok(report);
         }
         SolverDisposition::Unknown => {
@@ -743,6 +790,14 @@ pub fn qualify_projected_action(
             return Ok(report);
         }
         SolverDisposition::DeadlineMiss => {
+            if problem
+                .result
+                .status_reason
+                .as_deref()
+                .is_none_or(|value| !nonempty(value))
+            {
+                return Err(ProjectionError::MissingStatusReason);
+            }
             report.disposition =
                 fallback_disposition(&problem.fallback, problem, "projection deadline missed");
             return Ok(report);
@@ -757,7 +812,7 @@ pub fn qualify_projected_action(
                 return Err(ProjectionError::MissingStatusReason);
             }
             report.disposition =
-                fallback_disposition(&problem.fallback, problem, "projection invalid");
+                invalid_or_fallback(&problem.fallback, problem, "projection result invalid");
             return Ok(report);
         }
         SolverDisposition::Feasible => {}
@@ -775,25 +830,39 @@ pub fn qualify_projected_action(
         return Ok(report);
     }
 
-    let (findings, hard_failures, contact_failures) =
-        constraint_gate(&problem.result, &problem.required_constraint_inventory)?;
+    let (findings, hard_failures, contact_failures, numerical_unqualified) = constraint_gate(
+        &problem.result,
+        &problem.required_constraint_inventory,
+        &problem.physical_possibility_ids,
+    )?;
     report.constraint_findings = findings;
     report.hard_constraint_failures = hard_failures;
     report.robust_contact_failures = contact_failures;
+    report.numerically_unqualified = numerical_unqualified;
 
-    if !report.hard_constraint_failures.is_empty() {
+    if !report.numerically_unqualified.is_empty() {
         report.disposition = fallback_disposition(
             &problem.fallback,
             problem,
-            "hard physical constraint failure",
+            "per-possibility constraint residual exceeds frozen tolerance",
         );
         return Ok(report);
     }
-    if !report.robust_contact_failures.is_empty() {
-        report.disposition = fallback_disposition(
+    if let Some(witness) = report.hard_constraint_failures.first().cloned() {
+        report.disposition = rejected_or_fallback(
             &problem.fallback,
             problem,
-            "robust contact constraint failure",
+            "hard physical constraint margin failed",
+            Some(witness),
+        );
+        return Ok(report);
+    }
+    if let Some(witness) = report.robust_contact_failures.first().cloned() {
+        report.disposition = rejected_or_fallback(
+            &problem.fallback,
+            problem,
+            "robust contact constraint margin failed",
+            Some(witness),
         );
         return Ok(report);
     }
@@ -801,31 +870,63 @@ pub fn qualify_projected_action(
     validate_independent_receipts(problem)?;
     match problem.viability.status {
         AuthorityStatus::Rejected => {
-            report.disposition = fallback_disposition(
+            let witness = problem
+                .viability
+                .witness_or_reason
+                .as_ref()
+                .expect("validated rejection witness")
+                .clone();
+            report.disposition = rejected_or_fallback(
                 &problem.fallback,
                 problem,
                 "independent viability gate rejected projected command",
+                Some(witness),
             );
             return Ok(report);
         }
-        AuthorityStatus::Unknown | AuthorityStatus::Invalid => {
+        AuthorityStatus::Unknown => {
             report.disposition = fallback_disposition(
                 &problem.fallback,
                 problem,
-                "independent viability result is not admitted",
+                "independent viability result is Unknown",
             );
+            return Ok(report);
+        }
+        AuthorityStatus::Invalid => {
+            report.disposition =
+                invalid_or_fallback(&problem.fallback, problem, "independent viability result is Invalid");
             return Ok(report);
         }
         AuthorityStatus::Admitted => {}
     }
     match problem.assurance.status {
         AuthorityStatus::Admitted => {}
-        AuthorityStatus::Rejected | AuthorityStatus::Unknown | AuthorityStatus::Invalid => {
+        AuthorityStatus::Rejected => {
+            let witness = problem
+                .assurance
+                .witness_or_reason
+                .as_ref()
+                .expect("validated assurance rejection witness")
+                .clone();
+            report.disposition = rejected_or_fallback(
+                &problem.fallback,
+                problem,
+                "application-time assurance rejected projected command",
+                Some(witness),
+            );
+            return Ok(report);
+        }
+        AuthorityStatus::Unknown => {
             report.disposition = fallback_disposition(
                 &problem.fallback,
                 problem,
-                "application-time assurance is not valid",
+                "application-time assurance is Unknown",
             );
+            return Ok(report);
+        }
+        AuthorityStatus::Invalid => {
+            report.disposition =
+                invalid_or_fallback(&problem.fallback, problem, "application-time assurance is Invalid");
             return Ok(report);
         }
     }
