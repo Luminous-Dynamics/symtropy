@@ -101,14 +101,14 @@
       "expected": {
         "qualification": "VALID",
         "event_multiset_equal": true,
-        "terminal_state_order_sensitive": true,
         "order_invariant_claim": "REJECTED",
         "sequence_qualifications": [
           "VALID",
           "REJECTED"
         ],
-        "terminal_resource_state_equal": true,
-        "outcome_order_sensitive": true
+        "outcome_order_sensitive": true,
+        "aggregate_resource_deltas_equal": true,
+        "mission_outcome_order_sensitive": true
       }
     },
     {
