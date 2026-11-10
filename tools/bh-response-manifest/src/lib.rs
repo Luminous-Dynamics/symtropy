@@ -756,8 +756,8 @@ mod tests {
         }
     }
     fn bind_canonical_input_set(m: &mut ResponseManifest) {
-        m.provenance.canonical_input_set_sha256 =
-            Some(canonical_input_set_sha256(&m.provenance.input_digests));
+        let digest = canonical_input_set_sha256(&m.provenance.input_digests);
+        m.provenance.canonical_input_set_sha256 = Some(digest);
     }
 
     fn oracle(m: &mut ResponseManifest) {
