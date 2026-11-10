@@ -26,10 +26,6 @@ jobs:
         run: rustup toolchain install 1.96.0 --profile minimal --component rustfmt --component clippy
       - name: Check formatting
         run: cargo +1.96.0 fmt --manifest-path research/physics-semantic-equivalence-001/Cargo.toml -- --check
-      - name: Resolve JSON Schema validator dependencies (temporary lock capture)
-        run: |
-          cargo +1.96.0 generate-lockfile --manifest-path research/physics-semantic-equivalence-001/Cargo.toml
-          cat research/physics-semantic-equivalence-001/Cargo.lock
       - name: Run semantic admission tests
         run: cargo +1.96.0 test --manifest-path research/physics-semantic-equivalence-001/Cargo.toml --locked
       - name: Run strict Clippy
