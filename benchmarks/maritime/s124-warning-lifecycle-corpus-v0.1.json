@@ -129,6 +129,24 @@
           "path": "warnings.1.producer_id",
           "op": "set",
           "value": "SYNTH-PRODUCER-C"
+        },
+        {
+          "path": "events.1.producer_id",
+          "op": "set",
+          "value": "SYNTH-PRODUCER-C"
+        },
+        {
+          "path": "events.1.message_series_id",
+          "op": "set",
+          "value": "SYNTH-SERIES-C"
+        },
+        {
+          "path": "in_force_bulletin.member_keys",
+          "op": "set",
+          "value": [
+            "SYNTH-PRODUCER-A|SYNTH-SERIES-A|0007",
+            "SYNTH-PRODUCER-C|SYNTH-SERIES-C|0007"
+          ]
         }
       ],
       "expected_code": "SERIES_SCOPED_SERIAL_IDENTITY_VALID"
@@ -145,6 +163,36 @@
           "path": "warnings.0.cancellation_time_utc",
           "op": "set",
           "value": "2026-11-10T11:45:00Z"
+        },
+        {
+          "path": "events.2.event_type",
+          "op": "set",
+          "value": "cancellation"
+        },
+        {
+          "path": "events.2.event_sequence",
+          "op": "set",
+          "value": 3
+        },
+        {
+          "path": "events.2.event_time_utc",
+          "op": "set",
+          "value": "2026-11-10T11:45:00Z"
+        },
+        {
+          "path": "events.2.publication_time_utc",
+          "op": "set",
+          "value": "2026-11-10T11:46:00Z"
+        },
+        {
+          "path": "events.2.target_message_series_id",
+          "op": "set",
+          "value": "SYNTH-SERIES-A"
+        },
+        {
+          "path": "events.2.target_serial_number",
+          "op": "set",
+          "value": "0007"
         }
       ],
       "expected_code": "WARNING_CANCELLED_AS_OF_CUTOFF"
@@ -156,6 +204,21 @@
           "path": "warnings.0.valid_to_utc",
           "op": "set",
           "value": "2026-11-10T11:55:00Z"
+        },
+        {
+          "path": "events.2.event_type",
+          "op": "set",
+          "value": "self_cancelling"
+        },
+        {
+          "path": "events.2.target_message_series_id",
+          "op": "set",
+          "value": "SYNTH-SERIES-A"
+        },
+        {
+          "path": "events.2.target_serial_number",
+          "op": "set",
+          "value": "0007"
         }
       ],
       "expected_code": "WARNING_EXPIRED_AS_OF_CUTOFF"
