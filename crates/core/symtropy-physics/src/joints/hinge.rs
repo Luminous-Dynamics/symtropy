@@ -599,6 +599,86 @@ mod tests {
     }
 
     #[test]
+    fn hinge_motor_attributes_work_to_dynamic_a_when_b_is_static() {
+        use std::collections::HashMap;
+
+        struct PerBodyWorkRecorder {
+            work_by_body: HashMap<BodyHandle, f64>,
+        }
+
+        impl crate::world::PhysicsCallback<3> for PerBodyWorkRecorder {
+            fn modulate_force(
+                &self,
+                _body: BodyHandle,
+                force: &SVector<f64, 3>,
+            ) -> SVector<f64, 3> {
+                *force
+            }
+            fn modulate_impulse(
+                &self,
+                impulse: f64,
+                _contact: &SVector<f64, 3>,
+            ) -> f64 {
+                impulse
+            }
+            fn friction_multiplier(
+                &self,
+                _contact: &SVector<f64, 3>,
+                _body: BodyHandle,
+            ) -> f64 {
+                1.0
+            }
+            fn on_collision(&mut self, _event: &crate::contact::CollisionEvent<3>) {}
+            fn record_dissipation(&mut self, _energy: f64) {}
+            fn record_work(&mut self, body: BodyHandle, work_joules: f64) {
+                *self.work_by_body.entry(body).or_default() += work_joules;
+            }
+            fn apply_trauma(&mut self, _event: &crate::contact::CollisionEvent<3>) {}
+        }
+
+        let mut a = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(0),
+            Point::origin(),
+            0.5,
+            1.0,
+        );
+        let mut b = RigidBody::<3>::static_body(
+            BodyHandle(1),
+            Point::origin(),
+            Box::new(symtropy_math::Sphere::new(Point::origin(), 0.1)),
+        );
+        a.angular_velocity.set(0, 1, -0.2);
+
+        let motor = super::super::MotorDrive {
+            target_pos: 0.0,
+            target_vel: 1.0,
+            kp: 10.0,
+            kd: 0.0,
+            max_force: 100.0,
+        };
+        let joint = HingeJoint::new(BodyHandle(0), BodyHandle(1), 0, 1)
+            .with_motor(motor);
+        let dt = 0.1;
+        let inv_i_a = a.inv_inertia.sum() / 3.0;
+        let omega_a_before = a.angular_velocity.get(0, 1);
+        let impulse = 10.0 * (1.0 - (0.0 - omega_a_before)) * dt;
+        let expected_work_a =
+            -impulse * (omega_a_before - 0.5 * impulse * inv_i_a);
+        let mut recorder = PerBodyWorkRecorder {
+            work_by_body: HashMap::new(),
+        };
+
+        joint.solve_velocity(&mut a, &mut b, dt, Some(&mut recorder));
+
+        let work_a = *recorder.work_by_body.get(&BodyHandle(0)).unwrap();
+        let delta_kinetic_energy = 0.5 / inv_i_a
+            * (a.angular_velocity.get(0, 1).powi(2) - omega_a_before.powi(2));
+        assert!(!recorder.work_by_body.contains_key(&BodyHandle(1)));
+        assert!((work_a - expected_work_a).abs() < 1e-12);
+        assert!((work_a - delta_kinetic_energy).abs() < 1e-12);
+    }
+
+    #[test]
     fn hinge_4d() {
         let mut a = RigidBody::<4>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 1.0);
         let mut b = RigidBody::<4>::dynamic_sphere(
