@@ -389,6 +389,28 @@ mod tests {
     }
 
     #[test]
+    fn fails_closed_when_iteration_budget_cannot_meet_requested_tolerance() {
+        let black_hole = hole(0.9);
+        let horizon = black_hole.outer_horizon_radius_m()
+            / black_hole.gravitational_radius_m();
+        let step = 1.0e200;
+        let left_offset = 1.0e-10;
+        let right_offset = -0.5;
+        let radial_velocity = (right_offset - left_offset) / step;
+        let ray = trajectory(
+            KerrMinoCoordinateChart::IngoingKerr,
+            vec![
+                point(0.0, horizon + left_offset, radial_velocity),
+                point(step, horizon + right_offset, radial_velocity),
+            ],
+        );
+        assert!(matches!(
+            localize_first_outer_horizon_crossing(&ray, black_hole, 1.0e150),
+            Err(KerrHorizonEventError::RootPrecisionExhausted { .. })
+        ));
+    }
+
+    #[test]
     fn refuses_a_nonmonotone_interpolant_instead_of_guessing_a_root() {
         let black_hole = hole(0.9);
         let horizon = black_hole.outer_horizon_radius_m()
