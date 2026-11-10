@@ -2,7 +2,7 @@
 
 **Protocol:** \`README.md\`  
 **Issue:** https://github.com/Luminous-Dynamics/symtropy/issues/4511  
-**Implementation PR:** https://github.com/Luminous-Dynamics/symtropy/pull/4537
+**Implementation PR:** https://github.com/Luminous-Dynamics/symtropy/pull/4540
 
 ## Purpose and boundary
 
