@@ -99,20 +99,46 @@ Required reporting:
 
 A derivative benchmark must never infer forward-model correctness from a useful optimizer update. Conversely, a physically accurate forward trajectory does not prove that its backward derivative is valid at mode transitions.
 
+### 3.2.2 New differentiable-contact and mixed-coordinate releases (2026-11-10)
+
+The latest public work strengthens the case for a taxonomy of gradients, not a single differentiable-simulator leaderboard.
+
+| Method / release | Exact scope | Competitive evidence | Caveats and Symtropy benchmark response |
+|---|---|---|---|
+| **NablaEngine 0.2.0** (released 2026-11-07) | Fused CUDA simulation and analytic adjoints with MuJoCo contact dynamics; extends beyond the Unitree G1 to Go1, Go2, A1, H1, ANYmal C, Spot, Booster T1, ROBOTIS OP3 and Berkeley Humanoid; adds static boxes/heightfields, runtime terrain upload and an exact box–box adjoint | Release notes say the additional robot models were validated against MuJoCo Warp and float64 MuJoCo; the G1 0.1.0 results are bitwise unchanged | Pin release/commit, exact robot model, solver, terrain and GPU. Record its capacity/overflow policy: the 0.1.0 release notes specify 64 contacts and 192 constraint rows per world, with excess rows dropped but counted/flagged. An overflowed world is **not** a successful matched result. |
+| **Bundled Contact Gradients (BCG)** (2026 preprint) | Contact-local randomized smoothing: when stiff contact is detected, evaluate a bundle of perturbed local rollouts and aggregate gradient signals | Authors report reduced gradient variance and zero-shot transfer of dynamic motions to a real Unitree G1 | This is a stochastic/local smoothed gradient estimator, not the exact point derivative of the original contact transition. Measure bias, variance, bundle size, perturbation scale, random-seed sensitivity, compute cost and real-hardware transfer. |
+| **DiffGIPC** (2026 preprint) | GPU differentiable Incremental Potential Contact (IPC) with CCD/geometric barriers and coupled FEM + affine-body adjoints; each affine body has 12 motion DoFs independent of its surface vertex count; retains collision, friction and joint coupling | Authors report peak combined forward/backward speedups over DiffIPC of about 150× in full-space FEM and 4,133× with affine bodies | This is a rigid–deformable / nearly-rigid mixed-coordinate inverse-design lane, not a direct rigid-body simulator contest. Measure non-penetration, CCD validity, friction/contact residuals, adjoint error, shape/placement gradients, memory and model-form differences. |
+
+Primary sources:
+- [NablaEngine 0.2.0 release](https://github.com/sailab-ai/NablaEngine/releases/tag/v0.2.0) and [0.1.0 release / capacity notes](https://github.com/sailab-ai/NablaEngine/releases/tag/v0.1.0)
+- [Bundled Contact Gradients, arXiv:2609.30951](https://arxiv.org/abs/2609.30951)
+- [DiffGIPC, arXiv:2610.19091](https://arxiv.org/abs/2610.19091)
+
+#### Additional benchmark strata
+
+1. **Capacity and coverage:** deliberately exceed per-world contact/constraint limits. Verify overflow counters, warnings, omitted rows and final result status. A dropped contact/row must make the case incomplete or explicitly degraded, never silently marked as a pass.
+2. **Cross-robot generalization:** run the same dimensionless task families on G1, Go2/ANYmal/Spot and other supported robots, but bind each robot's exact inertial model, contact geometry, actuator map, controller and sensor timing. Report per-robot results; do not pool different models into one unexplained score.
+3. **Mixed rigid–deformable coupling:** use canonical IPC/CCD cases with a nearly-rigid affine body, a deformable mesh, frictional contact and articulated constraints. Compare only with engines that represent the same constitutive law, barrier, friction and temporal discretization.
+4. **Gradient estimator ablation:** compare exact within-mode adjoints, IFT hard-contact gradients, finite-difference references, randomized bundles, clipped/frozen gradients and backward-only surrogates under identical forward models. Score both estimator quality and downstream optimization utility.
+5. **Held-out physical transfer:** freeze the simulator, estimator and policy before the physical test. Report whether improvements survive outside the calibration trajectories, robot unit and contact/material conditions.
+
+Do not let a high task score conceal a missing contact row, out-of-domain model, invalid derivative or a change in the forward physical law. This adds useful coverage to #3425 while #460 remains the only shared scenario/evidence corpus.
+
 ### 3.3 Richer physical interactions
 
 The frontier includes articulated rigid bodies, contacts, tendons, cables, cloth, deformables, particles and coupled solvers. This is not a reason to immediately implement all of them. It is a reason to define extension boundaries and choose domain-specific solvers based on validated use cases.
 
 ### 3.4 Credibility and VVUQ as an engineering discipline
 
-The engineering evidence model should align with established VVUQ practice:
+The engineering evidence model should align with established VVUQ and metrology practice:
 - ASME V&V 10-2019 (R2025) for computational solid mechanics;
 - ASME VVUQ 10.2-2021 for uncertainty in solid mechanics V&V;
 - ASME VVUQ 20.1-2024 for multivariate validation metrics;
 - NASA-STD-7009B (2024) for model/simulation lifecycle credibility and responsible technical authority, with the NASA-HDBK-7009B implementation handbook published 2026-02-03;
-- FMI 3.0.2 as an interoperability reference for dynamic model exchange, co-simulation and scheduled execution. FMI standardizes interfaces; it does not by itself define or qualify the importer’s co-simulation master algorithm.
+- FMI 3.0.2 as an interoperability reference for dynamic model exchange, co-simulation and scheduled execution. FMI standardizes interfaces; it does not by itself define or qualify the importer’s co-simulation master algorithm;
+- NIST's 2026 report on harmonizing ASME computational-model UQ with JCGM metrology practice. Its risk-based framework scales VVUQ effort with model influence and decision consequence, and explicitly compares variance propagation with distribution propagation.
 
-These standards and specifications are reference frameworks, not certifications obtained by implementing a schema.
+This suggests a practical Symtropy principle: evidence effort should be proportionate to model influence and decision consequence, while hard safety/physics gates remain non-negotiable. A low-consequence exploratory model can carry a lighter evidence package; a joint torque/thermal result that affects product release requires a deeper uncertainty budget, calibration traceability and independent review. These standards and reports are reference frameworks, not certifications obtained by implementing a schema.
 
 References:
 - ASME VVUQ overview: https://www.asme.org/codes-standards/publications-information/verification-validation-uncertainty
@@ -121,6 +147,7 @@ References:
 - NASA-STD-7009B: https://standards.nasa.gov/node/263
 - NASA-HDBK-7009B (published 2026-02-03): https://standards.nasa.gov/standard/NASA/NASA-HDBK-7009
 - FMI 3.0.2 specification: https://fmi-standard.org/docs/3.0.2/
+- NIST report, *On Methods of Uncertainty Quantification in Computational Modeling and Simulation: Harmonizing Modeling and Metrology Practices* (published 2026-10-05): https://www.nist.gov/publications/methods-uncertainty-quantification-computational-modeling-and-simulation-harmonizing
 
 ## 3.4.1 Sparse constrained systems and numerical conditioning
 
