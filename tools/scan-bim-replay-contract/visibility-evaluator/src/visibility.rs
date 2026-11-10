@@ -111,6 +111,7 @@ pub struct VisibilityEvaluation<'a> {
     pub frame_id: &'a str,
     pub reference_model_sha256: &'a str,
     pub probe_set_sha256: &'a str,
+    pub reference_surface_ids: &'a [String],
     pub occluder_manifest_sha256: &'a str,
     pub occluder_coverage: OccluderCoverage,
     pub probes: &'a [VisibilityProbe],
@@ -138,11 +139,18 @@ pub struct VisibilityRequest {
 impl VisibilityRequest {
     pub fn evaluate(&self) -> Result<VisibilityReceipt, String> {
         let probes = probes_from_reference_sampling(&self.reference_sampling)?;
+        let reference_surface_ids: Vec<String> = self
+            .reference_sampling
+            .surfaces
+            .iter()
+            .map(|surface| surface.surface_id.clone())
+            .collect();
         derive_surface_visibility(VisibilityEvaluation {
             scene_id: &self.scene_id,
             frame_id: &self.frame_id,
             reference_model_sha256: &self.reference_model_sha256,
             probe_set_sha256: &self.reference_sampling.sample_set_sha256,
+            reference_surface_ids: &reference_surface_ids,
             occluder_manifest_sha256: &self.occluder_manifest_sha256,
             occluder_coverage: self.occluder_coverage,
             probes: &probes,
@@ -789,8 +797,14 @@ pub fn probes_from_reference_sampling(
 
 fn validate_reference_probe_set(
     probes: &[&VisibilityProbe],
+    reference_surface_ids: &[String],
     occluders: &[OccluderTriangle],
 ) -> Result<(), String> {
+    let expected_surface_ids: BTreeSet<&str> =
+        reference_surface_ids.iter().map(String::as_str).collect();
+    if expected_surface_ids.is_empty() || expected_surface_ids.len() != reference_surface_ids.len() {
+        return Err("reference surface inventory is empty or contains duplicate IDs".to_owned());
+    }
     let mut target_triangles: BTreeMap<(&str, &str), &OccluderTriangle> = BTreeMap::new();
     let mut reference_area_by_surface: BTreeMap<&str, f64> = BTreeMap::new();
 
@@ -802,18 +816,23 @@ fn validate_reference_probe_set(
         if target_triangles.insert(key, triangle).is_some() {
             return Err("reference geometry contains duplicate target triangle identities".to_owned());
         }
-        let area = triangle_area_m2(triangle.a, triangle.b, triangle.c)?;
-        let total = reference_area_by_surface
-            .entry(triangle.surface_id.as_str())
-            .or_insert(0.0);
-        *total += area;
-        if !total.is_finite() {
-            return Err("reference surface area overflowed".to_owned());
+        if expected_surface_ids.contains(triangle.surface_id.as_str()) {
+            let area = triangle_area_m2(triangle.a, triangle.b, triangle.c)?;
+            let total = reference_area_by_surface
+                .entry(triangle.surface_id.as_str())
+                .or_insert(0.0);
+            *total += area;
+            if !total.is_finite() {
+                return Err("reference surface area overflowed".to_owned());
+            }
         }
     }
 
     let mut represented_area_by_surface: BTreeMap<&str, f64> = BTreeMap::new();
     for probe in probes {
+        if !expected_surface_ids.contains(probe.surface_id.as_str()) {
+            return Err("visibility probe references a surface outside the declared target inventory".to_owned());
+        }
         let triangle = target_triangles
             .get(&(probe.surface_id.as_str(), probe.triangle_id.as_str()))
             .ok_or("visibility probe does not reference a triangle in the declared BIM reference geometry")?;
@@ -886,12 +905,17 @@ fn validate_reference_probe_set(
         }
     }
 
-    if represented_area_by_surface.len() != reference_area_by_surface.len() {
+    if represented_area_by_surface.len() != expected_surface_ids.len()
+        || reference_area_by_surface.len() != expected_surface_ids.len()
+    {
         return Err(
             "reference sampling surface inventory does not match reference geometry".to_owned(),
         );
     }
-    for (surface_id, reference_area) in reference_area_by_surface {
+    for surface_id in expected_surface_ids {
+        let reference_area = reference_area_by_surface
+            .get(surface_id)
+            .ok_or("target reference surface has no source triangles")?;
         let represented_area = represented_area_by_surface
             .get(surface_id)
             .ok_or("reference geometry surface has no area-weighted visibility probes")?;
@@ -993,7 +1017,11 @@ pub fn derive_surface_visibility(
 
     let owned_views: Vec<VisibilityView> =
         ordered_views.iter().map(|value| (**value).clone()).collect();
-    validate_reference_probe_set(&ordered_probes, &ordered_occluders)?;
+    validate_reference_probe_set(
+        &ordered_probes,
+        evaluation.reference_surface_ids,
+        &ordered_occluders,
+    )?;
 
     let mut results = Vec::with_capacity(evaluation.probes.len());
     let mut ray_test_count = 0usize;
