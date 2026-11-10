@@ -740,6 +740,27 @@ fn record_ids(corpus: &Value) -> Result<HashSet<String>, String> {
     Ok(ids)
 }
 
+fn validate_lineage_references(record: &Value, ids: &HashSet<String>) -> bool {
+    if string_at(record, &["record_type"]) != Some("observation")
+        || !matches!(string_at(record, &["value_state"]), Some("derived" | "reconstructed" | "imputed"))
+    {
+        return true;
+    }
+    let Some(lineage) = value_at(record, &["lineage"]).and_then(Value::as_array) else {
+        return false;
+    };
+    lineage.iter().all(|item| {
+        value_at(item, &["input_record_refs"])
+            .and_then(Value::as_array)
+            .is_some_and(|references| {
+                !references.is_empty()
+                    && references.iter().all(|reference| {
+                        reference.as_str().is_some_and(|id| ids.contains(id))
+                    })
+            })
+    })
+}
+
 fn validate_evidence_references(record: &Value, ids: &HashSet<String>) -> bool {
     ["supports", "contradicts", "derived_from"].iter().all(|key| {
         value_at(record, &["evidence_links", key])
@@ -754,6 +775,12 @@ fn evaluate_corpus(bytes: &[u8]) -> Result<(Value, usize), String> {
     }
     let corpus: Value = serde_json::from_slice(bytes)
         .map_err(|error| format!("corpus_json_invalid: {error}"))?;
+    if !has_only_fields(
+        &corpus,
+        &["corpus_id", "corpus_version", "claim_ceiling", "evaluation_time", "fixture_count", "fixtures"],
+    ) {
+        return Err("corpus_unknown_field_or_shape".into());
+    }
     if string_at(&corpus, &["corpus_version"]) != Some("0.1.0")
         || string_at(&corpus, &["claim_ceiling"])
             != Some("Synthetic conformance fixtures only; not physical diagnostic validation.")
@@ -800,6 +827,12 @@ fn evaluate_corpus(bytes: &[u8]) -> Result<(Value, usize), String> {
     let mut fixture_ids = HashSet::new();
     for fixture in fixtures {
         let case_start = Instant::now();
+        if !has_only_fields(
+            fixture,
+            &["fixture_id", "expected_disposition", "expected_invariants", "record", "companion_records"],
+        ) {
+            return Err("fixture_unknown_field_or_shape".into());
+        }
         let fixture_id = string_at(fixture, &["fixture_id"])
             .ok_or_else(|| "fixture_id_missing".to_string())?.to_owned();
         if !fixture_ids.insert(fixture_id.clone()) {
@@ -831,7 +864,17 @@ fn evaluate_corpus(bytes: &[u8]) -> Result<(Value, usize), String> {
                     duplicate_in_fixture = true;
                 }
             }
-            let audit = validate_record(record, evaluation_epoch);
+            let mut audit = validate_record(record, evaluation_epoch);
+            if !validate_lineage_references(record, &corpus_ids) {
+                audit.reject("lineage_input_reference_unresolved");
+                references_ok = false;
+            }
+            if string_at(record, &["record_type"]) == Some("diagnostic_assertion")
+                && !validate_evidence_references(record, &corpus_ids)
+            {
+                audit.reject("assertion_evidence_reference_unresolved");
+                references_ok = false;
+            }
             if let Some(digest_ok) = audit.payload_digest_match {
                 digest_checked += 1;
                 if digest_ok {
@@ -864,11 +907,6 @@ fn evaluate_corpus(bytes: &[u8]) -> Result<(Value, usize), String> {
                 if audit.conflict_links_valid == Some(true) {
                     conflict_valid += 1;
                 }
-            }
-            if string_at(record, &["record_type"]) == Some("diagnostic_assertion")
-                && !validate_evidence_references(record, &corpus_ids)
-            {
-                references_ok = false;
             }
             audits.push(audit);
         }
@@ -944,8 +982,9 @@ fn evaluate_corpus(bytes: &[u8]) -> Result<(Value, usize), String> {
     let digest_gate = digest_negative_control_ok && digest_mismatch_seen;
     let duplicate_gate = duplicate_gate_ok && duplicate_seen;
     let native_gate = native_total == native_present && native_total > 0;
+    let provenance_gate = provenance_total > 0 && provenance_complete == provenance_total;
     let all_gates = disposition_gate && digest_gate && ambiguous_gate
-        && conflict_gate && duplicate_gate && references_ok && native_gate;
+        && conflict_gate && duplicate_gate && references_ok && native_gate && provenance_gate;
 
     let report = json!({
         "report_version": "0.1.0",
@@ -964,7 +1003,7 @@ fn evaluate_corpus(bytes: &[u8]) -> Result<(Value, usize), String> {
             "rejected": rejected,
             "abstained": abstained,
             "payload_digest_match_rate": if digest_checked == 0 { Value::Null } else { json!(digest_matches as f64 / digest_checked as f64) },
-            "native_identifier_retention_rate": Value::Null,
+            "native_identifier_retention_rate": if native_total == 0 { Value::Null } else { json!(native_present as f64 / native_total as f64) },
             "mapping_precision": Value::Null,
             "mapping_coverage": Value::Null,
             "ambiguous_mapping_abstention_rate": if ambiguous_total == 0 { Value::Null } else { json!(ambiguous_abstained as f64 / ambiguous_total as f64) },
@@ -981,6 +1020,7 @@ fn evaluate_corpus(bytes: &[u8]) -> Result<(Value, usize), String> {
             {"gate_id":"duplicate_stream_sequence_rejected","passed":duplicate_gate,"failure_count":if duplicate_gate { 0usize } else { 1usize }},
             {"gate_id":"assertion_evidence_references_resolve","passed":references_ok,"failure_count":if references_ok { 0usize } else { 1usize }},
             {"gate_id":"native_channel_identifiers_present","passed":native_gate,"failure_count":if native_gate { 0usize } else { 1usize }},
+            {"gate_id":"provenance_completeness","passed":provenance_gate,"failure_count":provenance_total.saturating_sub(provenance_complete)},
             {"gate_id":"assertion_conflict_links_well_formed","passed":conflict_gate,"failure_count":conflict_total.saturating_sub(conflict_valid)}
         ],
         "case_results": case_reports,
