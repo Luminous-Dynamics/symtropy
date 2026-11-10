@@ -808,11 +808,11 @@ mod tests {
     }
 
     #[test]
-    fn missing_or_duplicate_policy_family_smokes_block_release() {
+    fn missing_or_duplicate_task_family_smokes_block_release() {
         let mut missing = evidence();
         missing.model_smokes.pop();
         let report = qualify_release(&missing).unwrap();
-        assert!(report.has_blocker(ReleaseGateBlocker::ModelFamilySetMismatch));
+        assert!(report.has_blocker(ReleaseGateBlocker::PolicyRunSetMismatch));
         assert!(report.has_blocker(ReleaseGateBlocker::MissingPolicyRunSmoke));
 
         let mut duplicate = evidence();
@@ -820,7 +820,7 @@ mod tests {
         duplicate.model_smokes[1].task_id = duplicate.model_smokes[0].task_id.clone();
         let report = qualify_release(&duplicate).unwrap();
         assert!(report.has_blocker(ReleaseGateBlocker::DuplicatePolicyRunSmoke));
-        assert!(report.has_blocker(ReleaseGateBlocker::ModelFamilySetMismatch));
+        assert!(report.has_blocker(ReleaseGateBlocker::PolicyRunSetMismatch));
     }
 
     #[test]
