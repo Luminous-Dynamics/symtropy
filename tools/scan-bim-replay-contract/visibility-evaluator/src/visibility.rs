@@ -431,6 +431,7 @@ fn observe_from_view(
     occluders: &[OccluderTriangle],
     occluder_coverage: OccluderCoverage,
     profile: VisibilityProfile,
+    remaining_ray_tests: usize,
 ) -> Result<(ViewObservation, usize), String> {
     let Some((direction, target_distance)) = view_covers_probe(view, probe.point)? else {
         return Ok((
@@ -484,6 +485,9 @@ fn observe_from_view(
             && occluder.triangle_id == probe.triangle_id
         {
             continue;
+        }
+        if ray_tests >= remaining_ray_tests {
+            return Err("visibility ray-test budget exceeded during ray traversal".to_owned());
         }
         ray_tests += 1;
         if let Some(distance) =
@@ -873,6 +877,7 @@ pub fn derive_surface_visibility(
                 &ordered_occluders,
                 evaluation.occluder_coverage,
                 evaluation.profile,
+                evaluation.profile.max_ray_tests.saturating_sub(ray_test_count),
             )?;
             ray_test_count = ray_test_count
                 .checked_add(tests)
