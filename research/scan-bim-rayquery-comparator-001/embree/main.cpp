@@ -214,8 +214,15 @@ Fixture load_fixture(const std::string& path, const std::string& workload_overri
   fixture.workload_class = workload_override;
   fixture.intersection_epsilon = contract.at("intersection_epsilon_m").get<double>();
   fixture.tie_epsilon = contract.at("nearest_hit_tie_epsilon_m").get<double>();
-  if (!(fixture.intersection_epsilon > 0.0) || !(fixture.tie_epsilon > 0.0)) {
-    throw std::runtime_error("fixture metric tolerances must be positive");
+  const double parallel_cosine_epsilon = contract.at("parallel_cosine_epsilon").get<double>();
+  const double barycentric_epsilon = contract.at("barycentric_epsilon").get<double>();
+  if (!std::isfinite(fixture.intersection_epsilon) || fixture.intersection_epsilon <= 0.0 ||
+      !std::isfinite(fixture.tie_epsilon) || fixture.tie_epsilon <= 0.0 ||
+      !std::isfinite(parallel_cosine_epsilon) || parallel_cosine_epsilon <= 0.0 ||
+      parallel_cosine_epsilon >= 1.0 ||
+      !std::isfinite(barycentric_epsilon) || barycentric_epsilon <= 0.0 ||
+      barycentric_epsilon >= 0.1) {
+    throw std::runtime_error("fixture metric/dimensionless tolerances are invalid");
   }
   fixture.fixture_sha256 = sha256(raw);
 
@@ -241,6 +248,10 @@ Fixture load_fixture(const std::string& path, const std::string& workload_overri
     fixture.triangles.push_back(std::move(triangle));
   }
   if (fixture.triangles.empty()) throw std::runtime_error("fixture has no triangles");
+  if (fixture.triangles.size() > static_cast<std::size_t>(
+          std::numeric_limits<unsigned int>::max() / 3U)) {
+    throw std::runtime_error("fixture has too many triangles for Embree's 32-bit index buffer");
+  }
 
   std::vector<const Triangle*> sorted_triangles;
   sorted_triangles.reserve(fixture.triangles.size());
@@ -473,6 +484,32 @@ std::string architecture() {
 #endif
 }
 
+std::string kernel_name() {
+#if defined(__linux__)
+  struct utsname info {};
+  if (uname(&info) == 0) return std::string(info.release);
+#endif
+  return "unknown";
+}
+
+std::string cpu_model() {
+#if defined(__linux__)
+  std::ifstream input("/proc/cpuinfo");
+  std::string line;
+  while (std::getline(input, line)) {
+    const std::string key = "model name";
+    if (line.rfind(key, 0) == 0) {
+      const auto colon = line.find(':');
+      if (colon != std::string::npos) {
+        const auto first = line.find_first_not_of(" \t", colon + 1);
+        if (first != std::string::npos) return line.substr(first);
+      }
+    }
+  }
+#endif
+  return "unknown";
+}
+
 double percentile(std::vector<double> values, double p) {
   if (values.empty()) return 0.0;
   std::sort(values.begin(), values.end());
@@ -560,7 +597,11 @@ json run(const Options& options) {
 
   rtcCommitGeometry(handles.geometry);
   check_device(handles.device, "rtcCommitGeometry");
-  (void)rtcAttachGeometry(handles.scene, handles.geometry);
+  const unsigned int geometry_id = rtcAttachGeometry(handles.scene, handles.geometry);
+  if (geometry_id == RTC_INVALID_GEOMETRY_ID) {
+    throw std::runtime_error("rtcAttachGeometry returned RTC_INVALID_GEOMETRY_ID");
+  }
+  check_device(handles.device, "rtcAttachGeometry");
   rtcReleaseGeometry(handles.geometry);
   handles.geometry = nullptr;
   rtcCommitScene(handles.scene);
@@ -569,8 +610,13 @@ json run(const Options& options) {
   const auto build_time_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
       build_finish - build_start).count();
 
+  if (fixture.rays.size() >
+      std::numeric_limits<std::size_t>::max() / options.repetitions) {
+    throw std::runtime_error("ray_count × repetitions overflows size_t");
+  }
+  const std::size_t query_count = fixture.rays.size() * options.repetitions;
   std::vector<double> latencies;
-  latencies.reserve(fixture.rays.size() * options.repetitions);
+  latencies.reserve(query_count);
   std::vector<std::string> first_results;
   first_results.reserve(fixture.rays.size());
   std::vector<json> mismatches;
@@ -634,7 +680,6 @@ json run(const Options& options) {
   const double query_wall_ns = static_cast<double>(
       std::chrono::duration_cast<std::chrono::nanoseconds>(
         query_wall_finish - query_wall_start).count());
-  const std::size_t query_count = fixture.rays.size() * options.repetitions;
   const double qps = query_wall_ns > 0.0
       ? static_cast<double>(query_count) * 1.0e9 / query_wall_ns : 0.0;
 
@@ -677,9 +722,9 @@ json run(const Options& options) {
     }},
     {"environment", {
       {"os", os_name()},
-      {"kernel", nullptr},
+      {"kernel", kernel_name() == "unknown" ? json(nullptr) : json(kernel_name())},
       {"architecture", architecture()},
-      {"cpu_model", nullptr},
+      {"cpu_model", cpu_model() == "unknown" ? json(nullptr) : json(cpu_model())},
       {"cpu_count", std::thread::hardware_concurrency() == 0
           ? json(nullptr) : json(std::thread::hardware_concurrency())},
       {"thread_count", options.threads},
