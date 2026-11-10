@@ -299,3 +299,70 @@ jobs:
                   assert row["adequacy_receipt_digest"] and row["source_digest"]
           print("Policy-sensitivity CSV valid: constraint-first feasibility, native-unit regret, structural ranking reversal and exploratory claim ceiling.")
           PY
+
+- name: Verify decision-critical consequences of model discrepancy
+        run: |
+          set -euo pipefail
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin decision-criticality-sweep > /tmp/civdyn-decision-criticality.csv
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin decision-criticality-sweep > /tmp/civdyn-decision-criticality-replay.csv
+          cmp /tmp/civdyn-decision-criticality.csv /tmp/civdyn-decision-criticality-replay.csv
+          python3 - <<'PY'
+          import csv
+          from pathlib import Path
+
+          with Path("/tmp/civdyn-decision-criticality.csv").open(newline="", encoding="utf-8") as handle:
+              reader = csv.DictReader(handle)
+              rows = list(reader)
+              fields = reader.fieldnames
+
+          assert fields is not None and len(fields) == 28, f"expected 28 columns, got {len(fields or [])}"
+          assert len(rows) == 12, f"expected four challenge worlds times three policies, got {len(rows)}"
+          by_world = {}
+          for row in rows:
+              by_world.setdefault(row["alternative_model_id"], []).append(row)
+          assert set(by_world) == {"stable-challenge", "ranking-reversal", "feasibility-reversal", "out-of-domain"}
+          assert all(len(group) == 3 for group in by_world.values())
+
+          stable = by_world["stable-challenge"]
+          assert all(row["impact"] == "stable_within_declared_threshold" for row in stable)
+          assert all(row["decision_critical"] == "false" for row in stable)
+          assert all(row["reference_optimal_policy_ids"] == "expand" for row in stable)
+          assert all(row["alternative_optimal_policy_ids"] == "expand" for row in stable)
+          assert next(row for row in stable if row["policy_id"] == "expand")["regret"] == "1.000000"
+
+          ranking = by_world["ranking-reversal"]
+          assert all(row["impact"] == "ranking_changed" for row in ranking)
+          assert all(row["decision_critical"] == "true" for row in ranking)
+          assert all(row["reference_optimal_policy_ids"] == "expand" for row in ranking)
+          assert all(row["alternative_optimal_policy_ids"] == "maintain" for row in ranking)
+          assert next(row for row in ranking if row["policy_id"] == "expand")["regret"] == "25.000000"
+
+          feasibility = by_world["feasibility-reversal"]
+          assert all(row["impact"] == "feasibility_changed" for row in feasibility)
+          assert all(row["decision_critical"] == "true" for row in feasibility)
+          expand = next(row for row in feasibility if row["policy_id"] == "expand")
+          assert expand["reference_feasible"] == "true"
+          assert expand["alternative_feasible"] == "false"
+          assert expand["feasibility_reversed"] == "true"
+          assert expand["regret"] == ""
+          assert expand["alternative_violations"] == "water-reserve-floor"
+
+          unknown = by_world["out-of-domain"]
+          assert all(row["alternative_adequacy_state"] == "out_of_domain" for row in unknown)
+          assert all(row["impact"] == "not_assessed" for row in unknown)
+          assert all(row["decision_critical"] == "false" for row in unknown)
+
+          for row in rows:
+              assert row["reference_model_id"] == "reference"
+              assert row["reference_model_digest"] == "sha256-decision-reference-model"
+              assert row["reference_adequacy_receipt_digest"]
+              assert row["alternative_model_digest"]
+              assert row["alternative_adequacy_receipt_digest"]
+              assert row["objective_id"] == "essential-service-coverage"
+              assert row["measurement_unit"] == "service_units"
+              assert row["direction"] == "maximize"
+              assert row["materiality_threshold"] == "10.000000"
+              assert row["reference_source_digest"] == row["alternative_source_digest"] == "sha256-decision-criticality-source"
+              assert row["reference_outcome_receipt_digest"] and row["alternative_outcome_receipt_digest"]
+          print("Decision-criticality CSV valid: stable, ranking reversal, hard-feasibility reversal and out-of-domain cases remain separate; exact model and outcome lineage; deterministic replay.")
+          PY
