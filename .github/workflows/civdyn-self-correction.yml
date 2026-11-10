@@ -312,7 +312,7 @@ jobs:
               rows = list(reader)
               fields = reader.fieldnames
 
-          assert fields is not None and len(fields) == 32
+          assert fields is not None and len(fields) == 33
           assert len(rows) == 9
           grouped = {}
           for row in rows:
@@ -333,11 +333,13 @@ jobs:
 
           for row in lambda2:
               assert row["status"] == "sensitivity_bounded"
+              assert row["interval_collapsed"] == "false"
               assert math.isclose(float(row["target_ate_lower"]), -0.13, abs_tol=1e-8)
               assert math.isclose(float(row["target_ate_upper"]), 0.51, abs_tol=1e-8)
 
           for row in lambda4:
               assert row["status"] == "sensitivity_bounded"
+              assert row["interval_collapsed"] == "false"
               assert math.isclose(float(row["target_ate_lower"]), -0.605, abs_tol=1e-8)
               assert math.isclose(float(row["target_ate_upper"]), 0.82, abs_tol=1e-8)
 
@@ -352,6 +354,7 @@ jobs:
 
           for row in partial:
               assert row["status"] == "partially_identified"
+              assert row["interval_collapsed"] == "false"
               assert math.isclose(float(row["target_ate_lower"]), -0.30, abs_tol=1e-8)
               assert math.isclose(float(row["target_ate_upper"]), 0.61, abs_tol=1e-8)
               assert math.isclose(float(row["supported_target_mass"]), 0.8, abs_tol=1e-8)
