@@ -123,6 +123,44 @@
       "audit_notes": []
     },
     {
+      "id": "cross-individual-dt-dann-2026",
+      "title": "Research on cross-individual fault diagnosis of marine main engines based on adaptive mechanisms",
+      "source_type": "peer_reviewed_article",
+      "publication_date": "2026-07-16",
+      "source_url": "https://doi.org/10.19693/j.issn.1673-3185.04917",
+      "data_domain": "Digital-twin-generated simulation data for cross-individual marine-main-engine diagnosis; the abstract describes simulation results, not a physical held-out-engine trial.",
+      "task": "Cross-individual fault diagnosis using adaptive digital-twin calibration, healthy-state anchors and a multi-scale 1D-CNN plus domain-adversarial network.",
+      "reported_metrics": [
+        {
+          "metric": "diagnostic_accuracy",
+          "value": 100,
+          "unit": "%",
+          "context": "Reported DT-DANN result; the article abstract explicitly describes the result as simulation-based.",
+          "source_location": "Abstract, Results"
+        },
+        {
+          "metric": "individual_twin_parameter_mape",
+          "value": 0.052,
+          "unit": "%",
+          "context": "Reported MAPE for adaptive tuning of individual-engine performance-parameter factors; this is a model-calibration result, not diagnostic accuracy.",
+          "source_location": "Abstract, Results"
+        }
+      ],
+      "split_protocol": "Cross-individual zero-shot transfer is claimed, but the public abstract does not expose the full engine-level split manifest, source/target engine identities or leakage controls. Obtain and audit the full methods before reproduction.",
+      "reported_limitations": [
+        "The reported 100% diagnostic accuracy is simulation-based; it is not a physical unseen-engine result.",
+        "The engine-level train/test partition, digital-twin calibration leakage controls and independent physical validation require full-methods audit.",
+        "Not directly comparable to the Aalto MU323DGSC physical test-bench archive."
+      ],
+      "reproducibility_status": "reported_not_reproduced",
+      "direct_comparison_to_aalto": "not_comparable",
+      "audit_notes": [
+        "Published in Chinese Journal of Ship Research, 2026, 21(4), pages 432–441; official publication date 16 July 2026.",
+        "The paper reports a DT-DANN model based on PSO-tuned individual digital twins, healthy-state anchors, multi-scale 1D-CNN and improved DANN.",
+        "No model code, sample payload, physical validation or exact split manifest has been audited by this project."
+      ]
+    },
+    {
       "id": "aalto-marine-engine-fault-v1",
       "title": "Marine Engine Fault Dataset: Open-Access Data under Controlled Reference and Fault Scenario Conditions",
       "source_type": "public_dataset",
