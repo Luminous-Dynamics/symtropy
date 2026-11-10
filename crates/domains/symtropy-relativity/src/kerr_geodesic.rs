@@ -631,8 +631,7 @@ mod tests {
 
     #[test]
     fn forbidden_radial_region_is_not_clamped_to_a_turning_point() {
-        let constants =
-            KerrNullConstants::new(1.0, 3.0 * 3.0_f64.sqrt(), 0.0).unwrap();
+        let constants = KerrNullConstants::new(1.0, 6.0, 0.0).unwrap();
         let geodesic = KerrSeparatedNullGeodesic::new(hole(0.0), constants);
         let state = KerrMinoState::new(0.0, 2.5, core::f64::consts::FRAC_PI_2, 0.0);
         assert!(matches!(
@@ -642,6 +641,26 @@ mod tests {
                 KerrMinoDirection::Increasing
             ),
             Err(KerrGeodesicError::ForbiddenRadialRegion { .. })
+        ));
+    }
+
+
+    #[test]
+    fn forbidden_polar_region_is_not_clamped_to_zero() {
+        let constants = KerrNullConstants::new(1.0, 4.0, 0.0).unwrap();
+        assert!(matches!(
+            constants.polar_potential(0.5, core::f64::consts::FRAC_PI_4),
+            Ok(value) if value < 0.0
+        ));
+        let geodesic = KerrSeparatedNullGeodesic::new(hole(0.5), constants);
+        let state = KerrMinoState::new(0.0, 10.0, core::f64::consts::FRAC_PI_4, 0.0);
+        assert!(matches!(
+            geodesic.mino_derivative(
+                state,
+                KerrMinoDirection::Increasing,
+                KerrMinoDirection::Increasing
+            ),
+            Err(KerrGeodesicError::ForbiddenPolarRegion { .. })
         ));
     }
 
