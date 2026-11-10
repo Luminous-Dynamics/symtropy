@@ -35,7 +35,7 @@ The paper specifies:
 - Speed = the human baseline completion time divided by the evaluated system's task time.
 - Task score = `0.8 * correctness + 0.2 * speed`.
 
-The speed term is intentionally unbounded; the paper explicitly says scores greater than one are possible. This means the aggregate must never replace its components. For example, the arithmetic can yield a score of 1.0 for a zero-correctness observation if the speed ratio is 5. This is not evidence of task success. Preserve correctness, speed, eligibility and outcome separately, and follow the exact protocol's timing and exclusion rules.
+The speed term is intentionally unbounded; the paper explicitly says scores greater than one are possible. This means the aggregate must never replace its components. As an arithmetic-only edge case, C=0 and a speed ratio of 5 produces a numeric score of 1.0. This is not a claim that a failed trial is eligible for a POMDAR speed time: the paper's exposed definition does not itself settle every failure/timeout timing rule, and the oracle deliberately does not adjudicate trial eligibility. Preserve correctness, speed, trial eligibility and outcome separately, and follow the exact protocol's timing and exclusion rules.
 
 A small independent, dependency-free Rust implementation is in [score-oracle](./score-oracle/). It implements only the published task-level arithmetic and correctness mappings; it does not determine whether a trial is eligible, infer task completion from sensors, establish baseline provenance, or claim benchmark reproduction. Run it independently with:
 
