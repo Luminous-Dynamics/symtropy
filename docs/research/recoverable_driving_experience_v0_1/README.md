@@ -248,15 +248,19 @@ Tesla's public FSD (Supervised) safety report is another, different form of flee
 
 ### NVIDIA Alpamayo as a current platform comparator
 
-NVIDIA's Alpamayo Open Platform (page updated August 2026) is not just a driving model. It combines 10B-parameter Alpamayo 1/1.5 Nano and 34B Alpamayo 2 Super VLA models, multi-camera RGB plus ego-motion inputs, 64-waypoint trajectory outputs, Chain-of-Causation explanation text, AlpaSim closed-loop simulation, AlpaGym reinforcement learning, auto-labeling and open driving datasets. NVIDIA describes the models as cloud-side teacher models that can be distilled into onboard DRIVE AGX Thor student policies; they are not described as direct in-vehicle runtimes.
+NVIDIA's current public product page describes Alpamayo as a platform rather than one model:
+- **Alpamayo 2 Edge:** 2B vision-language-action model intended for in-car reasoning. NVIDIA's developer page currently labels it "Coming Soon", so this is a product direction, not evidence of broad deployed availability.
+- **Alpamayo 2 Super:** 34B reasoning foundation model for planning, auto-labeling and evaluation. NVIDIA's release notes describe a 32B Cosmos-3 Super Reasoner plus a 2B diffusion Action Expert, with multi-camera driving coverage and trajectory outputs.
+- **AlpaSim / AlpaGym:** closed-loop simulation and reinforcement-learning frameworks.
+- **Physical AI driving datasets and Chain-of-Causation labels:** data and reasoning supervision for rare scenarios.
 
 This creates a useful competitive reference:
-- **Do not compete on parameter count.** Compare against Alpamayo as a high-capacity teacher / reasoning-VLA baseline where its published protocols, weights, data and licences permit.
-- **Compete on the student capability frontier.** Test whether a substantially smaller HDC/LTC student can preserve task competence while improving adaptation cost, irregular-time sensor robustness, memory/energy use and recovery quality.
-- **Make explanations evidence-grounded.** A generated Chain-of-Causation text is useful for review, but Symthaea should attach each decision claim to policy-visible observation identities, predicted consequences, uncertainty and independently qualified SAM evidence. Text alone is not an assurance artifact.
-- **Use the ecosystem comparison honestly.** NVIDIA already offers a simulator, RL stack, teacher models, data and reasoning outputs. Symtropy must demonstrate equivalent closed-loop experiment discipline and benchmark reproduction before architectural differentiation is persuasive.
+- **Do not compete on parameter count.** Use Super as a teacher/reasoning comparator where accessible weights, data, licences and evaluation protocols permit; record model revision, sensor input, inference budget and teacher privileges.
+- **Compete on the student capability frontier.** Test whether a much smaller HDC/LTC student can retain task competence while improving adaptation cost, irregular-time sensor robustness, memory/energy use and recoverability.
+- **Make explanations evidence-grounded.** Generated causal text is useful for review, but a Symthaea decision claim should point to policy-visible observation identities, predicted consequences, uncertainty and independently qualified SAM evidence. Text alone is not an assurance artifact.
+- **Compare the full platform honestly.** NVIDIA already provides models, simulator, RL tooling, datasets and a teacher-to-student workflow. Symtropy must demonstrate closed-loop experiment discipline and baseline reproduction before architectural differentiation is persuasive.
 
-Source: [NVIDIA Alpamayo platform description and August 2026 update](https://www.nvidia.com/en-us/solutions/autonomous-vehicles/alpamayo/llm-info/).
+Sources: [NVIDIA Alpamayo product overview](https://www.nvidia.com/en-us/solutions/autonomous-vehicles/alpamayo/), [developer resources and Edge availability status](https://developer.nvidia.com/drive), [Alpamayo 2 Super release notes](https://nvidianews.nvidia.com/news/nvidia-alpamayo-2-super-robotaxis).
 
 **Strategic implication:** Symthaea is currently a research architecture and specification programme, not an industry-level autonomous-driving product. The credible path is: reproduce public research baselines; show a predeclared architectural or learning-efficiency advantage under matched budgets; validate robustness and recovery independently; then build a separately governed, staged physical evidence case. Fleet mileage and safety-case evidence are a long-term validation destination, not a near-term leaderboard target.
 
