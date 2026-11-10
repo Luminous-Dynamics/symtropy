@@ -235,7 +235,7 @@ cargo run --locked \
   --output /path/to/marine-engine-dataset-audit-v0.1.json
 ~~~
 
-The tool hashes each declared member and optional archive, checks the 3-row/73-column and 3-row/70-column layouts, validates binary anomaly-state labels, records 0-to-1 transitions without inventing onset for anomaly-only recordings, checks numeric relative-time order, counts missing cells by channel, and emits an unassigned file-level split template. It rejects path traversal, limits individual members to 128 MiB and does not download or extract archive content itself.
+The tool hashes each declared member and supplied archive, requires a valid ZIP signature plus exact publisher-MD5 match before returning success, checks the 3-row/73-column and 3-row/70-column layouts, validates binary anomaly-state labels, verifies onset-evaluable label coverage for the 13 recordings expected to contain both states, records the two anomaly-only nozzle files without inventing onset, audits absolute timestamp empties/duplicates and numeric relative-time ordering, counts common missing-value tokens by channel, and emits a split template with fault recordings unassigned and the baseline reference-only. It rejects path traversal and symlink escape, bounds file reads to 128 MiB, and does not download or extract archive content itself.
 
 The report schema is
 `docs/tech/MARITIME_ENGINE_DATASET_AUDIT_REPORT_V0_1.schema.json`.
