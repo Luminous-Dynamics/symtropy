@@ -13,6 +13,7 @@
 #![forbid(unsafe_code)]
 
 pub mod process_memory;
+pub mod result_envelope;
 
 use std::collections::BTreeSet;
 
