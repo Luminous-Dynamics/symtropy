@@ -128,6 +128,8 @@ pub enum MemoryOperationError {
     ComparisonQueryRosterMismatch,
     ComparisonControlManifestMismatch,
     ComparisonPolicyArtifactMismatch,
+    ComparisonEvaluatorMismatch,
+    ComparisonExpectedCountMismatch,
     ComparisonTaskRosterMismatch,
     ComparisonApplicabilityMismatch,
     ComparisonUnitRosterMismatch,
@@ -197,6 +199,44 @@ pub struct MemoryOperationUnitSummary {
     pub unresolved_count: usize,
     pub fidelity_rate: Option<f64>,
     pub evidence_coverage: Option<f64>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct MemoryOperationPairedUnitDelta {
+    pub task_id: String,
+    pub independence_unit_id: String,
+    pub operation: MemoryOperationKind,
+    pub baseline_fidelity_rate: Option<f64>,
+    pub candidate_fidelity_rate: Option<f64>,
+    pub fidelity_delta: Option<f64>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct MemoryOperationPairedSummary {
+    pub operation: MemoryOperationKind,
+    pub paired_unit_count: usize,
+    pub contributing_unit_count: usize,
+    pub baseline_mean_unit_fidelity: Option<f64>,
+    pub candidate_mean_unit_fidelity: Option<f64>,
+    pub mean_paired_fidelity_delta: Option<f64>,
+    pub candidate_wins: usize,
+    pub baseline_wins: usize,
+    pub ties: usize,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct MemoryOperationPairedComparison {
+    pub protocol_sha256: String,
+    pub operation_roster_sha256: String,
+    pub query_roster_sha256: String,
+    pub control_manifest_sha256: String,
+    pub policy_artifact_sha256: String,
+    pub evaluator_sha256: String,
+    pub baseline_memory_system_sha256: String,
+    pub candidate_memory_system_sha256: String,
+    pub paired_unit_count: usize,
+    pub unit_deltas: Vec<MemoryOperationPairedUnitDelta>,
+    pub summaries: Vec<MemoryOperationPairedSummary>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -528,6 +568,156 @@ pub fn audit_memory_operations(
         summaries,
         task_summaries,
         unit_summaries,
+    })
+}
+
+/// Compare two memory-system arms on the exact same evaluator/query/task/unit
+/// roster and frozen control bundle. The policy artifact is held constant so
+/// this is a memory-only paired ablation. It reports descriptive per-unit
+/// deltas; it does not compute confidence intervals or p-values. Resample the
+/// returned independent-unit rows (not individual checkpoints) for inference.
+pub fn compare_memory_operation_arms(
+    baseline: &MemoryOperationAudit,
+    candidate: &MemoryOperationAudit,
+) -> Result<MemoryOperationPairedComparison, MemoryOperationError> {
+    if baseline.protocol_sha256 != candidate.protocol_sha256 {
+        return Err(MemoryOperationError::ComparisonProtocolMismatch);
+    }
+    if baseline.operation_roster_sha256 != candidate.operation_roster_sha256 {
+        return Err(MemoryOperationError::ComparisonOperationRosterMismatch);
+    }
+    if baseline.query_roster_sha256 != candidate.query_roster_sha256 {
+        return Err(MemoryOperationError::ComparisonQueryRosterMismatch);
+    }
+    if baseline.control_manifest_sha256 != candidate.control_manifest_sha256 {
+        return Err(MemoryOperationError::ComparisonControlManifestMismatch);
+    }
+    if baseline.policy_artifact_sha256 != candidate.policy_artifact_sha256 {
+        return Err(MemoryOperationError::ComparisonPolicyArtifactMismatch);
+    }
+    if baseline.evaluator_sha256 != candidate.evaluator_sha256 {
+        return Err(MemoryOperationError::ComparisonEvaluatorMismatch);
+    }
+    if baseline.expected_case_count != candidate.expected_case_count {
+        return Err(MemoryOperationError::ComparisonExpectedCountMismatch);
+    }
+    if baseline.unit_summaries.is_empty()
+        || candidate.unit_summaries.is_empty()
+        || baseline.unit_summaries.len() != candidate.unit_summaries.len()
+    {
+        return Err(MemoryOperationError::ComparisonUnitRosterMismatch);
+    }
+
+    let mut baseline_units = BTreeMap::new();
+    for unit in &baseline.unit_summaries {
+        let key = (
+            unit.task_id.as_str(),
+            unit.independence_unit_id.as_str(),
+            unit.operation,
+        );
+        if baseline_units.insert(key, unit).is_some() {
+            return Err(MemoryOperationError::ComparisonUnitRosterMismatch);
+        }
+    }
+    let mut candidate_units = BTreeMap::new();
+    for unit in &candidate.unit_summaries {
+        let key = (
+            unit.task_id.as_str(),
+            unit.independence_unit_id.as_str(),
+            unit.operation,
+        );
+        if candidate_units.insert(key, unit).is_some() {
+            return Err(MemoryOperationError::ComparisonUnitRosterMismatch);
+        }
+    }
+    if baseline_units.keys().copied().collect::<BTreeSet<_>>()
+        != candidate_units.keys().copied().collect::<BTreeSet<_>>()
+    {
+        return Err(MemoryOperationError::ComparisonUnitRosterMismatch);
+    }
+
+    let mut unit_deltas = Vec::with_capacity(baseline_units.len());
+    for (key, baseline_unit) in &baseline_units {
+        let candidate_unit = candidate_units.get(key)
+            .ok_or(MemoryOperationError::ComparisonUnitRosterMismatch)?;
+        if baseline_unit.applicable_count != candidate_unit.applicable_count
+            || baseline_unit.not_applicable_count != candidate_unit.not_applicable_count
+        {
+            return Err(MemoryOperationError::ComparisonApplicabilityMismatch);
+        }
+        let baseline_rate = baseline_unit.fidelity_rate;
+        let candidate_rate = candidate_unit.fidelity_rate;
+        let delta = match (baseline_rate, candidate_rate) {
+            (Some(base), Some(candidate)) => Some(candidate - base),
+            (None, None) => None,
+            _ => return Err(MemoryOperationError::ComparisonApplicabilityMismatch),
+        };
+        unit_deltas.push(MemoryOperationPairedUnitDelta {
+            task_id: baseline_unit.task_id.clone(),
+            independence_unit_id: baseline_unit.independence_unit_id.clone(),
+            operation: baseline_unit.operation,
+            baseline_fidelity_rate: baseline_rate,
+            candidate_fidelity_rate: candidate_rate,
+            fidelity_delta: delta,
+        });
+    }
+
+    let mut summaries = Vec::new();
+    for operation in [
+        MemoryOperationKind::Storage,
+        MemoryOperationKind::Update,
+        MemoryOperationKind::Compression,
+    ] {
+        let rows = unit_deltas.iter()
+            .filter(|row| row.operation == operation)
+            .collect::<Vec<_>>();
+        if rows.is_empty() {
+            continue;
+        }
+        let contributing = rows.iter()
+            .filter(|row| row.fidelity_delta.is_some())
+            .collect::<Vec<_>>();
+        let mut candidate_wins = 0;
+        let mut baseline_wins = 0;
+        let mut ties = 0;
+        for row in &contributing {
+            match row.fidelity_delta.expect("contributing rows have a delta").total_cmp(&0.0) {
+                std::cmp::Ordering::Greater => candidate_wins += 1,
+                std::cmp::Ordering::Less => baseline_wins += 1,
+                std::cmp::Ordering::Equal => ties += 1,
+            }
+        }
+        let mean = |values: Vec<f64>| {
+            (!values.is_empty()).then(|| values.iter().sum::<f64>() / values.len() as f64)
+        };
+        summaries.push(MemoryOperationPairedSummary {
+            operation,
+            paired_unit_count: rows.len(),
+            contributing_unit_count: contributing.len(),
+            baseline_mean_unit_fidelity: mean(contributing.iter()
+                .filter_map(|row| row.baseline_fidelity_rate).collect()),
+            candidate_mean_unit_fidelity: mean(contributing.iter()
+                .filter_map(|row| row.candidate_fidelity_rate).collect()),
+            mean_paired_fidelity_delta: mean(contributing.iter()
+                .filter_map(|row| row.fidelity_delta).collect()),
+            candidate_wins,
+            baseline_wins,
+            ties,
+        });
+    }
+
+    Ok(MemoryOperationPairedComparison {
+        protocol_sha256: baseline.protocol_sha256.clone(),
+        operation_roster_sha256: baseline.operation_roster_sha256.clone(),
+        query_roster_sha256: baseline.query_roster_sha256.clone(),
+        control_manifest_sha256: baseline.control_manifest_sha256.clone(),
+        policy_artifact_sha256: baseline.policy_artifact_sha256.clone(),
+        evaluator_sha256: baseline.evaluator_sha256.clone(),
+        baseline_memory_system_sha256: baseline.memory_system_sha256.clone(),
+        candidate_memory_system_sha256: candidate.memory_system_sha256.clone(),
+        paired_unit_count: unit_deltas.len(),
+        unit_deltas,
+        summaries,
     })
 }
 
@@ -1061,6 +1251,69 @@ mod tests {
         assert_eq!(audit.summaries[0].independent_unit_count, 1);
 
         assert!(audit_memory_operations(&manifest(vec![first, second]), &[]).is_ok());
+    }
+
+    #[test]
+    fn paired_memory_comparison_requires_exact_control_and_policy_identity() {
+        let first = case("store-1", 1, MemoryOperationKind::Storage, MemoryOperationApplicability::Applicable, Some(digest("a")));
+        let second = case("store-2", 1, MemoryOperationKind::Storage, MemoryOperationApplicability::Applicable, Some(digest("b")));
+        let base_manifest = manifest(vec![first.clone(), second.clone()]);
+        let base_receipts = {
+            let mut rows = vec![receipt(&first), receipt(&second)];
+            rows[1].observed_effect_sha256 = Some(digest("x"));
+            rows
+        };
+        let baseline = audit_memory_operations(&base_manifest, &base_receipts).unwrap();
+
+        let mut candidate_manifest = base_manifest.clone();
+        candidate_manifest.memory_system_sha256 = digest("a");
+        let mut candidate_receipts = vec![receipt(&first), receipt(&second)];
+        for row in &mut candidate_receipts {
+            row.memory_system_sha256 = digest("a");
+        }
+        let candidate = audit_memory_operations(&candidate_manifest, &candidate_receipts).unwrap();
+        let paired = compare_memory_operation_arms(&baseline, &candidate).unwrap();
+        assert_eq!(paired.paired_unit_count, 2);
+        assert_eq!(paired.summaries.len(), 1);
+        assert_eq!(paired.summaries[0].candidate_wins, 1);
+        assert_eq!(paired.summaries[0].ties, 1);
+        assert_eq!(paired.summaries[0].mean_paired_fidelity_delta, Some(0.5));
+
+        let mut mismatch = candidate.clone();
+        mismatch.control_manifest_sha256 = digest("f");
+        assert_eq!(
+            compare_memory_operation_arms(&baseline, &mismatch),
+            Err(MemoryOperationError::ComparisonControlManifestMismatch)
+        );
+        mismatch = candidate;
+        mismatch.policy_artifact_sha256 = digest("f");
+        assert_eq!(
+            compare_memory_operation_arms(&baseline, &mismatch),
+            Err(MemoryOperationError::ComparisonPolicyArtifactMismatch)
+        );
+    }
+
+    #[test]
+    fn paired_memory_comparison_rejects_different_independent_unit_rosters() {
+        let first = case("store-1", 1, MemoryOperationKind::Storage, MemoryOperationApplicability::Applicable, Some(digest("a")));
+        let second = case("store-2", 2, MemoryOperationKind::Storage, MemoryOperationApplicability::Applicable, Some(digest("b")));
+        let baseline_manifest = manifest(vec![first.clone(), second.clone()]);
+        let baseline = audit_memory_operations(
+            &baseline_manifest,
+            &[receipt(&first), receipt(&second)],
+        ).unwrap();
+
+        let mut changed = second.clone();
+        changed.independence_unit_id = "different-scene-seed".to_owned();
+        let candidate_manifest = manifest(vec![first.clone(), changed.clone()]);
+        let candidate = audit_memory_operations(
+            &candidate_manifest,
+            &[receipt(&first), receipt(&changed)],
+        ).unwrap();
+        assert_eq!(
+            compare_memory_operation_arms(&baseline, &candidate),
+            Err(MemoryOperationError::ComparisonUnitRosterMismatch)
+        );
     }
 
     #[test]
