@@ -1,0 +1,99 @@
+{
+  "fixture_version": "0.1",
+  "fixture_id": "SCAN-BIM-CONTINUITY-KA-001",
+  "purpose": "Synthetic hand-checkable representation continuity receipt. Digests are placeholders for contract tests only.",
+  "canonical_receipt": {
+    "schema_version": "0.1",
+    "receipt_id": "SCAN-BIM-CONTINUITY-ROOM-A-001",
+    "replay": {
+      "run_id": "SYNTHETIC-REPLAY-001",
+      "receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "candidate_source_commit": "1111111111111111111111111111111111111111"
+    },
+    "scene": {
+      "building_group_id": "BUILDING-A",
+      "scene_id": "ROOM-A",
+      "source_model_revision": "MODEL-REV-001"
+    },
+    "transitions": [
+      {
+        "transition_id": "RAW-TO-SURFACE-001",
+        "from_representation": "raw_observations",
+        "to_representation": "surface_mesh",
+        "source_artifacts": [
+          {
+            "artifact_id": "SCAN-001",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "role": "raw_measurement"
+          },
+          {
+            "artifact_id": "TRANSFORM-001",
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "role": "transform"
+          }
+        ],
+        "output_artifacts": [
+          {
+            "artifact_id": "MESH-001",
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "role": "geometry_output"
+          }
+        ],
+        "tool": {
+          "name": "synthetic-plane-fitter",
+          "version": "0.1.0",
+          "configuration_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "correspondences": [
+          {
+            "event_id": "CORR-001",
+            "kind": "one_to_one",
+            "source_entity_ids": [
+              "WALL-RAW-001"
+            ],
+            "target_entity_ids": [
+              "WALL-SURFACE-001"
+            ],
+            "identity_receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          }
+        ],
+        "claims": [
+          {
+            "claim_id": "CLAIM-WALL-AXIS-001",
+            "target_entity_id": "WALL-SURFACE-001",
+            "property_id": "wall.axis",
+            "origin": "measured",
+            "source_evidence": [
+              {
+                "artifact_id": "SCAN-001",
+                "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "role": "raw_measurement"
+              }
+            ],
+            "value_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+            "derivation_method": null,
+            "assumptions": [],
+            "unknown_reason": null
+          }
+        ],
+        "uncertainty": {
+          "before": {
+            "status": "known",
+            "metric_id": "conservative_absolute_bound_m",
+            "absolute_bound_m": 0.002
+          },
+          "after": {
+            "status": "known",
+            "metric_id": "conservative_absolute_bound_m",
+            "absolute_bound_m": 0.0025
+          },
+          "approximation_error_bound_m": 0.0005,
+          "update_basis": "representation_only",
+          "conditioning_evidence": [],
+          "estimator_id": null,
+          "calibration_profile_id": null
+        }
+      }
+    ]
+  }
+}
