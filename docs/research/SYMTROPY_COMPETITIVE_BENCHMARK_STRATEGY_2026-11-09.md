@@ -232,14 +232,16 @@ The first implementation should use the analytical 1D impact/repeated-bounce ora
 Symtropy should invest in differential geometry, but the goal is **not** to add more abstract algebra or replace its existing geometric-algebra representation. The goal is to make every rotational/rigid-body computation use the correct configuration manifold, tangent space, dual space, frame and local derivative.
 
 The existing code already has Bivector<D> for so(D), Rotor<D> for SO(D), Transform<D> for rigid transforms and a validated SO(D) matrix-admission path in draft PR #4412. The principal gaps are:
-- no shared checked SO(D) logarithm / cut-locus and geodesic interpolation contract;
-- no paired, typed tangent plus/minus operations and left/right exponential Jacobians;
+- draft PR #4473 now supplies checked SO(3) logarithm, branch metadata, geodesic interpolation and paired left/spatial plus/minus vs right/body plus/minus; full SO(D) logarithms, SO(4) multiple-plane branch decomposition and tangent transport are still missing;
+- no left/right exponential Jacobians or inverse Jacobians yet, and no generic SO(D) typed tangent API;
 - no unified distinction between body- and spatial-trivialized angular velocity/momentum;
 - no SE(D) spatial twist/wrench adjoint/coadjoint API with a power-pairing invariant;
 - production RigidBody inertia remains an axis SVector<D> and the integrator reduces it to a scalar mean for bivector acceleration/energy;
 - gradient receipts do not yet bind the manifold chart, trivialization or tangent-space transport convention.
 
 A concrete example already exists in the production math code: Rotor::slerp extracts one plane from (R-Rᵀ)/2. That skew part vanishes for an exact SO(3) half-turn, and the current implementation returns identity on that path. For generic SO(4) rotations with two independent planes and different angles, one plane/angle is also insufficient. Transform::interpolate uses this path for relative rotations. The replacement requires a checked logarithm and explicit branch policy; an ambiguous cut-locus case must not silently become identity.
+
+The new [draft SO(3) implementation PR #4473](https://github.com/Luminous-Dynamics/symtropy/pull/4473) adds a separate checked API and matched tangent plus/minus operations. It does not yet redirect the legacy generic `Rotor::slerp` or `Transform::interpolate`; the defect therefore remains present in those call paths until a dimension-correct migration is reviewed and qualified.
 
 #### Industry baselines: the established pattern is tangent-space awareness
 
@@ -271,7 +273,7 @@ Initial internal targets (not current measurements or universal standards): SO(3
 
 #### Existing ownership — do not fork the geometry stack
 
-- [#4452](https://github.com/Luminous-Dynamics/symtropy/issues/4452) owns shared SO(D) log, tangent calculus, Jacobian and SE(D) adjoint/coadjoint primitives.
+- [#4452](https://github.com/Luminous-Dynamics/symtropy/issues/4452) owns shared SO(D) log, tangent calculus, Jacobian and SE(D) adjoint/coadjoint primitives; [draft PR #4473](https://github.com/Luminous-Dynamics/symtropy/pull/4473) begins the SO(3) log/plus/minus slice.
 - [#1613 / PR #1641](https://github.com/Luminous-Dynamics/symtropy/issues/1613) owns frame-labelled rigid transforms and pose composition.
 - [#3753 / PR #3920](https://github.com/Luminous-Dynamics/symtropy/issues/3753) owns physically realizable mass properties and the bivector inertia operator.
 - [#3132 / #3119](https://github.com/Luminous-Dynamics/symtropy/issues/3132) own SO(3) equivariance and momentum-map physics evidence.
