@@ -1077,11 +1077,11 @@ impl KerrMinoIntegrationConfig {
     /// Conservative starter configuration for dimensionless research rays.
     pub fn research_default() -> Self {
         Self {
-            relative_tolerance: 1.0e-10,
-            absolute_tolerance: [1.0e-11; 6],
-            constraint_tolerance: 1.0e-8,
+            relative_tolerance: 1.0e-12,
+            absolute_tolerance: [1.0e-12; 6],
+            constraint_tolerance: 1.0e-5,
             initial_step: 1.0e-3,
-            minimum_step: 1.0e-10,
+            minimum_step: 1.0e-12,
             maximum_step: 2.0e-2,
             maximum_attempts: 200_000,
         }
@@ -1118,6 +1118,12 @@ pub enum KerrMinoIntegrationError {
         radial_relative: f64,
         polar_relative: f64,
     },
+    ConstraintDriftExceeded {
+        mino_parameter: f64,
+        radial_relative: f64,
+        polar_relative: f64,
+        tolerance: f64,
+    },
     StepSizeUnderflow {
         mino_parameter: f64,
         attempted_step: f64,
@@ -1149,6 +1155,10 @@ impl fmt::Display for KerrMinoIntegrationError {
             Self::InitialConstraintViolation { radial_relative, polar_relative } => write!(
                 f,
                 "initial Kerr null first-integral residual exceeds tolerance: radial={radial_relative:e}, polar={polar_relative:e}"
+            ),
+            Self::ConstraintDriftExceeded { mino_parameter, radial_relative, polar_relative, tolerance } => write!(
+                f,
+                "Kerr Mino first-integral drift exceeded tolerance at gamma={mino_parameter:e}: radial={radial_relative:e}, polar={polar_relative:e}, tolerance={tolerance:e}"
             ),
             Self::StepSizeUnderflow { mino_parameter, attempted_step, normalized_error } => write!(
                 f,
@@ -1339,15 +1349,23 @@ impl KerrSeparatedNullGeodesic {
                 polar_potential,
                 residuals.polar,
             );
-            error_norm = error_norm
-                .max(radial_relative / config.constraint_tolerance)
-                .max(polar_relative / config.constraint_tolerance);
             if !error_norm.is_finite() {
                 return Err(KerrMinoIntegrationError::NonFiniteErrorEstimate);
             }
 
             if error_norm <= 1.0 {
-                gamma += trial_step;
+                let candidate_gamma = gamma + trial_step;
+                if radial_relative > config.constraint_tolerance
+                    || polar_relative > config.constraint_tolerance
+                {
+                    return Err(KerrMinoIntegrationError::ConstraintDriftExceeded {
+                        mino_parameter: candidate_gamma,
+                        radial_relative,
+                        polar_relative,
+                        tolerance: config.constraint_tolerance,
+                    });
+                }
+                gamma = candidate_gamma;
                 vector = two_half;
                 accepted_steps += 1;
                 max_radial_residual = max_radial_residual.max(radial_relative);
@@ -1828,11 +1846,11 @@ mod tests {
             0.0,
         );
         let config = KerrMinoIntegrationConfig::new(
-            1.0e-10,
-            [1.0e-10; 6],
-            2.0e-8,
+            1.0e-14,
+            [1.0e-14; 6],
+            3.0e-8,
             1.0e-3,
-            1.0e-10,
+            1.0e-12,
             2.0e-2,
             200_000,
         )
