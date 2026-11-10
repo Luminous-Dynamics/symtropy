@@ -155,6 +155,8 @@ The observation also declares its reference time and a maximum cross-channel tim
 
 The exact reference uses now_ns = 500, observation reference time 450, feature times 440 and 445, per-feature maximum age 100, and maximum cross-channel skew 20 in its synthetic fixture. The deliberately stale and skewed cases must be rejected.
 
+The feature timestamp itself must also fall inside the diagnostic receipt validity interval. A sample can be recent relative to the evaluator clock yet predate the diagnostic action/model envelope; that sample is not eligible for unique isolation.
+
 ## Claim ceiling
 
 V0 qualifies finite interval geometry and identity/schema composition only. It does not prove that supplied envelopes cover real robot observations or that a fault is physically identifiable. Hardware claims require measured source envelopes, independent calibration/coverage validation and upstream viability receipts.
@@ -182,7 +184,7 @@ It:
 - preserves common-cause group identifiers in the result;
 - canonicalizes hypothesis/feature order.
 
-Nineteen deterministic tests cover separable and overlapping fault signatures, touching intervals, Unknown hypotheses, unique and ambiguous observations, OOD observations, missing sensor features, stale/mismatched receipts, non-admitted probes, feature schema/unit mismatch, per-feature source mismatch, stale feature timestamps, excessive cross-channel skew, permutation invariance, invalid intervals and common-cause metadata.
+Twenty deterministic tests cover separable and overlapping fault signatures, touching intervals, Unknown hypotheses, unique and ambiguous observations, OOD observations, missing sensor features, stale/mismatched receipts, non-admitted probes, feature schema/unit mismatch, per-feature source mismatch, stale feature timestamps, excessive cross-channel skew, feature timestamps outside the diagnostic receipt window, permutation invariance, invalid intervals and common-cause metadata.
 
 Qualification commands:
 
