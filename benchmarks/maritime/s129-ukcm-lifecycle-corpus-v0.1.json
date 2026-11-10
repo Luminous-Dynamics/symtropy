@@ -1,0 +1,524 @@
+{
+  "corpus_id": "luminous.symtropy.s129-ukcm-lifecycle",
+  "corpus_version": "0.1.0",
+  "source_profile": {
+    "product_id": "S-129",
+    "product_edition": "2.0.0",
+    "s100_edition": "5.2.0",
+    "artifact_lock_state": "pending_exact_artifact_lock",
+    "s158_maturity": "implementation_testing_only"
+  },
+  "claim_ceiling": "Synthetic S-129 metadata, vessel/route applicability, freshness and whole-dataset replacement contract only. No native GML validation, physical UKC calculation, bathymetric truth, alarm, transit clearance or navigation authority is established.",
+  "base_state": {
+    "fixture_kind": "synthetic_fixture",
+    "evaluation_cutoff_utc": "2026-11-10T12:00:00Z",
+    "max_actual_update_age_s": 600,
+    "expected_replacement_collections": [
+      "plan_metadata",
+      "plan_areas",
+      "non_navigable_areas",
+      "almost_non_navigable_areas",
+      "control_points"
+    ],
+    "subject_vessel_id": "SYNTH-VESSEL-001",
+    "subject_route_id": "SYNTH-ROUTE-001",
+    "subject_route_version": 12,
+    "display_semantics": "visual_context_only",
+    "alarm_authority": "none",
+    "dataset": {
+      "dataset_id": "SYNTH-S129-DATASET-002",
+      "plan_id": "SYNTH-UKCM-PLAN-001",
+      "purpose": "actual_plan",
+      "vessel_id": "SYNTH-VESSEL-001",
+      "route_id": "SYNTH-ROUTE-001",
+      "route_version": 12,
+      "edition_number": 1,
+      "update_number": 0,
+      "generated_at_utc": "2026-11-10T11:50:00Z",
+      "retrieved_at_utc": "2026-11-10T11:58:00Z",
+      "valid_from_utc": "2026-11-10T11:45:00Z",
+      "valid_until_utc": "2026-11-10T12:30:00Z",
+      "maximum_draught_m": 9.4,
+      "actual_draught_m": 8.8,
+      "vertical_datum_id": "SYNTH-VERTICAL-DATUM-001",
+      "replacement_scope": "whole_dataset",
+      "supersedes_dataset_id": null,
+      "replaced_collections": [],
+      "retained_previous_feature_ids": [],
+      "feature_collections": {
+        "plan_areas": [
+          {
+            "feature_id": "SYNTH-PLAN-AREA-001",
+            "geometry_ref": "urn:synthetic:s129:geometry:plan-area",
+            "valid_from_utc": "2026-11-10T11:45:00Z",
+            "valid_to_utc": "2026-11-10T12:30:00Z"
+          }
+        ],
+        "non_navigable_areas": [
+          {
+            "feature_id": "SYNTH-NONNAV-001",
+            "geometry_ref": "urn:synthetic:s129:geometry:non-navigable",
+            "valid_from_utc": "2026-11-10T11:45:00Z",
+            "valid_to_utc": "2026-11-10T12:30:00Z"
+          }
+        ],
+        "almost_non_navigable_areas": [
+          {
+            "feature_id": "SYNTH-ALMOST-001",
+            "geometry_ref": "urn:synthetic:s129:geometry:almost-navigable",
+            "valid_from_utc": "2026-11-10T11:45:00Z",
+            "valid_to_utc": "2026-11-10T12:30:00Z"
+          }
+        ],
+        "control_points": [
+          {
+            "feature_id": "SYNTH-CP-001",
+            "geometry_ref": "urn:synthetic:s129:geometry:cp-1",
+            "eta_window_start_utc": "2026-11-10T12:05:00Z",
+            "eta_window_end_utc": "2026-11-10T12:10:00Z",
+            "speed_mps": 3,
+            "distance_above_limit_m": 0.45
+          },
+          {
+            "feature_id": "SYNTH-CP-002",
+            "geometry_ref": "urn:synthetic:s129:geometry:cp-2",
+            "eta_window_start_utc": "2026-11-10T12:15:00Z",
+            "eta_window_end_utc": "2026-11-10T12:20:00Z",
+            "speed_mps": 2.5,
+            "distance_above_limit_m": 0.3
+          }
+        ]
+      },
+      "input_sources": [
+        {
+          "product_id": "S-101",
+          "edition": "2.0.0",
+          "s100_edition": "5.2.0",
+          "source_time_utc": "2026-11-10T11:30:00Z",
+          "retrieved_at_utc": "2026-11-10T11:35:00Z",
+          "vertical_datum_id": null,
+          "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "product_id": "S-102",
+          "edition": "3.0.0",
+          "s100_edition": "5.2.0",
+          "source_time_utc": "2026-11-10T11:40:00Z",
+          "retrieved_at_utc": "2026-11-10T11:42:00Z",
+          "vertical_datum_id": "SYNTH-VERTICAL-DATUM-001",
+          "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "product_id": "S-104",
+          "edition": "2.0.0",
+          "s100_edition": "5.2.0",
+          "source_time_utc": "2026-11-10T11:40:00Z",
+          "retrieved_at_utc": "2026-11-10T11:43:00Z",
+          "vertical_datum_id": "SYNTH-VERTICAL-DATUM-001",
+          "artifact_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "product_id": "S-111",
+          "edition": "2.0.0",
+          "s100_edition": "5.2.0",
+          "source_time_utc": "2026-11-10T11:40:00Z",
+          "retrieved_at_utc": "2026-11-10T11:43:30Z",
+          "vertical_datum_id": null,
+          "artifact_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        {
+          "product_id": "S-421",
+          "edition": "1.0.0",
+          "s100_edition": "5.2.0",
+          "source_time_utc": "2026-11-10T11:45:00Z",
+          "retrieved_at_utc": "2026-11-10T11:46:00Z",
+          "vertical_datum_id": null,
+          "artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      ]
+    }
+  },
+  "cases": [
+    {
+      "id": "valid_actual_plan_not_physical_clearance",
+      "mutations": [],
+      "expected_code": "ACTUAL_PLAN_APPLICABLE_NOT_PHYSICAL_CLEARANCE"
+    },
+    {
+      "id": "valid_actual_update_whole_dataset_replacement",
+      "mutations": [
+        {
+          "path": "dataset.dataset_id",
+          "op": "set",
+          "value": "SYNTH-S129-DATASET-003"
+        },
+        {
+          "path": "dataset.purpose",
+          "op": "set",
+          "value": "actual_update"
+        },
+        {
+          "path": "dataset.update_number",
+          "op": "set",
+          "value": 1
+        },
+        {
+          "path": "dataset.supersedes_dataset_id",
+          "op": "set",
+          "value": "SYNTH-S129-DATASET-002"
+        },
+        {
+          "path": "dataset.generated_at_utc",
+          "op": "set",
+          "value": "2026-11-10T11:59:30Z"
+        },
+        {
+          "path": "dataset.retrieved_at_utc",
+          "op": "set",
+          "value": "2026-11-10T11:59:50Z"
+        },
+        {
+          "path": "dataset.replaced_collections",
+          "op": "set",
+          "value": [
+            "plan_metadata",
+            "plan_areas",
+            "non_navigable_areas",
+            "almost_non_navigable_areas",
+            "control_points"
+          ]
+        }
+      ],
+      "expected_code": "ACTUAL_UPDATE_WHOLE_REPLACEMENT_VALID_NOT_CLEARANCE"
+    },
+    {
+      "id": "partial_dataset_replacement_forbidden",
+      "mutations": [
+        {
+          "path": "dataset.purpose",
+          "op": "set",
+          "value": "actual_update"
+        },
+        {
+          "path": "dataset.update_number",
+          "op": "set",
+          "value": 1
+        },
+        {
+          "path": "dataset.supersedes_dataset_id",
+          "op": "set",
+          "value": "SYNTH-S129-DATASET-002"
+        },
+        {
+          "path": "dataset.replacement_scope",
+          "op": "set",
+          "value": "partial"
+        },
+        {
+          "path": "dataset.replaced_collections",
+          "op": "set",
+          "value": [
+            "plan_metadata",
+            "plan_areas",
+            "non_navigable_areas",
+            "almost_non_navigable_areas",
+            "control_points"
+          ]
+        }
+      ],
+      "expected_code": "PARTIAL_REPLACEMENT_FORBIDDEN"
+    },
+    {
+      "id": "control_points_not_in_replacement_set",
+      "mutations": [
+        {
+          "path": "dataset.purpose",
+          "op": "set",
+          "value": "actual_update"
+        },
+        {
+          "path": "dataset.update_number",
+          "op": "set",
+          "value": 1
+        },
+        {
+          "path": "dataset.supersedes_dataset_id",
+          "op": "set",
+          "value": "SYNTH-S129-DATASET-002"
+        },
+        {
+          "path": "dataset.replaced_collections",
+          "op": "set",
+          "value": [
+            "plan_metadata",
+            "plan_areas",
+            "non_navigable_areas",
+            "almost_non_navigable_areas"
+          ]
+        }
+      ],
+      "expected_code": "PARTIAL_REPLACEMENT_FORBIDDEN"
+    },
+    {
+      "id": "superseded_feature_ids_retained",
+      "mutations": [
+        {
+          "path": "dataset.purpose",
+          "op": "set",
+          "value": "actual_update"
+        },
+        {
+          "path": "dataset.update_number",
+          "op": "set",
+          "value": 1
+        },
+        {
+          "path": "dataset.supersedes_dataset_id",
+          "op": "set",
+          "value": "SYNTH-S129-DATASET-002"
+        },
+        {
+          "path": "dataset.replaced_collections",
+          "op": "set",
+          "value": [
+            "plan_metadata",
+            "plan_areas",
+            "non_navigable_areas",
+            "almost_non_navigable_areas",
+            "control_points"
+          ]
+        },
+        {
+          "path": "dataset.retained_previous_feature_ids",
+          "op": "set",
+          "value": [
+            "SYNTH-OLD-CP-001"
+          ]
+        }
+      ],
+      "expected_code": "SUPERSEDED_FEATURES_RETAINED"
+    },
+    {
+      "id": "wrong_vessel_identity",
+      "mutations": [
+        {
+          "path": "dataset.vessel_id",
+          "op": "set",
+          "value": "SYNTH-VESSEL-002"
+        }
+      ],
+      "expected_code": "VESSEL_IDENTITY_MISMATCH"
+    },
+    {
+      "id": "wrong_route_identity",
+      "mutations": [
+        {
+          "path": "dataset.route_id",
+          "op": "set",
+          "value": "SYNTH-ROUTE-OTHER"
+        }
+      ],
+      "expected_code": "ROUTE_IDENTITY_MISMATCH"
+    },
+    {
+      "id": "wrong_route_revision",
+      "mutations": [
+        {
+          "path": "dataset.route_version",
+          "op": "set",
+          "value": 11
+        }
+      ],
+      "expected_code": "ROUTE_VERSION_MISMATCH"
+    },
+    {
+      "id": "actual_draught_exceeds_declared_plan",
+      "mutations": [
+        {
+          "path": "dataset.actual_draught_m",
+          "op": "set",
+          "value": 10.2
+        }
+      ],
+      "expected_code": "DRAUGHT_OUTSIDE_DECLARED_PLAN"
+    },
+    {
+      "id": "actual_plan_refresh_is_stale",
+      "mutations": [
+        {
+          "path": "dataset.retrieved_at_utc",
+          "op": "set",
+          "value": "2026-11-10T11:40:00Z"
+        }
+      ],
+      "expected_code": "PLAN_STALE_UNKNOWN"
+    },
+    {
+      "id": "plan_validity_expired",
+      "mutations": [
+        {
+          "path": "dataset.valid_until_utc",
+          "op": "set",
+          "value": "2026-11-10T11:45:00Z"
+        }
+      ],
+      "expected_code": "PLAN_EXPIRED"
+    },
+    {
+      "id": "preplan_not_actual_plan",
+      "mutations": [
+        {
+          "path": "dataset.purpose",
+          "op": "set",
+          "value": "pre_plan"
+        }
+      ],
+      "expected_code": "PREPLAN_NOT_ACTUAL_CLEARANCE"
+    },
+    {
+      "id": "vertical_datum_missing",
+      "mutations": [
+        {
+          "path": "dataset.input_sources.1.vertical_datum_id",
+          "op": "set",
+          "value": null
+        }
+      ],
+      "expected_code": "VERTICAL_REFERENCE_UNKNOWN"
+    },
+    {
+      "id": "product_framework_dependency_mismatch",
+      "mutations": [
+        {
+          "path": "dataset.input_sources.1.s100_edition",
+          "op": "set",
+          "value": "5.2.1"
+        }
+      ],
+      "expected_code": "PRODUCT_DEPENDENCY_MISMATCH"
+    },
+    {
+      "id": "actual_update_number_not_monotonic",
+      "mutations": [
+        {
+          "path": "dataset.purpose",
+          "op": "set",
+          "value": "actual_update"
+        },
+        {
+          "path": "dataset.update_number",
+          "op": "set",
+          "value": 0
+        },
+        {
+          "path": "dataset.supersedes_dataset_id",
+          "op": "set",
+          "value": "SYNTH-S129-DATASET-002"
+        },
+        {
+          "path": "dataset.replaced_collections",
+          "op": "set",
+          "value": [
+            "plan_metadata",
+            "plan_areas",
+            "non_navigable_areas",
+            "almost_non_navigable_areas",
+            "control_points"
+          ]
+        }
+      ],
+      "expected_code": "UPDATE_SEQUENCE_NOT_MONOTONIC"
+    },
+    {
+      "id": "actual_update_missing_superseded_dataset",
+      "mutations": [
+        {
+          "path": "dataset.purpose",
+          "op": "set",
+          "value": "actual_update"
+        },
+        {
+          "path": "dataset.update_number",
+          "op": "set",
+          "value": 1
+        },
+        {
+          "path": "dataset.supersedes_dataset_id",
+          "op": "set",
+          "value": null
+        },
+        {
+          "path": "dataset.replaced_collections",
+          "op": "set",
+          "value": [
+            "plan_metadata",
+            "plan_areas",
+            "non_navigable_areas",
+            "almost_non_navigable_areas",
+            "control_points"
+          ]
+        }
+      ],
+      "expected_code": "MISSING_SUPERSESSION_REFERENCE"
+    },
+    {
+      "id": "dataset_generated_after_decision_cutoff",
+      "mutations": [
+        {
+          "path": "dataset.generated_at_utc",
+          "op": "set",
+          "value": "2026-11-10T12:05:00Z"
+        }
+      ],
+      "expected_code": "PLAN_GENERATED_AFTER_DECISION_CUTOFF"
+    },
+    {
+      "id": "actual_update_older_than_current_plan",
+      "mutations": [
+        {
+          "path": "dataset.purpose",
+          "op": "set",
+          "value": "actual_update"
+        },
+        {
+          "path": "dataset.update_number",
+          "op": "set",
+          "value": 1
+        },
+        {
+          "path": "dataset.supersedes_dataset_id",
+          "op": "set",
+          "value": "SYNTH-S129-DATASET-002"
+        },
+        {
+          "path": "dataset.generated_at_utc",
+          "op": "set",
+          "value": "2026-11-10T11:40:00Z"
+        },
+        {
+          "path": "dataset.replaced_collections",
+          "op": "set",
+          "value": [
+            "plan_metadata",
+            "plan_areas",
+            "non_navigable_areas",
+            "almost_non_navigable_areas",
+            "control_points"
+          ]
+        }
+      ],
+      "expected_code": "OUT_OF_ORDER_UPDATE"
+    },
+    {
+      "id": "wrong_product_edition",
+      "mutations": [
+        {
+          "path": "dataset.input_sources.2.edition",
+          "op": "set",
+          "value": "1.0.0"
+        }
+      ],
+      "expected_code": "INPUT_PRODUCT_EDITION_MISMATCH"
+    }
+  ]
+}
