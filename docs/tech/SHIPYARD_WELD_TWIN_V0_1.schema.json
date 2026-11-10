@@ -939,7 +939,8 @@
         "op": {
           "enum": [
             "set",
-            "remove"
+            "remove",
+            "insert"
           ]
         },
         "value": {}
