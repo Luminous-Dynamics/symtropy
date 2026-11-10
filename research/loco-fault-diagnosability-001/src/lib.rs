@@ -357,7 +357,7 @@ fn canonicalize_and_validate(
     if envelope_map.len() != physical_ids.len()
         || physical_ids
             .iter()
-            .any(|hypothesis_id| !envelope_map.contains_key(hypothesis_id))
+            .any(|hypothesis_id| !envelope_map.contains_key(*hypothesis_id))
     {
         return Err(DiagnosabilityError::MissingHypothesisEnvelope);
     }
