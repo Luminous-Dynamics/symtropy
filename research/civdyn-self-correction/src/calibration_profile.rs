@@ -139,6 +139,7 @@ pub enum CalibrationProfileError {
     InvalidStatisticAssessment { statistic_id: String, unit_id: String },
     DuplicateCoverageSummary { statistic_id: String },
     MissingCoverageSummary { statistic_id: String },
+    UnknownCoverageStatistic { statistic_id: String },
     CoverageSummaryMismatch { statistic_id: String },
     DomainStatusMismatch,
 }
@@ -364,6 +365,20 @@ pub fn assess_calibration_profile(
     }
 
     for assessment in &evidence.assessments {
+        let mut coverage_seen = BTreeSet::new();
+        for summary in &assessment.coverage {
+            if evidence.registry.get(&summary.statistic_id).is_none() {
+                return Err(CalibrationProfileError::UnknownCoverageStatistic {
+                    statistic_id: summary.statistic_id.clone(),
+                });
+            }
+            if !coverage_seen.insert(summary.statistic_id.as_str()) {
+                return Err(CalibrationProfileError::DuplicateCoverageSummary {
+                    statistic_id: summary.statistic_id.clone(),
+                });
+            }
+        }
+
         let mut seen = BTreeSet::new();
         for row in &assessment.statistics {
             let spec = evidence.registry.get(&row.statistic_id).ok_or_else(|| {
@@ -460,7 +475,7 @@ pub fn assess_calibration_profile(
                 model_digest: row.model_digest.clone(),
                 draw_set_digest: row.draw_set_digest.clone(),
             };
-            if current_predictive != *predictive_identity {
+            if &current_predictive != predictive_identity {
                 if row.model_digest != baseline.model_digest {
                     return Err(CalibrationProfileError::ModelDigestMismatch {
                         statistic_id: row.statistic_id.clone(),
@@ -484,7 +499,7 @@ pub fn assess_calibration_profile(
                 observed_bits: row.observed_value.map(f64::to_bits),
                 measurement_standard_error_bits: row.measurement_standard_error.map(f64::to_bits),
             };
-            if current_observation != *observation_identity {
+            if &current_observation != observation_identity {
                 return Err(CalibrationProfileError::ObservationIdentityMismatch {
                     statistic_id: row.statistic_id.clone(),
                     unit_id: row.independent_unit_id.clone(),
@@ -638,16 +653,20 @@ pub fn assess_calibration_profile(
             let mean_interval_width = if assessed_rows.is_empty() {
                 None
             } else {
-                Some(
-                    assessed_rows
-                        .iter()
-                        .map(|row| {
-                            row.upper_reference.expect("assessed upper interval")
-                                - row.lower_reference.expect("assessed lower interval")
-                        })
-                        .sum::<f64>()
-                        / assessed_rows.len() as f64,
-                )
+                let total_width: f64 = assessed_rows
+                    .iter()
+                    .map(|row| {
+                        row.upper_reference.expect("assessed upper interval")
+                            - row.lower_reference.expect("assessed lower interval")
+                    })
+                    .sum();
+                if !total_width.is_finite() {
+                    return Err(CalibrationProfileError::InvalidStatisticAssessment {
+                        statistic_id: spec.id.clone(),
+                        unit_id: String::new(),
+                    });
+                }
+                Some(total_width / assessed_rows.len() as f64)
             };
             let nominal = central_mass;
             let status = match wilson {
