@@ -159,6 +159,7 @@ pub struct TreasurySnapshotReceipt {
     pub amount_type_code: String,
     pub amount_type_label: String,
     pub amount_type_class: AmountTypeClass,
+    pub amount_type_mapping_digest: String,
     pub audit_opinion_source_digest: Option<String>,
     pub expected_total_fact_count: u64,
 }
@@ -296,6 +297,7 @@ fn validate_receipt(receipt: &TreasurySnapshotReceipt) -> Result<(), TreasuryInt
         || !nonempty(&receipt.terms_version)
         || !nonempty(&receipt.amount_type_code)
         || !nonempty(&receipt.amount_type_label)
+        || !nonempty(&receipt.amount_type_mapping_digest)
         || receipt.response_bytes == 0
         || receipt.expected_total_fact_count == 0
     {
@@ -311,11 +313,6 @@ fn validate_receipt(receipt: &TreasurySnapshotReceipt) -> Result<(), TreasuryInt
         && receipt.audit_opinion_source_digest.as_deref().is_none_or(|value| !nonempty(value))
     {
         return Err(TreasuryIntakeError::AuditedActualMissingOpinionDigest);
-    }
-    if receipt.amount_type_class != AmountTypeClass::AuditedActual
-        && receipt.audit_opinion_source_digest.as_deref().is_some_and(|value| !nonempty(value))
-    {
-        return Err(TreasuryIntakeError::OpinionWithoutSourceDigest);
     }
     Ok(())
 }
@@ -383,6 +380,19 @@ pub fn validate_treasury_snapshot(
 ) -> Result<TreasuryIntakeSummary, TreasuryIntakeError> {
     validate_receipt(&snapshot.receipt)?;
     validate_pagination(&snapshot.receipt, &snapshot.pages, &snapshot.facts)?;
+    let has_joined_audit_opinion = snapshot
+        .facts
+        .iter()
+        .any(|fact| fact.audit_opinion != AuditOpinionStatus::Unknown);
+    if has_joined_audit_opinion
+        && snapshot
+            .receipt
+            .audit_opinion_source_digest
+            .as_deref()
+            .is_none_or(|digest| !nonempty(digest))
+    {
+        return Err(TreasuryIntakeError::OpinionWithoutSourceDigest);
+    }
 
     let mut seen_keys = BTreeSet::new();
     let mut nonzero_reported = 0;
@@ -505,6 +515,7 @@ mod tests {
             amount_type_code: "AUD".to_string(),
             amount_type_label: "Audited Actual".to_string(),
             amount_type_class,
+            amount_type_mapping_digest: "sha256-amount-type-map".to_string(),
             audit_opinion_source_digest: if amount_type_class == AmountTypeClass::AuditedActual {
                 Some("sha256-audit-opinions".to_string())
             } else {
@@ -666,6 +677,50 @@ mod tests {
         assert_eq!(
             validate_treasury_snapshot(&candidate).unwrap_err(),
             TreasuryIntakeError::AuditedActualMissingOpinionDigest
+        );
+    }
+
+    #[test]
+    fn joined_audit_opinion_requires_its_own_source_digest_even_for_actual_amounts() {
+        let mut candidate = snapshot(
+            SnapshotVerification::Verified,
+            AmountTypeClass::Actual,
+            vec![fact(
+                TreasurySchemaGeneration::MscoaV2,
+                2025,
+                "6001",
+                Some(100),
+                "ACT",
+                AuditOpinionStatus::Qualified,
+            )],
+        );
+        assert!(matches!(
+            validate_treasury_snapshot(&candidate),
+            Err(TreasuryIntakeError::OpinionWithoutSourceDigest)
+        ));
+        candidate.receipt.audit_opinion_source_digest =
+            Some("sha256-audit-opinion-join".to_string());
+        assert!(validate_treasury_snapshot(&candidate).is_ok());
+    }
+
+    #[test]
+    fn amount_type_classification_requires_a_mapping_receipt() {
+        let mut candidate = snapshot(
+            SnapshotVerification::Verified,
+            AmountTypeClass::Actual,
+            vec![fact(
+                TreasurySchemaGeneration::MscoaV2,
+                2025,
+                "6001",
+                Some(100),
+                "ACT",
+                AuditOpinionStatus::Unknown,
+            )],
+        );
+        candidate.receipt.amount_type_mapping_digest.clear();
+        assert_eq!(
+            validate_treasury_snapshot(&candidate).unwrap_err(),
+            TreasuryIntakeError::MissingReceiptIdentity
         );
     }
 
