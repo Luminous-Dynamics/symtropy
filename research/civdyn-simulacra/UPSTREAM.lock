@@ -1,0 +1,19 @@
+# Pinned public SimulacraBench starter kit and content identities.
+# Git blob SHAs are returned by GitHub for the exact commit below.
+repository = "SituatedEvals/public"
+commit = "aa03186f8f083c7785a1a566c802c2077925e265"
+commit_date = "2026-10-26T20:07:04Z"
+license = "MIT"
+protected_microdata_present = false
+
+[files]
+"README.md" = "f138370bad3d801c3d152bb30645465b5eedc6b0"
+"config.yml" = "ccc954aed982be61d0e78aaf69851bef3b7118f9"
+"make_sandbox.py" = "3bd1d0dcb7fcacd89e429119b848133f86ec5034"
+"score.py" = "884b550b03493527369a5ec32498ca2d6f40db75"
+"requirements.txt" = "7c55615591c573fd41604365577bf9a5bef3c5be"
+"data/sample.json" = "1757bb0b0e2ebc9f5d9e9e7102f35b3c59ee7f09"
+"data/unhcr.json" = "81fd69a06325308dbca2da4f579a8dd91d32d7f8"
+"data/unicef.json" = "e7059d932b53eb0ef9755db02983926776ccaf2d"
+"data/world_bank.json" = "4d96a265477013bc27182ace23f696d37f76a352"
+"baseline/marginal_counts/main.py" = "0b0b8335b8480b0cb1fe5137cd241df5ad3346fd"
