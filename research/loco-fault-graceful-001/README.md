@@ -97,6 +97,14 @@ For action (a) at decision time (t), define the current plausible hypothesis set
 
 A zero posterior probability does not delete a physically possible fault branch from the robust gate.
 
+### Distinguishability is separate from diagnosis confidence
+
+A classifier confidence is not an identifiability certificate. Two fault hypotheses may have overlapping observation sets for the present gait phase, load, sensor subset or diagnostic action. In that case retain the ambiguity set even when a learned classifier has a sharp top-1 posterior. Only a source-qualified, action-conditioned observation envelope can justify a model-conditional unique isolation; an Unknown/unmodeled envelope must overlap every hypothesis.
+
+[LOCO-FAULT-DIAGNOSABILITY-001 / #4470](https://github.com/Luminous-Dynamics/symtropy/issues/4470) owns the finite interval-box diagnosability auditor. It consumes a diagnostic-action receipt that includes #4313/#4293 post-probe viability evidence, checks sensor/calibration/clock/actuator/domain identities, returns pairwise separability and ambiguity components, and evaluates actual observations without forced nearest-class labeling. It does not classify sensors or authorize recovery. #4438 continues to admit actions over the authoritative physical fault set, not the controller's posterior or top-1 label.
+
+An active self-diagnosis maneuver such as Tian's squat/hip-sway method is a useful **exploratory simulator baseline** (SSRN preprint, posted 24 Aug 2026), but its diagnostic excitation must pass the same viability and continuation gate. https://papers.ssrn.com/sol3/papers.cfm?abstract_id=7345456
+
 ## Outcome state machine
 
 Every episode reports one terminal or continuation disposition:
@@ -122,6 +130,7 @@ Use identical robot/morphology, sensor budget, fault onset phase, terrain/route,
 - FT-CPG;
 - adaptive gait timing;
 - ARER-MetaRL (simulation locked-joint comparator);
+- active self-diagnosis with viability-conditioned probe admission (Tian squat/hip-sway preprint; literature-only until a reproducible protocol/configuration is available);
 - FT-WBC (only where reproducible code/configuration is available);
 - model-based fault-tolerant WBC/MPC;
 - CBF/QP or barrier/shield filter over the same nominal controller;
