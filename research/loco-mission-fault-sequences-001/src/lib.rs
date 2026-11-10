@@ -8,6 +8,7 @@ use std::collections::BTreeSet;
 
 pub const MAX_EVENTS: usize = 1_024;
 pub const MAX_AUTHORITY_PPM: u32 = 1_000_000;
+pub const MAX_THERMAL_NODES: usize = 256;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EvidenceDisposition {
@@ -175,6 +176,9 @@ pub enum MissionError {
     DuplicateThermalNodeId(String),
     EmptyThermalNodeSource(String),
     InvalidThermalNodeLimit(String),
+    InvalidThermalNodeTemperature(String),
+    InvalidThermalUpdateTemperature(String),
+    TooManyThermalNodes { actual: usize, limit: usize },
     EmptyThermalUpdateId(String),
     DuplicateThermalUpdateId(String),
     UnknownThermalUpdateId(String),
@@ -226,6 +230,12 @@ fn validate_initial(state: &MissionState) -> Result<(), MissionError> {
     if state.thermal_nodes.is_empty() {
         return Err(MissionError::EmptyThermalNodeId);
     }
+    if state.thermal_nodes.len() > MAX_THERMAL_NODES {
+        return Err(MissionError::TooManyThermalNodes {
+            actual: state.thermal_nodes.len(),
+            limit: MAX_THERMAL_NODES,
+        });
+    }
     let mut thermal_node_ids = BTreeSet::new();
     for node in &state.thermal_nodes {
         if node.node_id.trim().is_empty() {
@@ -237,8 +247,11 @@ fn validate_initial(state: &MissionState) -> Result<(), MissionError> {
         if node.source_ref.trim().is_empty() {
             return Err(MissionError::EmptyThermalNodeSource(node.node_id.clone()));
         }
-        if node.maximum_temperature_milli_c == i32::MIN {
+        if node.maximum_temperature_milli_c <= -273_150 {
             return Err(MissionError::InvalidThermalNodeLimit(node.node_id.clone()));
+        }
+        if node.temperature_milli_c <= -273_150 {
+            return Err(MissionError::InvalidThermalNodeTemperature(node.node_id.clone()));
         }
     }
     if state.actuator_authority_ppm > MAX_AUTHORITY_PPM {
@@ -409,6 +422,9 @@ pub fn replay(
             if update.node_id.trim().is_empty() {
                 return Err(MissionError::EmptyThermalUpdateId(event.event_id.clone()));
             }
+            if update.temperature_milli_c <= -273_150 {
+                return Err(MissionError::InvalidThermalUpdateTemperature(update.node_id.clone()));
+            }
             if !next.thermal_nodes.iter().any(|node| node.node_id == update.node_id) {
                 return Err(MissionError::UnknownThermalUpdateId(update.node_id.clone()));
             }
@@ -428,17 +444,23 @@ pub fn replay(
                 snapshots,
             ));
         }
+        if next
+            .thermal_nodes
+            .iter()
+            .any(|node| !thermal_updates.contains_key(&node.node_id))
+        {
+            return Ok(stopped(
+                MissionStatus::Unknown,
+                StopReason::ThermalEvidenceUnknown,
+                Some(event.event_id.clone()),
+                &next,
+                snapshots,
+            ));
+        }
         for node in &mut next.thermal_nodes {
-            let Some(temperature) = thermal_updates.get(&node.node_id) else {
-                return Ok(stopped(
-                    MissionStatus::Unknown,
-                    StopReason::ThermalEvidenceUnknown,
-                    Some(event.event_id.clone()),
-                    &next,
-                    snapshots,
-                ));
-            };
-            node.temperature_milli_c = *temperature;
+            if let Some(temperature) = thermal_updates.get(&node.node_id) {
+                node.temperature_milli_c = *temperature;
+            }
         }
         next.thermal_receipt_ref = thermal_receipt.receipt_ref.clone();
         next.thermal_valid_through_tick = thermal_receipt.valid_through_tick;
