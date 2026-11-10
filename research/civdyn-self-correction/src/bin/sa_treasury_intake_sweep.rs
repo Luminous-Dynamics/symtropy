@@ -56,7 +56,8 @@ fn receipt(
         amount_type_code: "ACT".to_string(),
         amount_type_label: "Actual".to_string(),
         amount_type_class,
-        audit_opinion_source_digest: None,
+        amount_type_mapping_digest: "sha256-synthetic-amount-type-map".to_string(),
+        audit_opinion_source_digest: Some("sha256-synthetic-audit-opinion-join".to_string()),
         expected_total_fact_count: expected_total,
     }
 }
