@@ -48,12 +48,14 @@ pub struct ConstraintRequirement {
     pub residual_unit_id: String,
     pub residual_tolerance: u64,
     pub margin_unit_id: String,
+    pub minimum_margin: i64,
     /// All declared hard/contact constraints are mandatory.
     pub required: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConstraintEvidence {
+    pub possibility_id: String,
     pub id: String,
     pub residual_unit_id: String,
     pub residual: u64,
@@ -123,7 +125,11 @@ pub struct AssuranceReceipt {
     pub projected_command_digest: String,
     pub input_state_digest: String,
     pub model_digest: String,
+    pub abstraction_digest: String,
+    pub domain_digest: String,
     pub actuator_digest: String,
+    pub constraint_inventory_digest: String,
+    pub horizon_steps: u32,
     pub status: AuthorityStatus,
     pub witness_or_reason: Option<String>,
     pub valid_from_ns: u64,
@@ -143,6 +149,8 @@ pub struct AdmittedFallback {
     pub viability_result_digest: String,
     pub assurance_receipt_id: String,
     pub assurance_result_digest: String,
+    pub constraint_inventory_digest: String,
+    pub horizon_steps: u32,
     pub viability_status: AuthorityStatus,
     pub assurance_status: AuthorityStatus,
     pub valid_from_ns: u64,
@@ -157,6 +165,8 @@ pub struct ProjectionGateProblem {
     pub proposal: PolicyProposal,
     /// Independent frozen inventory bound by constraint_inventory_digest.
     pub required_constraint_inventory: Vec<ConstraintRequirement>,
+    /// Exact complete contact/dynamics possibility inventory from #4083.
+    pub physical_possibility_ids: Vec<String>,
     pub result: ProjectionResult,
     pub viability: ViabilityReceipt,
     pub assurance: AssuranceReceipt,
@@ -186,11 +196,15 @@ pub enum GateDisposition {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConstraintFinding {
+    pub possibility_id: String,
     pub id: String,
     pub class: ConstraintClass,
     pub residual: u64,
     pub residual_tolerance: u64,
+    pub residual_passed: bool,
     pub margin: i64,
+    pub minimum_margin: i64,
+    pub margin_passed: bool,
     pub passed: bool,
 }
 
@@ -204,6 +218,7 @@ pub struct ProjectionGateReport {
     pub constraint_findings: Vec<ConstraintFinding>,
     pub hard_constraint_failures: Vec<String>,
     pub robust_contact_failures: Vec<String>,
+    pub numerically_unqualified: Vec<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -222,6 +237,11 @@ pub enum ProjectionError {
     ConstraintInventoryMismatch,
     PhysicalConstraintCannotBeOptional,
     TooManyConstraints,
+    TooManyPossibilities,
+    TooManyConstraintChecks,
+    NoPhysicalPossibilities,
+    DuplicatePhysicalPossibility,
+    UnknownPhysicalPossibility,
     NoConstraintRequirements,
     DuplicateConstraintRequirement,
     DuplicateConstraintEvidence,
