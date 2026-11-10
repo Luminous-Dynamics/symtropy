@@ -1,0 +1,141 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/recoverable_driving_experience_v0_1/manifest_v0_1.schema.json",
+  "title": "Recoverable Driving Experience Benchmark Manifest v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version","benchmark_id","status","owner_issue","related_owners","claim_ceiling","hypothesis","sampling_arms","branch_point_contract","budget_profiles","model_comparison_arms","split_dimensions","metrics","negative_controls","promotion_gates","prospective_targets","external_benchmarks","execution_status"],
+  "properties": {
+    "schema_version": { "const": "0.1.0" },
+    "benchmark_id": { "const": "recoverable-driving-experience-v0.1" },
+    "status": { "const": "protocol_specification_not_executed" },
+    "owner_issue": { "type": "string", "format": "uri" },
+    "related_owners": {
+      "type": "object", "additionalProperties": false, "required": ["environment","curriculum","learner"],
+      "properties": {
+        "environment": { "type": "string", "format": "uri" },
+        "curriculum": { "type": "string", "format": "uri" },
+        "learner": { "type": "string", "format": "uri" }
+      }
+    },
+    "claim_ceiling": { "type": "string", "minLength": 40 },
+    "hypothesis": {
+      "type": "object", "additionalProperties": false, "required": ["statement","falsification"],
+      "properties": {
+        "statement": { "type": "string", "minLength": 40 },
+        "falsification": { "type": "string", "minLength": 20 }
+      }
+    },
+    "sampling_arms": {
+      "type": "array", "minItems": 8,
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["id","kind","description"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+          "kind": { "type": "string", "enum": ["baseline","active_sampler","sam_guided","human_reference"] },
+          "description": { "type": "string", "minLength": 10 }
+        }
+      }
+    },
+    "branch_point_contract": {
+      "type": "object", "additionalProperties": false, "required": ["required_identity_fields","policy_visible_fields","evaluator_only_fields","random_event_rules"],
+      "properties": {
+        "required_identity_fields": { "$ref": "#/$defs/stringList" },
+        "policy_visible_fields": { "$ref": "#/$defs/stringList" },
+        "evaluator_only_fields": { "$ref": "#/$defs/stringList" },
+        "random_event_rules": {
+          "type": "object", "additionalProperties": false,
+          "required": ["stable_exogenous_key_required","exogenous_invariance_must_be_declared","causal_descendants_must_be_resimulated","old_actor_actions_may_not_be_replayed_as_counterfactual_responses","unknown_causal_status"],
+          "properties": {
+            "stable_exogenous_key_required": { "const": true },
+            "exogenous_invariance_must_be_declared": { "const": true },
+            "causal_descendants_must_be_resimulated": { "const": true },
+            "old_actor_actions_may_not_be_replayed_as_counterfactual_responses": { "const": true },
+            "unknown_causal_status": { "const": "unpaired_unknown" }
+          }
+        }
+      }
+    },
+    "budget_profiles": {
+      "type": "array", "minItems": 2,
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["id","required","purpose"],
+        "properties": {
+          "id": { "type": "string", "enum": ["exposure_matched","cost_matched"] },
+          "required": { "$ref": "#/$defs/stringList" },
+          "purpose": { "type": "string", "minLength": 10 }
+        }
+      }
+    },
+    "model_comparison_arms": {
+      "type": "array", "minItems": 6,
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["id","role"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+          "role": { "type": "string", "minLength": 5 }
+        }
+      }
+    },
+    "split_dimensions": { "$ref": "#/$defs/stringList" },
+    "metrics": {
+      "type": "array", "minItems": 10,
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["id","family","direction","definition"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+          "family": { "type": "string", "minLength": 3 },
+          "direction": { "type": "string", "enum": ["lower","higher","target"] },
+          "definition": { "type": "string", "minLength": 20 }
+        }
+      }
+    },
+    "negative_controls": { "$ref": "#/$defs/stringList" },
+    "promotion_gates": { "$ref": "#/$defs/stringList" },
+    "prospective_targets": {
+      "type": "object", "additionalProperties": false,
+      "required": ["status","active_sampler_minimum_transition_or_human_time_reduction","comparison","same_preregistered_skill_threshold","worst_family_constraints_must_not_regress","heldout_performance_noninferiority_margin","calibration_fallback_and_deadline_gates_must_hold","caveat"],
+      "properties": {
+        "status": { "const": "not_measured" },
+        "active_sampler_minimum_transition_or_human_time_reduction": { "type": "number", "minimum": 0, "maximum": 1 },
+        "comparison": { "const": "uniform" },
+        "same_preregistered_skill_threshold": { "const": true },
+        "worst_family_constraints_must_not_regress": { "const": true },
+        "heldout_performance_noninferiority_margin": { "type": "string", "minLength": 10 },
+        "calibration_fallback_and_deadline_gates_must_hold": { "const": true },
+        "caveat": { "type": "string", "minLength": 20 }
+      }
+    },
+    "external_benchmarks": {
+      "type": "array", "minItems": 6,
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["id","role","caveat"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[A-Za-z0-9_]+$" },
+          "role": { "type": "string", "minLength": 3 },
+          "caveat": { "type": "string", "minLength": 15 }
+        }
+      }
+    },
+    "execution_status": {
+      "type": "object", "additionalProperties": false,
+      "required": ["simulator_implemented","visual_policy_implemented","active_sampler_implemented","executable_evaluator_implemented","training_runs_completed","human_demonstrations_recorded","ci_verified","measured_sota_comparison"],
+      "properties": {
+        "simulator_implemented": { "const": false },
+        "visual_policy_implemented": { "const": false },
+        "active_sampler_implemented": { "const": false },
+        "executable_evaluator_implemented": { "const": false },
+        "training_runs_completed": { "const": false },
+        "human_demonstrations_recorded": { "const": false },
+        "ci_verified": { "const": false },
+        "measured_sota_comparison": { "const": false }
+      }
+    }
+  },
+  "$defs": {
+    "stringList": {
+      "type": "array", "minItems": 1, "uniqueItems": true,
+      "items": { "type": "string", "minLength": 2 }
+    }
+  }
+}
