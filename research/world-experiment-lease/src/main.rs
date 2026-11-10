@@ -6,9 +6,18 @@ use symtropy_world_experiment_lease::{LeaseInputV1, compile_lease};
 
 fn run() -> Result<(), Box<dyn std::error::Error>> {
     let mut args = env::args().skip(1);
-    let path = args.next().ok_or("usage: world-experiment-lease <input.json>")?;
+    let path = args.next().ok_or_else(|| {
+        std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "usage: world-experiment-lease <input.json>",
+        )
+    })?;
     if args.next().is_some() {
-        return Err("expected exactly one input path".into());
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "expected exactly one input path",
+        )
+        .into());
     }
 
     let bytes = fs::read(&path)?;
