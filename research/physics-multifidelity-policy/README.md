@@ -22,6 +22,7 @@ A candidate is admissible only when all gates pass:
    - `exploratory`: synthetic-only, analytic or independently validated evidence is allowed; unqualified evidence is never allowed.
    - `engineering_decision`: analytic oracle or independently validated evidence is required.
    - `safety_critical`: independently validated evidence, an analytic anchor digest and at least two distinct independent validation receipt digests are required. This is a conservative prototype policy, not a numerical requirement prescribed by ASME/NIST.
+   - Any candidate labelled `analytic_oracle` must carry its analytic anchor receipt; any candidate labelled `independently_validated` must carry at least one validation receipt. Evidence labels without their matching receipts are rejected.
 3. The declared validity envelope contains the scenario and horizon.
 4. Hard constraints are explicitly `within_bounds`.
 5. Residual and uncertainty upper bounds satisfy the requested limits.
