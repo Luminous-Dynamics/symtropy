@@ -32,6 +32,15 @@ This release inventory proves that compatible published versions exist. The Symt
 
 The lockfile remains a Cargo-generated artifact. It must not be hand-edited.
 
+## First source migration slice — typed ShaderBuffer API
+
+The root telemetry bridge was updated for Bevy 0.20's `ShaderBuffer` API in `src/systems/telemetry.rs`:
+- initialization now passes an owned, typed `Vec<NodeTelemetryGpu>` to `ShaderBuffer::new`;
+- per-frame updates use `clear` + `extend_from_slice` instead of the removed `set_data` call;
+- an empty telemetry set retains a zero-filled minimum-size binding, avoiding a zero-byte GPU storage binding without inventing a node or observation.
+
+This matches Bevy 0.20's documented typed `AlignedVec` data and explicit buffer-size contract. It remains subject to exact-head compilation and runtime validation.
+
 ## First source migration slice — WESL 4D slicing
 
 The active 4D slicing material was migrated in this branch:
