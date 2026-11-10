@@ -46,6 +46,7 @@ This matches Bevy 0.20's documented typed `AlignedVec` data and explicit buffer-
 The active 4D slicing material was migrated in this branch:
 - `assets/shaders/nd_slicing.wgsl` → `assets/shaders/nd_slicing.wesl`;
 - `NdSlicingExtension::fragment_shader()` now loads `shaders/nd_slicing.wesl`;
+- `assets/shaders/crt_consciousness.wgsl` → `assets/shaders/crt_consciousness.wesl`, with its fullscreen import translated to WESL (the asset remains unwired by the current render graph).
 - naga_oil `#import` / `#ifdef` / `#{MATERIAL_BIND_GROUP}` syntax was translated to WESL imports, `@if` conditionals and `constants::MATERIAL_BIND_GROUP`;
 - zero-thickness slicing now avoids an edge-fade 0/0 division.
 
@@ -53,7 +54,7 @@ This change is source migration only until the Bevy 0.20 shader pipeline compile
 
 The wider asset inventory is now tracked in [RENDER-SHADER-ASSET-QUAL-001 #4475](https://github.com/Luminous-Dynamics/symtropy/issues/4475). That audit found:
 - `holographic.wgsl` also uses legacy naga_oil preprocessor syntax; active callsites still need confirmation;
-- `crt_consciousness.wgsl` uses a legacy `#import` directive and needs a usage audit;
+- CRT consciousness shader is now WESL but remains intentionally unwired until the fullscreen integration is implemented and smoke-tested;
 - `TelemetryExtension` refers to `shaders/telemetry_deform.wgsl`, but no such asset exists in the repository tree;
 - `spatial_hash_broadphase.wgsl` is plain WGSL without preprocessor directives and should not be renamed just because it ends in `.wgsl`.
 
