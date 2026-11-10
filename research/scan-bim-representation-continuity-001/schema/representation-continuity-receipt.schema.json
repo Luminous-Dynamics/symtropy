@@ -106,6 +106,7 @@
         "transform",
         "registered_observation",
         "geometry_output",
+        "representation_output",
         "prior_state",
         "calibration",
         "other"
