@@ -1,0 +1,505 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/liu-ice-run-manifest-v1.json",
+  "title": "LiU-ICE reproducible benchmark run manifest",
+  "description": "Evidence envelope for one frozen LiU-ICE comparator run. A score is not qualified merely because it is present.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "run_status",
+    "evidence_level",
+    "dataset",
+    "split",
+    "comparator",
+    "evaluator",
+    "protocol",
+    "metrics",
+    "uncertainty",
+    "claims"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "liu-ice-run-manifest-v1"
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "run_status": {
+      "enum": [
+        "planned_not_executed",
+        "data_not_audited",
+        "protocol_reproduction_pending",
+        "executed_unqualified",
+        "qualified",
+        "rejected"
+      ]
+    },
+    "evidence_level": {
+      "enum": [
+        "P0_synthetic_contract",
+        "P1_public_benchmark_reproduction",
+        "P2_laboratory_shadow",
+        "P3_independent_testbed",
+        "P4_field_shadow",
+        "P5_human_in_loop_pilot"
+      ]
+    },
+    "dataset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "benchmark_id",
+        "source_url",
+        "archive_sha256",
+        "recording_manifest_sha256",
+        "redistribution_permission_verified"
+      ],
+      "properties": {
+        "benchmark_id": {
+          "const": "LIU-ICE-DX37"
+        },
+        "source_url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "archive_sha256": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "recording_manifest_sha256": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "redistribution_permission_verified": {
+          "type": "boolean"
+        },
+        "archive_notes": {
+          "type": "string"
+        }
+      }
+    },
+    "split": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "manifest_sha256",
+        "training_recordings_sha256",
+        "calibration_recordings_sha256",
+        "test_recordings_sha256",
+        "recordings_disjoint",
+        "row_randomization_used"
+      ],
+      "properties": {
+        "mode": {
+          "enum": [
+            "official",
+            "whole_recording",
+            "held_out_driving_cycle",
+            "leave_one_fault_recording_out"
+          ]
+        },
+        "manifest_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "training_recordings_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "calibration_recordings_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "test_recordings_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "recordings_disjoint": {
+          "const": true
+        },
+        "row_randomization_used": {
+          "const": false
+        }
+      }
+    },
+    "comparator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "comparator_id",
+        "family",
+        "configuration_sha256",
+        "model_artifact_sha256",
+        "channels"
+      ],
+      "properties": {
+        "comparator_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "family": {
+          "enum": [
+            "analytical_model_based",
+            "statistical_spc",
+            "state_only",
+            "command_only",
+            "early_fusion",
+            "command_conditioned_dynamic",
+            "regime_gated_fusion",
+            "selective_unknown_fault",
+            "physics_informed_inverse_twin"
+          ]
+        },
+        "configuration_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "model_artifact_sha256": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "channels": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "evaluator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "git_commit",
+        "source_tree_sha256",
+        "runtime",
+        "dependency_lock_sha256"
+      ],
+      "properties": {
+        "git_commit": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "source_tree_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "runtime": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dependency_lock_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "protocol": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocol_sha256",
+        "seed_manifest_sha256",
+        "tuning_frozen_before_test",
+        "official_interface_reproduced"
+      ],
+      "properties": {
+        "protocol_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "seed_manifest_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "tuning_frozen_before_test": {
+          "const": true
+        },
+        "official_interface_reproduced": {
+          "type": "boolean"
+        }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sample_count",
+        "recording_count",
+        "false_alarm_rate",
+        "true_detection_rate",
+        "fault_isolation_accuracy",
+        "official_total_score",
+        "event_recall",
+        "unknown_false_known_rate",
+        "false_alarms_per_recording_hour",
+        "median_detection_latency_seconds",
+        "p95_detection_latency_seconds"
+      ],
+      "properties": {
+        "sample_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "recording_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "false_alarm_rate": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "true_detection_rate": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "fault_isolation_accuracy": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "official_total_score": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "event_recall": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "unknown_false_known_rate": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "false_alarms_per_recording_hour": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "median_detection_latency_seconds": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "p95_detection_latency_seconds": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "uncertainty": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "unit",
+        "method",
+        "independent_units",
+        "confidence_level",
+        "intervals"
+      ],
+      "properties": {
+        "unit": {
+          "enum": [
+            "recording",
+            "engine_run",
+            "engine",
+            "vessel",
+            "fleet",
+            "not_available"
+          ]
+        },
+        "method": {
+          "type": "string",
+          "minLength": 1
+        },
+        "independent_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "confidence_level": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0,
+          "exclusiveMaximum": 1
+        },
+        "intervals": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "metric",
+              "lower",
+              "upper"
+            ],
+            "properties": {
+              "metric": {
+                "type": "string"
+              },
+              "lower": {
+                "type": "number"
+              },
+              "upper": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      }
+    },
+    "claims": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "score_claim_allowed",
+        "physical_transfer_claim_allowed",
+        "known_limitations"
+      ],
+      "properties": {
+        "score_claim_allowed": {
+          "type": "boolean"
+        },
+        "physical_transfer_claim_allowed": {
+          "const": false
+        },
+        "known_limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "run_status": {
+            "enum": [
+              "planned_not_executed",
+              "data_not_audited",
+              "protocol_reproduction_pending"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "metrics": {
+            "properties": {
+              "official_total_score": {
+                "type": "null"
+              }
+            }
+          },
+          "claims": {
+            "properties": {
+              "score_claim_allowed": {
+                "const": false
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "run_status": {
+            "const": "qualified"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "dataset": {
+            "properties": {
+              "archive_sha256": {
+                "type": "string"
+              },
+              "recording_manifest_sha256": {
+                "type": "string"
+              }
+            }
+          },
+          "split": {
+            "properties": {
+              "recordings_disjoint": {
+                "const": true
+              },
+              "row_randomization_used": {
+                "const": false
+              }
+            }
+          },
+          "claims": {
+            "properties": {
+              "score_claim_allowed": {
+                "const": true
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
