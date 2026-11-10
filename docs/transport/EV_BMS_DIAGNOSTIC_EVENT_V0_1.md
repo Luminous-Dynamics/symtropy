@@ -22,7 +22,7 @@ The v0.1 validator requires every fault-candidate evidence digest to reference a
 
 - A model may recommend `service`, `replace`, `derate` or `isolate` while authority is `not_requested`, provided execution remains `not_executed`.
 - Acknowledged, executed, failed or unknown execution requires explicit approved authority plus an execution-receipt digest.
-- Unknown/failed execution requires reconciliation and mutation blocking. The unresolved result must be reconciled before a further mutation is considered.
+- Unknown/failed execution requires reconciliation and mutation blocking. A known failed event binds its execution receipt; an unknown event may lack an execution receipt because the outcome itself is unresolved, but it still requires approved attempted-action authority. The unresolved result must be reconciled before a further mutation is considered.
 - Executed service/replacement requires a maintenance-event digest.
 - A pending verification state is distinct from a verified outcome.
 - Verified/rejected outcome requires an execution receipt, post-action test evidence, and an independent verifier reference/digest distinct from the reaction authority.
