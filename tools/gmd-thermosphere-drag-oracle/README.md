@@ -4,7 +4,7 @@ A dependency-free Rust reference kernel for the instantaneous aerodynamic drag l
 
 ## Scope
 
-This crate evaluates the analytic drag acceleration, force, power and conservative acceleration magnitude envelope for declared local density, ballistic coefficient and spacecraft-relative velocity.
+This crate evaluates the analytic drag acceleration, force, atmosphere-relative dissipation and conservative acceleration magnitude envelope for declared local density, ballistic coefficient and spacecraft-relative velocity.
 
 It does **not** forecast thermospheric density, model attitude or atmospheric co-rotation, propagate an orbit, estimate covariance/conjunction probability, model spacecraft radiation/charging, or claim flight-dynamics qualification. It is an analytic mechanics oracle only (E1 synthetic software evidence).
 
