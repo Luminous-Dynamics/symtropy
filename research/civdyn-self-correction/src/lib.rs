@@ -10,6 +10,7 @@
 //! household service, industrial service, reserve capital, maintenance energy,
 //! sensor error and correction evidence as separate quantities.
 
+pub mod claim_assurance;
 pub mod causal_drift;
 pub mod causal_identifiability;
 pub mod interference_identifiability;
