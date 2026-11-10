@@ -12,7 +12,7 @@ description = "Lightyear integration for Symtropy — prediction, rollback, inte
 # upstream bug (WriteColor not satisfied for String; gfx-rs/wgpu#7968,
 # fixed via a codespan-reporting bump naga only picked up starting at 29.x).
 # See SYMTROPY_IMPROVEMENT_PLAN_2026-07-21.md P3.2.
-lightyear = "0.28"
+lightyear = "0.31"
 
 # Bevy sub-crates (all on Symtropy's Bevy 0.20)
 bevy_app = "0.20"
