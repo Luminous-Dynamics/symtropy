@@ -199,6 +199,7 @@
       "required": [
         "claim_id",
         "target_entity_id",
+        "target_artifact_id",
         "property_id",
         "origin",
         "source_evidence",
@@ -262,6 +263,9 @@
             "null"
           ],
           "maxLength": 1024
+        },
+        "target_artifact_id": {
+          "$ref": "#/$defs/id"
         }
       }
     },
