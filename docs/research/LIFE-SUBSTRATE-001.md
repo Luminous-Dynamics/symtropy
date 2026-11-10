@@ -867,3 +867,5 @@ The minimal source repair and qualification remain owned by [SWARM-AUTH-IMPL-001
 - Symtropy [OLI-COLLECTIVE-001 #4578](https://github.com/Luminous-Dynamics/symtropy/issues/4578): task-specific group capability profiles across fixed/mobile/field-mediated topologies.
 - Symthaea [OLI-EXPERIMENT-001 #11446](https://github.com/Luminous-Dynamics/symthaea/issues/11446): adequacy-gated selection of discriminating experiments for group-cognition mechanisms.
 - Symthaea [SWARM-AUTH-001 #4143](https://github.com/Luminous-Dynamics/symthaea/issues/4143): explicit no-authority-from-collective-intelligence boundary.
+
+- Symthaea [OLI-APE-SPATIAL-001 #11459](https://github.com/Luminous-Dynamics/symthaea/issues/11459): first source-pinned, task-level non-linguistic cognition reference using EVApeCognition's great-ape hidden-object displacement task. The source data were inspected: 375 trials, 25 subjects, 5 conditions, with 3 trials per subject/condition. A descriptive subject-cluster bootstrap reproduces the expected difficulty ordering, but is not a confirmatory inferential result. The benchmark must use subject-held-out splits and omit names/demographic roster data.
