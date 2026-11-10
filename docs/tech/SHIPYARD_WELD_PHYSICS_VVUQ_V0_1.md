@@ -38,7 +38,7 @@ No model family is presumed best. Compare predictive error, uncertainty coverage
 
 ## Reference-source inventory
 
-The v0.1 inventory deliberately distinguishes discoverable literature from admissible numerical datasets.
+The v0.1 inventory deliberately distinguishes discoverable literature from admissible numerical datasets. The 2022 S355J2+N buried-arc paper is a rights-cleared literature artifact only; its raw measurement file is not available and it remains non-scoring.
 
 | Candidate | Known evidence | Initial state | Admission requirement |
 |---|---|---|---|
@@ -162,3 +162,10 @@ The contract corpus is not a numerical model validation. Numerical validation be
 ## Claim ceiling
 
 A v0 manifest PASS establishes only source/contract/split integrity. A physical validation result applies only to the admitted specimen set, measurement methods, model revision, calibration partition, uncertainty and declared domain. It does not qualify a WPS/PQR, accept a physical weld, qualify NDT, certify structural integrity, grant class/flag approval or authorize production/release.
+
+
+## Output-specific validation boundary — 2026-11-10
+
+Added a ninth source candidate: Perić et al. (2022), *Numerical Simulation and Experimental Measurement of Residual Stresses in a Thick-Walled Buried-Arc Welded Pipe Structure*, Metals 12(7), 1102, DOI https://doi.org/10.3390/met12071102. The article is CC BY 4.0. It describes two S355J2+N Ø168 × 12 mm pipes, a single-pass buried-arc weld, six XRD residual-stress measurement locations and a detailed FE/cooling setup. Its Data Availability Statement is “Not applicable”; measured stress values are plotted rather than released as a raw file. Therefore it remains METADATA_ONLY / non-scoring pending reproducible digitization and uncertainty review.
+
+The article also states that the model's predicted 3929 °C local weld-pool peak is unrealistic because solid/liquid coupling is omitted, even though post-weld residual-stress profiles are compared with XRD measurements. This is a useful falsification case: residual-stress agreement cannot validate the local molten-pool temperature field. The new WPHYS-027 case freezes that output-scope non-promotion rule. This source is a single-pass buried-arc comparator, not a multipass GMAW-equivalent case.
