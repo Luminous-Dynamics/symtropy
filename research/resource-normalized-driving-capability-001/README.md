@@ -111,6 +111,36 @@ These thresholds are prospective research targets only. They are not safety requ
 - `result_card.schema.json`: schema for per-run normalized evidence records.
 - `result_card.template.json`: an explicit not-run template; null values are not measurements.
 
+## Executable result-card evaluator
+
+The standalone Rust evaluator is in `evaluator/`. It is pinned to Rust 1.96.0 and only uses Serde/Serde JSON for typed result-card parsing.
+
+From the evaluator directory:
+
+```sh
+cargo fmt -- --check
+cargo test --locked
+cargo clippy --locked --all-targets --all-features -- -D warnings
+```
+
+Evaluate one baseline and one or more candidate cards on a **single native metric**:
+
+```sh
+cargo run --release --locked --bin capability-frontier -- driving_score maximize baseline.json candidate.json efficient.json
+```
+
+The tool:
+- validates resource fields, latency percentile order, SHA-256 syntax and exact episode disposition accounting;
+- refuses to compare different benchmark IDs, protocol/evaluator revisions, holdout splits, seed manifests or policy/teacher input privileges;
+- reports `matched_capability` only when training exposure, human intervention, labels, inference hardware and precision are also matched;
+- reports `capability_frontier_only` when evaluation is aligned but training/compute budgets differ;
+- computes a metric-specific Pareto frontier over the native task metric, inference energy per frame, p99 latency and peak memory;
+- excludes cards missing any required frontier measurement rather than treating missing values as zero or as a benefit.
+
+It reports native metric differences and resource ratios; it does not combine driving score, energy, latency, memory or safety into a fabricated single score. It is a result-card evaluator, not a statistical significance engine: confidence intervals and per-seed results must be reported separately before claiming statistical superiority.
+
+The workflow's final command is a smoke attempt using the deliberately not-run template; it is allowed to fail because the evaluator correctly rejects non-complete runs. The test suite is the required gate.
+
 ## Claim ceiling
 
 Passing a manifest/schema audit establishes only structural protocol conformance. A positive simulator result applies only to the exact model, code, dataset, benchmark version, evaluator, hardware, privileges, scenario population, random seeds and sealed split measured. It does not establish roadworthiness, real-road transfer, collision probability, certification or SAE Level 4/5 capability.
