@@ -63,7 +63,10 @@ impl fmt::Display for RapierStepError {
                 write!(f, "force callback produced a non-finite force for {body:?}")
             }
             Self::DuplicateBodyBinding { body } => {
-                write!(f, "Symtropy body {body:?} is already bound to another Rapier body")
+                write!(
+                    f,
+                    "Symtropy body {body:?} is already bound to another Rapier body"
+                )
             }
         }
     }
@@ -142,7 +145,9 @@ impl<C: PhysicsCallback<3>> RapierPhysicsBridge<C> {
         if self
             .callback_body_map
             .iter()
-            .any(|(existing_raw, existing_body)| *existing_raw != raw && *existing_body == symtropy_handle)
+            .any(|(existing_raw, existing_body)| {
+                *existing_raw != raw && *existing_body == symtropy_handle
+            })
         {
             return Err(RapierStepError::DuplicateBodyBinding {
                 body: symtropy_handle,
@@ -154,7 +159,8 @@ impl<C: PhysicsCallback<3>> RapierPhysicsBridge<C> {
 
     /// Remove the explicit callback identity binding for a Rapier body.
     pub fn unbind_callback_body(&mut self, rapier_handle: RigidBodyHandle) -> Option<BodyHandle> {
-        self.callback_body_map.remove(&rapier_handle.into_raw_parts())
+        self.callback_body_map
+            .remove(&rapier_handle.into_raw_parts())
     }
 
     /// Resolve a callback identity only when it was explicitly supplied.
@@ -281,7 +287,8 @@ impl<C: PhysicsCallback<3>> RapierPhysicsBridge<C> {
         // an explicit cross-engine identity are deliberately not passed to the callback.
         let mut force_changes = Vec::new();
         for (handle, body) in rigid_body_set.iter() {
-            let Some(body_handle) = self.callback_body_map
+            let Some(body_handle) = self
+                .callback_body_map
                 .get(&handle.into_raw_parts())
                 .copied()
             else {
@@ -924,7 +931,9 @@ mod tests {
                 .additional_mass(1.0)
                 .build(),
         );
-        world.step(&mut bridge, 1.0 / 60.0).expect("zero-gravity step");
+        world
+            .step(&mut bridge, 1.0 / 60.0)
+            .expect("zero-gravity step");
         let body = world.bodies.get(handle).expect("body remains");
         assert!((body.translation().y - 10.0).abs() < 1.0e-6);
         assert_eq!(body.linvel(), &vector![0.0, 0.0, 0.0]);
@@ -934,15 +943,17 @@ mod tests {
     fn callbacks_require_explicit_generation_aware_body_identity() {
         let mut bridge = RapierPhysicsBridge::new(RecordingCallback::default());
         let mut world = TestWorld::new();
-        let handle = world.bodies.insert(
-            RigidBodyBuilder::dynamic().additional_mass(1.0).build(),
-        );
+        let handle = world
+            .bodies
+            .insert(RigidBodyBuilder::dynamic().additional_mass(1.0).build());
         world
             .bodies
             .get_mut(handle)
             .expect("body inserted")
             .add_force(vector![1.0, 0.0, 0.0], true);
-        world.step(&mut bridge, 0.1).expect("unmapped body is still simulated");
+        world
+            .step(&mut bridge, 0.1)
+            .expect("unmapped body is still simulated");
         assert!(bridge.callback.0.lock().expect("recorder").is_empty());
 
         bridge
@@ -965,7 +976,9 @@ mod tests {
             .expect("first binding");
         assert_eq!(
             bridge.bind_callback_body(second, BodyHandle(9)),
-            Err(RapierStepError::DuplicateBodyBinding { body: BodyHandle(9) })
+            Err(RapierStepError::DuplicateBodyBinding {
+                body: BodyHandle(9)
+            })
         );
         assert_eq!(bridge.callback_body(first), Some(BodyHandle(9)));
         assert_eq!(bridge.callback_body(second), None);
