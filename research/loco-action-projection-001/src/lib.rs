@@ -400,8 +400,17 @@ fn identity_gate(problem: &ProjectionGateProblem) -> Result<(), ProjectionError>
 fn constraint_gate(
     result: &ProjectionResult,
     frozen_inventory: &[ConstraintRequirement],
-) -> Result<(Vec<ConstraintFinding>, Vec<String>, Vec<String>), ProjectionError> {
-    if result.declared_constraints.is_empty() {
+    physical_possibility_ids: &[String],
+) -> Result<
+    (
+        Vec<ConstraintFinding>,
+        Vec<String>,
+        Vec<String>,
+        Vec<String>,
+    ),
+    ProjectionError,
+> {
+    if result.declared_constraints.is_empty() || frozen_inventory.is_empty() {
         return Err(ProjectionError::NoConstraintRequirements);
     }
     if result.declared_constraints.len() > MAX_CONSTRAINTS
@@ -409,10 +418,37 @@ fn constraint_gate(
     {
         return Err(ProjectionError::TooManyConstraints);
     }
+    if physical_possibility_ids.is_empty() {
+        return Err(ProjectionError::NoPhysicalPossibilities);
+    }
+    if physical_possibility_ids.len() > MAX_POSSIBILITIES {
+        return Err(ProjectionError::TooManyPossibilities);
+    }
+
+    let mut possibilities = std::collections::BTreeSet::new();
+    for possibility_id in physical_possibility_ids {
+        if !nonempty(possibility_id) {
+            return Err(ProjectionError::EmptyIdentifier);
+        }
+        if !possibilities.insert(possibility_id.as_str()) {
+            return Err(ProjectionError::DuplicatePhysicalPossibility);
+        }
+    }
+
     let mut frozen_by_id = BTreeMap::new();
     for requirement in frozen_inventory {
-        if !nonempty(&requirement.id) {
+        if !nonempty(&requirement.id)
+            || !nonempty(&requirement.residual_unit_id)
+            || !nonempty(&requirement.margin_unit_id)
+        {
             return Err(ProjectionError::EmptyIdentifier);
+        }
+        if matches!(
+            requirement.class,
+            ConstraintClass::HardPhysical | ConstraintClass::RobustContact
+        ) && !requirement.required
+        {
+            return Err(ProjectionError::PhysicalConstraintCannotBeOptional);
         }
         if frozen_by_id
             .insert(requirement.id.as_str(), requirement)
@@ -421,9 +457,7 @@ fn constraint_gate(
             return Err(ProjectionError::DuplicateConstraintRequirement);
         }
     }
-    if frozen_by_id.is_empty() {
-        return Err(ProjectionError::NoConstraintRequirements);
-    }
+
     let mut requirements = BTreeMap::new();
     for requirement in &result.declared_constraints {
         if !nonempty(&requirement.id)
@@ -456,60 +490,117 @@ fn constraint_gate(
         return Err(ProjectionError::ConstraintInventoryMismatch);
     }
 
-    let mut evidence_by_id = BTreeMap::new();
+    let expected_checks = possibilities
+        .len()
+        .checked_mul(requirements.len())
+        .ok_or(ProjectionError::ArithmeticOverflow)?;
+    if expected_checks > MAX_CONSTRAINT_CHECKS {
+        return Err(ProjectionError::TooManyConstraintChecks);
+    }
+
+    let mut evidence_by_key = BTreeMap::new();
     for evidence in &result.constraint_evidence {
-        if !nonempty(&evidence.id)
+        if !nonempty(&evidence.possibility_id)
+            || !nonempty(&evidence.id)
             || !nonempty(&evidence.residual_unit_id)
             || !nonempty(&evidence.margin_unit_id)
         {
             return Err(ProjectionError::EmptyIdentifier);
         }
-        if evidence_by_id
-            .insert(evidence.id.as_str(), evidence)
-            .is_some()
-        {
-            return Err(ProjectionError::DuplicateConstraintEvidence);
+        if !possibilities.contains(evidence.possibility_id.as_str()) {
+            return Err(ProjectionError::UnknownPhysicalPossibility);
         }
         if !requirements.contains_key(evidence.id.as_str()) {
             return Err(ProjectionError::UnexpectedConstraintEvidence);
         }
+        if evidence_by_key
+            .insert(
+                (evidence.possibility_id.as_str(), evidence.id.as_str()),
+                evidence,
+            )
+            .is_some()
+        {
+            return Err(ProjectionError::DuplicateConstraintEvidence);
+        }
+    }
+    if evidence_by_key.len() != expected_checks {
+        return Err(ProjectionError::MissingConstraintEvidence);
     }
 
-    let mut findings = Vec::with_capacity(requirements.len());
+    let mut findings = Vec::with_capacity(expected_checks);
     let mut hard_failures = Vec::new();
     let mut contact_failures = Vec::new();
-    for (id, requirement) in &requirements {
-        let evidence = evidence_by_id
-            .get(id)
-            .ok_or(ProjectionError::MissingConstraintEvidence)?;
-        if evidence.residual_unit_id != requirement.residual_unit_id
-            || evidence.margin_unit_id != requirement.margin_unit_id
-        {
-            return Err(ProjectionError::ConstraintUnitMismatch);
-        }
-        let passed = evidence.residual <= requirement.residual_tolerance && evidence.margin >= 0;
-        if requirement.required && !passed {
-            match requirement.class {
-                ConstraintClass::HardPhysical => hard_failures.push((*id).to_owned()),
-                ConstraintClass::RobustContact => contact_failures.push((*id).to_owned()),
-                ConstraintClass::TaskTracking
-                | ConstraintClass::ProposalProximity
-                | ConstraintClass::Efficiency => {}
+    let mut numerical_unqualified = Vec::new();
+
+    for possibility_id in &possibilities {
+        for (id, requirement) in &requirements {
+            let evidence = evidence_by_key
+                .get(&(*possibility_id, *id))
+                .ok_or(ProjectionError::MissingConstraintEvidence)?;
+            if evidence.residual_unit_id != requirement.residual_unit_id
+                || evidence.margin_unit_id != requirement.margin_unit_id
+            {
+                return Err(ProjectionError::ConstraintUnitMismatch);
             }
+
+            let residual_passed = evidence.residual <= requirement.residual_tolerance;
+            let margin_passed = evidence.margin >= requirement.minimum_margin;
+            let passed = residual_passed && margin_passed;
+            let finding_id = format!("{possibility_id}:{id}");
+
+            if requirement.required {
+                match requirement.class {
+                    ConstraintClass::HardPhysical => {
+                        if !residual_passed {
+                            numerical_unqualified.push(finding_id.clone());
+                        }
+                        if !margin_passed {
+                            hard_failures.push(finding_id.clone());
+                        }
+                    }
+                    ConstraintClass::RobustContact => {
+                        if !residual_passed {
+                            numerical_unqualified.push(finding_id.clone());
+                        }
+                        if !margin_passed {
+                            contact_failures.push(finding_id.clone());
+                        }
+                    }
+                    ConstraintClass::TaskTracking
+                    | ConstraintClass::ProposalProximity
+                    | ConstraintClass::Efficiency => {}
+                }
+            }
+
+            findings.push(ConstraintFinding {
+                possibility_id: (*possibility_id).to_owned(),
+                id: (*id).to_owned(),
+                class: requirement.class,
+                residual: evidence.residual,
+                residual_tolerance: requirement.residual_tolerance,
+                residual_passed,
+                margin: evidence.margin,
+                minimum_margin: requirement.minimum_margin,
+                margin_passed,
+                passed,
+            });
         }
-        findings.push(ConstraintFinding {
-            id: (*id).to_owned(),
-            class: requirement.class,
-            residual: evidence.residual,
-            residual_tolerance: requirement.residual_tolerance,
-            margin: evidence.margin,
-            passed,
-        });
     }
-    findings.sort_by(|left, right| left.id.cmp(&right.id));
+
+    findings.sort_by(|left, right| {
+        left.possibility_id
+            .cmp(&right.possibility_id)
+            .then_with(|| left.id.cmp(&right.id))
+    });
     hard_failures.sort();
     contact_failures.sort();
-    Ok((findings, hard_failures, contact_failures))
+    numerical_unqualified.sort();
+    Ok((
+        findings,
+        hard_failures,
+        contact_failures,
+        numerical_unqualified,
+    ))
 }
 
 fn validate_independent_receipts(problem: &ProjectionGateProblem) -> Result<(), ProjectionError> {
