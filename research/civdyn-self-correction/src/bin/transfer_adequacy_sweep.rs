@@ -2,11 +2,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use civdyn_self_correction::model_adequacy::{
-    assess_predictive_partition, IndependentUnitKind, ObservedStatistic, PredictiveDraw,
-    PredictiveKind, SplitManifest, SplitRole, StatisticRegistry, StatisticSpec,
+    IndependentUnitKind, ObservedStatistic, PredictiveDraw, PredictiveKind, SplitManifest,
+    SplitRole, StatisticRegistry, StatisticSpec, assess_predictive_partition,
 };
 use civdyn_self_correction::transfer_adequacy::{
-    assess_zero_shot_transfer, TransferAxis, TransferAssessment, TransferDomainEvidence,
+    TransferAssessment, TransferAxis, TransferDomainEvidence, assess_zero_shot_transfer,
 };
 
 const MODEL_DIGEST: &str = "sha256-frozen-civdyn-transfer-model";
