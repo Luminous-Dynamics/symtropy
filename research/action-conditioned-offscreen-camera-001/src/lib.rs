@@ -362,6 +362,9 @@ impl ObservationStreamGuard {
         validate_id(episode_id)?;
         validate_id(agent_id)?;
         validate_id(clock_id)?;
+        if sequence == 0 {
+            return Err(RenderError::InvalidObservationSequence);
+        }
         if self.clock_id.as_deref().is_some_and(|expected| expected != clock_id) {
             return Err(RenderError::ClockIdentityChanged);
         }
@@ -1719,7 +1722,7 @@ mod tests {
             road_id: "road-1".into(),
             marking_id: "offscreen-crossing".into(),
             kind: RoadMarkingKind::LaneWhite,
-            points_world_mm: vec![[-100_000, 10_000, 0], [0, 10_000, 0]],
+            points_world_mm: vec![[-100_000, 10_000, 0], [100_000, 10_000, 0]],
         }];
         let rendered = SoftwareCameraRenderer::render(&scene, 1, clocks()).unwrap();
         assert!(rendered
