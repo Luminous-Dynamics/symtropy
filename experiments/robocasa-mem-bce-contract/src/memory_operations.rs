@@ -107,6 +107,14 @@ pub struct MemoryOperationCaseResult {
     pub episode_id: String,
     pub independence_unit_id: String,
     pub operation: MemoryOperationKind,
+    pub source_event_sha256: String,
+    pub expected_effect_sha256: Option<String>,
+    pub observed_source_event_sha256: Option<String>,
+    pub observed_effect_sha256: Option<String>,
+    pub memory_snapshot_before_sha256: Option<String>,
+    pub memory_snapshot_after_sha256: Option<String>,
+    pub evaluator_receipt_sha256: Option<String>,
+    pub valid_run: Option<bool>,
     pub outcome: MemoryOperationOutcome,
     pub memory_bytes_before: Option<u64>,
     pub memory_bytes_after: Option<u64>,
@@ -291,6 +299,17 @@ pub fn audit_memory_operations(
             episode_id: case.episode_id.clone(),
             independence_unit_id: case.independence_unit_id.clone(),
             operation: case.operation,
+            source_event_sha256: case.source_event_sha256.clone(),
+            expected_effect_sha256: case.expected_effect_sha256.clone(),
+            observed_source_event_sha256: receipt
+                .and_then(|row| row.observed_source_event_sha256.clone()),
+            observed_effect_sha256: receipt.and_then(|row| row.observed_effect_sha256.clone()),
+            memory_snapshot_before_sha256: receipt
+                .and_then(|row| row.memory_snapshot_before_sha256.clone()),
+            memory_snapshot_after_sha256: receipt
+                .and_then(|row| row.memory_snapshot_after_sha256.clone()),
+            evaluator_receipt_sha256: receipt.and_then(|row| row.evaluator_receipt_sha256.clone()),
+            valid_run: receipt.map(|row| row.valid_run),
             outcome,
             memory_bytes_before: receipt.and_then(|row| row.memory_bytes_before),
             memory_bytes_after: receipt.and_then(|row| row.memory_bytes_after),
@@ -383,14 +402,14 @@ fn validate_manifest(
             _ => {}
         }
 
+        let sequences = seen_sequences.entry(case.episode_id.as_str()).or_default();
+        if !sequences.insert(case.sequence) {
+            return Err(MemoryOperationError::DuplicateSequence);
+        }
         if let Some(previous) = last_sequence.get(case.episode_id.as_str()) {
             if case.sequence <= *previous {
                 return Err(MemoryOperationError::NonMonotonicSequence);
             }
-        }
-        let sequences = seen_sequences.entry(case.episode_id.as_str()).or_default();
-        if !sequences.insert(case.sequence) {
-            return Err(MemoryOperationError::DuplicateSequence);
         }
         last_sequence.insert(case.episode_id.as_str(), case.sequence);
     }
