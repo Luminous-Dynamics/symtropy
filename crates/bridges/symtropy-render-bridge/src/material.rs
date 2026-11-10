@@ -119,3 +119,20 @@ impl Plugin for TelemetryMaterialPlugin {
         app.add_plugins(MaterialPlugin::<TelemetryMaterial>::default());
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn nd_slicing_does_not_claim_unimplemented_prepass_or_shadow_clipping() {
+        assert!(!NdSlicingExtension::enable_prepass());
+        assert!(!NdSlicingExtension::enable_shadows());
+    }
+
+    #[test]
+    fn telemetry_material_keeps_geometry_prepass_and_shadow_support() {
+        assert!(TelemetryExtension::enable_prepass());
+        assert!(TelemetryExtension::enable_shadows());
+    }
+}
