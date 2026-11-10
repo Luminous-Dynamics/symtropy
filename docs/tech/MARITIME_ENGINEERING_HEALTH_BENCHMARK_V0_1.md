@@ -41,7 +41,7 @@ A recovery attempt requires a repair record, inspection, proof test, scoped auth
 
 ## Synthetic corpus
 
-The frozen corpus contains 38 positive, negative, ambiguity, common-cause, recovery and metamorphic fixtures across propulsion, steering, generation, switchboards, battery, cooling, lubrication, fuel, bilge, flood, fire, ballast and HVAC/electronics cooling.
+The frozen corpus contains 39 positive, negative, ambiguity, common-cause, recovery and metamorphic fixtures across propulsion, steering, generation, switchboards, battery, cooling, lubrication, fuel, bilge, flood, fire, ballast and HVAC/electronics cooling.
 
 The fixtures test contract semantics, not distributions of real ship faults. They deliberately do not invent pressure, temperature, vibration, bilge, insulation, combustion, fire-growth, flood-propagation, stability or electrical-transient thresholds.
 
