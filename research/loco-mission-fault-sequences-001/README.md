@@ -36,7 +36,7 @@ Represent mission state as a typed vector, not a scalar:
 | State family | Examples | Evidence boundary |
 |---|---|---|
 | Electrical | SOC, bus voltage, usable energy, source resistance | Calibrated pack/BMS and independent current/voltage metrology |
-| Thermal | motor, drive, battery and structure temperatures; cooldown | Sensor calibration and thermal response model |
+| Thermal | per-node motor, driver, battery, structure and compute temperatures; cooldown and inter-node heat coupling | #4179 source-qualified thermal/loss model, exact model digest, complete node manifest and fresh per-event snapshot |
 | Actuation | torque/slew envelope, saturation, response delay, derating | Command-to-motion and actuator loss/response evidence |
 | Mechanical | impacts, backlash, friction, clutch slip/re-engagement, wear proxies | Calibrated sensor/inspection or declared Unknown; no invented wear law |
 | Sensing | bias/health, clock synchronization, calibration validity | Source identity, uncertainty, freshness and common-cause group |
@@ -51,7 +51,7 @@ z_{k+1}=F(z_k,e_k,a_k,o_k,r_k)
 
 where \(e_k\) is the next disturbance, \(a_k\) is the chosen action, \(o_k\) is the observation and \(r_k\) is the recovery/repair/cooldown transition. This is an interface abstraction, not a claim that one universal state equation is known.
 
-Every state component preserves its own units, calibration, uncertainty, provenance, age and update authority. Unqualified updates remain Unknown or conservative intervals. No implicit health reset is permitted. Mission energy costs debit state of charge, while the separately declared recovery/diagnostic costs debit the recovery reserve; current actuator authority is checked against each event's required authority before that event is admitted. The terminal safe-stop energy requirement is checked against remaining state of charge.
+Thermal state is a node vector, never a mean temperature: one motor or driver may exceed its limit while the average remains acceptable. Each event must carry a complete, fresh, context/model/manifest-bound update for every declared node, including coupled changes in neighbouring motors and onboard compute. Every state component preserves its own units, calibration, uncertainty, provenance, age and update authority. Unqualified updates remain Unknown or conservative intervals. No implicit health reset is permitted. Mission energy costs debit state of charge, while the separately declared recovery/diagnostic costs debit the recovery reserve; current actuator authority is checked against each event's required authority before that event is admitted. The terminal safe-stop energy requirement is checked against remaining state of charge.
 
 ### 3.1 Recovery debt
 
