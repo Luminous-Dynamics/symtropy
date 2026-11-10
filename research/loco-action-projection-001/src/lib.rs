@@ -262,6 +262,11 @@ pub struct ActuatorRealizationReceipt {
     pub result_digest: String,
     pub executed_command_digest: String,
     pub input_state_digest: String,
+    /// Opaque identity for measured command-to-actuator response evidence.
+    pub measured_response_digest: Option<String>,
+    /// New post-action state; never reuse the pre-action state certificate.
+    pub resulting_state_digest: Option<String>,
+    pub state_observation_digest: Option<String>,
     pub model_digest: String,
     pub abstraction_digest: String,
     pub domain_digest: String,
@@ -285,9 +290,13 @@ pub enum RealizationDisposition {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DeliveryReconciliation {
     pub disposition: RealizationDisposition,
-    /// A subsequent state-changing command is permitted only after a matched
-    /// command-to-delivered realization receipt.
-    pub next_command_permitted: bool,
+    pub measured_response_digest: Option<String>,
+    pub resulting_state_digest: Option<String>,
+    pub state_reconciled: bool,
+    pub command_realized_as_expected: bool,
+    /// Every next action must be a new proposal with fresh state/model/viability
+    /// and application-time assurance evidence for the resulting state.
+    pub fresh_proposal_and_viability_required: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -956,6 +965,22 @@ pub fn reconcile_delivery(
         receipt.observed_at_ns,
     )?;
 
+    let (state_reconciled, command_realized_as_expected) = match receipt.status {
+        RealizationStatus::Matched | RealizationStatus::Mismatch => {
+            for digest in [
+                receipt.measured_response_digest.as_deref(),
+                receipt.resulting_state_digest.as_deref(),
+                receipt.state_observation_digest.as_deref(),
+            ] {
+                if digest.is_none_or(|value| !nonempty(value)) {
+                    return Err(ProjectionError::InvalidReceipt);
+                }
+            }
+            (true, receipt.status == RealizationStatus::Matched)
+        }
+        RealizationStatus::Unknown | RealizationStatus::Invalid => (false, false),
+    };
+
     let disposition = match receipt.status {
         RealizationStatus::Matched => {
             if receipt.witness_or_reason.is_some() {
@@ -996,13 +1021,13 @@ pub fn reconcile_delivery(
             }
         }
     };
-    let next_command_permitted = matches!(
-        &disposition,
-        RealizationDisposition::ConfirmedDelivered { .. }
-    );
     Ok(DeliveryReconciliation {
         disposition,
-        next_command_permitted,
+        measured_response_digest: receipt.measured_response_digest.clone(),
+        resulting_state_digest: receipt.resulting_state_digest.clone(),
+        state_reconciled,
+        command_realized_as_expected,
+        fresh_proposal_and_viability_required: true,
     })
 }
 
@@ -1645,6 +1670,9 @@ mod tests {
             result_digest: "delivery-result".to_owned(),
             executed_command_digest: "command-v1".to_owned(),
             input_state_digest: "state-v1".to_owned(),
+            measured_response_digest: Some("measured-response-v1".to_owned()),
+            resulting_state_digest: Some("post-state-v1".to_owned()),
+            state_observation_digest: Some("post-state-observation-v1".to_owned()),
             model_digest: "model-v1".to_owned(),
             abstraction_digest: "abstraction-v1".to_owned(),
             domain_digest: "domain-v1".to_owned(),
@@ -1810,7 +1838,13 @@ mod tests {
                 result_digest: "delivery-result".to_owned()
             }
         );
-        assert!(reconciliation.next_command_permitted);
+        assert!(reconciliation.state_reconciled);
+        assert!(reconciliation.command_realized_as_expected);
+        assert_eq!(
+            reconciliation.resulting_state_digest.as_deref(),
+            Some("post-state-v1")
+        );
+        assert!(reconciliation.fresh_proposal_and_viability_required);
     }
 
     #[test]
@@ -1831,7 +1865,10 @@ mod tests {
             reconciliation.disposition,
             RealizationDisposition::DeliveryMismatch { .. }
         ));
-        assert!(!reconciliation.next_command_permitted);
+        assert!(reconciliation.state_reconciled);
+        assert!(!reconciliation.command_realized_as_expected);
+        assert!(reconciliation.resulting_state_digest.is_some());
+        assert!(reconciliation.fresh_proposal_and_viability_required);
     }
 
     #[test]
@@ -1852,7 +1889,10 @@ mod tests {
             reconciliation.disposition,
             RealizationDisposition::Unknown { .. }
         ));
-        assert!(!reconciliation.next_command_permitted);
+        assert!(!reconciliation.state_reconciled);
+        assert!(!reconciliation.command_realized_as_expected);
+        assert!(reconciliation.resulting_state_digest.is_none());
+        assert!(reconciliation.fresh_proposal_and_viability_required);
     }
 
     #[test]
