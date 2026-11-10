@@ -69,7 +69,10 @@ impl Default for NdSlicingExtension {
 /// Type alias for the telemetry visualization material.
 pub type TelemetryMaterial = ExtendedMaterial<StandardMaterial, TelemetryExtension>;
 
-/// Material extension that deforms vertices and tints surfaces using active telemetry buffers.
+/// Material extension that tints surfaces from read-only telemetry buffers.
+ ///
+ /// V0 renders telemetry into the PBR material response. It does not claim
+ /// vertex deformation; that requires a separately qualified vertex path.
 #[derive(Asset, AsBindGroup, Debug, Clone, Reflect)]
 pub struct TelemetryExtension {
     #[uniform(100)]
@@ -88,12 +91,8 @@ pub struct TelemetrySettings {
 }
 
 impl MaterialExtension for TelemetryExtension {
-    fn vertex_shader() -> ShaderRef {
-        "shaders/telemetry_deform.wgsl".into()
-    }
-
     fn fragment_shader() -> ShaderRef {
-        "shaders/telemetry_deform.wgsl".into()
+        "shaders/telemetry_deform.wesl".into()
     }
 }
 
