@@ -129,6 +129,7 @@ struct EpisodeReport {
     delayed_observations: usize,
     fresh_observations: usize,
     fresh_process_renderer_replay_exact: bool,
+    fresh_process_symthaea_bridge_replay_exact: bool,
     branch_evidence_audit_valid: bool,
     stale_actor_replay_negative_control_rejected: bool,
     branch_evidence_finding_count: usize,
