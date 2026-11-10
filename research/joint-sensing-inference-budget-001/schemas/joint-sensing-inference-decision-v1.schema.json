@@ -99,6 +99,7 @@
       "required": [
         "request_id", "sensor_profile_id", "sensor_profile_digest",
         "source_observation_digest", "sensor_value_evidence_digest",
+        "sam_evidence_digest",
         "latency_bound_digest", "resource_cost_digest",
         "expected_regret_reduction_microunits", "resource_cost_units",
         "acquisition_to_delivery_bound_ticks", "completion_bound_tick"
@@ -109,6 +110,7 @@
         "sensor_profile_digest": { "$ref": "#/$defs/sha256" },
         "source_observation_digest": { "$ref": "#/$defs/sha256" },
         "sensor_value_evidence_digest": { "$ref": "#/$defs/sha256" },
+        "sam_evidence_digest": { "$ref": "#/$defs/sha256" },
         "latency_bound_digest": { "$ref": "#/$defs/sha256" },
         "resource_cost_digest": { "$ref": "#/$defs/sha256" },
         "expected_regret_reduction_microunits": { "type": "integer", "minimum": 1 },
