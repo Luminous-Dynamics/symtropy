@@ -1165,8 +1165,7 @@ fn compare_case_expected(
 pub fn evaluate_decision_case_value(
     value: &Value,
 ) -> Result<DecisionCaseResult, Vec<DecisionImpactFailure>> {
-    let bytes = serde_json::to_vec(value).unwrap_or_default();
-    let mut summary = DecisionImpactSummary::new(&bytes, &[]);
+    let mut summary = DecisionImpactSummary::new(&[], &[]);
     let scenario = match parse_scenario(value, 0, &mut summary) {
         Some(scenario) => scenario,
         None => {
