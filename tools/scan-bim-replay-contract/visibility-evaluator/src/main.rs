@@ -5,10 +5,18 @@ use scan_bim_visibility_evaluator::visibility::VisibilityRequest;
 use std::io::{self, Read, Write};
 use std::process::ExitCode;
 
+const MAX_REQUEST_BYTES: u64 = 64 * 1024 * 1024;
+
 fn main() -> ExitCode {
+    let stdin = io::stdin();
     let mut input = Vec::new();
-    if let Err(error) = io::stdin().read_to_end(&mut input) {
+    let mut limited_reader = stdin.lock().take(MAX_REQUEST_BYTES + 1);
+    if let Err(error) = limited_reader.read_to_end(&mut input) {
         eprintln!("visibility evaluator: failed to read request: {error}");
+        return ExitCode::FAILURE;
+    }
+    if input.len() as u64 > MAX_REQUEST_BYTES {
+        eprintln!("visibility evaluator: request exceeds the 64 MiB input limit");
         return ExitCode::FAILURE;
     }
 
