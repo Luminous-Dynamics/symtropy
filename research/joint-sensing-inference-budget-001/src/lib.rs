@@ -5,7 +5,7 @@
 //! camera, world model, policy action, actuator or safety fallback.
 
 use anytime_driving_imagination::{
-    AllocationConfig, AllocationStopReason, DecisionOpportunity, EvidenceDisposition,
+    AllocationConfig, DecisionOpportunity, EvidenceDisposition,
     SamEvidence, SourceRole, allocate,
 };
 use serde::{Deserialize, Serialize};
@@ -109,7 +109,6 @@ pub struct InferenceGrant {
     pub expected_regret_reduction_microunits: u64,
     pub resource_cost_units: u64,
     pub completion_bound_tick: u64,
-    pub stop_reason: AllocatorStopReason,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -124,6 +123,8 @@ pub enum SensorRejection {
     SamEvidenceNotAdmitted,
     SamContextMismatch,
     ResourceUnitMismatch,
+    DecisionValueUnitMismatch,
+    ClockDomainMismatch,
     ZeroDecisionValue,
     ZeroResourceCost,
     ZeroLatencyBound,
@@ -801,6 +802,75 @@ mod tests {
         let result = schedule(&budget(), &inference(), "measured_uj_v1", "micro_loss_v1", "sim_tick_200hz_v1", Some(&sensor)).unwrap();
         assert_eq!(result.action, DecisionAction::AllocateInference);
         assert_eq!(result.sensor_rejection, Some(SensorRejection::ResourceUnitMismatch));
+    }
+
+    #[test]
+    fn decision_value_unit_mismatch_is_a_hard_error() {
+        assert_eq!(
+            schedule(
+                &budget(),
+                &inference(),
+                "measured_uj_v1",
+                "normalized_loss_v2",
+                "sim_tick_200hz_v1",
+                Some(&sensor())
+            )
+            .err(),
+            Some(SchedulerError::DecisionValueUnitMismatch)
+        );
+    }
+
+    #[test]
+    fn clock_domain_mismatch_is_a_hard_error() {
+        assert_eq!(
+            schedule(
+                &budget(),
+                &inference(),
+                "measured_uj_v1",
+                "micro_loss_v1",
+                "host_monotonic_ns_v1",
+                Some(&sensor())
+            )
+            .err(),
+            Some(SchedulerError::ClockDomainMismatch)
+        );
+    }
+
+    #[test]
+    fn sensor_value_unit_mismatch_rejects_only_the_sensor_candidate() {
+        let mut sensor = sensor();
+        sensor.decision_value_unit_id = "normalized_loss_v2".into();
+        let result = schedule(
+            &budget(),
+            &inference(),
+            "measured_uj_v1",
+            "micro_loss_v1",
+            "sim_tick_200hz_v1",
+            Some(&sensor)
+        )
+        .unwrap();
+        assert_eq!(result.action, DecisionAction::AllocateInference);
+        assert_eq!(
+            result.sensor_rejection,
+            Some(SensorRejection::DecisionValueUnitMismatch)
+        );
+    }
+
+    #[test]
+    fn sensor_clock_domain_mismatch_rejects_only_the_sensor_candidate() {
+        let mut sensor = sensor();
+        sensor.clock_id = "host_monotonic_ns_v1".into();
+        let result = schedule(
+            &budget(),
+            &inference(),
+            "measured_uj_v1",
+            "micro_loss_v1",
+            "sim_tick_200hz_v1",
+            Some(&sensor)
+        )
+        .unwrap();
+        assert_eq!(result.action, DecisionAction::AllocateInference);
+        assert_eq!(result.sensor_rejection, Some(SensorRejection::ClockDomainMismatch));
     }
 
     #[test]
