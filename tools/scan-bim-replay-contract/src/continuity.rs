@@ -34,6 +34,7 @@ pub enum EvidenceRole {
     RepresentationOutput,
     PriorState,
     Calibration,
+    RelationInventory,
     Other,
 }
 
@@ -53,6 +54,24 @@ pub enum CorrespondenceKind {
     Split,
     Merge,
     Replacement,
+    Unresolved,
+}
+
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum RelationInventoryCompleteness {
+    Complete,
+    Partial,
+    Unknown,
+}
+
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
+#[serde(rename_all = "snake_case")]
+pub enum RelationDisposition {
+    Preserved,
+    Modified,
+    Lost,
+    Unsupported,
     Unresolved,
 }
 
@@ -90,6 +109,7 @@ pub struct RepresentationTransition {
     pub output_artifacts: Vec<ArtifactReference>,
     pub tool: ToolBinding,
     pub correspondences: Vec<EntityCorrespondence>,
+    pub relation_audit: RelationAudit,
     pub claims: Vec<ClaimLineage>,
     pub uncertainty: UncertaintyTransition,
 }
@@ -119,6 +139,40 @@ pub struct EntityCorrespondence {
     pub target_entity_ids: Vec<String>,
     /// Reference to the authoritative identity/correspondence receipt (e.g. #3331).
     pub identity_receipt_sha256: String,
+}
+
+/// Bounded relation crosswalk for the source representation. The source
+/// inventory artifact is declared, not opened or authenticated by this audit.
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RelationAudit {
+    pub inventory_artifact_id: String,
+    pub completeness: RelationInventoryCompleteness,
+    pub relations: Vec<RelationLineage>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RelationLineage {
+    pub source_relation_id: String,
+    /// Canonical semantic relation name, independent of source/target syntax.
+    pub relation_kind: String,
+    pub source_relation_type: String,
+    pub source_subject_entity_id: String,
+    pub source_object_entity_id: String,
+    pub directed: bool,
+    pub disposition: RelationDisposition,
+    pub target_relations: Vec<TargetRelation>,
+    pub reason: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TargetRelation {
+    pub relation_id: String,
+    pub relation_type: String,
+    pub subject_entity_id: String,
+    pub object_entity_id: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -175,6 +229,13 @@ pub struct RepresentationContinuityReport {
     pub unknown_claim_count: usize,
     pub correspondence_event_count: usize,
     pub unresolved_correspondence_count: usize,
+    pub source_relation_count: usize,
+    pub preserved_relation_count: usize,
+    pub modified_relation_count: usize,
+    pub lost_relation_count: usize,
+    pub unsupported_relation_count: usize,
+    pub unresolved_relation_count: usize,
+    pub incomplete_relation_inventory_count: usize,
     pub continuity_state: String,
 }
 
@@ -229,6 +290,9 @@ pub fn audit_representation_continuity(
     let mut claim_count = 0usize;
     let mut correspondence_event_count = 0usize;
     let mut unresolved_correspondence_count = 0usize;
+    let mut source_relation_count = 0usize;
+    let mut relation_disposition_counts = BTreeMap::<RelationDisposition, usize>::new();
+    let mut incomplete_relation_inventory_count = 0usize;
 
     for transition in &receipt.transitions {
         transition_count += 1;
@@ -309,6 +373,7 @@ pub fn audit_representation_continuity(
 
         let mut source_entity_ids = BTreeSet::new();
         let mut target_entity_ids = BTreeSet::new();
+        let mut entity_target_map = BTreeMap::<&str, BTreeSet<&str>>::new();
         let mut event_ids = BTreeSet::new();
         for correspondence in &transition.correspondences {
             correspondence_event_count += 1;
@@ -358,12 +423,30 @@ pub fn audit_representation_continuity(
                     ));
                 }
             }
+            for source_id in &correspondence.source_entity_ids {
+                entity_target_map
+                    .entry(source_id.as_str())
+                    .or_default()
+                    .extend(correspondence.target_entity_ids.iter().map(String::as_str));
+            }
         }
         if transition.correspondences.is_empty() {
             return Err(format!(
                 "transition {} must declare entity correspondence or an explicit unresolved mapping",
                 transition.transition_id
             ));
+        }
+        let relation_counts = validate_relation_audit(
+            &transition.relation_audit,
+            &source_artifacts,
+            &source_entity_ids,
+            &target_entity_ids,
+            &entity_target_map,
+        )?;
+        source_relation_count += relation_counts.total;
+        incomplete_relation_inventory_count += usize::from(!relation_counts.inventory_complete);
+        for (disposition, count) in relation_counts.by_disposition {
+            *relation_disposition_counts.entry(disposition).or_insert(0) += count;
         }
 
         let mut claim_ids = BTreeSet::new();
@@ -420,12 +503,216 @@ pub fn audit_representation_continuity(
         unknown_claim_count: totals.get(&ClaimOrigin::Unknown).copied().unwrap_or(0),
         correspondence_event_count,
         unresolved_correspondence_count,
-        continuity_state: if unresolved_correspondence_count == 0 {
-            "continuity_preserved".to_owned()
-        } else {
+        source_relation_count,
+        preserved_relation_count: relation_disposition_counts
+            .get(&RelationDisposition::Preserved)
+            .copied()
+            .unwrap_or(0),
+        modified_relation_count: relation_disposition_counts
+            .get(&RelationDisposition::Modified)
+            .copied()
+            .unwrap_or(0),
+        lost_relation_count: relation_disposition_counts
+            .get(&RelationDisposition::Lost)
+            .copied()
+            .unwrap_or(0),
+        unsupported_relation_count: relation_disposition_counts
+            .get(&RelationDisposition::Unsupported)
+            .copied()
+            .unwrap_or(0),
+        unresolved_relation_count: relation_disposition_counts
+            .get(&RelationDisposition::Unresolved)
+            .copied()
+            .unwrap_or(0),
+        incomplete_relation_inventory_count,
+        continuity_state: if unresolved_correspondence_count > 0
+            || incomplete_relation_inventory_count > 0
+            || relation_disposition_counts
+                .get(&RelationDisposition::Unsupported)
+                .copied()
+                .unwrap_or(0)
+                > 0
+            || relation_disposition_counts
+                .get(&RelationDisposition::Unresolved)
+                .copied()
+                .unwrap_or(0)
+                > 0
+        {
             "continuity_unresolved".to_owned()
+        } else if relation_disposition_counts
+            .get(&RelationDisposition::Modified)
+            .copied()
+            .unwrap_or(0)
+            > 0
+            || relation_disposition_counts
+                .get(&RelationDisposition::Lost)
+                .copied()
+                .unwrap_or(0)
+                > 0
+        {
+            "continuity_degraded".to_owned()
+        } else {
+            "continuity_preserved".to_owned()
         },
     })
+}
+
+#[derive(Debug, Default)]
+struct RelationAuditCounts {
+    total: usize,
+    inventory_complete: bool,
+    by_disposition: BTreeMap<RelationDisposition, usize>,
+}
+
+fn validate_relation_audit(
+    audit: &RelationAudit,
+    source_artifacts: &BTreeMap<&str, (&str, EvidenceRole)>,
+    source_entity_ids: &BTreeSet<&str>,
+    target_entity_ids: &BTreeSet<&str>,
+    entity_target_map: &BTreeMap<&str, BTreeSet<&str>>,
+) -> Result<RelationAuditCounts, String> {
+    if audit.inventory_artifact_id.trim().is_empty() {
+        return Err("relation audit inventory_artifact_id must not be empty".to_owned());
+    }
+    match source_artifacts.get(audit.inventory_artifact_id.as_str()) {
+        Some((_, EvidenceRole::RelationInventory)) => {}
+        Some(_) => {
+            return Err(
+                "relation inventory artifact must have the relation_inventory evidence role"
+                    .to_owned(),
+            );
+        }
+        None => {
+            return Err("relation inventory artifact is absent from transition sources".to_owned());
+        }
+    }
+
+    let mut source_relation_ids = BTreeSet::new();
+    let mut target_relation_ids = BTreeSet::new();
+    let mut counts = RelationAuditCounts {
+        total: audit.relations.len(),
+        inventory_complete: audit.completeness == RelationInventoryCompleteness::Complete,
+        by_disposition: BTreeMap::new(),
+    };
+
+    for relation in &audit.relations {
+        if relation.source_relation_id.trim().is_empty()
+            || relation.relation_kind.trim().is_empty()
+            || relation.source_relation_type.trim().is_empty()
+            || relation.source_subject_entity_id.trim().is_empty()
+            || relation.source_object_entity_id.trim().is_empty()
+        {
+            return Err("relation lineage contains an empty source identity or type".to_owned());
+        }
+        if !source_relation_ids.insert(relation.source_relation_id.as_str()) {
+            return Err(format!(
+                "source relation {} appears more than once in the relation inventory",
+                relation.source_relation_id
+            ));
+        }
+        if !source_entity_ids.contains(relation.source_subject_entity_id.as_str())
+            || !source_entity_ids.contains(relation.source_object_entity_id.as_str())
+        {
+            return Err(format!(
+                "source relation {} refers to an entity outside correspondence inventory",
+                relation.source_relation_id
+            ));
+        }
+
+        let reason = relation.reason.as_deref().unwrap_or("").trim();
+        match relation.disposition {
+            RelationDisposition::Preserved | RelationDisposition::Modified => {
+                if relation.target_relations.is_empty() {
+                    return Err(format!(
+                        "relation {} disposition requires at least one target relation",
+                        relation.source_relation_id
+                    ));
+                }
+                if relation.disposition == RelationDisposition::Preserved && !reason.is_empty() {
+                    return Err(format!(
+                        "preserved relation {} must not declare a loss/modification reason",
+                        relation.source_relation_id
+                    ));
+                }
+                if relation.disposition == RelationDisposition::Modified && reason.is_empty() {
+                    return Err(format!(
+                        "modified relation {} requires an explicit reason",
+                        relation.source_relation_id
+                    ));
+                }
+            }
+            RelationDisposition::Lost
+            | RelationDisposition::Unsupported
+            | RelationDisposition::Unresolved => {
+                if !relation.target_relations.is_empty() || reason.is_empty() {
+                    return Err(format!(
+                        "relation {} loss/unsupported/unresolved disposition requires no target and a reason",
+                        relation.source_relation_id
+                    ));
+                }
+            }
+        }
+
+        let expected_subjects = entity_target_map
+            .get(relation.source_subject_entity_id.as_str())
+            .ok_or("source relation subject has no entity correspondence")?;
+        let expected_objects = entity_target_map
+            .get(relation.source_object_entity_id.as_str())
+            .ok_or("source relation object has no entity correspondence")?;
+
+        for target in &relation.target_relations {
+            if target.relation_id.trim().is_empty()
+                || target.relation_type.trim().is_empty()
+                || target.subject_entity_id.trim().is_empty()
+                || target.object_entity_id.trim().is_empty()
+            {
+                return Err(format!(
+                    "target relation for {} contains an empty identity or type",
+                    relation.source_relation_id
+                ));
+            }
+            if !target_relation_ids.insert(target.relation_id.as_str()) {
+                return Err(format!(
+                    "target relation {} is mapped more than once",
+                    target.relation_id
+                ));
+            }
+            if !target_entity_ids.contains(target.subject_entity_id.as_str())
+                || !target_entity_ids.contains(target.object_entity_id.as_str())
+            {
+                return Err(format!(
+                    "target relation {} refers to an entity outside correspondence inventory",
+                    target.relation_id
+                ));
+            }
+            let endpoints_match = if relation.directed {
+                expected_subjects.contains(target.subject_entity_id.as_str())
+                    && expected_objects.contains(target.object_entity_id.as_str())
+            } else {
+                (expected_subjects.contains(target.subject_entity_id.as_str())
+                    && expected_objects.contains(target.object_entity_id.as_str()))
+                    || (expected_subjects.contains(target.object_entity_id.as_str())
+                        && expected_objects.contains(target.subject_entity_id.as_str()))
+            };
+            if !endpoints_match {
+                return Err(format!(
+                    "target relation {} does not follow the declared source-entity correspondence",
+                    target.relation_id
+                ));
+            }
+            if relation.disposition == RelationDisposition::Preserved
+                && target.relation_type != relation.relation_kind
+            {
+                return Err(format!(
+                    "preserved relation {} changes canonical relation kind",
+                    relation.source_relation_id
+                ));
+            }
+        }
+        *counts.by_disposition.entry(relation.disposition).or_insert(0) += 1;
+    }
+
+    Ok(counts)
 }
 
 fn validate_sha256(field: &str, value: &str) -> Result<(), String> {
