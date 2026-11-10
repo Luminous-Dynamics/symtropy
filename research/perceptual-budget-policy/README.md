@@ -16,13 +16,13 @@ The CLI reads one JSON manifest (or standard input) and emits a deterministic re
 ## Policy
 
 The requested task defines:
-- task mode (cinematic, engineering inspection, safety inspection, accessibility, or remote/low-power);
+- task mode (cinematic, engineering inspection, safety inspection, or accessibility);
 - maximum normalized spatial error and temporal error;
 - minimum task-legibility bound;
 - semantic channels that must remain visible (units, reference frame, uncertainty, freshness, evidence class, contrast metadata);
 - protected asset IDs that may not be demoted;
 - frozen-workload evidence requirement and optional blinded panel minimum;
-- p95/p99 frame-time, peak VRAM and optional GPU energy/frame budgets.
+- p95/p99 frame-time, peak VRAM and optional GPU energy/frame budgets. Remote/low-power is a resource objective, so an energy cap can be applied to an engineering or safety view without changing its task semantics.
 
 Each candidate profile binds its scene capture, metric bundle and measurement receipt digests. Missing or unknown required information is rejection, not a default. No weighted score can compensate for a failed hard gate.
 
