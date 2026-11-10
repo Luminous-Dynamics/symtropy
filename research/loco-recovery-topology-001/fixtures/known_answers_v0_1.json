@@ -34,7 +34,30 @@
           "all_physical_branches_covered": true,
           "intermediate_viability_complete": true,
           "worst_case_steps": 3,
-          "worst_case_energy_mj": 40
+          "worst_case_energy_mj": 40,
+          "successor_evidence": [
+            {
+              "edge_index": 0,
+              "edge_id": "e_start",
+              "state_id": "route_a_s0",
+              "physically_possible": true,
+              "disposition": "Viable"
+            },
+            {
+              "edge_index": 1,
+              "edge_id": "e_recover",
+              "state_id": "route_a_s1",
+              "physically_possible": true,
+              "disposition": "Viable"
+            }
+          ],
+          "intermediate_states": [
+            {
+              "edge_index": 0,
+              "state_id": "route_a_mid0",
+              "disposition": "Viable"
+            }
+          ]
         },
         {
           "route_id": "route_b",
@@ -54,7 +77,30 @@
           "all_physical_branches_covered": true,
           "intermediate_viability_complete": true,
           "worst_case_steps": 3,
-          "worst_case_energy_mj": 40
+          "worst_case_energy_mj": 40,
+          "successor_evidence": [
+            {
+              "edge_index": 0,
+              "edge_id": "e_start",
+              "state_id": "route_b_s0",
+              "physically_possible": true,
+              "disposition": "Viable"
+            },
+            {
+              "edge_index": 1,
+              "edge_id": "e_recover",
+              "state_id": "route_b_s1",
+              "physically_possible": true,
+              "disposition": "Viable"
+            }
+          ],
+          "intermediate_states": [
+            {
+              "edge_index": 0,
+              "state_id": "route_b_mid0",
+              "disposition": "Viable"
+            }
+          ]
         }
       ],
       "resource_limits": {
@@ -108,7 +154,30 @@
           "all_physical_branches_covered": true,
           "intermediate_viability_complete": true,
           "worst_case_steps": 4,
-          "worst_case_energy_mj": 45
+          "worst_case_energy_mj": 45,
+          "successor_evidence": [
+            {
+              "edge_index": 0,
+              "edge_id": "e0",
+              "state_id": "left_route_s0",
+              "physically_possible": true,
+              "disposition": "Viable"
+            },
+            {
+              "edge_index": 1,
+              "edge_id": "e1",
+              "state_id": "left_route_s1",
+              "physically_possible": true,
+              "disposition": "Viable"
+            }
+          ],
+          "intermediate_states": [
+            {
+              "edge_index": 0,
+              "state_id": "left_route_mid0",
+              "disposition": "Viable"
+            }
+          ]
         },
         {
           "route_id": "right_route",
@@ -129,7 +198,30 @@
           "all_physical_branches_covered": true,
           "intermediate_viability_complete": true,
           "worst_case_steps": 4,
-          "worst_case_energy_mj": 47
+          "worst_case_energy_mj": 47,
+          "successor_evidence": [
+            {
+              "edge_index": 0,
+              "edge_id": "e0",
+              "state_id": "right_route_s0",
+              "physically_possible": true,
+              "disposition": "Viable"
+            },
+            {
+              "edge_index": 1,
+              "edge_id": "e2",
+              "state_id": "right_route_s1",
+              "physically_possible": true,
+              "disposition": "Viable"
+            }
+          ],
+          "intermediate_states": [
+            {
+              "edge_index": 0,
+              "state_id": "right_route_mid0",
+              "disposition": "Viable"
+            }
+          ]
         }
       ],
       "resource_limits": {
@@ -201,7 +293,39 @@
             "s_dead_end"
           ],
           "worst_case_steps": 3,
-          "worst_case_energy_mj": 50
+          "worst_case_energy_mj": 50,
+          "successor_evidence": [
+            {
+              "edge_index": 0,
+              "edge_id": "e_probe",
+              "state_id": "s_observed",
+              "physically_possible": true,
+              "disposition": "Viable",
+              "probability_ppm": 1000000
+            },
+            {
+              "edge_index": 0,
+              "edge_id": "e_probe",
+              "state_id": "s_dead_end",
+              "physically_possible": true,
+              "disposition": "Nonviable",
+              "probability_ppm": 0
+            },
+            {
+              "edge_index": 1,
+              "edge_id": "e_recover",
+              "state_id": "probe_then_recover_s1",
+              "physically_possible": true,
+              "disposition": "Viable"
+            }
+          ],
+          "intermediate_states": [
+            {
+              "edge_index": 0,
+              "state_id": "probe_then_recover_mid0",
+              "disposition": "Viable"
+            }
+          ]
         }
       ],
       "resource_limits": {
@@ -256,7 +380,42 @@
             "s_latency"
           ],
           "worst_case_steps": 4,
-          "worst_case_energy_mj": 55
+          "worst_case_energy_mj": 55,
+          "successor_evidence": [
+            {
+              "edge_index": 0,
+              "edge_id": "e_probe",
+              "state_id": "late_terminal_only_s0",
+              "physically_possible": true,
+              "disposition": "Viable"
+            },
+            {
+              "edge_index": 1,
+              "edge_id": "e_latency",
+              "state_id": "s_latency",
+              "physically_possible": true,
+              "disposition": "Nonviable"
+            },
+            {
+              "edge_index": 2,
+              "edge_id": "e_recover",
+              "state_id": "late_terminal_only_s2",
+              "physically_possible": true,
+              "disposition": "Viable"
+            }
+          ],
+          "intermediate_states": [
+            {
+              "edge_index": 0,
+              "state_id": "late_terminal_only_mid0",
+              "disposition": "Viable"
+            },
+            {
+              "edge_index": 1,
+              "state_id": "s_latency",
+              "disposition": "Nonviable"
+            }
+          ]
         }
       ],
       "resource_limits": {
@@ -301,7 +460,30 @@
           "all_physical_branches_covered": true,
           "intermediate_viability_complete": true,
           "worst_case_steps": 3,
-          "worst_case_energy_mj": 40
+          "worst_case_energy_mj": 40,
+          "successor_evidence": [
+            {
+              "edge_index": 0,
+              "edge_id": "e1",
+              "state_id": "route_one_s0",
+              "physically_possible": true,
+              "disposition": "Viable"
+            },
+            {
+              "edge_index": 1,
+              "edge_id": "e2",
+              "state_id": "route_one_s1",
+              "physically_possible": true,
+              "disposition": "Viable"
+            }
+          ],
+          "intermediate_states": [
+            {
+              "edge_index": 0,
+              "state_id": "route_one_mid0",
+              "disposition": "Viable"
+            }
+          ]
         },
         {
           "route_id": "route_two",
@@ -323,7 +505,30 @@
             "actuator_hip_fr"
           ],
           "worst_case_steps": 3,
-          "worst_case_energy_mj": 42
+          "worst_case_energy_mj": 42,
+          "successor_evidence": [
+            {
+              "edge_index": 0,
+              "edge_id": "e3",
+              "state_id": "route_two_s0",
+              "physically_possible": true,
+              "disposition": "Viable"
+            },
+            {
+              "edge_index": 1,
+              "edge_id": "e4",
+              "state_id": "route_two_s1",
+              "physically_possible": true,
+              "disposition": "Viable"
+            }
+          ],
+          "intermediate_states": [
+            {
+              "edge_index": 0,
+              "state_id": "route_two_mid0",
+              "disposition": "Viable"
+            }
+          ]
         }
       ],
       "resource_limits": {
@@ -373,7 +578,42 @@
           "all_physical_branches_covered": true,
           "intermediate_viability_complete": true,
           "worst_case_steps": 5,
-          "worst_case_energy_mj": 125
+          "worst_case_energy_mj": 125,
+          "successor_evidence": [
+            {
+              "edge_index": 0,
+              "edge_id": "e1",
+              "state_id": "energy_unaffordable_s0",
+              "physically_possible": true,
+              "disposition": "Viable"
+            },
+            {
+              "edge_index": 1,
+              "edge_id": "e2",
+              "state_id": "energy_unaffordable_s1",
+              "physically_possible": true,
+              "disposition": "Viable"
+            },
+            {
+              "edge_index": 2,
+              "edge_id": "e3",
+              "state_id": "energy_unaffordable_s2",
+              "physically_possible": true,
+              "disposition": "Viable"
+            }
+          ],
+          "intermediate_states": [
+            {
+              "edge_index": 0,
+              "state_id": "energy_unaffordable_mid0",
+              "disposition": "Viable"
+            },
+            {
+              "edge_index": 1,
+              "state_id": "energy_unaffordable_mid1",
+              "disposition": "Viable"
+            }
+          ]
         }
       ],
       "resource_limits": {
