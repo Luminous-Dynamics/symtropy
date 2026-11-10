@@ -104,6 +104,10 @@ It will check:
 
 A continuous optimizer remains a replaceable implementation behind this contract and is compared against it.
 
+The complete physical possibility inventory must be source-qualified and complete at the application horizon. Its receipt binds the exact stable possibility IDs, initial state, model, abstraction, domain, actuator, horizon and validity interval. The downstream projection gate must show one required hard/contact constraint evidence row for every constraint × possibility pair. A caller-supplied list or a single aggregate margin is not evidence that the possibility enumeration is complete. Numerical residual failure and physical margin failure remain separate dispositions.
+
+After execution, the exact authorized command must be reconciled against measured actuator realization through #4206. A mismatched, delayed or Unknown realization blocks the next state-changing command until the physical outcome is reconciled.
+
 ### Physical possibility and margin completeness
 
 The exact #4083 possibility-set identity is bound by a source-issued digest and stable possibility IDs. Every required physical constraint (HardPhysical and RobustContact) must carry one residual/margin evidence row for **every** possibility ID. A single aggregate friction or torque margin is insufficient. The independent frozen constraint inventory and the solver-declared inventory must match exactly, including units, tolerances and minimum required margins.
