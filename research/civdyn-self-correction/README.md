@@ -302,3 +302,37 @@ The report has no model priors, no probability-weighted expected value and no st
 - Stochastic experiments require calibrated predictive likelihoods and a separately versioned protocol.
 - This v0.1 assumes a common feasible policy exists across the current model set for finite minimax-regret comparison; a later extension should explicitly value experiments that resolve a no-common-feasible-policy state.
 - No claim of causal identification, experimental ethics approval or real-world decision improvement follows from the synthetic fixture.
+
+
+## Scenario M: prior-free decision value of experiments
+
+The experiment selector is in src/decision_voi.rs with a deterministic decision-voi-sweep binary. It advances [CIVDYN-DECISION-VOI-001 #4620](https://github.com/Luminous-Dynamics/symtropy/issues/4620).
+
+This v0.1 protocol does not assign probabilities to structural models. It computes the current minimax-regret decision across the declared finite model set, then partitions those worlds by each experiment's frozen deterministic predicted outcome. It recomputes the minimax decision in each outcome-compatible subset and reports the worst-case post-experiment regret.
+
+Per experiment it preserves:
+- exact experiment protocol digest and model-specific prediction receipts;
+- source/challenge model identities, adequacy status and receipt digests;
+- objective/unit, current minimax policy set and regret;
+- outcome partitions, remaining model IDs and post-partition minimax actions/regret;
+- separated model-pair count, experiment cost/budget status and worst-case regret reduction.
+
+Only an affordable experiment with a positive worst-case regret reduction can be recommended. Among equal reductions, lower cost wins, followed by stable experiment ID. The protocol does not divide objective regret by cost or turn model counts into probabilities.
+
+### Known-answer fixture
+
+Two structural worlds have policies expand, maintain and conserve. In one world, expand is best and feasible. In the second, expand violates the water-reserve floor and conserve is best. Across both worlds the current minimax-regret action is maintain, with 20 service_units worst-case regret.
+
+- A deterministic experiment predicting different outcomes for the two worlds separates the pair, reduces worst-case post-test regret to 0 and is recommended.
+- An experiment returning the same outcome in both worlds has zero separation and zero decision-value reduction.
+- An experiment with the same discriminatory power but cost above budget is not recommended.
+- A separate unit test demonstrates that an experiment may distinguish worlds while having zero decision value when the same policy remains optimal and current regret is already zero.
+
+The report has no model priors, no probability-weighted expected value and no stochastic experiment likelihood model. This is finite-set minimax value of discrimination, not Bayesian expected value of sample information (EVSI).
+
+### Limitations
+
+- Experiment outcome predictions are deterministic and must be supplied with model-specific receipts.
+- Stochastic experiments require calibrated predictive likelihoods and a separately versioned protocol.
+- This v0.1 assumes a common feasible policy exists across the current model set for finite minimax-regret comparison; a later extension should explicitly value experiments that resolve a no-common-feasible-policy state.
+- No claim of causal identification, experimental ethics approval or real-world decision improvement follows from the synthetic fixture.
