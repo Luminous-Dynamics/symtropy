@@ -715,9 +715,12 @@ mod tests {
         for (weight, point) in samples {
             second_moment += (point * point.transpose()) * (2.0 * weight);
         }
-        let row_major = (0..3)
-            .flat_map(|row| (0..3).map(move |column| second_moment[(row, column)]))
-            .collect::<Vec<_>>();
+        let mut row_major = Vec::with_capacity(9);
+        for row in 0..3 {
+            for column in 0..3 {
+                row_major.push(second_moment[(row, column)]);
+            }
+        }
         let inertia =
             RotationalInertiaOperator::<3>::from_body_second_moment_matrix(row_major).unwrap();
 
@@ -749,12 +752,15 @@ mod tests {
         angular.set(0, 1, 0.31);
         angular.set(0, 2, -0.47);
         angular.set(1, 2, 0.83);
-        let original = RotationalInertiaOperator::<3>::from_body_second_moment_matrix(
-            (0..3)
-                .flat_map(|row| (0..3).map(|column| second_moment[(row, column)]))
-                .collect(),
-        )
-        .unwrap();
+        let mut original_row_major = Vec::with_capacity(9);
+        for row in 0..3 {
+            for column in 0..3 {
+                original_row_major.push(second_moment[(row, column)]);
+            }
+        }
+        let original =
+            RotationalInertiaOperator::<3>::from_body_second_moment_matrix(original_row_major)
+                .unwrap();
         let original_energy = original.kinetic_energy_bivector_joules(&angular).unwrap();
 
         let frame_change =
@@ -763,12 +769,15 @@ mod tests {
         let transformed_second_moment = rotation * second_moment * rotation.transpose();
         let transformed_generator =
             Bivector::<3>::from_matrix(&(rotation * angular.to_matrix() * rotation.transpose()));
-        let transformed = RotationalInertiaOperator::<3>::from_body_second_moment_matrix(
-            (0..3)
-                .flat_map(|row| (0..3).map(|column| transformed_second_moment[(row, column)]))
-                .collect(),
-        )
-        .unwrap();
+        let mut transformed_row_major = Vec::with_capacity(9);
+        for row in 0..3 {
+            for column in 0..3 {
+                transformed_row_major.push(transformed_second_moment[(row, column)]);
+            }
+        }
+        let transformed =
+            RotationalInertiaOperator::<3>::from_body_second_moment_matrix(transformed_row_major)
+                .unwrap();
         let transformed_energy = transformed
             .kinetic_energy_bivector_joules(&transformed_generator)
             .unwrap();
