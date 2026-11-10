@@ -303,6 +303,9 @@ impl ObservationStreamGuard {
         delivered_timestamp_us: u64,
     ) -> Result<ObservationDisposition, RenderError> {
         validate_id(clock_id)?;
+        if sequence == 0 {
+            return Err(RenderError::InvalidObservationSequence);
+        }
         if self.clock_id.as_deref().is_some_and(|expected| expected != clock_id) {
             return Err(RenderError::ClockIdentityChanged);
         }
@@ -439,8 +442,8 @@ impl SoftwareCameraRenderer {
         let mut pixels = vec![0_u8; byte_len];
         let mut z_buffer = vec![i64::MAX; width * height];
         fill_background(&mut pixels, width, height);
-        draw_road_markings(snapshot, &mut pixels, &mut z_buffer)?;
-        draw_actors(snapshot, &mut pixels, &mut z_buffer)?;
+        draw_road_markings(snapshot, &mut pixels, &mut z_buffer);
+        draw_actors(snapshot, &mut pixels, &mut z_buffer);
 
         let camera_digest = camera_calibration_digest(&snapshot.camera);
         let frame_digest = sha256_hex(&pixels);
@@ -742,14 +745,18 @@ fn project_camera_point(
         + i128::from(camera.focal_x_millipx) * i128::from(point[0]) / i128::from(z);
     let y_milli = i128::from(camera.principal_y_millipx)
         + i128::from(camera.focal_y_millipx) * i128::from(point[1]) / i128::from(z);
-    let max_x = i128::from(camera.width) * 3_000;
-    let max_y = i128::from(camera.height) * 3_000;
-    if x_milli < -max_x || x_milli > max_x || y_milli < -max_y || y_milli > max_y {
+    // Keep off-screen points long enough to clip crossing segments against the
+    // viewport. A distant endpoint may lie far outside the image while its
+    // segment still crosses visible pixels.
+    const MAX_PROJECTED_COORD_PX: i128 = 1_000_000_000_000_000;
+    let x = x_milli / 1_000;
+    let y = y_milli / 1_000;
+    if x.abs() > MAX_PROJECTED_COORD_PX || y.abs() > MAX_PROJECTED_COORD_PX {
         return None;
     }
     Some(ProjectedPoint {
-        x: (x_milli / 1_000) as i64,
-        y: (y_milli / 1_000) as i64,
+        x: x as i64,
+        y: y as i64,
         z_mm: z,
     })
 }
@@ -789,11 +796,117 @@ fn project_segment(
     ))
 }
 
+fn projected_outcode(point: ProjectedPoint, width: usize, height: usize) -> u8 {
+    const LEFT: u8 = 1;
+    const RIGHT: u8 = 2;
+    const TOP: u8 = 4;
+    const BOTTOM: u8 = 8;
+
+    let mut code = 0_u8;
+    if point.x < 0 {
+        code |= LEFT;
+    } else if point.x >= width as i64 {
+        code |= RIGHT;
+    }
+    if point.y < 0 {
+        code |= TOP;
+    } else if point.y >= height as i64 {
+        code |= BOTTOM;
+    }
+    code
+}
+
+/// Clip a projected line to the image rectangle while interpolating depth.
+/// Integer Cohen-Sutherland clipping keeps the rasterizer bounded to the
+/// viewport and preserves segments whose endpoints are both off-screen.
+fn clip_projected_segment(
+    mut start: ProjectedPoint,
+    mut end: ProjectedPoint,
+    width: usize,
+    height: usize,
+) -> Option<(ProjectedPoint, ProjectedPoint)> {
+    if width == 0 || height == 0 {
+        return None;
+    }
+    const LEFT: u8 = 1;
+    const RIGHT: u8 = 2;
+    const TOP: u8 = 4;
+    const BOTTOM: u8 = 8;
+
+    for _ in 0..16 {
+        let start_code = projected_outcode(start, width, height);
+        let end_code = projected_outcode(end, width, height);
+        if start_code | end_code == 0 {
+            return Some((start, end));
+        }
+        if start_code & end_code != 0 {
+            return None;
+        }
+
+        let outside = if start_code != 0 { start_code } else { end_code };
+        let (x, y, z) = if outside & TOP != 0 {
+            if start.y == end.y {
+                return None;
+            }
+            let y = 0_i64;
+            let denominator = i128::from(end.y) - i128::from(start.y);
+            let numerator = i128::from(y) - i128::from(start.y);
+            let interpolate = |a: i64, b: i64| {
+                (i128::from(a) + (i128::from(b) - i128::from(a)) * numerator / denominator) as i64
+            };
+            (interpolate(start.x, end.x), y, interpolate(start.z_mm, end.z_mm))
+        } else if outside & BOTTOM != 0 {
+            if start.y == end.y {
+                return None;
+            }
+            let y = height as i64 - 1;
+            let denominator = i128::from(end.y) - i128::from(start.y);
+            let numerator = i128::from(y) - i128::from(start.y);
+            let interpolate = |a: i64, b: i64| {
+                (i128::from(a) + (i128::from(b) - i128::from(a)) * numerator / denominator) as i64
+            };
+            (interpolate(start.x, end.x), y, interpolate(start.z_mm, end.z_mm))
+        } else if outside & RIGHT != 0 {
+            if start.x == end.x {
+                return None;
+            }
+            let x = width as i64 - 1;
+            let denominator = i128::from(end.x) - i128::from(start.x);
+            let numerator = i128::from(x) - i128::from(start.x);
+            let interpolate = |a: i64, b: i64| {
+                (i128::from(a) + (i128::from(b) - i128::from(a)) * numerator / denominator) as i64
+            };
+            (x, interpolate(start.y, end.y), interpolate(start.z_mm, end.z_mm))
+        } else if outside & LEFT != 0 {
+            if start.x == end.x {
+                return None;
+            }
+            let x = 0_i64;
+            let denominator = i128::from(end.x) - i128::from(start.x);
+            let numerator = i128::from(x) - i128::from(start.x);
+            let interpolate = |a: i64, b: i64| {
+                (i128::from(a) + (i128::from(b) - i128::from(a)) * numerator / denominator) as i64
+            };
+            (x, interpolate(start.y, end.y), interpolate(start.z_mm, end.z_mm))
+        } else {
+            return None;
+        };
+
+        let clipped = ProjectedPoint { x, y, z_mm: z };
+        if outside == start_code {
+            start = clipped;
+        } else {
+            end = clipped;
+        }
+    }
+    None
+}
+
 fn draw_road_markings(
     snapshot: &WorldRenderSnapshot,
     pixels: &mut [u8],
     z_buffer: &mut [i64],
-) -> Result<(), RenderError> {
+) {
     let width = snapshot.camera.width as usize;
     let height = snapshot.camera.height as usize;
     let mut roads = snapshot.road_markings.iter().collect::<Vec<_>>();
@@ -811,17 +924,16 @@ fn draw_road_markings(
             else {
                 continue;
             };
-            draw_line(pixels, z_buffer, width, height, start, end, color)?;
+            draw_line(pixels, z_buffer, width, height, start, end, color);
         }
     }
-    Ok(())
 }
 
 fn draw_actors(
     snapshot: &WorldRenderSnapshot,
     pixels: &mut [u8],
     z_buffer: &mut [i64],
-) -> Result<(), RenderError> {
+) {
     const EDGES: [[usize; 2]; 12] = [
         [0, 1],
         [0, 2],
@@ -870,13 +982,11 @@ fn draw_actors(
                 start,
                 end,
                 actor.class.color(),
-            )?;
+            );
         }
     }
-    Ok(())
 }
 
-#[allow(clippy::too_many_arguments)]
 fn draw_line(
     pixels: &mut [u8],
     z_buffer: &mut [i64],
@@ -885,32 +995,21 @@ fn draw_line(
     start: ProjectedPoint,
     end: ProjectedPoint,
     color: [u8; 3],
-) -> Result<(), RenderError> {
+) {
+    let Some((start, end)) = clip_projected_segment(start, end, width, height) else {
+        return;
+    };
     let mut x0 = start.x;
     let mut y0 = start.y;
     let x1 = end.x;
     let y1 = end.y;
-    let width_limit = width as i64;
-    let height_limit = height as i64;
-
-    if x0 < -width_limit * 2
-        || x0 > width_limit * 3
-        || x1 < -width_limit * 2
-        || x1 > width_limit * 3
-        || y0 < -height_limit * 2
-        || y0 > height_limit * 3
-        || y1 < -height_limit * 2
-        || y1 > height_limit * 3
-    {
-        return Ok(());
-    }
 
     let dx = (x1 - x0).abs();
     let sx = if x0 < x1 { 1 } else { -1 };
     let dy = -(y1 - y0).abs();
     let sy = if y0 < y1 { 1 } else { -1 };
     let mut error = dx + dy;
-    let steps = dx.max(-dy).min((width + height) as i64 * 6);
+    let steps = dx.max(-dy);
 
     if steps == 0 {
         plot_pixel(
@@ -923,7 +1022,7 @@ fn draw_line(
             start.z_mm,
             color,
         );
-        return Ok(());
+        return;
     }
 
     let mut index = 0_i64;
@@ -944,11 +1043,7 @@ fn draw_line(
             y0 += sy;
         }
         index += 1;
-        if index > steps {
-            break;
-        }
     }
-    Ok(())
 }
 
 fn plot_pixel(
@@ -1615,6 +1710,44 @@ mod tests {
             .pixels_rgb
             .chunks_exact(3)
             .any(|pixel| pixel == [236, 236, 224]));
+    }
+
+    #[test]
+    fn offscreen_segment_crossing_viewport_is_clipped_not_discarded() {
+        let mut scene = snapshot();
+        scene.road_markings = vec![RoadPolyline {
+            road_id: "road-1".into(),
+            marking_id: "offscreen-crossing".into(),
+            kind: RoadMarkingKind::LaneWhite,
+            points_world_mm: vec![[-100_000, 10_000, 0], [0, 10_000, 0]],
+        }];
+        let rendered = SoftwareCameraRenderer::render(&scene, 1, clocks()).unwrap();
+        assert!(rendered
+            .pixels_rgb
+            .chunks_exact(3)
+            .any(|pixel| pixel == [236, 236, 224]));
+    }
+
+    #[test]
+    fn missing_event_sequence_zero_is_rejected_without_consuming_stream() {
+        let mut guard = ObservationStreamGuard::new(timing_policy());
+        assert_eq!(
+            guard.record_missing(
+                "episode-1",
+                "ego",
+                "clock-1",
+                1,
+                0,
+                20_000,
+                20_500,
+                MissingFrameReason::CameraDrop,
+            ),
+            Err(RenderError::InvalidObservationSequence)
+        );
+        assert_eq!(
+            guard.admit("clock-1", 1, 20_000, 20_500, 21_000),
+            Ok(ObservationDisposition::Fresh)
+        );
     }
 
     #[test]
