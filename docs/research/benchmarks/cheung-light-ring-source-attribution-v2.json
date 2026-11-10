@@ -301,7 +301,9 @@
       }
     ],
     "time_origin": "Each arm's start time is measured from that arm's own waveform peak in units of remnant mass M. Filtered and unfiltered peaks differ; equal offsets across arms do not represent the same absolute retarded time.",
-    "likelihood_inner_product": "Time-domain inner product a C^-1 b using the noise covariance C of the segment."
+    "likelihood_inner_product": "Time-domain inner product a C^-1 b using the noise covariance C of the segment.",
+    "start_time_count": 5,
+    "network_count": 3
   },
   "execution_status": {
     "downloaded_in_current_run": false,
@@ -387,11 +389,11 @@
     },
     {
       "step": "snr_grid",
-      "command": "PYTHONPATH=src ./.venv/bin/python -u scripts/snr_grid.py"
+      "command": "PYTHONPATH=src ./.venv/bin/python -u scripts/snr_grid.py --filter-set np7nr7 (or np2nr2)"
     },
     {
       "step": "snr_panel",
-      "command": "PYTHONPATH=src ./.venv/bin/python -u scripts/fig_snr_panel.py"
+      "command": "PYTHONPATH=src ./.venv/bin/python -u scripts/fig_snr_panel.py --filter-set np7nr7 (or np2nr2)"
     }
   ],
   "runtime_environment": {
