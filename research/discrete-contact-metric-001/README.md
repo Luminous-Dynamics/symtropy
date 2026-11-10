@@ -39,6 +39,22 @@ A simulator's step map is the object optimized by a discrete-time controller. Co
 - Deterministic two-contact active-set resolution.
 - Invalid timestep, non-SPD mass, and asymmetric-matrix negative controls.
 
+## Numerical scale and tolerance boundary
+
+Matrix symmetry and Cholesky pivot checks use tolerances relative to each
+matrix's maximum absolute entry. Uniformly changing the mass scale must not
+make a mathematically equivalent SPD matrix fail solely because its entries
+are smaller than one. The active-contact classification also uses the
+solver's nonnegative impulse result rather than an absolute impulse cutoff.
+
+The regression suite checks a one-contact solution at mass scales
+`1e-12`, `1` and `1e12`, plus rejection of a small-magnitude but
+relatively asymmetric stiffness matrix. This is a narrow scale-covariance
+check, not a claim that every tolerance in the reference is dimensionless:
+the LCP feasibility and complementarity thresholds are still absolute and
+need a separate unit-/scale-normalized residual design before this crate can
+serve as a general numerical qualification oracle.
+
 ## Benchmark extension
 
 The next matched comparison should add the same frozen matrix problem to Symtropy's native step, MuJoCo's discrete integrator, and an independently assembled KKT/LCP reference. Compare velocity and impulse, metric/KKT residual, complementarity, next-step gap, energy/work balance, transition derivative, cost, and memory. Only compare a lane after semantic admission confirms contact law, constraint target, integration and damping equivalence.
