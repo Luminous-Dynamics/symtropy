@@ -80,6 +80,8 @@ pub enum ChallengeCustodyError {
     DuplicateUpdateEventDigest { update_event_digest: String },
     DuplicateConsumedEvidence { revision_id: String, evidence_digest: String },
     CandidateNotChainHead,
+    ReplayModelNotInRevisionChain,
+    DuplicateChallengeEvaluationIdentity,
     ChallengeDataConsumedByRevision { revision_id: String },
     DuplicateReceiptId { receipt_id: String },
     DisclosedChallengeRetired,
@@ -175,6 +177,60 @@ pub fn validate_challenge_eligibility(
     nonempty(&request.evaluation_protocol_digest, "evaluation_protocol_digest")?;
 
     let consumed_evidence_digests = validate_revision_chain(revisions)?;
+    let model_is_in_chain = revisions
+        .iter()
+        .any(|revision| revision.model_digest == request.candidate_model_digest);
+
+    let mut receipt_ids = BTreeSet::new();
+    let mut exact_replay_receipt_count = 0_usize;
+    for receipt in prior_receipts {
+        nonempty(&receipt.receipt_id, "receipt_id")?;
+        nonempty(&receipt.model_digest, "receipt_model_digest")?;
+        nonempty(&receipt.challenge_data_digest, "receipt_challenge_data_digest")?;
+        nonempty(&receipt.challenge_manifest_digest, "receipt_challenge_manifest_digest")?;
+        nonempty(&receipt.evaluation_protocol_digest, "receipt_evaluation_protocol_digest")?;
+        nonempty(&receipt.result_digest, "receipt_result_digest")?;
+
+        if !receipt_ids.insert(receipt.receipt_id.as_str()) {
+            return Err(ChallengeCustodyError::DuplicateReceiptId {
+                receipt_id: receipt.receipt_id.clone(),
+            });
+        }
+        let same_data = receipt.challenge_data_digest == request.challenge_data_digest;
+        let same_manifest = receipt.challenge_manifest_digest == request.challenge_manifest_digest;
+        let exact_replay = receipt.model_digest == request.candidate_model_digest
+            && same_data
+            && same_manifest
+            && receipt.evaluation_protocol_digest == request.evaluation_protocol_digest;
+        if exact_replay {
+            exact_replay_receipt_count += 1;
+        } else if receipt.result_disclosed_to_developers && (same_data || same_manifest) {
+            return Err(ChallengeCustodyError::DisclosedChallengeRetired);
+        }
+    }
+
+    // A historical exact replay is an idempotent audit operation, not a new
+    // challenge evaluation and not a source of new development feedback. It
+    // may therefore refer to an ancestor revision rather than today's head.
+    if exact_replay_receipt_count > 0 {
+        if exact_replay_receipt_count > 1 {
+            return Err(ChallengeCustodyError::DuplicateChallengeEvaluationIdentity);
+        }
+        if !model_is_in_chain {
+            return Err(ChallengeCustodyError::ReplayModelNotInRevisionChain);
+        }
+        return Ok(ChallengeEligibilityReport {
+            decision: ChallengeEligibilityDecision::ExactIdempotentReplay,
+            candidate_model_digest: request.candidate_model_digest.clone(),
+            challenge_data_digest: request.challenge_data_digest.clone(),
+            challenge_manifest_digest: request.challenge_manifest_digest.clone(),
+            evaluation_protocol_digest: request.evaluation_protocol_digest.clone(),
+            revision_count: revisions.len(),
+            unique_consumed_evidence_count: consumed_evidence_digests.len(),
+            prior_receipt_count: prior_receipts.len(),
+        });
+    }
+
     if revisions.last().map(|revision| revision.model_digest.as_str())
         != Some(request.candidate_model_digest.as_str())
     {
@@ -195,42 +251,8 @@ pub fn validate_challenge_eligibility(
         return Err(ChallengeCustodyError::ChallengeDataConsumedByRevision { revision_id });
     }
 
-    let mut receipt_ids = BTreeSet::new();
-    let mut exact_disclosed_replay = false;
-    for receipt in prior_receipts {
-        nonempty(&receipt.receipt_id, "receipt_id")?;
-        nonempty(&receipt.model_digest, "receipt_model_digest")?;
-        nonempty(&receipt.challenge_data_digest, "receipt_challenge_data_digest")?;
-        nonempty(&receipt.challenge_manifest_digest, "receipt_challenge_manifest_digest")?;
-        nonempty(&receipt.evaluation_protocol_digest, "receipt_evaluation_protocol_digest")?;
-        nonempty(&receipt.result_digest, "receipt_result_digest")?;
-
-        if !receipt_ids.insert(receipt.receipt_id.as_str()) {
-            return Err(ChallengeCustodyError::DuplicateReceiptId {
-                receipt_id: receipt.receipt_id.clone(),
-            });
-        }
-        let same_data = receipt.challenge_data_digest == request.challenge_data_digest;
-        let same_manifest = receipt.challenge_manifest_digest == request.challenge_manifest_digest;
-        if receipt.result_disclosed_to_developers && (same_data || same_manifest) {
-            let exact_replay = receipt.model_digest == request.candidate_model_digest
-                && same_data
-                && same_manifest
-                && receipt.evaluation_protocol_digest == request.evaluation_protocol_digest;
-            if exact_replay {
-                exact_disclosed_replay = true;
-            } else {
-                return Err(ChallengeCustodyError::DisclosedChallengeRetired);
-            }
-        }
-    }
-
     Ok(ChallengeEligibilityReport {
-        decision: if exact_disclosed_replay {
-            ChallengeEligibilityDecision::ExactIdempotentReplay
-        } else {
-            ChallengeEligibilityDecision::EligibleForSealedChallenge
-        },
+        decision: ChallengeEligibilityDecision::EligibleForSealedChallenge,
         candidate_model_digest: request.candidate_model_digest.clone(),
         challenge_data_digest: request.challenge_data_digest.clone(),
         challenge_manifest_digest: request.challenge_manifest_digest.clone(),
@@ -424,6 +446,69 @@ mod tests {
         assert_eq!(
             report.decision,
             ChallengeEligibilityDecision::ExactIdempotentReplay
+        );
+    }
+
+    #[test]
+    fn exact_historical_replay_is_idempotent_after_a_successor_model_exists() {
+        let revisions = vec![
+            revision(
+                "revision-0",
+                "sha256-model-0",
+                None,
+                &["sha256-development-data-0", "sha256-calibration-data-0"],
+            ),
+            revision(
+                "revision-1",
+                "sha256-model-1",
+                Some("sha256-model-0"),
+                &["sha256-development-data-0", "sha256-c0-diagnostic-receipt"],
+            ),
+        ];
+        let report = validate_challenge_eligibility(
+            &revisions,
+            &[disclosed_receipt(
+                "receipt-c0-model-0",
+                "sha256-model-0",
+                "sha256-challenge-c0",
+                "sha256-manifest-c0",
+                "sha256-evaluator-v1",
+            )],
+            &request(
+                "sha256-model-0",
+                "sha256-challenge-c0",
+                "sha256-manifest-c0",
+                "sha256-evaluator-v1",
+            ),
+        )
+        .expect("historical exact replay must remain idempotent");
+        assert_eq!(report.decision, ChallengeEligibilityDecision::ExactIdempotentReplay);
+        assert_eq!(report.candidate_model_digest, "sha256-model-0");
+        assert_eq!(report.revision_count, 2);
+    }
+
+    #[test]
+    fn duplicate_exact_replay_identity_is_rejected() {
+        let receipt = disclosed_receipt(
+            "receipt-c0",
+            "sha256-model-0",
+            "sha256-challenge-c0",
+            "sha256-manifest-c0",
+            "sha256-evaluator-v1",
+        );
+        assert_eq!(
+            validate_challenge_eligibility(
+                &root_lineage(),
+                &[receipt.clone(), receipt],
+                &request(
+                    "sha256-model-0",
+                    "sha256-challenge-c0",
+                    "sha256-manifest-c0",
+                    "sha256-evaluator-v1",
+                ),
+            )
+            .unwrap_err(),
+            ChallengeCustodyError::DuplicateChallengeEvaluationIdentity
         );
     }
 
