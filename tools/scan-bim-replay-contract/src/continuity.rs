@@ -125,6 +125,8 @@ pub struct EntityCorrespondence {
 pub struct ClaimLineage {
     pub claim_id: String,
     pub target_entity_id: String,
+    /// Exact transition output artifact containing this target entity.
+    pub target_artifact_id: String,
     pub property_id: String,
     pub origin: ClaimOrigin,
     pub source_evidence: Vec<ArtifactReference>,
@@ -220,6 +222,7 @@ pub fn audit_representation_continuity(
     }
 
     let mut transition_ids = BTreeSet::new();
+    let mut produced_artifacts = BTreeMap::<&str, (&str, EvidenceRole)>::new();
     let mut totals = BTreeMap::<ClaimOrigin, usize>::new();
     let mut transition_count = 0usize;
     let mut claim_count = 0usize;
@@ -254,6 +257,43 @@ pub fn audit_representation_continuity(
                 transition.transition_id
             ));
         }
+
+        // If a later transition reuses a prior output identity, the exact bytes
+        // and evidence role must remain bound to that identity.
+        for source in &transition.source_artifacts {
+            if let Some((previous_sha256, previous_role)) =
+                produced_artifacts.get(source.artifact_id.as_str())
+            {
+                if *previous_sha256 != source.sha256 || *previous_role != source.role {
+                    return Err(format!(
+                        "transition {} source artifact {} does not match its prior output binding",
+                        transition.transition_id, source.artifact_id
+                    ));
+                }
+            }
+        }
+        for output in &transition.output_artifacts {
+            if let Some((previous_sha256, previous_role)) =
+                produced_artifacts.get(output.artifact_id.as_str())
+            {
+                if *previous_sha256 != output.sha256 || *previous_role != output.role {
+                    return Err(format!(
+                        "transition {} reuses output artifact ID {} with changed content or role",
+                        transition.transition_id, output.artifact_id
+                    ));
+                }
+            }
+            produced_artifacts.insert(
+                output.artifact_id.as_str(),
+                (output.sha256.as_str(), output.role),
+            );
+        }
+
+        let output_artifact_ids: BTreeSet<&str> = transition
+            .output_artifacts
+            .iter()
+            .map(|artifact| artifact.artifact_id.as_str())
+            .collect();
         let source_artifacts: BTreeMap<&str, (&str, EvidenceRole)> = transition
             .source_artifacts
             .iter()
@@ -341,6 +381,14 @@ pub fn audit_representation_continuity(
             if !target_entity_ids.contains(claim.target_entity_id.as_str()) {
                 return Err(format!(
                     "claim {} target entity is absent from the transition correspondence",
+                    claim.claim_id
+                ));
+            }
+            if claim.target_artifact_id.trim().is_empty()
+                || !output_artifact_ids.contains(claim.target_artifact_id.as_str())
+            {
+                return Err(format!(
+                    "claim {} target artifact is absent from the transition output artifacts",
                     claim.claim_id
                 ));
             }
@@ -849,6 +897,56 @@ mod tests {
         value["transitions"][0]["claims"][0]["unknown_reason"] = json!("no direct support");
         let error = audit(&value).expect_err("unknown claims cannot carry a value digest");
         assert!(error.contains("must not declare a value digest"));
+    }
+
+    #[test]
+    fn rejects_claim_not_bound_to_a_transition_output_artifact() {
+        let mut value = valid_receipt();
+        value["transitions"][0]["claims"][0]["target_artifact_id"] =
+            json!("UNLISTED-OUTPUT");
+        let error = audit(&value).expect_err("claim must bind the exact output artifact");
+        assert!(error.contains("target artifact is absent"));
+    }
+
+    #[test]
+    fn rejects_changed_bytes_when_a_later_transition_reuses_an_output_artifact_id() {
+        let mut value = valid_receipt();
+        let mut next = value["transitions"][0].clone();
+        next["transition_id"] = json!("SURFACE-TO-GRAPH-001");
+        next["from_representation"] = json!("surface_mesh");
+        next["to_representation"] = json!("spatial_graph");
+        next["source_artifacts"] = json!([{
+            "artifact_id": "MESH-001",
+            "sha256": "c".repeat(64),
+            "role": "geometry_output"
+        }]);
+        next["output_artifacts"] = json!([{
+            "artifact_id": "GRAPH-001",
+            "sha256": "8".repeat(64),
+            "role": "geometry_output"
+        }]);
+        next["correspondences"] = json!([{
+            "event_id": "CORR-GRAPH-001",
+            "kind": "one_to_one",
+            "source_entity_ids": ["WALL-SURFACE-001"],
+            "target_entity_ids": ["WALL-GRAPH-001"],
+            "identity_receipt_sha256": "e".repeat(64)
+        }]);
+        next["claims"] = json!([]);
+        next["uncertainty"]["approximation_error_bound_m"] = json!(0.0);
+        next["uncertainty"]["before"]["absolute_bound_m"] = json!(0.0025);
+        next["uncertainty"]["after"]["absolute_bound_m"] = json!(0.0025);
+        value["transitions"]
+            .as_array_mut()
+            .expect("transition array")
+            .push(next.clone());
+
+        let report = audit(&value).expect("exact prior output may feed the next transition");
+        assert_eq!(report.transition_count, 2);
+
+        value["transitions"][1]["source_artifacts"][0]["sha256"] = json!("9".repeat(64));
+        let error = audit(&value).expect_err("the same artifact ID cannot silently point at new bytes");
+        assert!(error.contains("does not match its prior output binding"));
     }
 
     #[test]
