@@ -890,7 +890,7 @@ pub fn reconcile_delivery(
         }
     };
     let next_command_permitted = matches!(
-        disposition,
+        &disposition,
         RealizationDisposition::ConfirmedDelivered { .. }
     );
     Ok(DeliveryReconciliation {
