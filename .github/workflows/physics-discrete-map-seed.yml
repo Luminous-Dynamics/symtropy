@@ -1,0 +1,32 @@
+name: Physics Discrete Step Map Seed
+
+on:
+  push:
+    paths:
+      - "research/physics-discrete-map-001/**"
+      - ".github/workflows/physics-discrete-map-seed.yml"
+  pull_request:
+    paths:
+      - "research/physics-discrete-map-001/**"
+      - ".github/workflows/physics-discrete-map-seed.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate scalar discrete transition and derivatives
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Check formatting
+        run: cargo +1.96.0 fmt --manifest-path research/physics-discrete-map-001/Cargo.toml -- --check
+      - name: Test analytic map, derivatives, stability and scaling
+        run: cargo +1.96.0 test --manifest-path research/physics-discrete-map-001/Cargo.toml --all-targets
+      - name: Strict Clippy
+        run: cargo +1.96.0 clippy --manifest-path research/physics-discrete-map-001/Cargo.toml --all-targets -- -D warnings
