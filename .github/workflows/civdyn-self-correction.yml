@@ -277,6 +277,67 @@ jobs:
           assert math.isclose(float(negative["predictive_pair_distance"]), 1.0, abs_tol=1e-12)
           print("Joint-adequacy CSV valid: identical marginals, opposite coupling, distinct energy and variogram scores, exact source/model/split lineage.")
           PY
+      - name: Verify behavioral heterogeneity and pooled-moment collapse
+        run: |
+          set -euo pipefail
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin heterogeneity-adequacy-sweep > /tmp/civdyn-heterogeneity.csv
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin heterogeneity-adequacy-sweep > /tmp/civdyn-heterogeneity-replay.csv
+          cmp /tmp/civdyn-heterogeneity.csv /tmp/civdyn-heterogeneity-replay.csv
+          python3 - <<'PY'
+          import csv
+          import math
+          from pathlib import Path
+
+          with Path("/tmp/civdyn-heterogeneity.csv").open(newline="", encoding="utf-8") as handle:
+              reader = csv.DictReader(handle)
+              rows = list(reader)
+              fields = reader.fieldnames
+
+          assert fields is not None and len(fields) == 36, f"expected 36 columns, got {len(fields or [])}"
+          assert len(rows) == 2
+          candidates = {row["candidate"]: row for row in rows}
+          reference = candidates["stratified_reference"]
+          collapsed = candidates["pooled_moment_matched_collapse"]
+
+          for row in rows:
+              assert row["observation_count"] == "4"
+              assert row["stratum_count"] == "2"
+              assert row["global_mean"] == "5.00000000"
+              assert math.isclose(float(row["global_population_variance"]), 17.0, abs_tol=1e-8)
+              assert float(row["variance_decomposition_residual"]) < 1e-10
+              assert row["group_a_count"] == row["group_b_count"] == "2"
+              assert row["group_a_sample_share"] == row["group_b_sample_share"] == "0.50000000"
+              assert row["draw_count"] == "20"
+              assert row["energy_beta"] == row["variogram_power"] == "1.000000"
+              assert row["source_digest"] == "sha256-heterogeneity-reference-source"
+              assert row["observation_digest"] == "sha256-heterogeneity-held-out-observation"
+              assert row["calibration_digest"] == "sha256-heterogeneity-calibration"
+              assert row["split_manifest_digest"] == "sha256-heterogeneity-split-manifest"
+
+          assert math.isclose(float(reference["global_p10"]), 0.6, abs_tol=1e-8)
+          assert math.isclose(float(reference["global_median"]), 5.0, abs_tol=1e-8)
+          assert math.isclose(float(reference["global_p90"]), 9.4, abs_tol=1e-8)
+          assert math.isclose(float(reference["within_stratum_variance"]), 1.0, abs_tol=1e-8)
+          assert math.isclose(float(reference["between_stratum_variance"]), 16.0, abs_tol=1e-8)
+          assert math.isclose(float(reference["group_a_mean"]), 1.0, abs_tol=1e-8)
+          assert math.isclose(float(reference["group_b_mean"]), 9.0, abs_tol=1e-8)
+          assert math.isclose(float(reference["group_a_population_variance"]), 1.0, abs_tol=1e-8)
+          assert math.isclose(float(reference["group_b_population_variance"]), 1.0, abs_tol=1e-8)
+          assert float(reference["energy_score"]) == 0.0
+          assert float(reference["variogram_score"]) == 0.0
+
+          assert math.isclose(float(collapsed["within_stratum_variance"]), 17.0, abs_tol=1e-8)
+          assert math.isclose(float(collapsed["between_stratum_variance"]), 0.0, abs_tol=1e-8)
+          assert math.isclose(float(collapsed["group_a_mean"]), 5.0, abs_tol=1e-8)
+          assert math.isclose(float(collapsed["group_b_mean"]), 5.0, abs_tol=1e-8)
+          assert math.isclose(float(collapsed["group_a_population_variance"]), 17.0, abs_tol=1e-8)
+          assert math.isclose(float(collapsed["group_b_population_variance"]), 17.0, abs_tol=1e-8)
+          assert float(collapsed["energy_score"]) > 0.0
+          assert float(collapsed["variogram_score"]) > 0.0
+          assert reference["model_digest"] != collapsed["model_digest"]
+          assert reference["draw_set_digest"] != collapsed["draw_set_digest"]
+          print("Heterogeneity CSV valid: identical pooled mean/variance, distinct within/between allocation and per-stratum distributions; joint scores detect variance collapse with exact provenance and deterministic replay.")
+          PY
 
 
       - name: Verify same-marginal joint and trajectory adequacy controls
