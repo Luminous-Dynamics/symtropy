@@ -99,7 +99,7 @@
           "program_revision": "PROGRAM-REV-07",
           "parameter_envelope_ref": "SYNTH-ENVELOPE-017",
           "process_trace_ref": "benchmarks/shipyard/weld-twin-traces/root-pass.json",
-          "process_trace_sha256": "a316e2fe095eb364989fb6a3b30ac23b4256d5e1b68c7b0dd953d23e9053651",
+          "process_trace_sha256": "a316e2fe095eb364989fb6a3b30ac23b4256d5e1b68c7b0dd953d23e9053651d",
           "evidence_class": "measured_synthetic",
           "observed_envelope_status": "within_declared_envelope",
           "source_time_utc": "2026-11-10T03:00:00Z",
@@ -720,7 +720,7 @@
         {
           "path": "passes.1.process_trace_sha256",
           "op": "set",
-          "value": "a316e2fe095eb364989fb6a3b30ac23b4256d5e1b68c7b0dd953d23e9053651"
+          "value": "a316e2fe095eb364989fb6a3b30ac23b4256d5e1b68c7b0dd953d23e9053651d"
         }
       ],
       "expected_code": "PROCESS_TRACE_SUBJECT_MISMATCH"
