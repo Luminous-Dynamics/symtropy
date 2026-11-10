@@ -470,9 +470,13 @@ fn validate_fixture(value: &Value) -> Vec<String> {
             // reproduction, or cognitive controller. Do not let visual/temporal pattern
             // features promote those distinct properties merely because organization is real.
             for property in [
+                "homeostasis_regulation",
                 "self_maintenance",
+                "information_retention",
+                "information_transfer",
                 "reproduction",
                 "heredity",
+                "adaptation",
                 "learning",
                 "agency",
                 "intelligence",
@@ -503,23 +507,14 @@ fn validate_fixture(value: &Value) -> Vec<String> {
             {
                 errors.push("metadata-only dusty plasma fixture must not invent units, timing, or coverage before source data admission".to_owned());
             }
-            for property in [
-                "self_maintenance",
-                "information_retention",
-                "reproduction",
-                "heredity",
-                "adaptation",
-                "learning",
-                "agency",
-                "intelligence",
-                "collective_intelligence",
-                "sentience_consciousness",
-            ] {
-                if assessments.get(property).and_then(Value::as_str)
+            // This fixture admits only metadata for a physics paper, not the source data
+            // or an OLI property-level measurement. No property may be promoted to supported.
+            for property in PROPERTY_NAMES {
+                if assessments.get(*property).and_then(Value::as_str)
                     == Some("SUPPORTED_WITHIN_SCOPE")
                 {
                     errors.push(format!(
-                        "dusty-plasma physics result cannot support life/intelligence property {property}"
+                        "metadata-only dusty-plasma reference cannot support unassessed property {property}"
                     ));
                 }
             }
@@ -781,9 +776,13 @@ mod tests {
     #[test]
     fn abiotic_pattern_cannot_be_promoted_to_life_or_intelligence() {
         for property in [
+            "homeostasis_regulation",
             "self_maintenance",
+            "information_retention",
+            "information_transfer",
             "reproduction",
             "heredity",
+            "adaptation",
             "learning",
             "agency",
             "intelligence",
@@ -798,6 +797,23 @@ mod tests {
             assert!(
                 errors.iter().any(|error| error.contains(property)),
                 "abiotic false-positive promotion for {property} must fail: {errors:#?}"
+            );
+        }
+    }
+
+    #[test]
+    fn metadata_only_dusty_plasma_cannot_support_any_oli_property() {
+        for property in PROPERTY_NAMES {
+            let mut value: Value = serde_json::from_str(
+                include_str!("../fixtures/oli-m0-dusty-plasma-001.json"),
+            )
+            .unwrap();
+            value["property_assessments"][*property] =
+                Value::String("SUPPORTED_WITHIN_SCOPE".to_owned());
+            let errors = validate_fixture(&value);
+            assert!(
+                errors.iter().any(|error| error.contains(property)),
+                "metadata-only plasma fixture promoted {property}: {errors:#?}"
             );
         }
     }
