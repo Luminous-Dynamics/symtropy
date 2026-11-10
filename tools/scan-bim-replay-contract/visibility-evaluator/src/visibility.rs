@@ -679,6 +679,36 @@ fn update_point(hasher: &mut Sha256, point: Point3) {
     update_f64(hasher, point.z);
 }
 
+/// Compute the canonical digest of the exact occluder inventory.
+pub fn canonical_occluder_manifest_sha256(
+    occluders: &[OccluderTriangle],
+) -> String {
+    let mut ordered: Vec<&OccluderTriangle> = occluders.iter().collect();
+    ordered.sort_by(|left, right| {
+        left.surface_id
+            .cmp(&right.surface_id)
+            .then_with(|| left.triangle_id.cmp(&right.triangle_id))
+    });
+    let mut hasher = Sha256::new();
+    update_string(&mut hasher, "scan_bim_occluder_manifest_v1");
+    for occluder in ordered {
+        update_string(&mut hasher, &occluder.surface_id);
+        update_string(&mut hasher, &occluder.triangle_id);
+        update_point(&mut hasher, occluder.a);
+        update_point(&mut hasher, occluder.b);
+        update_point(&mut hasher, occluder.c);
+        update_string(
+            &mut hasher,
+            match occluder.kind {
+                OccluderKind::SameBuilding => "same_building",
+                OccluderKind::External => "external",
+                OccluderKind::Unknown => "unknown",
+            },
+        );
+    }
+    format!("{:x}", hasher.finalize())
+}
+
 fn receipt_digest(
     evaluation: &VisibilityEvaluation<'_>,
     probes: &[VisibilityProbeResult],
@@ -1001,6 +1031,13 @@ pub fn derive_surface_visibility(
     }
     let ordered_occluders: Vec<OccluderTriangle> =
         ordered_occluders.into_iter().map(|value| (*value).clone()).collect();
+    if canonical_occluder_manifest_sha256(&ordered_occluders)
+        != evaluation.occluder_manifest_sha256
+    {
+        return Err(
+            "occluder_manifest_sha256 does not match the supplied occluder inventory".to_owned(),
+        );
+    }
 
     let mut ordered_probes: Vec<&VisibilityProbe> = evaluation.probes.iter().collect();
     ordered_probes.sort_by(|left, right| left.probe_id.cmp(&right.probe_id));
@@ -1158,7 +1195,8 @@ mod tests {
     use super::{
         OccluderCoverage, OccluderKind, OccluderTriangle, VisibilityEvaluation,
         VisibilityProbe, VisibilityProfile, VisibilityRequest, VisibilityView,
-        ViewVisibilityStatus, derive_surface_visibility,
+        ViewVisibilityStatus, canonical_occluder_manifest_sha256,
+        derive_surface_visibility,
         probes_from_reference_sampling,
     };
     use scan_bim_replay_contract::metrics::Point3;
@@ -1250,13 +1288,15 @@ mod tests {
         let mut full_reference_and_occluders = vec![target_triangle()];
         full_reference_and_occluders.extend_from_slice(occluders);
         let reference_surface_ids = vec!["TARGET".to_owned()];
+        let occluder_manifest_sha256 =
+            canonical_occluder_manifest_sha256(&full_reference_and_occluders);
         derive_surface_visibility(VisibilityEvaluation {
             scene_id: "SCENE-1",
             frame_id: "BUILDING-LOCAL",
             reference_model_sha256: &"1".repeat(64),
             probe_set_sha256: &"3".repeat(64),
             reference_surface_ids: &reference_surface_ids,
-            occluder_manifest_sha256: &"2".repeat(64),
+            occluder_manifest_sha256: &occluder_manifest_sha256,
             occluder_coverage,
             probes,
             views,
@@ -1387,7 +1427,7 @@ mod tests {
             reference_model_sha256: &"1".repeat(64),
             probe_set_sha256: &"3".repeat(64),
             reference_surface_ids: &["TARGET".to_owned()],
-            occluder_manifest_sha256: &"2".repeat(64),
+            occluder_manifest_sha256: &canonical_occluder_manifest_sha256(&[reversed.clone()]),
             occluder_coverage: OccluderCoverage::Complete,
             probes: &[reversed_probe],
             views: &[view("VIEW-1", [0.0, 0.0, 0.0])],
@@ -1535,7 +1575,10 @@ mod tests {
             reference_model_sha256: &"1".repeat(64),
             probe_set_sha256: &"3".repeat(64),
             reference_surface_ids: &["TARGET".to_owned()],
-            occluder_manifest_sha256: &"2".repeat(64),
+            occluder_manifest_sha256: &canonical_occluder_manifest_sha256(&[
+                target_triangle(),
+                blocker(OccluderKind::SameBuilding),
+            ]),
             occluder_coverage: OccluderCoverage::Complete,
             probes: &[probe([5.0, 0.0, 0.0])],
             views: &[view("VIEW-1", [0.0, 0.0, 0.0])],
@@ -1662,7 +1705,7 @@ mod tests {
             reference_model_sha256: &"3".repeat(64),
             probe_set_sha256: &"3".repeat(64),
             reference_surface_ids: &["TARGET".to_owned()],
-            occluder_manifest_sha256: &"2".repeat(64),
+            occluder_manifest_sha256: &canonical_occluder_manifest_sha256(&[target_triangle()]),
             occluder_coverage: OccluderCoverage::Complete,
             probes: &[probe([5.0, 0.0, 0.0])],
             views: &[view("VIEW-1", [0.0, 0.0, 0.0])],
