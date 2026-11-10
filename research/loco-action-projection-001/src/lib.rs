@@ -167,8 +167,28 @@ pub struct AdmittedFallback {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PhysicalPossibilityReceipt {
+    pub receipt_id: String,
+    pub result_digest: String,
+    pub possibility_set_digest: String,
+    pub possibility_ids: Vec<String>,
+    pub input_state_digest: String,
+    pub model_digest: String,
+    pub abstraction_digest: String,
+    pub domain_digest: String,
+    pub actuator_digest: String,
+    pub horizon_steps: u32,
+    pub complete: bool,
+    pub status: AuthorityStatus,
+    pub witness_or_reason: Option<String>,
+    pub valid_from_ns: u64,
+    pub valid_until_ns: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProjectionGateProblem {
     pub now_ns: u64,
+    pub physical_possibility_receipt: PhysicalPossibilityReceipt,
     pub proposal: PolicyProposal,
     /// Independent frozen inventory bound by constraint_inventory_digest.
     pub required_constraint_inventory: Vec<ConstraintRequirement>,
@@ -285,6 +305,8 @@ pub enum ProjectionError {
     InvalidResidualTolerance,
     ConstraintInventoryMismatch,
     PhysicalPossibilityDigestMismatch,
+    PhysicalPossibilityReceiptMismatch,
+    IncompletePhysicalPossibilitySet,
     PhysicalConstraintCannotBeOptional,
     TooManyConstraints,
     TooManyPossibilities,
@@ -416,6 +438,91 @@ fn validate_authority_witness(
         return Err(ProjectionError::MissingStatusReason);
     }
     Ok(())
+}
+
+fn possibility_receipt_disposition(
+    problem: &ProjectionGateProblem,
+) -> Result<Option<GateDisposition>, ProjectionError> {
+    let receipt = &problem.physical_possibility_receipt;
+    for id in [
+        receipt.receipt_id.as_str(),
+        receipt.result_digest.as_str(),
+        receipt.possibility_set_digest.as_str(),
+        receipt.input_state_digest.as_str(),
+        receipt.model_digest.as_str(),
+        receipt.abstraction_digest.as_str(),
+        receipt.domain_digest.as_str(),
+        receipt.actuator_digest.as_str(),
+    ] {
+        if !nonempty(id) {
+            return Err(ProjectionError::EmptyIdentifier);
+        }
+    }
+    validate_authority_witness(receipt.status, &receipt.witness_or_reason)?;
+    if receipt.possibility_set_digest != problem.proposal.physical_possibility_digest
+        || receipt.input_state_digest != problem.proposal.input_state_digest
+        || receipt.model_digest != problem.proposal.model_digest
+        || receipt.abstraction_digest != problem.proposal.abstraction_digest
+        || receipt.domain_digest != problem.proposal.domain_digest
+        || receipt.actuator_digest != problem.proposal.actuator_digest
+        || receipt.horizon_steps != problem.proposal.horizon_steps
+    {
+        return Err(ProjectionError::PhysicalPossibilityReceiptMismatch);
+    }
+    validate_receipt_interval(
+        receipt.valid_from_ns,
+        receipt.valid_until_ns,
+        problem.proposal.intended_apply_at_ns,
+    )?;
+
+    let mut receipt_ids = std::collections::BTreeSet::new();
+    for id in &receipt.possibility_ids {
+        if !nonempty(id) {
+            return Err(ProjectionError::EmptyIdentifier);
+        }
+        if !receipt_ids.insert(id.as_str()) {
+            return Err(ProjectionError::DuplicatePhysicalPossibility);
+        }
+    }
+    let mut problem_ids = std::collections::BTreeSet::new();
+    for id in &problem.physical_possibility_ids {
+        if !nonempty(id) {
+            return Err(ProjectionError::EmptyIdentifier);
+        }
+        if !problem_ids.insert(id.as_str()) {
+            return Err(ProjectionError::DuplicatePhysicalPossibility);
+        }
+    }
+    if receipt_ids != problem_ids {
+        return Err(ProjectionError::PhysicalPossibilityReceiptMismatch);
+    }
+
+    if !receipt.complete {
+        return Ok(Some(fallback_disposition(
+            &problem.fallback,
+            problem,
+            "physical possibility enumeration incomplete",
+        )));
+    }
+    match receipt.status {
+        AuthorityStatus::Admitted => Ok(None),
+        AuthorityStatus::Rejected => Ok(Some(rejected_or_fallback(
+            &problem.fallback,
+            problem,
+            "physical possibility authority rejected set",
+            receipt.witness_or_reason.clone(),
+        ))),
+        AuthorityStatus::Unknown => Ok(Some(fallback_disposition(
+            &problem.fallback,
+            problem,
+            "physical possibility set is Unknown",
+        ))),
+        AuthorityStatus::Invalid => Ok(Some(invalid_or_fallback(
+            &problem.fallback,
+            problem,
+            "physical possibility receipt is Invalid",
+        ))),
+    }
 }
 
 fn identity_gate(problem: &ProjectionGateProblem) -> Result<(), ProjectionError> {
@@ -917,6 +1024,11 @@ pub fn qualify_projected_action(
         robust_contact_failures: Vec::new(),
         numerically_unqualified: Vec::new(),
     };
+
+    if let Some(disposition) = possibility_receipt_disposition(problem)? {
+        report.disposition = disposition;
+        return Ok(report);
+    }
 
     match problem.result.disposition {
         SolverDisposition::Infeasible => {
