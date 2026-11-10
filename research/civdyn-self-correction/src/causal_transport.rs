@@ -606,7 +606,10 @@ mod tests {
         candidate.assumptions.source_internal_validity.disposition = AssumptionDisposition::Unknown;
         let result = assess_risk_difference_transport(&candidate)
             .expect("invalid source study remains a nonidentified report");
-        assert_eq!(result.identification_status, TransportIdentificationStatus::NotIdentified);
+        assert_eq!(
+            result.identification_status,
+            TransportIdentificationStatus::NotIdentified
+        );
         assert_eq!(result.target_ate_point, None);
     }
 
