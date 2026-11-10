@@ -37,3 +37,7 @@ path = "src/bin/model_adequacy_sweep.rs"
 [[bin]]
 name = "joint-adequacy-sweep"
 path = "src/bin/joint_adequacy_sweep.rs"
+
+[[bin]]
+name = "heterogeneity-adequacy-sweep"
+path = "src/bin/heterogeneity_adequacy_sweep.rs"
