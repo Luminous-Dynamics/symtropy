@@ -98,7 +98,7 @@ if !report.native_evaluation_ready {
 }
 ~~~
 
-The crate validates digest shape and exact equality; it does not hash or authenticate files, establish the truth of an external receipt, adjudicate licensing, or verify the runtime itself. Those responsibilities belong to the acquisition/verification adapter and independent review. The synthetic release-gate tests establish only blocker logic, not that the upstream candidate is qualified.
+The crate validates digest shape and exact equality; it does not hash or authenticate files, establish the truth of an external receipt, adjudicate licensing, or verify the runtime itself. Those responsibilities belong to the acquisition/verification adapter and independent review. The full pinned-source audit and release-gate design are documented in [ROBOCASA_MEM_RELEASE_QUALIFICATION_V0_1.md](../../docs/research/ROBOCASA_MEM_RELEASE_QUALIFICATION_V0_1.md). The synthetic release-gate tests establish only blocker logic, not that the upstream candidate is qualified.
 
 Run the complete nested contract suite (including release-gate regression cases):
 
