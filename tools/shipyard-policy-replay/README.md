@@ -29,6 +29,17 @@ This crate does not check geometry, swept movement paths, resource feasibility, 
 
 ## Test strategy
 
-Twelve unit-test functions cover a valid adaptive two-branch policy, clairvoyant divergence before observation, hidden evaluator-only outcomes, event visibility at the exact decision tick, differing observation times, different visible payloads under the same event ID, an exhaustive 4×4×4 (64-case) reveal/divergence matrix, missing actions, duplicate event IDs, source/candidate inventory omissions and extras, empty inputs, and deterministic report order. These fixtures are conformance tests, not industrial measurements or proof that the policy is optimal.
+Fifteen unit-test functions cover a valid adaptive two-branch policy, clairvoyant divergence before observation, hidden evaluator-only outcomes, event visibility at the exact decision tick, differing observation times, different visible payloads under the same event ID, an exhaustive 4×4×4 (64-case) reveal/divergence matrix, missing actions, duplicate event IDs, source/candidate inventory omissions and extras, empty inputs, and deterministic report order. These fixtures are conformance tests, not industrial measurements or proof that the policy is optimal.
 
 The exact-head workflow runs Rust 1.96 formatting, locked/offline tests, and Clippy with warnings denied. No validation status should be inferred from a queued workflow.
+
+
+## Weld inspection and repair observability extension
+
+Three additional synthetic cases prove that a weld's downstream completion state is driven by source-owned inspection events, not hidden branch labels:
+
+- Before the NDT disposition is observed, both accepted and rejected branches must choose `await-inspection`.
+- A candidate that releases downstream work or opens repair before the NDT result is observed is rejected as anticipative.
+- After a rejection and a separately observed authorized repair-route event, the policy may schedule repair and reinspection. The replay gate checks information timing only; #4433 owns weld process trace, #4443 owns NDT/repair evidence, and the schedule feasibility checker remains separate.
+
+These tests establish no NDT validity, repair authorization, weld acceptance, geometry/resource feasibility, or industrial result.
