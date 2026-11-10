@@ -100,18 +100,20 @@ No defensible numerical SOTA claim exists from this synthetic corpus. Numerical 
 
 ### ODD capability-impact handoff
 
-The evaluator emits a per-case, asset- and configuration-bound capability-impact projection for downstream owners:
+The evaluator emits a per-case, asset- and configuration-bound **engineering evidence contribution**. It does not emit an ODD disposition. There is deliberately no one-to-one mapping from a machinery-health result to `WithinDeclaredEnvelope`, `LimitApproaching`, `LimitExceeded`, `NeedsEvidence`, `EvidenceConflict`, `Unsupported` or `HumanDecisionRequired`.
 
-| Engineering-health result | Projection to the ODD/mode owner |
-|---|---|
-| RestrictCapability | RestrictionRecommended; may contribute to LimitExceeded / degraded mode review |
-| ContinueWithWatch | NoRestrictionIndicated for this evidence only; never upgrades the whole vessel to WithinDeclaredEnvelope |
-| UnknownEscalate | UnknownNeedsEvidence; maps to NeedsEvidence or Unsupported |
-| RestorationBlocked | RecoveryBlocked; restriction remains in force |
-| RestorationEvidenceComplete | RecoveryEvidenceReadyForIndependentReview; maps to HumanDecisionRequired, never automatic restoration |
+| Engineering-health result | Emitted capability status | Required treatment by the ODD/mode owner |
+|---|---|---|
+| RestrictCapability | RestrictionRecommended | Preserve as a scoped constraint/recommendation for the named asset, component, configuration revision and capability. The ODD owner decides whether it violates a declared function prerequisite or mode guard; it is not automatically a vessel-level LimitExceeded result. |
+| ContinueWithWatch | NoRestrictionIndicated | Means only that this case's admitted evidence did not produce a new restriction recommendation. It is not positive proof of the full operating envelope, does not produce WithinDeclaredEnvelope and does not clear a previously latched restriction. |
+| UnknownEscalate | UnknownNeedsEvidence | Preserve the evidence gap. The ODD owner determines NeedsEvidence versus Unsupported from its own profile, applicability and required-source contract; this status is not a permissive default. |
+| RestorationBlocked | RecoveryBlocked | Keep the named capability restricted. Do not infer restoration from a partial repair, inspection or test record. |
+| RestorationEvidenceComplete | RecoveryEvidenceReadyForIndependentReview | Exposes a review packet only. The ODD owner may require HumanDecisionRequired under its own transition policy, but this status never performs a mode transition or clears a restriction. |
 
-The output carries vessel, asset, component, exact configuration revision, capability, evidence counts and declared dependency-group count. It declares NoAuthorityGranted, may_authorize_transition=false and may_clear_restriction=false. Symtropy #3893 and Symthaea #11185 remain the decision-support/mode owners; Mycelix #5974 pins the exact report and provenance. This is an input projection, not a duplicate ODD evaluator or an authorization.
+The handoff key is the exact report/corpus digest plus `case_id`, `vessel_id`, `asset_id`, `component_id`, `config_revision` and `capability`. A consumer must join this evidence to an explicit vessel-specific function allocation and ODD profile. Missing or ambiguous joins remain unsupported/unknown; do not infer a capability mapping from a component name alone.
 
+The projection carries `NoAuthorityGranted`, `may_authorize_transition=false` and `may_clear_restriction=false`. It intentionally contains no ODD disposition or transition command. Symtropy #3893 owns the ODD decision; Symthaea #11185 owns mode/authority/contingency semantics; Mycelix #5974 pins provenance and exact owner-native artifacts. This is an evidence handoff, not a second ODD evaluator or an authorization.
+ 
 ## Validation ladder
 
 - E0: schema, identity, corpus uniqueness and monotonicity.
