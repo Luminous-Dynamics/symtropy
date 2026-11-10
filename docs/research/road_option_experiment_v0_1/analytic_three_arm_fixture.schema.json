@@ -140,7 +140,8 @@
         "timely_delivery_tick",
         "late_delivery_tick",
         "outcomes",
-        "quality_assumption"
+        "quality_assumption",
+        "request_tick"
       ],
       "properties": {
         "query_id": {
@@ -176,6 +177,10 @@
         "quality_assumption": {
           "type": "string",
           "minLength": 1
+        },
+        "request_tick": {
+          "type": "integer",
+          "minimum": 0
         }
       },
       "additionalProperties": false
@@ -329,7 +334,8 @@
         "hypothesis_id",
         "delivery_status",
         "delivered_observation_class",
-        "delivered_observation_receipt_id"
+        "delivered_observation_receipt_id",
+        "delivery_tick"
       ],
       "properties": {
         "hypothesis_id": {
@@ -356,6 +362,13 @@
             "string",
             "null"
           ]
+        },
+        "delivery_tick": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
         }
       },
       "additionalProperties": false
