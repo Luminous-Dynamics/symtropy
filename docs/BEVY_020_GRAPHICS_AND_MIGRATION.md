@@ -28,11 +28,41 @@ This workspace remains on Bevy 0.19. Do not mass-replace versions without updati
 
 **Toolchain gate:** Bevy 0.20.0's own root manifest declares `rust-version = "1.97.1"`, while the production Symtropy CI workflow pins Rust 1.96.0. The full migration must explicitly update and review `rust-toolchain.toml`, CI toolchains, cache keys, and any downstream MSRV promises before a 0.20 lockfile can be qualified. A separate probe under `research/bevy-020-graphics-probe` tests 0.20 on Rust 1.97.1 without changing the production workspace version set.
 
-### Hard ecosystem gate: Lightyear
+### Ecosystem compatibility update — 2026-11-10
 
-`crates/domains/symtropy-lightyear/Cargo.toml` currently declares `lightyear = "0.28"` and Bevy sub-crates at 0.19; `symtropy-multiplayer-demo` consumes this bridge. At review time, the upstream [Lightyear compatibility table](https://github.com/cBournhonesque/lightyear#supported-bevy-version) lists Lightyear 0.28–0.30 against Bevy 0.19, with no advertised Bevy 0.20-compatible release.
+The original Lightyear blocker is now removed by upstream releases. The published compatibility table now advertises **Lightyear 0.31 for Bevy 0.20**, while 0.28–0.30 remain on Bevy 0.19. Compatible companion releases are also published:
 
-**Required before the workspace-wide version bump:** verify a published Lightyear release supports Bevy 0.20 or carry a separately reviewed/tested port. Do not silently leave the multiplayer demo on incompatible Bevy types, weaken `scripts/check-workspace.sh`, or introduce duplicate Bevy ECS/render types into one app.
+| Component | Bevy 0.20-compatible release | Evidence / migration implication |
+|---|---:|---|
+| Bevy | 0.20.1 | Current 0.20 patch release; use one exact lockfile resolution across the workspace |
+| Lightyear | 0.31.0 | Upstream compatibility table explicitly maps 0.31 → Bevy 0.20 |
+| bevy_egui | 0.43.1 | Release 0.43.0 updated to Bevy 0.20; 0.43.1 contains a follow-up fix |
+| bevy-inspector-egui | 0.38.0 | Published dependencies target Bevy 0.20 |
+| bevy-tokio-tasks | 0.20.0 | Version compatibility table maps 0.20.0 → Bevy 0.20 |
+
+Sources checked 2026-11-10:
+- [Bevy 0.20.1 on docs.rs](https://docs.rs/crate/bevy/latest)
+- [Lightyear supported Bevy versions](https://docs.rs/crate/lightyear/latest)
+- [bevy_egui 0.43.1 changelog and manifest](https://docs.rs/crate/bevy_egui/latest)
+- [bevy-inspector-egui 0.38.0 dependency metadata](https://docs.rs/crate/bevy-inspector-egui/latest)
+- [bevy-tokio-tasks 0.20.0 compatibility table](https://docs.rs/crate/bevy-tokio-tasks/latest)
+
+This resolves **published-version availability**, not Symtropy adapter compatibility. The actual Lightyear integration still needs to be migrated and compiled against 0.31.0 with the multiplayer demo included. Do not update just the Lightyear manifest while the rest of the workspace remains on 0.19; that would introduce the exact duplicate-Bevy type graph the invariant is designed to prevent.
+
+### Remaining production migration gates
+
+1. Update the root and every workspace member/bridge that directly depends on Bevy or a Bevy sub-crate as one coordinated change. Pin all Bevy crates to the same 0.20 patch line.
+2. Update `symtropy-lightyear` to Lightyear 0.31 and Bevy 0.20, then compile and test the multiplayer demo in the same workspace.
+3. Update `bevy_egui`, `bevy-inspector-egui`, and `bevy-tokio-tasks` only where those packages are actually consumed; verify feature sets and no duplicate type graph.
+4. Upgrade `rust-toolchain.toml` and CI from Rust 1.96.0 to at least Bevy 0.20's declared 1.97.1 MSRV. Reconcile cache keys and downstream MSRV promises.
+5. Audit the direct `naga` dependency against Bevy 0.20's shader stack instead of retaining an accidental older Naga line.
+6. Generate `Cargo.lock` with Cargo; never hand-edit it. Run the workspace invariant script and preserve the single-Bevy assertion.
+7. Migrate WESL shaders, typed shader-buffer layouts, 2D sprite/material code, screen-space transmission settings, and the remaining official 0.19 → 0.20 API changes.
+8. Run format, strict Clippy, focused crate tests, the complete workspace check, multiplayer tests, shader smoke tests, and receipt-bound visual captures at one exact migration head.
+
+### Probe evidence — exact historical head
+
+The isolated compatibility probe in [PR #2012](https://github.com/Luminous-Dynamics/symtropy/pull/2012) compiled Bevy 0.20.0 under Rust 1.97.1 without adding Bevy 0.20 to the production workspace. Its dedicated workflow run [39153632186](https://github.com/Luminous-Dynamics/symtropy/actions/runs/39153632186) completed successfully on 2026-10-18. This proves that isolated probe only; it does **not** prove the production workspace, Lightyear adapter, or all custom shaders have migrated.
 
 ### Migration hotspots to inventory and qualify
 
