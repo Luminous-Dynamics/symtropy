@@ -775,7 +775,72 @@ mod tests {
         assert!(outcome.state.gap_m > 0.0);
         assert!(outcome.state.velocity_m_s > 0.0);
         assert_eq!(outcome.support_impulse_ns, 0.0);
-        assert!(outcome.step_jacobian.is_some());
+        let analytic = outcome.step_jacobian.unwrap();
+        let epsilon = 1.0e-6;
+        let plus_gap = model
+            .step(
+                ImpactState1D {
+                    gap_m: initial.gap_m + epsilon,
+                    ..initial
+                },
+                0.5,
+                ImpactTolerances::default(),
+            )
+            .unwrap()
+            .state;
+        let minus_gap = model
+            .step(
+                ImpactState1D {
+                    gap_m: initial.gap_m - epsilon,
+                    ..initial
+                },
+                0.5,
+                ImpactTolerances::default(),
+            )
+            .unwrap()
+            .state;
+        let plus_velocity = model
+            .step(
+                ImpactState1D {
+                    velocity_m_s: initial.velocity_m_s + epsilon,
+                    ..initial
+                },
+                0.5,
+                ImpactTolerances::default(),
+            )
+            .unwrap()
+            .state;
+        let minus_velocity = model
+            .step(
+                ImpactState1D {
+                    velocity_m_s: initial.velocity_m_s - epsilon,
+                    ..initial
+                },
+                0.5,
+                ImpactTolerances::default(),
+            )
+            .unwrap()
+            .state;
+        close(
+            analytic.dgap_dgap,
+            (plus_gap.gap_m - minus_gap.gap_m) / (2.0 * epsilon),
+            2.0e-7,
+        );
+        close(
+            analytic.dvelocity_dgap,
+            (plus_gap.velocity_m_s - minus_gap.velocity_m_s) / (2.0 * epsilon),
+            2.0e-7,
+        );
+        close(
+            analytic.dgap_dvelocity,
+            (plus_velocity.gap_m - minus_velocity.gap_m) / (2.0 * epsilon),
+            2.0e-7,
+        );
+        close(
+            analytic.dvelocity_dvelocity,
+            (plus_velocity.velocity_m_s - minus_velocity.velocity_m_s) / (2.0 * epsilon),
+            2.0e-7,
+        );
     }
 
     #[test]
