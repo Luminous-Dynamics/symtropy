@@ -2499,6 +2499,14 @@ mod tests {
         assert!(error.contains("compiled hard ceiling"));
     }
 
+    fn maximum_leaf_triangle_count(node: &super::BvhNode) -> usize {
+        match &node.kind {
+            super::BvhNodeKind::Leaf { triangle_indices } => triangle_indices.len(),
+            super::BvhNodeKind::Branch { left, right } => maximum_leaf_triangle_count(left)
+                .max(maximum_leaf_triangle_count(right)),
+        }
+    }
+
     fn blocker_at_y(kind: OccluderKind, index: usize, y: f64) -> OccluderTriangle {
         OccluderTriangle {
             surface_id: format!("BLOCKER-{index:04}"),
@@ -2727,8 +2735,19 @@ mod tests {
 
         assert!(sah_bvh.node_count > 1);
         assert!(sah_bvh.leaf_count > 1);
+        assert!(
+            sah_bvh
+                .root
+                .as_deref()
+                .is_some_and(|root| maximum_leaf_triangle_count(root) <= BVH_LEAF_TRIANGLE_LIMIT)
+        );
         assert!(sah_node_visits > 0);
-        assert!(sah_ray_tests > 0);
+        assert!(
+            sah_ray_tests < brute_force_tests,
+            "SAH must prune primitive tests relative to brute force: {} vs {}",
+            sah_ray_tests,
+            brute_force_tests
+        );
         assert_eq!(receipt.probe_count, PROBE_COUNT);
         assert_eq!(receipt.self_occluded_area_m2, 2.0 / 4.0);
         assert_eq!(receipt.observable_area_m2, 2.0 - 2.0 / 4.0);
