@@ -1216,13 +1216,22 @@ mod tests {
                     ],
                 },
             ],
-            actors: vec![ActorCuboid {
-                actor_id: "lead".into(),
-                actor_policy_revision: "actor-policy-v1".into(),
-                class: ActorClass::Car,
-                center_world_mm: [0, 15_000, 700],
-                half_extents_mm: [900, 2_000, 700],
-            }],
+            actors: vec![
+                ActorCuboid {
+                    actor_id: "lead".into(),
+                    actor_policy_revision: "actor-policy-v1".into(),
+                    class: ActorClass::Car,
+                    center_world_mm: [0, 15_000, 700],
+                    half_extents_mm: [900, 2_000, 700],
+                },
+                ActorCuboid {
+                    actor_id: "pedestrian-1".into(),
+                    actor_policy_revision: "pedestrian-policy-v1".into(),
+                    class: ActorClass::Pedestrian,
+                    center_world_mm: [2_000, 22_000, 900],
+                    half_extents_mm: [350, 350, 900],
+                },
+            ],
         }
     }
 
@@ -1328,13 +1337,62 @@ mod tests {
         second_snapshot.actors[0].center_world_mm[0] = 1_000;
         let first = SoftwareCameraRenderer::render(&first_snapshot, 1, clocks()).unwrap();
         let second = SoftwareCameraRenderer::render(&second_snapshot, 1, clocks()).unwrap();
+        let first_audit = SoftwareCameraRenderer::audit_snapshot(&first_snapshot).unwrap();
+        let second_audit = SoftwareCameraRenderer::audit_snapshot(&second_snapshot).unwrap();
         assert_ne!(
-            first.evaluator_audit.world_snapshot_sha256,
-            second.evaluator_audit.world_snapshot_sha256
+            first_audit.world_snapshot_sha256,
+            second_audit.world_snapshot_sha256
         );
         assert_ne!(
             first.policy_receipt.frame_sha256,
             second.policy_receipt.frame_sha256
+        );
+    }
+
+    #[test]
+    fn curved_road_polyline_changes_projected_observation() {
+        let straight = snapshot();
+        let mut curved = snapshot();
+        curved.road_markings[0].points_world_mm = vec![
+            [-2_000, 5_000, 0],
+            [-1_900, 10_000, 0],
+            [-1_200, 15_000, 0],
+            [-200, 20_000, 0],
+            [900, 25_000, 0],
+        ];
+        let straight_render = SoftwareCameraRenderer::render(&straight, 1, clocks()).unwrap();
+        let curved_render = SoftwareCameraRenderer::render(&curved, 1, clocks()).unwrap();
+        assert_ne!(
+            straight_render.policy_receipt.frame_sha256,
+            curved_render.policy_receipt.frame_sha256
+        );
+    }
+
+    #[test]
+    fn total_road_point_budget_is_enforced() {
+        let mut world = snapshot();
+        world.road_markings.clear();
+        let points = vec![[0, 10_000, 0], [0, 11_000, 0]];
+        let per_marking = MAX_POINTS_PER_MARKING;
+        let mut remaining = MAX_TOTAL_ROAD_POINTS + 1;
+        let mut index = 0_u32;
+        while remaining > 0 {
+            let count = remaining.min(per_marking);
+            let mut polyline_points = vec![[0, 10_000, 0]; count];
+            polyline_points[0] = points[0];
+            polyline_points[count - 1] = points[1];
+            world.road_markings.push(RoadPolyline {
+                road_id: format!("road-{index}"),
+                marking_id: format!("marking-{index}"),
+                kind: RoadMarkingKind::LaneWhite,
+                points_world_mm: polyline_points,
+            });
+            remaining -= count;
+            index += 1;
+        }
+        assert_eq!(
+            SoftwareCameraRenderer::render(&world, 1, clocks()).err(),
+            Some(RenderError::TooManyRoadPoints)
         );
     }
 
@@ -1361,7 +1419,10 @@ mod tests {
         let second = SoftwareCameraRenderer::render(&reordered, 1, clocks()).unwrap();
         assert_eq!(first.pixels_rgb, second.pixels_rgb);
         assert_eq!(first.policy_receipt, second.policy_receipt);
-        assert_eq!(first.evaluator_audit, second.evaluator_audit);
+        assert_eq!(
+            SoftwareCameraRenderer::audit_snapshot(&first_snapshot).unwrap(),
+            SoftwareCameraRenderer::audit_snapshot(&reordered).unwrap()
+        );
     }
 
     #[test]
@@ -1459,8 +1520,9 @@ mod tests {
         let policy_debug = format!("{:?}", result.policy_receipt);
         assert!(!policy_debug.contains("lead"));
         assert!(!policy_debug.contains("road-1"));
-        assert_eq!(result.evaluator_audit.actor_ids, vec!["lead"]);
-        assert_eq!(result.evaluator_audit.road_ids, vec!["road-1"]);
+        let audit = SoftwareCameraRenderer::audit_snapshot(&snapshot()).unwrap();
+        assert_eq!(audit.actor_ids, vec!["lead", "pedestrian-1"]);
+        assert_eq!(audit.road_ids, vec!["road-1"]);
     }
 
     #[test]
@@ -1631,6 +1693,7 @@ mod tests {
     fn policy_receipt_does_not_include_evaluator_world_digest() {
         let result = SoftwareCameraRenderer::render(&snapshot(), 1, clocks()).unwrap();
         let policy_debug = format!("{:?}", result.policy_receipt);
-        assert!(!policy_debug.contains(&result.evaluator_audit.world_snapshot_sha256));
+        let audit = SoftwareCameraRenderer::audit_snapshot(&snapshot()).unwrap();
+        assert!(!policy_debug.contains(&audit.world_snapshot_sha256));
     }
 }
