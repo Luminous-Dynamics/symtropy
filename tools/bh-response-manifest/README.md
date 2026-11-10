@@ -126,3 +126,7 @@ These are distinct from `aligned_samples_sha256` (the resulting aligned sample s
 
 For qualification, **every listed method must participate in at least one accepted paired comparison**; an unreferenced method cannot be counted toward independent evidence. Each response-window ID has one pairwise comparison record. For three or more representations, create one pair-specific response-window record per comparison (the `causal_region` may be the same, but each `window_id` is unique), so each pair has its own error, norm and limit.
 
+## v0.2 example
+
+`examples/paired-comparison-v0.2.json` is a complete serialization fixture for an independently cross-checked direct-PDE / frequency-Green comparison. Its hash strings and numerical error are illustrative placeholders, not execution receipts or scientific measurements. The Rust unit suite parses and validates this fixture end-to-end; real run manifests must replace every placeholder with digests recomputed from preserved bytes.
+
