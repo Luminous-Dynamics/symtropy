@@ -118,6 +118,7 @@ pub enum RejectionReason {
     SemanticEquivalenceUnknown,
     EvidenceRiskFloorNotMet,
     AnalyticAnchorMissing,
+    IndependentValidationReceiptMissing,
     InsufficientIndependentValidationPaths,
     EvidenceSyntheticOnly,
     EvidenceUnqualified,
@@ -530,6 +531,17 @@ fn rejection_reasons(
         }
     }
 
+    if candidate.evidence_class == EvidenceClass::AnalyticOracle
+        && candidate.analytic_anchor_sha256.is_none()
+    {
+        reasons.push(RejectionReason::AnalyticAnchorMissing);
+    }
+    if candidate.evidence_class == EvidenceClass::IndependentlyValidated
+        && candidate.independent_validation_receipt_sha256s.is_empty()
+    {
+        reasons.push(RejectionReason::IndependentValidationReceiptMissing);
+    }
+
     match input.decision_risk {
         DecisionRisk::Exploratory => match candidate.evidence_class {
             EvidenceClass::AnalyticOracle
@@ -665,7 +677,7 @@ mod tests {
             semantic_equivalence: SemanticEquivalence::Matched,
             evidence_class: EvidenceClass::IndependentlyValidated,
             analytic_anchor_sha256: None,
-            independent_validation_receipt_sha256s: vec![],
+            independent_validation_receipt_sha256s: vec![H2.to_owned()],
             validity: ValidityDisposition::InsideDeclaredEnvelope,
             horizon_covered: true,
             hard_constraints: HardConstraintDisposition::WithinBounds,
@@ -749,6 +761,24 @@ mod tests {
                     .rejection_reasons
                     .contains(&RejectionReason::EvidenceSyntheticOnly)
         }));
+    }
+
+    #[test]
+    fn evidence_class_requires_its_matching_receipt() {
+        let mut data = input();
+        data.candidates[0].independent_validation_receipt_sha256s.clear();
+        data.candidates[1].analytic_anchor_sha256 = None;
+        let receipt = evaluate(&data).expect("well-formed but incomplete evidence");
+        let fast = receipt.evaluations.iter().find(|item| item.model_id == "fast-qualified").expect("fast");
+        let slow = receipt.evaluations.iter().find(|item| item.model_id == "slow-qualified").expect("slow");
+        assert!(fast.rejection_reasons.contains(&RejectionReason::IndependentValidationReceiptMissing));
+        assert!(slow.rejection_reasons.contains(&RejectionReason::AnalyticAnchorMissing));
+        assert_eq!(
+            receipt.decision,
+            PolicyDecision::Abstain {
+                reason: AbstentionReason::NoAdmissibleCandidate
+            }
+        );
     }
 
     #[test]
