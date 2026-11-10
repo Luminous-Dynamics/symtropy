@@ -1,0 +1,388 @@
+{
+  "schema_version": "0.1.0",
+  "protocol_id": "RESOURCE-NORMALIZED-DRIVING-CAPABILITY-001",
+  "as_of": "2026-11-10",
+  "status": "specification_only_no_model_runs",
+  "issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4639",
+  "related_owners": {
+    "environment": "https://github.com/Luminous-Dynamics/symtropy/issues/4536",
+    "renderer": "https://github.com/Luminous-Dynamics/symtropy/pull/4616",
+    "learner": "https://github.com/Luminous-Dynamics/symthaea/issues/11414",
+    "visual_input_bridge": "https://github.com/Luminous-Dynamics/symthaea/pull/11480",
+    "experience_selection": "https://github.com/Luminous-Dynamics/symtropy/issues/4550"
+  },
+  "claim_ceiling": "Protocol only. No model, renderer, driving performance, safety or transfer result is claimed by this manifest.",
+  "hypotheses": [
+    "A learned visual front-end with structured HDC scene binding and continuous-time HDC-LTC/CfC memory can improve temporal irregularity, memory efficiency, missing-sensor robustness or adaptation cost versus matched compact recurrent and transformer baselines.",
+    "Action-conditioned latent prediction can improve closed-loop decision quality only when trained/evaluated on action-observation transitions under matched data and compute.",
+    "Decision-sensitive experience selection can reach a frozen competence gate with fewer simulator transitions or human intervention minutes than uniform sampling without worsening worst-family constraints."
+  ],
+  "comparison_views": [
+    {
+      "id": "matched_capability",
+      "description": "Same benchmark, evaluator, data/split, policy-visible inputs, action interface, scenario exposure and hardware where feasible."
+    },
+    {
+      "id": "capability_frontier",
+      "description": "Native task score plotted against measured inference energy, p99 latency, memory, training compute, simulator transitions and human correction effort."
+    }
+  ],
+  "model_arms": [
+    {
+      "id": "A",
+      "name": "legacy_state_hdc_ltc",
+      "input": "20 engineered vehicle-state channels",
+      "temporal_core": "HDC-LTC",
+      "training": "PD-teacher baseline",
+      "status": "existing_reference"
+    },
+    {
+      "id": "B",
+      "name": "vision_manifold_vehicle_fusion",
+      "input": "RGB/grayscale/RGBA frame plus permitted vehicle state",
+      "temporal_core": "Vision Manifold + vehicle HDC representation",
+      "training": "not a trained policy; representation control only",
+      "status": "input_bridge_only"
+    },
+    {
+      "id": "C",
+      "name": "compact_visual_gru_lstm",
+      "input": "same learned visual features and vehicle-state channels",
+      "temporal_core": "GRU or LSTM",
+      "training": "matched demonstrations and closed-loop transitions",
+      "status": "planned"
+    },
+    {
+      "id": "D",
+      "name": "compact_visual_transformer",
+      "input": "same learned visual features and vehicle-state channels",
+      "temporal_core": "compact transformer",
+      "training": "matched demonstrations and closed-loop transitions",
+      "status": "planned"
+    },
+    {
+      "id": "E",
+      "name": "visual_hdc_ltc_hybrid",
+      "input": "learned visual features + structured HDC scene representation",
+      "temporal_core": "HDC-LTC/CfC",
+      "training": "matched demonstrations and closed-loop transitions",
+      "status": "planned"
+    },
+    {
+      "id": "F",
+      "name": "hybrid_action_conditioned_world_model",
+      "input": "E plus action-conditioned latent state transitions",
+      "temporal_core": "HDC-LTC/CfC + latent dynamics",
+      "training": "matched transition corpus",
+      "status": "planned"
+    },
+    {
+      "id": "G",
+      "name": "hybrid_decision_sensitive_learning",
+      "input": "F plus qualified decision-sensitive query interface",
+      "temporal_core": "same as F; sampler varies",
+      "training": "matched total simulator and human-label budgets",
+      "status": "planned"
+    },
+    {
+      "id": "H",
+      "name": "industry_teacher_student_comparator",
+      "input": "publicly documented model inputs and permissions",
+      "temporal_core": "Alpamayo 2 Edge/Super where accessible",
+      "training": "record actual weights, licences, distillation and data",
+      "status": "availability_dependent"
+    },
+    {
+      "id": "HUMAN",
+      "name": "human_demonstration_reference",
+      "input": "consented virtual instructor observations and controls",
+      "temporal_core": "human driver",
+      "training": "reference distribution only; not an autonomous policy",
+      "status": "planned"
+    }
+  ],
+  "comparator_register": [
+    {
+      "id": "bench2drive_v004_lead",
+      "class": "closed_loop_benchmark_result",
+      "name": "Bench2Drive v0.0.4 LEAD",
+      "metric_values": {
+        "driving_score": 95.59,
+        "success_rate_percent": 87.28,
+        "efficiency": 201.55,
+        "comfort": 20.56
+      },
+      "protocol": "v0.0.4 tagged repository table",
+      "source": "https://github.com/Thinklab-SJTU/Bench2Drive/blob/0.0.4/README.md",
+      "independent_symtropy_reproduction": false
+    },
+    {
+      "id": "driveworld_vla_2026",
+      "class": "paper_reported_result",
+      "name": "DriveWorld-VLA ICML 2026",
+      "metric_values": {
+        "navsimv1_pdms": 91.3,
+        "navsimv2_epdms": 86.8,
+        "nuscenes_3s_average_collision_rate": 0.16
+      },
+      "protocol": "paper-specific NAVSIMv1/NAVSIMv2/nuScenes protocols; do not pool metrics",
+      "source": "https://proceedings.mlr.press/v306/jia26f.html",
+      "independent_symtropy_reproduction": false
+    },
+    {
+      "id": "world_in_world_2026",
+      "class": "benchmark_platform",
+      "name": "World-In-World ICLR 2026",
+      "metric_values": null,
+      "protocol": "closed-loop task success, action-conditioned controllability and action-observation post-training",
+      "source": "https://proceedings.iclr.cc/paper_files/paper/2026/hash/5b4263be85820683d78675cc18d2efc7-Abstract-Conference.html",
+      "independent_symtropy_reproduction": false
+    },
+    {
+      "id": "alpamayo_2_edge_2026_11_10",
+      "class": "industry_platform_capability",
+      "name": "NVIDIA Alpamayo 2 Edge",
+      "metric_values": null,
+      "capabilities": [
+        "2B reasoning VLA",
+        "adaptive reasoning",
+        "surround-camera temporal context and navigation inputs",
+        "Super-generated reasoning distillation labels",
+        "AlpaGym closed-loop RL",
+        "DRIVE AGX Thor target",
+        "TensorRT and speculative decoding acceleration"
+      ],
+      "source": "https://developer.nvidia.com/blog/running-av-reasoning-models-within-onboard-compute-and-latency-limits/",
+      "independent_symtropy_reproduction": false
+    },
+    {
+      "id": "alpamayo_2_super_2026",
+      "class": "industry_teacher_model",
+      "name": "NVIDIA Alpamayo 2 Super",
+      "metric_values": null,
+      "capabilities": [
+        "34B reasoning model",
+        "trajectory generation",
+        "Chain-of-Causation labels",
+        "auto-labeling"
+      ],
+      "source": "https://developer.nvidia.com/blog/generate-trajectories-reasoning-traces-and-auto-labels-with-nvidia-alpamayo-2-super/",
+      "independent_symtropy_reproduction": false
+    },
+    {
+      "id": "waymo_safety_impact_june_2026",
+      "class": "operational_safety_evidence",
+      "name": "Waymo Driver safety impact dashboard",
+      "metric_values": {
+        "rider_only_miles_millions": 271.3,
+        "serious_injury_or_worse_crash_reduction_percent": 95,
+        "injury_causing_crash_reduction_percent": 82
+      },
+      "protocol": "company-published retrospective, location-adjusted human crash benchmark; separate from formal pre-deployment safety case",
+      "source": "https://waymo.com/safety/impact/",
+      "independent_symtropy_reproduction": false
+    }
+  ],
+  "benchmark_ladder": [
+    {
+      "id": "analytic_control_fixtures",
+      "priority": 1,
+      "task": "analytic steering/braking, coordinate frames, camera projection and metamorphic tests",
+      "metric_family": [
+        "exact_fixture_agreement",
+        "negative_control_rejection"
+      ]
+    },
+    {
+      "id": "offscreen_observation",
+      "priority": 2,
+      "task": "20+ tick immutable action-linked camera observations",
+      "metric_family": [
+        "frame_digest_replay",
+        "observation_receipt_integrity",
+        "freshness_and_missingness"
+      ]
+    },
+    {
+      "id": "fresh_process_replay",
+      "priority": 3,
+      "task": "fresh-process frame, bridge and action/transition replay",
+      "metric_family": [
+        "pixel_digest_exactness",
+        "fused_input_digest_exactness",
+        "branch_receipt_completeness"
+      ]
+    },
+    {
+      "id": "internal_apprenticeship",
+      "priority": 4,
+      "task": "matched model arms on held-out maps and scenario families",
+      "metric_family": [
+        "route_success",
+        "worst_family_success",
+        "interventions_per_skill_gate",
+        "calibration"
+      ]
+    },
+    {
+      "id": "bench2drive_v004",
+      "priority": 5,
+      "task": "Bench2Drive v0.0.4 closed-loop",
+      "metric_family": [
+        "native_driving_score",
+        "native_success_rate",
+        "efficiency",
+        "comfort"
+      ]
+    },
+    {
+      "id": "bench2drive_robust",
+      "priority": 6,
+      "task": "Bench2Drive-Robust system perturbations",
+      "metric_family": [
+        "camera_dropout",
+        "localization_noise",
+        "inference_delay",
+        "fault_family_success"
+      ]
+    },
+    {
+      "id": "navsim_v2",
+      "priority": 7,
+      "task": "NAVSIM v2 native protocol; preserve end-to-end and planning tracks separately",
+      "metric_family": [
+        "native_pdms_or_epdms",
+        "native_task_success"
+      ]
+    },
+    {
+      "id": "world_in_world",
+      "priority": 8,
+      "task": "closed-loop action-conditioned world model utility",
+      "metric_family": [
+        "task_success",
+        "controllability",
+        "action_observation_scaling"
+      ]
+    },
+    {
+      "id": "hil_closed_course",
+      "priority": 9,
+      "task": "staged hardware-in-the-loop and closed-course validation under independent authority",
+      "metric_family": [
+        "instrumented_fault_response",
+        "fallback_integrity",
+        "independent_safety_case"
+      ]
+    },
+    {
+      "id": "operational_safety",
+      "priority": 10,
+      "task": "eventual fleet-scale mileage and incident-rate analysis after formal safety case",
+      "metric_family": [
+        "exposure_normalized_incident_rates",
+        "confidence_intervals",
+        "operational_coverage"
+      ]
+    }
+  ],
+  "budget_dimensions": [
+    "trainable_parameter_count",
+    "dataset_revision_and_frame_count",
+    "unique_episode_count",
+    "simulator_transition_count",
+    "human_demonstration_hours",
+    "human_intervention_count_and_minutes",
+    "teacher_generated_label_count",
+    "training_wall_clock_hours",
+    "training_gpu_hours",
+    "training_energy_kwh_measured",
+    "inference_flops_or_tokens_if_available",
+    "inference_energy_joules_per_frame_measured",
+    "inference_energy_per_successful_episode_measured",
+    "inference_p50_p95_p99_latency_ms",
+    "deadline_miss_rate",
+    "peak_memory_bytes",
+    "precision_and_quantization",
+    "accelerator_and_power_profile",
+    "perception_world_model_planning_rta_overhead"
+  ],
+  "outcome_families": [
+    "native_benchmark_metrics",
+    "route_and_task_success",
+    "worst_family_and_lower_tail_performance",
+    "vulnerable_road_user_interaction",
+    "contacts_collisions_and_rule_violations_under_simulator_semantics",
+    "comfort_jerk_and_path_tracking",
+    "action_conditioned_prediction_error_and_calibration",
+    "counterfactual_action_ranking_regret",
+    "sensor_dropout_staleness_and_asynchrony_robustness",
+    "fallback_recoverability_and_residual_decision_time",
+    "inference_and_recovery_latency",
+    "training_and_inference_energy",
+    "memory_and_model_size",
+    "human_correction_minutes_and_simulator_transitions",
+    "replay_integrity_and_evidence_completeness"
+  ],
+  "prospective_targets": {
+    "status": "not_measured",
+    "exact_analytic_fixture_agreement_percent": 100,
+    "expected_episode_denominator_accounting_percent": 100,
+    "hidden_privilege_leaks_allowed": 0,
+    "uniform_sampling_transition_or_human_minutes_reduction_percent": 20,
+    "matched_competitor_score_non_inferiority_margin_native_points": 1.5,
+    "matched_competitor_inference_energy_fraction_max": 0.5,
+    "hdc_ltc_advantage_dimensions_required": 1,
+    "note": "All thresholds are prospective, not measured, and not safety requirements."
+  },
+  "required_negative_controls": [
+    "policy_receives_evaluator_only_world_or_actor_truth",
+    "teacher_inputs_or_future_outcomes_leak_into_frozen_evaluation",
+    "stale_or_missing_camera_frame_relabelled_as_fresh",
+    "render_completion_timestamp_substituted_for_capture_timestamp",
+    "unmatched_teacher_labels_or_pretraining_left_unaccounted",
+    "baseline_gets_weaker_input_or_compute",
+    "model_or_checkpoint_mutates_during_frozen_evaluation",
+    "average_score_hides_worst_family_regression",
+    "active_sampler_uses_more_labels_or_transitions_without_accounting",
+    "renderer_or_simulator_revision_changes_without_new_experiment_identity"
+  ],
+  "sources": [
+    {
+      "id": "bench2drive_v004",
+      "url": "https://github.com/Thinklab-SJTU/Bench2Drive/blob/0.0.4/README.md",
+      "published": "2026-08-06",
+      "source_type": "tagged benchmark repository"
+    },
+    {
+      "id": "driveworld_vla",
+      "url": "https://proceedings.mlr.press/v306/jia26f.html",
+      "published": "2026-07",
+      "source_type": "ICML 2026 proceedings"
+    },
+    {
+      "id": "world_in_world",
+      "url": "https://proceedings.iclr.cc/paper_files/paper/2026/hash/5b4263be85820683d78675cc18d2efc7-Abstract-Conference.html",
+      "published": "2026-04",
+      "source_type": "ICLR 2026 proceedings"
+    },
+    {
+      "id": "alpamayo_edge",
+      "url": "https://developer.nvidia.com/blog/running-av-reasoning-models-within-onboard-compute-and-latency-limits/",
+      "published": "2026-11-10",
+      "source_type": "NVIDIA technical blog"
+    },
+    {
+      "id": "alpamayo_super",
+      "url": "https://developer.nvidia.com/blog/generate-trajectories-reasoning-traces-and-auto-labels-with-nvidia-alpamayo-2-super/",
+      "published": "2026-08-04",
+      "source_type": "NVIDIA technical blog"
+    },
+    {
+      "id": "waymo_safety",
+      "url": "https://waymo.com/safety/impact/",
+      "published": "live dashboard through 2026-06",
+      "source_type": "company operational safety dashboard"
+    }
+  ]
+}
