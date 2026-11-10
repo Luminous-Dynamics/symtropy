@@ -43,7 +43,7 @@ impl ObjectiveDirection {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct PreferenceCriterion {
     pub metric: OutcomeMetric,
     pub direction: ObjectiveDirection,
@@ -444,7 +444,6 @@ pub fn analyze_preference_robustness(
     let mut scenario_consensus = Vec::new();
     let mut scenario_keys = Vec::new();
     let mut scenario_policy_eligibility = BTreeMap::new();
-    let mut scenario_policy_utility = BTreeMap::new();
     let mut scenario_profile_regrets = BTreeMap::new();
     let mut scenario_profile_winners = BTreeMap::new();
     let mut no_feasible_scenario_profile_count = 0;
@@ -454,7 +453,6 @@ pub fn analyze_preference_robustness(
         for shock in ShockKind::ALL {
             let scenario_key = (design_id.clone(), shock.name().to_string());
             scenario_keys.push(scenario_key.clone());
-            let mut all_metrics = Vec::<(String, RunMetrics)>::new();
             let mut statuses = BTreeMap::new();
             let mut utilities = BTreeMap::new();
             for policy in InterventionPolicy::ALL {
@@ -473,10 +471,6 @@ pub fn analyze_preference_robustness(
                     ),
                     eligibility,
                 );
-                if let Some(metrics) = run.metrics {
-                    all_metrics.push((policy.name().to_string(), metrics));
-                }
-                utilities.insert(policy.name().to_string(), run.metrics);
             }
             let feasible_metrics = InterventionPolicy::ALL
                 .iter()
@@ -502,10 +496,10 @@ pub fn analyze_preference_robustness(
                     .values()
                     .filter(|status| **status == PolicyEligibility::Unknown)
                     .count();
-                let scenario_status = if feasible_count > 0 {
-                    PolicyScenarioStatus::Comparable
-                } else if unknown_count > 0 {
+                let scenario_status = if unknown_count > 0 {
                     PolicyScenarioStatus::IncompleteComparison
+                } else if feasible_count > 0 {
+                    PolicyScenarioStatus::Comparable
                 } else {
                     PolicyScenarioStatus::NoFeasiblePolicy
                 };
@@ -530,20 +524,15 @@ pub fn analyze_preference_robustness(
                     if let Some(value) = utility {
                         profile_utilities.insert(policy.name().to_string(), value);
                     }
-                    scenario_policy_utility.insert(
-                        (
-                            design_id.clone(),
-                            shock.name().to_string(),
-                            profile.profile_id.clone(),
-                            policy.name().to_string(),
-                        ),
-                        utility,
-                    );
                 }
-                let best_utility = feasible_metrics
-                    .iter()
-                    .map(|(policy, _)| profile_utilities[policy])
-                    .max_by(f64::total_cmp);
+                let best_utility = if scenario_status == PolicyScenarioStatus::Comparable {
+                    feasible_metrics
+                        .iter()
+                        .map(|(policy, _)| profile_utilities[policy])
+                        .max_by(f64::total_cmp)
+                } else {
+                    None
+                };
                 let mut best_policy_ids = Vec::new();
                 for policy in InterventionPolicy::ALL {
                     let policy_id = policy.name().to_string();
@@ -580,7 +569,9 @@ pub fn analyze_preference_robustness(
                         normalized_utility: utility,
                         regret,
                         tied_best,
-                        pareto_nondominated: if eligibility == PolicyEligibility::Feasible {
+                        pareto_nondominated: if eligibility == PolicyEligibility::Feasible
+                            && scenario_status == PolicyScenarioStatus::Comparable
+                        {
                             pareto.get(&policy_id).copied()
                         } else {
                             None
@@ -588,14 +579,6 @@ pub fn analyze_preference_robustness(
                         feasible_policy_count: feasible_count,
                         scenario_status,
                     });
-                    *scenario_policy_utility
-                        .get_mut(&(
-                            design_id.clone(),
-                            shock.name().to_string(),
-                            profile.profile_id.clone(),
-                            policy_id,
-                        ))
-                        .expect("utility key inserted") = utility;
                 }
                 scenario_winners.push(PreferenceScenarioWinner {
                     design_point_id: design_id.clone(),
@@ -617,9 +600,9 @@ pub fn analyze_preference_robustness(
             }
 
             let mut union_winners = BTreeSet::new();
-            let mut profiles_with_disagreement = 0;
-            let mut first_single_winner: Option<String> = None;
-            let mut unanimous = true;
+            let mut profiles_with_different_winners = 0;
+            let mut first_winner_set: Option<Vec<String>> = None;
+            let mut unanimous_single = true;
             let mut profiles_with_winner = 0;
             for profile in &contract.vertices {
                 let winners = &scenario_profile_winners[&(
@@ -627,27 +610,23 @@ pub fn analyze_preference_robustness(
                     shock.name().to_string(),
                     profile.profile_id.clone(),
                 )];
-                if winners.len() == 1 {
+                if !winners.is_empty() {
                     profiles_with_winner += 1;
-                    let winner = winners[0].clone();
-                    union_winners.insert(winner.clone());
-                    match &first_single_winner {
-                        None => first_single_winner = Some(winner),
-                        Some(previous) if previous == &winner => {}
-                        Some(_) => unanimous = false,
-                    }
-                } else if winners.is_empty() {
-                    unanimous = false;
-                } else {
-                    profiles_with_disagreement += 1;
                     union_winners.extend(winners.iter().cloned());
-                    unanimous = false;
+                }
+                match &first_winner_set {
+                    None => first_winner_set = Some(winners.clone()),
+                    Some(previous) if previous == winners => {}
+                    Some(_) => profiles_with_different_winners += 1,
+                }
+                if winners.len() != 1 {
+                    unanimous_single = false;
                 }
             }
-            let unanimous_single_winner = if unanimous
+            let unanimous_single_winner = if unanimous_single
                 && profiles_with_winner == contract.vertices.len()
             {
-                first_single_winner
+                first_winner_set.and_then(|winners| winners.into_iter().next())
             } else {
                 None
             };
@@ -657,7 +636,7 @@ pub fn analyze_preference_robustness(
                 profile_count: contract.vertices.len(),
                 profiles_with_winner,
                 distinct_winner_policy_count: union_winners.len(),
-                profiles_with_different_winners: profiles_with_disagreement,
+                profiles_with_different_winners,
                 unanimous_single_winner,
             });
         }
