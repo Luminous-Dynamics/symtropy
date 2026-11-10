@@ -310,6 +310,82 @@ pub struct KerrMinoDerivative {
 }
 
 
+
+/// Unit photon propagation direction in a local orthonormal observer frame.
+///
+/// Components are resolved along the ZAMO radial, increasing-theta, and
+/// increasing-azimuthal basis vectors. The vector is future-directed when
+/// paired with the positive local energy used by the observer constructor.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct KerrLocalSkyDirection {
+    pub radial: f64,
+    pub polar: f64,
+    pub azimuthal: f64,
+}
+
+impl KerrLocalSkyDirection {
+    pub fn new(
+        radial: f64,
+        polar: f64,
+        azimuthal: f64,
+    ) -> Result<Self, KerrGeodesicError> {
+        let norm_squared = radial * radial + polar * polar + azimuthal * azimuthal;
+        if !radial.is_finite() || !polar.is_finite() || !azimuthal.is_finite() {
+            return Err(KerrGeodesicError::InvalidSkyDirection {
+                radial,
+                polar,
+                azimuthal,
+                norm_squared,
+            });
+        }
+        if (norm_squared - 1.0).abs() > 256.0 * f64::EPSILON {
+            return Err(KerrGeodesicError::InvalidSkyDirection {
+                radial,
+                polar,
+                azimuthal,
+                norm_squared,
+            });
+        }
+        Ok(Self { radial, polar, azimuthal })
+    }
+}
+
+/// ZAMO orthonormal tetrad in dimensionless Boyer-Lindquist coordinates.
+///
+/// Each tetrad vector is contravariant and ordered as
+/// [ct/M, r/M, theta, phi]. The lapse, frame-dragging angular velocity, and
+/// azimuthal proper length are dimensionless in M=1 units.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct KerrZamoTetrad {
+    pub timelike: [f64; 4],
+    pub radial: [f64; 4],
+    pub polar: [f64; 4],
+    pub azimuthal: [f64; 4],
+    pub lapse: f64,
+    pub frame_dragging_angular_velocity: f64,
+    pub sqrt_g_phi_phi: f64,
+}
+
+/// A finite-radius zero-angular-momentum observer outside the Kerr horizon.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct KerrFiniteRadiusObserver {
+    hole: KerrBlackHole,
+    radius_over_m: f64,
+    theta_rad: f64,
+    tetrad: KerrZamoTetrad,
+}
+
+/// Ray initial data produced by a finite-radius local observer.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct KerrObserverRaySeed {
+    pub constants: KerrNullConstants,
+    pub initial_state: KerrMinoDynamicState,
+    /// Killing energy at infinity per unit local ZAMO photon energy.
+    pub infinity_energy_per_unit_local_energy: f64,
+    pub local_direction: KerrLocalSkyDirection,
+}
+
+
 /// Second-order state for turning-point-regular Mino evolution.
 ///
 /// The first integrals impose
@@ -434,6 +510,13 @@ pub enum KerrGeodesicError {
         actual_theta_potential: f64,
         expected_beta_squared: f64,
     },
+    InvalidSkyDirection {
+        radial: f64,
+        polar: f64,
+        azimuthal: f64,
+        norm_squared: f64,
+    },
+    NegativeKillingEnergy(f64),
     NoRegularIngoingBranch {
         p_plus: f64,
     },
@@ -500,6 +583,14 @@ impl fmt::Display for KerrGeodesicError {
             Self::ScreenMapInconsistent { actual_theta_potential, expected_beta_squared } => write!(
                 f,
                 "screen map gives Theta={actual_theta_potential}, expected beta^2={expected_beta_squared}"
+            ),
+            Self::InvalidSkyDirection { radial, polar, azimuthal, norm_squared } => write!(
+                f,
+                "local sky direction must be a finite unit 3-vector: ({radial},{polar},{azimuthal}), norm^2={norm_squared}"
+            ),
+            Self::NegativeKillingEnergy(value) => write!(
+                f,
+                "future-directed local photon has non-positive Killing energy at infinity: {value}"
             ),
             Self::NoRegularIngoingBranch { p_plus } => write!(
                 f,
@@ -1414,6 +1505,183 @@ impl KerrSeparatedNullGeodesic {
     }
 }
 
+
+impl KerrFiniteRadiusObserver {
+    /// Construct a ZAMO tetrad at a finite Boyer-Lindquist event outside r_+.
+    pub fn new(
+        hole: KerrBlackHole,
+        radius_over_m: f64,
+        theta_rad: f64,
+    ) -> Result<Self, KerrGeodesicError> {
+        if !radius_over_m.is_finite() || radius_over_m <= 0.0 {
+            return Err(KerrGeodesicError::InvalidRadius(radius_over_m));
+        }
+        validate_polar_angle(theta_rad)?;
+        let spin = hole.spin().get();
+        let horizon = hole.outer_horizon_radius_m() / hole.gravitational_radius_m();
+        if radius_over_m <= horizon {
+            return Err(KerrGeodesicError::RadiusAtOrInsideHorizon {
+                radius_over_m,
+                horizon_over_m: horizon,
+            });
+        }
+        let r = radius_over_m;
+        let theta = theta_rad;
+        let sin_theta = theta.sin();
+        let cos_theta = theta.cos();
+        let sin_squared = sin_theta * sin_theta;
+        let sigma = r * r + spin * spin * cos_theta * cos_theta;
+        let delta = r * r - 2.0 * r + spin * spin;
+        let a_function = (r * r + spin * spin).powi(2)
+            - spin * spin * delta * sin_squared;
+        let g_t_phi = -2.0 * spin * r * sin_squared / sigma;
+        let g_phi_phi = a_function * sin_squared / sigma;
+        let omega = -g_t_phi / g_phi_phi;
+        let lapse_squared = sigma * delta / a_function;
+        if !sigma.is_finite()
+            || !delta.is_finite()
+            || !a_function.is_finite()
+            || !g_phi_phi.is_finite()
+            || !lapse_squared.is_finite()
+            || sigma <= 0.0
+            || delta <= 0.0
+            || a_function <= 0.0
+            || g_phi_phi <= 0.0
+            || lapse_squared <= 0.0
+        {
+            return Err(KerrGeodesicError::NonFinite("ZAMO_tetrad_metric_factors"));
+        }
+        let lapse = lapse_squared.sqrt();
+        let sqrt_g_phi_phi = g_phi_phi.sqrt();
+        let tetrad = KerrZamoTetrad {
+            timelike: [1.0 / lapse, 0.0, 0.0, omega / lapse],
+            radial: [0.0, (delta / sigma).sqrt(), 0.0, 0.0],
+            polar: [0.0, 0.0, 1.0 / sigma.sqrt(), 0.0],
+            azimuthal: [0.0, 0.0, 0.0, 1.0 / sqrt_g_phi_phi],
+            lapse,
+            frame_dragging_angular_velocity: omega,
+            sqrt_g_phi_phi,
+        };
+        if [
+            tetrad.timelike,
+            tetrad.radial,
+            tetrad.polar,
+            tetrad.azimuthal,
+        ]
+        .iter()
+        .flatten()
+        .any(|value| !value.is_finite())
+        {
+            return Err(KerrGeodesicError::NonFinite("ZAMO_tetrad"));
+        }
+        Ok(Self {
+            hole,
+            radius_over_m,
+            theta_rad,
+            tetrad,
+        })
+    }
+
+    pub const fn tetrad(self) -> KerrZamoTetrad {
+        self.tetrad
+    }
+
+    pub const fn radius_over_m(self) -> f64 {
+        self.radius_over_m
+    }
+
+    pub const fn theta_rad(self) -> f64 {
+        self.theta_rad
+    }
+
+    /// Convert a local future-directed photon direction into E=1 Carter
+    /// constants and a turning-point-ready Mino initial state.
+    ///
+    /// The local photon energy is set to one. The resulting conserved
+    /// energy at infinity is then used to normalize the constants to E=1.
+    /// Negative-Killing-energy rays inside the ergoregion are rejected by
+    /// this API because KerrNullConstants currently represents E>0 rays.
+    pub fn ray_seed(
+        self,
+        direction: KerrLocalSkyDirection,
+    ) -> Result<KerrObserverRaySeed, KerrGeodesicError> {
+        let tetrad = self.tetrad;
+        let p_contravariant = core::array::from_fn(|mu| {
+            tetrad.timelike[mu]
+                + direction.radial * tetrad.radial[mu]
+                + direction.polar * tetrad.polar[mu]
+                + direction.azimuthal * tetrad.azimuthal[mu]
+        });
+        let r = self.radius_over_m;
+        let theta = self.theta_rad;
+        let a = self.hole.spin().get();
+        let sin_theta = theta.sin();
+        let cos_theta = theta.cos();
+        let sin_squared = sin_theta * sin_theta;
+        let sigma = r * r + a * a * cos_theta * cos_theta;
+        let g_tt = -(1.0 - 2.0 * r / sigma);
+        let g_t_phi = -2.0 * a * r * sin_squared / sigma;
+        let delta = r * r - 2.0 * r + a * a;
+        let g_phi_phi = tetrad.sqrt_g_phi_phi.powi(2);
+        let p_t = g_tt * p_contravariant[0] + g_t_phi * p_contravariant[3];
+        let p_phi = g_t_phi * p_contravariant[0] + g_phi_phi * p_contravariant[3];
+        let p_theta = sigma * p_contravariant[2];
+        let energy_at_infinity = -p_t;
+        if !energy_at_infinity.is_finite() || energy_at_infinity <= 0.0 {
+            return Err(KerrGeodesicError::NegativeKillingEnergy(energy_at_infinity));
+        }
+        let angular_momentum = p_phi / energy_at_infinity;
+        let carter = (p_theta / energy_at_infinity).powi(2)
+            + cos_theta.powi(2)
+                * (angular_momentum.powi(2) / sin_squared - a * a);
+        let constants = KerrNullConstants::new(1.0, angular_momentum, carter)?;
+        let geodesic = KerrSeparatedNullGeodesic::new(self.hole, constants);
+        let radial_potential = geodesic.radial_potential(r)?;
+        let polar_potential = geodesic.polar_potential(theta)?;
+        let scale = 1.0 + radial_potential.abs() + polar_potential.abs();
+        if radial_potential < -512.0 * f64::EPSILON * scale {
+            return Err(KerrGeodesicError::ForbiddenRadialRegion {
+                radius_over_m: r,
+                radial_potential,
+            });
+        }
+        if polar_potential < -512.0 * f64::EPSILON * scale {
+            return Err(KerrGeodesicError::ForbiddenPolarRegion {
+                theta_rad: theta,
+                polar_potential,
+            });
+        }
+        let radial_sign = direction.radial.signum();
+        let polar_sign = direction.polar.signum();
+        let state = KerrMinoDynamicState::new(
+            KerrMinoState::new(0.0, r, theta, 0.0),
+            radial_sign * radial_potential.max(0.0).sqrt(),
+            polar_sign * polar_potential.max(0.0).sqrt(),
+        );
+        let residuals = geodesic.mino_constraint_residuals(state)?;
+        let radial_relative = normalized_constraint_residual(
+            state.radial_velocity_over_m.powi(2),
+            radial_potential,
+            residuals.radial,
+        );
+        let polar_relative = normalized_constraint_residual(
+            state.polar_velocity_rad.powi(2),
+            polar_potential,
+            residuals.polar,
+        );
+        if radial_relative > 1.0e-10 || polar_relative > 1.0e-10 {
+            return Err(KerrGeodesicError::NonFinite("finite_observer_screen_normalization"));
+        }
+        let _ = delta; // Delta enters the tetrad through sqrt(Delta/Sigma).
+        Ok(KerrObserverRaySeed {
+            constants,
+            initial_state: state,
+            infinity_energy_per_unit_local_energy: energy_at_infinity,
+            local_direction: direction,
+        })
+    }
+}
+
 fn normalized_constraint_residual(first_term: f64, second_term: f64, residual: f64) -> f64 {
     residual.abs() / (1.0 + first_term.abs() + second_term.abs())
 }
@@ -1893,6 +2161,95 @@ mod tests {
         assert!(matches!(
             result,
             Err(KerrMinoIntegrationError::InitialConstraintViolation { .. })
+        ));
+    }
+
+
+    #[test]
+    fn finite_radius_zamo_tetrad_is_orthonormal_for_subextremal_kerr() {
+        for spin in [0.0, 0.5, 0.9, -0.9] {
+            let observer = KerrFiniteRadiusObserver::new(hole(spin), 10.0, 0.8).unwrap();
+            let tetrad = observer.tetrad();
+            let r = 10.0;
+            let theta: f64 = 0.8;
+            let a = spin;
+            let sigma = r * r + a * a * theta.cos().powi(2);
+            let delta = r * r - 2.0 * r + a * a;
+            let sin2 = theta.sin().powi(2);
+            let g = [
+                [-(1.0 - 2.0 * r / sigma), 0.0, 0.0, -2.0 * a * r * sin2 / sigma],
+                [0.0, sigma / delta, 0.0, 0.0],
+                [0.0, 0.0, sigma, 0.0],
+                [-2.0 * a * r * sin2 / sigma, 0.0, 0.0, tetrad.sqrt_g_phi_phi.powi(2)],
+            ];
+            let vectors = [tetrad.timelike, tetrad.radial, tetrad.polar, tetrad.azimuthal];
+            for i in 0..4 {
+                for j in 0..4 {
+                    let mut product = 0.0;
+                    for mu in 0..4 {
+                        for nu in 0..4 {
+                            product += g[mu][nu] * vectors[i][mu] * vectors[j][nu];
+                        }
+                    }
+                    let expected = if i == j { if i == 0 { -1.0 } else { 1.0 } } else { 0.0 };
+                    close(product, expected, 5.0e-13);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn finite_radius_observer_maps_unit_sky_direction_to_null_carter_data() {
+        for spin in [0.0, 0.5, 0.9] {
+            let observer = KerrFiniteRadiusObserver::new(hole(spin), 10.0, 1.0).unwrap();
+            let direction = KerrLocalSkyDirection::new(-0.8, 0.6, 0.0).unwrap();
+            let seed = observer.ray_seed(direction).unwrap();
+            let geodesic = KerrSeparatedNullGeodesic::new(hole(spin), seed.constants);
+            let residual = geodesic.mino_constraint_residuals(seed.initial_state).unwrap();
+            close(residual.radial, 0.0, 2.0e-11);
+            close(residual.polar, 0.0, 2.0e-11);
+            let canonical = KerrCanonicalHamiltonian::new(hole(spin));
+            let state = canonical
+                .state_from_separated(
+                    seed.initial_state.coordinates,
+                    seed.constants,
+                    KerrMinoDirection::Decreasing,
+                    KerrMinoDirection::Increasing,
+                )
+                .unwrap();
+            let h = canonical.evaluate(state).unwrap().hamiltonian;
+            close(h, 0.0, 3.0e-11);
+            assert!(seed.infinity_energy_per_unit_local_energy > 0.0);
+        }
+    }
+
+    #[test]
+    fn finite_radius_screen_mapping_approaches_bardeen_asymptotic_coordinates() {
+        let spin = 0.7;
+        let observer = KerrFiniteRadiusObserver::new(hole(spin), 100_000.0, core::f64::consts::FRAC_PI_2).unwrap();
+        let radial = -(1.0_f64 - 0.006_f64.powi(2) - 0.008_f64.powi(2)).sqrt();
+        let direction = KerrLocalSkyDirection::new(radial, 0.006, -0.008).unwrap();
+        let seed = observer.ray_seed(direction).unwrap();
+        let screen = seed.constants.to_asymptotic_screen(
+            hole(spin),
+            core::f64::consts::FRAC_PI_2,
+            KerrMinoDirection::Increasing,
+        ).unwrap();
+        // The finite-radius impact coordinates tend to (-r*n_phi, r*n_theta)
+        // in the asymptotic limit; errors vanish as 1/r.
+        close(screen.alpha_over_m / 100_000.0, 0.008, 2.0e-4);
+        close(screen.beta_over_m / 100_000.0, 0.006, 2.0e-4);
+    }
+
+    #[test]
+    fn finite_radius_observer_rejects_nonunit_sky_directions_and_axis() {
+        assert!(matches!(
+            KerrLocalSkyDirection::new(0.1, 0.2, 0.3),
+            Err(KerrGeodesicError::InvalidSkyDirection { .. })
+        ));
+        assert!(matches!(
+            KerrFiniteRadiusObserver::new(hole(0.8), 10.0, 0.0),
+            Err(KerrGeodesicError::InvalidPolarAngle(_))
         ));
     }
 
