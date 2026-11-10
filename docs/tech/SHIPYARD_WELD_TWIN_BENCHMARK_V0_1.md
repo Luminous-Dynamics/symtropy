@@ -101,3 +101,14 @@ Initial promotion targets (not achieved results):
 ## Claim ceiling
 
 A synthetic PASS proves only that the declared state/evidence contract behaves correctly on frozen cases. It does not establish weld soundness, WPS/PQR validity, NDT sufficiency, robot physical capability, vessel/structure acceptability, class approval or authority to manufacture/release the item. Qualified welding engineers, inspectors, manufacturers and the governing project specifications remain the acceptance authorities.
+
+
+## Exact enforcement extension — 2026-11-10
+
+Four additional adversarial cases close gaps found during code review:
+- equipment health must be `nominal_synthetic`, not merely calibrated;
+- operator role scope must equal the workpiece's required scope;
+- every pass's parameter-envelope reference must equal the approved procedure's envelope;
+- observed digital-twin update interval must not exceed the declared expected interval.
+
+The frozen corpus is now 46 cases (1 positive, 45 negative). The independent Rust evaluator and unit-test count are updated accordingly. These remain synthetic contract controls, not physical welding process qualifications.
