@@ -1,0 +1,922 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/maritime-operational-context-bundle-v0.1.schema.json",
+  "title": "Maritime Operational Context Bundle corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "corpus_id",
+    "corpus_version",
+    "claim_ceiling",
+    "base_bundle",
+    "cases"
+  ],
+  "properties": {
+    "corpus_id": {
+      "const": "luminous.symtropy.maritime-operational-context-bundle"
+    },
+    "corpus_version": {
+      "const": "0.1.0"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "base_bundle": {
+      "$ref": "#/$defs/bundle"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 30,
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    }
+  },
+  "$defs": {
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_ref",
+        "owner",
+        "revision",
+        "edition",
+        "s100_edition",
+        "artifact_sha256",
+        "source_time_utc",
+        "retrieved_at_utc",
+        "valid_from_utc",
+        "valid_until_utc",
+        "authenticity_state",
+        "terms_state"
+      ],
+      "properties": {
+        "source_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "owner": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "edition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "s100_edition": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "artifact_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "source_time_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "retrieved_at_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "valid_from_utc": {
+          "oneOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "valid_until_utc": {
+          "oneOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "authenticity_state": {
+          "enum": [
+            "unknown",
+            "unverified",
+            "verified_by_owner",
+            "synthetic_fixture"
+          ]
+        },
+        "terms_state": {
+          "enum": [
+            "unknown",
+            "reviewed_permitted",
+            "restricted",
+            "not_applicable_synthetic"
+          ]
+        }
+      }
+    },
+    "product131": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source",
+        "product_id",
+        "product_edition",
+        "s100_edition",
+        "context_kind",
+        "operational_state"
+      ],
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/source"
+        },
+        "product_id": {
+          "const": "S-131"
+        },
+        "product_edition": {
+          "const": "2.0.0"
+        },
+        "s100_edition": {
+          "const": "5.2.0"
+        },
+        "context_kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operational_state": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "product127": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source",
+        "product_id",
+        "product_edition",
+        "s100_edition",
+        "context_kind",
+        "operational_state"
+      ],
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/source"
+        },
+        "product_id": {
+          "const": "S-127"
+        },
+        "product_edition": {
+          "const": "2.0.0"
+        },
+        "s100_edition": {
+          "const": "5.2.0"
+        },
+        "context_kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operational_state": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "product123": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source",
+        "product_id",
+        "product_edition",
+        "s100_edition",
+        "context_kind",
+        "operational_state"
+      ],
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/source"
+        },
+        "product_id": {
+          "const": "S-123"
+        },
+        "product_edition": {
+          "const": "2.0.0"
+        },
+        "s100_edition": {
+          "const": "5.2.0"
+        },
+        "context_kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operational_state": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "product124": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source",
+        "product_id",
+        "product_edition",
+        "s100_edition",
+        "context_kind",
+        "operational_state"
+      ],
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/source"
+        },
+        "product_id": {
+          "const": "S-124"
+        },
+        "product_edition": {
+          "const": "2.0.0"
+        },
+        "s100_edition": {
+          "const": "5.2.0"
+        },
+        "context_kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operational_state": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "product129": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source",
+        "product_id",
+        "product_edition",
+        "s100_edition",
+        "context_kind",
+        "operational_state"
+      ],
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/source"
+        },
+        "product_id": {
+          "const": "S-129"
+        },
+        "product_edition": {
+          "const": "2.0.0"
+        },
+        "s100_edition": {
+          "const": "5.2.0"
+        },
+        "context_kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operational_state": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "berth": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "feature_id",
+        "feature_kind",
+        "availability_state",
+        "live_inventory_source_ref"
+      ],
+      "properties": {
+        "feature_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "feature_kind": {
+          "const": "berth"
+        },
+        "availability_state": {
+          "enum": [
+            "unknown",
+            "not_in_product",
+            "provider_confirmed_available",
+            "provider_confirmed_unavailable"
+          ]
+        },
+        "live_inventory_source_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "traffic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "service_feature_id",
+        "service_kind",
+        "service_area_state",
+        "pilot_assignment_state",
+        "clearance_state"
+      ],
+      "properties": {
+        "service_feature_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "service_kind": {
+          "enum": [
+            "vts_area",
+            "pilot_service",
+            "pilot_boarding_place",
+            "routeing_measure",
+            "ship_reporting_service"
+          ]
+        },
+        "service_area_state": {
+          "const": "descriptive_context"
+        },
+        "pilot_assignment_state": {
+          "enum": [
+            "unknown",
+            "not_assigned",
+            "assigned_by_provider"
+          ]
+        },
+        "clearance_state": {
+          "enum": [
+            "unknown",
+            "not_provided",
+            "provider_confirmed"
+          ]
+        }
+      }
+    },
+    "radio": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "service_area_id",
+        "service_kind",
+        "coverage_state",
+        "live_link_state",
+        "vessel_delivery_state"
+      ],
+      "properties": {
+        "service_area_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "service_kind": {
+          "enum": [
+            "radio_service_area",
+            "navtex",
+            "gmdss",
+            "sar",
+            "weather_warning",
+            "telemedical"
+          ]
+        },
+        "coverage_state": {
+          "const": "declared_coverage_only"
+        },
+        "live_link_state": {
+          "enum": [
+            "not_measured",
+            "measured_available",
+            "measured_unavailable",
+            "unknown"
+          ]
+        },
+        "vessel_delivery_state": {
+          "enum": [
+            "unknown",
+            "received_with_device_receipt"
+          ]
+        }
+      }
+    },
+    "warning": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "warning_key",
+        "lifecycle_state",
+        "bulletin_complete",
+        "bulletin_retrieved_at_utc",
+        "vessel_delivery_state",
+        "delivery_receipt_ref"
+      ],
+      "properties": {
+        "warning_key": {
+          "type": "string",
+          "minLength": 1
+        },
+        "lifecycle_state": {
+          "enum": [
+            "active",
+            "cancelled",
+            "expired",
+            "superseded",
+            "unknown"
+          ]
+        },
+        "bulletin_complete": {
+          "type": "boolean"
+        },
+        "bulletin_retrieved_at_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "vessel_delivery_state": {
+          "enum": [
+            "unknown",
+            "received",
+            "displayed",
+            "acknowledged"
+          ]
+        },
+        "delivery_receipt_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "ukc": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dataset_id",
+        "purpose",
+        "vessel_id",
+        "route_id",
+        "route_version",
+        "retrieved_at_utc",
+        "valid_until_utc",
+        "replacement_scope",
+        "retained_previous_feature_ids",
+        "physical_qualification_state",
+        "alarm_state",
+        "transit_authority_state"
+      ],
+      "properties": {
+        "dataset_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "purpose": {
+          "enum": [
+            "pre_plan",
+            "actual_plan",
+            "actual_update"
+          ]
+        },
+        "vessel_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "route_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "route_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "retrieved_at_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "valid_until_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "replacement_scope": {
+          "enum": [
+            "whole_dataset",
+            "partial"
+          ]
+        },
+        "retained_previous_feature_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "physical_qualification_state": {
+          "enum": [
+            "unknown",
+            "not_qualified",
+            "qualified_in_declared_regime"
+          ]
+        },
+        "alarm_state": {
+          "const": "none"
+        },
+        "transit_authority_state": {
+          "enum": [
+            "unknown",
+            "not_provided",
+            "authorized_by_competent_authority"
+          ]
+        }
+      }
+    },
+    "dcsa": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "standard_version",
+        "api_direction",
+        "scenario_type",
+        "api_conformance_state",
+        "semantic_validation_state",
+        "event_time_utc",
+        "retrieved_at_utc",
+        "eta_accuracy_state"
+      ],
+      "properties": {
+        "standard_version": {
+          "const": "2.0.0"
+        },
+        "api_direction": {
+          "enum": [
+            "publisher_get",
+            "subscriber_post"
+          ]
+        },
+        "scenario_type": {
+          "enum": [
+            "timestamp_events",
+            "move_forecasts"
+          ]
+        },
+        "api_conformance_state": {
+          "enum": [
+            "unknown",
+            "not_tested",
+            "conformant_to_declared_scenario",
+            "nonconformant"
+          ]
+        },
+        "semantic_validation_state": {
+          "enum": [
+            "unknown",
+            "valid",
+            "invalid"
+          ]
+        },
+        "event_time_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "retrieved_at_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "eta_accuracy_state": {
+          "enum": [
+            "unknown",
+            "not_evaluated",
+            "calibrated_in_declared_population"
+          ]
+        }
+      }
+    },
+    "provider": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider_ref",
+        "resource_ref",
+        "status",
+        "scope",
+        "valid_until_utc",
+        "revocation_state",
+        "booking_authority_state"
+      ],
+      "properties": {
+        "provider_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "resource_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "offer",
+            "held",
+            "committed",
+            "revoked",
+            "unknown"
+          ]
+        },
+        "scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "valid_until_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "revocation_state": {
+          "enum": [
+            "not_revoked",
+            "revoked",
+            "unknown"
+          ]
+        },
+        "booking_authority_state": {
+          "enum": [
+            "unknown",
+            "not_granted",
+            "granted_by_owner"
+          ]
+        }
+      }
+    },
+    "run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_id",
+        "scenario_sha256",
+        "engine_sha256",
+        "replay_state",
+        "supported_physics_state",
+        "writeback_state",
+        "independent_verification_state"
+      ],
+      "properties": {
+        "run_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scenario_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "engine_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "replay_state": {
+          "enum": [
+            "not_run",
+            "deterministic_replay_verified",
+            "non_deterministic",
+            "failed"
+          ]
+        },
+        "supported_physics_state": {
+          "enum": [
+            "unknown",
+            "synthetic_only",
+            "qualified_in_declared_regime",
+            "out_of_domain"
+          ]
+        },
+        "writeback_state": {
+          "const": "effects_disabled"
+        },
+        "independent_verification_state": {
+          "enum": [
+            "unknown",
+            "not_verified",
+            "verified_for_declared_claim"
+          ]
+        }
+      }
+    },
+    "bundle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "bundle_id",
+        "bundle_version",
+        "fixture_kind",
+        "evaluation_cutoff_utc",
+        "subject",
+        "s131",
+        "s127",
+        "s123",
+        "s124",
+        "s129",
+        "dcsa",
+        "provider",
+        "run_evidence",
+        "claims"
+      ],
+      "properties": {
+        "bundle_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "bundle_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fixture_kind": {
+          "const": "synthetic_fixture"
+        },
+        "evaluation_cutoff_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "subject": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "vessel_id",
+            "voyage_id",
+            "route_id",
+            "route_version",
+            "port_call_id",
+            "task_window_start_utc",
+            "task_window_end_utc"
+          ],
+          "properties": {
+            "vessel_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "voyage_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "route_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "route_version": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "port_call_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "task_window_start_utc": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "task_window_end_utc": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        },
+        "s131": {
+          "$ref": "#/$defs/s131"
+        },
+        "s127": {
+          "$ref": "#/$defs/s127"
+        },
+        "s123": {
+          "$ref": "#/$defs/s123"
+        },
+        "s124": {
+          "$ref": "#/$defs/s124"
+        },
+        "s129": {
+          "$ref": "#/$defs/s129"
+        },
+        "dcsa": {
+          "$ref": "#/$defs/dcsa"
+        },
+        "provider": {
+          "$ref": "#/$defs/provider"
+        },
+        "run_evidence": {
+          "$ref": "#/$defs/run"
+        },
+        "claims": {
+          "type": "array",
+          "minItems": 9,
+          "items": {
+            "$ref": "#/$defs/claim"
+          }
+        }
+      }
+    },
+    "claim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim_id",
+        "claim_type",
+        "status",
+        "input_refs",
+        "claim_ceiling"
+      ],
+      "properties": {
+        "claim_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "claim_type": {
+          "enum": [
+            "berth_availability",
+            "pilot_assignment",
+            "radio_connectivity",
+            "warning_vessel_receipt",
+            "ukc_physical_clearance",
+            "transit_authorization",
+            "eta_accuracy",
+            "provider_commitment",
+            "scenario_feasibility"
+          ]
+        },
+        "status": {
+          "enum": [
+            "supported_context_only",
+            "unknown",
+            "conflict",
+            "not_proven",
+            "proven_in_declared_scope"
+          ]
+        },
+        "input_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "claim_ceiling": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "mutation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "op",
+        "value"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "op": {
+          "const": "set"
+        },
+        "value": {}
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "mutations",
+        "expected_code"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mutations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/mutation"
+          }
+        },
+        "expected_code": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}
