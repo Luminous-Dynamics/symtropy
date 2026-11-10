@@ -604,7 +604,7 @@ mod tests {
             recovery.capability_impact.status,
             CapabilityImpactStatus::RecoveryEvidenceReadyForIndependentReview
         );
-        assert!(recovery.capability_impact.may_clear_restriction == false);
+        assert!(!recovery.capability_impact.may_clear_restriction);
     }
 
     #[test]
