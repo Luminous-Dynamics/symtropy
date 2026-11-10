@@ -129,6 +129,24 @@ jobs:
             (.miss_count == 4) and
             (.checked_nearest_identity_sets == 11)
           ' /tmp/scan-bim-ray-query-scale-report.json
+      - name: Check benchmark receipt template is explicitly unmeasured
+        run: |
+          jq -e '
+            (.schema_version == "0.1") and
+            (.qualification == "template_only") and
+            (.engine.engine_id == "UNSELECTED") and
+            ((.build | [.[]] | all(. == null))) and
+            ((.query | [.[]] | all(. == null))) and
+            (.correctness.rays_checked == null) and
+            (.correctness.exact_nearest_identity_matches == null) and
+            (.determinism.all_repetitions_identical == null) and
+            (.claim_scope | contains("no performance or correctness result"))
+          ' research/scan-bim-rayquery-comparator-001/receipts/benchmark-run-template-v0-1.json
+          jq -e '
+            (.$schema == "https://json-schema.org/draft/2020-12/schema") and
+            (.additionalProperties == false) and
+            (.qualification.enum == ["template_only", "correctness_only", "performance_measured", "rejected"])
+          ' research/scan-bim-rayquery-comparator-001/schema/engine-benchmark-receipt-v0-1.schema.json
       - name: Run strict Clippy
         run: cargo clippy --locked --workspace --manifest-path tools/scan-bim-replay-contract/Cargo.toml --all-targets -- -D warnings
       - name: Audit synthetic fixture
