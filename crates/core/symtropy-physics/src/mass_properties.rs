@@ -1005,10 +1005,10 @@ mod tests {
         omega_body.set(0, 1, 0.31);
         omega_body.set(0, 2, -0.47);
         omega_body.set(1, 2, 0.83);
-        let omega_spatial = pose_rotation.rotate_bivector(&omega_body);
+        let omega_spatial = rotate_bivector(&pose_rotation, &omega_body);
 
         let momentum_body = inertia.apply_bivector(&omega_body).unwrap();
-        let expected_spatial_momentum = pose_rotation.rotate_bivector(&momentum_body);
+        let expected_spatial_momentum = rotate_bivector(&pose_rotation, &momentum_body);
         let actual_spatial_momentum = spatial.apply_bivector(&omega_spatial).unwrap();
         assert!(
             actual_spatial_momentum
