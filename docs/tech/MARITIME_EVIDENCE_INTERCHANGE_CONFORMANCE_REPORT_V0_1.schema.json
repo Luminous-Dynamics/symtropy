@@ -73,10 +73,10 @@
         "rejected",
         "abstained",
         "payload_digest_match_rate",
-        "native_identifier_retention_rate",
+        "native_identifier_completeness_rate",
         "ambiguous_mapping_abstention_rate",
-        "conflict_preservation_rate",
-        "provenance_completeness_rate"
+        "assertion_evidence_link_resolution_rate",
+        "input_provenance_completeness_rate"
       ],
       "properties": {
         "cases_total": {
@@ -96,14 +96,6 @@
           "minimum": 0
         },
         "payload_digest_match_rate": {
-          "type": [
-            "number",
-            "null"
-          ],
-          "minimum": 0,
-          "maximum": 1
-        },
-        "native_identifier_retention_rate": {
           "type": [
             "number",
             "null"
@@ -135,22 +127,6 @@
           "minimum": 0,
           "maximum": 1
         },
-        "conflict_preservation_rate": {
-          "type": [
-            "number",
-            "null"
-          ],
-          "minimum": 0,
-          "maximum": 1
-        },
-        "provenance_completeness_rate": {
-          "type": [
-            "number",
-            "null"
-          ],
-          "minimum": 0,
-          "maximum": 1
-        },
         "event_order_preservation_rate": {
           "type": [
             "number",
@@ -172,6 +148,30 @@
             "null"
           ],
           "minimum": 0
+        },
+        "native_identifier_completeness_rate": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "assertion_evidence_link_resolution_rate": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "input_provenance_completeness_rate": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
         }
       }
     },
