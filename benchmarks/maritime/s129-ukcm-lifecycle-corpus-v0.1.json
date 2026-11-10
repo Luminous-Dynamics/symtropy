@@ -349,6 +349,71 @@
           "path": "dataset.retrieved_at_utc",
           "op": "set",
           "value": "2026-11-10T11:40:00Z"
+        },
+        {
+          "path": "dataset.generated_at_utc",
+          "op": "set",
+          "value": "2026-11-10T10:50:00Z"
+        },
+        {
+          "path": "dataset.input_sources.0.source_time_utc",
+          "op": "set",
+          "value": "2026-11-10T10:20:00Z"
+        },
+        {
+          "path": "dataset.input_sources.0.retrieved_at_utc",
+          "op": "set",
+          "value": "2026-11-10T10:25:00Z"
+        },
+        {
+          "path": "dataset.input_sources.1.source_time_utc",
+          "op": "set",
+          "value": "2026-11-10T10:30:00Z"
+        },
+        {
+          "path": "dataset.input_sources.1.retrieved_at_utc",
+          "op": "set",
+          "value": "2026-11-10T10:32:00Z"
+        },
+        {
+          "path": "dataset.input_sources.2.source_time_utc",
+          "op": "set",
+          "value": "2026-11-10T10:30:00Z"
+        },
+        {
+          "path": "dataset.input_sources.2.retrieved_at_utc",
+          "op": "set",
+          "value": "2026-11-10T10:33:00Z"
+        },
+        {
+          "path": "dataset.input_sources.3.source_time_utc",
+          "op": "set",
+          "value": "2026-11-10T10:30:00Z"
+        },
+        {
+          "path": "dataset.input_sources.3.retrieved_at_utc",
+          "op": "set",
+          "value": "2026-11-10T10:33:30Z"
+        },
+        {
+          "path": "dataset.input_sources.4.source_time_utc",
+          "op": "set",
+          "value": "2026-11-10T10:35:00Z"
+        },
+        {
+          "path": "dataset.input_sources.4.retrieved_at_utc",
+          "op": "set",
+          "value": "2026-11-10T10:36:00Z"
+        },
+        {
+          "path": "dataset.valid_from_utc",
+          "op": "set",
+          "value": "2026-11-10T10:45:00Z"
+        },
+        {
+          "path": "dataset.valid_until_utc",
+          "op": "set",
+          "value": "2026-11-10T12:30:00Z"
         }
       ],
       "expected_code": "PLAN_STALE_UNKNOWN"
@@ -359,7 +424,7 @@
         {
           "path": "dataset.valid_until_utc",
           "op": "set",
-          "value": "2026-11-10T11:45:00Z"
+          "value": "2026-11-10T11:59:00Z"
         }
       ],
       "expected_code": "PLAN_EXPIRED"
@@ -468,6 +533,11 @@
           "path": "dataset.generated_at_utc",
           "op": "set",
           "value": "2026-11-10T12:05:00Z"
+        },
+        {
+          "path": "dataset.retrieved_at_utc",
+          "op": "set",
+          "value": "2026-11-10T12:06:00Z"
         }
       ],
       "expected_code": "PLAN_GENERATED_AFTER_DECISION_CUTOFF"
