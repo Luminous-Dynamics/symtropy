@@ -907,57 +907,204 @@ pub fn sha256_hex(input:&[u8])->String{
 }
 
 #[cfg(test)]
-mod tests{
+mod tests {
     use super::*;
 
-    fn camera()->CameraCalibration{
-        CameraCalibration{
-            camera_id:"front".into(),
-            position_world_mm:[0,0,1_500],
-            world_to_camera_q16:[[Q16_ONE as i32,0,0],[0,0,-(Q16_ONE as i32)],[0,Q16_ONE as i32,0]],
-            focal_x_millipx:45_000,
-            focal_y_millipx:45_000,
-            principal_x_millipx:320_000,
-            principal_y_millipx:180_000,
-            width:640,
-            height:360,
-            near_plane_mm:100,
-            far_plane_mm:200_000,
-        }
-    }
-
-    fn snapshot()->WorldRenderSnapshot{
-        WorldRenderSnapshot{
-            episode_id:"episode-1".into(),
-            scenario_id:"straight-road".into(),
-            agent_id:"ego".into(),
-            tick:1,
-            world_timestamp_us:20_000,
-            clock_id:"sim-monotonic-0".into(),
-            simulator_revision:"sim-fixture-v1".into(),
-            applied_action:Some(AppliedActionRef{receipt_id:"action-receipt-1".into(),command_id:"command-1".into(),applied_tick:1}),
-            camera:camera(),
-            road_markings:vec![
-                RoadPolyline{road_id:"road-1".into(),marking_id:"center-left".into(),kind:RoadMarkingKind::LaneWhite,points_world_mm:vec![[-2_000,10_000,0],[-2_000,20_000,0],[-2_000,40_000,0]]},
-                RoadPolyline{road_id:"road-1".into(),marking_id:"center-right".into(),kind:RoadMarkingKind::LaneYellow,points_world_mm:vec![[2_000,10_000,0],[2_000,20_000,0],[2_000,40_000,0]]},
+    fn camera() -> CameraCalibration {
+        CameraCalibration {
+            camera_id: "front".into(),
+            position_world_mm: [0, 0, 1_500],
+            world_to_camera_q16: [
+                [Q16_ONE as i32, 0, 0],
+                [0, 0, -(Q16_ONE as i32)],
+                [0, Q16_ONE as i32, 0],
             ],
-            actors:vec![ActorCuboid{actor_id:"lead".into(),actor_policy_revision:"actor-policy-v1".into(),class:ActorClass::Car,center_world_mm:[0,15_000,700],half_extents_mm:[900,2_000,700]}],
+            focal_x_millipx: 45_000,
+            focal_y_millipx: 45_000,
+            principal_x_millipx: 320_000,
+            principal_y_millipx: 180_000,
+            width: 640,
+            height: 360,
+            near_plane_mm: 100,
+            far_plane_mm: 200_000,
         }
     }
 
-    fn clocks()->RenderClocks{RenderClocks{capture_timestamp_us:20_000,render_completed_timestamp_us:20_800,delivered_timestamp_us:21_000}}
+    fn snapshot() -> WorldRenderSnapshot {
+        WorldRenderSnapshot {
+            episode_id: "episode-1".into(),
+            scenario_id: "straight-road".into(),
+            agent_id: "ego".into(),
+            tick: 1,
+            world_timestamp_us: 20_000,
+            clock_id: "sim-monotonic-0".into(),
+            simulator_revision: "sim-fixture-v1".into(),
+            applied_action: Some(AppliedActionRef {
+                receipt_id: "action-receipt-1".into(),
+                command_id: "command-1".into(),
+                applied_tick: 1,
+            }),
+            camera: camera(),
+            road_markings: vec![
+                RoadPolyline {
+                    road_id: "road-1".into(),
+                    marking_id: "center-left".into(),
+                    kind: RoadMarkingKind::LaneWhite,
+                    points_world_mm: vec![
+                        [-2_000, 10_000, 0],
+                        [-2_000, 20_000, 0],
+                        [-2_000, 40_000, 0],
+                    ],
+                },
+                RoadPolyline {
+                    road_id: "road-1".into(),
+                    marking_id: "center-right".into(),
+                    kind: RoadMarkingKind::LaneYellow,
+                    points_world_mm: vec![
+                        [2_000, 10_000, 0],
+                        [2_000, 20_000, 0],
+                        [2_000, 40_000, 0],
+                    ],
+                },
+            ],
+            actors: vec![ActorCuboid {
+                actor_id: "lead".into(),
+                actor_policy_revision: "actor-policy-v1".into(),
+                class: ActorClass::Car,
+                center_world_mm: [0, 15_000, 700],
+                half_extents_mm: [900, 2_000, 700],
+            }],
+        }
+    }
 
-    #[test] fn sha256_empty_known_answer(){assert_eq!(sha256_hex(b""),"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");}
-    #[test] fn sha256_abc_known_answer(){assert_eq!(sha256_hex(b"abc"),"ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");}
-    #[test] fn renders_deterministic_rgb_frame(){let a=SoftwareCameraRenderer::render(&snapshot(),1,clocks()).unwrap();let b=SoftwareCameraRenderer::render(&snapshot(),1,clocks()).unwrap();assert_eq!(a.pixels_rgb,b.pixels_rgb);assert_eq!(a.policy_receipt.frame_sha256,b.policy_receipt.frame_sha256);assert_eq!(a.policy_receipt.receipt_sha256,b.policy_receipt.receipt_sha256);}
-    #[test] fn frame_contains_non_background_geometry(){let result=SoftwareCameraRenderer::render(&snapshot(),1,clocks()).unwrap();assert!(result.pixels_rgb.chunks_exact(3).any(|p|p==[236,236,224]));assert!(result.pixels_rgb.chunks_exact(3).any(|p|p==[214,72,58]));}
-    #[test] fn camera_pose_change_changes_frame(){let a=snapshot();let mut b=snapshot();b.camera.position_world_mm[0]=250;let x=SoftwareCameraRenderer::render(&a,1,clocks()).unwrap();let y=SoftwareCameraRenderer::render(&b,1,clocks()).unwrap();assert_ne!(x.policy_receipt.frame_sha256,y.policy_receipt.frame_sha256);}
-    #[test] fn intrinsics_change_changes_calibration_and_frame(){let a=snapshot();let mut b=snapshot();b.camera.focal_x_millipx=48_000;let x=SoftwareCameraRenderer::render(&a,1,clocks()).unwrap();let y=SoftwareCameraRenderer::render(&b,1,clocks()).unwrap();assert_ne!(x.policy_receipt.camera_calibration_sha256,y.policy_receipt.camera_calibration_sha256);assert_ne!(x.policy_receipt.frame_sha256,y.policy_receipt.frame_sha256);}
-    #[test] fn actor_pose_change_changes_evaluator_digest_and_pixels(){let a=snapshot();let mut b=snapshot();b.actors[0].center_world_mm[0]=1_000;let x=SoftwareCameraRenderer::render(&a,1,clocks()).unwrap();let y=SoftwareCameraRenderer::render(&b,1,clocks()).unwrap();assert_ne!(x.evaluator_audit.world_snapshot_sha256,y.evaluator_audit.world_snapshot_sha256);assert_ne!(x.policy_receipt.frame_sha256,y.policy_receipt.frame_sha256);}
-    #[test] fn road_geometry_change_changes_pixels(){let a=snapshot();let mut b=snapshot();b.road_markings[0].points_world_mm[0][0]-=1_000;let x=SoftwareCameraRenderer::render(&a,1,clocks()).unwrap();let y=SoftwareCameraRenderer::render(&b,1,clocks()).unwrap();assert_ne!(x.policy_receipt.frame_sha256,y.policy_receipt.frame_sha256);}
+    fn clocks() -> RenderClocks {
+        RenderClocks {
+            capture_timestamp_us: 20_000,
+            render_completed_timestamp_us: 20_800,
+            delivered_timestamp_us: 21_000,
+        }
+    }
+
+    fn timing_policy() -> TimingPolicy {
+        TimingPolicy {
+            maximum_render_latency_us: 1_000,
+            maximum_delivery_age_us: 3_000,
+        }
+    }
+
     #[test]
-    fn changed_applied_action_identity_changes_observation_receipt_not_image() {
-        let mut first_snapshot = snapshot();
+    fn sha256_empty_known_answer() {
+        assert_eq!(
+            sha256_hex(b""),
+            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        );
+    }
+
+    #[test]
+    fn sha256_abc_known_answer() {
+        assert_eq!(
+            sha256_hex(b"abc"),
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+        );
+    }
+
+    #[test]
+    fn renders_deterministic_rgb_frame_and_receipt() {
+        let first = SoftwareCameraRenderer::render(&snapshot(), 1, clocks()).unwrap();
+        let second = SoftwareCameraRenderer::render(&snapshot(), 1, clocks()).unwrap();
+        assert_eq!(first.pixels_rgb, second.pixels_rgb);
+        assert_eq!(
+            first.policy_receipt.frame_sha256,
+            second.policy_receipt.frame_sha256
+        );
+        assert_eq!(
+            first.policy_receipt.observation_id,
+            second.policy_receipt.observation_id
+        );
+        assert_eq!(
+            first.policy_receipt.receipt_sha256,
+            second.policy_receipt.receipt_sha256
+        );
+        assert_eq!(first.policy_receipt.pixel_format, PixelFormat::Rgb8Srgb);
+        assert_eq!(first.policy_receipt.channels, 3);
+    }
+
+    #[test]
+    fn frame_contains_road_and_actor_geometry() {
+        let result = SoftwareCameraRenderer::render(&snapshot(), 1, clocks()).unwrap();
+        assert!(result
+            .pixels_rgb
+            .chunks_exact(3)
+            .any(|pixel| pixel == [236, 236, 224]));
+        assert!(result
+            .pixels_rgb
+            .chunks_exact(3)
+            .any(|pixel| pixel == [214, 72, 58]));
+    }
+
+    #[test]
+    fn camera_pose_change_changes_frame() {
+        let first_snapshot = snapshot();
+        let mut second_snapshot = snapshot();
+        second_snapshot.camera.position_world_mm[0] = 250;
+        let first = SoftwareCameraRenderer::render(&first_snapshot, 1, clocks()).unwrap();
+        let second = SoftwareCameraRenderer::render(&second_snapshot, 1, clocks()).unwrap();
+        assert_ne!(
+            first.policy_receipt.frame_sha256,
+            second.policy_receipt.frame_sha256
+        );
+    }
+
+    #[test]
+    fn intrinsics_change_changes_calibration_and_frame() {
+        let first_snapshot = snapshot();
+        let mut second_snapshot = snapshot();
+        second_snapshot.camera.focal_x_millipx = 48_000;
+        let first = SoftwareCameraRenderer::render(&first_snapshot, 1, clocks()).unwrap();
+        let second = SoftwareCameraRenderer::render(&second_snapshot, 1, clocks()).unwrap();
+        assert_ne!(
+            first.policy_receipt.camera_calibration_sha256,
+            second.policy_receipt.camera_calibration_sha256
+        );
+        assert_ne!(
+            first.policy_receipt.frame_sha256,
+            second.policy_receipt.frame_sha256
+        );
+    }
+
+    #[test]
+    fn actor_pose_change_changes_evaluator_digest_and_pixels() {
+        let first_snapshot = snapshot();
+        let mut second_snapshot = snapshot();
+        second_snapshot.actors[0].center_world_mm[0] = 1_000;
+        let first = SoftwareCameraRenderer::render(&first_snapshot, 1, clocks()).unwrap();
+        let second = SoftwareCameraRenderer::render(&second_snapshot, 1, clocks()).unwrap();
+        assert_ne!(
+            first.evaluator_audit.world_snapshot_sha256,
+            second.evaluator_audit.world_snapshot_sha256
+        );
+        assert_ne!(
+            first.policy_receipt.frame_sha256,
+            second.policy_receipt.frame_sha256
+        );
+    }
+
+    #[test]
+    fn road_geometry_change_changes_pixels() {
+        let first_snapshot = snapshot();
+        let mut second_snapshot = snapshot();
+        second_snapshot.road_markings[0].points_world_mm[0][0] -= 1_000;
+        let first = SoftwareCameraRenderer::render(&first_snapshot, 1, clocks()).unwrap();
+        let second = SoftwareCameraRenderer::render(&second_snapshot, 1, clocks()).unwrap();
+        assert_ne!(
+            first.policy_receipt.frame_sha256,
+            second.policy_receipt.frame_sha256
+        );
+    }
+
+    #[test]
+    fn changed_applied_action_identity_changes_receipt_not_image() {
+        let first_snapshot = snapshot();
         let mut second_snapshot = snapshot();
         second_snapshot.applied_action = Some(AppliedActionRef {
             receipt_id: "different-action".into(),
@@ -966,26 +1113,220 @@ mod tests{
         });
         let first = SoftwareCameraRenderer::render(&first_snapshot, 1, clocks()).unwrap();
         let second = SoftwareCameraRenderer::render(&second_snapshot, 1, clocks()).unwrap();
-        assert_eq!(first.policy_receipt.frame_sha256, second.policy_receipt.frame_sha256);
-        assert_ne!(first.policy_receipt.observation_id, second.policy_receipt.observation_id);
-        assert_ne!(first.policy_receipt.receipt_sha256, second.policy_receipt.receipt_sha256);
+        assert_eq!(
+            first.policy_receipt.frame_sha256,
+            second.policy_receipt.frame_sha256
+        );
+        assert_ne!(
+            first.policy_receipt.observation_id,
+            second.policy_receipt.observation_id
+        );
+        assert_ne!(
+            first.policy_receipt.receipt_sha256,
+            second.policy_receipt.receipt_sha256
+        );
     }
 
-    #[test] fn applied_action_tick_must_match_world_tick(){let mut s=snapshot();s.applied_action=Some(AppliedActionRef{receipt_id:"r".into(),command_id:"c".into(),applied_tick:0});assert_eq!(SoftwareCameraRenderer::render(&s,1,clocks()).err(),Some(RenderError::AppliedActionTickMismatch));}
-    #[test] fn initial_tick_has_no_applied_action(){let mut s=snapshot();s.tick=0;s.applied_action=None;s.world_timestamp_us=20_000;assert!(SoftwareCameraRenderer::render(&s,1,clocks()).is_ok());}
-    #[test] fn future_action_receipt_rejected(){let mut s=snapshot();s.applied_action=Some(AppliedActionRef{receipt_id:"r".into(),command_id:"c".into(),applied_tick:2});assert_eq!(SoftwareCameraRenderer::render(&s,1,clocks()).err(),Some(RenderError::AppliedActionTickMismatch));}
-    #[test] fn actor_and_road_truth_are_only_in_evaluator_audit(){let result=SoftwareCameraRenderer::render(&snapshot(),1,clocks()).unwrap();assert!(!result.policy_receipt.receipt_sha256.contains("lead"));assert_eq!(result.evaluator_audit.actor_ids,vec!["lead"]);}
-    #[test] fn malformed_rotation_rejected(){let mut s=snapshot();s.camera.world_to_camera_q16[0]=[0,0,0];assert_eq!(SoftwareCameraRenderer::render(&s,1,clocks()).err(),Some(RenderError::InvalidCameraTransform));}
-    #[test] fn reflected_rotation_rejected(){let mut s=snapshot();s.camera.world_to_camera_q16[0][0]=-(Q16_ONE as i32);assert_eq!(SoftwareCameraRenderer::render(&s,1,clocks()).err(),Some(RenderError::InvalidCameraTransform));}
-    #[test] fn oversize_frame_rejected_before_allocation(){let mut s=snapshot();s.camera.width=MAX_FRAME_WIDTH+1;assert_eq!(SoftwareCameraRenderer::render(&s,1,clocks()).err(),Some(RenderError::InvalidFrameGeometry));}
-    #[test] fn malformed_duplicate_actor_identity_rejected(){let mut s=snapshot();s.actors.push(s.actors[0].clone());assert_eq!(SoftwareCameraRenderer::render(&s,1,clocks()).err(),Some(RenderError::DuplicateActorIdentity));}
-    #[test] fn duplicate_road_marking_identity_rejected(){let mut s=snapshot();s.road_markings.push(s.road_markings[0].clone());assert_eq!(SoftwareCameraRenderer::render(&s,1,clocks()).err(),Some(RenderError::DuplicateMarkingIdentity));}
-    #[test] fn capture_clock_must_match_snapshot_clock(){let mut c=clocks();c.capture_timestamp_us+=1;assert_eq!(SoftwareCameraRenderer::render(&snapshot(),1,c).err(),Some(RenderError::ClockCaptureMismatch));}
-    #[test] fn render_cannot_precede_capture(){let mut c=clocks();c.render_completed_timestamp_us=19_000;assert_eq!(SoftwareCameraRenderer::render(&snapshot(),1,c).err(),Some(RenderError::RenderBeforeCapture));}
-    #[test] fn delivery_cannot_precede_render(){let mut c=clocks();c.delivered_timestamp_us=20_700;assert_eq!(SoftwareCameraRenderer::render(&snapshot(),1,c).err(),Some(RenderError::DeliveryBeforeRender));}
-    #[test] fn stream_guard_distinguishes_fresh_delayed_and_stale(){let mut g=ObservationStreamGuard::new(TimingPolicy{maximum_render_latency_us:1_000,maximum_delivery_age_us:3_000});assert_eq!(g.admit(1,1_000,1_500,2_000),Ok(ObservationDisposition::Fresh));assert_eq!(g.admit(2,2_000,3_500,4_000),Ok(ObservationDisposition::Delayed));assert_eq!(g.admit(3,3_000,4_000,7_000),Ok(ObservationDisposition::Stale));}
-    #[test] fn stream_guard_rejects_duplicate_or_out_of_order_sequences_without_mutation(){let mut g=ObservationStreamGuard::new(TimingPolicy{maximum_render_latency_us:1_000,maximum_delivery_age_us:3_000});assert!(g.admit(2,2_000,2_500,3_000).is_ok());assert_eq!(g.admit(2,3_000,3_100,3_200),Err(RenderError::SequenceRegression));assert!(g.admit(3,3_000,3_100,3_200).is_ok());}
-    #[test] fn stream_guard_rejects_capture_and_delivery_clock_regression(){let mut g=ObservationStreamGuard::new(TimingPolicy{maximum_render_latency_us:1_000,maximum_delivery_age_us:3_000});g.admit(1,2_000,2_200,2_500).unwrap();assert_eq!(g.admit(2,1_900,2_200,2_600),Err(RenderError::CaptureClockRegression));assert_eq!(g.admit(2,3_000,3_200,2_400),Err(RenderError::DeliveryClockRegression));}
-    #[test] fn missing_frame_event_is_explicit_and_consumes_sequence(){let mut g=ObservationStreamGuard::new(TimingPolicy{maximum_render_latency_us:1_000,maximum_delivery_age_us:3_000});let event=g.record_missing("episode-1","ego","clock-1",2,2,40_000,40_500,MissingFrameReason::CameraDrop).unwrap();assert_eq!(event.reason,MissingFrameReason::CameraDrop);assert_eq!(event.tick,2);assert_eq!(event.sequence,2);assert_eq!(g.admit(2,50_000,50_500,50_800),Err(RenderError::SequenceRegression));assert_eq!(g.admit(3,50_000,50_500,50_800),Ok(ObservationDisposition::Fresh));}
-    #[test] fn policy_receipt_does_not_include_evaluator_world_digest(){let result=SoftwareCameraRenderer::render(&snapshot(),1,clocks()).unwrap();assert!(!format!("{:?}",result.policy_receipt).contains(&result.evaluator_audit.world_snapshot_sha256));}
+    #[test]
+    fn applied_action_tick_must_match_world_tick() {
+        let mut world = snapshot();
+        world.applied_action = Some(AppliedActionRef {
+            receipt_id: "r".into(),
+            command_id: "c".into(),
+            applied_tick: 0,
+        });
+        assert_eq!(
+            SoftwareCameraRenderer::render(&world, 1, clocks()).err(),
+            Some(RenderError::AppliedActionTickMismatch)
+        );
+    }
+
+    #[test]
+    fn initial_tick_has_no_applied_action() {
+        let mut world = snapshot();
+        world.tick = 0;
+        world.applied_action = None;
+        assert!(SoftwareCameraRenderer::render(&world, 1, clocks()).is_ok());
+    }
+
+    #[test]
+    fn future_action_receipt_is_rejected() {
+        let mut world = snapshot();
+        world.applied_action = Some(AppliedActionRef {
+            receipt_id: "r".into(),
+            command_id: "c".into(),
+            applied_tick: 2,
+        });
+        assert_eq!(
+            SoftwareCameraRenderer::render(&world, 1, clocks()).err(),
+            Some(RenderError::AppliedActionTickMismatch)
+        );
+    }
+
+    #[test]
+    fn actor_and_road_truth_are_only_in_evaluator_audit() {
+        let result = SoftwareCameraRenderer::render(&snapshot(), 1, clocks()).unwrap();
+        let policy_debug = format!("{:?}", result.policy_receipt);
+        assert!(!policy_debug.contains("lead"));
+        assert!(!policy_debug.contains("road-1"));
+        assert_eq!(result.evaluator_audit.actor_ids, vec!["lead"]);
+        assert_eq!(result.evaluator_audit.road_ids, vec!["road-1"]);
+    }
+
+    #[test]
+    fn malformed_rotation_is_rejected() {
+        let mut world = snapshot();
+        world.camera.world_to_camera_q16[0] = [0, 0, 0];
+        assert_eq!(
+            SoftwareCameraRenderer::render(&world, 1, clocks()).err(),
+            Some(RenderError::InvalidCameraTransform)
+        );
+    }
+
+    #[test]
+    fn reflected_rotation_is_rejected() {
+        let mut world = snapshot();
+        world.camera.world_to_camera_q16[0][0] = -(Q16_ONE as i32);
+        assert_eq!(
+            SoftwareCameraRenderer::render(&world, 1, clocks()).err(),
+            Some(RenderError::InvalidCameraTransform)
+        );
+    }
+
+    #[test]
+    fn oversize_frame_is_rejected_before_allocation() {
+        let mut world = snapshot();
+        world.camera.width = MAX_FRAME_WIDTH + 1;
+        assert_eq!(
+            SoftwareCameraRenderer::render(&world, 1, clocks()).err(),
+            Some(RenderError::InvalidFrameGeometry)
+        );
+    }
+
+    #[test]
+    fn duplicate_actor_identity_is_rejected() {
+        let mut world = snapshot();
+        world.actors.push(world.actors[0].clone());
+        assert_eq!(
+            SoftwareCameraRenderer::render(&world, 1, clocks()).err(),
+            Some(RenderError::DuplicateActorIdentity)
+        );
+    }
+
+    #[test]
+    fn duplicate_road_marking_identity_is_rejected() {
+        let mut world = snapshot();
+        world.road_markings.push(world.road_markings[0].clone());
+        assert_eq!(
+            SoftwareCameraRenderer::render(&world, 1, clocks()).err(),
+            Some(RenderError::DuplicateMarkingIdentity)
+        );
+    }
+
+    #[test]
+    fn capture_clock_must_match_snapshot_clock() {
+        let mut render_clocks = clocks();
+        render_clocks.capture_timestamp_us += 1;
+        assert_eq!(
+            SoftwareCameraRenderer::render(&snapshot(), 1, render_clocks).err(),
+            Some(RenderError::ClockCaptureMismatch)
+        );
+    }
+
+    #[test]
+    fn render_cannot_precede_capture() {
+        let mut render_clocks = clocks();
+        render_clocks.render_completed_timestamp_us = 19_000;
+        assert_eq!(
+            SoftwareCameraRenderer::render(&snapshot(), 1, render_clocks).err(),
+            Some(RenderError::RenderBeforeCapture)
+        );
+    }
+
+    #[test]
+    fn delivery_cannot_precede_render() {
+        let mut render_clocks = clocks();
+        render_clocks.delivered_timestamp_us = 20_700;
+        assert_eq!(
+            SoftwareCameraRenderer::render(&snapshot(), 1, render_clocks).err(),
+            Some(RenderError::DeliveryBeforeRender)
+        );
+    }
+
+    #[test]
+    fn stream_guard_distinguishes_fresh_delayed_and_stale() {
+        let mut guard = ObservationStreamGuard::new(timing_policy());
+        assert_eq!(
+            guard.admit(1, 1_000, 1_500, 2_000),
+            Ok(ObservationDisposition::Fresh)
+        );
+        assert_eq!(
+            guard.admit(2, 2_000, 3_500, 4_000),
+            Ok(ObservationDisposition::Delayed)
+        );
+        assert_eq!(
+            guard.admit(3, 3_000, 4_000, 7_000),
+            Ok(ObservationDisposition::Stale)
+        );
+    }
+
+    #[test]
+    fn stream_guard_rejects_duplicate_sequence_without_mutation() {
+        let mut guard = ObservationStreamGuard::new(timing_policy());
+        assert!(guard.admit(2, 2_000, 2_500, 3_000).is_ok());
+        assert_eq!(
+            guard.admit(2, 3_000, 3_100, 3_200),
+            Err(RenderError::SequenceRegression)
+        );
+        assert!(guard.admit(3, 3_000, 3_100, 3_200).is_ok());
+    }
+
+    #[test]
+    fn stream_guard_rejects_capture_and_delivery_clock_regression() {
+        let mut guard = ObservationStreamGuard::new(timing_policy());
+        guard.admit(1, 2_000, 2_200, 2_500).unwrap();
+        assert_eq!(
+            guard.admit(2, 1_900, 2_200, 2_600),
+            Err(RenderError::CaptureClockRegression)
+        );
+        assert_eq!(
+            guard.admit(2, 3_000, 3_200, 2_400),
+            Err(RenderError::DeliveryClockRegression)
+        );
+    }
+
+    #[test]
+    fn missing_frame_event_is_explicit_and_consumes_sequence() {
+        let mut guard = ObservationStreamGuard::new(timing_policy());
+        let event = guard
+            .record_missing(
+                "episode-1",
+                "ego",
+                "clock-1",
+                2,
+                2,
+                40_000,
+                40_500,
+                MissingFrameReason::CameraDrop,
+            )
+            .unwrap();
+        assert_eq!(event.reason, MissingFrameReason::CameraDrop);
+        assert_eq!(event.tick, 2);
+        assert_eq!(event.sequence, 2);
+        assert_eq!(
+            guard.admit(2, 50_000, 50_500, 50_800),
+            Err(RenderError::SequenceRegression)
+        );
+        assert_eq!(
+            guard.admit(3, 50_000, 50_500, 50_800),
+            Ok(ObservationDisposition::Fresh)
+        );
+    }
+
+    #[test]
+    fn policy_receipt_does_not_include_evaluator_world_digest() {
+        let result = SoftwareCameraRenderer::render(&snapshot(), 1, clocks()).unwrap();
+        let policy_debug = format!("{:?}", result.policy_receipt);
+        assert!(!policy_debug.contains(&result.evaluator_audit.world_snapshot_sha256));
+    }
 }
