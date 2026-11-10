@@ -205,3 +205,32 @@ This slice does not yet implement:
 7. Empirical data adapters or independent domain qualification.
 
 Run the model-adequacy-sweep binary using Cargo with the locked manifest at research/civdyn-self-correction/Cargo.toml. The existing CIVDYN workflow also runs this binary after formatting, strict Clippy, compilation and tests. These are engineering checks against frozen synthetic contracts only.
+
+
+## Scenario L: South African National Treasury municipal-finance intake
+
+The source-specific intake validator is in src/sa_treasury_intake.rs with the sa-treasury-intake-sweep executable. It advances [CIVDYN-SA-TREASURY-001 #4579](https://github.com/Luminous-Dynamics/symtropy/issues/4579) under the broader empirical programme [#4560](https://github.com/Luminous-Dynamics/symtropy/issues/4560).
+
+Official API documentation reports integer South African Rand values, a pre-/post-mSCOA dataset break, paginated facts and separate amount-type dimensions. Critically, it warns that null and zero may both occur when a municipality has not supplied a value, and that an absent fact can mean the submission was not supplied in an acceptable form. A returned numeric zero is therefore not automatically an observed zero maintenance amount.
+
+The validator preserves:
+- non-zero amount returned by the source;
+- numeric zero with source ambiguity;
+- JSON null with source ambiguity;
+- a requested fact absent from the returned paginated snapshot;
+- the separate portal snapshot verification state;
+- exact amount-type code/class and audit-opinion state;
+- V1 pre-mSCOA versus V2 mSCOA schema generation and item vocabularies.
+
+The V1 repmaint item codes are 5001–5005; V2 repmaint_v2 uses 6001–6004. The validator refuses to combine generations or substitute amount types. It validates fact-key uniqueness, page sequence and count reconciliation, source/request/response/transformation receipt identities, and terms acknowledgement.
+
+The portal's displayed 2026 Q2 figures were marked as undergoing completeness and integrity verification when checked on 10 November 2026. Such a snapshot is preserved but cannot qualify confirmatory fitting/validation until its status is explicitly upgraded by a source-backed verification receipt.
+
+### Claim ceiling
+
+This is an offline contract validator over typed synthetic records. It does not download or hash Treasury bytes, establish that a municipal submission is true, infer physical asset condition from expenditure, or turn an audit opinion into a quality score. The source terms require acknowledging National Treasury and the publication date, prohibit implying endorsement, and disclaim warranties about completeness/accuracy. Real data acquisition remains a separate source-passport step.
+
+Official references:
+- Treasury API documentation: https://municipaldata.treasury.gov.za/docs
+- Treasury terms: https://municipalmoney.gov.za/terms
+- Dataset cube listing: https://municipaldata.treasury.gov.za/api/cubes
