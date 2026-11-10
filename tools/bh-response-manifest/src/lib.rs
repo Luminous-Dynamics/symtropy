@@ -538,6 +538,18 @@ impl ResponseManifest {
                         _ => {}
                     }
                 }
+                for method in &self.methods {
+                    if !self.comparisons.iter().any(|comparison| {
+                        comparison.accepted
+                            && (comparison.left_method_id == method.method_id
+                                || comparison.right_method_id == method.method_id)
+                    }) {
+                        e.push(format!(
+                            "cross-check method '{}' does not participate in any accepted paired comparison",
+                            method.method_id
+                        ));
+                    }
+                }
             }
         }
         if self.qualification == Qualification::Converged {
@@ -846,6 +858,37 @@ mod tests {
         let errors = m.validate().unwrap_err();
         assert!(errors.iter().any(|e| e.contains("aligned-sample digest invalid")));
         assert!(errors.iter().any(|e| e.contains("norm differs")));
+    }
+
+    #[test]
+    fn cross_check_rejects_method_not_used_by_any_accepted_pair() {
+        let mut m = base();
+        m.qualification = Qualification::IndependentlyCrossChecked;
+        oracle(&mut m);
+        m.provenance.input_digests.push(NamedDigest {
+            name: "initial-data".into(),
+            sha256: d('e'),
+        });
+        m.methods.push(method("fd", 'f', '1'));
+        m.methods.push(method("freq", '0', '2'));
+        m.methods.push(method("unused-third-method", '9', '8'));
+        m.response_windows.push(ResponseWindow {
+            window_id: "late".into(),
+            causal_region: "late-time".into(),
+            norm_id: "complex-l2-relative".into(),
+            observed_error: 1e-9,
+            acceptance_limit: 1e-8,
+        });
+        m.comparisons.push(pair_comparison("late", "fd", "freq", 1e-9, 1e-8));
+        assert!(m.validate().unwrap_err().iter().any(|e| e.contains("does not participate")));
+    }
+
+    #[test]
+    fn method_input_set_digest_must_be_sha256() {
+        let mut m = base();
+        m.methods.push(method("fd", 'f', '1'));
+        m.methods[0].input_set_sha256 = "not-a-digest".into();
+        assert!(m.validate().unwrap_err().iter().any(|e| e.contains("input-set digest invalid")));
     }
 
     #[test]
