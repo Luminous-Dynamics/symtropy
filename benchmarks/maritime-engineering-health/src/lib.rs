@@ -27,6 +27,7 @@ pub struct Corpus {
 pub struct Case {
     pub case_id: String,
     pub decision_time_ms: u64,
+    pub decision_clock_domain: String,
     pub case_class: CaseClass,
     pub description: String,
     pub asset: Asset,
@@ -231,7 +232,12 @@ fn is_decision_evidence(role: SourceRole) -> bool {
     )
 }
 
-fn is_admitted(observation: &Observation, asset: &Asset, decision_time_ms: u64) -> bool {
+fn is_admitted(
+    observation: &Observation,
+    asset: &Asset,
+    decision_time_ms: u64,
+    decision_clock_domain: &str,
+) -> bool {
     let Some(age_ms) = decision_time_ms.checked_sub(observation.observed_at_ms) else {
         return false;
     };
@@ -240,11 +246,15 @@ fn is_admitted(observation: &Observation, asset: &Asset, decision_time_ms: u64) 
         && observation.config_revision == asset.config_revision
         && observation.source_role != SourceRole::SimulatorOnly
         && observation.clock_quality == ClockQuality::MonotonicAndUtcBound
+        && observation.clock_domain == decision_clock_domain
         && age_ms <= observation.max_age_ms
 }
 
 pub fn validate_case(case: &Case) -> Result<(), EvalError> {
-    if !nonempty(&case.case_id) || !nonempty(&case.description) {
+    if !nonempty(&case.case_id)
+        || !nonempty(&case.description)
+        || !nonempty(&case.decision_clock_domain)
+    {
         return Err(EvalError::Invalid("case identity/description is empty".into()));
     }
     for (field, value) in [
@@ -341,7 +351,14 @@ pub fn evaluate_case(case: &Case) -> Expected {
     let admitted: Vec<&Observation> = case
         .observations
         .iter()
-        .filter(|observation| is_admitted(observation, &case.asset, case.decision_time_ms))
+        .filter(|observation| {
+            is_admitted(
+                observation,
+                &case.asset,
+                case.decision_time_ms,
+                &case.decision_clock_domain,
+            )
+        })
         .collect();
 
     let decision_evidence: Vec<&Observation> = admitted
@@ -475,8 +492,8 @@ mod tests {
     #[test]
     fn frozen_corpus_matches_all_declared_outcomes() {
         let report = evaluate_bytes(CORPUS).expect("corpus evaluates");
-        assert_eq!(report.total_cases, 40);
-        assert_eq!(report.passed_cases, 40);
+        assert_eq!(report.total_cases, 41);
+        assert_eq!(report.passed_cases, 41);
         assert_eq!(report.failed_cases, 0);
         assert_eq!(report.corpus_sha256.len(), 64);
     }
@@ -593,6 +610,22 @@ mod tests {
             .find(|case| case.case_id == "negative-observation-from-future")
             .expect("future-dated fixture exists");
         assert!(case.observations[0].observed_at_ms > case.decision_time_ms);
+        assert_eq!(evaluate_case(case).decision_evidence_observations, 0);
+        assert_eq!(evaluate_case(case).disposition, Disposition::UnknownEscalate);
+    }
+
+    #[test]
+    fn observation_from_a_different_clock_domain_is_rejected() {
+        let corpus = corpus();
+        let case = corpus
+            .cases
+            .iter()
+            .find(|case| case.case_id == "negative-observation-different-clock")
+            .expect("clock-domain mismatch fixture exists");
+        assert_ne!(
+            case.observations[0].clock_domain,
+            case.decision_clock_domain
+        );
         assert_eq!(evaluate_case(case).decision_evidence_observations, 0);
         assert_eq!(evaluate_case(case).disposition, Disposition::UnknownEscalate);
     }
