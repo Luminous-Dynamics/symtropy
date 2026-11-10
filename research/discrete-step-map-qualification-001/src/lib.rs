@@ -34,6 +34,14 @@ pub struct StepJacobian {
     pub dv_dv: f64,
 }
 
+/// Parameter derivatives of the full transition [q_next, v_next].
+/// Both arrays use the parameter order [mass, damping, stiffness, force, dt].
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct StepParameterJacobian {
+    pub position: [f64; 5],
+    pub velocity: [f64; 5],
+}
+
 /// Dimensionless benchmark parameters.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct DimensionlessParameters {
@@ -53,6 +61,7 @@ pub enum ModelError {
     InvalidState,
     InvalidTime,
     NonFiniteResult,
+    InvalidForce,
 }
 
 impl fmt::Display for ModelError {
@@ -65,6 +74,7 @@ impl fmt::Display for ModelError {
             Self::InvalidState => write!(f, "state must contain only finite values"),
             Self::InvalidTime => write!(f, "time must be finite and nonnegative"),
             Self::NonFiniteResult => write!(f, "step map produced a non-finite result"),
+            Self::InvalidForce => write!(f, "external force must be finite"),
         }
     }
 }
@@ -137,8 +147,26 @@ impl LinearOscillator {
     /// The returned step acceleration is (v_next-v)/h, not the continuous
     /// instantaneous acceleration.
     pub fn discrete_step(&self, state: State1D, dt_s: f64) -> Result<State1D, ModelError> {
+        self.discrete_step_with_force(state, dt_s, 0.0)
+    }
+
+    /// Fused implicit discrete step with a held external generalized force.
+    ///
+    /// For f(q,v)=-kq-cv+u:
+    /// den = m + h*c + h^2*k
+    /// v_next = (m*v - h*k*q + h*u) / den
+    /// q_next = q + h*v_next
+    pub fn discrete_step_with_force(
+        &self,
+        state: State1D,
+        dt_s: f64,
+        force_n: f64,
+    ) -> Result<State1D, ModelError> {
         validate_state(state)?;
         validate_timestep(dt_s)?;
+        if !force_n.is_finite() {
+            return Err(ModelError::InvalidForce);
+        }
 
         let h = dt_s;
         let m_hat = self.mass_kg
@@ -148,10 +176,10 @@ impl LinearOscillator {
             return Err(ModelError::NonFiniteResult);
         }
 
-        let rhs = -self.stiffness_n_per_m * state.position_m
-            - (self.damping_ns_per_m + h * self.stiffness_n_per_m) * state.velocity_m_s;
-        let step_acceleration = rhs / m_hat;
-        let velocity_next = state.velocity_m_s + h * step_acceleration;
+        let numerator = self.mass_kg * state.velocity_m_s
+            - h * self.stiffness_n_per_m * state.position_m
+            + h * force_n;
+        let velocity_next = numerator / m_hat;
         let position_next = state.position_m + h * velocity_next;
         let result = State1D {
             position_m: position_next,
@@ -294,6 +322,72 @@ impl LinearOscillator {
         }
     }
 
+    /// Analytic sensitivities of the complete forced discrete transition.
+    ///
+    /// Parameter order is [mass, damping, stiffness, force, timestep]. These
+    /// are derivatives of the implemented discrete map, not of continuous
+    /// acceleration.
+    pub fn discrete_step_parameter_jacobian(
+        &self,
+        state: State1D,
+        dt_s: f64,
+        force_n: f64,
+    ) -> Result<StepParameterJacobian, ModelError> {
+        validate_state(state)?;
+        validate_timestep(dt_s)?;
+        if !force_n.is_finite() {
+            return Err(ModelError::InvalidForce);
+        }
+
+        let h = dt_s;
+        let m = self.mass_kg;
+        let c = self.damping_ns_per_m;
+        let k = self.stiffness_n_per_m;
+        let denominator = m + h * c + h * h * k;
+        let numerator = m * state.velocity_m_s - h * k * state.position_m + h * force_n;
+        let denominator_squared = denominator * denominator;
+        if !denominator.is_finite()
+            || denominator <= 0.0
+            || !numerator.is_finite()
+            || !denominator_squared.is_finite()
+            || denominator_squared <= 0.0
+        {
+            return Err(ModelError::NonFiniteResult);
+        }
+
+        let velocity_next = numerator / denominator;
+        let dv_dm = (state.velocity_m_s * denominator - numerator) / denominator_squared;
+        let dv_dc = -h * numerator / denominator_squared;
+        let dv_dk =
+            (-h * state.position_m * denominator - h * h * numerator) / denominator_squared;
+        let dv_du = h / denominator;
+        let denominator_h = c + 2.0 * h * k;
+        let numerator_h = -k * state.position_m + force_n;
+        let dv_dh =
+            (numerator_h * denominator - numerator * denominator_h) / denominator_squared;
+
+        let result = StepParameterJacobian {
+            position: [
+                h * dv_dm,
+                h * dv_dc,
+                h * dv_dk,
+                h * dv_du,
+                velocity_next + h * dv_dh,
+            ],
+            velocity: [dv_dm, dv_dc, dv_dk, dv_du, dv_dh],
+        };
+        if result
+            .position
+            .iter()
+            .chain(&result.velocity)
+            .all(|value| value.is_finite())
+        {
+            Ok(result)
+        } else {
+            Err(ModelError::NonFiniteResult)
+        }
+    }
+
     /// Mechanical energy in joules.
     pub fn energy_joules(&self, state: State1D) -> Result<f64, ModelError> {
         validate_state(state)?;
@@ -405,6 +499,110 @@ mod tests {
         close(jacobian.dv_dq, (q_plus.velocity_m_s - q_minus.velocity_m_s) / (2.0 * step), 2.0e-9);
         close(jacobian.dq_dv, (v_plus.position_m - v_minus.position_m) / (2.0 * step), 2.0e-9);
         close(jacobian.dv_dv, (v_plus.velocity_m_s - v_minus.velocity_m_s) / (2.0 * step), 2.0e-9);
+    }
+
+
+    #[test]
+    fn parameter_and_timestep_jacobians_match_finite_difference_step_ladder() {
+        let state = State1D {
+            position_m: 0.37,
+            velocity_m_s: -0.82,
+        };
+        let parameters = [1.7, 0.43, 12.5, 2.3, 0.037];
+        let model = LinearOscillator::try_new(parameters[0], parameters[1], parameters[2]).unwrap();
+        let jacobian = model
+            .discrete_step_parameter_jacobian(state, parameters[4], parameters[3])
+            .unwrap();
+
+        for coordinate in 0..5 {
+            for output in 0..2 {
+                let analytic = if output == 0 {
+                    jacobian.position[coordinate]
+                } else {
+                    jacobian.velocity[coordinate]
+                };
+                let mut best_error = f64::INFINITY;
+                let mut errors = Vec::new();
+                for relative_step in [1.0e-4, 3.0e-5, 1.0e-5, 3.0e-6, 1.0e-6] {
+                    let epsilon = relative_step * parameters[coordinate].abs().max(1.0);
+                    let mut plus = parameters;
+                    let mut minus = parameters;
+                    plus[coordinate] += epsilon;
+                    minus[coordinate] -= epsilon;
+                    let plus_model =
+                        LinearOscillator::try_new(plus[0], plus[1], plus[2]).unwrap();
+                    let minus_model =
+                        LinearOscillator::try_new(minus[0], minus[1], minus[2]).unwrap();
+                    let plus_state = plus_model
+                        .discrete_step_with_force(state, plus[4], plus[3])
+                        .unwrap();
+                    let minus_state = minus_model
+                        .discrete_step_with_force(state, minus[4], minus[3])
+                        .unwrap();
+                    let measured = if output == 0 {
+                        (plus_state.position_m - minus_state.position_m) / (2.0 * epsilon)
+                    } else {
+                        (plus_state.velocity_m_s - minus_state.velocity_m_s) / (2.0 * epsilon)
+                    };
+                    let error = (analytic - measured).abs()
+                        / (1.0 + analytic.abs().max(measured.abs()));
+                    errors.push(error);
+                    best_error = best_error.min(error);
+                }
+                assert!(
+                    best_error < 3.0e-8,
+                    "coordinate={coordinate}, output={output}, errors={errors:?}"
+                );
+                assert!(
+                    errors.windows(2).any(|pair| pair[1] < pair[0]),
+                    "finite-difference step ladder did not show convergence: {errors:?}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn full_si_base_unit_rescaling_preserves_the_forced_transition() {
+        let state = State1D {
+            position_m: -0.37,
+            velocity_m_s: 0.82,
+        };
+        let mass = 1.7;
+        let damping = 0.43;
+        let stiffness = 12.5;
+        let force = 2.3;
+        let dt = 0.037;
+        let base_model = LinearOscillator::try_new(mass, damping, stiffness).unwrap();
+        let base = base_model.discrete_step_with_force(state, dt, force).unwrap();
+
+        let length_scale = 100.0;
+        let time_scale = 0.01;
+        let mass_scale = 1000.0;
+        let scaled_model = LinearOscillator::try_new(
+            mass_scale * mass,
+            mass_scale / time_scale * damping,
+            mass_scale / (time_scale * time_scale) * stiffness,
+        )
+        .unwrap();
+        let scaled_state = State1D {
+            position_m: length_scale * state.position_m,
+            velocity_m_s: length_scale / time_scale * state.velocity_m_s,
+        };
+        let scaled_force = mass_scale * length_scale / (time_scale * time_scale) * force;
+        let scaled = scaled_model
+            .discrete_step_with_force(
+                scaled_state,
+                time_scale * dt,
+                scaled_force,
+            )
+            .unwrap();
+
+        close(scaled.position_m, length_scale * base.position_m, 2.0e-12);
+        close(
+            scaled.velocity_m_s,
+            length_scale / time_scale * base.velocity_m_s,
+            2.0e-12,
+        );
     }
 
     #[test]
