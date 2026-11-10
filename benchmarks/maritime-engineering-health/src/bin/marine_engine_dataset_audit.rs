@@ -41,6 +41,7 @@ struct ArchiveAudit {
     observed_md5: Option<String>,
     publisher_md5_matches: Option<bool>,
     md5_tool_available: bool,
+    zip_signature_valid: bool,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -415,6 +416,14 @@ fn sha256_file(path: &Path) -> Result<(u64, String), String> {
 
 fn audit_archive(path: &Path, manifest: &Value) -> Result<ArchiveAudit, String> {
     let (size_bytes, sha256) = sha256_file(path)?;
+    let mut file = File::open(path)
+        .map_err(|error| format!("cannot open archive {}: {error}", path.display()))?;
+    let mut signature = [0u8; 4];
+    file.read_exact(&mut signature)
+        .map_err(|error| format!("cannot read ZIP signature: {error}"))?;
+    let zip_signature_valid = signature == [0x50, 0x4b, 0x03, 0x04]
+        || signature == [0x50, 0x4b, 0x05, 0x06]
+        || signature == [0x50, 0x4b, 0x07, 0x08];
     let expected_md5 = manifest
         .pointer("/public_record_metadata/archive/source_published_md5")
         .and_then(Value::as_str)
@@ -433,6 +442,7 @@ fn audit_archive(path: &Path, manifest: &Value) -> Result<ArchiveAudit, String> 
         observed_md5: observed_md5.clone(),
         publisher_md5_matches,
         md5_tool_available: observed_md5.is_some(),
+        zip_signature_valid,
     })
 }
 
@@ -864,6 +874,9 @@ fn audit_dataset(cli: &Cli) -> Result<DatasetAuditReport, String> {
     if baseline_csvs_audited != 1 {
         warnings.push(format!("audited {} of 1 expected baseline CSV", baseline_csvs_audited));
     }
+    if archive.as_ref().is_some_and(|item| !item.zip_signature_valid) {
+        errors.push("archive does not have a recognized ZIP local/end-of-central-directory signature".into());
+    }
     if archive.as_ref().is_some_and(|item| item.publisher_md5_matches == Some(false)) {
         errors.push("archive MD5 does not match the publisher-published value".into());
     }
@@ -875,7 +888,14 @@ fn audit_dataset(cli: &Cli) -> Result<DatasetAuditReport, String> {
     }
 
     let all_expected_csvs = scenario_csvs_audited == 15 && baseline_csvs_audited == 1;
-    let audit_state = if errors.is_empty() && files_found == inventory.len() && all_expected_csvs {
+    let archive_integrity_verified = archive.as_ref().is_some_and(|item| {
+        item.zip_signature_valid && item.publisher_md5_matches == Some(true)
+    });
+    let audit_state = if errors.is_empty()
+        && files_found == inventory.len()
+        && all_expected_csvs
+        && archive_integrity_verified
+    {
         "content_audited_pending_independent_review"
     } else {
         "incomplete_or_invalid"
