@@ -76,7 +76,11 @@ fn run() -> Result<(), String> {
             .map_err(|error| format!("cannot write report: {error}"))?;
     } else {
         println!(
-            "PASS: Scan-to-BIM decision capture case={} actions={} evidence_qualified={} decision_accepted={} decision_relevant={} decision_rejected={}",
+            concat!(
+                "PASS: Scan-to-BIM decision capture case={} actions={} ",
+                "evidence_qualified={} decision_accepted={} ",
+                "decision_relevant={} decision_rejected={}"
+            ),
             report.case_id,
             report.action_count,
             report.evidence_qualified_action_count,
