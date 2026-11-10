@@ -22,8 +22,8 @@
     },
     "cases": {
       "type": "array",
-      "minItems": 27,
-      "maxItems": 27,
+      "minItems": 31,
+      "maxItems": 31,
       "items": {
         "$ref": "#/$defs/case"
       }
@@ -48,6 +48,8 @@
       "additionalProperties": false,
       "required": [
         "event_id",
+        "event_order",
+        "state_after",
         "cooling_complete",
         "all_restraints_removed"
       ],
@@ -60,6 +62,16 @@
         },
         "all_restraints_removed": {
           "type": "boolean"
+        },
+        "event_order": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "state_after": {
+          "enum": [
+            "partially_restrained",
+            "fully_released"
+          ]
         }
       }
     },
@@ -67,10 +79,14 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "panel_id",
+        "panel_revision",
+        "fixture_id",
         "phase",
         "cooling_complete",
         "restraints_removed",
         "datum_id",
+        "coordinate_frame",
         "uncertainty_present",
         "evidence_class"
       ],
@@ -100,6 +116,22 @@
             "measured_physical",
             "simulated"
           ]
+        },
+        "panel_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "panel_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fixture_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "coordinate_frame": {
+          "type": "string",
+          "minLength": 1
         }
       }
     },
@@ -107,6 +139,8 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "model_id",
+        "model_revision",
         "scope",
         "validation_state",
         "out_of_domain",
@@ -133,6 +167,14 @@
         },
         "physical_claim": {
           "type": "boolean"
+        },
+        "model_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_revision": {
+          "type": "string",
+          "minLength": 1
         }
       }
     },
@@ -155,7 +197,10 @@
         "resource_conflict",
         "objective_vector",
         "as_built_writeback",
-        "expected_disposition"
+        "expected_disposition",
+        "panel_id",
+        "fixture_id",
+        "fixture_revision"
       ],
       "properties": {
         "case_id": {
@@ -252,8 +297,21 @@
             "BLOCK_MODEL_SCOPE",
             "BLOCK_SCHEDULE",
             "BLOCK_OBJECTIVES",
-            "BLOCK_AUTHORITY"
+            "BLOCK_AUTHORITY",
+            "BLOCK_CONFIGURATION"
           ]
+        },
+        "panel_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fixture_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fixture_revision": {
+          "type": "string",
+          "minLength": 1
         }
       }
     }
