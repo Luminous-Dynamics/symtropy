@@ -1,14 +1,14 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-//! Minimal executable smoke scene for the permissive Symtropy Bevy stack.
+//! Executable smoke scene for the permissive Symtropy Bevy distribution.
 //!
-//! Default mode is the ordinary Bevy raster renderer. Build with
-//! `--features solari-preview` to compare the same procedural room under
-//! Bevy 0.20's experimental realtime ray-traced lighting.
+//! Default mode is Bevy's conventional raster renderer. Build with
+//! `--features solari-preview` to render the same procedural material scene
+//! using Bevy 0.20's experimental realtime ray-traced lighting.
 
 use bevy::prelude::*;
-use symtropy_bevy_scene::{SymtropySceneConfig, SymtropyScenePlugin, fixed_camera};
+use symtropy_bevy_scene::{SymtropySceneConfig, SymtropyScenePlugin};
 use symtropy_core::prelude::BevyPhysicsPlugin;
 
 #[cfg(feature = "solari-preview")]
@@ -25,7 +25,7 @@ fn main() {
     #[cfg(feature = "solari-preview")]
     {
         // Solari replaces conventional shadow maps; leave them disabled so
-        // the comparison measures the ray-traced lighting path.
+        // the comparison isolates the experimental ray-traced lighting path.
         app.add_plugins(SymtropyScenePlugin::with_config(SymtropySceneConfig {
             sun_shadow_maps_enabled: false,
             ..default()
@@ -41,12 +41,6 @@ fn main() {
         .run();
 }
 
-#[cfg(not(feature = "solari-preview"))]
-fn setup(mut commands: Commands) {
-    commands.spawn(fixed_camera(Vec3::new(5.0, 5.0, 5.0), Vec3::ZERO));
-}
-
-#[cfg(feature = "solari-preview")]
 fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -73,12 +67,15 @@ fn setup(
         perceptual_roughness: 0.92,
         ..default()
     });
-    commands.spawn((
+    let floor_bundle = (
         Mesh3d(floor.clone()),
-        RaytracingMesh3d(floor),
         MeshMaterial3d(floor_material),
         Transform::from_xyz(0.0, -0.05, 0.0),
-    ));
+    );
+    #[cfg(feature = "solari-preview")]
+    commands.spawn((floor_bundle, RaytracingMesh3d(floor.clone())));
+    #[cfg(not(feature = "solari-preview"))]
+    commands.spawn(floor_bundle);
 
     let material_profiles = [
         StandardMaterial {
@@ -110,16 +107,21 @@ fn setup(
     for (index, material) in material_profiles.into_iter().enumerate() {
         let x = index as f32 * 1.8 - 2.7;
         let handle = materials.add(material);
-        commands.spawn((
+        let transform = Transform::from_xyz(x, 0.55, 0.0)
+            .with_scale(Vec3::splat(1.1))
+            .with_rotation(Quat::from_rotation_y(index as f32 * 0.18));
+        let bundle = (
             Mesh3d(cube.clone()),
-            RaytracingMesh3d(cube.clone()),
             MeshMaterial3d(handle),
-            Transform::from_xyz(x, 0.55, 0.0)
-                .with_scale(Vec3::splat(1.1))
-                .with_rotation(Quat::from_rotation_y(index as f32 * 0.18)),
-        ));
+            transform,
+        );
+        #[cfg(feature = "solari-preview")]
+        commands.spawn((bundle, RaytracingMesh3d(cube.clone())));
+        #[cfg(not(feature = "solari-preview"))]
+        commands.spawn(bundle);
     }
 
+    #[cfg(feature = "solari-preview")]
     commands.spawn((
         Camera3d::default(),
         Camera {
@@ -129,6 +131,12 @@ fn setup(
         CameraMainTextureUsages::default().with(TextureUsages::STORAGE_BINDING),
         Msaa::Off,
         SolariLighting::default(),
+        Transform::from_xyz(7.0, 5.5, 9.0).looking_at(Vec3::new(0.0, 0.5, 0.0), Vec3::Y),
+    ));
+
+    #[cfg(not(feature = "solari-preview"))]
+    commands.spawn((
+        Camera3d::default(),
         Transform::from_xyz(7.0, 5.5, 9.0).looking_at(Vec3::new(0.0, 0.5, 0.0), Vec3::Y),
     ));
 }
