@@ -657,6 +657,44 @@ mod tests {
     }
 
     #[test]
+    fn resolving_door_width_does_not_clear_unrelated_structural_unknown() {
+        let mut value = fixture_value();
+        value["task"]["unresolved_critical_unknown_ids"] =
+            serde_json::json!(["door-clear-width", "structural-load-review"]);
+        let report = evaluate(&value);
+        let action = report.decision.actions.iter()
+            .find(|action| action.action_id == "targeted-oblique-clearance-scan")
+            .expect("targeted scan action");
+        assert!(action.changes_critical_unknown_set);
+        assert!(!action.changes_hard_feasible_set);
+        assert!(!action.changes_pareto_set);
+        assert!(action.outcomes.iter().all(|outcome| {
+            outcome.remaining_critical_unknown_ids == vec!["structural-load-review"]
+                && outcome.robust_feasible_candidate_ids.is_empty()
+        }));
+    }
+
+    #[test]
+    fn input_array_permutations_preserve_scan_bim_decision_result() {
+        let original = evaluate(&fixture_value());
+        let mut value = fixture_value();
+        value["possible_states"].as_array_mut().unwrap().reverse();
+        value["current_possible_state_ids"].as_array_mut().unwrap().reverse();
+        value["candidates"].as_array_mut().unwrap().reverse();
+        for candidate in value["candidates"].as_array_mut().unwrap() {
+            candidate["state_results"].as_array_mut().unwrap().reverse();
+        }
+        value["actions"].as_array_mut().unwrap().reverse();
+        for action in value["actions"].as_array_mut().unwrap() {
+            action["outcomes"].as_array_mut().unwrap().reverse();
+            action["target_visibility"].as_array_mut().unwrap().reverse();
+        }
+        let reordered = evaluate(&value);
+        assert_eq!(original.decision, reordered.decision);
+        assert_eq!(original.action_qualifications, reordered.action_qualifications);
+    }
+
+    #[test]
     fn contradictory_hypothesis_requirement_flag_is_rejected() {
         let mut value = fixture_value();
         value["possible_states"][0]["requirement_satisfied"] = Value::Bool(false);
