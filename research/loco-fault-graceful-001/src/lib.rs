@@ -929,6 +929,19 @@ mod tests {
     }
 
     #[test]
+    fn physical_fault_and_admission_input_order_does_not_change_report() {
+        let mut original = base_episode();
+        let baseline = audit_fault_episode(&original).expect("baseline");
+        original.action_decisions[0]
+            .physically_possible_fault_ids
+            .reverse();
+        original.action_decisions[0].admissions.reverse();
+        original.diagnosis[0].controller_plausible_fault_ids.reverse();
+        let permuted = audit_fault_episode(&original).expect("permuted");
+        assert_eq!(baseline, permuted);
+    }
+
+    #[test]
     fn diagnosis_and_mode_timelines_must_be_monotonic() {
         let mut episode = base_episode();
         episode.diagnosis.reverse();
