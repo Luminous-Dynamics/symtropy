@@ -2071,4 +2071,123 @@ mod tests {
         let audit = SoftwareCameraRenderer::audit_snapshot(&snapshot()).unwrap();
         assert!(!policy_debug.contains(&audit.world_snapshot_sha256));
     }
+
+    #[derive(Debug, Clone, Serialize, Deserialize)]
+    struct FreshProcessReplayInput {
+        snapshots: Vec<WorldRenderSnapshot>,
+        first_sequence: u64,
+    }
+
+    #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+    struct FreshProcessReplaySummary {
+        sequence: u64,
+        frame_byte_len: usize,
+        frame_sha256: String,
+        observation_id: String,
+        policy_receipt_sha256: String,
+        world_snapshot_sha256: String,
+    }
+
+    fn replay_summaries(
+        input: &FreshProcessReplayInput,
+    ) -> Result<Vec<FreshProcessReplaySummary>, RenderError> {
+        let mut output = Vec::with_capacity(input.snapshots.len());
+        for (index, world) in input.snapshots.iter().enumerate() {
+            let sequence = input.first_sequence + index as u64;
+            let capture = world.world_timestamp_us;
+            let clocks = RenderClocks {
+                capture_timestamp_us: capture,
+                render_completed_timestamp_us: capture + 800,
+                delivered_timestamp_us: capture + 1_000,
+            };
+            let rendered = SoftwareCameraRenderer::render(world, sequence, clocks)?;
+            let audit = SoftwareCameraRenderer::audit_snapshot(world)?;
+            output.push(FreshProcessReplaySummary {
+                sequence,
+                frame_byte_len: rendered.pixels_rgb.len(),
+                frame_sha256: rendered.policy_receipt.frame_sha256,
+                observation_id: rendered.policy_receipt.observation_id,
+                policy_receipt_sha256: rendered.policy_receipt.receipt_sha256,
+                world_snapshot_sha256: audit.world_snapshot_sha256,
+            });
+        }
+        Ok(output)
+    }
+
+    /// Child target used by the fresh-process replay test.
+    /// It is a no-op during the ordinary test suite and is explicitly invoked
+    /// by the parent test in a separate operating-system process.
+    #[test]
+    fn fresh_process_replay_child() {
+        let Ok(input_path) = std::env::var("SYMTROPY_CAMERA_REPLAY_INPUT") else {
+            return;
+        };
+        let output_path = std::env::var("SYMTROPY_CAMERA_REPLAY_OUTPUT")
+            .expect("child replay output path must be provided");
+        let encoded = std::fs::read(input_path).expect("child must read serialized episode");
+        let input: FreshProcessReplayInput =
+            serde_json::from_slice(&encoded).expect("child must decode serialized episode");
+        let summaries = replay_summaries(&input).expect("child replay must render all snapshots");
+        let output =
+            serde_json::to_vec(&summaries).expect("child must encode replay summary records");
+        std::fs::write(output_path, output).expect("child must write replay summary records");
+    }
+
+    #[test]
+    fn fresh_process_replay_matches_pixels_and_all_receipts() {
+        use std::process::Command;
+
+        let mut snapshots = Vec::with_capacity(20);
+        for tick in 1..=20_u64 {
+            let mut world = snapshot();
+            world.tick = tick;
+            world.world_timestamp_us = 20_000 + tick * 33_333;
+            world.applied_action = Some(AppliedActionRef {
+                receipt_id: format!("action-receipt-{tick}"),
+                receipt_sha256: format!("{:064x}", tick),
+                command_id: format!("control-command-{tick}"),
+                applied_tick: tick,
+            });
+            world.actors[0].center_world_mm[0] += (tick as i64 - 10) * 45;
+            world.actors[1].center_world_mm[0] -= (tick as i64 - 10) * 20;
+            snapshots.push(world);
+        }
+
+        let input = FreshProcessReplayInput {
+            snapshots,
+            first_sequence: 1,
+        };
+        let expected = replay_summaries(&input).expect("parent process replay must succeed");
+
+        let base = std::env::temp_dir().join(format!(
+            "symtropy-camera-fresh-replay-{}",
+            std::process::id()
+        ));
+        let input_path = base.with_extension("input.json");
+        let output_path = base.with_extension("output.json");
+        let encoded_input =
+            serde_json::to_vec(&input).expect("parent must encode replay input");
+        std::fs::write(&input_path, encoded_input).expect("parent must write replay input");
+        let _ = std::fs::remove_file(&output_path);
+
+        let executable = std::env::current_exe().expect("test executable path must be available");
+        let status = Command::new(executable)
+            .arg("--exact")
+            .arg("tests::fresh_process_replay_child")
+            .arg("--nocapture")
+            .env("SYMTROPY_CAMERA_REPLAY_INPUT", &input_path)
+            .env("SYMTROPY_CAMERA_REPLAY_OUTPUT", &output_path)
+            .status()
+            .expect("parent must spawn a fresh test process");
+        assert!(status.success(), "fresh-process child replay failed");
+
+        let replay_bytes = std::fs::read(&output_path).expect("parent must read child replay");
+        let actual: Vec<FreshProcessReplaySummary> =
+            serde_json::from_slice(&replay_bytes).expect("parent must decode child replay");
+        assert_eq!(actual, expected, "fresh-process replay diverged");
+
+        let _ = std::fs::remove_file(input_path);
+        let _ = std::fs::remove_file(output_path);
+    }
+
 }
