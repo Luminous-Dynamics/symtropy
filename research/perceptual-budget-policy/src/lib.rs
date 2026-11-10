@@ -867,6 +867,19 @@ mod tests {
     }
 
     #[test]
+    fn profile_from_a_different_task_mode_is_rejected() {
+        let mut data = input();
+        data.profiles[0].task_mode = TaskMode::Accessibility;
+        let receipt = evaluate(&data).expect("well-formed but mismatched profile");
+        let high_quality = receipt
+            .evaluations
+            .iter()
+            .find(|entry| entry.profile_id == "high-quality")
+            .expect("high quality evaluation");
+        assert!(high_quality.rejection_reasons.contains(&RejectionReason::TaskModeMismatch));
+    }
+
+    #[test]
     fn engineering_contract_cannot_omit_uncertainty_semantics() {
         let mut data = input();
         data.contract
