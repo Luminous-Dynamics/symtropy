@@ -24,19 +24,19 @@ This renderer is a software interface/test backend. It is not photorealistic, CA
 
 The input snapshot is immutable and carries a world tick plus the action receipt and applied-action tick. A non-initial observation must be linked to the action applied at that tick. The renderer never advances the world or infers a control command.
 
-The output deliberately separates two records:
+The output deliberately separates two records. The world clock ID and action receipt IDs are runtime-owned inputs, not compile-time test literals:
 
 1. **Policy observation receipt:** frame digest, camera/calibration, renderer, acquisition/render/delivery clocks, episode/agent/tick, and preceding action identity.
 2. **Evaluator audit record:** source world-snapshot digest, simulator revision, road IDs, actor IDs and actor policy revisions.
 
 The evaluator audit record must never be passed as policy input. The pixels and policy receipt are the only visual observation surface from this crate.
 
-Capture/acquisition, render completion and delivery timestamps are separate. A delayed frame is delayed; a stale frame is stale; a missing frame requires an explicit missing-event record. Render completion must never replace capture time.
+Capture/acquisition, render completion and delivery timestamps are separate. Missing frames are explicit sequenced events; admitting a missing event advances the observation stream so a later duplicate cannot be relabelled as fresh. A delayed frame is delayed; a stale frame is stale; a missing frame requires an explicit missing-event record. Render completion must never replace capture time.
 
 ## Coordinate contract
 
 - World positions and road/actor geometry are millimetres.
-- Camera-space axes: X right, Y up, Z forward.
+- Camera-space axes: X right, Y down, Z forward.
 - The world-to-camera 3×3 matrix is signed Q16.16.
 - The matrix must be near orthonormal and have positive determinant; malformed coordinate transforms fail closed.
 - Focal lengths and principal point are integer milli-pixels.
