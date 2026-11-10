@@ -310,7 +310,8 @@ fn main() -> ExitCode {
     match validate_manifest(&schema_text, &corpus_text) {
         Ok(summary) => {
             println!(
-                "PASS: {cases} cases ({positive} positive / {negative} negative); fixture/panel identity bound; no physical prediction claimed",
+                "PASS: {cases} cases ({positive} positive / {negative} negative); \
+                 fixture/panel identity bound; no physical prediction claimed",
                 cases = summary.cases,
                 positive = summary.positive,
                 negative = summary.negative
