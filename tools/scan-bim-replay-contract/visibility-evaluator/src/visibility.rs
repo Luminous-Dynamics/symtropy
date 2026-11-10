@@ -1510,6 +1510,69 @@ mod tests {
     }
 
     #[test]
+    fn serialized_request_uses_verified_reference_sampling_and_emits_receipt() {
+        let target = target_triangle();
+        let reference_triangle = SurfaceTriangleInput::new(
+            target.surface_id.clone(),
+            target.triangle_id.clone(),
+            target.a,
+            target.b,
+            target.c,
+            SurfaceVisibility::SelfOccluded,
+        );
+        let reference_sampling = sample_reference_surfaces_for_visibility(
+            &[reference_triangle],
+            AreaWeightedSamplingProfile {
+                target_spacing_m: 5.0,
+                seed: 42,
+                max_samples: 10,
+            },
+        )
+        .expect("deterministic full-reference sampling");
+        let probes = probes_from_reference_sampling(&reference_sampling)
+            .expect("sampling receipt verifies before probe conversion");
+        assert_eq!(probes.len(), 1);
+        assert_eq!(probes[0].triangle_id, "TARGET-TRI-1");
+
+        let request_json = serde_json::json!({
+            "scene_id": "SCENE-1",
+            "frame_id": "BUILDING-LOCAL",
+            "reference_model_sha256": "1".repeat(64),
+            "reference_sampling": serde_json::to_value(&reference_sampling).expect("sampling JSON"),
+            "occluder_manifest_sha256": "2".repeat(64),
+            "occluder_coverage": "complete",
+            "views": [serde_json::to_value(view("VIEW-1", [0.0, 0.0, 0.0])).expect("view JSON")],
+            "occluders": [serde_json::to_value(target).expect("target JSON")],
+            "profile": {
+                "max_ray_tests": 100,
+                "min_incidence_cosine": 0.0
+            }
+        });
+        let request: VisibilityRequest =
+            serde_json::from_value(request_json).expect("strict evaluator request");
+        let receipt = request.evaluate().expect("end-to-end evaluator request");
+        assert_eq!(receipt.probe_count, 1);
+        assert_eq!(receipt.probes[0].visibility, SurfaceVisibility::Observable);
+        assert_eq!(
+            receipt.probe_set_sha256,
+            reference_sampling.sample_set_sha256
+        );
+        assert!(
+            serde_json::to_value(&receipt)
+                .expect("visibility receipt is serializable")
+                .get("visibility_sha256")
+                .is_some()
+        );
+
+        let mut tampered_request = request;
+        tampered_request.reference_sampling.samples[0].point.x += 0.5;
+        let error = tampered_request
+            .evaluate()
+            .expect_err("tampered sampling artifact must fail before visibility");
+        assert!(error.contains("canonical SHA-256"));
+    }
+
+    #[test]
     fn receipt_binds_reference_and_occluder_manifests() {
         let left = evaluate(
             &[probe([5.0, 0.0, 0.0])],
