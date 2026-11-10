@@ -1,0 +1,290 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/tech/MARITIME_HUMAN_REENTRY_CASE_V0_1.schema.json",
+  "title": "Maritime human re-entry synthetic case corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "corpus_id",
+    "corpus_version",
+    "claim_ceiling",
+    "cases"
+  ],
+  "properties": {
+    "corpus_id": {
+      "const": "luminous.symtropy.maritime-human-reentry"
+    },
+    "corpus_version": {
+      "const": "0.1.0"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 30
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 30,
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    }
+  },
+  "$defs": {
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "after_ms",
+        "kind",
+        "actor"
+      ],
+      "properties": {
+        "after_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "kind": {
+          "enum": [
+            "takeover_requested",
+            "packet_published",
+            "packet_delivered",
+            "packet_opened",
+            "clarification_requested",
+            "clarification_delivered",
+            "transfer_accepted",
+            "transfer_declined",
+            "transfer_acknowledged",
+            "lease_granted",
+            "lease_revoked",
+            "link_lost",
+            "link_restored",
+            "fallback_started",
+            "reentry_requested",
+            "reentry_accepted",
+            "config_changed",
+            "packet_superseded",
+            "operator_unavailable"
+          ]
+        },
+        "actor": {
+          "enum": [
+            "vessel",
+            "local_controller",
+            "autonomy",
+            "operator",
+            "roc",
+            "authority"
+          ]
+        }
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "case_class",
+        "description",
+        "setup",
+        "events",
+        "expected"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{5,80}$"
+        },
+        "case_class": {
+          "enum": [
+            "positive",
+            "negative",
+            "ambiguity",
+            "recovery",
+            "metamorphic"
+          ]
+        },
+        "description": {
+          "type": "string",
+          "minLength": 12
+        },
+        "setup": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "vessel_config",
+            "active_mode",
+            "decision_clock",
+            "deadline_ms",
+            "packet_state",
+            "operator_state",
+            "authority_state",
+            "link_state",
+            "local_contingency",
+            "target_source_class"
+          ],
+          "properties": {
+            "vessel_config": {
+              "type": "string",
+              "minLength": 8
+            },
+            "active_mode": {
+              "enum": [
+                "bounded_autonomy",
+                "supervised_autonomy",
+                "remote_control",
+                "degraded_local",
+                "manual_onboard"
+              ]
+            },
+            "decision_clock": {
+              "enum": [
+                "monotonic_and_utc_bound",
+                "utc_only",
+                "clock_conflict",
+                "unknown"
+              ]
+            },
+            "deadline_ms": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3600000
+            },
+            "packet_state": {
+              "enum": [
+                "current_complete",
+                "stale",
+                "missing",
+                "conflicted",
+                "wrong_configuration",
+                "contains_simulator_truth",
+                "missing_lineage",
+                "late_delivery"
+              ]
+            },
+            "operator_state": {
+              "enum": [
+                "ready",
+                "unavailable",
+                "overloaded",
+                "unknown"
+              ]
+            },
+            "authority_state": {
+              "enum": [
+                "valid_scoped",
+                "expired",
+                "wrong_scope",
+                "revoked",
+                "ambiguous",
+                "absent"
+              ]
+            },
+            "link_state": {
+              "enum": [
+                "available",
+                "delayed",
+                "partitioned",
+                "restored"
+              ]
+            },
+            "local_contingency": {
+              "enum": [
+                "ready",
+                "active",
+                "unknown",
+                "unavailable"
+              ]
+            },
+            "target_source_class": {
+              "enum": [
+                "local_sensor",
+                "fused_with_lineage",
+                "ais_only",
+                "v2x_only",
+                "simulator_truth",
+                "mixed_or_unknown",
+                "not_applicable"
+              ]
+            }
+          }
+        },
+        "events": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/event"
+          }
+        },
+        "expected": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "disposition",
+            "final_authority_owner",
+            "must_never_overlap",
+            "fallback_preserved",
+            "reconciliation_required",
+            "invariants"
+          ],
+          "properties": {
+            "disposition": {
+              "enum": [
+                "handover_accepted",
+                "fallback_continues",
+                "clarification_required",
+                "transfer_rejected",
+                "reconciliation_required",
+                "operator_unavailable",
+                "reentry_blocked",
+                "reentry_accepted",
+                "unsupported"
+              ]
+            },
+            "final_authority_owner": {
+              "enum": [
+                "local_controller",
+                "remote_operator",
+                "onboard_master",
+                "pending"
+              ]
+            },
+            "must_never_overlap": {
+              "const": true
+            },
+            "fallback_preserved": {
+              "type": "boolean"
+            },
+            "reconciliation_required": {
+              "type": "boolean"
+            },
+            "invariants": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "no_unacknowledged_transfer",
+                  "no_expired_authority",
+                  "no_wrong_scope_authority",
+                  "no_dual_authority",
+                  "no_control_gap",
+                  "no_simulator_truth_leakage",
+                  "no_source_role_promotion",
+                  "no_stale_packet_acceptance",
+                  "no_future_time_acceptance",
+                  "no_reentry_without_fresh_approval",
+                  "no_duplicate_effect",
+                  "preserve_local_contingency",
+                  "require_reconciliation",
+                  "positive_control",
+                  "no_hidden_state_leakage",
+                  "no_inferred_operator_consent"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
