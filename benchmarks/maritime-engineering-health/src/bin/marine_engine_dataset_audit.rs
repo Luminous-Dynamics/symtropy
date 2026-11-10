@@ -149,7 +149,7 @@ struct Cli {
 }
 
 fn usage() -> &'static str {
-    "usage: marine-engine-dataset-audit <extracted-dataset-root> <dataset-manifest.json> [--archive <zip>] [--output <report.json>]"
+    "usage: marine_engine_dataset_audit <extracted-dataset-root> <dataset-manifest.json> [--archive <publisher-verified.zip>] [--output <report.json>] (archive required for a successful audit)"
 }
 
 fn parse_args() -> Result<Cli, String> {
