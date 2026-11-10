@@ -34,21 +34,21 @@ impl std::fmt::Display for RotorMatrixError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::InvalidTolerance => write!(
-    f,
-    "rotation-matrix tolerance must be finite and non-negative"
-),
+                f,
+                "rotation-matrix tolerance must be finite and non-negative"
+            ),
             Self::NonFiniteEntry => write!(f, "rotation matrix contains a non-finite entry"),
             Self::NotOrthogonal { max_error } => {
                 write!(
-    f,
-    "rotation matrix is not orthogonal: max residual {max_error:e}"
-)
+                    f,
+                    "rotation matrix is not orthogonal: max residual {max_error:e}"
+                )
             }
             Self::ImproperOrientation { determinant } => {
                 write!(
-    f,
-    "orthogonal matrix does not preserve orientation: determinant {determinant:e}"
-)
+                    f,
+                    "orthogonal matrix does not preserve orientation: determinant {determinant:e}"
+                )
             }
         }
     }
@@ -564,9 +564,9 @@ mod tests {
         let residual = conjugated.to_matrix() - exponential_after_adjoint.to_matrix();
         let max_error = residual.iter().fold(0.0_f64, |m, x| m.max(x.abs()));
         assert!(
-    max_error < 1e-9,
-    "SO(4) adjoint-equivariance residual={max_error:e}"
-);
+            max_error < 1e-9,
+            "SO(4) adjoint-equivariance residual={max_error:e}"
+        );
         assert!(conjugated.is_proper_rotation(1e-9));
         assert!(exponential_after_adjoint.is_proper_rotation(1e-9));
     }
