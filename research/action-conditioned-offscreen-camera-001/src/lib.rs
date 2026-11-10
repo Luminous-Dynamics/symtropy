@@ -19,10 +19,10 @@ pub const MAX_ACTORS: usize = 128;
 pub const MIN_NEAR_PLANE_MM: u32 = 100;
 pub const MAX_FAR_PLANE_MM: u32 = 1_000_000;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AppliedActionRef {
-    pub receipt_id: &'static str,
-    pub command_id: &'static str,
+    pub receipt_id: String,
+    pub command_id: String,
     pub applied_tick: u64,
 }
 
@@ -107,6 +107,7 @@ pub struct WorldRenderSnapshot {
     pub agent_id: String,
     pub tick: u64,
     pub world_timestamp_us: u64,
+    pub clock_id: String,
     pub simulator_revision: String,
     /// None is permitted only for the initial tick (tick 0).
     pub applied_action: Option<AppliedActionRef>,
@@ -197,8 +198,8 @@ impl std::error::Error for RenderError {}
 pub struct PolicyObservationReceipt {
     pub schema_version: u32,
     pub episode_id: String,
-    pub scenario_id: String,
     pub agent_id: String,
+    pub clock_id: String,
     pub tick: u64,
     pub sequence: u64,
     pub applied_action_receipt_id: Option<String>,
@@ -223,6 +224,7 @@ pub struct EvaluatorObservationAudit {
     pub episode_id: String,
     pub scenario_id: String,
     pub agent_id: String,
+    pub clock_id: String,
     pub tick: u64,
     pub simulator_revision: String,
     pub world_snapshot_sha256: String,
@@ -419,6 +421,7 @@ fn validate_snapshot(snapshot: &WorldRenderSnapshot) -> Result<(), RenderError> 
         snapshot.episode_id.as_str(),
         snapshot.scenario_id.as_str(),
         snapshot.agent_id.as_str(),
+        snapshot.clock_id.as_str(),
         snapshot.simulator_revision.as_str(),
         snapshot.camera.camera_id.as_str(),
     ] {
