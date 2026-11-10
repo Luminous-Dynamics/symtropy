@@ -75,6 +75,7 @@ pub enum So4LogError {
     InvalidConfig,
     NonFiniteMatrix,
     NonFiniteParameter,
+    NonFiniteTranslation,
     InvalidRotation {
         orthogonality_error: f64,
         determinant: f64,
@@ -95,6 +96,7 @@ impl fmt::Display for So4LogError {
             Self::InvalidConfig => write!(f, "invalid SO(4) logarithm configuration"),
             Self::NonFiniteMatrix => write!(f, "SO(4) matrix contains non-finite values"),
             Self::NonFiniteParameter => write!(f, "interpolation parameter must be finite"),
+            Self::NonFiniteTranslation => write!(f, "transform translation contains non-finite values"),
             Self::InvalidRotation {
                 orthogonality_error,
                 determinant,
