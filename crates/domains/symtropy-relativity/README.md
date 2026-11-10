@@ -18,7 +18,7 @@ A bounded Rust research crate for analytic Lorentzian-spacetime reference calcul
 - Noise-weighted frequency-domain waveform comparison: one-sided PSD inner product, constant-phase-maximized mismatch, explicit best phase offset, separate amplitude L2 and frequency-dependent phase residual diagnostics, and strict grid/PSD/domain validation. The caller must pre-align waveforms; no hidden time maximization, interpolation, resampling, or PSD estimation.
 - Kerr equatorial prograde/retrograde circular-null-orbit reference observables: analytic photon-orbit radius and signed frequency, metric null/radial circularity residuals, normalized null radial-potential R/R-prime residuals, impact parameter, and coordinate-time radial Lyapunov exponent. Extremal prograde Boyer-Lindquist horizon limit returns explicit unavailable impact/Lyapunov values rather than a fabricated finite result.
 - A 20-case independently generated Kerr light-ring reference grid spanning zero, positive, negative, near-extremal, and extremal spin.
-- **81 authored Rust tests** across scalar physics, Kerr limits, metric matrices, connection compatibility, curvature, second-order automatic differentiation, horizon-regular charts, posterior transforms, geodesic integration, waveform metrics, and light-ring references.
+- **90 authored Rust tests** across scalar physics, Kerr limits, metric matrices, connection compatibility, curvature, second-order automatic differentiation, horizon-regular charts, posterior transforms, geodesic integration, separated Kerr null-geodesic formulae, waveform metrics, and light-ring references.
 
 ## Conventions
 
@@ -90,7 +90,7 @@ These files are literature / experiment specifications. They are not benchmark e
 
 `cargo test -p symtropy-relativity`
 
-**Validation status:** 81 tests are authored but were not executed in the editing environment because `rustc` and `cargo` are unavailable there. No build/test pass, waveform benchmark result, light-ring Rust result, or geodesic accuracy claim is made.
+**Validation status:** 90 tests are authored but were not executed in the editing environment because `rustc` and `cargo` are unavailable there. The new Kerr equations were checked against independent algebraic calculations for the Schwarzschild critical double root, observer-screen map and radial null coordinate-time ratio; this does not validate Rust compilation or a numerical Kerr trajectory. No build/test pass, waveform benchmark result, light-ring Rust result, or geodesic accuracy claim is made.
 
 
 ## Schwarzschild geodesic scope
