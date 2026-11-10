@@ -30,8 +30,10 @@ pub enum MemoryOperationOutcome {
     NotApplicable,
 }
 
-/// Evaluator-owned expected case. `expected_effect_sha256` represents the
-/// required readback/effect for the operation, not a policy-authored assertion.
+/// Evaluator-owned expected case. `expected_effect_sha256` is the canonical
+/// evaluator-defined semantic readback digest, not necessarily a byte-for-byte
+/// memory representation. For Compression it represents required-fact/query
+/// preservation, so a different compressed representation may still be correct.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExpectedMemoryOperation {
     pub case_id: String,
@@ -74,6 +76,8 @@ pub struct MemoryOperationReceipt {
     pub sequence: u64,
     pub operation: MemoryOperationKind,
     pub observed_source_event_sha256: Option<String>,
+    /// Evaluator-derived semantic readback digest; for Compression this is
+    /// required-fact preservation, not the compressed snapshot's byte digest.
     pub observed_effect_sha256: Option<String>,
     pub memory_snapshot_before_sha256: Option<String>,
     pub memory_snapshot_after_sha256: Option<String>,
@@ -353,7 +357,7 @@ pub fn audit_memory_operations(
         results.push(result);
     }
 
-    let mut task_summaries = task_accumulators
+    let task_summaries = task_accumulators
         .into_iter()
         .map(|((operation, task_id), accumulator)| accumulator.finish(operation, Some(task_id)))
         .collect::<Vec<_>>();
@@ -390,8 +394,6 @@ pub fn audit_memory_operations(
             );
         }
     }
-    task_summaries.shrink_to_fit();
-
     Ok(MemoryOperationAudit {
         protocol_sha256: manifest.protocol_sha256.clone(),
         operation_roster_sha256: manifest.operation_roster_sha256.clone(),
@@ -605,7 +607,7 @@ mod tests {
             evaluator_sha256: digest("6"),
             expected_case_count: cases.len(),
             expected_task_ids: {
-                let mut tasks = cases.iter().map(|case| case.task_id.clone()).collect::<BTreeSet<_>>();
+                let tasks = cases.iter().map(|case| case.task_id.clone()).collect::<BTreeSet<_>>();
                 tasks.into_iter().collect()
             },
             cases,
@@ -873,7 +875,8 @@ mod tests {
     #[test]
     fn task_stratification_prevents_easy_task_from_hiding_memory_failures() {
         let easy = case("store-easy", 1, MemoryOperationKind::Storage, MemoryOperationApplicability::Applicable, Some(digest("a")));
-        let hard = case("store-hard", 1, MemoryOperationKind::Storage, MemoryOperationApplicability::Applicable, Some(digest("b")));
+        let mut hard = case("store-hard", 1, MemoryOperationKind::Storage, MemoryOperationApplicability::Applicable, Some(digest("b")));
+        hard.task_id = "TM-02".to_owned();
         let mut hard_receipt = receipt(&hard);
         hard_receipt.observed_effect_sha256 = Some(digest("x"));
         let audit = audit_memory_operations(
