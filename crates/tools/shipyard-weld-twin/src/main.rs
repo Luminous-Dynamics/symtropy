@@ -273,11 +273,19 @@ fn evaluate(weld: &Value, workspace_root: &Path) -> &'static str {
     {
         return "OPERATOR_QUALIFICATION_EXPIRED";
     }
+    if text_at(weld, "operator.role_scope")
+        != text_at(weld, "workpiece.required_operator_scope")
+    {
+        return "OPERATOR_SCOPE_MISMATCH";
+    }
 
     if !is_current_until(weld, "equipment.calibration_valid_until_utc", cutoff)
         || text_at(weld, "equipment.calibration_state") != Some("current")
     {
         return "CALIBRATION_STALE";
+    }
+    if text_at(weld, "equipment.equipment_health_state") != Some("nominal_synthetic") {
+        return "EQUIPMENT_HEALTH_NOT_QUALIFIED";
     }
 
     if text_at(weld, "equipment.geometry_sha256")
@@ -362,6 +370,11 @@ fn evaluate(weld: &Value, workspace_root: &Path) -> &'static str {
             != text_at(weld, "procedure.wps_revision")
         {
             return "WPS_REVISION_MISMATCH";
+        }
+        if pass.get("parameter_envelope_ref").and_then(Value::as_str)
+            != text_at(weld, "procedure.parameter_envelope_ref")
+        {
+            return "PARAMETER_ENVELOPE_MISMATCH";
         }
         if pass.get("equipment_revision").and_then(Value::as_str)
             != text_at(weld, "equipment.robot_revision")
@@ -468,6 +481,12 @@ fn evaluate(weld: &Value, workspace_root: &Path) -> &'static str {
         .is_none_or(|(observed, maximum)| observed > maximum)
     {
         return "TWIN_LATENCY_EXCEEDED";
+    }
+    if number_at(weld, "twin_commissioning.observed_update_interval_s")
+        .zip(number_at(weld, "twin_commissioning.expected_update_interval_s"))
+        .is_none_or(|(observed, expected)| observed > expected)
+    {
+        return "TWIN_UPDATE_FREQUENCY_EXCEEDED";
     }
     if bool_at(weld, "twin_commissioning.source_writeback") != Some(false) {
         return "TWIN_WRITEBACK_FORBIDDEN";
@@ -680,8 +699,8 @@ mod tests {
         let corpus: Value = serde_json::from_str(CORPUS).expect("frozen corpus parses");
         let root = workspace_root();
         let report = verify_corpus(&corpus, &root).expect("frozen corpus evaluates");
-        assert_eq!(report["case_count"].as_u64(), Some(42));
-        assert_eq!(report["passed_count"].as_u64(), Some(42));
+        assert_eq!(report["case_count"].as_u64(), Some(46));
+        assert_eq!(report["passed_count"].as_u64(), Some(46));
         assert_eq!(report["failed_count"].as_u64(), Some(0));
     }
 
