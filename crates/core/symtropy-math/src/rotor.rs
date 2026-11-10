@@ -481,14 +481,14 @@ mod tests {
     #[test]
     fn try_from_matrix_accepts_proper_rotations_in_3d_and_4d() {
         let rotation_3d = Rotor::from_plane_angle(&Bivector::<3>::unit_plane(0, 2), 0.73);
-        let admitted_3d = Rotor::try_from_matrix(rotation_3d.to_matrix().clone(), 1e-10).unwrap();
+        let admitted_3d = Rotor::try_from_matrix(*rotation_3d.to_matrix(), 1e-10).unwrap();
         assert!(admitted_3d.is_proper_rotation(1e-10));
 
         let mut generator = Bivector::<4>::zero();
         generator.set(0, 1, 0.4);
         generator.set(2, 3, -0.9);
         let rotation_4d = Rotor::from_bivector(&generator);
-        let admitted_4d = Rotor::try_from_matrix(rotation_4d.to_matrix().clone(), 1e-10).unwrap();
+        let admitted_4d = Rotor::try_from_matrix(*rotation_4d.to_matrix(), 1e-10).unwrap();
         assert!(admitted_4d.is_proper_rotation(1e-10));
     }
 
