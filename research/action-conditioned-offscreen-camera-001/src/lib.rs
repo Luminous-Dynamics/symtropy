@@ -436,7 +436,7 @@ impl SoftwareCameraRenderer {
             tick: snapshot.tick,
             simulator_revision: snapshot.simulator_revision.clone(),
             world_snapshot_sha256: world_snapshot_digest(snapshot),
-            road_ids: snapshot.road_markings.iter().map(|road| road.road_id.clone()).collect(),
+            road_ids: snapshot.road_markings.iter().map(|road| road.road_id.clone()).collect::<BTreeSet<_>>().into_iter().collect(),
             actor_ids: snapshot.actors.iter().map(|actor| actor.actor_id.clone()).collect(),
             actor_policy_revisions: snapshot.actors.iter().map(|actor| actor.actor_policy_revision.clone()).collect(),
             renderer_revision: RENDERER_REVISION.to_string(),
@@ -819,10 +819,10 @@ fn policy_receipt_digest(receipt:&PolicyObservationReceipt)->String{
     for value in [
         receipt.applied_action_receipt_id.as_deref().unwrap_or(""),
         receipt.applied_action_command_id.as_deref().unwrap_or(""),
-        &receipt.camera_id,
-        &receipt.camera_calibration_sha256,
-        &receipt.renderer_revision,
-        &receipt.frame_sha256,
+        receipt.camera_id.as_str(),
+        receipt.camera_calibration_sha256.as_str(),
+        receipt.renderer_revision.as_str(),
+        receipt.frame_sha256.as_str(),
     ] {append_string(&mut bytes,value);}
     bytes.push(u8::from(receipt.applied_action_tick.is_some()));
     bytes.extend_from_slice(&receipt.applied_action_tick.unwrap_or(0).to_le_bytes());
