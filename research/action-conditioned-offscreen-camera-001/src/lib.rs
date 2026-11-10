@@ -18,6 +18,7 @@ pub const MAX_FRAME_BYTES: usize = 1280 * 720 * 3;
 pub const MAX_ID_BYTES: usize = 256;
 pub const MAX_ROAD_MARKINGS: usize = 256;
 pub const MAX_POINTS_PER_MARKING: usize = 8_192;
+pub const MAX_TOTAL_ROAD_POINTS: usize = 32_768;
 pub const MAX_ACTORS: usize = 128;
 pub const MIN_NEAR_PLANE_MM: u32 = 100;
 pub const MAX_FAR_PLANE_MM: u32 = 1_000_000;
@@ -255,10 +256,9 @@ pub struct EvaluatorObservationAudit {
 }
 
 pub struct RenderedObservation {
+    /// RGB8 sRGB pixel buffer. No evaluator-only world metadata is included.
     pub pixels_rgb: Vec<u8>,
     pub policy_receipt: PolicyObservationReceipt,
-    /// Evaluator-only. Do not expose this record to the policy.
-    pub evaluator_audit: EvaluatorObservationAudit,
 }
 
 pub struct ObservationStreamGuard {
@@ -460,9 +460,22 @@ impl SoftwareCameraRenderer {
         receipt.observation_id = observation_identity_digest(&receipt);
         receipt.receipt_sha256 = policy_receipt_digest(&receipt);
 
+        Ok(RenderedObservation {
+            pixels_rgb: pixels,
+            policy_receipt: receipt,
+        })
+    }
+
+    /// Produce a separate evaluator-only artifact. This is intentionally not
+    /// returned alongside the policy observation, preventing accidental
+    /// privilege mixing in the normal camera-to-policy call path.
+    pub fn audit_snapshot(
+        snapshot: &WorldRenderSnapshot,
+    ) -> Result<EvaluatorObservationAudit, RenderError> {
+        validate_snapshot(snapshot)?;
         let mut actor_records = snapshot.actors.iter().collect::<Vec<_>>();
         actor_records.sort_by(|left, right| left.actor_id.cmp(&right.actor_id));
-        let evaluator_audit = EvaluatorObservationAudit {
+        Ok(EvaluatorObservationAudit {
             episode_id: snapshot.episode_id.clone(),
             scenario_id: snapshot.scenario_id.clone(),
             agent_id: snapshot.agent_id.clone(),
@@ -486,11 +499,6 @@ impl SoftwareCameraRenderer {
                 .map(|actor| actor.actor_policy_revision.clone())
                 .collect(),
             renderer_revision: RENDERER_REVISION.to_string(),
-        };
-        Ok(RenderedObservation {
-            pixels_rgb: pixels,
-            policy_receipt: receipt,
-            evaluator_audit,
         })
     }
 }
@@ -566,6 +574,7 @@ fn validate_snapshot(snapshot: &WorldRenderSnapshot) -> Result<(), RenderError> 
     }
 
     let mut marking_ids = BTreeSet::new();
+    let mut total_road_points = 0_usize;
     for road in &snapshot.road_markings {
         validate_id(&road.road_id)?;
         validate_id(&road.marking_id)?;
@@ -576,6 +585,12 @@ fn validate_snapshot(snapshot: &WorldRenderSnapshot) -> Result<(), RenderError> 
             return Err(RenderError::InvalidPolyline);
         }
         if road.points_world_mm.len() > MAX_POINTS_PER_MARKING {
+            return Err(RenderError::TooManyRoadPoints);
+        }
+        total_road_points = total_road_points
+            .checked_add(road.points_world_mm.len())
+            .ok_or(RenderError::TooManyRoadPoints)?;
+        if total_road_points > MAX_TOTAL_ROAD_POINTS {
             return Err(RenderError::TooManyRoadPoints);
         }
         for point in &road.points_world_mm {
