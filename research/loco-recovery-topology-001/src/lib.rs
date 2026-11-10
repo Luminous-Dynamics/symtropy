@@ -136,7 +136,7 @@ pub struct TopologyReport {
     pub known_route_classes: Vec<PhysicalRouteClass>,
     pub independent_route_count: Option<usize>,
     pub minimum_cut_set_size: Option<usize>,
-    pub all_minimum_cut_sets: Vec<Vec<String>>,
+    pub all_minimal_cut_sets: Vec<Vec<String>>,
     pub distinct_terminal_regions: Vec<String>,
     pub findings: Vec<RouteFinding>,
 }
@@ -251,7 +251,7 @@ pub fn audit(input: &TopologyInput) -> Result<TopologyReport, AuditError> {
 
     // The exact counts are intentionally suppressed when an unresolved route
     // might add a route or conceal a shared dependency.
-    let (independent_route_count, minimum_cut_set_size, all_minimum_cut_sets, status) =
+    let (independent_route_count, minimum_cut_set_size, all_minimal_cut_sets, status) =
         if unknown_route_seen {
             (None, None, Vec::new(), QualificationStatus::Unknown)
         } else if classes.is_empty() {
@@ -289,7 +289,7 @@ pub fn audit(input: &TopologyInput) -> Result<TopologyReport, AuditError> {
         known_route_classes,
         independent_route_count,
         minimum_cut_set_size,
-        all_minimum_cut_sets,
+        all_minimal_cut_sets,
         distinct_terminal_regions,
         findings,
     })
@@ -757,7 +757,7 @@ mod tests {
         assert_eq!(report.independent_route_count, Some(1));
         assert_eq!(report.minimum_cut_set_size, Some(1));
         assert_eq!(
-            report.all_minimum_cut_sets,
+            report.all_minimal_cut_sets,
             vec![
                 vec!["actuator_hip_fl".to_owned()],
                 vec!["power_bus_a".to_owned()]
@@ -780,10 +780,11 @@ mod tests {
         assert_eq!(report.independent_route_count, Some(1));
         assert_eq!(report.minimum_cut_set_size, Some(1));
         assert_eq!(
-            report.all_minimum_cut_sets,
+            report.all_minimal_cut_sets,
             vec![
                 vec!["imu_clock_shared".to_owned()],
-                vec!["power_bus_shared".to_owned()]
+                vec!["power_bus_shared".to_owned()],
+                vec!["actuator_hip_fl".to_owned(), "actuator_hip_fr".to_owned()]
             ]
         );
     }
@@ -830,7 +831,7 @@ mod tests {
         assert_eq!(report.known_route_classes.len(), 1);
         assert_eq!(report.independent_route_count, None);
         assert_eq!(report.minimum_cut_set_size, None);
-        assert!(report.all_minimum_cut_sets.is_empty());
+        assert!(report.all_minimal_cut_sets.is_empty());
         assert!(report.findings.iter().any(|finding| matches!(
             finding,
             RouteFinding::MissingFailureDomain { domain_id, .. }
@@ -913,7 +914,7 @@ mod tests {
         assert_eq!(report.independent_route_count, Some(1));
         assert_eq!(report.minimum_cut_set_size, Some(1));
         assert_eq!(
-            report.all_minimum_cut_sets,
+            report.all_minimal_cut_sets,
             vec![
                 vec!["power_bus".to_owned()],
                 vec!["shared_encoder_clock".to_owned()]
@@ -995,7 +996,7 @@ mod tests {
         assert_eq!(report.status, QualificationStatus::Qualified);
         assert_eq!(report.independent_route_count, Some(2));
         assert_eq!(report.minimum_cut_set_size, Some(2));
-        assert_eq!(report.all_minimum_cut_sets, vec![vec![
+        assert_eq!(report.all_minimal_cut_sets, vec![vec![
             "left_leg".to_owned(),
             "right_leg".to_owned()
         ]]);
