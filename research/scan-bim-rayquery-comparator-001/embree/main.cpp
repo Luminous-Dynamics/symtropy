@@ -108,6 +108,7 @@ struct ExtendedRayQueryContext {
   const Identity* exclude{};
   double direction_norm{1.0};
   bool invalid_primitive{};
+  bool invalid_distance{};
   bool unexpected_packet_size{};
 };
 
@@ -399,7 +400,7 @@ void gather_all_hits(const RTCFilterFunctionNArguments* args) {
     (*context->seen_primitive)[hit->primID] = 1;
     const double distance_m = static_cast<double>(ray->tfar) * context->direction_norm;
     if (!std::isfinite(distance_m)) {
-      context->invalid_primitive = true;
+      context->invalid_distance = true;
       return;
     }
     context->hits->push_back(CapturedHit{distance_m, hit->primID});
@@ -470,6 +471,7 @@ QueryResult trace_one(RTCDevice device, RTCScene scene,
   const auto finish = Clock::now();
   check_device(device, "rtcIntersect1");
   if (context.invalid_primitive) throw std::runtime_error("Embree returned an out-of-range primitive ID");
+  if (context.invalid_distance) throw std::runtime_error("Embree returned a non-finite metric hit distance");
   if (context.unexpected_packet_size) throw std::runtime_error("Embree filter received a non-single-ray packet");
 
   QueryResult result;
