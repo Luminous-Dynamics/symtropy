@@ -1606,7 +1606,7 @@ impl KerrFiniteRadiusObserver {
         direction: KerrLocalSkyDirection,
     ) -> Result<KerrObserverRaySeed, KerrGeodesicError> {
         let tetrad = self.tetrad;
-        let p_contravariant = core::array::from_fn(|mu| {
+        let p_contravariant: [f64; 4] = core::array::from_fn(|mu| {
             tetrad.timelike[mu]
                 + direction.radial * tetrad.radial[mu]
                 + direction.polar * tetrad.polar[mu]
@@ -1621,7 +1621,6 @@ impl KerrFiniteRadiusObserver {
         let sigma = r * r + a * a * cos_theta * cos_theta;
         let g_tt = -(1.0 - 2.0 * r / sigma);
         let g_t_phi = -2.0 * a * r * sin_squared / sigma;
-        let delta = r * r - 2.0 * r + a * a;
         let g_phi_phi = tetrad.sqrt_g_phi_phi.powi(2);
         let p_t = g_tt * p_contravariant[0] + g_t_phi * p_contravariant[3];
         let p_phi = g_t_phi * p_contravariant[0] + g_phi_phi * p_contravariant[3];
@@ -1672,7 +1671,6 @@ impl KerrFiniteRadiusObserver {
         if radial_relative > 1.0e-10 || polar_relative > 1.0e-10 {
             return Err(KerrGeodesicError::NonFinite("finite_observer_screen_normalization"));
         }
-        let _ = delta; // Delta enters the tetrad through sqrt(Delta/Sigma).
         Ok(KerrObserverRaySeed {
             constants,
             initial_state: state,
