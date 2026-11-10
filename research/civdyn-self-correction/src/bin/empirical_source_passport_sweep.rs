@@ -93,6 +93,7 @@ fn artifact(
 
 fn observation(
     source_id: &str,
+    construct_id: &str,
     artifact_digest: &str,
     record_id: &str,
     class: ObservationClass,
@@ -114,7 +115,7 @@ fn observation(
         record_id: record_id.to_string(),
         source_id: source_id.to_string(),
         artifact_digest: artifact_digest.to_string(),
-        construct_id: "municipal-non-revenue-water".to_string(),
+        construct_id: construct_id.to_string(),
         geography_code: "ZA-SYNTHETIC-MUNICIPALITY".to_string(),
         boundary_version: "synthetic-demarcation-v1".to_string(),
         period_key: "2024".to_string(),
@@ -147,11 +148,11 @@ fn dws_like_bundle() -> EmpiricalSourceBundle {
         ),
         artifact,
         observations: vec![
-            observation(source_id, &artifact_digest, "municipality-a", ObservationClass::Observed, Some(0.32)),
-            observation(source_id, &artifact_digest, "municipality-b", ObservationClass::Estimated, Some(0.28)),
-            observation(source_id, &artifact_digest, "municipality-c", ObservationClass::Defaulted, Some(0.25)),
-            observation(source_id, &artifact_digest, "municipality-d", ObservationClass::Missing, None),
-            observation(source_id, &artifact_digest, "municipality-e", ObservationClass::Suppressed, None),
+            observation(source_id, "municipal-non-revenue-water", &artifact_digest, "municipality-a", ObservationClass::Observed, Some(0.32)),
+            observation(source_id, "municipal-non-revenue-water", &artifact_digest, "municipality-b", ObservationClass::Estimated, Some(0.28)),
+            observation(source_id, "municipal-non-revenue-water", &artifact_digest, "municipality-c", ObservationClass::Defaulted, Some(0.25)),
+            observation(source_id, "municipal-non-revenue-water", &artifact_digest, "municipality-d", ObservationClass::Missing, None),
+            observation(source_id, "municipal-non-revenue-water", &artifact_digest, "municipality-e", ObservationClass::Suppressed, None),
         ],
     }
 }
@@ -176,6 +177,7 @@ fn under_review_bundle() -> EmpiricalSourceBundle {
         artifact,
         observations: vec![observation(
             source_id,
+            "municipal-repairs-maintenance-spend",
             &artifact_digest,
             "municipality-a-q2",
             ObservationClass::Observed,
@@ -204,6 +206,7 @@ fn not_yet_acquired_bundle() -> EmpiricalSourceBundle {
         artifact,
         observations: vec![observation(
             source_id,
+            "hourly-demand-available-capacity",
             &artifact_digest,
             "synthetic-request-placeholder",
             ObservationClass::Missing,
