@@ -4,12 +4,14 @@ on:
   push:
     branches:
       - research/bh-pt-time-domain-audit-v0.1
+      - research/bh-pt-prefont-qualification-v0.1
     paths:
       - tools/bh-pt-time-domain-audit/**
       - .github/workflows/bh-pt-time-domain-audit.yml
   pull_request:
     branches:
       - research/bh-pt-jost-green-v0.1
+      - research/bh-pt-time-domain-audit-v0.1
     paths:
       - tools/bh-pt-time-domain-audit/**
       - .github/workflows/bh-pt-time-domain-audit.yml
