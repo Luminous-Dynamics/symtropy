@@ -181,7 +181,8 @@
         "valid_until_utc",
         "parameter_envelope_ref",
         "procedure_owner",
-        "qualified_material_heat_lots"
+        "qualified_material_heat_lots",
+        "qualification_ruleset_revision"
       ],
       "properties": {
         "wps_ref": {
@@ -239,6 +240,10 @@
             "type": "string",
             "minLength": 1
           }
+        },
+        "qualification_ruleset_revision": {
+          "type": "string",
+          "minLength": 1
         }
       }
     },
@@ -1009,7 +1014,9 @@
         "applicable_ruleset",
         "future_ruleset",
         "subject_applicability_date_utc",
-        "source_retrieved_at_utc"
+        "source_retrieved_at_utc",
+        "qualification_test_date_utc",
+        "prior_revision_wpqr"
       ],
       "properties": {
         "applicability_basis": {
@@ -1036,6 +1043,36 @@
         "source_retrieved_at_utc": {
           "type": "string",
           "format": "date-time"
+        },
+        "qualification_test_date_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "prior_revision_wpqr": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "revision",
+            "accepted_by_class_society",
+            "acceptance_ref",
+            "approved_range_matches_subject"
+          ],
+          "properties": {
+            "revision": {
+              "type": "string",
+              "minLength": 1
+            },
+            "accepted_by_class_society": {
+              "type": "boolean"
+            },
+            "acceptance_ref": {
+              "type": "string",
+              "minLength": 1
+            },
+            "approved_range_matches_subject": {
+              "type": "boolean"
+            }
+          }
         }
       }
     },
