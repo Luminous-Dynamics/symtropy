@@ -28,9 +28,9 @@ pub enum SourceRole {
     Future,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Strategy {
-    UniformCyclic { cursor_after_id: Option<&'static str> },
+    UniformCyclic { cursor_after_id: Option<String> },
     FamilyRarity,
     Entropy,
     PredictionError,
@@ -249,7 +249,7 @@ fn sam_base_rejection(candidate: &Candidate) -> Option<RejectionReason> {
 
 fn rank_for(
     candidate: &Candidate,
-    strategy: Strategy,
+    strategy: &Strategy,
     config: SelectionConfig,
 ) -> Result<RankEvidence, RejectionReason> {
     match strategy {
@@ -341,7 +341,7 @@ fn rank_for(
     }
 }
 
-fn compare_rank(left: &RankEvidence, right: &RankEvidence, strategy: Strategy) -> Ordering {
+fn compare_rank(left: &RankEvidence, right: &RankEvidence, strategy: &Strategy) -> Ordering {
     match (strategy, left, right) {
         (
             Strategy::UniformCyclic { .. },
@@ -422,7 +422,7 @@ pub fn select(
     }
     if let Strategy::UniformCyclic {
         cursor_after_id: Some(cursor),
-    } = strategy
+    } = &strategy
     {
         if !valid_id(cursor) {
             return Err(SelectionError::EmptyCursor);
@@ -460,7 +460,7 @@ pub fn select(
             });
             continue;
         }
-        match rank_for(candidate, strategy, config) {
+        match rank_for(candidate, &strategy, config) {
             Ok(rank_evidence) => {
                 ranked_candidates.push(RankedCandidate {
                     candidate_id: candidate.candidate_id.clone(),
@@ -472,7 +472,7 @@ pub fn select(
                     evidence_digest: candidate
                         .sam
                         .as_ref()
-                        .filter(|_| matches!(strategy, Strategy::SamDecisionValue | Strategy::SamRecoverability))
+                        .filter(|_| matches!(&strategy, Strategy::SamDecisionValue | Strategy::SamRecoverability))
                         .map(|sam| sam.evidence_digest.clone())
                         .unwrap_or_else(|| candidate.candidate_digest.clone()),
                     rank_evidence,
@@ -485,8 +485,8 @@ pub fn select(
         }
     }
 
-    if let Strategy::UniformCyclic { cursor_after_id } = strategy {
-        let cursor = cursor_after_id.unwrap_or("");
+    if let Strategy::UniformCyclic { cursor_after_id } = &strategy {
+        let cursor = cursor_after_id.as_deref().unwrap_or("");
         let cursor_position = ranked_candidates
             .iter()
             .position(|candidate| candidate.candidate_id == cursor);
@@ -503,7 +503,7 @@ pub fn select(
         }
     } else {
         ranked_candidates.sort_by(|a, b| {
-            compare_rank(&a.rank_evidence, &b.rank_evidence, strategy)
+            compare_rank(&a.rank_evidence, &b.rank_evidence, &strategy)
                 .then_with(|| a.candidate_id.cmp(&b.candidate_id))
         });
     }
@@ -519,7 +519,7 @@ pub fn select(
         .collect::<Vec<_>>();
 
     Ok(SelectionReceipt {
-        strategy,
+        strategy: strategy.clone(),
         selection_tick,
         candidates_considered,
         ranked_candidates,
@@ -810,7 +810,7 @@ mod tests {
         let c = candidate("c");
         let receipt = select(
             &[a, b, c],
-            Strategy::UniformCyclic { cursor_after_id: Some("a") },
+            Strategy::UniformCyclic { cursor_after_id: Some("a".to_string()) },
             config(),
         )
         .unwrap();
