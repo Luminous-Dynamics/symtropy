@@ -157,7 +157,9 @@ fn validate_manifest(schema_text: &str, corpus_text: &str) -> Result<Summary, Ve
         if source
             .get("source_bytes_sha256")
             .is_none_or(|value| !value.is_null()) {
-            errors.push("source digest must be null until exact source bytes are admitted".to_owned());
+            errors.push(
+                "source digest must be null until exact source bytes are admitted".to_owned(),
+            );
         }
         if source.get("measurement_modalities").and_then(Value::as_array).is_none() {
             errors.push(format!("{context}.measurement_modalities must be an array"));
