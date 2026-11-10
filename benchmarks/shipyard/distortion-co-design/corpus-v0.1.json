@@ -29,7 +29,9 @@
         {
           "event_id": "release-all",
           "cooling_complete": true,
-          "all_restraints_removed": true
+          "all_restraints_removed": true,
+          "event_order": 1,
+          "state_after": "fully_released"
         }
       ],
       "final_measurement": {
@@ -38,13 +40,19 @@
         "restraints_removed": true,
         "datum_id": "SYNTH-DATUM-0",
         "uncertainty_present": true,
-        "evidence_class": "synthetic_contract"
+        "evidence_class": "synthetic_contract",
+        "panel_id": "PANEL-SYNTH-01",
+        "panel_revision": "PANEL-SYNTH-R1",
+        "fixture_id": "FIXTURE-TEMPLATE-A",
+        "coordinate_frame": "SYNTH-PANEL-FRAME"
       },
       "model": {
         "scope": "synthetic_toy",
         "validation_state": "synthetic_contract_only",
         "out_of_domain": false,
-        "physical_claim": false
+        "physical_claim": false,
+        "model_id": "SYNTH-TOY-DISTORTION",
+        "model_revision": "0.1.0"
       },
       "future_information_used": false,
       "resource_conflict": false,
@@ -55,7 +63,10 @@
         "worst_case_robustness"
       ],
       "as_built_writeback": false,
-      "expected_disposition": "SYNTHETIC_PLAN_CONTRACT_VALID"
+      "expected_disposition": "SYNTHETIC_PLAN_CONTRACT_VALID",
+      "panel_id": "PANEL-SYNTH-01",
+      "fixture_id": "FIXTURE-TEMPLATE-A",
+      "fixture_revision": "r1"
     },
     {
       "case_id": "SDC-002",
@@ -83,7 +94,9 @@
         {
           "event_id": "release-all",
           "cooling_complete": true,
-          "all_restraints_removed": true
+          "all_restraints_removed": true,
+          "event_order": 1,
+          "state_after": "fully_released"
         }
       ],
       "final_measurement": {
@@ -92,13 +105,19 @@
         "restraints_removed": true,
         "datum_id": "SYNTH-DATUM-0",
         "uncertainty_present": true,
-        "evidence_class": "synthetic_contract"
+        "evidence_class": "synthetic_contract",
+        "panel_id": "PANEL-SYNTH-01",
+        "panel_revision": "PANEL-SYNTH-R1",
+        "fixture_id": "FIXTURE-TEMPLATE-A",
+        "coordinate_frame": "SYNTH-PANEL-FRAME"
       },
       "model": {
         "scope": "synthetic_toy",
         "validation_state": "synthetic_contract_only",
         "out_of_domain": false,
-        "physical_claim": false
+        "physical_claim": false,
+        "model_id": "SYNTH-TOY-DISTORTION",
+        "model_revision": "0.1.0"
       },
       "future_information_used": false,
       "resource_conflict": false,
@@ -109,7 +128,10 @@
         "worst_case_robustness"
       ],
       "as_built_writeback": false,
-      "expected_disposition": "SYNTHETIC_PLAN_CONTRACT_VALID"
+      "expected_disposition": "SYNTHETIC_PLAN_CONTRACT_VALID",
+      "panel_id": "PANEL-SYNTH-01",
+      "fixture_id": "FIXTURE-TEMPLATE-A",
+      "fixture_revision": "r1"
     },
     {
       "case_id": "SDC-003",
@@ -137,7 +159,9 @@
         {
           "event_id": "release-all",
           "cooling_complete": true,
-          "all_restraints_removed": true
+          "all_restraints_removed": true,
+          "event_order": 1,
+          "state_after": "fully_released"
         }
       ],
       "final_measurement": {
@@ -146,13 +170,19 @@
         "restraints_removed": true,
         "datum_id": "SYNTH-DATUM-0",
         "uncertainty_present": true,
-        "evidence_class": "synthetic_contract"
+        "evidence_class": "synthetic_contract",
+        "panel_id": "PANEL-SYNTH-01",
+        "panel_revision": "PANEL-SYNTH-R1",
+        "fixture_id": "FIXTURE-TEMPLATE-A",
+        "coordinate_frame": "SYNTH-PANEL-FRAME"
       },
       "model": {
         "scope": "synthetic_toy",
         "validation_state": "synthetic_contract_only",
         "out_of_domain": false,
-        "physical_claim": false
+        "physical_claim": false,
+        "model_id": "SYNTH-TOY-DISTORTION",
+        "model_revision": "0.1.0"
       },
       "future_information_used": false,
       "resource_conflict": false,
@@ -163,7 +193,10 @@
         "worst_case_robustness"
       ],
       "as_built_writeback": false,
-      "expected_disposition": "BLOCK_SEQUENCE"
+      "expected_disposition": "BLOCK_SEQUENCE",
+      "panel_id": "PANEL-SYNTH-01",
+      "fixture_id": "FIXTURE-TEMPLATE-A",
+      "fixture_revision": "r1"
     },
     {
       "case_id": "SDC-004",
@@ -191,7 +224,9 @@
         {
           "event_id": "release-all",
           "cooling_complete": true,
-          "all_restraints_removed": true
+          "all_restraints_removed": true,
+          "event_order": 1,
+          "state_after": "fully_released"
         }
       ],
       "final_measurement": {
@@ -200,13 +235,19 @@
         "restraints_removed": true,
         "datum_id": "SYNTH-DATUM-0",
         "uncertainty_present": true,
-        "evidence_class": "synthetic_contract"
+        "evidence_class": "synthetic_contract",
+        "panel_id": "PANEL-SYNTH-01",
+        "panel_revision": "PANEL-SYNTH-R1",
+        "fixture_id": "FIXTURE-TEMPLATE-A",
+        "coordinate_frame": "SYNTH-PANEL-FRAME"
       },
       "model": {
         "scope": "synthetic_toy",
         "validation_state": "synthetic_contract_only",
         "out_of_domain": false,
-        "physical_claim": false
+        "physical_claim": false,
+        "model_id": "SYNTH-TOY-DISTORTION",
+        "model_revision": "0.1.0"
       },
       "future_information_used": false,
       "resource_conflict": false,
@@ -217,7 +258,10 @@
         "worst_case_robustness"
       ],
       "as_built_writeback": false,
-      "expected_disposition": "BLOCK_SEQUENCE"
+      "expected_disposition": "BLOCK_SEQUENCE",
+      "panel_id": "PANEL-SYNTH-01",
+      "fixture_id": "FIXTURE-TEMPLATE-A",
+      "fixture_revision": "r1"
     },
     {
       "case_id": "SDC-005",
@@ -244,7 +288,9 @@
         {
           "event_id": "release-all",
           "cooling_complete": true,
-          "all_restraints_removed": true
+          "all_restraints_removed": true,
+          "event_order": 1,
+          "state_after": "fully_released"
         }
       ],
       "final_measurement": {
@@ -253,13 +299,19 @@
         "restraints_removed": true,
         "datum_id": "SYNTH-DATUM-0",
         "uncertainty_present": true,
-        "evidence_class": "synthetic_contract"
+        "evidence_class": "synthetic_contract",
+        "panel_id": "PANEL-SYNTH-01",
+        "panel_revision": "PANEL-SYNTH-R1",
+        "fixture_id": "FIXTURE-TEMPLATE-A",
+        "coordinate_frame": "SYNTH-PANEL-FRAME"
       },
       "model": {
         "scope": "synthetic_toy",
         "validation_state": "synthetic_contract_only",
         "out_of_domain": false,
-        "physical_claim": false
+        "physical_claim": false,
+        "model_id": "SYNTH-TOY-DISTORTION",
+        "model_revision": "0.1.0"
       },
       "future_information_used": false,
       "resource_conflict": false,
@@ -270,7 +322,10 @@
         "worst_case_robustness"
       ],
       "as_built_writeback": false,
-      "expected_disposition": "BLOCK_SEQUENCE"
+      "expected_disposition": "BLOCK_SEQUENCE",
+      "panel_id": "PANEL-SYNTH-01",
+      "fixture_id": "FIXTURE-TEMPLATE-A",
+      "fixture_revision": "r1"
     },
     {
       "case_id": "SDC-006",
@@ -298,7 +353,9 @@
         {
           "event_id": "release-all",
           "cooling_complete": true,
-          "all_restraints_removed": true
+          "all_restraints_removed": true,
+          "event_order": 1,
+          "state_after": "fully_released"
         }
       ],
       "final_measurement": {
@@ -307,13 +364,19 @@
         "restraints_removed": true,
         "datum_id": "SYNTH-DATUM-0",
         "uncertainty_present": true,
-        "evidence_class": "synthetic_contract"
+        "evidence_class": "synthetic_contract",
+        "panel_id": "PANEL-SYNTH-01",
+        "panel_revision": "PANEL-SYNTH-R1",
+        "fixture_id": "FIXTURE-TEMPLATE-A",
+        "coordinate_frame": "SYNTH-PANEL-FRAME"
       },
       "model": {
         "scope": "synthetic_toy",
         "validation_state": "synthetic_contract_only",
         "out_of_domain": false,
-        "physical_claim": false
+        "physical_claim": false,
+        "model_id": "SYNTH-TOY-DISTORTION",
+        "model_revision": "0.1.0"
       },
       "future_information_used": false,
       "resource_conflict": false,
@@ -324,7 +387,10 @@
         "worst_case_robustness"
       ],
       "as_built_writeback": false,
-      "expected_disposition": "BLOCK_SEQUENCE"
+      "expected_disposition": "BLOCK_SEQUENCE",
+      "panel_id": "PANEL-SYNTH-01",
+      "fixture_id": "FIXTURE-TEMPLATE-A",
+      "fixture_revision": "r1"
     },
     {
       "case_id": "SDC-007",
@@ -352,7 +418,9 @@
         {
           "event_id": "release-all",
           "cooling_complete": true,
-          "all_restraints_removed": true
+          "all_restraints_removed": true,
+          "event_order": 1,
+          "state_after": "fully_released"
         }
       ],
       "final_measurement": {
@@ -361,13 +429,19 @@
         "restraints_removed": true,
         "datum_id": "SYNTH-DATUM-0",
         "uncertainty_present": true,
-        "evidence_class": "synthetic_contract"
+        "evidence_class": "synthetic_contract",
+        "panel_id": "PANEL-SYNTH-01",
+        "panel_revision": "PANEL-SYNTH-R1",
+        "fixture_id": "FIXTURE-TEMPLATE-A",
+        "coordinate_frame": "SYNTH-PANEL-FRAME"
       },
       "model": {
         "scope": "synthetic_toy",
         "validation_state": "synthetic_contract_only",
         "out_of_domain": false,
-        "physical_claim": false
+        "physical_claim": false,
+        "model_id": "SYNTH-TOY-DISTORTION",
+        "model_revision": "0.1.0"
       },
       "future_information_used": false,
       "resource_conflict": false,
@@ -378,7 +452,10 @@
         "worst_case_robustness"
       ],
       "as_built_writeback": false,
-      "expected_disposition": "BLOCK_FIXTURE_LIMIT"
+      "expected_disposition": "BLOCK_FIXTURE_LIMIT",
+      "panel_id": "PANEL-SYNTH-01",
+      "fixture_id": "FIXTURE-TEMPLATE-A",
+      "fixture_revision": "r1"
     },
     {
       "case_id": "SDC-008",
@@ -406,22 +483,30 @@
         {
           "event_id": "partial",
           "cooling_complete": false,
-          "all_restraints_removed": false
+          "all_restraints_removed": false,
+          "event_order": 1,
+          "state_after": "partially_restrained"
         }
       ],
       "final_measurement": {
-        "phase": "final_free_state",
+        "phase": "in_fixture",
         "cooling_complete": true,
         "restraints_removed": true,
         "datum_id": "SYNTH-DATUM-0",
         "uncertainty_present": true,
-        "evidence_class": "synthetic_contract"
+        "evidence_class": "synthetic_contract",
+        "panel_id": "PANEL-SYNTH-01",
+        "panel_revision": "PANEL-SYNTH-R1",
+        "fixture_id": "FIXTURE-TEMPLATE-A",
+        "coordinate_frame": "SYNTH-PANEL-FRAME"
       },
       "model": {
         "scope": "synthetic_toy",
         "validation_state": "synthetic_contract_only",
         "out_of_domain": false,
-        "physical_claim": false
+        "physical_claim": false,
+        "model_id": "SYNTH-TOY-DISTORTION",
+        "model_revision": "0.1.0"
       },
       "future_information_used": false,
       "resource_conflict": false,
@@ -432,7 +517,10 @@
         "worst_case_robustness"
       ],
       "as_built_writeback": false,
-      "expected_disposition": "BLOCK_RELEASE_STATE"
+      "expected_disposition": "BLOCK_RELEASE_STATE",
+      "panel_id": "PANEL-SYNTH-01",
+      "fixture_id": "FIXTURE-TEMPLATE-A",
+      "fixture_revision": "r1"
     },
     {
       "case_id": "SDC-009",
@@ -463,13 +551,19 @@
         "restraints_removed": true,
         "datum_id": "SYNTH-DATUM-0",
         "uncertainty_present": true,
-        "evidence_class": "synthetic_contract"
+        "evidence_class": "synthetic_contract",
+        "panel_id": "PANEL-SYNTH-01",
+        "panel_revision": "PANEL-SYNTH-R1",
+        "fixture_id": "FIXTURE-TEMPLATE-A",
+        "coordinate_frame": "SYNTH-PANEL-FRAME"
       },
       "model": {
         "scope": "synthetic_toy",
         "validation_state": "synthetic_contract_only",
         "out_of_domain": false,
-        "physical_claim": false
+        "physical_claim": false,
+        "model_id": "SYNTH-TOY-DISTORTION",
+        "model_revision": "0.1.0"
       },
       "future_information_used": false,
       "resource_conflict": false,
@@ -480,7 +574,10 @@
         "worst_case_robustness"
       ],
       "as_built_writeback": false,
-      "expected_disposition": "BLOCK_RELEASE_STATE"
+      "expected_disposition": "BLOCK_RELEASE_STATE",
+      "panel_id": "PANEL-SYNTH-01",
+      "fixture_id": "FIXTURE-TEMPLATE-A",
+      "fixture_revision": "r1"
     },
     {
       "case_id": "SDC-010",
@@ -508,7 +605,9 @@
         {
           "event_id": "release-all",
           "cooling_complete": true,
-          "all_restraints_removed": true
+          "all_restraints_removed": true,
+          "event_order": 1,
+          "state_after": "fully_released"
         }
       ],
       "final_measurement": {
@@ -517,13 +616,19 @@
         "restraints_removed": true,
         "datum_id": "SYNTH-DATUM-0",
         "uncertainty_present": true,
-        "evidence_class": "synthetic_contract"
+        "evidence_class": "synthetic_contract",
+        "panel_id": "PANEL-SYNTH-01",
+        "panel_revision": "PANEL-SYNTH-R1",
+        "fixture_id": "FIXTURE-TEMPLATE-A",
+        "coordinate_frame": "SYNTH-PANEL-FRAME"
       },
       "model": {
         "scope": "synthetic_toy",
         "validation_state": "synthetic_contract_only",
         "out_of_domain": false,
-        "physical_claim": false
+        "physical_claim": false,
+        "model_id": "SYNTH-TOY-DISTORTION",
+        "model_revision": "0.1.0"
       },
       "future_information_used": false,
       "resource_conflict": false,
@@ -534,7 +639,10 @@
         "worst_case_robustness"
       ],
       "as_built_writeback": false,
-      "expected_disposition": "BLOCK_FINAL_MEASUREMENT"
+      "expected_disposition": "BLOCK_FINAL_MEASUREMENT",
+      "panel_id": "PANEL-SYNTH-01",
+      "fixture_id": "FIXTURE-TEMPLATE-A",
+      "fixture_revision": "r1"
     },
     {
       "case_id": "SDC-011",
@@ -562,7 +670,9 @@
         {
           "event_id": "release-all",
           "cooling_complete": true,
-          "all_restraints_removed": true
+          "all_restraints_removed": true,
+          "event_order": 1,
+          "state_after": "fully_released"
         }
       ],
       "final_measurement": {
@@ -571,13 +681,19 @@
         "restraints_removed": true,
         "datum_id": "SYNTH-DATUM-0",
         "uncertainty_present": true,
-        "evidence_class": "synthetic_contract"
+        "evidence_class": "synthetic_contract",
+        "panel_id": "PANEL-SYNTH-01",
+        "panel_revision": "PANEL-SYNTH-R1",
+        "fixture_id": "FIXTURE-TEMPLATE-A",
+        "coordinate_frame": "SYNTH-PANEL-FRAME"
       },
       "model": {
         "scope": "synthetic_toy",
         "validation_state": "synthetic_contract_only",
         "out_of_domain": false,
-        "physical_claim": false
+        "physical_claim": false,
+        "model_id": "SYNTH-TOY-DISTORTION",
+        "model_revision": "0.1.0"
       },
       "future_information_used": false,
       "resource_conflict": false,
@@ -588,7 +704,10 @@
         "worst_case_robustness"
       ],
       "as_built_writeback": false,
-      "expected_disposition": "BLOCK_FINAL_MEASUREMENT"
+      "expected_disposition": "BLOCK_FINAL_MEASUREMENT",
+      "panel_id": "PANEL-SYNTH-01",
+      "fixture_id": "FIXTURE-TEMPLATE-A",
+      "fixture_revision": "r1"
     },
     {
       "case_id": "SDC-012",
@@ -616,7 +735,9 @@
         {
           "event_id": "release-all",
           "cooling_complete": true,
-          "all_restraints_removed": true
+          "all_restraints_removed": true,
+          "event_order": 1,
+          "state_after": "fully_released"
         }
       ],
       "final_measurement": {
@@ -625,13 +746,19 @@
         "restraints_removed": false,
         "datum_id": "SYNTH-DATUM-0",
         "uncertainty_present": true,
-        "evidence_class": "synthetic_contract"
+        "evidence_class": "synthetic_contract",
+        "panel_id": "PANEL-SYNTH-01",
+        "panel_revision": "PANEL-SYNTH-R1",
+        "fixture_id": "FIXTURE-TEMPLATE-A",
+        "coordinate_frame": "SYNTH-PANEL-FRAME"
       },
       "model": {
         "scope": "synthetic_toy",
         "validation_state": "synthetic_contract_only",
         "out_of_domain": false,
-        "physical_claim": false
+        "physical_claim": false,
+        "model_id": "SYNTH-TOY-DISTORTION",
+        "model_revision": "0.1.0"
       },
       "future_information_used": false,
       "resource_conflict": false,
@@ -642,7 +769,10 @@
         "worst_case_robustness"
       ],
       "as_built_writeback": false,
-      "expected_disposition": "BLOCK_FINAL_MEASUREMENT"
+      "expected_disposition": "BLOCK_FINAL_MEASUREMENT",
+      "panel_id": "PANEL-SYNTH-01",
+      "fixture_id": "FIXTURE-TEMPLATE-A",
+      "fixture_revision": "r1"
     },
     {
       "case_id": "SDC-013",
@@ -670,7 +800,9 @@
         {
           "event_id": "release-all",
           "cooling_complete": true,
-          "all_restraints_removed": true
+          "all_restraints_removed": true,
+          "event_order": 1,
+          "state_after": "fully_released"
         }
       ],
       "final_measurement": {
@@ -679,13 +811,19 @@
         "restraints_removed": true,
         "datum_id": "",
         "uncertainty_present": true,
-        "evidence_class": "synthetic_contract"
+        "evidence_class": "synthetic_contract",
+        "panel_id": "PANEL-SYNTH-01",
+        "panel_revision": "PANEL-SYNTH-R1",
+        "fixture_id": "FIXTURE-TEMPLATE-A",
+        "coordinate_frame": "SYNTH-PANEL-FRAME"
       },
       "model": {
         "scope": "synthetic_toy",
         "validation_state": "synthetic_contract_only",
         "out_of_domain": false,
-        "physical_claim": false
+        "physical_claim": false,
+        "model_id": "SYNTH-TOY-DISTORTION",
+        "model_revision": "0.1.0"
       },
       "future_information_used": false,
       "resource_conflict": false,
@@ -696,7 +834,10 @@
         "worst_case_robustness"
       ],
       "as_built_writeback": false,
-      "expected_disposition": "BLOCK_FINAL_MEASUREMENT"
+      "expected_disposition": "BLOCK_FINAL_MEASUREMENT",
+      "panel_id": "PANEL-SYNTH-01",
+      "fixture_id": "FIXTURE-TEMPLATE-A",
+      "fixture_revision": "r1"
     },
     {
       "case_id": "SDC-014",
@@ -724,7 +865,9 @@
         {
           "event_id": "release-all",
           "cooling_complete": true,
-          "all_restraints_removed": true
+          "all_restraints_removed": true,
+          "event_order": 1,
+          "state_after": "fully_released"
         }
       ],
       "final_measurement": {
@@ -733,13 +876,19 @@
         "restraints_removed": true,
         "datum_id": "SYNTH-DATUM-0",
         "uncertainty_present": false,
-        "evidence_class": "synthetic_contract"
+        "evidence_class": "synthetic_contract",
+        "panel_id": "PANEL-SYNTH-01",
+        "panel_revision": "PANEL-SYNTH-R1",
+        "fixture_id": "FIXTURE-TEMPLATE-A",
+        "coordinate_frame": "SYNTH-PANEL-FRAME"
       },
       "model": {
         "scope": "synthetic_toy",
         "validation_state": "synthetic_contract_only",
         "out_of_domain": false,
-        "physical_claim": false
+        "physical_claim": false,
+        "model_id": "SYNTH-TOY-DISTORTION",
+        "model_revision": "0.1.0"
       },
       "future_information_used": false,
       "resource_conflict": false,
@@ -750,7 +899,10 @@
         "worst_case_robustness"
       ],
       "as_built_writeback": false,
-      "expected_disposition": "BLOCK_FINAL_MEASUREMENT"
+      "expected_disposition": "BLOCK_FINAL_MEASUREMENT",
+      "panel_id": "PANEL-SYNTH-01",
+      "fixture_id": "FIXTURE-TEMPLATE-A",
+      "fixture_revision": "r1"
     },
     {
       "case_id": "SDC-015",
@@ -778,7 +930,9 @@
         {
           "event_id": "release-all",
           "cooling_complete": true,
-          "all_restraints_removed": true
+          "all_restraints_removed": true,
+          "event_order": 1,
+          "state_after": "fully_released"
         }
       ],
       "final_measurement": null,
@@ -786,7 +940,9 @@
         "scope": "synthetic_toy",
         "validation_state": "synthetic_contract_only",
         "out_of_domain": false,
-        "physical_claim": false
+        "physical_claim": false,
+        "model_id": "SYNTH-TOY-DISTORTION",
+        "model_revision": "0.1.0"
       },
       "future_information_used": false,
       "resource_conflict": false,
@@ -797,7 +953,10 @@
         "worst_case_robustness"
       ],
       "as_built_writeback": false,
-      "expected_disposition": "BLOCK_FINAL_MEASUREMENT"
+      "expected_disposition": "BLOCK_FINAL_MEASUREMENT",
+      "panel_id": "PANEL-SYNTH-01",
+      "fixture_id": "FIXTURE-TEMPLATE-A",
+      "fixture_revision": "r1"
     },
     {
       "case_id": "SDC-016",
@@ -825,7 +984,9 @@
         {
           "event_id": "release-all",
           "cooling_complete": true,
-          "all_restraints_removed": true
+          "all_restraints_removed": true,
+          "event_order": 1,
+          "state_after": "fully_released"
         }
       ],
       "final_measurement": {
@@ -834,13 +995,19 @@
         "restraints_removed": true,
         "datum_id": "SYNTH-DATUM-0",
         "uncertainty_present": true,
-        "evidence_class": "synthetic_contract"
+        "evidence_class": "synthetic_contract",
+        "panel_id": "PANEL-SYNTH-01",
+        "panel_revision": "PANEL-SYNTH-R1",
+        "fixture_id": "FIXTURE-TEMPLATE-A",
+        "coordinate_frame": "SYNTH-PANEL-FRAME"
       },
       "model": {
         "scope": "synthetic_toy",
         "validation_state": "synthetic_contract_only",
         "out_of_domain": true,
-        "physical_claim": false
+        "physical_claim": false,
+        "model_id": "SYNTH-TOY-DISTORTION",
+        "model_revision": "0.1.0"
       },
       "future_information_used": false,
       "resource_conflict": false,
@@ -851,7 +1018,10 @@
         "worst_case_robustness"
       ],
       "as_built_writeback": false,
-      "expected_disposition": "BLOCK_MODEL_SCOPE"
+      "expected_disposition": "BLOCK_MODEL_SCOPE",
+      "panel_id": "PANEL-SYNTH-01",
+      "fixture_id": "FIXTURE-TEMPLATE-A",
+      "fixture_revision": "r1"
     },
     {
       "case_id": "SDC-017",
@@ -879,7 +1049,9 @@
         {
           "event_id": "release-all",
           "cooling_complete": true,
-          "all_restraints_removed": true
+          "all_restraints_removed": true,
+          "event_order": 1,
+          "state_after": "fully_released"
         }
       ],
       "final_measurement": {
@@ -888,13 +1060,19 @@
         "restraints_removed": true,
         "datum_id": "SYNTH-DATUM-0",
         "uncertainty_present": true,
-        "evidence_class": "synthetic_contract"
+        "evidence_class": "synthetic_contract",
+        "panel_id": "PANEL-SYNTH-01",
+        "panel_revision": "PANEL-SYNTH-R1",
+        "fixture_id": "FIXTURE-TEMPLATE-A",
+        "coordinate_frame": "SYNTH-PANEL-FRAME"
       },
       "model": {
         "scope": "synthetic_toy",
         "validation_state": "unqualified",
         "out_of_domain": false,
-        "physical_claim": false
+        "physical_claim": false,
+        "model_id": "SYNTH-TOY-DISTORTION",
+        "model_revision": "0.1.0"
       },
       "future_information_used": false,
       "resource_conflict": false,
@@ -905,7 +1083,10 @@
         "worst_case_robustness"
       ],
       "as_built_writeback": false,
-      "expected_disposition": "BLOCK_MODEL_SCOPE"
+      "expected_disposition": "BLOCK_MODEL_SCOPE",
+      "panel_id": "PANEL-SYNTH-01",
+      "fixture_id": "FIXTURE-TEMPLATE-A",
+      "fixture_revision": "r1"
     },
     {
       "case_id": "SDC-018",
@@ -933,7 +1114,9 @@
         {
           "event_id": "release-all",
           "cooling_complete": true,
-          "all_restraints_removed": true
+          "all_restraints_removed": true,
+          "event_order": 1,
+          "state_after": "fully_released"
         }
       ],
       "final_measurement": {
@@ -942,13 +1125,19 @@
         "restraints_removed": true,
         "datum_id": "SYNTH-DATUM-0",
         "uncertainty_present": true,
-        "evidence_class": "synthetic_contract"
+        "evidence_class": "synthetic_contract",
+        "panel_id": "PANEL-SYNTH-01",
+        "panel_revision": "PANEL-SYNTH-R1",
+        "fixture_id": "FIXTURE-TEMPLATE-A",
+        "coordinate_frame": "SYNTH-PANEL-FRAME"
       },
       "model": {
         "scope": "synthetic_toy",
         "validation_state": "synthetic_contract_only",
         "out_of_domain": false,
-        "physical_claim": true
+        "physical_claim": true,
+        "model_id": "SYNTH-TOY-DISTORTION",
+        "model_revision": "0.1.0"
       },
       "future_information_used": false,
       "resource_conflict": false,
@@ -959,7 +1148,10 @@
         "worst_case_robustness"
       ],
       "as_built_writeback": false,
-      "expected_disposition": "BLOCK_MODEL_SCOPE"
+      "expected_disposition": "BLOCK_MODEL_SCOPE",
+      "panel_id": "PANEL-SYNTH-01",
+      "fixture_id": "FIXTURE-TEMPLATE-A",
+      "fixture_revision": "r1"
     },
     {
       "case_id": "SDC-019",
@@ -987,7 +1179,9 @@
         {
           "event_id": "release-all",
           "cooling_complete": true,
-          "all_restraints_removed": true
+          "all_restraints_removed": true,
+          "event_order": 1,
+          "state_after": "fully_released"
         }
       ],
       "final_measurement": {
@@ -996,13 +1190,19 @@
         "restraints_removed": true,
         "datum_id": "SYNTH-DATUM-0",
         "uncertainty_present": true,
-        "evidence_class": "synthetic_contract"
+        "evidence_class": "synthetic_contract",
+        "panel_id": "PANEL-SYNTH-01",
+        "panel_revision": "PANEL-SYNTH-R1",
+        "fixture_id": "FIXTURE-TEMPLATE-A",
+        "coordinate_frame": "SYNTH-PANEL-FRAME"
       },
       "model": {
         "scope": "unsupported",
         "validation_state": "synthetic_contract_only",
         "out_of_domain": false,
-        "physical_claim": false
+        "physical_claim": false,
+        "model_id": "SYNTH-TOY-DISTORTION",
+        "model_revision": "0.1.0"
       },
       "future_information_used": false,
       "resource_conflict": false,
@@ -1013,7 +1213,10 @@
         "worst_case_robustness"
       ],
       "as_built_writeback": false,
-      "expected_disposition": "BLOCK_MODEL_SCOPE"
+      "expected_disposition": "BLOCK_MODEL_SCOPE",
+      "panel_id": "PANEL-SYNTH-01",
+      "fixture_id": "FIXTURE-TEMPLATE-A",
+      "fixture_revision": "r1"
     },
     {
       "case_id": "SDC-020",
@@ -1041,7 +1244,9 @@
         {
           "event_id": "release-all",
           "cooling_complete": true,
-          "all_restraints_removed": true
+          "all_restraints_removed": true,
+          "event_order": 1,
+          "state_after": "fully_released"
         }
       ],
       "final_measurement": {
@@ -1050,13 +1255,19 @@
         "restraints_removed": true,
         "datum_id": "SYNTH-DATUM-0",
         "uncertainty_present": true,
-        "evidence_class": "synthetic_contract"
+        "evidence_class": "synthetic_contract",
+        "panel_id": "PANEL-SYNTH-01",
+        "panel_revision": "PANEL-SYNTH-R1",
+        "fixture_id": "FIXTURE-TEMPLATE-A",
+        "coordinate_frame": "SYNTH-PANEL-FRAME"
       },
       "model": {
         "scope": "synthetic_toy",
         "validation_state": "synthetic_contract_only",
         "out_of_domain": false,
-        "physical_claim": false
+        "physical_claim": false,
+        "model_id": "SYNTH-TOY-DISTORTION",
+        "model_revision": "0.1.0"
       },
       "future_information_used": true,
       "resource_conflict": false,
@@ -1067,7 +1278,10 @@
         "worst_case_robustness"
       ],
       "as_built_writeback": false,
-      "expected_disposition": "BLOCK_SCHEDULE"
+      "expected_disposition": "BLOCK_SCHEDULE",
+      "panel_id": "PANEL-SYNTH-01",
+      "fixture_id": "FIXTURE-TEMPLATE-A",
+      "fixture_revision": "r1"
     },
     {
       "case_id": "SDC-021",
@@ -1095,7 +1309,9 @@
         {
           "event_id": "release-all",
           "cooling_complete": true,
-          "all_restraints_removed": true
+          "all_restraints_removed": true,
+          "event_order": 1,
+          "state_after": "fully_released"
         }
       ],
       "final_measurement": {
@@ -1104,13 +1320,19 @@
         "restraints_removed": true,
         "datum_id": "SYNTH-DATUM-0",
         "uncertainty_present": true,
-        "evidence_class": "synthetic_contract"
+        "evidence_class": "synthetic_contract",
+        "panel_id": "PANEL-SYNTH-01",
+        "panel_revision": "PANEL-SYNTH-R1",
+        "fixture_id": "FIXTURE-TEMPLATE-A",
+        "coordinate_frame": "SYNTH-PANEL-FRAME"
       },
       "model": {
         "scope": "synthetic_toy",
         "validation_state": "synthetic_contract_only",
         "out_of_domain": false,
-        "physical_claim": false
+        "physical_claim": false,
+        "model_id": "SYNTH-TOY-DISTORTION",
+        "model_revision": "0.1.0"
       },
       "future_information_used": false,
       "resource_conflict": true,
@@ -1121,7 +1343,10 @@
         "worst_case_robustness"
       ],
       "as_built_writeback": false,
-      "expected_disposition": "BLOCK_SCHEDULE"
+      "expected_disposition": "BLOCK_SCHEDULE",
+      "panel_id": "PANEL-SYNTH-01",
+      "fixture_id": "FIXTURE-TEMPLATE-A",
+      "fixture_revision": "r1"
     },
     {
       "case_id": "SDC-022",
@@ -1149,7 +1374,9 @@
         {
           "event_id": "release-all",
           "cooling_complete": true,
-          "all_restraints_removed": true
+          "all_restraints_removed": true,
+          "event_order": 1,
+          "state_after": "fully_released"
         }
       ],
       "final_measurement": {
@@ -1158,13 +1385,19 @@
         "restraints_removed": true,
         "datum_id": "SYNTH-DATUM-0",
         "uncertainty_present": true,
-        "evidence_class": "synthetic_contract"
+        "evidence_class": "synthetic_contract",
+        "panel_id": "PANEL-SYNTH-01",
+        "panel_revision": "PANEL-SYNTH-R1",
+        "fixture_id": "FIXTURE-TEMPLATE-A",
+        "coordinate_frame": "SYNTH-PANEL-FRAME"
       },
       "model": {
         "scope": "synthetic_toy",
         "validation_state": "synthetic_contract_only",
         "out_of_domain": false,
-        "physical_claim": false
+        "physical_claim": false,
+        "model_id": "SYNTH-TOY-DISTORTION",
+        "model_revision": "0.1.0"
       },
       "future_information_used": false,
       "resource_conflict": false,
@@ -1172,7 +1405,10 @@
         "scalar_weighted_score"
       ],
       "as_built_writeback": false,
-      "expected_disposition": "BLOCK_OBJECTIVES"
+      "expected_disposition": "BLOCK_OBJECTIVES",
+      "panel_id": "PANEL-SYNTH-01",
+      "fixture_id": "FIXTURE-TEMPLATE-A",
+      "fixture_revision": "r1"
     },
     {
       "case_id": "SDC-023",
@@ -1200,7 +1436,9 @@
         {
           "event_id": "release-all",
           "cooling_complete": true,
-          "all_restraints_removed": true
+          "all_restraints_removed": true,
+          "event_order": 1,
+          "state_after": "fully_released"
         }
       ],
       "final_measurement": {
@@ -1209,13 +1447,19 @@
         "restraints_removed": true,
         "datum_id": "SYNTH-DATUM-0",
         "uncertainty_present": true,
-        "evidence_class": "synthetic_contract"
+        "evidence_class": "synthetic_contract",
+        "panel_id": "PANEL-SYNTH-01",
+        "panel_revision": "PANEL-SYNTH-R1",
+        "fixture_id": "FIXTURE-TEMPLATE-A",
+        "coordinate_frame": "SYNTH-PANEL-FRAME"
       },
       "model": {
         "scope": "synthetic_toy",
         "validation_state": "synthetic_contract_only",
         "out_of_domain": false,
-        "physical_claim": false
+        "physical_claim": false,
+        "model_id": "SYNTH-TOY-DISTORTION",
+        "model_revision": "0.1.0"
       },
       "future_information_used": false,
       "resource_conflict": false,
@@ -1224,7 +1468,10 @@
         "fixture_cost"
       ],
       "as_built_writeback": false,
-      "expected_disposition": "BLOCK_OBJECTIVES"
+      "expected_disposition": "BLOCK_OBJECTIVES",
+      "panel_id": "PANEL-SYNTH-01",
+      "fixture_id": "FIXTURE-TEMPLATE-A",
+      "fixture_revision": "r1"
     },
     {
       "case_id": "SDC-024",
@@ -1252,7 +1499,9 @@
         {
           "event_id": "release-all",
           "cooling_complete": true,
-          "all_restraints_removed": true
+          "all_restraints_removed": true,
+          "event_order": 1,
+          "state_after": "fully_released"
         }
       ],
       "final_measurement": {
@@ -1261,13 +1510,19 @@
         "restraints_removed": true,
         "datum_id": "SYNTH-DATUM-0",
         "uncertainty_present": true,
-        "evidence_class": "synthetic_contract"
+        "evidence_class": "synthetic_contract",
+        "panel_id": "PANEL-SYNTH-01",
+        "panel_revision": "PANEL-SYNTH-R1",
+        "fixture_id": "FIXTURE-TEMPLATE-A",
+        "coordinate_frame": "SYNTH-PANEL-FRAME"
       },
       "model": {
         "scope": "synthetic_toy",
         "validation_state": "synthetic_contract_only",
         "out_of_domain": false,
-        "physical_claim": false
+        "physical_claim": false,
+        "model_id": "SYNTH-TOY-DISTORTION",
+        "model_revision": "0.1.0"
       },
       "future_information_used": false,
       "resource_conflict": false,
@@ -1278,7 +1533,10 @@
         "worst_case_robustness"
       ],
       "as_built_writeback": true,
-      "expected_disposition": "BLOCK_AUTHORITY"
+      "expected_disposition": "BLOCK_AUTHORITY",
+      "panel_id": "PANEL-SYNTH-01",
+      "fixture_id": "FIXTURE-TEMPLATE-A",
+      "fixture_revision": "r1"
     },
     {
       "case_id": "SDC-025",
@@ -1306,7 +1564,9 @@
         {
           "event_id": "release-all",
           "cooling_complete": true,
-          "all_restraints_removed": true
+          "all_restraints_removed": true,
+          "event_order": 1,
+          "state_after": "fully_released"
         }
       ],
       "final_measurement": {
@@ -1315,13 +1575,19 @@
         "restraints_removed": true,
         "datum_id": "SYNTH-DATUM-0",
         "uncertainty_present": true,
-        "evidence_class": "simulated"
+        "evidence_class": "simulated",
+        "panel_id": "PANEL-SYNTH-01",
+        "panel_revision": "PANEL-SYNTH-R1",
+        "fixture_id": "FIXTURE-TEMPLATE-A",
+        "coordinate_frame": "SYNTH-PANEL-FRAME"
       },
       "model": {
         "scope": "synthetic_toy",
         "validation_state": "synthetic_contract_only",
         "out_of_domain": false,
-        "physical_claim": false
+        "physical_claim": false,
+        "model_id": "SYNTH-TOY-DISTORTION",
+        "model_revision": "0.1.0"
       },
       "future_information_used": false,
       "resource_conflict": false,
@@ -1332,7 +1598,10 @@
         "worst_case_robustness"
       ],
       "as_built_writeback": false,
-      "expected_disposition": "BLOCK_FINAL_MEASUREMENT"
+      "expected_disposition": "BLOCK_FINAL_MEASUREMENT",
+      "panel_id": "PANEL-SYNTH-01",
+      "fixture_id": "FIXTURE-TEMPLATE-A",
+      "fixture_revision": "r1"
     },
     {
       "case_id": "SDC-026",
@@ -1360,7 +1629,9 @@
         {
           "event_id": "release-before-cooling",
           "cooling_complete": false,
-          "all_restraints_removed": true
+          "all_restraints_removed": true,
+          "event_order": 1,
+          "state_after": "fully_released"
         }
       ],
       "final_measurement": {
@@ -1369,13 +1640,19 @@
         "restraints_removed": true,
         "datum_id": "SYNTH-DATUM-0",
         "uncertainty_present": true,
-        "evidence_class": "synthetic_contract"
+        "evidence_class": "synthetic_contract",
+        "panel_id": "PANEL-SYNTH-01",
+        "panel_revision": "PANEL-SYNTH-R1",
+        "fixture_id": "FIXTURE-TEMPLATE-A",
+        "coordinate_frame": "SYNTH-PANEL-FRAME"
       },
       "model": {
         "scope": "synthetic_toy",
         "validation_state": "synthetic_contract_only",
         "out_of_domain": false,
-        "physical_claim": false
+        "physical_claim": false,
+        "model_id": "SYNTH-TOY-DISTORTION",
+        "model_revision": "0.1.0"
       },
       "future_information_used": false,
       "resource_conflict": false,
@@ -1386,7 +1663,10 @@
         "worst_case_robustness"
       ],
       "as_built_writeback": false,
-      "expected_disposition": "BLOCK_RELEASE_STATE"
+      "expected_disposition": "BLOCK_RELEASE_STATE",
+      "panel_id": "PANEL-SYNTH-01",
+      "fixture_id": "FIXTURE-TEMPLATE-A",
+      "fixture_revision": "r1"
     },
     {
       "case_id": "SDC-027",
@@ -1414,7 +1694,9 @@
         {
           "event_id": "release-all",
           "cooling_complete": true,
-          "all_restraints_removed": true
+          "all_restraints_removed": true,
+          "event_order": 1,
+          "state_after": "fully_released"
         }
       ],
       "final_measurement": {
@@ -1423,13 +1705,19 @@
         "restraints_removed": true,
         "datum_id": "SYNTH-DATUM-0",
         "uncertainty_present": true,
-        "evidence_class": "synthetic_contract"
+        "evidence_class": "synthetic_contract",
+        "panel_id": "PANEL-SYNTH-01",
+        "panel_revision": "PANEL-SYNTH-R1",
+        "fixture_id": "FIXTURE-TEMPLATE-A",
+        "coordinate_frame": "SYNTH-PANEL-FRAME"
       },
       "model": {
         "scope": "synthetic_toy",
         "validation_state": "synthetic_contract_only",
         "out_of_domain": false,
-        "physical_claim": false
+        "physical_claim": false,
+        "model_id": "SYNTH-TOY-DISTORTION",
+        "model_revision": "0.1.0"
       },
       "future_information_used": false,
       "resource_conflict": false,
@@ -1440,7 +1728,270 @@
         "worst_case_robustness"
       ],
       "as_built_writeback": false,
-      "expected_disposition": "BLOCK_FIXTURE_LIMIT"
+      "expected_disposition": "BLOCK_FIXTURE_LIMIT",
+      "panel_id": "PANEL-SYNTH-01",
+      "fixture_id": "FIXTURE-TEMPLATE-A",
+      "fixture_revision": "r1"
+    },
+    {
+      "case_id": "SDC-028",
+      "case_class": "negative_control",
+      "panel_revision": "PANEL-SYNTH-R1",
+      "weld_tasks": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "sequence": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "precedence": [
+        [
+          "W1",
+          "W3"
+        ]
+      ],
+      "fixture_reaction_limit_units": 100,
+      "predicted_fixture_reaction_units": 65,
+      "release_events": [
+        {
+          "event_id": "release-all",
+          "cooling_complete": true,
+          "all_restraints_removed": true,
+          "event_order": 1,
+          "state_after": "fully_released"
+        }
+      ],
+      "final_measurement": {
+        "phase": "final_free_state",
+        "cooling_complete": true,
+        "restraints_removed": true,
+        "datum_id": "SYNTH-DATUM-0",
+        "uncertainty_present": true,
+        "evidence_class": "synthetic_contract",
+        "panel_id": "PANEL-SYNTH-01",
+        "panel_revision": "PANEL-SYNTH-R1",
+        "fixture_id": "FIXTURE-TEMPLATE-A",
+        "coordinate_frame": "SYNTH-PANEL-FRAME"
+      },
+      "model": {
+        "scope": "synthetic_toy",
+        "validation_state": "synthetic_contract_only",
+        "out_of_domain": false,
+        "physical_claim": false,
+        "model_id": "SYNTH-TOY-DISTORTION",
+        "model_revision": "0.1.0"
+      },
+      "future_information_used": false,
+      "resource_conflict": false,
+      "objective_vector": [
+        "final_free_state_geometry",
+        "production_time",
+        "fixture_cost",
+        "worst_case_robustness"
+      ],
+      "as_built_writeback": false,
+      "expected_disposition": "BLOCK_FIXTURE_LIMIT",
+      "panel_id": "PANEL-SYNTH-01",
+      "fixture_id": "FIXTURE-TEMPLATE-A",
+      "fixture_revision": ""
+    },
+    {
+      "case_id": "SDC-030",
+      "case_class": "negative_control",
+      "panel_revision": "PANEL-SYNTH-R1",
+      "weld_tasks": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "sequence": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "precedence": [
+        [
+          "W1",
+          "W3"
+        ]
+      ],
+      "fixture_reaction_limit_units": 100,
+      "predicted_fixture_reaction_units": 65,
+      "release_events": [
+        {
+          "event_id": "release-all",
+          "cooling_complete": true,
+          "all_restraints_removed": true,
+          "event_order": 1,
+          "state_after": "fully_released"
+        }
+      ],
+      "final_measurement": {
+        "phase": "final_free_state",
+        "cooling_complete": true,
+        "restraints_removed": true,
+        "datum_id": "SYNTH-DATUM-0",
+        "uncertainty_present": true,
+        "evidence_class": "synthetic_contract",
+        "panel_id": "PANEL-OTHER",
+        "panel_revision": "PANEL-SYNTH-R1",
+        "fixture_id": "FIXTURE-TEMPLATE-A",
+        "coordinate_frame": "SYNTH-PANEL-FRAME"
+      },
+      "model": {
+        "scope": "synthetic_toy",
+        "validation_state": "synthetic_contract_only",
+        "out_of_domain": false,
+        "physical_claim": false,
+        "model_id": "SYNTH-TOY-DISTORTION",
+        "model_revision": "0.1.0"
+      },
+      "future_information_used": false,
+      "resource_conflict": false,
+      "objective_vector": [
+        "final_free_state_geometry",
+        "production_time",
+        "fixture_cost",
+        "worst_case_robustness"
+      ],
+      "as_built_writeback": false,
+      "expected_disposition": "BLOCK_FINAL_MEASUREMENT",
+      "panel_id": "PANEL-SYNTH-01",
+      "fixture_id": "FIXTURE-TEMPLATE-A",
+      "fixture_revision": "r1"
+    },
+    {
+      "case_id": "SDC-032",
+      "case_class": "negative_control",
+      "panel_revision": "PANEL-SYNTH-R1",
+      "weld_tasks": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "sequence": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "precedence": [
+        [
+          "W1",
+          "W3"
+        ]
+      ],
+      "fixture_reaction_limit_units": 100,
+      "predicted_fixture_reaction_units": 65,
+      "release_events": [
+        {
+          "event_id": "release-all",
+          "cooling_complete": true,
+          "all_restraints_removed": true,
+          "event_order": 1,
+          "state_after": "fully_released"
+        }
+      ],
+      "final_measurement": {
+        "phase": "final_free_state",
+        "cooling_complete": true,
+        "restraints_removed": true,
+        "datum_id": "SYNTH-DATUM-0",
+        "uncertainty_present": true,
+        "evidence_class": "synthetic_contract",
+        "panel_id": "PANEL-SYNTH-01",
+        "panel_revision": "OTHER-REV",
+        "fixture_id": "FIXTURE-TEMPLATE-A",
+        "coordinate_frame": "SYNTH-PANEL-FRAME"
+      },
+      "model": {
+        "scope": "synthetic_toy",
+        "validation_state": "synthetic_contract_only",
+        "out_of_domain": false,
+        "physical_claim": false,
+        "model_id": "SYNTH-TOY-DISTORTION",
+        "model_revision": "0.1.0"
+      },
+      "future_information_used": false,
+      "resource_conflict": false,
+      "objective_vector": [
+        "final_free_state_geometry",
+        "production_time",
+        "fixture_cost",
+        "worst_case_robustness"
+      ],
+      "as_built_writeback": false,
+      "expected_disposition": "BLOCK_FINAL_MEASUREMENT",
+      "panel_id": "PANEL-SYNTH-01",
+      "fixture_id": "FIXTURE-TEMPLATE-A",
+      "fixture_revision": "r1"
+    },
+    {
+      "case_id": "SDC-034",
+      "case_class": "negative_control",
+      "panel_revision": "PANEL-SYNTH-R1",
+      "weld_tasks": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "sequence": [
+        "W1",
+        "W2",
+        "W3"
+      ],
+      "precedence": [
+        [
+          "W1",
+          "W3"
+        ]
+      ],
+      "fixture_reaction_limit_units": 100,
+      "predicted_fixture_reaction_units": 65,
+      "release_events": [
+        {
+          "event_id": "release-all",
+          "cooling_complete": true,
+          "all_restraints_removed": true,
+          "event_order": 1,
+          "state_after": "fully_released"
+        }
+      ],
+      "final_measurement": {
+        "phase": "final_free_state",
+        "cooling_complete": true,
+        "restraints_removed": true,
+        "datum_id": "SYNTH-DATUM-0",
+        "uncertainty_present": true,
+        "evidence_class": "synthetic_contract",
+        "panel_id": "PANEL-SYNTH-01",
+        "panel_revision": "PANEL-SYNTH-R1",
+        "fixture_id": "FIXTURE-OTHER",
+        "coordinate_frame": "SYNTH-PANEL-FRAME"
+      },
+      "model": {
+        "scope": "synthetic_toy",
+        "validation_state": "synthetic_contract_only",
+        "out_of_domain": false,
+        "physical_claim": false,
+        "model_id": "SYNTH-TOY-DISTORTION",
+        "model_revision": "0.1.0"
+      },
+      "future_information_used": false,
+      "resource_conflict": false,
+      "objective_vector": [
+        "final_free_state_geometry",
+        "production_time",
+        "fixture_cost",
+        "worst_case_robustness"
+      ],
+      "as_built_writeback": false,
+      "expected_disposition": "BLOCK_FINAL_MEASUREMENT",
+      "panel_id": "PANEL-SYNTH-01",
+      "fixture_id": "FIXTURE-TEMPLATE-A",
+      "fixture_revision": "r1"
     }
   ]
 }
