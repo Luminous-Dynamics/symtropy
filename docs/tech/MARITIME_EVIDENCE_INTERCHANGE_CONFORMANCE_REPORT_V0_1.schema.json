@@ -8,8 +8,6 @@
     "report_version",
     "report_id",
     "profile_version",
-    "adapter_id",
-    "adapter_version",
     "fixture_corpus_sha256",
     "started_at",
     "completed_at",
@@ -18,9 +16,11 @@
     "summary",
     "hard_gates",
     "case_results",
-    "claim_ceiling",
     "validator_scope_note",
-    "elapsed_ms"
+    "elapsed_ms",
+    "validator_id",
+    "validator_version",
+    "claim_ceiling"
   ],
   "properties": {
     "report_version": {
@@ -32,14 +32,6 @@
     },
     "profile_version": {
       "const": "0.1.0"
-    },
-    "adapter_id": {
-      "type": "string",
-      "minLength": 1
-    },
-    "adapter_version": {
-      "type": "string",
-      "minLength": 1
     },
     "fixture_corpus_sha256": {
       "type": "string",
@@ -257,7 +249,7 @@
       }
     },
     "claim_ceiling": {
-      "const": "adapter_conformance_only"
+      "const": "synthetic_profile_semantics_only"
     },
     "validator_scope_note": {
       "type": "string"
@@ -265,6 +257,14 @@
     "elapsed_ms": {
       "type": "number",
       "minimum": 0
+    },
+    "validator_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "validator_version": {
+      "type": "string",
+      "minLength": 1
     }
   }
 }
