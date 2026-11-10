@@ -1542,6 +1542,42 @@ mod tests {
     }
 
     #[test]
+    fn bootstrap_does_not_count_multiple_checkpoints_from_one_unit_as_independent() {
+        let first = case("store-1", 1, MemoryOperationKind::Storage, MemoryOperationApplicability::Applicable, Some(digest("a")));
+        let mut second = case("store-2", 2, MemoryOperationKind::Storage, MemoryOperationApplicability::Applicable, Some(digest("b")));
+        second.independence_unit_id = first.independence_unit_id.clone();
+        let cases = vec![first.clone(), second.clone()];
+        let base_manifest = manifest(cases.clone());
+        let baseline = audit_memory_operations(
+            &base_manifest,
+            &[receipt(&first), receipt(&second)],
+        ).unwrap();
+
+        let mut candidate_manifest = base_manifest;
+        candidate_manifest.memory_system_sha256 = digest("a");
+        let mut candidate_receipts = vec![receipt(&first), receipt(&second)];
+        for row in &mut candidate_receipts {
+            row.memory_system_sha256 = digest("a");
+        }
+        let candidate = audit_memory_operations(&candidate_manifest, &candidate_receipts).unwrap();
+        let paired = compare_memory_operation_arms(&baseline, &candidate).unwrap();
+        assert_eq!(paired.paired_unit_count, 1);
+
+        let report = bootstrap_memory_operation_comparison(
+            &paired,
+            ClusterBootstrapConfig {
+                replicates: 1_000,
+                seed: 9,
+                confidence_level: 0.95,
+                minimum_independent_units_per_task: 2,
+            },
+        ).unwrap();
+        assert_eq!(report.summaries[0].status, ClusterBootstrapStatus::Underpowered);
+        assert_eq!(report.summaries[0].independent_unit_count, 1);
+        assert_eq!(report.summaries[0].lower_percentile_bound, None);
+    }
+
+    #[test]
     fn cluster_bootstrap_rejects_invalid_configuration() {
         let (comparison, _) = three_unit_paired_arms();
         let mut config = ClusterBootstrapConfig {
