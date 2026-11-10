@@ -126,13 +126,6 @@ fn validate_manifest(schema_text: &str, manifest_text: &str) -> Result<Summary, 
         );
     }
 
-    let expected_modes = [
-        ("WID615", "PMC+CMT"),
-        ("WID617", "PMC+PMC"),
-        ("WID630", "CMT+CMT"),
-        ("WID631", "PMC+PMC"),
-        ("WID632", "PMC+CMT"),
-    ];
     let Some(workpieces) = manifest.get("workpieces").and_then(Value::as_array) else {
         return Err(vec!["workpieces must be an array".to_owned()]);
     };
@@ -156,10 +149,12 @@ fn validate_manifest(schema_text: &str, manifest_text: &str) -> Result<Summary, 
         }
         actual_wids.push(wid.clone());
 
-        let expected_mode = expected_modes
-            .iter()
-            .find(|(expected_wid, _)| *expected_wid == wid)
-            .map(|(_, mode)| *mode);
+        let expected_mode = match wid.as_str() {
+            "WID615" | "WID632" => Some("PMC+CMT"),
+            "WID617" | "WID631" => Some("PMC+PMC"),
+            "WID630" => Some("CMT+CMT"),
+            _ => None,
+        };
         if expected_mode.is_none() || str_at(workpiece, "tandem_mode") != expected_mode {
             errors.push(format!("{wid}: unexpected or missing tandem mode assignment"));
         }
