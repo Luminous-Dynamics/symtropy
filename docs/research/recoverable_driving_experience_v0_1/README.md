@@ -244,7 +244,19 @@ These are upstream-reported results for the named benchmark revision, not indepe
 
 A simulation benchmark and an operating driverless service do not measure the same thing. For calibration, Waymo's public safety-impact dashboard reports 271.3 million rider-only miles through June 2026 and compares crash rates against location-adjusted human benchmarks. Waymo reports 95% fewer serious-injury-or-worse crashes and 82% fewer injury-causing crashes in the operating locations covered by that analysis. The same materials distinguish retrospective safety-impact analysis from pre-deployment release readiness, which Waymo evaluates through its Safety Framework and Safety Case. These are company-published operational results, not results Symthaea can meaningfully claim to match through simulation alone. See [Waymo Safety Impact and methodology](https://waymo.com/safety/impact/).
 
-Tesla's public FSD (Supervised) safety report is another, different form of fleet telemetry: it describes collision event definitions and compares FSD (Supervised) driving against manually driven Tesla vehicles with and without active safety features. Its event definitions, road mix, control mode and comparison population differ from Waymo's and from simulator benchmarks. Do not compare raw cross-company rates without reconstructing the methodology and denominators. See [Tesla's FSD (Supervised) Vehicle Safety Report](https://www.tesla.com/fsd/safety).
+Tesla's public FSD (Supervised) safety report is another, different form of fleet telemetry: it describes collision event definitions and compares FSD (Supervised) driving against manually driven Tesla vehicles with and without active safety features. Tesla counts a collision as FSD-engaged when FSD was active at any point in the five seconds before the event, and does not assign fault in its reported collision data. Its event definitions, road mix, control mode and comparison population differ from Waymo's and from simulator benchmarks. Do not compare raw cross-company rates without reconstructing the methodology and denominators. See [Tesla's FSD (Supervised) Vehicle Safety Report and methodology](https://www.tesla.com/fsd/safety).
+
+### NVIDIA Alpamayo as a current platform comparator
+
+NVIDIA's Alpamayo Open Platform (page updated August 2026) is not just a driving model. It combines 10B-parameter Alpamayo 1/1.5 Nano and 34B Alpamayo 2 Super VLA models, multi-camera RGB plus ego-motion inputs, 64-waypoint trajectory outputs, Chain-of-Causation explanation text, AlpaSim closed-loop simulation, AlpaGym reinforcement learning, auto-labeling and open driving datasets. NVIDIA describes the models as cloud-side teacher models that can be distilled into onboard DRIVE AGX Thor student policies; they are not described as direct in-vehicle runtimes.
+
+This creates a useful competitive reference:
+- **Do not compete on parameter count.** Compare against Alpamayo as a high-capacity teacher / reasoning-VLA baseline where its published protocols, weights, data and licences permit.
+- **Compete on the student capability frontier.** Test whether a substantially smaller HDC/LTC student can preserve task competence while improving adaptation cost, irregular-time sensor robustness, memory/energy use and recovery quality.
+- **Make explanations evidence-grounded.** A generated Chain-of-Causation text is useful for review, but Symthaea should attach each decision claim to policy-visible observation identities, predicted consequences, uncertainty and independently qualified SAM evidence. Text alone is not an assurance artifact.
+- **Use the ecosystem comparison honestly.** NVIDIA already offers a simulator, RL stack, teacher models, data and reasoning outputs. Symtropy must demonstrate equivalent closed-loop experiment discipline and benchmark reproduction before architectural differentiation is persuasive.
+
+Source: [NVIDIA Alpamayo platform description and August 2026 update](https://www.nvidia.com/en-us/solutions/autonomous-vehicles/alpamayo/llm-info/).
 
 **Strategic implication:** Symthaea is currently a research architecture and specification programme, not an industry-level autonomous-driving product. The credible path is: reproduce public research baselines; show a predeclared architectural or learning-efficiency advantage under matched budgets; validate robustness and recovery independently; then build a separately governed, staged physical evidence case. Fleet mileage and safety-case evidence are a long-term validation destination, not a near-term leaderboard target.
 
@@ -284,7 +296,11 @@ The next executable slice is a small, finite evaluator over synthetic branch rec
 - [DriveVLA-W0, ICLR 2026](https://proceedings.iclr.cc/paper_files/paper/2026/hash/0d70423f59c5fdd24f0dd3fa52e34623-Abstract-Conference.html)
 - [World-In-World, ICLR 2026](https://proceedings.iclr.cc/paper_files/paper/2026/hash/5b4263be85820683d78675cc18d2efc7-Abstract-Conference.html)
 - [DrivingGen, ICLR 2026](https://drivinggen-bench.github.io/)
+- [Bench2Drive v0.0.4 release results and data split](https://github.com/Thinklab-SJTU/Bench2Drive/blob/0.0.4/docs/v004_update.md)
 - [Bench2Drive-Robust paper](https://arxiv.org/abs/2605.18059) and [code](https://github.com/Thinklab-SJTU/Bench2Drive-Robust)
+- [NVIDIA Alpamayo Open Platform](https://www.nvidia.com/en-us/solutions/autonomous-vehicles/alpamayo/llm-info/)
+- [Waymo Safety Impact dashboard](https://waymo.com/safety/impact/)
+- [Tesla FSD (Supervised) Safety Report](https://www.tesla.com/fsd/safety)
 - [NAVSIM v2 metric definition](https://github.com/autonomousvision/navsim/blob/main/docs/metrics.md)
 - [Bench2Drive leaderboard snapshot](https://carlaleaderboard-bench2drive.hf.space/)
 - [Waymo Open Dataset challenges](https://waymo.com/open/challenges/)
