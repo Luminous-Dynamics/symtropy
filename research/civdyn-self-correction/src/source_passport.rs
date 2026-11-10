@@ -78,9 +78,6 @@ impl ObservationOrigin {
         matches!(self, Self::DerivedFromRegisteredInputs | Self::Imputed)
     }
 
-    const fn is_synthetic_origin_only(self) -> bool {
-        matches!(self, Self::CategoryDefault | Self::Imputed)
-    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -371,7 +368,7 @@ pub fn qualify_source(
     passport: &SourceArtifactPassport,
     purpose: RegisteredPurpose,
 ) -> SourceQualification {
-    let mut result = |status, reason| SourceQualification {
+    let result = |status, reason| SourceQualification {
         artifact_id: passport.artifact_id.clone(),
         status,
         reason,
@@ -479,12 +476,19 @@ fn validate_observation(
 
     if observation.origin == ObservationOrigin::SurveyEstimate
         && (observation.sample_design_digest.as_deref().is_none_or(str::is_empty)
-            || observation.weights_digest.as_deref().is_none_or(str::is_empty))
+            || observation.weights_digest.as_deref().is_none_or(str::is_empty)
+            || passport.sample_design_digest.as_deref().is_none_or(str::is_empty)
+            || passport.weights_digest.as_deref().is_none_or(str::is_empty))
     {
         reasons.push(CompatibilityReason::SurveyDesignOrWeightsMissing);
     }
 
     if observation.sampling_unit != passport.sampling_unit {
+        reasons.push(CompatibilityReason::ObservationSourceMismatch);
+    }
+    if observation.measurement_unit != passport.native_measurement_unit
+        && observation.origin != ObservationOrigin::DerivedFromRegisteredInputs
+    {
         reasons.push(CompatibilityReason::ObservationSourceMismatch);
     }
 
@@ -536,7 +540,7 @@ fn validate_transform_coverage(
     receipt: &TransformReceipt,
     minimum_coverage: f64,
 ) -> bool {
-    receipt.coverage_fraction.is_none_or(|value| {
+    receipt.coverage_fraction.is_some_and(|value| {
         value.is_finite() && (minimum_coverage..=1.0).contains(&value)
     })
 }
