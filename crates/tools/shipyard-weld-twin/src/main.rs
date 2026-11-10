@@ -34,8 +34,63 @@ fn number_at(root: &Value, path: &str) -> Option<u64> {
     value_at(root, path)?.as_u64()
 }
 
+fn is_canonical_utc(timestamp: &str) -> bool {
+    let bytes = timestamp.as_bytes();
+    if bytes.len() != 20
+        || bytes[4] != b'-'
+        || bytes[7] != b'-'
+        || bytes[10] != b'T'
+        || bytes[13] != b':'
+        || bytes[16] != b':'
+        || bytes[19] != b'Z'
+    {
+        return false;
+    }
+
+    for (start, end) in [(0, 4), (5, 7), (8, 10), (11, 13), (14, 16), (17, 19)] {
+        if !bytes[start..end].iter().all(u8::is_ascii_digit) {
+            return false;
+        }
+    }
+
+    let Ok(year) = timestamp[0..4].parse::<u32>() else {
+        return false;
+    };
+    let Ok(month) = timestamp[5..7].parse::<u32>() else {
+        return false;
+    };
+    let Ok(day) = timestamp[8..10].parse::<u32>() else {
+        return false;
+    };
+    let Ok(hour) = timestamp[11..13].parse::<u32>() else {
+        return false;
+    };
+    let Ok(minute) = timestamp[14..16].parse::<u32>() else {
+        return false;
+    };
+    let Ok(second) = timestamp[17..19].parse::<u32>() else {
+        return false;
+    };
+
+    if year == 0 || !(1..=12).contains(&month) || !(0..=23).contains(&hour)
+        || !(0..=59).contains(&minute) || !(0..=59).contains(&second)
+    {
+        return false;
+    }
+
+    let leap_year = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+    let days_in_month = match month {
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
+        2 if leap_year => 29,
+        2 => 28,
+        _ => return false,
+    };
+    (1..=days_in_month).contains(&day)
+}
+
 fn is_current_until(root: &Value, path: &str, cutoff: &str) -> bool {
-    text_at(root, path).is_some_and(|until| until.ends_with('Z') && until >= cutoff)
+    text_at(root, path).is_some_and(|until| is_canonical_utc(until) && until >= cutoff)
 }
 
 fn resolve_trace_path(workspace_root: &Path, relative: &str) -> Result<PathBuf, &'static str> {
@@ -116,7 +171,7 @@ fn verify_process_trace(
 
 fn evaluate(weld: &Value, workspace_root: &Path) -> &'static str {
     let cutoff = match text_at(weld, "evaluation_cutoff_utc") {
-        Some(value) if value.ends_with('Z') => value,
+        Some(value) if is_canonical_utc(value) => value,
         _ => return "INVALID_DECISION_CUTOFF",
     };
 
@@ -147,6 +202,13 @@ fn evaluate(weld: &Value, workspace_root: &Path) -> &'static str {
 
     if text_at(weld, "procedure.approval_status") != Some("approved") {
         return "PROCEDURE_NOT_APPROVED";
+    }
+    let procedure_valid_from = match text_at(weld, "procedure.valid_from_utc") {
+        Some(value) if is_canonical_utc(value) => value,
+        _ => return "INVALID_PROCEDURE_VALID_FROM",
+    };
+    if procedure_valid_from > cutoff {
+        return "PROCEDURE_NOT_YET_EFFECTIVE";
     }
     if !is_current_until(weld, "procedure.valid_until_utc", cutoff) {
         return "PROCEDURE_EXPIRED";
@@ -225,6 +287,13 @@ fn evaluate(weld: &Value, workspace_root: &Path) -> &'static str {
         }
         if pass.get("sequence_index").and_then(Value::as_u64) != Some((index + 1) as u64) {
             return "PASS_SEQUENCE_INVALID";
+        }
+        let pass_time = match pass.get("source_time_utc").and_then(Value::as_str) {
+            Some(value) if is_canonical_utc(value) => value,
+            _ => return "INVALID_PASS_SOURCE_TIME",
+        };
+        if pass_time > cutoff {
+            return "PROCESS_TRACE_AFTER_DECISION_CUTOFF";
         }
         if pass.get("serial_id").and_then(Value::as_str) != Some(serial) {
             return "WORKPIECE_IDENTITY_MISMATCH";
@@ -552,9 +621,20 @@ mod tests {
         let corpus: Value = serde_json::from_str(CORPUS).expect("frozen corpus parses");
         let root = workspace_root();
         let report = verify_corpus(&corpus, &root).expect("frozen corpus evaluates");
-        assert_eq!(report["case_count"].as_u64(), Some(37));
+        assert_eq!(report["case_count"].as_u64(), Some(40));
         assert_eq!(report["passed_count"].as_u64(), Some(37));
         assert_eq!(report["failed_count"].as_u64(), Some(0));
+    }
+
+    #[test]
+    fn canonical_utc_validates_calendar_and_clock_components() {
+        assert!(is_canonical_utc("2024-02-29T23:59:59Z"));
+        assert!(is_canonical_utc("2026-11-10T04:00:00Z"));
+        assert!(!is_canonical_utc("2026-02-30T04:00:00Z"));
+        assert!(!is_canonical_utc("2025-02-29T04:00:00Z"));
+        assert!(!is_canonical_utc("2026-13-01T04:00:00Z"));
+        assert!(!is_canonical_utc("2026-11-10T24:00:00Z"));
+        assert!(!is_canonical_utc("2026-11-10T04:00:00"));
     }
 
     #[test]
