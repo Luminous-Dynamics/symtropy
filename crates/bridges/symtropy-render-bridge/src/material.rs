@@ -84,7 +84,7 @@ pub type TelemetryMaterial = ExtendedMaterial<StandardMaterial, TelemetryExtensi
 /// Material extension that tints surfaces from read-only telemetry buffers.
 ///
 /// V0 renders telemetry into the PBR material response. It does not claim
- /// vertex deformation; that requires a separately qualified vertex path.
+/// vertex deformation; that requires a separately qualified vertex path.
 #[derive(Asset, AsBindGroup, Debug, Clone, Reflect)]
 pub struct TelemetryExtension {
     #[uniform(100)]
