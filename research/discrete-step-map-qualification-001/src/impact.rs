@@ -513,10 +513,10 @@ mod tests {
                     velocity_m_s: 0.0,
                 },
                 1.0,
-                1.0e-10,
+                ImpactTolerances::default(),
             )
             .unwrap();
-        close(result.event_time_s.unwrap(), (2.0_f64 / 9.81).sqrt(), ImpactTolerances::default());
+        close(result.event_time_s.unwrap(), (2.0_f64 / 9.81).sqrt(), 1.0e-12);
         close(result.state.gap_m, 0.0, 1.0e-15);
         close(result.state.velocity_m_s, 0.0, 1.0e-15);
         close(result.impact_impulse_ns, 2.0 * (2.0 * 9.81_f64).sqrt(), 1.0e-12);
@@ -547,7 +547,7 @@ mod tests {
                     velocity_m_s: 0.0,
                 },
                 0.1,
-                1.0e-10,
+                ImpactTolerances::default(),
             )
             .unwrap();
         assert_eq!(result.branch, ImpactBranch::FreeFlight);
@@ -574,7 +574,7 @@ mod tests {
                 velocity_m_s: -0.1,
             },
             0.5,
-            1.0e-12,
+            ImpactTolerances::default(),
         ).unwrap();
         assert!(result.complementarity_residual <= 1.0e-12);
     }
@@ -589,12 +589,12 @@ mod tests {
                     velocity_m_s: 0.0,
                 },
                 0.6,
-                1.0e-10,
+                ImpactTolerances::default(),
             )
             .unwrap();
         let event_time = (2.0_f64 / 9.81).sqrt();
         let incoming_speed = (2.0_f64 * 9.81).sqrt();
-        close(result.event_time_s.unwrap(), event_time, ImpactTolerances::default());
+        close(result.event_time_s.unwrap(), event_time, 1.0e-12);
         close(
             result.impact_impulse_ns,
             1.5 * 1.5 * incoming_speed,
@@ -645,7 +645,7 @@ mod tests {
                     ..initial
                 },
                 dt,
-                1.0e-12,
+                ImpactTolerances::default(),
             )
             .unwrap()
             .state;
@@ -656,7 +656,7 @@ mod tests {
                     ..initial
                 },
                 dt,
-                1.0e-12,
+                ImpactTolerances::default(),
             )
             .unwrap()
             .state;
@@ -667,7 +667,7 @@ mod tests {
                     ..initial
                 },
                 dt,
-                1.0e-12,
+                ImpactTolerances::default(),
             )
             .unwrap()
             .state;
@@ -678,7 +678,7 @@ mod tests {
                     ..initial
                 },
                 dt,
-                1.0e-12,
+                ImpactTolerances::default(),
             )
             .unwrap()
             .state;
@@ -714,9 +714,9 @@ mod tests {
                 velocity_m_s: -1.0,
             },
             1.0,
-            1.0e-10,
+            ImpactTolerances::default(),
         ).unwrap();
-        close(result.event_time_s.unwrap(), 0.5, ImpactTolerances::default());
+        close(result.event_time_s.unwrap(), 0.5, 1.0e-12);
         assert_eq!(result.state.gap_m, 0.0);
         assert_eq!(result.state.velocity_m_s, 0.0);
         assert_eq!(result.branch, ImpactBranch::PlasticImpactThenSupport);
@@ -732,7 +732,7 @@ mod tests {
                 velocity_m_s: 0.0,
             },
             1.0,
-            1.0e-10,
+            ImpactTolerances::default(),
         );
         assert_eq!(result, Err(ImpactError::MultipleImpactsInOneStep));
     }
