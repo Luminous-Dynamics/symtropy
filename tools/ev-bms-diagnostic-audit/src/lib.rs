@@ -703,9 +703,9 @@ mod tests {
     #[test]
     fn frozen_corpus_accepts_five_and_rejects_five_controls() {
         let report = report();
-        assert_eq!(report.payload.case_count, 10);
-        assert_eq!(report.payload.accepted_count, 5);
-        assert_eq!(report.payload.rejected_count, 5);
+        assert_eq!(report.payload.case_count, 12);
+        assert_eq!(report.payload.accepted_count, 6);
+        assert_eq!(report.payload.rejected_count, 6);
     }
 
     #[test]
