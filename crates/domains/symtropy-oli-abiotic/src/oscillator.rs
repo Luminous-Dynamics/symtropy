@@ -84,8 +84,10 @@ impl PhaseOscillatorConfig {
             .minimum_natural_frequency
             .abs()
             .max(self.maximum_natural_frequency.abs());
-        let maximum_rate =
-            maximum_natural + self.coupling_strength + self.forcing_amplitude;
+        let maximum_rate = maximum_natural
+            + self.forcing_frequency
+            + self.coupling_strength
+            + self.forcing_amplitude;
         let phase_increment = maximum_rate * self.dt;
         if phase_increment > MAX_PHASE_INCREMENT_RAD {
             return Err(OscillatorError::PhaseResolutionViolation {
