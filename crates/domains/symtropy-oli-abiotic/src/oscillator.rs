@@ -125,8 +125,10 @@ pub struct OscillatorSummary {
     pub mean_natural_frequency: f64,
     pub order_parameter: f64,
     pub mean_absolute_pairwise_phase_difference: f64,
-    pub common_input_coherence: f64,
-    pub mean_phase_lag_to_input: f64,
+    /// Time-averaged phase-lag coherence relative to the external driver.
+    /// Absent when the external driver is disabled.
+    pub common_input_phase_locking: Option<f64>,
+    pub mean_phase_lag_to_input: Option<f64>,
     pub coupling_strength: f64,
     pub forcing_amplitude: f64,
     pub forcing_frequency: f64,
