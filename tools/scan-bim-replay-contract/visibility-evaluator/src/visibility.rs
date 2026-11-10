@@ -57,6 +57,8 @@ pub struct VisibilityProbe {
     pub surface_id: String,
     pub triangle_id: String,
     pub point: Point3,
+    /// Barycentric coordinates on the exact reference triangle (a, b, c).
+    pub barycentric: [f64; 3],
     /// Outward normal in the same declared frame as point. The evaluator
     /// validates and normalizes it before the sensor-incidence test.
     pub normal: Point3,
@@ -774,6 +776,7 @@ pub fn probes_from_reference_sampling(
             surface_id: sample.surface_id.clone(),
             triangle_id: sample.triangle_id.clone(),
             point: sample.point,
+            barycentric: sample.barycentric,
             normal: sample.normal,
             represented_area_m2: sample.represented_area_m2,
         })
