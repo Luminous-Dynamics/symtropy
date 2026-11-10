@@ -18,7 +18,7 @@ A bounded Rust research crate for analytic Lorentzian-spacetime reference calcul
 - Noise-weighted frequency-domain waveform comparison: one-sided PSD inner product, constant-phase-maximized mismatch, explicit best phase offset, separate amplitude L2 and frequency-dependent phase residual diagnostics, and strict grid/PSD/domain validation. The caller must pre-align waveforms; no hidden time maximization, interpolation, resampling, or PSD estimation.
 - Kerr equatorial prograde/retrograde circular-null-orbit reference observables: analytic photon-orbit radius and signed frequency, metric null/radial circularity residuals, normalized null radial-potential R/R-prime residuals, impact parameter, and coordinate-time radial Lyapunov exponent. Extremal prograde Boyer-Lindquist horizon limit returns explicit unavailable impact/Lyapunov values rather than a fabricated finite result.
 - A 20-case independently generated Kerr light-ring reference grid spanning zero, positive, negative, near-extremal, and extremal spin.
-- **90 authored Rust tests** across scalar physics, Kerr limits, metric matrices, connection compatibility, curvature, second-order automatic differentiation, horizon-regular charts, posterior transforms, geodesic integration, separated Kerr null-geodesic formulae, waveform metrics, and light-ring references.
+- **93 authored Rust tests** across scalar physics, Kerr limits, metric matrices, connection compatibility, curvature, second-order automatic differentiation, horizon-regular charts, posterior transforms, geodesic integration, separated Kerr null-geodesic formulae, waveform metrics, and light-ring references.
 
 ## Conventions
 
@@ -92,6 +92,18 @@ These files are literature / experiment specifications. They are not benchmark e
 
 **Validation status:** 90 tests are authored but were not executed in the editing environment because `rustc` and `cargo` are unavailable there. The new Kerr equations were checked against independent algebraic calculations for the Schwarzschild critical double root, observer-screen map and radial null coordinate-time ratio; this does not validate Rust compilation or a numerical Kerr trajectory. No build/test pass, waveform benchmark result, light-ring Rust result, or geodesic accuracy claim is made.
 
+
+## Separated Kerr null-geodesic reference
+
+`kerr_geodesic.rs` uses dimensionless geometrized variables (M=Gm/c^2=1), (a/M=\chi), (r/M), (ct/M), (L_z/M), and (Q/M^2). It provides Carter-separated radial/polar potentials and their derivatives, Bardeen asymptotic observer-screen ↔ ((E,L_z,Q)) mapping, and both first-order signed Mino derivatives and a second-order smooth Mino system.
+
+The second-order equations follow by differentiating the separated first integrals:
+- (d^2(r/M)/d\gamma^2 = \tfrac12 R'(r/M));
+- (d^2\theta/d\gamma^2 = \tfrac12 \Theta'(\theta)).
+
+The second-order state passes continuously through simple turning points because the corresponding coordinate velocity reaches zero while its acceleration determines the continuation. `mino_constraint_residuals` exposes (v_r^2-R) and (v_\theta^2-\Theta) for integration-drift monitoring. The first-order signed system remains useful for evaluating branch-local analytic derivatives and explicit sign controls.
+
+This remains a reference kernel, **not a complete ray integrator**. No adaptive stepper, turning-point root/event locator, independent Kerr canonical-Hamiltonian evolution, finite-radius observer tetrad, variational Jacobi transport or caustic detection is included yet. Boyer–Lindquist integration is restricted to the exterior and excludes the horizon and polar axis. Tests are authored but not executed in this environment.
 
 ## Schwarzschild geodesic scope
 
