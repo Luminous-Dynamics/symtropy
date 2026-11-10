@@ -65,6 +65,23 @@ pub struct MinimaxDecision {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExperimentPredictionReceipt {
+    pub model_id: String,
+    pub model_digest: String,
+    pub outcome_id: String,
+    pub prediction_receipt_digest: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DecisionVoiModelReceipt {
+    pub model_id: String,
+    pub model_digest: String,
+    pub adequacy_state: ModelAdequacyState,
+    pub adequacy_role: SplitRole,
+    pub adequacy_receipt_digest: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExperimentOutcomePartition {
     pub outcome_id: String,
     pub model_ids: Vec<String>,
@@ -93,6 +110,7 @@ impl ExperimentAssessmentStatus {
 pub struct ExperimentValueAssessment {
     pub experiment_id: String,
     pub protocol_digest: String,
+    pub predictions: Vec<ExperimentPredictionReceipt>,
     pub cost: OrderedFloatValue,
     pub affordable: bool,
     pub status: ExperimentAssessmentStatus,
@@ -109,6 +127,7 @@ pub struct DecisionVoiReport {
     pub measurement_unit: String,
     pub direction: ObjectiveDirection,
     pub cost_unit: String,
+    pub model_receipts: Vec<DecisionVoiModelReceipt>,
     pub maximum_experiment_cost: OrderedFloatValue,
     pub source_validation_world_count: usize,
     pub held_out_challenge_world_count: usize,
@@ -133,7 +152,6 @@ pub enum DecisionVoiError {
     DuplicatePolicyOutcome { model_id: String, policy_id: String },
     IncompletePolicyMatrix { model_id: String, expected: usize, actual: usize },
     ContradictoryFeasibilityReceipt { model_id: String, policy_id: String },
-    MissingCommonFeasiblePolicy,
     InvalidExperimentIdentity,
     DuplicateExperimentIdentity { experiment_id: String },
     InvalidExperimentCost { experiment_id: String },
@@ -153,9 +171,9 @@ impl fmt::Display for DecisionVoiError {
 
 impl std::error::Error for DecisionVoiError {}
 
-fn validate_worlds<'a>(
-    worlds: &'a [DecisionModelWorld],
-) -> Result<(Vec<&'a str>, BTreeSet<&'a str>, usize, usize), DecisionVoiError> {
+fn validate_worlds(
+    worlds: &[DecisionModelWorld],
+) -> Result<(BTreeSet<&str>, usize, usize), DecisionVoiError> {
     if worlds.is_empty() {
         return Err(DecisionVoiError::EmptyModelSet);
     }
@@ -257,8 +275,7 @@ fn validate_worlds<'a>(
         return Err(DecisionVoiError::InvalidPolicyIdentity);
     }
 
-    let ordered_policy_ids: Vec<&str> = policy_ids.iter().copied().collect();
-    Ok((ordered_policy_ids, policy_ids, source_count, challenge_count))
+    Ok((policy_ids, source_count, challenge_count))
 }
 
 fn minimax_decision(
@@ -357,8 +374,7 @@ pub fn assess_decision_value_of_information(
         return Err(DecisionVoiError::EmptyExperimentSet);
     }
 
-    let (ordered_policy_ids, policy_ids, source_count, challenge_count) =
-        validate_worlds(worlds)?;
+    let (policy_ids, source_count, challenge_count) = validate_worlds(worlds)?;
     let world_lookup: BTreeMap<&str, &DecisionModelWorld> = worlds
         .iter()
         .map(|world| (world.model.id(), world))
@@ -445,7 +461,8 @@ pub fn assess_decision_value_of_information(
         }
 
         let mut partition_results = Vec::with_capacity(partitions.len());
-        let mut worst_post_regret: Option<f64> = Some(0.0);
+        let mut worst_post_regret = Some(0.0_f64);
+        let mut every_partition_has_robust_action = true;
         for (outcome_id, partition_worlds) in &partitions {
             let decision = minimax_decision(
                 partition_worlds,
@@ -454,9 +471,12 @@ pub fn assess_decision_value_of_information(
                 config.tie_tolerance,
             )?;
             if let Some(regret) = decision.worst_case_regret {
-                worst_post_regret =
-                    Some(worst_post_regret.unwrap_or(0.0).max(regret.get()));
+                if every_partition_has_robust_action {
+                    worst_post_regret =
+                        Some(worst_post_regret.unwrap_or(0.0).max(regret.get()));
+                }
             } else {
+                every_partition_has_robust_action = false;
                 worst_post_regret = None;
             }
             let mut model_ids: Vec<String> = partition_worlds
@@ -484,7 +504,11 @@ pub fn assess_decision_value_of_information(
             .checked_sub(within_partition_pairs)
             .ok_or(DecisionVoiError::CountOverflow)?;
 
-        let worst_post_value = worst_post_regret;
+        let worst_post_value = if every_partition_has_robust_action {
+            worst_post_regret
+        } else {
+            None
+        };
         let regret_reduction = match (
             current_minimax_decision.worst_case_regret,
             worst_post_value,
@@ -501,6 +525,15 @@ pub fn assess_decision_value_of_information(
         assessments.push(ExperimentValueAssessment {
             experiment_id: experiment.id.clone(),
             protocol_digest: experiment.protocol_digest.clone(),
+            predictions: predictions
+                .iter()
+                .map(|(model_id, prediction)| ExperimentPredictionReceipt {
+                    model_id: (*model_id).to_string(),
+                    model_digest: prediction.model_digest.clone(),
+                    outcome_id: prediction.outcome_id.clone(),
+                    prediction_receipt_digest: prediction.prediction_receipt_digest.clone(),
+                })
+                .collect(),
             cost: OrderedFloatValue::new(experiment.cost)
                 .map_err(|_| DecisionVoiError::InvalidExperimentCost {
                     experiment_id: experiment.id.clone(),
@@ -551,12 +584,24 @@ pub fn assess_decision_value_of_information(
         }
     }
 
-    let _ = ordered_policy_ids;
+    let mut model_receipts: Vec<DecisionVoiModelReceipt> = worlds
+        .iter()
+        .map(|world| DecisionVoiModelReceipt {
+            model_id: world.model.id().to_string(),
+            model_digest: world.model.model_digest().to_string(),
+            adequacy_state: world.model.adequacy_state(),
+            adequacy_role: world.model.adequacy_role().expect("validated model role"),
+            adequacy_receipt_digest: world.model.adequacy_receipt_digest().to_string(),
+        })
+        .collect();
+    model_receipts.sort_by(|left, right| left.model_id.cmp(&right.model_id));
+
     Ok(DecisionVoiReport {
         objective_id: config.objective_id.clone(),
         measurement_unit: config.measurement_unit.clone(),
         direction: config.direction,
         cost_unit: config.cost_unit.clone(),
+        model_receipts,
         maximum_experiment_cost: OrderedFloatValue::new(config.maximum_experiment_cost)
             .map_err(|_| DecisionVoiError::InvalidConfiguration)?,
         source_validation_world_count: source_count,
