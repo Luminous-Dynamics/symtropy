@@ -39,7 +39,11 @@ fn fragment(
         discard;
     }
 
-    let alpha_mult = if (settings.edge_fade > 0.001) {
+    // A zero-thickness slice is valid as a geometric plane. Avoid 0/0
+    // when the slice is exactly coincident with the body coordinate.
+    let alpha_mult = if (
+        settings.edge_fade > 0.001 && settings.slice_thickness > 0.000001
+    ) {
         clamp(1.0 - (dist / settings.slice_thickness), 0.0, 1.0)
     } else {
         1.0
