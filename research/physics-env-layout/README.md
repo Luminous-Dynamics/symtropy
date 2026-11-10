@@ -14,7 +14,7 @@ cargo run -- 10000 100
 cargo bench --bench layout_throughput
 ```
 
-The CLI emits a deterministic receipt after checking the final state digests for all layouts. The benchmark separates scalar loops from persistent Rayon pools. Cloning/initialization is in Criterion's setup closure, outside the timed operation.
+The CLI emits a deterministic receipt after comparing the full canonical per-environment f64 bit-pattern snapshots across all layouts. SHA-256 digests are included as compact receipt identifiers; they are not the correctness oracle. The benchmark separates scalar loops from persistent Rayon pools. Cloning/initialization is in Criterion's setup closure, outside the timed operation.
 
 ## Frozen kernel
 
@@ -47,7 +47,8 @@ The benchmark applies one environment-level parallel dispatch per step in every 
 ## Correctness gates
 
 - All layouts produce exact per-ID state equality on the frozen scalar kernel.
-- Parallel AoSoA outputs are exact with the scalar reference.
+- AoS, SoA and AoSoA parallel outputs are exact with their scalar references.
+- Exact comparisons use the canonical `u64` f64 bit patterns, not only digest equality.
 - Permuted input order canonicalizes to the same digest.
 - Duplicate, missing, unexpected and empty campaigns fail closed.
 - Non-finite or non-positive timestep values are rejected.
