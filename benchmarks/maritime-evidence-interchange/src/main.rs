@@ -190,7 +190,7 @@ fn parse_fixed_u32(bytes: &[u8], start: usize, end: usize) -> Option<i64> {
 }
 
 fn days_from_civil(year: i64, month: i64, day: i64) -> i64 {
-    let adjusted_year = year - i64::from(month <= 2);
+    let adjusted_year = year - if month <= 2 { 1 } else { 0 };
     let era = if adjusted_year >= 0 {
         adjusted_year
     } else {
@@ -252,7 +252,7 @@ fn civil_from_days(days_since_epoch: i64) -> (i64, i64, i64) {
     let month_prime = (5 * day_of_year + 2) / 153;
     let day = day_of_year - (153 * month_prime + 2) / 5 + 1;
     let month = month_prime + if month_prime < 10 { 3 } else { -9 };
-    let year = year + i64::from(month <= 2);
+    let year = year + if month <= 2 { 1 } else { 0 };
     (year, month, day)
 }
 
@@ -349,7 +349,7 @@ fn validate_record(record: &Value, evaluation_time: i64) -> RecordAudit {
                         if payload.get("media_type").and_then(Value::as_str).is_none_or(str::is_empty) {
                             audit.reject("payload_media_type_missing");
                         }
-                        if string_at(&Value::Object(payload.as_object().cloned().unwrap_or_default()), &["signature_state"]) == Some("invalid") {
+                        if payload.get("signature_state").and_then(Value::as_str) == Some("invalid") {
                             audit.reject("payload_signature_invalid");
                         }
                     }
@@ -584,8 +584,7 @@ fn evaluate_corpus(bytes: &[u8]) -> Result<(Value, usize), String> {
     if u64_at(&corpus, &["fixture_count"]) != Some(fixtures.len() as u64) {
         return Err("corpus_fixture_count_mismatch".into());
     }
-    let known_ids = record_ids(&corpus)?;
-    let corpus_ids = known_ids.clone();
+    let corpus_ids = record_ids(&corpus)?;
 
     let run_started = Instant::now();
     let started_epoch = SystemTime::now().duration_since(UNIX_EPOCH)
@@ -607,7 +606,9 @@ fn evaluate_corpus(bytes: &[u8]) -> Result<(Value, usize), String> {
     let mut conflict_total = 0usize;
     let mut conflict_valid = 0usize;
     let mut duplicate_gate_ok = true;
+    let mut duplicate_seen = false;
     let mut digest_negative_control_ok = true;
+    let mut digest_mismatch_seen = false;
     let mut references_ok = true;
 
     let mut fixture_ids = HashSet::new();
@@ -649,8 +650,11 @@ fn evaluate_corpus(bytes: &[u8]) -> Result<(Value, usize), String> {
                 digest_checked += 1;
                 if digest_ok {
                     digest_matches += 1;
-                } else if expected_disp != Disposition::Reject {
-                    digest_negative_control_ok = false;
+                } else {
+                    digest_mismatch_seen = true;
+                    if expected_disp != Disposition::Reject {
+                        digest_negative_control_ok = false;
+                    }
                 }
             }
             provenance_total += 1;
@@ -700,6 +704,7 @@ fn evaluate_corpus(bytes: &[u8]) -> Result<(Value, usize), String> {
             }
         }
         if duplicate_in_fixture {
+            duplicate_seen = true;
             actual = Disposition::Reject;
             push_unique(&mut reasons, "duplicate_source_asset_clock_sequence");
             if expected_disp != Disposition::Reject {
@@ -750,8 +755,11 @@ fn evaluate_corpus(bytes: &[u8]) -> Result<(Value, usize), String> {
     let disposition_gate = failed_cases == 0;
     let ambiguous_gate = ambiguous_total == ambiguous_abstained && ambiguous_total > 0;
     let conflict_gate = conflict_total == conflict_valid;
-    let all_gates = disposition_gate && digest_negative_control_ok && ambiguous_gate
-        && conflict_gate && duplicate_gate_ok && references_ok;
+    let digest_gate = digest_negative_control_ok && digest_mismatch_seen;
+    let duplicate_gate = duplicate_gate_ok && duplicate_seen;
+    let native_gate = native_total == native_present && native_total > 0;
+    let all_gates = disposition_gate && digest_gate && ambiguous_gate
+        && conflict_gate && duplicate_gate && references_ok && native_gate;
 
     let report = json!({
         "report_version": "0.1.0",
@@ -770,7 +778,7 @@ fn evaluate_corpus(bytes: &[u8]) -> Result<(Value, usize), String> {
             "rejected": rejected,
             "abstained": abstained,
             "payload_digest_match_rate": if digest_checked == 0 { Value::Null } else { json!(digest_matches as f64 / digest_checked as f64) },
-            "native_identifier_retention_rate": if native_total == 0 { Value::Null } else { json!(native_present as f64 / native_total as f64) },
+            "native_identifier_retention_rate": Value::Null,
             "mapping_precision": Value::Null,
             "mapping_coverage": Value::Null,
             "ambiguous_mapping_abstention_rate": if ambiguous_total == 0 { Value::Null } else { json!(ambiguous_abstained as f64 / ambiguous_total as f64) },
@@ -782,10 +790,11 @@ fn evaluate_corpus(bytes: &[u8]) -> Result<(Value, usize), String> {
         },
         "hard_gates": [
             {"gate_id":"expected_dispositions_match","passed":disposition_gate,"failure_count":failed_cases},
-            {"gate_id":"digest_negative_control_rejected","passed":digest_negative_control_ok,"failure_count":usize::from(!digest_negative_control_ok)},
+            {"gate_id":"digest_negative_control_rejected","passed":digest_gate,"failure_count":if digest_gate { 0usize } else { 1usize }},
             {"gate_id":"ambiguous_mapping_abstention","passed":ambiguous_gate,"failure_count":ambiguous_total.saturating_sub(ambiguous_abstained)},
-            {"gate_id":"duplicate_stream_sequence_rejected","passed":duplicate_gate_ok,"failure_count":usize::from(!duplicate_gate_ok)},
-            {"gate_id":"assertion_evidence_references_resolve","passed":references_ok,"failure_count":usize::from(!references_ok)},
+            {"gate_id":"duplicate_stream_sequence_rejected","passed":duplicate_gate,"failure_count":if duplicate_gate { 0usize } else { 1usize }},
+            {"gate_id":"assertion_evidence_references_resolve","passed":references_ok,"failure_count":if references_ok { 0usize } else { 1usize }},
+            {"gate_id":"native_channel_identifiers_present","passed":native_gate,"failure_count":if native_gate { 0usize } else { 1usize }},
             {"gate_id":"assertion_conflict_links_well_formed","passed":conflict_gate,"failure_count":conflict_total.saturating_sub(conflict_valid)}
         ],
         "case_results": case_reports,
@@ -794,7 +803,7 @@ fn evaluate_corpus(bytes: &[u8]) -> Result<(Value, usize), String> {
         "elapsed_ms": elapsed_ms
     });
 
-    Ok((report, failed_cases + usize::from(!all_gates)))
+    Ok((report, failed_cases + if all_gates { 0usize } else { 1usize }))
 }
 
 fn usage() -> &'static str {
