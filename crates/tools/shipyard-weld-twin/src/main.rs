@@ -3,12 +3,117 @@
 
 #![forbid(unsafe_code)]
 
-use serde_json::{Value, json};
+use serde::de::{MapAccess, SeqAccess, Visitor};
+use serde::{Deserialize, Deserializer};
+use serde_json::{Map, Number, Value, json};
 use sha2::{Digest, Sha256};
 use std::env;
+use std::fmt;
 use std::fs;
 use std::path::{Component, Path, PathBuf};
 use std::process::ExitCode;
+
+struct StrictJson(Value);
+
+impl<'de> Deserialize<'de> for StrictJson {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct StrictValueVisitor;
+
+        impl<'de> Visitor<'de> for StrictValueVisitor {
+            type Value = Value;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+                formatter.write_str("a JSON value with unique object keys")
+            }
+
+            fn visit_bool<E>(self, value: bool) -> Result<Self::Value, E> {
+                Ok(Value::Bool(value))
+            }
+
+            fn visit_i64<E>(self, value: i64) -> Result<Self::Value, E> {
+                Ok(Value::Number(Number::from(value)))
+            }
+
+            fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E> {
+                Ok(Value::Number(Number::from(value)))
+            }
+
+            fn visit_f64<E>(self, value: f64) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                Number::from_f64(value)
+                    .map(Value::Number)
+                    .ok_or_else(|| E::custom("non-finite JSON number"))
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<Self::Value, E> {
+                Ok(Value::String(value.to_owned()))
+            }
+
+            fn visit_string<E>(self, value: String) -> Result<Self::Value, E> {
+                Ok(Value::String(value))
+            }
+
+            fn visit_unit<E>(self) -> Result<Self::Value, E> {
+                Ok(Value::Null)
+            }
+
+            fn visit_none<E>(self) -> Result<Self::Value, E> {
+                Ok(Value::Null)
+            }
+
+            fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+            where
+                D: Deserializer<'de>,
+            {
+                StrictJson::deserialize(deserializer).map(|value| value.0)
+            }
+
+            fn visit_seq<A>(self, mut sequence: A) -> Result<Self::Value, A::Error>
+            where
+                A: SeqAccess<'de>,
+            {
+                let mut values = Vec::new();
+                while let Some(value) = sequence.next_element::<StrictJson>()? {
+                    values.push(value.0);
+                }
+                Ok(Value::Array(values))
+            }
+
+            fn visit_map<A>(self, mut object: A) -> Result<Self::Value, A::Error>
+            where
+                A: MapAccess<'de>,
+            {
+                let mut values = Map::new();
+                while let Some(key) = object.next_key::<String>()? {
+                    if values.contains_key(&key) {
+                        return Err(serde::de::Error::custom(format!(
+                            "duplicate JSON object key: {key}"
+                        )));
+                    }
+                    let value = object.next_value::<StrictJson>()?;
+                    values.insert(key, value.0);
+                }
+                Ok(Value::Object(values))
+            }
+        }
+
+        deserializer
+            .deserialize_any(StrictValueVisitor)
+            .map(StrictJson)
+    }
+}
+
+fn parse_strict_json(bytes: &[u8]) -> Result<Value, serde_json::Error> {
+    let mut deserializer = serde_json::Deserializer::from_slice(bytes);
+    let value = StrictJson::deserialize(&mut deserializer)?.0;
+    deserializer.end()?;
+    Ok(value)
+}
 
 fn value_at<'a>(root: &'a Value, path: &str) -> Option<&'a Value> {
     let mut current = root;
@@ -202,14 +307,15 @@ fn verify_process_trace(
         return "PROCESS_TRACE_DIGEST_MISMATCH";
     }
 
-    let trace: Value = match serde_json::from_slice(&bytes) {
+    let trace = match parse_strict_json(&bytes) {
         Ok(value) => value,
-        Err(_) => return "PROCESS_TRACE_INVALID_JSON",
+        Err(_) => return "PROCESS_TRACE_INVALID_OR_AMBIGUOUS_JSON",
     };
     let bindings = [
         ("fixture_kind", Some("synthetic_fixture")),
         ("workpiece_component_id", text_at(weld, "workpiece.component_id")),
         ("workpiece_serial_id", text_at(weld, "workpiece.serial_id")),
+        ("material_heat_lot", text_at(pass, "material_heat_lot")),
         ("joint_id", text_at(pass, "joint_id")),
         ("pass_id", text_at(pass, "pass_id")),
         ("pass_role", text_at(pass, "role")),
@@ -255,13 +361,25 @@ fn evaluate(weld: &Value, workspace_root: &Path) -> &'static str {
         None => return "DESIGN_REVISION_MISSING",
     };
 
-    if text_at(weld, "workpiece.material_heat_lot")
-        != text_at(weld, "material_receiving.material_heat_lot")
+    let material_heat_lot = match text_at(weld, "workpiece.material_heat_lot") {
+        Some(value) => value,
+        None => return "MATERIAL_LOT_MISMATCH",
+    };
+    if text_at(weld, "workpiece.material_record_lot") != Some(material_heat_lot)
+        || text_at(weld, "workpiece.material_heat_lot")
+            != text_at(weld, "material_receiving.material_heat_lot")
         || text_at(weld, "workpiece.material_spec_ref")
             != text_at(weld, "material_receiving.material_spec_ref")
         || text_at(weld, "material_receiving.disposition") != Some("accepted_synthetic")
     {
         return "MATERIAL_LOT_MISMATCH";
+    }
+    let qualified_heat_lots = value_at(weld, "procedure.qualified_material_heat_lots")
+        .and_then(Value::as_array);
+    if qualified_heat_lots.is_none_or(|lots| {
+        !lots.iter().any(|lot| lot.as_str() == Some(material_heat_lot))
+    }) {
+        return "MATERIAL_LOT_NOT_QUALIFIED";
     }
 
     if text_at(weld, "procedure.qualified_scope")
@@ -375,6 +493,9 @@ fn evaluate(weld: &Value, workspace_root: &Path) -> &'static str {
         }
         if pass.get("workpiece_serial_id").and_then(Value::as_str) != Some(serial) {
             return "WORKPIECE_IDENTITY_MISMATCH";
+        }
+        if pass.get("material_heat_lot").and_then(Value::as_str) != Some(material_heat_lot) {
+            return "MATERIAL_LOT_MISMATCH";
         }
         if pass.get("joint_id").and_then(Value::as_str) != Some(joint) {
             return "JOINT_IDENTITY_MISMATCH";
@@ -595,6 +716,12 @@ fn apply_mutation(root: &mut Value, mutation: &Value) -> Result<(), String> {
 }
 
 fn verify_corpus(corpus: &Value, workspace_root: &Path) -> Result<Value, String> {
+    if corpus.get("corpus_id").and_then(Value::as_str)
+        != Some("luminous.symtropy.shipyard-weld-twin")
+        || corpus.get("corpus_version").and_then(Value::as_str) != Some("0.1.0")
+    {
+        return Err("unsupported weld-twin corpus identity or version".to_owned());
+    }
     let base = corpus
         .get("base_cases")
         .and_then(|value| value.get("valid_robotic_weld"))
@@ -604,13 +731,24 @@ fn verify_corpus(corpus: &Value, workspace_root: &Path) -> Result<Value, String>
         .and_then(Value::as_array)
         .ok_or_else(|| "corpus cases must be an array".to_owned())?;
 
+    if cases.len() != 51 {
+        return Err(format!("frozen weld-twin corpus must contain 51 cases, found {}", cases.len()));
+    }
+
     let mut results = Vec::with_capacity(cases.len());
     let mut failures = Vec::new();
+    let mut case_ids = std::collections::BTreeSet::new();
     for case in cases {
         let id = case
             .get("id")
             .and_then(Value::as_str)
             .ok_or_else(|| "case has no id".to_owned())?;
+        if !case_ids.insert(id) {
+            return Err(format!("duplicate case id: {id}"));
+        }
+        if case.get("base").and_then(Value::as_str) != Some("valid_robotic_weld") {
+            return Err(format!("case {id} uses an unsupported base fixture"));
+        }
         let expected = case
             .get("expected_code")
             .and_then(Value::as_str)
@@ -699,7 +837,9 @@ fn main() -> ExitCode {
 
 #[cfg(test)]
 mod tests {
-    use super::{apply_mutation, evaluate, is_canonical_utc, verify_corpus};
+    use super::{
+        apply_mutation, evaluate, is_canonical_utc, parse_strict_json, verify_corpus,
+    };
     use serde_json::Value;
     use std::path::PathBuf;
 
@@ -715,8 +855,8 @@ mod tests {
         let corpus: Value = serde_json::from_str(CORPUS).expect("frozen corpus parses");
         let root = workspace_root();
         let report = verify_corpus(&corpus, &root).expect("frozen corpus evaluates");
-        assert_eq!(report["case_count"].as_u64(), Some(49));
-        assert_eq!(report["passed_count"].as_u64(), Some(49));
+        assert_eq!(report["case_count"].as_u64(), Some(51));
+        assert_eq!(report["passed_count"].as_u64(), Some(51));
         assert_eq!(report["failed_count"].as_u64(), Some(0));
     }
 
@@ -729,6 +869,13 @@ mod tests {
         assert!(!is_canonical_utc("2026-13-01T04:00:00Z"));
         assert!(!is_canonical_utc("2026-11-10T24:00:00Z"));
         assert!(!is_canonical_utc("2026-11-10T04:00:00"));
+    }
+
+    #[test]
+    fn strict_json_rejects_duplicate_keys_at_every_object_depth() {
+        assert!(parse_strict_json(br#"{"pass_id":"one","pass_id":"two"}"#).is_err());
+        assert!(parse_strict_json(br#"{"outer":{"value":1,"value":2}}"#).is_err());
+        assert!(parse_strict_json(br#"{"pass_id":"one","role":"root"}"#).is_ok());
     }
 
     #[test]
