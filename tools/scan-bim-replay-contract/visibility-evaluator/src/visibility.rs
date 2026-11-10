@@ -1183,7 +1183,7 @@ pub fn derive_surface_visibility(
             || Vec3::from_point(probe.normal).norm() <= VECTOR_EPSILON
         {
             return Err(
-                "probe coordinates/normal and area must be finite and positive".to_owned(),
+                "probe geometry, normal or area is invalid".to_owned(),
             );
         }
     }
