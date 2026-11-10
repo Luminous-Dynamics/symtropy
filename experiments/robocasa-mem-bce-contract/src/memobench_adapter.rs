@@ -664,8 +664,8 @@ pub fn audit_memobench_operations(
     let mut success_total = 0usize;
     let mut success_count = 0usize;
     let mut success_unresolved = 0usize;
-    for task_id in tasks.keys() {
-        let task_episodes = manifest.episodes.iter().filter(|episode| episode.task_id == **task_id).collect::<Vec<_>>();
+    for task_id in tasks.keys().copied() {
+        let task_episodes = manifest.episodes.iter().filter(|episode| episode.task_id == task_id).collect::<Vec<_>>();
         let mut total = 0usize;
         let mut success = 0usize;
         let mut failed = 0usize;
@@ -687,7 +687,7 @@ pub fn audit_memobench_operations(
         success_count += success;
         success_unresolved += unresolved;
         task_success_by_task.push(MemobenchTaskSuccessRate {
-            task_id: Some((*task_id).to_owned()),
+            task_id: Some(task_id.to_owned()),
             total_episodes: total,
             successful_episodes: success,
             unsuccessful_episodes: failed,
@@ -1010,6 +1010,58 @@ mod tests {
             Err(MemobenchAdapterError::CommercialUseNotAuthorized)
         );
         input.license.commercial_permission_sha256 = Some(digest('f'));
+        input.license.commercial_permission_verification_receipt_sha256 = Some(digest('a'));
+        assert!(select_memobench_checkpoints(&input).is_ok());
+    }
+
+    #[test]
+    fn frozen_task_and_checkpoint_rosters_reject_omissions_and_extra_tasks() {
+        let mut input = manifest();
+        input.expected_task_ids.push("missing-task".to_owned());
+        assert_eq!(
+            select_memobench_checkpoints(&input),
+            Err(MemobenchAdapterError::TaskRosterMismatch)
+        );
+
+        input = manifest();
+        input.expected_checkpoint_count_by_task.insert("WA-01".to_owned(), 3);
+        assert_eq!(
+            select_memobench_checkpoints(&input),
+            Err(MemobenchAdapterError::CheckpointCountMismatch)
+        );
+    }
+
+    #[test]
+    fn episode_seed_and_artifact_receipts_are_required_for_qualified_rates() {
+        let input = manifest();
+        let mut checkpoint = checkpoint_outcome(&input, 0, "episode-1", Some(true));
+        checkpoint.episode_artifact_sha256 = None;
+        let mut other = checkpoint_outcome(&input, 1, "episode-1", Some(false));
+        other.seed = 99;
+        assert_eq!(
+            audit_memobench_operations(&input, &[checkpoint, other], &[]),
+            Err(MemobenchAdapterError::CheckpointOutcomeIdentityMismatch)
+        );
+
+        let mut episodes = vec![
+            episode_outcome(&input, "episode-1", Some(true)),
+            episode_outcome(&input, "episode-2", Some(false)),
+        ];
+        episodes[0].evaluator_receipt_sha256 = None;
+        let report = audit_memobench_operations(&input, &[], &episodes).unwrap();
+        assert_eq!(report.task_success.unresolved_episodes, 1);
+        assert_eq!(report.task_success.official_task_success_rate, None);
+    }
+
+    #[test]
+    fn commercial_use_permission_requires_a_separate_verification_receipt() {
+        let mut input = manifest();
+        input.license.purpose = MemobenchUsePurpose::CommercialDevelopment;
+        input.license.commercial_permission_sha256 = Some(digest('f'));
+        assert_eq!(
+            select_memobench_checkpoints(&input),
+            Err(MemobenchAdapterError::CommercialUseNotAuthorized)
+        );
         input.license.commercial_permission_verification_receipt_sha256 = Some(digest('a'));
         assert!(select_memobench_checkpoints(&input).is_ok());
     }
