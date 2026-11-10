@@ -49,3 +49,8 @@ The seed also includes an event-resolved one-dimensional unilateral floor model 
 - Returns a typed error when more than one impact would occur inside a single step rather than silently dropping an event.
 
 The impact model is deliberately independent from the smooth oscillator's fused implicit step map. The two models use different forward laws; they must not be conflated in a backend comparison.
+
+
+Impact event classification uses separate dimensional tolerances for event time (seconds), gap (metres), and inward normal velocity (metres/second). The result distinguishes a smooth free-flight derivative, a branch-local single-impact state Jacobian, an event-boundary abstention, and an active-support unavailable derivative. Event time and impulse are reported as observables; their derivatives are not included in the state Jacobian.
+
+The hybrid impact lane is still intentionally restricted: a second impact within the same step is a typed failure, not an approximated or dropped event.
