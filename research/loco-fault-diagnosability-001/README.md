@@ -142,6 +142,19 @@ Do not optimize top-1 accuracy alone. Prefer a broad correct ambiguity set to an
 - Exact invariance under hypothesis/feature input permutations.
 - Held-out hardware target: measured envelope coverage must be preregistered and maintained; any undercoverage invalidates unique-isolation claims in that domain.
 
+
+### Per-feature time and source qualification
+
+A fused observation is not a single timestamp. Contact, encoder, current and inertial channels may update at different rates. V0 therefore binds every feature to:
+- source ID;
+- monotonic timestamp after applying the receipt-bound clock map;
+- unit and feature ID;
+- maximum feature age at the decision point.
+
+The observation also declares its reference time and a maximum cross-channel timestamp skew. Any future-dated, stale, wrong-source or out-of-skew feature invalidates unique isolation for the complete sample. Common-cause source groups remain explicit; timestamp alignment does not make correlated sensors independent.
+
+The exact reference uses now_ns = 500, observation reference time 450, feature times 440 and 445, per-feature maximum age 100, and maximum cross-channel skew 20 in its synthetic fixture. The deliberately stale and skewed cases must be rejected.
+
 ## Claim ceiling
 
 V0 qualifies finite interval geometry and identity/schema composition only. It does not prove that supplied envelopes cover real robot observations or that a fault is physically identifiable. Hardware claims require measured source envelopes, independent calibration/coverage validation and upstream viability receipts.
@@ -152,10 +165,10 @@ V0 qualifies finite interval geometry and identity/schema composition only. It d
 The standalone dependency-free Rust crate consumes:
 - a complete authoritative physical fault-hypothesis set;
 - one bounded interval box or explicit Unknown envelope per hypothesis;
-- an exact feature/channel/unit schema with common-cause group IDs;
+- an exact feature/channel/unit schema with source IDs, per-feature maximum age and common-cause group IDs;
 - source/model/actuator/domain/sensor/calibration/clock identities;
 - a fresh diagnostic-action receipt carrying the upstream #4313/#4293 viable-continuation receipt digest;
-- an optional timestamped actual observation.
+- an optional timestamped actual observation with per-feature source identity and mapped monotonic timestamps.
 
 It:
 - validates that the diagnostic action was independently admitted and is current;
@@ -169,7 +182,7 @@ It:
 - preserves common-cause group identifiers in the result;
 - canonicalizes hypothesis/feature order.
 
-Seventeen deterministic tests cover separable and overlapping fault signatures, touching intervals, Unknown hypotheses, unique and ambiguous observations, OOD observations, missing sensor features, stale/mismatched receipts, non-admitted probes, feature schema/unit mismatch, permutation invariance, invalid intervals and common-cause metadata.
+Nineteen deterministic tests cover separable and overlapping fault signatures, touching intervals, Unknown hypotheses, unique and ambiguous observations, OOD observations, missing sensor features, stale/mismatched receipts, non-admitted probes, feature schema/unit mismatch, per-feature source mismatch, stale feature timestamps, excessive cross-channel skew, permutation invariance, invalid intervals and common-cause metadata.
 
 Qualification commands:
 
