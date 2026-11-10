@@ -5,7 +5,7 @@
 
 ## Scope
 
-This dependency-free Rust crate performs deterministic bookkeeping for ordered mission event sequences. It carries battery SOC, a separate diagnostic/recovery budget, qualified thermal headroom, actuator authority, terminal safe-stop energy and upstream recovery-topology reserve across each event.
+This dependency-free Rust crate performs deterministic bookkeeping for ordered mission event sequences. It carries battery SOC, a separate diagnostic/recovery budget, aggregate thermal reserve plus source-qualified per-node motor/driver/battery/compute temperatures, actuator authority, terminal safe-stop energy and upstream recovery-topology reserve across each event.
 
 It does not estimate those values from raw sensors, model physical cooling/wear, compute viability, diagnose faults, authenticate upstream receipts or certify safety.
 
