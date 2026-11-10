@@ -1,0 +1,169 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/road_option_experiment_v0_1/analytic_three_arm_fixture.schema.json",
+  "title": "SAM reciprocal crossing analytic three-arm fixture",
+  "type": "object",
+  "required": ["schema_version", "fixture_id", "status", "claim_ceiling", "decision_context", "action_domains", "hidden_hypotheses", "continuation_cases", "measurement", "arms", "expected_findings", "negative_controls"],
+  "properties": {
+    "schema_version": { "const": "sam.road-option-analytic-fixture.v0.1" },
+    "fixture_id": { "type": "string", "minLength": 1 },
+    "status": { "const": "synthetic_analytic_conformance_only" },
+    "claim_ceiling": { "type": "string", "minLength": 1 },
+    "decision_context": {
+      "type": "object",
+      "required": ["scenario_id", "tick_rate_hz", "initial_decision_tick", "next_decision_tick", "next_action_deadline_tick", "initial_observation_class", "initial_observation_receipt_id", "controller_view"],
+      "properties": {
+        "scenario_id": { "type": "string", "minLength": 1 },
+        "tick_rate_hz": { "type": "integer", "minimum": 1 },
+        "initial_decision_tick": { "type": "integer", "minimum": 0 },
+        "next_decision_tick": { "type": "integer", "minimum": 1 },
+        "next_action_deadline_tick": { "type": "integer", "minimum": 1 },
+        "initial_observation_class": { "type": "string", "minLength": 1 },
+        "initial_observation_receipt_id": { "type": "string", "minLength": 1 },
+        "controller_view": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "action_domains": {
+      "type": "object",
+      "required": ["first_action_domain_id", "continuation_action_domain_id", "first_actions", "continuation_actions"],
+      "properties": {
+        "first_action_domain_id": { "type": "string", "minLength": 1 },
+        "continuation_action_domain_id": { "type": "string", "minLength": 1 },
+        "first_actions": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/firstAction" } },
+        "continuation_actions": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } }
+      },
+      "additionalProperties": false
+    },
+    "hidden_hypotheses": {
+      "type": "array",
+      "minItems": 2,
+      "items": { "$ref": "#/$defs/hypothesis" }
+    },
+    "continuation_cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/continuationCase" }
+    },
+    "measurement": {
+      "type": "object",
+      "required": ["query_id", "request_after_first_action", "expected_latency_ticks", "resource_cost_units", "timely_delivery_tick", "late_delivery_tick", "outcomes"],
+      "properties": {
+        "query_id": { "type": "string", "minLength": 1 },
+        "request_after_first_action": { "const": "early_yield" },
+        "expected_latency_ticks": { "type": "integer", "minimum": 1 },
+        "resource_cost_units": { "type": "number", "minimum": 0 },
+        "timely_delivery_tick": { "type": "integer", "minimum": 1 },
+        "late_delivery_tick": { "type": "integer", "minimum": 1 },
+        "outcomes": {
+          "type": "array",
+          "minItems": 2,
+          "items": { "$ref": "#/$defs/measurementOutcome" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "arms": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": { "$ref": "#/$defs/arm" }
+    },
+    "expected_findings": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "object" }
+    },
+    "negative_controls": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/negativeControl" }
+    }
+  },
+  "$defs": {
+    "firstAction": {
+      "type": "object",
+      "required": ["action_id", "immediately_feasible", "myopic_immediate_score"],
+      "properties": {
+        "action_id": { "type": "string", "minLength": 1 },
+        "immediately_feasible": { "type": "boolean" },
+        "myopic_immediate_score": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+    "hypothesis": {
+      "type": "object",
+      "required": ["hypothesis_id", "evaluator_only_description", "initial_observation_class"],
+      "properties": {
+        "hypothesis_id": { "type": "string", "minLength": 1 },
+        "evaluator_only_description": { "type": "string", "minLength": 1 },
+        "initial_observation_class": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "continuationCase": {
+      "type": "object",
+      "required": ["case_id", "first_action_id", "observation_class_id", "observation_receipt_id", "hypothesis_id", "delivery_tick", "outcomes"],
+      "properties": {
+        "case_id": { "type": "string", "minLength": 1 },
+        "first_action_id": { "type": "string", "minLength": 1 },
+        "observation_class_id": { "type": "string", "minLength": 1 },
+        "observation_receipt_id": { "type": "string", "minLength": 1 },
+        "hypothesis_id": { "type": "string", "minLength": 1 },
+        "delivery_tick": { "type": "integer", "minimum": 0 },
+        "outcomes": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/actionOutcome" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "actionOutcome": {
+      "type": "object",
+      "required": ["action_id", "disposition", "witness_id", "terminal_utility_units"],
+      "properties": {
+        "action_id": { "type": "string", "minLength": 1 },
+        "disposition": { "enum": ["feasible", "infeasible"] },
+        "witness_id": { "type": "string", "minLength": 1 },
+        "terminal_utility_units": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+    "measurementOutcome": {
+      "type": "object",
+      "required": ["hypothesis_id", "delivery_status", "delivered_observation_class", "delivered_observation_receipt_id"],
+      "properties": {
+        "hypothesis_id": { "type": "string", "minLength": 1 },
+        "delivery_status": { "enum": ["timely", "late", "dropped", "stale", "unsupported"] },
+        "delivered_observation_class": { "type": ["string", "null"] },
+        "delivered_observation_receipt_id": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "arm": {
+      "type": "object",
+      "required": ["arm_id", "policy", "query_enabled", "expected_first_action", "expected_next_decision", "measurement_cost_charged"],
+      "properties": {
+        "arm_id": { "enum": ["A_myopic", "B_option_preserving", "C_option_preserving_with_sensing"] },
+        "policy": { "type": "string", "minLength": 1 },
+        "query_enabled": { "type": "boolean" },
+        "expected_first_action": { "type": "string", "minLength": 1 },
+        "expected_next_decision": { "type": "string", "minLength": 1 },
+        "measurement_cost_charged": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "negativeControl": {
+      "type": "object",
+      "required": ["control_id", "intervention", "expected_invariant"],
+      "properties": {
+        "control_id": { "type": "string", "minLength": 1 },
+        "intervention": { "type": "string", "minLength": 1 },
+        "expected_invariant": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
