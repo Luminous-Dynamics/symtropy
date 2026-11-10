@@ -179,21 +179,29 @@ pub fn qualify_release(
         return Err(ReleaseGateBlocker::InvalidSourceCommit);
     }
 
-    let digests = [
+    let mut digests = vec![
+        evidence.release_manifest_sha256.as_str(),
         evidence.source_file_manifest_sha256.as_str(),
         evidence.suite_manifest_sha256.as_str(),
         evidence.evaluation_input_lock_sha256.as_str(),
         evidence.simulator_source_lock_sha256.as_str(),
+        evidence.dataset_manifest_sha256.as_str(),
+        evidence.dataset_rights_manifest_sha256.as_str(),
+        evidence.asset_rights_manifest_sha256.as_str(),
+        evidence.asset_verification_receipt_sha256.as_str(),
+        evidence.policy_family_manifest_sha256.as_str(),
         evidence.asset_manifest_sha256.as_str(),
         evidence.asset_archive_sha256.as_str(),
         evidence.installed_wheel.candidate_wheel_sha256.as_str(),
         evidence.installed_wheel.tested_wheel_sha256.as_str(),
         evidence.installed_wheel.candidate_runtime_sha256.as_str(),
         evidence.installed_wheel.tested_runtime_sha256.as_str(),
-        evidence.model_smoke.checkpoint_sha256.as_str(),
-        evidence.model_smoke.candidate_runtime_sha256.as_str(),
-        evidence.model_smoke.tested_runtime_sha256.as_str(),
     ];
+    for smoke in &evidence.model_smokes {
+        digests.push(smoke.checkpoint_sha256.as_str());
+        digests.push(smoke.candidate_runtime_sha256.as_str());
+        digests.push(smoke.tested_runtime_sha256.as_str());
+    }
     if digests.iter().any(|digest| !is_sha256_hex(digest)) {
         return Err(ReleaseGateBlocker::InvalidArtifactDigest);
     }
@@ -203,16 +211,20 @@ pub fn qualify_release(
     if evidence.candidate_source_commit != evidence.manifest_source_commit {
         blockers.insert(ReleaseGateBlocker::SourceRevisionMismatch);
     }
+    if !evidence.source_file_manifest_verified {
+        blockers.insert(ReleaseGateBlocker::SourceManifestUnverified);
+    }
     if !evidence.suite_bytes_preserved {
         blockers.insert(ReleaseGateBlocker::SuiteBytesNotPreserved);
     }
     if !evidence.release_ready_attested {
         blockers.insert(ReleaseGateBlocker::ReleaseNotMarkedReady);
     }
-    if evidence.manifest_task_count != evidence.expected_task_count
-        || evidence.asset_verified_task_count != evidence.expected_task_count
-    {
+    if evidence.manifest_task_count != evidence.expected_task_count {
         blockers.insert(ReleaseGateBlocker::TaskCountMismatch);
+    }
+    if evidence.asset_verified_task_count != evidence.expected_task_count {
+        blockers.insert(ReleaseGateBlocker::AssetCoverageCountMismatch);
     }
     if evidence.verified_suite_count != evidence.expected_suite_count
         || evidence.expected_suite_count == 0
@@ -240,6 +252,15 @@ pub fn qualify_release(
 
     if !evidence.asset_archive_available {
         blockers.insert(ReleaseGateBlocker::AssetArchiveUnavailable);
+    }
+    if evidence.dataset_rights_manifest_sha256.trim().is_empty() {
+        blockers.insert(ReleaseGateBlocker::DatasetRightsManifestMissing);
+    }
+    if evidence.asset_rights_manifest_sha256.trim().is_empty() {
+        blockers.insert(ReleaseGateBlocker::AssetRightsManifestMissing);
+    }
+    if evidence.asset_verification_receipt_sha256.trim().is_empty() {
+        blockers.insert(ReleaseGateBlocker::AssetVerificationReceiptMissing);
     }
     if !evidence.asset_manifest_task_coverage_verified {
         blockers.insert(ReleaseGateBlocker::AssetManifestCoverageUnverified);
@@ -271,34 +292,66 @@ pub fn qualify_release(
         blockers.insert(ReleaseGateBlocker::InstalledWheelCleanEnvironmentMissing);
     }
 
-    let smoke = &evidence.model_smoke;
-    add_rights_blockers(
-        &mut blockers,
-        smoke.checkpoint_rights,
-        ReleaseGateBlocker::CheckpointRightsUnknown,
-        ReleaseGateBlocker::CheckpointRightsRestricted,
-    );
-    if smoke.checkpoint_sha256.trim().is_empty() {
-        blockers.insert(ReleaseGateBlocker::ModelCheckpointDigestMismatch);
-    }
-    if smoke.candidate_runtime_sha256 != wheel.candidate_runtime_sha256
-        || smoke.tested_runtime_sha256 != smoke.candidate_runtime_sha256
+    let expected_families: BTreeSet<&str> =
+        evidence.expected_model_families.iter().map(String::as_str).collect();
+    let observed_families: BTreeSet<&str> =
+        evidence.model_smokes.iter().map(|smoke| smoke.family_id.as_str()).collect();
+    if evidence.policy_family_manifest_sha256.trim().is_empty()
+        || evidence.expected_model_families.is_empty()
+        || expected_families.len() != evidence.expected_model_families.len()
     {
-        blockers.insert(ReleaseGateBlocker::ModelSmokeRuntimeDigestMismatch);
+        blockers.insert(ReleaseGateBlocker::PolicyFamilyManifestMissing);
     }
-    if smoke.episodes == 0 {
-        blockers.insert(ReleaseGateBlocker::ModelSmokeMissing);
-    } else if smoke.successful_episodes + smoke.failed_episodes != smoke.episodes
-        || smoke.failed_episodes > 0
-    {
-        blockers.insert(ReleaseGateBlocker::ModelSmokeFailedEpisodes);
+    if expected_families != observed_families {
+        blockers.insert(ReleaseGateBlocker::ModelFamilySetMismatch);
+    }
+    let mut seen_families = BTreeSet::new();
+    for smoke in &evidence.model_smokes {
+        if !seen_families.insert(smoke.family_id.as_str()) {
+            blockers.insert(ReleaseGateBlocker::DuplicateModelFamilySmoke);
+        }
+        if !expected_families.contains(smoke.family_id.as_str()) {
+            blockers.insert(ReleaseGateBlocker::UnexpectedModelFamilySmoke);
+        }
+        add_rights_blockers(
+            &mut blockers,
+            smoke.checkpoint_rights,
+            ReleaseGateBlocker::CheckpointRightsUnknown,
+            ReleaseGateBlocker::CheckpointRightsRestricted,
+        );
+        if smoke.family_id.trim().is_empty() || smoke.checkpoint_sha256.trim().is_empty() {
+            blockers.insert(ReleaseGateBlocker::ModelCheckpointDigestMismatch);
+        }
+        if smoke.candidate_runtime_sha256 != wheel.candidate_runtime_sha256
+            || smoke.tested_runtime_sha256 != smoke.candidate_runtime_sha256
+        {
+            blockers.insert(ReleaseGateBlocker::ModelSmokeRuntimeDigestMismatch);
+        }
+        if !smoke.checkpoint_loaded {
+            blockers.insert(ReleaseGateBlocker::ModelSmokeCheckpointNotLoaded);
+        }
+        if smoke.inference_requests == 0 {
+            blockers.insert(ReleaseGateBlocker::ModelSmokeNoInferenceRequests);
+        }
+        if smoke.runtime_errors > 0 {
+            blockers.insert(ReleaseGateBlocker::ModelSmokeRuntimeErrors);
+        }
+        if !smoke.episode_artifacts_complete {
+            blockers.insert(ReleaseGateBlocker::ModelSmokeArtifactsIncomplete);
+        }
+    }
+    for expected in &expected_families {
+        if !seen_families.contains(expected) {
+            blockers.insert(ReleaseGateBlocker::MissingModelFamilySmoke);
+        }
     }
 
     let source_audited = evidence.candidate_source_commit == evidence.manifest_source_commit;
     let evaluation_inputs_frozen = !blockers.iter().any(|blocker| {
         matches!(
             blocker,
-            ReleaseGateBlocker::SuiteBytesNotPreserved
+            ReleaseGateBlocker::SourceManifestUnverified
+                | ReleaseGateBlocker::SuiteBytesNotPreserved
                 | ReleaseGateBlocker::SuiteCountMismatch
                 | ReleaseGateBlocker::EvaluationInputCountMismatch
         )
@@ -307,6 +360,9 @@ pub fn qualify_release(
         matches!(
             blocker,
             ReleaseGateBlocker::AssetArchiveUnavailable
+                | ReleaseGateBlocker::DatasetRightsManifestMissing
+                | ReleaseGateBlocker::AssetRightsManifestMissing
+                | ReleaseGateBlocker::AssetVerificationReceiptMissing
                 | ReleaseGateBlocker::AssetManifestCoverageUnverified
                 | ReleaseGateBlocker::AssetReceiptCoverageUnverified
                 | ReleaseGateBlocker::AssetCoverageCountMismatch
@@ -329,12 +385,20 @@ pub fn qualify_release(
     let model_inference_smoke_qualified = !blockers.iter().any(|blocker| {
         matches!(
             blocker,
-            ReleaseGateBlocker::CheckpointRightsUnknown
+            ReleaseGateBlocker::PolicyFamilyManifestMissing
+                | ReleaseGateBlocker::ModelFamilySetMismatch
+                | ReleaseGateBlocker::DuplicateModelFamilySmoke
+                | ReleaseGateBlocker::MissingModelFamilySmoke
+                | ReleaseGateBlocker::UnexpectedModelFamilySmoke
+                | ReleaseGateBlocker::CheckpointRightsUnknown
                 | ReleaseGateBlocker::CheckpointRightsRestricted
                 | ReleaseGateBlocker::ModelCheckpointDigestMismatch
                 | ReleaseGateBlocker::ModelSmokeRuntimeDigestMismatch
                 | ReleaseGateBlocker::ModelSmokeMissing
-                | ReleaseGateBlocker::ModelSmokeFailedEpisodes
+                | ReleaseGateBlocker::ModelSmokeCheckpointNotLoaded
+                | ReleaseGateBlocker::ModelSmokeNoInferenceRequests
+                | ReleaseGateBlocker::ModelSmokeRuntimeErrors
+                | ReleaseGateBlocker::ModelSmokeArtifactsIncomplete
         )
     });
 
