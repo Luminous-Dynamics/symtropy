@@ -10,7 +10,6 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
-use std::collections::BTreeMap;
 use std::env;
 use std::fs;
 use std::path::{Component, Path, PathBuf};
@@ -334,13 +333,7 @@ fn parse_preview_size(value: &str) -> Option<u64> {
 }
 
 fn md5_with_available_tool(path: &Path) -> Option<String> {
-    let candidates: [(&str, &[&str]); 3] = [
-        ("md5sum", &[]),
-        ("md5", &[]),
-        ("openssl", &[]),
-    ];
-
-    for (program, _) in candidates {
+    for program in ["md5sum", "md5", "openssl"] {
         let output = match program {
             "md5sum" => Command::new(program).arg(path).output(),
             "md5" => Command::new(program).arg("-q").arg(path).output(),
