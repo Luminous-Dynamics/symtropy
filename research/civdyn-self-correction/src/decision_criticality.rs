@@ -589,25 +589,24 @@ mod tests {
 
     fn world(model: ModelWorld, values: [f64; 3], feasible: [bool; 3]) -> DecisionWorldEvidence {
         let ids = ["expand", "maintain", "conserve"];
-        DecisionWorldEvidence {
-            model,
-            outcomes: ids
-                .iter()
-                .enumerate()
-                .map(|(index, id)| DecisionPolicyOutcome {
-                    policy_id: (*id).to_string(),
-                    objective_value: OrderedFloatValue::new(values[index]).expect("finite objective"),
-                    source_digest: format!("sha256-{}-policy-source", model.id()),
-                    outcome_receipt_digest: format!("sha256-{}-{}-outcome", model.id(), id),
-                    feasible: feasible[index],
-                    violated_constraints: if feasible[index] {
-                        Vec::new()
-                    } else {
-                        vec!["water-reserve-floor".to_string()]
-                    },
-                })
-                .collect(),
-        }
+        let model_id = model.id().to_string();
+        let outcomes = ids
+            .iter()
+            .enumerate()
+            .map(|(index, id)| DecisionPolicyOutcome {
+                policy_id: (*id).to_string(),
+                objective_value: OrderedFloatValue::new(values[index]).expect("finite objective"),
+                source_digest: format!("sha256-{model_id}-policy-source"),
+                outcome_receipt_digest: format!("sha256-{model_id}-{id}-outcome"),
+                feasible: feasible[index],
+                violated_constraints: if feasible[index] {
+                    Vec::new()
+                } else {
+                    vec!["water-reserve-floor".to_string()]
+                },
+            })
+            .collect();
+        DecisionWorldEvidence { model, outcomes }
     }
 
     fn config() -> DecisionCriticalityConfig {
@@ -731,10 +730,61 @@ mod tests {
             report.worlds[0].reference_optimal_policy_ids,
             vec!["expand", "maintain"]
         );
-        assert_eq!(report.worlds[0].impact, DecisionImpact::RankingChanged);
+        assert_eq!(
+            report.worlds[0].impact,
+            DecisionImpact::StableWithinDeclaredThreshold
+        );
         assert_eq!(
             report.worlds[0].alternative_optimal_policy_ids,
             vec!["maintain"]
+        );
+    }
+
+    #[test]
+    fn material_regret_is_detected_when_one_member_of_a_reference_tie_falls_behind() {
+        let reference = world(
+            model_world("material-tie-reference", "sha256-material-tie-reference", false, false),
+            [100.0, 100.0, 80.0],
+            [true, true, true],
+        );
+        let alternative = world(
+            model_world("material-tie-challenge", "sha256-material-tie-challenge", true, false),
+            [80.0, 100.0, 70.0],
+            [true, true, true],
+        );
+        let mut candidate_config = config();
+        candidate_config.materiality_threshold = 15.0;
+        let report = assess_decision_criticality(&reference, &[alternative], &candidate_config)
+            .expect("material regret report");
+        assert_eq!(report.worlds[0].impact, DecisionImpact::RegretExceedsThreshold);
+        assert_eq!(
+            report.worlds[0].maximum_reference_policy_regret.expect("max regret").get(),
+            20.0
+        );
+    }
+
+    #[test]
+    fn minimizes_objectives_without_reversing_regret_sign() {
+        let reference = world(
+            model_world("min-reference", "sha256-min-reference", false, false),
+            [10.0, 20.0, 30.0],
+            [true, true, true],
+        );
+        let alternative = world(
+            model_world("min-challenge", "sha256-min-challenge", true, false),
+            [15.0, 12.0, 25.0],
+            [true, true, true],
+        );
+        let mut candidate_config = config();
+        candidate_config.direction = ObjectiveDirection::Minimize;
+        let report = assess_decision_criticality(&reference, &[alternative], &candidate_config)
+            .expect("minimization report");
+        assert_eq!(report.worlds[0].reference_optimal_policy_ids, vec!["expand"]);
+        assert_eq!(report.worlds[0].alternative_optimal_policy_ids, vec!["maintain"]);
+        assert_eq!(report.worlds[0].impact, DecisionImpact::RankingChanged);
+        assert_eq!(
+            report.worlds[0].maximum_reference_policy_regret.expect("regret").get(),
+            3.0
         );
     }
 
