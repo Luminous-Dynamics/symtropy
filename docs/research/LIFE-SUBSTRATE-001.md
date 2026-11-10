@@ -808,3 +808,62 @@ Every published result must therefore declare:
 The current OLI M0 validator is a schema/semantic contract only. Later benchmark execution should produce manifests that bind these coordinates so no synthetic closed-loop score is compared as if it were measured planetary evidence.
 
 This is especially important because the 2026 world-model survey finds that the field is moving beyond visual/temporal plausibility toward long-horizon memory and persistence, control fidelity, interactive dynamics and functional utility. OLI's equivalent move is from a static signature classifier toward causal property discrimination and evidence-to-experiment utility, while retaining the physical and epistemic boundaries above.
+
+
+## 21. Non-linguistic and collective cognition: compare styles, not a human hierarchy
+
+### 21.1 Research updates
+
+**Meyer (2026), “It's cognition, with style: rethinking the biology of intelligence,” Biological Reviews 101(6), first published 12 July 2026**, argues that cross-species comparison should not reduce cognition to one higher/lower complexity ladder. It reviews evidence of varied cognitive capacities in birds, cephalopods and jumping spiders, and challenges the assumption that intelligence necessarily requires large neural resources. The article proposes attending to species-specific cognitive styles rather than treating human cognition as the universal measure. https://doi.org/10.1002/brv.70202
+
+This is a scholarly position, not a settled universal definition of intelligence. For OLI, the actionable lesson is methodological: measure concrete capabilities under matched task and resource conditions, and do not use brain size, language, neuron count or architectural similarity as a universal proxy.
+
+**Werfel (2026), “Fluid thinking about collective intelligence,” Nature Machine Intelligence 8:506–516, published 24 April 2026**, highlights mobility and interaction topology as a key axis in collective intelligence. Mobile units may meet only transiently, so information flow and collective learning differ from fixed-neighbor networks. The perspective also highlights individual plasticity, transient formations and environmental modification as mechanisms through which collective behavior can learn. https://doi.org/10.1038/s42256-026-01211-1
+
+**Ohlinger et al. (2026), “Animal cumulative culture through changing environments,” Trends in Ecology & Evolution 41(6), June 2026**, argues that collective processes among social organisms may iteratively improve solutions beyond individual capability, while observing that many current experiments do not yet satisfy all cumulative-culture criteria. https://doi.org/10.1016/j.tree.2026.03.003
+
+**EVApeCognition (2026), Scientific Data 13:805**, publishes 262 great-ape cognition datasets from 150 studies/publications, involving 81 individuals over an 18-year collection window. This is a promising external task-level comparison source, subject to license, data-quality, protocol and repeated-subject dependence audits before ingestion. https://doi.org/10.1038/s41597-026-07191-6
+
+### 21.2 OLI collective-cognition benchmark
+
+Symtropy [OLI-COLLECTIVE-001 #4578](https://github.com/Luminous-Dynamics/symtropy/issues/4578) owns a matched benchmark across fixed, mobile, transient-contact and environment-memory topologies. It reuses the current \`symtropy-colony\` stigmergic model, LifeSim fields and the ordered temporal-network owner #4457.
+
+The test question is not "does the group look intelligent?" It is whether the group solves a declared task beyond equal-resource independent, fixed-rule, common-input and centralized-control baselines, and whether ablation of the proposed mechanism removes the measured advantage.
+
+Required mechanisms to distinguish:
+- fixed-neighbor communication;
+- transient mobile encounters;
+- shared external broadcasts / common environmental inputs;
+- environmental memory (stigmergy);
+- explicit message passing;
+- individual learning;
+- group-level strategy adaptation;
+- repeated collective improvement across changing tasks.
+
+A pheromone field that helps an ant find food is an information-bearing environmental trace. It is not automatically a belief, a language, a mind, or conscious experience. OLI reports the narrowest mechanism supported by the experiment.
+
+### 21.3 No authority from collective cognition
+
+Symthaea's existing [SWARM-AUTH-001 #4143](https://github.com/Luminous-Dynamics/symthaea/issues/4143) already identifies a latent source-level semantic hazard: \`AuthorityDelegation\`, \`inherited_phi\` and \`effective_phi\` are described in terms of coalition-derived authority. The issue reports no current default-branch actuator gate consuming the value directly, and it correctly treats this as a semantic hazard rather than a proven bypass.
+
+OLI adopts the theorem:
+
+\`\`\`text
+collective cognition / coordination evidence
+    may influence:
+        attention, learning, epistemic support, caution,
+        proposal ranking, coordination hypotheses
+
+collective cognition / Phi / coherence / group performance
+    may not create:
+        capability, permit, lease, delegation,
+        actuator admission, control right, governance authority
+\`\`\`
+
+The minimal source repair and qualification remain owned by [SWARM-AUTH-IMPL-001 #4158](https://github.com/Luminous-Dynamics/symthaea/issues/4158) and [SWARM-AUTH-QUAL-001 #4155](https://github.com/Luminous-Dynamics/symthaea/issues/4155). The OLI collective benchmark must consume this boundary, not duplicate it.
+
+### 21.4 Current collective-cognition work trackers
+
+- Symtropy [OLI-COLLECTIVE-001 #4578](https://github.com/Luminous-Dynamics/symtropy/issues/4578): task-specific group capability profiles across fixed/mobile/field-mediated topologies.
+- Symthaea [OLI-EXPERIMENT-001 #11446](https://github.com/Luminous-Dynamics/symthaea/issues/11446): adequacy-gated selection of discriminating experiments for group-cognition mechanisms.
+- Symthaea [SWARM-AUTH-001 #4143](https://github.com/Luminous-Dynamics/symthaea/issues/4143): explicit no-authority-from-collective-intelligence boundary.
