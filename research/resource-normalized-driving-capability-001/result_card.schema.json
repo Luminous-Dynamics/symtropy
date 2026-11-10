@@ -61,7 +61,14 @@
       "maxLength": 128
     },
     "seed_manifest_sha256": {
-      "$ref": "#/$defs/sha256"
+      "oneOf": [
+        {
+          "$ref": "#/$defs/sha256"
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "model": {
       "type": "object",
@@ -148,7 +155,14 @@
           "minimum": 0
         },
         "holdout_split_sha256": {
-          "$ref": "#/$defs/sha256"
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       }
     },
@@ -331,7 +345,14 @@
       ],
       "properties": {
         "raw_artifact_manifest_sha256": {
-          "$ref": "#/$defs/sha256"
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "evaluator_revision": {
           "type": "string",
