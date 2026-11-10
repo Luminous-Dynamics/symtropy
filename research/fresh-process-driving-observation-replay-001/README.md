@@ -17,7 +17,8 @@ It demonstrates one continuous pipeline and one process boundary:
 5. invoke the real `camera-driving-bridge` binary to process the sequence through one persistent Vision Manifold instance;
 6. verify every bridge receipt points back to the exact upstream observation, action and frame;
 7. verify each binary fused-HDC artifact against the receipt digest;
-8. spawn a fresh OS process to replay the immutable snapshots and compare frame, observation, policy-receipt and world-audit digests;
+8. invoke the Symthaea bridge a second time in a new OS process and compare complete receipt JSON plus every HDC artifact byte-for-byte;
+9. spawn a fresh OS process to replay the immutable snapshots and compare frame, observation, policy-receipt, world-audit, missing-event and disposition-ledger digests;
 9. produce an alternate-action branch fixture whose action receipt and actor/world snapshot differ from the base fixture.
 
 ## Fixture contract
@@ -25,7 +26,7 @@ It demonstrates one continuous pipeline and one process boundary:
 - 20 expected ticks, with one lead car and one pedestrian.
 - Straight-to-curved road geometry, pinned camera calibration and renderer revision.
 - Tick 7 is rendered with a delayed-but-not-stale delivery profile.
-- Tick 11 is an explicit camera-drop event and is not replaced by an image. The delivered stream therefore contains 19 frames.
+- Tick 11 is an explicit camera-drop event and is not replaced by an image. The delivered stream therefore contains 19 frames. The missing event is included in the fresh-process ledger commitment and remains in the expected 20-tick denominator.
 - Tick 12 has a synthetic alternate-action branch with a changed action receipt and modified actor poses. It tests branch/input identity and digest changes; it does not execute an actor policy or a causal traffic simulator.
 - Action receipts are deterministic fixture records. They are SHA-256 integrity pointers, not authenticated signatures or evidence of an external actuator application.
 - Vehicle-state records are explicitly declared fixture observations and carry the same monotonic clock origin as the camera capture timestamps.
@@ -80,8 +81,10 @@ The output directory must be empty or new. Reusing a non-empty directory is reje
 - `applied-actions.json`: fixture action command and receipt identities.
 - `world-transition-records.json`: immutable snapshot-to-action links (not physical dynamics execution).
 - `episode-request.json`: request consumed by Symthaea's bridge CLI.
-- `symthaea-bridge/bridge-receipts.json`: 19 fused-input receipts with a predecessor chain.
-- `symthaea-bridge/policy-inputs/`: 16,384D dimension-prefixed little-endian f32 vectors; each binary SHA-256 equals its receipt's `fused_policy_input_sha256`.
+- `symthaea-bridge/bridge-receipts.json`: first-process 19 fused-input receipts with a predecessor chain.
+- `symthaea-bridge/policy-inputs/`: first-process 16,384D dimension-prefixed little-endian f32 vectors; each binary SHA-256 equals its receipt's `fused_policy_input_sha256`.
+- `symthaea-bridge/fresh-process-replay/`: second independent bridge process receipts and HDC vectors; the harness requires receipt JSON and every HDC artifact byte to match the first process exactly.
+- `symthaea-bridge/fresh-process-replay-comparison.json`: exact receipt/vector replay result.
 - `fresh-process-replay-input.json`, `fresh-process-replay-output.json`, `fresh-process-replay-comparison.json`: serialized snapshots and OS-process replay results.
 - `counterfactual-branch/` and `counterfactual-branch-record.json`: changed-action/changed-actor-pose branch fixture.
 - `episode-report.json`: expected/observed counts and conformance result.
@@ -96,4 +99,4 @@ cargo clippy --locked --manifest-path research/fresh-process-driving-observation
 
 ## Claim ceiling
 
-A successful fixture establishes that the declared renderer, receipt contract and Symthaea bridge can be composed and replayed across an operating-system process boundary for this exact finite dataset. It does not establish a physically accurate simulator, live actor-policy response, camera semantic perception, learned visual driving policy, model superiority, real-road transfer, roadworthiness or vehicle safety.
+A successful fixture establishes that the declared renderer, receipt contract and Symthaea bridge can be composed and replayed across operating-system process boundaries for this exact finite dataset, including deterministic reconstruction of the bridge's HDC vectors and explicit replay of the missing/delayed observation ledger. It does not establish a physically accurate simulator, live actor-policy response, camera semantic perception, learned visual driving policy, model superiority, real-road transfer, roadworthiness or vehicle safety.
