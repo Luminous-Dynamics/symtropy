@@ -9,8 +9,8 @@
       "description": "Nominal propulsion has a current sensor observation.",
       "asset": {
         "vessel_id": "synthetic-vessel-01",
-        "asset_id": "asset-001",
-        "component_id": "component-001",
+        "asset_id": "asset-main-propulsion",
+        "component_id": "component-main-engine-or-shaft",
         "config_revision": "vessel-config-r7",
         "capability": "propulsion-service"
       },
@@ -61,8 +61,8 @@
       "description": "Main engine derating is supported by two separate declared signal dependencies.",
       "asset": {
         "vessel_id": "synthetic-vessel-01",
-        "asset_id": "asset-001",
-        "component_id": "component-001",
+        "asset_id": "asset-main-propulsion",
+        "component_id": "component-main-engine-or-shaft",
         "config_revision": "vessel-config-r7",
         "capability": "propulsion-service"
       },
@@ -133,8 +133,8 @@
       "description": "Shaft and engine channels share one controller and cannot count as two dependency groups.",
       "asset": {
         "vessel_id": "synthetic-vessel-01",
-        "asset_id": "asset-001",
-        "component_id": "component-001",
+        "asset_id": "asset-main-propulsion",
+        "component_id": "component-main-engine-or-shaft",
         "config_revision": "vessel-config-r7",
         "capability": "propulsion-service"
       },
@@ -205,10 +205,10 @@
       "description": "Steering command and rudder feedback disagree across declared input groups.",
       "asset": {
         "vessel_id": "synthetic-vessel-01",
-        "asset_id": "asset-001",
-        "component_id": "component-001",
+        "asset_id": "asset-steering-gear",
+        "component_id": "component-steering-gear",
         "config_revision": "vessel-config-r7",
-        "capability": "propulsion-service"
+        "capability": "steering-control-service"
       },
       "observations": [
         {
@@ -277,10 +277,10 @@
       "description": "A native generator start-failure alarm is current.",
       "asset": {
         "vessel_id": "synthetic-vessel-01",
-        "asset_id": "asset-001",
-        "component_id": "component-001",
+        "asset_id": "asset-generator-set",
+        "component_id": "component-auxiliary-generator",
         "config_revision": "vessel-config-r7",
-        "capability": "propulsion-service"
+        "capability": "electrical-generation-service"
       },
       "observations": [
         {
@@ -331,10 +331,10 @@
       "description": "Switchboard bus undervoltage is observed on a current channel.",
       "asset": {
         "vessel_id": "synthetic-vessel-01",
-        "asset_id": "asset-001",
-        "component_id": "component-001",
+        "asset_id": "asset-electrical-system",
+        "component_id": "component-switchboard-or-battery",
         "config_revision": "vessel-config-r7",
-        "capability": "propulsion-service"
+        "capability": "electrical-distribution-service"
       },
       "observations": [
         {
@@ -385,10 +385,10 @@
       "description": "Battery management reports a current unavailable state.",
       "asset": {
         "vessel_id": "synthetic-vessel-01",
-        "asset_id": "asset-001",
-        "component_id": "component-001",
+        "asset_id": "asset-electrical-system",
+        "component_id": "component-switchboard-or-battery",
         "config_revision": "vessel-config-r7",
-        "capability": "propulsion-service"
+        "capability": "electrical-distribution-service"
       },
       "observations": [
         {
@@ -439,10 +439,10 @@
       "description": "Cooling channels conflict and neither conflicted sample is admitted.",
       "asset": {
         "vessel_id": "synthetic-vessel-01",
-        "asset_id": "asset-001",
-        "component_id": "component-001",
+        "asset_id": "asset-engine-auxiliaries",
+        "component_id": "component-cooling-or-lubrication",
         "config_revision": "vessel-config-r7",
-        "capability": "propulsion-service"
+        "capability": "machinery-thermal-management-service"
       },
       "observations": [
         {
@@ -511,10 +511,10 @@
       "description": "A current model residual is retained as model-derived evidence, not a direct sensor.",
       "asset": {
         "vessel_id": "synthetic-vessel-01",
-        "asset_id": "asset-001",
-        "component_id": "component-001",
+        "asset_id": "asset-engine-auxiliaries",
+        "component_id": "component-cooling-or-lubrication",
         "config_revision": "vessel-config-r7",
-        "capability": "propulsion-service"
+        "capability": "machinery-thermal-management-service"
       },
       "observations": [
         {
@@ -565,10 +565,10 @@
       "description": "Steering has valid measured feedback and no active fault hypothesis.",
       "asset": {
         "vessel_id": "synthetic-vessel-01",
-        "asset_id": "asset-001",
-        "component_id": "component-001",
+        "asset_id": "asset-steering-gear",
+        "component_id": "component-steering-gear",
         "config_revision": "vessel-config-r7",
-        "capability": "propulsion-service"
+        "capability": "steering-control-service"
       },
       "observations": [
         {
@@ -617,10 +617,10 @@
       "description": "A stale fuel-system observation cannot support a current restriction decision.",
       "asset": {
         "vessel_id": "synthetic-vessel-01",
-        "asset_id": "asset-001",
-        "component_id": "component-001",
+        "asset_id": "asset-fuel-system",
+        "component_id": "component-fuel-supply",
         "config_revision": "vessel-config-r7",
-        "capability": "propulsion-service"
+        "capability": "fuel-delivery-service"
       },
       "observations": [
         {
@@ -671,8 +671,8 @@
       "description": "A wrong-unit pressure observation is excluded from decision evidence.",
       "asset": {
         "vessel_id": "synthetic-vessel-01",
-        "asset_id": "asset-001",
-        "component_id": "component-001",
+        "asset_id": "asset-main-propulsion",
+        "component_id": "component-main-engine-or-shaft",
         "config_revision": "vessel-config-r7",
         "capability": "propulsion-service"
       },
@@ -725,8 +725,8 @@
       "description": "An observation from an older installed configuration is excluded.",
       "asset": {
         "vessel_id": "synthetic-vessel-01",
-        "asset_id": "asset-001",
-        "component_id": "component-001",
+        "asset_id": "asset-main-propulsion",
+        "component_id": "component-main-engine-or-shaft",
         "config_revision": "vessel-config-r7",
         "capability": "propulsion-service"
       },
@@ -779,8 +779,8 @@
       "description": "An expired-calibration vibration channel cannot establish current health.",
       "asset": {
         "vessel_id": "synthetic-vessel-01",
-        "asset_id": "asset-001",
-        "component_id": "component-001",
+        "asset_id": "asset-main-propulsion",
+        "component_id": "component-main-engine-or-shaft",
         "config_revision": "vessel-config-r7",
         "capability": "propulsion-service"
       },
@@ -833,8 +833,8 @@
       "description": "An unauthenticated remote diagnostic is not admitted.",
       "asset": {
         "vessel_id": "synthetic-vessel-01",
-        "asset_id": "asset-001",
-        "component_id": "component-001",
+        "asset_id": "asset-main-propulsion",
+        "component_id": "component-main-engine-or-shaft",
         "config_revision": "vessel-config-r7",
         "capability": "propulsion-service"
       },
@@ -887,8 +887,8 @@
       "description": "Simulator-only state is never admitted as deployment evidence.",
       "asset": {
         "vessel_id": "synthetic-vessel-01",
-        "asset_id": "asset-001",
-        "component_id": "component-001",
+        "asset_id": "asset-main-propulsion",
+        "component_id": "component-main-engine-or-shaft",
         "config_revision": "vessel-config-r7",
         "capability": "propulsion-service"
       },
@@ -941,10 +941,10 @@
       "description": "High bilge level and pump unavailability are both current observations.",
       "asset": {
         "vessel_id": "synthetic-vessel-01",
-        "asset_id": "asset-001",
-        "component_id": "component-001",
+        "asset_id": "asset-bilge-system",
+        "component_id": "component-bilge-or-flood-detection",
         "config_revision": "vessel-config-r7",
-        "capability": "propulsion-service"
+        "capability": "bilge-flood-protection-service"
       },
       "observations": [
         {
@@ -1013,10 +1013,10 @@
       "description": "Flood ingress is supported by current level and detector channels.",
       "asset": {
         "vessel_id": "synthetic-vessel-01",
-        "asset_id": "asset-001",
-        "component_id": "component-001",
+        "asset_id": "asset-bilge-system",
+        "component_id": "component-bilge-or-flood-detection",
         "config_revision": "vessel-config-r7",
-        "capability": "propulsion-service"
+        "capability": "bilge-flood-protection-service"
       },
       "observations": [
         {
@@ -1085,10 +1085,10 @@
       "description": "Fire detection has current native alarm evidence.",
       "asset": {
         "vessel_id": "synthetic-vessel-01",
-        "asset_id": "asset-001",
-        "component_id": "component-001",
+        "asset_id": "asset-fire-safety-system",
+        "component_id": "component-fire-detection-or-suppression",
         "config_revision": "vessel-config-r7",
-        "capability": "propulsion-service"
+        "capability": "fire-safety-service"
       },
       "observations": [
         {
@@ -1139,10 +1139,10 @@
       "description": "Suppression availability remains unknown despite an otherwise current observation.",
       "asset": {
         "vessel_id": "synthetic-vessel-01",
-        "asset_id": "asset-001",
-        "component_id": "component-001",
+        "asset_id": "asset-fire-safety-system",
+        "component_id": "component-fire-detection-or-suppression",
         "config_revision": "vessel-config-r7",
-        "capability": "propulsion-service"
+        "capability": "fire-safety-service"
       },
       "observations": [
         {
@@ -1191,10 +1191,10 @@
       "description": "Ballast pump failure has current alarm evidence.",
       "asset": {
         "vessel_id": "synthetic-vessel-01",
-        "asset_id": "asset-001",
-        "component_id": "component-001",
+        "asset_id": "asset-ballast-system",
+        "component_id": "component-ballast-pump-or-valve",
         "config_revision": "vessel-config-r7",
-        "capability": "propulsion-service"
+        "capability": "ballast-management-service"
       },
       "observations": [
         {
@@ -1245,10 +1245,10 @@
       "description": "HVAC failure affects a declared electronics-cooling capability.",
       "asset": {
         "vessel_id": "synthetic-vessel-01",
-        "asset_id": "asset-001",
-        "component_id": "component-001",
+        "asset_id": "asset-hvac-system",
+        "component_id": "component-electronics-cooling",
         "config_revision": "vessel-config-r7",
-        "capability": "propulsion-service"
+        "capability": "electronics-cooling-service"
       },
       "observations": [
         {
@@ -1299,10 +1299,10 @@
       "description": "Three current alarms share one power dependency; they are not three independent sources.",
       "asset": {
         "vessel_id": "synthetic-vessel-01",
-        "asset_id": "asset-001",
-        "component_id": "component-001",
+        "asset_id": "asset-electrical-system",
+        "component_id": "component-switchboard-or-battery",
         "config_revision": "vessel-config-r7",
-        "capability": "propulsion-service"
+        "capability": "electrical-distribution-service"
       },
       "observations": [
         {
@@ -1389,8 +1389,8 @@
       "description": "Three current signals have distinct declared dependency groups and no fault hypothesis.",
       "asset": {
         "vessel_id": "synthetic-vessel-01",
-        "asset_id": "asset-001",
-        "component_id": "component-001",
+        "asset_id": "asset-main-propulsion",
+        "component_id": "component-main-engine-or-shaft",
         "config_revision": "vessel-config-r7",
         "capability": "propulsion-service"
       },
@@ -1477,8 +1477,8 @@
       "description": "A maintenance record is admitted as supporting evidence but is not direct telemetry.",
       "asset": {
         "vessel_id": "synthetic-vessel-01",
-        "asset_id": "asset-001",
-        "component_id": "component-001",
+        "asset_id": "asset-main-propulsion",
+        "component_id": "component-main-engine-or-shaft",
         "config_revision": "vessel-config-r7",
         "capability": "propulsion-service"
       },
@@ -1531,8 +1531,8 @@
       "description": "An operator report remains a report and cannot be promoted into a measured channel.",
       "asset": {
         "vessel_id": "synthetic-vessel-01",
-        "asset_id": "asset-001",
-        "component_id": "component-001",
+        "asset_id": "asset-main-propulsion",
+        "component_id": "component-main-engine-or-shaft",
         "config_revision": "vessel-config-r7",
         "capability": "propulsion-service"
       },
@@ -1585,8 +1585,8 @@
       "description": "A model output outside its declared domain remains unknown.",
       "asset": {
         "vessel_id": "synthetic-vessel-01",
-        "asset_id": "asset-001",
-        "component_id": "component-001",
+        "asset_id": "asset-main-propulsion",
+        "component_id": "component-main-engine-or-shaft",
         "config_revision": "vessel-config-r7",
         "capability": "propulsion-service"
       },
@@ -1637,10 +1637,10 @@
       "description": "Multiple observations share a clock dependency and cannot establish independent timing.",
       "asset": {
         "vessel_id": "synthetic-vessel-01",
-        "asset_id": "asset-001",
-        "component_id": "component-001",
+        "asset_id": "asset-time-system",
+        "component_id": "component-clock-source",
         "config_revision": "vessel-config-r7",
-        "capability": "propulsion-service"
+        "capability": "time-integrity-service"
       },
       "observations": [
         {
@@ -1709,8 +1709,8 @@
       "description": "Missing lineage excludes an otherwise plausible machinery signal.",
       "asset": {
         "vessel_id": "synthetic-vessel-01",
-        "asset_id": "asset-001",
-        "component_id": "component-001",
+        "asset_id": "asset-main-propulsion",
+        "component_id": "component-main-engine-or-shaft",
         "config_revision": "vessel-config-r7",
         "capability": "propulsion-service"
       },
@@ -1763,8 +1763,8 @@
       "description": "A valid native equipment state is available with no active fault hypothesis.",
       "asset": {
         "vessel_id": "synthetic-vessel-01",
-        "asset_id": "asset-001",
-        "component_id": "component-001",
+        "asset_id": "asset-main-propulsion",
+        "component_id": "component-main-engine-or-shaft",
         "config_revision": "vessel-config-r7",
         "capability": "propulsion-service"
       },
@@ -1815,8 +1815,8 @@
       "description": "A repair record exists but inspection and proof-test evidence are incomplete.",
       "asset": {
         "vessel_id": "synthetic-vessel-01",
-        "asset_id": "asset-001",
-        "component_id": "component-001",
+        "asset_id": "asset-main-propulsion",
+        "component_id": "component-main-engine-or-shaft",
         "config_revision": "vessel-config-r7",
         "capability": "propulsion-service"
       },
@@ -1867,8 +1867,8 @@
       "description": "Technical recovery records exist but scoped authorization is absent.",
       "asset": {
         "vessel_id": "synthetic-vessel-01",
-        "asset_id": "asset-001",
-        "component_id": "component-001",
+        "asset_id": "asset-main-propulsion",
+        "component_id": "component-main-engine-or-shaft",
         "config_revision": "vessel-config-r7",
         "capability": "propulsion-service"
       },
@@ -1919,8 +1919,8 @@
       "description": "Repair evidence exists but the installed configuration has not been reconciled.",
       "asset": {
         "vessel_id": "synthetic-vessel-01",
-        "asset_id": "asset-001",
-        "component_id": "component-001",
+        "asset_id": "asset-main-propulsion",
+        "component_id": "component-main-engine-or-shaft",
         "config_revision": "vessel-config-r7",
         "capability": "propulsion-service"
       },
@@ -1971,8 +1971,8 @@
       "description": "The only post-repair test observation is stale.",
       "asset": {
         "vessel_id": "synthetic-vessel-01",
-        "asset_id": "asset-001",
-        "component_id": "component-001",
+        "asset_id": "asset-main-propulsion",
+        "component_id": "component-main-engine-or-shaft",
         "config_revision": "vessel-config-r7",
         "capability": "propulsion-service"
       },
@@ -2023,8 +2023,8 @@
       "description": "A current post-repair observation still carries an unresolved active fault hypothesis.",
       "asset": {
         "vessel_id": "synthetic-vessel-01",
-        "asset_id": "asset-001",
-        "component_id": "component-001",
+        "asset_id": "asset-main-propulsion",
+        "component_id": "component-main-engine-or-shaft",
         "config_revision": "vessel-config-r7",
         "capability": "propulsion-service"
       },
@@ -2077,8 +2077,8 @@
       "description": "Repair, inspection, proof test, authorization and configuration reconciliation are present for independent review.",
       "asset": {
         "vessel_id": "synthetic-vessel-01",
-        "asset_id": "asset-001",
-        "component_id": "component-001",
+        "asset_id": "asset-main-propulsion",
+        "component_id": "component-main-engine-or-shaft",
         "config_revision": "vessel-config-r7",
         "capability": "propulsion-service"
       },
@@ -2129,8 +2129,8 @@
       "description": "A nominal quality label cannot override observation age exceeding the bound validity profile.",
       "asset": {
         "vessel_id": "synthetic-vessel-01",
-        "asset_id": "asset-001",
-        "component_id": "component-001",
+        "asset_id": "asset-main-propulsion",
+        "component_id": "component-main-engine-or-shaft",
         "config_revision": "vessel-config-r7",
         "capability": "propulsion-service"
       },
@@ -2183,10 +2183,10 @@
       "description": "A current-looking sensor observation with conflicted clock quality cannot support a current disposition.",
       "asset": {
         "vessel_id": "synthetic-vessel-01",
-        "asset_id": "asset-001",
-        "component_id": "component-001",
+        "asset_id": "asset-time-system",
+        "component_id": "component-clock-source",
         "config_revision": "vessel-config-r7",
-        "capability": "propulsion-service"
+        "capability": "time-integrity-service"
       },
       "observations": [
         {
@@ -2237,8 +2237,8 @@
       "description": "An observation exactly at its declared maximum age remains admissible; age above the bound is rejected.",
       "asset": {
         "vessel_id": "synthetic-vessel-01",
-        "asset_id": "asset-001",
-        "component_id": "component-001",
+        "asset_id": "asset-main-propulsion",
+        "component_id": "component-main-engine-or-shaft",
         "config_revision": "vessel-config-r7",
         "capability": "propulsion-service"
       },
@@ -2289,8 +2289,8 @@
       "description": "An observation timestamp later than the decision time is excluded even when labelled current.",
       "asset": {
         "vessel_id": "synthetic-vessel-01",
-        "asset_id": "asset-001",
-        "component_id": "component-001",
+        "asset_id": "asset-main-propulsion",
+        "component_id": "component-main-engine-or-shaft",
         "config_revision": "vessel-config-r7",
         "capability": "propulsion-service"
       },
@@ -2343,10 +2343,10 @@
       "description": "An otherwise valid sample on a different clock domain cannot be compared to the decision timestamp.",
       "asset": {
         "vessel_id": "synthetic-vessel-01",
-        "asset_id": "asset-001",
-        "component_id": "component-001",
+        "asset_id": "asset-time-system",
+        "component_id": "component-clock-source",
         "config_revision": "vessel-config-r7",
-        "capability": "propulsion-service"
+        "capability": "time-integrity-service"
       },
       "observations": [
         {
