@@ -842,26 +842,25 @@ mod tests {
             SplitRole::Challenge => "sealed-challenge-region",
             SplitRole::Calibration => unreachable!(),
         };
-        let statistic_specs = metrics
-            .iter()
-            .map(|metric| StatisticSpec {
-                id: metric.id.to_string(),
-                construct: format!("construct-{}", metric.id),
-                measurement_unit: metric.unit.to_string(),
-                population: "synthetic-households".to_string(),
-                context: "repair-known-answer".to_string(),
-                source_family: "synthetic-repair-source".to_string(),
-                source_digest: source_digest.to_string(),
-                independent_unit,
-                role,
-                primary: true,
-                required: true,
-                minimum_draws: metric.draws.len(),
-            })
-            .collect();
         let registry = StatisticRegistry {
             version: "repair-registry-v1".to_string(),
-            statistics: statistic_specs,
+            statistics: metrics
+                .iter()
+                .map(|metric| StatisticSpec {
+                    id: metric.id.to_string(),
+                    construct: format!("construct-{}", metric.id),
+                    measurement_unit: metric.unit.to_string(),
+                    population: "synthetic-households".to_string(),
+                    context: "repair-known-answer".to_string(),
+                    source_family: "synthetic-repair-source".to_string(),
+                    source_digest: source_digest.to_string(),
+                    independent_unit,
+                    role,
+                    primary: true,
+                    required: true,
+                    minimum_draws: metric.draws.len(),
+                })
+                .collect(),
         };
         let manifest = SplitManifest {
             id: format!("{domain_id}-split"),
@@ -896,11 +895,8 @@ mod tests {
         let draws: Vec<_> = metrics
             .iter()
             .flat_map(|metric| {
-                metric
-                    .draws
-                    .iter()
-                    .enumerate()
-                    .map(move |(index, value)| PredictiveDraw {
+                metric.draws.iter().enumerate().map(move |(index, value)| {
+                    PredictiveDraw {
                         kind: PredictiveKind::Split,
                         statistic_id: metric.id.to_string(),
                         independent_unit_id: unit_id.to_string(),
@@ -910,7 +906,8 @@ mod tests {
                         model_digest: model_digest.to_string(),
                         draw_set_digest: format!("{domain_id}-draws-{}", metric.id),
                         calibration_data_digest: Some(calibration_digest.to_string()),
-                    })
+                    }
+                })
             })
             .collect();
         let assessment = assess_predictive_partition(
@@ -954,37 +951,34 @@ mod tests {
         baseline_metrics: &[MetricFixture],
         repaired_metrics: &[MetricFixture],
     ) -> Scenario {
-        let diagnostic = evidence(
-            "diagnostic",
-            SplitRole::Validation,
-            INITIAL_MODEL,
-            INITIAL_TRAINING,
-            "sha256-diagnostic-source",
-            "sha256-diagnostic-observation",
-            diagnostic_metrics,
-        );
-        let baseline = evidence(
-            "baseline",
-            SplitRole::Challenge,
-            INITIAL_MODEL,
-            INITIAL_TRAINING,
-            "sha256-fresh-challenge-source",
-            "sha256-fresh-challenge-observation",
-            baseline_metrics,
-        );
-        let repaired = evidence(
-            "repaired",
-            SplitRole::Challenge,
-            REPAIRED_MODEL,
-            REPAIR_TRAINING,
-            "sha256-fresh-challenge-source",
-            "sha256-fresh-challenge-observation",
-            repaired_metrics,
-        );
         Scenario {
-            diagnostic,
-            baseline,
-            repaired,
+            diagnostic: evidence(
+                "diagnostic",
+                SplitRole::Validation,
+                INITIAL_MODEL,
+                INITIAL_TRAINING,
+                "sha256-diagnostic-source",
+                "sha256-diagnostic-observation",
+                diagnostic_metrics,
+            ),
+            baseline: evidence(
+                "baseline",
+                SplitRole::Challenge,
+                INITIAL_MODEL,
+                INITIAL_TRAINING,
+                "sha256-fresh-challenge-source",
+                "sha256-fresh-challenge-observation",
+                baseline_metrics,
+            ),
+            repaired: evidence(
+                "repaired",
+                SplitRole::Challenge,
+                REPAIRED_MODEL,
+                REPAIR_TRAINING,
+                "sha256-fresh-challenge-source",
+                "sha256-fresh-challenge-observation",
+                repaired_metrics,
+            ),
             training_sources: vec!["sha256-diagnostic-source".to_string()],
             training_observations: diagnostic_metrics
                 .iter()
@@ -994,21 +988,17 @@ mod tests {
     }
 
     fn qualify(
-        diagnostic: &RepairEvidence,
-        baseline: &RepairEvidence,
-        repaired: &RepairEvidence,
-        training_sources: &[String],
-        training_observations: &[String],
+        scenario: &Scenario,
         max_width_ratio: f64,
     ) -> Result<RepairQualificationReport, RepairQualificationError> {
         qualify_repair(&RepairQualificationInput {
-            diagnostic,
-            baseline_challenge: baseline,
-            repaired_challenge: repaired,
+            diagnostic: &scenario.diagnostic,
+            baseline_challenge: &scenario.baseline,
+            repaired_challenge: &scenario.repaired,
             initial_calibration_data_digest: INITIAL_TRAINING,
             repair_training_data_digest: REPAIR_TRAINING,
-            repair_training_source_digests: training_sources,
-            repair_training_observation_digests: training_observations,
+            repair_training_source_digests: &scenario.training_sources,
+            repair_training_observation_digests: &scenario.training_observations,
             repair_action_digest: "sha256-repair-action",
             protocol_digest: "sha256-repair-protocol",
             maximum_interval_width_ratio: max_width_ratio,
@@ -1017,19 +1007,19 @@ mod tests {
 
     #[test]
     fn correctly_repaired_primary_discrepancy_must_pass_fresh_paired_challenge() {
-        let diagnostic = vec![metric("essential-service", 0.9, &[0.45, 0.48, 0.50, 0.52, 0.55])];
-        let baseline = vec![metric("essential-service", 0.9, &[0.45, 0.48, 0.50, 0.52, 0.55])];
-        let repaired = vec![metric("essential-service", 0.9, &[0.85, 0.88, 0.90, 0.92, 0.95])];
+        let diagnostic = vec![metric(
+            "essential-service",
+            0.9,
+            &[0.45, 0.48, 0.50, 0.52, 0.55],
+        )];
+        let baseline = diagnostic.clone();
+        let repaired = vec![metric(
+            "essential-service",
+            0.9,
+            &[0.85, 0.88, 0.90, 0.92, 0.95],
+        )];
         let scenario = scenario(&diagnostic, &baseline, &repaired);
-        let report = qualify(
-            &scenario.diagnostic,
-            &scenario.baseline,
-            &scenario.repaired,
-            &scenario.training_sources,
-            &scenario.training_observations,
-            1.0,
-        )
-            .expect("fresh challenge repair qualification");
+        let report = qualify(&scenario, 1.0).expect("fresh challenge repair qualification");
         assert_eq!(
             report.claim_ceiling,
             RepairClaimCeiling::RepairRestoredAdequacyOnFreshChallenge
@@ -1045,49 +1035,67 @@ mod tests {
 
     #[test]
     fn post_repair_residual_is_not_hidden_by_diagnostic_improvement() {
-        let diagnostic = vec![metric("essential-service", 0.9, &[0.45, 0.48, 0.50, 0.52, 0.55])];
-        let baseline = vec![metric("essential-service", 0.9, &[0.45, 0.48, 0.50, 0.52, 0.55])];
-        let repaired = vec![metric("essential-service", 0.9, &[0.50, 0.52, 0.54, 0.56, 0.58])];
-        let (diag, before, after, sources, observations) =
-            scenario(&diagnostic, &baseline, &repaired);
-        let report = qualify(
-                &scenario.diagnostic,
-                &scenario.baseline,
-                &scenario.repaired,
-                &scenario.training_sources,
-                &scenario.training_observations,
-                1.0,
-            )
-            .expect("residual discrepancy report");
+        let diagnostic = vec![metric(
+            "essential-service",
+            0.9,
+            &[0.45, 0.48, 0.50, 0.52, 0.55],
+        )];
+        let baseline = diagnostic.clone();
+        let repaired = vec![metric(
+            "essential-service",
+            0.9,
+            &[0.50, 0.52, 0.54, 0.56, 0.58],
+        )];
+        let scenario = scenario(&diagnostic, &baseline, &repaired);
+        let report = qualify(&scenario, 1.0).expect("residual discrepancy report");
         assert_eq!(report.claim_ceiling, RepairClaimCeiling::ResidualDiscrepancy);
         assert_eq!(report.residual_primary_discrepancies, 1);
     }
 
     #[test]
     fn previously_adequate_primary_metric_regression_blocks_repair_pass() {
-        let diagnostic = vec![metric("essential-service", 0.9, &[0.45, 0.48, 0.50, 0.52, 0.55])];
-        let baseline = vec![metric("essential-service", 0.5, &[0.45, 0.48, 0.50, 0.52, 0.55])];
-        let repaired = vec![metric("essential-service", 0.5, &[0.90, 0.92, 0.94, 0.96, 0.98])];
-        let (diag, before, after, sources, observations) =
-            scenario(&diagnostic, &baseline, &repaired);
-        let report = qualify(&diag, &before, &after, &sources, &observations, 1.0)
-            .expect("regression report");
+        let diagnostic = vec![metric(
+            "essential-service",
+            0.9,
+            &[0.45, 0.48, 0.50, 0.52, 0.55],
+        )];
+        let baseline = vec![metric(
+            "essential-service",
+            0.5,
+            &[0.45, 0.48, 0.50, 0.52, 0.55],
+        )];
+        let repaired = vec![metric(
+            "essential-service",
+            0.5,
+            &[0.90, 0.92, 0.94, 0.96, 0.98],
+        )];
+        let scenario = scenario(&diagnostic, &baseline, &repaired);
+        let report = qualify(&scenario, 1.0).expect("regression report");
         assert_eq!(report.claim_ceiling, RepairClaimCeiling::RegressionDetected);
         assert_eq!(report.regressed_primary_statistics, 1);
     }
 
     #[test]
     fn interval_widening_cannot_masquerade_as_restored_adequacy() {
-        let diagnostic = vec![metric("essential-service", 0.9, &[0.45, 0.48, 0.50, 0.52, 0.55])];
-        let baseline = vec![metric("essential-service", 0.9, &[0.45, 0.48, 0.50, 0.52, 0.55])];
-        let repaired = vec![metric("essential-service", 0.9, &[0.30, 0.50, 0.70, 0.90, 1.10])];
-        let (diag, before, after, sources, observations) =
-            scenario(&diagnostic, &baseline, &repaired);
-        let report = qualify(&diag, &before, &after, &sources, &observations, 1.0)
-            .expect("width-budget report");
+        let diagnostic = vec![metric(
+            "essential-service",
+            0.9,
+            &[0.45, 0.48, 0.50, 0.52, 0.55],
+        )];
+        let baseline = diagnostic.clone();
+        let repaired = vec![metric(
+            "essential-service",
+            0.9,
+            &[0.30, 0.50, 0.70, 0.90, 1.10],
+        )];
+        let scenario = scenario(&diagnostic, &baseline, &repaired);
+        let report = qualify(&scenario, 1.0).expect("width-budget report");
         assert_eq!(report.claim_ceiling, RepairClaimCeiling::WidthBudgetExceeded);
         assert_eq!(report.width_budget_failures, 1);
-        assert_eq!(report.results[0].repaired_status, StatisticStatus::WithinReferenceInterval);
+        assert_eq!(
+            report.results[0].repaired_status,
+            StatisticStatus::WithinReferenceInterval
+        );
     }
 
     #[test]
@@ -1101,10 +1109,8 @@ mod tests {
             metric("essential-service", 0.9, &[0.85, 0.88, 0.90, 0.92, 0.95]),
             metric("network-connectivity", 0.9, &[0.45, 0.48, 0.50, 0.52, 0.55]),
         ];
-        let (diag, before, after, sources, observations) =
-            scenario(&diagnostic, &baseline, &repaired);
-        let report = qualify(&diag, &before, &after, &sources, &observations, 1.0)
-            .expect("multi-statistic repair report");
+        let scenario = scenario(&diagnostic, &baseline, &repaired);
+        let report = qualify(&scenario, 1.0).expect("multi-statistic repair report");
         assert_eq!(report.corrected_primary_statistics, 1);
         assert_eq!(report.residual_primary_discrepancies, 1);
         assert_eq!(report.claim_ceiling, RepairClaimCeiling::ResidualDiscrepancy);
@@ -1112,13 +1118,19 @@ mod tests {
 
     #[test]
     fn no_fresh_challenge_improvement_is_not_attributed_to_the_repair() {
-        let diagnostic = vec![metric("essential-service", 0.9, &[0.45, 0.48, 0.50, 0.52, 0.55])];
-        let baseline = vec![metric("essential-service", 0.5, &[0.45, 0.48, 0.50, 0.52, 0.55])];
-        let repaired = vec![metric("essential-service", 0.5, &[0.45, 0.48, 0.50, 0.52, 0.55])];
-        let (diag, before, after, sources, observations) =
-            scenario(&diagnostic, &baseline, &repaired);
-        let report = qualify(&diag, &before, &after, &sources, &observations, 1.0)
-            .expect("no improvement report");
+        let diagnostic = vec![metric(
+            "essential-service",
+            0.9,
+            &[0.45, 0.48, 0.50, 0.52, 0.55],
+        )];
+        let baseline = vec![metric(
+            "essential-service",
+            0.5,
+            &[0.45, 0.48, 0.50, 0.52, 0.55],
+        )];
+        let repaired = baseline.clone();
+        let scenario = scenario(&diagnostic, &baseline, &repaired);
+        let report = qualify(&scenario, 1.0).expect("no improvement report");
         assert_eq!(
             report.claim_ceiling,
             RepairClaimCeiling::NoFreshChallengeImprovementDemonstrated
@@ -1129,61 +1141,66 @@ mod tests {
 
     #[test]
     fn challenge_observation_or_source_reuse_in_repair_training_is_rejected() {
-        let diagnostic = vec![metric("essential-service", 0.9, &[0.45, 0.48, 0.50, 0.52, 0.55])];
+        let diagnostic = vec![metric(
+            "essential-service",
+            0.9,
+            &[0.45, 0.48, 0.50, 0.52, 0.55],
+        )];
         let baseline = diagnostic.clone();
-        let repaired = vec![metric("essential-service", 0.9, &[0.85, 0.88, 0.90, 0.92, 0.95])];
+        let repaired = vec![metric(
+            "essential-service",
+            0.9,
+            &[0.85, 0.88, 0.90, 0.92, 0.95],
+        )];
         let mut scenario = scenario(&diagnostic, &baseline, &repaired);
         scenario
             .training_sources
             .push("sha256-fresh-challenge-source".to_string());
         assert!(matches!(
-            qualify(&diag, &before, &after, &sources, &observations, 1.0),
+            qualify(&scenario, 1.0),
             Err(RepairQualificationError::ChallengeRepairDataLeakage { .. })
         ));
     }
 
     #[test]
     fn baseline_and_repaired_models_must_use_identical_challenge_observations() {
-        let diagnostic = vec![metric("essential-service", 0.9, &[0.45, 0.48, 0.50, 0.52, 0.55])];
+        let diagnostic = vec![metric(
+            "essential-service",
+            0.9,
+            &[0.45, 0.48, 0.50, 0.52, 0.55],
+        )];
         let baseline = diagnostic.clone();
-        let repaired = vec![metric("essential-service", 0.8, &[0.75, 0.78, 0.80, 0.82, 0.85])];
-        let (diag, before, after, sources, observations) =
-            scenario(&diagnostic, &baseline, &repaired);
+        let repaired = vec![metric(
+            "essential-service",
+            0.8,
+            &[0.75, 0.78, 0.80, 0.82, 0.85],
+        )];
+        let scenario = scenario(&diagnostic, &baseline, &repaired);
+        let report = qualify(&scenario, 1.0);
         assert!(matches!(
-            qualify(&diag, &before, &after, &sources, &observations, 1.0),
+            report,
             Err(RepairQualificationError::ChallengeObservationMismatch { .. })
         ));
     }
 
     #[test]
     fn no_op_model_digest_and_invalid_width_budget_are_rejected() {
-        let diagnostic = vec![metric("essential-service", 0.9, &[0.45, 0.48, 0.50, 0.52, 0.55])];
+        let diagnostic = vec![metric(
+            "essential-service",
+            0.9,
+            &[0.45, 0.48, 0.50, 0.52, 0.55],
+        )];
         let baseline = diagnostic.clone();
         let repaired = baseline.clone();
-        let (diag, before, after, sources, observations) =
-            scenario(&diagnostic, &baseline, &repaired);
-        let mut same_model = after.clone();
-        same_model.model_digest = INITIAL_MODEL.to_string();
+        let mut scenario = scenario(&diagnostic, &baseline, &repaired);
+        scenario.repaired.model_digest = INITIAL_MODEL.to_string();
         assert_eq!(
-            qualify(
-                &scenario.diagnostic,
-                &scenario.baseline,
-                &same_model,
-                &scenario.training_sources,
-                &scenario.training_observations,
-                1.0,
-            ).unwrap_err(),
+            qualify(&scenario, 1.0).unwrap_err(),
             RepairQualificationError::SameInitialAndRepairedModel
         );
+        scenario.repaired.model_digest = REPAIRED_MODEL.to_string();
         assert_eq!(
-            qualify(
-                &scenario.diagnostic,
-                &scenario.baseline,
-                &scenario.repaired,
-                &scenario.training_sources,
-                &scenario.training_observations,
-                0.9,
-            ).unwrap_err(),
+            qualify(&scenario, 0.9).unwrap_err(),
             RepairQualificationError::InvalidWidthBudget
         );
     }
