@@ -197,6 +197,8 @@ pub enum AbstentionReason {
     ObservedValidityEnvelopeExit,
     ObservedHardConstraintViolation,
     ObservedHardConstraintUnknown,
+    ObservedDecisionUnresolved,
+    ObservedDecisionClassChanged,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -223,6 +225,8 @@ pub struct RunObservation {
     /// Candidate model IDs whose validity envelopes contain this exact observed state,
     /// as attested by the observation receipt. This list gates residual/uncertainty escalation.
     pub eligible_peer_model_ids: Vec<String>,
+    /// Runtime-observed interval for the decision quantity when a decision boundary is configured.
+    pub decision_estimate: Option<DecisionEstimate>,
     pub observed_residual: f64,
     pub observed_uncertainty: f64,
     pub validity_inside_envelope: bool,
@@ -259,6 +263,8 @@ pub enum MonitorTrigger {
     ValidityEnvelopeExited,
     HardConstraintViolation,
     HardConstraintUnknown,
+    DecisionBoundaryUnresolved,
+    DecisionClassChanged,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -278,6 +284,9 @@ pub enum PolicyError {
     ObservationPassportMismatch,
     ObservationPeerNotInCandidateSet(String),
     DuplicateObservationPeer(String),
+    ObservationDecisionEstimateMissing,
+    ObservationDecisionEstimateUnexpected,
+    ObservationDecisionEstimateMismatch,
     SelectedModelMissing,
     InvalidSelectedModel,
     Serialization(String),
@@ -305,6 +314,9 @@ impl std::fmt::Display for PolicyError {
             Self::ObservationPassportMismatch => write!(f, "observation model passport does not match the selected candidate"),
             Self::ObservationPeerNotInCandidateSet(id) => write!(f, "observation names a non-candidate peer model: {id}"),
             Self::DuplicateObservationPeer(id) => write!(f, "observation peer eligibility contains a duplicate model: {id}"),
+            Self::ObservationDecisionEstimateMissing => write!(f, "observation lacks the decision estimate required by the policy contract"),
+            Self::ObservationDecisionEstimateUnexpected => write!(f, "observation supplied a decision estimate when no decision boundary is configured"),
+            Self::ObservationDecisionEstimateMismatch => write!(f, "observation decision estimate quantity, unit or frame does not match the policy contract"),
             Self::SelectedModelMissing => write!(f, "selected model is absent from the input"),
             Self::InvalidSelectedModel => write!(f, "receipt does not select an admissible model"),
             Self::Serialization(message) => write!(f, "serialization failure: {message}"),
@@ -472,6 +484,52 @@ pub fn monitor(
         });
     }
 
+    // A resolved admission is not a permanent decision. Re-check the
+    // actual observed quantity interval against the same decision boundary.
+    // If the observation becomes unresolved or changes side, the old scenario
+    // receipt cannot support the original classification; require fresh,
+    // state-bound admission rather than silently continuing or switching peers.
+    match (
+        input.requirement.decision_boundary.as_ref(),
+        observation.decision_estimate.as_ref(),
+    ) {
+        (Some(_), None) => return Err(PolicyError::ObservationDecisionEstimateMissing),
+        (None, Some(_)) => return Err(PolicyError::ObservationDecisionEstimateUnexpected),
+        (Some(boundary), Some(estimate)) => {
+            if estimate.quantity_id != input.requirement.quantity_id
+                || estimate.unit != input.requirement.unit
+                || estimate.reference_frame != input.requirement.reference_frame
+            {
+                return Err(PolicyError::ObservationDecisionEstimateMismatch);
+            }
+            if !estimate.value.is_finite() {
+                return Err(PolicyError::NonFinite("observation.decision_estimate.value"));
+            }
+            validate_nonnegative_finite(
+                estimate.uncertainty_upper_bound,
+                "observation.decision_estimate.uncertainty_upper_bound",
+            )?;
+            let observed_class = classify_decision_estimate(boundary, estimate);
+            if observed_class == DecisionClass::Unresolved {
+                return Ok(MonitoringDecision::Abstain {
+                    from_model_id: selected_id.clone(),
+                    reason: AbstentionReason::ObservedDecisionUnresolved,
+                    trigger: MonitorTrigger::DecisionBoundaryUnresolved,
+                    observation_receipt_sha256: observation.observation_receipt_sha256.clone(),
+                });
+            }
+            if Some(observed_class) != selected_decision_class {
+                return Ok(MonitoringDecision::Abstain {
+                    from_model_id: selected_id.clone(),
+                    reason: AbstentionReason::ObservedDecisionClassChanged,
+                    trigger: MonitorTrigger::DecisionClassChanged,
+                    observation_receipt_sha256: observation.observation_receipt_sha256.clone(),
+                });
+            }
+        }
+        (None, None) => {}
+    }
+
     // Only quantitative residual/uncertainty excursions inside the declared
     // validity domain may request escalation to a pre-admitted peer.
     let trigger = if observation.observed_residual > selected.residual_upper_bound
@@ -616,6 +674,27 @@ fn validate_input(input: &PolicyInputV2) -> Result<(), PolicyError> {
     Ok(())
 }
 
+fn classify_decision_estimate(
+    boundary: &DecisionBoundary,
+    estimate: &DecisionEstimate,
+) -> DecisionClass {
+    let lower = estimate.value - estimate.uncertainty_upper_bound;
+    let upper = estimate.value + estimate.uncertainty_upper_bound;
+    let above_limit = boundary.threshold + boundary.minimum_separation;
+    let below_limit = boundary.threshold - boundary.minimum_separation;
+    if !lower.is_finite() || !upper.is_finite() || !above_limit.is_finite() || !below_limit.is_finite() {
+        return DecisionClass::Unresolved;
+    }
+
+    if lower > above_limit {
+        DecisionClass::AboveBoundary
+    } else if upper < below_limit {
+        DecisionClass::BelowBoundary
+    } else {
+        DecisionClass::Unresolved
+    }
+}
+
 fn decision_class(
     input: &PolicyInputV2,
     candidate: &ModelCandidate,
@@ -630,21 +709,7 @@ fn decision_class(
         return Some(DecisionClass::Unresolved);
     }
 
-    let lower = estimate.value - estimate.uncertainty_upper_bound;
-    let upper = estimate.value + estimate.uncertainty_upper_bound;
-    let above_limit = boundary.threshold + boundary.minimum_separation;
-    let below_limit = boundary.threshold - boundary.minimum_separation;
-    if !lower.is_finite() || !upper.is_finite() || !above_limit.is_finite() || !below_limit.is_finite() {
-        return Some(DecisionClass::Unresolved);
-    }
-
-    if lower > above_limit {
-        Some(DecisionClass::AboveBoundary)
-    } else if upper < below_limit {
-        Some(DecisionClass::BelowBoundary)
-    } else {
-        Some(DecisionClass::Unresolved)
-    }
+    Some(classify_decision_estimate(boundary, estimate))
 }
 
 fn rejection_reasons(
@@ -1190,6 +1255,108 @@ mod tests {
         );
     }
 
+    fn observation_decision_estimate(value: f64, uncertainty: f64) -> DecisionEstimate {
+        DecisionEstimate {
+            quantity_id: "contact_impulse".to_owned(),
+            unit: "N*s".to_owned(),
+            reference_frame: "world".to_owned(),
+            value,
+            uncertainty_upper_bound: uncertainty,
+        }
+    }
+
+    fn decision_boundary_input() -> PolicyInputV2 {
+        let mut data = input();
+        data.requirement.decision_boundary = Some(DecisionBoundary {
+            threshold: 10.0,
+            minimum_separation: 1.0,
+        });
+        for candidate in &mut data.candidates {
+            candidate.decision_estimate = Some(if candidate.model_id == "fast-qualified" {
+                decision_estimate(12.0, 0.5)
+            } else {
+                decision_estimate(13.0, 0.5)
+            });
+        }
+        data
+    }
+
+    #[test]
+    fn monitor_abstains_if_observed_interval_becomes_unresolved() {
+        let data = decision_boundary_input();
+        let receipt = evaluate(&data).expect("input");
+        let observation = RunObservation {
+            input_sha256: receipt.input_sha256.clone(),
+            model_id: "fast-qualified".to_owned(),
+            model_passport_sha256: H1.to_owned(),
+            observation_receipt_sha256: H3.to_owned(),
+            eligible_peer_model_ids: vec!["slow-qualified".to_owned()],
+            decision_estimate: Some(observation_decision_estimate(10.2, 0.4)),
+            observed_residual: 0.01,
+            observed_uncertainty: 0.01,
+            validity_inside_envelope: true,
+            hard_constraints: HardConstraintDisposition::WithinBounds,
+        };
+        assert_eq!(
+            monitor(&data, &receipt, &observation).expect("monitor"),
+            MonitoringDecision::Abstain {
+                from_model_id: "fast-qualified".to_owned(),
+                reason: AbstentionReason::ObservedDecisionUnresolved,
+                trigger: MonitorTrigger::DecisionBoundaryUnresolved,
+                observation_receipt_sha256: H3.to_owned(),
+            }
+        );
+    }
+
+    #[test]
+    fn monitor_abstains_if_observed_decision_changes_sides() {
+        let data = decision_boundary_input();
+        let receipt = evaluate(&data).expect("input");
+        let observation = RunObservation {
+            input_sha256: receipt.input_sha256.clone(),
+            model_id: "fast-qualified".to_owned(),
+            model_passport_sha256: H1.to_owned(),
+            observation_receipt_sha256: H3.to_owned(),
+            eligible_peer_model_ids: vec!["slow-qualified".to_owned()],
+            decision_estimate: Some(observation_decision_estimate(8.0, 0.5)),
+            observed_residual: 0.01,
+            observed_uncertainty: 0.01,
+            validity_inside_envelope: true,
+            hard_constraints: HardConstraintDisposition::WithinBounds,
+        };
+        assert_eq!(
+            monitor(&data, &receipt, &observation).expect("monitor"),
+            MonitoringDecision::Abstain {
+                from_model_id: "fast-qualified".to_owned(),
+                reason: AbstentionReason::ObservedDecisionClassChanged,
+                trigger: MonitorTrigger::DecisionClassChanged,
+                observation_receipt_sha256: H3.to_owned(),
+            }
+        );
+    }
+
+    #[test]
+    fn decision_boundary_monitor_requires_observed_estimate() {
+        let data = decision_boundary_input();
+        let receipt = evaluate(&data).expect("input");
+        let observation = RunObservation {
+            input_sha256: receipt.input_sha256.clone(),
+            model_id: "fast-qualified".to_owned(),
+            model_passport_sha256: H1.to_owned(),
+            observation_receipt_sha256: H3.to_owned(),
+            eligible_peer_model_ids: vec![],
+            decision_estimate: None,
+            observed_residual: 0.01,
+            observed_uncertainty: 0.01,
+            validity_inside_envelope: true,
+            hard_constraints: HardConstraintDisposition::WithinBounds,
+        };
+        assert_eq!(
+            monitor(&data, &receipt, &observation).unwrap_err(),
+            PolicyError::ObservationDecisionEstimateMissing
+        );
+    }
+
     #[test]
     fn monitor_continues_when_observations_remain_inside_bounds() {
         let data = input();
@@ -1200,6 +1367,7 @@ mod tests {
             model_passport_sha256: H1.to_owned(),
             observation_receipt_sha256: H3.to_owned(),
             eligible_peer_model_ids: vec![],
+            decision_estimate: None,
             observed_residual: 0.005,
             observed_uncertainty: 0.01,
             validity_inside_envelope: true,
@@ -1224,6 +1392,7 @@ mod tests {
             model_passport_sha256: H1.to_owned(),
             observation_receipt_sha256: H3.to_owned(),
             eligible_peer_model_ids: vec!["slow-qualified".to_owned()],
+            decision_estimate: None,
             observed_residual: 0.5,
             observed_uncertainty: 0.05,
             validity_inside_envelope: true,
@@ -1256,6 +1425,7 @@ mod tests {
             model_passport_sha256: H1.to_owned(),
             observation_receipt_sha256: H3.to_owned(),
             eligible_peer_model_ids: vec![],
+            decision_estimate: None,
             observed_residual: 0.5,
             observed_uncertainty: 0.05,
             validity_inside_envelope: true,
@@ -1282,6 +1452,7 @@ mod tests {
             model_passport_sha256: H1.to_owned(),
             observation_receipt_sha256: H3.to_owned(),
             eligible_peer_model_ids: vec!["not-in-input".to_owned()],
+            decision_estimate: None,
             observed_residual: 0.5,
             observed_uncertainty: 0.05,
             validity_inside_envelope: true,
@@ -1313,6 +1484,7 @@ mod tests {
             model_passport_sha256: H1.to_owned(),
             observation_receipt_sha256: H3.to_owned(),
             eligible_peer_model_ids: vec![],
+            decision_estimate: None,
             observed_residual: 0.5,
             observed_uncertainty: 0.05,
             validity_inside_envelope: true,
@@ -1339,6 +1511,7 @@ mod tests {
             model_passport_sha256: H1.to_owned(),
             observation_receipt_sha256: H3.to_owned(),
             eligible_peer_model_ids: vec![],
+            decision_estimate: None,
             observed_residual: 0.01,
             observed_uncertainty: 0.01,
             validity_inside_envelope: true,
@@ -1365,6 +1538,7 @@ mod tests {
             model_passport_sha256: H1.to_owned(),
             observation_receipt_sha256: H3.to_owned(),
             eligible_peer_model_ids: vec![],
+            decision_estimate: None,
             observed_residual: 0.01,
             observed_uncertainty: 0.01,
             validity_inside_envelope: true,
@@ -1391,6 +1565,7 @@ mod tests {
             model_passport_sha256: H1.to_owned(),
             observation_receipt_sha256: H3.to_owned(),
             eligible_peer_model_ids: vec![],
+            decision_estimate: None,
             observed_residual: 0.01,
             observed_uncertainty: 0.01,
             validity_inside_envelope: false,
@@ -1417,6 +1592,7 @@ mod tests {
             model_passport_sha256: H1.to_owned(),
             observation_receipt_sha256: H3.to_owned(),
             eligible_peer_model_ids: vec!["slow-qualified".to_owned()],
+            decision_estimate: None,
             observed_residual: 0.05,
             observed_uncertainty: 0.01,
             validity_inside_envelope: true,
@@ -1451,6 +1627,7 @@ mod tests {
             model_passport_sha256: H1.to_owned(),
             observation_receipt_sha256: H3.to_owned(),
             eligible_peer_model_ids: vec![],
+            decision_estimate: None,
             observed_residual: 0.005,
             observed_uncertainty: 0.01,
             validity_inside_envelope: true,
@@ -1484,6 +1661,7 @@ mod tests {
             model_passport_sha256: H1.to_owned(),
             observation_receipt_sha256: H3.to_owned(),
             eligible_peer_model_ids: vec![],
+            decision_estimate: None,
             observed_residual: 0.005,
             observed_uncertainty: 0.01,
             validity_inside_envelope: true,
@@ -1525,6 +1703,7 @@ mod tests {
             model_passport_sha256: H1.to_owned(),
             observation_receipt_sha256: H3.to_owned(),
             eligible_peer_model_ids: vec![],
+            decision_estimate: None,
             observed_residual: f64::NAN,
             observed_uncertainty: 0.01,
             validity_inside_envelope: true,
