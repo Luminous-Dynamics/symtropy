@@ -2,7 +2,7 @@ name: Scan-to-BIM Replay Contract
 
 on:
   pull_request:
-    branches: ["main", "research/scan-bim-admission-v0-1", "research/scan-bim-replay-p0-v0-2", "research/scan-bim-execution-receipt-v0-2", "research/scan-bim-directed-accuracy-v0-6", "research/scan-bim-surface-sampling-v0-1"]
+    branches: ["main", "research/scan-bim-admission-v0-1", "research/scan-bim-replay-p0-v0-2", "research/scan-bim-execution-receipt-v0-2", "research/scan-bim-directed-accuracy-v0-6", "research/scan-bim-surface-sampling-v0-1", "research/scan-bim-visibility-v0-1"]
     paths:
       - "tools/scan-bim-replay-contract/**"
       - "docs/research/built-asset/scan-bim/SCAN_BIM_REPLAY_CONTRACT_V0_2.md"
@@ -16,7 +16,7 @@ on:
       - "docs/research/built-asset/scan-bim/SCAN_BIM_DIRECTED_ACCURACY_CORE_V0_2.md"
       - "docs/research/built-asset/scan-bim/SCAN_BIM_SURFACE_SAMPLING_V0_1.md"
   push:
-    branches: ["main", "research/scan-bim-admission-v0-1", "research/scan-bim-replay-p0-v0-2", "research/scan-bim-execution-receipt-v0-2", "research/scan-bim-directed-accuracy-v0-6", "research/scan-bim-surface-sampling-v0-1"]
+    branches: ["main", "research/scan-bim-admission-v0-1", "research/scan-bim-replay-p0-v0-2", "research/scan-bim-execution-receipt-v0-2", "research/scan-bim-directed-accuracy-v0-6", "research/scan-bim-surface-sampling-v0-1", "research/scan-bim-visibility-v0-1"]
     paths:
       - "tools/scan-bim-replay-contract/**"
       - "docs/research/built-asset/scan-bim/SCAN_BIM_REPLAY_CONTRACT_V0_2.md"
@@ -50,11 +50,11 @@ jobs:
           toolchain: 1.96.0
           components: clippy, rustfmt
       - name: Check formatting
-        run: cargo fmt --manifest-path tools/scan-bim-replay-contract/Cargo.toml -- --check
+        run: cargo fmt --all --manifest-path tools/scan-bim-replay-contract/Cargo.toml -- --check
       - name: Run contract tests
-        run: cargo test --locked --manifest-path tools/scan-bim-replay-contract/Cargo.toml
+        run: cargo test --locked --workspace --manifest-path tools/scan-bim-replay-contract/Cargo.toml
       - name: Run strict Clippy
-        run: cargo clippy --locked --manifest-path tools/scan-bim-replay-contract/Cargo.toml --all-targets -- -D warnings
+        run: cargo clippy --locked --workspace --manifest-path tools/scan-bim-replay-contract/Cargo.toml --all-targets -- -D warnings
       - name: Audit synthetic fixture
         run: |
           cargo run --locked --manifest-path tools/scan-bim-replay-contract/Cargo.toml -- \
