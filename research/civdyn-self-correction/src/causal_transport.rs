@@ -839,6 +839,169 @@ mod tests {
         ]
     }
 
+    fn sensitivity_spec(lambda: f64) -> OutcomeShiftSensitivitySpec {
+        OutcomeShiftSensitivitySpec {
+            lambda,
+            scenario_digest: format!("sha256-lambda-sensitivity-{lambda}"),
+        }
+    }
+
+    #[test]
+    fn lambda_one_collapses_to_the_existing_standardized_transport_estimate() {
+        let candidate = input(full_support_target());
+        let standard = assess_risk_difference_transport(&candidate).expect("standard transport");
+        let sensitivity = assess_likelihood_ratio_transport_sensitivity(
+            &candidate,
+            &sensitivity_spec(1.0),
+        )
+        .expect("lambda-one sensitivity interval");
+        assert_eq!(
+            sensitivity.status,
+            TransportSensitivityStatus::SensitivityBounded
+        );
+        assert!(sensitivity.interval_collapsed);
+        assert!((sensitivity.target_ate_lower - 0.28).abs() < 1e-12);
+        assert!((sensitivity.target_ate_upper - 0.28).abs() < 1e-12);
+        assert!((sensitivity.target_ate_lower - standard.target_ate_point.unwrap()).abs() < 1e-12);
+        assert_eq!(sensitivity.lambda, 1.0);
+    }
+
+    #[test]
+    fn lambda_two_returns_the_binary_likelihood_ratio_known_answer_bounds() {
+        let result = assess_likelihood_ratio_transport_sensitivity(
+            &input(full_support_target()),
+            &sensitivity_spec(2.0),
+        )
+        .expect("lambda-two sensitivity interval");
+        assert!(!result.interval_collapsed);
+        assert!((result.target_ate_lower - (-0.13)).abs() < 1e-12);
+        assert!((result.target_ate_upper - 0.51).abs() < 1e-12);
+        assert_eq!(result.strata.len(), 2);
+        let low = result
+            .strata
+            .iter()
+            .find(|stratum| stratum.modifier_id == "low-infrastructure")
+            .expect("low infrastructure result");
+        assert!((low.risk_difference_lower.unwrap() - (-0.05)).abs() < 1e-12);
+        assert!((low.risk_difference_upper.unwrap() - 0.55).abs() < 1e-12);
+    }
+
+    #[test]
+    fn larger_likelihood_ratio_bound_never_narrows_the_target_interval() {
+        let candidate = input(full_support_target());
+        let mut previous_lower = f64::INFINITY;
+        let mut previous_upper = f64::NEG_INFINITY;
+        for lambda in [1.0, 1.2, 1.5, 2.0, 3.0, 4.0, 8.0, 16.0] {
+            let result = assess_likelihood_ratio_transport_sensitivity(
+                &candidate,
+                &sensitivity_spec(lambda),
+            )
+            .expect("valid likelihood ratio sensitivity");
+            assert!(result.target_ate_lower <= previous_lower + 1e-12);
+            assert!(result.target_ate_upper >= previous_upper - 1e-12);
+            previous_lower = result.target_ate_lower;
+            previous_upper = result.target_ate_upper;
+        }
+        assert!((previous_lower - (-0.605)).abs() > 0.0);
+    }
+
+    #[test]
+    fn unsupported_target_modifier_mass_remains_full_range_under_lambda() {
+        let target = vec![
+            TargetPopulationStratum {
+                modifier_id: "low-infrastructure".to_string(),
+                target_population_count: 20,
+            },
+            TargetPopulationStratum {
+                modifier_id: "high-infrastructure".to_string(),
+                target_population_count: 60,
+            },
+            TargetPopulationStratum {
+                modifier_id: "remote-isolated".to_string(),
+                target_population_count: 20,
+            },
+        ];
+        let result = assess_likelihood_ratio_transport_sensitivity(
+            &input(target),
+            &sensitivity_spec(2.0),
+        )
+        .expect("partially supported lambda sensitivity");
+        assert_eq!(result.status, TransportSensitivityStatus::PartiallyIdentified);
+        assert_eq!(result.supported_target_population_count, 80);
+        assert_eq!(result.unsupported_target_population_count, 20);
+        assert!((result.target_ate_lower - (-0.30)).abs() < 1e-12);
+        assert!((result.target_ate_upper - 0.61).abs() < 1e-12);
+        let unsupported = result
+            .strata
+            .iter()
+            .find(|stratum| stratum.modifier_id == "remote-isolated")
+            .expect("target-only modifier");
+        assert!(!unsupported.source_support);
+        assert_eq!(unsupported.risk_difference_lower, None);
+        assert_eq!(unsupported.risk_difference_upper, None);
+    }
+
+    #[test]
+    fn lambda_bounds_allow_declared_outcome_shift_but_require_other_assumptions() {
+        let mut shifted = input(full_support_target());
+        shifted.assumptions.selection_exchangeability.disposition =
+            AssumptionDisposition::Violated;
+        let result = assess_likelihood_ratio_transport_sensitivity(
+            &shifted,
+            &sensitivity_spec(2.0),
+        )
+        .expect("declared outcome shift is handled by lambda");
+        assert_eq!(
+            result.selection_exchangeability,
+            AssumptionDisposition::Violated
+        );
+
+        let mut no_randomization = input(full_support_target());
+        no_randomization.assumptions.source_internal_validity.disposition =
+            AssumptionDisposition::Unknown;
+        assert_eq!(
+            assess_likelihood_ratio_transport_sensitivity(
+                &no_randomization,
+                &sensitivity_spec(2.0)
+            )
+            .unwrap_err(),
+            CausalTransportSensitivityError::RequiredAssumptionNotSupported {
+                assumption: "source_internal_validity"
+            }
+        );
+    }
+
+    #[test]
+    fn rejects_invalid_lambda_and_missing_sensitivity_scenario_identity() {
+        for lambda in [0.0, 0.5, f64::NAN, f64::INFINITY] {
+            assert_eq!(
+                assess_likelihood_ratio_transport_sensitivity(
+                    &input(full_support_target()),
+                    &sensitivity_spec(lambda)
+                )
+                .unwrap_err(),
+                CausalTransportSensitivityError::InvalidLikelihoodRatioBound
+            );
+        }
+        let mut missing = sensitivity_spec(2.0);
+        missing.scenario_digest.clear();
+        assert_eq!(
+            assess_likelihood_ratio_transport_sensitivity(
+                &input(full_support_target()),
+                &missing
+            )
+            .unwrap_err(),
+            CausalTransportSensitivityError::MissingSensitivityScenarioDigest
+        );
+    }
+
+    #[test]
+    fn binary_risk_ratio_bounds_handle_zero_and_one_source_risks() {
+        assert_eq!(binary_outcome_likelihood_ratio_bounds(0.0, 4.0).unwrap(), (0.0, 0.0));
+        assert_eq!(binary_outcome_likelihood_ratio_bounds(1.0, 4.0).unwrap(), (1.0, 1.0));
+        assert_eq!(binary_outcome_likelihood_ratio_bounds(0.5, 1.0).unwrap(), (0.5, 0.5));
+    }
+
     #[test]
     fn standardizes_source_rct_effects_to_target_modifier_distribution() {
         let result = assess_risk_difference_transport(&input(full_support_target()))
