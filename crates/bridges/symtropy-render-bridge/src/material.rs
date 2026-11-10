@@ -44,7 +44,7 @@ pub struct NdSlicingSettings {
 
 impl MaterialExtension for NdSlicingExtension {
     fn fragment_shader() -> ShaderRef {
-        "shaders/nd_slicing.wgsl".into()
+        "shaders/nd_slicing.wesl".into()
     }
 }
 
