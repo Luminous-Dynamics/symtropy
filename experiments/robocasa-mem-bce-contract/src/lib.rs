@@ -12,6 +12,7 @@
 
 #![forbid(unsafe_code)]
 
+pub mod memobench_adapter;
 pub mod memory_operations;
 pub mod process_memory;
 pub mod result_envelope;
