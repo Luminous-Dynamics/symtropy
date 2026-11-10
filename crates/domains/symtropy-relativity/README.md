@@ -142,3 +142,16 @@ The coordinate formulation also supports step-doubling adaptive integration. Its
 Timelike trajectories use `lambda = c*tau` and target (g(u,u)=-1). Null trajectories use an affine parameter and target (g(u,u)=0). Both formulations expose normalization, Killing energy, axial angular momentum, and Hamiltonian diagnostics. They reject the Schwarzschild horizon and polar-axis chart boundaries rather than crossing a coordinate singularity.
 
 The machine-readable fixtures are in `benchmarks/geodesic_reference_cases.json`. An adaptive separated Kerr Mino stepper is implemented. Adaptive canonical-Hamiltonian integration, finite-radius observer tetrads, variational Jacobi fields and caustic detection remain unimplemented.
+
+## Kerr horizon-event localization
+
+The `kerr_events` module localizes the first sampled outside-to-inside future outer-horizon crossing within an accepted ingoing-Mino integration segment. It constructs a cubic-Hermite radial interpolant from endpoint radii and `dr/dgamma`, proves that this interpolant is strictly decreasing on the segment, and applies safeguarded bisection.
+
+Use `localize_qualified_first_outer_horizon_crossing` for a capture claim. It first requires the existing `KerrMinoTrajectory::capture_status` to return `CapturedByHorizon` under the caller's radial/polar first-integral residual ceiling, then localizes the event. The lower-level `localize_first_outer_horizon_crossing` is available for diagnostic interpolation only and does not independently qualify capture or constraint drift.
+
+The result records the accepted segment index, dimensionless Mino-parameter estimate and bracket, bisection-only root uncertainty, interpolant radial residual, and dimensionless outer-horizon radius. Typed errors distinguish wrong chart, incomplete/non-finite trajectory data, non-increasing parameter samples, non-finite interpolation, non-monotone brackets, floating-point precision exhaustion, and failed capture qualification.
+
+**Important error distinction:** `root_solver_error_bound` bounds the root of the Hermite interpolant. It is not a bound on the exact-geodesic crossing error. Establish the latter by comparing localized events under accepted-step refinement and against the independent canonical Hamiltonian trajectory formulation. The interpolation routine is not an exact event detector between samples and cannot detect a crossing that begins and ends within one accepted step without an endpoint bracket. The current method deliberately abstains on non-monotone brackets rather than choosing a root.
+
+Nine unit tests are authored, including an analytic linear event, a quadratic event recovered identically under coarse/refined segmentation, capture/constraint qualification, no-crossing, chart/tolerance rejection, non-monotone and non-finite interpolants, and two floating-point precision-exhaustion cases. They remain unexecuted until the targeted exact-head workflow completes.
+
