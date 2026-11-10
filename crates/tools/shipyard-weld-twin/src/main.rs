@@ -255,6 +255,48 @@ fn validate_ruleset_effectivity(weld: &Value, cutoff: &str) -> &'static str {
             return "FUTURE_RULESET_EFFECTIVITY_CONFLICT";
         }
     }
+
+    // IACS UR W28 Rev.3 has two independent time dimensions:
+    // (1) new WPQ tests use Rev.3 from 2027-01-01; and
+    // (2) Rev.3 is implemented on ships contracted for construction from
+    //     2027-01-01. Clause 1.7 does not invalidate previously accepted WPS/
+    //     WPQR records, but their approved range must still cover the subject.
+    const REV3_EFFECTIVE: &str = "2027-01-01T00:00:00Z";
+    let Some(qualification_test_date) =
+        text_at(weld, "normative_context.qualification_test_date_utc")
+    else {
+        return "QUALIFICATION_TEST_DATE_MISSING";
+    };
+    if !is_canonical_utc(qualification_test_date) {
+        return "QUALIFICATION_TEST_DATE_INVALID";
+    }
+    if qualification_test_date > cutoff {
+        return "QUALIFICATION_TEST_AFTER_DECISION_CUTOFF";
+    }
+
+    let Some(qualification_revision) =
+        text_at(weld, "procedure.qualification_ruleset_revision")
+    else {
+        return "QUALIFICATION_RULESET_REVISION_MISSING";
+    };
+    if qualification_test_date >= REV3_EFFECTIVE && qualification_revision != "Rev.3" {
+        return "W28_REV3_REQUIRED_FOR_NEW_WPQ";
+    }
+
+    if qualification_revision == "Rev.2" {
+        let Some(prior_wpqr) = value_at(weld, "normative_context.prior_revision_wpqr") else {
+            return "LEGACY_WPQR_ACCEPTANCE_NOT_ESTABLISHED";
+        };
+        if text_at(prior_wpqr, "revision") != Some("Rev.2")
+            || bool_at(prior_wpqr, "accepted_by_class_society") != Some(true)
+            || text_at(prior_wpqr, "acceptance_ref").is_none_or(str::is_empty)
+        {
+            return "LEGACY_WPQR_ACCEPTANCE_NOT_ESTABLISHED";
+        }
+        if bool_at(prior_wpqr, "approved_range_matches_subject") != Some(true) {
+            return "LEGACY_WPQR_SCOPE_NOT_CONFIRMED";
+        }
+    }
     "RULESET_APPLICABLE_TO_SUBJECT"
 }
 
@@ -731,8 +773,8 @@ fn verify_corpus(corpus: &Value, workspace_root: &Path) -> Result<Value, String>
         .and_then(Value::as_array)
         .ok_or_else(|| "corpus cases must be an array".to_owned())?;
 
-    if cases.len() != 51 {
-        return Err(format!("frozen weld-twin corpus must contain 51 cases, found {}", cases.len()));
+    if cases.len() != 54 {
+        return Err(format!("frozen weld-twin corpus must contain 54 cases, found {}", cases.len()));
     }
 
     let mut results = Vec::with_capacity(cases.len());
@@ -857,7 +899,7 @@ mod tests {
             parse_strict_json(CORPUS.as_bytes()).expect("frozen corpus parses without duplicate keys");
         let root = workspace_root();
         let report = verify_corpus(&corpus, &root).expect("frozen corpus evaluates");
-        assert_eq!(report["case_count"].as_u64(), Some(51));
+        assert_eq!(report["case_count"].as_u64(), Some(54));
         assert_eq!(report["passed_count"].as_u64(), Some(51));
         assert_eq!(report["failed_count"].as_u64(), Some(0));
     }
