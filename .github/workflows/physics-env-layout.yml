@@ -1,0 +1,70 @@
+name: Physics Environment Layout
+
+on:
+  push:
+    branches: ["research/physics-env-layout-v0"]
+    paths:
+      - "research/physics-env-layout/**"
+      - ".github/workflows/physics-env-layout.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "research/physics-env-layout/**"
+      - ".github/workflows/physics-env-layout.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: physics-env-layout-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  layout-policy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Install pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.96.0 --profile minimal --component clippy --component rustfmt
+          rustc +1.96.0 --version
+          cargo +1.96.0 --version
+
+      - name: Check formatting
+        run: cargo +1.96.0 fmt --manifest-path research/physics-env-layout/Cargo.toml -- --check
+
+      - name: Run layout correctness tests
+        run: cargo +1.96.0 test --manifest-path research/physics-env-layout/Cargo.toml
+
+      - name: Run strict Clippy
+        run: cargo +1.96.0 clippy --manifest-path research/physics-env-layout/Cargo.toml --all-targets -- -D warnings
+
+      - name: Compile benchmark target
+        run: cargo +1.96.0 bench --manifest-path research/physics-env-layout/Cargo.toml --bench layout_throughput --no-run
+
+      - name: Generate deterministic known-answer receipts
+        shell: bash
+        run: |
+          set -euo pipefail
+          package="research/physics-env-layout"
+          mkdir -p "$package/target/receipts"
+          cargo +1.96.0 run --quiet --manifest-path "$package/Cargo.toml" -- 10003 120 \
+            > "$package/target/receipts/first.json"
+          cargo +1.96.0 run --quiet --manifest-path "$package/Cargo.toml" -- 10003 120 \
+            > "$package/target/receipts/second.json"
+          cmp "$package/target/receipts/first.json" "$package/target/receipts/second.json"
+          grep -q '"outputs_bit_identical": true' "$package/target/receipts/first.json"
+          grep -q '"evidence_class": "synthetic_only"' "$package/target/receipts/first.json"
+          sha256sum "$package/target/receipts/first.json" | tee "$package/target/receipts/receipt.sha256"
+
+      - name: Preserve layout receipt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: physics-env-layout-receipt-${{ github.sha }}
+          path: research/physics-env-layout/target/receipts/
+          if-no-files-found: warn
+          retention-days: 30
