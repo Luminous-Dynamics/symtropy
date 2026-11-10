@@ -124,6 +124,33 @@ Primary sources:
 
 Do not let a high task score conceal a missing contact row, out-of-domain model, invalid derivative or a change in the forward physical law. This adds useful coverage to #3425 while #460 remains the only shared scenario/evidence corpus.
 
+### 3.2.2 Rust-native differentiable physics comparator — phyz
+
+A useful additional comparator is [muni-works/phyz](https://github.com/muni-works/phyz), a pure-Rust articulated and multi-physics stack with Featherstone ABA, contact/collision, GPU batch simulation and a rollout adjoint. It is relevant because it competes on language, integration cost and differentiable engineering workflows—not just on raw engine throughput.
+
+Its public benchmark report is notably candid about where it wins and loses:
+- On its reported reduced-coordinate pendulum models, phyz was only **1.08×** and **1.02×** Rapier; the correct reading is “competitive”, not “substantially faster”.
+- Its 8-box contact row reported Rapier about **26× faster**, but the report explicitly says this is **not a controlled algorithm comparison**: phyz uses compliant penalty contact while Rapier uses an impulse solver.
+- Its GPU batch path was reported slower than one CPU thread below about batch 128, then roughly 32–36× at 4,096–16,384 worlds. The report explicitly labels some GPU figures indicative because that suite was skipped in the generated run.
+- Its rollout-adjoint report distinguishes exact inertia/contact-mesh parameter derivatives from one-step state/control Jacobian paths that use finite differences through ABA. It reports ~6.5× forward cost for 1-DOF/10 parameters and ~78.4× for 16 DOF/160 parameters; separate parameter-scaling tests show the parameter channel is nearly independent of parameter count at fixed DOF. Its report quotes adjoint-vs-FD agreement around 1e-10 on its covered cases.
+
+**Version and evidence caveat:** the generated benchmark metadata shown in the repository records a 2026-07-25 run, phyz 0.1.0, Rapier 0.34.0, Rust 1.95.0 and an Apple M4 Max. The repository manifest has since advanced to phyz 0.4.1 and was updated on 2026-11-07. Treat the July measurements as historical methodology/evidence, not as a current phyz 0.4.1 vs Rapier 0.36.1 ranking. Reproduce against exact current commits, manifests, features, compiler, hardware and model digests before making a current comparison.
+
+Sources:
+- phyz repository and current workspace manifest: https://github.com/muni-works/phyz
+- phyz benchmark protocol/results/caveats: https://github.com/muni-works/phyz/blob/main/BENCHMARKS.md
+
+#### Proposed Symtropy ↔ phyz comparison
+
+1. **Articulated forward dynamics:** start with serial chains, branching trees, off-diagonal inertia, free-flying bases and a 24-DOF hand. Freeze model data, coordinates/layout, mass/inertia, gravity, dt, integrator, damping, armature and output conventions. Compare one-step acceleration/impulse first; then convergence and long-horizon divergence. Include MuJoCo as an additional independent reference where a matching model can be imported.
+2. **Adjoint scaling:** separately sweep DOF count and parameter count. Include many inertial parameters at fixed DOF (e.g. welded bodies) and increasing DOF at fixed parameter/DOF ratio. Report forward cost, backward cost, peak memory, derivative error and cost per parameter and per DOF. Do not infer asymptotic complexity from a two-point pendulum table.
+3. **Contact differentiation:** freeze the forward contact law before comparing gradients. If penalty, impulse, hard NCP or compliant contact differ, label separate model classes. Compare branch-local exact derivatives, whole-rollout adjoints, finite differences and set-valued/abstaining derivatives only on a matched forward map.
+4. **Contact performance:** measure narrow phase, contact solve and total step separately. Do not cite the published 26× phyz/Rapier row as an algorithmic winner because the two contact methods differ.
+5. **GPU crossover:** record batch 1, 16, 64, 128, 256, 1,024, 4,096 and 16,384, with p50/p95/p99 latency, throughput, memory and energy. Report CPU single-world latency separately from batched world throughput.
+6. **Numerical quality:** use the same analytic oracle and report constraint/contact residual, energy/work balance, observed order under dt refinement, stability/failure, and deterministic replay. Do not equate small trajectory error on a short horizon with long-horizon chaos-free equivalence.
+
+The Symtropy differentiator should be **composable assurance**: exact model identity and semantic admission, solver diagnostics, uncertainty and branch semantics, and reproducible evidence across native and external engines. phyz is a useful peer and possible component/adapter target; its public benchmark is not evidence that either project universally dominates the other.
+
 ### 3.3 Richer physical interactions
 
 The frontier includes articulated rigid bodies, contacts, tendons, cables, cloth, deformables, particles and coupled solvers. This is not a reason to immediately implement all of them. It is a reason to define extension boundaries and choose domain-specific solvers based on validated use cases.
