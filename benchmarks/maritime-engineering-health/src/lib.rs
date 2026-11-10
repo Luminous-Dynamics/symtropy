@@ -165,6 +165,7 @@ pub enum AuthorityEffect {
 
 #[derive(Clone, Debug, Serialize, PartialEq, Eq)]
 pub struct CapabilityImpact {
+    pub corpus_sha256: String,
     pub case_id: String,
     pub vessel_id: String,
     pub asset_id: String,
@@ -418,7 +419,11 @@ pub fn evaluate_case(case: &Case) -> Expected {
 /// Projects the evaluator result into a read-only, asset-bound input for the
 /// vessel ODD/mode owner. "No restriction indicated" is not a vessel-wide
 /// WithinDeclaredEnvelope result. This projection never grants authority.
-pub fn project_capability_impact(case: &Case, result: &Expected) -> CapabilityImpact {
+pub fn project_capability_impact(
+    case: &Case,
+    result: &Expected,
+    corpus_sha256: &str,
+) -> CapabilityImpact {
     let status = match result.disposition {
         Disposition::RestrictCapability => CapabilityImpactStatus::RestrictionRecommended,
         Disposition::ContinueWithWatch => CapabilityImpactStatus::NoRestrictionIndicated,
@@ -430,6 +435,7 @@ pub fn project_capability_impact(case: &Case, result: &Expected) -> CapabilityIm
     };
 
     CapabilityImpact {
+        corpus_sha256: corpus_sha256.to_string(),
         case_id: case.case_id.clone(),
         vessel_id: case.asset.vessel_id.clone(),
         asset_id: case.asset.asset_id.clone(),
@@ -451,10 +457,13 @@ pub fn evaluate_bytes(bytes: &[u8]) -> Result<Report, EvalError> {
         serde_json::from_slice(bytes).map_err(|error| EvalError::Parse(error.to_string()))?;
     validate_corpus(&corpus)?;
 
+    let digest = Sha256::digest(bytes);
+    let corpus_sha256: String = digest.iter().map(|byte| format!("{byte:02x}")).collect();
+
     let mut results = Vec::with_capacity(corpus.cases.len());
     for case in &corpus.cases {
         let actual = evaluate_case(case);
-        let capability_impact = project_capability_impact(case, &actual);
+        let capability_impact = project_capability_impact(case, &actual, &corpus_sha256);
         results.push(CaseResult {
             case_id: case.case_id.clone(),
             matched: actual == case.expected,
@@ -466,8 +475,6 @@ pub fn evaluate_bytes(bytes: &[u8]) -> Result<Report, EvalError> {
 
     let passed_cases = results.iter().filter(|result| result.matched).count();
     let failed_cases = results.len() - passed_cases;
-    let digest = Sha256::digest(bytes);
-    let corpus_sha256 = digest.iter().map(|byte| format!("{byte:02x}")).collect();
 
     Ok(Report {
         corpus_sha256,
@@ -717,6 +724,7 @@ mod tests {
             assert_eq!(impact.authority_effect, AuthorityEffect::NoAuthorityGranted);
             assert!(!impact.may_authorize_transition);
             assert!(!impact.may_clear_restriction);
+            assert_eq!(impact.corpus_sha256, report.corpus_sha256);
             assert_eq!(impact.case_id, result.case_id);
             assert_eq!(impact.vessel_id, "synthetic-vessel-01");
             assert_eq!(impact.config_revision, "vessel-config-r7");
