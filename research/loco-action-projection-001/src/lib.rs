@@ -6,6 +6,8 @@
 use std::collections::BTreeMap;
 
 pub const MAX_CONSTRAINTS: usize = 4096;
+pub const MAX_POSSIBILITIES: usize = 256;
+pub const MAX_CONSTRAINT_CHECKS: usize = 1_000_000;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PolicyProposal {
@@ -17,6 +19,7 @@ pub struct PolicyProposal {
     pub domain_digest: String,
     pub actuator_digest: String,
     pub constraint_inventory_digest: String,
+    pub physical_possibility_digest: String,
     pub submitted_at_ns: u64,
     pub intended_apply_at_ns: u64,
     pub deadline_ns: u64,
@@ -79,6 +82,7 @@ pub struct ProjectionResult {
     pub domain_digest: String,
     pub actuator_digest: String,
     pub constraint_inventory_digest: String,
+    pub physical_possibility_digest: String,
     pub started_at_ns: u64,
     pub completed_at_ns: u64,
     pub deadline_ns: u64,
@@ -111,6 +115,7 @@ pub struct ViabilityReceipt {
     pub domain_digest: String,
     pub actuator_digest: String,
     pub constraint_inventory_digest: String,
+    pub physical_possibility_digest: String,
     pub status: AuthorityStatus,
     pub witness_or_reason: Option<String>,
     pub valid_from_ns: u64,
@@ -129,6 +134,7 @@ pub struct AssuranceReceipt {
     pub domain_digest: String,
     pub actuator_digest: String,
     pub constraint_inventory_digest: String,
+    pub physical_possibility_digest: String,
     pub horizon_steps: u32,
     pub status: AuthorityStatus,
     pub witness_or_reason: Option<String>,
@@ -150,6 +156,7 @@ pub struct AdmittedFallback {
     pub assurance_receipt_id: String,
     pub assurance_result_digest: String,
     pub constraint_inventory_digest: String,
+    pub physical_possibility_digest: String,
     pub horizon_steps: u32,
     pub viability_status: AuthorityStatus,
     pub assurance_status: AuthorityStatus,
@@ -235,6 +242,7 @@ pub enum ProjectionError {
     ResultDeadlineMismatch,
     InvalidResidualTolerance,
     ConstraintInventoryMismatch,
+    PhysicalPossibilityDigestMismatch,
     PhysicalConstraintCannotBeOptional,
     TooManyConstraints,
     TooManyPossibilities,
@@ -254,6 +262,8 @@ pub enum ProjectionError {
     StaleReceipt,
     ReceiptContextMismatch,
     ProjectedCommandMismatch,
+    UnexpectedExecutionReceipt,
+    ExecutionReceiptMismatch,
     FallbackNotAdmitted,
     ArithmeticOverflow,
 }
