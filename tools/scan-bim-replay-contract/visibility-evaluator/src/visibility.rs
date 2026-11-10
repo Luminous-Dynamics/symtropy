@@ -31,6 +31,7 @@ const HARD_MAX_PROBE_VIEW_EVALUATIONS: usize = 1_000_000;
 const HARD_MAX_RAY_TESTS: usize = 100_000_000;
 const HARD_MAX_BVH_NODE_VISITS: usize = 250_000_000;
 const BVH_LEAF_TRIANGLE_LIMIT: usize = 8;
+#[cfg(test)]
 const BVH_SAH_BIN_COUNT: usize = 16;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -377,6 +378,7 @@ impl Aabb {
         minimum * 0.5 + maximum * 0.5
     }
 
+    #[cfg(test)]
     fn surface_area(self) -> f64 {
         let dx = (self.maximum.x - self.minimum.x).max(0.0);
         let dy = (self.maximum.y - self.minimum.y).max(0.0);
@@ -480,6 +482,7 @@ impl TriangleBvh {
     /// variant evaluates 16 bins on each centroid axis and chooses the lowest
     /// finite SAH split. Empty/degenerate partitions fall back to the stable
     /// median split so the leaf-size ceiling is never silently exceeded.
+    #[cfg(test)]
     fn build_sah(triangles: &[OccluderTriangle]) -> Self {
         if triangles.is_empty() {
             return Self {
@@ -504,6 +507,7 @@ impl TriangleBvh {
         }
     }
 
+    #[cfg(test)]
     fn leaf_node(
         mut indices: Vec<usize>,
         triangles: &[OccluderTriangle],
@@ -529,6 +533,7 @@ impl TriangleBvh {
         }
     }
 
+    #[cfg(test)]
     fn build_node_sah(
         mut indices: Vec<usize>,
         triangles: &[OccluderTriangle],
