@@ -765,8 +765,8 @@ fn evaluate_corpus(bytes: &[u8]) -> Result<(Value, usize), String> {
         "report_version": "0.1.0",
         "report_id": format!("local-{}", started_epoch),
         "profile_version": "0.1.0",
-        "adapter_id": "profile-semantic-corpus-validator",
-        "adapter_version": env!("CARGO_PKG_VERSION"),
+        "validator_id": "maritime-evidence-interchange-semantic-validator",
+        "validator_version": env!("CARGO_PKG_VERSION"),
         "fixture_corpus_sha256": corpus_digest,
         "started_at": format_utc_timestamp(started_epoch),
         "completed_at": format_utc_timestamp(completed_epoch),
@@ -798,7 +798,7 @@ fn evaluate_corpus(bytes: &[u8]) -> Result<(Value, usize), String> {
             {"gate_id":"assertion_conflict_links_well_formed","passed":conflict_gate,"failure_count":conflict_total.saturating_sub(conflict_valid)}
         ],
         "case_results": case_reports,
-        "claim_ceiling": "adapter_conformance_only",
+        "claim_ceiling": "synthetic_profile_semantics_only",
         "validator_scope_note": "Synthetic semantic corpus validation only. This does not execute an adapter, prove round-trip preservation, or establish physical diagnostic performance.",
         "elapsed_ms": elapsed_ms
     });
