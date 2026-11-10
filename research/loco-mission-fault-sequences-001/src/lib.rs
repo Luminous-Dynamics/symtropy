@@ -44,6 +44,29 @@ pub enum TopologyUpdate {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ThermalNodeState {
+    pub node_id: String,
+    pub temperature_milli_c: i32,
+    pub maximum_temperature_milli_c: i32,
+    pub source_ref: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ThermalNodeUpdate {
+    pub node_id: String,
+    pub temperature_milli_c: i32,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ThermalUpdateReceipt {
+    pub receipt_ref: String,
+    pub context_digest: String,
+    pub model_digest: String,
+    pub manifest_digest: String,
+    pub valid_through_tick: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MissionState {
     pub context_digest: String,
     pub current_tick: u64,
@@ -53,6 +76,12 @@ pub struct MissionState {
     /// Remaining qualified thermal headroom, not temperature itself.
     pub thermal_headroom_mj: u64,
     pub thermal_capacity_mj: u64,
+    /// Identity and fresh initial evidence for the whole-body thermal network.
+    pub thermal_model_digest: String,
+    pub thermal_receipt_ref: String,
+    pub thermal_valid_through_tick: u64,
+    /// Per-node temperatures; never replaced by an average temperature.
+    pub thermal_nodes: Vec<ThermalNodeState>,
     /// Measured/qualified actuator authority on a 0..=1,000,000 ppm scale.
     pub actuator_authority_ppm: u32,
     pub terminal_safe_stop_required_energy_mwh: u64,
@@ -77,6 +106,9 @@ pub struct MissionEvent {
     pub thermal_headroom_loss_mj: u64,
     /// Qualified cooling gained during this event/interval.
     pub thermal_cooling_gain_mj: u64,
+    /// Fresh whole-body thermal-model update, including all declared nodes.
+    pub thermal_update_receipt: Option<ThermalUpdateReceipt>,
+    pub thermal_node_updates: Vec<ThermalNodeUpdate>,
     /// Authority needed to perform the event's action, checked before effects.
     pub minimum_authority_required_ppm: u32,
     /// Fault-induced authority loss, in absolute ppm points.
@@ -101,6 +133,9 @@ pub enum StopReason {
     InitialTopologyReserveInsufficient,
     EventEvidenceUnknown,
     EventEvidenceStale,
+    InitialThermalEvidenceStale,
+    ThermalEvidenceUnknown,
+    ThermalLimitExceeded,
     InsufficientActuatorAuthority,
     InsufficientBatteryEnergy,
     InsufficientRecoveryBudget,
@@ -134,6 +169,15 @@ pub enum MissionError {
     EmptyContextDigest,
     EmptyInitialTopologyReceipt,
     InvalidInitialThermalEnvelope,
+    EmptyThermalModelDigest,
+    EmptyInitialThermalReceipt,
+    EmptyThermalNodeId,
+    DuplicateThermalNodeId(String),
+    EmptyThermalNodeSource(String),
+    InvalidThermalNodeLimit(String),
+    EmptyThermalUpdateId(String),
+    DuplicateThermalUpdateId(String),
+    UnknownThermalUpdateId(String),
     InvalidInitialAuthority,
     TooManyEvents { actual: usize, limit: usize },
     EmptyEventId,
