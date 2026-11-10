@@ -47,8 +47,16 @@ impl MaterialExtension for NdSlicingExtension {
         "shaders/nd_slicing.wesl".into()
     }
 
-    fn deferred_fragment_shader() -> ShaderRef {
-        "shaders/nd_slicing.wesl".into()
+    // V0 only qualifies the forward colour pass. The matching depth, normal,
+    // motion-vector, deferred and shadow clipping paths are not implemented yet.
+    // Disable prepass/shadows rather than drawing the unsliced source geometry
+    // into those passes and presenting inconsistent output as a correct slice.
+    fn enable_prepass() -> bool {
+        false
+    }
+
+    fn enable_shadows() -> bool {
+        false
     }
 }
 
