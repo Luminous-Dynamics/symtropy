@@ -579,8 +579,13 @@ impl TriangleBvh {
         let Some(root) = &self.root else {
             return Ok((Vec::new(), 0, 0));
         };
+        if remaining_node_visits == 0 {
+            return Err("visibility BVH node-visit budget exceeded before root traversal".to_owned());
+        }
         let Some(root_entry) = root.bounds.ray_entry(origin, direction, target_distance) else {
-            return Ok((Vec::new(), 0, 0));
+            // The root AABB test is itself a node visit, even when it prunes the
+            // entire tree and no leaf is entered.
+            return Ok((Vec::new(), 0, 1));
         };
 
         let mut stack: Vec<(&BvhNode, f64)> = vec![(root, root_entry)];
@@ -2426,6 +2431,61 @@ mod tests {
             receipt.ray_test_count,
             brute_force_tests
         );
+    }
+
+    #[test]
+    fn bvh_counts_root_aabb_tests_even_when_the_whole_scene_is_pruned() {
+        let mut blockers = Vec::new();
+        for index in 0..16 {
+            let y = 100.0 + index as f64 * 2.0;
+            blockers.push(blocker_at_y(OccluderKind::SameBuilding, index, y));
+        }
+        let receipt = evaluate(
+            &[probe([5.0, 0.0, 0.0])],
+            &[view("VIEW-1", [0.0, 0.0, 0.0])],
+            &blockers,
+        )
+        .expect("off-axis bounds should prune the whole BVH");
+        assert_eq!(receipt.probes[0].visibility, SurfaceVisibility::Observable);
+        assert_eq!(receipt.bvh_node_visit_count, 1);
+        assert_eq!(receipt.ray_test_count, 0);
+    }
+
+    #[test]
+    fn bvh_zero_node_visit_budget_rejects_even_a_root_miss() {
+        let mut blockers = Vec::new();
+        for index in 0..16 {
+            let y = 100.0 + index as f64 * 2.0;
+            blockers.push(blocker_at_y(OccluderKind::SameBuilding, index, y));
+        }
+        let mut all = vec![target_triangle()];
+        all.extend_from_slice(&blockers);
+        let error = derive_surface_visibility(VisibilityEvaluation {
+            scene_id: "SCENE-1",
+            frame_id: "BUILDING-LOCAL",
+            linear_unit: LinearUnit::Metre,
+            axis_order: AxisOrder::Xyz,
+            handedness: CoordinateHandedness::RightHanded,
+            reference_model_sha256: &"1".repeat(64),
+            probe_set_sha256: &"3".repeat(64),
+            reference_surface_ids: &["TARGET".to_owned()],
+            occluder_manifest_sha256: &canonical_occluder_manifest_sha256(&all),
+            occluder_coverage: OccluderCoverage::Complete,
+            probes: &[probe([5.0, 0.0, 0.0])],
+            views: &[view("VIEW-1", [0.0, 0.0, 0.0])],
+            occluders: &all,
+            profile: VisibilityProfile {
+                max_probe_count: 1_000,
+                max_view_count: 32,
+                max_occluder_triangles: 10_000,
+                max_probe_view_evaluations: 10_000,
+                max_ray_tests: 10_000,
+                max_bvh_node_visits: 1,
+                min_incidence_cosine: 0.0,
+            },
+        })
+        .expect_err("the root bounds test exceeds a zero-node budget");
+        assert!(error.contains("root traversal"));
     }
 
     #[test]
