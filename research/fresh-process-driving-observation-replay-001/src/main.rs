@@ -7,8 +7,8 @@
 
 use action_conditioned_offscreen_camera::{
     sha256_hex, ActorClass, ActorCuboid, AppliedActionRef, CameraCalibration,
-    EvaluatorObservationAudit, MissingFrameReason, MissingObservationEvent,
-    ObservationDisposition, ObservationStreamGuard, PolicyObservationReceipt, RenderClocks,
+    MissingFrameReason, MissingObservationEvent, ObservationDisposition,
+    ObservationStreamGuard, RenderClocks,
     RoadMarkingKind, RoadPolyline, SoftwareCameraRenderer, TimingPolicy, WorldRenderSnapshot,
     Q16_ONE, RENDERER_REVISION,
 };
@@ -571,9 +571,7 @@ fn validate_bridge_output(
 
     let mut receipt_chain_valid = true;
     let mut artifact_chain_valid = true;
-    for index in 0..expected_count {
-        let bridge_receipt = &receipts[index];
-        let artifact = &artifacts[index];
+    for (index, (bridge_receipt, artifact)) in receipts.iter().zip(artifacts).enumerate() {
         let observation = &observations[index];
         let upstream = &observation["upstream"];
 
