@@ -27,13 +27,13 @@ Each case binds a vessel, asset, component, configuration revision and capabilit
 - its own identifier, signal, monotonic observation offset and installed configuration revision;
 - source role and issuer-scoped source reference: measured sensor, native equipment alarm, operator report, maintenance record, model residual, external diagnostic or simulator-only;
 - quantity unit, calibration/verification reference, installed configuration revision and declared validity-profile reference;
-- clock domain and clock quality (monotonic + UTC bound, UTC-only, conflicted or unknown);
+- observation clock domain and quality (monotonic + UTC bound, UTC-only, conflicted or unknown), plus the case's decision clock domain;
 - source observation UTC-mapped timestamp, case decision timestamp and maximum admissible age, so the verifier computes age as decision time minus source observation time rather than trusting a producer-supplied age;
 - uncertainty reference (a pointer to the uncertainty method/artifact; v0.1 does not invent a numeric uncertainty model);
 - quality state: current, stale, wrong configuration, wrong unit, expired calibration, unauthenticated, conflicted, simulator-only or missing lineage;
 - a declared shared-dependency group (sensor, power rail, controller, clock, network, or another named common cause).
 
-Admission requires current quality, exact configuration match, non-simulator source role, monotonic+UTC-bound clock and age no greater than the declared maximum. Operator reports and maintenance records remain supporting evidence; they are not silently promoted into direct telemetry or equipment measurements. Decision evidence is limited to measured sensors, native equipment alarms, model residuals and external diagnostics, and still carries its original source role. A `current` label cannot override an expired age or conflicted/unknown clock.
+Admission requires current quality, exact configuration match, non-simulator source role, a monotonic+UTC-bound clock, exact observation/decision clock-domain match and age no greater than the declared maximum. Operator reports and maintenance records remain supporting evidence; they are not silently promoted into direct telemetry or equipment measurements. Decision evidence is limited to measured sensors, native equipment alarms, model residuals and external diagnostics, and still carries its original source role. A `current` label cannot override an expired age or conflicted/unknown clock.
 
 Distinct named dependency groups are counted as **declared dependency separation only**. That count is not a statistical independence proof. Unknown or blank dependency lineage contributes zero declared separation.
 
@@ -41,13 +41,13 @@ A recovery attempt requires a repair record, inspection, proof test, scoped auth
 
 ## Synthetic corpus
 
-The frozen corpus contains 40 positive, negative, ambiguity, common-cause, recovery and metamorphic fixtures across propulsion, steering, generation, switchboards, battery, cooling, lubrication, fuel, bilge, flood, fire, ballast and HVAC/electronics cooling.
+The frozen corpus contains 41 positive, negative, ambiguity, common-cause, recovery and metamorphic fixtures across propulsion, steering, generation, switchboards, battery, cooling, lubrication, fuel, bilge, flood, fire, ballast and HVAC/electronics cooling.
 
 The fixtures test contract semantics, not distributions of real ship faults. They deliberately do not invent pressure, temperature, vibration, bilge, insulation, combustion, fire-growth, flood-propagation, stability or electrical-transient thresholds.
 
 ## Evaluator and gates
 
-The standalone Rust evaluator checks strict typed parsing, corpus identity/version, minimum size, unique case and observation IDs, non-empty identity/lineage fields, monotonic observation offsets, source-role boundaries, exact configuration match, explicit clock quality, recomputed age from decision_time_ms - observed_at_ms versus maximum age, including future-dated source rejection, dependency-group accounting, fault/unknown dispositions and recovery evidence completeness.
+The standalone Rust evaluator checks strict typed parsing, corpus identity/version, minimum size, unique case and observation IDs, non-empty identity/lineage fields, monotonic observation offsets, source-role boundaries, exact configuration match, explicit clock quality and exact observation/decision clock-domain match, recomputed age from decision_time_ms - observed_at_ms versus maximum age, including future-dated source rejection, dependency-group accounting, fault/unknown dispositions and recovery evidence completeness.
 
 Non-compensatory gates:
 - zero admission of stale, wrong-configuration, wrong-unit, expired-calibration, unauthenticated, conflicted or simulator-only observations as current decision evidence;
