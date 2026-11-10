@@ -1,0 +1,9 @@
+[package]
+name = "discrete-step-map-qualification"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+publish = false
+description = "Independent analytic qualification seed for stiff discrete mechanical step maps"
+
+[workspace]
