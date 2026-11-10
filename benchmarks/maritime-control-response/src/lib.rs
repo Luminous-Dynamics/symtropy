@@ -834,7 +834,7 @@ pub fn fit_episode_conformal_threshold(
     if rank > ordered_scores.len() {
         return Err(EvalError::InsufficientCalibrationEpisodes {
             required: minimum_calibration_episodes(target_coverage_ppm),
-            available: values.len(),
+            available: ordered_scores.len(),
         });
     }
 
@@ -961,6 +961,21 @@ mod tests {
         }
     }
 
+    fn digest(byte: char) -> String {
+        std::iter::repeat_n(byte, 64).collect()
+    }
+
+    fn calibration_scores(count: usize) -> Vec<EpisodeCalibrationScore> {
+        (0..count)
+            .map(|index| EpisodeCalibrationScore {
+                recording_id: format!("cal-{index:02}"),
+                model_sha256: digest('a'),
+                regime_id: "wltp".into(),
+                maximum_absolute_standardized_residual: index as f64 + 1.0,
+            })
+            .collect()
+    }
+
     fn prediction(
         recording: &str,
         sample_index: u64,
@@ -1061,13 +1076,16 @@ mod tests {
 
     #[test]
     fn conformal_threshold_uses_independent_recording_maxima_and_finite_sample_rank() {
-        let scores = (0..9)
-            .map(|index| EpisodeCalibrationScore {
-                recording_id: format!("cal-{index}"),
-                maximum_absolute_standardized_residual: index as f64 + 1.0,
-            })
-            .collect::<Vec<_>>();
-        let threshold = fit_episode_conformal_threshold(&scores, 900_000).unwrap();
+        let scores = calibration_scores(9);
+        let threshold = fit_episode_conformal_threshold(
+            &scores,
+            900_000,
+            &digest('a'),
+            &digest('b'),
+            &digest('c'),
+            "wltp",
+        )
+        .unwrap();
         assert_eq!(threshold.order_statistic_rank_1_based, 9);
         assert_eq!(threshold.threshold, 9.0);
         assert_eq!(threshold.independent_calibration_episodes, 9);
@@ -1075,14 +1093,16 @@ mod tests {
 
     #[test]
     fn conformal_calibration_fails_closed_when_finite_sample_coverage_is_impossible() {
-        let scores = (0..8)
-            .map(|index| EpisodeCalibrationScore {
-                recording_id: format!("cal-{index}"),
-                maximum_absolute_standardized_residual: index as f64 + 1.0,
-            })
-            .collect::<Vec<_>>();
+        let scores = calibration_scores(8);
         assert_eq!(
-            fit_episode_conformal_threshold(&scores, 900_000),
+            fit_episode_conformal_threshold(
+                &scores,
+                900_000,
+                &digest('a'),
+                &digest('b'),
+                &digest('c'),
+                "wltp",
+            ),
             Err(EvalError::InsufficientCalibrationEpisodes { required: 9, available: 8 })
         );
         assert_eq!(minimum_calibration_episodes(950_000), 19);
@@ -1095,6 +1115,10 @@ mod tests {
             sample_index: 10,
             command_signal: "uwg".into(),
             response_signal: "ypic".into(),
+            regime_id: "wltp".into(),
+            model_sha256: digest('a'),
+            training_recordings_manifest_sha256: digest('b'),
+            split_manifest_sha256: digest('c'),
             command_value: Some(0.6),
             command_time_seconds: Some(0.45),
             response_value: Some(1.4),
@@ -1110,13 +1134,15 @@ mod tests {
     }
 
     fn threshold() -> ConformalThreshold {
-        ConformalThreshold {
-            target_coverage_ppm: 900_000,
-            independent_calibration_episodes: 9,
-            order_statistic_rank_1_based: 9,
-            threshold: 2.0,
-            calibration_scores_sha256: "a".repeat(64),
-        }
+        fit_episode_conformal_threshold(
+            &calibration_scores(9),
+            900_000,
+            &digest('a'),
+            &digest('b'),
+            &digest('c'),
+            "wltp",
+        )
+        .unwrap()
     }
 
     #[test]
@@ -1173,6 +1199,47 @@ mod tests {
         assert_eq!(
             evaluate_command_response(&pair, Some(&threshold())).unwrap().status,
             ResponseStatus::NotEvaluableStaleCommand
+        );
+    }
+
+    #[test]
+    fn response_rejects_calibration_from_another_model_or_regime() {
+        let mut pair = response_pair();
+        pair.regime_id = "high_load".into();
+        assert_eq!(
+            evaluate_command_response(&pair, Some(&threshold())),
+            Err(EvalError::CalibrationBindingMismatch)
+        );
+        let mut pair = response_pair();
+        pair.model_sha256 = digest('e');
+        assert_eq!(
+            evaluate_command_response(&pair, Some(&threshold())),
+            Err(EvalError::CalibrationBindingMismatch)
+        );
+    }
+
+    #[test]
+    fn calibration_threshold_replays_its_order_statistic_and_digests() {
+        let mut fitted = threshold();
+        assert!(fitted.validate().is_ok());
+        fitted.calibration_max_scores[0] += 0.25;
+        assert_eq!(fitted.validate(), Err(EvalError::InvalidConformalThreshold));
+    }
+
+    #[test]
+    fn ninety_nine_percent_marginal_episode_coverage_needs_ninety_nine_recordings() {
+        assert_eq!(minimum_calibration_episodes(990_000), 99);
+        let scores = calibration_scores(98);
+        assert_eq!(
+            fit_episode_conformal_threshold(
+                &scores,
+                990_000,
+                &digest('a'),
+                &digest('b'),
+                &digest('c'),
+                "wltp",
+            ),
+            Err(EvalError::InsufficientCalibrationEpisodes { required: 99, available: 98 })
         );
     }
 
