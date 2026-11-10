@@ -63,31 +63,3 @@ Assistance disclosure is not a cosmetic label: a PolicyOnly record cannot contai
 The paired-control check requires identical protocol, task/scene/seed/split/stage roster, embodiment, action executor, environment, resource budget, evidence class and policy-visible observation manifest. Only the declared policy variant/checkpoint/assistance may differ. This is an identity check, not a statistical significance test. The per-arm episode IDs may differ: pairing is by the frozen task instance, scene identity, seed, split, expected stage roster and shared control manifests—not by reusing the same run ID.
 
 This module is a typed Rust validation contract only. It does not yet parse the upstream RoboCasa-Mem HDF5/Python export, run policies, compute the official macro aggregation, authenticate evidence digests, or verify that the upstream task/evaluator/dataset release has been pinned. See [VIS-MEM-029 #4414](https://github.com/Luminous-Dynamics/symtropy/issues/4414).
-
-
-## Operation-level memory fidelity (Storage / Update / Compression)
-
-The exported Rust module `memory_operations.rs` adds a separate evaluator-side contract inspired by MEMOBench's Memory Storage Rate, Memory Update Rate and Memory Compression Rate. It does not implement a memory store or native MEMOBench adapter.
-
-A frozen evaluator-owned manifest declares each applicable operation, task/episode/independent-unit identity, source event digest and expected semantic effect digest. The independent receipt supplies the observed source lineage, semantic readback digest, before/after memory snapshot digests, evaluator receipt, memory bytes and latency. The auditor derives Correct / Incorrect / Unresolved; the policy cannot author its own pass label.
-
-**Compression is judged semantically, not byte-for-byte.** The expected/observed effect digest represents the evaluator's required-fact/readback projection. A compressed representation may differ from the original memory bytes and still be correct when all required facts survive. Compression ratio and latency are separate efficiency measurements; a smaller memory is not automatically a correct memory.
-
-Storage, Update and Compression are reported separately. Missing receipts, invalid runs or missing snapshots/readbacks remain unresolved in the applicable denominator; NotApplicable is separate. Each operation includes overall micro fidelity and evidence coverage, equal-task macro rates, and per-task rows so overrepresented easy tasks cannot mask hard-task failures. Compression byte ratio and latency each have explicit measurement counts.
-
-The current unit tests are synthetic. The new MEMOBench adapter implements the typed annotation/receipt contract but does not execute MEMOBench, RoboMME, RoboCasa-Mem or a Symthaea memory backend. See [the operation-level memory fidelity design note](../../docs/research/ROBOCASA_MEM_MEMORY_OPERATION_FIDELITY_V0_1.md).
-
-
-## Native MEMOBench annotation and outcome bridge
-
-The exported Rust module `memobench_adapter.rs` now maps the public MEMOBench checkpoint schema into a typed, source-pinned evaluator roster. The upstream selector is represented exactly: `operating_type[row][memory_level]`, with `0=Storage`, `1=Update`, `2=Compression`; it binds the selected operation to the matching memory-description digest and evaluator-private subtask-goal digest.
-
-**Important metric boundary:** the upstream evaluator observes ordered BDDL/simulator subtask predicates and records whether each checkpoint was completed. Its operation rates are therefore *operation-stratified checkpoint/subtask completion rates*. They are not direct inspection of the policy's internal memory state. This adapter preserves that official task-state metric and keeps terminal task success separate. The separate `memory_operations.rs` contract is a stronger instrumented extension for independent semantic readback of memory contents, when a policy/backend exposes that evidence.
-
-The native adapter requires a frozen source commit, evaluator/protocol/policy/memory digests, a complete task-ID roster, per-task checkpoint counts, an exact episode count per task, and checkpoint/episode result receipts bound to the seed and trajectory artifact. Missing checkpoint/episode outcomes or missing receipts remain unresolved. A missing artifact never becomes an implicit success or false predicate. Operation rates remain unavailable for incomplete evidence instead of silently changing the denominator. Both overall micro rates and equal-task macro rates are reported.
-
-MEMOBench's public repository and Hugging Face dataset card identify the benchmark/data as **CC BY-NC 4.0**. The adapter therefore pins separate code, dataset, asset and third-party license evidence and a declared use-purpose attestation. Commercial development requires both a separate permission digest and a separate verification-receipt digest; the adapter cannot assess the legal validity of either document. Third-party simulator/runtime licenses remain separately scoped. This contract does not copy the licensed task text, checkpoint descriptions, demonstrations or assets; only their externally computed digests are retained.
-
-Pinned public source snapshot used for schema review: `Collab-Gen/MEMOBench@8d26033c82627e8039bd4f73a0eb1a202630e85b`. The benchmark contains 30 history-dependent tasks and 4,200 checkpoint annotations; the Hugging Face dataset card reports a CC BY-NC 4.0 license and separates third-party LIBERO licensing. The adapter is a schema bridge only: a native JSON/HDF5 loader, checkpoint execution, simulator install, data acquisition, rights review and policy evaluation remain separate tasks.
-
-See [MEMOBENCH_NATIVE_ADAPTER_V0_1.md](../../docs/research/MEMOBENCH_NATIVE_ADAPTER_V0_1.md) for the protocol, claim boundaries and comparison plan.
