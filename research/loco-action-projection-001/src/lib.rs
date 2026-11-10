@@ -596,10 +596,7 @@ fn identity_gate(problem: &ProjectionGateProblem) -> Result<(), ProjectionError>
     if result.physical_possibility_digest != proposal.physical_possibility_digest {
         return Err(ProjectionError::PhysicalPossibilityDigestMismatch);
     }
-    if result.deadline_ns != proposal.deadline_ns
-        || result.completed_at_ns > proposal.deadline_ns
-        || result.completed_at_ns > proposal.intended_apply_at_ns
-    {
+    if result.deadline_ns != proposal.deadline_ns {
         return Err(ProjectionError::ResultDeadlineMismatch);
     }
     if result.primal_residual > u64::MAX / 2
@@ -1564,17 +1561,36 @@ mod tests {
     fn deadline_missed_projection_never_executes_stale_command() {
         let mut input = problem();
         input.now_ns = 205;
-        input.proposal.intended_apply_at_ns = 205;
-        input.proposal.deadline_ns = 205;
-        input.result.deadline_ns = 205;
+        input.proposal.intended_apply_at_ns = 200;
+        input.proposal.deadline_ns = 200;
+        input.result.deadline_ns = 200;
         input.result.disposition = SolverDisposition::DeadlineMiss;
         input.result.status_reason = Some("projection deadline exceeded".to_owned());
-        input.result.completed_at_ns = 201;
+        input.result.completed_at_ns = 204;
         let mut fallback = admitted_fallback();
-        fallback.intended_apply_at_ns = 205;
+        fallback.intended_apply_at_ns = 210;
         input.fallback = Some(fallback);
         let report = qualify_projected_action(&input).expect("deadline fallback");
         assert!(matches!(report.disposition, GateDisposition::ExecuteFallback { .. }));
+    }
+
+    #[test]
+    fn late_feasible_solver_result_never_executes_projected_command() {
+        let mut input = problem();
+        input.now_ns = 205;
+        input.proposal.intended_apply_at_ns = 200;
+        input.proposal.deadline_ns = 200;
+        input.result.deadline_ns = 200;
+        input.result.completed_at_ns = 201;
+        input.fallback = Some(admitted_fallback());
+        let report = qualify_projected_action(&input).expect("late projected result");
+        assert_eq!(
+            report.disposition,
+            GateDisposition::ExecuteFallback {
+                command_digest: "fallback-v1".to_owned(),
+                reason: "projection completed after intended application time".to_owned()
+            }
+        );
     }
 
     #[test]
