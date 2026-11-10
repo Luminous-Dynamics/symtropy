@@ -47,14 +47,18 @@
       "implementation_id": "independent-fdtd-method",
       "implementation_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
       "input_set_sha256": "46697b288f82a2660f571957eb394c59c99718e03bb7c5a1293aca7341468666",
-      "response_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      "response_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "execution_manifest_id": "execution-direct-pde",
+      "execution_manifest_sha256": "7777777777777777777777777777777777777777777777777777777777777777"
     },
     {
       "method_id": "frequency-green",
       "implementation_id": "frequency-domain-green-method",
       "implementation_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
       "input_set_sha256": "46697b288f82a2660f571957eb394c59c99718e03bb7c5a1293aca7341468666",
-      "response_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+      "response_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "execution_manifest_id": "execution-frequency-green",
+      "execution_manifest_sha256": "7777777777777777777777777777777777777777777777777777777777777777"
     }
   ],
   "error_budget": [],
