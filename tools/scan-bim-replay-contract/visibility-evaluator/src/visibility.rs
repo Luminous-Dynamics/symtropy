@@ -11,8 +11,8 @@
 
 use scan_bim_replay_contract::metrics::Point3;
 use scan_bim_replay_contract::sampling::{
-    verify_complete_reference_sampling_receipt, SurfaceSample, SurfaceSamplingReceipt,
-    SurfaceVisibility,
+    SurfaceSample, SurfaceSamplingReceipt, SurfaceVisibility,
+    verify_complete_reference_sampling_receipt,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -324,7 +324,6 @@ impl Vec3 {
             z: self.z * factor,
         }
     }
-
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -411,17 +410,15 @@ impl Aabb {
                 return None;
             }
         }
-        if far < 0.0 {
-            None
-        } else {
-            Some(near.max(0.0))
-        }
+        if far < 0.0 { None } else { Some(near.max(0.0)) }
     }
 }
 
 #[derive(Debug)]
 enum BvhNodeKind {
-    Leaf { triangle_indices: Vec<usize> },
+    Leaf {
+        triangle_indices: Vec<usize>,
+    },
     Branch {
         left: Box<BvhNode>,
         right: Box<BvhNode>,
@@ -453,12 +450,7 @@ impl TriangleBvh {
         let mut node_count = 0usize;
         let mut leaf_count = 0usize;
         let indices: Vec<usize> = (0..triangles.len()).collect();
-        let root = Self::build_node(
-            indices,
-            triangles,
-            &mut node_count,
-            &mut leaf_count,
-        );
+        let root = Self::build_node(indices, triangles, &mut node_count, &mut leaf_count);
         Self {
             root: Some(Box::new(root)),
             node_count,
@@ -580,7 +572,9 @@ impl TriangleBvh {
             return Ok((Vec::new(), 0, 0));
         };
         if remaining_node_visits == 0 {
-            return Err("visibility BVH node-visit budget exceeded before root traversal".to_owned());
+            return Err(
+                "visibility BVH node-visit budget exceeded before root traversal".to_owned(),
+            );
         }
         let Some(root_entry) = root.bounds.ray_entry(origin, direction, target_distance) else {
             // The root AABB test is itself a node visit, even when it prunes the
@@ -595,9 +589,9 @@ impl TriangleBvh {
         let mut node_visits = 0usize;
 
         while let Some((node, entry_distance)) = stack.pop() {
-            if nearest_distance.is_some_and(|nearest| {
-                entry_distance > nearest + INTERSECTION_EPSILON_M
-            }) {
+            if nearest_distance
+                .is_some_and(|nearest| entry_distance > nearest + INTERSECTION_EPSILON_M)
+            {
                 continue;
             }
             if node_visits >= remaining_node_visits {
@@ -615,10 +609,8 @@ impl TriangleBvh {
                             continue;
                         }
                         if ray_tests >= remaining_ray_tests {
-                            return Err(
-                                "visibility ray-test budget exceeded during BVH traversal"
-                                    .to_owned(),
-                            );
+                            return Err("visibility ray-test budget exceeded during BVH traversal"
+                                .to_owned());
                         }
                         ray_tests += 1;
                         if let Some(distance) =
@@ -634,9 +626,7 @@ impl TriangleBvh {
                                     nearest_hits.clear();
                                     nearest_hits.push((*triangle_index, distance));
                                 }
-                                Some(best)
-                                    if (distance - best).abs() <= INTERSECTION_EPSILON_M =>
-                                {
+                                Some(best) if (distance - best).abs() <= INTERSECTION_EPSILON_M => {
                                     nearest_hits.push((*triangle_index, distance));
                                 }
                                 Some(_) => {}
@@ -701,12 +691,7 @@ fn validate_sha256(field: &str, digest: &str) -> Result<(), String> {
     Ok(())
 }
 
-fn validate_triangle(
-    label: &str,
-    a: Point3,
-    b: Point3,
-    c: Point3,
-) -> Result<(), String> {
+fn validate_triangle(label: &str, a: Point3, b: Point3, c: Point3) -> Result<(), String> {
     if !finite_point(a) || !finite_point(b) || !finite_point(c) {
         return Err(format!("{label} contains a non-finite coordinate"));
     }
@@ -742,10 +727,14 @@ fn validate_view(view: &VisibilityView, frame_id: &str) -> Result<(), String> {
     let right = Vec3::from_point(view.right);
     let up = Vec3::from_point(view.up);
     let vectors = [forward, right, up];
-    if vectors.iter().any(|vector| {
-        !vector.x.is_finite() || !vector.y.is_finite() || !vector.z.is_finite()
-    }) {
-        return Err(format!("view {} basis contains non-finite values", view.view_id));
+    if vectors
+        .iter()
+        .any(|vector| !vector.x.is_finite() || !vector.y.is_finite() || !vector.z.is_finite())
+    {
+        return Err(format!(
+            "view {} basis contains non-finite values",
+            view.view_id
+        ));
     }
     if vectors
         .iter()
@@ -773,10 +762,7 @@ fn validate_view(view: &VisibilityView, frame_id: &str) -> Result<(), String> {
     }
     validate_sha256("view.pose_evidence_sha256", &view.pose_evidence_sha256)?;
     validate_sha256("view.transform_chain_sha256", &view.transform_chain_sha256)?;
-    validate_sha256(
-        "view.configuration_sha256",
-        &view.configuration_sha256,
-    )?;
+    validate_sha256("view.configuration_sha256", &view.configuration_sha256)?;
     Ok(())
 }
 
@@ -971,10 +957,7 @@ fn observe_from_view(
     for (index, _) in &nearest {
         let occluder = &occluders[*index];
         kinds.insert(occluder.kind);
-        blocker_triangle_ids.push(format!(
-            "{}/{}",
-            occluder.surface_id, occluder.triangle_id
-        ));
+        blocker_triangle_ids.push(format!("{}/{}", occluder.surface_id, occluder.triangle_id));
     }
     let status = if kinds.len() > 1 {
         ViewVisibilityStatus::Contradictory
@@ -1085,9 +1068,7 @@ fn update_point(hasher: &mut Sha256, point: Point3) {
 }
 
 /// Compute the canonical digest of the exact occluder inventory.
-pub fn canonical_occluder_manifest_sha256(
-    occluders: &[OccluderTriangle],
-) -> String {
+pub fn canonical_occluder_manifest_sha256(occluders: &[OccluderTriangle]) -> String {
     let mut ordered: Vec<&OccluderTriangle> = occluders.iter().collect();
     ordered.sort_by(|left, right| {
         left.surface_id
@@ -1285,8 +1266,7 @@ fn validate_reference_probe_set(
 ) -> Result<(), String> {
     let expected_surface_ids: BTreeSet<&str> =
         reference_surface_ids.iter().map(String::as_str).collect();
-    if expected_surface_ids.is_empty()
-        || expected_surface_ids.len() != reference_surface_ids.len()
+    if expected_surface_ids.is_empty() || expected_surface_ids.len() != reference_surface_ids.len()
     {
         return Err("reference surface inventory is empty or contains duplicate IDs".to_owned());
     }
@@ -1411,9 +1391,7 @@ fn validate_reference_probe_set(
         let represented_area = represented_area_by_surface
             .get(surface_id)
             .ok_or("reference geometry surface has no area-weighted visibility probes")?;
-        if (represented_area - reference_area).abs()
-            > reference_area.abs().max(1.0) * 1.0e-9
-        {
+        if (represented_area - reference_area).abs() > reference_area.abs().max(1.0) * 1.0e-9 {
             return Err(format!(
                 "reference sampling weights do not conserve geometry area for surface {surface_id}"
             ));
@@ -1512,10 +1490,11 @@ pub fn derive_surface_visibility(
         }
         validate_triangle("occluder triangle", occluder.a, occluder.b, occluder.c)?;
     }
-    let ordered_occluders: Vec<OccluderTriangle> =
-        ordered_occluders.into_iter().map(|value| (*value).clone()).collect();
-    if canonical_occluder_manifest_sha256(&ordered_occluders)
-        != evaluation.occluder_manifest_sha256
+    let ordered_occluders: Vec<OccluderTriangle> = ordered_occluders
+        .into_iter()
+        .map(|value| (*value).clone())
+        .collect();
+    if canonical_occluder_manifest_sha256(&ordered_occluders) != evaluation.occluder_manifest_sha256
     {
         return Err(
             "occluder_manifest_sha256 does not match the supplied occluder inventory".to_owned(),
@@ -1542,14 +1521,14 @@ pub fn derive_surface_visibility(
             || probe.represented_area_m2 <= 0.0
             || Vec3::from_point(probe.normal).norm() <= VECTOR_EPSILON
         {
-            return Err(
-                "probe geometry, normal or area is invalid".to_owned(),
-            );
+            return Err("probe geometry, normal or area is invalid".to_owned());
         }
     }
 
-    let owned_views: Vec<VisibilityView> =
-        ordered_views.iter().map(|value| (**value).clone()).collect();
+    let owned_views: Vec<VisibilityView> = ordered_views
+        .iter()
+        .map(|value| (**value).clone())
+        .collect();
     validate_reference_probe_set(
         &ordered_probes,
         evaluation.reference_surface_ids,
@@ -1571,7 +1550,10 @@ pub fn derive_surface_visibility(
                 &ordered_occluders,
                 evaluation.occluder_coverage,
                 evaluation.profile,
-                evaluation.profile.max_ray_tests.saturating_sub(ray_test_count),
+                evaluation
+                    .profile
+                    .max_ray_tests
+                    .saturating_sub(ray_test_count),
                 evaluation
                     .profile
                     .max_bvh_node_visits
@@ -1699,12 +1681,10 @@ pub fn derive_surface_visibility(
 #[cfg(test)]
 mod tests {
     use super::{
-        OccluderCoverage, OccluderKind, OccluderTriangle, VisibilityEvaluation,
-        VisibilityProbe, VisibilityProfile, VisibilityRequest, VisibilityView,
-        ViewVisibilityStatus, AxisOrder, CoordinateHandedness, LinearUnit,
-        canonical_occluder_manifest_sha256,
-        derive_surface_visibility,
-        probes_from_reference_sampling,
+        AxisOrder, CoordinateHandedness, LinearUnit, OccluderCoverage, OccluderKind,
+        OccluderTriangle, ViewVisibilityStatus, VisibilityEvaluation, VisibilityProbe,
+        VisibilityProfile, VisibilityRequest, VisibilityView, canonical_occluder_manifest_sha256,
+        derive_surface_visibility, probes_from_reference_sampling,
     };
     use scan_bim_replay_contract::metrics::Point3;
     use scan_bim_replay_contract::sampling::{
@@ -1782,12 +1762,7 @@ mod tests {
         views: &[VisibilityView],
         occluders: &[OccluderTriangle],
     ) -> Result<super::VisibilityReceipt, String> {
-        evaluate_with_coverage(
-            probes,
-            views,
-            occluders,
-            OccluderCoverage::Complete,
-        )
+        evaluate_with_coverage(probes, views, occluders, OccluderCoverage::Complete)
     }
 
     fn evaluate_with_coverage(
@@ -1829,8 +1804,12 @@ mod tests {
 
     #[test]
     fn unobstructed_probe_is_observable() {
-        let receipt = evaluate(&[probe([5.0, 0.0, 0.0])], &[view("VIEW-1", [0.0, 0.0, 0.0])], &[])
-            .expect("unobstructed view");
+        let receipt = evaluate(
+            &[probe([5.0, 0.0, 0.0])],
+            &[view("VIEW-1", [0.0, 0.0, 0.0])],
+            &[],
+        )
+        .expect("unobstructed view");
         assert_eq!(receipt.probes[0].visibility, SurfaceVisibility::Observable);
         assert_eq!(receipt.observable_area_m2, 2.0);
     }
@@ -1843,7 +1822,10 @@ mod tests {
             &[blocker(OccluderKind::SameBuilding)],
         )
         .expect("self occlusion");
-        assert_eq!(receipt.probes[0].visibility, SurfaceVisibility::SelfOccluded);
+        assert_eq!(
+            receipt.probes[0].visibility,
+            SurfaceVisibility::SelfOccluded
+        );
         assert_eq!(receipt.self_occluded_area_m2, 2.0);
     }
 
@@ -1879,12 +1861,7 @@ mod tests {
         let mut side_view = view("VIEW-1", [0.0, 0.0, 0.0]);
         side_view.forward = Point3::new(0.0, 1.0, 0.0);
         side_view.right = Point3::new(-1.0, 0.0, 0.0);
-        let receipt = evaluate(
-            &[probe([5.0, 0.0, 0.0])],
-            &[side_view],
-            &[],
-        )
-        .expect("outside FOV");
+        let receipt = evaluate(&[probe([5.0, 0.0, 0.0])], &[side_view], &[]).expect("outside FOV");
         assert_eq!(
             receipt.probes[0].visibility,
             SurfaceVisibility::OutsideSensorCoverage
@@ -1978,12 +1955,8 @@ mod tests {
         let mut grazing_view = view("GRAZING", [5.0, 10.0, 0.0]);
         grazing_view.forward = Point3::new(0.0, -1.0, 0.0);
         grazing_view.right = Point3::new(1.0, 0.0, 0.0);
-        let receipt = evaluate(
-            &[probe([5.0, 0.0, 0.0])],
-            &[grazing_view],
-            &[],
-        )
-        .expect("grazing incidence is a valid low-quality view");
+        let receipt = evaluate(&[probe([5.0, 0.0, 0.0])], &[grazing_view], &[])
+            .expect("grazing incidence is a valid low-quality view");
         assert_eq!(receipt.probes[0].visibility, SurfaceVisibility::Grazing);
         assert_eq!(receipt.grazing_area_m2, 2.0);
         assert_eq!(receipt.self_occluded_area_m2, 0.0);
@@ -2054,10 +2027,16 @@ mod tests {
             ],
         )
         .expect("two views with distinct occlusion causes");
-        assert_eq!(receipt.probes[0].visibility, SurfaceVisibility::MixedOcclusion);
+        assert_eq!(
+            receipt.probes[0].visibility,
+            SurfaceVisibility::MixedOcclusion
+        );
         assert_eq!(receipt.mixed_occlusion_area_m2, 2.0);
         assert_eq!(receipt.contradictory_area_m2, 0.0);
-        assert_eq!(receipt.probes[0].views[0].status, ViewVisibilityStatus::SelfOccluded);
+        assert_eq!(
+            receipt.probes[0].views[0].status,
+            ViewVisibilityStatus::SelfOccluded
+        );
         assert_eq!(
             receipt.probes[0].views[1].status,
             ViewVisibilityStatus::ExternallyOccluded
@@ -2120,12 +2099,8 @@ mod tests {
         let mut revised_view = view("VIEW-1", [0.0, 0.0, 0.0]);
         revised_view.pose_revision_id = "POSE-REV-2".to_owned();
         revised_view.transform_chain_sha256 = "9".repeat(64);
-        let revised = evaluate(
-            &[probe([5.0, 0.0, 0.0])],
-            &[revised_view],
-            &[],
-        )
-        .expect("revised transform evidence");
+        let revised = evaluate(&[probe([5.0, 0.0, 0.0])], &[revised_view], &[])
+            .expect("revised transform evidence");
         assert_ne!(original.visibility_sha256, revised.visibility_sha256);
     }
 
@@ -2133,12 +2108,8 @@ mod tests {
     fn malformed_sensor_transform_digest_fails_closed() {
         let mut invalid = view("VIEW-1", [0.0, 0.0, 0.0]);
         invalid.transform_chain_sha256 = "not-a-digest".to_owned();
-        let error = evaluate(
-            &[probe([5.0, 0.0, 0.0])],
-            &[invalid],
-            &[],
-        )
-        .expect_err("transform-chain evidence must be digest-bound");
+        let error = evaluate(&[probe([5.0, 0.0, 0.0])], &[invalid], &[])
+            .expect_err("transform-chain evidence must be digest-bound");
         assert!(error.contains("view.transform_chain_sha256"));
     }
 
@@ -2146,8 +2117,8 @@ mod tests {
     fn frame_mismatch_fails_closed() {
         let mut stale = view("VIEW-1", [0.0, 0.0, 0.0]);
         stale.frame_id = "STALE-FRAME".to_owned();
-        let error = evaluate(&[probe([5.0, 0.0, 0.0])], &[stale], &[])
-            .expect_err("stale frame must fail");
+        let error =
+            evaluate(&[probe([5.0, 0.0, 0.0])], &[stale], &[]).expect_err("stale frame must fail");
         assert!(error.contains("does not match scene frame"));
     }
 
@@ -2248,8 +2219,16 @@ mod tests {
             })
             .filter_map(|(index, triangle)| {
                 ray_triangle_distance(
-                    Vec3 { x: 0.0, y: 0.0, z: 0.0 },
-                    Vec3 { x: 1.0, y: 0.0, z: 0.0 },
+                    Vec3 {
+                        x: 0.0,
+                        y: 0.0,
+                        z: 0.0,
+                    },
+                    Vec3 {
+                        x: 1.0,
+                        y: 0.0,
+                        z: 0.0,
+                    },
                     5.0,
                     triangle,
                 )
@@ -2271,7 +2250,10 @@ mod tests {
             &blockers,
         )
         .expect("large analytic scene should be queryable");
-        assert_eq!(receipt.probes[0].visibility, SurfaceVisibility::SelfOccluded);
+        assert_eq!(
+            receipt.probes[0].visibility,
+            SurfaceVisibility::SelfOccluded
+        );
         assert_eq!(
             receipt.probes[0].views[0].blocker_triangle_ids,
             vec![expected_nearest]
@@ -2384,7 +2366,11 @@ mod tests {
                 })
                 .filter_map(|(triangle_index, triangle)| {
                     ray_triangle_distance(
-                        Vec3 { x: 0.0, y: 0.0, z: 0.0 },
+                        Vec3 {
+                            x: 0.0,
+                            y: 0.0,
+                            z: 0.0,
+                        },
                         direction,
                         distance,
                         triangle,
@@ -2395,8 +2381,7 @@ mod tests {
                 .map(|(triangle_index, _)| {
                     format!(
                         "{}/{}",
-                        occluders[triangle_index].surface_id,
-                        occluders[triangle_index].triangle_id
+                        occluders[triangle_index].surface_id, occluders[triangle_index].triangle_id
                     )
                 });
             brute_force_tests += occluders.len() - 1;
@@ -2504,10 +2489,7 @@ mod tests {
                 view("VIEW-1", [0.0, 0.0, 0.0]),
                 view("VIEW-2", [0.0, 0.0, 0.0]),
             ],
-            &[
-                blocker(OccluderKind::SameBuilding),
-                second_blocker.clone(),
-            ],
+            &[blocker(OccluderKind::SameBuilding), second_blocker.clone()],
         )
         .expect("canonical ordering");
         let right = evaluate(
@@ -2547,8 +2529,7 @@ mod tests {
         assert_eq!(probes.len(), 1);
         assert_eq!(probes[0].triangle_id, "TARGET-TRI-1");
 
-        let occluder_manifest_sha256 =
-            canonical_occluder_manifest_sha256(&[target.clone()]);
+        let occluder_manifest_sha256 = canonical_occluder_manifest_sha256(&[target.clone()]);
         let request_json = serde_json::json!({
             "scene_id": "SCENE-1",
             "frame_id": "BUILDING-LOCAL",
@@ -2598,8 +2579,7 @@ mod tests {
     #[test]
     fn occluder_inventory_digest_mismatch_fails_closed() {
         let original_occluders = vec![target_triangle()];
-        let original_digest =
-            canonical_occluder_manifest_sha256(&original_occluders);
+        let original_digest = canonical_occluder_manifest_sha256(&original_occluders);
         let original = VisibilityEvaluation {
             scene_id: "SCENE-1",
             frame_id: "BUILDING-LOCAL",
@@ -2624,8 +2604,7 @@ mod tests {
                 min_incidence_cosine: 0.0,
             },
         };
-        let receipt = derive_surface_visibility(original)
-            .expect("matching manifest digest");
+        let receipt = derive_surface_visibility(original).expect("matching manifest digest");
         assert_eq!(receipt.occluder_manifest_sha256, original_digest);
 
         let mut changed_occluders = original_occluders.clone();
