@@ -370,12 +370,12 @@ impl SoftwareCameraRenderer {
 
         let camera_digest = camera_calibration_digest(&snapshot.camera);
         let frame_digest = sha256_hex(&pixels);
-        let action = snapshot.applied_action;
+        let action = snapshot.applied_action.as_ref();
         let mut receipt = PolicyObservationReceipt {
             schema_version: RENDERER_SCHEMA_VERSION,
             episode_id: snapshot.episode_id.clone(),
-            scenario_id: snapshot.scenario_id.clone(),
             agent_id: snapshot.agent_id.clone(),
+            clock_id: snapshot.clock_id.clone(),
             tick: snapshot.tick,
             sequence,
             applied_action_receipt_id: action.map(|a| a.receipt_id.to_string()),
@@ -400,6 +400,7 @@ impl SoftwareCameraRenderer {
             episode_id: snapshot.episode_id.clone(),
             scenario_id: snapshot.scenario_id.clone(),
             agent_id: snapshot.agent_id.clone(),
+            clock_id: snapshot.clock_id.clone(),
             tick: snapshot.tick,
             simulator_revision: snapshot.simulator_revision.clone(),
             world_snapshot_sha256: world_snapshot_digest(snapshot),
@@ -432,7 +433,7 @@ fn validate_snapshot(snapshot: &WorldRenderSnapshot) -> Result<(), RenderError> 
             return Err(RenderError::InitialActionMustBeAbsent);
         }
     } else {
-        let action = snapshot.applied_action.ok_or(RenderError::AppliedActionMissing)?;
+        let action = snapshot.applied_action.as_ref().ok_or(RenderError::AppliedActionMissing)?;
         if action.receipt_id.trim().is_empty() || action.command_id.trim().is_empty() {
             return Err(RenderError::EmptyIdentity);
         }
@@ -530,7 +531,7 @@ fn validate_id(value: &str) -> Result<(), RenderError> {
 }
 
 fn validate_coordinate(value: i64) -> Result<(), RenderError> {
-    if value.abs() > 1_000_000_000 {
+    if value.unsigned_abs() > 1_000_000_000 {
         return Err(RenderError::InvalidWorldCoordinate);
     }
     Ok(())
@@ -748,12 +749,12 @@ fn camera_calibration_digest(camera:&CameraCalibration)->String{
 
 fn world_snapshot_digest(snapshot:&WorldRenderSnapshot)->String{
     let mut bytes=Vec::new();
-    for value in [&snapshot.episode_id,&snapshot.scenario_id,&snapshot.agent_id,&snapshot.simulator_revision]{
+    for value in [&snapshot.episode_id,&snapshot.scenario_id,&snapshot.agent_id,&snapshot.clock_id,&snapshot.simulator_revision]{
         append_string(&mut bytes,value);
     }
     bytes.extend_from_slice(&snapshot.tick.to_le_bytes());
     bytes.extend_from_slice(&snapshot.world_timestamp_us.to_le_bytes());
-    if let Some(action)=snapshot.applied_action{
+    if let Some(action)=snapshot.applied_action.as_ref(){
         bytes.push(1);
         append_string(&mut bytes,action.receipt_id);
         append_string(&mut bytes,action.command_id);
@@ -780,7 +781,7 @@ fn world_snapshot_digest(snapshot:&WorldRenderSnapshot)->String{
 fn policy_receipt_digest(receipt:&PolicyObservationReceipt)->String{
     let mut bytes=Vec::new();
     bytes.extend_from_slice(&receipt.schema_version.to_le_bytes());
-    for value in [&receipt.episode_id,&receipt.scenario_id,&receipt.agent_id] {append_string(&mut bytes,value);}
+    for value in [&receipt.episode_id,&receipt.agent_id,&receipt.clock_id] {append_string(&mut bytes,value);}
     bytes.extend_from_slice(&receipt.tick.to_le_bytes());
     bytes.extend_from_slice(&receipt.sequence.to_le_bytes());
     for value in [
@@ -874,8 +875,9 @@ mod tests{
             agent_id:"ego".into(),
             tick:1,
             world_timestamp_us:20_000,
+            clock_id:"sim-monotonic-0".into(),
             simulator_revision:"sim-fixture-v1".into(),
-            applied_action:Some(AppliedActionRef{receipt_id:"action-receipt-1",command_id:"command-1",applied_tick:1}),
+            applied_action:Some(AppliedActionRef{receipt_id:"action-receipt-1".into(),command_id:"command-1".into(),applied_tick:1}),
             camera:camera(),
             road_markings:vec![
                 RoadPolyline{road_id:"road-1".into(),marking_id:"center-left".into(),kind:RoadMarkingKind::LaneWhite,points_world_mm:vec![[-2_000,10_000,0],[-2_000,20_000,0],[-2_000,40_000,0]]},
@@ -895,9 +897,9 @@ mod tests{
     #[test] fn intrinsics_change_changes_calibration_and_frame(){let a=snapshot();let mut b=snapshot();b.camera.focal_x_millipx=48_000;let x=SoftwareCameraRenderer::render(&a,1,clocks()).unwrap();let y=SoftwareCameraRenderer::render(&b,1,clocks()).unwrap();assert_ne!(x.policy_receipt.camera_calibration_sha256,y.policy_receipt.camera_calibration_sha256);assert_ne!(x.policy_receipt.frame_sha256,y.policy_receipt.frame_sha256);}
     #[test] fn actor_pose_change_changes_evaluator_digest_and_pixels(){let a=snapshot();let mut b=snapshot();b.actors[0].center_world_mm[0]=1_000;let x=SoftwareCameraRenderer::render(&a,1,clocks()).unwrap();let y=SoftwareCameraRenderer::render(&b,1,clocks()).unwrap();assert_ne!(x.evaluator_audit.world_snapshot_sha256,y.evaluator_audit.world_snapshot_sha256);assert_ne!(x.policy_receipt.frame_sha256,y.policy_receipt.frame_sha256);}
     #[test] fn road_geometry_change_changes_pixels(){let a=snapshot();let mut b=snapshot();b.road_markings[0].points_world_mm[0][0]-=1_000;let x=SoftwareCameraRenderer::render(&a,1,clocks()).unwrap();let y=SoftwareCameraRenderer::render(&b,1,clocks()).unwrap();assert_ne!(x.policy_receipt.frame_sha256,y.policy_receipt.frame_sha256);}
-    #[test] fn applied_action_tick_must_match_world_tick(){let mut s=snapshot();s.applied_action=Some(AppliedActionRef{receipt_id:"r",command_id:"c",applied_tick:0});assert_eq!(SoftwareCameraRenderer::render(&s,1,clocks()).err(),Some(RenderError::AppliedActionTickMismatch));}
+    #[test] fn applied_action_tick_must_match_world_tick(){let mut s=snapshot();s.applied_action=Some(AppliedActionRef{receipt_id:"r".into(),command_id:"c".into(),applied_tick:0});assert_eq!(SoftwareCameraRenderer::render(&s,1,clocks()).err(),Some(RenderError::AppliedActionTickMismatch));}
     #[test] fn initial_tick_has_no_applied_action(){let mut s=snapshot();s.tick=0;s.applied_action=None;s.world_timestamp_us=20_000;assert!(SoftwareCameraRenderer::render(&s,1,clocks()).is_ok());}
-    #[test] fn future_action_receipt_rejected(){let mut s=snapshot();s.applied_action=Some(AppliedActionRef{receipt_id:"r",command_id:"c",applied_tick:2});assert_eq!(SoftwareCameraRenderer::render(&s,1,clocks()).err(),Some(RenderError::AppliedActionTickMismatch));}
+    #[test] fn future_action_receipt_rejected(){let mut s=snapshot();s.applied_action=Some(AppliedActionRef{receipt_id:"r".into(),command_id:"c".into(),applied_tick:2});assert_eq!(SoftwareCameraRenderer::render(&s,1,clocks()).err(),Some(RenderError::AppliedActionTickMismatch));}
     #[test] fn actor_and_road_truth_are_only_in_evaluator_audit(){let result=SoftwareCameraRenderer::render(&snapshot(),1,clocks()).unwrap();assert!(!result.policy_receipt.receipt_sha256.contains("lead"));assert_eq!(result.evaluator_audit.actor_ids,vec!["lead"]);}
     #[test] fn malformed_rotation_rejected(){let mut s=snapshot();s.camera.world_to_camera_q16[0]=[0,0,0];assert_eq!(SoftwareCameraRenderer::render(&s,1,clocks()).err(),Some(RenderError::InvalidCameraTransform));}
     #[test] fn reflected_rotation_rejected(){let mut s=snapshot();s.camera.world_to_camera_q16[0][0]=-(Q16_ONE as i32);assert_eq!(SoftwareCameraRenderer::render(&s,1,clocks()).err(),Some(RenderError::InvalidCameraTransform));}
