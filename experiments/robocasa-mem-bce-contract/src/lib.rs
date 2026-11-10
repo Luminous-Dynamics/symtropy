@@ -211,6 +211,23 @@ pub fn evaluate_follow_up(
     constraint: &EvaluatorDerivedConstraint,
     target: &InteractionEvent,
 ) -> Result<BceOutcome, BceError> {
+    if target.interaction_id.trim().is_empty() {
+        return Err(BceError::EmptyInteractionId);
+    }
+    if target.entity_id.trim().is_empty() {
+        return Err(BceError::EmptyEntityId);
+    }
+    if target.observed_event_ref.trim().is_empty() {
+        return Err(BceError::MissingObservedEventRef);
+    }
+    if target.interaction_id == constraint.source_interaction_id {
+        return Err(BceError::DuplicateInteractionId(
+            target.interaction_id.clone(),
+        ));
+    }
+    if target.episode_id.trim().is_empty() {
+        return Err(BceError::EmptyEpisodeId);
+    }
     if target.episode_id != constraint.episode_id {
         return Err(BceError::TargetEpisodeMismatch {
             expected: constraint.episode_id.clone(),
@@ -464,6 +481,62 @@ mod tests {
         assert_eq!(
             validate_interaction_stream(&[mixed]),
             Err(BceError::MissingObservedEventRef)
+        );
+    }
+
+    #[test]
+    fn follow_up_requires_unique_identity_and_observed_event_reference() {
+        let constraint = derive_constraint(
+            &[event("prior", 2, InteractionKind::PriorChoice, "cup-a")],
+            &rule(),
+        )
+        .unwrap();
+
+        let mut missing_id = event(
+            "follow-up",
+            8,
+            InteractionKind::FollowUpChoice,
+            "cup-a",
+        );
+        missing_id.interaction_id.clear();
+        assert_eq!(
+            evaluate_follow_up(&constraint, &missing_id),
+            Err(BceError::EmptyInteractionId)
+        );
+
+        let mut missing_entity = event(
+            "follow-up",
+            8,
+            InteractionKind::FollowUpChoice,
+            "cup-a",
+        );
+        missing_entity.entity_id.clear();
+        assert_eq!(
+            evaluate_follow_up(&constraint, &missing_entity),
+            Err(BceError::EmptyEntityId)
+        );
+
+        let mut missing_receipt = event(
+            "follow-up",
+            8,
+            InteractionKind::FollowUpChoice,
+            "cup-a",
+        );
+        missing_receipt.observed_event_ref.clear();
+        assert_eq!(
+            evaluate_follow_up(&constraint, &missing_receipt),
+            Err(BceError::MissingObservedEventRef)
+        );
+
+        let reused_source = event(
+            "prior",
+            8,
+            InteractionKind::FollowUpChoice,
+            "cup-a",
+        );
+        assert_eq!(
+            evaluate_follow_up(&constraint, &reused_source),
+            Err(BceError::DuplicateInteractionId("prior".into()))
         );
     }
 
