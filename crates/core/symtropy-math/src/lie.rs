@@ -331,7 +331,10 @@ pub fn so3_minus_with_config(
     to: &Rotor<3>,
     trivialization: So3Trivialization,
     config: So3LogConfig,
-) -> Result<So3Log, So3LogError> {
+ ) -> Result<So3Log, So3LogError> {
+    if !config_is_valid(config) {
+        return Err(So3LogError::InvalidConfig);
+    }
     validate_rotation(from, config.rotation_tolerance)?;
     validate_rotation(to, config.rotation_tolerance)?;
     let relative = match trivialization {
