@@ -18,7 +18,10 @@ fn bench_scalar(c: &mut Criterion) {
         group.bench_with_input(BenchmarkId::new("aos", count), &count, |b, _| {
             b.iter_batched(
                 || base.clone(),
-                |mut state| black_box(state.step_n(STEPS, DT).expect("AoS step")),
+                |mut state| {
+                    state.step_n(STEPS, DT).expect("AoS step");
+                    black_box(&state);
+                },
                 BatchSize::LargeInput,
             );
         });
@@ -27,7 +30,10 @@ fn bench_scalar(c: &mut Criterion) {
         group.bench_with_input(BenchmarkId::new("soa", count), &count, |b, _| {
             b.iter_batched(
                 || soa_base.clone(),
-                |mut state| black_box(state.step_n(STEPS, DT).expect("SoA step")),
+                |mut state| {
+                    state.step_n(STEPS, DT).expect("SoA step");
+                    black_box(&state);
+                },
                 BatchSize::LargeInput,
             );
         });
@@ -39,7 +45,10 @@ fn bench_scalar(c: &mut Criterion) {
                     group.bench_with_input(BenchmarkId::new("aosoa4", count), &count, |b, _| {
                         b.iter_batched(
                             || initial.clone(),
-                            |mut state| black_box(state.step_n(STEPS, DT).expect("AoSoA4 step")),
+                            |mut state| {
+                                state.step_n(STEPS, DT).expect("AoSoA4 step");
+                                black_box(&state);
+                            },
                             BatchSize::LargeInput,
                         );
                     });
@@ -49,7 +58,10 @@ fn bench_scalar(c: &mut Criterion) {
                     group.bench_with_input(BenchmarkId::new("aosoa8", count), &count, |b, _| {
                         b.iter_batched(
                             || initial.clone(),
-                            |mut state| black_box(state.step_n(STEPS, DT).expect("AoSoA8 step")),
+                            |mut state| {
+                                state.step_n(STEPS, DT).expect("AoSoA8 step");
+                                black_box(&state);
+                            },
                             BatchSize::LargeInput,
                         );
                     });
@@ -59,7 +71,10 @@ fn bench_scalar(c: &mut Criterion) {
                     group.bench_with_input(BenchmarkId::new("aosoa16", count), &count, |b, _| {
                         b.iter_batched(
                             || initial.clone(),
-                            |mut state| black_box(state.step_n(STEPS, DT).expect("AoSoA16 step")),
+                            |mut state| {
+                                state.step_n(STEPS, DT).expect("AoSoA16 step");
+                                black_box(&state);
+                            },
                             BatchSize::LargeInput,
                         );
                     });
@@ -105,7 +120,7 @@ fn bench_aos_pool(
                 || base.clone(),
                 |mut state| {
                     pool.install(|| state.step_n_parallel(STEPS, DT).expect("AoS parallel"));
-                    black_box(state.states.len());
+                    black_box(&state);
                 },
                 BatchSize::LargeInput,
             );
@@ -129,7 +144,7 @@ fn bench_soa_pool(
                 || initial.clone(),
                 |mut state| {
                     pool.install(|| state.step_n_parallel(STEPS, DT).expect("SoA parallel"));
-                    black_box(state.ids.len());
+                    black_box(&state);
                 },
                 BatchSize::LargeInput,
             );
@@ -153,7 +168,7 @@ fn bench_aosoa8_pool(
                 || initial.clone(),
                 |mut state| {
                     pool.install(|| state.step_n_parallel(STEPS, DT).expect("AoSoA parallel"));
-                    black_box(state.digest(count).expect("digest").len());
+                    black_box(&state);
                 },
                 BatchSize::LargeInput,
             );
