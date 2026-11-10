@@ -131,7 +131,13 @@ pub struct ComparisonEvidence {
     pub window_id: String,
     pub left_method_id: String,
     pub right_method_id: String,
+    /// Digest of the versioned alignment procedure and its configuration.
+    pub alignment_definition_sha256: String,
+    /// Digest of the versioned norm/metric definition and its configuration.
+    pub metric_definition_sha256: String,
+    /// Digest of the actual aligned samples/weights used by the comparison.
     pub aligned_samples_sha256: String,
+    /// Digest of aligned values, comparison output and per-window result artifact.
     pub comparison_artifact_sha256: String,
     pub norm_id: String,
     pub observed_error: f64,
@@ -379,6 +385,12 @@ impl ResponseManifest {
         for comparison in &self.comparisons {
             if !non_empty(&comparison.norm_id) {
                 e.push(format!("comparison '{}' norm is missing", comparison.comparison_id));
+            }
+            if !hex(&comparison.alignment_definition_sha256, &[64]) {
+                e.push(format!("comparison '{}' alignment-definition digest invalid", comparison.comparison_id));
+            }
+            if !hex(&comparison.metric_definition_sha256, &[64]) {
+                e.push(format!("comparison '{}' metric-definition digest invalid", comparison.comparison_id));
             }
             if !hex(&comparison.aligned_samples_sha256, &[64]) {
                 e.push(format!("comparison '{}' aligned-sample digest invalid", comparison.comparison_id));
@@ -672,6 +684,8 @@ mod tests {
             window_id: window_id.into(),
             left_method_id: left.into(),
             right_method_id: right.into(),
+            alignment_definition_sha256: d('b'),
+            metric_definition_sha256: d('d'),
             aligned_samples_sha256: d('a'),
             comparison_artifact_sha256: d('c'),
             norm_id: "complex-l2-relative".into(),
@@ -852,10 +866,14 @@ mod tests {
             acceptance_limit: 1e-8,
         });
         let mut comparison = pair_comparison("late", "fd", "freq", 1e-9, 1e-8);
+        comparison.alignment_definition_sha256 = "bad".into();
+        comparison.metric_definition_sha256 = "bad".into();
         comparison.aligned_samples_sha256 = "bad".into();
         comparison.norm_id = "wrong-norm".into();
         m.comparisons.push(comparison);
         let errors = m.validate().unwrap_err();
+        assert!(errors.iter().any(|e| e.contains("alignment-definition digest invalid")));
+        assert!(errors.iter().any(|e| e.contains("metric-definition digest invalid")));
         assert!(errors.iter().any(|e| e.contains("aligned-sample digest invalid")));
         assert!(errors.iter().any(|e| e.contains("norm differs")));
     }
