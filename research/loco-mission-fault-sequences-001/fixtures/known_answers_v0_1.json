@@ -15,7 +15,8 @@
         "thermal_headroom_mj": 500,
         "actuator_authority_ppm": 1000000,
         "recovery_energy_mwh": 300,
-        "topology_independent_routes": 2
+        "topology_independent_routes": 2,
+        "terminal_safe_stop_required_energy_mwh": 100
       },
       "events": [
         {
@@ -23,14 +24,16 @@
           "energy_cost_mwh": 120,
           "thermal_cost_mj": 220,
           "authority_loss_ppm": 300000,
-          "qualified": true
+          "qualified": true,
+          "minimum_authority_required_ppm": 600000
         },
         {
           "event_id": "low_friction_recovery",
           "energy_cost_mwh": 210,
           "thermal_cost_mj": 180,
           "authority_loss_ppm": 0,
-          "qualified": true
+          "qualified": true,
+          "minimum_authority_required_ppm": 600000
         }
       ],
       "operation_between_events": null,
@@ -48,7 +51,8 @@
         "thermal_headroom_mj": 600,
         "actuator_authority_ppm": 1000000,
         "recovery_energy_mwh": 500,
-        "topology_independent_routes": 2
+        "topology_independent_routes": 2,
+        "terminal_safe_stop_required_energy_mwh": 100
       },
       "event_sequences": [
         [
@@ -57,14 +61,16 @@
             "energy_cost_mwh": 100,
             "thermal_cost_mj": 350,
             "authority_loss_ppm": 0,
-            "qualified": true
+            "qualified": true,
+            "minimum_authority_required_ppm": 900000
           },
           {
             "event_id": "torque_derate",
             "energy_cost_mwh": 100,
             "thermal_cost_mj": 180,
             "authority_loss_ppm": 250000,
-            "qualified": true
+            "qualified": true,
+            "minimum_authority_required_ppm": 600000
           }
         ],
         [
@@ -73,14 +79,16 @@
             "energy_cost_mwh": 100,
             "thermal_cost_mj": 180,
             "authority_loss_ppm": 250000,
-            "qualified": true
+            "qualified": true,
+            "minimum_authority_required_ppm": 600000
           },
           {
             "event_id": "high_load_turn",
             "energy_cost_mwh": 100,
             "thermal_cost_mj": 350,
             "authority_loss_ppm": 0,
-            "qualified": true
+            "qualified": true,
+            "minimum_authority_required_ppm": 900000
           }
         ]
       ],
@@ -88,7 +96,13 @@
         "qualification": "VALID",
         "event_multiset_equal": true,
         "terminal_state_order_sensitive": true,
-        "order_invariant_claim": "REJECTED"
+        "order_invariant_claim": "REJECTED",
+        "sequence_qualifications": [
+          "VALID",
+          "REJECTED"
+        ],
+        "terminal_resource_state_equal": true,
+        "outcome_order_sensitive": true
       }
     },
     {
@@ -98,7 +112,8 @@
         "thermal_headroom_mj": 300,
         "actuator_authority_ppm": 1000000,
         "recovery_energy_mwh": 400,
-        "topology_independent_routes": 2
+        "topology_independent_routes": 2,
+        "terminal_safe_stop_required_energy_mwh": 100
       },
       "events": [
         {
@@ -106,14 +121,16 @@
           "energy_cost_mwh": 100,
           "thermal_cost_mj": 220,
           "authority_loss_ppm": 250000,
-          "qualified": true
+          "qualified": true,
+          "minimum_authority_required_ppm": 0
         },
         {
           "event_id": "second_fault_before_cooldown",
           "energy_cost_mwh": 80,
           "thermal_cost_mj": 100,
           "authority_loss_ppm": 200000,
-          "qualified": false
+          "qualified": false,
+          "minimum_authority_required_ppm": 0
         }
       ],
       "operation_between_events": {
@@ -134,7 +151,8 @@
         "thermal_headroom_mj": 500,
         "actuator_authority_ppm": 1000000,
         "recovery_energy_mwh": 250,
-        "topology_independent_routes": 2
+        "topology_independent_routes": 2,
+        "terminal_safe_stop_required_energy_mwh": 100
       },
       "events": [
         {
@@ -142,21 +160,24 @@
           "energy_cost_mwh": 70,
           "thermal_cost_mj": 30,
           "authority_loss_ppm": 0,
-          "qualified": true
+          "qualified": true,
+          "minimum_authority_required_ppm": 0
         },
         {
           "event_id": "diagnostic_probe_2",
           "energy_cost_mwh": 80,
           "thermal_cost_mj": 40,
           "authority_loss_ppm": 0,
-          "qualified": true
+          "qualified": true,
+          "minimum_authority_required_ppm": 0
         },
         {
           "event_id": "fault_recovery",
           "energy_cost_mwh": 150,
           "thermal_cost_mj": 80,
           "authority_loss_ppm": 0,
-          "qualified": true
+          "qualified": true,
+          "minimum_authority_required_ppm": 0
         }
       ],
       "expected": {
@@ -172,7 +193,8 @@
         "thermal_headroom_mj": 500,
         "actuator_authority_ppm": 650000,
         "recovery_energy_mwh": 250,
-        "topology_independent_routes": 1
+        "topology_independent_routes": 1,
+        "terminal_safe_stop_required_energy_mwh": 100
       },
       "events": [
         {
@@ -180,7 +202,8 @@
           "energy_cost_mwh": 20,
           "thermal_cost_mj": 0,
           "authority_loss_ppm": 0,
-          "qualified": false
+          "qualified": false,
+          "minimum_authority_required_ppm": 0
         }
       ],
       "operation_between_events": {
@@ -204,22 +227,25 @@
         "thermal_headroom_mj": 300,
         "actuator_authority_ppm": 1000000,
         "recovery_energy_mwh": 180,
-        "topology_independent_routes": 2
+        "topology_independent_routes": 2,
+        "terminal_safe_stop_required_energy_mwh": 180
       },
       "events": [
         {
           "event_id": "task_completion",
-          "energy_cost_mwh": 500,
+          "energy_cost_mwh": 550,
           "thermal_cost_mj": 120,
           "authority_loss_ppm": 0,
-          "qualified": true
+          "qualified": true,
+          "minimum_authority_required_ppm": 0
         }
       ],
       "expected": {
         "qualification": "REJECTED",
         "task_complete": true,
         "terminal_safe_stop_route_admitted": false,
-        "reason": "NO_TERMINAL_SAFE_STOP_RESERVE"
+        "reason": "SOC_BELOW_TERMINAL_SAFE_STOP_REQUIREMENT",
+        "remaining_soc_mwh": 150
       }
     }
   ]
