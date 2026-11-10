@@ -140,7 +140,8 @@
             "confirmed",
             "withdrawn",
             "recommended_practice",
-            "other"
+            "other",
+            "draft"
           ]
         },
         "lifecycle_stage": {
