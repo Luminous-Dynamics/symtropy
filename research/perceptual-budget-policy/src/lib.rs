@@ -49,6 +49,10 @@ pub struct QualityContract {
     /// Optional lower confidence bound for pairwise preference. This is not a
     /// universal quality metric; it is meaningful only under a pinned protocol.
     pub min_preference_lower_95: Option<f64>,
+    /// When panel evidence is required, all profiles must use this same study protocol.
+    pub human_panel_protocol_sha256: Option<String>,
+    /// When panel evidence is required, all profiles must use this same sample set.
+    pub human_panel_sample_set_sha256: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
@@ -141,6 +145,8 @@ pub enum RejectionReason {
     HumanPanelMissing,
     HumanPanelTooSmall,
     PreferenceLowerBoundNotMet,
+    HumanPanelProtocolMismatch,
+    HumanPanelSampleSetMismatch,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -187,6 +193,7 @@ pub enum PolicyError {
     EmptyField(&'static str),
     InvalidSha256(&'static str),
     NonFiniteOrOutOfRange(&'static str),
+    NonFiniteOrNegative(&'static str),
     ZeroResourceBudget(&'static str),
     DuplicateProfileId(String),
     DuplicateProtectedAsset(String),
@@ -203,6 +210,9 @@ impl std::fmt::Display for PolicyError {
             Self::InvalidSha256(name) => write!(f, "invalid SHA-256 identity: {name}"),
             Self::NonFiniteOrOutOfRange(name) => {
                 write!(f, "value must be finite and in [0, 1]: {name}")
+            }
+            Self::NonFiniteOrNegative(name) => {
+                write!(f, "value must be finite and non-negative: {name}")
             }
             Self::ZeroResourceBudget(name) => write!(f, "resource budget must be non-zero: {name}"),
             Self::DuplicateProfileId(id) => write!(f, "duplicate profile id: {id}"),
@@ -364,6 +374,22 @@ fn rejection_reasons(
                         reasons.push(RejectionReason::PreferenceLowerBoundNotMet);
                     }
                 }
+                if input
+                    .contract
+                    .human_panel_protocol_sha256
+                    .as_ref()
+                    .is_some_and(|expected| expected != &panel.protocol_sha256)
+                {
+                    reasons.push(RejectionReason::HumanPanelProtocolMismatch);
+                }
+                if input
+                    .contract
+                    .human_panel_sample_set_sha256
+                    .as_ref()
+                    .is_some_and(|expected| expected != &panel.sample_set_sha256)
+                {
+                    reasons.push(RejectionReason::HumanPanelSampleSetMismatch);
+                }
             }
         }
     }
@@ -383,6 +409,28 @@ fn validate_input(input: &PolicyInputV1) -> Result<(), PolicyError> {
     validate_unit_interval(input.contract.min_task_legibility, "contract.min_task_legibility")?;
     if let Some(value) = input.contract.min_preference_lower_95 {
         validate_unit_interval(value, "contract.min_preference_lower_95")?;
+    }
+    if input.contract.min_panel_evaluators > 0
+        || input.contract.min_preference_lower_95.is_some()
+    {
+        let protocol = input
+            .contract
+            .human_panel_protocol_sha256
+            .as_deref()
+            .ok_or(PolicyError::EmptyField("contract.human_panel_protocol_sha256"))?;
+        let sample_set = input
+            .contract
+            .human_panel_sample_set_sha256
+            .as_deref()
+            .ok_or(PolicyError::EmptyField("contract.human_panel_sample_set_sha256"))?;
+        validate_sha256(protocol, "contract.human_panel_protocol_sha256")?;
+        validate_sha256(sample_set, "contract.human_panel_sample_set_sha256")?;
+    } else if input.contract.human_panel_protocol_sha256.is_some()
+        || input.contract.human_panel_sample_set_sha256.is_some()
+    {
+        return Err(PolicyError::EmptyField(
+            "contract.human_panel_protocol_sha256 and sample_set_sha256 must be paired with a panel gate",
+        ));
     }
     if input.budget.max_p95_frame_time_us == 0 {
         return Err(PolicyError::ZeroResourceBudget("max_p95_frame_time_us"));
@@ -531,7 +579,7 @@ fn validate_unit_interval(value: f64, field: &'static str) -> Result<(), PolicyE
 
 fn validate_nonnegative_finite(value: f64, field: &'static str) -> Result<(), PolicyError> {
     if !value.is_finite() || value < 0.0 {
-        Err(PolicyError::NonFiniteOrOutOfRange(field))
+        Err(PolicyError::NonFiniteOrNegative(field))
     } else {
         Ok(())
     }
@@ -595,6 +643,8 @@ mod tests {
                 require_measured_workload: true,
                 min_panel_evaluators: 0,
                 min_preference_lower_95: None,
+                human_panel_protocol_sha256: None,
+                human_panel_sample_set_sha256: None,
             },
             budget: ResourceBudget {
                 max_p95_frame_time_us: 16_700,
@@ -725,6 +775,8 @@ mod tests {
         let mut data = input();
         data.contract.min_panel_evaluators = 20;
         data.contract.min_preference_lower_95 = Some(0.55);
+        data.contract.human_panel_protocol_sha256 = Some(H3.to_owned());
+        data.contract.human_panel_sample_set_sha256 = Some(H4.to_owned());
         let receipt = evaluate(&data).expect("profiles have no panel");
         assert!(receipt.evaluations.iter().all(|entry| {
             entry.rejection_reasons.contains(&RejectionReason::HumanPanelMissing)
@@ -736,6 +788,8 @@ mod tests {
         let mut data = input();
         data.contract.min_panel_evaluators = 20;
         data.contract.min_preference_lower_95 = Some(0.55);
+        data.contract.human_panel_protocol_sha256 = Some(H3.to_owned());
+        data.contract.human_panel_sample_set_sha256 = Some(H4.to_owned());
         for candidate in &mut data.profiles {
             candidate.human_preference = Some(HumanPreferenceEvidence {
                 evaluator_count: 24,
@@ -768,8 +822,10 @@ mod tests {
         data.profiles[0].frame_time_p99_us = 30_000;
         data.profiles[1].peak_vram_bytes = 7_000_000_000;
         let receipt = evaluate(&data).expect("valid record");
-        assert!(receipt.evaluations[0].rejection_reasons.contains(&RejectionReason::P99FrameTimeBudgetExceeded));
-        assert!(receipt.evaluations[1].rejection_reasons.contains(&RejectionReason::VramBudgetExceeded));
+        let high_quality = receipt.evaluations.iter().find(|entry| entry.profile_id == "high-quality").expect("high profile");
+        let balanced = receipt.evaluations.iter().find(|entry| entry.profile_id == "balanced").expect("balanced profile");
+        assert!(high_quality.rejection_reasons.contains(&RejectionReason::P99FrameTimeBudgetExceeded));
+        assert!(balanced.rejection_reasons.contains(&RejectionReason::VramBudgetExceeded));
     }
 
     #[test]
