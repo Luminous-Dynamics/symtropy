@@ -256,7 +256,7 @@ fn nonempty(value: &str) -> bool {
     !value.trim().is_empty()
 }
 
-fn fact_value_class(amount: Option<i64>) -> FactValueClass {
+pub fn classify_amount_value(amount: Option<i64>) -> FactValueClass {
     match amount {
         Some(value) if value != 0 => FactValueClass::NonZeroReported,
         Some(_) => FactValueClass::ZeroOrUnfilledAmbiguous,
@@ -264,14 +264,14 @@ fn fact_value_class(amount: Option<i64>) -> FactValueClass {
     }
 }
 
-fn evidence_grade(
+pub fn assess_fact_evidence_grade(
     fact: &TreasuryFact,
     receipt: &TreasurySnapshotReceipt,
 ) -> FactEvidenceGrade {
     if receipt.portal_publication_state != SnapshotVerification::Verified {
         return FactEvidenceGrade::SnapshotNotVerified;
     }
-    if fact_value_class(fact.amount_zar) != FactValueClass::NonZeroReported {
+    if classify_amount_value(fact.amount_zar) != FactValueClass::NonZeroReported {
         return FactEvidenceGrade::AmbiguousValue;
     }
     if receipt.amount_type_class == AmountTypeClass::Unknown {
@@ -432,7 +432,7 @@ pub fn validate_treasury_snapshot(
             FactValueClass::ZeroOrUnfilledAmbiguous => zero_or_unfilled_ambiguous += 1,
             FactValueClass::NullOrUnfilledAmbiguous => null_or_unfilled_ambiguous += 1,
         }
-        match evidence_grade(fact, &snapshot.receipt) {
+        match assess_fact_evidence_grade(fact, &snapshot.receipt) {
             FactEvidenceGrade::EligibleForRegisteredAnalysis => confirmatory_eligible += 1,
             _ => not_confirmatory_eligible += 1,
         }
