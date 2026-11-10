@@ -9,7 +9,7 @@
   "implementation": {
     "pull_request": "https://github.com/Luminous-Dynamics/symtropy/pull/4543",
     "source_path": "crates/domains/symtropy-relativity/src/kerr_geodesic.rs",
-    "source_revision": "81a4d7388c5672f7cb77f0f0692d09a730852990",
+    "source_revision": "d0a55ee72e587eec3467657ff8711bbed51b0615",
     "api": "KerrSeparatedNullGeodesic::integrate_adaptive",
     "integrator": "RK4 step-doubling on the smooth second-order Mino equations",
     "local_error_estimate": "(two_half_steps - one_full_step)/15",
@@ -20,7 +20,26 @@
       "No finite-radius observer tetrad is implemented.",
       "No Jacobi-field / variational ray-bundle integration is implemented.",
       "No caustic detection or image-branch topology tracking is implemented.",
-      "No rigorous global error bound is claimed from the adaptive local estimator."
+      "No rigorous global error bound is claimed from the adaptive local estimator.",
+      "Boyer-Lindquist trajectories stop at the horizon; the ingoing chart trajectory may cross the future outer horizon for inward rays.",
+      "No event-detection stopping surface is implemented yet; callers choose the terminal Mino parameter.",
+      "The ingoing chart is not claimed to be regular at the ring singularity or on the polar axis."
+    ],
+    "chart_modes": [
+      {
+        "id": "boyer_lindquist",
+        "api": "integrate_adaptive",
+        "domain": "r>r_plus, 0<theta<pi",
+        "time_coordinate": "ct/M",
+        "azimuth_coordinate": "phi"
+      },
+      {
+        "id": "ingoing_kerr",
+        "api": "integrate_adaptive_ingoing",
+        "domain": "r>0, 0<theta<pi, future-ingoing branch",
+        "time_coordinate": "v/M",
+        "azimuth_coordinate": "phi_tilde"
+      }
     ]
   },
   "conventions": {
@@ -247,6 +266,60 @@
           "beta_over_m": 600
         },
         "result_kind": "finite_radius_to_asymptotic_limit_check_not_Rust_output"
+      },
+      "test_status": "authored_in_Rust_not_executed"
+    },
+    {
+      "id": "kerr_future_capture_across_outer_horizon",
+      "spin": 0.9,
+      "constants": {
+        "energy": 1,
+        "angular_momentum_z_over_m": 2,
+        "carter_constant_over_m2": 0
+      },
+      "initial_state": {
+        "coordinate_chart": "ingoing_kerr",
+        "coordinates": {
+          "v_over_m": 0,
+          "radius_over_m": 10,
+          "theta_rad": 1.5707963267948966,
+          "azimuth_tilde_rad": 0
+        },
+        "radial_velocity": "-sqrt(R(10))",
+        "polar_velocity": 0
+      },
+      "integration": {
+        "api": "integrate_adaptive_ingoing",
+        "final_mino_parameter": 1.460728111791428,
+        "relative_tolerance": 1e-12,
+        "absolute_tolerance": [
+          1e-12,
+          1e-12,
+          1e-12,
+          1e-12,
+          1e-12,
+          1e-12
+        ],
+        "normalized_constraint_tolerance": 0.00001,
+        "initial_step": 0.001,
+        "minimum_step": 1e-12,
+        "maximum_step": 0.02,
+        "maximum_attempts": 200000
+      },
+      "expected": {
+        "outer_horizon_radius_over_m": 1.4358898943540672,
+        "final_radius_over_m_approx": 1,
+        "final_radius_is_inside_outer_horizon": true,
+        "finite_ingoing_time_and_azimuth": true,
+        "maximum_normalized_radial_constraint_residual_limit": 0.00001
+      },
+      "independent_reference": {
+        "method": "Python RK4 step-doubling using rationalized ingoing Mino derivatives",
+        "accepted_steps": 389,
+        "rejected_steps": 1,
+        "final_radius_over_m": 1.000000509428882,
+        "maximum_normalized_radial_constraint_residual": 7.113198332837912e-7,
+        "result_kind": "equation_level_numerical_reference_not_Rust_output"
       },
       "test_status": "authored_in_Rust_not_executed"
     }
