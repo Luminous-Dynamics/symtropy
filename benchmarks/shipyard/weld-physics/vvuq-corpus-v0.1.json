@@ -215,6 +215,28 @@
       ],
       "known_scope_summary": "Single-pass buried-arc/MAG circumferential weld on two S355J2+N pipes of Ø168 × 12 mm. Article records six outer-surface XRD residual-stress locations, model mesh/cooling/source assumptions and a comparison of measured and predicted axial/hoop residual-stress profiles.",
       "admission_notes": "The article is CC BY 4.0, but its Data Availability Statement says Not applicable and measured residual-stress results are published as figures rather than raw measurement files. Treat only as rights-cleared literature metadata until measurement values, graph-digitization error and XRD uncertainty are independently reconstructed. This is a single-pass buried-arc case, not a matched multipass GMAW comparator."
+    },
+    {
+      "source_id": "s460g2m-multipass-gmaw-distortion-2022",
+      "title": "Experimental validation on multi-pass weld distortion behavior of structural offshore steel HSLA S460 using FE-based inherent strain and thermo-mechanical method",
+      "citation_uri": "https://doi.org/10.1557/s43579-021-00148-3",
+      "doi": "10.1557/s43579-021-00148-3",
+      "publication_year": 2022,
+      "artifact_kind": "journal_article",
+      "evidence_class": "published_report_metadata",
+      "admission_status": "METADATA_ONLY",
+      "rights_status": "PENDING_REVIEW",
+      "retrieved_on": "2026-11-10",
+      "source_bytes_sha256": null,
+      "raw_data_bytes_available": false,
+      "numerical_scoring_eligible": false,
+      "measurement_modalities": [
+        "published_figure",
+        "published_table",
+        "unknown"
+      ],
+      "known_scope_summary": "Multi-pass GMAW distortion study on offshore structural steel S460G2+M. Compares thermo-mechanical FEM with an inherent-strain method. Publisher/institutional abstract records study-reported distortion error ranges of 8% for TMM and 12% for ISM, with low computation time.",
+      "admission_notes": "High-relevance shipbuilding/HSLA candidate. The accessible institutional record gives abstract metadata; full measurement data, error definition/denominator, specimen geometry, weld procedure, clamping/release conditions, uncertainty and raw source artifacts have not been admitted. Publisher record reports copyright under exclusive licence to the Materials Research Society. Keep rights and numerical scoring pending; do not compare 8%/12% directly with other studies without identical output definition and evaluation conditions."
     }
   ],
   "cases": [
@@ -466,6 +488,15 @@
         "documented_limitation": "liquid_solid_coupling_omitted",
         "supports_claimed_output": false
       }
+    },
+    {
+      "case_id": "WPHYS-028",
+      "case_class": "negative_control",
+      "source_id": "s460g2m-multipass-gmaw-distortion-2022",
+      "target": "cross-study benchmark comparability",
+      "mutation": "Treat abstract-reported 8% thermo-mechanical and 12% inherent-strain distortion errors as directly comparable leaderboard scores against another model/case without an identical output metric, specimen, geometry, restraint, validation split, uncertainty and data-access basis.",
+      "expected_disposition": "BLOCK_NUMERICAL_SCORING",
+      "rationale": "The abstract reports useful study-specific comparisons but the summary does not disclose enough information to establish a matched scoring denominator or admit the underlying measurements as a reusable numerical benchmark."
     }
   ]
 }
