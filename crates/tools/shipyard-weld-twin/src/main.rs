@@ -39,7 +39,7 @@ fn is_current_until(root: &Value, path: &str, cutoff: &str) -> bool {
 }
 
 fn resolve_trace_path(workspace_root: &Path, relative: &str) -> Result<PathBuf, &'static str> {
-    if relative.is_empty() || relative.contains(['\\', ':']) {
+    if relative.is_empty() || relative.contains('\\') || relative.contains(':') {
         return Err("UNSAFE_PROCESS_TRACE_PATH");
     }
     let relative_path = Path::new(relative);
