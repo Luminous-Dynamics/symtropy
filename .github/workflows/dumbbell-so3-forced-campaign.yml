@@ -23,7 +23,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install pinned Rust toolchain
-        run: rustup toolchain install 1.96.0 --profile minimal
+        run: rustup toolchain install 1.96.0 --profile minimal --component rustfmt
 
       - name: Check formatting
         run: |
