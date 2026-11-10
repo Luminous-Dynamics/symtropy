@@ -6,6 +6,7 @@
 // Indexed loops mirror fixed-width camera matrices and the SHA-256 schedule.
 #![allow(clippy::needless_range_loop)]
 
+use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 use std::fmt::Write as _;
 
@@ -23,7 +24,7 @@ pub const MAX_ACTORS: usize = 128;
 pub const MIN_NEAR_PLANE_MM: u32 = 100;
 pub const MAX_FAR_PLANE_MM: u32 = 1_000_000;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AppliedActionRef {
     pub receipt_id: String,
     pub receipt_sha256: String,
@@ -31,8 +32,9 @@ pub struct AppliedActionRef {
     pub applied_tick: u64,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[repr(u8)]
+#[serde(rename_all = "snake_case")]
 pub enum RoadMarkingKind {
     LaneWhite,
     LaneYellow,
@@ -51,7 +53,7 @@ impl RoadMarkingKind {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RoadPolyline {
     pub road_id: String,
     pub marking_id: String,
@@ -59,8 +61,9 @@ pub struct RoadPolyline {
     pub points_world_mm: Vec<[i64; 3]>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[repr(u8)]
+#[serde(rename_all = "snake_case")]
 pub enum ActorClass {
     Car,
     Bus,
@@ -81,7 +84,7 @@ impl ActorClass {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ActorCuboid {
     pub actor_id: String,
     pub actor_policy_revision: String,
@@ -90,7 +93,7 @@ pub struct ActorCuboid {
     pub half_extents_mm: [u32; 3],
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CameraCalibration {
     pub camera_id: String,
     pub position_world_mm: [i64; 3],
@@ -107,7 +110,7 @@ pub struct CameraCalibration {
     pub far_plane_mm: u32,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct WorldRenderSnapshot {
     pub episode_id: String,
     pub scenario_id: String,
@@ -136,15 +139,17 @@ pub struct TimingPolicy {
     pub maximum_delivery_age_us: u64,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[repr(u8)]
+#[serde(rename_all = "snake_case")]
 pub enum ObservationDisposition {
     Fresh,
     Delayed,
     Stale,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum MissingFrameReason {
     CameraDrop,
     CameraUnavailable,
@@ -154,7 +159,7 @@ pub enum MissingFrameReason {
     Censored,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MissingObservationEvent {
     pub episode_id: String,
     pub agent_id: String,
@@ -166,7 +171,8 @@ pub struct MissingObservationEvent {
     pub reason: MissingFrameReason,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum RenderError {
     EmptyIdentity,
     IdentityTooLong,
@@ -207,13 +213,14 @@ impl std::fmt::Display for RenderError {
 
 impl std::error::Error for RenderError {}
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[repr(u8)]
+#[serde(rename_all = "snake_case")]
 pub enum PixelFormat {
     Rgb8Srgb,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PolicyObservationReceipt {
     pub schema_version: u32,
     pub observation_id: String,
@@ -241,7 +248,7 @@ pub struct PolicyObservationReceipt {
     pub receipt_sha256: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EvaluatorObservationAudit {
     pub episode_id: String,
     pub scenario_id: String,
@@ -256,6 +263,7 @@ pub struct EvaluatorObservationAudit {
     pub renderer_revision: String,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RenderedObservation {
     /// RGB8 sRGB pixel buffer. No evaluator-only world metadata is included.
     pub pixels_rgb: Vec<u8>,
@@ -1252,6 +1260,47 @@ mod tests {
             maximum_render_latency_us: 1_000,
             maximum_delivery_age_us: 3_000,
         }
+    }
+
+    #[test]
+    fn policy_receipt_json_round_trip_is_policy_scoped() {
+        let rendered = SoftwareCameraRenderer::render(&snapshot(), 1, clocks()).unwrap();
+        let value = serde_json::to_value(&rendered.policy_receipt).unwrap();
+        assert!(value.get("scenario_id").is_none());
+        assert!(value.get("simulator_revision").is_none());
+        assert!(value.get("world_snapshot_sha256").is_none());
+        assert_eq!(value["pixel_format"], "rgb8_srgb");
+        let decoded: PolicyObservationReceipt = serde_json::from_value(value).unwrap();
+        assert_eq!(decoded, rendered.policy_receipt);
+    }
+
+    #[test]
+    fn evaluator_audit_serializes_as_a_separate_record() {
+        let audit = SoftwareCameraRenderer::audit_snapshot(&snapshot()).unwrap();
+        let value = serde_json::to_value(&audit).unwrap();
+        assert_eq!(value["scenario_id"], "straight-road");
+        assert!(value.get("frame_sha256").is_none());
+        let decoded: EvaluatorObservationAudit = serde_json::from_value(value).unwrap();
+        assert_eq!(decoded, audit);
+    }
+
+    #[test]
+    fn missing_frame_event_has_stable_snake_case_json() {
+        let mut guard = ObservationStreamGuard::new(timing_policy());
+        let event = guard
+            .record_missing(
+                "episode-1",
+                "ego",
+                "clock-1",
+                2,
+                2,
+                40_000,
+                40_500,
+                MissingFrameReason::CameraDrop,
+            )
+            .unwrap();
+        let value = serde_json::to_value(&event).unwrap();
+        assert_eq!(value["reason"], "camera_drop");
     }
 
     #[test]
