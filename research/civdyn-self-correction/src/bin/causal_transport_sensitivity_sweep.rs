@@ -136,25 +136,67 @@ fn emit_report(scenario: &str, report: &OutcomeShiftSensitivityReport) {
                 point.unsupported_target_population_count.to_string(),
                 format!("{:.10}", point.supported_target_mass),
                 format!("{:.10}", point.unsupported_target_mass),
-                tipping.map(|value| format!("{:.10}", value.lambda)).unwrap_or_default(),
-                tipping.map(|value| format!("{:.10}", value.lower_bracket)).unwrap_or_default(),
-                tipping.map(|value| format!("{:.10}", value.upper_bracket)).unwrap_or_default(),
-                tipping.map(|value| format!("{:.8}", value.search_max)).unwrap_or_default(),
-                tipping.map(|value| format!("{:.12}", value.tolerance)).unwrap_or_default(),
+                tipping
+                    .map(|value| format!("{:.10}", value.lambda))
+                    .unwrap_or_default(),
+                tipping
+                    .map(|value| format!("{:.10}", value.lower_bracket))
+                    .unwrap_or_default(),
+                tipping
+                    .map(|value| format!("{:.10}", value.upper_bracket))
+                    .unwrap_or_default(),
+                tipping
+                    .map(|value| format!("{:.8}", value.search_max))
+                    .unwrap_or_default(),
+                tipping
+                    .map(|value| format!("{:.12}", value.tolerance))
+                    .unwrap_or_default(),
                 format!("{:.10}", report.source_ate),
                 report.source_population_total.to_string(),
                 report.target_population_total.to_string(),
                 report.source_data_digest.clone(),
                 report.target_population_digest.clone(),
                 report.protocol_digest.clone(),
-                report.assumptions.source_internal_validity.disposition.name().to_string(),
-                report.assumptions.source_internal_validity.evidence_digest.clone(),
-                report.assumptions.selection_exchangeability.disposition.name().to_string(),
-                report.assumptions.selection_exchangeability.evidence_digest.clone(),
-                report.assumptions.no_interference.disposition.name().to_string(),
+                report
+                    .assumptions
+                    .source_internal_validity
+                    .disposition
+                    .name()
+                    .to_string(),
+                report
+                    .assumptions
+                    .source_internal_validity
+                    .evidence_digest
+                    .clone(),
+                report
+                    .assumptions
+                    .selection_exchangeability
+                    .disposition
+                    .name()
+                    .to_string(),
+                report
+                    .assumptions
+                    .selection_exchangeability
+                    .evidence_digest
+                    .clone(),
+                report
+                    .assumptions
+                    .no_interference
+                    .disposition
+                    .name()
+                    .to_string(),
                 report.assumptions.no_interference.evidence_digest.clone(),
-                report.assumptions.treatment_version_invariance.disposition.name().to_string(),
-                report.assumptions.treatment_version_invariance.evidence_digest.clone(),
+                report
+                    .assumptions
+                    .treatment_version_invariance
+                    .disposition
+                    .name()
+                    .to_string(),
+                report
+                    .assumptions
+                    .treatment_version_invariance
+                    .evidence_digest
+                    .clone(),
             ]);
         }
     }
