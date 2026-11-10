@@ -32,13 +32,16 @@ pub struct InstalledWheelAcceptance {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ModelSmokeEvidence {
+    /// Exact upstream policy family (ACT, Diffusion Policy, Pi0.5, etc.).
+    pub family_id: String,
     pub checkpoint_sha256: String,
     /// Digest of the policy-serving/runtime configuration used for the smoke.
     pub candidate_runtime_sha256: String,
     pub tested_runtime_sha256: String,
-    pub episodes: usize,
-    pub successful_episodes: usize,
-    pub failed_episodes: usize,
+    pub checkpoint_loaded: bool,
+    pub inference_requests: usize,
+    pub runtime_errors: usize,
+    pub episode_artifacts_complete: bool,
     pub checkpoint_rights: EvaluationRights,
 }
 
@@ -50,10 +53,17 @@ pub struct RoboCasaMemReleaseEvidence {
     pub candidate_source_commit: String,
     /// Source revision declared by the candidate release manifest.
     pub manifest_source_commit: String,
+    pub release_manifest_sha256: String,
     pub source_file_manifest_sha256: String,
     pub suite_manifest_sha256: String,
     pub evaluation_input_lock_sha256: String,
     pub simulator_source_lock_sha256: String,
+    pub dataset_manifest_sha256: String,
+    pub dataset_rights_manifest_sha256: String,
+    pub asset_rights_manifest_sha256: String,
+    pub asset_verification_receipt_sha256: String,
+    pub policy_family_manifest_sha256: String,
+    pub source_file_manifest_verified: bool,
 
     pub expected_task_count: usize,
     pub manifest_task_count: usize,
@@ -77,8 +87,11 @@ pub struct RoboCasaMemReleaseEvidence {
     pub dataset_rights: EvaluationRights,
     pub asset_rights: EvaluationRights,
 
+    /// Exact expected policy families represented by the official suite matrix.
+    pub expected_model_families: Vec<String>,
     pub installed_wheel: InstalledWheelAcceptance,
-    pub model_smoke: ModelSmokeEvidence,
+    /// One independent inference smoke record per expected policy family.
+    pub model_smokes: Vec<ModelSmokeEvidence>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -86,6 +99,7 @@ pub enum ReleaseGateBlocker {
     EmptyReleaseIdentity,
     InvalidSourceCommit,
     InvalidArtifactDigest,
+    SourceManifestUnverified,
     SourceRevisionMismatch,
     SuiteBytesNotPreserved,
     ReleaseNotMarkedReady,
@@ -94,8 +108,11 @@ pub enum ReleaseGateBlocker {
     EvaluationInputCountMismatch,
     DatasetRightsUnknown,
     DatasetRightsRestricted,
+    DatasetRightsManifestMissing,
     AssetRightsUnknown,
     AssetRightsRestricted,
+    AssetRightsManifestMissing,
+    AssetVerificationReceiptMissing,
     AssetArchiveUnavailable,
     AssetManifestCoverageUnverified,
     AssetReceiptCoverageUnverified,
@@ -109,10 +126,18 @@ pub enum ReleaseGateBlocker {
     InstalledWheelCleanEnvironmentMissing,
     CheckpointRightsUnknown,
     CheckpointRightsRestricted,
+    PolicyFamilyManifestMissing,
+    ModelFamilySetMismatch,
+    DuplicateModelFamilySmoke,
+    MissingModelFamilySmoke,
+    UnexpectedModelFamilySmoke,
     ModelCheckpointDigestMismatch,
     ModelSmokeRuntimeDigestMismatch,
     ModelSmokeMissing,
-    ModelSmokeFailedEpisodes,
+    ModelSmokeCheckpointNotLoaded,
+    ModelSmokeNoInferenceRequests,
+    ModelSmokeRuntimeErrors,
+    ModelSmokeArtifactsIncomplete,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
