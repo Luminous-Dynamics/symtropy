@@ -6,6 +6,7 @@ use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+// Property dimensions are independent claims; this contract intentionally has no aggregate life score.
 const PROPERTY_NAMES: &[&str] = &[
     "organization",
     "boundary",
