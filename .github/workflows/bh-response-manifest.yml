@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - research/bh-response-manifest-v0.1
+      - research/bh-response-manifest-paired-comparisons-v0.2
     paths:
       - tools/bh-response-manifest/**
       - .github/workflows/bh-response-manifest.yml
