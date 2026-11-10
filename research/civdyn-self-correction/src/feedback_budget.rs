@@ -66,6 +66,7 @@ pub enum FeedbackBudgetReason {
     DisclosureTierExceeded,
     HistoricalDisclosureTierViolation,
     HistoricalCountBudgetViolation,
+    InvalidOrIncompleteCustodyEvidence,
 }
 
 impl FeedbackBudgetReason {
@@ -77,6 +78,7 @@ impl FeedbackBudgetReason {
             Self::DisclosureTierExceeded => "disclosure_tier_exceeded",
             Self::HistoricalDisclosureTierViolation => "historical_disclosure_tier_violation",
             Self::HistoricalCountBudgetViolation => "historical_count_budget_violation",
+            Self::InvalidOrIncompleteCustodyEvidence => "invalid_or_incomplete_custody_evidence",
         }
     }
 }
@@ -131,6 +133,8 @@ pub struct FeedbackBudgetReport {
     pub idempotent_replay: bool,
     pub status: FeedbackBudgetStatus,
     pub reason: FeedbackBudgetReason,
+    /// Present when validation failed and the decision must remain NotAssessed.
+    pub validation_error: Option<FeedbackBudgetError>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -264,6 +268,7 @@ fn report(
         idempotent_replay,
         status,
         reason,
+        validation_error: None,
     }
 }
 
@@ -466,6 +471,35 @@ pub fn evaluate_feedback_budget(
         FeedbackBudgetStatus::EligibleWithinFrozenFeedbackBudget,
         FeedbackBudgetReason::WithinFrozenBudget,
     ))
+}
+
+/// Fail-closed status-oriented wrapper. Malformed or incomplete ledger evidence
+/// returns NotAssessed; callers needing the exact failure can use
+/// evaluate_feedback_budget directly.
+pub fn assess_feedback_budget(
+    policy: &FeedbackBudgetPolicy,
+    historical_events: &[FeedbackReleaseEvent],
+    next_request: &FeedbackReleaseEvent,
+) -> FeedbackBudgetReport {
+    match evaluate_feedback_budget(policy, historical_events, next_request) {
+        Ok(report) => report,
+        Err(error) => FeedbackBudgetReport {
+            policy_id: policy.policy_id.clone(),
+            policy_digest: policy.policy_digest.clone(),
+            challenge_data_digest: policy.challenge_data_digest.clone(),
+            challenge_manifest_digest: policy.challenge_manifest_digest.clone(),
+            historical_nonsealed_releases: 0,
+            projected_nonsealed_releases: 0,
+            releases_remaining_after_request: 0,
+            highest_historical_disclosure_tier: FeedbackDisclosureTier::SealedNoFeedback,
+            requested_disclosure_tier: next_request.disclosure_tier,
+            maximum_disclosure_tier: policy.maximum_disclosure_tier,
+            idempotent_replay: false,
+            status: FeedbackBudgetStatus::NotAssessed,
+            reason: FeedbackBudgetReason::InvalidOrIncompleteCustodyEvidence,
+            validation_error: Some(error),
+        },
+    }
 }
 
 #[cfg(test)]
@@ -710,6 +744,23 @@ mod tests {
             .expect("historical release violation is reportable");
         assert_eq!(report.status, FeedbackBudgetStatus::DisclosureTierExceeded);
         assert_eq!(report.reason, FeedbackBudgetReason::HistoricalDisclosureTierViolation);
+    }
+
+    #[test]
+    fn malformed_custody_evidence_is_explicitly_not_assessed() {
+        let mut malformed = event("binary-1", 1, FeedbackDisclosureTier::BinaryDecision);
+        malformed.recipient_id = None;
+        let report = assess_feedback_budget(&policy(), &[], &malformed);
+        assert_eq!(report.status, FeedbackBudgetStatus::NotAssessed);
+        assert_eq!(
+            report.reason,
+            FeedbackBudgetReason::InvalidOrIncompleteCustodyEvidence
+        );
+        assert_eq!(
+            report.validation_error,
+            Some(FeedbackBudgetError::VisibleEventMissingRecipient)
+        );
+        assert_eq!(report.releases_remaining_after_request, 0);
     }
 
     #[test]
