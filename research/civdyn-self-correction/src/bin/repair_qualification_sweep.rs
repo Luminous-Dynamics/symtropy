@@ -14,7 +14,7 @@ const REPAIRED_MODEL: &str = "sha256-civdyn-repaired-network-model";
 const CALIBRATION: &str = "sha256-civdyn-repair-calibration";
 const SOURCE: &str = "sha256-civdyn-fresh-network-source";
 const DRAW_COUNT: usize = 5;
-const CSV_COLUMNS: usize = 27;
+const CSV_COLUMNS: usize = 29;
 
 fn csv_field(value: &str) -> String {
     if value.contains([',', '"', '\n', '\r']) {
@@ -172,6 +172,8 @@ fn emit_report(
             transition.observation_digest.clone().unwrap_or_default(),
             transition.source_digest.clone(),
             transition.sample_size.to_string(),
+            transition.baseline_draw_count.to_string(),
+            transition.repaired_draw_count.to_string(),
             report.baseline_model_digest.clone(),
             report.repaired_model_digest.clone(),
             report.repair_plan_digest.clone(),
@@ -194,7 +196,7 @@ fn emit_report(
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!(
-        "scenario,statistic_id,independent_unit_id,primary,required,baseline_status,repaired_status,transition,observation_digest,source_digest,sample_size,baseline_model_digest,repaired_model_digest,repair_plan_digest,diagnostic_manifest_digest,challenge_manifest_id,challenge_manifest_digest,calibration_data_digest,central_mass,evidence_complete,overall_status,primary_improvement_count,primary_regression_count,primary_persistent_discrepancy_count,primary_baseline_discrepancy_count,primary_repaired_discrepancy_count,challenge_unit_count"
+        "scenario,statistic_id,independent_unit_id,primary,required,baseline_status,repaired_status,transition,observation_digest,source_digest,sample_size,baseline_draw_count,repaired_draw_count,baseline_model_digest,repaired_model_digest,repair_plan_digest,diagnostic_manifest_digest,challenge_manifest_id,challenge_manifest_digest,calibration_data_digest,central_mass,evidence_complete,overall_status,primary_improvement_count,primary_regression_count,primary_persistent_discrepancy_count,primary_baseline_discrepancy_count,primary_repaired_discrepancy_count,challenge_unit_count"
     );
 
     let baseline_failing = assessment(
