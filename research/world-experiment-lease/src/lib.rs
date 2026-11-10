@@ -113,7 +113,10 @@ pub struct UsageSnapshotV1 {
     pub view_event_count: u64,
     pub rendered_frames_total: u64,
     pub peak_system_memory_bytes: u64,
+    /// Lease-wide integrated GPU-board energy; do not sum potentially overlapping view windows.
     pub gpu_energy_uj_total: Option<u64>,
+    /// Receipt binding the lease-wide energy measurement, when present.
+    pub gpu_energy_receipt_sha256: Option<String>,
     pub views: Vec<ViewUsageV1>,
     /// Any physical input/intervention invalidates this read-only lease.
     pub physical_mutation_attempted: bool,
@@ -129,7 +132,8 @@ pub struct ViewUsageV1 {
     pub p95_frame_time_us: u64,
     pub p99_frame_time_us: u64,
     pub peak_vram_bytes: u64,
-    pub gpu_energy_uj: Option<u64>,
+    /// Receipt binding the runtime frame-time and VRAM observations for this view.
+    pub measurement_receipt_sha256: String,
 }
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -415,9 +419,6 @@ fn validate_usage_shape(
     let mut seen = BTreeSet::new();
     let mut view_events = 0_u64;
     let mut rendered_frames = 0_u64;
-    let mut energy_sum = 0_u64;
-    let mut energy_present = false;
-    let mut energy_missing = false;
 
     for view in &usage.views {
         if !seen.insert(view.view_id.as_str()) {
@@ -426,11 +427,16 @@ fn validate_usage_shape(
         if !allowed.contains_key(view.view_id.as_str()) {
             return Err(LeaseError::UnknownView(view.view_id.clone()));
         }
+        require_sha(
+            &view.measurement_receipt_sha256,
+            "view.measurement_receipt_sha256",
+        )?;
         if view.view_events == 0
             || view.rendered_frames == 0
             || view.p95_frame_time_us == 0
             || view.p99_frame_time_us == 0
             || view.p95_frame_time_us > view.p99_frame_time_us
+            || view.peak_vram_bytes == 0
         {
             return Err(LeaseError::InvalidUsageCounters);
         }
@@ -441,30 +447,19 @@ fn validate_usage_shape(
             .checked_add(view.rendered_frames)
             .ok_or(LeaseError::CounterOverflow)?;
 
-        match view.gpu_energy_uj {
-            Some(energy) => {
-                energy_present = true;
-                energy_sum = energy_sum
-                    .checked_add(energy)
-                    .ok_or(LeaseError::CounterOverflow)?;
-            }
-            None => energy_missing = true,
-        }
     }
 
     if view_events != usage.view_event_count || rendered_frames != usage.rendered_frames_total {
         return Err(LeaseError::InconsistentUsageTotals);
     }
 
-    if energy_present && energy_missing {
-        return Err(LeaseError::InconsistentUsageTotals);
-    }
-    if energy_present {
-        if usage.gpu_energy_uj_total != Some(energy_sum) {
-            return Err(LeaseError::InconsistentUsageTotals);
-        }
-    } else if usage.gpu_energy_uj_total.is_some() {
-        return Err(LeaseError::InconsistentUsageTotals);
+    match (
+        usage.gpu_energy_uj_total,
+        usage.gpu_energy_receipt_sha256.as_deref(),
+    ) {
+        (Some(_), Some(receipt)) => require_sha(receipt, "gpu_energy_receipt_sha256")?,
+        (None, None) => {}
+        _ => return Err(LeaseError::InconsistentUsageTotals),
     }
 
     Ok(())
@@ -493,18 +488,6 @@ fn usage_stop_reason(
             || view.peak_vram_bytes > lease.budget.max_peak_vram_bytes
         {
             return Ok(Some(StopReason::GpuMemoryBudgetExceeded));
-        }
-        match (admission.max_gpu_energy_uj_per_frame, view.gpu_energy_uj) {
-            (Some(_), None) => return Ok(Some(StopReason::RequiredEnergyMissing)),
-            (Some(cap), Some(energy)) => {
-                let maximum = cap
-                    .checked_mul(view.rendered_frames)
-                    .ok_or(LeaseError::CounterOverflow)?;
-                if energy > maximum {
-                    return Ok(Some(StopReason::GpuEnergyBudgetExceeded));
-                }
-            }
-            (None, _) => {}
         }
     }
 
@@ -565,8 +548,8 @@ pub fn evaluate_usage(
             || current.rendered_frames_total < previous.rendered_frames_total
             || current.peak_system_memory_bytes < previous.peak_system_memory_bytes
             || current.gpu_energy_uj_total.zip(previous.gpu_energy_uj_total)
-                .map(|(now, before)| now < before)
-                .unwrap_or(previous.gpu_energy_uj_total.is_some() && current.gpu_energy_uj_total.is_none())
+                .is_some_and(|(now, before)| now < before)
+            || (previous.gpu_energy_uj_total.is_some() && current.gpu_energy_uj_total.is_none())
         {
             return Err(LeaseError::NonMonotonicUsage);
         }
@@ -579,9 +562,6 @@ pub fn evaluate_usage(
             if now.view_events < prior.view_events
                 || now.rendered_frames < prior.rendered_frames
                 || now.peak_vram_bytes < prior.peak_vram_bytes
-                || now.gpu_energy_uj.zip(prior.gpu_energy_uj)
-                    .map(|(a, b)| a < b)
-                    .unwrap_or(prior.gpu_energy_uj.is_some() && now.gpu_energy_uj.is_none())
             {
                 return Err(LeaseError::NonMonotonicUsage);
             }
@@ -630,6 +610,7 @@ mod tests {
             rendered_frames_total: 120,
             peak_system_memory_bytes: 1_200_000_000,
             gpu_energy_uj_total: Some(600_000),
+            gpu_energy_receipt_sha256: Some("a".repeat(64)),
             views: vec![ViewUsageV1 {
                 view_id: "engineering-inspection".to_string(),
                 view_events: 1,
@@ -637,7 +618,7 @@ mod tests {
                 p95_frame_time_us: 12_000,
                 p99_frame_time_us: 18_000,
                 peak_vram_bytes: 3_500_000_000,
-                gpu_energy_uj: Some(600_000),
+                measurement_receipt_sha256: "b".repeat(64),
             }],
             physical_mutation_attempted: false,
         }
@@ -739,7 +720,7 @@ mod tests {
         let lease = compile_fixture();
         let mut usage = valid_usage(&lease);
         usage.gpu_energy_uj_total = None;
-        usage.views[0].gpu_energy_uj = None;
+        usage.gpu_energy_receipt_sha256 = None;
         assert_eq!(
             evaluate_usage(&lease, &usage, None).expect("missing telemetry stops"),
             UsageDecision::Stop { reason: StopReason::RequiredEnergyMissing }
@@ -752,8 +733,7 @@ mod tests {
         let mut usage = valid_usage(&lease);
         usage.rendered_frames_total = lease.budget.max_rendered_frames + 1;
         usage.views[0].rendered_frames = usage.rendered_frames_total;
-        usage.views[0].gpu_energy_uj = Some(usage.rendered_frames_total * 100);
-        usage.gpu_energy_uj_total = usage.views[0].gpu_energy_uj;
+        // The independent lease-wide energy sample remains below its cap.
         assert_eq!(
             evaluate_usage(&lease, &usage, None).expect("frame budget stops"),
             UsageDecision::Stop { reason: StopReason::RenderedFrameBudgetExceeded }
@@ -790,8 +770,8 @@ mod tests {
         second.sequence = 2;
         second.rendered_frames_total = 90;
         second.views[0].rendered_frames = 90;
-        second.views[0].gpu_energy_uj = Some(90 * 100);
-        second.gpu_energy_uj_total = Some(90 * 100);
+        second.gpu_energy_uj_total = Some(50_000);
+        second.gpu_energy_receipt_sha256 = Some("c".repeat(64));
         assert_eq!(
             evaluate_usage(&lease, &second, Some(&first)).unwrap_err(),
             LeaseError::NonMonotonicUsage
