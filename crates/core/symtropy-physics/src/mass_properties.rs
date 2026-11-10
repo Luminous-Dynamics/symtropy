@@ -1107,4 +1107,58 @@ mod tests {
     }
 
 
+    #[test]
+    fn spatial_inertia_and_euler_equation_support_four_dimensional_double_rotations() {
+        use symtropy_math::Rotor;
+
+        let inertia = RotationalInertiaOperator::<4>::from_body_second_moment_matrix(vec![
+            2.0, 0.1, 0.2, 0.0,
+            0.1, 3.0, 0.1, 0.1,
+            0.2, 0.1, 4.0, 0.15,
+            0.0, 0.1, 0.15, 5.0,
+        ])
+        .unwrap();
+
+        let mut orientation_generator = Bivector::<4>::zero();
+        orientation_generator.set(0, 1, 0.17);
+        orientation_generator.set(0, 2, -0.21);
+        orientation_generator.set(0, 3, 0.33);
+        orientation_generator.set(1, 2, 0.14);
+        orientation_generator.set(1, 3, -0.09);
+        orientation_generator.set(2, 3, 0.24);
+        let mut body_rotation = Rotor::<4>::from_bivector(&orientation_generator);
+        let spatial = inertia.in_spatial_frame(&body_rotation).unwrap();
+
+        let mut omega = Bivector::<4>::zero();
+        omega.set(0, 1, 0.31);
+        omega.set(0, 2, -0.24);
+        omega.set(0, 3, 0.43);
+        omega.set(1, 2, 0.17);
+        omega.set(1, 3, -0.38);
+        omega.set(2, 3, 0.26);
+
+        let energy_body = inertia
+            .kinetic_energy_bivector_joules(&body_rotation.reverse().rotate_bivector(&omega))
+            .unwrap();
+        let energy_spatial = spatial.kinetic_energy_joules(&omega).unwrap();
+        assert!((energy_body - energy_spatial).abs() < 2.0e-11);
+
+        let momentum_before = spatial.apply_bivector(&omega).unwrap();
+        let acceleration = spatial
+            .angular_acceleration(&omega, &Bivector::<4>::zero())
+            .unwrap();
+
+        let dt = 1.0e-7;
+        let omega_next = omega.add(&acceleration.scale(dt));
+        let delta = Rotor::<4>::from_bivector(&omega_next.scale(dt));
+        body_rotation = delta.compose(&body_rotation);
+        let next_spatial = inertia.in_spatial_frame(&body_rotation).unwrap();
+        let momentum_after = next_spatial.apply_bivector(&omega_next).unwrap();
+        assert!(
+            momentum_after.add(&momentum_before.scale(-1.0)).norm() < 3.0e-7,
+            "4D torque-free spatial momentum drift"
+        );
+    }
+
+
 }
