@@ -41,3 +41,7 @@ path = "src/bin/policy_sensitivity_sweep.rs"
 [[bin]]
 name = "decision-criticality-sweep"
 path = "src/bin/decision_criticality_sweep.rs"
+
+[[bin]]
+name = "decision-voi-sweep"
+path = "src/bin/decision_voi_sweep.rs"

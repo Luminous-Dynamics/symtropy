@@ -366,3 +366,66 @@ jobs:
               assert row["reference_outcome_receipt_digest"] and row["alternative_outcome_receipt_digest"]
           print("Decision-criticality CSV valid: stable, ranking reversal, hard-feasibility reversal and out-of-domain cases remain separate; exact model and outcome lineage; deterministic replay.")
           PY
+
+- name: Verify prior-free experiment selection by worst-case regret reduction
+        run: |
+          set -euo pipefail
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin decision-voi-sweep > /tmp/civdyn-decision-voi.csv
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin decision-voi-sweep > /tmp/civdyn-decision-voi-replay.csv
+          cmp /tmp/civdyn-decision-voi.csv /tmp/civdyn-decision-voi-replay.csv
+          python3 - <<'PY'
+          import csv
+          from pathlib import Path
+
+          with Path("/tmp/civdyn-decision-voi.csv").open(newline="", encoding="utf-8") as handle:
+              reader = csv.DictReader(handle)
+              rows = list(reader)
+              fields = reader.fieldnames
+
+          assert fields is not None and len(fields) == 27
+          assert len(rows) == 6
+          experiments = {}
+          for row in rows:
+              experiments.setdefault(row["experiment_id"], []).append(row)
+          assert set(experiments) == {"discriminate", "uninformative", "over-budget"}
+          assert all(len(group) == 2 for group in experiments.values())
+
+          discriminate = experiments["discriminate"]
+          assert all(row["status"] == "evaluated" and row["affordable"] == "true" for row in discriminate)
+          assert all(row["current_minimax_policy_ids"] == "maintain" for row in discriminate)
+          assert all(row["current_minimax_regret"] == "20.000000" for row in discriminate)
+          assert all(row["model_pairs_separated"] == "1" and row["model_pairs_total"] == "1" for row in discriminate)
+          assert all(row["worst_case_post_experiment_regret"] == "0.000000" for row in discriminate)
+          assert all(row["worst_case_regret_reduction"] == "20.000000" for row in discriminate)
+          assert all(row["recommended_experiment_id"] == "discriminate" for row in discriminate)
+          source = next(row for row in discriminate if row["model_id"] == "source")
+          target = next(row for row in discriminate if row["model_id"] == "alternative")
+          assert source["predicted_outcome_id"] == "no-breach"
+          assert source["partition_minimax_policy_ids"] == "expand"
+          assert target["predicted_outcome_id"] == "water-breach"
+          assert target["partition_minimax_policy_ids"] == "conserve"
+
+          uninformative = experiments["uninformative"]
+          assert all(row["model_pairs_separated"] == "0" for row in uninformative)
+          assert all(row["worst_case_post_experiment_regret"] == "20.000000" for row in uninformative)
+          assert all(row["worst_case_regret_reduction"] == "0.000000" for row in uninformative)
+          assert all(row["recommended_experiment_id"] == "discriminate" for row in uninformative)
+
+          over_budget = experiments["over-budget"]
+          assert all(row["status"] == "over_budget" and row["affordable"] == "false" for row in over_budget)
+          assert all(row["worst_case_regret_reduction"] == "20.000000" for row in over_budget)
+          assert all(row["recommended_experiment_id"] == "discriminate" for row in over_budget)
+
+          for row in rows:
+              assert row["cost_unit"] == "analyst_hours"
+              assert row["maximum_experiment_cost"] == "20.000000"
+              assert row["objective_id"] == "essential-service-coverage"
+              assert row["measurement_unit"] == "service_units"
+              assert row["direction"] == "maximize"
+              assert row["model_digest"]
+              assert row["model_adequacy_receipt_digest"]
+              assert row["prediction_receipt_digest"]
+              assert row["protocol_digest"]
+              assert row["model_adequacy_role"] in {"validation", "challenge"}
+          print("Decision-VOI CSV valid: no model priors, discrimination distinguished from decision value, worst-case regret reduction, budget gate and exact prediction lineage.")
+          PY

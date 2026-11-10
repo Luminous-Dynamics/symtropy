@@ -17,6 +17,7 @@ pub mod model_adequacy;
 pub mod noisy_causal_drift;
 pub mod policy_sensitivity;
 pub mod decision_criticality;
+pub mod decision_voi;
 pub mod sequential_methods;
 
 use civdyn_resource_ledger::{
