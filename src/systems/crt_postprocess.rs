@@ -97,11 +97,10 @@ pub fn crt_settings_sync_system(
 // 6. Registration in Core2d graph between Node2d::Bloom and Node2d::Tonemapping
 //
 // This is ~300 lines of render-world boilerplate that mirrors the
-// EffectStackPlugin in bevy_post_process. The WGSL shader is ready
-// (assets/shaders/crt_consciousness.wgsl) — only the Rust wiring is needed.
+// EffectStackPlugin in bevy_post_process. The WESL shader source is available at
+// assets/shaders/crt_consciousness.wesl; the render-node integration remains unimplemented.
 //
-// For Bevy 0.19+: use FullscreenMaterialPlugin<CrtConsciousnessMaterial>
-// which eliminates all this boilerplate.
+// A future fullscreen-material integration should be implemented and tested against Bevy 0.20.
 //
 // For now, the existing consciousness-driven ChromaticAberration + Bloom +
 // ClearColor vignette + camera shake provide 70% of the CRT effect. The
