@@ -33,7 +33,13 @@
     "arer_metarl_locked_joint_simulation_stratum",
     "active_diagnosis_gated_recovery_ssrn_exploratory",
     "symtropy_set_valued_fault_and_viability_gated_reconfiguration",
-    "oracle_fault_label_upper_bound_only"
+    "oracle_fault_label_upper_bound_only",
+    "lo_composition_task_constraint_energy_separation_go2",
+    "anticipatory_gait_switching_lookahead_mdp_go2",
+    "reference_free_sampling_mppi_go2",
+    "insectron_passive_magnetic_overload_clutch_microhexapod",
+    "psc_safety_curriculum_training_allocation_only",
+    "ued_cross_morphology_heldout_curriculum"
   ],
   "scenarios": [
     {
@@ -706,6 +712,161 @@
         "body_pose"
       ],
       "expected_gate": "mode_must_not_be_marked_recovered_without_valid_coupling_and_phase_receipt"
+    },
+    {
+      "id": "F22-thermal-derating-slope-payload-lookahead",
+      "split": "heldout_fault",
+      "platform_stratum": "go2_with_arm",
+      "faults": [
+        {
+          "component": "FR_hip",
+          "family": "actuator",
+          "type": "thermal_derating",
+          "parameters": {
+            "temperature_start_mdeg_c": 68000,
+            "temperature_end_mdeg_c": 92000,
+            "authority_start_ppm": 1000000,
+            "authority_end_ppm": 420000,
+            "ramp_duration_ms": 9000
+          }
+        },
+        {
+          "component": "payload_centre_of_mass",
+          "family": "environment",
+          "type": "payload_shift",
+          "parameters": {
+            "payload_kg": 4,
+            "com_offset_mm": [
+              80,
+              0,
+              35
+            ]
+          }
+        }
+      ],
+      "onset": {
+        "time_ms": 14000,
+        "gait_phase": "late_stance"
+      },
+      "terrain": "slope_to_rough_stair_transition",
+      "task": "walk_and_carry",
+      "payload_kg": 4,
+      "runtime_channels": [
+        "joint_position",
+        "joint_velocity",
+        "motor_current",
+        "joint_temperature",
+        "imu",
+        "height_map"
+      ],
+      "expected_gate": "retain_fault_uncertainty; gait_lookahead_may_propose_but_only_viability_and_fresh_actuator_evidence_authorize_reconfiguration",
+      "matched_methods": [
+        "adaptive_gait_timing_arxiv_2608_07328",
+        "lo_composition_task_constraint_energy_separation_go2",
+        "anticipatory_gait_switching_lookahead_mdp_go2",
+        "symtropy_set_valued_fault_and_viability_gated_reconfiguration"
+      ]
+    },
+    {
+      "id": "F23-passive-clutch-plus-active-controller",
+      "split": "heldout_fault",
+      "platform_stratum": "microhexapod_mechanical_coupling",
+      "faults": [
+        {
+          "component": "FR_leg_magnetic_coupler",
+          "family": "mechanical_transmission",
+          "type": "overload_slip",
+          "parameters": {
+            "nominal_torque_mNm": 12,
+            "slip_threshold_mNm": 20,
+            "load_pulse_peak_mNm": 28,
+            "pulse_duration_ms": 180
+          }
+        },
+        {
+          "component": "shared_drive_module_coupler",
+          "family": "mechanical_transmission",
+          "type": "nuisance_slip_under_nominal_load",
+          "parameters": {
+            "nominal_torque_mNm": 18,
+            "slip_threshold_mNm": 17,
+            "terrain": "flat",
+            "task_load_class": "nominal"
+          }
+        }
+      ],
+      "onset": {
+        "time_ms": 5000,
+        "gait_phase": "push_off"
+      },
+      "terrain": "mixed_slope_and_compliant_substrate",
+      "task": "walk_and_turn",
+      "payload_kg": 0,
+      "runtime_channels": [
+        "hall_coupler_state",
+        "motor_phase",
+        "joint_position",
+        "body_imu"
+      ],
+      "expected_gate": "compare_passive_only_active_only_and_combined_mechanical_control_arms; require_reengagement_and_phase_receipt_before_recoverable_status",
+      "matched_methods": [
+        "insectron_passive_magnetic_overload_clutch_microhexapod",
+        "symtropy_set_valued_fault_and_viability_gated_reconfiguration"
+      ]
+    },
+    {
+      "id": "F24-unknown-fault-hidden-from-encoder",
+      "split": "adversarial",
+      "platform_stratum": "go2_locomotion",
+      "faults": [
+        {
+          "component": "FR_calf_drive",
+          "family": "actuator",
+          "type": "unmodelled_phase_current_fault",
+          "parameters": {
+            "current_waveform_digest": "evaluator-only",
+            "torque_ripple_ppm": 280000
+          }
+        },
+        {
+          "component": "FR_calf_encoder",
+          "family": "sensor",
+          "type": "position_bias",
+          "parameters": {
+            "offset_mdeg": 5000,
+            "profile": "ramp"
+          }
+        }
+      ],
+      "onset": {
+        "time_ms": 7000,
+        "gait_phase": "touchdown"
+      },
+      "terrain": "low_friction_staggered_blocks",
+      "task": "walk_and_stop",
+      "payload_kg": 0,
+      "runtime_channels": [
+        "joint_position",
+        "joint_velocity",
+        "motor_current",
+        "imu",
+        "contact_wrench"
+      ],
+      "expected_gate": "unmodelled_fault_stays_unknown; no_nearest_class_substitution; robust_action_intersection_or_controlled_stop",
+      "matched_methods": [
+        "residual_observer_plus_fixed_compensator",
+        "diagnosis_conditioned_moe_arxiv_2606_25965",
+        "symtropy_set_valued_fault_and_viability_gated_reconfiguration"
+      ]
     }
-  ]
+  ],
+  "comparator_roles": {
+    "arer_metarl_locked_joint_simulation_stratum": "Fault adaptation baseline only for fixed-angle locked joints in Isaac Sim; do not extrapolate to other fault families.",
+    "lo_composition_task_constraint_energy_separation_go2": "Separate task reward, operational constraints, energy minimization and terrain adaptation; not a fault detector.",
+    "anticipatory_gait_switching_lookahead_mdp_go2": "Look-ahead gait supervisor baseline for terrain transitions; not a fault detector or viability certificate.",
+    "reference_free_sampling_mppi_go2": "Gait/contact replanning baseline without handcrafted gait schedules; keep hardware and simulation behaviors separate.",
+    "insectron_passive_magnetic_overload_clutch_microhexapod": "Passive mechanical overload adaptation, kept in its own morphology/scale stratum.",
+    "psc_safety_curriculum_training_allocation_only": "Training/diagnostic-case allocation method, not an online fault-tolerant controller.",
+    "ued_cross_morphology_heldout_curriculum": "Training-distribution and held-out terrain curriculum benchmark, not a fault model."
+  }
 }
