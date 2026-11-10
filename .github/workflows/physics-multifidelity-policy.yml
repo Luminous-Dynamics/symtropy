@@ -1,0 +1,69 @@
+name: Physics Multi-Fidelity Policy
+
+on:
+  push:
+    branches: ["research/physics-multifidelity-policy-v0"]
+    paths:
+      - "research/physics-multifidelity-policy/**"
+      - ".github/workflows/physics-multifidelity-policy.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "research/physics-multifidelity-policy/**"
+      - ".github/workflows/physics-multifidelity-policy.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: physics-fidelity-policy-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  policy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Install pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.96.0 --profile minimal --component clippy --component rustfmt
+          rustc +1.96.0 --version
+          cargo +1.96.0 --version
+
+      - name: Check formatting
+        run: cargo +1.96.0 fmt --manifest-path research/physics-multifidelity-policy/Cargo.toml -- --check
+
+      - name: Run policy unit tests
+        run: cargo +1.96.0 test --manifest-path research/physics-multifidelity-policy/Cargo.toml
+
+      - name: Run strict Clippy
+        run: cargo +1.96.0 clippy --manifest-path research/physics-multifidelity-policy/Cargo.toml --all-targets -- -D warnings
+
+      - name: Generate deterministic known-answer receipts
+        shell: bash
+        run: |
+          set -euo pipefail
+          package="research/physics-multifidelity-policy"
+          mkdir -p "$package/target/receipts"
+          cargo +1.96.0 run --quiet --manifest-path "$package/Cargo.toml" -- \
+            "$package/fixtures/rigid-contact-known-answer.json" \
+            > "$package/target/receipts/first.json"
+          cargo +1.96.0 run --quiet --manifest-path "$package/Cargo.toml" -- \
+            "$package/fixtures/rigid-contact-known-answer.json" \
+            > "$package/target/receipts/second.json"
+          cmp "$package/target/receipts/first.json" "$package/target/receipts/second.json"
+          grep -q '"model_id": "native-fast-profile"' "$package/target/receipts/first.json"
+          grep -q '"claim_ceiling":' "$package/target/receipts/first.json"
+          sha256sum "$package/target/receipts/first.json" | tee "$package/target/receipts/receipt.sha256"
+
+      - name: Preserve known-answer receipt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: physics-fidelity-policy-receipt-${{ github.sha }}
+          path: research/physics-multifidelity-policy/target/receipts/
+          if-no-files-found: warn
+          retention-days: 30
