@@ -360,8 +360,8 @@ fn view_covers_probe(view: &VisibilityView, point: Point3) -> Result<Option<(Vec
     }
     if distance <= INTERSECTION_EPSILON_M {
         return Err(format!(
-            "view {} origin coincides with visibility probe {}",
-            view.view_id, point.x
+            "view {} origin coincides with a visibility probe",
+            view.view_id
         ));
     }
     if distance > view.max_range_m {
@@ -886,7 +886,7 @@ pub fn derive_surface_visibility(
         let visibility = aggregate_probe_visibility(&per_view);
         let totals = surface_totals
             .entry(probe.surface_id.clone())
-            .or_insert([0.0; 7]);
+            .or_insert([0.0; 8]);
         let index = match visibility {
             SurfaceVisibility::Observable => 0,
             SurfaceVisibility::Backface => 1,
