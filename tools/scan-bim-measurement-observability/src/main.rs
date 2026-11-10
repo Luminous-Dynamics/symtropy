@@ -701,13 +701,18 @@ mod tests {
 
     #[test]
     fn closed_schema_rejects_unknown_fields() {
-        let injected = FIXTURE.replace(
-            "\\"corpus_id\\":",
-            "\\"unexpected_field\\": true, \\"corpus_id\\":",
-        );
-        assert!(serde_json::from_str::<Corpus>(&injected).is_err());
+        let mut value: serde_json::Value =
+            serde_json::from_str(FIXTURE).expect("fixture JSON parses");
+        value
+            .as_object_mut()
+            .expect("corpus root is an object")
+            .insert(
+                "unexpected_field".to_owned(),
+                serde_json::Value::Bool(true),
+            );
+        let encoded = serde_json::to_vec(&value).expect("mutated JSON serializes");
+        assert!(serde_json::from_slice::<Corpus>(&encoded).is_err());
     }
-
     #[test]
     fn unsupported_sensor_domain_cannot_pass() {
         let mut corpus = fixture();
