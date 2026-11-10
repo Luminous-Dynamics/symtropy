@@ -868,5 +868,24 @@
     "insectron_passive_magnetic_overload_clutch_microhexapod": "Passive mechanical overload adaptation, kept in its own morphology/scale stratum.",
     "psc_safety_curriculum_training_allocation_only": "Training/diagnostic-case allocation method, not an online fault-tolerant controller.",
     "ued_cross_morphology_heldout_curriculum": "Training-distribution and held-out terrain curriculum benchmark, not a fault model."
+  },
+  "standardized_performance_profile": {
+    "standard_id": "ISO 18646-5:2026",
+    "publication_date": "2026-07-24",
+    "official_record": "https://committee.iso.org/cms/live/live/en/sites/isoorg/contents/data/standard/08/68/86850.html",
+    "applies_to": "complete-machine nominal and fault-degraded performance test pairs where the test item is applicable",
+    "test_items": [
+      "rated_speed",
+      "stopping_distance",
+      "maximum_climbing_height",
+      "stair_capacity",
+      "maximum_slope",
+      "dragging_force",
+      "crossing_capacity",
+      "minimum_pass_through_height",
+      "minimum_travel_width"
+    ],
+    "trial_binding": "Bind the test facility, environmental/surface conditions, operating conditions, robot configuration, load, command, route, and fault state for the before/after pair.",
+    "claim_boundary": "This standard evaluates locomotion performance and does not verify or validate safety requirements. Robust viability/recovery and adverse-outcome evidence remain separate."
   }
 }
