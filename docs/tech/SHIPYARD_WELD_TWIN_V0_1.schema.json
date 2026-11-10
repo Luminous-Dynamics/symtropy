@@ -79,7 +79,8 @@
         "effectivity_end_utc",
         "material_record_lot",
         "required_procedure_scope",
-        "required_process_scope"
+        "required_process_scope",
+        "required_operator_scope"
       ],
       "properties": {
         "asset_id": {
@@ -151,6 +152,10 @@
           "minLength": 1
         },
         "required_process_scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "required_operator_scope": {
           "type": "string",
           "minLength": 1
         }
