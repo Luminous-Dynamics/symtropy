@@ -38,7 +38,7 @@ No model family is presumed best. Compare predictive error, uncertainty coverage
 
 ## Reference-source inventory
 
-The v0.1 inventory deliberately distinguishes discoverable literature from admissible numerical datasets. The 2022 S355J2+N buried-arc paper is a rights-cleared literature artifact only; its raw measurement file is not available and it remains non-scoring.
+The v0.1 inventory deliberately distinguishes discoverable literature from admissible numerical datasets. The S460G2+M multipass GMAW study is a high-relevance metadata-only/rights-pending candidate: its abstract reports 8% TMM and 12% inherent-strain distortion errors, but the accessible record does not supply an admitted measurement corpus or enough information for cross-study scoring. The 2022 S355J2+N buried-arc paper is a rights-cleared literature artifact only; its raw measurement file is not available and it remains non-scoring.
 
 | Candidate | Known evidence | Initial state | Admission requirement |
 |---|---|---|---|
@@ -176,3 +176,8 @@ The article also states that the model's predicted 3929 °C local weld-pool peak
 **ISO/AWI 23247-8** (approved work item; under development) addresses manufacturing digital-twin verification, validation and uncertainty quantification across requirements, development, commissioning, operation, maintenance and decommissioning. ISO records that it was approved and registered in the TC/SC work programme on **23 October 2026**. It is not a published International Standard and this benchmark must not claim conformance. We should align our reporting structure to its lifecycle scope while preserving our own explicit separation of code verification, solution verification, physical validation, uncertainty, context-of-use and decision/authority claims.
 
 Official ISO record: https://committee.iso.org/standard/94858.html
+
+
+## High-strength offshore steel multipass GMAW candidate — 2026-11-10
+
+Added Busari et al. (2022), *Experimental validation on multi-pass weld distortion behavior of structural offshore steel HSLA S460 using FE-based inherent strain and thermo-mechanical method*, MRS Communications 12(1), 104–111, DOI https://doi.org/10.1557/s43579-021-00148-3. The accessible institutional record describes multi-pass GMAW on S460G2+M and reports study-specific distortion error ranges of 8% for the thermo-mechanical method and 12% for inherent strain. This is an especially relevant method comparator for shipyard high-strength steel, but the abstract does not establish a cross-study metric denominator, specimen/release equivalence or raw data access. The publisher record indicates an exclusive licence to the Materials Research Society; rights and numerical admission therefore remain pending. WPHYS-028 blocks direct leaderboard use of these percentages until the exact output definition, conditions, uncertainty and reusable data are admitted.
