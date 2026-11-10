@@ -56,6 +56,9 @@ jobs:
             (.calibration.minimum_independent_episodes["900000"] == 9) and
             (.calibration.minimum_independent_episodes["950000"] == 19) and
             (.calibration.minimum_independent_episodes["990000"] == 99)
+            and (.inverse_identifiability_protocol.local_sensitivity | contains("dimensionless"))
+            and (.inverse_identifiability_protocol.caution | contains("not proof of global uniqueness"))
+            and (.operational_metric_definitions.false_unique_root_cause_rate | contains("multiple components"))
           ' benchmarks/maritime-control-response/tournament-v0.1.json >/dev/null
 
       - name: Validate formatting
