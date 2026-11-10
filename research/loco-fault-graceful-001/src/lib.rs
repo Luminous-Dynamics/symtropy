@@ -78,6 +78,8 @@ pub struct FaultAdmission {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AdmissionReceipt {
     pub receipt_id: String,
+    pub action_id: String,
+    pub physical_fault_set_digest: String,
     pub state_digest: String,
     pub model_digest: String,
     pub abstraction_digest: String,
@@ -93,6 +95,7 @@ pub struct ActionDecision {
     pub observed_at_ns: u64,
     pub current_state_digest: String,
     pub action_id: String,
+    pub physical_fault_set_digest: String,
     pub selected: bool,
     pub physically_possible_fault_ids: Vec<String>,
     /// Must contain one result for each physically possible fault hypothesis.
@@ -265,11 +268,17 @@ fn is_safe_terminal(disposition: TerminalDisposition) -> bool {
 fn receipt_is_valid(
     receipt: &AdmissionReceipt,
     identity: &EpisodeIdentity,
+    action_id: &str,
+    physical_fault_set_digest: &str,
     state_digest: &str,
     at_ns: u64,
 ) -> bool {
     nonempty(&receipt.receipt_id)
         && nonempty(&receipt.result_digest)
+        && nonempty(&receipt.action_id)
+        && nonempty(&receipt.physical_fault_set_digest)
+        && receipt.action_id == action_id
+        && receipt.physical_fault_set_digest == physical_fault_set_digest
         && receipt.valid_from_ns <= receipt.valid_until_ns
         && at_ns >= receipt.valid_from_ns
         && at_ns <= receipt.valid_until_ns
@@ -305,7 +314,9 @@ fn evaluate_action_decision(
     if !nonempty(&decision.action_id) {
         return Err(FaultEpisodeError::MissingActionIdentity);
     }
-    if !nonempty(&decision.current_state_digest) {
+    if !nonempty(&decision.current_state_digest)
+        || !nonempty(&decision.physical_fault_set_digest)
+    {
         return Err(FaultEpisodeError::EmptyIdentifier);
     }
     if decision.physically_possible_fault_ids.is_empty() {
@@ -358,6 +369,8 @@ fn evaluate_action_decision(
     if !receipt_is_valid(
         &decision.receipt,
         &episode.identity,
+        &decision.action_id,
+        &decision.physical_fault_set_digest,
         &decision.current_state_digest,
         decision.observed_at_ns,
     ) {
@@ -636,6 +649,8 @@ mod tests {
     fn receipt() -> AdmissionReceipt {
         AdmissionReceipt {
             receipt_id: "receipt-001".to_owned(),
+            action_id: "safe-hold".to_owned(),
+            physical_fault_set_digest: "fault-set-v1".to_owned(),
             state_digest: "state-v1".to_owned(),
             model_digest: "model-v1".to_owned(),
             abstraction_digest: "abstraction-v1".to_owned(),
@@ -686,6 +701,7 @@ mod tests {
                 observed_at_ns: 160,
                 current_state_digest: "state-v1".to_owned(),
                 action_id: "safe-hold".to_owned(),
+                physical_fault_set_digest: "fault-set-v1".to_owned(),
                 selected: true,
                 physically_possible_fault_ids: vec![
                     "joint-locked".to_owned(),
@@ -799,6 +815,26 @@ mod tests {
             &GateViolation::InvalidOrStaleReceipt { at_ns: 160 }
         ));
         assert!(!report.operational_outcome_qualified);
+    }
+
+    #[test]
+    fn receipt_cannot_be_replayed_for_a_different_action() {
+        let mut episode = base_episode();
+        episode.action_decisions[0].action_id = "walk".to_owned();
+        let report = audit_fault_episode(&episode).expect("report");
+        assert!(report
+            .gate_violations
+            .contains(&GateViolation::InvalidOrStaleReceipt { at_ns: 160 }));
+    }
+
+    #[test]
+    fn receipt_cannot_be_replayed_for_a_different_physical_fault_set() {
+        let mut episode = base_episode();
+        episode.action_decisions[0].physical_fault_set_digest = "fault-set-v2".to_owned();
+        let report = audit_fault_episode(&episode).expect("report");
+        assert!(report
+            .gate_violations
+            .contains(&GateViolation::InvalidOrStaleReceipt { at_ns: 160 }));
     }
 
     #[test]
