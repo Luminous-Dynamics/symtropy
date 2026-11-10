@@ -42,7 +42,14 @@ A late, stale, dropped or unsupported query cannot change the tick-2 decision. A
 
 ## File validation
 
-Validate the fixture against `analytic_three_arm_fixture.schema.json` using a Draft 2020-12 JSON Schema validator. The schema checks structure and basic typing; a semantic validator must additionally check exact action-domain coverage, hypothesis references, receipt/class consistency, outcome coverage and the expected set calculations.
+The fixture schema declares JSON Schema Draft 2020-12. The repository also includes a dependency-free SAM-specific semantic validator and mutation tests:
+
+```bash
+python -m unittest discover -s tools/road-option-fixture-validator/tests -v
+python tools/road-option-fixture-validator/validate_fixture.py
+```
+
+The semantic validator checks exact action-domain coverage, hypothesis references, receipt/class consistency, outcome coverage, request/delivery/deadline timing, non-timely query rejection and the expected lower/upper/clairvoyant set calculations. It is a test-only Python standard-library tool, not a production SAM component or general JSON Schema engine.
 
 Receipt identifiers in this fixture are symbolic IDs, not cryptographic digests or independently authenticated evidence.
 
