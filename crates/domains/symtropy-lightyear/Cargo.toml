@@ -6,7 +6,7 @@ license = "AGPL-3.0-or-later"
 description = "Lightyear integration for Symtropy — prediction, rollback, interpolation over Iroh QUIC"
 
 [dependencies]
-# Lightyear netcode. Must stay >= 0.28 (first release supporting bevy 0.19,
+# Lightyear netcode. Must stay >= 0.31 (first release supporting Bevy 0.20,
 # per lightyear's own compat table) -- 0.26 pulled in bevy_render/bevy_shader
 # 0.18.1, which transitively requires naga 27.0.3, a version with a real
 # upstream bug (WriteColor not satisfied for String; gfx-rs/wgpu#7968,
@@ -14,10 +14,10 @@ description = "Lightyear integration for Symtropy — prediction, rollback, inte
 # See SYMTROPY_IMPROVEMENT_PLAN_2026-07-21.md P3.2.
 lightyear = "0.28"
 
-# Bevy sub-crates (all on Symtropy's Bevy 0.19)
-bevy_app = "0.19"
-bevy_ecs = "0.19"
-bevy_log = "0.19"
+# Bevy sub-crates (all on Symtropy's Bevy 0.20)
+bevy_app = "0.20"
+bevy_ecs = "0.20"
+bevy_log = "0.20"
 
 # Symtropy crates
 symtropy-net = { path = "../../domains/symtropy-net" }
@@ -31,4 +31,4 @@ serde = { version = "1", features = ["derive"] }
 
 # Bytes for Link buffers
 bytes = "1"
-bevy_reflect = "0.19"
+bevy_reflect = "0.20"
