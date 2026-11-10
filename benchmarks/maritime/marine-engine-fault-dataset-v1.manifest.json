@@ -67,7 +67,121 @@
       "md5_verified_against_downloaded_payload": false,
       "sha256": null,
       "sha256_verified": false,
-      "downloaded": false
+      "downloaded": false,
+      "preview_url": "https://zenodo.org/records/19857425/preview/Marine_Engine_Fault_Data_v1.zip?include_deleted=0",
+      "preview_tree_verified": true,
+      "file_inventory": [
+        {
+          "path": "Marine_Engine_Fault_Data/AC_Fouling/AC_Fouling_40_Load.csv",
+          "reported_size": "3.4 MB",
+          "role": "scenario_csv"
+        },
+        {
+          "path": "Marine_Engine_Fault_Data/AC_Fouling/AC_Fouling_60_Load.csv",
+          "reported_size": "4.8 MB",
+          "role": "scenario_csv"
+        },
+        {
+          "path": "Marine_Engine_Fault_Data/AC_Fouling/AC_Fouling_75_Load.csv",
+          "reported_size": "4.6 MB",
+          "role": "scenario_csv"
+        },
+        {
+          "path": "Marine_Engine_Fault_Data/AC_Fouling/AC_Fouling_85_Load.csv",
+          "reported_size": "4.1 MB",
+          "role": "scenario_csv"
+        },
+        {
+          "path": "Marine_Engine_Fault_Data/AF_Clogging/AF_Clogging_40_Load.csv",
+          "reported_size": "3.5 MB",
+          "role": "scenario_csv"
+        },
+        {
+          "path": "Marine_Engine_Fault_Data/AF_Clogging/AF_Clogging_60_Load.csv",
+          "reported_size": "4.9 MB",
+          "role": "scenario_csv"
+        },
+        {
+          "path": "Marine_Engine_Fault_Data/AF_Clogging/AF_Clogging_75_Load.csv",
+          "reported_size": "4.3 MB",
+          "role": "scenario_csv"
+        },
+        {
+          "path": "Marine_Engine_Fault_Data/AF_Clogging/AF_Clogging_85_Load.csv",
+          "reported_size": "5.7 MB",
+          "role": "scenario_csv"
+        },
+        {
+          "path": "Marine_Engine_Fault_Data/Injector_Nozzle/Clogged_Injector_Nozzle1_40_60_85_Load.csv",
+          "reported_size": "4.5 MB",
+          "role": "scenario_csv"
+        },
+        {
+          "path": "Marine_Engine_Fault_Data/Injector_Nozzle/Clogged_Injector_Nozzle2_LoadProgram.csv",
+          "reported_size": "4.8 MB",
+          "role": "scenario_csv"
+        },
+        {
+          "path": "Marine_Engine_Fault_Data/Pump_Cavitation/CW_Pump_Cavitation_60_Load.csv",
+          "reported_size": "4.1 MB",
+          "role": "scenario_csv"
+        },
+        {
+          "path": "Marine_Engine_Fault_Data/Pump_Cavitation/CW_Pump_Cavitation_85_Load.csv",
+          "reported_size": "4.4 MB",
+          "role": "scenario_csv"
+        },
+        {
+          "path": "Marine_Engine_Fault_Data/Turbine_Degradation/Turbine_Degradation_40_Load.csv",
+          "reported_size": "4.6 MB",
+          "role": "scenario_csv"
+        },
+        {
+          "path": "Marine_Engine_Fault_Data/Turbine_Degradation/Turbine_Degradation_60_Load.csv",
+          "reported_size": "3.5 MB",
+          "role": "scenario_csv"
+        },
+        {
+          "path": "Marine_Engine_Fault_Data/Turbine_Degradation/Turbine_Degradation_85_Load.csv",
+          "reported_size": "3.8 MB",
+          "role": "scenario_csv"
+        },
+        {
+          "path": "Marine_Engine_Fault_Data/Reference_Data.csv",
+          "reported_size": "14.8 MB",
+          "role": "baseline_csv"
+        },
+        {
+          "path": "Marine_Engine_Fault_Data/CITATION.cff",
+          "reported_size": "2.8 kB",
+          "role": "metadata"
+        },
+        {
+          "path": "Marine_Engine_Fault_Data/LICENSE",
+          "reported_size": "1.5 kB",
+          "role": "license"
+        },
+        {
+          "path": "Marine_Engine_Fault_Data/README.md",
+          "reported_size": "8.5 kB",
+          "role": "metadata"
+        },
+        {
+          "path": "Marine_Engine_Fault_Data/dataset_index.csv",
+          "reported_size": "3.8 kB",
+          "role": "metadata"
+        },
+        {
+          "path": "Marine_Engine_Fault_Data/provenance/normalize.py",
+          "reported_size": "3.2 kB",
+          "role": "metadata"
+        },
+        {
+          "path": "Marine_Engine_Fault_Data/variable_dictionary.csv",
+          "reported_size": "7.7 kB",
+          "role": "metadata"
+        }
+      ]
     }
   },
   "fault_scenarios": [
@@ -126,7 +240,7 @@
   ],
   "evaluation_constraints": {
     "raw_dataset_committed": false,
-    "archive_payload_audit_status": "not_downloaded",
+    "archive_payload_audit_status": "not_downloaded; Zenodo archive preview tree inspected only",
     "channel_dictionary_audit_status": "not_inspected",
     "file_index_audit_status": "not_inspected",
     "no_row_random_split": true,
