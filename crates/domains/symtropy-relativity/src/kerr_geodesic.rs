@@ -804,6 +804,92 @@ impl KerrSeparatedNullGeodesic {
         Ok(derivative)
     }
 
+
+    /// Evaluate the second-order Mino system in horizon-regular ingoing Kerr
+    /// coordinates (v/M,r/M,theta,phi_tilde).
+    ///
+    /// For future-ingoing rays (dr/dgamma <= 0), the potentially singular
+    /// combinations are rationalized using
+    /// (P + dr/dgamma)/Delta = [Q+(L-aE)^2]/[P-dr/dgamma].
+    /// This remains finite at the future horizon when the horizon-generator
+    /// energy P is positive. Outgoing rays retain the direct expression and
+    /// do not cross the future horizon in this chart.
+    pub fn mino_dynamic_derivative_ingoing(
+        self,
+        state: KerrMinoDynamicState,
+    ) -> Result<KerrMinoDynamicDerivative, KerrGeodesicError> {
+        let coordinates = state.coordinates;
+        for (name, value) in [
+            ("ingoing_time_over_m", coordinates.time_over_m),
+            ("radius_over_m", coordinates.radius_over_m),
+            ("theta_rad", coordinates.theta_rad),
+            ("ingoing_azimuth_rad", coordinates.azimuth_rad),
+            ("radial_velocity_over_m", state.radial_velocity_over_m),
+            ("polar_velocity_rad", state.polar_velocity_rad),
+        ] {
+            if !value.is_finite() {
+                return Err(KerrGeodesicError::NonFinite(name));
+            }
+        }
+        validate_polar_angle(coordinates.theta_rad)?;
+        let r = coordinates.radius_over_m;
+        if r <= 0.0 {
+            return Err(KerrGeodesicError::InvalidRadius(r));
+        }
+        let theta = coordinates.theta_rad;
+        let a = self.hole.spin().get();
+        let delta = r * r - 2.0 * r + a * a;
+        let radial_acceleration = 0.5 * self.radial_potential_derivative(r)?;
+        let polar_acceleration = 0.5 * self.constants.polar_potential_derivative(a, theta)?;
+        let energy = self.constants.energy;
+        let angular_momentum = self.constants.angular_momentum_z_over_m;
+        let sin_theta = theta.sin();
+        let sin_squared = sin_theta * sin_theta;
+        let p = energy * (r * r + a * a) - a * angular_momentum;
+        let angular_term =
+            self.constants.carter_constant_over_m2 + (angular_momentum - a * energy).powi(2);
+        let radial_velocity = state.radial_velocity_over_m;
+        let ratio = if radial_velocity <= 0.0 {
+            let denominator = p - radial_velocity;
+            if !denominator.is_finite() || denominator <= 0.0 {
+                return Err(KerrGeodesicError::NoRegularIngoingBranch { p_plus: denominator });
+            }
+            angular_term / denominator
+        } else {
+            if !delta.is_finite() || delta <= 0.0 {
+                return Err(KerrGeodesicError::NoRegularIngoingBranch {
+                    p_plus: p + radial_velocity,
+                });
+            }
+            (p + radial_velocity) / delta
+        };
+        let d_time = a * (angular_momentum - a * energy * sin_squared)
+            + (r * r + a * a) * ratio;
+        let d_azimuth = angular_momentum / sin_squared - a * energy + a * ratio;
+        let derivative = KerrMinoDynamicDerivative {
+            d_time_over_m: d_time,
+            d_radius_over_m: radial_velocity,
+            d_radial_velocity_over_m: radial_acceleration,
+            d_theta_rad: state.polar_velocity_rad,
+            d_polar_velocity_rad: polar_acceleration,
+            d_azimuth_rad: d_azimuth,
+        };
+        if [
+            derivative.d_time_over_m,
+            derivative.d_radius_over_m,
+            derivative.d_radial_velocity_over_m,
+            derivative.d_theta_rad,
+            derivative.d_polar_velocity_rad,
+            derivative.d_azimuth_rad,
+        ]
+        .iter()
+        .any(|value| !value.is_finite())
+        {
+            return Err(KerrGeodesicError::NonFinite("ingoing_mino_dynamic_derivative"));
+        }
+        Ok(derivative)
+    }
+
     /// Evaluate the radial/polar first-integral residuals for a dynamic state.
     pub fn mino_constraint_residuals(
         self,
@@ -1274,6 +1360,12 @@ impl fmt::Display for KerrMinoIntegrationError {
 
 impl std::error::Error for KerrMinoIntegrationError {}
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum KerrMinoChart {
+    BoyerLindquist,
+    Ingoing,
+}
+
 #[derive(Debug, Clone, Copy)]
 struct MinoVector([f64; 6]);
 
@@ -1307,8 +1399,16 @@ impl MinoVector {
 }
 
 impl KerrSeparatedNullGeodesic {
-    fn mino_vector_field(self, state: MinoVector) -> Result<MinoVector, KerrGeodesicError> {
-        let derivative = self.mino_dynamic_derivative(state.into_state())?;
+    fn mino_vector_field(
+        self,
+        state: MinoVector,
+        chart: KerrMinoChart,
+    ) -> Result<MinoVector, KerrGeodesicError> {
+        let dynamic_state = state.into_state();
+        let derivative = match chart {
+            KerrMinoChart::BoyerLindquist => self.mino_dynamic_derivative(dynamic_state)?,
+            KerrMinoChart::Ingoing => self.mino_dynamic_derivative_ingoing(dynamic_state)?,
+        };
         Ok(MinoVector([
             derivative.d_time_over_m,
             derivative.d_radius_over_m,
@@ -1323,11 +1423,12 @@ impl KerrSeparatedNullGeodesic {
         self,
         state: MinoVector,
         step: f64,
+        chart: KerrMinoChart,
     ) -> Result<MinoVector, KerrGeodesicError> {
-        let k1 = self.mino_vector_field(state)?;
-        let k2 = self.mino_vector_field(state.add_scaled(k1, 0.5 * step))?;
-        let k3 = self.mino_vector_field(state.add_scaled(k2, 0.5 * step))?;
-        let k4 = self.mino_vector_field(state.add_scaled(k3, step))?;
+        let k1 = self.mino_vector_field(state, chart)?;
+        let k2 = self.mino_vector_field(state.add_scaled(k1, 0.5 * step), chart)?;
+        let k3 = self.mino_vector_field(state.add_scaled(k2, 0.5 * step), chart)?;
+        let k4 = self.mino_vector_field(state.add_scaled(k3, step), chart)?;
         let mut result = state;
         for index in 0..6 {
             result.0[index] += step
@@ -1347,11 +1448,44 @@ impl KerrSeparatedNullGeodesic {
     /// control also enforces a normalized bound on both separated first
     /// integrals, so the solver cannot claim a qualified null ray merely
     /// because the coordinate error estimate is small.
+    /// Integrate an exterior trajectory in Boyer–Lindquist coordinates.
     pub fn integrate_adaptive(
         self,
         initial: KerrMinoDynamicState,
         final_parameter: f64,
         config: KerrMinoIntegrationConfig,
+    ) -> Result<KerrMinoTrajectory, KerrMinoIntegrationError> {
+        self.integrate_adaptive_in_chart(
+            initial,
+            final_parameter,
+            config,
+            KerrMinoChart::BoyerLindquist,
+        )
+    }
+
+    /// Integrate a future-ingoing ray in horizon-regular ingoing Kerr
+    /// coordinates. The trajectory may cross the outer horizon, but remains
+    /// restricted to r>0 and 0<theta<pi.
+    pub fn integrate_adaptive_ingoing(
+        self,
+        initial: KerrMinoDynamicState,
+        final_parameter: f64,
+        config: KerrMinoIntegrationConfig,
+    ) -> Result<KerrMinoTrajectory, KerrMinoIntegrationError> {
+        self.integrate_adaptive_in_chart(
+            initial,
+            final_parameter,
+            config,
+            KerrMinoChart::Ingoing,
+        )
+    }
+
+    fn integrate_adaptive_in_chart(
+        self,
+        initial: KerrMinoDynamicState,
+        final_parameter: f64,
+        config: KerrMinoIntegrationConfig,
+        chart: KerrMinoChart,
     ) -> Result<KerrMinoTrajectory, KerrMinoIntegrationError> {
         if !final_parameter.is_finite() || final_parameter < 0.0 {
             return Err(KerrMinoIntegrationError::InvalidFinalParameter(final_parameter));
@@ -1420,9 +1554,9 @@ impl KerrSeparatedNullGeodesic {
                 });
             }
 
-            let full = self.rk4_mino_step(vector, trial_step)?;
-            let half = self.rk4_mino_step(vector, 0.5 * trial_step)?;
-            let two_half = self.rk4_mino_step(half, 0.5 * trial_step)?;
+            let full = self.rk4_mino_step(vector, trial_step, chart)?;
+            let half = self.rk4_mino_step(vector, 0.5 * trial_step, chart)?;
+            let two_half = self.rk4_mino_step(half, 0.5 * trial_step, chart)?;
             let mut error_norm: f64 = 0.0;
             for index in 0..6 {
                 let scale = config.absolute_tolerance[index]
@@ -2249,6 +2383,96 @@ mod tests {
             KerrFiniteRadiusObserver::new(hole(0.8), 10.0, 0.0),
             Err(KerrGeodesicError::InvalidPolarAngle(_))
         ));
+    }
+
+
+    #[test]
+    fn ingoing_mino_derivative_matches_boyer_lindquist_chart_transform() {
+        for spin in [0.0, 0.5, 0.9] {
+            let constants = KerrNullConstants::new(1.0, 2.0, 0.0).unwrap();
+            let geodesic = KerrSeparatedNullGeodesic::new(hole(spin), constants);
+            let radius = 10.0;
+            let theta = core::f64::consts::FRAC_PI_2;
+            let radial = geodesic.radial_potential(radius).unwrap();
+            let state = KerrMinoDynamicState::new(
+                KerrMinoState::new(0.0, radius, theta, 0.0),
+                -radial.sqrt(),
+                0.0,
+            );
+            let bl = geodesic.mino_dynamic_derivative(state).unwrap();
+            let ingoing = geodesic.mino_dynamic_derivative_ingoing(state).unwrap();
+            let delta = radius * radius - 2.0 * radius + spin * spin;
+            close(
+                ingoing.d_time_over_m,
+                bl.d_time_over_m + (radius * radius + spin * spin) / delta
+                    * state.radial_velocity_over_m,
+                3e-12,
+            );
+            close(
+                ingoing.d_azimuth_rad,
+                bl.d_azimuth_rad + spin / delta * state.radial_velocity_over_m,
+                3e-12,
+            );
+        }
+    }
+
+    #[test]
+    fn ingoing_mino_derivative_is_finite_at_and_inside_the_outer_horizon() {
+        let spin = 0.9;
+        let black_hole = hole(spin);
+        let constants = KerrNullConstants::new(1.0, 2.0, 0.0).unwrap();
+        let geodesic = KerrSeparatedNullGeodesic::new(black_hole, constants);
+        let horizon = 1.0 + (1.0 - spin * spin).sqrt();
+        for radius in [horizon + 0.1, horizon, 1.2, 1.0] {
+            let radial = geodesic.radial_potential(radius).unwrap();
+            let state = KerrMinoDynamicState::new(
+                KerrMinoState::new(0.0, radius, core::f64::consts::FRAC_PI_2, 0.0),
+                -radial.sqrt(),
+                0.0,
+            );
+            let derivative = geodesic.mino_dynamic_derivative_ingoing(state).unwrap();
+            assert!([
+                derivative.d_time_over_m,
+                derivative.d_radius_over_m,
+                derivative.d_radial_velocity_over_m,
+                derivative.d_theta_rad,
+                derivative.d_polar_velocity_rad,
+                derivative.d_azimuth_rad,
+            ].iter().all(|value| value.is_finite()));
+        }
+    }
+
+    #[test]
+    fn adaptive_ingoing_mino_integrator_crosses_future_outer_horizon() {
+        let spin = 0.9;
+        let constants = KerrNullConstants::new(1.0, 2.0, 0.0).unwrap();
+        let geodesic = KerrSeparatedNullGeodesic::new(hole(spin), constants);
+        let radius = 10.0;
+        let radial = geodesic.radial_potential(radius).unwrap();
+        let initial = KerrMinoDynamicState::new(
+            KerrMinoState::new(0.0, radius, core::f64::consts::FRAC_PI_2, 0.0),
+            -radial.sqrt(),
+            0.0,
+        );
+        let config = KerrMinoIntegrationConfig::new(
+            1.0e-12,
+            [1.0e-12; 6],
+            1.0e-5,
+            1.0e-3,
+            1.0e-12,
+            2.0e-2,
+            200_000,
+        )
+        .unwrap();
+        let trajectory = geodesic
+            .integrate_adaptive_ingoing(initial, 1.460_728_111_791_428, config)
+            .unwrap();
+        let final_state = trajectory.points.last().unwrap().state;
+        let horizon = 1.0 + (1.0 - spin * spin).sqrt();
+        assert!(final_state.coordinates.radius_over_m < horizon);
+        close(final_state.coordinates.radius_over_m, 1.0, 1.0e-6);
+        assert!(trajectory.maximum_normalized_radial_constraint_residual < 1.0e-5);
+        assert!(trajectory.maximum_normalized_polar_constraint_residual < 1.0e-5);
     }
 
     #[test]
