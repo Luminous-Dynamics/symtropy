@@ -358,6 +358,13 @@ pub fn verify_surface_sampling_receipt(
     };
     let spacing_squared = validate_profile(profile)?;
     let _ = spacing_squared;
+    if !receipt.observable_area_m2.is_finite()
+        || receipt.observable_area_m2 < 0.0
+        || !receipt.excluded_area_m2.is_finite()
+        || receipt.excluded_area_m2 < 0.0
+    {
+        return Err("sampling receipt contains invalid top-level area totals".to_owned());
+    }
     if receipt.sample_count != receipt.samples.len() {
         return Err("sampling receipt sample_count does not match samples length".to_owned());
     }
@@ -495,14 +502,20 @@ pub fn verify_surface_sampling_receipt(
         if sample.sample_ordinal >= summary.sample_count as u64 {
             return Err("sample ordinal exceeds its surface sample count".to_owned());
         }
-        *per_surface_counts.entry(&sample.surface_id).or_insert(0) += 1;
-        *per_surface_weights.entry(&sample.surface_id).or_insert(0.0) +=
+        let expected_weight = summary.represented_area_m2 / summary.sample_count as f64;
+        if (sample.represented_area_m2 - expected_weight).abs()
+            > expected_weight.abs().max(1.0) * 1.0e-10
+        {
+            return Err("sample weights are not equal within the surface".to_owned());
+        }
+        *per_surface_counts.entry(sample.surface_id.as_str()).or_insert(0) += 1;
+        *per_surface_weights.entry(sample.surface_id.as_str()).or_insert(0.0) +=
             sample.represented_area_m2;
-        if !per_surface_weights[ sample.surface_id.as_str() ].is_finite() {
+        if !per_surface_weights[sample.surface_id.as_str()].is_finite() {
             return Err("sample represented area overflowed".to_owned());
         }
         if !per_surface_ordinals
-            .entry(&sample.surface_id)
+            .entry(sample.surface_id.as_str())
             .or_default()
             .insert(sample.sample_ordinal)
         {
