@@ -27,7 +27,9 @@ The runtime guard checks:
 - exact lease/run/snapshot/tick identity;
 - only declared view IDs;
 - monotonic sequence and cumulative usage;
-- view-event, frame, system-memory, VRAM, frame-time and optional energy limits;
+- view-event, frame, system-memory, VRAM and frame-time limits;
+- per-view runtime frame/VRAM measurements bound to their own receipts;
+- lease-wide integrated GPU-board energy bound to a separate receipt (never summed from potentially overlapping view windows);
 - missing energy when an energy cap is required;
 - any attempted physical mutation under the read-only lease.
 
@@ -37,7 +39,7 @@ The lease is deliberately tied to one simulation tick. Advancing physics, changi
 
 Lease identity is SHA-256 over a domain-separated, deterministic JSON serialization of the typed input after sorting view declarations by ID. This is a software identity, not a signature.
 
-Upstream policy, model-passport and measurement digests are references. V0.1 validates digest syntax and binds those references, but does not fetch, authenticate, or re-evaluate their contents. A successful lease check cannot upgrade an upstream claim.
+Upstream policy, model-passport and measurement digests are references. V0.1 validates digest syntax and binds those references, but does not fetch, authenticate, or re-evaluate their contents. A successful lease check cannot upgrade an upstream claim. Direct Rust dependencies are exact-version pinned; a generated Cargo.lock and reviewed transitive dependency snapshot remain part of exact-head qualification.
 
 ## Claim ceiling
 
