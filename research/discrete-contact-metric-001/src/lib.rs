@@ -313,7 +313,10 @@ pub fn solve_discrete_step(input: &DiscreteStepInput) -> Result<DiscreteStepResu
         &input.contact_jacobian,
         &impulse,
     );
-        let active = impulse.iter().map(|value| *value > SOLVE_TOLERANCE).collect::<Vec<_>>();
+        // Candidate impulses have already been checked for negativity and
+        // clamped at zero. Do not apply an absolute impulse threshold here:
+        // impulse units and magnitude change under a uniform mass rescaling.
+        let active = impulse.iter().map(|value| *value > 0.0).collect::<Vec<_>>();
         selected = Some((next_velocity, impulse, slack, active, residual));
         break;
     }
@@ -416,7 +419,8 @@ fn validate_symmetric(name: &'static str, matrix: &Matrix) -> Result<(), StepErr
         .flat_map(|row| (0..matrix.cols).map(move |col| (row, col)))
         .map(|(row, col)| (matrix[(row, col)] - matrix[(col, row)]).abs())
         .fold(0.0_f64, f64::max);
-    if residual > SOLVE_TOLERANCE {
+    let scale = matrix.max_abs();
+    if residual > SOLVE_TOLERANCE * scale {
         return Err(StepError::MatrixNotSymmetric { name, residual });
     }
     if !matrix.values.iter().all(|value| value.is_finite()) {
@@ -430,7 +434,14 @@ fn cholesky(matrix: &Matrix) -> Option<Matrix> {
         return None;
     }
     let n = matrix.rows;
-    let scale = matrix.max_abs().max(1.0);
+    // Use a relative pivot floor. An absolute floor would make an otherwise
+    // equivalent problem fail merely because its mass / metric units were
+    // uniformly rescaled.
+    let scale = matrix.max_abs();
+    if !scale.is_finite() || scale == 0.0 {
+        return None;
+    }
+    let pivot_floor = SOLVE_TOLERANCE * scale;
     let mut lower = Matrix::zeros(n, n);
     for row in 0..n {
         for col in 0..=row {
@@ -439,7 +450,7 @@ fn cholesky(matrix: &Matrix) -> Option<Matrix> {
                 sum -= lower[(row, k)] * lower[(col, k)];
             }
             if row == col {
-                if !sum.is_finite() || sum <= SOLVE_TOLERANCE * scale {
+                if !sum.is_finite() || sum <= pivot_floor {
                     return None;
                 }
                 lower[(row, col)] = sum.sqrt();
@@ -658,6 +669,64 @@ mod tests {
             Err(StepError::MatrixNotSymmetric { name: "stiffness", .. })
         ));
     }
+    #[test]
+    fn contact_step_is_covariant_under_uniform_mass_rescaling() {
+        for mass in [1.0e-12, 1.0, 1.0e12] {
+            let input = DiscreteStepInput {
+                mass: scalar(mass),
+                damping: scalar(0.0),
+                stiffness: scalar(0.0),
+                position_error: vec![0.0],
+                velocity: vec![-1.0],
+                external_force: vec![0.0],
+                contact_jacobian: scalar(1.0),
+                contact_gap: vec![0.0],
+                dt: 0.01,
+            };
+            let result = solve_discrete_step(&input).unwrap();
+
+            assert!(
+                result.next_velocity[0].abs() < 1.0e-12,
+                "mass={mass:e}: next velocity={:e}",
+                result.next_velocity[0]
+            );
+            assert!(
+                (result.contact_impulse[0] / mass - 1.0).abs() < 1.0e-10,
+                "mass={mass:e}: impulse/mass={:e}",
+                result.contact_impulse[0] / mass
+            );
+            assert_eq!(
+                result.active_contacts,
+                vec![true],
+                "active-set classification changed at mass={mass:e}"
+            );
+            assert!(result.max_metric_equation_residual / mass < 1.0e-10);
+        }
+    }
+
+    #[test]
+    fn symmetry_validation_is_relative_to_matrix_scale() {
+        let input = DiscreteStepInput {
+            mass: Matrix::identity(2),
+            damping: Matrix::zeros(2, 2),
+            stiffness: Matrix::new(2, 2, vec![1.0e-12, 2.0e-13, 0.0, 1.0e-12]).unwrap(),
+            position_error: vec![0.0, 0.0],
+            velocity: vec![0.0, 0.0],
+            external_force: vec![0.0, 0.0],
+            contact_jacobian: no_contacts(2),
+            contact_gap: vec![],
+            dt: 0.1,
+        };
+
+        assert!(matches!(
+            solve_discrete_step(&input),
+            Err(StepError::MatrixNotSymmetric {
+                name: "stiffness",
+                ..
+            })
+        ));
+    }
+
     #[test]
     fn contradictory_unilateral_rows_return_no_complementary_solution() {
         let input = DiscreteStepInput {
