@@ -27,6 +27,37 @@ pub fn nan_zeroed_count() -> u64 {
     NAN_ZEROED_COUNT.load(Ordering::Relaxed)
 }
 
+/**
+ * Physical material-point velocity induced by the stored world-space
+ * angular-velocity bivector.
+ *
+ * Rotor::from_bivector(B) advances orientation by exp(-B). Therefore the
+ * derivative of a rotated world-space offset is -B * offset, not +B * offset.
+ * This helper is the one contact, friction and restitution code must use.
+ */
+#[inline]
+pub fn angular_point_velocity<const D: usize>(
+    angular_velocity: &Bivector<D>,
+    offset_world: &SVector<f64, D>,
+) -> SVector<f64, D> {
+    -angular_velocity.apply_to_vector(offset_world)
+}
+
+/**
+ * Encode the physical angular impulse from an impulse applied at a world-space
+ * offset, using the stored-bivector sign convention paired with Rotor's exp(-B).
+ *
+ * The resulting bivector is offset ∧ impulse. For D=3 this corresponds to the
+ * conventional torque impulse r × j under Symtropy's e01/e02/e12 mapping.
+ */
+#[inline]
+pub fn angular_impulse_from_point<const D: usize>(
+    offset_world: &SVector<f64, D>,
+    impulse_world: &SVector<f64, D>,
+) -> Bivector<D> {
+    Bivector::from_wedge(offset_world, impulse_world)
+}
+
 /// Integrate a single rigid body forward by dt seconds.
 ///
 /// Semi-implicit Euler: update velocity first, then position.
@@ -179,6 +210,92 @@ pub fn apply_angular_impulse<const D: usize>(body: &mut RigidBody<D>, impulse: &
 mod tests {
     use super::*;
     use crate::body::BodyHandle;
+
+    fn measured_rotor_point_velocity(
+        generator: &Bivector<3>,
+        offset: &SVector<f64, 3>,
+        dt: f64,
+    ) -> SVector<f64, 3> {
+        let delta = Rotor::from_bivector(&generator.scale(dt));
+        (delta.rotate_vector(offset) - offset) / dt
+    }
+
+    #[test]
+    fn physical_point_velocity_matches_rotor_finite_difference_for_all_3d_planes() {
+        let offset = SVector::from([0.37, -0.61, 0.82]);
+        let mut generators = Vec::new();
+        for (i, j) in [(0, 1), (0, 2), (1, 2)] {
+            let mut generator = Bivector::<3>::zero();
+            generator.set(i, j, 0.73);
+            generators.push(generator);
+        }
+        let mut generic = Bivector::<3>::zero();
+        generic.set(0, 1, 0.41);
+        generic.set(0, 2, -0.63);
+        generic.set(1, 2, 0.29);
+        generators.push(generic);
+
+        for (case, generator) in generators.iter().enumerate() {
+            let expected = angular_point_velocity(generator, &offset);
+            let coarse = measured_rotor_point_velocity(generator, &offset, 1.0e-3);
+            let fine = measured_rotor_point_velocity(generator, &offset, 5.0e-4);
+            let coarse_error = (coarse - expected).norm();
+            let fine_error = (fine - expected).norm();
+
+            assert!(
+                fine_error < coarse_error * 0.6,
+                "finite-difference error did not converge for case {case}: coarse={coarse_error:e}, fine={fine_error:e}"
+            );
+            assert!(
+                fine_error < 5.0e-4,
+                "point-velocity sign/magnitude mismatch for case {case}: error={fine_error:e}"
+            );
+        }
+    }
+
+    #[test]
+    fn off_centre_impulse_matches_rotor_motion_and_physical_torque_sign() {
+        let mut body =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 1.0, 1.0);
+        body.angular_damping = 0.0;
+
+        let offset = SVector::from([1.0, 0.0, 0.0]);
+        let impulse = SVector::from([0.0, 1.0, 0.0]);
+        let angular_impulse = angular_impulse_from_point(&offset, &impulse);
+
+        // r × j is +z, represented by positive e01 in Symtropy's bivector
+        // convention. The old j ∧ r ordering produced the opposite sign.
+        assert!((angular_impulse.get(0, 1) - 1.0).abs() < 1.0e-14);
+        assert!(angular_impulse.get(0, 2).abs() < 1.0e-14);
+        assert!(angular_impulse.get(1, 2).abs() < 1.0e-14);
+
+        apply_angular_impulse(&mut body, &angular_impulse);
+        assert!(body.angular_velocity.get(0, 1) > 0.0);
+
+        let expected_unit_inertia_response =
+            impulse * offset.norm_squared() - offset * offset.dot(&impulse);
+        let inverse_inertia = body.inv_inertia[0];
+        let predicted_point_velocity =
+            angular_point_velocity(&body.angular_velocity, &offset);
+        assert!(
+            (predicted_point_velocity - expected_unit_inertia_response * inverse_inertia).norm()
+                < 1.0e-12,
+            "angular impulse did not produce the expected r × j response"
+        );
+
+        // Compare the production integrator's actual Transform::transform_point
+        // trajectory with the contact-point velocity prediction.
+        let material_point = Point::new([offset[0], offset[1], offset[2]]);
+        let before = body.transform.transform_point(&material_point);
+        let dt = 1.0e-7;
+        integrate(&mut body, &SVector::zeros(), dt);
+        let after = body.transform.transform_point(&material_point);
+        let measured = (after.0 - before.0) / dt;
+        assert!(
+            (measured - predicted_point_velocity).norm() < 2.0e-6,
+            "off-centre impulse / Rotor / contact-point velocity disagreement: measured={measured:?}, predicted={predicted_point_velocity:?}"
+        );
+    }
 
     #[test]
     fn free_fall_3d() {
