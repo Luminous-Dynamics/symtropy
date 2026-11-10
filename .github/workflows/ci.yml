@@ -84,5 +84,12 @@ jobs:
       if: ${{ hashFiles('tools/airborne-energy-observability-validator/Cargo.toml') != '' }}
       run: cargo test --locked -p airborne-energy-observability-validator
 
+    - name: Verify Discrete Step Map Research Oracle
+      if: runner.os == 'Linux'
+      run: |
+        cargo +1.96.0 fmt --manifest-path research/physics-discrete-map-001/Cargo.toml -- --check
+        cargo +1.96.0 test --manifest-path research/physics-discrete-map-001/Cargo.toml --all-targets
+        cargo +1.96.0 clippy --manifest-path research/physics-discrete-map-001/Cargo.toml --all-targets -- -D warnings
+
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
