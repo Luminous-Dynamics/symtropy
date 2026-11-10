@@ -1,0 +1,104 @@
+{
+  "schema_version": "1.0.0",
+  "benchmark_id": "WORLD-STATE-TO-PIXEL-001",
+  "version": "0.1.0",
+  "status": "proposed_not_measured",
+  "owner_issue": 4468,
+  "canonical_physics_corpus_issue": 460,
+  "cross_layer_owners": {
+    "interactive_fidelity": 4096,
+    "engine_capability_census": 1472,
+    "visual_capture": 1999,
+    "visual_diff": 2008,
+    "frozen_pbr": 2009,
+    "multiphysics_visualization": 2035,
+    "semantic_lod": 2398,
+    "counterexample_physics": 4446,
+    "engineering_scenario": 1172,
+    "engineering_twin_projection": 1467
+  },
+  "fixtures": [
+    {"id": "SCENE-LIGHT-01", "purpose": "pbr_lighting_material_shadow_quality"},
+    {"id": "HUMAN-LOCO-01", "purpose": "articulated_motion_contact_and_lod"},
+    {"id": "CITY-BLOCK-01", "purpose": "streaming_instancing_culling_and_lod"},
+    {"id": "PHYSICS-OBS-01", "purpose": "read_only_physics_overlay_scaling"},
+    {"id": "ND-SLICE-01", "purpose": "known_answer_four_dimensional_projection"}
+  ],
+  "view_variants": [
+    "cinematic",
+    "engineering_inspection",
+    "accessibility",
+    "low_power"
+  ],
+  "presentation_only_mutations": [
+    "camera_and_projection",
+    "resolution",
+    "render_quality",
+    "material_presentation",
+    "lighting_presentation",
+    "raster_or_path_traced_backend",
+    "screen_space_lod",
+    "debug_overlay",
+    "screenshot_capture"
+  ],
+  "required_invariants": [
+    "simulation_state_digest_unchanged",
+    "simulation_event_order_unchanged",
+    "replay_receipt_unchanged",
+    "unknown_values_never_defaulted_to_zero",
+    "synthetic_observations_never_relabelled_as_measurements",
+    "unit_and_reference_frame_preserved",
+    "time_and_uncertainty_provenance_preserved",
+    "critical_engineering_geometry_not_silently_demoted"
+  ],
+  "proposed_profiles": [
+    {
+      "id": "balanced-1080p-reference",
+      "resolution_px": [1920, 1080],
+      "target_fps": 60,
+      "p95_frame_time_ms_max": 16.7,
+      "p99_frame_time_ms_max": 25.0,
+      "max_gpu_allocation_mib": 6144,
+      "status": "proposed_target_not_measured"
+    },
+    {
+      "id": "low-power-720p",
+      "resolution_px": [1280, 720],
+      "target_fps": 30,
+      "p95_frame_time_ms_max": 33.3,
+      "status": "proposed_target_not_measured"
+    }
+  ],
+  "proposed_overlay_budget": {
+    "entity_count": 1000,
+    "p95_cpu_overhead_ms_max": 1.0,
+    "fraction_of_frame_budget_max": 0.05,
+    "status": "proposed_target_not_measured"
+  },
+  "required_visual_metrics": [
+    "linear_or_hdr_radiometric_error_when_reference_exists",
+    "versioned_perceptual_metric_with_limitations",
+    "temporal_shimmer_or_flicker",
+    "blind_human_review",
+    "frame_time_p50_p95_p99",
+    "cpu_gpu_memory_vram_power"
+  ],
+  "required_physics_metrics": [
+    "position_velocity_and_phase_error",
+    "energy_and_momentum_drift",
+    "contact_penetration",
+    "constraint_residual",
+    "event_localization_error",
+    "coupling_work_or_energy_balance",
+    "uncertainty",
+    "runtime_and_memory_at_matched_error"
+  ],
+  "benchmark_policy": {
+    "no_single_realism_score": true,
+    "unresolved_solver_disagreement_remains_unresolved": true,
+    "independent_solver_is_not_physical_truth": true,
+    "render_quality_is_not_physics_validation": true,
+    "cross_gpu_byte_identity_not_required_by_default": true
+  },
+  "claim_ceiling": "proposed cross-layer benchmark contract only; no physical validation, certification, universal visual superiority, or measured performance claim"
+}
