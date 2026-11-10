@@ -388,6 +388,18 @@ fn validate_record(record: &Value, evaluation_time: i128) -> RecordAudit {
         audit.reject("time_unknown_field_or_shape");
     }
 
+    let source_class = string_at(record, &["provenance", "source_class"]);
+    if !matches!(
+        source_class,
+        Some("sensor" | "shipboard_gateway" | "oem_platform" | "diagnostic_service"
+            | "operator" | "maintenance_system" | "simulator" | "research_pipeline" | "other")
+    ) {
+        audit.reject("source_class_invalid");
+    }
+    if source_class == Some("simulator") {
+        audit.abstain("simulator_source_not_physical_observation");
+    }
+
     if string_at(record, &["asset_ref", "vessel_id"]).is_none_or(str::is_empty)
         || string_at(record, &["asset_ref", "configuration_sha256"])
             .is_none_or(|value| !is_sha256(value))
@@ -501,6 +513,11 @@ fn validate_record(record: &Value, evaluation_time: i128) -> RecordAudit {
         audit.reject("time_context_incomplete");
     }
 
+    if time_basis == Some("relative_monotonic")
+        && u64_at(record, &["time", "monotonic_counter_ns"]).is_none()
+    {
+        audit.reject("relative_monotonic_counter_missing");
+    }
     match value_at(record, &["time", "event_time"]) {
         Some(Value::String(value)) => match parse_rfc3339_ns(value) {
             Ok(timestamp) if timestamp > evaluation_time => audit.reject("event_time_after_evaluation_time"),
@@ -535,6 +552,13 @@ fn validate_record(record: &Value, evaluation_time: i128) -> RecordAudit {
 
             if !audit.native_identifier_present {
                 audit.reject("native_channel_identity_missing");
+            }
+            let mapping_confidence = value_at(record, &["mapping", "mapping_confidence"]);
+            if mapping_confidence.is_some()
+                && finite_number_at(record, &["mapping", "mapping_confidence"])
+                    .is_none_or(|confidence| !(0.0..=1.0).contains(&confidence))
+            {
+                audit.reject("mapping_confidence_out_of_range_or_nonfinite");
             }
             match mapping_status {
                 Some("exact") => {
@@ -633,6 +657,12 @@ fn validate_record(record: &Value, evaluation_time: i128) -> RecordAudit {
             let calibration = string_at(record, &["quality", "calibration_state"]);
             let freshness = string_at(record, &["quality", "freshness_state"]);
             let measurement = string_at(record, &["quality", "measurement_quality"]);
+            if !matches!(calibration, Some("valid" | "expired" | "not_calibrated" | "unknown" | "not_applicable"))
+                || !matches!(freshness, Some("current" | "stale" | "unknown"))
+                || !matches!(measurement, Some("valid" | "degraded" | "suspect" | "invalid" | "missing" | "unknown"))
+            {
+                audit.reject("measurement_quality_enum_invalid");
+            }
             if calibration == Some("expired") || measurement == Some("invalid") {
                 audit.reject("measurement_quality_invalid");
             } else if matches!(calibration, Some("not_calibrated" | "unknown"))
@@ -665,6 +695,16 @@ fn validate_record(record: &Value, evaluation_time: i128) -> RecordAudit {
                 || string_at(record, &["assertion", "status"]).is_none_or(str::is_empty)
             {
                 audit.reject("assertion_content_incomplete");
+            }
+            if string_at(record, &["assertion", "kind"]).is_some_and(|kind| {
+                !["anomaly", "fault_hypothesis", "diagnosis", "prognosis", "maintenance_recommendation", "other"].contains(&kind)
+            }) {
+                audit.reject("assertion_kind_invalid");
+            }
+            if let Some(confidence) = value_at(record, &["assertion", "confidence"]) {
+                if confidence.as_f64().is_none_or(|value| !value.is_finite() || !(0.0..=1.0).contains(&value)) {
+                    audit.reject("assertion_confidence_out_of_range_or_nonfinite");
+                }
             }
             if string_at(record, &["method", "provider"]).is_none_or(str::is_empty)
                 || string_at(record, &["method", "name"]).is_none_or(str::is_empty)
@@ -1030,7 +1070,7 @@ fn evaluate_corpus(bytes: &[u8]) -> Result<(Value, usize), String> {
             {"gate_id":"assertion_evidence_references_resolve","passed":references_ok,"failure_count":if references_ok { 0usize } else { 1usize }},
             {"gate_id":"native_channel_identifiers_present","passed":native_gate,"failure_count":if native_gate { 0usize } else { 1usize }},
             {"gate_id":"provenance_completeness","passed":provenance_gate,"failure_count":provenance_total.saturating_sub(provenance_complete)},
-            {"gate_id":"assertion_conflict_links_well_formed","passed":evidence_link_resolution_gate,"failure_count":evidence_link_total.saturating_sub(evidence_link_resolved)}
+            {"gate_id":"assertion_evidence_link_resolution","passed":evidence_link_resolution_gate,"failure_count":evidence_link_total.saturating_sub(evidence_link_resolved)}
         ],
         "case_results": case_reports,
         "claim_ceiling": "synthetic_profile_semantics_only",
@@ -1144,6 +1184,12 @@ mod tests {
     }
 
     #[test]
+    fn rfc3339_rejects_unknown_negative_zero_offset_and_short_seconds() {
+        assert!(parse_rfc3339_ns("2026-01-01T12:00:00-00:00").is_err());
+        assert!(parse_rfc3339_ns("2026-01-01T12:00:1Z").is_err());
+    }
+
+    #[test]
     fn rfc3339_parser_rejects_invalid_calendar_dates_and_precision() {
         assert!(parse_rfc3339_ns("2025-02-29T23:59:59Z").is_err());
         assert!(parse_rfc3339_ns("2025-01-01T00:00:00.1234567890Z").is_err());
@@ -1238,6 +1284,24 @@ mod tests {
         }).unwrap();
         assert!(failures > 0);
         assert_eq!(case(&report, "obs-001-measured-exact")["actual_disposition"], "reject");
+    }
+
+    #[test]
+    fn unsupported_quality_enum_is_rejected_not_silently_accepted() {
+        let (report, failures) = evaluate_mutated(|corpus| {
+            corpus["fixtures"][0]["record"]["quality"]["freshness_state"] = json!("fresh-ish");
+        }).unwrap();
+        assert!(failures > 0);
+        assert_eq!(case(&report, "obs-001-measured-exact")["actual_disposition"], "reject");
+    }
+
+    #[test]
+    fn simulator_source_abstains_from_physical_observation_claim() {
+        let (report, failures) = evaluate_mutated(|corpus| {
+            corpus["fixtures"][0]["record"]["provenance"]["source_class"] = json!("simulator");
+        }).unwrap();
+        assert!(failures > 0);
+        assert_eq!(case(&report, "obs-001-measured-exact")["actual_disposition"], "abstain");
     }
 
     #[test]
