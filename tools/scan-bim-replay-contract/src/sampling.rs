@@ -91,8 +91,8 @@ pub struct SurfaceSample {
     /// Barycentric weights in vertex order (a, b, c).
     pub barycentric: [f64; 3],
     pub point: Point3,
-    /// Unit normal following source triangle winding; source mesh orientation
-    /// must be validated before this value is used for backface visibility.
+    /// Unit normal following source triangle winding. This does not assert
+    /// outward orientation; incidence consumers must be sign-invariant.
     pub normal: Point3,
     /// Equal per-surface area represented by this sample.
     pub represented_area_m2: f64,
