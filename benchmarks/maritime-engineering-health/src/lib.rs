@@ -127,11 +127,45 @@ pub enum Disposition {
     RestorationEvidenceComplete,
 }
 
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum CapabilityImpactStatus {
+    RestrictionRecommended,
+    NoRestrictionIndicated,
+    UnknownNeedsEvidence,
+    RecoveryBlocked,
+    RecoveryEvidenceReadyForIndependentReview,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum AuthorityEffect {
+    NoAuthorityGranted,
+}
+
+#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
+pub struct CapabilityImpact {
+    pub case_id: String,
+    pub vessel_id: String,
+    pub asset_id: String,
+    pub component_id: String,
+    pub config_revision: String,
+    pub capability: String,
+    pub status: CapabilityImpactStatus,
+    pub admitted_observations: usize,
+    pub decision_evidence_observations: usize,
+    pub distinct_declared_dependency_groups: usize,
+    pub authority_effect: AuthorityEffect,
+    pub may_authorize_transition: bool,
+    pub may_clear_restriction: bool,
+}
+
 #[derive(Clone, Debug, Serialize, PartialEq, Eq)]
 pub struct CaseResult {
     pub case_id: String,
     pub actual: Expected,
     pub expected: Expected,
+    pub capability_impact: CapabilityImpact,
     pub matched: bool,
 }
 
@@ -332,6 +366,37 @@ pub fn evaluate_case(case: &Case) -> Expected {
     }
 }
 
+/// Projects the evaluator result into a read-only, asset-bound input for the
+/// vessel ODD/mode owner. "No restriction indicated" is not a vessel-wide
+/// WithinDeclaredEnvelope result. This projection never grants authority.
+pub fn project_capability_impact(case: &Case, result: &Expected) -> CapabilityImpact {
+    let status = match result.disposition {
+        Disposition::RestrictCapability => CapabilityImpactStatus::RestrictionRecommended,
+        Disposition::ContinueWithWatch => CapabilityImpactStatus::NoRestrictionIndicated,
+        Disposition::UnknownEscalate => CapabilityImpactStatus::UnknownNeedsEvidence,
+        Disposition::RestorationBlocked => CapabilityImpactStatus::RecoveryBlocked,
+        Disposition::RestorationEvidenceComplete => {
+            CapabilityImpactStatus::RecoveryEvidenceReadyForIndependentReview
+        }
+    };
+
+    CapabilityImpact {
+        case_id: case.case_id.clone(),
+        vessel_id: case.asset.vessel_id.clone(),
+        asset_id: case.asset.asset_id.clone(),
+        component_id: case.asset.component_id.clone(),
+        config_revision: case.asset.config_revision.clone(),
+        capability: case.asset.capability.clone(),
+        status,
+        admitted_observations: result.admitted_observations,
+        decision_evidence_observations: result.decision_evidence_observations,
+        distinct_declared_dependency_groups: result.distinct_declared_dependency_groups,
+        authority_effect: AuthorityEffect::NoAuthorityGranted,
+        may_authorize_transition: false,
+        may_clear_restriction: false,
+    }
+}
+
 pub fn evaluate_bytes(bytes: &[u8]) -> Result<Report, EvalError> {
     let corpus: Corpus =
         serde_json::from_slice(bytes).map_err(|error| EvalError::Parse(error.to_string()))?;
@@ -340,11 +405,13 @@ pub fn evaluate_bytes(bytes: &[u8]) -> Result<Report, EvalError> {
     let mut results = Vec::with_capacity(corpus.cases.len());
     for case in &corpus.cases {
         let actual = evaluate_case(case);
+        let capability_impact = project_capability_impact(case, &actual);
         results.push(CaseResult {
             case_id: case.case_id.clone(),
             matched: actual == case.expected,
             actual,
             expected: case.expected.clone(),
+            capability_impact,
         });
     }
 
@@ -503,6 +570,41 @@ mod tests {
             .expect("source fixture exists");
         case.observations[1].observation_id = case.observations[0].observation_id.clone();
         assert!(validate_case(&case).is_err());
+    }
+
+    #[test]
+    fn capability_overlay_is_asset_bound_and_never_grants_authority() {
+        let report = evaluate_bytes(CORPUS).expect("corpus evaluates");
+        for result in &report.results {
+            let impact = &result.capability_impact;
+            assert_eq!(impact.authority_effect, AuthorityEffect::NoAuthorityGranted);
+            assert!(!impact.may_authorize_transition);
+            assert!(!impact.may_clear_restriction);
+            assert_eq!(impact.case_id, result.case_id);
+            assert_eq!(impact.vessel_id, "synthetic-vessel-01");
+            assert_eq!(impact.config_revision, "vessel-config-r7");
+        }
+
+        let clear = report
+            .results
+            .iter()
+            .find(|result| result.case_id == "positive-propulsion-nominal")
+            .expect("positive control exists");
+        assert_eq!(
+            clear.capability_impact.status,
+            CapabilityImpactStatus::NoRestrictionIndicated
+        );
+
+        let recovery = report
+            .results
+            .iter()
+            .find(|result| result.case_id == "recovery-evidence-complete")
+            .expect("recovery control exists");
+        assert_eq!(
+            recovery.capability_impact.status,
+            CapabilityImpactStatus::RecoveryEvidenceReadyForIndependentReview
+        );
+        assert!(recovery.capability_impact.may_clear_restriction == false);
     }
 
     #[test]
