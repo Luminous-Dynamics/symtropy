@@ -1019,6 +1019,7 @@ mod tests {
     fn timeout_keeps_case_in_requested_denominator() {
         let mut data = input();
         data.campaigns[0].results[1].outcome = CaseOutcome::TimedOut;
+        data.campaigns[0].results[1].completed_simulated_ticks = 50;
         let report = evaluate(&data).expect("timeout is a recorded outcome");
         let campaign = report.campaigns.iter().find(|c| c.engine_id == "engine-fast-low-coverage").expect("fast");
         assert_eq!(campaign.requested_cases, 2);
@@ -1222,6 +1223,11 @@ mod tests {
         results[1].outcome = CaseOutcome::Abstained;
         let mut third = result("case-c");
         third.outcome = CaseOutcome::NotRun;
+        third.completed_simulated_ticks = 0;
+        third.error_upper_bound = None;
+        third.hard_constraint_violations = None;
+        third.replay_conformant = None;
+        third.evidence_receipt_sha256 = None;
         data.cases.push(case("case-c"));
         for campaign in &mut data.campaigns {
             if campaign.engine_id == "engine-fast-low-coverage" {
