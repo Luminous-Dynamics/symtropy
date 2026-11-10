@@ -89,6 +89,8 @@ pub struct RepairStatisticTransition {
     pub observation_digest: Option<String>,
     pub source_digest: String,
     pub sample_size: usize,
+    pub baseline_draw_count: usize,
+    pub repaired_draw_count: usize,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -151,6 +153,7 @@ pub enum RepairQualificationError {
     RequiredEvidenceCompletenessMismatch,
     DomainStatusMismatch,
     BaselineAndRepairedObservationMismatch { statistic_id: String, unit_id: String },
+    BaselineAndRepairedDrawCountMismatch { statistic_id: String, unit_id: String },
     BaselineAndRepairedChallengeVocabularyMismatch,
 }
 
@@ -483,6 +486,12 @@ pub fn qualify_repair_on_fresh_challenge(
                 unit_id: key.independent_unit_id.clone(),
             });
         }
+        if baseline_row.draw_count != repaired_row.draw_count {
+            return Err(RepairQualificationError::BaselineAndRepairedDrawCountMismatch {
+                statistic_id: key.statistic_id.clone(),
+                unit_id: key.independent_unit_id.clone(),
+            });
+        }
 
         if let Some(observation_digest) = baseline_row.observation_digest.as_deref() {
             if diagnostic_observations.contains(observation_digest) {
@@ -538,6 +547,8 @@ pub fn qualify_repair_on_fresh_challenge(
             observation_digest: baseline_row.observation_digest.clone(),
             source_digest: baseline_row.source_digest.clone(),
             sample_size: baseline_row.sample_size,
+            baseline_draw_count: baseline_row.draw_count,
+            repaired_draw_count: repaired_row.draw_count,
         });
     }
 
@@ -833,6 +844,25 @@ mod tests {
         assert!(matches!(
             qualify_repair_on_fresh_challenge(&changed_observation),
             Err(RepairQualificationError::BaselineAndRepairedObservationMismatch { .. })
+        ));
+    }
+
+    #[test]
+    fn rejects_different_predictive_draw_budgets() {
+        let baseline = assessment(
+            BASELINE_MODEL,
+            Some([0.1, 0.2, 0.2, 0.3, 0.4]),
+            Some([0.6, 0.7, 0.75, 0.8, 0.9]),
+        );
+        let mut repaired = assessment(
+            REPAIRED_MODEL,
+            Some([0.7, 0.75, 0.8, 0.85, 0.9]),
+            Some([0.6, 0.7, 0.75, 0.8, 0.9]),
+        );
+        repaired.statistics[0].draw_count = 6;
+        assert!(matches!(
+            qualify_repair_on_fresh_challenge(&input(baseline, repaired)),
+            Err(RepairQualificationError::BaselineAndRepairedDrawCountMismatch { .. })
         ));
     }
 
