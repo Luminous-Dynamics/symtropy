@@ -4,6 +4,8 @@
 //! engine. It integrates a declared threshold against a temperature time series using
 //! piecewise-linear interpolation only across valid, bounded sampling intervals.
 
+#![forbid(unsafe_code)]
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum BreachSide {
     BelowFloor,
@@ -33,6 +35,7 @@ pub enum MetricInputError {
     SampleBoundsDoNotMatchWindow,
     NonMonotonicTimestamps,
     NonFiniteTemperature,
+    NonFiniteDerivedValue,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -193,9 +196,20 @@ pub fn calculate_degree_hour_exposure(
         let x0 = signed_departure(left_c, threshold_c, side);
         let x1 = signed_departure(right_c, threshold_c, side);
         let duration = interval_seconds as f64;
+        if !x0.is_finite() || !x1.is_finite() {
+            return Err(MetricInputError::NonFiniteDerivedValue);
+        }
 
-        degree_c_seconds += integrate_positive_linear(x0, x1, duration);
-        breach_seconds += positive_duration(x0, x1, duration);
+        let interval_degree_c_seconds = integrate_positive_linear(x0, x1, duration);
+        let interval_breach_seconds = positive_duration(x0, x1, duration);
+        if !interval_degree_c_seconds.is_finite() || !interval_breach_seconds.is_finite() {
+            return Err(MetricInputError::NonFiniteDerivedValue);
+        }
+        degree_c_seconds += interval_degree_c_seconds;
+        breach_seconds += interval_breach_seconds;
+        if !degree_c_seconds.is_finite() || !breach_seconds.is_finite() {
+            return Err(MetricInputError::NonFiniteDerivedValue);
+        }
 
         let interval_max = x0.max(x1).max(0.0);
         if interval_max > 0.0 {
@@ -220,9 +234,11 @@ pub fn calculate_degree_hour_exposure(
         breach_hours_over_covered_intervals: breach_seconds / 3_600.0,
         max_departure_c_over_covered_intervals: max_departure_c,
         first_observed_breach_seconds,
-        first_breach_seconds_if_complete: complete
-            .then_some(first_observed_breach_seconds)
-            .flatten(),
+        first_breach_seconds_if_complete: if complete {
+            first_observed_breach_seconds
+        } else {
+            None
+        },
         total_window_seconds,
         covered_seconds,
         missing_or_rejected_interval_count,
@@ -549,6 +565,23 @@ mod tests {
                 BreachSide::BelowFloor
             ),
             Err(MetricInputError::InvalidThreshold)
+        );
+    }
+
+    #[test]
+    fn finite_inputs_that_overflow_derived_departure_are_rejected() {
+        let samples = [
+            sample(0, Some(-f64::MAX)),
+            sample(3_600, Some(-f64::MAX)),
+        ];
+        assert_eq!(
+            calculate_degree_hour_exposure(
+                &samples,
+                window(3_600),
+                f64::MAX,
+                BreachSide::BelowFloor
+            ),
+            Err(MetricInputError::NonFiniteDerivedValue)
         );
     }
 
