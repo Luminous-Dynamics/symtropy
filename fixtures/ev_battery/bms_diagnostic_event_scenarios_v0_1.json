@@ -1,0 +1,894 @@
+{
+  "corpus_version": "ev-bms-diagnostic-corpus/0.1",
+  "schema_id": "https://luminousdynamics.io/schemas/transport/ev-bms-diagnostic-event/0.1",
+  "cases": [
+    {
+      "case_id": "classified-no-reaction",
+      "expectation": "accept",
+      "event": {
+        "schema_version": "ev-bms-diagnostic-event/0.1",
+        "event_id": "classified-no-reaction",
+        "evidence_class": "synthetic_fixture",
+        "asset": {
+          "vehicle_ref": "vehicle-ev-ref-01",
+          "vehicle_configuration_digest": "0000000000000000000000000000000000000000000000000000000000000001",
+          "pack_ref": "pack-ev-ref-01",
+          "pack_configuration_digest": "0000000000000000000000000000000000000000000000000000000000000002",
+          "module_ref": "module-01"
+        },
+        "bms": {
+          "hardware_ref": "bms-v1",
+          "software_digest": "0000000000000000000000000000000000000000000000000000000000000003",
+          "firmware_digest": "0000000000000000000000000000000000000000000000000000000000000004",
+          "calibration_digest": "0000000000000000000000000000000000000000000000000000000000000005",
+          "diagnostic_rule_digest": "0000000000000000000000000000000000000000000000000000000000000006"
+        },
+        "observation_context": {
+          "window_start_ms": 900,
+          "window_end_ms": 1200,
+          "temperature_min_c": 20,
+          "temperature_max_c": 35,
+          "soc_min_fraction": 0.45,
+          "soc_max_fraction": 0.65,
+          "context_digest": "0000000000000000000000000000000000000000000000000000000000000007"
+        },
+        "observations": [
+          {
+            "channel_id": "cell_voltage_min",
+            "value": 3.42,
+            "unit": "V",
+            "sample_time_ms": 1000,
+            "validity": "valid",
+            "sensor_calibration_digest": "000000000000000000000000000000000000000000000000000000000000000b",
+            "source_digest": "000000000000000000000000000000000000000000000000000000000000000c",
+            "evidence_class": "synthetic_fixture"
+          },
+          {
+            "channel_id": "pack_temperature_max",
+            "value": 31.5,
+            "unit": "degC",
+            "sample_time_ms": 1100,
+            "validity": "valid",
+            "sensor_calibration_digest": "000000000000000000000000000000000000000000000000000000000000000d",
+            "source_digest": "000000000000000000000000000000000000000000000000000000000000000e",
+            "evidence_class": "synthetic_fixture"
+          }
+        ],
+        "diagnosis": {
+          "state": "classified",
+          "classification_rule_digest": "0000000000000000000000000000000000000000000000000000000000000008",
+          "diagnosis_digest": "0000000000000000000000000000000000000000000000000000000000000009",
+          "fault_candidates": [
+            {
+              "fault_id": "CELL-IMBALANCE-001",
+              "classification": "cell_imbalance",
+              "severity": "minor",
+              "confidence": 0.91,
+              "evidence_digests": [
+                "000000000000000000000000000000000000000000000000000000000000000c"
+              ],
+              "model_digest": "000000000000000000000000000000000000000000000000000000000000000a"
+            }
+          ]
+        },
+        "reaction": {
+          "proposal": "monitor",
+          "reason": "Synthetic candidate requires continued observation",
+          "authority_status": "not_requested",
+          "authority_ref": null,
+          "authority_digest": null,
+          "safety_policy_digest": "000000000000000000000000000000000000000000000000000000000000000f",
+          "operating_envelope_digest": "0000000000000000000000000000000000000000000000000000000000000010",
+          "execution_status": "not_executed",
+          "execution_receipt_digest": null,
+          "reconciliation_required": false,
+          "mutation_blocked": false,
+          "maintenance_event_digest": null,
+          "post_action_test_digest": null,
+          "verification_status": "not_applicable",
+          "verifier_ref": null,
+          "verifier_digest": null
+        }
+      }
+    },
+    {
+      "case_id": "recommendation-not-authorized",
+      "expectation": "accept",
+      "event": {
+        "schema_version": "ev-bms-diagnostic-event/0.1",
+        "event_id": "recommendation-not-authorized",
+        "evidence_class": "synthetic_fixture",
+        "asset": {
+          "vehicle_ref": "vehicle-ev-ref-01",
+          "vehicle_configuration_digest": "0000000000000000000000000000000000000000000000000000000000000001",
+          "pack_ref": "pack-ev-ref-01",
+          "pack_configuration_digest": "0000000000000000000000000000000000000000000000000000000000000002",
+          "module_ref": "module-01"
+        },
+        "bms": {
+          "hardware_ref": "bms-v1",
+          "software_digest": "0000000000000000000000000000000000000000000000000000000000000003",
+          "firmware_digest": "0000000000000000000000000000000000000000000000000000000000000004",
+          "calibration_digest": "0000000000000000000000000000000000000000000000000000000000000005",
+          "diagnostic_rule_digest": "0000000000000000000000000000000000000000000000000000000000000006"
+        },
+        "observation_context": {
+          "window_start_ms": 900,
+          "window_end_ms": 1200,
+          "temperature_min_c": 20,
+          "temperature_max_c": 35,
+          "soc_min_fraction": 0.45,
+          "soc_max_fraction": 0.65,
+          "context_digest": "0000000000000000000000000000000000000000000000000000000000000007"
+        },
+        "observations": [
+          {
+            "channel_id": "cell_voltage_min",
+            "value": 3.42,
+            "unit": "V",
+            "sample_time_ms": 1000,
+            "validity": "valid",
+            "sensor_calibration_digest": "000000000000000000000000000000000000000000000000000000000000000b",
+            "source_digest": "000000000000000000000000000000000000000000000000000000000000000c",
+            "evidence_class": "synthetic_fixture"
+          },
+          {
+            "channel_id": "pack_temperature_max",
+            "value": 31.5,
+            "unit": "degC",
+            "sample_time_ms": 1100,
+            "validity": "valid",
+            "sensor_calibration_digest": "000000000000000000000000000000000000000000000000000000000000000d",
+            "source_digest": "000000000000000000000000000000000000000000000000000000000000000e",
+            "evidence_class": "synthetic_fixture"
+          }
+        ],
+        "diagnosis": {
+          "state": "classified",
+          "classification_rule_digest": "0000000000000000000000000000000000000000000000000000000000000008",
+          "diagnosis_digest": "0000000000000000000000000000000000000000000000000000000000000009",
+          "fault_candidates": [
+            {
+              "fault_id": "CELL-IMBALANCE-001",
+              "classification": "cell_imbalance",
+              "severity": "minor",
+              "confidence": 0.91,
+              "evidence_digests": [
+                "000000000000000000000000000000000000000000000000000000000000000c"
+              ],
+              "model_digest": "000000000000000000000000000000000000000000000000000000000000000a"
+            }
+          ]
+        },
+        "reaction": {
+          "proposal": "service",
+          "reason": "Synthetic service recommendation awaiting authorized approval",
+          "authority_status": "not_requested",
+          "authority_ref": null,
+          "authority_digest": null,
+          "safety_policy_digest": "000000000000000000000000000000000000000000000000000000000000000f",
+          "operating_envelope_digest": "0000000000000000000000000000000000000000000000000000000000000010",
+          "execution_status": "not_executed",
+          "execution_receipt_digest": null,
+          "reconciliation_required": false,
+          "mutation_blocked": false,
+          "maintenance_event_digest": null,
+          "post_action_test_digest": null,
+          "verification_status": "not_applicable",
+          "verifier_ref": null,
+          "verifier_digest": null
+        }
+      }
+    },
+    {
+      "case_id": "unauthorized-execution-rejected",
+      "expectation": "reject",
+      "event": {
+        "schema_version": "ev-bms-diagnostic-event/0.1",
+        "event_id": "unauthorized-execution-rejected",
+        "evidence_class": "synthetic_fixture",
+        "asset": {
+          "vehicle_ref": "vehicle-ev-ref-01",
+          "vehicle_configuration_digest": "0000000000000000000000000000000000000000000000000000000000000001",
+          "pack_ref": "pack-ev-ref-01",
+          "pack_configuration_digest": "0000000000000000000000000000000000000000000000000000000000000002",
+          "module_ref": "module-01"
+        },
+        "bms": {
+          "hardware_ref": "bms-v1",
+          "software_digest": "0000000000000000000000000000000000000000000000000000000000000003",
+          "firmware_digest": "0000000000000000000000000000000000000000000000000000000000000004",
+          "calibration_digest": "0000000000000000000000000000000000000000000000000000000000000005",
+          "diagnostic_rule_digest": "0000000000000000000000000000000000000000000000000000000000000006"
+        },
+        "observation_context": {
+          "window_start_ms": 900,
+          "window_end_ms": 1200,
+          "temperature_min_c": 20,
+          "temperature_max_c": 35,
+          "soc_min_fraction": 0.45,
+          "soc_max_fraction": 0.65,
+          "context_digest": "0000000000000000000000000000000000000000000000000000000000000007"
+        },
+        "observations": [
+          {
+            "channel_id": "cell_voltage_min",
+            "value": 3.42,
+            "unit": "V",
+            "sample_time_ms": 1000,
+            "validity": "valid",
+            "sensor_calibration_digest": "000000000000000000000000000000000000000000000000000000000000000b",
+            "source_digest": "000000000000000000000000000000000000000000000000000000000000000c",
+            "evidence_class": "synthetic_fixture"
+          },
+          {
+            "channel_id": "pack_temperature_max",
+            "value": 31.5,
+            "unit": "degC",
+            "sample_time_ms": 1100,
+            "validity": "valid",
+            "sensor_calibration_digest": "000000000000000000000000000000000000000000000000000000000000000d",
+            "source_digest": "000000000000000000000000000000000000000000000000000000000000000e",
+            "evidence_class": "synthetic_fixture"
+          }
+        ],
+        "diagnosis": {
+          "state": "classified",
+          "classification_rule_digest": "0000000000000000000000000000000000000000000000000000000000000008",
+          "diagnosis_digest": "0000000000000000000000000000000000000000000000000000000000000009",
+          "fault_candidates": [
+            {
+              "fault_id": "CELL-IMBALANCE-001",
+              "classification": "cell_imbalance",
+              "severity": "minor",
+              "confidence": 0.91,
+              "evidence_digests": [
+                "000000000000000000000000000000000000000000000000000000000000000c"
+              ],
+              "model_digest": "000000000000000000000000000000000000000000000000000000000000000a"
+            }
+          ]
+        },
+        "reaction": {
+          "proposal": "derate",
+          "reason": "Synthetic candidate requires continued observation",
+          "authority_status": "not_requested",
+          "authority_ref": null,
+          "authority_digest": null,
+          "safety_policy_digest": "000000000000000000000000000000000000000000000000000000000000000f",
+          "operating_envelope_digest": "0000000000000000000000000000000000000000000000000000000000000010",
+          "execution_status": "executed",
+          "execution_receipt_digest": "0000000000000000000000000000000000000000000000000000000000000016",
+          "reconciliation_required": false,
+          "mutation_blocked": false,
+          "maintenance_event_digest": null,
+          "post_action_test_digest": null,
+          "verification_status": "not_applicable",
+          "verifier_ref": null,
+          "verifier_digest": null
+        }
+      }
+    },
+    {
+      "case_id": "service-executed-not-yet-verified",
+      "expectation": "accept",
+      "event": {
+        "schema_version": "ev-bms-diagnostic-event/0.1",
+        "event_id": "service-executed-not-yet-verified",
+        "evidence_class": "synthetic_fixture",
+        "asset": {
+          "vehicle_ref": "vehicle-ev-ref-01",
+          "vehicle_configuration_digest": "0000000000000000000000000000000000000000000000000000000000000001",
+          "pack_ref": "pack-ev-ref-01",
+          "pack_configuration_digest": "0000000000000000000000000000000000000000000000000000000000000002",
+          "module_ref": "module-01"
+        },
+        "bms": {
+          "hardware_ref": "bms-v1",
+          "software_digest": "0000000000000000000000000000000000000000000000000000000000000003",
+          "firmware_digest": "0000000000000000000000000000000000000000000000000000000000000004",
+          "calibration_digest": "0000000000000000000000000000000000000000000000000000000000000005",
+          "diagnostic_rule_digest": "0000000000000000000000000000000000000000000000000000000000000006"
+        },
+        "observation_context": {
+          "window_start_ms": 900,
+          "window_end_ms": 1200,
+          "temperature_min_c": 20,
+          "temperature_max_c": 35,
+          "soc_min_fraction": 0.45,
+          "soc_max_fraction": 0.65,
+          "context_digest": "0000000000000000000000000000000000000000000000000000000000000007"
+        },
+        "observations": [
+          {
+            "channel_id": "cell_voltage_min",
+            "value": 3.42,
+            "unit": "V",
+            "sample_time_ms": 1000,
+            "validity": "valid",
+            "sensor_calibration_digest": "000000000000000000000000000000000000000000000000000000000000000b",
+            "source_digest": "000000000000000000000000000000000000000000000000000000000000000c",
+            "evidence_class": "synthetic_fixture"
+          },
+          {
+            "channel_id": "pack_temperature_max",
+            "value": 31.5,
+            "unit": "degC",
+            "sample_time_ms": 1100,
+            "validity": "valid",
+            "sensor_calibration_digest": "000000000000000000000000000000000000000000000000000000000000000d",
+            "source_digest": "000000000000000000000000000000000000000000000000000000000000000e",
+            "evidence_class": "synthetic_fixture"
+          }
+        ],
+        "diagnosis": {
+          "state": "classified",
+          "classification_rule_digest": "0000000000000000000000000000000000000000000000000000000000000008",
+          "diagnosis_digest": "0000000000000000000000000000000000000000000000000000000000000009",
+          "fault_candidates": [
+            {
+              "fault_id": "CELL-IMBALANCE-001",
+              "classification": "cell_imbalance",
+              "severity": "minor",
+              "confidence": 0.91,
+              "evidence_digests": [
+                "000000000000000000000000000000000000000000000000000000000000000c"
+              ],
+              "model_digest": "000000000000000000000000000000000000000000000000000000000000000a"
+            }
+          ]
+        },
+        "reaction": {
+          "proposal": "service",
+          "reason": "Synthetic candidate requires continued observation",
+          "authority_status": "approved",
+          "authority_ref": "authority-fleet-engineer-01",
+          "authority_digest": "0000000000000000000000000000000000000000000000000000000000000017",
+          "safety_policy_digest": "000000000000000000000000000000000000000000000000000000000000000f",
+          "operating_envelope_digest": "0000000000000000000000000000000000000000000000000000000000000010",
+          "execution_status": "executed",
+          "execution_receipt_digest": "0000000000000000000000000000000000000000000000000000000000000018",
+          "reconciliation_required": false,
+          "mutation_blocked": false,
+          "maintenance_event_digest": "0000000000000000000000000000000000000000000000000000000000000019",
+          "post_action_test_digest": null,
+          "verification_status": "pending",
+          "verifier_ref": null,
+          "verifier_digest": null
+        }
+      }
+    },
+    {
+      "case_id": "service-independently-verified",
+      "expectation": "accept",
+      "event": {
+        "schema_version": "ev-bms-diagnostic-event/0.1",
+        "event_id": "service-independently-verified",
+        "evidence_class": "synthetic_fixture",
+        "asset": {
+          "vehicle_ref": "vehicle-ev-ref-01",
+          "vehicle_configuration_digest": "0000000000000000000000000000000000000000000000000000000000000001",
+          "pack_ref": "pack-ev-ref-01",
+          "pack_configuration_digest": "0000000000000000000000000000000000000000000000000000000000000002",
+          "module_ref": "module-01"
+        },
+        "bms": {
+          "hardware_ref": "bms-v1",
+          "software_digest": "0000000000000000000000000000000000000000000000000000000000000003",
+          "firmware_digest": "0000000000000000000000000000000000000000000000000000000000000004",
+          "calibration_digest": "0000000000000000000000000000000000000000000000000000000000000005",
+          "diagnostic_rule_digest": "0000000000000000000000000000000000000000000000000000000000000006"
+        },
+        "observation_context": {
+          "window_start_ms": 900,
+          "window_end_ms": 1200,
+          "temperature_min_c": 20,
+          "temperature_max_c": 35,
+          "soc_min_fraction": 0.45,
+          "soc_max_fraction": 0.65,
+          "context_digest": "0000000000000000000000000000000000000000000000000000000000000007"
+        },
+        "observations": [
+          {
+            "channel_id": "cell_voltage_min",
+            "value": 3.42,
+            "unit": "V",
+            "sample_time_ms": 1000,
+            "validity": "valid",
+            "sensor_calibration_digest": "000000000000000000000000000000000000000000000000000000000000000b",
+            "source_digest": "000000000000000000000000000000000000000000000000000000000000000c",
+            "evidence_class": "synthetic_fixture"
+          },
+          {
+            "channel_id": "pack_temperature_max",
+            "value": 31.5,
+            "unit": "degC",
+            "sample_time_ms": 1100,
+            "validity": "valid",
+            "sensor_calibration_digest": "000000000000000000000000000000000000000000000000000000000000000d",
+            "source_digest": "000000000000000000000000000000000000000000000000000000000000000e",
+            "evidence_class": "synthetic_fixture"
+          }
+        ],
+        "diagnosis": {
+          "state": "classified",
+          "classification_rule_digest": "0000000000000000000000000000000000000000000000000000000000000008",
+          "diagnosis_digest": "0000000000000000000000000000000000000000000000000000000000000009",
+          "fault_candidates": [
+            {
+              "fault_id": "CELL-IMBALANCE-001",
+              "classification": "cell_imbalance",
+              "severity": "minor",
+              "confidence": 0.91,
+              "evidence_digests": [
+                "000000000000000000000000000000000000000000000000000000000000000c"
+              ],
+              "model_digest": "000000000000000000000000000000000000000000000000000000000000000a"
+            }
+          ]
+        },
+        "reaction": {
+          "proposal": "service",
+          "reason": "Synthetic candidate requires continued observation",
+          "authority_status": "approved",
+          "authority_ref": "authority-fleet-engineer-01",
+          "authority_digest": "0000000000000000000000000000000000000000000000000000000000000017",
+          "safety_policy_digest": "000000000000000000000000000000000000000000000000000000000000000f",
+          "operating_envelope_digest": "0000000000000000000000000000000000000000000000000000000000000010",
+          "execution_status": "executed",
+          "execution_receipt_digest": "0000000000000000000000000000000000000000000000000000000000000018",
+          "reconciliation_required": false,
+          "mutation_blocked": false,
+          "maintenance_event_digest": "0000000000000000000000000000000000000000000000000000000000000019",
+          "post_action_test_digest": "000000000000000000000000000000000000000000000000000000000000001a",
+          "verification_status": "verified",
+          "verifier_ref": "independent-test-facility-01",
+          "verifier_digest": "000000000000000000000000000000000000000000000000000000000000001b"
+        }
+      }
+    },
+    {
+      "case_id": "unknown-execution-blocks-mutation",
+      "expectation": "accept",
+      "event": {
+        "schema_version": "ev-bms-diagnostic-event/0.1",
+        "event_id": "unknown-execution-blocks-mutation",
+        "evidence_class": "synthetic_fixture",
+        "asset": {
+          "vehicle_ref": "vehicle-ev-ref-01",
+          "vehicle_configuration_digest": "0000000000000000000000000000000000000000000000000000000000000001",
+          "pack_ref": "pack-ev-ref-01",
+          "pack_configuration_digest": "0000000000000000000000000000000000000000000000000000000000000002",
+          "module_ref": "module-01"
+        },
+        "bms": {
+          "hardware_ref": "bms-v1",
+          "software_digest": "0000000000000000000000000000000000000000000000000000000000000003",
+          "firmware_digest": "0000000000000000000000000000000000000000000000000000000000000004",
+          "calibration_digest": "0000000000000000000000000000000000000000000000000000000000000005",
+          "diagnostic_rule_digest": "0000000000000000000000000000000000000000000000000000000000000006"
+        },
+        "observation_context": {
+          "window_start_ms": 900,
+          "window_end_ms": 1200,
+          "temperature_min_c": 20,
+          "temperature_max_c": 35,
+          "soc_min_fraction": 0.45,
+          "soc_max_fraction": 0.65,
+          "context_digest": "0000000000000000000000000000000000000000000000000000000000000007"
+        },
+        "observations": [
+          {
+            "channel_id": "cell_voltage_min",
+            "value": 3.42,
+            "unit": "V",
+            "sample_time_ms": 1000,
+            "validity": "valid",
+            "sensor_calibration_digest": "000000000000000000000000000000000000000000000000000000000000000b",
+            "source_digest": "000000000000000000000000000000000000000000000000000000000000000c",
+            "evidence_class": "synthetic_fixture"
+          },
+          {
+            "channel_id": "pack_temperature_max",
+            "value": 31.5,
+            "unit": "degC",
+            "sample_time_ms": 1100,
+            "validity": "valid",
+            "sensor_calibration_digest": "000000000000000000000000000000000000000000000000000000000000000d",
+            "source_digest": "000000000000000000000000000000000000000000000000000000000000000e",
+            "evidence_class": "synthetic_fixture"
+          }
+        ],
+        "diagnosis": {
+          "state": "classified",
+          "classification_rule_digest": "0000000000000000000000000000000000000000000000000000000000000008",
+          "diagnosis_digest": "0000000000000000000000000000000000000000000000000000000000000009",
+          "fault_candidates": [
+            {
+              "fault_id": "CELL-IMBALANCE-001",
+              "classification": "cell_imbalance",
+              "severity": "minor",
+              "confidence": 0.91,
+              "evidence_digests": [
+                "000000000000000000000000000000000000000000000000000000000000000c"
+              ],
+              "model_digest": "000000000000000000000000000000000000000000000000000000000000000a"
+            }
+          ]
+        },
+        "reaction": {
+          "proposal": "isolate",
+          "reason": "Synthetic candidate requires continued observation",
+          "authority_status": "approved",
+          "authority_ref": "authority-fleet-engineer-01",
+          "authority_digest": "000000000000000000000000000000000000000000000000000000000000001c",
+          "safety_policy_digest": "000000000000000000000000000000000000000000000000000000000000000f",
+          "operating_envelope_digest": "0000000000000000000000000000000000000000000000000000000000000010",
+          "execution_status": "unknown",
+          "execution_receipt_digest": null,
+          "reconciliation_required": true,
+          "mutation_blocked": true,
+          "maintenance_event_digest": null,
+          "post_action_test_digest": null,
+          "verification_status": "not_applicable",
+          "verifier_ref": null,
+          "verifier_digest": null
+        }
+      }
+    },
+    {
+      "case_id": "verified-without-post-test-rejected",
+      "expectation": "reject",
+      "event": {
+        "schema_version": "ev-bms-diagnostic-event/0.1",
+        "event_id": "verified-without-post-test-rejected",
+        "evidence_class": "synthetic_fixture",
+        "asset": {
+          "vehicle_ref": "vehicle-ev-ref-01",
+          "vehicle_configuration_digest": "0000000000000000000000000000000000000000000000000000000000000001",
+          "pack_ref": "pack-ev-ref-01",
+          "pack_configuration_digest": "0000000000000000000000000000000000000000000000000000000000000002",
+          "module_ref": "module-01"
+        },
+        "bms": {
+          "hardware_ref": "bms-v1",
+          "software_digest": "0000000000000000000000000000000000000000000000000000000000000003",
+          "firmware_digest": "0000000000000000000000000000000000000000000000000000000000000004",
+          "calibration_digest": "0000000000000000000000000000000000000000000000000000000000000005",
+          "diagnostic_rule_digest": "0000000000000000000000000000000000000000000000000000000000000006"
+        },
+        "observation_context": {
+          "window_start_ms": 900,
+          "window_end_ms": 1200,
+          "temperature_min_c": 20,
+          "temperature_max_c": 35,
+          "soc_min_fraction": 0.45,
+          "soc_max_fraction": 0.65,
+          "context_digest": "0000000000000000000000000000000000000000000000000000000000000007"
+        },
+        "observations": [
+          {
+            "channel_id": "cell_voltage_min",
+            "value": 3.42,
+            "unit": "V",
+            "sample_time_ms": 1000,
+            "validity": "valid",
+            "sensor_calibration_digest": "000000000000000000000000000000000000000000000000000000000000000b",
+            "source_digest": "000000000000000000000000000000000000000000000000000000000000000c",
+            "evidence_class": "synthetic_fixture"
+          },
+          {
+            "channel_id": "pack_temperature_max",
+            "value": 31.5,
+            "unit": "degC",
+            "sample_time_ms": 1100,
+            "validity": "valid",
+            "sensor_calibration_digest": "000000000000000000000000000000000000000000000000000000000000000d",
+            "source_digest": "000000000000000000000000000000000000000000000000000000000000000e",
+            "evidence_class": "synthetic_fixture"
+          }
+        ],
+        "diagnosis": {
+          "state": "classified",
+          "classification_rule_digest": "0000000000000000000000000000000000000000000000000000000000000008",
+          "diagnosis_digest": "0000000000000000000000000000000000000000000000000000000000000009",
+          "fault_candidates": [
+            {
+              "fault_id": "CELL-IMBALANCE-001",
+              "classification": "cell_imbalance",
+              "severity": "minor",
+              "confidence": 0.91,
+              "evidence_digests": [
+                "000000000000000000000000000000000000000000000000000000000000000c"
+              ],
+              "model_digest": "000000000000000000000000000000000000000000000000000000000000000a"
+            }
+          ]
+        },
+        "reaction": {
+          "proposal": "service",
+          "reason": "Synthetic candidate requires continued observation",
+          "authority_status": "approved",
+          "authority_ref": "authority-fleet-engineer-01",
+          "authority_digest": "000000000000000000000000000000000000000000000000000000000000001d",
+          "safety_policy_digest": "000000000000000000000000000000000000000000000000000000000000000f",
+          "operating_envelope_digest": "0000000000000000000000000000000000000000000000000000000000000010",
+          "execution_status": "executed",
+          "execution_receipt_digest": "000000000000000000000000000000000000000000000000000000000000001e",
+          "reconciliation_required": false,
+          "mutation_blocked": false,
+          "maintenance_event_digest": "000000000000000000000000000000000000000000000000000000000000001f",
+          "post_action_test_digest": null,
+          "verification_status": "verified",
+          "verifier_ref": "verifier-01",
+          "verifier_digest": "0000000000000000000000000000000000000000000000000000000000000020"
+        }
+      }
+    },
+    {
+      "case_id": "classified-without-support-rejected",
+      "expectation": "reject",
+      "event": {
+        "schema_version": "ev-bms-diagnostic-event/0.1",
+        "event_id": "classified-without-support-rejected",
+        "evidence_class": "synthetic_fixture",
+        "asset": {
+          "vehicle_ref": "vehicle-ev-ref-01",
+          "vehicle_configuration_digest": "0000000000000000000000000000000000000000000000000000000000000001",
+          "pack_ref": "pack-ev-ref-01",
+          "pack_configuration_digest": "0000000000000000000000000000000000000000000000000000000000000002",
+          "module_ref": "module-01"
+        },
+        "bms": {
+          "hardware_ref": "bms-v1",
+          "software_digest": "0000000000000000000000000000000000000000000000000000000000000003",
+          "firmware_digest": "0000000000000000000000000000000000000000000000000000000000000004",
+          "calibration_digest": "0000000000000000000000000000000000000000000000000000000000000005",
+          "diagnostic_rule_digest": "0000000000000000000000000000000000000000000000000000000000000006"
+        },
+        "observation_context": {
+          "window_start_ms": 900,
+          "window_end_ms": 1200,
+          "temperature_min_c": 20,
+          "temperature_max_c": 35,
+          "soc_min_fraction": 0.45,
+          "soc_max_fraction": 0.65,
+          "context_digest": "0000000000000000000000000000000000000000000000000000000000000007"
+        },
+        "observations": [
+          {
+            "channel_id": "cell_voltage_min",
+            "value": 3.42,
+            "unit": "V",
+            "sample_time_ms": 1000,
+            "validity": "valid",
+            "sensor_calibration_digest": "000000000000000000000000000000000000000000000000000000000000000b",
+            "source_digest": "000000000000000000000000000000000000000000000000000000000000000c",
+            "evidence_class": "synthetic_fixture"
+          },
+          {
+            "channel_id": "pack_temperature_max",
+            "value": 31.5,
+            "unit": "degC",
+            "sample_time_ms": 1100,
+            "validity": "valid",
+            "sensor_calibration_digest": "000000000000000000000000000000000000000000000000000000000000000d",
+            "source_digest": "000000000000000000000000000000000000000000000000000000000000000e",
+            "evidence_class": "synthetic_fixture"
+          }
+        ],
+        "diagnosis": {
+          "state": "classified",
+          "classification_rule_digest": "0000000000000000000000000000000000000000000000000000000000000008",
+          "diagnosis_digest": "0000000000000000000000000000000000000000000000000000000000000009",
+          "fault_candidates": [
+            {
+              "fault_id": "CELL-IMBALANCE-001",
+              "classification": "cell_imbalance",
+              "severity": "minor",
+              "confidence": 0.91,
+              "evidence_digests": [],
+              "model_digest": "000000000000000000000000000000000000000000000000000000000000000a"
+            }
+          ]
+        },
+        "reaction": {
+          "proposal": "monitor",
+          "reason": "Synthetic candidate requires continued observation",
+          "authority_status": "not_requested",
+          "authority_ref": null,
+          "authority_digest": null,
+          "safety_policy_digest": "000000000000000000000000000000000000000000000000000000000000000f",
+          "operating_envelope_digest": "0000000000000000000000000000000000000000000000000000000000000010",
+          "execution_status": "not_executed",
+          "execution_receipt_digest": null,
+          "reconciliation_required": false,
+          "mutation_blocked": false,
+          "maintenance_event_digest": null,
+          "post_action_test_digest": null,
+          "verification_status": "not_applicable",
+          "verifier_ref": null,
+          "verifier_digest": null
+        }
+      }
+    },
+    {
+      "case_id": "observation-outside-window-rejected",
+      "expectation": "reject",
+      "event": {
+        "schema_version": "ev-bms-diagnostic-event/0.1",
+        "event_id": "observation-outside-window-rejected",
+        "evidence_class": "synthetic_fixture",
+        "asset": {
+          "vehicle_ref": "vehicle-ev-ref-01",
+          "vehicle_configuration_digest": "0000000000000000000000000000000000000000000000000000000000000001",
+          "pack_ref": "pack-ev-ref-01",
+          "pack_configuration_digest": "0000000000000000000000000000000000000000000000000000000000000002",
+          "module_ref": "module-01"
+        },
+        "bms": {
+          "hardware_ref": "bms-v1",
+          "software_digest": "0000000000000000000000000000000000000000000000000000000000000003",
+          "firmware_digest": "0000000000000000000000000000000000000000000000000000000000000004",
+          "calibration_digest": "0000000000000000000000000000000000000000000000000000000000000005",
+          "diagnostic_rule_digest": "0000000000000000000000000000000000000000000000000000000000000006"
+        },
+        "observation_context": {
+          "window_start_ms": 900,
+          "window_end_ms": 1200,
+          "temperature_min_c": 20,
+          "temperature_max_c": 35,
+          "soc_min_fraction": 0.45,
+          "soc_max_fraction": 0.65,
+          "context_digest": "0000000000000000000000000000000000000000000000000000000000000007"
+        },
+        "observations": [
+          {
+            "channel_id": "cell_voltage_min",
+            "value": 3.42,
+            "unit": "V",
+            "sample_time_ms": 2000,
+            "validity": "valid",
+            "sensor_calibration_digest": "000000000000000000000000000000000000000000000000000000000000000b",
+            "source_digest": "000000000000000000000000000000000000000000000000000000000000000c",
+            "evidence_class": "synthetic_fixture"
+          },
+          {
+            "channel_id": "pack_temperature_max",
+            "value": 31.5,
+            "unit": "degC",
+            "sample_time_ms": 1100,
+            "validity": "valid",
+            "sensor_calibration_digest": "000000000000000000000000000000000000000000000000000000000000000d",
+            "source_digest": "000000000000000000000000000000000000000000000000000000000000000e",
+            "evidence_class": "synthetic_fixture"
+          }
+        ],
+        "diagnosis": {
+          "state": "classified",
+          "classification_rule_digest": "0000000000000000000000000000000000000000000000000000000000000008",
+          "diagnosis_digest": "0000000000000000000000000000000000000000000000000000000000000009",
+          "fault_candidates": [
+            {
+              "fault_id": "CELL-IMBALANCE-001",
+              "classification": "cell_imbalance",
+              "severity": "minor",
+              "confidence": 0.91,
+              "evidence_digests": [
+                "000000000000000000000000000000000000000000000000000000000000000c"
+              ],
+              "model_digest": "000000000000000000000000000000000000000000000000000000000000000a"
+            }
+          ]
+        },
+        "reaction": {
+          "proposal": "monitor",
+          "reason": "Synthetic candidate requires continued observation",
+          "authority_status": "not_requested",
+          "authority_ref": null,
+          "authority_digest": null,
+          "safety_policy_digest": "000000000000000000000000000000000000000000000000000000000000000f",
+          "operating_envelope_digest": "0000000000000000000000000000000000000000000000000000000000000010",
+          "execution_status": "not_executed",
+          "execution_receipt_digest": null,
+          "reconciliation_required": false,
+          "mutation_blocked": false,
+          "maintenance_event_digest": null,
+          "post_action_test_digest": null,
+          "verification_status": "not_applicable",
+          "verifier_ref": null,
+          "verifier_digest": null
+        }
+      }
+    },
+    {
+      "case_id": "acknowledged-without-authorization-rejected",
+      "expectation": "reject",
+      "event": {
+        "schema_version": "ev-bms-diagnostic-event/0.1",
+        "event_id": "acknowledged-without-authorization-rejected",
+        "evidence_class": "synthetic_fixture",
+        "asset": {
+          "vehicle_ref": "vehicle-ev-ref-01",
+          "vehicle_configuration_digest": "0000000000000000000000000000000000000000000000000000000000000001",
+          "pack_ref": "pack-ev-ref-01",
+          "pack_configuration_digest": "0000000000000000000000000000000000000000000000000000000000000002",
+          "module_ref": "module-01"
+        },
+        "bms": {
+          "hardware_ref": "bms-v1",
+          "software_digest": "0000000000000000000000000000000000000000000000000000000000000003",
+          "firmware_digest": "0000000000000000000000000000000000000000000000000000000000000004",
+          "calibration_digest": "0000000000000000000000000000000000000000000000000000000000000005",
+          "diagnostic_rule_digest": "0000000000000000000000000000000000000000000000000000000000000006"
+        },
+        "observation_context": {
+          "window_start_ms": 900,
+          "window_end_ms": 1200,
+          "temperature_min_c": 20,
+          "temperature_max_c": 35,
+          "soc_min_fraction": 0.45,
+          "soc_max_fraction": 0.65,
+          "context_digest": "0000000000000000000000000000000000000000000000000000000000000007"
+        },
+        "observations": [
+          {
+            "channel_id": "cell_voltage_min",
+            "value": 3.42,
+            "unit": "V",
+            "sample_time_ms": 1000,
+            "validity": "valid",
+            "sensor_calibration_digest": "000000000000000000000000000000000000000000000000000000000000000b",
+            "source_digest": "000000000000000000000000000000000000000000000000000000000000000c",
+            "evidence_class": "synthetic_fixture"
+          },
+          {
+            "channel_id": "pack_temperature_max",
+            "value": 31.5,
+            "unit": "degC",
+            "sample_time_ms": 1100,
+            "validity": "valid",
+            "sensor_calibration_digest": "000000000000000000000000000000000000000000000000000000000000000d",
+            "source_digest": "000000000000000000000000000000000000000000000000000000000000000e",
+            "evidence_class": "synthetic_fixture"
+          }
+        ],
+        "diagnosis": {
+          "state": "classified",
+          "classification_rule_digest": "0000000000000000000000000000000000000000000000000000000000000008",
+          "diagnosis_digest": "0000000000000000000000000000000000000000000000000000000000000009",
+          "fault_candidates": [
+            {
+              "fault_id": "CELL-IMBALANCE-001",
+              "classification": "cell_imbalance",
+              "severity": "minor",
+              "confidence": 0.91,
+              "evidence_digests": [
+                "000000000000000000000000000000000000000000000000000000000000000c"
+              ],
+              "model_digest": "000000000000000000000000000000000000000000000000000000000000000a"
+            }
+          ]
+        },
+        "reaction": {
+          "proposal": "derate",
+          "reason": "Synthetic candidate requires continued observation",
+          "authority_status": "not_requested",
+          "authority_ref": null,
+          "authority_digest": null,
+          "safety_policy_digest": "000000000000000000000000000000000000000000000000000000000000000f",
+          "operating_envelope_digest": "0000000000000000000000000000000000000000000000000000000000000010",
+          "execution_status": "acknowledged",
+          "execution_receipt_digest": "0000000000000000000000000000000000000000000000000000000000000021",
+          "reconciliation_required": false,
+          "mutation_blocked": false,
+          "maintenance_event_digest": null,
+          "post_action_test_digest": null,
+          "verification_status": "not_applicable",
+          "verifier_ref": null,
+          "verifier_digest": null
+        }
+      }
+    }
+  ]
+}
