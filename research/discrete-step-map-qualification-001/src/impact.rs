@@ -260,9 +260,8 @@ impl ImpactModel1D {
                                 * remaining
                                 * ((-1.0 - initial.velocity_m_s / (-incoming_velocity))
                                     / self.acceleration_m_s2),
-                            dvelocity_dgap: self.acceleration_m_s2
-                                * (1.0 / (-incoming_velocity)),
-                            dvelocity_dvelocity: self.acceleration_m_s2
+                            dvelocity_dgap: -self.acceleration_m_s2 * (1.0 / (-incoming_velocity)),
+                            dvelocity_dvelocity: -self.acceleration_m_s2
                                 * ((-1.0 - initial.velocity_m_s / (-incoming_velocity))
                                     / self.acceleration_m_s2),
                         }),
@@ -351,8 +350,16 @@ impl ImpactModel1D {
         if state.gap_m == 0.0 && state.velocity_m_s < 0.0 {
             return Some(0.0);
         }
-        if acceleration >= 0.0 {
-            return None;
+        if acceleration.abs() <= f64::MIN_POSITIVE {
+            if state.velocity_m_s >= -tolerance {
+                return None;
+            }
+            let time = -state.gap_m / state.velocity_m_s;
+            return if time >= -tolerance && time <= dt_s + tolerance {
+                Some(time.clamp(0.0, dt_s))
+            } else {
+                None
+            };
         }
         let discriminant = state.velocity_m_s * state.velocity_m_s
             - 2.0 * acceleration * state.gap_m;
@@ -604,6 +611,24 @@ mod tests {
             (plus_velocity.velocity_m_s - minus_velocity.velocity_m_s) / (2.0 * epsilon),
             2.0e-7,
         );
+    }
+
+    #[test]
+    fn zero_acceleration_constant_velocity_impact_is_resolved() {
+        let model = ImpactModel1D::try_new(1.0, 0.0, 0.0).unwrap();
+        let result = model.step(
+            ImpactState1D {
+                gap_m: 0.5,
+                velocity_m_s: -1.0,
+            },
+            1.0,
+            1.0e-10,
+        ).unwrap();
+        close(result.event_time_s.unwrap(), 0.5, 1.0e-12);
+        assert_eq!(result.state.gap_m, 0.0);
+        assert_eq!(result.state.velocity_m_s, 0.0);
+        assert_eq!(result.branch, ImpactBranch::PlasticImpactThenSupport);
+        assert_eq!(result.support_impulse_ns, 0.0);
     }
 
     #[test]
