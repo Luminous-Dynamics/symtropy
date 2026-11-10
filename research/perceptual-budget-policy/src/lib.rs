@@ -102,7 +102,6 @@ pub enum TaskMode {
     EngineeringInspection,
     SafetyInspection,
     Accessibility,
-    RemoteLowPower,
 }
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
@@ -199,6 +198,7 @@ pub enum PolicyError {
     DuplicateProtectedAsset(String),
     DuplicatePreservedAsset(String),
     DuplicateSemanticChannel(&'static str),
+    MissingContractSemanticChannel(SemanticChannel),
     Serialization(String),
 }
 
@@ -220,6 +220,9 @@ impl std::fmt::Display for PolicyError {
             Self::DuplicatePreservedAsset(id) => write!(f, "duplicate preserved asset id: {id}"),
             Self::DuplicateSemanticChannel(name) => {
                 write!(f, "duplicate semantic channel: {name}")
+            }
+            Self::MissingContractSemanticChannel(channel) => {
+                write!(f, "task contract is missing mandatory semantic channel: {channel:?}")
             }
             Self::Serialization(message) => write!(f, "serialization failure: {message}"),
         }
@@ -456,6 +459,7 @@ fn validate_input(input: &PolicyInputV1) -> Result<(), PolicyError> {
         &input.contract.required_semantic_channels,
         "contract.required_semantic_channels",
     )?;
+    validate_mode_contract(&input.contract)?;
 
     let mut profile_ids = BTreeSet::new();
     for profile in &input.profiles {
@@ -505,6 +509,34 @@ fn validate_input(input: &PolicyInputV1) -> Result<(), PolicyError> {
             validate_sha256(&panel.protocol_sha256, "human_preference.protocol_sha256")?;
             validate_sha256(&panel.sample_set_sha256, "human_preference.sample_set_sha256")?;
         }
+    }
+    Ok(())
+}
+
+fn validate_mode_contract(contract: &QualityContract) -> Result<(), PolicyError> {
+    let mandatory: &[SemanticChannel] = match contract.task_mode {
+        TaskMode::Cinematic => &[],
+        TaskMode::EngineeringInspection | TaskMode::SafetyInspection => &[
+            SemanticChannel::Units,
+            SemanticChannel::ReferenceFrame,
+            SemanticChannel::Uncertainty,
+            SemanticChannel::Freshness,
+            SemanticChannel::EvidenceClass,
+        ],
+        TaskMode::Accessibility => &[SemanticChannel::ContrastMetadata],
+    };
+
+    for channel in mandatory {
+        if !contract.required_semantic_channels.contains(channel) {
+            return Err(PolicyError::MissingContractSemanticChannel(*channel));
+        }
+    }
+    if contract.task_mode == TaskMode::SafetyInspection
+        && contract.protected_asset_ids.is_empty()
+    {
+        return Err(PolicyError::EmptyField(
+            "contract.protected_asset_ids required for safety_inspection",
+        ));
     }
     Ok(())
 }
@@ -597,7 +629,7 @@ mod tests {
     fn profile(id: &str, energy: Option<f64>, p95: u64) -> MeasuredProfile {
         MeasuredProfile {
             profile_id: id.to_owned(),
-            task_mode: TaskMode::RemoteLowPower,
+            task_mode: TaskMode::EngineeringInspection,
             scene_capture_sha256: H1.to_owned(),
             metric_bundle_sha256: H2.to_owned(),
             measurement_receipt_sha256: H3.to_owned(),
@@ -832,6 +864,47 @@ mod tests {
     fn human_preference_is_optional_when_not_requested() {
         let receipt = evaluate(&input()).expect("no panel required");
         assert!(receipt.evaluations.iter().all(|entry| entry.rejection_reasons.is_empty()));
+    }
+
+    #[test]
+    fn engineering_contract_cannot_omit_uncertainty_semantics() {
+        let mut data = input();
+        data.contract
+            .required_semantic_channels
+            .retain(|channel| *channel != SemanticChannel::Uncertainty);
+        assert_eq!(
+            evaluate(&data).unwrap_err(),
+            PolicyError::MissingContractSemanticChannel(SemanticChannel::Uncertainty)
+        );
+    }
+
+    #[test]
+    fn safety_contract_requires_at_least_one_protected_asset() {
+        let mut data = input();
+        data.contract.task_mode = TaskMode::SafetyInspection;
+        data.contract.protected_asset_ids.clear();
+        for profile in &mut data.profiles {
+            profile.task_mode = TaskMode::SafetyInspection;
+        }
+        assert_eq!(
+            evaluate(&data).unwrap_err(),
+            PolicyError::EmptyField("contract.protected_asset_ids required for safety_inspection")
+        );
+    }
+
+    #[test]
+    fn accessibility_contract_requires_contrast_metadata() {
+        let mut data = input();
+        data.contract.task_mode = TaskMode::Accessibility;
+        data.contract.required_semantic_channels
+            .retain(|channel| *channel != SemanticChannel::ContrastMetadata);
+        for profile in &mut data.profiles {
+            profile.task_mode = TaskMode::Accessibility;
+        }
+        assert_eq!(
+            evaluate(&data).unwrap_err(),
+            PolicyError::MissingContractSemanticChannel(SemanticChannel::ContrastMetadata)
+        );
     }
 
     #[test]
