@@ -28,6 +28,7 @@ pub mod capsule;
 pub mod compound;
 pub mod convex_hull;
 pub mod halfspace;
+pub mod lie;
 pub mod hyperbox;
 pub mod hyperplane;
 pub mod point;
@@ -41,6 +42,11 @@ pub use capsule::Capsule;
 pub use compound::CompoundShape;
 pub use convex_hull::ConvexHull;
 pub use halfspace::HalfSpace;
+pub use lie::{
+    so3_interpolate, so3_interpolate_with_config, so3_log, so3_log_with_config, so3_minus,
+    so3_minus_with_config, so3_plus, so3_plus_with_config, So3Log, So3LogBranch, So3LogConfig,
+    So3LogError, So3Trivialization,
+};
 pub use hyperbox::HyperBox;
 pub use hyperplane::Hyperplane;
 pub use point::Point;
