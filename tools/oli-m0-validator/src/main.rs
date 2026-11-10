@@ -466,6 +466,27 @@ fn validate_fixture(value: &Value) -> Vec<String> {
             {
                 errors.push("abiotic hard negative must preserve supported self-organization".to_owned());
             }
+            // The fixture's known-truth generator has no organism lineage, autonomous
+            // reproduction, or cognitive controller. Do not let visual/temporal pattern
+            // features promote those distinct properties merely because organization is real.
+            for property in [
+                "self_maintenance",
+                "reproduction",
+                "heredity",
+                "learning",
+                "agency",
+                "intelligence",
+                "collective_intelligence",
+                "sentience_consciousness",
+            ] {
+                if assessments.get(property).and_then(Value::as_str)
+                    == Some("SUPPORTED_WITHIN_SCOPE")
+                {
+                    errors.push(format!(
+                        "abiotic self-organizing control cannot support life/intelligence property {property}"
+                    ));
+                }
+            }
         }
         "DUSTY_PLASMA_PHYSICS_REFERENCE" => {
             if evidence_class != "PUBLISHED_EXPERIMENT_REFERENCE_METADATA_ONLY"
@@ -521,6 +542,9 @@ fn validate_fixture(value: &Value) -> Vec<String> {
             }
         }
         "TEMPORAL_UNDERSAMPLING_FALSE_NEGATIVE" => {
+            if evidence_class != "SYNTHETIC_KNOWN_TRUTH" {
+                errors.push("temporal false-negative fixture must use synthetic known-truth evidence".to_owned());
+            }
             if disposition != "NON_DETECTION_INCONCLUSIVE" || absence_allowed {
                 errors.push("temporal undersampling must remain inconclusive and block absence inference".to_owned());
             }
@@ -536,6 +560,9 @@ fn validate_fixture(value: &Value) -> Vec<String> {
             }
         }
         "OOD_SENSOR_ENVIRONMENT" => {
+            if evidence_class != "SYNTHETIC_KNOWN_TRUTH" {
+                errors.push("OOD sensor fixture must use synthetic known-truth evidence".to_owned());
+            }
             if disposition != "OUT_OF_DOMAIN"
                 || unit_status != "UNKNOWN"
                 || calibration != "UNQUALIFIED"
