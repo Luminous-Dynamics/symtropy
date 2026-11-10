@@ -52,18 +52,26 @@ fn run() -> Result<(), String> {
     aosoa8.step_n(steps, DT).map_err(|e| e.to_string())?;
     aosoa16.step_n(steps, DT).map_err(|e| e.to_string())?;
 
+    // Compare canonical per-environment f64 bit patterns directly. Digests
+    // are compact receipts, not the correctness oracle itself.
+    let aos_snapshot = aos.canonical_snapshot(count).map_err(|e| e.to_string())?;
+    let soa_snapshot = soa.canonical_snapshot(count).map_err(|e| e.to_string())?;
+    let aosoa4_snapshot = aosoa4.canonical_snapshot(count).map_err(|e| e.to_string())?;
+    let aosoa8_snapshot = aosoa8.canonical_snapshot(count).map_err(|e| e.to_string())?;
+    let aosoa16_snapshot = aosoa16.canonical_snapshot(count).map_err(|e| e.to_string())?;
+    let outputs_bit_identical = aos_snapshot == soa_snapshot
+        && aos_snapshot == aosoa4_snapshot
+        && aos_snapshot == aosoa8_snapshot
+        && aos_snapshot == aosoa16_snapshot;
+    if !outputs_bit_identical {
+        return Err("layout outputs are not bit-identical".to_owned());
+    }
+
     let aos_digest = aos.digest(count).map_err(|e| e.to_string())?;
     let soa_digest = soa.digest(count).map_err(|e| e.to_string())?;
     let aosoa4_digest = aosoa4.digest(count).map_err(|e| e.to_string())?;
     let aosoa8_digest = aosoa8.digest(count).map_err(|e| e.to_string())?;
     let aosoa16_digest = aosoa16.digest(count).map_err(|e| e.to_string())?;
-    let outputs_bit_identical = aos_digest == soa_digest
-        && aos_digest == aosoa4_digest
-        && aos_digest == aosoa8_digest
-        && aos_digest == aosoa16_digest;
-    if !outputs_bit_identical {
-        return Err("layout outputs are not bit-identical".to_owned());
-    }
 
     let receipt = LayoutReceipt {
         schema_version: 1,
