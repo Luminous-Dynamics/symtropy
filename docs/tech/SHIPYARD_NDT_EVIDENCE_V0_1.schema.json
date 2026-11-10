@@ -1,0 +1,713 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/shipyard-ndt-evidence-corpus-v0.1.schema.json",
+  "title": "Shipyard NDT Evidence Corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "corpus_id",
+    "corpus_version",
+    "claim_ceiling",
+    "base_records",
+    "cases"
+  ],
+  "properties": {
+    "corpus_id": {
+      "const": "luminous.symtropy.shipyard-ndt-evidence"
+    },
+    "corpus_version": {
+      "const": "0.1.0"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "base_records": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "valid_paut_record"
+      ],
+      "properties": {
+        "valid_paut_record": {
+          "$ref": "#/$defs/ndtRecord"
+        }
+      }
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 50,
+      "items": {
+        "$ref": "#/$defs/testCase"
+      }
+    }
+  },
+  "$defs": {
+    "nullableString": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "nullableDate": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "ndtRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "inspection_id",
+        "fixture_kind",
+        "corpus_version",
+        "evaluation_cutoff_utc",
+        "subject",
+        "material_scope",
+        "method",
+        "coverage",
+        "equipment",
+        "examiner",
+        "acquisition",
+        "indication",
+        "acceptance",
+        "dataset"
+      ],
+      "properties": {
+        "inspection_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fixture_kind": {
+          "const": "synthetic_fixture"
+        },
+        "corpus_version": {
+          "const": "0.1.0"
+        },
+        "evaluation_cutoff_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "subject": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "asset_id",
+            "component_id",
+            "serial_id",
+            "parent_assembly_id",
+            "joint_id",
+            "weld_region_id",
+            "workpiece_revision"
+          ],
+          "properties": {
+            "asset_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "component_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "serial_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "parent_assembly_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "joint_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "weld_region_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "workpiece_revision": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "material_scope": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "material_family",
+            "parent_material_family",
+            "thickness_mm",
+            "full_penetration",
+            "geometry",
+            "object_temperature_c",
+            "ultrasonic_attenuation"
+          ],
+          "properties": {
+            "material_family": {
+              "type": "string",
+              "minLength": 1
+            },
+            "parent_material_family": {
+              "type": "string",
+              "minLength": 1
+            },
+            "thickness_mm": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "full_penetration": {
+              "type": "boolean"
+            },
+            "geometry": {
+              "type": "string",
+              "minLength": 1
+            },
+            "object_temperature_c": {
+              "type": "number"
+            },
+            "ultrasonic_attenuation": {
+              "enum": [
+                "low",
+                "high",
+                "unknown",
+                "not_applicable"
+              ]
+            }
+          }
+        },
+        "method": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "family",
+            "technique",
+            "automation",
+            "standard",
+            "revision",
+            "edition",
+            "maturity",
+            "effective_from_utc",
+            "effective_until_utc",
+            "testing_level",
+            "acceptance_levels_provided_by_method_standard",
+            "method_scope_result"
+          ],
+          "properties": {
+            "family": {
+              "enum": [
+                "ultrasonic_phased_array",
+                "ultrasonic_manual",
+                "penetrant_testing",
+                "radiography_film",
+                "radiography_digital",
+                "other"
+              ]
+            },
+            "technique": {
+              "type": "string",
+              "minLength": 1
+            },
+            "automation": {
+              "enum": [
+                "manual",
+                "semi_automated",
+                "fully_automated",
+                "not_applicable"
+              ]
+            },
+            "standard": {
+              "type": "string",
+              "minLength": 1
+            },
+            "revision": {
+              "type": "string",
+              "minLength": 1
+            },
+            "edition": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "maturity": {
+              "enum": [
+                "published_current",
+                "draft_cd",
+                "draft_dis",
+                "withdrawn",
+                "future_effective",
+                "unknown"
+              ]
+            },
+            "effective_from_utc": {
+              "$ref": "#/$defs/nullableDate"
+            },
+            "effective_until_utc": {
+              "$ref": "#/$defs/nullableDate"
+            },
+            "testing_level": {
+              "enum": [
+                "A",
+                "B",
+                "C",
+                "D",
+                "not_applicable"
+              ]
+            },
+            "acceptance_levels_provided_by_method_standard": {
+              "type": "boolean"
+            },
+            "method_scope_result": {
+              "enum": [
+                "in_scope",
+                "out_of_scope",
+                "unknown"
+              ]
+            }
+          }
+        },
+        "coverage": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "scan_plan_ref",
+            "required_coverage_percent",
+            "actual_coverage_percent",
+            "volume_coverage_complete",
+            "access_limitations",
+            "coverage_evidence_ref"
+          ],
+          "properties": {
+            "scan_plan_ref": {
+              "$ref": "#/$defs/nullableString"
+            },
+            "required_coverage_percent": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "actual_coverage_percent": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "volume_coverage_complete": {
+              "type": "boolean"
+            },
+            "access_limitations": {
+              "$ref": "#/$defs/nullableString"
+            },
+            "coverage_evidence_ref": {
+              "$ref": "#/$defs/nullableString"
+            }
+          }
+        },
+        "equipment": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "equipment_id",
+            "probe_id",
+            "wedge_id",
+            "focal_law_revision",
+            "software_revision",
+            "calibration_state",
+            "calibration_valid_until_utc",
+            "reference_check_state",
+            "reference_check_ref"
+          ],
+          "properties": {
+            "equipment_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "probe_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "wedge_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "focal_law_revision": {
+              "type": "string",
+              "minLength": 1
+            },
+            "software_revision": {
+              "type": "string",
+              "minLength": 1
+            },
+            "calibration_state": {
+              "enum": [
+                "current",
+                "stale",
+                "unknown"
+              ]
+            },
+            "calibration_valid_until_utc": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "reference_check_state": {
+              "enum": [
+                "passed_synthetic",
+                "failed",
+                "unknown"
+              ]
+            },
+            "reference_check_ref": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "examiner": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "examiner_id",
+            "qualification_ref",
+            "qualification_scope",
+            "qualification_status",
+            "qualification_valid_until_utc",
+            "report_issuer",
+            "issuer_authority_scope"
+          ],
+          "properties": {
+            "examiner_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "qualification_ref": {
+              "type": "string",
+              "minLength": 1
+            },
+            "qualification_scope": {
+              "type": "string",
+              "minLength": 1
+            },
+            "qualification_status": {
+              "enum": [
+                "current",
+                "expired",
+                "unknown"
+              ]
+            },
+            "qualification_valid_until_utc": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "report_issuer": {
+              "$ref": "#/$defs/nullableString"
+            },
+            "issuer_authority_scope": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "acquisition": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "raw_artifact_ref",
+            "raw_artifact_sha256",
+            "artifact_state",
+            "evidence_class",
+            "source_observation_time_utc",
+            "acquired_at_utc",
+            "retrieved_at_utc",
+            "processing_revision",
+            "derived_artifact_sha256",
+            "parent_raw_digest"
+          ],
+          "properties": {
+            "raw_artifact_ref": {
+              "type": "string",
+              "minLength": 1
+            },
+            "raw_artifact_sha256": {
+              "$ref": "#/$defs/hash"
+            },
+            "artifact_state": {
+              "enum": [
+                "synthetic_manifest_only",
+                "physical_paut_signal",
+                "physical_manual_ut_data",
+                "physical_radiograph",
+                "other"
+              ]
+            },
+            "evidence_class": {
+              "enum": [
+                "synthetic_fixture",
+                "measured",
+                "simulated",
+                "inferred",
+                "unknown"
+              ]
+            },
+            "source_observation_time_utc": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "acquired_at_utc": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "retrieved_at_utc": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "processing_revision": {
+              "type": "string",
+              "minLength": 1
+            },
+            "derived_artifact_sha256": {
+              "$ref": "#/$defs/hash"
+            },
+            "parent_raw_digest": {
+              "$ref": "#/$defs/hash"
+            }
+          }
+        },
+        "indication": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "indication_id",
+            "state",
+            "location_reference",
+            "extent_mm",
+            "orientation_deg",
+            "characterization",
+            "uncertainty_mm",
+            "reported_by",
+            "automatic_model_score",
+            "model_score_role"
+          ],
+          "properties": {
+            "indication_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "state": {
+              "enum": [
+                "no_indication_reported",
+                "reported_indication",
+                "inconclusive",
+                "not_evaluated"
+              ]
+            },
+            "location_reference": {
+              "$ref": "#/$defs/nullableString"
+            },
+            "extent_mm": {
+              "type": "number",
+              "minimum": 0
+            },
+            "orientation_deg": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 360
+            },
+            "characterization": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uncertainty_mm": {
+              "type": "number",
+              "minimum": 0
+            },
+            "reported_by": {
+              "type": "string",
+              "minLength": 1
+            },
+            "automatic_model_score": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "model_score_role": {
+              "const": "candidate_prioritization_only"
+            }
+          }
+        },
+        "acceptance": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "basis_type",
+            "basis_ref",
+            "basis_revision",
+            "basis_owner",
+            "decision_issuer",
+            "issuer_scope",
+            "authorization_state",
+            "disposition",
+            "decision_time_utc",
+            "distinct_from_method_testing_level",
+            "maps_quality_level_to_ndt_acceptance"
+          ],
+          "properties": {
+            "basis_type": {
+              "enum": [
+                "project_specification",
+                "class_rule",
+                "contract_requirement",
+                "method_testing_level",
+                "quality_level_iso5817",
+                "unknown"
+              ]
+            },
+            "basis_ref": {
+              "$ref": "#/$defs/nullableString"
+            },
+            "basis_revision": {
+              "type": "string",
+              "minLength": 1
+            },
+            "basis_owner": {
+              "type": "string",
+              "minLength": 1
+            },
+            "decision_issuer": {
+              "$ref": "#/$defs/nullableString"
+            },
+            "issuer_scope": {
+              "type": "string",
+              "minLength": 1
+            },
+            "authorization_state": {
+              "enum": [
+                "authorized_synthetic",
+                "unauthorized",
+                "revoked",
+                "expired",
+                "unknown"
+              ]
+            },
+            "disposition": {
+              "enum": [
+                "accepted_synthetic",
+                "rejected_synthetic",
+                "inconclusive",
+                "pending",
+                "unknown"
+              ]
+            },
+            "decision_time_utc": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "distinct_from_method_testing_level": {
+              "type": "boolean"
+            },
+            "maps_quality_level_to_ndt_acceptance": {
+              "type": "boolean"
+            }
+          }
+        },
+        "dataset": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "physical_subject_group",
+            "specimen_group",
+            "production_lot_group",
+            "campaign_group",
+            "equipment_group",
+            "split",
+            "split_group",
+            "adjacent_scans_same_split"
+          ],
+          "properties": {
+            "physical_subject_group": {
+              "type": "string",
+              "minLength": 1
+            },
+            "specimen_group": {
+              "type": "string",
+              "minLength": 1
+            },
+            "production_lot_group": {
+              "type": "string",
+              "minLength": 1
+            },
+            "campaign_group": {
+              "type": "string",
+              "minLength": 1
+            },
+            "equipment_group": {
+              "type": "string",
+              "minLength": 1
+            },
+            "split": {
+              "enum": [
+                "train",
+                "validation",
+                "test",
+                "held_out"
+              ]
+            },
+            "split_group": {
+              "type": "string",
+              "minLength": 1
+            },
+            "adjacent_scans_same_split": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    },
+    "mutation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "value"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value": {}
+      }
+    },
+    "testCase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "base",
+        "mutations",
+        "expected_code"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "base": {
+          "const": "valid_paut_record"
+        },
+        "mutations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/mutation"
+          }
+        },
+        "expected_code": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}
