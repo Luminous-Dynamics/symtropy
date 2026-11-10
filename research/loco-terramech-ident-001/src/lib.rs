@@ -57,6 +57,11 @@ pub struct ClockMappingReceipt {
     pub maximum_uncertainty_ns: u64,
 }
 
+struct SensorIndexes<'source, 'clock> {
+    source_by_id: BTreeMap<&'source str, &'source SensorSource>,
+    clock_by_timebase: BTreeMap<&'clock str, &'clock ClockMappingReceipt>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ChannelStatus {
     Present,
@@ -305,13 +310,7 @@ fn validate_specimens(
 fn validate_sources<'a, 'b>(
     sources: &'a [SensorSource],
     mappings: &'b [ClockMappingReceipt],
-) -> Result<
-    (
-        BTreeMap<&'a str, &'a SensorSource>,
-        BTreeMap<&'b str, &'b ClockMappingReceipt>,
-    ),
-    ManifestError,
-> {
+) -> Result<SensorIndexes<'a, 'b>, ManifestError> {
     if sources.is_empty() {
         return Err(ManifestError::EmptySensorSources);
     }
@@ -357,7 +356,10 @@ fn validate_sources<'a, 'b>(
             return Err(ManifestError::MissingClockMapping);
         }
     }
-    Ok((source_index, mapping_index))
+    Ok(SensorIndexes {
+        source_by_id: source_index,
+        clock_by_timebase: mapping_index,
+    })
 }
 
 fn validate_coverage(
@@ -438,15 +440,15 @@ fn validate_ground_chain(
         if event.terrain_subject_id != sequence.terrain_subject_id {
             return Err(ManifestError::ContactSequenceIdentityMismatch);
         }
-        if let Some(previous) = previous_event_time {
-            if event.contact_timestamp_ns <= previous {
-                return Err(ManifestError::ContactEventOrderNotIncreasing);
-            }
+        if let Some(previous) = previous_event_time
+            && event.contact_timestamp_ns <= previous
+        {
+            return Err(ManifestError::ContactEventOrderNotIncreasing);
         }
-        if let Some(previous) = previous_step_index {
-            if event.step_index <= previous {
-                return Err(ManifestError::ContactEventOrderNotIncreasing);
-            }
+        if let Some(previous) = previous_step_index
+            && event.step_index <= previous
+        {
+            return Err(ManifestError::ContactEventOrderNotIncreasing);
         }
         previous_event_time = Some(event.contact_timestamp_ns);
         previous_step_index = Some(event.step_index);
@@ -488,8 +490,7 @@ fn validate_ground_chain(
 
 fn validate_observations(
     sequence: &ContactSequence,
-    sources: &BTreeMap<&str, &SensorSource>,
-    mappings: &BTreeMap<&str, &ClockMappingReceipt>,
+    indexes: &SensorIndexes<'_, '_>,
     required_channels: &[SensorChannel],
     seen_observation_ids: &mut BTreeSet<String>,
 ) -> Result<(usize, usize), ManifestError> {
@@ -518,13 +519,15 @@ fn validate_observations(
         if !event_ids.contains(observation.contact_event_id.as_str()) {
             return Err(ManifestError::ObservationUsesUnknownEvent);
         }
-        let source = sources
+        let source = indexes
+            .source_by_id
             .get(observation.source_id.as_str())
             .ok_or(ManifestError::UnknownSensorSource)?;
         if !required_channels.contains(&source.channel) {
             return Err(ManifestError::ObservationChannelNotRequired);
         }
-        let mapping = mappings
+        let mapping = indexes
+            .clock_by_timebase
             .get(source.timebase_id.as_str())
             .ok_or(ManifestError::MissingClockMapping)?;
 
@@ -558,18 +561,16 @@ fn validate_observations(
 
         if let Some(previous) =
             last_source_raw.insert(observation.source_id.as_str(), observation.raw_timestamp_ns)
+            && observation.raw_timestamp_ns <= previous
         {
-            if observation.raw_timestamp_ns <= previous {
-                return Err(ManifestError::SourceTimestampNotIncreasing);
-            }
+            return Err(ManifestError::SourceTimestampNotIncreasing);
         }
         if let Some(previous) = last_source_corrected.insert(
             observation.source_id.as_str(),
             observation.corrected_timestamp_ns,
-        ) {
-            if observation.corrected_timestamp_ns <= previous {
-                return Err(ManifestError::CorrectedTimestampNotIncreasing);
-            }
+        ) && observation.corrected_timestamp_ns <= previous
+        {
+            return Err(ManifestError::CorrectedTimestampNotIncreasing);
         }
 
         let key = (observation.contact_event_id.as_str(), source.channel);
@@ -613,7 +614,8 @@ pub fn validate_experiment_manifest(
     }
 
     let specimen_splits = validate_specimens(&manifest.specimen_assignments)?;
-    let (sources, mappings) = validate_sources(&manifest.sensor_sources, &manifest.clock_mappings)?;
+    let sensor_indexes =
+        validate_sources(&manifest.sensor_sources, &manifest.clock_mappings)?;
 
     let total_contacts = manifest
         .sequences
@@ -704,8 +706,7 @@ pub fn validate_experiment_manifest(
             validate_ground_chain(sequence, &mut settlement_receipts)?;
         let (observations, missing) = validate_observations(
             sequence,
-            &sources,
-            &mappings,
+            &sensor_indexes,
             &manifest.required_channels,
             &mut observation_ids,
         )?;
