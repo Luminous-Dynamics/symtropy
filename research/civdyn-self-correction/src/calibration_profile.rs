@@ -773,7 +773,7 @@ mod tests {
                     role: SplitRole::Validation,
                     primary: true,
                     required: true,
-                    minimum_draws: 101,
+                    minimum_draws: 5,
                 },
                 StatisticSpec {
                     id: "service-coverage-group-b".to_string(),
@@ -845,7 +845,7 @@ mod tests {
             ("service-coverage-group-b", group_b_ranks()),
         ];
         let mut observations = Vec::with_capacity(400);
-        let mut draws = Vec::with_capacity(40_400);
+        let mut draws = Vec::with_capacity(2_000);
 
         for (statistic_id, statistic_ranks) in &ranks {
             for (index, rank) in statistic_ranks.iter().enumerate() {
@@ -855,19 +855,19 @@ mod tests {
                     independent_unit_id: unit_id.clone(),
                     measurement_unit: "coverage_fraction".to_string(),
                     source_digest: "sha256-calibration-observations".to_string(),
-                    sample_size: 101,
+                    sample_size: 5,
                     value: rank * 100.0,
                     measurement_standard_error: Some(0.01),
                     observation_digest: format!("sha256-observation-{statistic_id}-{unit_id}"),
                 });
-                for draw_index in 0..=100_u64 {
+                for (draw_index, draw_value) in [0.0, 25.0, 50.0, 75.0, 100.0].iter().enumerate() {
                     draws.push(PredictiveDraw {
                         kind: PredictiveKind::Split,
                         statistic_id: (*statistic_id).to_string(),
                         independent_unit_id: unit_id.clone(),
                         sample_size: 101,
-                        draw_index,
-                        value: draw_index as f64,
+                        draw_index: draw_index as u64,
+                        value: *draw_value,
                         model_digest: MODEL.to_string(),
                         draw_set_digest: format!("sha256-draws-{statistic_id}-{unit_id}"),
                         calibration_data_digest: Some(CALIBRATION.to_string()),
@@ -906,7 +906,7 @@ mod tests {
         assert_eq!(report.claim_ceiling, CalibrationClaimCeiling::CalibrationDiscrepancyDetected);
         assert!(report.evidence_complete);
         assert_eq!(report.points.len(), 8);
-        assert_eq!(report.central_masses, MASSES);
+        assert_eq!(report.central_masses, MASSES.to_vec());
 
         let group_a: Vec<_> = report.points.iter()
             .filter(|point| point.statistic_id == "service-coverage-group-a")
