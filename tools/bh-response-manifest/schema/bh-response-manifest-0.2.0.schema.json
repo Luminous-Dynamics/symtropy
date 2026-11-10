@@ -114,6 +114,7 @@
       "required": [
         "git_commit",
         "dependency_lock_sha256",
+        "canonical_input_set_sha256",
         "input_digests",
         "reproduction_command",
         "environment"
@@ -155,6 +156,10 @@
         "environment": {
           "type": "string",
           "minLength": 1
+        },
+        "canonical_input_set_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
         }
       }
     },
