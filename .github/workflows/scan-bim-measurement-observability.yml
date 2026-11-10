@@ -46,7 +46,7 @@ jobs:
             > /tmp/scan-bim-measurement-observability.json
           jq -e '
             .core.passed == true and
-            .core.case_count == 28 and
+            .core.case_count == 31 and
             .core.mismatch_count == 0 and
             (.receipt_sha256 | test("^[0-9a-f]{64}$"))
           ' /tmp/scan-bim-measurement-observability.json
