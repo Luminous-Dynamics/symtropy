@@ -50,6 +50,8 @@ The official page describes a MATLAB or Python competition interface. This Rust 
 
 ## Report beyond the leaderboard
 
+Every run should be serialized against [`benchmark-run-manifest.schema.json`](benchmark-run-manifest.schema.json). It binds dataset bytes and recording membership, split membership, comparator configuration, model artifact, evaluator revision, dependency lock, protocol/seed manifest, metric outputs and the independent-unit uncertainty method. A score without these bindings is not a qualified result.
+
 Always report FAR, TDR, FIA and official total score, but do not stop there. Add event recall, false alarms per recording-hour, detection latency, per-fault/per-cycle performance, unknown-fault false-known rate, ambiguity/abstention, risk-coverage, interval coverage and sharpness, worst-regime performance, model size, inference latency and resource use. Group uncertainty by independent recording/engine campaign, never by rows.
 
 A test bench with one engine supports within-engine drive-cycle/magnitude generalization. It does not establish transfer to another engine, vessel or fleet.
