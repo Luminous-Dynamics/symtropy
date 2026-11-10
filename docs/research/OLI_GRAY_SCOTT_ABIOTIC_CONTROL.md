@@ -60,6 +60,9 @@ OLI can ask whether an apparent pattern is explained by the declared reaction–
 
 The generator must be registered as `SIMULATION` evidence. The simulator's own outputs cannot be entered as direct laboratory measurements.
 
+
+A machine-readable case manifest freezes the first challenge input at `benchmarks/oli/gray-scott-pattern-v0.json`. It records the solver, coefficients, patch, noise amplitudes, PRNG, seed, 3,000-step horizon, threshold and minimum connected-domain criterion. The output digest remains null until the exact Rust implementation is executed and its resulting bytes are hashed; no result digest is fabricated.
+
 ## Future qualification work
 
 - Compare the finite-difference solver with a separately implemented numerical reference and a convergence study.
