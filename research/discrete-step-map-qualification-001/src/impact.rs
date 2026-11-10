@@ -22,6 +22,24 @@ pub struct ImpactState1D {
     pub velocity_m_s: f64,
 }
 
+/// Dimensional tolerances for event detection and active-set classification.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ImpactTolerances {
+    pub event_time_s: f64,
+    pub gap_m: f64,
+    pub normal_velocity_m_s: f64,
+}
+
+impl Default for ImpactTolerances {
+    fn default() -> Self {
+        Self {
+            event_time_s: 1.0e-10,
+            gap_m: 1.0e-12,
+            normal_velocity_m_s: 1.0e-12,
+        }
+    }
+}
+
 /// Event-resolved impact step configuration.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ImpactModel1D {
@@ -147,7 +165,7 @@ impl ImpactModel1D {
         &self,
         initial: ImpactState1D,
         dt_s: f64,
-        event_tolerance_s: f64,
+        tolerances: ImpactTolerances,
     ) -> Result<ImpactStepOutcome, ImpactError> {
         if !initial.gap_m.is_finite()
             || initial.gap_m < 0.0
@@ -158,7 +176,13 @@ impl ImpactModel1D {
         if !dt_s.is_finite() || dt_s <= 0.0 {
             return Err(ImpactError::InvalidTimestep);
         }
-        if !event_tolerance_s.is_finite() || event_tolerance_s <= 0.0 {
+        if !tolerances.event_time_s.is_finite()
+            || tolerances.event_time_s <= 0.0
+            || !tolerances.gap_m.is_finite()
+            || tolerances.gap_m <= 0.0
+            || !tolerances.normal_velocity_m_s.is_finite()
+            || tolerances.normal_velocity_m_s <= 0.0
+        {
             return Err(ImpactError::InvalidTolerance);
         }
 
@@ -187,10 +211,14 @@ impl ImpactModel1D {
         let free_velocity =
             initial.velocity_m_s + self.acceleration_m_s2 * dt_s;
 
-        let Some(event_time) = self.first_inward_event(initial, dt_s, event_tolerance_s) else {
-            if free_gap < 0.0 {
+        let Some(event_time) = self.first_inward_event(initial, dt_s, tolerances) else {
+            if !free_gap.is_finite() || !free_velocity.is_finite() {
+                return Err(ImpactError::NonFiniteResult);
+            }
+            if free_gap < -tolerances.gap_m {
                 return Err(ImpactError::GrazingOrUnresolvedEvent);
             }
+            let boundary = free_gap.abs() <= tolerances.gap_m;
             let state = ImpactState1D {
                 gap_m: free_gap.max(0.0),
                 velocity_m_s: free_velocity,
@@ -198,17 +226,25 @@ impl ImpactModel1D {
             return Ok(ImpactStepOutcome {
                 state,
                 branch: ImpactBranch::FreeFlight,
-                derivative_class: ImpactDerivativeClass::SmoothFreeFlight,
+                derivative_class: if boundary {
+                    ImpactDerivativeClass::EventBoundary
+                } else {
+                    ImpactDerivativeClass::SmoothFreeFlight
+                },
                 event_time_s: None,
                 impact_impulse_ns: 0.0,
                 support_impulse_ns: 0.0,
                 complementarity_residual: 0.0,
-                step_jacobian: Some(ImpactStepJacobian {
-                    dgap_dgap: 1.0,
-                    dgap_dvelocity: dt_s,
-                    dvelocity_dgap: 0.0,
-                    dvelocity_dvelocity: 1.0,
-                }),
+                step_jacobian: if boundary {
+                    None
+                } else {
+                    Some(ImpactStepJacobian {
+                        dgap_dgap: 1.0,
+                        dgap_dvelocity: dt_s,
+                        dvelocity_dgap: 0.0,
+                        dvelocity_dvelocity: 1.0,
+                    })
+                },
             });
         };
 
@@ -224,8 +260,9 @@ impl ImpactModel1D {
         let remaining = (dt_s - event_time).max(0.0);
 
         if self.restitution == 0.0 {
-            let boundary = event_time <= event_tolerance_s
-                || remaining <= event_tolerance_s;
+            let boundary = event_time <= tolerances.event_time_s
+                || remaining <= tolerances.event_time_s
+                || incoming_velocity.abs() <= tolerances.normal_velocity_m_s;
             let (state, branch, support_impulse, jacobian) =
                 if self.acceleration_m_s2 <= 0.0 {
                     (
@@ -305,16 +342,20 @@ impl ImpactModel1D {
         let final_velocity =
             outgoing_velocity + self.acceleration_m_s2 * remaining;
 
-        if final_gap < 0.0 || (final_gap.abs() <= event_tolerance_s * event_tolerance_s && final_velocity < 0.0) {
+        if final_gap < -tolerances.gap_m
+            || (final_gap.abs() <= tolerances.gap_m
+                && final_velocity < -tolerances.normal_velocity_m_s)
+        {
             return Err(ImpactError::MultipleImpactsInOneStep);
         }
         if !final_gap.is_finite() || !final_velocity.is_finite() {
             return Err(ImpactError::NonFiniteResult);
         }
 
-        let boundary = event_time <= event_tolerance_s
-            || remaining <= event_tolerance_s
-            || final_gap.abs() <= event_tolerance_s * event_tolerance_s;
+        let boundary = event_time <= tolerances.event_time_s
+            || remaining <= tolerances.event_time_s
+            || final_gap.abs() <= tolerances.gap_m
+            || incoming_velocity.abs() <= tolerances.normal_velocity_m_s;
         let jacobian = if boundary {
             None
         } else {
@@ -354,18 +395,22 @@ impl ImpactModel1D {
         &self,
         state: ImpactState1D,
         dt_s: f64,
-        tolerance: f64,
+        tolerances: ImpactTolerances,
     ) -> Option<f64> {
         let acceleration = self.acceleration_m_s2;
-        if state.gap_m == 0.0 && state.velocity_m_s < 0.0 {
+        if state.gap_m == 0.0
+            && state.velocity_m_s < -tolerances.normal_velocity_m_s
+        {
             return Some(0.0);
         }
         if acceleration.abs() <= f64::MIN_POSITIVE {
-            if state.velocity_m_s >= -tolerance {
+            if state.velocity_m_s >= -tolerances.normal_velocity_m_s {
                 return None;
             }
             let time = -state.gap_m / state.velocity_m_s;
-            return if time >= -tolerance && time <= dt_s + tolerance {
+            return if time >= -tolerances.event_time_s
+                && time <= dt_s + tolerances.event_time_s
+            {
                 Some(time.clamp(0.0, dt_s))
             } else {
                 None
@@ -384,10 +429,14 @@ impl ImpactModel1D {
         roots
             .iter()
             .copied()
-            .filter(|time| *time >= -tolerance && *time <= dt_s + tolerance)
+            .filter(|time| {
+                *time >= -tolerances.event_time_s
+                    && *time <= dt_s + tolerances.event_time_s
+            })
             .map(|time| time.clamp(0.0, dt_s))
             .filter(|time| {
-                state.velocity_m_s + acceleration * *time < -tolerance
+                state.velocity_m_s + acceleration * *time
+                    < -tolerances.normal_velocity_m_s
             })
             .min_by(f64::total_cmp)
     }
@@ -467,7 +516,7 @@ mod tests {
                 1.0e-10,
             )
             .unwrap();
-        close(result.event_time_s.unwrap(), (2.0_f64 / 9.81).sqrt(), 1.0e-12);
+        close(result.event_time_s.unwrap(), (2.0_f64 / 9.81).sqrt(), ImpactTolerances::default());
         close(result.state.gap_m, 0.0, 1.0e-15);
         close(result.state.velocity_m_s, 0.0, 1.0e-15);
         close(result.impact_impulse_ns, 2.0 * (2.0 * 9.81_f64).sqrt(), 1.0e-12);
@@ -503,7 +552,7 @@ mod tests {
             .unwrap();
         assert_eq!(result.branch, ImpactBranch::FreeFlight);
         assert_eq!(result.derivative_class, ImpactDerivativeClass::SmoothFreeFlight);
-        close(result.state.gap_m, 10.0 - 0.5 * 9.81 * 0.01, 1.0e-12);
+        close(result.state.gap_m, 10.0 - 0.5 * 9.81 * 0.01, ImpactTolerances::default());
         close(result.state.velocity_m_s, -0.981, 1.0e-12);
         assert_eq!(
             result.step_jacobian,
@@ -545,7 +594,7 @@ mod tests {
             .unwrap();
         let event_time = (2.0_f64 / 9.81).sqrt();
         let incoming_speed = (2.0_f64 * 9.81).sqrt();
-        close(result.event_time_s.unwrap(), event_time, 1.0e-12);
+        close(result.event_time_s.unwrap(), event_time, ImpactTolerances::default());
         close(
             result.impact_impulse_ns,
             1.5 * 1.5 * incoming_speed,
@@ -565,7 +614,7 @@ mod tests {
             gap_m: 0.5,
             velocity_m_s: -1.0,
         };
-        let outcome = model.step(initial, 1.0, 1.0e-12).unwrap();
+        let outcome = model.step(initial, 1.0, ImpactTolerances::default()).unwrap();
         let jacobian = outcome.step_jacobian.unwrap();
         close(outcome.event_time_s.unwrap(), 0.5, 1.0e-12);
         close(jacobian.dgap_dgap, -0.4, 1.0e-12);
@@ -582,7 +631,7 @@ mod tests {
             velocity_m_s: -0.2,
         };
         let dt = 0.7;
-        let outcome = model.step(initial, dt, 1.0e-12).unwrap();
+        let outcome = model.step(initial, dt, ImpactTolerances::default()).unwrap();
         let analytic = outcome.step_jacobian.unwrap();
         assert_eq!(
             outcome.derivative_class,
@@ -667,7 +716,7 @@ mod tests {
             1.0,
             1.0e-10,
         ).unwrap();
-        close(result.event_time_s.unwrap(), 0.5, 1.0e-12);
+        close(result.event_time_s.unwrap(), 0.5, ImpactTolerances::default());
         assert_eq!(result.state.gap_m, 0.0);
         assert_eq!(result.state.velocity_m_s, 0.0);
         assert_eq!(result.branch, ImpactBranch::PlasticImpactThenSupport);
@@ -723,7 +772,7 @@ mod tests {
                     velocity_m_s: 0.0
                 },
                 0.1,
-                1.0e-9
+                ImpactTolerances::default()
             ),
             Err(ImpactError::InvalidState)
         );
@@ -734,7 +783,7 @@ mod tests {
                     velocity_m_s: 0.0
                 },
                 0.0,
-                1.0e-9
+                ImpactTolerances::default()
             ),
             Err(ImpactError::InvalidTimestep)
         );
