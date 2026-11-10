@@ -32,9 +32,11 @@ A faster result that misses a nearest hit is not a performance improvement.
 
 All coordinates are metres in a right-handed XYZ frame. Directions are unit length. The fixture freezes the metric intersection epsilon, nearest-hit tie epsilon, dimensionless parallel-cosine epsilon, barycentric epsilon and coplanar policy. The standalone f64 brute-force oracle verifies every expected nearest identity set before an engine adapter is compared.
 
-This remains a small analytic known-answer corpus. It does not yet test large/small coordinate metamorphism, degenerate-input rejection fixtures, highly overlapping/anisotropic geometry, randomized differential rays, or licensed real-building meshes.
+A second fixture, `ray-query-known-answers-scale-1e3-v0-1.json`, applies a uniform 1,000× scale to coordinates, ray origins, near/far distances and metric tolerances while keeping unit directions and dimensionless parallel/barycentric tolerances unchanged. The same strict f64 oracle is run against both fixtures; nearest identities and hit/miss classifications must remain invariant while metric hit distances scale by 1,000×.
 
-P0 now checks the fixture with both a strict JSON Schema (2020-12) and an executable, independent brute-force Möller–Trumbore f64 oracle. The oracle's parallel and barycentric thresholds are fields in the fixture contract rather than hidden hard-coded tolerances. A coplanar ray is explicitly a miss. The replay-contract workflow runs the oracle and asserts seven hit / four miss outcomes for the eleven-ray corpus.
+This remains a small analytic corpus. It does not yet test arbitrary large/small coordinate ranges, degenerate-input rejection fixtures, highly overlapping/anisotropic geometry, randomized differential rays, or licensed real-building meshes.
+
+P0 now checks the fixture with both a strict JSON Schema (2020-12) and an executable, independent brute-force Möller–Trumbore f64 oracle. The oracle's parallel and barycentric thresholds are fields in the fixture contract rather than hidden hard-coded tolerances. The parallel threshold is relative to the triangle-normal magnitude and ray-direction norm, making it dimensionless and scale-consistent. A coplanar ray is explicitly a miss. The replay-contract workflow runs the oracle on both the base and 1,000× scale fixtures and asserts seven hit / four miss outcomes and eleven checked nearest-identity sets in each.
 
 ## Engines to compare
 
