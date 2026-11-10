@@ -128,7 +128,7 @@ Do not claim that a larger memory or higher storage rate is better unless it imp
 
 ## 7. Claim boundary and next steps
 
-The 34 tests in `memory_operations.rs` and 14 tests in `memobench_adapter.rs` are synthetic accounting/identity fixtures. They do not run MEMOBench, RoboMME, RoboCasa-Mem, HMAP, π0.5 or Symthaea; they do not demonstrate better memory performance or physical robotics capability.
+The 35 tests in `memory_operations.rs` and 14 tests in `memobench_adapter.rs` are synthetic accounting/identity fixtures. They do not run MEMOBench, RoboMME, RoboCasa-Mem, HMAP, π0.5 or Symthaea; they do not demonstrate better memory performance or physical robotics capability.
 
 The native MEMOBench typed schema bridge is now implemented in `memobench_adapter.rs`. It selects the upstream `operating_type[row][memory_level]` code, preserves the checkpoint/predicate/annotation digests, validates the complete task/checkpoint/episode roster, requires receipt-bound outcomes, and reports operation-stratified predicate completion separately from terminal task success. The bridge still needs a real JSON/HDF5 acquisition loader and a native simulator run; no benchmark results are claimed. Its license gate records the CC BY-NC 4.0 boundary and requires separate commercial permission plus a verification receipt for any commercial-development use.
 
