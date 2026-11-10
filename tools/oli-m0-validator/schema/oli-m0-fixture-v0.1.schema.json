@@ -154,7 +154,8 @@
           "additionalProperties": false,
           "required": [
             "coordinate_frame",
-            "footprint_fraction"
+            "footprint_fraction",
+            "resolution_m"
           ],
           "properties": {
             "coordinate_frame": {
