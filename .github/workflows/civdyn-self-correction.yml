@@ -232,3 +232,67 @@ jobs:
           assert actual == expected, f"unexpected reachability/adequacy classifications: {actual}"
           print("Model-adequacy CSV valid: prior reachability and split-predictive controls preserve marginal, joint and rare-tail discrepancies as separate results.")
           PY
+      - name: Verify causal effect transport and target support bounds
+        run: |
+          set -euo pipefail
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin causal-transport-sweep > /tmp/civdyn-causal-transport.csv
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin causal-transport-sweep > /tmp/civdyn-causal-transport-replay.csv
+          cmp /tmp/civdyn-causal-transport.csv /tmp/civdyn-causal-transport-replay.csv
+          python3 - <<'PY'
+          import csv
+          import math
+          from pathlib import Path
+
+          with Path("/tmp/civdyn-causal-transport.csv").open(newline="", encoding="utf-8") as handle:
+              reader = csv.DictReader(handle)
+              rows = list(reader)
+              fields = reader.fieldnames
+
+          assert fields is not None and len(fields) == 33
+          assert len(rows) == 5
+          identified = [row for row in rows if row["scenario"] == "full-support-standardization"]
+          partial = [row for row in rows if row["scenario"] == "target-support-failure"]
+          assert len(identified) == 2 and len(partial) == 3
+
+          for row in identified:
+              assert row["identification_status"] == "identified"
+              assert row["identification_reason"] == "full_support_assumptions_supported"
+              assert math.isclose(float(row["source_ate"]), 0.22, abs_tol=1e-8)
+              assert math.isclose(float(row["target_ate_point"]), 0.28, abs_tol=1e-8)
+              assert row["target_ate_lower"] == ""
+              assert row["target_ate_upper"] == ""
+              assert math.isclose(float(row["supported_target_mass"]), 1.0, abs_tol=1e-8)
+              assert math.isclose(float(row["unsupported_target_mass"]), 0.0, abs_tol=1e-8)
+              assert row["source_population_total"] == row["target_population_total"] == "100"
+              assert row["supported_target_population_count"] == "100"
+              assert row["unsupported_target_population_count"] == "0"
+
+          for row in partial:
+              assert row["identification_status"] == "partially_identified"
+              assert row["identification_reason"] == "target_support_violation"
+              assert math.isclose(float(row["source_ate"]), 0.22, abs_tol=1e-8)
+              assert row["target_ate_point"] == ""
+              assert math.isclose(float(row["target_ate_lower"]), 0.02, abs_tol=1e-8)
+              assert math.isclose(float(row["target_ate_upper"]), 0.42, abs_tol=1e-8)
+              assert math.isclose(float(row["supported_target_mass"]), 0.8, abs_tol=1e-8)
+              assert math.isclose(float(row["unsupported_target_mass"]), 0.2, abs_tol=1e-8)
+              assert row["source_population_total"] == row["target_population_total"] == "100"
+              assert row["supported_target_population_count"] == "80"
+              assert row["unsupported_target_population_count"] == "20"
+
+          missing = next(row for row in partial if row["modifier_id"] == "remote-isolated")
+          assert missing["source_support"] == "false"
+          assert missing["conditional_risk_difference"] == ""
+          assert missing["control_risk"] == "" and missing["treatment_risk"] == ""
+
+          for row in rows:
+              assert row["source_internal_validity"] == "supported_by_design"
+              assert row["selection_exchangeability"] == "supported_by_evidence"
+              assert row["no_interference"] == "supported_by_design"
+              assert row["treatment_version_invariance"] == "supported_by_evidence"
+              assert row["source_data_digest"] == "sha256-causal-transport-source-rct"
+              assert row["target_population_digest"] == "sha256-causal-transport-target-population"
+              assert row["protocol_digest"] == "sha256-causal-transport-protocol-v0.1"
+              assert row["estimand"] == "target_average_treatment_effect_risk_difference"
+          print("Causal-transport CSV valid: point standardization under full support; no point extrapolation under target-only modifier; sharp risk-difference bounds retained.")
+          PY
