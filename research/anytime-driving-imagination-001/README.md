@@ -36,6 +36,8 @@ The allocator repeatedly chooses the next eligible rollout with the greatest exa
 
 The comparison uses 128-bit cross multiplication, not floating point. Stable opportunity ID tie-breaking makes the result deterministic. The allocator stops when the shared compute budget is exhausted or no opportunity has a positive marginal gain that fits its deadline.
 
+The reference implementation is intentionally bounded to **64 simultaneous decision opportunities** and **128 marginal rollouts per opportunity** (8,192 maximum declared rollout slots) to keep allocation work deterministic and resource-bounded. It selects the next best candidate with a linear minimum scan rather than sorting all candidates at every allocation step.
+
 This is a deterministic greedy priority scheduler, **not a globally optimal knapsack solver**. Its output is a reproducible baseline for comparison against fixed, uniform, uncertainty-only and other inference-budget policies.
 
 ## Deadline invariant
