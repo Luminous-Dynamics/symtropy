@@ -992,6 +992,17 @@ mod tests {
         );
     }
     #[test]
+    fn parses_full_v0_2_paired_comparison_fixture() {
+        let input = include_str!("../examples/paired-comparison-v0.2.json");
+        let manifest = parse_and_validate_json(input).unwrap();
+        assert_eq!(manifest.schema_version, "0.2.0");
+        assert_eq!(manifest.methods.len(), 2);
+        assert_eq!(manifest.response_windows.len(), 1);
+        assert_eq!(manifest.comparisons.len(), 1);
+        assert!(manifest.comparisons[0].accepted);
+    }
+
+    #[test]
     fn unknown_json_fields_are_rejected() {
         let mut v = serde_json::to_value(base()).unwrap();
         v["green_check"] = serde_json::Value::Bool(true);
