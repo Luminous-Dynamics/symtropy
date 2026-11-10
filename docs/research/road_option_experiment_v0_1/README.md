@@ -13,7 +13,7 @@ This is the first machine-readable analytic oracle for the three-arm crossing ex
 
 - **Myopic arm A** selects `commit` because its immediate-only score is 10 rather than 6 for `early_yield`. Both are immediately feasible, but `commit` has no common continuation under the shared observation.
 - **Option-preserving arm B** selects `early_yield`. Without an extra measurement, the only common continuation is `hold`.
-- **Sensing arm C** also preserves `early_yield`, requests a one-tick actor-clearance measurement, and can choose `brake` under hypothesis A or `accelerate` under B only after distinct observation receipts arrive before tick 2. `hold` remains a common fallback in both cases. The measurement cost is one declared resource unit.
+- **Sensing arm C** also preserves `early_yield`, requests a one-tick actor-clearance measurement, and can choose `brake` under hypothesis A or `accelerate` under B only after distinct observation receipts arrive before tick 2. `hold` remains a common fallback in both cases. The measurement cost is one declared resource unit. This analytic oracle assumes a deterministic, perfectly discriminative measurement when timely; late, dropped, stale and unsupported outcomes are explicitly represented and preserve the shared hold fallback.
 
 ## Set calculations
 
