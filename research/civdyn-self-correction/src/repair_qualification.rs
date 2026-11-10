@@ -112,7 +112,7 @@ pub struct RepairQualificationReport {
     pub transitions: Vec<RepairStatisticTransition>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 struct AssessmentKey {
     statistic_id: String,
     independent_unit_id: String,
@@ -162,12 +162,15 @@ impl From<AdequacyError> for RepairQualificationError {
     }
 }
 
-fn validate_assessment(
-    assessment: &AdequacyAssessment,
+type AssessmentRows<'a> =
+    BTreeMap<AssessmentKey, &'a crate::model_adequacy::StatisticAssessment>;
+
+fn validate_assessment<'a>(
+    assessment: &'a AdequacyAssessment,
     expected_model_digest: &str,
     registry: &StatisticRegistry,
     manifest: &SplitManifest,
-) -> Result<(BTreeMap<AssessmentKey, &crate::model_adequacy::StatisticAssessment>, bool), RepairQualificationError> {
+) -> Result<(AssessmentRows<'a>, bool), RepairQualificationError> {
     if assessment.role != SplitRole::Challenge
         || assessment.predictive_kind != PredictiveKind::Split
     {
