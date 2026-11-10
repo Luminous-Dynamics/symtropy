@@ -25,10 +25,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - name: Checkout exact pull-request head
+      - name: Checkout latest migration branch head
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          # The run may be queued while additional commits land. Resolve the
+          # current branch head when the job starts instead of later trying to
+          # push a lockfile commit from an obsolete event-time parent.
+          ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
           persist-credentials: true
 
