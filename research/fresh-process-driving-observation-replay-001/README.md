@@ -36,7 +36,15 @@ This is an interface/replay demonstration, not a policy-training run or a drivin
 
 ## Prerequisites
 
-1. Build Symthaea's bridge binary on a Rust 1.96 toolchain:
+1. From the Symthaea repository, generate the non-secret fixture config files using its helper:
+
+```sh
+cargo run --locked \
+  --manifest-path crates/bridges/symthaea-camera-driving-bridge/Cargo.toml \
+  --example write_fixture_configs -- bridge-config.json vision-config.json
+```
+
+2. Build the actual Symthaea bridge binary on a Rust 1.96 toolchain:
 
 ```sh
 cargo build --locked \
@@ -44,17 +52,15 @@ cargo build --locked \
   --bin camera-driving-bridge
 ```
 
-2. Prepare:
-   - a full serde-serialized `BridgeConfig` JSON matching the fixture identity, with `max_width >= 640`, `max_height >= 360`, `max_frame_bytes >= 691200`, `initial_dt_us = 33333`, and `maximum_frame_gap_us >= 66666`;
-   - a full serde-serialized `VisionConfig` JSON with `hdc_dim = 16384` and `enable_depth = false`;
-   - a dedicated empty output directory.
-
-The bridge config identity must use:
+3. Use the generated `bridge-config.json`, `vision-config.json` and the built binary path. The helper pins the fixture identity:
 - `episode_id = fresh-process-driving-episode-v0-1`;
+- `scenario_id = straight-to-curved-road-two-actors-v0-1`;
 - `agent_id = ego`;
 - `camera_id = front-rgb`.
 
-The bridge's seed phrase is used only to deterministically instantiate the encoder; do not place a real credential or password in the fixture file.
+It also pins 640×360 RGB geometry, an initial 33,333 µs frame interval, a 66,666 µs maximum gap (to cover the explicit missing tick), and the default 16,384D no-depth VisionConfig. Its seed phrase is public fixture data, not a production secret.
+
+4. Create a dedicated empty output directory. The harness rejects non-empty directories to avoid stale artifacts.
 
 ## Run
 
