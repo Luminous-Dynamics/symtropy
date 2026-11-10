@@ -41,3 +41,7 @@ path = "src/bin/joint_adequacy_sweep.rs"
 [[bin]]
 name = "network-adequacy-sweep"
 path = "src/bin/network_adequacy_sweep.rs"
+
+[[bin]]
+name = "temporal-network-adequacy-sweep"
+path = "src/bin/temporal_network_adequacy_sweep.rs"
