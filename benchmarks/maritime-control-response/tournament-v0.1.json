@@ -80,6 +80,12 @@
       "family": "open_set_or_conformal",
       "role": "Known-fault isolation with an explicit unknown/abstain decision and risk-coverage reporting.",
       "status": "implementation_required"
+    },
+    {
+      "id": "physics_informed_inverse_twin",
+      "family": "physics_based_inverse_model",
+      "role": "Calibrated physical engine model that evaluates multiple fault/degradation parameter hypotheses against the measured response. Preserve every admissible solution and report ambiguity rather than selecting a single minimum without identifiability evidence.",
+      "status": "research_candidate_requires_model_and_parameter_validation"
     }
   ],
   "primary_metrics": [
@@ -118,7 +124,10 @@
     "worst_recording_and_worst_cycle_performance",
     "inference_latency_p50_p95",
     "peak_memory_bytes",
-    "model_artifact_bytes"
+    "model_artifact_bytes",
+    "inverse_solution_set_cardinality",
+    "false_unique_root_cause_rate",
+    "parameter_identifiability_rank_or_condition"
   ],
   "hard_evidence_gates": [
     "model, source data, evaluator, feature map and split manifests are content-addressed",
@@ -129,7 +138,8 @@
     "unsupported or insufficiently calibrated regimes remain not_evaluated rather than normal",
     "commands are never treated as actual actuator movement or physical delivery",
     "physical feedback roles require an independently reviewed instrument/I-O dictionary",
-    "no single sample-level scalar can override material per-fault or per-cycle regressions"
+    "no single sample-level scalar can override material per-fault or per-cycle regressions",
+    "a physical inverse model must report non-unique admissible parameter/fault hypotheses; a single optimizer minimum is not a root-cause proof"
   ],
   "calibration": {
     "unit": "one maximum residual score per independent recording/episode",
@@ -170,6 +180,11 @@
     {
       "id": "calibration",
       "target": "Nominal marginal coverage within ±5 percentage points on independent episodes, only for regimes with sufficient calibration support.",
+      "status": "aspirational"
+    },
+    {
+      "id": "inverse_identifiability_honesty",
+      "target": "Zero unique root-cause claims when two or more fault/parameter hypotheses remain inside the preregistered calibrated acceptance region.",
       "status": "aspirational"
     }
   ],
