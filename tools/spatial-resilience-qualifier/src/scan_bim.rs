@@ -694,7 +694,7 @@ mod tests {
         assert!(!action.changes_hard_feasible_set);
         assert!(!action.changes_pareto_set);
         assert!(action.outcomes.iter().all(|outcome| {
-            outcome.remaining_critical_unknown_ids == vec!["structural-load-review"]
+            outcome.remaining_critical_unknown_ids == vec!["structural-load-review".to_owned()]
                 && outcome.robust_feasible_candidate_ids.is_empty()
         }));
     }
