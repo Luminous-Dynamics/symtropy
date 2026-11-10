@@ -73,6 +73,7 @@ struct CsvAudit {
     anomaly_onset_transitions: u64,
     anomaly_only_expected: bool,
     anomaly_only_observed: Option<bool>,
+    anomaly_onset_evaluable: Option<bool>,
     time_rel_column: Option<usize>,
     time_rel_numeric_rows: u64,
     time_rel_non_numeric_rows: u64,
@@ -610,7 +611,10 @@ fn inspect_csv(path: &str, role: &str, bytes: &[u8]) -> Result<CsvAudit, String>
         .collect::<Vec<_>>();
 
     let anomaly_only_expected = path.to_ascii_lowercase().contains("nozzle2_loadprogram");
-    let anomaly_only_observed = anomaly_label_column.map(|_| anomaly_zero_rows == 0 && anomaly_one_rows > 0 && anomaly_invalid_rows == 0);
+    let anomaly_only_observed = anomaly_label_column
+        .map(|_| anomaly_zero_rows == 0 && anomaly_one_rows > 0 && anomaly_invalid_rows == 0);
+    let anomaly_onset_evaluable = anomaly_label_column
+        .map(|_| anomaly_zero_rows > 0 && anomaly_one_rows > 0 && anomaly_invalid_rows == 0);
 
     let missing_header_names = header_names
         .iter()
@@ -655,6 +659,7 @@ fn inspect_csv(path: &str, role: &str, bytes: &[u8]) -> Result<CsvAudit, String>
         anomaly_onset_transitions,
         anomaly_only_expected,
         anomaly_only_observed,
+        anomaly_onset_evaluable,
         time_rel_column,
         time_rel_numeric_rows,
         time_rel_non_numeric_rows,
@@ -830,6 +835,9 @@ fn audit_dataset(cli: &Cli) -> Result<DatasetAuditReport, String> {
                                     }
                                     if audit.anomaly_only_expected && audit.anomaly_only_observed != Some(true) {
                                         file_errors.push("the anomaly-only nozzle recording contains pre-anomaly or invalid labels".into());
+                                    }
+                                    if !audit.anomaly_only_expected && audit.anomaly_onset_evaluable != Some(true) {
+                                        file_errors.push("recording expected to contain both pre-anomaly and anomaly labels does not support onset evaluation".into());
                                     }
                                     csv = Some(audit);
                                 }
@@ -1111,6 +1119,7 @@ mod tests {
         assert!(audit.anomaly_only_expected);
         assert_eq!(audit.anomaly_only_observed, Some(true));
         assert_eq!(audit.anomaly_onset_transitions, 0);
+        assert_eq!(audit.anomaly_onset_evaluable, Some(false));
     }
 
     #[test]
