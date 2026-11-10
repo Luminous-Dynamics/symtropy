@@ -79,6 +79,7 @@ impl BodyTwist3 {
 }
 
 /// Spatial/world-frame twist, ordered as linear then angular velocity.
+/// The linear part is the spatial se(3) coordinate, not the point velocity p_dot.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct SpatialTwist3 {
     pub linear: SVector<f64, 3>,
@@ -471,7 +472,7 @@ mod tests {
         let transform = fixture();
         let mut angular = Bivector::<3>::zero();
         angular.set(0, 1, 0.3);
-        let twist = BodyTwist3::new(SVector::new(0.0, 1.0, 0.0), angular);
+        let twist = BodyTwist3::new(SVector::new(1.0, 0.0, 0.0), angular);
         let spatial = transform.body_twist_to_spatial(&twist).unwrap();
         let back = transform.spatial_twist_to_body(&spatial).unwrap();
         assert!((back.linear - twist.linear).norm() < 1.0e-12);
@@ -486,5 +487,7 @@ mod tests {
         };
         let quarter_spatial = quarter_turn.body_twist_to_spatial(&twist).unwrap();
         assert!(quarter_spatial.is_finite());
+        assert!((quarter_spatial.linear[0] - 1.0).abs() < 1.0e-12);
+        assert!((quarter_spatial.linear[1] - 1.0).abs() < 1.0e-12);
     }
 }
