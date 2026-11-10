@@ -466,7 +466,7 @@ fn so3_bivector_coordinate_map() -> SMatrix<f64, 3, 3> {
 
 fn so3_jacobian_coefficients(theta: f64) -> (f64, f64) {
     let theta2 = theta * theta;
-    if theta < 1.0e-4 {
+    if theta < 1.0e-3 {
         let theta4 = theta2 * theta2;
         let theta6 = theta4 * theta2;
         (
@@ -540,7 +540,7 @@ pub fn so3_exp_jacobian_inverse(
         return Err(So3LogError::NonFiniteResult);
     }
 
-    let c = if theta < 1.0e-4 {
+    let c = if theta < 1.0e-3 {
         let theta2 = theta * theta;
         let theta4 = theta2 * theta2;
         let theta6 = theta4 * theta2;
