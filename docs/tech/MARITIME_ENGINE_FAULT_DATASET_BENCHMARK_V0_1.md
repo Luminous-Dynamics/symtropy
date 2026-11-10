@@ -145,6 +145,16 @@ The row-level target is a **binary anomaly-state label**, while fault-family ide
 
 The archive record itself identifies the controlled MU323DGSC platform, the 16 CSV recordings, the 73-column scenario schema, the 70-column reference schema, the two anomaly-only injector files and five runs with two missing channels. Those are publisher metadata, not independently re-parsed measurements. [Zenodo record](https://zenodo.org/records/19857425) · [Zenodo archive preview](https://zenodo.org/records/19857425/preview/Marine_Engine_Fault_Data_v1.zip?include_deleted=0).
 
+### Current transfer, prognostics and field-landscape references
+
+Three additional studies broaden the benchmark requirements beyond static classification:
+
+- **Cross-working-condition transfer:** the 2025 Applied Energy paper *A universal transfer learning framework for cross-working-condition marine diesel engine fault diagnosis based on fine-tuning strategy* reports 18 transfer tasks across an 8V396SE 500 kW engine and a 620 V16 2336 kW engine, with a mixture of experimental and virtual evidence depending on subsystem. The task coverage is useful, but we must reproduce each task separately and not pool the experimental and virtual paths. [DOI](https://doi.org/10.1016/j.apenergy.2025.125962).
+- **Two-stroke multi-fault prognostics:** the June 2026 *Journal of Ocean Engineering and Science* study combines ensemble anomaly detection, clustering, load-aware classification and RUL forecasting. It highlights false positives below 1%; its accessible abstract reports representative RUL RMSE 0.215 and R² 0.413. These are paper-scale testbed results; the RMSE scale, RUL horizon, run-to-failure ground truth and false-positive exposure denominator must be audited before reproduction. [DOI](https://doi.org/10.1016/j.joes.2025.12.002).
+- **Field landscape:** the October 22, 2026 review *Literature Review Analysis: Fault Diagnostics of Marine Engines* screened 2,114 initial records and reports a refined core corpus of 253 papers. It finds a persistent gap between algorithm development and shipboard validation, and calls for multi-engine/multi-vessel data, reusable benchmark datasets, physically informed and interpretable models, and maintenance-linked outputs. [DOI](https://doi.org/10.3390/jmse14211988).
+
+The two-stroke paper makes an important point: we should not use one scalar "accuracy" score to claim superiority. Detection false positives, diagnosis quality and RUL prediction are distinct tasks with different labels, denominators and uncertainty.
+
 ### A harder SOTA protocol
 
 Use two gates. A same-paper random split is a reproduction target; independent recording/domain generalization is a separate achievement.
