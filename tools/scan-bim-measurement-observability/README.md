@@ -1,17 +1,34 @@
 # Scan-to-BIM Measurement Observability Oracle
 
-A small, standalone Rust executable and synthetic known-answer corpus for issue #4589.
+A standalone Rust executable and frozen synthetic known-answer corpus for issue #4589.
 
-## Scope
+## Four separate qualification gates
 
-The oracle keeps four gates separate:
+1. **Visibility:** independently derived geometric line-of-sight state.
+2. **Observation:** captured, missing, invalid, mixed, contradictory or unknown return.
+3. **Metrology:** sensor profile, calibration evidence, explicit operating envelope, independent reference lineage, stochastic uncertainty and systematic-error bound.
+4. **Task sufficiency:** conservative total error bound against the declared task tolerance.
 
-1. Geometric visibility.
-2. Observation capture/return status.
-3. Metrology evidence (sensor profile, calibration, applicability, independent reference lineage and uncertainty declaration).
-4. Task sufficiency (expanded uncertainty compared with a declared task tolerance).
+Overall PASS requires all four gates to pass. FAIL and UNRESOLVED are distinct; a failed or unresolved prerequisite makes downstream qualification NOT_RUN. Unknown values never silently become zero or pass.
 
-A result is `pass` only when every gate passes. `fail` and `unresolved` remain distinct. An unresolved upstream gate prevents downstream task qualification.
+## Sensor applicability
+
+The evaluator does not accept a caller-supplied `in_domain` Boolean. It derives applicability from the profile's declared minimum/maximum range, maximum incidence angle, supported surface-response classes and environment classes, compared with observed capture conditions. Missing profile envelope or missing observed condition remains UNRESOLVED. Out-of-range, grazing, unsupported response or unsupported environment does not pass.
+
+## Uncertainty rule in P0
+
+The synthetic scalar measurand retains:
+- stochastic standard uncertainty (u), declared coverage factor (k), and evidence/method identity;
+- a separate systematic-error bound (b), with its own method identity and evidence digest.
+
+The P0 task bound is conservative (k u + b). We do not RSS-combine a bounded systematic effect with a stochastic term. Missing systematic bound or its evidence is UNRESOLVED, not zero. This is a one-dimensional mechanics oracle, not a full 3D point/pose covariance, registration covariance or shared-view correlation model. Those remain with survey owner #1607 and are required for P1.
+
+## Frozen corpus and tests
+
+- 28 synthetic cases.
+- 11 Rust unit tests.
+- Negative controls cover occlusion, visible-but-not-captured surfaces, missing/mixed/contradictory returns, invalid/stale/missing calibration, duplicate/correlated reference lineage, out-of-domain range/incidence/surface/environment, malformed sensor profile, missing systematic bound, missing bound evidence, negative bound, task-specific insufficiency and invalid uncertainty.
+- The fixture uses digest-shaped identifiers and synthetic numbers. Digests are not authenticated producer evidence.
 
 ## Run
 
@@ -25,6 +42,4 @@ cargo run --manifest-path tools/scan-bim-measurement-observability/Cargo.toml --
 
 ## Claim ceiling
 
-The fixture contains synthetic values and digest-shaped identifiers. This oracle tests the deterministic contract and its decision boundaries; it does not verify the truth of the referenced records, establish independence of real surveys, calibrate a sensor, measure physical accuracy, or qualify any engineering task in the physical world. The coverage factor/probability are declared inputs, not an empirically validated coverage guarantee.
-
-For physical work, bind these records to the exact producer evidence owned by #1607 and the visibility receipt owned by #4292. Keep all empirical calibration and test sets grouped by independently measured target and capture lineage.
+The oracle qualifies deterministic contract behaviour on synthetic records only. It does not authenticate upstream evidence, establish real survey independence, calibrate a sensor, measure physical accuracy or qualify a building-engineering decision. Physical use must bind exact #1607 survey/calibration/covariance evidence and #4292 visibility receipts, use independent metrology, and be qualified for the exact instrument, target and task domain.
