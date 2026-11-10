@@ -160,6 +160,10 @@ Report more than accuracy: macro-F1 and balanced accuracy by fault; event recall
 
 The paradigm shift is **diagnostics that compile into evidence-qualified capability**: identify a fault hypothesis; expose source, calibration, configuration and uncertainty lineage; map affected services and dependency paths; project only a bounded capability impact to the ODD owner; require accountable inspection, proof-test, configuration and authorization evidence before a human-led recovery review. This is how Symtropy/Symthaea/Mycelix can complement OEM diagnostics without pretending to replace engine OEMs, chief engineers, class or flag authorities.
 
+## Machine-readable baseline registry
+
+The literature and public-dataset records used above are frozen in [`marine-engine-diagnostic-baselines-v0.1.json`](../../benchmarks/maritime/marine-engine-diagnostic-baselines-v0.1.json) and validated against [`MARITIME_ENGINE_DIAGNOSTIC_BASELINES_V0_1.schema.json`](./MARITIME_ENGINE_DIAGNOSTIC_BASELINES_V0_1.schema.json). Each entry separates reported metric values from the study's task/data domain, split protocol, known limitations and current reproducibility status. The registry is not a leaderboard and does not imply that the reported values are independently reproduced.
+
 ## Attribution and claim boundary
 
 Cite the dataset DOI and the associated preprint. The dataset is CC BY 4.0; retain author attribution and license notices if redistributing derived material. This benchmark can establish performance on the released MU323DGSC controlled test-bench recordings only. It does not establish shipboard performance, fleet reliability, seaworthiness, safe operating limits, class/statutory compliance, MASS Code compliance, maintenance authorization or permission to operate.
