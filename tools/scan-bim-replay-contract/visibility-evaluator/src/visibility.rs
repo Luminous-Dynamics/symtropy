@@ -29,6 +29,8 @@ const HARD_MAX_VIEWS: usize = 64;
 const HARD_MAX_OCCLUDER_TRIANGLES: usize = 1_000_000;
 const HARD_MAX_PROBE_VIEW_EVALUATIONS: usize = 1_000_000;
 const HARD_MAX_RAY_TESTS: usize = 100_000_000;
+const HARD_MAX_BVH_NODE_VISITS: usize = 250_000_000;
+const BVH_LEAF_TRIANGLE_LIMIT: usize = 8;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -136,6 +138,8 @@ pub struct VisibilityProfile {
     pub max_probe_view_evaluations: usize,
     /// Maximum number of actual ray/triangle intersection tests.
     pub max_ray_tests: usize,
+    /// Maximum number of BVH nodes visited across all probe/view queries.
+    pub max_bvh_node_visits: usize,
     /// Minimum absolute cosine between source-winding normal and direction
     /// from probe toward sensor. Values near zero flag grazing incidence.
     pub min_incidence_cosine: f64,
@@ -257,6 +261,9 @@ pub struct VisibilityReceipt {
     pub occluder_triangle_count: usize,
     pub probe_view_evaluation_count: usize,
     pub ray_test_count: usize,
+    pub bvh_node_count: usize,
+    pub bvh_leaf_count: usize,
+    pub bvh_node_visit_count: usize,
     pub observable_area_m2: f64,
     pub grazing_area_m2: f64,
     pub self_occluded_area_m2: f64,
@@ -778,6 +785,7 @@ fn receipt_digest(
     hasher.update(evaluation.profile.max_occluder_triangles.to_le_bytes());
     hasher.update(evaluation.profile.max_probe_view_evaluations.to_le_bytes());
     hasher.update(evaluation.profile.max_ray_tests.to_le_bytes());
+    hasher.update(evaluation.profile.max_bvh_node_visits.to_le_bytes());
     update_f64(&mut hasher, evaluation.profile.min_incidence_cosine);
     update_string(&mut hasher, "scan_bim_evaluator_visibility_ray_v1");
     update_string(&mut hasher, evaluation.scene_id);
@@ -1091,6 +1099,7 @@ pub fn derive_surface_visibility(
         || evaluation.profile.max_occluder_triangles == 0
         || evaluation.profile.max_probe_view_evaluations == 0
         || evaluation.profile.max_ray_tests == 0
+        || evaluation.profile.max_bvh_node_visits == 0
     {
         return Err("all visibility resource limits must be positive".to_owned());
     }
@@ -1099,6 +1108,7 @@ pub fn derive_surface_visibility(
         || evaluation.profile.max_occluder_triangles > HARD_MAX_OCCLUDER_TRIANGLES
         || evaluation.profile.max_probe_view_evaluations > HARD_MAX_PROBE_VIEW_EVALUATIONS
         || evaluation.profile.max_ray_tests > HARD_MAX_RAY_TESTS
+        || evaluation.profile.max_bvh_node_visits > HARD_MAX_BVH_NODE_VISITS
     {
         return Err(
             "visibility resource profile exceeds the evaluator's compiled hard ceiling".to_owned(),
@@ -1443,6 +1453,7 @@ mod tests {
                 max_occluder_triangles: 10_000,
                 max_probe_view_evaluations: 10_000,
                 max_ray_tests: 10_000,
+                max_bvh_node_visits: 100_000,
                 min_incidence_cosine: 0.0,
             },
         })
@@ -1585,6 +1596,7 @@ mod tests {
                 max_occluder_triangles: 10_000,
                 max_probe_view_evaluations: 10_000,
                 max_ray_tests: 100,
+                max_bvh_node_visits: 100_000,
                 min_incidence_cosine: 0.0,
             },
         })
@@ -1802,6 +1814,7 @@ mod tests {
                 max_occluder_triangles: 10_000,
                 max_probe_view_evaluations: 10_000,
                 max_ray_tests: 1,
+                max_bvh_node_visits: 100_000,
                 min_incidence_cosine: 0.0,
             },
         })
@@ -1831,6 +1844,7 @@ mod tests {
                 max_occluder_triangles: 10_000,
                 max_probe_view_evaluations: 10_000,
                 max_ray_tests: 100,
+                max_bvh_node_visits: 100_000,
                 min_incidence_cosine: 0.0,
             },
         })
@@ -1971,6 +1985,7 @@ mod tests {
                 max_occluder_triangles: 10_000,
                 max_probe_view_evaluations: 10_000,
                 max_ray_tests: 100,
+                max_bvh_node_visits: 100_000,
                 min_incidence_cosine: 0.0,
             },
         };
@@ -2000,6 +2015,7 @@ mod tests {
                 max_occluder_triangles: 10_000,
                 max_probe_view_evaluations: 10_000,
                 max_ray_tests: 100,
+                max_bvh_node_visits: 100_000,
                 min_incidence_cosine: 0.0,
             },
         };
@@ -2036,6 +2052,7 @@ mod tests {
                 max_occluder_triangles: 10_000,
                 max_probe_view_evaluations: 10_000,
                 max_ray_tests: 100,
+                max_bvh_node_visits: 100_000,
                 min_incidence_cosine: 0.0,
             },
         })
