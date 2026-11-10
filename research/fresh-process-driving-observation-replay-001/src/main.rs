@@ -765,7 +765,7 @@ fn evidence_branch(branch_id: &str, parent_id: Option<&str>, branch_shift: bool,
                 "actor_id": "lead-car",
                 "policy_revision_digest": "lead-actor-policy-v1",
                 "policy_input_digest": lead_input,
-                "action_digest": if child { "lead-car-recomputed-response" } else { "lead-car-base-response" },
+                "action_digest": if child && !stale_replay { "lead-car-recomputed-response" } else { "lead-car-base-response" },
                 "randomness_digest": "lead-car-rng-fixture-11",
                 "origin": lead_origin
             },
