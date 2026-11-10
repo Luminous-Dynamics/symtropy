@@ -473,6 +473,32 @@ mod tests {
     }
 
     #[test]
+    fn duplicate_wid_is_rejected() {
+        let mut manifest = manifest_value();
+        manifest["workpieces"][1]["workpiece_id"] =
+            Value::String("WID615".to_owned());
+        let serialized = serde_json::to_string(&manifest).expect("serialize mutation");
+        assert!(validate_manifest(SCHEMA_TEXT, &serialized).is_err());
+    }
+
+    #[test]
+    fn mode_group_cannot_be_silently_reassigned() {
+        let mut manifest = manifest_value();
+        manifest["workpieces"][2]["tandem_mode"] =
+            Value::String("PMC+PMC".to_owned());
+        let serialized = serde_json::to_string(&manifest).expect("serialize mutation");
+        assert!(validate_manifest(SCHEMA_TEXT, &serialized).is_err());
+    }
+
+    #[test]
+    fn rights_pending_raw_data_scoring_cannot_be_enabled() {
+        let mut manifest = manifest_value();
+        manifest["rights_gate"]["raw_data_scoring_allowed"] = Value::Bool(true);
+        let serialized = serde_json::to_string(&manifest).expect("serialize mutation");
+        assert!(validate_manifest(SCHEMA_TEXT, &serialized).is_err());
+    }
+
+    #[test]
     fn raw_files_cannot_be_promoted_before_rights_admission() {
         let mut manifest = manifest_value();
         manifest["source_record"]["raw_files_vendored"] = Value::Bool(true);
