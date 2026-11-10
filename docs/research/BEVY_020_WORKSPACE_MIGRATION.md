@@ -88,6 +88,12 @@ The audit also exposed a separate capability issue. The GPU crate queues compute
 
 The Bevy 0.20 storage-buffer update is API migration only. It does not establish an executable GPU compute pass, collision candidate correctness, a GPU solver, or GPU performance superiority.
 
+## Complete manifest and workflow pin audit
+
+A full recursive audit of all 70 `Cargo.toml` files on the migration branch found no remaining explicit Bevy 0.19, Lightyear 0.28, bevy_egui 0.40, bevy-inspector-egui 0.37, or bevy-tokio-tasks 0.19 constraints.
+
+The three workflow files were also audited. In addition to the main `ci.yml`, `space-economy-bench.yml` had an independent Rust 1.96.0 pin; it has been moved to 1.97.1. The migration-only lockfile workflow also uses 1.97.1. This is still dependency-manifest/pin evidence, not a successful build.
+
 ## Required source/API migration
 
 Bevy's [0.19 → 0.20 migration guide](https://bevy.org/learn/migration-guides/0-19-to-0-20/) and [0.20 release notes](https://bevy.org/news/bevy-0-20/) call out several relevant changes:
