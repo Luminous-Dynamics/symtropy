@@ -1,0 +1,17 @@
+[package]
+name = "port-asset-inspection-verifier"
+version = "0.1.0"
+edition = "2024"
+authors = ["Luminous Dynamics"]
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Independent synthetic contract verifier for port asset inspection evidence and maintenance boundaries"
+
+[dependencies]
+serde_json = "1.0"
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
