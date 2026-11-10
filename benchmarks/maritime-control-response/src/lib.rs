@@ -704,6 +704,9 @@ pub struct ConformalThreshold {
     pub split_manifest_sha256: String,
     pub calibration_recordings_manifest_sha256: String,
     pub regime_id: String,
+    pub calibration_recording_ids: Vec<String>,
+    /// Maximum residual scores aligned positionally with sorted recording IDs.
+    pub calibration_max_scores: Vec<f64>,
     pub independent_calibration_episodes: usize,
     pub order_statistic_rank_1_based: usize,
     pub threshold: f64,
@@ -711,12 +714,16 @@ pub struct ConformalThreshold {
 }
 
 impl ConformalThreshold {
+    /// Recompute the finite-sample order statistic and both calibration digests.
     pub fn validate(&self) -> Result<(), EvalError> {
+        let count = self.calibration_recording_ids.len();
         if self.target_coverage_ppm == 0
             || self.target_coverage_ppm >= 1_000_000
-            || self.independent_calibration_episodes == 0
+            || count == 0
+            || self.independent_calibration_episodes != count
+            || self.calibration_max_scores.len() != count
             || self.order_statistic_rank_1_based == 0
-            || self.order_statistic_rank_1_based > self.independent_calibration_episodes
+            || self.order_statistic_rank_1_based > count
             || !self.threshold.is_finite()
             || self.threshold < 0.0
             || self.regime_id.trim().is_empty()
@@ -727,7 +734,39 @@ impl ConformalThreshold {
             || self.training_recordings_manifest_sha256 == self.calibration_recordings_manifest_sha256
             || self.training_recordings_manifest_sha256 == self.split_manifest_sha256
             || !is_sha256_hex(&self.calibration_scores_sha256)
+            || self.calibration_recording_ids.iter().any(|id| id.trim().is_empty())
+            || self.calibration_recording_ids.windows(2).any(|pair| pair[0] >= pair[1])
+            || self.calibration_max_scores.iter().any(|score| !score.is_finite() || *score < 0.0)
         {
+            return Err(EvalError::InvalidConformalThreshold);
+        }
+        let manifest_digest = sha256_serializable(
+            b"symtropy-liu-ice-calibration-recording-manifest-v1\0",
+            &self.calibration_recording_ids,
+        )?;
+        if manifest_digest != self.calibration_recordings_manifest_sha256 {
+            return Err(EvalError::InvalidConformalThreshold);
+        }
+        let score_digest = sha256_serializable(
+            b"symtropy-liu-ice-episode-calibration-scores-v1\0",
+            &(
+                self.model_sha256.as_str(),
+                self.regime_id.as_str(),
+                &self.calibration_recording_ids,
+                &self.calibration_max_scores,
+            ),
+        )?;
+        if score_digest != self.calibration_scores_sha256 {
+            return Err(EvalError::InvalidConformalThreshold);
+        }
+        let expected_rank = ((count as u128 + 1) * u128::from(self.target_coverage_ppm))
+            .div_ceil(1_000_000) as usize;
+        if expected_rank > count || self.order_statistic_rank_1_based != expected_rank {
+            return Err(EvalError::InvalidConformalThreshold);
+        }
+        let mut ordered = self.calibration_max_scores.clone();
+        ordered.sort_by(f64::total_cmp);
+        if self.threshold != ordered[expected_rank - 1] {
             return Err(EvalError::InvalidConformalThreshold);
         }
         Ok(())
@@ -768,8 +807,7 @@ pub fn fit_episode_conformal_threshold(
         });
     }
 
-    let mut identities = BTreeSet::new();
-    let mut values = Vec::with_capacity(scores.len());
+    let mut score_by_recording = BTreeMap::new();
     for score in scores {
         if score.recording_id.trim().is_empty()
             || score.model_sha256 != model_sha256
@@ -779,30 +817,34 @@ pub fn fit_episode_conformal_threshold(
         {
             return Err(EvalError::InvalidCalibrationScore);
         }
-        if !identities.insert(score.recording_id.clone()) {
+        if score_by_recording
+            .insert(score.recording_id.clone(), score.maximum_absolute_standardized_residual)
+            .is_some()
+        {
             return Err(EvalError::DuplicateRecording(score.recording_id.clone()));
         }
-        values.push(score.maximum_absolute_standardized_residual);
     }
-    values.sort_by(f64::total_cmp);
+    let calibration_recording_ids = score_by_recording.keys().cloned().collect::<Vec<_>>();
+    let calibration_max_scores = score_by_recording.values().copied().collect::<Vec<_>>();
+    let mut ordered_scores = calibration_max_scores.clone();
+    ordered_scores.sort_by(f64::total_cmp);
 
     let numerator = (scores.len() as u128 + 1) * u128::from(target_coverage_ppm);
     let rank = numerator.div_ceil(1_000_000) as usize;
-    if rank > values.len() {
+    if rank > ordered_scores.len() {
         return Err(EvalError::InsufficientCalibrationEpisodes {
             required: minimum_calibration_episodes(target_coverage_ppm),
             available: values.len(),
         });
     }
 
-    let calibration_recording_ids = identities.into_iter().collect::<Vec<_>>();
     let calibration_recordings_manifest_sha256 = sha256_serializable(
         b"symtropy-liu-ice-calibration-recording-manifest-v1\0",
         &calibration_recording_ids,
     )?;
     let digest = sha256_serializable(
         b"symtropy-liu-ice-episode-calibration-scores-v1\0",
-        &(model_sha256, regime_id, &calibration_recording_ids, &values),
+        &(model_sha256, regime_id, &calibration_recording_ids, &calibration_max_scores),
     )?;
     let threshold = ConformalThreshold {
         target_coverage_ppm,
@@ -811,9 +853,11 @@ pub fn fit_episode_conformal_threshold(
         split_manifest_sha256: split_manifest_sha256.to_owned(),
         calibration_recordings_manifest_sha256,
         regime_id: regime_id.to_owned(),
+        calibration_recording_ids,
+        calibration_max_scores,
         independent_calibration_episodes: scores.len(),
         order_statistic_rank_1_based: rank,
-        threshold: values[rank - 1],
+        threshold: ordered_scores[rank - 1],
         calibration_scores_sha256: digest,
     };
     threshold.validate()?;
@@ -877,6 +921,8 @@ impl fmt::Display for EvalError {
             Self::DrivingCycleSplitLeakage(cycle) => write!(formatter, "driving cycle appears in more than one split: {cycle}"),
             Self::SplitLeakage => write!(formatter, "train, calibration and test recordings must be disjoint"),
             Self::InvalidCalibrationScore => write!(formatter, "calibration score is negative, non-finite, or lacks an identity"),
+            Self::InvalidCalibrationProvenance => write!(formatter, "calibration provenance is incomplete or inconsistent"),
+            Self::CalibrationBindingMismatch => write!(formatter, "calibration report belongs to a different model, regime, or split"),
             Self::InvalidConformalCoverage => write!(formatter, "conformal target coverage must be in 1..999999 ppm"),
             Self::InvalidConformalThreshold => write!(formatter, "conformal threshold claims are invalid"),
             Self::InsufficientCalibrationEpisodes { required, available } => write!(formatter, "insufficient independent calibration episodes: need at least {required}, have {available}"),
