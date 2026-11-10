@@ -1,0 +1,820 @@
+//! End-to-end renderer -> Symthaea bridge episode fixture.
+//!
+//! This is a deterministic integration fixture, not a traffic simulator or driver.
+//! It consumes caller-supplied BridgeConfig and VisionConfig JSON, creates immutable
+//! snapshots and RGB frames, invokes the actual Symthaea bridge executable, and
+//! verifies the complete receipt/artifact chain.
+
+use action_conditioned_offscreen_camera::{
+    sha256_hex, ActorClass, ActorCuboid, AppliedActionRef, CameraCalibration,
+    EvaluatorObservationAudit, MissingFrameReason, MissingObservationEvent,
+    ObservationDisposition, ObservationStreamGuard, PolicyObservationReceipt, RenderClocks,
+    RoadMarkingKind, RoadPolyline, SoftwareCameraRenderer, TimingPolicy, WorldRenderSnapshot,
+    Q16_ONE, RENDERER_REVISION,
+};
+use serde::{Deserialize, Serialize};
+use serde_json::{json, Value};
+use std::env;
+use std::error::Error;
+use std::fs;
+use std::path::{Path, PathBuf};
+use std::process::Command;
+
+const EPISODE_ID: &str = "fresh-process-driving-episode-v0-1";
+const SCENARIO_ID: &str = "straight-to-curved-road-two-actors-v0-1";
+const AGENT_ID: &str = "ego";
+const CAMERA_ID: &str = "front-rgb";
+const CLOCK_ID: &str = "sim-monotonic-driving-fixture-01";
+const SIMULATOR_REVISION: &str = "pre-recorded-kinematic-snapshot-fixture-v1";
+const WIDTH: u32 = 640;
+const HEIGHT: u32 = 360;
+const CHANNELS: usize = 3;
+const EXPECTED_TICKS: u64 = 20;
+const MISSING_TICK: u64 = 11;
+const DELAYED_TICK: u64 = 7;
+const BASE_TIMESTAMP_US: u64 = 1_000_000;
+const TICK_PERIOD_US: u64 = 33_333;
+const MAX_RENDER_LATENCY_US: u64 = 2_000;
+const MAX_DELIVERY_AGE_US: u64 = 5_000;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct ReplayInput {
+    records: Vec<ReplaySnapshotRecord>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct ReplaySnapshotRecord {
+    sequence: u64,
+    snapshot: WorldRenderSnapshot,
+    clocks: RenderClocks,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+struct ReplaySummary {
+    sequence: u64,
+    tick: u64,
+    frame_byte_len: usize,
+    frame_sha256: String,
+    observation_id: String,
+    policy_receipt_sha256: String,
+    world_snapshot_sha256: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct DispositionRecord {
+    sequence: u64,
+    tick: u64,
+    disposition: ObservationDisposition,
+    capture_timestamp_us: u64,
+    render_completed_timestamp_us: u64,
+    delivered_timestamp_us: u64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct AppliedActionRecord {
+    action_receipt_id: String,
+    action_receipt_sha256: String,
+    command_id: String,
+    applied_tick: u64,
+    source: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct TransitionRecord {
+    tick: u64,
+    applied_action_receipt_id: String,
+    world_snapshot_sha256: String,
+    simulator_revision: String,
+    note: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct CounterfactualBranchRecord {
+    branch_id: String,
+    parent_decision_tick: u64,
+    changed_action_applied_tick: u64,
+    changed_action_receipt_id: String,
+    changed_action_receipt_sha256: String,
+    base_frame_sha256: String,
+    branch_frame_sha256: String,
+    base_world_snapshot_sha256: String,
+    branch_world_snapshot_sha256: String,
+    actor_response_mode: String,
+    note: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct EpisodeReport {
+    schema_version: u32,
+    status: String,
+    episode_id: String,
+    scenario_id: String,
+    renderer_revision: String,
+    simulator_backend: String,
+    expected_ticks: u64,
+    delivered_observations: usize,
+    missing_observations: usize,
+    delayed_observations: usize,
+    fresh_observations: usize,
+    fresh_process_renderer_replay_exact: bool,
+    symthaea_bridge_invoked: bool,
+    symthaea_bridge_processed_observations: usize,
+    symthaea_receipt_chain_valid: bool,
+    policy_input_artifacts_valid: bool,
+    policy_input_artifact_count: usize,
+    bridge_vision_learning_frozen: bool,
+    bridge_training_steps_before: u64,
+    bridge_training_steps_after: u64,
+    counterfactual_branch_frame_changed: bool,
+    claim_ceiling: String,
+}
+
+fn world_timestamp(tick: u64) -> u64 {
+    BASE_TIMESTAMP_US + tick.saturating_sub(1) * TICK_PERIOD_US
+}
+
+fn camera() -> CameraCalibration {
+    CameraCalibration {
+        camera_id: CAMERA_ID.to_string(),
+        position_world_mm: [0, 0, 1_500],
+        world_to_camera_q16: [
+            [Q16_ONE as i32, 0, 0],
+            [0, 0, -(Q16_ONE as i32)],
+            [0, Q16_ONE as i32, 0],
+        ],
+        focal_x_millipx: 450_000,
+        focal_y_millipx: 450_000,
+        principal_x_millipx: WIDTH * 500,
+        principal_y_millipx: HEIGHT * 500,
+        width: WIDTH,
+        height: HEIGHT,
+        near_plane_mm: 100,
+        far_plane_mm: 200_000,
+    }
+}
+
+fn road_marking(marking_id: &str, offset_mm: i64, kind: RoadMarkingKind) -> RoadPolyline {
+    let points_world_mm = (0_i64..48)
+        .map(|index| {
+            let forward_mm = 4_000 + index * 2_500;
+            let curve_mm = index * index * 12;
+            [offset_mm + curve_mm, forward_mm, 0]
+        })
+        .collect();
+
+    RoadPolyline {
+        road_id: "road-main".to_string(),
+        marking_id: marking_id.to_string(),
+        kind,
+        points_world_mm,
+    }
+}
+
+fn action_ref(tick: u64, branch: bool) -> AppliedActionRef {
+    let action_kind = if branch { "counterfactual-brake-and-yield" } else { "recorded-cruise-control" };
+    let command_id = format!("{action_kind}-{tick}");
+    let receipt_id = format!("action-receipt-{action_kind}-{tick}");
+    let receipt_material = format!(
+        "{EPISODE_ID}|{tick}|{command_id}|declared-fixture-command-v1"
+    );
+    AppliedActionRef {
+        receipt_sha256: sha256_hex(receipt_material.as_bytes()),
+        receipt_id,
+        command_id,
+        applied_tick: tick,
+    }
+}
+
+fn snapshot(tick: u64, branch: bool) -> WorldRenderSnapshot {
+    let time = world_timestamp(tick);
+    let branch_shift = if branch { 850 } else { 0 };
+    let branch_longitudinal = if branch { -400 } else { 0 };
+
+    let actors = vec![
+        ActorCuboid {
+            actor_id: "lead-car".to_string(),
+            actor_policy_revision: "declared-lead-actor-fixture-v1".to_string(),
+            class: ActorClass::Car,
+            center_world_mm: [
+                350 + branch_shift,
+                18_000 + tick as i64 * 320 + branch_longitudinal,
+                700,
+            ],
+            half_extents_mm: [900, 2_000, 700],
+        },
+        ActorCuboid {
+            actor_id: "crossing-pedestrian".to_string(),
+            actor_policy_revision: "declared-pedestrian-fixture-v1".to_string(),
+            class: ActorClass::Pedestrian,
+            center_world_mm: [
+                -2_000 + tick as i64 * 85 - branch_shift / 2,
+                25_000 + branch_longitudinal,
+                900,
+            ],
+            half_extents_mm: [300, 300, 900],
+        },
+    ];
+
+    WorldRenderSnapshot {
+        episode_id: EPISODE_ID.to_string(),
+        scenario_id: SCENARIO_ID.to_string(),
+        agent_id: AGENT_ID.to_string(),
+        tick,
+        world_timestamp_us: time,
+        clock_id: CLOCK_ID.to_string(),
+        simulator_revision: SIMULATOR_REVISION.to_string(),
+        applied_action: Some(action_ref(tick, branch)),
+        camera: camera(),
+        road_markings: vec![
+            road_marking("left-road-edge", -5_250, RoadMarkingKind::RoadEdge),
+            road_marking("left-lane-divider", -1_750, RoadMarkingKind::LaneWhite),
+            road_marking("center-line", 0, RoadMarkingKind::LaneYellow),
+            road_marking("right-lane-divider", 1_750, RoadMarkingKind::LaneWhite),
+            road_marking("right-road-edge", 5_250, RoadMarkingKind::RoadEdge),
+        ],
+        actors,
+    }
+}
+
+fn clocks(tick: u64) -> RenderClocks {
+    let capture = world_timestamp(tick);
+    let (render_latency, delivery_age) = if tick == DELAYED_TICK {
+        (2_500, 3_500)
+    } else {
+        (800, 1_000)
+    };
+    RenderClocks {
+        capture_timestamp_us: capture,
+        render_completed_timestamp_us: capture + render_latency,
+        delivered_timestamp_us: capture + delivery_age,
+    }
+}
+
+fn vehicle_state(tick: u64) -> Value {
+    let timestamp_s = world_timestamp(tick) as f64 / 1_000_000.0;
+    let speed = 9.0 + tick as f64 * 0.035;
+    let steering = if tick < 12 { 0.012 } else { 0.028 };
+    json!({
+        "speed": speed,
+        "lateral_velocity": 0.04,
+        "yaw_rate": 0.006 + tick as f64 * 0.0002,
+        "heading": tick as f64 * 0.0004,
+        "position_x": tick as f64 * 0.18,
+        "position_y": tick as f64 * 0.025,
+        "steering_angle": steering,
+        "throttle_position": 0.21,
+        "brake_pressure": 0.0,
+        "longitudinal_accel": 0.035,
+        "lateral_accel": 0.12,
+        "tire_slip_front": 0.004,
+        "tire_slip_rear": 0.003,
+        "pitch": -0.001,
+        "lateral_offset": tick as f64 * 0.025,
+        "curvature_ahead": 0.0009,
+        "nearest_peer_distance": 18.0,
+        "peer_relative_speed": -0.6,
+        "mesh_brake_density": 0.0,
+        "mesh_confidence": 0.85,
+        "timestamp": timestamp_s
+    })
+}
+
+fn render_summary(record: &ReplaySnapshotRecord) -> Result<ReplaySummary, Box<dyn Error>> {
+    let rendered = SoftwareCameraRenderer::render(
+        &record.snapshot,
+        record.sequence,
+        record.clocks,
+    )?;
+    let audit = SoftwareCameraRenderer::audit_snapshot(&record.snapshot)?;
+    Ok(ReplaySummary {
+        sequence: record.sequence,
+        tick: record.snapshot.tick,
+        frame_byte_len: rendered.pixels_rgb.len(),
+        frame_sha256: rendered.policy_receipt.frame_sha256,
+        observation_id: rendered.policy_receipt.observation_id,
+        policy_receipt_sha256: rendered.policy_receipt.receipt_sha256,
+        world_snapshot_sha256: audit.world_snapshot_sha256,
+    })
+}
+
+fn replay_records(records: &[ReplaySnapshotRecord]) -> Result<Vec<ReplaySummary>, Box<dyn Error>> {
+    records.iter().map(render_summary).collect()
+}
+
+fn write_json(path: &Path, value: &impl Serialize) -> Result<(), Box<dyn Error>> {
+    if let Some(parent) = path.parent().filter(|parent| !parent.as_os_str().is_empty()) {
+        fs::create_dir_all(parent)?;
+    }
+    fs::write(path, serde_json::to_vec_pretty(value)?)?;
+    Ok(())
+}
+
+fn read_json(path: &Path) -> Result<Value, Box<dyn Error>> {
+    Ok(serde_json::from_slice(&fs::read(path)?)?)
+}
+
+fn validate_bridge_configuration(
+    bridge_config: &Value,
+    vision_config: &Value,
+) -> Result<(), Box<dyn Error>> {
+    let identity = bridge_config
+        .get("identity")
+        .ok_or("bridge_config.identity is required")?;
+    for (field, expected) in [
+        ("episode_id", EPISODE_ID),
+        ("agent_id", AGENT_ID),
+        ("camera_id", CAMERA_ID),
+    ] {
+        if identity.get(field).and_then(Value::as_str) != Some(expected) {
+            return Err(format!(
+                "bridge_config.identity.{field} must equal {expected:?}"
+            )
+            .into());
+        }
+    }
+    let max_width = bridge_config["max_width"].as_u64().unwrap_or(0);
+    let max_height = bridge_config["max_height"].as_u64().unwrap_or(0);
+    let max_bytes = bridge_config["max_frame_bytes"].as_u64().unwrap_or(0);
+    let initial_dt = bridge_config["initial_dt_us"].as_u64().unwrap_or(0);
+    let max_gap = bridge_config["maximum_frame_gap_us"].as_u64().unwrap_or(0);
+    if max_width < u64::from(WIDTH)
+        || max_height < u64::from(HEIGHT)
+        || max_bytes < u64::from(WIDTH) * u64::from(HEIGHT) * CHANNELS as u64
+        || initial_dt != TICK_PERIOD_US
+        || max_gap < TICK_PERIOD_US * 2
+    {
+        return Err("bridge_config frame/time bounds do not cover this 640x360, one-dropped-frame fixture".into());
+    }
+    if vision_config["hdc_dim"].as_u64() != Some(16_384)
+        || vision_config["enable_depth"].as_bool() != Some(false)
+    {
+        return Err("vision_config must pin hdc_dim=16384 and enable_depth=false".into());
+    }
+    Ok(())
+}
+
+fn save_render_artifacts(
+    episode_dir: &Path,
+    records: &[ReplaySnapshotRecord],
+    missing_events: &[MissingObservationEvent],
+    dispositions: &[DispositionRecord],
+) -> Result<Vec<Value>, Box<dyn Error>> {
+    let frames_dir = episode_dir.join("frames");
+    let policy_dir = episode_dir.join("policy-receipts");
+    let audit_dir = episode_dir.join("evaluator-audits");
+    fs::create_dir_all(&frames_dir)?;
+    fs::create_dir_all(&policy_dir)?;
+    fs::create_dir_all(&audit_dir)?;
+
+    let mut bridge_observations = Vec::with_capacity(records.len());
+    for record in records {
+        let rendered = SoftwareCameraRenderer::render(
+            &record.snapshot,
+            record.sequence,
+            record.clocks,
+        )?;
+        let audit = SoftwareCameraRenderer::audit_snapshot(&record.snapshot)?;
+        let frame_name = format!("frame_{:04}.rgb", record.sequence);
+        let frame_relative = format!("frames/{frame_name}");
+        fs::write(episode_dir.join(&frame_relative), &rendered.pixels_rgb)?;
+
+        write_json(
+            &policy_dir.join(format!("policy_receipt_{:04}.json", record.sequence)),
+            &rendered.policy_receipt,
+        )?;
+        write_json(
+            &audit_dir.join(format!("evaluator_audit_{:04}.json", record.sequence)),
+            &audit,
+        )?;
+
+        bridge_observations.push(json!({
+            "sequence": record.sequence,
+            "timestamp_us": record.clocks.capture_timestamp_us,
+            "vehicle_state_timestamp_us": record.clocks.capture_timestamp_us,
+            "pixels_file": frame_relative,
+            "vehicle_state": vehicle_state(record.snapshot.tick),
+            "upstream": rendered.policy_receipt
+        }));
+    }
+
+    write_json(
+        &episode_dir.join("missing-observation-events.json"),
+        &missing_events,
+    )?;
+    write_json(
+        &episode_dir.join("observation-dispositions.json"),
+        &dispositions,
+    )?;
+    Ok(bridge_observations)
+}
+
+fn make_changed_action_branch(
+    episode_dir: &Path,
+) -> Result<CounterfactualBranchRecord, Box<dyn Error>> {
+    let base_snapshot = snapshot(12, false);
+    let branch_snapshot = snapshot(12, true);
+    let base_clocks = clocks(12);
+    let base_render = SoftwareCameraRenderer::render(&base_snapshot, 12, base_clocks)?;
+    let branch_render = SoftwareCameraRenderer::render(&branch_snapshot, 12, base_clocks)?;
+    let base_audit = SoftwareCameraRenderer::audit_snapshot(&base_snapshot)?;
+    let branch_audit = SoftwareCameraRenderer::audit_snapshot(&branch_snapshot)?;
+
+    let branch_dir = episode_dir.join("counterfactual-branch");
+    fs::create_dir_all(&branch_dir)?;
+    fs::write(
+        branch_dir.join("branch_frame_0012.rgb"),
+        &branch_render.pixels_rgb,
+    )?;
+    write_json(
+        &branch_dir.join("branch_policy_receipt_0012.json"),
+        &branch_render.policy_receipt,
+    )?;
+    write_json(
+        &branch_dir.join("branch_evaluator_audit_0012.json"),
+        &branch_audit,
+    )?;
+
+    let action = branch_snapshot
+        .applied_action
+        .as_ref()
+        .ok_or("counterfactual branch lacks its applied-action receipt")?;
+    Ok(CounterfactualBranchRecord {
+        branch_id: "alternate-action-at-tick-12-v0-1".to_string(),
+        parent_decision_tick: 11,
+        changed_action_applied_tick: 12,
+        changed_action_receipt_id: action.receipt_id.clone(),
+        changed_action_receipt_sha256: action.receipt_sha256.clone(),
+        base_frame_sha256: base_render.policy_receipt.frame_sha256,
+        branch_frame_sha256: branch_render.policy_receipt.frame_sha256,
+        base_world_snapshot_sha256: base_audit.world_snapshot_sha256,
+        branch_world_snapshot_sha256: branch_audit.world_snapshot_sha256,
+        actor_response_mode: "synthetic_recomputed_response_fixture".to_string(),
+        note: "Actor poses are explicitly changed in the alternate immutable snapshot. This validates receipt/branch separation only; no actor-policy simulator is executed.".to_string(),
+    })
+}
+
+fn invoke_symthaea_bridge(
+    episode_dir: &Path,
+    bridge_config: Value,
+    vision_config: Value,
+    observations: Vec<Value>,
+    bridge_binary: &Path,
+) -> Result<(usize, bool, u64, u64, bool), Box<dyn Error>> {
+    let request_path = episode_dir.join("episode-request.json");
+    let bridge_dir = episode_dir.join("symthaea-bridge");
+    let receipts_path = bridge_dir.join("bridge-receipts.json");
+    let policy_inputs_dir = bridge_dir.join("policy-inputs");
+    fs::create_dir_all(&bridge_dir)?;
+
+    let request = json!({
+        "schema_version": 1,
+        "bridge_config": bridge_config,
+        "vision_config": vision_config,
+        "observations": observations
+    });
+    write_json(&request_path, &request)?;
+
+    let status = Command::new(bridge_binary)
+        .arg(&request_path)
+        .arg(&receipts_path)
+        .arg(&policy_inputs_dir)
+        .status()?;
+    if !status.success() {
+        return Err(format!(
+            "Symthaea camera-driving-bridge exited with status {status}"
+        )
+        .into());
+    }
+
+    let bridge_output = read_json(&receipts_path)?;
+    let receipts = bridge_output["receipts"]
+        .as_array()
+        .ok_or("Symthaea bridge output is missing receipts[]")?;
+    let artifacts = bridge_output["policy_input_artifacts"]
+        .as_array()
+        .ok_or("Symthaea bridge output is missing policy_input_artifacts[]")?;
+    let expected_count = observations.len();
+    if bridge_output["expected_observations"].as_u64() != Some(expected_count as u64)
+        || bridge_output["processed_observations"].as_u64() != Some(expected_count as u64)
+        || bridge_output["frames_processed"].as_u64() != Some(expected_count as u64)
+        || receipts.len() != expected_count
+        || artifacts.len() != expected_count
+    {
+        return Err("Symthaea bridge output denominator/count mismatch".into());
+    }
+    let frozen = bridge_output["vision_learning_frozen"].as_bool() == Some(true);
+    let before = bridge_output["vision_training_steps_before"].as_u64().unwrap_or(u64::MAX);
+    let after = bridge_output["vision_training_steps_after"].as_u64().unwrap_or(u64::MAX);
+    if !frozen || before != after {
+        return Err("Symthaea bridge did not preserve frozen-learning evidence".into());
+    }
+
+    let mut receipt_chain_valid = true;
+    let mut artifact_chain_valid = true;
+    for index in 0..expected_count {
+        let bridge_receipt = &receipts[index];
+        let artifact = &artifacts[index];
+        let observation = &observations[index];
+        let upstream = &observation["upstream"];
+
+        for (field, expected) in [
+            ("upstream_observation_id", upstream["observation_id"].as_str().unwrap_or("")),
+            ("upstream_receipt_sha256", upstream["receipt_sha256"].as_str().unwrap_or("")),
+            ("upstream_frame_sha256", upstream["frame_sha256"].as_str().unwrap_or("")),
+        ] {
+            if bridge_receipt[field].as_str() != Some(expected) {
+                receipt_chain_valid = false;
+            }
+        }
+        if bridge_receipt["capture_sequence"] != observation["sequence"]
+            || bridge_receipt["capture_timestamp_us"] != observation["timestamp_us"]
+        {
+            receipt_chain_valid = false;
+        }
+        if index == 0 {
+            if !bridge_receipt["previous_receipt_sha256"].is_null() {
+                receipt_chain_valid = false;
+            }
+        } else if bridge_receipt["previous_receipt_sha256"]
+            != receipts[index - 1]["receipt_sha256"]
+        {
+            receipt_chain_valid = false;
+        }
+
+        let fused_digest = bridge_receipt["fused_policy_input_sha256"]
+            .as_str()
+            .unwrap_or("");
+        if artifact["sha256"].as_str() != Some(fused_digest)
+            || artifact["dimension"].as_u64() != Some(16_384)
+            || artifact["sequence"] != observation["sequence"]
+        {
+            artifact_chain_valid = false;
+        }
+        let relative_name = artifact["relative_path"].as_str().unwrap_or("");
+        if relative_name.is_empty()
+            || Path::new(relative_name).components().any(|component| {
+                matches!(
+                    component,
+                    std::path::Component::ParentDir
+                        | std::path::Component::RootDir
+                        | std::path::Component::Prefix(_)
+                )
+            })
+        {
+            artifact_chain_valid = false;
+            continue;
+        }
+        let bytes = fs::read(policy_inputs_dir.join(relative_name))?;
+        if bytes.len() != 8 + 16_384 * 4
+            || sha256_hex(&bytes) != fused_digest
+            || artifact["byte_length"].as_u64() != Some(bytes.len() as u64)
+        {
+            artifact_chain_valid = false;
+        }
+    }
+
+    if !receipt_chain_valid || !artifact_chain_valid {
+        return Err("Symthaea bridge receipt or HDC artifact chain failed reconciliation".into());
+    }
+    Ok((receipts.len(), frozen, before, after, receipt_chain_valid && artifact_chain_valid))
+}
+
+fn run_parent(
+    episode_dir: &Path,
+    bridge_config_path: &Path,
+    vision_config_path: &Path,
+    bridge_binary: &Path,
+) -> Result<EpisodeReport, Box<dyn Error>> {
+    fs::create_dir_all(episode_dir)?;
+    let episode_dir = fs::canonicalize(episode_dir)?;
+    let bridge_binary = fs::canonicalize(bridge_binary)?;
+    if !bridge_binary.is_file() {
+        return Err("Symthaea bridge binary is not a regular file".into());
+    }
+
+    let bridge_config = read_json(bridge_config_path)?;
+    let vision_config = read_json(vision_config_path)?;
+    validate_bridge_configuration(&bridge_config, &vision_config)?;
+
+    let mut guard = ObservationStreamGuard::new(TimingPolicy {
+        maximum_render_latency_us: MAX_RENDER_LATENCY_US,
+        maximum_delivery_age_us: MAX_DELIVERY_AGE_US,
+    });
+    let mut missing_events = Vec::new();
+    let mut dispositions = Vec::new();
+    let mut replay_records = Vec::new();
+    let mut action_records = Vec::new();
+    let mut transition_records = Vec::new();
+    let mut fresh_count = 0_usize;
+    let mut delayed_count = 0_usize;
+
+    for tick in 1..=EXPECTED_TICKS {
+        let world = snapshot(tick, false);
+        let capture_time = world.world_timestamp_us;
+        let action = world
+            .applied_action
+            .as_ref()
+            .ok_or("episode snapshot missing applied action")?;
+        action_records.push(AppliedActionRecord {
+            action_receipt_id: action.receipt_id.clone(),
+            action_receipt_sha256: action.receipt_sha256.clone(),
+            command_id: action.command_id.clone(),
+            applied_tick: action.applied_tick,
+            source: "declared_pre_recorded_fixture_command".to_string(),
+        });
+        let audit = SoftwareCameraRenderer::audit_snapshot(&world)?;
+        transition_records.push(TransitionRecord {
+            tick,
+            applied_action_receipt_id: action.receipt_id.clone(),
+            world_snapshot_sha256: audit.world_snapshot_sha256,
+            simulator_revision: world.simulator_revision.clone(),
+            note: "Immutable fixture snapshot declaration; no vehicle-dynamics engine is executed by this harness.".to_string(),
+        });
+
+        if tick == MISSING_TICK {
+            let event = guard.record_missing(
+                EPISODE_ID,
+                AGENT_ID,
+                CLOCK_ID,
+                tick,
+                tick,
+                capture_time,
+                capture_time + 1_200,
+                MissingFrameReason::CameraDrop,
+            )?;
+            missing_events.push(event);
+            continue;
+        }
+
+        let render_clocks = clocks(tick);
+        let disposition = guard.admit(
+            CLOCK_ID,
+            tick,
+            render_clocks.capture_timestamp_us,
+            render_clocks.render_completed_timestamp_us,
+            render_clocks.delivered_timestamp_us,
+        )?;
+        match disposition {
+            ObservationDisposition::Fresh => fresh_count += 1,
+            ObservationDisposition::Delayed => delayed_count += 1,
+            ObservationDisposition::Stale => {
+                return Err(format!("fixture unexpectedly produced stale frame at tick {tick}").into())
+            }
+        }
+        dispositions.push(DispositionRecord {
+            sequence: tick,
+            tick,
+            disposition,
+            capture_timestamp_us: render_clocks.capture_timestamp_us,
+            render_completed_timestamp_us: render_clocks.render_completed_timestamp_us,
+            delivered_timestamp_us: render_clocks.delivered_timestamp_us,
+        });
+        replay_records.push(ReplaySnapshotRecord {
+            sequence: tick,
+            snapshot: world,
+            clocks: render_clocks,
+        });
+    }
+
+    if missing_events.len() != 1 || delayed_count != 1 || replay_records.len() != 19 {
+        return Err("fixture event denominator did not match the 20-tick plan".into());
+    }
+
+    let bridge_observations = save_render_artifacts(
+        &episode_dir,
+        &replay_records,
+        &missing_events,
+        &dispositions,
+    )?;
+    write_json(&episode_dir.join("applied-actions.json"), &action_records)?;
+    write_json(&episode_dir.join("world-transition-records.json"), &transition_records)?;
+
+    let changed_branch = make_changed_action_branch(&episode_dir)?;
+    if changed_branch.base_frame_sha256 == changed_branch.branch_frame_sha256
+        || changed_branch.base_world_snapshot_sha256 == changed_branch.branch_world_snapshot_sha256
+    {
+        return Err("alternate action branch did not change the declared observation/world state".into());
+    }
+    write_json(
+        &episode_dir.join("counterfactual-branch-record.json"),
+        &changed_branch,
+    )?;
+
+    // First-process expected render summaries.
+    let expected_replay = replay_records(&replay_records)?;
+    let replay_input = ReplayInput {
+        records: replay_records.clone(),
+    };
+    let replay_input_path = episode_dir.join("fresh-process-replay-input.json");
+    let replay_output_path = episode_dir.join("fresh-process-replay-output.json");
+    write_json(&replay_input_path, &replay_input)?;
+    let _ = fs::remove_file(&replay_output_path);
+
+    // A distinct OS process reconstructs all delivered frames from immutable snapshots.
+    let executable = env::current_exe()?;
+    let status = Command::new(executable)
+        .arg("--replay-child")
+        .arg(&replay_input_path)
+        .arg(&replay_output_path)
+        .status()?;
+    if !status.success() {
+        return Err("fresh-process renderer child failed".into());
+    }
+    let actual_replay: Vec<ReplaySummary> =
+        serde_json::from_slice(&fs::read(&replay_output_path)?)?;
+    let replay_exact = actual_replay == expected_replay;
+    if !replay_exact {
+        return Err("fresh-process renderer replay mismatch".into());
+    }
+    write_json(
+        &episode_dir.join("fresh-process-replay-comparison.json"),
+        &json!({
+            "expected_count": expected_replay.len(),
+            "actual_count": actual_replay.len(),
+            "exact_match": replay_exact,
+            "summaries": actual_replay
+        }),
+    )?;
+
+    let (bridge_count, frozen, training_before, training_after, bridge_chain_valid) =
+        invoke_symthaea_bridge(
+            &episode_dir,
+            bridge_config,
+            vision_config,
+            bridge_observations,
+            &bridge_binary,
+        )?;
+
+    let report = EpisodeReport {
+        schema_version: 1,
+        status: "complete_for_declared_non_learning_fixture".to_string(),
+        episode_id: EPISODE_ID.to_string(),
+        scenario_id: SCENARIO_ID.to_string(),
+        renderer_revision: RENDERER_REVISION.to_string(),
+        simulator_backend: SIMULATOR_REVISION.to_string(),
+        expected_ticks: EXPECTED_TICKS,
+        delivered_observations: replay_records.len(),
+        missing_observations: missing_events.len(),
+        delayed_observations: delayed_count,
+        fresh_observations: fresh_count,
+        fresh_process_renderer_replay_exact: replay_exact,
+        symthaea_bridge_invoked: true,
+        symthaea_bridge_processed_observations: bridge_count,
+        symthaea_receipt_chain_valid: bridge_chain_valid,
+        policy_input_artifacts_valid: bridge_chain_valid,
+        policy_input_artifact_count: bridge_count,
+        bridge_vision_learning_frozen: frozen,
+        bridge_training_steps_before: training_before,
+        bridge_training_steps_after: training_after,
+        counterfactual_branch_frame_changed: true,
+        claim_ceiling: "Finite immutable snapshot/render/bridge fixture only. The harness does not run vehicle dynamics, actor policies, a driving controller or physical actuation, and does not establish learned visual competence or safety.".to_string(),
+    };
+    write_json(&episode_dir.join("episode-report.json"), &report)?;
+    Ok(report)
+}
+
+fn run_replay_child(input_path: &Path, output_path: &Path) -> Result<(), Box<dyn Error>> {
+    let input: ReplayInput = serde_json::from_slice(&fs::read(input_path)?)?;
+    let summaries = replay_records(&input.records)?;
+    write_json(output_path, &summaries)?;
+    Ok(())
+}
+
+fn main() {
+    let args = env::args().skip(1).collect::<Vec<_>>();
+    let result = if args.first().is_some_and(|arg| arg == "--replay-child") {
+        if args.len() != 3 {
+            Err("usage: --replay-child <input.json> <output.json>".into())
+        } else {
+            run_replay_child(Path::new(&args[1]), Path::new(&args[2]))
+        }
+    } else if args.len() == 4 {
+        run_parent(
+            Path::new(&args[0]),
+            Path::new(&args[1]),
+            Path::new(&args[2]),
+            Path::new(&args[3]),
+        )
+        .map(|report| {
+            println!(
+                "episode {}: {} / {} observations processed; missing={}, delayed={}; renderer_replay_exact={}",
+                report.episode_id,
+                report.symthaea_bridge_processed_observations,
+                report.expected_ticks,
+                report.missing_observations,
+                report.delayed_observations,
+                report.fresh_process_renderer_replay_exact
+            );
+        })
+    } else {
+        Err(
+            "usage: fresh-process-driving-replay <episode-dir> <bridge-config.json> <vision-config.json> <camera-driving-bridge-binary>"
+                .into(),
+        )
+    };
+
+    if let Err(error) = result {
+        eprintln!("fresh-process-driving-replay: {error}");
+        std::process::exit(2);
+    }
+}
