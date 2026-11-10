@@ -1,0 +1,9 @@
+[package]
+name = "loco-terramech-ident"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Frozen evidence and split validator for history-aware foot-terrain experiments"
+
+[workspace]

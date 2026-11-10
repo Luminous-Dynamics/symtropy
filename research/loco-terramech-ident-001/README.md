@@ -182,3 +182,38 @@ These are synthetic semantic fixtures, not empirical physical observations. Lite
 ## Claim ceiling
 
 This benchmark qualifies model identifiability and prediction against supplied observations. It does not prove a universal soil law, treat MPM as physical truth, prove whole-body viability, or demonstrate deployment superiority. Those require independently prepared/characterized substrates and held-out physical robot trials.
+
+
+## Executable finite Rust V0 reference
+
+The standalone dependency-free Rust crate at `research/loco-terramech-ident-001/` validates the **experiment evidence manifest**, not terrain mechanics.
+
+It consumes:
+- whole-specimen assignments to calibration/validation/test;
+- preparation-batch and independent collection-cluster identities;
+- declared D1/D2/D3 sensor sources, model/calibration digests and native time-base mappings;
+- per-contact explicit channel coverage (Present or Missing with a reason);
+- per-channel observations with raw/corrected/arrival times, uncertainty, units and source identity;
+- ordered contact events and Terrain-owned before/after revision/settlement receipts.
+
+It verifies:
+- specimen, preparation batch and independent cluster do not cross splits;
+- multiple specimens may share a preparation batch/cluster within one split;
+- sequence/event/observation identity uniqueness;
+- source/calibration/mapping/unit identity and time-window/uncertainty qualification;
+- raw and corrected timestamps increase within each source, while different channels need not be synchronized;
+- every required channel is explicitly Present or Missing for every contact event;
+- unrequested channels cannot be silently added to a result;
+- NoEffect, Unknown and OutOfDomain do not advance the Terrain revision;
+- Settled effects carry unique receipts and strictly advance the revision chain;
+- Unknown/missingness counts remain explicit in the validation report.
+
+The 17 Rust tests cover split leakage, same-split specimen sharing, identity and timing failures, missing-channel semantics, ground revision continuity, settlement receipt reuse and the no-silent-mutation boundary.
+
+Qualification commands:
+
+    cargo fmt --manifest-path research/loco-terramech-ident-001/Cargo.toml -- --check
+    cargo test --manifest-path research/loco-terramech-ident-001/Cargo.toml --locked
+    cargo clippy --manifest-path research/loco-terramech-ident-001/Cargo.toml --locked --all-targets -- -D warnings
+
+The exact-head workflow is authoritative for Rust 1.96. A green run validates only the supplied manifest/evidence relationships. It does not authenticate external receipts, classify raw contact signals, estimate soil parameters, or validate the physical response model.
