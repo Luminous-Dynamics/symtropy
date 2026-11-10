@@ -1,0 +1,65 @@
+name: maritime-evidence-interchange
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - "benchmarks/maritime-evidence-interchange/**"
+      - "benchmarks/maritime/maritime-evidence-interchange-conformance-v0.1.json"
+      - "docs/tech/MARITIME_EVIDENCE_INTERCHANGE*"
+      - ".github/workflows/maritime-evidence-interchange.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: maritime-evidence-interchange-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  exact-head:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Assert exact source revision
+        shell: bash
+        run: |
+          actual="$(git rev-parse HEAD)"
+          expected="${{ github.event.pull_request.head.sha || github.sha }}"
+          echo "actual_head=${actual}"
+          echo "expected_head=${expected}"
+          test "${actual}" = "${expected}"
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path benchmarks/maritime-evidence-interchange/Cargo.toml -- --check
+
+      - name: Run offline semantic conformance tests
+        run: cargo test --locked --all-targets --manifest-path benchmarks/maritime-evidence-interchange/Cargo.toml
+
+      - name: Run Clippy
+        run: cargo clippy --locked --manifest-path benchmarks/maritime-evidence-interchange/Cargo.toml --all-targets -- -D warnings
+
+      - name: Execute frozen conformance corpus
+        run: |
+          cargo run --locked --manifest-path benchmarks/maritime-evidence-interchange/Cargo.toml -- \
+            benchmarks/maritime/maritime-evidence-interchange-conformance-v0.1.json \
+            > /tmp/maritime-evidence-interchange-report.json
+          cat /tmp/maritime-evidence-interchange-report.json
+
+      - name: Upload exact-head evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maritime-evidence-interchange-exact-head-evidence
+          path: /tmp/maritime-evidence-interchange-report.json
+          if-no-files-found: warn
