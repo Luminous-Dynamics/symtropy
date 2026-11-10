@@ -930,6 +930,7 @@ mod tests {
             MonitoringDecision::Escalate {
                 from_model_id: "fast-qualified".to_owned(),
                 to_model_id: "slow-qualified".to_owned(),
+                trigger: MonitorTrigger::ResidualExceeded,
                 observation_receipt_sha256: H3.to_owned(),
                 next_input_sha256: evaluate(&PolicyInputV1 {
                     candidates: vec![candidate("slow-qualified", 900, 2_000)],
@@ -1124,6 +1125,7 @@ mod tests {
             MonitoringDecision::Escalate {
                 from_model_id: "fast-qualified".to_owned(),
                 to_model_id: "slow-qualified".to_owned(),
+                trigger: MonitorTrigger::ResidualExceeded,
                 observation_receipt_sha256: H3.to_owned(),
                 next_input_sha256: evaluate(&PolicyInputV1 {
                     candidates: vec![candidate("slow-qualified", 900, 2_000)],
