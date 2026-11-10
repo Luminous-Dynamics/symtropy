@@ -132,3 +132,9 @@ For qualification, **every listed method must participate in at least one accept
 
 The manifest provenance now carries `canonical_input_set_sha256`. Every method's `input_set_sha256` must match it exactly. This prevents a pair of methods from agreeing with each other on an input digest that is not bound to the study's own provenance record. Individual source/input files remain separately listed and hashed under `input_digests`.
 
+### Cross-check ensemble connectivity
+
+For a multi-method `independently_cross_checked` or `converged` manifest, accepted pairwise comparison records must form a **connected graph over every declared method**. Merely having every method appear in some accepted pair is insufficient: two disconnected pairs do not cross-check the whole declared ensemble. The validator now rejects disconnected comparison graphs.
+
+A connected graph establishes a chain of pairwise comparisons, not all-pairs agreement. When a claim requires every method to agree directly with every other method, include every pairwise edge and its own pair-specific response-window record. The comparison graph is an evidence-routing condition; it does not remove correlated-failure analysis or the need for independent scientific review.
+
