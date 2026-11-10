@@ -43,7 +43,7 @@ Represent mission state as a typed vector, not a scalar:
 | Mobility | robust continuation, recovery topology, independent paths and cut sets | #4061/#4083 and #4511/#4540 receipts |
 | Mission | task/route progress, payload, elapsed time, deadline, retreat target | Frozen mission contract and state observations |
 
-For sequence event \(k\), bookkeeping may be represented as:
+For sequence event \\(k\\), apply observed fault-induced physical changes first, refresh upstream recovery topology, and only then admit and charge the compensating action. A rejected compensation must not erase the fault's actuator/thermal effects. Bookkeeping may be represented as:
 
 \[
 z_{k+1}=F(z_k,e_k,a_k,o_k,r_k)
