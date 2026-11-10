@@ -117,3 +117,14 @@ The planned research corpus is recorded at `benchmarks/kerr_ray_bundle_v1.json`.
 - analytic Schwarzschild/Kerr controls, negative controls and prospective acceptance gates.
 
 This is a planned benchmark manifest, not numerical output. The associated implementation/research owner is Symtropy issue [#4519](https://github.com/Luminous-Dynamics/symtropy/issues/4519). Sol-Atlas projection is tracked at [#701](https://github.com/Luminous-Dynamics/sol-atlas-leptos/issues/701).
+
+
+## Kerr finite-frequency caustic wave-optics benchmark
+
+The planned canonical controls and strong-field reproduction protocol are in `benchmarks/kerr_wave_caustic_v1.json`.
+
+This is deliberately separate from `kerr_ray_bundle_v1.json`:
+- the ray-bundle manifest owns geometric-optics branches, Jacobi maps, caustic loci and arrival-time geometry;
+- this manifest owns Airy fold / Pearcey cusp controls, finite-source/coherence cases, the ray-derived diffraction bridge and full-wave Kerr scattering comparisons.
+
+The artifact is `planned_replication_manifest` with execution status `not_run`; no wave-amplification result or caustic diffraction result is claimed. Research owner: Symtropy [#4526](https://github.com/Luminous-Dynamics/symtropy/issues/4526).
