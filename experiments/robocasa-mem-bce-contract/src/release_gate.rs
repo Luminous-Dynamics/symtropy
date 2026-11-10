@@ -31,6 +31,12 @@ pub struct InstalledWheelAcceptance {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExpectedPolicyCheckpoint {
+    pub family_id: String,
+    pub checkpoint_sha256: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ModelSmokeEvidence {
     /// Exact upstream policy family (ACT, Diffusion Policy, Pi0.5, etc.).
     pub family_id: String,
@@ -89,6 +95,8 @@ pub struct RoboCasaMemReleaseEvidence {
 
     /// Exact expected policy families represented by the official suite matrix.
     pub expected_model_families: Vec<String>,
+    /// Exact checkpoint identity expected for every policy family.
+    pub expected_checkpoints: Vec<ExpectedPolicyCheckpoint>,
     pub installed_wheel: InstalledWheelAcceptance,
     /// One independent inference smoke record per expected policy family.
     pub model_smokes: Vec<ModelSmokeEvidence>,
@@ -132,6 +140,8 @@ pub enum ReleaseGateBlocker {
     MissingModelFamilySmoke,
     UnexpectedModelFamilySmoke,
     ModelCheckpointDigestMismatch,
+    CheckpointManifestMissing,
+    CheckpointFamilySetMismatch,
     ModelSmokeRuntimeDigestMismatch,
     ModelSmokeMissing,
     ModelSmokeCheckpointNotLoaded,
@@ -194,6 +204,9 @@ pub fn qualify_release(
         evidence.installed_wheel.candidate_runtime_sha256.as_str(),
         evidence.installed_wheel.tested_runtime_sha256.as_str(),
     ];
+    for expected in &evidence.expected_checkpoints {
+        digests.push(expected.checkpoint_sha256.as_str());
+    }
     for smoke in &evidence.model_smokes {
         digests.push(smoke.checkpoint_sha256.as_str());
         digests.push(smoke.candidate_runtime_sha256.as_str());
@@ -314,6 +327,18 @@ pub fn qualify_release(
 
     let expected_families: BTreeSet<&str> =
         evidence.expected_model_families.iter().map(String::as_str).collect();
+    let expected_checkpoint_map: std::collections::BTreeMap<&str, &str> =
+        evidence.expected_checkpoints.iter()
+            .map(|item| (item.family_id.as_str(), item.checkpoint_sha256.as_str()))
+            .collect();
+    if evidence.expected_checkpoints.is_empty()
+        || expected_checkpoint_map.len() != evidence.expected_checkpoints.len()
+    {
+        blockers.insert(ReleaseGateBlocker::CheckpointManifestMissing);
+    }
+    if expected_checkpoint_map.keys().copied().collect::<BTreeSet<_>>() != expected_families {
+        blockers.insert(ReleaseGateBlocker::CheckpointFamilySetMismatch);
+    }
     let observed_families: BTreeSet<&str> =
         evidence.model_smokes.iter().map(|smoke| smoke.family_id.as_str()).collect();
     if evidence.policy_family_manifest_sha256.trim().is_empty()
@@ -343,6 +368,11 @@ pub fn qualify_release(
             ReleaseGateBlocker::CheckpointRightsRestricted,
         );
         if smoke.family_id.trim().is_empty() || smoke.checkpoint_sha256.trim().is_empty() {
+            blockers.insert(ReleaseGateBlocker::ModelCheckpointDigestMismatch);
+        }
+        if expected_checkpoint_map.get(smoke.family_id.as_str()).copied()
+            != Some(smoke.checkpoint_sha256.as_str())
+        {
             blockers.insert(ReleaseGateBlocker::ModelCheckpointDigestMismatch);
         }
         if smoke.candidate_runtime_sha256 != wheel.candidate_runtime_sha256
@@ -413,6 +443,8 @@ pub fn qualify_release(
         matches!(
             blocker,
             ReleaseGateBlocker::PolicyFamilyManifestMissing
+                | ReleaseGateBlocker::CheckpointManifestMissing
+                | ReleaseGateBlocker::CheckpointFamilySetMismatch
                 | ReleaseGateBlocker::ModelFamilySetMismatch
                 | ReleaseGateBlocker::DuplicateModelFamilySmoke
                 | ReleaseGateBlocker::MissingModelFamilySmoke
@@ -522,6 +554,14 @@ mod tests {
             dataset_rights: EvaluationRights::Authorized,
             asset_rights: EvaluationRights::Authorized,
             expected_model_families: vec!["act".to_owned(), "diffusion".to_owned(), "pi05".to_owned()],
+            expected_checkpoints: ["act", "diffusion", "pi05"]
+                .into_iter()
+                .enumerate()
+                .map(|(index, family)| ExpectedPolicyCheckpoint {
+                    family_id: family.to_owned(),
+                    checkpoint_sha256: format!("{:x}", index + 1).repeat(64),
+                })
+                .collect(),
             installed_wheel: InstalledWheelAcceptance {
                 candidate_wheel_sha256: "e".repeat(64),
                 tested_wheel_sha256: "e".repeat(64),
@@ -674,6 +714,26 @@ mod tests {
             .blockers
             .windows(2)
             .all(|pair| pair[0] < pair[1]));
+    }
+
+    #[test]
+    fn smoke_checkpoint_must_match_exact_family_manifest_digest() {
+        let mut candidate = evidence();
+        candidate.model_smokes[0].checkpoint_sha256 = "f".repeat(64);
+
+        let report = qualify_release(&candidate).unwrap();
+        assert!(report.has_blocker(ReleaseGateBlocker::ModelCheckpointDigestMismatch));
+        assert!(!report.native_evaluation_ready);
+    }
+
+    #[test]
+    fn checkpoint_manifest_must_cover_each_expected_policy_family_once() {
+        let mut candidate = evidence();
+        candidate.expected_checkpoints.pop();
+
+        let report = qualify_release(&candidate).unwrap();
+        assert!(report.has_blocker(ReleaseGateBlocker::CheckpointFamilySetMismatch));
+        assert!(!report.native_evaluation_ready);
     }
 
     #[test]
