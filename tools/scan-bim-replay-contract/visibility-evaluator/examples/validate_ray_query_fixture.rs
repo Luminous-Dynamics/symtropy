@@ -41,7 +41,7 @@ struct CoordinateSystem {
 #[serde(deny_unknown_fields)]
 struct QueryContract {
     clipping_policy: String,
-    clip_endpoint_guard_epsilon_m: f64,
+    clip_endpoint_tolerance_m: f64,
     nearest_hit_tie_epsilon_m: f64,
     determinant_epsilon_m2: f64,
     barycentric_epsilon: f64,
@@ -208,12 +208,12 @@ fn validate_fixture(fixture: &Fixture) -> Result<FixtureReport<'_>, String> {
     }
 
     let contract = &fixture.query_contract;
-    if contract.clipping_policy != "open_interval_with_epsilon_guard"
+    if contract.clipping_policy != "inclusive_interval_with_epsilon_tolerance"
         || contract.triangle_sidedness != "two_sided"
         || contract.self_hit_exclusion != "exact_surface_id_and_triangle_id"
         || contract.expected_hit_policy != "all_hits_within_nearest_hit_tie_epsilon"
-        || !contract.clip_endpoint_guard_epsilon_m.is_finite()
-        || contract.clip_endpoint_guard_epsilon_m != 1.0e-8
+        || !contract.clip_endpoint_tolerance_m.is_finite()
+        || contract.clip_endpoint_tolerance_m != 1.0e-8
         || !contract.nearest_hit_tie_epsilon_m.is_finite()
         || contract.nearest_hit_tie_epsilon_m != 1.0e-8
         || !contract.determinant_epsilon_m2.is_finite()
@@ -310,8 +310,8 @@ fn validate_fixture(fixture: &Fixture) -> Result<FixtureReport<'_>, String> {
                     contract.barycentric_epsilon,
                 )
                 .and_then(|distance| {
-                    (distance > ray.tnear_m + contract.clip_endpoint_guard_epsilon_m
-                        && distance < ray.tfar_m - contract.clip_endpoint_guard_epsilon_m)
+                    (distance >= ray.tnear_m - contract.clip_endpoint_tolerance_m
+                        && distance <= ray.tfar_m + contract.clip_endpoint_tolerance_m)
                         .then(|| {
                             (
                                 distance,
@@ -372,7 +372,7 @@ fn validate_fixture(fixture: &Fixture) -> Result<FixtureReport<'_>, String> {
         match (bvh_receipt.nearest_hits.first(), brute_nearest_distance) {
             (Some(bvh_hit), Some(brute_distance)) => {
                 if (bvh_hit.distance_m - brute_distance).abs()
-                    > contract.clip_endpoint_guard_epsilon_m
+                    > contract.clip_endpoint_tolerance_m
                 {
                     return Err(format!(
                         "ray {} BVH/brute-force distance disagreement: BVH={}, brute={brute_distance}",
@@ -398,7 +398,7 @@ fn validate_fixture(fixture: &Fixture) -> Result<FixtureReport<'_>, String> {
                 let expected = expected_distance
                     .ok_or_else(|| format!("ray {} expected hit without distance", ray.ray_id))?;
                 if (actual_distance - expected).abs()
-                    > contract.clip_endpoint_guard_epsilon_m
+                    > contract.clip_endpoint_tolerance_m
                     || brute_nearest_hits != expected_hits
                 {
                     return Err(format!(
