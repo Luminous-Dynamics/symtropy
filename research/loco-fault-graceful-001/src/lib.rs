@@ -207,6 +207,7 @@ pub enum FaultEpisodeError {
     DuplicateDiagnosisTime,
     DiagnosisTimeOutOfOrder,
     InvalidDiagnosisConfidence,
+    IsolationBelowQualificationThreshold,
     InvalidDiagnosisState,
     DuplicateControllerHypothesis,
     DuplicatePhysicalHypothesis,
@@ -487,10 +488,11 @@ pub fn audit_fault_episode(
                 if !nonempty(hypothesis_id) {
                     return Err(FaultEpisodeError::InvalidDiagnosisState);
                 }
-                if *confidence_ppm > PPM_SCALE
-                    || *confidence_ppm < 900_000
-                {
+                if *confidence_ppm > PPM_SCALE {
                     return Err(FaultEpisodeError::InvalidDiagnosisConfidence);
+                }
+                if *confidence_ppm < 900_000 {
+                    return Err(FaultEpisodeError::IsolationBelowQualificationThreshold);
                 }
                 if !snapshot
                     .controller_plausible_fault_ids
@@ -789,6 +791,17 @@ mod tests {
     }
 
     #[test]
+    fn admission_receipt_must_bind_current_state_not_only_episode_initial_state() {
+        let mut episode = base_episode();
+        episode.action_decisions[0].current_state_digest = "state-after-step".to_owned();
+        let report = audit_fault_episode(&episode).expect("report");
+        assert!(report.gate_violations.contains(
+            &GateViolation::InvalidOrStaleReceipt { at_ns: 160 }
+        ));
+        assert!(!report.operational_outcome_qualified);
+    }
+
+    #[test]
     fn stale_receipt_blocks_operational_qualification() {
         let mut episode = base_episode();
         episode.action_decisions[0].receipt.valid_until_ns = 159;
@@ -894,7 +907,7 @@ mod tests {
         let mut episode = base_episode();
         episode.diagnosis[1].state = DiagnosisState::Isolated {
             hypothesis_id: "free-swing".to_owned(),
-            confidence_ppm: 800_000,
+            confidence_ppm: 950_000,
         };
         episode.diagnosis[1].controller_plausible_fault_ids = vec!["free-swing".to_owned()];
         let report = audit_fault_episode(&episode).expect("report");
