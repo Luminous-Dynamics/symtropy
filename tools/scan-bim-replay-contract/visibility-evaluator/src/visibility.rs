@@ -2763,6 +2763,49 @@ mod tests {
     }
 
     #[test]
+    fn sah_uses_stable_median_fallback_when_all_triangle_centroids_match() {
+        let mut triangles = Vec::new();
+        for index in 0..17 {
+            let mut triangle = blocker(OccluderKind::SameBuilding);
+            triangle.surface_id = format!("OVERLAP-{index:02}");
+            triangle.triangle_id = format!("OVERLAP-TRI-{index:02}");
+            triangles.push(triangle);
+        }
+
+        let bvh = TriangleBvh::build_sah(&triangles);
+        assert!(bvh.node_count > 1);
+        assert!(bvh.leaf_count > 1);
+        assert!(
+            bvh.root
+                .as_deref()
+                .is_some_and(|root| maximum_leaf_triangle_count(root) <= BVH_LEAF_TRIANGLE_LIMIT)
+        );
+
+        let (hits, ray_tests, node_visits) = bvh
+            .nearest_hits(
+                Vec3 { x: 0.0, y: 0.0, z: 0.0 },
+                Vec3 { x: 1.0, y: 0.0, z: 0.0 },
+                5.0,
+                &triangles,
+                "TARGET",
+                "TARGET-TRI-1",
+                100,
+                100,
+            )
+            .expect("median fallback must produce a bounded queryable tree");
+
+        assert_eq!(hits.len(), 17, "all coincident nearest blockers are retained");
+        assert_eq!(ray_tests, 17);
+        assert!(node_visits > 1);
+        assert!(hits.windows(2).all(|pair| {
+            let left = &triangles[pair[0].0];
+            let right = &triangles[pair[1].0];
+            (left.surface_id.as_str(), left.triangle_id.as_str())
+                <= (right.surface_id.as_str(), right.triangle_id.as_str())
+        }));
+    }
+
+    #[test]
     fn bvh_node_visit_budget_fails_closed() {
         let mut blockers = Vec::new();
         for index in 0..64 {
