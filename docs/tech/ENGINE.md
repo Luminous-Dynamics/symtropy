@@ -93,7 +93,7 @@ world.step_with_callback(0.016, &mut consciousness);
 
 ## Game Integration (Bevy)
 
-The engine integrates with Bevy 0.18 via `FixedUpdate` scheduling:
+The Bevy 0.20.1 migration candidate integrates through `FixedUpdate` scheduling:
 
 ```
 FixedUpdate (64Hz):
