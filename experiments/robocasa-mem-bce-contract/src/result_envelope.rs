@@ -150,8 +150,7 @@ impl StageResult {
             StageDisposition::Succeeded | StageDisposition::Failed => {
                 self.evidence
                     .as_ref()
-                    .ok_or_else(|| ImportError::MissingStageReceipt(self.stage_id.clone()))?
-                    .validate()?;
+                    .ok_or_else(|| ImportError::MissingStageReceipt(self.stage_id.clone()))?;
             }
             StageDisposition::Unresolved | StageDisposition::NotApplicable => {
                 if self.evidence.is_some() {
@@ -402,6 +401,7 @@ pub enum ImportError {
     DuplicateStageId(String),
     MissingStageResult(String),
     UnexpectedStageResult(String),
+    StageOrderMismatch,
     MissingStageReceipt(String),
     UnexpectedStageReceipt(String),
     MissingTerminalReceipt,
@@ -484,6 +484,11 @@ impl MemoryEvaluationRecord {
             return Err(ImportError::UnexpectedTerminalReceipt);
         }
 
+        if self.task.bce_required && self.bce_receipts.is_empty() {
+            // The raw run is retained, but it cannot satisfy a protocol that
+            // requires behavior-conditioned evaluation receipts.
+        }
+
         let mut counts = StageCompletionCounts {
             succeeded: 0,
             failed: 0,
@@ -506,7 +511,7 @@ impl MemoryEvaluationRecord {
         }
 
         for expected in &self.task.expected_stage_ids {
-            if !seen.contains(expected.as_str()) {
+            if !seen.iter().any(|actual| *actual == expected.as_str()) {
                 return Err(ImportError::MissingStageResult(expected.clone()));
             }
         }
@@ -515,20 +520,57 @@ impl MemoryEvaluationRecord {
                 .task
                 .expected_stage_ids
                 .iter()
-                .any(|expected| expected == actual)
+                .any(|expected| expected.as_str() == *actual)
             {
                 return Err(ImportError::UnexpectedStageResult((*actual).to_owned()));
             }
         }
+        let actual_stage_order: Vec<&str> =
+            self.stages.iter().map(|stage| stage.stage_id.as_str()).collect();
+        let expected_stage_order: Vec<&str> = self
+            .task
+            .expected_stage_ids
+            .iter()
+            .map(String::as_str)
+            .collect();
+        if actual_stage_order != expected_stage_order {
+            return Err(ImportError::StageOrderMismatch);
+        }
 
+        let mut bce_pairs = BTreeSet::new();
         for receipt in &self.bce_receipts {
             receipt.validate()?;
             if receipt.policy_input_digest != self.policy_input.policy_input_digest {
                 return Err(ImportError::InvalidBceReceipt);
             }
+            if !bce_pairs.insert((
+                receipt.source_interaction_id.as_str(),
+                receipt.target_interaction_id.as_str(),
+            )) {
+                return Err(ImportError::DuplicateBceReceipt);
+            }
         }
 
         let mut blockers = Vec::new();
+        if self.protocol.dataset_rights_status == DatasetRightsStatus::Unknown {
+            blockers.push(QualificationBlocker::DatasetRightsUnresolved);
+        }
+        if self.policy.training_overlap_status == TrainingOverlapStatus::Unknown {
+            blockers.push(QualificationBlocker::TrainingOverlapUnknown);
+        }
+        if self.task.bce_required && self.bce_receipts.is_empty() {
+            blockers.push(QualificationBlocker::BceEvaluationMissing);
+        }
+        if self.terminal_receipt.as_ref().is_some_and(OutcomeReceipt::has_unknown_source)
+            || self.stages.iter().any(|stage| {
+                stage
+                    .evidence
+                    .as_ref()
+                    .is_some_and(OutcomeReceipt::has_unknown_source)
+            })
+        {
+            blockers.push(QualificationBlocker::UnknownOutcomeEvidenceSource);
+        }
         if self.task.split == EvaluationSplit::Unknown {
             blockers.push(QualificationBlocker::UnknownSplit);
         }
@@ -541,13 +583,6 @@ impl MemoryEvaluationRecord {
         }
         if counts.unresolved > 0 {
             blockers.push(QualificationBlocker::StageOutcomeUnresolved);
-        }
-        if !self.bce_receipts.is_empty()
-            && self.bce_receipts.iter().any(|receipt| {
-                receipt.predicate_id.trim().is_empty()
-            })
-        {
-            blockers.push(QualificationBlocker::BceEvaluationMissing);
         }
         if self.run_disposition != RunDisposition::Completed {
             // The run is retained, but it cannot be represented as a fully
@@ -572,6 +607,12 @@ impl MemoryEvaluationRecord {
             && self.task == other.task
             && self.matched_control == other.matched_control
             && self.evidence_class == other.evidence_class
+            && self.policy_input.observation_bundle_digest
+                == other.policy_input.observation_bundle_digest
+            && self.policy_input.policy_visible_fields
+                == other.policy_input.policy_visible_fields
+            && self.policy_input.evaluator_private_fields
+                == other.policy_input.evaluator_private_fields
             && self.policy.variant_id != other.policy.variant_id
     }
 
