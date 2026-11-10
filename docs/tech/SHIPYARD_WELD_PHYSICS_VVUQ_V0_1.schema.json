@@ -263,8 +263,75 @@
         "rationale": {
           "type": "string",
           "minLength": 10
+        },
+        "claim_scope": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "validated_output",
+            "claimed_output",
+            "documented_limitation",
+            "supports_claimed_output"
+          ],
+          "properties": {
+            "validated_output": {
+              "type": "string",
+              "minLength": 3
+            },
+            "claimed_output": {
+              "type": "string",
+              "minLength": 3
+            },
+            "documented_limitation": {
+              "type": "string",
+              "minLength": 3
+            },
+            "supports_claimed_output": {
+              "type": "boolean"
+            }
+          }
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "case_id": {
+                "const": "WPHYS-027"
+              }
+            },
+            "required": [
+              "case_id"
+            ]
+          },
+          "then": {
+            "required": [
+              "claim_scope"
+            ],
+            "properties": {
+              "expected_disposition": {
+                "const": "BLOCK_VALIDATION"
+              },
+              "claim_scope": {
+                "properties": {
+                  "validated_output": {
+                    "const": "post_weld_residual_stress"
+                  },
+                  "claimed_output": {
+                    "const": "molten_pool_peak_temperature"
+                  },
+                  "documented_limitation": {
+                    "const": "liquid_solid_coupling_omitted"
+                  },
+                  "supports_claimed_output": {
+                    "const": false
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }
