@@ -145,7 +145,7 @@
           "type": "boolean"
         },
         "numerical_scoring_eligible": {
-          "const": false
+          "type": "boolean"
         },
         "measurement_modalities": {
           "type": "array",
@@ -177,7 +177,42 @@
           "type": "string",
           "minLength": 10
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "numerical_scoring_eligible": {
+                "const": true
+              }
+            },
+            "required": [
+              "numerical_scoring_eligible"
+            ]
+          },
+          "then": {
+            "properties": {
+              "admission_status": {
+                "enum": [
+                  "ADMITTED_RAW",
+                  "ADMITTED_TABLE",
+                  "ADMITTED_DIGITIZED"
+                ]
+              },
+              "rights_status": {
+                "const": "CLEARED"
+              },
+              "source_bytes_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            },
+            "required": [
+              "source_bytes_sha256"
+            ]
+          }
+        }
+      ]
     },
     "case": {
       "type": "object",
