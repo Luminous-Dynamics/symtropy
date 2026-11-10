@@ -62,4 +62,13 @@ Assistance disclosure is not a cosmetic label: a PolicyOnly record cannot contai
 
 The paired-control check requires identical protocol, task/scene/seed/split/stage roster, embodiment, action executor, environment, resource budget, evidence class and policy-visible observation manifest. Only the declared policy variant/checkpoint/assistance may differ. This is an identity check, not a statistical significance test. The per-arm episode IDs may differ: pairing is by the frozen task instance, scene identity, seed, split, expected stage roster and shared control manifests—not by reusing the same run ID.
 
-This module is a typed Rust validation contract only. It does not yet parse the upstream RoboCasa-Mem HDF5/Python export, run policies, compute the official macro aggregation, authenticate evidence digests, or verify that the upstream task/evaluator/dataset release has been pinned. See [VIS-MEM-029 #4414](https://github.com/Luminous-Dynamics/symtropy/issues/4414).
+### Aggregate integrity
+
+The task-level aggregator now:
+- rejects duplicate `(task_instance_id, episode_id)` records so replayed imports cannot inflate the episode denominator;
+- requires a single environment-configuration digest across an aggregate arm, in addition to the shared robot, action executor, backbone, resource budget and protocol identities;
+- unions qualification blockers from every episode into the aggregate result while preserving the terminal and per-stage raw counts.
+
+A reported aggregate may therefore retain useful partial counts while still carrying blockers such as unknown dataset rights, unknown training overlap, unresolved outcomes, or unknown evidence source. Consumers must not publish it as a qualified benchmark result merely because all rows parsed. A blocked episode is retained; it is not silently converted into a zero or dropped from the denominator.
+
+This module is a typed Rust validation contract only. It does not yet parse the upstream RoboCasa-Mem HDF5/Python export, run policies, or independently authenticate evidence digests or verify that the upstream task/evaluator/dataset release has been pinned. See [VIS-MEM-029 #4414](https://github.com/Luminous-Dynamics/symtropy/issues/4414).
