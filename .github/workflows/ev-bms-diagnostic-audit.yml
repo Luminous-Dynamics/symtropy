@@ -30,8 +30,8 @@ jobs:
         run: |
           cargo run --manifest-path tools/ev-bms-diagnostic-audit/Cargo.toml -- --schema schemas/transport/ev_bms_diagnostic_event_v0_1.schema.json --corpus fixtures/ev_battery/bms_diagnostic_event_scenarios_v0_1.json > "$RUNNER_TEMP/ev-bms-diagnostic-report.json"
           jq -e '
-            .case_count == 10 and
-            .accepted_count == 5 and
-            .rejected_count == 5 and
+            .case_count == 12 and
+            .accepted_count == 6 and
+            .rejected_count == 6 and
             (.report_sha256 | test("^[a-f0-9]{64}$"))
           ' "$RUNNER_TEMP/ev-bms-diagnostic-report.json"
