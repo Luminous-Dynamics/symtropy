@@ -410,7 +410,7 @@ pub fn verify_surface_sampling_receipt(
         }
         if summary.excluded_area_m2 != 0.0 || !summary.excluded_by_visibility.is_empty() {
             return Err(
-                "reference sampling receipt must include all source area before visibility classification"
+                "reference sampling receipt must include all source area before visibility"
                     .to_owned(),
             );
         }
