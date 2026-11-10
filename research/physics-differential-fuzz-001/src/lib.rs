@@ -165,11 +165,7 @@ impl PointImpactCase {
     ///
     /// If length is multiplied by L and time by T:
     /// height -> L h, velocity -> (L/T) v, gravity -> (L/T^2) g.
-    pub fn rescale_units(
-        self,
-        length_scale: f64,
-        time_scale: f64,
-    ) -> Result<Self, CaseError> {
+    pub fn rescale_units(self, length_scale: f64, time_scale: f64) -> Result<Self, CaseError> {
         self.validate()?;
         if !length_scale.is_finite()
             || !time_scale.is_finite()
@@ -384,7 +380,11 @@ mod tests {
         assert_eq!(first, second);
         assert_eq!(first[0].case.restitution, 0.0);
         assert_eq!(first[1].case.restitution, 1.0);
-        assert!(first.iter().all(|candidate| candidate.case.validate().is_ok()));
+        assert!(
+            first
+                .iter()
+                .all(|candidate| candidate.case.validate().is_ok())
+        );
     }
 
     #[test]
@@ -393,14 +393,20 @@ mod tests {
             let case = candidate.case;
             let prediction = case.predict().expect("valid prediction");
             let t = prediction.event_time_s;
-            let guard = case.initial_height_m
-                + case.initial_velocity_m_s * t
+            let guard = case.initial_height_m + case.initial_velocity_m_s * t
                 - 0.5 * case.gravity_m_s2 * t * t;
             assert_close(guard, 0.0, 5.0e-12);
 
-            let expected_incoming =
-                -(case.initial_velocity_m_s.mul_add(case.initial_velocity_m_s, 2.0 * case.gravity_m_s2 * case.initial_height_m)).sqrt();
-            assert_close(prediction.pre_impact_velocity_m_s, expected_incoming, 5.0e-12);
+            let expected_incoming = -(case.initial_velocity_m_s.mul_add(
+                case.initial_velocity_m_s,
+                2.0 * case.gravity_m_s2 * case.initial_height_m,
+            ))
+            .sqrt();
+            assert_close(
+                prediction.pre_impact_velocity_m_s,
+                expected_incoming,
+                5.0e-12,
+            );
 
             match prediction.post_impact {
                 PostImpactMode::RestingContact => assert_eq!(case.restitution, 0.0),
@@ -429,8 +435,7 @@ mod tests {
             assert!((1.0e-2..=1.0e3).contains(&case.initial_height_m));
             assert!((1.0e-2..=1.0e1).contains(&case.gravity_m_s2));
             assert!((-3.0..=3.0).contains(
-                &(case.initial_velocity_m_s
-                    / (case.initial_height_m * case.gravity_m_s2).sqrt())
+                &(case.initial_velocity_m_s / (case.initial_height_m * case.gravity_m_s2).sqrt())
             ));
             assert!((0.0..=1.0).contains(&case.restitution));
         }
