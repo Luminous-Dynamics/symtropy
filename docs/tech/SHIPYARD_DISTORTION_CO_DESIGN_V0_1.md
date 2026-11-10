@@ -78,6 +78,25 @@ Aspirational target: at least 5% improvement on one preregistered held-out quali
 
 The 31-case corpus contains two positive contract controls and 29 negative controls covering invalid sequences, precedence errors, fixture over-limit, missing cooling/release, in-fixture substitution for final measurement, missing datum/uncertainty, OOD or unqualified physical model claims, future leakage, resource conflict, objective collapse/omission, and synthetic-to-as-built writeback.
 
+## Exact enumerable oracle added — 2026-11-10
+
+A separate symbolic oracle file covers four tiny problems with 2–4 weld tasks, precedence constraints, fixture alternatives and release alternatives. The Rust CLI enumerates every feasible task permutation × approved/load-feasible fixture × fully cooled/full-release policy, computes four separate integer objectives, and independently reconstructs the Pareto set:
+
+- final free-state geometry units;
+- production time units;
+- fixture lifecycle-cost units;
+- robustness-risk units.
+
+The frozen expected results are 4 cases, 37 feasible plans and 15 Pareto plans. A fourth case has a precedence cycle and correctly yields zero feasible plans. The oracle is a known-answer software test only: its integer quantities are symbolic, not mm, MPa, weld distortion, clamp force or industrial production measurements.
+
+Run the independent oracle with:
+
+```sh
+cargo run --locked -p shipyard-distortion-co-design -- --oracle
+```
+
+The focused CI workflow runs this command separately from the 31-case evidence-contract verifier. The oracle tests exact enumeration and Pareto-set reproduction; larger optimization cases will still require matched baselines, valid physics outputs and measured production data.
+
 ## Claim ceiling
 
 A PASS establishes only conformance to the declared synthetic planning/evidence contract. It does not predict physical distortion, validate a fixture, qualify a welding process, accept an inspected component, establish residual-stress acceptability or authorize production.
