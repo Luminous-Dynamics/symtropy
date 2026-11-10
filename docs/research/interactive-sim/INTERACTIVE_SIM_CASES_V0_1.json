@@ -1,0 +1,63 @@
+{
+  "schema": "luminous.interactive_sim_cases.v0.1",
+  "status": "synthetic_non_operational",
+  "comparison_policy": "matched_workload_or_explicitly_non_comparable",
+  "cases": [
+    {
+      "id": "IS-001",
+      "name": "same_build_replay",
+      "class": "determinism",
+      "expected_state": "exact_replay_hash_match",
+      "assertions": ["inputs_frozen", "entity_insertion_order_frozen", "timestep_frozen", "build_digest_pinned"]
+    },
+    {
+      "id": "IS-002",
+      "name": "cross_platform_replay",
+      "class": "numerical_portability",
+      "expected_state": "bounded_error_reported",
+      "assertions": ["tolerance_preregistered", "no_unjustified_bit_identity_claim"]
+    },
+    {
+      "id": "IS-003",
+      "name": "audio_animation_mismatch",
+      "class": "coherence_negative_control",
+      "expected_state": "fail",
+      "assertions": ["state_transition_id_shared", "mismatch_detected"]
+    },
+    {
+      "id": "IS-004",
+      "name": "frame_budget_60hz",
+      "class": "performance",
+      "expected_state": "compare_p95_to_16_7ms_target",
+      "assertions": ["raw_frame_time_trace_retained", "p99_and_hitches_reported"]
+    },
+    {
+      "id": "IS-005",
+      "name": "network_150ms_rtt_3pct_loss",
+      "class": "network",
+      "expected_state": "correction_and_divergence_reported",
+      "assertions": ["server_authority_declared", "resimulation_cost_measured", "player_visible_delay_measured"]
+    },
+    {
+      "id": "IS-006",
+      "name": "unmatched_render_features",
+      "class": "fair_comparison",
+      "expected_state": "non_comparable_feature_disclosed",
+      "assertions": ["no_synthetic_equivalence", "exact_engine_versions_pinned"]
+    },
+    {
+      "id": "IS-007",
+      "name": "asset_digest_mismatch",
+      "class": "provenance_negative_control",
+      "expected_state": "rejected",
+      "assertions": ["asset_digest_checked", "run_receipt_binds_exact_assets"]
+    },
+    {
+      "id": "IS-008",
+      "name": "fictional_equipment_interaction",
+      "class": "functional",
+      "expected_state": "all_frozen_state_transitions_match",
+      "assertions": ["fictional_only", "input_animation_audio_and_effect_state_coherent"]
+    }
+  ]
+}
