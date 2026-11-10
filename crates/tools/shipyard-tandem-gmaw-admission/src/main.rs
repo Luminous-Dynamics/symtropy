@@ -79,7 +79,7 @@ fn validate_manifest(schema_text: &str, manifest_text: &str) -> Result<Summary, 
     }
     if !source.get("license_field").is_some_and(Value::is_null) {
         errors.push(
-            "license field must remain unresolved/null until explicit terms are recorded".to_owned(),
+            "license field must remain null until explicit terms are recorded".to_owned(),
         );
     }
     if bool_at(source, "raw_files_downloaded") != Some(false)
@@ -364,7 +364,10 @@ fn main() -> ExitCode {
     match validate_manifest(&schema_text, &manifest_text) {
         Ok(summary) => {
             println!(
-                "PASS: {workpieces} WIDs, {layers} layer slots, {controls} controls ({positive} positive / {negative} negative); raw rights remain pending",
+                concat!(
+                    "PASS: {workpieces} WIDs, {layers} layer slots, {controls} controls ",
+                    "({positive} positive / {negative} negative); raw rights pending"
+                ),
                 workpieces = summary.workpieces,
                 layers = summary.layers,
                 controls = summary.controls,
