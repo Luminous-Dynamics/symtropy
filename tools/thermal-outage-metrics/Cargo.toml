@@ -1,0 +1,12 @@
+[package]
+name = "thermal-outage-metrics"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "Independent arithmetic oracle for explicitly bounded thermal degree-hour exposure"
+
+[workspace]
+resolver = "3"
+
+[lib]
+path = "src/lib.rs"

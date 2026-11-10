@@ -1,0 +1,35 @@
+name: Thermal Outage Metrics Reference Oracle
+
+on:
+  push:
+    paths:
+      - "tools/thermal-outage-metrics/**"
+      - ".github/workflows/thermal-outage-metrics.yml"
+  pull_request:
+    paths:
+      - "tools/thermal-outage-metrics/**"
+      - ".github/workflows/thermal-outage-metrics.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: thermal-outage-metrics-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  reference-arithmetic:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install stable Rust and rustfmt
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/thermal-outage-metrics/Cargo.toml --all -- --check
+      - name: Run dependency-free offline tests
+        run: cargo test --locked --offline --manifest-path tools/thermal-outage-metrics/Cargo.toml
+      - name: Run warning-free Clippy
+        run: cargo clippy --locked --offline --manifest-path tools/thermal-outage-metrics/Cargo.toml --all-targets -- -D warnings
