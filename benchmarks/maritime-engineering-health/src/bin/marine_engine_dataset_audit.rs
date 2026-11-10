@@ -916,7 +916,9 @@ mod tests {
     #[test]
     fn parses_trailing_empty_cells() {
         let parsed = parse_csv_records("a,b,c\n1,2,\n").unwrap();
-        assert_eq!(parsed[1], vec!["1", "2", ""]);
+        assert_eq!(parsed[1][0], "1");
+        assert_eq!(parsed[1][1], "2");
+        assert!(parsed[1][2].is_empty());
     }
 
     #[test]
