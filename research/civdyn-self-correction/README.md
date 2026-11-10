@@ -235,3 +235,6 @@ An exact same-model, same-data, same-manifest, same-protocol replay is marked id
 ### Claim ceiling
 
 This ledger validates recorded custody declarations; it cannot prove that a human or external process did not access data outside the declared ledger. Real challenge-set secrecy still needs access controls, independent evaluators, rights/provenance management and audit logs. The synthetic fixture validates the gate, not the trustworthiness of an unobserved operational process.
+
+
+The challenge-custody evaluator treats exact replay of an already recorded (model, data, manifest, protocol) evaluation as an idempotent historical audit, even after a successor model becomes the current chain head. This does not reopen the challenge for a new candidate or permit additional development feedback. A fresh evaluation still requires the candidate to be the exact current chain head and the challenge evidence to be unused and unretired.
