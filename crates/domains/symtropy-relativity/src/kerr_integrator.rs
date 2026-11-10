@@ -16,7 +16,10 @@ use core::fmt;
 
 use super::{
     KerrBlackHole,
-    kerr_geodesic::{KerrCanonicalHamiltonian, KerrCanonicalState, KerrGeodesicError},
+    kerr_geodesic::{
+        KerrCanonicalEvaluation, KerrCanonicalHamiltonian, KerrCanonicalState,
+        KerrGeodesicError, KerrNullConstants,
+    },
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -63,6 +66,11 @@ pub struct KerrTrajectorySample {
     pub affine_parameter: f64,
     pub state: KerrCanonicalState,
     pub hamiltonian: f64,
+    pub energy: f64,
+    pub angular_momentum_z_over_m: f64,
+    pub carter_constant_over_m2: f64,
+    pub normalized_radial_first_integral_residual: f64,
+    pub normalized_polar_first_integral_residual: f64,
     pub scaled_local_error: f64,
 }
 
@@ -72,6 +80,11 @@ pub struct KerrTrajectoryResult {
     pub accepted_steps: usize,
     pub rejected_steps: usize,
     pub maximum_abs_hamiltonian: f64,
+    pub maximum_relative_energy_drift: f64,
+    pub maximum_relative_angular_momentum_drift: f64,
+    pub maximum_relative_carter_drift: f64,
+    pub maximum_normalized_radial_first_integral_residual: f64,
+    pub maximum_normalized_polar_first_integral_residual: f64,
     pub maximum_scaled_local_error: f64,
     pub final_step: f64,
 }
@@ -163,10 +176,19 @@ impl KerrNullTrajectoryIntegrator {
 
         let hamiltonian = KerrCanonicalHamiltonian::new(self.hole);
         let initial_eval = self.evaluate(hamiltonian, initial_state)?;
+        let initial_diagnostics = self.constraint_diagnostics(initial_state, initial_eval)?;
+        let initial_energy = initial_eval.energy;
+        let initial_angular_momentum = initial_eval.angular_momentum_z_over_m;
+        let initial_carter = initial_eval.carter_constant_over_m2;
         let mut samples = vec![KerrTrajectorySample {
             affine_parameter: 0.0,
             state: initial_state,
             hamiltonian: initial_eval.hamiltonian,
+            energy: initial_energy,
+            angular_momentum_z_over_m: initial_angular_momentum,
+            carter_constant_over_m2: initial_carter,
+            normalized_radial_first_integral_residual: initial_diagnostics.0,
+            normalized_polar_first_integral_residual: initial_diagnostics.1,
             scaled_local_error: 0.0,
         }];
 
@@ -175,6 +197,11 @@ impl KerrNullTrajectoryIntegrator {
         let mut accepted_steps = 0usize;
         let mut rejected_steps = 0usize;
         let mut maximum_abs_hamiltonian = initial_eval.hamiltonian.abs();
+        let mut maximum_relative_energy_drift: f64 = 0.0;
+        let mut maximum_relative_angular_momentum_drift: f64 = 0.0;
+        let mut maximum_relative_carter_drift: f64 = 0.0;
+        let mut maximum_normalized_radial_first_integral_residual = initial_diagnostics.0;
+        let mut maximum_normalized_polar_first_integral_residual = initial_diagnostics.1;
         let mut maximum_scaled_local_error: f64 = 0.0;
         let mut state = initial_state;
 
@@ -208,13 +235,34 @@ impl KerrNullTrajectoryIntegrator {
                 affine = if remaining <= step { affine_interval } else { affine + step };
                 accepted_steps += 1;
                 let evaluation = self.evaluate(hamiltonian, state)?;
+                let diagnostics = self.constraint_diagnostics(state, evaluation)?;
                 maximum_abs_hamiltonian =
                     maximum_abs_hamiltonian.max(evaluation.hamiltonian.abs());
+                maximum_relative_energy_drift = maximum_relative_energy_drift.max(
+                    relative_drift(initial_energy, evaluation.energy),
+                );
+                maximum_relative_angular_momentum_drift =
+                    maximum_relative_angular_momentum_drift.max(relative_drift(
+                        initial_angular_momentum,
+                        evaluation.angular_momentum_z_over_m,
+                    ));
+                maximum_relative_carter_drift = maximum_relative_carter_drift.max(
+                    relative_drift(initial_carter, evaluation.carter_constant_over_m2),
+                );
+                maximum_normalized_radial_first_integral_residual =
+                    maximum_normalized_radial_first_integral_residual.max(diagnostics.0);
+                maximum_normalized_polar_first_integral_residual =
+                    maximum_normalized_polar_first_integral_residual.max(diagnostics.1);
                 maximum_scaled_local_error = maximum_scaled_local_error.max(error);
                 samples.push(KerrTrajectorySample {
                     affine_parameter: affine,
                     state,
                     hamiltonian: evaluation.hamiltonian,
+                    energy: evaluation.energy,
+                    angular_momentum_z_over_m: evaluation.angular_momentum_z_over_m,
+                    carter_constant_over_m2: evaluation.carter_constant_over_m2,
+                    normalized_radial_first_integral_residual: diagnostics.0,
+                    normalized_polar_first_integral_residual: diagnostics.1,
                     scaled_local_error: error,
                 });
                 let factor = if error == 0.0 { 2.0 } else {
@@ -242,9 +290,48 @@ impl KerrNullTrajectoryIntegrator {
             accepted_steps,
             rejected_steps,
             maximum_abs_hamiltonian,
+            maximum_relative_energy_drift,
+            maximum_relative_angular_momentum_drift,
+            maximum_relative_carter_drift,
+            maximum_normalized_radial_first_integral_residual,
+            maximum_normalized_polar_first_integral_residual,
             maximum_scaled_local_error,
             final_step: step,
         })
+    }
+
+    fn constraint_diagnostics(
+        self,
+        state: KerrCanonicalState,
+        evaluation: KerrCanonicalEvaluation,
+    ) -> Result<(f64, f64), KerrIntegratorError> {
+        let constants = KerrNullConstants::new(
+            evaluation.energy,
+            evaluation.angular_momentum_z_over_m,
+            evaluation.carter_constant_over_m2,
+        )?;
+        let r = state.coordinates.radius_over_m;
+        let theta = state.coordinates.theta_rad;
+        let spin = self.hole.spin().get();
+        let delta = r * r - 2.0 * r + spin * spin;
+        let p = evaluation.energy * (r * r + spin * spin)
+            - spin * evaluation.angular_momentum_z_over_m;
+        let radial_velocity_mino = match self.chart {
+            KerrIntegrationChart::BoyerLindquist => delta * state.momenta[1],
+            KerrIntegrationChart::Ingoing => delta * state.momenta[1] - p,
+        };
+        let radial_potential = constants.radial_potential(spin, r)?;
+        let polar_potential = constants.polar_potential(spin, theta)?;
+        let radial_square = radial_velocity_mino * radial_velocity_mino;
+        let polar_square = state.momenta[2] * state.momenta[2];
+        let radial_scale = 1.0 + radial_square.abs() + radial_potential.abs();
+        let polar_scale = 1.0 + polar_square.abs() + polar_potential.abs();
+        let radial_residual = (radial_square - radial_potential).abs() / radial_scale;
+        let polar_residual = (polar_square - polar_potential).abs() / polar_scale;
+        if !radial_residual.is_finite() || !polar_residual.is_finite() {
+            return Err(KerrIntegratorError::NonFiniteState);
+        }
+        Ok((radial_residual, polar_residual))
     }
 
     fn evaluate(
@@ -317,6 +404,10 @@ impl KerrNullTrajectoryIntegrator {
         }
         Ok((sum / 8.0).sqrt())
     }
+}
+
+fn relative_drift(initial: f64, current: f64) -> f64 {
+    (current - initial).abs() / initial.abs().max(1.0)
 }
 
 fn flatten(state: KerrCanonicalState) -> [f64; 8] {
