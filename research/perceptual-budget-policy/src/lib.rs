@@ -660,7 +660,7 @@ mod tests {
             scene_capture_sha256: H1.to_owned(),
             metric_bundle_sha256: H2.to_owned(),
             contract: QualityContract {
-                task_mode: TaskMode::RemoteLowPower,
+                task_mode: TaskMode::EngineeringInspection,
                 max_spatial_error: 0.1,
                 max_temporal_error: 0.1,
                 min_task_legibility: 0.8,
