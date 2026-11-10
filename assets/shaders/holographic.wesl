@@ -1,9 +1,12 @@
 import bevy_pbr::render::pbr_fragment::pbr_input_from_standard_material;
-import bevy_pbr::render::pbr_functions::{
-    alpha_discard,
-    apply_pbr_lighting,
-    main_pass_post_lighting_processing,
-};
+import bevy_pbr::render::pbr_functions::alpha_discard;
+
+@if(!PREPASS_PIPELINE) {
+    import bevy_pbr::render::pbr_functions::{
+        apply_pbr_lighting,
+        main_pass_post_lighting_processing,
+    };
+}
 
 @if(PREPASS_PIPELINE) {
     import bevy_pbr::prepass::io::{VertexOutput, FragmentOutput};
@@ -11,8 +14,9 @@ import bevy_pbr::render::pbr_functions::{
 }
 @else {
     import bevy_pbr::render::forward_io::{VertexOutput, FragmentOutput};
-    import bevy_pbr::render::mesh_view_bindings::view;
 }
+
+import bevy_pbr::render::mesh_view_bindings::view;
 
 struct HolographicSettings {
     fresnel_color: vec4<f32>,
