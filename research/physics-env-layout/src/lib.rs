@@ -69,6 +69,7 @@ pub enum LayoutError {
     EmptyBatch,
     InvalidTimestep,
     InvalidLaneWidth,
+    ShapeMismatch,
     UnexpectedEnvironmentId { id: u64, expected_count: usize },
     DuplicateEnvironmentId { id: u64 },
     MissingEnvironmentId { id: u64 },
@@ -80,6 +81,7 @@ impl std::fmt::Display for LayoutError {
             Self::EmptyBatch => write!(f, "environment batch must not be empty"),
             Self::InvalidTimestep => write!(f, "dt must be finite and greater than zero"),
             Self::InvalidLaneWidth => write!(f, "AoSoA lane width must be greater than zero"),
+            Self::ShapeMismatch => write!(f, "SoA field arrays must all have the same length as IDs"),
             Self::UnexpectedEnvironmentId { id, expected_count } => {
                 write!(f, "unexpected environment id {id}; expected ids 0..{expected_count}")
             }
@@ -169,8 +171,20 @@ impl SoaLayout {
         output
     }
 
+    fn validate_shape(&self) -> Result<(), LayoutError> {
+        let expected = self.ids.len();
+        if self.position.iter().any(|field| field.len() != expected)
+            || self.velocity.iter().any(|field| field.len() != expected)
+            || self.acceleration.iter().any(|field| field.len() != expected)
+        {
+            return Err(LayoutError::ShapeMismatch);
+        }
+        Ok(())
+    }
+
     pub fn step_n(&mut self, steps: usize, dt: f64) -> Result<(), LayoutError> {
         validate_dt(dt)?;
+        self.validate_shape()?;
         for _ in 0..steps {
             for i in 0..self.ids.len() {
                 for axis in 0..3 {
@@ -188,19 +202,32 @@ impl SoaLayout {
 
     pub fn step_n_parallel(&mut self, steps: usize, dt: f64) -> Result<(), LayoutError> {
         validate_dt(dt)?;
+        self.validate_shape()?;
         let [px, py, pz] = &mut self.position;
         let [vx, vy, vz] = &mut self.velocity;
         let [ax, ay, az] = &self.acceleration;
 
         for _ in 0..steps {
-            px.par_iter_mut().enumerate().for_each(|(i, p)| step_component(p, &mut vx[i], ax[i], dt));
-            py.par_iter_mut().enumerate().for_each(|(i, p)| step_component(p, &mut vy[i], ay[i], dt));
-            pz.par_iter_mut().enumerate().for_each(|(i, p)| step_component(p, &mut vz[i], az[i], dt));
+            px.par_iter_mut()
+                .zip(py.par_iter_mut())
+                .zip(pz.par_iter_mut())
+                .zip(vx.par_iter_mut())
+                .zip(vy.par_iter_mut())
+                .zip(vz.par_iter_mut())
+                .zip(ax.par_iter())
+                .zip(ay.par_iter())
+                .zip(az.par_iter())
+                .for_each(|((((((((px, py), pz), vx), vy), vz), ax), ay), az)| {
+                    step_component(px, vx, *ax, dt);
+                    step_component(py, vy, *ay, dt);
+                    step_component(pz, vz, *az, dt);
+                });
         }
         Ok(())
     }
 
     pub fn canonical_snapshot(&self, expected_count: usize) -> Result<Vec<EnvironmentBits>, LayoutError> {
+        self.validate_shape()?;
         let len = self.ids.len();
         let mut states = Vec::with_capacity(len);
         for i in 0..len {
@@ -488,6 +515,14 @@ mod tests {
             missing.digest(10).unwrap_err(),
             LayoutError::MissingEnvironmentId { id: 9 }
         );
+    }
+
+    #[test]
+    fn soa_mismatched_field_lengths_fail_closed() {
+        let mut soa = SoaLayout::from_aos(&initial_aos(8));
+        soa.velocity[1].pop();
+        assert_eq!(soa.step_n(1, DT), Err(LayoutError::ShapeMismatch));
+        assert_eq!(soa.digest(8).unwrap_err(), LayoutError::ShapeMismatch);
     }
 
     #[test]
