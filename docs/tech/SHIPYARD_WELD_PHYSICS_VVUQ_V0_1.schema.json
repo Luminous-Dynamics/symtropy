@@ -330,6 +330,28 @@
               }
             }
           }
+        },
+        {
+          "if": {
+            "properties": {
+              "case_id": {
+                "const": "WPHYS-028"
+              }
+            },
+            "required": [
+              "case_id"
+            ]
+          },
+          "then": {
+            "properties": {
+              "source_id": {
+                "const": "s460g2m-multipass-gmaw-distortion-2022"
+              },
+              "expected_disposition": {
+                "const": "BLOCK_NUMERICAL_SCORING"
+              }
+            }
+          }
         }
       ]
     }
