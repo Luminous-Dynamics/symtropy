@@ -556,7 +556,7 @@ pub fn sample_observable_surfaces(
 mod tests {
     use super::{
         AreaWeightedSamplingProfile, SurfaceTriangleInput, SurfaceVisibility,
-        sample_observable_surfaces,
+        sample_observable_surfaces, sample_reference_surfaces_for_visibility,
     };
     use crate::metrics::Point3;
 
@@ -706,6 +706,43 @@ mod tests {
         assert!(receipt.samples.is_empty());
         assert_eq!(receipt.observable_area_m2, 0.0);
         assert!((receipt.excluded_area_m2 - 1.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn samples_preserve_outward_normal_from_reference_triangle_winding() {
+        let input = square("WALL", "wall", 1.0, SurfaceVisibility::Observable);
+        let receipt = sample_observable_surfaces(&input, profile(0.1, 17))
+            .expect("valid oriented reference surface");
+        assert!(
+            receipt
+                .samples
+                .iter()
+                .all(|sample| sample.normal.x.abs() < 1e-12
+                    && sample.normal.y.abs() < 1e-12
+                    && (sample.normal.z - 1.0).abs() < 1e-12)
+        );
+    }
+
+    #[test]
+    fn reference_visibility_probes_cover_hidden_reference_triangles() {
+        let mut input = square("WALL", "visible", 1.0, SurfaceVisibility::Observable);
+        input.extend(square(
+            "WALL",
+            "previously-hidden",
+            2.0,
+            SurfaceVisibility::SelfOccluded,
+        ));
+        let receipt = sample_reference_surfaces_for_visibility(&input, profile(0.1, 23))
+            .expect("reference probes sample the entire reference mesh");
+        assert!((receipt.observable_area_m2 - 3.0).abs() < 1e-12);
+        assert_eq!(receipt.excluded_area_m2, 0.0);
+        assert!(receipt.samples.iter().any(|sample| {
+            sample.triangle_id.starts_with("previously-hidden-")
+        }));
+        assert_eq!(
+            receipt.sample_count,
+            receipt.samples.iter().filter(|sample| sample.normal.z > 0.99).count()
+        );
     }
 
     #[test]
