@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use civdyn_self_correction::causal_transport::{
-    assess_risk_difference_transport, AssumptionDisposition, AssumptionEvidence,
-    CausalTransportAssumptions, CausalTransportInput, CausalTransportResult,
-    SourceEffectStratum, TargetPopulationStratum,
+    AssumptionDisposition, AssumptionEvidence, CausalTransportAssumptions, CausalTransportInput,
+    CausalTransportResult, SourceEffectStratum, TargetPopulationStratum,
+    assess_risk_difference_transport,
 };
 
 const SOURCE_DIGEST: &str = "sha256-causal-transport-source-rct";
@@ -87,10 +87,7 @@ fn format_optional(value: Option<f64>) -> String {
         .unwrap_or_default()
 }
 
-fn emit_result(
-    scenario: &str,
-    result: &CausalTransportResult,
-) {
+fn emit_result(scenario: &str, result: &CausalTransportResult) {
     for stratum in &result.strata {
         emit(vec![
             scenario.to_string(),
@@ -145,7 +142,12 @@ fn emit_result(
                 .disposition
                 .name()
                 .to_string(),
-            result.assumptions.no_interference.disposition.name().to_string(),
+            result
+                .assumptions
+                .no_interference
+                .disposition
+                .name()
+                .to_string(),
             result
                 .assumptions
                 .treatment_version_invariance
