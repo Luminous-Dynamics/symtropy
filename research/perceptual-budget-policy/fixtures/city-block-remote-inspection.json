@@ -28,7 +28,8 @@
     "max_p95_frame_time_us": 16700,
     "max_p99_frame_time_us": 25000,
     "max_peak_vram_bytes": 6000000000,
-    "max_gpu_energy_uj_per_frame": 8000
+    "max_gpu_energy_uj_per_frame": 8000,
+    "max_energy_sample_gap_us": 1250000
   },
   "profiles": [
     {
@@ -54,8 +55,16 @@
       "frame_time_p95_us": 14000,
       "frame_time_p99_us": 19000,
       "peak_vram_bytes": 5000000000,
-      "gpu_energy_uj_per_frame": 7500,
-      "human_preference": null
+      "human_preference": null,
+      "energy_measurement": {
+        "source": "nvml_power_samples",
+        "sample_series_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "integrated_gpu_energy_uj": 7500000,
+        "measurement_window_us": 16000000,
+        "rendered_frame_count": 1000,
+        "power_sample_count": 17,
+        "max_sample_gap_us": 1000000
+      }
     },
     {
       "profile_id": "balanced",
@@ -80,8 +89,16 @@
       "frame_time_p95_us": 12000,
       "frame_time_p99_us": 17000,
       "peak_vram_bytes": 4000000000,
-      "gpu_energy_uj_per_frame": 5000,
-      "human_preference": null
+      "human_preference": null,
+      "energy_measurement": {
+        "source": "nvml_power_samples",
+        "sample_series_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "integrated_gpu_energy_uj": 5000000,
+        "measurement_window_us": 16000000,
+        "rendered_frame_count": 1000,
+        "power_sample_count": 17,
+        "max_sample_gap_us": 1000000
+      }
     }
   ]
 }
