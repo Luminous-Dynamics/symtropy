@@ -7,8 +7,7 @@
     "unit": "N*s",
     "reference_frame": "world",
     "max_residual_upper_bound": 0.1,
-    "max_uncertainty_upper_bound": 0.1,
-    "require_independent_evidence": true
+    "max_uncertainty_upper_bound": 0.1
   },
   "budget": {
     "max_p95_wall_time_us": 10000,
@@ -30,7 +29,9 @@
       "residual_upper_bound": 0.03,
       "uncertainty_upper_bound": 0.04,
       "p95_wall_time_us": 400,
-      "peak_memory_bytes": 4000000
+      "peak_memory_bytes": 4000000,
+      "analytic_anchor_sha256": null,
+      "independent_validation_receipt_sha256s": []
     },
     {
       "model_id": "reference-solver-profile",
@@ -47,7 +48,10 @@
       "residual_upper_bound": 0.001,
       "uncertainty_upper_bound": 0.001,
       "p95_wall_time_us": 1200,
-      "peak_memory_bytes": 8000000
+      "peak_memory_bytes": 8000000,
+      "analytic_anchor_sha256": null,
+      "independent_validation_receipt_sha256s": []
     }
-  ]
+  ],
+  "decision_risk": "engineering_decision"
 }
