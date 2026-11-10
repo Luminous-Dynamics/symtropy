@@ -122,7 +122,7 @@ The paired comparison also pins two **procedure digests**:
 - `alignment_definition_sha256` identifies the exact time/frequency sample alignment, interpolation, cropping and weighting procedure/configuration;
 - `metric_definition_sha256` identifies the exact norm/metric formula and its configuration.
 
-These are distinct from `aligned_samples_sha256` (the resulting aligned sample set) and `comparison_artifact_sha256` (the resulting values and metric record). The four identities make it possible to detect the same arrays being scored under a changed alignment or metric definition.
+These are distinct from `aligned_samples_sha256` (the resulting aligned sample set) and `comparison_artifact_sha256` (the resulting values and metric record). The four comparison-artifact identities make it possible to detect the same arrays being scored under a changed alignment or metric definition; the left/right response digests additionally make a comparison stale when either method output changes.
 
 For qualification, **every listed method must participate in at least one accepted paired comparison**; an unreferenced method cannot be counted toward independent evidence. Each response-window ID has one pairwise comparison record. For three or more representations, create one pair-specific response-window record per comparison (the `causal_region` may be the same, but each `window_id` is unique), so each pair has its own error, norm and limit.
 
