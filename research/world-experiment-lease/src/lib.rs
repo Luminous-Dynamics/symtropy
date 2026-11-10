@@ -69,7 +69,6 @@ pub struct ViewAdmissionRef {
     pub max_p95_frame_time_us: u64,
     pub max_p99_frame_time_us: u64,
     pub max_peak_vram_bytes: u64,
-    pub max_gpu_energy_uj_per_frame: Option<u64>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -169,8 +168,6 @@ pub enum LeaseError {
     DuplicateViewId(String),
     ObservationFrameMismatch(String),
     RenderBudgetInvalid(String),
-    EnergyEnvelopeMissing(String),
-    EnergyEnvelopeWidened,
     CounterOverflow,
     Serialization(String),
     ReceiptMismatch,
@@ -298,29 +295,6 @@ fn validate_input(input: &LeaseInputV1) -> Result<(), LeaseError> {
         }
         if input.budget.max_peak_vram_bytes > view.max_peak_vram_bytes {
             return Err(LeaseError::RenderBudgetInvalid(view.view_id.clone()));
-        }
-        if input.budget.max_gpu_energy_uj_total.is_some()
-            && view.max_gpu_energy_uj_per_frame.is_none()
-        {
-            return Err(LeaseError::EnergyEnvelopeMissing(view.view_id.clone()));
-        }
-        if view.max_gpu_energy_uj_per_frame == Some(0) {
-            return Err(LeaseError::ZeroBudget("max_gpu_energy_uj_per_frame"));
-        }
-    }
-
-    if let Some(total_cap) = input.budget.max_gpu_energy_uj_total {
-        let min_per_frame = input
-            .views
-            .iter()
-            .filter_map(|view| view.max_gpu_energy_uj_per_frame)
-            .min()
-            .ok_or_else(|| LeaseError::EnergyEnvelopeMissing("all views".to_string()))?;
-        let maximum_possible = min_per_frame
-            .checked_mul(input.budget.max_rendered_frames)
-            .ok_or(LeaseError::CounterOverflow)?;
-        if total_cap > maximum_possible {
-            return Err(LeaseError::EnergyEnvelopeWidened);
         }
     }
 
@@ -785,10 +759,4 @@ mod tests {
         assert_eq!(verify_lease_receipt(&lease).unwrap_err(), LeaseError::ReceiptMismatch);
     }
 
-    #[test]
-    fn energy_cap_must_not_exceed_per_view_envelope_times_frame_budget() {
-        let mut input = fixture();
-        input.budget.max_gpu_energy_uj_total = Some(3_000_000);
-        assert_eq!(compile_lease(input).unwrap_err(), LeaseError::EnergyEnvelopeWidened);
-    }
 }
