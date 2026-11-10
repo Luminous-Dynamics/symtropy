@@ -239,6 +239,13 @@ fn resolve_inventory_path(root: &Path, relative: &str) -> Result<PathBuf, String
     Err(format!("file not found beneath dataset root: {relative}"))
 }
 
+fn is_missing_value(value: &str) -> bool {
+    matches!(
+        value.trim().to_ascii_lowercase().as_str(),
+        "" | "na" | "n/a" | "nan" | "null" | "none"
+    )
+}
+
 fn normalize_header(value: &str) -> String {
     value
         .trim()
@@ -529,13 +536,13 @@ fn inspect_csv(path: &str, role: &str, bytes: &[u8]) -> Result<CsvAudit, String>
         data_rows += 1;
 
         for (column, value) in row.iter().enumerate() {
-            if value.trim().is_empty() {
+            if is_missing_value(value) {
                 missing_counts[column] += 1;
             }
         }
 
         let absolute_time = row[time_abs_column].trim();
-        if absolute_time.is_empty() {
+        if is_missing_value(absolute_time) {
             time_abs_empty_rows += 1;
         } else {
             time_abs_nonempty_rows += 1;
@@ -1033,6 +1040,16 @@ mod tests {
     }
 
     #[test]
+    fn recognizes_common_missing_value_tokens() {
+        for token in ["", "  ", "NA", "n/a", "NaN", "null", "None"] {
+            assert!(is_missing_value(token), "token: {token}");
+        }
+        for token in ["0", "0.0", "-1", "not available?"] {
+            assert!(!is_missing_value(token), "token: {token}");
+        }
+    }
+
+    #[test]
     fn parses_decimal_preview_sizes() {
         assert_eq!(parse_preview_size("3.4 MB"), Some(3_400_000));
         assert_eq!(parse_preview_size("7.7 kB"), Some(7_700));
@@ -1087,6 +1104,7 @@ mod tests {
         assert_eq!(audit.anomaly_zero_rows, 1);
         assert_eq!(audit.anomaly_one_rows, 1);
         assert_eq!(audit.anomaly_onset_transitions, 1);
+        assert_eq!(audit.anomaly_onset_evaluable, Some(true));
         assert_eq!(audit.time_rel_backsteps, 0);
         assert_eq!(audit.missing_columns.len(), 1);
         assert_eq!(audit.missing_columns[0].index, 4);
