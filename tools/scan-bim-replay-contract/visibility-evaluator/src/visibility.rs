@@ -96,7 +96,11 @@ pub struct VisibilityProbe {
 #[serde(deny_unknown_fields)]
 pub struct VisibilityView {
     pub view_id: String,
+    pub sensor_id: String,
+    pub sensor_frame_id: String,
     pub frame_id: String,
+    pub pose_revision_id: String,
+    pub transform_chain_sha256: String,
     pub origin: Point3,
     /// Orthonormal, right-handed camera/sensor basis in the shared frame.
     pub forward: Point3,
@@ -354,8 +358,12 @@ fn validate_triangle(
 }
 
 fn validate_view(view: &VisibilityView, frame_id: &str) -> Result<(), String> {
-    if view.view_id.trim().is_empty() {
-        return Err("view_id must not be empty".to_owned());
+    if view.view_id.trim().is_empty()
+        || view.sensor_id.trim().is_empty()
+        || view.sensor_frame_id.trim().is_empty()
+        || view.pose_revision_id.trim().is_empty()
+    {
+        return Err("view, sensor, sensor-frame and pose-revision identities must not be empty".to_owned());
     }
     if view.frame_id != frame_id {
         return Err(format!(
@@ -400,6 +408,7 @@ fn validate_view(view: &VisibilityView, frame_id: &str) -> Result<(), String> {
         return Err(format!("view {} has invalid FOV or range", view.view_id));
     }
     validate_sha256("view.pose_evidence_sha256", &view.pose_evidence_sha256)?;
+    validate_sha256("view.transform_chain_sha256", &view.transform_chain_sha256)?;
     validate_sha256(
         "view.configuration_sha256",
         &view.configuration_sha256,
@@ -798,7 +807,11 @@ fn receipt_digest(
 
     for view in views {
         update_string(&mut hasher, &view.view_id);
+        update_string(&mut hasher, &view.sensor_id);
+        update_string(&mut hasher, &view.sensor_frame_id);
         update_string(&mut hasher, &view.frame_id);
+        update_string(&mut hasher, &view.pose_revision_id);
+        update_string(&mut hasher, &view.transform_chain_sha256);
         update_point(&mut hasher, view.origin);
         update_point(&mut hasher, view.forward);
         update_point(&mut hasher, view.right);
@@ -1294,7 +1307,8 @@ mod tests {
     use super::{
         OccluderCoverage, OccluderKind, OccluderTriangle, VisibilityEvaluation,
         VisibilityProbe, VisibilityProfile, VisibilityRequest, VisibilityView,
-        ViewVisibilityStatus, canonical_occluder_manifest_sha256,
+        ViewVisibilityStatus, AxisOrder, CoordinateHandedness, LinearUnit,
+        canonical_occluder_manifest_sha256,
         derive_surface_visibility,
         probes_from_reference_sampling,
     };
@@ -1307,7 +1321,11 @@ mod tests {
     fn view(id: &str, origin: [f64; 3]) -> VisibilityView {
         VisibilityView {
             view_id: id.to_owned(),
+            sensor_id: "SENSOR-1".to_owned(),
+            sensor_frame_id: "SENSOR-LOCAL".to_owned(),
             frame_id: "BUILDING-LOCAL".to_owned(),
+            pose_revision_id: "POSE-REV-1".to_owned(),
+            transform_chain_sha256: "e".repeat(64),
             origin: Point3::new(origin[0], origin[1], origin[2]),
             forward: Point3::new(1.0, 0.0, 0.0),
             right: Point3::new(0.0, 1.0, 0.0),
@@ -1392,6 +1410,9 @@ mod tests {
         derive_surface_visibility(VisibilityEvaluation {
             scene_id: "SCENE-1",
             frame_id: "BUILDING-LOCAL",
+            linear_unit: LinearUnit::Metre,
+            axis_order: AxisOrder::Xyz,
+            handedness: CoordinateHandedness::RightHanded,
             reference_model_sha256: &"1".repeat(64),
             probe_set_sha256: &"3".repeat(64),
             reference_surface_ids: &reference_surface_ids,
@@ -1479,7 +1500,11 @@ mod tests {
     fn any_unobstructed_qualified_view_makes_probe_observable() {
         let second_view = VisibilityView {
             view_id: "VIEW-2".to_owned(),
+            sensor_id: "SENSOR-2".to_owned(),
+            sensor_frame_id: "SENSOR-LOCAL-2".to_owned(),
             frame_id: "BUILDING-LOCAL".to_owned(),
+            pose_revision_id: "POSE-REV-2".to_owned(),
+            transform_chain_sha256: "f".repeat(64),
             origin: Point3::new(0.0, 10.0, 0.0),
             forward: Point3::new(5.0 / 125.0_f64.sqrt(), -10.0 / 125.0_f64.sqrt(), 0.0),
             right: Point3::new(10.0 / 125.0_f64.sqrt(), 5.0 / 125.0_f64.sqrt(), 0.0),
@@ -1527,6 +1552,9 @@ mod tests {
         let receipt = derive_surface_visibility(VisibilityEvaluation {
             scene_id: "SCENE-1",
             frame_id: "BUILDING-LOCAL",
+            linear_unit: LinearUnit::Metre,
+            axis_order: AxisOrder::Xyz,
+            handedness: CoordinateHandedness::RightHanded,
             reference_model_sha256: &"1".repeat(64),
             probe_set_sha256: &"3".repeat(64),
             reference_surface_ids: &["TARGET".to_owned()],
@@ -1590,7 +1618,11 @@ mod tests {
     fn self_and_external_occlusion_from_different_views_are_mixed_not_contradictory() {
         let second_view = VisibilityView {
             view_id: "VIEW-2".to_owned(),
+            sensor_id: "SENSOR-2".to_owned(),
+            sensor_frame_id: "SENSOR-LOCAL-2".to_owned(),
             frame_id: "BUILDING-LOCAL".to_owned(),
+            pose_revision_id: "POSE-REV-2".to_owned(),
+            transform_chain_sha256: "f".repeat(64),
             origin: Point3::new(0.0, -10.0, 0.0),
             forward: Point3::new(5.0 / 125.0_f64.sqrt(), 10.0 / 125.0_f64.sqrt(), 0.0),
             right: Point3::new(-10.0 / 125.0_f64.sqrt(), 5.0 / 125.0_f64.sqrt(), 0.0),
@@ -1688,6 +1720,9 @@ mod tests {
         let error = derive_surface_visibility(VisibilityEvaluation {
             scene_id: "SCENE-1",
             frame_id: "BUILDING-LOCAL",
+            linear_unit: LinearUnit::Metre,
+            axis_order: AxisOrder::Xyz,
+            handedness: CoordinateHandedness::RightHanded,
             reference_model_sha256: &"1".repeat(64),
             probe_set_sha256: &"3".repeat(64),
             reference_surface_ids: &["TARGET".to_owned()],
@@ -1714,6 +1749,9 @@ mod tests {
         let error = derive_surface_visibility(VisibilityEvaluation {
             scene_id: "SCENE-1",
             frame_id: "BUILDING-LOCAL",
+            linear_unit: LinearUnit::Metre,
+            axis_order: AxisOrder::Xyz,
+            handedness: CoordinateHandedness::RightHanded,
             reference_model_sha256: &"1".repeat(64),
             probe_set_sha256: &"3".repeat(64),
             reference_surface_ids: &["TARGET".to_owned()],
@@ -1801,6 +1839,9 @@ mod tests {
         let request_json = serde_json::json!({
             "scene_id": "SCENE-1",
             "frame_id": "BUILDING-LOCAL",
+            "linear_unit": "metre",
+            "axis_order": "xyz",
+            "handedness": "right_handed",
             "reference_model_sha256": "1".repeat(64),
             "reference_sampling": serde_json::to_value(&reference_sampling).expect("sampling JSON"),
             "occluder_manifest_sha256": occluder_manifest_sha256,
@@ -1848,6 +1889,9 @@ mod tests {
         let original = VisibilityEvaluation {
             scene_id: "SCENE-1",
             frame_id: "BUILDING-LOCAL",
+            linear_unit: LinearUnit::Metre,
+            axis_order: AxisOrder::Xyz,
+            handedness: CoordinateHandedness::RightHanded,
             reference_model_sha256: &"1".repeat(64),
             probe_set_sha256: &"3".repeat(64),
             reference_surface_ids: &["TARGET".to_owned()],
@@ -1874,6 +1918,9 @@ mod tests {
         let mismatched = VisibilityEvaluation {
             scene_id: "SCENE-1",
             frame_id: "BUILDING-LOCAL",
+            linear_unit: LinearUnit::Metre,
+            axis_order: AxisOrder::Xyz,
+            handedness: CoordinateHandedness::RightHanded,
             reference_model_sha256: &"1".repeat(64),
             probe_set_sha256: &"3".repeat(64),
             reference_surface_ids: &["TARGET".to_owned()],
