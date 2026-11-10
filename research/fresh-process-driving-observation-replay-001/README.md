@@ -90,7 +90,8 @@ The output directory must be empty or new. Reusing a non-empty directory is reje
 - `symthaea-bridge/bridge-receipts.json`: first-process 19 fused-input receipts with a predecessor chain.
 - `symthaea-bridge/policy-inputs/`: first-process 16,384D dimension-prefixed little-endian f32 vectors; each binary SHA-256 equals its receipt's `fused_policy_input_sha256`.
 - `symthaea-bridge/fresh-process-replay/`: second independent bridge process receipts and HDC vectors; the harness requires receipt JSON and every HDC artifact byte to match the first process exactly.
-- `symthaea-bridge/fresh-process-replay-comparison.json`: exact receipt/vector replay result.
+- `symthaea-bridge/fresh-process-replay-comparison.json`: exact bridge receipt/vector replay result;
+- `fresh-process-replay-comparison.json`: exact renderer frame, audit, missing-event and disposition-ledger replay result.
 - `fresh-process-replay-input.json`, `fresh-process-replay-output.json`, `fresh-process-replay-comparison.json`: serialized snapshots and OS-process replay results.
 - `counterfactual-branch/` and `counterfactual-branch-record.json`: changed-action/changed-actor-pose branch fixture.
 - `episode-report.json`: expected/observed counts and conformance result.
