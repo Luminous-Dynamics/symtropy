@@ -491,7 +491,7 @@
         },
         "evidence_class": {
           "enum": [
-            "measured_synthetic",
+            "synthetic_fixture",
             "simulated",
             "inferred",
             "unknown"
