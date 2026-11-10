@@ -30,6 +30,7 @@ pub mod convex_hull;
 pub mod halfspace;
 pub mod hyperbox;
 pub mod hyperplane;
+pub mod lie;
 pub mod point;
 pub mod rotor;
 pub mod shape;
@@ -43,6 +44,10 @@ pub use convex_hull::ConvexHull;
 pub use halfspace::HalfSpace;
 pub use hyperbox::HyperBox;
 pub use hyperplane::Hyperplane;
+pub use lie::{
+    so3_interpolate, so3_interpolate_with_config, so3_log, so3_log_with_config, So3Log,
+    So3LogBranch, So3LogConfig, So3LogError,
+};
 pub use point::Point;
 pub use rotor::Rotor;
 pub use shape::Shape;
