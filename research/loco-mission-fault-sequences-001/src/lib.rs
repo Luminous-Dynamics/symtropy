@@ -376,6 +376,86 @@ pub fn replay(
         }
         next.thermal_headroom_mj -= event.thermal_headroom_loss_mj;
 
+        // Apply the complete source-qualified whole-body thermal snapshot.
+        // A missing/stale node update is Unknown, never assumed unchanged.
+        let thermal_receipt = match &event.thermal_update_receipt {
+            Some(receipt) => receipt,
+            None => {
+                return Ok(stopped(
+                    MissionStatus::Unknown,
+                    StopReason::ThermalEvidenceUnknown,
+                    Some(event.event_id.clone()),
+                    &next,
+                    snapshots,
+                ));
+            }
+        };
+        if thermal_receipt.receipt_ref.trim().is_empty()
+            || thermal_receipt.manifest_digest.trim().is_empty()
+            || thermal_receipt.context_digest != state.context_digest
+            || thermal_receipt.model_digest != state.thermal_model_digest
+            || thermal_receipt.valid_through_tick < event.event_tick
+        {
+            return Ok(stopped(
+                MissionStatus::Unknown,
+                StopReason::ThermalEvidenceUnknown,
+                Some(event.event_id.clone()),
+                &next,
+                snapshots,
+            ));
+        }
+        let mut thermal_updates = std::collections::BTreeMap::new();
+        for update in &event.thermal_node_updates {
+            if update.node_id.trim().is_empty() {
+                return Err(MissionError::EmptyThermalUpdateId(event.event_id.clone()));
+            }
+            if !next.thermal_nodes.iter().any(|node| node.node_id == update.node_id) {
+                return Err(MissionError::UnknownThermalUpdateId(update.node_id.clone()));
+            }
+            if thermal_updates
+                .insert(update.node_id.clone(), update.temperature_milli_c)
+                .is_some()
+            {
+                return Err(MissionError::DuplicateThermalUpdateId(update.node_id.clone()));
+            }
+        }
+        if thermal_updates.len() != next.thermal_nodes.len() {
+            return Ok(stopped(
+                MissionStatus::Unknown,
+                StopReason::ThermalEvidenceUnknown,
+                Some(event.event_id.clone()),
+                &next,
+                snapshots,
+            ));
+        }
+        for node in &mut next.thermal_nodes {
+            let Some(temperature) = thermal_updates.get(&node.node_id) else {
+                return Ok(stopped(
+                    MissionStatus::Unknown,
+                    StopReason::ThermalEvidenceUnknown,
+                    Some(event.event_id.clone()),
+                    &next,
+                    snapshots,
+                ));
+            };
+            node.temperature_milli_c = *temperature;
+        }
+        next.thermal_receipt_ref = thermal_receipt.receipt_ref.clone();
+        next.thermal_valid_through_tick = thermal_receipt.valid_through_tick;
+        if next
+            .thermal_nodes
+            .iter()
+            .any(|node| node.temperature_milli_c > node.maximum_temperature_milli_c)
+        {
+            return Ok(stopped(
+                MissionStatus::Rejected,
+                StopReason::ThermalLimitExceeded,
+                Some(event.event_id.clone()),
+                &next,
+                snapshots,
+            ));
+        }
+
         // A fault may change recoverability even when the proposed action
         // cannot be executed. Require a fresh post-event topology receipt.
         match &event.topology_update {
