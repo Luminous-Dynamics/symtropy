@@ -67,7 +67,7 @@ fn so4_log_recovers_conjugated_unequal_principal_planes_from_closed_form_matrix(
     let expected_rotation =
         basis_change * expected_double_rotation(first_angle, second_angle) * basis_change_inverse;
 
-    let rotor = Rotor::<4>::from_matrix(expected_rotation);
+    let rotor = Rotor::<4>::from_matrix(expected_rotation.clone());
     let logarithm = so4_log(&rotor).expect("closed-form SO(4) rotation should admit a log");
 
     assert!(
@@ -120,9 +120,9 @@ fn so4_log_and_interpolation_are_equivariant_under_orthogonal_basis_change() {
         basis_change * canonical_rotation * basis_change.transpose();
 
     let canonical_log =
-        so4_log(&Rotor::<4>::from_matrix(canonical_rotation)).expect("canonical SO(4) log");
+        so4_log(&Rotor::<4>::from_matrix(canonical_rotation.clone())).expect("canonical SO(4) log");
     let conjugated_log =
-        so4_log(&Rotor::<4>::from_matrix(conjugated_rotation)).expect("conjugated SO(4) log");
+        so4_log(&Rotor::<4>::from_matrix(conjugated_rotation.clone())).expect("conjugated SO(4) log");
 
     let expected_conjugated_generator = basis_change
         * canonical_log.generator.to_matrix()
