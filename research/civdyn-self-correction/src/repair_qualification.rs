@@ -199,6 +199,7 @@ pub enum RepairQualificationError {
     },
     BaselineAndRepairedChallengeVocabularyMismatch,
     InvalidIntervalWidthBudget,
+    InvalidIntervalWidth { statistic_id: String, unit_id: String },
 }
 
 impl fmt::Display for RepairQualificationError {
@@ -222,7 +223,8 @@ fn interval_width(
 ) -> Option<f64> {
     match (row.lower_reference, row.upper_reference) {
         (Some(lower), Some(upper)) if lower.is_finite() && upper.is_finite() && upper >= lower => {
-            Some(upper - lower)
+            let width = upper - lower;
+            width.is_finite().then_some(width)
         }
         _ => None,
     }
@@ -600,6 +602,16 @@ pub fn qualify_repair_on_fresh_challenge(
             .expect("assessment key already validated against registry");
         let baseline_interval_width = interval_width(baseline_row);
         let repaired_interval_width = interval_width(repaired_row);
+        if (baseline_row.status != StatisticStatus::NotAssessed
+            && baseline_interval_width.is_none())
+            || (repaired_row.status != StatisticStatus::NotAssessed
+                && repaired_interval_width.is_none())
+        {
+            return Err(RepairQualificationError::InvalidIntervalWidth {
+                statistic_id: key.statistic_id.clone(),
+                unit_id: key.independent_unit_id.clone(),
+            });
+        }
         let (interval_width_ratio, width_budget_exceeded) = match (
             baseline_interval_width,
             repaired_interval_width,
@@ -608,7 +620,7 @@ pub fn qualify_repair_on_fresh_challenge(
                 let ratio = repaired_width / baseline_width;
                 (Some(ratio), ratio > input.maximum_interval_width_ratio)
             }
-            (Some(0.0), Some(repaired_width)) => {
+            (Some(baseline_width), Some(repaired_width)) if baseline_width == 0.0 => {
                 if repaired_width > 0.0 {
                     (None, true)
                 } else {
