@@ -408,7 +408,8 @@ struct QueryResult {
 
 QueryResult trace_one(RTCDevice device, RTCScene scene,
                       const std::vector<Triangle>& triangles,
-                      const Ray& ray, double tie_epsilon) {
+                      const Ray& ray, double intersection_epsilon,
+                      double tie_epsilon) {
   std::vector<CapturedHit> captured;
   captured.reserve(triangles.size());
   std::vector<std::uint8_t> seen(triangles.size(), 0);
@@ -427,8 +428,13 @@ QueryResult trace_one(RTCDevice device, RTCScene scene,
   rayhit.ray.dir_x = checked_float(ray.direction.x, "ray.direction.x");
   rayhit.ray.dir_y = checked_float(ray.direction.y, "ray.direction.y");
   rayhit.ray.dir_z = checked_float(ray.direction.z, "ray.direction.z");
-  rayhit.ray.tnear = checked_float(ray.tnear, "ray.tnear");
-  rayhit.ray.tfar = checked_float(ray.tfar, "ray.tfar");
+  // The f64 fixture oracle treats clipping boundaries as inclusive
+  // within intersection_epsilon_m. Expand the Embree segment by that same
+  // metric tolerance so Embree's strict traversal segment matches the oracle.
+  rayhit.ray.tnear = checked_float(
+      std::max(0.0, ray.tnear - intersection_epsilon), "expanded ray.tnear");
+  rayhit.ray.tfar = checked_float(
+      ray.tfar + intersection_epsilon, "expanded ray.tfar");
   rayhit.ray.time = 0.0f;
   rayhit.ray.mask = 0xffffffffU;
   rayhit.ray.id = 0;
@@ -659,7 +665,8 @@ json run(const Options& options) {
     for (std::size_t ray_index = 0; ray_index < fixture.rays.size(); ++ray_index) {
       const Ray& ray = fixture.rays[ray_index];
       QueryResult actual = trace_one(handles.device, handles.scene,
-                                     fixture.triangles, ray, fixture.tie_epsilon);
+                                     fixture.triangles, ray,
+                                     fixture.intersection_epsilon, fixture.tie_epsilon);
       latencies.push_back(actual.latency_ns);
 
       json stable = {
