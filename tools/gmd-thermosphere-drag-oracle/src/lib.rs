@@ -51,6 +51,7 @@ pub enum DragError {
     NonPositiveDragCoefficient,
     NonPositiveArea,
     NonPositiveMass,
+    NonPositiveBallisticCoefficient,
     InvalidEnvelopeOrdering,
     NumericalOverflow,
 }
@@ -63,6 +64,7 @@ impl fmt::Display for DragError {
             Self::NonPositiveDragCoefficient => "drag coefficient must be greater than zero",
             Self::NonPositiveArea => "reference area must be greater than zero",
             Self::NonPositiveMass => "spacecraft mass must be greater than zero",
+            Self::NonPositiveBallisticCoefficient => "ballistic coefficient must be greater than zero",
             Self::InvalidEnvelopeOrdering => "envelope minima must not exceed maxima",
             Self::NumericalOverflow => "drag calculation produced a non-finite result",
         };
@@ -185,7 +187,7 @@ pub fn evaluate_drag_envelope(
         return Err(DragError::NonPositiveDensity);
     }
     if input.ballistic_coefficient_min_kg_m2 <= 0.0 {
-        return Err(DragError::NonPositiveMass);
+        return Err(DragError::NonPositiveBallisticCoefficient);
     }
     if input.density_min_kg_m3 > input.density_max_kg_m3
         || input.ballistic_coefficient_min_kg_m2 > input.ballistic_coefficient_max_kg_m2
