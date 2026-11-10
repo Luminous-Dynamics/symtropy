@@ -78,12 +78,17 @@ fn validate_manifest(schema_text: &str, manifest_text: &str) -> Result<Summary, 
         errors.push("source record must preserve the open badge as metadata".to_owned());
     }
     if !source.get("license_field").is_some_and(Value::is_null) {
-        errors.push("license field must remain unresolved/null until explicit terms are recorded".to_owned());
+        errors.push(
+            "license field must remain unresolved/null until explicit terms are recorded".to_owned(),
+        );
     }
     if bool_at(source, "raw_files_downloaded") != Some(false)
         || bool_at(source, "raw_files_vendored") != Some(false)
     {
-        errors.push("raw dataset files cannot be downloaded or vendored under the current rights gate".to_owned());
+        errors.push(
+            "raw dataset files cannot be downloaded or vendored under the current rights gate"
+                .to_owned(),
+        );
     }
     if str_at(source, "rights_notice") != Some("Copyright (C) 2026 The Authors.") {
         errors.push("source rights notice is missing or changed".to_owned());
@@ -99,7 +104,9 @@ fn validate_manifest(schema_text: &str, manifest_text: &str) -> Result<Summary, 
         || bool_at(rights, "model_training_allowed") != Some(false)
         || bool_at(rights, "raw_data_scoring_allowed") != Some(false)
     {
-        errors.push("rights gate has been promoted without explicit source-owner permission".to_owned());
+        errors.push(
+            "rights gate has been promoted without explicit source-owner permission".to_owned(),
+        );
     }
 
     let Some(design) = manifest.get("experiment_design") else {
@@ -113,7 +120,10 @@ fn validate_manifest(schema_text: &str, manifest_text: &str) -> Result<Summary, 
         || bool_at(design, "random_layer_split_allowed") != Some(false)
         || bool_at(design, "mode_causal_claim_allowed") != Some(false)
     {
-        errors.push("five-workpiece / six-layer / WID-grouped study design boundary violated".to_owned());
+        errors.push(
+            "five-workpiece / six-layer / WID-grouped study design boundary violated"
+                .to_owned(),
+        );
     }
 
     let expected_modes = [
@@ -171,19 +181,44 @@ fn validate_manifest(schema_text: &str, manifest_text: &str) -> Result<Summary, 
                 || layer.get("layer_order").and_then(Value::as_u64) != Some(expected_order)
                 || str_at(layer, "layer_class") != Some(expected_class)
             {
-                errors.push(format!("{wid}: layer {expected_order} has invalid order or root/tandem semantics"));
+                errors.push(format!(
+                    "{wid}: layer {expected_order} has invalid order or root/tandem semantics"
+                ));
             }
 
             let expected_roles = if layer_index == 0 {
-                vec!["robot_motion", "process_voltage_current", "power_source_leading", "scan_pre", "video"]
+                vec![
+                    "robot_motion",
+                    "process_voltage_current",
+                    "power_source_leading",
+                    "scan_pre",
+                    "video",
+                ]
             } else if layer_index == 5 {
-                vec!["robot_motion", "process_voltage_current", "power_source_leading", "power_source_trailing", "scan_pre", "video", "scan_post"]
+                vec![
+                    "robot_motion",
+                    "process_voltage_current",
+                    "power_source_leading",
+                    "power_source_trailing",
+                    "scan_pre",
+                    "video",
+                    "scan_post",
+                ]
             } else {
-                vec!["robot_motion", "process_voltage_current", "power_source_leading", "power_source_trailing", "scan_pre", "video"]
+                vec![
+                    "robot_motion",
+                    "process_voltage_current",
+                    "power_source_leading",
+                    "power_source_trailing",
+                    "scan_pre",
+                    "video",
+                ]
             };
             let actual_roles = string_array(layer, "expected_artifact_roles").unwrap_or_default();
             if !ids_equal(&actual_roles, &expected_roles) {
-                errors.push(format!("{wid} L{expected_order}: artifact roles do not match source-described topology"));
+                errors.push(format!(
+                    "{wid} L{expected_order}: artifact roles do not match source-described topology"
+                ));
             }
 
             let Some(t85) = layer.get("t85_field") else {
@@ -195,7 +230,9 @@ fn validate_manifest(schema_text: &str, manifest_text: &str) -> Result<Summary, 
                 || str_at(t85, "source_declared_unit") != Some("s")
                 || str_at(t85, "semantic_definition_status") != Some("UNRESOLVED")
             {
-                errors.push(format!("{wid} L{expected_order}: t85 missingness/semantic boundary was altered"));
+                errors.push(format!(
+                    "{wid} L{expected_order}: t85 missingness/semantic boundary was altered"
+                ));
             }
         }
     }
@@ -242,13 +279,32 @@ fn validate_manifest(schema_text: &str, manifest_text: &str) -> Result<Summary, 
             errors.push(format!("controls[{index}].control_id must be a string"));
             continue;
         };
+        let expected_control_id = format!("TGMAW-{:03}", index + 1);
+        if control_id != expected_control_id {
+            errors.push(format!(
+                "controls[{index}] expected {expected_control_id}, found {control_id}"
+            ));
+        }
         if !control_ids.insert(control_id.to_owned()) {
             errors.push(format!("duplicate control ID {control_id}"));
+        }
+        let expected_class = if index == 0 {
+            "positive_contract_control"
+        } else {
+            "negative_control"
+        };
+        if str_at(control, "class") != Some(expected_class) {
+            errors.push(format!("{control_id}: expected class {expected_class}"));
         }
         match str_at(control, "class") {
             Some("positive_contract_control") => positive += 1,
             Some("negative_control") => negative += 1,
             _ => errors.push(format!("{control_id}: unknown control class")),
+        }
+        if index == 0
+            && str_at(control, "expected_disposition") != Some("METADATA_ONLY_ADMISSION_VALID")
+        {
+            errors.push("positive control must remain metadata-only admission".to_owned());
         }
         if str_at(control, "expected_disposition")
             .is_none_or(|value| !allowed_dispositions.contains(&value))
@@ -262,7 +318,9 @@ fn validate_manifest(schema_text: &str, manifest_text: &str) -> Result<Summary, 
         }
     }
     if positive != 1 || negative != 30 {
-        errors.push(format!("expected 1 positive / 30 negative controls, found {positive}/{negative}"));
+        errors.push(format!(
+            "expected 1 positive / 30 negative controls, found {positive}/{negative}"
+        ));
     }
     if str_at(&manifest, "claim_ceiling").is_none_or(str::is_empty) {
         errors.push("claim ceiling must be explicit".to_owned());
