@@ -83,6 +83,23 @@ jobs:
             (.canonical_receipt.transitions[0].uncertainty.after.absolute_bound_m == 0.0025) and
             (.canonical_receipt.transitions[0].uncertainty.approximation_error_bound_m == 0.0005)
           ' research/scan-bim-representation-continuity-001/fixtures/known_answers_v0_1.json
+      - name: Execute representation continuity audit
+        run: |
+          cargo run --locked --manifest-path tools/scan-bim-replay-contract/Cargo.toml \
+            --bin scan_bim_continuity_audit -- \
+            research/scan-bim-representation-continuity-001/fixtures/known_answers_v0_1.json \
+            > /tmp/scan-bim-continuity-report.json
+          jq -e '
+            (.schema_version == "0.1") and
+            (.receipt_id == "SCAN-BIM-CONTINUITY-ROOM-A-001") and
+            (.scene_id == "ROOM-A") and
+            (.transition_count == 1) and
+            (.claim_count == 1) and
+            (.measured_claim_count == 1) and
+            (.correspondence_event_count == 1) and
+            (.unresolved_correspondence_count == 0) and
+            (.continuity_state == "continuity_preserved")
+          ' /tmp/scan-bim-continuity-report.json
       - name: Run strict Clippy
         run: cargo clippy --locked --manifest-path tools/scan-bim-replay-contract/Cargo.toml --all-targets -- -D warnings
       - name: Audit synthetic fixture
