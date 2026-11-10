@@ -10,13 +10,15 @@
   },
   "measurement": {
     "modality": "synthetic_held_out_multimodal_trace",
-    "units": ["s", "unknown_signal_unit"],
-    "unit_status": "UNKNOWN",
+    "units": [
+      "s"
+    ],
+    "unit_status": "PARTIALLY_DECLARED",
     "calibration_status": "NOT_ESTABLISHED",
     "temporal": {
-      "window_seconds": 120.0,
-      "sampling_interval_seconds": 1.0,
-      "target_process_timescale_seconds": 4.0,
+      "window_seconds": 120,
+      "sampling_interval_seconds": 1,
+      "target_process_timescale_seconds": 4,
       "coverage_fraction": 0.6
     },
     "spatial": {
