@@ -44,7 +44,8 @@
         "procedure_owner": "synthetic-welding-engineer",
         "qualified_material_heat_lots": [
           "SYNTH-HEAT-017"
-        ]
+        ],
+        "qualification_ruleset_revision": "Rev.2"
       },
       "equipment": {
         "robot_id": "SYNTH-ROBOT-017",
@@ -276,7 +277,14 @@
           "source_ref": "https://iacs.org.uk/resolutions/unified-requirements/ur-w/ur-w28-rev2-cln"
         },
         "subject_applicability_date_utc": "2026-11-10T03:59:00Z",
-        "source_retrieved_at_utc": "2026-11-10T03:55:00Z"
+        "source_retrieved_at_utc": "2026-11-10T03:55:00Z",
+        "qualification_test_date_utc": "2026-11-10T03:50:00Z",
+        "prior_revision_wpqr": {
+          "revision": "Rev.2",
+          "accepted_by_class_society": true,
+          "acceptance_ref": "SYNTH-CLASS-ACCEPTED-WPQR-017",
+          "approved_range_matches_subject": true
+        }
       }
     }
   },
@@ -929,7 +937,7 @@
       "expected_code": "NORMATIVE_CONTEXT_RETRIEVED_AFTER_DECISION_CUTOFF"
     },
     {
-      "id": "valid_w28_rev3_for_future_ship_subject_date",
+      "id": "legacy_rev2_wpqr_preserved_for_rev3_ship_when_class_accepted",
       "base": "valid_robotic_weld",
       "mutations": [
         {
@@ -985,6 +993,92 @@
         }
       ],
       "expected_code": "MATERIAL_LOT_NOT_QUALIFIED"
+    },
+    {
+      "id": "new_wpq_after_2027_cannot_use_w28_rev2",
+      "base": "valid_robotic_weld",
+      "mutations": [
+        {
+          "path": "normative_context.qualification_test_date_utc",
+          "op": "set",
+          "value": "2027-01-01T00:00:00Z"
+        }
+      ],
+      "expected_code": "W28_REV3_REQUIRED_FOR_NEW_WPQ"
+    },
+    {
+      "id": "legacy_rev2_wpqr_not_accepted_for_rev3_ship",
+      "base": "valid_robotic_weld",
+      "mutations": [
+        {
+          "path": "normative_context.subject_applicability_date_utc",
+          "op": "set",
+          "value": "2027-01-02T00:00:00Z"
+        },
+        {
+          "path": "normative_context.applicable_ruleset.revision",
+          "op": "set",
+          "value": "Rev.3"
+        },
+        {
+          "path": "normative_context.applicable_ruleset.effective_from_utc",
+          "op": "set",
+          "value": "2027-01-01T00:00:00Z"
+        },
+        {
+          "path": "normative_context.applicable_ruleset.effective_until_utc",
+          "op": "set",
+          "value": null
+        },
+        {
+          "path": "normative_context.future_ruleset.status",
+          "op": "set",
+          "value": "applicable_for_subject_effectivity"
+        },
+        {
+          "path": "normative_context.prior_revision_wpqr.accepted_by_class_society",
+          "op": "set",
+          "value": false
+        }
+      ],
+      "expected_code": "LEGACY_WPQR_ACCEPTANCE_NOT_ESTABLISHED"
+    },
+    {
+      "id": "legacy_rev2_wpqr_acceptance_range_not_applicable",
+      "base": "valid_robotic_weld",
+      "mutations": [
+        {
+          "path": "normative_context.subject_applicability_date_utc",
+          "op": "set",
+          "value": "2027-01-02T00:00:00Z"
+        },
+        {
+          "path": "normative_context.applicable_ruleset.revision",
+          "op": "set",
+          "value": "Rev.3"
+        },
+        {
+          "path": "normative_context.applicable_ruleset.effective_from_utc",
+          "op": "set",
+          "value": "2027-01-01T00:00:00Z"
+        },
+        {
+          "path": "normative_context.applicable_ruleset.effective_until_utc",
+          "op": "set",
+          "value": null
+        },
+        {
+          "path": "normative_context.future_ruleset.status",
+          "op": "set",
+          "value": "applicable_for_subject_effectivity"
+        },
+        {
+          "path": "normative_context.prior_revision_wpqr.approved_range_matches_subject",
+          "op": "set",
+          "value": false
+        }
+      ],
+      "expected_code": "LEGACY_WPQR_SCOPE_NOT_CONFIRMED"
     }
   ]
 }
