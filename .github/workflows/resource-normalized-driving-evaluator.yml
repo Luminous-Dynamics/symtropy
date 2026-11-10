@@ -1,0 +1,42 @@
+name: resource-normalized-driving-evaluator
+
+on:
+  pull_request:
+    paths:
+      - "research/resource-normalized-driving-capability-001/**"
+      - ".github/workflows/resource-normalized-driving-evaluator.yml"
+  push:
+    paths:
+      - "research/resource-normalized-driving-capability-001/**"
+      - ".github/workflows/resource-normalized-driving-evaluator.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  evaluator:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact commit
+        uses: actions/checkout@v4
+
+      - name: Install Rust 1.96.0
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/resource-normalized-driving-capability-001/evaluator/Cargo.toml -- --check
+
+      - name: Run result-card and Pareto tests
+        run: cargo test --locked --manifest-path research/resource-normalized-driving-capability-001/evaluator/Cargo.toml
+
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path research/resource-normalized-driving-capability-001/evaluator/Cargo.toml --all-targets --all-features -- -D warnings
+
+      - name: Validate not-run template with evaluator
+        run: |
+          cargo run --locked --manifest-path research/resource-normalized-driving-capability-001/evaluator/Cargo.toml --bin capability-frontier -- driving_score maximize research/resource-normalized-driving-capability-001/result_card.template.json research/resource-normalized-driving-capability-001/result_card.template.json
+        continue-on-error: true
