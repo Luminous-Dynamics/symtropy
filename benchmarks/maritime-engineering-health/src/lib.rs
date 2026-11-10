@@ -26,6 +26,7 @@ pub struct Corpus {
 #[serde(deny_unknown_fields)]
 pub struct Case {
     pub case_id: String,
+    pub decision_time_ms: u64,
     pub case_class: CaseClass,
     pub description: String,
     pub asset: Asset,
@@ -72,7 +73,7 @@ pub struct Observation {
     pub calibration_ref: String,
     pub clock_domain: String,
     pub clock_quality: ClockQuality,
-    pub age_ms: u64,
+    pub observed_at_ms: u64,
     pub max_age_ms: u64,
     pub validity_profile_ref: String,
     pub uncertainty_ref: String,
@@ -230,12 +231,16 @@ fn is_decision_evidence(role: SourceRole) -> bool {
     )
 }
 
-fn is_admitted(observation: &Observation, asset: &Asset) -> bool {
+fn is_admitted(observation: &Observation, asset: &Asset, decision_time_ms: u64) -> bool {
+    let Some(age_ms) = decision_time_ms.checked_sub(observation.observed_at_ms) else {
+        return false;
+    };
+
     observation.quality == Quality::Current
         && observation.config_revision == asset.config_revision
         && observation.source_role != SourceRole::SimulatorOnly
         && observation.clock_quality == ClockQuality::MonotonicAndUtcBound
-        && observation.age_ms <= observation.max_age_ms
+        && age_ms <= observation.max_age_ms
 }
 
 pub fn validate_case(case: &Case) -> Result<(), EvalError> {
@@ -336,7 +341,7 @@ pub fn evaluate_case(case: &Case) -> Expected {
     let admitted: Vec<&Observation> = case
         .observations
         .iter()
-        .filter(|observation| is_admitted(observation, &case.asset))
+        .filter(|observation| is_admitted(observation, &case.asset, case.decision_time_ms))
         .collect();
 
     let decision_evidence: Vec<&Observation> = admitted
@@ -470,8 +475,8 @@ mod tests {
     #[test]
     fn frozen_corpus_matches_all_declared_outcomes() {
         let report = evaluate_bytes(CORPUS).expect("corpus evaluates");
-        assert_eq!(report.total_cases, 39);
-        assert_eq!(report.passed_cases, 39);
+        assert_eq!(report.total_cases, 40);
+        assert_eq!(report.passed_cases, 40);
         assert_eq!(report.failed_cases, 0);
         assert_eq!(report.corpus_sha256.len(), 64);
     }
@@ -547,7 +552,9 @@ mod tests {
             .expect("expired-age fixture exists");
         let observation = &case.observations[0];
         assert_eq!(observation.quality, Quality::Current);
-        assert!(observation.age_ms > observation.max_age_ms);
+        assert!(
+            case.decision_time_ms - observation.observed_at_ms > observation.max_age_ms
+        );
         assert_eq!(evaluate_case(case).decision_evidence_observations, 0);
         assert_eq!(
             evaluate_case(case).disposition,
@@ -563,13 +570,31 @@ mod tests {
             .iter()
             .find(|case| case.case_id == "metamorphic-age-boundary-inclusive")
             .expect("inclusive-age fixture exists");
+        assert_eq!(
+            case.decision_time_ms - case.observations[0].observed_at_ms,
+            case.observations[0].max_age_ms
+        );
         assert_eq!(evaluate_case(case).decision_evidence_observations, 1);
         assert_eq!(evaluate_case(case).disposition, Disposition::ContinueWithWatch);
 
         let mut over_age = case.clone();
-        over_age.observations[0].age_ms = over_age.observations[0].max_age_ms + 1;
+        over_age.observations[0].observed_at_ms =
+            over_age.decision_time_ms - over_age.observations[0].max_age_ms - 1;
         assert_eq!(evaluate_case(&over_age).decision_evidence_observations, 0);
         assert_eq!(evaluate_case(&over_age).disposition, Disposition::UnknownEscalate);
+    }
+
+    #[test]
+    fn future_dated_observation_is_not_current_at_decision_time() {
+        let corpus = corpus();
+        let case = corpus
+            .cases
+            .iter()
+            .find(|case| case.case_id == "negative-observation-from-future")
+            .expect("future-dated fixture exists");
+        assert!(case.observations[0].observed_at_ms > case.decision_time_ms);
+        assert_eq!(evaluate_case(case).decision_evidence_observations, 0);
+        assert_eq!(evaluate_case(case).disposition, Disposition::UnknownEscalate);
     }
 
     #[test]
