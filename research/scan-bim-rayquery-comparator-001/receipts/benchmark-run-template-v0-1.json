@@ -1,0 +1,66 @@
+{
+  "schema_version": "0.1",
+  "run_id": "TEMPLATE-ONLY-NOT-A-BENCHMARK-RESULT",
+  "engine": {
+    "engine_id": "UNSELECTED",
+    "engine_version": null,
+    "source_revision": null,
+    "adapter_revision": null,
+    "license": null,
+    "precision": "unknown",
+    "build_configuration": {}
+  },
+  "input": {
+    "fixture_id": null,
+    "fixture_sha256": null,
+    "geometry_sha256": null,
+    "ray_set_sha256": null,
+    "triangle_count": null,
+    "ray_count": null,
+    "workload_class": "unknown",
+    "coordinate_unit": "metre"
+  },
+  "environment": {
+    "os": null,
+    "kernel": null,
+    "architecture": null,
+    "cpu_model": null,
+    "cpu_count": null,
+    "thread_count": null,
+    "compiler": null,
+    "compiler_version": null,
+    "compiler_flags": [],
+    "build_profile": "unknown"
+  },
+  "build": {
+    "build_time_ns": null,
+    "refit_time_ns": null,
+    "peak_build_memory_bytes": null,
+    "steady_memory_bytes": null
+  },
+  "query": {
+    "query_count": null,
+    "p50_latency_ns": null,
+    "p95_latency_ns": null,
+    "p99_latency_ns": null,
+    "queries_per_second": null,
+    "primitive_test_count": null,
+    "node_visit_count": null
+  },
+  "correctness": {
+    "oracle_id": null,
+    "rays_checked": null,
+    "exact_nearest_identity_matches": null,
+    "misses": null,
+    "hits": null,
+    "mismatches": []
+  },
+  "determinism": {
+    "repetitions": null,
+    "result_digest": null,
+    "all_repetitions_identical": null,
+    "input_permutation_invariant": null
+  },
+  "qualification": "template_only",
+  "claim_scope": "Empty template; no engine was executed and no performance or correctness result is asserted."
+}
