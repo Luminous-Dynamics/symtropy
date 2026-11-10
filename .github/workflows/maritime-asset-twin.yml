@@ -1,0 +1,42 @@
+name: Maritime Asset Twin Composition Verification
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "crates/tools/maritime-asset-twin/**"
+      - "docs/tech/MARITIME_ASSET_TWIN_COMPOSITION_V0_1.schema.json"
+      - "benchmarks/maritime/asset-twin-composition-corpus-v0.1.json"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/maritime-asset-twin.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: maritime-asset-twin-verification
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify federated asset-twin contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@e2a55d2ffb04f378e9626c28d38b36d230d1e12f
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Run independent asset-twin oracle tests
+        run: cargo test --locked -p maritime-asset-twin
+      - name: Run Clippy with warnings denied
+        run: cargo clippy --locked -p maritime-asset-twin --all-targets -- -D warnings
+      - name: Execute frozen schema/corpus oracle
+        run: cargo run --locked -p maritime-asset-twin -- docs/tech/MARITIME_ASSET_TWIN_COMPOSITION_V0_1.schema.json benchmarks/maritime/asset-twin-composition-corpus-v0.1.json
+      - name: Confirm verifier did not modify tracked inputs
+        run: git diff --exit-code
