@@ -31,11 +31,24 @@ A model cannot infer which of two hypotheses occurred when their possible observ
 
 ## Research and industry reference points
 
+- **Wang et al., The value of contact in legged locomotion: a survey of sensing channels, artificial intelligence and control** (Artificial Intelligence Review, early-access 2026): distinguishes D1 interface fields (pressure/shear/contact geometry), D2 near-foot wrench/CoP/vibro-acoustics and D3 proprioceptive inference; it then separates controller-facing F1 contact events/modes, F2 realized interaction wrench/CoP and F3 feasibility-envelope updates with uncertainty. It frames each footfall as an action-conditioned update over latent contact/terrain state and highlights active haptic exploration, information-health monitoring and morphology–sensing–representation co-design. This motivates mapping diagnosability features to typed controller-facing evidence products, not just raw channel names. https://link.springer.com/article/10.1007/s10462-026-11644-0
 - **Tian, Active Self-Diagnosis and Diagnosis-Gated Heterogeneous Recovery** (SSRN preprint, posted 24 Aug 2026): a Go2 MuJoCo digital twin performs a squat/hip-sway diagnostic movement exciting all 12 actuated joints, then routes a structured fault descriptor into heterogeneous recovery modules. The SSRN abstract reports 720 balanced active-probe trials, 97.9% fault-type accuracy, 99.6% faulty-joint localization and 97.5% joint-plus-type accuracy. On a 10 m procedural terrain task, it reports delay-fault success increasing from 49.2% to 80.2%; actuator-noise recovery reaches 86.1%, while stuck faults are described as a diagnosis-only limitation. These are preprint-reported simulation results, not peer-reviewed hardware qualification; do not rank them as physical performance. https://papers.ssrn.com/sol3/papers.cfm?abstract_id=7345456
 - **ARER-MetaRL** (PLOS ONE, 16 Oct 2026): context inference and modular routing for locked-joint faults, up to six locked joints in Isaac Sim. This is an adaptive inference baseline, not an identifiability certificate. https://doi.org/10.1371/journal.pone.0361099
 - **Adaptive Gait Timing** (arXiv:2608.07328, 7 Aug 2026): proprioceptive history reconstructs fault-relevant latent state and learns gait frequency; high-fidelity uneven-terrain simulation and flat-ground experiments on a 68 kg Kyon quadruped. https://arxiv.org/abs/2608.07328
 
 The opportunity is to qualify when the supplied, source-pinned observation envelopes support unique isolation, before confidence-based policy routing.
+
+### Feature and evidence-product mapping
+
+Each feature should identify both its acquisition channel and controller-facing product:
+- **D1** interface pressure/shear/contact geometry;
+- **D2** near-foot wrench, centre of pressure and vibro-acoustic transient;
+- **D3** joint/body proprioceptive inference and actuator telemetry;
+- **F1** contact event/mode;
+- **F2** realized interaction wrench/CoP;
+- **F3** feasibility-envelope update with uncertainty.
+
+A controller-facing product may fuse several correlated channels, and one channel may support multiple products. The schema must preserve source IDs, common-cause groups, calibration and clock identities through that mapping. An interval in feature space is not physically meaningful unless its source/product semantics and units remain stable across the compared fault hypotheses.
 
 ## V0 set-valued observation contract
 
