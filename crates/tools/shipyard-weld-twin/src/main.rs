@@ -200,7 +200,6 @@ fn verify_process_trace(
         ("workpiece_revision", text_at(pass, "workpiece_revision")),
         ("wps_revision", text_at(pass, "wps_revision")),
         ("equipment_revision", text_at(pass, "equipment_revision")),
-        ("evidence_class", text_at(pass, "evidence_class")),
         ("parameter_envelope_ref", text_at(pass, "parameter_envelope_ref")),
         ("observed_envelope_status", text_at(pass, "observed_envelope_status")),
         ("source_time_utc", text_at(pass, "source_time_utc")),
@@ -209,6 +208,9 @@ fn verify_process_trace(
         trace.get(*field).and_then(Value::as_str) != *expected
     }) {
         return "PROCESS_TRACE_SUBJECT_MISMATCH";
+    }
+    if text_at(&trace, "evidence_class") != Some("synthetic_fixture") {
+        return "EVIDENCE_CLASS_MISMATCH";
     }
     "PROCESS_TRACE_VALID_EXACT_BYTES"
 }
