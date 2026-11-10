@@ -64,7 +64,16 @@
         "source_role",
         "quality",
         "config_revision",
-        "dependency_group"
+        "dependency_group",
+        "source_ref",
+        "unit",
+        "calibration_ref",
+        "clock_domain",
+        "clock_quality",
+        "age_ms",
+        "max_age_ms",
+        "validity_profile_ref",
+        "uncertainty_ref"
       ],
       "properties": {
         "observation_id": {
@@ -92,6 +101,46 @@
         "dependency_group": {
           "type": "string",
           "minLength": 1
+        },
+        "source_ref": {
+          "type": "string",
+          "minLength": 4
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_ref": {
+          "type": "string",
+          "minLength": 4
+        },
+        "clock_domain": {
+          "type": "string",
+          "minLength": 2
+        },
+        "clock_quality": {
+          "enum": [
+            "monotonic_and_utc_bound",
+            "utc_only",
+            "conflicted",
+            "unknown"
+          ]
+        },
+        "age_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_age_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "validity_profile_ref": {
+          "type": "string",
+          "minLength": 4
+        },
+        "uncertainty_ref": {
+          "type": "string",
+          "minLength": 4
         }
       }
     },
