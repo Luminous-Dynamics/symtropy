@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.org/schemas/camera-evaluator-audit-v1.schema.json",
+  "title": "Evaluator-only camera world audit v1",
+  "description": "Separate evaluator artifact. This record must not be passed to the driving policy or merged into its policy observation metadata.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "episode_id",
+    "scenario_id",
+    "agent_id",
+    "clock_id",
+    "tick",
+    "simulator_revision",
+    "world_snapshot_sha256",
+    "road_ids",
+    "actor_ids",
+    "actor_policy_revisions",
+    "renderer_revision"
+  ],
+  "properties": {
+    "episode_id": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "scenario_id": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "agent_id": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "clock_id": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "tick": { "type": "integer", "minimum": 0 },
+    "simulator_revision": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "world_snapshot_sha256": { "$ref": "#/$defs/sha256" },
+    "road_ids": { "type": "array", "items": { "type": "string", "minLength": 1, "maxLength": 256 }, "uniqueItems": true },
+    "actor_ids": { "type": "array", "items": { "type": "string", "minLength": 1, "maxLength": 256 }, "uniqueItems": true },
+    "actor_policy_revisions": { "type": "array", "items": { "type": "string", "minLength": 1, "maxLength": 256 } },
+    "renderer_revision": { "type": "string", "minLength": 1, "maxLength": 128 }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  },
+  "x-invariants": [
+    "actor_ids and actor_policy_revisions have equal length and matching index order, sorted by actor ID.",
+    "road_ids are unique and sorted.",
+    "world_snapshot_sha256 covers the source simulator snapshot, source identities, action receipt reference, camera calibration, road geometry and actor state."
+  ]
+}
