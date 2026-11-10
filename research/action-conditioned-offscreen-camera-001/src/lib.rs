@@ -712,14 +712,26 @@ fn transform_point(camera: &CameraCalibration, world: [i64; 3]) -> [i64; 3] {
     output
 }
 
-fn project_point(
+fn clip_intersection_at_depth(from: [i64; 3], to: [i64; 3], depth: i64) -> [i64; 3] {
+    let denominator = i128::from(to[2]) - i128::from(from[2]);
+    let numerator = i128::from(depth) - i128::from(from[2]);
+    let mut intersection = [0_i64; 3];
+    for axis in 0..3 {
+        let delta = i128::from(to[axis]) - i128::from(from[axis]);
+        let value = i128::from(from[axis]) + delta * numerator / denominator;
+        intersection[axis] = value as i64;
+    }
+    intersection[2] = depth;
+    intersection
+}
+
+fn project_camera_point(
     camera: &CameraCalibration,
-    world: [i64; 3],
-) -> Result<Option<ProjectedPoint>, RenderError> {
-    let point = transform_point(camera, world);
+    point: [i64; 3],
+) -> Option<ProjectedPoint> {
     let z = point[2];
     if z < i64::from(camera.near_plane_mm) || z > i64::from(camera.far_plane_mm) {
-        return Ok(None);
+        return None;
     }
     let x_milli = i128::from(camera.principal_x_millipx)
         + i128::from(camera.focal_x_millipx) * i128::from(point[0]) / i128::from(z);
@@ -728,13 +740,48 @@ fn project_point(
     let max_x = i128::from(camera.width) * 3_000;
     let max_y = i128::from(camera.height) * 3_000;
     if x_milli < -max_x || x_milli > max_x || y_milli < -max_y || y_milli > max_y {
-        return Ok(None);
+        return None;
     }
-    Ok(Some(ProjectedPoint {
+    Some(ProjectedPoint {
         x: (x_milli / 1_000) as i64,
         y: (y_milli / 1_000) as i64,
         z_mm: z,
-    }))
+    })
+}
+
+/// Clip a world-space segment against the camera near/far planes before
+/// perspective division. Segments crossing a clip plane remain visible rather
+/// than disappearing because one endpoint lies outside the camera frustum.
+fn project_segment(
+    camera: &CameraCalibration,
+    world_start: [i64; 3],
+    world_end: [i64; 3],
+) -> Option<(ProjectedPoint, ProjectedPoint)> {
+    let mut start = transform_point(camera, world_start);
+    let mut end = transform_point(camera, world_end);
+    let near = i64::from(camera.near_plane_mm);
+    let far = i64::from(camera.far_plane_mm);
+
+    if (start[2] < near && end[2] < near) || (start[2] > far && end[2] > far) {
+        return None;
+    }
+    if start[2] < near {
+        start = clip_intersection_at_depth(start, end, near);
+    }
+    if end[2] < near {
+        end = clip_intersection_at_depth(end, start, near);
+    }
+    if start[2] > far {
+        start = clip_intersection_at_depth(start, end, far);
+    }
+    if end[2] > far {
+        end = clip_intersection_at_depth(end, start, far);
+    }
+
+    Some((
+        project_camera_point(camera, start)?,
+        project_camera_point(camera, end)?,
+    ))
 }
 
 fn draw_road_markings(
@@ -754,10 +801,9 @@ fn draw_road_markings(
     for road in roads {
         let color = road.kind.color();
         for segment in road.points_world_mm.windows(2) {
-            let Some(start) = project_point(&snapshot.camera, segment[0])? else {
-                continue;
-            };
-            let Some(end) = project_point(&snapshot.camera, segment[1])? else {
+            let Some((start, end)) =
+                project_segment(&snapshot.camera, segment[0], segment[1])
+            else {
                 continue;
             };
             draw_line(pixels, z_buffer, width, height, start, end, color)?;
@@ -803,11 +849,12 @@ fn draw_actors(
             [x - hx, y + hy, z + hz],
             [x + hx, y + hy, z + hz],
         ];
-        let projected = corners.map(|corner| project_point(&snapshot.camera, corner));
         for [start_index, end_index] in EDGES {
-            let (Some(Ok(Some(start))), Some(Ok(Some(end)))) =
-                (projected[start_index], projected[end_index])
-            else {
+            let Some((start, end)) = project_segment(
+                &snapshot.camera,
+                corners[start_index],
+                corners[end_index],
+            ) else {
                 continue;
             };
             draw_line(
@@ -1179,8 +1226,8 @@ mod tests {
                 [0, 0, -(Q16_ONE as i32)],
                 [0, Q16_ONE as i32, 0],
             ],
-            focal_x_millipx: 45_000,
-            focal_y_millipx: 45_000,
+            focal_x_millipx: 450_000,
+            focal_y_millipx: 450_000,
             principal_x_millipx: 320_000,
             principal_y_millipx: 180_000,
             width: 640,
@@ -1383,7 +1430,7 @@ mod tests {
     fn intrinsics_change_changes_calibration_and_frame() {
         let first_snapshot = snapshot();
         let mut second_snapshot = snapshot();
-        second_snapshot.camera.focal_x_millipx = 48_000;
+        second_snapshot.camera.focal_x_millipx = 480_000;
         let first = SoftwareCameraRenderer::render(&first_snapshot, 1, clocks()).unwrap();
         let second = SoftwareCameraRenderer::render(&second_snapshot, 1, clocks()).unwrap();
         assert_ne!(
@@ -1460,6 +1507,22 @@ mod tests {
             SoftwareCameraRenderer::render(&world, 1, clocks()).err(),
             Some(RenderError::TooManyRoadPoints)
         );
+    }
+
+    #[test]
+    fn road_segment_crossing_near_plane_is_clipped_and_rendered() {
+        let mut world = snapshot();
+        world.road_markings = vec![RoadPolyline {
+            road_id: "near-road".into(),
+            marking_id: "near-line".into(),
+            kind: RoadMarkingKind::LaneWhite,
+            points_world_mm: vec![[-500, 50, 0], [-500, 1_000, 0]],
+        }];
+        let rendered = SoftwareCameraRenderer::render(&world, 1, clocks()).unwrap();
+        assert!(rendered
+            .pixels_rgb
+            .chunks_exact(3)
+            .any(|pixel| pixel == [236, 236, 224]));
     }
 
     #[test]
