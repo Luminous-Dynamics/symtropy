@@ -153,6 +153,29 @@ Report more than accuracy: macro-F1 and balanced accuracy by fault; event recall
 - Reproduce the published 99.71% CDAF result on its exact split as a replication check, not a competitive win.
 - Reproduce the reported 70.18% zero-shot virtual-to-real result on the exact dataset and protocol before claiming transfer improvement.
 - Then beat the strongest reproducible baseline on **held-out runs and held-out loads**, with fewer false alarms at matched recall. Publish the full recall/false-alarm Pareto frontier and grouped confidence intervals.
+- Proposed internal superiority target, only after sufficient independent run groups exist: at least **20% fewer false alarms per engine-hour at matched event recall**, with no material regression in worst-fault recall. This is an aspirational target, not an observed result or a universal operating threshold.
+- Improve the worst-performing fault family and unknown/OOD rejection, not only the average score.
+- Show improvement on an untouched real-vessel domain before making any shipboard-transfer claim.
+- Maintain zero evidence/authority-gate violations on the frozen adversarial suite: no stale, wrong-configuration, wrong-unit, unauthenticated or simulator-only evidence promoted into current measured health; no false independence across common-cause sources; no automated maintenance authorization or ODD transition.
+- No "beats SOTA" headline until both the payload and matched baselines are independently audited and reproduced.
+
+### 2026 transfer and continual-learning challenge set
+
+Two additional 2026 directions materially change the benchmark plan:
+
+1. **Cross-individual digital-twin transfer.** Sun et al., *Research on cross-individual fault diagnosis of marine main engines based on adaptive mechanisms*, reports 100% DT-DANN diagnostic accuracy and 0.052% MAPE for adaptive tuning of individual-engine performance factors. The article explicitly describes the diagnostic result as simulation-based. These numbers must remain separate: twin-parameter MAPE is not classification accuracy, and the 100% result is not physical unseen-engine validation. The full engine-level split, twin-calibration leakage controls and independent physical validation remain to be audited. [DOI](https://doi.org/10.19693/j.issn.1673-3185.04917).
+2. **Continual condition adaptation.** Shi et al., *Synaptic regularization for continual transfer*, proposes path-integral importance estimation and dynamic parameter masking for incremental marine-engine operating conditions under fixed model capacity and no historical-data replay. It compares against fine-tuning and regularization-based continual-learning methods and evaluates average accuracy and forgetting. This creates a separate benchmark axis: adaptation to new load/condition domains without erasing previously qualified conditions. Do not translate its qualitative abstract claims into numerical scores; reproduce the paper's exact protocol first. [DOI](https://doi.org/10.1016/j.energy.2026.141124).
+
+Add two distinct experiments rather than another blended leaderboard:
+
+- **Cross-engine transfer track:** calibrate an individual digital twin using only permitted target-engine healthy-state/reference data; freeze target fault labels and evaluation recordings; hold out whole engines where possible; compare zero-shot, few-shot, source-only and domain-adapted methods. Report target calibration error separately from fault-classification metrics. A model that uses target fault labels during twin calibration is not zero-shot.
+- **Continual-learning track:** order tasks by load, speed or operating regime; compare naive fine-tuning, SI/EWC/MAS-style regularization and the reported synaptic-tagging/capture method. After every update, re-evaluate all prior domains, fault classes, calibration and false-alarm rates. Report average accuracy, backward transfer, forgetting, worst-domain recall, update compute/storage and whether raw historical data were retained or replayed.
+
+Proposed internal continual-learning target (not an existing result): after each new operating-condition update, keep prior-domain macro-F1 degradation within **2 percentage points**, and reduce average forgetting by at least **20%** against the strongest reproduced fixed-capacity/no-replay baseline. These targets apply only to the frozen research protocol; they do not qualify an operational system.
+
+- Reproduce the published 99.71% CDAF result on its exact split as a replication check, not a competitive win.
+- Reproduce the reported 70.18% zero-shot virtual-to-real result on the exact dataset and protocol before claiming transfer improvement.
+- Then beat the strongest reproducible baseline on **held-out runs and held-out loads**, with fewer false alarms at matched recall. Publish the full recall/false-alarm Pareto frontier and grouped confidence intervals.
 - Improve the worst-performing fault family and unknown/OOD rejection, not only the average score.
 - Show improvement on an untouched real-vessel domain before making any shipboard-transfer claim.
 - Maintain zero evidence/authority-gate violations: no stale, wrong-configuration, wrong-unit, unauthenticated or simulator-only evidence promoted into current measured health; no false independence across common-cause sources; no automated maintenance authorization or ODD transition.
