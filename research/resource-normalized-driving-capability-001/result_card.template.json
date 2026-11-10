@@ -5,7 +5,6 @@
   "model_arm_id": "B",
   "benchmark_id": "offscreen_observation_fixture",
   "protocol_revision": "resource-normalized-driving-capability-v0.1",
-  "seed_manifest_sha256": null,
   "model": {
     "code_revision": "NOT_RUN",
     "checkpoint_revision": null,
