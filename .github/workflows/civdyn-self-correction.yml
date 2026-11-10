@@ -232,3 +232,67 @@ jobs:
           assert actual == expected, f"unexpected reachability/adequacy classifications: {actual}"
           print("Model-adequacy CSV valid: prior reachability and split-predictive controls preserve marginal, joint and rare-tail discrepancies as separate results.")
           PY
+      - name: Verify adaptive challenge reuse and fresh-generation controls
+        run: |
+          set -euo pipefail
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin challenge-governance-sweep > /tmp/civdyn-challenge-governance.csv
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin challenge-governance-sweep > /tmp/civdyn-challenge-governance-replay.csv
+          cmp /tmp/civdyn-challenge-governance.csv /tmp/civdyn-challenge-governance-replay.csv
+          python3 - <<'PY'
+          import csv
+          from pathlib import Path
+
+          with Path("/tmp/civdyn-challenge-governance.csv").open(newline="", encoding="utf-8") as handle:
+              reader = csv.DictReader(handle)
+              rows = list(reader)
+              fields = reader.fieldnames
+
+          assert fields is not None and len(fields) == 17
+          assert len(rows) == 10
+          by_scenario = {row["scenario"]: row for row in rows}
+          assert set(by_scenario) == {
+              "fresh_empty_ledger",
+              "prior_no_feedback",
+              "prior_aggregate_feedback",
+              "prior_full_feedback",
+              "same_model_duplicate",
+              "public_feedback",
+              "public_benchmark",
+              "incomplete_ledger",
+              "fresh_generation",
+              "private_other_family",
+          }
+
+          expected = {
+              "fresh_empty_ledger": ("fresh_confirmatory", "true", "true"),
+              "prior_no_feedback": ("sealed_reuse_only", "true", "false"),
+              "prior_aggregate_feedback": ("blocked_adaptive_reuse", "false", "false"),
+              "prior_full_feedback": ("blocked_adaptive_reuse", "false", "false"),
+              "same_model_duplicate": ("blocked_duplicate_model", "false", "false"),
+              "public_feedback": ("blocked_adaptive_reuse", "false", "false"),
+              "public_benchmark": ("exploratory_only", "false", "false"),
+              "incomplete_ledger": ("not_assessed", "false", "false"),
+              "fresh_generation": ("fresh_confirmatory", "true", "true"),
+              "private_other_family": ("fresh_confirmatory", "true", "true"),
+          }
+          for scenario, expected_result in expected.items():
+              row = by_scenario[scenario]
+              actual = (
+                  row["eligibility"],
+                  row["confirmatory_claim_permitted"],
+                  row["evaluation_feedback_permitted"],
+              )
+              assert actual == expected_result, f"{scenario}: expected {expected_result}, got {actual}"
+              assert row["ledger_authority_digest"]
+              assert row["ledger_snapshot_digest"]
+              assert row["challenge_set_digest"]
+              assert row["split_manifest_digest"]
+              assert row["evaluator_digest"]
+
+          assert by_scenario["fresh_empty_ledger"]["generation_id"] == "generation-001"
+          assert by_scenario["fresh_generation"]["generation_id"] == "generation-002"
+          assert by_scenario["fresh_empty_ledger"]["challenge_set_digest"] != by_scenario["fresh_generation"]["challenge_set_digest"]
+          assert by_scenario["public_benchmark"]["visibility"] == "public_exploratory"
+          assert by_scenario["incomplete_ledger"]["evaluated_event_count"] == "0"
+          print("Challenge-governance CSV valid: exposed feedback blocks adaptive reuse; sealed/no-feedback reuse stays sealed; public and incomplete evidence cannot qualify; fresh generation restores confirmatory eligibility.")
+          PY
