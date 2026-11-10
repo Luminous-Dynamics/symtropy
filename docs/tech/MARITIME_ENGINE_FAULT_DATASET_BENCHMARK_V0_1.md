@@ -226,7 +226,7 @@ After retrieving and safely extracting the licensed archive, run:
 ~~~sh
 cargo run --locked \
   --manifest-path benchmarks/maritime-engineering-health/Cargo.toml \
-  --bin marine-engine-dataset-audit -- \
+  --bin marine_engine_dataset_audit -- \
   /path/to/extracted-dataset-root \
   benchmarks/maritime/marine-engine-fault-dataset-v1.manifest.json \
   --archive /path/to/Marine_Engine_Fault_Data_v1.zip \
