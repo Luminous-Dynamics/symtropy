@@ -9,13 +9,14 @@ on:
       - "crates/**/Cargo.toml"
       - "rust-toolchain.toml"
       - ".github/workflows/bevy-0.20-lockfile-refresh.yml"
+      - "docs/research/BEVY_020_WORKSPACE_MIGRATION.md"
 
 permissions:
   contents: write
 
 concurrency:
   group: bevy-020-migration-lock-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   resolve-and-verify:
