@@ -23,7 +23,7 @@ Module: `crates/domains/symtropy-lifesim-core/src/gray_scott.rs`
 - Nine-point Laplacian.
 - No-flux boundary approximation using clamped neighbour coordinates.
 - Bounded [0,1] state values; all numerical clipping is accumulated in the step report.
-- Explicit, deterministic patch interventions; no RNG or hidden initialization noise.
+- Explicit uniform-patch interventions and a seeded noisy-patch initializer; every pseudorandom draw is generated from a supplied seed and is part of the experiment input.
 - Per-step accounting for total U/V before and after, reaction transfer, feed input, V removal, net diffusion derivatives and clipping corrections.
 - Spatial metrics: mean U/V, V variance, V gradient energy, high-V occupied fraction.
 
@@ -34,14 +34,14 @@ Default parameters:
 - (k=0.065)
 - (Delta t=1.0)
 
-The current stability guard requires (Delta t max(D_u,D_v)leq0.25) and (Delta tleq1). The implementation is a reference finite-difference scheme; it does not claim universal stability or cross-platform bitwise identity.
+The current stability guard requires `dt * max(Du, Dv) <= 0.25` and `dt <= 1.0`. The implementation is a reference finite-difference scheme; it does not claim universal stability or cross-platform bitwise identity.
 
 ## Initial falsifiable tests
 
 1. Uniform U=1, V=0 state remains a fixed point.
 2. Identical patch, parameters and step count produce identical state and reports.
 3. All simulated values and observables remain finite and bounded.
-4. A localized patch produces non-zero variance and spatial gradient in the simulated V field.
+4. A seeded 32×32 patch in an 80×80 field, evolved for 3,000 steps at default parameters, produces at least two four-connected V domains above a pre-registered threshold of 0.1. This tests developed multi-domain pattern formation rather than a merely nonuniform remnant of the initial patch.
 5. Invalid dimensions, overflow, parameter ranges, timestep, patch bounds and thresholds fail explicitly.
 
 These are implementation tests, not evidence of a natural phenomenon or qualified solver accuracy.
@@ -63,6 +63,7 @@ The generator must be registered as `SIMULATION` evidence. The simulator's own o
 ## Future qualification work
 
 - Compare the finite-difference solver with a separately implemented numerical reference and a convergence study.
+- Freeze the seeded pattern case: 80×80 grid, 32×32 patch at (24,24), U center 0.5, V center 0.25, U/V noise amplitudes 0.2, xorshift64 seed 42, 3,000 fixed steps, and V threshold 0.1 for four-neighbour connected components.
 - Freeze parameter sweeps, boundary conditions, grid spacing, timestep, seed patch, and output digests in benchmark manifests.
 - Add reaction–diffusion pattern families to OLI's 12-family abiotic look-alike tournament.
 - Add perturbation-response benchmark cases with pre-registered passive-relaxation baselines.
