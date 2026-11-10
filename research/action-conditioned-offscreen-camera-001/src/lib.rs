@@ -87,7 +87,7 @@ pub struct ActorCuboid {
 pub struct CameraCalibration {
     pub camera_id: String,
     pub position_world_mm: [i64; 3],
-    /// World-to-camera rotation matrix, signed Q16.16, camera axes [right, up, forward].
+    /// World-to-camera rotation matrix, signed Q16.16, camera axes [right, down, forward].
     pub world_to_camera_q16: [[i32; 3]; 3],
     /// Focal lengths and principal point in thousandths of one pixel.
     pub focal_x_millipx: u32,
@@ -169,7 +169,7 @@ pub enum RenderError {
     TooManyRoadMarkings,
     TooManyRoadPoints,
     TooManyActors,
-    DuplicateRoadIdentity,
+    DuplicateMarkingIdentity,
     DuplicateActorIdentity,
     InvalidWorldCoordinate,
     InvalidActorExtent,
@@ -480,13 +480,12 @@ fn validate_snapshot(snapshot: &WorldRenderSnapshot) -> Result<(), RenderError> 
         return Err(RenderError::TooManyActors);
     }
 
-    let mut road_ids = BTreeSet::new();
     let mut marking_ids = BTreeSet::new();
     for road in &snapshot.road_markings {
         validate_id(&road.road_id)?;
         validate_id(&road.marking_id)?;
-        if !road_ids.insert(road.road_id.clone()) || !marking_ids.insert(road.marking_id.clone()) {
-            return Err(RenderError::DuplicateRoadIdentity);
+        if !marking_ids.insert(road.marking_id.clone()) {
+            return Err(RenderError::DuplicateMarkingIdentity);
         }
         if road.points_world_mm.len() < 2 {
             return Err(RenderError::InvalidPolyline);
@@ -609,7 +608,7 @@ fn project_point(
     let x_milli = i128::from(camera.principal_x_millipx)
         + i128::from(camera.focal_x_millipx) * i128::from(point[0]) / i128::from(z);
     let y_milli = i128::from(camera.principal_y_millipx)
-        - i128::from(camera.focal_y_millipx) * i128::from(point[1]) / i128::from(z);
+        + i128::from(camera.focal_y_millipx) * i128::from(point[1]) / i128::from(z);
     let max_x = i128::from(camera.width) * 3_000;
     let max_y = i128::from(camera.height) * 3_000;
     if x_milli < -max_x || x_milli > max_x || y_milli < -max_y || y_milli > max_y {
@@ -852,8 +851,8 @@ mod tests{
     fn camera()->CameraCalibration{
         CameraCalibration{
             camera_id:"front".into(),
-            position_world_mm:[0,1_500,0],
-            world_to_camera_q16:[[Q16_ONE as i32,0,0],[0,0,Q16_ONE as i32],[0,-(Q16_ONE as i32),0]],
+            position_world_mm:[0,0,1_500],
+            world_to_camera_q16:[[Q16_ONE as i32,0,0],[0,0,-(Q16_ONE as i32)],[0,Q16_ONE as i32,0]],
             focal_x_millipx:45_000,
             focal_y_millipx:45_000,
             principal_x_millipx:320_000,
@@ -876,10 +875,10 @@ mod tests{
             applied_action:Some(AppliedActionRef{receipt_id:"action-receipt-1",command_id:"command-1",applied_tick:1}),
             camera:camera(),
             road_markings:vec![
-                RoadPolyline{road_id:"road-1".into(),marking_id:"center-left".into(),kind:RoadMarkingKind::LaneWhite,points_world_mm:vec![[-2_000,0,10_000],[-2_000,0,20_000],[-2_000,0,40_000]]},
-                RoadPolyline{road_id:"road-1".into(),marking_id:"center-right".into(),kind:RoadMarkingKind::LaneYellow,points_world_mm:vec![[2_000,0,10_000],[2_000,0,20_000],[2_000,0,40_000]]},
+                RoadPolyline{road_id:"road-1".into(),marking_id:"center-left".into(),kind:RoadMarkingKind::LaneWhite,points_world_mm:vec![[-2_000,10_000,0],[-2_000,20_000,0],[-2_000,40_000,0]]},
+                RoadPolyline{road_id:"road-1".into(),marking_id:"center-right".into(),kind:RoadMarkingKind::LaneYellow,points_world_mm:vec![[2_000,10_000,0],[2_000,20_000,0],[2_000,40_000,0]]},
             ],
-            actors:vec![ActorCuboid{actor_id:"lead".into(),actor_policy_revision:"actor-policy-v1".into(),class:ActorClass::Car,center_world_mm:[0,0,15_000],half_extents_mm:[900,700,2_000]}],
+            actors:vec![ActorCuboid{actor_id:"lead".into(),actor_policy_revision:"actor-policy-v1".into(),class:ActorClass::Car,center_world_mm:[0,15_000,700],half_extents_mm:[900,2_000,700]}],
         }
     }
 
@@ -889,10 +888,10 @@ mod tests{
     #[test] fn sha256_abc_known_answer(){assert_eq!(sha256_hex(b"abc"),"ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");}
     #[test] fn renders_deterministic_rgb_frame(){let a=SoftwareCameraRenderer::render(&snapshot(),1,clocks()).unwrap();let b=SoftwareCameraRenderer::render(&snapshot(),1,clocks()).unwrap();assert_eq!(a.pixels_rgb,b.pixels_rgb);assert_eq!(a.policy_receipt.frame_sha256,b.policy_receipt.frame_sha256);assert_eq!(a.policy_receipt.receipt_sha256,b.policy_receipt.receipt_sha256);}
     #[test] fn frame_contains_non_background_geometry(){let result=SoftwareCameraRenderer::render(&snapshot(),1,clocks()).unwrap();assert!(result.pixels_rgb.chunks_exact(3).any(|p|p==[236,236,224]));assert!(result.pixels_rgb.chunks_exact(3).any(|p|p==[214,72,58]));}
-    #[test] fn camera_pose_change_changes_frame(){let mut a=snapshot();let mut b=snapshot();b.camera.position_world_mm[0]=250;let x=SoftwareCameraRenderer::render(&a,1,clocks()).unwrap();let y=SoftwareCameraRenderer::render(&b,1,clocks()).unwrap();assert_ne!(x.policy_receipt.frame_sha256,y.policy_receipt.frame_sha256);}
-    #[test] fn intrinsics_change_changes_calibration_and_frame(){let mut a=snapshot();let mut b=snapshot();b.camera.focal_x_millipx=48_000;let x=SoftwareCameraRenderer::render(&a,1,clocks()).unwrap();let y=SoftwareCameraRenderer::render(&b,1,clocks()).unwrap();assert_ne!(x.policy_receipt.camera_calibration_sha256,y.policy_receipt.camera_calibration_sha256);assert_ne!(x.policy_receipt.frame_sha256,y.policy_receipt.frame_sha256);}
-    #[test] fn actor_pose_change_changes_evaluator_digest_and_pixels(){let mut a=snapshot();let mut b=snapshot();b.actors[0].center_world_mm[0]=1_000;let x=SoftwareCameraRenderer::render(&a,1,clocks()).unwrap();let y=SoftwareCameraRenderer::render(&b,1,clocks()).unwrap();assert_ne!(x.evaluator_audit.world_snapshot_sha256,y.evaluator_audit.world_snapshot_sha256);assert_ne!(x.policy_receipt.frame_sha256,y.policy_receipt.frame_sha256);}
-    #[test] fn road_geometry_change_changes_pixels(){let mut a=snapshot();let mut b=snapshot();b.road_markings[0].points_world_mm[0][0]-=1_000;let x=SoftwareCameraRenderer::render(&a,1,clocks()).unwrap();let y=SoftwareCameraRenderer::render(&b,1,clocks()).unwrap();assert_ne!(x.policy_receipt.frame_sha256,y.policy_receipt.frame_sha256);}
+    #[test] fn camera_pose_change_changes_frame(){let a=snapshot();let mut b=snapshot();b.camera.position_world_mm[0]=250;let x=SoftwareCameraRenderer::render(&a,1,clocks()).unwrap();let y=SoftwareCameraRenderer::render(&b,1,clocks()).unwrap();assert_ne!(x.policy_receipt.frame_sha256,y.policy_receipt.frame_sha256);}
+    #[test] fn intrinsics_change_changes_calibration_and_frame(){let a=snapshot();let mut b=snapshot();b.camera.focal_x_millipx=48_000;let x=SoftwareCameraRenderer::render(&a,1,clocks()).unwrap();let y=SoftwareCameraRenderer::render(&b,1,clocks()).unwrap();assert_ne!(x.policy_receipt.camera_calibration_sha256,y.policy_receipt.camera_calibration_sha256);assert_ne!(x.policy_receipt.frame_sha256,y.policy_receipt.frame_sha256);}
+    #[test] fn actor_pose_change_changes_evaluator_digest_and_pixels(){let a=snapshot();let mut b=snapshot();b.actors[0].center_world_mm[0]=1_000;let x=SoftwareCameraRenderer::render(&a,1,clocks()).unwrap();let y=SoftwareCameraRenderer::render(&b,1,clocks()).unwrap();assert_ne!(x.evaluator_audit.world_snapshot_sha256,y.evaluator_audit.world_snapshot_sha256);assert_ne!(x.policy_receipt.frame_sha256,y.policy_receipt.frame_sha256);}
+    #[test] fn road_geometry_change_changes_pixels(){let a=snapshot();let mut b=snapshot();b.road_markings[0].points_world_mm[0][0]-=1_000;let x=SoftwareCameraRenderer::render(&a,1,clocks()).unwrap();let y=SoftwareCameraRenderer::render(&b,1,clocks()).unwrap();assert_ne!(x.policy_receipt.frame_sha256,y.policy_receipt.frame_sha256);}
     #[test] fn applied_action_tick_must_match_world_tick(){let mut s=snapshot();s.applied_action=Some(AppliedActionRef{receipt_id:"r",command_id:"c",applied_tick:0});assert_eq!(SoftwareCameraRenderer::render(&s,1,clocks()).err(),Some(RenderError::AppliedActionTickMismatch));}
     #[test] fn initial_tick_has_no_applied_action(){let mut s=snapshot();s.tick=0;s.applied_action=None;s.world_timestamp_us=20_000;assert!(SoftwareCameraRenderer::render(&s,1,clocks()).is_ok());}
     #[test] fn future_action_receipt_rejected(){let mut s=snapshot();s.applied_action=Some(AppliedActionRef{receipt_id:"r",command_id:"c",applied_tick:2});assert_eq!(SoftwareCameraRenderer::render(&s,1,clocks()).err(),Some(RenderError::AppliedActionTickMismatch));}
@@ -901,7 +900,7 @@ mod tests{
     #[test] fn reflected_rotation_rejected(){let mut s=snapshot();s.camera.world_to_camera_q16[0][0]=-(Q16_ONE as i32);assert_eq!(SoftwareCameraRenderer::render(&s,1,clocks()).err(),Some(RenderError::InvalidCameraTransform));}
     #[test] fn oversize_frame_rejected_before_allocation(){let mut s=snapshot();s.camera.width=MAX_FRAME_WIDTH+1;assert_eq!(SoftwareCameraRenderer::render(&s,1,clocks()).err(),Some(RenderError::InvalidFrameGeometry));}
     #[test] fn malformed_duplicate_actor_identity_rejected(){let mut s=snapshot();s.actors.push(s.actors[0].clone());assert_eq!(SoftwareCameraRenderer::render(&s,1,clocks()).err(),Some(RenderError::DuplicateActorIdentity));}
-    #[test] fn duplicate_road_marking_identity_rejected(){let mut s=snapshot();s.road_markings.push(s.road_markings[0].clone());assert_eq!(SoftwareCameraRenderer::render(&s,1,clocks()).err(),Some(RenderError::DuplicateRoadIdentity));}
+    #[test] fn duplicate_road_marking_identity_rejected(){let mut s=snapshot();s.road_markings.push(s.road_markings[0].clone());assert_eq!(SoftwareCameraRenderer::render(&s,1,clocks()).err(),Some(RenderError::DuplicateMarkingIdentity));}
     #[test] fn capture_clock_must_match_snapshot_clock(){let mut c=clocks();c.capture_timestamp_us+=1;assert_eq!(SoftwareCameraRenderer::render(&snapshot(),1,c).err(),Some(RenderError::ClockCaptureMismatch));}
     #[test] fn render_cannot_precede_capture(){let mut c=clocks();c.render_completed_timestamp_us=19_000;assert_eq!(SoftwareCameraRenderer::render(&snapshot(),1,c).err(),Some(RenderError::RenderBeforeCapture));}
     #[test] fn delivery_cannot_precede_render(){let mut c=clocks();c.delivered_timestamp_us=20_700;assert_eq!(SoftwareCameraRenderer::render(&snapshot(),1,c).err(),Some(RenderError::DeliveryBeforeRender));}
