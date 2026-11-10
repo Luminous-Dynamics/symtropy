@@ -46,6 +46,8 @@ pub struct ExpectedMemoryOperation {
     pub operation: MemoryOperationKind,
     pub applicability: MemoryOperationApplicability,
     pub source_event_sha256: String,
+    /// Exact evaluator query whose semantic answer is being measured.
+    pub query_sha256: String,
     pub expected_effect_sha256: Option<String>,
 }
 
@@ -57,6 +59,7 @@ pub struct MemoryOperationManifest {
     pub policy_artifact_sha256: String,
     pub memory_system_sha256: String,
     pub evaluator_sha256: String,
+    pub query_roster_sha256: String,
     pub expected_case_count: usize,
     /// Complete task roster for this operation-level evaluation cohort.
     pub expected_task_ids: Vec<String>,
@@ -81,7 +84,9 @@ pub struct MemoryOperationReceipt {
     pub policy_artifact_sha256: String,
     pub memory_system_sha256: String,
     pub evaluator_sha256: String,
+    pub query_roster_sha256: String,
     pub observed_source_event_sha256: Option<String>,
+    pub observed_query_sha256: Option<String>,
     /// Evaluator-derived semantic readback digest; for Compression this is
     /// required-fact preservation, not the compressed snapshot's byte digest.
     pub observed_effect_sha256: Option<String>,
@@ -125,7 +130,9 @@ pub struct MemoryOperationCaseResult {
     pub independence_unit_id: String,
     pub operation: MemoryOperationKind,
     pub source_event_sha256: String,
+    pub query_sha256: String,
     pub expected_effect_sha256: Option<String>,
+    pub observed_query_sha256: Option<String>,
     pub observed_source_event_sha256: Option<String>,
     pub observed_effect_sha256: Option<String>,
     pub memory_snapshot_before_sha256: Option<String>,
@@ -156,6 +163,8 @@ pub struct MemoryOperationSummary {
     /// Only complete compression measurements contribute.
     pub compression_ratio: Option<f64>,
     pub compression_measurement_count: usize,
+    /// Distinct preregistered scene/seed independence units represented here.
+    pub independent_unit_count: usize,
     pub mean_latency_ms: Option<f64>,
     pub latency_measurement_count: usize,
     /// Equal-task macro means over task rows with at least one applicable case.
@@ -172,6 +181,7 @@ pub struct MemoryOperationAudit {
     pub policy_artifact_sha256: String,
     pub memory_system_sha256: String,
     pub evaluator_sha256: String,
+    pub query_roster_sha256: String,
     pub expected_case_count: usize,
     pub receipt_count: usize,
     pub results: Vec<MemoryOperationCaseResult>,
@@ -193,10 +203,12 @@ struct OperationAccumulator {
     compression_bytes_after: u128,
     latency_measurement_count: usize,
     latency_sum_ms: u128,
+    independent_units: BTreeSet<String>,
 }
 
 impl OperationAccumulator {
     fn observe(&mut self, result: &MemoryOperationCaseResult) {
+        self.independent_units.insert(result.independence_unit_id.clone());
         match result.outcome {
             MemoryOperationOutcome::NotApplicable => {
                 self.not_applicable_count += 1;
@@ -267,6 +279,7 @@ impl OperationAccumulator {
             evidence_coverage,
             compression_ratio,
             compression_measurement_count: self.compression_measurement_count,
+            independent_unit_count: self.independent_units.len(),
             mean_latency_ms,
             latency_measurement_count: self.latency_measurement_count,
             applicable_task_count: 0,
@@ -337,7 +350,9 @@ pub fn audit_memory_operations(
             independence_unit_id: case.independence_unit_id.clone(),
             operation: case.operation,
             source_event_sha256: case.source_event_sha256.clone(),
+            query_sha256: case.query_sha256.clone(),
             expected_effect_sha256: case.expected_effect_sha256.clone(),
+            observed_query_sha256: receipt.and_then(|row| row.observed_query_sha256.clone()),
             observed_source_event_sha256: receipt
                 .and_then(|row| row.observed_source_event_sha256.clone()),
             observed_effect_sha256: receipt.and_then(|row| row.observed_effect_sha256.clone()),
@@ -407,6 +422,7 @@ pub fn audit_memory_operations(
         policy_artifact_sha256: manifest.policy_artifact_sha256.clone(),
         memory_system_sha256: manifest.memory_system_sha256.clone(),
         evaluator_sha256: manifest.evaluator_sha256.clone(),
+        query_roster_sha256: manifest.query_roster_sha256.clone(),
         expected_case_count: manifest.expected_case_count,
         receipt_count: receipts.len(),
         results,
@@ -430,6 +446,7 @@ fn validate_manifest(
         manifest.policy_artifact_sha256.as_str(),
         manifest.memory_system_sha256.as_str(),
         manifest.evaluator_sha256.as_str(),
+        manifest.query_roster_sha256.as_str(),
     ] {
         if !is_sha256_hex(digest) {
             return Err(MemoryOperationError::InvalidDigest);
@@ -469,7 +486,9 @@ fn validate_manifest(
         if !seen_cases.insert(case.case_id.as_str()) {
             return Err(MemoryOperationError::DuplicateCase);
         }
-        if !is_sha256_hex(&case.source_event_sha256) {
+        if !is_sha256_hex(&case.source_event_sha256)
+            || !is_sha256_hex(&case.query_sha256)
+        {
             return Err(MemoryOperationError::InvalidDigest);
         }
 
@@ -520,7 +539,9 @@ fn validate_receipt_digests(
         Some(receipt.policy_artifact_sha256.as_str()),
         Some(receipt.memory_system_sha256.as_str()),
         Some(receipt.evaluator_sha256.as_str()),
+        Some(receipt.query_roster_sha256.as_str()),
         receipt.observed_source_event_sha256.as_deref(),
+        receipt.observed_query_sha256.as_deref(),
         receipt.observed_effect_sha256.as_deref(),
         receipt.memory_snapshot_before_sha256.as_deref(),
         receipt.memory_snapshot_after_sha256.as_deref(),
@@ -546,6 +567,7 @@ fn validate_receipt_identity(
         || receipt.policy_artifact_sha256 != manifest.policy_artifact_sha256
         || receipt.memory_system_sha256 != manifest.memory_system_sha256
         || receipt.evaluator_sha256 != manifest.evaluator_sha256
+        || receipt.query_roster_sha256 != manifest.query_roster_sha256
     {
         return Err(MemoryOperationError::ReceiptContextMismatch);
     }
@@ -555,6 +577,8 @@ fn validate_receipt_identity(
         || receipt.independence_unit_id != case.independence_unit_id
         || receipt.sequence != case.sequence
         || receipt.operation != case.operation
+        || receipt.observed_query_sha256.as_deref()
+            .is_some_and(|query| query != case.query_sha256)
     {
         return Err(MemoryOperationError::ReceiptIdentityMismatch);
     }
@@ -571,6 +595,7 @@ fn derive_outcome(
         || receipt.memory_snapshot_before_sha256.is_none()
         || receipt.memory_snapshot_after_sha256.is_none()
         || receipt.evaluator_receipt_sha256.is_none()
+        || receipt.observed_query_sha256.is_none()
     {
         return MemoryOperationOutcome::Unresolved;
     }
@@ -580,7 +605,9 @@ fn derive_outcome(
     let source_matches = receipt.observed_source_event_sha256.as_deref()
         == Some(case.source_event_sha256.as_str());
 
-    if source_matches && observed_effect == expected_effect {
+    let query_matches = receipt.observed_query_sha256.as_deref()
+        == Some(case.query_sha256.as_str());
+    if source_matches && query_matches && observed_effect == expected_effect {
         MemoryOperationOutcome::Correct
     } else {
         MemoryOperationOutcome::Incorrect
@@ -615,6 +642,7 @@ mod tests {
             operation,
             applicability,
             source_event_sha256: digest("1"),
+            query_sha256: digest("a"),
             expected_effect_sha256: expected_effect,
         }
     }
@@ -626,6 +654,7 @@ mod tests {
             policy_artifact_sha256: digest("4"),
             memory_system_sha256: digest("5"),
             evaluator_sha256: digest("6"),
+            query_roster_sha256: digest("7"),
             expected_case_count: cases.len(),
             expected_task_ids: {
                 let tasks = cases.iter().map(|case| case.task_id.clone()).collect::<BTreeSet<_>>();
@@ -648,7 +677,9 @@ mod tests {
             policy_artifact_sha256: digest("4"),
             memory_system_sha256: digest("5"),
             evaluator_sha256: digest("6"),
+            query_roster_sha256: digest("7"),
             observed_source_event_sha256: Some(case.source_event_sha256.clone()),
+            observed_query_sha256: Some(case.query_sha256.clone()),
             observed_effect_sha256: case.expected_effect_sha256.clone(),
             memory_snapshot_before_sha256: Some(digest("7")),
             memory_snapshot_after_sha256: Some(digest("8")),
@@ -873,6 +904,29 @@ mod tests {
         let audit = audit_memory_operations(&manifest(vec![store, update]), &receipts).unwrap();
         assert_eq!(audit.results.len(), 2);
         assert!(audit.results.iter().all(|result| result.independence_unit_id == "scene-seed-1"));
+    }
+
+    #[test]
+    fn evaluator_query_identity_is_pinned_and_wrong_query_cannot_pass() {
+        let item = case("compress", 1, MemoryOperationKind::Compression, MemoryOperationApplicability::Applicable, Some(digest("a")));
+        let mut observed = receipt(&item);
+        observed.observed_query_sha256 = Some(digest("b"));
+        assert_eq!(
+            audit_memory_operations(&manifest(vec![item]), &[observed]),
+            Err(MemoryOperationError::ReceiptIdentityMismatch)
+        );
+    }
+
+    #[test]
+    fn correlated_operation_rows_report_distinct_independence_units() {
+        let mut first = case("store-1", 1, MemoryOperationKind::Storage, MemoryOperationApplicability::Applicable, Some(digest("a")));
+        let mut second = case("store-2", 2, MemoryOperationKind::Storage, MemoryOperationApplicability::Applicable, Some(digest("b")));
+        first.independence_unit_id = "same-scene-seed".to_owned();
+        second.independence_unit_id = "same-scene-seed".to_owned();
+        let receipts = [receipt(&first), receipt(&second)];
+        let audit = audit_memory_operations(&manifest(vec![first, second]), &receipts).unwrap();
+        assert_eq!(audit.summaries[0].applicable_count, 2);
+        assert_eq!(audit.summaries[0].independent_unit_count, 1);
     }
 
     #[test]
