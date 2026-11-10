@@ -289,13 +289,13 @@ A standalone Rust oracle has now been added on the #4589 draft branch:
 - Input types are closed with `serde(deny_unknown_fields)`; unknown enum values fail parsing.
 - Four gates are reported independently: geometric visibility, observation, metrology and task sufficiency.
 - Overall PASS requires all four gates to pass. FAIL and UNRESOLVED remain distinct; downstream gates are NOT_RUN when prerequisites are unresolved or failed.
-- Measurement sufficiency is task-conditioned: the same synthetic observation can pass a coarse-layout tolerance and fail a tighter installation tolerance.
+- Measurement sufficiency is task-conditioned. The scalar P0 measurand retains stochastic standard uncertainty and a separate deterministic systematic-error bound; its conservative total bound is k·u + b. The terms are not RSS-combined. An unknown systematic bound remains UNRESOLVED and never defaults to zero.
 - Sensor applicability is derived from a declared profile envelope (minimum/maximum range, maximum incidence angle, qualified surface-response classes and environment classes) and explicit observed conditions. A caller-provided in-domain boolean is not accepted.
 - Duplicate or correlated reference lineages, stale/missing calibration, out-of-domain range, grazing incidence, unsupported surface response, unknown domain/conditions, conflicting visibility/observation and invalid uncertainty are explicit negative controls.
-- The 24-case frozen fixture is at `tools/scan-bim-measurement-observability/fixtures/measurement-observability.json`.
-- Nine Rust unit tests cover corpus agreement, visibility/observation separation, duplicate lineage, task-conditioned acceptance, case-order determinism and out-of-domain rejection.
+- The 28-case frozen fixture is at `tools/scan-bim-measurement-observability/fixtures/measurement-observability.json`.
+- Eleven Rust unit tests cover corpus agreement, visibility/observation separation, duplicate lineage, task-conditioned acceptance, case-order determinism and out-of-domain rejection.
 - Exact-path workflow: `.github/workflows/scan-bim-measurement-observability.yml`, with format, test, strict Clippy and frozen-corpus receipt checks.
 
 **Validation status:** source, fixture, workflow and PR branch were inspected on GitHub. At the latest status check, the workflow attempts for the then-current branch head were pending/queued; no successful exact-head result had been observed. The source has not been compiled locally in this environment. Treat code qualification as pending until the final branch head's workflow completes successfully.
 
-The corpus uses synthetic values and digest-shaped identifiers. It does not authenticate upstream evidence, establish real survey independence, calibrate hardware or demonstrate physical measurement accuracy. The declared coverage factor and coverage probability are test inputs, not a calibrated coverage guarantee. No live sensor import or hardware claim is required for P0.
+The corpus uses synthetic values and digest-shaped identifiers. It does not authenticate upstream evidence, establish real survey independence, calibrate hardware or demonstrate physical measurement accuracy. The P0 scalar metre-valued measurand is not a full 3D point covariance, pose covariance or shared-observation correlation model. Those remain owned by #1607 and required for P1. The declared coverage factor, coverage probability and systematic interval are synthetic inputs, not calibrated coverage guarantees. No live sensor import or hardware claim is required for P0.
