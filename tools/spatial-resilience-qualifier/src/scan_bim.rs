@@ -97,6 +97,7 @@ struct PossibleState {
     state_id: String,
     interpretation: String,
     property_value_m: f64,
+    requirement_satisfied: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -505,11 +506,18 @@ fn validate_case_header(case: &ScanBimDecisionCase) -> Result<(), Vec<ScanBimAda
                 state.property_value_m <= case.task.threshold_m
             }
         };
-        if !meets_requirement && state.state_id.trim().is_empty() {
+        if meets_requirement != state.requirement_satisfied {
             failures.push(ScanBimAdapterFailure {
-                code: "SCAN_BIM_HYPOTHESIS_REQUIREMENT_INVALID".to_owned(),
+                code: "SCAN_BIM_HYPOTHESIS_REQUIREMENT_CONTRADICTION".to_owned(),
                 path: "possible_states".to_owned(),
-                detail: "A failed requirement hypothesis needs a stable state ID.".to_owned(),
+                detail: format!(
+                    "State {:?} declares requirement_satisfied={} but property value {} and threshold {} imply {}.",
+                    state.state_id,
+                    state.requirement_satisfied,
+                    state.property_value_m,
+                    case.task.threshold_m,
+                    meets_requirement
+                ),
             });
         }
     }
