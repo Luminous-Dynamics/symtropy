@@ -104,11 +104,11 @@ pub struct TelemetrySettings {
 
 impl MaterialExtension for TelemetryExtension {
     fn fragment_shader() -> ShaderRef {
-        "shaders/telemetry_deform.wesl".into()
+        "shaders/telemetry_visualization.wesl".into()
     }
 
     fn deferred_fragment_shader() -> ShaderRef {
-        "shaders/telemetry_deform.wesl".into()
+        "shaders/telemetry_visualization.wesl".into()
     }
 }
 
