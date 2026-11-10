@@ -134,7 +134,7 @@ fn plan(
         target_geography,
         target_measurement_unit: target_unit.to_string(),
         target_analytical_unit: IndependentUnitKind::Region,
-        minimum_spatial_coverage: 0.95,
+        minimum_transform_coverage: 0.95,
         transforms: Vec::new(),
     }
 }
