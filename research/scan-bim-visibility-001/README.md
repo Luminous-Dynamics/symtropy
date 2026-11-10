@@ -55,7 +55,7 @@ The Rust evaluator provides:
 - Per-surface and total area accounting, including grazing and mixed-occlusion area.
 - Canonically ordered probe/view/occluder inputs and SHA-256 receipt; the receipt binds BVH node/leaf counts, node visits and triangle-intersection count.
 - A strict JSON stdin/stdout executable with a 64 MiB request cap.
-- 26 evaluator tests cover FOV, frame mismatch, grazing incidence, reversed winding, blockers, unknown inventory, mixed causes, conflicting ties, malformed probes, resource ceilings, permutation stability, digest tampering, CLI request/receipt semantics and a BVH-versus-brute-force nearest-blocker check. The sampler has a separate 14-test suite.
+- 27 evaluator tests cover FOV, frame mismatch, grazing incidence, reversed winding, blockers, unknown inventory, mixed causes, conflicting ties, malformed probes, resource ceilings, permutation stability, digest tampering, CLI request/receipt semantics and a BVH-versus-brute-force nearest-blocker check. The sampler has a separate 14-test suite.
 
 ### BVH performance experiment (new in this branch)
 
