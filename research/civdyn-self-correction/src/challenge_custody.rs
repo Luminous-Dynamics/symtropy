@@ -83,6 +83,8 @@ pub enum ChallengeCustodyError {
     ReplayModelNotInRevisionChain,
     DuplicateChallengeEvaluationIdentity,
     ChallengeDataConsumedByRevision { revision_id: String },
+    ChallengeManifestConsumedByRevision { revision_id: String },
+    ReceiptModelOutsideRevisionChain { model_digest: String },
     DuplicateReceiptId { receipt_id: String },
     DisclosedChallengeRetired,
 }
@@ -182,6 +184,7 @@ pub fn validate_challenge_eligibility(
         .any(|revision| revision.model_digest == request.candidate_model_digest);
 
     let mut receipt_ids = BTreeSet::new();
+    let mut evaluation_identities = BTreeSet::new();
     let mut exact_replay_receipt_count = 0_usize;
     for receipt in prior_receipts {
         nonempty(&receipt.receipt_id, "receipt_id")?;
@@ -195,6 +198,20 @@ pub fn validate_challenge_eligibility(
             return Err(ChallengeCustodyError::DuplicateReceiptId {
                 receipt_id: receipt.receipt_id.clone(),
             });
+        }
+        if !model_is_in_chain && !revisions.iter().any(|revision| revision.model_digest == receipt.model_digest) {
+            return Err(ChallengeCustodyError::ReceiptModelOutsideRevisionChain {
+                model_digest: receipt.model_digest.clone(),
+            });
+        }
+        let identity = (
+            receipt.model_digest.as_str(),
+            receipt.challenge_data_digest.as_str(),
+            receipt.challenge_manifest_digest.as_str(),
+            receipt.evaluation_protocol_digest.as_str(),
+        );
+        if !evaluation_identities.insert(identity) {
+            return Err(ChallengeCustodyError::DuplicateChallengeEvaluationIdentity);
         }
         let same_data = receipt.challenge_data_digest == request.challenge_data_digest;
         let same_manifest = receipt.challenge_manifest_digest == request.challenge_manifest_digest;
@@ -249,6 +266,19 @@ pub fn validate_challenge_eligibility(
             .map(|revision| revision.revision_id.clone())
             .unwrap_or_default();
         return Err(ChallengeCustodyError::ChallengeDataConsumedByRevision { revision_id });
+    }
+    if consumed_evidence_digests.contains(&request.challenge_manifest_digest) {
+        let revision_id = revisions
+            .iter()
+            .find(|revision| {
+                revision
+                    .consumed_evidence_digests
+                    .iter()
+                    .any(|digest| digest == &request.challenge_manifest_digest)
+            })
+            .map(|revision| revision.revision_id.clone())
+            .unwrap_or_default();
+        return Err(ChallengeCustodyError::ChallengeManifestConsumedByRevision { revision_id });
     }
 
     Ok(ChallengeEligibilityReport {
@@ -692,6 +722,85 @@ mod tests {
             ),
             Err(ChallengeCustodyError::DuplicateReceiptId { .. })
         ));
+    }
+
+    #[test]
+    fn rejects_challenge_manifest_consumed_by_model_revision() {
+        let revisions = vec![revision(
+            "revision-0",
+            "sha256-model-0",
+            None,
+            &["sha256-challenge-manifest-0"],
+        )];
+        assert!(matches!(
+            validate_challenge_eligibility(
+                &revisions,
+                &[],
+                &request(
+                    "sha256-model-0",
+                    "sha256-challenge-data-0",
+                    "sha256-challenge-manifest-0",
+                    "sha256-evaluator-v1"
+                )
+            ),
+            Err(ChallengeCustodyError::ChallengeManifestConsumedByRevision { .. })
+        ));
+    }
+
+    #[test]
+    fn prior_receipts_must_belong_to_the_recorded_revision_chain() {
+        let receipt = disclosed_receipt(
+            "receipt-external-model",
+            "sha256-external-model",
+            "sha256-old-challenge",
+            "sha256-old-manifest",
+            "sha256-evaluator-v1",
+        );
+        assert!(matches!(
+            validate_challenge_eligibility(
+                &root_lineage(),
+                &[receipt],
+                &request(
+                    "sha256-model-0",
+                    "sha256-new-challenge",
+                    "sha256-new-manifest",
+                    "sha256-evaluator-v1"
+                )
+            ),
+            Err(ChallengeCustodyError::ReceiptModelOutsideRevisionChain { .. })
+        ));
+    }
+
+    #[test]
+    fn duplicate_evaluation_identity_is_rejected_even_with_distinct_receipt_ids() {
+        let first = disclosed_receipt(
+            "receipt-first",
+            "sha256-model-0",
+            "sha256-old-challenge",
+            "sha256-old-manifest",
+            "sha256-evaluator-v1",
+        );
+        let second = disclosed_receipt(
+            "receipt-second",
+            "sha256-model-0",
+            "sha256-old-challenge",
+            "sha256-old-manifest",
+            "sha256-evaluator-v1",
+        );
+        assert_eq!(
+            validate_challenge_eligibility(
+                &root_lineage(),
+                &[first, second],
+                &request(
+                    "sha256-model-0",
+                    "sha256-new-challenge",
+                    "sha256-new-manifest",
+                    "sha256-evaluator-v1"
+                )
+            )
+            .unwrap_err(),
+            ChallengeCustodyError::DuplicateChallengeEvaluationIdentity
+        );
     }
 
     #[test]
