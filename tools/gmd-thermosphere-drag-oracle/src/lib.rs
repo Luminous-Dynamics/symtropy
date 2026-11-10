@@ -38,7 +38,9 @@ pub struct DragResult {
     pub acceleration_m_s2: [f64; 3],
     pub acceleration_magnitude_m_s2: f64,
     pub force_n: [f64; 3],
-    pub dissipated_power_w: f64,
+    /// Power dissipated relative to the local atmospheric frame. This is not
+    /// inertial-frame spacecraft mechanical power when the atmosphere moves.
+    pub relative_frame_dissipation_w: f64,
 }
 
 /// Closed set of input and numerical failures.
@@ -154,7 +156,7 @@ pub fn evaluate_drag(input: DragInput) -> Result<DragResult, DragError> {
         acceleration_m_s2: acceleration,
         acceleration_magnitude_m_s2: acceleration_magnitude,
         force_n: force,
-        dissipated_power_w: dissipated_power.max(0.0),
+        relative_frame_dissipation_w: dissipated_power.max(0.0),
     })
 }
 
@@ -285,16 +287,16 @@ mod tests {
     }
 
     #[test]
-    fn dissipated_power_is_non_negative_and_zero_at_zero_relative_speed() {
+    fn relative_frame_dissipation_is_non_negative_and_zero_at_zero_relative_speed() {
         let moving = evaluate_drag(known_input()).unwrap();
-        assert!(moving.dissipated_power_w > 0.0);
+        assert!(moving.relative_frame_dissipation_w > 0.0);
 
         let mut stationary = known_input();
         stationary.relative_velocity_m_s = [0.0; 3];
         let result = evaluate_drag(stationary).unwrap();
         assert_eq!(result.acceleration_m_s2, [0.0; 3]);
         assert_eq!(result.force_n, [0.0; 3]);
-        assert_eq!(result.dissipated_power_w, 0.0);
+        assert_eq!(result.relative_frame_dissipation_w, 0.0);
     }
 
     #[test]
