@@ -359,7 +359,9 @@ fn validate_fault_distribution(
             .checked_add(u64::from(entry.probability_ppm))
             .ok_or(FaultBenchmarkError::ArithmeticOverflow)?;
     }
-    if FaultFamily::ALL.iter().any(|family| !values.contains_key(family))
+    if FaultFamily::ALL
+        .iter()
+        .any(|family| !values.contains_key(family))
         || total != u64::from(PPM_SCALE)
     {
         return Err(FaultBenchmarkError::InvalidFaultDistribution);
