@@ -715,7 +715,7 @@ mod tests {
         let repaired = assessment(
             REPAIRED_MODEL,
             Some([0.7, 0.75, 0.8, 0.85, 0.9]),
-            Some([0.1, 0.2, 0.2, 0.3, 0.4]),
+            Some([0.6, 0.7, 0.75, 0.8, 0.9]),
         );
         let report = qualify_repair_on_fresh_challenge(&input(baseline, repaired))
             .expect("repair challenge report");
