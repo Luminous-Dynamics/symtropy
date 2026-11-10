@@ -393,11 +393,11 @@ pub fn so3_interpolate_with_config(
     let partial = Rotor::<3>::from_bivector(&logarithm.generator.scale(t));
     let result = partial.compose(start);
 
-    if result.to_matrix().iter().all(|value| value.is_finite()) {
-        Ok(result)
-    } else {
-        Err(So3LogError::NonFiniteResult)
-    }
+    // The exponential implementation can accumulate error for large
+    // extrapolation parameters. A finite matrix is not sufficient: keep the
+    // output inside the same SO(3) admission contract as both endpoints.
+    validate_rotation(&result, config.rotation_tolerance)?;
+    Ok(result)
 }
 
 /// Interpolate on SO(3) with the default numerical policy.
@@ -724,6 +724,21 @@ mod tests {
             &midpoint_relative.compose(&midpoint_relative),
             &relative
         ) < 2.0e-10);
+    }
+
+    #[test]
+    fn interpolation_rejects_non_finite_extrapolation_result() {
+        let start = Rotor::<3>::identity();
+        let end = Rotor::from_plane_angle(
+            &Bivector::<3>::unit_plane(0, 1),
+            0.7,
+        );
+        // The parameter itself is finite, but exponentiating this enormous
+        // extrapolation overflows the current f64 matrix exponential path.
+        assert!(matches!(
+            so3_interpolate(&start, &end, 1.0e100),
+            Err(So3LogError::NonFiniteMatrix)
+        ));
     }
 
     #[test]
