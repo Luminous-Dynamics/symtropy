@@ -13,7 +13,8 @@ It qualifies the capture-side prerequisites for each action:
 - pose qualification and reachability;
 - coordinate frame and frame revision;
 - geometric visibility receipt;
-- task-specific measurement qualification;
+- measurement-evidence receipt and task-specific measurement qualification;
+- exact model and requirement revision;
 - building decision profile.
 
 It then delegates finite state partitions, robust feasibility, Pareto recomputation and action ordering to spatial-resilience-qualifier (#1892/#1922). Any decision-engine recommendation lacking qualified capture evidence makes the adapter fail closed.
