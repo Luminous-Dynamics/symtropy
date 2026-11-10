@@ -22,7 +22,7 @@ cargo run --manifest-path tools/spatial-resilience-qualifier/Cargo.toml -- --ora
 cargo run --manifest-path tools/spatial-resilience-qualifier/Cargo.toml -- --outcome-check --json
 cargo run --manifest-path tools/spatial-resilience-qualifier/Cargo.toml -- --decision-impact-check --json
 cargo run --manifest-path tools/spatial-resilience-qualifier/Cargo.toml -- --adaptive-policy-check --json
-cargo run --manifest-path tools/spatial-resilience-qualifier/Cargo.toml -- --bin scan_bim_decision_capture -- --check --json
+cargo run --manifest-path tools/spatial-resilience-qualifier/Cargo.toml --locked --bin scan_bim_decision_capture -- --check --json
 cargo run --manifest-path tools/spatial-resilience-qualifier/Cargo.toml -- --validate path/to/manifest.json path/to/schema.json --json
 cargo run --manifest-path tools/spatial-resilience-qualifier/Cargo.toml -- --oracle-validate path/to/timeline-corpus.json path/to/timeline-schema.json --json
 cargo run --manifest-path tools/spatial-resilience-qualifier/Cargo.toml -- --outcome-validate path/to/outcome-corpus.json path/to/outcome-schema.json --json
