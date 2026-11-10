@@ -91,3 +91,30 @@ cargo test --manifest-path tools/bh-response-manifest/Cargo.toml --all-targets
   methods need a separately justified extension, not a weakened gate.
 - A passing validator test suite is a schema/control result, not a black-hole
   physical reproduction.
+
+## Paired-comparison contract — schema v0.2.0
+
+Schema v0.2.0 adds a comparison record that binds the *claim of independent agreement* to the actual method pair and a named response window.
+
+Every method records:
+- its implementation digest;
+- the digest of the canonical input bundle it actually consumed;
+- the response artifact digest.
+
+Every paired comparison records:
+- left and right method IDs;
+- the response-window ID and norm;
+- the digest of the aligned time/frequency sample grid and weights;
+- the digest of the comparison artifact (aligned values plus metric calculation);
+- observed error, acceptance limit and a derived acceptance flag.
+
+For `independently_cross_checked` and `converged`, every declared response window must have an accepted paired comparison. A valid pair must use distinct implementation digests and the same input-set digest. The window summary must match the comparison's norm, measured error and limit.
+
+This closes an important metadata gap in v0.1: two implementation hashes and a free-standing error value no longer suffice to declare a cross-check. A verifier can follow the exact evidence chain from methods to aligned samples to comparison artifact to causal response window.
+
+### Trust boundary
+
+The v0.2 validator checks references, digest shape, same-input identity, method independence by implementation digest, norm/window consistency, and error/limit consistency. It does **not** recompute digests or the metric from bytes. The independent evidence consumer must retrieve the preserved response and comparison artifacts, recompute their digests, and reproduce the declared alignment and norm before accepting the scientific result.
+
+Schema v0.1.0 is retained as a historical contract. New paired-comparison receipts use `bh-response-manifest-0.2.0.schema.json` and crate version `0.2.0`.
+
