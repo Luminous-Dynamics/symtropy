@@ -254,6 +254,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     emit_report("width_exceeded", &width_exceeded);
 
     let regression = run_scenario(
+        "regression",
         &[0.45, 0.48, 0.50, 0.52, 0.55],
         &[0.90, 0.92, 0.94, 0.96, 0.98],
         0.5,
