@@ -947,7 +947,8 @@
       "required": [
         "id",
         "mutations",
-        "expected_code"
+        "expected_code",
+        "expected_layer"
       ],
       "properties": {
         "id": {
@@ -963,6 +964,12 @@
         "expected_code": {
           "type": "string",
           "minLength": 1
+        },
+        "expected_layer": {
+          "enum": [
+            "schema",
+            "semantic"
+          ]
         }
       }
     }
