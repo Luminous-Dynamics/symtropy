@@ -1,0 +1,70 @@
+name: Bevy 0.20 Lockfile Refresh and Workspace Gate
+
+on:
+  push:
+    branches: ["migration/bevy-0.20-workspace-v1"]
+    paths:
+      - "Cargo.toml"
+      - "launcher/Cargo.toml"
+      - "crates/**/Cargo.toml"
+      - "rust-toolchain.toml"
+      - ".github/workflows/bevy-0.20-lockfile-refresh.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bevy-020-migration-lock-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  resolve-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Linux rendering build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libudev-dev libwayland-dev libxkbcommon-dev pkg-config
+
+      - name: Install Bevy 0.20 MSRV toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.97.1
+          components: clippy, rustfmt
+
+      - name: Resolve the Bevy 0.20 dependency graph
+        run: cargo +1.97.1 update
+
+      - name: Commit Cargo-generated lockfile
+        run: |
+          if ! git diff --quiet -- Cargo.lock; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add Cargo.lock
+            git commit -m "build(bevy): resolve Bevy 0.20 workspace lockfile"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          else
+            echo "Cargo.lock already matches the selected manifest graph."
+          fi
+
+      - name: Verify lockfile and one-Bevy invariant
+        run: |
+          cargo +1.97.1 metadata --locked --format-version 1 > /tmp/symtropy-metadata.json
+          bash scripts/check-workspace.sh
+
+      - name: Check formatting
+        run: cargo +1.97.1 fmt --all -- --check
+
+      - name: Run strict Clippy
+        run: cargo +1.97.1 clippy --workspace --all-targets --all-features -- -D warnings
+
+      - name: Run core physics tests
+        run: cargo +1.97.1 test -p symtropy-math -p symtropy-physics -p symtropy-consciousness-physics --lib
+
+      - name: Check the complete workspace
+        run: cargo +1.97.1 check --workspace --all-targets
