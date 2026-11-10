@@ -135,7 +135,8 @@
         "product_edition",
         "s100_edition",
         "context_kind",
-        "operational_state"
+        "operational_state",
+        "berth"
       ],
       "properties": {
         "source": {
@@ -157,6 +158,9 @@
         "operational_state": {
           "type": "string",
           "minLength": 1
+        },
+        "berth": {
+          "$ref": "#/$defs/berth"
         }
       }
     },
@@ -169,7 +173,8 @@
         "product_edition",
         "s100_edition",
         "context_kind",
-        "operational_state"
+        "operational_state",
+        "traffic"
       ],
       "properties": {
         "source": {
@@ -191,6 +196,9 @@
         "operational_state": {
           "type": "string",
           "minLength": 1
+        },
+        "traffic": {
+          "$ref": "#/$defs/traffic"
         }
       }
     },
@@ -203,7 +211,8 @@
         "product_edition",
         "s100_edition",
         "context_kind",
-        "operational_state"
+        "operational_state",
+        "radio"
       ],
       "properties": {
         "source": {
@@ -225,6 +234,9 @@
         "operational_state": {
           "type": "string",
           "minLength": 1
+        },
+        "radio": {
+          "$ref": "#/$defs/radio"
         }
       }
     },
@@ -237,7 +249,8 @@
         "product_edition",
         "s100_edition",
         "context_kind",
-        "operational_state"
+        "operational_state",
+        "warning"
       ],
       "properties": {
         "source": {
@@ -259,6 +272,9 @@
         "operational_state": {
           "type": "string",
           "minLength": 1
+        },
+        "warning": {
+          "$ref": "#/$defs/warning"
         }
       }
     },
@@ -271,7 +287,8 @@
         "product_edition",
         "s100_edition",
         "context_kind",
-        "operational_state"
+        "operational_state",
+        "ukc"
       ],
       "properties": {
         "source": {
@@ -293,6 +310,9 @@
         "operational_state": {
           "type": "string",
           "minLength": 1
+        },
+        "ukc": {
+          "$ref": "#/$defs/ukc"
         }
       }
     },
