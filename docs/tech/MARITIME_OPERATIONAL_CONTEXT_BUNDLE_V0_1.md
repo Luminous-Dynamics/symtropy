@@ -44,12 +44,12 @@ Provider offers, holds, commitments, revocations and expiry remain Mycelix/provi
 
 ## v0.1 synthetic corpus
 
-The corpus contains 30 cases (one positive context-only composition and 29 adversarial controls) covering:
+The corpus contains 32 cases (one positive context-only composition and 31 adversarial controls) covering:
 - S-131 berth context versus availability;
 - S-127 pilotage area versus pilot assignment / VTS clearance;
 - S-123 declared coverage versus measured connectivity and delivery;
 - S-124 warning lifecycle, bulletin freshness/completeness and vessel receipt;
-- S-129 plan purpose, vessel/route revision, validity, full replacement and physical qualification;
+- S-129 plan purpose, vessel/route revision, validity, freshness, full replacement and physical qualification;
 - DCSA API direction, semantic validity, event/retrieval time and ETA calibration;
 - provider offer/commitment/revocation/expiry and booking authority;
 - synthetic run, nondeterminism, source writeback and claim promotion;
@@ -86,3 +86,8 @@ Compare performance only on matched source counts, payload sizes, update frequen
 ## Claim ceiling
 
 A passing v0.1 evaluator would establish only the declared synthetic composition and non-promotion invariants. It would not establish live service availability, warning truth/completeness, vessel receipt, physical UKC, navigation safety, port-call optimization superiority, provider commitment truth, legal permission or authority to operate.
+
+
+## Freshness policy v0.1
+
+The frozen baseline uses 1,800 seconds for S-124 bulletin age, 600 seconds for S-129 plan retrieval age, and 3,600 seconds for DCSA event age. These are explicit synthetic test parameters used to create stale/fresh boundary cases. They are not IHO, DCSA or port-operational requirements. Report source time and retrieval time separately; never let a recent retrieval reset the age of the underlying event or observation.
