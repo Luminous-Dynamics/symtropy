@@ -104,6 +104,19 @@ It will check:
 
 A continuous optimizer remains a replaceable implementation behind this contract and is compared against it.
 
+### Physical possibility and margin completeness
+
+The exact #4083 possibility-set identity is bound by a source-issued digest and stable possibility IDs. Every required physical constraint (HardPhysical and RobustContact) must carry one residual/margin evidence row for **every** possibility ID. A single aggregate friction or torque margin is insufficient. The independent frozen constraint inventory and the solver-declared inventory must match exactly, including units, tolerances and minimum required margins.
+
+Residual tolerance and physical margin have different semantics:
+- residual beyond numerical tolerance makes the projection numerically unqualified (Unknown/fallback);
+- a qualified residual with a physical/contact margin below its declared minimum is a known rejection (or an independently admitted fallback);
+- task/proximity/efficiency residuals remain visible but cannot weaken hard physical gates.
+
+### Command realization is a second, post-execution decision
+
+Projection authorization and actuator realization are distinct. After application, #4206 supplies a source-qualified realization receipt bound to the exact authorized command digest, state/model/domain and actuator identity. A matched delivery permits the next command; mismatch, Unknown or Invalid delivery blocks the next state-changing command until reconciliation. This reference checks the receipt contract; it does not compute actuator physics or assert that a motor delivered torque from the command alone.
+
 ## Matched baselines
 
 1. Direct unprojected policy action (sandbox-only negative control).
