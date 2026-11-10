@@ -74,7 +74,9 @@ For Compression, the audit also reports:
 
 A zero-byte baseline does not produce a ratio. Missing byte measurements reduce the compression-measurement denominator but do not alter the operation's correctness score. Latency has its own explicit measurement count and mean.
 
-The module reports Storage, Update and Compression separately. It does not produce a single weighted “memory score”; any aggregate must be preregistered with explicit weights and should not hide a weak operation dimension.
+The module reports Storage, Update and Compression separately. It emits operation-wide micro rates and per-task rows, plus an equal-task macro fidelity/evidence-coverage rate over tasks with applicable cases. This exposes Simpson's-paradox-style masking when easy tasks are overrepresented. It does not produce a single weighted “memory score”; any aggregate must be preregistered with explicit weights and should not hide a weak operation dimension.
+
+Compression correctness is semantic: the evaluator specifies required information and checks an independent readback projection. The compressed bytes may differ from the source representation and still pass if the required facts are preserved. Byte reduction is measured separately by the compression ratio; latency is also separate. A compact but semantically lossy memory is incorrect, while a semantically faithful representation that happens to grow is correct but inefficient.
 
 ## 5. Implementation and safeguards
 
@@ -85,7 +87,8 @@ The auditor:
 - rejects malformed digests, missing expected effects for applicable cases and expected effects on not-applicable cases;
 - rejects duplicate, unknown, not-applicable or identity-mismatched receipts;
 - preserves the independent-unit identity; multiple operation cases from one scene/seed cluster may share that unit;
-- derives operation outcomes from evaluator-owned and observed digests;
+- requires an explicit complete task roster so omitted easy/hard tasks cannot silently change the population;
+- derives operation outcomes from evaluator-owned and observed semantic-effect digests;
 - returns each case's source/effect/snapshot/evaluator lineage alongside the derived outcome;
 - reports operation-specific denominators, unresolved cases, compression ratio and latency measurement counts.
 
