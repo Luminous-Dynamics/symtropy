@@ -232,6 +232,22 @@ Use each external benchmark for the question it actually measures:
 
 External scores are not pooled. Report native score names and evaluation protocols.
 
+### Bench2Drive v0.0.4 reference snapshot
+
+The Bench2Drive repository marks v0.0.4 as the version currently in use. Its tagged update describes a 220-route evaluation set (44 scenarios × 5 routes). The repository's v0.0.4 results table lists:
+- LEAD: 95.59 Driving Score, 87.28% Success Rate, 201.55 Efficiency, 20.56 Comfort.
+- Simlingo: 86.55 Driving Score, 70.45% Success Rate, 251.72 Efficiency, 35.47 Comfort.
+
+These are upstream-reported results for the named benchmark revision, not independent Symtropy reproductions. The earlier 89.07 AlignDrive snapshot belongs to a different hosted-board snapshot/version context and must not be carried forward as the current v0.0.4 reference. Pin the exact evaluator, route XML, code tag, model/checkpoint, sensor profile, training data and compute/privilege budget before attempting reproduction. See the [v0.0.4 release results](https://github.com/Thinklab-SJTU/Bench2Drive/blob/0.0.4/docs/v004_update.md) and [tagged repository README](https://github.com/Thinklab-SJTU/Bench2Drive/blob/0.0.4/README.md).
+
+### Deployed-industry comparison is a separate evidence class
+
+A simulation benchmark and an operating driverless service do not measure the same thing. For calibration, Waymo's public safety-impact dashboard reports 271.3 million rider-only miles through June 2026 and compares crash rates against location-adjusted human benchmarks. Waymo reports 95% fewer serious-injury-or-worse crashes and 82% fewer injury-causing crashes in the operating locations covered by that analysis. The same materials distinguish retrospective safety-impact analysis from pre-deployment release readiness, which Waymo evaluates through its Safety Framework and Safety Case. These are company-published operational results, not results Symthaea can meaningfully claim to match through simulation alone. See [Waymo Safety Impact and methodology](https://waymo.com/safety/impact/).
+
+Tesla's public FSD (Supervised) safety report is another, different form of fleet telemetry: it describes collision event definitions and compares FSD (Supervised) driving against manually driven Tesla vehicles with and without active safety features. Its event definitions, road mix, control mode and comparison population differ from Waymo's and from simulator benchmarks. Do not compare raw cross-company rates without reconstructing the methodology and denominators. See [Tesla's FSD (Supervised) Vehicle Safety Report](https://www.tesla.com/fsd/safety).
+
+**Strategic implication:** Symthaea is currently a research architecture and specification programme, not an industry-level autonomous-driving product. The credible path is: reproduce public research baselines; show a predeclared architectural or learning-efficiency advantage under matched budgets; validate robustness and recovery independently; then build a separately governed, staged physical evidence case. Fleet mileage and safety-case evidence are a long-term validation destination, not a near-term leaderboard target.
+
 The 10 November 2026 literature snapshot includes:
 - DriveWorld-VLA (ICML 2026), which reports NAVSIMv1 PDMS 91.3 and NAVSIMv2 EPDMS 86.8 for its own protocol.
 - DriveVLA-W0 (ICLR 2026), which combines future-image world modeling with VLA planning and reports experiments on NAVSIM plus a substantially larger in-house dataset.
