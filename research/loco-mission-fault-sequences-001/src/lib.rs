@@ -770,10 +770,14 @@ mod tests {
 
         let mut derate_first = derate;
         derate_first.event_tick = 1;
+        derate_first.thermal_update_receipt.as_mut().unwrap().resulting_thermal_state_digest =
+            "thermal-state:torque-derate:1".to_owned();
         let mut high_load_second = high_load;
         high_load_second.event_tick = 2;
         high_load_second.thermal_update_receipt.as_mut().unwrap().prior_thermal_state_digest =
             "thermal-state:torque-derate:1".to_owned();
+        high_load_second.thermal_update_receipt.as_mut().unwrap().resulting_thermal_state_digest =
+            "thermal-state:high-load-turn:2".to_owned();
         let reversed = replay(&state, &[derate_first, high_load_second]).unwrap();
         assert_eq!(reversed.status, MissionStatus::Rejected);
         assert_eq!(
