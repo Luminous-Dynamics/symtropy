@@ -303,6 +303,11 @@ fn fallback_disposition(
         || !nonempty(&fallback.viability_result_digest)
         || !nonempty(&fallback.assurance_receipt_id)
         || !nonempty(&fallback.assurance_result_digest)
+        || !nonempty(&fallback.constraint_inventory_digest)
+        || !nonempty(&fallback.physical_possibility_digest)
+        || fallback.constraint_inventory_digest != problem.proposal.constraint_inventory_digest
+        || fallback.physical_possibility_digest != problem.proposal.physical_possibility_digest
+        || fallback.horizon_steps != problem.proposal.horizon_steps
         || fallback.state_digest != problem.proposal.input_state_digest
         || fallback.model_digest != problem.proposal.model_digest
         || fallback.abstraction_digest != problem.proposal.abstraction_digest
@@ -339,13 +344,18 @@ fn identity_gate(problem: &ProjectionGateProblem) -> Result<(), ProjectionError>
         proposal.domain_digest.as_str(),
         proposal.actuator_digest.as_str(),
         proposal.constraint_inventory_digest.as_str(),
+        proposal.physical_possibility_digest.as_str(),
         result.solver_id.as_str(),
         result.solver_version.as_str(),
-        result.projected_command_digest.as_str(),
     ] {
         if !nonempty(id) {
             return Err(ProjectionError::EmptyIdentifier);
         }
+    }
+    if result.disposition == SolverDisposition::Feasible
+        && !nonempty(&result.projected_command_digest)
+    {
+        return Err(ProjectionError::EmptyIdentifier);
     }
     if proposal.horizon_steps == 0
         || proposal.submitted_at_ns > problem.now_ns
@@ -381,6 +391,9 @@ fn identity_gate(problem: &ProjectionGateProblem) -> Result<(), ProjectionError>
     }
     if result.constraint_inventory_digest != proposal.constraint_inventory_digest {
         return Err(ProjectionError::ConstraintInventoryMismatch);
+    }
+    if result.physical_possibility_digest != proposal.physical_possibility_digest {
+        return Err(ProjectionError::PhysicalPossibilityDigestMismatch);
     }
     if result.deadline_ns != proposal.deadline_ns
         || result.completed_at_ns > proposal.deadline_ns
@@ -647,6 +660,23 @@ fn validate_independent_receipts(problem: &ProjectionGateProblem) -> Result<(), 
     }
     if viability.constraint_inventory_digest != proposal.constraint_inventory_digest {
         return Err(ProjectionError::ConstraintInventoryMismatch);
+    }
+    if viability.physical_possibility_digest != proposal.physical_possibility_digest
+        || assurance.physical_possibility_digest != proposal.physical_possibility_digest
+    {
+        return Err(ProjectionError::PhysicalPossibilityDigestMismatch);
+    }
+    if assurance.abstraction_digest != proposal.abstraction_digest {
+        return Err(ProjectionError::AbstractionIdentityMismatch);
+    }
+    if assurance.domain_digest != proposal.domain_digest {
+        return Err(ProjectionError::DomainIdentityMismatch);
+    }
+    if assurance.constraint_inventory_digest != proposal.constraint_inventory_digest {
+        return Err(ProjectionError::ConstraintInventoryMismatch);
+    }
+    if assurance.horizon_steps != proposal.horizon_steps {
+        return Err(ProjectionError::InvalidReceipt);
     }
     if viability.horizon_steps == 0 || viability.horizon_steps != proposal.horizon_steps {
         return Err(ProjectionError::InvalidReceipt);
