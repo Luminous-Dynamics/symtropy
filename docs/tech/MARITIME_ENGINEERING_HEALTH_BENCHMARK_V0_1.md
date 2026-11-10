@@ -43,6 +43,8 @@ A recovery attempt requires a repair record, inspection, proof test, scoped auth
 
 The frozen corpus contains 41 positive, negative, ambiguity, common-cause, recovery and metamorphic fixtures across propulsion, steering, generation, switchboards, battery, cooling, lubrication, fuel, bilge, flood, fire, ballast and HVAC/electronics cooling.
 
+Each case carries function-specific vessel asset, component, installed-configuration and capability identity; the current synthetic set covers 11 capability classes rather than assigning every casualty to a generic propulsion asset. These are fixture identities, not production vessel asset records.
+
 The fixtures test contract semantics, not distributions of real ship faults. They deliberately do not invent pressure, temperature, vibration, bilge, insulation, combustion, fire-growth, flood-propagation, stability or electrical-transient thresholds.
 
 ## Evaluator and gates
