@@ -6,6 +6,7 @@ on:
     paths:
       - "crates/tools/shipyard-weld-twin/**"
       - "benchmarks/shipyard/weld-twin-corpus-v0.1.json"
+      - "benchmarks/shipyard/weld-twin-traces/**"
       - "docs/tech/SHIPYARD_WELD_TWIN_V0_1.schema.json"
       - "Cargo.toml"
       - "Cargo.lock"
