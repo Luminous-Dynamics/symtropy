@@ -752,6 +752,30 @@ mod tests {
     }
 
     #[test]
+    fn safety_critical_risk_requires_independent_validation_and_analytic_anchor() {
+        let mut data = input();
+        data.decision_risk = DecisionRisk::SafetyCritical;
+        data.candidates[0].evidence_class = EvidenceClass::IndependentlyValidated;
+        data.candidates[0].independent_validation_receipt_sha256s = vec![H2.to_owned()];
+        data.candidates[1].evidence_class = EvidenceClass::IndependentlyValidated;
+        data.candidates[1].analytic_anchor_sha256 = Some(H2.to_owned());
+        data.candidates[1].independent_validation_receipt_sha256s =
+            vec![H1.to_owned(), H3.to_owned()];
+
+        let receipt = evaluate(&data).expect("well-formed risk-tiered evidence");
+        let fast = receipt.evaluations.iter().find(|item| item.model_id == "fast-qualified").expect("fast");
+        assert!(fast.rejection_reasons.contains(&RejectionReason::AnalyticAnchorMissing));
+        assert!(fast.rejection_reasons.contains(&RejectionReason::InsufficientIndependentValidationPaths));
+        assert_eq!(
+            receipt.decision,
+            PolicyDecision::Selected {
+                model_id: "slow-qualified".to_owned(),
+                model_passport_sha256: H1.to_owned(),
+            }
+        );
+    }
+
+    #[test]
     fn synthetic_candidate_is_usable_only_when_request_explicitly_allows_it() {
         let mut data = input();
         data.candidates.truncate(1);
@@ -887,6 +911,81 @@ mod tests {
                 from_model_id: "slow-qualified".to_owned(),
                 reason: AbstentionReason::NoCandidates,
                 trigger: MonitorTrigger::ResidualExceeded,
+                observation_receipt_sha256: H3.to_owned(),
+            }
+        );
+    }
+
+    #[test]
+    fn observed_hard_constraint_violation_abstains_instead_of_switching_solvers() {
+        let data = input();
+        let receipt = evaluate(&data).expect("input");
+        let observation = RunObservation {
+            input_sha256: receipt.input_sha256.clone(),
+            model_id: "fast-qualified".to_owned(),
+            model_passport_sha256: H1.to_owned(),
+            observation_receipt_sha256: H3.to_owned(),
+            observed_residual: 0.01,
+            observed_uncertainty: 0.01,
+            validity_inside_envelope: true,
+            hard_constraints: HardConstraintDisposition::Violated,
+        };
+        assert_eq!(
+            monitor(&data, &receipt, &observation).expect("monitor"),
+            MonitoringDecision::Abstain {
+                from_model_id: "fast-qualified".to_owned(),
+                reason: AbstentionReason::ObservedHardConstraintViolation,
+                trigger: MonitorTrigger::HardConstraintViolation,
+                observation_receipt_sha256: H3.to_owned(),
+            }
+        );
+    }
+
+    #[test]
+    fn unknown_hard_constraint_abstains_instead_of_switching_solvers() {
+        let data = input();
+        let receipt = evaluate(&data).expect("input");
+        let observation = RunObservation {
+            input_sha256: receipt.input_sha256.clone(),
+            model_id: "fast-qualified".to_owned(),
+            model_passport_sha256: H1.to_owned(),
+            observation_receipt_sha256: H3.to_owned(),
+            observed_residual: 0.01,
+            observed_uncertainty: 0.01,
+            validity_inside_envelope: true,
+            hard_constraints: HardConstraintDisposition::Unknown,
+        };
+        assert_eq!(
+            monitor(&data, &receipt, &observation).expect("monitor"),
+            MonitoringDecision::Abstain {
+                from_model_id: "fast-qualified".to_owned(),
+                reason: AbstentionReason::ObservedHardConstraintUnknown,
+                trigger: MonitorTrigger::HardConstraintUnknown,
+                observation_receipt_sha256: H3.to_owned(),
+            }
+        );
+    }
+
+    #[test]
+    fn validity_envelope_exit_requires_fresh_state_bound_admission() {
+        let data = input();
+        let receipt = evaluate(&data).expect("input");
+        let observation = RunObservation {
+            input_sha256: receipt.input_sha256.clone(),
+            model_id: "fast-qualified".to_owned(),
+            model_passport_sha256: H1.to_owned(),
+            observation_receipt_sha256: H3.to_owned(),
+            observed_residual: 0.01,
+            observed_uncertainty: 0.01,
+            validity_inside_envelope: false,
+            hard_constraints: HardConstraintDisposition::WithinBounds,
+        };
+        assert_eq!(
+            monitor(&data, &receipt, &observation).expect("monitor"),
+            MonitoringDecision::Abstain {
+                from_model_id: "fast-qualified".to_owned(),
+                reason: AbstentionReason::ObservedValidityEnvelopeExit,
+                trigger: MonitorTrigger::ValidityEnvelopeExited,
                 observation_receipt_sha256: H3.to_owned(),
             }
         );
