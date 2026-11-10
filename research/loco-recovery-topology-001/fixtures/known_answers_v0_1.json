@@ -330,13 +330,12 @@
         "qualification": "UNKNOWN",
         "physical_route_classes": null,
         "qualifying_route_ids": [
-          "route_one",
-          "route_two"
+          "route_one"
         ],
         "independent_route_count": null,
         "minimum_cut_size": null,
         "all_minimum_cut_sets": [],
-        "distinct_terminal_regions": 2,
+        "distinct_terminal_regions": 1,
         "rejection_reasons": [
           "INCOMPLETE_FAILURE_DOMAIN_MANIFEST"
         ]
