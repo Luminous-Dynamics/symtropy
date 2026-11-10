@@ -5,12 +5,14 @@ on:
     paths:
       - "docs/research/spatial-design/SPATIAL_RESILIENCE_*"
       - "tools/spatial-resilience-qualifier/**"
+      - "research/scan-bim-decision-capture-001/**"
       - ".github/workflows/spatial-resilience-qualifier.yml"
   push:
     branches: [main]
     paths:
       - "docs/research/spatial-design/SPATIAL_RESILIENCE_*"
       - "tools/spatial-resilience-qualifier/**"
+      - "research/scan-bim-decision-capture-001/**"
       - ".github/workflows/spatial-resilience-qualifier.yml"
   workflow_dispatch:
 
@@ -55,6 +57,21 @@ jobs:
       - name: Execute adaptive measurement policy corpus
         run: cargo run --manifest-path tools/spatial-resilience-qualifier/Cargo.toml --locked -- --adaptive-policy-check --json > spatial-resilience-adaptive-policy-receipt.json
 
+      - name: Execute Scan-to-BIM decision-sufficient capture adapter
+        run: |
+          cargo run --manifest-path tools/spatial-resilience-qualifier/Cargo.toml --locked --bin scan_bim_decision_capture -- --check --json > scan-bim-decision-capture-receipt.json
+          jq -e '
+            (.schema_version == "0.1") and
+            (.case_id == "SCAN-BIM-DOOR-CLEARANCE-001") and
+            (.action_count == 4) and
+            (.qualified_action_count == 3) and
+            (.rejected_action_count == 1) and
+            (.decision.recommended_action_order == ["targeted-oblique-clearance-scan", "full-room-tls-sweep"]) and
+            ([.decision.actions[] | select(.action_id == "dense-frontal-wall-scan")][0].decision_relevant == false) and
+            ([.decision.actions[] | select(.action_id == "blocked-backside-scan")][0].status == "reject_action") and
+            (.claim_ceiling | startswith("FINITE_STATE_SYNTHETIC_DECISION_ADAPTER_ONLY"))
+          ' scan-bim-decision-capture-receipt.json
+
       - name: Bind receipts to exact files and resolved dependency lock
         run: |
           sha256sum \
@@ -76,6 +93,11 @@ jobs:
             tools/spatial-resilience-qualifier/src/outcomes.rs \
             tools/spatial-resilience-qualifier/src/decision_impact.rs \
             tools/spatial-resilience-qualifier/src/adaptive_policy.rs \
+            tools/spatial-resilience-qualifier/src/scan_bim.rs \
+            tools/spatial-resilience-qualifier/src/bin/scan_bim_decision_capture.rs \
+            research/scan-bim-decision-capture-001/fixtures/door-clearance-v0_1.json \
+            research/scan-bim-decision-capture-001/schema/scan-bim-decision-case-v0_1.schema.json \
+            scan-bim-decision-capture-receipt.json \
             tools/spatial-resilience-qualifier/Cargo.lock \
             spatial-resilience-qualifier-receipt.json \
             spatial-resilience-timeline-receipt.json \
@@ -95,6 +117,7 @@ jobs:
             spatial-resilience-outcome-receipt.json
             spatial-resilience-decision-impact-receipt.json
             spatial-resilience-adaptive-policy-receipt.json
+            scan-bim-decision-capture-receipt.json
             spatial-resilience-qualifier-receipt.sha256
             spatial-resilience-qualifier-commit.txt
             tools/spatial-resilience-qualifier/Cargo.lock
