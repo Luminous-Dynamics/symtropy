@@ -8,6 +8,8 @@
     "report_version",
     "report_id",
     "profile_version",
+    "validator_id",
+    "validator_version",
     "fixture_corpus_sha256",
     "started_at",
     "completed_at",
@@ -16,11 +18,9 @@
     "summary",
     "hard_gates",
     "case_results",
+    "claim_ceiling",
     "validator_scope_note",
-    "elapsed_ms",
-    "validator_id",
-    "validator_version",
-    "claim_ceiling"
+    "elapsed_ms"
   ],
   "properties": {
     "report_version": {
@@ -32,6 +32,14 @@
     },
     "profile_version": {
       "const": "0.1.0"
+    },
+    "validator_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "validator_version": {
+      "type": "string",
+      "minLength": 1
     },
     "fixture_corpus_sha256": {
       "type": "string",
@@ -206,7 +214,8 @@
           "actual_disposition",
           "passed",
           "reason_codes",
-          "lost_fields"
+          "lost_fields",
+          "payload_digest_match"
         ],
         "properties": {
           "fixture_id": {
@@ -252,31 +261,12 @@
       "const": "synthetic_profile_semantics_only"
     },
     "validator_scope_note": {
-      "type": "string"
+      "type": "string",
+      "minLength": 1
     },
     "elapsed_ms": {
       "type": "number",
       "minimum": 0
-    },
-    "validator_id": {
-      "type": "string",
-      "minLength": 1
-    },
-    "validator_version": {
-      "type": "string",
-      "minLength": 1
-    },
-    "global_errors": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    },
-    "notes": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
     }
   }
 }
