@@ -641,19 +641,20 @@ The original [response manifest #4237](https://github.com/Luminous-Dynamics/symt
 
 The v0.2 comparison object binds:
 - two method identities with distinct implementation digests;
-- the same canonical input-set digest;
+- a canonical input-set digest in study provenance, which every method must match;
+- a connected accepted-comparison graph spanning every declared method;
 - a named response-window ID and norm;
 - alignment-procedure and metric-definition digests;
 - aligned-sample and comparison-artifact digests;
 - observed error and its declared limit.
 
-Every listed method must participate in an accepted pair. Cross-check and convergence states cannot rely on an unlinked scalar error beside two implementation hashes. This is still a validation contract: digests must be recomputed from preserved bytes and the comparison metric independently replayed. Its exact-head CI is pending; no Rust test pass is claimed.
+Every listed method must participate in an accepted pair, and the accepted pair graph must connect the complete method ensemble. A connected graph is not an all-pairs claim: require every pairwise edge when that stronger claim is needed. Cross-check and convergence states cannot rely on an unlinked scalar error beside two implementation hashes. This is still a validation contract: digests must be recomputed from preserved bytes and the comparison metric independently replayed. The 19-test Rust suite and exact-head Actions are pending; no Rust test pass is claimed.
 
 ### 5. New Schwarzschild and Kerr engineering increments
 
-- [#4485](https://github.com/Luminous-Dynamics/symtropy/pull/4485) extended the Pöschl–Teller precursor qualification through the physical first arrival (t=3.05). Exact head `ff82e8224d87614c89d855700d7f0e05aca95f69) passed Ubuntu, macOS and Windows. This verifies the code gates, not exact continuum finite-grid causality.
+- [#4485](https://github.com/Luminous-Dynamics/symtropy/pull/4485) extended the Pöschl–Teller precursor qualification through the physical first arrival (t=3.05). Exact head `ff82e8224d87614c89d855700d7f0e05aca95f69` passed Ubuntu, macOS and Windows. This verifies the code gates, not exact continuum finite-grid causality.
 - [#4607](https://github.com/Luminous-Dynamics/symtropy/pull/4607) adds a machine-readable massless-scalar Schwarzschild fixture. It records the radial potential and finite-(ell) peak equation (Lr^2-3(L-1)r-8=0), with (L=\ell(\ell+1)). This prevents conflating the geometric photon sphere (r=3M) with the finite-(ell) scalar-potential maximum (e.g. (r=8M/3) for (ell=0), (r\approx2.9517148214M) for (ell=2)). It is an analytic fixture, not a wave evolution result.
-- [#4626](https://github.com/Luminous-Dynamics/symtropy/pull/4626) adds a Kerr horizon-event localizer using a cubic-Hermite interpolant and safeguarded bisection over accepted ingoing-Mino steps. It reports root-bracket precision for the interpolant only; true geodesic interpolation error still requires step-refinement and independent-formulation comparison. Its targeted Rust workflow is queued.
+- [#4626](https://github.com/Luminous-Dynamics/symtropy/pull/4626) adds a Kerr horizon-event localizer using a cubic-Hermite interpolant and safeguarded bisection over accepted ingoing-Mino steps. Its qualified API first requires the existing capture classifier and radial/polar constraint ceiling to pass, then returns the event. Nine authored tests include analytic linear/quadratic roots, coarse/refined segmentation agreement, disconnected failure cases, non-monotone/non-finite rejection and binary64 precision exhaustion. It reports root-bracket precision for the interpolant only; true geodesic interpolation error still requires step-refinement and independent-formulation comparison. Its targeted Rust workflow is queued.
 
 ### 6. Formal proof-fidelity update
 
