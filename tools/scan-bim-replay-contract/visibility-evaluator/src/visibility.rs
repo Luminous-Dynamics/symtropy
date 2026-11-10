@@ -1651,10 +1651,14 @@ pub fn derive_surface_visibility(
         &results,
         &owned_views,
         &ordered_occluders,
+        ray_test_count,
+        bvh.node_count,
+        bvh.leaf_count,
+        bvh_node_visit_count,
     );
 
     Ok(VisibilityReceipt {
-        algorithm_id: "evaluator_bim_visibility_ray_v1".to_owned(),
+        algorithm_id: "evaluator_bim_visibility_bvh_median_v1".to_owned(),
         scene_id: evaluation.scene_id.to_owned(),
         frame_id: evaluation.frame_id.to_owned(),
         linear_unit: evaluation.linear_unit,
@@ -1670,6 +1674,9 @@ pub fn derive_surface_visibility(
         occluder_triangle_count: ordered_occluders.len(),
         probe_view_evaluation_count,
         ray_test_count,
+        bvh_node_count: bvh.node_count,
+        bvh_leaf_count: bvh.leaf_count,
+        bvh_node_visit_count,
         observable_area_m2: totals[0],
         grazing_area_m2: totals[1],
         self_occluded_area_m2: totals[2],
