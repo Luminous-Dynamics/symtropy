@@ -45,7 +45,10 @@ pub enum ProcessMemoryError {
     EmptyIdentity,
     DuplicateEventId(String),
     DuplicateSequence(u64),
-    NonMonotonicSequence { previous: u64, received: u64 },
+    NonMonotonicSequence {
+        previous: u64,
+        received: u64,
+    },
     DuplicateObligation(String),
     UnknownObligation(String),
     TaskMismatch {
@@ -79,9 +82,7 @@ pub fn fold_obligations(
             return Err(ProcessMemoryError::EmptyIdentity);
         }
         if !seen_events.insert(event.event_id.as_str()) {
-            return Err(ProcessMemoryError::DuplicateEventId(
-                event.event_id.clone(),
-            ));
+            return Err(ProcessMemoryError::DuplicateEventId(event.event_id.clone()));
         }
         if !seen_sequences.insert(event.sequence) {
             return Err(ProcessMemoryError::DuplicateSequence(event.sequence));
@@ -115,13 +116,9 @@ pub fn fold_obligations(
                 );
             }
             transition => {
-                let record = records
-                    .get_mut(&event.obligation_id)
-                    .ok_or_else(|| {
-                        ProcessMemoryError::UnknownObligation(
-                            event.obligation_id.clone(),
-                        )
-                    })?;
+                let record = records.get_mut(&event.obligation_id).ok_or_else(|| {
+                    ProcessMemoryError::UnknownObligation(event.obligation_id.clone())
+                })?;
                 if record.task_id != event.task_id {
                     return Err(ProcessMemoryError::TaskMismatch {
                         obligation_id: event.obligation_id.clone(),
@@ -190,16 +187,31 @@ mod tests {
     #[test]
     fn task_switch_preserves_first_tasks_pending_obligation() {
         let events = vec![
-            event("stove-on", 1, "heat", "turn-off-stove", ObligationEventKind::Opened),
-            event("inspect-drawer", 2, "inspect", "inspect-drawer-1", ObligationEventKind::Opened),
-            event("drawer-done", 3, "inspect", "inspect-drawer-1", ObligationEventKind::Satisfied),
+            event(
+                "stove-on",
+                1,
+                "heat",
+                "turn-off-stove",
+                ObligationEventKind::Opened,
+            ),
+            event(
+                "inspect-drawer",
+                2,
+                "inspect",
+                "inspect-drawer-1",
+                ObligationEventKind::Opened,
+            ),
+            event(
+                "drawer-done",
+                3,
+                "inspect",
+                "inspect-drawer-1",
+                ObligationEventKind::Satisfied,
+            ),
         ];
 
         let state = fold_obligations(&events).unwrap();
-        assert_eq!(
-            state["turn-off-stove"].state,
-            ObligationState::Active
-        );
+        assert_eq!(state["turn-off-stove"].state, ObligationState::Active);
         assert!(!can_submit(&state));
     }
 
@@ -207,18 +219,45 @@ mod tests {
     fn paused_task_thread_can_be_resumed_after_another_thread_finishes() {
         let events = vec![
             event("stove-on", 1, "heat", "turn-off-stove", ObligationEventKind::Opened),
-            event("pause-heat", 2, "heat", "turn-off-stove", ObligationEventKind::Paused),
-            event("drawer-open", 3, "inspect", "inspect-drawer", ObligationEventKind::Opened),
-            event("drawer-done", 4, "inspect", "inspect-drawer", ObligationEventKind::Satisfied),
-            event("resume-heat", 5, "heat", "turn-off-stove", ObligationEventKind::Resumed),
-            event("stove-off", 6, "heat", "turn-off-stove", ObligationEventKind::Satisfied),
+            event(
+                "pause-heat",
+                2,
+                "heat",
+                "turn-off-stove",
+                ObligationEventKind::Paused,
+            ),
+            event(
+                "drawer-open",
+                3,
+                "inspect",
+                "inspect-drawer",
+                ObligationEventKind::Opened,
+            ),
+            event(
+                "drawer-done",
+                4,
+                "inspect",
+                "inspect-drawer",
+                ObligationEventKind::Satisfied,
+            ),
+            event(
+                "resume-heat",
+                5,
+                "heat",
+                "turn-off-stove",
+                ObligationEventKind::Resumed,
+            ),
+            event(
+                "stove-off",
+                6,
+                "heat",
+                "turn-off-stove",
+                ObligationEventKind::Satisfied,
+            ),
         ];
 
         let state = fold_obligations(&events).unwrap();
-        assert_eq!(
-            state["turn-off-stove"].state,
-            ObligationState::Satisfied
-        );
+        assert_eq!(state["turn-off-stove"].state, ObligationState::Satisfied);
         assert_eq!(state["inspect-drawer"].state, ObligationState::Satisfied);
         assert!(can_submit(&state));
     }
@@ -258,8 +297,20 @@ mod tests {
     #[test]
     fn one_task_cannot_satisfy_another_tasks_obligation() {
         let events = vec![
-            event("faucet-on", 1, "fill", "turn-off-faucet", ObligationEventKind::Opened),
-            event("wrong-task-off", 2, "retrieve", "turn-off-faucet", ObligationEventKind::Satisfied),
+            event(
+                "faucet-on",
+                1,
+                "fill",
+                "turn-off-faucet",
+                ObligationEventKind::Opened,
+            ),
+            event(
+                "wrong-task-off",
+                2,
+                "retrieve",
+                "turn-off-faucet",
+                ObligationEventKind::Satisfied,
+            ),
         ];
 
         assert!(matches!(
@@ -272,7 +323,13 @@ mod tests {
     fn duplicate_open_does_not_create_a_second_obligation() {
         let events = vec![
             event("stove-on", 1, "heat", "turn-off-stove", ObligationEventKind::Opened),
-            event("stove-on-replay", 2, "heat", "turn-off-stove", ObligationEventKind::Opened),
+            event(
+                "stove-on-replay",
+                2,
+                "heat",
+                "turn-off-stove",
+                ObligationEventKind::Opened,
+            ),
         ];
 
         assert_eq!(
@@ -287,8 +344,20 @@ mod tests {
     fn completed_obligation_cannot_be_reopened_by_late_resume() {
         let events = vec![
             event("stove-on", 1, "heat", "turn-off-stove", ObligationEventKind::Opened),
-            event("stove-off", 2, "heat", "turn-off-stove", ObligationEventKind::Satisfied),
-            event("late-resume", 3, "heat", "turn-off-stove", ObligationEventKind::Resumed),
+            event(
+                "stove-off",
+                2,
+                "heat",
+                "turn-off-stove",
+                ObligationEventKind::Satisfied,
+            ),
+            event(
+                "late-resume",
+                3,
+                "heat",
+                "turn-off-stove",
+                ObligationEventKind::Resumed,
+            ),
         ];
 
         assert!(matches!(
