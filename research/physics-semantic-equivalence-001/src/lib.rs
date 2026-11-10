@@ -6,7 +6,9 @@
 //! calling [validate_receipt].
 
 use jsonschema::validator_for;
-use serde_json::{Map as JsonMap, Value as JsonValue};
+use serde::de::{self, MapAccess, SeqAccess, Visitor};
+use serde::{Deserialize, Deserializer};
+use serde_json::{Map as JsonMap, Number as JsonNumber, Value as JsonValue};
 use std::collections::BTreeSet;
 
 /// The nine required comparison dimensions in schema order.
@@ -347,14 +349,108 @@ fn issue(code: &'static str, path: &str) -> ValidationIssue {
     }
 }
 
+/// JSON value wrapper whose map visitor rejects duplicate object keys recursively.
+struct StrictJsonValue(JsonValue);
+
+impl<'de> Deserialize<'de> for StrictJsonValue {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_any(StrictJsonVisitor)
+    }
+}
+
+struct StrictJsonVisitor;
+
+impl<'de> Visitor<'de> for StrictJsonVisitor {
+    type Value = StrictJsonValue;
+
+    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str("a JSON value without duplicate object keys")
+    }
+
+    fn visit_unit<E>(self) -> Result<Self::Value, E> {
+        Ok(StrictJsonValue(JsonValue::Null))
+    }
+
+    fn visit_none<E>(self) -> Result<Self::Value, E> {
+        Ok(StrictJsonValue(JsonValue::Null))
+    }
+
+    fn visit_bool<E>(self, value: bool) -> Result<Self::Value, E> {
+        Ok(StrictJsonValue(JsonValue::Bool(value)))
+    }
+
+    fn visit_i64<E>(self, value: i64) -> Result<Self::Value, E> {
+        Ok(StrictJsonValue(JsonValue::Number(JsonNumber::from(value))))
+    }
+
+    fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E> {
+        Ok(StrictJsonValue(JsonValue::Number(JsonNumber::from(value))))
+    }
+
+    fn visit_f64<E: de::Error>(self, value: f64) -> Result<Self::Value, E> {
+        let number = JsonNumber::from_f64(value)
+            .ok_or_else(|| E::custom("JSON number is not finite"))?;
+        Ok(StrictJsonValue(JsonValue::Number(number)))
+    }
+
+    fn visit_str<E>(self, value: &str) -> Result<Self::Value, E> {
+        Ok(StrictJsonValue(JsonValue::String(value.to_owned())))
+    }
+
+    fn visit_string<E>(self, value: String) -> Result<Self::Value, E> {
+        Ok(StrictJsonValue(JsonValue::String(value)))
+    }
+
+    fn visit_seq<A>(self, mut sequence: A) -> Result<Self::Value, A::Error>
+    where
+        A: SeqAccess<'de>,
+    {
+        let mut values = Vec::new();
+        while let Some(value) = sequence.next_element::<StrictJsonValue>()? {
+            values.push(value.0);
+        }
+        Ok(StrictJsonValue(JsonValue::Array(values)))
+    }
+
+    fn visit_map<A>(self, mut object: A) -> Result<Self::Value, A::Error>
+    where
+        A: MapAccess<'de>,
+    {
+        let mut values = JsonMap::new();
+        while let Some(key) = object.next_key::<String>()? {
+            if values.contains_key(&key) {
+                return Err(de::Error::custom(format!(
+                    "duplicate JSON object key {key:?}"
+                )));
+            }
+            let value = object.next_value::<StrictJsonValue>()?;
+            values.insert(key, value.0);
+        }
+        Ok(StrictJsonValue(JsonValue::Object(values)))
+    }
+}
+
+/// Parse one complete JSON document, rejecting duplicate keys at every object depth.
+fn parse_strict_json(input: &str) -> Result<JsonValue, String> {
+    let mut deserializer = serde_json::Deserializer::from_str(input);
+    let value = StrictJsonValue::deserialize(&mut deserializer)
+        .map_err(|error| format!("invalid receipt JSON: {error}"))?;
+    deserializer
+        .end()
+        .map_err(|error| format!("invalid trailing receipt JSON: {error}"))?;
+    Ok(value.0)
+}
+
 /// Validate raw receipt JSON against the checked-in Draft 2020-12 schema.
 ///
 /// This is deliberately separate from the typed semantic admission validator:
 /// schema validity establishes transport conformance, not physical equivalence.
 pub fn validate_receipt_schema_json(input: &str) -> Result<(), String> {
-    let instance: JsonValue = serde_json::from_str(input)
-        .map_err(|error| format!("invalid receipt JSON: {error}"))?;
-    let schema: JsonValue = serde_json::from_str(include_str!(
+    let instance = parse_strict_json(input)?;
+    let schema = parse_strict_json(include_str!(
         "../../../schemas/physics/semantic_mapping_receipt_v0_1.schema.json"
     ))
     .map_err(|error| format!("checked-in receipt schema is invalid JSON: {error}"))?;
@@ -383,8 +479,7 @@ pub fn validate_schema_and_json_receipt(input: &str) -> Result<ValidationReport,
 /// unknown fields are rejected, dimensions must contain exactly nine entries,
 /// and enum spellings must match the versioned wire contract.
 pub fn parse_receipt_json(input: &str) -> Result<MappingReceipt, String> {
-    let value: JsonValue =
-        serde_json::from_str(input).map_err(|error| format!("invalid receipt JSON: {error}"))?;
+    let value = parse_strict_json(input)?;
     let root = json_object(&value, "$")?;
     json_check_keys(
         root,
@@ -951,6 +1046,21 @@ mod tests {
                 .iter()
                 .any(|issue| issue.code == "missing_dimension")
         );
+    }
+
+    #[test]
+    fn json_adapter_rejects_duplicate_object_keys() {
+        let duplicate = r#"{"schema":"symtropy.semantic_mapping_receipt/0.1","schema":"symtropy.semantic_mapping_receipt/0.1"}"#;
+        let error = parse_receipt_json(duplicate).expect_err("duplicate keys must fail");
+        assert!(error.contains("duplicate JSON object key"));
+    }
+
+    #[test]
+    fn schema_gate_rejects_duplicate_object_keys() {
+        let duplicate = r#"{"schema":"symtropy.semantic_mapping_receipt/0.1","schema":"symtropy.semantic_mapping_receipt/0.1"}"#;
+        let error =
+            validate_receipt_schema_json(duplicate).expect_err("duplicate keys must fail schema gate");
+        assert!(error.contains("duplicate JSON object key"));
     }
 
     #[test]
