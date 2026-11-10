@@ -72,8 +72,7 @@ The Rust module `release_gate.rs` adds a separate preflight contract for native 
 The gate requires:
 
 - exact equality between the checked-out source revision and the release manifest's declared revision;
-- independent verification that the source-file manifest corresponds to the checked-out source;
-- an independently verified source-file manifest, pinned release/suite/input-lock/simulator-source manifests, and preserved suite bytes;
+- independent verification that the source-file manifest corresponds to the checked-out source, plus pinned release/suite/input-lock/simulator-source manifests and preserved suite bytes;
 - exact task, suite and resolved official input counts;
 - separate dataset and asset rights statuses, plus digest-addressed rights manifests;
 - asset archive identity, asset-manifest task coverage, an independent task-coverage verification receipt, exact task count, and a clean candidate installation;
@@ -81,7 +80,7 @@ The gate requires:
 - a pinned expected policy-family manifest and exact expected checkpoint digest for every (family, task) suite in the 27-suite matrix; every tuple must have a checkpoint-loaded/inference smoke using the exact candidate runtime, with inference requests, no runtime errors and complete episode artifacts;
 - explicit training-data overlap disclosure; unknown overlap blocks qualified comparative evaluation, while known overlap remains disclosed rather than being relabeled as no overlap.
 
-A historical wheel pass does not qualify a changed wheel or runtime. A smoke of one policy family does not unlock another family. A model inference smoke is not required to complete the benchmark task; task success and benchmark performance are measured later by the native evaluator. These stages remain distinct.
+A historical wheel pass does not qualify a changed wheel or runtime. A smoke of one (policy family, task) tuple does not unlock another tuple, even within the same family. A model inference smoke is not required to complete the benchmark task; task success and benchmark performance are measured later by the native evaluator. These stages remain distinct.
 
 The upstream candidate inspected at source revision `2c7d498e589d1a5a62b5b30c9d786513fa86bfa2` declares candidate source revision `b891bdf35fbe7b8390ea6cc663a870fb9ea7820c`, `release_ready=false`, and `suite_bytes_preserved=false`. The declared source revision and inspected source revision therefore need reconciliation. The release-candidate manifest contains a separate asset-verification receipt that reports coverage for all 450 official inputs, but the referenced distributed asset manifest itself still says `nine_task_coverage_verified=false` and describes an archive inventory rather than a verified minimal nine-task dependency closure. Both sources say clean installation of the current candidate is unverified. The historical 450-case installed-wheel pass used a previous wheel/runtime; metadata states `runtime_files_match_accepted_wheel=false`. The gate requires both the asset-manifest assertion and the independent receipt, plus clean candidate installation and current wheel/runtime acceptance. It includes regression fixtures for these contradictory and historical-evidence states.
 
