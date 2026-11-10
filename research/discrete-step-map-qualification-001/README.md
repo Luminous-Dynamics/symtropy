@@ -35,3 +35,17 @@ The tests cover:
 This seed is not a MuJoCo implementation, not a contact solver and not a rigid-body simulator. Its purpose is to establish a small independently checkable discrete-step oracle before adding unilateral contact, friction, articulated constraints or a backend adapter. The next contact lane must bind the contact law, constraint regularization, event ordering and solver semantics explicitly.
 
 No SOTA superiority, production solver validation or hardware result is claimed.
+
+
+## Hybrid impact extension
+
+The seed also includes an event-resolved one-dimensional unilateral floor model in the file src/impact.rs.
+
+- Resolves the first inward crossing analytically.
+- Supports plastic impact followed by a resting-support branch, or a single restitution impact.
+- Reports event time, impact impulse, support impulse, branch, derivative class and complementarity residual.
+- Provides an analytic branch-local Jacobian for single restitution impact and checks it against central finite differences.
+- Marks event-at-step-boundary derivatives as unavailable.
+- Returns a typed error when more than one impact would occur inside a single step rather than silently dropping an event.
+
+The impact model is deliberately independent from the smooth oscillator's fused implicit step map. The two models use different forward laws; they must not be conflated in a backend comparison.
