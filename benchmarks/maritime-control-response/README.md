@@ -21,7 +21,7 @@ The benchmark lists four known fault classes: intake-manifold leakage and multip
 - Exact row-key matching for labels and predictions; probabilities must satisfy the official detection-dependent sum contract.
 - Whole-recording split manifests and optional held-out-driving-cycle split separation.
 - Monotonic recording-row checks and missing-channel preservation without zero or nominal-command imputation.
-- Command-conditioned response residual evaluation with explicit missing, stale, future, unsupported and uncalibrated states. A residual mismatch never independently claims an actuator fault.
+- Command-conditioned response residual evaluation with distinct command-availability, prediction and physical-observation timestamps. It requires command availability at or before prediction, response strictly after prediction, a bounded response horizon, and command freshness measured at prediction time. Missing, stale, future, unsupported and uncalibrated states are not normal. A residual mismatch never independently claims an actuator fault.
 - Split-conformal calibration using one maximum standardized residual per independent recording/episode, not 20 Hz samples or overlapping windows.
 - Calibration receipts retain their sorted episode identities and maximum residuals. Their digests and finite-sample order statistic are recomputed; the threshold must match the frozen model, regime, training manifest and split manifest.
 
@@ -60,3 +60,8 @@ A test bench with one engine supports within-engine drive-cycle/magnitude genera
 - Physical validation requires permissioned synchronized controller intent, independently measured actuator feedback and physical plant response from an engine testbed, with an independently reviewed I/O map.
 
 This benchmark lane does not write controllers, actuate equipment, authorize maintenance, establish safe-life limits, or clear operating restrictions.
+
+
+### Prediction-time causality control
+
+The response evaluator records three distinct times: when the command became available to the diagnostic process, when the frozen model issued its expected response, and when the independent physical response was observed. It rejects a command that arrived after prediction, a response that predates or coincides with prediction, a response beyond the declared horizon, and a command that was already stale at prediction time. This is stricter than merely checking that the command precedes the measurement; it blocks an after-the-fact command from being used to explain an earlier prediction.
