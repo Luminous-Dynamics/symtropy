@@ -41,6 +41,7 @@ pub struct BenchmarkProtocolIdentity {
     pub task_manifest_digest: ArtifactDigest,
     pub evaluator_digest: ArtifactDigest,
     pub dataset_manifest_digest: ArtifactDigest,
+    pub dataset_rights_manifest_digest: ArtifactDigest,
     pub policy_input_schema_digest: ArtifactDigest,
     pub action_schema_digest: ArtifactDigest,
 }
@@ -593,7 +594,13 @@ impl MemoryEvaluationRecord {
     /// identity check, not a statistical test.
     pub fn matches_control_conditions(&self, other: &Self) -> bool {
         self.protocol == other.protocol
-            && self.task == other.task
+            && self.task.task_id == other.task.task_id
+            && self.task.task_instance_id == other.task.task_instance_id
+            && self.task.scene_id == other.task.scene_id
+            && self.task.scene_seed == other.task.scene_seed
+            && self.task.split == other.task.split
+            && self.task.expected_stage_ids == other.task.expected_stage_ids
+            && self.task.bce_required == other.task.bce_required
             && self.matched_control == other.matched_control
             && self.evidence_class == other.evidence_class
             && self.policy_input.observation_bundle_digest
@@ -631,6 +638,7 @@ mod tests {
             task_manifest_digest: digest(1),
             evaluator_digest: digest(2),
             dataset_manifest_digest: digest(3),
+            dataset_rights_manifest_digest: digest(24),
             policy_input_schema_digest: digest(4),
             action_schema_digest: digest(5),
         }
@@ -997,6 +1005,15 @@ mod tests {
             left.require_matched_control(&changed),
             Err(ImportError::MatchedControlMismatch)
         );
+    }
+
+    #[test]
+    fn matched_episodes_may_have_distinct_run_ids_for_the_same_scene_seed() {
+        let left = record("policy-only", AssistanceTrack::PolicyOnly);
+        let mut right = record("agent", AssistanceTrack::AgentAssisted);
+        right.task.episode_id = "episode-02".into();
+
+        left.require_matched_control(&right).unwrap();
     }
 
     #[test]
