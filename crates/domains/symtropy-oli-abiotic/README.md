@@ -29,7 +29,7 @@ cargo test -p symtropy-oli-abiotic --locked
 
 ## Second generator: phase-oscillator synchronization controls
 
-Generator ID: \`OLI-ABIOTIC-OSCILLATOR-001\`.
+Generator ID: `OLI-ABIOTIC-OSCILLATOR-001`.
 
 The phase-oscillator reference compares three matched causal conditions:
 - **Coupled-only:** pairwise coupling enabled, external forcing disabled.
@@ -47,7 +47,7 @@ Metrics are kept separate:
 - mean phase lag to the driver;
 - declared coupling and forcing parameters.
 
-External phase locking is \`null\` when the driver is disabled. It is not computed by merely rotating the instantaneous phase vector: the implementation averages the relative phase over time, because instantaneous order-parameter magnitude is invariant to a global phase rotation.
+External phase locking is `null` when the driver is disabled. It is not computed by merely rotating the instantaneous phase vector: the implementation averages the relative phase over time, because instantaneous order-parameter magnitude is invariant to a global phase rotation.
 
 The phase increment contract includes natural frequency, driver frequency, coupling and forcing bounds. It is a declared temporal-resolution guard, not a claim of a universal nonlinear stability theorem.
 
