@@ -1,0 +1,994 @@
+{
+  "fixture_version": "0.1",
+  "fixture_id": "SCAN-BIM-RAYQUERY-STRESS-OVERLAP-001",
+  "coordinate_system": {
+    "linear_unit": "metre",
+    "axis_order": "xyz",
+    "handedness": "right_handed"
+  },
+  "query_contract": {
+    "direction_normalization": "unit_length_required",
+    "intersection_epsilon_m": 1e-8,
+    "nearest_hit_tie_epsilon_m": 1e-8,
+    "parallel_cosine_epsilon": 1e-12,
+    "barycentric_epsilon": 1e-12,
+    "coplanar_policy": "miss",
+    "triangle_sidedness": "two_sided",
+    "self_hit_exclusion": "exact_surface_id_and_triangle_id",
+    "expected_hit_policy": "all_hits_within_nearest_hit_tie_epsilon"
+  },
+  "triangles": [
+    {
+      "surface_id": "DENSE-OVERLAP-00",
+      "triangle_id": "DENSE-TRI-00",
+      "kind": "same_building",
+      "a": [
+        2,
+        -1,
+        -1
+      ],
+      "b": [
+        2,
+        1,
+        -1
+      ],
+      "c": [
+        2,
+        0,
+        1
+      ]
+    },
+    {
+      "surface_id": "DENSE-OVERLAP-01",
+      "triangle_id": "DENSE-TRI-01",
+      "kind": "same_building",
+      "a": [
+        2,
+        -1,
+        -1
+      ],
+      "b": [
+        2,
+        1,
+        -1
+      ],
+      "c": [
+        2,
+        0,
+        1
+      ]
+    },
+    {
+      "surface_id": "DENSE-OVERLAP-02",
+      "triangle_id": "DENSE-TRI-02",
+      "kind": "same_building",
+      "a": [
+        2,
+        -1,
+        -1
+      ],
+      "b": [
+        2,
+        1,
+        -1
+      ],
+      "c": [
+        2,
+        0,
+        1
+      ]
+    },
+    {
+      "surface_id": "DENSE-OVERLAP-03",
+      "triangle_id": "DENSE-TRI-03",
+      "kind": "same_building",
+      "a": [
+        2,
+        -1,
+        -1
+      ],
+      "b": [
+        2,
+        1,
+        -1
+      ],
+      "c": [
+        2,
+        0,
+        1
+      ]
+    },
+    {
+      "surface_id": "DENSE-OVERLAP-04",
+      "triangle_id": "DENSE-TRI-04",
+      "kind": "same_building",
+      "a": [
+        2,
+        -1,
+        -1
+      ],
+      "b": [
+        2,
+        1,
+        -1
+      ],
+      "c": [
+        2,
+        0,
+        1
+      ]
+    },
+    {
+      "surface_id": "DENSE-OVERLAP-05",
+      "triangle_id": "DENSE-TRI-05",
+      "kind": "same_building",
+      "a": [
+        2,
+        -1,
+        -1
+      ],
+      "b": [
+        2,
+        1,
+        -1
+      ],
+      "c": [
+        2,
+        0,
+        1
+      ]
+    },
+    {
+      "surface_id": "DENSE-OVERLAP-06",
+      "triangle_id": "DENSE-TRI-06",
+      "kind": "same_building",
+      "a": [
+        2,
+        -1,
+        -1
+      ],
+      "b": [
+        2,
+        1,
+        -1
+      ],
+      "c": [
+        2,
+        0,
+        1
+      ]
+    },
+    {
+      "surface_id": "DENSE-OVERLAP-07",
+      "triangle_id": "DENSE-TRI-07",
+      "kind": "same_building",
+      "a": [
+        2,
+        -1,
+        -1
+      ],
+      "b": [
+        2,
+        1,
+        -1
+      ],
+      "c": [
+        2,
+        0,
+        1
+      ]
+    },
+    {
+      "surface_id": "DENSE-OVERLAP-08",
+      "triangle_id": "DENSE-TRI-08",
+      "kind": "same_building",
+      "a": [
+        2,
+        -1,
+        -1
+      ],
+      "b": [
+        2,
+        1,
+        -1
+      ],
+      "c": [
+        2,
+        0,
+        1
+      ]
+    },
+    {
+      "surface_id": "DENSE-OVERLAP-09",
+      "triangle_id": "DENSE-TRI-09",
+      "kind": "same_building",
+      "a": [
+        2,
+        -1,
+        -1
+      ],
+      "b": [
+        2,
+        1,
+        -1
+      ],
+      "c": [
+        2,
+        0,
+        1
+      ]
+    },
+    {
+      "surface_id": "DENSE-OVERLAP-10",
+      "triangle_id": "DENSE-TRI-10",
+      "kind": "same_building",
+      "a": [
+        2,
+        -1,
+        -1
+      ],
+      "b": [
+        2,
+        1,
+        -1
+      ],
+      "c": [
+        2,
+        0,
+        1
+      ]
+    },
+    {
+      "surface_id": "DENSE-OVERLAP-11",
+      "triangle_id": "DENSE-TRI-11",
+      "kind": "same_building",
+      "a": [
+        2,
+        -1,
+        -1
+      ],
+      "b": [
+        2,
+        1,
+        -1
+      ],
+      "c": [
+        2,
+        0,
+        1
+      ]
+    },
+    {
+      "surface_id": "DENSE-OVERLAP-12",
+      "triangle_id": "DENSE-TRI-12",
+      "kind": "same_building",
+      "a": [
+        2,
+        -1,
+        -1
+      ],
+      "b": [
+        2,
+        1,
+        -1
+      ],
+      "c": [
+        2,
+        0,
+        1
+      ]
+    },
+    {
+      "surface_id": "DENSE-OVERLAP-13",
+      "triangle_id": "DENSE-TRI-13",
+      "kind": "same_building",
+      "a": [
+        2,
+        -1,
+        -1
+      ],
+      "b": [
+        2,
+        1,
+        -1
+      ],
+      "c": [
+        2,
+        0,
+        1
+      ]
+    },
+    {
+      "surface_id": "DENSE-OVERLAP-14",
+      "triangle_id": "DENSE-TRI-14",
+      "kind": "same_building",
+      "a": [
+        2,
+        -1,
+        -1
+      ],
+      "b": [
+        2,
+        1,
+        -1
+      ],
+      "c": [
+        2,
+        0,
+        1
+      ]
+    },
+    {
+      "surface_id": "DENSE-OVERLAP-15",
+      "triangle_id": "DENSE-TRI-15",
+      "kind": "same_building",
+      "a": [
+        2,
+        -1,
+        -1
+      ],
+      "b": [
+        2,
+        1,
+        -1
+      ],
+      "c": [
+        2,
+        0,
+        1
+      ]
+    },
+    {
+      "surface_id": "DENSE-OVERLAP-16",
+      "triangle_id": "DENSE-TRI-16",
+      "kind": "same_building",
+      "a": [
+        2,
+        -1,
+        -1
+      ],
+      "b": [
+        2,
+        1,
+        -1
+      ],
+      "c": [
+        2,
+        0,
+        1
+      ]
+    },
+    {
+      "surface_id": "DENSE-OVERLAP-17",
+      "triangle_id": "DENSE-TRI-17",
+      "kind": "same_building",
+      "a": [
+        2,
+        -1,
+        -1
+      ],
+      "b": [
+        2,
+        1,
+        -1
+      ],
+      "c": [
+        2,
+        0,
+        1
+      ]
+    },
+    {
+      "surface_id": "DENSE-OVERLAP-18",
+      "triangle_id": "DENSE-TRI-18",
+      "kind": "same_building",
+      "a": [
+        2,
+        -1,
+        -1
+      ],
+      "b": [
+        2,
+        1,
+        -1
+      ],
+      "c": [
+        2,
+        0,
+        1
+      ]
+    },
+    {
+      "surface_id": "DENSE-OVERLAP-19",
+      "triangle_id": "DENSE-TRI-19",
+      "kind": "same_building",
+      "a": [
+        2,
+        -1,
+        -1
+      ],
+      "b": [
+        2,
+        1,
+        -1
+      ],
+      "c": [
+        2,
+        0,
+        1
+      ]
+    },
+    {
+      "surface_id": "DENSE-OVERLAP-20",
+      "triangle_id": "DENSE-TRI-20",
+      "kind": "same_building",
+      "a": [
+        2,
+        -1,
+        -1
+      ],
+      "b": [
+        2,
+        1,
+        -1
+      ],
+      "c": [
+        2,
+        0,
+        1
+      ]
+    },
+    {
+      "surface_id": "DENSE-OVERLAP-21",
+      "triangle_id": "DENSE-TRI-21",
+      "kind": "same_building",
+      "a": [
+        2,
+        -1,
+        -1
+      ],
+      "b": [
+        2,
+        1,
+        -1
+      ],
+      "c": [
+        2,
+        0,
+        1
+      ]
+    },
+    {
+      "surface_id": "DENSE-OVERLAP-22",
+      "triangle_id": "DENSE-TRI-22",
+      "kind": "same_building",
+      "a": [
+        2,
+        -1,
+        -1
+      ],
+      "b": [
+        2,
+        1,
+        -1
+      ],
+      "c": [
+        2,
+        0,
+        1
+      ]
+    },
+    {
+      "surface_id": "DENSE-OVERLAP-23",
+      "triangle_id": "DENSE-TRI-23",
+      "kind": "same_building",
+      "a": [
+        2,
+        -1,
+        -1
+      ],
+      "b": [
+        2,
+        1,
+        -1
+      ],
+      "c": [
+        2,
+        0,
+        1
+      ]
+    },
+    {
+      "surface_id": "LONG-THIN-00",
+      "triangle_id": "THIN-TRI-00",
+      "kind": "same_building",
+      "a": [
+        4,
+        -1000,
+        0
+      ],
+      "b": [
+        4,
+        1000,
+        0
+      ],
+      "c": [
+        4,
+        0,
+        0.001
+      ]
+    },
+    {
+      "surface_id": "LONG-THIN-01",
+      "triangle_id": "THIN-TRI-01",
+      "kind": "same_building",
+      "a": [
+        4.25,
+        -1000,
+        0
+      ],
+      "b": [
+        4.25,
+        1000,
+        0
+      ],
+      "c": [
+        4.25,
+        0,
+        0.001
+      ]
+    },
+    {
+      "surface_id": "LONG-THIN-02",
+      "triangle_id": "THIN-TRI-02",
+      "kind": "same_building",
+      "a": [
+        4.5,
+        -1000,
+        0
+      ],
+      "b": [
+        4.5,
+        1000,
+        0
+      ],
+      "c": [
+        4.5,
+        0,
+        0.001
+      ]
+    },
+    {
+      "surface_id": "LONG-THIN-03",
+      "triangle_id": "THIN-TRI-03",
+      "kind": "same_building",
+      "a": [
+        4.75,
+        -1000,
+        0
+      ],
+      "b": [
+        4.75,
+        1000,
+        0
+      ],
+      "c": [
+        4.75,
+        0,
+        0.001
+      ]
+    },
+    {
+      "surface_id": "LONG-THIN-04",
+      "triangle_id": "THIN-TRI-04",
+      "kind": "same_building",
+      "a": [
+        5,
+        -1000,
+        0
+      ],
+      "b": [
+        5,
+        1000,
+        0
+      ],
+      "c": [
+        5,
+        0,
+        0.001
+      ]
+    },
+    {
+      "surface_id": "LONG-THIN-05",
+      "triangle_id": "THIN-TRI-05",
+      "kind": "same_building",
+      "a": [
+        5.25,
+        -1000,
+        0
+      ],
+      "b": [
+        5.25,
+        1000,
+        0
+      ],
+      "c": [
+        5.25,
+        0,
+        0.001
+      ]
+    },
+    {
+      "surface_id": "LONG-THIN-06",
+      "triangle_id": "THIN-TRI-06",
+      "kind": "same_building",
+      "a": [
+        5.5,
+        -1000,
+        0
+      ],
+      "b": [
+        5.5,
+        1000,
+        0
+      ],
+      "c": [
+        5.5,
+        0,
+        0.001
+      ]
+    },
+    {
+      "surface_id": "LONG-THIN-07",
+      "triangle_id": "THIN-TRI-07",
+      "kind": "same_building",
+      "a": [
+        5.75,
+        -1000,
+        0
+      ],
+      "b": [
+        5.75,
+        1000,
+        0
+      ],
+      "c": [
+        5.75,
+        0,
+        0.001
+      ]
+    },
+    {
+      "surface_id": "LONG-THIN-08",
+      "triangle_id": "THIN-TRI-08",
+      "kind": "same_building",
+      "a": [
+        6,
+        -1000,
+        0
+      ],
+      "b": [
+        6,
+        1000,
+        0
+      ],
+      "c": [
+        6,
+        0,
+        0.001
+      ]
+    },
+    {
+      "surface_id": "LONG-THIN-09",
+      "triangle_id": "THIN-TRI-09",
+      "kind": "same_building",
+      "a": [
+        6.25,
+        -1000,
+        0
+      ],
+      "b": [
+        6.25,
+        1000,
+        0
+      ],
+      "c": [
+        6.25,
+        0,
+        0.001
+      ]
+    },
+    {
+      "surface_id": "LONG-THIN-10",
+      "triangle_id": "THIN-TRI-10",
+      "kind": "same_building",
+      "a": [
+        6.5,
+        -1000,
+        0
+      ],
+      "b": [
+        6.5,
+        1000,
+        0
+      ],
+      "c": [
+        6.5,
+        0,
+        0.001
+      ]
+    },
+    {
+      "surface_id": "LONG-THIN-11",
+      "triangle_id": "THIN-TRI-11",
+      "kind": "same_building",
+      "a": [
+        6.75,
+        -1000,
+        0
+      ],
+      "b": [
+        6.75,
+        1000,
+        0
+      ],
+      "c": [
+        6.75,
+        0,
+        0.001
+      ]
+    },
+    {
+      "surface_id": "LONG-THIN-12",
+      "triangle_id": "THIN-TRI-12",
+      "kind": "same_building",
+      "a": [
+        7,
+        -1000,
+        0
+      ],
+      "b": [
+        7,
+        1000,
+        0
+      ],
+      "c": [
+        7,
+        0,
+        0.001
+      ]
+    },
+    {
+      "surface_id": "LONG-THIN-13",
+      "triangle_id": "THIN-TRI-13",
+      "kind": "same_building",
+      "a": [
+        7.25,
+        -1000,
+        0
+      ],
+      "b": [
+        7.25,
+        1000,
+        0
+      ],
+      "c": [
+        7.25,
+        0,
+        0.001
+      ]
+    },
+    {
+      "surface_id": "LONG-THIN-14",
+      "triangle_id": "THIN-TRI-14",
+      "kind": "same_building",
+      "a": [
+        7.5,
+        -1000,
+        0
+      ],
+      "b": [
+        7.5,
+        1000,
+        0
+      ],
+      "c": [
+        7.5,
+        0,
+        0.001
+      ]
+    },
+    {
+      "surface_id": "LONG-THIN-15",
+      "triangle_id": "THIN-TRI-15",
+      "kind": "same_building",
+      "a": [
+        7.75,
+        -1000,
+        0
+      ],
+      "b": [
+        7.75,
+        1000,
+        0
+      ],
+      "c": [
+        7.75,
+        0,
+        0.001
+      ]
+    }
+  ],
+  "rays": [
+    {
+      "ray_id": "RAY-DENSE-24-WAY-TIE",
+      "origin": [
+        0,
+        0,
+        0
+      ],
+      "direction": [
+        1,
+        0,
+        0
+      ],
+      "tnear_m": 0,
+      "tfar_m": 10,
+      "exclude_target": null,
+      "expected": {
+        "status": "hit",
+        "nearest_distance_m": 2,
+        "nearest_hits": [
+          [
+            "DENSE-OVERLAP-00",
+            "DENSE-TRI-00"
+          ],
+          [
+            "DENSE-OVERLAP-01",
+            "DENSE-TRI-01"
+          ],
+          [
+            "DENSE-OVERLAP-02",
+            "DENSE-TRI-02"
+          ],
+          [
+            "DENSE-OVERLAP-03",
+            "DENSE-TRI-03"
+          ],
+          [
+            "DENSE-OVERLAP-04",
+            "DENSE-TRI-04"
+          ],
+          [
+            "DENSE-OVERLAP-05",
+            "DENSE-TRI-05"
+          ],
+          [
+            "DENSE-OVERLAP-06",
+            "DENSE-TRI-06"
+          ],
+          [
+            "DENSE-OVERLAP-07",
+            "DENSE-TRI-07"
+          ],
+          [
+            "DENSE-OVERLAP-08",
+            "DENSE-TRI-08"
+          ],
+          [
+            "DENSE-OVERLAP-09",
+            "DENSE-TRI-09"
+          ],
+          [
+            "DENSE-OVERLAP-10",
+            "DENSE-TRI-10"
+          ],
+          [
+            "DENSE-OVERLAP-11",
+            "DENSE-TRI-11"
+          ],
+          [
+            "DENSE-OVERLAP-12",
+            "DENSE-TRI-12"
+          ],
+          [
+            "DENSE-OVERLAP-13",
+            "DENSE-TRI-13"
+          ],
+          [
+            "DENSE-OVERLAP-14",
+            "DENSE-TRI-14"
+          ],
+          [
+            "DENSE-OVERLAP-15",
+            "DENSE-TRI-15"
+          ],
+          [
+            "DENSE-OVERLAP-16",
+            "DENSE-TRI-16"
+          ],
+          [
+            "DENSE-OVERLAP-17",
+            "DENSE-TRI-17"
+          ],
+          [
+            "DENSE-OVERLAP-18",
+            "DENSE-TRI-18"
+          ],
+          [
+            "DENSE-OVERLAP-19",
+            "DENSE-TRI-19"
+          ],
+          [
+            "DENSE-OVERLAP-20",
+            "DENSE-TRI-20"
+          ],
+          [
+            "DENSE-OVERLAP-21",
+            "DENSE-TRI-21"
+          ],
+          [
+            "DENSE-OVERLAP-22",
+            "DENSE-TRI-22"
+          ],
+          [
+            "DENSE-OVERLAP-23",
+            "DENSE-TRI-23"
+          ]
+        ]
+      }
+    },
+    {
+      "ray_id": "RAY-LONG-THIN-NEAREST",
+      "origin": [
+        0,
+        10,
+        0.0002
+      ],
+      "direction": [
+        1,
+        0,
+        0
+      ],
+      "tnear_m": 0,
+      "tfar_m": 10,
+      "exclude_target": null,
+      "expected": {
+        "status": "hit",
+        "nearest_distance_m": 4,
+        "nearest_hits": [
+          [
+            "LONG-THIN-00",
+            "THIN-TRI-00"
+          ]
+        ]
+      }
+    },
+    {
+      "ray_id": "RAY-LONG-THIN-NEAR-CLIPPED",
+      "origin": [
+        0,
+        10,
+        0.0002
+      ],
+      "direction": [
+        1,
+        0,
+        0
+      ],
+      "tnear_m": 4.1,
+      "tfar_m": 10,
+      "exclude_target": null,
+      "expected": {
+        "status": "hit",
+        "nearest_distance_m": 4.25,
+        "nearest_hits": [
+          [
+            "LONG-THIN-01",
+            "THIN-TRI-01"
+          ]
+        ]
+      }
+    }
+  ]
+}
