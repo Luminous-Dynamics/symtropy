@@ -21,20 +21,29 @@
         "status": "qualified",
         "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
         "independence": "independent",
-        "independent_reference_lineage_ids": ["reference-a", "reference-b"],
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
         "minimum_independent_lineages": 2
       },
       "measurement": {
         "value_m": 2.5,
         "standard_uncertainty_m": 0.003,
-        "coverage_factor": 2.0,
+        "coverage_factor": 2,
         "coverage_probability": 0.95,
         "uncertainty_method_id": "synthetic-known-answer-v1",
         "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
         "unit": "metre"
       },
-      "task": {"task_id": "coarse-layout", "maximum_expanded_uncertainty_m": 0.02},
-      "expected": {"overall_disposition": "pass", "reason_codes": []}
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_expanded_uncertainty_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "pass",
+        "reason_codes": []
+      }
     },
     {
       "case_id": "visible_but_not_captured",
@@ -54,12 +63,23 @@
         "status": "qualified",
         "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
         "independence": "independent",
-        "independent_reference_lineage_ids": ["reference-a", "reference-b"],
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
         "minimum_independent_lineages": 2
       },
       "measurement": null,
-      "task": {"task_id": "coarse-layout", "maximum_expanded_uncertainty_m": 0.02},
-      "expected": {"overall_disposition": "fail", "reason_codes": ["OBSERVATION_NOT_CAPTURED"]}
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_expanded_uncertainty_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "fail",
+        "reason_codes": [
+          "OBSERVATION_NOT_CAPTURED"
+        ]
+      }
     },
     {
       "case_id": "self_occluded",
@@ -79,12 +99,24 @@
         "status": "qualified",
         "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
         "independence": "independent",
-        "independent_reference_lineage_ids": ["reference-a", "reference-b"],
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
         "minimum_independent_lineages": 2
       },
       "measurement": null,
-      "task": {"task_id": "coarse-layout", "maximum_expanded_uncertainty_m": 0.02},
-      "expected": {"overall_disposition": "fail", "reason_codes": ["GEOMETRICALLY_SELF_OCCLUDED", "OBSERVATION_NOT_CAPTURED"]}
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_expanded_uncertainty_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "fail",
+        "reason_codes": [
+          "GEOMETRICALLY_SELF_OCCLUDED",
+          "OBSERVATION_NOT_CAPTURED"
+        ]
+      }
     },
     {
       "case_id": "calibration_missing_unresolved",
@@ -104,20 +136,31 @@
         "status": "qualified",
         "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
         "independence": "independent",
-        "independent_reference_lineage_ids": ["reference-a", "reference-b"],
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
         "minimum_independent_lineages": 2
       },
       "measurement": {
         "value_m": 1.25,
         "standard_uncertainty_m": 0.001,
-        "coverage_factor": 2.0,
+        "coverage_factor": 2,
         "coverage_probability": 0.95,
         "uncertainty_method_id": "synthetic-known-answer-v1",
         "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
         "unit": "metre"
       },
-      "task": {"task_id": "coarse-layout", "maximum_expanded_uncertainty_m": 0.02},
-      "expected": {"overall_disposition": "unresolved", "reason_codes": ["CALIBRATION_MISSING"]}
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_expanded_uncertainty_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "unresolved",
+        "reason_codes": [
+          "CALIBRATION_MISSING"
+        ]
+      }
     },
     {
       "case_id": "out_of_domain_unresolved",
@@ -137,20 +180,31 @@
         "status": "qualified",
         "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
         "independence": "independent",
-        "independent_reference_lineage_ids": ["reference-a", "reference-b"],
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
         "minimum_independent_lineages": 2
       },
       "measurement": {
-        "value_m": 3.0,
+        "value_m": 3,
         "standard_uncertainty_m": 0.001,
-        "coverage_factor": 2.0,
+        "coverage_factor": 2,
         "coverage_probability": 0.95,
         "uncertainty_method_id": "synthetic-known-answer-v1",
         "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
         "unit": "metre"
       },
-      "task": {"task_id": "coarse-layout", "maximum_expanded_uncertainty_m": 0.02},
-      "expected": {"overall_disposition": "unresolved", "reason_codes": ["SENSOR_OPERATING_DOMAIN_OUT_OF_DOMAIN"]}
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_expanded_uncertainty_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "unresolved",
+        "reason_codes": [
+          "SENSOR_OPERATING_DOMAIN_OUT_OF_DOMAIN"
+        ]
+      }
     },
     {
       "case_id": "duplicate_reference_lineage",
@@ -170,20 +224,31 @@
         "status": "qualified",
         "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
         "independence": "independent",
-        "independent_reference_lineage_ids": ["reference-a", "reference-a"],
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-a"
+        ],
         "minimum_independent_lineages": 2
       },
       "measurement": {
-        "value_m": 2.0,
+        "value_m": 2,
         "standard_uncertainty_m": 0.001,
-        "coverage_factor": 2.0,
+        "coverage_factor": 2,
         "coverage_probability": 0.95,
         "uncertainty_method_id": "synthetic-known-answer-v1",
         "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
         "unit": "metre"
       },
-      "task": {"task_id": "coarse-layout", "maximum_expanded_uncertainty_m": 0.02},
-      "expected": {"overall_disposition": "unresolved", "reason_codes": ["DUPLICATE_REFERENCE_LINEAGE_NOT_INDEPENDENT"]}
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_expanded_uncertainty_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "unresolved",
+        "reason_codes": [
+          "DUPLICATE_REFERENCE_LINEAGE_NOT_INDEPENDENT"
+        ]
+      }
     },
     {
       "case_id": "coarse_layout_pass",
@@ -203,20 +268,29 @@
         "status": "qualified",
         "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
         "independence": "independent",
-        "independent_reference_lineage_ids": ["reference-a", "reference-b"],
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
         "minimum_independent_lineages": 2
       },
       "measurement": {
-        "value_m": 4.0,
+        "value_m": 4,
         "standard_uncertainty_m": 0.003,
-        "coverage_factor": 2.0,
+        "coverage_factor": 2,
         "coverage_probability": 0.95,
         "uncertainty_method_id": "synthetic-known-answer-v1",
         "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
         "unit": "metre"
       },
-      "task": {"task_id": "coarse-layout", "maximum_expanded_uncertainty_m": 0.02},
-      "expected": {"overall_disposition": "pass", "reason_codes": []}
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_expanded_uncertainty_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "pass",
+        "reason_codes": []
+      }
     },
     {
       "case_id": "tight_installation_fail",
@@ -236,20 +310,31 @@
         "status": "qualified",
         "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
         "independence": "independent",
-        "independent_reference_lineage_ids": ["reference-a", "reference-b"],
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
         "minimum_independent_lineages": 2
       },
       "measurement": {
-        "value_m": 4.0,
+        "value_m": 4,
         "standard_uncertainty_m": 0.003,
-        "coverage_factor": 2.0,
+        "coverage_factor": 2,
         "coverage_probability": 0.95,
         "uncertainty_method_id": "synthetic-known-answer-v1",
         "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
         "unit": "metre"
       },
-      "task": {"task_id": "tight-installation", "maximum_expanded_uncertainty_m": 0.004},
-      "expected": {"overall_disposition": "fail", "reason_codes": ["TASK_TOLERANCE_EXCEEDED"]}
+      "task": {
+        "task_id": "tight-installation",
+        "maximum_expanded_uncertainty_m": 0.004
+      },
+      "expected": {
+        "overall_disposition": "fail",
+        "reason_codes": [
+          "TASK_TOLERANCE_EXCEEDED"
+        ]
+      }
     },
     {
       "case_id": "unknown_visibility_and_observation",
@@ -273,8 +358,17 @@
         "minimum_independent_lineages": 2
       },
       "measurement": null,
-      "task": {"task_id": "coarse-layout", "maximum_expanded_uncertainty_m": 0.02},
-      "expected": {"overall_disposition": "unresolved", "reason_codes": ["OBSERVATION_UNKNOWN", "VISIBILITY_UNKNOWN"]}
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_expanded_uncertainty_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "unresolved",
+        "reason_codes": [
+          "OBSERVATION_UNKNOWN",
+          "VISIBILITY_UNKNOWN"
+        ]
+      }
     },
     {
       "case_id": "capture_conflicts_with_occlusion",
@@ -294,20 +388,32 @@
         "status": "qualified",
         "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
         "independence": "independent",
-        "independent_reference_lineage_ids": ["reference-a", "reference-b"],
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
         "minimum_independent_lineages": 2
       },
       "measurement": {
-        "value_m": 1.0,
+        "value_m": 1,
         "standard_uncertainty_m": 0.001,
-        "coverage_factor": 2.0,
+        "coverage_factor": 2,
         "coverage_probability": 0.95,
         "uncertainty_method_id": "synthetic-known-answer-v1",
         "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
         "unit": "metre"
       },
-      "task": {"task_id": "coarse-layout", "maximum_expanded_uncertainty_m": 0.02},
-      "expected": {"overall_disposition": "fail", "reason_codes": ["CAPTURE_CONFLICTS_WITH_VISIBILITY", "GEOMETRICALLY_EXTERNALLY_OCCLUDED"]}
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_expanded_uncertainty_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "fail",
+        "reason_codes": [
+          "CAPTURE_CONFLICTS_WITH_VISIBILITY",
+          "GEOMETRICALLY_EXTERNALLY_OCCLUDED"
+        ]
+      }
     },
     {
       "case_id": "invalid_measurement_uncertainty",
@@ -327,20 +433,31 @@
         "status": "qualified",
         "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
         "independence": "independent",
-        "independent_reference_lineage_ids": ["reference-a", "reference-b"],
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
         "minimum_independent_lineages": 2
       },
       "measurement": {
-        "value_m": 1.0,
+        "value_m": 1,
         "standard_uncertainty_m": -0.001,
-        "coverage_factor": 2.0,
+        "coverage_factor": 2,
         "coverage_probability": 0.95,
         "uncertainty_method_id": "synthetic-known-answer-v1",
         "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
         "unit": "metre"
       },
-      "task": {"task_id": "coarse-layout", "maximum_expanded_uncertainty_m": 0.02},
-      "expected": {"overall_disposition": "fail", "reason_codes": ["INVALID_MEASUREMENT_UNCERTAINTY"]}
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_expanded_uncertainty_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "fail",
+        "reason_codes": [
+          "INVALID_MEASUREMENT_UNCERTAINTY"
+        ]
+      }
     },
     {
       "case_id": "correlated_reference_lineages",
@@ -360,20 +477,31 @@
         "status": "qualified",
         "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
         "independence": "correlated",
-        "independent_reference_lineage_ids": ["reference-a", "reference-b"],
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
         "minimum_independent_lineages": 2
       },
       "measurement": {
-        "value_m": 1.0,
+        "value_m": 1,
         "standard_uncertainty_m": 0.001,
-        "coverage_factor": 2.0,
+        "coverage_factor": 2,
         "coverage_probability": 0.95,
         "uncertainty_method_id": "synthetic-known-answer-v1",
         "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
         "unit": "metre"
       },
-      "task": {"task_id": "coarse-layout", "maximum_expanded_uncertainty_m": 0.02},
-      "expected": {"overall_disposition": "unresolved", "reason_codes": ["REFERENCE_LINEAGES_CORRELATED"]}
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_expanded_uncertainty_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "unresolved",
+        "reason_codes": [
+          "REFERENCE_LINEAGES_CORRELATED"
+        ]
+      }
     },
     {
       "case_id": "stale_calibration_unresolved",
@@ -393,20 +521,221 @@
         "status": "qualified",
         "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
         "independence": "independent",
-        "independent_reference_lineage_ids": ["reference-a", "reference-b"],
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
         "minimum_independent_lineages": 2
       },
       "measurement": {
-        "value_m": 1.0,
+        "value_m": 1,
         "standard_uncertainty_m": 0.001,
-        "coverage_factor": 2.0,
+        "coverage_factor": 2,
         "coverage_probability": 0.95,
         "uncertainty_method_id": "synthetic-known-answer-v1",
         "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
         "unit": "metre"
       },
-      "task": {"task_id": "coarse-layout", "maximum_expanded_uncertainty_m": 0.02},
-      "expected": {"overall_disposition": "unresolved", "reason_codes": ["CALIBRATION_STALE"]}
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_expanded_uncertainty_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "unresolved",
+        "reason_codes": [
+          "CALIBRATION_STALE"
+        ]
+      }
+    },
+    {
+      "case_id": "invalid_calibration",
+      "building_group_id": "synthetic-building-a",
+      "capture_group_id": "capture-01",
+      "visibility": "observable",
+      "observation": "captured",
+      "sensor": {
+        "sensor_id": "tls-synthetic-01",
+        "profile_id": "tls-profile-synthetic-v1",
+        "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "calibration_status": "invalid",
+        "calibration_evidence_sha256": null,
+        "applicability": "in_domain"
+      },
+      "validation": {
+        "status": "qualified",
+        "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "independence": "independent",
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
+        "minimum_independent_lineages": 2
+      },
+      "measurement": {
+        "value_m": 2.5,
+        "standard_uncertainty_m": 0.003,
+        "coverage_factor": 2,
+        "coverage_probability": 0.95,
+        "uncertainty_method_id": "synthetic-known-answer-v1",
+        "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "unit": "metre"
+      },
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_expanded_uncertainty_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "fail",
+        "reason_codes": [
+          "CALIBRATION_INVALID"
+        ]
+      }
+    },
+    {
+      "case_id": "outside_sensor_coverage",
+      "building_group_id": "synthetic-building-a",
+      "capture_group_id": "capture-01",
+      "visibility": "outside_sensor_coverage",
+      "observation": "not_captured",
+      "sensor": {
+        "sensor_id": "tls-synthetic-01",
+        "profile_id": "tls-profile-synthetic-v1",
+        "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "calibration_status": "qualified",
+        "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "applicability": "in_domain"
+      },
+      "validation": {
+        "status": "qualified",
+        "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "independence": "independent",
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
+        "minimum_independent_lineages": 2
+      },
+      "measurement": null,
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_expanded_uncertainty_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "fail",
+        "reason_codes": [
+          "OBSERVATION_NOT_CAPTURED",
+          "OUTSIDE_SENSOR_COVERAGE"
+        ]
+      }
+    },
+    {
+      "case_id": "mixed_return_unresolved",
+      "building_group_id": "synthetic-building-a",
+      "capture_group_id": "capture-01",
+      "visibility": "observable",
+      "observation": "mixed_return",
+      "sensor": {
+        "sensor_id": "tls-synthetic-01",
+        "profile_id": "tls-profile-synthetic-v1",
+        "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "calibration_status": "qualified",
+        "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "applicability": "in_domain"
+      },
+      "validation": {
+        "status": "qualified",
+        "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "independence": "independent",
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
+        "minimum_independent_lineages": 2
+      },
+      "measurement": null,
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_expanded_uncertainty_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "unresolved",
+        "reason_codes": [
+          "OBSERVATION_MIXED_RETURN"
+        ]
+      }
+    },
+    {
+      "case_id": "captured_without_measurement",
+      "building_group_id": "synthetic-building-a",
+      "capture_group_id": "capture-01",
+      "visibility": "observable",
+      "observation": "captured",
+      "sensor": {
+        "sensor_id": "tls-synthetic-01",
+        "profile_id": "tls-profile-synthetic-v1",
+        "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "calibration_status": "qualified",
+        "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "applicability": "in_domain"
+      },
+      "validation": {
+        "status": "qualified",
+        "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "independence": "independent",
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
+        "minimum_independent_lineages": 2
+      },
+      "measurement": null,
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_expanded_uncertainty_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "fail",
+        "reason_codes": [
+          "CAPTURED_MEASUREMENT_MISSING"
+        ]
+      }
+    },
+    {
+      "case_id": "contradictory_visibility",
+      "building_group_id": "synthetic-building-a",
+      "capture_group_id": "capture-01",
+      "visibility": "contradictory",
+      "observation": "unknown",
+      "sensor": {
+        "sensor_id": "tls-synthetic-01",
+        "profile_id": "tls-profile-synthetic-v1",
+        "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "calibration_status": "qualified",
+        "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "applicability": "in_domain"
+      },
+      "validation": {
+        "status": "qualified",
+        "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "independence": "independent",
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
+        "minimum_independent_lineages": 2
+      },
+      "measurement": null,
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_expanded_uncertainty_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "unresolved",
+        "reason_codes": [
+          "OBSERVATION_UNKNOWN",
+          "VISIBILITY_CONTRADICTORY"
+        ]
+      }
     }
   ]
 }
