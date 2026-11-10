@@ -321,6 +321,13 @@ fn validate_receipt(receipt: &TreasurySnapshotReceipt) -> Result<(), TreasuryInt
     {
         return Err(TreasuryIntakeError::AuditedActualMissingOpinionDigest);
     }
+    if receipt
+        .audit_opinion_source_digest
+        .as_deref()
+        .is_some_and(|digest| !nonempty(digest))
+    {
+        return Err(TreasuryIntakeError::OpinionWithoutSourceDigest);
+    }
     Ok(())
 }
 
