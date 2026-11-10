@@ -558,20 +558,41 @@ mod tests {
     }
 
     #[test]
-    fn source_response_has_bounded_pre_front_leakage() {
+    fn source_response_has_bounded_far_pre_front_leakage() {
         let value = config(0.1, 0.0025, 0.75);
         let waveform = evolve(value).unwrap();
+        // This deliberately early sentinel is not the full physical-front
+        // leakage measurement recorded in the run manifest.
         let relative_leakage = waveform.max_abs_before(2.5) / waveform.max_abs();
         assert!(
             relative_leakage <= 1.0e-6,
-            "relative pre-front leakage={relative_leakage:e}"
+            "far-pre-front leakage={relative_leakage:e}"
         );
 
-        let finer = evolve(config(0.05, 0.0025, 0.75)).unwrap();
+        let finer_value = config(0.05, 0.0025, 0.75);
+        let finer = evolve(finer_value).unwrap();
         let finer_relative_leakage = finer.max_abs_before(2.5) / finer.max_abs();
         assert!(
             finer_relative_leakage < relative_leakage,
-            "pre-front leakage did not decrease under spatial refinement: coarse={relative_leakage:e}, fine={finer_relative_leakage:e}"
+            "far-pre-front leakage did not decrease under spatial refinement: coarse={relative_leakage:e}, fine={finer_relative_leakage:e}"
+        );
+
+        // Also qualify the complete interval up to the physical first arrival.
+        // A finite-grid method-of-lines/RK4 scheme is not exactly causal, so
+        // this measures and bounds the numerical precursor rather than
+        // asserting that it is identically zero.
+        let first_arrival = value.first_physical_arrival();
+        let coarse_front_leakage = waveform.max_abs_before(first_arrival) / waveform.max_abs();
+        assert!(
+            coarse_front_leakage <= 1.0e-2,
+            "full pre-front leakage through t={first_arrival:e} is too large: {coarse_front_leakage:e}"
+        );
+
+        let finer_first_arrival = finer_value.first_physical_arrival();
+        let finer_front_leakage = finer.max_abs_before(finer_first_arrival) / finer.max_abs();
+        assert!(
+            finer_front_leakage < 0.5 * coarse_front_leakage,
+            "full pre-front leakage did not sufficiently decrease under spatial refinement: coarse={coarse_front_leakage:e}, fine={finer_front_leakage:e}"
         );
     }
 
