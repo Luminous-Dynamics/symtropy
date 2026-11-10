@@ -271,84 +271,27 @@ pub fn replay(
                 snapshots,
             ));
         }
-        if state.actuator_authority_ppm < event.minimum_authority_required_ppm {
-            return Ok(stopped(
-                MissionStatus::Rejected,
-                StopReason::InsufficientActuatorAuthority,
-                Some(event.event_id.clone()),
-                &state,
-                snapshots,
-            ));
-        }
-        if event.battery_energy_cost_mwh > state.soc_mwh {
-            return Ok(stopped(
-                MissionStatus::Rejected,
-                StopReason::InsufficientBatteryEnergy,
-                Some(event.event_id.clone()),
-                &state,
-                snapshots,
-            ));
-        }
-        if event.recovery_budget_cost_mwh > state.recovery_budget_mwh {
-            return Ok(stopped(
-                MissionStatus::Rejected,
-                StopReason::InsufficientRecoveryBudget,
-                Some(event.event_id.clone()),
-                &state,
-                snapshots,
-            ));
-        }
-        if event.thermal_headroom_loss_mj > state.thermal_headroom_mj {
+        // Apply the observed physical disturbance before evaluating the
+        // compensating action. A rejected action must not erase the fault.
+        let mut next = state.clone();
+        next.current_tick = event.event_tick;
+        next.actuator_authority_ppm = next
+            .actuator_authority_ppm
+            .saturating_sub(event.actuator_authority_loss_ppm);
+        if event.thermal_headroom_loss_mj > next.thermal_headroom_mj {
+            next.thermal_headroom_mj = 0;
             return Ok(stopped(
                 MissionStatus::Rejected,
                 StopReason::ThermalHeadroomExhausted,
                 Some(event.event_id.clone()),
-                &state,
+                &next,
                 snapshots,
             ));
         }
-
-        // Build a candidate state and commit it only after all exact arithmetic
-        // and receipt checks for this event have passed.
-        let mut next = state.clone();
-        next.soc_mwh -= event.battery_energy_cost_mwh;
-        next.recovery_budget_mwh -= event.recovery_budget_cost_mwh;
         next.thermal_headroom_mj -= event.thermal_headroom_loss_mj;
-        next.thermal_headroom_mj = next
-            .thermal_headroom_mj
-            .checked_add(event.thermal_cooling_gain_mj)
-            .ok_or_else(|| MissionError::ThermalCapacityExceeded(event.event_id.clone()))?;
-        if next.thermal_headroom_mj > next.thermal_capacity_mj {
-            return Err(MissionError::ThermalCapacityExceeded(
-                event.event_id.clone(),
-            ));
-        }
-        next.actuator_authority_ppm = next
-            .actuator_authority_ppm
-            .saturating_sub(event.actuator_authority_loss_ppm);
-        next.current_tick = event.event_tick;
 
-        if let Some(receipt) = &event.measured_authority_after_event {
-            if receipt.receipt_ref.trim().is_empty()
-                || receipt.context_digest != state.context_digest
-                || receipt.valid_through_tick < event.event_tick
-            {
-                return Ok(stopped(
-                    MissionStatus::Unknown,
-                    StopReason::RequalificationEvidenceUnknown,
-                    Some(event.event_id.clone()),
-                    &next,
-                    snapshots,
-                ));
-            }
-            if receipt.measured_authority_ppm > MAX_AUTHORITY_PPM {
-                return Err(MissionError::InvalidRequalificationAuthority(
-                    event.event_id.clone(),
-                ));
-            }
-            next.actuator_authority_ppm = receipt.measured_authority_ppm;
-        }
-
+        // A fault may change recoverability even when the proposed action
+        // cannot be executed. Require a fresh post-event topology receipt.
         match &event.topology_update {
             TopologyUpdate::Unchanged {
                 receipt_ref,
@@ -398,16 +341,6 @@ pub fn replay(
                 ));
             }
         }
-
-        if next.soc_mwh < next.terminal_safe_stop_required_energy_mwh {
-            return Ok(stopped(
-                MissionStatus::Rejected,
-                StopReason::TerminalSafeStopReserveInsufficient,
-                Some(event.event_id.clone()),
-                &next,
-                snapshots,
-            ));
-        }
         if next.independent_recovery_routes < next.minimum_independent_recovery_routes {
             return Ok(stopped(
                 MissionStatus::Rejected,
@@ -418,6 +351,78 @@ pub fn replay(
             ));
         }
 
+        if next.actuator_authority_ppm < event.minimum_authority_required_ppm {
+            return Ok(stopped(
+                MissionStatus::Rejected,
+                StopReason::InsufficientActuatorAuthority,
+                Some(event.event_id.clone()),
+                &next,
+                snapshots,
+            ));
+        }
+        if event.battery_energy_cost_mwh > next.soc_mwh {
+            return Ok(stopped(
+                MissionStatus::Rejected,
+                StopReason::InsufficientBatteryEnergy,
+                Some(event.event_id.clone()),
+                &next,
+                snapshots,
+            ));
+        }
+        if event.recovery_budget_cost_mwh > next.recovery_budget_mwh {
+            return Ok(stopped(
+                MissionStatus::Rejected,
+                StopReason::InsufficientRecoveryBudget,
+                Some(event.event_id.clone()),
+                &next,
+                snapshots,
+            ));
+        }
+
+        // Debit action costs only when the requested action is admitted. The
+        // observed fault state above is retained if action admission fails.
+        next.soc_mwh -= event.battery_energy_cost_mwh;
+        next.recovery_budget_mwh -= event.recovery_budget_cost_mwh;
+        next.thermal_headroom_mj = next
+            .thermal_headroom_mj
+            .checked_add(event.thermal_cooling_gain_mj)
+            .ok_or_else(|| MissionError::ThermalCapacityExceeded(event.event_id.clone()))?;
+        if next.thermal_headroom_mj > next.thermal_capacity_mj {
+            return Err(MissionError::ThermalCapacityExceeded(
+                event.event_id.clone(),
+            ));
+        }
+
+        if let Some(receipt) = &event.measured_authority_after_event {
+            if receipt.receipt_ref.trim().is_empty()
+                || receipt.context_digest != state.context_digest
+                || receipt.valid_through_tick < event.event_tick
+            {
+                return Ok(stopped(
+                    MissionStatus::Unknown,
+                    StopReason::RequalificationEvidenceUnknown,
+                    Some(event.event_id.clone()),
+                    &next,
+                    snapshots,
+                ));
+            }
+            if receipt.measured_authority_ppm > MAX_AUTHORITY_PPM {
+                return Err(MissionError::InvalidRequalificationAuthority(
+                    event.event_id.clone(),
+                ));
+            }
+            next.actuator_authority_ppm = receipt.measured_authority_ppm;
+        }
+
+        if next.soc_mwh < next.terminal_safe_stop_required_energy_mwh {
+            return Ok(stopped(
+                MissionStatus::Rejected,
+                StopReason::TerminalSafeStopReserveInsufficient,
+                Some(event.event_id.clone()),
+                &next,
+                snapshots,
+            ));
+        }
         snapshots.push(MissionSnapshot {
             event_id: event.event_id.clone(),
             tick: event.event_tick,
@@ -546,10 +551,28 @@ mod tests {
         assert_eq!(report.snapshots.len(), 1);
     }
 
+
+    #[test]
+    fn fault_state_is_retained_when_compensation_is_not_admitted() {
+        let mut fault = event("severe-derate", 1);
+        fault.actuator_authority_loss_ppm = 400_000;
+        fault.minimum_authority_required_ppm = 700_000;
+        fault.battery_energy_cost_mwh = 50;
+        let report = replay(&initial(), &[fault]).unwrap();
+        assert_eq!(report.status, MissionStatus::Rejected);
+        assert_eq!(
+            report.stop_reason,
+            Some(StopReason::InsufficientActuatorAuthority)
+        );
+        assert_eq!(report.final_state.actuator_authority_ppm, 600_000);
+        assert_eq!(report.final_state.soc_mwh, 1_000);
+    }
+
     #[test]
     fn cooling_does_not_restore_actuator_authority() {
         let mut derate = event("derate", 1);
         derate.actuator_authority_loss_ppm = 300_000;
+        derate.thermal_headroom_loss_mj = 100;
         let mut cooldown = event("cooldown", 2);
         cooldown.thermal_cooling_gain_mj = 100;
         let report = replay(&initial(), &[derate, cooldown]).unwrap();
@@ -560,6 +583,8 @@ mod tests {
 
     #[test]
     fn actuator_authority_cannot_be_restored_without_a_qualified_receipt() {
+        let mut state = initial();
+        state.actuator_authority_ppm = 700_000;
         let mut repair = event("unqualified-repair", 1);
         repair.actuator_authority_loss_ppm = 0;
         repair.measured_authority_after_event = Some(AuthorityRequalification {
@@ -568,13 +593,13 @@ mod tests {
             valid_through_tick: 1_000,
             measured_authority_ppm: MAX_AUTHORITY_PPM,
         });
-        let report = replay(&initial(), &[repair]).unwrap();
+        let report = replay(&state, &[repair]).unwrap();
         assert_eq!(report.status, MissionStatus::Unknown);
         assert_eq!(
             report.stop_reason,
             Some(StopReason::RequalificationEvidenceUnknown)
         );
-        assert_eq!(report.final_state.actuator_authority_ppm, MAX_AUTHORITY_PPM);
+        assert_eq!(report.final_state.actuator_authority_ppm, 700_000);
     }
 
     #[test]
