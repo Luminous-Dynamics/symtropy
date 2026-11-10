@@ -264,7 +264,7 @@
           "revision_date": "2012-03",
           "effective_from_utc": null,
           "effective_until_utc": "2027-01-01T00:00:00Z",
-          "status": "current_at_cutoff",
+          "status": "applicable_for_subject_effectivity",
           "source_ref": "https://iacs.org.uk/resolutions/unified-requirements/ur-w/ur-w28-rev2-cln"
         },
         "future_ruleset": {
@@ -272,9 +272,11 @@
           "revision": "Rev.3",
           "revision_date": "2025-09",
           "effective_from_utc": "2027-01-01T00:00:00Z",
-          "status": "future_not_effective",
+          "status": "future_for_subject_effectivity",
           "source_ref": "https://iacs.org.uk/resolutions/unified-requirements/ur-w/ur-w28-rev2-cln"
-        }
+        },
+        "subject_applicability_date_utc": "2026-11-10T03:59:00Z",
+        "source_retrieved_at_utc": "2026-11-10T03:55:00Z"
       }
     }
   },
@@ -849,7 +851,7 @@
         {
           "path": "normative_context.applicable_ruleset.status",
           "op": "set",
-          "value": "future_not_effective"
+          "value": "future_for_subject_effectivity"
         }
       ],
       "expected_code": "FUTURE_RULESET_NOT_EFFECTIVE"
@@ -901,6 +903,30 @@
         }
       ],
       "expected_code": "TWIN_UPDATE_FREQUENCY_EXCEEDED"
+    },
+    {
+      "id": "w28_rev2_not_applicable_to_subject_built_after_2027_transition",
+      "base": "valid_robotic_weld",
+      "mutations": [
+        {
+          "path": "normative_context.subject_applicability_date_utc",
+          "op": "set",
+          "value": "2027-01-01T00:00:00Z"
+        }
+      ],
+      "expected_code": "RULESET_EXPIRED_FOR_SUBJECT_EFFECTIVITY"
+    },
+    {
+      "id": "normative_source_retrieved_after_decision_cutoff",
+      "base": "valid_robotic_weld",
+      "mutations": [
+        {
+          "path": "normative_context.source_retrieved_at_utc",
+          "op": "set",
+          "value": "2026-11-10T04:30:00Z"
+        }
+      ],
+      "expected_code": "NORMATIVE_CONTEXT_RETRIEVED_AFTER_DECISION_CUTOFF"
     }
   ]
 }
