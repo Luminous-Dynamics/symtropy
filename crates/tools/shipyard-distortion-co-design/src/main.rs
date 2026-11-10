@@ -38,6 +38,17 @@ fn string_list(value: &Value, key: &str) -> Option<Vec<&str>> {
 }
 
 fn evaluate_case(case: &Value) -> &'static str {
+    for field in ["panel_id", "panel_revision"] {
+        if str_at(case, field).is_none_or(str::is_empty) {
+            return "BLOCK_CONFIGURATION";
+        }
+    }
+    for field in ["fixture_id", "fixture_revision"] {
+        if str_at(case, field).is_none_or(str::is_empty) {
+            return "BLOCK_FIXTURE_LIMIT";
+        }
+    }
+
     let Some(tasks) = string_list(case, "weld_tasks") else {
         return "BLOCK_SEQUENCE";
     };
@@ -101,8 +112,19 @@ fn evaluate_case(case: &Value) -> &'static str {
     let Some(last_release) = release_events.last() else {
         return "BLOCK_RELEASE_STATE";
     };
+    let mut previous_order = None;
+    for event in release_events {
+        let Some(order) = number_at(event, "event_order") else {
+            return "BLOCK_RELEASE_STATE";
+        };
+        if previous_order.is_some_and(|previous| order <= previous) {
+            return "BLOCK_RELEASE_STATE";
+        }
+        previous_order = Some(order);
+    }
     if bool_at(last_release, "cooling_complete") != Some(true)
         || bool_at(last_release, "all_restraints_removed") != Some(true)
+        || str_at(last_release, "state_after") != Some("fully_released")
     {
         return "BLOCK_RELEASE_STATE";
     }
@@ -110,10 +132,14 @@ fn evaluate_case(case: &Value) -> &'static str {
     let Some(measurement) = case.get("final_measurement").filter(|v| !v.is_null()) else {
         return "BLOCK_FINAL_MEASUREMENT";
     };
-    if str_at(measurement, "phase") != Some("final_free_state")
+    if str_at(measurement, "panel_id") != str_at(case, "panel_id")
+        || str_at(measurement, "panel_revision") != str_at(case, "panel_revision")
+        || str_at(measurement, "fixture_id") != str_at(case, "fixture_id")
+        || str_at(measurement, "phase") != Some("final_free_state")
         || bool_at(measurement, "cooling_complete") != Some(true)
         || bool_at(measurement, "restraints_removed") != Some(true)
         || str_at(measurement, "datum_id").is_none_or(str::is_empty)
+        || str_at(measurement, "coordinate_frame").is_none_or(str::is_empty)
         || bool_at(measurement, "uncertainty_present") != Some(true)
         || str_at(measurement, "evidence_class") != Some("synthetic_contract")
     {
@@ -123,7 +149,9 @@ fn evaluate_case(case: &Value) -> &'static str {
     let Some(model) = case.get("model") else {
         return "BLOCK_MODEL_SCOPE";
     };
-    if str_at(model, "scope") != Some("synthetic_toy")
+    if str_at(model, "model_id").is_none_or(str::is_empty)
+        || str_at(model, "model_revision").is_none_or(str::is_empty)
+        || str_at(model, "scope") != Some("synthetic_toy")
         || str_at(model, "validation_state") != Some("synthetic_contract_only")
         || bool_at(model, "out_of_domain") != Some(false)
         || bool_at(model, "physical_claim") != Some(false)
@@ -190,8 +218,8 @@ fn validate_manifest(schema_text: &str, corpus_text: &str) -> Result<Summary, Ve
     let Some(cases) = corpus.get("cases").and_then(Value::as_array) else {
         return Err(vec!["cases must be an array".to_owned()]);
     };
-    if cases.len() != 27 {
-        errors.push(format!("v0.1 requires 27 cases, found {}", cases.len()));
+    if cases.len() != 31 {
+        errors.push(format!("v0.1 requires 31 cases, found {}", cases.len()));
     }
 
     let mut ids = HashSet::new();
@@ -238,9 +266,9 @@ fn validate_manifest(schema_text: &str, corpus_text: &str) -> Result<Summary, Ve
         }
     }
 
-    if positive != 2 || negative != 25 {
+    if positive != 2 || negative != 29 {
         errors.push(format!(
-            "v0.1 requires 2 positive and 25 negative controls; got {positive}/{negative}"
+            "v0.1 requires 2 positive and 29 negative controls; got {positive}/{negative}"
         ));
     }
 
@@ -282,7 +310,7 @@ fn main() -> ExitCode {
     match validate_manifest(&schema_text, &corpus_text) {
         Ok(summary) => {
             println!(
-                "PASS: {cases} cases ({positive} positive / {negative} negative); no physical prediction claimed",
+                "PASS: {cases} cases ({positive} positive / {negative} negative); fixture/panel identity bound; no physical prediction claimed",
                 cases = summary.cases,
                 positive = summary.positive,
                 negative = summary.negative
@@ -318,9 +346,9 @@ mod tests {
         assert_eq!(
             summary,
             Summary {
-                cases: 27,
+                cases: 31,
                 positive: 2,
-                negative: 25,
+                negative: 29,
             }
         );
     }
