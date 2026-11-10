@@ -63,3 +63,16 @@ Assistance disclosure is not a cosmetic label: a PolicyOnly record cannot contai
 The paired-control check requires identical protocol, task/scene/seed/split/stage roster, embodiment, action executor, environment, resource budget, evidence class and policy-visible observation manifest. Only the declared policy variant/checkpoint/assistance may differ. This is an identity check, not a statistical significance test. The per-arm episode IDs may differ: pairing is by the frozen task instance, scene identity, seed, split, expected stage roster and shared control manifests—not by reusing the same run ID.
 
 This module is a typed Rust validation contract only. It does not yet parse the upstream RoboCasa-Mem HDF5/Python export, run policies, compute the official macro aggregation, authenticate evidence digests, or verify that the upstream task/evaluator/dataset release has been pinned. See [VIS-MEM-029 #4414](https://github.com/Luminous-Dynamics/symtropy/issues/4414).
+
+
+## Operation-level memory fidelity (Storage / Update / Compression)
+
+The exported Rust module `memory_operations.rs` adds a separate evaluator-side contract inspired by MEMOBench's Memory Storage Rate, Memory Update Rate and Memory Compression Rate. It does not implement a memory store or native MEMOBench adapter.
+
+A frozen evaluator-owned manifest declares each applicable operation, task/episode/independent-unit identity, source event digest and expected semantic effect digest. The independent receipt supplies the observed source lineage, semantic readback digest, before/after memory snapshot digests, evaluator receipt, memory bytes and latency. The auditor derives Correct / Incorrect / Unresolved; the policy cannot author its own pass label.
+
+**Compression is judged semantically, not byte-for-byte.** The expected/observed effect digest represents the evaluator's required-fact/readback projection. A compressed representation may differ from the original memory bytes and still be correct when all required facts survive. Compression ratio and latency are separate efficiency measurements; a smaller memory is not automatically a correct memory.
+
+Storage, Update and Compression are reported separately. Missing receipts, invalid runs or missing snapshots/readbacks remain unresolved in the applicable denominator; NotApplicable is separate. Each operation includes overall micro fidelity and evidence coverage, equal-task macro rates, and per-task rows so overrepresented easy tasks cannot mask hard-task failures. Compression byte ratio and latency each have explicit measurement counts.
+
+The current unit tests are synthetic. They do not execute MEMOBench, RoboMME, RoboCasa-Mem or a Symthaea memory backend. See [the operation-level memory fidelity design note](../../docs/research/ROBOCASA_MEM_MEMORY_OPERATION_FIDELITY_V0_1.md).
