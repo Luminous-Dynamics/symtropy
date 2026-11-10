@@ -1,9 +1,12 @@
 import bevy_pbr::render::pbr_fragment::pbr_input_from_standard_material;
-import bevy_pbr::render::pbr_functions::{
-    alpha_discard,
-    apply_pbr_lighting,
-    main_pass_post_lighting_processing,
-};
+import bevy_pbr::render::pbr_functions::alpha_discard;
+
+@if(!PREPASS_PIPELINE) {
+    import bevy_pbr::render::pbr_functions::{
+        apply_pbr_lighting,
+        main_pass_post_lighting_processing,
+    };
+}
 
 @if(PREPASS_PIPELINE) {
     import bevy_pbr::prepass::io::{VertexOutput, FragmentOutput};
