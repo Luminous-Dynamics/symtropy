@@ -1,0 +1,387 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/research/scan-bim-decision-adapter-v0-1/research/scan-bim-decision-capture-001/schema/scan-bim-decision-case-v0_1.schema.json",
+  "title": "Scan-to-BIM task-conditional decision capture case v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "building_group_id",
+    "scene_id",
+    "model_revision",
+    "frame_id",
+    "task",
+    "possible_states",
+    "current_possible_state_ids",
+    "candidates",
+    "actions"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "case_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "building_group_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "scene_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "model_revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "frame_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "task": {
+      "$ref": "#/$defs/task"
+    },
+    "possible_states": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 100,
+      "items": {
+        "$ref": "#/$defs/possibleState"
+      }
+    },
+    "current_possible_state_ids": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/id"
+      }
+    },
+    "candidates": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100,
+      "items": {
+        "$ref": "#/$defs/candidate"
+      }
+    },
+    "actions": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100,
+      "items": {
+        "$ref": "#/$defs/action"
+      }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "task": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "task_id",
+        "requirement_revision",
+        "property_id",
+        "comparison",
+        "threshold_m",
+        "target_entity_ids",
+        "minimum_observable_area_fraction",
+        "unresolved_critical_unknown_ids"
+      ],
+      "properties": {
+        "task_id": {
+          "$ref": "#/$defs/id"
+        },
+        "requirement_revision": {
+          "$ref": "#/$defs/id"
+        },
+        "property_id": {
+          "$ref": "#/$defs/id"
+        },
+        "comparison": {
+          "enum": [
+            "greater_than_or_equal",
+            "less_than_or_equal"
+          ]
+        },
+        "threshold_m": {
+          "type": "number",
+          "minimum": 0
+        },
+        "target_entity_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 100,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "minimum_observable_area_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "unresolved_critical_unknown_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        }
+      }
+    },
+    "possibleState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state_id",
+        "interpretation",
+        "property_value_m",
+        "requirement_satisfied"
+      ],
+      "properties": {
+        "state_id": {
+          "$ref": "#/$defs/id"
+        },
+        "interpretation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "property_value_m": {
+          "type": "number"
+        },
+        "requirement_satisfied": {
+          "type": "boolean"
+        }
+      }
+    },
+    "objectives": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "service_hours",
+        "energy_units",
+        "repair_ticks",
+        "cost_units"
+      ],
+      "properties": {
+        "service_hours": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "energy_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "repair_ticks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cost_units": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "candidateState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state_id",
+        "feasible",
+        "objectives"
+      ],
+      "properties": {
+        "state_id": {
+          "$ref": "#/$defs/id"
+        },
+        "feasible": {
+          "type": "boolean"
+        },
+        "objectives": {
+          "$ref": "#/$defs/objectives"
+        }
+      }
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidate_id",
+        "state_results"
+      ],
+      "properties": {
+        "candidate_id": {
+          "$ref": "#/$defs/id"
+        },
+        "state_results": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 100,
+          "items": {
+            "$ref": "#/$defs/candidateState"
+          }
+        }
+      }
+    },
+    "targetVisibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "target_entity_id",
+        "status",
+        "observable_area_m2",
+        "theoretical_area_m2"
+      ],
+      "properties": {
+        "target_entity_id": {
+          "$ref": "#/$defs/id"
+        },
+        "status": {
+          "enum": [
+            "observable",
+            "grazing",
+            "self_occluded",
+            "externally_occluded",
+            "outside_sensor_coverage",
+            "unknown",
+            "contradictory",
+            "mixed_occlusion"
+          ]
+        },
+        "observable_area_m2": {
+          "type": "number",
+          "minimum": 0
+        },
+        "theoretical_area_m2": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "actionOutcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "outcome_id",
+        "compatible_state_ids"
+      ],
+      "properties": {
+        "outcome_id": {
+          "$ref": "#/$defs/id"
+        },
+        "compatible_state_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 100,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        }
+      }
+    },
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action_id",
+        "sensor_id",
+        "frame_id",
+        "model_revision",
+        "pose_revision_id",
+        "pose_evidence_sha256",
+        "sensor_profile_sha256",
+        "visibility_profile_sha256",
+        "visibility_receipt_sha256",
+        "target_visibility",
+        "estimated_cost_units",
+        "estimated_duration_ticks",
+        "cost_basis_id",
+        "duration_basis_id",
+        "resolves_unknown_ids",
+        "outcomes"
+      ],
+      "properties": {
+        "action_id": {
+          "$ref": "#/$defs/id"
+        },
+        "sensor_id": {
+          "$ref": "#/$defs/id"
+        },
+        "frame_id": {
+          "$ref": "#/$defs/id"
+        },
+        "model_revision": {
+          "$ref": "#/$defs/id"
+        },
+        "pose_revision_id": {
+          "$ref": "#/$defs/id"
+        },
+        "pose_evidence_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "sensor_profile_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "visibility_profile_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "visibility_receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "target_visibility": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 100,
+          "items": {
+            "$ref": "#/$defs/targetVisibility"
+          }
+        },
+        "estimated_cost_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "estimated_duration_ticks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cost_basis_id": {
+          "$ref": "#/$defs/id"
+        },
+        "duration_basis_id": {
+          "$ref": "#/$defs/id"
+        },
+        "resolves_unknown_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "outcomes": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 100,
+          "items": {
+            "$ref": "#/$defs/actionOutcome"
+          }
+        }
+      }
+    }
+  }
+}
