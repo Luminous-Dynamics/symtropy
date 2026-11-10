@@ -217,7 +217,6 @@ impl fmt::Display for CausalTransportError {
 
 impl std::error::Error for CausalTransportError {}
 
-
 fn validate_source_strata(
     strata: &[SourceEffectStratum],
 ) -> Result<(BTreeMap<&str, &SourceEffectStratum>, u64), CausalTransportError> {
@@ -333,7 +332,8 @@ pub fn assess_risk_difference_transport(
         let target_share = target.target_population_count as f64 / target_total as f64;
         if let Some(source) = source_by_modifier.get(target.modifier_id.as_str()) {
             let control_risk = source.control_events as f64 / source.control_sample_size as f64;
-            let treatment_risk = source.treatment_events as f64 / source.treatment_sample_size as f64;
+            let treatment_risk =
+                source.treatment_events as f64 / source.treatment_sample_size as f64;
             let conditional_effect = treatment_risk - control_risk;
             supported_target_population_count = supported_target_population_count
                 .checked_add(target.target_population_count)
@@ -374,20 +374,21 @@ pub fn assess_risk_difference_transport(
     let unsupported_target_population_count = target_total
         .checked_sub(supported_target_population_count)
         .ok_or(CausalTransportError::CountOverflow)?;
-    let supported_target_mass =
-        supported_target_population_count as f64 / target_total as f64;
-    let unsupported_target_mass =
-        unsupported_target_population_count as f64 / target_total as f64;
+    let supported_target_mass = supported_target_population_count as f64 / target_total as f64;
+    let unsupported_target_mass = unsupported_target_population_count as f64 / target_total as f64;
     let target_support_complete = unsupported_target_population_count == 0;
-    if unsupported_target_population_count > 0
-        && unsupported_target_mass <= f64::EPSILON
-    {
+    if unsupported_target_population_count > 0 && unsupported_target_mass <= f64::EPSILON {
         return Err(CausalTransportError::UnsupportedTargetMassBelowFloatingPrecision);
     }
     let assumptions_supported = input.assumptions.all_supported();
 
-    let (identification_status, identification_reason, target_ate_point, target_ate_lower, target_ate_upper) =
-        if !assumptions_supported {
+    let (
+        identification_status,
+        identification_reason,
+        target_ate_point,
+        target_ate_lower,
+        target_ate_upper,
+    ) = if !assumptions_supported {
             (
                 TransportIdentificationStatus::NotIdentified,
                 TransportIdentificationReason::AssumptionViolationOrUnknown,
@@ -514,7 +515,10 @@ mod tests {
     fn standardizes_source_rct_effects_to_target_modifier_distribution() {
         let result = assess_risk_difference_transport(&input(full_support_target()))
             .expect("identified target transport");
-        assert_eq!(result.identification_status, TransportIdentificationStatus::Identified);
+        assert_eq!(
+            result.identification_status,
+            TransportIdentificationStatus::Identified
+        );
         assert_eq!(
             result.identification_reason,
             TransportIdentificationReason::FullSupportAndAssumptionsSupported
@@ -574,7 +578,10 @@ mod tests {
             AssumptionDisposition::Violated;
         let result = assess_risk_difference_transport(&violated)
             .expect("nonidentified result is reportable");
-        assert_eq!(result.identification_status, TransportIdentificationStatus::NotIdentified);
+        assert_eq!(
+            result.identification_status,
+            TransportIdentificationStatus::NotIdentified
+        );
         assert_eq!(
             result.identification_reason,
             TransportIdentificationReason::AssumptionViolationOrUnknown
@@ -593,8 +600,7 @@ mod tests {
     #[test]
     fn source_internal_validity_failure_blocks_transport() {
         let mut candidate = input(full_support_target());
-        candidate.assumptions.source_internal_validity.disposition =
-            AssumptionDisposition::Unknown;
+        candidate.assumptions.source_internal_validity.disposition = AssumptionDisposition::Unknown;
         let result = assess_risk_difference_transport(&candidate)
             .expect("invalid source study remains a nonidentified report");
         assert_eq!(result.identification_status, TransportIdentificationStatus::NotIdentified);
@@ -650,7 +656,9 @@ mod tests {
     #[test]
     fn rejects_duplicate_modifier_ids_and_invalid_binary_counts() {
         let mut duplicate = input(full_support_target());
-        duplicate.source_strata.push(duplicate.source_strata[0].clone());
+        duplicate
+            .source_strata
+            .push(duplicate.source_strata[0].clone());
         assert!(matches!(
             assess_risk_difference_transport(&duplicate),
             Err(CausalTransportError::DuplicateSourceModifier { .. })
@@ -664,7 +672,9 @@ mod tests {
         ));
 
         let mut duplicate_target = input(full_support_target());
-        duplicate_target.target_strata.push(duplicate_target.target_strata[0].clone());
+        duplicate_target
+            .target_strata
+            .push(duplicate_target.target_strata[0].clone());
         assert!(matches!(
             assess_risk_difference_transport(&duplicate_target),
             Err(CausalTransportError::DuplicateTargetModifier { .. })
@@ -695,7 +705,11 @@ mod tests {
         );
 
         let mut missing_assumption = input(full_support_target());
-        missing_assumption.assumptions.selection_exchangeability.evidence_digest.clear();
+        missing_assumption
+            .assumptions
+            .selection_exchangeability
+            .evidence_digest
+            .clear();
         assert_eq!(
             assess_risk_difference_transport(&missing_assumption).unwrap_err(),
             CausalTransportError::MissingAssumptionEvidenceDigest
