@@ -40,6 +40,8 @@
         "stale_observation_requires_refresh",
         "sensor_value_per_resource_unit_higher",
         "inference_value_per_resource_unit_higher",
+        "sensor_only_eligible",
+        "inference_only_eligible",
         "equal_ratio_prefers_inference",
         "no_eligible_positive_resource",
         "no_fresh_observation_can_arrive_before_deadline"
