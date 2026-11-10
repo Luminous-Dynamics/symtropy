@@ -463,8 +463,6 @@ mod tests {
     }
 
     #[test]
-
-    #[test]
     fn plus_minus_are_inverse_in_both_trivializations() {
         let base = Rotor::<3>::from_bivector(&Bivector::unit_plane(0, 2).scale(0.37));
         let mut delta = Bivector::<3>::unit_plane(0, 1).scale(0.08);
