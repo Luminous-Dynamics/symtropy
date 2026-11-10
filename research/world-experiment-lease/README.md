@@ -40,6 +40,10 @@ The runtime guard checks:
 
 The lease is deliberately tied to one simulation tick. Advancing physics, changing inputs, changing the selected model, or introducing a physical intervention requires a new run/snapshot identity and a new lease. A new render profile requires a new render-policy receipt and a new lease. There is no implicit escalation or widening of an existing lease.
 
+## Runtime enforcement boundary
+
+V0.1 is a pure policy evaluator over caller-supplied cumulative usage records. It does not yet wrap a Bevy world, interdict ECS writes, reserve GPU/CPU resources, collect hardware telemetry, or prove that a caller cannot omit or falsify a reported mutation/measurement. The `physical_mutation_attempted` flag is an input claim that the guard evaluates, not an engine hook. A production adapter must connect authoritative write barriers and measurement receipts before this lease can be described as runtime-enforced. The claim ceiling remains finite-record policy conformance only.
+
 ## Identity and upstream boundary
 
 Lease identity is SHA-256 over a domain-separated, deterministic JSON serialization of the typed input after sorting view declarations by ID. This is a software identity, not a signature.
