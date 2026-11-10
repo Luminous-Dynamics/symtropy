@@ -7,7 +7,7 @@ from validate_fixture import validate_fixture
 
 
 FIXTURE_PATH = (
-    Path(__file__).parents[2]
+    Path(__file__).parents[3]
     / "docs"
     / "research"
     / "road_option_experiment_v0_1"
