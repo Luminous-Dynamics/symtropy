@@ -47,16 +47,6 @@ struct RecordOutcome {
 }
 
 impl RecordOutcome {
-    fn disposition(&self) -> Disposition {
-        if !self.errors.is_empty() {
-            Disposition::Reject
-        } else if !self.abstentions.is_empty() {
-            Disposition::Abstain
-        } else {
-            Disposition::Accept
-        }
-    }
-
     fn reject(&mut self, code: &str) {
         self.errors.push(code.to_owned());
     }
@@ -94,16 +84,6 @@ fn check_keys(value: &Value, allowed: &[&str], path: &str, errors: &mut Vec<Stri
     for key in map.keys() {
         if !allowed.iter().any(|allowed_key| *allowed_key == key) {
             errors.push(format!("{path}:unknown_field:{key}"));
-        }
-    }
-}
-
-fn required_string(value: &Value, key: &str, path: &str, errors: &mut Vec<String>) -> Option<String> {
-    match string(value, key) {
-        Some(s) if !s.trim().is_empty() => Some(s.to_owned()),
-        _ => {
-            errors.push(format!("{path}:missing_or_invalid:{key}"));
-            None
         }
     }
 }
@@ -603,19 +583,26 @@ fn validate_assertion(
     }
     let links = record.get("evidence_links").unwrap_or(&Value::Null);
     check_keys(links, &["supports", "contradicts", "derived_from"], "evidence_links", &mut out.errors);
+    let mut all_edges_resolve = true;
     for key in ["supports", "contradicts", "derived_from"] {
         if let Some(items) = array(links, key) {
             for reference in items.iter().filter_map(Value::as_str) {
                 if !known_ids.contains(reference) {
+                    all_edges_resolve = false;
                     out.reject("assertion_evidence_reference_unresolved");
                 }
             }
         } else {
             out.reject("assertion_evidence_link_list_missing");
+            all_edges_resolve = false;
         }
     }
-    out.conflict_edges = array(links, "supports").map_or(0, Vec::len)
-        + array(links, "contradicts").map_or(0, Vec::len);
+    out.conflict_edges = if all_edges_resolve {
+        array(links, "supports").map_or(0, Vec::len)
+            + array(links, "contradicts").map_or(0, Vec::len)
+    } else {
+        0
+    };
     if let Some(supports) = array(links, "supports") {
         if let Some(contradicts) = array(links, "contradicts") {
             for support in supports {
@@ -697,13 +684,12 @@ fn check_expected_invariants(
     fixture: &Value,
     outcomes: &[RecordOutcome],
     actual: &Disposition,
+    fixture_errors: &[String],
 ) -> Vec<String> {
     let mut failures = Vec::new();
     let expected = array(fixture, "expected_invariants").cloned().unwrap_or_default();
     let primary = fixture.get("record").unwrap_or(&Value::Null);
-    let all_errors: Vec<&str> = outcomes.iter().flat_map(|outcome| {
-        outcome.errors.iter().map(String::as_str)
-    }).collect();
+    let all_errors: Vec<&str> = fixture_errors.iter().map(String::as_str).collect();
     for item in expected.iter().filter_map(Value::as_str) {
         let present = match item {
             "native_id_retained" => string(primary.get("mapping").unwrap_or(&Value::Null), "native_channel_id").is_some(),
@@ -819,8 +805,6 @@ fn audit_corpus(corpus: &Value, corpus_bytes: &[u8]) -> Value {
     let mut conflict_edges_retained = 0_u64;
     let mut ambiguous_cases = 0_u64;
     let mut ambiguous_abstained = 0_u64;
-    let mut hard_error_count = 0_u64;
-
     for fixture in &fixtures {
         let fixture_id = string(fixture, "fixture_id").unwrap_or("unknown_fixture");
         let expected = string(fixture, "expected_disposition").unwrap_or("reject");
@@ -888,7 +872,7 @@ fn audit_corpus(corpus: &Value, corpus_bytes: &[u8]) -> Value {
         }
 
         // Check fixture-level invariants after corpus/record validation.
-        let invariant_failures = check_expected_invariants(fixture, &outcomes, &actual);
+        let invariant_failures = check_expected_invariants(fixture, &outcomes, &actual, &fixture_errors);
         if !invariant_failures.is_empty() {
             fixture_errors.extend(invariant_failures);
             actual = Disposition::Reject;
@@ -897,10 +881,6 @@ fn audit_corpus(corpus: &Value, corpus_bytes: &[u8]) -> Value {
         if !passed {
             fixture_errors.push(format!("expected_{expected}_got_{}", actual.as_str()));
         }
-        if !fixture_errors.is_empty() {
-            hard_error_count += fixture_errors.len() as u64;
-        }
-
         match actual {
             Disposition::Accept => accepted += 1,
             Disposition::Abstain => abstained += 1,
