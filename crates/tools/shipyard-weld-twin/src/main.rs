@@ -373,10 +373,6 @@ fn evaluate(weld: &Value, workspace_root: &Path) -> &'static str {
         {
             return "PROGRAM_REVISION_MISMATCH";
         }
-        let trace_disposition = verify_process_trace(weld, pass, workspace_root);
-        if trace_disposition != "PROCESS_TRACE_VALID_EXACT_BYTES" {
-            return trace_disposition;
-        }
         if pass.get("observed_envelope_status").and_then(Value::as_str)
             != Some("within_declared_envelope")
         {
@@ -384,6 +380,10 @@ fn evaluate(weld: &Value, workspace_root: &Path) -> &'static str {
         }
         if pass.get("evidence_class").and_then(Value::as_str) != Some("synthetic_fixture") {
             return "EVIDENCE_CLASS_MISMATCH";
+        }
+        let trace_disposition = verify_process_trace(weld, pass, workspace_root);
+        if trace_disposition != "PROCESS_TRACE_VALID_EXACT_BYTES" {
+            return trace_disposition;
         }
     }
 
