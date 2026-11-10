@@ -36,12 +36,12 @@ jobs:
       - name: Check formatting
         run: cargo fmt --manifest-path tools/scan-bim-measurement-observability/Cargo.toml -- --check
       - name: Test synthetic oracle
-        run: cargo test --manifest-path tools/scan-bim-measurement-observability/Cargo.toml
+        run: cargo test --locked --manifest-path tools/scan-bim-measurement-observability/Cargo.toml
       - name: Clippy
-        run: cargo clippy --manifest-path tools/scan-bim-measurement-observability/Cargo.toml --all-targets -- -D warnings
+        run: cargo clippy --locked --manifest-path tools/scan-bim-measurement-observability/Cargo.toml --all-targets -- -D warnings
       - name: Evaluate frozen corpus
         run: |
-          cargo run --manifest-path tools/scan-bim-measurement-observability/Cargo.toml -- \
+          cargo run --locked --manifest-path tools/scan-bim-measurement-observability/Cargo.toml -- \
             --corpus tools/scan-bim-measurement-observability/fixtures/measurement-observability.json \
             > /tmp/scan-bim-measurement-observability.json
           jq -e '
@@ -50,3 +50,22 @@ jobs:
             .core.mismatch_count == 0 and
             (.receipt_sha256 | test("^[0-9a-f]{64}$"))
           ' /tmp/scan-bim-measurement-observability.json
+      - name: Bind the report to exact source and dependencies
+        run: |
+          sha256sum \
+            tools/scan-bim-measurement-observability/Cargo.toml \
+            tools/scan-bim-measurement-observability/Cargo.lock \
+            tools/scan-bim-measurement-observability/src/main.rs \
+            tools/scan-bim-measurement-observability/fixtures/measurement-observability.json \
+            /tmp/scan-bim-measurement-observability.json > /tmp/scan-bim-measurement-observability.sha256
+          git rev-parse HEAD > /tmp/scan-bim-measurement-observability.commit
+      - name: Upload exact-head oracle receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: scan-bim-measurement-observability-receipt
+          if-no-files-found: error
+          path: |
+            /tmp/scan-bim-measurement-observability.json
+            /tmp/scan-bim-measurement-observability.sha256
+            /tmp/scan-bim-measurement-observability.commit
+            tools/scan-bim-measurement-observability/Cargo.lock
