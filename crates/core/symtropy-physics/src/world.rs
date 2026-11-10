@@ -889,8 +889,8 @@ impl<const D: usize> PhysicsWorld<D> {
         for pt in &mut self.contacts[ci].points {
             let r_a = pt.position - com_a;
             let r_b = pt.position - com_b;
-            let v_point_a = va + wa.apply_to_vector(&r_a);
-            let v_point_b = vb + wb.apply_to_vector(&r_b);
+            let v_point_a = va + integrator::angular_point_velocity(&wa, &r_a);
+            let v_point_b = vb + integrator::angular_point_velocity(&wb, &r_b);
             let v_rel_n = (v_point_b - v_point_a).dot(&normal);
 
             pt.restitution_bias = if restitution > 1e-9 && v_rel_n < -RESTITUTION_VELOCITY_THRESHOLD
@@ -942,8 +942,8 @@ impl<const D: usize> PhysicsWorld<D> {
 
                 let r_a = pt.position - com_a;
                 let r_b = pt.position - com_b;
-                let torque_a = Bivector::from_wedge(&(-per_pt_impulse), &r_a);
-                let torque_b = Bivector::from_wedge(&per_pt_impulse, &r_b);
+                let torque_a = integrator::angular_impulse_from_point(&r_a, &(-per_pt_impulse));
+                let torque_b = integrator::angular_impulse_from_point(&r_b, &per_pt_impulse);
                 integrator::apply_angular_impulse(&mut self.bodies[a], &torque_a);
                 integrator::apply_angular_impulse(&mut self.bodies[b], &torque_b);
             }
@@ -1058,9 +1058,9 @@ impl<const D: usize> PhysicsWorld<D> {
 
             let v_rel_n = {
                 let va = self.bodies[a].linear_velocity
-                    + self.bodies[a].angular_velocity.apply_to_vector(&r_a);
+                    + integrator::angular_point_velocity(&self.bodies[a].angular_velocity, &r_a);
                 let vb = self.bodies[b].linear_velocity
-                    + self.bodies[b].angular_velocity.apply_to_vector(&r_b);
+                    + integrator::angular_point_velocity(&self.bodies[b].angular_velocity, &r_b);
                 (vb - va).dot(&contact.normal)
             };
 
@@ -1103,8 +1103,8 @@ impl<const D: usize> PhysicsWorld<D> {
 
                 // Lever-arm angular impulse: torque = impulse ∧ r (order
                 // matters — see `Bivector::from_wedge` doc comment).
-                let torque_a = Bivector::from_wedge(&(-impulse), &r_a);
-                let torque_b = Bivector::from_wedge(&impulse, &r_b);
+                let torque_a = integrator::angular_impulse_from_point(&r_a, &(-impulse));
+                let torque_b = integrator::angular_impulse_from_point(&r_b, &impulse);
                 integrator::apply_angular_impulse(&mut self.bodies[a], &torque_a);
                 integrator::apply_angular_impulse(&mut self.bodies[b], &torque_b);
 
@@ -1193,8 +1193,8 @@ impl<const D: usize> PhysicsWorld<D> {
                     integrator::apply_impulse(&mut self.bodies[a], &(-friction_impulse));
                     integrator::apply_impulse(&mut self.bodies[b], &friction_impulse);
 
-                    let torque_a = Bivector::from_wedge(&(-friction_impulse), &r_a);
-                    let torque_b = Bivector::from_wedge(&friction_impulse, &r_b);
+                    let torque_a = integrator::angular_impulse_from_point(&r_a, &(-friction_impulse));
+                    let torque_b = integrator::angular_impulse_from_point(&r_b, &friction_impulse);
                     integrator::apply_angular_impulse(&mut self.bodies[a], &torque_a);
                     integrator::apply_angular_impulse(&mut self.bodies[b], &torque_b);
 
