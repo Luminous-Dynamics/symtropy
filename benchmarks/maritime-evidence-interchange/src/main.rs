@@ -317,7 +317,7 @@ fn format_utc_timestamp(epoch_seconds: u64) -> String {
 
 fn has_only_fields(value: &Value, allowed: &[&str]) -> bool {
     value.as_object().is_some_and(|object| {
-        object.keys().all(|key| allowed.iter().any(|field| *field == key))
+        object.keys().all(|key| allowed.iter().any(|field| *field == key.as_str()))
     })
 }
 
@@ -1076,6 +1076,22 @@ mod tests {
 
     const CORPUS: &str = include_str!("../../maritime/maritime-evidence-interchange-conformance-v0.1.json");
 
+    fn evaluate_mutated(
+        mutate: impl FnOnce(&mut Value),
+    ) -> Result<(Value, usize), String> {
+        let mut corpus: Value = serde_json::from_str(CORPUS).expect("fixture corpus parses");
+        mutate(&mut corpus);
+        let bytes = serde_json::to_vec(&corpus).expect("mutated corpus serializes");
+        evaluate_corpus(&bytes)
+    }
+
+    fn case<'a>(report: &'a Value, id: &str) -> &'a Value {
+        report["case_results"].as_array().expect("case results array")
+            .iter()
+            .find(|result| result["fixture_id"] == id)
+            .unwrap_or_else(|| panic!("missing case result {id}"))
+    }
+
     #[test]
     fn frozen_corpus_matches_all_expected_dispositions() {
         let (report, failures) = evaluate_corpus(CORPUS.as_bytes()).expect("corpus should parse");
@@ -1084,6 +1100,18 @@ mod tests {
         assert_eq!(report["summary"]["accepted"], 7);
         assert_eq!(report["summary"]["abstained"], 2);
         assert_eq!(report["summary"]["rejected"], 4);
+        assert_eq!(report["summary"]["native_identifier_retention_rate"], 1.0);
+        assert_eq!(report["summary"]["conflict_preservation_rate"], 1.0);
+    }
+
+    #[test]
+    fn profile_schemas_parse_and_corpus_ref_targets_record_schema() {
+        let record_schema: Value = serde_json::from_str(include_str!("../../../docs/tech/MARITIME_EVIDENCE_INTERCHANGE_V0_1.schema.json")).unwrap();
+        let report_schema: Value = serde_json::from_str(include_str!("../../../docs/tech/MARITIME_EVIDENCE_INTERCHANGE_CONFORMANCE_REPORT_V0_1.schema.json")).unwrap();
+        let corpus_schema: Value = serde_json::from_str(include_str!("../../../docs/tech/MARITIME_EVIDENCE_INTERCHANGE_CORPUS_V0_1.schema.json")).unwrap();
+        assert_eq!(corpus_schema["$defs"]["record"]["$ref"], record_schema["$id"]);
+        assert!(report_schema["properties"]["validator_id"].is_object());
+        assert!(report_schema["properties"]["validator_version"].is_object());
     }
 
     #[test]
@@ -1093,16 +1121,175 @@ mod tests {
     }
 
     #[test]
-    fn utc_parser_checks_calendar_and_timezone() {
-        assert!(parse_rfc3339_ns("2024-02-29T23:59:59Z").is_ok());
-        assert!(parse_rfc3339_ns("2025-02-29T23:59:59Z").is_err());
-        assert!(parse_rfc3339_ns("2025-01-01T00:00:00+02:00").is_err());
+    fn rfc3339_offsets_are_compared_as_instants() {
+        let utc = parse_rfc3339_ns("2024-12-31T22:00:00Z").unwrap();
+        let offset = parse_rfc3339_ns("2025-01-01T00:00:00+02:00").unwrap();
+        assert_eq!(utc, offset);
     }
 
     #[test]
-    fn modified_payload_digest_is_not_accepted() {
-        let bad = r#"{"schema_version":"0.1.0","record_type":"observation"}"#;
-        let result = validate_record(&serde_json::from_str(bad).expect("json"), 1_800_000_000);
-        assert_eq!(result.disposition, Disposition::Reject);
+    fn rfc3339_fractional_seconds_are_preserved() {
+        let whole = parse_rfc3339_ns("2026-01-01T12:00:00Z").unwrap();
+        let fraction = parse_rfc3339_ns("2026-01-01T12:00:00.125Z").unwrap();
+        assert_eq!(fraction - whole, 125_000_000);
+    }
+
+    #[test]
+    fn rfc3339_parser_rejects_invalid_calendar_dates_and_precision() {
+        assert!(parse_rfc3339_ns("2025-02-29T23:59:59Z").is_err());
+        assert!(parse_rfc3339_ns("2025-01-01T00:00:00.1234567890Z").is_err());
+        assert!(parse_rfc3339_ns("2025-01-01T00:00:00").is_err());
+    }
+
+    #[test]
+    fn ambiguous_and_unmapped_channels_abstain() {
+        let (report, failures) = evaluate_corpus(CORPUS.as_bytes()).unwrap();
+        assert_eq!(failures, 0);
+        assert_eq!(case(&report, "obs-005-ambiguous-map-abstains")["actual_disposition"], "abstain");
+        assert_eq!(case(&report, "obs-006-unmapped-channel-abstains")["actual_disposition"], "abstain");
+    }
+
+    #[test]
+    fn missing_measurement_is_not_converted_to_zero_or_healthy() {
+        let (report, failures) = evaluate_corpus(CORPUS.as_bytes()).unwrap();
+        assert_eq!(failures, 0);
+        assert_eq!(case(&report, "obs-003-missing-no-value")["actual_disposition"], "accept");
+        assert_eq!(case(&report, "obs-003-missing-no-value")["payload_digest_match"], true);
+    }
+
+    #[test]
+    fn unknown_clock_quality_forces_abstention() {
+        let (report, failures) = evaluate_mutated(|corpus| {
+            corpus["fixtures"][0]["record"]["time"]["clock_quality"] = json!("unknown");
+        }).unwrap();
+        assert!(failures > 0);
+        assert_eq!(case(&report, "obs-001-measured-exact")["actual_disposition"], "abstain");
+    }
+
+    #[test]
+    fn stale_measurement_quality_forces_abstention() {
+        let (report, failures) = evaluate_mutated(|corpus| {
+            corpus["fixtures"][0]["record"]["quality"]["freshness_state"] = json!("stale");
+        }).unwrap();
+        assert!(failures > 0);
+        assert_eq!(case(&report, "obs-001-measured-exact")["actual_disposition"], "abstain");
+    }
+
+    #[test]
+    fn derived_values_require_transformation_lineage() {
+        let (report, failures) = evaluate_mutated(|corpus| {
+            corpus["fixtures"][1]["record"]["lineage"] = json!([]);
+        }).unwrap();
+        assert!(failures > 0);
+        assert_eq!(case(&report, "obs-002-derived-with-lineage")["actual_disposition"], "reject");
+    }
+
+    #[test]
+    fn derived_lineage_inputs_must_resolve_to_corpus_records() {
+        let (report, failures) = evaluate_mutated(|corpus| {
+            corpus["fixtures"][1]["record"]["lineage"][0]["input_record_refs"] = json!(["missing-record"]);
+        }).unwrap();
+        assert!(failures > 0);
+        assert_eq!(case(&report, "obs-002-derived-with-lineage")["actual_disposition"], "reject");
+    }
+
+    #[test]
+    fn future_event_time_is_rejected() {
+        let (report, failures) = evaluate_corpus(CORPUS.as_bytes()).unwrap();
+        assert_eq!(failures, 0);
+        assert_eq!(case(&report, "obs-010-future-event-time")["actual_disposition"], "reject");
+    }
+
+    #[test]
+    fn modified_payload_digest_is_rejected_by_negative_control() {
+        let (report, failures) = evaluate_mutated(|corpus| {
+            corpus["fixtures"][8]["record"]["provenance"]["source_payload"]["sha256"] =
+                json!("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
+        }).unwrap();
+        assert_eq!(failures, 0, "{report:#}");
+        assert_eq!(case(&report, "obs-009-bad-payload-digest")["actual_disposition"], "reject");
+        assert_eq!(case(&report, "obs-009-bad-payload-digest")["payload_digest_match"], false);
+    }
+
+    #[test]
+    fn unverified_source_signature_forces_abstention() {
+        let (report, failures) = evaluate_mutated(|corpus| {
+            corpus["fixtures"][0]["record"]["provenance"]["source_payload"]["signature_state"] =
+                json!("unverified");
+        }).unwrap();
+        assert!(failures > 0);
+        assert_eq!(case(&report, "obs-001-measured-exact")["actual_disposition"], "abstain");
+    }
+
+    #[test]
+    fn invalid_source_signature_is_rejected() {
+        let (report, failures) = evaluate_mutated(|corpus| {
+            corpus["fixtures"][0]["record"]["provenance"]["source_payload"]["signature_state"] =
+                json!("invalid");
+        }).unwrap();
+        assert!(failures > 0);
+        assert_eq!(case(&report, "obs-001-measured-exact")["actual_disposition"], "reject");
+    }
+
+    #[test]
+    fn unknown_record_fields_are_rejected() {
+        let (report, failures) = evaluate_mutated(|corpus| {
+            corpus["fixtures"][0]["record"]["unexpected_field"] = json!(true);
+        }).unwrap();
+        assert!(failures > 0);
+        assert_eq!(case(&report, "obs-001-measured-exact")["actual_disposition"], "reject");
+    }
+
+    #[test]
+    fn duplicate_stream_sequence_is_rejected() {
+        let (report, failures) = evaluate_corpus(CORPUS.as_bytes()).unwrap();
+        assert_eq!(failures, 0);
+        assert_eq!(case(&report, "obs-012-duplicate-sequence")["actual_disposition"], "reject");
+    }
+
+    #[test]
+    fn diagnostic_assertion_cannot_grant_authority() {
+        let (report, failures) = evaluate_mutated(|corpus| {
+            corpus["fixtures"][6]["record"]["authority_granted"] = json!(true);
+        }).unwrap();
+        assert!(failures > 0);
+        assert_eq!(case(&report, "assert-007-vendor-alarm-not-measurement")["actual_disposition"], "reject");
+    }
+
+    #[test]
+    fn assertion_evidence_references_must_resolve() {
+        let (report, failures) = evaluate_mutated(|corpus| {
+            corpus["fixtures"][6]["record"]["evidence_links"]["supports"] = json!(["unknown-record"]);
+        }).unwrap();
+        assert!(failures > 0);
+        assert_eq!(case(&report, "assert-007-vendor-alarm-not-measurement")["actual_disposition"], "reject");
+    }
+
+    #[test]
+    fn remote_payload_reference_does_not_pass_offline_integrity() {
+        let (report, failures) = evaluate_mutated(|corpus| {
+            let payload = corpus["fixtures"][0]["record"]["provenance"]["source_payload"]
+                .as_object_mut().unwrap();
+            payload.remove("inline_base64");
+            payload.insert("content_ref".into(), json!("urn:sha256:281a790c52136d39fb06b2064cb65e158a6c2184cbe4dfd991d2cda152423d67"));
+        }).unwrap();
+        assert!(failures > 0);
+        assert_eq!(case(&report, "obs-001-measured-exact")["actual_disposition"], "reject");
+    }
+
+    #[test]
+    fn duplicate_record_ids_fail_closed() {
+        let mut corpus: Value = serde_json::from_str(CORPUS).unwrap();
+        corpus["fixtures"][1]["record"]["record_id"] = json!("obs-001");
+        let bytes = serde_json::to_vec(&corpus).unwrap();
+        assert!(evaluate_corpus(&bytes).is_err());
+    }
+
+    #[test]
+    fn fixture_count_mismatch_fails_closed() {
+        let mut corpus: Value = serde_json::from_str(CORPUS).unwrap();
+        corpus["fixture_count"] = json!(12);
+        let bytes = serde_json::to_vec(&corpus).unwrap();
+        assert!(evaluate_corpus(&bytes).is_err());
     }
 }
