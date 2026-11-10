@@ -42,6 +42,22 @@ jobs:
         with:
           components: rustfmt, clippy
 
+      - name: Validate benchmark tournament protocol
+        run: |
+          set -euo pipefail
+          jq -e '
+            .schema_version == "liu-ice-tournament-v0.1" and
+            .status == "protocol_only_not_executed" and
+            (.comparators | length == 7) and
+            ([.comparators[].id] | unique | length == 7) and
+            (.hard_evidence_gates | length >= 9) and
+            ([.research_targets_not_achieved[].status] | all(. == "aspirational")) and
+            ([.split_protocols[].row_randomization_allowed] | all(. == false)) and
+            (.calibration.minimum_independent_episodes["900000"] == 9) and
+            (.calibration.minimum_independent_episodes["950000"] == 19) and
+            (.calibration.minimum_independent_episodes["990000"] == 99)
+          ' benchmarks/maritime-control-response/tournament-v0.1.json >/dev/null
+
       - name: Validate formatting
         run: cargo fmt --manifest-path benchmarks/maritime-control-response/Cargo.toml --all -- --check
 
