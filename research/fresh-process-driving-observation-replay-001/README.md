@@ -52,7 +52,17 @@ cargo build --locked \
   --bin camera-driving-bridge
 ```
 
-3. Use the generated `bridge-config.json`, `vision-config.json` and the built binary path. The helper pins the fixture identity:
+3. Build the existing recoverability auditor CLI from its PR branch (`research/recoverable-driving-evidence-rust-v0-1`) on the same Rust toolchain:
+
+```sh
+cargo build --locked \
+  --manifest-path research/recoverable-driving-evidence-001/Cargo.toml \
+  --bin recoverable-driving-evidence
+```
+
+This is the CLI adapter owned by [Symtropy #4556](https://github.com/Luminous-Dynamics/symtropy/pull/4556). The harness calls that binary twice: once with a valid recomputed-actor branch and once with the stale-actor replay negative control.
+
+4. Use the generated `bridge-config.json`, `vision-config.json` and both built binary paths. The helper pins the fixture identity:
 - `episode_id = fresh-process-driving-episode-v0-1`;
 - `scenario_id = straight-to-curved-road-two-actors-v0-1`;
 - `agent_id = ego`;
@@ -94,6 +104,7 @@ The output directory must be empty or new. Reusing a non-empty directory is reje
 - `fresh-process-replay-comparison.json`: exact renderer frame, audit, missing-event and disposition-ledger replay result.
 - `fresh-process-replay-input.json`, `fresh-process-replay-output.json`, `fresh-process-replay-comparison.json`: serialized snapshots and OS-process replay results.
 - `counterfactual-branch/` and `counterfactual-branch-record.json`: changed-action/changed-actor-pose branch fixture.
+- `branch-evidence-auditor/`: valid campaign audit plus stale actor replay negative-control report; the episode report requires the first to pass and the second to be rejected for `ReplayedActorInputChanged`.
 - `episode-report.json`: expected/observed counts and conformance result.
 
 ## Build and tests
