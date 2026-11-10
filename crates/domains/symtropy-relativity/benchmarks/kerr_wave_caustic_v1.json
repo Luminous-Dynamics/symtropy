@@ -1,0 +1,306 @@
+{
+  "schema": "luminous.black-hole-wave-caustic-benchmark",
+  "schema_version": "1.0.0",
+  "artifact_id": "symtropy.black_hole.kerr_wave_caustic.v1",
+  "status": "planned_replication_manifest",
+  "created_utc": "2026-11-10",
+  "objective": "Qualify finite-frequency wave amplification near fold and cusp caustics, then connect uniform wave-optics approximations to Kerr ray-derived arrival-time surfaces and independent strong-field wave-scattering references.",
+  "claim_ceiling": "This is a benchmark specification only. No Airy/Pearcey kernel, Kerr diffraction amplitude, scattering factor or astrophysical lensing result is implemented or validated by this manifest.",
+  "ownership": {
+    "ray_geometry": "Symtropy #4519",
+    "wave_optics": "Symtropy #4526",
+    "ray_bundle_manifest_pr": "Symtropy #4522",
+    "sol_atlas_projection": "Sol-Atlas #701",
+    "symthaea_identifiability": "Symthaea #11021",
+    "mycelix_evidence": "Mycelix #5903"
+  },
+  "references": [
+    {
+      "id": "strong_field_kerr_mst",
+      "title": "Strong-field gravitational-wave lensing in the Kerr background",
+      "doi": "10.1103/9bxg-sqn5",
+      "arxiv": "2511.23110",
+      "url": "https://arxiv.org/abs/2511.23110",
+      "role": "Independent full-wave Kerr scattering-factor / MST reference",
+      "required_reproduction": "Pin source/lens/observer geometry, spin, incidence, polarization, frequency, normalization and the reported on-axis test."
+    },
+    {
+      "id": "diffraction_caustics",
+      "title": "Diffraction around caustics in gravitational wave lensing",
+      "doi": "10.1103/tkk2-x9st",
+      "arxiv": "2503.22648",
+      "url": "https://arxiv.org/abs/2503.22648",
+      "role": "Canonical point, fold and cusp diffraction amplitude/phase comparisons"
+    },
+    {
+      "id": "ray_traced_arrival_surfaces",
+      "title": "Strong-Field Gravitational-Wave Lensing from Ray-Traced Arrival-Time Surfaces",
+      "arxiv": "2610.18984",
+      "url": "https://arxiv.org/abs/2610.18984",
+      "role": "Strong-field ray-derived time-delay surface and diffraction-integral benchmark",
+      "reported_fixture": "Stationary source at 10M; compare stated peak-amplification and first-fringe discrepancy against the paper's relativistic wave-scattering reference.",
+      "note": "The reported 6.5% and 0.3% values are reproduction targets for that exact source/lens configuration, not universal performance targets."
+    },
+    {
+      "id": "full_wave_strong_field",
+      "title": "Strong Field Gravitational Lensing in Full Wave Optics",
+      "arxiv": "2610.18958",
+      "url": "https://arxiv.org/abs/2610.18958",
+      "role": "Face-on/edge-on binary angular emission structure, spinning lenses, full wave-optics amplification and comparison to ray tracing",
+      "note": "Use the paper's exact source angular radiation pattern, geometry and polarization; do not replace it with an isotropic point source."
+    },
+    {
+      "id": "delay_prescriptions",
+      "title": "Light propagation prescriptions for black hole movies",
+      "doi": "10.1103/nsg2-hy9p",
+      "url": "https://doi.org/10.1103/nsg2-hy9p",
+      "role": "Image-order delay maps and fast/slow/brisk-light validity"
+    },
+    {
+      "id": "aart",
+      "title": "Adaptive Analytical Ray Tracing of Black Hole Photon Rings",
+      "arxiv": "2211.07469",
+      "url": "https://github.com/iAART/aart",
+      "role": "Geometric-optics lensing-band and image-branch comparator"
+    }
+  ],
+  "scope_separation": {
+    "canonical_caustic_math": "Universal local fold/cusp normal forms; independent of any Kerr solver.",
+    "ray_derived_wave_optics": "Finite-frequency propagation from a declared arrival-time surface derived from Kerr null rays; not a thin-lens approximation unless explicitly specified.",
+    "full_wave_scattering": "Independent Kerr perturbation / MST scattering calculation with its own normalization and boundary conditions.",
+    "non_claim": "Agreement between these different routes is tested only on matched geometries and observables; one route is not silently used as the other's oracle."
+  },
+  "conventions": {
+    "units": "geometrized G=c=1 for lens geometry; source/detector frequency conversion is explicit",
+    "phase": "exp(+i omega T) in the canonical oscillatory integral; any external reference using another Fourier convention must be transformed explicitly",
+    "angular_frequency": "omega = 2*pi*f in physical units, and dimensionless M*omega in geometrized units",
+    "source_model": "must declare point, finite/coherent, partially coherent, or extended anisotropic binary source",
+    "polarization": "scalar control first; plus/cross or spin-weighted response only under a pinned basis and transport convention",
+    "normalization": "all amplification factors carry a named incident-wave normalization and observer flux/strain convention",
+    "arrival_time": "reference event and additive time origin are fixed per fixture"
+  },
+  "canonical_controls": {
+    "fold": {
+      "phase_normal_form": "phi(t;u) = t^3/3 + u*t",
+      "oscillatory_integral": "Ai(u) = (1/(2*pi)) * integral_R exp(i*(t^3/3 + u*t)) dt, interpreted as an oscillatory integral with a declared regulator/contour prescription",
+      "benchmark_outputs": [
+        "complex_amplitude",
+        "phase",
+        "intensity",
+        "fringe_locations",
+        "stationary_phase_asymptotics",
+        "quadrature_error"
+      ],
+      "controls": [
+        "far_from_fold_stationary_phase_limit",
+        "through_fold_finite_uniform_response",
+        "both_sides_of_fold",
+        "frequency_refinement",
+        "regulator_or_contour_independence"
+      ]
+    },
+    "cusp": {
+      "phase_normal_form": "phi(t;X,Y) = t^4/4 + X*t^2/2 + Y*t",
+      "oscillatory_integral": "Pearcey(X,Y) = integral_R exp(i*phi(t;X,Y)) dt, interpreted as an oscillatory integral with a declared regulator/contour prescription",
+      "benchmark_outputs": [
+        "complex_amplitude",
+        "phase",
+        "intensity",
+        "cusp_fringe_topology",
+        "stationary_phase_asymptotics",
+        "quadrature_error"
+      ],
+      "controls": [
+        "cusp_core",
+        "fold_locus_approach",
+        "outside_cusp_unfolding",
+        "frequency_refinement",
+        "regulator_or_contour_independence"
+      ]
+    },
+    "finite_source": {
+      "source_profiles": [
+        "point_source",
+        "Gaussian_extended_source",
+        "declared_binary_quadrupolar_angular_pattern"
+      ],
+      "coherence": [
+        "fully_coherent",
+        "partially_coherent",
+        "incoherent_intensity_average"
+      ],
+      "outputs": [
+        "finite_source_amplification",
+        "coherence_sensitivity",
+        "source_size_sweep",
+        "angular_pattern_sensitivity"
+      ],
+      "controls": [
+        "point_source_limit",
+        "large_source_smoothing",
+        "coherence_time_vs_delay_spread"
+      ]
+    }
+  },
+  "ray_arrival_surface_bridge": {
+    "dependency": "Symtropy #4519 and benchmark manifest PR #4522",
+    "mathematical_object": "For each declared source/observer branch family, construct the arrival-time phase map from exact Kerr null geodesics and the selected source/observer screen measure. The domain, measure, amplitude factor and normalization are part of the fixture.",
+    "generic_integral_form": "F(omega) = N(omega) * integral_D A(q) * exp(i*omega*T(q)) dmu(q)",
+    "constraints": [
+      "D, dmu, A(q), T(q), boundary terms and N(omega) must be derived for the selected physical setup; the generic formula is not a license to assume a thin lens plane.",
+      "Stationary points must correspond to the image branches from #4519 with matched source/observer events.",
+      "The Hessian / higher phase derivatives used for fold/cusp normal forms must be independently checked against finite differences or variational derivatives.",
+      "Caustic classification and local uniform approximation validity must be explicit; unresolved degeneracy returns Unresolved."
+    ],
+    "geometric_optics_limit": "Away from caustics and at high frequency, compare against the stationary-phase sum over image branches with declared Maslov/Morse-phase convention, signed parity and magnification.",
+    "transition": "Near a caustic, replace divergent isolated-image stationary phase with the appropriate uniform canonical approximation; do not clamp divergent magnification."
+  },
+  "full_wave_reference_bridge": {
+    "references": [
+      "strong_field_kerr_mst",
+      "ray_traced_arrival_surfaces",
+      "full_wave_strong_field"
+    ],
+    "required_alignment": [
+      "source-lens-observer geometry",
+      "lens spin and orientation",
+      "incident wave angular pattern",
+      "polarization basis",
+      "frequency range and mass scaling",
+      "time and phase origin",
+      "incident/observed amplitude normalization",
+      "boundary and absorption conditions"
+    ],
+    "outputs": [
+      "complex_amplification_factor",
+      "phase_shift",
+      "peak_amplification",
+      "fringe_spacing",
+      "polarization_mixing",
+      "waveform_mismatch"
+    ],
+    "non_comparable_status": "Unmatched"
+  },
+  "benchmark_sweeps": {
+    "dimensionless_frequency": "M*omega; logarithmic sweep selected from exact reference paper domain",
+    "spin": [
+      0,
+      0.3,
+      0.5,
+      0.7,
+      0.9,
+      0.99
+    ],
+    "incidence": [
+      "on_axis",
+      "off_axis",
+      "face_on_binary",
+      "edge_on_binary"
+    ],
+    "caustic_offset": [
+      "far_field",
+      "near_fold",
+      "fold_core",
+      "near_cusp",
+      "cusp_core"
+    ],
+    "source_model": [
+      "point",
+      "finite_gaussian",
+      "binary_quadrupolar"
+    ],
+    "polarization": [
+      "scalar_control",
+      "plus_cross_when_reference_exists"
+    ]
+  },
+  "error_budget": [
+    "ray/geodesic integration and conserved-quantity drift",
+    "arrival-time surface interpolation and differentiation",
+    "caustic classification and normal-form truncation",
+    "oscillatory quadrature / contour / regulator error",
+    "finite-frequency asymptotic remainder",
+    "source size/coherence and source-pattern approximation",
+    "full-wave reference truncation/precision/model uncertainty",
+    "time/frequency sampling and detector response"
+  ],
+  "negative_controls": [
+    {
+      "id": "geometric_magnification_used_at_caustic",
+      "expected_failure": "SingularGeometricOpticsNotFiniteWaveAmplitude"
+    },
+    {
+      "id": "fold_normal_form_on_cusp",
+      "expected_failure": "WrongCausticType"
+    },
+    {
+      "id": "cusp_normal_form_on_fold",
+      "expected_failure": "WrongCausticType"
+    },
+    {
+      "id": "wrong_fourier_sign",
+      "expected_failure": "PhaseConventionMismatch"
+    },
+    {
+      "id": "wrong_maslov_index",
+      "expected_failure": "StationaryPhaseMismatch"
+    },
+    {
+      "id": "point_source_used_for_anisotropic_binary",
+      "expected_failure": "SourceModelMismatch"
+    },
+    {
+      "id": "thin_lens_phase_in_strong_field",
+      "expected_failure": "ApproximationOutOfDomain"
+    },
+    {
+      "id": "fast_light_with_unresolved_delay_spread",
+      "expected_failure": "TimeApproximationOutOfDomain"
+    },
+    {
+      "id": "different_source_lens_geometry_across_references",
+      "expected_failure": "Unmatched"
+    },
+    {
+      "id": "nonconverged_oscillatory_integral",
+      "expected_failure": "Unresolved"
+    },
+    {
+      "id": "frequency_below_uniform_approximation_validity",
+      "expected_failure": "ApproximationOutOfDomain"
+    },
+    {
+      "id": "incorrect_polarization_frame",
+      "expected_failure": "PolarizationConventionMismatch"
+    }
+  ],
+  "prospective_acceptance": {
+    "canonical_fold": "Complex amplitude and phase agree with independent high-precision Airy evaluation, with quadrature error decreasing under independent refinement.",
+    "canonical_cusp": "Complex amplitude and phase agree with independent high-precision Pearcey evaluation, with contour/regulator independence over declared domains.",
+    "geometric_optics_limit": "Away from caustics, high-frequency uniform result converges to the matched stationary-phase image sum.",
+    "caustic_regularity": "Finite continuous wave response through fold/cusp transitions; no false finite geometric magnification.",
+    "ray_surface_consistency": "Stationary points and arrival times agree with #4519 separated-geodesic and independent Hamiltonian outputs.",
+    "strong_field_reproduction": "Reproduce #2610.18984 and #2511.23110 selected configurations within stated reference discrepancy and independently estimated uncertainty.",
+    "polarimetric_reproduction": "Plus/cross or spin-weighted output only when incident source pattern and reference polarization basis are pinned.",
+    "time_domain": "Inverse transform reproduces source/observer time-domain wave packet within truncation, bandwidth and integration error.",
+    "efficiency": "Runtime/memory compared only at matched complex amplitude/phase error and same source/geometry/frequency coverage.",
+    "abstention": "Unknown caustic type, unmatched source model, nonconverged oscillatory integral or missing phase derivatives returns a typed unresolved state."
+  },
+  "qualification_states": [
+    "planned",
+    "analytic_oracle",
+    "numerically_reproduced",
+    "independently_cross_checked",
+    "converged",
+    "ill_conditioned",
+    "unmatched",
+    "unresolved",
+    "refuted"
+  ],
+  "execution": {
+    "current_status": "not_run",
+    "result_artifacts": [],
+    "no_results_claimed": true,
+    "receipt_contract": "Reuse Symtropy #4237 response-manifest / run-receipt contract; this file is an input/expectation manifest, not a run receipt."
+  }
+}
