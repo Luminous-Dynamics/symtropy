@@ -21,6 +21,8 @@ pub struct LinkSpec {
     pub radius: f64,
     pub plane_a: usize,
     pub plane_b: usize,
+    /// Requested hinge limits in radians. In physics 0.2.1 these are stored
+    /// on HingeJoint but not enforced by its solver; see PHYS-HINGE-MOTOR-001.
     pub angle_limits: Option<(f64, f64)>,
     pub motor_max_force: Option<f64>,
     pub motor_damping: Option<f64>,
