@@ -1,0 +1,102 @@
+{
+  "fixture_version": "0.1",
+  "fixture_id": "SCAN-BIM-RAYQUERY-KA-001",
+  "coordinate_system": {
+    "linear_unit": "metre",
+    "axis_order": "xyz",
+    "handedness": "right_handed"
+  },
+  "query_contract": {
+    "direction_normalization": "unit_length_required",
+    "intersection_epsilon_m": 1e-8,
+    "nearest_hit_tie_epsilon_m": 1e-8,
+    "triangle_sidedness": "two_sided",
+    "self_hit_exclusion": "exact_surface_id_and_triangle_id",
+    "expected_hit_policy": "all_hits_within_nearest_hit_tie_epsilon"
+  },
+  "triangles": [
+    {
+      "surface_id": "WALL-NEAR-A",
+      "triangle_id": "TRI-NEAR-A",
+      "kind": "same_building",
+      "a": [2.0, -1.0, -1.0],
+      "b": [2.0, 1.0, -1.0],
+      "c": [2.0, 0.0, 1.0]
+    },
+    {
+      "surface_id": "WALL-NEAR-B",
+      "triangle_id": "TRI-NEAR-B",
+      "kind": "external",
+      "a": [2.0, -1.0, -1.0],
+      "b": [2.0, 1.0, -1.0],
+      "c": [2.0, 0.0, 1.0]
+    },
+    {
+      "surface_id": "WALL-FAR",
+      "triangle_id": "TRI-FAR",
+      "kind": "same_building",
+      "a": [4.0, -1.0, -1.0],
+      "b": [4.0, 1.0, -1.0],
+      "c": [4.0, 0.0, 1.0]
+    }
+  ],
+  "rays": [
+    {
+      "ray_id": "RAY-NEAREST-TIE",
+      "origin": [0.0, 0.0, 0.0],
+      "direction": [1.0, 0.0, 0.0],
+      "tnear_m": 0.0,
+      "tfar_m": 5.0,
+      "exclude_target": null,
+      "expected": {
+        "status": "hit",
+        "nearest_distance_m": 2.0,
+        "nearest_hits": [
+          ["WALL-NEAR-A", "TRI-NEAR-A"],
+          ["WALL-NEAR-B", "TRI-NEAR-B"]
+        ]
+      }
+    },
+    {
+      "ray_id": "RAY-FAR-CLIPPED",
+      "origin": [0.0, 0.0, 0.0],
+      "direction": [1.0, 0.0, 0.0],
+      "tnear_m": 0.0,
+      "tfar_m": 1.5,
+      "exclude_target": null,
+      "expected": {
+        "status": "miss",
+        "nearest_distance_m": null,
+        "nearest_hits": []
+      }
+    },
+    {
+      "ray_id": "RAY-NEAR-CLIPPED",
+      "origin": [0.0, 0.0, 0.0],
+      "direction": [1.0, 0.0, 0.0],
+      "tnear_m": 2.5,
+      "tfar_m": 5.0,
+      "exclude_target": null,
+      "expected": {
+        "status": "hit",
+        "nearest_distance_m": 4.0,
+        "nearest_hits": [
+          ["WALL-FAR", "TRI-FAR"]
+        ]
+      }
+    },
+    {
+      "ray_id": "RAY-OFF-AXIS-MISS",
+      "origin": [0.0, 5.0, 0.0],
+      "direction": [1.0, 0.0, 0.0],
+      "tnear_m": 0.0,
+      "tfar_m": 5.0,
+      "exclude_target": null,
+      "expected": {
+        "status": "miss",
+        "nearest_distance_m": null,
+        "nearest_hits": []
+      }
+    }
+  ]
+}
