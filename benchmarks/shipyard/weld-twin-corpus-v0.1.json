@@ -780,6 +780,18 @@
         }
       ],
       "expected_code": "PROCESS_TRACE_AFTER_DECISION_CUTOFF"
+    },
+    {
+      "id": "synthetic_fixture_mislabeled_as_measured_synthetic",
+      "base": "valid_robotic_weld",
+      "mutations": [
+        {
+          "path": "passes.0.evidence_class",
+          "op": "set",
+          "value": "measured_synthetic"
+        }
+      ],
+      "expected_code": "EVIDENCE_CLASS_MISMATCH"
     }
   ]
 }
