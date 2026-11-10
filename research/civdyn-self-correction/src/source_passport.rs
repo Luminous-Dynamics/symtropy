@@ -393,27 +393,6 @@ pub fn qualify_source(
         );
     }
 
-    match passport.acquisition_status {
-        AcquisitionStatus::CandidateAvailable => {
-            return result(SourceQualificationStatus::CandidateAvailable, None);
-        }
-        AcquisitionStatus::AcquisitionPending => {
-            return result(SourceQualificationStatus::AcquisitionPending, None);
-        }
-        AcquisitionStatus::Acquired => {}
-    }
-
-    if passport.retrieved_at_epoch.is_none_or(|value| value < 0)
-        || passport.artifact_digest.as_deref().is_none_or(str::is_empty)
-        || passport.transformation_digest.as_deref().is_none_or(str::is_empty)
-        || passport.terms_digest.as_deref().is_none_or(str::is_empty)
-    {
-        return result(
-            SourceQualificationStatus::NotAssessed,
-            Some(CompatibilityReason::ArtifactOrTransformDigestMissing),
-        );
-    }
-
     match passport.rights_status {
         RightsStatus::Permitted => {}
         RightsStatus::Prohibited => {
@@ -446,6 +425,26 @@ pub fn qualify_source(
         }
     }
 
+    match passport.acquisition_status {
+        AcquisitionStatus::CandidateAvailable => {
+            return result(SourceQualificationStatus::CandidateAvailable, None);
+        }
+        AcquisitionStatus::AcquisitionPending => {
+            return result(SourceQualificationStatus::AcquisitionPending, None);
+        }
+        AcquisitionStatus::Acquired => {}
+    }
+
+    if passport.retrieved_at_epoch.is_none_or(|value| value < 0)
+        || passport.artifact_digest.as_deref().is_none_or(str::is_empty)
+        || passport.transformation_digest.as_deref().is_none_or(str::is_empty)
+        || passport.terms_digest.as_deref().is_none_or(str::is_empty)
+    {
+        return result(
+            SourceQualificationStatus::NotAssessed,
+            Some(CompatibilityReason::ArtifactOrTransformDigestMissing),
+        );
+    }
     result(SourceQualificationStatus::QualifiedForRegisteredUse, None)
 }
 
@@ -474,13 +473,18 @@ fn validate_observation(
         reasons.push(CompatibilityReason::ObservationOriginUnknown);
     }
 
-    if observation.origin == ObservationOrigin::SurveyEstimate
-        && (observation.sample_design_digest.as_deref().is_none_or(str::is_empty)
+    if observation.origin == ObservationOrigin::SurveyEstimate {
+        let sample_design_matches = observation.sample_design_digest.as_deref()
+            == passport.sample_design_digest.as_deref();
+        let weights_match =
+            observation.weights_digest.as_deref() == passport.weights_digest.as_deref();
+        if !sample_design_matches
+            || !weights_match
+            || observation.sample_design_digest.as_deref().is_none_or(str::is_empty)
             || observation.weights_digest.as_deref().is_none_or(str::is_empty)
-            || passport.sample_design_digest.as_deref().is_none_or(str::is_empty)
-            || passport.weights_digest.as_deref().is_none_or(str::is_empty))
-    {
-        reasons.push(CompatibilityReason::SurveyDesignOrWeightsMissing);
+        {
+            reasons.push(CompatibilityReason::SurveyDesignOrWeightsMissing);
+        }
     }
 
     if observation.sampling_unit != passport.sampling_unit {
@@ -495,6 +499,10 @@ fn validate_observation(
     if observation.temporal_support.time_basis_id != passport.temporal_support.time_basis_id
         || observation.temporal_support.start_inclusive < passport.temporal_support.start_inclusive
         || observation.temporal_support.end_exclusive > passport.temporal_support.end_exclusive
+        || (observation.temporal_support.resolution != passport.temporal_support.resolution
+            && (observation.origin != ObservationOrigin::DerivedFromRegisteredInputs
+                || observation.transformation_digest.as_deref()
+                    != passport.transformation_digest.as_deref()))
     {
         reasons.push(CompatibilityReason::ObservationSourceMismatch);
     }
@@ -586,7 +594,7 @@ pub fn assess_observation_compatibility(
         || left.measurement_unit != plan.target_measurement_unit
         || right.measurement_unit != plan.target_measurement_unit
     {
-        for (observation, source) in [(left, left_source), (right, right_source)] {
+        for (_observation, source) in [(left, left_source), (right, right_source)] {
             let valid = transform_for(plan, source.artifact_digest.as_deref().unwrap_or(""), TransformKind::UnitConversion)
                 .is_some_and(|receipt| {
                     receipt.target_measurement_unit.as_deref()
