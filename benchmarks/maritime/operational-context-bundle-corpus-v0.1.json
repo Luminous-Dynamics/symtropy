@@ -734,7 +734,7 @@
         {
           "path": "run_evidence.writeback_state",
           "op": "set",
-          "value": "writeback_enabled"
+          "value": "writeback_attempted"
         }
       ],
       "expected_code": "SOURCE_WRITEBACK_FORBIDDEN",
