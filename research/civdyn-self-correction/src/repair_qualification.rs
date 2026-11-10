@@ -29,6 +29,8 @@ pub struct RepairQualificationInput {
     pub diagnostic_observation_digests: Vec<String>,
     pub challenge_registry: StatisticRegistry,
     pub challenge_manifest: SplitManifest,
+    /// Maximum repaired/baseline central-interval width ratio. Must be finite and >= 1.
+    pub maximum_interval_width_ratio: f64,
     pub baseline_assessment: AdequacyAssessment,
     pub repaired_assessment: AdequacyAssessment,
 }
@@ -61,6 +63,7 @@ pub enum RepairQualificationStatus {
     RegressionDetected,
     PersistentDiscrepancy,
     NoPrimaryDiscrepancyBeforeOrAfter,
+    WidthBudgetExceeded,
     NotAssessed,
 }
 
@@ -72,6 +75,7 @@ impl RepairQualificationStatus {
             Self::RegressionDetected => "regression_detected",
             Self::PersistentDiscrepancy => "persistent_discrepancy",
             Self::NoPrimaryDiscrepancyBeforeOrAfter => "no_primary_discrepancy_before_or_after",
+            Self::WidthBudgetExceeded => "width_budget_exceeded",
             Self::NotAssessed => "not_assessed",
         }
     }
@@ -86,6 +90,11 @@ pub struct RepairStatisticTransition {
     pub baseline_status: StatisticStatus,
     pub repaired_status: StatisticStatus,
     pub transition: RepairTransition,
+    pub baseline_interval_width: Option<f64>,
+    pub repaired_interval_width: Option<f64>,
+    /// None denotes zero baseline width and positive repaired width (infinite ratio).
+    pub interval_width_ratio: Option<f64>,
+    pub width_budget_exceeded: bool,
     pub observation_digest: Option<String>,
     pub source_digest: String,
     pub sample_size: usize,
@@ -103,6 +112,7 @@ pub struct RepairQualificationReport {
     pub challenge_manifest_digest: String,
     pub calibration_data_digest: String,
     pub central_mass: f64,
+    pub maximum_interval_width_ratio: f64,
     pub challenge_unit_count: usize,
     pub evidence_complete: bool,
     pub baseline_required_evidence_complete: bool,
@@ -112,6 +122,8 @@ pub struct RepairQualificationReport {
     pub primary_persistent_discrepancy_count: usize,
     pub primary_baseline_discrepancy_count: usize,
     pub primary_repaired_discrepancy_count: usize,
+    pub width_budget_exceeded_count: usize,
+    pub primary_width_budget_exceeded_count: usize,
     pub status: RepairQualificationStatus,
     pub transitions: Vec<RepairStatisticTransition>,
 }
@@ -186,6 +198,7 @@ pub enum RepairQualificationError {
         unit_id: String,
     },
     BaselineAndRepairedChallengeVocabularyMismatch,
+    InvalidIntervalWidthBudget,
 }
 
 impl fmt::Display for RepairQualificationError {
@@ -203,6 +216,17 @@ impl From<AdequacyError> for RepairQualificationError {
 }
 
 type AssessmentRows<'a> = BTreeMap<AssessmentKey, &'a crate::model_adequacy::StatisticAssessment>;
+
+fn interval_width(
+    row: &crate::model_adequacy::StatisticAssessment,
+) -> Option<f64> {
+    match (row.lower_reference, row.upper_reference) {
+        (Some(lower), Some(upper)) if lower.is_finite() && upper.is_finite() && upper >= lower => {
+            Some(upper - lower)
+        }
+        _ => None,
+    }
+}
 
 fn validate_assessment<'a>(
     assessment: &'a AdequacyAssessment,
@@ -424,6 +448,11 @@ pub fn qualify_repair_on_fresh_challenge(
     if input.baseline_model_digest == input.repaired_model_digest {
         return Err(RepairQualificationError::BaselineAndRepairedModelMustDiffer);
     }
+    if !input.maximum_interval_width_ratio.is_finite()
+        || input.maximum_interval_width_ratio < 1.0
+    {
+        return Err(RepairQualificationError::InvalidIntervalWidthBudget);
+    }
     input.challenge_registry.validate()?;
     input.challenge_manifest.validate()?;
     if input.diagnostic_manifest_digest == input.challenge_manifest.manifest_digest {
@@ -525,6 +554,8 @@ pub fn qualify_repair_on_fresh_challenge(
     let mut primary_persistent_discrepancy_count = 0;
     let mut primary_baseline_discrepancy_count = 0;
     let mut primary_repaired_discrepancy_count = 0;
+    let mut width_budget_exceeded_count = 0;
+    let mut primary_width_budget_exceeded_count = 0;
 
     for (key, baseline_row) in &baseline_rows {
         let repaired_row = repaired_rows
@@ -567,6 +598,29 @@ pub fn qualify_repair_on_fresh_challenge(
             .challenge_registry
             .get(&key.statistic_id)
             .expect("assessment key already validated against registry");
+        let baseline_interval_width = interval_width(baseline_row);
+        let repaired_interval_width = interval_width(repaired_row);
+        let (interval_width_ratio, width_budget_exceeded) = match (
+            baseline_interval_width,
+            repaired_interval_width,
+        ) {
+            (Some(baseline_width), Some(repaired_width)) if baseline_width > 0.0 => {
+                let ratio = repaired_width / baseline_width;
+                (Some(ratio), ratio > input.maximum_interval_width_ratio)
+            }
+            (Some(0.0), Some(repaired_width)) => {
+                if repaired_width > 0.0 {
+                    (None, true)
+                } else {
+                    (Some(1.0), false)
+                }
+            }
+            _ => (None, false),
+        };
+        if width_budget_exceeded {
+            width_budget_exceeded_count += 1;
+        }
+
         let transition = match (baseline_row.status, repaired_row.status) {
             (
                 StatisticStatus::OutsideReferenceInterval,
@@ -588,6 +642,9 @@ pub fn qualify_repair_on_fresh_challenge(
         };
 
         if spec.primary {
+            if width_budget_exceeded {
+                primary_width_budget_exceeded_count += 1;
+            }
             if baseline_row.status == StatisticStatus::OutsideReferenceInterval {
                 primary_baseline_discrepancy_count += 1;
             }
@@ -612,6 +669,10 @@ pub fn qualify_repair_on_fresh_challenge(
             baseline_status: baseline_row.status,
             repaired_status: repaired_row.status,
             transition,
+            baseline_interval_width,
+            repaired_interval_width,
+            interval_width_ratio,
+            width_budget_exceeded,
             observation_digest: baseline_row.observation_digest.clone(),
             source_digest: baseline_row.source_digest.clone(),
             sample_size: baseline_row.sample_size,
@@ -623,6 +684,8 @@ pub fn qualify_repair_on_fresh_challenge(
     let evidence_complete = baseline_complete && repaired_complete;
     let status = if primary_regression_count > 0 {
         RepairQualificationStatus::RegressionDetected
+    } else if primary_width_budget_exceeded_count > 0 {
+        RepairQualificationStatus::WidthBudgetExceeded
     } else if !evidence_complete {
         RepairQualificationStatus::NotAssessed
     } else if primary_baseline_discrepancy_count > 0 && primary_repaired_discrepancy_count == 0 {
@@ -644,6 +707,7 @@ pub fn qualify_repair_on_fresh_challenge(
         challenge_manifest_digest: input.challenge_manifest.manifest_digest.clone(),
         calibration_data_digest: input.challenge_manifest.calibration_data_digest.clone(),
         central_mass: input.baseline_assessment.central_mass,
+        maximum_interval_width_ratio: input.maximum_interval_width_ratio,
         challenge_unit_count: input.challenge_manifest.challenge_units.len(),
         evidence_complete,
         baseline_required_evidence_complete: baseline_complete,
@@ -653,6 +717,8 @@ pub fn qualify_repair_on_fresh_challenge(
         primary_persistent_discrepancy_count,
         primary_baseline_discrepancy_count,
         primary_repaired_discrepancy_count,
+        width_budget_exceeded_count,
+        primary_width_budget_exceeded_count,
         status,
         transitions,
     })
@@ -774,6 +840,7 @@ mod tests {
             diagnostic_observation_digests: vec!["sha256-diagnostic-observation".to_string()],
             challenge_registry: registry(),
             challenge_manifest: manifest(),
+            maximum_interval_width_ratio: 1.0,
             baseline_assessment: baseline,
             repaired_assessment: repaired,
         }
@@ -939,6 +1006,80 @@ mod tests {
             qualify_repair_on_fresh_challenge(&input(baseline, repaired)),
             Err(RepairQualificationError::BaselineAndRepairedDrawCountMismatch { .. })
         ));
+    }
+
+    #[test]
+    fn interval_inflation_cannot_qualify_repair_even_when_coverage_improves() {
+        let baseline = assessment(
+            BASELINE_MODEL,
+            Some([0.1, 0.2, 0.2, 0.3, 0.4]),
+            Some([0.6, 0.7, 0.75, 0.8, 0.9]),
+        );
+        let repaired = assessment(
+            REPAIRED_MODEL,
+            Some([0.0, 0.2, 0.4, 0.8, 1.0]),
+            Some([0.6, 0.7, 0.75, 0.8, 0.9]),
+        );
+        let report = qualify_repair_on_fresh_challenge(&input(baseline, repaired))
+            .expect("width-limited repair is reportable");
+        assert_eq!(report.transitions[0].transition, RepairTransition::Improved);
+        assert!(report.transitions[0].width_budget_exceeded);
+        assert!(report.transitions[0].interval_width_ratio.unwrap() > 1.0);
+        assert_eq!(
+            report.status,
+            RepairQualificationStatus::WidthBudgetExceeded
+        );
+        assert_eq!(report.primary_width_budget_exceeded_count, 1);
+        assert_eq!(report.primary_improvement_count, 1);
+    }
+
+    #[test]
+    fn zero_width_baseline_does_not_hide_any_positive_widening() {
+        let mut baseline = assessment(
+            BASELINE_MODEL,
+            Some([0.8, 0.8, 0.8, 0.8, 0.8]),
+            Some([0.6, 0.7, 0.75, 0.8, 0.9]),
+        );
+        baseline.statistics[0].lower_reference = Some(0.8);
+        baseline.statistics[0].upper_reference = Some(0.8);
+        let repaired = assessment(
+            REPAIRED_MODEL,
+            Some([0.0, 0.2, 0.4, 0.8, 1.0]),
+            Some([0.6, 0.7, 0.75, 0.8, 0.9]),
+        );
+        let report = qualify_repair_on_fresh_challenge(&input(baseline, repaired))
+            .expect("zero-width widening is reportable");
+        assert!(report.transitions[0].width_budget_exceeded);
+        assert_eq!(report.transitions[0].interval_width_ratio, None);
+        assert_eq!(
+            report.status,
+            RepairQualificationStatus::WidthBudgetExceeded
+        );
+    }
+
+    #[test]
+    fn rejects_nonfinite_or_subunit_interval_width_budgets() {
+        let baseline = assessment(
+            BASELINE_MODEL,
+            Some([0.1, 0.2, 0.2, 0.3, 0.4]),
+            Some([0.6, 0.7, 0.75, 0.8, 0.9]),
+        );
+        let repaired = assessment(
+            REPAIRED_MODEL,
+            Some([0.7, 0.75, 0.8, 0.85, 0.9]),
+            Some([0.6, 0.7, 0.75, 0.8, 0.9]),
+        );
+        let mut candidate = input(baseline.clone(), repaired.clone());
+        candidate.maximum_interval_width_ratio = f64::NAN;
+        assert_eq!(
+            qualify_repair_on_fresh_challenge(&candidate).unwrap_err(),
+            RepairQualificationError::InvalidIntervalWidthBudget
+        );
+        candidate.maximum_interval_width_ratio = 0.99;
+        assert_eq!(
+            qualify_repair_on_fresh_challenge(&candidate).unwrap_err(),
+            RepairQualificationError::InvalidIntervalWidthBudget
+        );
     }
 
     #[test]
