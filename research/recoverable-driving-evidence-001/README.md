@@ -38,7 +38,28 @@ The report includes:
 - actor and random-event record counts;
 - sorted, deduplicated findings.
 
-The crate intentionally has no serde or JSON Schema dependency. A later adapter can parse a separately validated wire format and then call this pure reference auditor.
+The pure library entry point is `validate_campaign(&CampaignRecord) -> ValidationReport`. The PR also adds a bounded JSON CLI adapter that deserializes typed campaign records, invokes the same library validator and writes a machine-readable report. It is not a second implementation of the audit rules.
+
+## CLI
+
+Build on Rust 1.96.0:
+
+```sh
+cargo build --locked --manifest-path research/recoverable-driving-evidence-001/Cargo.toml --bin recoverable-driving-evidence
+```
+
+Run:
+
+```sh
+recoverable-driving-evidence campaign.json report.json
+```
+
+Exit codes:
+- `0`: campaign structurally valid;
+- `1`: campaign structurally rejected (a report is still written);
+- `2`: invocation, file, size or typed-JSON error.
+
+The input is bounded to 64 MiB. Unknown fields are rejected by the typed structs. The output contains valid/rejected disposition, denominator summary and deterministic finding names. Unkeyed digests and source declarations are not authenticated by this adapter.
 
 ## Run
 
