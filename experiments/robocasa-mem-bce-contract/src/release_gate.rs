@@ -813,13 +813,13 @@ mod tests {
         missing.model_smokes.pop();
         let report = qualify_release(&missing).unwrap();
         assert!(report.has_blocker(ReleaseGateBlocker::ModelFamilySetMismatch));
-        assert!(report.has_blocker(ReleaseGateBlocker::MissingModelFamilySmoke));
+        assert!(report.has_blocker(ReleaseGateBlocker::MissingPolicyRunSmoke));
 
         let mut duplicate = evidence();
         duplicate.model_smokes[1].family_id = duplicate.model_smokes[0].family_id.clone();
         duplicate.model_smokes[1].task_id = duplicate.model_smokes[0].task_id.clone();
         let report = qualify_release(&duplicate).unwrap();
-        assert!(report.has_blocker(ReleaseGateBlocker::DuplicateModelFamilySmoke));
+        assert!(report.has_blocker(ReleaseGateBlocker::DuplicatePolicyRunSmoke));
         assert!(report.has_blocker(ReleaseGateBlocker::ModelFamilySetMismatch));
     }
 
