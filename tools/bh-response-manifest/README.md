@@ -138,3 +138,5 @@ For a multi-method `independently_cross_checked` or `converged` manifest, accept
 
 A connected graph establishes a chain of pairwise comparisons, not all-pairs agreement. When a claim requires every method to agree directly with every other method, include every pairwise edge and its own pair-specific response-window record. The comparison graph is an evidence-routing condition; it does not remove correlated-failure analysis or the need for independent scientific review.
 
+Every comparison also records `left_response_sha256` and `right_response_sha256`. The validator requires these values to equal the response digests on the referenced method records. This makes a comparison stale when either method output changes, even if the human-readable method ID is reused. Recompute the pair comparison artifact whenever either response digest changes.
+
