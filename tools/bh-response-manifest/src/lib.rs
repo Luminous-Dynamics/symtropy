@@ -75,6 +75,8 @@ pub struct NamedDigest {
 pub struct Provenance {
     pub git_commit: String,
     pub dependency_lock_sha256: String,
+    /// Digest of the canonical, ordered input bundle declared for this study.
+    pub canonical_input_set_sha256: String,
     pub input_digests: Vec<NamedDigest>,
     pub reproduction_command: String,
     pub environment: String,
@@ -257,6 +259,9 @@ impl ResponseManifest {
         if !hex(&self.provenance.dependency_lock_sha256, &[64]) {
             e.push("dependency_lock_sha256 must be SHA-256".into());
         }
+        if !hex(&self.provenance.canonical_input_set_sha256, &[64]) {
+            e.push("canonical_input_set_sha256 must be SHA-256".into());
+        }
         if self.numerical.precision_bits == 0 {
             e.push("precision_bits must be positive".into());
         }
@@ -285,6 +290,12 @@ impl ResponseManifest {
             &mut e,
         );
         for x in &self.methods {
+            if x.input_set_sha256 != self.provenance.canonical_input_set_sha256 {
+                e.push(format!(
+                    "method '{}' input-set digest differs from manifest canonical input set",
+                    x.method_id
+                ));
+            }
             if !non_empty(&x.implementation_id) {
                 e.push(format!(
                     "method '{}' has empty implementation_id",
@@ -640,6 +651,7 @@ mod tests {
             provenance: Provenance {
                 git_commit: "a".repeat(40),
                 dependency_lock_sha256: d('b'),
+                canonical_input_set_sha256: d('e'),
                 input_digests: vec![],
                 reproduction_command: "cargo test".into(),
                 environment: "rust-1.96".into(),
@@ -899,6 +911,15 @@ mod tests {
         });
         m.comparisons.push(pair_comparison("late", "fd", "freq", 1e-9, 1e-8));
         assert!(m.validate().unwrap_err().iter().any(|e| e.contains("does not participate")));
+    }
+
+    #[test]
+    fn method_cannot_claim_an_input_set_not_bound_by_manifest_provenance() {
+        let mut m = base();
+        m.methods.push(method("fd", 'f', '1'));
+        m.methods[0].input_set_sha256 = d('9');
+        let errors = m.validate().unwrap_err();
+        assert!(errors.iter().any(|e| e.contains("differs from manifest canonical input set")));
     }
 
     #[test]
