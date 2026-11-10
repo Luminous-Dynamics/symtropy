@@ -18,7 +18,7 @@ cargo run -p symtropy-bevy-validation-scene --features solari-preview
 ```
 
 The default command remains the conventional Bevy renderer. The Solari profile
-uses the same deterministic procedural room, materials, and camera fixture,
+uses the same deterministic procedural material scene and camera fixture,
 but adds `SolariPlugins`, `RaytracingMesh3d`, `SolariLighting`,
 `CameraMainTextureUsages::STORAGE_BINDING`, and `Msaa::Off`.
 
