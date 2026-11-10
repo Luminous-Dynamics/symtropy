@@ -472,10 +472,10 @@ impl ResponseManifest {
                     if left.input_set_sha256 != right.input_set_sha256 {
                         e.push(format!("comparison '{}' methods did not consume the same canonical input set", comparison.comparison_id));
                     }
-                    if left.response_sha256 != comparison.left_response_sha256 {
+                    if left.response_sha256.to_ascii_lowercase() != comparison.left_response_sha256.to_ascii_lowercase() {
                         e.push(format!("comparison '{}' left response digest is stale for method '{}'", comparison.comparison_id, left.method_id));
                     }
-                    if right.response_sha256 != comparison.right_response_sha256 {
+                    if right.response_sha256.to_ascii_lowercase() != comparison.right_response_sha256.to_ascii_lowercase() {
                         e.push(format!("comparison '{}' right response digest is stale for method '{}'", comparison.comparison_id, right.method_id));
                     }
                 }
