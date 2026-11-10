@@ -1,0 +1,683 @@
+{
+  "corpus_id": "luminous.symtropy.shipyard-weld-twin",
+  "corpus_version": "0.1.0",
+  "claim_ceiling": "Synthetic contract validity is not weld soundness, WPS/PQR validity, NDT sufficiency, physical robot capability, class approval or authority to manufacture/release.",
+  "base_cases": {
+    "valid_robotic_weld": {
+      "contract_id": "SYNTH-WELD-TWIN-001",
+      "fixture_kind": "synthetic_fixture",
+      "contract_version": "0.1.0",
+      "evaluation_cutoff_utc": "2026-11-10T04:00:00Z",
+      "workpiece": {
+        "asset_id": "SYNTH-VESSEL-001",
+        "component_id": "SYNTH-BLOCK-017",
+        "serial_id": "SYNTH-SERIAL-017",
+        "parent_assembly_id": "SYNTH-HULL-BLOCK-04",
+        "joint_id": "SYNTH-JOINT-017-A",
+        "design_revision": "DWG-REV-03",
+        "material_spec_ref": "SYNTH-MAT-SPEC-01",
+        "material_heat_lot": "SYNTH-HEAT-017",
+        "geometry_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "groove_preparation_ref": "SYNTH-GROOVE-PREP-017",
+        "thickness_class": "synthetic-thick-plate",
+        "joint_type": "single_v_groove",
+        "weld_position": "synthetic-position-01",
+        "effectivity_start_utc": "2026-01-01T00:00:00Z",
+        "effectivity_end_utc": null
+      },
+      "procedure": {
+        "wps_ref": "SYNTH-WPS-017",
+        "wps_revision": "WPS-REV-04",
+        "pqr_ref": "SYNTH-PQR-017",
+        "qualified_scope": "SYNTH-SCOPE-THICK-PLATE-FAMILY-01",
+        "process_family": "GMAW_MULTIPASS",
+        "approval_status": "approved",
+        "approval_ref": "SYNTH-APPROVAL-017",
+        "valid_from_utc": "2026-01-01T00:00:00Z",
+        "valid_until_utc": "2027-01-01T00:00:00Z",
+        "parameter_envelope_ref": "SYNTH-ENVELOPE-017",
+        "procedure_owner": "synthetic-welding-engineer"
+      },
+      "equipment": {
+        "robot_id": "SYNTH-ROBOT-017",
+        "robot_revision": "ROBOT-REV-02",
+        "welding_source_id": "SYNTH-POWER-SOURCE-04",
+        "tool_id": "SYNTH-TORCH-03",
+        "fixture_id": "SYNTH-FIXTURE-09",
+        "controller_revision": "CTRL-REV-02",
+        "program_revision": "PROGRAM-REV-07",
+        "postprocessor_revision": "POST-REV-02",
+        "calibration_ref": "SYNTH-CAL-017",
+        "calibration_state": "current",
+        "calibration_valid_until_utc": "2026-12-01T00:00:00Z",
+        "equipment_health_state": "nominal_synthetic",
+        "geometry_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "operator": {
+        "operator_id": "SYNTH-OPERATOR-01",
+        "qualification_ref": "SYNTH-QUAL-01",
+        "role_scope": "welding_operator:process_family:GMAW_MULTIPASS",
+        "qualification_status": "current",
+        "valid_until_utc": "2027-01-01T00:00:00Z"
+      },
+      "consumables": [
+        {
+          "consumable_id": "SYNTH-WIRE-01",
+          "kind": "wire",
+          "specification_ref": "SYNTH-WIRE-SPEC-01",
+          "lot_id": "SYNTH-WIRE-LOT-01",
+          "compatibility": "qualified_synthetic"
+        },
+        {
+          "consumable_id": "SYNTH-GAS-01",
+          "kind": "shielding_gas",
+          "specification_ref": "SYNTH-GAS-SPEC-01",
+          "lot_id": "SYNTH-GAS-LOT-01",
+          "compatibility": "qualified_synthetic"
+        }
+      ],
+      "preprocessing": {
+        "joint_preparation_state": "complete_synthetic",
+        "fit_up_record": "SYNTH-FITUP-017",
+        "jigging_record": "SYNTH-JIG-017",
+        "cleaning_record": "SYNTH-CLEAN-017",
+        "precondition_state": "satisfied_synthetic",
+        "precondition_record": "SYNTH-PRECOND-017",
+        "program_verification_record": "SYNTH-PROGRAM-CHECK-017"
+      },
+      "passes": [
+        {
+          "pass_id": "SYNTH-PASS-ROOT-01",
+          "sequence_index": 1,
+          "role": "root",
+          "joint_id": "SYNTH-JOINT-017-A",
+          "workpiece_revision": "DWG-REV-03",
+          "wps_revision": "WPS-REV-04",
+          "equipment_revision": "ROBOT-REV-02",
+          "program_revision": "PROGRAM-REV-07",
+          "parameter_envelope_ref": "SYNTH-ENVELOPE-017",
+          "process_trace_ref": "SYNTH-TRACE-ROOT-01",
+          "process_trace_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "evidence_class": "measured_synthetic",
+          "observed_envelope_status": "within_declared_envelope",
+          "source_time_utc": "2026-11-10T03:00:00Z"
+        },
+        {
+          "pass_id": "SYNTH-PASS-FILL-02",
+          "sequence_index": 2,
+          "role": "fill",
+          "joint_id": "SYNTH-JOINT-017-A",
+          "workpiece_revision": "DWG-REV-03",
+          "wps_revision": "WPS-REV-04",
+          "equipment_revision": "ROBOT-REV-02",
+          "program_revision": "PROGRAM-REV-07",
+          "parameter_envelope_ref": "SYNTH-ENVELOPE-017",
+          "process_trace_ref": "SYNTH-TRACE-FILL-02",
+          "process_trace_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "evidence_class": "measured_synthetic",
+          "observed_envelope_status": "within_declared_envelope",
+          "source_time_utc": "2026-11-10T03:10:00Z"
+        },
+        {
+          "pass_id": "SYNTH-PASS-CAP-03",
+          "sequence_index": 3,
+          "role": "cap",
+          "joint_id": "SYNTH-JOINT-017-A",
+          "workpiece_revision": "DWG-REV-03",
+          "wps_revision": "WPS-REV-04",
+          "equipment_revision": "ROBOT-REV-02",
+          "program_revision": "PROGRAM-REV-07",
+          "parameter_envelope_ref": "SYNTH-ENVELOPE-017",
+          "process_trace_ref": "SYNTH-TRACE-CAP-03",
+          "process_trace_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "evidence_class": "measured_synthetic",
+          "observed_envelope_status": "within_declared_envelope",
+          "source_time_utc": "2026-11-10T03:20:00Z"
+        }
+      ],
+      "inspections": {
+        "in_process": [
+          {
+            "inspection_id": "SYNTH-IP-ROOT-01",
+            "hold_point": "root",
+            "coverage": "required",
+            "disposition": "accepted_synthetic",
+            "joint_id": "SYNTH-JOINT-017-A"
+          },
+          {
+            "inspection_id": "SYNTH-IP-FILL-01",
+            "hold_point": "fill_sampling",
+            "coverage": "required_sampling",
+            "disposition": "accepted_synthetic",
+            "joint_id": "SYNTH-JOINT-017-A"
+          },
+          {
+            "inspection_id": "SYNTH-IP-CAP-01",
+            "hold_point": "cap",
+            "coverage": "required",
+            "disposition": "accepted_synthetic",
+            "joint_id": "SYNTH-JOINT-017-A"
+          }
+        ],
+        "visual": {
+          "inspection_id": "SYNTH-VT-017",
+          "method_ref": "SYNTH-VT-METHOD-01",
+          "coverage": "complete_synthetic",
+          "disposition": "accepted_synthetic",
+          "joint_id": "SYNTH-JOINT-017-A"
+        },
+        "ndt": {
+          "inspection_id": "SYNTH-NDT-017",
+          "method_ref": "SYNTH-NDT-METHOD-01",
+          "coverage": "complete_synthetic",
+          "disposition": "accepted_synthetic",
+          "joint_id": "SYNTH-JOINT-017-A",
+          "report_ref": "SYNTH-NDT-REPORT-017"
+        }
+      },
+      "post_processing": {
+        "straightening_required": true,
+        "straightening_state": "completed_synthetic",
+        "straightening_record": "SYNTH-STRAIGHTEN-017",
+        "dimensional_survey_ref": "SYNTH-DIM-SURVEY-017",
+        "repair_required": false,
+        "repair_route_ref": null,
+        "repair_reinspection_ref": null
+      },
+      "document_package": {
+        "package_id": "SYNTH-DOC-PACK-017",
+        "revision": "DOC-REV-01",
+        "status": "complete_synthetic",
+        "required_references": [
+          "workpiece",
+          "procedure",
+          "equipment",
+          "operator",
+          "consumables",
+          "preprocessing",
+          "passes",
+          "in_process_inspections",
+          "visual",
+          "ndt",
+          "post_processing"
+        ],
+        "included_references": [
+          "workpiece",
+          "procedure",
+          "equipment",
+          "operator",
+          "consumables",
+          "preprocessing",
+          "passes",
+          "in_process_inspections",
+          "visual",
+          "ndt",
+          "post_processing"
+        ],
+        "package_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "twin_commissioning": {
+        "process_twin_id": "SYNTH-PROCESS-TWIN-01",
+        "equipment_twin_id": "SYNTH-EQUIPMENT-TWIN-01",
+        "workpiece_twin_id": "SYNTH-WORKPIECE-TWIN-01",
+        "composition_mode": "federated",
+        "mapping_state": "exact",
+        "max_latency_ms": 5000,
+        "observed_latency_ms": 1200,
+        "expected_update_interval_s": 5,
+        "observed_update_interval_s": 5,
+        "required_fidelity": "exact_required_fields",
+        "observed_fidelity": "exact_required_fields",
+        "source_writeback": false,
+        "source_time_role": "source_observation",
+        "retrieval_time_role": "ingestion"
+      }
+    }
+  },
+  "cases": [
+    {
+      "id": "valid_root_fill_cap_trace",
+      "base": "valid_robotic_weld",
+      "mutations": [],
+      "expected_code": "WELD_TRACE_VALID_SYNTHETIC_ONLY"
+    },
+    {
+      "id": "wrong_component_serial",
+      "base": "valid_robotic_weld",
+      "mutations": [
+        {
+          "path": "workpiece.serial_id",
+          "op": "set",
+          "value": "SYNTH-SERIAL-999"
+        }
+      ],
+      "expected_code": "WORKPIECE_IDENTITY_MISMATCH"
+    },
+    {
+      "id": "wrong_joint_id",
+      "base": "valid_robotic_weld",
+      "mutations": [
+        {
+          "path": "passes.1.joint_id",
+          "op": "set",
+          "value": "SYNTH-JOINT-OTHER"
+        }
+      ],
+      "expected_code": "JOINT_IDENTITY_MISMATCH"
+    },
+    {
+      "id": "wrong_design_revision",
+      "base": "valid_robotic_weld",
+      "mutations": [
+        {
+          "path": "passes.0.workpiece_revision",
+          "op": "set",
+          "value": "DWG-REV-02"
+        }
+      ],
+      "expected_code": "DESIGN_REVISION_MISMATCH"
+    },
+    {
+      "id": "material_heat_lot_mismatch",
+      "base": "valid_robotic_weld",
+      "mutations": [
+        {
+          "path": "workpiece.material_heat_lot",
+          "op": "set",
+          "value": "SYNTH-HEAT-999"
+        }
+      ],
+      "expected_code": "MATERIAL_LOT_MISMATCH"
+    },
+    {
+      "id": "wps_revision_mismatch",
+      "base": "valid_robotic_weld",
+      "mutations": [
+        {
+          "path": "passes.1.wps_revision",
+          "op": "set",
+          "value": "WPS-REV-03"
+        }
+      ],
+      "expected_code": "WPS_REVISION_MISMATCH"
+    },
+    {
+      "id": "pqr_scope_mismatch",
+      "base": "valid_robotic_weld",
+      "mutations": [
+        {
+          "path": "procedure.qualified_scope",
+          "op": "set",
+          "value": "SYNTH-SCOPE-OTHER"
+        }
+      ],
+      "expected_code": "PQR_SCOPE_MISMATCH"
+    },
+    {
+      "id": "procedure_expired",
+      "base": "valid_robotic_weld",
+      "mutations": [
+        {
+          "path": "procedure.valid_until_utc",
+          "op": "set",
+          "value": "2026-11-01T00:00:00Z"
+        }
+      ],
+      "expected_code": "PROCEDURE_EXPIRED"
+    },
+    {
+      "id": "procedure_revoked",
+      "base": "valid_robotic_weld",
+      "mutations": [
+        {
+          "path": "procedure.approval_status",
+          "op": "set",
+          "value": "revoked"
+        }
+      ],
+      "expected_code": "PROCEDURE_NOT_APPROVED"
+    },
+    {
+      "id": "consumable_lot_missing",
+      "base": "valid_robotic_weld",
+      "mutations": [
+        {
+          "path": "consumables.0.lot_id",
+          "op": "set",
+          "value": ""
+        }
+      ],
+      "expected_code": "CONSUMABLE_LOT_MISSING"
+    },
+    {
+      "id": "consumable_incompatible",
+      "base": "valid_robotic_weld",
+      "mutations": [
+        {
+          "path": "consumables.0.compatibility",
+          "op": "set",
+          "value": "incompatible"
+        }
+      ],
+      "expected_code": "CONSUMABLE_INCOMPATIBLE"
+    },
+    {
+      "id": "equipment_revision_mismatch",
+      "base": "valid_robotic_weld",
+      "mutations": [
+        {
+          "path": "passes.1.equipment_revision",
+          "op": "set",
+          "value": "ROBOT-REV-01"
+        }
+      ],
+      "expected_code": "EQUIPMENT_REVISION_MISMATCH"
+    },
+    {
+      "id": "stale_equipment_calibration",
+      "base": "valid_robotic_weld",
+      "mutations": [
+        {
+          "path": "equipment.calibration_valid_until_utc",
+          "op": "set",
+          "value": "2026-11-01T00:00:00Z"
+        }
+      ],
+      "expected_code": "CALIBRATION_STALE"
+    },
+    {
+      "id": "program_geometry_mismatch",
+      "base": "valid_robotic_weld",
+      "mutations": [
+        {
+          "path": "equipment.geometry_sha256",
+          "op": "set",
+          "value": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        }
+      ],
+      "expected_code": "PROGRAM_GEOMETRY_MISMATCH"
+    },
+    {
+      "id": "preprocessing_incomplete",
+      "base": "valid_robotic_weld",
+      "mutations": [
+        {
+          "path": "preprocessing.joint_preparation_state",
+          "op": "set",
+          "value": "unknown"
+        }
+      ],
+      "expected_code": "PREPROCESSING_INCOMPLETE"
+    },
+    {
+      "id": "precondition_missing",
+      "base": "valid_robotic_weld",
+      "mutations": [
+        {
+          "path": "preprocessing.precondition_state",
+          "op": "set",
+          "value": "unknown"
+        }
+      ],
+      "expected_code": "PRECONDITION_NOT_SATISFIED"
+    },
+    {
+      "id": "missing_root_pass",
+      "base": "valid_robotic_weld",
+      "mutations": [
+        {
+          "path": "passes",
+          "op": "set",
+          "value": [
+            {
+              "pass_id": "SYNTH-PASS-FILL-02",
+              "sequence_index": 2,
+              "role": "fill",
+              "joint_id": "SYNTH-JOINT-017-A",
+              "workpiece_revision": "DWG-REV-03",
+              "wps_revision": "WPS-REV-04",
+              "equipment_revision": "ROBOT-REV-02",
+              "program_revision": "PROGRAM-REV-07",
+              "parameter_envelope_ref": "SYNTH-ENVELOPE-017",
+              "process_trace_ref": "SYNTH-TRACE-FILL-02",
+              "process_trace_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+              "evidence_class": "measured_synthetic",
+              "observed_envelope_status": "within_declared_envelope",
+              "source_time_utc": "2026-11-10T03:10:00Z"
+            },
+            {
+              "pass_id": "SYNTH-PASS-CAP-03",
+              "sequence_index": 3,
+              "role": "cap",
+              "joint_id": "SYNTH-JOINT-017-A",
+              "workpiece_revision": "DWG-REV-03",
+              "wps_revision": "WPS-REV-04",
+              "equipment_revision": "ROBOT-REV-02",
+              "program_revision": "PROGRAM-REV-07",
+              "parameter_envelope_ref": "SYNTH-ENVELOPE-017",
+              "process_trace_ref": "SYNTH-TRACE-CAP-03",
+              "process_trace_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "evidence_class": "measured_synthetic",
+              "observed_envelope_status": "within_declared_envelope",
+              "source_time_utc": "2026-11-10T03:20:00Z"
+            }
+          ]
+        }
+      ],
+      "expected_code": "ROOT_PASS_MISSING"
+    },
+    {
+      "id": "invalid_pass_order",
+      "base": "valid_robotic_weld",
+      "mutations": [
+        {
+          "path": "passes.1.sequence_index",
+          "op": "set",
+          "value": 1
+        }
+      ],
+      "expected_code": "PASS_SEQUENCE_INVALID"
+    },
+    {
+      "id": "duplicate_pass_id",
+      "base": "valid_robotic_weld",
+      "mutations": [
+        {
+          "path": "passes.2.pass_id",
+          "op": "set",
+          "value": "SYNTH-PASS-FILL-02"
+        }
+      ],
+      "expected_code": "DUPLICATE_PASS_ID"
+    },
+    {
+      "id": "pass_wrong_workpiece_revision",
+      "base": "valid_robotic_weld",
+      "mutations": [
+        {
+          "path": "passes.2.workpiece_revision",
+          "op": "set",
+          "value": "DWG-REV-02"
+        }
+      ],
+      "expected_code": "PASS_WORKPIECE_REVISION_MISMATCH"
+    },
+    {
+      "id": "process_trace_missing",
+      "base": "valid_robotic_weld",
+      "mutations": [
+        {
+          "path": "passes.1.process_trace_ref",
+          "op": "set",
+          "value": null
+        }
+      ],
+      "expected_code": "PROCESS_TRACE_MISSING"
+    },
+    {
+      "id": "process_envelope_exceeded",
+      "base": "valid_robotic_weld",
+      "mutations": [
+        {
+          "path": "passes.2.observed_envelope_status",
+          "op": "set",
+          "value": "outside_declared_envelope"
+        }
+      ],
+      "expected_code": "PROCESS_ENVELOPE_EXCEEDED"
+    },
+    {
+      "id": "synthetic_estimate_labelled_measured",
+      "base": "valid_robotic_weld",
+      "mutations": [
+        {
+          "path": "passes.1.evidence_class",
+          "op": "set",
+          "value": "measured"
+        }
+      ],
+      "expected_code": "EVIDENCE_CLASS_MISMATCH"
+    },
+    {
+      "id": "root_hold_point_missing",
+      "base": "valid_robotic_weld",
+      "mutations": [
+        {
+          "path": "inspections.in_process.0.disposition",
+          "op": "set",
+          "value": "not_performed"
+        }
+      ],
+      "expected_code": "ROOT_INSPECTION_MISSING"
+    },
+    {
+      "id": "fill_sampling_missing",
+      "base": "valid_robotic_weld",
+      "mutations": [
+        {
+          "path": "inspections.in_process.1.coverage",
+          "op": "set",
+          "value": "none"
+        }
+      ],
+      "expected_code": "FILL_SAMPLING_MISSING"
+    },
+    {
+      "id": "cap_inspection_missing",
+      "base": "valid_robotic_weld",
+      "mutations": [
+        {
+          "path": "inspections.in_process.2.disposition",
+          "op": "set",
+          "value": "not_performed"
+        }
+      ],
+      "expected_code": "CAP_INSPECTION_MISSING"
+    },
+    {
+      "id": "ndt_inconclusive_promoted",
+      "base": "valid_robotic_weld",
+      "mutations": [
+        {
+          "path": "inspections.ndt.disposition",
+          "op": "set",
+          "value": "inconclusive"
+        }
+      ],
+      "expected_code": "NDT_NOT_ACCEPTED"
+    },
+    {
+      "id": "ndt_reject_but_visual_accepted",
+      "base": "valid_robotic_weld",
+      "mutations": [
+        {
+          "path": "inspections.ndt.disposition",
+          "op": "set",
+          "value": "rejected"
+        }
+      ],
+      "expected_code": "INSPECTION_DISPOSITION_CONFLICT"
+    },
+    {
+      "id": "repair_without_reinspection",
+      "base": "valid_robotic_weld",
+      "mutations": [
+        {
+          "path": "post_processing.repair_required",
+          "op": "set",
+          "value": true
+        },
+        {
+          "path": "post_processing.repair_route_ref",
+          "op": "set",
+          "value": "SYNTH-REPAIR-ROUTE-01"
+        }
+      ],
+      "expected_code": "REPAIR_REINSPECTION_MISSING"
+    },
+    {
+      "id": "straightening_without_dimensional_evidence",
+      "base": "valid_robotic_weld",
+      "mutations": [
+        {
+          "path": "post_processing.dimensional_survey_ref",
+          "op": "set",
+          "value": null
+        }
+      ],
+      "expected_code": "STRAIGHTENING_EVIDENCE_MISSING"
+    },
+    {
+      "id": "document_package_incomplete",
+      "base": "valid_robotic_weld",
+      "mutations": [
+        {
+          "path": "document_package.included_references",
+          "op": "set",
+          "value": [
+            "workpiece",
+            "procedure",
+            "equipment"
+          ]
+        }
+      ],
+      "expected_code": "DOCUMENT_PACKAGE_INCOMPLETE"
+    },
+    {
+      "id": "twin_latency_exceeded",
+      "base": "valid_robotic_weld",
+      "mutations": [
+        {
+          "path": "twin_commissioning.observed_latency_ms",
+          "op": "set",
+          "value": 12000
+        }
+      ],
+      "expected_code": "TWIN_LATENCY_EXCEEDED"
+    },
+    {
+      "id": "twin_projection_writeback",
+      "base": "valid_robotic_weld",
+      "mutations": [
+        {
+          "path": "twin_commissioning.source_writeback",
+          "op": "set",
+          "value": true
+        }
+      ],
+      "expected_code": "TWIN_WRITEBACK_FORBIDDEN"
+    },
+    {
+      "id": "operator_qualification_expired",
+      "base": "valid_robotic_weld",
+      "mutations": [
+        {
+          "path": "operator.valid_until_utc",
+          "op": "set",
+          "value": "2026-10-01T00:00:00Z"
+        }
+      ],
+      "expected_code": "OPERATOR_QUALIFICATION_EXPIRED"
+    }
+  ]
+}
