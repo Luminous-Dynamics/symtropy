@@ -28,7 +28,7 @@ Each case binds a vessel, asset, component, configuration revision and capabilit
 - source role and issuer-scoped source reference: measured sensor, native equipment alarm, operator report, maintenance record, model residual, external diagnostic or simulator-only;
 - quantity unit, calibration/verification reference, installed configuration revision and declared validity-profile reference;
 - clock domain and clock quality (monotonic + UTC bound, UTC-only, conflicted or unknown);
-- measured observation age and maximum admissible age, both explicit, so freshness is recomputed rather than trusted from a "current" label;
+- source observation UTC-mapped timestamp, case decision timestamp and maximum admissible age, so the verifier computes age as decision time minus source observation time rather than trusting a producer-supplied age;
 - uncertainty reference (a pointer to the uncertainty method/artifact; v0.1 does not invent a numeric uncertainty model);
 - quality state: current, stale, wrong configuration, wrong unit, expired calibration, unauthenticated, conflicted, simulator-only or missing lineage;
 - a declared shared-dependency group (sensor, power rail, controller, clock, network, or another named common cause).
@@ -41,13 +41,13 @@ A recovery attempt requires a repair record, inspection, proof test, scoped auth
 
 ## Synthetic corpus
 
-The frozen corpus contains 39 positive, negative, ambiguity, common-cause, recovery and metamorphic fixtures across propulsion, steering, generation, switchboards, battery, cooling, lubrication, fuel, bilge, flood, fire, ballast and HVAC/electronics cooling.
+The frozen corpus contains 40 positive, negative, ambiguity, common-cause, recovery and metamorphic fixtures across propulsion, steering, generation, switchboards, battery, cooling, lubrication, fuel, bilge, flood, fire, ballast and HVAC/electronics cooling.
 
 The fixtures test contract semantics, not distributions of real ship faults. They deliberately do not invent pressure, temperature, vibration, bilge, insulation, combustion, fire-growth, flood-propagation, stability or electrical-transient thresholds.
 
 ## Evaluator and gates
 
-The standalone Rust evaluator checks strict typed parsing, corpus identity/version, minimum size, unique case and observation IDs, non-empty identity/lineage fields, monotonic observation offsets, source-role boundaries, exact configuration match, explicit clock quality, recomputed observation age versus maximum age, dependency-group accounting, fault/unknown dispositions and recovery evidence completeness.
+The standalone Rust evaluator checks strict typed parsing, corpus identity/version, minimum size, unique case and observation IDs, non-empty identity/lineage fields, monotonic observation offsets, source-role boundaries, exact configuration match, explicit clock quality, recomputed age from decision_time_ms - observed_at_ms versus maximum age, including future-dated source rejection, dependency-group accounting, fault/unknown dispositions and recovery evidence completeness.
 
 Non-compensatory gates:
 - zero admission of stale, wrong-configuration, wrong-unit, expired-calibration, unauthenticated, conflicted or simulator-only observations as current decision evidence;
