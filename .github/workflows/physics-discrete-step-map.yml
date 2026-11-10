@@ -1,0 +1,38 @@
+name: Discrete effective-metric reference
+
+on:
+  pull_request:
+    paths:
+      - "research/discrete-contact-metric-001/**"
+      - ".github/workflows/physics-discrete-step-map.yml"
+  push:
+    branches:
+      - "research/discrete-metric-contact-step-map-v0-1"
+    paths:
+      - "research/discrete-contact-metric-001/**"
+      - ".github/workflows/physics-discrete-step-map.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: discrete-step-map-\${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-reference:
+    name: Validate effective-metric discrete step
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Rust 1.96
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Format
+        run: cargo +1.96.0 fmt --manifest-path research/discrete-contact-metric-001/Cargo.toml -- --check
+      - name: Tests
+        run: cargo +1.96.0 test --manifest-path research/discrete-contact-metric-001/Cargo.toml --all-targets
+      - name: Strict Clippy
+        run: cargo +1.96.0 clippy --manifest-path research/discrete-contact-metric-001/Cargo.toml --all-targets -- -D warnings
