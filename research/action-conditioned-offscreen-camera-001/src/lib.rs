@@ -181,7 +181,6 @@ pub enum RenderError {
     SequenceRegression,
     CaptureClockRegression,
     DeliveryClockRegression,
-    SnapshotIdentityMismatch,
     FrameAllocationExceeded,
     ProjectionOverflow,
 }
@@ -539,7 +538,7 @@ fn validate_coordinate(value: i64) -> Result<(), RenderError> {
 
 fn validate_rotation(matrix: [[i32; 3]; 3]) -> Result<(), RenderError> {
     let target = i128::from(Q16_ONE) * i128::from(Q16_ONE);
-    let tolerance = target / 100;
+    let tolerance = target / 10_000;
     for row in 0..3 {
         let norm = matrix[row]
             .iter()
@@ -756,8 +755,8 @@ fn world_snapshot_digest(snapshot:&WorldRenderSnapshot)->String{
     bytes.extend_from_slice(&snapshot.world_timestamp_us.to_le_bytes());
     if let Some(action)=snapshot.applied_action.as_ref(){
         bytes.push(1);
-        append_string(&mut bytes,action.receipt_id);
-        append_string(&mut bytes,action.command_id);
+        append_string(&mut bytes,&action.receipt_id);
+        append_string(&mut bytes,&action.command_id);
         bytes.extend_from_slice(&action.applied_tick.to_le_bytes());
     }else{bytes.push(0);}
     append_string(&mut bytes,&camera_calibration_digest(&snapshot.camera));
