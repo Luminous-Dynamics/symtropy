@@ -212,6 +212,12 @@ Fixture load_fixture(const std::string& path, const std::string& workload_overri
   Fixture fixture;
   fixture.fixture_id = root.at("fixture_id").get<std::string>();
   fixture.workload_class = workload_override;
+  const std::set<std::string> supported_workloads{
+      "analytic_known_answer", "sparse_separated", "dense_overlap", "corridor_room",
+      "long_thin", "high_tessellation", "licensed_building", "unknown"};
+  if (fixture.fixture_id.empty() || !supported_workloads.contains(fixture.workload_class)) {
+    throw std::runtime_error("fixture identity or workload class is unsupported");
+  }
   fixture.intersection_epsilon = contract.at("intersection_epsilon_m").get<double>();
   fixture.tie_epsilon = contract.at("nearest_hit_tie_epsilon_m").get<double>();
   const double parallel_cosine_epsilon = contract.at("parallel_cosine_epsilon").get<double>();
@@ -241,6 +247,21 @@ Fixture load_fixture(const std::string& path, const std::string& workload_overri
     if (triangle.kind != "same_building" && triangle.kind != "external" &&
         triangle.kind != "unknown") {
       throw std::runtime_error("triangle kind is unsupported");
+    }
+    const Vec3d edge_a = {triangle.b.x - triangle.a.x,
+                          triangle.b.y - triangle.a.y,
+                          triangle.b.z - triangle.a.z};
+    const Vec3d edge_b = {triangle.c.x - triangle.a.x,
+                          triangle.c.y - triangle.a.y,
+                          triangle.c.z - triangle.a.z};
+    const Vec3d normal = {
+      edge_a.y * edge_b.z - edge_a.z * edge_b.y,
+      edge_a.z * edge_b.x - edge_a.x * edge_b.z,
+      edge_a.x * edge_b.y - edge_a.y * edge_b.x
+    };
+    const double twice_area = norm(normal);
+    if (!std::isfinite(twice_area) || twice_area <= 1.0e-15) {
+      throw std::runtime_error("fixture contains a degenerate triangle");
     }
     if (!identities.insert(triangle.id).second) {
       throw std::runtime_error("fixture contains duplicate triangle identities");
@@ -292,6 +313,9 @@ Fixture load_fixture(const std::string& path, const std::string& workload_overri
         item.at("exclude_target").at(0).get<std::string>(),
         item.at("exclude_target").at(1).get<std::string>()
       };
+      if (!identities.contains(*ray.exclude)) {
+        throw std::runtime_error("ray exclusion identity is absent from the triangle inventory");
+      }
     }
     const auto& expected = item.at("expected");
     ray.expected.status = expected.at("status").get<std::string>();
@@ -308,8 +332,13 @@ Fixture load_fixture(const std::string& path, const std::string& workload_overri
     if ((ray.expected.status == "hit") != !expected.at("nearest_hits").empty()) {
       throw std::runtime_error("expected ray status/hit-identity contract is inconsistent");
     }
+    std::set<Identity> expected_hit_ids;
     for (const auto& hit : expected.at("nearest_hits")) {
-      ray.expected.nearest_hits.push_back(Identity{hit.at(0).get<std::string>(), hit.at(1).get<std::string>()});
+      Identity identity{hit.at(0).get<std::string>(), hit.at(1).get<std::string>()};
+      if (!identities.contains(identity) || !expected_hit_ids.insert(identity).second) {
+        throw std::runtime_error("expected hit identity is absent or duplicated");
+      }
+      ray.expected.nearest_hits.push_back(std::move(identity));
     }
     std::sort(ray.expected.nearest_hits.begin(), ray.expected.nearest_hits.end());
 
