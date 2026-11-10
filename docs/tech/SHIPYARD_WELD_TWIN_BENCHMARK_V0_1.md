@@ -112,3 +112,38 @@ Four additional adversarial cases close gaps found during code review:
 - observed digital-twin update interval must not exceed the declared expected interval.
 
 The frozen corpus is now 46 cases (1 positive, 45 negative). The independent Rust evaluator and unit-test count are updated accordingly. These remain synthetic contract controls, not physical welding process qualifications.
+
+
+## Normative effectivity: decision time versus subject construction date — 2026-11-10
+
+The first verifier version compared IACS rule effective dates only with the evaluation cutoff. That is insufficient for shipbuilding because IACS UR W28 Rev.3 applies to ships **constructed on or after 1 January 2027**, even when the engineering decision or procedure review happens before that date.
+
+The verifier now binds four distinct temporal roles:
+- `evaluation_cutoff_utc`: when the engineering decision/replay is evaluated;
+- `normative_context.source_retrieved_at_utc`: when the normative source snapshot was actually retrieved (must not be later than the decision cutoff);
+- `normative_context.subject_applicability_date_utc`: the ship construction/effectivity date used to select the ruleset;
+- each ruleset's effective-from/effective-until interval.
+
+As of 10 November 2026, the IACS page identifies UR W28 Rev.2 as current and Rev.3 as the future version; Rev.3 enters into force on 1 January 2027. It is not enough to say "Rev.2 was current when we reviewed this procedure." A vessel constructed on/after the transition date must be evaluated against Rev.3's subject applicability, even if the decision snapshot predates its effective date. Conversely, a Rev.3-only assumption cannot be treated as currently effective for a subject whose applicability date precedes the transition.
+
+Sources:
+- IACS UR W28 current/future version and 1 January 2027 effective date: https://iacs.org.uk/resolutions/unified-requirements/ur-w/ur-w28-rev2-cln
+- IACS Rev.3 complete revision PDF; clause 3 states ships constructed on/after 1 January 2027: https://www.classnk.or.jp/hp/pdf/info_service/iacs_ur_and_ui/ur_w28_rev.3_sep_2025_complete_revision.pdf
+- IACS explanation of Unified Requirements and member-society implementation: https://iacs.org.uk/resolutions/unified-requirements
+
+### ISO 15614-1 transition watch
+
+ISO 15614-1:2017 with Amendment 1:2019 remains the published standard currently identified by ISO. The third edition is ISO/FDIS 15614-1, at FDIS formal approval stage (50.00) on 21 October 2026; it is **not yet a published International Standard**. Keep its draft text/version separate from the current published edition and do not pre-empt the final publication:
+- Current published edition: https://www.iso.org/standard/51792.html
+- Third-edition FDIS stage: https://committee.iso.org/standard/86026.html
+
+ISO/TR 23247-101:2026 is a published manufacturing digital-twin use-case report for robotic multilayer/multipass GMAW, not a welding procedure qualification or weld acceptance code. The process twin must always refer to the applicable project/class/flag procedure and acceptance authority; standards metadata does not create a valid WPS/PQR.
+
+### New adversarial cases
+
+The 48-case corpus now includes:
+- W28 Rev.2 incorrectly selected for a ship with subject construction date on/after 1 January 2027;
+- a normative source snapshot retrieved after the decision cutoff;
+- existing negative case: Rev.3 incorrectly selected for a subject date before its effective date.
+
+The benchmark now distinguishes (a) rule knowledge available at a decision cutoff, (b) which ruleset applies to the subject based on its construction/effectivity date, and (c) when the actual weld procedure, equipment, operator and pass evidence were valid. This is necessary for long-lead shipbuilding programmes and avoids a future-effective standard being either applied too early or missed for a vessel built after the transition.
