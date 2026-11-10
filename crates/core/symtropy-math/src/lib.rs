@@ -34,6 +34,7 @@ pub mod hyperplane;
 pub mod point;
 pub mod rotor;
 pub mod shape;
+pub mod spatial;
 pub mod sphere;
 pub mod transform;
 
@@ -54,6 +55,9 @@ pub use hyperplane::Hyperplane;
 pub use point::Point;
 pub use rotor::Rotor;
 pub use shape::Shape;
+pub use spatial::{
+    BodyTwist3, BodyWrench3, SpatialAlgebraError, SpatialTwist3, SpatialWrench3,
+};
 pub use sphere::Sphere;
 pub use transform::Transform;
 
