@@ -573,7 +573,9 @@ fn parse_dimension_mapping(value: &JsonValue, path: &str) -> Result<DimensionMap
 
     let transformation = json_optional_string(object, "transformation", path)?;
     if transformation.as_deref().is_some_and(str::is_empty) {
-        return Err(format!("{path}.transformation must not be empty when present"));
+        return Err(format!(
+            "{path}.transformation must not be empty when present"
+        ));
     }
     if status == MappingStatus::NotApplicable
         && (object.contains_key("transformation") || object.contains_key("error_bounds"))
@@ -922,11 +924,12 @@ mod tests {
 
     #[test]
     fn json_adapter_rejects_not_applicable_with_empty_error_bounds() {
-        let mut value: JsonValue = serde_json::from_str(include_str!(
-            "../fixtures/strict-equivalent.example.json"
-        ))
-        .expect("strict fixture is valid JSON");
-        let dimensions = value["dimensions"].as_array_mut().expect("dimensions array");
+        let mut value: JsonValue =
+            serde_json::from_str(include_str!("../fixtures/strict-equivalent.example.json"))
+                .expect("strict fixture is valid JSON");
+        let dimensions = value["dimensions"]
+            .as_array_mut()
+            .expect("dimensions array");
         let contacts = dimensions
             .iter_mut()
             .find(|item| item["dimension"] == "contacts")
@@ -940,11 +943,12 @@ mod tests {
 
     #[test]
     fn json_adapter_rejects_empty_optional_transformation() {
-        let mut value: JsonValue = serde_json::from_str(include_str!(
-            "../fixtures/strict-equivalent.example.json"
-        ))
-        .expect("strict fixture is valid JSON");
-        let dimensions = value["dimensions"].as_array_mut().expect("dimensions array");
+        let mut value: JsonValue =
+            serde_json::from_str(include_str!("../fixtures/strict-equivalent.example.json"))
+                .expect("strict fixture is valid JSON");
+        let dimensions = value["dimensions"]
+            .as_array_mut()
+            .expect("dimensions array");
         dimensions[0]["transformation"] = JsonValue::String(String::new());
 
         let encoded = serde_json::to_string(&value).expect("serialize mutated receipt");
