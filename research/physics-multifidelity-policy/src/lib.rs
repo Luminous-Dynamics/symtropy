@@ -1358,6 +1358,52 @@ mod tests {
     }
 
     #[test]
+    fn decision_boundary_monitor_rejects_unexpected_observed_estimate() {
+        let data = input();
+        let receipt = evaluate(&data).expect("input");
+        let observation = RunObservation {
+            input_sha256: receipt.input_sha256.clone(),
+            model_id: "fast-qualified".to_owned(),
+            model_passport_sha256: H1.to_owned(),
+            observation_receipt_sha256: H3.to_owned(),
+            eligible_peer_model_ids: vec![],
+            decision_estimate: Some(observation_decision_estimate(12.0, 0.5)),
+            observed_residual: 0.01,
+            observed_uncertainty: 0.01,
+            validity_inside_envelope: true,
+            hard_constraints: HardConstraintDisposition::WithinBounds,
+        };
+        assert_eq!(
+            monitor(&data, &receipt, &observation).unwrap_err(),
+            PolicyError::ObservationDecisionEstimateUnexpected
+        );
+    }
+
+    #[test]
+    fn observed_decision_estimate_must_match_quantity_unit_and_frame() {
+        let data = decision_boundary_input();
+        let receipt = evaluate(&data).expect("input");
+        let mut estimate = observation_decision_estimate(12.0, 0.5);
+        estimate.reference_frame = "body".to_owned();
+        let observation = RunObservation {
+            input_sha256: receipt.input_sha256.clone(),
+            model_id: "fast-qualified".to_owned(),
+            model_passport_sha256: H1.to_owned(),
+            observation_receipt_sha256: H3.to_owned(),
+            eligible_peer_model_ids: vec![],
+            decision_estimate: Some(estimate),
+            observed_residual: 0.01,
+            observed_uncertainty: 0.01,
+            validity_inside_envelope: true,
+            hard_constraints: HardConstraintDisposition::WithinBounds,
+        };
+        assert_eq!(
+            monitor(&data, &receipt, &observation).unwrap_err(),
+            PolicyError::ObservationDecisionEstimateMismatch
+        );
+    }
+
+    #[test]
     fn monitor_continues_when_observations_remain_inside_bounds() {
         let data = input();
         let receipt = evaluate(&data).expect("input");
