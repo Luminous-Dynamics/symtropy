@@ -76,6 +76,7 @@ pub enum RandomEventClass {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RandomEvent {
     pub event_id: String,
+    pub shared_with_parent: bool,
     pub event_class: RandomEventClass,
     pub invariant_under_intervention: bool,
     pub key_digest: String,
@@ -151,6 +152,7 @@ pub enum Finding {
     SharedRandomKeyNotDeclared,
     DeclaredSharedKeyMismatch,
     SharedRandomKeyNotInvariantExogenous,
+    BranchOutcomeBeforeDecision,
     SharedRandomValueChanged,
     DuplicatePolicyField,
     PolicyFieldNotVisible,
@@ -297,9 +299,12 @@ fn validate_branch_pair(branch: &BranchRecord, parent: &BranchRecord, findings: 
     for event in &branch.random_events {
         if let Some(previous) = parent_events.get(event.event_id.as_str()) {
             let same_key = event.key_digest == previous.key_digest;
-            let declares_same_key = event.key_digest == previous.key_digest;
-            if same_key != declares_same_key {
-                findings.push(Finding::DeclaredSharedKeyMismatch);
+            if event.shared_with_parent != same_key {
+                findings.push(if event.shared_with_parent {
+                    Finding::DeclaredSharedKeyMismatch
+                } else {
+                    Finding::SharedRandomKeyNotDeclared
+                });
             }
             if same_key {
                 if event.event_class != RandomEventClass::Exogenous
@@ -461,7 +466,7 @@ pub fn validate_campaign(campaign: &CampaignRecord) -> ValidationReport {
             findings.push(Finding::BranchReferencesMissingEpisode);
         }
         if branch.outcome_tick < branch.decision_tick {
-            findings.push(Finding::QueryOutcomeNotAfterIssue);
+            findings.push(Finding::BranchOutcomeBeforeDecision);
         }
 
         if branch.actor_responses.len() > MAX_ACTORS_PER_BRANCH
@@ -476,6 +481,13 @@ pub fn validate_campaign(campaign: &CampaignRecord) -> ValidationReport {
         }
         if branch.policy_input_fields.len() > MAX_FIELDS_PER_BRANCH {
             findings.push(Finding::BoundExceeded("policy_fields_per_branch"));
+        }
+        if branch
+            .query
+            .as_ref()
+            .is_some_and(|query| query.inputs.len() > MAX_FIELDS_PER_BRANCH)
+        {
+            findings.push(Finding::BoundExceeded("query_fields_per_branch"));
         }
 
         if duplicate(&branch.expected_actor_ids) || duplicate(&branch.actor_responses.iter().map(|a| a.actor_id.clone()).collect::<Vec<_>>()) {
@@ -565,8 +577,13 @@ pub fn validate_campaign(campaign: &CampaignRecord) -> ValidationReport {
                 None => findings.push(Finding::MissingParent),
                 Some(parent) => validate_branch_pair(branch, parent, &mut findings),
             }
-        } else if branch.actor_responses.iter().any(|actor| actor.origin == ActorResponseOrigin::Replayed) {
-            findings.push(Finding::MissingParentActorForReplay);
+        } else {
+            if branch.actor_responses.iter().any(|actor| actor.origin == ActorResponseOrigin::Replayed) {
+                findings.push(Finding::MissingParentActorForReplay);
+            }
+            if branch.random_events.iter().any(|event| event.shared_with_parent) {
+                findings.push(Finding::DeclaredSharedKeyMismatch);
+            }
         }
     }
     validate_parent_graph(&branches_by_id, &mut findings);
@@ -622,6 +639,7 @@ mod tests {
     fn exogenous_event() -> RandomEvent {
         RandomEvent {
             event_id: "weather-noise".to_string(),
+            shared_with_parent: false,
             event_class: RandomEventClass::Exogenous,
             invariant_under_intervention: true,
             key_digest: "weather-key-1".to_string(),
@@ -644,7 +662,11 @@ mod tests {
             expected_actor_ids: vec!["lead-vehicle".to_string()],
             actor_responses: vec![actor(ActorResponseOrigin::Recomputed, "actor-input-1", "actor-action-1")],
             expected_random_event_ids: vec!["weather-noise".to_string()],
-            random_events: vec![exogenous_event()],
+            random_events: vec![{
+                let mut event = exogenous_event();
+                event.shared_with_parent = true;
+                event
+            }],
             policy_input_fields: vec![InformationField {
                 field_id: "camera-front".to_string(),
                 source_role: InformationSourceRole::PolicyVisible,
@@ -801,10 +823,28 @@ mod tests {
     #[test]
     fn rejects_shared_random_key_for_endogenous_event() {
         let mut campaign = valid_campaign();
+        campaign.branches[1].random_events[0].shared_with_parent = true;
         campaign.branches[1].random_events[0].event_class = RandomEventClass::Endogenous;
         campaign.branches[1].random_events[0].invariant_under_intervention = false;
         let report = validate_campaign(&campaign);
         assert!(has(&report, Finding::SharedRandomKeyNotInvariantExogenous));
+    }
+
+    #[test]
+    fn rejects_undocumented_shared_random_key() {
+        let mut campaign = valid_campaign();
+        campaign.branches[1].random_events[0].shared_with_parent = false;
+        let report = validate_campaign(&campaign);
+        assert!(has(&report, Finding::SharedRandomKeyNotDeclared));
+    }
+
+    #[test]
+    fn rejects_declared_shared_key_when_key_differs() {
+        let mut campaign = valid_campaign();
+        campaign.branches[1].random_events[0].shared_with_parent = true;
+        campaign.branches[1].random_events[0].key_digest = "different-key".to_string();
+        let report = validate_campaign(&campaign);
+        assert!(has(&report, Finding::DeclaredSharedKeyMismatch));
     }
 
     #[test]
@@ -909,7 +949,7 @@ mod tests {
         let mut campaign = valid_campaign();
         campaign.branches[1].outcome_tick = 9;
         let report = validate_campaign(&campaign);
-        assert!(has(&report, Finding::QueryOutcomeNotAfterIssue));
+        assert!(has(&report, Finding::BranchOutcomeBeforeDecision));
     }
 
     #[test]
