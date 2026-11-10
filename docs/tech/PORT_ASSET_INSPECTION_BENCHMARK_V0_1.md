@@ -107,7 +107,7 @@ Record confounders: weather, tide, current, turbidity, access windows, asset age
 
 ## Frozen synthetic corpus
 
-The accompanying v0.1 corpus contains 36 unique cases: one valid synthetic control and 35 adversarial cases covering identity, revision/effectivity, sensor calibration/range, localization, visibility, acoustic shadow, incomplete coverage, temporal skew, vertical datum, S-102 coverage, sparse scour observations, thickness evidence, indication/assessment escalation, calibration, independent references, false negatives/positives, multi-sensor conflict, stale state, out-of-order geometry, unqualified NDT claims, authority bypass, repair verification, mission interruption, rights/terms, geometry registration, duplicated blind spots, latency and simulated writeback.
+The accompanying v0.1 corpus contains 39 unique cases: one valid synthetic control and 38 adversarial cases covering identity, revision/effectivity, sensor calibration/range, localization, visibility, acoustic shadow, incomplete coverage, temporal skew, vertical datum, S-102 coverage, sparse scour observations, thickness evidence, indication/assessment escalation, calibration, independent references, false negatives/positives, multi-sensor conflict, stale state, out-of-order geometry, unqualified NDT claims, authority bypass, repair verification, mission interruption, rights/terms, geometry registration, duplicated blind spots, latency and simulated writeback.
 
 The corpus is a fixture/specification seed, not an executed physical inspection or decision benchmark. The expected codes are contract-oracle labels; the follow-on Rust verifier must independently recompute them.
 
