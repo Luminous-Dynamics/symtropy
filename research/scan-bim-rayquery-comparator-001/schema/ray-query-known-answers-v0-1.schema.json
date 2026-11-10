@@ -66,27 +66,35 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "direction_normalization",
-        "intersection_epsilon_m",
+        "clipping_policy",
+        "clip_endpoint_guard_epsilon_m",
         "nearest_hit_tie_epsilon_m",
+        "determinant_epsilon_m2",
+        "barycentric_epsilon",
         "triangle_sidedness",
         "self_hit_exclusion",
-        "expected_hit_policy",
-        "parallel_cosine_epsilon",
-        "barycentric_epsilon",
-        "coplanar_policy"
+        "expected_hit_policy"
       ],
       "properties": {
-        "direction_normalization": {
-          "const": "unit_length_required"
+        "clipping_policy": {
+          "const": "open_interval_with_epsilon_guard"
         },
-        "intersection_epsilon_m": {
+        "clip_endpoint_guard_epsilon_m": {
           "type": "number",
           "exclusiveMinimum": 0
         },
         "nearest_hit_tie_epsilon_m": {
           "type": "number",
           "exclusiveMinimum": 0
+        },
+        "determinant_epsilon_m2": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "barycentric_epsilon": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 0.001
         },
         "triangle_sidedness": {
           "const": "two_sided"
@@ -96,22 +104,6 @@
         },
         "expected_hit_policy": {
           "const": "all_hits_within_nearest_hit_tie_epsilon"
-        },
-        "parallel_cosine_epsilon": {
-          "type": "number",
-          "exclusiveMinimum": 0,
-          "exclusiveMaximum": 1,
-          "description": "Dimensionless relative determinant threshold based on the product of triangle edge lengths and unit ray direction."
-        },
-        "barycentric_epsilon": {
-          "type": "number",
-          "exclusiveMinimum": 0,
-          "exclusiveMaximum": 0.1,
-          "description": "Dimensionless tolerance for edge/vertex barycentric inclusion."
-        },
-        "coplanar_policy": {
-          "const": "miss",
-          "description": "Coplanar ray/triangle cases are classified as no isolated hit; engines must use the same declared policy."
         }
       }
     },
