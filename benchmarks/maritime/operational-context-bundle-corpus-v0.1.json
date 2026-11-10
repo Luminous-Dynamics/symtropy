@@ -160,7 +160,8 @@
         "retained_previous_feature_ids": [],
         "physical_qualification_state": "unknown",
         "alarm_state": "none",
-        "transit_authority_state": "unknown"
+        "transit_authority_state": "unknown",
+        "alarm_claim_state": "not_claimed"
       }
     },
     "dcsa": {
@@ -171,7 +172,8 @@
       "semantic_validation_state": "valid",
       "event_time_utc": "2026-11-10T11:42:00Z",
       "retrieved_at_utc": "2026-11-10T11:50:00Z",
-      "eta_accuracy_state": "unknown"
+      "eta_accuracy_state": "unknown",
+      "tested_api_direction": "publisher_get"
     },
     "provider": {
       "provider_ref": "MYCELIX:PROVIDER-COMMITMENT-001",
@@ -180,7 +182,8 @@
       "scope": "berth:SYNTH-BERTH-1;window:2026-11-10T12:00:00Z/2026-11-10T18:00:00Z",
       "valid_until_utc": "2026-11-10T18:00:00Z",
       "revocation_state": "not_revoked",
-      "booking_authority_state": "not_granted"
+      "booking_authority_state": "not_granted",
+      "booking_authority_evidence_ref": null
     },
     "run_evidence": {
       "run_id": "SYNTH-RUN-001",
@@ -275,7 +278,12 @@
         ],
         "claim_ceiling": "Synthetic deterministic replay is not physical qualification or operational permission."
       }
-    ]
+    ],
+    "freshness_policy": {
+      "max_warning_bulletin_age_s": 1800,
+      "max_ukc_plan_age_s": 600,
+      "max_dcsa_event_age_s": 3600
+    }
   },
   "cases": [
     {
@@ -512,6 +520,11 @@
           "path": "s129.ukc.alarm_state",
           "op": "set",
           "value": "none"
+        },
+        {
+          "path": "s129.ukc.alarm_claim_state",
+          "op": "set",
+          "value": "unsupported_alarm_claim"
         }
       ],
       "expected_code": "UKC_ALARM_NOT_PROVIDED"
@@ -646,6 +659,11 @@
           "path": "provider.booking_authority_state",
           "op": "set",
           "value": "granted_by_owner"
+        },
+        {
+          "path": "provider.booking_authority_evidence_ref",
+          "op": "set",
+          "value": null
         }
       ],
       "expected_code": "BOOKING_AUTHORITY_OWNER_BOUNDARY"
@@ -714,6 +732,17 @@
         }
       ],
       "expected_code": "SOURCE_ARTIFACT_DIGEST_INVALID"
+    },
+    {
+      "id": "s129_actual_plan_stale_at_decision_cutoff",
+      "mutations": [
+        {
+          "path": "s129.ukc.retrieved_at_utc",
+          "op": "set",
+          "value": "2026-11-10T11:40:00Z"
+        }
+      ],
+      "expected_code": "UKC_PLAN_STALE_UNKNOWN"
     }
   ]
 }
