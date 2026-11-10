@@ -72,6 +72,8 @@ pub struct ImpactStepOutcome {
     pub event_time_s: Option<f64>,
     pub impact_impulse_ns: f64,
     pub support_impulse_ns: f64,
+    /// Event-gap times impact-impulse plus final-gap times support-impulse.
+    /// Units are metre-newton-seconds; zero is exact complementarity.
     pub complementarity_residual: f64,
     pub step_jacobian: Option<ImpactStepJacobian>,
 }
@@ -281,7 +283,12 @@ impl ImpactModel1D {
                 event_time_s: Some(event_time),
                 impact_impulse_ns: impact_impulse,
                 support_impulse_ns: support_impulse,
-                complementarity_residual: 0.0,
+                complementarity_residual: {
+                    let event_gap = initial.gap_m
+                        + initial.velocity_m_s * event_time
+                        + 0.5 * self.acceleration_m_s2 * event_time * event_time;
+                    event_gap.abs() * impact_impulse + state.gap_m * support_impulse
+                },
                 step_jacobian: if boundary { None } else { jacobian },
             };
             if !outcome.impact_impulse_ns.is_finite()
@@ -335,7 +342,12 @@ impl ImpactModel1D {
             event_time_s: Some(event_time),
             impact_impulse_ns: impact_impulse,
             support_impulse_ns: 0.0,
-            complementarity_residual: 0.0,
+            complementarity_residual: {
+                let event_gap = initial.gap_m
+                    + initial.velocity_m_s * event_time
+                    + 0.5 * self.acceleration_m_s2 * event_time * event_time;
+                event_gap.abs() * impact_impulse
+            },
             step_jacobian: jacobian,
         })
     }
@@ -501,6 +513,20 @@ mod tests {
                 dvelocity_dvelocity: 1.0,
             })
         );
+    }
+
+    #[test]
+    fn impact_complementarity_product_residual_is_small() {
+        let model = ImpactModel1D::try_new(1.0, -9.81, 0.4).unwrap();
+        let result = model.step(
+            ImpactState1D {
+                gap_m: 0.75,
+                velocity_m_s: -0.1,
+            },
+            0.5,
+            1.0e-12,
+        ).unwrap();
+        assert!(result.complementarity_residual <= 1.0e-12);
     }
 
     #[test]
