@@ -38,7 +38,7 @@ The MOCB schema does not replace any native product schema. It stores owner refe
 
 Keep source observation, issue/publication, transaction, retrieval, valid-from/to, event time, evaluation cutoff and provider-commitment validity distinct. A fresh retrieval cannot make stale source content current.
 
-Every source reference carries its own owner, revision, artifact digest, terms status and authenticity status. A digest proves byte identity only; it does not prove publisher identity or legal permission.
+Every source reference carries its own owner, revision, artifact digest, terms status and authenticity status. Operational assertions also require their own source-native evidence references: berth inventory, pilot assignment, VTS clearance, measured radio link, vessel delivery receipt and booking-authority evidence cannot be inferred from descriptive product features. A digest proves byte identity only; it does not prove publisher identity or legal permission.
 
 Provider offers, holds, commitments, revocations and expiry remain Mycelix/provider-owned. Simulation is effects-disabled and cannot mutate a provider resource, berth, booking, schedule, payment or vessel state.
 
