@@ -857,10 +857,12 @@ mod tests {
     }
 
     fn sequence(specimen_id: &str) -> ContactSequence {
+        let first_event_id = format!("event-{specimen_id}-1");
+        let second_event_id = format!("event-{specimen_id}-2");
         let events = vec![
-            event("event-1", 1, 100, 7, GroundDisposition::NoEffect),
+            event(&first_event_id, 1, 100, 7, GroundDisposition::NoEffect),
             event(
-                "event-2",
+                &second_event_id,
                 2,
                 200,
                 7,
@@ -871,12 +873,72 @@ mod tests {
             ),
         ];
         let observations = vec![
-            observation("d1-e1", "event-1", "d1", "cal-d1", "map-d1", "kpa", 90, 100, 120),
-            observation("d2-e1", "event-1", "d2", "cal-d2", "map-d2", "newton", 92, 101, 130),
-            observation("d3-e1", "event-1", "d3", "cal-d3", "map-d3", "rad", 93, 102, 125),
-            observation("d1-e2", "event-2", "d1", "cal-d1", "map-d1", "kpa", 190, 200, 220),
-            observation("d2-e2", "event-2", "d2", "cal-d2", "map-d2", "newton", 192, 201, 230),
-            observation("d3-e2", "event-2", "d3", "cal-d3", "map-d3", "rad", 193, 202, 225),
+            observation(
+                &format!("d1-{specimen_id}-e1"),
+                &first_event_id,
+                "d1",
+                "cal-d1",
+                "map-d1",
+                "kpa",
+                90,
+                100,
+                120,
+            ),
+            observation(
+                &format!("d2-{specimen_id}-e1"),
+                &first_event_id,
+                "d2",
+                "cal-d2",
+                "map-d2",
+                "newton",
+                92,
+                101,
+                130,
+            ),
+            observation(
+                &format!("d3-{specimen_id}-e1"),
+                &first_event_id,
+                "d3",
+                "cal-d3",
+                "map-d3",
+                "rad",
+                93,
+                102,
+                125,
+            ),
+            observation(
+                &format!("d1-{specimen_id}-e2"),
+                &second_event_id,
+                "d1",
+                "cal-d1",
+                "map-d1",
+                "kpa",
+                190,
+                200,
+                220,
+            ),
+            observation(
+                &format!("d2-{specimen_id}-e2"),
+                &second_event_id,
+                "d2",
+                "cal-d2",
+                "map-d2",
+                "newton",
+                192,
+                201,
+                230,
+            ),
+            observation(
+                &format!("d3-{specimen_id}-e2"),
+                &second_event_id,
+                "d3",
+                "cal-d3",
+                "map-d3",
+                "rad",
+                193,
+                202,
+                225,
+            ),
         ];
         ContactSequence {
             sequence_id: format!("sequence-{specimen_id}"),
@@ -1051,7 +1113,7 @@ mod tests {
         let mut duplicate = valid_manifest();
         duplicate.sequences[1].events[1].ground_disposition =
             GroundDisposition::Settled {
-                settlement_receipt_id: "terrain-settlement-1".to_owned(),
+                settlement_receipt_id: "terrain-settlement-specimen-cal".to_owned(),
                 resulting_revision: 8,
             };
         assert_eq!(
@@ -1091,7 +1153,7 @@ mod tests {
     fn present_channel_requires_at_least_one_observation() {
         let mut manifest = valid_manifest();
         manifest.sequences[0].observations.retain(|item| {
-            item.contact_event_id != "event-1" || item.source_id != "d2"
+            item.contact_event_id != "event-specimen-cal-1" || item.source_id != "d2"
         });
         assert_eq!(
             validate_experiment_manifest(&manifest),
@@ -1125,7 +1187,7 @@ mod tests {
         manifest.sequences[0].observations.retain(|item| item.source_id == "d1");
         manifest.sequences[0].observations.push(observation(
             "extra-d2",
-            "event-1",
+            "event-specimen-cal-1",
             "d2",
             "cal-d2",
             "map-d2",
@@ -1164,7 +1226,7 @@ mod tests {
     #[test]
     fn source_samples_must_be_monotone_but_channels_need_not_be_synchronized() {
         let mut manifest = valid_manifest();
-        manifest.sequences[0].observations[1].corrected_timestamp_ns = 99;
+        manifest.sequences[0].observations[4].corrected_timestamp_ns = 99;
         assert_eq!(
             validate_experiment_manifest(&manifest),
             Err(ManifestError::CorrectedTimestampNotIncreasing)
