@@ -172,6 +172,7 @@ pub enum DiagnosabilityError {
     InvalidReceiptInterval,
     ReceiptContextMismatch,
     ReceiptDurationMismatch,
+    InvalidActionDuration,
     DiagnosticActionRejected,
     DiagnosticActionUnknown,
     EvaluationBeforeObservation,
@@ -265,6 +266,9 @@ fn canonicalize_and_validate(
         return Err(DiagnosabilityError::EmptyIdentifier);
     }
     validate_receipt(problem)?;
+    if problem.action_duration_ms == 0 {
+        return Err(DiagnosabilityError::InvalidActionDuration);
+    }
     if problem.physically_possible_fault_ids.is_empty() {
         return Err(DiagnosabilityError::NoPhysicalFaultHypotheses);
     }
@@ -373,8 +377,8 @@ fn pair_relation(
     left: &HypothesisEnvelope,
     right: &HypothesisEnvelope,
 ) -> PairRelation {
-    if matches!(left.status, EnvelopeStatus::Unknown { .. })
-        || matches!(right.status, EnvelopeStatus::Unknown { .. })
+    if matches!(&left.status, EnvelopeStatus::Unknown { .. })
+        || matches!(&right.status, EnvelopeStatus::Unknown { .. })
     {
         return PairRelation {
             left_hypothesis_id: left.hypothesis_id.clone(),
@@ -451,17 +455,17 @@ fn build_ambiguity_components(
     envelopes: &[HypothesisEnvelope],
     relations: &[PairRelation],
 ) -> Vec<Vec<String>> {
-    let mut adjacency = BTreeMap::<&str, BTreeSet<&str>>::new();
+    let mut adjacency = BTreeMap::<String, BTreeSet<String>>::new();
     for envelope in envelopes {
-        adjacency.insert(envelope.hypothesis_id.as_str(), BTreeSet::new());
+        adjacency.insert(envelope.hypothesis_id.clone(), BTreeSet::new());
     }
     for relation in relations {
-        if !matches!(relation.status, PairStatus::Separable { .. }) {
-            if let Some(neighbors) = adjacency.get_mut(relation.left_hypothesis_id.as_str()) {
-                neighbors.insert(relation.right_hypothesis_id.as_str());
+        if !matches!(&relation.status, PairStatus::Separable { .. }) {
+            if let Some(neighbors) = adjacency.get_mut(&relation.left_hypothesis_id) {
+                neighbors.insert(relation.right_hypothesis_id.clone());
             }
-            if let Some(neighbors) = adjacency.get_mut(relation.right_hypothesis_id.as_str()) {
-                neighbors.insert(relation.left_hypothesis_id.as_str());
+            if let Some(neighbors) = adjacency.get_mut(&relation.right_hypothesis_id) {
+                neighbors.insert(relation.left_hypothesis_id.clone());
             }
         }
     }
@@ -472,15 +476,15 @@ fn build_ambiguity_components(
         if visited.contains(hypothesis_id) {
             continue;
         }
-        let mut queue = VecDeque::from([*hypothesis_id]);
+        let mut queue = VecDeque::from([hypothesis_id.clone()]);
         let mut component = BTreeSet::new();
-        visited.insert(*hypothesis_id);
+        visited.insert(hypothesis_id.clone());
         while let Some(current) = queue.pop_front() {
-            component.insert(current.to_owned());
-            if let Some(neighbors) = adjacency.get(current) {
+            component.insert(current.clone());
+            if let Some(neighbors) = adjacency.get(&current) {
                 for neighbor in neighbors {
-                    if visited.insert(*neighbor) {
-                        queue.push_back(*neighbor);
+                    if visited.insert(neighbor.clone()) {
+                        queue.push_back(neighbor.clone());
                     }
                 }
             }
@@ -790,14 +794,14 @@ mod tests {
         assert_eq!(report.pair_relations.len(), 3);
         assert_eq!(
             report.pair_relations[0].status,
-            PairStatus::UnknownOverlapping
-        );
-        assert_eq!(
-            report.pair_relations[1].status,
             PairStatus::Separable {
                 feature_id: "joint_velocity_residual".to_owned(),
                 separation_margin: 30,
             }
+        );
+        assert_eq!(
+            report.pair_relations[1].status,
+            PairStatus::UnknownOverlapping
         );
         assert_eq!(report.ambiguity_components.len(), 2);
     }
