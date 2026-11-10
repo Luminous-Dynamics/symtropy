@@ -543,7 +543,7 @@ fn evaluate_corpus(corpus: &Corpus, input_bytes: &[u8]) -> Result<Receipt, Strin
     }
 
     let mut cases = corpus.cases.iter().map(evaluate_case).collect::<Vec<_>>();
-    cases.sort_by(|left, right| left.case_id.cmp(&right.case_id));
+    cases.sort_by_key(|case| case.case_id.clone());
 
     let matched_expected_cases = cases.iter().filter(|case| case.matches_expected).count();
     let mismatch_count = cases.len() - matched_expected_cases;
@@ -624,7 +624,7 @@ mod tests {
         let corpus = fixture();
         let receipt = evaluate_corpus(&corpus, FIXTURE.as_bytes()).expect("evaluate corpus");
         assert!(receipt.core.passed, "{:#?}", receipt.core.cases);
-        assert_eq!(receipt.core.case_count, 13);
+        assert_eq!(receipt.core.case_count, 18);
         assert_eq!(receipt.core.mismatch_count, 0);
     }
 
@@ -697,6 +697,15 @@ mod tests {
         let reversed = evaluate_corpus(&corpus, &reversed_bytes).expect("reversed receipt");
         assert_eq!(original.receipt_sha256, reversed.receipt_sha256);
         assert_ne!(original.input_sha256, reversed.input_sha256);
+    }
+
+    #[test]
+    fn closed_schema_rejects_unknown_fields() {
+        let injected = FIXTURE.replace(
+            "\\"corpus_id\\":",
+            "\\"unexpected_field\\": true, \\"corpus_id\\":",
+        );
+        assert!(serde_json::from_str::<Corpus>(&injected).is_err());
     }
 
     #[test]
