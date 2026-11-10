@@ -33,13 +33,22 @@ pub enum RotorMatrixError {
 impl std::fmt::Display for RotorMatrixError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::InvalidTolerance => write!(f, "rotation-matrix tolerance must be finite and non-negative"),
+            Self::InvalidTolerance => write!(
+    f,
+    "rotation-matrix tolerance must be finite and non-negative"
+),
             Self::NonFiniteEntry => write!(f, "rotation matrix contains a non-finite entry"),
             Self::NotOrthogonal { max_error } => {
-                write!(f, "rotation matrix is not orthogonal: max residual {max_error:e}")
+                write!(
+    f,
+    "rotation matrix is not orthogonal: max residual {max_error:e}"
+)
             }
             Self::ImproperOrientation { determinant } => {
-                write!(f, "orthogonal matrix does not preserve orientation: determinant {determinant:e}")
+                write!(
+    f,
+    "orthogonal matrix does not preserve orientation: determinant {determinant:e}"
+)
             }
         }
     }
@@ -471,18 +480,15 @@ mod tests {
 
     #[test]
     fn try_from_matrix_accepts_proper_rotations_in_3d_and_4d() {
-        let rotation_3d =
-            Rotor::from_plane_angle(&Bivector::<3>::unit_plane(0, 2), 0.73);
-        let admitted_3d =
-            Rotor::try_from_matrix(rotation_3d.to_matrix().clone(), 1e-10).unwrap();
+        let rotation_3d = Rotor::from_plane_angle(&Bivector::<3>::unit_plane(0, 2), 0.73);
+        let admitted_3d = Rotor::try_from_matrix(rotation_3d.to_matrix().clone(), 1e-10).unwrap();
         assert!(admitted_3d.is_proper_rotation(1e-10));
 
         let mut generator = Bivector::<4>::zero();
         generator.set(0, 1, 0.4);
         generator.set(2, 3, -0.9);
         let rotation_4d = Rotor::from_bivector(&generator);
-        let admitted_4d =
-            Rotor::try_from_matrix(rotation_4d.to_matrix().clone(), 1e-10).unwrap();
+        let admitted_4d = Rotor::try_from_matrix(rotation_4d.to_matrix().clone(), 1e-10).unwrap();
         assert!(admitted_4d.is_proper_rotation(1e-10));
     }
 
@@ -557,7 +563,10 @@ mod tests {
 
         let residual = conjugated.to_matrix() - exponential_after_adjoint.to_matrix();
         let max_error = residual.iter().fold(0.0_f64, |m, x| m.max(x.abs()));
-        assert!(max_error < 1e-9, "SO(4) adjoint-equivariance residual={max_error:e}");
+        assert!(
+    max_error < 1e-9,
+    "SO(4) adjoint-equivariance residual={max_error:e}"
+);
         assert!(conjugated.is_proper_rotation(1e-9));
         assert!(exponential_after_adjoint.is_proper_rotation(1e-9));
     }
