@@ -157,8 +157,13 @@ impl<const D: usize> Bivector<D> {
         result
     }
 
-    /// Apply this bivector (as angular velocity) to a vector.
-    /// Returns B · v (antisymmetric matrix × vector).
+    /// Apply this bivector's antisymmetric-matrix action to a vector.
+    /// Returns B*v (skew-matrix multiplication).
+    ///
+    /// Note: Rotor::from_bivector exponentiates -B. Therefore the physical
+    /// point velocity associated with the angular-velocity value consumed by
+    /// Symtropy's rigid-body integrator is -B*v. The physics crate centralizes
+    /// that conversion in integrator::angular_point_velocity.
     #[inline]
     pub fn apply_to_vector(&self, v: &SVector<f64, D>) -> SVector<f64, D> {
         self.to_matrix() * v
@@ -171,16 +176,16 @@ impl<const D: usize> Bivector<D> {
     /// used to compute torque/angular-impulse from a force/impulse applied
     /// at an offset from the center of mass.
     ///
-    /// **Ordering matters** and is chosen to be consistent with
-    /// [`Self::apply_to_vector`]: given an impulse `j` applied at an offset
-    /// `r` from a body's center of mass, the correct torque bivector is
-    /// `Bivector::from_wedge(&j, &r)` (impulse first, offset second) — NOT
-    /// `from_wedge(&r, &j)`. With this ordering,
-    /// `(inv_inertia * Bivector::from_wedge(&j, &r)).apply_to_vector(&r)`
-    /// reproduces the standard `(inv_inertia * (r × j)) × r` lever-arm
-    /// identity from 3D rigid body dynamics (verified in
-    /// `wedge_matches_3d_lever_arm_identity` below); the reversed argument
-    /// order produces the negated (physically wrong) sign.
+    /// **Ordering matters**: for an impulse `j` applied at offset `r`,
+    /// the stored torque accumulator uses `Bivector::from_wedge(&j, &r)`
+    /// (impulse first, offset second). Its algebraic action satisfies
+    /// `B.apply_to_vector(r) = j*|r|^2 - r*(r·j)`.
+    ///
+    /// Because Rotor::from_bivector uses `exp(-B)`, the stored angular
+    /// velocity changes by the negative inverse-inertia impulse and physical
+    /// point velocity is `-B.apply_to_vector(r)`. These two sign conversions
+    /// recover the positive physical lever-arm response. The reversed wedge
+    /// order negates the algebraic identity.
     #[inline]
     pub fn from_wedge(a: &SVector<f64, D>, b: &SVector<f64, D>) -> Self {
         let mut bv = Self::zero();
@@ -324,13 +329,10 @@ mod tests {
         assert!(bv.norm() < 1e-14, "parallel vectors should wedge to zero");
     }
 
-    /// Verifies that `Bivector::from_wedge(&j, &r)` combined with
-    /// `apply_to_vector` reproduces the standard 3D lever-arm identity
-    /// `(inv_i * (r × j)) × r`, which for a unit-inertia body reduces to
-    /// `j * |r|^2 - r * (r·j)` (BAC-CAB expansion). This is the physical
-    /// contract the contact solver's angular-impulse code depends on: torque
-    /// bivector must be built as `from_wedge(&impulse, &r)`, NOT
-    /// `from_wedge(&r, &impulse)`.
+    /// Verifies the algebraic lever-arm identity for the stored torque
+    /// convention. The physical contact response additionally applies the
+    /// two Rotor convention conversions documented on `from_wedge` and in
+    /// `integrator::angular_point_velocity`.
     #[test]
     fn wedge_matches_3d_lever_arm_identity() {
         let r = SVector::from([1.0, 0.0, 0.0]);
