@@ -1,17 +1,11 @@
 import bevy_pbr::render::{
-    pbr_fragment::pbr_input_from_standard_material,
-    pbr_functions::alpha_discard,
-};
-
-@if(PREPASS_PIPELINE)
-import bevy_pbr::{
-    prepass::io::{VertexOutput, FragmentOutput},
-    deferred::functions::deferred_output,
-};
-@else
-import bevy_pbr::render::{
     forward_io::{VertexOutput, FragmentOutput},
-    pbr_functions::{apply_pbr_lighting, main_pass_post_lighting_processing},
+    pbr_fragment::pbr_input_from_standard_material,
+    pbr_functions::{
+        alpha_discard,
+        apply_pbr_lighting,
+        main_pass_post_lighting_processing,
+    },
 };
 
 struct NdSlicingSettings {
@@ -58,13 +52,8 @@ fn fragment(
         pbr_input.material.base_color,
     );
 
-    @if(PREPASS_PIPELINE) {
-        return deferred_output(in, pbr_input);
-    }
-    @else {
-        var out: FragmentOutput;
-        out.color = apply_pbr_lighting(pbr_input);
-        out.color = main_pass_post_lighting_processing(pbr_input, out.color);
-        return out;
-    }
+    var out: FragmentOutput;
+    out.color = apply_pbr_lighting(pbr_input);
+    out.color = main_pass_post_lighting_processing(pbr_input, out.color);
+    return out;
 }
