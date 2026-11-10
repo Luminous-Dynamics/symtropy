@@ -918,6 +918,64 @@ mod tests {
         );
     }
 
+
+    #[test]
+    fn coupled_hot_neighbor_blocks_mission_even_when_average_is_cool() {
+        let mut event = event("coupled-heating", 1);
+        event.thermal_node_updates = vec![
+            ThermalNodeUpdate {
+                node_id: "motor:hip_fl".to_owned(),
+                temperature_milli_c: 82_000,
+            },
+            ThermalNodeUpdate {
+                node_id: "motor:hip_fr".to_owned(),
+                temperature_milli_c: 101_000,
+            },
+            ThermalNodeUpdate {
+                node_id: "onboard-compute".to_owned(),
+                temperature_milli_c: 45_000,
+            },
+        ];
+        let report = replay(&initial(), &[event]).unwrap();
+        assert_eq!(report.status, MissionStatus::Rejected);
+        assert_eq!(report.stop_reason, Some(StopReason::ThermalLimitExceeded));
+        assert_eq!(report.final_state.thermal_nodes[1].temperature_milli_c, 101_000);
+        assert_eq!(report.snapshots.len(), 0);
+    }
+
+    #[test]
+    fn incomplete_thermal_node_snapshot_is_unknown_not_unchanged() {
+        let mut event = event("missing-thermal-node", 1);
+        event.thermal_node_updates.pop();
+        let report = replay(&initial(), &[event]).unwrap();
+        assert_eq!(report.status, MissionStatus::Unknown);
+        assert_eq!(report.stop_reason, Some(StopReason::ThermalEvidenceUnknown));
+        assert_eq!(report.final_state.thermal_nodes[0].temperature_milli_c, 60_000);
+        assert_eq!(report.snapshots.len(), 0);
+    }
+
+    #[test]
+    fn mismatched_thermal_model_receipt_is_unknown() {
+        let mut event = event("thermal-model-mismatch", 1);
+        event.thermal_update_receipt.as_mut().unwrap().model_digest =
+            "different-thermal-model".to_owned();
+        let report = replay(&initial(), &[event]).unwrap();
+        assert_eq!(report.status, MissionStatus::Unknown);
+        assert_eq!(report.stop_reason, Some(StopReason::ThermalEvidenceUnknown));
+        assert_eq!(report.final_state.thermal_receipt_ref, "thermal:initial");
+    }
+
+    #[test]
+    fn initial_thermal_nodes_must_have_unique_ids() {
+        let mut state = initial();
+        state.thermal_nodes.push(state.thermal_nodes[0].clone());
+        let result = replay(&state, &[]);
+        assert_eq!(
+            result,
+            Err(MissionError::DuplicateThermalNodeId("motor:hip_fl".to_owned()))
+        );
+    }
+
     #[test]
     fn cooling_cannot_exceed_declared_thermal_capacity() {
         let mut event = event("overcool", 1);
