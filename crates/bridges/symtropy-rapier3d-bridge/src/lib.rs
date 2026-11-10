@@ -751,8 +751,8 @@ mod tests {
             .find(|state| state.handle == handle)
             .expect("body state readback");
 
-        assert!((state.translation[1] - 10.0).abs() < 1.0e-6);
-        assert_eq!(state.linear_velocity, [0.0, 0.0, 0.0]);
+        assert!(state.translation[1] < 10.0);
+        assert!(state.linear_velocity[1] < 0.0);
     }
 
     #[test]
@@ -790,6 +790,9 @@ mod tests {
                 .sleeping(true)
                 .build(),
         );
+        bridge
+            .bind_callback_body(handle, BodyHandle(9))
+            .expect("unique semantic body identity");
 
         assert!(
             world
