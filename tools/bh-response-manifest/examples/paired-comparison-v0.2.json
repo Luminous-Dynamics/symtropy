@@ -79,7 +79,9 @@
       "norm_id": "complex-l2-relative-v1",
       "observed_error": 0.00032,
       "acceptance_limit": 0.001,
-      "accepted": true
+      "accepted": true,
+      "left_response_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "right_response_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
     }
   ],
   "convergence": [],
