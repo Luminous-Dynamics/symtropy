@@ -30,7 +30,16 @@
       "const": "requirements_and_interface_design_only"
     },
     "claim_ceiling": {
-      "const": "no_site_selection_no_build_authority_no_physical_qualification"
+      "const": {
+        "site_selected": false,
+        "design_approved": false,
+        "construction_authorized": false,
+        "energization_authorized": false,
+        "instrument_qualified": false,
+        "product_qualified": false,
+        "building_physics_validated": false,
+        "occupied_use_authorized": false
+      }
     },
     "parent_issue": {
       "const": "https://github.com/Luminous-Dynamics/symtropy/issues/4531"
@@ -140,6 +149,12 @@
           },
           "hazardous_aerosol_challenge_authorized": {
             "type": "boolean"
+          },
+          "electrical_design_selected": {
+            "type": "boolean"
+          },
+          "write_or_actuation_authority": {
+            "const": "NONE"
           }
         }
       }
@@ -220,7 +235,7 @@
           },
           "admission_state": {
             "type": "string",
-            "minLength": 5
+            "minLength": 1
           },
           "sizing": {
             "const": "NOT_SELECTED"
