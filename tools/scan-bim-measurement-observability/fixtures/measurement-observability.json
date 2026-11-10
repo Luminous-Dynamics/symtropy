@@ -502,7 +502,7 @@
       "expected": {
         "overall_disposition": "fail",
         "reason_codes": [
-          "TASK_TOLERANCE_EXCEEDED"
+          "TASK_TOTAL_ERROR_BOUND_EXCEEDED"
         ]
       }
     },
