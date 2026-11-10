@@ -1653,6 +1653,478 @@
         },
         "qualification_disposition": "not_assessed"
       }
+    },
+    {
+      "case_id": "draft-iec62660-1-preserved-as-nonconformity-reference",
+      "expectation": "accept",
+      "record": {
+        "protocol_version": "ev-test-protocol-evidence/0.1",
+        "record_id": "pren-iec62660-1-cdv-performance-reference",
+        "evidence_class": "physical_observation",
+        "test_event": {
+          "event_id": "evt-pren-iec62660-1-cdv-performance-reference",
+          "executed_at": "2026-11-01T10:00:00Z",
+          "test_purpose": "performance",
+          "test_method_ref": "declared-lab-procedure-v1",
+          "test_method_digest": "0000000000000000000000000000000000000000000000000000000000000001",
+          "operator_ref": "operator-001",
+          "start_time_ms": 1000,
+          "end_time_ms": 2000
+        },
+        "standard": {
+          "standard_id": "IEC 62660-1",
+          "edition": "prEN IEC 62660-1:2026; CDV 21/1311",
+          "publication_date": "2026-09-25",
+          "recorded_status": "draft",
+          "lifecycle_stage": "40.20",
+          "status_checked_at": "2026-11-10T00:00:00Z",
+          "scope_summary": "Committee Draft for Vote; under study; not a published normative edition",
+          "clause_refs": [
+            "CDV 21/1311 scope"
+          ],
+          "normative_or_practice": "international_standard",
+          "source_url": "https://www.evs.ee/en/pren-iec-62660-1-2026",
+          "source_digest": "00000000000000000000000000000000000000000000000000000000000055fe"
+        },
+        "specimen": {
+          "article_ref": "article-iec62660-cell",
+          "article_identity_digest": "0000000000000000000000000000000000000000000000000000000000000003",
+          "article_scope": "cell",
+          "article_configuration_digest": "0000000000000000000000000000000000000000000000000000000000000004",
+          "parent_pack_ref": "pack-001",
+          "parent_pack_configuration_digest": "0000000000000000000000000000000000000000000000000000000000000005",
+          "chemistry": "NMC",
+          "manufacturer_ref": "manufacturer-001",
+          "specimen_condition_digest": "0000000000000000000000000000000000000000000000000000000000000006",
+          "preconditioning_digest": "0000000000000000000000000000000000000000000000000000000000000007"
+        },
+        "laboratory": {
+          "facility_ref": "lab-001",
+          "facility_scope_ref": "scope-cell-performance",
+          "operator_ref": "operator-001",
+          "accreditation_status": "accredited_scope_declared",
+          "accreditation_evidence_digest": "0000000000000000000000000000000000000000000000000000000000000008"
+        },
+        "measurement_chain": [
+          {
+            "instrument_ref": "cycler-001",
+            "instrument_serial_digest": "0000000000000000000000000000000000000000000000000000000000000009",
+            "calibration_certificate_digest": "000000000000000000000000000000000000000000000000000000000000000a",
+            "calibration_traceability_digest": "000000000000000000000000000000000000000000000000000000000000000b",
+            "calibrated_at": "2026-10-01T00:00:00Z",
+            "valid_until": "2026-12-01T00:00:00Z",
+            "calibration_status": "valid"
+          }
+        ],
+        "conditions": {
+          "temperature_c": 25,
+          "temperature_uncertainty_c": 0.3,
+          "soc_fraction": 0.5,
+          "soc_uncertainty": 0.01,
+          "current_profile_digest": "000000000000000000000000000000000000000000000000000000000000000c",
+          "duration_s": 3600,
+          "rest_before_s": 1800,
+          "environment_digest": "000000000000000000000000000000000000000000000000000000000000000d"
+        },
+        "channels": [
+          {
+            "channel_id": "voltage-1",
+            "quantity": "voltage",
+            "unit": "V",
+            "sampling_hz": 1,
+            "measurement_digest": "000000000000000000000000000000000000000000000000000000000000000e",
+            "measurement_uncertainty": 0.001,
+            "instrument_ref": "cycler-001"
+          },
+          {
+            "channel_id": "current-1",
+            "quantity": "current",
+            "unit": "A",
+            "sampling_hz": 1,
+            "measurement_digest": "000000000000000000000000000000000000000000000000000000000000000f",
+            "measurement_uncertainty": 0.01,
+            "instrument_ref": "cycler-001"
+          }
+        ],
+        "deviations": [],
+        "results": [
+          {
+            "result_id": "capacity-ah",
+            "quantity": "capacity",
+            "value": 4.8,
+            "unit": "Ah",
+            "standard_uncertainty": 0.02,
+            "coverage_factor": 2,
+            "calculation_method_ref": "capacity-integral-v1",
+            "calculation_method_digest": "0000000000000000000000000000000000000000000000000000000000000010",
+            "result_digest": "0000000000000000000000000000000000000000000000000000000000000011"
+          }
+        ],
+        "raw_data_digest": "0000000000000000000000000000000000000000000000000000000000000012",
+        "report_digest": "0000000000000000000000000000000000000000000000000000000000000013",
+        "independent_review": {
+          "review_status": "reviewed",
+          "reviewer_ref": "reviewer-001",
+          "review_scope_ref": "technical-report-review",
+          "reviewed_at": "2026-11-02T00:00:00Z",
+          "signature_or_attestation_digest": "0000000000000000000000000000000000000000000000000000000000000014"
+        },
+        "qualification_disposition": "not_assessed"
+      }
+    },
+    {
+      "case_id": "draft-iec62660-2-preserved-as-nonconformity-reference",
+      "expectation": "accept",
+      "record": {
+        "protocol_version": "ev-test-protocol-evidence/0.1",
+        "record_id": "pren-iec62660-2-cdv-reliability-reference",
+        "evidence_class": "physical_observation",
+        "test_event": {
+          "event_id": "evt-pren-iec62660-2-cdv-reliability-reference",
+          "executed_at": "2026-11-01T10:00:00Z",
+          "test_purpose": "reliability",
+          "test_method_ref": "declared-lab-procedure-v1",
+          "test_method_digest": "0000000000000000000000000000000000000000000000000000000000000001",
+          "operator_ref": "operator-001",
+          "start_time_ms": 1000,
+          "end_time_ms": 2000
+        },
+        "standard": {
+          "standard_id": "IEC 62660-2",
+          "edition": "prEN IEC 62660-2:2026; CDV 21/1312",
+          "publication_date": "2026-09-25",
+          "recorded_status": "draft",
+          "lifecycle_stage": "40.20",
+          "status_checked_at": "2026-11-10T00:00:00Z",
+          "scope_summary": "Committee Draft for Vote; under study; not a published normative edition",
+          "clause_refs": [
+            "CDV 21/1312 scope"
+          ],
+          "normative_or_practice": "international_standard",
+          "source_url": "https://www.evs.ee/en/pren-iec-62660-2-2026",
+          "source_digest": "00000000000000000000000000000000000000000000000000000000000055fe"
+        },
+        "specimen": {
+          "article_ref": "article-iec62660-2-block",
+          "article_identity_digest": "0000000000000000000000000000000000000000000000000000000000000003",
+          "article_scope": "cell_block",
+          "article_configuration_digest": "0000000000000000000000000000000000000000000000000000000000000004",
+          "parent_pack_ref": "pack-001",
+          "parent_pack_configuration_digest": "0000000000000000000000000000000000000000000000000000000000000005",
+          "chemistry": "NMC",
+          "manufacturer_ref": "manufacturer-001",
+          "specimen_condition_digest": "0000000000000000000000000000000000000000000000000000000000000006",
+          "preconditioning_digest": "0000000000000000000000000000000000000000000000000000000000000007"
+        },
+        "laboratory": {
+          "facility_ref": "lab-001",
+          "facility_scope_ref": "scope-cell_block-reliability",
+          "operator_ref": "operator-001",
+          "accreditation_status": "accredited_scope_declared",
+          "accreditation_evidence_digest": "0000000000000000000000000000000000000000000000000000000000000008"
+        },
+        "measurement_chain": [
+          {
+            "instrument_ref": "cycler-001",
+            "instrument_serial_digest": "0000000000000000000000000000000000000000000000000000000000000009",
+            "calibration_certificate_digest": "000000000000000000000000000000000000000000000000000000000000000a",
+            "calibration_traceability_digest": "000000000000000000000000000000000000000000000000000000000000000b",
+            "calibrated_at": "2026-10-01T00:00:00Z",
+            "valid_until": "2026-12-01T00:00:00Z",
+            "calibration_status": "valid"
+          }
+        ],
+        "conditions": {
+          "temperature_c": 25,
+          "temperature_uncertainty_c": 0.3,
+          "soc_fraction": 0.5,
+          "soc_uncertainty": 0.01,
+          "current_profile_digest": "000000000000000000000000000000000000000000000000000000000000000c",
+          "duration_s": 3600,
+          "rest_before_s": 1800,
+          "environment_digest": "000000000000000000000000000000000000000000000000000000000000000d"
+        },
+        "channels": [
+          {
+            "channel_id": "voltage-1",
+            "quantity": "voltage",
+            "unit": "V",
+            "sampling_hz": 1,
+            "measurement_digest": "000000000000000000000000000000000000000000000000000000000000000e",
+            "measurement_uncertainty": 0.001,
+            "instrument_ref": "cycler-001"
+          },
+          {
+            "channel_id": "current-1",
+            "quantity": "current",
+            "unit": "A",
+            "sampling_hz": 1,
+            "measurement_digest": "000000000000000000000000000000000000000000000000000000000000000f",
+            "measurement_uncertainty": 0.01,
+            "instrument_ref": "cycler-001"
+          }
+        ],
+        "deviations": [],
+        "results": [
+          {
+            "result_id": "capacity-ah",
+            "quantity": "capacity",
+            "value": 4.8,
+            "unit": "Ah",
+            "standard_uncertainty": 0.02,
+            "coverage_factor": 2,
+            "calculation_method_ref": "capacity-integral-v1",
+            "calculation_method_digest": "0000000000000000000000000000000000000000000000000000000000000010",
+            "result_digest": "0000000000000000000000000000000000000000000000000000000000000011"
+          }
+        ],
+        "raw_data_digest": "0000000000000000000000000000000000000000000000000000000000000012",
+        "report_digest": "0000000000000000000000000000000000000000000000000000000000000013",
+        "independent_review": {
+          "review_status": "reviewed",
+          "reviewer_ref": "reviewer-001",
+          "review_scope_ref": "technical-report-review",
+          "reviewed_at": "2026-11-02T00:00:00Z",
+          "signature_or_attestation_digest": "0000000000000000000000000000000000000000000000000000000000000014"
+        },
+        "qualification_disposition": "not_assessed"
+      }
+    },
+    {
+      "case_id": "draft-iec62660-1-cannot-claim-qualification",
+      "expectation": "reject",
+      "record": {
+        "protocol_version": "ev-test-protocol-evidence/0.1",
+        "record_id": "draft-iec62660-1-qualification-claim",
+        "evidence_class": "physical_observation",
+        "test_event": {
+          "event_id": "evt-pren-iec62660-1-cdv-performance-reference",
+          "executed_at": "2026-11-01T10:00:00Z",
+          "test_purpose": "performance",
+          "test_method_ref": "declared-lab-procedure-v1",
+          "test_method_digest": "0000000000000000000000000000000000000000000000000000000000000001",
+          "operator_ref": "operator-001",
+          "start_time_ms": 1000,
+          "end_time_ms": 2000
+        },
+        "standard": {
+          "standard_id": "IEC 62660-1",
+          "edition": "prEN IEC 62660-1:2026; CDV 21/1311",
+          "publication_date": "2026-09-25",
+          "recorded_status": "draft",
+          "lifecycle_stage": "40.20",
+          "status_checked_at": "2026-11-10T00:00:00Z",
+          "scope_summary": "Committee Draft for Vote; under study; not a published normative edition",
+          "clause_refs": [
+            "CDV 21/1311 scope"
+          ],
+          "normative_or_practice": "international_standard",
+          "source_url": "https://www.evs.ee/en/pren-iec-62660-1-2026",
+          "source_digest": "00000000000000000000000000000000000000000000000000000000000055fe"
+        },
+        "specimen": {
+          "article_ref": "article-iec62660-cell",
+          "article_identity_digest": "0000000000000000000000000000000000000000000000000000000000000003",
+          "article_scope": "cell",
+          "article_configuration_digest": "0000000000000000000000000000000000000000000000000000000000000004",
+          "parent_pack_ref": "pack-001",
+          "parent_pack_configuration_digest": "0000000000000000000000000000000000000000000000000000000000000005",
+          "chemistry": "NMC",
+          "manufacturer_ref": "manufacturer-001",
+          "specimen_condition_digest": "0000000000000000000000000000000000000000000000000000000000000006",
+          "preconditioning_digest": "0000000000000000000000000000000000000000000000000000000000000007"
+        },
+        "laboratory": {
+          "facility_ref": "lab-001",
+          "facility_scope_ref": "scope-cell-performance",
+          "operator_ref": "operator-001",
+          "accreditation_status": "accredited_scope_declared",
+          "accreditation_evidence_digest": "0000000000000000000000000000000000000000000000000000000000000008"
+        },
+        "measurement_chain": [
+          {
+            "instrument_ref": "cycler-001",
+            "instrument_serial_digest": "0000000000000000000000000000000000000000000000000000000000000009",
+            "calibration_certificate_digest": "000000000000000000000000000000000000000000000000000000000000000a",
+            "calibration_traceability_digest": "000000000000000000000000000000000000000000000000000000000000000b",
+            "calibrated_at": "2026-10-01T00:00:00Z",
+            "valid_until": "2026-12-01T00:00:00Z",
+            "calibration_status": "valid"
+          }
+        ],
+        "conditions": {
+          "temperature_c": 25,
+          "temperature_uncertainty_c": 0.3,
+          "soc_fraction": 0.5,
+          "soc_uncertainty": 0.01,
+          "current_profile_digest": "000000000000000000000000000000000000000000000000000000000000000c",
+          "duration_s": 3600,
+          "rest_before_s": 1800,
+          "environment_digest": "000000000000000000000000000000000000000000000000000000000000000d"
+        },
+        "channels": [
+          {
+            "channel_id": "voltage-1",
+            "quantity": "voltage",
+            "unit": "V",
+            "sampling_hz": 1,
+            "measurement_digest": "000000000000000000000000000000000000000000000000000000000000000e",
+            "measurement_uncertainty": 0.001,
+            "instrument_ref": "cycler-001"
+          },
+          {
+            "channel_id": "current-1",
+            "quantity": "current",
+            "unit": "A",
+            "sampling_hz": 1,
+            "measurement_digest": "000000000000000000000000000000000000000000000000000000000000000f",
+            "measurement_uncertainty": 0.01,
+            "instrument_ref": "cycler-001"
+          }
+        ],
+        "deviations": [],
+        "results": [
+          {
+            "result_id": "capacity-ah",
+            "quantity": "capacity",
+            "value": 4.8,
+            "unit": "Ah",
+            "standard_uncertainty": 0.02,
+            "coverage_factor": 2,
+            "calculation_method_ref": "capacity-integral-v1",
+            "calculation_method_digest": "0000000000000000000000000000000000000000000000000000000000000010",
+            "result_digest": "0000000000000000000000000000000000000000000000000000000000000011"
+          }
+        ],
+        "raw_data_digest": "0000000000000000000000000000000000000000000000000000000000000012",
+        "report_digest": "0000000000000000000000000000000000000000000000000000000000000013",
+        "independent_review": {
+          "review_status": "reviewed",
+          "reviewer_ref": "reviewer-001",
+          "review_scope_ref": "technical-report-review",
+          "reviewed_at": "2026-11-02T00:00:00Z",
+          "signature_or_attestation_digest": "0000000000000000000000000000000000000000000000000000000000000014"
+        },
+        "qualification_disposition": "within_declared_criteria"
+      }
+    },
+    {
+      "case_id": "draft-iec62660-2-cannot-claim-qualification",
+      "expectation": "reject",
+      "record": {
+        "protocol_version": "ev-test-protocol-evidence/0.1",
+        "record_id": "draft-iec62660-2-qualification-claim",
+        "evidence_class": "physical_observation",
+        "test_event": {
+          "event_id": "evt-pren-iec62660-2-cdv-reliability-reference",
+          "executed_at": "2026-11-01T10:00:00Z",
+          "test_purpose": "reliability",
+          "test_method_ref": "declared-lab-procedure-v1",
+          "test_method_digest": "0000000000000000000000000000000000000000000000000000000000000001",
+          "operator_ref": "operator-001",
+          "start_time_ms": 1000,
+          "end_time_ms": 2000
+        },
+        "standard": {
+          "standard_id": "IEC 62660-2",
+          "edition": "prEN IEC 62660-2:2026; CDV 21/1312",
+          "publication_date": "2026-09-25",
+          "recorded_status": "draft",
+          "lifecycle_stage": "40.20",
+          "status_checked_at": "2026-11-10T00:00:00Z",
+          "scope_summary": "Committee Draft for Vote; under study; not a published normative edition",
+          "clause_refs": [
+            "CDV 21/1312 scope"
+          ],
+          "normative_or_practice": "international_standard",
+          "source_url": "https://www.evs.ee/en/pren-iec-62660-2-2026",
+          "source_digest": "00000000000000000000000000000000000000000000000000000000000055fe"
+        },
+        "specimen": {
+          "article_ref": "article-iec62660-2-block",
+          "article_identity_digest": "0000000000000000000000000000000000000000000000000000000000000003",
+          "article_scope": "cell_block",
+          "article_configuration_digest": "0000000000000000000000000000000000000000000000000000000000000004",
+          "parent_pack_ref": "pack-001",
+          "parent_pack_configuration_digest": "0000000000000000000000000000000000000000000000000000000000000005",
+          "chemistry": "NMC",
+          "manufacturer_ref": "manufacturer-001",
+          "specimen_condition_digest": "0000000000000000000000000000000000000000000000000000000000000006",
+          "preconditioning_digest": "0000000000000000000000000000000000000000000000000000000000000007"
+        },
+        "laboratory": {
+          "facility_ref": "lab-001",
+          "facility_scope_ref": "scope-cell_block-reliability",
+          "operator_ref": "operator-001",
+          "accreditation_status": "accredited_scope_declared",
+          "accreditation_evidence_digest": "0000000000000000000000000000000000000000000000000000000000000008"
+        },
+        "measurement_chain": [
+          {
+            "instrument_ref": "cycler-001",
+            "instrument_serial_digest": "0000000000000000000000000000000000000000000000000000000000000009",
+            "calibration_certificate_digest": "000000000000000000000000000000000000000000000000000000000000000a",
+            "calibration_traceability_digest": "000000000000000000000000000000000000000000000000000000000000000b",
+            "calibrated_at": "2026-10-01T00:00:00Z",
+            "valid_until": "2026-12-01T00:00:00Z",
+            "calibration_status": "valid"
+          }
+        ],
+        "conditions": {
+          "temperature_c": 25,
+          "temperature_uncertainty_c": 0.3,
+          "soc_fraction": 0.5,
+          "soc_uncertainty": 0.01,
+          "current_profile_digest": "000000000000000000000000000000000000000000000000000000000000000c",
+          "duration_s": 3600,
+          "rest_before_s": 1800,
+          "environment_digest": "000000000000000000000000000000000000000000000000000000000000000d"
+        },
+        "channels": [
+          {
+            "channel_id": "voltage-1",
+            "quantity": "voltage",
+            "unit": "V",
+            "sampling_hz": 1,
+            "measurement_digest": "000000000000000000000000000000000000000000000000000000000000000e",
+            "measurement_uncertainty": 0.001,
+            "instrument_ref": "cycler-001"
+          },
+          {
+            "channel_id": "current-1",
+            "quantity": "current",
+            "unit": "A",
+            "sampling_hz": 1,
+            "measurement_digest": "000000000000000000000000000000000000000000000000000000000000000f",
+            "measurement_uncertainty": 0.01,
+            "instrument_ref": "cycler-001"
+          }
+        ],
+        "deviations": [],
+        "results": [
+          {
+            "result_id": "capacity-ah",
+            "quantity": "capacity",
+            "value": 4.8,
+            "unit": "Ah",
+            "standard_uncertainty": 0.02,
+            "coverage_factor": 2,
+            "calculation_method_ref": "capacity-integral-v1",
+            "calculation_method_digest": "0000000000000000000000000000000000000000000000000000000000000010",
+            "result_digest": "0000000000000000000000000000000000000000000000000000000000000011"
+          }
+        ],
+        "raw_data_digest": "0000000000000000000000000000000000000000000000000000000000000012",
+        "report_digest": "0000000000000000000000000000000000000000000000000000000000000013",
+        "independent_review": {
+          "review_status": "reviewed",
+          "reviewer_ref": "reviewer-001",
+          "review_scope_ref": "technical-report-review",
+          "reviewed_at": "2026-11-02T00:00:00Z",
+          "signature_or_attestation_digest": "0000000000000000000000000000000000000000000000000000000000000014"
+        },
+        "qualification_disposition": "within_declared_criteria"
+      }
     }
   ]
 }
