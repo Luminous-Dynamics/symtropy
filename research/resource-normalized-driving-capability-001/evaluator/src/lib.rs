@@ -342,6 +342,9 @@ pub fn compare_metric(
 ) -> Result<PairComparison, String> {
     validate_complete(baseline)?;
     validate_complete(candidate)?;
+    if baseline.run_id == candidate.run_id {
+        return Err("baseline and candidate must have distinct run_id values".into());
+    }
 
     let evaluation_differences = evaluation_differences(baseline, candidate);
     if !evaluation_differences.is_empty() {
@@ -476,6 +479,9 @@ fn budget_differences(baseline: &ResultCard, candidate: &ResultCard) -> Vec<Stri
     if baseline.model.precision != candidate.model.precision {
         differences.push("model_precision".to_string());
     }
+    if baseline.compute.measurement_method != candidate.compute.measurement_method {
+        differences.push("measurement_method".to_string());
+    }
     differences
 }
 
@@ -522,6 +528,12 @@ pub fn pareto_frontier(
         validate_complete(card)?;
     }
     let baseline = &cards[0];
+    let mut unique_run_ids = std::collections::BTreeSet::new();
+    for card in cards {
+        if !unique_run_ids.insert(card.run_id.as_str()) {
+            return Err(format!("duplicate run_id in Pareto input: {:?}", card.run_id));
+        }
+    }
     let mut protocol_differences = Vec::new();
     for card in cards.iter().skip(1) {
         protocol_differences.extend(evaluation_differences(baseline, card));
@@ -828,6 +840,41 @@ mod tests {
         )
         .unwrap_err()
         .contains("protocol_revision"));
+    }
+
+    #[test]
+    fn documented_not_run_template_is_parseable_and_valid() {
+        let template = include_str!("../result_card.template.json");
+        let card = ResultCard::from_json(template).unwrap();
+        assert_eq!(card.status, RunStatus::NotRun);
+        assert!(card.validate().is_ok());
+    }
+
+    #[test]
+    fn duplicate_run_ids_are_rejected_by_frontier() {
+        let first = card("same-run", 90.0, Some(2.0), Some(20.0), Some(1_000));
+        let second = card("same-run", 91.0, Some(1.0), Some(18.0), Some(900));
+        assert!(pareto_frontier(
+            &[first, second],
+            "driving_score",
+            MetricDirection::HigherIsBetter,
+        )
+        .unwrap_err()
+        .contains("duplicate run_id"));
+    }
+
+    #[test]
+    fn manifest_and_json_schemas_are_parseable() {
+        let manifest: serde_json::Value =
+            serde_json::from_str(include_str!("../../benchmark_manifest_v0_1.json")).unwrap();
+        let manifest_schema: serde_json::Value =
+            serde_json::from_str(include_str!("../../benchmark_manifest_v0_1.schema.json")).unwrap();
+        let card_schema: serde_json::Value =
+            serde_json::from_str(include_str!("../../result_card.schema.json")).unwrap();
+        assert_eq!(manifest["status"], "specification_only_no_model_runs");
+        assert_eq!(manifest["prospective_targets"]["status"], "not_measured");
+        assert_eq!(manifest_schema["$schema"], "https://json-schema.org/draft/2020-12/schema");
+        assert_eq!(card_schema["$schema"], "https://json-schema.org/draft/2020-12/schema");
     }
 
     #[test]
