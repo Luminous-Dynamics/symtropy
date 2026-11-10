@@ -72,6 +72,19 @@ No human label, tag, name or location alone is a claim-bearing identity key. No 
 8. Write boundary: projections and synthetic/counterfactual state are read-only and cannot mutate system-of-record state.
 9. Commissioning readiness: measured update cadence, p50/p95/p99 latency, field-level fidelity and recovery against the use case's declared requirements—not a universal "real-time" badge.
 
+
+### Temporal budget semantics v0.1
+
+Keep source age, source cadence and ingestion latency separate:
+
+- Require source time <= transaction time <= retrieval time <= evaluation cutoff, allowing only the declared clock-skew tolerance for a transaction clock that is slightly ahead of retrieval time.
+- Source age = evaluation cutoff - source time; compare it with max_source_age_s.
+- Ingestion latency = retrieval time - transaction time; compare it with max_update_latency_s.
+- update_interval_s is the expected source cadence. It does not extend either hard budget.
+- Report cadence, source age and ingestion latency independently; do not infer a fresh source from a recent retrieval.
+
+The synthetic positive fixtures must satisfy both hard budgets. Negative cases should isolate stale source data from delayed ingestion so one defect cannot accidentally stand in for the other.
+
 ## Frozen corpus v0.1
 
 The corpus contains 32 synthetic positive/negative cases:
