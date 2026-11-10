@@ -470,8 +470,8 @@ mod tests {
     #[test]
     fn frozen_corpus_matches_all_declared_outcomes() {
         let report = evaluate_bytes(CORPUS).expect("corpus evaluates");
-        assert_eq!(report.total_cases, 38);
-        assert_eq!(report.passed_cases, 38);
+        assert_eq!(report.total_cases, 39);
+        assert_eq!(report.passed_cases, 39);
         assert_eq!(report.failed_cases, 0);
         assert_eq!(report.corpus_sha256.len(), 64);
     }
@@ -553,6 +553,23 @@ mod tests {
             evaluate_case(case).disposition,
             Disposition::UnknownEscalate
         );
+    }
+
+    #[test]
+    fn maximum_declared_age_is_inclusive_and_one_ms_beyond_is_rejected() {
+        let corpus = corpus();
+        let case = corpus
+            .cases
+            .iter()
+            .find(|case| case.case_id == "metamorphic-age-boundary-inclusive")
+            .expect("inclusive-age fixture exists");
+        assert_eq!(evaluate_case(case).decision_evidence_observations, 1);
+        assert_eq!(evaluate_case(case).disposition, Disposition::ContinueWithWatch);
+
+        let mut over_age = case.clone();
+        over_age.observations[0].age_ms = over_age.observations[0].max_age_ms + 1;
+        assert_eq!(evaluate_case(&over_age).decision_evidence_observations, 0);
+        assert_eq!(evaluate_case(&over_age).disposition, Disposition::UnknownEscalate);
     }
 
     #[test]
