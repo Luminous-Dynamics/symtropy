@@ -31,6 +31,7 @@ pub enum EvidenceRole {
     Transform,
     RegisteredObservation,
     GeometryOutput,
+    RepresentationOutput,
     PriorState,
     Calibration,
     Other,
@@ -289,10 +290,10 @@ pub fn audit_representation_continuity(
             );
         }
 
-        let output_artifact_ids: BTreeSet<&str> = transition
+        let output_artifacts: BTreeMap<&str, EvidenceRole> = transition
             .output_artifacts
             .iter()
-            .map(|artifact| artifact.artifact_id.as_str())
+            .map(|artifact| (artifact.artifact_id.as_str(), artifact.role))
             .collect();
         let source_artifacts: BTreeMap<&str, (&str, EvidenceRole)> = transition
             .source_artifacts
@@ -384,11 +385,17 @@ pub fn audit_representation_continuity(
                     claim.claim_id
                 ));
             }
+            let target_artifact_role = output_artifacts
+                .get(claim.target_artifact_id.as_str())
+                .copied();
             if claim.target_artifact_id.trim().is_empty()
-                || !output_artifact_ids.contains(claim.target_artifact_id.as_str())
+                || !matches!(
+                    target_artifact_role,
+                    Some(EvidenceRole::GeometryOutput | EvidenceRole::RepresentationOutput)
+                )
             {
                 return Err(format!(
-                    "claim {} target artifact is absent from the transition output artifacts",
+                    "claim {} target artifact must be a declared geometry/representation output",
                     claim.claim_id
                 ));
             }
@@ -907,6 +914,15 @@ mod tests {
             json!("UNLISTED-OUTPUT");
         let error = audit(&value).expect_err("claim must bind the exact output artifact");
         assert!(error.contains("target artifact is absent"));
+    }
+
+    #[test]
+    fn rejects_claim_bound_to_non_representation_output_role() {
+        let mut value = valid_receipt();
+        value["transitions"][0]["output_artifacts"][0]["role"] = json!("transform");
+        let error = audit(&value)
+            .expect_err("claim must bind to geometry or representation output artifact");
+        assert!(error.contains("geometry/representation output"));
     }
 
     #[test]
