@@ -118,3 +118,9 @@ The v0.2 validator checks references, digest shape, same-input identity, method 
 
 Schema v0.1.0 is retained as a historical contract. New paired-comparison receipts use `bh-response-manifest-0.2.0.schema.json` and crate version `0.2.0`.
 
+The paired comparison also pins two **procedure digests**:
+- `alignment_definition_sha256` identifies the exact time/frequency sample alignment, interpolation, cropping and weighting procedure/configuration;
+- `metric_definition_sha256` identifies the exact norm/metric formula and its configuration.
+
+These are distinct from `aligned_samples_sha256` (the resulting aligned sample set) and `comparison_artifact_sha256` (the resulting values and metric record). The four identities make it possible to detect the same arrays being scored under a changed alignment or metric definition.
+
