@@ -101,7 +101,7 @@ The CLI reads the receipt bytes, rejects unknown JSON fields through the typed `
 
 P0 now additionally binds every claim to the exact transition output artifact that contains its target entity. When a later transition reuses an artifact ID previously emitted by an earlier transition, the SHA-256 and evidence role must match exactly. Reusing an ID with changed bytes or role is rejected.
 
-Current test inventory: 18 representation-continuity tests. The replay-contract workflow now runs the CLI against the canonical fixture and checks the one-transition/one-measured-claim/one-correspondence report. These tests remain synthetic contract checks, not IFC or physical-building validation.
+Current test inventory: 19 representation-continuity tests. Claim target artifacts must also carry the `geometry_output` or `representation_output` role; a transform/calibration artifact cannot satisfy a claim's representation target merely by sharing an ID. The replay-contract workflow now runs the CLI against the canonical fixture and checks the one-transition/one-measured-claim/one-correspondence report. These tests remain synthetic contract checks, not IFC or physical-building validation.
 
 ## Metrics and targets
 
