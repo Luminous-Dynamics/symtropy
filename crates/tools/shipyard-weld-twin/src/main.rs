@@ -498,11 +498,21 @@ fn evaluate(weld: &Value, workspace_root: &Path) -> &'static str {
         Some(values) => values,
         None => return "PASS_SET_MISSING",
     };
-    if passes.len() < 3
-        || passes.first().and_then(|pass| pass.get("role")).and_then(Value::as_str)
-            != Some("root")
+    if passes.first().and_then(|pass| pass.get("role")).and_then(Value::as_str)
+        != Some("root")
     {
         return "ROOT_PASS_MISSING";
+    }
+    if passes.len() < 3 {
+        return "FILL_PASS_MISSING";
+    }
+    if passes.last().and_then(|pass| pass.get("role")).and_then(Value::as_str) != Some("cap") {
+        return "CAP_PASS_MISSING";
+    }
+    if passes[1..passes.len() - 1].iter().any(|pass| {
+        pass.get("role").and_then(Value::as_str) != Some("fill")
+    }) {
+        return "PASS_SEQUENCE_INVALID";
     }
 
     let mut pass_ids = std::collections::BTreeSet::new();
@@ -516,13 +526,8 @@ fn evaluate(weld: &Value, workspace_root: &Path) -> &'static str {
         }
     }
 
-    let expected_roles = ["root", "fill", "cap"];
+    let mut previous_pass_time: Option<&str> = None;
     for (index, pass) in passes.iter().enumerate() {
-        if index >= expected_roles.len()
-            || pass.get("role").and_then(Value::as_str) != Some(expected_roles[index])
-        {
-            return "PASS_SEQUENCE_INVALID";
-        }
         if pass.get("sequence_index").and_then(Value::as_u64) != Some((index + 1) as u64) {
             return "PASS_SEQUENCE_INVALID";
         }
@@ -533,6 +538,10 @@ fn evaluate(weld: &Value, workspace_root: &Path) -> &'static str {
         if pass_time > cutoff {
             return "PROCESS_TRACE_AFTER_DECISION_CUTOFF";
         }
+        if previous_pass_time.is_some_and(|previous| pass_time < previous) {
+            return "PASS_TIME_ORDER_INVALID";
+        }
+        previous_pass_time = Some(pass_time);
         if pass.get("workpiece_serial_id").and_then(Value::as_str) != Some(serial) {
             return "WORKPIECE_IDENTITY_MISMATCH";
         }
@@ -750,6 +759,16 @@ fn apply_mutation(root: &mut Value, mutation: &Value) -> Result<(), String> {
                     array.remove(index);
                     Ok(())
                 }
+                "insert" => {
+                    let value = mutation
+                        .get("value")
+                        .ok_or_else(|| format!("insert mutation {path} has no value"))?;
+                    if index > array.len() {
+                        return Err(format!("array insertion index out of range {path}"));
+                    }
+                    array.insert(index, value.clone());
+                    Ok(())
+                }
                 _ => Err(format!("unsupported mutation operation {op}")),
             }
         }
@@ -773,8 +792,8 @@ fn verify_corpus(corpus: &Value, workspace_root: &Path) -> Result<Value, String>
         .and_then(Value::as_array)
         .ok_or_else(|| "corpus cases must be an array".to_owned())?;
 
-    if cases.len() != 54 {
-        return Err(format!("frozen weld-twin corpus must contain 54 cases, found {}", cases.len()));
+    if cases.len() != 56 {
+        return Err(format!("frozen weld-twin corpus must contain 56 cases, found {}", cases.len()));
     }
 
     let mut results = Vec::with_capacity(cases.len());
@@ -899,7 +918,7 @@ mod tests {
             parse_strict_json(CORPUS.as_bytes()).expect("frozen corpus parses without duplicate keys");
         let root = workspace_root();
         let report = verify_corpus(&corpus, &root).expect("frozen corpus evaluates");
-        assert_eq!(report["case_count"].as_u64(), Some(54));
+        assert_eq!(report["case_count"].as_u64(), Some(56));
         assert_eq!(report["passed_count"].as_u64(), Some(54));
         assert_eq!(report["failed_count"].as_u64(), Some(0));
     }
