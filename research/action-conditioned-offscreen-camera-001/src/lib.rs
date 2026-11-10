@@ -27,6 +27,7 @@ pub struct AppliedActionRef {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(u8)]
 pub enum RoadMarkingKind {
     LaneWhite,
     LaneYellow,
@@ -54,6 +55,7 @@ pub struct RoadPolyline {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(u8)]
 pub enum ActorClass {
     Car,
     Bus,
@@ -150,9 +152,11 @@ pub enum MissingFrameReason {
 pub struct MissingObservationEvent {
     pub episode_id: String,
     pub agent_id: String,
+    pub clock_id: String,
     pub tick: u64,
     pub sequence: u64,
     pub capture_timestamp_us: u64,
+    pub noticed_timestamp_us: u64,
     pub reason: MissingFrameReason,
 }
 
@@ -178,6 +182,7 @@ pub enum RenderError {
     ClockCaptureMismatch,
     RenderBeforeCapture,
     DeliveryBeforeRender,
+    MissingEventBeforeCapture,
     SequenceRegression,
     CaptureClockRegression,
     DeliveryClockRegression,
@@ -303,23 +308,51 @@ impl ObservationStreamGuard {
         Ok(disposition)
     }
 
-    pub fn missing_event(
-        &self,
+    /// Record a missing observation as an ordered stream event. A later copy
+    /// of this sequence cannot be replayed as a fresh frame.
+    pub fn record_missing(
+        &mut self,
         episode_id: &str,
         agent_id: &str,
+        clock_id: &str,
         tick: u64,
         sequence: u64,
         capture_timestamp_us: u64,
+        noticed_timestamp_us: u64,
         reason: MissingFrameReason,
     ) -> Result<MissingObservationEvent, RenderError> {
         validate_id(episode_id)?;
         validate_id(agent_id)?;
+        validate_id(clock_id)?;
+        if self.last_sequence.is_some_and(|last| sequence <= last) {
+            return Err(RenderError::SequenceRegression);
+        }
+        if self
+            .last_capture_timestamp_us
+            .is_some_and(|last| capture_timestamp_us <= last)
+        {
+            return Err(RenderError::CaptureClockRegression);
+        }
+        if noticed_timestamp_us < capture_timestamp_us {
+            return Err(RenderError::MissingEventBeforeCapture);
+        }
+        if self
+            .last_delivery_timestamp_us
+            .is_some_and(|last| noticed_timestamp_us < last)
+        {
+            return Err(RenderError::DeliveryClockRegression);
+        }
+        self.last_sequence = Some(sequence);
+        self.last_capture_timestamp_us = Some(capture_timestamp_us);
+        self.last_delivery_timestamp_us = Some(noticed_timestamp_us);
         Ok(MissingObservationEvent {
             episode_id: episode_id.to_string(),
             agent_id: agent_id.to_string(),
+            clock_id: clock_id.to_string(),
             tick,
             sequence,
             capture_timestamp_us,
+            noticed_timestamp_us,
             reason,
         })
     }
@@ -911,6 +944,6 @@ mod tests{
     #[test] fn stream_guard_distinguishes_fresh_delayed_and_stale(){let mut g=ObservationStreamGuard::new(TimingPolicy{maximum_render_latency_us:1_000,maximum_delivery_age_us:3_000});assert_eq!(g.admit(1,1_000,1_500,2_000),Ok(ObservationDisposition::Fresh));assert_eq!(g.admit(2,2_000,3_500,4_000),Ok(ObservationDisposition::Delayed));assert_eq!(g.admit(3,3_000,4_000,7_000),Ok(ObservationDisposition::Stale));}
     #[test] fn stream_guard_rejects_duplicate_or_out_of_order_sequences_without_mutation(){let mut g=ObservationStreamGuard::new(TimingPolicy{maximum_render_latency_us:1_000,maximum_delivery_age_us:3_000});assert!(g.admit(2,2_000,2_500,3_000).is_ok());assert_eq!(g.admit(2,3_000,3_100,3_200),Err(RenderError::SequenceRegression));assert!(g.admit(3,3_000,3_100,3_200).is_ok());}
     #[test] fn stream_guard_rejects_capture_and_delivery_clock_regression(){let mut g=ObservationStreamGuard::new(TimingPolicy{maximum_render_latency_us:1_000,maximum_delivery_age_us:3_000});g.admit(1,2_000,2_200,2_500).unwrap();assert_eq!(g.admit(2,1_900,2_200,2_600),Err(RenderError::CaptureClockRegression));assert_eq!(g.admit(2,3_000,3_200,2_400),Err(RenderError::DeliveryClockRegression));}
-    #[test] fn missing_frame_event_is_explicit(){let g=ObservationStreamGuard::new(TimingPolicy{maximum_render_latency_us:1_000,maximum_delivery_age_us:3_000});let event=g.missing_event("episode-1","ego",2,2,40_000,MissingFrameReason::CameraDrop).unwrap();assert_eq!(event.reason,MissingFrameReason::CameraDrop);assert_eq!(event.tick,2);}
+    #[test] fn missing_frame_event_is_explicit_and_consumes_sequence(){let mut g=ObservationStreamGuard::new(TimingPolicy{maximum_render_latency_us:1_000,maximum_delivery_age_us:3_000});let event=g.record_missing("episode-1","ego","clock-1",2,2,40_000,40_500,MissingFrameReason::CameraDrop).unwrap();assert_eq!(event.reason,MissingFrameReason::CameraDrop);assert_eq!(event.tick,2);assert_eq!(event.sequence,2);assert_eq!(g.admit(2,50_000,50_500,50_800),Err(RenderError::SequenceRegression));assert_eq!(g.admit(3,50_000,50_500,50_800),Ok(ObservationDisposition::Fresh));}
     #[test] fn policy_receipt_does_not_include_evaluator_world_digest(){let result=SoftwareCameraRenderer::render(&snapshot(),1,clocks()).unwrap();assert!(!format!("{:?}",result.policy_receipt).contains(&result.evaluator_audit.world_snapshot_sha256));}
 }
