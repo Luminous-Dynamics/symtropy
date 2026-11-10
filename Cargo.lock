@@ -9216,6 +9216,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "symtropy-lod-benchmark"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "sha2",
+ "symtropy-render-bridge",
+]
+
+[[package]]
 name = "symtropy-math"
 version = "0.2.1"
 dependencies = [

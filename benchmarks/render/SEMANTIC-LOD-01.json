@@ -1,0 +1,169 @@
+{
+  "schema_version": "1.1.0",
+  "fixture_id": "SEMANTIC-LOD-01",
+  "status": "proposed_unmeasured",
+  "policy": {
+    "candidate_order": "coarse_to_fine",
+    "cost_units": "calibrated_relative_units_not_milliseconds",
+    "screen_error": "finite_nonnegative_nonincreasing_with_quality",
+    "protected": [
+      "selected",
+      "critical"
+    ],
+    "tie_break": "entity_id_ascending",
+    "budget_failure": "reject",
+    "objective": "incremental importance-weighted squared screen-error per cost unit saved",
+    "manifest_digest": "SHA-256 over exact source bytes"
+  },
+  "candidate_representations": [
+    {
+      "quality_rank": 0,
+      "representation_id_offset": 1,
+      "screen_error_px": 4,
+      "cost_units": 1
+    },
+    {
+      "quality_rank": 1,
+      "representation_id_offset": 2,
+      "screen_error_px": 2,
+      "cost_units": 3
+    },
+    {
+      "quality_rank": 2,
+      "representation_id_offset": 3,
+      "screen_error_px": 0.5,
+      "cost_units": 8
+    }
+  ],
+  "known_answer_cases": [
+    {
+      "case_id": "EMPTY",
+      "expected": "pass",
+      "invariant": "empty scene costs zero"
+    },
+    {
+      "case_id": "FINEST",
+      "expected": "pass",
+      "invariant": "sufficient budget keeps finest candidates"
+    },
+    {
+      "case_id": "PRIORITY",
+      "expected": "pass",
+      "invariant": "lowest weighted error loss per cost saved is downgraded first"
+    },
+    {
+      "case_id": "PROTECTED",
+      "expected": "pass",
+      "invariant": "selected and critical entities remain at finest quality"
+    },
+    {
+      "case_id": "INFEASIBLE",
+      "expected": "reject",
+      "invariant": "cannot exceed budget by dropping protected detail"
+    },
+    {
+      "case_id": "ERROR-CEILING",
+      "expected": "reject",
+      "invariant": "finest candidate must be within the screen-error ceiling"
+    },
+    {
+      "case_id": "ORDER",
+      "expected": "pass",
+      "invariant": "input permutation leaves the sorted allocation unchanged"
+    },
+    {
+      "case_id": "INVALID",
+      "expected": "reject",
+      "invariant": "malformed IDs, candidates, costs, importance or errors fail closed"
+    }
+  ],
+  "screen_error_profiles": [
+    {
+      "profile_id": "precision_inspection",
+      "max_screen_error_px": 1,
+      "status": "proposed_target"
+    },
+    {
+      "profile_id": "interactive_detail",
+      "max_screen_error_px": 2,
+      "status": "proposed_target"
+    },
+    {
+      "profile_id": "strategic_overview",
+      "max_screen_error_px": 4,
+      "status": "proposed_target"
+    }
+  ],
+  "scaling_workloads": [
+    {
+      "workload_id": "SEMANTIC-LOD-100",
+      "entity_count": 100,
+      "candidate_levels": 3,
+      "budget_fraction_of_finest_cost": 0.6,
+      "screen_error_profile_id": "interactive_detail",
+      "selected_entity_ids": [
+        1
+      ],
+      "critical_entity_ids": [
+        2
+      ],
+      "importance_rule": "1 + (entity_id modulo 10)"
+    },
+    {
+      "workload_id": "SEMANTIC-LOD-1000",
+      "entity_count": 1000,
+      "candidate_levels": 3,
+      "budget_fraction_of_finest_cost": 0.6,
+      "screen_error_profile_id": "interactive_detail",
+      "selected_entity_ids": [
+        1
+      ],
+      "critical_entity_ids": [
+        2
+      ],
+      "importance_rule": "1 + (entity_id modulo 10)"
+    },
+    {
+      "workload_id": "SEMANTIC-LOD-10000",
+      "entity_count": 10000,
+      "candidate_levels": 3,
+      "budget_fraction_of_finest_cost": 0.6,
+      "screen_error_profile_id": "interactive_detail",
+      "selected_entity_ids": [
+        1
+      ],
+      "critical_entity_ids": [
+        2
+      ],
+      "importance_rule": "1 + (entity_id modulo 10)"
+    }
+  ],
+  "required_reports": [
+    "source_revision",
+    "fixture_sha256",
+    "rustc_version",
+    "os_and_architecture",
+    "workload_id",
+    "entity_count",
+    "budget_units",
+    "final_cost_units",
+    "quality_rank_histogram",
+    "protected_demotion_count",
+    "screen_error_violations",
+    "allocator_p50_p95_p99_ns",
+    "fixture_and_output_digests",
+    "claim_scope",
+    "reference_scan_p50_p95_p99_ns",
+    "heap_vs_reference_p50_speedup",
+    "reference_matches_heap"
+  ],
+  "claim_ceiling": [
+    "No performance result is measured by this manifest.",
+    "Relative cost units are not GPU time.",
+    "A passing policy test does not prove the geometric error bounds are conservative.",
+    "The first implementation does not switch Bevy assets or render-graph state.",
+    "A policy-only benchmark does not measure rendering, frame intervals, GPU time, or visual fidelity.",
+    "No superiority claim over Bevy, Unreal, Unity HDRP, or 3DMark is authorized without matched measurements.",
+    "Heap-versus-scan timing compares two implementations of the same greedy policy only; it is not an industry-engine or full-renderer comparison."
+  ]
+}
