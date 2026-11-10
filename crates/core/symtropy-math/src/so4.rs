@@ -588,4 +588,107 @@ mod tests {
         let recovered = so4_log(&rotation).expect("valid generic SO(4) rotation");
         assert!(matrix_error(&rotation, &Rotor::from_bivector(&recovered.generator)) < 2.0e-10);
     }
+
+    fn next_random(state: &mut u64) -> f64 {
+        *state = state.wrapping_add(0x9e37_79b9_7f4a_7c15);
+        let mut value = *state;
+        value = (value ^ (value >> 30)).wrapping_mul(0xbf58_476d_1ce4_e5b9);
+        value = (value ^ (value >> 27)).wrapping_mul(0x94d0_49bb_1331_11eb);
+        value ^= value >> 31;
+        (value >> 11) as f64 / ((1_u64 << 53) as f64)
+    }
+
+    fn random_orthogonal_matrix(state: &mut u64) -> SMatrix<f64, 4, 4> {
+        let mut columns = [SVector::<f64, 4>::zeros(); 4];
+        for index in 0..4 {
+            let mut candidate = SVector::<f64, 4>::new(
+                2.0 * next_random(state) - 1.0,
+                2.0 * next_random(state) - 1.0,
+                2.0 * next_random(state) - 1.0,
+                2.0 * next_random(state) - 1.0,
+            );
+            for previous in columns.iter().take(index) {
+                candidate -= previous * previous.dot(&candidate);
+            }
+            let norm = candidate.norm();
+            assert!(norm > 1.0e-8, "deterministic QR fixture became degenerate");
+            columns[index] = candidate / norm;
+        }
+
+        let mut orthogonal = SMatrix::<f64, 4, 4>::zeros();
+        for (index, column) in columns.iter().enumerate() {
+            orthogonal.set_column(index, column);
+        }
+        if orthogonal.determinant() < 0.0 {
+            let last_column = -orthogonal.column(3).into_owned();
+            orthogonal.set_column(3, &last_column);
+        }
+        orthogonal
+    }
+
+    fn independent_double_rotation(
+        first_angle: f64,
+        second_angle: f64,
+    ) -> SMatrix<f64, 4, 4> {
+        let mut rotation = SMatrix::<f64, 4, 4>::identity();
+        for (first, second, angle) in [
+            (0usize, 1usize, first_angle),
+            (2usize, 3usize, second_angle),
+        ] {
+            let cosine = angle.cos();
+            let sine = angle.sin();
+            rotation[(first, first)] = cosine;
+            rotation[(first, second)] = -sine;
+            rotation[(second, first)] = sine;
+            rotation[(second, second)] = cosine;
+        }
+        rotation
+    }
+
+    #[test]
+    fn randomized_conjugated_double_rotations_reconstruct_both_planes() {
+        let mut rng = 0x243f_6a88_85a3_08d3_u64;
+        for case in 0..512 {
+            let mut first_angle = 0.03 + 2.9 * next_random(&mut rng);
+            let mut second_angle = 0.03 + 2.9 * next_random(&mut rng);
+            if (first_angle - second_angle).abs() < 0.04 {
+                second_angle = (second_angle + 0.11).min(3.0);
+            }
+            let first_sign = if next_random(&mut rng) < 0.5 { -1.0 } else { 1.0 };
+            let second_sign = if next_random(&mut rng) < 0.5 { -1.0 } else { 1.0 };
+            first_angle *= first_sign;
+            second_angle *= second_sign;
+
+            // Construct the reference rotation with independent 2x2
+            // trigonometric blocks, then conjugate by an independent
+            // deterministic orthogonal basis. No Rotor exponential is used
+            // to create the reference matrix.
+            let basis = random_orthogonal_matrix(&mut rng);
+            let canonical = independent_double_rotation(first_angle, second_angle);
+            let reference_matrix = basis * canonical * basis.transpose();
+            let reference = Rotor::<4>::from_matrix(reference_matrix);
+
+            let logarithm = so4_log(&reference)
+                .unwrap_or_else(|error| panic!("case {case} failed: {error}"));
+            assert_eq!(logarithm.branch, So4LogBranch::Principal);
+            let reconstructed = Rotor::<4>::from_bivector(&logarithm.generator);
+            assert!(
+                matrix_error(&reference, &reconstructed) < 3.0e-9,
+                "reconstruction error in randomized case {case}"
+            );
+
+            let expected = [first_angle.abs(), second_angle.abs()];
+            let mut expected_sorted = expected;
+            expected_sorted.sort_by(f64::total_cmp);
+            assert!(
+                (logarithm.principal_angles_rad[0] - expected_sorted[0]).abs() < 3.0e-9,
+                "first principal-angle mismatch in case {case}"
+            );
+            assert!(
+                (logarithm.principal_angles_rad[1] - expected_sorted[1]).abs() < 3.0e-9,
+                "second principal-angle mismatch in case {case}"
+            );
+        }
+    }
+
 }
