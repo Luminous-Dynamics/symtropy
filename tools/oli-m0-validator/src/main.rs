@@ -777,4 +777,47 @@ mod tests {
         value["measurement"]["units"] = Value::Array(Vec::new());
         assert!(!validate_fixture(&value).is_empty());
     }
+    #[test]
+    fn abiotic_pattern_cannot_be_promoted_to_life_or_intelligence() {
+        for property in [
+            "self_maintenance",
+            "reproduction",
+            "heredity",
+            "learning",
+            "agency",
+            "intelligence",
+            "collective_intelligence",
+            "sentience_consciousness",
+        ] {
+            let mut value: Value =
+                serde_json::from_str(include_str!("../fixtures/oli-m0-abiotic-001.json")).unwrap();
+            value["property_assessments"][property] =
+                Value::String("SUPPORTED_WITHIN_SCOPE".to_owned());
+            let errors = validate_fixture(&value);
+            assert!(
+                errors.iter().any(|error| error.contains(property)),
+                "abiotic false-positive promotion for {property} must fail: {errors:#?}"
+            );
+        }
+    }
+
+    #[test]
+    fn temporal_and_ood_negative_controls_require_synthetic_known_truth() {
+        let mut temporal: Value =
+            serde_json::from_str(include_str!("../fixtures/oli-m0-temporal-fn-001.json")).unwrap();
+        temporal["evidence_class"] =
+            Value::String("SYNTHETIC_UNKNOWN_GENERATOR".to_owned());
+        assert!(validate_fixture(&temporal)
+            .iter()
+            .any(|error| error.contains("temporal false-negative fixture must use synthetic known-truth")));
+
+        let mut ood: Value =
+            serde_json::from_str(include_str!("../fixtures/oli-m0-ood-sensor-001.json")).unwrap();
+        ood["evidence_class"] =
+            Value::String("SYNTHETIC_UNKNOWN_GENERATOR".to_owned());
+        assert!(validate_fixture(&ood)
+            .iter()
+            .any(|error| error.contains("OOD sensor fixture must use synthetic known-truth")));
+    }
+
 }
