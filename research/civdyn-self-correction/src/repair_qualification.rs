@@ -720,7 +720,7 @@ pub fn qualify_repair(
                 }
                 RepairRowOutcome::NotAssessed
             } else if width_exceeded {
-                width_budget_failures += usize::from(spec.primary);
+                width_budget_failures += if spec.primary { 1 } else { 0 };
                 RepairRowOutcome::WidthBudgetExceeded
             } else {
                 match (baseline_row.status, repaired_row.status) {
@@ -728,18 +728,18 @@ pub fn qualify_repair(
                         StatisticStatus::OutsideReferenceInterval,
                         StatisticStatus::WithinReferenceInterval,
                     ) => {
-                        corrected_primary_statistics += usize::from(spec.primary);
+                        corrected_primary_statistics += if spec.primary { 1 } else { 0 };
                         RepairRowOutcome::CorrectedOnFreshChallenge
                     }
                     (
                         StatisticStatus::WithinReferenceInterval,
                         StatisticStatus::OutsideReferenceInterval,
                     ) => {
-                        regressed_primary_statistics += usize::from(spec.primary);
+                        regressed_primary_statistics += if spec.primary { 1 } else { 0 };
                         RepairRowOutcome::Regression
                     }
                     (_, StatisticStatus::OutsideReferenceInterval) => {
-                        residual_primary_discrepancies += usize::from(spec.primary);
+                        residual_primary_discrepancies += if spec.primary { 1 } else { 0 };
                         RepairRowOutcome::ResidualDiscrepancy
                     }
                     (
