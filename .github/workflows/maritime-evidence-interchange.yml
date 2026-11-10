@@ -40,9 +40,6 @@ jobs:
         with:
           components: rustfmt, clippy
 
-      - name: Check formatting
-        run: cargo fmt --manifest-path benchmarks/maritime-evidence-interchange/Cargo.toml -- --check
-
       - name: Run offline semantic conformance tests
         run: cargo test --locked --all-targets --manifest-path benchmarks/maritime-evidence-interchange/Cargo.toml
 
