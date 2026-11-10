@@ -239,6 +239,7 @@ pub enum EvaluationError {
     NonFiniteOrNegative(&'static str),
     ZeroValue(&'static str),
     DuplicateCaseId(String),
+    CounterOverflow(&'static str),
     DuplicateCampaignId(String),
     EngineConfigurationMismatch(String),
     DuplicateResult(String),
@@ -265,6 +266,7 @@ impl std::fmt::Display for EvaluationError {
             }
             Self::ZeroValue(name) => write!(f, "value must be non-zero: {name}"),
             Self::DuplicateCaseId(id) => write!(f, "duplicate case ID: {id}"),
+            Self::CounterOverflow(name) => write!(f, "integer counter overflow: {name}"),
             Self::DuplicateCampaignId(id) => write!(f, "duplicate campaign ID: {id}"),
             Self::EngineConfigurationMismatch(id) => {
                 write!(f, "replications use different version/executable/configuration for engine ID: {id}")
@@ -307,11 +309,11 @@ pub fn evaluate(input: &BenchmarkInputV1) -> Result<BenchmarkReportV1, Evaluatio
     let input_sha256 = canonical_sha256(&canonical)?;
     let energy_included = energy_is_comparable(&canonical.campaigns);
     let requested_cases = canonical.cases.len() as u64;
-    let requested_ticks = canonical
-        .cases
-        .iter()
-        .map(|case| case.required_simulated_ticks)
-        .sum::<u64>();
+    let requested_ticks = canonical.cases.iter().try_fold(0_u64, |total, case| {
+        total
+            .checked_add(case.required_simulated_ticks)
+            .ok_or(EvaluationError::CounterOverflow("requested_simulated_ticks"))
+    })?;
 
     let mut reports = canonical
         .campaigns
@@ -674,7 +676,11 @@ fn validate_nonzero_latencies(campaign: &EngineCampaign) -> Result<(), Evaluatio
 fn canonicalize(input: &BenchmarkInputV1) -> BenchmarkInputV1 {
     let mut canonical = input.clone();
     canonical.cases.sort_by(|a, b| a.case_id.cmp(&b.case_id));
-    canonical.campaigns.sort_by(|a, b| a.engine_id.cmp(&b.engine_id));
+    canonical.campaigns.sort_by(|a, b| {
+        a.engine_id
+            .cmp(&b.engine_id)
+            .then_with(|| a.campaign_id.cmp(&b.campaign_id))
+    });
     for campaign in &mut canonical.campaigns {
         campaign.results.sort_by(|a, b| a.case_id.cmp(&b.case_id));
     }
@@ -1074,6 +1080,7 @@ mod tests {
         let b = evaluate(&reverse).expect("reverse");
         assert_eq!(a.input_sha256, b.input_sha256);
         assert_eq!(a.pareto_frontier_engine_ids, b.pareto_frontier_engine_ids);
+        assert_eq!(a.engine_aggregates, b.engine_aggregates);
         assert_eq!(a.campaigns, b.campaigns);
     }
 
@@ -1136,6 +1143,17 @@ mod tests {
         assert_eq!(aggregate.replication_count, 20);
         assert!(aggregate.meets_20_replication_publication_target);
         assert_eq!(aggregate.qualified_ticks_per_second_median, 25_000.0);
+    }
+
+    #[test]
+    fn total_requested_tick_overflow_fails_closed() {
+        let mut data = input();
+        data.cases[0].required_simulated_ticks = u64::MAX;
+        data.cases[1].required_simulated_ticks = 1;
+        assert_eq!(
+            evaluate(&data).unwrap_err(),
+            EvaluationError::CounterOverflow("requested_simulated_ticks")
+        );
     }
 
     #[test]
