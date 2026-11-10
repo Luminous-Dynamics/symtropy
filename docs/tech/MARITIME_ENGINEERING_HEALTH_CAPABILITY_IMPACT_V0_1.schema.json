@@ -51,11 +51,11 @@
     },
     "status": {
       "enum": [
-        "RestrictionRecommended",
-        "NoRestrictionIndicated",
-        "UnknownNeedsEvidence",
-        "RecoveryBlocked",
-        "RecoveryEvidenceReadyForIndependentReview"
+        "restriction_recommended",
+        "no_restriction_indicated",
+        "unknown_needs_evidence",
+        "recovery_blocked",
+        "recovery_evidence_ready_for_independent_review"
       ]
     },
     "admitted_observations": {
@@ -71,7 +71,7 @@
       "minimum": 0
     },
     "authority_effect": {
-      "const": "NoAuthorityGranted"
+      "const": "no_authority_granted"
     },
     "may_authorize_transition": {
       "const": false
