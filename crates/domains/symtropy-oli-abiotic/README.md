@@ -4,9 +4,9 @@ Deterministic synthetic abiotic mechanism generators for the Open-World Life & I
 
 ## First generator: Gray–Scott reaction–diffusion
 
-Generator ID: \`OLI-ABIOTIC-GRAY-SCOTT-001\`.
+Generator ID: `OLI-ABIOTIC-GRAY-SCOTT-001`.
 
-Evidence class: \`SYNTHETIC_KNOWN_TRUTH\`.
+Evidence class: `SYNTHETIC_KNOWN_TRUTH`.
 
 The reference implements the two-field Gray–Scott reaction–diffusion update on a periodic 2D grid. The initial perturbation is deterministic and seeded. The reference profile uses a 64×64 grid, the canonical seeded patch, explicit Euler integration and 500 steps.
 
@@ -22,9 +22,9 @@ The reaction and forcing parameters are separately declared. Removing feed is an
 
 ## Run
 
-\`\`\`bash
+```bash
 cargo test -p symtropy-oli-abiotic --locked
-\`\`\`
+```
 
 ## Claim ceiling
 
