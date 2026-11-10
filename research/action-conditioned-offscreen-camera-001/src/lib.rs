@@ -676,11 +676,22 @@ fn draw_road_markings(
 ) -> Result<(), RenderError> {
     let width = snapshot.camera.width as usize;
     let height = snapshot.camera.height as usize;
-    for road in &snapshot.road_markings {
+    let mut roads = snapshot.road_markings.iter().collect::<Vec<_>>();
+    roads.sort_by(|left, right| {
+        left.road_id
+            .cmp(&right.road_id)
+            .then_with(|| left.marking_id.cmp(&right.marking_id))
+    });
+
+    for road in roads {
         let color = road.kind.color();
         for segment in road.points_world_mm.windows(2) {
-            let Some(start) = project_point(&snapshot.camera, segment[0])? else { continue };
-            let Some(end) = project_point(&snapshot.camera, segment[1])? else { continue };
+            let Some(start) = project_point(&snapshot.camera, segment[0])? else {
+                continue;
+            };
+            let Some(end) = project_point(&snapshot.camera, segment[1])? else {
+                continue;
+            };
             draw_line(pixels, z_buffer, width, height, start, end, color)?;
         }
     }
@@ -693,34 +704,59 @@ fn draw_actors(
     z_buffer: &mut [i64],
 ) -> Result<(), RenderError> {
     const EDGES: [[usize; 2]; 12] = [
-        [0,1],[0,2],[0,4],[1,3],[1,5],[2,3],[2,6],[3,7],[4,5],[4,6],[5,7],[6,7],
+        [0, 1],
+        [0, 2],
+        [0, 4],
+        [1, 3],
+        [1, 5],
+        [2, 3],
+        [2, 6],
+        [3, 7],
+        [4, 5],
+        [4, 6],
+        [5, 7],
+        [6, 7],
     ];
     let width = snapshot.camera.width as usize;
     let height = snapshot.camera.height as usize;
-    for actor in &snapshot.actors {
+    let mut actors = snapshot.actors.iter().collect::<Vec<_>>();
+    actors.sort_by(|left, right| left.actor_id.cmp(&right.actor_id));
+
+    for actor in actors {
         let [x, y, z] = actor.center_world_mm;
         let [hx, hy, hz] = actor.half_extents_mm.map(i64::from);
         let corners = [
-            [x-hx,y-hy,z-hz],
-            [x+hx,y-hy,z-hz],
-            [x-hx,y+hy,z-hz],
-            [x+hx,y+hy,z-hz],
-            [x-hx,y-hy,z+hz],
-            [x+hx,y-hy,z+hz],
-            [x-hx,y+hy,z+hz],
-            [x+hx,y+hy,z+hz],
+            [x - hx, y - hy, z - hz],
+            [x + hx, y - hy, z - hz],
+            [x - hx, y + hy, z - hz],
+            [x + hx, y + hy, z - hz],
+            [x - hx, y - hy, z + hz],
+            [x + hx, y - hy, z + hz],
+            [x - hx, y + hy, z + hz],
+            [x + hx, y + hy, z + hz],
         ];
         let projected = corners.map(|corner| project_point(&snapshot.camera, corner));
-        for [a,b] in EDGES {
-            let (Some(Ok(Some(start))),Some(Ok(Some(end)))) = (projected[a],projected[b]) else {
+        for [start_index, end_index] in EDGES {
+            let (Some(Ok(Some(start))), Some(Ok(Some(end)))) =
+                (projected[start_index], projected[end_index])
+            else {
                 continue;
             };
-            draw_line(pixels,z_buffer,width,height,start,end,actor.class.color())?;
+            draw_line(
+                pixels,
+                z_buffer,
+                width,
+                height,
+                start,
+                end,
+                actor.class.color(),
+            )?;
         }
     }
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 fn draw_line(
     pixels: &mut [u8],
     z_buffer: &mut [i64],
@@ -728,96 +764,176 @@ fn draw_line(
     height: usize,
     start: ProjectedPoint,
     end: ProjectedPoint,
-    color: [u8;3],
+    color: [u8; 3],
 ) -> Result<(), RenderError> {
-    let mut x0=start.x;
-    let mut y0=start.y;
-    let x1=end.x;
-    let y1=end.y;
-    if x0 < -(width as i64)*2 || x0 > width as i64*3 || x1 < -(width as i64)*2 || x1 > width as i64*3
-        || y0 < -(height as i64)*2 || y0 > height as i64*3 || y1 < -(height as i64)*2 || y1 > height as i64*3 {
+    let mut x0 = start.x;
+    let mut y0 = start.y;
+    let x1 = end.x;
+    let y1 = end.y;
+    let width_limit = width as i64;
+    let height_limit = height as i64;
+
+    if x0 < -width_limit * 2
+        || x0 > width_limit * 3
+        || x1 < -width_limit * 2
+        || x1 > width_limit * 3
+        || y0 < -height_limit * 2
+        || y0 > height_limit * 3
+        || y1 < -height_limit * 2
+        || y1 > height_limit * 3
+    {
         return Ok(());
     }
-    let dx=(x1-x0).abs();
-    let sx=if x0<x1 {1} else {-1};
-    let dy=-(y1-y0).abs();
-    let sy=if y0<y1 {1} else {-1};
-    let mut error=dx+dy;
-    let steps=dx.max(-dy).min((width+height) as i64*6);
-    if steps==0 {
-        plot_pixel(pixels,z_buffer,width,height,x0,y0,start.z_mm,color);
+
+    let dx = (x1 - x0).abs();
+    let sx = if x0 < x1 { 1 } else { -1 };
+    let dy = -(y1 - y0).abs();
+    let sy = if y0 < y1 { 1 } else { -1 };
+    let mut error = dx + dy;
+    let steps = dx.max(-dy).min((width + height) as i64 * 6);
+
+    if steps == 0 {
+        plot_pixel(
+            pixels,
+            z_buffer,
+            width,
+            height,
+            x0,
+            y0,
+            start.z_mm,
+            color,
+        );
         return Ok(());
     }
-    let mut index=0_i64;
+
+    let mut index = 0_i64;
     loop {
-        let z = start.z_mm + (end.z_mm-start.z_mm)*index/steps;
-        plot_pixel(pixels,z_buffer,width,height,x0,y0,z,color);
-        if x0==x1 && y0==y1 {break;}
-        let twice=2*error;
-        if twice>=dy {error+=dy;x0+=sx;}
-        if twice<=dx {error+=dx;y0+=sy;}
-        index+=1;
-        if index>steps {break;}
+        let depth = start.z_mm + (end.z_mm - start.z_mm) * index / steps;
+        plot_pixel(pixels, z_buffer, width, height, x0, y0, depth, color);
+        if x0 == x1 && y0 == y1 {
+            break;
+        }
+
+        let twice_error = 2 * error;
+        if twice_error >= dy {
+            error += dy;
+            x0 += sx;
+        }
+        if twice_error <= dx {
+            error += dx;
+            y0 += sy;
+        }
+        index += 1;
+        if index > steps {
+            break;
+        }
     }
     Ok(())
 }
 
 fn plot_pixel(
-    pixels:&mut [u8],
-    z_buffer:&mut [i64],
-    width:usize,
-    height:usize,
-    x:i64,
-    y:i64,
-    depth:i64,
-    color:[u8;3],
-){
-    if x<0||y<0||x>=width as i64||y>=height as i64{return;}
-    let index=y as usize*width+x as usize;
-    if depth<z_buffer[index]{
-        z_buffer[index]=depth;
-        pixels[index*3..index*3+3].copy_from_slice(&color);
+    pixels: &mut [u8],
+    z_buffer: &mut [i64],
+    width: usize,
+    height: usize,
+    x: i64,
+    y: i64,
+    depth: i64,
+    color: [u8; 3],
+) {
+    if x < 0 || y < 0 || x >= width as i64 || y >= height as i64 {
+        return;
+    }
+    let index = y as usize * width + x as usize;
+    if depth < z_buffer[index] {
+        z_buffer[index] = depth;
+        pixels[index * 3..index * 3 + 3].copy_from_slice(&color);
     }
 }
 
-fn camera_calibration_digest(camera:&CameraCalibration)->String{
-    let mut bytes=Vec::new();
-    append_string(&mut bytes,&camera.camera_id);
-    for value in camera.position_world_mm{bytes.extend_from_slice(&value.to_le_bytes());}
-    for row in camera.world_to_camera_q16{for value in row{bytes.extend_from_slice(&value.to_le_bytes());}}
-    for value in [camera.focal_x_millipx,camera.focal_y_millipx,camera.principal_x_millipx,camera.principal_y_millipx,camera.width,camera.height,camera.near_plane_mm,camera.far_plane_mm]{
+fn camera_calibration_digest(camera: &CameraCalibration) -> String {
+    let mut bytes = Vec::new();
+    append_string(&mut bytes, &camera.camera_id);
+    for value in camera.position_world_mm {
+        bytes.extend_from_slice(&value.to_le_bytes());
+    }
+    for row in camera.world_to_camera_q16 {
+        for value in row {
+            bytes.extend_from_slice(&value.to_le_bytes());
+        }
+    }
+    for value in [
+        camera.focal_x_millipx,
+        camera.focal_y_millipx,
+        camera.principal_x_millipx,
+        camera.principal_y_millipx,
+        camera.width,
+        camera.height,
+        camera.near_plane_mm,
+        camera.far_plane_mm,
+    ] {
         bytes.extend_from_slice(&value.to_le_bytes());
     }
     sha256_hex(&bytes)
 }
 
-fn world_snapshot_digest(snapshot:&WorldRenderSnapshot)->String{
-    let mut bytes=Vec::new();
-    for value in [&snapshot.episode_id,&snapshot.scenario_id,&snapshot.agent_id,&snapshot.clock_id,&snapshot.simulator_revision]{
-        append_string(&mut bytes,value);
+fn world_snapshot_digest(snapshot: &WorldRenderSnapshot) -> String {
+    let mut bytes = Vec::new();
+    for value in [
+        &snapshot.episode_id,
+        &snapshot.scenario_id,
+        &snapshot.agent_id,
+        &snapshot.clock_id,
+        &snapshot.simulator_revision,
+    ] {
+        append_string(&mut bytes, value);
     }
     bytes.extend_from_slice(&snapshot.tick.to_le_bytes());
     bytes.extend_from_slice(&snapshot.world_timestamp_us.to_le_bytes());
-    if let Some(action)=snapshot.applied_action.as_ref(){
+
+    if let Some(action) = snapshot.applied_action.as_ref() {
         bytes.push(1);
-        append_string(&mut bytes,&action.receipt_id);
-        append_string(&mut bytes,&action.command_id);
+        append_string(&mut bytes, &action.receipt_id);
+        append_string(&mut bytes, &action.command_id);
         bytes.extend_from_slice(&action.applied_tick.to_le_bytes());
-    }else{bytes.push(0);}
-    append_string(&mut bytes,&camera_calibration_digest(&snapshot.camera));
-    for road in &snapshot.road_markings{
-        append_string(&mut bytes,&road.road_id);
-        append_string(&mut bytes,&road.marking_id);
+    } else {
+        bytes.push(0);
+    }
+    append_string(
+        &mut bytes,
+        &camera_calibration_digest(&snapshot.camera),
+    );
+
+    let mut roads = snapshot.road_markings.iter().collect::<Vec<_>>();
+    roads.sort_by(|left, right| {
+        left.road_id
+            .cmp(&right.road_id)
+            .then_with(|| left.marking_id.cmp(&right.marking_id))
+    });
+    for road in roads {
+        append_string(&mut bytes, &road.road_id);
+        append_string(&mut bytes, &road.marking_id);
         bytes.push(road.kind as u8);
         bytes.extend_from_slice(&(road.points_world_mm.len() as u64).to_le_bytes());
-        for point in &road.points_world_mm{for value in point{bytes.extend_from_slice(&value.to_le_bytes());}}
+        for point in &road.points_world_mm {
+            for value in point {
+                bytes.extend_from_slice(&value.to_le_bytes());
+            }
+        }
     }
-    for actor in &snapshot.actors{
-        append_string(&mut bytes,&actor.actor_id);
-        append_string(&mut bytes,&actor.actor_policy_revision);
+
+    let mut actors = snapshot.actors.iter().collect::<Vec<_>>();
+    actors.sort_by(|left, right| left.actor_id.cmp(&right.actor_id));
+    for actor in actors {
+        append_string(&mut bytes, &actor.actor_id);
+        append_string(&mut bytes, &actor.actor_policy_revision);
         bytes.push(actor.class as u8);
-        for value in actor.center_world_mm{bytes.extend_from_slice(&value.to_le_bytes());}
-        for value in actor.half_extents_mm{bytes.extend_from_slice(&value.to_le_bytes());}
+        for value in actor.center_world_mm {
+            bytes.extend_from_slice(&value.to_le_bytes());
+        }
+        for value in actor.half_extents_mm {
+            bytes.extend_from_slice(&value.to_le_bytes());
+        }
     }
     sha256_hex(&bytes)
 }
@@ -829,17 +945,22 @@ fn observation_identity_digest(receipt: &PolicyObservationReceipt) -> String {
     append_string(&mut bytes, &receipt.clock_id);
     bytes.extend_from_slice(&receipt.tick.to_le_bytes());
     bytes.extend_from_slice(&receipt.sequence.to_le_bytes());
-    append_string(&mut bytes, receipt.applied_action_receipt_id.as_deref().unwrap_or(""));
+    append_string(
+        &mut bytes,
+        receipt.applied_action_receipt_id.as_deref().unwrap_or(""),
+    );
     append_string(&mut bytes, &receipt.frame_sha256);
     sha256_hex(&bytes)
 }
 
-fn policy_receipt_digest(receipt:&PolicyObservationReceipt)->String{
-    let mut bytes=Vec::new();
+fn policy_receipt_digest(receipt: &PolicyObservationReceipt) -> String {
+    let mut bytes = Vec::new();
     bytes.extend_from_slice(&receipt.schema_version.to_le_bytes());
     append_string(&mut bytes, &receipt.observation_id);
     bytes.push(receipt.pixel_format as u8);
-    for value in [&receipt.episode_id,&receipt.agent_id,&receipt.clock_id] {append_string(&mut bytes,value);}
+    for value in [&receipt.episode_id, &receipt.agent_id, &receipt.clock_id] {
+        append_string(&mut bytes, value);
+    }
     bytes.extend_from_slice(&receipt.tick.to_le_bytes());
     bytes.extend_from_slice(&receipt.sequence.to_le_bytes());
     for value in [
@@ -849,16 +970,26 @@ fn policy_receipt_digest(receipt:&PolicyObservationReceipt)->String{
         receipt.camera_calibration_sha256.as_str(),
         receipt.renderer_revision.as_str(),
         receipt.frame_sha256.as_str(),
-    ] {append_string(&mut bytes,value);}
+    ] {
+        append_string(&mut bytes, value);
+    }
     bytes.push(u8::from(receipt.applied_action_tick.is_some()));
     bytes.extend_from_slice(&receipt.applied_action_tick.unwrap_or(0).to_le_bytes());
-    for value in [receipt.capture_timestamp_us,receipt.render_completed_timestamp_us,receipt.delivered_timestamp_us,u64::from(receipt.frame_width),u64::from(receipt.frame_height),u64::from(receipt.channels),receipt.frame_byte_len as u64]{
+    for value in [
+        receipt.capture_timestamp_us,
+        receipt.render_completed_timestamp_us,
+        receipt.delivered_timestamp_us,
+        u64::from(receipt.frame_width),
+        u64::from(receipt.frame_height),
+        u64::from(receipt.channels),
+        receipt.frame_byte_len as u64,
+    ] {
         bytes.extend_from_slice(&value.to_le_bytes());
     }
     sha256_hex(&bytes)
 }
 
-fn append_string(bytes:&mut Vec<u8>,value:&str){
+fn append_string(bytes: &mut Vec<u8>, value: &str) {
     bytes.extend_from_slice(&(value.len() as u64).to_le_bytes());
     bytes.extend_from_slice(value.as_bytes());
 }
