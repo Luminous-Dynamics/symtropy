@@ -205,7 +205,7 @@
         "qualifying_route_ids",
         "independent_route_count",
         "minimum_cut_size",
-        "all_minimum_cut_sets",
+        "all_minimal_cut_sets",
         "distinct_terminal_regions"
       ],
       "additionalProperties": false,
@@ -238,17 +238,17 @@
         "minimum_cut_size": {
           "$ref": "#/$defs/nullableNonNegativeInt"
         },
-        "all_minimum_cut_sets": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/stringSet"
-          }
-        },
         "distinct_terminal_regions": {
           "$ref": "#/$defs/nullableNonNegativeInt"
         },
         "rejection_reasons": {
           "$ref": "#/$defs/stringSet"
+        },
+        "all_minimal_cut_sets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/stringSet"
+          }
         }
       }
     }
