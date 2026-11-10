@@ -1,0 +1,183 @@
+{
+  "schema_version": "liu-ice-tournament-v0.1",
+  "benchmark_id": "LIU-ICE-DX37",
+  "status": "protocol_only_not_executed",
+  "source": "https://vehsys.gitlab-pages.liu.se/dx_benchmarks/liuice/liuice_index",
+  "source_data_sha256": null,
+  "frozen_model_artifact_sha256": null,
+  "claim_ceiling": "No benchmark performance or physical transfer claim until source data, split, model and evaluator identities are pinned and exact runs are reproduced.",
+  "split_protocols": [
+    {
+      "id": "official_competition",
+      "purpose": "Reproduce the official benchmark interface, score and split exactly when the downloadable protocol and payload are recovered.",
+      "status": "requires_data_and_protocol_audit",
+      "row_randomization_allowed": false
+    },
+    {
+      "id": "whole_recording_grouped",
+      "purpose": "Keep every sample and overlapping window from a recording in one split.",
+      "status": "required",
+      "row_randomization_allowed": false
+    },
+    {
+      "id": "held_out_driving_cycle",
+      "purpose": "Test transfer to a driving cycle absent from model fitting and conformal calibration.",
+      "status": "required_if_metadata_and_independent_recordings_permit",
+      "row_randomization_allowed": false
+    },
+    {
+      "id": "leave_one_fault_recording_out",
+      "purpose": "Sensitivity analysis of scarce per-fault recordings; report all fold outcomes, do not inflate them to independent engine trials.",
+      "status": "required_sensitivity",
+      "row_randomization_allowed": false
+    },
+    {
+      "id": "cross_engine_or_fleet",
+      "purpose": "Assess cross-engine, cross-bench or vessel transfer.",
+      "status": "not_supported_by_single_bench_public_dataset",
+      "row_randomization_allowed": false
+    }
+  ],
+  "comparators": [
+    {
+      "id": "official_fault_diagnosis_toolbox",
+      "family": "analytical_model_based",
+      "role": "Published structural/model-based reference; exact implementation and configuration must be recovered.",
+      "status": "reproduction_required"
+    },
+    {
+      "id": "state_only_residual",
+      "family": "model_based_or_spc",
+      "role": "Physical-response channels only; no requested command channels.",
+      "status": "implementation_required"
+    },
+    {
+      "id": "command_only",
+      "family": "statistical_or_ml",
+      "role": "Requested commands and operating context only; tests whether the control signal alone leaks the fault label.",
+      "status": "implementation_required"
+    },
+    {
+      "id": "naive_early_fusion",
+      "family": "statistical_or_ml",
+      "role": "Concatenate requested commands and physical response features with a matched classifier/capacity.",
+      "status": "implementation_required"
+    },
+    {
+      "id": "command_conditioned_response",
+      "family": "dynamic_model",
+      "role": "Predict physical response conditional on command, disturbance context and regime; score calibrated residuals.",
+      "status": "implementation_required"
+    },
+    {
+      "id": "regime_gated_control_aware",
+      "family": "dynamic_model_or_fusion",
+      "role": "Separate operating regime before response comparison; use bounded selective inference for unsupported regimes.",
+      "status": "research_candidate_not_yet_benchmarked"
+    },
+    {
+      "id": "selective_unknown_fault",
+      "family": "open_set_or_conformal",
+      "role": "Known-fault isolation with an explicit unknown/abstain decision and risk-coverage reporting.",
+      "status": "implementation_required"
+    }
+  ],
+  "primary_metrics": [
+    {
+      "id": "official_total_score",
+      "definition": "((1 - FAR) + TDR + FIA) / 3",
+      "aggregation": "official_sample_level",
+      "status": "exact_metric_implemented"
+    },
+    {
+      "id": "false_alarm_rate",
+      "definition": "False-alarm samples / no-fault samples",
+      "aggregation": "official_sample_level_and_per_recording"
+    },
+    {
+      "id": "true_detection_rate",
+      "definition": "Detected fault samples / fault samples",
+      "aggregation": "official_sample_level_and_per_recording"
+    },
+    {
+      "id": "fault_isolation_accuracy",
+      "definition": "Mean probability assigned to the true fault slot among correctly detected fault samples; not top-1 accuracy.",
+      "aggregation": "official_sample_level_and_per_fault"
+    }
+  ],
+  "operational_metrics": [
+    "event_recall",
+    "event_detection_latency",
+    "false_alarms_per_recording_hour",
+    "per_fault_macro_recall",
+    "per_driving_cycle_score",
+    "unknown_fault_false_known_rate",
+    "abstention_rate",
+    "risk_coverage_curve",
+    "episode_level_calibration_coverage_and_sharpness",
+    "worst_recording_and_worst_cycle_performance",
+    "inference_latency_p50_p95",
+    "peak_memory_bytes",
+    "model_artifact_bytes"
+  ],
+  "hard_evidence_gates": [
+    "model, source data, evaluator, feature map and split manifests are content-addressed",
+    "no recording, temporal window or overlapping-window leakage across train/calibration/test",
+    "all baselines receive the same permitted channel set and evaluation examples",
+    "tuning is completed before the frozen confirmatory evaluation",
+    "no-fault and unknown-fault negative controls are reported separately",
+    "unsupported or insufficiently calibrated regimes remain not_evaluated rather than normal",
+    "commands are never treated as actual actuator movement or physical delivery",
+    "physical feedback roles require an independently reviewed instrument/I-O dictionary",
+    "no single sample-level scalar can override material per-fault or per-cycle regressions"
+  ],
+  "calibration": {
+    "unit": "one maximum residual score per independent recording/episode",
+    "coverage_targets_ppm": [
+      900000,
+      950000,
+      990000
+    ],
+    "minimum_independent_episodes": {
+      "900000": 9,
+      "950000": 19,
+      "990000": 99
+    },
+    "exchangeability_status": "assumption_not_proven",
+    "when_insufficient": "mark the affected regime not_evaluated; do not borrow samples across regimes after inspecting test outcomes"
+  },
+  "research_targets_not_achieved": [
+    {
+      "id": "score_gain",
+      "target": "At least +0.05 absolute official score versus the best faithfully reproduced baseline on the same frozen split, with FAR no worse.",
+      "status": "aspirational"
+    },
+    {
+      "id": "event_gain",
+      "target": "At least +5 percentage points event recall over the best matched baseline at the same false-alarm budget.",
+      "status": "aspirational"
+    },
+    {
+      "id": "unknown_fault_safety",
+      "target": "At most 5% false-known rate on independent unknown-fault episodes; abstention and insufficient evidence reported separately.",
+      "status": "aspirational"
+    },
+    {
+      "id": "transfer_retention",
+      "target": "No more than 2 percentage points loss in macro fault recall on each supported held-out driving cycle, relative to matched in-cycle performance.",
+      "status": "aspirational"
+    },
+    {
+      "id": "calibration",
+      "target": "Nominal marginal coverage within ±5 percentage points on independent episodes, only for regimes with sufficient calibration support.",
+      "status": "aspirational"
+    }
+  ],
+  "prohibited_claims": [
+    "cross-engine transfer from a single engine test bench",
+    "shipboard or fleet reliability from a laboratory engine dataset",
+    "actuator delivery confirmation from requested command signals",
+    "physical root cause from a residual threshold alone",
+    "superiority to a vendor product without a matched public protocol and baseline"
+  ]
+}
