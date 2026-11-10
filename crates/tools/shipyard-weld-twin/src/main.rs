@@ -97,44 +97,60 @@ fn is_current_until(root: &Value, path: &str, cutoff: &str) -> bool {
 }
 
 fn validate_ruleset_effectivity(weld: &Value, cutoff: &str) -> &'static str {
+    let Some(retrieved_at) = text_at(weld, "normative_context.source_retrieved_at_utc") else {
+        return "NORMATIVE_CONTEXT_MISSING";
+    };
+    if !is_canonical_utc(retrieved_at) || retrieved_at > cutoff {
+        return "NORMATIVE_CONTEXT_RETRIEVED_AFTER_DECISION_CUTOFF";
+    }
+
+    let Some(subject_date) =
+        text_at(weld, "normative_context.subject_applicability_date_utc")
+    else {
+        return "NORMATIVE_CONTEXT_MISSING";
+    };
+    if !is_canonical_utc(subject_date) {
+        return "INVALID_SUBJECT_APPLICABILITY_DATE";
+    }
+
     let Some(applicable) = value_at(weld, "normative_context.applicable_ruleset") else {
         return "NORMATIVE_CONTEXT_MISSING";
     };
-    if text_at(applicable, "status") == Some("future_not_effective") {
+    if text_at(applicable, "status") == Some("future_for_subject_effectivity") {
         return "FUTURE_RULESET_NOT_EFFECTIVE";
     }
-    if text_at(applicable, "status") != Some("current_at_cutoff") {
-        return "RULESET_NOT_CURRENT_AT_CUTOFF";
+    if text_at(applicable, "status") != Some("applicable_for_subject_effectivity") {
+        return "RULESET_NOT_APPLICABLE_TO_SUBJECT";
     }
     if let Some(start) = text_at(applicable, "effective_from_utc") {
         if !is_canonical_utc(start) {
             return "INVALID_RULESET_EFFECTIVITY";
         }
-        if start > cutoff {
-            return "FUTURE_RULESET_NOT_EFFECTIVE";
+        if start > subject_date {
+            return "RULESET_NOT_YET_EFFECTIVE_FOR_SUBJECT";
         }
     }
     if let Some(end) = text_at(applicable, "effective_until_utc") {
         if !is_canonical_utc(end) {
             return "INVALID_RULESET_EFFECTIVITY";
         }
-        if end <= cutoff {
-            return "RULESET_EXPIRED";
+        if end <= subject_date {
+            return "RULESET_EXPIRED_FOR_SUBJECT_EFFECTIVITY";
         }
     }
 
     let Some(future) = value_at(weld, "normative_context.future_ruleset") else {
         return "FUTURE_RULESET_CONTEXT_MISSING";
     };
-    if text_at(future, "status") == Some("future_not_effective") {
+    if text_at(future, "status") == Some("future_for_subject_effectivity") {
         let Some(start) = text_at(future, "effective_from_utc") else {
             return "FUTURE_RULESET_CONTEXT_MISSING";
         };
-        if !is_canonical_utc(start) || start <= cutoff {
+        if !is_canonical_utc(start) || start <= subject_date {
             return "FUTURE_RULESET_EFFECTIVITY_CONFLICT";
         }
     }
-    "RULESET_CURRENT_AT_CUTOFF"
+    "RULESET_APPLICABLE_TO_SUBJECT"
 }
 
 fn resolve_trace_path(workspace_root: &Path, relative: &str) -> Result<PathBuf, &'static str> {
@@ -222,7 +238,7 @@ fn evaluate(weld: &Value, workspace_root: &Path) -> &'static str {
     };
 
     let ruleset_disposition = validate_ruleset_effectivity(weld, cutoff);
-    if ruleset_disposition != "RULESET_CURRENT_AT_CUTOFF" {
+    if ruleset_disposition != "RULESET_APPLICABLE_TO_SUBJECT" {
         return ruleset_disposition;
     }
 
@@ -683,7 +699,7 @@ fn main() -> ExitCode {
 
 #[cfg(test)]
 mod tests {
-    use super::{apply_mutation, evaluate, verify_corpus};
+    use super::{apply_mutation, evaluate, is_canonical_utc, verify_corpus};
     use serde_json::Value;
     use std::path::PathBuf;
 
@@ -699,8 +715,8 @@ mod tests {
         let corpus: Value = serde_json::from_str(CORPUS).expect("frozen corpus parses");
         let root = workspace_root();
         let report = verify_corpus(&corpus, &root).expect("frozen corpus evaluates");
-        assert_eq!(report["case_count"].as_u64(), Some(46));
-        assert_eq!(report["passed_count"].as_u64(), Some(46));
+        assert_eq!(report["case_count"].as_u64(), Some(48));
+        assert_eq!(report["passed_count"].as_u64(), Some(48));
         assert_eq!(report["failed_count"].as_u64(), Some(0));
     }
 
