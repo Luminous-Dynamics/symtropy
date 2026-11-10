@@ -1137,8 +1137,10 @@ mod tests {
         omega.set(1, 3, -0.38);
         omega.set(2, 3, 0.26);
 
+        let body_rotation_inverse = body_rotation.reverse();
+        let omega_body = rotate_bivector(&body_rotation_inverse, &omega);
         let energy_body = inertia
-            .kinetic_energy_bivector_joules(&body_rotation.reverse().rotate_bivector(&omega))
+            .kinetic_energy_bivector_joules(&omega_body)
             .unwrap();
         let energy_spatial = spatial.kinetic_energy_joules(&omega).unwrap();
         assert!((energy_body - energy_spatial).abs() < 2.0e-11);
