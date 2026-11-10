@@ -9,8 +9,9 @@
 //! evaluator must keep reference geometry, occluders and these results outside
 //! candidate-visible inputs.
 
-use crate::metrics::Point3;
-use crate::sampling::SurfaceVisibility;
+use scan_bim_replay_contract::metrics::Point3;
+use scan_bim_replay_contract::sampling::{SurfaceSample, SurfaceSamplingReceipt, SurfaceVisibility};
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 use std::f64::consts::{PI, TAU};
@@ -20,20 +21,23 @@ const INTERSECTION_EPSILON_M: f64 = 1.0e-8;
 const BASIS_TOLERANCE: f64 = 1.0e-8;
 const DEGENERATE_TWICE_AREA_EPSILON: f64 = 1.0e-15;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum OccluderKind {
     SameBuilding,
     External,
     Unknown,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum OccluderCoverage {
     Complete,
     Incomplete,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
 pub enum ViewVisibilityStatus {
     Observable,
     Backface,
@@ -44,7 +48,8 @@ pub enum ViewVisibilityStatus {
     Contradictory,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct VisibilityProbe {
     pub probe_id: String,
     pub surface_id: String,
@@ -58,7 +63,8 @@ pub struct VisibilityProbe {
     pub represented_area_m2: f64,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct VisibilityView {
     pub view_id: String,
     pub frame_id: String,
@@ -74,7 +80,8 @@ pub struct VisibilityView {
     pub configuration_sha256: String,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct OccluderTriangle {
     pub surface_id: String,
     pub triangle_id: String,
@@ -84,7 +91,8 @@ pub struct OccluderTriangle {
     pub kind: OccluderKind,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct VisibilityProfile {
     /// Maximum number of probe × view × occluder ray/triangle tests. Exceeding
     /// this budget is an error; the evaluator never silently truncates.
@@ -107,7 +115,41 @@ pub struct VisibilityEvaluation<'a> {
     pub profile: VisibilityProfile,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+/// Complete evaluator input. Reference geometry, probe sets and occluder
+/// inventory are evaluator-side artifacts and must never enter candidate code.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct VisibilityRequest {
+    pub scene_id: String,
+    pub frame_id: String,
+    pub reference_model_sha256: String,
+    pub probe_set_sha256: String,
+    pub occluder_manifest_sha256: String,
+    pub occluder_coverage: OccluderCoverage,
+    pub probes: Vec<VisibilityProbe>,
+    pub views: Vec<VisibilityView>,
+    pub occluders: Vec<OccluderTriangle>,
+    pub profile: VisibilityProfile,
+}
+
+impl VisibilityRequest {
+    pub fn evaluate(&self) -> Result<VisibilityReceipt, String> {
+        derive_surface_visibility(VisibilityEvaluation {
+            scene_id: &self.scene_id,
+            frame_id: &self.frame_id,
+            reference_model_sha256: &self.reference_model_sha256,
+            probe_set_sha256: &self.probe_set_sha256,
+            occluder_manifest_sha256: &self.occluder_manifest_sha256,
+            occluder_coverage: self.occluder_coverage,
+            probes: &self.probes,
+            views: &self.views,
+            occluders: &self.occluders,
+            profile: self.profile,
+        })
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct ViewObservation {
     pub view_id: String,
     pub status: ViewVisibilityStatus,
@@ -116,7 +158,7 @@ pub struct ViewObservation {
     pub blocker_distance_m: Option<f64>,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct VisibilityProbeResult {
     pub probe_id: String,
     pub surface_id: String,
@@ -128,7 +170,7 @@ pub struct VisibilityProbeResult {
     pub views: Vec<ViewObservation>,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct VisibilitySurfaceArea {
     pub surface_id: String,
     pub observable_area_m2: f64,
@@ -141,7 +183,7 @@ pub struct VisibilitySurfaceArea {
     pub mixed_occlusion_area_m2: f64,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct VisibilityReceipt {
     pub algorithm_id: String,
     pub scene_id: String,
@@ -709,6 +751,26 @@ fn receipt_digest(
         }
     }
     format!("{:x}", hasher.finalize())
+}
+
+/// Convert the full deterministic reference-surface sample set into probes.
+/// This is an evaluator-only operation; candidate-visible sampling must never
+/// receive the reference model or the resulting visibility labels.
+pub fn probes_from_reference_sampling(
+    receipt: &SurfaceSamplingReceipt,
+) -> Vec<VisibilityProbe> {
+    receipt
+        .samples
+        .iter()
+        .map(|sample: &SurfaceSample| VisibilityProbe {
+            probe_id: format!("{}:{}", sample.surface_id, sample.sample_ordinal),
+            surface_id: sample.surface_id.clone(),
+            triangle_id: sample.triangle_id.clone(),
+            point: sample.point,
+            normal: sample.normal,
+            represented_area_m2: sample.represented_area_m2,
+        })
+        .collect()
 }
 
 /// Derive evaluator-only visibility labels for area-weighted probes.
