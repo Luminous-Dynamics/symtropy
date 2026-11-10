@@ -116,6 +116,7 @@ pub enum MemoryOperationError {
     DuplicateCase,
     DuplicateSequence,
     NonMonotonicSequence,
+    EpisodeIndependenceUnitMismatch,
     ApplicableCaseMissingExpectedEffect,
     NotApplicableCaseHasExpectedEffect,
     DuplicateReceipt,
@@ -761,6 +762,7 @@ fn validate_manifest(
     let mut seen_cases = BTreeSet::new();
     let mut last_sequence = BTreeMap::<(&str, &str), u64>::new();
     let mut seen_sequences = BTreeMap::<(&str, &str), BTreeSet<u64>>::new();
+    let mut episode_units = BTreeMap::<(&str, &str), &str>::new();
 
     for case in &manifest.cases {
         if case.case_id.trim().is_empty()
@@ -774,6 +776,12 @@ fn validate_manifest(
             return Err(MemoryOperationError::UnexpectedTask);
         }
         observed_tasks.insert(case.task_id.as_str());
+        let episode_key = (case.task_id.as_str(), case.episode_id.as_str());
+        if episode_units.insert(episode_key, case.independence_unit_id.as_str())
+            .is_some_and(|unit| unit != case.independence_unit_id)
+        {
+            return Err(MemoryOperationError::EpisodeIndependenceUnitMismatch);
+        }
         if !seen_cases.insert(case.case_id.as_str()) {
             return Err(MemoryOperationError::DuplicateCase);
         }
@@ -1256,7 +1264,9 @@ mod tests {
     #[test]
     fn paired_memory_comparison_requires_exact_control_and_policy_identity() {
         let first = case("store-1", 1, MemoryOperationKind::Storage, MemoryOperationApplicability::Applicable, Some(digest("a")));
-        let second = case("store-2", 1, MemoryOperationKind::Storage, MemoryOperationApplicability::Applicable, Some(digest("b")));
+        let mut second = case("store-2", 1, MemoryOperationKind::Storage, MemoryOperationApplicability::Applicable, Some(digest("b")));
+        second.episode_id = "episode-002".to_owned();
+        second.independence_unit_id = "scene-seed-1051".to_owned();
         let base_manifest = manifest(vec![first.clone(), second.clone()]);
         let base_receipts = {
             let mut rows = vec![receipt(&first), receipt(&second)];
@@ -1294,9 +1304,22 @@ mod tests {
     }
 
     #[test]
+    fn one_episode_cannot_claim_multiple_independence_units() {
+        let first = case("store-1", 1, MemoryOperationKind::Storage, MemoryOperationApplicability::Applicable, Some(digest("a")));
+        let mut second = case("store-2", 2, MemoryOperationKind::Storage, MemoryOperationApplicability::Applicable, Some(digest("b")));
+        second.independence_unit_id = "other-scene-seed".to_owned();
+        assert_eq!(
+            audit_memory_operations(&manifest(vec![first, second]), &[]),
+            Err(MemoryOperationError::EpisodeIndependenceUnitMismatch)
+        );
+    }
+
+    #[test]
     fn paired_memory_comparison_rejects_different_independent_unit_rosters() {
         let first = case("store-1", 1, MemoryOperationKind::Storage, MemoryOperationApplicability::Applicable, Some(digest("a")));
-        let second = case("store-2", 2, MemoryOperationKind::Storage, MemoryOperationApplicability::Applicable, Some(digest("b")));
+        let mut second = case("store-2", 1, MemoryOperationKind::Storage, MemoryOperationApplicability::Applicable, Some(digest("b")));
+        second.episode_id = "episode-002".to_owned();
+        second.independence_unit_id = "scene-seed-1051".to_owned();
         let baseline_manifest = manifest(vec![first.clone(), second.clone()]);
         let baseline = audit_memory_operations(
             &baseline_manifest,
