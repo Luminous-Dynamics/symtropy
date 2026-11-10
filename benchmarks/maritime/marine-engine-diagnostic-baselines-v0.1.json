@@ -628,6 +628,100 @@
         "Aalto's accessible metadata does not establish that controller setpoints, governor outputs, actuator feedback or controller-mode signals are included; do not assume the dataset supports this benchmark before the payload and variable dictionary are inspected.",
         "Composes with MARITIME-CONTROL-AWARE-DIAGNOSIS-001 #4628 and the transfer/continual owner #4510."
       ]
+    },
+    {
+      "id": "digital-twin-diagnostics-weichai-wp4-2026",
+      "title": "A Digital Twin Framework for Monitoring and Fault Identification of Marine Internal Combustion Engines",
+      "source_type": "peer_reviewed_article",
+      "publication_date": "2026-10-10",
+      "publication_date_precision": "day",
+      "source_url": "https://doi.org/10.3390/asi9100212",
+      "data_domain": "Calibrated 0D–1D thermodynamic model with experimental measurements from a Weichai WP4 marine diesel generator test bench, including in-cylinder pressure and vibration; constant-speed operation with three electrical-load reference modes and a controlled intake restriction.",
+      "task": "Digital-twin calibration, operating-mode identification and inverse identification of physical factors responsible for deviations between modelled and measured marine-engine behaviour.",
+      "reported_metrics": [
+        {
+          "metric": "physical_test_bench_demonstration",
+          "value": "controlled intake restriction on Weichai WP4 generator",
+          "unit": "experimental_scope",
+          "context": "The framework is demonstrated using experimentally acquired test-bench data and a controlled intake restriction introduced by a throttle valve; it is not a fleet validation.",
+          "source_location": "Abstract; Sections 3–4"
+        },
+        {
+          "metric": "continuous_synchronized_digital_twin",
+          "value": "not demonstrated",
+          "unit": "deployment_scope",
+          "context": "The authors distinguish an online data-connected diagnostic architecture from a continuously synchronized real-time twin; model execution is initiated through the diagnostic workflow.",
+          "source_location": "Section 3, practical framework description"
+        }
+      ],
+      "split_protocol": "Physics-model calibration around a small set of steady operating modes, followed by inverse identification using measured operating parameters and a controlled intake restriction. No train/test split or common ML leaderboard protocol is reported in the accessible methods.",
+      "reported_limitations": [
+        "The authors explicitly identify practical non-uniqueness of the inverse problem: different physical-factor combinations can produce similar observable engine responses.",
+        "The experimental demonstration uses one Weichai WP4 generator test bench and a controlled intake restriction; it does not establish shipboard fleet validity or cross-engine transfer.",
+        "The accessible article does not report a directly comparable event-level diagnostic accuracy or fleet false-alarm rate.",
+        "The current workflow is online-data-connected but not continuously synchronized at a fixed real-time update frequency."
+      ],
+      "reproducibility_status": "reported_not_reproduced",
+      "direct_comparison_to_aalto": "not_comparable",
+      "audit_notes": [
+        "Important physical-model and inverse-problem comparator: tests a physical test-bench model rather than only a simulated engine.",
+        "Use as a baseline for model calibration, regime-conditioned reference generation, inverse-solution ambiguity and identifiability reporting.",
+        "Symtropy's differentiator should be explicit equivalence/ambiguity classes, evidence-bound parameter hypotheses, and qualification freshness—not an unsupported claim that the digital twin is more accurate."
+      ]
+    },
+    {
+      "id": "few-shot-dt-metric-combustion-2026",
+      "title": "A digital twin-enhanced deep metric learning framework for few-shot combustion fault diagnosis in marine diesel engines",
+      "source_type": "peer_reviewed_article",
+      "publication_date": "2026-09-29",
+      "publication_date_precision": "day",
+      "source_url": "https://doi.org/10.1177/10775463261493894",
+      "data_domain": "0D/1D MATLAB/Simulink thermodynamic digital twin of a Wärtsilä 6L20 marine diesel engine, with three parametrically injected combustion-fault classes and physics-informed thermodynamic features.",
+      "task": "Few-shot cross-condition combustion-fault classification using digital-twin pretraining, 128-dimensional Siamese metric embeddings and target-condition fine-tuning.",
+      "reported_metrics": [
+        {
+          "metric": "joint_triplet_center_accuracy_at_20_shots",
+          "value": "87.05 ± 5.14",
+          "unit": "percent mean ± standard deviation",
+          "context": "Mean and standard deviation over 10 runs under the reported cycle-level leakage-free split, with K=20 target examples per class.",
+          "source_location": "Abstract"
+        },
+        {
+          "metric": "triplet_only_ablation_accuracy_at_20_shots",
+          "value": 90.91,
+          "unit": "percent",
+          "context": "Triplet-only ablation in the same reported K=20 setting; higher than the proposed joint-loss result, so the joint objective is not the best reported variant in this setting.",
+          "source_location": "Abstract"
+        },
+        {
+          "metric": "accuracy_under_combined_noise_and_speed_fluctuation",
+          "value": 84.43,
+          "unit": "percent",
+          "context": "Average accuracy reported under combined noise and speed-fluctuation interference across 25–100% maximum continuous rating loads.",
+          "source_location": "Abstract"
+        },
+        {
+          "metric": "parametrically_injected_fault_classes",
+          "value": 3,
+          "unit": "fault classes",
+          "context": "Three typical combustion fault classes are parametrically injected into the 0D/1D digital-twin model.",
+          "source_location": "Abstract"
+        }
+      ],
+      "split_protocol": "Cycle-level leakage-free split; digital-twin source-condition pretraining and fine-tuning on K target-condition samples per class. Results are reported over 10 runs for the K=20 setting.",
+      "reported_limitations": [
+        "The paper describes a simulation-based foundation using a thermodynamic digital twin and parametrically injected faults, not real-vessel fault recordings.",
+        "At K=20 the triplet-only ablation reports 90.91% accuracy, exceeding the proposed joint triplet–center loss method at 87.05% ± 5.14 percentage points.",
+        "The authors state that the primary contribution is physics-informed feature augmentation and data-efficient two-stage training, not a claim of state-of-the-art accuracy.",
+        "Source code and a sample dataset are available from the corresponding author upon reasonable request; they are not described as a public reproducible archive."
+      ],
+      "reproducibility_status": "reported_not_reproduced",
+      "direct_comparison_to_aalto": "not_comparable",
+      "audit_notes": [
+        "Use for matched few-shot K-shot and cross-condition reproduction, not a physical-validation claim.",
+        "A fair comparison must reproduce the triplet-only ablation, use the same cycle-level holdout and report uncertainty over independent runs.",
+        "The 128-dimensional learned embedding is not itself evidence of physical fault identifiability or calibrated confidence."
+      ]
     }
   ]
 }
