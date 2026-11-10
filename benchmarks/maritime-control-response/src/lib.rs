@@ -424,6 +424,36 @@ impl RecordingSplitManifest {
     pub fn digest(&self) -> Result<String, EvalError> {
         sha256_serializable(b"symtropy-liu-ice-recording-split-v1\0", self)
     }
+
+    /// Canonical digest of the sorted recording IDs assigned to one split.
+    pub fn recording_manifest_digest(&self, split: DatasetSplit) -> Result<String, EvalError> {
+        let ids = self.recording_ids_for(split).into_iter().collect::<Vec<_>>();
+        sha256_serializable(b"symtropy-liu-ice-recording-members-v1\0", &ids)
+    }
+}
+
+/// Require the calibration receipt to refer to exactly the recording IDs
+/// assigned to the calibration split, and bind model/regime/training/split IDs.
+/// This closes the caller-supplied-hash gap at evaluation time.
+pub fn validate_conformal_threshold_against_split(
+    threshold: &ConformalThreshold,
+    split_manifest: &RecordingSplitManifest,
+) -> Result<(), EvalError> {
+    threshold.validate()?;
+    split_manifest.validate_calibration_separation()?;
+    let split_digest = split_manifest.digest()?;
+    let training_digest = split_manifest.recording_manifest_digest(DatasetSplit::Train)?;
+    let calibration_ids = split_manifest
+        .recording_ids_for(DatasetSplit::Calibration)
+        .into_iter()
+        .collect::<Vec<_>>();
+    if split_digest != threshold.split_manifest_sha256
+        || training_digest != threshold.training_recordings_manifest_sha256
+        || calibration_ids != threshold.calibration_recording_ids
+    {
+        return Err(EvalError::CalibrationBindingMismatch);
+    }
+    Ok(())
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
@@ -1143,6 +1173,36 @@ mod tests {
             "wltp",
         )
         .unwrap()
+    }
+
+    #[test]
+    fn calibration_receipt_must_match_the_exact_frozen_split_manifest() {
+        let threshold = threshold();
+        let manifest = RecordingSplitManifest {
+            format_version: 1,
+            mode: SplitMode::WholeRecording,
+            assignments: (0..9)
+                .map(|index| RecordingAssignment {
+                    recording_id: format!("cal-{index:02}"),
+                    driving_cycle: "WLTP".into(),
+                    split: DatasetSplit::Calibration,
+                })
+                .chain(std::iter::once(RecordingAssignment {
+                    recording_id: "train-00".into(),
+                    driving_cycle: "WLTP".into(),
+                    split: DatasetSplit::Train,
+                }))
+                .chain(std::iter::once(RecordingAssignment {
+                    recording_id: "test-00".into(),
+                    driving_cycle: "Artemis".into(),
+                    split: DatasetSplit::Test,
+                }))
+                .collect(),
+        };
+        assert_eq!(
+            validate_conformal_threshold_against_split(&threshold, &manifest),
+            Err(EvalError::CalibrationBindingMismatch)
+        );
     }
 
     #[test]
