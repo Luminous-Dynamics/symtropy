@@ -111,7 +111,7 @@ Any later human-participant study needs qualified maritime human-factors design,
 The v0.1 contribution now includes:
 - This research specification, strict Draft 2020-12 case schema and 33-case synthetic corpus.
 - A standalone offline Rust evaluator under `benchmarks/maritime-human-reentry/`, with strict typed deserialization, actor/event validation, deadline and authority-lease checks, fallback/reconciliation dispositions, and exact-input SHA-256 reporting.
-- A CLI and seven authored unit tests covering the frozen corpus, duplicate acknowledgement versus duplicate lease, partition reconciliation, AIS source-role limits, simulator-truth exclusion, stale re-entry approval, non-monotonic event rejection and unknown-field rejection.
+- A CLI and eight authored unit tests covering the frozen corpus, duplicate acknowledgement versus duplicate lease, partition reconciliation, AIS source-role limits, simulator-truth exclusion, stale re-entry approval, non-monotonic event rejection and unknown-field rejection.
 - An exact-head workflow pinned to Rust 1.96.0 for format, test, Clippy and corpus execution.
 
 Static preflight is not a Rust execution result. No Rust format/test/Clippy/CLI pass is claimed until the exact-head workflow reports success. No human study, simulator, hydrodynamic model, live ROC or vessel trial is claimed.
