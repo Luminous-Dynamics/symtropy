@@ -129,6 +129,9 @@ struct EpisodeReport {
     delayed_observations: usize,
     fresh_observations: usize,
     fresh_process_renderer_replay_exact: bool,
+    branch_evidence_audit_valid: bool,
+    stale_actor_replay_negative_control_rejected: bool,
+    branch_evidence_finding_count: usize,
     symthaea_bridge_invoked: bool,
     symthaea_bridge_processed_observations: usize,
     symthaea_receipt_chain_valid: bool,
@@ -737,11 +740,157 @@ fn invoke_symthaea_bridge(
     ))
 }
 
+fn evidence_branch(branch_id: &str, parent_id: Option<&str>, branch_shift: bool, stale_replay: bool) -> Value {
+    let lead_base = "lead-car-policy-input-at-tick-11";
+    let lead_input = if branch_shift {
+        "lead-car-policy-input-after-alternate-action"
+    } else {
+        lead_base
+    };
+    let lead_origin = if stale_replay { "replayed" } else { "recomputed" };
+    let child = parent_id.is_some();
+    json!({
+        "branch_id": branch_id,
+        "episode_id": EPISODE_ID,
+        "parent_branch_id": parent_id,
+        "checkpoint_digest": "checkpoint-at-tick-11-v1",
+        "recurrent_state_policy_id": "untrained-input-policy-state-v1",
+        "observation_history_digest": "policy-visible-observation-history-through-tick-11",
+        "simulator_revision": SIMULATOR_REVISION,
+        "decision_tick": 11,
+        "outcome_tick": if child { 12 } else { 11 },
+        "intervention_digest": if child { "alternate-action-receipt-digest" } else { "base-action-receipt-digest" },
+        "expected_actor_ids": ["lead-car", "crossing-pedestrian"],
+        "actor_responses": [
+            {
+                "actor_id": "lead-car",
+                "policy_revision_digest": "lead-actor-policy-v1",
+                "policy_input_digest": lead_input,
+                "action_digest": if child { "lead-car-recomputed-response" } else { "lead-car-base-response" },
+                "randomness_digest": "lead-car-rng-fixture-11",
+                "origin": lead_origin
+            },
+            {
+                "actor_id": "crossing-pedestrian",
+                "policy_revision_digest": "pedestrian-actor-policy-v1",
+                "policy_input_digest": if child { "pedestrian-input-after-ego-intervention" } else { "pedestrian-input-base" },
+                "action_digest": if child { "pedestrian-recomputed-response" } else { "pedestrian-base-response" },
+                "randomness_digest": "pedestrian-rng-fixture-11",
+                "origin": "recomputed"
+            }
+        ],
+        "expected_random_event_ids": ["ambient-weather"],
+        "random_events": [{
+            "event_id": "ambient-weather",
+            "shared_with_parent": child,
+            "event_class": "exogenous",
+            "invariant_under_intervention": true,
+            "key_digest": "ambient-weather-exogenous-key-v1",
+            "sampled_value_digest": "ambient-weather-value-v1"
+        }],
+        "policy_input_fields": [
+            {"field_id":"front-camera-frame-at-tick-11","source_role":"policy_visible","available_tick":11},
+            {"field_id":"ego-proprioception-at-tick-11","source_role":"policy_visible","available_tick":11}
+        ],
+        "query": null
+    })
+}
+
+fn branch_audit_campaign(stale_actor_replay: bool) -> Value {
+    json!({
+        "expected_episode_ids": [EPISODE_ID],
+        "expected_branch_ids": ["base-at-tick-11", "alternate-action-at-tick-12"],
+        "episodes": [{
+            "episode_id": EPISODE_ID,
+            "disposition": "completed"
+        }],
+        "branches": [
+            evidence_branch("base-at-tick-11", None, false, false),
+            evidence_branch(
+                "alternate-action-at-tick-12",
+                Some("base-at-tick-11"),
+                true,
+                stale_actor_replay
+            )
+        ],
+        "evaluation_controls": {
+            "frozen": true,
+            "teacher_blending_enabled": false,
+            "online_updates_enabled": false,
+            "exploration_noise_enabled": false,
+            "teacher_inputs_visible": false,
+            "future_outcomes_visible": false
+        }
+    })
+}
+
+fn invoke_branch_evidence_auditor(
+    episode_dir: &Path,
+    auditor_binary: &Path,
+) -> Result<(bool, bool, usize), Box<dyn Error>> {
+    let audit_dir = episode_dir.join("branch-evidence-auditor");
+    fs::create_dir_all(&audit_dir)?;
+    let valid_input = audit_dir.join("campaign-valid.json");
+    let valid_output = audit_dir.join("report-valid.json");
+    let stale_input = audit_dir.join("campaign-stale-actor-negative-control.json");
+    let stale_output = audit_dir.join("report-stale-actor-negative-control.json");
+
+    write_json(&valid_input, &branch_audit_campaign(false))?;
+    write_json(&stale_input, &branch_audit_campaign(true))?;
+
+    let valid_status = Command::new(auditor_binary)
+        .arg(&valid_input)
+        .arg(&valid_output)
+        .status()?;
+    if !valid_status.success() {
+        return Err("branch auditor rejected the valid recomputed-actor campaign fixture".into());
+    }
+    let valid_report = read_json(&valid_output)?;
+    let branch_audit_valid = valid_report["disposition"].as_str() == Some("valid")
+        && valid_report["finding_count"].as_u64() == Some(0);
+    if !branch_audit_valid {
+        return Err("branch auditor valid fixture did not produce an empty finding set".into());
+    }
+
+    let stale_status = Command::new(auditor_binary)
+        .arg(&stale_input)
+        .arg(&stale_output)
+        .status()?;
+    if stale_status.success() {
+        return Err("branch auditor accepted the stale actor replay negative control".into());
+    }
+    let stale_report = read_json(&stale_output)?;
+    let findings = stale_report["findings"]
+        .as_array()
+        .ok_or("branch auditor negative-control report lacks findings[]")?;
+    let stale_rejected = stale_report["disposition"].as_str() == Some("rejected")
+        && findings.iter().any(|finding| {
+            finding.as_str() == Some("ReplayedActorInputChanged")
+        });
+    if !stale_rejected {
+        return Err("branch auditor negative control did not produce ReplayedActorInputChanged".into());
+    }
+    let finding_count = valid_report["finding_count"].as_u64().unwrap_or(0) as usize
+        + stale_report["finding_count"].as_u64().unwrap_or(0) as usize;
+    write_json(
+        &audit_dir.join("audit-summary.json"),
+        &json!({
+            "valid_fixture_disposition": valid_report["disposition"],
+            "valid_fixture_findings": valid_report["findings"],
+            "stale_actor_negative_control_disposition": stale_report["disposition"],
+            "stale_actor_negative_control_findings": stale_report["findings"],
+            "stale_actor_replay_rejected": stale_rejected
+        }),
+    )?;
+    Ok((branch_audit_valid, stale_rejected, finding_count))
+}
+
 fn run_parent(
     episode_dir: &Path,
     bridge_config_path: &Path,
     vision_config_path: &Path,
     bridge_binary: &Path,
+    branch_auditor_binary: &Path,
 ) -> Result<EpisodeReport, Box<dyn Error>> {
     if episode_dir.exists() {
         let mut existing = fs::read_dir(episode_dir)?;
@@ -758,6 +907,10 @@ fn run_parent(
     let bridge_binary = fs::canonicalize(bridge_binary)?;
     if !bridge_binary.is_file() {
         return Err("Symthaea bridge binary is not a regular file".into());
+    }
+    let branch_auditor_binary = fs::canonicalize(branch_auditor_binary)?;
+    if !branch_auditor_binary.is_file() {
+        return Err("recoverable-driving-evidence auditor binary is not a regular file".into());
     }
 
     let bridge_config = read_json(bridge_config_path)?;
@@ -858,6 +1011,8 @@ fn run_parent(
     write_json(&episode_dir.join("world-transition-records.json"), &transition_records)?;
 
     let changed_branch = make_changed_action_branch(&episode_dir)?;
+    let (branch_audit_valid, stale_actor_rejected, branch_audit_findings) =
+        invoke_branch_evidence_auditor(&episode_dir, &branch_auditor_binary)?;
     if changed_branch.base_frame_sha256 == changed_branch.branch_frame_sha256
         || changed_branch.base_world_snapshot_sha256 == changed_branch.branch_world_snapshot_sha256
     {
@@ -940,6 +1095,9 @@ fn run_parent(
         fresh_observations: fresh_count,
         fresh_process_renderer_replay_exact: replay_exact,
         fresh_process_symthaea_bridge_replay_exact: bridge_replay_exact,
+        branch_evidence_audit_valid: branch_audit_valid,
+        stale_actor_replay_negative_control_rejected: stale_actor_rejected,
+        branch_evidence_finding_count: branch_audit_findings,
         symthaea_bridge_invoked: true,
         symthaea_bridge_processed_observations: bridge_count,
         symthaea_receipt_chain_valid: bridge_chain_valid,
@@ -970,12 +1128,13 @@ fn main() {
         } else {
             run_replay_child(Path::new(&args[1]), Path::new(&args[2]))
         }
-    } else if args.len() == 4 {
+    } else if args.len() == 5 {
         run_parent(
             Path::new(&args[0]),
             Path::new(&args[1]),
             Path::new(&args[2]),
             Path::new(&args[3]),
+            Path::new(&args[4]),
         )
         .map(|report| {
             println!(
@@ -990,7 +1149,7 @@ fn main() {
         })
     } else {
         Err(
-            "usage: fresh-process-driving-replay <episode-dir> <bridge-config.json> <vision-config.json> <camera-driving-bridge-binary>"
+            "usage: fresh-process-driving-replay <episode-dir> <bridge-config.json> <vision-config.json> <camera-driving-bridge-binary> <recoverable-driving-evidence-binary>"
                 .into(),
         )
     };
