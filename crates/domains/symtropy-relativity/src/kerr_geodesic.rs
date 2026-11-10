@@ -1029,13 +1029,13 @@ impl KerrCanonicalHamiltonian {
         }
         let p = energy * (r * r + a * a) - a * angular_momentum;
         let root = radial_potential.sqrt();
-        let p_plus = p + root;
-        if !p_plus.is_finite() || p_plus <= 0.0 {
-            return Err(KerrGeodesicError::NoRegularIngoingBranch { p_plus });
+        let radial_denominator = p + root;
+        if !radial_denominator.is_finite() || radial_denominator <= 0.0 {
+            return Err(KerrGeodesicError::NoRegularIngoingBranch { radial_denominator });
         }
         let angular_term =
             constants.carter_constant_over_m2 + (angular_momentum - a * energy).powi(2);
-        let radial_momentum = angular_term / p_plus;
+        let radial_momentum = angular_term / radial_denominator;
         let momenta = [
             -energy,
             radial_momentum,
