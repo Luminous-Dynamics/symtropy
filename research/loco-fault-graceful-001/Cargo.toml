@@ -1,0 +1,9 @@
+[package]
+name = "loco-fault-graceful"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Fault diagnosis, robust action admission and graceful recovery auditor"
+
+[workspace]
