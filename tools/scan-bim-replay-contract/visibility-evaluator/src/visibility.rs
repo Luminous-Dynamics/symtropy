@@ -641,7 +641,9 @@ impl TriangleBvh {
                 }
                 BvhNodeKind::Branch { left, right } => {
                     let limit = nearest_distance
-                        .map(|nearest| (nearest + INTERSECTION_EPSILON_M).min(target_distance))
+                        .map(|nearest| {
+                            (nearest + 2.0 * INTERSECTION_EPSILON_M).min(target_distance)
+                        })
                         .unwrap_or(target_distance);
                     let left_entry = left.bounds.ray_entry(origin, direction, limit);
                     let right_entry = right.bounds.ray_entry(origin, direction, limit);
@@ -1112,6 +1114,10 @@ fn receipt_digest(
     probes: &[VisibilityProbeResult],
     views: &[VisibilityView],
     occluders: &[OccluderTriangle],
+    ray_test_count: usize,
+    bvh_node_count: usize,
+    bvh_leaf_count: usize,
+    bvh_node_visit_count: usize,
 ) -> String {
     let mut hasher = Sha256::new();
     hasher.update(evaluation.profile.max_probe_count.to_le_bytes());
@@ -1121,7 +1127,11 @@ fn receipt_digest(
     hasher.update(evaluation.profile.max_ray_tests.to_le_bytes());
     hasher.update(evaluation.profile.max_bvh_node_visits.to_le_bytes());
     update_f64(&mut hasher, evaluation.profile.min_incidence_cosine);
-    update_string(&mut hasher, "scan_bim_evaluator_visibility_ray_v1");
+    update_string(&mut hasher, "scan_bim_evaluator_visibility_bvh_median_v1");
+    hasher.update((ray_test_count as u64).to_le_bytes());
+    hasher.update((bvh_node_count as u64).to_le_bytes());
+    hasher.update((bvh_leaf_count as u64).to_le_bytes());
+    hasher.update((bvh_node_visit_count as u64).to_le_bytes());
     update_string(&mut hasher, evaluation.scene_id);
     update_string(&mut hasher, evaluation.frame_id);
     update_string(
@@ -1499,7 +1509,6 @@ pub fn derive_surface_visibility(
     }
     let ordered_occluders: Vec<OccluderTriangle> =
         ordered_occluders.into_iter().map(|value| (*value).clone()).collect();
-    let bvh = TriangleBvh::build(&ordered_occluders);
     if canonical_occluder_manifest_sha256(&ordered_occluders)
         != evaluation.occluder_manifest_sha256
     {
@@ -1507,6 +1516,7 @@ pub fn derive_surface_visibility(
             "occluder_manifest_sha256 does not match the supplied occluder inventory".to_owned(),
         );
     }
+    let bvh = TriangleBvh::build(&ordered_occluders);
 
     let mut ordered_probes: Vec<&VisibilityProbe> = evaluation.probes.iter().collect();
     ordered_probes.sort_by(|left, right| left.probe_id.cmp(&right.probe_id));
