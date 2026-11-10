@@ -997,6 +997,42 @@ mod tests {
     }
 
     #[test]
+    fn insufficient_energy_power_samples_are_rejected() {
+        let mut data = input();
+        data.profiles[0]
+            .energy_measurement
+            .as_mut()
+            .expect("energy")
+            .power_sample_count = 1;
+        let receipt = evaluate(&data).expect("well-formed but insufficient samples");
+        let high = receipt.evaluations.iter().find(|e| e.profile_id == "high-quality").expect("high");
+        assert!(high.rejection_reasons.contains(&RejectionReason::EnergySamplesInsufficient));
+    }
+
+    #[test]
+    fn excessive_energy_sample_gap_is_rejected() {
+        let mut data = input();
+        data.profiles[0]
+            .energy_measurement
+            .as_mut()
+            .expect("energy")
+            .max_sample_gap_us = 2_000_000;
+        let receipt = evaluate(&data).expect("well-formed but sparse samples");
+        let high = receipt.evaluations.iter().find(|e| e.profile_id == "high-quality").expect("high");
+        assert!(high.rejection_reasons.contains(&RejectionReason::EnergySampleGapExceeded));
+    }
+
+    #[test]
+    fn energy_cap_requires_preregistered_sample_gap() {
+        let mut data = input();
+        data.budget.max_energy_sample_gap_us = None;
+        assert_eq!(
+            evaluate(&data).unwrap_err(),
+            PolicyError::EmptyField("budget.max_energy_sample_gap_us required with energy budget")
+        );
+    }
+
+    #[test]
     fn requested_energy_budget_is_enforced() {
         let mut data = input();
         data.profiles[0].energy_measurement = Some(EnergyMeasurement {
