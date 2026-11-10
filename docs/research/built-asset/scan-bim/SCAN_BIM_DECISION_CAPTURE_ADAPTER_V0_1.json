@@ -265,7 +265,10 @@
           "visibility_status": "observable",
           "visibility_receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
           "measurement_qualification": "qualified",
-          "task_profile_id": "synthetic-building-task-1"
+          "task_profile_id": "synthetic-building-task-1",
+          "model_revision": "model-revision-1",
+          "requirement_revision": "requirement-revision-1",
+          "measurement_receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
         },
         {
           "action_id": "full-3d-scan",
@@ -281,7 +284,10 @@
           "visibility_status": "observable",
           "visibility_receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
           "measurement_qualification": "qualified",
-          "task_profile_id": "synthetic-building-task-1"
+          "task_profile_id": "synthetic-building-task-1",
+          "model_revision": "model-revision-1",
+          "requirement_revision": "requirement-revision-1",
+          "measurement_receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
         }
       ]
     },
@@ -545,7 +551,10 @@
           "visibility_status": "observable",
           "visibility_receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
           "measurement_qualification": "qualified",
-          "task_profile_id": "synthetic-building-task-2"
+          "task_profile_id": "synthetic-building-task-2",
+          "model_revision": "model-revision-2",
+          "requirement_revision": "requirement-revision-2",
+          "measurement_receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
         },
         {
           "action_id": "mean-load-probe",
@@ -561,7 +570,10 @@
           "visibility_status": "observable",
           "visibility_receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
           "measurement_qualification": "qualified",
-          "task_profile_id": "synthetic-building-task-2"
+          "task_profile_id": "synthetic-building-task-2",
+          "model_revision": "model-revision-2",
+          "requirement_revision": "requirement-revision-2",
+          "measurement_receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
         }
       ]
     },
@@ -701,7 +713,10 @@
           "visibility_status": "observable",
           "visibility_receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
           "measurement_qualification": "qualified",
-          "task_profile_id": "synthetic-building-task-3"
+          "task_profile_id": "synthetic-building-task-3",
+          "model_revision": "model-revision-3",
+          "requirement_revision": "requirement-revision-3",
+          "measurement_receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
         }
       ]
     },
@@ -830,7 +845,10 @@
           "visibility_status": "observable",
           "visibility_receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
           "measurement_qualification": "qualified",
-          "task_profile_id": "synthetic-building-task-4"
+          "task_profile_id": "synthetic-building-task-4",
+          "model_revision": "model-revision-4",
+          "requirement_revision": "requirement-revision-4",
+          "measurement_receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
         }
       ]
     },
@@ -1089,7 +1107,10 @@
           "visibility_status": "observable",
           "visibility_receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
           "measurement_qualification": "qualified",
-          "task_profile_id": "synthetic-building-task-5"
+          "task_profile_id": "synthetic-building-task-5",
+          "model_revision": "model-revision-5",
+          "requirement_revision": "requirement-revision-5",
+          "measurement_receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
         },
         {
           "action_id": "wall-survey-plus-qualified-fire-review",
@@ -1105,7 +1126,10 @@
           "visibility_status": "observable",
           "visibility_receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
           "measurement_qualification": "qualified",
-          "task_profile_id": "synthetic-building-task-5"
+          "task_profile_id": "synthetic-building-task-5",
+          "model_revision": "model-revision-5",
+          "requirement_revision": "requirement-revision-5",
+          "measurement_receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
         }
       ]
     },
@@ -1233,7 +1257,10 @@
           "visibility_status": "observable",
           "visibility_receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
           "measurement_qualification": "qualified",
-          "task_profile_id": "synthetic-building-task-6"
+          "task_profile_id": "synthetic-building-task-6",
+          "model_revision": "model-revision-6",
+          "requirement_revision": "requirement-revision-6",
+          "measurement_receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
         }
       ]
     },
@@ -1421,7 +1448,10 @@
           "visibility_status": "observable",
           "visibility_receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
           "measurement_qualification": "qualified",
-          "task_profile_id": "synthetic-building-task-7"
+          "task_profile_id": "synthetic-building-task-7",
+          "model_revision": "model-revision-7",
+          "requirement_revision": "requirement-revision-7",
+          "measurement_receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
         }
       ]
     },
@@ -1551,7 +1581,10 @@
           "visibility_status": "observable",
           "visibility_receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
           "measurement_qualification": "qualified",
-          "task_profile_id": "synthetic-building-task-8"
+          "task_profile_id": "synthetic-building-task-8",
+          "model_revision": "model-revision-8",
+          "requirement_revision": "requirement-revision-8",
+          "measurement_receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
         }
       ]
     }
