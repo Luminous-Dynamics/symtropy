@@ -31,6 +31,8 @@ pub struct DecisionCriticalityConfig {
 pub struct DecisionPolicyOutcome {
     pub policy_id: String,
     pub objective_value: OrderedFloatValue,
+    pub source_digest: String,
+    pub outcome_receipt_digest: String,
     pub feasible: bool,
     pub violated_constraints: Vec<String>,
 }
@@ -45,7 +47,8 @@ impl OrderedFloatValue {
         if !value.is_finite() {
             return Err(DecisionCriticalityError::NonFiniteObjectiveValue);
         }
-        Ok(Self(value.to_bits()))
+        let canonical = if value == 0.0 { 0.0 } else { value };
+        Ok(Self(canonical.to_bits()))
     }
 
     pub fn get(self) -> f64 {
@@ -97,6 +100,10 @@ pub struct PolicyConsequence {
     pub policy_id: String,
     pub reference_value: OrderedFloatValue,
     pub alternative_value: OrderedFloatValue,
+    pub reference_source_digest: String,
+    pub alternative_source_digest: String,
+    pub reference_outcome_receipt_digest: String,
+    pub alternative_outcome_receipt_digest: String,
     pub reference_feasible: bool,
     pub alternative_feasible: bool,
     pub reference_violations: Vec<String>,
@@ -207,16 +214,15 @@ fn regret(
     }
 }
 
-fn validate_world(
-    world: &DecisionWorldEvidence,
+fn validate_world<'a>(
+    world: &'a DecisionWorldEvidence,
     expected_policy_ids: &BTreeSet<&str>,
     is_reference: bool,
-) -> Result<BTreeMap<&str, &DecisionPolicyOutcome>, DecisionCriticalityError> {
+) -> Result<BTreeMap<&'a str, &'a DecisionPolicyOutcome>, DecisionCriticalityError> {
     let model = &world.model;
     if model.id().trim().is_empty()
         || model.model_digest().trim().is_empty()
         || model.adequacy_receipt_digest().trim().is_empty()
-        || !model.adequacy_required_evidence_complete()
         || model.adequacy_model_digest() != model.model_digest()
     {
         return Err(DecisionCriticalityError::InvalidModelEvidence {
@@ -224,13 +230,29 @@ fn validate_world(
         });
     }
     if is_reference {
+        if !model.adequacy_required_evidence_complete() {
+            return Err(DecisionCriticalityError::InvalidModelEvidence {
+                model_id: model.id().to_string(),
+            });
+        }
         if model.adequacy_state() != ModelAdequacyState::NoPrimaryDiscrepancyDetected {
             return Err(DecisionCriticalityError::ReferenceModelNotQualified);
         }
         if model.adequacy_role() != Some(SplitRole::Validation) {
             return Err(DecisionCriticalityError::ReferenceMustBeValidation);
         }
-    } else if model.adequacy_role() != Some(SplitRole::Challenge) {
+    } else if matches!(
+        model.adequacy_state(),
+        ModelAdequacyState::NotAssessed | ModelAdequacyState::OutOfDomain
+    ) {
+        if model.adequacy_role().is_some_and(|role| role != SplitRole::Challenge) {
+            return Err(DecisionCriticalityError::AlternativeMustBeChallenge {
+                model_id: model.id().to_string(),
+            });
+        }
+    } else if model.adequacy_role() != Some(SplitRole::Challenge)
+        || !model.adequacy_required_evidence_complete()
+    {
         return Err(DecisionCriticalityError::AlternativeMustBeChallenge {
             model_id: model.id().to_string(),
         });
@@ -247,8 +269,15 @@ fn validate_world(
                 policy_id: outcome.policy_id.clone(),
             });
         }
-        if outcome.feasible && !outcome.violated_constraints.is_empty()
-            || !outcome.feasible && outcome.violated_constraints.is_empty()
+        if outcome.source_digest.trim().is_empty()
+            || outcome.outcome_receipt_digest.trim().is_empty()
+        {
+            return Err(DecisionCriticalityError::InvalidModelEvidence {
+                model_id: model.id().to_string(),
+            });
+        }
+        if (outcome.feasible && !outcome.violated_constraints.is_empty())
+            || (!outcome.feasible && outcome.violated_constraints.is_empty())
         {
             return Err(DecisionCriticalityError::ContradictoryFeasibilityReceipt {
                 model_id: model.id().to_string(),
@@ -389,6 +418,10 @@ pub fn assess_decision_criticality(
                 policy_id: (*policy_id).to_string(),
                 reference_value: reference_outcome.objective_value,
                 alternative_value: alternative_outcome.objective_value,
+                reference_source_digest: reference_outcome.source_digest.clone(),
+                alternative_source_digest: alternative_outcome.source_digest.clone(),
+                reference_outcome_receipt_digest: reference_outcome.outcome_receipt_digest.clone(),
+                alternative_outcome_receipt_digest: alternative_outcome.outcome_receipt_digest.clone(),
                 reference_feasible: reference_outcome.feasible,
                 alternative_feasible: alternative_outcome.feasible,
                 reference_violations: reference_outcome.violated_constraints.clone(),
@@ -400,7 +433,9 @@ pub fn assess_decision_criticality(
             });
         }
         consequences.sort_by(|left, right| left.policy_id.cmp(&right.policy_id));
-        let ranking_changed = reference_optimal_policy_ids != alternative_optimal_policy_ids;
+        let ranking_changed = reference_optimal_policy_ids
+            .iter()
+            .all(|policy_id| !alternative_optimal.contains(policy_id.as_str()));
         let inadequate = matches!(
             alternative.model.adequacy_state(),
             ModelAdequacyState::NotAssessed | ModelAdequacyState::OutOfDomain
@@ -562,6 +597,8 @@ mod tests {
                 .map(|(index, id)| DecisionPolicyOutcome {
                     policy_id: (*id).to_string(),
                     objective_value: OrderedFloatValue::new(values[index]).expect("finite objective"),
+                    source_digest: format!("sha256-{}-policy-source", model.id()),
+                    outcome_receipt_digest: format!("sha256-{}-{}-outcome", model.id(), id),
                     feasible: feasible[index],
                     violated_constraints: if feasible[index] {
                         Vec::new()
