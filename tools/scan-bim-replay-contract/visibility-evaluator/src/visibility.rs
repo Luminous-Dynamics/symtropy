@@ -572,7 +572,7 @@ impl TriangleBvh {
         let mut best_split: Option<(f64, usize, usize)> = None;
 
         for (axis, (minimum, maximum)) in minima.iter().zip(maxima.iter()).enumerate() {
-            let extent = maximum - minimum;
+            let extent = *maximum - *minimum;
             if !extent.is_finite() || extent <= f64::EPSILON {
                 continue;
             }
@@ -582,7 +582,7 @@ impl TriangleBvh {
 
             for index in &indices {
                 let triangle_bounds = Aabb::from_triangle(&triangles[*index]);
-                let position = (triangle_bounds.centroid_axis(axis) - minimum) / extent;
+                let position = (triangle_bounds.centroid_axis(axis) - *minimum) / extent;
                 if !position.is_finite() {
                     continue;
                 }
