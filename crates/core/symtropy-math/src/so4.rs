@@ -227,12 +227,24 @@ pub fn so4_log_with_config(
             continue;
         }
 
+        let seed_vector = eigen.eigenvectors.column(seed).into_owned();
         let seed_value = eigen.eigenvalues[seed];
+        let seed_skew_magnitude = (skew * seed_vector).norm();
         let mut indices = [0usize; 4];
         let mut rank = 0usize;
         for index in 0..4 {
-            if !processed[index]
-                && (eigen.eigenvalues[index] - seed_value).abs()
+            if processed[index] {
+                continue;
+            }
+            let candidate_vector = eigen.eigenvectors.column(index).into_owned();
+            let candidate_skew_magnitude = (skew * candidate_vector).norm();
+            // The symmetric-part eigenvalue is cos(theta); the skew magnitude
+            // is |sin(theta)|. Use both invariants. Near pi, distinct angles
+            // can have indistinguishable cosines while their sine magnitudes
+            // remain well separated.
+            if (eigen.eigenvalues[index] - seed_value).abs()
+                <= config.eigenspace_tolerance
+                && (candidate_skew_magnitude - seed_skew_magnitude).abs()
                     <= config.eigenspace_tolerance
             {
                 processed[index] = true;
@@ -486,6 +498,22 @@ mod tests {
         let recovered = so4_log(&midpoint_relative).expect("midpoint relative is valid");
         assert!((recovered.principal_angles_rad[0] - 0.4).abs() < 2.0e-10);
         assert!((recovered.principal_angles_rad[1] - FRAC_PI_2 / 2.0).abs() < 2.0e-10);
+    }
+
+    #[test]
+    fn near_pi_planes_with_nearly_equal_cosines_remain_separate() {
+        let mut generator = Bivector::<4>::zero();
+        generator.set(0, 1, PI - 1.0e-7);
+        generator.set(2, 3, -(PI - 2.0e-7));
+        let rotation = Rotor::from_bivector(&generator);
+
+        let logarithm = so4_log(&rotation)
+            .expect("near-pi planes must be separated by the skew invariant");
+        assert!((logarithm.principal_angles_rad[0] - (PI - 2.0e-7)).abs() < 2.0e-10);
+        assert!((logarithm.principal_angles_rad[1] - (PI - 1.0e-7)).abs() < 2.0e-10);
+        assert!((logarithm.generator.get(0, 1) - (PI - 1.0e-7)).abs() < 2.0e-10);
+        assert!((logarithm.generator.get(2, 3) - (PI - 2.0e-7)).abs() < 2.0e-10);
+        assert!(matrix_error(&rotation, &Rotor::from_bivector(&logarithm.generator)) < 1.0e-10);
     }
 
     #[test]
