@@ -21,7 +21,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install pinned Rust toolchain
-        run: rustup toolchain install 1.96.0 --profile minimal
+        run: |
+          rustup toolchain install 1.96.0 --profile minimal
+          rustup component add --toolchain 1.96.0 rustfmt
 
       - name: Check formatting
         run: rustup run 1.96.0 rustfmt --edition 2021 --check tools/phdae-dumbbell-reference/constrained_dumbbell.rs
