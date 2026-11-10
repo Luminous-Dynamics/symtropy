@@ -1129,7 +1129,7 @@ mod tests {
             GroundDisposition::Unknown {
                 reason_id: "insufficient-ground-evidence".to_owned(),
             };
-        manifest.sequences[0].events[1].ground_revision_before = 7;
+        manifest.sequences[0].events[1].ground_revision_before = 8;
         assert_eq!(
             validate_experiment_manifest(&manifest),
             Err(ManifestError::GroundRevisionChainMismatch)
