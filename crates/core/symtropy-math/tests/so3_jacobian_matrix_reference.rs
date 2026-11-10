@@ -50,17 +50,10 @@ fn as_bivector(phi: &Vector3<f64>) -> Bivector<3> {
 }
 
 fn as_rotation_vector(value: &Bivector<3>) -> Vector3<f64> {
-    Vector3::new(
-        value.get(1, 2),
-        -value.get(0, 2),
-        value.get(0, 1),
-    )
+    Vector3::new(value.get(1, 2), -value.get(0, 2), value.get(0, 1))
 }
 
-/// Measure D Exp(phi)[direction] after left or right trivialization:
-///
-/// left:  (Exp(phi + eps*d) Exp(phi)^T - I) / eps
-/// right: (Exp(phi)^T Exp(phi + eps*d) - I) / eps
+/// Measure D Exp(phi)[direction] after left or right trivialization.
 ///
 /// A centered difference is used and the skew part is extracted directly.
 fn reference_differential(
@@ -70,18 +63,16 @@ fn reference_differential(
     step: f64,
 ) -> Vector3<f64> {
     let base = reference_exp(phi);
-    let plus = reference_exp(&(phi + direction * step));
-    let minus = reference_exp(&(phi - direction * step));
+    let plus = reference_exp(&(*phi + *direction * step));
+    let minus = reference_exp(&(*phi - *direction * step));
 
     let (relative_plus, relative_minus) = match trivialization {
-        So3Trivialization::LeftSpatial => (
-            plus * base.transpose(),
-            minus * base.transpose(),
-        ),
-        So3Trivialization::RightBody => (
-            base.transpose() * plus,
-            base.transpose() * minus,
-        ),
+        So3Trivialization::LeftSpatial => {
+            (plus * base.transpose(), minus * base.transpose())
+        }
+        So3Trivialization::RightBody => {
+            (base.transpose() * plus, base.transpose() * minus)
+        }
     };
 
     let derivative = (relative_plus - relative_minus) * (0.5 / step);
@@ -105,7 +96,7 @@ fn deterministic_unit(index: usize) -> Vector3<f64> {
 
 #[test]
 fn left_and_right_jacobians_match_independent_rodrigues_matrix_differences() {
-    let angles = [
+    let angles: [f64; 12] = [
         0.0,
         1.0e-8,
         1.0e-5,
@@ -128,18 +119,16 @@ fn left_and_right_jacobians_match_independent_rodrigues_matrix_differences() {
         So3Trivialization::LeftSpatial,
         So3Trivialization::RightBody,
     ];
-
-    for (axis_index, axis) in [
+    let axes = [
         Vector3::new(1.0, 0.0, 0.0),
         Vector3::new(0.0, 1.0, 0.0),
         Vector3::new(0.0, 0.0, 1.0),
         deterministic_unit(0),
         deterministic_unit(1),
         deterministic_unit(2),
-    ]
-    .into_iter()
-    .enumerate()
-    {
+    ];
+
+    for (axis_index, axis) in axes.into_iter().enumerate() {
         for angle in angles {
             let phi = axis * angle;
             let generator = as_bivector(&phi);
@@ -148,13 +137,12 @@ fn left_and_right_jacobians_match_independent_rodrigues_matrix_differences() {
                 for trivialization in trivializations {
                     let jacobian = so3_exp_jacobian(&generator, trivialization)
                         .expect("finite SO(3) exponential Jacobian");
-                    let predicted = as_rotation_vector(&jacobian.apply(&as_bivector(direction)).unwrap());
-                    let measured = reference_differential(
-                        &phi,
-                        direction,
-                        trivialization,
-                        1.0e-5,
-                    );
+                    let predicted_bivector = jacobian
+                        .apply(&as_bivector(direction))
+                        .expect("finite tangent map result");
+                    let predicted = as_rotation_vector(&predicted_bivector);
+                    let measured =
+                        reference_differential(&phi, direction, trivialization, 1.0e-5);
                     let error = (predicted - measured).norm();
                     let tolerance = 3.0e-8 * (1.0 + measured.norm());
 
@@ -173,18 +161,20 @@ fn left_and_right_jacobians_are_distinct_away_from_identity() {
     let phi = Vector3::new(0.61, -0.38, 0.92);
     let direction = Vector3::new(-0.27, 0.53, 0.71);
     let generator = as_bivector(&phi);
+    let tangent = as_bivector(&direction);
 
     let left = so3_exp_jacobian(&generator, So3Trivialization::LeftSpatial)
         .unwrap()
-        .apply(&as_bivector(&direction))
+        .apply(&tangent)
         .unwrap();
     let right = so3_exp_jacobian(&generator, So3Trivialization::RightBody)
         .unwrap()
-        .apply(&as_bivector(&direction))
+        .apply(&tangent)
         .unwrap();
+    let difference = as_rotation_vector(&left) - as_rotation_vector(&right);
 
     assert!(
-        (as_rotation_vector(&left) - as_rotation_vector(&right)).norm() > 1.0e-2,
+        difference.norm() > 1.0e-2,
         "left and right differentials must not silently collapse to one convention"
     );
 }
