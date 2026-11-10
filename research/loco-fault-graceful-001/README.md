@@ -184,3 +184,38 @@ With zero independent failures, a one-sided 95% upper bound below 1%, 0.1%, 0.01
 ## Claim ceiling
 
 The protocol/fixture/Rust reference validates only finite evidence handling and scoring semantics. Simulator evidence qualifies only its declared simulator/model. Hardware fault-tolerance claims require calibrated controlled fault injection, independent event labels, actuator/sensor response measurements, matched domains, recovery evidence, uncertainty intervals and a separately qualified action-time physical assurance path.
+
+
+## 11. Executable finite Rust V0 reference
+
+The standalone dependency-free Rust crate consumes:
+- an evaluator-only actual fault/onset label;
+- the controller's time-ordered diagnosis states and plausible fault hypotheses;
+- for each selected action, the authoritative physically possible fault set (not the controller posterior);
+- an upstream admission status for each physically possible fault hypothesis;
+- a freshness/context-bound action receipt, current-state digest, deadline and independently confirmed application time;
+- observed operating-mode transitions and independently observed physical safe-state time;
+- terminal episode disposition and evidence tier.
+
+The Rust auditor:
+- reports detection latency and correct-isolation latency separately;
+- distinguishes false alarms, wrong isolations and controller hypothesis sets that exclude the evaluator's actual fault;
+- checks every selected action against the complete physical fault possibility set;
+- flags missing, rejected or Unknown admission for any physically possible fault;
+- checks the action receipt against the *current state* plus model, abstraction, actuator and domain identities and inclusive validity interval;
+- flags unconfirmed command application and late application;
+- measures time from fault onset to the independently observed safe state;
+- refuses a SafeHold/Recovered/Retreated/AbortedSafe terminal label without physical safe-state timing evidence;
+- never allows Unknown or Unrecoverable to qualify as a successful operational outcome.
+
+The controller's posterior is deliberately not used as the authority for shrinking the physical fault set. An evaluator-only true fault label omitted from the upstream physical possibility set is itself recorded as a gate violation.
+
+Eighteen deterministic tests cover common-action admission, diagnosis-subset failure, high-confidence wrong diagnosis, zero-mass physical fault branches, missing admissions, stale/current-state receipts, late/unconfirmed application, physical-set omission, false alarms, safe-state evidence, Unknown terminals, timeline ordering, input-order invariance, and receipt replay across different actions/fault sets. Every admission receipt is bound to the exact action ID, physical fault-set digest, current-state digest, model, abstraction, actuator and domain identity. The reference uses a preregistered 900,000 ppm (90%) threshold for a diagnosis to count as an isolated fault and bounds each diagnosis/admission set at 256 hypotheses and each episode timeline at 100,000 records.
+
+Qualification commands:
+
+    cargo fmt --manifest-path research/loco-fault-graceful-001/Cargo.toml -- --check
+    cargo test --manifest-path research/loco-fault-graceful-001/Cargo.toml --locked
+    cargo clippy --manifest-path research/loco-fault-graceful-001/Cargo.toml --locked --all-targets -- -D warnings
+
+The exact-head workflow is authoritative for Rust 1.96. The crate qualifies only evidence-composition and finite episode-scoring logic. It does not diagnose raw sensor data or compute physical viability.
