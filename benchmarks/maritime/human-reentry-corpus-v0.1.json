@@ -1,0 +1,1710 @@
+{
+  "corpus_id": "luminous.symtropy.maritime-human-reentry",
+  "corpus_version": "0.1.0",
+  "claim_ceiling": "A PASS establishes only synthetic task-event contract integrity and expected disposition for the exact corpus. It does not establish human performance, safe takeover, navigation competence, seaworthiness, certification or authority to operate.",
+  "cases": [
+    {
+      "case_id": "positive-current-scoped-transfer",
+      "case_class": "positive",
+      "description": "Complete current packet and scoped on-time acknowledgement permit a bounded transfer.",
+      "setup": {
+        "vessel_config": "synthetic-vessel-config-v0",
+        "active_mode": "bounded_autonomy",
+        "decision_clock": "monotonic_and_utc_bound",
+        "deadline_ms": 30000,
+        "packet_state": "current_complete",
+        "operator_state": "ready",
+        "authority_state": "valid_scoped",
+        "link_state": "available",
+        "local_contingency": "ready",
+        "target_source_class": "local_sensor"
+      },
+      "events": [
+        {
+          "kind": "takeover_requested",
+          "actor": "autonomy",
+          "after_ms": 0
+        },
+        {
+          "kind": "packet_published",
+          "actor": "autonomy",
+          "after_ms": 100
+        },
+        {
+          "kind": "packet_delivered",
+          "actor": "roc",
+          "after_ms": 300
+        },
+        {
+          "kind": "packet_opened",
+          "actor": "operator",
+          "after_ms": 900
+        },
+        {
+          "kind": "transfer_accepted",
+          "actor": "operator",
+          "after_ms": 1800
+        },
+        {
+          "kind": "transfer_acknowledged",
+          "actor": "roc",
+          "after_ms": 2100
+        },
+        {
+          "kind": "lease_granted",
+          "actor": "authority",
+          "after_ms": 2200
+        }
+      ],
+      "expected": {
+        "disposition": "handover_accepted",
+        "final_authority_owner": "remote_operator",
+        "must_never_overlap": true,
+        "fallback_preserved": true,
+        "reconciliation_required": false,
+        "invariants": [
+          "no_dual_authority",
+          "no_control_gap",
+          "positive_control",
+          "preserve_local_contingency"
+        ]
+      }
+    },
+    {
+      "case_id": "positive-explicit-decline",
+      "case_class": "positive",
+      "description": "Operator declines; the declared local contingency continues without a handover.",
+      "setup": {
+        "vessel_config": "synthetic-vessel-config-v0",
+        "active_mode": "bounded_autonomy",
+        "decision_clock": "monotonic_and_utc_bound",
+        "deadline_ms": 30000,
+        "packet_state": "current_complete",
+        "operator_state": "ready",
+        "authority_state": "valid_scoped",
+        "link_state": "available",
+        "local_contingency": "ready",
+        "target_source_class": "local_sensor"
+      },
+      "events": [
+        {
+          "kind": "takeover_requested",
+          "actor": "autonomy",
+          "after_ms": 0
+        },
+        {
+          "kind": "packet_delivered",
+          "actor": "roc",
+          "after_ms": 300
+        },
+        {
+          "kind": "packet_opened",
+          "actor": "operator",
+          "after_ms": 700
+        },
+        {
+          "kind": "transfer_declined",
+          "actor": "operator",
+          "after_ms": 1200
+        },
+        {
+          "kind": "fallback_started",
+          "actor": "local_controller",
+          "after_ms": 1300
+        }
+      ],
+      "expected": {
+        "disposition": "fallback_continues",
+        "final_authority_owner": "local_controller",
+        "must_never_overlap": true,
+        "fallback_preserved": true,
+        "reconciliation_required": false,
+        "invariants": [
+          "no_unacknowledged_transfer",
+          "no_inferred_operator_consent",
+          "preserve_local_contingency"
+        ]
+      }
+    },
+    {
+      "case_id": "negative-packet-missing",
+      "case_class": "negative",
+      "description": "No situation packet is available; the operator cannot accept an informed transfer.",
+      "setup": {
+        "vessel_config": "synthetic-vessel-config-v0",
+        "active_mode": "bounded_autonomy",
+        "decision_clock": "monotonic_and_utc_bound",
+        "deadline_ms": 30000,
+        "packet_state": "missing",
+        "operator_state": "ready",
+        "authority_state": "valid_scoped",
+        "link_state": "available",
+        "local_contingency": "ready",
+        "target_source_class": "local_sensor"
+      },
+      "events": [
+        {
+          "kind": "takeover_requested",
+          "actor": "autonomy",
+          "after_ms": 0
+        },
+        {
+          "kind": "transfer_accepted",
+          "actor": "operator",
+          "after_ms": 700
+        },
+        {
+          "kind": "fallback_started",
+          "actor": "local_controller",
+          "after_ms": 800
+        }
+      ],
+      "expected": {
+        "disposition": "fallback_continues",
+        "final_authority_owner": "local_controller",
+        "must_never_overlap": true,
+        "fallback_preserved": true,
+        "reconciliation_required": false,
+        "invariants": [
+          "no_control_gap",
+          "preserve_local_contingency",
+          "no_unacknowledged_transfer"
+        ]
+      }
+    },
+    {
+      "case_id": "negative-packet-stale",
+      "case_class": "negative",
+      "description": "A stale packet cannot support a new transfer.",
+      "setup": {
+        "vessel_config": "synthetic-vessel-config-v0",
+        "active_mode": "bounded_autonomy",
+        "decision_clock": "monotonic_and_utc_bound",
+        "deadline_ms": 30000,
+        "packet_state": "stale",
+        "operator_state": "ready",
+        "authority_state": "valid_scoped",
+        "link_state": "available",
+        "local_contingency": "ready",
+        "target_source_class": "local_sensor"
+      },
+      "events": [
+        {
+          "kind": "takeover_requested",
+          "actor": "autonomy",
+          "after_ms": 0
+        },
+        {
+          "kind": "packet_delivered",
+          "actor": "roc",
+          "after_ms": 100
+        },
+        {
+          "kind": "packet_opened",
+          "actor": "operator",
+          "after_ms": 500
+        },
+        {
+          "kind": "transfer_accepted",
+          "actor": "operator",
+          "after_ms": 900
+        },
+        {
+          "kind": "fallback_started",
+          "actor": "local_controller",
+          "after_ms": 1000
+        }
+      ],
+      "expected": {
+        "disposition": "transfer_rejected",
+        "final_authority_owner": "local_controller",
+        "must_never_overlap": true,
+        "fallback_preserved": true,
+        "reconciliation_required": false,
+        "invariants": [
+          "no_stale_packet_acceptance",
+          "preserve_local_contingency"
+        ]
+      }
+    },
+    {
+      "case_id": "ambiguity-conflicting-ownship",
+      "case_class": "ambiguity",
+      "description": "Contradictory ownship position/time sources require clarification, not a confident transfer.",
+      "setup": {
+        "vessel_config": "synthetic-vessel-config-v0",
+        "active_mode": "bounded_autonomy",
+        "decision_clock": "monotonic_and_utc_bound",
+        "deadline_ms": 30000,
+        "packet_state": "conflicted",
+        "operator_state": "ready",
+        "authority_state": "valid_scoped",
+        "link_state": "available",
+        "local_contingency": "ready",
+        "target_source_class": "mixed_or_unknown"
+      },
+      "events": [
+        {
+          "kind": "takeover_requested",
+          "actor": "autonomy",
+          "after_ms": 0
+        },
+        {
+          "kind": "packet_delivered",
+          "actor": "roc",
+          "after_ms": 100
+        },
+        {
+          "kind": "packet_opened",
+          "actor": "operator",
+          "after_ms": 600
+        },
+        {
+          "kind": "clarification_requested",
+          "actor": "operator",
+          "after_ms": 900
+        },
+        {
+          "kind": "fallback_started",
+          "actor": "local_controller",
+          "after_ms": 24000
+        }
+      ],
+      "expected": {
+        "disposition": "clarification_required",
+        "final_authority_owner": "local_controller",
+        "must_never_overlap": true,
+        "fallback_preserved": true,
+        "reconciliation_required": false,
+        "invariants": [
+          "no_control_gap",
+          "preserve_local_contingency"
+        ]
+      }
+    },
+    {
+      "case_id": "negative-wrong-config",
+      "case_class": "negative",
+      "description": "Situation packet belongs to a superseded vessel configuration.",
+      "setup": {
+        "vessel_config": "synthetic-vessel-config-v0",
+        "active_mode": "bounded_autonomy",
+        "decision_clock": "monotonic_and_utc_bound",
+        "deadline_ms": 30000,
+        "packet_state": "wrong_configuration",
+        "operator_state": "ready",
+        "authority_state": "valid_scoped",
+        "link_state": "available",
+        "local_contingency": "ready",
+        "target_source_class": "local_sensor"
+      },
+      "events": [
+        {
+          "kind": "takeover_requested",
+          "actor": "autonomy",
+          "after_ms": 0
+        },
+        {
+          "kind": "packet_delivered",
+          "actor": "roc",
+          "after_ms": 100
+        },
+        {
+          "kind": "transfer_accepted",
+          "actor": "operator",
+          "after_ms": 600
+        },
+        {
+          "kind": "fallback_started",
+          "actor": "local_controller",
+          "after_ms": 700
+        }
+      ],
+      "expected": {
+        "disposition": "transfer_rejected",
+        "final_authority_owner": "local_controller",
+        "must_never_overlap": true,
+        "fallback_preserved": true,
+        "reconciliation_required": false,
+        "invariants": [
+          "no_stale_packet_acceptance",
+          "preserve_local_contingency"
+        ]
+      }
+    },
+    {
+      "case_id": "negative-simulator-truth-leak",
+      "case_class": "negative",
+      "description": "A packet contains simulator-only oracle state and is inadmissible for deployment mode.",
+      "setup": {
+        "vessel_config": "synthetic-vessel-config-v0",
+        "active_mode": "bounded_autonomy",
+        "decision_clock": "monotonic_and_utc_bound",
+        "deadline_ms": 30000,
+        "packet_state": "contains_simulator_truth",
+        "operator_state": "ready",
+        "authority_state": "valid_scoped",
+        "link_state": "available",
+        "local_contingency": "ready",
+        "target_source_class": "simulator_truth"
+      },
+      "events": [
+        {
+          "kind": "takeover_requested",
+          "actor": "autonomy",
+          "after_ms": 0
+        },
+        {
+          "kind": "packet_published",
+          "actor": "autonomy",
+          "after_ms": 100
+        },
+        {
+          "kind": "packet_delivered",
+          "actor": "roc",
+          "after_ms": 200
+        },
+        {
+          "kind": "fallback_started",
+          "actor": "local_controller",
+          "after_ms": 300
+        }
+      ],
+      "expected": {
+        "disposition": "unsupported",
+        "final_authority_owner": "local_controller",
+        "must_never_overlap": true,
+        "fallback_preserved": true,
+        "reconciliation_required": false,
+        "invariants": [
+          "no_simulator_truth_leakage",
+          "no_hidden_state_leakage"
+        ]
+      }
+    },
+    {
+      "case_id": "negative-ais-only-target",
+      "case_class": "negative",
+      "description": "AIS-only target report cannot be relabelled as local sensor truth.",
+      "setup": {
+        "vessel_config": "synthetic-vessel-config-v0",
+        "active_mode": "bounded_autonomy",
+        "decision_clock": "monotonic_and_utc_bound",
+        "deadline_ms": 30000,
+        "packet_state": "current_complete",
+        "operator_state": "ready",
+        "authority_state": "valid_scoped",
+        "link_state": "available",
+        "local_contingency": "ready",
+        "target_source_class": "ais_only"
+      },
+      "events": [
+        {
+          "kind": "takeover_requested",
+          "actor": "autonomy",
+          "after_ms": 0
+        },
+        {
+          "kind": "packet_delivered",
+          "actor": "roc",
+          "after_ms": 100
+        },
+        {
+          "kind": "packet_opened",
+          "actor": "operator",
+          "after_ms": 600
+        },
+        {
+          "kind": "clarification_requested",
+          "actor": "operator",
+          "after_ms": 900
+        }
+      ],
+      "expected": {
+        "disposition": "clarification_required",
+        "final_authority_owner": "local_controller",
+        "must_never_overlap": true,
+        "fallback_preserved": true,
+        "reconciliation_required": false,
+        "invariants": [
+          "no_source_role_promotion",
+          "preserve_local_contingency"
+        ]
+      }
+    },
+    {
+      "case_id": "negative-missing-lineage",
+      "case_class": "negative",
+      "description": "Derived target views lack source lineage and cannot count as independent corroboration.",
+      "setup": {
+        "vessel_config": "synthetic-vessel-config-v0",
+        "active_mode": "bounded_autonomy",
+        "decision_clock": "monotonic_and_utc_bound",
+        "deadline_ms": 30000,
+        "packet_state": "missing_lineage",
+        "operator_state": "ready",
+        "authority_state": "valid_scoped",
+        "link_state": "available",
+        "local_contingency": "ready",
+        "target_source_class": "mixed_or_unknown"
+      },
+      "events": [
+        {
+          "kind": "takeover_requested",
+          "actor": "autonomy",
+          "after_ms": 0
+        },
+        {
+          "kind": "packet_delivered",
+          "actor": "roc",
+          "after_ms": 100
+        },
+        {
+          "kind": "clarification_requested",
+          "actor": "operator",
+          "after_ms": 500
+        }
+      ],
+      "expected": {
+        "disposition": "clarification_required",
+        "final_authority_owner": "local_controller",
+        "must_never_overlap": true,
+        "fallback_preserved": true,
+        "reconciliation_required": false,
+        "invariants": [
+          "no_source_role_promotion",
+          "preserve_local_contingency"
+        ]
+      }
+    },
+    {
+      "case_id": "negative-expired-authority",
+      "case_class": "negative",
+      "description": "Transfer authority expired before the operator acknowledgement.",
+      "setup": {
+        "vessel_config": "synthetic-vessel-config-v0",
+        "active_mode": "bounded_autonomy",
+        "decision_clock": "monotonic_and_utc_bound",
+        "deadline_ms": 30000,
+        "packet_state": "current_complete",
+        "operator_state": "ready",
+        "authority_state": "expired",
+        "link_state": "available",
+        "local_contingency": "ready",
+        "target_source_class": "local_sensor"
+      },
+      "events": [
+        {
+          "kind": "takeover_requested",
+          "actor": "autonomy",
+          "after_ms": 0
+        },
+        {
+          "kind": "packet_delivered",
+          "actor": "roc",
+          "after_ms": 100
+        },
+        {
+          "kind": "transfer_accepted",
+          "actor": "operator",
+          "after_ms": 800
+        },
+        {
+          "kind": "transfer_acknowledged",
+          "actor": "roc",
+          "after_ms": 1000
+        },
+        {
+          "kind": "fallback_started",
+          "actor": "local_controller",
+          "after_ms": 1100
+        }
+      ],
+      "expected": {
+        "disposition": "transfer_rejected",
+        "final_authority_owner": "local_controller",
+        "must_never_overlap": true,
+        "fallback_preserved": true,
+        "reconciliation_required": false,
+        "invariants": [
+          "no_expired_authority",
+          "no_dual_authority"
+        ]
+      }
+    },
+    {
+      "case_id": "negative-wrong-scope-role",
+      "case_class": "negative",
+      "description": "The logged-in role lacks the exact vessel/function authority scope.",
+      "setup": {
+        "vessel_config": "synthetic-vessel-config-v0",
+        "active_mode": "bounded_autonomy",
+        "decision_clock": "monotonic_and_utc_bound",
+        "deadline_ms": 30000,
+        "packet_state": "current_complete",
+        "operator_state": "ready",
+        "authority_state": "wrong_scope",
+        "link_state": "available",
+        "local_contingency": "ready",
+        "target_source_class": "local_sensor"
+      },
+      "events": [
+        {
+          "kind": "takeover_requested",
+          "actor": "autonomy",
+          "after_ms": 0
+        },
+        {
+          "kind": "packet_delivered",
+          "actor": "roc",
+          "after_ms": 100
+        },
+        {
+          "kind": "transfer_accepted",
+          "actor": "operator",
+          "after_ms": 700
+        },
+        {
+          "kind": "fallback_started",
+          "actor": "local_controller",
+          "after_ms": 800
+        }
+      ],
+      "expected": {
+        "disposition": "transfer_rejected",
+        "final_authority_owner": "local_controller",
+        "must_never_overlap": true,
+        "fallback_preserved": true,
+        "reconciliation_required": false,
+        "invariants": [
+          "no_wrong_scope_authority",
+          "preserve_local_contingency"
+        ]
+      }
+    },
+    {
+      "case_id": "negative-revoked-mid-transfer",
+      "case_class": "negative",
+      "description": "Authority is revoked after acceptance but before lease grant.",
+      "setup": {
+        "vessel_config": "synthetic-vessel-config-v0",
+        "active_mode": "bounded_autonomy",
+        "decision_clock": "monotonic_and_utc_bound",
+        "deadline_ms": 30000,
+        "packet_state": "current_complete",
+        "operator_state": "ready",
+        "authority_state": "revoked",
+        "link_state": "available",
+        "local_contingency": "ready",
+        "target_source_class": "local_sensor"
+      },
+      "events": [
+        {
+          "kind": "takeover_requested",
+          "actor": "autonomy",
+          "after_ms": 0
+        },
+        {
+          "kind": "packet_delivered",
+          "actor": "roc",
+          "after_ms": 100
+        },
+        {
+          "kind": "transfer_accepted",
+          "actor": "operator",
+          "after_ms": 600
+        },
+        {
+          "kind": "lease_revoked",
+          "actor": "authority",
+          "after_ms": 700
+        },
+        {
+          "kind": "fallback_started",
+          "actor": "local_controller",
+          "after_ms": 800
+        }
+      ],
+      "expected": {
+        "disposition": "transfer_rejected",
+        "final_authority_owner": "local_controller",
+        "must_never_overlap": true,
+        "fallback_preserved": true,
+        "reconciliation_required": false,
+        "invariants": [
+          "no_expired_authority",
+          "no_dual_authority"
+        ]
+      }
+    },
+    {
+      "case_id": "negative-no-ack-timeout",
+      "case_class": "negative",
+      "description": "No acknowledgement arrives before the declared deadline; local fallback continues.",
+      "setup": {
+        "vessel_config": "synthetic-vessel-config-v0",
+        "active_mode": "bounded_autonomy",
+        "decision_clock": "monotonic_and_utc_bound",
+        "deadline_ms": 30000,
+        "packet_state": "current_complete",
+        "operator_state": "ready",
+        "authority_state": "valid_scoped",
+        "link_state": "available",
+        "local_contingency": "ready",
+        "target_source_class": "local_sensor"
+      },
+      "events": [
+        {
+          "kind": "takeover_requested",
+          "actor": "autonomy",
+          "after_ms": 0
+        },
+        {
+          "kind": "packet_delivered",
+          "actor": "roc",
+          "after_ms": 100
+        },
+        {
+          "kind": "packet_opened",
+          "actor": "operator",
+          "after_ms": 500
+        },
+        {
+          "kind": "fallback_started",
+          "actor": "local_controller",
+          "after_ms": 30000
+        }
+      ],
+      "expected": {
+        "disposition": "fallback_continues",
+        "final_authority_owner": "local_controller",
+        "must_never_overlap": true,
+        "fallback_preserved": true,
+        "reconciliation_required": false,
+        "invariants": [
+          "no_unacknowledged_transfer",
+          "no_control_gap",
+          "preserve_local_contingency"
+        ]
+      }
+    },
+    {
+      "case_id": "negative-late-ack",
+      "case_class": "negative",
+      "description": "Acknowledgement after the deadline cannot retroactively authorize transfer.",
+      "setup": {
+        "vessel_config": "synthetic-vessel-config-v0",
+        "active_mode": "bounded_autonomy",
+        "decision_clock": "monotonic_and_utc_bound",
+        "deadline_ms": 30000,
+        "packet_state": "current_complete",
+        "operator_state": "ready",
+        "authority_state": "valid_scoped",
+        "link_state": "delayed",
+        "local_contingency": "ready",
+        "target_source_class": "local_sensor"
+      },
+      "events": [
+        {
+          "kind": "takeover_requested",
+          "actor": "autonomy",
+          "after_ms": 0
+        },
+        {
+          "kind": "packet_delivered",
+          "actor": "roc",
+          "after_ms": 100
+        },
+        {
+          "kind": "fallback_started",
+          "actor": "local_controller",
+          "after_ms": 30000
+        },
+        {
+          "kind": "transfer_acknowledged",
+          "actor": "roc",
+          "after_ms": 45000
+        }
+      ],
+      "expected": {
+        "disposition": "transfer_rejected",
+        "final_authority_owner": "local_controller",
+        "must_never_overlap": true,
+        "fallback_preserved": true,
+        "reconciliation_required": false,
+        "invariants": [
+          "no_unacknowledged_transfer",
+          "no_control_gap"
+        ]
+      }
+    },
+    {
+      "case_id": "ambiguity-ack-response-lost",
+      "case_class": "ambiguity",
+      "description": "Operator accepted but the transfer response is lost; outcome requires reconciliation, not duplicate command.",
+      "setup": {
+        "vessel_config": "synthetic-vessel-config-v0",
+        "active_mode": "bounded_autonomy",
+        "decision_clock": "monotonic_and_utc_bound",
+        "deadline_ms": 30000,
+        "packet_state": "current_complete",
+        "operator_state": "ready",
+        "authority_state": "valid_scoped",
+        "link_state": "partitioned",
+        "local_contingency": "ready",
+        "target_source_class": "local_sensor"
+      },
+      "events": [
+        {
+          "kind": "takeover_requested",
+          "actor": "autonomy",
+          "after_ms": 0
+        },
+        {
+          "kind": "packet_delivered",
+          "actor": "roc",
+          "after_ms": 100
+        },
+        {
+          "kind": "transfer_accepted",
+          "actor": "operator",
+          "after_ms": 600
+        },
+        {
+          "kind": "link_lost",
+          "actor": "roc",
+          "after_ms": 700
+        },
+        {
+          "kind": "fallback_started",
+          "actor": "local_controller",
+          "after_ms": 800
+        }
+      ],
+      "expected": {
+        "disposition": "reconciliation_required",
+        "final_authority_owner": "pending",
+        "must_never_overlap": true,
+        "fallback_preserved": true,
+        "reconciliation_required": true,
+        "invariants": [
+          "require_reconciliation",
+          "no_dual_authority",
+          "preserve_local_contingency"
+        ]
+      }
+    },
+    {
+      "case_id": "negative-operator-unavailable",
+      "case_class": "negative",
+      "description": "Declared remote operator is unavailable; no transfer is accepted.",
+      "setup": {
+        "vessel_config": "synthetic-vessel-config-v0",
+        "active_mode": "bounded_autonomy",
+        "decision_clock": "monotonic_and_utc_bound",
+        "deadline_ms": 30000,
+        "packet_state": "current_complete",
+        "operator_state": "unavailable",
+        "authority_state": "valid_scoped",
+        "link_state": "available",
+        "local_contingency": "ready",
+        "target_source_class": "local_sensor"
+      },
+      "events": [
+        {
+          "kind": "takeover_requested",
+          "actor": "autonomy",
+          "after_ms": 0
+        },
+        {
+          "kind": "operator_unavailable",
+          "actor": "roc",
+          "after_ms": 100
+        },
+        {
+          "kind": "fallback_started",
+          "actor": "local_controller",
+          "after_ms": 200
+        }
+      ],
+      "expected": {
+        "disposition": "operator_unavailable",
+        "final_authority_owner": "local_controller",
+        "must_never_overlap": true,
+        "fallback_preserved": true,
+        "reconciliation_required": false,
+        "invariants": [
+          "preserve_local_contingency",
+          "no_inferred_operator_consent"
+        ]
+      }
+    },
+    {
+      "case_id": "ambiguity-operator-overloaded",
+      "case_class": "ambiguity",
+      "description": "Operator is declared occupied by a concurrent incident; transfer requires fallback or reassignment.",
+      "setup": {
+        "vessel_config": "synthetic-vessel-config-v0",
+        "active_mode": "bounded_autonomy",
+        "decision_clock": "monotonic_and_utc_bound",
+        "deadline_ms": 30000,
+        "packet_state": "current_complete",
+        "operator_state": "overloaded",
+        "authority_state": "valid_scoped",
+        "link_state": "available",
+        "local_contingency": "ready",
+        "target_source_class": "local_sensor"
+      },
+      "events": [
+        {
+          "kind": "takeover_requested",
+          "actor": "autonomy",
+          "after_ms": 0
+        },
+        {
+          "kind": "packet_delivered",
+          "actor": "roc",
+          "after_ms": 100
+        },
+        {
+          "kind": "fallback_started",
+          "actor": "local_controller",
+          "after_ms": 20000
+        }
+      ],
+      "expected": {
+        "disposition": "operator_unavailable",
+        "final_authority_owner": "local_controller",
+        "must_never_overlap": true,
+        "fallback_preserved": true,
+        "reconciliation_required": false,
+        "invariants": [
+          "preserve_local_contingency",
+          "no_inferred_operator_consent"
+        ]
+      }
+    },
+    {
+      "case_id": "negative-comms-partition",
+      "case_class": "negative",
+      "description": "Communications fail before transfer acknowledgement; local fallback remains active.",
+      "setup": {
+        "vessel_config": "synthetic-vessel-config-v0",
+        "active_mode": "bounded_autonomy",
+        "decision_clock": "monotonic_and_utc_bound",
+        "deadline_ms": 30000,
+        "packet_state": "current_complete",
+        "operator_state": "ready",
+        "authority_state": "valid_scoped",
+        "link_state": "partitioned",
+        "local_contingency": "ready",
+        "target_source_class": "local_sensor"
+      },
+      "events": [
+        {
+          "kind": "takeover_requested",
+          "actor": "autonomy",
+          "after_ms": 0
+        },
+        {
+          "kind": "packet_delivered",
+          "actor": "roc",
+          "after_ms": 100
+        },
+        {
+          "kind": "link_lost",
+          "actor": "roc",
+          "after_ms": 500
+        },
+        {
+          "kind": "fallback_started",
+          "actor": "local_controller",
+          "after_ms": 1000
+        }
+      ],
+      "expected": {
+        "disposition": "fallback_continues",
+        "final_authority_owner": "local_controller",
+        "must_never_overlap": true,
+        "fallback_preserved": true,
+        "reconciliation_required": false,
+        "invariants": [
+          "no_control_gap",
+          "preserve_local_contingency"
+        ]
+      }
+    },
+    {
+      "case_id": "negative-duplicate-ack",
+      "case_class": "negative",
+      "description": "Duplicate acknowledgement with same transaction ID must not create a second authority grant.",
+      "setup": {
+        "vessel_config": "synthetic-vessel-config-v0",
+        "active_mode": "bounded_autonomy",
+        "decision_clock": "monotonic_and_utc_bound",
+        "deadline_ms": 30000,
+        "packet_state": "current_complete",
+        "operator_state": "ready",
+        "authority_state": "valid_scoped",
+        "link_state": "available",
+        "local_contingency": "ready",
+        "target_source_class": "local_sensor"
+      },
+      "events": [
+        {
+          "kind": "takeover_requested",
+          "actor": "autonomy",
+          "after_ms": 0
+        },
+        {
+          "kind": "packet_delivered",
+          "actor": "roc",
+          "after_ms": 100
+        },
+        {
+          "kind": "transfer_accepted",
+          "actor": "operator",
+          "after_ms": 600
+        },
+        {
+          "kind": "transfer_acknowledged",
+          "actor": "roc",
+          "after_ms": 800
+        },
+        {
+          "kind": "lease_granted",
+          "actor": "authority",
+          "after_ms": 900
+        },
+        {
+          "kind": "transfer_acknowledged",
+          "actor": "roc",
+          "after_ms": 950
+        }
+      ],
+      "expected": {
+        "disposition": "handover_accepted",
+        "final_authority_owner": "remote_operator",
+        "must_never_overlap": true,
+        "fallback_preserved": true,
+        "reconciliation_required": false,
+        "invariants": [
+          "no_duplicate_effect",
+          "no_dual_authority"
+        ]
+      }
+    },
+    {
+      "case_id": "ambiguity-alert-storm",
+      "case_class": "ambiguity",
+      "description": "Repeated/duplicated alerts for one incident must not fragment or reset the handover transaction.",
+      "setup": {
+        "vessel_config": "synthetic-vessel-config-v0",
+        "active_mode": "bounded_autonomy",
+        "decision_clock": "monotonic_and_utc_bound",
+        "deadline_ms": 30000,
+        "packet_state": "current_complete",
+        "operator_state": "ready",
+        "authority_state": "valid_scoped",
+        "link_state": "available",
+        "local_contingency": "ready",
+        "target_source_class": "local_sensor"
+      },
+      "events": [
+        {
+          "kind": "takeover_requested",
+          "actor": "autonomy",
+          "after_ms": 0
+        },
+        {
+          "kind": "takeover_requested",
+          "actor": "autonomy",
+          "after_ms": 50
+        },
+        {
+          "kind": "packet_delivered",
+          "actor": "roc",
+          "after_ms": 100
+        },
+        {
+          "kind": "packet_opened",
+          "actor": "operator",
+          "after_ms": 500
+        },
+        {
+          "kind": "transfer_accepted",
+          "actor": "operator",
+          "after_ms": 900
+        },
+        {
+          "kind": "transfer_acknowledged",
+          "actor": "roc",
+          "after_ms": 1100
+        },
+        {
+          "kind": "lease_granted",
+          "actor": "authority",
+          "after_ms": 1200
+        }
+      ],
+      "expected": {
+        "disposition": "handover_accepted",
+        "final_authority_owner": "remote_operator",
+        "must_never_overlap": true,
+        "fallback_preserved": true,
+        "reconciliation_required": false,
+        "invariants": [
+          "no_duplicate_effect",
+          "no_dual_authority"
+        ]
+      }
+    },
+    {
+      "case_id": "negative-mode-display-mismatch",
+      "case_class": "negative",
+      "description": "Displayed autonomy mode disagrees with the source-bound function allocation.",
+      "setup": {
+        "vessel_config": "synthetic-vessel-config-v0",
+        "active_mode": "bounded_autonomy",
+        "decision_clock": "monotonic_and_utc_bound",
+        "deadline_ms": 30000,
+        "packet_state": "conflicted",
+        "operator_state": "ready",
+        "authority_state": "valid_scoped",
+        "link_state": "available",
+        "local_contingency": "ready",
+        "target_source_class": "mixed_or_unknown"
+      },
+      "events": [
+        {
+          "kind": "takeover_requested",
+          "actor": "autonomy",
+          "after_ms": 0
+        },
+        {
+          "kind": "packet_delivered",
+          "actor": "roc",
+          "after_ms": 100
+        },
+        {
+          "kind": "clarification_requested",
+          "actor": "operator",
+          "after_ms": 500
+        }
+      ],
+      "expected": {
+        "disposition": "clarification_required",
+        "final_authority_owner": "local_controller",
+        "must_never_overlap": true,
+        "fallback_preserved": true,
+        "reconciliation_required": false,
+        "invariants": [
+          "no_control_gap",
+          "preserve_local_contingency"
+        ]
+      }
+    },
+    {
+      "case_id": "recovery-local-fallback-active",
+      "case_class": "recovery",
+      "description": "Operator receives a packet showing a local contingency already executing and does not restart or cancel it blindly.",
+      "setup": {
+        "vessel_config": "synthetic-vessel-config-v0",
+        "active_mode": "bounded_autonomy",
+        "decision_clock": "monotonic_and_utc_bound",
+        "deadline_ms": 30000,
+        "packet_state": "current_complete",
+        "operator_state": "ready",
+        "authority_state": "valid_scoped",
+        "link_state": "available",
+        "local_contingency": "active",
+        "target_source_class": "local_sensor"
+      },
+      "events": [
+        {
+          "kind": "takeover_requested",
+          "actor": "autonomy",
+          "after_ms": 0
+        },
+        {
+          "kind": "packet_delivered",
+          "actor": "roc",
+          "after_ms": 100
+        },
+        {
+          "kind": "packet_opened",
+          "actor": "operator",
+          "after_ms": 500
+        },
+        {
+          "kind": "transfer_accepted",
+          "actor": "operator",
+          "after_ms": 900
+        },
+        {
+          "kind": "transfer_acknowledged",
+          "actor": "roc",
+          "after_ms": 1100
+        },
+        {
+          "kind": "lease_granted",
+          "actor": "authority",
+          "after_ms": 1200
+        }
+      ],
+      "expected": {
+        "disposition": "handover_accepted",
+        "final_authority_owner": "remote_operator",
+        "must_never_overlap": true,
+        "fallback_preserved": true,
+        "reconciliation_required": false,
+        "invariants": [
+          "no_dual_authority",
+          "preserve_local_contingency"
+        ]
+      }
+    },
+    {
+      "case_id": "negative-fallback-unknown",
+      "case_class": "negative",
+      "description": "Required local contingency is unknown; evaluator must not invent one or claim successful safe handover.",
+      "setup": {
+        "vessel_config": "synthetic-vessel-config-v0",
+        "active_mode": "bounded_autonomy",
+        "decision_clock": "monotonic_and_utc_bound",
+        "deadline_ms": 30000,
+        "packet_state": "current_complete",
+        "operator_state": "ready",
+        "authority_state": "valid_scoped",
+        "link_state": "available",
+        "local_contingency": "unknown",
+        "target_source_class": "local_sensor"
+      },
+      "events": [
+        {
+          "kind": "takeover_requested",
+          "actor": "autonomy",
+          "after_ms": 0
+        },
+        {
+          "kind": "packet_delivered",
+          "actor": "roc",
+          "after_ms": 100
+        }
+      ],
+      "expected": {
+        "disposition": "unsupported",
+        "final_authority_owner": "local_controller",
+        "must_never_overlap": true,
+        "fallback_preserved": true,
+        "reconciliation_required": false,
+        "invariants": [
+          "preserve_local_contingency",
+          "no_control_gap"
+        ]
+      }
+    },
+    {
+      "case_id": "recovery-valid-reentry",
+      "case_class": "recovery",
+      "description": "After recovery, fresh checks and a valid approval permit a scoped return to bounded autonomy.",
+      "setup": {
+        "vessel_config": "synthetic-vessel-config-v0",
+        "active_mode": "bounded_autonomy",
+        "decision_clock": "monotonic_and_utc_bound",
+        "deadline_ms": 30000,
+        "packet_state": "current_complete",
+        "operator_state": "ready",
+        "authority_state": "valid_scoped",
+        "link_state": "available",
+        "local_contingency": "ready",
+        "target_source_class": "local_sensor"
+      },
+      "events": [
+        {
+          "kind": "reentry_requested",
+          "actor": "operator",
+          "after_ms": 0
+        },
+        {
+          "kind": "packet_published",
+          "actor": "autonomy",
+          "after_ms": 100
+        },
+        {
+          "kind": "packet_delivered",
+          "actor": "roc",
+          "after_ms": 200
+        },
+        {
+          "kind": "reentry_accepted",
+          "actor": "authority",
+          "after_ms": 900
+        }
+      ],
+      "expected": {
+        "disposition": "reentry_accepted",
+        "final_authority_owner": "local_controller",
+        "must_never_overlap": true,
+        "fallback_preserved": true,
+        "reconciliation_required": false,
+        "invariants": [
+          "no_reentry_without_fresh_approval",
+          "positive_control"
+        ]
+      }
+    },
+    {
+      "case_id": "negative-reentry-stale-approval",
+      "case_class": "negative",
+      "description": "Prior approval is stale; re-entry to higher autonomy is blocked.",
+      "setup": {
+        "vessel_config": "synthetic-vessel-config-v0",
+        "active_mode": "bounded_autonomy",
+        "decision_clock": "monotonic_and_utc_bound",
+        "deadline_ms": 30000,
+        "packet_state": "stale",
+        "operator_state": "ready",
+        "authority_state": "expired",
+        "link_state": "available",
+        "local_contingency": "ready",
+        "target_source_class": "local_sensor"
+      },
+      "events": [
+        {
+          "kind": "reentry_requested",
+          "actor": "operator",
+          "after_ms": 0
+        },
+        {
+          "kind": "packet_delivered",
+          "actor": "roc",
+          "after_ms": 100
+        },
+        {
+          "kind": "reentry_accepted",
+          "actor": "authority",
+          "after_ms": 200
+        }
+      ],
+      "expected": {
+        "disposition": "reentry_blocked",
+        "final_authority_owner": "local_controller",
+        "must_never_overlap": true,
+        "fallback_preserved": true,
+        "reconciliation_required": false,
+        "invariants": [
+          "no_reentry_without_fresh_approval",
+          "no_stale_packet_acceptance"
+        ]
+      }
+    },
+    {
+      "case_id": "negative-reentry-config-changed",
+      "case_class": "negative",
+      "description": "Vessel software/configuration changed after the evidence and approval were issued.",
+      "setup": {
+        "vessel_config": "synthetic-vessel-config-v0",
+        "active_mode": "bounded_autonomy",
+        "decision_clock": "monotonic_and_utc_bound",
+        "deadline_ms": 30000,
+        "packet_state": "wrong_configuration",
+        "operator_state": "ready",
+        "authority_state": "valid_scoped",
+        "link_state": "available",
+        "local_contingency": "ready",
+        "target_source_class": "local_sensor"
+      },
+      "events": [
+        {
+          "kind": "config_changed",
+          "actor": "vessel",
+          "after_ms": 0
+        },
+        {
+          "kind": "reentry_requested",
+          "actor": "operator",
+          "after_ms": 100
+        },
+        {
+          "kind": "reentry_accepted",
+          "actor": "authority",
+          "after_ms": 800
+        }
+      ],
+      "expected": {
+        "disposition": "reentry_blocked",
+        "final_authority_owner": "local_controller",
+        "must_never_overlap": true,
+        "fallback_preserved": true,
+        "reconciliation_required": false,
+        "invariants": [
+          "no_reentry_without_fresh_approval"
+        ]
+      }
+    },
+    {
+      "case_id": "negative-future-event-time",
+      "case_class": "negative",
+      "description": "A future-dated observation is rejected and cannot be used for current mode transfer.",
+      "setup": {
+        "vessel_config": "synthetic-vessel-config-v0",
+        "active_mode": "bounded_autonomy",
+        "decision_clock": "monotonic_and_utc_bound",
+        "deadline_ms": 30000,
+        "packet_state": "conflicted",
+        "operator_state": "ready",
+        "authority_state": "valid_scoped",
+        "link_state": "available",
+        "local_contingency": "ready",
+        "target_source_class": "mixed_or_unknown"
+      },
+      "events": [
+        {
+          "kind": "takeover_requested",
+          "actor": "autonomy",
+          "after_ms": 0
+        },
+        {
+          "kind": "packet_delivered",
+          "actor": "roc",
+          "after_ms": 100
+        },
+        {
+          "kind": "fallback_started",
+          "actor": "local_controller",
+          "after_ms": 200
+        }
+      ],
+      "expected": {
+        "disposition": "transfer_rejected",
+        "final_authority_owner": "local_controller",
+        "must_never_overlap": true,
+        "fallback_preserved": true,
+        "reconciliation_required": false,
+        "invariants": [
+          "no_future_time_acceptance"
+        ]
+      }
+    },
+    {
+      "case_id": "negative-utc-monotonic-conflict",
+      "case_class": "negative",
+      "description": "UTC and monotonic clock mappings conflict beyond their declared tolerance.",
+      "setup": {
+        "vessel_config": "synthetic-vessel-config-v0",
+        "active_mode": "bounded_autonomy",
+        "decision_clock": "monotonic_and_utc_bound",
+        "deadline_ms": 30000,
+        "packet_state": "conflicted",
+        "operator_state": "ready",
+        "authority_state": "valid_scoped",
+        "link_state": "available",
+        "local_contingency": "ready",
+        "target_source_class": "mixed_or_unknown"
+      },
+      "events": [
+        {
+          "kind": "takeover_requested",
+          "actor": "autonomy",
+          "after_ms": 0
+        },
+        {
+          "kind": "packet_delivered",
+          "actor": "roc",
+          "after_ms": 100
+        },
+        {
+          "kind": "clarification_requested",
+          "actor": "operator",
+          "after_ms": 400
+        }
+      ],
+      "expected": {
+        "disposition": "clarification_required",
+        "final_authority_owner": "local_controller",
+        "must_never_overlap": true,
+        "fallback_preserved": true,
+        "reconciliation_required": false,
+        "invariants": [
+          "no_future_time_acceptance"
+        ]
+      }
+    },
+    {
+      "case_id": "metamorphic-event-duplicate",
+      "case_class": "metamorphic",
+      "description": "Transport duplication of idempotent packet-delivery events leaves the final disposition unchanged.",
+      "setup": {
+        "vessel_config": "synthetic-vessel-config-v0",
+        "active_mode": "bounded_autonomy",
+        "decision_clock": "monotonic_and_utc_bound",
+        "deadline_ms": 30000,
+        "packet_state": "current_complete",
+        "operator_state": "ready",
+        "authority_state": "valid_scoped",
+        "link_state": "available",
+        "local_contingency": "ready",
+        "target_source_class": "local_sensor"
+      },
+      "events": [
+        {
+          "kind": "takeover_requested",
+          "actor": "autonomy",
+          "after_ms": 0
+        },
+        {
+          "kind": "packet_delivered",
+          "actor": "roc",
+          "after_ms": 100
+        },
+        {
+          "kind": "packet_delivered",
+          "actor": "roc",
+          "after_ms": 100
+        },
+        {
+          "kind": "packet_opened",
+          "actor": "operator",
+          "after_ms": 500
+        },
+        {
+          "kind": "transfer_accepted",
+          "actor": "operator",
+          "after_ms": 800
+        },
+        {
+          "kind": "transfer_acknowledged",
+          "actor": "roc",
+          "after_ms": 1000
+        },
+        {
+          "kind": "lease_granted",
+          "actor": "authority",
+          "after_ms": 1100
+        }
+      ],
+      "expected": {
+        "disposition": "handover_accepted",
+        "final_authority_owner": "remote_operator",
+        "must_never_overlap": true,
+        "fallback_preserved": true,
+        "reconciliation_required": false,
+        "invariants": [
+          "no_duplicate_effect",
+          "no_dual_authority"
+        ]
+      }
+    },
+    {
+      "case_id": "metamorphic-source-presentation",
+      "case_class": "metamorphic",
+      "description": "Non-semantic field order/presentation changes do not change source roles or transfer disposition.",
+      "setup": {
+        "vessel_config": "synthetic-vessel-config-v0",
+        "active_mode": "bounded_autonomy",
+        "decision_clock": "monotonic_and_utc_bound",
+        "deadline_ms": 30000,
+        "packet_state": "current_complete",
+        "operator_state": "ready",
+        "authority_state": "valid_scoped",
+        "link_state": "available",
+        "local_contingency": "ready",
+        "target_source_class": "fused_with_lineage"
+      },
+      "events": [
+        {
+          "kind": "takeover_requested",
+          "actor": "autonomy",
+          "after_ms": 0
+        },
+        {
+          "kind": "packet_delivered",
+          "actor": "roc",
+          "after_ms": 100
+        },
+        {
+          "kind": "packet_opened",
+          "actor": "operator",
+          "after_ms": 400
+        },
+        {
+          "kind": "transfer_accepted",
+          "actor": "operator",
+          "after_ms": 800
+        },
+        {
+          "kind": "transfer_acknowledged",
+          "actor": "roc",
+          "after_ms": 1000
+        },
+        {
+          "kind": "lease_granted",
+          "actor": "authority",
+          "after_ms": 1100
+        }
+      ],
+      "expected": {
+        "disposition": "handover_accepted",
+        "final_authority_owner": "remote_operator",
+        "must_never_overlap": true,
+        "fallback_preserved": true,
+        "reconciliation_required": false,
+        "invariants": [
+          "no_source_role_promotion",
+          "no_dual_authority"
+        ]
+      }
+    },
+    {
+      "case_id": "negative-delayed-packet",
+      "case_class": "negative",
+      "description": "Packet arrives only after the handover deadline; no stale request can be revived.",
+      "setup": {
+        "vessel_config": "synthetic-vessel-config-v0",
+        "active_mode": "bounded_autonomy",
+        "decision_clock": "monotonic_and_utc_bound",
+        "deadline_ms": 30000,
+        "packet_state": "late_delivery",
+        "operator_state": "ready",
+        "authority_state": "valid_scoped",
+        "link_state": "delayed",
+        "local_contingency": "ready",
+        "target_source_class": "local_sensor"
+      },
+      "events": [
+        {
+          "kind": "takeover_requested",
+          "actor": "autonomy",
+          "after_ms": 0
+        },
+        {
+          "kind": "fallback_started",
+          "actor": "local_controller",
+          "after_ms": 30000
+        },
+        {
+          "kind": "packet_delivered",
+          "actor": "roc",
+          "after_ms": 35000
+        }
+      ],
+      "expected": {
+        "disposition": "fallback_continues",
+        "final_authority_owner": "local_controller",
+        "must_never_overlap": true,
+        "fallback_preserved": true,
+        "reconciliation_required": false,
+        "invariants": [
+          "no_stale_packet_acceptance",
+          "no_control_gap"
+        ]
+      }
+    },
+    {
+      "case_id": "negative-dual-lease",
+      "case_class": "negative",
+      "description": "Two overlapping command leases are proposed; the second grant is rejected.",
+      "setup": {
+        "vessel_config": "synthetic-vessel-config-v0",
+        "active_mode": "bounded_autonomy",
+        "decision_clock": "monotonic_and_utc_bound",
+        "deadline_ms": 30000,
+        "packet_state": "current_complete",
+        "operator_state": "ready",
+        "authority_state": "valid_scoped",
+        "link_state": "available",
+        "local_contingency": "ready",
+        "target_source_class": "local_sensor"
+      },
+      "events": [
+        {
+          "kind": "takeover_requested",
+          "actor": "autonomy",
+          "after_ms": 0
+        },
+        {
+          "kind": "packet_delivered",
+          "actor": "roc",
+          "after_ms": 100
+        },
+        {
+          "kind": "transfer_accepted",
+          "actor": "operator",
+          "after_ms": 600
+        },
+        {
+          "kind": "transfer_acknowledged",
+          "actor": "roc",
+          "after_ms": 700
+        },
+        {
+          "kind": "lease_granted",
+          "actor": "authority",
+          "after_ms": 800
+        },
+        {
+          "kind": "lease_granted",
+          "actor": "authority",
+          "after_ms": 900
+        }
+      ],
+      "expected": {
+        "disposition": "transfer_rejected",
+        "final_authority_owner": "local_controller",
+        "must_never_overlap": true,
+        "fallback_preserved": true,
+        "reconciliation_required": false,
+        "invariants": [
+          "no_dual_authority",
+          "no_duplicate_effect"
+        ]
+      }
+    },
+    {
+      "case_id": "negative-no-source-receipt",
+      "case_class": "negative",
+      "description": "A key target track has no admitted source receipt, so the packet is incomplete.",
+      "setup": {
+        "vessel_config": "synthetic-vessel-config-v0",
+        "active_mode": "bounded_autonomy",
+        "decision_clock": "monotonic_and_utc_bound",
+        "deadline_ms": 30000,
+        "packet_state": "missing_lineage",
+        "operator_state": "ready",
+        "authority_state": "valid_scoped",
+        "link_state": "available",
+        "local_contingency": "ready",
+        "target_source_class": "mixed_or_unknown"
+      },
+      "events": [
+        {
+          "kind": "takeover_requested",
+          "actor": "autonomy",
+          "after_ms": 0
+        },
+        {
+          "kind": "packet_delivered",
+          "actor": "roc",
+          "after_ms": 100
+        },
+        {
+          "kind": "clarification_requested",
+          "actor": "operator",
+          "after_ms": 500
+        }
+      ],
+      "expected": {
+        "disposition": "clarification_required",
+        "final_authority_owner": "local_controller",
+        "must_never_overlap": true,
+        "fallback_preserved": true,
+        "reconciliation_required": false,
+        "invariants": [
+          "no_source_role_promotion",
+          "preserve_local_contingency"
+        ]
+      }
+    }
+  ]
+}
