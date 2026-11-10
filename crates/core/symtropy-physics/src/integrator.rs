@@ -3,10 +3,14 @@
 // Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
 //! Semi-implicit Euler integrator for ND rigid body dynamics.
 //!
-//! Angular velocity is a bivector (element of `so(D)`) integrated through the
-//! rotation-group exponential map. This is exact for simultaneous independent
-//! rotation planes (including 4D double rotations); it does not rely on the
-//! single-plane Rodrigues formula.
+//! Stored angular velocity is a bivector (element of `so(D)`) integrated
+//! through the rotation-group exponential map. The convention is paired with
+//! `Rotor::from_bivector(B) = exp(-B)`: a material point at world offset `r`
+//! therefore has physical angular velocity `-B*r`. Contact, friction and
+//! restitution must use `angular_point_velocity`, while off-centre impulses
+//! use `angular_impulse_from_point`. This is exact for simultaneous
+//! independent rotation planes (including 4D double rotations); it does not
+//! rely on the single-plane Rodrigues formula.
 
 use crate::body::RigidBody;
 use nalgebra::SVector;
