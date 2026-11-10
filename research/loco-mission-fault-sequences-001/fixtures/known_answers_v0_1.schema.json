@@ -52,7 +52,8 @@
         "thermal_model_digest",
         "thermal_receipt_ref",
         "thermal_valid_through_tick",
-        "thermal_nodes"
+        "thermal_nodes",
+        "thermal_state_digest"
       ],
       "additionalProperties": false,
       "properties": {
@@ -95,6 +96,9 @@
           "items": {
             "$ref": "#/$defs/thermalNode"
           }
+        },
+        "thermal_state_digest": {
+          "$ref": "#/$defs/str"
         }
       }
     },
@@ -147,7 +151,9 @@
             "context_digest",
             "model_digest",
             "manifest_digest",
-            "valid_through_tick"
+            "valid_through_tick",
+            "prior_thermal_state_digest",
+            "resulting_thermal_state_digest"
           ],
           "additionalProperties": false,
           "properties": {
@@ -166,6 +172,12 @@
             "valid_through_tick": {
               "type": "integer",
               "minimum": 0
+            },
+            "prior_thermal_state_digest": {
+              "$ref": "#/$defs/str"
+            },
+            "resulting_thermal_state_digest": {
+              "$ref": "#/$defs/str"
             }
           }
         },
