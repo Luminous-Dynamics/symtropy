@@ -647,7 +647,8 @@ mod tests {
         assert!(tipping.lambda > 1.0);
         assert!(tipping.lambda <= tipping.search_max);
         assert!(tipping.upper_bracket - tipping.lower_bracket <= tipping.tolerance + 1e-12);
-        let (source_by_modifier, _) = validate_source_strata(&source_strata()).unwrap();
+        let source = source_strata();
+        let (source_by_modifier, _) = validate_source_strata(&source).unwrap();
         let lower_point = evaluate_lambda(
             tipping.lower_bracket,
             &source_by_modifier,
