@@ -7,15 +7,14 @@
     "handedness": "right_handed"
   },
   "query_contract": {
-    "direction_normalization": "unit_length_required",
-    "intersection_epsilon_m": 1e-8,
+    "clipping_policy": "open_interval_with_epsilon_guard",
+    "clip_endpoint_guard_epsilon_m": 1e-8,
     "nearest_hit_tie_epsilon_m": 1e-8,
+    "determinant_epsilon_m2": 1e-12,
+    "barycentric_epsilon": 1e-12,
     "triangle_sidedness": "two_sided",
     "self_hit_exclusion": "exact_surface_id_and_triangle_id",
-    "expected_hit_policy": "all_hits_within_nearest_hit_tie_epsilon",
-    "parallel_cosine_epsilon": 1e-12,
-    "barycentric_epsilon": 1e-12,
-    "coplanar_policy": "miss"
+    "expected_hit_policy": "all_hits_within_nearest_hit_tie_epsilon"
   },
   "triangles": [
     {
