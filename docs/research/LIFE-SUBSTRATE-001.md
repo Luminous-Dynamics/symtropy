@@ -579,3 +579,104 @@ Do not turn this RFC into an umbrella that replaces the existing owners. OLI own
 - Mycelix composition recorded in [CIVOS-EVIDENCE-001 #5709](https://github.com/Luminous-Dynamics/mycelix/issues/5709): OLI claims and observations map to existing provenance/rights primitives; no second evidence ledger is planned.
 
 - Symtropy [OLI-M0 executable slice draft PR #4428](https://github.com/Luminous-Dynamics/symtropy/pull/4428): six fixtures, v0.1 JSON Schema, Rust semantic validator, root workspace/lockfile registration, and a targeted CI test step. Its CI state must be checked on the exact PR head; a queued run is not qualification evidence.
+
+
+## 17. State-of-the-art comparison and 10 November 2026 literature update
+
+This section clarifies where OLI can compete, what is already mature, and what is not a defensible novelty claim.
+
+### 17.1 Astrobiology: mission-planning and evidence-argument tools
+
+**NASA Ladder of Life Detection** is a community discussion and measurement framework, not a final classifier or endorsed instrument ranking. It explicitly considers signal specificity, false-positive ambiguity, detectability, repeatability, survivability, contextual compatibility and interpretive ambiguity. OLI must preserve those distinctions and should export traceability-compatible evidence rather than present itself as a replacement ladder.
+
+Reference: https://science.nasa.gov/astrobiology/researchers/life-detection-resources/ladder-of-life-detection/
+
+**NASA Life Detection Knowledge Base (LDKB)** already captures expert-derived evidence about potential life signatures and abiotic false-positive / false-negative behavior. It is complemented by a Measurement Technology Module and Science Traceability Tool linking measurement objectives to instrument capability. OLI's contribution should be a machine-executable, causal, substrate-extensible benchmark and evidence adapter that can interoperate with LDKB concepts—not a claim to replace expert literature synthesis or mission payload engineering.
+
+Reference: https://science.nasa.gov/astrobiology/researchers/life-detection-resources/ldkb/
+
+**Graham (2026), Agnostic Biosignatures**, Annual Review of Earth and Planetary Sciences 54:585–604, establishes the current conceptual direction: biosignatures should reflect fundamental properties of living systems, not merely Earth-life analogues. This validates OLI's substrate-neutral property profile, but the high-level idea is not new. OLI must add executable tests, rival mechanisms, intervention design and reproducible evidence.
+
+Reference: https://doi.org/10.1146/annurev-earth-040722-101044
+
+### 17.2 False-negative risk and abiotic baselines are now central design constraints
+
+**ten Kate et al. (2026), False negatives in the search for extraterrestrial life**, *Nature Astronomy* 10:624–629, calls for deliberate research on abundance, activity, appearance, location, preservation, detectability and method limitations. OLI's temporal and spatial sampling tasks must model these as distinct conditional causes of missed detection, not collapse them into a detector sensitivity number.
+
+Reference: https://doi.org/10.1038/s41550-026-02863-0
+
+**Higgins et al. (2026), A framework for evaluating biosignature potential against the abiotic baseline on ocean worlds**, *Nature Astronomy* 10:1309–1322, published 17 June 2026, quantifies abiotic-baseline uncertainty for Enceladus methane isotopes and amino-acid chirality. It shows how unbounded/poorly constrained abiotic chemistry can prevent seemingly promising signals from supporting a definitive biosphere inference; complementary geophysical context is necessary.
+
+Reference: https://doi.org/10.1038/s41550-026-02893-8
+
+**OLI consequence:** every proposed biosignature or functional property needs (a) a target mechanism, (b) the relevant abiotic generator families, (c) environmental-context uncertainty, (d) observability / preservation / sampling conditions, and (e) a pre-registered outcome that would actually discriminate the explanations.
+
+### 17.3 Molecular ML: strong narrow comparator, not a universal detector
+
+Cleaves et al. (2023), *A robust, agnostic molecular biosignature based on machine learning*, used pyrolysis-GC-EI-MS data and random forests across 134 samples and reported approximately 90% correct biogenicity prediction, nested-CV testing error 10.4%, and AUROC 91.2%.
+
+Reference: https://doi.org/10.1073/pnas.2307149120
+
+OLI should reproduce this as a source-specific molecular task if the data and licensing allow. It is not valid to compare that molecular assay's AUC to a plasma-trajectory physics model, nor to interpret it as detection across non-carbon substrates. Required extensions are sample/specimen holdouts, instrument/lab holdouts, abiotic process family holdouts, environmental context and calibration/coverage reporting.
+
+### 17.4 Artificial life: use MODES, but do not worship a fixed scalar
+
+Dolson et al. (2019), *The MODES Toolbox*, provides comparative measures for change, novelty, complexity and ecological potential. It tested the proposed measurements across NK landscapes and Avida digital evolution.
+
+Reference: https://doi.org/10.1162/artl_a_00280
+
+Stepney & Hickinbotham (2024), *On the Open-Endedness of Detecting Open-Endedness*, argues that an open-ended system may eventually leave the model class used to measure it. They advocate starting with system-generic measures and then developing system-specific analyses of the new mechanisms.
+
+Reference: https://doi.org/10.1162/artl_a_00399
+
+OLI must therefore publish:
+- standard, comparable metrics (including MODES where the benchmark is an evolving system);
+- shadow-run and persistence-filter controls to separate adaptive novelty from stochastic/abiotic activity;
+- mechanism-level analysis and novel-system-specific metrics when held-out behavior leaves the known measurement model;
+- explicit metric inadequacy outcomes.
+
+A higher fixed novelty score is not sufficient evidence of open-ended evolution.
+
+### 17.5 Dusty plasma: a real physical-discovery benchmark, not a life benchmark
+
+Yu et al. (2025), *Physics-tailored machine learning reveals unexpected physics in dusty plasmas*, PNAS 122(31), e2505725122, uses 3D laboratory particle trajectories and a physics-tailored pairwise model to infer effective nonreciprocal forces; it reports \(R^2>0.99\), with independent mass-inference paths and microscopy-related checks. The model helped expose deviations from simplified charging/screening assumptions.
+
+Reference: https://doi.org/10.1073/pnas.2505725122
+
+Repository/source audit:
+- The paper identifies https://github.com/wyu54/many-body-force-infer as its supplemental code/data location.
+- The repository README lists a legacy Python stack, including TensorFlow 2.4, plus NumPy, pandas, SymPy, SciPy, scikit-learn and Jupyter.
+- Its \`ForceInfer.py\` implementation describes an in-plane pairwise interaction output whose amplitude can depend on the third spatial coordinate; do not describe the released model as generic full-3D vector-force inference.
+- The custom \`myr2\` metric uses MSE divided by an uncentered second moment \(E[y^2]\), rather than conventional centered total variance. Recompute conventional \(R^2\), MAE, RMSE, residuals and uncertainty independently.
+- The source uses contiguous time-block validation within data files; this alone is not whole-experiment, cross-instrument or regime-shift validation.
+- No repository \`LICENSE\`, \`LICENSE.txt\` or \`LICENSE.md\` was found in the inspected public tree. Do not copy, vendor, or redistribute its code/data without explicit rights clarification. The PNAS article's CC BY-NC-ND licence is not an automatic licence for a separate repository.
+- The current OLI dusty-plasma fixture therefore remains metadata-only; raw data, cadence, units, calibration and coverage remain unknown until rights and exact bytes are admitted.
+
+These are not reasons to abandon the comparator. They define a disciplined clean-room reproduction: pin the source protocol and rights, independently implement the published mathematical method in Rust where feasible, preserve a source-reproduction profile, then add whole-experiment and whole-regime tests.
+
+### 17.6 What SOTA means for OLI
+
+Do not publish one cross-domain leaderboard mixing incompatible targets. Use a family of matched leaderboards:
+
+| Benchmark lane | Mature external comparator | OLI's credible competitive contribution |
+|---|---|---|
+| Life-detection evidence planning | NASA Ladder / LDKB / science traceability | Interoperable, executable property/evidence contracts; explicit causal and coverage blind spots |
+| Molecular biosignature classification | Cleaves et al. 2023 narrow Pyr-GC-EI-MS task | Lab/specimen/source OOD, abiotic-family holdouts, calibrated abstention |
+| Environmental abiotic-baseline reasoning | Higgins et al. 2026 ocean-world framework | Generalized machine-executable rival-mechanism and uncertainty contracts across substrate families |
+| False-negative accounting | ten Kate et al. 2026 perspective | Conditional spatiotemporal detectability benchmark with hidden-truth coverage and correlated revisits |
+| Artificial evolution | MODES and Avida/NK comparisons | Mechanism-aware novelty, shadow runs, lineage/collective transitions, metric-adequacy checks |
+| Dusty-plasma physics inference | Yu et al. 2025 | Source-faithful reproduction, independent physical diagnostics, experiment/regime holdouts, Rust-native reproducible path |
+| Experiment selection | Existing EIG, D-optimal, multifidelity and model-disagreement methods | OLI property-specific hypotheses, omitted-mechanism adequacy gate, robust evidence value and safe abstention |
+
+### 17.7 Preregistered performance principles
+
+- No headline AUC without a stated population, unit of independent replication, target label, source domain and split law.
+- No random frame/window split when the true unit of generalization is specimen, physical experiment, site, instrument or generator family.
+- No global accuracy comparison across unrelated modalities.
+- No claim of SOTA from synthetic fixtures alone.
+- No aggregate score that can conceal false life attribution, false agency, false heredity, false absence or inadmissible intervention.
+- Always publish the best simple/mechanistic baseline and an ablation of the novel component.
+- Require a sealed test set and independent reproduction before public performance claims.
+- Where sample counts are small, publish exact uncertainty intervals and do not imply high confidence from correlated observations.
+
+The intended differentiator is **evidence-to-experiment continuity**: a system can state a property hypothesis, identify rival physical mechanisms, register quantitative predictions, select an admissible discriminating observation, account for what was actually observed, detect model inadequacy, and preserve the result's provenance and limitations across all four Luminous systems.
