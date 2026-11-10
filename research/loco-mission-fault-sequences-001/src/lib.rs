@@ -377,18 +377,6 @@ pub fn replay(
         next.actuator_authority_ppm = next
             .actuator_authority_ppm
             .saturating_sub(event.actuator_authority_loss_ppm);
-        if event.thermal_headroom_loss_mj > next.thermal_headroom_mj {
-            next.thermal_headroom_mj = 0;
-            return Ok(stopped(
-                MissionStatus::Rejected,
-                StopReason::ThermalHeadroomExhausted,
-                Some(event.event_id.clone()),
-                &next,
-                snapshots,
-            ));
-        }
-        next.thermal_headroom_mj -= event.thermal_headroom_loss_mj;
-
         // Apply the complete source-qualified whole-body thermal snapshot.
         // A missing/stale node update is Unknown, never assumed unchanged.
         let thermal_receipt = match &event.thermal_update_receipt {
@@ -477,6 +465,18 @@ pub fn replay(
                 snapshots,
             ));
         }
+
+        if event.thermal_headroom_loss_mj > next.thermal_headroom_mj {
+            next.thermal_headroom_mj = 0;
+            return Ok(stopped(
+                MissionStatus::Rejected,
+                StopReason::ThermalHeadroomExhausted,
+                Some(event.event_id.clone()),
+                &next,
+                snapshots,
+            ));
+        }
+        next.thermal_headroom_mj -= event.thermal_headroom_loss_mj;
 
         // A fault may change recoverability even when the proposed action
         // cannot be executed. Require a fresh post-event topology receipt.
@@ -988,9 +988,22 @@ mod tests {
     }
 
     #[test]
+    fn aggregate_thermal_exhaustion_still_records_per_node_snapshot() {
+        let mut event = event("thermal-budget-exhaustion", 1);
+        event.thermal_headroom_loss_mj = 600;
+        event.thermal_node_updates[0].temperature_milli_c = 99_000;
+        let report = replay(&initial(), &[event]).unwrap();
+        assert_eq!(report.status, MissionStatus::Rejected);
+        assert_eq!(report.stop_reason, Some(StopReason::ThermalHeadroomExhausted));
+        assert_eq!(report.final_state.thermal_nodes[0].temperature_milli_c, 99_000);
+        assert_eq!(report.final_state.current_tick, 1);
+    }
+
+    #[test]
     fn initial_thermal_nodes_must_have_unique_ids() {
         let mut state = initial();
-        state.thermal_nodes.push(state.thermal_nodes[0].clone());
+        let duplicate = state.thermal_nodes[0].clone();
+        state.thermal_nodes.push(duplicate);
         let result = replay(&state, &[]);
         assert_eq!(
             result,
