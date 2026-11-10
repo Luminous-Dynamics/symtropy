@@ -1,0 +1,9 @@
+[package]
+name = "loco-mission-fault-sequences"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Deterministic mission reserve carryover reference for sequential legged-robot disturbances"
+
+[workspace]
