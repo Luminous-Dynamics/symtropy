@@ -460,6 +460,8 @@ impl SoftwareCameraRenderer {
         receipt.observation_id = observation_identity_digest(&receipt);
         receipt.receipt_sha256 = policy_receipt_digest(&receipt);
 
+        let mut actor_records = snapshot.actors.iter().collect::<Vec<_>>();
+        actor_records.sort_by(|left, right| left.actor_id.cmp(&right.actor_id));
         let evaluator_audit = EvaluatorObservationAudit {
             episode_id: snapshot.episode_id.clone(),
             scenario_id: snapshot.scenario_id.clone(),
@@ -468,9 +470,21 @@ impl SoftwareCameraRenderer {
             tick: snapshot.tick,
             simulator_revision: snapshot.simulator_revision.clone(),
             world_snapshot_sha256: world_snapshot_digest(snapshot),
-            road_ids: snapshot.road_markings.iter().map(|road| road.road_id.clone()).collect::<BTreeSet<_>>().into_iter().collect(),
-            actor_ids: snapshot.actors.iter().map(|actor| actor.actor_id.clone()).collect(),
-            actor_policy_revisions: snapshot.actors.iter().map(|actor| actor.actor_policy_revision.clone()).collect(),
+            road_ids: snapshot
+                .road_markings
+                .iter()
+                .map(|road| road.road_id.clone())
+                .collect::<BTreeSet<_>>()
+                .into_iter()
+                .collect(),
+            actor_ids: actor_records
+                .iter()
+                .map(|actor| actor.actor_id.clone())
+                .collect(),
+            actor_policy_revisions: actor_records
+                .iter()
+                .map(|actor| actor.actor_policy_revision.clone())
+                .collect(),
             renderer_revision: RENDERER_REVISION.to_string(),
         };
         Ok(RenderedObservation {
@@ -1323,6 +1337,19 @@ mod tests {
     }
 
     #[test]
+    fn reordered_road_and_actor_vectors_preserve_frame_and_receipts() {
+        let first_snapshot = snapshot();
+        let mut reordered = snapshot();
+        reordered.road_markings.reverse();
+        reordered.actors.reverse();
+        let first = SoftwareCameraRenderer::render(&first_snapshot, 1, clocks()).unwrap();
+        let second = SoftwareCameraRenderer::render(&reordered, 1, clocks()).unwrap();
+        assert_eq!(first.pixels_rgb, second.pixels_rgb);
+        assert_eq!(first.policy_receipt, second.policy_receipt);
+        assert_eq!(first.evaluator_audit, second.evaluator_audit);
+    }
+
+    #[test]
     fn changed_applied_action_identity_changes_receipt_not_image() {
         let first_snapshot = snapshot();
         let mut second_snapshot = snapshot();
@@ -1345,6 +1372,16 @@ mod tests {
         assert_ne!(
             first.policy_receipt.receipt_sha256,
             second.policy_receipt.receipt_sha256
+        );
+    }
+
+    #[test]
+    fn malformed_applied_action_receipt_digest_is_rejected() {
+        let mut world = snapshot();
+        world.applied_action.as_mut().unwrap().receipt_sha256 = "not-a-sha256".into();
+        assert_eq!(
+            SoftwareCameraRenderer::render(&world, 1, clocks()).err(),
+            Some(RenderError::InvalidActionReceiptDigest)
         );
     }
 
