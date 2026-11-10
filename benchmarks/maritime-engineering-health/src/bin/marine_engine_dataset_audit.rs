@@ -617,7 +617,7 @@ fn inspect_csv(path: &str, role: &str, bytes: &[u8]) -> Result<CsvAudit, String>
         })
         .collect::<Vec<_>>();
 
-    let anomaly_only_expected = path.to_ascii_lowercase().contains("nozzle2_loadprogram");
+    let anomaly_only_expected = path.to_ascii_lowercase().contains("injector_nozzle");
     let anomaly_only_observed = anomaly_label_column
         .map(|_| anomaly_zero_rows == 0 && anomaly_one_rows > 0 && anomaly_invalid_rows == 0);
     let anomaly_onset_evaluable = anomaly_label_column
@@ -1146,18 +1146,18 @@ mod tests {
     }
 
     #[test]
-    fn anomaly_only_nozzle_file_is_checked_without_inventing_onset() {
+    fn both_injector_nozzle_files_are_anomaly_only_and_not_onset_evaluable() {
         let data = synthetic_scenario_csv(&[("100", "0", "1"), ("101", "1", "1")]);
-        let audit = inspect_csv(
+        for path in [
+            "Injector_Nozzle/Clogged_Injector_Nozzle1_40_60_85_Load.csv",
             "Injector_Nozzle/Clogged_Injector_Nozzle2_LoadProgram.csv",
-            "scenario_csv",
-            data.as_bytes(),
-        )
-        .unwrap();
-        assert!(audit.anomaly_only_expected);
-        assert_eq!(audit.anomaly_only_observed, Some(true));
-        assert_eq!(audit.anomaly_onset_transitions, 0);
-        assert_eq!(audit.anomaly_onset_evaluable, Some(false));
+        ] {
+            let audit = inspect_csv(path, "scenario_csv", data.as_bytes()).unwrap();
+            assert!(audit.anomaly_only_expected, "{path}");
+            assert_eq!(audit.anomaly_only_observed, Some(true), "{path}");
+            assert_eq!(audit.anomaly_onset_transitions, 0, "{path}");
+            assert_eq!(audit.anomaly_onset_evaluable, Some(false), "{path}");
+        }
     }
 
     #[test]
