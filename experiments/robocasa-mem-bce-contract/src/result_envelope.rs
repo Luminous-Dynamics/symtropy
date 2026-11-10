@@ -414,6 +414,8 @@ pub enum ImportError {
     DuplicateBceReceipt,
     UnsetArtifactDigest,
     MatchedControlMismatch,
+    EmptyAggregate,
+    MixedAggregateGroup,
     NonComparableRunIdentity,
 }
 
@@ -433,11 +435,34 @@ pub enum QualificationBlocker {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct StageRateCount {
+    pub stage_id: String,
+    pub succeeded: usize,
+    pub failed: usize,
+    pub unresolved: usize,
+    pub not_applicable: usize,
+}
+
+impl StageRateCount {
+    pub fn denominator(&self) -> usize {
+        self.succeeded + self.failed + self.unresolved
+    }
+
+    pub fn success_rate(&self) -> Option<(usize, usize)> {
+        let denominator = self.denominator();
+        (denominator > 0).then_some((self.succeeded, denominator))
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StageCompletionCounts {
     pub succeeded: usize,
     pub failed: usize,
     pub unresolved: usize,
     pub not_applicable: usize,
+    /// Preserve the numerator/denominator for each predefined evaluation
+    /// stage. These denominators may differ across a task's episode set.
+    pub per_stage: Vec<StageRateCount>,
 }
 
 impl StageCompletionCounts {
@@ -449,12 +474,63 @@ impl StageCompletionCounts {
         self.succeeded
     }
 
-    /// Returns a raw ratio only. Official benchmark aggregation may macro-
-    /// average stage/task groups with different denominators.
+    /// Pooled stage ratio. Diagnostic only: this is not the paper's SCR macro
+    /// aggregation when stage denominators differ.
     pub fn micro_success_rate(&self) -> Option<(usize, usize)> {
         let denominator = self.denominator();
         (denominator > 0).then_some((self.succeeded, denominator))
     }
+
+    /// Macro-average of per-stage success rates (the SCR form described in
+    /// the RoboCasa-Mem paper). Returns None if any predefined stage has no
+    /// applicable observations, so missing denominators cannot disappear.
+    pub fn macro_stage_success_rate(&self) -> Option<f64> {
+        if self.per_stage.is_empty() {
+            return None;
+        }
+        let rates: Option<Vec<f64>> = self
+            .per_stage
+            .iter()
+            .map(|stage| {
+                let (successes, denominator) = stage.success_rate()?;
+                Some(successes as f64 / denominator as f64)
+            })
+            .collect();
+        let rates = rates?;
+        Some(rates.iter().sum::<f64>() / rates.len() as f64)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TerminalOutcomeCounts {
+    pub succeeded: usize,
+    pub failed: usize,
+    pub unresolved: usize,
+}
+
+impl TerminalOutcomeCounts {
+    pub fn attempt_count(&self) -> usize {
+        self.succeeded + self.failed + self.unresolved
+    }
+
+    /// All-attempt terminal success ratio; unresolved attempts remain in the
+    /// denominator as not established successes.
+    pub fn success_rate_over_attempts(&self) -> Option<(usize, usize)> {
+        let denominator = self.attempt_count();
+        (denominator > 0).then_some((self.succeeded, denominator))
+    }
+
+    /// Resolved-only ratio, published alongside the all-attempt denominator.
+    pub fn success_rate_over_resolved(&self) -> Option<(usize, usize)> {
+        let denominator = self.succeeded + self.failed;
+        (denominator > 0).then_some((self.succeeded, denominator))
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MemoryEvaluationAggregate {
+    pub terminal_counts: TerminalOutcomeCounts,
+    pub stage_counts: StageCompletionCounts,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -489,6 +565,7 @@ impl MemoryEvaluationRecord {
             failed: 0,
             unresolved: 0,
             not_applicable: 0,
+            per_stage: Vec::with_capacity(self.stages.len()),
         };
         let mut seen = BTreeSet::new();
 
@@ -497,12 +574,32 @@ impl MemoryEvaluationRecord {
             if !seen.insert(stage.stage_id.clone()) {
                 return Err(ImportError::DuplicateStageId(stage.stage_id.clone()));
             }
+            let mut stage_count = StageRateCount {
+                stage_id: stage.stage_id.clone(),
+                succeeded: 0,
+                failed: 0,
+                unresolved: 0,
+                not_applicable: 0,
+            };
             match stage.disposition {
-                StageDisposition::Succeeded => counts.succeeded += 1,
-                StageDisposition::Failed => counts.failed += 1,
-                StageDisposition::Unresolved => counts.unresolved += 1,
-                StageDisposition::NotApplicable => counts.not_applicable += 1,
+                StageDisposition::Succeeded => {
+                    stage_count.succeeded = 1;
+                    counts.succeeded += 1;
+                }
+                StageDisposition::Failed => {
+                    stage_count.failed = 1;
+                    counts.failed += 1;
+                }
+                StageDisposition::Unresolved => {
+                    stage_count.unresolved = 1;
+                    counts.unresolved += 1;
+                }
+                StageDisposition::NotApplicable => {
+                    stage_count.not_applicable = 1;
+                    counts.not_applicable += 1;
+                }
             }
+            counts.per_stage.push(stage_count);
         }
 
         for expected in &self.task.expected_stage_ids {
@@ -587,6 +684,111 @@ impl MemoryEvaluationRecord {
             bce_decision_count: self.bce_receipts.len(),
             qualification_blockers: blockers,
         })
+    }
+
+    /// Aggregate a frozen task/policy/split arm across episode records.
+    /// Task, protocol, stage roster, policy and control identities must match;
+    /// per-episode ID, scene ID and seed may differ.
+    pub fn aggregate_task_records(
+        records: &[MemoryEvaluationRecord],
+    ) -> Result<MemoryEvaluationAggregate, ImportError> {
+        let first = records.first().ok_or(ImportError::EmptyAggregate)?;
+        first.validate()?;
+
+        let mut aggregate = MemoryEvaluationAggregate {
+            terminal_counts: TerminalOutcomeCounts {
+                succeeded: 0,
+                failed: 0,
+                unresolved: 0,
+            },
+            stage_counts: StageCompletionCounts {
+                succeeded: 0,
+                failed: 0,
+                unresolved: 0,
+                not_applicable: 0,
+                per_stage: first
+                    .task
+                    .expected_stage_ids
+                    .iter()
+                    .map(|stage_id| StageRateCount {
+                        stage_id: stage_id.clone(),
+                        succeeded: 0,
+                        failed: 0,
+                        unresolved: 0,
+                        not_applicable: 0,
+                    })
+                    .collect(),
+            },
+        };
+
+        for record in records {
+            record.validate()?;
+            if record.protocol != first.protocol
+                || record.task.task_id != first.task.task_id
+                || record.task.split != first.task.split
+                || record.task.expected_stage_ids != first.task.expected_stage_ids
+                || record.task.bce_required != first.task.bce_required
+                || record.policy.variant_id != first.policy.variant_id
+                || record.policy.policy_id != first.policy.policy_id
+                || record.policy.checkpoint_digest != first.policy.checkpoint_digest
+                || record.policy.deployment_digest != first.policy.deployment_digest
+                || record.policy.training_data_manifest_digest
+                    != first.policy.training_data_manifest_digest
+                || record.policy.training_overlap_status != first.policy.training_overlap_status
+                || record.policy.assistance != first.policy.assistance
+                || record.matched_control.underlying_policy_digest
+                    != first.matched_control.underlying_policy_digest
+                || record.matched_control.action_executor_digest
+                    != first.matched_control.action_executor_digest
+                || record.matched_control.robot_or_embodiment_digest
+                    != first.matched_control.robot_or_embodiment_digest
+                || record.matched_control.resource_budget_digest
+                    != first.matched_control.resource_budget_digest
+                || record.evidence_class != first.evidence_class
+            {
+                return Err(ImportError::MixedAggregateGroup);
+            }
+
+            match record.terminal_outcome {
+                TerminalOutcome::Succeeded => {
+                    aggregate.terminal_counts.succeeded += 1;
+                }
+                TerminalOutcome::Failed => {
+                    aggregate.terminal_counts.failed += 1;
+                }
+                TerminalOutcome::Unresolved => {
+                    aggregate.terminal_counts.unresolved += 1;
+                }
+            }
+
+            for (aggregate_stage, result) in aggregate
+                .stage_counts
+                .per_stage
+                .iter_mut()
+                .zip(record.stages.iter())
+            {
+                match result.disposition {
+                    StageDisposition::Succeeded => {
+                        aggregate_stage.succeeded += 1;
+                        aggregate.stage_counts.succeeded += 1;
+                    }
+                    StageDisposition::Failed => {
+                        aggregate_stage.failed += 1;
+                        aggregate.stage_counts.failed += 1;
+                    }
+                    StageDisposition::Unresolved => {
+                        aggregate_stage.unresolved += 1;
+                        aggregate.stage_counts.unresolved += 1;
+                    }
+                    StageDisposition::NotApplicable => {
+                        aggregate_stage.not_applicable += 1;
+                        aggregate.stage_counts.not_applicable += 1;
+                    }
+                }
+            }
+        }
+
+        Ok(aggregate)
     }
 
     /// Returns true only if the records share every frozen comparison field
