@@ -53,6 +53,16 @@ pub enum MassPropertiesError {
     InvalidRotation,
 }
 
+
+/// Apply the induced SO(D) adjoint to a bivector using R B R^T.
+fn rotate_bivector<const D: usize>(
+    rotation: &Rotor<D>,
+    bivector: &Bivector<D>,
+) -> Bivector<D> {
+    let matrix = rotation.to_matrix() * bivector.to_matrix() * rotation.to_matrix().transpose();
+    Bivector::from_matrix(&matrix)
+}
+
 /// Validated symmetric positive-definite inertia operator in body-frame
 /// bivector coordinates.
 ///
