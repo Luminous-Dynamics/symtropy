@@ -279,3 +279,22 @@ The programme advances only when the next gate has exact-head implementation evi
 ---
 
 **Design principle:** The system must be able to say not only “the surface was visible,” but “this instrument returned this observation under these conditions; this is the independently supported uncertainty; this is what the measurement can and cannot justify.”
+
+## 13. P0 implementation snapshot — 10 November 2026
+
+A standalone Rust oracle has now been added on the #4589 draft branch:
+
+- Package: `tools/scan-bim-measurement-observability/`.
+- CLI: accepts a bounded JSON corpus (8 MiB / 10,000-case ceilings) and emits a content-digested qualification receipt.
+- Input types are closed with `serde(deny_unknown_fields)`; unknown enum values fail parsing.
+- Four gates are reported independently: geometric visibility, observation, metrology and task sufficiency.
+- Overall PASS requires all four gates to pass. FAIL and UNRESOLVED remain distinct; downstream gates are NOT_RUN when prerequisites are unresolved or failed.
+- Measurement sufficiency is task-conditioned: the same synthetic observation can pass a coarse-layout tolerance and fail a tighter installation tolerance.
+- Duplicate or correlated reference lineages, stale/missing calibration, out-of-domain profiles, conflicting visibility/observation and invalid uncertainty are explicit negative controls.
+- The 13-case frozen fixture is at `tools/scan-bim-measurement-observability/fixtures/measurement-observability.json`.
+- Six Rust unit tests cover corpus agreement, visibility/observation separation, duplicate lineage, task-conditioned acceptance, case-order determinism and out-of-domain rejection.
+- Exact-path workflow: `.github/workflows/scan-bim-measurement-observability.yml`, with format, test, strict Clippy and frozen-corpus receipt checks.
+
+**Validation status:** source, fixture, workflow and PR branch were inspected on GitHub. At the latest status check, the workflow attempts for the then-current branch head were pending/queued; no successful exact-head result had been observed. The source has not been compiled locally in this environment. Treat code qualification as pending until the final branch head's workflow completes successfully.
+
+The corpus uses synthetic values and digest-shaped identifiers. It does not authenticate upstream evidence, establish real survey independence, calibrate hardware or demonstrate physical measurement accuracy. The declared coverage factor and coverage probability are test inputs, not a calibrated coverage guarantee. No live sensor import or hardware claim is required for P0.
