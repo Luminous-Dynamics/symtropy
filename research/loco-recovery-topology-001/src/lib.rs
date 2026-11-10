@@ -65,7 +65,11 @@ pub struct RecoveryRoute {
     pub failure_domain_ids: Vec<String>,
     pub admission: GateDisposition,
     pub physical_branch_coverage_complete: bool,
+    /// Digest/reference to the complete physical successor manifest.
+    pub branch_manifest_digest: String,
     pub latency_prefix_complete: bool,
+    /// Digest/reference to the complete time-expanded latency-prefix manifest.
+    pub latency_prefix_manifest_digest: String,
     pub intermediate_state_inventory_complete: bool,
     pub intermediate_states: Vec<IntermediateStateEvidence>,
     pub successors: Vec<SuccessorEvidence>,
@@ -81,6 +85,12 @@ pub struct RecoveryRoute {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TopologyInput {
     pub context_digest: String,
+    /// Exact source state from which every candidate route begins.
+    pub start_state_id: String,
+    /// Identity of the namespace in which physical_edge_ids are unique.
+    pub edge_namespace_digest: String,
+    /// Exact #4083 transition-abstraction/model revision for these edges.
+    pub transition_abstraction_digest: String,
     pub evaluation_tick: u64,
     pub max_recovery_steps: Option<u32>,
     pub available_recovery_energy_mj: Option<u64>,
@@ -117,6 +127,9 @@ pub enum RouteFinding {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PhysicalRouteClass {
+    pub start_state_id: String,
+    pub edge_namespace_digest: String,
+    pub transition_abstraction_digest: String,
     /// Canonical identity is the ordered physical-edge sequence plus the
     /// source-bound terminal-region identity.
     pub physical_edge_ids: Vec<String>,
@@ -144,6 +157,9 @@ pub struct TopologyReport {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AuditError {
     EmptyContextDigest,
+    EmptyStartStateId,
+    EmptyEdgeNamespaceDigest,
+    EmptyTransitionAbstractionDigest,
     EmptyDomainId,
     EmptyFailureGroupId,
     EmptyDomainProvenance,
@@ -162,12 +178,19 @@ pub enum AuditError {
     TooManyFailureGroups { actual: usize, limit: usize },
     TooManyBranches { route_id: String, actual: usize, limit: usize },
     TooManyStates { route_id: String, actual: usize, limit: usize },
+    EmptySuccessorId { route_id: String },
+    DuplicateSuccessorId { route_id: String, state_id: String },
+    EmptyIntermediateStateId { route_id: String },
+    DuplicateIntermediateStateId { route_id: String, state_id: String },
     MissingGlobalStepBudget,
     MissingGlobalEnergyBudget,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 struct PhysicalPathKey {
+    start_state_id: String,
+    edge_namespace_digest: String,
+    transition_abstraction_digest: String,
     physical_edge_ids: Vec<String>,
     terminal_region_id: String,
 }
@@ -233,6 +256,9 @@ pub fn audit(input: &TopologyInput) -> Result<TopologyReport, AuditError> {
     let known_route_classes = classes
         .iter()
         .map(|class| PhysicalRouteClass {
+            start_state_id: class.key.start_state_id.clone(),
+            edge_namespace_digest: class.key.edge_namespace_digest.clone(),
+            transition_abstraction_digest: class.key.transition_abstraction_digest.clone(),
             physical_edge_ids: class.key.physical_edge_ids.clone(),
             terminal_region_id: class.key.terminal_region_id.clone(),
             represented_route_ids: class.route_ids.iter().cloned().collect(),
@@ -305,6 +331,15 @@ fn validate_global_input(input: &TopologyInput) -> Result<(), AuditError> {
     if input.context_digest.trim().is_empty() {
         return Err(AuditError::EmptyContextDigest);
     }
+    if input.start_state_id.trim().is_empty() {
+        return Err(AuditError::EmptyStartStateId);
+    }
+    if input.edge_namespace_digest.trim().is_empty() {
+        return Err(AuditError::EmptyEdgeNamespaceDigest);
+    }
+    if input.transition_abstraction_digest.trim().is_empty() {
+        return Err(AuditError::EmptyTransitionAbstractionDigest);
+    }
     if input.routes.len() > MAX_INPUT_ROUTES {
         return Err(AuditError::TooManyInputRoutes {
             actual: input.routes.len(),
@@ -365,6 +400,24 @@ fn validate_route_identity(
     if route.physical_edge_ids.is_empty() {
         return Err(AuditError::EmptyPhysicalPath(route.route_id.clone()));
     }
+    let mut intermediate_ids = BTreeSet::new();
+    for state in &route.intermediate_states {
+        if state.state_id.trim().is_empty() {
+            return Err(AuditError::EmptyIntermediateStateId { route_id: route.route_id.clone() });
+        }
+        if !intermediate_ids.insert(state.state_id.clone()) {
+            return Err(AuditError::DuplicateIntermediateStateId { route_id: route.route_id.clone(), state_id: state.state_id.clone() });
+        }
+    }
+    let mut successor_ids = BTreeSet::new();
+    for successor in &route.successors {
+        if successor.state_id.trim().is_empty() {
+            return Err(AuditError::EmptySuccessorId { route_id: route.route_id.clone() });
+        }
+        if !successor_ids.insert(successor.state_id.clone()) {
+            return Err(AuditError::DuplicateSuccessorId { route_id: route.route_id.clone(), state_id: successor.state_id.clone() });
+        }
+    }
     if route
         .physical_edge_ids
         .iter()
@@ -424,6 +477,12 @@ fn qualify_route(
         }),
     }
 
+    if route.branch_manifest_digest.trim().is_empty() {
+        mark_unknown!(RouteFinding::MissingBranchCoverage { route_id: route.route_id.clone() });
+    }
+    if route.latency_prefix_manifest_digest.trim().is_empty() {
+        mark_unknown!(RouteFinding::IncompleteLatencyPrefix { route_id: route.route_id.clone() });
+    }
     if !route.physical_branch_coverage_complete {
         mark_unknown!(RouteFinding::MissingBranchCoverage {
             route_id: route.route_id.clone(),
@@ -559,6 +618,9 @@ fn qualify_route(
     Ok(RouteQualification::Qualified(QualifiedRoute {
         route_id: route.route_id.clone(),
         key: PhysicalPathKey {
+            start_state_id: input.start_state_id.clone(),
+            edge_namespace_digest: input.edge_namespace_digest.clone(),
+            transition_abstraction_digest: input.transition_abstraction_digest.clone(),
             physical_edge_ids: route.physical_edge_ids.clone(),
             terminal_region_id: route.terminal_region_id.clone(),
         },
@@ -708,7 +770,9 @@ mod tests {
             failure_domain_ids: domains.iter().map(|value| (*value).to_owned()).collect(),
             admission: GateDisposition::Admitted,
             physical_branch_coverage_complete: true,
+            branch_manifest_digest: "branch-manifest:v1".to_owned(),
             latency_prefix_complete: true,
+            latency_prefix_manifest_digest: "latency-prefix-manifest:v1".to_owned(),
             intermediate_state_inventory_complete: true,
             intermediate_states: vec![IntermediateStateEvidence {
                 state_id: format!("intermediate:{id}"),
@@ -732,6 +796,9 @@ mod tests {
     fn input(domains: Vec<FailureDomain>, routes: Vec<RecoveryRoute>) -> TopologyInput {
         TopologyInput {
             context_digest: "ctx-1".to_owned(),
+            start_state_id: "state:start".to_owned(),
+            edge_namespace_digest: "edge-namespace:v1".to_owned(),
+            transition_abstraction_digest: "transition-abstraction:v1".to_owned(),
             evaluation_tick: 10,
             max_recovery_steps: Some(6),
             available_recovery_energy_mj: Some(100),
