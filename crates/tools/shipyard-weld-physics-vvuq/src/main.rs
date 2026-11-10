@@ -211,6 +211,27 @@ fn validate_manifest(schema_text: &str, corpus_text: &str) -> Result<Summary, Ve
         {
             errors.push(format!("{context}.expected_disposition is unknown"));
         }
+        if case_id == "WPHYS-027" {
+            let claim_scope = case.get("claim_scope");
+            let output_scope_matches =
+                claim_scope.is_some_and(|scope| {
+                    string_at(scope, "validated_output") == Some("post_weld_residual_stress")
+                        && string_at(scope, "claimed_output")
+                            == Some("molten_pool_peak_temperature")
+                        && string_at(scope, "documented_limitation")
+                            == Some("liquid_solid_coupling_omitted")
+                        && scope.get("supports_claimed_output").and_then(Value::as_bool)
+                            == Some(false)
+                });
+            if !output_scope_matches
+                || string_at(case, "expected_disposition") != Some("BLOCK_VALIDATION")
+            {
+                errors.push(
+                    "{context} must block cross-output validation promotion".to_owned(),
+                );
+            }
+        }
+
         if let Some(source_id) = case.get("source_id").and_then(Value::as_str) {
             if !source_ids.contains(source_id) {
                 errors.push(format!("{context} references unknown source_id {source_id}"));
@@ -321,6 +342,20 @@ mod tests {
                 negative_count: 26,
             }
         );
+    }
+
+    #[test]
+    fn residual_stress_agreement_does_not_validate_molten_pool_temperature() {
+        let mut corpus = corpus_value();
+        let case = corpus["cases"]
+            .as_array_mut()
+            .expect("cases array")
+            .iter_mut()
+            .find(|case| case["case_id"] == "WPHYS-027")
+            .expect("output-scope negative control");
+        case["claim_scope"]["supports_claimed_output"] = Value::Bool(true);
+        let serialized = serde_json::to_string(&corpus).expect("serialize mutation");
+        assert!(validate_manifest(SCHEMA_TEXT, &serialized).is_err());
     }
 
     #[test]
