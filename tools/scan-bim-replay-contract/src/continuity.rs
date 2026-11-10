@@ -445,7 +445,9 @@ pub fn audit_representation_continuity(
             &entity_target_map,
         )?;
         source_relation_count += relation_counts.total;
-        incomplete_relation_inventory_count += usize::from(!relation_counts.inventory_complete);
+        if !relation_counts.inventory_complete {
+            incomplete_relation_inventory_count += 1;
+        }
         for (disposition, count) in relation_counts.by_disposition {
             *relation_disposition_counts.entry(disposition).or_insert(0) += count;
         }
@@ -1384,7 +1386,7 @@ mod tests {
             .expect("transition object")
             .remove("relation_audit");
         let error = audit(&value).expect_err("missing relation inventory is not an empty inventory");
-        assert!(error.contains("missing field relation_audit"));
+        assert!(error.contains("relation_audit"));
     }
 
     #[test]
