@@ -212,6 +212,7 @@ pub enum MemobenchAdapterError {
     EpisodeCountMismatch,
     DuplicateTask,
     DuplicateCheckpoint,
+    CheckpointIndexMismatch,
     DuplicateEpisode,
     UnexpectedTask,
     UnknownCheckpointOutcome,
@@ -234,10 +235,36 @@ pub struct MemobenchCheckpointResult {
     pub task_id: String,
     pub episode_id: String,
     pub independence_unit_id: String,
+    pub seed: u64,
+    pub task_metadata_sha256: String,
+    pub task_definition_sha256: String,
     pub checkpoint_index: u32,
+    pub memory_level: MemobenchMemoryLevel,
+    pub memory_description_sha256: String,
+    pub operation_code: i32,
     pub operation: MemoryOperationKind,
     pub subtask_goal_sha256: String,
+    pub episode_artifact_sha256: Option<String>,
+    pub evaluator_receipt_sha256: Option<String>,
     pub status: MemobenchCheckpointStatus,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum MemobenchEpisodeStatus {
+    Succeeded,
+    NotSucceeded,
+    Unresolved,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MemobenchEpisodeResult {
+    pub task_id: String,
+    pub episode_id: String,
+    pub independence_unit_id: String,
+    pub seed: u64,
+    pub episode_artifact_sha256: Option<String>,
+    pub evaluator_receipt_sha256: Option<String>,
+    pub status: MemobenchEpisodeStatus,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -280,6 +307,7 @@ pub struct MemobenchEvaluationAudit {
     pub license: MemobenchLicenseEvidence,
     pub selected_checkpoints: Vec<SelectedMemobenchCheckpoint>,
     pub checkpoint_results: Vec<MemobenchCheckpointResult>,
+    pub episode_results: Vec<MemobenchEpisodeResult>,
     pub operation_rates: Vec<MemobenchOperationRate>,
     pub task_operation_rates: Vec<MemobenchOperationRate>,
     pub task_success: MemobenchTaskSuccessRate,
@@ -469,9 +497,12 @@ fn validate_manifest(
     let mut selected = Vec::new();
     for task in &manifest.tasks {
         let mut seen_checkpoint_indices = BTreeSet::new();
-        for checkpoint in &task.checkpoints {
+        for (expected_index, checkpoint) in task.checkpoints.iter().enumerate() {
             if !seen_checkpoint_indices.insert(checkpoint.checkpoint_index) {
                 return Err(MemobenchAdapterError::DuplicateCheckpoint);
+            }
+            if checkpoint.checkpoint_index != expected_index as u32 {
+                return Err(MemobenchAdapterError::CheckpointIndexMismatch);
             }
             for digest in checkpoint.memory_description_sha256_by_level.iter() {
                 if !is_sha256_hex(digest) {
@@ -589,7 +620,8 @@ pub fn audit_memobench_operations(
     let mut task_operation_rates =
         BTreeMap::<(String, MemoryOperationKind), RateAccumulator>::new();
     for (key, checkpoint) in &expected {
-        let outcome = observed.get(key).copied().and_then(|row| {
+        let observation = observed.get(key).copied();
+        let outcome = observation.and_then(|row| {
             if row.episode_artifact_sha256.is_some()
                 && row.evaluator_receipt_sha256.is_some()
             {
@@ -608,15 +640,26 @@ pub fn audit_memobench_operations(
             .entry((checkpoint.task_id.clone(), checkpoint.operation))
             .or_default()
             .observe(&status);
+        let episode = manifest.episodes.iter().find(|episode| {
+            episode.task_id == key.0 && episode.episode_id == key.1
+        }).expect("expected checkpoint episode exists");
         checkpoint_results.push(MemobenchCheckpointResult {
             task_id: checkpoint.task_id.clone(),
             episode_id: key.1.clone(),
-            independence_unit_id: manifest.episodes.iter().find(|episode| {
-                episode.task_id == key.0 && episode.episode_id == key.1
-            }).expect("expected checkpoint episode exists").independence_unit_id.clone(),
+            independence_unit_id: episode.independence_unit_id.clone(),
+            seed: episode.seed,
+            task_metadata_sha256: checkpoint.task_metadata_sha256.clone(),
+            task_definition_sha256: checkpoint.task_definition_sha256.clone(),
             checkpoint_index: checkpoint.checkpoint_index,
+            memory_level: checkpoint.memory_level,
+            memory_description_sha256: checkpoint.memory_description_sha256.clone(),
+            operation_code: checkpoint.operation_code as i32,
             operation: checkpoint.operation,
             subtask_goal_sha256: checkpoint.subtask_goal_sha256.clone(),
+            episode_artifact_sha256: observation
+                .and_then(|row| row.episode_artifact_sha256.clone()),
+            evaluator_receipt_sha256: observation
+                .and_then(|row| row.evaluator_receipt_sha256.clone()),
             status,
         });
     }
@@ -659,6 +702,30 @@ pub fn audit_memobench_operations(
             return Err(MemobenchAdapterError::DuplicateEpisodeOutcome);
         }
     }
+
+    let episode_results = manifest.episodes.iter().map(|episode| {
+        let observation = episode_observed
+            .get(&(episode.task_id.clone(), episode.episode_id.clone()))
+            .copied();
+        let status = match observation.filter(|row| {
+            row.episode_artifact_sha256.is_some() && row.evaluator_receipt_sha256.is_some()
+        }).and_then(|row| row.task_success) {
+            Some(true) => MemobenchEpisodeStatus::Succeeded,
+            Some(false) => MemobenchEpisodeStatus::NotSucceeded,
+            None => MemobenchEpisodeStatus::Unresolved,
+        };
+        MemobenchEpisodeResult {
+            task_id: episode.task_id.clone(),
+            episode_id: episode.episode_id.clone(),
+            independence_unit_id: episode.independence_unit_id.clone(),
+            seed: episode.seed,
+            episode_artifact_sha256: observation
+                .and_then(|row| row.episode_artifact_sha256.clone()),
+            evaluator_receipt_sha256: observation
+                .and_then(|row| row.evaluator_receipt_sha256.clone()),
+            status,
+        }
+    }).collect::<Vec<_>>();
 
     let mut task_success_by_task = Vec::new();
     let mut success_total = 0usize;
@@ -737,6 +804,7 @@ pub fn audit_memobench_operations(
         license: manifest.license.clone(),
         selected_checkpoints,
         checkpoint_results,
+        episode_results,
         operation_rates,
         task_operation_rates,
         task_success,
