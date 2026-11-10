@@ -18,11 +18,26 @@
     "engineering_twin_projection": 1467
   },
   "fixtures": [
-    {"id": "SCENE-LIGHT-01", "purpose": "pbr_lighting_material_shadow_quality"},
-    {"id": "HUMAN-LOCO-01", "purpose": "articulated_motion_contact_and_lod"},
-    {"id": "CITY-BLOCK-01", "purpose": "streaming_instancing_culling_and_lod"},
-    {"id": "PHYSICS-OBS-01", "purpose": "read_only_physics_overlay_scaling"},
-    {"id": "ND-SLICE-01", "purpose": "known_answer_four_dimensional_projection"}
+    {
+      "id": "SCENE-LIGHT-01",
+      "purpose": "pbr_lighting_material_shadow_quality"
+    },
+    {
+      "id": "HUMAN-LOCO-01",
+      "purpose": "articulated_motion_contact_and_lod"
+    },
+    {
+      "id": "CITY-BLOCK-01",
+      "purpose": "streaming_instancing_culling_and_lod"
+    },
+    {
+      "id": "PHYSICS-OBS-01",
+      "purpose": "read_only_physics_overlay_scaling"
+    },
+    {
+      "id": "ND-SLICE-01",
+      "purpose": "known_answer_four_dimensional_projection"
+    }
   ],
   "view_variants": [
     "cinematic",
@@ -54,16 +69,22 @@
   "proposed_profiles": [
     {
       "id": "balanced-1080p-reference",
-      "resolution_px": [1920, 1080],
+      "resolution_px": [
+        1920,
+        1080
+      ],
       "target_fps": 60,
       "p95_frame_time_ms_max": 16.7,
-      "p99_frame_time_ms_max": 25.0,
+      "p99_frame_time_ms_max": 25,
       "max_gpu_allocation_mib": 6144,
       "status": "proposed_target_not_measured"
     },
     {
       "id": "low-power-720p",
-      "resolution_px": [1280, 720],
+      "resolution_px": [
+        1280,
+        720
+      ],
       "target_fps": 30,
       "p95_frame_time_ms_max": 33.3,
       "status": "proposed_target_not_measured"
@@ -71,7 +92,7 @@
   ],
   "proposed_overlay_budget": {
     "entity_count": 1000,
-    "p95_cpu_overhead_ms_max": 1.0,
+    "p95_cpu_overhead_ms_max": 1,
     "fraction_of_frame_budget_max": 0.05,
     "status": "proposed_target_not_measured"
   },
@@ -100,5 +121,23 @@
     "render_quality_is_not_physics_validation": true,
     "cross_gpu_byte_identity_not_required_by_default": true
   },
-  "claim_ceiling": "proposed cross-layer benchmark contract only; no physical validation, certification, universal visual superiority, or measured performance claim"
+  "claim_ceiling": "proposed cross-layer benchmark contract only; no physical validation, certification, universal visual superiority, or measured performance claim",
+  "renderer_paths": [
+    {
+      "id": "bevy_0_20_1_raster",
+      "role": "primary_raster_baseline",
+      "status": "profile_defined_not_render_measured"
+    },
+    {
+      "id": "bevy_0_20_1_solari",
+      "role": "optional_experimental_realtime_path_tracing",
+      "status": "preview_seeded_not_hardware_qualified",
+      "requires": "backend_and_gpu_ray_query_support"
+    },
+    {
+      "id": "unreal_engine_5_8",
+      "role": "external_high_end_visual_reference",
+      "status": "comparison_protocol_defined_not_measured"
+    }
+  ]
 }
