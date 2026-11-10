@@ -202,7 +202,7 @@ pub fn localize_first_outer_horizon_crossing(
         // interpolant is strictly decreasing and has opposite endpoint signs.
         let mut lower = 0.0;
         let mut upper = 1.0;
-        for _ in 0..128 {
+        for _ in 0..2048 {
             let parameter_width = step * (upper - lower);
             if parameter_width <= parameter_tolerance {
                 break;
@@ -220,6 +220,15 @@ pub fn localize_first_outer_horizon_crossing(
             } else {
                 upper = middle;
             }
+        }
+
+        let final_bracket_width = step * (upper - lower);
+        if final_bracket_width > parameter_tolerance {
+            return Err(KerrHorizonEventError::RootPrecisionExhausted {
+                segment_index,
+                current_bracket_width: final_bracket_width,
+                requested_tolerance: parameter_tolerance,
+            });
         }
 
         let middle = 0.5 * (lower + upper);
