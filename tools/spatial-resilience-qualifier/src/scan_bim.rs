@@ -547,14 +547,16 @@ fn validate_case_header(case: &ScanBimDecisionCase) -> Result<(), Vec<ScanBimAda
                 code: "SCAN_BIM_HYPOTHESIS_REQUIREMENT_CONTRADICTION".to_owned(),
                 path: "possible_states".to_owned(),
                 detail: format!(
-                    "State {:?} declares requirement_satisfied={} but property value {} ",
-                    "and threshold {} imply {}.",
+                    concat!(
+                        "State {:?} declares requirement_satisfied={} but property value {} ",
+                        "and threshold {} imply {}."
+                    ),
                     state.state_id,
                     state.requirement_satisfied,
                     state.property_value_m,
                     case.task.threshold_m,
                     meets_requirement
-                ),
+                )
             });
         }
     }
