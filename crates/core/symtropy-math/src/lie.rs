@@ -889,3 +889,84 @@ mod jacobian_tests {
     }
 }
 
+
+
+
+#[cfg(test)]
+mod deterministic_jacobian_sweep_tests {
+    use super::*;
+
+    fn next_signed(state: &mut u64) -> f64 {
+        *state = state.wrapping_add(0x9E37_79B9_7F4A_7C15);
+        let mut value = *state;
+        value = (value ^ (value >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+        value = (value ^ (value >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+        value ^= value >> 31;
+        (value as f64 / u64::MAX as f64) * 2.0 - 1.0
+    }
+
+    fn next_bivector(state: &mut u64, scale: f64) -> Bivector<3> {
+        let mut result = Bivector::<3>::zero();
+        result.set(0, 1, next_signed(state) * scale);
+        result.set(0, 2, next_signed(state) * scale);
+        result.set(1, 2, next_signed(state) * scale);
+        result
+    }
+
+    fn measured_local_derivative(
+        generator: &Bivector<3>,
+        direction: &Bivector<3>,
+        trivialization: So3Trivialization,
+        step: f64,
+    ) -> Bivector<3> {
+        let base = Rotor::<3>::from_bivector(generator);
+        let plus_generator = generator.add(&direction.scale(step));
+        let minus_generator = generator.add(&direction.scale(-step));
+        let plus = Rotor::<3>::from_bivector(&plus_generator);
+        let minus = Rotor::<3>::from_bivector(&minus_generator);
+        let relative_plus = match trivialization {
+            So3Trivialization::LeftSpatial => plus.compose(&base.reverse()),
+            So3Trivialization::RightBody => base.reverse().compose(&plus),
+        };
+        let relative_minus = match trivialization {
+            So3Trivialization::LeftSpatial => minus.compose(&base.reverse()),
+            So3Trivialization::RightBody => base.reverse().compose(&minus),
+        };
+        let plus_delta = so3_log(&relative_plus).unwrap().generator;
+        let minus_delta = so3_log(&relative_minus).unwrap().generator;
+        plus_delta.add(&minus_delta.scale(-1.0)).scale(0.5 / step)
+    }
+
+    #[test]
+    fn left_and_right_jacobians_match_seeded_tangent_sweeps() {
+        let mut state = 0x4A41_434F_4249_414E_u64;
+        for case in 0..128 {
+            let generator = next_bivector(&mut state, 0.7);
+            let direction = next_bivector(&mut state, 0.4);
+            for trivialization in [
+                So3Trivialization::LeftSpatial,
+                So3Trivialization::RightBody,
+            ] {
+                let jacobian = so3_exp_jacobian(&generator, trivialization).unwrap();
+                let predicted = jacobian.apply(&direction).unwrap();
+                for step in [1.0e-5, 1.0e-6] {
+                    let measured = measured_local_derivative(
+                        &generator,
+                        &direction,
+                        trivialization,
+                        step,
+                    );
+                    let relative_error = predicted
+                        .add(&measured.scale(-1.0))
+                        .norm()
+                        / (1.0 + predicted.norm());
+                    assert!(
+                        relative_error <= 2.0e-8,
+                        "SO(3) Jacobian sweep failure: case={case}, trivialization={trivialization:?}, step={step:e}, relative_error={relative_error:e}"
+                    );
+                }
+            }
+        }
+    }
+}
+
