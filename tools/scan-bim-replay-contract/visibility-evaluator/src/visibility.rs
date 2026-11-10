@@ -2808,6 +2808,37 @@ mod tests {
             (left.surface_id.as_str(), left.triangle_id.as_str())
                 <= (right.surface_id.as_str(), right.triangle_id.as_str())
         }));
+
+        let mut permuted_triangles = triangles.clone();
+        permuted_triangles.reverse();
+        let permuted_bvh = TriangleBvh::build_sah(&permuted_triangles);
+        assert_eq!(permuted_bvh.node_count, bvh.node_count);
+        assert_eq!(permuted_bvh.leaf_count, bvh.leaf_count);
+        let (permuted_hits, permuted_ray_tests, permuted_node_visits) = permuted_bvh
+            .nearest_hits(
+                Vec3 { x: 0.0, y: 0.0, z: 0.0 },
+                Vec3 { x: 1.0, y: 0.0, z: 0.0 },
+                5.0,
+                &permuted_triangles,
+                "TARGET",
+                "TARGET-TRI-1",
+                100,
+                100,
+            )
+            .expect("permuted SAH tree remains queryable");
+        let identities = |hits: &[(usize, f64)], inventory: &[OccluderTriangle]| {
+            hits.iter()
+                .map(|(index, _)| {
+                    (
+                        inventory[*index].surface_id.clone(),
+                        inventory[*index].triangle_id.clone(),
+                    )
+                })
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(identities(&hits, &triangles), identities(&permuted_hits, &permuted_triangles));
+        assert_eq!(ray_tests, permuted_ray_tests);
+        assert_eq!(node_visits, permuted_node_visits);
     }
 
     #[test]
