@@ -9,3 +9,5 @@ description = "Standalone reference for an effective-metric discrete constrained
 path = "src/lib.rs"
 
 [dependencies]
+
+[workspace]
