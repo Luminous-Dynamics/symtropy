@@ -52,7 +52,8 @@
         "capability_remains_restricted": false,
         "restoration_evidence_complete": false
       },
-      "decision_time_ms": 10000
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
     },
     {
       "case_id": "negative-main-engine-derate",
@@ -123,7 +124,8 @@
         "capability_remains_restricted": true,
         "restoration_evidence_complete": false
       },
-      "decision_time_ms": 10000
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
     },
     {
       "case_id": "common-cause-shaft-rpm",
@@ -194,7 +196,8 @@
         "capability_remains_restricted": true,
         "restoration_evidence_complete": false
       },
-      "decision_time_ms": 10000
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
     },
     {
       "case_id": "negative-steering-feedback",
@@ -265,7 +268,8 @@
         "capability_remains_restricted": true,
         "restoration_evidence_complete": false
       },
-      "decision_time_ms": 10000
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
     },
     {
       "case_id": "negative-generator-start",
@@ -318,7 +322,8 @@
         "capability_remains_restricted": true,
         "restoration_evidence_complete": false
       },
-      "decision_time_ms": 10000
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
     },
     {
       "case_id": "negative-bus-undervoltage",
@@ -371,7 +376,8 @@
         "capability_remains_restricted": true,
         "restoration_evidence_complete": false
       },
-      "decision_time_ms": 10000
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
     },
     {
       "case_id": "negative-battery-bms",
@@ -424,7 +430,8 @@
         "capability_remains_restricted": true,
         "restoration_evidence_complete": false
       },
-      "decision_time_ms": 10000
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
     },
     {
       "case_id": "negative-cooling-anomaly",
@@ -495,7 +502,8 @@
         "capability_remains_restricted": true,
         "restoration_evidence_complete": false
       },
-      "decision_time_ms": 10000
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
     },
     {
       "case_id": "negative-lubrication-residual",
@@ -548,7 +556,8 @@
         "capability_remains_restricted": true,
         "restoration_evidence_complete": false
       },
-      "decision_time_ms": 10000
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
     },
     {
       "case_id": "positive-steering-nominal",
@@ -599,7 +608,8 @@
         "capability_remains_restricted": false,
         "restoration_evidence_complete": false
       },
-      "decision_time_ms": 10000
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
     },
     {
       "case_id": "negative-fuel-stale",
@@ -652,7 +662,8 @@
         "capability_remains_restricted": true,
         "restoration_evidence_complete": false
       },
-      "decision_time_ms": 10000
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
     },
     {
       "case_id": "negative-wrong-unit",
@@ -705,7 +716,8 @@
         "capability_remains_restricted": true,
         "restoration_evidence_complete": false
       },
-      "decision_time_ms": 10000
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
     },
     {
       "case_id": "negative-wrong-config",
@@ -758,7 +770,8 @@
         "capability_remains_restricted": true,
         "restoration_evidence_complete": false
       },
-      "decision_time_ms": 10000
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
     },
     {
       "case_id": "negative-calibration-expired",
@@ -811,7 +824,8 @@
         "capability_remains_restricted": true,
         "restoration_evidence_complete": false
       },
-      "decision_time_ms": 10000
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
     },
     {
       "case_id": "negative-unauthenticated",
@@ -864,7 +878,8 @@
         "capability_remains_restricted": true,
         "restoration_evidence_complete": false
       },
-      "decision_time_ms": 10000
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
     },
     {
       "case_id": "negative-simulator-only",
@@ -917,7 +932,8 @@
         "capability_remains_restricted": true,
         "restoration_evidence_complete": false
       },
-      "decision_time_ms": 10000
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
     },
     {
       "case_id": "negative-bilge-pump",
@@ -988,7 +1004,8 @@
         "capability_remains_restricted": true,
         "restoration_evidence_complete": false
       },
-      "decision_time_ms": 10000
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
     },
     {
       "case_id": "negative-flood-corroborated",
@@ -1059,7 +1076,8 @@
         "capability_remains_restricted": true,
         "restoration_evidence_complete": false
       },
-      "decision_time_ms": 10000
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
     },
     {
       "case_id": "negative-fire-detection",
@@ -1112,7 +1130,8 @@
         "capability_remains_restricted": true,
         "restoration_evidence_complete": false
       },
-      "decision_time_ms": 10000
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
     },
     {
       "case_id": "ambiguity-fire-suppression-unknown",
@@ -1163,7 +1182,8 @@
         "capability_remains_restricted": true,
         "restoration_evidence_complete": false
       },
-      "decision_time_ms": 10000
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
     },
     {
       "case_id": "negative-ballast-pump",
@@ -1216,7 +1236,8 @@
         "capability_remains_restricted": true,
         "restoration_evidence_complete": false
       },
-      "decision_time_ms": 10000
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
     },
     {
       "case_id": "negative-hvac-electronics-cooling",
@@ -1269,7 +1290,8 @@
         "capability_remains_restricted": true,
         "restoration_evidence_complete": false
       },
-      "decision_time_ms": 10000
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
     },
     {
       "case_id": "common-cause-multiple-alarms",
@@ -1358,7 +1380,8 @@
         "capability_remains_restricted": true,
         "restoration_evidence_complete": false
       },
-      "decision_time_ms": 10000
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
     },
     {
       "case_id": "positive-three-separated-inputs",
@@ -1445,7 +1468,8 @@
         "capability_remains_restricted": false,
         "restoration_evidence_complete": false
       },
-      "decision_time_ms": 10000
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
     },
     {
       "case_id": "ambiguity-maintenance-note-only",
@@ -1498,7 +1522,8 @@
         "capability_remains_restricted": true,
         "restoration_evidence_complete": false
       },
-      "decision_time_ms": 10000
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
     },
     {
       "case_id": "ambiguity-operator-report-only",
@@ -1551,7 +1576,8 @@
         "capability_remains_restricted": true,
         "restoration_evidence_complete": false
       },
-      "decision_time_ms": 10000
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
     },
     {
       "case_id": "ambiguity-unknown-model-domain",
@@ -1602,7 +1628,8 @@
         "capability_remains_restricted": true,
         "restoration_evidence_complete": false
       },
-      "decision_time_ms": 10000
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
     },
     {
       "case_id": "negative-common-clock-fault",
@@ -1673,7 +1700,8 @@
         "capability_remains_restricted": true,
         "restoration_evidence_complete": false
       },
-      "decision_time_ms": 10000
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
     },
     {
       "case_id": "negative-missing-lineage",
@@ -1726,7 +1754,8 @@
         "capability_remains_restricted": true,
         "restoration_evidence_complete": false
       },
-      "decision_time_ms": 10000
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
     },
     {
       "case_id": "positive-native-alarm-clear",
@@ -1777,7 +1806,8 @@
         "capability_remains_restricted": false,
         "restoration_evidence_complete": false
       },
-      "decision_time_ms": 10000
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
     },
     {
       "case_id": "recovery-missing-inspection",
@@ -1828,7 +1858,8 @@
         "capability_remains_restricted": true,
         "restoration_evidence_complete": false
       },
-      "decision_time_ms": 10000
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
     },
     {
       "case_id": "recovery-no-authorization",
@@ -1879,7 +1910,8 @@
         "capability_remains_restricted": true,
         "restoration_evidence_complete": false
       },
-      "decision_time_ms": 10000
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
     },
     {
       "case_id": "recovery-config-unreconciled",
@@ -1930,7 +1962,8 @@
         "capability_remains_restricted": true,
         "restoration_evidence_complete": false
       },
-      "decision_time_ms": 10000
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
     },
     {
       "case_id": "recovery-stale-test-evidence",
@@ -1981,7 +2014,8 @@
         "capability_remains_restricted": true,
         "restoration_evidence_complete": false
       },
-      "decision_time_ms": 10000
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
     },
     {
       "case_id": "recovery-active-fault-remains",
@@ -2034,7 +2068,8 @@
         "capability_remains_restricted": true,
         "restoration_evidence_complete": false
       },
-      "decision_time_ms": 10000
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
     },
     {
       "case_id": "recovery-evidence-complete",
@@ -2085,7 +2120,8 @@
         "capability_remains_restricted": true,
         "restoration_evidence_complete": true
       },
-      "decision_time_ms": 10000
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
     },
     {
       "case_id": "negative-age-exceeds-validity",
@@ -2138,7 +2174,8 @@
         "capability_remains_restricted": true,
         "restoration_evidence_complete": false
       },
-      "decision_time_ms": 10000
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
     },
     {
       "case_id": "negative-clock-unqualified",
@@ -2191,7 +2228,8 @@
         "capability_remains_restricted": true,
         "restoration_evidence_complete": false
       },
-      "decision_time_ms": 10000
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
     },
     {
       "case_id": "metamorphic-age-boundary-inclusive",
@@ -2242,7 +2280,8 @@
         "capability_remains_restricted": false,
         "restoration_evidence_complete": false
       },
-      "decision_time_ms": 10000
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
     },
     {
       "case_id": "negative-observation-from-future",
@@ -2295,7 +2334,62 @@
         "capability_remains_restricted": true,
         "restoration_evidence_complete": false
       },
-      "decision_time_ms": 10000
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
+    },
+    {
+      "case_id": "negative-observation-different-clock",
+      "case_class": "negative",
+      "description": "An otherwise valid sample on a different clock domain cannot be compared to the decision timestamp.",
+      "asset": {
+        "vessel_id": "synthetic-vessel-01",
+        "asset_id": "asset-001",
+        "component_id": "component-001",
+        "config_revision": "vessel-config-r7",
+        "capability": "propulsion-service"
+      },
+      "observations": [
+        {
+          "observation_id": "clock-mismatch-o1",
+          "after_ms": 100,
+          "signal": "shaft-speed",
+          "source_role": "measured_sensor",
+          "quality": "current",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "shaft-pickup",
+          "source_ref": "synthetic-source:negative-observation-different-clock:clock-mismatch-o1",
+          "unit": "rev/min",
+          "calibration_ref": "synthetic-calibration:shaft-speed:v1",
+          "clock_domain": "independent-unbound-clock-2",
+          "clock_quality": "monotonic_and_utc_bound",
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1",
+          "observed_at_ms": 9900
+        }
+      ],
+      "fault_hypotheses": [
+        "clock-domain-mismatch"
+      ],
+      "unknown_domain": false,
+      "recovery": {
+        "attempted": false,
+        "repair_record": false,
+        "inspection": false,
+        "proof_test": false,
+        "authorization": false,
+        "configuration_reconciled": false
+      },
+      "expected": {
+        "admitted_observations": 0,
+        "decision_evidence_observations": 0,
+        "distinct_declared_dependency_groups": 0,
+        "disposition": "unknown_escalate",
+        "capability_remains_restricted": true,
+        "restoration_evidence_complete": false
+      },
+      "decision_time_ms": 10000,
+      "decision_clock_domain": "vessel-monotonic-utc-1"
     }
   ]
 }
