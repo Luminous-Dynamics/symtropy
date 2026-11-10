@@ -1720,6 +1720,39 @@ mod tests {
     }
 
     #[test]
+    fn sensor_pose_revision_and_transform_chain_are_receipt_bound() {
+        let original = evaluate(
+            &[probe([5.0, 0.0, 0.0])],
+            &[view("VIEW-1", [0.0, 0.0, 0.0])],
+            &[],
+        )
+        .expect("original sensor view");
+        let mut revised_view = view("VIEW-1", [0.0, 0.0, 0.0]);
+        revised_view.pose_revision_id = "POSE-REV-2".to_owned();
+        revised_view.transform_chain_sha256 = "9".repeat(64);
+        let revised = evaluate(
+            &[probe([5.0, 0.0, 0.0])],
+            &[revised_view],
+            &[],
+        )
+        .expect("revised transform evidence");
+        assert_ne!(original.visibility_sha256, revised.visibility_sha256);
+    }
+
+    #[test]
+    fn malformed_sensor_transform_digest_fails_closed() {
+        let mut invalid = view("VIEW-1", [0.0, 0.0, 0.0]);
+        invalid.transform_chain_sha256 = "not-a-digest".to_owned();
+        let error = evaluate(
+            &[probe([5.0, 0.0, 0.0])],
+            &[invalid],
+            &[],
+        )
+        .expect_err("transform-chain evidence must be digest-bound");
+        assert!(error.contains("view.transform_chain_sha256"));
+    }
+
+    #[test]
     fn frame_mismatch_fails_closed() {
         let mut stale = view("VIEW-1", [0.0, 0.0, 0.0]);
         stale.frame_id = "STALE-FRAME".to_owned();
