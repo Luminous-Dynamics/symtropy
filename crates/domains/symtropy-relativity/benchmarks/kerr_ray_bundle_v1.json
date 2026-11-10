@@ -1,0 +1,406 @@
+{
+  "schema": "luminous.black-hole-kerr-ray-bundle-benchmark",
+  "schema_version": "1.0.0",
+  "artifact_id": "symtropy.black_hole.kerr_ray_bundle.v1",
+  "status": "planned_replication_manifest",
+  "created_utc": "2026-11-10",
+  "objective": "Qualify Kerr null-geodesic screen-to-source maps, ray-bundle Jacobi fields, caustic locations, image multiplicity, magnification, and time-delay distributions using independent formulations and external references.",
+  "claim_ceiling": "This file is a frozen benchmark specification. It contains no numerical ray results, no caustic detections, no magnification measurements, no EHT fit, and no Kerr local-smoothing theorem.",
+  "ownership": {
+    "physics": "Symtropy #4519",
+    "projection": "Sol-Atlas #701",
+    "identifiability": "Symthaea #11021",
+    "evidence": "Mycelix #5903",
+    "parent_geometry_pr": "Symtropy #4053"
+  },
+  "references": [
+    {
+      "id": "kerr_lensing_mnras_2026",
+      "title": "Observational Signatures of Kerr Black Hole Lensing",
+      "arxiv": "2610.22470",
+      "doi": "10.1093/mnras/stag1890",
+      "url": "https://arxiv.org/abs/2610.22470",
+      "role": "Recent strong-field Kerr null-geodesic and spin-dependent image comparison reference",
+      "reference_data_status": "parameter-level / paper figure transcription required; no raw data assumed"
+    },
+    {
+      "id": "aart",
+      "title": "Adaptive Analytical Ray Tracing of Black Hole Photon Rings",
+      "arxiv": "2211.07469",
+      "url": "https://github.com/iAART/aart",
+      "role": "Independent separable Kerr lensing-band, equatorial source mapping, image and visibility reference",
+      "version_status": "exact commit must be pinned before numerical comparison"
+    },
+    {
+      "id": "brisk_light_2026",
+      "title": "Light propagation prescriptions for black hole movies",
+      "doi": "10.1103/nsg2-hy9p",
+      "url": "https://doi.org/10.1103/nsg2-hy9p",
+      "role": "Per-image-order Kerr time-delay distributions and fast/slow/brisk-light applicability comparison"
+    },
+    {
+      "id": "kerr_caustics",
+      "title": "Optical caustics of Kerr spacetime: The full structure",
+      "doi": "10.1103/PhysRevD.78.063014",
+      "url": "https://doi.org/10.1103/PhysRevD.78.063014",
+      "role": "Higher-order Kerr caustic topology and image multiplicity reference"
+    },
+    {
+      "id": "kerr_optical_scalars",
+      "title": "Efficient gravitational lens optical scalars calculation of black holes with angular momentum",
+      "doi": "10.1093/mnras/stz3526",
+      "url": "https://academic.oup.com/mnras/article/492/3/3763/5691333",
+      "role": "Independent optical scalar / geodesic-deviation identities for Kerr"
+    },
+    {
+      "id": "raytracer_benchmark_2026",
+      "title": "A Multi-Engine Benchmark for Relativistic Raytracing",
+      "url": "https://tucoff.github.io/relativistic-raytracer-page/",
+      "role": "Renderer / integrator throughput and accuracy-at-cost comparator only",
+      "limitation": "Not a substitute for analytic geodesic, Jacobi-map or caustic validation"
+    },
+    {
+      "id": "openai_local_smoothing",
+      "title": "Local smoothing for the Euclidean wave equation",
+      "source_repository": "openai/math",
+      "source_commit": "4eaee87548250b2682affda7d05d947c05554bae",
+      "url": "https://github.com/openai/math/tree/4eaee87548250b2682affda7d05d947c05554bae",
+      "role": "Mathematical context for Euclidean wave-packet and tube concentration",
+      "limitation": "Euclidean local-smoothing / Kakeya results are not Kerr or Lorentzian theorems"
+    },
+    {
+      "id": "openai_riemannian_geodesic_nikodym",
+      "title": "Formal Riemannian geodesic-tube Nikodym estimates",
+      "source_repository": "openai/math",
+      "source_commit": "4eaee87548250b2682affda7d05d947c05554bae",
+      "paths": [
+        "lean/OAI/Geometry/Nikodym/ManifoldMaximalBound.lean",
+        "lean/OAI/Geometry/Nikodym/GeodesicDimension.lean",
+        "lean/OAI/Geometry/Nikodym/Literal.lean"
+      ],
+      "role": "Chart/metric-distortion and geodesic-tube mathematical context",
+      "limitation": "Riemannian local chart results, with stated assumptions; not Lorentzian Kerr null-ray results"
+    }
+  ],
+  "conventions": {
+    "units": "geometrized; G=c=1; M is the length/time unit",
+    "metric_signature": "-+++",
+    "spacetime": "stationary Kerr family; exterior domain for Boyer-Lindquist separated evolution",
+    "spin": "a_star = a/M in [0,1); signed prograde/retrograde orientation is represented by observer-screen and orbital conventions, not an unsigned label alone",
+    "coordinates": "Boyer-Lindquist (t,r,theta,phi) for separated Hamilton-Jacobi reference; a separately declared regular Kerr-Schild or ingoing chart for independent Hamiltonian integration",
+    "fourier_convention": "not applicable to geometric-optics null rays; any later wave-optics comparison must declare its own convention",
+    "photon_energy_normalization": "E=-p_t=1 for asymptotic-observer separated fixtures",
+    "observer_screen": "Bardeen alpha,beta screen coordinates at asymptotic observer inclination i; finite-radius observers require a separately declared orthonormal tetrad",
+    "null_condition": "g^{mu nu} p_mu p_nu = 0",
+    "conserved_quantities": [
+      "E=-p_t",
+      "L_z=p_phi",
+      "Carter constant Q"
+    ],
+    "source_endpoint": "declared source worldtube or equatorial emitting surface; source intersection is an event, not merely a radius",
+    "affine_semantics": "affine parameter in the Hamiltonian formulation; Mino parameter in the separated formulation; no comparison until parameterization and endpoint events are mapped consistently"
+  },
+  "separated_kerr_equations": {
+    "definitions": {
+      "Delta": "r^2 - 2*M*r + a^2",
+      "Sigma": "r^2 + a^2*cos(theta)^2",
+      "P": "E*(r^2+a^2) - a*L_z",
+      "xi": "L_z/E",
+      "eta": "Q/E^2"
+    },
+    "radial_potential": "R(r) = P^2 - Delta*(Q + (L_z - a*E)^2)",
+    "polar_potential": "Theta(theta) = Q - cos(theta)^2*(a^2*(1-E^2) + L_z^2/sin(theta)^2)",
+    "screen_mapping_asymptotic_observer": {
+      "xi": "-alpha*sin(i)",
+      "eta": "beta^2 + (alpha^2 - a^2)*cos(i)^2",
+      "note": "Pin the orientation/sign convention against the AART/reference implementation before accepting an imported screen fixture."
+    },
+    "mino_parameterization": {
+      "dr_dgamma": "+/-sqrt(R)",
+      "dtheta_dgamma": "+/-sqrt(Theta)",
+      "dphi_dgamma": "L_z/sin(theta)^2 - a*E + a*P/Delta",
+      "dt_dgamma": "a*(L_z - a*E*sin(theta)^2) + (r^2+a^2)*P/Delta"
+    },
+    "turning_points": "Detect and classify every radial/polar root; sign flips must be event-driven or otherwise convergence-qualified, never silently skipped."
+  },
+  "observer_fixtures": [
+    {
+      "observer_id": "asymptotic_equatorial",
+      "type": "asymptotic",
+      "inclination_rad": 1.5707963267948966,
+      "screen_basis": "Bardeen alpha/beta",
+      "status": "analytic_reference_fixture"
+    },
+    {
+      "observer_id": "asymptotic_mid_inclination",
+      "type": "asymptotic",
+      "inclination_rad": 1.0471975511965976,
+      "screen_basis": "Bardeen alpha/beta",
+      "status": "analytic_reference_fixture"
+    },
+    {
+      "observer_id": "finite_radius_zamo",
+      "type": "finite_radius",
+      "radius_over_m": 1000,
+      "inclination_rad": 1.0471975511965976,
+      "tetrad": "locally nonrotating observer tetrad; exact tetrad formula and orientation must be pinned by implementation",
+      "status": "planned_fixture"
+    }
+  ],
+  "parameter_sweep": {
+    "mass_over_m": 1,
+    "dimensionless_spin": [
+      0,
+      0.3,
+      0.5,
+      0.7,
+      0.9,
+      0.99,
+      0.999
+    ],
+    "inclination_deg": [
+      0,
+      15,
+      30,
+      45,
+      60,
+      75,
+      85,
+      90
+    ],
+    "source_models": [
+      "equatorial thin emitting surface",
+      "finite-radius point source",
+      "time-dependent compact source with declared correlation time"
+    ],
+    "image_orders": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "screen_sampling": [
+      "coarse uniform pilot grid",
+      "adaptive caustic-aware grid",
+      "independent high-resolution reference grid"
+    ]
+  },
+  "analytic_controls": [
+    {
+      "case_id": "flat_spacetime_null_ray",
+      "metric": "M=0, a=0",
+      "expected": "straight null lines; conserved momentum; parallel screen basis; no gravitational caustic",
+      "status": "required"
+    },
+    {
+      "case_id": "schwarzschild_photon_sphere",
+      "spin": 0,
+      "expected": {
+        "photon_sphere_radius_over_m": 3,
+        "critical_impact_parameter_over_m": "3*sqrt(3)"
+      },
+      "status": "required"
+    },
+    {
+      "case_id": "kerr_equatorial_prograde_retrograde",
+      "spin_values": [
+        0,
+        0.5,
+        0.9,
+        0.99
+      ],
+      "expected": "Circular-null-orbit radius, signed coordinate frequency and critical impact parameter match existing Symtropy analytic light-ring fixtures and an independent published reference",
+      "status": "required"
+    },
+    {
+      "case_id": "schwarzschild_limit_of_kerr",
+      "spin_sequence": [
+        0.3,
+        0.1,
+        0.03,
+        0.01,
+        0
+      ],
+      "expected": "Separated Kerr screen maps, delays and caustic structure converge to Schwarzschild results with the declared orientation mapping",
+      "status": "required"
+    },
+    {
+      "case_id": "weak_deflection_limit",
+      "expected": "Image position and deflection converge to the appropriate weak-field expansion as impact parameter grows",
+      "status": "required"
+    },
+    {
+      "case_id": "strong_deflection_and_higher_images",
+      "expected": "Image branch count, turning-point sequence and delay ordering agree with the pinned reference cases",
+      "status": "required"
+    }
+  ],
+  "ray_bundle_outputs": {
+    "ray_identity": [
+      "observer_id",
+      "alpha",
+      "beta",
+      "spin",
+      "inclination",
+      "source_model",
+      "branch_id",
+      "image_order"
+    ],
+    "endpoint": [
+      "source_event_coordinates",
+      "source_surface_id",
+      "hit_or_miss",
+      "termination_reason"
+    ],
+    "conserved_diagnostics": [
+      "E_drift",
+      "Lz_drift",
+      "Q_drift",
+      "null_hamiltonian_residual"
+    ],
+    "optical_map": [
+      "jacobi_matrix_2x2",
+      "determinant",
+      "singular_values",
+      "condition_number",
+      "orientation_parity"
+    ],
+    "lensing": [
+      "caustic_proximity",
+      "caustic_crossing_count",
+      "signed_magnification",
+      "angular_diameter_distance"
+    ],
+    "temporal": [
+      "coordinate_travel_time",
+      "observer_proper_time_if_defined",
+      "image_order_delay",
+      "emission_time_reconstruction"
+    ],
+    "spectral": [
+      "redshift_factor",
+      "frequency_shift_convention"
+    ],
+    "polarization": [
+      "parallel_transport_status",
+      "walker_penrose_constant_if_available"
+    ],
+    "numerical": [
+      "integrator_id",
+      "step_or_quadrature_tolerance",
+      "precision_bits",
+      "refinement_level",
+      "estimated_error"
+    ],
+    "provenance": [
+      "code_commit",
+      "dependency_lock_digest",
+      "configuration_digest",
+      "input_digest",
+      "output_digest",
+      "reproduction_command"
+    ]
+  },
+  "jacobi_map_contract": {
+    "definition": "D^A_B = partial y_source^A / partial theta_observer^B for a declared source endpoint screen and observer orthonormal screen basis",
+    "independent_paths": [
+      "variational geodesic-deviation / Jacobi-field integration",
+      "central finite-difference family of neighboring rays with independently refined angular step"
+    ],
+    "caustic_condition": "det(D)=0 in the declared screen/endpoint normalization",
+    "parity": "sign(det(D)) away from a caustic, with branch continuity and orientation metadata",
+    "magnification": "1/abs(det(D)) only when screen-area normalization and source/observer endpoint surfaces are fully declared and the map is nonsingular",
+    "near_caustic_policy": "typed IllConditioned or Unresolved; do not clamp to a falsely finite physical magnification",
+    "geometric_vs_wave_optics": "geometric-optics divergence is not a finite wave-optics intensity prediction"
+  },
+  "time_delay_contract": {
+    "requirement": "Preserve per-image-branch travel time and source emission event. A variable source may not be collapsed to one emission time unless the full delay spread is demonstrated negligible relative to the declared source correlation time.",
+    "comparison": "Fast-light, slow-light and brisk-light prescriptions are compared on the same Kerr geodesic delay map and source history.",
+    "outputs": [
+      "delay_by_image_order",
+      "delay_spread",
+      "source_correlation_time",
+      "approximation_status",
+      "waveform_or_intensity_discrepancy_if_computed"
+    ]
+  },
+  "negative_controls": [
+    {
+      "id": "wrong_signature",
+      "expected_failure": "ConventionMismatch"
+    },
+    {
+      "id": "screen_in_coordinate_basis",
+      "expected_failure": "ObserverFrameMismatch"
+    },
+    {
+      "id": "spin_sign_reversal",
+      "expected_failure": "OrientationMismatch"
+    },
+    {
+      "id": "carter_constant_omitted",
+      "expected_failure": "InvariantDrift"
+    },
+    {
+      "id": "wrong_turning_point_branch",
+      "expected_failure": "BranchMismatch"
+    },
+    {
+      "id": "affine_mino_parameter_confusion",
+      "expected_failure": "ParameterizationMismatch"
+    },
+    {
+      "id": "horizon_chart_singularity",
+      "expected_failure": "ChartDomainFailure"
+    },
+    {
+      "id": "inconsistent_source_observer_exchange",
+      "expected_failure": "ReciprocityMismatch"
+    },
+    {
+      "id": "underresolved_caustic",
+      "expected_failure": "Unresolved"
+    },
+    {
+      "id": "finite_magnification_at_singular_jacobi_map",
+      "expected_failure": "InvalidPhysicalObservable"
+    },
+    {
+      "id": "fast_light_beyond_delay_validity",
+      "expected_failure": "ApproximationOutOfDomain"
+    },
+    {
+      "id": "euclidean_theorem_claimed_for_kerr",
+      "expected_failure": "TheoremScopeMismatch"
+    }
+  ],
+  "prospective_acceptance": {
+    "null_hamiltonian_constraint": "relative residual <= 1e-12 on well-conditioned analytic fixtures; otherwise precision/conditioning aware",
+    "conserved_quantities": "relative drift <= 1e-10 on bounded non-caustic integration windows",
+    "critical_curve": "agreement with analytic / pinned reference cases under spin and inclination refinement",
+    "jacobi_map": "variational and finite-difference paths agree with error decreasing at expected convergence order",
+    "caustic_topology": "caustic locus, cusp structure, branch multiplicity and parity stable under independent ray-bundle and screen-grid refinement",
+    "magnification": "conditioning-aware agreement away from caustics; no finite-precision claim where determinant is unresolved",
+    "time_delay": "independent separated and Hamiltonian paths agree within declared integration error",
+    "adaptive_efficiency": "rays, wall time and memory only compared at matched screen-map, caustic and delay-map error",
+    "abstention": "under-resolved, out-of-chart and singular-map inputs must abstain with a typed reason"
+  },
+  "qualification_states": [
+    "planned",
+    "analytic_oracle",
+    "numerically_reproduced",
+    "independently_cross_checked",
+    "converged",
+    "ill_conditioned",
+    "unresolved",
+    "refuted"
+  ],
+  "execution": {
+    "current_status": "not_run",
+    "expected_commands": [],
+    "no_results_claimed": true,
+    "evidence_contract": "Reuse tools/bh-response-manifest and the existing Mycelix-DeSci ScientificEvent / Attestation pathway; this benchmark manifest is input/expectation metadata, not a new run receipt or evidence ledger."
+  }
+}
