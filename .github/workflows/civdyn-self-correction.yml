@@ -247,7 +247,7 @@ jobs:
               rows = list(reader)
               fields = reader.fieldnames
 
-          assert fields is not None and len(fields) == 27
+          assert fields is not None and len(fields) == 29
           assert len(rows) == 6
           grouped = {}
           for row in rows:
@@ -291,5 +291,6 @@ jobs:
           assert all(row["observation_digest"] for row in rows)
           assert all(row["source_digest"] == "sha256-civdyn-fresh-network-source" for row in rows)
           assert all(row["sample_size"] == "1" for row in rows)
+          assert all(row["baseline_draw_count"] == row["repaired_draw_count"] == "5" for row in rows)
           print("Repair-audit CSV valid: statistic/observation-held-out receipts; improvement, restoration and regression distinguished per network; exact challenge lineage and deterministic replay.")
           PY
