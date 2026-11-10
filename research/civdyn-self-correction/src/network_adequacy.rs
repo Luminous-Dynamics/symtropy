@@ -313,6 +313,258 @@ impl NetworkSummary {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TemporalNetworkError {
+    TooFewSnapshots,
+    TickCountMismatch,
+    TicksNotStrictlyIncreasing,
+    SnapshotNodeCountMismatch {
+        expected: usize,
+        actual: usize,
+    },
+    NonFiniteTemporalSummary,
+}
+
+impl fmt::Display for TemporalNetworkError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(formatter, "{self:?}")
+    }
+}
+
+impl std::error::Error for TemporalNetworkError {}
+
+/// A time-ordered series of static network snapshots with stable node IDs.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TemporalNetworkSequence {
+    ticks: Vec<u64>,
+    snapshots: Vec<UndirectedNetwork>,
+}
+
+impl TemporalNetworkSequence {
+    pub fn new(
+        ticks: Vec<u64>,
+        snapshots: Vec<UndirectedNetwork>,
+    ) -> Result<Self, TemporalNetworkError> {
+        if snapshots.len() < 2 {
+            return Err(TemporalNetworkError::TooFewSnapshots);
+        }
+        if ticks.len() != snapshots.len() {
+            return Err(TemporalNetworkError::TickCountMismatch);
+        }
+        if ticks.windows(2).any(|pair| pair[1] <= pair[0]) {
+            return Err(TemporalNetworkError::TicksNotStrictlyIncreasing);
+        }
+        let expected_nodes = snapshots[0].node_count();
+        if let Some(snapshot) = snapshots
+            .iter()
+            .find(|snapshot| snapshot.node_count() != expected_nodes)
+        {
+            return Err(TemporalNetworkError::SnapshotNodeCountMismatch {
+                expected: expected_nodes,
+                actual: snapshot.node_count(),
+            });
+        }
+        Ok(Self { ticks, snapshots })
+    }
+
+    pub fn ticks(&self) -> &[u64] {
+        &self.ticks
+    }
+
+    pub fn snapshots(&self) -> &[UndirectedNetwork] {
+        &self.snapshots
+    }
+
+    pub fn summarize(&self) -> Result<TemporalNetworkSummary, TemporalNetworkError> {
+        let snapshot_summaries: Vec<NetworkSummary> =
+            self.snapshots.iter().map(UndirectedNetwork::summarize).collect();
+        let component_counts: Vec<f64> = snapshot_summaries
+            .iter()
+            .map(|summary| summary.component_count as f64)
+            .collect();
+        let mean_degrees: Vec<f64> = snapshot_summaries
+            .iter()
+            .map(|summary| summary.mean_degree)
+            .collect();
+        let transitivity: Vec<f64> = snapshot_summaries
+            .iter()
+            .map(|summary| summary.global_transitivity)
+            .collect();
+        let x: Vec<f64> = self
+            .ticks
+            .iter()
+            .map(|tick| (*tick - self.ticks[0]) as f64)
+            .collect();
+
+        let mean_component_count = arithmetic_mean(&component_counts);
+        let mean_degree = arithmetic_mean(&mean_degrees);
+        let mean_global_transitivity = arithmetic_mean(&transitivity);
+        let component_count_trend_per_tick = linear_trend(&x, &component_counts);
+        let mean_degree_trend_per_tick = linear_trend(&x, &mean_degrees);
+        let transitivity_trend_per_tick = linear_trend(&x, &transitivity);
+
+        let maximum_possible_edges = (self.snapshots[0].node_count() as f64)
+            * (self.snapshots[0].node_count().saturating_sub(1) as f64)
+            / 2.0;
+        let mut edge_jaccards = Vec::with_capacity(self.snapshots.len() - 1);
+        let mut edge_addition_rates = Vec::with_capacity(self.snapshots.len() - 1);
+        let mut edge_removal_rates = Vec::with_capacity(self.snapshots.len() - 1);
+
+        for pair in self.snapshots.windows(2) {
+            let previous: BTreeSet<(usize, usize)> =
+                pair[0].canonical_edges().iter().copied().collect();
+            let current: BTreeSet<(usize, usize)> =
+                pair[1].canonical_edges().iter().copied().collect();
+            let intersection = previous.intersection(&current).count() as f64;
+            let union = previous.union(&current).count() as f64;
+            // Two empty edge sets are identical: Jaccard = 1, turnover = 0.
+            let jaccard = if union == 0.0 { 1.0 } else { intersection / union };
+            let additions = current.difference(&previous).count() as f64;
+            let removals = previous.difference(&current).count() as f64;
+            let denominator = maximum_possible_edges.max(1.0);
+            edge_jaccards.push(jaccard);
+            edge_addition_rates.push(additions / denominator);
+            edge_removal_rates.push(removals / denominator);
+        }
+
+        let mean_adjacent_edge_jaccard = arithmetic_mean(&edge_jaccards);
+        let mean_adjacent_edge_turnover = 1.0 - mean_adjacent_edge_jaccard;
+        let mean_edge_addition_rate = arithmetic_mean(&edge_addition_rates);
+        let mean_edge_removal_rate = arithmetic_mean(&edge_removal_rates);
+
+        let values = [
+            mean_component_count,
+            component_count_trend_per_tick,
+            mean_degree,
+            mean_degree_trend_per_tick,
+            mean_global_transitivity,
+            transitivity_trend_per_tick,
+            mean_adjacent_edge_jaccard,
+            mean_adjacent_edge_turnover,
+            mean_edge_addition_rate,
+            mean_edge_removal_rate,
+        ];
+        if values.iter().any(|value| !value.is_finite()) {
+            return Err(TemporalNetworkError::NonFiniteTemporalSummary);
+        }
+
+        Ok(TemporalNetworkSummary {
+            snapshot_count: self.snapshots.len(),
+            node_count: self.snapshots[0].node_count(),
+            start_tick: self.ticks[0],
+            end_tick: *self.ticks.last().expect("at least two snapshots"),
+            mean_component_count,
+            component_count_trend_per_tick,
+            mean_degree,
+            mean_degree_trend_per_tick,
+            mean_global_transitivity,
+            transitivity_trend_per_tick,
+            mean_adjacent_edge_jaccard,
+            mean_adjacent_edge_turnover,
+            mean_edge_addition_rate,
+            mean_edge_removal_rate,
+        })
+    }
+}
+
+fn arithmetic_mean(values: &[f64]) -> f64 {
+    values.iter().sum::<f64>() / values.len() as f64
+}
+
+/// Ordinary least-squares slope against actual tick offsets, not snapshot index.
+fn linear_trend(x: &[f64], y: &[f64]) -> f64 {
+    let mean_x = arithmetic_mean(x);
+    let mean_y = arithmetic_mean(y);
+    let covariance = x
+        .iter()
+        .zip(y)
+        .map(|(x_value, y_value)| (x_value - mean_x) * (y_value - mean_y))
+        .sum::<f64>();
+    let variance = x
+        .iter()
+        .map(|x_value| (x_value - mean_x).powi(2))
+        .sum::<f64>();
+    covariance / variance
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct TemporalNetworkSummary {
+    pub snapshot_count: usize,
+    pub node_count: usize,
+    pub start_tick: u64,
+    pub end_tick: u64,
+    pub mean_component_count: f64,
+    pub component_count_trend_per_tick: f64,
+    pub mean_degree: f64,
+    pub mean_degree_trend_per_tick: f64,
+    pub mean_global_transitivity: f64,
+    pub transitivity_trend_per_tick: f64,
+    pub mean_adjacent_edge_jaccard: f64,
+    pub mean_adjacent_edge_turnover: f64,
+    /// Added edges per possible undirected dyad per adjacent transition.
+    pub mean_edge_addition_rate: f64,
+    /// Removed edges per possible undirected dyad per adjacent transition.
+    pub mean_edge_removal_rate: f64,
+}
+
+impl TemporalNetworkSummary {
+    /// Stable ten-component schema for joint energy/variogram scoring.
+    pub fn joint_component_values(&self) -> Vec<JointComponentValue> {
+        vec![
+            JointComponentValue {
+                component_id: "mean-component-count".to_string(),
+                measurement_unit: "components".to_string(),
+                value: self.mean_component_count,
+            },
+            JointComponentValue {
+                component_id: "component-count-trend".to_string(),
+                measurement_unit: "components_per_tick".to_string(),
+                value: self.component_count_trend_per_tick,
+            },
+            JointComponentValue {
+                component_id: "mean-degree".to_string(),
+                measurement_unit: "edges_per_node".to_string(),
+                value: self.mean_degree,
+            },
+            JointComponentValue {
+                component_id: "mean-degree-trend".to_string(),
+                measurement_unit: "edges_per_node_per_tick".to_string(),
+                value: self.mean_degree_trend_per_tick,
+            },
+            JointComponentValue {
+                component_id: "mean-transitivity".to_string(),
+                measurement_unit: "ratio".to_string(),
+                value: self.mean_global_transitivity,
+            },
+            JointComponentValue {
+                component_id: "transitivity-trend".to_string(),
+                measurement_unit: "ratio_per_tick".to_string(),
+                value: self.transitivity_trend_per_tick,
+            },
+            JointComponentValue {
+                component_id: "mean-edge-jaccard".to_string(),
+                measurement_unit: "ratio".to_string(),
+                value: self.mean_adjacent_edge_jaccard,
+            },
+            JointComponentValue {
+                component_id: "mean-edge-turnover".to_string(),
+                measurement_unit: "ratio".to_string(),
+                value: self.mean_adjacent_edge_turnover,
+            },
+            JointComponentValue {
+                component_id: "mean-edge-addition-rate".to_string(),
+                measurement_unit: "dyad_fraction_per_transition".to_string(),
+                value: self.mean_edge_addition_rate,
+            },
+            JointComponentValue {
+                component_id: "mean-edge-removal-rate".to_string(),
+                measurement_unit: "dyad_fraction_per_transition".to_string(),
+                value: self.mean_edge_removal_rate,
+            },
+        ]
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -509,6 +761,177 @@ mod tests {
             },
         )
         .expect("network topology assessment must qualify the frozen fixture")
+    }
+
+    fn three_disjoint_edges() -> UndirectedNetwork {
+        UndirectedNetwork::new(6, [(0, 1), (2, 3), (4, 5)]).expect("valid matching graph")
+    }
+
+    fn temporal_path(reversed: bool) -> TemporalNetworkSequence {
+        let mut snapshots = vec![cycle_six(), two_triangles(), three_disjoint_edges()];
+        if reversed {
+            snapshots.reverse();
+        }
+        TemporalNetworkSequence::new(vec![10, 20, 30], snapshots).expect("valid temporal path")
+    }
+
+    #[test]
+    fn reversed_temporal_path_preserves_snapshot_marginals_but_reverses_trend() {
+        let forward = temporal_path(false).summarize().expect("forward summary");
+        let reversed = temporal_path(true).summarize().expect("reversed summary");
+
+        assert_eq!(forward.snapshot_count, 3);
+        assert_eq!(forward.mean_component_count, 2.0);
+        assert_eq!(reversed.mean_component_count, 2.0);
+        assert!((forward.component_count_trend_per_tick - 0.1).abs() < 1e-12);
+        assert!((reversed.component_count_trend_per_tick + 0.1).abs() < 1e-12);
+        assert!((forward.mean_degree - (5.0 / 3.0)).abs() < 1e-12);
+        assert!((reversed.mean_degree - (5.0 / 3.0)).abs() < 1e-12);
+        assert!((forward.mean_degree_trend_per_tick + 0.05).abs() < 1e-12);
+        assert!((reversed.mean_degree_trend_per_tick - 0.05).abs() < 1e-12);
+        assert_eq!(
+            forward.mean_adjacent_edge_jaccard,
+            reversed.mean_adjacent_edge_jaccard
+        );
+        assert_eq!(
+            forward.mean_adjacent_edge_turnover,
+            reversed.mean_adjacent_edge_turnover
+        );
+        assert_ne!(
+            forward.joint_component_values(),
+            reversed.joint_component_values()
+        );
+    }
+
+    #[test]
+    fn temporal_sequence_rejects_invalid_tick_and_node_invariants() {
+        assert_eq!(
+            TemporalNetworkSequence::new(vec![1], vec![cycle_six()]).unwrap_err(),
+            TemporalNetworkError::TooFewSnapshots
+        );
+        assert_eq!(
+            TemporalNetworkSequence::new(vec![1, 2], vec![cycle_six()]).unwrap_err(),
+            TemporalNetworkError::TickCountMismatch
+        );
+        assert_eq!(
+            TemporalNetworkSequence::new(vec![2, 1], vec![cycle_six(), two_triangles()])
+                .unwrap_err(),
+            TemporalNetworkError::TicksNotStrictlyIncreasing
+        );
+        assert_eq!(
+            TemporalNetworkSequence::new(vec![1, 2], vec![cycle_six(), UndirectedNetwork::new(5, [(0, 1)]).unwrap()])
+                .unwrap_err(),
+            TemporalNetworkError::SnapshotNodeCountMismatch {
+                expected: 6,
+                actual: 5,
+            }
+        );
+    }
+
+    #[test]
+    fn temporal_joint_adequacy_detects_reversed_order_with_same_snapshot_marginals() {
+        let statistic = JointStatisticSpec {
+            id: "temporal-network-path".to_string(),
+            source_family: "synthetic-temporal-network-known-answer".to_string(),
+            source_digest: "sha256-temporal-network-source".to_string(),
+            population: "six-node-temporal-network".to_string(),
+            context: "same-snapshot-multiset-reversed-order".to_string(),
+            independent_unit: IndependentUnitKind::Network,
+            role: SplitRole::Validation,
+            primary: true,
+            required: true,
+            minimum_draws: 20,
+            components: [
+                ("mean-component-count", "components"),
+                ("component-count-trend", "components_per_tick"),
+                ("mean-degree", "edges_per_node"),
+                ("mean-degree-trend", "edges_per_node_per_tick"),
+                ("mean-transitivity", "ratio"),
+                ("transitivity-trend", "ratio_per_tick"),
+                ("mean-edge-jaccard", "ratio"),
+                ("mean-edge-turnover", "ratio"),
+                ("mean-edge-addition-rate", "dyad_fraction_per_transition"),
+                ("mean-edge-removal-rate", "dyad_fraction_per_transition"),
+            ]
+            .into_iter()
+            .map(|(id, unit)| JointComponentSpec {
+                id: id.to_string(),
+                measurement_unit: unit.to_string(),
+                reference_center: 0.0,
+                reference_scale: 1.0,
+            })
+            .collect(),
+        };
+        let manifest = SplitManifest {
+            id: "temporal-network-split-v1".to_string(),
+            independent_unit: IndependentUnitKind::Network,
+            calibration_data_digest: "sha256-temporal-network-calibration".to_string(),
+            manifest_digest: "sha256-temporal-network-manifest".to_string(),
+            calibration_units: vec!["network-calibration".to_string()],
+            validation_units: vec!["network-held-out".to_string()],
+            challenge_units: Vec::new(),
+        };
+        let observed = temporal_path(false).summarize().expect("observed path");
+        let observation = JointObservation {
+            statistic_id: statistic.id.clone(),
+            independent_unit_id: "network-held-out".to_string(),
+            sample_size: 3,
+            source_digest: statistic.source_digest.clone(),
+            observation_digest: "sha256-temporal-network-observation".to_string(),
+            split_manifest_digest: manifest.manifest_digest.clone(),
+            components: observed.joint_component_values(),
+        };
+
+        let correct_values = observed.joint_component_values();
+        let reversed_values = temporal_path(true)
+            .summarize()
+            .expect("reversed path")
+            .joint_component_values();
+        let make_draws = |components: Vec<JointComponentValue>, model: &str| {
+            (0..20)
+                .map(|draw_index| JointPredictiveDraw {
+                    statistic_id: statistic.id.clone(),
+                    independent_unit_id: "network-held-out".to_string(),
+                    sample_size: 3,
+                    draw_index,
+                    model_digest: model.to_string(),
+                    draw_set_digest: format!("sha256-temporal-draws-{model}"),
+                    calibration_data_digest: Some(manifest.calibration_data_digest.clone()),
+                    split_manifest_digest: manifest.manifest_digest.clone(),
+                    components: components.clone(),
+                })
+                .collect::<Vec<_>>()
+        };
+        let config = JointMetricConfig {
+            energy_beta: 1.0,
+            variogram_power: 1.0,
+            pair_weights: vec![1.0; 45],
+        };
+        let correct = assess_joint_predictive_draws(
+            &statistic,
+            &manifest,
+            SplitRole::Validation,
+            &observation,
+            &make_draws(correct_values, "sha256-temporal-model-correct"),
+            &config,
+        )
+        .expect("correct temporal model");
+        let reversed = assess_joint_predictive_draws(
+            &statistic,
+            &manifest,
+            SplitRole::Validation,
+            &observation,
+            &make_draws(reversed_values, "sha256-temporal-model-reversed"),
+            &config,
+        )
+        .expect("reversed temporal model");
+
+        assert_eq!(correct.energy_score, 0.0);
+        assert_eq!(correct.variogram_score, 0.0);
+        assert!(reversed.energy_score > 0.0);
+        assert!(reversed.variogram_score > 0.0);
+        assert_eq!(correct.predictive_draw_count, 20);
+        assert_eq!(reversed.predictive_draw_count, 20);
     }
 
     #[test]
