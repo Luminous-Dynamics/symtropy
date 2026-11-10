@@ -1,0 +1,26 @@
+# Maritime engineering-health evaluator
+
+Standalone offline Rust evaluator for the synthetic corpus at
+benchmarks/maritime/engineering-health-corpus-v0.1.json.
+
+## Run
+
+From the repository root:
+
+~~~sh
+cargo fmt --manifest-path benchmarks/maritime-engineering-health/Cargo.toml -- --check
+cargo test --locked --manifest-path benchmarks/maritime-engineering-health/Cargo.toml
+cargo clippy --locked --manifest-path benchmarks/maritime-engineering-health/Cargo.toml --all-targets -- -D warnings
+cargo run --locked --manifest-path benchmarks/maritime-engineering-health/Cargo.toml -- benchmarks/maritime/engineering-health-corpus-v0.1.json
+~~~
+
+The CLI emits the SHA-256 of the exact input bytes and an expected-versus-actual
+result for each case. It exits non-zero for any mismatch.
+
+## Claim ceiling
+
+A PASS proves only that this reference evaluator reproduces the frozen synthetic
+contract outcomes. It does not establish machine diagnosis accuracy, machinery
+health, safety, physical behavior, restoration authorization, class/statutory
+compliance, MASS Code compliance or permission to operate a vessel. The crate has
+no network, OT, controller, protection-system, actuator or equipment effects.
