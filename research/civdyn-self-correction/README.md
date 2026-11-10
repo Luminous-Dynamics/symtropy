@@ -205,3 +205,56 @@ This slice does not yet implement:
 7. Empirical data adapters or independent domain qualification.
 
 Run the model-adequacy-sweep binary using Cargo with the locked manifest at research/civdyn-self-correction/Cargo.toml. The existing CIVDYN workflow also runs this binary after formatting, strict Clippy, compilation and tests. These are engineering checks against frozen synthetic contracts only.
+
+
+## Scenario O: source passport and cross-domain empirical compatibility
+
+The source passport is in src/source_passport.rs with the source-passport-sweep binary. It advances [CIVDYN-DATA-PASSPORT-001 #4601](https://github.com/Luminous-Dynamics/symtropy/issues/4601), the empirical intake foundation for [CIVDYN-SA-EMPIRICAL-001 #4560](https://github.com/Luminous-Dynamics/symtropy/issues/4560).
+
+### Passport contract
+
+Every acquired source needs a publisher/dataset/version, source family, acquisition locator, exact raw artifact digest, transform/normalization digest, rights/terms identity, time support and basis, native geography and boundary version/digest, measurement unit, sampling unit and sample-design/weights identities where applicable.
+
+Acquisition and use are distinct:
+- CandidateAvailable: metadata exists, but bytes are not acquired.
+- AcquisitionPending: a request or acquisition is still outstanding.
+- Acquired: raw bytes and retrieval metadata are present.
+- Rights state separately blocks Unknown/Prohibited use and requires a purpose-specific receipt for Restricted data.
+
+### Observation origin is not collapsed
+
+DirectMeasurement, AdministrativeSubmission, SurveyEstimate, DerivedFromRegisteredInputs, ExternalStudyEstimate, CategoryDefault, Imputed and Unknown are retained distinctly. Survey observations must match the passport's exact sample-design and weights digests. Derived/imputed observations require unique parent digests and a transform identity. Category defaults may inform explicitly labelled scenario assumptions but cannot qualify empirical measured validation.
+
+### Compatibility gate
+
+A cross-source panel has an explicit target temporal interval/basis, geography/boundary, measurement unit and analytical unit. Where a source differs, it needs a transform receipt bound to that source artifact digest:
+- TemporalAggregation;
+- SpatialCrosswalk (with measured coverage against a preregistered minimum);
+- UnitConversion;
+- AnalyticalUnitAggregation.
+
+The result remains Compatible, CompatibleWithExplicitTransform, NotComparable, RightsBlocked or NotAssessed, with reason codes. There is no silent calendar conversion, unit conversion, municipal-name crosswalk, imputation, null-to-zero conversion or promotion of a default to a measurement.
+
+### South African metadata-only fixture
+
+The deterministic sweep includes:
+1. matched provincial/year survey estimates with design and weights preserved;
+2. Treasury quarterly/financial-year and DWS daily records that cannot be joined without explicit temporal aggregation;
+3. DWS category-default evidence permitted for scenario assumptions but blocked for measured validation;
+4. Eskom hourly data still marked AcquisitionPending, so the result is NotAssessed and no artifact digest is fabricated;
+5. municipal boundary vintage mismatch resolved only by an MDB source-bound crosswalk receipt;
+6. unknown rights, which block use.
+
+These are metadata-only synthetic passports mirroring public source acquisition constraints. They contain no downloaded microdata or actual municipal observations.
+
+### 10 Nov 2026 acquisition-state correction
+
+- GHS 2025 is now available as CSV and Stata from DataFirst, with questionnaire and statistical release; collection files cover 2002–2025. The exact artifact, DOI citation, weights, design, permissions and metadata still need to be downloaded/reviewed and hashed. https://dfru.uct.ac.za/latest-release-south-africas-general-household-survey
+- Treasury's API docs advertise 2026 Q2, but explicitly say completeness/integrity verification is still in progress. Quarterly snapshot, amount-type, mSCOA and audit/budget distinctions must be preserved. https://municipaldata.treasury.gov.za/docs
+- DWS NRW sources may combine municipal WSKS submissions, other studies and defaults; the source-method label must accompany each value. https://www.dws.gov.za/niwis2/Info/NonRevenueWaterInfo
+- Eskom hourly exports require a request for no more than five years; until returned, the source remains AcquisitionPending. https://www.eskom.co.za/dataportal/data-request-form/
+- MDB publishes official 2026 boundaries; boundary vintage and any crosswalk digest must be registered. https://spatialhub-mdb-sa.opendata.arcgis.com/
+
+### Claim boundary
+
+The passport checks the completeness and internal consistency of declared metadata. It does not hash/authenticate source bytes, determine legal sufficiency, prove source truth, correct survey bias, or qualify the resulting CIVDYN model. No empirical validation claim is made by the synthetic source-passport sweep.
