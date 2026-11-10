@@ -15,8 +15,10 @@
       "freshness",
       "evidence_class"
     ],
-    "protected_asset_ids": ["asset-critical-01"],
-    "require_measured_workload": true,
+    "protected_asset_ids": [
+      "asset-critical-01"
+    ],
+    "require_measured_workload": false,
     "min_panel_evaluators": 0,
     "min_preference_lower_95": null,
     "human_panel_protocol_sha256": null,
@@ -26,7 +28,7 @@
     "max_p95_frame_time_us": 16700,
     "max_p99_frame_time_us": 25000,
     "max_peak_vram_bytes": 6000000000,
-    "max_gpu_energy_uj_per_frame": 8000.0
+    "max_gpu_energy_uj_per_frame": 8000
   },
   "profiles": [
     {
@@ -35,16 +37,24 @@
       "scene_capture_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       "metric_bundle_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
       "measurement_receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-      "evidence_class": "frozen_workload_measurement",
-      "preserved_asset_ids": ["asset-critical-01"],
-      "semantic_channels": ["units", "reference_frame", "uncertainty", "freshness", "evidence_class"],
+      "evidence_class": "synthetic_only",
+      "preserved_asset_ids": [
+        "asset-critical-01"
+      ],
+      "semantic_channels": [
+        "units",
+        "reference_frame",
+        "uncertainty",
+        "freshness",
+        "evidence_class"
+      ],
       "spatial_error_upper_bound": 0.03,
       "temporal_error_upper_bound": 0.04,
       "task_legibility_lower_bound": 0.98,
       "frame_time_p95_us": 14000,
       "frame_time_p99_us": 19000,
       "peak_vram_bytes": 5000000000,
-      "gpu_energy_uj_per_frame": 7500.0,
+      "gpu_energy_uj_per_frame": 7500,
       "human_preference": null
     },
     {
@@ -53,16 +63,24 @@
       "scene_capture_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       "metric_bundle_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
       "measurement_receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-      "evidence_class": "frozen_workload_measurement",
-      "preserved_asset_ids": ["asset-critical-01"],
-      "semantic_channels": ["units", "reference_frame", "uncertainty", "freshness", "evidence_class"],
+      "evidence_class": "synthetic_only",
+      "preserved_asset_ids": [
+        "asset-critical-01"
+      ],
+      "semantic_channels": [
+        "units",
+        "reference_frame",
+        "uncertainty",
+        "freshness",
+        "evidence_class"
+      ],
       "spatial_error_upper_bound": 0.06,
       "temporal_error_upper_bound": 0.07,
       "task_legibility_lower_bound": 0.9,
       "frame_time_p95_us": 12000,
       "frame_time_p99_us": 17000,
       "peak_vram_bytes": 4000000000,
-      "gpu_energy_uj_per_frame": 5000.0,
+      "gpu_energy_uj_per_frame": 5000,
       "human_preference": null
     }
   ]
