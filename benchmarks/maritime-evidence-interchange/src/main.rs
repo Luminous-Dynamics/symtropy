@@ -9,6 +9,7 @@ use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::collections::HashSet;
 use std::env;
+use std::fmt::Write as FmtWrite;
 use std::fs;
 use std::process::ExitCode;
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
@@ -16,8 +17,9 @@ use std::time::{Instant, SystemTime, UNIX_EPOCH};
 const MAX_CORPUS_BYTES: usize = 64 * 1024 * 1024;
 const MAX_INLINE_PAYLOAD_BYTES: usize = 16 * 1024 * 1024;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 enum Disposition {
+    #[default]
     Accept,
     Abstain,
     Reject,
@@ -44,11 +46,6 @@ struct RecordAudit {
     conflict_links_valid: Option<bool>,
 }
 
-impl Default for Disposition {
-    fn default() -> Self {
-        Self::Accept
-    }
-}
 
 impl RecordAudit {
     fn reject(&mut self, reason: &str) {
@@ -111,7 +108,11 @@ fn finite_number_at(value: &Value, path: &[&str]) -> Option<f64> {
 
 fn digest_hex(bytes: &[u8]) -> String {
     let digest = Sha256::digest(bytes);
-    digest.iter().map(|byte| format!("{byte:02x}")).collect()
+    let mut output = String::with_capacity(64);
+    for byte in digest {
+        write!(&mut output, "{byte:02x}").expect("writing hexadecimal digest to String cannot fail");
+    }
+    output
 }
 
 fn base64_value(byte: u8) -> Option<u8> {
@@ -127,7 +128,7 @@ fn base64_value(byte: u8) -> Option<u8> {
 
 fn decode_base64(input: &str) -> Result<Vec<u8>, String> {
     let bytes = input.as_bytes();
-    if bytes.len() % 4 != 0 {
+    if !bytes.len().is_multiple_of(4) {
         return Err("base64_length_not_multiple_of_four".into());
     }
     let padding = bytes.iter().rev().take_while(|byte| **byte == b'=').count();
@@ -191,11 +192,11 @@ fn parse_fixed_u32(bytes: &[u8], start: usize, end: usize) -> Option<i64> {
 
 fn days_from_civil(year: i64, month: i64, day: i64) -> i64 {
     let adjusted_year = year - if month <= 2 { 1 } else { 0 };
-    let era = if adjusted_year >= 0 {
+    let era = (if adjusted_year >= 0 {
         adjusted_year
     } else {
         adjusted_year - 399
-    } / 400;
+    }) / 400;
     let year_of_era = adjusted_year - era * 400;
     let adjusted_month = month + if month > 2 { -3 } else { 9 };
     let day_of_year = (153 * adjusted_month + 2) / 5 + day - 1;
@@ -244,7 +245,7 @@ fn parse_utc_timestamp(value: &str) -> Result<i64, String> {
 
 fn civil_from_days(days_since_epoch: i64) -> (i64, i64, i64) {
     let z = days_since_epoch + 719468;
-    let era = if z >= 0 { z } else { z - 146096 } / 146097;
+    let era = (if z >= 0 { z } else { z - 146096 }) / 146097;
     let day_of_era = z - era * 146097;
     let year_of_era = (day_of_era - day_of_era / 1460 + day_of_era / 36524 - day_of_era / 146096) / 365;
     let year = year_of_era + era * 400;
