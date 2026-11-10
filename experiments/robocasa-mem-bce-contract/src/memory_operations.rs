@@ -60,7 +60,7 @@ pub struct MemoryOperationManifest {
     pub expected_case_count: usize,
     /// Complete task roster for this operation-level evaluation cohort.
     pub expected_task_ids: Vec<String>,
-    /// Ordered by episode then strictly increasing event sequence within episode.
+    /// Cases may interleave episodes, but sequences must strictly increase within each episode.
     pub cases: Vec<ExpectedMemoryOperation>,
 }
 
@@ -941,6 +941,14 @@ mod tests {
             audit_memory_operations(&unexpected, &[]),
             Err(MemoryOperationError::UnexpectedTask)
         );
+
+        let mut omitted_task = manifest(vec![item]);
+        omitted_task.expected_task_ids.push("TM-02".to_owned());
+        omitted_task.expected_case_count = 2;
+        assert_eq!(
+            audit_memory_operations(&omitted_task, &[]),
+            Err(MemoryOperationError::TaskSetMismatch)
+        );
     }
 
     #[test]
@@ -952,6 +960,21 @@ mod tests {
             audit_memory_operations(&manifest(vec![item]), &[observed]),
             Err(MemoryOperationError::ReceiptContextMismatch)
         );
+    }
+
+    #[test]
+    fn semantically_faithful_compression_does_not_require_identical_memory_bytes() {
+        let item = case("compress", 1, MemoryOperationKind::Compression, MemoryOperationApplicability::Applicable, Some(digest("required-facts")));
+        let mut observed = receipt(&item);
+        observed.observed_effect_sha256 = Some(digest("required-facts"));
+        observed.memory_snapshot_before_sha256 = Some(digest("uncompressed-layout"));
+        observed.memory_snapshot_after_sha256 = Some(digest("compressed-layout"));
+        observed.memory_bytes_before = Some(4096);
+        observed.memory_bytes_after = Some(1024);
+
+        let audit = audit_memory_operations(&manifest(vec![item]), &[observed]).unwrap();
+        assert_eq!(audit.results[0].outcome, MemoryOperationOutcome::Correct);
+        assert_eq!(audit.summaries[0].compression_ratio, Some(0.25));
     }
 
     #[test]
