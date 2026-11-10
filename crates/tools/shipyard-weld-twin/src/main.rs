@@ -900,7 +900,7 @@ mod tests {
         let root = workspace_root();
         let report = verify_corpus(&corpus, &root).expect("frozen corpus evaluates");
         assert_eq!(report["case_count"].as_u64(), Some(54));
-        assert_eq!(report["passed_count"].as_u64(), Some(51));
+        assert_eq!(report["passed_count"].as_u64(), Some(54));
         assert_eq!(report["failed_count"].as_u64(), Some(0));
     }
 
