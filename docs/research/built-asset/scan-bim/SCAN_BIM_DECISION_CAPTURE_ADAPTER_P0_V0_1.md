@@ -15,7 +15,8 @@ The adapter requires each proposed capture action to bind:
 - pose revision, pose evidence and reachability qualification;
 - coordinate frame and frame revision;
 - evaluator visibility receipt and visibility disposition;
-- measurement qualification for a named task profile;
+- measurement-evidence receipt and measurement qualification for a named task profile;
+- exact model revision and approved requirement revision;
 - exact decision profile and requirement scope.
 
 A capture action is eligible only when all required fields refer to the same building decision and current survey/frame revisions. Occluded, inaccessible, unknown, stale or task-unqualified capture actions cannot produce decision effects.
@@ -33,7 +34,7 @@ The Rust package in tools/scan-bim-decision-capture-adapter:
 
 ## Frozen corpus
 
-The P0 corpus wraps the eight known-answer #1892 finite-state decision cases and provides eleven action-to-capture bindings.
+The P0 corpus wraps the eight known-answer #1892 finite-state decision cases and provides eleven action-to-capture bindings. Each binding carries a sensor-profile digest, pose-evidence digest, visibility-receipt digest, measurement-receipt digest, model/requirement/survey revisions and the task profile.
 
 The synthetic baseline expects ten capture bindings to be internally qualified and one stale-source action to be unqualified. The existing #1892 oracle remains authoritative for:
 - mutually exclusive and exhaustive outcome partitions;
