@@ -478,15 +478,9 @@ impl MemoryEvaluationRecord {
         ) {
             self.terminal_receipt
                 .as_ref()
-                .ok_or(ImportError::MissingTerminalReceipt)?
-                .validate()?;
+                .ok_or(ImportError::MissingTerminalReceipt)?;
         } else if self.terminal_receipt.is_some() {
             return Err(ImportError::UnexpectedTerminalReceipt);
-        }
-
-        if self.task.bce_required && self.bce_receipts.is_empty() {
-            // The raw run is retained, but it cannot satisfy a protocol that
-            // requires behavior-conditioned evaluation receipts.
         }
 
         let mut counts = StageCompletionCounts {
@@ -1034,6 +1028,89 @@ mod tests {
         assert!(audit
             .qualification_blockers
             .contains(&QualificationBlocker::TerminalOutcomeUnresolved));
+    }
+
+    #[test]
+    fn unresolved_dataset_rights_and_training_overlap_block_qualification() {
+        let mut run = record("policy-only", AssistanceTrack::PolicyOnly);
+        run.protocol.dataset_rights_status = DatasetRightsStatus::Unknown;
+        run.policy.training_overlap_status = TrainingOverlapStatus::Unknown;
+
+        let audit = run.validate().unwrap();
+        assert!(audit
+            .qualification_blockers
+            .contains(&QualificationBlocker::DatasetRightsUnresolved));
+        assert!(audit
+            .qualification_blockers
+            .contains(&QualificationBlocker::TrainingOverlapUnknown));
+        assert_eq!(audit.stage_counts.succeeded, 2);
+    }
+
+    #[test]
+    fn known_training_overlap_can_be_disclosed_without_erasing_the_result() {
+        let mut run = record("policy-only", AssistanceTrack::PolicyOnly);
+        run.policy.training_overlap_status = TrainingOverlapStatus::KnownOverlapDisclosed;
+
+        let audit = run.validate().unwrap();
+        assert!(!audit
+            .qualification_blockers
+            .contains(&QualificationBlocker::TrainingOverlapUnknown));
+    }
+
+    #[test]
+    fn unknown_outcome_source_is_preserved_as_a_qualification_blocker() {
+        let mut run = record("policy-only", AssistanceTrack::PolicyOnly);
+        run.stages[0].evidence = Some(receipt(OutcomeEvidenceSource::Unknown, 31));
+        let audit = run.validate().unwrap();
+        assert!(audit
+            .qualification_blockers
+            .contains(&QualificationBlocker::UnknownOutcomeEvidenceSource));
+        assert_eq!(audit.stage_counts.succeeded, 2);
+    }
+
+    #[test]
+    fn bce_required_task_without_evaluator_receipts_is_blocked() {
+        let mut run = record("policy-only", AssistanceTrack::PolicyOnly);
+        run.task.bce_required = true;
+        let audit = run.validate().unwrap();
+        assert!(audit
+            .qualification_blockers
+            .contains(&QualificationBlocker::BceEvaluationMissing));
+        assert_eq!(audit.terminal_outcome, TerminalOutcome::Succeeded);
+    }
+
+    #[test]
+    fn task_stage_order_is_preserved_not_sorted_by_importer() {
+        let mut run = record("policy-only", AssistanceTrack::PolicyOnly);
+        run.stages.swap(0, 1);
+        assert_eq!(run.validate(), Err(ImportError::StageOrderMismatch));
+    }
+
+    #[test]
+    fn duplicate_bce_receipt_pairs_reject() {
+        let mut run = record("policy-only", AssistanceTrack::PolicyOnly);
+        let receipt = BehaviorConditionedReceipt {
+            source_interaction_id: "choose-cup-a".into(),
+            target_interaction_id: "retrieve-cup-a".into(),
+            source_sequence: 4,
+            target_sequence: 11,
+            predicate_id: "same-entity-v1".into(),
+            evaluator_receipt_digest: digest(21),
+            policy_input_digest: run.policy_input.policy_input_digest,
+        };
+        run.bce_receipts = vec![receipt.clone(), receipt];
+        assert_eq!(run.validate(), Err(ImportError::DuplicateBceReceipt));
+    }
+
+    #[test]
+    fn matched_arms_require_identical_policy_visible_observation_manifest() {
+        let left = record("policy-only", AssistanceTrack::PolicyOnly);
+        let mut right = record("agent", AssistanceTrack::AgentAssisted);
+        right.policy_input.observation_bundle_digest = digest(99);
+        assert_eq!(
+            left.require_matched_control(&right),
+            Err(ImportError::MatchedControlMismatch)
+        );
     }
 
     #[test]
