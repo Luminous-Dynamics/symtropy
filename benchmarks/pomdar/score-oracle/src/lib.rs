@@ -135,8 +135,9 @@ pub enum ScoreError {
 ///
 /// Times must use the same unit; this API uses seconds. The function neither
 /// clamps the speed ratio nor rounds intermediate values. Human-baseline
-/// provenance, protocol eligibility, trial exclusions and measurement
-/// boundaries remain the caller's responsibility.
+/// provenance, protocol eligibility, failure/timeout timing, trial exclusions
+/// and measurement boundaries remain the caller's responsibility. This
+/// arithmetic oracle does not decide whether an incomplete trial is scoreable.
 pub fn score_task(
     correctness: TaskCorrectness,
     timing: TaskTiming,
@@ -228,9 +229,10 @@ mod tests {
 
     #[test]
     fn aggregate_score_must_not_replace_correctness_component() {
-        // With C=0 and a speed ratio of 5, the published arithmetic gives
-        // score=1.0. This is not task success; consumers must report C and
-        // speed separately and apply the exact protocol's eligibility rules.
+        // Arithmetic-only edge vector: with C=0 and a speed ratio of 5,
+        // the formula gives score=1.0. This does not assert that a failed
+        // trial is eligible for a POMDAR speed time. Consumers must apply
+        // the exact protocol's failure/timeout eligibility rules and report C.
         let result = score_task(
             TaskCorrectness::PureGrasping(PureGraspOutcome::NotLifted),
             timing(10.0, 2.0),
