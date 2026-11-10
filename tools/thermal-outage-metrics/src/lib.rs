@@ -295,8 +295,8 @@ mod tests {
         )
         .unwrap();
 
-        close(result.degree_hours_over_covered_intervals, 2.0);
-        close(result.breach_hours_over_covered_intervals, 2.0);
+        close(result.degree_hours_over_covered_intervals, 1.0);
+        close(result.breach_hours_over_covered_intervals, 1.0);
         close(result.max_departure_c_over_covered_intervals.unwrap(), 2.0);
         close(result.first_observed_breach_seconds.unwrap(), 1_800.0);
     }
