@@ -170,6 +170,7 @@ pub struct RelationLineage {
 #[serde(deny_unknown_fields)]
 pub struct TargetRelation {
     pub relation_id: String,
+    pub relation_kind: String,
     pub relation_type: String,
     pub subject_entity_id: String,
     pub object_entity_id: String,
@@ -662,6 +663,7 @@ fn validate_relation_audit(
 
         for target in &relation.target_relations {
             if target.relation_id.trim().is_empty()
+                || target.relation_kind.trim().is_empty()
                 || target.relation_type.trim().is_empty()
                 || target.subject_entity_id.trim().is_empty()
                 || target.object_entity_id.trim().is_empty()
@@ -701,7 +703,7 @@ fn validate_relation_audit(
                 ));
             }
             if relation.disposition == RelationDisposition::Preserved
-                && target.relation_type != relation.relation_kind
+                && target.relation_kind != relation.relation_kind
             {
                 return Err(format!(
                     "preserved relation {} changes canonical relation kind",
