@@ -7,8 +7,10 @@
 //! active inference, and physics twin parameters) into WGSL/std430-compatible structures
 //! for high-performance GPU-driven rendering in `symthaea-bevy-dash`.
 
+use bevy::asset::RenderAssetUsages;
 use bevy::prelude::*;
 use bevy::render::render_resource::ShaderType;
+use bevy::render::storage::ShaderBuffer;
 use bytemuck::{Pod, Zeroable};
 
 /// Shared telemetry layout representing a single network node in the multi-scale observability matrix.
@@ -98,5 +100,68 @@ impl TelemetryBufferResource {
     pub fn clear(&mut self) {
         self.nodes.clear();
         self.links.clear();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::mem::{offset_of, size_of};
+
+    #[test]
+    fn node_telemetry_layout_matches_the_wesl_storage_struct() {
+        assert_eq!(size_of::<NodeTelemetryGpu>(), 64);
+        assert_eq!(offset_of!(NodeTelemetryGpu, position), 0);
+        assert_eq!(offset_of!(NodeTelemetryGpu, variational_free_energy), 12);
+        assert_eq!(offset_of!(NodeTelemetryGpu, bandwidth_bps), 16);
+        assert_eq!(offset_of!(NodeTelemetryGpu, latency_ms), 20);
+        assert_eq!(offset_of!(NodeTelemetryGpu, tunnel_state), 24);
+        assert_eq!(offset_of!(NodeTelemetryGpu, dht_holding_completeness), 28);
+        assert_eq!(offset_of!(NodeTelemetryGpu, gossip_frequency_hz), 32);
+        assert_eq!(offset_of!(NodeTelemetryGpu, validation_failure_count), 36);
+        assert_eq!(offset_of!(NodeTelemetryGpu, wasm_memory_fraction), 40);
+        assert_eq!(offset_of!(NodeTelemetryGpu, last_hot_reload_time), 44);
+        assert_eq!(offset_of!(NodeTelemetryGpu, holographic_coherence), 48);
+        assert_eq!(offset_of!(NodeTelemetryGpu, thermal_gradient), 52);
+        assert_eq!(offset_of!(NodeTelemetryGpu, circuit_load), 56);
+        assert_eq!(offset_of!(NodeTelemetryGpu, _padding), 60);
+    }
+
+    #[test]
+    fn link_telemetry_layout_matches_the_wesl_storage_struct() {
+        assert_eq!(size_of::<LinkTelemetryGpu>(), 32);
+        assert_eq!(offset_of!(LinkTelemetryGpu, source_node_idx), 0);
+        assert_eq!(offset_of!(LinkTelemetryGpu, target_node_idx), 4);
+        assert_eq!(offset_of!(LinkTelemetryGpu, link_thickness), 8);
+        assert_eq!(offset_of!(LinkTelemetryGpu, particle_velocity), 12);
+        assert_eq!(offset_of!(LinkTelemetryGpu, link_color), 16);
+    }
+
+    #[test]
+    fn bevy_020_shader_buffer_accepts_typed_telemetry_records() {
+        let nodes = vec![
+            NodeTelemetryGpu {
+                position: Vec3::new(1.0, 2.0, 3.0),
+                variational_free_energy: 0.25,
+                holographic_coherence: 0.75,
+                ..default()
+            },
+            NodeTelemetryGpu {
+                position: Vec3::new(4.0, 5.0, 6.0),
+                variational_free_energy: 0.5,
+                holographic_coherence: 0.9,
+                ..default()
+            },
+        ];
+
+        let buffer = ShaderBuffer::new(nodes, RenderAssetUsages::default());
+        let readback = buffer
+            .cast_slice::<NodeTelemetryGpu>()
+            .expect("typed initialized buffer");
+
+        assert_eq!(readback.len(), 2);
+        assert_eq!(readback[0].position, Vec3::new(1.0, 2.0, 3.0));
+        assert_eq!(readback[1].position, Vec3::new(4.0, 5.0, 6.0));
+        assert_eq!(buffer.buffer_size(), (2 * size_of::<NodeTelemetryGpu>()) as u64);
     }
 }
