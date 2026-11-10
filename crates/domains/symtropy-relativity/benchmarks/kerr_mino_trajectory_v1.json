@@ -9,7 +9,7 @@
   "implementation": {
     "pull_request": "https://github.com/Luminous-Dynamics/symtropy/pull/4543",
     "source_path": "crates/domains/symtropy-relativity/src/kerr_geodesic.rs",
-    "source_revision": "d0a55ee72e587eec3467657ff8711bbed51b0615",
+    "source_revision": "8148014c04fcf4df33937eff0268b92f38346b5e",
     "api": "KerrSeparatedNullGeodesic::integrate_adaptive",
     "integrator": "RK4 step-doubling on the smooth second-order Mino equations",
     "local_error_estimate": "(two_half_steps - one_full_step)/15",
@@ -40,7 +40,19 @@
         "time_coordinate": "v/M",
         "azimuth_coordinate": "phi_tilde"
       }
-    ]
+    ],
+    "capture_qualification": {
+      "api": "KerrMinoTrajectory::capture_status",
+      "statuses": [
+        "CapturedByHorizon",
+        "NoCrossingWithinIntegratedInterval",
+        "NotQualifiableInBoyerLindquist",
+        "ConstraintDriftExceeded",
+        "IncompleteTrajectory"
+      ],
+      "rule": "CapturedByHorizon requires an ingoing-chart trajectory with an observed outside-to-inside r+ transition and radial/polar first-integral residual maxima below the caller's ceiling.",
+      "non_claim": "No crossing within the finite integrated interval is not evidence of escape."
+    }
   },
   "conventions": {
     "dimensionless_units": "M=G*m/c^2=1",
@@ -311,7 +323,8 @@
         "final_radius_over_m_approx": 1,
         "final_radius_is_inside_outer_horizon": true,
         "finite_ingoing_time_and_azimuth": true,
-        "maximum_normalized_radial_constraint_residual_limit": 0.00001
+        "maximum_normalized_radial_constraint_residual_limit": 0.00001,
+        "capture_status": "CapturedByHorizon"
       },
       "independent_reference": {
         "method": "Python RK4 step-doubling using rationalized ingoing Mino derivatives",
