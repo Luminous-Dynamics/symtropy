@@ -703,6 +703,80 @@ mod tests {
     }
 
     #[test]
+    fn inertia_energy_matches_direct_mass_point_kinetic_energy() {
+        use nalgebra::SMatrix;
+
+        let samples = [
+            (0.7, SVector::<f64, 3>::new(1.0, 2.0, -0.5)),
+            (1.2, SVector::<f64, 3>::new(-0.3, 0.7, 1.4)),
+            (0.4, SVector::<f64, 3>::new(0.8, -1.2, 0.4)),
+        ];
+        let mut second_moment = SMatrix::<f64, 3, 3>::zeros();
+        for (weight, point) in samples {
+            second_moment += (point * point.transpose()) * (2.0 * weight);
+        }
+        let row_major = (0..3)
+            .flat_map(|row| (0..3).map(move |column| second_moment[(row, column)]))
+            .collect::<Vec<_>>();
+        let inertia =
+            RotationalInertiaOperator::<3>::from_body_second_moment_matrix(row_major).unwrap();
+
+        let mut angular = Bivector::<3>::zero();
+        angular.set(0, 1, 0.31);
+        angular.set(0, 2, -0.47);
+        angular.set(1, 2, 0.83);
+        let operator_energy = inertia.kinetic_energy_bivector_joules(&angular).unwrap();
+        let angular_map = angular.to_matrix();
+        let direct_energy = samples
+            .iter()
+            .map(|(weight, point)| weight * (angular_map * point).norm_squared())
+            .sum::<f64>();
+
+        assert!((operator_energy - direct_energy).abs() < 1.0e-11);
+    }
+
+    #[test]
+    fn rotational_energy_is_invariant_under_body_frame_rotation() {
+        use nalgebra::SMatrix;
+        use symtropy_math::Rotor;
+
+        let second_moment = SMatrix::<f64, 3, 3>::new(
+            2.0, 0.3, -0.2,
+            0.3, 3.0, 0.4,
+            -0.2, 0.4, 1.7,
+        );
+        let mut angular = Bivector::<3>::zero();
+        angular.set(0, 1, 0.31);
+        angular.set(0, 2, -0.47);
+        angular.set(1, 2, 0.83);
+        let original = RotationalInertiaOperator::<3>::from_body_second_moment_matrix(
+            (0..3)
+                .flat_map(|row| (0..3).map(|column| second_moment[(row, column)]))
+                .collect(),
+        )
+        .unwrap();
+        let original_energy = original.kinetic_energy_bivector_joules(&angular).unwrap();
+
+        let frame_change =
+            Rotor::<3>::from_bivector(&Bivector::<3>::unit_plane(0, 2).scale(0.73));
+        let rotation = *frame_change.to_matrix();
+        let transformed_second_moment = rotation * second_moment * rotation.transpose();
+        let transformed_generator =
+            Bivector::<3>::from_matrix(&(rotation * angular.to_matrix() * rotation.transpose()));
+        let transformed = RotationalInertiaOperator::<3>::from_body_second_moment_matrix(
+            (0..3)
+                .flat_map(|row| (0..3).map(|column| transformed_second_moment[(row, column)]))
+                .collect(),
+        )
+        .unwrap();
+        let transformed_energy = transformed
+            .kinetic_energy_bivector_joules(&transformed_generator)
+            .unwrap();
+
+        assert!((original_energy - transformed_energy).abs() < 1.0e-11);
+    }
+
+    #[test]
     fn invalid_operator_matrices_are_rejected() {
         assert_eq!(
             RotationalInertiaOperator::<3>::try_from_row_major(vec![1.0, 0.0]),
