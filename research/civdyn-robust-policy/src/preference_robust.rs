@@ -247,6 +247,7 @@ pub enum PreferenceRobustError {
     InvalidIdentity { field: &'static str },
     InvalidCriterionCount,
     DuplicateCriterion { metric: &'static str },
+    InvalidObjectiveDirection { metric: &'static str, direction: ObjectiveDirection },
     InvalidReferenceScale { metric: &'static str },
     MissingScaleEvidence { metric: &'static str },
     EmptyPreferenceVertices,
@@ -274,6 +275,20 @@ impl From<crate::DecisionError> for PreferenceRobustError {
     }
 }
 
+fn required_direction(metric: OutcomeMetric) -> ObjectiveDirection {
+    match metric {
+        OutcomeMetric::TotalUnmetWaterM3
+        | OutcomeMetric::TotalUnmetEnergyKwh
+        | OutcomeMetric::WaterDeficitAreaHouseholdSteps
+        | OutcomeMetric::EnergyDeficitAreaHouseholdSteps
+        | OutcomeMetric::WaterFloorBreachFraction
+        | OutcomeMetric::EnergyFloorBreachFraction => ObjectiveDirection::Minimize,
+        OutcomeMetric::MinimumWaterCoverage
+        | OutcomeMetric::MinimumEnergyCoverage
+        | OutcomeMetric::RecoverySuccess => ObjectiveDirection::Maximize,
+    }
+}
+
 impl PreferenceContract {
     pub fn validate(&self) -> Result<(), PreferenceRobustError> {
         for (value, field) in [
@@ -294,6 +309,12 @@ impl PreferenceContract {
         }
         let mut metric_ids = BTreeSet::new();
         for criterion in &self.criteria {
+            if criterion.direction != required_direction(criterion.metric) {
+                return Err(PreferenceRobustError::InvalidObjectiveDirection {
+                    metric: criterion.metric.name(),
+                    direction: criterion.direction,
+                });
+            }
             if !metric_ids.insert(criterion.metric.name()) {
                 return Err(PreferenceRobustError::DuplicateCriterion {
                     metric: criterion.metric.name(),
@@ -1125,6 +1146,13 @@ mod tests {
         assert!(matches!(
             duplicate_criterion.validate(),
             Err(PreferenceRobustError::DuplicateCriterion { .. })
+        ));
+
+        let mut reversed_metric = contract(two_preference_vertices());
+        reversed_metric.criteria[0].direction = ObjectiveDirection::Maximize;
+        assert!(matches!(
+            reversed_metric.validate(),
+            Err(PreferenceRobustError::InvalidObjectiveDirection { .. })
         ));
     }
 
