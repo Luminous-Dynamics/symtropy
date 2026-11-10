@@ -410,19 +410,40 @@ fn validate_event(event: &Event) -> Vec<String> {
                 errors.push("not-executed reaction cannot carry an execution receipt".to_owned());
             }
         }
-        "acknowledged" | "executed" | "failed" | "unknown" => {
+        "acknowledged" | "executed" | "failed" => {
             if reaction.authority_status != "approved"
                 || reaction.authority_ref.is_none()
                 || reaction.authority_digest.is_none()
             {
-                errors.push("acknowledged/executed reaction requires explicit authority approval".to_owned());
+                errors.push(
+                    "acknowledged/executed reaction requires explicit authority approval".to_owned(),
+                );
             }
             if reaction
                 .execution_receipt_digest
                 .as_deref()
                 .is_none_or(|digest| !is_digest(digest))
             {
-                errors.push("acknowledged/executed reaction requires an execution receipt digest".to_owned());
+                errors.push(
+                    "acknowledged/executed reaction requires an execution receipt digest".to_owned(),
+                );
+            }
+        }
+        "unknown" => {
+            if reaction.authority_status != "approved"
+                || reaction.authority_ref.is_none()
+                || reaction.authority_digest.is_none()
+            {
+                errors.push(
+                    "unknown execution still requires an approved attempted action".to_owned(),
+                );
+            }
+            if reaction
+                .execution_receipt_digest
+                .as_deref()
+                .is_some_and(|digest| !is_digest(digest))
+            {
+                errors.push("unknown execution receipt, when present, must be a valid digest".to_owned());
             }
         }
         _ => {}
@@ -447,6 +468,14 @@ fn validate_event(event: &Event) -> Vec<String> {
             || reaction.verification_status != "not_applicable")
     {
         errors.push("not-executed reaction cannot claim service, post-action test or verification".to_owned());
+    }
+    if reaction.execution_status != "executed"
+        && (reaction.maintenance_event_digest.is_some()
+            || reaction.post_action_test_digest.is_some())
+    {
+        errors.push(
+            "maintenance/post-action evidence requires a completed execution event".to_owned(),
+        );
     }
 
     let service_or_replacement = matches!(reaction.proposal.as_str(), "service" | "replace");
@@ -698,6 +727,19 @@ mod tests {
             .unwrap();
         assert!(case.accepted);
         assert_eq!(case.execution_status.as_deref(), Some("unknown"));
+    }
+
+    #[test]
+    fn unknown_execution_without_receipt_is_allowed_only_with_mutation_block() {
+        let audited = report();
+        let accepted = audited.payload.cases.iter()
+            .find(|case| case.case_id == "unknown-execution-blocks-mutation")
+            .expect("unknown execution case");
+        assert!(accepted.accepted);
+        let rejected = audited.payload.cases.iter()
+            .find(|case| case.case_id == "unknown-execution-without-mutation-block-rejected")
+            .expect("unblocked unknown control");
+        assert!(!rejected.accepted);
     }
 
     #[test]
