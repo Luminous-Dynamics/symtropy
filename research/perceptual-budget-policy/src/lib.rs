@@ -1018,6 +1018,20 @@ mod tests {
     }
 
     #[test]
+    fn energy_measurement_requires_an_api_version_identity() {
+        let mut data = input();
+        data.profiles[0]
+            .energy_measurement
+            .as_mut()
+            .expect("energy")
+            .source_api_version = " ".to_owned();
+        assert_eq!(
+            evaluate(&data).unwrap_err(),
+            PolicyError::EmptyField("profile.energy_measurement.source_api_version")
+        );
+    }
+
+    #[test]
     fn insufficient_energy_power_samples_are_rejected() {
         let mut data = input();
         data.profiles[0]
