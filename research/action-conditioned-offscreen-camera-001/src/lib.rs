@@ -178,6 +178,7 @@ pub enum RenderError {
     InvalidFocalLength,
     InvalidNearFarPlane,
     InvalidCameraTransform,
+    InvalidObservationSequence,
     TooManyRoadMarkings,
     TooManyRoadPoints,
     TooManyActors,
@@ -401,6 +402,9 @@ impl SoftwareCameraRenderer {
         sequence: u64,
         clocks: RenderClocks,
     ) -> Result<RenderedObservation, RenderError> {
+        if sequence == 0 {
+            return Err(RenderError::InvalidObservationSequence);
+        }
         validate_snapshot(snapshot)?;
         if clocks.capture_timestamp_us != snapshot.world_timestamp_us {
             return Err(RenderError::ClockCaptureMismatch);
@@ -1298,6 +1302,10 @@ mod tests {
             .pixels_rgb
             .chunks_exact(3)
             .any(|pixel| pixel == [214, 72, 58]));
+        assert!(result
+            .pixels_rgb
+            .chunks_exact(3)
+            .any(|pixel| pixel == [65, 134, 226]));
     }
 
     #[test]
@@ -1374,7 +1382,7 @@ mod tests {
         world.road_markings.clear();
         let points = vec![[0, 10_000, 0], [0, 11_000, 0]];
         let per_marking = MAX_POINTS_PER_MARKING;
-        let mut remaining = MAX_TOTAL_ROAD_POINTS + 1;
+        let mut remaining = MAX_TOTAL_ROAD_POINTS + 2;
         let mut index = 0_u32;
         while remaining > 0 {
             let count = remaining.min(per_marking);
@@ -1475,6 +1483,14 @@ mod tests {
         assert_eq!(first.policy_receipt.frame_sha256, second.policy_receipt.frame_sha256);
         assert_ne!(first.policy_receipt.observation_id, second.policy_receipt.observation_id);
         assert_ne!(first.policy_receipt.receipt_sha256, second.policy_receipt.receipt_sha256);
+    }
+
+    #[test]
+    fn observation_sequence_zero_is_rejected() {
+        assert_eq!(
+            SoftwareCameraRenderer::render(&snapshot(), 0, clocks()).err(),
+            Some(RenderError::InvalidObservationSequence)
+        );
     }
 
     #[test]
