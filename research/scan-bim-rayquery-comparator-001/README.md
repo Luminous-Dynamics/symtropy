@@ -79,12 +79,12 @@ The median BVH is the production evaluator path. The SAH prototype is compiled o
 
 A standalone benchmark-only C++ adapter now exists at `embree/`:
 - Exact upstream pin: Intel Embree 4.4.1, tag `v4.4.1`, commit `f590db83ef6559387df7f6d8725c34fb7acf851d`, Apache-2.0.
-- Uses Embree 4's argument intersection filter, rejecting every candidate hit while collecting `ray->tfar` and primitive identity. This follows the upstream `tutorials/next_hit/next_hit_device.cpp` pattern and preserves nearest-hit tie sets rather than relying on one arbitrary first hit.
+- Uses Embree 4's argument intersection filter, rejecting every candidate hit while collecting `ray->tfar` and primitive identity. This follows the upstream `tutorials/next_hit/next_hit_device.cpp` pattern and preserves nearest-hit tie sets rather than relying on one arbitrary first hit. Because Embree's public ray data are float32, the adapter converts metric clipping bounds to the actual float32 direction's parameterization and converts hit parameters back to metric distances; declared epsilon remains unchanged.
 - Builds the exact fixture triangles as float32 vertex/index buffers; output explicitly reports `precision=f32`.
 - Exposes low/medium/high build quality and device thread configuration; each receipt records that ray calls are serial single-ray invocations.
 - Applies the fixture's metric intersection epsilon symmetrically to Embree `tnear`/`tfar` so its segment semantics match the f64 oracle's inclusive clipping contract; it does not widen the expected-distance or tie tolerances.
 - Uses CMake with exact Embree 4.4.1 and nlohmann-json 3.11.3 packages plus OpenSSL 3 Crypto.
-- Registers CTest smoke runs for base, 1,000× scale and overlap-stress fixtures.
+- Registers CTest smoke runs for base, 1,000× scale and overlap-stress fixtures. The executable emits its receipt and exits non-zero on a rejected comparison, so CTest cannot report a fixture mismatch as a pass.
 
 The adapter source has been reviewed against the pinned Embree headers and upstream all-hits tutorial, but it is **not yet compiled or executed**. The authoring environment lacks Embree and nlohmann-json development headers/libraries. CTest results, runtime correctness, build/query latency and memory are not yet available. Do not treat the existence of `main.cpp` as an engine comparison result. Detailed build/run instructions and remaining qualification limits are in [`embree/README.md`](embree/README.md).
 
