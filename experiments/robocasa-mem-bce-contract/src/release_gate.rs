@@ -325,6 +325,9 @@ pub fn qualify_release(
     if expected_families != observed_families {
         blockers.insert(ReleaseGateBlocker::ModelFamilySetMismatch);
     }
+    if evidence.model_smokes.is_empty() {
+        blockers.insert(ReleaseGateBlocker::ModelSmokeMissing);
+    }
     let mut seen_families = BTreeSet::new();
     for smoke in &evidence.model_smokes {
         if !seen_families.insert(smoke.family_id.as_str()) {
@@ -698,6 +701,65 @@ mod tests {
         let report = qualify_release(&duplicate).unwrap();
         assert!(report.has_blocker(ReleaseGateBlocker::DuplicateModelFamilySmoke));
         assert!(report.has_blocker(ReleaseGateBlocker::ModelFamilySetMismatch));
+    }
+
+    #[test]
+    fn asset_verified_task_coverage_must_match_expected_task_count() {
+        let mut candidate = evidence();
+        candidate.asset_verified_task_count = 8;
+
+        let report = qualify_release(&candidate).unwrap();
+        assert!(report.has_blocker(ReleaseGateBlocker::AssetCoverageCountMismatch));
+        assert!(!report
+            .stages
+            .contains(&ReleaseQualificationStage::AssetClosureQualified));
+    }
+
+    #[test]
+    fn source_file_manifest_requires_an_independent_verification_receipt() {
+        let mut candidate = evidence();
+        candidate.source_file_manifest_verified = false;
+
+        let report = qualify_release(&candidate).unwrap();
+        assert!(report.has_blocker(ReleaseGateBlocker::SourceManifestUnverified));
+        assert!(!report
+            .stages
+            .contains(&ReleaseQualificationStage::SourceIdentityAudited));
+    }
+
+    #[test]
+    fn known_upstream_candidate_state_does_not_qualify_historical_wheel_evidence() {
+        let mut candidate = evidence();
+        candidate.candidate_source_commit = "1".repeat(40);
+        candidate.manifest_source_commit = "2".repeat(40);
+        candidate.suite_bytes_preserved = false;
+        candidate.release_ready_attested = false;
+        candidate.clean_candidate_installation_verified = false;
+        candidate.installed_wheel.tested_runtime_sha256 = "0".repeat(64);
+
+        let report = qualify_release(&candidate).unwrap();
+        assert!(!report.native_evaluation_ready);
+        assert!(report.has_blocker(ReleaseGateBlocker::SourceRevisionMismatch));
+        assert!(report.has_blocker(ReleaseGateBlocker::SuiteBytesNotPreserved));
+        assert!(report.has_blocker(ReleaseGateBlocker::ReleaseNotMarkedReady));
+        assert!(report.has_blocker(ReleaseGateBlocker::CleanCandidateInstallationUnverified));
+        assert!(report.has_blocker(ReleaseGateBlocker::InstalledWheelWasNotReaccepted));
+        // Asset coverage can be complete while the release remains blocked.
+        assert!(report
+            .stages
+            .contains(&ReleaseQualificationStage::AssetClosureQualified));
+    }
+
+    #[test]
+    fn missing_rights_or_asset_receipt_manifests_block_release() {
+        let mut candidate = evidence();
+        candidate.dataset_rights_manifest_sha256.clear();
+        candidate.asset_verification_receipt_sha256.clear();
+
+        let report = qualify_release(&candidate).unwrap();
+        assert!(report.has_blocker(ReleaseGateBlocker::DatasetRightsManifestMissing));
+        assert!(report.has_blocker(ReleaseGateBlocker::AssetVerificationReceiptMissing));
+        assert!(!report.native_evaluation_ready);
     }
 
     #[test]
